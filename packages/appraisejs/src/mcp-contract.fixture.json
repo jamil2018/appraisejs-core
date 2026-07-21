@@ -1494,7 +1494,7 @@
     {
       "kind": "tool",
       "name": "operation_search",
-      "description": "Rank canonical operations by intent and exact capability filters before authoring validation.",
+      "description": "Search the low-level canonical operation catalog with paired human Step naming. Prefer step_search when a planId is available so user-authored steps participate too.",
       "inputSchema": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "type": "object",
@@ -3024,8 +3024,47 @@
     },
     {
       "kind": "tool",
+      "name": "step_search",
+      "description": "Preferred combined discovery for human-authored and agent-authored steps. Returns semantic Template Step naming together with canonical typed operation identity when mapped.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "planId": {
+            "type": "string"
+          },
+          "query": {
+            "type": "string",
+            "minLength": 1
+          },
+          "parameterNames": {
+            "default": [],
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "limit": {
+            "default": 5,
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 25
+          }
+        },
+        "required": [
+          "planId",
+          "query",
+          "parameterNames",
+          "limit"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "kind": "tool",
       "name": "template_step_match",
-      "description": "Rank reusable template steps and step blocks for a behavior intent before proposing custom steps.",
+      "description": "Compatibility name for step_search. Rank combined reusable steps and step blocks for a behavior intent.",
       "inputSchema": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "type": "object",
@@ -3064,7 +3103,7 @@
     {
       "kind": "tool",
       "name": "template_step_search",
-      "description": "Resolve live template steps with ranked intent and parameter compatibility before proposing custom steps.",
+      "description": "Compatibility name for step_search. Resolve combined human Template Step and canonical agent-operation results before proposing custom steps.",
       "inputSchema": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "type": "object",
@@ -5390,7 +5429,7 @@
     {
       "kind": "tool",
       "name": "operation_search",
-      "description": "Rank canonical operations by intent and exact capability filters before authoring validation.",
+      "description": "Search the low-level canonical operation catalog with paired human Step naming. Prefer step_search when a planId is available so user-authored steps participate too.",
       "inputSchema": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "type": "object",
@@ -7155,8 +7194,47 @@
     },
     {
       "kind": "tool",
+      "name": "step_search",
+      "description": "Preferred combined discovery for human-authored and agent-authored steps. Returns semantic Template Step naming together with canonical typed operation identity when mapped.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "planId": {
+            "type": "string"
+          },
+          "query": {
+            "type": "string",
+            "minLength": 1
+          },
+          "parameterNames": {
+            "default": [],
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "limit": {
+            "default": 5,
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 25
+          }
+        },
+        "required": [
+          "planId",
+          "query",
+          "parameterNames",
+          "limit"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "kind": "tool",
       "name": "template_step_match",
-      "description": "Rank reusable template steps and step blocks for a behavior intent before proposing custom steps.",
+      "description": "Compatibility name for step_search. Rank combined reusable steps and step blocks for a behavior intent.",
       "inputSchema": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "type": "object",
@@ -7195,7 +7273,7 @@
     {
       "kind": "tool",
       "name": "template_step_search",
-      "description": "Resolve live template steps with ranked intent and parameter compatibility before proposing custom steps.",
+      "description": "Compatibility name for step_search. Resolve combined human Template Step and canonical agent-operation results before proposing custom steps.",
       "inputSchema": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "type": "object",

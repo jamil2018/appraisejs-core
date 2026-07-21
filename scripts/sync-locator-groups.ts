@@ -149,9 +149,15 @@ async function createOrUpdateLocatorGroup(
   result: SyncResult,
 ): Promise<void> {
   try {
+    const owningModule = await prisma.module.findUnique({
+      where: { id: moduleId },
+      select: { targetProjectId: true },
+    })
+    if (!owningModule) throw new Error(`Module '${moduleId}' was not found`)
+
     // Check if locator group already exists
-    const existingGroup = await prisma.locatorGroup.findUnique({
-      where: { name: locatorGroup.name },
+    const existingGroup = await prisma.locatorGroup.findFirst({
+      where: { name: locatorGroup.name, targetProjectId: owningModule.targetProjectId },
     })
 
     if (existingGroup) {
@@ -181,6 +187,7 @@ async function createOrUpdateLocatorGroup(
           name: locatorGroup.name,
           route: locatorGroup.route,
           moduleId: moduleId,
+          targetProjectId: owningModule.targetProjectId,
         },
       })
 

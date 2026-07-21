@@ -19,6 +19,46 @@ type ReviewState = {
   validationProjectionJson: string
 }
 
+function withoutMutableReviewState(validation: ValidationArtifact) {
+  return { ...validation, validationDecisions: [], reviewSubmittedAt: undefined }
+}
+
+function withoutPartialAcknowledgements(validation: ValidationArtifact) {
+  const legacy = structuredClone(validation)
+  for (const node of legacy.validations)
+    for (const mapping of node.coverageArgument?.mappings ?? []) delete mapping.partialAcknowledgement
+  return legacy
+}
+
+function restorePartialAcknowledgements(current: ValidationArtifact, published: ValidationArtifact) {
+  const repaired = structuredClone(current)
+  for (const [validationIndex, publishedNode] of published.validations.entries()) {
+    const currentNode = repaired.validations[validationIndex]
+    if (!currentNode) continue
+    for (const [mappingIndex, publishedMapping] of (publishedNode.coverageArgument?.mappings ?? []).entries()) {
+      const currentMapping = currentNode.coverageArgument?.mappings[mappingIndex]
+      if (currentMapping && publishedMapping.partialAcknowledgement)
+        currentMapping.partialAcknowledgement = publishedMapping.partialAcknowledgement
+    }
+  }
+  return repaired
+}
+
+function isLegacyPartialAcknowledgementProjection(current: ValidationArtifact, published: ValidationArtifact) {
+  return (
+    canonicalContractJson(withoutPartialAcknowledgements(withoutMutableReviewState(current))) ===
+    canonicalContractJson(withoutPartialAcknowledgements(withoutMutableReviewState(published)))
+  )
+}
+
+export function immutablePublishedValidationContent(content: string, projectionJson: string) {
+  const artifact = parseYamlArtifact('validation', content) as ValidationArtifact
+  const projection = JSON.parse(projectionJson) as ValidationArtifact
+  return isLegacyPartialAcknowledgementProjection(artifact, projection)
+    ? serializeYamlArtifact('validation', projection)
+    : content
+}
+
 const digest = (value: string) => `sha256:${createHash('sha256').update(value).digest('hex')}`
 
 export function immutableValidationContent(content: string) {
@@ -84,7 +124,7 @@ export async function reconcileManagedValidationReviewState(
 ) {
   const client = options.client ?? prisma
   const repository = new PlanArtifactRepository(options.projectDirectory)
-  const [operation, validation, review, projection] = await Promise.all([
+  const [operation, initialValidation, review, projection] = await Promise.all([
     client.validationAstPublishOperation.findFirst({
       where: { planId, phase: 'review_ready' },
       orderBy: { createdAt: 'desc' },
@@ -95,19 +135,54 @@ export async function reconcileManagedValidationReviewState(
   ])
   if (!operation || !projection?.validationJson)
     throw new ServiceError('Managed validation review state is not ready to reconcile.', 'CONFLICT')
-  if (
-    digest(immutableValidationContent(validation.content)) !==
-      digest(immutableValidationContent(operation.validationContent)) ||
-    digest(immutableReviewContent(review.content)) !== digest(immutableReviewContent(operation.reviewContent)) ||
-    immutableValidationProjection(projection.validationJson) !==
-      immutableValidationProjection(operation.validationProjectionJson)
+  let validation = initialValidation
+  let projectionJson = projection.validationJson
+  const publishedValidation = JSON.parse(operation.validationProjectionJson) as ValidationArtifact
+  const expectedValidationContent = immutablePublishedValidationContent(
+    operation.validationContent,
+    operation.validationProjectionJson,
   )
-    throw new ServiceError('Immutable managed validation publication content changed.', 'CONFLICT')
+  const currentValidation = parseYamlArtifact('validation', validation.content) as ValidationArtifact
+  const currentProjection = JSON.parse(projectionJson) as ValidationArtifact
+  if (
+    isLegacyPartialAcknowledgementProjection(currentValidation, publishedValidation) &&
+    isLegacyPartialAcknowledgementProjection(currentProjection, publishedValidation)
+  ) {
+    const repairedValidation = restorePartialAcknowledgements(currentValidation, publishedValidation)
+    const repairedProjection = restorePartialAcknowledgements(currentProjection, publishedValidation)
+    if (canonicalContractJson(currentValidation) !== canonicalContractJson(repairedValidation))
+      validation = await repository.compareAndWrite(
+        'validation',
+        planId,
+        validation.hash,
+        serializeYamlArtifact('validation', repairedValidation),
+      )
+    projectionJson = JSON.stringify(repairedProjection)
+    if (projection.validationJson !== projectionJson)
+      await client.planProjection.update({ where: { planId }, data: { validationJson: projectionJson } })
+  }
+  const immutableMismatches = [
+    digest(immutableValidationContent(validation.content)) !==
+    digest(immutableValidationContent(expectedValidationContent))
+      ? 'validation_artifact'
+      : null,
+    digest(immutableReviewContent(review.content)) !== digest(immutableReviewContent(operation.reviewContent))
+      ? 'review_artifact'
+      : null,
+    immutableValidationProjection(projectionJson) !== immutableValidationProjection(operation.validationProjectionJson)
+      ? 'validation_projection'
+      : null,
+  ].filter((value): value is string => value !== null)
+  if (immutableMismatches.length > 0)
+    throw new ServiceError('Immutable managed validation publication content changed.', 'CONFLICT', undefined, {
+      blockerType: 'immutable_validation_publication_mismatch',
+      mismatches: immutableMismatches,
+    })
 
   const receipt = validationReviewStateReceipt({
     validationHash: managedValidationStateHash(validation.content),
     reviewHash: managedReviewStateHash(review.content),
-    validationProjectionJson: managedValidationProjectionState(projection.validationJson),
+    validationProjectionJson: managedValidationProjectionState(projectionJson),
   })
   await client.validationAstPublishOperation.update({
     where: { id: operation.id },

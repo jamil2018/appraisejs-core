@@ -16173,6 +16173,19 @@
       "community_name": "20260720010000_add_canonical_operation_mappings",
       "norm_label": "20260720010000_add_canonical_operation_mappings",
       "graphify_type": "migration"
+    },
+    {
+      "id": "prisma_migration_20260722013000_scope_locator_group_names_to_project",
+      "label": "20260722013000_scope_locator_group_names_to_project",
+      "type": "code",
+      "file_type": "code",
+      "source_file": "migrations/20260722013000_scope_locator_group_names_to_project/migration.sql",
+      "source_location": "L1",
+      "_origin": "prisma-schema",
+      "community": 178,
+      "community_name": "20260722013000_scope_locator_group_names_to_project",
+      "norm_label": "20260722013000_scope_locator_group_names_to_project",
+      "graphify_type": "migration"
     }
   ],
   "links": [
@@ -23826,17 +23839,6 @@
       "target": "prisma_model_locatorgroup_field_name",
       "relation": "has_field",
       "context": "field",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1,
-      "source_file": "schema.prisma",
-      "source_location": "L268",
-      "weight": 1
-    },
-    {
-      "source": "prisma_model_locatorgroup_field_name",
-      "target": "prisma_model_locatorgroup",
-      "relation": "unique_for",
-      "context": "constraint",
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "schema.prisma",
@@ -45270,8 +45272,19 @@
       "source_file": "migrations/20260720010000_add_canonical_operation_mappings/migration.sql",
       "source_location": "L1",
       "weight": 1
+    },
+    {
+      "source": "prisma_schema",
+      "target": "prisma_migration_20260722013000_scope_locator_group_names_to_project",
+      "relation": "has_migration",
+      "context": "migration",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1,
+      "source_file": "migrations/20260722013000_scope_locator_group_names_to_project/migration.sql",
+      "source_location": "L1",
+      "weight": 1
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "22faa088"
+  "built_at_commit": "19d7f492"
 }

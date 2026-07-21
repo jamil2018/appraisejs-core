@@ -221,6 +221,7 @@ describe('Validation AST publish journal with real SQLite', () => {
       'preparing_validations',
     )
     expect(await client.planEvent.count({ where: { type: 'validation_review_ready' } })).toBe(0)
+    await repository.compareAndWrite('plan', 'journal-plan', operation.expectedPlanArtifactHash, operation.planContent)
     await expect(
       resumeValidationAstPublish(operation.id, {
         client,

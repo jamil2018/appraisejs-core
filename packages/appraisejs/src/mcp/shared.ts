@@ -27,7 +27,7 @@ const packageJson = require('../../package.json') as {
 
 const serverStartedAt = new Date().toISOString()
 
-const mcpSurfaceVersion = '2026-07-20.unified-operation-catalog'
+const mcpSurfaceVersion = '2026-07-22.unified-step-discovery'
 
 const truthyFeatureValues = new Set(['1', 'true', 'yes', 'on'])
 
@@ -55,6 +55,7 @@ const baseWorkflowCriticalTools = [
   'plan_start',
   'validation_context_read',
   'appraise_resources_list',
+  'step_search',
   'template_step_search',
   'template_step_match',
   'step_block_search',

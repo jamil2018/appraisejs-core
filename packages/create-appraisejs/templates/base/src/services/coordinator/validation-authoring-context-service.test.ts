@@ -39,16 +39,17 @@ describe('validation authoring kit', () => {
       signature: string,
       description: string,
       parameters: Array<{ name: string; type: StepParameterType; order: number }> = [],
+      operation?: { id: string; version: string },
     ) => ({
       id,
       name,
       signature,
       description,
-      operationId: null,
-      operationVersion: null,
-      operationDescriptorHash: null,
-      humanProjectionId: null,
-      operationMigrationState: 'handler-required',
+      operationId: operation?.id ?? null,
+      operationVersion: operation?.version ?? null,
+      operationDescriptorHash: operation ? `sha256:${'a'.repeat(64)}` : null,
+      humanProjectionId: operation ? `${operation.id}.gherkin` : null,
+      operationMigrationState: operation ? 'mapped' : 'handler-required',
       templateStepGroupId: group.id,
       templateStepGroup: group,
       parameters,
@@ -62,10 +63,17 @@ describe('validation authoring kit', () => {
         templateStep('cookie', 'Set cookie', 'set cookie {name}', 'Set a browser cookie.', [
           { name: 'name', type: StepParameterType.STRING, order: 0 },
         ]),
-        templateStep('viewport', 'Set viewport size', 'set viewport {width} by {height}', 'Set viewport dimensions.', [
-          { name: 'width', type: StepParameterType.NUMBER, order: 0 },
-          { name: 'height', type: StepParameterType.NUMBER, order: 1 },
-        ]),
+        templateStep(
+          'viewport',
+          'Set viewport size',
+          'set viewport {width} by {height}',
+          'Set viewport dimensions.',
+          [
+            { name: 'width', type: StepParameterType.NUMBER, order: 0 },
+            { name: 'height', type: StepParameterType.NUMBER, order: 1 },
+          ],
+          { id: 'browser.viewport.set', version: '1' },
+        ),
       ],
       stepBlocks: [],
     }
@@ -74,6 +82,7 @@ describe('validation authoring kit', () => {
     expect(rankReusableResources(resources, 'set viewport size', ['width', 'height']).templateSteps[0]?.value.id).toBe(
       'viewport',
     )
+    expect(rankReusableResources(resources, 'responsive mobile layout').templateSteps[0]?.value.id).toBe('viewport')
   })
 
   it('creates a deterministic editable starter without claiming coverage', () => {

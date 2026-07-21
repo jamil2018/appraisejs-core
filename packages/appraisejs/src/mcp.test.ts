@@ -332,7 +332,7 @@ describe('compact lifecycle responses', () => {
 
     expect(compact).toMatchObject({
       returnedResourceCounts: { templateSteps: 35, modules: 0, locators: 0 },
-      resourceSearchGuidance: expect.stringContaining('template_step_search'),
+      resourceSearchGuidance: expect.stringContaining('step_search'),
     })
     expect(compact).not.toHaveProperty('resources')
     expect(measureMcpResponse(compact).estimatedTokens).toBeLessThan(MCP_RESPONSE_TOKEN_BUDGETS.validationMutation)

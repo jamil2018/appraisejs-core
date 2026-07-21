@@ -4,6 +4,7 @@ import { z } from 'zod'
 
 import { defaultActionCatalog } from '@/lib/action-catalog'
 import { defaultOperationRegistry } from '@/lib/operation-catalog'
+import { canonicalStepDiscoveryText, stepDiscoveryTerms } from '@/lib/step-discovery'
 
 import {
   coordinatorContractVersion,
@@ -490,11 +491,44 @@ function operationSearchText(
   descriptor: ReturnType<typeof defaultOperationRegistry.read>[number],
   aliases: string[],
 ) {
-  const humanProjectionText = descriptor.humanProjections
-    .flatMap(projection => [projection.signature, projection.title, projection.description])
-    .join(' ')
-  const agentTerms = descriptor.agentProjection?.searchTerms.join(' ') ?? ''
-  return `${operation.id} ${operation.title} ${operation.description} ${operation.categories.join(' ')} ${operation.capabilities.join(' ')} ${agentTerms} ${humanProjectionText} ${aliases.join(' ')}`.toLowerCase()
+  return `${canonicalStepDiscoveryText(descriptor)} ${aliases.join(' ')}`.toLowerCase()
+}
+
+function humanStepProjection(
+  projection: ReturnType<typeof defaultOperationRegistry.read>[number]['humanProjections'][number] | null,
+) {
+  if (!projection) return null
+  return {
+    name: projection.title,
+    description: projection.description,
+    signature: projection.signature,
+    groupName: projection.group,
+  }
+}
+
+function missingRequiredBindings(
+  inputs: ReturnType<typeof defaultOperationRegistry.read>[number]['inputs'],
+  requestedParameters: Set<string>,
+) {
+  return inputs
+    .filter(input => input.required && !requestedParameters.has(input.name))
+    .map(input => ({ name: input.name, type: input.type }))
+}
+
+function matchedIntentTerms(terms: Set<string>, text: string) {
+  return [...terms].filter(term => text.includes(term))
+}
+
+function matchedInputNames(requestedParameters: Set<string>, availableParameters: Set<string>) {
+  return [...requestedParameters].filter(name => availableParameters.has(name))
+}
+
+function matchingAlias(aliases: string[], intent: string) {
+  return aliases.find(alias => alias.toLowerCase() === intent.toLowerCase()) ?? null
+}
+
+function activeHumanProjection(descriptor: ReturnType<typeof defaultOperationRegistry.read>[number]) {
+  return descriptor.humanProjections.find(projection => !projection.deprecated) ?? null
 }
 
 function rankOperation(
@@ -504,21 +538,24 @@ function rankOperation(
   const descriptor = defaultOperationRegistry.read([{ id: operation.id, version: operation.version }])[0]!
   const aliases = descriptor.aliases.map(alias => alias.value)
   const text = operationSearchText(operation, descriptor, aliases)
-  const matchedTerms = [...context.terms].filter(term => text.includes(term))
+  const matchedTerms = matchedIntentTerms(context.terms, text)
   const availableParameters = new Set(descriptor.inputs.map(input => input.name))
-  const matchedParameters = [...context.requestedParameters].filter(name => availableParameters.has(name))
-  const missingRequiredBindings = descriptor.inputs
-    .filter(input => input.required && !context.requestedParameters.has(input.name))
-    .map(input => ({ name: input.name, type: input.type }))
+  const matchedParameters = matchedInputNames(context.requestedParameters, availableParameters)
+  const missingBindings = missingRequiredBindings(descriptor.inputs, context.requestedParameters)
   const exactId = operation.id === context.intent
-  const matchedAlias = aliases.find(alias => alias.toLowerCase() === context.intent.toLowerCase()) ?? null
+  const matchedAlias = matchingAlias(aliases, context.intent)
+  const humanProjection = activeHumanProjection(descriptor)
   return {
     ...operation,
+    displayName: humanProjection?.title ?? operation.title,
+    canonicalRef: `${operation.id}@${operation.version}`,
+    agentOperation: { id: operation.id, version: operation.version, ref: `${operation.id}@${operation.version}` },
+    humanStep: humanStepProjection(humanProjection),
     score: matchedTerms.length + matchedParameters.length * 2 + matchBoost(exactId, matchedAlias),
     matchedTerms,
     matchedAlias,
     parameterCompatibility: parameterCompatibility(context.requestedParameters.size, matchedParameters.length),
-    missingRequiredBindings,
+    missingRequiredBindings: missingBindings,
     explanation: operationMatchExplanation({
       exactId,
       matchedAlias,
@@ -540,12 +577,7 @@ function nextOperationAction(ranked: Array<ReturnType<typeof rankOperation>>) {
 
 function searchOperations(query: URLSearchParams) {
   const intent = z.string().trim().min(1).max(500).parse(query.get('query'))
-  const terms = new Set(
-    intent
-      .toLowerCase()
-      .split(/[^a-z0-9]+/)
-      .filter(Boolean),
-  )
+  const terms = stepDiscoveryTerms(intent)
   const requestedParameters = new Set(
     (query.get('parameterNames') ?? '')
       .split(',')
@@ -582,10 +614,13 @@ function searchOperations(query: URLSearchParams) {
     .sort((left, right) => right.score - left.score || left.id.localeCompare(right.id))
     .slice(0, limit)
   return Response.json({
+    discoveryKind: 'combined-step',
     manifestHash: defaultOperationRegistry.manifestHash,
     query: intent,
     recommended: ranked[0] ?? null,
+    recommendedStep: ranked[0] ?? null,
     alternatives: ranked.slice(1),
+    steps: ranked,
     nextRecommendedAction: nextOperationAction(ranked),
   })
 }

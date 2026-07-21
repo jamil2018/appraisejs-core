@@ -6,6 +6,7 @@ import prisma from '@/config/db-config'
 import { PlanArtifactRepository, PlanRepositoryError } from '@/lib/plans/artifact-repository'
 import {
   immutableReviewContent,
+  immutablePublishedValidationContent,
   immutableValidationContent,
   immutableValidationProjection,
   managedReviewStateHash,
@@ -151,7 +152,11 @@ export async function auditManagedValidationIntegrity(
       ? hashContent(immutableValidationContent(validationArtifact.content))
       : undefined,
     expectedValidationHash: operation
-      ? hashContent(immutableValidationContent(operation.validationContent))
+      ? hashContent(
+          immutableValidationContent(
+            immutablePublishedValidationContent(operation.validationContent, operation.validationProjectionJson),
+          ),
+        )
       : undefined,
     reviewHash: reviewArtifact ? hashContent(immutableReviewContent(reviewArtifact.content)) : undefined,
     expectedReviewHash: operation ? hashContent(immutableReviewContent(operation.reviewContent)) : undefined,

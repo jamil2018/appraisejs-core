@@ -1,15 +1,15 @@
-# Graph Report - scripts  (2026-07-21)
+# Graph Report - scripts  (2026-07-22)
 
 ## Corpus Check
 - cluster-only mode — file stats not available
 
 ## Summary
-- 564 nodes · 871 edges · 36 communities (33 shown, 3 thin omitted)
+- 564 nodes · 865 edges · 37 communities (34 shown, 3 thin omitted)
 - Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `95835407`
+- Built from commit: `8e15872b`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -46,18 +46,19 @@
 - [[_COMMUNITY_Community 29|Community 29]]
 - [[_COMMUNITY_Community 30|Community 30]]
 - [[_COMMUNITY_Community 31|Community 31]]
+- [[_COMMUNITY_Community 32|Community 32]]
 
 ## God Nodes (most connected - your core abstractions)
-1. `printSyncSummary()` - 21 edges
+1. `printSyncSummary()` - 20 edges
 2. `installTemplateStepPayload()` - 14 edges
 3. `runSyncScript()` - 11 edges
 4. `addLink()` - 8 edges
 5. `syncFilesystemTestSuite()` - 8 edges
-6. `extractModulePathFromLocatorFile()` - 7 edges
-7. `parseStepCall()` - 7 edges
-8. `parseStepFile()` - 7 edges
-9. `splitTagLine()` - 7 edges
-10. `main()` - 7 edges
+6. `parseStepCall()` - 7 edges
+7. `parseStepFile()` - 7 edges
+8. `splitTagLine()` - 7 edges
+9. `main()` - 7 edges
+10. `validateFinding()` - 7 edges
 
 ## Surprising Connections (you probably didn't know these)
 - `writeRegistry()` --calls--> `buildStepRegistry()`  [EXTRACTED]
@@ -74,19 +75,19 @@
 ## Import Cycles
 - None detected.
 
-## Communities (36 total, 3 thin omitted)
+## Communities (37 total, 3 thin omitted)
 
 ### Community 0 - "Community 0"
 Cohesion: 0.06
-Nodes (52): extractLocatorGroupName(), extractModulePathFromLocatorFile(), extractTestSuiteNameFromFilename(), runSyncScript(), printSyncSummary(), SummarySection, aggregateDatabaseChanges(), DatabaseChanges (+44 more)
+Nodes (45): __dirname, fragmentsRoot, registryRoot, repoRoot, writeRegistry(), CliOptions, detectPackageManager(), main() (+37 more)
 
 ### Community 1 - "Community 1"
-Cohesion: 0.06
-Nodes (45): __dirname, fragmentsRoot, registryRoot, repoRoot, writeRegistry(), CliOptions, detectPackageManager(), main() (+37 more)
+Cohesion: 0.07
+Nodes (48): addFieldModifiers(), addFieldTypeEdges(), addLink(), addLocalForeignKeys(), addModelConstraint(), addModelField(), addNode(), addReferencedFields() (+40 more)
 
 ### Community 2 - "Community 2"
 Cohesion: 0.07
-Nodes (48): addFieldModifiers(), addFieldTypeEdges(), addLink(), addLocalForeignKeys(), addModelConstraint(), addModelField(), addNode(), addReferencedFields() (+40 more)
+Nodes (41): extractLocatorGroupName(), extractModulePathFromLocatorFile(), extractTestSuiteNameFromFilename(), runSyncScript(), printSyncSummary(), SummarySection, aggregateDatabaseChanges(), DatabaseChanges (+33 more)
 
 ### Community 3 - "Community 3"
 Cohesion: 0.07
@@ -141,54 +142,58 @@ Cohesion: 0.22
 Nodes (8): envValue(), normalizeEndpointPath(), resolveMcpConfig(), config, skillExists, staleCapabilityRecovery, toolsNotVisibleRecovery, config
 
 ### Community 16 - "Community 16"
+Cohesion: 0.27
+Nodes (11): buildLocatorGroupsFromFS(), buildLocatorMapRouteMap(), createOrUpdateLocatorGroup(), deleteOrphanedLocatorGroups(), LocatorGroupFromFS, LocatorMapEntry, main(), readLocatorMap() (+3 more)
+
+### Community 17 - "Community 17"
 Cohesion: 0.35
 Nodes (10): ensureGitInclude(), getLocalConfig(), isGitRepository(), log(), main(), quiet, repoRoot, runGit() (+2 more)
 
-### Community 17 - "Community 17"
+### Community 18 - "Community 18"
 Cohesion: 0.29
 Nodes (8): allowedDatabaseFixtures, committedGraphifyFiles, committedGraphifyScopes, findForbiddenRuntimeArtifacts(), gitPaths(), main(), runtimeArtifactReason(), runtimeDirectoryPatterns
 
-### Community 18 - "Community 18"
+### Community 19 - "Community 19"
 Cohesion: 0.31
 Nodes (9): buildEnvironmentObjects(), EnvironmentConfig, EnvironmentData, getEnvironmentIdentityKey(), main(), normalizeEnvironmentName(), readEnvironmentsFromFile(), syncEnvironmentsToDatabase() (+1 more)
 
-### Community 19 - "Community 19"
+### Community 20 - "Community 20"
 Cohesion: 0.29
 Nodes (5): apply, blockUpdates, caseUpdates, mappingSelect, templateUpdates
 
-### Community 20 - "Community 20"
+### Community 21 - "Community 21"
 Cohesion: 0.48
 Nodes (4): baseIndex, suppressions, addedQualitySuppressions(), readQualityDiff()
 
-### Community 21 - "Community 21"
+### Community 22 - "Community 22"
 Cohesion: 0.29
 Nodes (6): env, fallowArgs, fallowCli, repoRoot, result, scriptDir
 
-### Community 22 - "Community 22"
+### Community 23 - "Community 23"
 Cohesion: 0.48
 Nodes (5): buildCucumberRuntime(), getRequiredTempDirectory(), getTempDirectory(), main(), runVitest()
 
-### Community 23 - "Community 23"
+### Community 24 - "Community 24"
 Cohesion: 0.38
 Nodes (6): findCommand(), findCommandInUvToolBin(), findCommandOnPath(), graphifyCommand, install, uvCommand
 
-### Community 24 - "Community 24"
+### Community 25 - "Community 25"
 Cohesion: 0.33
 Nodes (5): client, matrix, matrixJson, result, startedAt
 
-### Community 25 - "Community 25"
+### Community 26 - "Community 26"
 Cohesion: 0.40
 Nodes (3): failures, ignoredDirectories, roots
 
-### Community 26 - "Community 26"
+### Community 27 - "Community 27"
 Cohesion: 0.40
 Nodes (4): allowedDatabaseFixtures, packages, rootPackage, rootPublishRefusal
 
-### Community 27 - "Community 27"
+### Community 28 - "Community 28"
 Cohesion: 0.60
 Nodes (4): main(), SEEDED_TEMPLATE_PATHS, setSeededTemplateFilesTracked(), trimTrailingBlankLines()
 
-### Community 28 - "Community 28"
+### Community 29 - "Community 29"
 Cohesion: 0.50
 Nodes (3): databasePath, migrationsRoot, workspace
 
@@ -200,17 +205,17 @@ Nodes (3): databasePath, migrationsRoot, workspace
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `parseStepFile()` connect `Community 3` to `Community 1`, `Community 5`?**
+- **Why does `parseStepFile()` connect `Community 3` to `Community 0`, `Community 5`?**
   _High betweenness centrality (0.106) - this node is a cross-community bridge._
-- **Why does `printSyncSummary()` connect `Community 0` to `Community 18`, `Community 4`, `Community 5`, `Community 6`?**
-  _High betweenness centrality (0.084) - this node is a cross-community bridge._
-- **Why does `runSyncScript()` connect `Community 0` to `Community 18`, `Community 4`, `Community 5`, `Community 6`?**
-  _High betweenness centrality (0.048) - this node is a cross-community bridge._
+- **Why does `printSyncSummary()` connect `Community 2` to `Community 4`, `Community 5`, `Community 6`, `Community 16`, `Community 19`?**
+  _High betweenness centrality (0.085) - this node is a cross-community bridge._
+- **Why does `runSyncScript()` connect `Community 2` to `Community 4`, `Community 5`, `Community 6`, `Community 16`, `Community 19`?**
+  _High betweenness centrality (0.051) - this node is a cross-community bridge._
 - **What connects `repoRoot`, `prismaRoot`, `schemaPath` to the rest of the system?**
   _196 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `Community 0` be split into smaller, more focused modules?**
-  _Cohesion score 0.062003968253968256 - nodes in this community are weakly interconnected._
-- **Should `Community 1` be split into smaller, more focused modules?**
   _Cohesion score 0.06493506493506493 - nodes in this community are weakly interconnected._
-- **Should `Community 2` be split into smaller, more focused modules?**
+- **Should `Community 1` be split into smaller, more focused modules?**
   _Cohesion score 0.06787330316742081 - nodes in this community are weakly interconnected._
+- **Should `Community 2` be split into smaller, more focused modules?**
+  _Cohesion score 0.07315233785822021 - nodes in this community are weakly interconnected._

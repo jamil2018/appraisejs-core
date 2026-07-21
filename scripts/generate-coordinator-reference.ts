@@ -12,12 +12,12 @@ import {
 type McpDefinition = { kind: 'tool' | 'resource'; name: string; description?: string; uri?: string }
 type McpFixture = { default: McpDefinition[]; providerNative: McpDefinition[] }
 export type PublicOperationReference =
-  | { kind: 'coordinator'; operation: CoordinatorOperationId }
-  | { kind: 'local'; reason: string }
+  { kind: 'coordinator'; operation: CoordinatorOperationId } | { kind: 'local'; reason: string }
 
 const localSearchTools = new Set([
   'appraise_resources_list',
   'locator_search',
+  'step_search',
   'step_block_search',
   'template_step_match',
   'template_step_search',
