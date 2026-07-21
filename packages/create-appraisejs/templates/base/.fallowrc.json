@@ -19,7 +19,16 @@
     "registry/**",
     "templates/**"
   ],
-  "ignoreDependencies": ["@codemirror/lang-jinja", "@faker-js/faker", "chai", "chai-as-promised", "dotenv"],
+  "ignoreDependencies": [
+    "@codemirror/lang-jinja",
+    "@faker-js/faker",
+    "@locator-picker-companion/launcher",
+    "@locator-picker-companion/session-file",
+    "@locator-picker-companion/types",
+    "chai",
+    "chai-as-promised",
+    "dotenv"
+  ],
   "duplicates": {
     "ignore": ["automation/**", "packages/**", "registry/**", "templates/**"]
   },
@@ -45,8 +54,7 @@
         "unused-files": "warn",
         "unused-exports": "warn",
         "unused-types": "warn",
-        "unused-dependencies": "warn",
-        "duplicate-exports": "warn"
+        "unused-dependencies": "warn"
       }
     }
   ],
@@ -57,8 +65,6 @@
     "unused-dependencies": "error",
     "duplicate-exports": "error",
     "circular-dependencies": "error",
-    "unresolved-imports": "error",
-    "complexity": "warn",
-    "duplicates": "warn"
+    "unresolved-imports": "error"
   }
 }

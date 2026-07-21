@@ -195,4 +195,14 @@ describe('verifyPreparedTemplateState', () => {
       /OS artifacts/,
     )
   })
+
+  it('fails when Graphify artifacts are present', async () => {
+    const dir = await createTempTemplateDir()
+    await fs.ensureDir(path.join(dir, 'src', 'graphify-out'))
+    await fs.writeFile(path.join(dir, 'src', 'graphify-out', 'graph.json'), '{}')
+
+    await expect(verifyPreparedTemplateState(dir, 'starter', undefined, getStarterCounts)).rejects.toThrow(
+      /Graphify artifacts/,
+    )
+  })
 })

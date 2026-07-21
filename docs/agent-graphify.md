@@ -3,6 +3,11 @@
 Graphify provides a repo graph that agents can query before broad source exploration. The Python package is
 `graphifyy`, the terminal command is `graphify`, and the default app graph lives in `src/graphify-out/`.
 
+Whole-repository output under the root `graphify-out/` is local-only. Do not commit it: the broad graph duplicates
+scoped graphs, while its caches, machine paths, per-node wiki, manifests, and analysis state are not portable review
+artifacts. Scaffold templates also exclude every `graphify-out/` directory so generated apps do not ship repository
+development graphs.
+
 ## Prerequisites
 
 - Python 3.10 or newer.
@@ -117,7 +122,9 @@ explicit.
 Review `src/graphify-out/GRAPH_REPORT.md` before committing default app graph changes. Open
 `src/graphify-out/graph.html` for visual inspection, and commit only reviewed shared artifacts:
 `src/graphify-out/graph.json`, `src/graphify-out/graph.html`, and `src/graphify-out/GRAPH_REPORT.md`. Local cache and
-machine state under any `graphify-out/` directory stay ignored.
+machine state under any `graphify-out/` directory stay ignored. The same three-file allowlist applies to the committed
+`prisma/graphify-out/`, `scripts/graphify-out/`, and `packages/graphify-out/` scopes; all other Graphify output is
+local-only and rejected by `npm run release:check:artifacts`.
 
 If the existing `src/graphify-out/graph.json` is still valid but the visual HTML needs to be regenerated, run:
 

@@ -1,4 +1,4 @@
-const EXCLUDED_DIRS = new Set(['node_modules', '.next', '.git', 'dist'])
+const EXCLUDED_DIRS = new Set(['node_modules', '.next', '.git', 'dist', 'graphify-out'])
 const EXCLUDED_EXTENSIONS = new Set(['.db', '.sqlite', '.sqlite3', '.tsbuildinfo'])
 const EXCLUDED_PATH_PREFIXES = ['appraise/plans/', 'automation/reports/']
 const EXCLUDED_FILENAMES = new Set(['.DS_Store'])

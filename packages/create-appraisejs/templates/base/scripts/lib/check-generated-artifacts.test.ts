@@ -20,6 +20,20 @@ describe('generated artifact policy', () => {
     expect(runtimeArtifactReason('fixtures/copied-production.sqlite')).toBe('local database')
   })
 
+  it('allows only reviewed files in canonical Graphify scopes', () => {
+    expect(runtimeArtifactReason('src/graphify-out/graph.json')).toBeNull()
+    expect(runtimeArtifactReason('prisma/graphify-out/graph.html')).toBeNull()
+    expect(runtimeArtifactReason('scripts/graphify-out/GRAPH_REPORT.md')).toBeNull()
+    expect(runtimeArtifactReason('packages/graphify-out/graph.json')).toBeNull()
+
+    expect(runtimeArtifactReason('graphify-out/graph.json')).toBe('non-canonical Graphify output')
+    expect(runtimeArtifactReason('src/graphify-out/cache/ast.json')).toBe('non-canonical Graphify output')
+    expect(runtimeArtifactReason('packages/create-appraisejs/templates/base/src/graphify-out/graph.json')).toBe(
+      'non-canonical Graphify output',
+    )
+    expect(runtimeArtifactReason('codex/plan/graphify-out/GRAPH_REPORT.md')).toBe('non-canonical Graphify output')
+  })
+
   it('reports only forbidden paths', () => {
     expect(findForbiddenRuntimeArtifacts(['src/index.ts', '.appraise/project.json'])).toEqual([
       { file: '.appraise/project.json', reason: 'runtime or build output' },

@@ -8,6 +8,14 @@ const allowedDatabaseFixtures = new Set([
   'packages/create-appraisejs/templates/flavors/starter/prisma/dev.db',
 ])
 
+const committedGraphifyScopes = new Set([
+  'src/graphify-out',
+  'prisma/graphify-out',
+  'scripts/graphify-out',
+  'packages/graphify-out',
+])
+const committedGraphifyFiles = new Set(['GRAPH_REPORT.md', 'graph.html', 'graph.json'])
+
 const runtimeDirectoryPatterns = [
   /^\.appraise\//,
   /^\.playwright-cli\//,
@@ -20,6 +28,17 @@ const runtimeDirectoryPatterns = [
 export function runtimeArtifactReason(file) {
   const normalized = file.replaceAll('\\', '/')
   if (allowedDatabaseFixtures.has(normalized)) return null
+  const graphifyMarker = '/graphify-out/'
+  const graphifyMarkerIndex = normalized.indexOf(graphifyMarker)
+  if (normalized.startsWith('graphify-out/') || graphifyMarkerIndex !== -1) {
+    const scope = normalized.startsWith('graphify-out/')
+      ? 'graphify-out'
+      : normalized.slice(0, graphifyMarkerIndex + graphifyMarker.length - 1)
+    const filename = normalized.slice(scope.length + 1)
+    if (!committedGraphifyScopes.has(scope) || !committedGraphifyFiles.has(filename)) {
+      return 'non-canonical Graphify output'
+    }
+  }
   if (/\.(?:db|sqlite|sqlite3)(?:-|$)/i.test(normalized)) return 'local database'
   if (runtimeDirectoryPatterns.some(pattern => pattern.test(normalized))) return 'runtime or build output'
   return null

@@ -15,6 +15,10 @@ database files allowed in Git are the named, sanitized `blank` and `starter` sca
 fixture requires an explicit allowlist entry and a review proving it is deterministic and contains no credentials,
 cookies, private payloads, or machine-specific paths.
 
+Committed Graphify output is similarly allowlisted: only `GRAPH_REPORT.md`, `graph.html`, and `graph.json` directly
+inside the canonical `src`, `prisma`, `scripts`, and `packages` graph scopes belong in Git. Root graphs, scaffold
+copies, nested historical-plan graphs, caches, wikis, manifests, and machine state are local-only.
+
 | Surface                                                                 | Status                                   | Agent rule                                                                                                                                     |
 | ----------------------------------------------------------------------- | ---------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
 | `automation/features/*`                                                 | sync-managed feature output              | Prefer feature generation or database sync changes.                                                                                            |
@@ -31,7 +35,7 @@ cookies, private payloads, or machine-specific paths.
 | `prisma/graphify-out/*`                                                 | committed schema graph                   | Refresh with `npm run graphify:auto` or `npm run graphify:build:prisma` after schema or migration changes.                                     |
 | `scripts/graphify-out/*`                                                | committed scripts graph                  | Refresh with `npm run graphify:auto` when safe script source changes land.                                                                     |
 | `packages/graphify-out/*`                                               | committed packages graph                 | Refresh with `npm run graphify:auto`; package templates, docs, dist, and nested graph outputs stay excluded.                                   |
-| `packages/create-appraisejs/templates/base`                             | prepared scaffold template               | Change root/base source first unless the edit is package-only metadata.                                                                        |
+| `packages/create-appraisejs/templates/base`                             | prepared scaffold template               | Change root/base source first unless the edit is package-only metadata; template preparation excludes all Graphify output.                     |
 | `packages/create-appraisejs/templates/flavors/*`                        | prepared flavor overlays                 | Keep overlays small and intentional.                                                                                                           |
 | `packages/appraisejs/registry/template-steps/*`                         | built registry output                    | Prefer registry source or build scripts when behavior changes.                                                                                 |
 | prepared `prisma/dev.db` template databases                             | seeded scaffold data                     | Never include machine-local coordinator credentials, leases, durable events, test runs, reports, or personal layout state.                     |
