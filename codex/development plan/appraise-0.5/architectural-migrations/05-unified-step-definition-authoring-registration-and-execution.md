@@ -36,6 +36,12 @@ Human forms and agent commands are equal draft-authoring clients. Neither direct
 Appraise alone transitions a draft to an immutable ready version after the same semantic, projection, execution,
 integrity, and conformance contracts pass. The lifecycle is deliberately small: `draft -> ready -> deprecated`.
 
+Appraise is a deterministic projection and governance system. Humans and external coding agents supply semantic
+intent, examples, parameter meaning, and executable behavior. Appraise parses explicit structures, validates
+contracts, generates projections and typed boilerplate, compiles user-authored handlers, enforces authority, and
+publishes immutable artifacts. It does not require or embed an inference provider. Direct use of a future user's
+ChatGPT or other subscription requires a separately designed and approved adapter and is not part of this migration.
+
 ## Confirmed Root Cause
 
 ### Two durable identities remain
@@ -108,6 +114,14 @@ The human form and agent MCP commands create and revise drafts through the same 
 may write registry tables, generated wrappers, handlers, or ready state directly. Appraise validates and atomically
 publishes a version after the required review authority is satisfied.
 
+### Appraise projects; it does not infer
+
+Appraise may deterministically parse placeholders, generate schemas and TypeScript types, check exact and structural
+conflicts, validate compatibility, compile code, run conformance tests, and render projections. It may not invent
+descriptions, infer parameter meaning, generate semantic aliases, claim conceptual equivalence, recommend behavior
+from prose, or generate implementation logic. Humans or external agents author those values through the same draft
+contract. Any future inference adapter is optional, provider-isolated, and outside this plan.
+
 ### Published versions are immutable
 
 Any semantic, input, projection, execution, or search-metadata change creates a new draft version. Existing test
@@ -118,6 +132,13 @@ artifacts and evidence continue to resolve their exact historical version and ha
 Definitions reference trusted operation handlers, reviewed extensions, or ready compositions. They do not persist
 arbitrary TypeScript function bodies as database metadata. Existing `functionDefinition` behavior is migrated or
 quarantined, not normalized into the new contract.
+
+### User code is a reviewed artifact
+
+The wizard supports user-written handler code as a first-class path, but source and compiled bytes belong to a
+separately versioned reviewed extension artifact. The Step Definition stores only the exact execution binding and
+hashes. Appraise generates the handler contract and boilerplate mechanically from reviewed metadata; it never writes
+the behavior itself or overwrites the user's implementation when metadata changes.
 
 ## Goals
 
@@ -144,6 +165,7 @@ quarantined, not normalized into the new contract.
 - Inferring validation coverage or task graphs from Step Definition metadata.
 - Rewriting completed historical evidence or mutable in-place upgrades of published references.
 - Removing human authoring in favor of mandatory agent availability.
+- Built-in LLM inference, semantic suggestion services, or direct use of a user's hosted-chat subscription.
 
 ## Canonical Vocabulary
 
@@ -442,18 +464,73 @@ policy. Deprecation never deletes a referenced definition.
 
 ## Human Creator Architecture
 
-### Form sections
+### Metadata-to-code wizard
 
-1. **Purpose:** title, description, group, capabilities, example intents, and editable search suggestions.
-2. **Sentence:** structured Gherkin signature editor with named placeholders.
-3. **Inputs and outputs:** type, label, meaning, constraints, defaults, examples, aliases, and stored outputs.
-4. **Behavior:** select an existing trusted handler, compose ready definitions, attach a reviewed extension, or save
-   an unbound draft.
-5. **Preview:** human sentence, agent invocation, typed schema, discovery explanation, runtime resolution, and hashes.
-6. **Readiness:** blocking contracts, warnings, overlap candidates, conformance results, and review action.
+The primary human experience is a resumable, step-by-step **Create reusable step** wizard. It progressively constructs
+one Step Definition and its reviewed execution binding:
 
-The form is generated from the same draft schema used by MCP. It must not maintain a second set of validation rules.
-Placeholder edits use stable binding identifiers rather than fragile string replacement.
+1. **Identity and purpose:** the user supplies title, description, group, capabilities, search terms, and usage
+   examples. Appraise validates completeness and exact/structural conflicts without generating semantic suggestions.
+2. **Human sentence:** the user supplies the readable Gherkin expression. Appraise deterministically parses named
+   placeholders into incomplete input records; it does not infer types or meanings.
+3. **Typed contract:** the user supplies input/output types, descriptions, constraints, defaults, aliases, examples,
+   and stored-output behavior. Appraise generates JSON Schema, TypeScript types, parameter adapters, and the agent
+   invocation contract.
+4. **Runtime capabilities:** the user selects browser/API/node/database runtime and the bounded context capabilities
+   required by the implementation. Undeclared filesystem, process, network, environment, database, or Appraise
+   internals are unavailable.
+5. **Generated contract:** Appraise presents the deterministic handler interface and boilerplate produced from the
+   preceding metadata. This is a checkpoint before implementation begins.
+6. **Code:** the user writes the handler in a focused TypeScript editor with syntax highlighting, formatting,
+   generated-type autocomplete, bounded API documentation, and compiler diagnostics. Appraise supplies no generated
+   business logic.
+7. **Examples and conformance:** explicit user-authored examples drive schema, module-load, capability, timeout,
+   cancellation, input/output, and behavioral checks.
+8. **Review and publish:** the reviewer sees the human projection, agent invocation, source and compiled artifacts,
+   capabilities, hashes, conformance results, and exact draft diff before atomic publication.
+
+The form is generated from the same draft schema used by MCP and must not maintain a second set of validation rules.
+Placeholder edits use stable binding identifiers rather than fragile string replacement. Readiness, not internal
+state terminology, organizes the UI; incomplete work autosaves as a draft and can be resumed.
+
+### Generated and user-owned artifacts
+
+Generated files and user code remain separate so metadata regeneration cannot overwrite implementation:
+
+```text
+step-extension-draft/
+  definition.json   # Appraise-managed canonical metadata
+  contract.ts       # Appraise-generated; safe to regenerate
+  handler.ts        # user-managed implementation
+  examples.json     # explicit reviewed examples
+  manifest.json     # Appraise-generated binding and capability metadata
+```
+
+`handler.ts` imports generated input, output, and bounded-context types from `contract.ts`. Contract-affecting metadata
+changes regenerate `contract.ts`, recompile `handler.ts`, invalidate prior conformance receipts, and route the user
+back to Code or Tests. Display-only metadata changes still create a new immutable definition version but do not
+silently change execution bytes.
+
+### Custom handler pipeline
+
+Appraise performs only deterministic processing:
+
+```text
+explicit metadata
+  -> generated contract and handler skeleton
+  -> user-authored implementation
+  -> import and capability-policy validation
+  -> TypeScript compilation in a controlled staging root
+  -> input/output and module conformance
+  -> explicit behavioral examples
+  -> exact source and compiled hashes
+  -> human code review
+  -> reviewed-extension binding
+```
+
+Static checks alone are not a security boundary. Custom handler execution requires bounded runtime adapters,
+cancellation, timeouts, path containment, dependency policy, and immutable reviewed artifacts. Executable source is
+never embedded in `definitionJson` or a legacy `functionDefinition` field.
 
 ### Human API
 
@@ -488,7 +565,8 @@ step_definition_deprecate
 ```
 
 Agents must search ready definitions before creating a draft and provide a structured reuse/overlap justification.
-Agent commands may suggest metadata, bindings, or compositions, but agent-originated publication requires the same
+The external coding agent may reason about and author metadata, bindings, compositions, examples, and handler code;
+Appraise only accepts those as explicit draft fields and artifacts. Agent-originated publication requires the same
 human review authority as an equivalent human-form draft unless an explicit delegated policy is introduced later.
 
 `step_search` returns one Step Reference and its human, agent, and execution-readiness projections. It does not return
@@ -785,20 +863,43 @@ adapters over the registry service.
 
 ### Task 3.2: Replace the Template Step creator with a schema-driven draft editor
 
-Build Purpose, Sentence, Inputs/Outputs, Behavior, Preview, and Readiness sections from the shared schema.
+Build the metadata-to-code wizard: Identity/Purpose, Human Sentence, Typed Contract, Runtime Capabilities, Generated
+Contract, Code, Examples/Conformance, and Review/Publish.
 
 **Acceptance criteria**
 
 - Named placeholders create stable input bindings and survive rename/reorder operations.
-- Users can choose operation, composition, reviewed-extension, or unbound draft behavior.
-- The form displays both human and agent projections plus executable readiness before review.
+- Appraise generates types, schemas, parameter adapters, and handler boilerplate without inference or implementation
+  logic.
+- Generated contracts and user-owned handler source are separate, and metadata regeneration never overwrites code.
+- Users can choose an existing handler, composition, reviewed extension, new user-authored handler, or unbound draft.
+- The form displays human and agent projections, declared runtime capabilities, compiler diagnostics, conformance, and
+  executable readiness before review.
 
 **Verification**
 
-- Component tests cover keyboard use, validation, placeholder editing, binding modes, stale revisions, and preview.
+- Component tests cover keyboard use, validation, placeholder editing, contract regeneration, source preservation,
+  binding modes, compiler diagnostics, stale revisions, conformance routing, and preview.
 - Accessibility audit and real-browser happy-path checks pass.
 
-### Task 3.3: Add human review and immutable version creation
+### Task 3.3: Compile and review user-authored handlers
+
+Stage source under contained Appraise-owned paths, enforce import and capability policy, compile against generated
+contracts, run explicit examples and generic conformance, and create a reviewed extension artifact.
+
+**Acceptance criteria**
+
+- Handler source cannot access undeclared runtime capabilities or escape the staging root.
+- Definition metadata contains binding identities and hashes, never executable source.
+- Contract-affecting metadata changes invalidate compilation and conformance until the user repairs the handler.
+- Source, compiled bytes, declared capabilities, examples, and results are bound to exact review.
+
+**Verification**
+
+- Compile, forbidden-import, path-containment, capability, timeout, cancellation, tamper, source-preservation, and
+  behavioral-example tests pass.
+
+### Task 3.4: Add human review and immutable version creation
 
 Provide exact draft-diff review, overlap resolution, publication checks, receipt display, new-version creation, and
 deprecation flows.
@@ -811,7 +912,8 @@ deprecation flows.
 
 **Verification**
 
-- Browser E2E covers draft, revise, review, publish, discover, invoke, version, and deprecate.
+- Browser E2E covers metadata, generated boilerplate, user code, compile feedback, example execution, revise, review,
+  publish, discover, invoke, version, and deprecate without an inference provider.
 
 ### Checkpoint 3
 
