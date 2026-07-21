@@ -128,7 +128,6 @@ export class TestRunArtifactAccessService {
   }
 
   // Called on factory-created service instances across report services.
-  // fallow-ignore-next-line unused-class-member
   async readText(input: Parameters<TestRunArtifactAccessService['resolve']>[0], maxCharacters = 1_000_000) {
     const artifact = await this.readBytes(input)
     const byteLimit = Math.min(artifact.maxBytes, maxCharacters * 4)
