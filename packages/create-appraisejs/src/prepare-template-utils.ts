@@ -123,6 +123,9 @@ export async function verifyPreparedTemplateState(
     packageTemplateDir,
     relativePath => path.basename(relativePath) === '.DS_Store',
   )
+  const graphifyArtifacts = await collectFilesFn(packageTemplateDir, relativePath =>
+    relativePath.split('/').includes('graphify-out'),
+  )
 
   if (!existsSync(seededDbPath)) {
     throw new Error(`Prepared template is missing ${seededDbPath}`)
@@ -152,6 +155,9 @@ export async function verifyPreparedTemplateState(
   }
   if (strayOsArtifacts.length > 0) {
     throw new Error(`Prepared template should not include OS artifacts, found ${strayOsArtifacts.join(', ')}`)
+  }
+  if (graphifyArtifacts.length > 0) {
+    throw new Error(`Prepared template should not include Graphify artifacts, found ${graphifyArtifacts.join(', ')}`)
   }
 
   const stepDataCounts = await readTemplateStepDataCountsFn(seededDbPath)

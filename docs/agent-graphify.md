@@ -3,6 +3,11 @@
 Graphify provides a repo graph that agents can query before broad source exploration. The Python package is
 `graphifyy`, the terminal command is `graphify`, and the default app graph lives in `src/graphify-out/`.
 
+Whole-repository output under the root `graphify-out/` is local-only. Do not commit it: the broad graph duplicates
+scoped graphs, while its caches, machine paths, per-node wiki, manifests, and analysis state are not portable review
+artifacts. Scaffold templates also exclude every `graphify-out/` directory so generated apps do not ship repository
+development graphs.
+
 ## Prerequisites
 
 - Python 3.10 or newer.
@@ -117,7 +122,9 @@ explicit.
 Review `src/graphify-out/GRAPH_REPORT.md` before committing default app graph changes. Open
 `src/graphify-out/graph.html` for visual inspection, and commit only reviewed shared artifacts:
 `src/graphify-out/graph.json`, `src/graphify-out/graph.html`, and `src/graphify-out/GRAPH_REPORT.md`. Local cache and
-machine state under any `graphify-out/` directory stay ignored.
+machine state under any `graphify-out/` directory stay ignored. The same three-file allowlist applies to the committed
+`prisma/graphify-out/`, `scripts/graphify-out/`, and `packages/graphify-out/` scopes; all other Graphify output is
+local-only and rejected by `npm run release:check:artifacts`.
 
 If the existing `src/graphify-out/graph.json` is still valid but the visual HTML needs to be regenerated, run:
 
@@ -128,16 +135,17 @@ graphify tree --graph src/graphify-out/graph.json --output src/graphify-out/grap
 ## Agent Usage
 
 In Codex prompts, invoke the repo skill with `$graphify src` for the default app graph when the skill is installed. In
-the terminal, use the CLI directly:
+the terminal, use the repository wrappers so navigation resolves the canonical source graph automatically:
 
 ```bash
-graphify query "what are the main AppraiseJS lifecycle services?"
-graphify path "plan review service to coordinator lifecycle"
-graphify explain src/services/coordinator
+npm run graphify:query -- "what are the main AppraiseJS lifecycle services?"
+npm run graphify:path -- "PlanArtifactRepositoryOptions" "artifact-repository.ts"
+npm run graphify:explain -- "PlanArtifactRepositoryOptions"
 ```
 
-Prefer `graphify query`, `graphify path`, and `graphify explain` before broad raw-file exploration on unfamiliar
-AppraiseJS areas.
+The wrappers add `--graph src/graphify-out/graph.json` unless the caller supplies an explicit `--graph` path. Prefer
+them before broad raw-file exploration on unfamiliar AppraiseJS areas. Bare root-level `graphify query`, `path`, and
+`explain` commands are unsupported because the root whole-repository graph is intentionally local-only.
 
 ## Optional MCP Flow
 

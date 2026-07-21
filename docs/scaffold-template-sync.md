@@ -27,6 +27,9 @@ locator map starter shape. Preserve those reset rules unless the task explicitly
 It also copies `.fallowrc.json` and `config/` so scaffolded release and quality scripts always ship with the ratchet
 baselines and release-readiness contract they reference.
 
+Every `graphify-out/` directory is excluded from the prepared template. Repository graphs support AppraiseJS
+development and should not increase the installed scaffold or published `create-appraisejs` package size.
+
 Prepared scaffold databases may contain authored starter assets, but they must not contain machine-local coordinator
 credentials, leases, personal layouts, durable event rows, test runs, or reports. Template preparation verifies this
 invariant before publishing the bundled starter and blank templates.

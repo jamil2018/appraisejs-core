@@ -66,6 +66,9 @@ packages/locator-picker-companion/dist/*
 .appraise/
 
 # Graphify local-only cache and machine state
+/graphify-out/
+packages/create-appraisejs/templates/**/graphify-out/
+codex/**/graphify-out/
 graphify-out/cache/
 graphify-out/memory/
 graphify-out/.graphify_*

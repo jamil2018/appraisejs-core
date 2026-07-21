@@ -45,6 +45,8 @@
     "graphify:auto": "node scripts/update-graphify-graphs.mjs",
     "graphify:update": "node scripts/run-graphify.mjs src --update",
     "graphify:query": "node scripts/run-graphify.mjs query",
+    "graphify:path": "node scripts/run-graphify.mjs path",
+    "graphify:explain": "node scripts/run-graphify.mjs explain",
     "graphify:serve": "node scripts/run-graphify.mjs mcp",
     "init": "DISABLE_DEVTOOLS=1 NEXT_PUBLIC_DISABLE_DEVTOOLS=1 next dev",
     "prepare": "simple-git-hooks && node scripts/configure-git-line-endings.mjs --quiet",

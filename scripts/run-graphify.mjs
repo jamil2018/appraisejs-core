@@ -3,6 +3,8 @@ import { spawnSync } from 'node:child_process'
 import fs from 'node:fs'
 import path from 'node:path'
 
+import { withDefaultGraph } from './lib/graphify-command-args.mjs'
+
 const args = process.argv.slice(2)
 const graphifyCommand = resolveCommand('graphify')
 const graphifyMcpCommand = resolveCommand('graphify-mcp')
@@ -51,11 +53,7 @@ if (args[0] === 'build-scope') {
 }
 
 const command = args[0] === 'mcp' ? graphifyMcpCommand : graphifyCommand
-const commandArgs = args[0] === 'mcp' ? args.slice(1) : args
-
-if (args[0] === 'query' && !args.includes('--graph')) {
-  commandArgs.push('--graph', 'src/graphify-out/graph.json')
-}
+const commandArgs = args[0] === 'mcp' ? args.slice(1) : withDefaultGraph(args)
 
 const result = runCommand(command, commandArgs)
 process.exit(result.status ?? 1)
