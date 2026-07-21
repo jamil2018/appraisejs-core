@@ -135,16 +135,17 @@ graphify tree --graph src/graphify-out/graph.json --output src/graphify-out/grap
 ## Agent Usage
 
 In Codex prompts, invoke the repo skill with `$graphify src` for the default app graph when the skill is installed. In
-the terminal, use the CLI directly:
+the terminal, use the repository wrappers so navigation resolves the canonical source graph automatically:
 
 ```bash
-graphify query "what are the main AppraiseJS lifecycle services?"
-graphify path "plan review service to coordinator lifecycle"
-graphify explain src/services/coordinator
+npm run graphify:query -- "what are the main AppraiseJS lifecycle services?"
+npm run graphify:path -- "PlanArtifactRepositoryOptions" "artifact-repository.ts"
+npm run graphify:explain -- "PlanArtifactRepositoryOptions"
 ```
 
-Prefer `graphify query`, `graphify path`, and `graphify explain` before broad raw-file exploration on unfamiliar
-AppraiseJS areas.
+The wrappers add `--graph src/graphify-out/graph.json` unless the caller supplies an explicit `--graph` path. Prefer
+them before broad raw-file exploration on unfamiliar AppraiseJS areas. Bare root-level `graphify query`, `path`, and
+`explain` commands are unsupported because the root whole-repository graph is intentionally local-only.
 
 ## Optional MCP Flow
 

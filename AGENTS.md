@@ -92,7 +92,9 @@ For Graphify setup or repo graph work, follow `docs/agent-graphify.md`. Use the 
 `graphify`; do not add the unrelated Node package `@sentropic/graphify`. When safe source changes touch committed
 graph scopes, run `npm run graphify:auto` before finishing. When changing Graphify behavior or graph-update logic,
 load and follow the `graphify` skill for any required `graphify-out/` output updates instead of hand-editing those
-outputs.
+outputs. For existing-graph navigation, use `npm run graphify:query -- "<question>"`,
+`npm run graphify:path -- "<source>" "<target>"`, or `npm run graphify:explain -- "<node>"`; these wrappers select
+the canonical `src/graphify-out/graph.json`. Do not run bare root-level `graphify query`, `path`, or `explain` commands.
 
 For E2E or Playwright changes, follow `docs/test-run-runtime.md` for runtime behavior and
 `docs/agent-task-recipes.md` for focused validation routing.
