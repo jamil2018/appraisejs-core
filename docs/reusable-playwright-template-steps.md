@@ -4,6 +4,21 @@ AppraiseJS ships a registry-first browser validation catalog in `automation/step
 complete catalog and its synchronized database records. The blank scaffold keeps the same application and runtime but
 omits bundled template steps so teams can install only the registry fragments they choose.
 
+## Step Definition draft authoring boundary
+
+Reusable behavior is moving to the shared, versioned Step Definition registry. Human authoring clients use the same
+draft service as built-in registration and future agent authoring. The supported draft transition adapters are:
+
+- Server Actions in `src/actions/step-definition/step-definition-actions.ts`.
+- HTTP routes under `/api/step-definitions/drafts` for create, read, revise, delete, validate, preview, exact review,
+  and publish.
+- `/api/step-definitions/:id/versions/:version/deprecate` for immutable ready-definition deprecation.
+
+These adapters parse transport input, preserve optimistic draft revisions, map registry errors, and invalidate the
+shared library view. Business rules remain in `StepDefinitionRegistryService`. They never write legacy `TemplateStep`
+rows. Until the schema-driven creator replaces the legacy form, the existing Template Step create route remains a
+known migration writer and must not be treated as proof that the consumer cutover is complete.
+
 ## Selection Order
 
 Validation authors and agents should choose browser behavior in this order:

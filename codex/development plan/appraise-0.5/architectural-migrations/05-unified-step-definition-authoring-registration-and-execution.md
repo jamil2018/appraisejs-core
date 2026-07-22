@@ -23,16 +23,20 @@ Work completed on `codex/unified-step-definition-migration`:
 
 Continuation state:
 
-- Tranches 0-2 are foundation-complete only. Their full acceptance criteria still require a fresh audit against the
-  plan, including populated-database migration/rollback coverage and proof that every legacy surface is read-only.
-- Tranche 3 has not started. `src/app/(base)/template-steps/template-step-form.tsx` still creates legacy Template Step
-  records; there is no schema-driven draft wizard, draft autosave/resume, compile/review flow, or immutable version
-  publication UI yet.
+- Tranches 0-2 are foundation-complete only. The 2026-07-22 continuation audit confirmed that populated-database
+  migration/rollback coverage is still incomplete and that the enabled Template Step creator remains a legacy writer,
+  so Checkpoints 1 and 2 are not fully accepted yet.
+- Tranche 3.1 now exposes draft create/read/revise/delete/validate/preview/review/publish and definition deprecation
+  through thin Server Actions and matching HTTP adapters over the shared registry, with optimistic-revision, request
+  validation, standard error-envelope, cache-invalidation, and exact publication-input coverage.
+- Tranche 3.2 is next. `src/app/(base)/template-steps/template-step-form.tsx` still creates legacy Template Step records;
+  there is no schema-driven draft wizard, draft autosave/resume, compile/review flow, or immutable version publication
+  UI yet.
 - Tranche 4 has not started. MCP draft authoring and the real agent-created definition lifecycle remain outstanding.
 - Tranches 5-7 have not started. Consumer cutover, legacy-authority removal, rollout, and deletion gates remain
   outstanding.
-- Resume by auditing Tranches 0-2 against every acceptance criterion, then implement Tranche 3 end to end before
-  declaring the human authoring migration complete.
+- Resume by replacing the legacy creator with the resumable schema-driven draft editor, then implement compilation,
+  conformance, exact review, and immutable publication before declaring the human authoring migration complete.
 
 Checkpoint commits:
 

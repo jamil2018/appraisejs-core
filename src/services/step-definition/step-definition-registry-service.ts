@@ -12,7 +12,7 @@ import {
   type StepPublicationReceipt,
 } from '../../../packages/cucumber-runtime/src/step-definitions/index.ts'
 
-class StepDefinitionRegistryError extends Error {
+export class StepDefinitionRegistryError extends Error {
   constructor(
     public readonly code:
       | 'draft_not_found'
