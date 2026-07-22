@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto'
 
-import type { PrismaClient, StepDefinitionStatus, StepExecutionKind } from '@prisma/client'
+import type { Prisma, PrismaClient, StepDefinitionStatus, StepExecutionKind } from '@prisma/client'
 import {
   canonicalStepDefinitionJson,
   computeStepDefinitionHashes,
@@ -11,6 +11,7 @@ import {
   type StepDefinition,
   type StepPublicationReceipt,
 } from '../../../packages/cucumber-runtime/src/step-definitions/index.ts'
+import { StepDefinitionExtensionService } from './step-definition-extension-service'
 
 export class StepDefinitionRegistryError extends Error {
   constructor(
@@ -56,6 +57,96 @@ function executionKind(kind: Exclude<StepDefinition['execution']['kind'], 'unbou
 
 function persistedStatus(status: 'ready' | 'deprecated'): StepDefinitionStatus {
   return status
+}
+
+type DraftArtifact = NonNullable<Awaited<ReturnType<PrismaClient['stepDefinitionDraftArtifact']['findUnique']>>>
+
+function requireReviewableArtifact(artifact: DraftArtifact | null) {
+  if (!artifact?.compiledSource || !artifact.compiledHash || !artifact.conformanceHash)
+    throw new StepDefinitionRegistryError(
+      'validation_failed',
+      'The reviewed extension must compile and pass conformance before review.',
+    )
+  return artifact
+}
+
+function assertArtifactConformance(artifact: DraftArtifact) {
+  const conformance = JSON.parse(artifact.conformanceJson ?? '{}') as { passed?: boolean }
+  if (!conformance.passed)
+    throw new StepDefinitionRegistryError('validation_failed', 'The reviewed extension has conformance blockers.')
+}
+
+function assertArtifactBinding(definition: StepDefinition, artifact: DraftArtifact) {
+  if (definition.execution.kind !== 'reviewed-extension') return
+  if (
+    definition.execution.sourceHash !== artifact.sourceHash ||
+    definition.execution.compiledHash !== artifact.compiledHash
+  )
+    throw new StepDefinitionRegistryError(
+      'review_stale',
+      'The execution binding hashes do not match the compiled reviewed extension.',
+    )
+}
+
+async function bindReviewedArtifactForReview(database: PrismaClient, draftId: string, definition: StepDefinition) {
+  if (definition.execution.kind !== 'reviewed-extension') return
+  const artifact = requireReviewableArtifact(
+    await database.stepDefinitionDraftArtifact.findUnique({ where: { draftId } }),
+  )
+  assertArtifactConformance(artifact)
+  assertArtifactBinding(definition, artifact)
+  const reviewedArtifactHash = StepDefinitionExtensionService.artifactHash({
+    sourceHash: artifact.sourceHash,
+    compiledHash: artifact.compiledHash,
+    conformanceHash: artifact.conformanceHash,
+    manifestJson: artifact.manifestJson,
+  })
+  await database.stepDefinitionDraftArtifact.update({ where: { draftId }, data: { reviewedArtifactHash } })
+}
+
+type DraftWithArtifact = Prisma.StepDefinitionDraftGetPayload<{ include: { artifact: true } }>
+
+async function publishReviewedExtension(
+  transaction: Prisma.TransactionClient,
+  draft: DraftWithArtifact,
+  definition: StepDefinition,
+) {
+  if (definition.execution.kind !== 'reviewed-extension') return
+  const artifact = draft.artifact
+  if (
+    !artifact?.compiledSource ||
+    !artifact.compiledHash ||
+    !artifact.conformanceJson ||
+    !artifact.conformanceHash ||
+    !artifact.reviewedArtifactHash
+  )
+    throw new StepDefinitionRegistryError('review_required', 'The reviewed extension artifact is incomplete.')
+  const artifactHash = StepDefinitionExtensionService.artifactHash({
+    sourceHash: artifact.sourceHash,
+    compiledHash: artifact.compiledHash,
+    conformanceHash: artifact.conformanceHash,
+    manifestJson: artifact.manifestJson,
+  })
+  if (artifactHash !== artifact.reviewedArtifactHash)
+    throw new StepDefinitionRegistryError('review_stale', 'The reviewed extension artifact changed after review.')
+  await transaction.stepReviewedExtension.create({
+    data: {
+      id: definition.execution.extensionId,
+      version: definition.execution.extensionVersion,
+      exportName: definition.execution.exportName,
+      runtime: definition.execution.runtime,
+      capabilitiesJson: canonicalStepDefinitionJson(definition.intent.capabilities),
+      contractSource: artifact.contractSource,
+      source: artifact.handlerSource,
+      compiledSource: artifact.compiledSource,
+      sourceHash: artifact.sourceHash,
+      compiledHash: artifact.compiledHash,
+      conformanceJson: artifact.conformanceJson,
+      conformanceHash: artifact.conformanceHash,
+      artifactHash,
+      reviewedBy: draft.reviewedBy!,
+    },
+  })
 }
 
 export class StepDefinitionRegistryService {
@@ -149,6 +240,17 @@ export class StepDefinitionRegistryService {
           : `Step Definition draft ${draftId} was not found.`,
       )
     }
+    await this.database.stepDefinitionDraftArtifact.updateMany({
+      where: { draftId },
+      data: {
+        compiledSource: null,
+        compiledHash: null,
+        diagnosticsJson: null,
+        conformanceJson: null,
+        conformanceHash: null,
+        reviewedArtifactHash: null,
+      },
+    })
     return this.readDraft(draftId)
   }
 
@@ -202,6 +304,9 @@ export class StepDefinitionRegistryService {
         report,
       )
 
+    const definition = stepDefinitionSchema.parse(draft.definition)
+    await bindReviewedArtifactForReview(this.database, draftId, definition)
+
     return this.database.stepDefinitionDraft.update({
       where: { id: draftId },
       data: { reviewedDraftHash: draft.draftHash, reviewedBy: reviewAuthority, reviewedAt: new Date() },
@@ -210,7 +315,10 @@ export class StepDefinitionRegistryService {
 
   async publishDraft(input: { draftId: string; expectedRevision: number; conformanceRunId: string }) {
     return this.database.$transaction(async transaction => {
-      const draft = await transaction.stepDefinitionDraft.findUnique({ where: { id: input.draftId } })
+      const draft = await transaction.stepDefinitionDraft.findUnique({
+        where: { id: input.draftId },
+        include: { artifact: true },
+      })
       if (!draft)
         throw new StepDefinitionRegistryError(
           'draft_not_found',
@@ -237,6 +345,8 @@ export class StepDefinitionRegistryService {
           'validation_failed',
           'An execution binding is required before publication.',
         )
+
+      await publishReviewedExtension(transaction, draft, definition)
 
       const hashes = computeStepDefinitionHashes(definition)
       const publishedAt = new Date().toISOString()

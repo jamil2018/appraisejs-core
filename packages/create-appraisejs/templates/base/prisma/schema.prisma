@@ -98,20 +98,60 @@ model StepDefinition {
 }
 
 model StepDefinitionDraft {
-  id                   String    @id @default(uuid())
+  id                   String                       @id @default(uuid())
   proposedStepId       String
   proposedVersion      String
-  revision             Int       @default(1)
+  revision             Int                          @default(1)
   draftJson            String
   draftHash            String
   validationReportJson String?
   reviewedDraftHash    String?
   reviewedBy           String?
   reviewedAt           DateTime?
-  createdAt            DateTime  @default(now())
-  updatedAt            DateTime  @updatedAt
+  createdAt            DateTime                     @default(now())
+  updatedAt            DateTime                     @updatedAt
+  artifact             StepDefinitionDraftArtifact?
 
   @@index([proposedStepId, proposedVersion])
+}
+
+model StepDefinitionDraftArtifact {
+  draftId              String              @id
+  contractSource       String
+  handlerSource        String
+  examplesJson         String
+  manifestJson         String
+  sourceHash           String
+  compiledSource       String?
+  compiledHash         String?
+  diagnosticsJson      String?
+  conformanceJson      String?
+  conformanceHash      String?
+  reviewedArtifactHash String?
+  createdAt            DateTime            @default(now())
+  updatedAt            DateTime            @updatedAt
+  draft                StepDefinitionDraft @relation(fields: [draftId], references: [id], onDelete: Cascade)
+}
+
+model StepReviewedExtension {
+  id               String
+  version          String
+  exportName       String
+  runtime          String
+  capabilitiesJson String
+  contractSource   String
+  source           String
+  compiledSource   String
+  sourceHash       String
+  compiledHash     String
+  conformanceJson  String
+  conformanceHash  String
+  artifactHash     String   @unique
+  reviewedBy       String
+  reviewedAt       DateTime @default(now())
+
+  @@id([id, version])
+  @@index([sourceHash, compiledHash])
 }
 
 model StepHumanProjection {

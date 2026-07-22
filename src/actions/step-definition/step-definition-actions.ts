@@ -6,6 +6,7 @@ import {
   StepDefinitionRegistryError,
   StepDefinitionRegistryService,
 } from '@/services/step-definition/step-definition-registry-service'
+import { StepDefinitionExtensionService } from '@/services/step-definition/step-definition-extension-service'
 import type { ActionResponse } from '@/types/form/actionHandler'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
@@ -14,6 +15,7 @@ const draftIdSchema = z.string().uuid()
 const revisionSchema = z.number().int().positive()
 const stepIdentitySchema = z.object({ stepId: z.string().min(1), version: z.string().min(1) })
 const registry = new StepDefinitionRegistryService(prisma)
+const extensions = new StepDefinitionExtensionService(prisma)
 
 function validationError(error: z.ZodError): ActionResponse {
   return {
@@ -94,6 +96,33 @@ export async function validateStepDefinitionDraftAction(draftId: string): Promis
 
 export async function previewStepDefinitionDraftAction(draftId: string): Promise<ActionResponse> {
   return respond(() => registry.previewDraft(draftIdSchema.parse(draftId)))
+}
+
+export async function readStepDefinitionDraftArtifactAction(draftId: string): Promise<ActionResponse> {
+  return respond(() => extensions.readDraftArtifact(draftIdSchema.parse(draftId)))
+}
+
+export async function saveStepDefinitionDraftArtifactAction(input: {
+  draftId: string
+  expectedRevision: number
+  artifact: unknown
+}): Promise<ActionResponse> {
+  return respond(() =>
+    extensions.saveDraftArtifact(
+      draftIdSchema.parse(input.draftId),
+      revisionSchema.parse(input.expectedRevision),
+      input.artifact,
+    ),
+  )
+}
+
+export async function compileStepDefinitionDraftArtifactAction(input: {
+  draftId: string
+  expectedRevision: number
+}): Promise<ActionResponse> {
+  return respond(() =>
+    extensions.compileDraftArtifact(draftIdSchema.parse(input.draftId), revisionSchema.parse(input.expectedRevision)),
+  )
 }
 
 export async function reviewStepDefinitionDraftAction(input: {
