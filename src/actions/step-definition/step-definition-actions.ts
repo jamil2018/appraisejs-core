@@ -177,3 +177,27 @@ export async function deprecateStepDefinitionAction(input: {
     })
   }, true)
 }
+
+export async function createStepDefinitionVersionDraftAction(input: {
+  stepId: string
+  version: string
+  newVersion: string
+  createdBy?: string
+}): Promise<ActionResponse> {
+  return respond(() => {
+    const identity = stepIdentitySchema.parse(input)
+    return registry.createVersionDraft({
+      ...identity,
+      newVersion: z
+        .string()
+        .regex(/^\d+(?:\.\d+){0,2}$/)
+        .parse(input.newVersion),
+      createdBy: z
+        .string()
+        .trim()
+        .min(1)
+        .max(200)
+        .parse(input.createdBy ?? 'local-user'),
+    })
+  }, true)
+}

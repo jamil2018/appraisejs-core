@@ -194,4 +194,18 @@ describe('StepDefinitionRegistryService', () => {
     expect(after.publicationReceipt?.receiptHash).toBe(before.publicationReceipt?.receiptHash)
     expect(after.deprecation).toMatchObject({ reason: 'Use the replacement.', actor: 'reviewer@example.test' })
   })
+
+  it('publishes an agent-authored draft through the same review gate and returns one searchable identity', async () => {
+    const authored = definition('custom.agent.archive', 'I archive {url}')
+    authored.provenance.creationMethod = 'agent-command'
+    authored.intent.searchTerms = ['retention-policy']
+    const draft = await registry.createDraft(authored)
+
+    await registry.submitForReview(draft.id, draft.revision, 'local-user')
+    await registry.publishDraft({ draftId: draft.id, expectedRevision: draft.revision, conformanceRunId: 'agent-e2e' })
+
+    const matches = await registry.list({ status: 'ready', query: 'retention-policy', limit: 5 })
+    expect(matches).toHaveLength(1)
+    expect(matches[0]).toMatchObject({ id: 'custom.agent.archive', version: '1', status: 'ready' })
+  })
 })

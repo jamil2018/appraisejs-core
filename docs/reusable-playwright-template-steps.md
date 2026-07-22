@@ -16,8 +16,10 @@ draft service as built-in registration and future agent authoring. The supported
 
 These adapters parse transport input, preserve optimistic draft revisions, map registry errors, and invalidate the
 shared library view. Business rules remain in `StepDefinitionRegistryService`. They never write legacy `TemplateStep`
-rows. Until the schema-driven creator replaces the legacy form, the existing Template Step create route remains a
-known migration writer and must not be treated as proof that the consumer cutover is complete.
+rows. The create route now opens the schema-driven Step Definition draft editor; incomplete definitions are saved
+under a resumable draft URL and only exact reviewed, conformant drafts become immutable ready versions. Existing
+Template Step rows and detail routes are read-only compatibility projections and must not be treated as proof that
+consumer cutover is complete.
 
 ## Selection Order
 
@@ -27,8 +29,8 @@ Validation authors and agents should choose browser behavior in this order:
 2. Use a structured locator or page operation when the Playwright mechanic is uncommon but allowlisted.
 3. Propose a custom step only for application-specific behavior or a documented catalog gap.
 
-Use `step_search` before proposing a custom step. It is the shared human-and-agent discovery surface: each mapped
-result pairs the readable Template Step name/signature with its canonical typed operation reference, while
+Use `step_search` before proposing a custom step. It is the shared human-and-agent discovery surface: each result
+contains one Step Reference plus its human, agent, and execution-readiness projections, while
 user-authored steps participate in the same ranking and clearly report that no agent-operation mapping exists yet.
 The compatibility names `template_step_search` and `template_step_match` resolve through the same service. Results
 include intent scores, semantic-concept matches, parameter compatibility, signatures, descriptions, ordered

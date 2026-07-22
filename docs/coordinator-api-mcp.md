@@ -153,10 +153,10 @@ coordinator operation or an explicitly documented local MCP boundary. Stable wor
 `appraise://plans/{planId}/validation-context`, and `appraise://plans/{planId}/validation-draft`; the validation-draft
 template resolves through the bounded draft-context coordinator operation.
 
-`step_search` is the preferred plan-bound discovery surface. It searches semantic human Template Step names,
-signatures, descriptions, groups, canonical operation descriptors, aliases, agent search terms, and examples as one
-ranked index. Every mapped result returns both `humanStep` and `agentOperation`; user-authored steps remain visible
-with `agentOperation: null` until they have a reviewed shared-handler mapping. `operation_categories`,
+`step_search` is the preferred unified discovery surface. It searches ready Step Definitions and returns one
+actionable Step Reference with human, agent, execution-readiness, and hash projections. Drafts and deprecated
+definitions are not executable recommendations. It searches definition-owned titles, descriptions, signatures,
+groups, aliases, search terms, and examples as one ranked index. `operation_categories`,
 `operation_search`, and `operation_read` remain the lower-level canonical catalog surface, and operation search also
 returns paired human naming. The legacy action tools remain bounded compatibility aliases during migration.
 
@@ -436,3 +436,10 @@ Validation publication and baseline start/reconcile apply the same contract. Sum
 canonical artifact hashes and paths, counts, attempt/TestRun identity, blockers, links, and the next legal action ahead of any
 optional artifact body. Cursor reads are ascending, bounded, include the newest delivered event explicitly, and
 unchanged plan or validation waits return only cursor, timing, and next-action deltas.
+
+Step Definition authoring uses the shared registry through bounded MCP tools:
+`step_definition_draft_create`, `step_definition_draft_read`, `step_definition_draft_update`,
+`step_definition_draft_validate`, `step_definition_draft_preview`, `step_definition_artifact_save`,
+`step_definition_artifact_compile`, `step_definition_draft_submit_for_review`, `step_definition_publish`, and
+`step_definition_deprecate`. Agent creation requires search evidence and a reuse justification. Review and publication
+still require exact human authority and the same conformance receipt used by the human editor.

@@ -11,6 +11,7 @@ import { registerDiagnosticOperations } from './domains/diagnostic.js'
 import { registerRuntimeOperations } from './domains/runtime.js'
 import { registerBaselineOperations } from './domains/baseline.js'
 import { registerImplementationOperations } from './domains/implementation.js'
+import { registerStepDefinitionOperations } from './domains/step-definitions.js'
 
 export type McpRegistryContext = {
   server: McpServer
@@ -87,6 +88,7 @@ const domainRegistries = Object.freeze([
   registerRuntimeOperations,
   registerBaselineOperations,
   registerImplementationOperations,
+  registerStepDefinitionOperations,
 ] as const)
 
 export function assertUniqueMcpDefinitions(definitions: readonly McpContractDefinition[]): void {

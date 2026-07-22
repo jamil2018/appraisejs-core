@@ -2,9 +2,8 @@
 
 ## Status
 
-Implementation in progress for AppraiseJS 0.5. The shared registry and built-in projection foundation is present, but
-the human and agent authoring migrations are not implemented. The existing Template Step creation UI remains the
-active legacy authoring path.
+Implementation in progress for AppraiseJS 0.5. The shared registry, human draft editor, reviewed-extension pipeline,
+and bounded agent authoring surface are implemented. Later consumer cutover and legacy-authority removal remain.
 
 ### Implementation checkpoint (2026-07-22)
 
@@ -29,14 +28,16 @@ Continuation state:
 - Tranche 3.1 now exposes draft create/read/revise/delete/validate/preview/review/publish and definition deprecation
   through thin Server Actions and matching HTTP adapters over the shared registry, with optimistic-revision, request
   validation, standard error-envelope, cache-invalidation, and exact publication-input coverage.
-- Tranche 3.2 is next. `src/app/(base)/template-steps/template-step-form.tsx` still creates legacy Template Step records;
-  there is no schema-driven draft wizard, draft autosave/resume, compile/review flow, or immutable version publication
-  UI yet.
-- Tranche 4 has not started. MCP draft authoring and the real agent-created definition lifecycle remain outstanding.
+- Tranches 3 and 4 now provide the eight-stage resumable editor, deterministic generated contracts, contained
+  reviewed-handler staging and behavioral conformance, exact review/publication/version/deprecation services, bounded
+  MCP draft tools, and one-identity registry search. Human and agent clients use the same registry boundary.
+- The agent lifecycle is covered through agent-command provenance, exact human review, publication, unified discovery,
+  and receipt-bound reviewed artifacts. Full external-workspace lifecycle certification remains part of release
+  rollout evidence rather than permanent app-specific fixtures.
 - Tranches 5-7 have not started. Consumer cutover, legacy-authority removal, rollout, and deletion gates remain
   outstanding.
-- Resume by replacing the legacy creator with the resumable schema-driven draft editor, then implement compilation,
-  conformance, exact review, and immutable publication before declaring the human authoring migration complete.
+- Resume at Tranche 5 composition unification and consumer cutover. Do not restore legacy Template Step creation as
+  independent authoring authority.
 
 Checkpoint commits:
 
@@ -44,6 +45,8 @@ Checkpoint commits:
 - `60e22569` adds generated Step Definition lint protection.
 - `d2391339` regenerates operation projections before synchronization.
 - `150ca341` preserves generated runtime imports during `npm run setup`.
+- `5f10203a` exposes shared human/API draft transitions.
+- `71124740` adds reviewed extension artifacts and immutable publication binding.
 
 This plan corrects the remaining identity split after
 `04-unified-operation-catalog-human-agent-authoring-and-capsule-compilation.md`. Migration `04` successfully unified

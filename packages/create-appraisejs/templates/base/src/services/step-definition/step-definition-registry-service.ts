@@ -61,13 +61,15 @@ function persistedStatus(status: 'ready' | 'deprecated'): StepDefinitionStatus {
 
 type DraftArtifact = NonNullable<Awaited<ReturnType<PrismaClient['stepDefinitionDraftArtifact']['findUnique']>>>
 
-function requireReviewableArtifact(artifact: DraftArtifact | null) {
+function requireReviewableArtifact(
+  artifact: DraftArtifact | null,
+): DraftArtifact & { compiledSource: string; compiledHash: string; conformanceHash: string } {
   if (!artifact?.compiledSource || !artifact.compiledHash || !artifact.conformanceHash)
     throw new StepDefinitionRegistryError(
       'validation_failed',
       'The reviewed extension must compile and pass conformance before review.',
     )
-  return artifact
+  return artifact as DraftArtifact & { compiledSource: string; compiledHash: string; conformanceHash: string }
 }
 
 function assertArtifactConformance(artifact: DraftArtifact) {
@@ -425,6 +427,22 @@ export class StepDefinitionRegistryService {
     return { ...definition, definition: stepDefinitionSchema.parse(JSON.parse(definition.definitionJson)) }
   }
 
+  async createVersionDraft(input: { stepId: string; version: string; newVersion: string; createdBy: string }) {
+    const current = await this.read(input.stepId, input.version)
+    const definition = current.definition
+    return this.createDraft({
+      ...definition,
+      identity: { id: definition.identity.id, version: input.newVersion, status: 'draft' },
+      provenance: {
+        creationMethod: 'human-form',
+        createdBy: input.createdBy,
+        createdAt: new Date().toISOString(),
+        sourceReference: `${input.stepId}@${input.version}`,
+      },
+      lifecycle: { ...definition.lifecycle, supersedes: { id: input.stepId, version: input.version } },
+    })
+  }
+
   async list(input: { status?: 'ready' | 'deprecated'; query?: string; limit?: number; cursor?: string } = {}) {
     const limit = Math.min(Math.max(input.limit ?? 50, 1), 100)
     return this.database.stepDefinition.findMany({
@@ -435,6 +453,7 @@ export class StepDefinitionRegistryService {
               { id: { contains: input.query } },
               { title: { contains: input.query } },
               { description: { contains: input.query } },
+              { definitionJson: { contains: input.query } },
             ]
           : undefined,
       },

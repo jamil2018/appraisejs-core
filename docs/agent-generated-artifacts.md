@@ -1,5 +1,12 @@
 # Agent Generated Artifacts
 
+## Reviewed Step Definition drafts
+
+User-authored handlers are staged below `.appraise/step-definitions/drafts/<draft-id>/`. `definition.json`,
+`contract.ts`, `examples.json`, and `manifest.json` are Appraise-managed; `handler.ts` is user-owned; `handler.mjs` is
+the compiled artifact. Source and compiled hashes are stored separately from canonical definition metadata. Do not
+patch staged output as registry source: revise the draft and let the extension service regenerate it.
+
 Generated runtime and report artifacts inherit the owning TestRun target project. Artifact routes require matching
 project scope and return a scoped not-found response for foreign project IDs. See
 `docs/project-ownership-boundary.md`.

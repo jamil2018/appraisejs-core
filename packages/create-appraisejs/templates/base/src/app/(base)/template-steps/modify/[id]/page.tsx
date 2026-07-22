@@ -1,60 +1,32 @@
-import { updateTemplateStepAction } from '@/actions/template-step/template-step-actions'
-import { getTemplateStepByIdAction } from '@/actions/template-step/template-step-actions'
-import { TemplateStepForm } from '../../template-step-form'
-import { getAllTemplateStepGroupsAction } from '@/actions/template-step-group/template-step-group-actions'
-import { Metadata } from 'next'
+import Link from 'next/link'
+import type { Metadata } from 'next'
 
-import { getEditableTemplateStep, getTemplateStepGroupRows } from '../../template-step-helpers'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 
 export const metadata: Metadata = {
-  title: 'Appraise | Modify Template Step',
-  description: 'Update template step configuration',
+  title: 'Appraise | Legacy Template Step',
+  description: 'Read-only legacy Template Step projection',
 }
 
 export default async function ModifyTemplateStepPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
-  if (!id?.trim()) {
-    return <div>Error: Invalid template step id.</div>
-  }
-
-  const templateStepResponse = await getTemplateStepByIdAction(id)
-  if (templateStepResponse.error) {
-    return <div>Error: {templateStepResponse.error}</div>
-  }
-
-  const templateStep = getEditableTemplateStep(templateStepResponse.data)
-  if (!templateStep) {
-    return <div>Error: Invalid template step</div>
-  }
-
-  const templateStepGroupsResponse = await getAllTemplateStepGroupsAction()
-  if (templateStepGroupsResponse.error) {
-    return <div>Error: {templateStepGroupsResponse.error}</div>
-  }
-
-  const templateStepGroups = getTemplateStepGroupRows(templateStepGroupsResponse.data)
   return (
-    <TemplateStepForm
-      successTitle="Template step modified"
-      successMessage="The template step has been modified"
-      onSubmitAction={updateTemplateStepAction}
-      defaultValues={{
-        name: templateStep.name,
-        type: templateStep.type,
-        signature: templateStep.signature,
-        icon: templateStep.icon,
-        description: templateStep.description || '',
-        functionDefinition: templateStep.functionDefinition || '',
-        params: templateStep.parameters.map(param => ({
-          id: param.id,
-          name: param.name,
-          type: param.type,
-          order: param.order,
-        })),
-        templateStepGroupId: templateStep.templateStepGroupId || '',
-      }}
-      id={id}
-      templateStepGroups={templateStepGroups}
-    />
+    <Card className="mx-auto max-w-2xl bg-zinc-500/10">
+      <CardHeader>
+        <CardTitle>Legacy Template Step is read-only</CardTitle>
+        <CardDescription>
+          Template Step {id} remains available for compatibility and historical resolution.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <p className="text-sm text-muted-foreground">
+          New and revised reusable behavior is authored as an immutable, versioned Step Definition.
+        </p>
+        <Button asChild>
+          <Link href="/template-steps/create">Create a Step Definition draft</Link>
+        </Button>
+      </CardContent>
+    </Card>
   )
 }

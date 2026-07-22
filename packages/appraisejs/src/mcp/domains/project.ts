@@ -280,7 +280,7 @@ export function registerProjectOperations(context: McpRegistryContext): void {
     'step_search',
     {
       description:
-        'Preferred combined discovery for human-authored and agent-authored steps. Returns semantic Template Step naming together with canonical typed operation identity when mapped.',
+        'Search ready Step Definitions by one actionable versioned identity with human, agent, and execution-readiness projections.',
       inputSchema: {
         planId: z.string(),
         query: z.string().min(1),
@@ -288,12 +288,8 @@ export function registerProjectOperations(context: McpRegistryContext): void {
         limit: z.number().int().positive().max(25).default(5),
       },
     },
-    async ({ planId, query, parameterNames, limit }) =>
-      text(
-        await api.request(
-          `plans/${planId}/validations/resolver?intent=${encodeURIComponent(query)}&parameterNames=${encodeURIComponent(parameterNames.join(','))}&limit=${limit}`,
-        ),
-      ),
+    async ({ query, limit }) =>
+      text(await api.request(`step-definitions/search?query=${encodeURIComponent(query)}&limit=${limit}`)),
   )
 
   server.registerTool(
@@ -308,12 +304,8 @@ export function registerProjectOperations(context: McpRegistryContext): void {
         limit: z.number().int().positive().max(25).default(5),
       },
     },
-    async ({ planId, query, parameterNames, limit }) =>
-      text(
-        await api.request(
-          `plans/${planId}/validations/resolver?intent=${encodeURIComponent(query)}&parameterNames=${encodeURIComponent(parameterNames.join(','))}&limit=${limit}`,
-        ),
-      ),
+    async ({ query, limit }) =>
+      text(await api.request(`step-definitions/search?query=${encodeURIComponent(query)}&limit=${limit}`)),
   )
 
   server.registerTool(
@@ -328,12 +320,8 @@ export function registerProjectOperations(context: McpRegistryContext): void {
         limit: z.number().int().positive().max(25).default(5),
       },
     },
-    async ({ planId, intent, parameterNames, limit }) =>
-      text(
-        await api.request(
-          `plans/${planId}/validations/resolver?intent=${encodeURIComponent(intent)}&parameterNames=${encodeURIComponent(parameterNames.join(','))}&limit=${limit}`,
-        ),
-      ),
+    async ({ intent, limit }) =>
+      text(await api.request(`step-definitions/search?query=${encodeURIComponent(intent)}&limit=${limit}`)),
   )
 
   server.registerTool(

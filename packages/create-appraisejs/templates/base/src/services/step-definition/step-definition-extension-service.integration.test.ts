@@ -73,7 +73,7 @@ beforeEach(async () => {
   await copyMigratedTestDatabase(databasePath)
   prisma = new PrismaClient({ datasources: { db: { url: `file:${databasePath}` } } })
   registry = new StepDefinitionRegistryService(prisma)
-  extensions = new StepDefinitionExtensionService(prisma)
+  extensions = new StepDefinitionExtensionService(prisma, path.join(workspace, 'draft-artifacts'))
 })
 
 afterEach(async () => {
@@ -114,6 +114,9 @@ describe('StepDefinitionExtensionService', () => {
     })
     const compiled = await extensions.compileDraftArtifact(draft.id, draft.revision)
     expect(compiled.conformance.passed).toBe(true)
+    await expect(
+      fs.readFile(path.join(workspace, 'draft-artifacts', draft.id, 'handler.mjs'), 'utf8'),
+    ).resolves.toContain('Hello')
 
     await registry.submitForReview(draft.id, compiled.revision, 'local-user')
     await registry.publishDraft({
@@ -127,5 +130,47 @@ describe('StepDefinitionExtensionService', () => {
         where: { id_version: { id: 'custom.account.greet', version: '1' } },
       }),
     ).resolves.toMatchObject({ source, sourceHash: expect.stringMatching(/^sha256:/), reviewedBy: 'local-user' })
+  })
+
+  it('times out non-terminating behavioral examples', async () => {
+    const draft = await registry.createDraft(definition())
+    await extensions.saveDraftArtifact(draft.id, draft.revision, {
+      handlerSource: 'export const handler = async () => { while (true) {} }',
+      examples: [{ name: 'Never returns', inputs: { name: 'Ada' } }],
+    })
+
+    const compiled = await extensions.compileDraftArtifact(draft.id, draft.revision)
+
+    expect(compiled.conformance.passed).toBe(false)
+    expect(compiled.conformance.checks).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: 'behavioral-examples',
+          passed: false,
+          examples: [expect.objectContaining({ error: 'Timed out after 1000ms.' })],
+        }),
+      ]),
+    )
+  })
+
+  it('cancels behavioral examples through the bounded execution signal', async () => {
+    const draft = await registry.createDraft(definition())
+    await extensions.saveDraftArtifact(draft.id, draft.revision, {
+      handlerSource: 'export const handler = async () => { while (true) {} }',
+      examples: [{ name: 'Cancelled', inputs: { name: 'Ada' } }],
+    })
+    const controller = new AbortController()
+    controller.abort()
+
+    const compiled = await extensions.compileDraftArtifact(draft.id, draft.revision, controller.signal)
+
+    expect(compiled.conformance.checks).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: 'behavioral-examples',
+          examples: [expect.objectContaining({ error: 'Conformance was cancelled.' })],
+        }),
+      ]),
+    )
   })
 })
