@@ -1,10 +1,4 @@
-import {
-  CustomWorld,
-  SelectorName,
-  Then,
-  When,
-  executeHumanOperation,
-} from '../../../../packages/cucumber-runtime/src/index.js'
+import { CustomWorld, Then, executeHumanOperation } from '../../../../packages/cucumber-runtime/src/index.js'
 /**
  * @name download assertion
  * @description Generated human projections for canonical download assertion operations

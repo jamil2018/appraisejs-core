@@ -1,10 +1,4 @@
-import {
-  CustomWorld,
-  SelectorName,
-  Then,
-  When,
-  executeHumanOperation,
-} from '../../../../packages/cucumber-runtime/src/index.js'
+import { CustomWorld, When, executeHumanOperation } from '../../../../packages/cucumber-runtime/src/index.js'
 /**
  * @name navigation
  * @description Generated human projections for canonical navigation operations

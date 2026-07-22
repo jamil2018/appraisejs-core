@@ -130,29 +130,22 @@ interface ParsedImport {
 }
 
 function parseImports(content: string): ParsedImport[] {
-  const lines = content.split('\n')
   const imports: ParsedImport[] = []
 
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i].trim()
-    // Match import statements: import { ... } from '...'
-    const importMatch = line.match(/^import\s+{([^}]+)}\s+from\s+['"]([^'"]+)['"];?$/)
-    if (importMatch) {
-      const namedExportsStr = importMatch[1]
-      const fromPath = importMatch[2]
-      // Parse named exports, handling whitespace
-      const namedExports = namedExportsStr
-        .split(',')
-        .map(exp => exp.trim())
-        .filter(Boolean)
+  const importPattern = /import\s*\{\s*([^}]+)\s*\}\s*from\s*['"]([^'"]+)['"];?/gu
+  for (const match of content.matchAll(importPattern)) {
+    const namedExports = match[1]
+      .split(',')
+      .map(exp => exp.trim())
+      .filter(Boolean)
+    const start = match.index ?? 0
 
-      imports.push({
-        line: i,
-        fullLine: line,
-        namedExports,
-        from: fromPath,
-      })
-    }
+    imports.push({
+      line: content.slice(0, start).split('\n').length - 1,
+      fullLine: match[0].trim(),
+      namedExports,
+      from: match[2],
+    })
   }
 
   return imports
@@ -164,17 +157,18 @@ function parseImports(content: string): ParsedImport[] {
  */
 function hasRequiredImport(parsedImports: ParsedImport[], required: RequiredImport): boolean {
   for (const parsed of parsedImports) {
-    // Normalize paths for comparison (remove .js extension if present)
+    // Generated projections live one directory deeper than authored step files.
+    // Treat either relative depth as the same runtime module and never add a
+    // second named import declaration for symbols such as CustomWorld.
     const normalizedParsedFrom = parsed.from.replace(/\.js$/, '')
     const normalizedRequiredFrom = required.from.replace(/\.js$/, '')
+    const runtimeSuffix = 'packages/cucumber-runtime/src/index'
 
-    // Check if the module path matches (with or without .js)
-    if (normalizedParsedFrom === normalizedRequiredFrom || parsed.from === required.from) {
-      // Check if all required named exports are present
-      const hasAllExports = required.namedExports.every(exp => parsed.namedExports.includes(exp))
-      if (hasAllExports) {
-        return true
-      }
+    if (
+      normalizedParsedFrom === normalizedRequiredFrom ||
+      (normalizedParsedFrom.endsWith(runtimeSuffix) && normalizedRequiredFrom.endsWith(runtimeSuffix))
+    ) {
+      return true
     }
   }
   return false

@@ -54,6 +54,9 @@ operation definitions and handlers, then build registry fragments from the gener
 either the wrappers or `packages/appraisejs/registry/template-steps` directly. For
 validation authoring, prefer a semantic template step, then the structured allowlisted fallback, then a justified
 custom step. See `docs/reusable-playwright-template-steps.md` for the operation and stored-variable contract.
+`npm run operation:projections` lints every projected step after generation. `npm run lint:step-definitions` is the
+focused syntax/import gate; it includes duplicate-import and redeclaration checks, and `sync-template-steps` runs it
+before changing database state.
 
 Environment projections contain `passwordEnvironmentVariable`, which is only the name of a process environment
 variable. Never place a credential value or a `password` field in database seed data, sync input, generated
@@ -73,7 +76,8 @@ Use `package.json` as the command source of truth. Common sync commands are:
 
 - `npm run sync-all`: run the database-backed sync flow.
 - `npm run sync-template-step-groups`, then `npm run sync-template-steps`: synchronize canonical reusable groups and
-  steps by stable signature; referenced orphan steps are preserved rather than destructively removed.
+  steps by stable signature; the step-definition lint gate runs first, and referenced orphan steps are preserved
+  rather than destructively removed.
 - `npm run sync-features:dry-run`: preview feature/database sync before applying changes.
 - `npm run sync-features`: regenerate feature files from synced data.
 - `npm run sync-locator-groups`, `npm run sync-locators`, `npm run sync-environments`, `npm run sync-modules`,

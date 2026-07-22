@@ -1,10 +1,4 @@
-import {
-  CustomWorld,
-  SelectorName,
-  Then,
-  When,
-  executeHumanOperation,
-} from '../../../../packages/cucumber-runtime/src/index.js'
+import { CustomWorld, When, executeHumanOperation } from '../../../../packages/cucumber-runtime/src/index.js'
 /**
  * @name random data
  * @description Generated human projections for canonical random data operations

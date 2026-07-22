@@ -85,12 +85,14 @@ for (const existing of await glob('automation/steps/{generated,actions/generated
 for (const [key, projections] of [...groups].sort(([left], [right]) => left.localeCompare(right))) {
   const group = projections[0]!.projection.group
   const type = projections[0]!.validation ? 'VALIDATION' : 'ACTION'
+  const keyword = projections[0]!.validation ? 'Then' : 'When'
+  const usesLocator = projections.some(({ operation, projection }) => {
+    const inputs = new Map(operation.inputs.map(input => [input.name, input]))
+    return projection.parameterOrder.some(name => inputs.get(name)?.type === 'locator')
+  })
+  const runtimeImports = ['CustomWorld', ...(usesLocator ? ['SelectorName'] : []), keyword, 'executeHumanOperation']
   const content = `import {
-  CustomWorld,
-  SelectorName,
-  Then,
-  When,
-  executeHumanOperation,
+${runtimeImports.map(name => `  ${name},`).join('\n')}
 } from '../../../../packages/cucumber-runtime/src/index.js'
 /**
  * @name ${group}
