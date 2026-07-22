@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import {
   CircleHelp,
+  BookOpenCheck,
   Code,
   Component,
   Group,
@@ -100,6 +101,10 @@ export const syncPresentation: Record<SyncScriptId, { icon: ReactNode; colorKey:
   'sync-template-steps': {
     icon: <LayoutTemplate />,
     colorKey: 'purple',
+  },
+  'sync-step-definitions': {
+    icon: <BookOpenCheck />,
+    colorKey: 'sky',
   },
   'sync-locator-groups': {
     icon: <Group />,

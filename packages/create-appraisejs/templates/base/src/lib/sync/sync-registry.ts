@@ -59,6 +59,14 @@ export const syncScriptDefinitions = [
     dependencies: ['sync-template-step-groups'],
   },
   {
+    id: 'sync-step-definitions',
+    label: 'Sync Step Definitions',
+    description: 'Publishes canonical built-in Step Definitions and legacy compatibility references.',
+    orderLabel: 'Step Definitions',
+    scriptFile: 'sync-step-definitions.ts',
+    dependencies: ['sync-template-steps'],
+  },
+  {
     id: 'sync-locator-groups',
     label: 'Sync Locator Groups',
     description: 'Syncs locator groups to DB.',
@@ -88,7 +96,7 @@ export const syncScriptDefinitions = [
     description: 'Syncs test cases to DB.',
     orderLabel: 'Test Cases',
     scriptFile: 'sync-test-cases.ts',
-    dependencies: ['sync-test-suites', 'sync-template-steps', 'sync-tags'],
+    dependencies: ['sync-test-suites', 'sync-template-steps', 'sync-step-definitions', 'sync-tags'],
   },
 ] as const satisfies readonly BaseSyncScriptDefinition[]
 

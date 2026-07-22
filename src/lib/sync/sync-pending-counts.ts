@@ -33,6 +33,10 @@ import {
 } from '@/lib/sync/projected-feature-utils'
 import type { AppraiseTestCaseMetadataFlowBlock, AppraiseTestCaseMetadataNode } from '@/lib/appraise-test-case-metadata'
 import { countPendingPlanSync } from '@/lib/plans/plan-sync-service'
+import {
+  builtInStepDefinitions,
+  computeStepDefinitionHashes,
+} from '../../../packages/cucumber-runtime/src/step-definitions/index'
 import { aggregatePendingComparisons, pendingComparison } from '@/lib/sync/pending-comparators'
 import {
   parseGroupJSDocLenient as parseGroupJSDoc,
@@ -1212,6 +1216,7 @@ export async function getSyncPendingCounts(): Promise<SyncPendingCounts> {
       dbTags,
       dbTemplateStepGroups,
       dbTemplateSteps,
+      dbStepDefinitions,
       dbLocatorGroups,
       dbTestSuites,
       dbTestCases,
@@ -1248,6 +1253,7 @@ export async function getSyncPendingCounts(): Promise<SyncPendingCounts> {
           },
         },
       }),
+      prisma.stepDefinition.findMany({ select: { id: true, version: true, definitionHash: true } }),
       prisma.locatorGroup.findMany({
         select: {
           name: true,
@@ -1334,6 +1340,15 @@ export async function getSyncPendingCounts(): Promise<SyncPendingCounts> {
       pendingComparison(
         'sync-template-steps',
         countTemplateStepMismatches(filesystem.templateSteps, normalizedDbTemplateSteps),
+      ),
+      pendingComparison(
+        'sync-step-definitions',
+        builtInStepDefinitions.filter(definition => {
+          const existing = dbStepDefinitions.find(
+            candidate => candidate.id === definition.identity.id && candidate.version === definition.identity.version,
+          )
+          return existing?.definitionHash !== computeStepDefinitionHashes(definition).definitionHash
+        }).length,
       ),
       pendingComparison(
         'sync-locator-groups',

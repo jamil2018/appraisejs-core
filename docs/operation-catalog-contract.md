@@ -1,4 +1,19 @@
-# Unified Operation Catalog Contract
+# Unified Step Definition And Operation Contract
+
+`StepDefinition(id, version)` is the durable semantic identity for reusable behavior. Its contract is exported from
+`packages/cucumber-runtime/src/step-definitions`, persisted through the shared Step Definition registry service, and
+published with separate definition, human-projection, agent-contract, execution, manifest, and receipt hashes. The
+canonical lifecycle is mutable non-executable draft, immutable ready, then immutable deprecated with an audited reason
+and optional replacement. Human and agent clients use the same draft and publication service.
+
+The existing operation catalog is the trusted built-in handler source during the migration. All 125 built-in
+operations deterministically project to complete ready Step Definitions without changing their visible signature,
+parameter order, or handler identity. `npm run sync-step-definitions` registers those definitions through the same
+review-bound publication boundary and projects legacy Template Step references for compatibility reads.
+
+Template Step IDs and operation descriptor references remain accepted compatibility inputs while authored records,
+Validation ASTs, and capsules migrate to exact `StepInvocation` references. They are not new semantic identities. The
+bounded compatibility window and remaining consumer cutover are tracked by ADR-0002 and the migration plan.
 
 The operation catalog is the semantic authority shared by human Template Step authoring, managed agent Validation
 ASTs, and runtime-capsule compilation. Contract and handler-neutral registry code lives under
@@ -45,5 +60,6 @@ test-case, and Step Block writers persist canonical invocation JSON when the map
 idempotently after Template Step sync. User custom source remains explicitly manual-only; it is never silently promoted
 to managed execution.
 
-The architectural rationale and rejected alternatives are recorded in
-`docs/decisions/0001-unified-operation-authority.md`.
+The original handler-unification rationale is recorded in `docs/decisions/0001-unified-operation-authority.md`.
+`docs/decisions/0002-unified-step-definition-authority.md` supersedes its independent Template Step identity and
+defines the publication and cutover authority.

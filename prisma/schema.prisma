@@ -72,6 +72,127 @@ model TemplateStep {
   @@index([operationId, operationVersion])
 }
 
+model StepDefinition {
+  id                  String
+  version             String
+  status              StepDefinitionStatus
+  title               String
+  description         String
+  definitionJson      String
+  definitionHash      String
+  humanProjectionHash String?
+  agentContractHash   String?
+  executionHash       String?
+  provenanceJson      String
+  createdAt           DateTime                     @default(now())
+  publishedAt         DateTime?
+  deprecatedAt        DateTime?
+  humanProjection     StepHumanProjection?
+  executionBinding    StepExecutionBinding?
+  publicationReceipt  StepPublicationReceipt?
+  deprecation         StepDefinitionDeprecation?
+  compatibilityRefs   StepCompatibilityReference[]
+
+  @@id([id, version])
+  @@index([status, title])
+}
+
+model StepDefinitionDraft {
+  id                   String    @id @default(uuid())
+  proposedStepId       String
+  proposedVersion      String
+  revision             Int       @default(1)
+  draftJson            String
+  draftHash            String
+  validationReportJson String?
+  reviewedDraftHash    String?
+  reviewedBy           String?
+  reviewedAt           DateTime?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  @@index([proposedStepId, proposedVersion])
+}
+
+model StepHumanProjection {
+  stepId         String
+  stepVersion    String
+  signature      String         @unique
+  groupId        String
+  projectionJson String
+  projectionHash String
+  definition     StepDefinition @relation(fields: [stepId, stepVersion], references: [id, version], onDelete: Restrict)
+
+  @@id([stepId, stepVersion])
+  @@index([groupId])
+}
+
+model StepExecutionBinding {
+  stepId      String
+  stepVersion String
+  kind        StepExecutionKind
+  bindingJson String
+  bindingHash String
+  definition  StepDefinition    @relation(fields: [stepId, stepVersion], references: [id, version], onDelete: Restrict)
+
+  @@id([stepId, stepVersion])
+  @@index([kind])
+}
+
+model StepPublicationReceipt {
+  stepId               String
+  stepVersion          String
+  receiptJson          String
+  receiptHash          String
+  registryManifestHash String
+  conformanceRunId     String
+  reviewAuthority      String
+  publishedAt          DateTime       @default(now())
+  definition           StepDefinition @relation(fields: [stepId, stepVersion], references: [id, version], onDelete: Restrict)
+
+  @@id([stepId, stepVersion])
+  @@unique([receiptHash])
+}
+
+model StepDefinitionDeprecation {
+  stepId             String
+  stepVersion        String
+  reason             String
+  actor              String
+  replacementStepId  String?
+  replacementVersion String?
+  deprecatedAt       DateTime       @default(now())
+  definition         StepDefinition @relation(fields: [stepId, stepVersion], references: [id, version], onDelete: Restrict)
+
+  @@id([stepId, stepVersion])
+}
+
+model StepCompatibilityReference {
+  id          String         @id @default(uuid())
+  legacyKind  String
+  legacyValue String
+  stepId      String
+  stepVersion String
+  createdAt   DateTime       @default(now())
+  lastUsedAt  DateTime?
+  usageCount  Int            @default(0)
+  definition  StepDefinition @relation(fields: [stepId, stepVersion], references: [id, version], onDelete: Restrict)
+
+  @@unique([legacyKind, legacyValue])
+  @@index([stepId, stepVersion])
+}
+
+enum StepDefinitionStatus {
+  ready
+  deprecated
+}
+
+enum StepExecutionKind {
+  operation
+  composition
+  reviewed_extension
+}
+
 model TemplateStepParameter {
   id             String            @id @default(uuid())
   name           String

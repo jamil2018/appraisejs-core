@@ -62,6 +62,7 @@
     "smoke:coordinator": "npx tsx scripts/smoke-coordinator.ts",
     "sync-template-step-groups": "npx tsx scripts/sync-template-step-groups.ts",
     "sync-template-steps": "npx tsx scripts/sync-template-steps.ts",
+    "sync-step-definitions": "npx tsx scripts/sync-step-definitions.ts",
     "sync-all": "npx tsx scripts/sync-all.ts",
     "appraisejs:install-step": "npx tsx scripts/install-template-step.ts",
     "test": "cucumber-js",

@@ -75,9 +75,10 @@ Managed execution uses only the exact Appraise-owned immutable runtime capsule; 
 Successful compilation returns the exact project-scoped `review=validation` browser link and the Appraise resource
 link directly, so the agent can hand off the review gate without another plan read.
 
-Validation authoring is registry-first through the unified operation catalog and locator graph. Use
-Use `step_search` for combined human and agent discovery. It returns the semantic Template Step name together with
-the canonical operation identity when one is mapped, and includes project-authored steps without a canonical mapping.
+Validation authoring is registry-first through the unified Step Definition catalog and locator graph. During the
+consumer migration, `step_search` may expose legacy Template Step compatibility data, but the actionable identity is
+the exact versioned Step Reference. Ready Step Definitions are globally shared; project-specific behavior remains a
+reviewed extension and is not silently promoted into the shared library.
 Use the lower-level `operation_search` and `operation_read` to inspect an exact semantic operation, then the allowlisted structured
 locator/page fallback, and only then a justified custom operation for application-specific behavior or a documented
 catalog gap. Human template search is a compatibility projection of the same migration ledger. See

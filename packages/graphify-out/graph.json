@@ -2185,10 +2185,10 @@
       "source_file": "appraisejs/src/capsule-diagnostic-response.test.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 16,
+      "community": 39,
       "norm_label": "capsule-diagnostic-response.test.ts",
       "id": "src_capsule_diagnostic_response_test",
-      "community_name": "Cucumber Runtime Src Cli Ts Src Cli / Cucumber Runtime Src Cli Ts Src Cli Cliopt"
+      "community_name": "Click Click"
     },
     {
       "label": "diagnostic",
@@ -2196,10 +2196,10 @@
       "source_file": "appraisejs/src/capsule-diagnostic-response.test.ts",
       "source_location": "L4",
       "_origin": "ast",
-      "community": 16,
+      "community": 39,
       "norm_label": "diagnostic",
       "id": "src_capsule_diagnostic_response_test_diagnostic",
-      "community_name": "Cucumber Runtime Src Cli Ts Src Cli / Cucumber Runtime Src Cli Ts Src Cli Cliopt"
+      "community_name": "Click Click"
     },
     {
       "label": "cli.ts",
@@ -2295,10 +2295,10 @@
       "source_file": "appraisejs/src/cli.ts",
       "source_location": "L63",
       "_origin": "ast",
-      "community": 27,
+      "community": 55,
       "norm_label": "onlineclient()",
       "id": "src_cli_onlineclient",
-      "community_name": "Locator Picker Companion Src Index Ts Src Index / Src Launcher"
+      "community_name": "Navigation Reload"
     },
     {
       "label": "locatorGraph",
@@ -2504,10 +2504,10 @@
       "source_file": "appraisejs/src/coordinator-client.ts",
       "source_location": "L17",
       "_origin": "ast",
-      "community": 29,
+      "community": 6,
       "norm_label": "coordinatorrequesterror",
       "id": "src_coordinator_client_coordinatorrequesterror",
-      "community_name": "Community 29"
+      "community_name": "Community 6"
     },
     {
       "label": ".constructor()",
@@ -2515,10 +2515,10 @@
       "source_file": "appraisejs/src/coordinator-client.ts",
       "source_location": "L18",
       "_origin": "ast",
-      "community": 29,
+      "community": 6,
       "norm_label": ".constructor()",
       "id": "src_coordinator_client_coordinatorrequesterror_constructor",
-      "community_name": "Community 29"
+      "community_name": "Community 6"
     },
     {
       "label": "coordinatorRequestErrorEnvelope()",
@@ -2526,10 +2526,10 @@
       "source_file": "appraisejs/src/coordinator-client.ts",
       "source_location": "L33",
       "_origin": "ast",
-      "community": 29,
+      "community": 6,
       "norm_label": "coordinatorrequesterrorenvelope()",
       "id": "src_coordinator_client_coordinatorrequesterrorenvelope",
-      "community_name": "Community 29"
+      "community_name": "Community 6"
     },
     {
       "label": "readResponseBody()",
@@ -2548,10 +2548,10 @@
       "source_file": "appraisejs/src/coordinator-client.ts",
       "source_location": "L56",
       "_origin": "ast",
-      "community": 29,
+      "community": 55,
       "norm_label": "createcoordinatorclient()",
       "id": "src_coordinator_client_createcoordinatorclient",
-      "community_name": "Community 29"
+      "community_name": "Navigation Reload"
     },
     {
       "label": "diagnostics.test.ts",
@@ -2867,10 +2867,10 @@
       "source_file": "appraisejs/src/managed-validation-contracts.ts",
       "source_location": "L269",
       "_origin": "ast",
-      "community": 12,
+      "community": 29,
       "norm_label": "validationastsubmission",
       "id": "src_managed_validation_contracts_validationastsubmission",
-      "community_name": "Cucumber Runtime Src Index Ts Src Index / Cucumber Runtime Src Types Ts Src Type"
+      "community_name": "Community 29"
     },
     {
       "label": "CustomExtensionPolicy",
@@ -3428,10 +3428,10 @@
       "source_file": "appraisejs/src/mcp/coordinator-call.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 29,
+      "community": 6,
       "norm_label": "coordinator-call.ts",
       "id": "mcp_coordinator_call",
-      "community_name": "Community 29"
+      "community_name": "Community 6"
     },
     {
       "label": "createCoordinatorApiClient()",
@@ -3626,10 +3626,10 @@
       "source_file": "appraisejs/src/mcp/domains/validation.ts",
       "source_location": "L25",
       "_origin": "ast",
-      "community": 14,
+      "community": 6,
       "norm_label": "registervalidationoperations()",
       "id": "domains_validation_registervalidationoperations",
-      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
+      "community_name": "Community 6"
     },
     {
       "label": "http-server.ts",
@@ -3868,10 +3868,10 @@
       "source_file": "appraisejs/src/mcp/response-projector.ts",
       "source_location": "L26",
       "_origin": "ast",
-      "community": 39,
+      "community": 6,
       "norm_label": "applyresponsemode()",
       "id": "mcp_response_projector_applyresponsemode",
-      "community_name": "Click Click"
+      "community_name": "Community 6"
     },
     {
       "label": "applyLifecycleResponseMode()",
@@ -3912,10 +3912,10 @@
       "source_file": "appraisejs/src/mcp/response-projector.ts",
       "source_location": "L341",
       "_origin": "ast",
-      "community": 16,
+      "community": 39,
       "norm_label": "applycapsulediagnosticmode()",
       "id": "mcp_response_projector_applycapsulediagnosticmode",
-      "community_name": "Cucumber Runtime Src Cli Ts Src Cli / Cucumber Runtime Src Cli Ts Src Cli Cliopt"
+      "community_name": "Click Click"
     },
     {
       "label": "server-factory.ts",
@@ -4363,10 +4363,10 @@
       "source_file": "appraisejs/src/mcp/shared.ts",
       "source_location": "L639",
       "_origin": "ast",
-      "community": 6,
+      "community": 14,
       "norm_label": "plansnapshot",
       "id": "mcp_shared_plansnapshot",
-      "community_name": "Community 6"
+      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
     },
     {
       "label": "validationIntegrityBlockedResponse()",
@@ -4825,10 +4825,10 @@
       "source_file": "appraisejs/src/plan-file.ts",
       "source_location": "L280",
       "_origin": "ast",
-      "community": 14,
+      "community": 7,
       "norm_label": "plancreateinputschema",
       "id": "src_plan_file_plancreateinputschema",
-      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
+      "community_name": "Src Plan Contract Parity Test / Src Plan Contract Parity Test Validplan"
     },
     {
       "label": "planArtifactSchema",
@@ -4836,10 +4836,10 @@
       "source_file": "appraisejs/src/plan-file.ts",
       "source_location": "L285",
       "_origin": "ast",
-      "community": 14,
+      "community": 7,
       "norm_label": "planartifactschema",
       "id": "src_plan_file_planartifactschema",
-      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
+      "community_name": "Src Plan Contract Parity Test / Src Plan Contract Parity Test Validplan"
     },
     {
       "label": "PlanFile",
@@ -4935,10 +4935,10 @@
       "source_file": "appraisejs/src/plan-source.test.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 28,
+      "community": 27,
       "norm_label": "plan-source.test.ts",
       "id": "src_plan_source_test",
-      "community_name": "Community 28"
+      "community_name": "Locator Picker Companion Src Index Ts Src Index / Src Launcher"
     },
     {
       "label": "directories",
@@ -4946,10 +4946,10 @@
       "source_file": "appraisejs/src/plan-source.test.ts",
       "source_location": "L9",
       "_origin": "ast",
-      "community": 28,
+      "community": 27,
       "norm_label": "directories",
       "id": "src_plan_source_test_directories",
-      "community_name": "Community 28"
+      "community_name": "Locator Picker Companion Src Index Ts Src Index / Src Launcher"
     },
     {
       "label": "directory()",
@@ -4957,10 +4957,10 @@
       "source_file": "appraisejs/src/plan-source.test.ts",
       "source_location": "L11",
       "_origin": "ast",
-      "community": 28,
+      "community": 27,
       "norm_label": "directory()",
       "id": "src_plan_source_test_directory",
-      "community_name": "Community 28"
+      "community_name": "Locator Picker Companion Src Index Ts Src Index / Src Launcher"
     },
     {
       "label": "plan-source.ts",
@@ -4968,10 +4968,10 @@
       "source_file": "appraisejs/src/plan-source.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 28,
+      "community": 27,
       "norm_label": "plan-source.ts",
       "id": "src_plan_source",
-      "community_name": "Community 28"
+      "community_name": "Locator Picker Companion Src Index Ts Src Index / Src Launcher"
     },
     {
       "label": "resolvePlanSource()",
@@ -4979,10 +4979,10 @@
       "source_file": "appraisejs/src/plan-source.ts",
       "source_location": "L4",
       "_origin": "ast",
-      "community": 28,
+      "community": 27,
       "norm_label": "resolveplansource()",
       "id": "src_plan_source_resolveplansource",
-      "community_name": "Community 28"
+      "community_name": "Locator Picker Companion Src Index Ts Src Index / Src Launcher"
     },
     {
       "label": "project-identity.ts",
@@ -9038,10 +9038,10 @@
       "source_file": "cucumber-runtime/src/operations/browser-handlers.test.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 75,
+      "community": 13,
       "norm_label": "browser-handlers.test.ts",
       "id": "operations_browser_handlers_test",
-      "community_name": "Wait Wait For Page Load"
+      "community_name": "Src Hooks / Src Paths"
     },
     {
       "label": "runtime()",
@@ -9049,10 +9049,10 @@
       "source_file": "cucumber-runtime/src/operations/browser-handlers.test.ts",
       "source_location": "L11",
       "_origin": "ast",
-      "community": 75,
+      "community": 13,
       "norm_label": "runtime()",
       "id": "operations_browser_handlers_test_runtime",
-      "community_name": "Wait Wait For Page Load"
+      "community_name": "Src Hooks / Src Paths"
     },
     {
       "label": "browser-handlers.ts",
@@ -9093,10 +9093,10 @@
       "source_file": "cucumber-runtime/src/operations/browser-handlers.ts",
       "source_location": "L21",
       "_origin": "ast",
-      "community": 75,
+      "community": 13,
       "norm_label": "operationexecutionerror",
       "id": "operations_browser_handlers_operationexecutionerror",
-      "community_name": "Wait Wait For Page Load"
+      "community_name": "Src Hooks / Src Paths"
     },
     {
       "label": ".constructor()",
@@ -9104,10 +9104,10 @@
       "source_file": "cucumber-runtime/src/operations/browser-handlers.ts",
       "source_location": "L22",
       "_origin": "ast",
-      "community": 75,
+      "community": 13,
       "norm_label": ".constructor()",
       "id": "operations_browser_handlers_operationexecutionerror_constructor",
-      "community_name": "Wait Wait For Page Load"
+      "community_name": "Src Hooks / Src Paths"
     },
     {
       "label": "BrowserOperationHandler",
@@ -9247,10 +9247,10 @@
       "source_file": "cucumber-runtime/src/operations/browser-handlers.ts",
       "source_location": "L197",
       "_origin": "ast",
-      "community": 75,
+      "community": 13,
       "norm_label": "browseroperationhandlerdescriptors",
       "id": "operations_browser_handlers_browseroperationhandlerdescriptors",
-      "community_name": "Wait Wait For Page Load"
+      "community_name": "Src Hooks / Src Paths"
     },
     {
       "label": "listBrowserOperationHandlerRefs()",
@@ -9258,10 +9258,10 @@
       "source_file": "cucumber-runtime/src/operations/browser-handlers.ts",
       "source_location": "L210",
       "_origin": "ast",
-      "community": 75,
+      "community": 13,
       "norm_label": "listbrowseroperationhandlerrefs()",
       "id": "operations_browser_handlers_listbrowseroperationhandlerrefs",
-      "community_name": "Wait Wait For Page Load"
+      "community_name": "Src Hooks / Src Paths"
     },
     {
       "label": "executeBrowserOperation()",
@@ -9269,10 +9269,10 @@
       "source_file": "cucumber-runtime/src/operations/browser-handlers.ts",
       "source_location": "L214",
       "_origin": "ast",
-      "community": 75,
+      "community": 13,
       "norm_label": "executebrowseroperation()",
       "id": "operations_browser_handlers_executebrowseroperation",
-      "community_name": "Wait Wait For Page Load"
+      "community_name": "Src Hooks / Src Paths"
     },
     {
       "label": "executeBuiltinHumanOperation()",
@@ -9291,10 +9291,10 @@
       "source_file": "cucumber-runtime/src/operations/browser-handlers.ts",
       "source_location": "L237",
       "_origin": "ast",
-      "community": 75,
+      "community": 13,
       "norm_label": "executehumanoperation()",
       "id": "operations_browser_handlers_executehumanoperation",
-      "community_name": "Wait Wait For Page Load"
+      "community_name": "Src Hooks / Src Paths"
     },
     {
       "label": "builtin-contracts.ts",
@@ -10197,6 +10197,391 @@
       "norm_label": "generaterandomdata()",
       "id": "src_random_data_util_generaterandomdata",
       "community_name": "Src World / Src World Customworld"
+    },
+    {
+      "label": "builtins.test.ts",
+      "file_type": "code",
+      "source_file": "cucumber-runtime/src/step-definitions/builtins.test.ts",
+      "source_location": "L1",
+      "_origin": "ast",
+      "community": 28,
+      "norm_label": "builtins.test.ts",
+      "id": "step_definitions_builtins_test",
+      "community_name": "Community 28"
+    },
+    {
+      "label": "builtins.ts",
+      "file_type": "code",
+      "source_file": "cucumber-runtime/src/step-definitions/builtins.ts",
+      "source_location": "L1",
+      "_origin": "ast",
+      "community": 28,
+      "norm_label": "builtins.ts",
+      "id": "step_definitions_builtins",
+      "community_name": "Community 28"
+    },
+    {
+      "label": "SourceOperation",
+      "file_type": "code",
+      "source_file": "cucumber-runtime/src/step-definitions/builtins.ts",
+      "source_location": "L7",
+      "_origin": "ast",
+      "community": 28,
+      "norm_label": "sourceoperation",
+      "id": "step_definitions_builtins_sourceoperation",
+      "community_name": "Community 28"
+    },
+    {
+      "label": "outputType()",
+      "file_type": "code",
+      "source_file": "cucumber-runtime/src/step-definitions/builtins.ts",
+      "source_location": "L9",
+      "_origin": "ast",
+      "community": 28,
+      "norm_label": "outputtype()",
+      "id": "step_definitions_builtins_outputtype",
+      "community_name": "Community 28"
+    },
+    {
+      "label": "projectBuiltIn()",
+      "file_type": "code",
+      "source_file": "cucumber-runtime/src/step-definitions/builtins.ts",
+      "source_location": "L14",
+      "_origin": "ast",
+      "community": 28,
+      "norm_label": "projectbuiltin()",
+      "id": "step_definitions_builtins_projectbuiltin",
+      "community_name": "Community 28"
+    },
+    {
+      "label": "builtInStepDefinitions",
+      "file_type": "code",
+      "source_file": "cucumber-runtime/src/step-definitions/builtins.ts",
+      "source_location": "L79",
+      "_origin": "ast",
+      "community": 28,
+      "norm_label": "builtinstepdefinitions",
+      "id": "step_definitions_builtins_builtinstepdefinitions",
+      "community_name": "Community 28"
+    },
+    {
+      "label": "contracts.test.ts",
+      "file_type": "code",
+      "source_file": "cucumber-runtime/src/step-definitions/contracts.test.ts",
+      "source_location": "L1",
+      "_origin": "ast",
+      "community": 178,
+      "norm_label": "contracts.test.ts",
+      "id": "step_definitions_contracts_test",
+      "community_name": "Community 178"
+    },
+    {
+      "label": "definition()",
+      "file_type": "code",
+      "source_file": "cucumber-runtime/src/step-definitions/contracts.test.ts",
+      "source_location": "L12",
+      "_origin": "ast",
+      "community": 178,
+      "norm_label": "definition()",
+      "id": "step_definitions_contracts_test_definition",
+      "community_name": "Community 178"
+    },
+    {
+      "label": "contracts.ts",
+      "file_type": "code",
+      "source_file": "cucumber-runtime/src/step-definitions/contracts.ts",
+      "source_location": "L1",
+      "_origin": "ast",
+      "community": 16,
+      "norm_label": "contracts.ts",
+      "id": "step_definitions_contracts",
+      "community_name": "Cucumber Runtime Src Cli Ts Src Cli / Cucumber Runtime Src Cli Ts Src Cli Cliopt"
+    },
+    {
+      "label": "STEP_DEFINITION_SCHEMA_VERSION",
+      "file_type": "code",
+      "source_file": "cucumber-runtime/src/step-definitions/contracts.ts",
+      "source_location": "L6",
+      "_origin": "ast",
+      "community": 16,
+      "norm_label": "step_definition_schema_version",
+      "id": "step_definitions_contracts_step_definition_schema_version",
+      "community_name": "Cucumber Runtime Src Cli Ts Src Cli / Cucumber Runtime Src Cli Ts Src Cli Cliopt"
+    },
+    {
+      "label": "stepDefinitionIdSchema",
+      "file_type": "code",
+      "source_file": "cucumber-runtime/src/step-definitions/contracts.ts",
+      "source_location": "L8",
+      "_origin": "ast",
+      "community": 16,
+      "norm_label": "stepdefinitionidschema",
+      "id": "step_definitions_contracts_stepdefinitionidschema",
+      "community_name": "Cucumber Runtime Src Cli Ts Src Cli / Cucumber Runtime Src Cli Ts Src Cli Cliopt"
+    },
+    {
+      "label": "stepDefinitionVersionSchema",
+      "file_type": "code",
+      "source_file": "cucumber-runtime/src/step-definitions/contracts.ts",
+      "source_location": "L9",
+      "_origin": "ast",
+      "community": 16,
+      "norm_label": "stepdefinitionversionschema",
+      "id": "step_definitions_contracts_stepdefinitionversionschema",
+      "community_name": "Cucumber Runtime Src Cli Ts Src Cli / Cucumber Runtime Src Cli Ts Src Cli Cliopt"
+    },
+    {
+      "label": "stepDefinitionHashSchema",
+      "file_type": "code",
+      "source_file": "cucumber-runtime/src/step-definitions/contracts.ts",
+      "source_location": "L10",
+      "_origin": "ast",
+      "community": 16,
+      "norm_label": "stepdefinitionhashschema",
+      "id": "step_definitions_contracts_stepdefinitionhashschema",
+      "community_name": "Cucumber Runtime Src Cli Ts Src Cli / Cucumber Runtime Src Cli Ts Src Cli Cliopt"
+    },
+    {
+      "label": "identifierSchema",
+      "file_type": "code",
+      "source_file": "cucumber-runtime/src/step-definitions/contracts.ts",
+      "source_location": "L11",
+      "_origin": "ast",
+      "community": 16,
+      "norm_label": "identifierschema",
+      "id": "step_definitions_contracts_identifierschema",
+      "community_name": "Cucumber Runtime Src Cli Ts Src Cli / Cucumber Runtime Src Cli Ts Src Cli Cliopt"
+    },
+    {
+      "label": "boundedText()",
+      "file_type": "code",
+      "source_file": "cucumber-runtime/src/step-definitions/contracts.ts",
+      "source_location": "L12",
+      "_origin": "ast",
+      "community": 16,
+      "norm_label": "boundedtext()",
+      "id": "step_definitions_contracts_boundedtext",
+      "community_name": "Cucumber Runtime Src Cli Ts Src Cli / Cucumber Runtime Src Cli Ts Src Cli Cliopt"
+    },
+    {
+      "label": "canonicalStepDefinitionJson()",
+      "file_type": "code",
+      "source_file": "cucumber-runtime/src/step-definitions/contracts.ts",
+      "source_location": "L14",
+      "_origin": "ast",
+      "community": 178,
+      "norm_label": "canonicalstepdefinitionjson()",
+      "id": "step_definitions_contracts_canonicalstepdefinitionjson",
+      "community_name": "Community 178"
+    },
+    {
+      "label": "stepDefinitionContentHash()",
+      "file_type": "code",
+      "source_file": "cucumber-runtime/src/step-definitions/contracts.ts",
+      "source_location": "L18",
+      "_origin": "ast",
+      "community": 178,
+      "norm_label": "stepdefinitioncontenthash()",
+      "id": "step_definitions_contracts_stepdefinitioncontenthash",
+      "community_name": "Community 178"
+    },
+    {
+      "label": "stepIdentitySchema",
+      "file_type": "code",
+      "source_file": "cucumber-runtime/src/step-definitions/contracts.ts",
+      "source_location": "L22",
+      "_origin": "ast",
+      "community": 16,
+      "norm_label": "stepidentityschema",
+      "id": "step_definitions_contracts_stepidentityschema",
+      "community_name": "Cucumber Runtime Src Cli Ts Src Cli / Cucumber Runtime Src Cli Ts Src Cli Cliopt"
+    },
+    {
+      "label": "stepReferenceSchema",
+      "file_type": "code",
+      "source_file": "cucumber-runtime/src/step-definitions/contracts.ts",
+      "source_location": "L27",
+      "_origin": "ast",
+      "community": 16,
+      "norm_label": "stepreferenceschema",
+      "id": "step_definitions_contracts_stepreferenceschema",
+      "community_name": "Cucumber Runtime Src Cli Ts Src Cli / Cucumber Runtime Src Cli Ts Src Cli Cliopt"
+    },
+    {
+      "label": "stepInputDefinitionSchema",
+      "file_type": "code",
+      "source_file": "cucumber-runtime/src/step-definitions/contracts.ts",
+      "source_location": "L31",
+      "_origin": "ast",
+      "community": 16,
+      "norm_label": "stepinputdefinitionschema",
+      "id": "step_definitions_contracts_stepinputdefinitionschema",
+      "community_name": "Cucumber Runtime Src Cli Ts Src Cli / Cucumber Runtime Src Cli Ts Src Cli Cliopt"
+    },
+    {
+      "label": "stepOutputDefinitionSchema",
+      "file_type": "code",
+      "source_file": "cucumber-runtime/src/step-definitions/contracts.ts",
+      "source_location": "L60",
+      "_origin": "ast",
+      "community": 16,
+      "norm_label": "stepoutputdefinitionschema",
+      "id": "step_definitions_contracts_stepoutputdefinitionschema",
+      "community_name": "Cucumber Runtime Src Cli Ts Src Cli / Cucumber Runtime Src Cli Ts Src Cli Cliopt"
+    },
+    {
+      "label": "inputExpressionSchema",
+      "file_type": "code",
+      "source_file": "cucumber-runtime/src/step-definitions/contracts.ts",
+      "source_location": "L67",
+      "_origin": "ast",
+      "community": 16,
+      "norm_label": "inputexpressionschema",
+      "id": "step_definitions_contracts_inputexpressionschema",
+      "community_name": "Cucumber Runtime Src Cli Ts Src Cli / Cucumber Runtime Src Cli Ts Src Cli Cliopt"
+    },
+    {
+      "label": "stepExecutionBindingSchema",
+      "file_type": "code",
+      "source_file": "cucumber-runtime/src/step-definitions/contracts.ts",
+      "source_location": "L73",
+      "_origin": "ast",
+      "community": 16,
+      "norm_label": "stepexecutionbindingschema",
+      "id": "step_definitions_contracts_stepexecutionbindingschema",
+      "community_name": "Cucumber Runtime Src Cli Ts Src Cli / Cucumber Runtime Src Cli Ts Src Cli Cliopt"
+    },
+    {
+      "label": "stepDefinitionSchema",
+      "file_type": "code",
+      "source_file": "cucumber-runtime/src/step-definitions/contracts.ts",
+      "source_location": "L99",
+      "_origin": "ast",
+      "community": 28,
+      "norm_label": "stepdefinitionschema",
+      "id": "step_definitions_contracts_stepdefinitionschema",
+      "community_name": "Community 28"
+    },
+    {
+      "label": "stepDefinitionDraftSchema",
+      "file_type": "code",
+      "source_file": "cucumber-runtime/src/step-definitions/contracts.ts",
+      "source_location": "L238",
+      "_origin": "ast",
+      "community": 16,
+      "norm_label": "stepdefinitiondraftschema",
+      "id": "step_definitions_contracts_stepdefinitiondraftschema",
+      "community_name": "Cucumber Runtime Src Cli Ts Src Cli / Cucumber Runtime Src Cli Ts Src Cli Cliopt"
+    },
+    {
+      "label": "stepDefinitionDraftAuthoringSchema",
+      "file_type": "code",
+      "source_file": "cucumber-runtime/src/step-definitions/contracts.ts",
+      "source_location": "L244",
+      "_origin": "ast",
+      "community": 16,
+      "norm_label": "stepdefinitiondraftauthoringschema",
+      "id": "step_definitions_contracts_stepdefinitiondraftauthoringschema",
+      "community_name": "Cucumber Runtime Src Cli Ts Src Cli / Cucumber Runtime Src Cli Ts Src Cli Cliopt"
+    },
+    {
+      "label": "stepInvocationSchema",
+      "file_type": "code",
+      "source_file": "cucumber-runtime/src/step-definitions/contracts.ts",
+      "source_location": "L258",
+      "_origin": "ast",
+      "community": 178,
+      "norm_label": "stepinvocationschema",
+      "id": "step_definitions_contracts_stepinvocationschema",
+      "community_name": "Community 178"
+    },
+    {
+      "label": "stepPublicationReceiptSchema",
+      "file_type": "code",
+      "source_file": "cucumber-runtime/src/step-definitions/contracts.ts",
+      "source_location": "L269",
+      "_origin": "ast",
+      "community": 16,
+      "norm_label": "steppublicationreceiptschema",
+      "id": "step_definitions_contracts_steppublicationreceiptschema",
+      "community_name": "Cucumber Runtime Src Cli Ts Src Cli / Cucumber Runtime Src Cli Ts Src Cli Cliopt"
+    },
+    {
+      "label": "computeStepDefinitionHashes()",
+      "file_type": "code",
+      "source_file": "cucumber-runtime/src/step-definitions/contracts.ts",
+      "source_location": "L281",
+      "_origin": "ast",
+      "community": 178,
+      "norm_label": "computestepdefinitionhashes()",
+      "id": "step_definitions_contracts_computestepdefinitionhashes",
+      "community_name": "Community 178"
+    },
+    {
+      "label": "StepDefinition",
+      "file_type": "code",
+      "source_file": "cucumber-runtime/src/step-definitions/contracts.ts",
+      "source_location": "L299",
+      "_origin": "ast",
+      "community": 178,
+      "norm_label": "stepdefinition",
+      "id": "step_definitions_contracts_stepdefinition",
+      "community_name": "Community 178"
+    },
+    {
+      "label": "StepDefinitionDraft",
+      "file_type": "code",
+      "source_file": "cucumber-runtime/src/step-definitions/contracts.ts",
+      "source_location": "L300",
+      "_origin": "ast",
+      "community": 16,
+      "norm_label": "stepdefinitiondraft",
+      "id": "step_definitions_contracts_stepdefinitiondraft",
+      "community_name": "Cucumber Runtime Src Cli Ts Src Cli / Cucumber Runtime Src Cli Ts Src Cli Cliopt"
+    },
+    {
+      "label": "StepExecutionBinding",
+      "file_type": "code",
+      "source_file": "cucumber-runtime/src/step-definitions/contracts.ts",
+      "source_location": "L301",
+      "_origin": "ast",
+      "community": 16,
+      "norm_label": "stepexecutionbinding",
+      "id": "step_definitions_contracts_stepexecutionbinding",
+      "community_name": "Cucumber Runtime Src Cli Ts Src Cli / Cucumber Runtime Src Cli Ts Src Cli Cliopt"
+    },
+    {
+      "label": "StepInvocation",
+      "file_type": "code",
+      "source_file": "cucumber-runtime/src/step-definitions/contracts.ts",
+      "source_location": "L302",
+      "_origin": "ast",
+      "community": 16,
+      "norm_label": "stepinvocation",
+      "id": "step_definitions_contracts_stepinvocation",
+      "community_name": "Cucumber Runtime Src Cli Ts Src Cli / Cucumber Runtime Src Cli Ts Src Cli Cliopt"
+    },
+    {
+      "label": "StepPublicationReceipt",
+      "file_type": "code",
+      "source_file": "cucumber-runtime/src/step-definitions/contracts.ts",
+      "source_location": "L303",
+      "_origin": "ast",
+      "community": 16,
+      "norm_label": "steppublicationreceipt",
+      "id": "step_definitions_contracts_steppublicationreceipt",
+      "community_name": "Cucumber Runtime Src Cli Ts Src Cli / Cucumber Runtime Src Cli Ts Src Cli Cliopt"
+    },
+    {
+      "label": "index.ts",
+      "file_type": "code",
+      "source_file": "cucumber-runtime/src/step-definitions/index.ts",
+      "source_location": "L1",
+      "_origin": "ast",
+      "community": 28,
+      "norm_label": "index.ts",
+      "id": "step_definitions_index",
+      "community_name": "Community 28"
     },
     {
       "label": "template-step-operations.test.ts",
@@ -11128,10 +11513,10 @@
       "source_file": "locator-picker-companion/src/index.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 2,
+      "community": 75,
       "norm_label": "index.ts",
       "id": "locator_picker_companion_src_index_ts_src_index",
-      "community_name": "Locator Picker Companion Src Cli Ts Src Cli / Locator Picker Companion Src Cli T"
+      "community_name": "Wait Wait For Page Load"
     },
     {
       "label": "injected-picker-script.ts",
@@ -11161,10 +11546,10 @@
       "source_file": "locator-picker-companion/src/launcher.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 2,
+      "community": 75,
       "norm_label": "launcher.ts",
       "id": "src_launcher",
-      "community_name": "Locator Picker Companion Src Cli Ts Src Cli / Locator Picker Companion Src Cli T"
+      "community_name": "Wait Wait For Page Load"
     },
     {
       "label": "pathExists()",
@@ -11172,10 +11557,10 @@
       "source_file": "locator-picker-companion/src/launcher.ts",
       "source_location": "L5",
       "_origin": "ast",
-      "community": 2,
+      "community": 75,
       "norm_label": "pathexists()",
       "id": "src_launcher_pathexists",
-      "community_name": "Locator Picker Companion Src Cli Ts Src Cli / Locator Picker Companion Src Cli T"
+      "community_name": "Wait Wait For Page Load"
     },
     {
       "label": "getLatestModifiedTime()",
@@ -11183,10 +11568,10 @@
       "source_file": "locator-picker-companion/src/launcher.ts",
       "source_location": "L14",
       "_origin": "ast",
-      "community": 2,
+      "community": 75,
       "norm_label": "getlatestmodifiedtime()",
       "id": "src_launcher_getlatestmodifiedtime",
-      "community_name": "Locator Picker Companion Src Cli Ts Src Cli / Locator Picker Companion Src Cli T"
+      "community_name": "Wait Wait For Page Load"
     },
     {
       "label": "getLocatorPickerCompanionPaths()",
@@ -11194,10 +11579,10 @@
       "source_file": "locator-picker-companion/src/launcher.ts",
       "source_location": "L26",
       "_origin": "ast",
-      "community": 2,
+      "community": 75,
       "norm_label": "getlocatorpickercompanionpaths()",
       "id": "src_launcher_getlocatorpickercompanionpaths",
-      "community_name": "Locator Picker Companion Src Cli Ts Src Cli / Locator Picker Companion Src Cli T"
+      "community_name": "Wait Wait For Page Load"
     },
     {
       "label": "ensureLocatorPickerCompanionBuilt()",
@@ -11205,10 +11590,10 @@
       "source_file": "locator-picker-companion/src/launcher.ts",
       "source_location": "L38",
       "_origin": "ast",
-      "community": 2,
+      "community": 75,
       "norm_label": "ensurelocatorpickercompanionbuilt()",
       "id": "src_launcher_ensurelocatorpickercompanionbuilt",
-      "community_name": "Locator Picker Companion Src Cli Ts Src Cli / Locator Picker Companion Src Cli T"
+      "community_name": "Wait Wait For Page Load"
     },
     {
       "label": "resolveLocatorPickerCompanionInvocation()",
@@ -11216,10 +11601,10 @@
       "source_file": "locator-picker-companion/src/launcher.ts",
       "source_location": "L65",
       "_origin": "ast",
-      "community": 2,
+      "community": 75,
       "norm_label": "resolvelocatorpickercompanioninvocation()",
       "id": "src_launcher_resolvelocatorpickercompanioninvocation",
-      "community_name": "Locator Picker Companion Src Cli Ts Src Cli / Locator Picker Companion Src Cli T"
+      "community_name": "Wait Wait For Page Load"
     },
     {
       "label": "selector-generator.ts",
@@ -11858,6 +12243,17 @@
       "norm_label": "expectedagentcapabilities",
       "id": "src_agent_setup_capabilities_expectedagentcapabilities",
       "community_name": "Locator Picker Companion Src Index Ts Src Index / Src Launcher"
+    },
+    {
+      "label": "stepValueSchema",
+      "file_type": "code",
+      "source_file": "cucumber-runtime/src/step-definitions/contracts.ts",
+      "source_location": "L29",
+      "_origin": "ast",
+      "community": 179,
+      "norm_label": "stepvalueschema",
+      "id": "step_definitions_contracts_stepvalueschema",
+      "community_name": "Community 179"
     },
     {
       "label": "Appraise-Owned Lifecycle",
@@ -25787,6 +26183,28 @@
       "target": "src_world_customworld"
     },
     {
+      "relation": "re_exports",
+      "context": "export",
+      "confidence": "EXTRACTED",
+      "source_file": "cucumber-runtime/src/index.ts",
+      "source_location": "L24",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "cucumber_runtime_src_index_ts_src_index",
+      "target": "step_definitions_contracts"
+    },
+    {
+      "relation": "re_exports",
+      "context": "export",
+      "confidence": "EXTRACTED",
+      "source_file": "cucumber-runtime/src/index.ts",
+      "source_location": "L24",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "cucumber_runtime_src_index_ts_src_index",
+      "target": "step_definitions_index"
+    },
+    {
       "relation": "imports_from",
       "context": "import",
       "confidence": "EXTRACTED",
@@ -26703,6 +27121,17 @@
       "target": "operations_browser_handlers"
     },
     {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "cucumber-runtime/src/step-definitions/builtins.ts",
+      "source_location": "L2",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "step_definitions_builtins",
+      "target": "operations_browser_handlers"
+    },
+    {
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "cucumber-runtime/src/operations/browser-handlers.ts",
@@ -26744,6 +27173,17 @@
       "confidence_score": 1.0,
       "source": "operations_browser_handlers_target",
       "target": "operations_browser_handlers_required"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "cucumber-runtime/src/step-definitions/builtins.ts",
+      "source_location": "L2",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "step_definitions_builtins",
+      "target": "operations_browser_handlers_browseroperationhandlerdescriptors"
     },
     {
       "relation": "calls",
@@ -28678,6 +29118,28 @@
       "target": "operations_contracts"
     },
     {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "cucumber-runtime/src/step-definitions/builtins.ts",
+      "source_location": "L3",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "step_definitions_builtins",
+      "target": "operations_contracts"
+    },
+    {
+      "relation": "re_exports",
+      "context": "export",
+      "confidence": "EXTRACTED",
+      "source_file": "cucumber-runtime/src/step-definitions/contracts.ts",
+      "source_location": "L29",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "step_definitions_contracts",
+      "target": "operations_contracts"
+    },
+    {
       "relation": "imports",
       "context": "import",
       "confidence": "EXTRACTED",
@@ -28714,6 +29176,28 @@
       "relation": "imports",
       "context": "import",
       "confidence": "EXTRACTED",
+      "source_file": "cucumber-runtime/src/step-definitions/contracts.ts",
+      "source_location": "L4",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "step_definitions_contracts",
+      "target": "operations_contracts_canonicaloperationjson"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "cucumber-runtime/src/step-definitions/contracts.ts",
+      "source_location": "L15",
+      "weight": 1.0,
+      "source": "step_definitions_contracts_canonicalstepdefinitionjson",
+      "target": "operations_contracts_canonicaloperationjson"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
       "source_file": "cucumber-runtime/src/operations/registry.ts",
       "source_location": "L1",
       "weight": 1.0,
@@ -28742,6 +29226,17 @@
       "confidence_score": 1.0,
       "source": "operations_registry_test",
       "target": "operations_contracts_operationcontenthash"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "cucumber-runtime/src/step-definitions/contracts.ts",
+      "source_location": "L4",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "step_definitions_contracts",
+      "target": "operations_contracts_boundedoperationvalueschema"
     },
     {
       "relation": "imports",
@@ -28796,6 +29291,17 @@
       "weight": 1.0,
       "confidence_score": 1.0,
       "source": "operations_registry_test",
+      "target": "operations_contracts_operationdefinition"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "cucumber-runtime/src/step-definitions/builtins.ts",
+      "source_location": "L3",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "step_definitions_builtins",
       "target": "operations_contracts_operationdefinition"
     },
     {
@@ -29247,6 +29753,515 @@
       "confidence_score": 1.0,
       "source": "src_random_data_util",
       "target": "src_random_data_util_randomdatatype"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "cucumber-runtime/src/step-definitions/builtins.test.ts",
+      "source_location": "L4",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "step_definitions_builtins_test",
+      "target": "step_definitions_builtins"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "cucumber-runtime/src/step-definitions/builtins.test.ts",
+      "source_location": "L4",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "step_definitions_builtins_test",
+      "target": "step_definitions_builtins_builtinstepdefinitions"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "cucumber-runtime/src/step-definitions/builtins.test.ts",
+      "source_location": "L5",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "step_definitions_builtins_test",
+      "target": "step_definitions_contracts"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "cucumber-runtime/src/step-definitions/builtins.test.ts",
+      "source_location": "L5",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "step_definitions_builtins_test",
+      "target": "step_definitions_contracts_computestepdefinitionhashes"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "cucumber-runtime/src/step-definitions/builtins.test.ts",
+      "source_location": "L5",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "step_definitions_builtins_test",
+      "target": "step_definitions_contracts_stepdefinitionschema"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "cucumber-runtime/src/step-definitions/builtins.ts",
+      "source_location": "L79",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "step_definitions_builtins",
+      "target": "step_definitions_builtins_builtinstepdefinitions"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "cucumber-runtime/src/step-definitions/builtins.ts",
+      "source_location": "L9",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "step_definitions_builtins",
+      "target": "step_definitions_builtins_outputtype"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "cucumber-runtime/src/step-definitions/builtins.ts",
+      "source_location": "L14",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "step_definitions_builtins",
+      "target": "step_definitions_builtins_projectbuiltin"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "cucumber-runtime/src/step-definitions/builtins.ts",
+      "source_location": "L7",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "step_definitions_builtins",
+      "target": "step_definitions_builtins_sourceoperation"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "cucumber-runtime/src/step-definitions/builtins.ts",
+      "source_location": "L5",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "step_definitions_builtins",
+      "target": "step_definitions_contracts"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "cucumber-runtime/src/step-definitions/builtins.ts",
+      "source_location": "L5",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "step_definitions_builtins",
+      "target": "step_definitions_contracts_stepdefinition"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "cucumber-runtime/src/step-definitions/builtins.ts",
+      "source_location": "L5",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "step_definitions_builtins",
+      "target": "step_definitions_contracts_stepdefinitionschema"
+    },
+    {
+      "relation": "re_exports",
+      "context": "export",
+      "confidence": "EXTRACTED",
+      "source_file": "cucumber-runtime/src/step-definitions/index.ts",
+      "source_location": "L2",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "step_definitions_index",
+      "target": "step_definitions_builtins"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "cucumber-runtime/src/step-definitions/contracts.test.ts",
+      "source_location": "L3",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "step_definitions_contracts_test",
+      "target": "step_definitions_contracts"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "cucumber-runtime/src/step-definitions/contracts.test.ts",
+      "source_location": "L3",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "step_definitions_contracts_test",
+      "target": "step_definitions_contracts_canonicalstepdefinitionjson"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "cucumber-runtime/src/step-definitions/contracts.test.ts",
+      "source_location": "L3",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "step_definitions_contracts_test",
+      "target": "step_definitions_contracts_computestepdefinitionhashes"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "cucumber-runtime/src/step-definitions/contracts.test.ts",
+      "source_location": "L3",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "step_definitions_contracts_test",
+      "target": "step_definitions_contracts_stepdefinition"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "cucumber-runtime/src/step-definitions/contracts.test.ts",
+      "source_location": "L3",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "step_definitions_contracts_test",
+      "target": "step_definitions_contracts_stepdefinitioncontenthash"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "cucumber-runtime/src/step-definitions/contracts.test.ts",
+      "source_location": "L3",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "step_definitions_contracts_test",
+      "target": "step_definitions_contracts_stepdefinitionschema"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "cucumber-runtime/src/step-definitions/contracts.test.ts",
+      "source_location": "L3",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "step_definitions_contracts_test",
+      "target": "step_definitions_contracts_stepinvocationschema"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "cucumber-runtime/src/step-definitions/contracts.test.ts",
+      "source_location": "L12",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "step_definitions_contracts_test",
+      "target": "step_definitions_contracts_test_definition"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "cucumber-runtime/src/step-definitions/contracts.ts",
+      "source_location": "L12",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "step_definitions_contracts",
+      "target": "step_definitions_contracts_boundedtext"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "cucumber-runtime/src/step-definitions/contracts.ts",
+      "source_location": "L14",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "step_definitions_contracts",
+      "target": "step_definitions_contracts_canonicalstepdefinitionjson"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "cucumber-runtime/src/step-definitions/contracts.ts",
+      "source_location": "L281",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "step_definitions_contracts",
+      "target": "step_definitions_contracts_computestepdefinitionhashes"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "cucumber-runtime/src/step-definitions/contracts.ts",
+      "source_location": "L11",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "step_definitions_contracts",
+      "target": "step_definitions_contracts_identifierschema"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "cucumber-runtime/src/step-definitions/contracts.ts",
+      "source_location": "L67",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "step_definitions_contracts",
+      "target": "step_definitions_contracts_inputexpressionschema"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "cucumber-runtime/src/step-definitions/contracts.ts",
+      "source_location": "L6",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "step_definitions_contracts",
+      "target": "step_definitions_contracts_step_definition_schema_version"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "cucumber-runtime/src/step-definitions/contracts.ts",
+      "source_location": "L299",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "step_definitions_contracts",
+      "target": "step_definitions_contracts_stepdefinition"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "cucumber-runtime/src/step-definitions/contracts.ts",
+      "source_location": "L18",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "step_definitions_contracts",
+      "target": "step_definitions_contracts_stepdefinitioncontenthash"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "cucumber-runtime/src/step-definitions/contracts.ts",
+      "source_location": "L300",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "step_definitions_contracts",
+      "target": "step_definitions_contracts_stepdefinitiondraft"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "cucumber-runtime/src/step-definitions/contracts.ts",
+      "source_location": "L244",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "step_definitions_contracts",
+      "target": "step_definitions_contracts_stepdefinitiondraftauthoringschema"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "cucumber-runtime/src/step-definitions/contracts.ts",
+      "source_location": "L238",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "step_definitions_contracts",
+      "target": "step_definitions_contracts_stepdefinitiondraftschema"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "cucumber-runtime/src/step-definitions/contracts.ts",
+      "source_location": "L10",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "step_definitions_contracts",
+      "target": "step_definitions_contracts_stepdefinitionhashschema"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "cucumber-runtime/src/step-definitions/contracts.ts",
+      "source_location": "L8",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "step_definitions_contracts",
+      "target": "step_definitions_contracts_stepdefinitionidschema"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "cucumber-runtime/src/step-definitions/contracts.ts",
+      "source_location": "L99",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "step_definitions_contracts",
+      "target": "step_definitions_contracts_stepdefinitionschema"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "cucumber-runtime/src/step-definitions/contracts.ts",
+      "source_location": "L9",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "step_definitions_contracts",
+      "target": "step_definitions_contracts_stepdefinitionversionschema"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "cucumber-runtime/src/step-definitions/contracts.ts",
+      "source_location": "L301",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "step_definitions_contracts",
+      "target": "step_definitions_contracts_stepexecutionbinding"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "cucumber-runtime/src/step-definitions/contracts.ts",
+      "source_location": "L73",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "step_definitions_contracts",
+      "target": "step_definitions_contracts_stepexecutionbindingschema"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "cucumber-runtime/src/step-definitions/contracts.ts",
+      "source_location": "L22",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "step_definitions_contracts",
+      "target": "step_definitions_contracts_stepidentityschema"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "cucumber-runtime/src/step-definitions/contracts.ts",
+      "source_location": "L31",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "step_definitions_contracts",
+      "target": "step_definitions_contracts_stepinputdefinitionschema"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "cucumber-runtime/src/step-definitions/contracts.ts",
+      "source_location": "L302",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "step_definitions_contracts",
+      "target": "step_definitions_contracts_stepinvocation"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "cucumber-runtime/src/step-definitions/contracts.ts",
+      "source_location": "L258",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "step_definitions_contracts",
+      "target": "step_definitions_contracts_stepinvocationschema"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "cucumber-runtime/src/step-definitions/contracts.ts",
+      "source_location": "L60",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "step_definitions_contracts",
+      "target": "step_definitions_contracts_stepoutputdefinitionschema"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "cucumber-runtime/src/step-definitions/contracts.ts",
+      "source_location": "L303",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "step_definitions_contracts",
+      "target": "step_definitions_contracts_steppublicationreceipt"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "cucumber-runtime/src/step-definitions/contracts.ts",
+      "source_location": "L269",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "step_definitions_contracts",
+      "target": "step_definitions_contracts_steppublicationreceiptschema"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "cucumber-runtime/src/step-definitions/contracts.ts",
+      "source_location": "L27",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "step_definitions_contracts",
+      "target": "step_definitions_contracts_stepreferenceschema"
+    },
+    {
+      "relation": "re_exports",
+      "context": "export",
+      "confidence": "EXTRACTED",
+      "source_file": "cucumber-runtime/src/step-definitions/index.ts",
+      "source_location": "L1",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "step_definitions_index",
+      "target": "step_definitions_contracts"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "cucumber-runtime/src/step-definitions/contracts.ts",
+      "source_location": "L19",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "step_definitions_contracts_stepdefinitioncontenthash",
+      "target": "step_definitions_contracts_canonicalstepdefinitionjson"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "cucumber-runtime/src/step-definitions/contracts.ts",
+      "source_location": "L292",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "step_definitions_contracts_computestepdefinitionhashes",
+      "target": "step_definitions_contracts_stepdefinitioncontenthash"
     },
     {
       "relation": "imports_from",
@@ -31863,5 +32878,5 @@
       "source_file": "appraisejs/agent-skills/appraise-planning-standby/SKILL.md"
     }
   ],
-  "built_at_commit": "19d7f4927ce96030685990e78f1507bcb880cef5"
+  "built_at_commit": "891daa787e42c0fcbefd650e3ea72b629a692cab"
 }
