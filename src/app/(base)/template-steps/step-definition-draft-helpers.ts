@@ -24,10 +24,14 @@ export function deriveStepSearchTerms(definition: DraftDefinition) {
 
 export function applyManagedStepMetadata(definition: DraftDefinition): DraftDefinition {
   const id = stepDefinitionIdFromTitle(definition.intent.title)
+  const runtime =
+    definition.execution.kind === 'reviewed-extension' || definition.execution.kind === 'operation'
+      ? definition.execution.runtime
+      : 'node'
   return {
     ...definition,
     identity: { ...definition.identity, id, version: '1' },
-    intent: { ...definition.intent, searchTerms: deriveStepSearchTerms(definition) },
+    intent: { ...definition.intent, capabilities: [runtime], searchTerms: deriveStepSearchTerms(definition) },
     execution:
       definition.execution.kind === 'reviewed-extension'
         ? { ...definition.execution, extensionId: id, extensionVersion: '1' }

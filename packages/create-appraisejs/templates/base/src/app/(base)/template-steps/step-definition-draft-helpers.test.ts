@@ -47,4 +47,13 @@ describe('Step Definition draft helpers', () => {
     expect(managed.intent.searchTerms).toEqual(expect.arrayContaining(['send', 'account', 'notification', 'notify']))
     expect(managed.execution).toMatchObject({ extensionId: managed.identity.id, extensionVersion: '1' })
   })
+
+  it('replaces arbitrary human-form capabilities with the selected execution runtime', () => {
+    const draft = createHumanStepDraft()
+    draft.intent.capabilities = ['random-text']
+    if (draft.execution.kind !== 'reviewed-extension') throw new Error('Expected reviewed extension draft.')
+    draft.execution.runtime = 'browser'
+
+    expect(applyManagedStepMetadata(draft).intent.capabilities).toEqual(['browser'])
+  })
 })

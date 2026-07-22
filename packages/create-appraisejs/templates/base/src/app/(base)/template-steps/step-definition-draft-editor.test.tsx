@@ -103,6 +103,8 @@ describe('StepDefinitionDraftEditor', () => {
     await user.click(summary)
     expect(disclosure).toHaveAttribute('open')
     expect(screen.getByText(/Custom code is the normal choice/)).toBeInTheDocument()
+    expect(screen.queryByLabelText('Allowed capabilities')).not.toBeInTheDocument()
+    expect(screen.getByText(/does not grant code access/)).toBeInTheDocument()
   })
 
   it('derives managed identity and discovery metadata from required user fields', async () => {

@@ -66,13 +66,6 @@ function actionError(response: ActionResponse) {
   return response.error ?? response.message ?? 'The Step Definition request failed.'
 }
 
-function parseLines(value: string) {
-  return value.split('\n').flatMap(item => {
-    const trimmed = item.trim()
-    return trimmed ? [trimmed] : []
-  })
-}
-
 const executionLabels: Record<DraftDefinition['execution']['kind'], string> = {
   'reviewed-extension': 'Custom code',
   operation: 'Existing AppraiseJS handler',
@@ -618,17 +611,10 @@ export function StepDefinitionDraftEditor({
                     Node.js is recommended. Change this only when the handler needs a specialized execution environment.
                   </p>
                 </Field>
-                <Field label="Allowed capabilities" wide>
-                  <Textarea
-                    value={definition.intent.capabilities.join('\n')}
-                    placeholder="One capability per line, such as browser or database"
-                    onChange={event => patchIntent({ capabilities: parseLines(event.target.value) })}
-                  />
-                  <p className="text-xs leading-5 text-zinc-500">
-                    This permission list limits what the handler may access. The default Node.js capability is
-                    sufficient for most custom steps.
-                  </p>
-                </Field>
+                <p className="text-xs leading-5 text-zinc-500 sm:col-span-2">
+                  AppraiseJS records the selected run environment as registry metadata. It does not grant code access or
+                  require a separate capability list.
+                </p>
               </div>
             </details>
           )}
