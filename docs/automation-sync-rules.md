@@ -59,6 +59,8 @@ focused syntax/import gate; it includes duplicate-import and redeclaration check
 regenerates these Appraise-owned projections from the canonical operation definitions, then lints them before changing
 database state. This makes the sync entrypoint recover from stale generated wrappers instead of only reporting their
 syntax errors.
+The `sync-all` orchestrator performs the same regeneration immediately before its template-step phase, because it
+executes child TypeScript scripts directly rather than dispatching through package-manager-specific npm scripts.
 
 Environment projections contain `passwordEnvironmentVariable`, which is only the name of a process environment
 variable. Never place a credential value or a `password` field in database seed data, sync input, generated

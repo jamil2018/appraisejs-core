@@ -33,4 +33,20 @@ When('the user reloads', async function () {
 `
     expect(rewriteLegacyStepRuntimeImports(currentStep)).toBe(currentStep)
   })
+
+  it('preserves generated projection imports at their deeper directory level', () => {
+    const generatedProjection = `import {
+  CustomWorld,
+  SelectorName,
+  When,
+  executeHumanOperation,
+} from '../../../../packages/cucumber-runtime/src/index.js'
+
+When('the user waits', async function (this: CustomWorld, target: SelectorName) {
+  await executeHumanOperation('browser.wait@1', this, ['target'], [target])
+})
+`
+
+    expect(rewriteLegacyStepRuntimeImports(generatedProjection)).toBe(generatedProjection)
+  })
 })
