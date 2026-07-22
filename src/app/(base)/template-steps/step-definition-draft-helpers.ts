@@ -2,6 +2,39 @@ import type { StepDefinition } from '../../../../packages/cucumber-runtime/src/s
 
 export type DraftDefinition = StepDefinition
 
+const searchStopWords = new Set(['and', 'for', 'from', 'into', 'that', 'the', 'this', 'with'])
+
+export function stepDefinitionIdFromTitle(title: string) {
+  const slug = title
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+  return `custom.${slug || 'untitled'}`
+}
+
+export function deriveStepSearchTerms(definition: DraftDefinition) {
+  const phrases = [definition.intent.title, definition.intent.description, definition.human.signature]
+  const words = phrases
+    .join(' ')
+    .toLowerCase()
+    .match(/[a-z0-9]+/g)
+  return [...new Set(words?.filter(word => word.length >= 3 && !searchStopWords.has(word)) ?? [])].slice(0, 40)
+}
+
+export function applyManagedStepMetadata(definition: DraftDefinition): DraftDefinition {
+  const id = stepDefinitionIdFromTitle(definition.intent.title)
+  return {
+    ...definition,
+    identity: { ...definition.identity, id, version: '1' },
+    intent: { ...definition.intent, searchTerms: deriveStepSearchTerms(definition) },
+    execution:
+      definition.execution.kind === 'reviewed-extension'
+        ? { ...definition.execution, extensionId: id, extensionVersion: '1' }
+        : definition.execution,
+  }
+}
+
 export function namedPlaceholders(signature: string) {
   return [...signature.matchAll(/\{([a-z][a-zA-Z0-9-]*)\}/g)].map(match => match[1]!)
 }
@@ -36,11 +69,11 @@ export function createHumanStepDraft(now = new Date().toISOString()): DraftDefin
   const emptyHash = `sha256:${'0'.repeat(64)}` as const
   return {
     schemaVersion: '1',
-    identity: { id: 'custom.new-step', version: '1', status: 'draft' },
+    identity: { id: 'custom.untitled', version: '1', status: 'draft' },
     provenance: { creationMethod: 'human-form', createdBy: 'local-user', createdAt: now },
     intent: {
-      title: 'New reusable step',
-      description: 'Describe the reusable behavior.',
+      title: '',
+      description: '',
       capabilities: ['node'],
       searchTerms: [],
       examples: ['Describe one intended use.'],
@@ -51,7 +84,7 @@ export function createHumanStepDraft(now = new Date().toISOString()): DraftDefin
       signature: 'I perform a reusable behavior',
       keywordCompatibility: ['When'],
       parameterBindings: [],
-      groupId: 'custom',
+      groupId: '',
     },
     agent: {
       summary: 'Perform the reusable behavior.',
@@ -60,7 +93,7 @@ export function createHumanStepDraft(now = new Date().toISOString()): DraftDefin
     },
     execution: {
       kind: 'reviewed-extension',
-      extensionId: 'custom.new-step',
+      extensionId: 'custom.untitled',
       extensionVersion: '1',
       exportName: 'handler',
       sourceHash: emptyHash,

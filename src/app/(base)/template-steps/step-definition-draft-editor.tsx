@@ -2,6 +2,7 @@
 
 import { Children, cloneElement, isValidElement, useId, useMemo, useState, type ReactElement } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { AlertCircle, CheckCircle2, ChevronLeft, ChevronRight, Code2, Save } from 'lucide-react'
 
 import {
@@ -27,6 +28,7 @@ import { toast } from '@/hooks/use-toast'
 import type { ActionResponse } from '@/types/form/actionHandler'
 import {
   createHumanStepDraft,
+  applyManagedStepMetadata,
   draftContractSource,
   draftHandlerBoilerplate,
   reconcileNamedInputs,
@@ -50,6 +52,7 @@ export type StepDefinitionEditorDraft = {
   definition: DraftDefinition
   artifact?: { handlerSource?: string; examples?: Array<{ name?: string }> } | null
 }
+export type StepDefinitionEditorGroup = { id: string; name: string; type: string }
 type DraftRecord = { id: string; revision: number; definition?: DraftDefinition }
 type CompileData = { revision?: number; diagnostics?: string[]; conformance?: { passed?: boolean } }
 
@@ -58,14 +61,20 @@ function actionError(response: ActionResponse) {
 }
 
 function parseLines(value: string) {
-  return value
-    .split('\n')
-    .map(item => item.trim())
-    .filter(Boolean)
+  return value.split('\n').flatMap(item => {
+    const trimmed = item.trim()
+    return trimmed ? [trimmed] : []
+  })
 }
 
 // fallow-ignore-next-line complexity -- The wizard deliberately coordinates eight schema-driven stages in one resumable form boundary.
-export function StepDefinitionDraftEditor({ initialDraft }: { initialDraft?: StepDefinitionEditorDraft }) {
+export function StepDefinitionDraftEditor({
+  initialDraft,
+  groups,
+}: {
+  initialDraft?: StepDefinitionEditorDraft
+  groups: StepDefinitionEditorGroup[]
+}) {
   const router = useRouter()
   const [stage, setStage] = useState(0)
   const [draft, setDraft] = useState<DraftRecord | null>(
@@ -85,6 +94,7 @@ export function StepDefinitionDraftEditor({ initialDraft }: { initialDraft?: Ste
   const [preview, setPreview] = useState<unknown>(null)
   const [busy, setBusy] = useState(false)
   const generatedContract = useMemo(() => draftContractSource(definition), [definition])
+  const managedDefinition = useMemo(() => applyManagedStepMetadata(definition), [definition])
 
   const patchDefinition = (patch: Partial<DraftDefinition>) => setDefinition(current => ({ ...current, ...patch }))
   const patchIntent = (patch: Partial<DraftDefinition['intent']>) =>
@@ -97,9 +107,9 @@ export function StepDefinitionDraftEditor({ initialDraft }: { initialDraft?: Ste
       ? await reviseStepDefinitionDraftAction({
           draftId: draft.id,
           expectedRevision: draft.revision,
-          definition,
+          definition: managedDefinition,
         })
-      : await createStepDefinitionDraftAction(definition)
+      : await createStepDefinitionDraftAction(managedDefinition)
     setBusy(false)
     if (!response.success) {
       toast({ title: 'Draft not saved', description: actionError(response), variant: 'destructive' })
@@ -217,50 +227,53 @@ export function StepDefinitionDraftEditor({ initialDraft }: { initialDraft?: Ste
         <CardContent className="space-y-4">
           {stage === 0 && (
             <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="Stable ID">
-                <Input
-                  value={definition.identity.id}
-                  onChange={event => {
-                    const id = event.target.value
-                    patchDefinition({
-                      identity: { ...definition.identity, id },
-                      execution:
-                        definition.execution.kind === 'reviewed-extension'
-                          ? { ...definition.execution, extensionId: id }
-                          : definition.execution,
-                    })
-                  }}
-                />
-              </Field>
-              <Field label="Version">
-                <Input
-                  value={definition.identity.version}
-                  onChange={event =>
-                    patchDefinition({ identity: { ...definition.identity, version: event.target.value } })
-                  }
-                />
-              </Field>
               <Field label="Title">
-                <Input value={definition.intent.title} onChange={event => patchIntent({ title: event.target.value })} />
+                <Input
+                  value={definition.intent.title}
+                  placeholder="e.g. Send account notification"
+                  onChange={event => patchIntent({ title: event.target.value })}
+                />
               </Field>
               <Field label="Group">
-                <Input
-                  value={definition.human.groupId}
-                  onChange={event => patchHuman({ groupId: event.target.value })}
-                />
+                <Select value={definition.human.groupId} onValueChange={groupId => patchHuman({ groupId })}>
+                  <SelectTrigger aria-label="Group">
+                    <SelectValue placeholder="Select an existing step group" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {groups.map(group => (
+                      <SelectItem key={group.id} value={group.name}>
+                        {group.name} · {group.type.toLowerCase()}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Button asChild variant="link" className="h-auto justify-start px-0 text-xs">
+                  <Link href="/template-step-groups/create">Create a new step group</Link>
+                </Button>
               </Field>
               <Field label="Purpose" wide>
                 <Textarea
                   value={definition.intent.description}
+                  placeholder="Explain the single reusable behavior and when it should be used."
                   onChange={event => patchIntent({ description: event.target.value })}
                 />
               </Field>
-              <Field label="Search terms (one per line)" wide>
-                <Textarea
-                  value={definition.intent.searchTerms.join('\n')}
-                  onChange={event => patchIntent({ searchTerms: parseLines(event.target.value) })}
-                />
-              </Field>
+              <div className="space-y-2 sm:col-span-2">
+                <p className="text-sm font-medium">Managed identity</p>
+                <div className="grid gap-3 rounded-md border border-white/10 bg-black/10 p-3 text-sm sm:grid-cols-2">
+                  <div>
+                    <p className="text-xs text-muted-foreground">Stable ID generated by AppraiseJS</p>
+                    <code className="break-all">{managedDefinition.identity.id}</code>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Initial version</p>
+                    <code>1</code>
+                  </div>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Discovery terms are derived deterministically from the title, purpose, and human sentence.
+                </p>
+              </div>
             </div>
           )}
           {stage === 1 && (

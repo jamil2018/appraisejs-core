@@ -34,9 +34,11 @@ beforeEach(() => {
 })
 
 describe('StepDefinitionDraftEditor', () => {
+  const groups = [{ id: 'group-1', name: 'navigation', type: 'ACTION' }]
+
   it('supports keyboard stage navigation and saves resumable drafts', async () => {
     const user = userEvent.setup()
-    render(<StepDefinitionDraftEditor />)
+    render(<StepDefinitionDraftEditor groups={groups} />)
 
     await user.click(screen.getByRole('button', { name: /Human sentence/ }))
     const sentence = screen.getByLabelText('Readable Gherkin sentence')
@@ -56,8 +58,35 @@ describe('StepDefinitionDraftEditor', () => {
 
   it('keeps publication disabled before compilation evidence exists', async () => {
     const user = userEvent.setup()
-    render(<StepDefinitionDraftEditor />)
+    render(<StepDefinitionDraftEditor groups={groups} />)
     await user.click(screen.getByRole('button', { name: /Review & publish/ }))
     expect(screen.getByRole('button', { name: /publish immutable version/i })).toBeDisabled()
+  })
+
+  it('derives managed identity and discovery metadata from required user fields', async () => {
+    const user = userEvent.setup()
+    render(<StepDefinitionDraftEditor groups={groups} />)
+
+    expect(screen.queryByRole('textbox', { name: 'Stable ID' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('textbox', { name: 'Version' })).not.toBeInTheDocument()
+    expect(screen.getByLabelText('Title')).toHaveAttribute('placeholder', 'e.g. Send account notification')
+    expect(screen.getByLabelText('Purpose')).toHaveAttribute(
+      'placeholder',
+      'Explain the single reusable behavior and when it should be used.',
+    )
+
+    await user.type(screen.getByLabelText('Title'), 'Send Account Notification')
+    expect(screen.getByText('custom.send-account-notification')).toBeInTheDocument()
+    await user.click(screen.getByRole('combobox', { name: 'Group' }))
+    await user.click(screen.getByRole('option', { name: /navigation/ }))
+    await user.click(screen.getByRole('button', { name: 'Save draft' }))
+
+    expect(mocks.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        identity: expect.objectContaining({ id: 'custom.send-account-notification', version: '1' }),
+        human: expect.objectContaining({ groupId: 'navigation' }),
+        intent: expect.objectContaining({ searchTerms: expect.arrayContaining(['send', 'account', 'notification']) }),
+      }),
+    )
   })
 })
