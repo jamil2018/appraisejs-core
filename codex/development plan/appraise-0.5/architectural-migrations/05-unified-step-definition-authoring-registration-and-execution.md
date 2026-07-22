@@ -2,7 +2,44 @@
 
 ## Status
 
-Proposed implementation plan for AppraiseJS 0.5. Human review is required before implementation.
+Implementation in progress for AppraiseJS 0.5. The shared registry and built-in projection foundation is present, but
+the human and agent authoring migrations are not implemented. The existing Template Step creation UI remains the
+active legacy authoring path.
+
+### Implementation checkpoint (2026-07-22)
+
+Work completed on `codex/unified-step-definition-migration`:
+
+- Recorded the unified Step Definition architecture and introduced shared runtime contracts for definitions,
+  projections, bindings, and built-in registrations.
+- Added Step Definition persistence, migration support, registry services, deterministic built-in registration, and
+  focused registry/synchronization coverage.
+- Routed built-in operation projections and setup synchronization through the new definition source while preserving
+  the generated Cucumber runtime imports required by `npm run setup`.
+- Added generated-step linting and regression coverage for duplicate imports, and made setup regenerate projections
+  before synchronizing them.
+- Updated active architecture, automation-sync, scaffold, runtime, and generated-artifact documentation for the
+  foundation delivered so far.
+
+Continuation state:
+
+- Tranches 0-2 are foundation-complete only. Their full acceptance criteria still require a fresh audit against the
+  plan, including populated-database migration/rollback coverage and proof that every legacy surface is read-only.
+- Tranche 3 has not started. `src/app/(base)/template-steps/template-step-form.tsx` still creates legacy Template Step
+  records; there is no schema-driven draft wizard, draft autosave/resume, compile/review flow, or immutable version
+  publication UI yet.
+- Tranche 4 has not started. MCP draft authoring and the real agent-created definition lifecycle remain outstanding.
+- Tranches 5-7 have not started. Consumer cutover, legacy-authority removal, rollout, and deletion gates remain
+  outstanding.
+- Resume by auditing Tranches 0-2 against every acceptance criterion, then implement Tranche 3 end to end before
+  declaring the human authoring migration complete.
+
+Checkpoint commits:
+
+- `9bdb8af8` establishes the unified registry foundation.
+- `60e22569` adds generated Step Definition lint protection.
+- `d2391339` regenerates operation projections before synchronization.
+- `150ca341` preserves generated runtime imports during `npm run setup`.
 
 This plan corrects the remaining identity split after
 `04-unified-operation-catalog-human-agent-authoring-and-capsule-compilation.md`. Migration `04` successfully unified
