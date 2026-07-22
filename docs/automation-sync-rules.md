@@ -55,8 +55,10 @@ either the wrappers or `packages/appraisejs/registry/template-steps` directly. F
 validation authoring, prefer a semantic template step, then the structured allowlisted fallback, then a justified
 custom step. See `docs/reusable-playwright-template-steps.md` for the operation and stored-variable contract.
 `npm run operation:projections` lints every projected step after generation. `npm run lint:step-definitions` is the
-focused syntax/import gate; it includes duplicate-import and redeclaration checks, and `sync-template-steps` runs it
-before changing database state.
+focused syntax/import gate; it includes duplicate-import and redeclaration checks. `sync-template-steps` first
+regenerates these Appraise-owned projections from the canonical operation definitions, then lints them before changing
+database state. This makes the sync entrypoint recover from stale generated wrappers instead of only reporting their
+syntax errors.
 
 Environment projections contain `passwordEnvironmentVariable`, which is only the name of a process environment
 variable. Never place a credential value or a `password` field in database seed data, sync input, generated
