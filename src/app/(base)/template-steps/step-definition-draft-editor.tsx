@@ -49,16 +49,7 @@ import {
   type DraftDefinition,
 } from './step-definition-draft-helpers'
 
-const stages = [
-  'Identity & purpose',
-  'Human sentence',
-  'Typed contract',
-  'Runtime capabilities',
-  'Generated contract',
-  'Code',
-  'Examples & conformance',
-  'Review & publish',
-] as const
+const stages = ['Define behavior', 'Connect implementation', 'Verify readiness', 'Review & publish'] as const
 
 export type StepDefinitionEditorDraft = {
   id: string
@@ -81,7 +72,26 @@ function parseLines(value: string) {
   })
 }
 
-// fallow-ignore-next-line complexity -- The wizard deliberately coordinates eight schema-driven stages in one resumable form boundary.
+function hasDefinitionDetails(definition: DraftDefinition) {
+  return Boolean(
+    definition.intent.title.trim() &&
+    definition.intent.description.trim() &&
+    definition.human.groupId.trim() &&
+    definition.human.signature.trim() &&
+    definition.inputs.every(input => input.description.trim()),
+  )
+}
+
+function hasExecutionDetails(definition: DraftDefinition, handlerSource: string) {
+  if (definition.execution.kind === 'unbound') return false
+  if (definition.execution.kind === 'reviewed-extension') return Boolean(handlerSource.trim())
+  if (definition.execution.kind === 'operation') {
+    return Boolean(definition.execution.handlerId.trim() && definition.execution.handlerVersion.trim())
+  }
+  return definition.execution.steps.every(step => step.step.id.trim() && step.step.version.trim())
+}
+
+// fallow-ignore-next-line complexity -- The wizard coordinates four schema-driven phases in one resumable form boundary.
 export function StepDefinitionDraftEditor({
   initialDraft,
   groups,
@@ -109,6 +119,16 @@ export function StepDefinitionDraftEditor({
   const [busy, setBusy] = useState(false)
   const generatedContract = useMemo(() => draftContractSource(definition), [definition])
   const managedDefinition = useMemo(() => applyManagedStepMetadata(definition), [definition])
+  const definitionReady = hasDefinitionDetails(definition)
+  const executionReady = hasExecutionDetails(definition, handlerSource)
+  const verificationReady = Boolean(exampleName.trim() && conformancePassed)
+  const stageReady = [
+    definitionReady,
+    definitionReady && executionReady,
+    definitionReady && executionReady && verificationReady,
+    false,
+  ]
+  const canSave = stage === 0 ? definitionReady : definitionReady && executionReady && Boolean(exampleName.trim())
 
   const patchDefinition = (patch: Partial<DraftDefinition>) => setDefinition(current => ({ ...current, ...patch }))
   const patchIntent = (patch: Partial<DraftDefinition['intent']>) =>
@@ -116,6 +136,7 @@ export function StepDefinitionDraftEditor({
   const patchHuman = (patch: Partial<DraftDefinition['human']>) =>
     setDefinition(current => ({ ...current, human: { ...current.human, ...patch } }))
   const persist = async () => {
+    if (!canSave) return null
     setBusy(true)
     const response = draft
       ? await reviseStepDefinitionDraftAction({
@@ -227,11 +248,12 @@ export function StepDefinitionDraftEditor({
               <li key={label}>
                 <button
                   type="button"
+                  disabled={index > 0 && !stageReady[index - 1]}
                   className={cn(
                     'flex min-h-10 w-full items-center gap-3 rounded-md border px-2.5 text-left text-xs outline-none transition-colors focus-visible:ring-1 focus-visible:ring-primary',
                     stage === index
                       ? 'border-primary/20 bg-primary/[0.06] text-zinc-100'
-                      : 'border-transparent text-zinc-400 hover:border-white/[0.06] hover:bg-white/[0.025] hover:text-zinc-200',
+                      : 'border-transparent text-zinc-400 hover:border-white/[0.06] hover:bg-white/[0.025] hover:text-zinc-200 disabled:cursor-not-allowed disabled:text-zinc-600 disabled:hover:border-transparent disabled:hover:bg-transparent',
                   )}
                   aria-current={stage === index ? 'step' : undefined}
                   onClick={() => setStage(index)}
@@ -246,7 +268,7 @@ export function StepDefinitionDraftEditor({
                           : 'border-white/[0.06] text-zinc-500',
                     )}
                   >
-                    {index < stage ? <CheckCircle2 className="size-3.5" /> : index + 1}
+                    {stageReady[index] ? <CheckCircle2 className="size-3.5" /> : index + 1}
                   </span>
                   <span className="leading-4">{label}</span>
                 </button>
@@ -260,7 +282,10 @@ export function StepDefinitionDraftEditor({
         <CardHeader className="border-b border-white/[0.06] px-5 pb-4 pt-5">
           <CardTitle className="text-base text-zinc-100">{stages[stage]}</CardTitle>
           <CardDescription className="mt-1 max-w-2xl text-xs leading-5">
-            Ready definitions use the same schema and publication service as built-ins and agents.
+            {stage === 0 && 'Describe the reusable behavior and the sentence people will use.'}
+            {stage === 1 && 'Choose how the behavior runs and complete its generated handler contract.'}
+            {stage === 2 && 'Compile the implementation and produce executable readiness evidence.'}
+            {stage === 3 && 'Inspect the exact human and agent projections before publishing.'}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-5 px-5 pb-5 pt-5">
@@ -268,6 +293,7 @@ export function StepDefinitionDraftEditor({
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label="Title">
                 <Input
+                  required
                   value={definition.intent.title}
                   placeholder="e.g. Send account notification"
                   onChange={event => patchIntent({ title: event.target.value })}
@@ -282,6 +308,7 @@ export function StepDefinitionDraftEditor({
               </Field>
               <Field label="Purpose" wide>
                 <Textarea
+                  required
                   value={definition.intent.description}
                   placeholder="Explain the single reusable behavior and when it should be used."
                   onChange={event => patchIntent({ description: event.target.value })}
@@ -292,10 +319,12 @@ export function StepDefinitionDraftEditor({
               </p>
             </div>
           )}
-          {stage === 1 && (
+          {stage === 0 && (
             <Field label="Readable Gherkin sentence">
               <Input
+                required
                 value={definition.human.signature}
+                placeholder="e.g. I send an account notification"
                 onChange={event => setDefinition(current => reconcileNamedInputs(current, event.target.value))}
               />
               <p className="text-xs text-muted-foreground">
@@ -303,8 +332,12 @@ export function StepDefinitionDraftEditor({
               </p>
             </Field>
           )}
-          {stage === 2 && (
+          {stage === 0 && (
             <div className="space-y-4">
+              <div>
+                <h3 className="text-sm font-medium text-zinc-200">Sentence inputs</h3>
+                <p className="mt-1 text-xs text-zinc-500">Add a plain-language description for each named input.</p>
+              </div>
               {definition.inputs.map((input, index) => (
                 <div key={input.name} className="grid gap-3 rounded-md border border-white/10 p-3 sm:grid-cols-3">
                   <Field label="Input">
@@ -345,6 +378,7 @@ export function StepDefinitionDraftEditor({
                   </Field>
                   <Field label="Description">
                     <Input
+                      required
                       value={input.description}
                       onChange={event =>
                         patchDefinition({
@@ -364,7 +398,7 @@ export function StepDefinitionDraftEditor({
               )}
             </div>
           )}
-          {stage === 3 && (
+          {stage === 1 && (
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label="Binding mode">
                 <Select
@@ -545,8 +579,8 @@ export function StepDefinitionDraftEditor({
               </Field>
             </div>
           )}
-          {stage === 4 && <CodePanel label="Generated contract" value={generatedContract} />}
-          {stage === 5 && (
+          {stage === 1 && <CodePanel label="Generated contract" value={generatedContract} />}
+          {stage === 1 && (
             <Field label="User-owned handler source">
               <Textarea
                 className="min-h-80 font-mono text-xs"
@@ -556,10 +590,10 @@ export function StepDefinitionDraftEditor({
               <p className="text-xs text-muted-foreground">Metadata regeneration never overwrites this source.</p>
             </Field>
           )}
-          {stage === 6 && (
+          {stage === 2 && (
             <div className="space-y-4">
               <Field label="Example name">
-                <Input value={exampleName} onChange={event => setExampleName(event.target.value)} />
+                <Input required value={exampleName} onChange={event => setExampleName(event.target.value)} />
               </Field>
               <Button
                 type="button"
@@ -580,7 +614,7 @@ export function StepDefinitionDraftEditor({
               </Alert>
             </div>
           )}
-          {stage === 7 && (
+          {stage === 3 && (
             <div className="space-y-4">
               <div className="grid gap-3 sm:grid-cols-2">
                 <CodePanel
@@ -608,13 +642,13 @@ export function StepDefinitionDraftEditor({
               <ChevronLeft className="size-4" />
               Back
             </Button>
-            <Button type="button" variant="secondary" onClick={persist} disabled={busy}>
+            <Button type="button" variant="secondary" onClick={persist} disabled={busy || !canSave}>
               <Save className="size-4" />
               {busy ? 'Saving…' : 'Save draft'}
             </Button>
             <Button
               type="button"
-              disabled={stage === stages.length - 1}
+              disabled={stage === stages.length - 1 || !stageReady[stage] || busy}
               onClick={async () => {
                 const saved = await persist()
                 if (saved) setStage(current => current + 1)
@@ -677,17 +711,13 @@ function StepGroupPicker({
           variant="outline"
           role="combobox"
           aria-label="Group"
+          aria-required="true"
           aria-expanded={open}
           aria-controls={listId}
-          className="h-auto min-h-11 w-full justify-between border-white/[0.1] bg-white/[0.02] px-3 py-2 text-left font-normal hover:border-white/[0.16] hover:bg-white/[0.035]"
+          className="h-9 w-full justify-between border-white/[0.1] bg-white/[0.02] px-3 py-1 text-left font-normal hover:border-white/[0.16] hover:bg-white/[0.035]"
         >
           {selected ? (
-            <span className="min-w-0">
-              <span className="block truncate text-sm font-medium text-zinc-100">{selected.name}</span>
-              <span className="block truncate text-xs text-zinc-500">
-                {selected.type.toLowerCase()} · {selected.description || 'No description provided'}
-              </span>
-            </span>
+            <span className="min-w-0 truncate text-sm text-zinc-100">{selected.name}</span>
           ) : (
             <span className="text-sm text-zinc-500">Choose where this step belongs</span>
           )}

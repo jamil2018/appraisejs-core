@@ -43,31 +43,50 @@ describe('StepDefinitionDraftEditor', () => {
     },
   ]
 
-  it('supports keyboard stage navigation and saves resumable drafts', async () => {
+  async function completeRequiredDefinition(user: ReturnType<typeof userEvent.setup>) {
+    await user.type(screen.getByLabelText('Title'), 'Send Account Notification')
+    await user.type(screen.getByLabelText('Purpose'), 'Notify an account owner about an important change.')
+    await user.click(screen.getByRole('combobox', { name: 'Group' }))
+    await user.click(screen.getByRole('option', { name: /navigation/ }))
+    await user.type(screen.getByLabelText('Readable Gherkin sentence'), 'I send an account notification')
+  }
+
+  it('presents four phases and locks saving and future phases until required fields are complete', async () => {
     const user = userEvent.setup()
     render(<StepDefinitionDraftEditor groups={groups} />)
 
-    await user.click(screen.getByRole('button', { name: /Human sentence/ }))
-    const sentence = screen.getByLabelText('Readable Gherkin sentence')
-    fireEvent.change(sentence, { target: { value: 'I greet {accountName}' } })
+    expect(screen.getAllByRole('listitem')).toHaveLength(4)
+    expect(screen.getByRole('button', { name: /Connect implementation/ })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Save draft' })).toBeDisabled()
+
+    await completeRequiredDefinition(user)
+
+    expect(screen.getByRole('button', { name: /Connect implementation/ })).toBeEnabled()
+    expect(screen.getByRole('button', { name: 'Save draft' })).toBeEnabled()
     await user.click(screen.getByRole('button', { name: 'Save draft' }))
 
     expect(mocks.create).toHaveBeenCalledWith(
       expect.objectContaining({
         human: expect.objectContaining({
-          signature: 'I greet {accountName}',
-          parameterBindings: [{ placeholder: 'accountName', input: 'accountName' }],
+          signature: 'I send an account notification',
         }),
       }),
     )
     expect(await screen.findByText('Draft revision 1')).toBeInTheDocument()
   })
 
-  it('keeps publication disabled before compilation evidence exists', async () => {
+  it('requires descriptions for inputs derived from named placeholders', async () => {
     const user = userEvent.setup()
     render(<StepDefinitionDraftEditor groups={groups} />)
-    await user.click(screen.getByRole('button', { name: /Review & publish/ }))
-    expect(screen.getByRole('button', { name: /publish immutable version/i })).toBeDisabled()
+
+    await completeRequiredDefinition(user)
+    fireEvent.change(screen.getByLabelText('Readable Gherkin sentence'), {
+      target: { value: 'I greet {accountName}' },
+    })
+
+    expect(screen.getByRole('button', { name: 'Save draft' })).toBeDisabled()
+    await user.type(screen.getByLabelText('Description'), 'The account name shown in the notification.')
+    expect(screen.getByRole('button', { name: 'Save draft' })).toBeEnabled()
   })
 
   it('derives managed identity and discovery metadata from required user fields', async () => {
@@ -82,10 +101,8 @@ describe('StepDefinitionDraftEditor', () => {
       'Explain the single reusable behavior and when it should be used.',
     )
 
-    await user.type(screen.getByLabelText('Title'), 'Send Account Notification')
+    await completeRequiredDefinition(user)
     expect(screen.queryByText('custom.send-account-notification')).not.toBeInTheDocument()
-    await user.click(screen.getByRole('combobox', { name: 'Group' }))
-    await user.click(screen.getByRole('option', { name: /navigation/ }))
     await user.click(screen.getByRole('button', { name: 'Save draft' }))
 
     expect(mocks.create).toHaveBeenCalledWith(

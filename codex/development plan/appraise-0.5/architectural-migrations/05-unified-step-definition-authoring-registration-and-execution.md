@@ -28,9 +28,10 @@ Continuation state:
 - Tranche 3.1 now exposes draft create/read/revise/delete/validate/preview/review/publish and definition deprecation
   through thin Server Actions and matching HTTP adapters over the shared registry, with optimistic-revision, request
   validation, standard error-envelope, cache-invalidation, and exact publication-input coverage.
-- Tranches 3 and 4 now provide the eight-stage resumable editor, deterministic generated contracts, contained
-  reviewed-handler staging and behavioral conformance, exact review/publication/version/deprecation services, bounded
-  MCP draft tools, and one-identity registry search. Human and agent clients use the same registry boundary.
+- Tranches 3 and 4 now provide a four-phase resumable editor (define, connect, verify, publish), deterministic
+  generated contracts, contained reviewed-handler staging and behavioral conformance, exact
+  review/publication/version/deprecation services, bounded MCP draft tools, and one-identity registry search. Required
+  authoring data gates draft persistence and forward navigation. Human and agent clients use the same registry boundary.
 - The agent lifecycle is covered through agent-command provenance, exact human review, publication, unified discovery,
   and receipt-bound reviewed artifacts. Full external-workspace lifecycle certification remains part of release
   rollout evidence rather than permanent app-specific fixtures.

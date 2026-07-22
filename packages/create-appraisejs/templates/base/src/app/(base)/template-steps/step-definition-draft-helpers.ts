@@ -47,7 +47,7 @@ export function reconcileNamedInputs(definition: DraftDefinition, signature: str
       existing.get(name) ?? {
         name,
         label: name,
-        description: `Value for ${name}.`,
+        description: '',
         type: 'string' as const,
         required: true,
         examples: [],
@@ -81,7 +81,7 @@ export function createHumanStepDraft(now = new Date().toISOString()): DraftDefin
     inputs: [],
     outputs: [],
     human: {
-      signature: 'I perform a reusable behavior',
+      signature: '',
       keywordCompatibility: ['When'],
       parameterBindings: [],
       groupId: '',
