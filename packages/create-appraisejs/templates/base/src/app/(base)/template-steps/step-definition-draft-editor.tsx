@@ -3,7 +3,18 @@
 import { Children, cloneElement, isValidElement, useId, useMemo, useState, type ReactElement } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { AlertCircle, CheckCircle2, ChevronLeft, ChevronRight, Code2, Save } from 'lucide-react'
+import {
+  AlertCircle,
+  Check,
+  CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsUpDown,
+  Code2,
+  Layers3,
+  Plus,
+  Save,
+} from 'lucide-react'
 
 import {
   compileStepDefinitionDraftArtifactAction,
@@ -24,7 +35,10 @@ import { Label } from '@/components/ui/label'
 import { Progress } from '@/components/ui/progress'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { toast } from '@/hooks/use-toast'
+import { cn } from '@/lib/utils'
 import type { ActionResponse } from '@/types/form/actionHandler'
 import {
   createHumanStepDraft,
@@ -52,7 +66,7 @@ export type StepDefinitionEditorDraft = {
   definition: DraftDefinition
   artifact?: { handlerSource?: string; examples?: Array<{ name?: string }> } | null
 }
-export type StepDefinitionEditorGroup = { id: string; name: string; type: string }
+export type StepDefinitionEditorGroup = { id: string; name: string; type: string; description: string | null }
 type DraftRecord = { id: string; revision: number; definition?: DraftDefinition }
 type CompileData = { revision?: number; diagnostics?: string[]; conformance?: { passed?: boolean } }
 
@@ -191,25 +205,50 @@ export function StepDefinitionDraftEditor({
   }
 
   return (
-    <div className="grid gap-4 lg:grid-cols-[15rem_minmax(0,1fr)]">
-      <Card className="h-fit bg-zinc-500/10">
-        <CardHeader>
-          <CardTitle>Creation readiness</CardTitle>
-          <CardDescription>{draft ? `Draft revision ${draft.revision}` : 'Not saved yet'}</CardDescription>
+    <div className="grid gap-4 lg:grid-cols-[16rem_minmax(0,1fr)]">
+      <Card className="h-fit overflow-hidden border-white/[0.08] bg-[rgba(18,37,64,0.42)] shadow-none">
+        <CardHeader className="border-b border-white/[0.06] px-4 pb-4 pt-4">
+          <div className="flex items-center gap-3">
+            <div className="border-primary/20 bg-primary/[0.04] flex size-9 items-center justify-center rounded-md border text-primary">
+              <Layers3 className="size-4" />
+            </div>
+            <div>
+              <CardTitle className="text-sm text-zinc-100">Creation progress</CardTitle>
+              <CardDescription className="mt-1 text-xs">
+                {draft ? `Draft revision ${draft.revision}` : 'Changes are not saved yet'}
+              </CardDescription>
+            </div>
+          </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="px-3 pb-3 pt-4">
           <Progress aria-label="Wizard progress" value={((stage + 1) / stages.length) * 100} />
           <ol className="mt-4 space-y-1 text-sm">
             {stages.map((label, index) => (
               <li key={label}>
                 <button
                   type="button"
-                  className="flex min-h-9 w-full items-center gap-2 rounded-md px-2 text-left focus-visible:ring-2 focus-visible:ring-ring"
+                  className={cn(
+                    'flex min-h-10 w-full items-center gap-3 rounded-md border px-2.5 text-left text-xs outline-none transition-colors focus-visible:ring-1 focus-visible:ring-primary',
+                    stage === index
+                      ? 'border-primary/20 bg-primary/[0.06] text-zinc-100'
+                      : 'border-transparent text-zinc-400 hover:border-white/[0.06] hover:bg-white/[0.025] hover:text-zinc-200',
+                  )}
                   aria-current={stage === index ? 'step' : undefined}
                   onClick={() => setStage(index)}
                 >
-                  {index < stage ? <CheckCircle2 className="size-4 text-emerald-400" /> : <span>{index + 1}.</span>}
-                  {label}
+                  <span
+                    className={cn(
+                      'flex size-6 shrink-0 items-center justify-center rounded-md border text-[11px] font-semibold',
+                      index < stage
+                        ? 'border-primary/25 bg-primary/[0.08] text-primary'
+                        : stage === index
+                          ? 'border-white/[0.12] bg-white/[0.05] text-zinc-100'
+                          : 'border-white/[0.06] text-zinc-500',
+                    )}
+                  >
+                    {index < stage ? <CheckCircle2 className="size-3.5" /> : index + 1}
+                  </span>
+                  <span className="leading-4">{label}</span>
                 </button>
               </li>
             ))}
@@ -217,14 +256,14 @@ export function StepDefinitionDraftEditor({
         </CardContent>
       </Card>
 
-      <Card className="min-w-0 bg-zinc-500/10">
-        <CardHeader>
-          <CardTitle>{stages[stage]}</CardTitle>
-          <CardDescription>
+      <Card className="min-w-0 overflow-hidden border-white/[0.08] bg-[rgba(18,37,64,0.42)] shadow-none">
+        <CardHeader className="border-b border-white/[0.06] px-5 pb-4 pt-5">
+          <CardTitle className="text-base text-zinc-100">{stages[stage]}</CardTitle>
+          <CardDescription className="mt-1 max-w-2xl text-xs leading-5">
             Ready definitions use the same schema and publication service as built-ins and agents.
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-5 px-5 pb-5 pt-5">
           {stage === 0 && (
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label="Title">
@@ -235,21 +274,11 @@ export function StepDefinitionDraftEditor({
                 />
               </Field>
               <Field label="Group">
-                <Select value={definition.human.groupId} onValueChange={groupId => patchHuman({ groupId })}>
-                  <SelectTrigger aria-label="Group">
-                    <SelectValue placeholder="Select an existing step group" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {groups.map(group => (
-                      <SelectItem key={group.id} value={group.name}>
-                        {group.name} · {group.type.toLowerCase()}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Button asChild variant="link" className="h-auto justify-start px-0 text-xs">
-                  <Link href="/template-step-groups/create">Create a new step group</Link>
-                </Button>
+                <StepGroupPicker
+                  groups={groups}
+                  value={definition.human.groupId}
+                  onValueChange={groupId => patchHuman({ groupId })}
+                />
               </Field>
               <Field label="Purpose" wide>
                 <Textarea
@@ -258,22 +287,9 @@ export function StepDefinitionDraftEditor({
                   onChange={event => patchIntent({ description: event.target.value })}
                 />
               </Field>
-              <div className="space-y-2 sm:col-span-2">
-                <p className="text-sm font-medium">Managed identity</p>
-                <div className="grid gap-3 rounded-md border border-white/10 bg-black/10 p-3 text-sm sm:grid-cols-2">
-                  <div>
-                    <p className="text-xs text-muted-foreground">Stable ID generated by AppraiseJS</p>
-                    <code className="break-all">{managedDefinition.identity.id}</code>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">Initial version</p>
-                    <code>1</code>
-                  </div>
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Discovery terms are derived deterministically from the title, purpose, and human sentence.
-                </p>
-              </div>
+              <p className="text-xs leading-5 text-zinc-500 sm:col-span-2">
+                AppraiseJS manages the technical ID, initial version, and discovery metadata when this draft is saved.
+              </p>
             </div>
           )}
           {stage === 1 && (
@@ -582,7 +598,7 @@ export function StepDefinitionDraftEditor({
             </div>
           )}
 
-          <div className="flex flex-wrap items-center justify-between gap-2 border-t border-white/10 pt-4">
+          <div className="flex flex-wrap items-center justify-between gap-2 border-t border-white/[0.06] pt-4">
             <Button
               type="button"
               variant="outline"
@@ -637,5 +653,97 @@ function CodePanel({ label, value }: { label: string; value: string }) {
         {value}
       </pre>
     </div>
+  )
+}
+
+function StepGroupPicker({
+  groups,
+  value,
+  onValueChange,
+}: {
+  groups: StepDefinitionEditorGroup[]
+  value: string
+  onValueChange: (value: string) => void
+}) {
+  const [open, setOpen] = useState(false)
+  const listId = useId()
+  const selected = groups.find(group => group.name === value)
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          type="button"
+          variant="outline"
+          role="combobox"
+          aria-label="Group"
+          aria-expanded={open}
+          aria-controls={listId}
+          className="h-auto min-h-11 w-full justify-between border-white/[0.1] bg-white/[0.02] px-3 py-2 text-left font-normal hover:border-white/[0.16] hover:bg-white/[0.035]"
+        >
+          {selected ? (
+            <span className="min-w-0">
+              <span className="block truncate text-sm font-medium text-zinc-100">{selected.name}</span>
+              <span className="block truncate text-xs text-zinc-500">
+                {selected.type.toLowerCase()} · {selected.description || 'No description provided'}
+              </span>
+            </span>
+          ) : (
+            <span className="text-sm text-zinc-500">Choose where this step belongs</span>
+          )}
+          <ChevronsUpDown className="ml-3 size-4 shrink-0 text-zinc-500" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent
+        align="start"
+        className="w-[var(--radix-popover-trigger-width)] border-white/[0.12] bg-[rgba(16,30,50,0.98)] p-0 shadow-[0_18px_50px_rgba(0,0,0,0.4)]"
+      >
+        <Command>
+          <CommandInput placeholder="Search step groups…" />
+          <CommandList id={listId} className="max-h-72">
+            <CommandEmpty>No matching step group.</CommandEmpty>
+            <CommandGroup heading={`${groups.length} shared groups`}>
+              {groups.map(group => (
+                <CommandItem
+                  key={group.id}
+                  value={`${group.name} ${group.type} ${group.description ?? ''}`}
+                  onSelect={() => {
+                    onValueChange(group.name)
+                    setOpen(false)
+                  }}
+                  className="items-start py-2.5"
+                >
+                  <div className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-md border border-indigo-500/20 bg-indigo-500/[0.05] text-indigo-300">
+                    <Layers3 className="size-4" />
+                  </div>
+                  <span className="min-w-0 flex-1">
+                    <span className="flex items-center gap-2">
+                      <span className="truncate font-medium text-zinc-100">{group.name}</span>
+                      <span className="rounded border border-white/[0.08] bg-white/[0.03] px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-zinc-500">
+                        {group.type}
+                      </span>
+                    </span>
+                    <span className="mt-0.5 line-clamp-2 block text-xs leading-4 text-zinc-400">
+                      {group.description || 'Reusable steps grouped by this behavior.'}
+                    </span>
+                  </span>
+                  <Check
+                    className={cn('mt-1 size-4 text-primary', value === group.name ? 'opacity-100' : 'opacity-0')}
+                  />
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </CommandList>
+          <div className="border-t border-white/[0.08] p-2">
+            <Button asChild variant="ghost" className="w-full justify-start text-xs text-zinc-300">
+              <Link href="/template-step-groups/create">
+                <Plus className="size-4 text-primary" />
+                Create a new step group
+              </Link>
+            </Button>
+          </div>
+        </Command>
+      </PopoverContent>
+    </Popover>
   )
 }

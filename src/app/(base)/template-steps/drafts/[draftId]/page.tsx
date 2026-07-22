@@ -27,7 +27,7 @@ export default async function ResumeStepDefinitionDraftPage({ params }: { params
         ...draft,
         artifact: artifactResponse.success ? (artifactResponse.data as StepDefinitionEditorDraft['artifact']) : null,
       }}
-      groups={groups.map(({ id, name, type }) => ({ id, name, type }))}
+      groups={groups.map(({ id, name, type, description }) => ({ id, name, type, description }))}
     />
   )
 }

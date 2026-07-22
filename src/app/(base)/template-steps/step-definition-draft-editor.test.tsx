@@ -34,7 +34,14 @@ beforeEach(() => {
 })
 
 describe('StepDefinitionDraftEditor', () => {
-  const groups = [{ id: 'group-1', name: 'navigation', type: 'ACTION' }]
+  const groups = [
+    {
+      id: 'group-1',
+      name: 'navigation',
+      type: 'ACTION',
+      description: 'Reusable browser navigation behavior.',
+    },
+  ]
 
   it('supports keyboard stage navigation and saves resumable drafts', async () => {
     const user = userEvent.setup()
@@ -76,7 +83,7 @@ describe('StepDefinitionDraftEditor', () => {
     )
 
     await user.type(screen.getByLabelText('Title'), 'Send Account Notification')
-    expect(screen.getByText('custom.send-account-notification')).toBeInTheDocument()
+    expect(screen.queryByText('custom.send-account-notification')).not.toBeInTheDocument()
     await user.click(screen.getByRole('combobox', { name: 'Group' }))
     await user.click(screen.getByRole('option', { name: /navigation/ }))
     await user.click(screen.getByRole('button', { name: 'Save draft' }))
