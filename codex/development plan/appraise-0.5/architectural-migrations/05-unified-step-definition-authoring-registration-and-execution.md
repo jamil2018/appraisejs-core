@@ -31,7 +31,9 @@ Continuation state:
 - Tranches 3 and 4 now provide a four-phase resumable editor (define, connect, verify, publish), deterministic
   generated contracts, contained reviewed-handler staging and behavioral conformance, exact
   review/publication/version/deprecation services, bounded MCP draft tools, and one-identity registry search. Required
-  authoring data gates draft persistence and forward navigation. Human and agent clients use the same registry boundary.
+  authoring data gates draft persistence and forward navigation. Execution source, runtime, and capability controls are
+  progressively disclosed as advanced settings while preserving the recommended custom-code and Node.js defaults.
+  Human and agent clients use the same registry boundary.
 - The agent lifecycle is covered through agent-command provenance, exact human review, publication, unified discovery,
   and receipt-bound reviewed artifacts. Full external-workspace lifecycle certification remains part of release
   rollout evidence rather than permanent app-specific fixtures.

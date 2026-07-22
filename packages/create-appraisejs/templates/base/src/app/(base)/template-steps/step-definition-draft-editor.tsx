@@ -14,6 +14,7 @@ import {
   Layers3,
   Plus,
   Save,
+  Settings2,
 } from 'lucide-react'
 
 import {
@@ -71,6 +72,20 @@ function parseLines(value: string) {
     return trimmed ? [trimmed] : []
   })
 }
+
+const executionLabels: Record<DraftDefinition['execution']['kind'], string> = {
+  'reviewed-extension': 'Custom code',
+  operation: 'Existing AppraiseJS handler',
+  composition: 'Combine published steps',
+  unbound: 'Decide later',
+}
+
+const runtimeLabels = {
+  browser: 'Browser automation',
+  api: 'API service',
+  node: 'Node.js',
+  database: 'Database worker',
+} as const
 
 function hasDefinitionDetails(definition: DraftDefinition) {
   return Boolean(
@@ -399,187 +414,234 @@ export function StepDefinitionDraftEditor({
             </div>
           )}
           {stage === 1 && (
-            <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="Binding mode">
-                <Select
-                  value={definition.execution.kind}
-                  onValueChange={value => {
-                    const hash = `sha256:${'0'.repeat(64)}` as const
-                    if (value === 'unbound') patchDefinition({ execution: { kind: 'unbound' } })
-                    if (value === 'operation')
-                      patchDefinition({
-                        execution: {
-                          kind: 'operation',
-                          handlerId: definition.identity.id,
-                          handlerVersion: definition.identity.version,
-                          runtime: 'node',
-                        },
-                      })
-                    if (value === 'composition')
-                      patchDefinition({
-                        execution: {
-                          kind: 'composition',
-                          steps: [
-                            {
-                              step: { id: 'builtin.example', version: '1' },
-                              inputs: {},
-                            },
-                          ],
-                        },
-                      })
-                    if (value === 'reviewed-extension')
-                      patchDefinition({
-                        execution: {
-                          kind: 'reviewed-extension',
-                          extensionId: definition.identity.id,
-                          extensionVersion: definition.identity.version,
-                          exportName: 'handler',
-                          sourceHash: hash,
-                          compiledHash: hash,
-                          runtime: 'node',
-                        },
-                      })
-                  }}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="reviewed-extension">New user-authored handler</SelectItem>
-                    <SelectItem value="operation">Existing trusted handler</SelectItem>
-                    <SelectItem value="composition">Existing ready composition</SelectItem>
-                    <SelectItem value="unbound">Unbound draft</SelectItem>
-                  </SelectContent>
-                </Select>
-              </Field>
-              {definition.execution.kind === 'operation' && (
-                <>
-                  <Field label="Handler ID">
-                    <Input
-                      value={definition.execution.handlerId}
-                      onChange={event =>
-                        setDefinition(current =>
-                          current.execution.kind === 'operation'
-                            ? {
-                                ...current,
-                                execution: { ...current.execution, handlerId: event.target.value },
-                              }
-                            : current,
-                        )
+            <details className="group rounded-md border border-white/[0.08] bg-white/[0.015]">
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-4 py-3 outline-none focus-visible:ring-1 focus-visible:ring-primary [&::-webkit-details-marker]:hidden">
+                <span className="flex min-w-0 items-center gap-3">
+                  <span className="flex size-8 shrink-0 items-center justify-center rounded-md border border-white/[0.08] bg-white/[0.025] text-zinc-400">
+                    <Settings2 className="size-4" />
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block text-sm font-medium text-zinc-200">Advanced execution settings</span>
+                    <span className="block truncate text-xs text-zinc-500">
+                      {executionLabels[definition.execution.kind]} ·{' '}
+                      {
+                        runtimeLabels[
+                          definition.execution.kind === 'reviewed-extension' ||
+                          definition.execution.kind === 'operation'
+                            ? definition.execution.runtime
+                            : 'node'
+                        ]
                       }
-                    />
-                  </Field>
-                  <Field label="Handler version">
-                    <Input
-                      value={definition.execution.handlerVersion}
-                      onChange={event =>
-                        setDefinition(current =>
-                          current.execution.kind === 'operation'
-                            ? {
-                                ...current,
-                                execution: { ...current.execution, handlerVersion: event.target.value },
-                              }
-                            : current,
-                        )
-                      }
-                    />
-                  </Field>
-                </>
-              )}
-              {definition.execution.kind === 'composition' && (
-                <>
-                  <Field label="Ready child Step ID">
-                    <Input
-                      value={definition.execution.steps[0]?.step.id ?? ''}
-                      onChange={event =>
-                        setDefinition(current =>
-                          current.execution.kind === 'composition'
-                            ? {
-                                ...current,
-                                execution: {
-                                  kind: 'composition',
-                                  steps: [
-                                    {
-                                      step: {
-                                        id: event.target.value,
-                                        version: current.execution.steps[0]?.step.version ?? '1',
+                    </span>
+                  </span>
+                </span>
+                <ChevronRight className="size-4 shrink-0 text-zinc-500 transition-transform group-open:rotate-90" />
+              </summary>
+              <div className="grid gap-4 border-t border-white/[0.06] px-4 py-4 sm:grid-cols-2">
+                <Field label="Implementation source">
+                  <Select
+                    value={definition.execution.kind}
+                    onValueChange={value => {
+                      const hash = `sha256:${'0'.repeat(64)}` as const
+                      if (value === 'unbound') patchDefinition({ execution: { kind: 'unbound' } })
+                      if (value === 'operation')
+                        patchDefinition({
+                          execution: {
+                            kind: 'operation',
+                            handlerId: definition.identity.id,
+                            handlerVersion: definition.identity.version,
+                            runtime: 'node',
+                          },
+                        })
+                      if (value === 'composition')
+                        patchDefinition({
+                          execution: {
+                            kind: 'composition',
+                            steps: [
+                              {
+                                step: { id: 'builtin.example', version: '1' },
+                                inputs: {},
+                              },
+                            ],
+                          },
+                        })
+                      if (value === 'reviewed-extension')
+                        patchDefinition({
+                          execution: {
+                            kind: 'reviewed-extension',
+                            extensionId: definition.identity.id,
+                            extensionVersion: definition.identity.version,
+                            exportName: 'handler',
+                            sourceHash: hash,
+                            compiledHash: hash,
+                            runtime: 'node',
+                          },
+                        })
+                    }}
+                  >
+                    <SelectTrigger aria-label="Implementation source">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="reviewed-extension">Write custom code</SelectItem>
+                      <SelectItem value="operation">Reuse an AppraiseJS handler</SelectItem>
+                      <SelectItem value="composition">Combine published steps</SelectItem>
+                      <SelectItem value="unbound">Decide later</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs leading-5 text-zinc-500">
+                    Custom code is the normal choice. Reuse and composition are for advanced library workflows.
+                  </p>
+                </Field>
+                {definition.execution.kind === 'operation' && (
+                  <>
+                    <Field label="Handler ID">
+                      <Input
+                        value={definition.execution.handlerId}
+                        onChange={event =>
+                          setDefinition(current =>
+                            current.execution.kind === 'operation'
+                              ? {
+                                  ...current,
+                                  execution: { ...current.execution, handlerId: event.target.value },
+                                }
+                              : current,
+                          )
+                        }
+                      />
+                    </Field>
+                    <Field label="Handler version">
+                      <Input
+                        value={definition.execution.handlerVersion}
+                        onChange={event =>
+                          setDefinition(current =>
+                            current.execution.kind === 'operation'
+                              ? {
+                                  ...current,
+                                  execution: { ...current.execution, handlerVersion: event.target.value },
+                                }
+                              : current,
+                          )
+                        }
+                      />
+                    </Field>
+                  </>
+                )}
+                {definition.execution.kind === 'composition' && (
+                  <>
+                    <Field label="Ready child Step ID">
+                      <Input
+                        value={definition.execution.steps[0]?.step.id ?? ''}
+                        onChange={event =>
+                          setDefinition(current =>
+                            current.execution.kind === 'composition'
+                              ? {
+                                  ...current,
+                                  execution: {
+                                    kind: 'composition',
+                                    steps: [
+                                      {
+                                        step: {
+                                          id: event.target.value,
+                                          version: current.execution.steps[0]?.step.version ?? '1',
+                                        },
+                                        inputs: current.execution.steps[0]?.inputs ?? {},
                                       },
-                                      inputs: current.execution.steps[0]?.inputs ?? {},
-                                    },
-                                  ],
-                                },
-                              }
-                            : current,
-                        )
-                      }
-                    />
-                  </Field>
-                  <Field label="Child version">
-                    <Input
-                      value={definition.execution.steps[0]?.step.version ?? ''}
-                      onChange={event =>
-                        setDefinition(current =>
-                          current.execution.kind === 'composition'
-                            ? {
-                                ...current,
-                                execution: {
-                                  kind: 'composition',
-                                  steps: [
-                                    {
-                                      step: {
-                                        id: current.execution.steps[0]?.step.id ?? 'builtin.example',
-                                        version: event.target.value,
+                                    ],
+                                  },
+                                }
+                              : current,
+                          )
+                        }
+                      />
+                    </Field>
+                    <Field label="Child version">
+                      <Input
+                        value={definition.execution.steps[0]?.step.version ?? ''}
+                        onChange={event =>
+                          setDefinition(current =>
+                            current.execution.kind === 'composition'
+                              ? {
+                                  ...current,
+                                  execution: {
+                                    kind: 'composition',
+                                    steps: [
+                                      {
+                                        step: {
+                                          id: current.execution.steps[0]?.step.id ?? 'builtin.example',
+                                          version: event.target.value,
+                                        },
+                                        inputs: current.execution.steps[0]?.inputs ?? {},
                                       },
-                                      inputs: current.execution.steps[0]?.inputs ?? {},
-                                    },
-                                  ],
-                                },
-                              }
-                            : current,
-                        )
-                      }
-                    />
-                  </Field>
-                </>
-              )}
-              <Field label="Runtime">
-                <Select
-                  value={
-                    definition.execution.kind === 'reviewed-extension' || definition.execution.kind === 'operation'
-                      ? definition.execution.runtime
-                      : 'node'
-                  }
-                  onValueChange={runtime => {
-                    if (definition.execution.kind === 'reviewed-extension' || definition.execution.kind === 'operation')
-                      patchDefinition({
-                        execution: {
-                          ...definition.execution,
-                          runtime: runtime as 'browser' | 'api' | 'node' | 'database',
-                        },
-                      })
-                  }}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {['browser', 'api', 'node', 'database'].map(runtime => (
-                      <SelectItem key={runtime} value={runtime}>
-                        {runtime}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </Field>
-              <Field label="Capabilities (one per line)" wide>
-                <Textarea
-                  value={definition.intent.capabilities.join('\n')}
-                  onChange={event => patchIntent({ capabilities: parseLines(event.target.value) })}
-                />
-              </Field>
-            </div>
+                                    ],
+                                  },
+                                }
+                              : current,
+                          )
+                        }
+                      />
+                    </Field>
+                  </>
+                )}
+                <Field label="Runs in">
+                  <Select
+                    value={
+                      definition.execution.kind === 'reviewed-extension' || definition.execution.kind === 'operation'
+                        ? definition.execution.runtime
+                        : 'node'
+                    }
+                    onValueChange={runtime => {
+                      if (
+                        definition.execution.kind === 'reviewed-extension' ||
+                        definition.execution.kind === 'operation'
+                      )
+                        patchDefinition({
+                          execution: {
+                            ...definition.execution,
+                            runtime: runtime as 'browser' | 'api' | 'node' | 'database',
+                          },
+                        })
+                    }}
+                  >
+                    <SelectTrigger aria-label="Runs in">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {(['node', 'browser', 'api', 'database'] as const).map(runtime => (
+                        <SelectItem key={runtime} value={runtime}>
+                          {runtimeLabels[runtime]}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs leading-5 text-zinc-500">
+                    Node.js is recommended. Change this only when the handler needs a specialized execution environment.
+                  </p>
+                </Field>
+                <Field label="Allowed capabilities" wide>
+                  <Textarea
+                    value={definition.intent.capabilities.join('\n')}
+                    placeholder="One capability per line, such as browser or database"
+                    onChange={event => patchIntent({ capabilities: parseLines(event.target.value) })}
+                  />
+                  <p className="text-xs leading-5 text-zinc-500">
+                    This permission list limits what the handler may access. The default Node.js capability is
+                    sufficient for most custom steps.
+                  </p>
+                </Field>
+              </div>
+            </details>
           )}
-          {stage === 1 && <CodePanel label="Generated contract" value={generatedContract} />}
+          {stage === 1 && (
+            <details className="rounded-md border border-white/[0.08] bg-black/10">
+              <summary className="cursor-pointer px-4 py-3 text-sm font-medium text-zinc-300 outline-none focus-visible:ring-1 focus-visible:ring-primary">
+                View generated TypeScript contract
+              </summary>
+              <div className="border-t border-white/[0.06] p-4">
+                <CodePanel label="Generated contract" value={generatedContract} />
+              </div>
+            </details>
+          )}
           {stage === 1 && (
             <Field label="User-owned handler source">
               <Textarea

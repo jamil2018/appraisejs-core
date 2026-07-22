@@ -89,6 +89,22 @@ describe('StepDefinitionDraftEditor', () => {
     expect(screen.getByRole('button', { name: 'Save draft' })).toBeEnabled()
   })
 
+  it('keeps execution plumbing behind an explanatory advanced disclosure', async () => {
+    const user = userEvent.setup()
+    render(<StepDefinitionDraftEditor groups={groups} />)
+
+    await completeRequiredDefinition(user)
+    await user.click(screen.getByRole('button', { name: /Connect implementation/ }))
+
+    const summary = screen.getByText('Advanced execution settings')
+    const disclosure = summary.closest('details')
+    expect(disclosure).not.toHaveAttribute('open')
+    expect(screen.getByText('Custom code · Node.js')).toBeInTheDocument()
+    await user.click(summary)
+    expect(disclosure).toHaveAttribute('open')
+    expect(screen.getByText(/Custom code is the normal choice/)).toBeInTheDocument()
+  })
+
   it('derives managed identity and discovery metadata from required user fields', async () => {
     const user = userEvent.setup()
     render(<StepDefinitionDraftEditor groups={groups} />)
