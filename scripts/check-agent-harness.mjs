@@ -55,6 +55,12 @@ const rootHarnessRequiredFiles = [
   '.agents/skills/appraise-scaffold-maintenance/SKILL.md',
   '.agents/skills/appraise-sync-artifacts/SKILL.md',
   '.agents/skills/appraise-runtime-validation/SKILL.md',
+  '.agents/skills/swarm-orchestrator/SKILL.md',
+  '.agents/skills/swarm-orchestrator/references/routing-and-evolution.md',
+  '.codex/agents/investigator.toml',
+  '.codex/agents/solver.toml',
+  '.codex/agents/executor.toml',
+  '.codex/agents/judge.toml',
   'packages/create-appraisejs/AGENTS.md',
   'packages/appraisejs/AGENTS.md',
 ]
@@ -73,6 +79,19 @@ const staticFiles = [
   'scripts/mcp-config.mjs',
   'scripts/print-agent-config.mjs',
   'scripts/print-mcp-config.mjs',
+  'scripts/check-swarm-harness.mjs',
+  'scripts/record-swarm-run.mjs',
+  'scripts/update-swarm-evolution.mjs',
+  'scripts/lib/swarm-ledger-lock.mjs',
+  'scripts/lib/toml-validator.mjs',
+  'scripts/lib/swarm-cli.mjs',
+  'scripts/lib/swarm-ledger-store.mjs',
+  'scripts/swarm-ledger.mjs',
+  'scripts/tests/swarm-evolution.test.mjs',
+  '.codex/agents/investigator.toml',
+  '.codex/agents/solver.toml',
+  '.codex/agents/executor.toml',
+  '.codex/agents/judge.toml',
 ]
 
 const rootRelativeReferencePattern = /\b(?:docs\/agent-[A-Za-z0-9-]+\.md|\.agents\/skills\/[A-Za-z0-9-]+\/SKILL\.md)\b/g
@@ -104,6 +123,26 @@ const requiredTokens = [
   {
     file: 'docs/agent-harness-guardrails.md',
     tokens: ['Major behavior, architecture, workflow, package, schema, scaffold'],
+  },
+  {
+    file: '.agents/skills/swarm-orchestrator/SKILL.md',
+    tokens: ['investigator', 'solver', 'executor', 'judge', 'evolution criteria'],
+  },
+  {
+    file: '.agents/skills/swarm-orchestrator/references/routing-and-evolution.md',
+    tokens: ['Run scorecard', 'Evolution triggers', 'Do not change the harness automatically'],
+  },
+  {
+    file: '.codex/config.toml',
+    tokens: [
+      '[agents.investigator]',
+      '[agents.solver]',
+      '[agents.executor]',
+      '[agents.judge]',
+      'config_file = "agents/',
+      'max_concurrent_threads_per_session',
+      'default_subagent_model',
+    ],
   },
   {
     file: '.agents/skills/appraise-validation-preparation/SKILL.md',
@@ -210,7 +249,7 @@ for (const file of walkFiles(path.join(repoRoot, 'docs'), file => {
 }
 
 for (const file of walkFiles(path.join(repoRoot, '.agents', 'skills'), file => {
-  return path.basename(file) === 'SKILL.md'
+  return path.basename(file) === 'SKILL.md' || file.includes(`${path.sep}references${path.sep}`)
 })) {
   activeFiles.add(toRepoRelative(file))
 }

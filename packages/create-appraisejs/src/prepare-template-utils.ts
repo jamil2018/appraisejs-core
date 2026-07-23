@@ -1,6 +1,7 @@
 import path from 'path'
 import { existsSync, promises as fs } from 'fs'
 import type { TemplateId } from './template-catalog.js'
+import { isRepoOnlyTemplatePath } from './template-boundary.js'
 
 export interface TemplateMetadata {
   preparedAt: string
@@ -126,6 +127,7 @@ export async function verifyPreparedTemplateState(
   const graphifyArtifacts = await collectFilesFn(packageTemplateDir, relativePath =>
     relativePath.split('/').includes('graphify-out'),
   )
+  const repoOnlyHarnessArtifacts = await collectFilesFn(packageTemplateDir, isRepoOnlyTemplatePath)
 
   if (!existsSync(seededDbPath)) {
     throw new Error(`Prepared template is missing ${seededDbPath}`)
@@ -158,6 +160,11 @@ export async function verifyPreparedTemplateState(
   }
   if (graphifyArtifacts.length > 0) {
     throw new Error(`Prepared template should not include Graphify artifacts, found ${graphifyArtifacts.join(', ')}`)
+  }
+  if (repoOnlyHarnessArtifacts.length > 0) {
+    throw new Error(
+      `Prepared template should not include repository-only swarm harness artifacts, found ${repoOnlyHarnessArtifacts.join(', ')}`,
+    )
   }
 
   const stepDataCounts = await readTemplateStepDataCountsFn(seededDbPath)

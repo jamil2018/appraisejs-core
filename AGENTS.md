@@ -33,6 +33,7 @@ When instructions conflict, follow this order:
 - Agent harness map: `docs/agent-harness.md`
 - Agent task recipes: `docs/agent-task-recipes.md`
 - Agent validation matrix: `docs/agent-validation-matrix.md`
+- Agent swarm routing and evolution: `.agents/skills/swarm-orchestrator/SKILL.md`
 - Agent Graphify workflow: `docs/agent-graphify.md`
 - Generated artifact map: `docs/agent-generated-artifacts.md`
 - Appraise lifecycle flow: `docs/agent-lifecycle-flow.md`
@@ -55,6 +56,23 @@ relevant current docs in the same change set. Treat doc drift as part of the bug
 no longer match current source, scripts, package layout, or generated-artifact rules, fix those docs before finishing.
 
 ## Task Routing
+
+For non-trivial work with missing evidence, high judgment, independently executable slices, or consequential
+evaluation, load `swarm-orchestrator`. Use the project custom agents by epistemic role: `investigator` establishes
+facts, `solver` resolves irreducible judgment, `executor` performs settled work, and `judge` independently evaluates
+high-consequence residual uncertainty. Prefer deterministic verification over model consensus. Do not delegate
+trivial work, duplicate evidence lanes, or allow concurrent overlapping writes.
+
+Before finishing a swarm run, apply the skill's evolution criteria to performance, resource use, governance, and
+harness usability. Record and notify the user about anything non-optimal, wait for their guidance, then update only
+the approved routing, prompts, models, tools, context boundaries, concurrency, or harness behavior. Do not silently
+change the harness from its own observation.
+Close the cycle only after deterministic verification and a fresh independent re-evaluation linked to the originating
+run. The local `.appraisejs/swarm-events.jsonl` journal is Git-ignored process evidence; host-conversation user guidance
+and Appraise lifecycle approvals remain authoritative. Static agent configuration does not prove the effective named
+role or sandbox at runtime: retain host receipts where available and disclose missing proof.
+Give `solver` and `judge` no inherited parent transcript, or the smallest deliberate bounded context supported by the
+host, so their judgment is not anchored by a producing agent's narrative.
 
 For CRUD/domain work, start with `src/actions/*`, `src/services/*`, `prisma/schema.prisma`, and the matching
 page/form/table under `src/app/(base)`.

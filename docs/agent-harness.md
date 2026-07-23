@@ -11,6 +11,7 @@ and safety layer; this file points to the detailed agent docs that keep navigati
 - CLI and MCP package: `packages/appraisejs`, with CLI entry points, coordinator client code, registry content, and
   MCP tests.
 - Repo-local skills: `.agents/skills`, intended to route agents to source files, docs, and validation commands.
+- Project Codex agents: `.codex/agents`, defining the investigator, solver, executor, and judge model roles.
 
 ## Source Of Truth Routing
 
@@ -35,6 +36,34 @@ and safety layer; this file points to the detailed agent docs that keep navigati
 - Use `docs/agent-harness-guardrails.md` when editing agent instructions, docs, skills, or setup surfaces.
 - Use `docs/agent-real-subagent-audit-protocol.md` when auditing delegated-agent behavior against the real Appraise
   lifecycle.
+- Use `.agents/skills/swarm-orchestrator/SKILL.md` when routing non-trivial work among model-specialized agents or
+  evaluating whether the swarm remains accurate and efficient.
+
+## Model-specialized Swarm
+
+The primary agent owns routing, integration, user communication, and final claims. Project custom agents divide work
+by epistemic need rather than implementation phase:
+
+- `investigator` gathers bounded evidence without designing or editing.
+- `solver` resolves ambiguous, architectural, or otherwise high-judgment decisions.
+- `executor` performs settled implementation and deterministic verification.
+- `judge` independently evaluates consequential results that retain material uncertainty.
+
+The project registers each role explicitly under `[agents.<role>]` in `.codex/config.toml`, limits spawned concurrency
+to three agents, and uses Terra with medium reasoning as the fallback for an unpinned subagent. This is a requested
+configuration, not proof that a particular host actually used the named role, inherited the intended context, or
+enforced the requested effective sandbox. Record host receipts for those facts; where the host cannot provide one,
+state the limitation and treat it as unverified rather than claiming isolation.
+
+The swarm skill defines assignment contracts, escalation, scorecard dimensions, and evolution triggers across task
+outcomes, routing, model fit, resource use, coordination, governance, and harness usability. Any non-optimal finding
+follows a durable note → notify → user guidance → update → verification lifecycle; it never authorizes the harness to
+rewrite its own roles, models, or thresholds.
+
+The complete resolution path is note → notify → host-conversation guidance → update → deterministic verification →
+fresh independent re-evaluation → explicit linkage of that re-evaluation to the original run. The local swarm ledger
+records process evidence only. It is Git-ignored, is not an approval channel, and cannot replace the user decision in
+the host conversation or Appraise-owned lifecycle approval.
 
 ## Documentation Maintenance
 

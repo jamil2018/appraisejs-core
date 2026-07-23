@@ -12,6 +12,7 @@ packages/create-appraisejs/templates/
 automation/reports/
 playwright-report/
 test-results/
+scripts/fixtures/
 .fallow/
 .appraisejs/
 .tmp/

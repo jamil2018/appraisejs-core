@@ -205,4 +205,14 @@ describe('verifyPreparedTemplateState', () => {
       /Graphify artifacts/,
     )
   })
+
+  it('fails when repository-only swarm harness artifacts are present', async () => {
+    const dir = await createTempTemplateDir()
+    await fs.ensureDir(path.join(dir, 'scripts', 'tests'))
+    await fs.writeFile(path.join(dir, 'scripts', 'tests', 'swarm-evolution.test.mjs'), '// repo-only')
+
+    await expect(verifyPreparedTemplateState(dir, 'starter', undefined, getStarterCounts)).rejects.toThrow(
+      /repository-only swarm harness artifacts/,
+    )
+  })
 })

@@ -1,0 +1,4 @@
+interface:
+  display_name: 'Swarm Orchestrator'
+  short_description: 'Route and evaluate model-specialized agents'
+  default_prompt: 'Use $swarm-orchestrator to route this task through evidence, judgment, execution, and evaluation.'

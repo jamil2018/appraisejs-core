@@ -28,6 +28,7 @@ import {
   setSeededTemplateFilesTracked,
 } from '../src/scaffold-gitignore.js'
 import { getTemplateDefinition, getTemplateDefinitions, type TemplateId } from '../src/template-catalog.js'
+import { isRepoOnlyTemplatePath, REPO_ONLY_TEMPLATE_SCRIPT_NAMES } from '../src/template-boundary.js'
 import { shouldExcludeBundledTemplatePath } from '../src/sync-templates-utils.js'
 import { shouldBackfillLegacyEnvironmentConfig, shouldExcludeTemplatePath } from '../../../src/lib/template-sync-utils'
 
@@ -344,9 +345,20 @@ function writeTemplatePackageJson(): void {
   for (const scriptName of Object.keys(rootPkg.scripts)) {
     if (scriptName.startsWith('release:')) delete rootPkg.scripts[scriptName]
   }
+  for (const scriptName of REPO_ONLY_TEMPLATE_SCRIPT_NAMES) {
+    delete rootPkg.scripts[scriptName]
+  }
+  rootPkg.scripts['check:harness'] = 'node scripts/check-agent-harness.mjs'
   delete rootPkg.scripts['build:appraisejs']
   delete rootPkg.scripts['build-step-registry']
   writeFileSync(path.join(baseTemplateDir, 'package.json'), JSON.stringify(rootPkg, null, 2) + '\n')
+}
+
+function writeTemplateHarnessCheck(): void {
+  copyFile(
+    path.join(packageRoot, 'scripts', 'template-check-agent-harness.mjs'),
+    path.join(baseTemplateDir, 'scripts', 'check-agent-harness.mjs'),
+  )
 }
 
 function preparePackagedGitignore(): void {
@@ -389,8 +401,11 @@ function createBaseTemplate(): void {
   console.log('Copying scripts/...')
   copyDirWithFilter(path.join(repoRoot, 'scripts'), path.join(baseTemplateDir, 'scripts'), {
     shouldExcludePath: relativePath =>
-      shouldExcludeTemplatePath(relativePath) || RELEASE_ONLY_SCRIPTS.has(relativePath.replace(/\\/g, '/')),
+      shouldExcludeTemplatePath(relativePath) ||
+      RELEASE_ONLY_SCRIPTS.has(relativePath.replace(/\\/g, '/')) ||
+      isRepoOnlyTemplatePath(path.posix.join('scripts', relativePath.replace(/\\/g, '/'))),
   })
+  rmSync(path.join(baseTemplateDir, 'scripts', 'tests'), { recursive: true, force: true })
   console.log('Copying e2e/...')
   copyDirWithFilter(path.join(repoRoot, 'e2e'), path.join(baseTemplateDir, 'e2e'))
   console.log('Copying config/...')
@@ -438,6 +453,7 @@ function createBaseTemplate(): void {
   }
 
   writeTemplatePackageJson()
+  writeTemplateHarnessCheck()
   preparePackagedGitignore()
   rmSync(path.join(baseTemplateDir, '.env'), { force: true })
   rmSync(path.join(baseTemplateDir, 'prisma', 'dev.db'), { force: true })

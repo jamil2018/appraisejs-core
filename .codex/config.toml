@@ -4,25 +4,32 @@
 sandbox_mode = "workspace-write"
 approval_policy = "on-request"
 
-[projects."/Users/jamil/Personal Projects/appraisejs"]
-trust_level = "trusted"
-
 [features]
 memories = true
 multi_agent = true
 
+[agents]
+enabled = true
+max_concurrent_threads_per_session = 3
+default_subagent_model = "gpt-5.6-terra"
+default_subagent_reasoning_effort = "medium"
+
+[agents.investigator]
+description = "Gather bounded evidence without implementing or making architectural decisions."
+config_file = "agents/investigator.toml"
+
+[agents.solver]
+description = "Resolve ambiguous, architectural, or otherwise high-judgment decisions."
+config_file = "agents/solver.toml"
+
+[agents.executor]
+description = "Perform settled implementation and deterministic verification work."
+config_file = "agents/executor.toml"
+
+[agents.judge]
+description = "Independently evaluate consequential results with material residual uncertainty."
+config_file = "agents/judge.toml"
+
 [memories]
 generate_memories = true
 use_memories = true
-
-[plugins."browser-use@openai-bundled"]
-enabled = true
-
-[plugins."build-web-apps@openai-curated"]
-enabled = true
-
-[plugins."github@openai-curated"]
-enabled = true
-
-[plugins."computer-use@openai-bundled"]
-enabled = true
