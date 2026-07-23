@@ -28,6 +28,11 @@ export const stepReferenceSchema = stepIdentitySchema.extend({ definitionHash: s
 
 export const stepValueSchema = boundedOperationValueSchema
 
+export type StepValue = string | number | boolean | null | StepValue[] | { [key: string]: StepValue }
+
+export type StepInputSelector = { input: string } | { output: string }
+export type StepInputExpression = StepValue | StepInputSelector
+
 export const stepInputDefinitionSchema = z.object({
   name: identifierSchema,
   label: boundedText(200),
@@ -64,11 +69,17 @@ export const stepOutputDefinitionSchema = z.object({
   storable: z.boolean(),
 })
 
-const inputExpressionSchema: z.ZodType<unknown> = z.union([
-  stepValueSchema,
+function isSelectorShaped(value: unknown) {
+  return !!value && typeof value === 'object' && (Object.hasOwn(value, 'input') || Object.hasOwn(value, 'output'))
+}
+
+export const stepInputExpressionSchema: z.ZodType<StepInputExpression> = z.union([
   z.object({ input: identifierSchema }).strict(),
   z.object({ output: identifierSchema }).strict(),
-])
+  stepValueSchema.refine(value => !isSelectorShaped(value), {
+    message: 'Selector-shaped composition input expressions must be exact input or output selectors.',
+  }),
+]) as z.ZodType<StepInputExpression>
 
 export const stepExecutionBindingSchema = z.discriminatedUnion('kind', [
   z.object({
@@ -80,7 +91,7 @@ export const stepExecutionBindingSchema = z.discriminatedUnion('kind', [
   z.object({
     kind: z.literal('composition'),
     steps: z
-      .array(z.object({ step: stepIdentitySchema, inputs: z.record(identifierSchema, inputExpressionSchema) }))
+      .array(z.object({ step: stepIdentitySchema, inputs: z.record(identifierSchema, stepInputExpressionSchema) }))
       .min(1)
       .max(100),
   }),

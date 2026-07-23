@@ -2295,10 +2295,10 @@
       "source_file": "appraisejs/src/cli.ts",
       "source_location": "L63",
       "_origin": "ast",
-      "community": 27,
+      "community": 188,
       "norm_label": "onlineclient()",
       "id": "src_cli_onlineclient",
-      "community_name": "Locator Picker Companion Src Index Ts Src Index / Src Launcher"
+      "community_name": "Community 188"
     },
     {
       "label": "locatorGraph",
@@ -2493,10 +2493,10 @@
       "source_file": "appraisejs/src/coordinator-client.ts",
       "source_location": "L11",
       "_origin": "ast",
-      "community": 55,
+      "community": 29,
       "norm_label": "coordinatoroptions",
       "id": "src_coordinator_client_coordinatoroptions",
-      "community_name": "Navigation Reload"
+      "community_name": "Community 29"
     },
     {
       "label": "CoordinatorRequestError",
@@ -2548,10 +2548,10 @@
       "source_file": "appraisejs/src/coordinator-client.ts",
       "source_location": "L56",
       "_origin": "ast",
-      "community": 55,
+      "community": 188,
       "norm_label": "createcoordinatorclient()",
       "id": "src_coordinator_client_createcoordinatorclient",
-      "community_name": "Navigation Reload"
+      "community_name": "Community 188"
     },
     {
       "label": "diagnostics.test.ts",
@@ -2559,10 +2559,10 @@
       "source_file": "appraisejs/src/diagnostics.test.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 25,
+      "community": 188,
       "norm_label": "diagnostics.test.ts",
       "id": "src_diagnostics_test",
-      "community_name": "Src Locator Util / Src Locator Util Getlocatormapdata"
+      "community_name": "Community 188"
     },
     {
       "label": "workspaces",
@@ -2570,10 +2570,10 @@
       "source_file": "appraisejs/src/diagnostics.test.ts",
       "source_location": "L10",
       "_origin": "ast",
-      "community": 25,
+      "community": 188,
       "norm_label": "workspaces",
       "id": "src_diagnostics_test_workspaces",
-      "community_name": "Src Locator Util / Src Locator Util Getlocatormapdata"
+      "community_name": "Community 188"
     },
     {
       "label": "diagnostics.ts",
@@ -2581,10 +2581,10 @@
       "source_file": "appraisejs/src/diagnostics.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 55,
+      "community": 188,
       "norm_label": "diagnostics.ts",
       "id": "src_diagnostics",
-      "community_name": "Navigation Reload"
+      "community_name": "Community 188"
     },
     {
       "label": "Check",
@@ -2592,10 +2592,10 @@
       "source_file": "appraisejs/src/diagnostics.ts",
       "source_location": "L6",
       "_origin": "ast",
-      "community": 55,
+      "community": 188,
       "norm_label": "check",
       "id": "src_diagnostics_check",
-      "community_name": "Navigation Reload"
+      "community_name": "Community 188"
     },
     {
       "label": "gitStatus()",
@@ -2603,10 +2603,10 @@
       "source_file": "appraisejs/src/diagnostics.ts",
       "source_location": "L15",
       "_origin": "ast",
-      "community": 55,
+      "community": 188,
       "norm_label": "gitstatus()",
       "id": "src_diagnostics_gitstatus",
-      "community_name": "Navigation Reload"
+      "community_name": "Community 188"
     },
     {
       "label": "gitlessBaseRevisionGuidance",
@@ -2614,10 +2614,10 @@
       "source_file": "appraisejs/src/diagnostics.ts",
       "source_location": "L27",
       "_origin": "ast",
-      "community": 55,
+      "community": 188,
       "norm_label": "gitlessbaserevisionguidance",
       "id": "src_diagnostics_gitlessbaserevisionguidance",
-      "community_name": "Navigation Reload"
+      "community_name": "Community 188"
     },
     {
       "label": "diagnoseProject()",
@@ -2625,10 +2625,10 @@
       "source_file": "appraisejs/src/diagnostics.ts",
       "source_location": "L35",
       "_origin": "ast",
-      "community": 55,
+      "community": 188,
       "norm_label": "diagnoseproject()",
       "id": "src_diagnostics_diagnoseproject",
-      "community_name": "Navigation Reload"
+      "community_name": "Community 188"
     },
     {
       "label": "formatMcpBootstrapError()",
@@ -2636,10 +2636,10 @@
       "source_file": "appraisejs/src/diagnostics.ts",
       "source_location": "L130",
       "_origin": "ast",
-      "community": 25,
+      "community": 188,
       "norm_label": "formatmcpbootstraperror()",
       "id": "src_diagnostics_formatmcpbootstraperror",
-      "community_name": "Src Locator Util / Src Locator Util Getlocatormapdata"
+      "community_name": "Community 188"
     },
     {
       "label": "installer.ts",
@@ -2724,10 +2724,10 @@
       "source_file": "appraisejs/src/managed-validation-contracts.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 12,
+      "community": 14,
       "norm_label": "action_catalog_contract_version",
       "id": "src_managed_validation_contracts_action_catalog_contract_version",
-      "community_name": "Cucumber Runtime Src Index Ts Src Index / Cucumber Runtime Src Types Ts Src Type"
+      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
     },
     {
       "label": "OPERATION_CATALOG_CONTRACT_VERSION",
@@ -2735,10 +2735,10 @@
       "source_file": "appraisejs/src/managed-validation-contracts.ts",
       "source_location": "L2",
       "_origin": "ast",
-      "community": 12,
+      "community": 14,
       "norm_label": "operation_catalog_contract_version",
       "id": "src_managed_validation_contracts_operation_catalog_contract_version",
-      "community_name": "Cucumber Runtime Src Index Ts Src Index / Cucumber Runtime Src Types Ts Src Type"
+      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
     },
     {
       "label": "LOCATOR_GRAPH_CONTRACT_VERSION",
@@ -2746,10 +2746,10 @@
       "source_file": "appraisejs/src/managed-validation-contracts.ts",
       "source_location": "L3",
       "_origin": "ast",
-      "community": 12,
+      "community": 14,
       "norm_label": "locator_graph_contract_version",
       "id": "src_managed_validation_contracts_locator_graph_contract_version",
-      "community_name": "Cucumber Runtime Src Index Ts Src Index / Cucumber Runtime Src Types Ts Src Type"
+      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
     },
     {
       "label": "VALIDATION_AST_SCHEMA_VERSION",
@@ -2768,10 +2768,10 @@
       "source_file": "appraisejs/src/managed-validation-contracts.ts",
       "source_location": "L5",
       "_origin": "ast",
-      "community": 12,
+      "community": 14,
       "norm_label": "delegated_authorization_version",
       "id": "src_managed_validation_contracts_delegated_authorization_version",
-      "community_name": "Cucumber Runtime Src Index Ts Src Index / Cucumber Runtime Src Types Ts Src Type"
+      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
     },
     {
       "label": "VALIDATION_AST_JSON_SCHEMA",
@@ -2867,10 +2867,10 @@
       "source_file": "appraisejs/src/managed-validation-contracts.ts",
       "source_location": "L269",
       "_origin": "ast",
-      "community": 55,
+      "community": 12,
       "norm_label": "validationastsubmission",
       "id": "src_managed_validation_contracts_validationastsubmission",
-      "community_name": "Navigation Reload"
+      "community_name": "Cucumber Runtime Src Index Ts Src Index / Cucumber Runtime Src Types Ts Src Type"
     },
     {
       "label": "CustomExtensionPolicy",
@@ -2878,10 +2878,10 @@
       "source_file": "appraisejs/src/managed-validation-contracts.ts",
       "source_location": "L280",
       "_origin": "ast",
-      "community": 12,
+      "community": 55,
       "norm_label": "customextensionpolicy",
       "id": "src_managed_validation_contracts_customextensionpolicy",
-      "community_name": "Cucumber Runtime Src Index Ts Src Index / Cucumber Runtime Src Types Ts Src Type"
+      "community_name": "Navigation Reload"
     },
     {
       "label": "CompiledCustomExtensionReview",
@@ -2900,10 +2900,10 @@
       "source_file": "appraisejs/src/managed-validation-contracts.ts",
       "source_location": "L304",
       "_origin": "ast",
-      "community": 12,
+      "community": 55,
       "norm_label": "validationastextensionreviewresult",
       "id": "src_managed_validation_contracts_validationastextensionreviewresult",
-      "community_name": "Cucumber Runtime Src Index Ts Src Index / Cucumber Runtime Src Types Ts Src Type"
+      "community_name": "Navigation Reload"
     },
     {
       "label": "DelegatedAuthorizationReceipt",
@@ -3417,10 +3417,10 @@
       "source_file": "appraisejs/src/mcp.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 55,
+      "community": 29,
       "norm_label": "mcp.ts",
       "id": "src_mcp",
-      "community_name": "Navigation Reload"
+      "community_name": "Community 29"
     },
     {
       "label": "coordinator-call.ts",
@@ -3439,10 +3439,10 @@
       "source_file": "appraisejs/src/mcp/coordinator-call.ts",
       "source_location": "L10",
       "_origin": "ast",
-      "community": 55,
+      "community": 29,
       "norm_label": "createcoordinatorapiclient()",
       "id": "mcp_coordinator_call_createcoordinatorapiclient",
-      "community_name": "Navigation Reload"
+      "community_name": "Community 29"
     },
     {
       "label": "toolError()",
@@ -3494,10 +3494,10 @@
       "source_file": "appraisejs/src/mcp/domains/diagnostic.ts",
       "source_location": "L15",
       "_origin": "ast",
-      "community": 6,
+      "community": 180,
       "norm_label": "registerdiagnosticoperations()",
       "id": "domains_diagnostic_registerdiagnosticoperations",
-      "community_name": "Community 6"
+      "community_name": "Community 180"
     },
     {
       "label": "implementation.ts",
@@ -3527,10 +3527,10 @@
       "source_file": "appraisejs/src/mcp/domains/planning.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 14,
+      "community": 33,
       "norm_label": "planning.ts",
       "id": "domains_planning",
-      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
+      "community_name": "Community 33"
     },
     {
       "label": "registerPlanningOperations()",
@@ -3538,10 +3538,10 @@
       "source_file": "appraisejs/src/mcp/domains/planning.ts",
       "source_location": "L33",
       "_origin": "ast",
-      "community": 6,
+      "community": 180,
       "norm_label": "registerplanningoperations()",
       "id": "domains_planning_registerplanningoperations",
-      "community_name": "Community 6"
+      "community_name": "Community 180"
     },
     {
       "label": "project.ts",
@@ -3571,10 +3571,10 @@
       "source_file": "appraisejs/src/mcp/domains/resources.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 12,
+      "community": 14,
       "norm_label": "resources.ts",
       "id": "domains_resources",
-      "community_name": "Cucumber Runtime Src Index Ts Src Index / Cucumber Runtime Src Types Ts Src Type"
+      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
     },
     {
       "label": "registerResourcesOperations()",
@@ -3582,10 +3582,10 @@
       "source_file": "appraisejs/src/mcp/domains/resources.ts",
       "source_location": "L19",
       "_origin": "ast",
-      "community": 6,
+      "community": 14,
       "norm_label": "registerresourcesoperations()",
       "id": "domains_resources_registerresourcesoperations",
-      "community_name": "Community 6"
+      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
     },
     {
       "label": "runtime.ts",
@@ -3615,10 +3615,10 @@
       "source_file": "appraisejs/src/mcp/domains/step-definitions.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 6,
+      "community": 180,
       "norm_label": "step-definitions.ts",
       "id": "domains_step_definitions",
-      "community_name": "Community 6"
+      "community_name": "Community 180"
     },
     {
       "label": "draftMutationSchema",
@@ -3626,10 +3626,10 @@
       "source_file": "appraisejs/src/mcp/domains/step-definitions.ts",
       "source_location": "L4",
       "_origin": "ast",
-      "community": 6,
+      "community": 180,
       "norm_label": "draftmutationschema",
       "id": "domains_step_definitions_draftmutationschema",
-      "community_name": "Community 6"
+      "community_name": "Community 180"
     },
     {
       "label": "registerStepDefinitionOperations()",
@@ -3637,10 +3637,10 @@
       "source_file": "appraisejs/src/mcp/domains/step-definitions.ts",
       "source_location": "L9",
       "_origin": "ast",
-      "community": 6,
+      "community": 180,
       "norm_label": "registerstepdefinitionoperations()",
       "id": "domains_step_definitions_registerstepdefinitionoperations",
-      "community_name": "Community 6"
+      "community_name": "Community 180"
     },
     {
       "label": "validation.ts",
@@ -3648,10 +3648,10 @@
       "source_file": "appraisejs/src/mcp/domains/validation.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 14,
+      "community": 75,
       "norm_label": "validation.ts",
       "id": "domains_validation",
-      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
+      "community_name": "Wait Wait For Page Load"
     },
     {
       "label": "registerValidationOperations()",
@@ -3659,10 +3659,10 @@
       "source_file": "appraisejs/src/mcp/domains/validation.ts",
       "source_location": "L25",
       "_origin": "ast",
-      "community": 6,
+      "community": 75,
       "norm_label": "registervalidationoperations()",
       "id": "domains_validation_registervalidationoperations",
-      "community_name": "Community 6"
+      "community_name": "Wait Wait For Page Load"
     },
     {
       "label": "http-server.ts",
@@ -3714,10 +3714,10 @@
       "source_file": "appraisejs/src/mcp/registry.test.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 6,
+      "community": 180,
       "norm_label": "registry.test.ts",
       "id": "mcp_registry_test",
-      "community_name": "Community 6"
+      "community_name": "Community 180"
     },
     {
       "label": "registry.ts",
@@ -3725,10 +3725,10 @@
       "source_file": "appraisejs/src/mcp/registry.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 6,
+      "community": 180,
       "norm_label": "registry.ts",
       "id": "mcp_registry",
-      "community_name": "Community 6"
+      "community_name": "Community 180"
     },
     {
       "label": "McpRegistryContext",
@@ -3736,10 +3736,10 @@
       "source_file": "appraisejs/src/mcp/registry.ts",
       "source_location": "L16",
       "_origin": "ast",
-      "community": 6,
+      "community": 180,
       "norm_label": "mcpregistrycontext",
       "id": "mcp_registry_mcpregistrycontext",
-      "community_name": "Community 6"
+      "community_name": "Community 180"
     },
     {
       "label": "McpContractDefinition",
@@ -3758,10 +3758,10 @@
       "source_file": "appraisejs/src/mcp/registry.ts",
       "source_location": "L31",
       "_origin": "ast",
-      "community": 6,
+      "community": 180,
       "norm_label": "contracts",
       "id": "mcp_registry_contracts",
-      "community_name": "Community 6"
+      "community_name": "Community 180"
     },
     {
       "label": "canonicalContracts",
@@ -3769,10 +3769,10 @@
       "source_file": "appraisejs/src/mcp/registry.ts",
       "source_location": "L32",
       "_origin": "ast",
-      "community": 6,
+      "community": 180,
       "norm_label": "canonicalcontracts",
       "id": "mcp_registry_canonicalcontracts",
-      "community_name": "Community 6"
+      "community_name": "Community 180"
     },
     {
       "label": "ToolHandler",
@@ -3780,10 +3780,10 @@
       "source_file": "appraisejs/src/mcp/registry.ts",
       "source_location": "L34",
       "_origin": "ast",
-      "community": 6,
+      "community": 180,
       "norm_label": "toolhandler",
       "id": "mcp_registry_toolhandler",
-      "community_name": "Community 6"
+      "community_name": "Community 180"
     },
     {
       "label": "withStructuredCoordinatorErrors()",
@@ -3791,10 +3791,10 @@
       "source_file": "appraisejs/src/mcp/registry.ts",
       "source_location": "L36",
       "_origin": "ast",
-      "community": 6,
+      "community": 180,
       "norm_label": "withstructuredcoordinatorerrors()",
       "id": "mcp_registry_withstructuredcoordinatorerrors",
-      "community_name": "Community 6"
+      "community_name": "Community 180"
     },
     {
       "label": "registrationTarget()",
@@ -3802,10 +3802,10 @@
       "source_file": "appraisejs/src/mcp/registry.ts",
       "source_location": "L47",
       "_origin": "ast",
-      "community": 29,
+      "community": 180,
       "norm_label": "registrationtarget()",
       "id": "mcp_registry_registrationtarget",
-      "community_name": "Community 29"
+      "community_name": "Community 180"
     },
     {
       "label": "domainRegistries",
@@ -3813,10 +3813,10 @@
       "source_file": "appraisejs/src/mcp/registry.ts",
       "source_location": "L82",
       "_origin": "ast",
-      "community": 6,
+      "community": 180,
       "norm_label": "domainregistries",
       "id": "mcp_registry_domainregistries",
-      "community_name": "Community 6"
+      "community_name": "Community 180"
     },
     {
       "label": "assertUniqueMcpDefinitions()",
@@ -3824,10 +3824,10 @@
       "source_file": "appraisejs/src/mcp/registry.ts",
       "source_location": "L94",
       "_origin": "ast",
-      "community": 29,
+      "community": 180,
       "norm_label": "assertuniquemcpdefinitions()",
       "id": "mcp_registry_assertuniquemcpdefinitions",
-      "community_name": "Community 29"
+      "community_name": "Community 180"
     },
     {
       "label": "registerAppraiseOperations()",
@@ -3835,10 +3835,10 @@
       "source_file": "appraisejs/src/mcp/registry.ts",
       "source_location": "L106",
       "_origin": "ast",
-      "community": 29,
+      "community": 180,
       "norm_label": "registerappraiseoperations()",
       "id": "mcp_registry_registerappraiseoperations",
-      "community_name": "Community 29"
+      "community_name": "Community 180"
     },
     {
       "label": "mcpContractForServer()",
@@ -3857,10 +3857,10 @@
       "source_file": "appraisejs/src/mcp/response-projector.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 180,
+      "community": 39,
       "norm_label": "response-projector.ts",
       "id": "mcp_response_projector",
-      "community_name": "Community 180"
+      "community_name": "Click Click"
     },
     {
       "label": "responseModeSchema",
@@ -3879,10 +3879,10 @@
       "source_file": "appraisejs/src/mcp/response-projector.ts",
       "source_location": "L7",
       "_origin": "ast",
-      "community": 180,
+      "community": 39,
       "norm_label": "mcp_response_token_budgets",
       "id": "mcp_response_projector_mcp_response_token_budgets",
-      "community_name": "Community 180"
+      "community_name": "Click Click"
     },
     {
       "label": "measureMcpResponse()",
@@ -3890,10 +3890,10 @@
       "source_file": "appraisejs/src/mcp/response-projector.ts",
       "source_location": "L15",
       "_origin": "ast",
-      "community": 180,
+      "community": 39,
       "norm_label": "measuremcpresponse()",
       "id": "mcp_response_projector_measuremcpresponse",
-      "community_name": "Community 180"
+      "community_name": "Click Click"
     },
     {
       "label": "applyResponseMode()",
@@ -3923,10 +3923,10 @@
       "source_file": "appraisejs/src/mcp/response-projector.ts",
       "source_location": "L228",
       "_origin": "ast",
-      "community": 180,
+      "community": 39,
       "norm_label": "applyeventresponsemode()",
       "id": "mcp_response_projector_applyeventresponsemode",
-      "community_name": "Community 180"
+      "community_name": "Click Click"
     },
     {
       "label": "applyAuthoringResponseMode()",
@@ -3934,10 +3934,10 @@
       "source_file": "appraisejs/src/mcp/response-projector.ts",
       "source_location": "L243",
       "_origin": "ast",
-      "community": 180,
+      "community": 39,
       "norm_label": "applyauthoringresponsemode()",
       "id": "mcp_response_projector_applyauthoringresponsemode",
-      "community_name": "Community 180"
+      "community_name": "Click Click"
     },
     {
       "label": "applyCapsuleDiagnosticMode()",
@@ -3956,10 +3956,10 @@
       "source_file": "appraisejs/src/mcp/server-factory.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 55,
+      "community": 29,
       "norm_label": "server-factory.ts",
       "id": "mcp_server_factory",
-      "community_name": "Navigation Reload"
+      "community_name": "Community 29"
     },
     {
       "label": "createAppraiseMcpServer()",
@@ -3967,10 +3967,10 @@
       "source_file": "appraisejs/src/mcp/server-factory.ts",
       "source_location": "L7",
       "_origin": "ast",
-      "community": 55,
+      "community": 29,
       "norm_label": "createappraisemcpserver()",
       "id": "mcp_server_factory_createappraisemcpserver",
-      "community_name": "Navigation Reload"
+      "community_name": "Community 29"
     },
     {
       "label": "shared.ts",
@@ -4176,10 +4176,10 @@
       "source_file": "appraisejs/src/mcp/shared.ts",
       "source_location": "L248",
       "_origin": "ast",
-      "community": 14,
+      "community": 33,
       "norm_label": "summarizediagnostic()",
       "id": "mcp_shared_summarizediagnostic",
-      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
+      "community_name": "Community 33"
     },
     {
       "label": "planningWorkflow",
@@ -4187,10 +4187,10 @@
       "source_file": "appraisejs/src/mcp/shared.ts",
       "source_location": "L261",
       "_origin": "ast",
-      "community": 12,
+      "community": 14,
       "norm_label": "planningworkflow",
       "id": "mcp_shared_planningworkflow",
-      "community_name": "Cucumber Runtime Src Index Ts Src Index / Cucumber Runtime Src Types Ts Src Type"
+      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
     },
     {
       "label": "standbyWorkflow",
@@ -4198,10 +4198,10 @@
       "source_file": "appraisejs/src/mcp/shared.ts",
       "source_location": "L277",
       "_origin": "ast",
-      "community": 12,
+      "community": 14,
       "norm_label": "standbyworkflow",
       "id": "mcp_shared_standbyworkflow",
-      "community_name": "Cucumber Runtime Src Index Ts Src Index / Cucumber Runtime Src Types Ts Src Type"
+      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
     },
     {
       "label": "validationPreparationWorkflow",
@@ -4209,10 +4209,10 @@
       "source_file": "appraisejs/src/mcp/shared.ts",
       "source_location": "L292",
       "_origin": "ast",
-      "community": 12,
+      "community": 14,
       "norm_label": "validationpreparationworkflow",
       "id": "mcp_shared_validationpreparationworkflow",
-      "community_name": "Cucumber Runtime Src Index Ts Src Index / Cucumber Runtime Src Types Ts Src Type"
+      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
     },
     {
       "label": "mcpCapabilityMetadata",
@@ -4330,10 +4330,10 @@
       "source_file": "appraisejs/src/mcp/shared.ts",
       "source_location": "L544",
       "_origin": "ast",
-      "community": 12,
+      "community": 14,
       "norm_label": "agentguide",
       "id": "mcp_shared_agentguide",
-      "community_name": "Cucumber Runtime Src Index Ts Src Index / Cucumber Runtime Src Types Ts Src Type"
+      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
     },
     {
       "label": "diagnosticGuidance()",
@@ -4352,10 +4352,10 @@
       "source_file": "appraisejs/src/mcp/shared.ts",
       "source_location": "L585",
       "_origin": "ast",
-      "community": 12,
+      "community": 14,
       "norm_label": "projectpayload()",
       "id": "mcp_shared_projectpayload",
-      "community_name": "Cucumber Runtime Src Index Ts Src Index / Cucumber Runtime Src Types Ts Src Type"
+      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
     },
     {
       "label": "planningSessionTargetRequiredResponse()",
@@ -4363,10 +4363,10 @@
       "source_file": "appraisejs/src/mcp/shared.ts",
       "source_location": "L594",
       "_origin": "ast",
-      "community": 14,
+      "community": 33,
       "norm_label": "planningsessiontargetrequiredresponse()",
       "id": "mcp_shared_planningsessiontargetrequiredresponse",
-      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
+      "community_name": "Community 33"
     },
     {
       "label": "planCandidateHash()",
@@ -4396,10 +4396,10 @@
       "source_file": "appraisejs/src/mcp/shared.ts",
       "source_location": "L649",
       "_origin": "ast",
-      "community": 14,
+      "community": 180,
       "norm_label": "plansnapshot",
       "id": "mcp_shared_plansnapshot",
-      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
+      "community_name": "Community 180"
     },
     {
       "label": "validationIntegrityBlockedResponse()",
@@ -4407,10 +4407,10 @@
       "source_file": "appraisejs/src/mcp/shared.ts",
       "source_location": "L673",
       "_origin": "ast",
-      "community": 14,
+      "community": 75,
       "norm_label": "validationintegrityblockedresponse()",
       "id": "mcp_shared_validationintegrityblockedresponse",
-      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
+      "community_name": "Wait Wait For Page Load"
     },
     {
       "label": "approvalGateStatus()",
@@ -4418,10 +4418,10 @@
       "source_file": "appraisejs/src/mcp/shared.ts",
       "source_location": "L687",
       "_origin": "ast",
-      "community": 14,
+      "community": 33,
       "norm_label": "approvalgatestatus()",
       "id": "mcp_shared_approvalgatestatus",
-      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
+      "community_name": "Community 33"
     },
     {
       "label": "approvalGateEventStatus()",
@@ -4429,10 +4429,10 @@
       "source_file": "appraisejs/src/mcp/shared.ts",
       "source_location": "L694",
       "_origin": "ast",
-      "community": 14,
+      "community": 33,
       "norm_label": "approvalgateeventstatus()",
       "id": "mcp_shared_approvalgateeventstatus",
-      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
+      "community_name": "Community 33"
     },
     {
       "label": "validationGateStatus()",
@@ -4440,10 +4440,10 @@
       "source_file": "appraisejs/src/mcp/shared.ts",
       "source_location": "L701",
       "_origin": "ast",
-      "community": 14,
+      "community": 75,
       "norm_label": "validationgatestatus()",
       "id": "mcp_shared_validationgatestatus",
-      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
+      "community_name": "Wait Wait For Page Load"
     },
     {
       "label": "validationGateEventStatus()",
@@ -4451,10 +4451,10 @@
       "source_file": "appraisejs/src/mcp/shared.ts",
       "source_location": "L709",
       "_origin": "ast",
-      "community": 14,
+      "community": 75,
       "norm_label": "validationgateeventstatus()",
       "id": "mcp_shared_validationgateeventstatus",
-      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
+      "community_name": "Wait Wait For Page Load"
     },
     {
       "label": "CoordinatorToolEvent",
@@ -4462,10 +4462,10 @@
       "source_file": "appraisejs/src/mcp/shared.ts",
       "source_location": "L716",
       "_origin": "ast",
-      "community": 14,
+      "community": 75,
       "norm_label": "coordinatortoolevent",
       "id": "mcp_shared_coordinatortoolevent",
-      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
+      "community_name": "Wait Wait For Page Load"
     },
     {
       "label": "latestGateEvent()",
@@ -4473,10 +4473,10 @@
       "source_file": "appraisejs/src/mcp/shared.ts",
       "source_location": "L723",
       "_origin": "ast",
-      "community": 14,
+      "community": 75,
       "norm_label": "latestgateevent()",
       "id": "mcp_shared_latestgateevent",
-      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
+      "community_name": "Wait Wait For Page Load"
     },
     {
       "label": "RecommendedWait",
@@ -4484,10 +4484,10 @@
       "source_file": "appraisejs/src/mcp/shared.ts",
       "source_location": "L730",
       "_origin": "ast",
-      "community": 14,
+      "community": 33,
       "norm_label": "recommendedwait",
       "id": "mcp_shared_recommendedwait",
-      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
+      "community_name": "Community 33"
     },
     {
       "label": "linkFromSnapshot()",
@@ -4495,10 +4495,10 @@
       "source_file": "appraisejs/src/mcp/shared.ts",
       "source_location": "L737",
       "_origin": "ast",
-      "community": 14,
+      "community": 75,
       "norm_label": "linkfromsnapshot()",
       "id": "mcp_shared_linkfromsnapshot",
-      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
+      "community_name": "Wait Wait For Page Load"
     },
     {
       "label": "validationReviewBrowserUrl()",
@@ -4506,10 +4506,10 @@
       "source_file": "appraisejs/src/mcp/shared.ts",
       "source_location": "L743",
       "_origin": "ast",
-      "community": 14,
+      "community": 75,
       "norm_label": "validationreviewbrowserurl()",
       "id": "mcp_shared_validationreviewbrowserurl",
-      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
+      "community_name": "Wait Wait For Page Load"
     },
     {
       "label": "formatReviewHandoff()",
@@ -4517,10 +4517,10 @@
       "source_file": "appraisejs/src/mcp/shared.ts",
       "source_location": "L750",
       "_origin": "ast",
-      "community": 14,
+      "community": 33,
       "norm_label": "formatreviewhandoff()",
       "id": "mcp_shared_formatreviewhandoff",
-      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
+      "community_name": "Community 33"
     },
     {
       "label": "standbyPresentation()",
@@ -4528,10 +4528,10 @@
       "source_file": "appraisejs/src/mcp/shared.ts",
       "source_location": "L783",
       "_origin": "ast",
-      "community": 14,
+      "community": 33,
       "norm_label": "standbypresentation()",
       "id": "mcp_shared_standbypresentation",
-      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
+      "community_name": "Community 33"
     },
     {
       "label": "nextApprovalWaitSequence()",
@@ -4539,10 +4539,10 @@
       "source_file": "appraisejs/src/mcp/shared.ts",
       "source_location": "L844",
       "_origin": "ast",
-      "community": 14,
+      "community": 33,
       "norm_label": "nextapprovalwaitsequence()",
       "id": "mcp_shared_nextapprovalwaitsequence",
-      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
+      "community_name": "Community 33"
     },
     {
       "label": "approvalPendingResponse()",
@@ -4550,10 +4550,10 @@
       "source_file": "appraisejs/src/mcp/shared.ts",
       "source_location": "L848",
       "_origin": "ast",
-      "community": 14,
+      "community": 33,
       "norm_label": "approvalpendingresponse()",
       "id": "mcp_shared_approvalpendingresponse",
-      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
+      "community_name": "Community 33"
     },
     {
       "label": "validationReviewPendingResponse()",
@@ -4561,10 +4561,10 @@
       "source_file": "appraisejs/src/mcp/shared.ts",
       "source_location": "L909",
       "_origin": "ast",
-      "community": 14,
+      "community": 75,
       "norm_label": "validationreviewpendingresponse()",
       "id": "mcp_shared_validationreviewpendingresponse",
-      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
+      "community_name": "Wait Wait For Page Load"
     },
     {
       "label": "orderedEventBatch()",
@@ -4572,10 +4572,10 @@
       "source_file": "appraisejs/src/mcp/shared.ts",
       "source_location": "L964",
       "_origin": "ast",
-      "community": 14,
+      "community": 33,
       "norm_label": "orderedeventbatch()",
       "id": "mcp_shared_orderedeventbatch",
-      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
+      "community_name": "Community 33"
     },
     {
       "label": "lifecycleToolPayload()",
@@ -4594,10 +4594,10 @@
       "source_file": "appraisejs/src/mcp/shared.ts",
       "source_location": "L999",
       "_origin": "ast",
-      "community": 14,
+      "community": 33,
       "norm_label": "reviewreadypendingresponse()",
       "id": "mcp_shared_reviewreadypendingresponse",
-      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
+      "community_name": "Community 33"
     },
     {
       "label": "waitForEvents()",
@@ -4605,10 +4605,10 @@
       "source_file": "appraisejs/src/mcp/shared.ts",
       "source_location": "L1059",
       "_origin": "ast",
-      "community": 14,
+      "community": 75,
       "norm_label": "waitforevents()",
       "id": "mcp_shared_waitforevents",
-      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
+      "community_name": "Wait Wait For Page Load"
     },
     {
       "label": "stdio-server.ts",
@@ -4616,10 +4616,10 @@
       "source_file": "appraisejs/src/mcp/stdio-server.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 55,
+      "community": 29,
       "norm_label": "stdio-server.ts",
       "id": "mcp_stdio_server",
-      "community_name": "Navigation Reload"
+      "community_name": "Community 29"
     },
     {
       "label": "runAppraiseMcp()",
@@ -4627,10 +4627,10 @@
       "source_file": "appraisejs/src/mcp/stdio-server.ts",
       "source_location": "L6",
       "_origin": "ast",
-      "community": 55,
+      "community": 29,
       "norm_label": "runappraisemcp()",
       "id": "mcp_stdio_server_runappraisemcp",
-      "community_name": "Navigation Reload"
+      "community_name": "Community 29"
     },
     {
       "label": "plan-contract-parity.test.ts",
@@ -4858,10 +4858,10 @@
       "source_file": "appraisejs/src/plan-file.ts",
       "source_location": "L280",
       "_origin": "ast",
-      "community": 7,
+      "community": 33,
       "norm_label": "plancreateinputschema",
       "id": "src_plan_file_plancreateinputschema",
-      "community_name": "Src Plan Contract Parity Test / Src Plan Contract Parity Test Validplan"
+      "community_name": "Community 33"
     },
     {
       "label": "planArtifactSchema",
@@ -6563,10 +6563,10 @@
       "source_file": "create-appraisejs/scripts/prepare-template.ts",
       "source_location": "L78",
       "_origin": "ast",
-      "community": 1,
+      "community": 190,
       "norm_label": "getseeddatabasecandidates()",
       "id": "scripts_prepare_template_getseeddatabasecandidates",
-      "community_name": "Scripts Prepare Template / Scripts Prepare Template Basetemplatedir"
+      "community_name": "Community 190"
     },
     {
       "label": "copyFile()",
@@ -6574,10 +6574,10 @@
       "source_file": "create-appraisejs/scripts/prepare-template.ts",
       "source_location": "L82",
       "_origin": "ast",
-      "community": 181,
+      "community": 189,
       "norm_label": "copyfile()",
       "id": "scripts_prepare_template_copyfile",
-      "community_name": "Community 181"
+      "community_name": "Community 189"
     },
     {
       "label": "copyDirWithFilter()",
@@ -6629,10 +6629,10 @@
       "source_file": "create-appraisejs/scripts/prepare-template.ts",
       "source_location": "L168",
       "_origin": "ast",
-      "community": 188,
+      "community": 1,
       "norm_label": "hashfile()",
       "id": "scripts_prepare_template_hashfile",
-      "community_name": "Community 188"
+      "community_name": "Scripts Prepare Template / Scripts Prepare Template Basetemplatedir"
     },
     {
       "label": "computeTemplateInputHash()",
@@ -6640,10 +6640,10 @@
       "source_file": "create-appraisejs/scripts/prepare-template.ts",
       "source_location": "L179",
       "_origin": "ast",
-      "community": 188,
+      "community": 1,
       "norm_label": "computetemplateinputhash()",
       "id": "scripts_prepare_template_computetemplateinputhash",
-      "community_name": "Community 188"
+      "community_name": "Scripts Prepare Template / Scripts Prepare Template Basetemplatedir"
     },
     {
       "label": "readExistingTemplateMetadata()",
@@ -6673,10 +6673,10 @@
       "source_file": "create-appraisejs/scripts/prepare-template.ts",
       "source_location": "L233",
       "_origin": "ast",
-      "community": 1,
+      "community": 190,
       "norm_label": "copyfallbackseeddatabase()",
       "id": "scripts_prepare_template_copyfallbackseeddatabase",
-      "community_name": "Scripts Prepare Template / Scripts Prepare Template Basetemplatedir"
+      "community_name": "Community 190"
     },
     {
       "label": "runTemplateSyncScripts()",
@@ -6684,10 +6684,10 @@
       "source_file": "create-appraisejs/scripts/prepare-template.ts",
       "source_location": "L242",
       "_origin": "ast",
-      "community": 1,
+      "community": 182,
       "norm_label": "runtemplatesyncscripts()",
       "id": "scripts_prepare_template_runtemplatesyncscripts",
-      "community_name": "Scripts Prepare Template / Scripts Prepare Template Basetemplatedir"
+      "community_name": "Community 182"
     },
     {
       "label": "seedDatabaseForWorkspace()",
@@ -6695,10 +6695,10 @@
       "source_file": "create-appraisejs/scripts/prepare-template.ts",
       "source_location": "L248",
       "_origin": "ast",
-      "community": 1,
+      "community": 190,
       "norm_label": "seeddatabaseforworkspace()",
       "id": "scripts_prepare_template_seeddatabaseforworkspace",
-      "community_name": "Scripts Prepare Template / Scripts Prepare Template Basetemplatedir"
+      "community_name": "Community 190"
     },
     {
       "label": "resetAutomationReports()",
@@ -6706,10 +6706,10 @@
       "source_file": "create-appraisejs/scripts/prepare-template.ts",
       "source_location": "L263",
       "_origin": "ast",
-      "community": 181,
+      "community": 189,
       "norm_label": "resetautomationreports()",
       "id": "scripts_prepare_template_resetautomationreports",
-      "community_name": "Community 181"
+      "community_name": "Community 189"
     },
     {
       "label": "resetAutomationLocatorMap()",
@@ -6728,10 +6728,10 @@
       "source_file": "create-appraisejs/scripts/prepare-template.ts",
       "source_location": "L276",
       "_origin": "ast",
-      "community": 181,
+      "community": 189,
       "norm_label": "resetautomationenvironments()",
       "id": "scripts_prepare_template_resetautomationenvironments",
-      "community_name": "Community 181"
+      "community_name": "Community 189"
     },
     {
       "label": "syncLegacyEnvironmentConfig()",
@@ -6739,10 +6739,10 @@
       "source_file": "create-appraisejs/scripts/prepare-template.ts",
       "source_location": "L282",
       "_origin": "ast",
-      "community": 181,
+      "community": 189,
       "norm_label": "synclegacyenvironmentconfig()",
       "id": "scripts_prepare_template_synclegacyenvironmentconfig",
-      "community_name": "Community 181"
+      "community_name": "Community 189"
     },
     {
       "label": "syncInternalPackage()",
@@ -6750,10 +6750,10 @@
       "source_file": "create-appraisejs/scripts/prepare-template.ts",
       "source_location": "L296",
       "_origin": "ast",
-      "community": 181,
+      "community": 189,
       "norm_label": "syncinternalpackage()",
       "id": "scripts_prepare_template_syncinternalpackage",
-      "community_name": "Community 181"
+      "community_name": "Community 189"
     },
     {
       "label": "writeTemplatePackageJson()",
@@ -6761,10 +6761,10 @@
       "source_file": "create-appraisejs/scripts/prepare-template.ts",
       "source_location": "L322",
       "_origin": "ast",
-      "community": 181,
+      "community": 189,
       "norm_label": "writetemplatepackagejson()",
       "id": "scripts_prepare_template_writetemplatepackagejson",
-      "community_name": "Community 181"
+      "community_name": "Community 189"
     },
     {
       "label": "writeTemplateHarnessCheck()",
@@ -6772,10 +6772,10 @@
       "source_file": "create-appraisejs/scripts/prepare-template.ts",
       "source_location": "L357",
       "_origin": "ast",
-      "community": 181,
+      "community": 189,
       "norm_label": "writetemplateharnesscheck()",
       "id": "scripts_prepare_template_writetemplateharnesscheck",
-      "community_name": "Community 181"
+      "community_name": "Community 189"
     },
     {
       "label": "preparePackagedGitignore()",
@@ -6794,10 +6794,10 @@
       "source_file": "create-appraisejs/scripts/prepare-template.ts",
       "source_location": "L374",
       "_origin": "ast",
-      "community": 181,
+      "community": 189,
       "norm_label": "createbasetemplate()",
       "id": "scripts_prepare_template_createbasetemplate",
-      "community_name": "Community 181"
+      "community_name": "Community 189"
     },
     {
       "label": "copyDirWithoutBundledExclusions()",
@@ -6849,10 +6849,10 @@
       "source_file": "create-appraisejs/scripts/prepare-template.ts",
       "source_location": "L492",
       "_origin": "ast",
-      "community": 1,
+      "community": 190,
       "norm_label": "seedtemplatedatabase()",
       "id": "scripts_prepare_template_seedtemplatedatabase",
-      "community_name": "Scripts Prepare Template / Scripts Prepare Template Basetemplatedir"
+      "community_name": "Community 190"
     },
     {
       "label": "composeTemplateForVerification()",
@@ -7740,10 +7740,10 @@
       "source_file": "create-appraisejs/src/prepare-template-utils.ts",
       "source_location": "L21",
       "_origin": "ast",
-      "community": 188,
+      "community": 1,
       "norm_label": "collectfiles()",
       "id": "src_prepare_template_utils_collectfiles",
-      "community_name": "Community 188"
+      "community_name": "Scripts Prepare Template / Scripts Prepare Template Basetemplatedir"
     },
     {
       "label": "shouldAbortOnFallbackSeed()",
@@ -7751,10 +7751,10 @@
       "source_file": "create-appraisejs/src/prepare-template-utils.ts",
       "source_location": "L46",
       "_origin": "ast",
-      "community": 182,
+      "community": 190,
       "norm_label": "shouldabortonfallbackseed()",
       "id": "src_prepare_template_utils_shouldabortonfallbackseed",
-      "community_name": "Community 182"
+      "community_name": "Community 190"
     },
     {
       "label": "getTemplatePrepSyncScripts()",
@@ -8202,10 +8202,10 @@
       "source_file": "create-appraisejs/src/template-catalog.ts",
       "source_location": "L35",
       "_origin": "ast",
-      "community": 0,
+      "community": 183,
       "norm_label": "gettemplatedefinition()",
       "id": "src_template_catalog_gettemplatedefinition",
-      "community_name": "Create Appraisejs Src Cli Ts Src Cli / Create Appraisejs Src Cli Ts Src Cli Main"
+      "community_name": "Community 183"
     },
     {
       "label": "getTemplateDefinitions()",
@@ -9819,10 +9819,10 @@
       "source_file": "cucumber-runtime/src/operations/contracts.ts",
       "source_location": "L4",
       "_origin": "ast",
-      "community": 33,
+      "community": 3,
       "norm_label": "operation_contract_version",
       "id": "operations_contracts_operation_contract_version",
-      "community_name": "Community 33"
+      "community_name": "Appraisejs Src Cli Ts Src Cli / Appraisejs Src Cli Ts Src Cli Program"
     },
     {
       "label": "operationIdSchema",
@@ -9874,10 +9874,10 @@
       "source_file": "cucumber-runtime/src/operations/contracts.ts",
       "source_location": "L10",
       "_origin": "ast",
-      "community": 33,
+      "community": 3,
       "norm_label": "canonicaloperationjson()",
       "id": "operations_contracts_canonicaloperationjson",
-      "community_name": "Community 33"
+      "community_name": "Appraisejs Src Cli Ts Src Cli / Appraisejs Src Cli Ts Src Cli Program"
     },
     {
       "label": "operationContentHash()",
@@ -9885,10 +9885,10 @@
       "source_file": "cucumber-runtime/src/operations/contracts.ts",
       "source_location": "L21",
       "_origin": "ast",
-      "community": 33,
+      "community": 3,
       "norm_label": "operationcontenthash()",
       "id": "operations_contracts_operationcontenthash",
-      "community_name": "Community 33"
+      "community_name": "Appraisejs Src Cli Ts Src Cli / Appraisejs Src Cli Ts Src Cli Program"
     },
     {
       "label": "operationValueSchema",
@@ -9995,10 +9995,10 @@
       "source_file": "cucumber-runtime/src/operations/contracts.ts",
       "source_location": "L118",
       "_origin": "ast",
-      "community": 33,
+      "community": 3,
       "norm_label": "operationdefinitionschema",
       "id": "operations_contracts_operationdefinitionschema",
-      "community_name": "Community 33"
+      "community_name": "Appraisejs Src Cli Ts Src Cli / Appraisejs Src Cli Ts Src Cli Program"
     },
     {
       "label": "operationDescriptorSchema",
@@ -10028,10 +10028,10 @@
       "source_file": "cucumber-runtime/src/operations/contracts.ts",
       "source_location": "L181",
       "_origin": "ast",
-      "community": 33,
+      "community": 3,
       "norm_label": "operationinvocationschema",
       "id": "operations_contracts_operationinvocationschema",
-      "community_name": "Community 33"
+      "community_name": "Appraisejs Src Cli Ts Src Cli / Appraisejs Src Cli Ts Src Cli Program"
     },
     {
       "label": "OperationDefinition",
@@ -10039,10 +10039,10 @@
       "source_file": "cucumber-runtime/src/operations/contracts.ts",
       "source_location": "L196",
       "_origin": "ast",
-      "community": 33,
+      "community": 3,
       "norm_label": "operationdefinition",
       "id": "operations_contracts_operationdefinition",
-      "community_name": "Community 33"
+      "community_name": "Appraisejs Src Cli Ts Src Cli / Appraisejs Src Cli Ts Src Cli Program"
     },
     {
       "label": "OperationDescriptor",
@@ -10050,10 +10050,10 @@
       "source_file": "cucumber-runtime/src/operations/contracts.ts",
       "source_location": "L197",
       "_origin": "ast",
-      "community": 33,
+      "community": 3,
       "norm_label": "operationdescriptor",
       "id": "operations_contracts_operationdescriptor",
-      "community_name": "Community 33"
+      "community_name": "Appraisejs Src Cli Ts Src Cli / Appraisejs Src Cli Ts Src Cli Program"
     },
     {
       "label": "OperationInvocation",
@@ -10083,10 +10083,10 @@
       "source_file": "cucumber-runtime/src/operations/registry.test.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 33,
+      "community": 3,
       "norm_label": "registry.test.ts",
       "id": "operations_registry_test",
-      "community_name": "Community 33"
+      "community_name": "Appraisejs Src Cli Ts Src Cli / Appraisejs Src Cli Ts Src Cli Program"
     },
     {
       "label": "operation()",
@@ -10094,10 +10094,10 @@
       "source_file": "cucumber-runtime/src/operations/registry.test.ts",
       "source_location": "L14",
       "_origin": "ast",
-      "community": 33,
+      "community": 3,
       "norm_label": "operation()",
       "id": "operations_registry_test_operation",
-      "community_name": "Community 33"
+      "community_name": "Appraisejs Src Cli Ts Src Cli / Appraisejs Src Cli Ts Src Cli Program"
     },
     {
       "label": "registry.ts",
@@ -10105,10 +10105,10 @@
       "source_file": "cucumber-runtime/src/operations/registry.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 33,
+      "community": 3,
       "norm_label": "registry.ts",
       "id": "operations_registry",
-      "community_name": "Community 33"
+      "community_name": "Appraisejs Src Cli Ts Src Cli / Appraisejs Src Cli Ts Src Cli Program"
     },
     {
       "label": "OperationFilter",
@@ -10116,10 +10116,10 @@
       "source_file": "cucumber-runtime/src/operations/registry.ts",
       "source_location": "L9",
       "_origin": "ast",
-      "community": 33,
+      "community": 3,
       "norm_label": "operationfilter",
       "id": "operations_registry_operationfilter",
-      "community_name": "Community 33"
+      "community_name": "Appraisejs Src Cli Ts Src Cli / Appraisejs Src Cli Ts Src Cli Program"
     },
     {
       "label": "projectionSlug()",
@@ -10127,10 +10127,10 @@
       "source_file": "cucumber-runtime/src/operations/registry.ts",
       "source_location": "L19",
       "_origin": "ast",
-      "community": 33,
+      "community": 3,
       "norm_label": "projectionslug()",
       "id": "operations_registry_projectionslug",
-      "community_name": "Community 33"
+      "community_name": "Appraisejs Src Cli Ts Src Cli / Appraisejs Src Cli Ts Src Cli Program"
     },
     {
       "label": "withProjectionAliases()",
@@ -10138,10 +10138,10 @@
       "source_file": "cucumber-runtime/src/operations/registry.ts",
       "source_location": "L26",
       "_origin": "ast",
-      "community": 33,
+      "community": 3,
       "norm_label": "withprojectionaliases()",
       "id": "operations_registry_withprojectionaliases",
-      "community_name": "Community 33"
+      "community_name": "Appraisejs Src Cli Ts Src Cli / Appraisejs Src Cli Ts Src Cli Program"
     },
     {
       "label": "createOperationRegistry()",
@@ -10149,10 +10149,10 @@
       "source_file": "cucumber-runtime/src/operations/registry.ts",
       "source_location": "L50",
       "_origin": "ast",
-      "community": 33,
+      "community": 3,
       "norm_label": "createoperationregistry()",
       "id": "operations_registry_createoperationregistry",
-      "community_name": "Community 33"
+      "community_name": "Appraisejs Src Cli Ts Src Cli / Appraisejs Src Cli Ts Src Cli Program"
     },
     {
       "label": "parameter-types.ts",
@@ -10452,26 +10452,180 @@
       "community_name": "Community 28"
     },
     {
-      "label": "contracts.test.ts",
+      "label": "composition-validator.test.ts",
       "file_type": "code",
-      "source_file": "cucumber-runtime/src/step-definitions/contracts.test.ts",
+      "source_file": "cucumber-runtime/src/step-definitions/composition-validator.test.ts",
       "source_location": "L1",
       "_origin": "ast",
       "community": 178,
-      "norm_label": "contracts.test.ts",
-      "id": "step_definitions_contracts_test",
+      "norm_label": "composition-validator.test.ts",
+      "id": "step_definitions_composition_validator_test",
       "community_name": "Community 178"
     },
     {
       "label": "definition()",
       "file_type": "code",
-      "source_file": "cucumber-runtime/src/step-definitions/contracts.test.ts",
-      "source_location": "L12",
+      "source_file": "cucumber-runtime/src/step-definitions/composition-validator.test.ts",
+      "source_location": "L5",
       "_origin": "ast",
       "community": 178,
       "norm_label": "definition()",
-      "id": "step_definitions_contracts_test_definition",
+      "id": "step_definitions_composition_validator_test_definition",
       "community_name": "Community 178"
+    },
+    {
+      "label": "composition()",
+      "file_type": "code",
+      "source_file": "cucumber-runtime/src/step-definitions/composition-validator.test.ts",
+      "source_location": "L47",
+      "_origin": "ast",
+      "community": 178,
+      "norm_label": "composition()",
+      "id": "step_definitions_composition_validator_test_composition",
+      "community_name": "Community 178"
+    },
+    {
+      "label": "resolved()",
+      "file_type": "code",
+      "source_file": "cucumber-runtime/src/step-definitions/composition-validator.test.ts",
+      "source_location": "L58",
+      "_origin": "ast",
+      "community": 178,
+      "norm_label": "resolved()",
+      "id": "step_definitions_composition_validator_test_resolved",
+      "community_name": "Community 178"
+    },
+    {
+      "label": "composition-validator.ts",
+      "file_type": "code",
+      "source_file": "cucumber-runtime/src/step-definitions/composition-validator.ts",
+      "source_location": "L1",
+      "_origin": "ast",
+      "community": 178,
+      "norm_label": "composition-validator.ts",
+      "id": "step_definitions_composition_validator",
+      "community_name": "Community 178"
+    },
+    {
+      "label": "StepDefinitionCompositionDiagnostic",
+      "file_type": "code",
+      "source_file": "cucumber-runtime/src/step-definitions/composition-validator.ts",
+      "source_location": "L3",
+      "_origin": "ast",
+      "community": 178,
+      "norm_label": "stepdefinitioncompositiondiagnostic",
+      "id": "step_definitions_composition_validator_stepdefinitioncompositiondiagnostic",
+      "community_name": "Community 178"
+    },
+    {
+      "label": "ResolvedStepDefinition",
+      "file_type": "code",
+      "source_file": "cucumber-runtime/src/step-definitions/composition-validator.ts",
+      "source_location": "L9",
+      "_origin": "ast",
+      "community": 178,
+      "norm_label": "resolvedstepdefinition",
+      "id": "step_definitions_composition_validator_resolvedstepdefinition",
+      "community_name": "Community 178"
+    },
+    {
+      "label": "StepValueType",
+      "file_type": "code",
+      "source_file": "cucumber-runtime/src/step-definitions/composition-validator.ts",
+      "source_location": "L14",
+      "_origin": "ast",
+      "community": 178,
+      "norm_label": "stepvaluetype",
+      "id": "step_definitions_composition_validator_stepvaluetype",
+      "community_name": "Community 178"
+    },
+    {
+      "label": "identityKey()",
+      "file_type": "code",
+      "source_file": "cucumber-runtime/src/step-definitions/composition-validator.ts",
+      "source_location": "L16",
+      "_origin": "ast",
+      "community": 178,
+      "norm_label": "identitykey()",
+      "id": "step_definitions_composition_validator_identitykey",
+      "community_name": "Community 178"
+    },
+    {
+      "label": "valueMatchesType()",
+      "file_type": "code",
+      "source_file": "cucumber-runtime/src/step-definitions/composition-validator.ts",
+      "source_location": "L20",
+      "_origin": "ast",
+      "community": 178,
+      "norm_label": "valuematchestype()",
+      "id": "step_definitions_composition_validator_valuematchestype",
+      "community_name": "Community 178"
+    },
+    {
+      "label": "referenceTypesCompatible()",
+      "file_type": "code",
+      "source_file": "cucumber-runtime/src/step-definitions/composition-validator.ts",
+      "source_location": "L27",
+      "_origin": "ast",
+      "community": 178,
+      "norm_label": "referencetypescompatible()",
+      "id": "step_definitions_composition_validator_referencetypescompatible",
+      "community_name": "Community 178"
+    },
+    {
+      "label": "ExpressionKind",
+      "file_type": "code",
+      "source_file": "cucumber-runtime/src/step-definitions/composition-validator.ts",
+      "source_location": "L31",
+      "_origin": "ast",
+      "community": 178,
+      "norm_label": "expressionkind",
+      "id": "step_definitions_composition_validator_expressionkind",
+      "community_name": "Community 178"
+    },
+    {
+      "label": "sortDiagnostics()",
+      "file_type": "code",
+      "source_file": "cucumber-runtime/src/step-definitions/composition-validator.ts",
+      "source_location": "L48",
+      "_origin": "ast",
+      "community": 178,
+      "norm_label": "sortdiagnostics()",
+      "id": "step_definitions_composition_validator_sortdiagnostics",
+      "community_name": "Community 178"
+    },
+    {
+      "label": "validateStepDefinitionComposition()",
+      "file_type": "code",
+      "source_file": "cucumber-runtime/src/step-definitions/composition-validator.ts",
+      "source_location": "L58",
+      "_origin": "ast",
+      "community": 178,
+      "norm_label": "validatestepdefinitioncomposition()",
+      "id": "step_definitions_composition_validator_validatestepdefinitioncomposition",
+      "community_name": "Community 178"
+    },
+    {
+      "label": "contracts.test.ts",
+      "file_type": "code",
+      "source_file": "cucumber-runtime/src/step-definitions/contracts.test.ts",
+      "source_location": "L1",
+      "_origin": "ast",
+      "community": 16,
+      "norm_label": "contracts.test.ts",
+      "id": "step_definitions_contracts_test",
+      "community_name": "Cucumber Runtime Src Cli Ts Src Cli / Cucumber Runtime Src Cli Ts Src Cli Cliopt"
+    },
+    {
+      "label": "definition()",
+      "file_type": "code",
+      "source_file": "cucumber-runtime/src/step-definitions/contracts.test.ts",
+      "source_location": "L13",
+      "_origin": "ast",
+      "community": 16,
+      "norm_label": "definition()",
+      "id": "step_definitions_contracts_test_definition",
+      "community_name": "Cucumber Runtime Src Cli Ts Src Cli / Cucumber Runtime Src Cli Ts Src Cli Cliopt"
     },
     {
       "label": "contracts.ts",
@@ -10556,10 +10710,10 @@
       "source_file": "cucumber-runtime/src/step-definitions/contracts.ts",
       "source_location": "L14",
       "_origin": "ast",
-      "community": 178,
+      "community": 16,
       "norm_label": "canonicalstepdefinitionjson()",
       "id": "step_definitions_contracts_canonicalstepdefinitionjson",
-      "community_name": "Community 178"
+      "community_name": "Cucumber Runtime Src Cli Ts Src Cli / Cucumber Runtime Src Cli Ts Src Cli Cliopt"
     },
     {
       "label": "stepDefinitionContentHash()",
@@ -10567,10 +10721,10 @@
       "source_file": "cucumber-runtime/src/step-definitions/contracts.ts",
       "source_location": "L18",
       "_origin": "ast",
-      "community": 178,
+      "community": 16,
       "norm_label": "stepdefinitioncontenthash()",
       "id": "step_definitions_contracts_stepdefinitioncontenthash",
-      "community_name": "Community 178"
+      "community_name": "Cucumber Runtime Src Cli Ts Src Cli / Cucumber Runtime Src Cli Ts Src Cli Cliopt"
     },
     {
       "label": "stepIdentitySchema",
@@ -10595,10 +10749,43 @@
       "community_name": "Cucumber Runtime Src Cli Ts Src Cli / Cucumber Runtime Src Cli Ts Src Cli Cliopt"
     },
     {
-      "label": "stepInputDefinitionSchema",
+      "label": "StepValue",
       "file_type": "code",
       "source_file": "cucumber-runtime/src/step-definitions/contracts.ts",
       "source_location": "L31",
+      "_origin": "ast",
+      "community": 16,
+      "norm_label": "stepvalue",
+      "id": "step_definitions_contracts_stepvalue",
+      "community_name": "Cucumber Runtime Src Cli Ts Src Cli / Cucumber Runtime Src Cli Ts Src Cli Cliopt"
+    },
+    {
+      "label": "StepInputSelector",
+      "file_type": "code",
+      "source_file": "cucumber-runtime/src/step-definitions/contracts.ts",
+      "source_location": "L33",
+      "_origin": "ast",
+      "community": 16,
+      "norm_label": "stepinputselector",
+      "id": "step_definitions_contracts_stepinputselector",
+      "community_name": "Cucumber Runtime Src Cli Ts Src Cli / Cucumber Runtime Src Cli Ts Src Cli Cliopt"
+    },
+    {
+      "label": "StepInputExpression",
+      "file_type": "code",
+      "source_file": "cucumber-runtime/src/step-definitions/contracts.ts",
+      "source_location": "L34",
+      "_origin": "ast",
+      "community": 178,
+      "norm_label": "stepinputexpression",
+      "id": "step_definitions_contracts_stepinputexpression",
+      "community_name": "Community 178"
+    },
+    {
+      "label": "stepInputDefinitionSchema",
+      "file_type": "code",
+      "source_file": "cucumber-runtime/src/step-definitions/contracts.ts",
+      "source_location": "L36",
       "_origin": "ast",
       "community": 16,
       "norm_label": "stepinputdefinitionschema",
@@ -10609,7 +10796,7 @@
       "label": "stepOutputDefinitionSchema",
       "file_type": "code",
       "source_file": "cucumber-runtime/src/step-definitions/contracts.ts",
-      "source_location": "L60",
+      "source_location": "L65",
       "_origin": "ast",
       "community": 16,
       "norm_label": "stepoutputdefinitionschema",
@@ -10617,21 +10804,32 @@
       "community_name": "Cucumber Runtime Src Cli Ts Src Cli / Cucumber Runtime Src Cli Ts Src Cli Cliopt"
     },
     {
-      "label": "inputExpressionSchema",
+      "label": "isSelectorShaped()",
       "file_type": "code",
       "source_file": "cucumber-runtime/src/step-definitions/contracts.ts",
-      "source_location": "L67",
+      "source_location": "L72",
       "_origin": "ast",
       "community": 16,
-      "norm_label": "inputexpressionschema",
-      "id": "step_definitions_contracts_inputexpressionschema",
+      "norm_label": "isselectorshaped()",
+      "id": "step_definitions_contracts_isselectorshaped",
+      "community_name": "Cucumber Runtime Src Cli Ts Src Cli / Cucumber Runtime Src Cli Ts Src Cli Cliopt"
+    },
+    {
+      "label": "stepInputExpressionSchema",
+      "file_type": "code",
+      "source_file": "cucumber-runtime/src/step-definitions/contracts.ts",
+      "source_location": "L76",
+      "_origin": "ast",
+      "community": 16,
+      "norm_label": "stepinputexpressionschema",
+      "id": "step_definitions_contracts_stepinputexpressionschema",
       "community_name": "Cucumber Runtime Src Cli Ts Src Cli / Cucumber Runtime Src Cli Ts Src Cli Cliopt"
     },
     {
       "label": "stepExecutionBindingSchema",
       "file_type": "code",
       "source_file": "cucumber-runtime/src/step-definitions/contracts.ts",
-      "source_location": "L73",
+      "source_location": "L84",
       "_origin": "ast",
       "community": 16,
       "norm_label": "stepexecutionbindingschema",
@@ -10642,7 +10840,7 @@
       "label": "stepDefinitionSchema",
       "file_type": "code",
       "source_file": "cucumber-runtime/src/step-definitions/contracts.ts",
-      "source_location": "L99",
+      "source_location": "L110",
       "_origin": "ast",
       "community": 28,
       "norm_label": "stepdefinitionschema",
@@ -10653,7 +10851,7 @@
       "label": "stepDefinitionDraftSchema",
       "file_type": "code",
       "source_file": "cucumber-runtime/src/step-definitions/contracts.ts",
-      "source_location": "L238",
+      "source_location": "L249",
       "_origin": "ast",
       "community": 16,
       "norm_label": "stepdefinitiondraftschema",
@@ -10664,7 +10862,7 @@
       "label": "stepDefinitionDraftAuthoringSchema",
       "file_type": "code",
       "source_file": "cucumber-runtime/src/step-definitions/contracts.ts",
-      "source_location": "L244",
+      "source_location": "L255",
       "_origin": "ast",
       "community": 16,
       "norm_label": "stepdefinitiondraftauthoringschema",
@@ -10675,18 +10873,18 @@
       "label": "stepInvocationSchema",
       "file_type": "code",
       "source_file": "cucumber-runtime/src/step-definitions/contracts.ts",
-      "source_location": "L258",
+      "source_location": "L269",
       "_origin": "ast",
-      "community": 178,
+      "community": 16,
       "norm_label": "stepinvocationschema",
       "id": "step_definitions_contracts_stepinvocationschema",
-      "community_name": "Community 178"
+      "community_name": "Cucumber Runtime Src Cli Ts Src Cli / Cucumber Runtime Src Cli Ts Src Cli Cliopt"
     },
     {
       "label": "stepPublicationReceiptSchema",
       "file_type": "code",
       "source_file": "cucumber-runtime/src/step-definitions/contracts.ts",
-      "source_location": "L269",
+      "source_location": "L280",
       "_origin": "ast",
       "community": 16,
       "norm_label": "steppublicationreceiptschema",
@@ -10697,18 +10895,18 @@
       "label": "computeStepDefinitionHashes()",
       "file_type": "code",
       "source_file": "cucumber-runtime/src/step-definitions/contracts.ts",
-      "source_location": "L281",
+      "source_location": "L292",
       "_origin": "ast",
-      "community": 178,
+      "community": 16,
       "norm_label": "computestepdefinitionhashes()",
       "id": "step_definitions_contracts_computestepdefinitionhashes",
-      "community_name": "Community 178"
+      "community_name": "Cucumber Runtime Src Cli Ts Src Cli / Cucumber Runtime Src Cli Ts Src Cli Cliopt"
     },
     {
       "label": "StepDefinition",
       "file_type": "code",
       "source_file": "cucumber-runtime/src/step-definitions/contracts.ts",
-      "source_location": "L299",
+      "source_location": "L310",
       "_origin": "ast",
       "community": 178,
       "norm_label": "stepdefinition",
@@ -10719,7 +10917,7 @@
       "label": "StepDefinitionDraft",
       "file_type": "code",
       "source_file": "cucumber-runtime/src/step-definitions/contracts.ts",
-      "source_location": "L300",
+      "source_location": "L311",
       "_origin": "ast",
       "community": 16,
       "norm_label": "stepdefinitiondraft",
@@ -10730,7 +10928,7 @@
       "label": "StepExecutionBinding",
       "file_type": "code",
       "source_file": "cucumber-runtime/src/step-definitions/contracts.ts",
-      "source_location": "L301",
+      "source_location": "L312",
       "_origin": "ast",
       "community": 16,
       "norm_label": "stepexecutionbinding",
@@ -10741,7 +10939,7 @@
       "label": "StepInvocation",
       "file_type": "code",
       "source_file": "cucumber-runtime/src/step-definitions/contracts.ts",
-      "source_location": "L302",
+      "source_location": "L313",
       "_origin": "ast",
       "community": 16,
       "norm_label": "stepinvocation",
@@ -10752,7 +10950,7 @@
       "label": "StepPublicationReceipt",
       "file_type": "code",
       "source_file": "cucumber-runtime/src/step-definitions/contracts.ts",
-      "source_location": "L303",
+      "source_location": "L314",
       "_origin": "ast",
       "community": 16,
       "norm_label": "steppublicationreceipt",
@@ -11700,10 +11898,10 @@
       "source_file": "locator-picker-companion/src/index.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 75,
+      "community": 2,
       "norm_label": "index.ts",
       "id": "locator_picker_companion_src_index_ts_src_index",
-      "community_name": "Wait Wait For Page Load"
+      "community_name": "Locator Picker Companion Src Cli Ts Src Cli / Locator Picker Companion Src Cli T"
     },
     {
       "label": "injected-picker-script.ts",
@@ -11733,10 +11931,10 @@
       "source_file": "locator-picker-companion/src/launcher.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 75,
+      "community": 2,
       "norm_label": "launcher.ts",
       "id": "src_launcher",
-      "community_name": "Wait Wait For Page Load"
+      "community_name": "Locator Picker Companion Src Cli Ts Src Cli / Locator Picker Companion Src Cli T"
     },
     {
       "label": "pathExists()",
@@ -11744,10 +11942,10 @@
       "source_file": "locator-picker-companion/src/launcher.ts",
       "source_location": "L5",
       "_origin": "ast",
-      "community": 75,
+      "community": 2,
       "norm_label": "pathexists()",
       "id": "src_launcher_pathexists",
-      "community_name": "Wait Wait For Page Load"
+      "community_name": "Locator Picker Companion Src Cli Ts Src Cli / Locator Picker Companion Src Cli T"
     },
     {
       "label": "getLatestModifiedTime()",
@@ -11755,10 +11953,10 @@
       "source_file": "locator-picker-companion/src/launcher.ts",
       "source_location": "L14",
       "_origin": "ast",
-      "community": 75,
+      "community": 2,
       "norm_label": "getlatestmodifiedtime()",
       "id": "src_launcher_getlatestmodifiedtime",
-      "community_name": "Wait Wait For Page Load"
+      "community_name": "Locator Picker Companion Src Cli Ts Src Cli / Locator Picker Companion Src Cli T"
     },
     {
       "label": "getLocatorPickerCompanionPaths()",
@@ -11766,10 +11964,10 @@
       "source_file": "locator-picker-companion/src/launcher.ts",
       "source_location": "L26",
       "_origin": "ast",
-      "community": 75,
+      "community": 2,
       "norm_label": "getlocatorpickercompanionpaths()",
       "id": "src_launcher_getlocatorpickercompanionpaths",
-      "community_name": "Wait Wait For Page Load"
+      "community_name": "Locator Picker Companion Src Cli Ts Src Cli / Locator Picker Companion Src Cli T"
     },
     {
       "label": "ensureLocatorPickerCompanionBuilt()",
@@ -11777,10 +11975,10 @@
       "source_file": "locator-picker-companion/src/launcher.ts",
       "source_location": "L38",
       "_origin": "ast",
-      "community": 75,
+      "community": 2,
       "norm_label": "ensurelocatorpickercompanionbuilt()",
       "id": "src_launcher_ensurelocatorpickercompanionbuilt",
-      "community_name": "Wait Wait For Page Load"
+      "community_name": "Locator Picker Companion Src Cli Ts Src Cli / Locator Picker Companion Src Cli T"
     },
     {
       "label": "resolveLocatorPickerCompanionInvocation()",
@@ -11788,10 +11986,10 @@
       "source_file": "locator-picker-companion/src/launcher.ts",
       "source_location": "L65",
       "_origin": "ast",
-      "community": 75,
+      "community": 2,
       "norm_label": "resolvelocatorpickercompanioninvocation()",
       "id": "src_launcher_resolvelocatorpickercompanioninvocation",
-      "community_name": "Wait Wait For Page Load"
+      "community_name": "Locator Picker Companion Src Cli Ts Src Cli / Locator Picker Companion Src Cli T"
     },
     {
       "label": "selector-generator.ts",
@@ -30398,6 +30596,247 @@
       "target": "step_definitions_builtins"
     },
     {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "cucumber-runtime/src/step-definitions/composition-validator.test.ts",
+      "source_location": "L3",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "step_definitions_composition_validator_test",
+      "target": "step_definitions_composition_validator_resolvedstepdefinition"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "cucumber-runtime/src/step-definitions/composition-validator.test.ts",
+      "source_location": "L47",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "step_definitions_composition_validator_test",
+      "target": "step_definitions_composition_validator_test_composition"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "cucumber-runtime/src/step-definitions/composition-validator.test.ts",
+      "source_location": "L5",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "step_definitions_composition_validator_test",
+      "target": "step_definitions_composition_validator_test_definition"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "cucumber-runtime/src/step-definitions/composition-validator.test.ts",
+      "source_location": "L58",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "step_definitions_composition_validator_test",
+      "target": "step_definitions_composition_validator_test_resolved"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "cucumber-runtime/src/step-definitions/composition-validator.test.ts",
+      "source_location": "L3",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "step_definitions_composition_validator_test",
+      "target": "step_definitions_composition_validator_validatestepdefinitioncomposition"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "cucumber-runtime/src/step-definitions/composition-validator.test.ts",
+      "source_location": "L3",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "step_definitions_composition_validator_test",
+      "target": "step_definitions_contracts_stepdefinition"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "cucumber-runtime/src/step-definitions/composition-validator.test.ts",
+      "source_location": "L3",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "step_definitions_composition_validator_test",
+      "target": "step_definitions_index"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "cucumber-runtime/src/step-definitions/composition-validator.test.ts",
+      "source_location": "L52",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "step_definitions_composition_validator_test_composition",
+      "target": "step_definitions_composition_validator_test_definition"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "cucumber-runtime/src/step-definitions/composition-validator.ts",
+      "source_location": "L37",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "step_definitions_composition_validator",
+      "target": "step_definitions_composition_validator_expressionkind"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "cucumber-runtime/src/step-definitions/composition-validator.ts",
+      "source_location": "L16",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "step_definitions_composition_validator",
+      "target": "step_definitions_composition_validator_identitykey"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "cucumber-runtime/src/step-definitions/composition-validator.ts",
+      "source_location": "L27",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "step_definitions_composition_validator",
+      "target": "step_definitions_composition_validator_referencetypescompatible"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "cucumber-runtime/src/step-definitions/composition-validator.ts",
+      "source_location": "L9",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "step_definitions_composition_validator",
+      "target": "step_definitions_composition_validator_resolvedstepdefinition"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "cucumber-runtime/src/step-definitions/composition-validator.ts",
+      "source_location": "L48",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "step_definitions_composition_validator",
+      "target": "step_definitions_composition_validator_sortdiagnostics"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "cucumber-runtime/src/step-definitions/composition-validator.ts",
+      "source_location": "L3",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "step_definitions_composition_validator",
+      "target": "step_definitions_composition_validator_stepdefinitioncompositiondiagnostic"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "cucumber-runtime/src/step-definitions/composition-validator.ts",
+      "source_location": "L14",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "step_definitions_composition_validator",
+      "target": "step_definitions_composition_validator_stepvaluetype"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "cucumber-runtime/src/step-definitions/composition-validator.ts",
+      "source_location": "L58",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "step_definitions_composition_validator",
+      "target": "step_definitions_composition_validator_validatestepdefinitioncomposition"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "cucumber-runtime/src/step-definitions/composition-validator.ts",
+      "source_location": "L20",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "step_definitions_composition_validator",
+      "target": "step_definitions_composition_validator_valuematchestype"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "cucumber-runtime/src/step-definitions/composition-validator.ts",
+      "source_location": "L1",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "step_definitions_composition_validator",
+      "target": "step_definitions_contracts"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "cucumber-runtime/src/step-definitions/composition-validator.ts",
+      "source_location": "L1",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "step_definitions_composition_validator",
+      "target": "step_definitions_contracts_stepdefinition"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "cucumber-runtime/src/step-definitions/composition-validator.ts",
+      "source_location": "L1",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "step_definitions_composition_validator",
+      "target": "step_definitions_contracts_stepinputexpression"
+    },
+    {
+      "relation": "re_exports",
+      "context": "export",
+      "confidence": "EXTRACTED",
+      "source_file": "cucumber-runtime/src/step-definitions/index.ts",
+      "source_location": "L2",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "step_definitions_index",
+      "target": "step_definitions_composition_validator"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "cucumber-runtime/src/step-definitions/composition-validator.ts",
+      "source_location": "L66",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "step_definitions_composition_validator_validatestepdefinitioncomposition",
+      "target": "step_definitions_composition_validator_identitykey"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "cucumber-runtime/src/step-definitions/composition-validator.ts",
+      "source_location": "L219",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "step_definitions_composition_validator_validatestepdefinitioncomposition",
+      "target": "step_definitions_composition_validator_sortdiagnostics"
+    },
+    {
       "relation": "imports_from",
       "context": "import",
       "confidence": "EXTRACTED",
@@ -30472,6 +30911,17 @@
       "weight": 1.0,
       "confidence_score": 1.0,
       "source": "step_definitions_contracts_test",
+      "target": "step_definitions_contracts_stepinputexpressionschema"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "cucumber-runtime/src/step-definitions/contracts.test.ts",
+      "source_location": "L3",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "step_definitions_contracts_test",
       "target": "step_definitions_contracts_stepinvocationschema"
     },
     {
@@ -30528,11 +30978,11 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "cucumber-runtime/src/step-definitions/contracts.ts",
-      "source_location": "L67",
+      "source_location": "L72",
       "weight": 1.0,
       "confidence_score": 1.0,
       "source": "step_definitions_contracts",
-      "target": "step_definitions_contracts_inputexpressionschema"
+      "target": "step_definitions_contracts_isselectorshaped"
     },
     {
       "relation": "contains",
@@ -30678,6 +31128,36 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "cucumber-runtime/src/step-definitions/contracts.ts",
+      "source_location": "L34",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "step_definitions_contracts",
+      "target": "step_definitions_contracts_stepinputexpression"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "cucumber-runtime/src/step-definitions/contracts.ts",
+      "source_location": "L76",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "step_definitions_contracts",
+      "target": "step_definitions_contracts_stepinputexpressionschema"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "cucumber-runtime/src/step-definitions/contracts.ts",
+      "source_location": "L33",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "step_definitions_contracts",
+      "target": "step_definitions_contracts_stepinputselector"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "cucumber-runtime/src/step-definitions/contracts.ts",
       "source_location": "L302",
       "weight": 1.0,
       "confidence_score": 1.0,
@@ -30733,6 +31213,16 @@
       "confidence_score": 1.0,
       "source": "step_definitions_contracts",
       "target": "step_definitions_contracts_stepreferenceschema"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "cucumber-runtime/src/step-definitions/contracts.ts",
+      "source_location": "L31",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "step_definitions_contracts",
+      "target": "step_definitions_contracts_stepvalue"
     },
     {
       "relation": "re_exports",
@@ -33382,5 +33872,5 @@
       "source_file": "appraisejs/agent-skills/appraise-planning-standby/SKILL.md"
     }
   ],
-  "built_at_commit": "daa4ae9ba9104b8a27703b7b3d9b74d2e2bab74b"
+  "built_at_commit": "6be5b0671c2d7efee4156ee684dfaea2b72eb050"
 }

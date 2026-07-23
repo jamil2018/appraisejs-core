@@ -38,10 +38,14 @@ Continuation state:
 - The agent lifecycle is covered through agent-command provenance, exact human review, publication, unified discovery,
   and receipt-bound reviewed artifacts. Full external-workspace lifecycle certification remains part of release
   rollout evidence rather than permanent app-specific fixtures.
-- Tranches 5-7 have not started. Consumer cutover, legacy-authority removal, rollout, and deletion gates remain
+- Tranche 5.1 has a partial publication-safety foundation: the shared package now validates exact ready composition
+  closures, cycles, exact typed input/output selectors and directional compatibility, prior-output references, and
+  deterministic diagnostics before registry publication writes. Step Block backfill, human/MCP composition
+  authoring, capsule/runtime execution, and consumer cutover remain outstanding.
+- Tranches 6-7 have not started. Consumer cutover, legacy-authority removal, rollout, and deletion gates remain
   outstanding.
-- Resume at Tranche 5 composition unification and consumer cutover. Do not restore legacy Template Step creation as
-  independent authoring authority.
+- Resume with the remaining Tranche 5 composition backfill, authoring, and runtime work before consumer cutover. Do
+  not restore legacy Template Step creation as independent authoring authority.
 
 Checkpoint commits:
 

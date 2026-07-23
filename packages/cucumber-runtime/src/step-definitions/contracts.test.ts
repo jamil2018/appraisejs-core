@@ -5,6 +5,7 @@ import {
   computeStepDefinitionHashes,
   stepDefinitionContentHash,
   stepDefinitionSchema,
+  stepInputExpressionSchema,
   stepInvocationSchema,
   type StepDefinition,
 } from './contracts.ts'
@@ -123,5 +124,14 @@ describe('step definition contracts', () => {
         inputs: { url: 'https://example.test' },
       }),
     ).toThrow()
+  })
+
+  it('exports exact composition input selectors and rejects selector-shaped literals', () => {
+    expect(stepInputExpressionSchema.parse({ input: 'parentValue' })).toEqual({ input: 'parentValue' })
+    expect(stepInputExpressionSchema.parse({ output: 'priorValue' })).toEqual({ output: 'priorValue' })
+    expect(stepInputExpressionSchema.safeParse({ input: 'parentValue', output: 'priorValue' }).success).toBe(false)
+    expect(stepInputExpressionSchema.safeParse({ input: 'parentValue', extra: true }).success).toBe(false)
+    expect(stepInputExpressionSchema.safeParse({ input: 1 }).success).toBe(false)
+    expect(stepInputExpressionSchema.safeParse({ output: null }).success).toBe(false)
   })
 })

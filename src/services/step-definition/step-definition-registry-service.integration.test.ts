@@ -64,6 +64,15 @@ function definition(id = 'browser.navigation.open', signature = 'I navigate to {
   }
 }
 
+function compositionDefinition(id: string, child: StepDefinition): StepDefinition {
+  const composed = definition(id, `I compose ${child.identity.id} {url}`)
+  composed.execution = {
+    kind: 'composition',
+    steps: [{ step: { id: child.identity.id, version: child.identity.version }, inputs: { url: { input: 'url' } } }],
+  }
+  return composed
+}
+
 beforeEach(async () => {
   workspace = await fs.mkdtemp(path.join(os.tmpdir(), 'appraise-step-registry-'))
   const databasePath = path.join(workspace, 'appraise.db')
@@ -140,6 +149,114 @@ describe('StepDefinitionRegistryService', () => {
       executionBinding: { kind: 'operation' },
       publicationReceipt: { reviewAuthority: 'reviewer@example.test' },
     })
+  })
+
+  it('publishes a composition only after its exact ready dependency closure validates', async () => {
+    const child = definition('browser.composition.child', 'I run child {url}')
+    const childDraft = await registry.createDraft(child)
+    await registry.submitForReview(childDraft.id, childDraft.revision, 'reviewer@example.test')
+    await registry.publishDraft({
+      draftId: childDraft.id,
+      expectedRevision: childDraft.revision,
+      conformanceRunId: 'child',
+    })
+
+    const parentDraft = await registry.createDraft(compositionDefinition('browser.composition.parent', child))
+    await registry.submitForReview(parentDraft.id, parentDraft.revision, 'reviewer@example.test')
+    await expect(
+      registry.publishDraft({
+        draftId: parentDraft.id,
+        expectedRevision: parentDraft.revision,
+        conformanceRunId: 'parent',
+      }),
+    ).resolves.toMatchObject({ step: { id: 'browser.composition.parent', version: '1' } })
+  })
+
+  it('uses persisted dependency status and preserves the reviewed draft when composition publication fails', async () => {
+    const child = definition('browser.composition.deprecated', 'I run deprecated child {url}')
+    const childDraft = await registry.createDraft(child)
+    await registry.submitForReview(childDraft.id, childDraft.revision, 'reviewer@example.test')
+    await registry.publishDraft({
+      draftId: childDraft.id,
+      expectedRevision: childDraft.revision,
+      conformanceRunId: 'child',
+    })
+    const middleDraft = await registry.createDraft(compositionDefinition('browser.composition.middle', child))
+    await registry.submitForReview(middleDraft.id, middleDraft.revision, 'reviewer@example.test')
+    await registry.publishDraft({
+      draftId: middleDraft.id,
+      expectedRevision: middleDraft.revision,
+      conformanceRunId: 'middle',
+    })
+    await registry.deprecate({
+      stepId: child.identity.id,
+      version: child.identity.version,
+      reason: 'No new composition references.',
+      actor: 'reviewer@example.test',
+    })
+
+    const middle = compositionDefinition('browser.composition.middle', child)
+    const parentDraft = await registry.createDraft(compositionDefinition('browser.composition.blocked', middle))
+    await registry.submitForReview(parentDraft.id, parentDraft.revision, 'reviewer@example.test')
+    await expect(
+      registry.publishDraft({
+        draftId: parentDraft.id,
+        expectedRevision: parentDraft.revision,
+        conformanceRunId: 'parent',
+      }),
+    ).rejects.toMatchObject({
+      code: 'validation_failed',
+      details: { diagnostics: [expect.objectContaining({ code: 'composition.child.not-ready' })] },
+    })
+
+    await expect(prisma.stepDefinition.count()).resolves.toBe(2)
+    await expect(prisma.stepDefinitionDraft.findUnique({ where: { id: parentDraft.id } })).resolves.not.toBeNull()
+  })
+
+  it('preserves reviewed drafts when a composition references a missing exact child version or itself', async () => {
+    const child = definition('browser.composition.exact-child', 'I run exact child {url}')
+    const childDraft = await registry.createDraft(child)
+    await registry.submitForReview(childDraft.id, childDraft.revision, 'reviewer@example.test')
+    await registry.publishDraft({
+      draftId: childDraft.id,
+      expectedRevision: childDraft.revision,
+      conformanceRunId: 'child',
+    })
+
+    const missingVersion = compositionDefinition('browser.composition.missing-version', child)
+    if (missingVersion.execution.kind === 'composition') missingVersion.execution.steps[0]!.step.version = '2'
+    const missingVersionDraft = await registry.createDraft(missingVersion)
+    await registry.submitForReview(missingVersionDraft.id, missingVersionDraft.revision, 'reviewer@example.test')
+    await expect(
+      registry.publishDraft({
+        draftId: missingVersionDraft.id,
+        expectedRevision: missingVersionDraft.revision,
+        conformanceRunId: 'missing-version',
+      }),
+    ).rejects.toMatchObject({
+      code: 'validation_failed',
+      details: { diagnostics: [expect.objectContaining({ code: 'composition.child.missing' })] },
+    })
+
+    const self = definition('browser.composition.self', 'I run self {url}')
+    self.execution = {
+      kind: 'composition',
+      steps: [{ step: { id: self.identity.id, version: self.identity.version }, inputs: { url: { input: 'url' } } }],
+    }
+    const selfDraft = await registry.createDraft(self)
+    await registry.submitForReview(selfDraft.id, selfDraft.revision, 'reviewer@example.test')
+    await expect(
+      registry.publishDraft({ draftId: selfDraft.id, expectedRevision: selfDraft.revision, conformanceRunId: 'self' }),
+    ).rejects.toMatchObject({
+      code: 'validation_failed',
+      details: { diagnostics: [expect.objectContaining({ code: 'composition.cycle' })] },
+    })
+
+    await expect(prisma.stepDefinition.count()).resolves.toBe(1)
+    await expect(
+      prisma.stepDefinitionDraft.findUnique({ where: { id: missingVersionDraft.id } }),
+    ).resolves.not.toBeNull()
+    await expect(prisma.stepDefinitionDraft.findUnique({ where: { id: selfDraft.id } })).resolves.not.toBeNull()
   })
 
   it('invalidates review and rejects a stale revision after any draft change', async () => {
