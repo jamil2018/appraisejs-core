@@ -59,6 +59,7 @@ const exactCoordinatorOperations: Readonly<Record<string, CoordinatorOperationId
   project_list: 'target-projects-list',
   provider_list: 'providers-list',
   provider_run_read: 'provider-runs-read',
+  step_definition_draft_read: 'step-definitions-read',
   test_run: 'test-run-write',
   test_run_diagnose: 'test-run-evidence',
   test_run_preflight: 'test-run-write',
@@ -75,6 +76,7 @@ const coordinatorOperationPrefixes: ReadonlyArray<readonly [string, CoordinatorO
   ['operation_', 'operations'],
   ['provider_run_', 'provider-runs-write'],
   ['provider_', 'providers-write'],
+  ['step_definition_', 'step-definitions-write'],
   ['validation_', 'plan-validation-write'],
 ]
 

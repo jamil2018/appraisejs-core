@@ -30,38 +30,52 @@ function read(file) {
   return fs.readFileSync(path.join(repoRoot, file), 'utf8')
 }
 
-// Agent files use a deliberately bounded TOML dialect with all rejection paths tested together.
-// fallow-ignore-next-line complexity
+function parseAgentLine(line, relative, lineNumber) {
+  const match = line.match(/^([a-z_]+)\s*=\s*(.*)$/)
+  if (!match) throw new Error(`${relative}:${lineNumber}: unsupported TOML syntax`)
+  const [, key, raw] = match
+  if (!allowedAgentKeys.has(key)) throw new Error(`${relative}:${lineNumber}: unsupported key "${key}"`)
+  return { key, raw }
+}
+
+function parseMultilineValue(lines, index, raw, key, relative) {
+  const chunks = [raw.slice(3)]
+  while (!chunks.at(-1).endsWith('"""')) {
+    index += 1
+    if (index >= lines.length) throw new Error(`${relative}: unterminated multiline string "${key}"`)
+    chunks.push(lines[index])
+  }
+  chunks[chunks.length - 1] = chunks.at(-1).slice(0, -3)
+  return { index, value: chunks.join('\n').trim() }
+}
+
+function parseAgentValue(lines, index, raw, key, relative) {
+  if (raw.startsWith('"""')) return parseMultilineValue(lines, index, raw, key, relative)
+  const quoted = raw.match(/^"([^"]*)"$/)
+  if (!quoted) throw new Error(`${relative}:${index + 1}: "${key}" must be a quoted string`)
+  return { index, value: quoted[1] }
+}
+
+function isIgnorableAgentLine(line) {
+  return !line || line.startsWith('#')
+}
+
+function rejectDuplicateAgentKey(values, key, relative, lineNumber) {
+  if (key in values) throw new Error(`${relative}:${lineNumber}: duplicate key "${key}"`)
+}
+
 function parseFlatAgentToml(contents, relative) {
   const values = {}
   const lines = contents.split('\n')
   for (let index = 0; index < lines.length; index += 1) {
     const line = lines[index].trim()
-    if (!line || line.startsWith('#')) continue
-    const match = line.match(/^([a-z_]+)\s*=\s*(.*)$/)
-    if (!match) throw new Error(`${relative}:${index + 1}: unsupported TOML syntax`)
-    const [, key, raw] = match
-    if (!allowedAgentKeys.has(key)) throw new Error(`${relative}:${index + 1}: unsupported key "${key}"`)
-    if (key in values) throw new Error(`${relative}:${index + 1}: duplicate key "${key}"`)
-
-    if (raw.startsWith('"""')) {
-      const chunks = [raw.slice(3)]
-      while (!chunks.at(-1).endsWith('"""')) {
-        index += 1
-        if (index >= lines.length) throw new Error(`${relative}: unterminated multiline string "${key}"`)
-        chunks.push(lines[index])
-      }
-      chunks[chunks.length - 1] = chunks.at(-1).slice(0, -3)
-      const value = chunks.join('\n').trim()
-      validateTomlBasicString(value, relative, index + 1)
-      values[key] = value
-      continue
-    }
-
-    const quoted = raw.match(/^"([^"]*)"$/)
-    if (!quoted) throw new Error(`${relative}:${index + 1}: "${key}" must be a quoted string`)
-    validateTomlBasicString(quoted[1], relative, index + 1)
-    values[key] = quoted[1]
+    if (isIgnorableAgentLine(line)) continue
+    const { key, raw } = parseAgentLine(line, relative, index + 1)
+    rejectDuplicateAgentKey(values, key, relative, index + 1)
+    const parsed = parseAgentValue(lines, index, raw, key, relative)
+    index = parsed.index
+    validateTomlBasicString(parsed.value, relative, index + 1)
+    values[key] = parsed.value
   }
   return values
 }

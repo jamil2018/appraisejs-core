@@ -16,6 +16,24 @@ describe('public coordinator operation reference', () => {
     }
   })
 
+  it('classifies Step Definition reads before the generic write prefix', () => {
+    const expectedReferences = {
+      step_definition_draft_read: 'step-definitions-read',
+      step_definition_deprecate: 'step-definitions-write',
+      step_definition_draft_artifact_save: 'step-definitions-write',
+      step_definition_draft_compile: 'step-definitions-write',
+      step_definition_draft_create: 'step-definitions-write',
+      step_definition_draft_preview: 'step-definitions-write',
+      step_definition_draft_submit_for_review: 'step-definitions-write',
+      step_definition_draft_update: 'step-definitions-write',
+      step_definition_draft_validate: 'step-definitions-write',
+      step_definition_publish: 'step-definitions-write',
+    } as const
+
+    for (const [tool, operation] of Object.entries(expectedReferences))
+      expect(referenceForMcpTool(tool)).toEqual({ kind: 'coordinator', operation })
+  })
+
   it('emits one generated inventory containing both route and MCP boundaries', () => {
     const output = generateCoordinatorReference(fixture)
     expect(output).toContain('<!-- GENERATED')

@@ -8,6 +8,7 @@ import {
   stepDefinitionDraftAuthoringSchema,
   stepDefinitionSchema,
   stepPublicationReceiptSchema,
+  validateStepDefinitionComposition,
   type StepDefinition,
   type StepPublicationReceipt,
 } from '../../../packages/cucumber-runtime/src/step-definitions/index.ts'
@@ -107,6 +108,37 @@ async function bindReviewedArtifactForReview(database: PrismaClient, draftId: st
 }
 
 type DraftWithArtifact = Prisma.StepDefinitionDraftGetPayload<{ include: { artifact: true } }>
+type PersistedDefinition = Awaited<ReturnType<PrismaClient['stepDefinition']['findUnique']>>
+
+function parsePersistedDefinition(row: NonNullable<PersistedDefinition>): StepDefinition {
+  const authored = parseDraftJson(row.definitionJson) as StepDefinition
+  const parsed = stepDefinitionSchema.parse({
+    ...authored,
+    identity: { ...authored.identity, status: 'ready' },
+  })
+  return { ...parsed, identity: { ...parsed.identity, status: row.status } }
+}
+
+async function loadCompositionClosure(transaction: Prisma.TransactionClient, definition: StepDefinition) {
+  if (definition.execution.kind !== 'composition') return []
+  const closure: Array<{ definition: StepDefinition; status: 'ready' | 'deprecated' }> = []
+  const pending = [...definition.execution.steps.map(entry => entry.step)].sort((left, right) =>
+    `${left.id}@${left.version}`.localeCompare(`${right.id}@${right.version}`),
+  )
+  const visited = new Set<string>()
+  while (pending.length > 0) {
+    const identity = pending.shift()!
+    const key = `${identity.id}@${identity.version}`
+    if (visited.has(key)) continue
+    visited.add(key)
+    const row = await transaction.stepDefinition.findUnique({ where: { id_version: identity } })
+    if (!row) continue
+    const child = parsePersistedDefinition(row)
+    closure.push({ definition: child, status: row.status })
+    if (child.execution.kind === 'composition') pending.push(...child.execution.steps.map(entry => entry.step))
+  }
+  return closure
+}
 
 async function publishReviewedExtension(
   transaction: Prisma.TransactionClient,
@@ -346,6 +378,17 @@ export class StepDefinitionRegistryService {
         throw new StepDefinitionRegistryError(
           'validation_failed',
           'An execution binding is required before publication.',
+        )
+
+      const compositionDiagnostics = validateStepDefinitionComposition(
+        definition,
+        await loadCompositionClosure(transaction, definition),
+      )
+      if (compositionDiagnostics.length > 0)
+        throw new StepDefinitionRegistryError(
+          'validation_failed',
+          'Step Definition composition has publication blockers.',
+          { diagnostics: compositionDiagnostics },
         )
 
       await publishReviewedExtension(transaction, draft, definition)

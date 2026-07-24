@@ -67,6 +67,12 @@ test('strict CLI rejects unknown, duplicate, and blank fields', () => {
   fail(cwd, recordArgs({ evidence: ' ' }), /Blank value/)
 })
 
+test('strict TOML parsing rejects unsupported prototype-property tokens', () => {
+  for (const token of ['constructor', 'toString', '__proto__']) {
+    assert.throws(() => parseProjectToml(`value = ${token}`), /unsupported or invalid TOML value/)
+  }
+})
+
 test('non-perfect, critical, and unverified-context signals create structured notes', () => {
   const cwd = temporaryDirectory()
   const result = run(
@@ -262,25 +268,30 @@ test('concurrent record and evolution operations preserve valid transitions', as
   assert.equal(run(cwd, [ledgerScript, 'show', '--run-id', origins[0].runId]).evolution.phase, 'guidance_received')
 })
 
-// One table-driven test intentionally exercises every supported stale-lock filesystem shape.
-// fallow-ignore-next-line complexity
+function createStaleLock(cwd, shape) {
+  const lockPath = path.join(cwd, '.appraisejs', 'swarm-events.jsonl.lock')
+  fs.mkdirSync(path.dirname(lockPath), { recursive: true })
+  if (shape === 'regular-file') fs.writeFileSync(lockPath, 'stale')
+  else {
+    fs.mkdirSync(lockPath)
+    if (shape === 'dead-owner') writeDeadLockOwner(lockPath)
+    else if (shape === 'null-owner') fs.writeFileSync(path.join(lockPath, 'owner.json'), 'null')
+  }
+  const old = new Date('2000-01-01T00:00:00.000Z')
+  fs.utimesSync(lockPath, old, old)
+}
+
+function writeDeadLockOwner(lockPath) {
+  fs.writeFileSync(
+    path.join(lockPath, 'owner.json'),
+    JSON.stringify({ pid: 99999999, token: 'old', acquiredAt: '2000-01-01T00:00:00.000Z' }),
+  )
+}
+
 test('stale directory and file lock shapes recover', () => {
   for (const shape of ['dead-owner', 'ownerless', 'null-owner', 'regular-file']) {
     const cwd = temporaryDirectory()
-    const lockPath = path.join(cwd, '.appraisejs', 'swarm-events.jsonl.lock')
-    fs.mkdirSync(path.dirname(lockPath), { recursive: true })
-    if (shape === 'regular-file') fs.writeFileSync(lockPath, 'stale')
-    else {
-      fs.mkdirSync(lockPath)
-      if (shape === 'dead-owner') {
-        fs.writeFileSync(
-          path.join(lockPath, 'owner.json'),
-          JSON.stringify({ pid: 99999999, token: 'old', acquiredAt: '2000-01-01T00:00:00.000Z' }),
-        )
-      } else if (shape === 'null-owner') fs.writeFileSync(path.join(lockPath, 'owner.json'), 'null')
-    }
-    const old = new Date('2000-01-01T00:00:00.000Z')
-    fs.utimesSync(lockPath, old, old)
+    createStaleLock(cwd, shape)
     assert.equal(run(cwd, recordArgs()).run.score, 10)
   }
 })

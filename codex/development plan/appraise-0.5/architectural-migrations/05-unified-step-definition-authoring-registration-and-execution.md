@@ -42,6 +42,15 @@ Continuation state:
   closures, cycles, exact typed input/output selectors and directional compatibility, prior-output references, and
   deterministic diagnostics before registry publication writes. Step Block backfill, human/MCP composition
   authoring, capsule/runtime execution, and consumer cutover remain outstanding.
+- The 2026-07-24 CI repair completed the public coordinator boundary for all Step Definition MCP tools, moved
+  Prisma-backed Step Definition service construction out of the API adapter, generated the current coordinator
+  operation inventory, and removed every migration-added Fallow suppression through bounded editor, extension,
+  release-check, swarm parser, lock, and ledger extractions. The four-phase editor and reviewed-extension behavior are
+  unchanged, and the scaffold was regenerated from canonical root sources.
+- CI-equivalent local verification after that repair passed 246 unit-test files with 1,054 tests, 50 focused
+  Step Definition/coordinator tests, 13 swarm harness tests, the production build, the create-appraisejs test/build
+  gates, and the release CI, coordinator-reference, generated-artifact, and package-content checks. The earlier
+  release job failure was only the aggregate result of the repaired Root app and security/quality failures.
 - Tranches 6-7 have not started. Consumer cutover, legacy-authority removal, rollout, and deletion gates remain
   outstanding.
 - Resume with the remaining Tranche 5 composition backfill, authoring, and runtime work before consumer cutover. Do
@@ -55,6 +64,7 @@ Checkpoint commits:
 - `150ca341` preserves generated runtime imports during `npm run setup`.
 - `5f10203a` exposes shared human/API draft transitions.
 - `71124740` adds reviewed extension artifacts and immutable publication binding.
+- `bc569006` validates exact Step Definition composition closures and typed mappings before publication.
 
 This plan corrects the remaining identity split after
 `04-unified-operation-catalog-human-agent-authoring-and-capsule-compilation.md`. Migration `04` successfully unified

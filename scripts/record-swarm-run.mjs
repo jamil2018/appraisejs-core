@@ -169,15 +169,23 @@ const status = criticalOverride
       : score >= 5
         ? 'optimization_indicated'
         : 'failed'
-// Metric normalization is a compact shared validation boundary for every numeric metric.
-// fallow-ignore-next-line complexity
-const metricValue = name => {
+const metricNames = ['duration-ms', 'input-tokens', 'output-tokens', 'agent-count', 'retry-count', 'reroute-count']
+
+function optionalMetric(name) {
   if (!(name in values)) return null
-  const value = Number(values[name])
-  if (!Number.isInteger(value) || value < 0 || value > Number.MAX_SAFE_INTEGER) {
+  return validatedMetric(name, values[name])
+}
+
+function validatedMetric(name, raw) {
+  const value = Number(raw)
+  if (!Number.isInteger(value) || value < 0 || value > Number.MAX_SAFE_INTEGER)
     throw new Error(`Invalid metric: --${name}`)
-  }
   return value
+}
+
+const metricValue = name => {
+  if (!metricNames.includes(name)) throw new Error(`Unknown metric: --${name}`)
+  return optionalMetric(name)
 }
 const modelUse = (values['model-use'] ?? []).map(item => {
   const match = item.match(/^([^:]{1,100}):(\d+)$/)

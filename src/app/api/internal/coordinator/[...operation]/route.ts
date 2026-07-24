@@ -91,9 +91,7 @@ import {
 import { readPlanReviewSummary } from '@/services/plan-review/plan-review-service'
 import { queryLocatorGraph, readLocatorGraphVisualProjection } from '@/services/locator-graph/locator-graph-service'
 import { ServiceError } from '@/services/shared/errors'
-import prisma from '@/config/db-config'
-import { StepDefinitionRegistryService } from '@/services/step-definition/step-definition-registry-service'
-import { StepDefinitionExtensionService } from '@/services/step-definition/step-definition-extension-service'
+import { coordinatorStepDefinitionService } from '@/services/coordinator/coordinator-step-definition-service'
 import {
   coordinatorOperationRegistry,
   type CoordinatorOperationId,
@@ -684,46 +682,9 @@ async function getLocatorGraph(request: Request, operation: string[]) {
   return (handlers[operation[1] ?? 'query'] ?? handlers.query)()
 }
 
-const stepDefinitionRegistry = new StepDefinitionRegistryService(prisma)
-const stepDefinitionExtensions = new StepDefinitionExtensionService(prisma)
-
-// fallow-ignore-next-line complexity -- One bounded dispatcher keeps all Step Definition GET projections on the registered coordinator boundary.
 async function getStepDefinitions(request: Request, operation: string[]) {
-  if (operation[1] === 'search') {
-    const query = new URL(request.url).searchParams
-    const definitions = await stepDefinitionRegistry.list({
-      status: 'ready',
-      query: query.get('query') ?? undefined,
-      limit: z.coerce.number().int().positive().max(25).catch(5).parse(query.get('limit')),
-    })
-    return Response.json({
-      matches: definitions.map(item => ({
-        step: { id: item.id, version: item.version, definitionHash: item.definitionHash },
-        title: item.title,
-        description: item.description,
-        human: item.humanProjection ? JSON.parse(item.humanProjection.projectionJson) : null,
-        agent: JSON.parse(item.definitionJson).agent,
-        executionReadiness: item.executionBinding ? 'ready' : 'unbound',
-        hashes: {
-          definition: item.definitionHash,
-          humanProjection: item.humanProjectionHash,
-          agentContract: item.agentContractHash,
-          execution: item.executionHash,
-        },
-      })),
-      nextRecommendedAction: 'Use the returned Step Reference directly in managed authoring.',
-    })
-  }
-  if (operation[1] === 'drafts') {
-    const draftId = z.string().uuid().parse(operation[2])
-    const draft = await stepDefinitionRegistry.readDraft(draftId)
-    return Response.json({ ...draft, artifact: await stepDefinitionExtensions.readDraftArtifact(draftId) })
-  }
-  if (operation[1] === 'definitions')
-    return Response.json(
-      await stepDefinitionRegistry.read(z.string().min(1).parse(operation[2]), z.string().min(1).parse(operation[3])),
-    )
-  throw new ServiceError('Coordinator API operation not found.', 'NOT_FOUND')
+  const result = await coordinatorStepDefinitionService.read(operation, new URL(request.url).searchParams)
+  return Response.json(result.body)
 }
 
 async function dispatchGet(request: Request, operation: string[]) {
@@ -1346,73 +1307,9 @@ async function postDiagnosticPreflight(request: Request, body: unknown) {
   })
 }
 
-// fallow-ignore-next-line complexity -- One explicit dispatcher makes every registered draft transition auditable and rejects unknown operations.
 async function postStepDefinitions(operation: string[], body: unknown) {
-  if (operation[1] === 'drafts' && operation.length === 2)
-    return Response.json(await stepDefinitionRegistry.createDraft(body), { status: 201 })
-  if (operation[1] === 'drafts') {
-    const draftId = z.string().uuid().parse(operation[2])
-    const action = operation[3]
-    const input = z.object({ expectedRevision: z.number().int().positive() }).passthrough().parse(body)
-    if (action === 'update')
-      return Response.json(await stepDefinitionRegistry.updateDraft(draftId, input.expectedRevision, input.definition))
-    if (action === 'delete') {
-      await stepDefinitionRegistry.deleteDraft(draftId, input.expectedRevision)
-      return Response.json({ draftId, deleted: true })
-    }
-    if (action === 'validate') return Response.json(await stepDefinitionRegistry.validateDraft(draftId))
-    if (action === 'preview') return Response.json(await stepDefinitionRegistry.previewDraft(draftId))
-    if (action === 'review')
-      return Response.json(
-        await stepDefinitionRegistry.submitForReview(
-          draftId,
-          input.expectedRevision,
-          z.string().min(1).parse(input.reviewAuthority),
-        ),
-      )
-    if (action === 'publish')
-      return Response.json(
-        await stepDefinitionRegistry.publishDraft({
-          draftId,
-          expectedRevision: input.expectedRevision,
-          conformanceRunId: z.string().min(1).parse(input.conformanceRunId),
-        }),
-      )
-    if (action === 'artifact')
-      return Response.json(
-        await stepDefinitionExtensions.saveDraftArtifact(draftId, input.expectedRevision, input.artifact),
-      )
-    if (action === 'compile')
-      return Response.json(await stepDefinitionExtensions.compileDraftArtifact(draftId, input.expectedRevision))
-  }
-  if (operation[1] === 'definitions') {
-    const stepId = z.string().min(1).parse(operation[2])
-    const version = z.string().min(1).parse(operation[3])
-    const action = operation[4]
-    if (action === 'deprecate')
-      return Response.json(
-        await stepDefinitionRegistry.deprecate({
-          stepId,
-          version,
-          ...z
-            .object({
-              reason: z.string().min(1),
-              actor: z.string().min(1),
-              replacement: z.object({ id: z.string(), version: z.string() }).optional(),
-            })
-            .parse(body),
-        }),
-      )
-    if (action === 'version')
-      return Response.json(
-        await stepDefinitionRegistry.createVersionDraft({
-          stepId,
-          version,
-          ...z.object({ newVersion: z.string(), createdBy: z.string().min(1) }).parse(body),
-        }),
-      )
-  }
-  throw new ServiceError('Coordinator API operation not found.', 'NOT_FOUND')
+  const result = await coordinatorStepDefinitionService.write(operation, body)
+  return result.status ? Response.json(result.body, { status: result.status }) : Response.json(result.body)
 }
 
 async function dispatchPost(request: Request, operation: string[], body: unknown) {
