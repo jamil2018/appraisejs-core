@@ -47,7 +47,11 @@ Continuation state:
   registry definitions, preserve exact child references, and support ordered add/remove/reorder plus parent-input or
   earlier-output mappings. The coordinator/MCP draft boundary normalizes that same child shape and exposes typed
   child inputs/outputs through the existing ready-definition search result. Capsule/runtime execution and consumer
-  cutover remain outstanding.
+  cutover remain outstanding. Runtime-capsule work has begun with an exact ready-definition closure resolver that
+  recursively seals composition dependencies and all publication hash domains while rejecting missing readiness,
+  conflicting persisted identity, stale reference hashes, missing publication evidence, and cycles. The resolver is
+  not yet wired into capsule materialization; that cutover must land together with Step Invocation-only Validation
+  AST projection so the old operation/template identity cannot remain a second runtime authority.
 - The exact-reference migration discards any pre-hash composition drafts and ready definitions from this unreleased
   branch before enabling the new contract. Populated migration validation seeds and verifies removal of both forms.
   This follows the explicit decision not to preserve ambiguous legacy steps; built-in and reviewed-extension
