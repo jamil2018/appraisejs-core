@@ -65,7 +65,9 @@ function hasExecutionDetails(definition: DraftDefinition, handlerSource: string)
   if (definition.execution.kind === 'operation') {
     return Boolean(definition.execution.handlerId.trim() && definition.execution.handlerVersion.trim())
   }
-  return definition.execution.steps.every(step => step.step.id.trim() && step.step.version.trim())
+  return definition.execution.steps.every(
+    step => step.step.id.trim() && step.step.version.trim() && /^sha256:[a-f0-9]{64}$/.test(step.step.definitionHash),
+  )
 }
 
 async function saveDraftArtifact(

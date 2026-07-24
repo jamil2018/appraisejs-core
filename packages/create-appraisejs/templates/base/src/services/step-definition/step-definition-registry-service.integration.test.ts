@@ -6,7 +6,10 @@ import { PrismaClient } from '@prisma/client'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
 import type { StepDefinition } from '../../../packages/cucumber-runtime/src/step-definitions/index.ts'
-import { builtInStepDefinitions } from '../../../packages/cucumber-runtime/src/step-definitions/index.ts'
+import {
+  builtInStepDefinitions,
+  computeStepReferenceHash,
+} from '../../../packages/cucumber-runtime/src/step-definitions/index.ts'
 import { copyMigratedTestDatabase } from '@/test/plan-runtime-schema-test-helper'
 
 import { StepDefinitionRegistryService } from './step-definition-registry-service'
@@ -68,7 +71,19 @@ function compositionDefinition(id: string, child: StepDefinition): StepDefinitio
   const composed = definition(id, `I compose ${child.identity.id} {url}`)
   composed.execution = {
     kind: 'composition',
-    steps: [{ step: { id: child.identity.id, version: child.identity.version }, inputs: { url: { input: 'url' } } }],
+    steps: [
+      {
+        step: {
+          ...child.identity,
+          definitionHash: computeStepReferenceHash({
+            ...child,
+            identity: { ...child.identity, status: 'ready' },
+            provenance: { ...child.provenance, reviewedBy: 'reviewer@example.test' },
+          }),
+        },
+        inputs: { url: { input: 'url' } },
+      },
+    ],
   }
   return composed
 }
@@ -172,6 +187,36 @@ describe('StepDefinitionRegistryService', () => {
     ).resolves.toMatchObject({ step: { id: 'browser.composition.parent', version: '1' } })
   })
 
+  it('rejects a composition when the persisted ready child does not match the referenced definition hash', async () => {
+    const child = definition('browser.composition.hash-child', 'I run child {url}')
+    const childDraft = await registry.createDraft(child)
+    await registry.submitForReview(childDraft.id, childDraft.revision, 'reviewer@example.test')
+    await registry.publishDraft({
+      draftId: childDraft.id,
+      expectedRevision: childDraft.revision,
+      conformanceRunId: 'child',
+    })
+
+    const parent = compositionDefinition('browser.composition.hash-parent', child)
+    if (parent.execution.kind === 'composition')
+      parent.execution.steps[0]!.step.definitionHash = `sha256:${'f'.repeat(64)}`
+    const parentDraft = await registry.createDraft(parent)
+    await registry.submitForReview(parentDraft.id, parentDraft.revision, 'reviewer@example.test')
+    await expect(
+      registry.publishDraft({
+        draftId: parentDraft.id,
+        expectedRevision: parentDraft.revision,
+        conformanceRunId: 'parent',
+      }),
+    ).rejects.toMatchObject({
+      code: 'validation_failed',
+      details: {
+        diagnostics: expect.arrayContaining([expect.objectContaining({ code: 'composition.child.hash-mismatch' })]),
+      },
+    })
+    await expect(prisma.stepDefinitionDraft.findUnique({ where: { id: parentDraft.id } })).resolves.not.toBeNull()
+  })
+
   it('uses persisted dependency status and preserves the reviewed draft when composition publication fails', async () => {
     const child = definition('browser.composition.deprecated', 'I run deprecated child {url}')
     const childDraft = await registry.createDraft(child)
@@ -196,7 +241,16 @@ describe('StepDefinitionRegistryService', () => {
     })
 
     const middle = compositionDefinition('browser.composition.middle', child)
-    const parentDraft = await registry.createDraft(compositionDefinition('browser.composition.blocked', middle))
+    const blocked = compositionDefinition('browser.composition.blocked', middle)
+    const persistedMiddle = await prisma.stepDefinition.findUniqueOrThrow({
+      where: { id_version: { id: middle.identity.id, version: middle.identity.version } },
+      select: { definitionJson: true },
+    })
+    if (blocked.execution.kind === 'composition')
+      blocked.execution.steps[0]!.step.definitionHash = computeStepReferenceHash(
+        JSON.parse(persistedMiddle.definitionJson),
+      )
+    const parentDraft = await registry.createDraft(blocked)
     await registry.submitForReview(parentDraft.id, parentDraft.revision, 'reviewer@example.test')
     await expect(
       registry.publishDraft({
@@ -241,7 +295,12 @@ describe('StepDefinitionRegistryService', () => {
     const self = definition('browser.composition.self', 'I run self {url}')
     self.execution = {
       kind: 'composition',
-      steps: [{ step: { id: self.identity.id, version: self.identity.version }, inputs: { url: { input: 'url' } } }],
+      steps: [
+        {
+          step: { ...self.identity, definitionHash: `sha256:${'f'.repeat(64)}` },
+          inputs: { url: { input: 'url' } },
+        },
+      ],
     }
     const selfDraft = await registry.createDraft(self)
     await registry.submitForReview(selfDraft.id, selfDraft.revision, 'reviewer@example.test')
@@ -249,7 +308,7 @@ describe('StepDefinitionRegistryService', () => {
       registry.publishDraft({ draftId: selfDraft.id, expectedRevision: selfDraft.revision, conformanceRunId: 'self' }),
     ).rejects.toMatchObject({
       code: 'validation_failed',
-      details: { diagnostics: [expect.objectContaining({ code: 'composition.cycle' })] },
+      details: { diagnostics: expect.arrayContaining([expect.objectContaining({ code: 'composition.cycle' })]) },
     })
 
     await expect(prisma.stepDefinition.count()).resolves.toBe(1)

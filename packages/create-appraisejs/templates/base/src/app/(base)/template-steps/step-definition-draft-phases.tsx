@@ -521,7 +521,15 @@ function executionForKind(kind: string, definition: DraftDefinition): DraftDefin
     case 'operation':
       return { kind, handlerId: definition.identity.id, handlerVersion: definition.identity.version, runtime: 'node' }
     case 'composition':
-      return { kind, steps: [{ step: { id: 'builtin.example', version: '1' }, inputs: {} }] }
+      return {
+        kind,
+        steps: [
+          {
+            step: { id: 'builtin.example', version: '1', definitionHash: `sha256:${'0'.repeat(64)}` },
+            inputs: {},
+          },
+        ],
+      }
     case 'reviewed-extension':
       return {
         kind,
@@ -574,6 +582,34 @@ function OperationFields({
   )
 }
 
+type CompositionReferenceField = 'id' | 'version' | 'definitionHash'
+
+function updateCompositionChildReference(
+  definition: DraftDefinition,
+  field: CompositionReferenceField,
+  value: string,
+): DraftDefinition {
+  if (definition.execution.kind !== 'composition') return definition
+  const child = definition.execution.steps[0]
+  const reference = child?.step ?? {
+    id: 'builtin.example',
+    version: '1',
+    definitionHash: `sha256:${'0'.repeat(64)}`,
+  }
+  return {
+    ...definition,
+    execution: {
+      kind: 'composition',
+      steps: [
+        {
+          step: { ...reference, [field]: value },
+          inputs: child?.inputs ?? {},
+        },
+      ],
+    },
+  }
+}
+
 function CompositionFields({
   definition,
   setDefinition,
@@ -583,26 +619,8 @@ function CompositionFields({
 }) {
   if (definition.execution.kind !== 'composition') return null
   const child = definition.execution.steps[0]
-  const update = (field: 'id' | 'version', value: string) =>
-    setDefinition(current => {
-      if (current.execution.kind !== 'composition') return current
-      const currentChild = current.execution.steps[0]
-      return {
-        ...current,
-        execution: {
-          kind: 'composition',
-          steps: [
-            {
-              step: {
-                id: field === 'id' ? value : (currentChild?.step.id ?? 'builtin.example'),
-                version: field === 'version' ? value : (currentChild?.step.version ?? '1'),
-              },
-              inputs: currentChild?.inputs ?? {},
-            },
-          ],
-        },
-      }
-    })
+  const update = (field: CompositionReferenceField, value: string) =>
+    setDefinition(current => updateCompositionChildReference(current, field, value))
   return (
     <>
       <Field label="Ready child Step ID">
@@ -610,6 +628,12 @@ function CompositionFields({
       </Field>
       <Field label="Child version">
         <Input value={child?.step.version ?? ''} onChange={event => update('version', event.target.value)} />
+      </Field>
+      <Field label="Exact child definition hash">
+        <Input
+          value={child?.step.definitionHash ?? ''}
+          onChange={event => update('definitionHash', event.target.value)}
+        />
       </Field>
     </>
   )

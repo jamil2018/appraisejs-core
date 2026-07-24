@@ -38,10 +38,17 @@ Continuation state:
 - The agent lifecycle is covered through agent-command provenance, exact human review, publication, unified discovery,
   and receipt-bound reviewed artifacts. Full external-workspace lifecycle certification remains part of release
   rollout evidence rather than permanent app-specific fixtures.
-- Tranche 5.1 has a partial publication-safety foundation: the shared package now validates exact ready composition
-  closures, cycles, exact typed input/output selectors and directional compatibility, prior-output references, and
-  deterministic diagnostics before registry publication writes. Step Block backfill, human/MCP composition
-  authoring, capsule/runtime execution, and consumer cutover remain outstanding.
+- Tranche 5.1 now requires every composition child to carry an exact `{ id, version, definitionHash }` Step Reference;
+  the validator and registry reject a ready-row hash mismatch before publication. A deterministic Step Block migration
+  service and durable source-hash ledger provide stable dry-run classification and explicitly applied, review-required
+  composition drafts without creating ready definitions or mutating legacy rows. The draft surface preserves source
+  wording, intent, timestamps, and order as migration evidence and quarantines incomplete custom children, malformed
+  parameter maps, stale proof, identity conflicts, and later source drift. Human/MCP composition authoring,
+  capsule/runtime execution, and consumer cutover remain outstanding.
+- The exact-reference migration discards any pre-hash composition drafts and ready definitions from this unreleased
+  branch before enabling the new contract. Populated migration validation seeds and verifies removal of both forms.
+  This follows the explicit decision not to preserve ambiguous legacy steps; built-in and reviewed-extension
+  definitions remain intact.
 - The 2026-07-24 CI repair completed the public coordinator boundary for all Step Definition MCP tools, moved
   Prisma-backed Step Definition service construction out of the API adapter, generated the current coordinator
   operation inventory, and removed every migration-added Fallow suppression through bounded editor, extension,

@@ -15,6 +15,13 @@ Template Step IDs and operation descriptor references remain accepted compatibil
 Validation ASTs, and capsules migrate to exact `StepInvocation` references. They are not new semantic identities. The
 bounded compatibility window and remaining consumer cutover are tracked by ADR-0002 and the migration plan.
 
+Composition children are also exact immutable Step References: every
+`execution.kind = composition` entry stores `{ id, version, definitionHash }`. Publication resolves the ready
+definition by ID and version and rejects a hash mismatch, so a composition cannot silently bind a rewritten child.
+For Step References, `definitionHash` is the aggregate hash of the definition, human projection, agent contract, and
+execution integrity domains. This preserves the existing per-domain publication hashes while binding the complete
+executable contract.
+
 The operation catalog is the semantic authority shared by human Template Step authoring, managed agent Validation
 ASTs, and runtime-capsule compilation. Contract and handler-neutral registry code lives under
 `packages/cucumber-runtime/src/operations`; the Appraise default projection lives in `src/lib/operation-catalog`.
@@ -59,6 +66,16 @@ test-case, and Step Block writers persist canonical invocation JSON when the map
 `npm run operation:backfill` previews existing-row migration and `npm run operation:backfill -- --apply` applies it
 idempotently after Template Step sync. User custom source remains explicitly manual-only; it is never silently promoted
 to managed execution.
+
+`npm run step-block:migrate` is a write-free, stable-sorted Step Block composition migration preview. Only
+`npm run step-block:migrate -- --apply-drafts` creates bounded migration drafts and ledger rows. The ledger keeps the
+source snapshot and hash, classification, diagnostics, proposed identity, converter version, and nullable draft ID.
+It creates no ready definitions and never mutates legacy Step Blocks. Reruns are no-ops; source changes become
+`source-drift` evidence and existing reviewed or user-edited drafts are protected. Convertible rows still require
+global review; malformed maps, stale proof, identity conflicts, and incomplete custom children remain quarantined.
+Because composition execution was not yet released, the enabling migration removes any pre-hash composition drafts
+or ready definitions rather than accepting ambiguous child execution. Populated migration validation covers that
+destructive boundary explicitly.
 
 The original handler-unification rationale is recorded in `docs/decisions/0001-unified-operation-authority.md`.
 `docs/decisions/0002-unified-step-definition-authority.md` supersedes its independent Template Step identity and

@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest'
 
-import { validateStepDefinitionComposition, type ResolvedStepDefinition, type StepDefinition } from './index.ts'
+import {
+  computeStepReferenceHash,
+  validateStepDefinitionComposition,
+  type ResolvedStepDefinition,
+  type StepDefinition,
+} from './index.ts'
 
 function definition(id: string, options: Partial<StepDefinition> = {}): StepDefinition {
   return {
@@ -46,13 +51,17 @@ function definition(id: string, options: Partial<StepDefinition> = {}): StepDefi
 
 function composition(
   id: string,
-  steps: Array<{ step: { id: string; version: string }; inputs: Record<string, unknown> }>,
+  steps: Array<{ step: { id: string; version: string; definitionHash: string }; inputs: Record<string, unknown> }>,
   options: Partial<StepDefinition> = {},
 ) {
   return definition(id, {
     execution: { kind: 'composition', steps } as StepDefinition['execution'],
     ...options,
   })
+}
+
+function reference(definition: StepDefinition) {
+  return { ...definition.identity, definitionHash: computeStepReferenceHash(definition) }
 }
 
 function resolved(
@@ -67,7 +76,7 @@ function resolved(
 describe('Step Definition composition validator', () => {
   it('accepts a valid typed composition', () => {
     const child = definition('child.one')
-    const parent = composition('parent.valid', [{ step: child.identity, inputs: { value: { input: 'value' } } }])
+    const parent = composition('parent.valid', [{ step: reference(child), inputs: { value: { input: 'value' } } }])
 
     expect(validateStepDefinitionComposition(parent, resolved(child))).toEqual([])
   })
@@ -75,8 +84,11 @@ describe('Step Definition composition validator', () => {
   it('rejects missing and deprecated exact children', () => {
     const child = definition('child.deprecated')
     const parent = composition('parent.children', [
-      { step: { id: 'child.missing', version: '1' }, inputs: { value: 'value' } },
-      { step: child.identity, inputs: { value: 'value' } },
+      {
+        step: { id: 'child.missing', version: '1', definitionHash: `sha256:${'a'.repeat(64)}` },
+        inputs: { value: 'value' },
+      },
+      { step: reference(child), inputs: { value: 'value' } },
     ])
 
     expect(validateStepDefinitionComposition(parent, resolved([child, 'deprecated']))).toMatchObject([
@@ -87,12 +99,18 @@ describe('Step Definition composition validator', () => {
 
   it('rejects direct and transitive cycles once per reachable cycle edge', () => {
     const direct = composition('parent.direct', [
-      { step: { id: 'parent.direct', version: '1' }, inputs: { value: 'value' } },
+      {
+        step: { id: 'parent.direct', version: '1', definitionHash: `sha256:${'a'.repeat(64)}` },
+        inputs: { value: 'value' },
+      },
     ])
     const middle = composition('parent.middle', [
-      { step: { id: 'parent.direct', version: '1' }, inputs: { value: 'value' } },
+      {
+        step: { id: 'parent.direct', version: '1', definitionHash: `sha256:${'a'.repeat(64)}` },
+        inputs: { value: 'value' },
+      },
     ])
-    const root = composition('parent.root', [{ step: middle.identity, inputs: { value: 'value' } }])
+    const root = composition('parent.root', [{ step: reference(middle), inputs: { value: 'value' } }])
 
     expect(validateStepDefinitionComposition(direct, resolved(direct))).toEqual(
       expect.arrayContaining([expect.objectContaining({ code: 'composition.cycle' })]),
@@ -104,7 +122,7 @@ describe('Step Definition composition validator', () => {
 
   it('rejects incomplete and unknown child mappings with deterministic ordering', () => {
     const child = definition('child.mapping')
-    const parent = composition('parent.mapping', [{ step: child.identity, inputs: { unknown: 'x' } }])
+    const parent = composition('parent.mapping', [{ step: reference(child), inputs: { unknown: 'x' } }])
     const diagnostics = validateStepDefinitionComposition(parent, resolved(child))
 
     expect(diagnostics).toMatchObject([
@@ -118,14 +136,14 @@ describe('Step Definition composition validator', () => {
 
   it('rejects incompatible literal and parent-input mappings, including optional parent inputs', () => {
     const child = definition('child.typed')
-    const parent = composition('parent.typed', [{ step: child.identity, inputs: { value: { input: 'optional' } } }], {
+    const parent = composition('parent.typed', [{ step: reference(child), inputs: { value: { input: 'optional' } } }], {
       inputs: [
         { ...child.inputs[0]!, name: 'optional', required: false },
         { ...child.inputs[0]!, name: 'numberValue', type: 'number', examples: [1] },
       ],
       agent: { ...definition('parent.agent').agent, examples: [{ intent: 'parent', inputs: { numberValue: 1 } }] },
     })
-    const literal = composition('parent.literal', [{ step: child.identity, inputs: { value: 1 } }])
+    const literal = composition('parent.literal', [{ step: reference(child), inputs: { value: 1 } }])
 
     expect(validateStepDefinitionComposition(parent, resolved(child))).toEqual(
       expect.arrayContaining([expect.objectContaining({ code: 'composition.input.parent-optional' })]),
@@ -148,9 +166,9 @@ describe('Step Definition composition validator', () => {
     const parent = composition(
       'parent.reference-compatible',
       [
-        { step: numberChild.identity, inputs: { value: { input: 'numberValue' } } },
-        { step: jsonChild.identity, inputs: { value: { input: 'numberValue' } } },
-        { step: jsonChild.identity, inputs: { value: { output: 'numberResult' } } },
+        { step: reference(numberChild), inputs: { value: { input: 'numberValue' } } },
+        { step: reference(jsonChild), inputs: { value: { input: 'numberValue' } } },
+        { step: reference(jsonChild), inputs: { value: { output: 'numberResult' } } },
       ],
       {
         inputs: [{ ...numberChild.inputs[0]!, name: 'numberValue' }],
@@ -169,12 +187,12 @@ describe('Step Definition composition validator', () => {
     const parent = composition(
       'parent.reference-invalid',
       [
-        { step: stringChild.identity, inputs: { value: { input: 'jsonValue' } } },
-        { step: jsonProducer.identity, inputs: { value: 'value' } },
-        { step: stringChild.identity, inputs: { value: { output: 'jsonResult' } } },
-        { step: stringChild.identity, inputs: { value: { input: 'value', output: 'jsonResult' } } },
-        { step: stringChild.identity, inputs: { value: { input: 'value', extra: true } } },
-        { step: stringChild.identity, inputs: { value: { input: 1 } } },
+        { step: reference(stringChild), inputs: { value: { input: 'jsonValue' } } },
+        { step: reference(jsonProducer), inputs: { value: 'value' } },
+        { step: reference(stringChild), inputs: { value: { output: 'jsonResult' } } },
+        { step: reference(stringChild), inputs: { value: { input: 'value', output: 'jsonResult' } } },
+        { step: reference(stringChild), inputs: { value: { input: 'value', extra: true } } },
+        { step: reference(stringChild), inputs: { value: { input: 1 } } },
       ],
       {
         inputs: [
@@ -212,20 +230,20 @@ describe('Step Definition composition validator', () => {
       agent: { ...consumer.agent, examples: [{ intent: 'numeric', inputs: { value: 1 } }] },
     })
     const parent = composition('parent.outputs', [
-      { step: consumer.identity, inputs: { value: { output: 'missing' } } },
-      { step: producer.identity, inputs: { value: 'x' } },
-      { step: consumer.identity, inputs: { value: { output: 'result' } } },
-      { step: producer.identity, inputs: { value: 'x' } },
-      { step: numericConsumer.identity, inputs: { value: { output: 'result' } } },
+      { step: reference(consumer), inputs: { value: { output: 'missing' } } },
+      { step: reference(producer), inputs: { value: 'x' } },
+      { step: reference(consumer), inputs: { value: { output: 'result' } } },
+      { step: reference(producer), inputs: { value: 'x' } },
+      { step: reference(numericConsumer), inputs: { value: { output: 'result' } } },
     ])
-    const self = composition('parent.self', [{ step: producer.identity, inputs: { value: { output: 'result' } } }])
+    const self = composition('parent.self', [{ step: reference(producer), inputs: { value: { output: 'result' } } }])
     const forward = composition('parent.forward', [
-      { step: consumer.identity, inputs: { value: { output: 'result' } } },
-      { step: producer.identity, inputs: { value: 'x' } },
+      { step: reference(consumer), inputs: { value: { output: 'result' } } },
+      { step: reference(producer), inputs: { value: 'x' } },
     ])
     const typed = composition('parent.typed-output', [
-      { step: producer.identity, inputs: { value: 'x' } },
-      { step: numericConsumer.identity, inputs: { value: { output: 'result' } } },
+      { step: reference(producer), inputs: { value: 'x' } },
+      { step: reference(numericConsumer), inputs: { value: { output: 'result' } } },
     ])
 
     expect(validateStepDefinitionComposition(parent, resolved(producer, consumer, numericConsumer))).toEqual(
@@ -247,12 +265,23 @@ describe('Step Definition composition validator', () => {
 
   it('rejects composition outputs until export mapping exists', () => {
     const child = definition('child.output')
-    const parent = composition('parent.output', [{ step: child.identity, inputs: { value: 'value' } }], {
+    const parent = composition('parent.output', [{ step: reference(child), inputs: { value: 'value' } }], {
       outputs: [{ name: 'result', description: 'Result.', type: 'string', storable: true }],
     })
 
     expect(validateStepDefinitionComposition(parent, resolved(child))).toEqual(
       expect.arrayContaining([expect.objectContaining({ code: 'composition.outputs.unsupported', path: 'outputs' })]),
+    )
+  })
+
+  it('rejects a composition child whose exact reference hash does not match the ready definition', () => {
+    const child = definition('child.hash')
+    const parent = composition('parent.hash', [
+      { step: { ...reference(child), definitionHash: `sha256:${'f'.repeat(64)}` }, inputs: { value: 'value' } },
+    ])
+
+    expect(validateStepDefinitionComposition(parent, resolved(child))).toEqual(
+      expect.arrayContaining([expect.objectContaining({ code: 'composition.child.hash-mismatch' })]),
     )
   })
 })

@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import {
   canonicalStepDefinitionJson,
   computeStepDefinitionHashes,
+  computeStepReferenceHash,
   stepDefinitionContentHash,
   stepDefinitionSchema,
   stepInputExpressionSchema,
@@ -69,6 +70,25 @@ describe('step definition contracts', () => {
     expect(Object.values(hashes).every(hash => /^sha256:[a-f0-9]{64}$/.test(hash))).toBe(true)
   })
 
+  it('binds the exact execution contract into the definition hash', () => {
+    const first = stepDefinitionSchema.parse(
+      definition({
+        execution: {
+          kind: 'operation',
+          handlerId: 'browser.navigation.open',
+          handlerVersion: '1',
+          runtime: 'browser',
+        },
+      }),
+    )
+    const second = stepDefinitionSchema.parse({
+      ...first,
+      execution: { ...first.execution, handlerVersion: '2' },
+    })
+
+    expect(computeStepReferenceHash(second)).not.toBe(computeStepReferenceHash(first))
+  })
+
   it('rejects an executable lifecycle without a binding or review authority', () => {
     const result = stepDefinitionSchema.safeParse(
       definition({ identity: { id: 'browser.navigation.open', version: '1', status: 'ready' } }),
@@ -133,5 +153,28 @@ describe('step definition contracts', () => {
     expect(stepInputExpressionSchema.safeParse({ input: 'parentValue', extra: true }).success).toBe(false)
     expect(stepInputExpressionSchema.safeParse({ input: 1 }).success).toBe(false)
     expect(stepInputExpressionSchema.safeParse({ output: null }).success).toBe(false)
+  })
+
+  it('requires an immutable hash for every composition child reference', () => {
+    const missingHash = definition({
+      execution: {
+        kind: 'composition',
+        steps: [{ step: { id: 'browser.navigation.open', version: '1' }, inputs: { url: { input: 'url' } } }],
+      } as never,
+    })
+    const exactReference = definition({
+      execution: {
+        kind: 'composition',
+        steps: [
+          {
+            step: { id: 'browser.navigation.open', version: '1', definitionHash: `sha256:${'a'.repeat(64)}` },
+            inputs: { url: { input: 'url' } },
+          },
+        ],
+      },
+    })
+
+    expect(stepDefinitionSchema.safeParse(missingHash).success).toBe(false)
+    expect(stepDefinitionSchema.safeParse(exactReference).success).toBe(true)
   })
 })

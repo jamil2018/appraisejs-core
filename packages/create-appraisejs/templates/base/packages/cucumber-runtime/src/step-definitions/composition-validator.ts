@@ -1,4 +1,4 @@
-import type { StepDefinition, StepInputExpression } from './contracts.ts'
+import { computeStepReferenceHash, type StepDefinition, type StepInputExpression } from './contracts.ts'
 
 export type StepDefinitionCompositionDiagnostic = {
   code: string
@@ -103,6 +103,13 @@ export function validateStepDefinitionComposition(
             path: childPath,
             message: `Composition child ${identityKey(child.step)} is ${resolved.status}, not ready.`,
           })
+        } else if (computeStepReferenceHash(resolved.definition) !== child.step.definitionHash) {
+          diagnostics.push({
+            code: 'composition.child.hash-mismatch',
+            path: childPath,
+            message: `Composition child ${identityKey(child.step)} does not match its exact definition hash.`,
+          })
+          if (resolved.definition.execution.kind === 'composition') visit(resolved.definition, childPath)
         } else if (resolved.definition.execution.kind === 'composition') visit(resolved.definition, childPath)
       })
     visiting.delete(key)
@@ -115,7 +122,8 @@ export function validateStepDefinitionComposition(
   const outputProducers = new Map<string, number[]>()
   definition.execution.steps.forEach((child, index) => {
     const resolved = definitions.get(identityKey(child.step))
-    if (resolved?.status !== 'ready') return
+    if (resolved?.status !== 'ready' || computeStepReferenceHash(resolved.definition) !== child.step.definitionHash)
+      return
     for (const output of resolved.definition.outputs) {
       const indexes = outputProducers.get(output.name) ?? []
       indexes.push(index)
@@ -125,7 +133,12 @@ export function validateStepDefinitionComposition(
   definition.execution.steps.forEach((child, stepIndex) => {
     const stepPath = `execution.steps.${stepIndex}`
     const resolved = definitions.get(identityKey(child.step))
-    if (!resolved || resolved.status !== 'ready') return
+    if (
+      !resolved ||
+      resolved.status !== 'ready' ||
+      computeStepReferenceHash(resolved.definition) !== child.step.definitionHash
+    )
+      return
 
     const childInputs = new Map(resolved.definition.inputs.map(input => [input.name, input]))
     for (const [name, expression] of Object.entries(child.inputs)) {

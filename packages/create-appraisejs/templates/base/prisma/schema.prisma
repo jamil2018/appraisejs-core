@@ -111,8 +111,31 @@ model StepDefinitionDraft {
   createdAt            DateTime                     @default(now())
   updatedAt            DateTime                     @updatedAt
   artifact             StepDefinitionDraftArtifact?
+  migrationLedger      StepBlockMigrationLedger?
 
   @@index([proposedStepId, proposedVersion])
+}
+
+model StepBlockMigrationLedger {
+  sourceStepBlockId   String               @id
+  initialSourceHash   String
+  initialSnapshotJson String
+  sourceHash          String
+  draftSourceHash     String?
+  snapshotJson        String
+  classification      String
+  diagnosticsJson     String
+  proposedStepId      String?
+  proposedVersion     String?
+  converterVersion    String
+  draftId             String?              @unique
+  status              String
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  lastAppliedAt       DateTime?
+  draft               StepDefinitionDraft? @relation(fields: [draftId], references: [id], onDelete: SetNull)
+
+  @@index([classification, status])
 }
 
 model StepDefinitionDraftArtifact {

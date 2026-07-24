@@ -18,6 +18,7 @@
     "operation:ledger": "node --import tsx scripts/build-operation-capability-ledger.ts",
     "operation:certify": "node --import tsx scripts/certify-operation-architecture.ts",
     "operation:backfill": "node --import tsx scripts/backfill-operation-invocations.ts",
+    "step-block:migrate": "node --import tsx scripts/migrate-step-block-definitions.ts",
     "operation:projections": "node --import tsx scripts/generate-operation-projections.ts && npm run lint:step-definitions",
     "generate:coordinator-reference": "node --import tsx scripts/generate-coordinator-reference.ts",
     "benchmark:repository-queries": "node scripts/benchmark-repository-queries.mjs",

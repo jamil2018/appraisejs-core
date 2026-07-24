@@ -91,7 +91,7 @@ export const stepExecutionBindingSchema = z.discriminatedUnion('kind', [
   z.object({
     kind: z.literal('composition'),
     steps: z
-      .array(z.object({ step: stepIdentitySchema, inputs: z.record(identifierSchema, stepInputExpressionSchema) }))
+      .array(z.object({ step: stepReferenceSchema, inputs: z.record(identifierSchema, stepInputExpressionSchema) }))
       .min(1)
       .max(100),
   }),
@@ -305,6 +305,10 @@ export function computeStepDefinitionHashes(definition: z.infer<typeof stepDefin
     agentContractHash: stepDefinitionContentHash(definition.agent),
     executionHash: stepDefinitionContentHash(definition.execution),
   }
+}
+
+export function computeStepReferenceHash(definition: z.infer<typeof stepDefinitionSchema>) {
+  return stepDefinitionContentHash(computeStepDefinitionHashes(definition))
 }
 
 export type StepDefinition = z.infer<typeof stepDefinitionSchema>

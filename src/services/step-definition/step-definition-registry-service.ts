@@ -131,7 +131,9 @@ async function loadCompositionClosure(transaction: Prisma.TransactionClient, def
     const key = `${identity.id}@${identity.version}`
     if (visited.has(key)) continue
     visited.add(key)
-    const row = await transaction.stepDefinition.findUnique({ where: { id_version: identity } })
+    const row = await transaction.stepDefinition.findUnique({
+      where: { id_version: { id: identity.id, version: identity.version } },
+    })
     if (!row) continue
     const child = parsePersistedDefinition(row)
     closure.push({ definition: child, status: row.status })

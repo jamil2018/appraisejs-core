@@ -33,6 +33,7 @@
     "operation:ledger": "node --import tsx scripts/build-operation-capability-ledger.ts",
     "operation:certify": "node --import tsx scripts/certify-operation-architecture.ts",
     "operation:backfill": "node --import tsx scripts/backfill-operation-invocations.ts",
+    "step-block:migrate": "node --import tsx scripts/migrate-step-block-definitions.ts",
     "operation:projections": "node --import tsx scripts/generate-operation-projections.ts && npm run lint:step-definitions",
     "release:check:operation-drift": "node --import tsx scripts/build-operation-capability-ledger.ts --check",
     "release:check:operation-projections": "node --import tsx scripts/check-operation-projection-drift.ts",

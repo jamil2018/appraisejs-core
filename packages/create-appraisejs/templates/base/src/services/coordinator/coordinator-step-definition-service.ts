@@ -1,5 +1,6 @@
 import { z } from 'zod'
 
+import { computeStepReferenceHash } from '../../../packages/cucumber-runtime/src/step-definitions/index.ts'
 import prisma from '@/config/db-config'
 import { ServiceError } from '@/services/shared/errors'
 import { StepDefinitionExtensionService } from '@/services/step-definition/step-definition-extension-service'
@@ -47,20 +48,23 @@ async function searchDefinitions(
   })
   return {
     body: {
-      matches: definitions.map(item => ({
-        step: { id: item.id, version: item.version, definitionHash: item.definitionHash },
-        title: item.title,
-        description: item.description,
-        human: item.humanProjection ? JSON.parse(item.humanProjection.projectionJson) : null,
-        agent: JSON.parse(item.definitionJson).agent,
-        executionReadiness: item.executionBinding ? 'ready' : 'unbound',
-        hashes: {
-          definition: item.definitionHash,
-          humanProjection: item.humanProjectionHash,
-          agentContract: item.agentContractHash,
-          execution: item.executionHash,
-        },
-      })),
+      matches: definitions.map(item => {
+        const definition = JSON.parse(item.definitionJson)
+        return {
+          step: { id: item.id, version: item.version, definitionHash: computeStepReferenceHash(definition) },
+          title: item.title,
+          description: item.description,
+          human: item.humanProjection ? JSON.parse(item.humanProjection.projectionJson) : null,
+          agent: definition.agent,
+          executionReadiness: item.executionBinding ? 'ready' : 'unbound',
+          hashes: {
+            definition: item.definitionHash,
+            humanProjection: item.humanProjectionHash,
+            agentContract: item.agentContractHash,
+            execution: item.executionHash,
+          },
+        }
+      }),
       nextRecommendedAction: 'Use the returned Step Reference directly in managed authoring.',
     },
   }
