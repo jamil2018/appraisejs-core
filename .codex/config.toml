@@ -26,6 +26,10 @@ config_file = "agents/solver.toml"
 description = "Perform settled implementation and deterministic verification work."
 config_file = "agents/executor.toml"
 
+[agents.executor-advanced]
+description = "Perform cross-module implementation when scope is settled and verification is strong."
+config_file = "agents/executor-advanced.toml"
+
 [agents.judge]
 description = "Independently evaluate consequential results with material residual uncertainty."
 config_file = "agents/judge.toml"

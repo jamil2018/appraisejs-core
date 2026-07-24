@@ -1,5 +1,23 @@
 # Real Subagent Audit Protocol
 
+## Repository Engineering Routing Probe
+
+This frozen probe is separate from the Appraise product-lifecycle audit below. Exercise one task for each
+`coordinator-only`, `investigator`, `executor` or `executor-advanced`, `solver`, and `judge` route. The coordinator-only
+case must use zero subagents. Solver and judge assignments must use no inherited transcript or the smallest deliberate
+bounded context.
+
+For every case, preserve the brief, routing decision, selected named profile, delegation count, latency, retries,
+reroutes, and token/model-use data exposed by the host. Record role, model/reasoning, context inheritance, and sandbox
+as verified only when the host returns evidence for that exact property; otherwise record `unverified`. A repository
+configuration file is never a runtime receipt.
+
+Use read-only probes except for an executor fixture that explicitly authorizes an isolated temporary path. Link each
+delegated routing receipt to its scored run. Compare the observed route to
+`scripts/fixtures/swarm-routing-contracts.json`, then give the integrated diff and deterministic validation evidence
+to a fresh independent judge with no producer transcript. A mismatch is a structured harness observation and must
+follow note → notify → user guidance before any routing profile or threshold changes.
+
 Use this protocol to rerun product-real AppraiseJS agent audits without hidden coordinator shortcuts. The goal is to
 measure whether ordinary coding agents can discover AppraiseJS setup, create review-ready plans, and enter approval
 standby without implementing before Appraise approval.

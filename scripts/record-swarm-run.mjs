@@ -1,16 +1,15 @@
 #!/usr/bin/env node
 
 import crypto from 'node:crypto'
-import fs from 'node:fs'
-import path from 'node:path'
 import { parseStrictArgs } from './lib/swarm-cli.mjs'
-import { appendEvent, readJournal, validateRun } from './lib/swarm-ledger-store.mjs'
-import { acquireLedgerLock, releaseLedgerLock } from './lib/swarm-ledger-lock.mjs'
+import { withLockedSwarmJournal } from './lib/swarm-ledger-access.mjs'
+import { appendEvent, validateRun, validateRunRoutingLink } from './lib/swarm-ledger-store.mjs'
+import { normalizeTaskClass } from './lib/swarm-routing-contract.mjs'
 
 const argv = process.argv.slice(2)
 if (argv.includes('--help')) {
   console.log(
-    'Usage: npm run swarm:record -- --task-class <class> --accuracy <0-2> --coverage <0-2> --routing <0-2> --efficiency <0-2> --coordination <0-2> --solver-context <mode> --solver-context-evidence <receipt> --judge-context <mode> --judge-context-evidence <receipt> --evidence <text> --optimization <text> [--observation "domain|severity|summary|evidence|impact|options"] [--trigger <code>] [--critical-override <reason>] [metrics]',
+    'Usage: npm run swarm:record -- --task-class <class> --routing-decision-id <prior route receipt> --accuracy <0-2> --coverage <0-2> --routing <0-2> --efficiency <0-2> --coordination <0-2> --solver-context <mode> --solver-context-evidence <effective host receipt> --judge-context <mode> --judge-context-evidence <effective host receipt> --evidence <text> --optimization <text> [--observation "domain|severity|summary|evidence|impact|options"] [--trigger <code>] [--critical-override <reason>] [metrics]',
   )
   process.exit(0)
 }
@@ -38,6 +37,7 @@ const values = parseStrictArgs(argv, {
   'retry-count': {},
   'reroute-count': {},
   'model-use': { multiple: true },
+  'routing-decision-id': { required: true },
 })
 
 const dimensionOptions = {
@@ -47,13 +47,6 @@ const dimensionOptions = {
   efficiency: 'efficiency',
   coordination: 'coordination',
 }
-const taskClasses = new Set([
-  'localized-fix',
-  'cross-module-feature',
-  'architecture-review',
-  'release-gate',
-  'harness-configuration',
-])
 const contexts = new Set(['none', 'bounded', 'all', 'not-used'])
 const triggerCodes = new Set([
   'executor-retry',
@@ -100,14 +93,14 @@ const dimensions = Object.fromEntries(
     return [label, value]
   }),
 )
-if (!taskClasses.has(values['task-class'])) throw new Error('Invalid task class')
+const taskClass = normalizeTaskClass(values['task-class'])
 if (!contexts.has(values['solver-context']) || !contexts.has(values['judge-context'])) {
   throw new Error('Invalid context mode')
 }
 const verifiedReceipt = (context, receipt) => {
   if (context === 'not-used') return receipt === 'not-used'
-  if (context === 'none') return /^receipt:fork_turns:none(?:;.+)?$/.test(receipt)
-  if (context === 'bounded') return /^receipt:fork_turns:bounded:[1-9]\d*(?:;.+)?$/.test(receipt)
+  if (context === 'none') return /^host-effective-context:fork_turns:none(?:;.+)?$/.test(receipt)
+  if (context === 'bounded') return /^host-effective-context:fork_turns:bounded:[1-9]\d*(?:;.+)?$/.test(receipt)
   return false
 }
 const triggers = new Set(values.trigger ?? [])
@@ -194,10 +187,10 @@ const modelUse = (values['model-use'] ?? []).map(item => {
 })
 const minimum = Math.min(...Object.values(dimensions))
 const run = {
-  schemaVersion: 4,
+  schemaVersion: 5,
   runId: crypto.randomUUID(),
   recordedAt: new Date().toISOString(),
-  taskClass: values['task-class'],
+  taskClass,
   dimensions,
   score,
   status,
@@ -212,6 +205,7 @@ const run = {
   judgeContextEvidence: values['judge-context-evidence'],
   evidence: values.evidence,
   proposedOptimization: values.optimization,
+  routingDecisionId: values['routing-decision-id'],
   metrics: {
     durationMs: metricValue('duration-ms'),
     inputTokens: metricValue('input-tokens'),
@@ -238,43 +232,85 @@ const run = {
   },
 }
 
-const stateDir = path.join(process.cwd(), '.appraisejs')
-const journalPath = path.join(stateDir, 'swarm-events.jsonl')
-const lockPath = `${journalPath}.lock`
-fs.mkdirSync(stateDir, { recursive: true, mode: 0o700 })
-const lockToken = acquireLedgerLock(lockPath)
-let summary
-try {
-  const journal = readJournal(journalPath)
-  const comparable = [...journal.runs.values()].filter(item => item.taskClass === run.taskClass).slice(-4)
-  const window = [...comparable, run]
+const summary = withLockedSwarmJournal((journal, journalPath) => {
+  const routingDecision = linkedRoutingDecision(journal, run)
+  validateRunRoutingLink(run, routingDecision)
+  const window = comparableWindow(journal.runs, run)
+  const { lowOrFailedRuns, repeatedWeaknesses, triggered: longitudinal } = longitudinalSummary(window)
+  addLongitudinalObservation(run, lowOrFailedRuns, repeatedWeaknesses, longitudinal)
+  finalizeEvolution(run, longitudinal)
+  validateRun(run)
+  appendEvent(journalPath, { kind: 'run.recorded', run }, journal.lastHash)
+  return {
+    run,
+    routingDecisionId: routingDecisionId(routingDecision),
+    comparableWindowSize: window.length,
+    lowOrFailedRuns,
+    repeatedWeaknesses,
+    journalPath,
+  }
+})
+console.log(JSON.stringify(summary))
+
+function linkedRoutingDecision(journal, candidateRun) {
+  if (!candidateRun.routingDecisionId) throw new Error('Scored runs require a prior routing decision')
+  const decision = journal.routes.get(candidateRun.routingDecisionId)
+  if (!decision) throw new Error(`Unknown routing decision: ${candidateRun.routingDecisionId}`)
+  if (decision.taskClass !== candidateRun.taskClass) throw new Error('Routing decision task class mismatch')
+  const alreadyLinked = [...journal.runs.values()].some(run => run.routingDecisionId === candidateRun.routingDecisionId)
+  if (alreadyLinked) throw new Error(`Routing decision already linked: ${candidateRun.routingDecisionId}`)
+  return decision
+}
+
+function finalizeEvolution(candidateRun, longitudinal) {
+  candidateRun.evolution.notificationRequired = [
+    score < 10,
+    Boolean(criticalOverride),
+    triggers.size > 0,
+    observations.length > 0,
+    longitudinal,
+  ].some(Boolean)
+  candidateRun.evolution.phase = ['no_change', 'notification_required'][
+    Number(candidateRun.evolution.notificationRequired)
+  ]
+}
+
+function routingDecisionId(decision) {
+  return decision ? decision.decisionId : null
+}
+
+function comparableWindow(runs, candidateRun) {
+  const previous = [...runs.values()].filter(item => item.taskClass === candidateRun.taskClass).slice(-4)
+  return [...previous, candidateRun]
+}
+
+function longitudinalSummary(window) {
   const lowOrFailedRuns = window.filter(item => item.score <= 6 || item.status === 'failed').length
-  const weakestCounts = window.reduce((counts, item) => {
-    for (const dimension of item.weakestDimensions) counts[dimension] = (counts[dimension] ?? 0) + 1
-    return counts
-  }, {})
+  const weakestCounts = window.flatMap(item => item.weakestDimensions).reduce(countValues, {})
   const repeatedWeaknesses = Object.entries(weakestCounts)
     .filter(([, count]) => count >= 2)
     .map(([dimension]) => dimension)
-  const longitudinal = lowOrFailedRuns >= 2 || repeatedWeaknesses.length > 0
-  if (longitudinal) {
-    run.evolution.observations.push({
-      domain: 'evidence-integrity',
-      severity: 'material',
-      summary: 'Longitudinal evolution trigger',
-      evidence: `Last-five window has ${lowOrFailedRuns} low or failed runs; repeated weaknesses: ${repeatedWeaknesses.join(', ') || 'none'}`,
-      impact: 'Historical swarm performance remains non-optimal',
-      proposedOptions: values.optimization,
-      generated: true,
-    })
+  return {
+    lowOrFailedRuns,
+    repeatedWeaknesses,
+    triggered: lowOrFailedRuns >= 2 || repeatedWeaknesses.length > 0,
   }
-  run.evolution.notificationRequired =
-    score < 10 || Boolean(criticalOverride) || triggers.size > 0 || observations.length > 0 || longitudinal
-  run.evolution.phase = run.evolution.notificationRequired ? 'notification_required' : 'no_change'
-  validateRun(run)
-  appendEvent(journalPath, { kind: 'run.recorded', run }, journal.lastHash)
-  summary = { run, comparableWindowSize: window.length, lowOrFailedRuns, repeatedWeaknesses, journalPath }
-} finally {
-  releaseLedgerLock(lockPath, lockToken)
 }
-console.log(JSON.stringify(summary))
+
+function countValues(counts, value) {
+  counts[value] = (counts[value] ?? 0) + 1
+  return counts
+}
+
+function addLongitudinalObservation(candidateRun, lowOrFailedRuns, repeatedWeaknesses, triggered) {
+  if (!triggered) return
+  candidateRun.evolution.observations.push({
+    domain: 'evidence-integrity',
+    severity: 'material',
+    summary: 'Longitudinal evolution trigger',
+    evidence: `Last-five window has ${lowOrFailedRuns} low or failed runs; repeated weaknesses: ${repeatedWeaknesses.join(', ') || 'none'}`,
+    impact: 'Historical swarm performance remains non-optimal',
+    proposedOptions: values.optimization,
+    generated: true,
+  })
+}

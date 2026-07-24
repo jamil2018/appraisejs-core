@@ -34,23 +34,53 @@ evaluating that recommendation is the explicit task.
 Static configuration cannot prove the runtime context boundary. Record the actual inheritance mode and evidence for
 solver and judge delegations. Treat full or unverified context for either role as an evolution trigger.
 
-## Routing
+## Universal intake and routing
+
+Perform a bounded classification for every project-engineering task. Consider:
+
+- epistemic need: whether facts, causes, or invariants are missing;
+- consequence: local, cross-module, or security/persistence/migration/public-contract risk;
+- verifiability: strong deterministic checks versus weak or observational evidence;
+- separability: whether a bounded evidence or execution lane can proceed independently;
+- estimated effort: localized, extended mechanical, or cross-module work.
+
+Classification does not imply delegation. Trivial, localized, low-consequence work with strong deterministic
+verification selects `coordinator-only`, `coordinator`, and zero subagents. Long but mechanical work may use an
+executor; small but high-consequence work may require Sol judgment. Product lifecycle transitions are outside this
+engineering router and remain Appraise-owned.
 
 Classify each assignment by judgment, verifiability, and consequence:
 
 | Condition                                                       | Route                              |
 | --------------------------------------------------------------- | ---------------------------------- |
+| Trivial/local and strongly deterministically verifiable         | `coordinator-only`                 |
 | Important facts are missing or disputed                         | `investigator`                     |
 | Low judgment with strong deterministic verification             | `executor`                         |
-| Medium judgment with strong verification                        | `executor`                         |
+| Cross-module, medium judgment with strong verification          | `executor-advanced`                |
 | Evidence exists but high judgment or causal arbitration remains | `solver`                           |
 | Weak verification with high consequences                        | `judge`                            |
 | Security, migration, persistence, or public-contract risk       | `solver`, then independent `judge` |
 
 Use the investigator to establish facts and causal candidates, the solver to arbitrate causes only after evidence
-exists, and the executor to reproduce or fix only after the relevant invariants are settled. Use independent
-investigators only for distinct evidence lanes. Escalate an executor after two failed attempts, a material scope
-expansion, or discovery that an accepted invariant is wrong.
+exists, and an executor to reproduce or fix only after the relevant invariants are settled. Use independent
+investigators only for distinct evidence lanes. Escalate after two executor failures, a material scope expansion,
+contradictory evidence, weak verification at high consequence, or discovery that an accepted invariant is wrong.
+Security, persistence, migration, and public-contract risk require Sol-level judgment and conditional independent
+evaluation. Do not route routine discovery or mechanical execution directly to Sol.
+
+## Profile matrix
+
+| Profile             | Role         | Model / effort          | Authority       | Stop or escalate when                                      |
+| ------------------- | ------------ | ----------------------- | --------------- | ---------------------------------------------------------- |
+| `coordinator`       | coordinator  | host coordinator        | current task    | evidence or consequence exceeds the coordinator fast path  |
+| `investigator`      | investigator | Luna / medium           | read-only       | facts are established or judgment is required              |
+| `executor`          | executor     | Terra / medium          | workspace-write | an invariant fails or scope becomes ambiguous              |
+| `executor-advanced` | executor     | Terra / high            | workspace-write | irreducible judgment or weak verification remains          |
+| `solver`            | solver       | Sol / high              | read-only       | evidence is missing or user authority is required          |
+| `judge`             | judge        | Sol / high, independent | read-only       | result is accepted, revision is required, or proof is weak |
+
+Static registration requests these properties but does not prove host enforcement. Record each runtime property as
+verified only when a host receipt supports it; otherwise use `unverified`.
 
 ## Run scorecard
 
@@ -140,20 +170,42 @@ configuration or instruction change. Do not change the harness automatically.
 
 ## Durable ledger
 
+Record meaningful, delegated, anomalous, or consequential routing decisions before the full scorecard:
+
+```bash
+npm run swarm:route -- \
+  --task-class "<stable class>" \
+  --route-input '{"requiresExecution":true,"crossModule":true,"verificationStrength":"strong"}' \
+  --rationale "<concise selection rationale>" \
+  --classification-latency-ms <milliseconds>
+```
+
+The immutable route receipt is recorded before delegation or execution. Every later scored run links back with
+`--routing-decision-id`; a route never points forward to a run. Runtime proof defaults to unverified, including the
+role, model, reasoning effort, inherited context, and sandbox claims. Verify each property separately only with an
+effective-host receipt that matches the selected profile: `host-effective-role:<role>`,
+`host-effective-model:<model>`, `host-effective-reasoning:<effort>`,
+`host-effective-context:fork_turns:none|bounded:<N>`, or `host-effective-sandbox:<sandbox>`. A requested selector or
+`fork_turns` setting is not evidence and must remain unverified.
+Inspect proportional aggregates with `npm run swarm:ledger -- metrics --task-class "<stable comparable class>"`; zero-agent rate is an efficiency measure, not
+an automatic under-routing failure. Repeated under-routing or oversized Sol observations require user guidance and
+never authorize automatic harness changes.
+
 Record every scored swarm run:
 
 ```bash
 npm run swarm:record -- \
   --task-class "<stable comparable class>" \
+  --routing-decision-id "<earlier routing decision id>" \
   --accuracy <0-2> \
   --coverage <0-2> \
   --routing <0-2> \
   --efficiency <0-2> \
   --coordination <0-2> \
   --solver-context <none|bounded|all|not-used> \
-  --solver-context-evidence "<receipt:fork_turns:none|receipt:fork_turns:bounded:N|not-used>" \
+  --solver-context-evidence "<host-effective-context:fork_turns:none|host-effective-context:fork_turns:bounded:N|not-used>" \
   --judge-context <none|bounded|all|not-used> \
-  --judge-context-evidence "<receipt:fork_turns:none|receipt:fork_turns:bounded:N|not-used>" \
+  --judge-context-evidence "<host-effective-context:fork_turns:none|host-effective-context:fork_turns:bounded:N|not-used>" \
   --evidence "<concise evidence>" \
   --optimization "<proposed change or none>" \
   [--observation "<domain>|<minor|material|critical>|<summary>|<evidence>|<impact>|<proposed-options>"] \
@@ -163,11 +215,18 @@ npm run swarm:record -- \
 
 The command appends a versioned, hash-chained event to `.appraisejs/swarm-events.jsonl`, which is local and Git-ignored.
 The journal validates complete run schemas and detects accidental edits, but it is not authenticated authority because
-workspace writers can replace local files. Use `npm run swarm:ledger -- <list|show|status|recover>` for inspection and
+workspace writers can replace local files. Use
+`npm run swarm:ledger -- <list|show|routes|metrics|status|recover>` for inspection and
 malformed-tail recovery. The recorder
 derives the total, weakest dimensions, and status from the five dimension scores plus any critical override. It
 reports immediate event triggers separately from the comparable five-run longitudinal trigger. A past one-off event
 does not repeatedly trigger later clean runs. Use stable task classes such as
-`localized-fix`, `cross-module-feature`, `architecture-review`, or `release-gate`; do not invent a unique class per run.
+`localized-fix`, `cross-module-feature`, `architecture-review`, `release-gate`, or `harness-configuration`; do not
+invent a unique class per run. Routing fixtures may use these intake aliases, which normalize before recording:
+`mechanical-refactor` and `runtime-debugging` → `localized-fix`; `architecture-decision` → `architecture-review`;
+`public-contract-change` and `security-change` → `cross-module-feature`.
+When the linked routing decision requires an independent judge, the scored run is rejected unless `judgeContext` is
+`none` or `bounded` and `judgeContextEvidence` is the matching effective-host context receipt. `not-used`, `all`, and
+requested-selector receipts cannot produce a healthy or final scored run for that route.
 Allowed trigger codes are `executor-retry`, `avoidable-reroute`, `duplicate-work`, `coordinator-rework`,
 `oversized-sol`, `judge-material-finding`, and `context-boundary-unverified`.

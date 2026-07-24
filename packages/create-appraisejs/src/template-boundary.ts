@@ -5,6 +5,7 @@ const REPO_ONLY_TEMPLATE_PREFIXES = ['.agents/', '.codex/'] as const
 export const REPO_ONLY_TEMPLATE_SCRIPT_NAMES = new Set([
   'check:swarm-harness',
   'swarm:record',
+  'swarm:route',
   'swarm:evolve',
   'swarm:ledger',
   'test:swarm-harness',

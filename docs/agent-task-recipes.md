@@ -2,6 +2,14 @@
 
 Use these short recipes to choose the first files and focused validation for common AppraiseJS work.
 
+## Universal Engineering Intake
+
+Before selecting a recipe, classify the task with the swarm routing contract. Use coordinator-only for trivial or
+localized work with strong deterministic checks; investigate missing facts; use a solver only after evidence exists;
+use the standard or advanced executor for settled work; and add an independent judge only when consequence and
+residual uncertainty justify it. Record a compact route receipt for meaningful, delegated, anomalous, or
+consequential work. Appraise lifecycle gates remain governed by the lifecycle recipe below.
+
 ## CRUD And Domain Changes
 
 Start with the matching `src/actions/*`, `src/services/*`, `prisma/schema.prisma`, and route-specific UI under

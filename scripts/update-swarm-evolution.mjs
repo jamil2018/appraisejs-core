@@ -4,6 +4,7 @@ import path from 'node:path'
 import { parseStrictArgs } from './lib/swarm-cli.mjs'
 import { appendEvent, readJournal, validateRun } from './lib/swarm-ledger-store.mjs'
 import { acquireLedgerLock, releaseLedgerLock } from './lib/swarm-ledger-lock.mjs'
+import { isEffectiveIndependentJudgeContext } from './lib/swarm-routing-contract.mjs'
 
 const argv = process.argv.slice(2)
 if (argv.includes('--help')) {
@@ -45,6 +46,9 @@ const allowedByAction = {
 for (const field of Object.keys(values)) {
   if (!allowedByAction[values.action].has(field)) throw new Error(`Argument --${field} is invalid for ${values.action}`)
 }
+if (values.action === 'guide' && values['authority-source'] !== 'host-conversation') {
+  throw new Error('Guidance authority source must be host-conversation')
+}
 
 const journalPath = path.join(process.cwd(), '.appraisejs', 'swarm-events.jsonl')
 const lockPath = `${journalPath}.lock`
@@ -85,7 +89,11 @@ try {
     if (run.evolution.phase !== 'guidance_received') {
       throw new Error(`Cannot mark update ready from ${run.evolution.phase}`)
     }
-    if (!run.evolution.notificationReceipt || !run.evolution.guidanceProvenance) {
+    if (
+      !run.evolution.notificationReceipt ||
+      !run.evolution.guidanceProvenance ||
+      run.evolution.guidanceProvenance.authoritySource !== 'host-conversation'
+    ) {
       throw new Error('Notification and host guidance provenance are required before update')
     }
     patch = {
@@ -113,8 +121,7 @@ try {
       !reevaluation.criticalOverride &&
       reevaluation.triggers.length === 0 &&
       reevaluation.evolution.observations.length === 0 &&
-      ['none', 'bounded'].includes(reevaluation.judgeContext) &&
-      /^receipt:fork_turns:(?:none|bounded:[1-9]\d*)/.test(reevaluation.judgeContextEvidence)
+      isEffectiveIndependentJudgeContext(reevaluation.judgeContext, reevaluation.judgeContextEvidence)
     if (!clean) throw new Error('Completion requires a clean, later, independent, unique 10/10 re-evaluation')
     patch = {
       phase: 'verified',

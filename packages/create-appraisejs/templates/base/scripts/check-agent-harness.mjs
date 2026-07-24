@@ -9,6 +9,7 @@ const forbiddenPaths = [
   '.codex',
   'scripts/check-swarm-harness.mjs',
   'scripts/record-swarm-run.mjs',
+  'scripts/record-swarm-route.mjs',
   'scripts/update-swarm-evolution.mjs',
   'scripts/swarm-ledger.mjs',
   'scripts/lib/swarm-cli.mjs',
@@ -17,7 +18,14 @@ const forbiddenPaths = [
   'scripts/lib/toml-validator.mjs',
   'scripts/tests/swarm-evolution.test.mjs',
 ]
-const forbiddenScripts = ['check:swarm-harness', 'swarm:record', 'swarm:evolve', 'swarm:ledger', 'test:swarm-harness']
+const forbiddenScripts = [
+  'check:swarm-harness',
+  'swarm:record',
+  'swarm:route',
+  'swarm:evolve',
+  'swarm:ledger',
+  'test:swarm-harness',
+]
 
 for (const relativePath of forbiddenPaths) {
   if (fs.existsSync(path.join(repoRoot, relativePath))) {

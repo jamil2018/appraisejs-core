@@ -9,12 +9,14 @@ const roles = {
   investigator: { model: 'gpt-5.6-luna', effort: 'medium', sandbox: 'read-only' },
   solver: { model: 'gpt-5.6-sol', effort: 'high', sandbox: 'read-only' },
   executor: { model: 'gpt-5.6-terra', effort: 'medium', sandbox: 'workspace-write' },
+  'executor-advanced': { model: 'gpt-5.6-terra', effort: 'high', sandbox: 'workspace-write' },
   judge: { model: 'gpt-5.6-sol', effort: 'high', sandbox: 'read-only' },
 }
 const requiredInstructionTokens = {
   investigator: ['evidence ledger', 'remain read-only', 'Do not perform external writes'],
   solver: ['evidence ledger', 'invariants', 'Do not perform external writes'],
   executor: ['Do not perform external writes', 'Do not\nmodify `.codex/`'],
+  'executor-advanced': ['Do not perform external writes', 'Do not\nmodify `.codex/`', 'cross-module'],
   judge: ['falsify', 'Do not perform external writes'],
 }
 const allowedAgentKeys = new Set([
@@ -91,6 +93,9 @@ try {
 }
 const agentDefaults = parsedConfig.get('agents') ?? new Map()
 const seenNames = new Set()
+const registeredRoles = [...parsedConfig.keys()]
+  .filter(section => section.startsWith('agents.'))
+  .map(section => section.slice('agents.'.length))
 
 if (agentDefaults.get('enabled') !== true) failures.push('.codex/config.toml: agents.enabled must be true')
 if (agentDefaults.get('max_concurrent_threads_per_session') !== 3) {
@@ -101,6 +106,12 @@ if (agentDefaults.get('default_subagent_model') !== 'gpt-5.6-terra') {
 }
 if (agentDefaults.get('default_subagent_reasoning_effort') !== 'medium') {
   failures.push('.codex/config.toml: default subagent reasoning must be medium')
+}
+for (const role of registeredRoles) {
+  if (!(role in roles)) failures.push(`.codex/config.toml: unsupported agent registration "${role}"`)
+}
+for (const role of Object.keys(roles)) {
+  if (!registeredRoles.includes(role)) failures.push(`.codex/config.toml: missing registration section for ${role}`)
 }
 
 for (const [role, expected] of Object.entries(roles)) {
@@ -124,6 +135,15 @@ for (const [role, expected] of Object.entries(roles)) {
     failures.push(`${relative}: expected reasoning effort ${expected.effort}`)
   }
   if (values.sandbox_mode !== expected.sandbox) failures.push(`${relative}: expected sandbox ${expected.sandbox}`)
+  if (role !== 'executor' && role !== 'executor-advanced' && values.sandbox_mode !== 'read-only') {
+    failures.push(`${relative}: only executor profiles may use workspace-write`)
+  }
+  if ((role === 'executor' || role === 'executor-advanced') && values.sandbox_mode !== 'workspace-write') {
+    failures.push(`${relative}: executor profiles require workspace-write`)
+  }
+  if (values.model === 'gpt-5.6-sol' && values.model_reasoning_effort !== 'high') {
+    failures.push(`${relative}: Sol profiles must use high reasoning effort`)
+  }
   for (const token of requiredInstructionTokens[role]) {
     if (!values.developer_instructions?.includes(token)) {
       failures.push(`${relative}: developer_instructions missing "${token}"`)
@@ -163,4 +183,4 @@ if (failures.length) {
   process.exit(1)
 }
 
-console.log(`Swarm harness check passed (${Object.keys(roles).length} roles validated).`)
+console.log(`Swarm harness check passed (${Object.keys(roles).length} profiles validated).`)

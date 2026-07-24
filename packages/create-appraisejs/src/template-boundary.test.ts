@@ -7,6 +7,7 @@ describe('isRepoOnlyTemplatePath', () => {
     expect(isRepoOnlyTemplatePath('.codex/agents/judge.toml')).toBe(true)
     expect(isRepoOnlyTemplatePath('scripts/check-swarm-harness.mjs')).toBe(true)
     expect(isRepoOnlyTemplatePath('scripts/record-swarm-run.mjs')).toBe(true)
+    expect(isRepoOnlyTemplatePath('scripts/record-swarm-route.mjs')).toBe(true)
     expect(isRepoOnlyTemplatePath('scripts/update-swarm-evolution.mjs')).toBe(true)
     expect(isRepoOnlyTemplatePath('scripts/swarm-ledger.mjs')).toBe(true)
     expect(isRepoOnlyTemplatePath('scripts/lib/swarm-cli.mjs')).toBe(true)
@@ -27,6 +28,7 @@ describe('REPO_ONLY_TEMPLATE_SCRIPT_NAMES', () => {
     expect([...REPO_ONLY_TEMPLATE_SCRIPT_NAMES]).toEqual([
       'check:swarm-harness',
       'swarm:record',
+      'swarm:route',
       'swarm:evolve',
       'swarm:ledger',
       'test:swarm-harness',

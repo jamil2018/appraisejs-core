@@ -1,5 +1,6 @@
 import crypto from 'node:crypto'
 import fs from 'node:fs'
+import { isEffectiveIndependentJudgeContext, validateRoutingDecision } from './swarm-routing-contract.mjs'
 
 const phases = new Set([
   'notification_required',
@@ -95,6 +96,10 @@ export function validateRun(run, label = 'run') {
   assert(nonBlank(run.runId), `${label}: blank runId`)
   assert(Number.isFinite(Date.parse(run.recordedAt)), `${label}: invalid recordedAt`)
   assert(nonBlank(run.taskClass), `${label}: blank taskClass`)
+  assert(run.routingDecisionId == null || nonBlank(run.routingDecisionId), `${label}: invalid routingDecisionId`)
+  if (run.schemaVersion >= 5) {
+    assert(nonBlank(run.routingDecisionId), `${label}: scored runs require a prior routing decision`)
+  }
   validateDimensions(run, label)
   validateStatusAndWeakestDimensions(run, label)
   assert(Array.isArray(run.triggers), `${label}: invalid triggers`)
@@ -137,14 +142,16 @@ function validateEvent(event, previousHash, lineNumber) {
   validateEventEnvelope(event, previousHash, lineNumber)
   if (event.kind === 'run.recorded') validateRun(event.run, `line ${lineNumber}.run`)
   else if (event.kind === 'run.transition') validateTransitionEvent(event, lineNumber)
+  else if (event.kind === 'route.recorded') validateRoutingDecision(event.decision, `line ${lineNumber}.decision`)
   else throw new Error(`line ${lineNumber}: unknown event kind ${event.kind}`)
 }
 
 export function readJournal(journalPath, { recoverTail = false } = {}) {
-  if (!fs.existsSync(journalPath)) return { events: [], runs: new Map(), lastHash: null }
+  if (!fs.existsSync(journalPath)) return { events: [], runs: new Map(), routes: new Map(), lastHash: null }
   const lines = fs.readFileSync(journalPath, 'utf8').split('\n')
   const { events, previousHash } = scanJournal(lines, journalPath, recoverTail)
-  return { events, runs: reconstructRuns(events), lastHash: previousHash }
+  const { runs, routes } = reconstructJournal(events)
+  return { events, runs, routes, lastHash: previousHash }
 }
 
 function scanJournal(lines, journalPath, recoverTail) {
@@ -191,20 +198,53 @@ function recoverInvalidTail(lines, index, journalPath, recoverTail, validBytes, 
   }
 }
 
-function reconstructRuns(events) {
+function reconstructJournal(events) {
   const runs = new Map()
+  const routes = new Map()
   for (const event of events) {
     if (event.kind === 'run.recorded') {
-      assert(!runs.has(event.run.runId), `duplicate runId ${event.run.runId}`)
-      runs.set(event.run.runId, structuredClone(event.run))
+      addRecordedRun(event.run, runs, routes)
+    } else if (event.kind === 'run.transition') {
+      applyRunTransition(event, runs)
     } else {
-      const run = runs.get(event.runId)
-      assert(run, `transition references unknown run ${event.runId}`)
-      Object.assign(run.evolution, event.patch)
-      validateRun(run, `transitioned run ${event.runId}`)
+      assert(!routes.has(event.decision.decisionId), `duplicate decisionId ${event.decision.decisionId}`)
+      routes.set(event.decision.decisionId, structuredClone(event.decision))
     }
   }
-  return runs
+  return { runs, routes }
+}
+
+function addRecordedRun(run, runs, routes) {
+  assert(!runs.has(run.runId), `duplicate runId ${run.runId}`)
+  if (!run.routingDecisionId) {
+    assert(run.schemaVersion < 5, `run ${run.runId} requires a prior routing decision`)
+    runs.set(run.runId, structuredClone(run))
+    return
+  }
+  const decision = routes.get(run.routingDecisionId)
+  assert(decision, `run references unknown routing decision ${run.routingDecisionId}`)
+  validateRunRoutingLink(run, decision)
+  assert(
+    ![...runs.values()].some(candidate => candidate.routingDecisionId === run.routingDecisionId),
+    `routing decision already linked ${run.routingDecisionId}`,
+  )
+  runs.set(run.runId, structuredClone(run))
+}
+
+export function validateRunRoutingLink(run, decision) {
+  assert(decision.taskClass === run.taskClass, `run routing decision task class mismatch`)
+  if (!decision.requiresIndependentJudge) return
+  assert(
+    isEffectiveIndependentJudgeContext(run.judgeContext, run.judgeContextEvidence),
+    'run requires an independent judge with effective none or bounded host context',
+  )
+}
+
+function applyRunTransition(event, runs) {
+  const run = runs.get(event.runId)
+  assert(run, `transition references unknown run ${event.runId}`)
+  Object.assign(run.evolution, event.patch)
+  validateRun(run, `transitioned run ${event.runId}`)
 }
 
 export function appendEvent(journalPath, event, previousHash) {

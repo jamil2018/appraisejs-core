@@ -57,11 +57,19 @@ no longer match current source, scripts, package layout, or generated-artifact r
 
 ## Task Routing
 
-For non-trivial work with missing evidence, high judgment, independently executable slices, or consequential
-evaluation, load `swarm-orchestrator`. Use the project custom agents by epistemic role: `investigator` establishes
-facts, `solver` resolves irreducible judgment, `executor` performs settled work, and `judge` independently evaluates
-high-consequence residual uncertainty. Prefer deterministic verification over model consensus. Do not delegate
-trivial work, duplicate evidence lanes, or allow concurrent overlapping writes.
+Classify every project-engineering task through `swarm-orchestrator` before deciding whether to delegate. Keep the
+classification bounded: assess missing evidence, judgment, consequence, deterministic verifiability, separability,
+and estimated effort. `coordinator-only` is the default for trivial or strongly verifiable local work and uses zero
+subagents. Route missing facts to `investigator`, irreducible judgment after evidence exists to `solver`, settled
+implementation to `executor` or `executor-advanced`, and consequential residual uncertainty to an independent
+`judge`. Prefer deterministic verification over model consensus. Do not delegate trivial work, duplicate evidence
+lanes, or allow concurrent overlapping writes. This custom engineering swarm does not replace Appraise-owned product
+lifecycle gates.
+
+Persist a compact routing receipt only for meaningful project work, delegated work, routing anomalies, or
+consequential decisions. Truly trivial coordinator-only work should not create ledger bureaucracy. A receipt records
+the requested route and runtime-proof status; it must not claim the host enforced a role, model, context boundary, or
+sandbox without host evidence.
 
 Before finishing a swarm run, apply the skill's evolution criteria to performance, resource use, governance, and
 harness usability. Record and notify the user about anything non-optimal, wait for their guidance, then update only
