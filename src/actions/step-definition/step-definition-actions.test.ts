@@ -10,11 +10,15 @@ const mocks = vi.hoisted(() => ({
   submitForReview: vi.fn(),
   publishDraft: vi.fn(),
   deprecate: vi.fn(),
+  readCoordinatorSearch: vi.fn(),
   revalidatePath: vi.fn(),
 }))
 
 vi.mock('@/config/db-config', () => ({ default: {} }))
 vi.mock('next/cache', () => ({ revalidatePath: mocks.revalidatePath }))
+vi.mock('@/services/coordinator/coordinator-step-definition-service', () => ({
+  coordinatorStepDefinitionService: { read: mocks.readCoordinatorSearch },
+}))
 vi.mock('@/services/step-definition/step-definition-registry-service', async importOriginal => {
   const original = await importOriginal<typeof import('@/services/step-definition/step-definition-registry-service')>()
   return {
@@ -32,6 +36,7 @@ import {
   readStepDefinitionDraftAction,
   reviewStepDefinitionDraftAction,
   reviseStepDefinitionDraftAction,
+  searchReadyStepDefinitionContractsAction,
 } from './step-definition-actions'
 import { StepDefinitionRegistryError } from '@/services/step-definition/step-definition-registry-service'
 
@@ -50,6 +55,20 @@ describe('Step Definition Server Actions', () => {
     })
     expect(mocks.createDraft).toHaveBeenCalledWith({ identity: { id: 'custom.open' } })
     expect(mocks.revalidatePath).toHaveBeenCalledWith('/template-steps')
+  })
+
+  it('uses the coordinator ready-definition search through the server action boundary', async () => {
+    mocks.readCoordinatorSearch.mockResolvedValue({ body: { matches: [{ step: { id: 'browser.search' } }] } })
+
+    await expect(searchReadyStepDefinitionContractsAction(' search ')).resolves.toMatchObject({
+      status: 200,
+      success: true,
+      data: { matches: [{ step: { id: 'browser.search' } }] },
+    })
+    expect(mocks.readCoordinatorSearch).toHaveBeenCalledWith(
+      ['step-definitions', 'search'],
+      new URLSearchParams({ query: 'search', limit: '10' }),
+    )
   })
 
   it('rejects malformed adapter inputs before calling the registry', async () => {

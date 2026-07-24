@@ -4,7 +4,9 @@ import {
   Children,
   cloneElement,
   isValidElement,
+  useEffect,
   useId,
+  useRef,
   useState,
   type Dispatch,
   type ReactElement,
@@ -26,6 +28,7 @@ import {
 } from 'lucide-react'
 
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { searchReadyStepDefinitionContractsAction } from '@/actions/step-definition/step-definition-actions'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command'
@@ -36,6 +39,11 @@ import { Progress } from '@/components/ui/progress'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { cn } from '@/lib/utils'
+import {
+  compositionChildFromContract,
+  normalizeCompositionChildren,
+  type ReadyCompositionChildContract,
+} from '@/lib/step-definition/composition-authoring'
 import { reconcileNamedInputs, type DraftDefinition } from './step-definition-draft-helpers'
 import type { StepDefinitionEditorGroup } from './step-definition-draft-editor'
 
@@ -523,13 +531,8 @@ function executionForKind(kind: string, definition: DraftDefinition): DraftDefin
     case 'composition':
       return {
         kind,
-        steps: [
-          {
-            step: { id: 'builtin.example', version: '1', definitionHash: `sha256:${'0'.repeat(64)}` },
-            inputs: {},
-          },
-        ],
-      }
+        steps: [],
+      } as DraftDefinition['execution']
     case 'reviewed-extension':
       return {
         kind,
@@ -582,32 +585,17 @@ function OperationFields({
   )
 }
 
-type CompositionReferenceField = 'id' | 'version' | 'definitionHash'
+type CompositionSearchResponse = { matches?: ReadyCompositionChildContract[] }
 
-function updateCompositionChildReference(
-  definition: DraftDefinition,
-  field: CompositionReferenceField,
-  value: string,
-): DraftDefinition {
-  if (definition.execution.kind !== 'composition') return definition
-  const child = definition.execution.steps[0]
-  const reference = child?.step ?? {
-    id: 'builtin.example',
-    version: '1',
-    definitionHash: `sha256:${'0'.repeat(64)}`,
-  }
-  return {
-    ...definition,
-    execution: {
-      kind: 'composition',
-      steps: [
-        {
-          step: { ...reference, [field]: value },
-          inputs: child?.inputs ?? {},
-        },
-      ],
-    },
-  }
+function compositionContractKey(step: ReadyCompositionChildContract['step']): string {
+  return `${step.id}@${step.version}#${step.definitionHash}`
+}
+
+function selectedCompositionMapping(value: unknown): string | undefined {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return undefined
+  if ('input' in value && typeof value.input === 'string') return value.input
+  if ('output' in value && typeof value.output === 'string') return `output:${value.output}`
+  return undefined
 }
 
 function CompositionFields({
@@ -617,25 +605,211 @@ function CompositionFields({
   definition: DraftDefinition
   setDefinition: SetDefinition
 }) {
-  if (definition.execution.kind !== 'composition') return null
-  const child = definition.execution.steps[0]
-  const update = (field: CompositionReferenceField, value: string) =>
-    setDefinition(current => updateCompositionChildReference(current, field, value))
+  const composition = definition.execution.kind === 'composition' ? definition.execution : null
+  const [query, setQuery] = useState('')
+  const [matches, setMatches] = useState<ReadyCompositionChildContract[]>([])
+  const [contracts, setContracts] = useState<Record<string, ReadyCompositionChildContract>>({})
+  const [searchError, setSearchError] = useState('')
+  const hydrationAttempts = useRef(new Set<string>())
+  useEffect(() => {
+    if (!query.trim()) return undefined
+    const controller = new AbortController()
+    const search = async () => {
+      setSearchError('')
+      const response = await searchReadyStepDefinitionContractsAction(query)
+      if (!response.success) throw new Error(response.error ?? 'Ready Step Definition search is unavailable.')
+      if (controller.signal.aborted) return
+      const payload = response.data as CompositionSearchResponse
+      setMatches(payload.matches ?? [])
+    }
+    void search().catch(error => {
+      if (controller.signal.aborted) return
+      if (error instanceof DOMException && error.name === 'AbortError') return
+      setSearchError(error instanceof Error ? error.message : 'Ready Step Definition search is unavailable.')
+    })
+    return () => controller.abort()
+  }, [query])
+  useEffect(() => {
+    if (!composition) return
+    const missing = composition.steps.filter(child => {
+      const key = compositionContractKey(child.step)
+      return !contracts[key] && !hydrationAttempts.current.has(key)
+    })
+    if (!missing.length) return
+    for (const child of missing) hydrationAttempts.current.add(compositionContractKey(child.step))
+    let cancelled = false
+    const hydrate = async () => {
+      const responses = await Promise.all(
+        missing.map(async child => {
+          const response = await searchReadyStepDefinitionContractsAction(child.step.id)
+          if (!response.success) return null
+          const payload = response.data as CompositionSearchResponse
+          return (
+            payload.matches?.find(
+              match =>
+                match.step.id === child.step.id &&
+                match.step.version === child.step.version &&
+                match.step.definitionHash === child.step.definitionHash,
+            ) ?? null
+          )
+        }),
+      )
+      if (cancelled) return
+      setContracts(current => {
+        const next = { ...current }
+        for (const contract of responses) {
+          if (contract) next[compositionContractKey(contract.step)] = contract
+        }
+        return next
+      })
+    }
+    void hydrate()
+    return () => {
+      cancelled = true
+    }
+  }, [composition, contracts])
+  const updateChildren = (children: unknown) =>
+    setDefinition(current =>
+      current.execution.kind === 'composition'
+        ? { ...current, execution: { kind: 'composition', steps: normalizeCompositionChildren(children) } }
+        : current,
+    )
+  if (!composition) return null
+  const visibleMatches = query.trim() ? matches : []
+  const visibleSearchError = query.trim() ? searchError : ''
+  const children = composition.steps
+  const addChild = (contract: ReadyCompositionChildContract) => {
+    const child = compositionChildFromContract(contract)
+    setContracts(current => ({ ...current, [compositionContractKey(child.step)]: contract }))
+    updateChildren([...children, child])
+  }
+  const removeChild = (index: number) => updateChildren(children.filter((_, childIndex) => childIndex !== index))
+  const moveChild = (index: number, direction: -1 | 1) => {
+    const target = index + direction
+    if (target < 0 || target >= children.length) return
+    const next = [...children]
+    ;[next[index], next[target]] = [next[target]!, next[index]!]
+    updateChildren(next)
+  }
+  const updateMapping = (index: number, input: string, source: string) => {
+    const next = children.map((child, childIndex) =>
+      childIndex === index
+        ? {
+            ...child,
+            inputs: {
+              ...child.inputs,
+              [input]: source.startsWith('output:') ? { output: source.slice(7) } : { input: source },
+            },
+          }
+        : child,
+    )
+    updateChildren(next)
+  }
   return (
-    <>
-      <Field label="Ready child Step ID">
-        <Input value={child?.step.id ?? ''} onChange={event => update('id', event.target.value)} />
-      </Field>
-      <Field label="Child version">
-        <Input value={child?.step.version ?? ''} onChange={event => update('version', event.target.value)} />
-      </Field>
-      <Field label="Exact child definition hash">
+    <div className="space-y-3 sm:col-span-2">
+      <Field label="Add ready child Step Definition">
         <Input
-          value={child?.step.definitionHash ?? ''}
-          onChange={event => update('definitionHash', event.target.value)}
+          value={query}
+          onChange={event => setQuery(event.target.value)}
+          placeholder="Search the shared ready library"
         />
+        {visibleSearchError && (
+          <p role="alert" className="text-xs text-destructive">
+            {visibleSearchError}
+          </p>
+        )}
+        {!!visibleMatches.length && (
+          <div className="mt-2 divide-y rounded-md border border-white/10">
+            {visibleMatches.map(match => (
+              <button
+                key={`${match.step.id}@${match.step.version}`}
+                type="button"
+                className="block w-full px-3 py-2 text-left text-sm hover:bg-white/5"
+                onClick={() => addChild(match)}
+              >
+                <span className="font-medium text-zinc-200">{match.title}</span>
+                <span className="ml-2 text-xs text-zinc-500">
+                  {match.step.id}@{match.step.version}
+                </span>
+              </button>
+            ))}
+          </div>
+        )}
       </Field>
-    </>
+      {!children.length && (
+        <p className="text-sm text-muted-foreground">Add ready definitions in the exact order they run.</p>
+      )}
+      {children.map((child, index) => {
+        const contract = contracts[compositionContractKey(child.step)]
+        const previousOutputs = children
+          .slice(0, index)
+          .flatMap(previous => contracts[compositionContractKey(previous.step)]?.outputs ?? [])
+        return (
+          <div
+            key={`${child.step.id}@${child.step.version}:${index}`}
+            className="space-y-3 rounded-md border border-white/10 p-3"
+          >
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <span className="text-sm text-zinc-200">
+                {index + 1}. {contract?.title ?? child.step.id}
+              </span>
+              <div className="flex gap-1">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  aria-label="Move child earlier"
+                  disabled={index === 0}
+                  onClick={() => moveChild(index, -1)}
+                >
+                  ↑
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  aria-label="Move child later"
+                  disabled={index === children.length - 1}
+                  onClick={() => moveChild(index, 1)}
+                >
+                  ↓
+                </Button>
+                <Button type="button" size="sm" variant="outline" onClick={() => removeChild(index)}>
+                  Remove
+                </Button>
+              </div>
+            </div>
+            <p className="text-xs text-zinc-500">
+              Exact reference: {child.step.id}@{child.step.version} · {child.step.definitionHash}
+            </p>
+            {contract?.inputs.map(input => {
+              const mapping = selectedCompositionMapping(child.inputs[input.name])
+              return (
+                <Field key={input.name} label={`Map ${input.name}`}>
+                  <Select value={mapping} onValueChange={value => updateMapping(index, input.name, value)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Choose a parent input or earlier output" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {definition.inputs.map(parent => (
+                        <SelectItem key={parent.name} value={parent.name}>
+                          Parent input: {parent.name}
+                        </SelectItem>
+                      ))}
+                      {previousOutputs.map(output => (
+                        <SelectItem key={output.name} value={`output:${output.name}`}>
+                          Earlier output: {output.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </Field>
+              )
+            })}
+          </div>
+        )
+      })}
+    </div>
   )
 }
 

@@ -22,6 +22,14 @@ For Step References, `definitionHash` is the aggregate hash of the definition, h
 execution integrity domains. This preserves the existing per-domain publication hashes while binding the complete
 executable contract.
 
+Composition drafts use the same child shape in both human and coordinator/MCP authoring:
+`{ step: { id, version, definitionHash }, inputs }`. The human editor searches only ready registry results, preserves
+the selected exact reference, and lets authors add, remove, reorder, and map each child input from a parent input or
+an earlier child output. The existing Step Definition search response supplies each ready child's typed `inputs` and
+`outputs`; coordinator draft create/update applies the same composition-child normalizer. Empty child lists are
+permitted only while a draft is being authored. Ready publication retains the runtime contract requirement for at
+least one child and applies the full mapping, closure, and cycle checks.
+
 The operation catalog is the semantic authority shared by human Template Step authoring, managed agent Validation
 ASTs, and runtime-capsule compilation. Contract and handler-neutral registry code lives under
 `packages/cucumber-runtime/src/operations`; the Appraise default projection lives in `src/lib/operation-catalog`.

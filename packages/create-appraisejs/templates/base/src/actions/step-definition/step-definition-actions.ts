@@ -7,6 +7,7 @@ import {
   StepDefinitionRegistryService,
 } from '@/services/step-definition/step-definition-registry-service'
 import { StepDefinitionExtensionService } from '@/services/step-definition/step-definition-extension-service'
+import { coordinatorStepDefinitionService } from '@/services/coordinator/coordinator-step-definition-service'
 import type { ActionResponse } from '@/types/form/actionHandler'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
@@ -14,6 +15,7 @@ import { z } from 'zod'
 const draftIdSchema = z.string().uuid()
 const revisionSchema = z.number().int().positive()
 const stepIdentitySchema = z.object({ stepId: z.string().min(1), version: z.string().min(1) })
+const readyDefinitionSearchSchema = z.string().trim().min(1).max(200)
 const registry = new StepDefinitionRegistryService(prisma)
 const extensions = new StepDefinitionExtensionService(prisma)
 
@@ -58,6 +60,13 @@ async function respond<T>(operation: () => Promise<T>, revalidate = false): Prom
 
 export async function createStepDefinitionDraftAction(definition: unknown): Promise<ActionResponse> {
   return respond(() => registry.createDraft(definition), true)
+}
+
+export async function searchReadyStepDefinitionContractsAction(query: string): Promise<ActionResponse> {
+  return respond(async () => {
+    const search = new URLSearchParams({ query: readyDefinitionSearchSchema.parse(query), limit: '10' })
+    return (await coordinatorStepDefinitionService.read(['step-definitions', 'search'], search)).body
+  })
 }
 
 export async function readStepDefinitionDraftAction(draftId: string): Promise<ActionResponse> {

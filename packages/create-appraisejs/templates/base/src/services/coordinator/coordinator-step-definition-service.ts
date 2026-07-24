@@ -2,6 +2,7 @@ import { z } from 'zod'
 
 import { computeStepReferenceHash } from '../../../packages/cucumber-runtime/src/step-definitions/index.ts'
 import prisma from '@/config/db-config'
+import { normalizeCompositionChildren } from '@/lib/step-definition/composition-authoring'
 import { ServiceError } from '@/services/shared/errors'
 import { StepDefinitionExtensionService } from '@/services/step-definition/step-definition-extension-service'
 import { StepDefinitionRegistryService } from '@/services/step-definition/step-definition-registry-service'
@@ -56,6 +57,8 @@ async function searchDefinitions(
           description: item.description,
           human: item.humanProjection ? JSON.parse(item.humanProjection.projectionJson) : null,
           agent: definition.agent,
+          inputs: definition.inputs,
+          outputs: definition.outputs,
           executionReadiness: item.executionBinding ? 'ready' : 'unbound',
           hashes: {
             definition: item.definitionHash,
@@ -99,7 +102,14 @@ async function createDraft(
   _operation: string[],
   body: unknown,
 ): Promise<StepDefinitionWriteResult> {
-  return { body: await registry.createDraft(body), status: 201 }
+  return { body: await registry.createDraft(normalizeDraftComposition(body)), status: 201 }
+}
+
+function normalizeDraftComposition(value: unknown) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return value
+  const draft = value as { execution?: { kind?: unknown; steps?: unknown } }
+  if (draft.execution?.kind !== 'composition') return value
+  return { ...draft, execution: { ...draft.execution, steps: normalizeCompositionChildren(draft.execution.steps) } }
 }
 
 const draftActionInput = z.object({ expectedRevision: z.number().int().positive() }).passthrough()
@@ -112,7 +122,7 @@ type DraftActionHandler = (
 
 const draftActionHandlers: Record<string, DraftActionHandler> = {
   update: async ({ registry }, draftId, input) => ({
-    body: await registry.updateDraft(draftId, input.expectedRevision, input.definition),
+    body: await registry.updateDraft(draftId, input.expectedRevision, normalizeDraftComposition(input.definition)),
   }),
   delete: async ({ registry }, draftId, input) => {
     await registry.deleteDraft(draftId, input.expectedRevision)

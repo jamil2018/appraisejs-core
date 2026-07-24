@@ -26,18 +26,28 @@ function readyDefinition(): StepDefinition {
       searchTerms: ['exact'],
       examples: ['Use the exact step.'],
     },
-    inputs: [],
-    outputs: [],
+    inputs: [
+      {
+        name: 'query',
+        label: 'Query',
+        description: 'The exact search query.',
+        type: 'string',
+        required: true,
+        examples: ['AppraiseJS'],
+        aliases: [],
+      },
+    ],
+    outputs: [{ name: 'result', description: 'The exact result.', type: 'string', storable: true }],
     human: {
-      signature: 'I use the exact searchable step',
+      signature: 'I use the exact searchable step for {query}',
       keywordCompatibility: ['When'],
-      parameterBindings: [],
+      parameterBindings: [{ placeholder: 'query', input: 'query' }],
       groupId: 'search-test',
     },
     agent: {
       summary: 'Use the exact searchable step.',
       usageGuidance: 'Use the returned Step Reference directly.',
-      examples: [{ intent: 'Search exactly', inputs: {} }],
+      examples: [{ intent: 'Search exactly', inputs: { query: 'AppraiseJS' } }],
     },
     execution: {
       kind: 'operation',
@@ -86,6 +96,7 @@ describe('coordinator Step Definition search', () => {
           bindingJson: JSON.stringify(definition.execution),
           bindingHash: hashes.executionHash,
         },
+        publicationReceipt: null,
       },
     ])
 
@@ -96,6 +107,8 @@ describe('coordinator Step Definition search', () => {
         matches: [
           {
             step: { definitionHash: computeStepReferenceHash(definition) },
+            inputs: definition.inputs,
+            outputs: definition.outputs,
             hashes: { definition: hashes.definitionHash, execution: hashes.executionHash },
           },
         ],
