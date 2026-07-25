@@ -54,7 +54,7 @@ describe('Step Definition Server Actions', () => {
       data: { id: draftId, revision: 1 },
     })
     expect(mocks.createDraft).toHaveBeenCalledWith({ identity: { id: 'custom.open' } })
-    expect(mocks.revalidatePath).toHaveBeenCalledWith('/template-steps')
+    expect(mocks.revalidatePath).toHaveBeenCalledWith('/template-steps/create')
   })
 
   it('uses the coordinator ready-definition search through the server action boundary', async () => {
@@ -111,6 +111,6 @@ describe('Step Definition Server Actions', () => {
       expectedRevision: 4,
       conformanceRunId: 'conformance-4',
     })
-    expect(mocks.revalidatePath).toHaveBeenCalledWith('/template-steps')
+    expect(mocks.revalidatePath).toHaveBeenCalledWith('/template-steps/create')
   })
 })

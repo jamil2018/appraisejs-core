@@ -9,7 +9,7 @@ type StoredProjectedStep = {
 type StoredProjectedDbStep = StoredProjectedStep & {
   flowNodeId: string | null
   label: string
-  TemplateStep: { signature: string } | null
+  invocationJson: string
   parameters: Array<{ name: string; value: string; order: number; type: StepParameterType }>
 }
 
@@ -21,7 +21,7 @@ export type ProjectedDbTestCaseStep = {
   flowNodeId: string | null
   label: string
   icon: TemplateStepIcon
-  templateStepSignature: string | null
+  invocationJson: string
   parameters: Array<{ name: string; value: string; order: number; type: StepParameterType }>
 }
 
@@ -70,7 +70,7 @@ export function normalizeProjectedDbTestCaseSteps(steps: StoredProjectedDbStep[]
       flowNodeId: step.flowNodeId,
       label: step.label,
       icon: determineProjectedStepIcon(keyword),
-      templateStepSignature: step.TemplateStep?.signature ?? null,
+      invocationJson: step.invocationJson,
       parameters: step.parameters,
     }
   })

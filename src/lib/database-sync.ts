@@ -1,10 +1,19 @@
 import prisma from '@/config/db-config'
 import { ParsedFeature, ParsedStep } from './gherkin-parser'
 import { buildModuleHierarchy } from './module-hierarchy-builder'
-import { Prisma, TemplateStepType, TemplateStepIcon, TestCase, TagType } from '@prisma/client'
+import { Prisma, TemplateStepIcon, TestCase, TagType } from '@prisma/client'
 import { getTagTypeFromExpression } from './tag-identifiers'
 import { getFeatureModulePath } from './path-helpers/feature-path'
+import { parseGherkinScenarioTitle } from './gherkin-scenario-title'
 import { getTestSuiteFilesystemKey } from './sync/projected-feature-utils'
+import {
+  canonicalStepDefinitionJson,
+  stepInvocationSchema,
+  validateStepInvocationInputs,
+} from '../../packages/cucumber-runtime/src/step-definitions/contracts.ts'
+import { resolveReadyExactStepDefinitions } from '@/services/shared/step-invocation-validation'
+
+type SyncClient = Prisma.TransactionClient
 
 function splitTagLine(tagLine: string): string[] {
   return tagLine
@@ -20,23 +29,6 @@ function flattenFeatureTags(tags: string[]): string[] {
 function extractTestSuiteNameFromFilename(filePath: string): string {
   const fileName = filePath.split(/[/\\]/).pop() || ''
   return fileName.replace(/\.feature$/, '')
-}
-
-function parseScenarioTitle(
-  scenarioName: string,
-  scenarioDescription?: string,
-): { title: string; description: string } {
-  if (scenarioDescription) {
-    return {
-      title: scenarioDescription.trim(),
-      description: scenarioName.trim(),
-    }
-  }
-
-  return {
-    title: scenarioName.trim(),
-    description: '',
-  }
 }
 
 /**
@@ -64,10 +56,10 @@ function deriveTagName(tagExpression: string): string {
  * @param tagExpression - The tag expression (e.g., "@smoke")
  * @returns Promise<string> - The tag ID
  */
-async function findOrCreateTag(tagExpression: string): Promise<string> {
+async function findOrCreateTag(tagExpression: string, client: SyncClient): Promise<string> {
   try {
     // Find existing tag by tagExpression
-    const existingTag = await prisma.tag.findFirst({
+    const existingTag = await client.tag.findFirst({
       where: {
         tagExpression: tagExpression,
       },
@@ -79,7 +71,7 @@ async function findOrCreateTag(tagExpression: string): Promise<string> {
     if (existingTag) {
       // Update type if it differs from expected type
       if (existingTag.type !== expectedType) {
-        await prisma.tag.update({
+        await client.tag.update({
           where: { id: existingTag.id },
           data: { type: expectedType },
         })
@@ -89,7 +81,7 @@ async function findOrCreateTag(tagExpression: string): Promise<string> {
     }
 
     // Create new tag
-    const newTag = await prisma.tag.create({
+    const newTag = await client.tag.create({
       data: {
         name: tagName,
         tagExpression: tagExpression,
@@ -112,11 +104,12 @@ async function findOrCreateTestSuite(
   name: string,
   description: string | undefined,
   moduleId: string,
+  client: SyncClient,
   tags?: string[],
 ): Promise<string | null> {
   try {
     // Try to find existing test suite
-    const existingTestSuite = await prisma.testSuite.findFirst({
+    const existingTestSuite = await client.testSuite.findFirst({
       where: {
         name: name,
         moduleId: moduleId,
@@ -129,8 +122,8 @@ async function findOrCreateTestSuite(
     if (existingTestSuite) {
       // Associate tags if provided
       if (tags && tags.length > 0) {
-        const tagIds = await Promise.all(tags.map(tag => findOrCreateTag(tag)))
-        await prisma.testSuite.update({
+        const tagIds = await Promise.all(tags.map(tag => findOrCreateTag(tag, client)))
+        await client.testSuite.update({
           where: { id: existingTestSuite.id },
           data: {
             tags: {
@@ -143,9 +136,9 @@ async function findOrCreateTestSuite(
     }
 
     // Create new test suite with tags
-    const tagIds = tags && tags.length > 0 ? await Promise.all(tags.map(tag => findOrCreateTag(tag))) : []
+    const tagIds = tags && tags.length > 0 ? await Promise.all(tags.map(tag => findOrCreateTag(tag, client))) : []
 
-    const newTestSuite = await prisma.testSuite.create({
+    const newTestSuite = await client.testSuite.create({
       data: {
         name: name,
         description: description || null,
@@ -169,11 +162,12 @@ async function findOrCreateTestCase(
   title: string,
   description: string,
   testSuiteId: string,
+  client: SyncClient,
   tags?: string[],
 ): Promise<string | null> {
   try {
     // Try to find existing test case
-    const existingTestCase: TestCase | null = await prisma.testCase.findFirst({
+    const existingTestCase: TestCase | null = await client.testCase.findFirst({
       where: {
         title: title,
         TestSuite: {
@@ -190,8 +184,8 @@ async function findOrCreateTestCase(
     if (existingTestCase) {
       // Associate tags if provided
       if (tags && tags.length > 0) {
-        const tagIds = await Promise.all(tags.map(tag => findOrCreateTag(tag)))
-        await prisma.testCase.update({
+        const tagIds = await Promise.all(tags.map(tag => findOrCreateTag(tag, client)))
+        await client.testCase.update({
           where: { id: existingTestCase.id },
           data: {
             tags: {
@@ -204,9 +198,9 @@ async function findOrCreateTestCase(
     }
 
     // Create new test case with tags
-    const tagIds = tags && tags.length > 0 ? await Promise.all(tags.map(tag => findOrCreateTag(tag))) : []
+    const tagIds = tags && tags.length > 0 ? await Promise.all(tags.map(tag => findOrCreateTag(tag, client))) : []
 
-    const newTestCase = await prisma.testCase.create({
+    const newTestCase = await client.testCase.create({
       data: {
         title: title,
         description: description,
@@ -228,84 +222,48 @@ async function findOrCreateTestCase(
 }
 
 /**
- * Finds or creates a template step
- */
-async function findOrCreateTemplateStep(step: ParsedStep): Promise<string | null> {
-  try {
-    // Try to find existing template step by signature
-    const signature = `${step.keyword} ${step.text}`
-    const existingTemplateStep = await prisma.templateStep.findFirst({
-      where: {
-        signature: signature,
-      },
-    })
-
-    if (existingTemplateStep) {
-      return existingTemplateStep.id
-    }
-
-    // Create a default template step group if none exists
-    let templateStepGroup = await prisma.templateStepGroup.findFirst()
-    if (!templateStepGroup) {
-      templateStepGroup = await prisma.templateStepGroup.create({
-        data: {
-          name: 'Default Steps',
-          description: 'Auto-generated template step group for feature file steps',
-        },
-      })
-    }
-
-    // Determine step type and icon based on keyword
-    const { type, icon } = determineStepTypeAndIcon(step.keyword)
-
-    // Create new template step
-    const newTemplateStep = await prisma.templateStep.create({
-      data: {
-        name: step.text.substring(0, 50) + (step.text.length > 50 ? '...' : ''),
-        description: `Auto-generated step: ${step.text}`,
-        signature: signature,
-        type: type,
-        icon: icon,
-        templateStepGroupId: templateStepGroup.id,
-      },
-    })
-
-    console.log(`Created template step: ${signature}`)
-    return newTemplateStep.id
-  } catch (error) {
-    console.error(`Error creating template step for ${step.keyword} ${step.text}:`, error)
-    return null
-  }
-}
-
-/**
  * Determines the step type and icon based on the Gherkin keyword
  */
-function determineStepTypeAndIcon(keyword: string): { type: TemplateStepType; icon: TemplateStepIcon } {
+function determineStepTypeAndIcon(keyword: string): { icon: TemplateStepIcon } {
   const lowerKeyword = keyword.toLowerCase().trim()
 
   if (lowerKeyword === 'given') {
-    return { type: 'ACTION', icon: 'NAVIGATION' }
+    return { icon: 'NAVIGATION' }
   } else if (lowerKeyword === 'when') {
-    return { type: 'ACTION', icon: 'MOUSE' }
+    return { icon: 'MOUSE' }
   } else if (lowerKeyword === 'then') {
-    return { type: 'ASSERTION', icon: 'VALIDATION' }
+    return { icon: 'VALIDATION' }
   } else if (lowerKeyword === 'and' || lowerKeyword === 'but') {
-    return { type: 'ACTION', icon: 'MOUSE' }
+    return { icon: 'MOUSE' }
   } else {
     // Default fallback
-    return { type: 'ACTION', icon: 'MOUSE' }
+    return { icon: 'MOUSE' }
   }
 }
 
 /**
  * Creates or updates a test case step
  */
-async function createOrUpdateTestCaseStep(testCaseId: string, step: ParsedStep, templateStepId: string): Promise<void> {
+export async function createOrUpdateTestCaseStep(
+  testCaseId: string,
+  step: ParsedStep,
+  client: SyncClient,
+): Promise<void> {
   const metadataNode = step.appraiseNode
+  if (!metadataNode?.invocation) {
+    throw new Error(
+      `Feature import requires an exact Step Invocation in Appraise metadata for ${step.keyword} ${step.text}; it will not infer or create a Step Definition.`,
+    )
+  }
+  const invocation = stepInvocationSchema.parse(metadataNode.invocation)
+  const definitions = await resolveReadyExactStepDefinitions([{ invocation }], client)
+  if (!definitions) {
+    throw new Error(`Feature import references an unavailable exact Step Definition for ${step.keyword} ${step.text}.`)
+  }
+  validateStepInvocationInputs(definitions[0]!, invocation.inputs)
   try {
     // Check if step already exists
-    const existingStep = await prisma.testCaseStep.findFirst({
+    const existingStep = await client.testCaseStep.findFirst({
       where: {
         testCaseId: testCaseId,
         order: step.order,
@@ -315,18 +273,18 @@ async function createOrUpdateTestCaseStep(testCaseId: string, step: ParsedStep, 
 
     if (existingStep) {
       // Update existing step
-      await prisma.testCaseStep.update({
+      await client.testCaseStep.update({
         where: { id: existingStep.id },
         data: {
           gherkinStep: `${step.keyword} ${step.text}`,
           flowNodeId: metadataNode?.nodeId ?? existingStep.flowNodeId,
           label: metadataNode?.label ?? step.text,
-          templateStepId: templateStepId,
+          invocationJson: canonicalStepDefinitionJson(invocation),
         },
       })
     } else {
       // Create new step
-      await prisma.testCaseStep.create({
+      await client.testCaseStep.create({
         data: {
           testCaseId: testCaseId,
           order: step.order,
@@ -334,7 +292,7 @@ async function createOrUpdateTestCaseStep(testCaseId: string, step: ParsedStep, 
           flowNodeId: metadataNode?.nodeId,
           icon: determineStepTypeAndIcon(step.keyword).icon,
           label: metadataNode?.label ?? step.text,
-          templateStepId: templateStepId,
+          invocationJson: canonicalStepDefinitionJson(invocation),
         },
       })
     }
@@ -359,26 +317,22 @@ type ExistingTestSuite = Prisma.TestSuiteGetPayload<{
   include: typeof testSuiteInclude
 }>
 
-async function createScenarioTestCase(scenario: ParsedScenario, testSuiteId: string): Promise<string | null> {
-  const parsedTitle = parseScenarioTitle(scenario.name, scenario.description)
+async function createScenarioTestCase(
+  scenario: ParsedScenario,
+  testSuiteId: string,
+  client: SyncClient,
+): Promise<string | null> {
+  const parsedTitle = parseGherkinScenarioTitle(scenario.name, scenario.description)
   const title = scenario.appraiseMetadata?.title ?? parsedTitle.title
   const description = scenario.appraiseMetadata?.description ?? parsedTitle.description
-  return findOrCreateTestCase(title, description, testSuiteId, scenario.tags)
+  return findOrCreateTestCase(title, description, testSuiteId, client, scenario.tags)
 }
 
-async function createScenarioSteps(testCaseId: string, steps: ParsedStep[]): Promise<number> {
-  let createdTemplateSteps = 0
-
+async function createScenarioSteps(testCaseId: string, steps: ParsedStep[], client: SyncClient): Promise<number> {
   for (const step of steps) {
-    const templateStepId = await findOrCreateTemplateStep(step)
-
-    if (templateStepId) {
-      createdTemplateSteps++
-      await createOrUpdateTestCaseStep(testCaseId, step, templateStepId)
-    }
+    await createOrUpdateTestCaseStep(testCaseId, step, client)
   }
-
-  return createdTemplateSteps
+  return steps.length
 }
 
 function applyScenarioMetadataToSteps(scenario: ParsedScenario): ParsedStep[] {
@@ -389,14 +343,18 @@ function applyScenarioMetadataToSteps(scenario: ParsedScenario): ParsedStep[] {
   }))
 }
 
-async function replaceScenarioFlowBlocks(testCaseId: string, scenario: ParsedScenario): Promise<void> {
+async function replaceScenarioFlowBlocks(
+  testCaseId: string,
+  scenario: ParsedScenario,
+  client: SyncClient,
+): Promise<void> {
   if (!scenario.appraiseMetadata) {
     return
   }
 
   const validNodeIds = new Set(scenario.appraiseMetadata.nodes.map(node => node.nodeId))
 
-  await prisma.testCaseFlowBlock.deleteMany({
+  await client.testCaseFlowBlock.deleteMany({
     where: { testCaseId },
   })
 
@@ -404,7 +362,7 @@ async function replaceScenarioFlowBlocks(testCaseId: string, scenario: ParsedSce
     return
   }
 
-  await prisma.testCase.update({
+  await client.testCase.update({
     where: { id: testCaseId },
     data: {
       flowBlocks: {
@@ -421,11 +379,15 @@ async function replaceScenarioFlowBlocks(testCaseId: string, scenario: ParsedSce
   })
 }
 
-async function findExistingTestSuite(feature: ParsedFeature, moduleId: string): Promise<ExistingTestSuite | null> {
+async function findExistingTestSuite(
+  feature: ParsedFeature,
+  moduleId: string,
+  client: SyncClient,
+): Promise<ExistingTestSuite | null> {
   const suiteIdentifierTag = flattenFeatureTags(feature.tags).find(tag => tag.replace(/^@/, '').startsWith('ts_'))
 
   if (suiteIdentifierTag) {
-    const suiteByTag = await prisma.testSuite.findFirst({
+    const suiteByTag = await client.testSuite.findFirst({
       where: {
         moduleId,
         tags: {
@@ -443,7 +405,7 @@ async function findExistingTestSuite(feature: ParsedFeature, moduleId: string): 
   }
 
   const filesystemKey = getTestSuiteFilesystemKey(extractTestSuiteNameFromFilename(feature.filePath))
-  const suitesInModule = await prisma.testSuite.findMany({
+  const suitesInModule = await client.testSuite.findMany({
     where: { moduleId },
     include: testSuiteInclude,
   })
@@ -453,7 +415,7 @@ async function findExistingTestSuite(feature: ParsedFeature, moduleId: string): 
     return suiteByFilename
   }
 
-  return prisma.testSuite.findFirst({
+  return client.testSuite.findFirst({
     where: {
       name: feature.featureName,
       moduleId,
@@ -462,14 +424,14 @@ async function findExistingTestSuite(feature: ParsedFeature, moduleId: string): 
   })
 }
 
-async function connectTagsToTestSuite(testSuiteId: string, tags?: string[]): Promise<void> {
+async function connectTagsToTestSuite(testSuiteId: string, client: SyncClient, tags?: string[]): Promise<void> {
   if (!tags || tags.length === 0) {
     return
   }
 
-  const tagIds = await Promise.all(tags.map(tag => findOrCreateTag(tag)))
+  const tagIds = await Promise.all(tags.map(tag => findOrCreateTag(tag, client)))
 
-  await prisma.testSuite.update({
+  await client.testSuite.update({
     where: { id: testSuiteId },
     data: {
       tags: {
@@ -489,19 +451,23 @@ function findExistingScenarioTestCase(
     return testCases.find(testCase => testCase.tags.some(tag => tag.tagExpression === identifierTag))
   }
 
-  const { title } = parseScenarioTitle(scenario.name, scenario.description)
+  const { title } = parseGherkinScenarioTitle(scenario.name, scenario.description)
   return testCases.find(testCase => testCase.title === title)
 }
 
-async function addMissingScenariosToTestSuite(feature: ParsedFeature, testSuite: ExistingTestSuite): Promise<number> {
+async function addMissingScenariosToTestSuite(
+  feature: ParsedFeature,
+  testSuite: ExistingTestSuite,
+  client: SyncClient,
+): Promise<number> {
   let addedScenarios = 0
 
   for (const scenario of feature.scenarios) {
     const existingTestCase = findExistingScenarioTestCase(scenario, testSuite.testCases)
 
     if (existingTestCase) {
-      await updateExistingScenarioMetadata(existingTestCase.id, scenario)
-    } else if (await addScenarioToTestSuite(scenario, testSuite.id)) {
+      await updateExistingScenarioMetadata(existingTestCase.id, scenario, client)
+    } else if (await addScenarioToTestSuite(scenario, testSuite.id, client)) {
       addedScenarios++
     }
   }
@@ -509,24 +475,32 @@ async function addMissingScenariosToTestSuite(feature: ParsedFeature, testSuite:
   return addedScenarios
 }
 
-async function addScenarioToTestSuite(scenario: ParsedScenario, testSuiteId: string): Promise<boolean> {
-  const testCaseId = await createScenarioTestCase(scenario, testSuiteId)
+async function addScenarioToTestSuite(
+  scenario: ParsedScenario,
+  testSuiteId: string,
+  client: SyncClient,
+): Promise<boolean> {
+  const testCaseId = await createScenarioTestCase(scenario, testSuiteId, client)
 
   if (!testCaseId) {
     return false
   }
 
-  await createScenarioSteps(testCaseId, applyScenarioMetadataToSteps(scenario))
-  await replaceScenarioFlowBlocks(testCaseId, scenario)
+  await createScenarioSteps(testCaseId, applyScenarioMetadataToSteps(scenario), client)
+  await replaceScenarioFlowBlocks(testCaseId, scenario, client)
   return true
 }
 
-async function updateExistingScenarioMetadata(testCaseId: string, scenario: ParsedScenario): Promise<void> {
+async function updateExistingScenarioMetadata(
+  testCaseId: string,
+  scenario: ParsedScenario,
+  client: SyncClient,
+): Promise<void> {
   if (!scenario.appraiseMetadata) {
     return
   }
 
-  await prisma.testCase.update({
+  await client.testCase.update({
     where: { id: testCaseId },
     data: {
       title: scenario.appraiseMetadata.title,
@@ -534,13 +508,14 @@ async function updateExistingScenarioMetadata(testCaseId: string, scenario: Pars
     },
   })
 
-  await createScenarioSteps(testCaseId, applyScenarioMetadataToSteps(scenario))
-  await replaceScenarioFlowBlocks(testCaseId, scenario)
+  await createScenarioSteps(testCaseId, applyScenarioMetadataToSteps(scenario), client)
+  await replaceScenarioFlowBlocks(testCaseId, scenario, client)
 }
 
 async function createTestSuiteWithScenarios(
   feature: ParsedFeature,
   moduleId: string,
+  client: SyncClient,
 ): Promise<{
   createdTestSuite: boolean
   addedScenarios: number
@@ -549,6 +524,7 @@ async function createTestSuiteWithScenarios(
     extractTestSuiteNameFromFilename(feature.filePath),
     feature.featureDescription || feature.featureName,
     moduleId,
+    client,
     feature.tags,
   )
 
@@ -559,7 +535,7 @@ async function createTestSuiteWithScenarios(
   let addedScenarios = 0
 
   for (const scenario of feature.scenarios) {
-    if (await addScenarioToTestSuite(scenario, testSuiteId)) {
+    if (await addScenarioToTestSuite(scenario, testSuiteId, client)) {
       addedScenarios++
     }
   }
@@ -601,6 +577,28 @@ export async function mergeScenariosWithExistingTestSuites(
   }
 }
 
+export function assertFeatureImportMetadata(feature: ParsedFeature): void {
+  if (feature.metadataWarnings.length > 0) {
+    throw new Error(`Feature import requires valid Appraise metadata: ${feature.metadataWarnings.join('; ')}`)
+  }
+
+  for (const scenario of feature.scenarios) {
+    if (scenario.steps.length === 0) continue
+    if (!scenario.appraiseMetadata) {
+      throw new Error(`Feature import requires Appraise metadata for scenario ${scenario.name}.`)
+    }
+
+    const nodesByOrder = new Map(scenario.appraiseMetadata.nodes.map(node => [node.order, node]))
+    for (const step of scenario.steps) {
+      const node = nodesByOrder.get(step.order)
+      if (!node) {
+        throw new Error(`Feature import requires Appraise metadata for ${step.keyword} ${step.text}.`)
+      }
+      stepInvocationSchema.parse(node.invocation)
+    }
+  }
+}
+
 async function mergeFeatureScenarios(
   feature: ParsedFeature,
   featuresBaseDir: string,
@@ -608,22 +606,26 @@ async function mergeFeatureScenarios(
   mergedTestSuites: number
   addedScenarios: number
 }> {
-  const moduleId = await buildModuleHierarchy(getFeatureModulePath(feature.filePath, featuresBaseDir))
-  const existingTestSuite = await findExistingTestSuite(feature, moduleId)
+  assertFeatureImportMetadata(feature)
 
-  if (existingTestSuite) {
-    await connectTagsToTestSuite(existingTestSuite.id, feature.tags)
+  return prisma.$transaction(async client => {
+    const moduleId = await buildModuleHierarchy(getFeatureModulePath(feature.filePath, featuresBaseDir), client)
+    const existingTestSuite = await findExistingTestSuite(feature, moduleId, client)
+
+    if (existingTestSuite) {
+      await connectTagsToTestSuite(existingTestSuite.id, client, feature.tags)
+
+      return {
+        mergedTestSuites: 1,
+        addedScenarios: await addMissingScenariosToTestSuite(feature, existingTestSuite, client),
+      }
+    }
+
+    const result = await createTestSuiteWithScenarios(feature, moduleId, client)
 
     return {
-      mergedTestSuites: 1,
-      addedScenarios: await addMissingScenariosToTestSuite(feature, existingTestSuite),
+      mergedTestSuites: result.createdTestSuite ? 1 : 0,
+      addedScenarios: result.addedScenarios,
     }
-  }
-
-  const result = await createTestSuiteWithScenarios(feature, moduleId)
-
-  return {
-    mergedTestSuites: result.createdTestSuite ? 1 : 0,
-    addedScenarios: result.addedScenarios,
-  }
+  })
 }

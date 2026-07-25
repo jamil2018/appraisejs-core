@@ -178,7 +178,7 @@ describe('run evidence summary service', () => {
         status: 'failed',
         errorMessage: `Expected HomeChores but found SecondWife\n${'stack detail '.repeat(40)}`,
       },
-    ]
+    ] as never
     mockParseCucumberReport.mockResolvedValue(report)
 
     const summary = await summarizeRunEvidence('11111111-1111-4111-8111-111111111111')

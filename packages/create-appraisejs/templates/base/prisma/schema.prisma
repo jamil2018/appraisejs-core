@@ -47,31 +47,6 @@ model LinkedJiraTicket {
   testCase      TestCase @relation(fields: [testCaseId], references: [id])
 }
 
-model TemplateStep {
-  id                      String                  @id @default(uuid())
-  name                    String
-  description             String?
-  createdAt               DateTime                @default(now())
-  updatedAt               DateTime                @updatedAt
-  signature               String
-  functionDefinition      String?
-  operationId             String?
-  operationVersion        String?
-  operationDescriptorHash String?
-  humanProjectionId       String?
-  operationMigrationState String?
-  type                    TemplateStepType
-  icon                    TemplateStepIcon
-  templateStepGroupId     String
-  templateStepGroup       TemplateStepGroup       @relation("TemplateStepGroupSteps", fields: [templateStepGroupId], references: [id], onDelete: Cascade)
-  parameters              TemplateStepParameter[]
-  TemplateTestCaseStep    TemplateTestCaseStep[]
-  TestCaseStep            TestCaseStep[]
-  StepBlockStep           StepBlockStep[]
-
-  @@index([operationId, operationVersion])
-}
-
 model StepDefinition {
   id                  String
   version             String
@@ -111,31 +86,8 @@ model StepDefinitionDraft {
   createdAt            DateTime                     @default(now())
   updatedAt            DateTime                     @updatedAt
   artifact             StepDefinitionDraftArtifact?
-  migrationLedger      StepBlockMigrationLedger?
 
   @@index([proposedStepId, proposedVersion])
-}
-
-model StepBlockMigrationLedger {
-  sourceStepBlockId   String               @id
-  initialSourceHash   String
-  initialSnapshotJson String
-  sourceHash          String
-  draftSourceHash     String?
-  snapshotJson        String
-  classification      String
-  diagnosticsJson     String
-  proposedStepId      String?
-  proposedVersion     String?
-  converterVersion    String
-  draftId             String?              @unique
-  status              String
-  createdAt           DateTime             @default(now())
-  updatedAt           DateTime             @updatedAt
-  lastAppliedAt       DateTime?
-  draft               StepDefinitionDraft? @relation(fields: [draftId], references: [id], onDelete: SetNull)
-
-  @@index([classification, status])
 }
 
 model StepDefinitionDraftArtifact {
@@ -256,31 +208,6 @@ enum StepExecutionKind {
   reviewed_extension
 }
 
-model TemplateStepParameter {
-  id             String            @id @default(uuid())
-  name           String
-  createdAt      DateTime          @default(now())
-  updatedAt      DateTime          @updatedAt
-  templateStepId String
-  order          Int
-  type           StepParameterType
-  templateStep   TemplateStep      @relation(fields: [templateStepId], references: [id], onDelete: Cascade)
-}
-
-model TemplateStepGroup {
-  id              String                @id @default(uuid())
-  name            String
-  description     String?
-  type            TemplateStepGroupType @default(ACTION)
-  createdAt       DateTime              @default(now())
-  updatedAt       DateTime              @updatedAt
-  templateSteps   TemplateStep[]        @relation("TemplateStepGroupSteps")
-  targetProjectId String?
-  targetProject   TargetProject?        @relation(fields: [targetProjectId], references: [id], onDelete: Restrict)
-
-  @@unique([name])
-}
-
 model StepBlock {
   id              String          @id @default(uuid())
   name            String
@@ -296,15 +223,13 @@ model StepBlock {
 }
 
 model StepBlockStep {
-  id                      String       @id @default(uuid())
-  stepBlockId             String
-  templateStepId          String
-  order                   Int
-  parameterMap            String       @default("{}")
-  operationInvocationJson String?
-  compositionVersionHash  String?
-  stepBlock               StepBlock    @relation(fields: [stepBlockId], references: [id], onDelete: Cascade)
-  templateStep            TemplateStep @relation(fields: [templateStepId], references: [id], onDelete: Cascade)
+  id                 String    @id @default(uuid())
+  stepBlockId        String
+  order              Int
+  invocationJson     String
+  parameterMap       String    @default("{}")
+  compositionVersionHash String?
+  stepBlock          StepBlock @relation(fields: [stepBlockId], references: [id], onDelete: Cascade)
 
   @@unique([stepBlockId, order])
 }
@@ -330,18 +255,16 @@ model TestCase {
 }
 
 model TestCaseStep {
-  id                      String                  @id @default(uuid())
-  flowNodeId              String?
-  testCaseId              String
-  order                   Int
-  gherkinStep             String
-  icon                    TemplateStepIcon
-  label                   String
-  templateStepId          String?
-  operationInvocationJson String?
-  TemplateStep            TemplateStep?           @relation(fields: [templateStepId], references: [id], onDelete: Cascade)
-  testCase                TestCase                @relation(fields: [testCaseId], references: [id])
-  parameters              TestCaseStepParameter[]
+  id             String                  @id @default(uuid())
+  flowNodeId     String?
+  testCaseId     String
+  order          Int
+  gherkinStep    String
+  icon           TemplateStepIcon
+  label          String
+  invocationJson String
+  testCase       TestCase                @relation(fields: [testCaseId], references: [id])
+  parameters     TestCaseStepParameter[]
 }
 
 model TestCaseFlowBlock {
@@ -375,18 +298,16 @@ model TemplateTestCase {
 }
 
 model TemplateTestCaseStep {
-  id                      String                          @id @default(uuid())
-  flowNodeId              String?
-  order                   Int
-  gherkinStep             String
-  icon                    TemplateStepIcon
-  label                   String
-  templateTestCaseId      String
-  templateStepId          String
-  operationInvocationJson String?
-  TemplateStep            TemplateStep                    @relation(fields: [templateStepId], references: [id], onDelete: Cascade)
-  templateTestCase        TemplateTestCase                @relation(fields: [templateTestCaseId], references: [id])
-  parameters              TemplateTestCaseStepParameter[]
+  id                 String                          @id @default(uuid())
+  flowNodeId         String?
+  order              Int
+  gherkinStep        String
+  icon               TemplateStepIcon
+  label              String
+  templateTestCaseId String
+  invocationJson     String
+  templateTestCase   TemplateTestCase                @relation(fields: [templateTestCaseId], references: [id])
+  parameters         TemplateTestCaseStepParameter[]
 }
 
 model TemplateTestCaseFlowBlock {
@@ -634,7 +555,6 @@ model TargetProject {
   delegatedCoordinatorReceipts   DelegatedCoordinatorReceipt[]
   testSuites                     TestSuite[]
   testCases                      TestCase[]
-  templateStepGroups             TemplateStepGroup[]
   stepBlocks                     StepBlock[]
   templateTestCases              TemplateTestCase[]
   locators                       Locator[]

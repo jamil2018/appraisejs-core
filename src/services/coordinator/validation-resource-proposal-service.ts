@@ -424,16 +424,6 @@ export async function cleanupValidationResourceProposal(
     await remove('environment', removableIds('environment'), () =>
       tx.environment.deleteMany({ where: { id: { in: removableIds('environment') }, testRuns: { none: {} } } }),
     )
-    await remove('template-step', removableIds('template-step'), () =>
-      tx.templateStep.deleteMany({
-        where: {
-          id: { in: removableIds('template-step') },
-          TemplateTestCaseStep: { none: {} },
-          TestCaseStep: { none: {} },
-          StepBlockStep: { none: {} },
-        },
-      }),
-    )
     const moduleIds = removableIds('module')
     for (const moduleId of moduleIds.reverse()) {
       await remove('module', [moduleId], () =>

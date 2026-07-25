@@ -1,11 +1,10 @@
 'use client'
 
 import type { ActionResponseData } from '@/types/form/actionHandler'
-import type { TemplateStep, TemplateTestCase, TestCase, TestRun, TestSuite } from '@prisma/client'
-import { Blocks, LayoutTemplate, ListChecks, TestTubeDiagonal, TestTubes } from 'lucide-react'
+import type { TemplateTestCase, TestCase, TestRun, TestSuite } from '@prisma/client'
+import { Blocks, ListChecks, TestTubeDiagonal, TestTubes } from 'lucide-react'
 
 import { getAllTemplateTestCasesAction } from '@/actions/template-test-case/template-test-case-actions'
-import { getAllTemplateStepsAction } from '@/actions/template-step/template-step-actions'
 import { getAllTestCasesAction } from '@/actions/test-case/test-case-actions'
 import { getAllTestRunsAction } from '@/actions/test-run/test-run-actions'
 import { getAllTestSuitesAction } from '@/actions/test-suite/test-suite-actions'
@@ -27,10 +26,6 @@ function isTestCaseRow(value: unknown): value is TestCase {
   return typeof value === 'object' && value !== null && 'id' in value && 'title' in value
 }
 
-function isTemplateStepRow(value: unknown): value is TemplateStep {
-  return typeof value === 'object' && value !== null && 'id' in value && 'name' in value
-}
-
 function isTestRunRow(value: unknown): value is TestRun {
   return typeof value === 'object' && value !== null && 'id' in value && 'name' in value
 }
@@ -45,10 +40,6 @@ function getTestSuiteRows(data: ActionResponseData | undefined): TestSuite[] {
 
 function getTestCaseRows(data: ActionResponseData | undefined): TestCase[] {
   return Array.isArray(data) ? data.filter(isTestCaseRow) : []
-}
-
-function getTemplateStepRows(data: ActionResponseData | undefined): TemplateStep[] {
-  return Array.isArray(data) ? data.filter(isTemplateStepRow) : []
 }
 
 function getTestRunRows(data: ActionResponseData | undefined): TestRun[] {
@@ -83,18 +74,6 @@ export function NavCommandSearch({ commandMode, searchQuery, onSelectRoute }: Na
           searchKey="title"
           icon={<TestTubeDiagonal className="size-4" />}
           onSelect={testCase => onSelectRoute(`/test-cases/modify/${testCase.id}`)}
-        />
-      )
-    case 'search-template-step':
-      return (
-        <EntitySearchCommand
-          searchQuery={searchQuery}
-          entityName="Template Step"
-          fetchAction={getAllTemplateStepsAction}
-          getEntities={getTemplateStepRows}
-          searchKey="name"
-          icon={<LayoutTemplate className="size-4" />}
-          onSelect={templateStep => onSelectRoute(`/template-steps/modify/${templateStep.id}`)}
         />
       )
     case 'search-test-run':

@@ -26,7 +26,6 @@ export function registerResourcesOperations(context: McpRegistryContext): void {
       value: {
         version: OPERATION_CATALOG_CONTRACT_VERSION,
         operations: ['categories', 'search', 'read'],
-        legacyAliases: ['actions', 'template-steps'],
       },
     },
     {

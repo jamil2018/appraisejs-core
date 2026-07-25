@@ -1,6 +1,6 @@
 # appraisejs Package Agent Guidance
 
-This package provides the public AppraiseJS CLI, registry installer, coordinator client, and MCP server. Follow root
+This package provides the public AppraiseJS CLI, coordinator client, and MCP server. Follow root
 `AGENTS.md` first, then this file for package-specific routing.
 
 ## Sources Of Truth

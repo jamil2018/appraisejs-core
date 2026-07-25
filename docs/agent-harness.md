@@ -8,7 +8,7 @@ and safety layer; this file points to the detailed agent docs that keep navigati
 - Root app: Next.js app source in `src/`, Prisma schema in `prisma/`, automation assets in `automation/`, sync and
   setup scripts in `scripts/`.
 - Scaffold package: `packages/create-appraisejs`, with one bundled `templates/base` app and small flavor overlays.
-- CLI and MCP package: `packages/appraisejs`, with CLI entry points, coordinator client code, registry content, and
+- CLI and MCP package: `packages/appraisejs`, with CLI entry points, coordinator client code, and
   MCP tests.
 - Repo-local skills: `.agents/skills`, intended to route agents to source files, docs, and validation commands.
 - Project Codex agents: `.codex/agents`, defining the investigator, solver, executor, and judge model roles.

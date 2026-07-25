@@ -21,7 +21,7 @@ export function toNodeOrderMap(nodeOrder: DiagramNodeOrder): NodeOrderMap {
         type: parameter.type,
         order: parameter.order,
       })),
-      templateStepId: nodeData.templateStepId,
+      invocation: nodeData.invocation,
     }
   })
 
@@ -43,7 +43,7 @@ export function toTemplateTestCaseNodeOrderMap(nodeOrder: DiagramNodeOrder): Tem
         type: parameter.type,
         order: parameter.order,
       })),
-      templateStepId: nodeData.templateStepId,
+      invocation: nodeData.invocation,
     }
   })
 

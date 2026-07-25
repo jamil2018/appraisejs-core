@@ -1,20 +1,17 @@
 import prisma from '@/config/db-config'
 import { stepBlockSchema, type StepBlockFormValues } from '@/constants/form-opts/step-block-form-opts'
-import { buildCanonicalStepBlockOperation } from '@/lib/operation-catalog/invocation'
 import { ServiceError } from '@/services/shared/errors'
+import { stepBlockStepCreates } from '@/services/shared/authored-step-persistence'
+import { resolveReadyExactStepDefinitions } from '@/services/shared/step-invocation-validation'
 import { Prisma } from '@prisma/client'
+import {
+  stepDefinitionContentHash,
+  stepInvocationSchema,
+} from '../../../packages/cucumber-runtime/src/step-definitions/contracts.ts'
 
 const stepBlockInclude = {
   steps: {
     orderBy: { order: 'asc' },
-    include: {
-      templateStep: {
-        include: {
-          parameters: { orderBy: { order: 'asc' } },
-          templateStepGroup: true,
-        },
-      },
-    },
   },
 } satisfies Prisma.StepBlockInclude
 
@@ -32,9 +29,8 @@ function normalizeStepBlockInput(value: StepBlockFormValues) {
     description: normalizeOptionalText(parsed.description),
     intent: normalizeOptionalText(parsed.intent),
     steps: parsed.steps.map((step, order) => ({
-      templateStepId: step.templateStepId,
+      invocation: stepInvocationSchema.parse(step.invocation),
       order,
-      parameterMap: '{}',
     })),
   }
 }
@@ -58,45 +54,21 @@ export async function getStepBlockByIdOrThrow(id: string, targetProjectId: strin
   return stepBlock
 }
 
-async function resolveTemplateSteps(templateStepIds: string[]) {
-  const ids = [...new Set(templateStepIds)]
-  const steps = await prisma.templateStep.findMany({
-    where: { id: { in: ids } },
-    select: {
-      id: true,
-      signature: true,
-      operationId: true,
-      operationVersion: true,
-      operationDescriptorHash: true,
-      humanProjectionId: true,
-      operationMigrationState: true,
-      parameters: { orderBy: { order: 'asc' }, select: { name: true } },
-    },
-  })
-  if (steps.length !== ids.length)
-    throw new ServiceError('One or more template steps were not found', 'VALIDATION', 400)
-  return new Map(steps.map(step => [step.id, step]))
-}
-
-function canonicalStepBlockSteps(
-  steps: ReturnType<typeof normalizeStepBlockInput>['steps'],
-  templates: Awaited<ReturnType<typeof resolveTemplateSteps>>,
-) {
-  return steps.map(step => {
-    const template = templates.get(step.templateStepId)!
-    const operation = buildCanonicalStepBlockOperation(template)
-    if (!operation) return step
-    return {
-      ...step,
-      ...operation,
-    }
-  })
-}
-
 async function prepareStepBlock(value: StepBlockFormValues) {
   const input = normalizeStepBlockInput(value)
-  const templates = await resolveTemplateSteps(input.steps.map(step => step.templateStepId))
-  return { input, steps: canonicalStepBlockSteps(input.steps, templates) }
+  const definitions = await resolveReadyExactStepDefinitions(input.steps)
+  if (!definitions)
+    throw new ServiceError('A Step Block requires exact ready Step Definition references', 'VALIDATION', 400)
+  return {
+    input,
+    steps: stepBlockStepCreates(input.steps, definitions).map(step => ({
+      ...step,
+      compositionVersionHash: stepDefinitionContentHash({
+        invocationJson: step.invocationJson,
+        parameterMap: step.parameterMap,
+      }),
+    })),
+  }
 }
 
 export async function createStepBlock(value: StepBlockFormValues, targetProjectId: string): Promise<StepBlockDetail> {

@@ -2,7 +2,14 @@ import { StepParameterType, TemplateStepIcon } from '@prisma/client'
 import { describe, expect, it } from 'vitest'
 
 import { buildNodeOrderFromTestCaseSteps, getEditableTestCase } from './editable-test-case-helpers'
+import { getTestCaseFormRouteResources, getTestCaseRouteLoadError } from './test-case-route-resource-helpers'
 import { getTestCaseRows } from './test-case-row-helpers'
+
+const invocationJson = JSON.stringify({
+  step: { id: 'browser.forms.fill', version: '1', definitionHash: `sha256:${'a'.repeat(64)}` },
+  inputs: { email: 'qa@appraise.dev' },
+  presentation: { keyword: 'When', description: 'fill email' },
+})
 
 describe('test-case route helpers', () => {
   it('narrows test case list rows from action data', () => {
@@ -31,6 +38,47 @@ describe('test-case route helpers', () => {
     ])
   })
 
+  it('returns the first route load error and shapes shared form resources', () => {
+    expect(getTestCaseRouteLoadError([{ status: 200 }, { status: 500, error: 'Locators unavailable' }])).toBe(
+      'Locators unavailable',
+    )
+
+    expect(
+      getTestCaseFormRouteResources({
+        stepDefinitionsResponse: {
+          status: 200,
+          data: [
+            {
+              reference: { id: 'browser.navigation.goto', version: '1', definitionHash: `sha256:${'c'.repeat(64)}` },
+              title: 'Navigate to URL',
+              description: 'Navigates to a URL.',
+              signature: 'the user navigates to the {string} url',
+              keywordCompatibility: ['Given', 'When'],
+              groupId: 'navigation',
+              inputs: [],
+            },
+          ],
+        },
+        testSuitesResponse: { status: 200, data: [{ id: 'suite-1', name: 'Smoke' }] },
+        locatorsResponse: { status: 200, data: [{ id: 'locator-1', name: 'Submit' }] },
+        locatorGroupsResponse: { status: 200, data: [{ id: 'group-1', name: 'Checkout' }] },
+        tagsResponse: { status: 200, data: [{ id: 'tag-1', name: 'smoke' }] },
+        testCasesResponse: { status: 200, data: [{ id: 'case-1', title: 'Login', steps: [], tags: [] }] },
+        moduleListResponse: { status: 200, data: [{ id: 'module-1', name: 'Auth' }] },
+        environmentsResponse: { status: 200, data: [{ id: 'environment-1', name: 'Local' }] },
+      }),
+    ).toMatchObject({
+      stepDefinitions: [expect.objectContaining({ title: 'Navigate to URL' })],
+      testSuites: [{ id: 'suite-1', name: 'Smoke' }],
+      locators: [{ id: 'locator-1', name: 'Submit' }],
+      locatorGroups: [{ id: 'group-1', name: 'Checkout' }],
+      tags: [{ id: 'tag-1', name: 'smoke' }],
+      testCases: [{ id: 'case-1', title: 'Login', steps: [], tags: [] }],
+      moduleList: [{ id: 'module-1', name: 'Auth' }],
+      environments: [{ id: 'environment-1', name: 'Local' }],
+    })
+  })
+
   it('narrows editable test cases and converts steps into node order', () => {
     const editableTestCase = getEditableTestCase({
       id: 'case-1',
@@ -45,7 +93,7 @@ describe('test-case route helpers', () => {
           label: 'Fill email',
           gherkinStep: 'fill email',
           icon: TemplateStepIcon.INPUT,
-          templateStepId: 'template-step-1',
+          invocationJson,
           parameters: [
             {
               name: 'email',
@@ -74,7 +122,7 @@ describe('test-case route helpers', () => {
             order: 1,
           },
         ],
-        templateStepId: 'template-step-1',
+        invocation: JSON.parse(invocationJson),
       },
     })
   })
@@ -91,22 +139,27 @@ describe('test-case route helpers', () => {
     ).toBeNull()
   })
 
-  it('allows canonical invocations without a TemplateStep and rejects steps with neither authority nor fallback', () => {
+  it('requires an exact canonical invocation for editable test case steps', () => {
     const currentStep = {
       id: 'current-step',
       order: 0,
       label: 'Open home',
       gherkinStep: 'open home',
       icon: TemplateStepIcon.NAVIGATION,
-      templateStepId: null,
-      operationInvocationJson: '{"step":{"id":"browser.navigation.goto"}}',
+      invocationJson: JSON.stringify({
+        step: { id: 'browser.navigation.goto', version: '1', definitionHash: `sha256:${'b'.repeat(64)}` },
+        inputs: {},
+        presentation: { keyword: 'Given', description: 'open home' },
+      }),
       parameters: [],
     }
     expect(buildNodeOrderFromTestCaseSteps([currentStep] as never)).toMatchObject({
-      'current-step': { templateStepId: '' },
+      'current-step': {
+        invocation: expect.objectContaining({
+          step: { id: 'browser.navigation.goto', version: '1', definitionHash: `sha256:${'b'.repeat(64)}` },
+        }),
+      },
     })
-    expect(() => buildNodeOrderFromTestCaseSteps([{ ...currentStep, operationInvocationJson: null }] as never)).toThrow(
-      /neither a canonical operation invocation nor a TemplateStep fallback/,
-    )
+    expect(() => buildNodeOrderFromTestCaseSteps([{ ...currentStep, invocationJson: null }] as never)).toThrow()
   })
 })

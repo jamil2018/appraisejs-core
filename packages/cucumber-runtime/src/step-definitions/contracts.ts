@@ -277,6 +277,44 @@ export const stepInvocationSchema = z
   })
   .strict()
 
+export function stepInputValueMatchesType(value: unknown, type: StepDefinition['inputs'][number]['type']) {
+  if (
+    type === 'json' ||
+    type === 'locator' ||
+    type === 'environment-ref' ||
+    type === 'stored-value-ref' ||
+    type === 'artifact-ref' ||
+    type === 'reviewed-extension-ref'
+  )
+    return true
+  if (type === 'number') return typeof value === 'number'
+  if (type === 'boolean') return typeof value === 'boolean'
+  return typeof value === 'string'
+}
+
+export function validateStepInvocationInputs(
+  definition: StepDefinition,
+  supplied: Record<string, unknown>,
+  resolveValue: (value: unknown) => unknown = value => value,
+): Record<string, unknown> {
+  const declared = new Map(definition.inputs.map(input => [input.name, input]))
+  for (const name of Object.keys(supplied)) {
+    if (!declared.has(name)) throw new Error(`Step ${definition.identity.id} received unknown input ${name}.`)
+  }
+
+  return Object.fromEntries(
+    definition.inputs.map(input => {
+      const suppliedValue = Object.hasOwn(supplied, input.name) ? supplied[input.name] : input.defaultValue
+      const value = resolveValue(suppliedValue)
+      if (value === undefined && input.required)
+        throw new Error(`Step ${definition.identity.id} is missing required input ${input.name}.`)
+      if (value !== undefined && !stepInputValueMatchesType(value, input.type))
+        throw new Error(`Step ${definition.identity.id} input ${input.name} has the wrong type.`)
+      return [input.name, value]
+    }),
+  )
+}
+
 export const stepPublicationReceiptSchema = z.object({
   step: stepIdentitySchema,
   definitionHash: stepDefinitionHashSchema,

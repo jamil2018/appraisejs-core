@@ -2,7 +2,6 @@ import React from 'react'
 import { LayoutTemplate } from 'lucide-react'
 import { Metadata } from 'next'
 import { StepDefinitionDraftEditor } from '../step-definition-draft-editor'
-import { listTemplateStepGroups } from '@/services/template-step-group/template-step-group-service'
 
 export const metadata: Metadata = {
   title: 'Appraise | Create Reusable Step',
@@ -10,7 +9,6 @@ export const metadata: Metadata = {
 }
 
 const CreateTemplateStep = async () => {
-  const groups = await listTemplateStepGroups()
   return (
     <>
       <div className="mb-6 flex items-start gap-3 border-b border-white/[0.06] pb-5">
@@ -25,9 +23,7 @@ const CreateTemplateStep = async () => {
           </p>
         </div>
       </div>
-      <StepDefinitionDraftEditor
-        groups={groups.map(({ id, name, type, description }) => ({ id, name, type, description }))}
-      />
+      <StepDefinitionDraftEditor groups={[]} />
     </>
   )
 }

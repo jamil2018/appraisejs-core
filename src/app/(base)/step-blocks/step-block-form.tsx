@@ -1,6 +1,6 @@
 'use client'
 
-import type { Environment, Locator, LocatorGroup, Module, TemplateStep, TemplateStepParameter } from '@prisma/client'
+import type { Environment, Locator, LocatorGroup, Module } from '@prisma/client'
 import { Save } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
@@ -14,12 +14,13 @@ import { Textarea } from '@/components/ui/textarea'
 import { stepBlockSchema, type StepBlockFormValues } from '@/constants/form-opts/step-block-form-opts'
 import { toast } from '@/hooks/use-toast'
 import type { NodeOrderMap, TemplateTestCaseNodeOrderMap } from '@/types/diagram/diagram'
+import type { StepDefinitionOption } from '@/types/step-definition-option'
 
 import { getActionErrorMessage, getStepBlockNodeOrder, type StepBlockFormSubmitAction } from './step-block-helpers'
 
 type StepBlockFormProps = {
   defaultValues?: StepBlockFormValues
-  templateSteps: TemplateStep[]
+  stepDefinitions: StepDefinitionOption[]
   successTitle: string
   successMessage: string
   id?: string
@@ -28,7 +29,6 @@ type StepBlockFormProps = {
 
 type StepBlockErrors = Record<string, string | undefined>
 
-const EMPTY_TEMPLATE_STEP_PARAMS: TemplateStepParameter[] = []
 const EMPTY_LOCATORS: Array<Pick<Locator, 'id' | 'name' | 'locatorGroupId'>> = []
 const EMPTY_LOCATOR_GROUPS: Array<Pick<LocatorGroup, 'id' | 'name' | 'route' | 'moduleId'>> = []
 const EMPTY_ENVIRONMENTS: Array<Pick<Environment, 'id' | 'name'>> = []
@@ -39,15 +39,14 @@ function getFieldErrorMessage(error: unknown) {
   return message === '[object Object]' ? 'Invalid value' : message
 }
 
-function getOrderedTemplateStepIds(nodesOrder: NodeOrderMap) {
+function getOrderedInvocations(nodesOrder: NodeOrderMap) {
   return Object.values(nodesOrder)
-    .filter(node => node.templateStepId)
     .sort((left, right) => {
       const leftOrder = left.order === -1 ? Number.MAX_SAFE_INTEGER : left.order
       const rightOrder = right.order === -1 ? Number.MAX_SAFE_INTEGER : right.order
       return leftOrder - rightOrder
     })
-    .map(node => node.templateStepId)
+    .map(node => node.invocation)
 }
 
 function getSubmitValue(values: {
@@ -60,7 +59,7 @@ function getSubmitValue(values: {
     name: values.name,
     intent: values.intent,
     description: values.description,
-    steps: getOrderedTemplateStepIds(values.nodesOrder).map(templateStepId => ({ templateStepId })),
+    steps: getOrderedInvocations(values.nodesOrder).map(invocation => ({ invocation })),
   }
 }
 
@@ -94,8 +93,8 @@ function getInitialMetadataValues(defaultValues: StepBlockFormValues | undefined
   }
 }
 
-function isSaveDisabled(templateSteps: TemplateStep[]) {
-  return templateSteps.length === 0
+function isSaveDisabled(stepDefinitions: StepDefinitionOption[]) {
+  return stepDefinitions.length === 0
 }
 
 function isNodeOrderMap(nodeOrder: NodeOrderMap | TemplateTestCaseNodeOrderMap): nodeOrder is NodeOrderMap {
@@ -103,8 +102,7 @@ function isNodeOrderMap(nodeOrder: NodeOrderMap | TemplateTestCaseNodeOrderMap):
     node.parameters.every(
       (
         parameter:
-          | NodeOrderMap[string]['parameters'][number]
-          | TemplateTestCaseNodeOrderMap[string]['parameters'][number],
+          NodeOrderMap[string]['parameters'][number] | TemplateTestCaseNodeOrderMap[string]['parameters'][number],
       ) => 'value' in parameter,
     ),
   )
@@ -152,17 +150,16 @@ function StepBlockMetadataFields({
 
 type StepBlockFlowGraphProps = {
   nodesOrder: NodeOrderMap
-  templateSteps: TemplateStep[]
+  stepDefinitions: StepDefinitionOption[]
   onNodeOrderChange: (nodesOrder: NodeOrderMap) => void
 }
 
-function StepBlockFlowGraph({ nodesOrder, templateSteps, onNodeOrderChange }: StepBlockFlowGraphProps) {
+function StepBlockFlowGraph({ nodesOrder, stepDefinitions, onNodeOrderChange }: StepBlockFlowGraphProps) {
   return (
     <div className="h-[max(22rem,calc(100dvh-18rem))] min-h-[22rem] overflow-hidden rounded-md border border-white/[0.1] bg-[rgba(18,37,64,0.28)]">
       <FlowDiagram
         nodeOrder={nodesOrder}
-        templateStepParams={EMPTY_TEMPLATE_STEP_PARAMS}
-        templateSteps={templateSteps}
+        stepDefinitions={stepDefinitions}
         locators={EMPTY_LOCATORS}
         locatorGroups={EMPTY_LOCATOR_GROUPS}
         environments={EMPTY_ENVIRONMENTS}
@@ -219,7 +216,7 @@ async function submitStepBlockForm({
 
 export function StepBlockForm({
   defaultValues,
-  templateSteps,
+  stepDefinitions,
   successTitle,
   successMessage,
   id,
@@ -230,7 +227,9 @@ export function StepBlockForm({
   const [name, setName] = useState(initialMetadataValues.name)
   const [intent, setIntent] = useState(initialMetadataValues.intent)
   const [description, setDescription] = useState(initialMetadataValues.description)
-  const [nodesOrder, setNodesOrder] = useState<NodeOrderMap>(() => getStepBlockNodeOrder(defaultValues, templateSteps))
+  const [nodesOrder, setNodesOrder] = useState<NodeOrderMap>(() =>
+    getStepBlockNodeOrder(defaultValues, stepDefinitions),
+  )
   const [errors, setErrors] = useState<StepBlockErrors>({})
 
   const handleSubmit = async () => {
@@ -257,10 +256,10 @@ export function StepBlockForm({
         onDescriptionChange={setDescription}
       />
 
-      <StepBlockFlowGraph nodesOrder={nodesOrder} templateSteps={templateSteps} onNodeOrderChange={setNodesOrder} />
+      <StepBlockFlowGraph nodesOrder={nodesOrder} stepDefinitions={stepDefinitions} onNodeOrderChange={setNodesOrder} />
       <StepBlockFieldError message={errors.steps} />
 
-      <Button type="button" className="w-fit px-6" disabled={isSaveDisabled(templateSteps)} onClick={handleSubmit}>
+      <Button type="button" className="w-fit px-6" disabled={isSaveDisabled(stepDefinitions)} onClick={handleSubmit}>
         <Save className="size-4" aria-hidden />
         <span className="font-bold">Save</span>
       </Button>

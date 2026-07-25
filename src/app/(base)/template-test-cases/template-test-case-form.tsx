@@ -3,14 +3,8 @@ import React, { useCallback, useState } from 'react'
 
 import TemplateTestCaseFlow from './template-test-case-flow'
 import type { FlowBlock, TemplateTestCaseNodeOrderMap } from '@/types/diagram/diagram'
-import {
-  type Locator,
-  type LocatorGroup,
-  type Environment,
-  type Module,
-  type TemplateStep,
-  type TemplateStepParameter,
-} from '@prisma/client'
+import type { StepDefinitionOption } from '@/types/step-definition-option'
+import { type Locator, type LocatorGroup, type Environment, type Module } from '@prisma/client'
 import { useRouter } from 'next/navigation'
 import { Save } from 'lucide-react'
 import { z } from 'zod'
@@ -37,8 +31,7 @@ function TemplateTestCaseFormFieldError({ message }: { message?: string[] }) {
 
 type TemplateTestCaseFormProps = {
   defaultNodesOrder: TemplateTestCaseNodeOrderMap
-  templateStepParams: TemplateStepParameter[]
-  templateSteps: TemplateStep[]
+  stepDefinitions: StepDefinitionOption[]
   locators: Array<Pick<Locator, 'id' | 'name' | 'locatorGroupId'>>
   locatorGroups: Array<Pick<LocatorGroup, 'id' | 'name' | 'route' | 'moduleId'>>
   environments: Array<Pick<Environment, 'id' | 'name'>>
@@ -55,8 +48,7 @@ const EMPTY_FLOW_BLOCKS: FlowBlock[] = []
 
 const TemplateTestCaseForm = ({
   defaultNodesOrder,
-  templateStepParams,
-  templateSteps,
+  stepDefinitions,
   locators,
   locatorGroups,
   environments,
@@ -134,8 +126,7 @@ const TemplateTestCaseForm = ({
       <div className="mb-4 flex h-[500px] flex-col gap-2">
         <TemplateTestCaseFlow
           initialNodesOrder={nodesOrder}
-          templateStepParams={templateStepParams}
-          templateSteps={templateSteps}
+          stepDefinitions={stepDefinitions}
           onNodeOrderChange={onNodeOrderChange}
           locators={locators}
           locatorGroups={locatorGroups}

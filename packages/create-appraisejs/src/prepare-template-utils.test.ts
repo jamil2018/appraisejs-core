@@ -9,7 +9,7 @@ import {
   shouldAbortOnFallbackSeed,
   verifyPreparedTemplateState,
   type TemplateMetadata,
-  type TemplateStepDataCounts,
+  type StepDefinitionDataCounts,
 } from './prepare-template-utils.js'
 
 async function createPreparedTemplateFixture(rootDir: string): Promise<void> {
@@ -28,17 +28,17 @@ async function createPreparedTemplateFixture(rootDir: string): Promise<void> {
   await fs.writeFile(path.join(rootDir, 'automation', 'steps', 'actions', 'click.step.ts'), '// bundled step')
 }
 
-async function getStarterCounts(): Promise<TemplateStepDataCounts> {
-  return { stepCount: 3, stepGroupCount: 2, localRuntimeRowCount: 0 }
+async function getStarterCounts(): Promise<StepDefinitionDataCounts> {
+  return { stepDefinitionCount: 3, localRuntimeRowCount: 0 }
 }
 
-async function getBlankCounts(): Promise<TemplateStepDataCounts> {
-  return { stepCount: 0, stepGroupCount: 0, localRuntimeRowCount: 0 }
+async function getBlankCounts(): Promise<StepDefinitionDataCounts> {
+  return { stepDefinitionCount: 3, localRuntimeRowCount: 0 }
 }
 
 describe('TEMPLATE_PREP_SYNC_SCRIPTS', () => {
-  it('only runs the template-step sync stages during template preparation', () => {
-    expect(TEMPLATE_PREP_SYNC_SCRIPTS).toEqual(['sync-template-step-groups', 'sync-template-steps'])
+  it('registers canonical Step Definitions during template preparation', () => {
+    expect(TEMPLATE_PREP_SYNC_SCRIPTS).toEqual(['sync-step-definitions'])
   })
 })
 
@@ -47,7 +47,7 @@ describe('getTemplatePrepSyncScripts', () => {
     expect(getTemplatePrepSyncScripts('starter')).toEqual(TEMPLATE_PREP_SYNC_SCRIPTS)
   })
 
-  it('uses a blank-specific sync order that clears template steps first', () => {
+  it('registers the same shared definitions for blank projects', () => {
     expect(getTemplatePrepSyncScripts('blank')).toEqual(BLANK_TEMPLATE_PREP_SYNC_SCRIPTS)
   })
 })
@@ -92,7 +92,7 @@ describe('verifyPreparedTemplateState', () => {
     await expect(verifyPreparedTemplateState(dir, 'starter', undefined, getStarterCounts)).resolves.toBeUndefined()
   })
 
-  it('accepts a prepared blank template when bundled step files and step data are absent', async () => {
+  it('accepts a prepared blank template without bundled wrapper files', async () => {
     const dir = await createTempTemplateDir()
     await fs.remove(path.join(dir, 'automation', 'steps'))
 
@@ -166,13 +166,16 @@ describe('verifyPreparedTemplateState', () => {
     )
   })
 
-  it('fails when blank database still contains bundled step data', async () => {
+  it('fails when blank database is missing shared Step Definitions', async () => {
     const dir = await createTempTemplateDir()
     await fs.remove(path.join(dir, 'automation', 'steps'))
 
-    await expect(verifyPreparedTemplateState(dir, 'blank', undefined, getStarterCounts)).rejects.toThrow(
-      /should not include bundled step data/,
-    )
+    await expect(
+      verifyPreparedTemplateState(dir, 'blank', undefined, async () => ({
+        stepDefinitionCount: 0,
+        localRuntimeRowCount: 0,
+      })),
+    ).rejects.toThrow(/should include ready Step Definitions/)
   })
 
   it('fails when the seeded database contains local runtime state', async () => {
@@ -180,8 +183,7 @@ describe('verifyPreparedTemplateState', () => {
 
     await expect(
       verifyPreparedTemplateState(dir, 'starter', undefined, async () => ({
-        stepCount: 3,
-        stepGroupCount: 2,
+        stepDefinitionCount: 3,
         localRuntimeRowCount: 1,
       })),
     ).rejects.toThrow(/local runtime state/)

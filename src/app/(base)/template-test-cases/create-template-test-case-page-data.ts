@@ -1,57 +1,48 @@
-import { getAllLocatorsAction } from '@/actions/locator/locator-actions'
 import { getAllEnvironmentsAction } from '@/actions/environments/environment-actions'
-import { getAllModulesAction } from '@/actions/modules/module-actions'
-import { getAllTemplateStepParamsAction } from '@/actions/template-step/template-step-actions'
-import { getAllTemplateStepsAction } from '@/actions/template-step/template-step-actions'
 import { getAllLocatorGroupsAction } from '@/actions/locator-groups/locator-group-actions'
-import type { Environment, Locator, LocatorGroup, Module, TemplateStep, TemplateStepParameter } from '@prisma/client'
+import { getAllLocatorsAction } from '@/actions/locator/locator-actions'
+import { getAllModulesAction } from '@/actions/modules/module-actions'
+import { listReadyStepDefinitionOptionsAction } from '@/actions/step-definition/step-definition-actions'
+import type { Environment, Locator, LocatorGroup, Module } from '@prisma/client'
+import type { StepDefinitionOption } from '@/types/step-definition-option'
 
 export type CreateTemplateTestCasePageData =
   | { status: 'error'; message: string }
   | {
       status: 'success'
-      templateStepParams: TemplateStepParameter[]
-      templateSteps: TemplateStep[]
+      stepDefinitions: StepDefinitionOption[]
       locators: Locator[]
       locatorGroups: LocatorGroup[]
       environments: Environment[]
       modules: Module[]
     }
 
+type ResourceResponse = { error?: string; data?: unknown }
+
+function getLoadError(resources: ResourceResponse[]): string | null {
+  return resources.map(resource => resource.error).find((error): error is string => Boolean(error)) ?? null
+}
+
+function getResourceRows<T>(resource: ResourceResponse): T[] {
+  return Array.isArray(resource.data) ? (resource.data as T[]) : []
+}
+
 export async function loadCreateTemplateTestCasePageData(): Promise<CreateTemplateTestCasePageData> {
-  const { data: templateStepParams, error: templateStepParamsError } = await getAllTemplateStepParamsAction()
-
-  if (templateStepParamsError) {
-    return { status: 'error', message: templateStepParamsError }
-  }
-
-  const [
-    { data: templateSteps, error: templateStepsError },
-    { data: locators, error: locatorsError },
-    { data: locatorGroups, error: locatorGroupsError },
-    { data: environments, error: environmentsError },
-    { data: modules, error: modulesError },
-  ] = await Promise.all([
-    getAllTemplateStepsAction(),
+  const [definitions, locators, locatorGroups, environments, modules] = await Promise.all([
+    listReadyStepDefinitionOptionsAction(),
     getAllLocatorsAction(),
     getAllLocatorGroupsAction(),
     getAllEnvironmentsAction(),
     getAllModulesAction(),
   ])
-
-  const secondaryError = templateStepsError || locatorsError || locatorGroupsError || environmentsError || modulesError
-
-  if (secondaryError) {
-    return { status: 'error', message: secondaryError }
-  }
-
+  const error = getLoadError([definitions, locators, locatorGroups, environments, modules])
+  if (error) return { status: 'error', message: error }
   return {
     status: 'success',
-    templateStepParams: templateStepParams as TemplateStepParameter[],
-    templateSteps: templateSteps as TemplateStep[],
-    locators: locators as Locator[],
-    locatorGroups: locatorGroups as LocatorGroup[],
-    environments: environments as Environment[],
-    modules: modules as Module[],
+    stepDefinitions: getResourceRows<StepDefinitionOption>(definitions),
+    locators: getResourceRows<Locator>(locators),
+    locatorGroups: getResourceRows<LocatorGroup>(locatorGroups),
+    environments: getResourceRows<Environment>(environments),
+    modules: getResourceRows<Module>(modules),
   }
 }

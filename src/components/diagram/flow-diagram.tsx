@@ -1,93 +1,167 @@
 'use client'
 
-import { useUpdateNodeInternals } from '@xyflow/react'
-import '@xyflow/react/dist/style.css'
-import { memo, useCallback, useEffect, useRef, type RefObject } from 'react'
-import { FlowDiagramView } from './flow-diagram-view'
+import { Plus, Trash2 } from 'lucide-react'
+import { useMemo, useState } from 'react'
+
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import type { NodeOrderMap, TemplateTestCaseNodeOrderMap } from '@/types/diagram/diagram'
+import type { StepDefinitionOption } from '@/types/step-definition-option'
+
 import type { FlowDiagramProps } from './flow-diagram-types'
-import { EMPTY_FLOW_BLOCKS } from './flow-diagram-types'
-import { useFlowDiagram } from './use-flow-diagram'
 
-const layoutRefreshDelays = [0, 80, 180, 360]
+type AuthoredNode = NodeOrderMap[string] | TemplateTestCaseNodeOrderMap[string]
 
-type FlowLayoutRefreshProps = {
-  nodeIds: string[]
-  containerRef: RefObject<HTMLDivElement | null>
-  refreshKey?: string | number | boolean
+function keyOf(definition: StepDefinitionOption) {
+  return `${definition.reference.id}@${definition.reference.version}`
 }
 
-function FlowLayoutRefresh({ nodeIds, containerRef, refreshKey }: FlowLayoutRefreshProps) {
-  const updateNodeInternals = useUpdateNodeInternals()
-  const frameRef = useRef<number | null>(null)
-  const timeoutRefs = useRef<number[]>([])
-
-  const clearScheduledRefreshes = useCallback(() => {
-    if (frameRef.current !== null) {
-      window.cancelAnimationFrame(frameRef.current)
-      frameRef.current = null
-    }
-    timeoutRefs.current.forEach(timeoutId => window.clearTimeout(timeoutId))
-    timeoutRefs.current = []
-  }, [])
-
-  const refreshNodeInternals = useCallback(() => {
-    if (nodeIds.length === 0) {
-      return
-    }
-
-    updateNodeInternals(nodeIds)
-  }, [nodeIds, updateNodeInternals])
-
-  const scheduleLayoutRefresh = useCallback(() => {
-    if (typeof window === 'undefined') {
-      return
-    }
-
-    clearScheduledRefreshes()
-    layoutRefreshDelays.forEach(delay => {
-      if (delay === 0) {
-        frameRef.current = window.requestAnimationFrame(refreshNodeInternals)
-        return
-      }
-
-      timeoutRefs.current.push(window.setTimeout(refreshNodeInternals, delay))
-    })
-  }, [clearScheduledRefreshes, refreshNodeInternals])
-
-  useEffect(() => {
-    scheduleLayoutRefresh()
-
-    return clearScheduledRefreshes
-  }, [clearScheduledRefreshes, refreshKey, scheduleLayoutRefresh])
-
-  useEffect(() => {
-    if (typeof ResizeObserver === 'undefined') {
-      return
-    }
-
-    const container = containerRef.current
-    if (!container) {
-      return
-    }
-
-    const resizeObserver = new ResizeObserver(scheduleLayoutRefresh)
-    resizeObserver.observe(container)
-
-    return () => {
-      resizeObserver.disconnect()
-    }
-  }, [containerRef, scheduleLayoutRefresh])
-
-  return null
+function renderPresentation(definition: StepDefinitionOption, inputs: Record<string, unknown>) {
+  const description = definition.signature.replace(/\{([^}]+)\}/g, (_, name: string) =>
+    String(inputs[name] ?? `{${name}}`),
+  )
+  return `${definition.keywordCompatibility[0] ?? 'When'} ${description}`
 }
 
-const FlowDiagram = (props: FlowDiagramProps) => {
-  const model = useFlowDiagram({
-    ...props,
-    flowBlocks: props.flowBlocks ?? EMPTY_FLOW_BLOCKS,
-  })
-
-  return <FlowDiagramView model={model} FlowLayoutRefresh={FlowLayoutRefresh} />
+function initialInputs(definition: StepDefinitionOption): Record<string, unknown> {
+  return Object.fromEntries(definition.inputs.map(input => [input.name, input.defaultValue ?? '']))
 }
 
-export default memo(FlowDiagram)
+function nodeFor(definition: StepDefinitionOption, order: number): NodeOrderMap[string] {
+  const inputs = initialInputs(definition)
+  const invocation = {
+    step: definition.reference,
+    inputs,
+    presentation: {
+      keyword: definition.keywordCompatibility[0] ?? 'When',
+      description: renderPresentation(definition, inputs).replace(/^(Given|When|Then|And)\s+/, ''),
+    },
+  } as const
+  return {
+    nodeId: crypto.randomUUID(),
+    order,
+    label: definition.title,
+    gherkinStep: renderPresentation(definition, inputs),
+    icon: 'MOUSE',
+    parameters: definition.inputs.map((input, index) => ({
+      name: input.name,
+      value: String(inputs[input.name] ?? ''),
+      type: 'STRING',
+      order: index,
+    })),
+    invocation,
+  }
+}
+
+function isNodeOrderMap(value: FlowDiagramProps['nodeOrder']): value is NodeOrderMap {
+  return Object.values(value).some(node => 'isFirstNode' in node) || Object.keys(value).length === 0
+}
+
+export default function FlowDiagram({ nodeOrder, stepDefinitions, onNodeOrderChange }: FlowDiagramProps) {
+  const [selectedKey, setSelectedKey] = useState(() => stepDefinitions[0] && keyOf(stepDefinitions[0]))
+  const selected = useMemo(
+    () => stepDefinitions.find(definition => keyOf(definition) === selectedKey) ?? stepDefinitions[0],
+    [selectedKey, stepDefinitions],
+  )
+  const orderedNodes = useMemo(
+    () => Object.entries(nodeOrder).sort(([, left], [, right]) => left.order - right.order),
+    [nodeOrder],
+  )
+
+  const publish = (nodes: AuthoredNode[]) => {
+    const next = Object.fromEntries(
+      nodes.map((node, index) => [node.nodeId ?? crypto.randomUUID(), { ...node, order: index + 1 }]),
+    )
+    onNodeOrderChange(next as FlowDiagramProps['nodeOrder'])
+  }
+
+  const add = () => {
+    if (!selected) return
+    publish([...orderedNodes.map(([, node]) => node), nodeFor(selected, orderedNodes.length + 1)])
+  }
+
+  return (
+    <section className="flex h-full min-h-0 flex-col gap-4 rounded-md border bg-card p-4">
+      <div className="flex flex-wrap items-end gap-3">
+        <div className="min-w-72 flex-1 space-y-2">
+          <Label htmlFor="step-definition">Step Definition</Label>
+          <select
+            id="step-definition"
+            className="h-10 w-full rounded-md border bg-background px-3 text-sm"
+            value={selected ? keyOf(selected) : ''}
+            onChange={event => setSelectedKey(event.target.value)}
+          >
+            {stepDefinitions.map(definition => (
+              <option key={keyOf(definition)} value={keyOf(definition)}>
+                {definition.title} ({definition.reference.id}@{definition.reference.version})
+              </option>
+            ))}
+          </select>
+        </div>
+        <Button type="button" disabled={!selected} onClick={add}>
+          <Plus className="size-4" /> Add step
+        </Button>
+      </div>
+      <div className="min-h-0 flex-1 space-y-3 overflow-auto">
+        {orderedNodes.map(([id, node], index) => {
+          const definition = stepDefinitions.find(
+            item =>
+              item.reference.id === node.invocation.step.id &&
+              item.reference.version === node.invocation.step.version &&
+              item.reference.definitionHash === node.invocation.step.definitionHash,
+          )
+          return (
+            <article key={id} className="space-y-3 rounded-md border p-3">
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-sm font-medium">{node.gherkinStep}</p>
+                <Button
+                  type="button"
+                  size="icon"
+                  variant="ghost"
+                  aria-label={`Remove ${node.label}`}
+                  onClick={() => publish(orderedNodes.filter(([nodeId]) => nodeId !== id).map(([, item]) => item))}
+                >
+                  <Trash2 className="size-4" />
+                </Button>
+              </div>
+              {definition?.inputs.map((input: StepDefinitionOption['inputs'][number]) => (
+                <label key={input.name} className="block space-y-1 text-sm">
+                  <span>{input.name}</span>
+                  <Input
+                    value={String(node.invocation.inputs[input.name] ?? '')}
+                    onChange={event => {
+                      const inputs = { ...node.invocation.inputs, [input.name]: event.target.value }
+                      const nextNode = {
+                        ...node,
+                        invocation: {
+                          ...node.invocation,
+                          inputs,
+                          presentation: {
+                            keyword: definition.keywordCompatibility[0] ?? 'When',
+                            description: renderPresentation(definition, inputs).replace(
+                              /^(Given|When|Then|And)\s+/,
+                              '',
+                            ),
+                          },
+                        },
+                        gherkinStep: renderPresentation(definition, inputs),
+                        parameters: node.parameters.map((parameter: AuthoredNode['parameters'][number]) =>
+                          parameter.name === input.name ? { ...parameter, value: event.target.value } : parameter,
+                        ),
+                      }
+                      publish(orderedNodes.map(([, item], itemIndex) => (itemIndex === index ? nextNode : item)))
+                    }}
+                  />
+                </label>
+              ))}
+            </article>
+          )
+        })}
+        {orderedNodes.length === 0 ? (
+          <p className="text-sm text-muted-foreground">Add a ready Step Definition.</p>
+        ) : null}
+      </div>
+    </section>
+  )
+}

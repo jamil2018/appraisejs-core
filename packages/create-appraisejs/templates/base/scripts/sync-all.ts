@@ -102,18 +102,6 @@ async function executeSyncScript(scriptId: SyncScriptId): Promise<ScriptResult> 
 
   try {
     console.log(`\n🔄 Running ${scriptId}...`)
-    if (scriptId === 'sync-template-steps') {
-      const projectionScriptPath = join(process.cwd(), 'scripts', 'generate-operation-projections.ts')
-      const projectionResult = await execa(process.execPath, ['--import', 'tsx', projectionScriptPath], {
-        cwd: process.cwd(),
-        stdio: 'pipe',
-        reject: false,
-      })
-
-      if (projectionResult.exitCode !== 0) {
-        throw new Error(`Canonical operation projection failed: ${projectionResult.stderr || projectionResult.stdout}`)
-      }
-    }
     const result = await execa(process.execPath, ['--import', 'tsx', scriptPath], {
       cwd: process.cwd(),
       stdio: 'pipe',

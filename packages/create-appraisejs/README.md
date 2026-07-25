@@ -84,32 +84,19 @@ contents are stored as one full `templates/base` scaffold plus small `templates/
 
 ## Common Scripts In The Generated App
 
-| Script                                                     | What it does                                                                                       |
-| ---------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
-| `npm run setup`                                            | Install dependencies, create `.env`, rebuild the local DB, build the app, and protect seeded files |
-| `npm run setup:db`                                         | Recreate the local SQLite database from migrations and rerun the sync pipeline                     |
-| `npm run setup:full`                                       | Reinstall dependencies, rebuild the DB, rebuild the app, and protect seeded files                  |
-| `npm run install-playwright -- <browser...>`               | Install selected Playwright browsers                                                               |
-| `npm run sync-all`                                         | Run the full sync pipeline                                                                         |
-| `npm run appraisejs:sync`                                  | Alias for `sync-all`                                                                               |
-| `npm run appraisejs:install-step -- --payload-file <path>` | Internal script used by the public `appraisejs add step` CLI                                       |
-| `npm run start`                                            | Start the local production server                                                                  |
-| `npm run dev`                                              | Start the Next.js development server                                                               |
+| Script                                       | What it does                                                                                       |
+| -------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| `npm run setup`                              | Install dependencies, create `.env`, rebuild the local DB, build the app, and protect seeded files |
+| `npm run setup:db`                           | Recreate the local SQLite database from migrations and rerun the sync pipeline                     |
+| `npm run setup:full`                         | Reinstall dependencies, rebuild the DB, rebuild the app, and protect seeded files                  |
+| `npm run install-playwright -- <browser...>` | Install selected Playwright browsers                                                               |
+| `npm run sync-all`                           | Run the full sync pipeline                                                                         |
+| `npm run appraisejs:sync`                    | Alias for `sync-all`                                                                               |
+| `npm run start`                              | Start the local production server                                                                  |
+| `npm run dev`                                | Start the Next.js development server                                                               |
 
-## Install Additional Template Steps
-
-After dependencies are installed in a generated project, you can pull an individual published template step into `automation/steps` with:
-
-```bash
-npx appraisejs@latest add step <group-slug>/<step-slug>
-```
-
-The CLI downloads the step fragment, merges it into the correct step group file, and then runs `sync-template-step-groups` followed by `sync-template-steps`.
-
-When authoring validation, select a semantic template step first, use the allowlisted structured locator/page fallback
-for uncommon Playwright mechanics, and add a custom step only for application-specific behavior or a documented gap.
-The structured fallback supports JSON arguments/options and `{"$stored":"variableName"}` references; it does not
-permit arbitrary JavaScript evaluation.
+When authoring validation, select a ready Step Definition first. Application-specific behavior remains a reviewed
+extension and is never installed as a second reusable-step identity.
 
 ## Notes
 

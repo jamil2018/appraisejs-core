@@ -220,8 +220,6 @@ try {
     'project_diagnostic',
     'project_list',
     'step_block_search',
-    'template_step_match',
-    'template_step_search',
     'test_run',
     'test_run_diagnose',
     'test_run_preflight',

@@ -1,10 +1,10 @@
-import { getAllTemplateStepsAction } from '@/actions/template-step/template-step-actions'
+import { listReadyStepDefinitionOptionsAction } from '@/actions/step-definition/step-definition-actions'
 
 export async function loadStepBlockFormResources() {
-  const templateStepsResponse = await getAllTemplateStepsAction()
+  const stepDefinitionsResponse = await listReadyStepDefinitionOptionsAction()
 
   return {
-    error: templateStepsResponse.error,
-    templateSteps: templateStepsResponse.data,
+    error: stepDefinitionsResponse.error,
+    stepDefinitions: stepDefinitionsResponse.data,
   }
 }

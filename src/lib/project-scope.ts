@@ -10,7 +10,6 @@ const PROJECT_SCOPED_ROUTE_SEGMENTS = new Set([
   'reports',
   'step-blocks',
   'tags',
-  'template-step-groups',
   'template-steps',
   'template-test-cases',
   'test-cases',

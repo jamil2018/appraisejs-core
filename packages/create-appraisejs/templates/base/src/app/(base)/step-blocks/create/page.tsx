@@ -4,7 +4,6 @@ import PageHeader from '@/components/typography/page-header'
 import { Metadata } from 'next'
 
 import { loadStepBlockFormResources } from '../step-block-form-resources'
-import { getTemplateStepOptions } from '../step-block-helpers'
 import { StepBlockForm } from '../step-block-form'
 
 export const metadata: Metadata = {
@@ -26,7 +25,9 @@ const CreateStepBlock = async () => {
         <HeaderSubtitle>Create a reusable ordered block from existing template steps</HeaderSubtitle>
       </div>
       <StepBlockForm
-        templateSteps={getTemplateStepOptions(resources.templateSteps)}
+        stepDefinitions={
+          (resources.stepDefinitions ?? []) as import('@/types/step-definition-option').StepDefinitionOption[]
+        }
         successTitle="Step block created"
         successMessage="Step block created successfully"
         onSubmitAction={createStepBlockAction}

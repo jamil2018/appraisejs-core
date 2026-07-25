@@ -6,9 +6,7 @@ import {
   StepParameterType,
   StepStatus,
   TagType,
-  TemplateStepGroupType,
   TemplateStepIcon,
-  TemplateStepType,
   TestRunResult,
   TestRunStatus,
   TestRunTestCaseResult,
@@ -17,6 +15,8 @@ import {
 
 import prisma from '../../src/config/db-config'
 import { generateFeatureFile } from '../../src/lib/feature-file-generator'
+import { StepDefinitionRegistryService } from '../../src/services/step-definition/step-definition-registry-service'
+import { builtInStepDefinitions, computeStepReferenceHash } from '../../packages/cucumber-runtime/src/step-definitions'
 
 export const seededIds = {
   targetProject: '00000000-0000-4000-8000-000000000001',
@@ -25,8 +25,7 @@ export const seededIds = {
   tag: 'e2e-tag',
   locatorGroup: 'e2e-locator-group',
   locator: 'e2e-locator',
-  templateStepGroup: 'e2e-template-step-group',
-  templateStep: 'e2e-template-step',
+  stepDefinition: 'browser.navigation.goto',
   testCase: 'e2e-test-case',
   testCaseStep: 'e2e-test-case-step',
   testSuite: 'e2e-test-suite',
@@ -62,6 +61,20 @@ const generatedCrudSuiteMetadataPath = join(
   'e2e-ui-suite.appraise.json',
 )
 
+function seededNavigationInvocation() {
+  const definition = builtInStepDefinitions.find(item => item.identity.id === seededIds.stepDefinition)
+  if (!definition) throw new Error(`Missing built-in Step Definition ${seededIds.stepDefinition}.`)
+  return {
+    step: {
+      id: definition.identity.id,
+      version: definition.identity.version,
+      definitionHash: computeStepReferenceHash(definition),
+    },
+    inputs: { url: '/' },
+    presentation: { keyword: 'When' as const, description: 'the user navigates to the / url' },
+  }
+}
+
 export async function resetE2eData(): Promise<void> {
   await prisma.$transaction([
     prisma.reportStep.deleteMany(),
@@ -85,9 +98,6 @@ export async function resetE2eData(): Promise<void> {
     prisma.templateTestCaseStepParameter.deleteMany(),
     prisma.templateTestCaseStep.deleteMany(),
     prisma.templateTestCase.deleteMany(),
-    prisma.templateStepParameter.deleteMany(),
-    prisma.templateStep.deleteMany(),
-    prisma.templateStepGroup.deleteMany(),
     prisma.conflictResolution.deleteMany(),
     prisma.locator.deleteMany(),
     prisma.locatorGroup.deleteMany(),
@@ -108,6 +118,10 @@ export async function resetE2eData(): Promise<void> {
 export async function seedCoreData(): Promise<void> {
   const now = new Date('2026-01-01T00:00:00.000Z')
   const completedAt = new Date('2026-01-01T00:00:04.000Z')
+  const stepRegistry = new StepDefinitionRegistryService(prisma)
+  for (const definition of builtInStepDefinitions)
+    await stepRegistry.registerBuiltIn(definition, 'e2e-source-conformance')
+  const navigationInvocationJson = JSON.stringify(seededNavigationInvocation())
 
   await prisma.module.create({
     data: {
@@ -155,37 +169,6 @@ export async function seedCoreData(): Promise<void> {
     },
   })
 
-  await prisma.templateStepGroup.create({
-    data: {
-      id: seededIds.templateStepGroup,
-      name: 'E2E Browser Actions',
-      description: 'Seeded template steps for E2E coverage',
-      type: TemplateStepGroupType.ACTION,
-    },
-  })
-
-  await prisma.templateStep.create({
-    data: {
-      id: seededIds.templateStep,
-      name: 'Open seeded page',
-      description: 'Navigates to a seeded page',
-      signature: 'Given I open the seeded page',
-      functionDefinition: 'async function openSeededPage() {}',
-      type: TemplateStepType.ACTION,
-      icon: TemplateStepIcon.NAVIGATION,
-      templateStepGroupId: seededIds.templateStepGroup,
-      parameters: {
-        create: [
-          {
-            name: 'url',
-            order: 0,
-            type: StepParameterType.STRING,
-          },
-        ],
-      },
-    },
-  })
-
   await prisma.testCase.create({
     data: {
       id: seededIds.testCase,
@@ -199,10 +182,10 @@ export async function seedCoreData(): Promise<void> {
           {
             id: seededIds.testCaseStep,
             order: 0,
-            gherkinStep: 'Given I open the seeded page',
+            gherkinStep: 'When the user navigates to the / url',
             icon: TemplateStepIcon.NAVIGATION,
-            label: 'Open seeded page',
-            templateStepId: seededIds.templateStep,
+            label: 'Navigate to URL',
+            invocationJson: navigationInvocationJson,
             parameters: {
               create: [
                 {
@@ -310,9 +293,9 @@ export async function seedCoreData(): Promise<void> {
                     create: [
                       {
                         id: seededIds.reportStep,
-                        keyword: StepKeyword.GIVEN,
+                        keyword: StepKeyword.WHEN,
                         line: 7,
-                        name: 'I open the seeded page',
+                        name: 'the user navigates to the / url',
                         status: StepStatus.PASSED,
                         duration: '1000000',
                         order: 0,
@@ -348,7 +331,7 @@ export async function seedCoreData(): Promise<void> {
     },
   })
 
-  await seedTemplateCatalog()
+  await seedTemplateCatalog(navigationInvocationJson)
   await seedSecondModuleSuite()
   await seedTestRunVariants()
   await seedDashboardAttentionMetrics()
@@ -358,7 +341,6 @@ export async function seedCoreData(): Promise<void> {
     prisma.tag.updateMany({ data: { targetProjectId: seededIds.targetProject } }),
     prisma.locatorGroup.updateMany({ data: { targetProjectId: seededIds.targetProject } }),
     prisma.locator.updateMany({ data: { targetProjectId: seededIds.targetProject } }),
-    prisma.templateStepGroup.updateMany({ data: { targetProjectId: seededIds.targetProject } }),
     prisma.testCase.updateMany({ data: { targetProjectId: seededIds.targetProject } }),
     prisma.testSuite.updateMany({ data: { targetProjectId: seededIds.targetProject } }),
     prisma.templateTestCase.updateMany({ data: { targetProjectId: seededIds.targetProject } }),
@@ -370,7 +352,9 @@ export async function seedCoreData(): Promise<void> {
   ])
 }
 
-export async function seedTemplateCatalog(): Promise<void> {
+export async function seedTemplateCatalog(
+  navigationInvocationJson = JSON.stringify(seededNavigationInvocation()),
+): Promise<void> {
   await prisma.templateTestCase.create({
     data: {
       id: seededIds.templateTestCase,
@@ -381,10 +365,10 @@ export async function seedTemplateCatalog(): Promise<void> {
           {
             id: seededIds.templateTestCaseStep,
             order: 0,
-            gherkinStep: 'Given I open the seeded page',
+            gherkinStep: 'When the user navigates to the / url',
             icon: TemplateStepIcon.NAVIGATION,
-            label: 'Open seeded page',
-            templateStepId: seededIds.templateStep,
+            label: 'Navigate to URL',
+            invocationJson: navigationInvocationJson,
             parameters: {
               create: [
                 {

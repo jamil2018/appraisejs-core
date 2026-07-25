@@ -31,10 +31,14 @@ describe('quality ratchet', () => {
     const patch = 'x'.repeat(2 * 1024 * 1024)
     let maxBuffer = 0
 
-    const result = readQualityDiff('origin/appraise-0.5', (_command, _args, options) => {
-      maxBuffer = options.maxBuffer
+    const result = readQualityDiff('origin/appraise-0.5', ((
+      _command: string,
+      _args: string[],
+      options?: { maxBuffer?: number },
+    ) => {
+      maxBuffer = options?.maxBuffer ?? 0
       return { error: undefined, status: 0, stderr: '', stdout: patch }
-    })
+    }) as never)
 
     expect(result).toBe(patch)
     expect(maxBuffer).toBeGreaterThan(patch.length)
@@ -42,12 +46,12 @@ describe('quality ratchet', () => {
 
   it('reports child-process failures instead of exiting silently', () => {
     expect(() =>
-      readQualityDiff('origin/appraise-0.5', () => ({
+      readQualityDiff('origin/appraise-0.5', (() => ({
         error: new Error('spawnSync git ENOBUFS'),
         status: null,
         stderr: '',
         stdout: '',
-      })),
+      })) as never),
     ).toThrow('Unable to read the quality diff: spawnSync git ENOBUFS')
   })
 })

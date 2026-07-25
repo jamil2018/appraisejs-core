@@ -88,7 +88,15 @@ function appraiseArtifacts(testCaseId = 'case-one') {
             order: 0,
             label: 'Run baseline step',
             gherkinStep: 'Given I run the baseline step',
-            templateStepName: 'Run step',
+            invocation: {
+              step: {
+                id: 'browser.baseline.run',
+                version: '1',
+                definitionHash: `sha256:${'d'.repeat(64)}`,
+              },
+              inputs: {},
+              presentation: { keyword: 'Given' as const, description: 'I run the baseline step' },
+            },
             parameters: [],
           },
         ],

@@ -146,7 +146,7 @@ repeating the brief or rendered handoff. Pending review or pending approval is n
 After `validation_preparation_started`, agents must create AppraiseJS-native validation artifacts and call
 `validation_ast_compile` after exact check and preview receipt review before entering validation review standby. The compile response should include the direct
 validation review URL, `appraise://` URL, `ValidationArtifact` path, validation count, changed-file count, manifest
-paths, reused registry/template step paths, new custom step paths, and the next review action.
+paths, reused Step Definition references, new custom step paths, and the next review action.
 Set `APPRAISE_BROWSER_ORIGIN` to the canonical loopback browser origin when the app uses a non-default local port. Returned
 review URLs include the target project. If validation review reports a stale current-state receipt while immutable
 publication content remains valid, call `validation_review_reconcile` once and reread the review before submitting

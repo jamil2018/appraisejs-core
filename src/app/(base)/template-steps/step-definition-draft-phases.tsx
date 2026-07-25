@@ -12,7 +12,6 @@ import {
   type ReactElement,
   type SetStateAction,
 } from 'react'
-import Link from 'next/link'
 import {
   AlertCircle,
   Check,
@@ -22,7 +21,6 @@ import {
   ChevronsUpDown,
   Code2,
   Layers3,
-  Plus,
   Save,
   Settings2,
 } from 'lucide-react'
@@ -1019,14 +1017,6 @@ function StepGroupPicker({
               ))}
             </CommandGroup>
           </CommandList>
-          <div className="border-t border-white/[0.08] p-2">
-            <Button asChild variant="ghost" className="w-full justify-start text-xs text-zinc-300">
-              <Link href="/template-step-groups/create">
-                <Plus className="size-4 text-primary" />
-                Create a new step group
-              </Link>
-            </Button>
-          </div>
         </Command>
       </PopoverContent>
     </Popover>

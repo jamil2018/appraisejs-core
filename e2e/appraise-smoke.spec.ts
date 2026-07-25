@@ -26,7 +26,7 @@ test.describe('Smoke @smoke', () => {
     await expectPageHeading(page, 'Dashboard')
     await expect(page.getByRole('button', { name: 'Test Cases' })).toBeVisible()
     await expect(page.getByRole('button', { name: 'Test Suites' })).toBeVisible()
-    await expect(page.getByRole('button', { name: 'Template Steps' })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Step Definitions' })).toBeVisible()
     await expect(page.getByText('Attention Needed')).toBeVisible()
   })
 
@@ -73,6 +73,6 @@ test.describe('Smoke @smoke', () => {
     expect(featureContent).toContain('Feature: Seeded suite for E2E feature generation')
     expect(featureContent).toContain('@e2e-smoke')
     expect(featureContent).toContain('Scenario: [E2E seeded login works] Seeded login smoke case')
-    expect(featureContent).toContain('Given I open the seeded page')
+    expect(featureContent).toContain('Given the user navigates to the / url')
   })
 })

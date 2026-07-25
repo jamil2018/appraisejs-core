@@ -75,14 +75,12 @@ Managed execution uses only the exact Appraise-owned immutable runtime capsule; 
 Successful compilation returns the exact project-scoped `review=validation` browser link and the Appraise resource
 link directly, so the agent can hand off the review gate without another plan read.
 
-Validation authoring is registry-first through the unified Step Definition catalog and locator graph. During the
-consumer migration, `step_search` may expose legacy Template Step compatibility data, but the actionable identity is
-the exact versioned Step Reference. Ready Step Definitions are globally shared; project-specific behavior remains a
-reviewed extension and is not silently promoted into the shared library.
-Use the lower-level `operation_search` and `operation_read` to inspect an exact semantic operation, then the allowlisted structured
-locator/page fallback, and only then a justified custom operation for application-specific behavior or a documented
-catalog gap. Human template search is a compatibility projection of the same migration ledger. See
-`docs/reusable-playwright-template-steps.md`.
+Validation authoring is registry-first through the unified Step Definition catalog and locator graph. The actionable
+identity is the exact versioned Step Reference. Ready Step Definitions are globally shared; project-specific behavior
+remains a reviewed extension and is not silently promoted into the shared library.
+Use the lower-level `operation_search` and `operation_read` to inspect an exact semantic operation, then the
+allowlisted structured locator/page fallback, and only then a justified custom operation for application-specific
+behavior or a documented catalog gap. See `docs/reusable-playwright-template-steps.md`.
 Extensions require exact review evidence; target file paths are never managed execution authority.
 Reusable-resource ranking gives ordered phrase matches and exact parameter names priority over loose token overlap.
 The simple happy-path authoring profile also requires explicit assertions for a clean browser console/page runtime and
@@ -118,7 +116,7 @@ Validation feedback must be routed by scope. Product-scope or plan-scope feedbac
 artifact feedback reopens validation review. `validations_approved` is required before baseline execution proceeds;
 older `validation_approved` events may exist in in-flight streams, but new events should use the plural lifecycle name.
 The validation review handoff should include the direct validation review URL, `appraise://` URL, lifecycle, revision,
-validation artifact path, validation count, changed-file count, manifest paths, reused registry/template step paths,
+validation artifact path, validation count, changed-file count, manifest paths, reused Step Definition references,
 new custom step paths, and the next review action.
 
 Explicit non-deferred requirements must have reviewable coverage mappings. `uncovered` blocks review. `partial`
@@ -338,8 +336,8 @@ recipient, permission, operation key, and consumption time; this is the attached
 
 Agent-authored project resources inherit the plan projection's `targetProjectId`. Context discovery returns only
 modules, suites, cases, Step Blocks, locator groups, locators, and environments owned by that project, together with
-the global shared Template Step library. Resource proposals and canonical publication write the project ID onto
-created project roots, may reference shared Template Step Groups, and reject cross-project references or ID
+the global shared Step Definition library. Resource proposals and canonical publication write the project ID onto
+created project roots, may reference shared Step Definition groups, and reject cross-project references or ID
 collisions for project-owned entities. Project-owned names, including locator-group names, are unique within a target
 project rather than across the Appraise hub. Coordinator callers must not use global lookup as a fallback for scoped
 entity types.

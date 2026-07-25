@@ -25,6 +25,15 @@ describe('create-from-template helpers', () => {
   })
 
   it('narrows template test cases with steps and converts valid template data', () => {
+    const invocation = {
+      step: {
+        id: 'browser.form.fill',
+        version: '1',
+        definitionHash: `sha256:${'a'.repeat(64)}`,
+      },
+      inputs: { email: 'qa@appraise.dev' },
+      presentation: { keyword: 'When' as const, description: 'fill email' },
+    }
     const templateTestCase = getTemplateTestCaseWithSteps({
       id: 'template-1',
       name: 'Login flow',
@@ -36,7 +45,7 @@ describe('create-from-template helpers', () => {
           label: 'Fill email',
           gherkinStep: 'fill email',
           icon: TemplateStepIcon.INPUT,
-          templateStepId: 'template-step-1',
+          invocationJson: JSON.stringify(invocation),
           parameters: [
             {
               id: 'param-1',
@@ -44,7 +53,6 @@ describe('create-from-template helpers', () => {
               defaultValue: 'qa@appraise.dev',
               type: StepParameterType.STRING,
               order: 1,
-              templateStepId: 'template-step-1',
             },
           ],
         },
@@ -75,7 +83,7 @@ describe('create-from-template helpers', () => {
               order: 1,
             },
           ],
-          templateStepId: 'template-step-1',
+          invocation,
         },
       },
     })

@@ -1,16 +1,11 @@
 import type { FlowBlock, NodeOrderMap } from '@/types/diagram/diagram'
 
 import type { EditableTestCase } from './editable-test-case-types'
+import { stepInvocationSchema } from '../../../../packages/cucumber-runtime/src/step-definitions/contracts.ts'
 
 export function buildNodeOrderFromTestCaseSteps(steps: EditableTestCase['steps']): NodeOrderMap {
   return steps.reduce<NodeOrderMap>((acc, step) => {
-    const hasCanonicalInvocation =
-      typeof step.operationInvocationJson === 'string' && step.operationInvocationJson.length > 0
-    const transitionalTemplateStepId = step.templateStepId ?? undefined
-    if (!hasCanonicalInvocation && !transitionalTemplateStepId)
-      throw new Error(
-        `Test case step ${step.id} has neither a canonical operation invocation nor a TemplateStep fallback.`,
-      )
+    const invocation = stepInvocationSchema.parse(JSON.parse(step.invocationJson))
     const nodeId = step.flowNodeId ?? step.id
     acc[nodeId] = {
       nodeId,
@@ -24,8 +19,7 @@ export function buildNodeOrderFromTestCaseSteps(steps: EditableTestCase['steps']
         type: parameter.type,
         order: parameter.order,
       })),
-      // A TemplateStep only preserves the transitional editor projection. Runtime authority is the exact invocation.
-      templateStepId: transitionalTemplateStepId ?? '',
+      invocation,
     }
     return acc
   }, {})

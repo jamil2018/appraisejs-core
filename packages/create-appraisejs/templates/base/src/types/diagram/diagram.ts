@@ -1,4 +1,5 @@
 import { StepParameterType } from '@prisma/client'
+import type { StepInvocation } from '../../../packages/cucumber-runtime/src/step-definitions/contracts.ts'
 
 export type NodeData = {
   nodeId?: string
@@ -13,7 +14,7 @@ export type NodeData = {
     type: StepParameterType
     order: number
   }[]
-  templateStepId: string
+  invocation: StepInvocation
 }
 
 export type NodeOrderMap = Record<string, NodeData>
@@ -30,7 +31,7 @@ export type TemplateTestCaseNodeData = {
     type: StepParameterType
     order: number
   }[]
-  templateStepId: string
+  invocation: StepInvocation
 }
 
 export type TemplateTestCaseNodeOrderMap = Record<string, TemplateTestCaseNodeData>

@@ -1,4 +1,4 @@
-import definitions from '../operations/definitions.json'
+import definitions from '../operations/definitions.json' with { type: 'json' }
 import { browserOperationHandlerDescriptors } from '../operations/browser-handlers.ts'
 import type { OperationDefinition } from '../operations/contracts.ts'
 

@@ -213,7 +213,7 @@ async function reviewAndPublishDraft({
     return
   }
   toast({ title: 'Step Definition published', description: `${definition.identity.id}@${definition.identity.version}` })
-  router.push('/template-steps')
+  router.push('/template-steps/create')
 }
 
 function useEditorActions({

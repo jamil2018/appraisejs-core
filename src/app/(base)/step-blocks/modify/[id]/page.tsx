@@ -4,8 +4,28 @@ import PageHeader from '@/components/typography/page-header'
 import { Metadata } from 'next'
 
 import { loadStepBlockFormResources } from '../../step-block-form-resources'
-import { getStepBlockRow, getTemplateStepOptions, toStepBlockFormValues } from '../../step-block-helpers'
+import { getStepBlockRow, toStepBlockFormValues } from '../../step-block-helpers'
 import { StepBlockForm } from '../../step-block-form'
+
+type ModifyStepBlockPageData =
+  | { status: 'error'; message: string }
+  | {
+      status: 'success'
+      id: string
+      stepBlock: NonNullable<ReturnType<typeof getStepBlockRow>>
+      stepDefinitions: Awaited<ReturnType<typeof loadStepBlockFormResources>>['stepDefinitions']
+    }
+
+async function loadModifyStepBlockPageData(id: string): Promise<ModifyStepBlockPageData> {
+  const [stepBlockResponse, resources] = await Promise.all([getStepBlockByIdAction(id), loadStepBlockFormResources()])
+  const error = stepBlockResponse.error ?? resources.error
+  if (error) return { status: 'error', message: error }
+
+  const stepBlock = getStepBlockRow(stepBlockResponse.data)
+  return stepBlock
+    ? { status: 'success', id, stepBlock, stepDefinitions: resources.stepDefinitions }
+    : { status: 'error', message: 'Step block data is unavailable.' }
+}
 
 export const metadata: Metadata = {
   title: 'Appraise | Modify Step Block',
@@ -14,22 +34,8 @@ export const metadata: Metadata = {
 
 const ModifyStepBlock = async ({ params }: { params: Promise<{ id: string }> }) => {
   const { id } = await params
-  const stepBlockResponse = await getStepBlockByIdAction(id)
-
-  if (stepBlockResponse.error) {
-    return <div>Error: {stepBlockResponse.error}</div>
-  }
-
-  const resources = await loadStepBlockFormResources()
-
-  if (resources.error) {
-    return <div>Error: {resources.error}</div>
-  }
-
-  const stepBlock = getStepBlockRow(stepBlockResponse.data)
-  if (!stepBlock) {
-    return <div>Error: Step block data is unavailable.</div>
-  }
+  const data = await loadModifyStepBlockPageData(id)
+  if (data.status === 'error') return <div>Error: {data.message}</div>
 
   return (
     <>
@@ -38,12 +44,14 @@ const ModifyStepBlock = async ({ params }: { params: Promise<{ id: string }> }) 
         <HeaderSubtitle>Update the reusable step sequence</HeaderSubtitle>
       </div>
       <StepBlockForm
-        defaultValues={toStepBlockFormValues(stepBlock)}
-        templateSteps={getTemplateStepOptions(resources.templateSteps)}
+        defaultValues={toStepBlockFormValues(data.stepBlock)}
+        stepDefinitions={
+          (data.stepDefinitions ?? []) as import('@/types/step-definition-option').StepDefinitionOption[]
+        }
         successTitle="Step block updated"
         successMessage="Step block updated successfully"
         onSubmitAction={updateStepBlockAction}
-        id={id}
+        id={data.id}
       />
     </>
   )

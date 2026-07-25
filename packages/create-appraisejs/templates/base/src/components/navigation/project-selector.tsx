@@ -18,7 +18,6 @@ const COLLECTION_ROUTES = new Set([
   'reports',
   'step-blocks',
   'tags',
-  'template-step-groups',
   'template-steps',
   'template-test-cases',
   'test-cases',

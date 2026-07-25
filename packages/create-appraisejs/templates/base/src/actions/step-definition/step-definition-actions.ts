@@ -11,6 +11,11 @@ import { coordinatorStepDefinitionService } from '@/services/coordinator/coordin
 import type { ActionResponse } from '@/types/form/actionHandler'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
+import {
+  computeStepReferenceHash,
+  stepDefinitionSchema,
+} from '../../../packages/cucumber-runtime/src/step-definitions/contracts.ts'
+import type { StepDefinitionOption } from '@/types/step-definition-option'
 
 const draftIdSchema = z.string().uuid()
 const revisionSchema = z.number().int().positive()
@@ -48,7 +53,7 @@ function registryError(error: StepDefinitionRegistryError): ActionResponse {
 async function respond<T>(operation: () => Promise<T>, revalidate = false): Promise<ActionResponse> {
   try {
     const data = await operation()
-    if (revalidate) revalidatePath('/template-steps')
+    if (revalidate) revalidatePath('/template-steps/create')
     return { status: 200, success: true, data }
   } catch (error) {
     if (error instanceof z.ZodError) return validationError(error)
@@ -66,6 +71,29 @@ export async function searchReadyStepDefinitionContractsAction(query: string): P
   return respond(async () => {
     const search = new URLSearchParams({ query: readyDefinitionSearchSchema.parse(query), limit: '10' })
     return (await coordinatorStepDefinitionService.read(['step-definitions', 'search'], search)).body
+  })
+}
+
+export async function listReadyStepDefinitionOptionsAction(): Promise<ActionResponse> {
+  return respond(async () => {
+    const rows = await registry.list({ status: 'ready', limit: 100 })
+    return rows.map(row => {
+      const definition = stepDefinitionSchema.parse(JSON.parse(row.definitionJson))
+      return {
+        reference: { id: row.id, version: row.version, definitionHash: computeStepReferenceHash(definition) },
+        title: definition.intent.title,
+        description: definition.intent.description,
+        signature: definition.human.signature,
+        keywordCompatibility: definition.human.keywordCompatibility,
+        groupId: definition.human.groupId,
+        inputs: definition.inputs.map(input => ({
+          name: input.name,
+          type: input.type,
+          required: input.required,
+          ...(input.defaultValue === undefined ? {} : { defaultValue: input.defaultValue }),
+        })),
+      } satisfies StepDefinitionOption
+    })
   })
 }
 

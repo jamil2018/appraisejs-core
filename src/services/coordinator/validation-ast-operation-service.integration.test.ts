@@ -9,11 +9,7 @@ import {
   copyMigratedTestDatabase,
   prepareCleanCoordinatorPlanRuntimeTestDatabase,
 } from '@/test/plan-runtime-schema-test-helper'
-import {
-  basicValidationAstSubmission,
-  seedCanonicalOperationProjections,
-  sqliteTestClient,
-} from '@/test/validation-ast-test-fixtures'
+import { basicValidationAstSubmission, sqliteTestClient } from '@/test/validation-ast-test-fixtures'
 import { parseYamlArtifact, serializeYamlArtifact, type ValidationArtifact } from '@/lib/plan-contract'
 import { hashFileContent } from '@/lib/validation-review/file-review'
 import { PlanArtifactRepository } from '@/lib/plans/artifact-repository'
@@ -180,7 +176,6 @@ beforeEach(async () => {
   await copyMigratedTestDatabase(databasePath)
   client = sqliteTestClient(databasePath)
   await prepareCleanCoordinatorPlanRuntimeTestDatabase(databasePath)
-  await seedCanonicalOperationProjections(client)
   const stepRegistry = new StepDefinitionRegistryService(client)
   for (const definition of builtInStepDefinitions) await stepRegistry.registerBuiltIn(definition, 'source-conformance')
   const target = await client.targetProject.create({

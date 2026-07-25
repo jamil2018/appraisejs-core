@@ -1,23 +1,7 @@
 # appraisejs
 
-AppraiseJS command-line, coordinator client, MCP server, managed-run diagnostics, and published template-step
-registry for an existing Appraise project.
-
-The bundled registry is a broad Playwright browser toolkit. Prefer semantic steps first, the documented structured
-operation fallback second, and custom steps only for application-specific behavior or a justified catalog gap. See
-[`docs/reusable-playwright-template-steps.md`](../../docs/reusable-playwright-template-steps.md).
-
-## Quick Start
-
-```bash
-npx appraisejs@latest add step <group-slug>/<step-slug>
-```
-
-Example:
-
-```bash
-npx appraisejs@latest add step click/click-element
-```
+AppraiseJS command-line, coordinator client, MCP server, and managed-run diagnostics for an existing Appraise
+project. Reusable behavior is authored and published through the shared Step Definition registry in the Appraise hub.
 
 ## Managed Run Diagnostics
 
@@ -35,35 +19,4 @@ and schema are hub-only in Appraise 0.5 and are not copied into scaffold templat
 ## Requirements
 
 - Node.js 20.19+
-- An existing Appraise project generated from a scaffold that includes `scripts/install-template-step.ts`
-- Project dependencies already installed so the local sync scripts can run
-
-## Supported Flags
-
-```bash
-npx appraisejs@latest add step <group-slug>/<step-slug> \
-  --cwd /path/to/appraise-project \
-  --overwrite \
-  --dry-run \
-  --registry-url https://example.com/registry/template-steps \
-  --branch main
-```
-
-- `--cwd <path>`: target Appraise project directory
-- `--overwrite`: replace an existing step with the same signature
-- `--dry-run`: print planned actions without writing files or running sync
-- `--registry-url <url>`: override the default registry manifest URL or registry base URL
-- `--branch <ref>`: choose a different GitHub branch when using the default public registry
-
-## What It Does
-
-1. Validates the target directory is an Appraise project with the local installer script available.
-2. Downloads the public registry manifest and the requested step fragment.
-3. Invokes the project-local `appraisejs:install-step` script.
-4. Merges the step into `automation/steps`, then runs:
-   `sync-template-step-groups`
-   `sync-template-steps`
-
-## Registry Overrides
-
-The default registry is served from this repository on GitHub. Use `--registry-url` and `--branch` for development or QA against non-default registry content.
+- An existing Appraise project with the coordinator configured

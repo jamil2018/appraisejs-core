@@ -172,7 +172,7 @@ const requiredTokens = [
   },
   {
     file: 'packages/appraisejs/README.md',
-    tokens: ['Node.js 20.19+', 'coordinator client', 'MCP server', 'published template-step'],
+    tokens: ['Node.js 20.19+', 'coordinator client', 'MCP server', 'Step Definition'],
   },
   { file: 'packages/create-appraisejs/README.md', tokens: ['Node.js `20.19+`', 'bundled-only'] },
   {

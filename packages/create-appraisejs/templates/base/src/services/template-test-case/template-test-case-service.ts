@@ -2,10 +2,10 @@ import prisma from '@/config/db-config'
 import { templateTestCaseSchema } from '@/constants/form-opts/template-test-case-form-opts'
 import { ServiceError } from '@/services/shared/errors'
 import { flowBlockCreates, templateTestCaseStepCreates } from '@/services/shared/authored-step-persistence'
+import { resolveReadyExactStepDefinitions } from '@/services/shared/step-invocation-validation'
 import { Prisma } from '@prisma/client'
 import type { TemplateTestCase } from '@prisma/client'
 import type { z } from 'zod'
-import { type CanonicalTemplateStepMapping } from '@/lib/operation-catalog'
 
 const templateTestCaseInclude = {
   steps: {
@@ -49,36 +49,36 @@ export async function deleteTemplateTestCases(ids: string[], targetProjectId: st
   })
 }
 
-async function validateTemplateSteps(value: TemplateTestCaseInput) {
-  const ids = [...new Set(value.steps.map(step => step.templateStepId))]
-  const steps = await prisma.templateStep.findMany({
-    where: { id: { in: ids } },
-    select: {
-      id: true,
-      operationId: true,
-      operationVersion: true,
-      operationDescriptorHash: true,
-      humanProjectionId: true,
-      operationMigrationState: true,
-    },
-  })
-  if (steps.length !== ids.length)
-    throw new ServiceError('One or more template steps were not found', 'VALIDATION', 400)
-  return new Map(steps.map(step => [step.id, step satisfies CanonicalTemplateStepMapping & { id: string }]))
+async function validateStepInvocations(value: TemplateTestCaseInput) {
+  const definitions = await resolveReadyExactStepDefinitions(value.steps)
+  if (!definitions)
+    throw new ServiceError('One or more Step Invocation references is not ready and exact', 'VALIDATION', 400)
+  return definitions
+}
+
+function prepareTemplateTestCaseWrites(
+  value: TemplateTestCaseInput,
+  definitions: Awaited<ReturnType<typeof validateStepInvocations>>,
+) {
+  return {
+    steps: templateTestCaseStepCreates(value.steps, definitions),
+    flowBlocks: flowBlockCreates(value.flowBlocks),
+  }
 }
 
 export async function createTemplateTestCase(
   value: TemplateTestCaseInput,
   targetProjectId: string,
 ): Promise<TemplateTestCase> {
-  const operationMappings = await validateTemplateSteps(value)
+  const definitions = await validateStepInvocations(value)
+  const prepared = prepareTemplateTestCaseWrites(value, definitions)
   return prisma.templateTestCase.create({
     data: {
       name: value.title,
       description: value.description ?? '',
       targetProjectId,
-      steps: { create: templateTestCaseStepCreates(value.steps, operationMappings) },
-      flowBlocks: { create: flowBlockCreates(value.flowBlocks) },
+      steps: { create: prepared.steps },
+      flowBlocks: { create: prepared.flowBlocks },
     },
   })
 }
@@ -110,7 +110,8 @@ export async function updateTemplateTestCase(
     )
   }
   await getTemplateTestCaseByIdOrThrow(id, targetProjectId)
-  const operationMappings = await validateTemplateSteps(value)
+  const definitions = await validateStepInvocations(value)
+  const prepared = prepareTemplateTestCaseWrites(value, definitions)
 
   const steps = await prisma.templateTestCaseStep.findMany({
     where: { templateTestCaseId: id },
@@ -118,23 +119,24 @@ export async function updateTemplateTestCase(
   })
   const stepIds = steps.map(step => step.id)
 
-  if (stepIds.length > 0) {
-    await prisma.templateTestCaseStepParameter.deleteMany({
-      where: { templateTestCaseStep: { id: { in: stepIds } } },
+  return prisma.$transaction(async tx => {
+    if (stepIds.length > 0) {
+      await tx.templateTestCaseStepParameter.deleteMany({
+        where: { templateTestCaseStep: { id: { in: stepIds } } },
+      })
+    }
+    await tx.templateTestCaseStep.deleteMany({ where: { templateTestCaseId: id } })
+    await tx.templateTestCaseFlowBlock.deleteMany({ where: { templateTestCaseId: id } })
+
+    return tx.templateTestCase.update({
+      where: { id },
+      data: {
+        name: value.title,
+        description: value.description ?? '',
+        steps: { create: prepared.steps },
+        flowBlocks: { create: prepared.flowBlocks },
+      },
+      include: { steps: true },
     })
-  }
-
-  await prisma.templateTestCaseStep.deleteMany({ where: { templateTestCaseId: id } })
-  await prisma.templateTestCaseFlowBlock.deleteMany({ where: { templateTestCaseId: id } })
-
-  return prisma.templateTestCase.update({
-    where: { id },
-    data: {
-      name: value.title,
-      description: value.description ?? '',
-      steps: { create: templateTestCaseStepCreates(value.steps, operationMappings) },
-      flowBlocks: { create: flowBlockCreates(value.flowBlocks) },
-    },
-    include: { steps: true },
   })
 }

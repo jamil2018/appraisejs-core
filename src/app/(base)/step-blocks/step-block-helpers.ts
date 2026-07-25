@@ -1,37 +1,14 @@
 import type { StepBlockFormValues } from '@/constants/form-opts/step-block-form-opts'
 import { stepBlockSchema } from '@/constants/form-opts/step-block-form-opts'
-import { getGherkinPreview } from '@/components/diagram/node-form-helpers'
 import type { NodeOrderMap } from '@/types/diagram/diagram'
+import type { StepDefinitionOption } from '@/types/step-definition-option'
 import type { ActionResponse, ActionResponseData } from '@/types/form/actionHandler'
-import type { StepParameterType, TemplateStep } from '@prisma/client'
-
-export type StepBlockTemplateStepOption = TemplateStep & {
-  parameters?: Array<{ id: string; name: string; order: number; type: StepParameterType }>
-  templateStepGroup?: { name: string } | null
-}
-
-type StepBlockTemplateStepParameter = NonNullable<StepBlockTemplateStepOption['parameters']>[number] & {
-  templateStepId: string
-}
-
-function getParametersByTemplateStep(parameterData: ActionResponseData | undefined) {
-  const parametersByStep = new Map<string, StepBlockTemplateStepParameter[]>()
-  const parameters = Array.isArray(parameterData) ? (parameterData as StepBlockTemplateStepParameter[]) : []
-
-  for (const parameter of parameters) {
-    const current = parametersByStep.get(parameter.templateStepId) ?? []
-    current.push(parameter)
-    parametersByStep.set(parameter.templateStepId, current)
-  }
-
-  return parametersByStep
-}
 
 export type StepBlockStepRow = {
   id: string
   order: number
   parameterMap: string
-  templateStep: StepBlockTemplateStepOption
+  invocationJson: string
 }
 
 export type StepBlockRow = {
@@ -69,19 +46,6 @@ export function getStepBlockRow(data: ActionResponseData | undefined): StepBlock
   return data ? (data as StepBlockRow) : null
 }
 
-export function getTemplateStepOptions(
-  data: ActionResponseData | undefined,
-  parameterData?: ActionResponseData | undefined,
-): StepBlockTemplateStepOption[] {
-  const templateSteps = Array.isArray(data) ? (data as StepBlockTemplateStepOption[]) : []
-  const parametersByStep = getParametersByTemplateStep(parameterData)
-
-  return templateSteps.map(templateStep => ({
-    ...templateStep,
-    parameters: (parametersByStep.get(templateStep.id) ?? []).sort((left, right) => left.order - right.order),
-  }))
-}
-
 export function toStepBlockFormValues(row: StepBlockRow): StepBlockFormValues {
   return {
     name: row.name,
@@ -89,38 +53,46 @@ export function toStepBlockFormValues(row: StepBlockRow): StepBlockFormValues {
     intent: row.intent ?? '',
     steps: [...row.steps]
       .sort((left, right) => left.order - right.order)
-      .map(step => ({
-        templateStepId: step.templateStep.id,
-      })),
+      .map(step => ({ invocation: JSON.parse(step.invocationJson) })),
   }
 }
 
 export function getStepBlockNodeOrder(
   values: StepBlockFormValues | undefined,
-  templateSteps: TemplateStep[],
+  stepDefinitions: StepDefinitionOption[],
 ): NodeOrderMap {
-  const stepById = new Map(templateSteps.map(step => [step.id, step]))
+  const stepByReference = new Map(stepDefinitions.map(step => [`${step.reference.id}@${step.reference.version}`, step]))
+  const nodes = (values?.steps ?? [])
+    .map((step, index) => getStepBlockNode(step, index, stepByReference))
+    .filter((node): node is [string, NodeOrderMap[string]] => node !== null)
 
-  return Object.fromEntries(
-    (values?.steps ?? []).flatMap((step, index) => {
-      const templateStep = stepById.get(step.templateStepId)
-      if (!templateStep) {
-        return []
-      }
+  return Object.fromEntries(nodes) as NodeOrderMap
+}
 
-      return [
-        [
-          `step-block-node-${index}`,
-          {
-            order: index + 1,
-            label: templateStep.name,
-            gherkinStep: getGherkinPreview(templateStep, []),
-            icon: templateStep.icon,
-            parameters: [],
-            templateStepId: templateStep.id,
-          },
-        ],
-      ]
-    }),
-  ) as NodeOrderMap
+function getStepBlockNode(
+  step: StepBlockFormValues['steps'][number],
+  index: number,
+  stepByReference: Map<string, StepDefinitionOption>,
+): [string, NodeOrderMap[string]] | null {
+  const definition = stepByReference.get(`${step.invocation.step.id}@${step.invocation.step.version}`)
+  if (!definition) return null
+
+  return [
+    `step-block-node-${index}`,
+    {
+      order: index + 1,
+      label: definition.title,
+      gherkinStep: getStepBlockGherkinStep(step, definition),
+      icon: 'MOUSE',
+      parameters: [],
+      invocation: step.invocation,
+    },
+  ]
+}
+
+function getStepBlockGherkinStep(step: StepBlockFormValues['steps'][number], definition: StepDefinitionOption): string {
+  const presentation = step.invocation.presentation
+  if (!presentation) return `${definition.keywordCompatibility[0]} ${definition.signature}`
+
+  return `${presentation.keyword ?? definition.keywordCompatibility[0]} ${presentation.description ?? definition.signature}`
 }

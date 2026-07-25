@@ -3,7 +3,8 @@
 ## Status
 
 Implementation in progress for AppraiseJS 0.5. The shared registry, human draft editor, reviewed-extension pipeline,
-and bounded agent authoring surface are implemented. Later consumer cutover and legacy-authority removal remain.
+and bounded agent authoring surface are implemented. Later consumer cutover and removal of every superseded Template
+Step and V1 AST/capsule contract remain.
 
 ### Implementation checkpoint (2026-07-22)
 
@@ -22,9 +23,10 @@ Work completed on `codex/unified-step-definition-migration`:
 
 Continuation state:
 
-- Tranches 0-2 are foundation-complete only. The 2026-07-22 continuation audit confirmed that populated-database
-  migration/rollback coverage is still incomplete and that the enabled Template Step creator remains a legacy writer,
-  so Checkpoints 1 and 2 are not fully accepted yet.
+- Tranches 0-2 are foundation-complete only. The 2026-07-22 continuation audit confirmed that the enabled Template
+  Step creator and persistence model remain superseded writers, so Checkpoints 1 and 2 are not fully accepted yet.
+  Populated-database preservation and rollback compatibility are no longer acceptance requirements for this
+  unreleased feature.
 - Tranche 3.1 now exposes draft create/read/revise/delete/validate/preview/review/publish and definition deprecation
   through thin Server Actions and matching HTTP adapters over the shared registry, with optimistic-revision, request
   validation, standard error-envelope, cache-invalidation, and exact publication-input coverage.
@@ -41,9 +43,9 @@ Continuation state:
 - Tranche 5.1 now requires every composition child to carry an exact `{ id, version, definitionHash }` Step Reference;
   the validator and registry reject a ready-row hash mismatch before publication. A deterministic Step Block migration
   service and durable source-hash ledger provide stable dry-run classification and explicitly applied, review-required
-  composition drafts without creating ready definitions or mutating legacy rows. The draft surface preserves source
-  wording, intent, timestamps, and order as migration evidence and quarantines incomplete custom children, malformed
-  parameter maps, stale proof, identity conflicts, and later source drift. Human composition drafts now search ready
+  composition drafts without creating ready definitions. That migration utility is temporary: it may help inspect
+  development data, but it does not establish a compatibility contract and must be deleted with Template Step
+  persistence. Human composition drafts now search ready
   registry definitions, preserve exact child references, and support ordered add/remove/reorder plus parent-input or
   earlier-output mappings. The coordinator/MCP draft boundary normalizes that same child shape and exposes typed
   child inputs/outputs through the existing ready-definition search result. Capsule/runtime execution and consumer
@@ -106,7 +108,7 @@ The target guarantee is:
 > If a step is ready, a human can discover and author it, an agent can discover and author it, Appraise can validate
 > its typed invocation, and the runtime can execute it without translating through another semantic identity.
 
-All ready definitions remain shared across projects, matching the current Template Step library. Provenance records
+All ready definitions remain shared across projects through the canonical Step Definition registry. Provenance records
 how a definition entered the registry and which authority published it; provenance does not scope visibility. A
 project-specific behavior that is unsuitable for the shared library remains a reviewed extension and is not silently
 promoted into a shared Step Definition.
@@ -226,14 +228,15 @@ the behavior itself or overwrites the user's implementation when metadata change
   runtime.
 - Generate all projections and registries from one canonical definition.
 - Give human forms and agent tools the same draft, validation, preview, and publication semantics.
-- Preserve readable Gherkin, Template Step groups, Step Blocks, template test cases, manual test cases, typed managed
-  ASTs, trusted handlers, and immutable capsules.
+- Preserve readable Gherkin, Step Definition groups, compositions, template test cases, manual test cases, typed
+  managed ASTs, trusted handlers, and immutable capsules produced by the canonical architecture.
 - Migrate all current built-ins without changing their visible wording or executable behavior.
-- Classify and migrate existing custom steps without granting trust to arbitrary source.
+- Require custom behavior to be authored through the canonical draft/review pipeline; discard old custom Template
+  Steps rather than migrating them.
 - Eliminate mapping-state-driven discovery and runtime selection.
 - Move semantic search terms, aliases, examples, and input vocabulary into the definition that owns them.
 - Add an executable-readiness receipt before a definition becomes ready.
-- Preserve historical artifacts and compatibility readers through a bounded, observable deprecation window.
+- Remove Template Step, V1 Validation AST, V1 runtime-input, and V1 capsule contracts without a compatibility window.
 
 ## Out Of Scope
 
@@ -242,7 +245,8 @@ the behavior itself or overwrites the user's implementation when metadata change
 - Automatically trusting arbitrary custom TypeScript.
 - Replacing Cucumber, Playwright, the trusted operation-handler package, or immutable runtime capsules.
 - Inferring validation coverage or task graphs from Step Definition metadata.
-- Rewriting completed historical evidence or mutable in-place upgrades of published references.
+- Rewriting evidence produced by the canonical Step Definition architecture or mutating published references in
+  place.
 - Removing human authoring in favor of mandatory agent availability.
 - Built-in LLM inference, semantic suggestion services, or direct use of a user's hosted-chat subscription.
 
@@ -258,8 +262,6 @@ the behavior itself or overwrites the user's implementation when metadata change
   definition.
 - **Step Invocation:** one Step Reference plus typed inputs, optional stored output, and presentation metadata.
 - **Publication Receipt:** durable proof that all readiness contracts passed for an immutable version.
-- **Compatibility Projection:** a temporary read model exposing a ready Step Definition through a legacy Template
-  Step or operation-shaped API.
 
 ## Target Architecture
 
@@ -740,40 +742,44 @@ Canonical JSON preserves forward-compatible structured metadata; selectively dup
 and integrity needs. Database constraints enforce exact identity and projection uniqueness rather than relying on
 `findFirst` conventions.
 
-## Compatibility And Migration Strategy
+## Canonical Cutover Strategy
 
-### Classification
+### Source classification
 
-Existing rows are classified before mutation:
+Existing development rows may be classified only to inform cleanup:
 
-1. **Mapped built-in:** has a valid canonical operation mapping and generated human projection.
-2. **Manual custom with reviewed executable binding:** eligible for a shared draft with a reviewed-extension binding.
-3. **Manual custom used only for manual authoring:** migrated to an unbound draft and remains non-executable until
-   completed.
-4. **Orphaned or conflicting:** quarantined with explicit diagnostics; never guessed into a ready definition.
+1. **Canonical built-in source:** register directly as a ready Step Definition.
+2. **Reviewed extension source:** publish through the current reviewed-extension and Step Definition contracts.
+3. **Composition source:** re-author as a StepDefinition composition of exact Step Invocations.
+4. **Template Step or ambiguous legacy data:** delete; do not translate, quarantine for runtime use, or expose through
+   a compatibility reader.
 
-### Backfill
+### Clean cutover
 
-- Each current canonical built-in becomes one ready Step Definition preserving its operation reference.
-- Existing human names, signatures, groups, icons, and parameter order become its human projection.
+- Each canonical built-in source becomes one ready Step Definition with its own exact Step Reference.
+- Human names, signatures, groups, icons, and parameter order come from canonical Step Definition source.
 - Agent descriptors and examples become its agent metadata.
 - Trusted handler identities become its execution binding.
-- Existing database references receive an exact Step Reference without changing visible wording.
-- Step Blocks become versioned compositions of Step Invocations.
+- New authored records store exact Step Invocations.
+- Template Step rows, mappings, foreign keys, routes, actions, projections, migration helpers, and generated registries
+  are deleted.
+- V1 Validation ASTs, runtime inputs, capsule manifests, action/operation-shaped roots, repair paths, and fixtures are
+  deleted and rejected rather than decoded.
 
-### Compatibility window
+### No compatibility window
 
-- **Decision update (2026-07-25):** the user explicitly authorized deleting Template Steps and not preserving legacy
-  steps. There is no legacy authoring or Validation AST compatibility window on this unreleased migration branch.
+- **Canonical decision (2026-07-25):** this feature has no existing users, so the unified Step Definition
+  architecture is the only supported architecture.
 - V1 `action`, `operationRef`, `templateStepId`, and `templateStepName` inputs are removed rather than decoded.
+- V1 capsule manifests and legacy validation-projection repair paths are removed rather than accepted or rewritten.
 - Exact published Step Definition references and receipts remain historically resolvable, including deprecated
   definitions; this is immutable publication evidence, not legacy Template Step compatibility.
 - CI prevents new code from restoring legacy mapping fields or independent Template Step authority.
 
 ### Rollback
 
-Rollback disables new publication and leaves ready definitions and their immutable receipts intact. It does not
-restore discarded Template Step or V1 Validation AST authority.
+Rollback may disable new publication while leaving canonical ready definitions and their immutable receipts intact.
+It must never restore Template Step persistence, V1 AST/runtime/capsule readers, or dual semantic authority.
 
 ## Implementation Tranches
 
@@ -795,15 +801,15 @@ publication authority, and the rejected dual-identity alternative.
 - Focused Prettier and documentation-link checks pass.
 - Architecture reviewers approve the identity and authority decisions before schema work.
 
-### Task 0.2: Add dual-identity regression fixtures
+### Task 0.2: Add dual-identity rejection fixtures
 
-Capture mapped built-ins, manual custom steps, duplicate operation mappings, stale descriptor hashes, Step Blocks,
-template test cases, managed ASTs, historical runtime inputs, and custom reviewed extensions.
+Capture Template Step fields, action/operation-shaped AST roots, V1 runtime inputs, V1 capsule manifests, duplicate
+identity mappings, and stale descriptor hashes as explicitly unsupported input.
 
 **Acceptance criteria**
 
 - Fixtures reproduce discoverable-but-not-authorable results and nondeterministic projection risk.
-- Historical artifacts remain readable throughout the migration.
+- Superseded Template Step and V1 artifacts fail closed at every active boundary.
 - Permanent fixtures use generic capabilities rather than sample-application names.
 
 **Verification**
@@ -819,7 +825,7 @@ template test cases, managed ASTs, historical runtime inputs, and custom reviewe
 
 ### Task 1.1: Define shared schemas and hashes
 
-Add Zod, JSON Schema, TypeScript, canonical-JSON, hashing, compatibility, and validation contracts for definitions,
+Add Zod, JSON Schema, TypeScript, canonical-JSON, hashing, and validation contracts for definitions,
 drafts, invocations, bindings, projections, receipts, and lifecycle transitions.
 
 **Acceptance criteria**
@@ -835,8 +841,8 @@ drafts, invocations, bindings, projections, receipts, and lifecycle transitions.
 
 ### Task 1.2: Add Step Definition persistence
 
-Introduce draft, immutable definition, human projection, execution binding, publication receipt, and compatibility
-reference storage with exact uniqueness constraints.
+Introduce draft, immutable definition, human projection, execution binding, publication receipt, and exact-reference
+storage with exact uniqueness constraints.
 
 **Acceptance criteria**
 
@@ -866,7 +872,7 @@ listing, and manifest generation.
 
 ### Checkpoint 1
 
-- New domain and registry work alongside legacy reads.
+- New domain and registry are the only supported read and write authority.
 - Full build and migration tests pass.
 
 ## Tranche 2: Convert Built-Ins To The Shared Definition Pipeline
@@ -902,24 +908,25 @@ generation to consume ready Step Definitions.
 
 - Operation projection, drift, artifact, package, scaffold, and Graphify checks pass.
 
-### Task 2.3: Backfill mapped built-ins
+### Task 2.3: Register built-ins and delete Template Step state
 
-Create ready definitions and compatibility links for existing mapped Template Steps and dependent records.
+Create ready definitions directly from canonical built-in source, move active development fixtures to exact Step
+Invocations where still useful, and delete Template Step state.
 
 **Acceptance criteria**
 
-- Backfill is idempotent and detects duplicates or stale mappings rather than choosing `findFirst`.
-- Existing tests, template tests, Step Blocks, and managed publications resolve the exact new reference.
-- No historical evidence hash is rewritten.
+- Registration is idempotent and detects duplicate Step Definition identities.
+- Current tests, template tests, compositions, and managed publications use exact Step References.
+- No compatibility link or reverse Template Step lookup is created.
 
 **Verification**
 
-- Populated-database migration tests and rollback rehearsal pass.
+- Clean-database migration, canonical registration, and rollback rehearsal tests pass.
 
 ### Checkpoint 2
 
 - All built-ins originate from complete Step Definitions.
-- Legacy surfaces are read projections, not semantic authorities.
+- Template Step surfaces and storage are absent.
 
 ## Tranche 3: Deliver Human Draft Authoring End To End
 
@@ -1059,7 +1066,7 @@ Represent reusable compositions through `execution.kind = composition` and typed
 
 - Step Blocks use the same shared identity, discovery, versioning, review, and invocation contracts.
 - Publication detects cycles and incompatible mappings.
-- Existing Step Block wording and ordered behavior are preserved through backfill.
+- Canonical compositions preserve explicitly authored wording and ordered behavior.
 
 **Verification**
 
@@ -1087,10 +1094,13 @@ Allow a shared definition to bind a reviewed extension without storing executabl
 
 ### Task 6.1: Migrate authored test records
 
-**Progress (2026-07-25):** Started only for Appraise-managed Validation AST projection rows. Those rows now have an
-exact invocation persistence path and no longer need a Template Step lookup or creation. This is not a migration of
-authored test cases, template test cases, flow diagrams, imports/exports, feature generation, or sync; Task 6.1 and
-Tranche 6 remain incomplete.
+**Progress (2026-07-25):** Complete. Authored test cases, template test cases, flow diagrams, Step Definition
+compositions, imports, feature generation, and bidirectional sync now persist or require exact Step Invocations.
+Feature import fails closed when exact invocation metadata is absent instead of creating or guessing a reusable step.
+Template Step and Template Step Group persistence, writers, routes, generated registry projections, installer
+surfaces, compatibility ledgers, and migration utilities have been deleted. The human editor and dashboard now read
+ready Step Definitions directly. Tranche 6 remains incomplete until the remaining V1 Validation AST and capsule
+contracts described in Tasks 6.2 and 6.3 are removed.
 
 Update test cases, template test cases, flow diagrams, parameters, imports/exports, feature generation, and sync to store
 or derive exact Step Invocations.
@@ -1101,7 +1111,7 @@ or derive exact Step Invocations.
 - Every executable authored step resolves one immutable Step Reference.
 - CRUD and bidirectional sync operate on Step Invocations without Template Step compatibility adapters.
 - Template Step persistence, routes, writers, and generated registry projections are deleted after all authored-step
-  consumers use the unified definition contract.
+  consumers use the unified definition contract; no old-row preservation gate delays their removal.
 
 **Verification**
 
@@ -1111,8 +1121,8 @@ or derive exact Step Invocations.
 
 **Progress (2026-07-25):** The v2 AST contract has an invocation-only step shape and the managed projection rejects
 rows without an exact invocation. The compiler resolves exact ready Step Definitions before consulting their sealed
-handler bindings, and runtime-input snapshots carry exact invocations and definition references. Remaining legacy-v1
-fixtures are removal work, not a compatibility commitment; publication/review certification is still open.
+handler bindings, and runtime-input snapshots carry exact invocations and definition references. Remaining V1 schemas,
+repair paths, type names, and fixtures must be deleted; publication/review certification is still open.
 
 Replace operation/action references with Step References and remove reverse Template Step lookup from the canonical
 projection path.
@@ -1125,16 +1135,16 @@ projection path.
 
 **Verification**
 
-- AST check, preview, compile, publication, review, integrity, and V1 rejection tests pass.
+- AST check, preview, compile, publication, review, integrity, repository absence, and V1 rejection tests pass.
 
 ### Task 6.3: Migrate capsule and runtime contracts
 
 **Progress (2026-07-25):** V2 materialization resolves root invocations through the ready-definition registry, seals
 the exact publication-hash closure into the capsule, and generates bindings that call one invocation dispatcher.
 That dispatcher supports trusted operation bindings, reviewed-extension module paths, and ordered compositions with
-parent-input and earlier-output mappings. Focused materializer/browser and dispatcher tests pass. Baseline, retry,
-evidence, full publication/review, and removal of the remaining v1 fixtures are still required before Task 6.3 or
-Checkpoint 6 can be accepted.
+parent-input and earlier-output mappings. Focused materializer/browser and dispatcher tests pass. The manifest parser
+still accepts V1 capsules and therefore violates this plan. Baseline, retry, evidence, full publication/review, and
+removal of every V1 schema and fixture are required before Task 6.3 or Checkpoint 6 can be accepted.
 
 Seal the exact ready definition closure, execution bindings, composition dependencies, locator snapshots, extension
 reviews, and hashes into immutable capsules.
@@ -1144,6 +1154,7 @@ reviews, and hashes into immutable capsules.
 - Capsule compilation resolves Step References directly.
 - Manual and managed runtimes invoke the same trusted handler path.
 - Runtime evidence records the Step Reference and publication hashes.
+- Capsule parsing accepts only the current StepDefinition-based manifest; V1 operation-rooted capsules fail closed.
 
 **Verification**
 
@@ -1152,7 +1163,7 @@ reviews, and hashes into immutable capsules.
 ### Checkpoint 6
 
 - All new authoring and execution paths use Step Invocations.
-- Legacy identity fields are decoder-only.
+- Template Step identity fields and V1 AST/runtime/capsule decoders do not exist.
 
 ## Tranche 7: Add Readiness, Observability, And Governance
 
@@ -1207,17 +1218,19 @@ deprecation, and source-owned regeneration rules.
 
 ## Tranche 8: Cut Over, Remove Dual Authority, And Certify Release
 
-### Task 8.1: Disable legacy writers
+### Task 8.1: Delete superseded architecture
 
 Remove direct Template Step creation/update semantics, operation mapping writes, and Step Block-specific semantic
-authority. Do not retain Template Step compatibility reads or historical decoders on this unreleased branch; exact
-published Step Definition references remain resolvable through their immutable receipts.
+authority. Delete Template Step models, relations, migrations-in-progress, routes, actions, UI, projections, sync
+logic, registry packages, compatibility reads, V1 AST/runtime/capsule schemas, legacy projection repair, and fixtures.
+Exact published Step Definition references remain resolvable through their immutable receipts.
 
 **Acceptance criteria**
 
 - Repository scans and CI guards reject new legacy-field writers.
 - UI and MCP expose Step Definition vocabulary.
-- Repository scans find no active Template Step compatibility usage.
+- Repository scans find no Template Step authority or V1 compatibility usage outside explicit rejection tests and
+  historical prose explaining why it was removed.
 
 **Verification**
 
@@ -1240,14 +1253,15 @@ and regenerate all required outputs from canonical source.
 
 ### Task 8.3: Run the release certification matrix
 
-Certify built-in, human-created, agent-created, composition, reviewed-extension, migrated historical, deprecated, and
-failure/recovery paths.
+Certify built-in, human-created, agent-created, composition, reviewed-extension, deprecated, and failure/recovery
+paths.
 
 **Acceptance criteria**
 
 - Every ready definition is human-discoverable, agent-discoverable, authorable through both surfaces, and executable.
 - No test or runtime path translates between separate human and agent identities.
-- Migration, rollback, restart, concurrency, tamper, and historical-resolution scenarios pass.
+- Clean-schema migration, canonical rollback, restart, concurrency, tamper, and exact-reference resolution scenarios
+  pass.
 
 **Verification**
 
@@ -1274,9 +1288,8 @@ failure/recovery paths.
 | Agent MCP                    | Searches, justifies, drafts, revises, publishes after human approval, authors, and executes one identity |
 | Composition                  | Publishes a typed acyclic composition and executes the same way from human and agent surfaces            |
 | Reviewed extension           | Binds reviewed code and preserves exact source/compiled hashes in publication and capsule evidence       |
-| Existing mapped row          | Backfills deterministically without changing visible wording or behavior                                 |
-| Existing manual custom row   | Becomes a non-executable draft until its binding satisfies publication contracts                         |
-| Historical AST/runtime input | Decodes to an exact Step Reference and records compatibility usage                                       |
+| Template Step row            | Is removed; no active reader, decoder, or projection accepts it                                          |
+| V1 AST/runtime/capsule input | Is rejected; callers must author with the current Step Invocation contract                               |
 | Version update               | Creates a new immutable version while old artifacts continue to resolve                                  |
 | Deprecation                  | Hides or warns for new authoring while historical execution remains reproducible                         |
 | Failure recovery             | Leaves no partial ready definition or generated-output drift after any failed publication stage          |
@@ -1307,16 +1320,16 @@ failure/recovery paths.
 
 | Risk                                                 | Impact   | Mitigation                                                                                       |
 | ---------------------------------------------------- | -------- | ------------------------------------------------------------------------------------------------ |
-| Migration changes visible human steps                | High     | Golden snapshots and populated-database comparison before cutover                                |
+| Built-in registration changes visible human wording  | High     | Golden snapshots generated from canonical Step Definition source                                 |
 | Shared custom definition pollutes the global library | High     | Overlap review, publication authority, and keep product-specific behavior as reviewed extensions |
 | Arbitrary custom code gains trust                    | Critical | No source in metadata; require reviewed-extension binding and exact hashes                       |
-| Compatibility layer becomes permanent                | High     | Decoder-only boundary, telemetry, CI writer ban, and explicit removal thresholds                 |
+| Compatibility layer survives the cutover             | High     | Delete old schemas and readers; enforce repository-absence and negative contract tests           |
 | One schema becomes an oversized catch-all            | Medium   | Keep projections and bindings as focused subcontracts with one identity authority                |
 | Form becomes too complex                             | Medium   | Progressive sections, agent suggestions, saveable drafts, actionable readiness blockers          |
 | Agent publishing bypasses humans                     | High     | Same exact review gate regardless of authoring client                                            |
 | Global signature collisions block migration          | High     | Preflight inventory, deterministic aliases, and explicit conflict review                         |
 | Composition causes recursive or expensive execution  | High     | Publish-time cycle detection, bounded expansion, frozen dependency closure                       |
-| Hash changes invalidate historical evidence          | Critical | New version creation and compatibility references; never rewrite completed evidence              |
+| Hash changes invalidate canonical published evidence | Critical | New version creation and exact immutable references; never rewrite completed canonical evidence  |
 
 ## Definition Of Done
 
@@ -1326,10 +1339,11 @@ failure/recovery paths.
 - Human and agent discovery return the same reference and equivalent ordering.
 - Human and agent authoring create the same Step Invocation.
 - Manual and managed execution use the same binding and handler semantics.
-- No new writer treats Template Step or operation mapping fields as independent authority.
-- Existing mapped built-ins migrate without visible or behavioral drift.
-- Custom legacy behavior is explicitly migrated, drafted, or quarantined; none is silently trusted.
-- Historical tests, publications, capsules, and evidence remain resolvable.
+- No Template Step model, relation, writer, reader, route, projection, or generated registry remains.
+- No V1 Validation AST, runtime-input, capsule-manifest, or legacy projection-repair path remains.
+- Built-ins register directly from canonical Step Definition source.
+- Publications, capsules, and evidence produced by the canonical architecture resolve their exact immutable
+  StepDefinition versions.
 - UI, MCP, API, packages, scaffold, docs, generated artifacts, and Graphify outputs are current.
 - Full validation and the real human/agent end-to-end certification matrix pass.
 
@@ -1338,7 +1352,8 @@ failure/recovery paths.
 Implement sequentially through Tranches 0-2 to freeze the contract and migrate built-ins safely. Human and agent
 authoring work in Tranches 3 and 4 may proceed in parallel only after the shared draft service is stable. Composition
 and reviewed-extension work follows the same publication contract. Consumer migration, readiness receipts, and
-cutover remain sequential because they change execution authority and historical compatibility.
+cutover remain sequential because they change execution authority and remove superseded persistence and contracts.
 
-Do not remove compatibility readers, change historical evidence, or enable ready publication until populated-database
-migration, rollback, and complete human/agent execution certification have passed.
+Remove compatibility readers as part of the consumer cutover. Do not accept Checkpoints 6 or 8 until repository scans,
+negative contract tests, clean-database migration, canonical rollback, and complete human/agent execution
+certification prove that only the unified architecture remains.

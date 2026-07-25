@@ -6,21 +6,14 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import NavCommand from './nav-command'
 
-const {
-  push,
-  getAllTestSuitesAction,
-  getAllTestCasesAction,
-  getAllTemplateStepsAction,
-  getAllTestRunsAction,
-  getAllTemplateTestCasesAction,
-} = vi.hoisted(() => ({
-  push: vi.fn(),
-  getAllTestSuitesAction: vi.fn(),
-  getAllTestCasesAction: vi.fn(),
-  getAllTemplateStepsAction: vi.fn(),
-  getAllTestRunsAction: vi.fn(),
-  getAllTemplateTestCasesAction: vi.fn(),
-}))
+const { push, getAllTestSuitesAction, getAllTestCasesAction, getAllTestRunsAction, getAllTemplateTestCasesAction } =
+  vi.hoisted(() => ({
+    push: vi.fn(),
+    getAllTestSuitesAction: vi.fn(),
+    getAllTestCasesAction: vi.fn(),
+    getAllTestRunsAction: vi.fn(),
+    getAllTemplateTestCasesAction: vi.fn(),
+  }))
 
 vi.mock('next/navigation', () => ({
   useRouter: () => ({
@@ -36,10 +29,6 @@ vi.mock('@/actions/test-case/test-case-actions', () => ({
   getAllTestCasesAction,
 }))
 
-vi.mock('@/actions/template-step/template-step-actions', () => ({
-  getAllTemplateStepsAction,
-}))
-
 vi.mock('@/actions/test-run/test-run-actions', () => ({
   getAllTestRunsAction,
 }))
@@ -53,7 +42,6 @@ describe('NavCommand', () => {
     push.mockReset()
     getAllTestSuitesAction.mockResolvedValue({ status: 200, data: [] })
     getAllTestCasesAction.mockResolvedValue({ status: 200, data: [] })
-    getAllTemplateStepsAction.mockResolvedValue({ status: 200, data: [] })
     getAllTestRunsAction.mockResolvedValue({ status: 200, data: [] })
     getAllTemplateTestCasesAction.mockResolvedValue({ status: 200, data: [] })
   })

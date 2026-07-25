@@ -40,7 +40,7 @@ Use AppraiseJS to plan a small recipe organizer app where users can add recipes,
 Run this validation-preparation fixture when auditing the post-approval path:
 
 ```text
-Use AppraiseJS to plan and prepare validations for a simple todo app. Use existing registry/template steps wherever possible.
+Use AppraiseJS to plan and prepare validations for a simple todo app. Use existing ready Step Definitions wherever possible.
 ```
 
 Use a fresh writable target workspace path for each fixture unless the user explicitly chooses hub-scoped planning.
@@ -181,7 +181,7 @@ After each subagent reports standby evidence, the coordinator independently veri
    `validation_ast_compile`, verifies `validation_review_ready`, and
    records the direct validation review URL.
 10. The validation publication includes exact managed Validation AST, preview, receipt, projection, and runtime-input hashes.
-11. The subagent follows the registry-first policy: existing registry/template steps are reused for common web
+11. The subagent follows the registry-first policy: existing ready Step Definitions are reused for common web
     workflows, the todo fixture creates zero custom step definitions, and any custom step includes a gap justification
     naming the missing reusable capability and why locators plus existing steps were insufficient.
 12. Local worktree changes are limited to expected audit artifacts.

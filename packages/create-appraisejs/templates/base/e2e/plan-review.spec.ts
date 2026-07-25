@@ -4,6 +4,7 @@ import { join } from 'node:path'
 
 import { expect, test } from '@playwright/test'
 
+import { builtInStepDefinitions, computeStepReferenceHash } from '../packages/cucumber-runtime/src/step-definitions'
 import prisma from '../src/config/db-config'
 import {
   serializeYamlArtifact,
@@ -85,6 +86,24 @@ const validationPlan: PlanArtifact = {
 
 function hashContent(content: string): string {
   return `sha256:${createHash('sha256').update(content).digest('hex')}`
+}
+
+function validationReviewInvocation() {
+  const definition = builtInStepDefinitions.find(item => item.identity.id === 'browser.navigation.goto')
+  if (!definition) throw new Error('Missing built-in Step Definition: browser.navigation.goto')
+
+  return {
+    step: {
+      id: definition.identity.id,
+      version: definition.identity.version,
+      definitionHash: computeStepReferenceHash(definition),
+    },
+    inputs: { url: `/plans/${validationPlanId}?review=validation` },
+    presentation: {
+      keyword: 'Given' as const,
+      description: 'the user navigates to the validation review page',
+    },
+  }
 }
 
 async function removeSeededPlan(): Promise<void> {
@@ -191,8 +210,8 @@ async function seedValidationReviewPlan(): Promise<void> {
                   order: 0,
                   label: 'Open validation review',
                   gherkinStep: 'Given I open the validation review page',
-                  templateStepName: 'Navigate to URL',
-                  parameters: [{ name: 'url', value: `/plans/${validationPlanId}?review=validation`, type: 'TEXT' }],
+                  invocation: validationReviewInvocation(),
+                  parameters: [],
                 },
               ],
             },

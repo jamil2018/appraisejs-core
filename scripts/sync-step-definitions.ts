@@ -20,38 +20,14 @@ async function syncBuiltInDefinitions(registry: StepDefinitionRegistryService) {
   return { created, existing }
 }
 
-async function syncCompatibilityReferences() {
-  let count = 0
-  const mappedTemplateSteps = await prisma.templateStep.findMany({
-    where: { operationId: { not: null }, operationVersion: { not: null } },
-    select: { id: true, signature: true, operationId: true, operationVersion: true },
-  })
-  for (const step of mappedTemplateSteps) {
-    for (const reference of [
-      { legacyKind: 'template-step-id', legacyValue: step.id },
-      { legacyKind: 'cucumber-signature', legacyValue: step.signature },
-    ]) {
-      await prisma.stepCompatibilityReference.upsert({
-        where: { legacyKind_legacyValue: reference },
-        update: { stepId: step.operationId!, stepVersion: step.operationVersion! },
-        create: { ...reference, stepId: step.operationId!, stepVersion: step.operationVersion! },
-      })
-      count++
-    }
-  }
-  return count
-}
-
 async function main() {
   const registry = new StepDefinitionRegistryService(prisma)
   const { created, existing } = await syncBuiltInDefinitions(registry)
-  const compatibilityReferences = await syncCompatibilityReferences()
 
   printSyncSummary([
     { label: 'Step Definitions scanned', value: builtInStepDefinitions.length },
     { label: 'Step Definitions existing', value: existing },
     { label: 'Step Definitions created', value: created },
-    { label: 'Compatibility references projected', value: compatibilityReferences },
     { label: 'Errors', value: 0 },
   ])
 }

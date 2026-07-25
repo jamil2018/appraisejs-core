@@ -1,5 +1,6 @@
 import { StepParameterType, TemplateStepIcon } from '@prisma/client'
 import { z } from 'zod'
+import { stepInvocationSchema } from '../../../packages/cucumber-runtime/src/step-definitions/contracts.ts'
 
 export const flowBlockSchema = z.object({
   id: z.string(),
@@ -21,7 +22,7 @@ const testCaseStepSchema = z.object({
     }),
   ),
   order: z.number(),
-  templateStepId: z.string(),
+  invocation: stepInvocationSchema,
 })
 
 export const testCaseStepsSchema = z.array(testCaseStepSchema).min(1, { message: 'Steps are required' })

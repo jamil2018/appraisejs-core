@@ -160,14 +160,12 @@ groups, aliases, search terms, and examples as one ranked index. `operation_cate
 `operation_search`, and `operation_read` remain the lower-level canonical catalog surface, and operation search also
 returns paired human naming. The legacy action tools remain bounded compatibility aliases during migration.
 
-`template_step_search` and `template_step_match` remain compatibility names for the same `step_search` server-side
-resolver. It scores exact and ordered intent phrases, shared semantic concepts, and exact parameter-name compatibility,
-applies a confidence threshold, returns bounded
-explained alternatives when no confident match exists, and includes resolver-call, fallback, rank, candidate-count,
-and response-size-oriented metrics without returning the full validation context. Returned template-step candidates
-include `displayName`, `humanStep`, `agentOperation`, descriptions, signatures, ordered parameters, and group metadata.
-Selection order is semantic template step,
-allowlisted structured operation, then a justified custom step; the fallback contract and allowlists are documented in
+`step_search` scores exact and ordered intent phrases, shared semantic concepts, and exact parameter-name
+compatibility; it applies a confidence threshold, returns bounded explained alternatives when no confident match
+exists, and includes resolver-call, fallback, rank, candidate-count, and response-size-oriented metrics without
+returning the full validation context. Results include descriptions, signatures, ordered parameters, group metadata,
+and exact Step References. Selection order is a ready Step Definition, an allowlisted structured operation, then a
+justified custom Step Definition; the fallback contract and allowlists are documented in
 `docs/reusable-playwright-template-steps.md`.
 
 Managed validation submission is bound to both the immutable AST operation hash and the latest `reviewStateHash`.
@@ -216,7 +214,7 @@ mode remains available for explicit diagnostics. Summary budgets are 2,000 estim
 agent-authored plan creation, 300 for an unchanged wait, and 1,500 for validation context or mutation.
 
 Validation-context summary responses return resource counts and search guidance instead of serializing shared resource
-libraries. Agents should use `resourceTypes`, `query`, and a small `limit`, or the dedicated template-step, Step Block,
+libraries. Agents should use `resourceTypes`, `query`, and a small `limit`, or the dedicated Step Definition, Step Block,
 and locator search tools, to fetch only the candidates required for the current AST node. Use `full` only for an
 explicit bounded diagnostic.
 

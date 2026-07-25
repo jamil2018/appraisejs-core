@@ -283,8 +283,7 @@ This project includes various sync scripts that synchronize data between the fil
 - `npm run sync-tags` - Sync tags
 - `npm run sync-test-suites` - Sync test suites
 - `npm run sync-test-cases` - Sync test cases
-- `npm run sync-template-step-groups` - Sync template step groups
-- `npm run sync-template-steps` - Sync template steps
+- `npm run sync-step-definitions` - Register canonical built-in Step Definitions
 - `npm run sync-all` - Run all sync scripts in order for sync with test file changes
 
 ### When to Use Sync Scripts

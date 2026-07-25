@@ -249,7 +249,7 @@ async function projectValidationArtifactsInTransaction(
             gherkinStep: step.gherkinStep,
             icon: TemplateStepIcon.VALIDATION,
             label: step.label,
-            operationInvocationJson: canonicalContractJson(step.invocation),
+            invocationJson: canonicalContractJson(step.invocation),
             parameters: {
               create: step.parameters.map((parameter, order) => ({
                 name: parameter.name,

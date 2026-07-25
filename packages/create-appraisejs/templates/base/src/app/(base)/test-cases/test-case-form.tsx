@@ -13,16 +13,14 @@ import { InlineTestSuiteCreationDialog } from './inline-test-suite-creation-dial
 import TestCaseFlow from './test-case-flow'
 import type { TagFormSubmitAction } from '@/app/(base)/tags/tag-form-helpers'
 import type { TestSuiteFormSubmitAction } from '@/app/(base)/test-suites/test-suite-helpers'
-import type { FlowDiagramStepBlock } from '@/components/diagram/flow-diagram-types'
 import type { FlowBlock, NodeOrderMap } from '@/types/diagram/diagram'
 import type { TestCasePickerRow } from '@/types/test-case-picker'
+import type { StepDefinitionOption } from '@/types/step-definition-option'
 import {
   type Locator,
   type LocatorGroup,
   type Environment,
   type Module,
-  type TemplateStep,
-  type TemplateStepParameter,
   type TestSuite,
   type Tag,
 } from '@prisma/client'
@@ -57,15 +55,13 @@ import { createTestCaseFormState, testCaseFormReducer, type TestCaseFormErrors }
 
 type TestCaseFormProps = {
   defaultNodesOrder: NodeOrderMap
-  templateStepParams: TemplateStepParameter[]
-  templateSteps: TemplateStep[]
+  stepDefinitions: StepDefinitionOption[]
   locators: Array<Pick<Locator, 'id' | 'name' | 'locatorGroupId'>>
   locatorGroups: Array<Pick<LocatorGroup, 'id' | 'name' | 'route' | 'moduleId'>>
   environments: Array<Pick<Environment, 'id' | 'name'>>
   testSuites: TestSuite[]
   testCases: TestCasePickerRow[]
   moduleList: Module[]
-  stepBlocks?: FlowDiagramStepBlock[]
   tags: Tag[]
   onSubmitAction: (value: z.infer<typeof testCaseSchema>, id?: string) => Promise<ActionResponse>
   onCreateTestSuiteAction: TestSuiteFormSubmitAction
@@ -81,7 +77,6 @@ type TestCaseFormProps = {
 }
 
 const EMPTY_FLOW_BLOCKS: FlowBlock[] = []
-const EMPTY_STEP_BLOCKS: FlowDiagramStepBlock[] = []
 
 const detailsStepSchema = testCaseSubmitSchema.omit({ steps: true })
 
@@ -265,14 +260,12 @@ function WizardProgress({ steps, currentStep, onStepClick }: WizardProgressProps
 type FlowPanelProps = {
   className: string
   nodesOrder: NodeOrderMap
-  templateStepParams: TemplateStepParameter[]
-  templateSteps: TemplateStep[]
+  stepDefinitions: StepDefinitionOption[]
   locators: Array<Pick<Locator, 'id' | 'name' | 'locatorGroupId'>>
   locatorGroups: Array<Pick<LocatorGroup, 'id' | 'name' | 'route' | 'moduleId'>>
   environments: Array<Pick<Environment, 'id' | 'name'>>
   moduleList: Module[]
   flowBlocks: FlowBlock[]
-  stepBlocks: FlowDiagramStepBlock[]
   isFlowImmersive: boolean
   onNodeOrderChange: (nodesOrder: NodeOrderMap) => void
   onFlowBlocksChange: (flowBlocks: FlowBlock[]) => void
@@ -282,14 +275,12 @@ type FlowPanelProps = {
 function FlowPanel({
   className,
   nodesOrder,
-  templateStepParams,
-  templateSteps,
+  stepDefinitions,
   locators,
   locatorGroups,
   environments,
   moduleList,
   flowBlocks,
-  stepBlocks,
   isFlowImmersive,
   onNodeOrderChange,
   onFlowBlocksChange,
@@ -329,14 +320,12 @@ function FlowPanel({
             <div className="min-h-0 flex-1">
               <TestCaseFlow
                 initialNodesOrder={nodesOrder}
-                templateStepParams={templateStepParams}
-                templateSteps={templateSteps}
+                stepDefinitions={stepDefinitions}
                 onNodeOrderChange={onNodeOrderChange}
                 locators={locators}
                 locatorGroups={locatorGroups}
                 environments={environments}
                 modules={moduleList}
-                stepBlocks={stepBlocks}
                 flowBlocks={flowBlocks}
                 layoutRefreshKey={isFlowImmersive}
                 onFlowBlocksChange={onFlowBlocksChange}
@@ -1007,7 +996,6 @@ function useTestCaseSubmitHandler({
   push,
   selectedTags,
   selectedTestSuites,
-  templateStepParams,
   title,
   dispatch,
 }: {
@@ -1020,12 +1008,11 @@ function useTestCaseSubmitHandler({
   push: ReturnType<typeof useRouter>['push']
   selectedTags: string[]
   selectedTestSuites: string[]
-  templateStepParams: TemplateStepParameter[]
   title: string
   dispatch: React.Dispatch<import('./test-case-form-reducer').TestCaseFormAction>
 }) {
   return useCallback(async () => {
-    const nodesWithMissingParams = getNodesWithMissingMandatoryParams(nodesOrder, templateStepParams)
+    const nodesWithMissingParams = getNodesWithMissingMandatoryParams(nodesOrder)
 
     if (nodesWithMissingParams.length > 0) {
       toast({
@@ -1067,7 +1054,6 @@ function useTestCaseSubmitHandler({
     selectedTags,
     selectedTestSuites,
     dispatch,
-    templateStepParams,
     title,
   ])
 }
@@ -1153,15 +1139,13 @@ function useWizardStepClick(
 
 const TestCaseForm = ({
   defaultNodesOrder,
-  templateStepParams,
-  templateSteps,
+  stepDefinitions,
   locators,
   locatorGroups,
   environments,
   testSuites,
   testCases,
   moduleList,
-  stepBlocks = EMPTY_STEP_BLOCKS,
   tags,
   id,
   defaultTitle,
@@ -1326,7 +1310,6 @@ const TestCaseForm = ({
     push,
     selectedTags,
     selectedTestSuites,
-    templateStepParams,
     title,
   })
 
@@ -1334,13 +1317,11 @@ const TestCaseForm = ({
 
   const flowPanelProps: Omit<FlowPanelProps, 'className'> = {
     nodesOrder,
-    templateStepParams,
-    templateSteps,
+    stepDefinitions,
     locators,
     locatorGroups,
     environments,
     moduleList,
-    stepBlocks,
     flowBlocks,
     isFlowImmersive,
     onNodeOrderChange,

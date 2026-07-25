@@ -6,8 +6,10 @@ import {
 
 import {
   computeStepReferenceHash,
+  stepInputValueMatchesType,
   stepDefinitionSchema,
   stepInvocationSchema,
+  validateStepInvocationInputs,
   type StepDefinition,
   type StepInputExpression,
   type StepInvocation,
@@ -28,21 +30,6 @@ const definitionKey = (step: StepInvocation['step']) => `${step.id}@${step.versi
 const extensionKey = (id: string, version: string) => `${id}@${version}`
 const MAX_COMPOSITION_DEPTH = 16
 const MAX_COMPOSITION_EXPANDED_STEPS = 100
-
-function matchesType(value: unknown, type: StepDefinition['inputs'][number]['type']) {
-  if (
-    type === 'json' ||
-    type === 'locator' ||
-    type === 'environment-ref' ||
-    type === 'stored-value-ref' ||
-    type === 'artifact-ref' ||
-    type === 'reviewed-extension-ref'
-  )
-    return true
-  if (type === 'number') return typeof value === 'number'
-  if (type === 'boolean') return typeof value === 'boolean'
-  return typeof value === 'string'
-}
 
 function resolvedReferenceInput(value: unknown, context: StepInvocationDispatchContext) {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return value
@@ -66,20 +53,7 @@ function inputValues(
   supplied: Record<string, unknown>,
   context: StepInvocationDispatchContext,
 ) {
-  const declared = new Map(definition.inputs.map(input => [input.name, input]))
-  for (const name of Object.keys(supplied))
-    if (!declared.has(name)) throw new Error(`Step ${definition.identity.id} received unknown input ${name}.`)
-  return Object.fromEntries(
-    definition.inputs.map(input => {
-      const suppliedValue = Object.hasOwn(supplied, input.name) ? supplied[input.name] : input.defaultValue
-      const value = resolvedReferenceInput(suppliedValue, context)
-      if (value === undefined && input.required)
-        throw new Error(`Step ${definition.identity.id} is missing required input ${input.name}.`)
-      if (value !== undefined && !matchesType(value, input.type))
-        throw new Error(`Step ${definition.identity.id} input ${input.name} has the wrong type.`)
-      return [input.name, value]
-    }),
-  )
+  return validateStepInvocationInputs(definition, supplied, value => resolvedReferenceInput(value, context))
 }
 
 function expressionValue(
@@ -112,7 +86,7 @@ function outputValues(definition: StepDefinition, value: unknown) {
   for (const output of definition.outputs) {
     if (!Object.hasOwn(record, output.name))
       throw new Error(`Step ${definition.identity.id} did not return output ${output.name}.`)
-    if (!matchesType(record[output.name], output.type))
+    if (!stepInputValueMatchesType(record[output.name], output.type))
       throw new Error(`Step ${definition.identity.id} output ${output.name} has the wrong type.`)
     outputs[output.name] = record[output.name]
   }

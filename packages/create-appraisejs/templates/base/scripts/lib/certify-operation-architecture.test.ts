@@ -9,11 +9,11 @@ describe('operation architecture certification', () => {
 
     expect(first).toEqual(second)
     expect(first.gates).toMatchObject({
-      ledgerAccountsForEveryLegacyStep: true,
-      ledgerAccountsForEveryManagedAction: true,
-      managedHandlersDelegated: true,
-      activeRegistryComplete: true,
-      fullLegacyCoverage: true,
+      canonicalSourceHashMatches: true,
+      allBuiltInsAccountedFor: true,
+      exactDefinitionHashes: true,
+      uniqueHumanSignatures: true,
+      everyDefinitionHasTrustedHandler: true,
     })
     expect(first.status).toBe('certified')
     expect(first.receiptHash).toMatch(/^sha256:[a-f0-9]{64}$/)

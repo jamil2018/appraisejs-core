@@ -19,8 +19,6 @@ const localSearchTools = new Set([
   'locator_search',
   'step_search',
   'step_block_search',
-  'template_step_match',
-  'template_step_search',
 ])
 const localWorkflowTools = new Set([
   'plan_review_loop',

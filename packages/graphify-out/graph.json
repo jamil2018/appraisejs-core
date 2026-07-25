@@ -280,7 +280,7 @@
       "label": "scripts",
       "file_type": "code",
       "source_file": "appraisejs/package.json",
-      "source_location": "L40",
+      "source_location": "L39",
       "_origin": "ast",
       "community": 26,
       "norm_label": "scripts",
@@ -291,7 +291,7 @@
       "label": "prepare",
       "file_type": "code",
       "source_file": "appraisejs/package.json",
-      "source_location": "L41",
+      "source_location": "L40",
       "_origin": "ast",
       "community": 26,
       "norm_label": "prepare",
@@ -302,7 +302,7 @@
       "label": "build",
       "file_type": "code",
       "source_file": "appraisejs/package.json",
-      "source_location": "L42",
+      "source_location": "L41",
       "_origin": "ast",
       "community": 26,
       "norm_label": "build",
@@ -313,7 +313,7 @@
       "label": "build:mcp-contract",
       "file_type": "code",
       "source_file": "appraisejs/package.json",
-      "source_location": "L43",
+      "source_location": "L42",
       "_origin": "ast",
       "community": 26,
       "norm_label": "build:mcp-contract",
@@ -324,7 +324,7 @@
       "label": "benchmark:mcp-registry",
       "file_type": "code",
       "source_file": "appraisejs/package.json",
-      "source_location": "L44",
+      "source_location": "L43",
       "_origin": "ast",
       "community": 26,
       "norm_label": "benchmark:mcp-registry",
@@ -335,7 +335,7 @@
       "label": "test",
       "file_type": "code",
       "source_file": "appraisejs/package.json",
-      "source_location": "L45",
+      "source_location": "L44",
       "_origin": "ast",
       "community": 26,
       "norm_label": "test",
@@ -346,7 +346,7 @@
       "label": "test:mcp:e2e",
       "file_type": "code",
       "source_file": "appraisejs/package.json",
-      "source_location": "L46",
+      "source_location": "L45",
       "_origin": "ast",
       "community": 26,
       "norm_label": "test:mcp:e2e",
@@ -357,7 +357,7 @@
       "label": "test:mcp:http:e2e",
       "file_type": "code",
       "source_file": "appraisejs/package.json",
-      "source_location": "L47",
+      "source_location": "L46",
       "_origin": "ast",
       "community": 26,
       "norm_label": "test:mcp:http:e2e",
@@ -368,7 +368,7 @@
       "label": "publish:alpha",
       "file_type": "code",
       "source_file": "appraisejs/package.json",
-      "source_location": "L48",
+      "source_location": "L47",
       "_origin": "ast",
       "community": 26,
       "norm_label": "publish:alpha",
@@ -379,7 +379,7 @@
       "label": "publish:beta",
       "file_type": "code",
       "source_file": "appraisejs/package.json",
-      "source_location": "L49",
+      "source_location": "L48",
       "_origin": "ast",
       "community": 26,
       "norm_label": "publish:beta",
@@ -390,7 +390,7 @@
       "label": "bump:alpha",
       "file_type": "code",
       "source_file": "appraisejs/package.json",
-      "source_location": "L50",
+      "source_location": "L49",
       "_origin": "ast",
       "community": 26,
       "norm_label": "bump:alpha",
@@ -401,7 +401,7 @@
       "label": "bump:beta",
       "file_type": "code",
       "source_file": "appraisejs/package.json",
-      "source_location": "L51",
+      "source_location": "L50",
       "_origin": "ast",
       "community": 26,
       "norm_label": "bump:beta",
@@ -412,7 +412,7 @@
       "label": "bump:release",
       "file_type": "code",
       "source_file": "appraisejs/package.json",
-      "source_location": "L52",
+      "source_location": "L51",
       "_origin": "ast",
       "community": 26,
       "norm_label": "bump:release",
@@ -423,7 +423,7 @@
       "label": "bump:major",
       "file_type": "code",
       "source_file": "appraisejs/package.json",
-      "source_location": "L53",
+      "source_location": "L52",
       "_origin": "ast",
       "community": 26,
       "norm_label": "bump:major",
@@ -434,7 +434,7 @@
       "label": "bump:minor",
       "file_type": "code",
       "source_file": "appraisejs/package.json",
-      "source_location": "L54",
+      "source_location": "L53",
       "_origin": "ast",
       "community": 26,
       "norm_label": "bump:minor",
@@ -445,7 +445,7 @@
       "label": "bump:patch",
       "file_type": "code",
       "source_file": "appraisejs/package.json",
-      "source_location": "L55",
+      "source_location": "L54",
       "_origin": "ast",
       "community": 26,
       "norm_label": "bump:patch",
@@ -456,7 +456,7 @@
       "label": "dependencies",
       "file_type": "code",
       "source_file": "appraisejs/package.json",
-      "source_location": "L57",
+      "source_location": "L56",
       "_origin": "ast",
       "community": 81,
       "norm_label": "dependencies",
@@ -467,7 +467,7 @@
       "label": "@modelcontextprotocol/sdk",
       "file_type": "code",
       "source_file": "appraisejs/package.json",
-      "source_location": "L58",
+      "source_location": "L57",
       "_origin": "ast",
       "community": 81,
       "norm_label": "@modelcontextprotocol/sdk",
@@ -478,7 +478,7 @@
       "label": "commander",
       "file_type": "code",
       "source_file": "appraisejs/package.json",
-      "source_location": "L59",
+      "source_location": "L58",
       "_origin": "ast",
       "community": 81,
       "norm_label": "commander",
@@ -489,7 +489,7 @@
       "label": "yaml",
       "file_type": "code",
       "source_file": "appraisejs/package.json",
-      "source_location": "L60",
+      "source_location": "L59",
       "_origin": "ast",
       "community": 81,
       "norm_label": "yaml",
@@ -500,7 +500,7 @@
       "label": "zod",
       "file_type": "code",
       "source_file": "appraisejs/package.json",
-      "source_location": "L61",
+      "source_location": "L60",
       "_origin": "ast",
       "community": 81,
       "norm_label": "zod",
@@ -511,7 +511,7 @@
       "label": "devDependencies",
       "file_type": "code",
       "source_file": "appraisejs/package.json",
-      "source_location": "L63",
+      "source_location": "L62",
       "_origin": "ast",
       "community": 83,
       "norm_label": "devdependencies",
@@ -522,7 +522,7 @@
       "label": "@types/node",
       "file_type": "code",
       "source_file": "appraisejs/package.json",
-      "source_location": "L64",
+      "source_location": "L63",
       "_origin": "ast",
       "community": 83,
       "norm_label": "@types/node",
@@ -533,7 +533,7 @@
       "label": "tsx",
       "file_type": "code",
       "source_file": "appraisejs/package.json",
-      "source_location": "L65",
+      "source_location": "L64",
       "_origin": "ast",
       "community": 83,
       "norm_label": "tsx",
@@ -544,7 +544,7 @@
       "label": "typescript",
       "file_type": "code",
       "source_file": "appraisejs/package.json",
-      "source_location": "L66",
+      "source_location": "L65",
       "_origin": "ast",
       "community": 83,
       "norm_label": "typescript",
@@ -555,7 +555,7 @@
       "label": "vitest",
       "file_type": "code",
       "source_file": "appraisejs/package.json",
-      "source_location": "L67",
+      "source_location": "L66",
       "_origin": "ast",
       "community": 83,
       "norm_label": "vitest",
@@ -566,7 +566,7 @@
       "label": "engines",
       "file_type": "code",
       "source_file": "appraisejs/package.json",
-      "source_location": "L69",
+      "source_location": "L68",
       "_origin": "ast",
       "community": 4,
       "norm_label": "engines",
@@ -577,7 +577,7 @@
       "label": "node",
       "file_type": "code",
       "source_file": "appraisejs/package.json",
-      "source_location": "L70",
+      "source_location": "L69",
       "_origin": "ast",
       "community": 4,
       "norm_label": "node",
@@ -588,7 +588,7 @@
       "label": "allowScripts",
       "file_type": "code",
       "source_file": "appraisejs/package.json",
-      "source_location": "L72",
+      "source_location": "L71",
       "_origin": "ast",
       "community": 35,
       "norm_label": "allowscripts",
@@ -599,7 +599,7 @@
       "label": "esbuild@0.28.1",
       "file_type": "code",
       "source_file": "appraisejs/package.json",
-      "source_location": "L73",
+      "source_location": "L72",
       "_origin": "ast",
       "community": 35,
       "norm_label": "esbuild@0.28.1",
@@ -610,1420 +610,12 @@
       "label": "fsevents@2.3.3",
       "file_type": "code",
       "source_file": "appraisejs/package.json",
-      "source_location": "L74",
+      "source_location": "L73",
       "_origin": "ast",
       "community": 35,
       "norm_label": "fsevents@2.3.3",
       "id": "appraisejs_package_allowscripts_fsevents_2_3_3",
       "community_name": "Create Appraisejs Package Bin / Create Appraisejs Package Bin Create Appraisejs"
-    },
-    {
-      "label": "assert-element-active.ts",
-      "file_type": "code",
-      "source_file": "appraisejs/registry/template-steps/fragments/active-state-assertion/assert-element-active.ts",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 37,
-      "norm_label": "assert-element-active.ts",
-      "id": "active_state_assertion_assert_element_active",
-      "community_name": "Active State Assertion Assert Element Active"
-    },
-    {
-      "label": "assert-browser-cookie.ts",
-      "file_type": "code",
-      "source_file": "appraisejs/registry/template-steps/fragments/browser-assertion/assert-browser-cookie.ts",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 88,
-      "norm_label": "assert-browser-cookie.ts",
-      "id": "browser_assertion_assert_browser_cookie",
-      "community_name": "Community 88"
-    },
-    {
-      "label": "assert-full-url.ts",
-      "file_type": "code",
-      "source_file": "appraisejs/registry/template-steps/fragments/browser-assertion/assert-full-url.ts",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 89,
-      "norm_label": "assert-full-url.ts",
-      "id": "browser_assertion_assert_full_url",
-      "community_name": "Community 89"
-    },
-    {
-      "label": "assert-local-storage-value.ts",
-      "file_type": "code",
-      "source_file": "appraisejs/registry/template-steps/fragments/browser-assertion/assert-local-storage-value.ts",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 90,
-      "norm_label": "assert-local-storage-value.ts",
-      "id": "browser_assertion_assert_local_storage_value",
-      "community_name": "Community 90"
-    },
-    {
-      "label": "assert-no-browser-errors.ts",
-      "file_type": "code",
-      "source_file": "appraisejs/registry/template-steps/fragments/browser-assertion/assert-no-browser-errors.ts",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 76,
-      "norm_label": "assert-no-browser-errors.ts",
-      "id": "browser_assertion_assert_no_browser_errors",
-      "community_name": "Wait Wait For Specific Amount Of Seconds"
-    },
-    {
-      "label": "assert-no-failed-network-requests.ts",
-      "file_type": "code",
-      "source_file": "appraisejs/registry/template-steps/fragments/browser-assertion/assert-no-failed-network-requests.ts",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 78,
-      "norm_label": "assert-no-failed-network-requests.ts",
-      "id": "browser_assertion_assert_no_failed_network_requests",
-      "community_name": "Community 78"
-    },
-    {
-      "label": "assert-no-horizontal-overflow.ts",
-      "file_type": "code",
-      "source_file": "appraisejs/registry/template-steps/fragments/browser-assertion/assert-no-horizontal-overflow.ts",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 79,
-      "norm_label": "assert-no-horizontal-overflow.ts",
-      "id": "browser_assertion_assert_no_horizontal_overflow",
-      "community_name": "Community 79"
-    },
-    {
-      "label": "assert-page-title.ts",
-      "file_type": "code",
-      "source_file": "appraisejs/registry/template-steps/fragments/browser-assertion/assert-page-title.ts",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 91,
-      "norm_label": "assert-page-title.ts",
-      "id": "browser_assertion_assert_page_title",
-      "community_name": "Community 91"
-    },
-    {
-      "label": "assert-session-storage-value.ts",
-      "file_type": "code",
-      "source_file": "appraisejs/registry/template-steps/fragments/browser-assertion/assert-session-storage-value.ts",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 92,
-      "norm_label": "assert-session-storage-value.ts",
-      "id": "browser_assertion_assert_session_storage_value",
-      "community_name": "Community 92"
-    },
-    {
-      "label": "assert-url-contains.ts",
-      "file_type": "code",
-      "source_file": "appraisejs/registry/template-steps/fragments/browser-assertion/assert-url-contains.ts",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 93,
-      "norm_label": "assert-url-contains.ts",
-      "id": "browser_assertion_assert_url_contains",
-      "community_name": "Community 93"
-    },
-    {
-      "label": "clear-browser-cookies.ts",
-      "file_type": "code",
-      "source_file": "appraisejs/registry/template-steps/fragments/browser-state/clear-browser-cookies.ts",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 94,
-      "norm_label": "clear-browser-cookies.ts",
-      "id": "browser_state_clear_browser_cookies",
-      "community_name": "Community 94"
-    },
-    {
-      "label": "clear-web-storage.ts",
-      "file_type": "code",
-      "source_file": "appraisejs/registry/template-steps/fragments/browser-state/clear-web-storage.ts",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 95,
-      "norm_label": "clear-web-storage.ts",
-      "id": "browser_state_clear_web_storage",
-      "community_name": "Community 95"
-    },
-    {
-      "label": "go-forward.ts",
-      "file_type": "code",
-      "source_file": "appraisejs/registry/template-steps/fragments/browser-state/go-forward.ts",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 96,
-      "norm_label": "go-forward.ts",
-      "id": "browser_state_go_forward",
-      "community_name": "Community 96"
-    },
-    {
-      "label": "navigate-to-stored-url.ts",
-      "file_type": "code",
-      "source_file": "appraisejs/registry/template-steps/fragments/browser-state/navigate-to-stored-url.ts",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 97,
-      "norm_label": "navigate-to-stored-url.ts",
-      "id": "browser_state_navigate_to_stored_url",
-      "community_name": "Community 97"
-    },
-    {
-      "label": "set-browser-cookie.ts",
-      "file_type": "code",
-      "source_file": "appraisejs/registry/template-steps/fragments/browser-state/set-browser-cookie.ts",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 98,
-      "norm_label": "set-browser-cookie.ts",
-      "id": "browser_state_set_browser_cookie",
-      "community_name": "Community 98"
-    },
-    {
-      "label": "set-local-storage-value.ts",
-      "file_type": "code",
-      "source_file": "appraisejs/registry/template-steps/fragments/browser-state/set-local-storage-value.ts",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 99,
-      "norm_label": "set-local-storage-value.ts",
-      "id": "browser_state_set_local_storage_value",
-      "community_name": "Community 99"
-    },
-    {
-      "label": "set-session-storage-value.ts",
-      "file_type": "code",
-      "source_file": "appraisejs/registry/template-steps/fragments/browser-state/set-session-storage-value.ts",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 100,
-      "norm_label": "set-session-storage-value.ts",
-      "id": "browser_state_set_session_storage_value",
-      "community_name": "Community 100"
-    },
-    {
-      "label": "set-storage-from-variable.ts",
-      "file_type": "code",
-      "source_file": "appraisejs/registry/template-steps/fragments/browser-state/set-storage-from-variable.ts",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 101,
-      "norm_label": "set-storage-from-variable.ts",
-      "id": "browser_state_set_storage_from_variable",
-      "community_name": "Community 101"
-    },
-    {
-      "label": "set-viewport-size.ts",
-      "file_type": "code",
-      "source_file": "appraisejs/registry/template-steps/fragments/browser-state/set-viewport-size.ts",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 102,
-      "norm_label": "set-viewport-size.ts",
-      "id": "browser_state_set_viewport_size",
-      "community_name": "Community 102"
-    },
-    {
-      "label": "click-element.ts",
-      "file_type": "code",
-      "source_file": "appraisejs/registry/template-steps/fragments/click/click-element.ts",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 80,
-      "norm_label": "click-element.ts",
-      "id": "click_click_element",
-      "community_name": "Community 80"
-    },
-    {
-      "label": "double-click.ts",
-      "file_type": "code",
-      "source_file": "appraisejs/registry/template-steps/fragments/click/double-click.ts",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 40,
-      "norm_label": "double-click.ts",
-      "id": "click_double_click",
-      "community_name": "Click Double Click"
-    },
-    {
-      "label": "right-click.ts",
-      "file_type": "code",
-      "source_file": "appraisejs/registry/template-steps/fragments/click/right-click.ts",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 41,
-      "norm_label": "right-click.ts",
-      "id": "click_right_click",
-      "community_name": "Click Right Click"
-    },
-    {
-      "label": "capture-page-screenshot.ts",
-      "file_type": "code",
-      "source_file": "appraisejs/registry/template-steps/fragments/data-diagnostics/capture-page-screenshot.ts",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 103,
-      "norm_label": "capture-page-screenshot.ts",
-      "id": "data_diagnostics_capture_page_screenshot",
-      "community_name": "Community 103"
-    },
-    {
-      "label": "log-stored-variable.ts",
-      "file_type": "code",
-      "source_file": "appraisejs/registry/template-steps/fragments/data-diagnostics/log-stored-variable.ts",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 104,
-      "norm_label": "log-stored-variable.ts",
-      "id": "data_diagnostics_log_stored_variable",
-      "community_name": "Community 104"
-    },
-    {
-      "label": "store-current-url.ts",
-      "file_type": "code",
-      "source_file": "appraisejs/registry/template-steps/fragments/data-diagnostics/store-current-url.ts",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 105,
-      "norm_label": "store-current-url.ts",
-      "id": "data_diagnostics_store_current_url",
-      "community_name": "Community 105"
-    },
-    {
-      "label": "store-element-attribute.ts",
-      "file_type": "code",
-      "source_file": "appraisejs/registry/template-steps/fragments/data-diagnostics/store-element-attribute.ts",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 106,
-      "norm_label": "store-element-attribute.ts",
-      "id": "data_diagnostics_store_element_attribute",
-      "community_name": "Community 106"
-    },
-    {
-      "label": "store-page-title.ts",
-      "file_type": "code",
-      "source_file": "appraisejs/registry/template-steps/fragments/data-diagnostics/store-page-title.ts",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 107,
-      "norm_label": "store-page-title.ts",
-      "id": "data_diagnostics_store_page_title",
-      "community_name": "Community 107"
-    },
-    {
-      "label": "assert-download-path-available.ts",
-      "file_type": "code",
-      "source_file": "appraisejs/registry/template-steps/fragments/download-assertion/assert-download-path-available.ts",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 108,
-      "norm_label": "assert-download-path-available.ts",
-      "id": "download_assertion_assert_download_path_available",
-      "community_name": "Community 108"
-    },
-    {
-      "label": "assert-downloaded-filename.ts",
-      "file_type": "code",
-      "source_file": "appraisejs/registry/template-steps/fragments/download-assertion/assert-downloaded-filename.ts",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 109,
-      "norm_label": "assert-downloaded-filename.ts",
-      "id": "download_assertion_assert_downloaded_filename",
-      "community_name": "Community 109"
-    },
-    {
-      "label": "assert-stored-download-filename.ts",
-      "file_type": "code",
-      "source_file": "appraisejs/registry/template-steps/fragments/download-assertion/assert-stored-download-filename.ts",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 110,
-      "norm_label": "assert-stored-download-filename.ts",
-      "id": "download_assertion_assert_stored_download_filename",
-      "community_name": "Community 110"
-    },
-    {
-      "label": "click-and-store-download.ts",
-      "file_type": "code",
-      "source_file": "appraisejs/registry/template-steps/fragments/downloads/click-and-store-download.ts",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 111,
-      "norm_label": "click-and-store-download.ts",
-      "id": "downloads_click_and_store_download",
-      "community_name": "Community 111"
-    },
-    {
-      "label": "click-and-wait-for-download.ts",
-      "file_type": "code",
-      "source_file": "appraisejs/registry/template-steps/fragments/downloads/click-and-wait-for-download.ts",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 112,
-      "norm_label": "click-and-wait-for-download.ts",
-      "id": "downloads_click_and_wait_for_download",
-      "community_name": "Community 112"
-    },
-    {
-      "label": "save-download-to-path.ts",
-      "file_type": "code",
-      "source_file": "appraisejs/registry/template-steps/fragments/downloads/save-download-to-path.ts",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 113,
-      "norm_label": "save-download-to-path.ts",
-      "id": "downloads_save_download_to_path",
-      "community_name": "Community 113"
-    },
-    {
-      "label": "wait-for-download-event.ts",
-      "file_type": "code",
-      "source_file": "appraisejs/registry/template-steps/fragments/downloads/wait-for-download-event.ts",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 114,
-      "norm_label": "wait-for-download-event.ts",
-      "id": "downloads_wait_for_download_event",
-      "community_name": "Community 114"
-    },
-    {
-      "label": "assert-accessible.ts",
-      "file_type": "code",
-      "source_file": "appraisejs/registry/template-steps/fragments/element-property-assertion/assert-accessible.ts",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 120,
-      "norm_label": "assert-accessible.ts",
-      "id": "element_property_assertion_assert_accessible",
-      "community_name": "Community 120"
-    },
-    {
-      "label": "assert-element-attribute.ts",
-      "file_type": "code",
-      "source_file": "appraisejs/registry/template-steps/fragments/element-property-assertion/assert-element-attribute.ts",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 115,
-      "norm_label": "assert-element-attribute.ts",
-      "id": "element_property_assertion_assert_element_attribute",
-      "community_name": "Community 115"
-    },
-    {
-      "label": "assert-element-bounding-box.ts",
-      "file_type": "code",
-      "source_file": "appraisejs/registry/template-steps/fragments/element-property-assertion/assert-element-bounding-box.ts",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 116,
-      "norm_label": "assert-element-bounding-box.ts",
-      "id": "element_property_assertion_assert_element_bounding_box",
-      "community_name": "Community 116"
-    },
-    {
-      "label": "assert-element-class.ts",
-      "file_type": "code",
-      "source_file": "appraisejs/registry/template-steps/fragments/element-property-assertion/assert-element-class.ts",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 117,
-      "norm_label": "assert-element-class.ts",
-      "id": "element_property_assertion_assert_element_class",
-      "community_name": "Community 117"
-    },
-    {
-      "label": "assert-element-count.ts",
-      "file_type": "code",
-      "source_file": "appraisejs/registry/template-steps/fragments/element-property-assertion/assert-element-count.ts",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 118,
-      "norm_label": "assert-element-count.ts",
-      "id": "element_property_assertion_assert_element_count",
-      "community_name": "Community 118"
-    },
-    {
-      "label": "assert-element-css-property.ts",
-      "file_type": "code",
-      "source_file": "appraisejs/registry/template-steps/fragments/element-property-assertion/assert-element-css-property.ts",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 119,
-      "norm_label": "assert-element-css-property.ts",
-      "id": "element_property_assertion_assert_element_css_property",
-      "community_name": "Community 119"
-    },
-    {
-      "label": "assert-field-value.ts",
-      "file_type": "code",
-      "source_file": "appraisejs/registry/template-steps/fragments/element-property-assertion/assert-field-value.ts",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 122,
-      "norm_label": "assert-field-value.ts",
-      "id": "element_property_assertion_assert_field_value",
-      "community_name": "Community 122"
-    },
-    {
-      "label": "assert-checked-state.ts",
-      "file_type": "code",
-      "source_file": "appraisejs/registry/template-steps/fragments/element-state-assertion/assert-checked-state.ts",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 137,
-      "norm_label": "assert-checked-state.ts",
-      "id": "element_state_assertion_assert_checked_state",
-      "community_name": "Community 137"
-    },
-    {
-      "label": "assert-element-attached.ts",
-      "file_type": "code",
-      "source_file": "appraisejs/registry/template-steps/fragments/element-state-assertion/assert-element-attached.ts",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 121,
-      "norm_label": "assert-element-attached.ts",
-      "id": "element_state_assertion_assert_element_attached",
-      "community_name": "Community 121"
-    },
-    {
-      "label": "assert-element-editable.ts",
-      "file_type": "code",
-      "source_file": "appraisejs/registry/template-steps/fragments/element-state-assertion/assert-element-editable.ts",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 123,
-      "norm_label": "assert-element-editable.ts",
-      "id": "element_state_assertion_assert_element_editable",
-      "community_name": "Community 123"
-    },
-    {
-      "label": "assert-element-empty.ts",
-      "file_type": "code",
-      "source_file": "appraisejs/registry/template-steps/fragments/element-state-assertion/assert-element-empty.ts",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 124,
-      "norm_label": "assert-element-empty.ts",
-      "id": "element_state_assertion_assert_element_empty",
-      "community_name": "Community 124"
-    },
-    {
-      "label": "assert-element-enabled.ts",
-      "file_type": "code",
-      "source_file": "appraisejs/registry/template-steps/fragments/element-state-assertion/assert-element-enabled.ts",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 125,
-      "norm_label": "assert-element-enabled.ts",
-      "id": "element_state_assertion_assert_element_enabled",
-      "community_name": "Community 125"
-    },
-    {
-      "label": "assert-element-focused.ts",
-      "file_type": "code",
-      "source_file": "appraisejs/registry/template-steps/fragments/element-state-assertion/assert-element-focused.ts",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 126,
-      "norm_label": "assert-element-focused.ts",
-      "id": "element_state_assertion_assert_element_focused",
-      "community_name": "Community 126"
-    },
-    {
-      "label": "choose-radio-control.ts",
-      "file_type": "code",
-      "source_file": "appraisejs/registry/template-steps/fragments/forms/choose-radio-control.ts",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 127,
-      "norm_label": "choose-radio-control.ts",
-      "id": "forms_choose_radio_control",
-      "community_name": "Community 127"
-    },
-    {
-      "label": "fill-content-editable-element.ts",
-      "file_type": "code",
-      "source_file": "appraisejs/registry/template-steps/fragments/forms/fill-content-editable-element.ts",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 128,
-      "norm_label": "fill-content-editable-element.ts",
-      "id": "forms_fill_content_editable_element",
-      "community_name": "Community 128"
-    },
-    {
-      "label": "fill-date-input.ts",
-      "file_type": "code",
-      "source_file": "appraisejs/registry/template-steps/fragments/forms/fill-date-input.ts",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 129,
-      "norm_label": "fill-date-input.ts",
-      "id": "forms_fill_date_input",
-      "community_name": "Community 129"
-    },
-    {
-      "label": "select-dropdown-option-by-index.ts",
-      "file_type": "code",
-      "source_file": "appraisejs/registry/template-steps/fragments/forms/select-dropdown-option-by-index.ts",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 130,
-      "norm_label": "select-dropdown-option-by-index.ts",
-      "id": "forms_select_dropdown_option_by_index",
-      "community_name": "Community 130"
-    },
-    {
-      "label": "select-dropdown-option-by-label.ts",
-      "file_type": "code",
-      "source_file": "appraisejs/registry/template-steps/fragments/forms/select-dropdown-option-by-label.ts",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 131,
-      "norm_label": "select-dropdown-option-by-label.ts",
-      "id": "forms_select_dropdown_option_by_label",
-      "community_name": "Community 131"
-    },
-    {
-      "label": "select-dropdown-option-by-value.ts",
-      "file_type": "code",
-      "source_file": "appraisejs/registry/template-steps/fragments/forms/select-dropdown-option-by-value.ts",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 132,
-      "norm_label": "select-dropdown-option-by-value.ts",
-      "id": "forms_select_dropdown_option_by_value",
-      "community_name": "Community 132"
-    },
-    {
-      "label": "upload-file.ts",
-      "file_type": "code",
-      "source_file": "appraisejs/registry/template-steps/fragments/forms/upload-file.ts",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 133,
-      "norm_label": "upload-file.ts",
-      "id": "forms_upload_file",
-      "community_name": "Community 133"
-    },
-    {
-      "label": "upload-stored-file.ts",
-      "file_type": "code",
-      "source_file": "appraisejs/registry/template-steps/fragments/forms/upload-stored-file.ts",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 134,
-      "norm_label": "upload-stored-file.ts",
-      "id": "forms_upload_stored_file",
-      "community_name": "Community 134"
-    },
-    {
-      "label": "hover.ts",
-      "file_type": "code",
-      "source_file": "appraisejs/registry/template-steps/fragments/hover/hover.ts",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 44,
-      "norm_label": "hover.ts",
-      "id": "hover_hover",
-      "community_name": "Hover Hover"
-    },
-    {
-      "label": "check.ts",
-      "file_type": "code",
-      "source_file": "appraisejs/registry/template-steps/fragments/input/check.ts",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 45,
-      "norm_label": "check.ts",
-      "id": "input_check",
-      "community_name": "Input Check"
-    },
-    {
-      "label": "clear.ts",
-      "file_type": "code",
-      "source_file": "appraisejs/registry/template-steps/fragments/input/clear.ts",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 46,
-      "norm_label": "clear.ts",
-      "id": "input_clear",
-      "community_name": "Input Clear"
-    },
-    {
-      "label": "fill-field.ts",
-      "file_type": "code",
-      "source_file": "appraisejs/registry/template-steps/fragments/input/fill-field.ts",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 168,
-      "norm_label": "fill-field.ts",
-      "id": "input_fill_field",
-      "community_name": "Community 168"
-    },
-    {
-      "label": "fill-input-with-stored-value.ts",
-      "file_type": "code",
-      "source_file": "appraisejs/registry/template-steps/fragments/input/fill-input-with-stored-value.ts",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 48,
-      "norm_label": "fill-input-with-stored-value.ts",
-      "id": "input_fill_input_with_stored_value",
-      "community_name": "Input Fill Input With Stored Value"
-    },
-    {
-      "label": "select-dropdown-option.ts",
-      "file_type": "code",
-      "source_file": "appraisejs/registry/template-steps/fragments/input/select-dropdown-option.ts",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 49,
-      "norm_label": "select-dropdown-option.ts",
-      "id": "input_select_dropdown_option",
-      "community_name": "Input Select Dropdown Option"
-    },
-    {
-      "label": "uncheck.ts",
-      "file_type": "code",
-      "source_file": "appraisejs/registry/template-steps/fragments/input/uncheck.ts",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 50,
-      "norm_label": "uncheck.ts",
-      "id": "input_uncheck",
-      "community_name": "Input Uncheck"
-    },
-    {
-      "label": "hold-keyboard-key-down.ts",
-      "file_type": "code",
-      "source_file": "appraisejs/registry/template-steps/fragments/keyboard/hold-keyboard-key-down.ts",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 135,
-      "norm_label": "hold-keyboard-key-down.ts",
-      "id": "keyboard_hold_keyboard_key_down",
-      "community_name": "Community 135"
-    },
-    {
-      "label": "press-key-on-element.ts",
-      "file_type": "code",
-      "source_file": "appraisejs/registry/template-steps/fragments/keyboard/press-key-on-element.ts",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 136,
-      "norm_label": "press-key-on-element.ts",
-      "id": "keyboard_press_key_on_element",
-      "community_name": "Community 136"
-    },
-    {
-      "label": "press-keyboard-key.ts",
-      "file_type": "code",
-      "source_file": "appraisejs/registry/template-steps/fragments/keyboard/press-keyboard-key.ts",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 169,
-      "norm_label": "press-keyboard-key.ts",
-      "id": "keyboard_press_keyboard_key",
-      "community_name": "Community 169"
-    },
-    {
-      "label": "release-keyboard-key.ts",
-      "file_type": "code",
-      "source_file": "appraisejs/registry/template-steps/fragments/keyboard/release-keyboard-key.ts",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 138,
-      "norm_label": "release-keyboard-key.ts",
-      "id": "keyboard_release_keyboard_key",
-      "community_name": "Community 138"
-    },
-    {
-      "label": "type-text-sequentially.ts",
-      "file_type": "code",
-      "source_file": "appraisejs/registry/template-steps/fragments/keyboard/type-text-sequentially.ts",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 139,
-      "norm_label": "type-text-sequentially.ts",
-      "id": "keyboard_type_text_sequentially",
-      "community_name": "Community 139"
-    },
-    {
-      "label": "assert-url-route-equals.ts",
-      "file_type": "code",
-      "source_file": "appraisejs/registry/template-steps/fragments/navigation-assertion/assert-url-route-equals.ts",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 51,
-      "norm_label": "assert-url-route-equals.ts",
-      "id": "navigation_assertion_assert_url_route_equals",
-      "community_name": "Navigation Assertion Assert Url Route Equals"
-    },
-    {
-      "label": "go-back.ts",
-      "file_type": "code",
-      "source_file": "appraisejs/registry/template-steps/fragments/navigation/go-back.ts",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 52,
-      "norm_label": "go-back.ts",
-      "id": "navigation_go_back",
-      "community_name": "Navigation Go Back"
-    },
-    {
-      "label": "navigate-to-environment-base-url.ts",
-      "file_type": "code",
-      "source_file": "appraisejs/registry/template-steps/fragments/navigation/navigate-to-environment-base-url.ts",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 53,
-      "norm_label": "navigate-to-environment-base-url.ts",
-      "id": "navigation_navigate_to_environment_base_url",
-      "community_name": "Navigation Navigate To Environment Base Url"
-    },
-    {
-      "label": "navigate-to-url.ts",
-      "file_type": "code",
-      "source_file": "appraisejs/registry/template-steps/fragments/navigation/navigate-to-url.ts",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 54,
-      "norm_label": "navigate-to-url.ts",
-      "id": "navigation_navigate_to_url",
-      "community_name": "Navigation Navigate To Url"
-    },
-    {
-      "label": "reload-page.ts",
-      "file_type": "code",
-      "source_file": "appraisejs/registry/template-steps/fragments/navigation/reload-page.ts",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 170,
-      "norm_label": "reload-page.ts",
-      "id": "navigation_reload_page",
-      "community_name": "Community 170"
-    },
-    {
-      "label": "blur-element.ts",
-      "file_type": "code",
-      "source_file": "appraisejs/registry/template-steps/fragments/pointer/blur-element.ts",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 140,
-      "norm_label": "blur-element.ts",
-      "id": "pointer_blur_element",
-      "community_name": "Community 140"
-    },
-    {
-      "label": "capture-element-screenshot.ts",
-      "file_type": "code",
-      "source_file": "appraisejs/registry/template-steps/fragments/pointer/capture-element-screenshot.ts",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 141,
-      "norm_label": "capture-element-screenshot.ts",
-      "id": "pointer_capture_element_screenshot",
-      "community_name": "Community 141"
-    },
-    {
-      "label": "click-element-coordinates.ts",
-      "file_type": "code",
-      "source_file": "appraisejs/registry/template-steps/fragments/pointer/click-element-coordinates.ts",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 142,
-      "norm_label": "click-element-coordinates.ts",
-      "id": "pointer_click_element_coordinates",
-      "community_name": "Community 142"
-    },
-    {
-      "label": "click-page-coordinates.ts",
-      "file_type": "code",
-      "source_file": "appraisejs/registry/template-steps/fragments/pointer/click-page-coordinates.ts",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 143,
-      "norm_label": "click-page-coordinates.ts",
-      "id": "pointer_click_page_coordinates",
-      "community_name": "Community 143"
-    },
-    {
-      "label": "drag-element-to-element.ts",
-      "file_type": "code",
-      "source_file": "appraisejs/registry/template-steps/fragments/pointer/drag-element-to-element.ts",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 144,
-      "norm_label": "drag-element-to-element.ts",
-      "id": "pointer_drag_element_to_element",
-      "community_name": "Community 144"
-    },
-    {
-      "label": "focus-element.ts",
-      "file_type": "code",
-      "source_file": "appraisejs/registry/template-steps/fragments/pointer/focus-element.ts",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 145,
-      "norm_label": "focus-element.ts",
-      "id": "pointer_focus_element",
-      "community_name": "Community 145"
-    },
-    {
-      "label": "force-click-element.ts",
-      "file_type": "code",
-      "source_file": "appraisejs/registry/template-steps/fragments/pointer/force-click-element.ts",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 146,
-      "norm_label": "force-click-element.ts",
-      "id": "pointer_force_click_element",
-      "community_name": "Community 146"
-    },
-    {
-      "label": "scroll-element-into-view.ts",
-      "file_type": "code",
-      "source_file": "appraisejs/registry/template-steps/fragments/pointer/scroll-element-into-view.ts",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 147,
-      "norm_label": "scroll-element-into-view.ts",
-      "id": "pointer_scroll_element_into_view",
-      "community_name": "Community 147"
-    },
-    {
-      "label": "scroll-page-by-offset.ts",
-      "file_type": "code",
-      "source_file": "appraisejs/registry/template-steps/fragments/pointer/scroll-page-by-offset.ts",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 148,
-      "norm_label": "scroll-page-by-offset.ts",
-      "id": "pointer_scroll_page_by_offset",
-      "community_name": "Community 148"
-    },
-    {
-      "label": "generate-random-address-and-save-in-variable.ts",
-      "file_type": "code",
-      "source_file": "appraisejs/registry/template-steps/fragments/random-data/generate-random-address-and-save-in-variable.ts",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 56,
-      "norm_label": "generate-random-address-and-save-in-variable.ts",
-      "id": "random_data_generate_random_address_and_save_in_variable",
-      "community_name": "Random Data Generate Random Address And Save In Variable"
-    },
-    {
-      "label": "generate-random-email-and-save-in-variable.ts",
-      "file_type": "code",
-      "source_file": "appraisejs/registry/template-steps/fragments/random-data/generate-random-email-and-save-in-variable.ts",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 57,
-      "norm_label": "generate-random-email-and-save-in-variable.ts",
-      "id": "random_data_generate_random_email_and_save_in_variable",
-      "community_name": "Random Data Generate Random Email And Save In Variable"
-    },
-    {
-      "label": "generate-random-first-name-and-save-in-variable.ts",
-      "file_type": "code",
-      "source_file": "appraisejs/registry/template-steps/fragments/random-data/generate-random-first-name-and-save-in-variable.ts",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 58,
-      "norm_label": "generate-random-first-name-and-save-in-variable.ts",
-      "id": "random_data_generate_random_first_name_and_save_in_variable",
-      "community_name": "Random Data Generate Random First Name And Save In Variable"
-    },
-    {
-      "label": "generate-random-full-name-and-save-in-variable.ts",
-      "file_type": "code",
-      "source_file": "appraisejs/registry/template-steps/fragments/random-data/generate-random-full-name-and-save-in-variable.ts",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 59,
-      "norm_label": "generate-random-full-name-and-save-in-variable.ts",
-      "id": "random_data_generate_random_full_name_and_save_in_variable",
-      "community_name": "Random Data Generate Random Full Name And Save In Variable"
-    },
-    {
-      "label": "generate-random-last-name-and-save-in-variable.ts",
-      "file_type": "code",
-      "source_file": "appraisejs/registry/template-steps/fragments/random-data/generate-random-last-name-and-save-in-variable.ts",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 60,
-      "norm_label": "generate-random-last-name-and-save-in-variable.ts",
-      "id": "random_data_generate_random_last_name_and_save_in_variable",
-      "community_name": "Random Data Generate Random Last Name And Save In Variable"
-    },
-    {
-      "label": "generate-random-password-and-save-in-variable.ts",
-      "file_type": "code",
-      "source_file": "appraisejs/registry/template-steps/fragments/random-data/generate-random-password-and-save-in-variable.ts",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 61,
-      "norm_label": "generate-random-password-and-save-in-variable.ts",
-      "id": "random_data_generate_random_password_and_save_in_variable",
-      "community_name": "Random Data Generate Random Password And Save In Variable"
-    },
-    {
-      "label": "generate-random-phone-and-save-in-variable.ts",
-      "file_type": "code",
-      "source_file": "appraisejs/registry/template-steps/fragments/random-data/generate-random-phone-and-save-in-variable.ts",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 62,
-      "norm_label": "generate-random-phone-and-save-in-variable.ts",
-      "id": "random_data_generate_random_phone_and_save_in_variable",
-      "community_name": "Random Data Generate Random Phone And Save In Variable"
-    },
-    {
-      "label": "generate-random-unique-text-and-save-in-variable.ts",
-      "file_type": "code",
-      "source_file": "appraisejs/registry/template-steps/fragments/random-data/generate-random-unique-text-and-save-in-variable.ts",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 63,
-      "norm_label": "generate-random-unique-text-and-save-in-variable.ts",
-      "id": "random_data_generate_random_unique_text_and_save_in_variable",
-      "community_name": "Random Data Generate Random Unique Text And Save In Variable"
-    },
-    {
-      "label": "store-element-text.ts",
-      "file_type": "code",
-      "source_file": "appraisejs/registry/template-steps/fragments/store/store-element-text.ts",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 66,
-      "norm_label": "store-element-text.ts",
-      "id": "store_store_element_text",
-      "community_name": "Store Store Element Text"
-    },
-    {
-      "label": "store-text-input-text.ts",
-      "file_type": "code",
-      "source_file": "appraisejs/registry/template-steps/fragments/store/store-text-input-text.ts",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 67,
-      "norm_label": "store-text-input-text.ts",
-      "id": "store_store_text_input_text",
-      "community_name": "Store Store Text Input Text"
-    },
-    {
-      "label": "store-textarea-text.ts",
-      "file_type": "code",
-      "source_file": "appraisejs/registry/template-steps/fragments/store/store-textarea-text.ts",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 68,
-      "norm_label": "store-textarea-text.ts",
-      "id": "store_store_textarea_text",
-      "community_name": "Store Store Textarea Text"
-    },
-    {
-      "label": "run-structured-locator-operation.ts",
-      "file_type": "code",
-      "source_file": "appraisejs/registry/template-steps/fragments/structured-operations/run-structured-locator-operation.ts",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 149,
-      "norm_label": "run-structured-locator-operation.ts",
-      "id": "structured_operations_run_structured_locator_operation",
-      "community_name": "Community 149"
-    },
-    {
-      "label": "run-structured-page-operation.ts",
-      "file_type": "code",
-      "source_file": "appraisejs/registry/template-steps/fragments/structured-operations/run-structured-page-operation.ts",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 150,
-      "norm_label": "run-structured-page-operation.ts",
-      "id": "structured_operations_run_structured_page_operation",
-      "community_name": "Community 150"
-    },
-    {
-      "label": "wait-for-dialog.ts",
-      "file_type": "code",
-      "source_file": "appraisejs/registry/template-steps/fragments/synchronization/wait-for-dialog.ts",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 151,
-      "norm_label": "wait-for-dialog.ts",
-      "id": "synchronization_wait_for_dialog",
-      "community_name": "Community 151"
-    },
-    {
-      "label": "wait-for-element-state.ts",
-      "file_type": "code",
-      "source_file": "appraisejs/registry/template-steps/fragments/synchronization/wait-for-element-state.ts",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 152,
-      "norm_label": "wait-for-element-state.ts",
-      "id": "synchronization_wait_for_element_state",
-      "community_name": "Community 152"
-    },
-    {
-      "label": "wait-for-element-text.ts",
-      "file_type": "code",
-      "source_file": "appraisejs/registry/template-steps/fragments/synchronization/wait-for-element-text.ts",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 153,
-      "norm_label": "wait-for-element-text.ts",
-      "id": "synchronization_wait_for_element_text",
-      "community_name": "Community 153"
-    },
-    {
-      "label": "wait-for-input-value.ts",
-      "file_type": "code",
-      "source_file": "appraisejs/registry/template-steps/fragments/synchronization/wait-for-input-value.ts",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 154,
-      "norm_label": "wait-for-input-value.ts",
-      "id": "synchronization_wait_for_input_value",
-      "community_name": "Community 154"
-    },
-    {
-      "label": "wait-for-load-state.ts",
-      "file_type": "code",
-      "source_file": "appraisejs/registry/template-steps/fragments/synchronization/wait-for-load-state.ts",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 155,
-      "norm_label": "wait-for-load-state.ts",
-      "id": "synchronization_wait_for_load_state",
-      "community_name": "Community 155"
-    },
-    {
-      "label": "wait-for-popup.ts",
-      "file_type": "code",
-      "source_file": "appraisejs/registry/template-steps/fragments/synchronization/wait-for-popup.ts",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 156,
-      "norm_label": "wait-for-popup.ts",
-      "id": "synchronization_wait_for_popup",
-      "community_name": "Community 156"
-    },
-    {
-      "label": "wait-for-request.ts",
-      "file_type": "code",
-      "source_file": "appraisejs/registry/template-steps/fragments/synchronization/wait-for-request.ts",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 157,
-      "norm_label": "wait-for-request.ts",
-      "id": "synchronization_wait_for_request",
-      "community_name": "Community 157"
-    },
-    {
-      "label": "wait-for-response.ts",
-      "file_type": "code",
-      "source_file": "appraisejs/registry/template-steps/fragments/synchronization/wait-for-response.ts",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 158,
-      "norm_label": "wait-for-response.ts",
-      "id": "synchronization_wait_for_response",
-      "community_name": "Community 158"
-    },
-    {
-      "label": "wait-for-url.ts",
-      "file_type": "code",
-      "source_file": "appraisejs/registry/template-steps/fragments/synchronization/wait-for-url.ts",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 159,
-      "norm_label": "wait-for-url.ts",
-      "id": "synchronization_wait_for_url",
-      "community_name": "Community 159"
-    },
-    {
-      "label": "accept-next-dialog.ts",
-      "file_type": "code",
-      "source_file": "appraisejs/registry/template-steps/fragments/tabs-frames-dialogs/accept-next-dialog.ts",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 160,
-      "norm_label": "accept-next-dialog.ts",
-      "id": "tabs_frames_dialogs_accept_next_dialog",
-      "community_name": "Community 160"
-    },
-    {
-      "label": "answer-next-prompt-dialog.ts",
-      "file_type": "code",
-      "source_file": "appraisejs/registry/template-steps/fragments/tabs-frames-dialogs/answer-next-prompt-dialog.ts",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 161,
-      "norm_label": "answer-next-prompt-dialog.ts",
-      "id": "tabs_frames_dialogs_answer_next_prompt_dialog",
-      "community_name": "Community 161"
-    },
-    {
-      "label": "click-and-switch-to-popup.ts",
-      "file_type": "code",
-      "source_file": "appraisejs/registry/template-steps/fragments/tabs-frames-dialogs/click-and-switch-to-popup.ts",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 162,
-      "norm_label": "click-and-switch-to-popup.ts",
-      "id": "tabs_frames_dialogs_click_and_switch_to_popup",
-      "community_name": "Community 162"
-    },
-    {
-      "label": "click-element-inside-frame.ts",
-      "file_type": "code",
-      "source_file": "appraisejs/registry/template-steps/fragments/tabs-frames-dialogs/click-element-inside-frame.ts",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 163,
-      "norm_label": "click-element-inside-frame.ts",
-      "id": "tabs_frames_dialogs_click_element_inside_frame",
-      "community_name": "Community 163"
-    },
-    {
-      "label": "close-current-browser-tab.ts",
-      "file_type": "code",
-      "source_file": "appraisejs/registry/template-steps/fragments/tabs-frames-dialogs/close-current-browser-tab.ts",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 164,
-      "norm_label": "close-current-browser-tab.ts",
-      "id": "tabs_frames_dialogs_close_current_browser_tab",
-      "community_name": "Community 164"
-    },
-    {
-      "label": "dismiss-next-dialog.ts",
-      "file_type": "code",
-      "source_file": "appraisejs/registry/template-steps/fragments/tabs-frames-dialogs/dismiss-next-dialog.ts",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 165,
-      "norm_label": "dismiss-next-dialog.ts",
-      "id": "tabs_frames_dialogs_dismiss_next_dialog",
-      "community_name": "Community 165"
-    },
-    {
-      "label": "fill-element-inside-frame.ts",
-      "file_type": "code",
-      "source_file": "appraisejs/registry/template-steps/fragments/tabs-frames-dialogs/fill-element-inside-frame.ts",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 166,
-      "norm_label": "fill-element-inside-frame.ts",
-      "id": "tabs_frames_dialogs_fill_element_inside_frame",
-      "community_name": "Community 166"
-    },
-    {
-      "label": "switch-browser-tab.ts",
-      "file_type": "code",
-      "source_file": "appraisejs/registry/template-steps/fragments/tabs-frames-dialogs/switch-browser-tab.ts",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 167,
-      "norm_label": "switch-browser-tab.ts",
-      "id": "tabs_frames_dialogs_switch_browser_tab",
-      "community_name": "Community 167"
-    },
-    {
-      "label": "assert-element-contains-stored-variable-text.ts",
-      "file_type": "code",
-      "source_file": "appraisejs/registry/template-steps/fragments/text-assertion/assert-element-contains-stored-variable-text.ts",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 69,
-      "norm_label": "assert-element-contains-stored-variable-text.ts",
-      "id": "text_assertion_assert_element_contains_stored_variable_text",
-      "community_name": "Text Assertion Assert Element Contains Stored Variable Text"
-    },
-    {
-      "label": "assert-element-contains-text.ts",
-      "file_type": "code",
-      "source_file": "appraisejs/registry/template-steps/fragments/text-assertion/assert-element-contains-text.ts",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 70,
-      "norm_label": "assert-element-contains-text.ts",
-      "id": "text_assertion_assert_element_contains_text",
-      "community_name": "Text Assertion Assert Element Contains Text"
-    },
-    {
-      "label": "assert-element-equals-text.ts",
-      "file_type": "code",
-      "source_file": "appraisejs/registry/template-steps/fragments/text-assertion/assert-element-equals-text.ts",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 71,
-      "norm_label": "assert-element-equals-text.ts",
-      "id": "text_assertion_assert_element_equals_text",
-      "community_name": "Text Assertion Assert Element Equals Text"
-    },
-    {
-      "label": "assert-text.ts",
-      "file_type": "code",
-      "source_file": "appraisejs/registry/template-steps/fragments/text-assertion/assert-text.ts",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 171,
-      "norm_label": "assert-text.ts",
-      "id": "text_assertion_assert_text",
-      "community_name": "Community 171"
-    },
-    {
-      "label": "assert-absent-or-hidden.ts",
-      "file_type": "code",
-      "source_file": "appraisejs/registry/template-steps/fragments/visibility-assertion/assert-absent-or-hidden.ts",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 172,
-      "norm_label": "assert-absent-or-hidden.ts",
-      "id": "visibility_assertion_assert_absent_or_hidden",
-      "community_name": "Community 172"
-    },
-    {
-      "label": "assert-element-visible.ts",
-      "file_type": "code",
-      "source_file": "appraisejs/registry/template-steps/fragments/visibility-assertion/assert-element-visible.ts",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 72,
-      "norm_label": "assert-element-visible.ts",
-      "id": "visibility_assertion_assert_element_visible",
-      "community_name": "Visibility Assertion Assert Element Visible"
-    },
-    {
-      "label": "assert-persisted-result.ts",
-      "file_type": "code",
-      "source_file": "appraisejs/registry/template-steps/fragments/visibility-assertion/assert-persisted-result.ts",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 173,
-      "norm_label": "assert-persisted-result.ts",
-      "id": "visibility_assertion_assert_persisted_result",
-      "community_name": "Community 173"
-    },
-    {
-      "label": "assert-visible.ts",
-      "file_type": "code",
-      "source_file": "appraisejs/registry/template-steps/fragments/visibility-assertion/assert-visible.ts",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 174,
-      "norm_label": "assert-visible.ts",
-      "id": "visibility_assertion_assert_visible",
-      "community_name": "Community 174"
-    },
-    {
-      "label": "wait-for-duration.ts",
-      "file_type": "code",
-      "source_file": "appraisejs/registry/template-steps/fragments/wait/wait-for-duration.ts",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 175,
-      "norm_label": "wait-for-duration.ts",
-      "id": "wait_wait_for_duration",
-      "community_name": "Community 175"
-    },
-    {
-      "label": "wait-for-element-to-disappear.ts",
-      "file_type": "code",
-      "source_file": "appraisejs/registry/template-steps/fragments/wait/wait-for-element-to-disappear.ts",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 74,
-      "norm_label": "wait-for-element-to-disappear.ts",
-      "id": "wait_wait_for_element_to_disappear",
-      "community_name": "Wait Wait For Element To Disappear"
-    },
-    {
-      "label": "wait-for-element.ts",
-      "file_type": "code",
-      "source_file": "appraisejs/registry/template-steps/fragments/wait/wait-for-element.ts",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 73,
-      "norm_label": "wait-for-element.ts",
-      "id": "wait_wait_for_element",
-      "community_name": "Wait Wait For Element"
-    },
-    {
-      "label": "wait-for-page.ts",
-      "file_type": "code",
-      "source_file": "appraisejs/registry/template-steps/fragments/wait/wait-for-page.ts",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 176,
-      "norm_label": "wait-for-page.ts",
-      "id": "wait_wait_for_page",
-      "community_name": "Community 176"
-    },
-    {
-      "label": "wait-for-url-route.ts",
-      "file_type": "code",
-      "source_file": "appraisejs/registry/template-steps/fragments/wait/wait-for-url-route.ts",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 77,
-      "norm_label": "wait-for-url-route.ts",
-      "id": "wait_wait_for_url_route",
-      "community_name": "Wait Wait For Url Route"
-    },
-    {
-      "label": "wait-with-timeout.ts",
-      "file_type": "code",
-      "source_file": "appraisejs/registry/template-steps/fragments/wait/wait-with-timeout.ts",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 177,
-      "norm_label": "wait-with-timeout.ts",
-      "id": "wait_wait_with_timeout",
-      "community_name": "Community 177"
-    },
-    {
-      "label": "manifest.json",
-      "file_type": "code",
-      "source_file": "appraisejs/registry/template-steps/manifest.json",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 34,
-      "norm_label": "manifest.json",
-      "id": "template_steps_manifest",
-      "community_name": "Template Steps Manifest / Template Steps Manifest Generatedat"
-    },
-    {
-      "label": "version",
-      "file_type": "code",
-      "source_file": "appraisejs/registry/template-steps/manifest.json",
-      "source_location": "L2",
-      "_origin": "ast",
-      "community": 34,
-      "norm_label": "version",
-      "id": "template_steps_manifest_version",
-      "community_name": "Template Steps Manifest / Template Steps Manifest Generatedat"
-    },
-    {
-      "label": "steps",
-      "file_type": "code",
-      "source_file": "appraisejs/registry/template-steps/manifest.json",
-      "source_location": "L3",
-      "_origin": "ast",
-      "community": 34,
-      "norm_label": "steps",
-      "id": "template_steps_manifest_steps",
-      "community_name": "Template Steps Manifest / Template Steps Manifest Generatedat"
     },
     {
       "label": "benchmark-mcp-registry.ts",
@@ -2092,81 +684,15 @@
       "community_name": "Community 29"
     },
     {
-      "label": "add-step.test.ts",
-      "file_type": "code",
-      "source_file": "appraisejs/src/add-step.test.ts",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 5,
-      "norm_label": "add-step.test.ts",
-      "id": "src_add_step_test",
-      "community_name": "Appraisejs Src Types Ts Src Types / Src Add Step"
-    },
-    {
-      "label": "PAYLOAD",
-      "file_type": "code",
-      "source_file": "appraisejs/src/add-step.test.ts",
-      "source_location": "L5",
-      "_origin": "ast",
-      "community": 5,
-      "norm_label": "payload",
-      "id": "src_add_step_test_payload",
-      "community_name": "Appraisejs Src Types Ts Src Types / Src Add Step"
-    },
-    {
-      "label": "add-step.ts",
-      "file_type": "code",
-      "source_file": "appraisejs/src/add-step.ts",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 5,
-      "norm_label": "add-step.ts",
-      "id": "src_add_step",
-      "community_name": "Appraisejs Src Types Ts Src Types / Src Add Step"
-    },
-    {
-      "label": "AddStepDependencies",
-      "file_type": "code",
-      "source_file": "appraisejs/src/add-step.ts",
-      "source_location": "L6",
-      "_origin": "ast",
-      "community": 5,
-      "norm_label": "addstepdependencies",
-      "id": "src_add_step_addstepdependencies",
-      "community_name": "Appraisejs Src Types Ts Src Types / Src Add Step"
-    },
-    {
-      "label": "defaultDependencies",
-      "file_type": "code",
-      "source_file": "appraisejs/src/add-step.ts",
-      "source_location": "L17",
-      "_origin": "ast",
-      "community": 5,
-      "norm_label": "defaultdependencies",
-      "id": "src_add_step_defaultdependencies",
-      "community_name": "Appraisejs Src Types Ts Src Types / Src Add Step"
-    },
-    {
-      "label": "addStepBySlug()",
-      "file_type": "code",
-      "source_file": "appraisejs/src/add-step.ts",
-      "source_location": "L28",
-      "_origin": "ast",
-      "community": 5,
-      "norm_label": "addstepbyslug()",
-      "id": "src_add_step_addstepbyslug",
-      "community_name": "Appraisejs Src Types Ts Src Types / Src Add Step"
-    },
-    {
       "label": "agent-setup-capabilities.test.ts",
       "file_type": "code",
       "source_file": "appraisejs/src/agent-setup-capabilities.test.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 190,
+      "community": 27,
       "norm_label": "agent-setup-capabilities.test.ts",
       "id": "src_agent_setup_capabilities_test",
-      "community_name": "Community 190"
+      "community_name": "Locator Picker Companion Src Index Ts Src Index / Src Launcher"
     },
     {
       "label": "agent-setup-capabilities.ts",
@@ -2174,10 +700,10 @@
       "source_file": "appraisejs/src/agent-setup-capabilities.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 190,
+      "community": 27,
       "norm_label": "agent-setup-capabilities.ts",
       "id": "src_agent_setup_capabilities",
-      "community_name": "Community 190"
+      "community_name": "Locator Picker Companion Src Index Ts Src Index / Src Launcher"
     },
     {
       "label": "capsule-diagnostic-response.test.ts",
@@ -2185,10 +711,10 @@
       "source_file": "appraisejs/src/capsule-diagnostic-response.test.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 39,
+      "community": 14,
       "norm_label": "capsule-diagnostic-response.test.ts",
       "id": "src_capsule_diagnostic_response_test",
-      "community_name": "Click Click"
+      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
     },
     {
       "label": "diagnostic",
@@ -2196,10 +722,10 @@
       "source_file": "appraisejs/src/capsule-diagnostic-response.test.ts",
       "source_location": "L4",
       "_origin": "ast",
-      "community": 39,
+      "community": 14,
       "norm_label": "diagnostic",
       "id": "src_capsule_diagnostic_response_test_diagnostic",
-      "community_name": "Click Click"
+      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
     },
     {
       "label": "cli.ts",
@@ -2216,7 +742,7 @@
       "label": "program",
       "file_type": "code",
       "source_file": "appraisejs/src/cli.ts",
-      "source_location": "L21",
+      "source_location": "L20",
       "_origin": "ast",
       "community": 27,
       "norm_label": "program",
@@ -2227,7 +753,7 @@
       "label": "packageRoot",
       "file_type": "code",
       "source_file": "appraisejs/src/cli.ts",
-      "source_location": "L22",
+      "source_location": "L21",
       "_origin": "ast",
       "community": 27,
       "norm_label": "packageroot",
@@ -2238,7 +764,7 @@
       "label": "staleAgentCapabilityRecovery",
       "file_type": "code",
       "source_file": "appraisejs/src/cli.ts",
-      "source_location": "L23",
+      "source_location": "L22",
       "_origin": "ast",
       "community": 27,
       "norm_label": "staleagentcapabilityrecovery",
@@ -2249,7 +775,7 @@
       "label": "toolsNotVisibleRecovery",
       "file_type": "code",
       "source_file": "appraisejs/src/cli.ts",
-      "source_location": "L28",
+      "source_location": "L27",
       "_origin": "ast",
       "community": 27,
       "norm_label": "toolsnotvisiblerecovery",
@@ -2260,7 +786,7 @@
       "label": "OnlineOptions",
       "file_type": "code",
       "source_file": "appraisejs/src/cli.ts",
-      "source_location": "L38",
+      "source_location": "L37",
       "_origin": "ast",
       "community": 27,
       "norm_label": "onlineoptions",
@@ -2271,7 +797,7 @@
       "label": "resolveMcpEndpoint()",
       "file_type": "code",
       "source_file": "appraisejs/src/cli.ts",
-      "source_location": "L44",
+      "source_location": "L43",
       "_origin": "ast",
       "community": 20,
       "norm_label": "resolvemcpendpoint()",
@@ -2282,7 +808,7 @@
       "label": "addOnlineOptions()",
       "file_type": "code",
       "source_file": "appraisejs/src/cli.ts",
-      "source_location": "L52",
+      "source_location": "L51",
       "_origin": "ast",
       "community": 27,
       "norm_label": "addonlineoptions()",
@@ -2293,7 +819,7 @@
       "label": "onlineClient()",
       "file_type": "code",
       "source_file": "appraisejs/src/cli.ts",
-      "source_location": "L63",
+      "source_location": "L62",
       "_origin": "ast",
       "community": 33,
       "norm_label": "onlineclient()",
@@ -2304,7 +830,7 @@
       "label": "locatorGraph",
       "file_type": "code",
       "source_file": "appraisejs/src/cli.ts",
-      "source_location": "L67",
+      "source_location": "L66",
       "_origin": "ast",
       "community": 27,
       "norm_label": "locatorgraph",
@@ -2315,7 +841,7 @@
       "label": "printJson()",
       "file_type": "code",
       "source_file": "appraisejs/src/cli.ts",
-      "source_location": "L94",
+      "source_location": "L93",
       "_origin": "ast",
       "community": 27,
       "norm_label": "printjson()",
@@ -2326,7 +852,7 @@
       "label": "printErrorJson()",
       "file_type": "code",
       "source_file": "appraisejs/src/cli.ts",
-      "source_location": "L98",
+      "source_location": "L97",
       "_origin": "ast",
       "community": 27,
       "norm_label": "printerrorjson()",
@@ -2337,7 +863,7 @@
       "label": "runCommand()",
       "file_type": "code",
       "source_file": "appraisejs/src/cli.ts",
-      "source_location": "L110",
+      "source_location": "L109",
       "_origin": "ast",
       "community": 27,
       "norm_label": "runcommand()",
@@ -2348,7 +874,7 @@
       "label": "parsePort()",
       "file_type": "code",
       "source_file": "appraisejs/src/cli.ts",
-      "source_location": "L120",
+      "source_location": "L119",
       "_origin": "ast",
       "community": 27,
       "norm_label": "parseport()",
@@ -2359,7 +885,7 @@
       "label": "parsePositiveInteger()",
       "file_type": "code",
       "source_file": "appraisejs/src/cli.ts",
-      "source_location": "L187",
+      "source_location": "L186",
       "_origin": "ast",
       "community": 27,
       "norm_label": "parsepositiveinteger()",
@@ -2370,7 +896,7 @@
       "label": "agent",
       "file_type": "code",
       "source_file": "appraisejs/src/cli.ts",
-      "source_location": "L211",
+      "source_location": "L210",
       "_origin": "ast",
       "community": 27,
       "norm_label": "agent",
@@ -2381,7 +907,7 @@
       "label": "plan",
       "file_type": "code",
       "source_file": "appraisejs/src/cli.ts",
-      "source_location": "L270",
+      "source_location": "L269",
       "_origin": "ast",
       "community": 27,
       "norm_label": "plan",
@@ -2392,7 +918,7 @@
       "label": "project",
       "file_type": "code",
       "source_file": "appraisejs/src/cli.ts",
-      "source_location": "L319",
+      "source_location": "L318",
       "_origin": "ast",
       "community": 27,
       "norm_label": "project",
@@ -2403,7 +929,7 @@
       "label": "test",
       "file_type": "code",
       "source_file": "appraisejs/src/cli.ts",
-      "source_location": "L340",
+      "source_location": "L339",
       "_origin": "ast",
       "community": 27,
       "norm_label": "test",
@@ -2414,7 +940,7 @@
       "label": "testRun",
       "file_type": "code",
       "source_file": "appraisejs/src/cli.ts",
-      "source_location": "L341",
+      "source_location": "L340",
       "_origin": "ast",
       "community": 27,
       "norm_label": "testrun",
@@ -2425,7 +951,7 @@
       "label": "validation",
       "file_type": "code",
       "source_file": "appraisejs/src/cli.ts",
-      "source_location": "L485",
+      "source_location": "L484",
       "_origin": "ast",
       "community": 27,
       "norm_label": "validation",
@@ -2436,7 +962,7 @@
       "label": "actions",
       "file_type": "code",
       "source_file": "appraisejs/src/cli.ts",
-      "source_location": "L553",
+      "source_location": "L552",
       "_origin": "ast",
       "community": 27,
       "norm_label": "actions",
@@ -2504,10 +1030,10 @@
       "source_file": "appraisejs/src/coordinator-client.ts",
       "source_location": "L17",
       "_origin": "ast",
-      "community": 29,
+      "community": 33,
       "norm_label": "coordinatorrequesterror",
       "id": "src_coordinator_client_coordinatorrequesterror",
-      "community_name": "Community 29"
+      "community_name": "Community 33"
     },
     {
       "label": ".constructor()",
@@ -2515,10 +1041,10 @@
       "source_file": "appraisejs/src/coordinator-client.ts",
       "source_location": "L18",
       "_origin": "ast",
-      "community": 29,
+      "community": 33,
       "norm_label": ".constructor()",
       "id": "src_coordinator_client_coordinatorrequesterror_constructor",
-      "community_name": "Community 29"
+      "community_name": "Community 33"
     },
     {
       "label": "coordinatorRequestErrorEnvelope()",
@@ -2559,10 +1085,10 @@
       "source_file": "appraisejs/src/diagnostics.test.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 25,
+      "community": 33,
       "norm_label": "diagnostics.test.ts",
       "id": "src_diagnostics_test",
-      "community_name": "Src Locator Util / Src Locator Util Getlocatormapdata"
+      "community_name": "Community 33"
     },
     {
       "label": "workspaces",
@@ -2570,10 +1096,10 @@
       "source_file": "appraisejs/src/diagnostics.test.ts",
       "source_location": "L10",
       "_origin": "ast",
-      "community": 25,
+      "community": 33,
       "norm_label": "workspaces",
       "id": "src_diagnostics_test_workspaces",
-      "community_name": "Src Locator Util / Src Locator Util Getlocatormapdata"
+      "community_name": "Community 33"
     },
     {
       "label": "diagnostics.ts",
@@ -2636,65 +1162,10 @@
       "source_file": "appraisejs/src/diagnostics.ts",
       "source_location": "L130",
       "_origin": "ast",
-      "community": 25,
+      "community": 33,
       "norm_label": "formatmcpbootstraperror()",
       "id": "src_diagnostics_formatmcpbootstraperror",
-      "community_name": "Src Locator Util / Src Locator Util Getlocatormapdata"
-    },
-    {
-      "label": "installer.ts",
-      "file_type": "code",
-      "source_file": "appraisejs/src/installer.ts",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 5,
-      "norm_label": "installer.ts",
-      "id": "src_installer",
-      "community_name": "Appraisejs Src Types Ts Src Types / Src Add Step"
-    },
-    {
-      "label": "writePayloadToTempFile()",
-      "file_type": "code",
-      "source_file": "appraisejs/src/installer.ts",
-      "source_location": "L8",
-      "_origin": "ast",
-      "community": 5,
-      "norm_label": "writepayloadtotempfile()",
-      "id": "src_installer_writepayloadtotempfile",
-      "community_name": "Appraisejs Src Types Ts Src Types / Src Add Step"
-    },
-    {
-      "label": "removeTempPayloadFile()",
-      "file_type": "code",
-      "source_file": "appraisejs/src/installer.ts",
-      "source_location": "L15",
-      "_origin": "ast",
-      "community": 5,
-      "norm_label": "removetemppayloadfile()",
-      "id": "src_installer_removetemppayloadfile",
-      "community_name": "Appraisejs Src Types Ts Src Types / Src Add Step"
-    },
-    {
-      "label": "getRunArgs()",
-      "file_type": "code",
-      "source_file": "appraisejs/src/installer.ts",
-      "source_location": "L19",
-      "_origin": "ast",
-      "community": 5,
-      "norm_label": "getrunargs()",
-      "id": "src_installer_getrunargs",
-      "community_name": "Appraisejs Src Types Ts Src Types / Src Add Step"
-    },
-    {
-      "label": "runLocalInstaller()",
-      "file_type": "code",
-      "source_file": "appraisejs/src/installer.ts",
-      "source_location": "L40",
-      "_origin": "ast",
-      "community": 5,
-      "norm_label": "runlocalinstaller()",
-      "id": "src_installer_runlocalinstaller",
-      "community_name": "Appraisejs Src Types Ts Src Types / Src Add Step"
+      "community_name": "Community 33"
     },
     {
       "label": "managed-validation-contracts.test.ts",
@@ -2724,10 +1195,10 @@
       "source_file": "appraisejs/src/managed-validation-contracts.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 12,
+      "community": 14,
       "norm_label": "action_catalog_contract_version",
       "id": "src_managed_validation_contracts_action_catalog_contract_version",
-      "community_name": "Cucumber Runtime Src Index Ts Src Index / Cucumber Runtime Src Types Ts Src Type"
+      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
     },
     {
       "label": "OPERATION_CATALOG_CONTRACT_VERSION",
@@ -2735,10 +1206,10 @@
       "source_file": "appraisejs/src/managed-validation-contracts.ts",
       "source_location": "L2",
       "_origin": "ast",
-      "community": 12,
+      "community": 14,
       "norm_label": "operation_catalog_contract_version",
       "id": "src_managed_validation_contracts_operation_catalog_contract_version",
-      "community_name": "Cucumber Runtime Src Index Ts Src Index / Cucumber Runtime Src Types Ts Src Type"
+      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
     },
     {
       "label": "LOCATOR_GRAPH_CONTRACT_VERSION",
@@ -2779,10 +1250,10 @@
       "source_file": "appraisejs/src/managed-validation-contracts.ts",
       "source_location": "L7",
       "_origin": "ast",
-      "community": 12,
+      "community": 14,
       "norm_label": "validation_ast_json_schema",
       "id": "src_managed_validation_contracts_validation_ast_json_schema",
-      "community_name": "Cucumber Runtime Src Index Ts Src Index / Cucumber Runtime Src Types Ts Src Type"
+      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
     },
     {
       "label": "ActionAssertionConcern",
@@ -3153,10 +1624,10 @@
       "source_file": "appraisejs/src/mcp-http.e2e.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 55,
+      "community": 25,
       "norm_label": "mcp-http.e2e.ts",
       "id": "src_mcp_http_e2e",
-      "community_name": "Navigation Reload"
+      "community_name": "Src Locator Util / Src Locator Util Getlocatormapdata"
     },
     {
       "label": "freePort()",
@@ -3164,10 +1635,10 @@
       "source_file": "appraisejs/src/mcp-http.e2e.ts",
       "source_location": "L11",
       "_origin": "ast",
-      "community": 55,
+      "community": 25,
       "norm_label": "freeport()",
       "id": "src_mcp_http_e2e_freeport",
-      "community_name": "Navigation Reload"
+      "community_name": "Src Locator Util / Src Locator Util Getlocatormapdata"
     },
     {
       "label": "waitForHealth()",
@@ -3175,10 +1646,10 @@
       "source_file": "appraisejs/src/mcp-http.e2e.ts",
       "source_location": "L21",
       "_origin": "ast",
-      "community": 55,
+      "community": 25,
       "norm_label": "waitforhealth()",
       "id": "src_mcp_http_e2e_waitforhealth",
-      "community_name": "Navigation Reload"
+      "community_name": "Src Locator Util / Src Locator Util Getlocatormapdata"
     },
     {
       "label": "StatusResponse",
@@ -3186,10 +1657,10 @@
       "source_file": "appraisejs/src/mcp-http.e2e.ts",
       "source_location": "L36",
       "_origin": "ast",
-      "community": 55,
+      "community": 25,
       "norm_label": "statusresponse",
       "id": "src_mcp_http_e2e_statusresponse",
-      "community_name": "Navigation Reload"
+      "community_name": "Src Locator Util / Src Locator Util Getlocatormapdata"
     },
     {
       "label": "rawPost()",
@@ -3197,10 +1668,10 @@
       "source_file": "appraisejs/src/mcp-http.e2e.ts",
       "source_location": "L38",
       "_origin": "ast",
-      "community": 55,
+      "community": 25,
       "norm_label": "rawpost()",
       "id": "src_mcp_http_e2e_rawpost",
-      "community_name": "Navigation Reload"
+      "community_name": "Src Locator Util / Src Locator Util Getlocatormapdata"
     },
     {
       "label": "expectStatus()",
@@ -3208,10 +1679,10 @@
       "source_file": "appraisejs/src/mcp-http.e2e.ts",
       "source_location": "L55",
       "_origin": "ast",
-      "community": 55,
+      "community": 25,
       "norm_label": "expectstatus()",
       "id": "src_mcp_http_e2e_expectstatus",
-      "community_name": "Navigation Reload"
+      "community_name": "Src Locator Util / Src Locator Util Getlocatormapdata"
     },
     {
       "label": "main()",
@@ -3219,10 +1690,10 @@
       "source_file": "appraisejs/src/mcp-http.e2e.ts",
       "source_location": "L61",
       "_origin": "ast",
-      "community": 55,
+      "community": 25,
       "norm_label": "main()",
       "id": "src_mcp_http_e2e_main",
-      "community_name": "Navigation Reload"
+      "community_name": "Src Locator Util / Src Locator Util Getlocatormapdata"
     },
     {
       "label": "mcp.e2e.ts",
@@ -3406,10 +1877,10 @@
       "source_file": "appraisejs/src/mcp.test.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 39,
+      "community": 14,
       "norm_label": "mcp.test.ts",
       "id": "src_mcp_test",
-      "community_name": "Click Click"
+      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
     },
     {
       "label": "mcp.ts",
@@ -3417,10 +1888,10 @@
       "source_file": "appraisejs/src/mcp.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 12,
+      "community": 29,
       "norm_label": "mcp.ts",
       "id": "src_mcp",
-      "community_name": "Cucumber Runtime Src Index Ts Src Index / Cucumber Runtime Src Types Ts Src Type"
+      "community_name": "Community 29"
     },
     {
       "label": "coordinator-call.ts",
@@ -3428,10 +1899,10 @@
       "source_file": "appraisejs/src/mcp/coordinator-call.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 29,
+      "community": 33,
       "norm_label": "coordinator-call.ts",
       "id": "mcp_coordinator_call",
-      "community_name": "Community 29"
+      "community_name": "Community 33"
     },
     {
       "label": "createCoordinatorApiClient()",
@@ -3439,10 +1910,10 @@
       "source_file": "appraisejs/src/mcp/coordinator-call.ts",
       "source_location": "L10",
       "_origin": "ast",
-      "community": 29,
+      "community": 33,
       "norm_label": "createcoordinatorapiclient()",
       "id": "mcp_coordinator_call_createcoordinatorapiclient",
-      "community_name": "Community 29"
+      "community_name": "Community 33"
     },
     {
       "label": "toolError()",
@@ -3450,10 +1921,10 @@
       "source_file": "appraisejs/src/mcp/coordinator-call.ts",
       "source_location": "L14",
       "_origin": "ast",
-      "community": 180,
+      "community": 14,
       "norm_label": "toolerror()",
       "id": "mcp_coordinator_call_toolerror",
-      "community_name": "Community 180"
+      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
     },
     {
       "label": "baseline.ts",
@@ -3461,10 +1932,10 @@
       "source_file": "appraisejs/src/mcp/domains/baseline.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 180,
+      "community": 14,
       "norm_label": "baseline.ts",
       "id": "domains_baseline",
-      "community_name": "Community 180"
+      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
     },
     {
       "label": "registerBaselineOperations()",
@@ -3472,10 +1943,10 @@
       "source_file": "appraisejs/src/mcp/domains/baseline.ts",
       "source_location": "L13",
       "_origin": "ast",
-      "community": 180,
+      "community": 14,
       "norm_label": "registerbaselineoperations()",
       "id": "domains_baseline_registerbaselineoperations",
-      "community_name": "Community 180"
+      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
     },
     {
       "label": "diagnostic.ts",
@@ -3483,10 +1954,10 @@
       "source_file": "appraisejs/src/mcp/domains/diagnostic.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 39,
+      "community": 14,
       "norm_label": "diagnostic.ts",
       "id": "domains_diagnostic",
-      "community_name": "Click Click"
+      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
     },
     {
       "label": "registerDiagnosticOperations()",
@@ -3494,10 +1965,10 @@
       "source_file": "appraisejs/src/mcp/domains/diagnostic.ts",
       "source_location": "L15",
       "_origin": "ast",
-      "community": 29,
+      "community": 14,
       "norm_label": "registerdiagnosticoperations()",
       "id": "domains_diagnostic_registerdiagnosticoperations",
-      "community_name": "Community 29"
+      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
     },
     {
       "label": "implementation.ts",
@@ -3505,10 +1976,10 @@
       "source_file": "appraisejs/src/mcp/domains/implementation.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 180,
+      "community": 14,
       "norm_label": "implementation.ts",
       "id": "domains_implementation",
-      "community_name": "Community 180"
+      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
     },
     {
       "label": "registerImplementationOperations()",
@@ -3516,10 +1987,10 @@
       "source_file": "appraisejs/src/mcp/domains/implementation.ts",
       "source_location": "L11",
       "_origin": "ast",
-      "community": 180,
+      "community": 14,
       "norm_label": "registerimplementationoperations()",
       "id": "domains_implementation_registerimplementationoperations",
-      "community_name": "Community 180"
+      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
     },
     {
       "label": "planning.ts",
@@ -3538,10 +2009,10 @@
       "source_file": "appraisejs/src/mcp/domains/planning.ts",
       "source_location": "L33",
       "_origin": "ast",
-      "community": 29,
+      "community": 14,
       "norm_label": "registerplanningoperations()",
       "id": "domains_planning_registerplanningoperations",
-      "community_name": "Community 29"
+      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
     },
     {
       "label": "project.ts",
@@ -3549,10 +2020,10 @@
       "source_file": "appraisejs/src/mcp/domains/project.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 180,
+      "community": 14,
       "norm_label": "project.ts",
       "id": "domains_project",
-      "community_name": "Community 180"
+      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
     },
     {
       "label": "registerProjectOperations()",
@@ -3560,10 +2031,10 @@
       "source_file": "appraisejs/src/mcp/domains/project.ts",
       "source_location": "L13",
       "_origin": "ast",
-      "community": 180,
+      "community": 14,
       "norm_label": "registerprojectoperations()",
       "id": "domains_project_registerprojectoperations",
-      "community_name": "Community 180"
+      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
     },
     {
       "label": "resources.ts",
@@ -3571,10 +2042,10 @@
       "source_file": "appraisejs/src/mcp/domains/resources.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 12,
+      "community": 14,
       "norm_label": "resources.ts",
       "id": "domains_resources",
-      "community_name": "Cucumber Runtime Src Index Ts Src Index / Cucumber Runtime Src Types Ts Src Type"
+      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
     },
     {
       "label": "registerResourcesOperations()",
@@ -3593,10 +2064,10 @@
       "source_file": "appraisejs/src/mcp/domains/runtime.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 180,
+      "community": 14,
       "norm_label": "runtime.ts",
       "id": "domains_runtime",
-      "community_name": "Community 180"
+      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
     },
     {
       "label": "registerRuntimeOperations()",
@@ -3604,10 +2075,10 @@
       "source_file": "appraisejs/src/mcp/domains/runtime.ts",
       "source_location": "L4",
       "_origin": "ast",
-      "community": 180,
+      "community": 14,
       "norm_label": "registerruntimeoperations()",
       "id": "domains_runtime_registerruntimeoperations",
-      "community_name": "Community 180"
+      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
     },
     {
       "label": "step-definitions.ts",
@@ -3615,10 +2086,10 @@
       "source_file": "appraisejs/src/mcp/domains/step-definitions.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 180,
+      "community": 14,
       "norm_label": "step-definitions.ts",
       "id": "domains_step_definitions",
-      "community_name": "Community 180"
+      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
     },
     {
       "label": "draftMutationSchema",
@@ -3626,10 +2097,10 @@
       "source_file": "appraisejs/src/mcp/domains/step-definitions.ts",
       "source_location": "L4",
       "_origin": "ast",
-      "community": 180,
+      "community": 14,
       "norm_label": "draftmutationschema",
       "id": "domains_step_definitions_draftmutationschema",
-      "community_name": "Community 180"
+      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
     },
     {
       "label": "registerStepDefinitionOperations()",
@@ -3637,10 +2108,10 @@
       "source_file": "appraisejs/src/mcp/domains/step-definitions.ts",
       "source_location": "L9",
       "_origin": "ast",
-      "community": 180,
+      "community": 14,
       "norm_label": "registerstepdefinitionoperations()",
       "id": "domains_step_definitions_registerstepdefinitionoperations",
-      "community_name": "Community 180"
+      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
     },
     {
       "label": "validation.ts",
@@ -3714,10 +2185,10 @@
       "source_file": "appraisejs/src/mcp/registry.test.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 29,
+      "community": 14,
       "norm_label": "registry.test.ts",
       "id": "mcp_registry_test",
-      "community_name": "Community 29"
+      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
     },
     {
       "label": "registry.ts",
@@ -3725,10 +2196,10 @@
       "source_file": "appraisejs/src/mcp/registry.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 29,
+      "community": 14,
       "norm_label": "registry.ts",
       "id": "mcp_registry",
-      "community_name": "Community 29"
+      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
     },
     {
       "label": "McpRegistryContext",
@@ -3736,10 +2207,10 @@
       "source_file": "appraisejs/src/mcp/registry.ts",
       "source_location": "L16",
       "_origin": "ast",
-      "community": 180,
+      "community": 14,
       "norm_label": "mcpregistrycontext",
       "id": "mcp_registry_mcpregistrycontext",
-      "community_name": "Community 180"
+      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
     },
     {
       "label": "McpContractDefinition",
@@ -3758,10 +2229,10 @@
       "source_file": "appraisejs/src/mcp/registry.ts",
       "source_location": "L31",
       "_origin": "ast",
-      "community": 29,
+      "community": 14,
       "norm_label": "contracts",
       "id": "mcp_registry_contracts",
-      "community_name": "Community 29"
+      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
     },
     {
       "label": "canonicalContracts",
@@ -3769,10 +2240,10 @@
       "source_file": "appraisejs/src/mcp/registry.ts",
       "source_location": "L32",
       "_origin": "ast",
-      "community": 29,
+      "community": 14,
       "norm_label": "canonicalcontracts",
       "id": "mcp_registry_canonicalcontracts",
-      "community_name": "Community 29"
+      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
     },
     {
       "label": "ToolHandler",
@@ -3780,10 +2251,10 @@
       "source_file": "appraisejs/src/mcp/registry.ts",
       "source_location": "L34",
       "_origin": "ast",
-      "community": 29,
+      "community": 14,
       "norm_label": "toolhandler",
       "id": "mcp_registry_toolhandler",
-      "community_name": "Community 29"
+      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
     },
     {
       "label": "withStructuredCoordinatorErrors()",
@@ -3791,10 +2262,10 @@
       "source_file": "appraisejs/src/mcp/registry.ts",
       "source_location": "L36",
       "_origin": "ast",
-      "community": 29,
+      "community": 14,
       "norm_label": "withstructuredcoordinatorerrors()",
       "id": "mcp_registry_withstructuredcoordinatorerrors",
-      "community_name": "Community 29"
+      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
     },
     {
       "label": "registrationTarget()",
@@ -3813,10 +2284,10 @@
       "source_file": "appraisejs/src/mcp/registry.ts",
       "source_location": "L82",
       "_origin": "ast",
-      "community": 29,
+      "community": 14,
       "norm_label": "domainregistries",
       "id": "mcp_registry_domainregistries",
-      "community_name": "Community 29"
+      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
     },
     {
       "label": "assertUniqueMcpDefinitions()",
@@ -3857,10 +2328,10 @@
       "source_file": "appraisejs/src/mcp/response-projector.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 39,
+      "community": 14,
       "norm_label": "response-projector.ts",
       "id": "mcp_response_projector",
-      "community_name": "Click Click"
+      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
     },
     {
       "label": "responseModeSchema",
@@ -3868,10 +2339,10 @@
       "source_file": "appraisejs/src/mcp/response-projector.ts",
       "source_location": "L3",
       "_origin": "ast",
-      "community": 180,
+      "community": 14,
       "norm_label": "responsemodeschema",
       "id": "mcp_response_projector_responsemodeschema",
-      "community_name": "Community 180"
+      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
     },
     {
       "label": "MCP_RESPONSE_TOKEN_BUDGETS",
@@ -3879,10 +2350,10 @@
       "source_file": "appraisejs/src/mcp/response-projector.ts",
       "source_location": "L7",
       "_origin": "ast",
-      "community": 39,
+      "community": 14,
       "norm_label": "mcp_response_token_budgets",
       "id": "mcp_response_projector_mcp_response_token_budgets",
-      "community_name": "Click Click"
+      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
     },
     {
       "label": "measureMcpResponse()",
@@ -3890,10 +2361,10 @@
       "source_file": "appraisejs/src/mcp/response-projector.ts",
       "source_location": "L15",
       "_origin": "ast",
-      "community": 39,
+      "community": 14,
       "norm_label": "measuremcpresponse()",
       "id": "mcp_response_projector_measuremcpresponse",
-      "community_name": "Click Click"
+      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
     },
     {
       "label": "applyResponseMode()",
@@ -3901,10 +2372,10 @@
       "source_file": "appraisejs/src/mcp/response-projector.ts",
       "source_location": "L26",
       "_origin": "ast",
-      "community": 39,
+      "community": 14,
       "norm_label": "applyresponsemode()",
       "id": "mcp_response_projector_applyresponsemode",
-      "community_name": "Click Click"
+      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
     },
     {
       "label": "applyLifecycleResponseMode()",
@@ -3912,10 +2383,10 @@
       "source_file": "appraisejs/src/mcp/response-projector.ts",
       "source_location": "L80",
       "_origin": "ast",
-      "community": 39,
+      "community": 14,
       "norm_label": "applylifecycleresponsemode()",
       "id": "mcp_response_projector_applylifecycleresponsemode",
-      "community_name": "Click Click"
+      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
     },
     {
       "label": "applyEventResponseMode()",
@@ -3923,10 +2394,10 @@
       "source_file": "appraisejs/src/mcp/response-projector.ts",
       "source_location": "L228",
       "_origin": "ast",
-      "community": 39,
+      "community": 14,
       "norm_label": "applyeventresponsemode()",
       "id": "mcp_response_projector_applyeventresponsemode",
-      "community_name": "Click Click"
+      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
     },
     {
       "label": "applyAuthoringResponseMode()",
@@ -3934,10 +2405,10 @@
       "source_file": "appraisejs/src/mcp/response-projector.ts",
       "source_location": "L243",
       "_origin": "ast",
-      "community": 180,
+      "community": 14,
       "norm_label": "applyauthoringresponsemode()",
       "id": "mcp_response_projector_applyauthoringresponsemode",
-      "community_name": "Community 180"
+      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
     },
     {
       "label": "applyCapsuleDiagnosticMode()",
@@ -3945,10 +2416,10 @@
       "source_file": "appraisejs/src/mcp/response-projector.ts",
       "source_location": "L341",
       "_origin": "ast",
-      "community": 39,
+      "community": 14,
       "norm_label": "applycapsulediagnosticmode()",
       "id": "mcp_response_projector_applycapsulediagnosticmode",
-      "community_name": "Click Click"
+      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
     },
     {
       "label": "server-factory.ts",
@@ -4033,10 +2504,10 @@
       "source_file": "appraisejs/src/mcp/shared.ts",
       "source_location": "L34",
       "_origin": "ast",
-      "community": 180,
+      "community": 14,
       "norm_label": "providernativerunsenabled()",
       "id": "mcp_shared_providernativerunsenabled",
-      "community_name": "Community 180"
+      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
     },
     {
       "label": "baseWorkflowCriticalTools",
@@ -4121,10 +2592,10 @@
       "source_file": "appraisejs/src/mcp/shared.ts",
       "source_location": "L157",
       "_origin": "ast",
-      "community": 180,
+      "community": 14,
       "norm_label": "text()",
       "id": "mcp_shared_text",
-      "community_name": "Community 180"
+      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
     },
     {
       "label": "normalizeOptionalRef()",
@@ -4132,10 +2603,10 @@
       "source_file": "appraisejs/src/mcp/shared.ts",
       "source_location": "L170",
       "_origin": "ast",
-      "community": 39,
+      "community": 14,
       "norm_label": "normalizeoptionalref()",
       "id": "mcp_shared_normalizeoptionalref",
-      "community_name": "Click Click"
+      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
     },
     {
       "label": "implementationValidationRunInputSchema",
@@ -4143,10 +2614,10 @@
       "source_file": "appraisejs/src/mcp/shared.ts",
       "source_location": "L174",
       "_origin": "ast",
-      "community": 180,
+      "community": 14,
       "norm_label": "implementationvalidationruninputschema",
       "id": "mcp_shared_implementationvalidationruninputschema",
-      "community_name": "Community 180"
+      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
     },
     {
       "label": "withGuidance()",
@@ -4154,10 +2625,10 @@
       "source_file": "appraisejs/src/mcp/shared.ts",
       "source_location": "L209",
       "_origin": "ast",
-      "community": 180,
+      "community": 14,
       "norm_label": "withguidance()",
       "id": "mcp_shared_withguidance",
-      "community_name": "Community 180"
+      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
     },
     {
       "label": "baselineRecoveryForLifecycle()",
@@ -4165,10 +2636,10 @@
       "source_file": "appraisejs/src/mcp/shared.ts",
       "source_location": "L223",
       "_origin": "ast",
-      "community": 180,
+      "community": 14,
       "norm_label": "baselinerecoveryforlifecycle()",
       "id": "mcp_shared_baselinerecoveryforlifecycle",
-      "community_name": "Community 180"
+      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
     },
     {
       "label": "summarizeDiagnostic()",
@@ -4187,10 +2658,10 @@
       "source_file": "appraisejs/src/mcp/shared.ts",
       "source_location": "L259",
       "_origin": "ast",
-      "community": 39,
+      "community": 14,
       "norm_label": "planningworkflow",
       "id": "mcp_shared_planningworkflow",
-      "community_name": "Click Click"
+      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
     },
     {
       "label": "standbyWorkflow",
@@ -4198,10 +2669,10 @@
       "source_file": "appraisejs/src/mcp/shared.ts",
       "source_location": "L275",
       "_origin": "ast",
-      "community": 12,
+      "community": 14,
       "norm_label": "standbyworkflow",
       "id": "mcp_shared_standbyworkflow",
-      "community_name": "Cucumber Runtime Src Index Ts Src Index / Cucumber Runtime Src Types Ts Src Type"
+      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
     },
     {
       "label": "validationPreparationWorkflow",
@@ -4209,10 +2680,10 @@
       "source_file": "appraisejs/src/mcp/shared.ts",
       "source_location": "L290",
       "_origin": "ast",
-      "community": 12,
+      "community": 14,
       "norm_label": "validationpreparationworkflow",
       "id": "mcp_shared_validationpreparationworkflow",
-      "community_name": "Cucumber Runtime Src Index Ts Src Index / Cucumber Runtime Src Types Ts Src Type"
+      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
     },
     {
       "label": "mcpCapabilityMetadata",
@@ -4220,10 +2691,10 @@
       "source_file": "appraisejs/src/mcp/shared.ts",
       "source_location": "L313",
       "_origin": "ast",
-      "community": 39,
+      "community": 14,
       "norm_label": "mcpcapabilitymetadata",
       "id": "mcp_shared_mcpcapabilitymetadata",
-      "community_name": "Click Click"
+      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
     },
     {
       "label": "compactMcpCapabilityMetadata",
@@ -4231,10 +2702,10 @@
       "source_file": "appraisejs/src/mcp/shared.ts",
       "source_location": "L321",
       "_origin": "ast",
-      "community": 39,
+      "community": 14,
       "norm_label": "compactmcpcapabilitymetadata",
       "id": "mcp_shared_compactmcpcapabilitymetadata",
-      "community_name": "Click Click"
+      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
     },
     {
       "label": "AgentPreflightObservation",
@@ -4264,10 +2735,10 @@
       "source_file": "appraisejs/src/mcp/shared.ts",
       "source_location": "L353",
       "_origin": "ast",
-      "community": 39,
+      "community": 14,
       "norm_label": "canonicalexpectedtargetworkspacepath()",
       "id": "mcp_shared_canonicalexpectedtargetworkspacepath",
-      "community_name": "Click Click"
+      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
     },
     {
       "label": "observedCapabilityState()",
@@ -4275,10 +2746,10 @@
       "source_file": "appraisejs/src/mcp/shared.ts",
       "source_location": "L363",
       "_origin": "ast",
-      "community": 39,
+      "community": 14,
       "norm_label": "observedcapabilitystate()",
       "id": "mcp_shared_observedcapabilitystate",
-      "community_name": "Click Click"
+      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
     },
     {
       "label": "buildAgentPreflight()",
@@ -4286,10 +2757,10 @@
       "source_file": "appraisejs/src/mcp/shared.ts",
       "source_location": "L370",
       "_origin": "ast",
-      "community": 39,
+      "community": 14,
       "norm_label": "buildagentpreflight()",
       "id": "mcp_shared_buildagentpreflight",
-      "community_name": "Click Click"
+      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
     },
     {
       "label": "compactAgentPreflight()",
@@ -4297,10 +2768,10 @@
       "source_file": "appraisejs/src/mcp/shared.ts",
       "source_location": "L459",
       "_origin": "ast",
-      "community": 39,
+      "community": 14,
       "norm_label": "compactagentpreflight()",
       "id": "mcp_shared_compactagentpreflight",
-      "community_name": "Click Click"
+      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
     },
     {
       "label": "missingCapabilityRecovery()",
@@ -4308,10 +2779,10 @@
       "source_file": "appraisejs/src/mcp/shared.ts",
       "source_location": "L496",
       "_origin": "ast",
-      "community": 39,
+      "community": 14,
       "norm_label": "missingcapabilityrecovery()",
       "id": "mcp_shared_missingcapabilityrecovery",
-      "community_name": "Click Click"
+      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
     },
     {
       "label": "compactProjectDiagnostic()",
@@ -4319,10 +2790,10 @@
       "source_file": "appraisejs/src/mcp/shared.ts",
       "source_location": "L524",
       "_origin": "ast",
-      "community": 39,
+      "community": 14,
       "norm_label": "compactprojectdiagnostic()",
       "id": "mcp_shared_compactprojectdiagnostic",
-      "community_name": "Click Click"
+      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
     },
     {
       "label": "agentGuide",
@@ -4330,10 +2801,10 @@
       "source_file": "appraisejs/src/mcp/shared.ts",
       "source_location": "L542",
       "_origin": "ast",
-      "community": 12,
+      "community": 14,
       "norm_label": "agentguide",
       "id": "mcp_shared_agentguide",
-      "community_name": "Cucumber Runtime Src Index Ts Src Index / Cucumber Runtime Src Types Ts Src Type"
+      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
     },
     {
       "label": "diagnosticGuidance()",
@@ -4341,10 +2812,10 @@
       "source_file": "appraisejs/src/mcp/shared.ts",
       "source_location": "L560",
       "_origin": "ast",
-      "community": 39,
+      "community": 14,
       "norm_label": "diagnosticguidance()",
       "id": "mcp_shared_diagnosticguidance",
-      "community_name": "Click Click"
+      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
     },
     {
       "label": "projectPayload()",
@@ -4352,10 +2823,10 @@
       "source_file": "appraisejs/src/mcp/shared.ts",
       "source_location": "L583",
       "_origin": "ast",
-      "community": 12,
+      "community": 14,
       "norm_label": "projectpayload()",
       "id": "mcp_shared_projectpayload",
-      "community_name": "Cucumber Runtime Src Index Ts Src Index / Cucumber Runtime Src Types Ts Src Type"
+      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
     },
     {
       "label": "planningSessionTargetRequiredResponse()",
@@ -4396,10 +2867,10 @@
       "source_file": "appraisejs/src/mcp/shared.ts",
       "source_location": "L647",
       "_origin": "ast",
-      "community": 29,
+      "community": 14,
       "norm_label": "plansnapshot",
       "id": "mcp_shared_plansnapshot",
-      "community_name": "Community 29"
+      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
     },
     {
       "label": "validationIntegrityBlockedResponse()",
@@ -4583,10 +3054,10 @@
       "source_file": "appraisejs/src/mcp/shared.ts",
       "source_location": "L974",
       "_origin": "ast",
-      "community": 180,
+      "community": 14,
       "norm_label": "lifecycletoolpayload()",
       "id": "mcp_shared_lifecycletoolpayload",
-      "community_name": "Community 180"
+      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
     },
     {
       "label": "reviewReadyPendingResponse()",
@@ -4858,10 +3329,10 @@
       "source_file": "appraisejs/src/plan-file.ts",
       "source_location": "L280",
       "_origin": "ast",
-      "community": 14,
+      "community": 7,
       "norm_label": "plancreateinputschema",
       "id": "src_plan_file_plancreateinputschema",
-      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
+      "community_name": "Src Plan Contract Parity Test / Src Plan Contract Parity Test Validplan"
     },
     {
       "label": "planArtifactSchema",
@@ -4869,10 +3340,10 @@
       "source_file": "appraisejs/src/plan-file.ts",
       "source_location": "L285",
       "_origin": "ast",
-      "community": 14,
+      "community": 7,
       "norm_label": "planartifactschema",
       "id": "src_plan_file_planartifactschema",
-      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
+      "community_name": "Src Plan Contract Parity Test / Src Plan Contract Parity Test Validplan"
     },
     {
       "label": "PlanFile",
@@ -4968,10 +3439,10 @@
       "source_file": "appraisejs/src/plan-source.test.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 189,
+      "community": 27,
       "norm_label": "plan-source.test.ts",
       "id": "src_plan_source_test",
-      "community_name": "Community 189"
+      "community_name": "Locator Picker Companion Src Index Ts Src Index / Src Launcher"
     },
     {
       "label": "directories",
@@ -4979,10 +3450,10 @@
       "source_file": "appraisejs/src/plan-source.test.ts",
       "source_location": "L9",
       "_origin": "ast",
-      "community": 189,
+      "community": 27,
       "norm_label": "directories",
       "id": "src_plan_source_test_directories",
-      "community_name": "Community 189"
+      "community_name": "Locator Picker Companion Src Index Ts Src Index / Src Launcher"
     },
     {
       "label": "directory()",
@@ -4990,10 +3461,10 @@
       "source_file": "appraisejs/src/plan-source.test.ts",
       "source_location": "L11",
       "_origin": "ast",
-      "community": 189,
+      "community": 27,
       "norm_label": "directory()",
       "id": "src_plan_source_test_directory",
-      "community_name": "Community 189"
+      "community_name": "Locator Picker Companion Src Index Ts Src Index / Src Launcher"
     },
     {
       "label": "plan-source.ts",
@@ -5001,10 +3472,10 @@
       "source_file": "appraisejs/src/plan-source.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 189,
+      "community": 27,
       "norm_label": "plan-source.ts",
       "id": "src_plan_source",
-      "community_name": "Community 189"
+      "community_name": "Locator Picker Companion Src Index Ts Src Index / Src Launcher"
     },
     {
       "label": "resolvePlanSource()",
@@ -5012,10 +3483,10 @@
       "source_file": "appraisejs/src/plan-source.ts",
       "source_location": "L4",
       "_origin": "ast",
-      "community": 189,
+      "community": 27,
       "norm_label": "resolveplansource()",
       "id": "src_plan_source_resolveplansource",
-      "community_name": "Community 189"
+      "community_name": "Locator Picker Companion Src Index Ts Src Index / Src Launcher"
     },
     {
       "label": "project-identity.ts",
@@ -5089,230 +3560,10 @@
       "source_file": "appraisejs/src/project-identity.ts",
       "source_location": "L68",
       "_origin": "ast",
-      "community": 55,
+      "community": 25,
       "norm_label": "ensurelocalprojectidentity()",
       "id": "src_project_identity_ensurelocalprojectidentity",
-      "community_name": "Navigation Reload"
-    },
-    {
-      "label": "project.test.ts",
-      "file_type": "code",
-      "source_file": "appraisejs/src/project.test.ts",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 5,
-      "norm_label": "project.test.ts",
-      "id": "src_project_test",
-      "community_name": "Appraisejs Src Types Ts Src Types / Src Add Step"
-    },
-    {
-      "label": "tempDirs",
-      "file_type": "code",
-      "source_file": "appraisejs/src/project.test.ts",
-      "source_location": "L9",
-      "_origin": "ast",
-      "community": 5,
-      "norm_label": "tempdirs",
-      "id": "src_project_test_tempdirs",
-      "community_name": "Appraisejs Src Types Ts Src Types / Src Add Step"
-    },
-    {
-      "label": "createTempWorkspace()",
-      "file_type": "code",
-      "source_file": "appraisejs/src/project.test.ts",
-      "source_location": "L11",
-      "_origin": "ast",
-      "community": 5,
-      "norm_label": "createtempworkspace()",
-      "id": "src_project_test_createtempworkspace",
-      "community_name": "Appraisejs Src Types Ts Src Types / Src Add Step"
-    },
-    {
-      "label": "writeJson()",
-      "file_type": "code",
-      "source_file": "appraisejs/src/project.test.ts",
-      "source_location": "L17",
-      "_origin": "ast",
-      "community": 5,
-      "norm_label": "writejson()",
-      "id": "src_project_test_writejson",
-      "community_name": "Appraisejs Src Types Ts Src Types / Src Add Step"
-    },
-    {
-      "label": "project.ts",
-      "file_type": "code",
-      "source_file": "appraisejs/src/project.ts",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 5,
-      "norm_label": "project.ts",
-      "id": "src_project",
-      "community_name": "Appraisejs Src Types Ts Src Types / Src Add Step"
-    },
-    {
-      "label": "PackageManager",
-      "file_type": "code",
-      "source_file": "appraisejs/src/project.ts",
-      "source_location": "L4",
-      "_origin": "ast",
-      "community": 5,
-      "norm_label": "packagemanager",
-      "id": "src_project_packagemanager",
-      "community_name": "Appraisejs Src Types Ts Src Types / Src Add Step"
-    },
-    {
-      "label": "AppraiseProjectInfo",
-      "file_type": "code",
-      "source_file": "appraisejs/src/project.ts",
-      "source_location": "L6",
-      "_origin": "ast",
-      "community": 5,
-      "norm_label": "appraiseprojectinfo",
-      "id": "src_project_appraiseprojectinfo",
-      "community_name": "Appraisejs Src Types Ts Src Types / Src Add Step"
-    },
-    {
-      "label": "PackageJsonShape",
-      "file_type": "code",
-      "source_file": "appraisejs/src/project.ts",
-      "source_location": "L12",
-      "_origin": "ast",
-      "community": 5,
-      "norm_label": "packagejsonshape",
-      "id": "src_project_packagejsonshape",
-      "community_name": "Appraisejs Src Types Ts Src Types / Src Add Step"
-    },
-    {
-      "label": "validateAppraiseProject()",
-      "file_type": "code",
-      "source_file": "appraisejs/src/project.ts",
-      "source_location": "L16",
-      "_origin": "ast",
-      "community": 5,
-      "norm_label": "validateappraiseproject()",
-      "id": "src_project_validateappraiseproject",
-      "community_name": "Appraisejs Src Types Ts Src Types / Src Add Step"
-    },
-    {
-      "label": "detectPackageManager()",
-      "file_type": "code",
-      "source_file": "appraisejs/src/project.ts",
-      "source_location": "L52",
-      "_origin": "ast",
-      "community": 5,
-      "norm_label": "detectpackagemanager()",
-      "id": "src_project_detectpackagemanager",
-      "community_name": "Appraisejs Src Types Ts Src Types / Src Add Step"
-    },
-    {
-      "label": "registry.test.ts",
-      "file_type": "code",
-      "source_file": "appraisejs/src/registry.test.ts",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 5,
-      "norm_label": "registry.test.ts",
-      "id": "src_registry_test",
-      "community_name": "Appraisejs Src Types Ts Src Types / Src Add Step"
-    },
-    {
-      "label": "registry.ts",
-      "file_type": "code",
-      "source_file": "appraisejs/src/registry.ts",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 5,
-      "norm_label": "registry.ts",
-      "id": "src_registry",
-      "community_name": "Appraisejs Src Types Ts Src Types / Src Add Step"
-    },
-    {
-      "label": "resolveBundledManifestUrl()",
-      "file_type": "code",
-      "source_file": "appraisejs/src/registry.ts",
-      "source_location": "L8",
-      "_origin": "ast",
-      "community": 5,
-      "norm_label": "resolvebundledmanifesturl()",
-      "id": "src_registry_resolvebundledmanifesturl",
-      "community_name": "Appraisejs Src Types Ts Src Types / Src Add Step"
-    },
-    {
-      "label": "resolveManifestUrl()",
-      "file_type": "code",
-      "source_file": "appraisejs/src/registry.ts",
-      "source_location": "L12",
-      "_origin": "ast",
-      "community": 5,
-      "norm_label": "resolvemanifesturl()",
-      "id": "src_registry_resolvemanifesturl",
-      "community_name": "Appraisejs Src Types Ts Src Types / Src Add Step"
-    },
-    {
-      "label": "trimTrailingSlash()",
-      "file_type": "code",
-      "source_file": "appraisejs/src/registry.ts",
-      "source_location": "L26",
-      "_origin": "ast",
-      "community": 5,
-      "norm_label": "trimtrailingslash()",
-      "id": "src_registry_trimtrailingslash",
-      "community_name": "Appraisejs Src Types Ts Src Types / Src Add Step"
-    },
-    {
-      "label": "fetchJson()",
-      "file_type": "code",
-      "source_file": "appraisejs/src/registry.ts",
-      "source_location": "L30",
-      "_origin": "ast",
-      "community": 5,
-      "norm_label": "fetchjson()",
-      "id": "src_registry_fetchjson",
-      "community_name": "Appraisejs Src Types Ts Src Types / Src Add Step"
-    },
-    {
-      "label": "fetchText()",
-      "file_type": "code",
-      "source_file": "appraisejs/src/registry.ts",
-      "source_location": "L48",
-      "_origin": "ast",
-      "community": 5,
-      "norm_label": "fetchtext()",
-      "id": "src_registry_fetchtext",
-      "community_name": "Appraisejs Src Types Ts Src Types / Src Add Step"
-    },
-    {
-      "label": "fetchRegistryManifest()",
-      "file_type": "code",
-      "source_file": "appraisejs/src/registry.ts",
-      "source_location": "L66",
-      "_origin": "ast",
-      "community": 5,
-      "norm_label": "fetchregistrymanifest()",
-      "id": "src_registry_fetchregistrymanifest",
-      "community_name": "Appraisejs Src Types Ts Src Types / Src Add Step"
-    },
-    {
-      "label": "resolveStepEntry()",
-      "file_type": "code",
-      "source_file": "appraisejs/src/registry.ts",
-      "source_location": "L82",
-      "_origin": "ast",
-      "community": 5,
-      "norm_label": "resolvestepentry()",
-      "id": "src_registry_resolvestepentry",
-      "community_name": "Appraisejs Src Types Ts Src Types / Src Add Step"
-    },
-    {
-      "label": "downloadStepPayload()",
-      "file_type": "code",
-      "source_file": "appraisejs/src/registry.ts",
-      "source_location": "L91",
-      "_origin": "ast",
-      "community": 5,
-      "norm_label": "downloadsteppayload()",
-      "id": "src_registry_downloadsteppayload",
-      "community_name": "Appraisejs Src Types Ts Src Types / Src Add Step"
+      "community_name": "Src Locator Util / Src Locator Util Getlocatormapdata"
     },
     {
       "label": "skill-policy.test.ts",
@@ -5456,83 +3707,6 @@
       "norm_label": "runtestrundiagnose()",
       "id": "src_test_run_diagnose_cli_runtestrundiagnose",
       "community_name": "Community 82"
-    },
-    {
-      "label": "types.ts",
-      "file_type": "code",
-      "source_file": "appraisejs/src/types.ts",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 5,
-      "norm_label": "types.ts",
-      "id": "appraisejs_src_types_ts_src_types",
-      "community_name": "Appraisejs Src Types Ts Src Types / Src Add Step"
-    },
-    {
-      "label": "TemplateStepIcon",
-      "file_type": "code",
-      "source_file": "appraisejs/src/types.ts",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 5,
-      "norm_label": "templatestepicon",
-      "id": "src_types_templatestepicon",
-      "community_name": "Appraisejs Src Types Ts Src Types / Src Add Step"
-    },
-    {
-      "label": "TemplateStepGroupType",
-      "file_type": "code",
-      "source_file": "appraisejs/src/types.ts",
-      "source_location": "L16",
-      "_origin": "ast",
-      "community": 5,
-      "norm_label": "templatestepgrouptype",
-      "id": "src_types_templatestepgrouptype",
-      "community_name": "Appraisejs Src Types Ts Src Types / Src Add Step"
-    },
-    {
-      "label": "RegistryStepEntry",
-      "file_type": "code",
-      "source_file": "appraisejs/src/types.ts",
-      "source_location": "L18",
-      "_origin": "ast",
-      "community": 5,
-      "norm_label": "registrystepentry",
-      "id": "src_types_registrystepentry",
-      "community_name": "Appraisejs Src Types Ts Src Types / Src Add Step"
-    },
-    {
-      "label": "StepRegistryManifest",
-      "file_type": "code",
-      "source_file": "appraisejs/src/types.ts",
-      "source_location": "L34",
-      "_origin": "ast",
-      "community": 5,
-      "norm_label": "stepregistrymanifest",
-      "id": "src_types_stepregistrymanifest",
-      "community_name": "Appraisejs Src Types Ts Src Types / Src Add Step"
-    },
-    {
-      "label": "TemplateStepInstallPayload",
-      "file_type": "code",
-      "source_file": "appraisejs/src/types.ts",
-      "source_location": "L41",
-      "_origin": "ast",
-      "community": 5,
-      "norm_label": "templatestepinstallpayload",
-      "id": "src_types_templatestepinstallpayload",
-      "community_name": "Appraisejs Src Types Ts Src Types / Src Add Step"
-    },
-    {
-      "label": "AddStepOptions",
-      "file_type": "code",
-      "source_file": "appraisejs/src/types.ts",
-      "source_location": "L47",
-      "_origin": "ast",
-      "community": 5,
-      "norm_label": "addstepoptions",
-      "id": "src_types_addstepoptions",
-      "community_name": "Appraisejs Src Types Ts Src Types / Src Add Step"
     },
     {
       "label": "tsconfig.json",
@@ -6574,10 +4748,10 @@
       "source_file": "create-appraisejs/scripts/prepare-template.ts",
       "source_location": "L82",
       "_origin": "ast",
-      "community": 181,
+      "community": 34,
       "norm_label": "copyfile()",
       "id": "scripts_prepare_template_copyfile",
-      "community_name": "Community 181"
+      "community_name": "Community 34"
     },
     {
       "label": "copyDirWithFilter()",
@@ -6706,10 +4880,10 @@
       "source_file": "create-appraisejs/scripts/prepare-template.ts",
       "source_location": "L263",
       "_origin": "ast",
-      "community": 181,
+      "community": 34,
       "norm_label": "resetautomationreports()",
       "id": "scripts_prepare_template_resetautomationreports",
-      "community_name": "Community 181"
+      "community_name": "Community 34"
     },
     {
       "label": "resetAutomationLocatorMap()",
@@ -6728,10 +4902,10 @@
       "source_file": "create-appraisejs/scripts/prepare-template.ts",
       "source_location": "L276",
       "_origin": "ast",
-      "community": 181,
+      "community": 34,
       "norm_label": "resetautomationenvironments()",
       "id": "scripts_prepare_template_resetautomationenvironments",
-      "community_name": "Community 181"
+      "community_name": "Community 34"
     },
     {
       "label": "syncLegacyEnvironmentConfig()",
@@ -6739,10 +4913,10 @@
       "source_file": "create-appraisejs/scripts/prepare-template.ts",
       "source_location": "L282",
       "_origin": "ast",
-      "community": 181,
+      "community": 34,
       "norm_label": "synclegacyenvironmentconfig()",
       "id": "scripts_prepare_template_synclegacyenvironmentconfig",
-      "community_name": "Community 181"
+      "community_name": "Community 34"
     },
     {
       "label": "syncInternalPackage()",
@@ -6750,10 +4924,10 @@
       "source_file": "create-appraisejs/scripts/prepare-template.ts",
       "source_location": "L296",
       "_origin": "ast",
-      "community": 181,
+      "community": 34,
       "norm_label": "syncinternalpackage()",
       "id": "scripts_prepare_template_syncinternalpackage",
-      "community_name": "Community 181"
+      "community_name": "Community 34"
     },
     {
       "label": "writeTemplatePackageJson()",
@@ -6761,10 +4935,10 @@
       "source_file": "create-appraisejs/scripts/prepare-template.ts",
       "source_location": "L322",
       "_origin": "ast",
-      "community": 181,
+      "community": 34,
       "norm_label": "writetemplatepackagejson()",
       "id": "scripts_prepare_template_writetemplatepackagejson",
-      "community_name": "Community 181"
+      "community_name": "Community 34"
     },
     {
       "label": "writeTemplateHarnessCheck()",
@@ -6772,10 +4946,10 @@
       "source_file": "create-appraisejs/scripts/prepare-template.ts",
       "source_location": "L357",
       "_origin": "ast",
-      "community": 181,
+      "community": 34,
       "norm_label": "writetemplateharnesscheck()",
       "id": "scripts_prepare_template_writetemplateharnesscheck",
-      "community_name": "Community 181"
+      "community_name": "Community 34"
     },
     {
       "label": "preparePackagedGitignore()",
@@ -6794,10 +4968,10 @@
       "source_file": "create-appraisejs/scripts/prepare-template.ts",
       "source_location": "L374",
       "_origin": "ast",
-      "community": 181,
+      "community": 34,
       "norm_label": "createbasetemplate()",
       "id": "scripts_prepare_template_createbasetemplate",
-      "community_name": "Community 181"
+      "community_name": "Community 34"
     },
     {
       "label": "copyDirWithoutBundledExclusions()",
@@ -7702,21 +5876,21 @@
       "community_name": "Community 182"
     },
     {
-      "label": "TemplateStepDataCounts",
+      "label": "StepDefinitionDataCounts",
       "file_type": "code",
       "source_file": "create-appraisejs/src/prepare-template-utils.ts",
       "source_location": "L12",
       "_origin": "ast",
       "community": 182,
-      "norm_label": "templatestepdatacounts",
-      "id": "src_prepare_template_utils_templatestepdatacounts",
+      "norm_label": "stepdefinitiondatacounts",
+      "id": "src_prepare_template_utils_stepdefinitiondatacounts",
       "community_name": "Community 182"
     },
     {
       "label": "TEMPLATE_PREP_SYNC_SCRIPTS",
       "file_type": "code",
       "source_file": "create-appraisejs/src/prepare-template-utils.ts",
-      "source_location": "L18",
+      "source_location": "L17",
       "_origin": "ast",
       "community": 182,
       "norm_label": "template_prep_sync_scripts",
@@ -7727,7 +5901,7 @@
       "label": "BLANK_TEMPLATE_PREP_SYNC_SCRIPTS",
       "file_type": "code",
       "source_file": "create-appraisejs/src/prepare-template-utils.ts",
-      "source_location": "L19",
+      "source_location": "L18",
       "_origin": "ast",
       "community": 182,
       "norm_label": "blank_template_prep_sync_scripts",
@@ -7738,7 +5912,7 @@
       "label": "collectFiles()",
       "file_type": "code",
       "source_file": "create-appraisejs/src/prepare-template-utils.ts",
-      "source_location": "L21",
+      "source_location": "L20",
       "_origin": "ast",
       "community": 1,
       "norm_label": "collectfiles()",
@@ -7749,7 +5923,7 @@
       "label": "shouldAbortOnFallbackSeed()",
       "file_type": "code",
       "source_file": "create-appraisejs/src/prepare-template-utils.ts",
-      "source_location": "L46",
+      "source_location": "L45",
       "_origin": "ast",
       "community": 187,
       "norm_label": "shouldabortonfallbackseed()",
@@ -7760,7 +5934,7 @@
       "label": "getTemplatePrepSyncScripts()",
       "file_type": "code",
       "source_file": "create-appraisejs/src/prepare-template-utils.ts",
-      "source_location": "L54",
+      "source_location": "L53",
       "_origin": "ast",
       "community": 182,
       "norm_label": "gettemplateprepsyncscripts()",
@@ -7768,21 +5942,21 @@
       "community_name": "Community 182"
     },
     {
-      "label": "readTemplateStepDataCounts()",
+      "label": "readStepDefinitionDataCounts()",
       "file_type": "code",
       "source_file": "create-appraisejs/src/prepare-template-utils.ts",
-      "source_location": "L58",
+      "source_location": "L57",
       "_origin": "ast",
       "community": 182,
-      "norm_label": "readtemplatestepdatacounts()",
-      "id": "src_prepare_template_utils_readtemplatestepdatacounts",
+      "norm_label": "readstepdefinitiondatacounts()",
+      "id": "src_prepare_template_utils_readstepdefinitiondatacounts",
       "community_name": "Community 182"
     },
     {
       "label": "verifyPreparedTemplateState()",
       "file_type": "code",
       "source_file": "create-appraisejs/src/prepare-template-utils.ts",
-      "source_location": "L99",
+      "source_location": "L95",
       "_origin": "ast",
       "community": 182,
       "norm_label": "verifypreparedtemplatestate()",
@@ -9874,10 +8048,10 @@
       "source_file": "cucumber-runtime/src/operations/contracts.ts",
       "source_location": "L10",
       "_origin": "ast",
-      "community": 16,
+      "community": 3,
       "norm_label": "canonicaloperationjson()",
       "id": "operations_contracts_canonicaloperationjson",
-      "community_name": "Cucumber Runtime Src Cli Ts Src Cli / Cucumber Runtime Src Cli Ts Src Cli Cliopt"
+      "community_name": "Appraisejs Src Cli Ts Src Cli / Appraisejs Src Cli Ts Src Cli Program"
     },
     {
       "label": "operationContentHash()",
@@ -10391,10 +8565,10 @@
       "source_file": "cucumber-runtime/src/step-definitions/artifact-contract.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 75,
+      "community": 5,
       "norm_label": "artifact-contract.ts",
       "id": "step_definitions_artifact_contract",
-      "community_name": "Wait Wait For Page Load"
+      "community_name": "Appraisejs Src Types Ts Src Types / Src Add Step"
     },
     {
       "label": "StepContractValue",
@@ -10402,10 +8576,10 @@
       "source_file": "cucumber-runtime/src/step-definitions/artifact-contract.ts",
       "source_location": "L3",
       "_origin": "ast",
-      "community": 75,
+      "community": 5,
       "norm_label": "stepcontractvalue",
       "id": "step_definitions_artifact_contract_stepcontractvalue",
-      "community_name": "Wait Wait For Page Load"
+      "community_name": "Appraisejs Src Types Ts Src Types / Src Add Step"
     },
     {
       "label": "contractType()",
@@ -10413,10 +8587,10 @@
       "source_file": "cucumber-runtime/src/step-definitions/artifact-contract.ts",
       "source_location": "L5",
       "_origin": "ast",
-      "community": 75,
+      "community": 5,
       "norm_label": "contracttype()",
       "id": "step_definitions_artifact_contract_contracttype",
-      "community_name": "Wait Wait For Page Load"
+      "community_name": "Appraisejs Src Types Ts Src Types / Src Add Step"
     },
     {
       "label": "contractFields()",
@@ -10424,10 +8598,10 @@
       "source_file": "cucumber-runtime/src/step-definitions/artifact-contract.ts",
       "source_location": "L12",
       "_origin": "ast",
-      "community": 75,
+      "community": 5,
       "norm_label": "contractfields()",
       "id": "step_definitions_artifact_contract_contractfields",
-      "community_name": "Wait Wait For Page Load"
+      "community_name": "Appraisejs Src Types Ts Src Types / Src Add Step"
     },
     {
       "label": "contractRuntime()",
@@ -10435,10 +8609,10 @@
       "source_file": "cucumber-runtime/src/step-definitions/artifact-contract.ts",
       "source_location": "L20",
       "_origin": "ast",
-      "community": 75,
+      "community": 5,
       "norm_label": "contractruntime()",
       "id": "step_definitions_artifact_contract_contractruntime",
-      "community_name": "Wait Wait For Page Load"
+      "community_name": "Appraisejs Src Types Ts Src Types / Src Add Step"
     },
     {
       "label": "generateStepDefinitionContract()",
@@ -10446,10 +8620,10 @@
       "source_file": "cucumber-runtime/src/step-definitions/artifact-contract.ts",
       "source_location": "L24",
       "_origin": "ast",
-      "community": 75,
+      "community": 5,
       "norm_label": "generatestepdefinitioncontract()",
       "id": "step_definitions_artifact_contract_generatestepdefinitioncontract",
-      "community_name": "Wait Wait For Page Load"
+      "community_name": "Appraisejs Src Types Ts Src Types / Src Add Step"
     },
     {
       "label": "builtins.test.ts",
@@ -10523,10 +8697,10 @@
       "source_file": "cucumber-runtime/src/step-definitions/composition-validator.test.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 178,
+      "community": 75,
       "norm_label": "composition-validator.test.ts",
       "id": "step_definitions_composition_validator_test",
-      "community_name": "Community 178"
+      "community_name": "Wait Wait For Page Load"
     },
     {
       "label": "definition()",
@@ -10534,10 +8708,10 @@
       "source_file": "cucumber-runtime/src/step-definitions/composition-validator.test.ts",
       "source_location": "L10",
       "_origin": "ast",
-      "community": 178,
+      "community": 75,
       "norm_label": "definition()",
       "id": "step_definitions_composition_validator_test_definition",
-      "community_name": "Community 178"
+      "community_name": "Wait Wait For Page Load"
     },
     {
       "label": "composition()",
@@ -10545,10 +8719,10 @@
       "source_file": "cucumber-runtime/src/step-definitions/composition-validator.test.ts",
       "source_location": "L52",
       "_origin": "ast",
-      "community": 178,
+      "community": 75,
       "norm_label": "composition()",
       "id": "step_definitions_composition_validator_test_composition",
-      "community_name": "Community 178"
+      "community_name": "Wait Wait For Page Load"
     },
     {
       "label": "reference()",
@@ -10556,10 +8730,10 @@
       "source_file": "cucumber-runtime/src/step-definitions/composition-validator.test.ts",
       "source_location": "L63",
       "_origin": "ast",
-      "community": 178,
+      "community": 75,
       "norm_label": "reference()",
       "id": "step_definitions_composition_validator_test_reference",
-      "community_name": "Community 178"
+      "community_name": "Wait Wait For Page Load"
     },
     {
       "label": "resolved()",
@@ -10567,10 +8741,10 @@
       "source_file": "cucumber-runtime/src/step-definitions/composition-validator.test.ts",
       "source_location": "L67",
       "_origin": "ast",
-      "community": 178,
+      "community": 75,
       "norm_label": "resolved()",
       "id": "step_definitions_composition_validator_test_resolved",
-      "community_name": "Community 178"
+      "community_name": "Wait Wait For Page Load"
     },
     {
       "label": "composition-validator.ts",
@@ -10798,10 +8972,10 @@
       "source_file": "cucumber-runtime/src/step-definitions/contracts.ts",
       "source_location": "L18",
       "_origin": "ast",
-      "community": 178,
+      "community": 16,
       "norm_label": "stepdefinitioncontenthash()",
       "id": "step_definitions_contracts_stepdefinitioncontenthash",
-      "community_name": "Community 178"
+      "community_name": "Cucumber Runtime Src Cli Ts Src Cli / Cucumber Runtime Src Cli Ts Src Cli Cliopt"
     },
     {
       "label": "stepIdentitySchema",
@@ -10958,10 +9132,32 @@
       "community_name": "Cucumber Runtime Src Cli Ts Src Cli / Cucumber Runtime Src Cli Ts Src Cli Cliopt"
     },
     {
-      "label": "stepPublicationReceiptSchema",
+      "label": "stepInputValueMatchesType()",
       "file_type": "code",
       "source_file": "cucumber-runtime/src/step-definitions/contracts.ts",
       "source_location": "L280",
+      "_origin": "ast",
+      "community": 6,
+      "norm_label": "stepinputvaluematchestype()",
+      "id": "step_definitions_contracts_stepinputvaluematchestype",
+      "community_name": "Community 6"
+    },
+    {
+      "label": "validateStepInvocationInputs()",
+      "file_type": "code",
+      "source_file": "cucumber-runtime/src/step-definitions/contracts.ts",
+      "source_location": "L295",
+      "_origin": "ast",
+      "community": 6,
+      "norm_label": "validatestepinvocationinputs()",
+      "id": "step_definitions_contracts_validatestepinvocationinputs",
+      "community_name": "Community 6"
+    },
+    {
+      "label": "stepPublicationReceiptSchema",
+      "file_type": "code",
+      "source_file": "cucumber-runtime/src/step-definitions/contracts.ts",
+      "source_location": "L318",
       "_origin": "ast",
       "community": 16,
       "norm_label": "steppublicationreceiptschema",
@@ -10972,40 +9168,40 @@
       "label": "computeStepDefinitionHashes()",
       "file_type": "code",
       "source_file": "cucumber-runtime/src/step-definitions/contracts.ts",
-      "source_location": "L292",
+      "source_location": "L330",
       "_origin": "ast",
-      "community": 178,
+      "community": 75,
       "norm_label": "computestepdefinitionhashes()",
       "id": "step_definitions_contracts_computestepdefinitionhashes",
-      "community_name": "Community 178"
+      "community_name": "Wait Wait For Page Load"
     },
     {
       "label": "computeStepReferenceHash()",
       "file_type": "code",
       "source_file": "cucumber-runtime/src/step-definitions/contracts.ts",
-      "source_location": "L310",
+      "source_location": "L348",
       "_origin": "ast",
-      "community": 178,
+      "community": 75,
       "norm_label": "computestepreferencehash()",
       "id": "step_definitions_contracts_computestepreferencehash",
-      "community_name": "Community 178"
+      "community_name": "Wait Wait For Page Load"
     },
     {
       "label": "StepDefinition",
       "file_type": "code",
       "source_file": "cucumber-runtime/src/step-definitions/contracts.ts",
-      "source_location": "L314",
+      "source_location": "L352",
       "_origin": "ast",
-      "community": 178,
+      "community": 75,
       "norm_label": "stepdefinition",
       "id": "step_definitions_contracts_stepdefinition",
-      "community_name": "Community 178"
+      "community_name": "Wait Wait For Page Load"
     },
     {
       "label": "StepDefinitionDraft",
       "file_type": "code",
       "source_file": "cucumber-runtime/src/step-definitions/contracts.ts",
-      "source_location": "L315",
+      "source_location": "L353",
       "_origin": "ast",
       "community": 16,
       "norm_label": "stepdefinitiondraft",
@@ -11016,7 +9212,7 @@
       "label": "StepExecutionBinding",
       "file_type": "code",
       "source_file": "cucumber-runtime/src/step-definitions/contracts.ts",
-      "source_location": "L316",
+      "source_location": "L354",
       "_origin": "ast",
       "community": 16,
       "norm_label": "stepexecutionbinding",
@@ -11027,18 +9223,18 @@
       "label": "StepInvocation",
       "file_type": "code",
       "source_file": "cucumber-runtime/src/step-definitions/contracts.ts",
-      "source_location": "L317",
+      "source_location": "L355",
       "_origin": "ast",
-      "community": 178,
+      "community": 75,
       "norm_label": "stepinvocation",
       "id": "step_definitions_contracts_stepinvocation",
-      "community_name": "Community 178"
+      "community_name": "Wait Wait For Page Load"
     },
     {
       "label": "StepPublicationReceipt",
       "file_type": "code",
       "source_file": "cucumber-runtime/src/step-definitions/contracts.ts",
-      "source_location": "L318",
+      "source_location": "L356",
       "_origin": "ast",
       "community": 16,
       "norm_label": "steppublicationreceipt",
@@ -11051,10 +9247,10 @@
       "source_file": "cucumber-runtime/src/step-definitions/dispatcher-stored-output-regression.test.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 178,
+      "community": 75,
       "norm_label": "dispatcher-stored-output-regression.test.ts",
       "id": "step_definitions_dispatcher_stored_output_regression_test",
-      "community_name": "Community 178"
+      "community_name": "Wait Wait For Page Load"
     },
     {
       "label": "waitDefinition()",
@@ -11062,10 +9258,10 @@
       "source_file": "cucumber-runtime/src/step-definitions/dispatcher-stored-output-regression.test.ts",
       "source_location": "L5",
       "_origin": "ast",
-      "community": 178,
+      "community": 75,
       "norm_label": "waitdefinition()",
       "id": "step_definitions_dispatcher_stored_output_regression_test_waitdefinition",
-      "community_name": "Community 178"
+      "community_name": "Wait Wait For Page Load"
     },
     {
       "label": "dispatcher.test.ts",
@@ -11073,10 +9269,10 @@
       "source_file": "cucumber-runtime/src/step-definitions/dispatcher.test.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 178,
+      "community": 75,
       "norm_label": "dispatcher.test.ts",
       "id": "step_definitions_dispatcher_test",
-      "community_name": "Community 178"
+      "community_name": "Wait Wait For Page Load"
     },
     {
       "label": "definition()",
@@ -11084,10 +9280,10 @@
       "source_file": "cucumber-runtime/src/step-definitions/dispatcher.test.ts",
       "source_location": "L5",
       "_origin": "ast",
-      "community": 178,
+      "community": 75,
       "norm_label": "definition()",
       "id": "step_definitions_dispatcher_test_definition",
-      "community_name": "Community 178"
+      "community_name": "Wait Wait For Page Load"
     },
     {
       "label": "reference()",
@@ -11095,10 +9291,10 @@
       "source_file": "cucumber-runtime/src/step-definitions/dispatcher.test.ts",
       "source_location": "L32",
       "_origin": "ast",
-      "community": 178,
+      "community": 75,
       "norm_label": "reference()",
       "id": "step_definitions_dispatcher_test_reference",
-      "community_name": "Community 178"
+      "community_name": "Wait Wait For Page Load"
     },
     {
       "label": "invocation()",
@@ -11106,10 +9302,10 @@
       "source_file": "cucumber-runtime/src/step-definitions/dispatcher.test.ts",
       "source_location": "L40",
       "_origin": "ast",
-      "community": 178,
+      "community": 75,
       "norm_label": "invocation()",
       "id": "step_definitions_dispatcher_test_invocation",
-      "community_name": "Community 178"
+      "community_name": "Wait Wait For Page Load"
     },
     {
       "label": "dispatcher.ts",
@@ -11126,7 +9322,7 @@
       "label": "SealedStepDefinition",
       "file_type": "code",
       "source_file": "cucumber-runtime/src/step-definitions/dispatcher.ts",
-      "source_location": "L16",
+      "source_location": "L18",
       "_origin": "ast",
       "community": 6,
       "norm_label": "sealedstepdefinition",
@@ -11137,7 +9333,7 @@
       "label": "StepInvocationDispatchContext",
       "file_type": "code",
       "source_file": "cucumber-runtime/src/step-definitions/dispatcher.ts",
-      "source_location": "L21",
+      "source_location": "L23",
       "_origin": "ast",
       "community": 6,
       "norm_label": "stepinvocationdispatchcontext",
@@ -11148,7 +9344,7 @@
       "label": "definitionKey()",
       "file_type": "code",
       "source_file": "cucumber-runtime/src/step-definitions/dispatcher.ts",
-      "source_location": "L27",
+      "source_location": "L29",
       "_origin": "ast",
       "community": 6,
       "norm_label": "definitionkey()",
@@ -11159,7 +9355,7 @@
       "label": "extensionKey()",
       "file_type": "code",
       "source_file": "cucumber-runtime/src/step-definitions/dispatcher.ts",
-      "source_location": "L28",
+      "source_location": "L30",
       "_origin": "ast",
       "community": 6,
       "norm_label": "extensionkey()",
@@ -11167,21 +9363,10 @@
       "community_name": "Community 6"
     },
     {
-      "label": "matchesType()",
-      "file_type": "code",
-      "source_file": "cucumber-runtime/src/step-definitions/dispatcher.ts",
-      "source_location": "L32",
-      "_origin": "ast",
-      "community": 6,
-      "norm_label": "matchestype()",
-      "id": "step_definitions_dispatcher_matchestype",
-      "community_name": "Community 6"
-    },
-    {
       "label": "resolvedReferenceInput()",
       "file_type": "code",
       "source_file": "cucumber-runtime/src/step-definitions/dispatcher.ts",
-      "source_location": "L47",
+      "source_location": "L34",
       "_origin": "ast",
       "community": 6,
       "norm_label": "resolvedreferenceinput()",
@@ -11192,7 +9377,7 @@
       "label": "inputValues()",
       "file_type": "code",
       "source_file": "cucumber-runtime/src/step-definitions/dispatcher.ts",
-      "source_location": "L64",
+      "source_location": "L51",
       "_origin": "ast",
       "community": 6,
       "norm_label": "inputvalues()",
@@ -11203,7 +9388,7 @@
       "label": "expressionValue()",
       "file_type": "code",
       "source_file": "cucumber-runtime/src/step-definitions/dispatcher.ts",
-      "source_location": "L85",
+      "source_location": "L59",
       "_origin": "ast",
       "community": 6,
       "norm_label": "expressionvalue()",
@@ -11214,7 +9399,7 @@
       "label": "outputValues()",
       "file_type": "code",
       "source_file": "cucumber-runtime/src/step-definitions/dispatcher.ts",
-      "source_location": "L106",
+      "source_location": "L80",
       "_origin": "ast",
       "community": 6,
       "norm_label": "outputvalues()",
@@ -11225,7 +9410,7 @@
       "label": "invoke()",
       "file_type": "code",
       "source_file": "cucumber-runtime/src/step-definitions/dispatcher.ts",
-      "source_location": "L122",
+      "source_location": "L96",
       "_origin": "ast",
       "community": 6,
       "norm_label": "invoke()",
@@ -11236,7 +9421,7 @@
       "label": "dispatchStepInvocation()",
       "file_type": "code",
       "source_file": "cucumber-runtime/src/step-definitions/dispatcher.ts",
-      "source_location": "L194",
+      "source_location": "L168",
       "_origin": "ast",
       "community": 6,
       "norm_label": "dispatchstepinvocation()",
@@ -11249,10 +9434,10 @@
       "source_file": "cucumber-runtime/src/step-definitions/index.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 178,
+      "community": 75,
       "norm_label": "index.ts",
       "id": "step_definitions_index",
-      "community_name": "Community 178"
+      "community_name": "Wait Wait For Page Load"
     },
     {
       "label": "template-step-operations.test.ts",
@@ -11447,10 +9632,10 @@
       "source_file": "cucumber-runtime/src/types.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 19,
+      "community": 30,
       "norm_label": "types.ts",
       "id": "cucumber_runtime_src_types_ts_src_types",
-      "community_name": "Src Cache Util / Src Cache Util Locatorcache"
+      "community_name": "Src World / Src World Customworld"
     },
     {
       "label": "BrowserName",
@@ -11469,10 +9654,10 @@
       "source_file": "cucumber-runtime/src/types.ts",
       "source_location": "L3",
       "_origin": "ast",
-      "community": 19,
+      "community": 30,
       "norm_label": "cssselector",
       "id": "src_types_cssselector",
-      "community_name": "Src Cache Util / Src Cache Util Locatorcache"
+      "community_name": "Src World / Src World Customworld"
     },
     {
       "label": "XPathSelector",
@@ -11480,10 +9665,10 @@
       "source_file": "cucumber-runtime/src/types.ts",
       "source_location": "L4",
       "_origin": "ast",
-      "community": 19,
+      "community": 30,
       "norm_label": "xpathselector",
       "id": "src_types_xpathselector",
-      "community_name": "Src Cache Util / Src Cache Util Locatorcache"
+      "community_name": "Src World / Src World Customworld"
     },
     {
       "label": "SelectorName",
@@ -11502,10 +9687,10 @@
       "source_file": "cucumber-runtime/src/types.ts",
       "source_location": "L6",
       "_origin": "ast",
-      "community": 19,
+      "community": 30,
       "norm_label": "selector",
       "id": "src_types_selector",
-      "community_name": "Src Cache Util / Src Cache Util Locatorcache"
+      "community_name": "Src World / Src World Customworld"
     },
     {
       "label": "Locator",
@@ -11513,10 +9698,10 @@
       "source_file": "cucumber-runtime/src/types.ts",
       "source_location": "L7",
       "_origin": "ast",
-      "community": 19,
+      "community": 30,
       "norm_label": "locator",
       "id": "src_types_locator",
-      "community_name": "Src Cache Util / Src Cache Util Locatorcache"
+      "community_name": "Src World / Src World Customworld"
     },
     {
       "label": "LocatorMap",
@@ -12184,10 +10369,10 @@
       "source_file": "locator-picker-companion/src/index.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 2,
+      "community": 37,
       "norm_label": "index.ts",
       "id": "locator_picker_companion_src_index_ts_src_index",
-      "community_name": "Locator Picker Companion Src Cli Ts Src Cli / Locator Picker Companion Src Cli T"
+      "community_name": "Active State Assertion Assert Element Active"
     },
     {
       "label": "injected-picker-script.ts",
@@ -12217,10 +10402,10 @@
       "source_file": "locator-picker-companion/src/launcher.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 2,
+      "community": 37,
       "norm_label": "launcher.ts",
       "id": "src_launcher",
-      "community_name": "Locator Picker Companion Src Cli Ts Src Cli / Locator Picker Companion Src Cli T"
+      "community_name": "Active State Assertion Assert Element Active"
     },
     {
       "label": "pathExists()",
@@ -12228,10 +10413,10 @@
       "source_file": "locator-picker-companion/src/launcher.ts",
       "source_location": "L5",
       "_origin": "ast",
-      "community": 2,
+      "community": 37,
       "norm_label": "pathexists()",
       "id": "src_launcher_pathexists",
-      "community_name": "Locator Picker Companion Src Cli Ts Src Cli / Locator Picker Companion Src Cli T"
+      "community_name": "Active State Assertion Assert Element Active"
     },
     {
       "label": "getLatestModifiedTime()",
@@ -12239,10 +10424,10 @@
       "source_file": "locator-picker-companion/src/launcher.ts",
       "source_location": "L14",
       "_origin": "ast",
-      "community": 2,
+      "community": 37,
       "norm_label": "getlatestmodifiedtime()",
       "id": "src_launcher_getlatestmodifiedtime",
-      "community_name": "Locator Picker Companion Src Cli Ts Src Cli / Locator Picker Companion Src Cli T"
+      "community_name": "Active State Assertion Assert Element Active"
     },
     {
       "label": "getLocatorPickerCompanionPaths()",
@@ -12250,10 +10435,10 @@
       "source_file": "locator-picker-companion/src/launcher.ts",
       "source_location": "L26",
       "_origin": "ast",
-      "community": 2,
+      "community": 37,
       "norm_label": "getlocatorpickercompanionpaths()",
       "id": "src_launcher_getlocatorpickercompanionpaths",
-      "community_name": "Locator Picker Companion Src Cli Ts Src Cli / Locator Picker Companion Src Cli T"
+      "community_name": "Active State Assertion Assert Element Active"
     },
     {
       "label": "ensureLocatorPickerCompanionBuilt()",
@@ -12261,10 +10446,10 @@
       "source_file": "locator-picker-companion/src/launcher.ts",
       "source_location": "L38",
       "_origin": "ast",
-      "community": 2,
+      "community": 37,
       "norm_label": "ensurelocatorpickercompanionbuilt()",
       "id": "src_launcher_ensurelocatorpickercompanionbuilt",
-      "community_name": "Locator Picker Companion Src Cli Ts Src Cli / Locator Picker Companion Src Cli T"
+      "community_name": "Active State Assertion Assert Element Active"
     },
     {
       "label": "resolveLocatorPickerCompanionInvocation()",
@@ -12272,10 +10457,10 @@
       "source_file": "locator-picker-companion/src/launcher.ts",
       "source_location": "L65",
       "_origin": "ast",
-      "community": 2,
+      "community": 37,
       "norm_label": "resolvelocatorpickercompanioninvocation()",
       "id": "src_launcher_resolvelocatorpickercompanioninvocation",
-      "community_name": "Locator Picker Companion Src Cli Ts Src Cli / Locator Picker Companion Src Cli T"
+      "community_name": "Active State Assertion Assert Element Active"
     },
     {
       "label": "selector-generator.ts",
@@ -12910,10 +11095,10 @@
       "source_file": "appraisejs/src/agent-setup-capabilities.ts",
       "source_location": "L3",
       "_origin": "ast",
-      "community": 190,
+      "community": 27,
       "norm_label": "expectedagentcapabilities",
       "id": "src_agent_setup_capabilities_expectedagentcapabilities",
-      "community_name": "Community 190"
+      "community_name": "Locator Picker Companion Src Index Ts Src Index / Src Launcher"
     },
     {
       "label": "stepValueSchema",
@@ -13587,26 +11772,6 @@
       "target": "appraisejs_package_allowscripts_fsevents_2_3_3"
     },
     {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "appraisejs/registry/template-steps/manifest.json",
-      "source_location": "L4",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "template_steps_manifest",
-      "target": "template_steps_manifest_steps"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "appraisejs/registry/template-steps/manifest.json",
-      "source_location": "L2",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "template_steps_manifest",
-      "target": "template_steps_manifest_version"
-    },
-    {
       "relation": "imports",
       "context": "import",
       "confidence": "EXTRACTED",
@@ -13733,222 +11898,6 @@
       "confidence_score": 1.0,
       "source": "scripts_build_mcp_contract_contract",
       "target": "mcp_server_factory_createappraisemcpserver"
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "appraisejs/src/add-step.test.ts",
-      "source_location": "L2",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "src_add_step_test",
-      "target": "src_add_step"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "appraisejs/src/add-step.test.ts",
-      "source_location": "L2",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "src_add_step_test",
-      "target": "src_add_step_addstepbyslug"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "appraisejs/src/add-step.test.ts",
-      "source_location": "L5",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "src_add_step_test",
-      "target": "src_add_step_test_payload"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "appraisejs/src/add-step.test.ts",
-      "source_location": "L3",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "src_add_step_test",
-      "target": "src_types_templatestepinstallpayload"
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "appraisejs/src/cli.ts",
-      "source_location": "L6",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "appraisejs_src_cli_ts_src_cli",
-      "target": "src_add_step"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "appraisejs/src/add-step.ts",
-      "source_location": "L28",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "src_add_step",
-      "target": "src_add_step_addstepbyslug"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "appraisejs/src/add-step.ts",
-      "source_location": "L6",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "src_add_step",
-      "target": "src_add_step_addstepdependencies"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "appraisejs/src/add-step.ts",
-      "source_location": "L17",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "src_add_step",
-      "target": "src_add_step_defaultdependencies"
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "appraisejs/src/add-step.ts",
-      "source_location": "L2",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "src_add_step",
-      "target": "src_installer"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "appraisejs/src/add-step.ts",
-      "source_location": "L2",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "src_add_step",
-      "target": "src_installer_removetemppayloadfile"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "appraisejs/src/add-step.ts",
-      "source_location": "L2",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "src_add_step",
-      "target": "src_installer_runlocalinstaller"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "appraisejs/src/add-step.ts",
-      "source_location": "L2",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "src_add_step",
-      "target": "src_installer_writepayloadtotempfile"
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "appraisejs/src/add-step.ts",
-      "source_location": "L3",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "src_add_step",
-      "target": "src_project"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "appraisejs/src/add-step.ts",
-      "source_location": "L3",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "src_add_step",
-      "target": "src_project_validateappraiseproject"
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "appraisejs/src/add-step.ts",
-      "source_location": "L1",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "src_add_step",
-      "target": "src_registry"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "appraisejs/src/add-step.ts",
-      "source_location": "L1",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "src_add_step",
-      "target": "src_registry_downloadsteppayload"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "appraisejs/src/add-step.ts",
-      "source_location": "L1",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "src_add_step",
-      "target": "src_registry_fetchregistrymanifest"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "appraisejs/src/add-step.ts",
-      "source_location": "L1",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "src_add_step",
-      "target": "src_registry_resolvestepentry"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "appraisejs/src/add-step.ts",
-      "source_location": "L4",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "src_add_step",
-      "target": "src_types_addstepoptions"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "appraisejs/src/cli.ts",
-      "source_location": "L6",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "appraisejs_src_cli_ts_src_cli",
-      "target": "src_add_step_addstepbyslug"
     },
     {
       "relation": "imports_from",
@@ -15309,79 +13258,6 @@
       "confidence_score": 1.0,
       "source": "src_mcp",
       "target": "src_diagnostics_formatmcpbootstraperror"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "appraisejs/src/installer.ts",
-      "source_location": "L19",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "src_installer",
-      "target": "src_installer_getrunargs"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "appraisejs/src/installer.ts",
-      "source_location": "L15",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "src_installer",
-      "target": "src_installer_removetemppayloadfile"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "appraisejs/src/installer.ts",
-      "source_location": "L40",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "src_installer",
-      "target": "src_installer_runlocalinstaller"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "appraisejs/src/installer.ts",
-      "source_location": "L8",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "src_installer",
-      "target": "src_installer_writepayloadtotempfile"
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "appraisejs/src/installer.ts",
-      "source_location": "L5",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "src_installer",
-      "target": "src_project"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "appraisejs/src/installer.ts",
-      "source_location": "L5",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "src_installer",
-      "target": "src_project_packagemanager"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "appraisejs/src/installer.ts",
-      "source_location": "L6",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "src_installer",
-      "target": "src_types_templatestepinstallpayload"
     },
     {
       "relation": "imports_from",
@@ -20479,17 +18355,6 @@
       "target": "src_project_identity_projectidentityerror"
     },
     {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "appraisejs/src/project.test.ts",
-      "source_location": "L6",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "src_project_test",
-      "target": "src_project_identity"
-    },
-    {
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "appraisejs/src/project-identity.ts",
@@ -20509,364 +18374,6 @@
       "confidence_score": 1.0,
       "source": "src_project_identity_ensurelocalprojectidentity",
       "target": "src_project_identity_deriveprojectidentity"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "appraisejs/src/project.test.ts",
-      "source_location": "L6",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "src_project_test",
-      "target": "src_project_identity_deriveprojectidentity"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "appraisejs/src/project.test.ts",
-      "source_location": "L6",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "src_project_test",
-      "target": "src_project_identity_ensurelocalprojectidentity"
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "appraisejs/src/project.test.ts",
-      "source_location": "L5",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "src_project_test",
-      "target": "src_project"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "appraisejs/src/project.test.ts",
-      "source_location": "L5",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "src_project_test",
-      "target": "src_project_detectpackagemanager"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "appraisejs/src/project.test.ts",
-      "source_location": "L11",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "src_project_test",
-      "target": "src_project_test_createtempworkspace"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "appraisejs/src/project.test.ts",
-      "source_location": "L9",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "src_project_test",
-      "target": "src_project_test_tempdirs"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "appraisejs/src/project.test.ts",
-      "source_location": "L17",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "src_project_test",
-      "target": "src_project_test_writejson"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "appraisejs/src/project.test.ts",
-      "source_location": "L5",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "src_project_test",
-      "target": "src_project_validateappraiseproject"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "appraisejs/src/project.ts",
-      "source_location": "L6",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "src_project",
-      "target": "src_project_appraiseprojectinfo"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "appraisejs/src/project.ts",
-      "source_location": "L52",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "src_project",
-      "target": "src_project_detectpackagemanager"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "appraisejs/src/project.ts",
-      "source_location": "L12",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "src_project",
-      "target": "src_project_packagejsonshape"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "appraisejs/src/project.ts",
-      "source_location": "L4",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "src_project",
-      "target": "src_project_packagemanager"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "appraisejs/src/project.ts",
-      "source_location": "L16",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "src_project",
-      "target": "src_project_validateappraiseproject"
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "source_file": "appraisejs/src/project.ts",
-      "source_location": "L47",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "src_project_validateappraiseproject",
-      "target": "src_project_detectpackagemanager"
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "appraisejs/src/registry.test.ts",
-      "source_location": "L4",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "src_registry_test",
-      "target": "src_registry"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "appraisejs/src/registry.test.ts",
-      "source_location": "L4",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "src_registry_test",
-      "target": "src_registry_downloadsteppayload"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "appraisejs/src/registry.test.ts",
-      "source_location": "L4",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "src_registry_test",
-      "target": "src_registry_fetchregistrymanifest"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "appraisejs/src/registry.test.ts",
-      "source_location": "L4",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "src_registry_test",
-      "target": "src_registry_resolvebundledmanifesturl"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "appraisejs/src/registry.test.ts",
-      "source_location": "L4",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "src_registry_test",
-      "target": "src_registry_resolvemanifesturl"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "appraisejs/src/registry.ts",
-      "source_location": "L91",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "src_registry",
-      "target": "src_registry_downloadsteppayload"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "appraisejs/src/registry.ts",
-      "source_location": "L30",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "src_registry",
-      "target": "src_registry_fetchjson"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "appraisejs/src/registry.ts",
-      "source_location": "L66",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "src_registry",
-      "target": "src_registry_fetchregistrymanifest"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "appraisejs/src/registry.ts",
-      "source_location": "L48",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "src_registry",
-      "target": "src_registry_fetchtext"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "appraisejs/src/registry.ts",
-      "source_location": "L8",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "src_registry",
-      "target": "src_registry_resolvebundledmanifesturl"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "appraisejs/src/registry.ts",
-      "source_location": "L12",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "src_registry",
-      "target": "src_registry_resolvemanifesturl"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "appraisejs/src/registry.ts",
-      "source_location": "L82",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "src_registry",
-      "target": "src_registry_resolvestepentry"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "appraisejs/src/registry.ts",
-      "source_location": "L26",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "src_registry",
-      "target": "src_registry_trimtrailingslash"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "appraisejs/src/registry.ts",
-      "source_location": "L3",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "src_registry",
-      "target": "src_types_registrystepentry"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "appraisejs/src/registry.ts",
-      "source_location": "L3",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "src_registry",
-      "target": "src_types_stepregistrymanifest"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "appraisejs/src/registry.ts",
-      "source_location": "L3",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "src_registry",
-      "target": "src_types_templatestepinstallpayload"
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "source_file": "appraisejs/src/registry.ts",
-      "source_location": "L20",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "src_registry_resolvemanifesturl",
-      "target": "src_registry_resolvebundledmanifesturl"
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "source_file": "appraisejs/src/registry.ts",
-      "source_location": "L72",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "src_registry_fetchregistrymanifest",
-      "target": "src_registry_resolvemanifesturl"
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "source_file": "appraisejs/src/registry.ts",
-      "source_location": "L16",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "src_registry_resolvemanifesturl",
-      "target": "src_registry_trimtrailingslash"
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "source_file": "appraisejs/src/registry.ts",
-      "source_location": "L97",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "src_registry_downloadsteppayload",
-      "target": "src_registry_fetchtext"
     },
     {
       "relation": "contains",
@@ -21044,66 +18551,6 @@
       "confidence_score": 1.0,
       "source": "src_test_run_diagnose_cli_runtestrundiagnose",
       "target": "src_test_run_diagnose_cli_humanblocker"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "appraisejs/src/types.ts",
-      "source_location": "L32",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "appraisejs_src_types_ts_src_types",
-      "target": "src_types_addstepoptions"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "appraisejs/src/types.ts",
-      "source_location": "L4",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "appraisejs_src_types_ts_src_types",
-      "target": "src_types_registrystepentry"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "appraisejs/src/types.ts",
-      "source_location": "L20",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "appraisejs_src_types_ts_src_types",
-      "target": "src_types_stepregistrymanifest"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "appraisejs/src/types.ts",
-      "source_location": "L2",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "appraisejs_src_types_ts_src_types",
-      "target": "src_types_templatestepgrouptype"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "appraisejs/src/types.ts",
-      "source_location": "L1",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "appraisejs_src_types_ts_src_types",
-      "target": "src_types_templatestepicon"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "appraisejs/src/types.ts",
-      "source_location": "L26",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "appraisejs_src_types_ts_src_types",
-      "target": "src_types_templatestepinstallpayload"
     },
     {
       "relation": "contains",
@@ -24859,6 +22306,17 @@
       "weight": 1.0,
       "confidence_score": 1.0,
       "source": "src_prepare_template_utils_test",
+      "target": "src_prepare_template_utils_stepdefinitiondatacounts"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "create-appraisejs/src/prepare-template-utils.test.ts",
+      "source_location": "L5",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "src_prepare_template_utils_test",
       "target": "src_prepare_template_utils_template_prep_sync_scripts"
     },
     {
@@ -24871,17 +22329,6 @@
       "confidence_score": 1.0,
       "source": "src_prepare_template_utils_test",
       "target": "src_prepare_template_utils_templatemetadata"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "create-appraisejs/src/prepare-template-utils.test.ts",
-      "source_location": "L5",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "src_prepare_template_utils_test",
-      "target": "src_prepare_template_utils_templatestepdatacounts"
     },
     {
       "relation": "contains",
@@ -24983,7 +22430,7 @@
       "weight": 1.0,
       "confidence_score": 1.0,
       "source": "src_prepare_template_utils",
-      "target": "src_prepare_template_utils_readtemplatestepdatacounts"
+      "target": "src_prepare_template_utils_readstepdefinitiondatacounts"
     },
     {
       "relation": "contains",
@@ -24994,6 +22441,16 @@
       "confidence_score": 1.0,
       "source": "src_prepare_template_utils",
       "target": "src_prepare_template_utils_shouldabortonfallbackseed"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "create-appraisejs/src/prepare-template-utils.ts",
+      "source_location": "L12",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "src_prepare_template_utils",
+      "target": "src_prepare_template_utils_stepdefinitiondatacounts"
     },
     {
       "relation": "contains",
@@ -25014,16 +22471,6 @@
       "confidence_score": 1.0,
       "source": "src_prepare_template_utils",
       "target": "src_prepare_template_utils_templatemetadata"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "create-appraisejs/src/prepare-template-utils.ts",
-      "source_location": "L11",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "src_prepare_template_utils",
-      "target": "src_prepare_template_utils_templatestepdatacounts"
     },
     {
       "relation": "contains",
@@ -31712,6 +29159,16 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "cucumber-runtime/src/step-definitions/contracts.ts",
+      "source_location": "L280",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "step_definitions_contracts",
+      "target": "step_definitions_contracts_stepinputvaluematchestype"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "cucumber-runtime/src/step-definitions/contracts.ts",
       "source_location": "L302",
       "weight": 1.0,
       "confidence_score": 1.0,
@@ -31777,6 +29234,16 @@
       "confidence_score": 1.0,
       "source": "step_definitions_contracts",
       "target": "step_definitions_contracts_stepvalue"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "cucumber-runtime/src/step-definitions/contracts.ts",
+      "source_location": "L295",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "step_definitions_contracts",
+      "target": "step_definitions_contracts_validatestepinvocationinputs"
     },
     {
       "relation": "imports_from",
@@ -31865,6 +29332,50 @@
       "confidence_score": 1.0,
       "source": "step_definitions_dispatcher",
       "target": "step_definitions_contracts_stepinvocationschema"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "cucumber-runtime/src/step-definitions/dispatcher.ts",
+      "source_location": "L7",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "step_definitions_dispatcher",
+      "target": "step_definitions_contracts_stepinputvaluematchestype"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "cucumber-runtime/src/step-definitions/dispatcher.ts",
+      "source_location": "L89",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "step_definitions_dispatcher_outputvalues",
+      "target": "step_definitions_contracts_stepinputvaluematchestype"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "cucumber-runtime/src/step-definitions/dispatcher.ts",
+      "source_location": "L7",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "step_definitions_dispatcher",
+      "target": "step_definitions_contracts_validatestepinvocationinputs"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "cucumber-runtime/src/step-definitions/dispatcher.ts",
+      "source_location": "L56",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "step_definitions_dispatcher_inputvalues",
+      "target": "step_definitions_contracts_validatestepinvocationinputs"
     },
     {
       "relation": "calls",
@@ -32157,16 +29668,6 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "cucumber-runtime/src/step-definitions/dispatcher.ts",
-      "source_location": "L32",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "step_definitions_dispatcher",
-      "target": "step_definitions_dispatcher_matchestype"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "cucumber-runtime/src/step-definitions/dispatcher.ts",
       "source_location": "L106",
       "weight": 1.0,
       "confidence_score": 1.0,
@@ -32246,17 +29747,6 @@
       "confidence_score": 1.0,
       "source": "step_definitions_dispatcher_invoke",
       "target": "step_definitions_dispatcher_extensionkey"
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "source_file": "cucumber-runtime/src/step-definitions/dispatcher.ts",
-      "source_location": "L115",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "step_definitions_dispatcher_outputvalues",
-      "target": "step_definitions_dispatcher_matchestype"
     },
     {
       "relation": "calls",
@@ -34906,5 +32396,5 @@
       "source_file": "appraisejs/agent-skills/appraise-planning-standby/SKILL.md"
     }
   ],
-  "built_at_commit": "128866b31982ba2c250cfe842fd51c59a3e0b29a"
+  "built_at_commit": "e2d5ef58d2d428a0fa2a3bd40a0152c0f13744ef"
 }

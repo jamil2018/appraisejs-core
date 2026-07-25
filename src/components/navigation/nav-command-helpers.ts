@@ -1,7 +1,6 @@
 import {
   Blocks,
   Code,
-  Component,
   FileCheck,
   Group,
   LayoutDashboard,
@@ -20,11 +19,7 @@ import {
 } from 'lucide-react'
 
 export type SearchCommandMode =
-  | 'search-test-suite'
-  | 'search-test-case'
-  | 'search-template-step'
-  | 'search-test-run'
-  | 'search-template-test-case'
+  'search-test-suite' | 'search-test-case' | 'search-test-run' | 'search-template-test-case'
 
 export type CommandMode = SearchCommandMode | null
 
@@ -50,7 +45,6 @@ export const defaultCommandPlaceholder = 'Type a command or search...'
 export const commandModePlaceholders: Record<SearchCommandMode, string> = {
   'search-test-suite': 'Search Test Suite by Name...',
   'search-test-case': 'Search Test Case by Title...',
-  'search-template-step': 'Search Template Step by Name...',
   'search-test-run': 'Search Test Run by Name...',
   'search-template-test-case': 'Search Template Test Case by Name...',
 }
@@ -58,7 +52,6 @@ export const commandModePlaceholders: Record<SearchCommandMode, string> = {
 const commandModeLabels: Record<SearchCommandMode, string> = {
   'search-test-suite': 'Search Test Suite',
   'search-test-case': 'Search Test Case',
-  'search-template-step': 'Search Template Step',
   'search-test-run': 'Search Test Run',
   'search-template-test-case': 'Search Template Test Case',
 }
@@ -99,8 +92,7 @@ function getLibrarySection(): NavigationSection {
   return {
     label: 'Library',
     items: [
-      { href: '/template-steps', label: 'Template Steps', icon: LayoutTemplate },
-      { href: '/template-step-groups', label: 'Step Groups', icon: Component },
+      { href: '/template-steps/create', label: 'Step Definitions', icon: LayoutTemplate },
       { href: '/step-blocks', label: 'Step Blocks', icon: Blocks },
       { href: '/template-test-cases', label: 'Case Templates', icon: Blocks },
       { href: '/locators', label: 'Locators', icon: Code },
@@ -148,13 +140,9 @@ export function getNavigationCommandGroups({
       heading: library.label,
       items: [
         ...library.items.map(item =>
-          item.href === '/template-step-groups'
-            ? { ...item, label: 'Template Step Groups' }
-            : item.href === '/template-test-cases'
-              ? { ...item, label: 'Template Test Cases' }
-              : item,
+          item.href === '/template-test-cases' ? { ...item, label: 'Template Test Cases' } : item,
         ),
-        { href: '/template-steps/create', label: 'Create Template Step', icon: LayoutTemplate },
+        { href: '/template-steps/create', label: 'Create Step Definition', icon: LayoutTemplate },
         { href: '/step-blocks/create', label: 'Create Step Block', icon: Blocks },
         { href: '/template-test-cases/create', label: 'Create Template Test Case', icon: Blocks },
       ],
@@ -166,7 +154,6 @@ export function getNavigationCommandGroups({
 export const searchCommandItems: SearchCommandItem[] = [
   { mode: 'search-test-case', label: 'Search Test Cases', icon: TestTubeDiagonal },
   { mode: 'search-test-suite', label: 'Search Test Suites', icon: TestTubes },
-  { mode: 'search-template-step', label: 'Search Template Steps', icon: LayoutTemplate },
   { mode: 'search-test-run', label: 'Search Test Runs', icon: ListChecks },
   { mode: 'search-template-test-case', label: 'Search Template Test Cases', icon: Blocks },
 ]
