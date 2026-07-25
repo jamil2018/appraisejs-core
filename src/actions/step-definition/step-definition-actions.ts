@@ -219,29 +219,6 @@ export async function publishStepDefinitionDraftAction(input: {
   )
 }
 
-// Fallow does not discover this human-UI Server Action until the ready-definition management view is mounted.
-// fallow-ignore-next-line unused-server-action
-export async function deprecateStepDefinitionAction(input: {
-  stepId: string
-  version: string
-  reason: string
-  replacement?: { id: string; version: string }
-}): Promise<ActionResponse> {
-  return respond(() => {
-    const identity = stepIdentitySchema.parse(input)
-    return registry.deprecateFromHumanUi({
-      ...identity,
-      reason: z.string().trim().min(1).max(2_000).parse(input.reason),
-      replacement: input.replacement
-        ? {
-            id: z.string().min(1).parse(input.replacement.id),
-            version: z.string().min(1).parse(input.replacement.version),
-          }
-        : undefined,
-})
-  }, true)
-}
-
 export async function createStepDefinitionVersionDraftAction(input: {
   stepId: string
   version: string
@@ -264,21 +241,4 @@ export async function createStepDefinitionVersionDraftAction(input: {
         .parse(input.createdBy ?? 'local-user'),
     })
   }, true)
-}
-
-// Human UI authority is derived here; callers cannot choose the revocation actor.
-// fallow-ignore-next-line unused-server-action
-export async function revokeReviewedExtensionAction(input: {
-  id: string
-  version: string
-  reason: string
-}): Promise<ActionResponse> {
-  return respond(() =>
-    extensions.revokeReviewedExtension({
-      id: z.string().min(1).max(200).parse(input.id),
-      version: z.string().min(1).max(40).parse(input.version),
-      revokedBy: 'local-human-ui',
-      reason: z.string().trim().min(1).max(2_000).parse(input.reason),
-    }),
-  )
 }

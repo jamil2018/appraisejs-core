@@ -13,10 +13,7 @@ import {
 import { copyMigratedTestDatabase } from '@/test/plan-runtime-schema-test-helper'
 
 import { StepDefinitionRegistryService } from './step-definition-registry-service'
-import {
-  createReadySearchEvidence,
-  readyStepDefinitionSearchIndexHash,
-} from './ready-step-definition-search-index'
+import { createReadySearchEvidence, readyStepDefinitionSearchIndexHash } from './ready-step-definition-search-index'
 
 let workspace: string
 let prisma: PrismaClient
@@ -164,6 +161,29 @@ describe('StepDefinitionRegistryService', () => {
     expect(replay).toEqual(first)
     await expect(prisma.stepDefinition.count()).resolves.toBe(1)
     await expect(prisma.stepDefinitionDraft.count()).resolves.toBe(0)
+  })
+
+  it('upgrades persisted built-in receipts created before executable readiness was required', async () => {
+    const builtIn = builtInStepDefinitions[0]!
+    const first = await registry.registerBuiltIn(builtIn, 'source-conformance')
+    const legacyReceipt = structuredClone(first) as Partial<typeof first>
+    delete legacyReceipt.executableReadiness
+    await prisma.stepPublicationReceipt.update({
+      where: { stepId_stepVersion: { stepId: builtIn.identity.id, stepVersion: builtIn.identity.version } },
+      data: { receiptJson: JSON.stringify(legacyReceipt), receiptHash: `sha256:${'f'.repeat(64)}` },
+    })
+
+    const upgraded = await registry.registerBuiltIn(builtIn, 'ignored-on-replay')
+
+    expect(upgraded).toEqual(first)
+    await expect(
+      prisma.stepPublicationReceipt.findUnique({
+        where: { stepId_stepVersion: { stepId: builtIn.identity.id, stepVersion: builtIn.identity.version } },
+      }),
+    ).resolves.toMatchObject({
+      receiptJson: expect.stringContaining('"executableReadiness"'),
+      receiptHash: expect.not.stringMatching(/^sha256:f{64}$/),
+    })
   })
 
   it('does not let interactive versioning replace a source-owned Step Definition', async () => {

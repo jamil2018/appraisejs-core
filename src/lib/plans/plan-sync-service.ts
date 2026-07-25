@@ -4,6 +4,7 @@ import type { PrismaClient } from '@prisma/client'
 
 import prisma from '@/config/db-config'
 import {
+  PlanContractError,
   parseJsonArtifact,
   parseYamlArtifact,
   type LayoutArtifact,
@@ -85,6 +86,18 @@ function parseArtifacts(artifacts: StoredPlanArtifact[]): ProjectedArtifacts {
   return parsed as ProjectedArtifacts
 }
 
+const LEGACY_MANAGED_VALIDATION_MESSAGE = 'Managed v2 validation steps require only an exact invocation.'
+
+export function isLegacyManagedValidationProjectionError(error: unknown): boolean {
+  return (
+    error instanceof PlanContractError &&
+    error.code === 'invalid-artifact' &&
+    error.message === LEGACY_MANAGED_VALIDATION_MESSAGE &&
+    error.path.includes('appraiseArtifacts') &&
+    error.path.includes('testCases')
+  )
+}
+
 async function markProjectionStale(
   client: PrismaClient,
   planId: string,
@@ -125,6 +138,31 @@ function syncIssueSummary(
     code: conflictedArtifact ? 'merge-conflict' : 'invalid-artifact',
     message: error instanceof Error ? error.message : String(error),
     projected,
+  }
+}
+
+async function syncPlanArtifactGroup(
+  client: PrismaClient,
+  projectRoot: string,
+  planId: string,
+  planArtifacts: StoredPlanArtifact[],
+  result: PlanSyncResult,
+): Promise<void> {
+  try {
+    const parsed = parseArtifacts(planArtifacts)
+    const outcome = await projectValidPlan(client, projectRoot, planArtifacts, parsed)
+    result[outcome] += 1
+  } catch (error) {
+    const legacyManagedValidation = isLegacyManagedValidationProjectionError(error)
+    const staleOutcome = await markProjectionStale(client, planId, planArtifacts, error)
+    if (!legacyManagedValidation || staleOutcome === 'missing') result.errors += 1
+    const issue = syncIssueSummary(planId, planArtifacts, error, staleOutcome === 'stale')
+    result.issues.push({
+      ...issue,
+      code: legacyManagedValidation ? 'legacy-managed-validation' : issue.code,
+    })
+    if (staleOutcome === 'stale') result.stale += 1
+    if (planArtifacts.some(artifact => CONFLICT_MARKER.test(artifact.content))) result.conflicted += 1
   }
 }
 
@@ -276,17 +314,7 @@ export async function syncPlans(options?: {
   }
 
   for (const [planId, planArtifacts] of grouped) {
-    try {
-      const parsed = parseArtifacts(planArtifacts)
-      const outcome = await projectValidPlan(client, projectRoot, planArtifacts, parsed)
-      result[outcome] += 1
-    } catch (error) {
-      result.errors += 1
-      const staleOutcome = await markProjectionStale(client, planId, planArtifacts, error)
-      result.issues.push(syncIssueSummary(planId, planArtifacts, error, staleOutcome === 'stale'))
-      if (staleOutcome === 'stale') result.stale += 1
-      if (planArtifacts.some(artifact => CONFLICT_MARKER.test(artifact.content))) result.conflicted += 1
-    }
+    await syncPlanArtifactGroup(client, projectRoot, planId, planArtifacts, result)
   }
 
   for (const projection of existing) {

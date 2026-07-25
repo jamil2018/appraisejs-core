@@ -3,10 +3,10 @@ import path from 'node:path'
 import { PrismaClient } from '@prisma/client'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
-import { serializeYamlArtifact, type PlanArtifact } from '@/lib/plan-contract'
+import { PlanContractError, serializeYamlArtifact, type PlanArtifact } from '@/lib/plan-contract'
 import { createPlanRuntimeTestWorkspace } from '@/test/validation-ast-test-fixtures'
 
-import { syncPlans } from './plan-sync-service'
+import { isLegacyManagedValidationProjectionError, syncPlans } from './plan-sync-service'
 
 let workspace: string
 let client: PrismaClient
@@ -51,6 +51,21 @@ async function cleanupWorkspace() {
 afterEach(cleanupWorkspace)
 
 describe('syncPlans', () => {
+  it('recognizes only the closed legacy managed-validation incompatibility', () => {
+    const message = 'Managed v2 validation steps require only an exact invocation.'
+    const path = ['validations', '0', 'appraiseArtifacts', 'testCases']
+    expect(isLegacyManagedValidationProjectionError(new PlanContractError('invalid-artifact', message, path))).toBe(
+      true,
+    )
+    expect(
+      isLegacyManagedValidationProjectionError(
+        new PlanContractError('invalid-artifact', 'A different validation failure.', path),
+      ),
+    ).toBe(false)
+    expect(isLegacyManagedValidationProjectionError(new PlanContractError('invalid-artifact', message))).toBe(false)
+    expect(isLegacyManagedValidationProjectionError(new Error(message))).toBe(false)
+  })
+
   it('upserts stable task projections and keeps the last valid view stale after malformed input', async () => {
     await writePlan('checkout-flow', serializeYamlArtifact('plan', plan('checkout-flow')))
     await expect(syncPlans({ projectDirectory: workspace, client })).resolves.toMatchObject({ created: 1, errors: 0 })

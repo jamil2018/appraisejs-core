@@ -25,38 +25,30 @@ export function readJSDocTag(line: string, tagName: string): string | null {
   return value || null
 }
 
-// The parser must distinguish multiline imports from the first top-level JSDoc block.
-// fallow-ignore-next-line complexity
-function findTopLevelJSDocStart(lines: string[]): number | null {
-  let startLine = 0
-  let isInsideImportBlock = false
+function nextImportLine(lines: string[], startLine: number) {
+  const importLine = lines[startLine]?.trim() ?? ''
+  if (!importLine.includes('{') || importLine.includes('from ')) return startLine + 1
+  const endLine = lines.findIndex((line, index) => index > startLine && (line.includes('from ') || line.endsWith(';')))
+  return endLine === -1 ? lines.length : endLine + 1
+}
 
-  while (startLine < lines.length) {
-    const line = lines[startLine].trim()
-
-    if (isInsideImportBlock) {
-      if (line.includes('from ') || line.endsWith(';')) {
-        isInsideImportBlock = false
-      }
-      startLine++
-      continue
-    }
-
+function firstTopLevelDeclarationLine(lines: string[]) {
+  let lineIndex = 0
+  while (lineIndex < lines.length) {
+    const line = lines[lineIndex]?.trim() ?? ''
     if (line === '') {
-      startLine++
+      lineIndex++
       continue
     }
-
-    if (line.startsWith('import ')) {
-      isInsideImportBlock = line.includes('{') && !line.includes('from ')
-      startLine++
-      continue
-    }
-
-    break
+    if (!line.startsWith('import ')) return lineIndex
+    lineIndex = nextImportLine(lines, lineIndex)
   }
+  return lineIndex
+}
 
-  return startLine < lines.length && lines[startLine].trim().startsWith('/**') ? startLine : null
+function findTopLevelJSDocStart(lines: string[]): number | null {
+  const startLine = firstTopLevelDeclarationLine(lines)
+  return lines[startLine]?.trim().startsWith('/**') ? startLine : null
 }
 
 export function findNearestJSDocStart(lines: string[], startLine: number): number | null {

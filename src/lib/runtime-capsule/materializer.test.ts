@@ -686,12 +686,12 @@ describe('reviewed runtime capsule materialization integration', () => {
     })
     const extensionFile = materialized.manifest.files.find(file => file.role === 'extension')
     expect(extensionFile).toBeTruthy()
-    const module = await import(
+    const extensionModule = await import(
       pathToFileURL(
         path.join(workspace, '.appraise', 'projects', projectId, materialized.row.storagePath, extensionFile!.path),
       ).href
     )
-    expect(module.reviewedCompiled).toBe('exact-reviewed-bytes')
+    expect(extensionModule.reviewedCompiled).toBe('exact-reviewed-bytes')
     await expect(
       client.stepDefinitionTelemetryEvent.findFirst({
         where: { outcome: 'runtime_ready', planId: 'revoked-extension-plan', correlationId: 'capsule-correlation' },

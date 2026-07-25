@@ -36,3 +36,8 @@ registry and shows pending plan projections.
 
 Artifact parse failures, plan ID mismatches, merge conflicts, stale writes, lock timeouts, and path escapes are
 reported without partially projecting the affected plan. Other valid plans in the same run continue to sync.
+
+Historical projections that predate exact managed Step Invocations remain visible as stale, blocking records. Their
+closed legacy validation shape is reported as `legacy-managed-validation`, but it does not fail repository setup when
+a last valid projection already exists. New artifacts and progression still fail closed: legacy steps are never
+translated into executable authority, and a legacy artifact without an existing projection remains a sync error.

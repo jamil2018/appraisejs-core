@@ -215,6 +215,11 @@ async function bindReviewedArtifactForReview(database: PrismaClient, draftId: st
 
 type DraftWithArtifact = Prisma.StepDefinitionDraftGetPayload<{ include: { artifact: true } }>
 type PersistedDefinition = Awaited<ReturnType<PrismaClient['stepDefinition']['findUnique']>>
+type DraftDefinition = z.infer<typeof stepDefinitionDraftAuthoringSchema>
+type ReuseEvidence = z.infer<typeof reuseEvidenceSchema>
+type CreateDraftOptions = { sourceRegistration?: boolean; reuseEvidence?: unknown }
+type PublishDraftInput = { draftId: string; expectedRevision: number; conformanceRunId?: string }
+type SearchReceipt = NonNullable<Awaited<ReturnType<PrismaClient['stepDefinitionSearchReceipt']['findUnique']>>>
 type ReviewedExtensionArtifact = NonNullable<DraftWithArtifact['artifact']>
 type PublishedReviewedExtensionArtifact = ReviewedExtensionArtifact & {
   compiledSource: string
@@ -224,6 +229,95 @@ type PublishedReviewedExtensionArtifact = ReviewedExtensionArtifact & {
   reviewedArtifactHash: string
 }
 type ReviewedExtensionExecution = Extract<StepDefinition['execution'], { kind: 'reviewed-extension' }>
+
+function assertBuiltInRegistration(definition: StepDefinition) {
+  if (definition.identity.status !== 'ready' || definition.provenance.creationMethod !== 'built-in-source')
+    throw new StepDefinitionRegistryError(
+      'invalid_transition',
+      'Built-in registration requires a source-owned ready Step Definition.',
+    )
+}
+
+function assertBuiltInDefinitionIsUnchanged(
+  existing: {
+    definitionHash: string
+    humanProjectionHash: string | null
+    agentContractHash: string | null
+    executionHash: string | null
+  },
+  definition: StepDefinition,
+  hashes: ReturnType<typeof computeStepDefinitionHashes>,
+) {
+  if (
+    existing.definitionHash !== hashes.definitionHash ||
+    existing.humanProjectionHash !== hashes.humanProjectionHash ||
+    existing.agentContractHash !== hashes.agentContractHash ||
+    existing.executionHash !== hashes.executionHash
+  )
+    throw new StepDefinitionRegistryError(
+      'immutable_definition',
+      `Built-in ${definition.identity.id}@${definition.identity.version} changed without a new version.`,
+    )
+}
+
+function parsePublicationReceipt(receiptJson: string): StepPublicationReceipt | null {
+  const parsed = stepPublicationReceiptSchema.safeParse(JSON.parse(receiptJson))
+  return parsed.success ? parsed.data : null
+}
+
+function upgradedPublicationReceipt(
+  definition: StepDefinition,
+  hashes: ReturnType<typeof computeStepDefinitionHashes>,
+  receipt: {
+    registryManifestHash: string
+    conformanceRunId: string
+    reviewAuthority: string
+    publishedAt: Date
+  },
+) {
+  return stepPublicationReceiptSchema.parse({
+    step: definition.identity,
+    ...hashes,
+    registryManifestHash: receipt.registryManifestHash,
+    executableReadiness: computeStepExecutableReadiness(
+      definition,
+      receipt.registryManifestHash,
+      receipt.conformanceRunId,
+    ),
+    conformanceRunId: receipt.conformanceRunId,
+    reviewAuthority: receipt.reviewAuthority,
+    publishedAt: receipt.publishedAt.toISOString(),
+  })
+}
+
+function assertDraftCreationIsAllowed(definition: DraftDefinition, options: CreateDraftOptions) {
+  if (definition.provenance.creationMethod === 'built-in-source' && !options.sourceRegistration)
+    throw new StepDefinitionRegistryError(
+      'invalid_transition',
+      'Built-in Step Definitions may only be registered by the source-owned synchronization path.',
+    )
+  if (builtInStepDefinitions.some(item => item.identity.id === definition.identity.id) && !options.sourceRegistration)
+    throw new StepDefinitionRegistryError(
+      'invalid_transition',
+      `Step Definition ID ${definition.identity.id} is reserved for source-owned registration.`,
+    )
+}
+
+function parseReuseEvidence(definition: DraftDefinition, candidate: unknown): ReuseEvidence | undefined {
+  return definition.provenance.creationMethod === 'agent-command' ? reuseEvidenceSchema.parse(candidate) : undefined
+}
+
+function assertReuseEvidenceIsFresh(reuseEvidence: ReuseEvidence | undefined) {
+  if (!reuseEvidence) return
+  const searchedAt = Date.parse(reuseEvidence.searchedAt)
+  if (searchedAt > Date.now())
+    throw new StepDefinitionRegistryError('validation_failed', 'Agent draft reuse evidence timestamp is in the future.')
+  if (Date.now() - searchedAt > 30 * 60 * 1000)
+    throw new StepDefinitionRegistryError(
+      'validation_failed',
+      'Agent draft reuse evidence is older than 30 minutes; search the ready registry again.',
+    )
+}
 
 function requirePublishedReviewedArtifact(artifact: DraftWithArtifact['artifact']): PublishedReviewedExtensionArtifact {
   if (
@@ -332,36 +426,58 @@ export class StepDefinitionRegistryService {
 
   async registerBuiltIn(definition: StepDefinition, conformanceRunId: string) {
     const ready = stepDefinitionSchema.parse(definition)
-    if (ready.identity.status !== 'ready' || ready.provenance.creationMethod !== 'built-in-source')
-      throw new StepDefinitionRegistryError(
-        'invalid_transition',
-        'Built-in registration requires a source-owned ready Step Definition.',
-      )
+    assertBuiltInRegistration(ready)
     const hashes = computeStepDefinitionHashes(ready)
     const existing = await this.database.stepDefinition.findUnique({
       where: { id_version: { id: ready.identity.id, version: ready.identity.version } },
       include: { publicationReceipt: true },
     })
-    if (existing) {
-      if (
-        existing.definitionHash !== hashes.definitionHash ||
-        existing.humanProjectionHash !== hashes.humanProjectionHash ||
-        existing.agentContractHash !== hashes.agentContractHash ||
-        existing.executionHash !== hashes.executionHash
-      )
-        throw new StepDefinitionRegistryError(
-          'immutable_definition',
-          `Built-in ${ready.identity.id}@${ready.identity.version} changed without a new version.`,
-        )
-      return stepPublicationReceiptSchema.parse(JSON.parse(existing.publicationReceipt!.receiptJson))
-    }
+    return existing
+      ? this.reconcileBuiltInRegistration(existing, ready, hashes)
+      : this.createBuiltInRegistration(ready, conformanceRunId)
+  }
 
-    const { reviewedBy, ...draftProvenance } = ready.provenance
+  private async reconcileBuiltInRegistration(
+    existing: NonNullable<Awaited<ReturnType<PrismaClient['stepDefinition']['findUnique']>>> & {
+      publicationReceipt: {
+        receiptJson: string
+        registryManifestHash: string
+        conformanceRunId: string
+        reviewAuthority: string
+        publishedAt: Date
+      } | null
+    },
+    definition: StepDefinition,
+    hashes: ReturnType<typeof computeStepDefinitionHashes>,
+  ) {
+    assertBuiltInDefinitionIsUnchanged(existing, definition, hashes)
+    const publicationReceipt = existing.publicationReceipt
+    if (!publicationReceipt)
+      throw new StepDefinitionRegistryError(
+        'validation_failed',
+        `Built-in ${definition.identity.id}@${definition.identity.version} is missing its publication receipt.`,
+      )
+    const persistedReceipt = parsePublicationReceipt(publicationReceipt.receiptJson)
+    if (persistedReceipt) return persistedReceipt
+
+    const upgradedReceipt = upgradedPublicationReceipt(definition, hashes, publicationReceipt)
+    await this.database.stepPublicationReceipt.update({
+      where: { stepId_stepVersion: { stepId: definition.identity.id, stepVersion: definition.identity.version } },
+      data: {
+        receiptJson: canonicalStepDefinitionJson(upgradedReceipt),
+        receiptHash: stepDefinitionContentHash(upgradedReceipt),
+      },
+    })
+    return upgradedReceipt
+  }
+
+  private async createBuiltInRegistration(definition: StepDefinition, conformanceRunId: string) {
+    const { reviewedBy, ...draftProvenance } = definition.provenance
     void reviewedBy
     const draft = await this.createDraft(
       {
-        ...ready,
-        identity: { ...ready.identity, status: 'draft' },
+        ...definition,
+        identity: { ...definition.identity, status: 'draft' },
         provenance: draftProvenance,
       },
       undefined,
@@ -371,79 +487,83 @@ export class StepDefinitionRegistryService {
     return this.publishDraft({ draftId: draft.id, expectedRevision: draft.revision, conformanceRunId })
   }
 
-  // Agent evidence, source-only IDs, and persisted draft state are one authorization boundary.
-  // fallow-ignore-next-line complexity
-  async createDraft(
-    definition: unknown,
-    reuseJustification?: string,
-    options: { sourceRegistration?: boolean; reuseEvidence?: unknown } = {},
-  ) {
+  async createDraft(definition: unknown, reuseJustification?: string, options: CreateDraftOptions = {}) {
     const parsed = stepDefinitionDraftAuthoringSchema.parse(definition)
-    const builtInIds = new Set(builtInStepDefinitions.map(item => item.identity.id))
-    if (parsed.provenance.creationMethod === 'built-in-source' && !options.sourceRegistration)
-      throw new StepDefinitionRegistryError(
-        'invalid_transition',
-        'Built-in Step Definitions may only be registered by the source-owned synchronization path.',
-      )
-    if (builtInIds.has(parsed.identity.id) && !options.sourceRegistration)
-      throw new StepDefinitionRegistryError(
-        'invalid_transition',
-        `Step Definition ID ${parsed.identity.id} is reserved for source-owned registration.`,
-      )
+    assertDraftCreationIsAllowed(parsed, options)
+    const reuseEvidence = parseReuseEvidence(parsed, options.reuseEvidence)
+    assertReuseEvidenceIsFresh(reuseEvidence)
+    await this.assertReuseEvidenceIsCurrent(reuseEvidence)
+    const created = await this.persistDraft(parsed, reuseJustification, reuseEvidence)
+    await this.recordDraftCreation(parsed, reuseEvidence)
+    return created
+  }
 
-    const reuseEvidence =
-      parsed.provenance.creationMethod === 'agent-command'
-        ? reuseEvidenceSchema.parse(options.reuseEvidence)
-        : undefined
-    if (reuseEvidence && Date.parse(reuseEvidence.searchedAt) > Date.now())
-      throw new StepDefinitionRegistryError(
-        'validation_failed',
-        'Agent draft reuse evidence timestamp is in the future.',
-      )
-    if (reuseEvidence && Date.now() - Date.parse(reuseEvidence.searchedAt) > 30 * 60 * 1000)
-      throw new StepDefinitionRegistryError(
-        'validation_failed',
-        'Agent draft reuse evidence is older than 30 minutes; search the ready registry again.',
-      )
-    if (reuseEvidence) {
-      const currentRows = await this.listAllReady()
-      const currentIndexHash = readyStepDefinitionSearchIndexHash(currentRows)
-      const receipt = await this.database.stepDefinitionSearchReceipt.findUnique({
-        where: { id: reuseEvidence.receiptId },
-      })
-      const currentReferences = new Set(currentRows.map(item => `${item.id}@${item.version}`))
-      if (
-        !receipt ||
-        receipt.expiresAt <= new Date() ||
-        reuseEvidence.indexHash !== currentIndexHash ||
-        receipt.indexHash !== reuseEvidence.indexHash ||
-        receipt.correlationId !== reuseEvidence.correlationId ||
-        receipt.planId !== (reuseEvidence.planId ?? null) ||
-        receipt.candidateReferencesJson !== canonicalStepDefinitionJson(reuseEvidence.candidateReferences) ||
-        reuseEvidence.candidateReferences.some(item => !currentReferences.has(`${item.id}@${item.version}`))
-      )
-        throw new StepDefinitionRegistryError(
-          'validation_failed',
-          'Agent draft reuse evidence is not bound to the current ready registry; search again before creating a draft.',
-        )
-    }
+  private async assertReuseEvidenceIsCurrent(reuseEvidence: ReuseEvidence | undefined) {
+    if (!reuseEvidence) return
+    const currentRows = await this.listAllReady()
+    const currentIndexHash = readyStepDefinitionSearchIndexHash(currentRows)
+    const receipt = await this.database.stepDefinitionSearchReceipt.findUnique({
+      where: { id: reuseEvidence.receiptId },
+    })
+    const currentReferences = new Set(currentRows.map(item => `${item.id}@${item.version}`))
+    this.assertSearchReceiptIsLive(receipt)
+    this.assertReuseEvidenceMatchesReceipt(reuseEvidence, receipt, currentIndexHash)
+    this.assertCandidateReferencesAreCurrent(reuseEvidence, currentReferences)
+  }
 
-    const draftHash = stepDefinitionContentHash(parsed)
-    const created = await this.database.stepDefinitionDraft.create({
+  private assertSearchReceiptIsLive(receipt: SearchReceipt | null): asserts receipt is SearchReceipt {
+    if (!receipt || receipt.expiresAt <= new Date()) this.throwInvalidReuseEvidence()
+  }
+
+  private assertReuseEvidenceMatchesReceipt(
+    reuseEvidence: ReuseEvidence,
+    receipt: SearchReceipt,
+    currentIndexHash: string,
+  ) {
+    if (reuseEvidence.indexHash !== currentIndexHash) this.throwInvalidReuseEvidence()
+    if (receipt.indexHash !== reuseEvidence.indexHash) this.throwInvalidReuseEvidence()
+    if (receipt.correlationId !== reuseEvidence.correlationId) this.throwInvalidReuseEvidence()
+    if (receipt.planId !== (reuseEvidence.planId ?? null)) this.throwInvalidReuseEvidence()
+    if (receipt.candidateReferencesJson !== canonicalStepDefinitionJson(reuseEvidence.candidateReferences))
+      this.throwInvalidReuseEvidence()
+  }
+
+  private assertCandidateReferencesAreCurrent(reuseEvidence: ReuseEvidence, currentReferences: Set<string>) {
+    if (reuseEvidence.candidateReferences.some(item => !currentReferences.has(`${item.id}@${item.version}`)))
+      this.throwInvalidReuseEvidence()
+  }
+
+  private throwInvalidReuseEvidence(): never {
+    throw new StepDefinitionRegistryError(
+      'validation_failed',
+      'Agent draft reuse evidence is not bound to the current ready registry; search again before creating a draft.',
+    )
+  }
+
+  private async persistDraft(
+    definition: DraftDefinition,
+    reuseJustification: string | undefined,
+    reuseEvidence: ReuseEvidence | undefined,
+  ) {
+    return this.database.stepDefinitionDraft.create({
       data: {
         id: randomUUID(),
-        proposedStepId: parsed.identity.id,
-        proposedVersion: parsed.identity.version,
-        draftJson: canonicalStepDefinitionJson(parsed),
-        draftHash,
+        proposedStepId: definition.identity.id,
+        proposedVersion: definition.identity.version,
+        draftJson: canonicalStepDefinitionJson(definition),
+        draftHash: stepDefinitionContentHash(definition),
         reuseJustification: reuseEvidence?.reuseJustification ?? reuseJustification,
         reuseEvidenceJson: reuseEvidence ? canonicalStepDefinitionJson(reuseEvidence) : null,
       },
     })
+  }
+
+  private async recordDraftCreation(definition: DraftDefinition, reuseEvidence: ReuseEvidence | undefined) {
+    const step = { id: definition.identity.id, version: definition.identity.version }
     await recordStepDefinitionTelemetry(this.database, {
-      surface: parsed.provenance.creationMethod === 'agent-command' ? 'agent' : 'human',
+      surface: definition.provenance.creationMethod === 'agent-command' ? 'agent' : 'human',
       outcome: 'draft_created',
-      step: { id: parsed.identity.id, version: parsed.identity.version },
+      step,
       ...(reuseEvidence ? { correlationId: reuseEvidence.correlationId } : {}),
       ...(reuseEvidence?.planId ? { planId: reuseEvidence.planId } : {}),
       payload: {},
@@ -452,12 +572,11 @@ export class StepDefinitionRegistryService {
       await recordStepDefinitionTelemetry(this.database, {
         surface: 'agent',
         outcome: 'selection_selected',
-        step: { id: parsed.identity.id, version: parsed.identity.version },
+        step,
         correlationId: reuseEvidence.correlationId,
         ...(reuseEvidence.planId ? { planId: reuseEvidence.planId } : {}),
         payload: {},
       })
-    return created
   }
 
   async readDraft(draftId: string) {
@@ -607,140 +726,179 @@ export class StepDefinitionRegistryService {
     return updated
   }
 
-  async publishDraft(input: { draftId: string; expectedRevision: number; conformanceRunId?: string }) {
-    // Atomic publication intentionally verifies every immutable boundary before writing the ready row.
-    // fallow-ignore-next-line complexity
-    return this.database.$transaction(async transaction => {
-      const draft = await transaction.stepDefinitionDraft.findUnique({
-        where: { id: input.draftId },
-        include: { artifact: true },
-      })
-      if (!draft)
-        throw new StepDefinitionRegistryError(
-          'draft_not_found',
-          `Step Definition draft ${input.draftId} was not found.`,
-        )
-      if (draft.revision !== input.expectedRevision)
-        throw new StepDefinitionRegistryError(
-          'stale_revision',
-          `Step Definition draft ${input.draftId} revision is stale.`,
-        )
-      if (!draft.reviewedBy || !draft.reviewedDraftHash || !draft.reviewReceiptHash || !draft.reviewReceiptJson)
-        throw new StepDefinitionRegistryError('review_required', 'Exact human review is required before publication.')
-      if (draft.reviewedDraftHash !== draft.draftHash)
-        throw new StepDefinitionRegistryError('review_stale', 'The reviewed draft hash no longer matches the draft.')
-      const expectedReviewReceipt = reviewReceipt(draft, draft.reviewedBy)
-      if (
-        draft.reviewReceiptHash !== expectedReviewReceipt.hash ||
-        draft.reviewReceiptJson !== canonicalStepDefinitionJson(expectedReviewReceipt.receipt)
+  async publishDraft(input: PublishDraftInput) {
+    return this.database.$transaction(transaction => this.publishDraftInTransaction(transaction, input))
+  }
+
+  private async publishDraftInTransaction(transaction: Prisma.TransactionClient, input: PublishDraftInput) {
+    const draft = await this.loadPublishableDraft(transaction, input)
+    const definition = this.definitionForPublication(draft)
+    await this.assertCompositionCanPublish(transaction, definition)
+    await publishReviewedExtension(transaction, draft, definition)
+    const publication = await this.createPublicationReceipt(transaction, draft, definition)
+    await this.persistPublishedDefinition(transaction, draft, definition, publication)
+    await transaction.stepDefinitionDraft.delete({ where: { id: input.draftId } })
+    await this.recordPublication(transaction, definition, draft.reuseEvidenceJson)
+    return publication.receipt
+  }
+
+  private async loadPublishableDraft(transaction: Prisma.TransactionClient, input: PublishDraftInput) {
+    const draft = await transaction.stepDefinitionDraft.findUnique({
+      where: { id: input.draftId },
+      include: { artifact: true },
+    })
+    if (!draft)
+      throw new StepDefinitionRegistryError('draft_not_found', `Step Definition draft ${input.draftId} was not found.`)
+    if (draft.revision !== input.expectedRevision)
+      throw new StepDefinitionRegistryError(
+        'stale_revision',
+        `Step Definition draft ${input.draftId} revision is stale.`,
       )
-        throw new StepDefinitionRegistryError(
-          'review_stale',
-          'The immutable review receipt no longer matches the draft.',
-        )
+    this.assertDraftReviewIsCurrent(draft)
+    return draft
+  }
 
-      const authored = stepDefinitionDraftAuthoringSchema.parse(parseDraftJson(draft.draftJson))
-      const reuseEvidence = draft.reuseEvidenceJson
-        ? reuseEvidenceSchema.parse(JSON.parse(draft.reuseEvidenceJson))
-        : null
-      const definition = stepDefinitionSchema.parse({
-        ...authored,
-        identity: { ...authored.identity, status: 'ready' },
-        provenance: { ...authored.provenance, reviewedBy: draft.reviewedBy },
-      })
-      if (definition.execution.kind === 'unbound')
-        throw new StepDefinitionRegistryError(
-          'validation_failed',
-          'An execution binding is required before publication.',
-        )
+  private assertDraftReviewIsCurrent(draft: DraftWithArtifact) {
+    if (!draft.reviewedBy || !draft.reviewedDraftHash || !draft.reviewReceiptHash || !draft.reviewReceiptJson)
+      throw new StepDefinitionRegistryError('review_required', 'Exact human review is required before publication.')
+    if (draft.reviewedDraftHash !== draft.draftHash)
+      throw new StepDefinitionRegistryError('review_stale', 'The reviewed draft hash no longer matches the draft.')
+    const expectedReceipt = reviewReceipt(draft, draft.reviewedBy)
+    if (
+      draft.reviewReceiptHash !== expectedReceipt.hash ||
+      draft.reviewReceiptJson !== canonicalStepDefinitionJson(expectedReceipt.receipt)
+    )
+      throw new StepDefinitionRegistryError('review_stale', 'The immutable review receipt no longer matches the draft.')
+  }
 
-      const compositionDiagnostics = validateStepDefinitionComposition(
-        definition,
-        await loadCompositionClosure(transaction, definition),
+  private definitionForPublication(draft: DraftWithArtifact) {
+    const authored = stepDefinitionDraftAuthoringSchema.parse(parseDraftJson(draft.draftJson))
+    const definition = stepDefinitionSchema.parse({
+      ...authored,
+      identity: { ...authored.identity, status: 'ready' },
+      provenance: { ...authored.provenance, reviewedBy: draft.reviewedBy },
+    })
+    if (definition.execution.kind === 'unbound')
+      throw new StepDefinitionRegistryError('validation_failed', 'An execution binding is required before publication.')
+    return definition
+  }
+
+  private async assertCompositionCanPublish(transaction: Prisma.TransactionClient, definition: StepDefinition) {
+    const diagnostics = validateStepDefinitionComposition(
+      definition,
+      await loadCompositionClosure(transaction, definition),
+    )
+    if (diagnostics.length > 0)
+      throw new StepDefinitionRegistryError(
+        'validation_failed',
+        'Step Definition composition has publication blockers.',
+        { diagnostics },
       )
-      if (compositionDiagnostics.length > 0)
-        throw new StepDefinitionRegistryError(
-          'validation_failed',
-          'Step Definition composition has publication blockers.',
-          { diagnostics: compositionDiagnostics },
-        )
+  }
 
-      await publishReviewedExtension(transaction, draft, definition)
+  private async createPublicationReceipt(
+    transaction: Prisma.TransactionClient,
+    draft: DraftWithArtifact,
+    definition: StepDefinition,
+  ) {
+    // Publication derives immutable conformance evidence from the verified
+    // binding. Callers may not select or attest a conformance run identity.
+    const conformanceRunId = publicationConformanceEvidence(definition, draft)
+    const hashes = computeStepDefinitionHashes(definition)
+    const publishedAt = new Date().toISOString()
+    const existingRefs = await transaction.stepDefinition.findMany({
+      where: { status: 'ready' },
+      select: { id: true, version: true, definitionHash: true },
+      orderBy: [{ id: 'asc' }, { version: 'asc' }],
+    })
+    const registryManifestHash = stepDefinitionContentHash([
+      ...existingRefs,
+      { id: definition.identity.id, version: definition.identity.version, definitionHash: hashes.definitionHash },
+    ])
+    const receipt = stepPublicationReceiptSchema.parse({
+      step: definition.identity,
+      ...hashes,
+      registryManifestHash,
+      executableReadiness: computeStepExecutableReadiness(definition, registryManifestHash, conformanceRunId),
+      conformanceRunId,
+      reviewAuthority: draft.reviewedBy,
+      publishedAt,
+    })
+    return {
+      hashes,
+      receipt,
+      receiptJson: canonicalStepDefinitionJson(receipt),
+      registryManifestHash,
+      conformanceRunId,
+      publishedAt,
+    }
+  }
 
-      // Publication derives immutable conformance evidence from the verified
-      // binding. Callers may not select or attest a conformance run identity.
-      const conformanceRunId = publicationConformanceEvidence(definition, draft)
-
-      const hashes = computeStepDefinitionHashes(definition)
-      const publishedAt = new Date().toISOString()
-      const existingRefs = await transaction.stepDefinition.findMany({
-        where: { status: 'ready' },
-        select: { id: true, version: true, definitionHash: true },
-        orderBy: [{ id: 'asc' }, { version: 'asc' }],
-      })
-      const registryManifestHash = stepDefinitionContentHash([
-        ...existingRefs,
-        { id: definition.identity.id, version: definition.identity.version, definitionHash: hashes.definitionHash },
-      ])
-      const receipt = stepPublicationReceiptSchema.parse({
-        step: definition.identity,
+  private async persistPublishedDefinition(
+    transaction: Prisma.TransactionClient,
+    draft: DraftWithArtifact,
+    definition: StepDefinition,
+    publication: Awaited<ReturnType<StepDefinitionRegistryService['createPublicationReceipt']>>,
+  ) {
+    const { hashes, receipt, receiptJson, registryManifestHash, conformanceRunId, publishedAt } = publication
+    if (definition.execution.kind === 'unbound')
+      throw new StepDefinitionRegistryError(
+        'invalid_transition',
+        'Ready Step Definitions require an executable binding.',
+      )
+    await transaction.stepDefinition.create({
+      data: {
+        id: definition.identity.id,
+        version: definition.identity.version,
+        status: persistedStatus('ready'),
+        title: definition.intent.title,
+        description: definition.intent.description,
+        definitionJson: canonicalStepDefinitionJson(definition),
         ...hashes,
-        registryManifestHash,
-        executableReadiness: computeStepExecutableReadiness(definition, registryManifestHash, conformanceRunId),
-        conformanceRunId,
-        reviewAuthority: draft.reviewedBy,
-        publishedAt,
-      })
-      const receiptJson = canonicalStepDefinitionJson(receipt)
-
-      await transaction.stepDefinition.create({
-        data: {
-          id: definition.identity.id,
-          version: definition.identity.version,
-          status: persistedStatus('ready'),
-          title: definition.intent.title,
-          description: definition.intent.description,
-          definitionJson: canonicalStepDefinitionJson(definition),
-          ...hashes,
-          provenanceJson: canonicalStepDefinitionJson(definition.provenance),
-          publishedAt: new Date(publishedAt),
-          humanProjection: {
-            create: {
-              signature: definition.human.signature,
-              groupId: definition.human.groupId,
-              projectionJson: canonicalStepDefinitionJson(definition.human),
-              projectionHash: hashes.humanProjectionHash,
-            },
-          },
-          executionBinding: {
-            create: {
-              kind: executionKind(definition.execution.kind),
-              bindingJson: canonicalStepDefinitionJson(definition.execution),
-              bindingHash: hashes.executionHash,
-            },
-          },
-          publicationReceipt: {
-            create: {
-              receiptJson,
-              receiptHash: stepDefinitionContentHash(receipt),
-              registryManifestHash,
-              conformanceRunId,
-              reviewAuthority: draft.reviewedBy,
-              publishedAt: new Date(publishedAt),
-            },
+        provenanceJson: canonicalStepDefinitionJson(definition.provenance),
+        publishedAt: new Date(publishedAt),
+        humanProjection: {
+          create: {
+            signature: definition.human.signature,
+            groupId: definition.human.groupId,
+            projectionJson: canonicalStepDefinitionJson(definition.human),
+            projectionHash: hashes.humanProjectionHash,
           },
         },
-      })
-      await transaction.stepDefinitionDraft.delete({ where: { id: input.draftId } })
-      await recordStepDefinitionTelemetry(transaction, {
-        surface: definition.provenance.creationMethod === 'agent-command' ? 'agent' : 'human',
-        outcome: 'published',
-        step: { id: definition.identity.id, version: definition.identity.version },
-        ...(reuseEvidence ? { correlationId: reuseEvidence.correlationId } : {}),
-        ...(reuseEvidence?.planId ? { planId: reuseEvidence.planId } : {}),
-        payload: {},
-      })
-      return receipt
+        executionBinding: {
+          create: {
+            kind: executionKind(definition.execution.kind),
+            bindingJson: canonicalStepDefinitionJson(definition.execution),
+            bindingHash: hashes.executionHash,
+          },
+        },
+        publicationReceipt: {
+          create: {
+            receiptJson,
+            receiptHash: stepDefinitionContentHash(receipt),
+            registryManifestHash,
+            conformanceRunId,
+            reviewAuthority: draft.reviewedBy!,
+            publishedAt: new Date(publishedAt),
+          },
+        },
+      },
+    })
+  }
+
+  private async recordPublication(
+    transaction: Prisma.TransactionClient,
+    definition: StepDefinition,
+    reuseEvidenceJson: string | null,
+  ) {
+    const reuseEvidence = reuseEvidenceJson ? reuseEvidenceSchema.parse(JSON.parse(reuseEvidenceJson)) : null
+    await recordStepDefinitionTelemetry(transaction, {
+      surface: definition.provenance.creationMethod === 'agent-command' ? 'agent' : 'human',
+      outcome: 'published',
+      step: { id: definition.identity.id, version: definition.identity.version },
+      ...(reuseEvidence ? { correlationId: reuseEvidence.correlationId } : {}),
+      ...(reuseEvidence?.planId ? { planId: reuseEvidence.planId } : {}),
+      payload: {},
     })
   }
 

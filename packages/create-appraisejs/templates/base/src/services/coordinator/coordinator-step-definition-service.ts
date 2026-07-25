@@ -60,32 +60,106 @@ function operationNotFound(): never {
   throw new ServiceError('Coordinator API operation not found.', 'NOT_FOUND')
 }
 
-// Search binds bounded request context, full ready-index ranking, and privacy-safe lifecycle telemetry.
-// fallow-ignore-next-line complexity
+function searchParameterNames(search: URLSearchParams) {
+  return (search.get('parameterNames') ?? '')
+    .split(',')
+    .map(name => name.trim())
+    .filter(Boolean)
+    .slice(0, 32)
+}
+
+async function searchPlanContext(planId: string | null) {
+  if (!planId) return undefined
+  const plan = await prisma.planProjection.findUnique({
+    where: { planId },
+    select: { planId: true, tasks: { select: { title: true, description: true, validationIntent: true } } },
+  })
+  if (!plan) throw new ServiceError('Step discovery plan scope was not found.', 'NOT_FOUND')
+  return JSON.stringify(plan.tasks)
+}
+
+async function recordSearchOutcome(input: {
+  surface: z.infer<typeof telemetrySurfaceSchema>
+  correlationId: string
+  planId: string | null
+  candidateCount: number
+}) {
+  await recordStepDefinitionTelemetry(prisma, {
+    surface: input.surface,
+    outcome: input.candidateCount ? 'query_match' : 'query_no_match',
+    correlationId: input.correlationId,
+    ...(input.planId ? { planId: input.planId } : {}),
+    payload: input.candidateCount ? { candidateCount: input.candidateCount } : { reason: 'no_match' },
+  })
+}
+
+async function createSearchReceipt(input: {
+  definitions: Awaited<ReturnType<StepDefinitionRegistryService['listReadyForSearch']>>
+  matches: ReturnType<typeof searchReadyStepDefinitions>
+  correlationId: string
+  planId: string | null
+}) {
+  const reuseEvidence = createReadySearchEvidence({
+    indexHash: readyStepDefinitionSearchIndexHash(input.definitions),
+    searchedAt: new Date().toISOString(),
+    correlationId: input.correlationId,
+    ...(input.planId ? { planId: input.planId } : {}),
+    candidateReferences: input.matches.map(item => ({ id: item.value.step.id, version: item.value.step.version })),
+  })
+  const receipt = await prisma.stepDefinitionSearchReceipt.create({
+    data: {
+      indexHash: reuseEvidence.indexHash,
+      candidateReferencesJson: JSON.stringify(reuseEvidence.candidateReferences),
+      correlationId: input.correlationId,
+      ...(input.planId ? { planId: input.planId } : {}),
+      expiresAt: new Date(Date.now() + 30 * 60 * 1000),
+    },
+  })
+  return { ...reuseEvidence, receiptId: receipt.id }
+}
+
+function searchResponse(
+  reuseEvidence: Awaited<ReturnType<typeof createSearchReceipt>>,
+  matches: ReturnType<typeof searchReadyStepDefinitions>,
+) {
+  return {
+    reuseEvidence,
+    matches: matches.map(({ value: item, confidence, explanation, parameterCompatibility }, index) => ({
+      step: item.step,
+      title: item.title,
+      description: item.description,
+      human: item.human,
+      agent: item.agent,
+      inputs: item.inputs,
+      outputs: item.outputs,
+      executionReadiness: 'ready',
+      hashes: {
+        definition: item.integrity.definitionHash,
+        humanProjection: item.integrity.humanProjectionHash,
+        agentContract: item.integrity.agentContractHash,
+        execution: item.integrity.executionHash,
+      },
+      rank: index + 1,
+      confidence,
+      parameterCompatibility,
+      explanation,
+    })),
+    nextRecommendedAction: 'Use the returned Step Reference directly in managed authoring.',
+  }
+}
+
 async function searchDefinitions(
   { registry }: StepDefinitionServices,
   _operation: string[],
   search: URLSearchParams,
 ): Promise<StepDefinitionReadResult> {
   const surface = telemetrySurfaceSchema.catch('agent').parse(search.get('surface'))
-  const parameterNames = (search.get('parameterNames') ?? '')
-    .split(',')
-    .map(name => name.trim())
-    .filter(Boolean)
-    .slice(0, 32)
+  const parameterNames = searchParameterNames(search)
   const planId = search.get('planId')
   const correlationId = search.get('correlationId')
     ? correlationIdSchema.parse(search.get('correlationId'))
     : randomUUID()
-  let planContext: string | undefined
-  if (planId) {
-    const plan = await prisma.planProjection.findUnique({
-      where: { planId },
-      select: { planId: true, tasks: { select: { title: true, description: true, validationIntent: true } } },
-    })
-    if (!plan) throw new ServiceError('Step discovery plan scope was not found.', 'NOT_FOUND')
-    planContext = JSON.stringify(plan.tasks)
-  }
+  const planContext = await searchPlanContext(planId)
   const definitions = await registry.listReadyForSearch()
   const limit = z.coerce.number().int().positive().max(25).catch(5).parse(search.get('limit'))
   const query = search.get('query') ?? ''
@@ -95,56 +169,10 @@ async function searchDefinitions(
     planContext,
     includeUnmatched: !query,
   }).slice(0, limit)
-  await recordStepDefinitionTelemetry(prisma, {
-    surface,
-    outcome: ranked.length ? 'query_match' : 'query_no_match',
-    correlationId,
-    ...(planId ? { planId } : {}),
-    payload: ranked.length ? { candidateCount: ranked.length } : { reason: 'no_match' },
-  })
-  const reuseEvidence = createReadySearchEvidence({
-    indexHash: readyStepDefinitionSearchIndexHash(definitions),
-    searchedAt: new Date().toISOString(),
-    correlationId,
-    ...(planId ? { planId } : {}),
-    candidateReferences: ranked.map(item => ({ id: item.value.step.id, version: item.value.step.version })),
-  })
-  const receipt = await prisma.stepDefinitionSearchReceipt.create({
-    data: {
-      indexHash: reuseEvidence.indexHash,
-      candidateReferencesJson: JSON.stringify(reuseEvidence.candidateReferences),
-      correlationId,
-      ...(planId ? { planId } : {}),
-      expiresAt: new Date(Date.now() + 30 * 60 * 1000),
-    },
-  })
+  await recordSearchOutcome({ surface, correlationId, planId, candidateCount: ranked.length })
+  const reuseEvidence = await createSearchReceipt({ definitions, matches: ranked, correlationId, planId })
   return {
-    body: {
-      reuseEvidence: { ...reuseEvidence, receiptId: receipt.id },
-      matches: ranked.map(({ value: item, confidence, explanation, parameterCompatibility }, index) => {
-        return {
-          step: item.step,
-          title: item.title,
-          description: item.description,
-          human: item.human,
-          agent: item.agent,
-          inputs: item.inputs,
-          outputs: item.outputs,
-          executionReadiness: 'ready',
-          hashes: {
-            definition: item.integrity.definitionHash,
-            humanProjection: item.integrity.humanProjectionHash,
-            agentContract: item.integrity.agentContractHash,
-            execution: item.integrity.executionHash,
-          },
-          rank: index + 1,
-          confidence,
-          parameterCompatibility,
-          explanation,
-        }
-      }),
-      nextRecommendedAction: 'Use the returned Step Reference directly in managed authoring.',
-    },
+    body: searchResponse(reuseEvidence, ranked),
   }
 }
 
