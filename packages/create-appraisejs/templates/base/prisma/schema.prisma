@@ -337,9 +337,9 @@ model TestCaseStep {
   gherkinStep             String
   icon                    TemplateStepIcon
   label                   String
-  templateStepId          String
+  templateStepId          String?
   operationInvocationJson String?
-  TemplateStep            TemplateStep            @relation(fields: [templateStepId], references: [id], onDelete: Cascade)
+  TemplateStep            TemplateStep?           @relation(fields: [templateStepId], references: [id], onDelete: Cascade)
   testCase                TestCase                @relation(fields: [testCaseId], references: [id])
   parameters              TestCaseStepParameter[]
 }

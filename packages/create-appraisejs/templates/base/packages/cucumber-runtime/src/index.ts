@@ -22,4 +22,5 @@ export {
 } from './template-step-operations.ts'
 export * from './operations/index.ts'
 export * from './step-definitions/contracts.ts'
+export * from './step-definitions/dispatcher.ts'
 export type { BrowserName, Locator, LocatorCollection, LocatorMap, Selector, SelectorName } from './types.ts'

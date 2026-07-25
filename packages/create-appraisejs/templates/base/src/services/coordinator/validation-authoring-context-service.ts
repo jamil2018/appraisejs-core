@@ -3,66 +3,28 @@ import { createHash } from 'node:crypto'
 import type { PrismaClient } from '@prisma/client'
 
 import prisma from '@/config/db-config'
-import { defaultOperationRegistry } from '@/lib/operation-catalog'
-import { parseYamlArtifact, validationArtifactSchema, type PlanArtifact } from '@/lib/plan-contract'
+import {
+  parseYamlArtifact,
+  validationArtifactSchema,
+  type PlanArtifact,
+  type ValidationArtifact,
+} from '@/lib/plan-contract'
 import { validationAstSubmissionSchema, type ValidationAstSubmission } from '@/lib/validation-ast/schemas'
 import { PlanArtifactRepository } from '@/lib/plans/artifact-repository'
 import { findProjectRoot } from '@/lib/plans/project-root'
-import { canonicalStepDiscoveryText, stepDiscoveryTerms } from '@/lib/step-discovery'
-import { templateStepGroupPath } from './template-step-group-path'
+import { stepDiscoveryTerms } from '@/lib/step-discovery'
+import {
+  computeStepReferenceHash,
+  stepDefinitionSchema,
+} from '../../../packages/cucumber-runtime/src/step-definitions/index.ts'
 import {
   readVisibleResourceOwnerships,
   type ProjectResourceEntityType,
 } from '@/services/project-resource/project-resource-ownership-service'
 
 type Options = { client?: PrismaClient; projectDirectory?: string }
-const reusableTemplateStepSelect = {
-  id: true,
-  name: true,
-  description: true,
-  signature: true,
-  templateStepGroupId: true,
-  operationId: true,
-  operationVersion: true,
-  operationDescriptorHash: true,
-  humanProjectionId: true,
-  operationMigrationState: true,
-  parameters: { select: { name: true, type: true, order: true }, orderBy: { order: 'asc' } },
-  templateStepGroup: { select: { id: true, name: true, description: true, type: true } },
-} as const
-type ReusableRef = {
-  id: string
-  kind?: 'template-step' | 'step-block'
-  name?: string
-  displayName?: string
-  description?: string | null
-  signature?: string
-  parameters?: Array<{ name: string; type: string; order: number }>
-  groupId?: string
-  groupName?: string
-  groupDescription?: string | null
-  groupType?: string
-  path?: string
-  canonicalOperation?: {
-    id: string
-    version: string
-    descriptorHash: string
-    humanProjectionId: string
-  }
-  humanStep?: {
-    name: string
-    description: string | null
-    signature: string
-    groupName: string
-  }
-  agentOperation?: {
-    id: string
-    version: string
-    ref: string
-    descriptorHash: string
-  } | null
-  managedAuthoringStatus?: 'ready' | 'handler-migration-required' | 'composition-migration-required'
-}
+type OwnershipMap = NonNullable<Awaited<ReturnType<typeof readVisibleResourceOwnerships>>>
+type AuthoringResource = { id: string } & Record<string, unknown>
 
 function hashContent(content: string) {
   return `sha256:${createHash('sha256').update(content).digest('hex')}`
@@ -104,72 +66,63 @@ function scoreIntent(candidate: string, intent: string) {
   }
 }
 
-function signatureParameters(signature: string) {
-  return Array.from(signature.matchAll(/\{([^}]+)\}/g), match => match[1]!.trim().toLowerCase())
+type ReadyStepDefinition = {
+  id: string
+  version: string
+  title: string
+  description: string
+  definitionJson: string
 }
 
-function canonicalOperationDiscoveryText(step: ResolvedTemplateStep) {
-  if (!step.operationId || !step.operationVersion || step.operationMigrationState !== 'mapped') return ''
-  try {
-    const descriptor = defaultOperationRegistry.read([{ id: step.operationId, version: step.operationVersion }])[0]
-    if (!descriptor) return ''
-    return canonicalStepDiscoveryText(descriptor)
-  } catch {
-    return ''
-  }
-}
-
-export function rankReusableResources(resources: ReusableResources, intent: string, parameterNames: string[] = []) {
-  const requestedParameters = new Set(parameterNames.map(name => name.trim().toLowerCase()).filter(Boolean))
-  const rank = <T extends { id: string; name: string }>(
-    values: T[],
-    searchable: (value: T) => string,
-    parameters: (value: T) => string[],
-  ) =>
-    values
-      .map(value => {
-        const match = scoreIntent(searchable(value), intent)
-        const availableParameters = parameters(value)
-        const namedMatches = [...requestedParameters].filter(name => availableParameters.includes(name)).length
-        const positionalFallback =
-          requestedParameters.size > 0 && namedMatches === 0 && availableParameters.length >= requestedParameters.size
-            ? 0.25
-            : 0
-        const compatibleParameterCount = namedMatches + positionalFallback
-        const parameterCompatibility =
-          requestedParameters.size === 0 ? 1 : compatibleParameterCount / requestedParameters.size
-        const confidence = Math.min(1, match.confidence * 0.8 + parameterCompatibility * 0.2)
-        return {
-          value,
-          score: match.score + namedMatches * 2 + positionalFallback,
-          confidence,
-          matchedTerms: match.matchedTerms,
-          parameterCompatibility,
-          explanation: `Matched ${match.matchedTerms.length} intent term(s) and ${match.matchedPhrases.length} ordered phrase(s); ${namedMatches}/${requestedParameters.size} requested parameter name(s) match the reusable signature.`,
-        }
-      })
-      .filter(candidate => candidate.score > 0)
-      .sort(
-        (left, right) =>
-          right.score - left.score ||
-          right.confidence - left.confidence ||
-          left.value.name.localeCompare(right.value.name),
-      )
-
+function parseReadyStepDefinition(row: ReadyStepDefinition) {
+  const definition = stepDefinitionSchema.parse(JSON.parse(row.definitionJson))
   return {
-    templateSteps: rank(
-      resources.templateSteps,
-      step =>
-        `${step.name} ${step.description ?? ''} ${step.signature} ${step.templateStepGroup.name} ${step.templateStepGroup.description ?? ''} ${canonicalOperationDiscoveryText(step)}`,
-      step => signatureParameters(step.signature),
-    ),
-    stepBlocks: rank(
-      resources.stepBlocks,
-      block =>
-        `${block.name} ${block.intent ?? ''} ${block.steps.map(step => `${step.templateStep.name} ${step.templateStep.signature}`).join(' ')}`,
-      block => block.steps.flatMap(step => signatureParameters(step.templateStep.signature)),
-    ),
+    step: { id: row.id, version: row.version, definitionHash: computeStepReferenceHash(definition) },
+    title: row.title,
+    description: row.description,
+    agent: definition.agent,
+    human: definition.human,
+    inputs: definition.inputs,
+    outputs: definition.outputs,
   }
+}
+
+export function rankReadyStepDefinitions(
+  definitions: ReadyStepDefinition[],
+  intent: string,
+  parameterNames: string[] = [],
+) {
+  const requestedParameters = new Set(parameterNames.map(name => name.trim().toLowerCase()).filter(Boolean))
+  return definitions
+    .map(row => {
+      const value = parseReadyStepDefinition(row)
+      const match = scoreIntent(`${value.title} ${value.description} ${JSON.stringify(value.agent)}`, intent)
+      const availableParameters = value.inputs.map(input => input.name.toLowerCase())
+      const namedMatches = [...requestedParameters].filter(name => availableParameters.includes(name)).length
+      const positionalFallback =
+        requestedParameters.size > 0 && namedMatches === 0 && availableParameters.length >= requestedParameters.size
+          ? 0.25
+          : 0
+      const compatibleParameterCount = namedMatches + positionalFallback
+      const parameterCompatibility =
+        requestedParameters.size === 0 ? 1 : compatibleParameterCount / requestedParameters.size
+      const confidence = Math.min(1, match.confidence * 0.8 + parameterCompatibility * 0.2)
+      return {
+        value,
+        score: match.score + namedMatches * 2 + positionalFallback,
+        confidence,
+        matchedTerms: match.matchedTerms,
+        parameterCompatibility,
+        explanation: `Matched ${match.matchedTerms.length} intent term(s) and ${match.matchedPhrases.length} ordered phrase(s); ${namedMatches}/${requestedParameters.size} requested parameter name(s) match the ready Step Definition.`,
+      }
+    })
+    .filter(candidate => candidate.score > 0)
+    .sort(
+      (left, right) =>
+        right.score - left.score ||
+        right.confidence - left.confidence ||
+        left.value.title.localeCompare(right.value.title),
+    )
 }
 
 async function readPlanContext(planId: string, options: Options = {}) {
@@ -204,162 +157,55 @@ async function readPlanContext(planId: string, options: Options = {}) {
   }
 }
 
-async function readReusableResources(client: PrismaClient, targetProjectId: string) {
-  const [templateSteps, stepBlocks] = await Promise.all([
-    client.templateStep.findMany({
-      select: reusableTemplateStepSelect,
-      orderBy: { name: 'asc' },
-    }),
-    client.stepBlock.findMany({
-      where: { targetProjectId },
-      select: {
-        id: true,
-        name: true,
-        intent: true,
-        steps: {
-          orderBy: { order: 'asc' },
-          select: {
-            templateStep: {
-              select: reusableTemplateStepSelect,
-            },
-          },
-        },
-      },
-      orderBy: { name: 'asc' },
-    }),
-  ])
-  const ownerships = await readVisibleResourceOwnerships(targetProjectId, ['step-block'], client)
-  if (ownerships === null) return { templateSteps, stepBlocks }
-  return {
-    templateSteps,
-    stepBlocks: stepBlocks.filter(block => ownerships.has(`step-block:${block.id}`)),
-  }
-}
-
-type ReusableResources = Awaited<ReturnType<typeof readReusableResources>>
-type ResolvedTemplateStep = ReusableResources['templateSteps'][number]
-type ResolvedStepBlock = ReusableResources['stepBlocks'][number]
-
-function templateStepRef(step: ResolvedTemplateStep): ReusableRef {
-  const canonicalOperation =
-    step.operationId && step.operationVersion && step.operationDescriptorHash && step.humanProjectionId
-      ? {
-          id: step.operationId,
-          version: step.operationVersion,
-          descriptorHash: step.operationDescriptorHash,
-          humanProjectionId: step.humanProjectionId,
-        }
-      : undefined
-  return {
-    id: step.id,
-    kind: 'template-step',
-    name: step.name,
-    displayName: step.name,
-    description: step.description,
-    signature: step.signature,
-    parameters: step.parameters,
-    groupId: step.templateStepGroupId,
-    groupName: step.templateStepGroup.name,
-    groupDescription: step.templateStepGroup.description,
-    groupType: step.templateStepGroup.type,
-    path: templateStepGroupPath(step.templateStepGroup.name, step.templateStepGroup.type),
-    ...(canonicalOperation ? { canonicalOperation } : {}),
-    humanStep: {
-      name: step.name,
-      description: step.description,
-      signature: step.signature,
-      groupName: step.templateStepGroup.name,
-    },
-    agentOperation: canonicalOperation
-      ? {
-          id: canonicalOperation.id,
-          version: canonicalOperation.version,
-          ref: `${canonicalOperation.id}@${canonicalOperation.version}`,
-          descriptorHash: canonicalOperation.descriptorHash,
-        }
-      : null,
-    managedAuthoringStatus: canonicalOperation ? 'ready' : 'handler-migration-required',
-  }
-}
-
-function stepBlockRef(block: ResolvedStepBlock): ReusableRef {
-  return {
-    id: block.id,
-    kind: 'step-block',
-    name: block.name,
-    displayName: block.name,
-    agentOperation: null,
-    managedAuthoringStatus: 'composition-migration-required',
-  }
-}
-
-// fallow-ignore-next-line complexity
 export async function resolveReusableValidationSteps(
   planId: string,
   input: { intent: string; parameterNames?: string[]; limit?: number },
   options: Options = {},
 ) {
   const startedAt = Date.now()
-  const { client, projection } = await readPlanContext(planId, options)
-  if (!projection?.targetProjectId) throw new Error('Plan must be bound to a target project.')
-  const resources = await readReusableResources(client, projection.targetProjectId)
-  const ranked = rankReusableResources(resources, input.intent, input.parameterNames)
+  const { client } = await readPlanContext(planId, options)
+  const definitions = await client.stepDefinition.findMany({
+    where: { status: 'ready' },
+    select: { id: true, version: true, title: true, description: true, definitionJson: true },
+    orderBy: [{ id: 'asc' }, { version: 'asc' }],
+  })
+  const ranked = rankReadyStepDefinitions(definitions, input.intent, input.parameterNames)
   const limit = Math.min(Math.max(input.limit ?? 5, 1), 25)
   const threshold = 0.5
-  const templateSteps = ranked.templateSteps.slice(0, limit).map(({ value, ...match }, index) => ({
-    ...templateStepRef(value),
-    signature: value.signature,
+  const steps = ranked.slice(0, limit).map(({ value, ...match }, index) => ({
+    ...value,
     rank: index + 1,
     ...match,
   }))
-  const stepBlocks = ranked.stepBlocks.slice(0, limit).map(({ value, ...match }, index) => ({
-    ...stepBlockRef(value),
-    rank: index + 1,
-    ...match,
-  }))
-  const selected = [...templateSteps, ...stepBlocks]
+  const selected = steps
     .filter(candidate => candidate.score >= 2 && candidate.confidence >= threshold)
     .sort((left, right) => right.score - left.score || right.confidence - left.confidence)[0]
-  const steps = [...templateSteps, ...stepBlocks].sort(
-    (left, right) => right.score - left.score || right.confidence - left.confidence,
-  )
   return {
-    discoveryKind: 'combined-step',
+    discoveryKind: 'ready-step-definition',
     intent: input.intent,
     threshold,
     selected: selected ?? null,
     recommendedStep: selected ?? null,
     steps,
-    alternatives: { templateSteps, stepBlocks },
     metrics: {
       resolverCalls: 1,
       fallbackRequired: !selected,
       selectedRank: selected?.rank ?? null,
-      candidatesConsidered: resources.templateSteps.length + resources.stepBlocks.length,
-      returnedCandidates: templateSteps.length + stepBlocks.length,
+      candidatesConsidered: definitions.length,
+      returnedCandidates: steps.length,
       durationMs: Date.now() - startedAt,
     },
-    nextRecommendedAction: selected?.canonicalOperation
-      ? 'Use selected.canonicalOperation as the managed AST operation reference, then call validation_ast_check.'
-      : selected
-        ? 'This human reusable result is not yet managed-authoring ready. Call operation_search for a canonical equivalent; do not copy its source or invent an overlapping custom operation.'
-        : 'Review the bounded alternatives and call operation_search, then propose a justified custom operation only if no canonical capability is compatible.',
+    nextRecommendedAction: selected
+      ? 'Use selected.step as the exact Validation AST invocation reference, then call validation_ast_check.'
+      : 'Create and publish a reviewed Step Definition only if no ready Step Definition can express the required behavior.',
   }
 }
 
 type ValidationResourceType =
-  | 'modules'
-  | 'testSuites'
-  | 'testCases'
-  | 'templateSteps'
-  | 'stepBlocks'
-  | 'locatorGroups'
-  | 'locators'
-  | 'environments'
+  'modules' | 'testSuites' | 'testCases' | 'stepDefinitions' | 'locatorGroups' | 'locators' | 'environments'
 
 type AuthoringResources = {
-  templateSteps: Array<{ id: string; name: string; signature: string }>
-  stepBlocks: Array<{ id: string; name: string; intent?: string | null }>
+  stepDefinitions: Array<ReadyStepDefinition>
   locatorGroups: Array<{ id: string; name: string; route: string }>
   locators: Array<{ id: string; name: string; value: string; locatorGroupId: string | null }>
   environments: Array<{
@@ -384,10 +230,26 @@ function starterSubmission(
   plan: PlanArtifact,
   sourceHash: string,
   resources: AuthoringResources,
-): ValidationAstSubmission | null {
-  if (plan.tasks.length === 0) return null
+): { submission: ValidationAstSubmission | null; missingStepIds: string[] } {
+  if (plan.tasks.length === 0) return { submission: null, missingStepIds: [] }
+
+  const requiredStepIds = [
+    'browser.navigation.goto',
+    'browser.waits.page-ready',
+    'browser.assertions.no-console-errors',
+    'browser.assertions.no-failed-network-requests',
+  ]
+  const definitions = new Map(resources.stepDefinitions.map(item => [item.id, parseReadyStepDefinition(item)]))
+  const missingStepIds = requiredStepIds.filter(id => !definitions.has(id))
+  if (missingStepIds.length) return { submission: null, missingStepIds }
 
   const environmentId = resources.environments[0]?.id ?? 'replace-environment-id'
+  const invocation = (
+    id: (typeof requiredStepIds)[number],
+    inputs: Record<string, string>,
+    keyword: 'Given' | 'When' | 'Then' | 'And',
+    description: string,
+  ) => ({ step: definitions.get(id)!.step, inputs, presentation: { keyword, description } })
   const scenarios = plan.tasks.map((task, index) => {
     const scenarioId = portableId(task.id, `scenario-${index + 1}`)
     return {
@@ -397,60 +259,75 @@ function starterSubmission(
       steps: [
         {
           id: `${scenarioId}-navigate`,
-          keyword: 'Given' as const,
-          description: 'the agent opens the target application',
-          operation: { id: 'browser.navigation.goto', version: '1', inputs: { url: '/' } },
+          invocation: invocation(
+            'browser.navigation.goto',
+            { url: '/' },
+            'Given',
+            'the agent opens the target application',
+          ),
         },
         {
           id: `${scenarioId}-observe`,
-          keyword: 'When' as const,
-          description: 'the agent waits for the application to become ready',
-          operation: { id: 'browser.waits.page-ready', version: '1', inputs: {} },
+          invocation: invocation(
+            'browser.waits.page-ready',
+            {},
+            'When',
+            'the agent waits for the application to become ready',
+          ),
         },
         {
           id: `${scenarioId}-console-clean`,
-          keyword: 'Then' as const,
-          description: 'the browser reports no console or page errors',
-          operation: { id: 'browser.assertions.no-console-errors', version: '1', inputs: {} },
+          invocation: invocation(
+            'browser.assertions.no-console-errors',
+            {},
+            'Then',
+            'the browser reports no console or page errors',
+          ),
         },
         {
           id: `${scenarioId}-network-clean`,
-          keyword: 'And' as const,
-          description: 'the browser reports no failed network activity',
-          operation: { id: 'browser.assertions.no-failed-network-requests', version: '1', inputs: {} },
+          invocation: invocation(
+            'browser.assertions.no-failed-network-requests',
+            {},
+            'And',
+            'the browser reports no failed network activity',
+          ),
         },
       ],
     }
   })
-  return validationAstSubmissionSchema.parse({
-    expectedPlanHash: sourceHash,
-    ast: {
-      schemaVersion: 1,
-      id: portableId(`${plan.planId}-validation`, 'plan-validation'),
-      title: `${plan.goal} validation`,
-      purpose: `Editable starter for the approved intent: ${plan.description}`,
-      coversTaskIds: plan.tasks.map(task => task.id),
-      matrix: [{ browser: 'chromium', environmentId }],
-      scenarios,
-      coverageArgument: {
-        mappings: plan.tasks.map((task, index) => {
-          const scenarioId = portableId(task.id, `scenario-${index + 1}`)
-          return {
-            kind: 'task' as const,
-            targetId: task.id,
-            scenarioIds: [scenarioId],
-            stimulusStepIds: [`${scenarioId}-navigate`],
-            observationStepIds: [`${scenarioId}-console-clean`, `${scenarioId}-network-clean`],
-            rationale: `Starter mapping for ${task.validationIntent}`,
-            state: 'uncovered' as const,
-            limitation:
-              'Add product-outcome assertions before preview; runtime cleanliness alone does not prove behavior.',
-          }
-        }),
+  return {
+    submission: validationAstSubmissionSchema.parse({
+      expectedPlanHash: sourceHash,
+      ast: {
+        schemaVersion: 2,
+        id: portableId(`${plan.planId}-validation`, 'plan-validation'),
+        title: `${plan.goal} validation`,
+        purpose: `Editable starter for the approved intent: ${plan.description}`,
+        coversTaskIds: plan.tasks.map(task => task.id),
+        matrix: [{ browser: 'chromium', environmentId }],
+        scenarios,
+        coverageArgument: {
+          mappings: plan.tasks.map((task, index) => {
+            const scenarioId = portableId(task.id, `scenario-${index + 1}`)
+            return {
+              kind: 'task' as const,
+              targetId: task.id,
+              scenarioIds: [scenarioId],
+              stimulusStepIds: [`${scenarioId}-navigate`],
+              observationStepIds: [`${scenarioId}-console-clean`, `${scenarioId}-network-clean`],
+              rationale: `Starter mapping for ${task.validationIntent}`,
+              state: 'uncovered' as const,
+              limitation:
+                'Add product-outcome assertions before preview; runtime cleanliness alone does not prove behavior.',
+            }
+          }),
+        },
       },
-    },
-    customExtensionProposals: [],
-  })
+      customExtensionProposals: [],
+    }),
+    missingStepIds: [],
+  }
 }
 
 export function buildValidationAuthoringKit(input: {
@@ -462,46 +339,33 @@ export function buildValidationAuthoringKit(input: {
   runtimeInputJson?: string | null
 }) {
   const starter = starterSubmission(input.plan, input.sourceHash, input.resources)
-  const canonicalJson = starter ? JSON.stringify(starter) : null
-  const validation = input.validationJson ? validationArtifactSchema.parse(JSON.parse(input.validationJson)) : undefined
-  const runtime = input.runtimeInputJson ? (JSON.parse(input.runtimeInputJson) as Record<string, unknown>) : undefined
+  const submission = starter?.submission ?? null
+  const canonicalJson = submission ? JSON.stringify(submission) : null
+  const validation = parseValidationArtifact(input.validationJson)
+  const runtime = parseRuntimeInput(input.runtimeInputJson)
   const mappings = validation?.validations.flatMap(node => node.coverageArgument?.mappings ?? []) ?? []
   const coveredTargets = new Set(
     mappings.filter(mapping => mapping.state === 'covered').map(mapping => mapping.targetId),
   )
-  const taskCoverage = input.plan.tasks.map(task => ({
-    taskId: task.id,
-    title: task.title,
-    validationIntent: task.validationIntent,
-    state: coveredTargets.has(task.id) ? ('covered' as const) : ('uncovered' as const),
-    mappings: mappings.filter(mapping => mapping.targetId === task.id),
-  }))
-  const requirementCoverage = (input.plan.requirementAssessment?.requirements ?? []).map(requirement => ({
-    ...requirement,
-    state:
-      requirement.deferredReason !== undefined
-        ? ('deferred' as const)
-        : requirement.coveredBy.some(binding => coveredTargets.has(binding.taskId))
-          ? ('covered' as const)
-          : ('uncovered' as const),
-  }))
+  const taskCoverage = taskCoverageFor(input.plan, mappings, coveredTargets)
+  const requirementCoverage = requirementCoverageFor(input.plan, coveredTargets)
   const recipes = [
     {
       id: 'navigation-visible-outcome',
       intent: 'Navigate, stimulate one behavior, and assert a visible outcome.',
-      actionIds: ['browser.navigation.goto', 'browser.mouse.click', 'browser.assertions.visible'],
-      resourceHint: 'Prefer an existing project locator and a shared-library action.',
+      stepIds: ['browser.navigation.goto', 'browser.mouse.click', 'browser.assertions.visible'],
+      resourceHint: 'Use exact ready Step Definition references and an existing project locator.',
     },
     {
       id: 'form-submit-outcome',
       intent: 'Fill a form, submit it, and assert user-visible feedback.',
-      actionIds: ['browser.forms.fill', 'browser.mouse.click', 'browser.assertions.text'],
+      stepIds: ['browser.forms.fill', 'browser.mouse.click', 'browser.assertions.text'],
       resourceHint: 'Bind exact input, submit, and outcome locators before preview.',
     },
     {
       id: 'persistence-reload',
       intent: 'Create state, reload, and assert the state remains observable.',
-      actionIds: ['browser.navigation.reload', 'browser.assertions.visible'],
+      stepIds: ['browser.navigation.reload', 'browser.assertions.visible'],
       resourceHint: 'Use only when persistence is explicit approved intent.',
     },
   ]
@@ -518,7 +382,7 @@ export function buildValidationAuthoringKit(input: {
       ]
   return {
     contextPack: {
-      schemaVersion: '1',
+      schemaVersion: '2',
       approvedIntent: { goal: input.plan.goal, description: input.plan.description },
       constraints: input.plan.requirementAssessment?.requirements.filter(item => item.kind === 'constraint') ?? [],
       requirementIds: input.plan.requirementAssessment?.requirements.map(item => item.id) ?? [],
@@ -541,15 +405,15 @@ export function buildValidationAuthoringKit(input: {
         requirementCoverage.filter(item => item.state === 'uncovered').length,
     },
     astStarter: {
-      editable: starter !== null,
+      editable: submission !== null,
       semanticOwner: 'agent',
-      readiness: starter ? 'requires_agent_editing_and_appraise_review' : 'unavailable_no_plan_tasks',
-      submission: starter,
-      reason: starter ? null : 'The plan has no tasks from which to build a validation starter.',
+      readiness: starterReadiness(submission, input.plan),
+      submission,
+      reason: starterReason(submission, input.plan, starter.missingStepIds),
     },
     astExchange: canonicalJson
       ? {
-          mediaType: 'application/vnd.appraise.validation-ast+json;version=1',
+          mediaType: 'application/vnd.appraise.validation-ast+json;version=2',
           contentHash: hashContent(canonicalJson),
           canonicalJson,
           importTool: 'validation_ast_check',
@@ -565,6 +429,89 @@ export function buildValidationAuthoringKit(input: {
   }
 }
 
+function parseValidationArtifact(value?: string | null) {
+  return value ? validationArtifactSchema.parse(JSON.parse(value)) : undefined
+}
+
+function parseRuntimeInput(value?: string | null) {
+  return value ? (JSON.parse(value) as Record<string, unknown>) : undefined
+}
+
+function taskCoverageFor(
+  plan: PlanArtifact,
+  mappings: Array<NonNullable<ValidationArtifact['validations'][number]['coverageArgument']>['mappings'][number]>,
+  coveredTargets: Set<string>,
+) {
+  return plan.tasks.map(task => ({
+    taskId: task.id,
+    title: task.title,
+    validationIntent: task.validationIntent,
+    state: coveredTargets.has(task.id) ? ('covered' as const) : ('uncovered' as const),
+    mappings: mappings.filter(mapping => mapping.targetId === task.id),
+  }))
+}
+
+function requirementCoverageFor(plan: PlanArtifact, coveredTargets: Set<string>) {
+  return (plan.requirementAssessment?.requirements ?? []).map(requirement => ({
+    ...requirement,
+    state: requirement.deferredReason
+      ? ('deferred' as const)
+      : requirement.coveredBy.some(binding => coveredTargets.has(binding.taskId))
+        ? ('covered' as const)
+        : ('uncovered' as const),
+  }))
+}
+
+function starterReadiness(submission: unknown, plan: PlanArtifact) {
+  if (submission) return 'requires_agent_editing_and_appraise_review'
+  return plan.tasks.length === 0 ? 'unavailable_no_plan_tasks' : 'unavailable_missing_exact_step_references'
+}
+
+function starterReason(submission: unknown, plan: PlanArtifact, missingStepIds: string[]) {
+  if (submission) return null
+  return plan.tasks.length === 0
+    ? 'The plan has no tasks from which to build a validation starter.'
+    : `The ready Step Definition registry is missing: ${missingStepIds.join(', ')}.`
+}
+
+function projectAuthoringResource(
+  resourceType: ValidationResourceType,
+  resource: AuthoringResource,
+  entityType: ProjectResourceEntityType | undefined,
+  ownerships: OwnershipMap | null,
+  targetProjectId: string,
+) {
+  const ownership = entityType ? ownerships?.get(`${entityType}:${resource.id}`) : undefined
+  return {
+    ...resource,
+    ...registryProjectionFor(resourceType, resource),
+    ...locatorProjectionFor(resourceType, resource.id, targetProjectId),
+    scope: resourceScopeFor(resourceType, ownership?.scope),
+    provenance: ownership ?? null,
+    ...environmentProjectionFor(resourceType, resource.id),
+  }
+}
+
+function registryProjectionFor(resourceType: ValidationResourceType, resource: AuthoringResource) {
+  if (resourceType !== 'stepDefinitions') return {}
+  return parseReadyStepDefinition(resource as ReadyStepDefinition)
+}
+
+function locatorProjectionFor(resourceType: ValidationResourceType, id: string, targetProjectId: string) {
+  if (resourceType !== 'locatorGroups' && resourceType !== 'locators') return {}
+  const prefix = resourceType === 'locatorGroups' ? 'group' : 'locator'
+  return { version: '1', targetProjectId, astRef: `${prefix}_${id}` }
+}
+
+function resourceScopeFor(resourceType: ValidationResourceType, ownershipScope?: string) {
+  if (resourceType === 'stepDefinitions') return 'ready_registry'
+  return ownershipScope ?? 'legacy_test_fixture'
+}
+
+function environmentProjectionFor(resourceType: ValidationResourceType, id: string) {
+  return resourceType === 'environments' ? { reference: id } : {}
+}
+
 // fallow-ignore-next-line complexity
 export async function readValidationContext(
   planId: string,
@@ -578,93 +525,61 @@ export async function readValidationContext(
   const { client, plan, projection } = await readPlanContext(planId, options)
   if (!projection?.targetProjectId) throw new Error('Plan must be bound to a target project.')
   const targetProjectId = projection.targetProjectId
-  const [modules, testSuites, testCases, templateSteps, stepBlocks, locatorGroups, locators, environments] =
-    await Promise.all([
-      client.module.findMany({
-        where: { targetProjectId },
-        select: { id: true, name: true, parentId: true },
-        orderBy: { name: 'asc' },
-      }),
-      client.testSuite.findMany({
-        where: { targetProjectId },
-        select: { id: true, name: true, description: true, moduleId: true, testCases: { select: { id: true } } },
-        orderBy: { name: 'asc' },
-      }),
-      client.testCase.findMany({
-        where: { targetProjectId },
-        select: { id: true, title: true, description: true },
-        orderBy: { title: 'asc' },
-      }),
-      client.templateStep.findMany({
-        select: {
-          id: true,
-          name: true,
-          description: true,
-          signature: true,
-          type: true,
-          templateStepGroupId: true,
-          parameters: { select: { name: true, type: true, order: true }, orderBy: { order: 'asc' } },
-          templateStepGroup: { select: { id: true, name: true, description: true, type: true } },
-        },
-        orderBy: { name: 'asc' },
-      }),
-      client.stepBlock.findMany({
-        where: { targetProjectId },
-        select: {
-          id: true,
-          name: true,
-          description: true,
-          intent: true,
-          steps: {
-            orderBy: { order: 'asc' },
-            select: {
-              order: true,
-              parameterMap: true,
-              templateStep: {
-                select: { id: true, name: true, signature: true, type: true, templateStepGroupId: true },
-              },
-            },
-          },
-        },
-        orderBy: { name: 'asc' },
-      }),
-      client.locatorGroup.findMany({
-        where: { targetProjectId },
-        select: { id: true, name: true, route: true, moduleId: true },
-        orderBy: { name: 'asc' },
-      }),
-      client.locator.findMany({
-        where: { targetProjectId },
-        select: { id: true, name: true, value: true, locatorGroupId: true },
-        orderBy: { name: 'asc' },
-      }),
-      client.environment.findMany({
-        where: { targetProjectId },
-        select: { id: true, name: true, baseUrl: true, apiBaseUrl: true, expectedPageTitle: true },
-        orderBy: { name: 'asc' },
-      }),
-    ])
+  const [modules, testSuites, testCases, stepDefinitions, locatorGroups, locators, environments] = await Promise.all([
+    client.module.findMany({
+      where: { targetProjectId },
+      select: { id: true, name: true, parentId: true },
+      orderBy: { name: 'asc' },
+    }),
+    client.testSuite.findMany({
+      where: { targetProjectId },
+      select: { id: true, name: true, description: true, moduleId: true, testCases: { select: { id: true } } },
+      orderBy: { name: 'asc' },
+    }),
+    client.testCase.findMany({
+      where: { targetProjectId },
+      select: { id: true, title: true, description: true },
+      orderBy: { title: 'asc' },
+    }),
+    client.stepDefinition.findMany({
+      where: { status: 'ready' },
+      select: { id: true, version: true, title: true, description: true, definitionJson: true },
+      orderBy: [{ id: 'asc' }, { version: 'asc' }],
+    }),
+    client.locatorGroup.findMany({
+      where: { targetProjectId },
+      select: { id: true, name: true, route: true, moduleId: true },
+      orderBy: { name: 'asc' },
+    }),
+    client.locator.findMany({
+      where: { targetProjectId },
+      select: { id: true, name: true, value: true, locatorGroupId: true },
+      orderBy: { name: 'asc' },
+    }),
+    client.environment.findMany({
+      where: { targetProjectId },
+      select: { id: true, name: true, baseUrl: true, apiBaseUrl: true, expectedPageTitle: true },
+      orderBy: { name: 'asc' },
+    }),
+  ])
   const allResources = {
     modules,
     testSuites: testSuites.map(suite => ({ ...suite, testCaseIds: suite.testCases.map(testCase => testCase.id) })),
     testCases,
-    templateSteps,
-    stepBlocks,
+    stepDefinitions,
     locatorGroups,
     locators,
     environments,
   }
   const ownerships = await readVisibleResourceOwnerships(
     projection.targetProjectId,
-    ['module', 'test-suite', 'test-case', 'template-step', 'step-block', 'locator-group', 'locator', 'environment'],
+    ['module', 'test-suite', 'test-case', 'locator-group', 'locator', 'environment'],
     client,
   )
-  const entityTypeByResource: Record<ValidationResourceType, ProjectResourceEntityType> = {
+  const entityTypeByResource: Partial<Record<ValidationResourceType, ProjectResourceEntityType>> = {
     modules: 'module',
     testSuites: 'test-suite',
     testCases: 'test-case',
-    templateSteps: 'template-step',
-    stepBlocks: 'step-block',
     locatorGroups: 'locator-group',
     locators: 'locator',
     environments: 'environment',
@@ -677,23 +592,18 @@ export async function readValidationContext(
       resourceType,
       allResources[resourceType]
         .filter(resource => {
-          if (resourceType === 'templateSteps' || !ownerships) return true
+          if (resourceType === 'stepDefinitions' || !ownerships) return true
           return ownerships.has(`${entityTypeByResource[resourceType]}:${resource.id}`)
         })
-        .map(resource => {
-          const ownership = ownerships?.get(`${entityTypeByResource[resourceType]}:${resource.id}`)
-          return {
-            ...resource,
-            ...((resourceType === 'locatorGroups' || resourceType === 'locators') && {
-              version: '1',
-              targetProjectId,
-              astRef: `${resourceType === 'locatorGroups' ? 'group' : 'locator'}_${resource.id}`,
-            }),
-            scope: resourceType === 'templateSteps' ? 'shared_library' : (ownership?.scope ?? 'legacy_test_fixture'),
-            provenance: ownership ?? null,
-            ...(resourceType === 'environments' ? { reference: resource.id } : {}),
-          }
-        })
+        .map(resource =>
+          projectAuthoringResource(
+            resourceType,
+            resource as AuthoringResource,
+            entityTypeByResource[resourceType],
+            ownerships,
+            targetProjectId,
+          ),
+        )
         .filter(resource => !query || JSON.stringify(resource).toLowerCase().includes(query))
         .slice(0, limit),
     ]),
@@ -738,8 +648,6 @@ export async function readValidationContext(
     proposalSchemas: [
       'appraise.resource/module-proposal/v1',
       'appraise.resource/environment-proposal/v1',
-      'appraise.resource/template-step-proposal/v1',
-      'appraise.resource/step-block-proposal/v1',
       'appraise.resource/locator-group-proposal/v1',
       'appraise.resource/locator-proposal/v1',
       'appraise.validation/test-suite-proposal/v1',

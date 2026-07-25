@@ -4,6 +4,10 @@ import { canonicalContractJson } from '@/lib/catalog-contracts'
 import { ServiceError } from '@/services/shared/errors'
 import { assertSafeGeneratedGherkin } from '@/lib/validation-ast/gherkin-safety'
 import { assertValidCustomExtensionPolicy } from '@/lib/validation-ast/extension-policy'
+import {
+  stepInvocationSchema,
+  stepReferenceSchema,
+} from '../../../packages/cucumber-runtime/src/step-definitions/contracts'
 
 const hashSchema = z.string().regex(/^sha256:[a-f0-9]{64}$/)
 const boundedId = z.string().min(1).max(256)
@@ -12,21 +16,12 @@ const descriptorSchema = z.object({ id: boundedId, version: boundedId, contentHa
 
 function validateRuntimeInputShape(
   value: {
-    schemaVersion: '1' | '2'
-    actions?: unknown[]
-    operations?: unknown[]
     locators: Array<{ id: string; version: string }>
     extensions: Array<{ id: string; version: string }>
     expected: { scenarioCount: number; scenarios: Array<{ scenarioId: string; caseId: string }> }
   },
   context: z.RefinementCtx,
 ) {
-  const legacyShapeInvalid = value.schemaVersion === '1' && (!value.actions || value.operations)
-  const currentShapeInvalid = value.schemaVersion === '2' && (!value.operations || value.actions)
-  if (legacyShapeInvalid)
-    context.addIssue({ code: 'custom', path: ['actions'], message: 'legacy v1 input requires actions only' })
-  if (currentShapeInvalid)
-    context.addIssue({ code: 'custom', path: ['operations'], message: 'v2 input requires operations only' })
   if (value.expected.scenarioCount !== value.expected.scenarios.length)
     context.addIssue({ code: 'custom', path: ['expected', 'scenarioCount'], message: 'must equal scenarios length' })
   const identities = new Map<string, string[]>([
@@ -43,7 +38,7 @@ function validateRuntimeInputShape(
 
 const validationAstRuntimeInputV1Schema = z
   .object({
-    schemaVersion: z.enum(['1', '2']),
+    schemaVersion: z.literal('2'),
     targetProjectId: boundedId,
     targetFingerprint: hashSchema,
     astId: boundedId,
@@ -73,8 +68,11 @@ const validationAstRuntimeInputV1Schema = z
         contentHash: hashSchema,
       })
       .strict(),
-    actions: z.array(descriptorSchema).min(1).max(512).optional(),
-    operations: z.array(descriptorSchema).min(1).max(512).optional(),
+    rootInvocations: z
+      .array(z.object({ caseId: boundedId, stepId: boundedId, invocation: stepInvocationSchema }).strict())
+      .min(1)
+      .max(512),
+    stepDefinitions: z.array(stepReferenceSchema).min(1).max(512),
     locators: z
       .array(
         descriptorSchema.extend({
@@ -121,21 +119,17 @@ const validationAstRuntimeInputV1Schema = z
 
 export type ValidationAstRuntimeInputV1 = z.infer<typeof validationAstRuntimeInputV1Schema>
 
-function runtimeInputOperations(value: ValidationAstRuntimeInputV1) {
-  return value.operations ?? value.actions ?? []
-}
-
 const digest = (value: unknown) => `sha256:${createHash('sha256').update(canonicalContractJson(value)).digest('hex')}`
 
 export function uniqueProjectedActionReferences(
-  testCases: Array<{ steps?: Array<{ operationRef?: string; templateStepName?: string }> }>,
+  testCases: Array<{ id: string; steps?: Array<{ id: string; invocation?: unknown }> }>,
 ): string[] {
   return [
     ...new Set(
       testCases.flatMap(testCase =>
         (testCase.steps ?? []).flatMap(step => {
-          const ref = step.operationRef ?? step.templateStepName
-          return ref ? [ref] : []
+          const invocation = stepInvocationSchema.safeParse(step.invocation)
+          return invocation.success ? [`${invocation.data.step.id}@${invocation.data.step.version}`] : []
         }),
       ),
     ),
@@ -166,7 +160,7 @@ export function validateValidationAstRuntimeInput(input: {
       appraiseArtifacts?: {
         testCases?: Array<{
           id?: string
-          steps?: Array<{ id?: string; operationRef?: string; templateStepName?: string }>
+          steps?: Array<{ id?: string; invocation?: unknown }>
         }>
         locators?: unknown
       }
@@ -208,12 +202,23 @@ export function validateValidationAstRuntimeInput(input: {
 
   const projectedCases = projection.validationNode?.appraiseArtifacts?.testCases ?? []
   const expectedCases = runtimeInput.expected.scenarios.map(item => item.caseId)
-  const projectedActions = uniqueProjectedActionReferences(projectedCases)
-  const expectedOperations = runtimeInputOperations(runtimeInput).map(
-    operation => `${operation.id}@${operation.version}`,
-  )
   const projectedStepIds = projectedCases.map(testCase => (testCase.steps ?? []).map(step => step.id))
   const expectedStepIds = runtimeInput.expected.scenarios.map(scenario => scenario.stepIds)
+  const projectedInvocations = projectedCases.flatMap(testCase =>
+    (testCase.steps ?? []).map(step => ({
+      caseId: testCase.id,
+      stepId: step.id,
+      invocation: stepInvocationSchema.parse(step.invocation),
+    })),
+  )
+  const projectedDefinitionRefs = [
+    ...new Map(
+      projectedInvocations.map(item => [
+        `${item.invocation.step.id}@${item.invocation.step.version}#${item.invocation.step.definitionHash}`,
+        item.invocation.step,
+      ]),
+    ).values(),
+  ].sort((left, right) => `${left.id}@${left.version}`.localeCompare(`${right.id}@${right.version}`))
   const projectedLocators = [
     ...((projection.validationNode?.appraiseArtifacts?.locators as Array<{ id: string }> | undefined) ?? []),
   ].sort((left, right) => left.id.localeCompare(right.id))
@@ -225,7 +230,8 @@ export function validateValidationAstRuntimeInput(input: {
       projectedLocators,
     ],
     ['cases', expectedCases, projection.validationNode?.testCaseIds],
-    ['operations', expectedOperations, projectedActions],
+    ['rootInvocations', runtimeInput.rootInvocations, projectedInvocations],
+    ['stepDefinitions', runtimeInput.stepDefinitions, projectedDefinitionRefs],
     ['steps', expectedStepIds, projectedStepIds],
   ] as const
   const projectionMismatch = mismatchChecks.find(

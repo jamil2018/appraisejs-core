@@ -3,6 +3,11 @@ import os from 'node:os'
 import path from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import {
+  builtInStepDefinitions,
+  computeStepDefinitionHashes,
+  computeStepReferenceHash,
+} from '../../../packages/cucumber-runtime/src/step-definitions/index.ts'
+import {
   canonicalRuntimeCapsuleJson,
   hashRuntimeCapsuleBytes,
   hashRuntimeCapsuleValue,
@@ -113,6 +118,51 @@ describe('runtime capsule storage foundation', () => {
         })} `,
       ),
     ).toThrow(/canonical/)
+  })
+
+  it('seals v2 root invocations into a complete Step Definition closure', () => {
+    const base = {
+      schemaVersion: '2',
+      projectId: 'project-one',
+      validationHash,
+      runId: 'run-one',
+      operationHash: validationHash,
+      projectionHash: validationHash,
+      receiptHash: validationHash,
+      runtimeInputHash: validationHash,
+      commandReceipt: { path: 'command-receipt.json', hash: validationHash },
+      generator: { id: 'appraise.validation-ast-capsule', version: '2' },
+      operations: [],
+      extensions: [],
+      expectedCases: [],
+      files: [{ path: 'command-receipt.json', role: 'command-receipt', hash: validationHash, size: 1 }],
+    } as const
+    const definition = builtInStepDefinitions[0]!
+    const hashes = computeStepDefinitionHashes(definition)
+    const step = {
+      id: definition.identity.id,
+      version: definition.identity.version,
+      definitionHash: computeStepReferenceHash(definition),
+    }
+    const sealed = {
+      step,
+      definition,
+      definitionHash: hashes.definitionHash,
+      humanProjectionHash: hashes.humanProjectionHash,
+      agentContractHash: hashes.agentContractHash,
+      executionHash: hashes.executionHash,
+      publicationReceiptHash: validationHash,
+    }
+    expect(() =>
+      parseCanonicalRuntimeCapsuleManifest(
+        canonicalRuntimeCapsuleJson({ ...base, rootInvocations: [{ step, inputs: {} }], stepDefinitions: [sealed] }),
+      ),
+    ).not.toThrow()
+    expect(() =>
+      parseCanonicalRuntimeCapsuleManifest(
+        canonicalRuntimeCapsuleJson({ ...base, rootInvocations: [{ step, inputs: {} }], stepDefinitions: [] }),
+      ),
+    ).toThrow(/union|stepDefinitions/)
   })
 
   it('rejects a symlinked project ancestor', async () => {

@@ -4,7 +4,24 @@ import os from 'node:os'
 import path from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { describe, expect, it } from 'vitest'
+import {
+  builtInStepDefinitions,
+  computeStepReferenceHash,
+} from '../../../packages/cucumber-runtime/src/step-definitions/index.ts'
 import { generateExecutableBindings } from './binding-generator'
+
+const reloadDefinition = builtInStepDefinitions.find(
+  definition => definition.identity.id === 'browser.navigation.reload',
+)!
+const reloadInvocation = {
+  step: {
+    id: reloadDefinition.identity.id,
+    version: reloadDefinition.identity.version,
+    definitionHash: computeStepReferenceHash(reloadDefinition),
+  },
+  inputs: {},
+}
+const sealedDefinitions = [{ step: reloadInvocation.step, definition: reloadDefinition }]
 
 async function expectGeneratedBindingToDryRun(root: string, source: string, feature: string) {
   await Promise.all([
@@ -37,17 +54,17 @@ describe('executable binding generator', () => {
       const source = generateExecutableBindings({
         runtimeImport,
         selectors: {},
+        sealedDefinitions,
+        extensionModules: {},
         bindings: [
           {
             caseId: 'case',
-            steps: [
-              { id: 'step', keywordText: 'When it runs', operation: 'browser.navigation.reload@1', parameters: [] },
-            ],
+            steps: [{ id: 'step', keywordText: 'When it runs', invocation: reloadInvocation }],
           },
         ],
       })
-      expect(source).toContain('executeBrowserOperation')
-      expect(source).toContain('allowedOperationRefs')
+      expect(source).toContain('dispatchStepInvocation')
+      expect(source).toContain('sealedDefinitions')
       expect(source).not.toContain("case 'browser.navigation.reload@1'")
       await expectGeneratedBindingToDryRun(root, source, 'Feature: Test\n  Scenario: Run\n    When it runs\n')
     } finally {
@@ -59,13 +76,12 @@ describe('executable binding generator', () => {
     const root = await fs.mkdtemp(path.join(os.tmpdir(), 'appraise-binding-generator-repeated-'))
     try {
       const runtimeImport = pathToFileURL(path.resolve('packages/cucumber-runtime/dist/index.js')).href
-      const repeatedStep = {
-        operation: 'browser.navigation.reload@1',
-        parameters: [],
-      }
+      const repeatedStep = { invocation: reloadInvocation }
       const source = generateExecutableBindings({
         runtimeImport,
         selectors: {},
+        sealedDefinitions,
+        extensionModules: {},
         bindings: [
           {
             caseId: 'case',

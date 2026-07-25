@@ -8,6 +8,12 @@ import {
 } from './custom-extension-compiler'
 import type { CustomExtensionPolicy } from './extension-policy'
 import { validationAstSubmissionSchema, type CustomActionExtensionProposal, type ValidationAst } from './schemas'
+import {
+  computeStepReferenceHash,
+  type StepDefinition,
+  type StepInvocation,
+} from '../../../packages/cucumber-runtime/src/step-definitions/contracts.ts'
+import { validateStepDefinitionComposition } from '../../../packages/cucumber-runtime/src/step-definitions/composition-validator.ts'
 
 export const VALIDATION_AST_PREVIEW_MAX_STEPS = 100
 
@@ -19,8 +25,9 @@ export type ValidationAstCompilerContext = {
   currentPlanHash: string
   planTaskIds: string[]
   actionCatalog: ActionCatalogReader
+  stepDefinitions: Map<string, { definition: StepDefinition; definitionHash: string; receiptHash: string }>
   locatorGraph: LocatorGraph
-  environments: Record<string, { keys: string[] }>
+  environments: Record<string, { keys: string[]; types?: Record<string, string> }>
   availableRuntimes: Array<ActionDescriptor['requirements']['runtime']>
   availableCapabilities: string[]
   extensionPolicy: CustomExtensionPolicy
@@ -40,6 +47,10 @@ import { createValidationAstCanonicalProjection, locatorBindingsForAst } from '.
 import { checkValidationAstAuthoringProfile } from './authoring-profile'
 import { validationAstExtensionReferences } from './extension-references'
 const hash = validationAstHash
+
+function stepDescription(step: ValidationAst['scenarios'][number]['steps'][number]) {
+  return step.invocation.presentation?.description ?? step.id
+}
 
 function scalarType(value: unknown) {
   if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') return typeof value
@@ -68,67 +79,62 @@ function resolveAction(
   }
 }
 
-function validateActionInputs(
-  action: ActionDescriptor,
+function validateDefinitionInputs(
+  definition: StepDefinition,
   inputs: Record<string, unknown>,
-  storedTypes: Map<string, string>,
   location: Partial<ValidationAstIssue>,
-  blockers: ValidationAstIssue[],
+  state: ReferenceValidationState,
 ) {
-  const definitions = new Map(action.inputs.map(input => [input.name, input]))
-  for (const definition of action.inputs) {
-    if (definition.required && inputs[definition.name] === undefined)
-      blockers.push(issue('required-action-input-missing', `Required input ${definition.name} is missing.`, location))
+  const definitions = new Map(definition.inputs.map(input => [input.name, input]))
+  for (const definitionInput of definition.inputs) {
+    if (
+      definitionInput.required &&
+      inputs[definitionInput.name] === undefined &&
+      definitionInput.defaultValue === undefined
+    )
+      state.blockers.push(
+        issue('required-step-input-missing', `Required input ${definitionInput.name} is missing.`, location),
+      )
   }
   for (const [name, value] of Object.entries(inputs)) {
-    const definition = definitions.get(name)
-    if (!definition) {
-      blockers.push(issue('unknown-action-input', `Input ${name} is not declared by ${action.id}.`, location))
+    const definitionInput = definitions.get(name)
+    if (!definitionInput) {
+      state.blockers.push(
+        issue('unknown-step-input', `Input ${name} is not declared by ${definition.identity.id}.`, location),
+      )
       continue
     }
-    validateActionInputValue(name, value, definition, storedTypes, location, blockers)
+    const actual = resolveActionInputType(value, state)
+    if (isIncompatibleActionInputType(actual, definitionInput.type))
+      state.blockers.push(
+        issue(
+          'step-input-type-mismatch',
+          `Input ${name} requires ${definitionInput.type}, received ${actual}.`,
+          location,
+        ),
+      )
   }
 }
 
-function validateActionInputValue(
-  name: string,
-  value: unknown,
-  definition: ActionDescriptor['inputs'][number],
-  storedTypes: Map<string, string>,
-  location: Partial<ValidationAstIssue>,
-  blockers: ValidationAstIssue[],
-) {
-  const actual = resolveActionInputType(value, storedTypes)
-  if (isIncompatibleActionInputType(actual, definition.type))
-    blockers.push(
-      issue('action-input-type-mismatch', `Input ${name} requires ${definition.type}, received ${actual}.`, location),
-    )
-  blockers.push(...numericInputIssues(name, value, definition.numeric, location))
-}
-
-function resolveActionInputType(value: unknown, storedTypes: Map<string, string>) {
+function resolveActionInputType(value: unknown, state: ReferenceValidationState) {
   const type = scalarType(value)
-  if (type !== 'stored' || !value || typeof value !== 'object' || !('name' in value)) return type
-  return storedTypes.get(String(value.name))
+  if (!value || typeof value !== 'object') return type
+  if (type === 'stored' && 'name' in value) return state.stored.get(String(value.name))
+  if (type === 'environment' && 'key' in value) {
+    const key = String(value.key)
+    const resolvedTypes = new Set(
+      state.ast.matrix.map(item => {
+        const descriptor = state.context.environments[item.environmentId]
+        return descriptor?.types?.[key] ?? (key === 'baseUrl' || key === 'base-url' ? 'string' : undefined)
+      }),
+    )
+    return resolvedTypes.size === 1 ? [...resolvedTypes][0] : undefined
+  }
+  return type
 }
 
 function isIncompatibleActionInputType(actual: string | undefined, expected: string) {
-  return Boolean(actual && actual !== expected && actual !== 'environment' && actual !== 'custom-extension')
-}
-
-function numericInputIssues(
-  name: string,
-  value: unknown,
-  bounds: ActionDescriptor['inputs'][number]['numeric'],
-  location: Partial<ValidationAstIssue>,
-) {
-  if (typeof value !== 'number' || !bounds) return []
-  const issues: ValidationAstIssue[] = []
-  if (bounds.minimum !== undefined && value < bounds.minimum)
-    issues.push(issue('action-input-below-minimum', `Input ${name} is below its minimum.`, location))
-  if (bounds.maximum !== undefined && value > bounds.maximum)
-    issues.push(issue('action-input-above-maximum', `Input ${name} exceeds its maximum.`, location))
-  return issues
+  return Boolean(actual && actual !== expected && actual !== 'custom-extension')
 }
 
 function validateLocator(
@@ -177,7 +183,7 @@ type AstReference = { ref: string; id?: string; version?: string; name?: string;
 
 function validateReference(
   reference: AstReference,
-  action: ActionDescriptor,
+  action: ActionDescriptor | undefined,
   location: Partial<ValidationAstIssue>,
   state: ReferenceValidationState,
 ) {
@@ -192,7 +198,7 @@ function validateReference(
 
 function validateLocatorReference(
   reference: AstReference,
-  action: ActionDescriptor,
+  action: ActionDescriptor | undefined,
   location: Partial<ValidationAstIssue>,
   state: ReferenceValidationState,
 ) {
@@ -207,7 +213,7 @@ function validateLocatorReference(
     return
   }
   state.usedLocators.set(`${locator.id}@${locator.version}`, locator)
-  validateLocator(locator, action, state.context, location, state.blockers)
+  if (action) validateLocator(locator, action, state.context, location, state.blockers)
 }
 
 function validateEnvironmentReference(
@@ -246,31 +252,175 @@ function validateStep(
   state: ReferenceValidationState,
 ) {
   const location = { scenarioId, stepId: step.id }
-  const action = resolveAction(
-    state.context.actionCatalog,
-    step.operation.id,
-    step.operation.version,
-    location,
-    state.blockers,
-  )
-  if (!action) return
-  if (step.operation.descriptorHash && step.operation.descriptorHash !== action.contentHash) {
+  const exactReference = step.invocation.step
+  const readyDefinition = state.context.stepDefinitions.get(`${exactReference.id}@${exactReference.version}`)
+  if (!readyDefinition) {
     state.blockers.push(
       issue(
-        'operation-descriptor-stale',
-        `Operation ${action.id}@${action.version} descriptor hash is stale.`,
+        'step-reference-not-found',
+        `Step Definition ${exactReference.id}@${exactReference.version} was not found.`,
+        {
+          ...location,
+          referenceId: exactReference.id,
+        },
+      ),
+    )
+    return
+  }
+  if (readyDefinition.definitionHash !== exactReference.definitionHash) {
+    state.blockers.push(
+      issue(
+        'step-reference-stale',
+        `Step Definition ${exactReference.id}@${exactReference.version} hash is stale.`,
         location,
       ),
     )
     return
   }
-  state.actions.set(`${action.id}@${action.version}`, action)
-  validateActionAvailability(action, location, state)
-  validateActionInputs(action, step.operation.inputs, state.stored, location, state.blockers)
-  for (const value of Object.values(step.operation.inputs))
+  const definition = readyDefinition.definition
+  validateDefinitionInputs(definition, step.invocation.inputs, location, state)
+  const action = validateStepExecution(definition, location, state)
+  for (const value of Object.values(step.invocation.inputs))
     if (value && typeof value === 'object' && 'ref' in value)
       validateReference(value as AstReference, action, location, state)
-  recordStoredOutput(step.store, action, location, state)
+  recordStoredDefinitionOutput(step.invocation.store, definition, location, state)
+}
+
+function validateStepExecution(
+  definition: StepDefinition,
+  location: Partial<ValidationAstIssue>,
+  state: ReferenceValidationState,
+  visited = new Set<string>(),
+): ActionDescriptor | undefined {
+  const key = `${definition.identity.id}@${definition.identity.version}`
+  if (visited.has(key)) return undefined
+  visited.add(key)
+  if (definition.execution.kind === 'unbound') {
+    state.blockers.push(issue('step-execution-not-supported', `Step Definition ${key} is not runnable.`, location))
+    return undefined
+  }
+  if (definition.execution.kind === 'reviewed-extension') {
+    validateDefinitionAvailability(definition, definition.execution.runtime, location, state)
+    registerDefinitionSemanticDescriptor(definition, definition.execution.runtime, state)
+    return undefined
+  }
+  if (definition.execution.kind === 'composition') {
+    validateCompositionExecution(definition, location, state, visited)
+    return undefined
+  }
+  const action = resolveAction(
+    state.context.actionCatalog,
+    definition.execution.handlerId,
+    definition.execution.handlerVersion,
+    location,
+    state.blockers,
+  )
+  if (!action) return undefined
+  // The authored contract is the Step Definition, even when it delegates to a
+  // shared operation handler.  Keep capability metadata from the selected
+  // handler but key semantic consumers (coverage/profile) by the exact step.
+  state.actions.set(`${definition.identity.id}@${definition.identity.version}`, {
+    ...action,
+    id: definition.identity.id,
+    version: definition.identity.version,
+  })
+  validateActionAvailability(action, location, state)
+  return action
+}
+
+function validateCompositionExecution(
+  definition: StepDefinition,
+  location: Partial<ValidationAstIssue>,
+  state: ReferenceValidationState,
+  visited: Set<string>,
+) {
+  validateDefinitionAvailability(definition, undefined, location, state)
+  registerDefinitionSemanticDescriptor(definition, 'browser', state)
+  const definitions = [...state.context.stepDefinitions.values()].map(value => ({
+    definition: value.definition,
+    status: 'ready' as const,
+  }))
+  for (const diagnostic of validateStepDefinitionComposition(definition, definitions))
+    state.blockers.push(
+      issue('step-composition-invalid', diagnostic.message, {
+        ...location,
+        referenceId: `${definition.identity.id}@${definition.identity.version}`,
+      }),
+    )
+  for (const child of definition.execution.kind === 'composition' ? definition.execution.steps : [])
+    validateCompositionChild(child.step, location, state, visited)
+}
+
+function validateCompositionChild(
+  child: StepInvocation['step'],
+  location: Partial<ValidationAstIssue>,
+  state: ReferenceValidationState,
+  visited: Set<string>,
+) {
+  const resolved = state.context.stepDefinitions.get(`${child.id}@${child.version}`)
+  if (!resolved) {
+    state.blockers.push(
+      issue('step-composition-child-not-found', `Composition child ${child.id}@${child.version} was not found.`, {
+        ...location,
+        referenceId: child.id,
+      }),
+    )
+    return
+  }
+  if (resolved.definitionHash !== child.definitionHash) {
+    state.blockers.push(
+      issue('step-composition-child-stale', `Composition child ${child.id}@${child.version} hash is stale.`, location),
+    )
+    return
+  }
+  validateStepExecution(resolved.definition, location, state, visited)
+}
+
+function registerDefinitionSemanticDescriptor(
+  definition: StepDefinition,
+  runtime: ActionDescriptor['requirements']['runtime'],
+  state: ReferenceValidationState,
+) {
+  state.actions.set(`${definition.identity.id}@${definition.identity.version}`, {
+    id: definition.identity.id,
+    version: definition.identity.version,
+    title: definition.intent.title,
+    description: definition.intent.description,
+    categories: [definition.human.groupId],
+    inputs: definition.inputs.map(input => ({
+      name: input.name,
+      type: input.type,
+      required: input.required,
+      description: input.description,
+      constraints: input.constraints,
+    })),
+    outputs: definition.outputs.map(output => ({
+      name: output.name,
+      type: output.type,
+      description: output.description,
+    })),
+    requirements: { runtime, capabilities: definition.intent.capabilities },
+    examples: definition.agent.examples.map(example => ({
+      description: example.intent,
+      inputs: example.inputs,
+    })),
+    deprecated: definition.identity.status === 'deprecated',
+    assertionConcerns: [],
+    contentHash: computeStepReferenceHash(definition),
+  })
+}
+
+function validateDefinitionAvailability(
+  definition: StepDefinition,
+  runtime: ActionDescriptor['requirements']['runtime'] | undefined,
+  location: Partial<ValidationAstIssue>,
+  state: ReferenceValidationState,
+) {
+  if (runtime && !state.context.availableRuntimes.includes(runtime))
+    state.blockers.push(issue('runtime-unavailable', `Runtime ${runtime} is unavailable.`, location))
+  for (const capability of definition.intent.capabilities)
+    if (!state.context.availableCapabilities.includes(capability))
+      state.blockers.push(issue('capability-unavailable', `Capability ${capability} is unavailable.`, location))
 }
 
 function validateActionAvailability(
@@ -288,17 +438,29 @@ function validateActionAvailability(
       state.blockers.push(issue('capability-unavailable', `Capability ${capability} is unavailable.`, location))
 }
 
-function recordStoredOutput(
+function recordStoredDefinitionOutput(
   store: { output: string; as: string } | undefined,
-  action: ActionDescriptor,
+  definition: StepDefinition,
   location: Partial<ValidationAstIssue>,
   state: ReferenceValidationState,
 ) {
   if (!store) return
-  const output = action.outputs.find(candidate => candidate.name === store.output)
+  const output = definition.outputs.find(candidate => candidate.name === store.output)
   if (!output)
     state.blockers.push(
-      issue('action-output-not-found', `Action ${action.id} does not produce ${store.output}.`, location),
+      issue(
+        'step-output-not-found',
+        `Step Definition ${definition.identity.id} does not produce ${store.output}.`,
+        location,
+      ),
+    )
+  else if (!output.storable)
+    state.blockers.push(
+      issue(
+        'step-output-not-storable',
+        `Step Definition ${definition.identity.id} output ${store.output} is not storable.`,
+        location,
+      ),
     )
   else state.stored.set(store.as, output.type)
 }
@@ -432,7 +594,7 @@ function validateCoverageObservations(
   const unobservable = mapping.observationStepIds.flatMap(stepId => {
     const step = steps.get(stepId)
     if (!step) return []
-    const action = actionByIdentity.get(`${step.operation.id}@${step.operation.version}`)
+    const action = actionByIdentity.get(`${step.invocation.step.id}@${step.invocation.step.version}`)
     return action?.requirements.capabilities.includes('assertions')
       ? []
       : [
@@ -534,7 +696,7 @@ const SEMANTIC_TOKEN_STOP_WORDS = new Set([
 ])
 
 function semanticTokens(step: ValidationAst['scenarios'][number]['steps'][number]) {
-  const inputText = Object.values(step.operation.inputs)
+  const inputText = Object.values(step.invocation.inputs)
     .flatMap(value => {
       if (typeof value === 'string') return [value]
       if (value && typeof value === 'object' && 'id' in value && typeof value.id === 'string') return [value.id]
@@ -542,7 +704,7 @@ function semanticTokens(step: ValidationAst['scenarios'][number]['steps'][number
     })
     .join(' ')
   return new Set(
-    `${step.description} ${inputText}`
+    `${stepDescription(step)} ${inputText}`
       .toLowerCase()
       .split(/[^a-z0-9]+/)
       .filter(token => token.length > 2 && !SEMANTIC_TOKEN_STOP_WORDS.has(token)),
@@ -575,7 +737,7 @@ function persistenceObservationWarnings(
   if (observationIndex < 0) return []
   const observation = scenario.steps[observationIndex]!
   const warnings: ValidationAstIssue[] = []
-  const reloadIndex = scenario.steps.findIndex(step => step.operation.id === 'browser.navigation.reload')
+  const reloadIndex = scenario.steps.findIndex(step => step.invocation.step.id === 'browser.navigation.reload')
   if (reloadIndex < 0 || observationIndex <= reloadIndex) {
     warnings.push(
       issue(
@@ -587,7 +749,7 @@ function persistenceObservationWarnings(
   }
   const destructive = scenario.steps
     .slice(0, observationIndex)
-    .find(step => describesEntityDestruction(step.description) && hasSharedSemanticToken(step, observation))
+    .find(step => describesEntityDestruction(stepDescription(step)) && hasSharedSemanticToken(step, observation))
   if (destructive) {
     warnings.push(
       issue(

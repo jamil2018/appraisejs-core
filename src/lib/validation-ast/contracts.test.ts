@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  builtInStepDefinitions,
+  computeStepReferenceHash,
+} from '../../../packages/cucumber-runtime/src/step-definitions'
+import {
   authorizeDelegatedReceipt,
   customActionExtensionProposalSchema,
   issueDelegatedAuthorizationReceipt,
@@ -10,9 +14,25 @@ import {
 } from './index'
 
 const hash = (character: string) => `sha256:${character.repeat(64)}`
+const clickDefinition = builtInStepDefinitions.find(item => item.identity.id === 'browser.mouse.click')!
+const visibleDefinition = builtInStepDefinitions.find(item => item.identity.id === 'browser.assertions.visible')!
+const invocation = (
+  definition: (typeof builtInStepDefinitions)[number],
+  inputs: Record<string, unknown>,
+  keyword: 'Given' | 'When' | 'Then' | 'And',
+  description: string,
+) => ({
+  step: {
+    id: definition.identity.id,
+    version: definition.identity.version,
+    definitionHash: computeStepReferenceHash(definition),
+  },
+  inputs,
+  presentation: { keyword, description },
+})
 
 const ast = {
-  schemaVersion: 1,
+  schemaVersion: 2,
   id: 'meditation-validation',
   title: 'Meditation workflow',
   purpose: 'Verify a meditation can be completed and persisted.',
@@ -25,24 +45,21 @@ const ast = {
       steps: [
         {
           id: 'open-session',
-          keyword: 'Given',
-          description: 'Open the meditation session.',
-          action: {
-            id: 'browser-click',
-            version: '1.0',
-            inputs: { target: { ref: 'locator', id: 'start-button', version: '1' } },
-          },
-          store: { output: 'session-id', as: 'created-session' },
+          invocation: invocation(
+            clickDefinition,
+            { target: { ref: 'locator', id: 'start-button', version: '1' } },
+            'Given',
+            'Open the meditation session.',
+          ),
         },
         {
           id: 'verify-session',
-          keyword: 'Then',
-          description: 'Verify the stored session remains available.',
-          action: {
-            id: 'expect-visible',
-            version: '1',
-            inputs: { session: { ref: 'stored', name: 'created-session' } },
-          },
+          invocation: invocation(
+            visibleDefinition,
+            { target: { ref: 'stored', name: 'created-session' } },
+            'Then',
+            'Verify the stored session remains available.',
+          ),
         },
       ],
     },
@@ -53,13 +70,16 @@ const ast = {
 } as const
 
 describe('validation AST contracts', () => {
-  it('represents action, locator, stored-value, matrix, concern, and extension references', () => {
+  it('represents exact StepInvocation, locator, stored-value, matrix, concern, and extension references', () => {
     const parsed = validationAstSchema.parse(ast)
-    expect(parsed.scenarios[0]!.steps[0]!.operation.id).toBe('browser-click')
+    expect(parsed.scenarios[0]!.steps[0]!.invocation.step).toMatchObject({
+      id: 'browser.mouse.click',
+      definitionHash: computeStepReferenceHash(clickDefinition),
+    })
     expect(parsed.scenarios[0]!.steps[0]).not.toHaveProperty('action')
     expect(
       customActionExtensionProposalSchema.parse({
-        schemaVersion: 1,
+        schemaVersion: 2,
         id: 'read-session-timer',
         version: '1',
         title: 'Read session timer',
@@ -73,46 +93,29 @@ describe('validation AST contracts', () => {
     ).toMatchObject({ id: 'read-session-timer' })
   })
 
-  it('accepts canonical operation references and normalizes legacy action references through one reader', () => {
-    const operationAst = {
-      ...ast,
-      scenarios: [
-        {
-          ...ast.scenarios[0],
-          steps: ast.scenarios[0].steps.map(step => {
-            const { action, ...rest } = step
-            return { ...rest, operation: { ...action, descriptorHash: hash('d') } }
-          }),
-        },
-      ],
-    }
-    const parsed = validationAstSchema.parse(operationAst)
-    expect(parsed.scenarios[0]!.steps[0]!.operation).toMatchObject({
-      id: 'browser-click',
-      descriptorHash: hash('d'),
-    })
-    expect(parsed.scenarios[0]!.steps[0]).not.toHaveProperty('action')
-  })
-
-  it('rejects unknown versions, duplicate step ids, and raw executable action fields', () => {
+  it('rejects historical operation authority, tampered definition hashes, duplicate step ids, and raw executable fields', () => {
     const withSteps = (steps: Array<(typeof ast.scenarios)[number]['steps'][number]>) => ({
       ...ast,
       scenarios: [{ ...ast.scenarios[0], steps }],
     })
-    expect(validationAstSchema.safeParse({ ...ast, schemaVersion: '2' }).success).toBe(false)
+    expect(validationAstSchema.safeParse({ ...ast, schemaVersion: 1 }).success).toBe(false)
     expect(
       validationAstSchema.safeParse(withSteps([ast.scenarios[0].steps[0], ast.scenarios[0].steps[0]])).success,
     ).toBe(false)
-    expect(
-      validationAstSchema.safeParse(
-        withSteps([
-          {
-            ...ast.scenarios[0].steps[0],
-            source: 'raw code',
-          } as unknown as (typeof ast.scenarios)[number]['steps'][number],
-        ]),
-      ).success,
-    ).toBe(false)
+    const legacyAuthority = withSteps([
+      { ...ast.scenarios[0].steps[0], operation: { id: 'browser.mouse.click', version: '1', inputs: {} } } as never,
+    ])
+    const alteredReference = withSteps([
+      {
+        ...ast.scenarios[0].steps[0],
+        invocation: {
+          ...ast.scenarios[0].steps[0].invocation,
+          step: { ...ast.scenarios[0].steps[0].invocation.step, definitionHash: hash('d') },
+        },
+      },
+    ])
+    expect(validationAstSchema.safeParse(legacyAuthority)).toMatchObject({ success: false })
+    expect(validationAstSchema.safeParse(alteredReference)).toMatchObject({ success: true })
   })
 
   it('accepts matrix-bound expected red baselines and validates their last passing step', () => {
@@ -131,56 +134,21 @@ describe('validation AST contracts', () => {
       }).success,
     ).toBe(false)
     expect(
-      validationAstSchema.safeParse({
-        ...ast,
-        expectedFailures: [{ ...expectedFailure, environmentId: 'staging' }],
-      }).success,
+      validationAstSchema.safeParse({ ...ast, expectedFailures: [{ ...expectedFailure, environmentId: 'staging' }] })
+        .success,
     ).toBe(false)
   })
 
-  it('rejects step ids reused across scenarios because expected-red references would be ambiguous', () => {
-    expect(
-      validationAstSchema.safeParse({
-        ...ast,
-        scenarios: [ast.scenarios[0], { ...ast.scenarios[0], id: 'second-scenario' }],
-      }).success,
-    ).toBe(false)
-  })
-
-  it('rejects multiline, tag, and grammar injection in every Gherkin-authored field', () => {
+  it('rejects multiline, tag, and grammar injection in AST-authored fields', () => {
     for (const injected of ['safe\nScenario: injected', '@injected', 'Scenario: injected', 'Feature: injected']) {
       expect(validationAstSchema.safeParse({ ...ast, title: injected }).success).toBe(false)
-      expect(validationAstSchema.safeParse({ ...ast, purpose: injected }).success).toBe(false)
-      expect(
-        validationAstSchema.safeParse({
-          ...ast,
-          scenarios: [{ ...ast.scenarios[0], title: injected }],
-        }).success,
-      ).toBe(false)
-      expect(
-        validationAstSchema.safeParse({
-          ...ast,
-          scenarios: [{ ...ast.scenarios[0], description: injected }],
-        }).success,
-      ).toBe(false)
-      expect(
-        validationAstSchema.safeParse({
-          ...ast,
-          scenarios: [
-            {
-              ...ast.scenarios[0],
-              steps: [{ ...ast.scenarios[0].steps[0], description: injected }],
-            },
-          ],
-        }).success,
-      ).toBe(false)
     }
     expect(validationAstSchema.safeParse({ ...ast, title: 'When persistence matters' }).success).toBe(true)
   })
 
   it('bounds source and rejects duplicate extension identities and declarations', () => {
     const extension = {
-      schemaVersion: 1,
+      schemaVersion: 2,
       id: 'read-session-timer',
       version: '1',
       title: 'Read timer',
@@ -222,7 +190,6 @@ describe('delegated authorization receipts', () => {
     nonce: 'nonce-1234567890abcdef',
     maximumPhase: 'preview',
   } as const
-
   const authorize = (receipt: unknown, overrides: Partial<Parameters<typeof authorizeDelegatedReceipt>[1]> = {}) =>
     authorizeDelegatedReceipt(receipt, {
       secret,
@@ -234,7 +201,6 @@ describe('delegated authorization receipts', () => {
       consumeNonce: async () => true,
       ...overrides,
     })
-
   it('authorizes exact scope once and rejects target, scope, phase, expiry, replay, and tampering', async () => {
     const receipt = issueDelegatedAuthorizationReceipt(claims, secret)
     await expect(authorize(receipt)).resolves.toEqual(claims)

@@ -38,7 +38,7 @@ const [testCaseSteps, templateCaseSteps, blockSteps] = await Promise.all([
 ])
 
 const caseUpdates = testCaseSteps.flatMap(step => {
-  const operationInvocationJson = buildCanonicalInvocationJson(step.TemplateStep, {
+  const operationInvocationJson = buildCanonicalInvocationJson(step.TemplateStep ?? undefined, {
     gherkinStep: step.gherkinStep,
     parameters: step.parameters.map(parameter => ({ name: parameter.name, value: parameter.value })),
   })
@@ -47,7 +47,7 @@ const caseUpdates = testCaseSteps.flatMap(step => {
     : []
 })
 const templateUpdates = templateCaseSteps.flatMap(step => {
-  const operationInvocationJson = buildCanonicalInvocationJson(step.TemplateStep, {
+  const operationInvocationJson = buildCanonicalInvocationJson(step.TemplateStep ?? undefined, {
     gherkinStep: step.gherkinStep,
     parameters: step.parameters.map(parameter => ({ name: parameter.name, value: parameter.defaultValue })),
   })
@@ -66,7 +66,7 @@ function blockUpdate(step: (typeof blockSteps)[number]) {
 const blockUpdates = blockSteps.flatMap(step => blockUpdate(step) ?? [])
 
 const manualOnlyRows =
-  testCaseSteps.filter(step => !isMappedOperationTemplate(step.TemplateStep)).length +
+  testCaseSteps.filter(step => !isMappedOperationTemplate(step.TemplateStep ?? undefined)).length +
   templateCaseSteps.filter(step => !isMappedOperationTemplate(step.TemplateStep)).length +
   blockSteps.filter(step => !isMappedOperationTemplate(step.templateStep)).length
 const unchangedMappedRows =

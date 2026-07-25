@@ -1,17 +1,17 @@
 # Graph Report - prisma
 
 ## Corpus Check
-- 61 files from prisma/schema.prisma and migrations
+- 62 files from prisma/schema.prisma and migrations
 - Verdict: schema-aware graph generated because Graphify AST extraction does not currently produce Prisma/SQL nodes.
 
 ## Summary
-- 1314 nodes · 2954 edges · 194 communities
+- 1319 nodes · 2962 edges · 197 communities
 - Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS
 - Token cost: 0 input · 0 output
 
 ## God Nodes (most connected - your core abstractions)
-1. `String` - 552 edges
-2. `schema.prisma` - 174 edges
+1. `String` - 554 edges
+2. `schema.prisma` - 175 edges
 3. `TargetProject` - 157 edges
 4. `DateTime` - 144 edges
 5. `PlanProjection` - 91 edges
@@ -42,7 +42,7 @@
 ## Import Cycles
 - None detected.
 
-## Communities (194 total)
+## Communities (197 total)
 ### Community 0 - "schema.prisma"
 Nodes (3): schema.prisma, datasource db (sqlite), Prisma client generator
 
@@ -65,7 +65,7 @@ Nodes (20): StepDefinition, StepDefinition.id, StepDefinition.version, StepDefin
 Nodes (15): StepDefinitionDraft, StepDefinitionDraft.id, StepDefinitionDraft.proposedStepId, StepDefinitionDraft.proposedVersion, StepDefinitionDraft.revision, StepDefinitionDraft.draftJson, StepDefinitionDraft.draftHash, StepDefinitionDraft.validationReportJson (+more)
 
 ### Community 7 - "StepBlockMigrationLedger"
-Nodes (16): StepBlockMigrationLedger, StepBlockMigrationLedger.sourceStepBlockId, StepBlockMigrationLedger.sourceHash, StepBlockMigrationLedger.draftSourceHash, StepBlockMigrationLedger.snapshotJson, StepBlockMigrationLedger.classification, StepBlockMigrationLedger.diagnosticsJson, StepBlockMigrationLedger.proposedStepId (+more)
+Nodes (18): StepBlockMigrationLedger, StepBlockMigrationLedger.sourceStepBlockId, StepBlockMigrationLedger.initialSourceHash, StepBlockMigrationLedger.initialSnapshotJson, StepBlockMigrationLedger.sourceHash, StepBlockMigrationLedger.draftSourceHash, StepBlockMigrationLedger.snapshotJson, StepBlockMigrationLedger.classification (+more)
 
 ### Community 8 - "StepDefinitionDraftArtifact"
 Nodes (16): StepDefinitionDraftArtifact, StepDefinitionDraftArtifact.draftId, StepDefinitionDraftArtifact.contractSource, StepDefinitionDraftArtifact.handlerSource, StepDefinitionDraftArtifact.examplesJson, StepDefinitionDraftArtifact.manifestJson, StepDefinitionDraftArtifact.sourceHash, StepDefinitionDraftArtifact.compiledSource (+more)
@@ -624,6 +624,15 @@ Nodes (1): 20260722223000_add_step_definition_reviewed_extensions
 
 ### Community 193 - "20260725190000_add_step_block_migration_ledger"
 Nodes (1): 20260725190000_add_step_block_migration_ledger
+
+### Community 194 - "_LegacyCompositionDefinition"
+Nodes (1): _LegacyCompositionDefinition
+
+### Community 195 - "20260725193000_make_validation_projection_template_step_optional"
+Nodes (1): 20260725193000_make_validation_projection_template_step_optional
+
+### Community 196 - "new_TestCaseStep"
+Nodes (1): new_TestCaseStep
 
 ## Suggested Questions
 - Which models are connected to PlanProjection?

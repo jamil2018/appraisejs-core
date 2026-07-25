@@ -1,10 +1,11 @@
 import { z } from 'zod'
 
-export const VALIDATION_AST_SCHEMA_VERSION = 1 as const
+export const VALIDATION_AST_SCHEMA_VERSION = 2 as const
 
 import { locatorCatalogReferenceSchema } from '@/lib/catalog-contracts'
 
 import { actionReferenceIdentitySchema } from '@/lib/action-contracts'
+import { stepInvocationSchema } from '../../../packages/cucumber-runtime/src/step-definitions/contracts.ts'
 import { validationAstAuthoringProfileSchema } from './authoring-profile'
 import { gherkinSafeSingleLineSchema } from './gherkin-safety'
 
@@ -53,8 +54,6 @@ export const actionReferenceSchema = actionReferenceIdentitySchema.extend({
   }),
 })
 
-export const operationReferenceSchema = actionReferenceSchema
-
 export const validationMatrixEntrySchema = z.object({
   browser: z.enum(['chromium', 'firefox', 'webkit']).optional(),
   environmentId: idSchema,
@@ -87,23 +86,28 @@ export const coverageMappingSchema = z
   })
   .strict()
 
-const validationAstStepBaseSchema = z.object({
-  id: idSchema,
-  keyword: z.enum(['Given', 'When', 'Then', 'And']),
-  description: gherkinTextSchema,
-  store: z.object({ output: idSchema, as: idSchema }).optional(),
-})
-
+/**
+ * V2 has one executable authority: an exact, content-addressed Step Invocation.
+ * The presentation text belongs to the invocation so it cannot select a step by
+ * name or be reverse-mapped through TemplateStep.
+ */
 export const validationAstStepSchema = z
-  .union([
-    validationAstStepBaseSchema.extend({ operation: operationReferenceSchema }).strict(),
-    validationAstStepBaseSchema.extend({ action: actionReferenceSchema }).strict(),
-  ])
-  .transform(value => {
-    if ('operation' in value) return value
-    const { action, ...step } = value
-    return { ...step, operation: action }
+  .object({
+    id: idSchema,
+    invocation: stepInvocationSchema.superRefine((invocation, context) => {
+      const description = invocation.presentation?.description
+      if (
+        description &&
+        !gherkinSafeSingleLineSchema(VALIDATION_AST_LIMITS.textCharacters).safeParse(description).success
+      )
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['presentation', 'description'],
+          message: 'Step presentation description must be safe single-line Gherkin text.',
+        })
+    }),
   })
+  .strict()
 
 export const validationAstSchema = z
   .object({
@@ -163,9 +167,8 @@ export const validationAstSchema = z
       ['customExtensions', value.customExtensions],
       ['scenarios', value.scenarios.map(item => item.id)],
       ...value.scenarios.map((scenario, index) => [`scenarios.${index}.steps`, scenario.steps.map(item => item.id)]),
-    ] as Array<[string, string[]]>) {
+    ] as Array<[string, string[]]>)
       if (new Set(ids).size !== ids.length) context.addIssue({ code: 'custom', message: `Duplicate ID in ${path}.` })
-    }
   })
 
 const extensionFieldSchema = z.object({
@@ -214,6 +217,8 @@ export const validationAstSubmissionSchema = z
       .max(VALIDATION_AST_LIMITS.extensionProposals)
       .default([]),
   })
+
+  /** New publications must opt into this schema; V1 is decoder-only evidence. */
   .superRefine((value, context) => {
     const identities = value.customExtensionProposals.map(proposal => `${proposal.id}@${proposal.version}`)
     if (new Set(identities).size !== identities.length)

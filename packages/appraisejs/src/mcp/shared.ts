@@ -66,8 +66,6 @@ const baseWorkflowCriticalTools = [
   'step_definition_draft_submit_for_review',
   'step_definition_publish',
   'step_definition_deprecate',
-  'template_step_search',
-  'template_step_match',
   'step_block_search',
   'locator_search',
   'validation_resources_propose',

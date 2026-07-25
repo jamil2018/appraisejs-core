@@ -56,7 +56,10 @@ export function registerResourcesOperations(context: McpRegistryContext): void {
             acceptedAlias: 'id',
             fields: ['id', 'astRef', 'version', 'targetProjectId', 'moduleId', 'locatorGroupId'],
           },
-          templateStepScope: 'shared_library',
+          stepInvocation: {
+            requiredFields: ['step.id', 'step.version', 'step.definitionHash', 'inputs', 'presentation'],
+            source: 'ready-step-definition-registry',
+          },
         },
       },
     },

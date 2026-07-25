@@ -65,10 +65,13 @@ Continuation state:
   Step Definition/coordinator tests, 13 swarm harness tests, the production build, the create-appraisejs test/build
   gates, and the release CI, coordinator-reference, generated-artifact, and package-content checks. The earlier
   release job failure was only the aggregate result of the repaired Root app and security/quality failures.
-- Tranches 6-7 have not started. Consumer cutover, legacy-authority removal, rollout, and deletion gates remain
-  outstanding.
-- Resume with the remaining Tranche 5 composition backfill, authoring, and runtime work before consumer cutover. Do
-  not restore legacy Template Step creation as independent authoring authority.
+- Tranche 6 is in progress. Validation AST publication is invocation-only, capsule materialization seals the exact
+  Step Definition closure, and the runtime dispatches operation, reviewed-extension, and composition definitions
+  from that closure. Authored test cases, template test cases, Step Blocks, feature import/sync, and their UI routes
+  still retain Template Step authority and are the next cutover boundary.
+- Resume with Task 6.1 by moving every authored-step consumer to exact Step Invocations, then delete Template Step
+  writers, routes, registry projections, and persistence instead of retaining compatibility adapters. Tranche 7
+  governance and Tranche 8 release certification remain outstanding.
 
 Checkpoint commits:
 
@@ -760,19 +763,17 @@ Existing rows are classified before mutation:
 
 ### Compatibility window
 
-- Legacy Template Step and operation APIs become read-only projections of ready Step Definitions.
-- Compatibility decoders accept historical `action`, `operationRef`, `templateStepId`, and `templateStepName` inputs,
-  resolve them to one Step Reference, and record usage.
-- No new writes create or update independent Template Step or operation mapping authority.
-- CI prevents new code from depending on legacy mapping fields outside the bounded compatibility module.
-- Removal occurs only after usage telemetry and repository scans show zero active writers and supported consumers have
-  migrated.
+- **Decision update (2026-07-25):** the user explicitly authorized deleting Template Steps and not preserving legacy
+  steps. There is no legacy authoring or Validation AST compatibility window on this unreleased migration branch.
+- V1 `action`, `operationRef`, `templateStepId`, and `templateStepName` inputs are removed rather than decoded.
+- Exact published Step Definition references and receipts remain historically resolvable, including deprecated
+  definitions; this is immutable publication evidence, not legacy Template Step compatibility.
+- CI prevents new code from restoring legacy mapping fields or independent Template Step authority.
 
 ### Rollback
 
-The migration remains rollback-safe until cutover by retaining legacy rows and deterministic back-reference data.
-Rollback disables new publication, restores compatibility projections as primary reads, and leaves ready definitions
-intact. Published historical versions and receipts are never deleted during rollback.
+Rollback disables new publication and leaves ready definitions and their immutable receipts intact. It does not
+restore discarded Template Step or V1 Validation AST authority.
 
 ## Implementation Tranches
 
@@ -1086,6 +1087,11 @@ Allow a shared definition to bind a reviewed extension without storing executabl
 
 ### Task 6.1: Migrate authored test records
 
+**Progress (2026-07-25):** Started only for Appraise-managed Validation AST projection rows. Those rows now have an
+exact invocation persistence path and no longer need a Template Step lookup or creation. This is not a migration of
+authored test cases, template test cases, flow diagrams, imports/exports, feature generation, or sync; Task 6.1 and
+Tranche 6 remain incomplete.
+
 Update test cases, template test cases, flow diagrams, parameters, imports/exports, feature generation, and sync to store
 or derive exact Step Invocations.
 
@@ -1093,7 +1099,9 @@ or derive exact Step Invocations.
 
 - Human-readable Gherkin remains stable.
 - Every executable authored step resolves one immutable Step Reference.
-- Existing CRUD and bidirectional-sync behavior remains supported through bounded compatibility adapters.
+- CRUD and bidirectional sync operate on Step Invocations without Template Step compatibility adapters.
+- Template Step persistence, routes, writers, and generated registry projections are deleted after all authored-step
+  consumers use the unified definition contract.
 
 **Verification**
 
@@ -1101,20 +1109,32 @@ or derive exact Step Invocations.
 
 ### Task 6.2: Migrate Validation AST and canonical projection
 
+**Progress (2026-07-25):** The v2 AST contract has an invocation-only step shape and the managed projection rejects
+rows without an exact invocation. The compiler resolves exact ready Step Definitions before consulting their sealed
+handler bindings, and runtime-input snapshots carry exact invocations and definition references. Remaining legacy-v1
+fixtures are removal work, not a compatibility commitment; publication/review certification is still open.
+
 Replace operation/action references with Step References and remove reverse Template Step lookup from the canonical
 projection path.
 
 **Acceptance criteria**
 
 - New AST publications contain only Step Invocations.
-- Historical schemas decode deterministically and record compatibility use.
+- V1 action/operation/template-step schemas are rejected and removed from active authoring surfaces.
 - Projection cannot select among duplicate mappings or fall back by human name.
 
 **Verification**
 
-- AST check, preview, compile, publication, review, integrity, and historical fixture tests pass.
+- AST check, preview, compile, publication, review, integrity, and V1 rejection tests pass.
 
 ### Task 6.3: Migrate capsule and runtime contracts
+
+**Progress (2026-07-25):** V2 materialization resolves root invocations through the ready-definition registry, seals
+the exact publication-hash closure into the capsule, and generates bindings that call one invocation dispatcher.
+That dispatcher supports trusted operation bindings, reviewed-extension module paths, and ordered compositions with
+parent-input and earlier-output mappings. Focused materializer/browser and dispatcher tests pass. Baseline, retry,
+evidence, full publication/review, and removal of the remaining v1 fixtures are still required before Task 6.3 or
+Checkpoint 6 can be accepted.
 
 Seal the exact ready definition closure, execution bindings, composition dependencies, locator snapshots, extension
 reviews, and hashes into immutable capsules.
@@ -1190,13 +1210,14 @@ deprecation, and source-owned regeneration rules.
 ### Task 8.1: Disable legacy writers
 
 Remove direct Template Step creation/update semantics, operation mapping writes, and Step Block-specific semantic
-authority. Retain explicit compatibility reads and historical decoders only.
+authority. Do not retain Template Step compatibility reads or historical decoders on this unreleased branch; exact
+published Step Definition references remain resolvable through their immutable receipts.
 
 **Acceptance criteria**
 
 - Repository scans and CI guards reject new legacy-field writers.
 - UI and MCP expose Step Definition vocabulary.
-- Compatibility usage is measurable and documented with removal criteria.
+- Repository scans find no active Template Step compatibility usage.
 
 **Verification**
 

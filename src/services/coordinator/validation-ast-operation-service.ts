@@ -3,6 +3,8 @@ import type { PrismaClient } from '@prisma/client'
 
 import prisma from '@/config/db-config'
 import { listOperationCapabilities, operationValidationCatalog } from '@/lib/operation-catalog'
+import { sealPersistedReadyStepDefinition } from '@/lib/runtime-capsule/step-definition-closure'
+import type { StepDefinition } from '../../../packages/cucumber-runtime/src/step-definitions/contracts.ts'
 import { canonicalContractJson } from '@/lib/catalog-contracts'
 import {
   parseYamlArtifact,
@@ -47,17 +49,27 @@ async function loadValidationAstContext(planId: string, client: PrismaClient) {
   if (!plan.targetProject) throw new ServiceError('Plan must be bound to an authoritative target project.', 'CONFLICT')
   if (!['preparing_validations', 'validation_changes_requested'].includes(plan.lifecycle))
     throw new ServiceError('The plan is not preparing validations.', 'CONFLICT')
-  const [locatorGraph, allEnvironments, environmentOwnerships] = await Promise.all([
+  const [locatorGraph, allEnvironments, environmentOwnerships, persistedStepDefinitions] = await Promise.all([
     buildLocatorGraph(client, plan.targetProject.id),
     client.environment.findMany({ where: { targetProjectId: plan.targetProject.id }, orderBy: { name: 'asc' } }),
     readVisibleResourceOwnerships(plan.targetProject.id, ['environment'], client),
+    client.stepDefinition.findMany({
+      where: { status: 'ready' },
+      include: { publicationReceipt: true },
+      orderBy: [{ id: 'asc' }, { version: 'asc' }],
+    }),
   ])
   const environments = allEnvironments.filter(
     environment => !environmentOwnerships || environmentOwnerships.has(`environment:${environment.id}`),
   )
   const environmentContext = Object.fromEntries(
     environments.flatMap(environment => {
-      const descriptor = { keys: ['baseUrl'], name: environment.name, reference: environment.id }
+      const descriptor = {
+        keys: ['baseUrl'],
+        types: { baseUrl: 'string' },
+        name: environment.name,
+        reference: environment.id,
+      }
       return [
         [environment.id, descriptor],
         [environment.name, descriptor],
@@ -69,6 +81,23 @@ async function loadValidationAstContext(planId: string, client: PrismaClient) {
     projectFingerprint: plan.targetProject.fingerprint,
     capabilityImports: PROJECT_EXTENSION_CAPABILITY_IMPORTS,
   })
+  const stepDefinitions = new Map<string, { definition: StepDefinition; definitionHash: string; receiptHash: string }>()
+  for (const row of persistedStepDefinitions) {
+    let sealed
+    try {
+      sealed = sealPersistedReadyStepDefinition(row)
+    } catch {
+      throw new ServiceError(
+        `Persisted Step Definition ${row.id}@${row.version} is not valid published authority.`,
+        'CONFLICT',
+      )
+    }
+    stepDefinitions.set(`${sealed.step.id}@${sealed.step.version}`, {
+      definition: sealed.definition,
+      definitionHash: sealed.step.definitionHash,
+      receiptHash: sealed.hashes.publicationReceipt,
+    })
+  }
   const builtInBrowserCapabilities = listOperationCapabilities('browser')
   const compilerContext: ValidationAstCompilerContext = {
     project: { id: plan.targetProject.id, fingerprint: plan.targetProject.fingerprint },
@@ -76,6 +105,7 @@ async function loadValidationAstContext(planId: string, client: PrismaClient) {
     currentPlanHash: plan.sourceHash,
     planTaskIds: plan.tasks.map(task => task.taskId),
     actionCatalog: operationValidationCatalog,
+    stepDefinitions,
     locatorGraph,
     environments: environmentContext,
     availableRuntimes: ['browser'],
@@ -86,6 +116,7 @@ async function loadValidationAstContext(planId: string, client: PrismaClient) {
     targetFingerprint: plan.targetProject.fingerprint,
     planHash: plan.sourceHash,
     catalogHash: operationValidationCatalog.catalogHash,
+    stepDefinitions: [...stepDefinitions.entries()].map(([key, value]) => [key, value.definitionHash]),
     locatorGraphHash: locatorGraph.contentHash,
     environments: environmentContext,
     extensionPolicy,
@@ -179,7 +210,21 @@ function bindPublishProvenance(
     receiptHash,
     compilerReceipt: preview.commandReceipt,
     extensionPolicy: context.compilerContext.extensionPolicy,
-    operations: preview.operations,
+    rootInvocations: preview.canonicalProjection.validationNode.appraiseArtifacts.testCases.flatMap(testCase =>
+      [...testCase.steps]
+        .sort((left, right) => left.order - right.order)
+        .map(step => ({ caseId: testCase.id, stepId: step.id, invocation: step.invocation })),
+    ),
+    stepDefinitions: [
+      ...new Map(
+        preview.canonicalProjection.validationNode.appraiseArtifacts.testCases.flatMap(testCase =>
+          testCase.steps.map(step => [
+            `${step.invocation.step.id}@${step.invocation.step.version}#${step.invocation.step.definitionHash}`,
+            step.invocation.step,
+          ]),
+        ),
+      ).values(),
+    ].sort((left, right) => `${left.id}@${left.version}`.localeCompare(`${right.id}@${right.version}`)),
     locators: preview.locators.map(locator => ({
       ...locator,
       binding: preview.canonicalProjection.validationNode.appraiseArtifacts.locators.find(

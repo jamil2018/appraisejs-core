@@ -1,12 +1,12 @@
 export const ACTION_CATALOG_CONTRACT_VERSION = '1' as const
 export const OPERATION_CATALOG_CONTRACT_VERSION = '1' as const
 export const LOCATOR_GRAPH_CONTRACT_VERSION = '1' as const
-export const VALIDATION_AST_SCHEMA_VERSION = 1 as const
+export const VALIDATION_AST_SCHEMA_VERSION = 2 as const
 export const DELEGATED_AUTHORIZATION_VERSION = '1' as const
 
 export const VALIDATION_AST_JSON_SCHEMA = {
   $schema: 'https://json-schema.org/draft/2020-12/schema',
-  $id: 'appraise://contracts/validation-ast/v1',
+  $id: 'appraise://contracts/validation-ast/v2',
   title: 'Appraise managed Validation AST submission',
   type: 'object',
   additionalProperties: false,
@@ -37,6 +37,14 @@ export const VALIDATION_AST_JSON_SCHEMA = {
         { type: 'string' },
         { type: 'number' },
         { type: 'boolean' },
+        { type: 'null' },
+        { type: 'array', maxItems: 100, items: { $ref: '#/$defs/value' } },
+        {
+          type: 'object',
+          maxProperties: 100,
+          additionalProperties: { $ref: '#/$defs/value' },
+          not: { required: ['ref'] },
+        },
         {
           type: 'object',
           additionalProperties: false,
@@ -55,36 +63,59 @@ export const VALIDATION_AST_JSON_SCHEMA = {
           required: ['ref', 'name'],
           properties: { ref: { const: 'stored' }, name: { $ref: '#/$defs/id' } },
         },
+        {
+          type: 'object',
+          additionalProperties: false,
+          required: ['ref', 'id', 'version'],
+          properties: {
+            ref: { const: 'custom-extension' },
+            id: { $ref: '#/$defs/id' },
+            version: { type: 'string' },
+          },
+        },
       ],
     },
-    operationRef: {
+    stepReference: {
       type: 'object',
       additionalProperties: false,
-      required: ['id', 'version', 'inputs'],
+      required: ['id', 'version', 'definitionHash'],
       properties: {
         id: { type: 'string' },
         version: { type: 'string' },
-        descriptorHash: { type: 'string', pattern: '^sha256:[a-f0-9]{64}$' },
-        inputs: { type: 'object', additionalProperties: { $ref: '#/$defs/value' }, maxProperties: 32 },
+        definitionHash: { type: 'string', pattern: '^sha256:[a-f0-9]{64}$' },
       },
     },
-    step: {
+    invocation: {
       type: 'object',
       additionalProperties: false,
-      required: ['id', 'keyword', 'description'],
-      oneOf: [{ required: ['operation'] }, { required: ['action'] }],
+      required: ['step', 'inputs', 'presentation'],
       properties: {
-        id: { $ref: '#/$defs/id' },
-        keyword: { enum: ['Given', 'When', 'Then', 'And'] },
-        description: { type: 'string', minLength: 1, maxLength: 2000 },
-        operation: { $ref: '#/$defs/operationRef' },
-        action: { $ref: '#/$defs/operationRef' },
+        step: { $ref: '#/$defs/stepReference' },
+        inputs: { type: 'object', additionalProperties: { $ref: '#/$defs/value' }, maxProperties: 32 },
         store: {
           type: 'object',
           additionalProperties: false,
           required: ['output', 'as'],
           properties: { output: { $ref: '#/$defs/id' }, as: { $ref: '#/$defs/id' } },
         },
+        presentation: {
+          type: 'object',
+          additionalProperties: false,
+          required: ['keyword'],
+          properties: {
+            keyword: { enum: ['Given', 'When', 'Then', 'And'] },
+            description: { type: 'string', minLength: 1, maxLength: 2000, pattern: '^[^\\r\\n]*$' },
+          },
+        },
+      },
+    },
+    step: {
+      type: 'object',
+      additionalProperties: false,
+      required: ['id', 'invocation'],
+      properties: {
+        id: { $ref: '#/$defs/id' },
+        invocation: { $ref: '#/$defs/invocation' },
       },
     },
     ast: {
@@ -102,7 +133,7 @@ export const VALIDATION_AST_JSON_SCHEMA = {
         'customExtensions',
       ],
       properties: {
-        schemaVersion: { const: 1 },
+        schemaVersion: { const: 2 },
         id: { $ref: '#/$defs/id' },
         title: { type: 'string', minLength: 1, maxLength: 120 },
         purpose: { type: 'string', minLength: 1, maxLength: 2000 },
@@ -160,7 +191,7 @@ export const VALIDATION_AST_JSON_SCHEMA = {
         'implementation',
       ],
       properties: {
-        schemaVersion: { const: 1 },
+        schemaVersion: { const: 2 },
         id: { $ref: '#/$defs/id' },
         version: { type: 'string' },
         title: { type: 'string' },
@@ -206,6 +237,9 @@ export type ValidationAstValue =
   | string
   | number
   | boolean
+  | null
+  | ValidationAstValue[]
+  | { [key: string]: ValidationAstValue }
   | { ref: 'locator'; id: string; version: string }
   | { ref: 'environment'; key: string }
   | { ref: 'stored'; name: string }
@@ -224,17 +258,12 @@ export type ValidationAst = {
     description?: string
     steps: Array<{
       id: string
-      keyword: 'Given' | 'When' | 'Then' | 'And'
-      description: string
-      operation?: {
-        id: string
-        version: string
-        descriptorHash?: string
+      invocation: {
+        step: { id: string; version: string; definitionHash: string }
         inputs: Record<string, ValidationAstValue>
+        store?: { output: string; as: string }
+        presentation: { keyword: 'Given' | 'When' | 'Then' | 'And'; description?: string }
       }
-      /** Legacy compatibility input; new submissions should use operation. */
-      action?: { id: string; version: string; descriptorHash?: string; inputs: Record<string, ValidationAstValue> }
-      store?: { output: string; as: string }
     }>
   }>
   qualityConcerns: Array<'accessibility' | 'persistence' | 'responsive' | 'performance' | 'security'>

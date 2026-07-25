@@ -1,20 +1,32 @@
 import { describe, expect, it } from 'vitest'
+import {
+  builtInStepDefinitions,
+  computeStepReferenceHash,
+} from '../../../packages/cucumber-runtime/src/step-definitions/index.ts'
 
 import { uniqueProjectedActionReferences } from './validation-ast-runtime-input-contract'
 
 describe('Validation AST runtime input projection', () => {
-  it('compares each referenced action identity once when scenarios reuse an action', () => {
+  it('compares each exact referenced Step Definition once when scenarios reuse an invocation', () => {
+    const definition = builtInStepDefinitions.find(item => item.identity.id === 'browser.navigation.reload')!
+    const invocation = {
+      step: {
+        id: definition.identity.id,
+        version: definition.identity.version,
+        definitionHash: computeStepReferenceHash(definition),
+      },
+      inputs: {},
+    }
     expect(
       uniqueProjectedActionReferences([
         {
+          id: 'case',
           steps: [
-            { templateStepName: 'browser.navigation.goto@1' },
-            { templateStepName: 'browser.waits.page-ready@1' },
-            { templateStepName: 'browser.navigation.reload@1' },
-            { templateStepName: 'browser.waits.page-ready@1' },
+            { id: 'one', invocation },
+            { id: 'two', invocation },
           ],
         },
       ]),
-    ).toEqual(['browser.navigation.goto@1', 'browser.waits.page-ready@1', 'browser.navigation.reload@1'])
+    ).toEqual(['browser.navigation.reload@1'])
   })
 })

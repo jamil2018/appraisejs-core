@@ -59,7 +59,7 @@ afterEach(async () => {
 })
 
 const proposal = () => ({
-  schemaVersion: 1,
+  schemaVersion: 2,
   idempotencyKey: 'todo-page-resources',
   modules: [{ localKey: 'todo', name: 'Todo' }],
   locatorGroups: [{ localKey: 'todo-page', name: 'Todo page', moduleKey: 'todo', route: '/' }],
@@ -67,7 +67,6 @@ const proposal = () => ({
     { localKey: 'todo-input', name: 'Todo input', groupKey: 'todo-page', selector: '[data-testid="todo-input"]' },
   ],
   environments: [{ localKey: 'local', name: `Local ${Date.now()}`, baseUrl: 'http://localhost:3000' }],
-  templateSteps: [],
 })
 
 describe('validation resource proposals', () => {
@@ -215,27 +214,12 @@ describe('validation resource proposals', () => {
     ).rejects.toMatchObject({ code: 'CONFLICT' })
   })
 
-  it('allows an agent-suggested template step to reference a shared group', async () => {
-    const foreignProject = await client.targetProject.create({
-      data: {
-        canonicalPath: `${workspace}-foreign`,
-        displayName: 'Foreign',
-        fingerprint: `sha256:${'e'.repeat(64)}`,
-      },
-    })
-    const foreignGroup = await client.templateStepGroup.create({
-      data: { name: 'Foreign actions', targetProjectId: foreignProject.id },
-    })
-    const input = {
-      ...proposal(),
-      templateSteps: [
-        { localKey: 'foreign-step', name: 'Foreign step', signature: 'Given foreign data', groupId: foreignGroup.id },
-      ],
-    }
+  it('rejects legacy Template Step authoring before any database write', async () => {
+    const input = { ...proposal(), templateSteps: [] }
 
     await expect(
       proposeValidationResources({ planId: 'plan-resources', proposal: input, projectDirectory: workspace }, client),
-    ).resolves.toMatchObject({ replayed: false })
-    await expect(client.templateStep.count({ where: { id: { startsWith: 'apr-' } } })).resolves.toBe(1)
+    ).rejects.toBeTruthy()
+    await expect(client.validationResourceProposal.count()).resolves.toBe(0)
   })
 })

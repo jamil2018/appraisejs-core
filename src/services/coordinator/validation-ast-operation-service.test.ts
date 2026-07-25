@@ -1,7 +1,13 @@
 import type { PrismaClient } from '@prisma/client'
 import { describe, expect, it } from 'vitest'
-import { basicValidationAstSubmission } from '@/test/validation-ast-test-fixtures'
 import type { ValidationAstSubmission } from '@/lib/validation-ast'
+import {
+  builtInStepDefinitions,
+  canonicalStepDefinitionJson,
+  computeStepDefinitionHashes,
+  computeStepReferenceHash,
+  stepDefinitionContentHash,
+} from '../../../packages/cucumber-runtime/src/step-definitions'
 import {
   checkValidationAstForPlan,
   previewValidationAstForPlan,
@@ -9,6 +15,29 @@ import {
 } from './validation-ast-operation-service'
 
 const planHash = `sha256:${'a'.repeat(64)}`
+const readyDefinitions = ['browser.navigation.goto', 'browser.keyboard.press', 'browser.viewport.set'].map(id => {
+  const definition = builtInStepDefinitions.find(item => item.identity.id === id)!
+  const hashes = computeStepDefinitionHashes(definition)
+  const receipt = {
+    step: { id: definition.identity.id, version: definition.identity.version },
+    ...hashes,
+    registryManifestHash: computeStepReferenceHash(definition),
+    conformanceRunId: 'test-run',
+    reviewAuthority: 'test-reviewer',
+    publishedAt: '2026-07-25T00:00:00.000Z',
+  }
+  return {
+    status: 'ready',
+    id: definition.identity.id,
+    version: definition.identity.version,
+    definitionJson: canonicalStepDefinitionJson(definition),
+    ...hashes,
+    publicationReceipt: {
+      receiptHash: stepDefinitionContentHash(receipt),
+      receiptJson: JSON.stringify(receipt),
+    },
+  }
+})
 const client = {
   planProjection: {
     findUnique: async () => ({
@@ -21,14 +50,60 @@ const client = {
     }),
   },
   locatorGroup: { findMany: async () => [] },
-  environment: { findMany: async () => [{ name: 'local' }] },
+  environment: { findMany: async () => [{ id: 'local', name: 'local' }] },
+  stepDefinition: { findMany: async () => readyDefinitions },
 } as unknown as PrismaClient
 
-const submission = basicValidationAstSubmission(planHash)
+function invocation(
+  id: string,
+  inputs: Record<string, unknown>,
+  keyword: 'Given' | 'When' | 'Then',
+  description: string,
+) {
+  const definition = builtInStepDefinitions.find(item => item.identity.id === id)!
+  return {
+    step: {
+      id: definition.identity.id,
+      version: definition.identity.version,
+      definitionHash: computeStepReferenceHash(definition),
+    },
+    inputs,
+    presentation: { keyword, description },
+  }
+}
+
+const submission = {
+  expectedPlanHash: planHash,
+  ast: {
+    schemaVersion: 2,
+    id: 'navigation',
+    title: 'Navigation',
+    purpose: 'Open home.',
+    coversTaskIds: ['task-one'],
+    matrix: [{ browser: 'chromium', environmentId: 'local' }],
+    expectedFailures: [],
+    scenarios: [
+      {
+        id: 'open-home',
+        title: 'Open home',
+        steps: [
+          {
+            id: 'open',
+            invocation: invocation('browser.navigation.goto', { url: '/' }, 'When', 'the user opens home'),
+          },
+        ],
+      },
+    ],
+    qualityConcerns: [],
+    customExtensions: [],
+  },
+  customExtensionProposals: [],
+} as const
 
 describe('Validation AST operational context', () => {
   it('checks and previews against authoritative plan, target, catalog, graph, and environment hashes', async () => {
-    await expect(checkValidationAstForPlan('plan-one', submission, client)).resolves.toMatchObject({
+    const checked = await checkValidationAstForPlan('plan-one', submission, client)
+    expect(checked).toMatchObject({
       valid: true,
       contextHash: expect.stringMatching(/^sha256:/),
     })
@@ -44,19 +119,20 @@ describe('Validation AST operational context', () => {
   })
 
   it('accepts every capability advertised by built-in keyboard and viewport actions', async () => {
-    const capabilitySubmission = structuredClone(submission) as ValidationAstSubmission
+    const capabilitySubmission = structuredClone(submission) as unknown as ValidationAstSubmission
     capabilitySubmission.ast.scenarios[0].steps.push(
       {
         id: 'press-tab',
-        keyword: 'When',
-        description: 'the user presses Tab',
-        operation: { id: 'browser.keyboard.press', version: '1', inputs: { key: 'Tab' } },
+        invocation: invocation('browser.keyboard.press', { key: 'Tab' }, 'When', 'the user presses Tab'),
       },
       {
         id: 'mobile-viewport',
-        keyword: 'Then',
-        description: 'the viewport is mobile sized',
-        operation: { id: 'browser.viewport.set', version: '1', inputs: { width: 390, height: 844 } },
+        invocation: invocation(
+          'browser.viewport.set',
+          { width: 390, height: 844 },
+          'Then',
+          'the viewport is mobile sized',
+        ),
       },
     )
 

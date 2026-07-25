@@ -7,11 +7,44 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { serializeYamlArtifact } from '@/lib/plan-contract'
 import { PlanArtifactRepository } from '@/lib/plans/artifact-repository'
 import { inadequateFreshTargetAuditSubmission } from '@/test/validation-ast-test-fixtures'
+import {
+  builtInStepDefinitions,
+  canonicalStepDefinitionJson,
+  computeStepDefinitionHashes,
+  computeStepReferenceHash,
+  stepDefinitionContentHash,
+} from '../../../packages/cucumber-runtime/src/step-definitions'
 import { checkValidationAstForPlan } from './validation-ast-operation-service'
 import { readValidationContext } from './validation-authoring-context-service'
 
 const planHash = `sha256:${'a'.repeat(64)}`
 let workspace: string
+
+const readyDefinitions = ['browser.navigation.goto', 'browser.waits.page-ready', 'browser.navigation.reload'].map(
+  id => {
+    const definition = builtInStepDefinitions.find(item => item.identity.id === id)!
+    const hashes = computeStepDefinitionHashes(definition)
+    const receipt = {
+      step: { id: definition.identity.id, version: definition.identity.version },
+      ...hashes,
+      registryManifestHash: computeStepReferenceHash(definition),
+      conformanceRunId: 'test-run',
+      reviewAuthority: 'test-reviewer',
+      publishedAt: '2026-07-25T00:00:00.000Z',
+    }
+    return {
+      status: 'ready',
+      id: definition.identity.id,
+      version: definition.identity.version,
+      definitionJson: canonicalStepDefinitionJson(definition),
+      ...hashes,
+      publicationReceipt: {
+        receiptHash: stepDefinitionContentHash(receipt),
+        receiptJson: JSON.stringify(receipt),
+      },
+    }
+  },
+)
 
 beforeAll(async () => {
   workspace = await fs.mkdtemp(path.join(os.tmpdir(), 'managed-validation-audit-'))
@@ -62,18 +95,7 @@ function auditClient() {
     module: { findMany: async () => [{ id: 'foreign-module', name: 'Foreign', parentId: null }] },
     testSuite: { findMany: async () => [] },
     testCase: { findMany: async () => [] },
-    templateStep: {
-      findMany: async () => [
-        {
-          id: 'shared-step',
-          name: 'Shared step',
-          signature: 'Given a shared step',
-          type: 'ACTION',
-          templateStepGroupId: 'shared-group',
-        },
-      ],
-    },
-    stepBlock: { findMany: async () => [] },
+    stepDefinition: { findMany: async () => readyDefinitions },
     locatorGroup: { findMany: async () => [] },
     locator: { findMany: async () => [] },
     environment: {
@@ -102,9 +124,13 @@ describe('managed validation integrity audit fixtures', () => {
     expect(context.notModified).not.toBe(true)
     if (!context.resources) throw new Error('Expected validation resources.')
     expect(context.resources.modules).toEqual([])
-    expect(context.resources.templateSteps).toEqual([
-      expect.objectContaining({ id: 'shared-step', scope: 'shared_library', provenance: null }),
-    ])
+    expect(context.resources.stepDefinitions).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          step: expect.objectContaining({ definitionHash: expect.stringMatching(/^sha256:/) }),
+        }),
+      ]),
+    )
   })
 
   it('accepts the exact stable environment reference returned by context', async () => {

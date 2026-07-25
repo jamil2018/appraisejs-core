@@ -26,6 +26,8 @@ import { ManagedProjectManifestRepository } from './project-manifest'
 import { generateCucumberConfig, generateReviewedFeature, generateSupportFiles } from './file-generator'
 import { generateExecutableBindings } from './binding-generator'
 import { defaultOperationRegistry } from '@/lib/operation-catalog'
+import { resolveRuntimeStepDefinitionClosure, type SealedRuntimeStepDefinition } from './step-definition-closure'
+import { stepDefinitionContentHash } from '../../../packages/cucumber-runtime/src/step-definitions/contracts.ts'
 
 type ValidationNode = ValidationArtifact['validations'][number]
 type CapsuleFile = { path: string; role: RuntimeCapsuleManifest['files'][number]['role']; bytes: Buffer }
@@ -33,6 +35,18 @@ type PublishOperation = Prisma.ValidationAstPublishOperationGetPayload<{
   include: { plan: true; targetProject: true; extensionReviews: true }
 }>
 type MaterializerTestRun = Prisma.TestRunGetPayload<{ include: { environment: true } }>
+type RuntimeExtensionArtifact = {
+  id: string
+  version: string
+  sourceHash: string
+  compiledHash: string
+  compiledSource: string
+}
+type ReviewedExtensionBinding = Extract<
+  SealedRuntimeStepDefinition['definition']['execution'],
+  { kind: 'reviewed-extension' }
+>
+type PersistedReviewedExtension = NonNullable<Awaited<ReturnType<PrismaClient['stepReviewedExtension']['findFirst']>>>
 
 const GENERATOR = { id: 'appraise.validation-ast-capsule', version: '2' } as const
 const APPRAISE_RUNTIME_IMPORT = pathToFileURL(
@@ -91,6 +105,7 @@ export function buildReviewedRuntimeCapsuleFiles(input: {
   node: ValidationNode
   runtimeInput: ValidationAstRuntimeInputV1
   extensionArtifacts: unknown[]
+  sealedDefinitions?: Array<Pick<SealedRuntimeStepDefinition, 'step' | 'definition'>>
 }) {
   const cases = expectedCases(input.node, input.runtimeInput)
   const bindings = input.node.appraiseArtifacts.testCases.map(testCase => ({
@@ -100,10 +115,11 @@ export function buildReviewedRuntimeCapsuleFiles(input: {
       .map(step => ({
         id: step.id,
         keywordText: step.gherkinStep,
-        operation: step.operationRef ?? step.templateStepName,
-        parameters: [...step.parameters].sort((left, right) => left.name.localeCompare(right.name)),
+        invocation: step.invocation,
       })),
   }))
+  if (bindings.some(testCase => testCase.steps.some(step => !step.invocation)))
+    throw new Error('Runtime capsule bindings require exact Step Invocations.')
   const selectors = Object.fromEntries(
     input.runtimeInput.locators.flatMap(locator => [
       [locator.binding.id, locator.binding.value],
@@ -111,18 +127,18 @@ export function buildReviewedRuntimeCapsuleFiles(input: {
     ]),
   )
   const extensions = input.extensionArtifacts
-    .map(value => compiledCustomExtensionSchema.parse(value))
-    .sort((left, right) =>
-      `${left.extension.id}@${left.extension.version}`.localeCompare(
-        `${right.extension.id}@${right.extension.version}`,
-      ),
-    )
+    .map(runtimeExtensionArtifact)
+    .sort((left, right) => `${left.id}@${left.version}`.localeCompare(`${right.id}@${right.version}`))
     .map(extension => {
-      const extensionId = runtimeCapsuleSegmentSchema.parse(extension.extension.id)
-      if (!/^\d+(?:\.\d+){0,2}$/.test(extension.extension.version))
+      const extensionId = runtimeCapsuleSegmentSchema.parse(extension.id)
+      if (!/^\d+(?:\.\d+){0,2}$/.test(extension.version))
         throw new Error('Reviewed extension version is not a safe portable path token.')
       return {
-        path: `extensions/${extensionId}/v${extension.extension.version}.mjs`,
+        id: extension.id,
+        version: extension.version,
+        sourceHash: extension.sourceHash,
+        compiledHash: extension.compiledHash,
+        path: `extensions/${extensionId}/v${extension.version}.mjs`,
         role: 'extension' as const,
         bytes: Buffer.from(extension.compiledSource),
       }
@@ -148,7 +164,20 @@ export function buildReviewedRuntimeCapsuleFiles(input: {
     {
       path: `bindings/${input.node.id}.mjs`,
       role: 'binding',
-      bytes: Buffer.from(generateExecutableBindings({ bindings, selectors, runtimeImport: APPRAISE_RUNTIME_IMPORT })),
+      bytes: Buffer.from(
+        generateExecutableBindings({
+          bindings,
+          selectors,
+          sealedDefinitions: (input.sealedDefinitions ?? []).map(sealed => ({
+            step: sealed.step,
+            definition: sealed.definition,
+          })),
+          extensionModules: Object.fromEntries(
+            extensions.map(extension => [`${extension.id}@${extension.version}`, `../${extension.path}`]),
+          ),
+          runtimeImport: APPRAISE_RUNTIME_IMPORT,
+        }),
+      ),
     },
     ...extensions,
     ...generateSupportFiles(APPRAISE_RUNTIME_IMPORT, APPRAISE_HOOKS_IMPORT),
@@ -165,7 +194,57 @@ export function buildReviewedRuntimeCapsuleFiles(input: {
     },
     { path: 'expected-cases.json', role: 'expected-cases', bytes: Buffer.from(canonicalRuntimeCapsuleJson(cases)) },
   ]
-  return { cases, bindings, files: files.sort((left, right) => left.path.localeCompare(right.path)) }
+  return {
+    cases,
+    bindings,
+    extensions: extensions.map(({ id, version, sourceHash, compiledHash, path }) => ({
+      id,
+      version,
+      sourceHash,
+      compiledHash,
+      path,
+    })),
+    files: files.sort((left, right) => left.path.localeCompare(right.path)),
+  }
+}
+
+function compiledRuntimeExtensionArtifact(
+  compiled: ReturnType<typeof compiledCustomExtensionSchema.safeParse>,
+): RuntimeExtensionArtifact | undefined {
+  if (!compiled.success) return undefined
+  const artifact = compiled.data
+  runtimeCapsuleSegmentSchema.parse(artifact.extension.id)
+  if (!/^\d+(?:\.\d+){0,2}$/.test(artifact.extension.version))
+    throw new Error('Reviewed extension version is not a safe portable path token.')
+  if (
+    stepDefinitionContentHash(artifact.source) !== artifact.sourceHash ||
+    stepDefinitionContentHash(artifact.compiledSource) !== artifact.compiledHash
+  )
+    throw new Error('Reviewed extension artifact bytes do not match their declared hashes.')
+  return {
+    id: artifact.extension.id,
+    version: artifact.extension.version,
+    sourceHash: artifact.sourceHash,
+    compiledHash: artifact.compiledHash,
+    compiledSource: artifact.compiledSource,
+  }
+}
+
+function legacyRuntimeExtensionArtifact(value: unknown): RuntimeExtensionArtifact {
+  if (!value || typeof value !== 'object') throw new Error('Reviewed extension artifact is invalid.')
+  const artifact = value as Partial<RuntimeExtensionArtifact>
+  const values = [artifact.id, artifact.version, artifact.sourceHash, artifact.compiledHash, artifact.compiledSource]
+  if (values.some(item => typeof item !== 'string')) throw new Error('Reviewed extension artifact is invalid.')
+  if (stepDefinitionContentHash(artifact.compiledSource) !== artifact.compiledHash)
+    throw new Error('Reviewed extension artifact bytes do not match their declared hash.')
+  return artifact as RuntimeExtensionArtifact
+}
+
+function runtimeExtensionArtifact(value: unknown): RuntimeExtensionArtifact {
+  return (
+    compiledRuntimeExtensionArtifact(compiledCustomExtensionSchema.safeParse(value)) ??
+    legacyRuntimeExtensionArtifact(value)
+  )
 }
 
 function reviewedValidationFor(operation: PublishOperation) {
@@ -228,18 +307,117 @@ function reviewedNodeFor(operation: PublishOperation, validation: ValidationArti
   return node
 }
 
+async function reviewedExtensionArtifacts(
+  operation: PublishOperation,
+  sealedDefinitions: SealedRuntimeStepDefinition[],
+  prisma: PrismaClient,
+): Promise<RuntimeExtensionArtifact[]> {
+  const bindings = reviewedExtensionBindings(sealedDefinitions)
+  const reviews = reviewedExtensionReviews(operation, bindings)
+  if (bindings.size === 0) return []
+  const persisted = await prisma.stepReviewedExtension.findMany({
+    where: {
+      OR: [...bindings.values()].map(binding => ({
+        id: binding.extensionId,
+        version: binding.extensionVersion,
+      })),
+    },
+  })
+  const persistedByKey = new Map(persisted.map(extension => [`${extension.id}@${extension.version}`, extension]))
+  if (persistedByKey.size !== bindings.size)
+    throw new Error('A sealed reviewed-extension binding has no registered reviewed artifact.')
+  return [...bindings.entries()]
+    .sort(([left], [right]) => left.localeCompare(right))
+    .map(([key, binding]) => verifiedRuntimeExtension(key, binding, reviews.get(key)!, persistedByKey.get(key)))
+}
+
+function reviewedExtensionBindings(sealedDefinitions: SealedRuntimeStepDefinition[]) {
+  const bindings = new Map<string, ReviewedExtensionBinding>()
+  for (const sealed of sealedDefinitions) {
+    const execution = sealed.definition.execution
+    if (execution.kind !== 'reviewed-extension') continue
+    const key = `${execution.extensionId}@${execution.extensionVersion}`
+    const existing = bindings.get(key)
+    if (
+      existing &&
+      (existing.sourceHash !== execution.sourceHash ||
+        existing.compiledHash !== execution.compiledHash ||
+        existing.exportName !== execution.exportName)
+    )
+      throw new Error(`Sealed reviewed-extension binding ${key} conflicts within the definition closure.`)
+    bindings.set(key, execution)
+  }
+  return bindings
+}
+
+function reviewedExtensionReviews(operation: PublishOperation, bindings: Map<string, ReviewedExtensionBinding>) {
+  const reviews = new Map(operation.extensionReviews.map(review => [`${review.extensionId}@${review.version}`, review]))
+  if (reviews.size !== operation.extensionReviews.length || reviews.size !== bindings.size)
+    throw new Error('Reviewed extension evidence does not exactly match the sealed definition closure.')
+  for (const key of bindings.keys())
+    if (!reviews.has(key)) throw new Error(`Reviewed extension ${key} is missing publication evidence.`)
+  return reviews
+}
+
+function verifiedRuntimeExtension(
+  key: string,
+  binding: ReviewedExtensionBinding,
+  review: PublishOperation['extensionReviews'][number],
+  artifact: PersistedReviewedExtension | undefined,
+): RuntimeExtensionArtifact {
+  if (!artifact) throw new Error(`Reviewed extension ${key} is missing its registered artifact.`)
+  const expected = [binding.sourceHash, binding.compiledHash, review.artifactHash]
+  const recorded = [review.sourceHash, review.compiledHash, artifact.artifactHash]
+  const persisted = [artifact.sourceHash, artifact.compiledHash, artifact.artifactHash]
+  const actual = [
+    stepDefinitionContentHash(artifact.source),
+    stepDefinitionContentHash(artifact.compiledSource),
+    stepDefinitionContentHash(JSON.parse(artifact.conformanceJson)),
+  ]
+  if (
+    expected.some((value, index) => value !== recorded[index]) ||
+    recorded.some((value, index) => value !== persisted[index]) ||
+    actual[0] !== artifact.sourceHash ||
+    actual[1] !== artifact.compiledHash ||
+    actual[2] !== artifact.conformanceHash
+  )
+    throw new Error(`Reviewed extension ${key} does not match its exact publication evidence.`)
+  return {
+    id: artifact.id,
+    version: artifact.version,
+    sourceHash: artifact.sourceHash,
+    compiledHash: artifact.compiledHash,
+    compiledSource: artifact.compiledSource,
+  }
+}
+
 async function buildCapsuleManifest(
   operation: PublishOperation & { runtimeInputHash: string },
   testRun: MaterializerTestRun,
   node: ValidationNode,
+  prisma: PrismaClient,
 ) {
   const runtimeInput = validateValidationAstRuntimeInput({
     operation,
     projectionJson: operation.projectionJson,
     extensionReviews: operation.extensionReviews,
   })
-  const extensionArtifacts = operation.extensionReviews.map(review => JSON.parse(review.artifactJson))
-  const built = buildReviewedRuntimeCapsuleFiles({ node, runtimeInput, extensionArtifacts })
+  const rootInvocations = node.appraiseArtifacts.testCases.flatMap(testCase =>
+    testCase.steps
+      .sort((left, right) => left.order - right.order)
+      .flatMap(step => (step.invocation ? [step.invocation] : [])),
+  )
+  if (rootInvocations.length === 0) throw new Error('Runtime capsule requires exact projected Step Invocations.')
+  const sealedDefinitions = await resolveRuntimeStepDefinitionClosure(
+    rootInvocations.map(invocation => invocation.step),
+    async step =>
+      prisma.stepDefinition.findUnique({
+        where: { id_version: { id: step.id, version: step.version } },
+        include: { publicationReceipt: true },
+      }),
+  )
+  const extensionArtifacts = await reviewedExtensionArtifacts(operation, sealedDefinitions, prisma)
+  const built = buildReviewedRuntimeCapsuleFiles({ node, runtimeInput, extensionArtifacts, sealedDefinitions })
   const commandReceipt = await sealCapsuleCommandReceipt({ operation, testRun, runtimeInput, built })
   built.files.push({
     path: 'command-receipt.json',
@@ -247,8 +425,31 @@ async function buildCapsuleManifest(
     bytes: Buffer.from(canonicalCapsuleCommandReceipt(commandReceipt)),
   })
   built.files.sort((left, right) => left.path.localeCompare(right.path))
+  const operations = [
+    ...new Map(
+      sealedDefinitions
+        .flatMap(sealed => {
+          if (sealed.definition.execution.kind !== 'operation') return []
+          const handler = sealed.definition.execution
+          const selected = defaultOperationRegistry.read([
+            { id: handler.handlerId, version: handler.handlerVersion },
+          ])[0]
+          if (!selected)
+            throw new Error(`Runtime handler ${handler.handlerId}@${handler.handlerVersion} is not registered.`)
+          return [
+            {
+              id: selected.id,
+              version: selected.version,
+              descriptorHash: selected.descriptorHash,
+              handler: selected.handler,
+            },
+          ]
+        })
+        .map(value => [`${value.id}@${value.version}`, value] as const),
+    ).values(),
+  ].sort((left, right) => `${left.id}@${left.version}`.localeCompare(`${right.id}@${right.version}`))
   const manifest = runtimeCapsuleManifestSchema.parse({
-    schemaVersion: '1',
+    schemaVersion: '2',
     projectId: operation.targetProjectId,
     validationHash: operation.validationHash,
     runId: testRun.runId,
@@ -258,32 +459,18 @@ async function buildCapsuleManifest(
     runtimeInputHash: operation.runtimeInputHash,
     commandReceipt: { path: 'command-receipt.json', hash: hashCapsuleCommandReceipt(commandReceipt) },
     generator: GENERATOR,
-    operations: [
-      ...new Set(
-        built.bindings
-          .flatMap(testCase => testCase.steps.map(step => step.operation))
-          .filter((ref): ref is string => typeof ref === 'string'),
-      ),
-    ]
-      .sort()
-      .flatMap(ref => {
-        const separator = ref.lastIndexOf('@')
-        try {
-          const selected = defaultOperationRegistry.read([
-            { id: ref.slice(0, separator), version: ref.slice(separator + 1) },
-          ])[0]!
-          return [
-            {
-              id: selected.id,
-              version: selected.version,
-              descriptorHash: selected.descriptorHash,
-              handler: selected.handler,
-            },
-          ]
-        } catch {
-          return []
-        }
-      }),
+    rootInvocations,
+    stepDefinitions: sealedDefinitions.map(sealed => ({
+      step: sealed.step,
+      definition: sealed.definition,
+      definitionHash: sealed.hashes.definition,
+      humanProjectionHash: sealed.hashes.humanProjection,
+      agentContractHash: sealed.hashes.agentContract,
+      executionHash: sealed.hashes.execution,
+      publicationReceiptHash: sealed.hashes.publicationReceipt,
+    })),
+    extensions: built.extensions,
+    operations,
     expectedCases: built.cases,
     files: built.files.map(file => ({
       path: file.path,
@@ -321,6 +508,7 @@ export class RuntimeCapsuleMaterializer {
       { ...operation, runtimeInputHash: operation.runtimeInputHash! },
       testRun,
       node,
+      this.prisma,
     )
     await new ManagedProjectManifestRepository(this.prisma, this.appraiseRoot).refresh(operation.targetProjectId)
     const leases = new RuntimeCapsuleLeaseRepository(this.prisma)

@@ -3,8 +3,8 @@ import type { CustomActionExtensionProposal, ValidationAstSubmission } from './m
 import { VALIDATION_AST_SCHEMA_VERSION } from './managed-validation-contracts.js'
 
 describe('Managed validation public contract parity', () => {
-  it('exports submission and custom-extension proposal types at schema version 1', () => {
-    expect(VALIDATION_AST_SCHEMA_VERSION).toBe(1)
+  it('exports submission and custom-extension proposal types at schema version 2', () => {
+    expect(VALIDATION_AST_SCHEMA_VERSION).toBe(2)
     expectTypeOf<
       ValidationAstSubmission['customExtensionProposals'][number]
     >().toEqualTypeOf<CustomActionExtensionProposal>()

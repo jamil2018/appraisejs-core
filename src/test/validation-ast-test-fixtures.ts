@@ -10,16 +10,36 @@ import {
 } from '@prisma/client'
 
 import { defaultOperationRegistry } from '@/lib/operation-catalog'
+import { builtInStepDefinitions, computeStepReferenceHash } from '../../packages/cucumber-runtime/src/step-definitions'
 import {
   copyMigratedTestDatabase,
   prepareCleanCoordinatorPlanRuntimeTestDatabase,
 } from '@/test/plan-runtime-schema-test-helper'
 
+function exactInvocation(
+  id: string,
+  inputs: Record<string, unknown>,
+  keyword: 'Given' | 'When' | 'Then' | 'And',
+  description: string,
+) {
+  const definition = builtInStepDefinitions.find(item => item.identity.id === id)
+  if (!definition) throw new Error(`Missing built-in Step Definition ${id}.`)
+  return {
+    step: {
+      id: definition.identity.id,
+      version: definition.identity.version,
+      definitionHash: computeStepReferenceHash(definition),
+    },
+    inputs,
+    presentation: { keyword, description },
+  }
+}
+
 export function basicValidationAstSubmission(planHash: string, taskId = 'task-one') {
   return {
     expectedPlanHash: planHash,
     ast: {
-      schemaVersion: 1 as const,
+      schemaVersion: 2 as const,
       id: 'navigation',
       title: 'Navigation',
       purpose: 'Open home.',
@@ -33,9 +53,7 @@ export function basicValidationAstSubmission(planHash: string, taskId = 'task-on
           steps: [
             {
               id: 'open',
-              keyword: 'When' as const,
-              description: 'the user opens home',
-              operation: { id: 'browser.navigation.goto', version: '1', inputs: { url: '/' } },
+              invocation: exactInvocation('browser.navigation.goto', { url: '/' }, 'When', 'the user opens home'),
             },
           ],
         },
@@ -51,7 +69,7 @@ export function inadequateFreshTargetAuditSubmission(planHash: string) {
   return {
     expectedPlanHash: planHash,
     ast: {
-      schemaVersion: 1 as const,
+      schemaVersion: 2 as const,
       id: 'fresh-target-audit',
       title: 'Fresh target audit',
       purpose: 'Exercise navigation and reload without substantiating the claimed product behavior.',
@@ -65,27 +83,24 @@ export function inadequateFreshTargetAuditSubmission(planHash: string) {
           steps: [
             {
               id: 'open',
-              keyword: 'When' as const,
-              description: 'the user opens the application',
-              operation: { id: 'browser.navigation.goto', version: '1', inputs: { url: '/' } },
+              invocation: exactInvocation(
+                'browser.navigation.goto',
+                { url: '/' },
+                'When',
+                'the user opens the application',
+              ),
             },
             {
               id: 'ready',
-              keyword: 'Then' as const,
-              description: 'the page is ready',
-              operation: { id: 'browser.waits.page-ready', version: '1', inputs: {} },
+              invocation: exactInvocation('browser.waits.page-ready', {}, 'Then', 'the page is ready'),
             },
             {
               id: 'reload',
-              keyword: 'When' as const,
-              description: 'the user reloads the application',
-              operation: { id: 'browser.navigation.reload', version: '1', inputs: {} },
+              invocation: exactInvocation('browser.navigation.reload', {}, 'When', 'the user reloads the application'),
             },
             {
               id: 'ready-again',
-              keyword: 'Then' as const,
-              description: 'the page is ready again',
-              operation: { id: 'browser.waits.page-ready', version: '1', inputs: {} },
+              invocation: exactInvocation('browser.waits.page-ready', {}, 'Then', 'the page is ready again'),
             },
           ],
         },

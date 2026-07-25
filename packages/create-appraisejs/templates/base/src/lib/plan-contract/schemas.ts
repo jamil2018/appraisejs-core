@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { stepInvocationSchema } from '../../../packages/cucumber-runtime/src/step-definitions/contracts.ts'
 
 import { PlanContractError } from './errors'
 import { PLAN_LIFECYCLE_STATES } from './lifecycle'
@@ -122,6 +123,7 @@ const validationAppraiseArtifactsSchema = z.object({
               .regex(/^[a-z0-9]+(?:[.-][a-z0-9]+)*@\d+(?:\.\d+){0,2}$/)
               .optional(),
             templateStepName: z.string().min(1).optional(),
+            invocation: stepInvocationSchema.optional(),
             parameters: z
               .array(
                 z.object({
@@ -243,6 +245,14 @@ const managedValidationNodesSchema = validationNodesSchema.superRefine((items, c
         path: [index, 'astProvenance'],
         message: 'Managed validation requires exact managed Validation AST provenance.',
       })
+    for (const testCase of item.appraiseArtifacts.testCases)
+      for (const step of testCase.steps)
+        if (!step.invocation || step.templateStepId || step.templateStepName || step.operationRef)
+          context.addIssue({
+            code: 'custom',
+            path: [index, 'appraiseArtifacts', 'testCases'],
+            message: 'Managed v2 validation steps require only an exact invocation.',
+          })
   })
 })
 

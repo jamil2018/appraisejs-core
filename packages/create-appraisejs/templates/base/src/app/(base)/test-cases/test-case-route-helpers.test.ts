@@ -90,4 +90,23 @@ describe('test-case route helpers', () => {
       }),
     ).toBeNull()
   })
+
+  it('allows canonical invocations without a TemplateStep and rejects steps with neither authority nor fallback', () => {
+    const currentStep = {
+      id: 'current-step',
+      order: 0,
+      label: 'Open home',
+      gherkinStep: 'open home',
+      icon: TemplateStepIcon.NAVIGATION,
+      templateStepId: null,
+      operationInvocationJson: '{"step":{"id":"browser.navigation.goto"}}',
+      parameters: [],
+    }
+    expect(buildNodeOrderFromTestCaseSteps([currentStep] as never)).toMatchObject({
+      'current-step': { templateStepId: '' },
+    })
+    expect(() => buildNodeOrderFromTestCaseSteps([{ ...currentStep, operationInvocationJson: null }] as never)).toThrow(
+      /neither a canonical operation invocation nor a TemplateStep fallback/,
+    )
+  })
 })

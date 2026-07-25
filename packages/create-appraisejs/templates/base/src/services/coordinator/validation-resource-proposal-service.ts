@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto'
-import { TemplateStepIcon, TemplateStepType, type Prisma, type PrismaClient } from '@prisma/client'
+import { type Prisma, type PrismaClient } from '@prisma/client'
 import { z } from 'zod'
 
 import prisma from '@/config/db-config'
@@ -59,7 +59,7 @@ function proposalBindings(
 
 const validationResourceProposalSchema = z
   .object({
-    schemaVersion: z.literal(1),
+    schemaVersion: z.literal(2),
     idempotencyKey: key,
     modules: z
       .array(z.object({ localKey: key, name: text, parentKey: key.optional() }))
@@ -84,10 +84,6 @@ const validationResourceProposalSchema = z
         }),
       )
       .max(20)
-      .default([]),
-    templateSteps: z
-      .array(z.object({ localKey: key, name: text, signature: text, groupId: z.string().min(1) }))
-      .max(100)
       .default([]),
   })
   .strict()
@@ -138,9 +134,6 @@ async function persistProposalGraph(proposal: Proposal, targetProjectId: string,
     ),
     environments: Object.fromEntries(
       proposal.environments.map(item => [item.localKey, stableId(targetProjectId, 'environment', item.localKey)]),
-    ),
-    templateSteps: Object.fromEntries(
-      proposal.templateSteps.map(item => [item.localKey, stableId(targetProjectId, 'template-step', item.localKey)]),
     ),
   }
   for (const item of proposal.modules) {
@@ -303,35 +296,6 @@ async function persistProposalGraph(proposal: Proposal, targetProjectId: string,
       tx,
     )
   }
-  for (const item of proposal.templateSteps) {
-    const group = await tx.templateStepGroup.findUnique({
-      where: { id: item.groupId },
-      select: { id: true },
-    })
-    if (!group) throw new ServiceError(`Template step group "${item.groupId}" was not found.`, 'CONFLICT')
-    const data = {
-      id: ids.templateSteps[item.localKey],
-      name: item.name,
-      signature: item.signature,
-      templateStepGroupId: item.groupId,
-    }
-    await tx.templateStep.upsert({
-      where: { id: data.id },
-      create: { ...data, type: TemplateStepType.ACTION, icon: TemplateStepIcon.DEBUG },
-      update: { name: data.name, signature: data.signature, templateStepGroupId: data.templateStepGroupId },
-    })
-    await registerProjectResourceOwnership(
-      {
-        targetProjectId,
-        entityType: 'template-step',
-        entityId: data.id,
-        origin: 'validation-resource-proposal',
-        provenance: { planId, localKey: item.localKey },
-        content: data,
-      },
-      tx,
-    )
-  }
   return ids
 }
 
@@ -359,7 +323,7 @@ export async function proposeValidationResources(
     }
     const ids = await persistProposalGraph(proposal, plan.targetProjectId!, input.planId, tx)
     const stored = {
-      schemaVersion: 1,
+      schemaVersion: 2,
       planId: input.planId,
       targetProjectId: plan.targetProjectId,
       proposalHash,
@@ -383,7 +347,7 @@ export async function proposeValidationResources(
     ...result,
     contextHash: context.contextHash,
     nextRecommendedAction:
-      'Use each returned binding.astRef (preferred) or binding.id alias with its version to author the managed Validation AST.',
+      'Use each returned locator or environment binding in the managed Validation AST, and resolve executable behavior through exact ready Step Definition references.',
   }
 }
 

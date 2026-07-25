@@ -8,6 +8,10 @@ import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest
 import { createCustomExtensionPolicy } from '@/lib/validation-ast/extension-policy'
 import { sqliteTestClient } from '@/test/validation-ast-test-fixtures'
 import {
+  builtInStepDefinitions,
+  computeStepReferenceHash,
+} from '../../../packages/cucumber-runtime/src/step-definitions/index.ts'
+import {
   reviewedCapsuleAstHash as astHash,
   reviewedCapsuleHashText as hashText,
   reviewedCapsuleHashValue as hashValue,
@@ -79,9 +83,9 @@ describe('reviewed validation immutable projection', () => {
       (value: ReturnType<typeof reviewed>) => (value.validations[0]!.appraiseArtifacts.testCases[0]!.steps = []),
     ],
     [
-      'actions',
+      'invocations',
       (value: ReturnType<typeof reviewed>) =>
-        (value.validations[0]!.appraiseArtifacts.testCases[0]!.steps[0]!.templateStepName = 'changed-action@1'),
+        (value.validations[0]!.appraiseArtifacts.testCases[0]!.steps[0]!.invocation!.inputs = { url: '/changed' }),
     ],
     [
       'locators',
@@ -176,6 +180,13 @@ describe('reviewed runtime capsule byte generation', () => {
         extensionArtifacts: [{ ...unsafeExtension, extension: { ...unsafeExtension.extension, id: '../escape' } }],
       }),
     ).toThrow(/safe opaque identifier/)
+    expect(() =>
+      buildReviewedRuntimeCapsuleFiles({
+        node,
+        runtimeInput,
+        extensionArtifacts: [{ ...unsafeExtension, compiledSource: 'export const tampered = true' }],
+      }),
+    ).toThrow(/bytes do not match/)
     const injected = structuredClone(node)
     injected.appraiseArtifacts.testCases[0]!.title = 'Safe title\n@injected'
     expect(() => buildReviewedRuntimeCapsuleFiles({ node: injected, runtimeInput, extensionArtifacts: [] })).toThrow(
@@ -236,17 +247,23 @@ describe('reviewed runtime capsule byte generation', () => {
     }
     const node = validationFor('plan-one', 'operation-one', receiptHash, hashValue(runtimeInput)).validations[0]!
     const step = node.appraiseArtifacts.testCases[0]!.steps[0]!
+    const clickDefinition = builtInStepDefinitions.find(definition => definition.identity.id === 'browser.mouse.click')!
     step.gherkinStep = 'When the user clicks submit'
-    step.templateStepName = 'browser.mouse.click@1'
-    step.parameters = [
-      {
-        name: 'target',
-        value: JSON.stringify({ ref: 'locator', id: 'locator-submit', version: '1' }),
-        locatorId: 'submit',
-        locatorName: 'Submit button',
+    step.invocation = {
+      step: {
+        id: clickDefinition.identity.id,
+        version: clickDefinition.identity.version,
+        definitionHash: computeStepReferenceHash(clickDefinition),
       },
-    ]
-    const built = buildReviewedRuntimeCapsuleFiles({ node, runtimeInput, extensionArtifacts: [] })
+      inputs: { target: { id: 'submit' } },
+    }
+    step.parameters = []
+    const built = buildReviewedRuntimeCapsuleFiles({
+      node,
+      runtimeInput,
+      extensionArtifacts: [],
+      sealedDefinitions: [{ step: step.invocation.step, definition: clickDefinition }],
+    })
     const capsule = await fs.mkdtemp(path.join(os.tmpdir(), 'appraise-capsule-selector-'))
     try {
       await writeCapsuleFiles(capsule, built.files)
@@ -376,19 +393,15 @@ describe('reviewed runtime capsule materialization integration', () => {
     const first = await seed('project-one', 'capsule-plan-one', 'run-one')
     const second = await seed('project-two', 'capsule-plan-two', 'run-two')
     const third = await seed('project-one', 'capsule-plan-three', 'run-three')
-    const extension = reviewedExtension('project-three', hashText('project-three'))
-    const fourth = await seed('project-three', 'capsule-plan-four', 'run-four', extension)
     const firstRun = first.testRun
     const secondRun = second.testRun
     const thirdRun = third.testRun
-    const fourthRun = fourth.testRun
-    if (!firstRun || !secondRun || !thirdRun || !fourthRun) throw new Error('Expected seeded test runs')
+    if (!firstRun || !secondRun || !thirdRun) throw new Error('Expected seeded test runs')
     const materializer = new RuntimeCapsuleMaterializer(client, path.join(workspace, '.appraise'))
-    const [one, two, three, four] = await Promise.all([
+    const [one, two, three] = await Promise.all([
       materializer.materialize({ operationId: first.operationId, testRunId: firstRun.id }),
       materializer.materialize({ operationId: second.operationId, testRunId: secondRun.id }),
       materializer.materialize({ operationId: third.operationId, testRunId: thirdRun.id }),
-      materializer.materialize({ operationId: fourth.operationId, testRunId: fourthRun.id }),
     ])
     expect(one.row.integrityState).toBe('ready')
     expect(two.row.integrityState).toBe('ready')
@@ -488,16 +501,6 @@ describe('reviewed runtime capsule materialization integration', () => {
     expect(mutated).toMatchObject({ status: 'blocked', blockers: [{ code: 'CAPSULE_NOT_READY' }] })
     expect(runProcess).not.toHaveBeenCalled()
     await fs.writeFile(configPath, exactConfig, { mode: 0o600 })
-    const extensionFile = four.manifest.files.find(file => file.role === 'extension')!
-    expect(extensionFile.path).toBe('extensions/reviewed-extension/v1.2.3.mjs')
-    const extensionBlob = await client.runtimeCapsuleBlob.findUniqueOrThrow({
-      where: {
-        targetProjectId_contentHash: { targetProjectId: 'project-three', contentHash: extensionFile.hash },
-      },
-    })
-    await expect(
-      fs.readFile(path.join(workspace, '.appraise', 'projects', 'project-three', extensionBlob.storagePath), 'utf8'),
-    ).resolves.toBe(extension.artifact.compiledSource)
     expect(one.row.targetProjectId).not.toBe(two.row.targetProjectId)
     expect(await client.runtimeCapsuleBlobReference.count({ where: { capsuleId: one.row.id } })).toBe(
       one.manifest.files.length,

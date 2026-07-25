@@ -1,6 +1,11 @@
 import { createHash } from 'node:crypto'
 import { z } from 'zod'
 import { canonicalContractJson } from '@/lib/catalog-contracts'
+import {
+  computeStepDefinitionHashes,
+  computeStepReferenceHash,
+  stepDefinitionSchema,
+} from '../../../packages/cucumber-runtime/src/step-definitions/contracts'
 
 export const runtimeCapsuleSegmentSchema = z
   .string()
@@ -20,7 +25,7 @@ export const runtimeCapsuleFilePathSchema = z
     'must not contain empty, current, or parent segments',
   )
 
-export const runtimeCapsuleManifestSchema = z
+const runtimeCapsuleManifestV1Schema = z
   .object({
     schemaVersion: z.literal('1'),
     projectId: runtimeCapsuleSegmentSchema,
@@ -112,6 +117,102 @@ export const runtimeCapsuleManifestSchema = z
     )
       context.addIssue({ code: 'custom', path: ['operations'], message: 'operations must be unique and ordered' })
   })
+
+const sealedStepDefinitionSchema = z
+  .object({
+    step: z
+      .object({
+        id: z.string().regex(/^[a-z0-9]+(?:[.-][a-z0-9]+)*$/),
+        version: z.string().regex(/^\d+(?:\.\d+){0,2}$/),
+        definitionHash: runtimeCapsuleHashSchema,
+      })
+      .strict(),
+    definition: stepDefinitionSchema,
+    definitionHash: runtimeCapsuleHashSchema,
+    humanProjectionHash: runtimeCapsuleHashSchema,
+    agentContractHash: runtimeCapsuleHashSchema,
+    executionHash: runtimeCapsuleHashSchema,
+    publicationReceiptHash: runtimeCapsuleHashSchema,
+  })
+  .strict()
+
+function sealedDefinitionMatchesContent(sealed: z.infer<typeof sealedStepDefinitionSchema>) {
+  const hashes = computeStepDefinitionHashes(sealed.definition)
+  return (
+    sealed.definition.identity.id === sealed.step.id &&
+    sealed.definition.identity.version === sealed.step.version &&
+    computeStepReferenceHash(sealed.definition) === sealed.step.definitionHash &&
+    sealed.definitionHash === hashes.definitionHash &&
+    sealed.humanProjectionHash === hashes.humanProjectionHash &&
+    sealed.agentContractHash === hashes.agentContractHash &&
+    sealed.executionHash === hashes.executionHash
+  )
+}
+
+const runtimeCapsuleManifestV2Schema = runtimeCapsuleManifestV1Schema
+  .innerType()
+  .omit({ schemaVersion: true, operations: true })
+  .extend({
+    schemaVersion: z.literal('2'),
+    rootInvocations: z
+      .array(
+        z
+          .object({
+            step: sealedStepDefinitionSchema.shape.step,
+            inputs: z.record(z.string(), z.unknown()),
+            store: z.object({ output: z.string(), as: z.string() }).optional(),
+            presentation: z
+              .object({ keyword: z.enum(['Given', 'When', 'Then', 'And']), description: z.string().optional() })
+              .optional(),
+          })
+          .strict(),
+      )
+      .min(1)
+      .max(512),
+    stepDefinitions: z.array(sealedStepDefinitionSchema).min(1).max(512),
+    extensions: z
+      .array(
+        z
+          .object({
+            id: z.string().regex(/^[a-z0-9]+(?:[.-][a-z0-9]+)*$/),
+            version: z.string().regex(/^\d+(?:\.\d+){0,2}$/),
+            sourceHash: runtimeCapsuleHashSchema,
+            compiledHash: runtimeCapsuleHashSchema,
+            path: z.string().regex(/^extensions\/[a-z0-9]+(?:[.-][a-z0-9]+)*\/v\d+(?:\.\d+){0,2}\.mjs$/),
+          })
+          .strict(),
+      )
+      .max(8)
+      .default([]),
+    // Handlers are derived from the sealed definition closure; root semantics
+    // never select an operation directly.
+    operations: runtimeCapsuleManifestV1Schema.innerType().shape.operations,
+  })
+  .superRefine((manifest, context) => {
+    const roots = manifest.rootInvocations.map(
+      invocation => `${invocation.step.id}@${invocation.step.version}#${invocation.step.definitionHash}`,
+    )
+    const definitions = new Set(
+      manifest.stepDefinitions.map(
+        definition => `${definition.step.id}@${definition.step.version}#${definition.step.definitionHash}`,
+      ),
+    )
+    if (roots.some(root => !definitions.has(root)))
+      context.addIssue({
+        code: 'custom',
+        path: ['rootInvocations'],
+        message: 'every root invocation must be sealed in the closure',
+      })
+    for (const sealed of manifest.stepDefinitions)
+      if (!sealedDefinitionMatchesContent(sealed))
+        context.addIssue({
+          code: 'custom',
+          path: ['stepDefinitions'],
+          message: 'sealed definition identity and publication hashes must match its content',
+        })
+  })
+
+export const runtimeCapsuleManifestSchema = z.union([runtimeCapsuleManifestV1Schema, runtimeCapsuleManifestV2Schema])
 
 export type RuntimeCapsuleManifest = z.infer<typeof runtimeCapsuleManifestSchema>
 

@@ -11,11 +11,68 @@ import {
 } from '@/lib/plan-contract'
 import { createCustomExtensionPolicy } from '@/lib/validation-ast/extension-policy'
 import { prepareValidationAstPublish } from '@/services/coordinator/validation-ast-publish-journal-service'
+import {
+  builtInStepDefinitions,
+  canonicalStepDefinitionJson,
+  computeStepDefinitionHashes,
+  computeStepReferenceHash,
+} from '../../packages/cucumber-runtime/src/step-definitions/index.ts'
 
 export const reviewedCapsuleHashText = (value: string) => `sha256:${createHash('sha256').update(value).digest('hex')}`
 export const reviewedCapsuleHashValue = (value: unknown) => reviewedCapsuleHashText(canonicalContractJson(value))
 export const reviewedCapsuleAstHash = reviewedCapsuleHashText('reviewed-ast')
 const reviewedCapsuleGherkin = ['Scenario: Open home\n  When the user opens home']
+const openHomeDefinition = builtInStepDefinitions.find(
+  definition => definition.identity.id === 'browser.navigation.goto',
+)!
+const openHomeInvocation = {
+  step: {
+    id: openHomeDefinition.identity.id,
+    version: openHomeDefinition.identity.version,
+    definitionHash: computeStepReferenceHash(openHomeDefinition),
+  },
+  inputs: { url: '/' },
+  presentation: { keyword: 'When' as const, description: 'the user opens home' },
+}
+
+async function seedOpenHomeStepDefinition(client: PrismaClient) {
+  const definition = openHomeDefinition
+  const hashes = computeStepDefinitionHashes(definition)
+  const publishedAt = definition.provenance.createdAt
+  const receipt = {
+    step: { id: definition.identity.id, version: definition.identity.version },
+    ...hashes,
+    registryManifestHash: reviewedCapsuleHashValue({ registry: definition.identity }),
+    conformanceRunId: 'fixture-conformance',
+    reviewAuthority: 'fixture-review',
+    publishedAt,
+  }
+  const receiptHash = reviewedCapsuleHashValue(receipt)
+  await client.stepDefinition.upsert({
+    where: { id_version: { id: definition.identity.id, version: definition.identity.version } },
+    update: {},
+    create: {
+      id: definition.identity.id,
+      version: definition.identity.version,
+      status: 'ready',
+      title: definition.intent.title,
+      description: definition.intent.description,
+      definitionJson: canonicalStepDefinitionJson(definition),
+      ...hashes,
+      provenanceJson: canonicalStepDefinitionJson(definition.provenance),
+      publishedAt: new Date(publishedAt),
+      publicationReceipt: {
+        create: {
+          receiptJson: canonicalStepDefinitionJson(receipt),
+          receiptHash,
+          registryManifestHash: receipt.registryManifestHash,
+          conformanceRunId: 'fixture-conformance',
+          reviewAuthority: 'fixture-review',
+        },
+      },
+    },
+  })
+}
 
 export type ReviewedExtensionFixture = ReturnType<typeof reviewedExtensionFixture>
 
@@ -40,7 +97,7 @@ export function reviewedRuntimeInputFixture(
     runtimes: ['browser'],
   }
   return {
-    schemaVersion: '1' as const,
+    schemaVersion: '2' as const,
     targetProjectId: projectId,
     targetFingerprint: fingerprint,
     astId: 'navigation',
@@ -52,7 +109,8 @@ export function reviewedRuntimeInputFixture(
     extensionPolicy: structuredClone(
       createCustomExtensionPolicy({ projectId, projectFingerprint: fingerprint, capabilityImports: {} }),
     ) as ReturnType<typeof createCustomExtensionPolicy> & { capabilityImports: Record<string, string[]> },
-    actions: [{ id: 'browser.navigation.goto', version: '1', contentHash: reviewedCapsuleHashText('action') }],
+    rootInvocations: [{ caseId: 'home-case', stepId: 'open-step', invocation: structuredClone(openHomeInvocation) }],
+    stepDefinitions: [structuredClone(openHomeInvocation.step)],
     locators: [],
     extensions,
     matrix: [{ browser: 'chromium', environment: 'local' }],
@@ -124,8 +182,8 @@ export function validationForReviewedCapsule(
                   order: 0,
                   label: 'Open home',
                   gherkinStep: 'When the user opens home',
-                  templateStepName: 'browser.navigation.goto@1',
-                  parameters: [{ name: 'url', value: '/' }],
+                  invocation: structuredClone(openHomeInvocation),
+                  parameters: [],
                 },
               ],
             },
@@ -284,6 +342,7 @@ export async function seedReviewedCapsuleLifecycleFixture(options: {
       testCases: { connect: { id: 'home-case' } },
     },
   })
+  await seedOpenHomeStepDefinition(client)
   await prepareValidationAstPublish(
     {
       id: operationId,

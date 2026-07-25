@@ -36,6 +36,14 @@ function definition(id: string, execution: StepDefinition['execution']): StepDef
 
 function record(value: StepDefinition): RuntimeStepDefinitionRecord {
   const hashes = computeStepDefinitionHashes(value)
+  const receipt = {
+    step: { id: value.identity.id, version: value.identity.version },
+    ...hashes,
+    registryManifestHash: stepDefinitionContentHash({ step: value.identity }),
+    conformanceRunId: 'test-run',
+    reviewAuthority: 'test-reviewer',
+    publishedAt: '2026-07-25T00:00:00.000Z',
+  }
   return {
     status: 'ready',
     definitionJson: JSON.stringify(value),
@@ -43,7 +51,10 @@ function record(value: StepDefinition): RuntimeStepDefinitionRecord {
     humanProjectionHash: hashes.humanProjectionHash,
     agentContractHash: hashes.agentContractHash,
     executionHash: hashes.executionHash,
-    publicationReceipt: { receiptHash: stepDefinitionContentHash({ step: value.identity }) },
+    publicationReceipt: {
+      receiptHash: stepDefinitionContentHash(receipt),
+      receiptJson: JSON.stringify(receipt),
+    },
   }
 }
 
@@ -127,5 +138,31 @@ describe('runtime Step Definition closure', () => {
         executionHash: `sha256:${'0'.repeat(64)}`,
       })),
     ).rejects.toThrow(/publication hashes/)
+  })
+
+  it('authenticates receipt bytes and resolves an exact deprecated publication', async () => {
+    const ready = definition('browser.historical', {
+      kind: 'operation',
+      handlerId: 'browser.click',
+      handlerVersion: '1',
+      runtime: 'browser',
+    })
+    const ref = {
+      id: ready.identity.id,
+      version: ready.identity.version,
+      definitionHash: computeStepReferenceHash(ready),
+    }
+    await expect(
+      resolveRuntimeStepDefinitionClosure([ref], async () => ({ ...record(ready), status: 'deprecated' })),
+    ).resolves.toHaveLength(1)
+    await expect(
+      resolveRuntimeStepDefinitionClosure([ref], async () => ({
+        ...record(ready),
+        publicationReceipt: {
+          ...record(ready).publicationReceipt!,
+          receiptHash: `sha256:${'0'.repeat(64)}`,
+        },
+      })),
+    ).rejects.toThrow(/publication evidence/)
   })
 })

@@ -297,14 +297,7 @@ async function getValidations(request: Request, operation: string[]) {
     const url = new URL(request.url)
     const resourceTypes = url.searchParams.get('resourceTypes')?.split(',').filter(Boolean) as
       | Array<
-          | 'modules'
-          | 'testSuites'
-          | 'testCases'
-          | 'templateSteps'
-          | 'stepBlocks'
-          | 'locatorGroups'
-          | 'locators'
-          | 'environments'
+          'modules' | 'testSuites' | 'testCases' | 'stepDefinitions' | 'locatorGroups' | 'locators' | 'environments'
         >
       | undefined
     return Response.json(

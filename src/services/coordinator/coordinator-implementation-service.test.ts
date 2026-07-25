@@ -107,7 +107,15 @@ function appraiseArtifacts(testCaseId: string) {
             order: 0,
             label: 'Run implementation validation step',
             gherkinStep: 'Given I run the implementation validation step',
-            templateStepName: 'Run step',
+            invocation: {
+              step: {
+                id: 'browser.navigation.goto',
+                version: '1',
+                definitionHash: `sha256:${'a'.repeat(64)}`,
+              },
+              inputs: { url: '/' },
+              presentation: { keyword: 'Given' as const, description: 'I run the implementation validation step' },
+            },
             parameters: [],
           },
         ],

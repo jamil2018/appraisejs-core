@@ -2490,50 +2490,6 @@
       "id": "sync_test_suites_main"
     },
     {
-      "label": "validate-prisma-migrations.mjs",
-      "file_type": "code",
-      "source_file": "validate-prisma-migrations.mjs",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 35,
-      "norm_label": "validate-prisma-migrations.mjs",
-      "community_name": "Community 35",
-      "id": "validate_prisma_migrations"
-    },
-    {
-      "label": "workspace",
-      "file_type": "code",
-      "source_file": "validate-prisma-migrations.mjs",
-      "source_location": "L6",
-      "_origin": "ast",
-      "community": 35,
-      "norm_label": "workspace",
-      "community_name": "Community 35",
-      "id": "validate_prisma_migrations_workspace"
-    },
-    {
-      "label": "databasePath",
-      "file_type": "code",
-      "source_file": "validate-prisma-migrations.mjs",
-      "source_location": "L7",
-      "_origin": "ast",
-      "community": 35,
-      "norm_label": "databasepath",
-      "community_name": "Community 35",
-      "id": "validate_prisma_migrations_databasepath"
-    },
-    {
-      "label": "migrationsRoot",
-      "file_type": "code",
-      "source_file": "validate-prisma-migrations.mjs",
-      "source_location": "L8",
-      "_origin": "ast",
-      "community": 35,
-      "norm_label": "migrationsroot",
-      "community_name": "Community 35",
-      "id": "validate_prisma_migrations_migrationsroot"
-    },
-    {
       "label": "update-graphify-graphs.mjs",
       "file_type": "code",
       "source_file": "update-graphify-graphs.mjs",
@@ -4512,83 +4468,6 @@
       "norm_label": "operationarchitecturedigest",
       "community_name": "Community 12",
       "id": "lib_operation_architecture_utils_operationarchitecturedigest"
-    },
-    {
-      "label": "backfill-operation-invocations.ts",
-      "file_type": "code",
-      "source_file": "backfill-operation-invocations.ts",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 26,
-      "norm_label": "backfill-operation-invocations.ts",
-      "community_name": "Community 26",
-      "id": "backfill_operation_invocations"
-    },
-    {
-      "label": "apply",
-      "file_type": "code",
-      "source_file": "backfill-operation-invocations.ts",
-      "source_location": "L10",
-      "_origin": "ast",
-      "community": 26,
-      "norm_label": "apply",
-      "community_name": "Community 26",
-      "id": "backfill_operation_invocations_apply"
-    },
-    {
-      "label": "mappingSelect",
-      "file_type": "code",
-      "source_file": "backfill-operation-invocations.ts",
-      "source_location": "L12",
-      "_origin": "ast",
-      "community": 26,
-      "norm_label": "mappingselect",
-      "community_name": "Community 26",
-      "id": "backfill_operation_invocations_mappingselect"
-    },
-    {
-      "label": "caseUpdates",
-      "file_type": "code",
-      "source_file": "backfill-operation-invocations.ts",
-      "source_location": "L40",
-      "_origin": "ast",
-      "community": 26,
-      "norm_label": "caseupdates",
-      "community_name": "Community 26",
-      "id": "backfill_operation_invocations_caseupdates"
-    },
-    {
-      "label": "templateUpdates",
-      "file_type": "code",
-      "source_file": "backfill-operation-invocations.ts",
-      "source_location": "L49",
-      "_origin": "ast",
-      "community": 26,
-      "norm_label": "templateupdates",
-      "community_name": "Community 26",
-      "id": "backfill_operation_invocations_templateupdates"
-    },
-    {
-      "label": "blockUpdate()",
-      "file_type": "code",
-      "source_file": "backfill-operation-invocations.ts",
-      "source_location": "L59",
-      "_origin": "ast",
-      "community": 26,
-      "norm_label": "blockupdate()",
-      "community_name": "Community 26",
-      "id": "backfill_operation_invocations_blockupdate"
-    },
-    {
-      "label": "blockUpdates",
-      "file_type": "code",
-      "source_file": "backfill-operation-invocations.ts",
-      "source_location": "L66",
-      "_origin": "ast",
-      "community": 26,
-      "norm_label": "blockupdates",
-      "community_name": "Community 26",
-      "id": "backfill_operation_invocations_blockupdates"
     },
     {
       "label": "build-operation-capability-ledger.ts",
@@ -8483,6 +8362,127 @@
       "norm_label": "locktoken",
       "community_name": "Community 2",
       "id": "update_swarm_evolution_locktoken"
+    },
+    {
+      "label": "backfill-operation-invocations.ts",
+      "file_type": "code",
+      "source_file": "backfill-operation-invocations.ts",
+      "source_location": "L1",
+      "_origin": "ast",
+      "community": 26,
+      "norm_label": "backfill-operation-invocations.ts",
+      "community_name": "Community 26",
+      "id": "backfill_operation_invocations"
+    },
+    {
+      "label": "apply",
+      "file_type": "code",
+      "source_file": "backfill-operation-invocations.ts",
+      "source_location": "L10",
+      "_origin": "ast",
+      "community": 26,
+      "norm_label": "apply",
+      "community_name": "Community 26",
+      "id": "backfill_operation_invocations_apply"
+    },
+    {
+      "label": "mappingSelect",
+      "file_type": "code",
+      "source_file": "backfill-operation-invocations.ts",
+      "source_location": "L12",
+      "_origin": "ast",
+      "community": 26,
+      "norm_label": "mappingselect",
+      "community_name": "Community 26",
+      "id": "backfill_operation_invocations_mappingselect"
+    },
+    {
+      "label": "caseUpdates",
+      "file_type": "code",
+      "source_file": "backfill-operation-invocations.ts",
+      "source_location": "L40",
+      "_origin": "ast",
+      "community": 26,
+      "norm_label": "caseupdates",
+      "community_name": "Community 26",
+      "id": "backfill_operation_invocations_caseupdates"
+    },
+    {
+      "label": "templateUpdates",
+      "file_type": "code",
+      "source_file": "backfill-operation-invocations.ts",
+      "source_location": "L49",
+      "_origin": "ast",
+      "community": 26,
+      "norm_label": "templateupdates",
+      "community_name": "Community 26",
+      "id": "backfill_operation_invocations_templateupdates"
+    },
+    {
+      "label": "blockUpdate()",
+      "file_type": "code",
+      "source_file": "backfill-operation-invocations.ts",
+      "source_location": "L59",
+      "_origin": "ast",
+      "community": 26,
+      "norm_label": "blockupdate()",
+      "community_name": "Community 26",
+      "id": "backfill_operation_invocations_blockupdate"
+    },
+    {
+      "label": "blockUpdates",
+      "file_type": "code",
+      "source_file": "backfill-operation-invocations.ts",
+      "source_location": "L66",
+      "_origin": "ast",
+      "community": 26,
+      "norm_label": "blockupdates",
+      "community_name": "Community 26",
+      "id": "backfill_operation_invocations_blockupdates"
+    },
+    {
+      "label": "validate-prisma-migrations.mjs",
+      "file_type": "code",
+      "source_file": "validate-prisma-migrations.mjs",
+      "source_location": "L1",
+      "_origin": "ast",
+      "community": 35,
+      "norm_label": "validate-prisma-migrations.mjs",
+      "community_name": "Community 35",
+      "id": "validate_prisma_migrations"
+    },
+    {
+      "label": "workspace",
+      "file_type": "code",
+      "source_file": "validate-prisma-migrations.mjs",
+      "source_location": "L6",
+      "_origin": "ast",
+      "community": 35,
+      "norm_label": "workspace",
+      "community_name": "Community 35",
+      "id": "validate_prisma_migrations_workspace"
+    },
+    {
+      "label": "databasePath",
+      "file_type": "code",
+      "source_file": "validate-prisma-migrations.mjs",
+      "source_location": "L7",
+      "_origin": "ast",
+      "community": 35,
+      "norm_label": "databasepath",
+      "community_name": "Community 35",
+      "id": "validate_prisma_migrations_databasepath"
+    },
+    {
+      "label": "migrationsRoot",
+      "file_type": "code",
+      "source_file": "validate-prisma-migrations.mjs",
+      "source_location": "L8",
+      "_origin": "ast",
+      "community": 35,
+      "norm_label": "migrationsroot",
+      "community_name": "Community 35",
+      "id": "validate_prisma_migrations_migrationsroot"
     }
   ],
   "links": [
@@ -12925,36 +12925,6 @@
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
-      "source_file": "validate-prisma-migrations.mjs",
-      "source_location": "L7",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "validate_prisma_migrations",
-      "target": "validate_prisma_migrations_databasepath"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "validate-prisma-migrations.mjs",
-      "source_location": "L8",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "validate_prisma_migrations",
-      "target": "validate_prisma_migrations_migrationsroot"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "validate-prisma-migrations.mjs",
-      "source_location": "L6",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "validate_prisma_migrations",
-      "target": "validate_prisma_migrations_workspace"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
       "source_file": "update-graphify-graphs.mjs",
       "source_location": "L44",
       "weight": 1.0,
@@ -15551,66 +15521,6 @@
       "confidence_score": 1.0,
       "source": "build_operation_capability_ledger",
       "target": "lib_operation_architecture_utils_operationarchitecturedigest"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "backfill-operation-invocations.ts",
-      "source_location": "L10",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "backfill_operation_invocations",
-      "target": "backfill_operation_invocations_apply"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "backfill-operation-invocations.ts",
-      "source_location": "L59",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "backfill_operation_invocations",
-      "target": "backfill_operation_invocations_blockupdate"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "backfill-operation-invocations.ts",
-      "source_location": "L66",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "backfill_operation_invocations",
-      "target": "backfill_operation_invocations_blockupdates"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "backfill-operation-invocations.ts",
-      "source_location": "L40",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "backfill_operation_invocations",
-      "target": "backfill_operation_invocations_caseupdates"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "backfill-operation-invocations.ts",
-      "source_location": "L12",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "backfill_operation_invocations",
-      "target": "backfill_operation_invocations_mappingselect"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "backfill-operation-invocations.ts",
-      "source_location": "L49",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "backfill_operation_invocations",
-      "target": "backfill_operation_invocations_templateupdates"
     },
     {
       "relation": "contains",
@@ -21484,8 +21394,98 @@
       "confidence_score": 1.0,
       "source": "update_swarm_evolution",
       "target": "update_swarm_evolution_values"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "backfill-operation-invocations.ts",
+      "source_location": "L10",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "backfill_operation_invocations",
+      "target": "backfill_operation_invocations_apply"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "backfill-operation-invocations.ts",
+      "source_location": "L59",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "backfill_operation_invocations",
+      "target": "backfill_operation_invocations_blockupdate"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "backfill-operation-invocations.ts",
+      "source_location": "L66",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "backfill_operation_invocations",
+      "target": "backfill_operation_invocations_blockupdates"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "backfill-operation-invocations.ts",
+      "source_location": "L40",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "backfill_operation_invocations",
+      "target": "backfill_operation_invocations_caseupdates"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "backfill-operation-invocations.ts",
+      "source_location": "L12",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "backfill_operation_invocations",
+      "target": "backfill_operation_invocations_mappingselect"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "backfill-operation-invocations.ts",
+      "source_location": "L49",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "backfill_operation_invocations",
+      "target": "backfill_operation_invocations_templateupdates"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "validate-prisma-migrations.mjs",
+      "source_location": "L7",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "validate_prisma_migrations",
+      "target": "validate_prisma_migrations_databasepath"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "validate-prisma-migrations.mjs",
+      "source_location": "L8",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "validate_prisma_migrations",
+      "target": "validate_prisma_migrations_migrationsroot"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "validate-prisma-migrations.mjs",
+      "source_location": "L6",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "validate_prisma_migrations",
+      "target": "validate_prisma_migrations_workspace"
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "b815a9a85bcdadbb549dcfd8107ec11d8ec77586"
+  "built_at_commit": "128866b31982ba2c250cfe842fd51c59a3e0b29a"
 }

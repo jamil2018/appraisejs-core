@@ -312,16 +312,16 @@ describe('compact lifecycle responses', () => {
     expect(measureMcpResponse(compact).estimatedTokens).toBeLessThan(MCP_RESPONSE_TOKEN_BUDGETS.planCreation)
   })
 
-  it('summarizes validation resources as counts instead of returning full shared libraries', () => {
+  it('summarizes validation resources as counts instead of returning the full Step Definition registry', () => {
     const compact = applyAuthoringResponseMode(
       {
         planId: 'plan-1',
         contextHash: `sha256:${'a'.repeat(64)}`,
         resources: {
-          templateSteps: Array.from({ length: 35 }, (_, index) => ({
+          stepDefinitions: Array.from({ length: 35 }, (_, index) => ({
             id: `step-${index}`,
-            name: `Shared step ${index}`,
-            signature: `A verbose reusable signature ${index}`,
+            version: '1',
+            definitionHash: `sha256:${'a'.repeat(64)}`,
           })),
           modules: [],
           locators: [],
@@ -331,7 +331,7 @@ describe('compact lifecycle responses', () => {
     )
 
     expect(compact).toMatchObject({
-      returnedResourceCounts: { templateSteps: 35, modules: 0, locators: 0 },
+      returnedResourceCounts: { stepDefinitions: 35, modules: 0, locators: 0 },
       resourceSearchGuidance: expect.stringContaining('step_search'),
     })
     expect(compact).not.toHaveProperty('resources')
@@ -382,7 +382,7 @@ describe('compact lifecycle responses', () => {
 
   it('publishes a versioned self-describing Validation AST schema', () => {
     expect(VALIDATION_AST_JSON_SCHEMA).toMatchObject({
-      $id: 'appraise://contracts/validation-ast/v1',
+      $id: 'appraise://contracts/validation-ast/v2',
       properties: { ast: { $ref: '#/$defs/ast' } },
       $defs: { ast: { properties: { scenarios: expect.any(Object) } } },
     })

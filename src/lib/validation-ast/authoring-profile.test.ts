@@ -2,9 +2,33 @@ import { describe, expect, it } from 'vitest'
 import { defaultActionCatalog } from '@/lib/action-catalog'
 import { checkValidationAstAuthoringProfile, validationAstAuthoringProfileSchema } from './authoring-profile'
 import { validationAstSchema } from './schemas'
+import {
+  builtInStepDefinitions,
+  computeStepReferenceHash,
+} from '../../../packages/cucumber-runtime/src/step-definitions'
+
+function step(
+  id: string,
+  inputs: Record<string, unknown>,
+  keyword: 'Given' | 'When' | 'Then' | 'And',
+  description: string,
+) {
+  const definition = builtInStepDefinitions.find(item => item.identity.id === id)!
+  return {
+    invocation: {
+      step: {
+        id: definition.identity.id,
+        version: definition.identity.version,
+        definitionHash: computeStepReferenceHash(definition),
+      },
+      inputs,
+      presentation: { keyword, description },
+    },
+  }
+}
 
 const ast = validationAstSchema.parse({
-  schemaVersion: 1,
+  schemaVersion: 2,
   id: 'simple-flow',
   title: 'Simple flow',
   purpose: 'Verify the happy path.',
@@ -15,35 +39,27 @@ const ast = validationAstSchema.parse({
       id: 'primary',
       title: 'Primary flow',
       steps: [
-        {
-          id: 'open',
-          keyword: 'When',
-          description: 'the user opens the app',
-          operation: { id: 'browser.navigation.goto', version: '1', inputs: { url: '/' } },
-        },
+        { id: 'open', ...step('browser.navigation.goto', { url: '/' }, 'When', 'the user opens the app') },
         {
           id: 'assert-accessible',
-          keyword: 'Then',
-          description: 'the result is accessible',
-          operation: { id: 'browser.assertions.accessible', version: '1', inputs: { target: 'result' } },
+          ...step('browser.assertions.accessible', { target: 'result' }, 'Then', 'the result is accessible'),
         },
         {
           id: 'assert-persisted',
-          keyword: 'Then',
-          description: 'the result is persisted',
-          operation: { id: 'browser.assertions.persisted', version: '1', inputs: { target: 'result' } },
+          ...step('browser.assertions.persisted', { target: 'result' }, 'Then', 'the result is persisted'),
         },
         {
           id: 'assert-console-clean',
-          keyword: 'And',
-          description: 'the browser has no runtime errors',
-          operation: { id: 'browser.assertions.no-console-errors', version: '1', inputs: {} },
+          ...step('browser.assertions.no-console-errors', {}, 'And', 'the browser has no runtime errors'),
         },
         {
           id: 'assert-network-clean',
-          keyword: 'And',
-          description: 'the browser has no failed network activity',
-          operation: { id: 'browser.assertions.no-failed-network-requests', version: '1', inputs: {} },
+          ...step(
+            'browser.assertions.no-failed-network-requests',
+            {},
+            'And',
+            'the browser has no failed network activity',
+          ),
         },
       ],
     },
@@ -53,7 +69,7 @@ const ast = validationAstSchema.parse({
 })
 const profile = validationAstAuthoringProfileSchema.parse({ id: 'simple-happy-path', version: '1' })
 const actions = defaultActionCatalog.readActions(
-  ast.scenarios[0]!.steps.map(step => ({ id: step.operation.id, version: step.operation.version })),
+  ast.scenarios[0]!.steps.map(item => ({ id: item.invocation.step.id, version: item.invocation.step.version })),
 )
 
 describe('simple happy-path authoring profile', () => {
@@ -63,15 +79,15 @@ describe('simple happy-path authoring profile', () => {
 
   it('treats And steps after Then as assertions using effective Gherkin semantics', () => {
     const inheritedThenAst = structuredClone(ast)
-    inheritedThenAst.scenarios[0]!.steps[2]!.keyword = 'And'
+    inheritedThenAst.scenarios[0]!.steps[2]!.invocation.presentation!.keyword = 'And'
 
     expect(checkValidationAstAuthoringProfile(inheritedThenAst, profile, actions)).toEqual([])
   })
 
   it('requires runtime cleanliness checks to be observations, not setup steps', () => {
     const setupOnlyAst = structuredClone(ast)
-    setupOnlyAst.scenarios[0]!.steps[3]!.keyword = 'When'
-    setupOnlyAst.scenarios[0]!.steps[4]!.keyword = 'And'
+    setupOnlyAst.scenarios[0]!.steps[3]!.invocation.presentation!.keyword = 'When'
+    setupOnlyAst.scenarios[0]!.steps[4]!.invocation.presentation!.keyword = 'And'
 
     expect(checkValidationAstAuthoringProfile(setupOnlyAst, profile, actions).map(issue => issue.referenceId)).toEqual([
       'browser.assertions.no-console-errors@1',
@@ -84,12 +100,13 @@ describe('simple happy-path authoring profile', () => {
     advancedAst.matrix.push({ browser: 'firefox', environmentId: 'local' })
     advancedAst.scenarios[0]!.steps.push({
       id: 'wait',
-      keyword: 'And',
-      description: 'the user waits',
-      operation: { id: 'browser.waits.duration', version: '1', inputs: { duration: 60 } },
+      ...step('browser.waits.duration', { duration: 60 }, 'And', 'the user waits'),
     })
     const advancedActions = defaultActionCatalog.readActions(
-      advancedAst.scenarios[0]!.steps.map(step => ({ id: step.operation.id, version: step.operation.version })),
+      advancedAst.scenarios[0]!.steps.map(item => ({
+        id: item.invocation.step.id,
+        version: item.invocation.step.version,
+      })),
     )
     expect(checkValidationAstAuthoringProfile(advancedAst, profile, advancedActions).map(issue => issue.code)).toEqual([
       'simple-profile-matrix-count',
@@ -109,19 +126,15 @@ describe('simple happy-path authoring profile', () => {
       bypass.scenarios[0]!.steps[0]!,
       {
         id: 'fake-assertion',
-        keyword: 'Then',
-        description: 'the result appears asserted',
-        operation: { id: 'browser.assertions.visible', version: '1', inputs: { target: 'result' } },
+        ...step('browser.assertions.visible', { target: 'result' }, 'Then', 'the result appears asserted'),
       },
       {
         id: 'millisecond-wait',
-        keyword: 'And',
-        description: 'the user waits too long',
-        operation: { id: 'browser.waits.timeout', version: '1', inputs: { timeout: 30_001 } },
+        ...step('browser.waits.timeout', { timeout: 30_001 }, 'And', 'the user waits too long'),
       },
     ]
     const bypassActions = defaultActionCatalog.readActions(
-      bypass.scenarios[0]!.steps.map(step => ({ id: step.operation.id, version: step.operation.version })),
+      bypass.scenarios[0]!.steps.map(item => ({ id: item.invocation.step.id, version: item.invocation.step.version })),
     )
     expect(checkValidationAstAuthoringProfile(bypass, profile, bypassActions).map(issue => issue.code)).toEqual([
       'simple-profile-assertion-concern-missing',

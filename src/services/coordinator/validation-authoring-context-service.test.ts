@@ -1,9 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import { StepParameterType, TemplateStepGroupType } from '@prisma/client'
-
 import type { PlanArtifact } from '@/lib/plan-contract'
+import { builtInStepDefinitions } from '../../../packages/cucumber-runtime/src/step-definitions'
 
-import { buildValidationAuthoringKit, rankReusableResources } from './validation-authoring-context-service'
+import { buildValidationAuthoringKit, rankReadyStepDefinitions } from './validation-authoring-context-service'
 
 const plan = {
   version: '1',
@@ -26,63 +25,24 @@ const plan = {
 } as unknown as PlanArtifact
 
 describe('validation authoring kit', () => {
-  it('prefers exact ordered intent and named parameters over loose token overlap', () => {
-    const group = {
-      id: 'browser',
-      name: 'Browser actions',
-      description: null,
-      type: TemplateStepGroupType.ACTION,
-    }
-    const templateStep = (
-      id: string,
-      name: string,
-      signature: string,
-      description: string,
-      parameters: Array<{ name: string; type: StepParameterType; order: number }> = [],
-      operation?: { id: string; version: string },
-    ) => ({
-      id,
-      name,
-      signature,
-      description,
-      operationId: operation?.id ?? null,
-      operationVersion: operation?.version ?? null,
-      operationDescriptorHash: operation ? `sha256:${'a'.repeat(64)}` : null,
-      humanProjectionId: operation ? `${operation.id}.gherkin` : null,
-      operationMigrationState: operation ? 'mapped' : 'handler-required',
-      templateStepGroupId: group.id,
-      templateStepGroup: group,
-      parameters,
-    })
-    const resources = {
-      templateSteps: [
-        templateStep('forward', 'Browser forward', 'navigate browser forward', 'Navigate to the next history entry.'),
-        templateStep('goto', 'Navigate to URL', 'navigate to {url}', 'Open an absolute or relative URL.', [
-          { name: 'url', type: StepParameterType.STRING, order: 0 },
-        ]),
-        templateStep('cookie', 'Set cookie', 'set cookie {name}', 'Set a browser cookie.', [
-          { name: 'name', type: StepParameterType.STRING, order: 0 },
-        ]),
-        templateStep(
-          'viewport',
-          'Set viewport size',
-          'set viewport {width} by {height}',
-          'Set viewport dimensions.',
-          [
-            { name: 'width', type: StepParameterType.NUMBER, order: 0 },
-            { name: 'height', type: StepParameterType.NUMBER, order: 1 },
-          ],
-          { id: 'browser.viewport.set', version: '1' },
-        ),
-      ],
-      stepBlocks: [],
-    }
+  const readyDefinitions = builtInStepDefinitions.map(definition => ({
+    id: definition.identity.id,
+    version: definition.identity.version,
+    title: definition.intent.title,
+    description: definition.intent.description,
+    definitionJson: JSON.stringify(definition),
+  }))
+  const resources = {
+    stepDefinitions: readyDefinitions,
+    locatorGroups: [],
+    locators: [],
+    environments: [],
+  }
 
-    expect(rankReusableResources(resources, 'navigate to url', ['url']).templateSteps[0]?.value.id).toBe('goto')
-    expect(rankReusableResources(resources, 'set viewport size', ['width', 'height']).templateSteps[0]?.value.id).toBe(
-      'viewport',
-    )
-    expect(rankReusableResources(resources, 'responsive mobile layout').templateSteps[0]?.value.id).toBe('viewport')
+  it('ranks ready Step Definitions and returns an exact content-addressed reference', () => {
+    const ranked = rankReadyStepDefinitions(readyDefinitions, 'navigate to url', ['url'])
+    expect(ranked[0]?.value.step).toMatchObject({ id: 'browser.navigation.goto', version: '1' })
+    expect(ranked[0]?.value.step.definitionHash).toMatch(/^sha256:/)
   })
 
   it('creates a deterministic editable starter without claiming coverage', () => {
@@ -90,7 +50,7 @@ describe('validation authoring kit', () => {
       plan,
       sourceHash: `sha256:${'a'.repeat(64)}`,
       targetProject: null,
-      resources: { templateSteps: [], stepBlocks: [], locatorGroups: [], locators: [], environments: [] },
+      resources,
     }
     const first = buildValidationAuthoringKit(input)
     const second = buildValidationAuthoringKit(input)
@@ -108,8 +68,7 @@ describe('validation authoring kit', () => {
       sourceHash: `sha256:${'b'.repeat(64)}`,
       targetProject: { id: 'project-one', displayName: 'One', canonicalPath: '/tmp/one', fingerprint: 'sha256:one' },
       resources: {
-        templateSteps: [{ id: 'step-one', name: 'Click', signature: 'click {target}' }],
-        stepBlocks: [],
+        stepDefinitions: readyDefinitions,
         locatorGroups: [],
         locators: [],
         environments: [
@@ -123,8 +82,11 @@ describe('validation authoring kit', () => {
         ],
       },
     })
-    expect(kit.contextPack.reusableResourceSummary).toMatchObject({ templateSteps: 1, environments: 1 })
-    expect(kit.recipes[0]?.actionIds[0]).toBe('browser.navigation.goto')
+    expect(kit.contextPack.reusableResourceSummary).toMatchObject({
+      stepDefinitions: readyDefinitions.length,
+      environments: 1,
+    })
+    expect(kit.recipes[0]?.stepIds[0]).toBe('browser.navigation.goto')
     expect(kit.runtimePreparationProposal.status).toBe('ready')
   })
 
@@ -133,7 +95,7 @@ describe('validation authoring kit', () => {
       plan: { ...plan, tasks: [], implementationGroups: [] } as unknown as PlanArtifact,
       sourceHash: `sha256:${'c'.repeat(64)}`,
       targetProject: null,
-      resources: { templateSteps: [], stepBlocks: [], locatorGroups: [], locators: [], environments: [] },
+      resources,
     })
 
     expect(kit.astStarter).toMatchObject({

@@ -27,17 +27,40 @@ import {
 import { decideValidationNode, submitValidationReview } from './coordinator-validation-service'
 import { auditManagedValidationIntegrity } from './managed-validation-integrity-audit'
 import { registerProjectResourceOwnership } from '@/services/project-resource/project-resource-ownership-service'
+import { StepDefinitionRegistryService } from '@/services/step-definition/step-definition-registry-service'
+import {
+  builtInStepDefinitions,
+  computeStepReferenceHash,
+} from '../../../packages/cucumber-runtime/src/step-definitions'
 
 const planHash = `sha256:${'a'.repeat(64)}`
 const contractHash = (value: unknown) =>
   `sha256:${createHash('sha256').update(canonicalContractJson(value)).digest('hex')}`
 const submission = (taskId = 'task-one') => basicValidationAstSubmission(planHash, taskId)
+const invocation = (
+  id: string,
+  inputs: Record<string, unknown>,
+  keyword: 'Given' | 'When' | 'Then' | 'And',
+  description: string,
+) => {
+  const definition = builtInStepDefinitions.find(item => item.identity.id === id)
+  if (!definition) throw new Error(`Missing built-in Step Definition ${id}.`)
+  return {
+    step: {
+      id: definition.identity.id,
+      version: definition.identity.version,
+      definitionHash: computeStepReferenceHash(definition),
+    },
+    inputs,
+    presentation: { keyword, description },
+  }
+}
 
 const meditationSubmission = () => ({
   expectedPlanHash: planHash,
   authoringProfile: { id: 'simple-happy-path', version: '1' },
   ast: {
-    schemaVersion: 1,
+    schemaVersion: 2,
     id: 'meditation-happy-path',
     title: 'Complete a meditation',
     purpose: 'Verify a meditation completes and its result persists.',
@@ -50,51 +73,57 @@ const meditationSubmission = () => ({
         steps: [
           {
             id: 'open-meditation',
-            keyword: 'Given',
-            description: 'the meditation page is open',
-            operation: { id: 'browser.navigation.goto', version: '1', inputs: { url: '/meditate' } },
+            invocation: invocation(
+              'browser.navigation.goto',
+              { url: '/meditate' },
+              'Given',
+              'the meditation page is open',
+            ),
           },
           {
             id: 'start-meditation',
-            keyword: 'When',
-            description: 'the user starts meditation',
-            action: {
-              id: 'browser.mouse.click',
-              version: '1',
-              inputs: { target: { ref: 'locator', id: 'locator_start-button', version: '1' } },
-            },
+            invocation: invocation(
+              'browser.mouse.click',
+              { target: { ref: 'locator', id: 'locator_start-button', version: '1' } },
+              'When',
+              'the user starts meditation',
+            ),
           },
           {
             id: 'confirm-accessibility',
-            keyword: 'Then',
-            description: 'the completion is accessible',
-            action: {
-              id: 'browser.assertions.accessible',
-              version: '1',
-              inputs: { target: { ref: 'locator', id: 'locator_completion', version: '1' } },
-            },
+            invocation: invocation(
+              'browser.assertions.accessible',
+              { target: { ref: 'locator', id: 'locator_completion', version: '1' } },
+              'Then',
+              'the completion is accessible',
+            ),
           },
           {
             id: 'confirm-persistence',
-            keyword: 'Then',
-            description: 'the persisted completion is visible',
-            action: {
-              id: 'browser.assertions.persisted',
-              version: '1',
-              inputs: { target: { ref: 'locator', id: 'locator_completion', version: '1' } },
-            },
+            invocation: invocation(
+              'browser.assertions.persisted',
+              { target: { ref: 'locator', id: 'locator_completion', version: '1' } },
+              'Then',
+              'the persisted completion is visible',
+            ),
           },
           {
             id: 'confirm-console-clean',
-            keyword: 'And',
-            description: 'the browser reports no console errors',
-            operation: { id: 'browser.assertions.no-console-errors', version: '1', inputs: {} },
+            invocation: invocation(
+              'browser.assertions.no-console-errors',
+              {},
+              'And',
+              'the browser reports no console errors',
+            ),
           },
           {
             id: 'confirm-network-clean',
-            keyword: 'And',
-            description: 'the browser reports no failed network activity',
-            operation: { id: 'browser.assertions.no-failed-network-requests', version: '1', inputs: {} },
+            invocation: invocation(
+              'browser.assertions.no-failed-network-requests',
+              {},
+              'And',
+              'the browser reports no failed network activity',
+            ),
           },
         ],
       },
@@ -152,6 +181,8 @@ beforeEach(async () => {
   client = sqliteTestClient(databasePath)
   await prepareCleanCoordinatorPlanRuntimeTestDatabase(databasePath)
   await seedCanonicalOperationProjections(client)
+  const stepRegistry = new StepDefinitionRegistryService(client)
+  for (const definition of builtInStepDefinitions) await stepRegistry.registerBuiltIn(definition, 'source-conformance')
   const target = await client.targetProject.create({
     data: { canonicalPath: workspace, displayName: 'Target', fingerprint: `sha256:${'b'.repeat(64)}` },
   })

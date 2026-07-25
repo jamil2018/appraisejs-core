@@ -293,38 +293,6 @@ export function registerProjectOperations(context: McpRegistryContext): void {
   )
 
   server.registerTool(
-    'template_step_search',
-    {
-      description:
-        'Compatibility name for step_search. Resolve combined human Template Step and canonical agent-operation results before proposing custom steps.',
-      inputSchema: {
-        planId: z.string(),
-        query: z.string().min(1),
-        parameterNames: z.array(z.string().min(1)).default([]),
-        limit: z.number().int().positive().max(25).default(5),
-      },
-    },
-    async ({ query, limit }) =>
-      text(await api.request(`step-definitions/search?query=${encodeURIComponent(query)}&limit=${limit}`)),
-  )
-
-  server.registerTool(
-    'template_step_match',
-    {
-      description:
-        'Compatibility name for step_search. Rank combined reusable steps and step blocks for a behavior intent.',
-      inputSchema: {
-        planId: z.string(),
-        intent: z.string().min(1),
-        parameterNames: z.array(z.string().min(1)).default([]),
-        limit: z.number().int().positive().max(25).default(5),
-      },
-    },
-    async ({ intent, limit }) =>
-      text(await api.request(`step-definitions/search?query=${encodeURIComponent(intent)}&limit=${limit}`)),
-  )
-
-  server.registerTool(
     'step_block_search',
     {
       description: 'Search reusable step blocks before proposing custom validation step sequences.',
