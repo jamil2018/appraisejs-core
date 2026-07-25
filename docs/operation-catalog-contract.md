@@ -55,7 +55,7 @@ every built-in Step Definition, its immutable definition hash, human signature, 
 `npm run release:check:operation-projections` to reject handwritten built-in wrappers, signature drift, handler gaps,
 or Playwright logic in generated projections. `npm run release:check:operation-drift` rejects a stale ledger.
 
-`npm run operation:certify` writes the deterministic, content-addressed
+`npm run step-definition:certify` writes the deterministic, content-addressed
 `config/operation-architecture-certification.json` receipt. The accepted receipt is `certified` only when the canonical
 built-in source hash, every exact definition hash, unique human signatures, and trusted handler bindings agree.
 

@@ -95,6 +95,7 @@ export function registerProjectOperations(context: McpRegistryContext): void {
     )
   }
 
+
   server.registerTool(
     'project_add',
     {
@@ -288,25 +289,12 @@ export function registerProjectOperations(context: McpRegistryContext): void {
         limit: z.number().int().positive().max(25).default(5),
       },
     },
-    async ({ query, limit }) =>
-      text(await api.request(`step-definitions/search?query=${encodeURIComponent(query)}&limit=${limit}`)),
-  )
-
-  server.registerTool(
-    'step_block_search',
-    {
-      description: 'Search reusable step blocks before proposing custom validation step sequences.',
-      inputSchema: { planId: z.string(), query: z.string().min(1) },
-    },
-    async ({ planId, query }) => {
-      const context = (await api.request(
-        `plans/${planId}/validations/context?resourceTypes=stepBlocks&query=${encodeURIComponent(query)}&limit=25`,
-      )) as {
-        resources?: { stepBlocks?: Array<Record<string, unknown>> }
-      }
-      const matches = context.resources?.stepBlocks ?? []
-      return text({ matches, nextRecommendedAction: 'Reuse a matching stepBlockRef when possible.' })
-    },
+    async ({ planId, query, parameterNames, limit }) =>
+      text(
+        await api.request(
+          `step-definitions/search?planId=${encodeURIComponent(planId)}&query=${encodeURIComponent(query)}&parameterNames=${encodeURIComponent(parameterNames.join(','))}&limit=${limit}&surface=agent`,
+        ),
+      ),
   )
 
   server.registerTool(
@@ -419,46 +407,5 @@ export function registerProjectOperations(context: McpRegistryContext): void {
       },
     },
     async ({ operationRefs }) => text(await api.readOperations(operationRefs)),
-  )
-
-  server.registerTool(
-    'action_categories_list',
-    {
-      description: 'List bounded action category summaries; known catalog hashes return unchanged.',
-      inputSchema: { parentCategoryId: z.string().optional(), knownCatalogHash: z.string().optional() },
-    },
-    async input => text(await api.listActionCategories(input.parentCategoryId, input.knownCatalogHash)),
-  )
-
-  server.registerTool(
-    'actions_list',
-    {
-      description: 'List deterministic bounded action summaries using exact filters; limit must be between 1 and 100.',
-      inputSchema: {
-        categoryId: z.string().optional(),
-        capability: z.string().optional(),
-        inputType: z.string().optional(),
-        runtime: z.enum(['browser', 'api', 'node', 'database']).optional(),
-        deprecated: z.boolean().optional(),
-        idPrefix: z.string().optional(),
-        cursor: z.number().int().nonnegative().optional(),
-        limit: z.number().int().min(1).max(100).optional(),
-      },
-    },
-    async input => text(await api.listActions(input)),
-  )
-
-  server.registerTool(
-    'actions_read',
-    {
-      description: 'Read exact versioned action descriptors for selected references.',
-      inputSchema: {
-        actionRefs: z
-          .array(z.object({ id: z.string(), version: z.string().optional() }))
-          .min(1)
-          .max(50),
-      },
-    },
-    async ({ actionRefs }) => text(await api.readActions(actionRefs)),
   )
 }

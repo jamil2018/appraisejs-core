@@ -3,21 +3,6 @@
   "default": [
     {
       "kind": "resource",
-      "name": "action-catalog",
-      "uri": "appraise://actions/catalog"
-    },
-    {
-      "kind": "resource",
-      "name": "action-catalog-contract",
-      "uri": "appraise://contracts/action-catalog"
-    },
-    {
-      "kind": "resource",
-      "name": "action-category",
-      "uri": "appraise://actions/category/{categoryId}"
-    },
-    {
-      "kind": "resource",
       "name": "agent-guide",
       "uri": "appraise://agent-guide"
     },
@@ -90,105 +75,6 @@
       "kind": "resource",
       "name": "workflow-validation-preparation",
       "uri": "appraise://workflow/validation-preparation"
-    },
-    {
-      "kind": "tool",
-      "name": "action_categories_list",
-      "description": "List bounded action category summaries; known catalog hashes return unchanged.",
-      "inputSchema": {
-        "$schema": "https://json-schema.org/draft/2020-12/schema",
-        "type": "object",
-        "properties": {
-          "parentCategoryId": {
-            "type": "string"
-          },
-          "knownCatalogHash": {
-            "type": "string"
-          }
-        },
-        "additionalProperties": false
-      }
-    },
-    {
-      "kind": "tool",
-      "name": "actions_list",
-      "description": "List deterministic bounded action summaries using exact filters; limit must be between 1 and 100.",
-      "inputSchema": {
-        "$schema": "https://json-schema.org/draft/2020-12/schema",
-        "type": "object",
-        "properties": {
-          "categoryId": {
-            "type": "string"
-          },
-          "capability": {
-            "type": "string"
-          },
-          "inputType": {
-            "type": "string"
-          },
-          "runtime": {
-            "type": "string",
-            "enum": [
-              "browser",
-              "api",
-              "node",
-              "database"
-            ]
-          },
-          "deprecated": {
-            "type": "boolean"
-          },
-          "idPrefix": {
-            "type": "string"
-          },
-          "cursor": {
-            "type": "integer",
-            "minimum": 0,
-            "maximum": 9007199254740991
-          },
-          "limit": {
-            "type": "integer",
-            "minimum": 1,
-            "maximum": 100
-          }
-        },
-        "additionalProperties": false
-      }
-    },
-    {
-      "kind": "tool",
-      "name": "actions_read",
-      "description": "Read exact versioned action descriptors for selected references.",
-      "inputSchema": {
-        "$schema": "https://json-schema.org/draft/2020-12/schema",
-        "type": "object",
-        "properties": {
-          "actionRefs": {
-            "minItems": 1,
-            "maxItems": 50,
-            "type": "array",
-            "items": {
-              "type": "object",
-              "properties": {
-                "id": {
-                  "type": "string"
-                },
-                "version": {
-                  "type": "string"
-                }
-              },
-              "required": [
-                "id"
-              ],
-              "additionalProperties": false
-            }
-          }
-        },
-        "required": [
-          "actionRefs"
-        ],
-        "additionalProperties": false
-      }
     },
     {
       "kind": "tool",
@@ -3001,83 +2887,6 @@
     },
     {
       "kind": "tool",
-      "name": "step_block_search",
-      "description": "Search reusable step blocks before proposing custom validation step sequences.",
-      "inputSchema": {
-        "$schema": "https://json-schema.org/draft/2020-12/schema",
-        "type": "object",
-        "properties": {
-          "planId": {
-            "type": "string"
-          },
-          "query": {
-            "type": "string",
-            "minLength": 1
-          }
-        },
-        "required": [
-          "planId",
-          "query"
-        ],
-        "additionalProperties": false
-      }
-    },
-    {
-      "kind": "tool",
-      "name": "step_definition_deprecate",
-      "description": "Deprecate an immutable ready definition while preserving historical resolution.",
-      "inputSchema": {
-        "$schema": "https://json-schema.org/draft/2020-12/schema",
-        "type": "object",
-        "properties": {
-          "stepId": {
-            "type": "string",
-            "minLength": 1
-          },
-          "version": {
-            "type": "string",
-            "minLength": 1
-          },
-          "reason": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 2000
-          },
-          "actor": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 200
-          },
-          "replacement": {
-            "type": "object",
-            "properties": {
-              "id": {
-                "type": "string",
-                "minLength": 1
-              },
-              "version": {
-                "type": "string",
-                "minLength": 1
-              }
-            },
-            "required": [
-              "id",
-              "version"
-            ],
-            "additionalProperties": false
-          }
-        },
-        "required": [
-          "stepId",
-          "version",
-          "reason",
-          "actor"
-        ],
-        "additionalProperties": false
-      }
-    },
-    {
-      "kind": "tool",
       "name": "step_definition_draft_artifact_save",
       "description": "Save user-authored handler source and explicit examples separately from definition metadata.",
       "inputSchema": {
@@ -3139,15 +2948,76 @@
         "type": "object",
         "properties": {
           "definition": {},
-          "reuseJustification": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 2000
+          "reuseEvidence": {
+            "type": "object",
+            "properties": {
+              "indexHash": {
+                "type": "string",
+                "pattern": "^sha256:[a-f0-9]{64}$"
+              },
+              "searchedAt": {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+              },
+              "planId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200
+              },
+              "correlationId": {
+                "type": "string",
+                "pattern": "^[a-zA-Z0-9._:-]{1,100}$"
+              },
+              "candidateReferences": {
+                "maxItems": 25,
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 200
+                    },
+                    "version": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 40
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "version"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "receiptId": {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+              },
+              "reuseJustification": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2000
+              }
+            },
+            "required": [
+              "indexHash",
+              "searchedAt",
+              "correlationId",
+              "candidateReferences",
+              "receiptId",
+              "reuseJustification"
+            ],
+            "additionalProperties": false
           }
         },
         "required": [
           "definition",
-          "reuseJustification"
+          "reuseEvidence"
         ],
         "additionalProperties": false
       }
@@ -3194,38 +3064,6 @@
         },
         "required": [
           "draftId"
-        ],
-        "additionalProperties": false
-      }
-    },
-    {
-      "kind": "tool",
-      "name": "step_definition_draft_submit_for_review",
-      "description": "Bind exact human review authority to a validated draft and reviewed artifact hash.",
-      "inputSchema": {
-        "$schema": "https://json-schema.org/draft/2020-12/schema",
-        "type": "object",
-        "properties": {
-          "draftId": {
-            "type": "string",
-            "format": "uuid",
-            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
-          },
-          "expectedRevision": {
-            "type": "integer",
-            "exclusiveMinimum": 0,
-            "maximum": 9007199254740991
-          },
-          "reviewAuthority": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 200
-          }
-        },
-        "required": [
-          "draftId",
-          "expectedRevision",
-          "reviewAuthority"
         ],
         "additionalProperties": false
       }
@@ -3280,38 +3118,6 @@
         "required": [
           "draftId",
           "expectedRevision"
-        ],
-        "additionalProperties": false
-      }
-    },
-    {
-      "kind": "tool",
-      "name": "step_definition_publish",
-      "description": "Atomically publish the exact reviewed draft as one immutable ready Step Definition.",
-      "inputSchema": {
-        "$schema": "https://json-schema.org/draft/2020-12/schema",
-        "type": "object",
-        "properties": {
-          "draftId": {
-            "type": "string",
-            "format": "uuid",
-            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
-          },
-          "expectedRevision": {
-            "type": "integer",
-            "exclusiveMinimum": 0,
-            "maximum": 9007199254740991
-          },
-          "conformanceRunId": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 200
-          }
-        },
-        "required": [
-          "draftId",
-          "expectedRevision",
-          "conformanceRunId"
         ],
         "additionalProperties": false
       }
@@ -4144,21 +3950,6 @@
   "providerNative": [
     {
       "kind": "resource",
-      "name": "action-catalog",
-      "uri": "appraise://actions/catalog"
-    },
-    {
-      "kind": "resource",
-      "name": "action-catalog-contract",
-      "uri": "appraise://contracts/action-catalog"
-    },
-    {
-      "kind": "resource",
-      "name": "action-category",
-      "uri": "appraise://actions/category/{categoryId}"
-    },
-    {
-      "kind": "resource",
       "name": "agent-guide",
       "uri": "appraise://agent-guide"
     },
@@ -4241,105 +4032,6 @@
       "kind": "resource",
       "name": "workflow-validation-preparation",
       "uri": "appraise://workflow/validation-preparation"
-    },
-    {
-      "kind": "tool",
-      "name": "action_categories_list",
-      "description": "List bounded action category summaries; known catalog hashes return unchanged.",
-      "inputSchema": {
-        "$schema": "https://json-schema.org/draft/2020-12/schema",
-        "type": "object",
-        "properties": {
-          "parentCategoryId": {
-            "type": "string"
-          },
-          "knownCatalogHash": {
-            "type": "string"
-          }
-        },
-        "additionalProperties": false
-      }
-    },
-    {
-      "kind": "tool",
-      "name": "actions_list",
-      "description": "List deterministic bounded action summaries using exact filters; limit must be between 1 and 100.",
-      "inputSchema": {
-        "$schema": "https://json-schema.org/draft/2020-12/schema",
-        "type": "object",
-        "properties": {
-          "categoryId": {
-            "type": "string"
-          },
-          "capability": {
-            "type": "string"
-          },
-          "inputType": {
-            "type": "string"
-          },
-          "runtime": {
-            "type": "string",
-            "enum": [
-              "browser",
-              "api",
-              "node",
-              "database"
-            ]
-          },
-          "deprecated": {
-            "type": "boolean"
-          },
-          "idPrefix": {
-            "type": "string"
-          },
-          "cursor": {
-            "type": "integer",
-            "minimum": 0,
-            "maximum": 9007199254740991
-          },
-          "limit": {
-            "type": "integer",
-            "minimum": 1,
-            "maximum": 100
-          }
-        },
-        "additionalProperties": false
-      }
-    },
-    {
-      "kind": "tool",
-      "name": "actions_read",
-      "description": "Read exact versioned action descriptors for selected references.",
-      "inputSchema": {
-        "$schema": "https://json-schema.org/draft/2020-12/schema",
-        "type": "object",
-        "properties": {
-          "actionRefs": {
-            "minItems": 1,
-            "maxItems": 50,
-            "type": "array",
-            "items": {
-              "type": "object",
-              "properties": {
-                "id": {
-                  "type": "string"
-                },
-                "version": {
-                  "type": "string"
-                }
-              },
-              "required": [
-                "id"
-              ],
-              "additionalProperties": false
-            }
-          }
-        },
-        "required": [
-          "actionRefs"
-        ],
-        "additionalProperties": false
-      }
     },
     {
       "kind": "tool",
@@ -7387,83 +7079,6 @@
     },
     {
       "kind": "tool",
-      "name": "step_block_search",
-      "description": "Search reusable step blocks before proposing custom validation step sequences.",
-      "inputSchema": {
-        "$schema": "https://json-schema.org/draft/2020-12/schema",
-        "type": "object",
-        "properties": {
-          "planId": {
-            "type": "string"
-          },
-          "query": {
-            "type": "string",
-            "minLength": 1
-          }
-        },
-        "required": [
-          "planId",
-          "query"
-        ],
-        "additionalProperties": false
-      }
-    },
-    {
-      "kind": "tool",
-      "name": "step_definition_deprecate",
-      "description": "Deprecate an immutable ready definition while preserving historical resolution.",
-      "inputSchema": {
-        "$schema": "https://json-schema.org/draft/2020-12/schema",
-        "type": "object",
-        "properties": {
-          "stepId": {
-            "type": "string",
-            "minLength": 1
-          },
-          "version": {
-            "type": "string",
-            "minLength": 1
-          },
-          "reason": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 2000
-          },
-          "actor": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 200
-          },
-          "replacement": {
-            "type": "object",
-            "properties": {
-              "id": {
-                "type": "string",
-                "minLength": 1
-              },
-              "version": {
-                "type": "string",
-                "minLength": 1
-              }
-            },
-            "required": [
-              "id",
-              "version"
-            ],
-            "additionalProperties": false
-          }
-        },
-        "required": [
-          "stepId",
-          "version",
-          "reason",
-          "actor"
-        ],
-        "additionalProperties": false
-      }
-    },
-    {
-      "kind": "tool",
       "name": "step_definition_draft_artifact_save",
       "description": "Save user-authored handler source and explicit examples separately from definition metadata.",
       "inputSchema": {
@@ -7525,15 +7140,76 @@
         "type": "object",
         "properties": {
           "definition": {},
-          "reuseJustification": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 2000
+          "reuseEvidence": {
+            "type": "object",
+            "properties": {
+              "indexHash": {
+                "type": "string",
+                "pattern": "^sha256:[a-f0-9]{64}$"
+              },
+              "searchedAt": {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+              },
+              "planId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200
+              },
+              "correlationId": {
+                "type": "string",
+                "pattern": "^[a-zA-Z0-9._:-]{1,100}$"
+              },
+              "candidateReferences": {
+                "maxItems": 25,
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 200
+                    },
+                    "version": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 40
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "version"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "receiptId": {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+              },
+              "reuseJustification": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2000
+              }
+            },
+            "required": [
+              "indexHash",
+              "searchedAt",
+              "correlationId",
+              "candidateReferences",
+              "receiptId",
+              "reuseJustification"
+            ],
+            "additionalProperties": false
           }
         },
         "required": [
           "definition",
-          "reuseJustification"
+          "reuseEvidence"
         ],
         "additionalProperties": false
       }
@@ -7580,38 +7256,6 @@
         },
         "required": [
           "draftId"
-        ],
-        "additionalProperties": false
-      }
-    },
-    {
-      "kind": "tool",
-      "name": "step_definition_draft_submit_for_review",
-      "description": "Bind exact human review authority to a validated draft and reviewed artifact hash.",
-      "inputSchema": {
-        "$schema": "https://json-schema.org/draft/2020-12/schema",
-        "type": "object",
-        "properties": {
-          "draftId": {
-            "type": "string",
-            "format": "uuid",
-            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
-          },
-          "expectedRevision": {
-            "type": "integer",
-            "exclusiveMinimum": 0,
-            "maximum": 9007199254740991
-          },
-          "reviewAuthority": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 200
-          }
-        },
-        "required": [
-          "draftId",
-          "expectedRevision",
-          "reviewAuthority"
         ],
         "additionalProperties": false
       }
@@ -7666,38 +7310,6 @@
         "required": [
           "draftId",
           "expectedRevision"
-        ],
-        "additionalProperties": false
-      }
-    },
-    {
-      "kind": "tool",
-      "name": "step_definition_publish",
-      "description": "Atomically publish the exact reviewed draft as one immutable ready Step Definition.",
-      "inputSchema": {
-        "$schema": "https://json-schema.org/draft/2020-12/schema",
-        "type": "object",
-        "properties": {
-          "draftId": {
-            "type": "string",
-            "format": "uuid",
-            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
-          },
-          "expectedRevision": {
-            "type": "integer",
-            "exclusiveMinimum": 0,
-            "maximum": 9007199254740991
-          },
-          "conformanceRunId": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 200
-          }
-        },
-        "required": [
-          "draftId",
-          "expectedRevision",
-          "conformanceRunId"
         ],
         "additionalProperties": false
       }

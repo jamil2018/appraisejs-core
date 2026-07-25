@@ -4,12 +4,12 @@
 - cluster-only mode — file stats not available
 
 ## Summary
-- 652 nodes · 1014 edges · 43 communities (40 shown, 3 thin omitted)
+- 648 nodes · 1008 edges · 42 communities (39 shown, 3 thin omitted)
 - Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `e2d5ef58`
+- Built from commit: `0f382268`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -49,7 +49,6 @@
 - [[_COMMUNITY_Community 32|Community 32]]
 - [[_COMMUNITY_Community 33|Community 33]]
 - [[_COMMUNITY_Community 34|Community 34]]
-- [[_COMMUNITY_Community 35|Community 35]]
 
 ## God Nodes (most connected - your core abstractions)
 1. `printSyncSummary()` - 15 edges
@@ -61,7 +60,7 @@
 7. `syncFilesystemTestSuite()` - 8 edges
 8. `parseStrictArgs()` - 8 edges
 9. `createRoutingDecision()` - 8 edges
-10. `parseStepCall()` - 7 edges
+10. `main()` - 7 edges
 
 ## Surprising Connections (you probably didn't know these)
 - `main()` --calls--> `printSyncSummary()`  [EXTRACTED]
@@ -78,7 +77,7 @@
 ## Import Cycles
 - None detected.
 
-## Communities (43 total, 3 thin omitted)
+## Communities (42 total, 3 thin omitted)
 
 ### Community 0 - "Community 0"
 Cohesion: 0.06
@@ -109,32 +108,32 @@ Cohesion: 0.08
 Nodes (22): argv, comparableWindow(), contexts, criticalObservation, dimensionOptions, dimensions, linkedRoutingDecision(), metricNames (+14 more)
 
 ### Community 7 - "Community 7"
+Cohesion: 0.11
+Nodes (18): buildOperationCapabilityLedger(), main(), outputPath, repoRoot, buildOperationArchitectureCertification(), CapabilityLedger, forbiddenLegacySymbols, ledgerPath (+10 more)
+
+### Community 8 - "Community 8"
 Cohesion: 0.09
 Nodes (19): activeFiles, checkRootRelativeReferences(), ciContents, ciNodeMajor, collectEntryFiles(), failures, hasRootAgentHarness, lineFor() (+11 more)
 
-### Community 8 - "Community 8"
+### Community 9 - "Community 9"
 Cohesion: 0.20
 Nodes (20): acquireLedgerLock(), attemptLockAcquisition(), createLock(), existingLockReclaim(), existingLockState(), inspectExistingLock(), isLockOwnerRecord(), nonBlankString() (+12 more)
 
-### Community 9 - "Community 9"
+### Community 10 - "Community 10"
 Cohesion: 0.19
 Nodes (16): commandIndex(), commandsFor(), requireBefore(), requireCommand(), requiredJobs, validateAggregateJobs(), validateDefinedJobs(), validateDependabot() (+8 more)
 
-### Community 10 - "Community 10"
+### Community 11 - "Community 11"
 Cohesion: 0.17
 Nodes (14): children, exitCode(), exitLabel(), handleProcessError(), handleProcessExit(), handleProcessStop(), inferredBaseUrl(), mcp (+6 more)
 
-### Community 11 - "Community 11"
+### Community 12 - "Community 12"
 Cohesion: 0.18
 Nodes (15): evaluateReleaseLedger(), FINDING_IDS, nonEmptyString(), runVerifiedFindingCommands(), SEVERITIES, STATUSES, validateFinding(), validateFindingEvidence() (+7 more)
 
-### Community 12 - "Community 12"
+### Community 13 - "Community 13"
 Cohesion: 0.15
 Nodes (15): args, dryRun, git(), graphOutputPrefixes, graphScopes, handleFailedCommand(), handleMissingCommand(), isGraphOutputPath() (+7 more)
-
-### Community 13 - "Community 13"
-Cohesion: 0.14
-Nodes (12): buildOperationCapabilityLedger(), main(), outputPath, repoRoot, buildOperationArchitectureCertification(), CapabilityLedger, ledgerPath, main() (+4 more)
 
 ### Community 14 - "Community 14"
 Cohesion: 0.17
@@ -169,46 +168,42 @@ Cohesion: 0.29
 Nodes (8): allowedDatabaseFixtures, committedGraphifyFiles, committedGraphifyScopes, findForbiddenRuntimeArtifacts(), gitPaths(), main(), runtimeArtifactReason(), runtimeDirectoryPatterns
 
 ### Community 22 - "Community 22"
-Cohesion: 0.33
-Nodes (8): determineStepTypeAndIcon(), extractParametersFromGherkinStep(), findMatchingTemplateStep(), ParameterMatch, sameResolvedParameters(), signatureToRegex(), TemplateStepCandidate, TemplateStepMatch
-
-### Community 23 - "Community 23"
 Cohesion: 0.31
 Nodes (9): buildEnvironmentObjects(), EnvironmentConfig, EnvironmentData, getEnvironmentIdentityKey(), main(), normalizeEnvironmentName(), readEnvironmentsFromFile(), syncEnvironmentsToDatabase() (+1 more)
 
-### Community 24 - "Community 24"
+### Community 23 - "Community 23"
 Cohesion: 0.43
 Nodes (4): baseIndex, suppressions, addedQualitySuppressions(), readQualityDiff()
 
-### Community 25 - "Community 25"
+### Community 24 - "Community 24"
 Cohesion: 0.29
 Nodes (6): env, fallowArgs, fallowCli, repoRoot, result, scriptDir
 
-### Community 26 - "Community 26"
+### Community 25 - "Community 25"
 Cohesion: 0.48
 Nodes (5): buildCucumberRuntime(), getRequiredTempDirectory(), getTempDirectory(), main(), runVitest()
 
-### Community 27 - "Community 27"
+### Community 26 - "Community 26"
 Cohesion: 0.38
 Nodes (6): findCommand(), findCommandInUvToolBin(), findCommandOnPath(), graphifyCommand, install, uvCommand
 
-### Community 28 - "Community 28"
+### Community 27 - "Community 27"
 Cohesion: 0.33
 Nodes (5): client, matrix, matrixJson, result, startedAt
 
-### Community 29 - "Community 29"
+### Community 28 - "Community 28"
 Cohesion: 0.40
 Nodes (3): failures, ignoredDirectories, roots
 
-### Community 30 - "Community 30"
+### Community 29 - "Community 29"
 Cohesion: 0.40
 Nodes (4): allowedDatabaseFixtures, packages, rootPackage, rootPublishRefusal
 
-### Community 31 - "Community 31"
+### Community 30 - "Community 30"
 Cohesion: 0.60
 Nodes (4): main(), SEEDED_TEMPLATE_PATHS, setSeededTemplateFilesTracked(), trimTrailingBlankLines()
 
-### Community 32 - "Community 32"
+### Community 31 - "Community 31"
 Cohesion: 0.50
 Nodes (3): databasePath, migrationsRoot, workspace
 
@@ -220,11 +215,11 @@ Nodes (3): databasePath, migrationsRoot, workspace
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `printSyncSummary()` connect `Community 0` to `Community 16`, `Community 19`, `Community 23`?**
+- **Why does `printSyncSummary()` connect `Community 0` to `Community 16`, `Community 19`, `Community 22`?**
   _High betweenness centrality (0.013) - this node is a cross-community bridge._
 - **Why does `parseStrictArgs()` connect `Community 17` to `Community 2`, `Community 6`?**
   _High betweenness centrality (0.008) - this node is a cross-community bridge._
-- **Why does `acquireLedgerLock()` connect `Community 8` to `Community 2`?**
+- **Why does `acquireLedgerLock()` connect `Community 9` to `Community 2`?**
   _High betweenness centrality (0.007) - this node is a cross-community bridge._
 - **What connects `repoRoot`, `prismaRoot`, `schemaPath` to the rest of the system?**
   _216 weakly-connected nodes found - possible documentation gaps or missing edges._

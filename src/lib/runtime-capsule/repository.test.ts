@@ -7,6 +7,7 @@ import {
   capsuleCommandBytes as commandBytes,
   capsuleCommandHash as commandHash,
   capsuleValidationHash as validationHash,
+  runtimeCapsuleManifestClosureFixture,
 } from '@/test/runtime-capsule-test-fixtures'
 import {
   canonicalRuntimeCapsuleJson,
@@ -18,8 +19,8 @@ import {
   type RuntimeCapsuleManifest,
 } from './index'
 
-const manifest: RuntimeCapsuleManifest = {
-  schemaVersion: '1',
+const manifest = {
+  schemaVersion: '2',
   projectId: 'project-one',
   validationHash,
   runId: 'run-one',
@@ -28,11 +29,11 @@ const manifest: RuntimeCapsuleManifest = {
   receiptHash: validationHash,
   runtimeInputHash: validationHash,
   commandReceipt: { path: 'command-receipt.json', hash: commandHash },
-  generator: { id: 'appraise.validation-ast-capsule', version: '1' },
-  operations: [],
+  generator: { id: 'appraise.validation-ast-capsule', version: '2' },
+  ...runtimeCapsuleManifestClosureFixture(),
   expectedCases: [],
   files: [{ path: 'command-receipt.json', role: 'command-receipt', hash: commandHash, size: commandBytes.length }],
-}
+} as unknown as RuntimeCapsuleManifest
 
 let workspace: string
 

@@ -75,6 +75,6 @@ export function getTestSuiteTableRows(data: ActionResponseData | undefined): Tes
   return Array.isArray(data) ? data.filter(isTestSuiteTableRow) : []
 }
 
-export function getTemplateStepGroupRows(data: ActionResponseData | undefined): TestSuiteGroupOption[] {
+export function getStepDefinitionGroupRows(data: ActionResponseData | undefined): TestSuiteGroupOption[] {
   return Array.isArray(data) ? data.filter(isGroupOption) : []
 }

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import {
   computeStepDefinitionHashes,
+  computeStepExecutableReadiness,
   computeStepReferenceHash,
   stepDefinitionContentHash,
   type StepDefinition,
@@ -36,10 +37,12 @@ function definition(id: string, execution: StepDefinition['execution']): StepDef
 
 function record(value: StepDefinition): RuntimeStepDefinitionRecord {
   const hashes = computeStepDefinitionHashes(value)
+  const registryManifestHash = stepDefinitionContentHash({ step: value.identity })
   const receipt = {
     step: { id: value.identity.id, version: value.identity.version },
     ...hashes,
-    registryManifestHash: stepDefinitionContentHash({ step: value.identity }),
+    registryManifestHash,
+    executableReadiness: computeStepExecutableReadiness(value, registryManifestHash, 'test-run'),
     conformanceRunId: 'test-run',
     reviewAuthority: 'test-reviewer',
     publishedAt: '2026-07-25T00:00:00.000Z',

@@ -63,7 +63,7 @@ const Dashboard = async () => {
             <DataCardGrid>
               <DataCard title="Test Cases" value={testCasesCount} link="/test-cases" />
               <DataCard title="Test Suites" value={testSuitesCount} link="/test-suites" />
-              <DataCard title="Step Definitions" value={stepDefinitionsCount} link="/template-steps" />
+              <DataCard title="Step Definitions" value={stepDefinitionsCount} link="/step-definitions" />
               <OngoingTestRunsCard initialCount={runningTestRunsCount} link="/test-runs" />
             </DataCardGrid>
           </div>

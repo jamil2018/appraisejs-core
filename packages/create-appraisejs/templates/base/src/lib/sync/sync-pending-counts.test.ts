@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { TagType, TemplateStepIcon } from '@prisma/client'
+import { TagType, StepIcon } from '@prisma/client'
 
 import {
   countEnvironmentMismatches,
@@ -97,7 +97,7 @@ describe('sync pending counts', () => {
           gherkinStep: 'Given open the app',
           flowNodeId: 'node-open',
           label: 'Open app',
-          icon: TemplateStepIcon.NAVIGATION,
+          icon: StepIcon.NAVIGATION,
           invocationJson: canonicalStepDefinitionJson(invocation),
           parameters: [],
         },

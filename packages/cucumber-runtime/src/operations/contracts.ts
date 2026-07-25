@@ -105,7 +105,7 @@ export const agentOperationProjectionSchema = z.object({
 })
 
 export const operationAliasSchema = z.object({
-  kind: z.enum(['action-id', 'template-step-slug', 'cucumber-signature', 'deprecated-operation-id']),
+  kind: z.enum(['action-id', 'step-definition-slug', 'cucumber-signature', 'deprecated-operation-id']),
   value: z.string().min(1).max(2_000),
   surface: z.enum(['human', 'agent', 'both']),
 })

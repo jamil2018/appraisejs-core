@@ -4,7 +4,6 @@ export const VALIDATION_AST_SCHEMA_VERSION = 2 as const
 
 import { locatorCatalogReferenceSchema } from '@/lib/catalog-contracts'
 
-import { actionReferenceIdentitySchema } from '@/lib/action-contracts'
 import { stepInvocationSchema } from '../../../packages/cucumber-runtime/src/step-definitions/contracts.ts'
 import { validationAstAuthoringProfileSchema } from './authoring-profile'
 import { gherkinSafeSingleLineSchema } from './gherkin-safety'
@@ -31,6 +30,10 @@ const versionSchema = z.string().regex(/^\d+(?:\.\d+){0,2}$/)
 const hashSchema = z.string().regex(/^sha256:[a-f0-9]{64}$/)
 const textSchema = z.string().min(1).max(VALIDATION_AST_LIMITS.textCharacters)
 const gherkinTextSchema = gherkinSafeSingleLineSchema(VALIDATION_AST_LIMITS.textCharacters)
+const lifecycleCorrelationIdSchema = z.string().regex(/^[a-zA-Z0-9._:-]{1,100}$/)
+export const validationAstStepDefinitionSelectionSchema = z
+  .object({ receiptId: z.string().uuid(), correlationId: lifecycleCorrelationIdSchema })
+  .strict()
 
 export const locatorReferenceSchema = locatorCatalogReferenceSchema.extend({ ref: z.literal('locator') })
 
@@ -45,14 +48,6 @@ export const astValueSchema: z.ZodType<unknown> = z.union([
   storedValueReferenceSchema,
   z.object({ ref: z.literal('custom-extension'), id: idSchema, version: versionSchema }),
 ])
-
-export const actionReferenceSchema = actionReferenceIdentitySchema.extend({
-  descriptorHash: hashSchema.optional(),
-  inputs: z.record(idSchema, astValueSchema).superRefine((value, context) => {
-    if (Object.keys(value).length > VALIDATION_AST_LIMITS.actionInputs)
-      context.addIssue({ code: 'custom', message: 'Too many action inputs.' })
-  }),
-})
 
 export const validationMatrixEntrySchema = z.object({
   browser: z.enum(['chromium', 'firefox', 'webkit']).optional(),
@@ -89,7 +84,7 @@ export const coverageMappingSchema = z
 /**
  * V2 has one executable authority: an exact, content-addressed Step Invocation.
  * The presentation text belongs to the invocation so it cannot select a step by
- * name or be reverse-mapped through TemplateStep.
+ * name or be reverse-mapped through retired reusable-step record.
  */
 export const validationAstStepSchema = z
   .object({
@@ -210,6 +205,9 @@ export const customActionExtensionProposalSchema = z
 export const validationAstSubmissionSchema = z
   .object({
     expectedPlanHash: hashSchema,
+    // A validation is bound to the exact persisted Step Definition discovery,
+    // never to whichever search happened most recently for its plan.
+    stepDefinitionSelections: z.array(validationAstStepDefinitionSelectionSchema).min(1).max(32).optional(),
     authoringProfile: validationAstAuthoringProfileSchema.optional(),
     ast: validationAstSchema,
     customExtensionProposals: z
@@ -217,6 +215,7 @@ export const validationAstSubmissionSchema = z
       .max(VALIDATION_AST_LIMITS.extensionProposals)
       .default([]),
   })
+  .strict()
 
   /** New publications must opt into this schema; V1 is decoder-only evidence. */
   .superRefine((value, context) => {

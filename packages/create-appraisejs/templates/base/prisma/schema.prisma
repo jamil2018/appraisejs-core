@@ -66,7 +66,6 @@ model StepDefinition {
   executionBinding    StepExecutionBinding?
   publicationReceipt  StepPublicationReceipt?
   deprecation         StepDefinitionDeprecation?
-  compatibilityRefs   StepCompatibilityReference[]
 
   @@id([id, version])
   @@index([status, title])
@@ -79,15 +78,32 @@ model StepDefinitionDraft {
   revision             Int                          @default(1)
   draftJson            String
   draftHash            String
+  reuseJustification   String?
+  reuseEvidenceJson    String?
   validationReportJson String?
   reviewedDraftHash    String?
   reviewedBy           String?
   reviewedAt           DateTime?
+  reviewReceiptJson    String?
+  reviewReceiptHash    String?
   createdAt            DateTime                     @default(now())
   updatedAt            DateTime                     @updatedAt
   artifact             StepDefinitionDraftArtifact?
 
   @@index([proposedStepId, proposedVersion])
+}
+
+model StepDefinitionSearchReceipt {
+  id                      String   @id @default(uuid())
+  indexHash               String
+  candidateReferencesJson String
+  planId                  String?
+  correlationId           String
+  searchedAt              DateTime @default(now())
+  expiresAt               DateTime
+
+  @@index([expiresAt])
+  @@index([planId, correlationId])
 }
 
 model StepDefinitionDraftArtifact {
@@ -124,9 +140,13 @@ model StepReviewedExtension {
   artifactHash     String   @unique
   reviewedBy       String
   reviewedAt       DateTime @default(now())
+  revokedAt        DateTime?
+  revokedBy        String?
+  revocationReason String?
 
   @@id([id, version])
   @@index([sourceHash, compiledHash])
+  @@index([revokedAt])
 }
 
 model StepHumanProjection {
@@ -182,19 +202,21 @@ model StepDefinitionDeprecation {
   @@id([stepId, stepVersion])
 }
 
-model StepCompatibilityReference {
-  id          String         @id @default(uuid())
-  legacyKind  String
-  legacyValue String
-  stepId      String
-  stepVersion String
-  createdAt   DateTime       @default(now())
-  lastUsedAt  DateTime?
-  usageCount  Int            @default(0)
-  definition  StepDefinition @relation(fields: [stepId, stepVersion], references: [id, version], onDelete: Restrict)
+/// Bounded, observational lifecycle telemetry. Payloads contain only the
+/// closed-vocabulary outcome details validated by the application service.
+model StepDefinitionTelemetryEvent {
+  id          String   @id @default(cuid())
+  surface     String
+  outcome     String
+  stepId      String?
+  stepVersion String?
+  correlationId String?
+  planId        String?
+  payloadJson String
+  createdAt   DateTime @default(now())
 
-  @@unique([legacyKind, legacyValue])
-  @@index([stepId, stepVersion])
+  @@index([surface, outcome, createdAt])
+  @@index([stepId, stepVersion, createdAt])
 }
 
 enum StepDefinitionStatus {
@@ -206,32 +228,6 @@ enum StepExecutionKind {
   operation
   composition
   reviewed_extension
-}
-
-model StepBlock {
-  id              String          @id @default(uuid())
-  name            String
-  description     String?
-  intent          String?
-  createdAt       DateTime        @default(now())
-  updatedAt       DateTime        @updatedAt
-  steps           StepBlockStep[]
-  targetProjectId String?
-  targetProject   TargetProject?  @relation(fields: [targetProjectId], references: [id], onDelete: Restrict)
-
-  @@unique([targetProjectId, name])
-}
-
-model StepBlockStep {
-  id                 String    @id @default(uuid())
-  stepBlockId        String
-  order              Int
-  invocationJson     String
-  parameterMap       String    @default("{}")
-  compositionVersionHash String?
-  stepBlock          StepBlock @relation(fields: [stepBlockId], references: [id], onDelete: Cascade)
-
-  @@unique([stepBlockId, order])
 }
 
 model TestCase {
@@ -260,7 +256,7 @@ model TestCaseStep {
   testCaseId     String
   order          Int
   gherkinStep    String
-  icon           TemplateStepIcon
+  icon           StepIcon
   label          String
   invocationJson String
   testCase       TestCase                @relation(fields: [testCaseId], references: [id])
@@ -302,7 +298,7 @@ model TemplateTestCaseStep {
   flowNodeId         String?
   order              Int
   gherkinStep        String
-  icon               TemplateStepIcon
+  icon               StepIcon
   label              String
   templateTestCaseId String
   invocationJson     String
@@ -555,7 +551,6 @@ model TargetProject {
   delegatedCoordinatorReceipts   DelegatedCoordinatorReceipt[]
   testSuites                     TestSuite[]
   testCases                      TestCase[]
-  stepBlocks                     StepBlock[]
   templateTestCases              TemplateTestCase[]
   locators                       Locator[]
   locatorGroups                  LocatorGroup[]
@@ -1487,7 +1482,7 @@ enum TestCaseResult {
   UNTESTED
 }
 
-enum TemplateStepType {
+enum StepType {
   ACTION
   ASSERTION
 }
@@ -1506,7 +1501,7 @@ enum StepParameterValueType {
   LOCATOR
 }
 
-enum TemplateStepIcon {
+enum StepIcon {
   MOUSE
   NAVIGATION
   INPUT
@@ -1527,7 +1522,7 @@ enum BrowserEngine {
   WEBKIT
 }
 
-enum TemplateStepGroupType {
+enum StepGroupType {
   ACTION
   VALIDATION
 }

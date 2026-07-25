@@ -61,7 +61,7 @@ Definition closure. Binding generation invokes the runtime dispatcher with each 
 roots never select an operation string. The dispatcher executes operation handlers, reviewed extensions from sealed
 module paths, or ordered compositions, resolving parent inputs and earlier child outputs only. Managed Validation AST
 projection rows and immutable runtime-input snapshots persist canonical invocations and exact definition references
-without selecting or creating a `TemplateStep`; operation records remain derived handler dependencies only.
+without selecting or creating a legacy reusable-step record; operation records remain derived handler dependencies only.
 
 Materialization consumes only a `review_ready` `ValidationAstPublishOperation`. Before writing
 bytes it revalidates the immutable publish journal, exact current `PlanProjection.validationJson`, logical projection,

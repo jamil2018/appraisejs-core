@@ -7,7 +7,18 @@ import {
 } from '../../../packages/cucumber-runtime/src/step-definitions/index.ts'
 import { StepDefinitionRegistryService } from '@/services/step-definition/step-definition-registry-service'
 
+const prismaMocks = vi.hoisted(() => ({
+  stepDefinitionSearchReceipt: { create: vi.fn().mockResolvedValue({ id: '00000000-0000-4000-8000-000000000010' }) },
+}))
+
+vi.mock('@/config/db-config', () => ({ default: prismaMocks }))
+
+vi.mock('@/services/step-definition/step-definition-telemetry', () => ({
+  recordStepDefinitionTelemetry: vi.fn().mockResolvedValue(undefined),
+}))
+
 import { coordinatorStepDefinitionService } from './coordinator-step-definition-service'
+import { recordStepDefinitionTelemetry } from '@/services/step-definition/step-definition-telemetry'
 
 function readyDefinition(): StepDefinition {
   return {
@@ -65,43 +76,18 @@ describe('coordinator Step Definition search', () => {
   it('returns the aggregate exact Step Reference while retaining per-domain audit hashes', async () => {
     const definition = readyDefinition()
     const hashes = computeStepDefinitionHashes(definition)
-    vi.spyOn(StepDefinitionRegistryService.prototype, 'list').mockResolvedValue([
+    vi.spyOn(StepDefinitionRegistryService.prototype, 'listReadyForSearch').mockResolvedValue([
       {
         id: definition.identity.id,
         version: definition.identity.version,
-        status: 'ready',
         title: definition.intent.title,
         description: definition.intent.description,
         definitionJson: JSON.stringify(definition),
-        definitionHash: hashes.definitionHash,
-        humanProjectionHash: hashes.humanProjectionHash,
-        agentContractHash: hashes.agentContractHash,
-        executionHash: hashes.executionHash,
-        provenanceJson: JSON.stringify(definition.provenance),
-        createdAt: new Date(definition.provenance.createdAt),
-        publishedAt: new Date(definition.provenance.createdAt),
-        deprecatedAt: null,
-        humanProjection: {
-          stepId: definition.identity.id,
-          stepVersion: definition.identity.version,
-          signature: definition.human.signature,
-          groupId: definition.human.groupId,
-          projectionJson: JSON.stringify(definition.human),
-          projectionHash: hashes.humanProjectionHash,
-        },
-        executionBinding: {
-          stepId: definition.identity.id,
-          stepVersion: definition.identity.version,
-          kind: 'operation',
-          bindingJson: JSON.stringify(definition.execution),
-          bindingHash: hashes.executionHash,
-        },
-        publicationReceipt: null,
       },
     ])
 
     await expect(
-      coordinatorStepDefinitionService.read(['step-definitions', 'search'], new URLSearchParams()),
+      coordinatorStepDefinitionService.read(['step-definitions', 'search'], new URLSearchParams({ surface: 'human' })),
     ).resolves.toMatchObject({
       body: {
         matches: [
@@ -114,5 +100,38 @@ describe('coordinator Step Definition search', () => {
         ],
       },
     })
+    expect(recordStepDefinitionTelemetry).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ surface: 'human', outcome: 'query_match' }),
+    )
+  })
+
+  it('records bounded selection rejection events without query or input content', async () => {
+    await expect(
+      coordinatorStepDefinitionService.recordSelectionRejected({
+        surface: 'agent',
+        step: { id: 'browser.search.exact', version: '1' },
+        reason: 'parameter_mismatch',
+      }),
+    ).resolves.toEqual({ recorded: true })
+    expect(recordStepDefinitionTelemetry).toHaveBeenCalledWith(expect.anything(), {
+      surface: 'agent',
+      outcome: 'selection_rejected',
+      step: { id: 'browser.search.exact', version: '1' },
+      payload: { reason: 'parameter_mismatch' },
+    })
+  })
+
+  it('does not expose review, publication, or deprecation through the coordinator write boundary', async () => {
+    const revision = 1
+    const draftId = '00000000-0000-4000-8000-000000000001'
+    for (const operation of [
+      ['step-definitions', 'drafts', draftId, 'review'],
+      ['step-definitions', 'drafts', draftId, 'publish'],
+      ['step-definitions', 'definitions', 'browser.search.exact', '1', 'deprecate'],
+    ])
+      await expect(
+        coordinatorStepDefinitionService.write(operation, { expectedRevision: revision, reviewAuthority: 'forged' }),
+      ).rejects.toMatchObject({ code: 'NOT_FOUND', statusCode: 404 })
   })
 })

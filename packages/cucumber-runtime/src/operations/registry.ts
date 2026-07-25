@@ -29,7 +29,7 @@ function withProjectionAliases(definition: OperationDefinition): OperationDefini
     ...definition.humanProjections.flatMap(projection => [
       { kind: 'cucumber-signature' as const, value: projection.signature, surface: 'human' as const },
       {
-        kind: 'template-step-slug' as const,
+        kind: 'step-definition-slug' as const,
         value: `${projectionSlug(projection.group)}/${projectionSlug(projection.title)}`,
         surface: 'human' as const,
       },

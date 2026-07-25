@@ -187,6 +187,21 @@ describe('reviewed runtime capsule byte generation', () => {
         extensionArtifacts: [{ ...unsafeExtension, compiledSource: 'export const tampered = true' }],
       }),
     ).toThrow(/bytes do not match/)
+    expect(() =>
+      buildReviewedRuntimeCapsuleFiles({
+        node,
+        runtimeInput,
+        extensionArtifacts: [
+          {
+            id: unsafeExtension.extension.id,
+            version: unsafeExtension.extension.version,
+            sourceHash: unsafeExtension.sourceHash,
+            compiledHash: unsafeExtension.compiledHash,
+            compiledSource: unsafeExtension.compiledSource,
+          },
+        ],
+      }),
+    ).toThrow(/exact reviewed extension artifact schema/)
     const injected = structuredClone(node)
     injected.appraiseArtifacts.testCases[0]!.title = 'Safe title\n@injected'
     expect(() => buildReviewedRuntimeCapsuleFiles({ node: injected, runtimeInput, extensionArtifacts: [] })).toThrow(
@@ -407,18 +422,12 @@ describe('reviewed runtime capsule materialization integration', () => {
     expect(two.row.integrityState).toBe('ready')
     expect(one.row.storagePath).not.toBe(two.row.storagePath)
     expect(one.manifest.generator).toEqual({ id: 'appraise.validation-ast-capsule', version: '2' })
-    expect(one.manifest.operations).toEqual([
+    expect(one.manifest.stepDefinitions).toContainEqual(
       expect.objectContaining({
-        id: 'browser.navigation.goto',
-        version: '1',
-        descriptorHash: expect.stringMatching(/^sha256:[a-f0-9]{64}$/),
-        handler: expect.objectContaining({
-          id: 'browser.navigation.goto',
-          version: '1',
-          contentHash: expect.stringMatching(/^sha256:[a-f0-9]{64}$/),
-        }),
+        step: expect.objectContaining({ id: 'browser.navigation.goto', version: '1' }),
+        executionHash: expect.stringMatching(/^sha256:[a-f0-9]{64}$/),
       }),
-    ])
+    )
     const firstReceiptFile = one.manifest.files.find(file => file.role === 'command-receipt')!
     expect(one.manifest.commandReceipt).toEqual({ path: firstReceiptFile.path, hash: firstReceiptFile.hash })
     const firstReceiptBytes = await fs.readFile(
@@ -642,5 +651,66 @@ describe('reviewed runtime capsule materialization integration', () => {
       /differs from the reviewed publication/,
     )
     await expect(fs.stat(path.join(workspace, 'automation'))).rejects.toMatchObject({ code: 'ENOENT' })
+  }, 30_000)
+
+  it('materializes and imports exact historical reviewed-extension bytes after revocation', async () => {
+    const projectId = 'revoked-extension-project'
+    const extension = reviewedExtension(projectId, hashText(projectId))
+    const seeded = await seedReviewedCapsuleLifecycleFixture({
+      client,
+      workspace,
+      environmentId,
+      projectId,
+      planId: 'revoked-extension-plan',
+      runId: 'revoked-extension-run',
+      extension,
+      lifecycleCorrelation: { planId: 'revoked-extension-plan', correlationId: 'capsule-correlation' },
+    })
+    if (!seeded.testRun) throw new Error('Expected a historical test run')
+    await client.stepReviewedExtension.update({
+      where: { id_version: { id: extension.artifact.extension.id, version: extension.artifact.extension.version } },
+      data: {
+        revokedAt: new Date(),
+        revokedBy: 'fixture-human',
+        revocationReason: 'superseded for future publication',
+      },
+    })
+
+    const materialized = await new RuntimeCapsuleMaterializer(client, path.join(workspace, '.appraise')).materialize({
+      operationId: seeded.operationId,
+      testRunId: seeded.testRun.id,
+    })
+    expect(materialized.manifest.lifecycleCorrelation).toEqual({
+      planId: 'revoked-extension-plan',
+      correlationId: 'capsule-correlation',
+    })
+    const extensionFile = materialized.manifest.files.find(file => file.role === 'extension')
+    expect(extensionFile).toBeTruthy()
+    const module = await import(
+      pathToFileURL(
+        path.join(workspace, '.appraise', 'projects', projectId, materialized.row.storagePath, extensionFile!.path),
+      ).href
+    )
+    expect(module.reviewedCompiled).toBe('exact-reviewed-bytes')
+    await expect(
+      client.stepDefinitionTelemetryEvent.findFirst({
+        where: { outcome: 'runtime_ready', planId: 'revoked-extension-plan', correlationId: 'capsule-correlation' },
+      }),
+    ).resolves.toBeTruthy()
+    await client.planProjection.update({
+      where: { planId: 'revoked-extension-plan' },
+      data: { validationJson: JSON.stringify({ drifted: true }) },
+    })
+    await expect(
+      new RuntimeCapsuleMaterializer(client, path.join(workspace, '.appraise')).materialize({
+        operationId: seeded.operationId,
+        testRunId: seeded.testRun.id,
+      }),
+    ).rejects.toThrow(/differs from the reviewed publication/)
+    await expect(
+      client.stepDefinitionTelemetryEvent.findFirst({
+        where: { outcome: 'runtime_blocked', planId: 'revoked-extension-plan', correlationId: 'capsule-correlation' },
+      }),
+    ).resolves.toMatchObject({ payloadJson: '{"reason":"runtime_readiness"}' })
   }, 30_000)
 })

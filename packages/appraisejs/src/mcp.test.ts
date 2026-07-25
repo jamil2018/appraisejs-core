@@ -383,9 +383,22 @@ describe('compact lifecycle responses', () => {
   it('publishes a versioned self-describing Validation AST schema', () => {
     expect(VALIDATION_AST_JSON_SCHEMA).toMatchObject({
       $id: 'appraise://contracts/validation-ast/v2',
-      properties: { ast: { $ref: '#/$defs/ast' } },
+      properties: {
+        ast: { $ref: '#/$defs/ast' },
+        stepDefinitionSelections: {
+          type: 'array',
+          minItems: 1,
+          maxItems: 32,
+          items: {
+            type: 'object',
+            additionalProperties: false,
+            required: ['receiptId', 'correlationId'],
+          },
+        },
+      },
       $defs: { ast: { properties: { scenarios: expect.any(Object) } } },
     })
+    expect(VALIDATION_AST_JSON_SCHEMA.properties).not.toHaveProperty('stepDefinitionSelection')
   })
 
   it('keeps compact lifecycle mutations inside the validation and baseline budgets', () => {
@@ -788,9 +801,6 @@ describe('MCP capability and recovery metadata', () => {
     expect(mcpCapabilityMetadata.packageVersion).toMatch(/^\d+\.\d+\.\d+/)
     expect(mcpCapabilityMetadata.workflowCriticalTools).toEqual(
       expect.arrayContaining([
-        'action_categories_list',
-        'actions_list',
-        'actions_read',
         'project_diagnostic',
         'planning_session_create',
         'plan_review_loop',
@@ -815,8 +825,6 @@ describe('MCP capability and recovery metadata', () => {
     expect(mcpCapabilityMetadata.workflowCriticalTools).not.toContain('validation_decide')
     expect(mcpCapabilityMetadata.workflowResourceUris).toEqual(
       expect.arrayContaining([
-        'appraise://actions/catalog',
-        'appraise://actions/category/{categoryId}',
         'appraise://project',
         'appraise://workflow/planning',
         'appraise://workflow/validation-preparation',

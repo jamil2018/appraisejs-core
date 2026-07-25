@@ -16,8 +16,7 @@
     "check:harness": "node scripts/check-agent-harness.mjs",
     "docs:check-links": "node scripts/check-documentation-links.mjs",
     "operation:ledger": "node --import tsx scripts/build-operation-capability-ledger.ts",
-    "operation:certify": "node --import tsx scripts/certify-operation-architecture.ts",
-    "step-block:migrate": "node --import tsx scripts/migrate-step-block-definitions.ts",
+    "step-definition:certify": "node --import tsx scripts/certify-operation-architecture.ts",
     "operation:projections": "node --import tsx scripts/generate-operation-projections.ts && npm run lint:step-definitions",
     "generate:coordinator-reference": "node --import tsx scripts/generate-coordinator-reference.ts",
     "benchmark:repository-queries": "node scripts/benchmark-repository-queries.mjs",
@@ -83,8 +82,7 @@
     "setup:full": "npm run install-dependencies && npm run setup:db && npm run build:local && npm run protect-seeded-files",
     "protect-seeded-files": "npx tsx scripts/protect-seeded-files.ts",
     "appraisejs:setup": "npm run setup",
-    "appraisejs:sync": "npm run sync-all",
-    "appraisejs:install-step": "npx tsx scripts/install-template-step.ts"
+    "appraisejs:sync": "npm run sync-all"
   },
   "dependencies": {
     "@babel/parser": "^7.29.0",

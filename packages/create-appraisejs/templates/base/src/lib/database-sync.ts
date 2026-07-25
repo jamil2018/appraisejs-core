@@ -1,7 +1,7 @@
 import prisma from '@/config/db-config'
 import { ParsedFeature, ParsedStep } from './gherkin-parser'
 import { buildModuleHierarchy } from './module-hierarchy-builder'
-import { Prisma, TemplateStepIcon, TestCase, TagType } from '@prisma/client'
+import { Prisma, StepIcon, TestCase, TagType } from '@prisma/client'
 import { getTagTypeFromExpression } from './tag-identifiers'
 import { getFeatureModulePath } from './path-helpers/feature-path'
 import { parseGherkinScenarioTitle } from './gherkin-scenario-title'
@@ -224,7 +224,7 @@ async function findOrCreateTestCase(
 /**
  * Determines the step type and icon based on the Gherkin keyword
  */
-function determineStepTypeAndIcon(keyword: string): { icon: TemplateStepIcon } {
+function determineStepTypeAndIcon(keyword: string): { icon: StepIcon } {
   const lowerKeyword = keyword.toLowerCase().trim()
 
   if (lowerKeyword === 'given') {

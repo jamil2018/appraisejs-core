@@ -1,10 +1,10 @@
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "status": "certified",
   "hashes": {
-    "capabilityLedger": "sha256:7659fec53babb88bae86f6bc43c80e13c5f3705ae22f656d9ff655b9ce671c23",
+    "capabilityLedger": "sha256:f35802b5c93616c018fec3e23507773f8767eca372d8b7aff9eb06a2ef322b60",
     "stepDefinitionSource": "sha256:1adf92b7c8d7670e458ad2b6e3774771c280fb7fba3dce1006b081819b3cb31a",
-    "operationRegistry": "sha256:3cdbecf7b3929e76b336f6d54858ef70be32348376781c3954f3e466398387c4"
+    "operationRegistry": "sha256:15256a0d0490ec91ec3ec7cad9b0283129b781efc1c5336b79679fc73edf9fab"
   },
   "counts": {
     "builtInStepDefinitions": 125,
@@ -17,7 +17,53 @@
     "allBuiltInsAccountedFor": true,
     "exactDefinitionHashes": true,
     "uniqueHumanSignatures": true,
-    "everyDefinitionHasTrustedHandler": true
+    "everyDefinitionHasTrustedHandler": true,
+    "runtimeEvidenceSuitesBound": true,
+    "legacyAuthorityAndArtifactSurfacesAbsent": true
   },
-  "receiptHash": "sha256:af088299517f755323b00dda3cb72b336a31935fb1b57ea0aa097fda496b0b01"
+  "runtimeEvidence": {
+    "command": "node node_modules/vitest/vitest.mjs run packages/cucumber-runtime/src/step-definitions/dispatcher.test.ts src/services/step-definition/step-definition-registry-service.integration.test.ts src/services/coordinator/coordinator-step-definition-service.test.ts src/lib/runtime-capsule/materializer.test.ts src/components/diagram/flow-diagram.test.tsx",
+    "suites": [
+      {
+        "suite": "packages/cucumber-runtime/src/step-definitions/dispatcher.test.ts",
+        "sourceHash": "sha256:1a66ba587d01119acd04e9a261077d14f415721a5e917a80f78af7a6d67c19f5"
+      },
+      {
+        "suite": "src/services/step-definition/step-definition-registry-service.integration.test.ts",
+        "sourceHash": "sha256:e55cd4d9442e9edd37f4d584ca0e73055d098a3623b0c78678cf3859c8ad306e"
+      },
+      {
+        "suite": "src/services/coordinator/coordinator-step-definition-service.test.ts",
+        "sourceHash": "sha256:9ac2450bd1aeb492cb80ece983c833e1de5cbefe41d908009e7c41d8c716e232"
+      },
+      {
+        "suite": "src/lib/runtime-capsule/materializer.test.ts",
+        "sourceHash": "sha256:a1a128a5d9aa8c4d4011b2c542a9bc09e3a81dd78092f2d0a77d63d7714e2f0b"
+      },
+      {
+        "suite": "src/components/diagram/flow-diagram.test.tsx",
+        "sourceHash": "sha256:b1a161e162f917566bcd50ab571e40c2ef3bd42cd10949461c9b6776858b3df8"
+      }
+    ],
+    "scenarios": [
+      "built-in exact invocation",
+      "human and agent authored review receipts",
+      "reviewed-extension and composition dispatch",
+      "deprecated dependency rejection",
+      "handler readiness, receipt replay, and publication rollback"
+    ]
+  },
+  "repositoryAbsence": {
+    "passed": true,
+    "matches": [],
+    "scannedRoots": [
+      "."
+    ],
+    "allowlist": [
+      "^codex\\/development plan\\/.*\\.md$",
+      "^scripts\\/certify-operation-architecture\\.ts$",
+      "^packages\\/create-appraisejs\\/templates\\/base\\/scripts\\/certify-operation-architecture\\.ts$"
+    ]
+  },
+  "receiptHash": "sha256:c01c253af14179f5ea5b8248477f7c2cd864103ed197b89f1b15ca1b560c17b4"
 }

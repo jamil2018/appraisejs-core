@@ -11,6 +11,7 @@ import {
   builtInStepDefinitions,
   canonicalStepDefinitionJson,
   computeStepDefinitionHashes,
+  computeStepExecutableReadiness,
   computeStepReferenceHash,
   stepDefinitionContentHash,
 } from '../../../packages/cucumber-runtime/src/step-definitions'
@@ -24,10 +25,12 @@ const readyDefinitions = ['browser.navigation.goto', 'browser.waits.page-ready',
   id => {
     const definition = builtInStepDefinitions.find(item => item.identity.id === id)!
     const hashes = computeStepDefinitionHashes(definition)
+    const registryManifestHash = computeStepReferenceHash(definition)
     const receipt = {
       step: { id: definition.identity.id, version: definition.identity.version },
       ...hashes,
-      registryManifestHash: computeStepReferenceHash(definition),
+      registryManifestHash,
+      executableReadiness: computeStepExecutableReadiness(definition, registryManifestHash, 'test-run'),
       conformanceRunId: 'test-run',
       reviewAuthority: 'test-reviewer',
       publishedAt: '2026-07-25T00:00:00.000Z',

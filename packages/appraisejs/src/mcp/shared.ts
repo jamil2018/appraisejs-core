@@ -8,7 +8,6 @@ import type { createCoordinatorApiClient } from './coordinator-call.js'
 export { ResourceTemplate } from '@modelcontextprotocol/sdk/server/mcp.js'
 export { z } from 'zod'
 export {
-  ACTION_CATALOG_CONTRACT_VERSION,
   OPERATION_CATALOG_CONTRACT_VERSION,
   DELEGATED_AUTHORIZATION_VERSION,
   LOCATOR_GRAPH_CONTRACT_VERSION,
@@ -39,9 +38,6 @@ const baseWorkflowCriticalTools = [
   'operation_categories',
   'operation_search',
   'operation_read',
-  'action_categories_list',
-  'actions_list',
-  'actions_read',
   'project_diagnostic',
   'project_add',
   'project_list',
@@ -63,10 +59,6 @@ const baseWorkflowCriticalTools = [
   'step_definition_draft_preview',
   'step_definition_draft_artifact_save',
   'step_definition_draft_compile',
-  'step_definition_draft_submit_for_review',
-  'step_definition_publish',
-  'step_definition_deprecate',
-  'step_block_search',
   'locator_search',
   'validation_resources_propose',
   'validation_ast_check',
@@ -139,10 +131,7 @@ const providerNativeWorkflowResourceUris = ['appraise://providers', 'appraise://
 const phase1ContractResourceUris = [
   'appraise://operations/catalog',
   'appraise://contracts/operation-catalog',
-  'appraise://actions/catalog',
-  'appraise://actions/category/{categoryId}',
   'appraise://locator-graph/visual',
-  'appraise://contracts/action-catalog',
   'appraise://contracts/locator-graph',
   'appraise://contracts/validation-ast',
   'appraise://contracts/delegated-authorization',

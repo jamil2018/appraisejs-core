@@ -35,8 +35,6 @@ try {
           VALUES ('legacy.composition.ready', '1', 'composition', '{"kind":"composition","steps":[{"step":{"id":"legacy.child","version":"1"},"inputs":{}}]}', 'sha256:legacy-execution');
           INSERT INTO "StepPublicationReceipt" ("stepId", "stepVersion", "receiptJson", "receiptHash", "registryManifestHash", "conformanceRunId", "reviewAuthority", "publishedAt")
           VALUES ('legacy.composition.ready', '1', '{}', 'sha256:legacy-receipt', 'sha256:legacy-manifest', 'legacy-fixture', 'migration-test', CURRENT_TIMESTAMP);
-          INSERT INTO "StepCompatibilityReference" ("id", "legacyKind", "legacyValue", "stepId", "stepVersion", "createdAt")
-          VALUES ('legacy-composition-ref', 'legacy-fixture', 'legacy-composition', 'legacy.composition.ready', '1', CURRENT_TIMESTAMP);
         `,
         stdio: ['pipe', 'pipe', 'pipe'],
       })
@@ -71,8 +69,7 @@ try {
       databasePath,
       `SELECT
         (SELECT count(*) FROM StepDefinitionDraft WHERE id = 'legacy-composition-draft') +
-        (SELECT count(*) FROM StepDefinition WHERE id = 'legacy.composition.ready') +
-        (SELECT count(*) FROM StepCompatibilityReference WHERE id = 'legacy-composition-ref');`,
+        (SELECT count(*) FROM StepDefinition WHERE id = 'legacy.composition.ready');`,
     ],
     { encoding: 'utf8' },
   ).trim()

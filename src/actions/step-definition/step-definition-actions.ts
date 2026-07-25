@@ -21,6 +21,7 @@ const draftIdSchema = z.string().uuid()
 const revisionSchema = z.number().int().positive()
 const stepIdentitySchema = z.object({ stepId: z.string().min(1), version: z.string().min(1) })
 const readyDefinitionSearchSchema = z.string().trim().min(1).max(200)
+const readyStepReferenceSchema = z.object({ id: z.string().min(1).max(200), version: z.string().min(1).max(40) })
 const registry = new StepDefinitionRegistryService(prisma)
 const extensions = new StepDefinitionExtensionService(prisma)
 
@@ -53,7 +54,7 @@ function registryError(error: StepDefinitionRegistryError): ActionResponse {
 async function respond<T>(operation: () => Promise<T>, revalidate = false): Promise<ActionResponse> {
   try {
     const data = await operation()
-    if (revalidate) revalidatePath('/template-steps/create')
+    if (revalidate) revalidatePath('/step-definitions/create')
     return { status: 200, success: true, data }
   } catch (error) {
     if (error instanceof z.ZodError) return validationError(error)
@@ -69,14 +70,47 @@ export async function createStepDefinitionDraftAction(definition: unknown): Prom
 
 export async function searchReadyStepDefinitionContractsAction(query: string): Promise<ActionResponse> {
   return respond(async () => {
-    const search = new URLSearchParams({ query: readyDefinitionSearchSchema.parse(query), limit: '10' })
+    const search = new URLSearchParams({
+      query: readyDefinitionSearchSchema.parse(query),
+      limit: '10',
+      surface: 'human',
+    })
     return (await coordinatorStepDefinitionService.read(['step-definitions', 'search'], search)).body
   })
 }
 
+export async function rejectReadyStepDefinitionSelectionAction(input: {
+  step?: { id: string; version: string }
+  reason: 'unusable_result' | 'parameter_mismatch' | 'overlap' | 'runtime_readiness'
+}): Promise<ActionResponse> {
+  return respond(() =>
+    coordinatorStepDefinitionService.recordSelectionRejected({
+      surface: 'human',
+      ...(input.step ? { step: readyStepReferenceSchema.parse(input.step) } : {}),
+      reason: input.reason,
+    }),
+  )
+}
+
+// Records a deliberate human selection without retaining the search text or UI input.
+export async function selectReadyStepDefinitionAction(input: {
+  step: { id: string; version: string }
+  planId?: string
+  correlationId?: string
+}): Promise<ActionResponse> {
+  return respond(() =>
+    coordinatorStepDefinitionService.recordSelectionSelected({
+      surface: 'human',
+      step: readyStepReferenceSchema.parse(input.step),
+      ...(input.planId ? { planId: z.string().min(1).max(200).parse(input.planId) } : {}),
+      ...(input.correlationId ? { correlationId: z.string().regex(/^[a-zA-Z0-9._:-]{1,100}$/).parse(input.correlationId) } : {}),
+    }),
+  )
+}
+
 export async function listReadyStepDefinitionOptionsAction(): Promise<ActionResponse> {
   return respond(async () => {
-    const rows = await registry.list({ status: 'ready', limit: 100 })
+    const rows = await registry.listAllReady()
     return rows.map(row => {
       const definition = stepDefinitionSchema.parse(JSON.parse(row.definitionJson))
       return {
@@ -165,53 +199,46 @@ export async function compileStepDefinitionDraftArtifactAction(input: {
 export async function reviewStepDefinitionDraftAction(input: {
   draftId: string
   expectedRevision: number
-  reviewAuthority: string
 }): Promise<ActionResponse> {
   return respond(() =>
-    registry.submitForReview(
-      draftIdSchema.parse(input.draftId),
-      revisionSchema.parse(input.expectedRevision),
-      z.string().trim().min(1).max(200).parse(input.reviewAuthority),
-    ),
+    registry.issueHumanReviewReceipt(draftIdSchema.parse(input.draftId), revisionSchema.parse(input.expectedRevision)),
   )
 }
 
 export async function publishStepDefinitionDraftAction(input: {
   draftId: string
   expectedRevision: number
-  conformanceRunId: string
 }): Promise<ActionResponse> {
   return respond(
     () =>
       registry.publishDraft({
         draftId: draftIdSchema.parse(input.draftId),
         expectedRevision: revisionSchema.parse(input.expectedRevision),
-        conformanceRunId: z.string().trim().min(1).max(200).parse(input.conformanceRunId),
       }),
     true,
   )
 }
 
+// Fallow does not discover this human-UI Server Action until the ready-definition management view is mounted.
+// fallow-ignore-next-line unused-server-action
 export async function deprecateStepDefinitionAction(input: {
   stepId: string
   version: string
   reason: string
-  actor: string
   replacement?: { id: string; version: string }
 }): Promise<ActionResponse> {
   return respond(() => {
     const identity = stepIdentitySchema.parse(input)
-    return registry.deprecate({
+    return registry.deprecateFromHumanUi({
       ...identity,
       reason: z.string().trim().min(1).max(2_000).parse(input.reason),
-      actor: z.string().trim().min(1).max(200).parse(input.actor),
       replacement: input.replacement
         ? {
             id: z.string().min(1).parse(input.replacement.id),
             version: z.string().min(1).parse(input.replacement.version),
           }
         : undefined,
-    })
+})
   }, true)
 }
 
@@ -237,4 +264,21 @@ export async function createStepDefinitionVersionDraftAction(input: {
         .parse(input.createdBy ?? 'local-user'),
     })
   }, true)
+}
+
+// Human UI authority is derived here; callers cannot choose the revocation actor.
+// fallow-ignore-next-line unused-server-action
+export async function revokeReviewedExtensionAction(input: {
+  id: string
+  version: string
+  reason: string
+}): Promise<ActionResponse> {
+  return respond(() =>
+    extensions.revokeReviewedExtension({
+      id: z.string().min(1).max(200).parse(input.id),
+      version: z.string().min(1).max(40).parse(input.version),
+      revokedBy: 'local-human-ui',
+      reason: z.string().trim().min(1).max(2_000).parse(input.reason),
+    }),
+  )
 }

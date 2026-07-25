@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
 import {
-  stepBlockStepCreates,
   templateTestCaseStepCreates,
   testCaseStepCreates,
   type AuthoredStep,
@@ -66,23 +65,15 @@ describe('authored Step Invocation persistence', () => {
     ).toThrow(/unknown input unknown/)
   })
 
-  it('rejects wrong input types before persisting Step Block steps', () => {
+  it('rejects wrong input types before persisting authored steps', () => {
     const typedInput = typedDefinition.inputs.find(
       input => input.required && (input.type === 'number' || input.type === 'boolean'),
     )
     if (!typedInput) throw new Error('Expected a built-in Step Definition with a typed required input.')
 
     expect(() =>
-      stepBlockStepCreates(
-        [
-          {
-            invocation: invocation(
-              { ...requiredInputs(typedDefinition), [typedInput.name]: 'wrong type' },
-              typedDefinition,
-            ),
-            order: 0,
-          },
-        ],
+      testCaseStepCreates(
+        [authoredStep({ ...requiredInputs(typedDefinition), [typedInput.name]: 'wrong type' })],
         [typedDefinition],
       ),
     ).toThrow(/wrong type/)

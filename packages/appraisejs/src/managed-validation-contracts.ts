@@ -1,4 +1,3 @@
-export const ACTION_CATALOG_CONTRACT_VERSION = '1' as const
 export const OPERATION_CATALOG_CONTRACT_VERSION = '1' as const
 export const LOCATOR_GRAPH_CONTRACT_VERSION = '1' as const
 export const VALIDATION_AST_SCHEMA_VERSION = 2 as const
@@ -13,6 +12,20 @@ export const VALIDATION_AST_JSON_SCHEMA = {
   required: ['expectedPlanHash', 'ast', 'customExtensionProposals'],
   properties: {
     expectedPlanHash: { type: 'string', pattern: '^sha256:[a-f0-9]{64}$' },
+    stepDefinitionSelections: {
+      type: 'array',
+      minItems: 1,
+      maxItems: 32,
+      items: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['receiptId', 'correlationId'],
+        properties: {
+          receiptId: { type: 'string', format: 'uuid' },
+          correlationId: { type: 'string', maxLength: 100, pattern: '^[a-zA-Z0-9._:-]+$' },
+        },
+      },
+    },
     authoringProfile: {
       type: 'object',
       additionalProperties: false,
@@ -297,6 +310,7 @@ export type CustomActionExtensionProposal = {
 
 export type ValidationAstSubmission = {
   expectedPlanHash: string
+  stepDefinitionSelections?: Array<{ receiptId: string; correlationId: string }>
   authoringProfile?: {
     id: 'simple-happy-path'
     version: '1'

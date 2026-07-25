@@ -3,13 +3,13 @@ import { z } from 'zod'
 
 import { catalogEntityIdSchema } from '@/lib/catalog-contracts'
 import { canonicalContractJson } from '@/lib/catalog-contracts'
-import { actionCategoryIdSchema } from '@/lib/action-catalog/action-catalog'
 
 export const LOCATOR_GRAPH_CONTRACT_VERSION = '1' as const
 export const LOCATOR_GRAPH_MAX_PAGE_SIZE = 100
 export const LOCATOR_GRAPH_MAX_DEPTH = 4
 
 const id = catalogEntityIdSchema
+const operationCategoryIdSchema = z.string().regex(/^[a-z0-9]+(?:[.-][a-z0-9]+)*$/)
 const hash = z.string().regex(/^sha256:[a-f0-9]{64}$/)
 const nodeBase = z.object({ id, version: z.literal(LOCATOR_GRAPH_CONTRACT_VERSION), title: z.string().trim().min(1) })
 
@@ -44,7 +44,7 @@ export const locatorDescriptorSchema = nodeBase.extend({
   groupId: id,
   scope: z.object({ surfaceId: id, componentId: id.optional(), availableStates: z.array(id).default([]) }),
   strategy: locatorStrategySchema,
-  compatibleActionCategories: z.array(actionCategoryIdSchema).default([]),
+  compatibleActionCategories: z.array(operationCategoryIdSchema).default([]),
   sourceEvidence: z
     .object({ file: z.string().trim().min(1).optional(), symbol: id.optional(), attribute: id.optional() })
     .optional(),

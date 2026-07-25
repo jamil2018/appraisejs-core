@@ -356,6 +356,18 @@ export class StepDefinitionExtensionService {
     }
   }
 
+  async revokeReviewedExtension(input: { id: string; version: string; revokedBy: string; reason: string }) {
+    const { id, version } = input
+    const revokedBy = z.string().trim().min(1).max(200).parse(input.revokedBy)
+    const reason = z.string().trim().min(1).max(2_000).parse(input.reason)
+    const updated = await this.database.stepReviewedExtension.updateMany({
+      where: { id, version, revokedAt: null },
+      data: { revokedAt: new Date(), revokedBy, revocationReason: reason },
+    })
+    if (updated.count === 0) throw new ServiceError('Reviewed extension was not found or is already revoked.', 'NOT_FOUND')
+    return this.database.stepReviewedExtension.findUniqueOrThrow({ where: { id_version: { id, version } } })
+  }
+
   static artifactHash(value: {
     sourceHash: string
     compiledHash: string

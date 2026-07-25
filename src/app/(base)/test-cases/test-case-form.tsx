@@ -174,7 +174,7 @@ function buildTemplatePreviewSteps(templateTestCase: TemplateTestCaseWithSteps |
   )
 }
 
-function getTemplateStepCount(templateTestCase: TemplateTestCaseWithSteps | null): number {
+function getReusableStepCount(templateTestCase: TemplateTestCaseWithSteps | null): number {
   return templateTestCase?.steps.length ?? 0
 }
 
@@ -342,7 +342,7 @@ type TemplateSelectionStepProps = {
   templateOptions: ReturnType<typeof getTemplateSelectionOptions>
   selectedTemplateId: string
   selectedTemplateTestCase: TemplateTestCaseWithSteps | null
-  selectedTemplateStepCount: number
+  selectedReusableStepCount: number
   selectedTemplatePreviewSteps: string[]
   errors: TestCaseFormErrors
   onTemplateChange: (value: string) => void
@@ -353,7 +353,7 @@ function TemplateSelectionStep({
   templateOptions,
   selectedTemplateId,
   selectedTemplateTestCase,
-  selectedTemplateStepCount,
+  selectedReusableStepCount,
   selectedTemplatePreviewSteps,
   errors,
   onTemplateChange,
@@ -399,7 +399,7 @@ function TemplateSelectionStep({
             <CardContent className="flex h-full flex-col gap-3">
               <SelectedTemplateSummary
                 selectedTemplateTestCase={selectedTemplateTestCase}
-                selectedTemplateStepCount={selectedTemplateStepCount}
+                selectedReusableStepCount={selectedReusableStepCount}
                 selectedTemplatePreviewSteps={selectedTemplatePreviewSteps}
               />
             </CardContent>
@@ -418,16 +418,16 @@ function TemplateSelectionStep({
 
 type SelectedTemplateSummaryProps = {
   selectedTemplateTestCase: TemplateTestCaseWithSteps | null
-  selectedTemplateStepCount: number
+  selectedReusableStepCount: number
   selectedTemplatePreviewSteps: string[]
 }
 
 function SelectedTemplateSummary({
   selectedTemplateTestCase,
-  selectedTemplateStepCount,
+  selectedReusableStepCount,
   selectedTemplatePreviewSteps,
 }: SelectedTemplateSummaryProps) {
-  const hasOverflowPreviewSteps = selectedTemplateStepCount > selectedTemplatePreviewSteps.length
+  const hasOverflowPreviewSteps = selectedReusableStepCount > selectedTemplatePreviewSteps.length
 
   return (
     <>
@@ -445,7 +445,7 @@ function SelectedTemplateSummary({
           <SelectedTemplateDetails
             hasDescription={Boolean(selectedTemplateTestCase.description)}
             hasOverflowPreviewSteps={hasOverflowPreviewSteps}
-            selectedTemplateStepCount={selectedTemplateStepCount}
+            selectedReusableStepCount={selectedReusableStepCount}
             selectedTemplatePreviewSteps={selectedTemplatePreviewSteps}
           />
         ) : (
@@ -459,21 +459,21 @@ function SelectedTemplateSummary({
 type SelectedTemplateDetailsProps = {
   hasDescription: boolean
   hasOverflowPreviewSteps: boolean
-  selectedTemplateStepCount: number
+  selectedReusableStepCount: number
   selectedTemplatePreviewSteps: string[]
 }
 
 function SelectedTemplateDetails({
   hasDescription,
   hasOverflowPreviewSteps,
-  selectedTemplateStepCount,
+  selectedReusableStepCount,
   selectedTemplatePreviewSteps,
 }: SelectedTemplateDetailsProps) {
   return (
     <div className="flex flex-col gap-3 text-sm text-muted-foreground">
       <div className="flex flex-wrap gap-2">
         <span className="rounded-full border border-border px-3 py-1 text-xs font-medium text-foreground">
-          {selectedTemplateStepCount} {selectedTemplateStepCount === 1 ? 'step' : 'steps'}
+          {selectedReusableStepCount} {selectedReusableStepCount === 1 ? 'step' : 'steps'}
         </span>
         <span className="rounded-full border border-border px-3 py-1 text-xs font-medium text-foreground">
           {hasDescription ? 'Description included' : 'No description'}
@@ -485,7 +485,7 @@ function SelectedTemplateDetails({
       <p>Continuing will load this template into the details and flow steps so you can edit before saving.</p>
       <TemplatePreviewSteps
         hasOverflowPreviewSteps={hasOverflowPreviewSteps}
-        selectedTemplateStepCount={selectedTemplateStepCount}
+        selectedReusableStepCount={selectedReusableStepCount}
         selectedTemplatePreviewSteps={selectedTemplatePreviewSteps}
       />
     </div>
@@ -494,13 +494,13 @@ function SelectedTemplateDetails({
 
 type TemplatePreviewStepsProps = {
   hasOverflowPreviewSteps: boolean
-  selectedTemplateStepCount: number
+  selectedReusableStepCount: number
   selectedTemplatePreviewSteps: string[]
 }
 
 function TemplatePreviewSteps({
   hasOverflowPreviewSteps,
-  selectedTemplateStepCount,
+  selectedReusableStepCount,
   selectedTemplatePreviewSteps,
 }: TemplatePreviewStepsProps) {
   if (selectedTemplatePreviewSteps.length === 0) {
@@ -518,7 +518,7 @@ function TemplatePreviewSteps({
         ))}
         {hasOverflowPreviewSteps ? (
           <span className="rounded-full bg-muted px-3 py-1 text-xs text-foreground">
-            +{selectedTemplateStepCount - selectedTemplatePreviewSteps.length} more
+            +{selectedReusableStepCount - selectedTemplatePreviewSteps.length} more
           </span>
         ) : null}
       </div>
@@ -857,7 +857,7 @@ function WizardStepContent({ actions, details, errors, flow, navigation, templat
         templateOptions={template.options}
         selectedTemplateId={template.selectedId}
         selectedTemplateTestCase={template.selectedTestCase}
-        selectedTemplateStepCount={template.stepCount}
+        selectedReusableStepCount={template.stepCount}
         selectedTemplatePreviewSteps={template.previewSteps}
         errors={errors}
         onTemplateChange={actions.onTemplateChange}
@@ -902,7 +902,7 @@ function WizardStepContent({ actions, details, errors, flow, navigation, templat
   )
 }
 
-function useTemplateStepNavigation({
+function useReusableStepNavigation({
   appliedTemplateId,
   detailsStepIndex,
   dispatch,
@@ -1209,8 +1209,8 @@ const TestCaseForm = ({
     () => templateTestCases?.find(templateTestCase => templateTestCase.id === selectedTemplateId) ?? null,
     [selectedTemplateId, templateTestCases],
   )
-  const selectedTemplateStepCount = useMemo(
-    () => getTemplateStepCount(selectedTemplateTestCase),
+  const selectedReusableStepCount = useMemo(
+    () => getReusableStepCount(selectedTemplateTestCase),
     [selectedTemplateTestCase],
   )
   const selectedTemplatePreviewSteps = useMemo(
@@ -1281,7 +1281,7 @@ const TestCaseForm = ({
     [dispatch],
   )
 
-  const goToDetailsStep = useTemplateStepNavigation({
+  const goToDetailsStep = useReusableStepNavigation({
     appliedTemplateId,
     detailsStepIndex,
     dispatch,
@@ -1354,7 +1354,7 @@ const TestCaseForm = ({
       previewSteps: selectedTemplatePreviewSteps,
       selectedId: selectedTemplateId,
       selectedTestCase: selectedTemplateTestCase,
-      stepCount: selectedTemplateStepCount,
+      stepCount: selectedReusableStepCount,
     },
     actions: {
       goToDetailsStep,

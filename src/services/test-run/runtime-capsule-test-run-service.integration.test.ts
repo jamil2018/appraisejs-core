@@ -17,6 +17,7 @@ import { spawnTask, waitForTask, type SpawnedProcess } from '@/lib/process/task-
 import { createTestRunLogger } from '@/lib/test-run/winston-logger'
 import { seedReviewedCapsuleLifecycleFixture } from '@/test/reviewed-capsule-lifecycle-fixture'
 import { createPlanRuntimeTestWorkspace } from '@/test/validation-ast-test-fixtures'
+import { runtimeCapsuleManifestClosureFixture } from '@/test/runtime-capsule-test-fixtures'
 import { TestRunArtifactAccessService } from './test-run-artifact-access-service'
 import { RuntimeCapsuleTestRunService } from './runtime-capsule-test-run-service'
 import { getTestRunLogsService, scheduleTestRunCompletion } from './test-run-service'
@@ -367,7 +368,7 @@ async function seededAttempt(state: 'STARTING' | 'RUNNING' | 'COMPLETED' = 'RUNN
   })
   const receiptHash = hash('5')
   const manifestJson = canonicalRuntimeCapsuleJson({
-    schemaVersion: '1',
+    schemaVersion: '2',
     projectId,
     validationHash: hash('4'),
     runId: run.runId,
@@ -376,8 +377,8 @@ async function seededAttempt(state: 'STARTING' | 'RUNNING' | 'COMPLETED' = 'RUNN
     receiptHash,
     runtimeInputHash: hash('6'),
     commandReceipt: { path: 'command-receipt.json', hash: receiptHash },
-    generator: { id: 'appraise.validation-ast-capsule', version: '1' },
-    operations: [],
+    generator: { id: 'appraise.validation-ast-capsule', version: '2' },
+    ...runtimeCapsuleManifestClosureFixture(),
     expectedCases: [],
     files: [{ path: 'command-receipt.json', role: 'command-receipt', hash: receiptHash, size: 2 }],
   })
@@ -411,8 +412,8 @@ async function seededAttempt(state: 'STARTING' | 'RUNNING' | 'COMPLETED' = 'RUNN
 async function createReadyCapsule(name: string) {
   const prepared = await service.prepare(prepareInput(`${name}-${crypto.randomUUID()}`))
   const receiptHash = hash('5')
-  const manifest: RuntimeCapsuleManifest = {
-    schemaVersion: '1',
+  const manifest = {
+    schemaVersion: '2',
     projectId,
     validationHash: hash('4'),
     runId: prepared.runId,
@@ -421,11 +422,11 @@ async function createReadyCapsule(name: string) {
     receiptHash,
     runtimeInputHash: hash('6'),
     commandReceipt: { path: 'command-receipt.json', hash: receiptHash },
-    generator: { id: 'appraise.validation-ast-capsule', version: '1' },
-    operations: [],
+    generator: { id: 'appraise.validation-ast-capsule', version: '2' },
+    ...runtimeCapsuleManifestClosureFixture(),
     expectedCases: [],
     files: [{ path: 'command-receipt.json', role: 'command-receipt', hash: receiptHash, size: 2 }],
-  }
+  } as unknown as RuntimeCapsuleManifest
   const capsule = await client.runtimeCapsule.create({
     data: {
       targetProjectId: projectId,

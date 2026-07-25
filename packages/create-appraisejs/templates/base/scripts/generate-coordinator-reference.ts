@@ -67,8 +67,6 @@ const exactCoordinatorOperations: Readonly<Record<string, CoordinatorOperationId
 }
 
 const coordinatorOperationPrefixes: ReadonlyArray<readonly [string, CoordinatorOperationId]> = [
-  ['action_', 'actions'],
-  ['actions_', 'actions'],
   ['baseline_', 'plan-baseline-write'],
   ['implementation_', 'plan-implementation-write'],
   ['operation_', 'operations'],

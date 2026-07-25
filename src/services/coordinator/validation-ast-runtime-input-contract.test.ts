@@ -4,7 +4,7 @@ import {
   computeStepReferenceHash,
 } from '../../../packages/cucumber-runtime/src/step-definitions/index.ts'
 
-import { uniqueProjectedActionReferences } from './validation-ast-runtime-input-contract'
+import { uniqueProjectedOperationReferences } from './validation-ast-runtime-input-contract'
 
 describe('Validation AST runtime input projection', () => {
   it('compares each exact referenced Step Definition once when scenarios reuse an invocation', () => {
@@ -18,7 +18,7 @@ describe('Validation AST runtime input projection', () => {
       inputs: {},
     }
     expect(
-      uniqueProjectedActionReferences([
+      uniqueProjectedOperationReferences([
         {
           id: 'case',
           steps: [

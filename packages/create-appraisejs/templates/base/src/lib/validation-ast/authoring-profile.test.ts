@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { defaultActionCatalog } from '@/lib/action-catalog'
+import { defaultOperationRegistry } from '@/lib/operation-catalog'
 import { checkValidationAstAuthoringProfile, validationAstAuthoringProfileSchema } from './authoring-profile'
 import { validationAstSchema } from './schemas'
 import {
@@ -68,20 +68,20 @@ const ast = validationAstSchema.parse({
   customExtensions: [],
 })
 const profile = validationAstAuthoringProfileSchema.parse({ id: 'simple-happy-path', version: '1' })
-const actions = defaultActionCatalog.readActions(
+const operations = defaultOperationRegistry.read(
   ast.scenarios[0]!.steps.map(item => ({ id: item.invocation.step.id, version: item.invocation.step.version })),
 )
 
 describe('simple happy-path authoring profile', () => {
   it('accepts one primary scenario, one matrix entry, essential concerns, and an assertion', () => {
-    expect(checkValidationAstAuthoringProfile(ast, profile, actions)).toEqual([])
+    expect(checkValidationAstAuthoringProfile(ast, profile, operations)).toEqual([])
   })
 
   it('treats And steps after Then as assertions using effective Gherkin semantics', () => {
     const inheritedThenAst = structuredClone(ast)
     inheritedThenAst.scenarios[0]!.steps[2]!.invocation.presentation!.keyword = 'And'
 
-    expect(checkValidationAstAuthoringProfile(inheritedThenAst, profile, actions)).toEqual([])
+    expect(checkValidationAstAuthoringProfile(inheritedThenAst, profile, operations)).toEqual([])
   })
 
   it('requires runtime cleanliness checks to be observations, not setup steps', () => {
@@ -89,7 +89,7 @@ describe('simple happy-path authoring profile', () => {
     setupOnlyAst.scenarios[0]!.steps[3]!.invocation.presentation!.keyword = 'When'
     setupOnlyAst.scenarios[0]!.steps[4]!.invocation.presentation!.keyword = 'And'
 
-    expect(checkValidationAstAuthoringProfile(setupOnlyAst, profile, actions).map(issue => issue.referenceId)).toEqual([
+    expect(checkValidationAstAuthoringProfile(setupOnlyAst, profile, operations).map(issue => issue.referenceId)).toEqual([
       'browser.assertions.no-console-errors@1',
       'browser.assertions.no-failed-network-requests@1',
     ])
@@ -102,13 +102,13 @@ describe('simple happy-path authoring profile', () => {
       id: 'wait',
       ...step('browser.waits.duration', { duration: 60 }, 'And', 'the user waits'),
     })
-    const advancedActions = defaultActionCatalog.readActions(
+    const advancedOperations = defaultOperationRegistry.read(
       advancedAst.scenarios[0]!.steps.map(item => ({
         id: item.invocation.step.id,
         version: item.invocation.step.version,
       })),
     )
-    expect(checkValidationAstAuthoringProfile(advancedAst, profile, advancedActions).map(issue => issue.code)).toEqual([
+    expect(checkValidationAstAuthoringProfile(advancedAst, profile, advancedOperations).map(issue => issue.code)).toEqual([
       'simple-profile-matrix-count',
       'simple-profile-wait-out-of-bounds',
     ])
@@ -117,7 +117,7 @@ describe('simple happy-path authoring profile', () => {
       version: '1',
       advanced: { matrix: true, timing: true },
     })
-    expect(checkValidationAstAuthoringProfile(advancedAst, advanced, advancedActions)).toEqual([])
+    expect(checkValidationAstAuthoringProfile(advancedAst, advanced, advancedOperations)).toEqual([])
   })
 
   it('cannot be bypassed by assertion-like IDs, concern labels, or millisecond timing', () => {
@@ -133,10 +133,10 @@ describe('simple happy-path authoring profile', () => {
         ...step('browser.waits.timeout', { timeout: 30_001 }, 'And', 'the user waits too long'),
       },
     ]
-    const bypassActions = defaultActionCatalog.readActions(
+    const bypassOperations = defaultOperationRegistry.read(
       bypass.scenarios[0]!.steps.map(item => ({ id: item.invocation.step.id, version: item.invocation.step.version })),
     )
-    expect(checkValidationAstAuthoringProfile(bypass, profile, bypassActions).map(issue => issue.code)).toEqual([
+    expect(checkValidationAstAuthoringProfile(bypass, profile, bypassOperations).map(issue => issue.code)).toEqual([
       'simple-profile-assertion-concern-missing',
       'simple-profile-assertion-concern-missing',
       'simple-profile-runtime-cleanliness-missing',

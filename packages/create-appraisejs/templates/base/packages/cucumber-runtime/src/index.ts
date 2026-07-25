@@ -15,11 +15,11 @@ export { getEnvironment, getAllEnvironments } from './environment.util.ts'
 export { resolveLocator, retry, waitForRouteSettled } from './locator.util.ts'
 export { generateRandomData, RandomDataType } from './random-data.util.ts'
 export {
-  runLocatorTemplateOperation,
-  runPageTemplateOperation,
-  type LocatorTemplateOperation,
-  type PageTemplateOperation,
-} from './template-step-operations.ts'
+  runLocatorStepOperation,
+  runPageStepOperation,
+  type LocatorStepOperation,
+  type PageStepOperation,
+} from './step-operations.ts'
 export * from './operations/index.ts'
 export * from './step-definitions/contracts.ts'
 export * from './step-definitions/dispatcher.ts'

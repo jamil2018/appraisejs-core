@@ -117,12 +117,6 @@ const validationAppraiseArtifactsSchema = z.object({
             order: z.number().int().nonnegative(),
             label: z.string().min(1),
             gherkinStep: z.string().min(1),
-            templateStepId: idSchema.optional(),
-            operationRef: z
-              .string()
-              .regex(/^[a-z0-9]+(?:[.-][a-z0-9]+)*@\d+(?:\.\d+){0,2}$/)
-              .optional(),
-            templateStepName: z.string().min(1).optional(),
             invocation: stepInvocationSchema.optional(),
             parameters: z
               .array(
@@ -247,7 +241,7 @@ const managedValidationNodesSchema = validationNodesSchema.superRefine((items, c
       })
     for (const testCase of item.appraiseArtifacts.testCases)
       for (const step of testCase.steps)
-        if (!step.invocation || step.templateStepId || step.templateStepName || step.operationRef)
+        if (!step.invocation)
           context.addIssue({
             code: 'custom',
             path: [index, 'appraiseArtifacts', 'testCases'],
@@ -260,14 +254,6 @@ const customStepJustificationSchema = z.object({
   path: z.string().min(1),
   missingCapability: z.string().min(1),
   whyLocatorsAndExistingStepsAreInsufficient: z.string().min(1),
-})
-
-const validationReusableRefSchema = z.object({
-  id: z.string().min(1),
-  name: z.string().min(1).optional(),
-  groupId: z.string().min(1).optional(),
-  groupName: z.string().min(1).optional(),
-  path: z.string().min(1).optional(),
 })
 
 const validationDraftBlockerSchema = z.object({
@@ -422,8 +408,6 @@ export const validationArtifactSchema = artifactHeaderSchema
     validations: managedValidationNodesSchema,
     approvals: z.array(approvalSchema),
     reusedStepPaths: z.array(z.string().min(1)).optional(),
-    reusedTemplateStepRefs: z.array(validationReusableRefSchema).optional(),
-    reusedStepBlockRefs: z.array(validationReusableRefSchema).optional(),
     newStepPaths: z.array(z.string().min(1)).optional(),
     customStepJustifications: z.array(customStepJustificationSchema).optional(),
     runtimeProjections: z.array(runtimeProjectionSchema).optional(),

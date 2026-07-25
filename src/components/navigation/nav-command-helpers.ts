@@ -92,8 +92,7 @@ function getLibrarySection(): NavigationSection {
   return {
     label: 'Library',
     items: [
-      { href: '/template-steps/create', label: 'Step Definitions', icon: LayoutTemplate },
-      { href: '/step-blocks', label: 'Step Blocks', icon: Blocks },
+      { href: '/step-definitions/create', label: 'Step Definitions', icon: LayoutTemplate },
       { href: '/template-test-cases', label: 'Case Templates', icon: Blocks },
       { href: '/locators', label: 'Locators', icon: Code },
       { href: '/locator-groups', label: 'Locator Groups', icon: Group },
@@ -142,8 +141,7 @@ export function getNavigationCommandGroups({
         ...library.items.map(item =>
           item.href === '/template-test-cases' ? { ...item, label: 'Template Test Cases' } : item,
         ),
-        { href: '/template-steps/create', label: 'Create Step Definition', icon: LayoutTemplate },
-        { href: '/step-blocks/create', label: 'Create Step Block', icon: Blocks },
+        { href: '/step-definitions/create', label: 'Create Step Definition', icon: LayoutTemplate },
         { href: '/template-test-cases/create', label: 'Create Template Test Case', icon: Blocks },
       ],
     },

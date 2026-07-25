@@ -2,7 +2,6 @@ import { createHash } from 'node:crypto'
 
 import { z } from 'zod'
 
-import { defaultActionCatalog } from '@/lib/action-catalog'
 import { defaultOperationRegistry } from '@/lib/operation-catalog'
 import { canonicalStepDiscoveryText, stepDiscoveryTerms } from '@/lib/step-discovery'
 
@@ -322,36 +321,24 @@ async function getValidations(request: Request, operation: string[]) {
   throw new ServiceError('Coordinator API operation not found.', 'NOT_FOUND')
 }
 
-function getActionCategories(query: URLSearchParams) {
-  return Response.json({
-    ...defaultActionCatalog.listCategories(
-      query.get('parentCategoryId') ?? undefined,
-      query.get('knownCatalogHash') ?? undefined,
-    ),
-    deprecatedTool: true,
-    replacement: 'operation_categories',
-  })
-}
-
-function getActionsByReference(query: URLSearchParams) {
-  return Response.json({
-    catalogHash: defaultActionCatalog.catalogHash,
-    actions: defaultActionCatalog.readActions(operationRefs(query)).map(withCanonicalOperation),
-    deprecatedTool: true,
-    replacement: 'operation_read',
-  })
-}
-
-function withCanonicalOperation<T extends { id: string; version: string }>(action: T) {
-  const operation = defaultOperationRegistry.read([{ id: action.id, version: action.version }])[0]!
-  return {
-    ...action,
-    canonicalOperation: {
-      id: operation.id,
-      version: operation.version,
-      descriptorHash: operation.descriptorHash,
-    },
-  }
+function operationRefs(query: URLSearchParams) {
+  return z
+    .string()
+    .transform((value, context) => {
+      try {
+        return JSON.parse(value) as unknown
+      } catch {
+        context.addIssue({ code: 'custom', message: 'refs must be valid JSON.' })
+        return z.NEVER
+      }
+    })
+    .pipe(
+      z
+        .array(z.object({ id: z.string(), version: z.string().optional() }))
+        .min(1)
+        .max(50),
+    )
+    .parse(query.get('refs') ?? '[]')
 }
 
 function optionalQuery(query: URLSearchParams, key: string) {
@@ -374,57 +361,6 @@ function parseActionCursor(query: URLSearchParams) {
 
 function parseActionLimit(query: URLSearchParams) {
   return query.has('limit') ? z.coerce.number().int().min(1).max(100).parse(query.get('limit')) : 50
-}
-
-function listActions(query: URLSearchParams) {
-  const filter = {
-    categoryId: optionalQuery(query, 'categoryId'),
-    capability: optionalQuery(query, 'capability'),
-    inputType: optionalQuery(query, 'inputType'),
-    runtime: z
-      .enum(['browser', 'api', 'node', 'database'])
-      .optional()
-      .parse(query.get('runtime') ?? undefined),
-    deprecated: parseDeprecatedFilter(query),
-    idPrefix: optionalQuery(query, 'idPrefix'),
-  }
-  const result = defaultActionCatalog.listActions(filter, parseActionCursor(query), parseActionLimit(query))
-  return Response.json({
-    ...result,
-    items: result.items.map(withCanonicalOperation),
-    deprecatedTool: true,
-    replacement: 'operation_search',
-  })
-}
-
-async function getActions(request: Request, operation: string[]) {
-  const query = new URL(request.url).searchParams
-  const handlers: Record<string, () => Response> = {
-    categories: () => getActionCategories(query),
-    read: () => getActionsByReference(query),
-    list: () => listActions(query),
-  }
-  return (handlers[operation[1] ?? 'list'] ?? handlers.list)()
-}
-
-function operationRefs(query: URLSearchParams) {
-  return z
-    .string()
-    .transform((value, context) => {
-      try {
-        return JSON.parse(value) as unknown
-      } catch {
-        context.addIssue({ code: 'custom', message: 'refs must be valid JSON.' })
-        return z.NEVER
-      }
-    })
-    .pipe(
-      z
-        .array(z.object({ id: z.string(), version: z.string().optional() }))
-        .min(1)
-        .max(50),
-    )
-    .parse(query.get('refs') ?? '[]')
 }
 
 function operationCategories(query: URLSearchParams) {
@@ -689,7 +625,6 @@ async function dispatchGet(request: Request, operation: string[]) {
     'test-run-evidence': () => getTestRunEvidence(request, operation),
     'plan-health': async () =>
       Response.json(await readImplementationLifecycleHealth(routePlanIdSchema.parse(operation[1]))),
-    actions: () => getActions(request, operation),
     operations: () => getOperations(request, operation),
     'step-definitions-read': () => getStepDefinitions(request, operation),
     'target-projects-list': async () => Response.json({ targetProjects: await listTargetProjects() }),

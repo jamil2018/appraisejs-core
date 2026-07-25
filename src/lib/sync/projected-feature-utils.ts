@@ -1,4 +1,4 @@
-import { StepParameterType, TemplateStepIcon } from '@prisma/client'
+import { StepParameterType, StepIcon } from '@prisma/client'
 import { formatOrderedGherkinSteps } from '@/lib/gherkin-step-format'
 
 type StoredProjectedStep = {
@@ -20,7 +20,7 @@ export type ProjectedDbTestCaseStep = {
   gherkinStep: string
   flowNodeId: string | null
   label: string
-  icon: TemplateStepIcon
+  icon: StepIcon
   invocationJson: string
   parameters: Array<{ name: string; value: string; order: number; type: StepParameterType }>
 }
@@ -45,12 +45,12 @@ export function generateProjectedGherkinSteps(steps: StoredProjectedStep[]): str
   return formatOrderedGherkinSteps(steps)
 }
 
-export function determineProjectedStepIcon(keyword: string): TemplateStepIcon {
+export function determineProjectedStepIcon(keyword: string): StepIcon {
   const lowerKeyword = keyword.toLowerCase().trim()
 
-  if (lowerKeyword === 'given') return TemplateStepIcon.NAVIGATION
-  if (lowerKeyword === 'then') return TemplateStepIcon.VALIDATION
-  return TemplateStepIcon.MOUSE
+  if (lowerKeyword === 'given') return StepIcon.NAVIGATION
+  if (lowerKeyword === 'then') return StepIcon.VALIDATION
+  return StepIcon.MOUSE
 }
 
 export function normalizeProjectedDbTestCaseSteps(steps: StoredProjectedDbStep[]): ProjectedDbTestCaseStep[] {

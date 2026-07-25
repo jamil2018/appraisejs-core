@@ -78,9 +78,17 @@ link directly, so the agent can hand off the review gate without another plan re
 Validation authoring is registry-first through the unified Step Definition catalog and locator graph. The actionable
 identity is the exact versioned Step Reference. Ready Step Definitions are globally shared; project-specific behavior
 remains a reviewed extension and is not silently promoted into the shared library.
+Search uses the complete content-addressed ready-definition index, with parameter and plan-aware ranking; no caller
+may rely on a partial SQL text filter. Agent-created drafts persist fresh, bounded search evidence and a reuse
+receipt. Agent-authored Validation AST submissions likewise bind the exact `stepDefinitionSelections` receipt IDs and
+correlations returned by discovery; their sorted evidence hash is retained through check, preview, compile,
+publication, and runtime telemetry even if another search occurs for the plan. A human submission without selected
+agent evidence uses only the
+stable internal `plan:<planId>` correlation and is never relabelled from an agent search receipt.
+justification before the human-only review/publish/deprecate boundary.
 Use the lower-level `operation_search` and `operation_read` to inspect an exact semantic operation, then the
 allowlisted structured locator/page fallback, and only then a justified custom operation for application-specific
-behavior or a documented catalog gap. See `docs/reusable-playwright-template-steps.md`.
+behavior or a documented catalog gap. See `docs/reusable-playwright-step-definitions.md`.
 Extensions require exact review evidence; target file paths are never managed execution authority.
 Reusable-resource ranking gives ordered phrase matches and exact parameter names priority over loose token overlap.
 The simple happy-path authoring profile also requires explicit assertions for a clean browser console/page runtime and
@@ -335,7 +343,7 @@ recipient, permission, operation key, and consumption time; this is the attached
 ## Project-scoped authored resources
 
 Agent-authored project resources inherit the plan projection's `targetProjectId`. Context discovery returns only
-modules, suites, cases, Step Blocks, locator groups, locators, and environments owned by that project, together with
+modules, suites, cases, locator groups, locators, and environments owned by that project, together with
 the global shared Step Definition library. Resource proposals and canonical publication write the project ID onto
 created project roots, may reference shared Step Definition groups, and reject cross-project references or ID
 collisions for project-owned entities. Project-owned names, including locator-group names, are unique within a target

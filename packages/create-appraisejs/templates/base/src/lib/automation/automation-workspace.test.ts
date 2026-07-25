@@ -7,28 +7,28 @@ describe('automation workspace migration', () => {
     const migrated = rewriteLegacyStepRuntimeImports(`import { When } from '@cucumber/cucumber'
 
 When('the user runs a structured operation', async function () {
-  await runLocatorTemplateOperation(this.page.locator('main'), 'click', '[]', '{}', () => undefined)
-  await runPageTemplateOperation(this.page, 'reload', '[]', '{}', () => undefined)
+  await runLocatorStepOperation(this.page.locator('main'), 'click', '[]', '{}', () => undefined)
+  await runPageStepOperation(this.page, 'reload', '[]', '{}', () => undefined)
 })
 `)
 
-    expect(migrated).toContain('runLocatorTemplateOperation')
-    expect(migrated).toContain('runPageTemplateOperation')
+    expect(migrated).toContain('runLocatorStepOperation')
+    expect(migrated).toContain('runPageStepOperation')
     expect(migrated).not.toContain("from '@cucumber/cucumber'")
 
     const ordinaryStep = rewriteLegacyStepRuntimeImports(
       "import { When } from '@cucumber/cucumber'\n\nWhen('the user waits', async function () {})\n",
     )
-    expect(ordinaryStep).not.toContain('runLocatorTemplateOperation')
-    expect(ordinaryStep).not.toContain('runPageTemplateOperation')
+    expect(ordinaryStep).not.toContain('runLocatorStepOperation')
+    expect(ordinaryStep).not.toContain('runPageStepOperation')
 
     const currentStep = `import {
   When,
-  runPageTemplateOperation,
+  runPageStepOperation,
 } from '../../../packages/cucumber-runtime/src/index.js'
 
 When('the user reloads', async function () {
-  await runPageTemplateOperation(this.page, 'reload', '[]', '{}', () => undefined)
+  await runPageStepOperation(this.page, 'reload', '[]', '{}', () => undefined)
 })
 `
     expect(rewriteLegacyStepRuntimeImports(currentStep)).toBe(currentStep)

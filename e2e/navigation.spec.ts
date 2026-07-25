@@ -37,7 +37,7 @@ test.describe('Navigation @navigation', () => {
     { path: '/tags/create', heading: 'Create Tag' },
     { path: '/locator-groups/create', heading: 'Create Locator Group' },
     { path: '/locators/create', heading: 'Create Locator' },
-    { path: '/template-steps/create', heading: 'Create reusable step' },
+    { path: '/step-definitions/create', heading: 'Create reusable step' },
     { path: '/template-test-cases/create', heading: 'Create Template Test Case' },
     { path: '/test-suites/create', heading: 'Create Test Suite' },
     { path: '/test-cases/create', heading: 'Create New Test Case' },

@@ -58,7 +58,7 @@ Then follow the setup instructions in the docs:
 - [create-appraisejs on npm](https://www.npmjs.com/package/create-appraisejs)
 
 Reusable browser behavior is discovered, drafted, reviewed, and published as versioned Step Definitions in the
-Appraise hub. Authored test records store exact Step Invocations; no local Template Step installer or registry is
+Appraise hub. Authored test records store exact Step Invocations; no local legacy-step installer or registry is
 supported.
 
 ## How to Contribute

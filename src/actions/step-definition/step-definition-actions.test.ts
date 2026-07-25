@@ -7,17 +7,24 @@ const mocks = vi.hoisted(() => ({
   deleteDraft: vi.fn(),
   validateDraft: vi.fn(),
   previewDraft: vi.fn(),
-  submitForReview: vi.fn(),
+  issueHumanReviewReceipt: vi.fn(),
   publishDraft: vi.fn(),
-  deprecate: vi.fn(),
+  deprecateFromHumanUi: vi.fn(),
   readCoordinatorSearch: vi.fn(),
+  recordSelectionRejected: vi.fn(),
+  recordSelectionSelected: vi.fn(),
+  listAllReady: vi.fn(),
   revalidatePath: vi.fn(),
 }))
 
 vi.mock('@/config/db-config', () => ({ default: {} }))
 vi.mock('next/cache', () => ({ revalidatePath: mocks.revalidatePath }))
 vi.mock('@/services/coordinator/coordinator-step-definition-service', () => ({
-  coordinatorStepDefinitionService: { read: mocks.readCoordinatorSearch },
+  coordinatorStepDefinitionService: {
+    read: mocks.readCoordinatorSearch,
+    recordSelectionRejected: mocks.recordSelectionRejected,
+    recordSelectionSelected: mocks.recordSelectionSelected,
+  },
 }))
 vi.mock('@/services/step-definition/step-definition-registry-service', async importOriginal => {
   const original = await importOriginal<typeof import('@/services/step-definition/step-definition-registry-service')>()
@@ -34,11 +41,15 @@ import {
   deleteStepDefinitionDraftAction,
   publishStepDefinitionDraftAction,
   readStepDefinitionDraftAction,
+  rejectReadyStepDefinitionSelectionAction,
+  selectReadyStepDefinitionAction,
   reviewStepDefinitionDraftAction,
   reviseStepDefinitionDraftAction,
   searchReadyStepDefinitionContractsAction,
+  listReadyStepDefinitionOptionsAction,
 } from './step-definition-actions'
 import { StepDefinitionRegistryError } from '@/services/step-definition/step-definition-registry-service'
+import { builtInStepDefinitions } from '../../../packages/cucumber-runtime/src/step-definitions/index'
 
 const draftId = '00000000-0000-4000-8000-000000000001'
 
@@ -54,7 +65,7 @@ describe('Step Definition Server Actions', () => {
       data: { id: draftId, revision: 1 },
     })
     expect(mocks.createDraft).toHaveBeenCalledWith({ identity: { id: 'custom.open' } })
-    expect(mocks.revalidatePath).toHaveBeenCalledWith('/template-steps/create')
+    expect(mocks.revalidatePath).toHaveBeenCalledWith('/step-definitions/create')
   })
 
   it('uses the coordinator ready-definition search through the server action boundary', async () => {
@@ -67,8 +78,58 @@ describe('Step Definition Server Actions', () => {
     })
     expect(mocks.readCoordinatorSearch).toHaveBeenCalledWith(
       ['step-definitions', 'search'],
-      new URLSearchParams({ query: 'search', limit: '10' }),
+      new URLSearchParams({ query: 'search', limit: '10', surface: 'human' }),
     )
+  })
+
+  it('returns every ready definition to both Test Case and Template Test Case consumers, beyond 100 rows', async () => {
+    const rows = builtInStepDefinitions.map(definition => ({
+      id: definition.identity.id,
+      version: definition.identity.version,
+      definitionJson: JSON.stringify(definition),
+    }))
+    expect(rows.length).toBeGreaterThan(100)
+    mocks.listAllReady.mockResolvedValue(rows)
+
+    const result = await listReadyStepDefinitionOptionsAction()
+
+    expect(mocks.listAllReady).toHaveBeenCalledOnce()
+    expect(result).toMatchObject({ status: 200, success: true })
+    expect((result.data as unknown[]).length).toBe(rows.length)
+  })
+
+  it('records a bounded human selection rejection through the coordinator boundary', async () => {
+    mocks.recordSelectionRejected.mockResolvedValue({ recorded: true })
+
+    await expect(
+      rejectReadyStepDefinitionSelectionAction({
+        step: { id: 'browser.search', version: '1' },
+        reason: 'overlap',
+      }),
+    ).resolves.toMatchObject({ status: 200, success: true, data: { recorded: true } })
+    expect(mocks.recordSelectionRejected).toHaveBeenCalledWith({
+      surface: 'human',
+      step: { id: 'browser.search', version: '1' },
+      reason: 'overlap',
+    })
+  })
+
+  it('records a bounded deliberate human selection through the coordinator boundary', async () => {
+    mocks.recordSelectionSelected.mockResolvedValue({ recorded: true })
+
+    await expect(
+      selectReadyStepDefinitionAction({
+        step: { id: 'browser.search', version: '1' },
+        planId: 'human-plan',
+        correlationId: 'plan:human-plan',
+      }),
+    ).resolves.toMatchObject({ status: 200, success: true, data: { recorded: true } })
+    expect(mocks.recordSelectionSelected).toHaveBeenCalledWith({
+      surface: 'human',
+      step: { id: 'browser.search', version: '1' },
+      planId: 'human-plan',
+      correlationId: 'plan:human-plan',
+    })
   })
 
   it('rejects malformed adapter inputs before calling the registry', async () => {
@@ -92,25 +153,26 @@ describe('Step Definition Server Actions', () => {
   })
 
   it('maps stale registry revisions to a conflict envelope', async () => {
-    mocks.submitForReview.mockRejectedValue(
+    mocks.issueHumanReviewReceipt.mockRejectedValue(
       new StepDefinitionRegistryError('stale_revision', 'The draft changed before review.'),
     )
 
-    await expect(
-      reviewStepDefinitionDraftAction({ draftId, expectedRevision: 1, reviewAuthority: 'reviewer@example.test' }),
-    ).resolves.toMatchObject({ status: 409, success: false, error: 'The draft changed before review.' })
+    await expect(reviewStepDefinitionDraftAction({ draftId, expectedRevision: 1 })).resolves.toMatchObject({
+      status: 409,
+      success: false,
+      error: 'The draft changed before review.',
+    })
   })
 
-  it('binds publication to the exact draft revision and conformance run', async () => {
+  it('binds publication to the exact draft revision while deriving conformance evidence server-side', async () => {
     mocks.publishDraft.mockResolvedValue({ receiptHash: 'sha256:receipt' })
 
-    await publishStepDefinitionDraftAction({ draftId, expectedRevision: 4, conformanceRunId: 'conformance-4' })
+    await publishStepDefinitionDraftAction({ draftId, expectedRevision: 4 })
 
     expect(mocks.publishDraft).toHaveBeenCalledWith({
       draftId,
       expectedRevision: 4,
-      conformanceRunId: 'conformance-4',
     })
-    expect(mocks.revalidatePath).toHaveBeenCalledWith('/template-steps/create')
+    expect(mocks.revalidatePath).toHaveBeenCalledWith('/step-definitions/create')
   })
 })

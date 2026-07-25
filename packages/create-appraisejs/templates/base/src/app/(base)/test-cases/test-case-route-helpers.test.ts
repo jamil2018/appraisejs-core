@@ -1,4 +1,4 @@
-import { StepParameterType, TemplateStepIcon } from '@prisma/client'
+import { StepParameterType, StepIcon } from '@prisma/client'
 import { describe, expect, it } from 'vitest'
 
 import { buildNodeOrderFromTestCaseSteps, getEditableTestCase } from './editable-test-case-helpers'
@@ -92,7 +92,7 @@ describe('test-case route helpers', () => {
           order: 1,
           label: 'Fill email',
           gherkinStep: 'fill email',
-          icon: TemplateStepIcon.INPUT,
+          icon: StepIcon.INPUT,
           invocationJson,
           parameters: [
             {
@@ -113,7 +113,7 @@ describe('test-case route helpers', () => {
         order: 1,
         label: 'Fill email',
         gherkinStep: 'fill email',
-        icon: TemplateStepIcon.INPUT,
+        icon: StepIcon.INPUT,
         parameters: [
           {
             name: 'email',
@@ -145,7 +145,7 @@ describe('test-case route helpers', () => {
       order: 0,
       label: 'Open home',
       gherkinStep: 'open home',
-      icon: TemplateStepIcon.NAVIGATION,
+      icon: StepIcon.NAVIGATION,
       invocationJson: JSON.stringify({
         step: { id: 'browser.navigation.goto', version: '1', definitionHash: `sha256:${'b'.repeat(64)}` },
         inputs: {},

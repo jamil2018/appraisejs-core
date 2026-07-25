@@ -1,7 +1,7 @@
 import { promises as fs } from 'fs'
 import { join } from 'path'
 import { glob } from 'glob'
-import { StepParameterType, TagType, TemplateStepIcon } from '@prisma/client'
+import { StepParameterType, TagType, StepIcon } from '@prisma/client'
 import prisma from '@/config/db-config'
 import { getAutomationEnvironmentsDir, getAutomationFeaturesDir } from '@/lib/automation/automation-path-roots'
 import { ensureAutomationWorkspaceReady } from '@/lib/automation/automation-workspace'
@@ -620,7 +620,7 @@ type ProjectedTestCaseStep = {
   order: number
   gherkinStep: string
   label: string
-  icon: TemplateStepIcon
+  icon: StepIcon
 }
 
 function normalizeProjectedFsTestCaseSteps(stepsFromFs: ParsedStep[]): ProjectedTestCaseStep[] {
@@ -652,7 +652,7 @@ function hasProjectedTestCaseStepMismatch(
     gherkinStep: string
     flowNodeId: string | null
     label: string
-    icon: TemplateStepIcon
+    icon: StepIcon
     invocationJson: string
     parameters: Array<{ name: string; value: string; order: number; type: StepParameterType }>
   }>,
@@ -730,7 +730,7 @@ export function countTestCaseMismatches(
       gherkinStep: string
       flowNodeId: string | null
       label: string
-      icon: TemplateStepIcon
+      icon: StepIcon
       invocationJson: string
       parameters: Array<{ name: string; value: string; order: number; type: StepParameterType }>
     }>

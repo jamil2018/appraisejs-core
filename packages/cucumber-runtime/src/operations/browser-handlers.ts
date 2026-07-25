@@ -233,23 +233,3 @@ export async function executeBuiltinHumanOperation(
   const handler = operation.execute as (this: CustomWorld, ...values: unknown[]) => Promise<unknown>
   return handler.apply(world, parameters)
 }
-
-export async function executeHumanOperation(
-  ref: string,
-  world: CustomWorld,
-  inputNames: string[],
-  parameters: unknown[],
-): Promise<unknown> {
-  return executeBrowserOperation(ref, {
-    world,
-    inputs: Object.fromEntries(inputNames.map((name, index) => [name, parameters[index]])),
-    baseUrl: process.env.APPRAISE_BASE_URL,
-    resolveLocator: async reference => {
-      const locatorName = typeof reference === 'string' ? reference : String((reference as { id?: unknown })?.id ?? '')
-      const selector = await import('../locator.util.ts').then(module => module.resolveLocator(world.page, locatorName))
-      if (!selector)
-        throw new OperationExecutionError('operation_locator_not_found', `Locator "${locatorName}" was not found.`)
-      return world.page.locator(selector)
-    },
-  })
-}

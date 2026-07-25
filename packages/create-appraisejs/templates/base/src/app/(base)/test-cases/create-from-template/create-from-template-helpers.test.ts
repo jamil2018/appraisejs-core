@@ -1,4 +1,4 @@
-import { StepParameterType, TemplateStepIcon } from '@prisma/client'
+import { StepParameterType, StepIcon } from '@prisma/client'
 import { describe, expect, it } from 'vitest'
 
 import {
@@ -44,7 +44,7 @@ describe('create-from-template helpers', () => {
           order: 1,
           label: 'Fill email',
           gherkinStep: 'fill email',
-          icon: TemplateStepIcon.INPUT,
+          icon: StepIcon.INPUT,
           invocationJson: JSON.stringify(invocation),
           parameters: [
             {
@@ -74,7 +74,7 @@ describe('create-from-template helpers', () => {
           order: 1,
           label: 'Fill email',
           gherkinStep: 'fill email',
-          icon: TemplateStepIcon.INPUT,
+          icon: StepIcon.INPUT,
           parameters: [
             {
               name: 'email',

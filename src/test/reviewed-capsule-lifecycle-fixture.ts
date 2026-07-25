@@ -15,7 +15,9 @@ import {
   builtInStepDefinitions,
   canonicalStepDefinitionJson,
   computeStepDefinitionHashes,
+  computeStepExecutableReadiness,
   computeStepReferenceHash,
+  stepDefinitionContentHash,
 } from '../../packages/cucumber-runtime/src/step-definitions/index.ts'
 
 export const reviewedCapsuleHashText = (value: string) => `sha256:${createHash('sha256').update(value).digest('hex')}`
@@ -35,14 +37,16 @@ const openHomeInvocation = {
   presentation: { keyword: 'When' as const, description: 'the user opens home' },
 }
 
-async function seedOpenHomeStepDefinition(client: PrismaClient) {
-  const definition = openHomeDefinition
+async function seedOpenHomeStepDefinition(client: PrismaClient, extension?: ReviewedExtensionFixture) {
+  const definition = extension ? definitionForExtension(extension) : openHomeDefinition
   const hashes = computeStepDefinitionHashes(definition)
   const publishedAt = definition.provenance.createdAt
+  const registryManifestHash = reviewedCapsuleHashValue({ registry: definition.identity })
   const receipt = {
     step: { id: definition.identity.id, version: definition.identity.version },
     ...hashes,
-    registryManifestHash: reviewedCapsuleHashValue({ registry: definition.identity }),
+    registryManifestHash,
+    executableReadiness: computeStepExecutableReadiness(definition, registryManifestHash, 'fixture-conformance'),
     conformanceRunId: 'fixture-conformance',
     reviewAuthority: 'fixture-review',
     publishedAt,
@@ -50,7 +54,35 @@ async function seedOpenHomeStepDefinition(client: PrismaClient) {
   const receiptHash = reviewedCapsuleHashValue(receipt)
   await client.stepDefinition.upsert({
     where: { id_version: { id: definition.identity.id, version: definition.identity.version } },
-    update: {},
+    update: {
+      status: 'ready',
+      title: definition.intent.title,
+      description: definition.intent.description,
+      definitionJson: canonicalStepDefinitionJson(definition),
+      ...hashes,
+      provenanceJson: canonicalStepDefinitionJson(definition.provenance),
+      publishedAt: new Date(publishedAt),
+      publicationReceipt: {
+        upsert: {
+          update: {
+            receiptJson: canonicalStepDefinitionJson(receipt),
+            receiptHash,
+            registryManifestHash: receipt.registryManifestHash,
+            conformanceRunId: 'fixture-conformance',
+            reviewAuthority: 'fixture-review',
+            publishedAt: new Date(publishedAt),
+          },
+          create: {
+            receiptJson: canonicalStepDefinitionJson(receipt),
+            receiptHash,
+            registryManifestHash: receipt.registryManifestHash,
+            conformanceRunId: 'fixture-conformance',
+            reviewAuthority: 'fixture-review',
+            publishedAt: new Date(publishedAt),
+          },
+        },
+      },
+    },
     create: {
       id: definition.identity.id,
       version: definition.identity.version,
@@ -75,6 +107,27 @@ async function seedOpenHomeStepDefinition(client: PrismaClient) {
 }
 
 export type ReviewedExtensionFixture = ReturnType<typeof reviewedExtensionFixture>
+
+function definitionForExtension(extension: ReviewedExtensionFixture) {
+  return {
+    ...openHomeDefinition,
+    provenance: {
+      creationMethod: 'human-form' as const,
+      createdBy: 'fixture-human',
+      createdAt: openHomeDefinition.provenance.createdAt,
+      reviewedBy: 'fixture-review',
+    },
+    execution: {
+      kind: 'reviewed-extension' as const,
+      extensionId: extension.artifact.extension.id,
+      extensionVersion: extension.artifact.extension.version,
+      sourceHash: extension.artifact.sourceHash,
+      compiledHash: extension.artifact.compiledHash,
+      exportName: 'reviewedCompiled',
+      runtime: 'browser' as const,
+    },
+  }
+}
 
 export function reviewedRuntimeInputFixture(
   projectId: string,
@@ -226,6 +279,7 @@ export async function seedReviewedCapsuleLifecycleFixture(options: {
   extension?: ReviewedExtensionFixture
   omitTestRun?: boolean
   planLifecycle?: PlanArtifact['lifecycle']
+  lifecycleCorrelation?: { planId: string; correlationId: string }
 }) {
   const { client, workspace, environmentId, projectId, planId, runId, extension } = options
   const fingerprint = reviewedCapsuleHashText(projectId)
@@ -252,10 +306,26 @@ export async function seedReviewedCapsuleLifecycleFixture(options: {
         },
       ]
     : []
-  const runtimeInput = reviewedRuntimeInputFixture(projectId, fingerprint, receiptHash, extensionEvidence)
+  const runtimeInput: ReturnType<typeof reviewedRuntimeInputFixture> & {
+    lifecycleCorrelation?: { planId: string; correlationId: string }
+  } = reviewedRuntimeInputFixture(projectId, fingerprint, receiptHash, extensionEvidence)
+  if (options.lifecycleCorrelation) runtimeInput.lifecycleCorrelation = options.lifecycleCorrelation
+  const invocation = extension
+    ? {
+        ...openHomeInvocation,
+        step: {
+          id: definitionForExtension(extension).identity.id,
+          version: definitionForExtension(extension).identity.version,
+          definitionHash: computeStepReferenceHash(definitionForExtension(extension)),
+        },
+      }
+    : structuredClone(openHomeInvocation)
+  runtimeInput.rootInvocations[0]!.invocation = structuredClone(invocation)
+  runtimeInput.stepDefinitions = [structuredClone(invocation.step)]
   const runtimeInputJson = canonicalContractJson(runtimeInput)
   const runtimeInputHash = reviewedCapsuleHashValue(runtimeInput)
   const validation = validationForReviewedCapsule(planId, operationId, receiptHash, runtimeInputHash)
+  validation.validations[0]!.appraiseArtifacts.testCases[0]!.steps[0]!.invocation = structuredClone(invocation)
   const validationProjectionJson = JSON.stringify(validation)
   const projection = { validationNode: validation.validations[0]!, gherkin: reviewedCapsuleGherkin }
   const projectRoot = path.join(workspace, projectId)
@@ -342,7 +412,28 @@ export async function seedReviewedCapsuleLifecycleFixture(options: {
       testCases: { connect: { id: 'home-case' } },
     },
   })
-  await seedOpenHomeStepDefinition(client)
+  await seedOpenHomeStepDefinition(client, extension)
+  if (extension)
+    await client.stepReviewedExtension.upsert({
+      where: { id_version: { id: extension.artifact.extension.id, version: extension.artifact.extension.version } },
+      update: {},
+      create: {
+        id: extension.artifact.extension.id,
+        version: extension.artifact.extension.version,
+        exportName: 'reviewedCompiled',
+        runtime: 'browser',
+        capabilitiesJson: '[]',
+        contractSource: 'fixture-contract',
+        source: extension.artifact.source,
+        compiledSource: extension.artifact.compiledSource,
+        sourceHash: extension.artifact.sourceHash,
+        compiledHash: extension.artifact.compiledHash,
+        conformanceJson: JSON.stringify(extension.artifact),
+        conformanceHash: extension.artifactHash,
+        artifactHash: extension.artifactHash,
+        reviewedBy: 'fixture-review',
+      },
+    })
   await prepareValidationAstPublish(
     {
       id: operationId,

@@ -25,7 +25,25 @@ function renderPresentation(definition: StepDefinitionOption, inputs: Record<str
 }
 
 function initialInputs(definition: StepDefinitionOption): Record<string, unknown> {
-  return Object.fromEntries(definition.inputs.map(input => [input.name, input.defaultValue ?? '']))
+  return Object.fromEntries(
+    definition.inputs.flatMap(input =>
+      input.defaultValue !== undefined ? [[input.name, input.defaultValue]] : input.required ? [[input.name, '']] : [],
+    ),
+  )
+}
+
+export function parseStepInvocationInput(input: StepDefinitionOption['inputs'][number], value: string | boolean) {
+  if (input.type === 'boolean') return Boolean(value)
+  if (input.type === 'number') {
+    const parsed = Number(value)
+    if (!Number.isFinite(parsed)) throw new Error(`${input.name} must be a finite number.`)
+    return parsed
+  }
+  if (input.type === 'json') {
+    if (typeof value !== 'string') throw new Error(`${input.name} must be JSON text.`)
+    return JSON.parse(value) as unknown
+  }
+  return value
 }
 
 function nodeFor(definition: StepDefinitionOption, order: number): NodeOrderMap[string] {
@@ -52,10 +70,6 @@ function nodeFor(definition: StepDefinitionOption, order: number): NodeOrderMap[
     })),
     invocation,
   }
-}
-
-function isNodeOrderMap(value: FlowDiagramProps['nodeOrder']): value is NodeOrderMap {
-  return Object.values(value).some(node => 'isFirstNode' in node) || Object.keys(value).length === 0
 }
 
 export default function FlowDiagram({ nodeOrder, stepDefinitions, onNodeOrderChange }: FlowDiagramProps) {
@@ -129,9 +143,21 @@ export default function FlowDiagram({ nodeOrder, stepDefinitions, onNodeOrderCha
                 <label key={input.name} className="block space-y-1 text-sm">
                   <span>{input.name}</span>
                   <Input
-                    value={String(node.invocation.inputs[input.name] ?? '')}
+                    type={input.type === 'number' ? 'number' : input.type === 'boolean' ? 'checkbox' : 'text'}
+                    checked={input.type === 'boolean' ? Boolean(node.invocation.inputs[input.name]) : undefined}
+                    value={input.type === 'boolean' ? undefined : String(node.invocation.inputs[input.name] ?? '')}
+                    required={input.required}
                     onChange={event => {
-                      const inputs = { ...node.invocation.inputs, [input.name]: event.target.value }
+                      let parsed: unknown
+                      try {
+                        parsed = parseStepInvocationInput(
+                          input,
+                          input.type === 'boolean' ? event.target.checked : event.target.value,
+                        )
+                      } catch {
+                        return
+                      }
+                      const inputs = { ...node.invocation.inputs, [input.name]: parsed }
                       const nextNode = {
                         ...node,
                         invocation: {
@@ -147,7 +173,7 @@ export default function FlowDiagram({ nodeOrder, stepDefinitions, onNodeOrderCha
                         },
                         gherkinStep: renderPresentation(definition, inputs),
                         parameters: node.parameters.map((parameter: AuthoredNode['parameters'][number]) =>
-                          parameter.name === input.name ? { ...parameter, value: event.target.value } : parameter,
+                          parameter.name === input.name ? { ...parameter, value: String(parsed) } : parameter,
                         ),
                       }
                       publish(orderedNodes.map(([, item], itemIndex) => (itemIndex === index ? nextNode : item)))

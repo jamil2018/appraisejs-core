@@ -118,7 +118,7 @@ describe('StepDefinitionExtensionService', () => {
       fs.readFile(path.join(workspace, 'draft-artifacts', draft.id, 'handler.mjs'), 'utf8'),
     ).resolves.toContain('Hello')
 
-    await registry.submitForReview(draft.id, compiled.revision, 'local-user')
+    await registry.issueHumanReviewReceipt(draft.id, compiled.revision)
     await registry.publishDraft({
       draftId: draft.id,
       expectedRevision: compiled.revision,
@@ -129,7 +129,44 @@ describe('StepDefinitionExtensionService', () => {
       prisma.stepReviewedExtension.findUniqueOrThrow({
         where: { id_version: { id: 'custom.account.greet', version: '1' } },
       }),
-    ).resolves.toMatchObject({ source, sourceHash: expect.stringMatching(/^sha256:/), reviewedBy: 'local-user' })
+    ).resolves.toMatchObject({ source, sourceHash: expect.stringMatching(/^sha256:/), reviewedBy: 'local-human-ui' })
+  })
+
+  it('revokes future extension publication without deleting exact historical reviewed bytes', async () => {
+    const source =
+      "import type { StepHandler } from './contract.js'\nexport const handler: StepHandler = async ({ name }) => ({ message: `Hello ${name}` })"
+    const first = await registry.createDraft(definition())
+    await extensions.saveDraftArtifact(first.id, first.revision, {
+      handlerSource: source,
+      examples: [{ name: 'Ada', inputs: { name: 'Ada' } }],
+    })
+    const compiled = await extensions.compileDraftArtifact(first.id, first.revision)
+    await registry.issueHumanReviewReceipt(first.id, compiled.revision)
+    await registry.publishDraft({ draftId: first.id, expectedRevision: compiled.revision })
+    await extensions.revokeReviewedExtension({
+      id: 'custom.account.greet',
+      version: '1',
+      revokedBy: 'security-review',
+      reason: 'Superseded implementation.',
+    })
+    await expect(
+      prisma.stepReviewedExtension.findUniqueOrThrow({
+        where: { id_version: { id: 'custom.account.greet', version: '1' } },
+      }),
+    ).resolves.toMatchObject({ revokedBy: 'security-review', revocationReason: 'Superseded implementation.', source })
+
+    const replacement = definition()
+    replacement.identity.version = '2'
+    const second = await registry.createDraft(replacement)
+    await extensions.saveDraftArtifact(second.id, second.revision, {
+      handlerSource: source,
+      examples: [{ name: 'Ada', inputs: { name: 'Ada' } }],
+    })
+    const secondCompiled = await extensions.compileDraftArtifact(second.id, second.revision)
+    await registry.issueHumanReviewReceipt(second.id, secondCompiled.revision)
+    await expect(registry.publishDraft({ draftId: second.id, expectedRevision: secondCompiled.revision })).rejects.toMatchObject({
+      code: 'validation_failed',
+    })
   })
 
   it('times out non-terminating behavioral examples', async () => {

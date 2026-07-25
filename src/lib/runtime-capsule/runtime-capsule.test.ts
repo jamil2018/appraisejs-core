@@ -63,16 +63,34 @@ describe('runtime capsule storage foundation', () => {
       validationHash,
       runId: 'run-one',
     })
-    await expect(writeImmutableCapsuleManifest(paths, '{"schemaVersion":"1"}')).resolves.toBe('created')
-    await expect(writeImmutableCapsuleManifest(paths, '{"schemaVersion":"1"}')).resolves.toBe('unchanged')
-    await expect(writeImmutableCapsuleManifest(paths, '{"schemaVersion":"2"}')).rejects.toThrow(/immutable/)
+    await expect(writeImmutableCapsuleManifest(paths, '{"schemaVersion":"2"}')).resolves.toBe('created')
+    await expect(writeImmutableCapsuleManifest(paths, '{"schemaVersion":"2"}')).resolves.toBe('unchanged')
+    await expect(writeImmutableCapsuleManifest(paths, '{"schemaVersion":"2","changed":true}')).rejects.toThrow(
+      /immutable/,
+    )
     expect((await fs.stat(paths.capsuleRoot)).mode & 0o777).toBe(0o700)
     expect((await fs.stat(paths.manifestPath)).mode & 0o777).toBe(0o600)
   })
 
   it('requires unique sorted capsule-relative POSIX file paths and canonical JSON', () => {
+    const definition = builtInStepDefinitions[0]!
+    const hashes = computeStepDefinitionHashes(definition)
+    const step = {
+      id: definition.identity.id,
+      version: definition.identity.version,
+      definitionHash: computeStepReferenceHash(definition),
+    }
+    const sealed = {
+      step,
+      definition,
+      definitionHash: hashes.definitionHash,
+      humanProjectionHash: hashes.humanProjectionHash,
+      agentContractHash: hashes.agentContractHash,
+      executionHash: hashes.executionHash,
+      publicationReceiptHash: validationHash,
+    }
     const base = {
-      schemaVersion: '1',
+      schemaVersion: '2',
       projectId: 'project-one',
       validationHash,
       runId: 'run-one',
@@ -81,8 +99,10 @@ describe('runtime capsule storage foundation', () => {
       receiptHash: validationHash,
       runtimeInputHash: validationHash,
       commandReceipt: { path: 'command-receipt.json', hash: validationHash },
-      generator: { id: 'appraise.validation-ast-capsule', version: '1' },
+      generator: { id: 'appraise.validation-ast-capsule', version: '2' },
       expectedCases: [],
+      rootInvocations: [{ step, inputs: {} }],
+      stepDefinitions: [sealed],
     } as const
     const file = { role: 'feature', hash: validationHash, size: 1 } as const
     expect(() =>
@@ -98,7 +118,7 @@ describe('runtime capsule storage foundation', () => {
           ],
         }),
       ),
-    ).toThrow(/ordered/)
+    ).toThrow(/canonical|ordered/)
     expect(() =>
       parseCanonicalRuntimeCapsuleManifest(
         JSON.stringify({
@@ -109,7 +129,7 @@ describe('runtime capsule storage foundation', () => {
           ],
         }),
       ),
-    ).toThrow(/unique/)
+    ).toThrow(/canonical|unique/)
     expect(() =>
       parseCanonicalRuntimeCapsuleManifest(
         `${JSON.stringify({
@@ -118,6 +138,10 @@ describe('runtime capsule storage foundation', () => {
         })} `,
       ),
     ).toThrow(/canonical/)
+  })
+
+  it('rejects the retired operation-rooted V1 capsule schema', () => {
+    expect(() => parseCanonicalRuntimeCapsuleManifest('{"schemaVersion":"1"}')).toThrow()
   })
 
   it('seals v2 root invocations into a complete Step Definition closure', () => {
@@ -132,7 +156,6 @@ describe('runtime capsule storage foundation', () => {
       runtimeInputHash: validationHash,
       commandReceipt: { path: 'command-receipt.json', hash: validationHash },
       generator: { id: 'appraise.validation-ast-capsule', version: '2' },
-      operations: [],
       extensions: [],
       expectedCases: [],
       files: [{ path: 'command-receipt.json', role: 'command-receipt', hash: validationHash, size: 1 }],

@@ -36,7 +36,7 @@ function validateRuntimeInputShape(
   })
 }
 
-const validationAstRuntimeInputV1Schema = z
+const validationAstRuntimeInputSchema = z
   .object({
     schemaVersion: z.literal('2'),
     targetProjectId: boundedId,
@@ -46,6 +46,7 @@ const validationAstRuntimeInputV1Schema = z
     contextHash: hashSchema,
     previewHash: hashSchema,
     receiptHash: hashSchema,
+    lifecycleCorrelation: z.object({ planId: boundedId, correlationId: boundedId }).strict().optional(),
     compilerReceipt: z
       .object({
         schemaVersion: z.literal('1'),
@@ -117,11 +118,11 @@ const validationAstRuntimeInputV1Schema = z
   .strict()
   .superRefine(validateRuntimeInputShape)
 
-export type ValidationAstRuntimeInputV1 = z.infer<typeof validationAstRuntimeInputV1Schema>
+export type ValidationAstRuntimeInput = z.infer<typeof validationAstRuntimeInputSchema>
 
 const digest = (value: unknown) => `sha256:${createHash('sha256').update(canonicalContractJson(value)).digest('hex')}`
 
-export function uniqueProjectedActionReferences(
+export function uniqueProjectedOperationReferences(
   testCases: Array<{ id: string; steps?: Array<{ id: string; invocation?: unknown }> }>,
 ): string[] {
   return [
@@ -150,8 +151,8 @@ export function validateValidationAstRuntimeInput(input: {
     compiledHash: string
     artifactHash: string
   }>
-}): ValidationAstRuntimeInputV1 {
-  let runtimeInput: ValidationAstRuntimeInputV1
+}): ValidationAstRuntimeInput {
+  let runtimeInput: ValidationAstRuntimeInput
   let projection: {
     validationNode?: {
       id?: string
@@ -169,7 +170,7 @@ export function validateValidationAstRuntimeInput(input: {
   }
   try {
     const runtimeInputJson = input.operation.runtimeInputJson as string
-    runtimeInput = validationAstRuntimeInputV1Schema.parse(JSON.parse(runtimeInputJson))
+    runtimeInput = validationAstRuntimeInputSchema.parse(JSON.parse(runtimeInputJson))
     assertValidCustomExtensionPolicy(runtimeInput.extensionPolicy)
     if (canonicalContractJson(runtimeInput) !== runtimeInputJson)
       throw new Error('Runtime input is not canonical JSON.')

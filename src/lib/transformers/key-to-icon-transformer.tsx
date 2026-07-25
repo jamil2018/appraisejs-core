@@ -1,4 +1,4 @@
-import { TemplateStepIcon } from '@prisma/client'
+import { StepIcon } from '@prisma/client'
 import {
   ALargeSmall,
   BugPlay,
@@ -16,7 +16,7 @@ import {
 } from 'lucide-react'
 import { ReactElement } from 'react'
 
-export const KeyToIconTransformer = (key: TemplateStepIcon, className?: string) => {
+export const KeyToIconTransformer = (key: StepIcon, className?: string) => {
   switch (key) {
     case 'MOUSE':
       return <MousePointerClick className={className} />
@@ -45,8 +45,8 @@ export const KeyToIconTransformer = (key: TemplateStepIcon, className?: string) 
   }
 }
 
-// Map of component types to TemplateStepIcon values
-const componentToIconMap = new Map<LucideIcon, TemplateStepIcon>([
+// Map of component types to StepIcon values
+const componentToIconMap = new Map<LucideIcon, StepIcon>([
   [MousePointerClick, 'MOUSE'],
   [Globe, 'NAVIGATION'],
   [Keyboard, 'INPUT'],
@@ -61,8 +61,8 @@ const componentToIconMap = new Map<LucideIcon, TemplateStepIcon>([
   [BugPlay, 'DEBUG'],
 ])
 
-// Map of string values to TemplateStepIcon values
-const stringToIconMap = new Map<string, TemplateStepIcon>([
+// Map of string values to StepIcon values
+const stringToIconMap = new Map<string, StepIcon>([
   ['MOUSE', 'MOUSE'],
   ['NAVIGATION', 'NAVIGATION'],
   ['INPUT', 'INPUT'],
@@ -77,7 +77,7 @@ const stringToIconMap = new Map<string, TemplateStepIcon>([
   ['DEBUG', 'DEBUG'],
 ])
 
-export const IconToKeyTransformer = (icon: React.ReactNode | string): TemplateStepIcon | undefined => {
+export const IconToKeyTransformer = (icon: React.ReactNode | string): StepIcon | undefined => {
   // Handle string input
   if (typeof icon === 'string') {
     return stringToIconMap.get(icon)

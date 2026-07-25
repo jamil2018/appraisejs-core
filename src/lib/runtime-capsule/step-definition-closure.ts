@@ -1,5 +1,6 @@
 import {
   computeStepDefinitionHashes,
+  computeStepExecutableReadiness,
   computeStepReferenceHash,
   stepDefinitionSchema,
   stepDefinitionContentHash,
@@ -54,7 +55,7 @@ function assertPersistedHashes(step: ExactStepReference, row: RuntimeStepDefinit
     throw new Error(`Runtime Step Definition ${step.id}@${step.version} has conflicting publication hashes.`)
 }
 
-function publicationReceiptFor(step: ExactStepReference, row: RuntimeStepDefinitionRecord) {
+function publicationReceiptFor(step: ExactStepReference, row: RuntimeStepDefinitionRecord, definition: StepDefinition) {
   if (!row.publicationReceipt?.receiptHash)
     throw new Error(`Runtime Step Definition ${step.id}@${step.version} is missing publication evidence.`)
   const receipt = stepPublicationReceiptSchema.parse(JSON.parse(row.publicationReceipt.receiptJson))
@@ -81,6 +82,9 @@ function publicationReceiptFor(step: ExactStepReference, row: RuntimeStepDefinit
     throw new Error(
       `Runtime Step Definition ${step.id}@${step.version} has publication evidence for another definition.`,
     )
+  const readiness = computeStepExecutableReadiness(definition, receipt.registryManifestHash, receipt.conformanceRunId)
+  if (stepDefinitionContentHash(readiness) !== stepDefinitionContentHash(receipt.executableReadiness))
+    throw new Error(`Runtime Step Definition ${step.id}@${step.version} has stale executable readiness evidence.`)
   return receiptHash
 }
 
@@ -90,7 +94,7 @@ function sealedDefinition(step: ExactStepReference, row: RuntimeStepDefinitionRe
   const definition = stepDefinitionSchema.parse(JSON.parse(row.definitionJson))
   assertPersistedIdentity(step, definition)
   assertPersistedHashes(step, row, definition)
-  const publicationReceiptHash = publicationReceiptFor(step, row)
+  const publicationReceiptHash = publicationReceiptFor(step, row, definition)
   return {
     step,
     definition,

@@ -133,19 +133,6 @@ export async function createCoordinatorClient(options: CoordinatorOptions) {
         headers: { 'x-appraise-target-project': targetProject ?? local.details.projectFingerprint },
       })
     },
-    listActionCategories: (parentCategoryId?: string, knownCatalogHash?: string) => {
-      const query = new URLSearchParams()
-      if (parentCategoryId) query.set('parentCategoryId', parentCategoryId)
-      if (knownCatalogHash) query.set('knownCatalogHash', knownCatalogHash)
-      return request(`actions/categories?${query}`)
-    },
-    listActions: (input: Record<string, string | number | boolean | undefined> = {}) => {
-      const query = new URLSearchParams()
-      for (const [key, value] of Object.entries(input)) if (value !== undefined) query.set(key, String(value))
-      return request(`actions?${query}`)
-    },
-    readActions: (refs: Array<{ id: string; version?: string }>) =>
-      request(`actions/read?refs=${encodeURIComponent(JSON.stringify(refs))}`),
     listOperationCategories: (knownManifestHash?: string) => {
       const query = new URLSearchParams()
       if (knownManifestHash) query.set('knownManifestHash', knownManifestHash)

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
-import { createActionCatalog } from '@/lib/action-catalog'
 import { createLocatorGraph } from '@/lib/locator-graph'
+import { defaultOperationRegistry } from '@/lib/operation-catalog'
 import type { ValidationAstSubmission } from '@/lib/validation-ast'
 import { compileValidationAstNode } from '@/services/coordinator/validation-ast-compiler-service'
 import {
@@ -12,27 +12,6 @@ import { checkValidationAst, previewValidationAst, type ValidationAstCompilerCon
 import { createCustomExtensionPolicy } from './extension-policy'
 
 const hash = (character: string) => `sha256:${character.repeat(64)}`
-const catalog = createActionCatalog({
-  categories: [{ id: 'browser.forms', title: 'Forms', description: 'Form actions.' }],
-  actions: [
-    {
-      id: 'browser.forms.fill',
-      version: '1',
-      title: 'Fill',
-      description: 'Fill a field.',
-      categories: ['browser.forms'],
-      inputs: [
-        { name: 'target', type: 'locator', required: true, description: 'Target.' },
-        { name: 'value', type: 'string', required: true, description: 'Value.' },
-      ],
-      outputs: [{ name: 'entered-value', type: 'string', description: 'Entered value.' }],
-      requirements: { runtime: 'browser', capabilities: ['forms'] },
-      assertionConcerns: [],
-      examples: [],
-      deprecated: false,
-    },
-  ],
-})
 const locator = {
   id: 'title-input',
   persistentId: 'title-input-row',
@@ -71,7 +50,7 @@ const context: ValidationAstCompilerContext = {
   planScope: `${hash('p')}:plan-one`,
   currentPlanHash: hash('a'),
   planTaskIds: ['task-one'],
-  actionCatalog: catalog,
+  operationRegistry: defaultOperationRegistry,
   stepDefinitions,
   locatorGraph: graph,
   environments: { local: { keys: ['base-url'] } },

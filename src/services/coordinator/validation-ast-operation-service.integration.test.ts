@@ -297,9 +297,41 @@ afterEach(async () => {
 describe('Validation AST SQLite preview to compile', () => {
   it('publishes the simple meditation happy path to one exact first review', async () => {
     const proposal = meditationSubmission()
-    const checked = await checkValidationAstForPlan('plan-one', proposal, client)
+    const firstReceipt = await client.stepDefinitionSearchReceipt.create({
+      data: {
+        indexHash: `sha256:${'c'.repeat(64)}`,
+        candidateReferencesJson: JSON.stringify(
+          proposal.ast.scenarios.flatMap(scenario =>
+            scenario.steps.map(step => ({ id: step.invocation.step.id, version: step.invocation.step.version })),
+          ),
+        ),
+        planId: 'plan-one',
+        correlationId: 'agent-validation-flow',
+        expiresAt: new Date(Date.now() + 30 * 60 * 1000),
+      },
+    })
+    const selectedProposal = {
+      ...proposal,
+      stepDefinitionSelections: [{ receiptId: firstReceipt.id, correlationId: firstReceipt.correlationId }],
+    }
+    const checked = await checkValidationAstForPlan('plan-one', selectedProposal, client)
     expect(checked).toMatchObject({ valid: true, blockers: [] })
-    const preview = await previewValidationAstForPlan('plan-one', proposal, client)
+    await expect(
+      client.stepDefinitionTelemetryEvent.findFirst({
+        where: { outcome: 'valid_ast', planId: 'plan-one', surface: 'agent' },
+      }),
+    ).resolves.toMatchObject({ surface: 'agent', payloadJson: '{}' })
+    // A later search for the same plan must not steal this AST's causality.
+    await client.stepDefinitionSearchReceipt.create({
+      data: {
+        indexHash: `sha256:${'d'.repeat(64)}`,
+        candidateReferencesJson: '[]',
+        planId: 'plan-one',
+        correlationId: 'later-search-must-not-win',
+        expiresAt: new Date(Date.now() + 30 * 60 * 1000),
+      },
+    })
+    const preview = await previewValidationAstForPlan('plan-one', selectedProposal, client)
     expect(preview).toMatchObject({
       valid: true,
       authoringProfile: { id: 'simple-happy-path', version: '1' },
@@ -307,20 +339,23 @@ describe('Validation AST SQLite preview to compile', () => {
     expect(preview.operations).toHaveLength(6)
     expect(preview.locators).toHaveLength(2)
     expect(preview.customExtensions.length).toBeLessThanOrEqual(1)
-    await previewValidationAstForPlan('plan-one', proposal, client)
+    await previewValidationAstForPlan('plan-one', selectedProposal, client)
     expect(
       await client.planEvent.count({ where: { plan: { planId: 'plan-one' }, type: 'validation_ast_previewed' } }),
     ).toBe(1)
     const published = await compileValidationAstForPlan(
       {
         planId: 'plan-one',
-        submission: proposal,
+        submission: selectedProposal,
         expectedReceiptHash: preview.receiptHash,
         projectDirectory: workspace,
       },
       client,
     )
     expect(published).toMatchObject({ phase: 'review_ready', receiptHash: preview.receiptHash })
+    expect(JSON.parse(published.runtimeInputJson!)).toMatchObject({
+      lifecycleCorrelation: { planId: 'plan-one', correlationId: expect.stringMatching(/^sha256:/) },
+    })
     expect(published).toMatchObject({
       id: preview.canonicalProjection.validationNode.astProvenance?.publishOperationId,
       runtimeInputHash: preview.canonicalProjection.validationNode.astProvenance?.runtimeInputHash,
@@ -470,6 +505,88 @@ describe('Validation AST SQLite preview to compile', () => {
     expect(JSON.parse(approvedEvent.payloadJson!)).toMatchObject({
       projection: { operationHash: published.operationHash, extensionArtifactHashes: [] },
     })
+  })
+
+  it('keeps the human validation funnel correlated without an agent search receipt', async () => {
+    const proposal = meditationSubmission()
+    await client.stepDefinitionSearchReceipt.create({
+      data: {
+        indexHash: `sha256:${'b'.repeat(64)}`,
+        candidateReferencesJson: '[]',
+        planId: 'plan-two',
+        correlationId: 'agent-receipt-must-not-relabel-human',
+        expiresAt: new Date(Date.now() + 30 * 60 * 1000),
+      },
+    })
+    await expect(checkValidationAstForPlan('plan-two', proposal, client)).resolves.toMatchObject({
+      valid: true,
+      blockers: [],
+    })
+    await expect(
+      client.stepDefinitionTelemetryEvent.findFirst({
+        where: { outcome: 'valid_ast', planId: 'plan-two', correlationId: 'plan:plan-two' },
+      }),
+    ).resolves.toMatchObject({ surface: 'human', payloadJson: '{}' })
+
+    const preview = await previewValidationAstForPlan('plan-two', proposal, client)
+    const published = await compileValidationAstForPlan(
+      {
+        planId: 'plan-two',
+        submission: proposal,
+        expectedReceiptHash: preview.receiptHash,
+        projectDirectory: workspace,
+      },
+      client,
+    )
+    expect(JSON.parse(published.runtimeInputJson!)).toMatchObject({
+      lifecycleCorrelation: { planId: 'plan-two', correlationId: 'plan:plan-two' },
+    })
+  })
+
+  it('rejects a selection receipt from another plan or an expired selection receipt', async () => {
+    const proposal = meditationSubmission()
+    const references = proposal.ast.scenarios.flatMap(scenario =>
+      scenario.steps.map(step => ({ id: step.invocation.step.id, version: step.invocation.step.version })),
+    )
+    const foreign = await client.stepDefinitionSearchReceipt.create({
+      data: {
+        indexHash: `sha256:${'e'.repeat(64)}`,
+        candidateReferencesJson: JSON.stringify(references),
+        planId: 'plan-two',
+        correlationId: 'foreign-selection',
+        expiresAt: new Date(Date.now() + 30 * 60 * 1000),
+      },
+    })
+    await expect(
+      checkValidationAstForPlan(
+        'plan-one',
+        {
+          ...proposal,
+          stepDefinitionSelections: [{ receiptId: foreign.id, correlationId: foreign.correlationId }],
+        },
+        client,
+      ),
+    ).rejects.toMatchObject({ code: 'CONFLICT' })
+
+    const expired = await client.stepDefinitionSearchReceipt.create({
+      data: {
+        indexHash: `sha256:${'f'.repeat(64)}`,
+        candidateReferencesJson: JSON.stringify(references),
+        planId: 'plan-one',
+        correlationId: 'expired-selection',
+        expiresAt: new Date(Date.now() - 1),
+      },
+    })
+    await expect(
+      checkValidationAstForPlan(
+        'plan-one',
+        {
+          ...proposal,
+          stepDefinitionSelections: [{ receiptId: expired.id, correlationId: expired.correlationId }],
+        },
+        client,
+      ),
+    ).rejects.toMatchObject({ code: 'CONFLICT' })
   })
 
   it('persists the exact reviewed projection, preserves legacy validation, and scopes IDs per plan', async () => {

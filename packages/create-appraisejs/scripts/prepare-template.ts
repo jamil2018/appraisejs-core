@@ -340,7 +340,6 @@ function writeTemplatePackageJson(): void {
     'protect-seeded-files': 'npx tsx scripts/protect-seeded-files.ts',
     'appraisejs:setup': 'npm run setup',
     'appraisejs:sync': 'npm run sync-all',
-    'appraisejs:install-step': 'npx tsx scripts/install-template-step.ts',
   }
   for (const scriptName of Object.keys(rootPkg.scripts)) {
     if (scriptName.startsWith('release:')) delete rootPkg.scripts[scriptName]

@@ -9,7 +9,7 @@ import {
   parseStepJSDocStrict as parseStepJSDoc,
   type StepGroupJSDoc,
   type StepJSDoc,
-} from '@/lib/jsdoc/template-step-jsdoc'
+} from '@/lib/jsdoc/step-definition-jsdoc'
 
 const traverse = (_traverse as { default?: typeof _traverse }).default ?? _traverse
 

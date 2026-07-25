@@ -5,7 +5,7 @@ description: Work with automation sync outputs without patching generated artifa
 
 # Appraise Sync Artifacts
 
-Use this skill for automation sync, generated features, locators, environments, tags, suites, cases, or template steps.
+Use this skill for automation sync, generated features, locators, environments, tags, suites, cases, or Step Definitions.
 
 1. Read `docs/automation-sync-rules.md` and `docs/agent-generated-artifacts.md`.
 2. Identify whether the touched file is authored source, sync-managed output, or runtime output.

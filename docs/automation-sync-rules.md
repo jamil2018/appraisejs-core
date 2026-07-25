@@ -51,7 +51,7 @@ Legacy runs continue to use `automation/reports`.
 The reusable Playwright catalog is projected into `automation/steps/actions/generated` and
 `automation/steps/validations/generated` by `npm run operation:projections`. Author built-in behavior in the canonical
 operation definitions and handlers. Do not hand-edit generated wrappers. Validation authoring resolves ready Step
-Definitions and stores exact Step Invocations; see `docs/reusable-playwright-template-steps.md` for the shared
+Definitions and stores exact Step Invocations; see `docs/reusable-playwright-step-definitions.md` for the shared
 definition and stored-variable contract. `npm run operation:projections` lints every projected step after generation;
 `npm run lint:step-definitions` is the focused syntax/import gate and includes duplicate-import and redeclaration
 checks.

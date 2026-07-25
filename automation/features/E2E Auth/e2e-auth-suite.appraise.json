@@ -6,7 +6,7 @@
   },
   "testCases": [
     {
-      "identifierTag": "@tc_ba6f962d786a5582",
+      "identifierTag": "@tc_7246af736df8696a",
       "title": "E2E From Template Case",
       "description": "Reusable login flow for E2E",
       "nodes": [

@@ -1,4 +1,4 @@
-import { StepParameterType, TagType, TemplateStepIcon, type Prisma, type PrismaClient } from '@prisma/client'
+import { StepParameterType, TagType, StepIcon, type Prisma, type PrismaClient } from '@prisma/client'
 
 import type { ValidationArtifact } from '@/lib/plan-contract'
 import { canonicalContractJson } from '@/lib/catalog-contracts'
@@ -238,7 +238,7 @@ async function projectValidationArtifactsInTransaction(
       await client.testCaseStep.deleteMany({ where: { testCaseId: testCase.id } })
       for (const step of testCase.steps.sort((left, right) => left.order - right.order)) {
         // V2 managed validation owns an exact Step Invocation. It deliberately
-        // does not look up, choose between, or create TemplateStep rows.
+        // does not look up, choose between, or create retired reusable-step record rows.
         if (!step.invocation)
           throw new ServiceError('Managed validation projection requires an exact Step Invocation.', 'CONFLICT')
         await client.testCaseStep.create({
@@ -247,7 +247,7 @@ async function projectValidationArtifactsInTransaction(
             testCaseId: testCase.id,
             order: step.order,
             gherkinStep: step.gherkinStep,
-            icon: TemplateStepIcon.VALIDATION,
+            icon: StepIcon.VALIDATION,
             label: step.label,
             invocationJson: canonicalContractJson(step.invocation),
             parameters: {

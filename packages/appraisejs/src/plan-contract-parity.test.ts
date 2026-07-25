@@ -60,7 +60,14 @@ const validValidation = {
                 order: 0,
                 label: 'Open the app',
                 gherkinStep: 'Given I open the application',
-                templateStepName: 'Navigate to URL',
+                invocation: {
+                  step: {
+                    id: 'browser.navigation.goto',
+                    version: '1',
+                    definitionHash: `sha256:${'b'.repeat(64)}`,
+                  },
+                  inputs: { url: '/' },
+                },
                 parameters: [{ name: 'url', value: '/', type: 'TEXT' }],
               },
             ],

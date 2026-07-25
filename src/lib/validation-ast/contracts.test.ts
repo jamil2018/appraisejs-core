@@ -176,6 +176,29 @@ describe('validation AST contracts', () => {
       }).success,
     ).toBe(false)
   })
+
+  it('accepts only plural receipt selections on a strict public submission envelope', () => {
+    const selection = {
+      receiptId: '67f13e64-7b6e-4f23-877d-93b3eafc43fc',
+      correlationId: 'search:selection-one',
+    }
+    expect(
+      validationAstSubmissionSchema.safeParse({
+        expectedPlanHash: hash('a'),
+        stepDefinitionSelections: [selection],
+        ast,
+        customExtensionProposals: [],
+      }).success,
+    ).toBe(true)
+    expect(
+      validationAstSubmissionSchema.safeParse({
+        expectedPlanHash: hash('a'),
+        stepDefinitionSelection: selection,
+        ast,
+        customExtensionProposals: [],
+      }).success,
+    ).toBe(false)
+  })
 })
 
 describe('delegated authorization receipts', () => {

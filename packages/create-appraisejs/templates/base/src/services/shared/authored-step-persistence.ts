@@ -1,4 +1,4 @@
-import { StepParameterType, TemplateStepIcon } from '@prisma/client'
+import { StepParameterType, StepIcon } from '@prisma/client'
 
 import {
   canonicalStepDefinitionJson,
@@ -36,7 +36,7 @@ function authoredStepBase(step: AuthoredStep, definitions: StepDefinition[]) {
     gherkinStep: step.gherkinStep,
     flowNodeId: step.nodeId,
     label: step.label ?? '',
-    icon: (step.icon ?? '') as TemplateStepIcon,
+    icon: (step.icon ?? '') as StepIcon,
     invocationJson: canonicalStepDefinitionJson(invocation),
     order: step.order,
   }
@@ -68,28 +68,6 @@ export function templateTestCaseStepCreates(steps: AuthoredStep[], definitions: 
       })),
     },
   }))
-}
-
-export function stepBlockStepCreates(
-  steps: Array<{ invocation: StepInvocation; order: number }>,
-  definitions: StepDefinition[],
-) {
-  return steps.map(step => {
-    const invocation = stepInvocationSchema.parse(step.invocation)
-    const definition = definitions.find(
-      candidate =>
-        candidate.identity.id === invocation.step.id && candidate.identity.version === invocation.step.version,
-    )
-    if (!definition) throw new Error(`Step ${invocation.step.id} is not available for authored persistence.`)
-    validateStepInvocationInputs(definition, invocation.inputs)
-    const invocationJson = canonicalStepDefinitionJson(invocation)
-    const parameterMap = canonicalStepDefinitionJson(invocation.inputs)
-    return {
-      order: step.order,
-      invocationJson,
-      parameterMap,
-    }
-  })
 }
 
 export function flowBlockCreates(flowBlocks: FlowBlock[] = []) {

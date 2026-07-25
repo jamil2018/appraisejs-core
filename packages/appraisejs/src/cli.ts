@@ -549,52 +549,6 @@ addOnlineOptions(
   printJson(await (await onlineClient(options)).completionReview(planId)),
 )
 
-const actions = program.command('actions').description('Discover versioned Appraise runtime actions')
-addOnlineOptions(actions.command('categories').option('--parent <id>').option('--known-hash <hash>')).action(
-  async (options: OnlineOptions & { parent?: string; knownHash?: string }) =>
-    printJson(await (await onlineClient(options)).listActionCategories(options.parent, options.knownHash)),
-)
-addOnlineOptions(
-  actions
-    .command('list')
-    .option('--category <id>')
-    .option('--capability <id>')
-    .option('--input-type <type>')
-    .option('--runtime <runtime>')
-    .option('--deprecated <boolean>')
-    .option('--id-prefix <prefix>')
-    .option('--cursor <number>')
-    .option('--limit <number>'),
-).action(async (options: OnlineOptions & Record<string, string | undefined>) =>
-  printJson(
-    await (
-      await onlineClient(options)
-    ).listActions({
-      categoryId: options.category,
-      capability: options.capability,
-      inputType: options.inputType,
-      runtime: options.runtime,
-      deprecated: options.deprecated,
-      idPrefix: options.idPrefix,
-      cursor: options.cursor,
-      limit: options.limit,
-    }),
-  ),
-)
-addOnlineOptions(actions.command('read').argument('<refs...>', 'action-id@version')).action(
-  async (refs: string[], options: OnlineOptions) =>
-    printJson(
-      await (
-        await onlineClient(options)
-      ).readActions(
-        refs.map(ref => {
-          const [id, version] = ref.split('@')
-          return { id: id!, ...(version ? { version } : {}) }
-        }),
-      ),
-    ),
-)
-
 program.parseAsync(process.argv).catch(error => {
   console.error(error instanceof Error ? error.message : String(error))
   process.exit(1)

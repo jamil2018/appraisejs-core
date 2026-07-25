@@ -7,6 +7,26 @@ import { z } from 'zod'
 const idSchema = z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/)
 const planIdSchema = z.string().regex(/^(?:[a-z0-9]+(?:-[a-z0-9]+)*|pln_[0-9a-hjkmnp-tv-z]{26})$/)
 const hashSchema = z.string().regex(/^sha256:[a-f0-9]{64}$/)
+const stepInvocationSchema = z
+  .object({
+    step: z
+      .object({
+        id: z.string().regex(/^[a-z0-9]+(?:[.-][a-z0-9]+)*$/),
+        version: z.string().regex(/^\d+(?:\.\d+){0,2}$/),
+        definitionHash: hashSchema,
+      })
+      .strict(),
+    inputs: z.record(z.string(), z.unknown()),
+    store: z
+      .object({ output: z.string().min(1), as: z.string().min(1) })
+      .strict()
+      .optional(),
+    presentation: z
+      .object({ keyword: z.enum(['Given', 'When', 'Then', 'And']), description: z.string().min(1).optional() })
+      .strict()
+      .optional(),
+  })
+  .strict()
 const timestampSchema = z.string().datetime({ offset: true })
 const approvalSchema = z.object({
   id: idSchema,
@@ -88,13 +108,6 @@ const runtimePreflightSchema = z.object({
     )
     .optional(),
 })
-const validationReusableRefSchema = z.object({
-  id: z.string().min(1),
-  name: z.string().min(1).optional(),
-  groupId: z.string().min(1).optional(),
-  groupName: z.string().min(1).optional(),
-  path: z.string().min(1).optional(),
-})
 const validationAppraiseArtifactsSchema = z.object({
   modules: z
     .array(
@@ -130,9 +143,7 @@ const validationAppraiseArtifactsSchema = z.object({
             order: z.number().int().nonnegative(),
             label: z.string().min(1),
             gherkinStep: z.string().min(1),
-            templateStepId: idSchema.optional(),
-            operationRef: z.string().regex(/^[a-z0-9]+(?:[.-][a-z0-9]+)*@\d+(?:\.\d+){0,2}$/).optional(),
-            templateStepName: z.string().min(1).optional(),
+            invocation: stepInvocationSchema.optional(),
             parameters: z
               .array(
                 z.object({
@@ -364,14 +375,6 @@ export const validationArtifactSchema = z
       .array(z.string().min(1))
       .optional()
       .describe('Registry/template step paths reused before creating any custom steps.'),
-    reusedTemplateStepRefs: z
-      .array(validationReusableRefSchema)
-      .optional()
-      .describe('Template step resources reused by validation authoring, with generated shared group paths.'),
-    reusedStepBlockRefs: z
-      .array(validationReusableRefSchema)
-      .optional()
-      .describe('Reusable step block resources expanded into validation test steps.'),
     newStepPaths: z.array(z.string().min(1)).optional().describe('New custom step paths created for validation prep.'),
     customStepJustifications: z
       .array(

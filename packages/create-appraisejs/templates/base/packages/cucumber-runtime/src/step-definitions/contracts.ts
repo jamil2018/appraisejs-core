@@ -322,6 +322,13 @@ export const stepPublicationReceiptSchema = z.object({
   agentContractHash: stepDefinitionHashSchema,
   executionHash: stepDefinitionHashSchema,
   registryManifestHash: stepDefinitionHashSchema,
+  executableReadiness: z
+    .object({
+      projectionHash: stepDefinitionHashSchema,
+      runtimeAdapterHash: stepDefinitionHashSchema,
+      closureHash: stepDefinitionHashSchema,
+    })
+    .strict(),
   conformanceRunId: boundedText(200),
   reviewAuthority: boundedText(200),
   publishedAt: z.string().datetime(),
@@ -342,6 +349,35 @@ export function computeStepDefinitionHashes(definition: z.infer<typeof stepDefin
     humanProjectionHash: stepDefinitionContentHash(definition.human),
     agentContractHash: stepDefinitionContentHash(definition.agent),
     executionHash: stepDefinitionContentHash(definition.execution),
+  }
+}
+
+/**
+ * This is the publication-time proof that every projection and executable
+ * binding was resolved together. Consumers verify it instead of rediscovering
+ * a human name, handler, or composition identity at a later lifecycle gate.
+ */
+export function computeStepExecutableReadiness(
+  definition: z.infer<typeof stepDefinitionSchema>,
+  registryManifestHash: string,
+  conformanceRunId: string,
+) {
+  const hashes = computeStepDefinitionHashes(definition)
+  return {
+    projectionHash: stepDefinitionContentHash({
+      humanProjectionHash: hashes.humanProjectionHash,
+      agentContractHash: hashes.agentContractHash,
+    }),
+    runtimeAdapterHash: stepDefinitionContentHash({
+      executionHash: hashes.executionHash,
+      execution: definition.execution,
+    }),
+    closureHash: stepDefinitionContentHash({
+      step: definition.identity,
+      definitionHash: hashes.definitionHash,
+      registryManifestHash,
+      conformanceRunId,
+    }),
   }
 }
 

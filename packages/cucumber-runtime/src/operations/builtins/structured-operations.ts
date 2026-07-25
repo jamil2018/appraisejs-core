@@ -1,5 +1,5 @@
 import { resolveLocator } from '../../locator.util.ts'
-import { runLocatorTemplateOperation, runPageTemplateOperation } from '../../template-step-operations.ts'
+import { runLocatorStepOperation, runPageStepOperation } from '../../step-operations.ts'
 import type { SelectorName } from '../../types.ts'
 import type { CustomWorld } from '../../world.ts'
 import type { BuiltinBrowserOperation } from '../builtin-contracts.ts'
@@ -24,7 +24,7 @@ export const structuredOperationsBuiltins = [
       const selector = await resolveLocator(this.page, elementName, { validate: { requireVisible: false } })
       if (!selector) throw new Error(`Selector ${elementName} not found`)
       try {
-        await runLocatorTemplateOperation(this.page.locator(selector), operation, argumentsJson, optionsJson, name =>
+        await runLocatorStepOperation(this.page.locator(selector), operation, argumentsJson, optionsJson, name =>
           this.getVar(name),
         )
       } catch (error) {
@@ -42,7 +42,7 @@ export const structuredOperationsBuiltins = [
     ],
     execute: async function (this: CustomWorld, operation: string, argumentsJson: string, optionsJson: string) {
       try {
-        await runPageTemplateOperation(this.page, operation, argumentsJson, optionsJson, name => this.getVar(name))
+        await runPageStepOperation(this.page, operation, argumentsJson, optionsJson, name => this.getVar(name))
       } catch (error) {
         throw new Error(`Structured page operation ${operation} failed: ${error}`)
       }

@@ -6,7 +6,7 @@ import {
   StepParameterType,
   StepStatus,
   TagType,
-  TemplateStepIcon,
+  StepIcon,
   TestRunResult,
   TestRunStatus,
   TestRunTestCaseResult,
@@ -183,7 +183,7 @@ export async function seedCoreData(): Promise<void> {
             id: seededIds.testCaseStep,
             order: 0,
             gherkinStep: 'When the user navigates to the / url',
-            icon: TemplateStepIcon.NAVIGATION,
+            icon: StepIcon.NAVIGATION,
             label: 'Navigate to URL',
             invocationJson: navigationInvocationJson,
             parameters: {
@@ -366,7 +366,7 @@ export async function seedTemplateCatalog(
             id: seededIds.templateTestCaseStep,
             order: 0,
             gherkinStep: 'When the user navigates to the / url',
-            icon: TemplateStepIcon.NAVIGATION,
+            icon: StepIcon.NAVIGATION,
             label: 'Navigate to URL',
             invocationJson: navigationInvocationJson,
             parameters: {

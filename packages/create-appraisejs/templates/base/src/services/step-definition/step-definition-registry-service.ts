@@ -1,18 +1,42 @@
 import { randomUUID } from 'node:crypto'
 
 import type { Prisma, PrismaClient, StepDefinitionStatus, StepExecutionKind } from '@prisma/client'
+import { z } from 'zod'
 import {
   canonicalStepDefinitionJson,
+  computeStepExecutableReadiness,
   computeStepDefinitionHashes,
   stepDefinitionContentHash,
   stepDefinitionDraftAuthoringSchema,
   stepDefinitionSchema,
   stepPublicationReceiptSchema,
+  builtInStepDefinitions,
   validateStepDefinitionComposition,
   type StepDefinition,
   type StepPublicationReceipt,
 } from '../../../packages/cucumber-runtime/src/step-definitions/index.ts'
+import { browserOperationHandlerDescriptors } from '../../../packages/cucumber-runtime/src/operations/index.ts'
+import operationDefinitions from '../../../packages/cucumber-runtime/src/operations/definitions.json' with { type: 'json' }
 import { StepDefinitionExtensionService } from './step-definition-extension-service'
+import { recordStepDefinitionTelemetry } from './step-definition-telemetry'
+import {
+  readyStepDefinitionRowsForSearch,
+  readyStepDefinitionSearchIndexHash,
+} from './ready-step-definition-search-index'
+
+const LOCAL_HUMAN_REVIEW_AUTHORITY = 'local-human-ui'
+const SOURCE_REVIEW_AUTHORITY = 'appraise:source-review'
+const reuseEvidenceSchema = z.object({
+  indexHash: z.string().regex(/^sha256:[a-f0-9]{64}$/),
+  searchedAt: z.string().datetime(),
+  planId: z.string().min(1).max(200).optional(),
+  correlationId: z.string().regex(/^[a-zA-Z0-9._:-]{1,100}$/),
+  candidateReferences: z
+    .array(z.object({ id: z.string().min(1).max(200), version: z.string().min(1).max(40) }))
+    .max(25),
+  receiptId: z.string().uuid(),
+  reuseJustification: z.string().trim().min(1).max(2_000),
+})
 
 export class StepDefinitionRegistryError extends Error {
   constructor(
@@ -52,8 +76,90 @@ function parseDraftJson(value: string): unknown {
   return JSON.parse(value)
 }
 
+function reviewReceipt(draft: { id: string; revision: number; draftHash: string }, authority: string) {
+  const receipt = {
+    kind: 'step-definition-human-review' as const,
+    draftId: draft.id,
+    revision: draft.revision,
+    draftHash: draft.draftHash,
+    authority,
+  }
+  return { receipt, hash: stepDefinitionContentHash(receipt) }
+}
+
 function executionKind(kind: Exclude<StepDefinition['execution']['kind'], 'unbound'>): StepExecutionKind {
   return kind === 'reviewed-extension' ? 'reviewed_extension' : kind
+}
+
+function trustedOperationConformance(definition: StepDefinition) {
+  if (definition.execution.kind !== 'operation') return null
+  if (definition.execution.runtime !== 'browser')
+    throw new StepDefinitionRegistryError(
+      'validation_failed',
+      `Step Definition operations require a supported browser runtime, not ${definition.execution.runtime}.`,
+    )
+  const { handlerId, handlerVersion } = definition.execution
+  const ref = `${handlerId}@${handlerVersion}`
+  const handler = browserOperationHandlerDescriptors[ref]
+  if (!handler)
+    throw new StepDefinitionRegistryError(
+      'validation_failed',
+      `Trusted operation handler ${ref} is not registered for publication.`,
+    )
+  const operation = operationDefinitions.find(
+    candidate => candidate.handler?.id === handlerId && candidate.handler?.version === handlerVersion,
+  )
+  if (!operation)
+    throw new StepDefinitionRegistryError(
+      'validation_failed',
+      `Trusted operation handler ${ref} has no canonical executable contract.`,
+    )
+  const canonicalInputs = (
+    inputs: Array<{ name: string; type: string; required: boolean; defaultValue?: unknown; constraints?: unknown }>,
+  ) =>
+    canonicalStepDefinitionJson(
+      inputs.map(input => ({
+        name: input.name,
+        type: input.type,
+        required: input.required,
+        defaultValue: input.defaultValue,
+        constraints: input.constraints
+          ? {
+              minimum: (input.constraints as { minimum?: unknown }).minimum,
+              maximum: (input.constraints as { maximum?: unknown }).maximum,
+              pattern: (input.constraints as { pattern?: unknown }).pattern,
+              values: (input.constraints as { values?: unknown }).values,
+            }
+          : undefined,
+      })),
+    )
+  const canonicalOutputs = (outputs: Array<{ name: string; type: string }>) =>
+    canonicalStepDefinitionJson(outputs.map(output => ({ name: output.name, type: output.type })))
+  if (
+    canonicalInputs(definition.inputs) !== canonicalInputs(operation.inputs) ||
+    canonicalOutputs(definition.outputs) !== canonicalOutputs(operation.outputs)
+  )
+    throw new StepDefinitionRegistryError(
+      'validation_failed',
+      `Step Definition input/output contract does not match trusted operation handler ${ref}.`,
+    )
+  return stepDefinitionContentHash({ kind: 'trusted-browser-handler', ref, contentHash: handler.contentHash })
+}
+
+function publicationConformanceEvidence(definition: StepDefinition, draft: DraftWithArtifact) {
+  const trustedHandler = trustedOperationConformance(definition)
+  if (trustedHandler) return trustedHandler
+  if (definition.execution.kind === 'reviewed-extension') {
+    const artifact = requireReviewableArtifact(draft.artifact)
+    assertArtifactConformance(artifact)
+    return artifact.conformanceHash
+  }
+  if (definition.execution.kind === 'composition')
+    return stepDefinitionContentHash({
+      kind: 'composition-closure',
+      steps: definition.execution.steps.map(item => item.step),
+    })
+  throw new StepDefinitionRegistryError('validation_failed', 'An executable binding is required before publication.')
 }
 
 function persistedStatus(status: 'ready' | 'deprecated'): StepDefinitionStatus {
@@ -109,6 +215,55 @@ async function bindReviewedArtifactForReview(database: PrismaClient, draftId: st
 
 type DraftWithArtifact = Prisma.StepDefinitionDraftGetPayload<{ include: { artifact: true } }>
 type PersistedDefinition = Awaited<ReturnType<PrismaClient['stepDefinition']['findUnique']>>
+type ReviewedExtensionArtifact = NonNullable<DraftWithArtifact['artifact']>
+type PublishedReviewedExtensionArtifact = ReviewedExtensionArtifact & {
+  compiledSource: string
+  compiledHash: string
+  conformanceJson: string
+  conformanceHash: string
+  reviewedArtifactHash: string
+}
+type ReviewedExtensionExecution = Extract<StepDefinition['execution'], { kind: 'reviewed-extension' }>
+
+function requirePublishedReviewedArtifact(artifact: DraftWithArtifact['artifact']): PublishedReviewedExtensionArtifact {
+  if (
+    !artifact?.compiledSource ||
+    !artifact.compiledHash ||
+    !artifact.conformanceJson ||
+    !artifact.conformanceHash ||
+    !artifact.reviewedArtifactHash
+  )
+    throw new StepDefinitionRegistryError('review_required', 'The reviewed extension artifact is incomplete.')
+  return artifact as PublishedReviewedExtensionArtifact
+}
+
+function reviewedExtensionArtifactHash(artifact: PublishedReviewedExtensionArtifact) {
+  return StepDefinitionExtensionService.artifactHash({
+    sourceHash: artifact.sourceHash,
+    compiledHash: artifact.compiledHash,
+    conformanceHash: artifact.conformanceHash,
+    manifestJson: artifact.manifestJson,
+  })
+}
+
+function assertReviewedArtifactIsCurrent(artifact: PublishedReviewedExtensionArtifact, artifactHash: string) {
+  if (artifactHash !== artifact.reviewedArtifactHash)
+    throw new StepDefinitionRegistryError('review_stale', 'The reviewed extension artifact changed after review.')
+}
+
+async function assertReviewedExtensionIsActive(
+  transaction: Prisma.TransactionClient,
+  execution: ReviewedExtensionExecution,
+) {
+  const prior = await transaction.stepReviewedExtension.findUnique({
+    where: { id_version: { id: execution.extensionId, version: execution.extensionVersion } },
+  })
+  if (prior?.revokedAt)
+    throw new StepDefinitionRegistryError(
+      'validation_failed',
+      'A revoked reviewed extension cannot be bound to a newly published Step Definition.',
+    )
+}
 
 function parsePersistedDefinition(row: NonNullable<PersistedDefinition>): StepDefinition {
   const authored = parseDraftJson(row.definitionJson) as StepDefinition
@@ -148,23 +303,10 @@ async function publishReviewedExtension(
   definition: StepDefinition,
 ) {
   if (definition.execution.kind !== 'reviewed-extension') return
-  const artifact = draft.artifact
-  if (
-    !artifact?.compiledSource ||
-    !artifact.compiledHash ||
-    !artifact.conformanceJson ||
-    !artifact.conformanceHash ||
-    !artifact.reviewedArtifactHash
-  )
-    throw new StepDefinitionRegistryError('review_required', 'The reviewed extension artifact is incomplete.')
-  const artifactHash = StepDefinitionExtensionService.artifactHash({
-    sourceHash: artifact.sourceHash,
-    compiledHash: artifact.compiledHash,
-    conformanceHash: artifact.conformanceHash,
-    manifestJson: artifact.manifestJson,
-  })
-  if (artifactHash !== artifact.reviewedArtifactHash)
-    throw new StepDefinitionRegistryError('review_stale', 'The reviewed extension artifact changed after review.')
+  const artifact = requirePublishedReviewedArtifact(draft.artifact)
+  const artifactHash = reviewedExtensionArtifactHash(artifact)
+  assertReviewedArtifactIsCurrent(artifact, artifactHash)
+  await assertReviewedExtensionIsActive(transaction, definition.execution)
   await transaction.stepReviewedExtension.create({
     data: {
       id: definition.execution.extensionId,
@@ -215,28 +357,107 @@ export class StepDefinitionRegistryService {
     }
 
     const { reviewedBy, ...draftProvenance } = ready.provenance
-    const draft = await this.createDraft({
-      ...ready,
-      identity: { ...ready.identity, status: 'draft' },
-      provenance: draftProvenance,
-    })
-    await this.submitForReview(draft.id, draft.revision, reviewedBy!)
+    void reviewedBy
+    const draft = await this.createDraft(
+      {
+        ...ready,
+        identity: { ...ready.identity, status: 'draft' },
+        provenance: draftProvenance,
+      },
+      undefined,
+      { sourceRegistration: true },
+    )
+    await this.issueReviewReceipt(draft.id, draft.revision, SOURCE_REVIEW_AUTHORITY)
     return this.publishDraft({ draftId: draft.id, expectedRevision: draft.revision, conformanceRunId })
   }
 
-  async createDraft(definition: unknown) {
+  // Agent evidence, source-only IDs, and persisted draft state are one authorization boundary.
+  // fallow-ignore-next-line complexity
+  async createDraft(
+    definition: unknown,
+    reuseJustification?: string,
+    options: { sourceRegistration?: boolean; reuseEvidence?: unknown } = {},
+  ) {
     const parsed = stepDefinitionDraftAuthoringSchema.parse(definition)
+    const builtInIds = new Set(builtInStepDefinitions.map(item => item.identity.id))
+    if (parsed.provenance.creationMethod === 'built-in-source' && !options.sourceRegistration)
+      throw new StepDefinitionRegistryError(
+        'invalid_transition',
+        'Built-in Step Definitions may only be registered by the source-owned synchronization path.',
+      )
+    if (builtInIds.has(parsed.identity.id) && !options.sourceRegistration)
+      throw new StepDefinitionRegistryError(
+        'invalid_transition',
+        `Step Definition ID ${parsed.identity.id} is reserved for source-owned registration.`,
+      )
+
+    const reuseEvidence =
+      parsed.provenance.creationMethod === 'agent-command'
+        ? reuseEvidenceSchema.parse(options.reuseEvidence)
+        : undefined
+    if (reuseEvidence && Date.parse(reuseEvidence.searchedAt) > Date.now())
+      throw new StepDefinitionRegistryError(
+        'validation_failed',
+        'Agent draft reuse evidence timestamp is in the future.',
+      )
+    if (reuseEvidence && Date.now() - Date.parse(reuseEvidence.searchedAt) > 30 * 60 * 1000)
+      throw new StepDefinitionRegistryError(
+        'validation_failed',
+        'Agent draft reuse evidence is older than 30 minutes; search the ready registry again.',
+      )
+    if (reuseEvidence) {
+      const currentRows = await this.listAllReady()
+      const currentIndexHash = readyStepDefinitionSearchIndexHash(currentRows)
+      const receipt = await this.database.stepDefinitionSearchReceipt.findUnique({
+        where: { id: reuseEvidence.receiptId },
+      })
+      const currentReferences = new Set(currentRows.map(item => `${item.id}@${item.version}`))
+      if (
+        !receipt ||
+        receipt.expiresAt <= new Date() ||
+        reuseEvidence.indexHash !== currentIndexHash ||
+        receipt.indexHash !== reuseEvidence.indexHash ||
+        receipt.correlationId !== reuseEvidence.correlationId ||
+        receipt.planId !== (reuseEvidence.planId ?? null) ||
+        receipt.candidateReferencesJson !== canonicalStepDefinitionJson(reuseEvidence.candidateReferences) ||
+        reuseEvidence.candidateReferences.some(item => !currentReferences.has(`${item.id}@${item.version}`))
+      )
+        throw new StepDefinitionRegistryError(
+          'validation_failed',
+          'Agent draft reuse evidence is not bound to the current ready registry; search again before creating a draft.',
+        )
+    }
 
     const draftHash = stepDefinitionContentHash(parsed)
-    return this.database.stepDefinitionDraft.create({
+    const created = await this.database.stepDefinitionDraft.create({
       data: {
         id: randomUUID(),
         proposedStepId: parsed.identity.id,
         proposedVersion: parsed.identity.version,
         draftJson: canonicalStepDefinitionJson(parsed),
         draftHash,
+        reuseJustification: reuseEvidence?.reuseJustification ?? reuseJustification,
+        reuseEvidenceJson: reuseEvidence ? canonicalStepDefinitionJson(reuseEvidence) : null,
       },
     })
+    await recordStepDefinitionTelemetry(this.database, {
+      surface: parsed.provenance.creationMethod === 'agent-command' ? 'agent' : 'human',
+      outcome: 'draft_created',
+      step: { id: parsed.identity.id, version: parsed.identity.version },
+      ...(reuseEvidence ? { correlationId: reuseEvidence.correlationId } : {}),
+      ...(reuseEvidence?.planId ? { planId: reuseEvidence.planId } : {}),
+      payload: {},
+    })
+    if (reuseEvidence)
+      await recordStepDefinitionTelemetry(this.database, {
+        surface: 'agent',
+        outcome: 'selection_selected',
+        step: { id: parsed.identity.id, version: parsed.identity.version },
+        correlationId: reuseEvidence.correlationId,
+        ...(reuseEvidence.planId ? { planId: reuseEvidence.planId } : {}),
+        payload: {},
+      })
+    return created
   }
 
   async readDraft(draftId: string) {
@@ -262,6 +483,8 @@ export class StepDefinitionRegistryService {
         reviewedDraftHash: null,
         reviewedBy: null,
         reviewedAt: null,
+        reviewReceiptJson: null,
+        reviewReceiptHash: null,
       },
     })
     if (updated.count === 0) {
@@ -300,6 +523,10 @@ export class StepDefinitionRegistryService {
 
   async validateDraft(draftId: string): Promise<StepDefinitionValidationReport> {
     const draft = await this.readDraft(draftId)
+    const draftDefinition = stepDefinitionDraftAuthoringSchema.parse(draft.definition)
+    const reuseEvidence = draft.reuseEvidenceJson
+      ? reuseEvidenceSchema.parse(JSON.parse(draft.reuseEvidenceJson))
+      : null
     const result = stepDefinitionSchema.safeParse(draft.definition)
     const report: StepDefinitionValidationReport = {
       valid: result.success,
@@ -311,6 +538,14 @@ export class StepDefinitionRegistryService {
     await this.database.stepDefinitionDraft.update({
       where: { id: draftId },
       data: { validationReportJson: canonicalStepDefinitionJson(report) },
+    })
+    await recordStepDefinitionTelemetry(this.database, {
+      surface: draftDefinition.provenance.creationMethod === 'agent-command' ? 'agent' : 'human',
+      outcome: result.success ? 'validation_passed' : 'validation_failed',
+      step: { id: draftDefinition.identity.id, version: draftDefinition.identity.version },
+      ...(reuseEvidence ? { correlationId: reuseEvidence.correlationId } : {}),
+      ...(reuseEvidence?.planId ? { planId: reuseEvidence.planId } : {}),
+      payload: result.success ? {} : { reason: 'runtime_readiness' },
     })
     return report
   }
@@ -328,7 +563,11 @@ export class StepDefinitionRegistryService {
     }
   }
 
-  async submitForReview(draftId: string, expectedRevision: number, reviewAuthority: string) {
+  async issueHumanReviewReceipt(draftId: string, expectedRevision: number) {
+    return this.issueReviewReceipt(draftId, expectedRevision, LOCAL_HUMAN_REVIEW_AUTHORITY)
+  }
+
+  private async issueReviewReceipt(draftId: string, expectedRevision: number, authority: string) {
     const draft = await this.readDraft(draftId)
     if (draft.revision !== expectedRevision)
       throw new StepDefinitionRegistryError('stale_revision', `Step Definition draft ${draftId} revision is stale.`)
@@ -341,15 +580,36 @@ export class StepDefinitionRegistryService {
       )
 
     const definition = stepDefinitionSchema.parse(draft.definition)
+    const reuseEvidence = draft.reuseEvidenceJson
+      ? reuseEvidenceSchema.parse(JSON.parse(draft.reuseEvidenceJson))
+      : null
     await bindReviewedArtifactForReview(this.database, draftId, definition)
 
-    return this.database.stepDefinitionDraft.update({
+    const receipt = reviewReceipt(draft, authority)
+    const updated = await this.database.stepDefinitionDraft.update({
       where: { id: draftId },
-      data: { reviewedDraftHash: draft.draftHash, reviewedBy: reviewAuthority, reviewedAt: new Date() },
+      data: {
+        reviewedDraftHash: draft.draftHash,
+        reviewedBy: authority,
+        reviewedAt: new Date(),
+        reviewReceiptJson: canonicalStepDefinitionJson(receipt.receipt),
+        reviewReceiptHash: receipt.hash,
+      },
     })
+    await recordStepDefinitionTelemetry(this.database, {
+      surface: definition.provenance.creationMethod === 'agent-command' ? 'agent' : 'human',
+      outcome: 'reviewed',
+      step: { id: definition.identity.id, version: definition.identity.version },
+      ...(reuseEvidence ? { correlationId: reuseEvidence.correlationId } : {}),
+      ...(reuseEvidence?.planId ? { planId: reuseEvidence.planId } : {}),
+      payload: {},
+    })
+    return updated
   }
 
-  async publishDraft(input: { draftId: string; expectedRevision: number; conformanceRunId: string }) {
+  async publishDraft(input: { draftId: string; expectedRevision: number; conformanceRunId?: string }) {
+    // Atomic publication intentionally verifies every immutable boundary before writing the ready row.
+    // fallow-ignore-next-line complexity
     return this.database.$transaction(async transaction => {
       const draft = await transaction.stepDefinitionDraft.findUnique({
         where: { id: input.draftId },
@@ -365,12 +625,24 @@ export class StepDefinitionRegistryService {
           'stale_revision',
           `Step Definition draft ${input.draftId} revision is stale.`,
         )
-      if (!draft.reviewedBy || !draft.reviewedDraftHash)
+      if (!draft.reviewedBy || !draft.reviewedDraftHash || !draft.reviewReceiptHash || !draft.reviewReceiptJson)
         throw new StepDefinitionRegistryError('review_required', 'Exact human review is required before publication.')
       if (draft.reviewedDraftHash !== draft.draftHash)
         throw new StepDefinitionRegistryError('review_stale', 'The reviewed draft hash no longer matches the draft.')
+      const expectedReviewReceipt = reviewReceipt(draft, draft.reviewedBy)
+      if (
+        draft.reviewReceiptHash !== expectedReviewReceipt.hash ||
+        draft.reviewReceiptJson !== canonicalStepDefinitionJson(expectedReviewReceipt.receipt)
+      )
+        throw new StepDefinitionRegistryError(
+          'review_stale',
+          'The immutable review receipt no longer matches the draft.',
+        )
 
       const authored = stepDefinitionDraftAuthoringSchema.parse(parseDraftJson(draft.draftJson))
+      const reuseEvidence = draft.reuseEvidenceJson
+        ? reuseEvidenceSchema.parse(JSON.parse(draft.reuseEvidenceJson))
+        : null
       const definition = stepDefinitionSchema.parse({
         ...authored,
         identity: { ...authored.identity, status: 'ready' },
@@ -395,6 +667,10 @@ export class StepDefinitionRegistryService {
 
       await publishReviewedExtension(transaction, draft, definition)
 
+      // Publication derives immutable conformance evidence from the verified
+      // binding. Callers may not select or attest a conformance run identity.
+      const conformanceRunId = publicationConformanceEvidence(definition, draft)
+
       const hashes = computeStepDefinitionHashes(definition)
       const publishedAt = new Date().toISOString()
       const existingRefs = await transaction.stepDefinition.findMany({
@@ -410,7 +686,8 @@ export class StepDefinitionRegistryService {
         step: definition.identity,
         ...hashes,
         registryManifestHash,
-        conformanceRunId: input.conformanceRunId,
+        executableReadiness: computeStepExecutableReadiness(definition, registryManifestHash, conformanceRunId),
+        conformanceRunId,
         reviewAuthority: draft.reviewedBy,
         publishedAt,
       })
@@ -447,7 +724,7 @@ export class StepDefinitionRegistryService {
               receiptJson,
               receiptHash: stepDefinitionContentHash(receipt),
               registryManifestHash,
-              conformanceRunId: input.conformanceRunId,
+              conformanceRunId,
               reviewAuthority: draft.reviewedBy,
               publishedAt: new Date(publishedAt),
             },
@@ -455,6 +732,14 @@ export class StepDefinitionRegistryService {
         },
       })
       await transaction.stepDefinitionDraft.delete({ where: { id: input.draftId } })
+      await recordStepDefinitionTelemetry(transaction, {
+        surface: definition.provenance.creationMethod === 'agent-command' ? 'agent' : 'human',
+        outcome: 'published',
+        step: { id: definition.identity.id, version: definition.identity.version },
+        ...(reuseEvidence ? { correlationId: reuseEvidence.correlationId } : {}),
+        ...(reuseEvidence?.planId ? { planId: reuseEvidence.planId } : {}),
+        payload: {},
+      })
       return receipt
     })
   }
@@ -475,6 +760,11 @@ export class StepDefinitionRegistryService {
   async createVersionDraft(input: { stepId: string; version: string; newVersion: string; createdBy: string }) {
     const current = await this.read(input.stepId, input.version)
     const definition = current.definition
+    if (definition.provenance.creationMethod === 'built-in-source')
+      throw new StepDefinitionRegistryError(
+        'immutable_definition',
+        `Source-owned Step Definition ${input.stepId}@${input.version} must be versioned by source registration.`,
+      )
     return this.createDraft({
       ...definition,
       identity: { id: definition.identity.id, version: input.newVersion, status: 'draft' },
@@ -488,19 +778,11 @@ export class StepDefinitionRegistryService {
     })
   }
 
-  async list(input: { status?: 'ready' | 'deprecated'; query?: string; limit?: number; cursor?: string } = {}) {
+  async list(input: { status?: 'ready' | 'deprecated'; limit?: number; cursor?: string } = {}) {
     const limit = Math.min(Math.max(input.limit ?? 50, 1), 100)
     return this.database.stepDefinition.findMany({
       where: {
         status: input.status ? persistedStatus(input.status) : undefined,
-        OR: input.query
-          ? [
-              { id: { contains: input.query } },
-              { title: { contains: input.query } },
-              { description: { contains: input.query } },
-              { definitionJson: { contains: input.query } },
-            ]
-          : undefined,
       },
       orderBy: [{ id: 'asc' }, { version: 'asc' }],
       take: limit,
@@ -511,11 +793,36 @@ export class StepDefinitionRegistryService {
     })
   }
 
-  async deprecate(input: {
+  async listAllReady() {
+    const rows = []
+    let cursor: string | undefined
+    do {
+      const page = await this.list({ status: 'ready', limit: 100, cursor })
+      rows.push(...page)
+      const last = page.at(-1)
+      cursor = page.length === 100 && last ? `${last.id}@${last.version}` : undefined
+    } while (cursor)
+    return rows
+  }
+
+  async listReadyForSearch() {
+    return readyStepDefinitionRowsForSearch(this.database)
+  }
+
+  async deprecateFromHumanUi(input: {
     stepId: string
     version: string
     reason: string
-    actor: string
+    replacement?: { id: string; version: string }
+  }): Promise<StepPublicationReceipt> {
+    return this.deprecateWithAuthority({ ...input, actor: LOCAL_HUMAN_REVIEW_AUTHORITY })
+  }
+
+  private async deprecateWithAuthority(input: {
+    stepId: string
+    version: string
+    reason: string
+    actor: typeof LOCAL_HUMAN_REVIEW_AUTHORITY | typeof SOURCE_REVIEW_AUTHORITY
     replacement?: { id: string; version: string }
   }): Promise<StepPublicationReceipt> {
     return this.database.$transaction(async transaction => {

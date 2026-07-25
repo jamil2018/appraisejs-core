@@ -3,8 +3,10 @@
 ## Status
 
 Implementation in progress for AppraiseJS 0.5. The shared registry, human draft editor, reviewed-extension pipeline,
-and bounded agent authoring surface are implemented. Later consumer cutover and removal of every superseded Template
-Step and V1 AST/capsule contract remain.
+and bounded agent authoring surface are implemented. Local certification covers complete indexed discovery, exact
+human-only review/publication/deprecation, reviewed-extension/composition runtime paths, typed flow invocation input,
+and repository absence gates. It does not replace the outstanding real external Appraise-owned lifecycle rollout
+evidence; no local certification is recorded as that lifecycle completion.
 
 ### Implementation checkpoint (2026-07-22)
 
@@ -67,13 +69,14 @@ Continuation state:
   Step Definition/coordinator tests, 13 swarm harness tests, the production build, the create-appraisejs test/build
   gates, and the release CI, coordinator-reference, generated-artifact, and package-content checks. The earlier
   release job failure was only the aggregate result of the repaired Root app and security/quality failures.
-- Tranche 6 is in progress. Validation AST publication is invocation-only, capsule materialization seals the exact
-  Step Definition closure, and the runtime dispatches operation, reviewed-extension, and composition definitions
-  from that closure. Authored test cases, template test cases, Step Blocks, feature import/sync, and their UI routes
-  still retain Template Step authority and are the next cutover boundary.
-- Resume with Task 6.1 by moving every authored-step consumer to exact Step Invocations, then delete Template Step
-  writers, routes, registry projections, and persistence instead of retaining compatibility adapters. Tranche 7
-  governance and Tranche 8 release certification remain outstanding.
+- Tranche 6 consumer cutover is complete: authored records, validation ASTs, capsules, and runtime dispatch use exact
+  Step Invocations, and Template Step/Step Block authority has been removed. Tranche 7 receipt, telemetry, and
+  governance work is implemented, including a server-issued exact human review receipt and the absence of MCP,
+  coordinator, and compatibility authority to review, publish, or deprecate.
+- Local Tranche 8 checks are a release candidate, not final lifecycle completion: architecture certification now
+  includes repository-absence and built-in, reviewed-extension, composition, typed-invocation, and human-review
+  paths. The real external Appraise-owned lifecycle named in Task 4.3 remains rollout evidence and this plan must
+  remain in progress until that evidence exists.
 
 Checkpoint commits:
 
@@ -622,13 +625,10 @@ PATCH  /api/step-definitions/drafts/:draftId
 DELETE /api/step-definitions/drafts/:draftId
 POST   /api/step-definitions/drafts/:draftId/validate
 POST   /api/step-definitions/drafts/:draftId/preview
-POST   /api/step-definitions/drafts/:draftId/review
-POST   /api/step-definitions/drafts/:draftId/publish
-POST   /api/step-definitions/:id/versions/:version/deprecate
 ```
 
-Server Actions may adapt the form to these services, but business rules and transitions live in a shared application
-service. Publish uses optimistic draft revision and exact reviewed hash checks.
+Review, publication, and deprecation have no HTTP compatibility routes. Only the human UI Server Action boundary
+issues the local-human receipt and performs those transitions.
 
 ## Agent Command Architecture
 
@@ -640,12 +640,10 @@ step_definition_draft_read
 step_definition_draft_update
 step_definition_draft_validate
 step_definition_draft_preview
-step_definition_draft_submit_for_review
-step_definition_publish
-step_definition_deprecate
 ```
 
-Agents must search ready definitions before creating a draft and provide a structured reuse/overlap justification.
+Agents must search ready definitions before creating a draft and pass bounded server-issued reuse evidence; MCP has no
+review, publish, or deprecate tool.
 The external coding agent may reason about and author metadata, bindings, compositions, examples, and handler code;
 Appraise only accepts those as explicit draft fields and artifacts. Agent-originated publication requires the same
 human review authority as an equivalent human-form draft unless an explicit delegated policy is introduced later.
@@ -1008,8 +1006,9 @@ deprecation flows.
 
 ### Task 4.1: Add bounded MCP draft tools
 
-Expose draft create/read/update/validate/preview/review-submit/publish/deprecate through the shared service and update
-MCP contracts, generated references, response projection, recipes, and skills.
+Expose bounded draft create/read/update/validate/preview and reviewed-extension artifact preparation through the shared
+service and update MCP contracts, generated references, response projection, recipes, and skills. Review receipt
+issuance, publication, and deprecation are human-UI or source-sync boundaries, never MCP mutations.
 
 **Acceptance criteria**
 
@@ -1022,6 +1021,10 @@ MCP contracts, generated references, response projection, recipes, and skills.
 - MCP contract, stdio, HTTP, restart/reconnect, and capability-snapshot tests pass.
 
 ### Task 4.2: Make unified search return one actionable identity
+
+**Progress (2026-07-25):** Reopened after release-gate review. The shared ranking function, plan-aware MCP inputs,
+typed parameter compatibility, exact Step References, and bounded human/agent telemetry are implemented; final
+cross-surface and release-matrix verification remains in Task 8.3.
 
 Rebuild `step_search` over the shared registry and one ranking engine using definition-owned intent metadata and typed
 parameter compatibility.
@@ -1037,6 +1040,11 @@ parameter compatibility.
 - Cross-surface golden-query tests cover synonyms, examples, aliases, parameters, deprecation, and no-match behavior.
 
 ### Task 4.3: Validate a real agent-created definition lifecycle
+
+**Progress (2026-07-25):** Reopened after release-gate review. Agent search, mandatory reuse justification, draft
+authoring, and human-only receipt/publication boundaries are implemented. A live external Appraise-owned lifecycle is
+still required as final rollout evidence; it cannot be substituted by a caller-supplied review authority or an MCP
+publication route.
 
 Use a fresh external target and a real subagent to search, justify, draft, revise after human feedback, publish, use the
 new definition in a Validation AST, execute baseline, and preserve evidence.
@@ -1099,8 +1107,8 @@ compositions, imports, feature generation, and bidirectional sync now persist or
 Feature import fails closed when exact invocation metadata is absent instead of creating or guessing a reusable step.
 Template Step and Template Step Group persistence, writers, routes, generated registry projections, installer
 surfaces, compatibility ledgers, and migration utilities have been deleted. The human editor and dashboard now read
-ready Step Definitions directly. Tranche 6 remains incomplete until the remaining V1 Validation AST and capsule
-contracts described in Tasks 6.2 and 6.3 are removed.
+ready Step Definitions directly. Tasks 6.2 and 6.3 subsequently removed the remaining V1 Validation AST and capsule
+contracts, completing Tranche 6.
 
 Update test cases, template test cases, flow diagrams, parameters, imports/exports, feature generation, and sync to store
 or derive exact Step Invocations.
@@ -1119,10 +1127,9 @@ or derive exact Step Invocations.
 
 ### Task 6.2: Migrate Validation AST and canonical projection
 
-**Progress (2026-07-25):** The v2 AST contract has an invocation-only step shape and the managed projection rejects
-rows without an exact invocation. The compiler resolves exact ready Step Definitions before consulting their sealed
-handler bindings, and runtime-input snapshots carry exact invocations and definition references. Remaining V1 schemas,
-repair paths, type names, and fixtures must be deleted; publication/review certification is still open.
+**Progress (2026-07-25):** Complete. The canonical AST, projection, compiler, snapshots, review, and publication paths
+accept only exact Step Invocations and ready Step Definition references. V1 action, operation, and Template Step
+schemas, repair paths, type names, and fixtures have been removed; legacy inputs fail closed.
 
 Replace operation/action references with Step References and remove reverse Template Step lookup from the canonical
 projection path.
@@ -1139,12 +1146,11 @@ projection path.
 
 ### Task 6.3: Migrate capsule and runtime contracts
 
-**Progress (2026-07-25):** V2 materialization resolves root invocations through the ready-definition registry, seals
-the exact publication-hash closure into the capsule, and generates bindings that call one invocation dispatcher.
-That dispatcher supports trusted operation bindings, reviewed-extension module paths, and ordered compositions with
-parent-input and earlier-output mappings. Focused materializer/browser and dispatcher tests pass. The manifest parser
-still accepts V1 capsules and therefore violates this plan. Baseline, retry, evidence, full publication/review, and
-removal of every V1 schema and fixture are required before Task 6.3 or Checkpoint 6 can be accepted.
+**Progress (2026-07-25):** Reopened after release-gate review. Runtime materialization resolves root invocations
+through the ready-definition registry, seals the exact publication-hash closure into a V2-only capsule, and uses one
+invocation dispatcher for trusted operations, reviewed extensions, and ordered compositions. Generated built-in human
+projections now enter that same dispatcher rather than calling handlers directly; final parity certification remains in
+Task 8.3.
 
 Seal the exact ready definition closure, execution bindings, composition dependencies, locator snapshots, extension
 reviews, and hashes into immutable capsules.
@@ -1169,6 +1175,11 @@ reviews, and hashes into immutable capsules.
 
 ### Task 7.1: Issue executable-readiness receipts
 
+**Progress (2026-07-25):** Reopened after release-gate review. Publication verifies the registered browser adapter,
+canonical handler input/output contract, reviewed-extension conformance, or exact composition closure before deriving
+the immutable readiness receipt. Receipt replay, stale hash, unregistered-handler, and contract-mismatch failures now
+fail before a ready row is written; final release verification remains in Task 8.3.
+
 At publication, resolve definition metadata, projections, handler/composition closure, generated wrapper, runtime
 adapter, and conformance evidence into a durable receipt.
 
@@ -1184,6 +1195,10 @@ adapter, and conformance evidence into a durable receipt.
 
 ### Task 7.2: Add discovery and authoring outcome telemetry
 
+**Progress (2026-07-25):** Complete. The Step Definition telemetry service records bounded discovery, authoring,
+validation, and execution outcomes with shared human/agent vocabulary. Payloads are closed and omit raw prompts,
+inputs, and secrets; telemetry remains observational and cannot alter ranking or publication policy.
+
 Record bounded query, ranking, selection, rejection, custom-draft fallback, validation failure, and execution outcome
 events without storing secrets or unbounded prompts.
 
@@ -1198,6 +1213,12 @@ events without storing secrets or unbounded prompts.
 - Privacy, bounded-payload, metrics, and lifecycle correlation tests pass.
 
 ### Task 7.3: Add governance and permission boundaries
+
+**Progress (2026-07-25):** Reopened after release-gate review. A server-generated immutable receipt binds the exact
+draft revision and hash to `local-human-ui`; caller-provided actor and review-authority strings are not accepted.
+MCP and coordinator routes cannot review, publish, or deprecate, source-owned IDs cannot be interactively claimed,
+and deprecation derives its actor from the human UI boundary. Replay, stale-hash, and route-bypass coverage is part of
+the release matrix.
 
 Enforce reserved namespaces, trusted handler registration, reviewed-extension authority, global-library publication,
 deprecation, and source-owned regeneration rules.
@@ -1220,6 +1241,11 @@ deprecation, and source-owned regeneration rules.
 
 ### Task 8.1: Delete superseded architecture
 
+**Progress (2026-07-25):** Complete. Active Template Step and Step Block models, routes, actions, UI, projections,
+sync, package entry points, compatibility reads, and V1 AST/runtime/capsule contracts are gone. The user-facing editor
+lives at `/step-definitions`; enum, helper, and runtime operation vocabulary is neutralized. Repository scans retain
+only explicit legacy-input rejection coverage and historical ADR prose.
+
 Remove direct Template Step creation/update semantics, operation mapping writes, and Step Block-specific semantic
 authority. Delete Template Step models, relations, migrations-in-progress, routes, actions, UI, projections, sync
 logic, registry packages, compatibility reads, V1 AST/runtime/capsule schemas, legacy projection repair, and fixtures.
@@ -1238,6 +1264,10 @@ Exact published Step Definition references remain resolvable through their immut
 
 ### Task 8.2: Update active documentation, skills, packages, and scaffold
 
+**Progress (2026-07-25):** Complete. Active documentation, package vocabulary, MCP contract fixtures, coordinator
+reference, scaffold template, and Graphify outputs were regenerated from canonical Step Definition source. Root and
+scaffold package checks confirm the generated artifacts are current.
+
 Update architecture, lifecycle, MCP, runtime, authoring, sync, generated-artifact, component, and scaffold documentation
 and regenerate all required outputs from canonical source.
 
@@ -1252,6 +1282,12 @@ and regenerate all required outputs from canonical source.
 - Harness, documentation, artifact, package, scaffold, Graphify, and drift checks pass.
 
 ### Task 8.3: Run the release certification matrix
+
+**Progress (2026-07-25):** Local release certification passes. `npm run step-definition:certify` content-addresses
+runtime evidence for exact built-in invocation, human and agent drafts, reviewed extensions, compositions,
+deprecated dependencies, handler readiness, receipt replay, and publication rollback; the full unit, disposable-DB
+E2E, production build, scaffold, harness, artifact/package, and Graphify gates also pass. The real external
+Appraise-owned lifecycle required by Task 4.3 remains rollout evidence and is not substituted by local fixtures.
 
 Certify built-in, human-created, agent-created, composition, reviewed-extension, deprecated, and failure/recovery
 paths.
@@ -1339,6 +1375,9 @@ paths.
 - Human and agent discovery return the same reference and equivalent ordering.
 - Human and agent authoring create the same Step Invocation.
 - Manual and managed execution use the same binding and handler semantics.
+- Only the human UI (or canonical source synchronization) can issue the immutable review receipt; MCP, coordinator,
+  and HTTP compatibility routes cannot mint authority, publish, or deprecate on a caller's behalf.
+- Publication verifies a registered runtime adapter and canonical handler contract before it creates a ready receipt.
 - No Template Step model, relation, writer, reader, route, projection, or generated registry remains.
 - No V1 Validation AST, runtime-input, capsule-manifest, or legacy projection-repair path remains.
 - Built-ins register directly from canonical Step Definition source.

@@ -25,9 +25,14 @@ export const runtimeCapsuleFilePathSchema = z
     'must not contain empty, current, or parent segments',
   )
 
-const runtimeCapsuleManifestV1Schema = z
+/**
+ * The Step Definition capsule is the only executable capsule format.  Keep the
+ * shared envelope separate from the semantic payload so it cannot accidentally
+ * inherit an operation-rooted compatibility field from the retired manifest.
+ */
+const runtimeCapsuleManifestEnvelopeSchema = z
   .object({
-    schemaVersion: z.literal('1'),
+    schemaVersion: z.literal('2'),
     projectId: runtimeCapsuleSegmentSchema,
     validationHash: runtimeCapsuleHashSchema,
     runId: runtimeCapsuleSegmentSchema,
@@ -35,32 +40,15 @@ const runtimeCapsuleManifestV1Schema = z
     projectionHash: runtimeCapsuleHashSchema,
     receiptHash: runtimeCapsuleHashSchema,
     runtimeInputHash: runtimeCapsuleHashSchema,
-    commandReceipt: z.object({ path: z.literal('command-receipt.json'), hash: runtimeCapsuleHashSchema }).strict(),
-    generator: z
+    lifecycleCorrelation: z
       .object({
-        id: z.literal('appraise.validation-ast-capsule'),
-        version: z.enum(['1', '2']),
+        planId: z.string().regex(/^[a-zA-Z0-9._:-]{1,200}$/),
+        correlationId: z.string().regex(/^[a-zA-Z0-9._:-]{1,100}$/),
       })
-      .strict(),
-    operations: z
-      .array(
-        z
-          .object({
-            id: z.string().regex(/^[a-z0-9]+(?:[.-][a-z0-9]+)*$/),
-            version: z.string().regex(/^\d+(?:\.\d+){0,2}$/),
-            descriptorHash: runtimeCapsuleHashSchema,
-            handler: z
-              .object({
-                id: z.string().regex(/^[a-z0-9]+(?:[.-][a-z0-9]+)*$/),
-                version: z.string().regex(/^\d+(?:\.\d+){0,2}$/),
-                contentHash: runtimeCapsuleHashSchema,
-              })
-              .strict(),
-          })
-          .strict(),
-      )
-      .max(256)
-      .default([]),
+      .strict()
+      .optional(),
+    commandReceipt: z.object({ path: z.literal('command-receipt.json'), hash: runtimeCapsuleHashSchema }).strict(),
+    generator: z.object({ id: z.literal('appraise.validation-ast-capsule'), version: z.literal('2') }).strict(),
     expectedCases: z
       .array(
         z
@@ -109,13 +97,6 @@ const runtimeCapsuleManifestV1Schema = z
     const expectedCaseIds = manifest.expectedCases.map(item => `${item.validationId}/${item.suiteId}/${item.caseId}`)
     if (new Set(expectedCaseIds).size !== expectedCaseIds.length)
       context.addIssue({ code: 'custom', path: ['expectedCases'], message: 'expected cases must be unique' })
-    const operationRefs = manifest.operations.map(item => `${item.id}@${item.version}`)
-    const sortedOperationRefs = [...operationRefs].sort()
-    if (
-      new Set(operationRefs).size !== operationRefs.length ||
-      operationRefs.some((ref, index) => ref !== sortedOperationRefs[index])
-    )
-      context.addIssue({ code: 'custom', path: ['operations'], message: 'operations must be unique and ordered' })
   })
 
 const sealedStepDefinitionSchema = z
@@ -149,11 +130,9 @@ function sealedDefinitionMatchesContent(sealed: z.infer<typeof sealedStepDefinit
   )
 }
 
-const runtimeCapsuleManifestV2Schema = runtimeCapsuleManifestV1Schema
+const runtimeCapsuleManifestSchemaInternal = runtimeCapsuleManifestEnvelopeSchema
   .innerType()
-  .omit({ schemaVersion: true, operations: true })
   .extend({
-    schemaVersion: z.literal('2'),
     rootInvocations: z
       .array(
         z
@@ -184,9 +163,6 @@ const runtimeCapsuleManifestV2Schema = runtimeCapsuleManifestV1Schema
       )
       .max(8)
       .default([]),
-    // Handlers are derived from the sealed definition closure; root semantics
-    // never select an operation directly.
-    operations: runtimeCapsuleManifestV1Schema.innerType().shape.operations,
   })
   .superRefine((manifest, context) => {
     const roots = manifest.rootInvocations.map(
@@ -212,7 +188,8 @@ const runtimeCapsuleManifestV2Schema = runtimeCapsuleManifestV1Schema
         })
   })
 
-export const runtimeCapsuleManifestSchema = z.union([runtimeCapsuleManifestV1Schema, runtimeCapsuleManifestV2Schema])
+/** V1 manifests are deliberately rejected: historical evidence is not executable authority. */
+export const runtimeCapsuleManifestSchema = runtimeCapsuleManifestSchemaInternal
 
 export type RuntimeCapsuleManifest = z.infer<typeof runtimeCapsuleManifestSchema>
 

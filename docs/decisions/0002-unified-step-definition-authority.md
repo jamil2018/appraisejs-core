@@ -9,8 +9,8 @@ an independently identified entity linked to an operation.
 
 ADR-0001 unified built-in handlers and operation invocations, but retained two durable identities:
 `TemplateStep.id` for human authoring and `operationId@version` for agent authoring and execution. Nullable mapping
-fields connect those identities. Consequently, discovery can find a human step that managed authoring cannot invoke,
-and projection can depend on an ambiguous reverse lookup.
+fields connected those identities. Consequently, discovery could find a human step that managed authoring could not
+invoke, and projection could depend on an ambiguous reverse lookup.
 
 ## Decision
 
@@ -31,16 +31,16 @@ Definitions contain inert metadata and an exact execution binding. Executable us
 reviewed, content-addressed extension artifact. Appraise may deterministically generate schemas, adapters, wrappers,
 and handler contracts, but it does not infer semantic intent or implementation logic.
 
-All new authoring stores a `StepInvocation` containing an immutable Step Reference and typed inputs. Historical
-`templateStepId`, `templateStepName`, `operationRef`, and `action` fields are accepted only by bounded compatibility
-decoders during migration.
+All new authoring stores a `StepInvocation` containing an immutable Step Reference and typed inputs. The retired
+`templateStepId`, `templateStepName`, `operationRef`, and `action` fields are rejected. Historical evidence remains
+immutable, but it is not an executable decoder or compatibility authority.
 
 ## Consequences
 
 - Human and agent discovery return the same Step Reference.
 - Ready means the human projection, agent contract, and execution binding were published atomically with a receipt.
 - Editing published content creates a new version; historical tests, capsules, and evidence never silently upgrade.
-- Template Step and operation APIs become compatibility projections rather than semantic writers.
+- Template Step, operation-mapping, and Step Block semantic APIs are removed rather than retained as projections.
 - Built-ins, compositions, and reviewed extensions share one publication and governance boundary.
 
 ## Rejected Alternative
@@ -50,6 +50,8 @@ lookups, nullable readiness state, and independent drift repair paths instead of
 
 ## Rollout
 
-The rollout remains additive until populated-database migration, rollback, and human/agent execution certification
-pass. Compatibility readers remain available during that window, but new ready publication cannot bypass the shared
-registry or exact reviewed-draft hash.
+The unreleased cutover discards pre-unification rows. Ready definitions require their exact publication receipt and
+sealed closure before baseline, implementation validation, or runtime capsule execution can proceed. Built-in source
+namespaces are regeneration-only; interactive authors use the same draft semantics but cannot overwrite source-owned
+identities. Bounded observational telemetry records discovery, authoring, validation, publication, and runtime
+outcomes without changing ranking or publication policy.

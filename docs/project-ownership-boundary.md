@@ -2,7 +2,7 @@
 
 AppraiseJS treats a `TargetProject` as the mandatory isolation boundary for authored data, managed lifecycle state,
 execution, reports, metrics, reviews, integrations, and evidence. System configuration and built-in contract schemas
-remain global. Ready Step Definitions form a shared library visible to every project. Step Blocks and
+remain global. Ready Step Definitions form a shared library visible to every project. Compositions are immutable
 test-case templates remain project-owned and may reference entries from that shared library.
 
 ## Active project resolution
@@ -27,7 +27,7 @@ ID, it must equal the resolved project. Project-sensitive services receive that 
 IDs before reading or mutating related records.
 
 All project-owned application reads and writes are project-scoped. Modules, suites, cases, runs, reports,
-environments, tags, locators, locator groups, case templates, Step Blocks, metrics, and dashboard aggregates are
+environments, tags, locators, locator groups, case templates, metrics, and dashboard aggregates are
 queried through the active project. Creation and update services validate that every project-owned related record
 belongs to the same project before connecting it. Ready Step Definitions are deliberately global;
 their CRUD actions do not require a selected project, and project-owned cases and blocks may reference them. A missing

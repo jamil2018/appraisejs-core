@@ -4,7 +4,7 @@ import {
   TemplateTestCaseStepParameter,
   TemplateTestCaseFlowBlock,
   TemplateTestCaseFlowBlockNode,
-  TemplateStepIcon,
+  StepIcon,
 } from '@prisma/client'
 import { FlowBlock, NodeOrderMap } from '@/types/diagram/diagram'
 import { stepInvocationSchema } from '../../../packages/cucumber-runtime/src/step-definitions/contracts.ts'
@@ -54,7 +54,7 @@ export const templateTestCaseToTestCaseConverter = (
       order: step.order,
       label: step.label,
       gherkinStep: step.gherkinStep,
-      icon: step.icon as TemplateStepIcon,
+      icon: step.icon as StepIcon,
       parameters,
       invocation: stepInvocationSchema.parse(JSON.parse(step.invocationJson)),
     }

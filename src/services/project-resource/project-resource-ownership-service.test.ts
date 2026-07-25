@@ -34,7 +34,7 @@ function ownershipClient() {
     },
     {
       id: 'global-step',
-      entityType: 'template-step',
+      entityType: 'step-definition',
       entityId: 'step-global',
       scope: ResourceScope.global_library,
       targetProjectId: null,
@@ -91,7 +91,7 @@ describe('project resource ownership', () => {
     await importGlobalResource(
       {
         targetProjectId: 'project-a',
-        entityType: 'template-step',
+        entityType: 'step-definition',
         entityId: 'step-global',
         sharingMode: 'immutable_reference',
         actor: 'coordinator-a',

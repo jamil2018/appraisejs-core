@@ -10,7 +10,6 @@ describe('getSidebarNavigationSections', () => {
 
     expect(library?.items.map(item => item.label)).toEqual([
       'Step Definitions',
-      'Step Blocks',
       'Case Templates',
       'Locators',
       'Locator Groups',

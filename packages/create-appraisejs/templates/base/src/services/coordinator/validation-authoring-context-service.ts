@@ -12,11 +12,11 @@ import {
 import { validationAstSubmissionSchema, type ValidationAstSubmission } from '@/lib/validation-ast/schemas'
 import { PlanArtifactRepository } from '@/lib/plans/artifact-repository'
 import { findProjectRoot } from '@/lib/plans/project-root'
-import { stepDiscoveryTerms } from '@/lib/step-discovery'
 import {
-  computeStepReferenceHash,
-  stepDefinitionSchema,
-} from '../../../packages/cucumber-runtime/src/step-definitions/index.ts'
+  parseReadyStepDefinition,
+  searchReadyStepDefinitions,
+  type ReadyStepDefinitionRow,
+} from '@/services/step-definition/ready-step-definition-search-index'
 import {
   readVisibleResourceOwnerships,
   type ProjectResourceEntityType,
@@ -30,99 +30,15 @@ function hashContent(content: string) {
   return `sha256:${createHash('sha256').update(content).digest('hex')}`
 }
 
-function normalizedWords(value: string) {
-  return value
-    .toLowerCase()
-    .split(/[^a-z0-9]+/)
-    .filter(Boolean)
-}
-
-function scoreIntent(candidate: string, intent: string) {
-  const ignored = new Set(['and', 'the', 'then', 'when', 'with', 'from', 'into', 'that', 'this', 'step', 'user'])
-  const tokens = (value: string) =>
-    new Set([...stepDiscoveryTerms(value)].filter(part => part.length > 2 && !ignored.has(part)))
-  const normalizedCandidate = normalizedWords(candidate).join(' ')
-  const normalizedIntent = normalizedWords(intent).join(' ')
-  const candidateTokens = tokens(candidate)
-  const intentTokens = tokens(intent)
-  const matchedTerms = [...intentTokens].filter(token => candidateTokens.has(token))
-  const intentWords = [...intentTokens]
-  const matchedPhrases = intentWords
-    .slice(0, -1)
-    .map((word, index) => `${word} ${intentWords[index + 1]}`)
-    .filter(phrase => normalizedCandidate.includes(phrase))
-  const exactPhrase = normalizedCandidate === normalizedIntent
-  const containedPhrase = !exactPhrase && normalizedIntent.length > 0 && normalizedCandidate.includes(normalizedIntent)
-  const phraseScore = exactPhrase ? 8 : containedPhrase ? 5 : matchedPhrases.length * 2
-  return {
-    score: matchedTerms.length + phraseScore,
-    confidence:
-      intentTokens.size === 0
-        ? 0
-        : Math.min(1, matchedTerms.length / intentTokens.size + (exactPhrase ? 0.4 : containedPhrase ? 0.25 : 0)),
-    matchedTerms,
-    matchedPhrases,
-    exactPhrase,
-  }
-}
-
-type ReadyStepDefinition = {
-  id: string
-  version: string
-  title: string
-  description: string
-  definitionJson: string
-}
-
-function parseReadyStepDefinition(row: ReadyStepDefinition) {
-  const definition = stepDefinitionSchema.parse(JSON.parse(row.definitionJson))
-  return {
-    step: { id: row.id, version: row.version, definitionHash: computeStepReferenceHash(definition) },
-    title: row.title,
-    description: row.description,
-    agent: definition.agent,
-    human: definition.human,
-    inputs: definition.inputs,
-    outputs: definition.outputs,
-  }
-}
+type ReadyStepDefinition = ReadyStepDefinitionRow
 
 export function rankReadyStepDefinitions(
   definitions: ReadyStepDefinition[],
   intent: string,
   parameterNames: string[] = [],
+  includeUnmatched = false,
 ) {
-  const requestedParameters = new Set(parameterNames.map(name => name.trim().toLowerCase()).filter(Boolean))
-  return definitions
-    .map(row => {
-      const value = parseReadyStepDefinition(row)
-      const match = scoreIntent(`${value.title} ${value.description} ${JSON.stringify(value.agent)}`, intent)
-      const availableParameters = value.inputs.map(input => input.name.toLowerCase())
-      const namedMatches = [...requestedParameters].filter(name => availableParameters.includes(name)).length
-      const positionalFallback =
-        requestedParameters.size > 0 && namedMatches === 0 && availableParameters.length >= requestedParameters.size
-          ? 0.25
-          : 0
-      const compatibleParameterCount = namedMatches + positionalFallback
-      const parameterCompatibility =
-        requestedParameters.size === 0 ? 1 : compatibleParameterCount / requestedParameters.size
-      const confidence = Math.min(1, match.confidence * 0.8 + parameterCompatibility * 0.2)
-      return {
-        value,
-        score: match.score + namedMatches * 2 + positionalFallback,
-        confidence,
-        matchedTerms: match.matchedTerms,
-        parameterCompatibility,
-        explanation: `Matched ${match.matchedTerms.length} intent term(s) and ${match.matchedPhrases.length} ordered phrase(s); ${namedMatches}/${requestedParameters.size} requested parameter name(s) match the ready Step Definition.`,
-      }
-    })
-    .filter(candidate => candidate.score > 0)
-    .sort(
-      (left, right) =>
-        right.score - left.score ||
-        right.confidence - left.confidence ||
-        left.value.title.localeCompare(right.value.title),
-    )
+  return searchReadyStepDefinitions(definitions, { intent, parameterNames, includeUnmatched })
 }
 
 async function readPlanContext(planId: string, options: Options = {}) {
@@ -163,13 +79,17 @@ export async function resolveReusableValidationSteps(
   options: Options = {},
 ) {
   const startedAt = Date.now()
-  const { client } = await readPlanContext(planId, options)
+  const { client, plan } = await readPlanContext(planId, options)
   const definitions = await client.stepDefinition.findMany({
     where: { status: 'ready' },
     select: { id: true, version: true, title: true, description: true, definitionJson: true },
     orderBy: [{ id: 'asc' }, { version: 'asc' }],
   })
-  const ranked = rankReadyStepDefinitions(definitions, input.intent, input.parameterNames)
+  const ranked = searchReadyStepDefinitions(definitions, {
+    intent: input.intent,
+    parameterNames: input.parameterNames,
+    planContext: JSON.stringify(plan),
+  })
   const limit = Math.min(Math.max(input.limit ?? 5, 1), 25)
   const threshold = 0.5
   const steps = ranked.slice(0, limit).map(({ value, ...match }, index) => ({

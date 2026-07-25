@@ -45,7 +45,7 @@ function operation(overrides: Partial<OperationDefinition> = {}): OperationDefin
       examples: [{ description: 'Click submit.', inputs: { target: 'submit-button' } }],
     },
     agentSurface: { status: 'supported' },
-    aliases: [{ kind: 'template-step-slug', value: 'click/click', surface: 'human' }],
+    aliases: [{ kind: 'step-definition-slug', value: 'click/click', surface: 'human' }],
     deprecated: false,
     ...overrides,
   }
@@ -129,7 +129,7 @@ describe('operation registry', () => {
       nextCursor: null,
     })
     expect(registry.read([{ id: 'browser.mouse.click', version: '1' }])[0]?.descriptorHash).toMatch(/^sha256:/)
-    expect(registry.resolveAlias('template-step-slug', 'click/click', 'human')?.id).toBe('browser.mouse.click')
+    expect(registry.resolveAlias('step-definition-slug', 'click/click', 'human')?.id).toBe('browser.mouse.click')
   })
 
   it('rejects duplicate identities and ambiguous aliases', () => {

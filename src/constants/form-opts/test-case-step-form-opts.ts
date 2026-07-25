@@ -1,4 +1,4 @@
-import { StepParameterType, TemplateStepIcon } from '@prisma/client'
+import { StepParameterType, StepIcon } from '@prisma/client'
 import { z } from 'zod'
 import { stepInvocationSchema } from '../../../packages/cucumber-runtime/src/step-definitions/contracts.ts'
 
@@ -12,7 +12,7 @@ const testCaseStepSchema = z.object({
   nodeId: z.string().optional(),
   gherkinStep: z.string(),
   label: z.string(),
-  icon: z.nativeEnum(TemplateStepIcon),
+  icon: z.nativeEnum(StepIcon),
   parameters: z.array(
     z.object({
       name: z.string(),

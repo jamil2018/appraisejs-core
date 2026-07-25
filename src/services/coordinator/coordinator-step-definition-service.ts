@@ -1,11 +1,17 @@
 import { z } from 'zod'
+import { randomUUID } from 'node:crypto'
 
-import { computeStepReferenceHash } from '../../../packages/cucumber-runtime/src/step-definitions/index.ts'
 import prisma from '@/config/db-config'
 import { normalizeCompositionChildren } from '@/lib/step-definition/composition-authoring'
 import { ServiceError } from '@/services/shared/errors'
 import { StepDefinitionExtensionService } from '@/services/step-definition/step-definition-extension-service'
 import { StepDefinitionRegistryService } from '@/services/step-definition/step-definition-registry-service'
+import { recordStepDefinitionTelemetry } from '@/services/step-definition/step-definition-telemetry'
+import {
+  createReadySearchEvidence,
+  readyStepDefinitionSearchIndexHash,
+  searchReadyStepDefinitions,
+} from '@/services/step-definition/ready-step-definition-search-index'
 
 type StepDefinitionReadResult = {
   body: unknown
@@ -20,6 +26,23 @@ type StepDefinitionServices = {
   extensions: StepDefinitionExtensionService
   registry: StepDefinitionRegistryService
 }
+
+const telemetrySurfaceSchema = z.enum(['human', 'agent'])
+const correlationIdSchema = z.string().regex(/^[a-zA-Z0-9._:-]{1,100}$/)
+const telemetryStepSchema = z.object({ id: z.string().min(1).max(200), version: z.string().min(1).max(40) })
+const selectionRejectionSchema = z.object({
+  surface: telemetrySurfaceSchema,
+  step: telemetryStepSchema.optional(),
+  reason: z.enum(['unusable_result', 'parameter_mismatch', 'overlap', 'runtime_readiness']),
+  correlationId: correlationIdSchema.optional(),
+  planId: z.string().min(1).max(200).optional(),
+})
+const selectionAcceptedSchema = z.object({
+  surface: telemetrySurfaceSchema,
+  step: telemetryStepSchema,
+  correlationId: correlationIdSchema.optional(),
+  planId: z.string().min(1).max(200).optional(),
+})
 
 type ReadOperationHandler = (
   services: StepDefinitionServices,
@@ -37,35 +60,87 @@ function operationNotFound(): never {
   throw new ServiceError('Coordinator API operation not found.', 'NOT_FOUND')
 }
 
+// Search binds bounded request context, full ready-index ranking, and privacy-safe lifecycle telemetry.
+// fallow-ignore-next-line complexity
 async function searchDefinitions(
   { registry }: StepDefinitionServices,
   _operation: string[],
   search: URLSearchParams,
 ): Promise<StepDefinitionReadResult> {
-  const definitions = await registry.list({
-    status: 'ready',
-    query: search.get('query') ?? undefined,
-    limit: z.coerce.number().int().positive().max(25).catch(5).parse(search.get('limit')),
+  const surface = telemetrySurfaceSchema.catch('agent').parse(search.get('surface'))
+  const parameterNames = (search.get('parameterNames') ?? '')
+    .split(',')
+    .map(name => name.trim())
+    .filter(Boolean)
+    .slice(0, 32)
+  const planId = search.get('planId')
+  const correlationId = search.get('correlationId')
+    ? correlationIdSchema.parse(search.get('correlationId'))
+    : randomUUID()
+  let planContext: string | undefined
+  if (planId) {
+    const plan = await prisma.planProjection.findUnique({
+      where: { planId },
+      select: { planId: true, tasks: { select: { title: true, description: true, validationIntent: true } } },
+    })
+    if (!plan) throw new ServiceError('Step discovery plan scope was not found.', 'NOT_FOUND')
+    planContext = JSON.stringify(plan.tasks)
+  }
+  const definitions = await registry.listReadyForSearch()
+  const limit = z.coerce.number().int().positive().max(25).catch(5).parse(search.get('limit'))
+  const query = search.get('query') ?? ''
+  const ranked = searchReadyStepDefinitions(definitions, {
+    intent: query,
+    parameterNames,
+    planContext,
+    includeUnmatched: !query,
+  }).slice(0, limit)
+  await recordStepDefinitionTelemetry(prisma, {
+    surface,
+    outcome: ranked.length ? 'query_match' : 'query_no_match',
+    correlationId,
+    ...(planId ? { planId } : {}),
+    payload: ranked.length ? { candidateCount: ranked.length } : { reason: 'no_match' },
+  })
+  const reuseEvidence = createReadySearchEvidence({
+    indexHash: readyStepDefinitionSearchIndexHash(definitions),
+    searchedAt: new Date().toISOString(),
+    correlationId,
+    ...(planId ? { planId } : {}),
+    candidateReferences: ranked.map(item => ({ id: item.value.step.id, version: item.value.step.version })),
+  })
+  const receipt = await prisma.stepDefinitionSearchReceipt.create({
+    data: {
+      indexHash: reuseEvidence.indexHash,
+      candidateReferencesJson: JSON.stringify(reuseEvidence.candidateReferences),
+      correlationId,
+      ...(planId ? { planId } : {}),
+      expiresAt: new Date(Date.now() + 30 * 60 * 1000),
+    },
   })
   return {
     body: {
-      matches: definitions.map(item => {
-        const definition = JSON.parse(item.definitionJson)
+      reuseEvidence: { ...reuseEvidence, receiptId: receipt.id },
+      matches: ranked.map(({ value: item, confidence, explanation, parameterCompatibility }, index) => {
         return {
-          step: { id: item.id, version: item.version, definitionHash: computeStepReferenceHash(definition) },
+          step: item.step,
           title: item.title,
           description: item.description,
-          human: item.humanProjection ? JSON.parse(item.humanProjection.projectionJson) : null,
-          agent: definition.agent,
-          inputs: definition.inputs,
-          outputs: definition.outputs,
-          executionReadiness: item.executionBinding ? 'ready' : 'unbound',
+          human: item.human,
+          agent: item.agent,
+          inputs: item.inputs,
+          outputs: item.outputs,
+          executionReadiness: 'ready',
           hashes: {
-            definition: item.definitionHash,
-            humanProjection: item.humanProjectionHash,
-            agentContract: item.agentContractHash,
-            execution: item.executionHash,
+            definition: item.integrity.definitionHash,
+            humanProjection: item.integrity.humanProjectionHash,
+            agentContract: item.integrity.agentContractHash,
+            execution: item.integrity.executionHash,
           },
+          rank: index + 1,
+          confidence,
+          parameterCompatibility,
+          explanation,
         }
       }),
       nextRecommendedAction: 'Use the returned Step Reference directly in managed authoring.',
@@ -102,7 +177,31 @@ async function createDraft(
   _operation: string[],
   body: unknown,
 ): Promise<StepDefinitionWriteResult> {
-  return { body: await registry.createDraft(normalizeDraftComposition(body)), status: 201 }
+  const input = z
+    .object({
+      definition: z.unknown(),
+      reuseJustification: z.string().trim().min(1).max(2_000).optional(),
+      reuseEvidence: z
+        .object({
+          indexHash: z.string().regex(/^sha256:[a-f0-9]{64}$/),
+          searchedAt: z.string().datetime(),
+          planId: z.string().min(1).max(200).optional(),
+          candidateReferences: z.array(telemetryStepSchema).max(25),
+          correlationId: correlationIdSchema,
+          receiptId: z.string().uuid(),
+          reuseJustification: z.string().trim().min(1).max(2_000),
+        })
+        .optional(),
+    })
+    .safeParse(body)
+  return {
+    body: await registry.createDraft(
+      normalizeDraftComposition(input.success ? input.data.definition : body),
+      input.success ? input.data.reuseJustification : undefined,
+      { reuseEvidence: input.success ? input.data.reuseEvidence : undefined },
+    ),
+    status: 201,
+  }
 }
 
 function normalizeDraftComposition(value: unknown) {
@@ -130,20 +229,6 @@ const draftActionHandlers: Record<string, DraftActionHandler> = {
   },
   validate: async ({ registry }, draftId) => ({ body: await registry.validateDraft(draftId) }),
   preview: async ({ registry }, draftId) => ({ body: await registry.previewDraft(draftId) }),
-  review: async ({ registry }, draftId, input) => ({
-    body: await registry.submitForReview(
-      draftId,
-      input.expectedRevision,
-      z.string().min(1).parse(input.reviewAuthority),
-    ),
-  }),
-  publish: async ({ registry }, draftId, input) => ({
-    body: await registry.publishDraft({
-      draftId,
-      expectedRevision: input.expectedRevision,
-      conformanceRunId: z.string().min(1).parse(input.conformanceRunId),
-    }),
-  }),
   artifact: async ({ extensions }, draftId, input) => ({
     body: await extensions.saveDraftArtifact(draftId, input.expectedRevision, input.artifact),
   }),
@@ -166,12 +251,6 @@ async function writeDraft(
   return handler(services, draftId, input)
 }
 
-const definitionActionInput = z.object({
-  reason: z.string().min(1),
-  actor: z.string().min(1),
-  replacement: z.object({ id: z.string(), version: z.string() }).optional(),
-})
-
 type DefinitionActionHandler = (
   services: StepDefinitionServices,
   stepId: string,
@@ -180,9 +259,6 @@ type DefinitionActionHandler = (
 ) => Promise<StepDefinitionWriteResult>
 
 const definitionActionHandlers: Record<string, DefinitionActionHandler> = {
-  deprecate: async ({ registry }, stepId, version, body) => ({
-    body: await registry.deprecate({ stepId, version, ...definitionActionInput.parse(body) }),
-  }),
   version: async ({ registry }, stepId, version, body) => ({
     body: await registry.createVersionDraft({
       stepId,
@@ -226,6 +302,32 @@ function createCoordinatorStepDefinitionService() {
       const handler = writeOperationHandlers[operation[1]]
       if (!handler) return operationNotFound()
       return handler(services, operation, body)
+    },
+
+    async recordSelectionRejected(input: unknown) {
+      const event = selectionRejectionSchema.parse(input)
+      await recordStepDefinitionTelemetry(prisma, {
+        surface: event.surface,
+        outcome: 'selection_rejected',
+        ...(event.step ? { step: event.step } : {}),
+        ...(event.correlationId ? { correlationId: event.correlationId } : {}),
+        ...(event.planId ? { planId: event.planId } : {}),
+        payload: { reason: event.reason },
+      })
+      return { recorded: true }
+    },
+
+    async recordSelectionSelected(input: unknown) {
+      const event = selectionAcceptedSchema.parse(input)
+      await recordStepDefinitionTelemetry(prisma, {
+        surface: event.surface,
+        outcome: 'selection_selected',
+        step: event.step,
+        ...(event.correlationId || event.planId ? { correlationId: event.correlationId ?? `plan:${event.planId}` } : {}),
+        ...(event.planId ? { planId: event.planId } : {}),
+        payload: {},
+      })
+      return { recorded: true }
     },
   }
 }
