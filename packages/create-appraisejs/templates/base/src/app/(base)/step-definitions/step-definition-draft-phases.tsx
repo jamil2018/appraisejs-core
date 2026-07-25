@@ -12,18 +12,7 @@ import {
   type ReactElement,
   type SetStateAction,
 } from 'react'
-import {
-  AlertCircle,
-  Check,
-  CheckCircle2,
-  ChevronLeft,
-  ChevronRight,
-  ChevronsUpDown,
-  Code2,
-  Layers3,
-  Save,
-  Settings2,
-} from 'lucide-react'
+import { AlertCircle, CheckCircle2, ChevronLeft, ChevronRight, Code2, Layers3, Save, Settings2 } from 'lucide-react'
 
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import {
@@ -32,10 +21,8 @@ import {
 } from '@/actions/step-definition/step-definition-actions'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Progress } from '@/components/ui/progress'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
@@ -45,8 +32,7 @@ import {
   normalizeCompositionChildren,
   type ReadyCompositionChildContract,
 } from '@/lib/step-definition/composition-authoring'
-import { reconcileNamedInputs, type DraftDefinition } from './step-definition-draft-helpers'
-import type { StepDefinitionEditorGroup } from './step-definition-draft-editor'
+import { reconcileNamedInputs, updateStepInputType, type DraftDefinition } from './step-definition-draft-helpers'
 
 type SetDefinition = Dispatch<SetStateAction<DraftDefinition>>
 type PatchDefinition = (patch: Partial<DraftDefinition>) => void
@@ -93,13 +79,11 @@ type WizardProps = {
   draft: DraftReference
   exampleName: string
   generatedContract: string
-  groups: StepDefinitionEditorGroup[]
   handlerSource: string
   onCompile: () => void
   onPersist: () => Promise<{ id: string; revision: number } | null>
   onReviewAndPublish: () => void
   patchDefinition: PatchDefinition
-  patchHuman: (patch: Partial<DraftDefinition['human']>) => void
   patchIntent: (patch: Partial<DraftDefinition['intent']>) => void
   preview: unknown
   setDefinition: SetDefinition
@@ -228,9 +212,7 @@ function WizardPhase(props: WizardPhaseProps) {
     return (
       <DefinePhase
         definition={props.definition}
-        groups={props.groups}
         patchDefinition={props.patchDefinition}
-        patchHuman={props.patchHuman}
         patchIntent={props.patchIntent}
         setDefinition={props.setDefinition}
       />
@@ -252,10 +234,12 @@ function WizardPhase(props: WizardPhaseProps) {
         busy={props.busy}
         conformancePassed={props.conformancePassed}
         diagnostics={props.diagnostics}
+        definition={props.definition}
         exampleName={props.exampleName}
         executionKind={props.definition.execution.kind}
         onCompile={props.onCompile}
         setExampleName={props.setExampleName}
+        setDefinition={props.setDefinition}
       />
     )
   return (
@@ -305,16 +289,12 @@ function WizardFooter({
 
 export function DefinePhase({
   definition,
-  groups,
   patchDefinition,
-  patchHuman,
   patchIntent,
   setDefinition,
 }: {
   definition: DraftDefinition
-  groups: StepDefinitionEditorGroup[]
   patchDefinition: PatchDefinition
-  patchHuman: (patch: Partial<DraftDefinition['human']>) => void
   patchIntent: (patch: Partial<DraftDefinition['intent']>) => void
   setDefinition: SetDefinition
 }) {
@@ -327,13 +307,6 @@ export function DefinePhase({
             value={definition.intent.title}
             placeholder="e.g. Send account notification"
             onChange={event => patchIntent({ title: event.target.value })}
-          />
-        </Field>
-        <Field label="Group">
-          <StepGroupPicker
-            groups={groups}
-            value={definition.human.groupId}
-            onValueChange={groupId => patchHuman({ groupId })}
           />
         </Field>
         <Field label="Purpose" wide>
@@ -373,11 +346,7 @@ export function DefinePhase({
               <Select
                 value={input.type}
                 onValueChange={value =>
-                  patchDefinition({
-                    inputs: definition.inputs.map((item, itemIndex) =>
-                      itemIndex === index ? { ...item, type: value as typeof item.type } : item,
-                    ),
-                  })
+                  setDefinition(current => updateStepInputType(current, input.name, value as typeof input.type))
                 }
               >
                 <SelectTrigger>
@@ -866,25 +835,62 @@ export function VerifyPhase({
   busy,
   conformancePassed,
   diagnostics,
+  definition,
   exampleName,
   executionKind,
   onCompile,
   setExampleName,
+  setDefinition,
 }: {
   busy: boolean
   conformancePassed: boolean
   diagnostics: string[]
+  definition: DraftDefinition
   exampleName: string
   executionKind: DraftDefinition['execution']['kind']
   onCompile: () => void
   setExampleName: Dispatch<SetStateAction<string>>
+  setDefinition: SetDefinition
 }) {
+  const exampleInputs = definition.agent.examples[0]?.inputs ?? {}
+  const [invalidExamples, setInvalidExamples] = useState<Set<string>>(() => new Set())
+  const setExampleInput = (name: string, value: unknown) =>
+    setDefinition(current => ({
+      ...current,
+      agent: {
+        ...current.agent,
+        examples: current.agent.examples.map((example, index) =>
+          index === 0 ? { ...example, inputs: { ...example.inputs, [name]: value } } : example,
+        ),
+      },
+    }))
   return (
     <div className="space-y-4">
       <Field label="Example name">
         <Input required value={exampleName} onChange={event => setExampleName(event.target.value)} />
       </Field>
-      <Button type="button" onClick={onCompile} disabled={busy || executionKind !== 'reviewed-extension'}>
+      {definition.inputs.map(input => (
+        <ExampleInputField
+          key={`${input.name}:${input.type}`}
+          input={input}
+          value={exampleInputs[input.name]}
+          onChange={value => setExampleInput(input.name, value)}
+          onValidityChange={valid => {
+            if (!valid) setDefinition(current => ({ ...current }))
+            setInvalidExamples(current => {
+              const next = new Set(current)
+              if (valid) next.delete(input.name)
+              else next.add(input.name)
+              return next
+            })
+          }}
+        />
+      ))}
+      <Button
+        type="button"
+        onClick={onCompile}
+        disabled={busy || invalidExamples.size > 0 || executionKind !== 'reviewed-extension'}
+      >
         <Code2 className="size-4" />
         Compile and run conformance
       </Button>
@@ -894,10 +900,113 @@ export function VerifyPhase({
         <AlertDescription>
           {diagnostics.length
             ? diagnostics.join(' ')
-            : 'Save and compile the handler to produce diagnostics and conformance evidence.'}
+            : conformancePassed
+              ? 'The saved handler compiled successfully and every configured example passed conformance.'
+              : 'Save and compile the handler to produce diagnostics and conformance evidence.'}
         </AlertDescription>
       </Alert>
     </div>
+  )
+}
+
+function ExampleInputField({
+  input,
+  onChange,
+  onValidityChange,
+  value,
+}: {
+  input: DraftDefinition['inputs'][number]
+  onChange: (value: unknown) => void
+  onValidityChange: (valid: boolean) => void
+  value: unknown
+}) {
+  const label = `Example ${input.label || input.name}`
+  if (input.type === 'boolean') return <BooleanExampleInput label={label} onChange={onChange} value={value} />
+  if (input.type === 'json')
+    return <JsonExampleInput label={label} onChange={onChange} onValidityChange={onValidityChange} value={value} />
+  return <ScalarExampleInput input={input} label={label} onChange={onChange} value={value} />
+}
+
+function BooleanExampleInput({
+  label,
+  onChange,
+  value,
+}: {
+  label: string
+  onChange: (value: unknown) => void
+  value: unknown
+}) {
+  return (
+    <Field label={label}>
+      <Select value={String(value)} onValueChange={next => onChange(next === 'true')}>
+        <SelectTrigger>
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="true">true</SelectItem>
+          <SelectItem value="false">false</SelectItem>
+        </SelectContent>
+      </Select>
+    </Field>
+  )
+}
+
+function JsonExampleInput({
+  label,
+  onChange,
+  onValidityChange,
+  value,
+}: {
+  label: string
+  onChange: (value: unknown) => void
+  onValidityChange: (valid: boolean) => void
+  value: unknown
+}) {
+  const [text, setText] = useState(() => JSON.stringify(value, null, 2))
+  const [error, setError] = useState('')
+  const update = (next: string) => {
+    setText(next)
+    try {
+      onChange(JSON.parse(next))
+      setError('')
+      onValidityChange(true)
+    } catch {
+      setError('Enter a valid JSON example before compiling.')
+      onValidityChange(false)
+    }
+  }
+  return (
+    <Field label={label}>
+      <Textarea aria-invalid={Boolean(error)} value={text} onChange={event => update(event.target.value)} />
+      {error ? (
+        <p role="alert" className="text-xs text-destructive">
+          {error}
+        </p>
+      ) : null}
+    </Field>
+  )
+}
+
+function ScalarExampleInput({
+  input,
+  label,
+  onChange,
+  value,
+}: {
+  input: DraftDefinition['inputs'][number]
+  label: string
+  onChange: (value: unknown) => void
+  value: unknown
+}) {
+  return (
+    <Field label={label}>
+      <Input
+        required={input.required}
+        type={input.type === 'number' ? 'number' : 'text'}
+        value={typeof value === 'string' || typeof value === 'number' ? value : ''}
+        onChange={event => onChange(input.type === 'number' ? Number(event.target.value) : event.target.value)}
+      />
+    </Field>
   )
 }
 
@@ -953,83 +1062,5 @@ function CodePanel({ label, value }: { label: string; value: string }) {
         {value}
       </pre>
     </div>
-  )
-}
-function StepGroupPicker({
-  groups,
-  value,
-  onValueChange,
-}: {
-  groups: StepDefinitionEditorGroup[]
-  value: string
-  onValueChange: (value: string) => void
-}) {
-  const [open, setOpen] = useState(false)
-  const listId = useId()
-  const selected = groups.find(group => group.name === value)
-  return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <Button
-          type="button"
-          variant="outline"
-          role="combobox"
-          aria-label="Group"
-          aria-required="true"
-          aria-expanded={open}
-          aria-controls={listId}
-          className="h-9 w-full justify-between border-white/[0.1] bg-white/[0.02] px-3 py-1 text-left font-normal hover:border-white/[0.16] hover:bg-white/[0.035]"
-        >
-          {selected ? (
-            <span className="min-w-0 truncate text-sm text-zinc-100">{selected.name}</span>
-          ) : (
-            <span className="text-sm text-zinc-500">Choose where this step belongs</span>
-          )}
-          <ChevronsUpDown className="ml-3 size-4 shrink-0 text-zinc-500" />
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent
-        align="start"
-        className="w-[var(--radix-popover-trigger-width)] border-white/[0.12] bg-[rgba(16,30,50,0.98)] p-0 shadow-[0_18px_50px_rgba(0,0,0,0.4)]"
-      >
-        <Command>
-          <CommandInput placeholder="Search step groups…" />
-          <CommandList id={listId} className="max-h-72">
-            <CommandEmpty>No matching step group.</CommandEmpty>
-            <CommandGroup heading={`${groups.length} shared groups`}>
-              {groups.map(group => (
-                <CommandItem
-                  key={group.id}
-                  value={`${group.name} ${group.type} ${group.description ?? ''}`}
-                  onSelect={() => {
-                    onValueChange(group.name)
-                    setOpen(false)
-                  }}
-                  className="items-start py-2.5"
-                >
-                  <div className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-md border border-indigo-500/20 bg-indigo-500/[0.05] text-indigo-300">
-                    <Layers3 className="size-4" />
-                  </div>
-                  <span className="min-w-0 flex-1">
-                    <span className="flex items-center gap-2">
-                      <span className="truncate font-medium text-zinc-100">{group.name}</span>
-                      <span className="rounded border border-white/[0.08] bg-white/[0.03] px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-zinc-500">
-                        {group.type}
-                      </span>
-                    </span>
-                    <span className="mt-0.5 line-clamp-2 block text-xs leading-4 text-zinc-400">
-                      {group.description || 'Reusable steps grouped by this behavior.'}
-                    </span>
-                  </span>
-                  <Check
-                    className={cn('mt-1 size-4 text-primary', value === group.name ? 'opacity-100' : 'opacity-0')}
-                  />
-                </CommandItem>
-              ))}
-            </CommandGroup>
-          </CommandList>
-        </Command>
-      </PopoverContent>
-    </Popover>
   )
 }

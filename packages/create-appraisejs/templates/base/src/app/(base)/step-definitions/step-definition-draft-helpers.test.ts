@@ -26,6 +26,16 @@ describe('Step Definition draft helpers', () => {
       { placeholder: 'recipient', input: 'recipient' },
       { placeholder: 'message', input: 'message' },
     ])
+    expect(reordered.agent.examples[0]?.inputs).toEqual({ recipient: 'recipient', message: 'message' })
+  })
+
+  it('synchronizes required agent example values with named inputs and removes stale values', () => {
+    const initial = reconcileNamedInputs(createHumanStepDraft(), 'I greet {personName} {repeatCount}')
+    initial.agent.examples[0]!.inputs.personName = 'Ada'
+
+    const reconciled = reconcileNamedInputs(initial, 'I greet {personName}')
+
+    expect(reconciled.agent.examples[0]?.inputs).toEqual({ personName: 'Ada' })
   })
 
   it('generates deterministic contract source from typed inputs', () => {
@@ -46,6 +56,14 @@ describe('Step Definition draft helpers', () => {
     expect(managed.identity).toMatchObject({ id: 'custom.send-account-notification', version: '1' })
     expect(managed.intent.searchTerms).toEqual(expect.arrayContaining(['send', 'account', 'notification', 'notify']))
     expect(managed.execution).toMatchObject({ extensionId: managed.identity.id, extensionVersion: '1' })
+    expect(managed.human.groupId).toBe('custom')
+  })
+
+  it('restores internal grouping metadata for drafts created before groups were removed from authoring', () => {
+    const draft = createHumanStepDraft()
+    draft.human.groupId = ''
+
+    expect(applyManagedStepMetadata(draft).human.groupId).toBe('custom')
   })
 
   it('replaces arbitrary human-form capabilities with the selected execution runtime', () => {

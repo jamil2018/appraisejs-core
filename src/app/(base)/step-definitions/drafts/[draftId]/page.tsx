@@ -25,7 +25,6 @@ export default async function ResumeStepDefinitionDraftPage({ params }: { params
         ...draft,
         artifact: artifactResponse.success ? (artifactResponse.data as StepDefinitionEditorDraft['artifact']) : null,
       }}
-      groups={[]}
     />
   )
 }

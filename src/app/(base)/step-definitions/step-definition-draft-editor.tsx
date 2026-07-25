@@ -31,7 +31,6 @@ export type StepDefinitionEditorDraft = {
   definition: DraftDefinition
   artifact?: { handlerSource?: string; examples?: Array<{ name?: string }> } | null
 }
-export type StepDefinitionEditorGroup = { id: string; name: string; type: string; description: string | null }
 type DraftRecord = { id: string; revision: number; definition?: DraftDefinition }
 type CompileData = { revision?: number; diagnostics?: string[]; conformance?: { passed?: boolean } }
 type CompiledDraftState = Pick<CompileData, 'diagnostics' | 'conformance'> & {
@@ -45,6 +44,10 @@ type DiagnosticsSetter = (diagnostics: string[]) => void
 type PreviewSetter = (preview: unknown) => void
 type Router = { push: (href: string) => void }
 
+function sameDefinition(left: DraftDefinition | undefined, right: DraftDefinition) {
+  return left !== undefined && JSON.stringify(left) === JSON.stringify(right)
+}
+
 function actionError(response: ActionResponse) {
   return response.error ?? response.message ?? 'The Step Definition request failed.'
 }
@@ -53,7 +56,6 @@ function hasDefinitionDetails(definition: DraftDefinition) {
   return Boolean(
     definition.intent.title.trim() &&
     definition.intent.description.trim() &&
-    definition.human.groupId.trim() &&
     definition.human.signature.trim() &&
     definition.inputs.every(input => input.description.trim()),
   )
@@ -123,6 +125,7 @@ async function persistDraft({
   setDraft: DraftSetter
 }): Promise<DraftRecord | null> {
   if (!canSave) return null
+  if (draft && sameDefinition(draft.definition, managedDefinition)) return draft
   setBusy(true)
   const response = draft
     ? await reviseStepDefinitionDraftAction({
@@ -137,7 +140,7 @@ async function persistDraft({
     return null
   }
   const record = response.data as DraftRecord
-  setDraft({ id: record.id, revision: record.revision })
+  setDraft({ id: record.id, revision: record.revision, definition: managedDefinition })
   if (!draft) router.push(`/step-definitions/drafts/${record.id}`)
   toast({ title: 'Draft saved', description: `Revision ${record.revision} is ready to resume.` })
   return record
@@ -170,7 +173,7 @@ async function compileDraft({
   if (!compiled) return
   setDiagnostics(compiled.diagnostics ?? [])
   setConformancePassed(Boolean(compiled.conformance?.passed))
-  setDraft({ id: saved.id, revision: compiled.revision })
+  setDraft({ id: saved.id, revision: compiled.revision, definition: compiled.definition ?? definition })
   if (compiled.definition) setDefinition(compiled.definition)
 }
 
@@ -224,6 +227,7 @@ function useEditorActions({
   router,
   setBusy,
   setConformancePassed,
+  setCompiledDefinition,
   setDefinition,
   setDiagnostics,
   setDraft,
@@ -238,6 +242,7 @@ function useEditorActions({
   router: Router
   setBusy: BooleanSetter
   setConformancePassed: BooleanSetter
+  setCompiledDefinition: DefinitionSetter
   setDefinition: DefinitionSetter
   setDiagnostics: DiagnosticsSetter
   setDraft: DraftSetter
@@ -246,8 +251,6 @@ function useEditorActions({
   const patchDefinition = (patch: Partial<DraftDefinition>) => setDefinition(current => ({ ...current, ...patch }))
   const patchIntent = (patch: Partial<DraftDefinition['intent']>) =>
     setDefinition(current => ({ ...current, intent: { ...current.intent, ...patch } }))
-  const patchHuman = (patch: Partial<DraftDefinition['human']>) =>
-    setDefinition(current => ({ ...current, human: { ...current.human, ...patch } }))
   const persist = () => persistDraft({ canSave, draft, managedDefinition, router, setBusy, setDraft })
   const compile = () =>
     compileDraft({
@@ -257,16 +260,18 @@ function useEditorActions({
       handlerSource,
       persist,
       setConformancePassed,
-      setDefinition,
+      setDefinition: setCompiledDefinition,
       setDiagnostics,
       setDraft,
     })
   const reviewAndPublish = () => reviewAndPublishDraft({ draft, definition, router, setPreview })
-  return { compile, patchDefinition, patchHuman, patchIntent, persist, reviewAndPublish }
+  return { compile, patchDefinition, patchIntent, persist, reviewAndPublish }
 }
 
 function initialDraftRecord(initialDraft?: StepDefinitionEditorDraft) {
-  return initialDraft ? { id: initialDraft.id, revision: initialDraft.revision } : null
+  return initialDraft
+    ? { id: initialDraft.id, revision: initialDraft.revision, definition: initialDraft.definition }
+    : null
 }
 function initialDefinition(initialDraft?: StepDefinitionEditorDraft) {
   return initialDraft?.definition ?? createHumanStepDraft()
@@ -337,13 +342,7 @@ function useDraftEditorState(initialDraft?: StepDefinitionEditorDraft) {
   }
 }
 
-export function StepDefinitionDraftEditor({
-  initialDraft,
-  groups,
-}: {
-  initialDraft?: StepDefinitionEditorDraft
-  groups: StepDefinitionEditorGroup[]
-}) {
+export function StepDefinitionDraftEditor({ initialDraft }: { initialDraft?: StepDefinitionEditorDraft }) {
   const router = useRouter()
   const {
     busy,
@@ -370,7 +369,25 @@ export function StepDefinitionDraftEditor({
     stageReady,
   } = useDraftEditorState(initialDraft)
 
-  const { compile, patchDefinition, patchHuman, patchIntent, persist, reviewAndPublish } = useEditorActions({
+  const invalidateEvidence = () => {
+    setConformancePassed(false)
+    setDiagnostics([])
+    setPreview(null)
+  }
+  const setAuthoredDefinition: DefinitionSetter = update => {
+    invalidateEvidence()
+    setDefinition(update)
+  }
+  const setAuthoredHandlerSource: typeof setHandlerSource = update => {
+    invalidateEvidence()
+    setHandlerSource(update)
+  }
+  const setAuthoredExampleName: typeof setExampleName = update => {
+    invalidateEvidence()
+    setExampleName(update)
+  }
+
+  const { compile, patchDefinition, patchIntent, persist, reviewAndPublish } = useEditorActions({
     canSave,
     definition,
     draft,
@@ -380,7 +397,8 @@ export function StepDefinitionDraftEditor({
     router,
     setBusy,
     setConformancePassed,
-    setDefinition,
+    setCompiledDefinition: setDefinition,
+    setDefinition: setAuthoredDefinition,
     setDiagnostics,
     setDraft,
     setPreview,
@@ -398,18 +416,16 @@ export function StepDefinitionDraftEditor({
         draft={draft}
         exampleName={exampleName}
         generatedContract={generatedContract}
-        groups={groups}
         handlerSource={handlerSource}
         onCompile={compile}
         onPersist={persist}
         onReviewAndPublish={reviewAndPublish}
         patchDefinition={patchDefinition}
-        patchHuman={patchHuman}
         patchIntent={patchIntent}
         preview={preview}
-        setDefinition={setDefinition}
-        setExampleName={setExampleName}
-        setHandlerSource={setHandlerSource}
+        setDefinition={setAuthoredDefinition}
+        setExampleName={setAuthoredExampleName}
+        setHandlerSource={setAuthoredHandlerSource}
         setStage={setStage}
         stage={stage}
         stageReady={stageReady}

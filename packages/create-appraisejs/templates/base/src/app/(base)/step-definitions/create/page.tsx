@@ -23,7 +23,7 @@ const CreateStepDefinition = async () => {
           </p>
         </div>
       </div>
-      <StepDefinitionDraftEditor groups={[]} />
+      <StepDefinitionDraftEditor />
     </>
   )
 }

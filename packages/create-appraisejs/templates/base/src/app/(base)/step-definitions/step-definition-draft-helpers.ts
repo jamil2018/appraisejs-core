@@ -33,6 +33,7 @@ export function applyManagedStepMetadata(definition: DraftDefinition): DraftDefi
     ...definition,
     identity: { ...definition.identity, id, version: '1' },
     intent: { ...definition.intent, capabilities: [runtime], searchTerms: deriveStepSearchTerms(definition) },
+    human: { ...definition.human, groupId: definition.human.groupId.trim() || 'custom' },
     execution:
       definition.execution.kind === 'reviewed-extension'
         ? { ...definition.execution, extensionId: id, extensionVersion: '1' }
@@ -42,6 +43,28 @@ export function applyManagedStepMetadata(definition: DraftDefinition): DraftDefi
 
 export function namedPlaceholders(signature: string) {
   return [...signature.matchAll(/\{([a-z][a-zA-Z0-9-]*)\}/g)].map(match => match[1]!)
+}
+
+export function defaultStepInputExampleValue(input: DraftDefinition['inputs'][number]): unknown {
+  if (input.type === 'number') return 1
+  if (input.type === 'boolean') return true
+  if (input.type === 'json') return {}
+  return input.name
+}
+
+function reconcileAgentExampleInputs(
+  definition: DraftDefinition,
+  inputs: DraftDefinition['inputs'],
+): DraftDefinition['agent']['examples'] {
+  return definition.agent.examples.map(example => ({
+    ...example,
+    inputs: Object.fromEntries(
+      inputs.map(input => [
+        input.name,
+        Object.hasOwn(example.inputs, input.name) ? example.inputs[input.name] : defaultStepInputExampleValue(input),
+      ]),
+    ),
+  }))
 }
 
 export function reconcileNamedInputs(definition: DraftDefinition, signature: string): DraftDefinition {
@@ -62,10 +85,36 @@ export function reconcileNamedInputs(definition: DraftDefinition, signature: str
   return {
     ...definition,
     inputs,
+    agent: {
+      ...definition.agent,
+      examples: reconcileAgentExampleInputs(definition, inputs),
+    },
     human: {
       ...definition.human,
       signature,
       parameterBindings: placeholders.map(name => ({ placeholder: name, input: name })),
+    },
+  }
+}
+
+export function updateStepInputType(
+  definition: DraftDefinition,
+  inputName: string,
+  type: DraftDefinition['inputs'][number]['type'],
+): DraftDefinition {
+  const inputs = definition.inputs.map(input => (input.name === inputName ? { ...input, type } : input))
+  return {
+    ...definition,
+    inputs,
+    agent: {
+      ...definition.agent,
+      examples: definition.agent.examples.map(example => ({
+        ...example,
+        inputs: {
+          ...example.inputs,
+          [inputName]: defaultStepInputExampleValue(inputs.find(input => input.name === inputName)!),
+        },
+      })),
     },
   }
 }
@@ -89,7 +138,7 @@ export function createHumanStepDraft(now = new Date().toISOString()): DraftDefin
       signature: '',
       keywordCompatibility: ['When'],
       parameterBindings: [],
-      groupId: '',
+      groupId: 'custom',
     },
     agent: {
       summary: 'Perform the reusable behavior.',
