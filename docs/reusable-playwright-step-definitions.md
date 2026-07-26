@@ -18,6 +18,11 @@ shared library view. Business rules remain in `StepDefinitionRegistryService`. T
 Step Definition draft editor; incomplete definitions are saved under a resumable draft URL and only exact reviewed,
 conformant drafts become immutable ready versions.
 
+The human editor separates technical execution checks, exact publication review, and immutable publication into
+distinct actions. Untouched generated handler scaffolds cannot pass execution checks. A successful publication keeps
+its version receipt visible until the user explicitly opens the library or starts another draft. The legacy
+`/template-steps` URL redirects to the canonical `/step-definitions` library.
+
 ## Selection Order
 
 Validation authors and agents should choose browser behavior in this order:

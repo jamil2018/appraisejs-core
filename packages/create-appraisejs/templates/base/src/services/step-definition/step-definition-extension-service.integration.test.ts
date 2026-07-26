@@ -104,6 +104,22 @@ describe('StepDefinitionExtensionService', () => {
     )
   })
 
+  it('rejects an untouched generated handler scaffold', async () => {
+    const step = definition()
+    const draft = await registry.createDraft(step)
+    await extensions.saveDraftArtifact(draft.id, draft.revision, {
+      handlerSource: generateStepDefinitionHandlerBoilerplate(step),
+      examples: [{ name: 'Ada', inputs: { name: 'Ada' } }],
+    })
+
+    const result = await extensions.compileDraftArtifact(draft.id, draft.revision)
+
+    expect(result.conformance.passed).toBe(false)
+    expect(result.diagnostics).toContain(
+      'Replace the generated handler placeholder with an implementation before running conformance.',
+    )
+  })
+
   it('binds compiled hashes, exact review, publication, and immutable reviewed bytes', async () => {
     const draft = await registry.createDraft(definition())
     const source =
@@ -164,7 +180,9 @@ describe('StepDefinitionExtensionService', () => {
     })
     const secondCompiled = await extensions.compileDraftArtifact(second.id, second.revision)
     await registry.issueHumanReviewReceipt(second.id, secondCompiled.revision)
-    await expect(registry.publishDraft({ draftId: second.id, expectedRevision: secondCompiled.revision })).rejects.toMatchObject({
+    await expect(
+      registry.publishDraft({ draftId: second.id, expectedRevision: secondCompiled.revision }),
+    ).rejects.toMatchObject({
       code: 'validation_failed',
     })
   })

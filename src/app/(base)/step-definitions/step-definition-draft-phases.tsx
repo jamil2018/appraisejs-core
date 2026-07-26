@@ -13,6 +13,7 @@ import {
   type SetStateAction,
 } from 'react'
 import { AlertCircle, CheckCircle2, ChevronLeft, ChevronRight, Code2, Layers3, Save, Settings2 } from 'lucide-react'
+import Link from 'next/link'
 
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import {
@@ -81,8 +82,9 @@ type WizardProps = {
   generatedContract: string
   handlerSource: string
   onCompile: () => void
-  onPersist: () => Promise<{ id: string; revision: number } | null>
-  onReviewAndPublish: () => void
+  onPersist: (targetStage?: number) => Promise<{ id: string; revision: number } | null>
+  onPrepareReview: () => void
+  onPublish: () => void
   patchDefinition: PatchDefinition
   patchIntent: (patch: Partial<DraftDefinition['intent']>) => void
   preview: unknown
@@ -244,10 +246,12 @@ function WizardPhase(props: WizardPhaseProps) {
     )
   return (
     <PublishPhase
+      busy={props.busy}
       conformancePassed={props.conformancePassed}
       definition={props.definition}
       draft={props.draft}
-      onReviewAndPublish={props.onReviewAndPublish}
+      onPrepareReview={props.onPrepareReview}
+      onPublish={props.onPublish}
       preview={props.preview}
     />
   )
@@ -261,26 +265,33 @@ function WizardFooter({
   stage,
   stageReady,
 }: Pick<WizardProps, 'busy' | 'canSave' | 'onPersist' | 'setStage' | 'stage' | 'stageReady'>) {
+  const [continuing, setContinuing] = useState(false)
   const continueDraft = async () => {
-    const saved = await onPersist()
-    if (saved) setStage(current => current + 1)
+    setContinuing(true)
+    try {
+      const saved = await onPersist(stage + 1)
+      if (saved) setStage(current => current + 1)
+    } finally {
+      setContinuing(false)
+    }
   }
+  const pending = busy || continuing
   return (
     <div className="flex flex-wrap items-center justify-between gap-2 border-t border-white/[0.06] pt-4">
       <Button type="button" variant="outline" disabled={stage === 0} onClick={() => setStage(current => current - 1)}>
         <ChevronLeft className="size-4" />
         Back
       </Button>
-      <Button type="button" variant="secondary" onClick={onPersist} disabled={busy || !canSave}>
+      <Button type="button" variant="secondary" onClick={() => void onPersist()} disabled={pending || !canSave}>
         <Save className="size-4" />
         {busy ? 'Saving…' : 'Save draft'}
       </Button>
       <Button
         type="button"
-        disabled={stage === stages.length - 1 || !stageReady[stage] || busy}
+        disabled={stage === stages.length - 1 || !stageReady[stage] || pending}
         onClick={continueDraft}
       >
-        Save and continue
+        {continuing ? 'Saving and continuing…' : 'Save and continue'}
         <ChevronRight className="size-4" />
       </Button>
     </div>
@@ -349,7 +360,7 @@ export function DefinePhase({
                   setDefinition(current => updateStepInputType(current, input.name, value as typeof input.type))
                 }
               >
-                <SelectTrigger>
+                <SelectTrigger aria-label={`Type for ${input.name}`}>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -418,7 +429,10 @@ export function ConnectPhase({
           value={handlerSource}
           onChange={event => setHandlerSource(event.target.value)}
         />
-        <p className="text-xs text-muted-foreground">Metadata regeneration never overwrites this source.</p>
+        <p className="text-xs text-muted-foreground">
+          Replace the generated placeholder with the reviewed behavior. Metadata regeneration never overwrites this
+          source.
+        </p>
       </Field>
     </>
   )
@@ -869,44 +883,68 @@ export function VerifyPhase({
       <Field label="Example name">
         <Input required value={exampleName} onChange={event => setExampleName(event.target.value)} />
       </Field>
-      {definition.inputs.map(input => (
-        <ExampleInputField
-          key={`${input.name}:${input.type}`}
-          input={input}
-          value={exampleInputs[input.name]}
-          onChange={value => setExampleInput(input.name, value)}
-          onValidityChange={valid => {
-            if (!valid) setDefinition(current => ({ ...current }))
-            setInvalidExamples(current => {
-              const next = new Set(current)
-              if (valid) next.delete(input.name)
-              else next.add(input.name)
-              return next
-            })
-          }}
-        />
-      ))}
+      <ExampleFields
+        definition={definition}
+        exampleInputs={exampleInputs}
+        setDefinition={setDefinition}
+        setExampleInput={setExampleInput}
+        setInvalidExamples={setInvalidExamples}
+      />
       <Button
         type="button"
         onClick={onCompile}
         disabled={busy || invalidExamples.size > 0 || executionKind !== 'reviewed-extension'}
       >
         <Code2 className="size-4" />
-        Compile and run conformance
+        {busy ? 'Compiling and running…' : 'Compile and run conformance'}
       </Button>
       <Alert variant={conformancePassed ? 'default' : 'destructive'}>
         <AlertCircle />
-        <AlertTitle>{conformancePassed ? 'Executable readiness passed' : 'Not executable yet'}</AlertTitle>
-        <AlertDescription>
-          {diagnostics.length
-            ? diagnostics.join(' ')
-            : conformancePassed
-              ? 'The saved handler compiled successfully and every configured example passed conformance.'
-              : 'Save and compile the handler to produce diagnostics and conformance evidence.'}
-        </AlertDescription>
+        <AlertTitle>{conformancePassed ? 'Execution checks passed' : 'Not executable yet'}</AlertTitle>
+        <AlertDescription>{readinessDescription(diagnostics, conformancePassed)}</AlertDescription>
       </Alert>
     </div>
   )
+}
+
+function readinessDescription(diagnostics: string[], conformancePassed: boolean) {
+  if (diagnostics.length) return diagnostics.join(' ')
+  if (conformancePassed)
+    return 'The handler passed static policy, compilation, and configured example execution. Review the behavior and projections before publishing.'
+  return 'Replace the generated placeholder, then compile the handler to produce execution evidence.'
+}
+
+function ExampleFields({
+  definition,
+  exampleInputs,
+  setDefinition,
+  setExampleInput,
+  setInvalidExamples,
+}: {
+  definition: DraftDefinition
+  exampleInputs: Record<string, unknown>
+  setDefinition: SetDefinition
+  setExampleInput: (name: string, value: unknown) => void
+  setInvalidExamples: Dispatch<SetStateAction<Set<string>>>
+}) {
+  const updateValidity = (name: string, valid: boolean) => {
+    if (!valid) setDefinition(current => ({ ...current }))
+    setInvalidExamples(current => {
+      const next = new Set(current)
+      if (valid) next.delete(name)
+      else next.add(name)
+      return next
+    })
+  }
+  return definition.inputs.map(input => (
+    <ExampleInputField
+      key={`${input.name}:${input.type}`}
+      input={input}
+      value={exampleInputs[input.name]}
+      onChange={value => setExampleInput(input.name, value)}
+      onValidityChange={valid => updateValidity(input.name, valid)}
+    />
+  ))
 }
 
 function ExampleInputField({
@@ -1011,16 +1049,20 @@ function ScalarExampleInput({
 }
 
 export function PublishPhase({
+  busy,
   conformancePassed,
   definition,
   draft,
-  onReviewAndPublish,
+  onPrepareReview,
+  onPublish,
   preview,
 }: {
+  busy: boolean
   conformancePassed: boolean
   definition: DraftDefinition
   draft: { id: string; revision: number } | null
-  onReviewAndPublish: () => void
+  onPrepareReview: () => void
+  onPublish: () => void
   preview: unknown
 }) {
   return (
@@ -1032,11 +1074,70 @@ export function PublishPhase({
         />
         <CodePanel label="Agent projection" value={JSON.stringify(definition.agent, null, 2)} />
       </div>
-      {preview ? <CodePanel label="Exact publication preview" value={JSON.stringify(preview, null, 2)} /> : null}
-      <Button type="button" onClick={onReviewAndPublish} disabled={!draft || !conformancePassed}>
-        Review exact draft and publish immutable version
-      </Button>
+      {preview ? (
+        <>
+          <CodePanel label="Exact publication preview" value={JSON.stringify(preview, null, 2)} />
+          <Alert>
+            <AlertCircle />
+            <AlertTitle>Ready for final confirmation</AlertTitle>
+            <AlertDescription>
+              Publishing creates immutable version {definition.identity.id}@{definition.identity.version}. Confirm only
+              after reviewing the exact preview above.
+            </AlertDescription>
+          </Alert>
+          <Button type="button" onClick={onPublish} disabled={busy}>
+            {busy ? 'Publishing immutable version…' : 'Publish immutable version'}
+          </Button>
+        </>
+      ) : (
+        <Button type="button" onClick={onPrepareReview} disabled={busy || !draft || !conformancePassed}>
+          {busy ? 'Preparing exact preview…' : 'Review exact publication preview'}
+        </Button>
+      )}
     </div>
+  )
+}
+
+export function PublishedStepSuccess({ published }: { published: { id: string; version: string; signature: string } }) {
+  return (
+    <Card className="border-primary/20 bg-[rgba(18,37,64,0.42)] shadow-none">
+      <CardContent className="space-y-5 p-6">
+        <div className="flex items-start gap-3">
+          <span className="border-primary/25 bg-primary/10 flex size-10 shrink-0 items-center justify-center rounded-full border text-primary">
+            <CheckCircle2 className="size-5" />
+          </span>
+          <div>
+            <h2 className="text-lg font-semibold text-zinc-100">Reusable step published</h2>
+            <p className="mt-1 text-sm text-zinc-400">
+              The immutable version is ready for human-authored tests and managed validation.
+            </p>
+          </div>
+        </div>
+        <dl className="grid gap-3 rounded-md border border-white/10 bg-black/10 p-4 text-sm sm:grid-cols-2">
+          <div>
+            <dt className="text-xs text-zinc-500">Step Definition</dt>
+            <dd className="mt-1 font-mono text-zinc-200">
+              {published.id}@{published.version}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-xs text-zinc-500">Human sentence</dt>
+            <dd className="mt-1 text-zinc-200">{published.signature}</dd>
+          </div>
+        </dl>
+        <div className="flex flex-wrap gap-2">
+          <Button asChild>
+            <Link href="/step-definitions">View in library</Link>
+          </Button>
+          <Button asChild variant="outline">
+            <Link href="/step-definitions/create">Create another reusable step</Link>
+          </Button>
+          <Button asChild variant="secondary">
+            <Link href="/test-cases">Use in a test case</Link>
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
   )
 }
 

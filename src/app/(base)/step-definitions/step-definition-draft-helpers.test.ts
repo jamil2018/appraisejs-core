@@ -2,7 +2,9 @@ import { describe, expect, it } from 'vitest'
 
 import {
   applyManagedStepMetadata,
+  canonicalDraftDefinitionJson,
   createHumanStepDraft,
+  defaultStepInputExampleValue,
   draftContractSource,
   reconcileNamedInputs,
   stepDefinitionIdFromTitle,
@@ -26,7 +28,10 @@ describe('Step Definition draft helpers', () => {
       { placeholder: 'recipient', input: 'recipient' },
       { placeholder: 'message', input: 'message' },
     ])
-    expect(reordered.agent.examples[0]?.inputs).toEqual({ recipient: 'recipient', message: 'message' })
+    expect(reordered.agent.examples[0]?.inputs).toEqual({
+      recipient: 'Example recipient',
+      message: 'Example message',
+    })
   })
 
   it('synchronizes required agent example values with named inputs and removes stale values', () => {
@@ -57,6 +62,19 @@ describe('Step Definition draft helpers', () => {
     expect(managed.intent.searchTerms).toEqual(expect.arrayContaining(['send', 'account', 'notification', 'notify']))
     expect(managed.execution).toMatchObject({ extensionId: managed.identity.id, extensionVersion: '1' })
     expect(managed.human.groupId).toBe('custom')
+    expect(managed.agent).toMatchObject({
+      summary: 'Send Account Notification',
+      usageGuidance: 'Send a notification to an account owner.',
+      examples: [expect.objectContaining({ intent: 'Send Account Notification' })],
+    })
+  })
+
+  it('generates deterministic human-readable example values for authored inputs', () => {
+    const input = reconcileNamedInputs(createHumanStepDraft(), 'I greet {recipientName}').inputs[0]!
+
+    expect(defaultStepInputExampleValue(input)).toBe('Example recipient name')
+    expect(defaultStepInputExampleValue({ ...input, type: 'locator' })).toBe('Primary action')
+    expect(defaultStepInputExampleValue({ ...input, type: 'json' })).toEqual({ example: true })
   })
 
   it('restores internal grouping metadata for drafts created before groups were removed from authoring', () => {
@@ -64,6 +82,13 @@ describe('Step Definition draft helpers', () => {
     draft.human.groupId = ''
 
     expect(applyManagedStepMetadata(draft).human.groupId).toBe('custom')
+  })
+
+  it('compares canonical definitions independently of object key order', () => {
+    const definition = applyManagedStepMetadata(createHumanStepDraft())
+    const reordered = JSON.parse(canonicalDraftDefinitionJson(definition))
+
+    expect(canonicalDraftDefinitionJson(reordered)).toBe(canonicalDraftDefinitionJson(definition))
   })
 
   it('replaces arbitrary human-form capabilities with the selected execution runtime', () => {

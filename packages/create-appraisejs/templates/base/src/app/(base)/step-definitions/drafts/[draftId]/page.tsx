@@ -11,8 +11,20 @@ export const metadata = {
   description: 'Resume a shared Step Definition draft',
 }
 
-export default async function ResumeStepDefinitionDraftPage({ params }: { params: Promise<{ draftId: string }> }) {
+function initialStageFrom(value?: string) {
+  const stage = Number(value)
+  return Number.isInteger(stage) && stage >= 0 && stage <= 3 ? stage : 0
+}
+
+export default async function ResumeStepDefinitionDraftPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ draftId: string }>
+  searchParams: Promise<{ stage?: string }>
+}) {
   const { draftId } = await params
+  const initialStage = initialStageFrom((await searchParams).stage)
   const [draftResponse, artifactResponse] = await Promise.all([
     readStepDefinitionDraftAction(draftId),
     readStepDefinitionDraftArtifactAction(draftId),
@@ -21,6 +33,7 @@ export default async function ResumeStepDefinitionDraftPage({ params }: { params
   const draft = draftResponse.data as StepDefinitionEditorDraft
   return (
     <StepDefinitionDraftEditor
+      initialStage={initialStage}
       initialDraft={{
         ...draft,
         artifact: artifactResponse.success ? (artifactResponse.data as StepDefinitionEditorDraft['artifact']) : null,

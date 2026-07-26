@@ -117,6 +117,11 @@ function compileSource(source: string, runtime: string) {
   return { compiledSource: diagnostics.length ? null : result.outputText, diagnostics }
 }
 
+function isUntouchedHandlerScaffold(source: string, definition: StepDefinition) {
+  const normalize = (value: string) => value.replaceAll('\r\n', '\n').trim()
+  return normalize(source) === normalize(generateStepDefinitionHandlerBoilerplate(definition))
+}
+
 function artifactManifest(definition: StepDefinition, sourceHash: string, contractHash: string) {
   if (definition.execution.kind !== 'reviewed-extension')
     throw new ServiceError('A reviewed-extension binding is required.', 'VALIDATION')
@@ -303,7 +308,12 @@ export class StepDefinitionExtensionService {
     const definition = stepDefinitionSchema.parse(JSON.parse(artifact.draft.draftJson))
     if (definition.execution.kind !== 'reviewed-extension')
       throw new ServiceError('A reviewed-extension binding is required.', 'VALIDATION')
-    const result = compileSource(artifact.handlerSource, definition.execution.runtime)
+    const result = isUntouchedHandlerScaffold(artifact.handlerSource, definition)
+      ? {
+          compiledSource: null,
+          diagnostics: ['Replace the generated handler placeholder with an implementation before running conformance.'],
+        }
+      : compileSource(artifact.handlerSource, definition.execution.runtime)
     const compiledHash = result.compiledSource ? stepDefinitionContentHash(result.compiledSource) : null
     const examples = JSON.parse(artifact.examplesJson) as DraftExample[]
     const exampleResults = await executeExamples(result.compiledSource, definition, examples, signal)
@@ -364,7 +374,8 @@ export class StepDefinitionExtensionService {
       where: { id, version, revokedAt: null },
       data: { revokedAt: new Date(), revokedBy, revocationReason: reason },
     })
-    if (updated.count === 0) throw new ServiceError('Reviewed extension was not found or is already revoked.', 'NOT_FOUND')
+    if (updated.count === 0)
+      throw new ServiceError('Reviewed extension was not found or is already revoked.', 'NOT_FOUND')
     return this.database.stepReviewedExtension.findUniqueOrThrow({ where: { id_version: { id, version } } })
   }
 

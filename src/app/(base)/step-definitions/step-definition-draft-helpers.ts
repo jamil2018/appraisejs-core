@@ -1,7 +1,12 @@
 import type { StepDefinition } from '../../../../packages/cucumber-runtime/src/step-definitions/index'
+import { canonicalStepDefinitionJson } from '../../../../packages/cucumber-runtime/src/step-definitions/contracts'
 import { generateStepDefinitionContract } from '../../../../packages/cucumber-runtime/src/step-definitions/artifact-contract'
 
 export type DraftDefinition = StepDefinition
+
+export function canonicalDraftDefinitionJson(definition: DraftDefinition) {
+  return canonicalStepDefinitionJson(definition)
+}
 
 const searchStopWords = new Set(['and', 'for', 'from', 'into', 'that', 'the', 'this', 'with'])
 
@@ -25,6 +30,8 @@ export function deriveStepSearchTerms(definition: DraftDefinition) {
 
 export function applyManagedStepMetadata(definition: DraftDefinition): DraftDefinition {
   const id = stepDefinitionIdFromTitle(definition.intent.title)
+  const title = definition.intent.title.trim()
+  const description = definition.intent.description.trim()
   const runtime =
     definition.execution.kind === 'reviewed-extension' || definition.execution.kind === 'operation'
       ? definition.execution.runtime
@@ -33,6 +40,14 @@ export function applyManagedStepMetadata(definition: DraftDefinition): DraftDefi
     ...definition,
     identity: { ...definition.identity, id, version: '1' },
     intent: { ...definition.intent, capabilities: [runtime], searchTerms: deriveStepSearchTerms(definition) },
+    agent: {
+      summary: title,
+      usageGuidance: description,
+      examples: definition.agent.examples.map(example => ({
+        ...example,
+        intent: title,
+      })),
+    },
     human: { ...definition.human, groupId: definition.human.groupId.trim() || 'custom' },
     execution:
       definition.execution.kind === 'reviewed-extension'
@@ -48,8 +63,18 @@ export function namedPlaceholders(signature: string) {
 export function defaultStepInputExampleValue(input: DraftDefinition['inputs'][number]): unknown {
   if (input.type === 'number') return 1
   if (input.type === 'boolean') return true
-  if (input.type === 'json') return {}
-  return input.name
+  if (input.type === 'json') return { example: true }
+  if (input.type === 'locator') return 'Primary action'
+  if (input.type === 'environment-ref') return 'Local development'
+  if (input.type === 'stored-value-ref') return 'savedValue'
+  if (input.type === 'artifact-ref') return 'artifact-1'
+  if (input.type === 'reviewed-extension-ref') return 'extension-1'
+  const label = (input.label || input.name)
+    .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+    .replace(/[-_]+/g, ' ')
+    .trim()
+    .toLowerCase()
+  return `Example ${label || 'value'}`
 }
 
 function reconcileAgentExampleInputs(
