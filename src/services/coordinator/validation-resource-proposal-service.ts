@@ -1,6 +1,5 @@
 import { createHash } from 'node:crypto'
 import { type Prisma, type PrismaClient } from '@prisma/client'
-import { z } from 'zod'
 
 import prisma from '@/config/db-config'
 import { canonicalContractJson } from '@/lib/catalog-contracts'
@@ -8,13 +7,11 @@ import { registerProjectResourceOwnership } from '@/services/project-resource/pr
 import { ServiceError } from '@/services/shared/errors'
 import { readValidationContext } from './validation-authoring-context-service'
 import { assertLoopbackOriginReservation } from '@/services/environment/environment-origin-reservation'
+import {
+  type ValidationResourceProposal as Proposal,
+  validationResourceProposalSchema,
+} from './validation-resource-proposal-contract'
 
-const key = z
-  .string()
-  .min(1)
-  .max(80)
-  .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/)
-const text = z.string().min(1).max(500)
 const hash = (value: unknown) => `sha256:${createHash('sha256').update(canonicalContractJson(value)).digest('hex')}`
 const stableId = (targetProjectId: string, entityType: string, localKey: string) =>
   `apr-${createHash('sha256').update(`${targetProjectId}:${entityType}:${localKey}`).digest('hex').slice(0, 24)}`
@@ -57,68 +54,21 @@ function proposalBindings(
   }
 }
 
-const validationResourceProposalSchema = z
-  .object({
-    schemaVersion: z.literal(2),
-    idempotencyKey: key,
-    modules: z
-      .array(z.object({ localKey: key, name: text, parentKey: key.optional() }))
-      .max(50)
-      .default([]),
-    locatorGroups: z
-      .array(z.object({ localKey: key, name: text, moduleKey: key, route: z.string().min(1).max(500) }))
-      .max(50)
-      .default([]),
-    locators: z
-      .array(z.object({ localKey: key, name: text, groupKey: key, selector: text }))
-      .max(200)
-      .default([]),
-    environments: z
-      .array(
-        z.object({
-          localKey: key,
-          name: text,
-          baseUrl: z.string().url(),
-          expectedPageTitle: z.string().trim().max(200).optional(),
-          apiBaseUrl: z.string().url().optional(),
-        }),
-      )
-      .max(20)
-      .default([]),
-  })
-  .strict()
-  .superRefine((proposal, context) => {
-    for (const [field, values] of Object.entries(proposal).filter(([, value]) => Array.isArray(value)) as Array<
-      [string, Array<{ localKey: string }>]
-    >) {
-      const duplicates = values.filter(
-        (value, index) => values.findIndex(item => item.localKey === value.localKey) !== index,
-      )
-      if (duplicates.length)
-        context.addIssue({ code: 'custom', path: [field], message: `Duplicate ${field} localKey.` })
-    }
-    const moduleKeys = new Set(proposal.modules.map(item => item.localKey))
-    const groupKeys = new Set(proposal.locatorGroups.map(item => item.localKey))
-    proposal.modules.forEach((item, index) => {
-      if (item.parentKey && !moduleKeys.has(item.parentKey))
-        context.addIssue({
-          code: 'custom',
-          path: ['modules', index, 'parentKey'],
-          message: 'Unknown module parentKey.',
-        })
-    })
-    proposal.locatorGroups.forEach((item, index) => {
-      if (!moduleKeys.has(item.moduleKey))
-        context.addIssue({ code: 'custom', path: ['locatorGroups', index, 'moduleKey'], message: 'Unknown moduleKey.' })
-    })
-    proposal.locators.forEach((item, index) => {
-      if (!groupKeys.has(item.groupKey))
-        context.addIssue({ code: 'custom', path: ['locators', index, 'groupKey'], message: 'Unknown groupKey.' })
-    })
-  })
-
-type Proposal = z.infer<typeof validationResourceProposalSchema>
 type Transaction = Prisma.TransactionClient
+
+function modulesInDependencyOrder(modules: Proposal['modules']) {
+  const pending = new Map(modules.map(item => [item.localKey, item]))
+  const ordered: Proposal['modules'] = []
+  while (pending.size) {
+    const ready = [...pending.values()].filter(item => !item.parentKey || !pending.has(item.parentKey))
+    if (!ready.length) throw new ServiceError('Module parent relationships must be acyclic.', 'VALIDATION')
+    for (const item of ready) {
+      ordered.push(item)
+      pending.delete(item.localKey)
+    }
+  }
+  return ordered
+}
 
 // fallow-ignore-next-line complexity
 async function persistProposalGraph(proposal: Proposal, targetProjectId: string, planId: string, tx: Transaction) {
@@ -136,7 +86,7 @@ async function persistProposalGraph(proposal: Proposal, targetProjectId: string,
       proposal.environments.map(item => [item.localKey, stableId(targetProjectId, 'environment', item.localKey)]),
     ),
   }
-  for (const item of proposal.modules) {
+  for (const item of modulesInDependencyOrder(proposal.modules)) {
     const matches = await tx.module.findMany({
       where: { targetProjectId, name: item.name },
       select: { id: true },
@@ -188,7 +138,7 @@ async function persistProposalGraph(proposal: Proposal, targetProjectId: string,
       throw new ServiceError(`Environment "${item.name}" already exists with different URLs.`, 'CONFLICT')
     ids.environments[item.localKey] = existing.id
   }
-  for (const item of proposal.modules) {
+  for (const item of modulesInDependencyOrder(proposal.modules)) {
     const data = {
       id: ids.modules[item.localKey],
       name: item.name,

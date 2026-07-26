@@ -21,6 +21,7 @@ import {
   readVisibleResourceOwnerships,
   type ProjectResourceEntityType,
 } from '@/services/project-resource/project-resource-ownership-service'
+import { validationResourceProposalContract } from './validation-resource-proposal-contract'
 
 type Options = { client?: PrismaClient; projectDirectory?: string }
 type OwnershipMap = NonNullable<Awaited<ReturnType<typeof readVisibleResourceOwnerships>>>
@@ -346,6 +347,7 @@ export function buildValidationAuthoringKit(input: {
       changes: runtimeChanges,
       nextAllowedAction: runtimeChanges.length ? 'Review and register the missing environment.' : 'Edit the starter.',
     },
+    resourceProposalContract: validationResourceProposalContract,
   }
 }
 

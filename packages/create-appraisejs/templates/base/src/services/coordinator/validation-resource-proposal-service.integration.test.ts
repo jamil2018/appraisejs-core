@@ -10,6 +10,7 @@ import {
   cleanupValidationResourceProposal,
   proposeValidationResources,
 } from './validation-resource-proposal-service'
+import { readValidationContext } from './validation-authoring-context-service'
 
 let workspace: string
 let client: PrismaClient
@@ -70,6 +71,25 @@ const proposal = () => ({
 })
 
 describe('validation resource proposals', () => {
+  it('returns the deterministic versioned resource proposal contract in the full authoring context', async () => {
+    const first = await readValidationContext('plan-resources', { client, projectDirectory: workspace })
+    const second = await readValidationContext('plan-resources', { client, projectDirectory: workspace })
+
+    expect(first).toEqual(second)
+    expect(first.authoring?.resourceProposalContract).toMatchObject({
+      contractId: 'appraise.validation/resource-proposal',
+      version: 2,
+      request: {
+        additionalProperties: false,
+        properties: { schemaVersion: { const: 2 } },
+      },
+      example: expect.objectContaining({ schemaVersion: 2 }),
+      responseBindingExample: expect.objectContaining({
+        locators: expect.arrayContaining([expect.objectContaining({ astRef: expect.stringMatching(/^locator_/) })]),
+      }),
+    })
+  })
+
   it('creates a target-bound graph transactionally and replays by content-bound key', async () => {
     const first = await proposeValidationResources(
       { planId: 'plan-resources', proposal: proposal(), projectDirectory: workspace },
@@ -118,6 +138,27 @@ describe('validation resource proposals', () => {
         targetProjectId,
       },
     )
+  })
+
+  it('persists valid module hierarchies independently of declaration order', async () => {
+    const input = {
+      ...proposal(),
+      idempotencyKey: 'child-before-parent',
+      modules: [
+        { localKey: 'child', name: 'Child', parentKey: 'parent' },
+        { localKey: 'parent', name: 'Parent' },
+      ],
+      locatorGroups: [{ localKey: 'child-page', name: 'Child page', moduleKey: 'child', route: '/' }],
+      locators: [],
+    }
+
+    const result = await proposeValidationResources(
+      { planId: 'plan-resources', proposal: input, projectDirectory: workspace },
+      client,
+    )
+
+    const child = await client.module.findUniqueOrThrow({ where: { id: result.ids.modules.child } })
+    expect(child.parentId).toBe(result.ids.modules.parent)
   })
 
   it('allows different target projects to use the same environment name', async () => {

@@ -137,7 +137,7 @@ export function registerValidationOperations(context: McpRegistryContext): void 
     'validation_context_read',
     {
       description:
-        'Read a bounded plan-intent context pack with coverage exploration, an editable deterministic AST starter/export, registry-first recipes, runtime preparation proposals, target metadata, and reusable resources.',
+        'Read a bounded plan-intent context pack with coverage exploration, an editable deterministic AST starter/export, registry-first recipes, the versioned resource-proposal contract and examples, runtime preparation proposals, target metadata, and reusable resources.',
       inputSchema: {
         planId: z.string(),
         resourceTypes: z.array(z.string()).optional(),

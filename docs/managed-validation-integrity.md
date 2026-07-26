@@ -13,6 +13,14 @@ with provenance and idempotent replay. Validation AST coverage arguments map req
 steps, observation steps, rationale, state, and limitations. Broad claims without assertion-capable observations are
 rejected; partial and uncovered mappings remain prominent in the review UI.
 
+Resource authoring uses the versioned `appraise.validation/resource-proposal` contract. Its canonical module owns the
+runtime Zod validator, field constraints, cross-resource relationship rules, a deterministic schema-valid generic
+request example, and an AST-ready response-binding example. `validation_context_read` exposes that contract in full
+authoring context and retains it in the default bounded MCP response. Examples are deliberately project-agnostic:
+agents must reuse target-visible resources or propose selectors appropriate to the current target; Appraise never
+injects application-template-specific locators. Legacy proposal-schema identifiers remain as additive discovery
+metadata, not a competing validation authority.
+
 The canonical contract identity is `appraise.validation-ast`, schema version `1`. Check and preview are read-only;
 compile writes the reviewed publication and runtime-input binding. Runtime capsules execute from Appraise storage and
 must not create managed `automation/` output in the target.

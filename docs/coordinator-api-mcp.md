@@ -193,6 +193,13 @@ invalidated for fresh review.
 server-side filters instead of fetching the full context; unchanged scoped reads return `notModified` with the same
 `contextHash`.
 
+The response also carries the versioned `appraise.validation/resource-proposal` authoring contract. It includes
+machine-readable request constraints, semantic local-key relationship rules, a deterministic generic request
+example, and the stable binding shape returned by `validation_resources_propose`. The default summary preserves this
+bounded contract while omitting the rest of the full authoring bundle, allowing agents to construct a valid first
+proposal without fetching or guessing project-specific templates. Existing `proposalSchemas` identifiers remain for
+additive compatibility.
+
 Large lifecycle and run tools accept `responseMode: "summary" | "evidenceOnly" | "blockersOnly" | "linksOnly" |
 "full"` where supported. The default is `summary`; agents should request `full` only when the bounded IDs, links,
 blockers, and next action are insufficient.

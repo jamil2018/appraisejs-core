@@ -338,6 +338,62 @@ describe('compact lifecycle responses', () => {
     expect(measureMcpResponse(compact).estimatedTokens).toBeLessThan(MCP_RESPONSE_TOKEN_BUDGETS.validationMutation)
   })
 
+  it('keeps the bounded resource proposal contract in the default authoring response', () => {
+    const compact = applyAuthoringResponseMode(
+      {
+        planId: 'plan-1',
+        contextHash: `sha256:${'a'.repeat(64)}`,
+        authoring: {
+          contextPack: { duplicatedIntent: 'x'.repeat(20_000) },
+          resourceProposalContract: {
+            contractId: 'appraise.validation/resource-proposal',
+            version: 2,
+            request: {
+              type: 'object',
+              additionalProperties: false,
+              required: ['schemaVersion', 'idempotencyKey'],
+              properties: {
+                schemaVersion: { const: 2 },
+                idempotencyKey: { type: 'string', pattern: '^[a-z0-9]+(?:-[a-z0-9]+)*$' },
+              },
+            },
+            relationshipRules: [
+              {
+                id: 'locator-group-reference',
+                appliesTo: ['locators[].groupKey'],
+                rule: 'Each groupKey must reference locatorGroups[].localKey.',
+              },
+            ],
+            example: {
+              schemaVersion: 2,
+              idempotencyKey: 'validation-resource-example',
+              modules: [],
+              locatorGroups: [],
+              locators: [],
+              environments: [],
+            },
+            responseBindingExample: {
+              environments: [],
+              locatorGroups: [],
+              locators: [],
+            },
+          },
+        },
+      },
+      'summary',
+    )
+
+    expect(compact).toMatchObject({
+      resourceProposalContract: {
+        contractId: 'appraise.validation/resource-proposal',
+        version: 2,
+        example: { schemaVersion: 2 },
+      },
+    })
+    expect(compact).not.toHaveProperty('authoring')
+    expect(measureMcpResponse(compact).estimatedTokens).toBeLessThan(MCP_RESPONSE_TOKEN_BUDGETS.validationMutation)
+  })
+
   it('keeps the plan source hash and proposal bindings in validation authoring summaries', () => {
     const compact = applyAuthoringResponseMode(
       {

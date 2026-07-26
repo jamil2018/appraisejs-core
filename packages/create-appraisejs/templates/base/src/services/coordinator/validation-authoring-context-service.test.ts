@@ -1,8 +1,20 @@
 import { describe, expect, it } from 'vitest'
 import type { PlanArtifact } from '@/lib/plan-contract'
 import { builtInStepDefinitions } from '../../../packages/cucumber-runtime/src/step-definitions'
+import {
+  applyAuthoringResponseMode,
+  MCP_RESPONSE_TOKEN_BUDGETS,
+  measureMcpResponse,
+} from '../../../packages/appraisejs/src/mcp/response-projector'
 
 import { buildValidationAuthoringKit, rankReadyStepDefinitions } from './validation-authoring-context-service'
+import {
+  validationResourceProposalBindingExample,
+  validationResourceProposalBindingsSchema,
+  validationResourceProposalContract,
+  validationResourceProposalExample,
+  validationResourceProposalSchema,
+} from './validation-resource-proposal-contract'
 
 const plan = {
   version: '1',
@@ -60,6 +72,81 @@ describe('validation authoring kit', () => {
       status: 'review_required',
       targetWorkspaceMutation: 'none',
     })
+    expect(first.resourceProposalContract).toEqual(second.resourceProposalContract)
+    expect(first.resourceProposalContract).toEqual(validationResourceProposalContract)
+  })
+
+  it('exposes a schema-valid generic resource proposal and returned binding example', () => {
+    expect(validationResourceProposalSchema.parse(validationResourceProposalExample)).toEqual(
+      validationResourceProposalExample,
+    )
+    expect(validationResourceProposalBindingsSchema.parse(validationResourceProposalBindingExample)).toEqual(
+      validationResourceProposalBindingExample,
+    )
+    expect(validationResourceProposalContract).toMatchObject({
+      contractId: 'appraise.validation/resource-proposal',
+      version: 2,
+      request: {
+        additionalProperties: false,
+        properties: {
+          idempotencyKey: { minLength: 1, maxLength: 80, pattern: expect.any(String) },
+          locatorGroups: { maxItems: 50 },
+          locators: { maxItems: 200 },
+        },
+      },
+      relationshipRules: expect.arrayContaining([
+        expect.objectContaining({ id: 'locator-group-module-reference' }),
+        expect.objectContaining({ id: 'locator-group-reference' }),
+      ]),
+      responseBindingExample: validationResourceProposalBindingExample,
+    })
+    expect(() =>
+      validationResourceProposalSchema.parse({
+        ...validationResourceProposalExample,
+        modules: [
+          { localKey: 'first', name: 'First', parentKey: 'second' },
+          { localKey: 'second', name: 'Second', parentKey: 'first' },
+        ],
+        locatorGroups: [],
+        locators: [],
+      }),
+    ).toThrow(/acyclic/)
+    expect(() =>
+      validationResourceProposalSchema.parse({
+        ...validationResourceProposalExample,
+        environments: [
+          {
+            localKey: 'local',
+            name: 'Local',
+            baseUrl: 'https://example.test',
+            expectedPageTitle: `${'x'.repeat(200)} `,
+          },
+        ],
+      }),
+    ).toThrow()
+  })
+
+  it('keeps the complete generic proposal contract in the bounded default MCP response', () => {
+    const authoring = buildValidationAuthoringKit({
+      plan,
+      sourceHash: `sha256:${'d'.repeat(64)}`,
+      targetProject: null,
+      resources,
+    })
+    const compact = applyAuthoringResponseMode(
+      {
+        plan: { planId: plan.planId, sourceHash: `sha256:${'d'.repeat(64)}` },
+        contextHash: `sha256:${'e'.repeat(64)}`,
+        authoring,
+      },
+      'summary',
+    )
+
+    expect(compact).toMatchObject({
+      resourceProposalContract: validationResourceProposalContract,
+    })
+    expect(compact).not.toHaveProperty('authoring')
+    expect(measureMcpResponse(compact).estimatedTokens).toBeLessThan(MCP_RESPONSE_TOKEN_BUDGETS.validationMutation)
   })
 
   it('packages bounded approved intent, reusable summaries, and registry-first recipes', () => {
