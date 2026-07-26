@@ -1,6 +1,5 @@
 import { createHash } from 'node:crypto'
-import { TemplateStepIcon, TemplateStepType, type Prisma, type PrismaClient } from '@prisma/client'
-import { z } from 'zod'
+import { type Prisma, type PrismaClient } from '@prisma/client'
 
 import prisma from '@/config/db-config'
 import { canonicalContractJson } from '@/lib/catalog-contracts'
@@ -8,13 +7,11 @@ import { registerProjectResourceOwnership } from '@/services/project-resource/pr
 import { ServiceError } from '@/services/shared/errors'
 import { readValidationContext } from './validation-authoring-context-service'
 import { assertLoopbackOriginReservation } from '@/services/environment/environment-origin-reservation'
+import {
+  type ValidationResourceProposal as Proposal,
+  validationResourceProposalSchema,
+} from './validation-resource-proposal-contract'
 
-const key = z
-  .string()
-  .min(1)
-  .max(80)
-  .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/)
-const text = z.string().min(1).max(500)
 const hash = (value: unknown) => `sha256:${createHash('sha256').update(canonicalContractJson(value)).digest('hex')}`
 const stableId = (targetProjectId: string, entityType: string, localKey: string) =>
   `apr-${createHash('sha256').update(`${targetProjectId}:${entityType}:${localKey}`).digest('hex').slice(0, 24)}`
@@ -57,72 +54,21 @@ function proposalBindings(
   }
 }
 
-const validationResourceProposalSchema = z
-  .object({
-    schemaVersion: z.literal(1),
-    idempotencyKey: key,
-    modules: z
-      .array(z.object({ localKey: key, name: text, parentKey: key.optional() }))
-      .max(50)
-      .default([]),
-    locatorGroups: z
-      .array(z.object({ localKey: key, name: text, moduleKey: key, route: z.string().min(1).max(500) }))
-      .max(50)
-      .default([]),
-    locators: z
-      .array(z.object({ localKey: key, name: text, groupKey: key, selector: text }))
-      .max(200)
-      .default([]),
-    environments: z
-      .array(
-        z.object({
-          localKey: key,
-          name: text,
-          baseUrl: z.string().url(),
-          expectedPageTitle: z.string().trim().max(200).optional(),
-          apiBaseUrl: z.string().url().optional(),
-        }),
-      )
-      .max(20)
-      .default([]),
-    templateSteps: z
-      .array(z.object({ localKey: key, name: text, signature: text, groupId: z.string().min(1) }))
-      .max(100)
-      .default([]),
-  })
-  .strict()
-  .superRefine((proposal, context) => {
-    for (const [field, values] of Object.entries(proposal).filter(([, value]) => Array.isArray(value)) as Array<
-      [string, Array<{ localKey: string }>]
-    >) {
-      const duplicates = values.filter(
-        (value, index) => values.findIndex(item => item.localKey === value.localKey) !== index,
-      )
-      if (duplicates.length)
-        context.addIssue({ code: 'custom', path: [field], message: `Duplicate ${field} localKey.` })
-    }
-    const moduleKeys = new Set(proposal.modules.map(item => item.localKey))
-    const groupKeys = new Set(proposal.locatorGroups.map(item => item.localKey))
-    proposal.modules.forEach((item, index) => {
-      if (item.parentKey && !moduleKeys.has(item.parentKey))
-        context.addIssue({
-          code: 'custom',
-          path: ['modules', index, 'parentKey'],
-          message: 'Unknown module parentKey.',
-        })
-    })
-    proposal.locatorGroups.forEach((item, index) => {
-      if (!moduleKeys.has(item.moduleKey))
-        context.addIssue({ code: 'custom', path: ['locatorGroups', index, 'moduleKey'], message: 'Unknown moduleKey.' })
-    })
-    proposal.locators.forEach((item, index) => {
-      if (!groupKeys.has(item.groupKey))
-        context.addIssue({ code: 'custom', path: ['locators', index, 'groupKey'], message: 'Unknown groupKey.' })
-    })
-  })
-
-type Proposal = z.infer<typeof validationResourceProposalSchema>
 type Transaction = Prisma.TransactionClient
+
+function modulesInDependencyOrder(modules: Proposal['modules']) {
+  const pending = new Map(modules.map(item => [item.localKey, item]))
+  const ordered: Proposal['modules'] = []
+  while (pending.size) {
+    const ready = [...pending.values()].filter(item => !item.parentKey || !pending.has(item.parentKey))
+    if (!ready.length) throw new ServiceError('Module parent relationships must be acyclic.', 'VALIDATION')
+    for (const item of ready) {
+      ordered.push(item)
+      pending.delete(item.localKey)
+    }
+  }
+  return ordered
+}
 
 // fallow-ignore-next-line complexity
 async function persistProposalGraph(proposal: Proposal, targetProjectId: string, planId: string, tx: Transaction) {
@@ -139,11 +85,8 @@ async function persistProposalGraph(proposal: Proposal, targetProjectId: string,
     environments: Object.fromEntries(
       proposal.environments.map(item => [item.localKey, stableId(targetProjectId, 'environment', item.localKey)]),
     ),
-    templateSteps: Object.fromEntries(
-      proposal.templateSteps.map(item => [item.localKey, stableId(targetProjectId, 'template-step', item.localKey)]),
-    ),
   }
-  for (const item of proposal.modules) {
+  for (const item of modulesInDependencyOrder(proposal.modules)) {
     const matches = await tx.module.findMany({
       where: { targetProjectId, name: item.name },
       select: { id: true },
@@ -195,7 +138,7 @@ async function persistProposalGraph(proposal: Proposal, targetProjectId: string,
       throw new ServiceError(`Environment "${item.name}" already exists with different URLs.`, 'CONFLICT')
     ids.environments[item.localKey] = existing.id
   }
-  for (const item of proposal.modules) {
+  for (const item of modulesInDependencyOrder(proposal.modules)) {
     const data = {
       id: ids.modules[item.localKey],
       name: item.name,
@@ -303,35 +246,6 @@ async function persistProposalGraph(proposal: Proposal, targetProjectId: string,
       tx,
     )
   }
-  for (const item of proposal.templateSteps) {
-    const group = await tx.templateStepGroup.findUnique({
-      where: { id: item.groupId },
-      select: { id: true },
-    })
-    if (!group) throw new ServiceError(`Template step group "${item.groupId}" was not found.`, 'CONFLICT')
-    const data = {
-      id: ids.templateSteps[item.localKey],
-      name: item.name,
-      signature: item.signature,
-      templateStepGroupId: item.groupId,
-    }
-    await tx.templateStep.upsert({
-      where: { id: data.id },
-      create: { ...data, type: TemplateStepType.ACTION, icon: TemplateStepIcon.DEBUG },
-      update: { name: data.name, signature: data.signature, templateStepGroupId: data.templateStepGroupId },
-    })
-    await registerProjectResourceOwnership(
-      {
-        targetProjectId,
-        entityType: 'template-step',
-        entityId: data.id,
-        origin: 'validation-resource-proposal',
-        provenance: { planId, localKey: item.localKey },
-        content: data,
-      },
-      tx,
-    )
-  }
   return ids
 }
 
@@ -359,7 +273,7 @@ export async function proposeValidationResources(
     }
     const ids = await persistProposalGraph(proposal, plan.targetProjectId!, input.planId, tx)
     const stored = {
-      schemaVersion: 1,
+      schemaVersion: 2,
       planId: input.planId,
       targetProjectId: plan.targetProjectId,
       proposalHash,
@@ -383,7 +297,7 @@ export async function proposeValidationResources(
     ...result,
     contextHash: context.contextHash,
     nextRecommendedAction:
-      'Use each returned binding.astRef (preferred) or binding.id alias with its version to author the managed Validation AST.',
+      'Use each returned locator or environment binding in the managed Validation AST, and resolve executable behavior through exact ready Step Definition references.',
   }
 }
 
@@ -459,16 +373,6 @@ export async function cleanupValidationResourceProposal(
     )
     await remove('environment', removableIds('environment'), () =>
       tx.environment.deleteMany({ where: { id: { in: removableIds('environment') }, testRuns: { none: {} } } }),
-    )
-    await remove('template-step', removableIds('template-step'), () =>
-      tx.templateStep.deleteMany({
-        where: {
-          id: { in: removableIds('template-step') },
-          TemplateTestCaseStep: { none: {} },
-          TestCaseStep: { none: {} },
-          StepBlockStep: { none: {} },
-        },
-      }),
     )
     const moduleIds = removableIds('module')
     for (const moduleId of moduleIds.reverse()) {

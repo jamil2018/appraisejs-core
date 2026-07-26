@@ -22,7 +22,7 @@ export function locatorBindingsForAst(
   const refs = new Set<string>()
   for (const scenario of ast.scenarios)
     for (const step of scenario.steps)
-      for (const value of Object.values(step.operation.inputs))
+      for (const value of Object.values(step.invocation.inputs))
         if (
           value &&
           typeof value === 'object' &&
@@ -77,10 +77,10 @@ export function createValidationAstCanonicalProjection(
     steps: scenario.steps.map((step, order) => ({
       id: validationAstStepId(planScope, ast.id, scenario.id, step.id),
       order,
-      label: step.description,
-      gherkinStep: `${step.keyword} ${step.description}`,
-      operationRef: `${step.operation.id}@${step.operation.version}`,
-      parameters: Object.entries(step.operation.inputs).map(([name, input]) => parameter(name, input, bindings)),
+      label: step.invocation.presentation?.description ?? step.id,
+      gherkinStep: `${step.invocation.presentation?.keyword ?? 'Given'} ${step.invocation.presentation?.description ?? step.id}`,
+      invocation: step.invocation,
+      parameters: Object.entries(step.invocation.inputs).map(([name, input]) => parameter(name, input, bindings)),
     })),
   }))
   const projectedStepIds = new Map(
@@ -139,7 +139,13 @@ export function createValidationAstCanonicalProjection(
     })),
   } satisfies ValidationArtifact['validations'][number]
   const gherkin = ast.scenarios.map(scenario =>
-    [`Scenario: ${scenario.title}`, ...scenario.steps.map(step => `  ${step.keyword} ${step.description}`)].join('\n'),
+    [
+      `Scenario: ${scenario.title}`,
+      ...scenario.steps.map(
+        step =>
+          `  ${step.invocation.presentation?.keyword ?? 'Given'} ${step.invocation.presentation?.description ?? step.id}`,
+      ),
+    ].join('\n'),
   )
   const value = { validationNode, gherkin }
   return { ...value, projectionHash: validationAstHash(value) }

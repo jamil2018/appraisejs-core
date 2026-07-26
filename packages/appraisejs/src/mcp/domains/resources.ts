@@ -1,6 +1,5 @@
 import type { McpRegistryContext } from '../registry.js'
 import {
-  ACTION_CATALOG_CONTRACT_VERSION,
   OPERATION_CATALOG_CONTRACT_VERSION,
   DELEGATED_AUTHORIZATION_VERSION,
   LOCATOR_GRAPH_CONTRACT_VERSION,
@@ -26,14 +25,7 @@ export function registerResourcesOperations(context: McpRegistryContext): void {
       value: {
         version: OPERATION_CATALOG_CONTRACT_VERSION,
         operations: ['categories', 'search', 'read'],
-        legacyAliases: ['actions', 'template-steps'],
       },
-    },
-    {
-      name: 'action-catalog-contract',
-      uri: 'appraise://contracts/action-catalog',
-      title: 'Versioned action catalog contract',
-      value: { version: ACTION_CATALOG_CONTRACT_VERSION, operations: ['categories', 'list', 'read'] },
     },
     {
       name: 'locator-graph-contract',
@@ -56,7 +48,10 @@ export function registerResourcesOperations(context: McpRegistryContext): void {
             acceptedAlias: 'id',
             fields: ['id', 'astRef', 'version', 'targetProjectId', 'moduleId', 'locatorGroupId'],
           },
-          templateStepScope: 'shared_library',
+          stepInvocation: {
+            requiredFields: ['step.id', 'step.version', 'step.definitionHash', 'inputs', 'presentation'],
+            source: 'ready-step-definition-registry',
+          },
         },
       },
     },
@@ -167,32 +162,6 @@ export function registerResourcesOperations(context: McpRegistryContext): void {
     async uri => ({
       contents: [
         { uri: uri.href, mimeType: 'application/json', text: JSON.stringify(await api.listOperationCategories()) },
-      ],
-    }),
-  )
-
-  server.registerResource(
-    'action-catalog',
-    'appraise://actions/catalog',
-    { title: 'AppraiseJS action catalog categories', mimeType: 'application/json' },
-    async uri => ({
-      contents: [
-        { uri: uri.href, mimeType: 'application/json', text: JSON.stringify(await api.listActionCategories()) },
-      ],
-    }),
-  )
-
-  server.registerResource(
-    'action-category',
-    new ResourceTemplate('appraise://actions/category/{categoryId}', { list: undefined }),
-    { title: 'AppraiseJS action category', mimeType: 'application/json' },
-    async (uri, variables) => ({
-      contents: [
-        {
-          uri: uri.href,
-          mimeType: 'application/json',
-          text: JSON.stringify(await api.listActions({ categoryId: String(variables.categoryId), limit: 50 })),
-        },
       ],
     }),
   )

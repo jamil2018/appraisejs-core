@@ -22,6 +22,23 @@ try {
         stdio: ['pipe', 'pipe', 'pipe'],
       })
     }
+    if (migration === '20260725190000_add_step_block_migration_ledger') {
+      execFileSync('sqlite3', [databasePath], {
+        input: `
+          INSERT INTO "StepDefinitionDraft" ("id", "proposedStepId", "proposedVersion", "draftJson", "draftHash", "createdAt", "updatedAt")
+          VALUES ('legacy-composition-draft', 'legacy.composition.draft', '1', '{"execution":{"kind":"composition","steps":[{"step":{"id":"legacy.child","version":"1"},"inputs":{}}]}}', 'sha256:legacy-draft', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+          INSERT INTO "StepDefinition" ("id", "version", "status", "title", "description", "definitionJson", "definitionHash", "humanProjectionHash", "agentContractHash", "executionHash", "provenanceJson", "createdAt")
+          VALUES ('legacy.composition.ready', '1', 'ready', 'Legacy composition', 'Legacy composition', '{"execution":{"kind":"composition","steps":[{"step":{"id":"legacy.child","version":"1"},"inputs":{}}]}}', 'sha256:legacy-definition', 'sha256:legacy-human', 'sha256:legacy-agent', 'sha256:legacy-execution', '{}', CURRENT_TIMESTAMP);
+          INSERT INTO "StepHumanProjection" ("stepId", "stepVersion", "signature", "groupId", "projectionJson", "projectionHash")
+          VALUES ('legacy.composition.ready', '1', 'legacy composition migration fixture', 'migration', '{}', 'sha256:legacy-human');
+          INSERT INTO "StepExecutionBinding" ("stepId", "stepVersion", "kind", "bindingJson", "bindingHash")
+          VALUES ('legacy.composition.ready', '1', 'composition', '{"kind":"composition","steps":[{"step":{"id":"legacy.child","version":"1"},"inputs":{}}]}', 'sha256:legacy-execution');
+          INSERT INTO "StepPublicationReceipt" ("stepId", "stepVersion", "receiptJson", "receiptHash", "registryManifestHash", "conformanceRunId", "reviewAuthority", "publishedAt")
+          VALUES ('legacy.composition.ready', '1', '{}', 'sha256:legacy-receipt', 'sha256:legacy-manifest', 'legacy-fixture', 'migration-test', CURRENT_TIMESTAMP);
+        `,
+        stdio: ['pipe', 'pipe', 'pipe'],
+      })
+    }
     execFileSync('sqlite3', [databasePath], { input: sql, stdio: ['pipe', 'pipe', 'pipe'] })
   }
 
@@ -46,11 +63,26 @@ try {
   if (databaseDump.includes('known-fixture-secret-sentinel')) {
     throw new Error('Legacy environment credential remained in the migrated database dump.')
   }
+  const legacyCompositions = execFileSync(
+    'sqlite3',
+    [
+      databasePath,
+      `SELECT
+        (SELECT count(*) FROM StepDefinitionDraft WHERE id = 'legacy-composition-draft') +
+        (SELECT count(*) FROM StepDefinition WHERE id = 'legacy.composition.ready');`,
+    ],
+    { encoding: 'utf8' },
+  ).trim()
+  if (legacyCompositions !== '0') {
+    throw new Error(`Legacy pre-hash compositions survived the exact-reference migration: ${legacyCompositions}`)
+  }
 
   execFileSync('sqlite3', [databasePath, 'PRAGMA foreign_key_check;'], {
     stdio: ['ignore', 'pipe', 'pipe'],
   })
-  console.log(`Applied ${migrations.length} migrations and verified populated legacy credential removal.`)
+  console.log(
+    `Applied ${migrations.length} migrations and verified populated legacy credential and composition removal.`,
+  )
 } finally {
   rmSync(workspace, { recursive: true, force: true })
 }

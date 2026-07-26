@@ -1,0 +1,33 @@
+name: Release CI
+
+on:
+  pull_request:
+    branches: [appraise-0.5]
+
+env:
+  NODE_VERSION: 22
+
+jobs:
+  root-app:
+    steps:
+      - run: npm ci
+      - run: npm --prefix packages/appraisejs ci
+      - run: npx prisma generate
+      - run: npx playwright install --with-deps chromium
+      - run: npm run validate:unit
+      - run: npm run build
+  appraisejs-package: {}
+  create-appraisejs-package:
+    steps:
+      - run: npm ci
+      - run: npm --prefix packages/create-appraisejs ci
+      - run: npm --prefix packages/create-appraisejs test
+      - run: npm --prefix packages/create-appraisejs run build
+  security-and-quality:
+    steps:
+      - run: npm --prefix packages/appraisejs ci
+      - run: npm run release:check:mcp-http
+  dependency-and-package-content: {}
+  release-check:
+    needs:
+      [root-app, appraisejs-package, create-appraisejs-package, security-and-quality, dependency-and-package-content]

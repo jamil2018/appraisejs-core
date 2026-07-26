@@ -5,8 +5,8 @@ import { generateUniqueTestCaseIdentifier } from '@/lib/test-case-utils'
 import { z } from 'zod'
 import { TagType } from '@prisma/client'
 import { ServiceError } from '@/services/shared/errors'
-import { type CanonicalTemplateStepMapping } from '@/lib/operation-catalog'
 import { flowBlockCreates, testCaseStepCreates } from '@/services/shared/authored-step-persistence'
+import { resolveReadyExactStepDefinitions } from '@/services/shared/step-invocation-validation'
 
 export async function deleteTestCasesByIds(ids: string[], targetProjectId: string): Promise<void> {
   const affectedTestSuites = await prisma.testSuite.findMany({
@@ -115,82 +115,59 @@ export async function listTestCases(targetProjectId: string) {
 type TestCaseInput = z.input<typeof testCaseSchema>
 
 async function validateTestCaseRelationships(value: TestCaseInput, targetProjectId: string) {
-  const templateStepIds = [...new Set(value.steps.map(step => step.templateStepId))]
-  const [suites, tags, templateSteps] = await Promise.all([
+  const [suites, tags, definitions] = await Promise.all([
     prisma.testSuite.findMany({ where: { id: { in: value.testSuiteIds }, targetProjectId }, select: { id: true } }),
     prisma.tag.findMany({ where: { id: { in: value.tagIds ?? [] }, targetProjectId }, select: { id: true } }),
-    prisma.templateStep.findMany({
-      where: { id: { in: templateStepIds } },
-      select: {
-        id: true,
-        operationId: true,
-        operationVersion: true,
-        operationDescriptorHash: true,
-        humanProjectionId: true,
-        operationMigrationState: true,
-      },
-    }),
+    resolveReadyExactStepDefinitions(value.steps),
   ])
-  if (
-    suites.length !== value.testSuiteIds.length ||
-    tags.length !== (value.tagIds ?? []).length ||
-    templateSteps.length !== templateStepIds.length
-  )
+  if (suites.length !== value.testSuiteIds.length || tags.length !== (value.tagIds ?? []).length || !definitions)
     throw new ServiceError(
-      'Test case project relationships are invalid or a template step was not found',
+      'Test case project relationships are invalid or a referenced Step Definition is not ready and exact',
       'VALIDATION',
       400,
     )
-  return new Map(templateSteps.map(step => [step.id, step satisfies CanonicalTemplateStepMapping & { id: string }]))
+  return definitions
+}
+
+function prepareTestCaseWrites(
+  value: TestCaseInput,
+  definitions: Awaited<ReturnType<typeof validateTestCaseRelationships>>,
+) {
+  return {
+    steps: testCaseStepCreates(value.steps, definitions),
+    flowBlocks: flowBlockCreates(value.flowBlocks),
+  }
 }
 
 export async function createTestCaseFromInput(value: TestCaseInput, targetProjectId: string) {
-  const operationMappings = await validateTestCaseRelationships(value, targetProjectId)
+  const definitions = await validateTestCaseRelationships(value, targetProjectId)
+  const prepared = prepareTestCaseWrites(value, definitions)
   const uniqueTestCaseIdentifier = generateUniqueTestCaseIdentifier()
-  const testCaseIdentifierTag = await prisma.tag.create({
-    data: {
-      name: uniqueTestCaseIdentifier,
-      type: TagType.IDENTIFIER,
-      tagExpression: `@${uniqueTestCaseIdentifier}`,
-      targetProjectId,
-    },
-  })
 
-  const baseData = {
-    title: value.title,
-    description: value.description ?? '',
-    targetProjectId,
-    TestSuite: {
-      connect: value.testSuiteIds.map(id => ({ id })),
-    },
-    steps: { create: testCaseStepCreates(value.steps, operationMappings) },
-    flowBlocks: { create: flowBlockCreates(value.flowBlocks) },
-  }
-
-  const data =
-    value.tagIds && value.tagIds.length > 0
-      ? {
-          ...baseData,
-          tags: {
-            connect: [{ id: testCaseIdentifierTag.id }, ...value.tagIds.map(id => ({ id }))],
-          },
-        }
-      : {
-          ...baseData,
-          tags: {
-            connect: [{ id: testCaseIdentifierTag.id }],
-          },
-        }
-
-  const newTestCase = await prisma.testCase.create({
-    data,
-    include: {
-      TestSuite: {
-        select: {
-          id: true,
-        },
+  const newTestCase = await prisma.$transaction(async tx => {
+    const testCaseIdentifierTag = await tx.tag.create({
+      data: {
+        name: uniqueTestCaseIdentifier,
+        type: TagType.IDENTIFIER,
+        tagExpression: `@${uniqueTestCaseIdentifier}`,
+        targetProjectId,
       },
-    },
+    })
+
+    return tx.testCase.create({
+      data: {
+        title: value.title,
+        description: value.description ?? '',
+        targetProjectId,
+        TestSuite: { connect: value.testSuiteIds.map(id => ({ id })) },
+        tags: {
+          connect: [{ id: testCaseIdentifierTag.id }, ...(value.tagIds ?? []).map(id => ({ id }))],
+        },
+        steps: { create: prepared.steps },
+        flowBlocks: { create: prepared.flowBlocks },
+      },
+      include: { TestSuite: { select: { id: true } } },
+    })
   })
 
   await Promise.all(newTestCase.TestSuite.map(testSuite => automationProjectionService.generateFeature(testSuite.id)))
@@ -241,7 +218,8 @@ export async function getTestCaseByIdOrThrow(id: string, targetProjectId: string
 
 export async function updateTestCaseFromInput(value: TestCaseInput, id: string, targetProjectId: string) {
   await getTestCaseByIdOrThrow(id, targetProjectId)
-  const operationMappings = await validateTestCaseRelationships(value, targetProjectId)
+  const definitions = await validateTestCaseRelationships(value, targetProjectId)
+  const prepared = prepareTestCaseWrites(value, definitions)
   const affectedTestSuites = await prisma.testSuite.findMany({
     where: {
       targetProjectId,
@@ -261,19 +239,6 @@ export async function updateTestCaseFromInput(value: TestCaseInput, id: string, 
     select: { id: true },
   })
   const stepIds = steps.map(step => step.id)
-
-  if (stepIds.length > 0) {
-    await prisma.testCaseStepParameter.deleteMany({
-      where: { testCaseStepId: { in: stepIds } },
-    })
-  }
-
-  await prisma.testCaseStep.deleteMany({
-    where: { testCaseId: id },
-  })
-  await prisma.testCaseFlowBlock.deleteMany({
-    where: { testCaseId: id },
-  })
 
   const existingTestCase = await prisma.testCase.findFirst({
     where: { id, targetProjectId },
@@ -297,20 +262,24 @@ export async function updateTestCaseFromInput(value: TestCaseInput, id: string, 
   const filterTagIds = value.tagIds || []
   const allTagIds = [...identifierTagIds, ...filterTagIds]
 
-  const testCase = await prisma.testCase.update({
-    where: { id },
-    data: {
-      title: value.title,
-      description: value.description ?? '',
-      tags: {
-        set: allTagIds.map(tagId => ({ id: tagId })),
+  const testCase = await prisma.$transaction(async tx => {
+    if (stepIds.length > 0) {
+      await tx.testCaseStepParameter.deleteMany({ where: { testCaseStepId: { in: stepIds } } })
+    }
+    await tx.testCaseStep.deleteMany({ where: { testCaseId: id } })
+    await tx.testCaseFlowBlock.deleteMany({ where: { testCaseId: id } })
+
+    return tx.testCase.update({
+      where: { id },
+      data: {
+        title: value.title,
+        description: value.description ?? '',
+        tags: { set: allTagIds.map(tagId => ({ id: tagId })) },
+        steps: { create: prepared.steps },
+        flowBlocks: { create: prepared.flowBlocks },
       },
-      steps: { create: testCaseStepCreates(value.steps, operationMappings) },
-      flowBlocks: { create: flowBlockCreates(value.flowBlocks) },
-    },
-    include: {
-      steps: true,
-    },
+      include: { steps: true },
+    })
   })
 
   await Promise.all(affectedTestSuites.map(testSuite => automationProjectionService.generateFeature(testSuite.id)))

@@ -33,4 +33,10 @@ describe('project scope proxy', () => {
 
     expect(response.headers.get('x-middleware-next')).toBe('1')
   })
+
+  it('forwards the canonical pathname to the app shell', () => {
+    const response = proxy(new NextRequest('http://localhost:3000/settings'))
+
+    expect(response.headers.get('x-middleware-request-x-appraise-pathname')).toBe('/settings')
+  })
 })

@@ -2,7 +2,6 @@ import { createHash } from 'node:crypto'
 
 import { z } from 'zod'
 
-import { defaultActionCatalog } from '@/lib/action-catalog'
 import { defaultOperationRegistry } from '@/lib/operation-catalog'
 import { canonicalStepDiscoveryText, stepDiscoveryTerms } from '@/lib/step-discovery'
 
@@ -12,6 +11,7 @@ import {
   planLinks,
   zodCoordinatorError,
 } from '@/lib/coordinator-api/contracts'
+import { parseValidationResourceTypes } from '@/lib/coordinator-api/validation-context-query'
 import { isProviderNativeRunsEnabled } from '@/lib/feature-flags'
 import { guardCoordinatorRequest, readCoordinatorJson } from '@/lib/coordinator-api/request-guard'
 import { CoordinatorProjectMismatchError } from '@/lib/coordinator-api/request-guard'
@@ -73,6 +73,7 @@ import {
   reachImplementationCheckpoint,
   recordImplementationValidation,
   reconcileImplementationValidation,
+  readImplementationValidationReadiness,
   reviewImplementationCompletion,
   startImplementationValidation,
   readImplementationLifecycleHealth,
@@ -91,6 +92,7 @@ import {
 import { readPlanReviewSummary } from '@/services/plan-review/plan-review-service'
 import { queryLocatorGraph, readLocatorGraphVisualProjection } from '@/services/locator-graph/locator-graph-service'
 import { ServiceError } from '@/services/shared/errors'
+import { coordinatorStepDefinitionService } from '@/services/coordinator/coordinator-step-definition-service'
 import {
   coordinatorOperationRegistry,
   type CoordinatorOperationId,
@@ -124,6 +126,7 @@ import {
   readTestRunEvidenceSummary,
 } from '@/services/test-run/test-run-service'
 import {
+  initializeTargetGitRepository,
   listTargetProjects,
   registerTargetProject,
   resolveTargetProject,
@@ -294,21 +297,9 @@ async function getValidations(request: Request, operation: string[]) {
   }
   if (operation[3] === 'context') {
     const url = new URL(request.url)
-    const resourceTypes = url.searchParams.get('resourceTypes')?.split(',').filter(Boolean) as
-      | Array<
-          | 'modules'
-          | 'testSuites'
-          | 'testCases'
-          | 'templateSteps'
-          | 'stepBlocks'
-          | 'locatorGroups'
-          | 'locators'
-          | 'environments'
-        >
-      | undefined
     return Response.json(
       await readValidationContext(planId, {
-        resourceTypes,
+        resourceTypes: parseValidationResourceTypes(url.searchParams),
         query: url.searchParams.get('query') ?? undefined,
         limit: z.coerce.number().int().positive().max(200).catch(50).parse(url.searchParams.get('limit')),
         sinceHash: url.searchParams.get('sinceHash') ?? undefined,
@@ -328,36 +319,24 @@ async function getValidations(request: Request, operation: string[]) {
   throw new ServiceError('Coordinator API operation not found.', 'NOT_FOUND')
 }
 
-function getActionCategories(query: URLSearchParams) {
-  return Response.json({
-    ...defaultActionCatalog.listCategories(
-      query.get('parentCategoryId') ?? undefined,
-      query.get('knownCatalogHash') ?? undefined,
-    ),
-    deprecatedTool: true,
-    replacement: 'operation_categories',
-  })
-}
-
-function getActionsByReference(query: URLSearchParams) {
-  return Response.json({
-    catalogHash: defaultActionCatalog.catalogHash,
-    actions: defaultActionCatalog.readActions(operationRefs(query)).map(withCanonicalOperation),
-    deprecatedTool: true,
-    replacement: 'operation_read',
-  })
-}
-
-function withCanonicalOperation<T extends { id: string; version: string }>(action: T) {
-  const operation = defaultOperationRegistry.read([{ id: action.id, version: action.version }])[0]!
-  return {
-    ...action,
-    canonicalOperation: {
-      id: operation.id,
-      version: operation.version,
-      descriptorHash: operation.descriptorHash,
-    },
-  }
+function operationRefs(query: URLSearchParams) {
+  return z
+    .string()
+    .transform((value, context) => {
+      try {
+        return JSON.parse(value) as unknown
+      } catch {
+        context.addIssue({ code: 'custom', message: 'refs must be valid JSON.' })
+        return z.NEVER
+      }
+    })
+    .pipe(
+      z
+        .array(z.object({ id: z.string(), version: z.string().optional() }))
+        .min(1)
+        .max(50),
+    )
+    .parse(query.get('refs') ?? '[]')
 }
 
 function optionalQuery(query: URLSearchParams, key: string) {
@@ -380,57 +359,6 @@ function parseActionCursor(query: URLSearchParams) {
 
 function parseActionLimit(query: URLSearchParams) {
   return query.has('limit') ? z.coerce.number().int().min(1).max(100).parse(query.get('limit')) : 50
-}
-
-function listActions(query: URLSearchParams) {
-  const filter = {
-    categoryId: optionalQuery(query, 'categoryId'),
-    capability: optionalQuery(query, 'capability'),
-    inputType: optionalQuery(query, 'inputType'),
-    runtime: z
-      .enum(['browser', 'api', 'node', 'database'])
-      .optional()
-      .parse(query.get('runtime') ?? undefined),
-    deprecated: parseDeprecatedFilter(query),
-    idPrefix: optionalQuery(query, 'idPrefix'),
-  }
-  const result = defaultActionCatalog.listActions(filter, parseActionCursor(query), parseActionLimit(query))
-  return Response.json({
-    ...result,
-    items: result.items.map(withCanonicalOperation),
-    deprecatedTool: true,
-    replacement: 'operation_search',
-  })
-}
-
-async function getActions(request: Request, operation: string[]) {
-  const query = new URL(request.url).searchParams
-  const handlers: Record<string, () => Response> = {
-    categories: () => getActionCategories(query),
-    read: () => getActionsByReference(query),
-    list: () => listActions(query),
-  }
-  return (handlers[operation[1] ?? 'list'] ?? handlers.list)()
-}
-
-function operationRefs(query: URLSearchParams) {
-  return z
-    .string()
-    .transform((value, context) => {
-      try {
-        return JSON.parse(value) as unknown
-      } catch {
-        context.addIssue({ code: 'custom', message: 'refs must be valid JSON.' })
-        return z.NEVER
-      }
-    })
-    .pipe(
-      z
-        .array(z.object({ id: z.string(), version: z.string().optional() }))
-        .min(1)
-        .max(50),
-    )
-    .parse(query.get('refs') ?? '[]')
 }
 
 function operationCategories(query: URLSearchParams) {
@@ -681,6 +609,11 @@ async function getLocatorGraph(request: Request, operation: string[]) {
   return (handlers[operation[1] ?? 'query'] ?? handlers.query)()
 }
 
+async function getStepDefinitions(request: Request, operation: string[]) {
+  const result = await coordinatorStepDefinitionService.read(operation, new URL(request.url).searchParams)
+  return Response.json(result.body)
+}
+
 async function dispatchGet(request: Request, operation: string[]) {
   const id = coordinatorOperationRegistry.resolve('GET', operation)
   const handlers: Partial<Record<CoordinatorOperationId, () => Promise<Response>>> = {
@@ -690,8 +623,8 @@ async function dispatchGet(request: Request, operation: string[]) {
     'test-run-evidence': () => getTestRunEvidence(request, operation),
     'plan-health': async () =>
       Response.json(await readImplementationLifecycleHealth(routePlanIdSchema.parse(operation[1]))),
-    actions: () => getActions(request, operation),
     operations: () => getOperations(request, operation),
+    'step-definitions-read': () => getStepDefinitions(request, operation),
     'target-projects-list': async () => Response.json({ targetProjects: await listTargetProjects() }),
     'locator-graph': () => getLocatorGraph(request, operation),
     'providers-list': async () => {
@@ -772,9 +705,23 @@ async function postImplementationOperation(operation: string[], body: unknown) {
     return Response.json(await controlImplementation({ planId, ...value }))
   }
   if (action === 'validations') {
+    if (operation[4] === 'readiness') {
+      const value = z
+        .object({
+          validationIds: z.array(idSchema).optional(),
+          confirmedRemoteEnvironmentIds: z.array(idSchema).optional(),
+          action: z.enum(['check', 'launch', 'stop']).optional(),
+        })
+        .parse(body)
+      return Response.json(await readImplementationValidationReadiness({ planId, ...value }))
+    }
     if (operation[4] === 'start') {
       const value = z
-        .object({ validationIds: z.array(idSchema).optional(), commitHash: z.string().min(1).optional() })
+        .object({
+          validationIds: z.array(idSchema).optional(),
+          commitHash: z.string().min(1).optional(),
+          confirmedRemoteEnvironmentIds: z.array(idSchema).optional(),
+        })
         .parse(body)
       return Response.json(await startImplementationValidation({ planId, ...value }))
     }
@@ -949,12 +896,20 @@ async function authorizeDelegatedPlanCreation(
 }
 
 async function postTargetProject(body: unknown) {
-  const value = z.object({ path: z.string().min(1), displayName: z.string().min(1).optional() }).parse(body)
+  const value = z
+    .object({
+      path: z.string().min(1),
+      displayName: z.string().min(1).optional(),
+      initializeGit: z.boolean().optional(),
+    })
+    .parse(body)
   const identity = await ensureProjectIdentity()
+  const git = await initializeTargetGitRepository(value.path, value.initializeGit ?? false)
   const targetProject = await registerTargetProject({ projectPath: value.path, displayName: value.displayName })
   return Response.json(
     {
       targetProject,
+      git,
       marker: await writeTargetProjectMarker(targetProject, identity.projectFingerprint),
     },
     { status: 201 },
@@ -1300,10 +1255,16 @@ async function postDiagnosticPreflight(request: Request, body: unknown) {
   })
 }
 
+async function postStepDefinitions(operation: string[], body: unknown) {
+  const result = await coordinatorStepDefinitionService.write(operation, body)
+  return result.status ? Response.json(result.body, { status: result.status }) : Response.json(result.body)
+}
+
 async function dispatchPost(request: Request, operation: string[], body: unknown) {
   const id = coordinatorOperationRegistry.resolve('POST', operation)
   const handlers: Partial<Record<CoordinatorOperationId, () => Promise<Response>>> = {
     'delegation-create': () => postDelegationCreate(body),
+    'step-definitions-write': () => postStepDefinitions(operation, body),
     'delegation-revoke': () => postDelegationRevoke(operation, body),
     'objective-create': () => postObjective(body),
     'coordination-slo': async () => postCoordinationSlo(body),

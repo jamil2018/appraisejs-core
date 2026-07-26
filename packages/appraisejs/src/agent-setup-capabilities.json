@@ -1,9 +1,6 @@
 {
   "tools": [
     "project_diagnostic",
-    "action_categories_list",
-    "actions_list",
-    "actions_read",
     "planning_session_create",
     "plan_review_loop",
     "validation_ast_check",
@@ -22,8 +19,6 @@
   ],
   "resources": [
     "appraise://project",
-    "appraise://actions/catalog",
-    "appraise://actions/category/{categoryId}",
     "appraise://agent-guide",
     "appraise://workflow/planning",
     "appraise://workflow/validation-preparation",

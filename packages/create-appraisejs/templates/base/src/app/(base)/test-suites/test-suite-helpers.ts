@@ -10,7 +10,7 @@ export {
   getCreatedTestSuite,
   getModuleRows,
   getTagRows,
-  getTemplateStepGroupRows,
+  getStepDefinitionGroupRows,
   getTestCasePickerRows,
   getTestSuiteTableRows,
 } from './test-suite-row-guards'

@@ -1,4 +1,7 @@
 import prisma from '@/config/db-config'
+import type { Prisma } from '@prisma/client'
+
+type ModuleClient = Pick<Prisma.TransactionClient, 'module'>
 
 /**
  * Creates or finds a module by its path
@@ -7,10 +10,15 @@ import prisma from '@/config/db-config'
  * @param parentId - Optional parent module ID
  * @returns Promise<string> - The ID of the created or found module
  */
-async function createOrFindModule(modulePath: string, moduleName: string, parentId?: string): Promise<string> {
+async function createOrFindModule(
+  modulePath: string,
+  moduleName: string,
+  parentId: string | undefined,
+  client: ModuleClient,
+): Promise<string> {
   try {
     // First, try to find existing module by name and parent
-    const existingModule = await prisma.module.findFirst({
+    const existingModule = await client.module.findFirst({
       where: {
         name: moduleName,
         parentId: parentId || null,
@@ -22,7 +30,7 @@ async function createOrFindModule(modulePath: string, moduleName: string, parent
     }
 
     // Create new module
-    const newModule = await prisma.module.create({
+    const newModule = await client.module.create({
       data: {
         name: moduleName,
         parentId: parentId || null,
@@ -44,14 +52,14 @@ async function createOrFindModule(modulePath: string, moduleName: string, parent
  * @param modulePath - The module path (e.g., "/module1/submodule")
  * @returns Promise<string> - The ID of the leaf module
  */
-export async function buildModuleHierarchy(modulePath: string): Promise<string> {
+export async function buildModuleHierarchy(modulePath: string, client: ModuleClient = prisma): Promise<string> {
   try {
     // Parse the module path
     const pathParts = modulePath.split('/').filter(part => part && part !== '')
 
     // Handle empty path (root level) - create/find a default root module
     if (pathParts.length === 0) {
-      const rootModule = await prisma.module.findFirst({
+      const rootModule = await client.module.findFirst({
         where: {
           name: 'root',
           parentId: null,
@@ -63,7 +71,7 @@ export async function buildModuleHierarchy(modulePath: string): Promise<string> 
       }
 
       // Create default root module
-      const newRootModule = await prisma.module.create({
+      const newRootModule = await client.module.create({
         data: {
           name: 'root',
           parentId: null,
@@ -82,7 +90,7 @@ export async function buildModuleHierarchy(modulePath: string): Promise<string> 
       const moduleName = pathParts[i]
       currentPath += `/${moduleName}`
 
-      const moduleId = await createOrFindModule(currentPath, moduleName, currentParentId)
+      const moduleId = await createOrFindModule(currentPath, moduleName, currentParentId, client)
 
       currentParentId = moduleId
     }

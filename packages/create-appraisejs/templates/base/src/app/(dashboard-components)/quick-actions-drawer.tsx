@@ -36,7 +36,7 @@ const quickActions = [
   {
     label: 'Create Step',
     description: 'Build a reusable Gherkin step',
-    href: '/template-steps/create',
+    href: '/step-definitions/create',
     icon: LayoutTemplate,
     theme: {
       text: 'text-indigo-400',

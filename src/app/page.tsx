@@ -34,7 +34,7 @@ const Dashboard = async () => {
   const metricsResponse = await getDashboardMetricsAction()
   const metrics = metricsResponse.status === 200 ? (metricsResponse.data as DashboardMetrics | null) : null
 
-  const { testCasesCount, testSuitesCount, templateStepsCount, runningTestRunsCount } = entityMetrics
+  const { testCasesCount, testSuitesCount, stepDefinitionsCount, runningTestRunsCount } = entityMetrics
 
   // Fetch test suite execution data
   const testSuiteExecutionResponse = await getTestSuiteExecutionDataAction()
@@ -63,7 +63,7 @@ const Dashboard = async () => {
             <DataCardGrid>
               <DataCard title="Test Cases" value={testCasesCount} link="/test-cases" />
               <DataCard title="Test Suites" value={testSuitesCount} link="/test-suites" />
-              <DataCard title="Template Steps" value={templateStepsCount} link="/template-steps" />
+              <DataCard title="Step Definitions" value={stepDefinitionsCount} link="/step-definitions" />
               <OngoingTestRunsCard initialCount={runningTestRunsCount} link="/test-runs" />
             </DataCardGrid>
           </div>

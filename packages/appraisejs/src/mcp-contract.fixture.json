@@ -3,21 +3,6 @@
   "default": [
     {
       "kind": "resource",
-      "name": "action-catalog",
-      "uri": "appraise://actions/catalog"
-    },
-    {
-      "kind": "resource",
-      "name": "action-catalog-contract",
-      "uri": "appraise://contracts/action-catalog"
-    },
-    {
-      "kind": "resource",
-      "name": "action-category",
-      "uri": "appraise://actions/category/{categoryId}"
-    },
-    {
-      "kind": "resource",
       "name": "agent-guide",
       "uri": "appraise://agent-guide"
     },
@@ -90,105 +75,6 @@
       "kind": "resource",
       "name": "workflow-validation-preparation",
       "uri": "appraise://workflow/validation-preparation"
-    },
-    {
-      "kind": "tool",
-      "name": "action_categories_list",
-      "description": "List bounded action category summaries; known catalog hashes return unchanged.",
-      "inputSchema": {
-        "$schema": "https://json-schema.org/draft/2020-12/schema",
-        "type": "object",
-        "properties": {
-          "parentCategoryId": {
-            "type": "string"
-          },
-          "knownCatalogHash": {
-            "type": "string"
-          }
-        },
-        "additionalProperties": false
-      }
-    },
-    {
-      "kind": "tool",
-      "name": "actions_list",
-      "description": "List deterministic bounded action summaries using exact filters; limit must be between 1 and 100.",
-      "inputSchema": {
-        "$schema": "https://json-schema.org/draft/2020-12/schema",
-        "type": "object",
-        "properties": {
-          "categoryId": {
-            "type": "string"
-          },
-          "capability": {
-            "type": "string"
-          },
-          "inputType": {
-            "type": "string"
-          },
-          "runtime": {
-            "type": "string",
-            "enum": [
-              "browser",
-              "api",
-              "node",
-              "database"
-            ]
-          },
-          "deprecated": {
-            "type": "boolean"
-          },
-          "idPrefix": {
-            "type": "string"
-          },
-          "cursor": {
-            "type": "integer",
-            "minimum": 0,
-            "maximum": 9007199254740991
-          },
-          "limit": {
-            "type": "integer",
-            "minimum": 1,
-            "maximum": 100
-          }
-        },
-        "additionalProperties": false
-      }
-    },
-    {
-      "kind": "tool",
-      "name": "actions_read",
-      "description": "Read exact versioned action descriptors for selected references.",
-      "inputSchema": {
-        "$schema": "https://json-schema.org/draft/2020-12/schema",
-        "type": "object",
-        "properties": {
-          "actionRefs": {
-            "minItems": 1,
-            "maxItems": 50,
-            "type": "array",
-            "items": {
-              "type": "object",
-              "properties": {
-                "id": {
-                  "type": "string"
-                },
-                "version": {
-                  "type": "string"
-                }
-              },
-              "required": [
-                "id"
-              ],
-              "additionalProperties": false
-            }
-          }
-        },
-        "required": [
-          "actionRefs"
-        ],
-        "additionalProperties": false
-      }
     },
     {
       "kind": "tool",
@@ -1012,6 +898,57 @@
     },
     {
       "kind": "tool",
+      "name": "implementation_validation_readiness",
+      "description": "Check reviewed implementation environments without consuming a managed TestRun, or explicitly launch the registered target through its dev/start package script and recheck readiness.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "planId": {
+            "type": "string"
+          },
+          "validationIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "confirmedRemoteEnvironmentIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "action": {
+            "type": "string",
+            "enum": [
+              "check",
+              "launch",
+              "stop"
+            ]
+          },
+          "responseMode": {
+            "default": "summary",
+            "type": "string",
+            "enum": [
+              "summary",
+              "evidenceOnly",
+              "blockersOnly",
+              "linksOnly",
+              "full"
+            ]
+          }
+        },
+        "required": [
+          "planId"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "kind": "tool",
       "name": "implementation_validation_reconcile",
       "description": "Reconcile Appraise-owned validation runs by implementation run id or public TestRun id, and optionally verify implemented tasks atomically with an idempotency key.",
       "inputSchema": {
@@ -1281,6 +1218,13 @@
           "commitHash": {
             "type": "string",
             "minLength": 1
+          },
+          "confirmedRemoteEnvironmentIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
           },
           "responseMode": {
             "default": "summary",
@@ -2941,7 +2885,7 @@
     {
       "kind": "tool",
       "name": "project_add",
-      "description": "Attach an existing application repository as a target project and write a non-blocking .appraisejs/project.json continuity marker when writable.",
+      "description": "Attach an application workspace as a target project, optionally initialize Git when the workspace is empty, and write a non-blocking .appraisejs/project.json continuity marker when writable.",
       "inputSchema": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "type": "object",
@@ -2953,6 +2897,9 @@
           "displayName": {
             "type": "string",
             "minLength": 1
+          },
+          "initializeGit": {
+            "type": "boolean"
           }
         },
         "required": [
@@ -3001,23 +2948,237 @@
     },
     {
       "kind": "tool",
-      "name": "step_block_search",
-      "description": "Search reusable step blocks before proposing custom validation step sequences.",
+      "name": "step_definition_draft_artifact_save",
+      "description": "Save user-authored handler source and explicit examples separately from definition metadata.",
       "inputSchema": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "type": "object",
         "properties": {
-          "planId": {
-            "type": "string"
-          },
-          "query": {
+          "draftId": {
             "type": "string",
-            "minLength": 1
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "expectedRevision": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
+          },
+          "artifact": {}
+        },
+        "required": [
+          "draftId",
+          "expectedRevision",
+          "artifact"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "kind": "tool",
+      "name": "step_definition_draft_compile",
+      "description": "Compile and run bounded conformance for the exact saved reviewed-extension artifact.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "draftId": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "expectedRevision": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
           }
         },
         "required": [
-          "planId",
-          "query"
+          "draftId",
+          "expectedRevision"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "kind": "tool",
+      "name": "step_definition_draft_create",
+      "description": "Create a bounded non-executable Step Definition draft after searching ready definitions.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "definition": {},
+          "reuseEvidence": {
+            "type": "object",
+            "properties": {
+              "indexHash": {
+                "type": "string",
+                "pattern": "^sha256:[a-f0-9]{64}$"
+              },
+              "searchedAt": {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+              },
+              "planId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200
+              },
+              "correlationId": {
+                "type": "string",
+                "pattern": "^[a-zA-Z0-9._:-]{1,100}$"
+              },
+              "candidateReferences": {
+                "maxItems": 25,
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 200
+                    },
+                    "version": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 40
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "version"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "receiptId": {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+              },
+              "reuseJustification": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2000
+              }
+            },
+            "required": [
+              "indexHash",
+              "searchedAt",
+              "correlationId",
+              "candidateReferences",
+              "receiptId",
+              "reuseJustification"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "definition",
+          "reuseEvidence"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "kind": "tool",
+      "name": "step_definition_draft_preview",
+      "description": "preview an exact Step Definition draft through the shared registry service.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "draftId": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "expectedRevision": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "draftId",
+          "expectedRevision"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "kind": "tool",
+      "name": "step_definition_draft_read",
+      "description": "Read one exact Step Definition draft and its separate reviewed-extension artifact.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "draftId": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          }
+        },
+        "required": [
+          "draftId"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "kind": "tool",
+      "name": "step_definition_draft_update",
+      "description": "Revise a draft with optimistic concurrency; ready definitions are never mutated.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "draftId": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "expectedRevision": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
+          },
+          "definition": {}
+        },
+        "required": [
+          "draftId",
+          "expectedRevision",
+          "definition"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "kind": "tool",
+      "name": "step_definition_draft_validate",
+      "description": "validate an exact Step Definition draft through the shared registry service.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "draftId": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "expectedRevision": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "draftId",
+          "expectedRevision"
         ],
         "additionalProperties": false
       }
@@ -3025,85 +3186,7 @@
     {
       "kind": "tool",
       "name": "step_search",
-      "description": "Preferred combined discovery for human-authored and agent-authored steps. Returns semantic Template Step naming together with canonical typed operation identity when mapped.",
-      "inputSchema": {
-        "$schema": "https://json-schema.org/draft/2020-12/schema",
-        "type": "object",
-        "properties": {
-          "planId": {
-            "type": "string"
-          },
-          "query": {
-            "type": "string",
-            "minLength": 1
-          },
-          "parameterNames": {
-            "default": [],
-            "type": "array",
-            "items": {
-              "type": "string",
-              "minLength": 1
-            }
-          },
-          "limit": {
-            "default": 5,
-            "type": "integer",
-            "exclusiveMinimum": 0,
-            "maximum": 25
-          }
-        },
-        "required": [
-          "planId",
-          "query",
-          "parameterNames",
-          "limit"
-        ],
-        "additionalProperties": false
-      }
-    },
-    {
-      "kind": "tool",
-      "name": "template_step_match",
-      "description": "Compatibility name for step_search. Rank combined reusable steps and step blocks for a behavior intent.",
-      "inputSchema": {
-        "$schema": "https://json-schema.org/draft/2020-12/schema",
-        "type": "object",
-        "properties": {
-          "planId": {
-            "type": "string"
-          },
-          "intent": {
-            "type": "string",
-            "minLength": 1
-          },
-          "parameterNames": {
-            "default": [],
-            "type": "array",
-            "items": {
-              "type": "string",
-              "minLength": 1
-            }
-          },
-          "limit": {
-            "default": 5,
-            "type": "integer",
-            "exclusiveMinimum": 0,
-            "maximum": 25
-          }
-        },
-        "required": [
-          "planId",
-          "intent",
-          "parameterNames",
-          "limit"
-        ],
-        "additionalProperties": false
-      }
-    },
-    {
-      "kind": "tool",
-      "name": "template_step_search",
-      "description": "Compatibility name for step_search. Resolve combined human Template Step and canonical agent-operation results before proposing custom steps.",
+      "description": "Search ready Step Definitions by one actionable versioned identity with human, agent, and execution-readiness projections.",
       "inputSchema": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "type": "object",
@@ -3540,7 +3623,7 @@
     {
       "kind": "tool",
       "name": "validation_context_read",
-      "description": "Read a bounded plan-intent context pack with coverage exploration, an editable deterministic AST starter/export, registry-first recipes, runtime preparation proposals, target metadata, and reusable resources.",
+      "description": "Read a bounded plan-intent context pack with coverage exploration, an editable deterministic AST starter/export, registry-first recipes, the versioned resource-proposal contract and examples, runtime preparation proposals, target metadata, and reusable resources.",
       "inputSchema": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "type": "object",
@@ -3551,7 +3634,16 @@
           "resourceTypes": {
             "type": "array",
             "items": {
-              "type": "string"
+              "type": "string",
+              "enum": [
+                "modules",
+                "testSuites",
+                "testCases",
+                "stepDefinitions",
+                "locatorGroups",
+                "locators",
+                "environments"
+              ]
             }
           },
           "query": {
@@ -3928,21 +4020,6 @@
   "providerNative": [
     {
       "kind": "resource",
-      "name": "action-catalog",
-      "uri": "appraise://actions/catalog"
-    },
-    {
-      "kind": "resource",
-      "name": "action-catalog-contract",
-      "uri": "appraise://contracts/action-catalog"
-    },
-    {
-      "kind": "resource",
-      "name": "action-category",
-      "uri": "appraise://actions/category/{categoryId}"
-    },
-    {
-      "kind": "resource",
       "name": "agent-guide",
       "uri": "appraise://agent-guide"
     },
@@ -4025,105 +4102,6 @@
       "kind": "resource",
       "name": "workflow-validation-preparation",
       "uri": "appraise://workflow/validation-preparation"
-    },
-    {
-      "kind": "tool",
-      "name": "action_categories_list",
-      "description": "List bounded action category summaries; known catalog hashes return unchanged.",
-      "inputSchema": {
-        "$schema": "https://json-schema.org/draft/2020-12/schema",
-        "type": "object",
-        "properties": {
-          "parentCategoryId": {
-            "type": "string"
-          },
-          "knownCatalogHash": {
-            "type": "string"
-          }
-        },
-        "additionalProperties": false
-      }
-    },
-    {
-      "kind": "tool",
-      "name": "actions_list",
-      "description": "List deterministic bounded action summaries using exact filters; limit must be between 1 and 100.",
-      "inputSchema": {
-        "$schema": "https://json-schema.org/draft/2020-12/schema",
-        "type": "object",
-        "properties": {
-          "categoryId": {
-            "type": "string"
-          },
-          "capability": {
-            "type": "string"
-          },
-          "inputType": {
-            "type": "string"
-          },
-          "runtime": {
-            "type": "string",
-            "enum": [
-              "browser",
-              "api",
-              "node",
-              "database"
-            ]
-          },
-          "deprecated": {
-            "type": "boolean"
-          },
-          "idPrefix": {
-            "type": "string"
-          },
-          "cursor": {
-            "type": "integer",
-            "minimum": 0,
-            "maximum": 9007199254740991
-          },
-          "limit": {
-            "type": "integer",
-            "minimum": 1,
-            "maximum": 100
-          }
-        },
-        "additionalProperties": false
-      }
-    },
-    {
-      "kind": "tool",
-      "name": "actions_read",
-      "description": "Read exact versioned action descriptors for selected references.",
-      "inputSchema": {
-        "$schema": "https://json-schema.org/draft/2020-12/schema",
-        "type": "object",
-        "properties": {
-          "actionRefs": {
-            "minItems": 1,
-            "maxItems": 50,
-            "type": "array",
-            "items": {
-              "type": "object",
-              "properties": {
-                "id": {
-                  "type": "string"
-                },
-                "version": {
-                  "type": "string"
-                }
-              },
-              "required": [
-                "id"
-              ],
-              "additionalProperties": false
-            }
-          }
-        },
-        "required": [
-          "actionRefs"
-        ],
-        "additionalProperties": false
-      }
     },
     {
       "kind": "tool",
@@ -4947,6 +4925,57 @@
     },
     {
       "kind": "tool",
+      "name": "implementation_validation_readiness",
+      "description": "Check reviewed implementation environments without consuming a managed TestRun, or explicitly launch the registered target through its dev/start package script and recheck readiness.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "planId": {
+            "type": "string"
+          },
+          "validationIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "confirmedRemoteEnvironmentIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "action": {
+            "type": "string",
+            "enum": [
+              "check",
+              "launch",
+              "stop"
+            ]
+          },
+          "responseMode": {
+            "default": "summary",
+            "type": "string",
+            "enum": [
+              "summary",
+              "evidenceOnly",
+              "blockersOnly",
+              "linksOnly",
+              "full"
+            ]
+          }
+        },
+        "required": [
+          "planId"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "kind": "tool",
       "name": "implementation_validation_reconcile",
       "description": "Reconcile Appraise-owned validation runs by implementation run id or public TestRun id, and optionally verify implemented tasks atomically with an idempotency key.",
       "inputSchema": {
@@ -5216,6 +5245,13 @@
           "commitHash": {
             "type": "string",
             "minLength": 1
+          },
+          "confirmedRemoteEnvironmentIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
           },
           "responseMode": {
             "default": "summary",
@@ -6876,7 +6912,7 @@
     {
       "kind": "tool",
       "name": "project_add",
-      "description": "Attach an existing application repository as a target project and write a non-blocking .appraisejs/project.json continuity marker when writable.",
+      "description": "Attach an application workspace as a target project, optionally initialize Git when the workspace is empty, and write a non-blocking .appraisejs/project.json continuity marker when writable.",
       "inputSchema": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "type": "object",
@@ -6888,6 +6924,9 @@
           "displayName": {
             "type": "string",
             "minLength": 1
+          },
+          "initializeGit": {
+            "type": "boolean"
           }
         },
         "required": [
@@ -7171,23 +7210,237 @@
     },
     {
       "kind": "tool",
-      "name": "step_block_search",
-      "description": "Search reusable step blocks before proposing custom validation step sequences.",
+      "name": "step_definition_draft_artifact_save",
+      "description": "Save user-authored handler source and explicit examples separately from definition metadata.",
       "inputSchema": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "type": "object",
         "properties": {
-          "planId": {
-            "type": "string"
-          },
-          "query": {
+          "draftId": {
             "type": "string",
-            "minLength": 1
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "expectedRevision": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
+          },
+          "artifact": {}
+        },
+        "required": [
+          "draftId",
+          "expectedRevision",
+          "artifact"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "kind": "tool",
+      "name": "step_definition_draft_compile",
+      "description": "Compile and run bounded conformance for the exact saved reviewed-extension artifact.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "draftId": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "expectedRevision": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
           }
         },
         "required": [
-          "planId",
-          "query"
+          "draftId",
+          "expectedRevision"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "kind": "tool",
+      "name": "step_definition_draft_create",
+      "description": "Create a bounded non-executable Step Definition draft after searching ready definitions.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "definition": {},
+          "reuseEvidence": {
+            "type": "object",
+            "properties": {
+              "indexHash": {
+                "type": "string",
+                "pattern": "^sha256:[a-f0-9]{64}$"
+              },
+              "searchedAt": {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+              },
+              "planId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200
+              },
+              "correlationId": {
+                "type": "string",
+                "pattern": "^[a-zA-Z0-9._:-]{1,100}$"
+              },
+              "candidateReferences": {
+                "maxItems": 25,
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 200
+                    },
+                    "version": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 40
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "version"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "receiptId": {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+              },
+              "reuseJustification": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2000
+              }
+            },
+            "required": [
+              "indexHash",
+              "searchedAt",
+              "correlationId",
+              "candidateReferences",
+              "receiptId",
+              "reuseJustification"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "definition",
+          "reuseEvidence"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "kind": "tool",
+      "name": "step_definition_draft_preview",
+      "description": "preview an exact Step Definition draft through the shared registry service.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "draftId": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "expectedRevision": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "draftId",
+          "expectedRevision"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "kind": "tool",
+      "name": "step_definition_draft_read",
+      "description": "Read one exact Step Definition draft and its separate reviewed-extension artifact.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "draftId": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          }
+        },
+        "required": [
+          "draftId"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "kind": "tool",
+      "name": "step_definition_draft_update",
+      "description": "Revise a draft with optimistic concurrency; ready definitions are never mutated.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "draftId": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "expectedRevision": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
+          },
+          "definition": {}
+        },
+        "required": [
+          "draftId",
+          "expectedRevision",
+          "definition"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "kind": "tool",
+      "name": "step_definition_draft_validate",
+      "description": "validate an exact Step Definition draft through the shared registry service.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "draftId": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "expectedRevision": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "draftId",
+          "expectedRevision"
         ],
         "additionalProperties": false
       }
@@ -7195,85 +7448,7 @@
     {
       "kind": "tool",
       "name": "step_search",
-      "description": "Preferred combined discovery for human-authored and agent-authored steps. Returns semantic Template Step naming together with canonical typed operation identity when mapped.",
-      "inputSchema": {
-        "$schema": "https://json-schema.org/draft/2020-12/schema",
-        "type": "object",
-        "properties": {
-          "planId": {
-            "type": "string"
-          },
-          "query": {
-            "type": "string",
-            "minLength": 1
-          },
-          "parameterNames": {
-            "default": [],
-            "type": "array",
-            "items": {
-              "type": "string",
-              "minLength": 1
-            }
-          },
-          "limit": {
-            "default": 5,
-            "type": "integer",
-            "exclusiveMinimum": 0,
-            "maximum": 25
-          }
-        },
-        "required": [
-          "planId",
-          "query",
-          "parameterNames",
-          "limit"
-        ],
-        "additionalProperties": false
-      }
-    },
-    {
-      "kind": "tool",
-      "name": "template_step_match",
-      "description": "Compatibility name for step_search. Rank combined reusable steps and step blocks for a behavior intent.",
-      "inputSchema": {
-        "$schema": "https://json-schema.org/draft/2020-12/schema",
-        "type": "object",
-        "properties": {
-          "planId": {
-            "type": "string"
-          },
-          "intent": {
-            "type": "string",
-            "minLength": 1
-          },
-          "parameterNames": {
-            "default": [],
-            "type": "array",
-            "items": {
-              "type": "string",
-              "minLength": 1
-            }
-          },
-          "limit": {
-            "default": 5,
-            "type": "integer",
-            "exclusiveMinimum": 0,
-            "maximum": 25
-          }
-        },
-        "required": [
-          "planId",
-          "intent",
-          "parameterNames",
-          "limit"
-        ],
-        "additionalProperties": false
-      }
-    },
-    {
-      "kind": "tool",
-      "name": "template_step_search",
-      "description": "Compatibility name for step_search. Resolve combined human Template Step and canonical agent-operation results before proposing custom steps.",
+      "description": "Search ready Step Definitions by one actionable versioned identity with human, agent, and execution-readiness projections.",
       "inputSchema": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "type": "object",
@@ -7710,7 +7885,7 @@
     {
       "kind": "tool",
       "name": "validation_context_read",
-      "description": "Read a bounded plan-intent context pack with coverage exploration, an editable deterministic AST starter/export, registry-first recipes, runtime preparation proposals, target metadata, and reusable resources.",
+      "description": "Read a bounded plan-intent context pack with coverage exploration, an editable deterministic AST starter/export, registry-first recipes, the versioned resource-proposal contract and examples, runtime preparation proposals, target metadata, and reusable resources.",
       "inputSchema": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "type": "object",
@@ -7721,7 +7896,16 @@
           "resourceTypes": {
             "type": "array",
             "items": {
-              "type": "string"
+              "type": "string",
+              "enum": [
+                "modules",
+                "testSuites",
+                "testCases",
+                "stepDefinitions",
+                "locatorGroups",
+                "locators",
+                "environments"
+              ]
             }
           },
           "query": {

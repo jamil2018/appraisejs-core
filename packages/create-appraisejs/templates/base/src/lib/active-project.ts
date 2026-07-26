@@ -38,7 +38,8 @@ export async function requireActiveProjectForPlanMutation(planId: string): Promi
   ])
   const target = projection?.targetProject
   if (!target) throw new ServiceError('Plan is not bound to a target project.', 'CONFLICT', 409)
-  if (cookieProjectId && cookieProjectId !== target.id)
-    throw new ServiceError('Active project conflicts with the plan target project.', 'CONFLICT', 409)
-  return { ...target, source: cookieProjectId ? 'cookie' : 'url' }
+  // Exact plan links carry their project binding in the plan projection. A stale
+  // navigation cookie must not make that otherwise-valid review surface
+  // read-only; the mutation still verifies the plan/project binding below.
+  return { ...target, source: cookieProjectId === target.id ? 'cookie' : 'url' }
 }

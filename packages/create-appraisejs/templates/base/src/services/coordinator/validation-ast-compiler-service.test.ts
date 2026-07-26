@@ -11,13 +11,35 @@ import {
   PROJECT_EXTENSION_CAPABILITY_IMPORTS,
 } from './validation-ast-compiler-service'
 import { projectCompiledValidationArtifacts } from './validation-canonical-projection-service'
+import {
+  builtInStepDefinitions,
+  computeStepReferenceHash,
+} from '../../../packages/cucumber-runtime/src/step-definitions'
 
 vi.mock('./validation-canonical-projection-service', () => ({
   projectCompiledValidationArtifacts: vi.fn().mockResolvedValue({ testCases: 1 }),
 }))
 
+function invocation(
+  id: string,
+  inputs: Record<string, unknown>,
+  keyword: 'Given' | 'When' | 'Then',
+  description: string,
+) {
+  const definition = builtInStepDefinitions.find(item => item.identity.id === id)!
+  return {
+    step: {
+      id: definition.identity.id,
+      version: definition.identity.version,
+      definitionHash: computeStepReferenceHash(definition),
+    },
+    inputs,
+    presentation: { keyword, description },
+  }
+}
+
 const ast = {
-  schemaVersion: 1,
+  schemaVersion: 2,
   id: 'meditation',
   title: 'Meditation',
   purpose: 'Complete a session.',
@@ -32,19 +54,21 @@ const ast = {
       steps: [
         {
           id: 'start',
-          keyword: 'When',
-          description: 'the user starts meditation',
-          action: {
-            id: 'browser.click',
-            version: '1',
-            inputs: { target: { ref: 'locator', id: 'loc_start', version: '1' } },
-          },
+          invocation: invocation(
+            'browser.mouse.click',
+            { target: { ref: 'locator', id: 'loc_start', version: '1' } },
+            'When',
+            'the user starts meditation',
+          ),
         },
         {
           id: 'finish',
-          keyword: 'Then',
-          description: 'the session is complete',
-          operation: { id: 'assert.visible', version: '1', inputs: {} },
+          invocation: invocation(
+            'browser.assertions.visible',
+            { target: { ref: 'locator', id: 'loc_start', version: '1' } },
+            'Then',
+            'the session is complete',
+          ),
         },
       ],
     },
@@ -75,7 +99,9 @@ describe('Validation AST canonical projection compiler', () => {
       testSuites: [{ id: expect.stringMatching(/^ast-[a-f0-9]{12}-suite$/), testCaseIds: node.testCaseIds }],
     })
     expect(node.appraiseArtifacts.testCases[0]!.steps.map(step => step.order)).toEqual([0, 1])
-    expect(node.appraiseArtifacts.testCases[0]!.steps[0]).toMatchObject({ operationRef: 'browser.click@1' })
+    expect(node.appraiseArtifacts.testCases[0]!.steps[0]).toMatchObject({
+      invocation: { step: { id: 'browser.mouse.click', version: '1' } },
+    })
     expect(node.appraiseArtifacts.locators).toEqual([expect.objectContaining({ id: 'start-button' })])
   })
 
@@ -92,13 +118,13 @@ describe('Validation AST canonical projection compiler', () => {
 
   it('binds reviewed extensions to the authoritative target and passes them into the canonical transaction', async () => {
     const extensionAst = structuredClone({ ...ast, customExtensions: ['observe-breathing'] })
-    ;(extensionAst.scenarios[0].steps[1]!.operation.inputs as Record<string, unknown>).extension = {
+    ;(extensionAst.scenarios[0].steps[1]!.invocation.inputs as Record<string, unknown>).extension = {
       ref: 'custom-extension',
       id: 'observe-breathing',
       version: '1.0.0',
     }
     const extension = {
-      schemaVersion: 1 as const,
+      schemaVersion: 2 as const,
       id: 'observe-breathing',
       version: '1.0.0',
       title: 'Observe breathing',

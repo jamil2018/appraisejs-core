@@ -1,9 +1,7 @@
-import { type TemplateStepParameter } from '@prisma/client'
 import { z } from 'zod'
 
 import { testCaseSchema } from '@/constants/form-opts/test-case-form-opts'
 import { templateTestCaseSchema } from '@/constants/form-opts/template-test-case-form-opts'
-import { checkMissingMandatoryParams } from '@/lib/utils/node-param-validation'
 import { IconToKeyTransformer } from '@/lib/transformers/key-to-icon-transformer'
 import type { ActionResponse } from '@/types/form/actionHandler'
 import type { NodeOrderMap, TemplateTestCaseNodeOrderMap } from '@/types/diagram/diagram'
@@ -50,7 +48,7 @@ export function buildScenarioSteps(nodeOrder: ScenarioNodeOrder) {
     icon: IconToKeyTransformer(value.icon),
     parameters: normalizeStepParameters(value.parameters),
     order: value.order,
-    templateStepId: value.templateStepId,
+    invocation: value.invocation,
   }))
 }
 
@@ -69,10 +67,7 @@ export function buildScenarioPreview(title: string, description: string | undefi
   return [scenarioHeader, ...gherkinSteps].join('\n')
 }
 
-export function getNodesWithMissingMandatoryParams(
-  nodeOrder: NodeOrderMap,
-  templateStepParams: TemplateStepParameter[],
-) {
+export function getNodesWithMissingMandatoryParams(nodeOrder: NodeOrderMap) {
   const nodesWithMissingParams: string[] = []
 
   Object.entries(nodeOrder).forEach(([nodeId, nodeData]) => {
@@ -80,14 +75,7 @@ export function getNodesWithMissingMandatoryParams(
       return
     }
 
-    const isMissingParams = checkMissingMandatoryParams(
-      {
-        parameters: normalizeStepParameters(nodeData.parameters),
-        templateStepId: nodeData.templateStepId,
-      },
-      templateStepParams,
-      false,
-    )
+    const isMissingParams = Object.values(nodeData.invocation.inputs).some(value => value === '')
 
     if (isMissingParams) {
       nodesWithMissingParams.push(nodeData.label || nodeId)

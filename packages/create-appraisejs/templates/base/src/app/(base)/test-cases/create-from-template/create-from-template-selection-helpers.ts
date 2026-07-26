@@ -1,25 +1,13 @@
 import { templateSelectionSchema } from '@/constants/form-opts/template-selection-form-opts'
+import { getFieldErrorMessage } from '@/components/form/field-error-message'
 import type { ActionResponseData } from '@/types/form/actionHandler'
 
+import { isNamedRow } from '../test-case-shared-resource-rows'
 import type { TemplateSelectionRow, TemplateTestCaseWithSteps } from './create-from-template-types'
 
 export const templateSelectionFieldValidator = templateSelectionSchema.shape.templateTestCaseId
 
-export function getFieldErrorMessage(error: unknown) {
-  if (typeof error === 'string') {
-    return error
-  }
-
-  if (error && typeof error === 'object' && 'message' in error && typeof error.message === 'string') {
-    return error.message
-  }
-
-  return String(error)
-}
-
-export function isNamedRow(value: unknown): value is TemplateSelectionRow {
-  return typeof value === 'object' && value !== null && 'id' in value && 'name' in value
-}
+export { getFieldErrorMessage }
 
 function isTemplateTestCaseStepParameter(value: unknown): boolean {
   return (
@@ -38,7 +26,7 @@ function isTemplateTestCaseStepRow(value: unknown) {
     value !== null &&
     'id' in value &&
     'label' in value &&
-    'templateStepId' in value &&
+    'invocationJson' in value &&
     'parameters' in value &&
     Array.isArray(value.parameters) &&
     value.parameters.every(isTemplateTestCaseStepParameter)

@@ -38,14 +38,12 @@ test.describe('Test authoring @authoring', () => {
     await expectPageHeading(page, 'Modify Test Case')
     await page.getByRole('button', { name: /Continue/ }).click()
     await expect(page.getByText('Test Case Flow', { exact: true }).first()).toBeVisible()
-    await expect(page.getByRole('button', { name: 'Search nodes' })).toBeVisible()
-
     await page.getByRole('button', { name: 'Show test scenario preview' }).click()
     await expect(page.getByText('Test Scenario(Preview)')).toBeVisible()
-    await expect(page.getByText('Given I open the seeded page')).toBeVisible()
+    await expect(page.getByText('When the user navigates to the / url')).toBeVisible()
   })
 
-  test('full create flow adds a template-backed step before saving', async ({ page }) => {
+  test('full create flow adds a Step Definition invocation before saving', async ({ page }) => {
     await createTestCaseWithSeededStep(page, 'E2E Authored Case')
     await page.goto('/test-cases')
     await expect(page.getByText('E2E Authored Case', { exact: true }).first()).toBeVisible()

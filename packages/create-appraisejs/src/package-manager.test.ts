@@ -6,7 +6,6 @@ const TEMPLATE_SCRIPTS = {
   setup: 'npm run install-dependencies && npm run setup-env && npm run build:local && npm run protect-seeded-files',
   'appraisejs:setup': 'npm run setup',
   'appraisejs:sync': 'npm run sync-all',
-  'appraisejs:install-step': 'npx tsx scripts/install-template-step.ts',
   'build:local': 'npm run build:cucumber-runtime && npm run build:locator-picker-companion && next build',
   'protect-seeded-files': 'npx tsx scripts/protect-seeded-files.ts',
   'setup-env': 'npx tsx scripts/setup-env.ts',
@@ -38,7 +37,6 @@ describe('rewriteScriptsForPackageManager', () => {
     )
     expect(scripts['appraisejs:setup']).toBe('pnpm run setup')
     expect(scripts['appraisejs:sync']).toBe('pnpm run sync-all')
-    expect(scripts['appraisejs:install-step']).toBe('pnpm exec tsx scripts/install-template-step.ts')
     expect(scripts['protect-seeded-files']).toBe('pnpm exec tsx scripts/protect-seeded-files.ts')
     expect(scripts['setup-env']).toBe('pnpm exec tsx scripts/setup-env.ts')
     expect(scripts['install-playwright']).toBe('pnpm exec playwright install')
@@ -51,7 +49,6 @@ describe('rewriteScriptsForPackageManager', () => {
     expect(scripts.setup).toBe(
       'yarn run install-dependencies && yarn run setup-env && yarn run build:local && yarn run protect-seeded-files',
     )
-    expect(scripts['appraisejs:install-step']).toBe('yarn run tsx scripts/install-template-step.ts')
     expect(scripts['protect-seeded-files']).toBe('yarn run tsx scripts/protect-seeded-files.ts')
     expect(scripts['setup-env']).toBe('yarn run tsx scripts/setup-env.ts')
     expect(scripts['install-playwright']).toBe('yarn run playwright install')
@@ -62,7 +59,6 @@ describe('rewriteScriptsForPackageManager', () => {
 
     expect(scripts['install-dependencies']).toBe('bun install')
     expect(scripts.setup).toContain('bun run protect-seeded-files')
-    expect(scripts['appraisejs:install-step']).toBe('bunx tsx scripts/install-template-step.ts')
     expect(scripts['protect-seeded-files']).toBe('bunx tsx scripts/protect-seeded-files.ts')
     expect(scripts['setup-env']).toBe('bunx tsx scripts/setup-env.ts')
     expect(scripts['migrate-db']).toBe('bunx prisma migrate deploy')

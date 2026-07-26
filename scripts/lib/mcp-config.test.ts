@@ -6,6 +6,7 @@ import { resolveMcpConfig } from '../mcp-config.mjs'
 describe('MCP setup config', () => {
   it('shares endpoint and stdio registration details for MCP and agent setup', () => {
     const config = resolveMcpConfig('/tmp/appraise-hub', {
+      NODE_ENV: 'test',
       APPRAISE_MCP_HOST: '127.0.0.1',
       APPRAISE_MCP_PORT: '3999',
       APPRAISE_MCP_PATH: 'custom-mcp',

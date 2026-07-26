@@ -1,7 +1,7 @@
 import { promises as fs } from 'node:fs'
 import { createRequire } from 'node:module'
 import path from 'node:path'
-import type { ValidationAstRuntimeInputV1 } from '@/services/coordinator/validation-ast-publish-journal-service'
+import type { ValidationAstRuntimeInput } from '@/services/coordinator/validation-ast-publish-journal-service'
 import { capsuleCommandReceiptV1Schema } from './command-receipt-contract'
 import { hashRuntimeCapsuleBytes } from './contracts'
 import { resolveCapsuleRuntimeIdentity } from './runtime-identity'
@@ -45,7 +45,7 @@ export async function sealCapsuleCommandReceipt(input: {
     browserEngine: 'CHROMIUM' | 'FIREFOX' | 'WEBKIT'
     environment: { id: string; name: string; baseUrl: string }
   }
-  runtimeInput: ValidationAstRuntimeInputV1
+  runtimeInput: ValidationAstRuntimeInput
   built: BuiltCapsuleFiles
 }) {
   const cucumberModulePath = runtimeRequire.resolve('@cucumber/cucumber')

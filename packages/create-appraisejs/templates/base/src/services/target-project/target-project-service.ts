@@ -1,6 +1,8 @@
 import { createHash } from 'node:crypto'
+import { execFile } from 'node:child_process'
 import { existsSync, promises as fs } from 'node:fs'
 import path from 'node:path'
+import { promisify } from 'node:util'
 
 import type { Prisma, PrismaClient, TargetProject } from '@prisma/client'
 
@@ -18,6 +20,14 @@ type RegisterTargetProjectInput = {
   projectPath: string
   displayName?: string
   description?: string
+}
+
+const execFileAsync = promisify(execFile)
+
+export type TargetGitInitialization = {
+  status: 'initialized' | 'already_present' | 'skipped'
+  branch?: string
+  warning?: string
 }
 
 export type ActiveProjectSelectionSource = 'url' | 'cookie'
@@ -81,10 +91,53 @@ async function readPackageMetadata(projectRoot: string): Promise<PackageMetadata
   }
 }
 
+export async function readTargetProjectLaunchMetadata(projectRoot: string) {
+  const metadata = await readPackageMetadata(projectRoot)
+  return {
+    packageManager: metadata.packageManager ?? detectPackageManager(projectRoot) ?? 'npm',
+    scripts: metadata.scripts ?? {},
+  }
+}
+
 function fingerprintTargetProject(canonicalPath: string, packageName?: string): string {
   return `sha256:${createHash('sha256')
     .update(`${canonicalPath}\0${packageName ?? 'appraisejs-target'}`)
     .digest('hex')}`
+}
+
+export async function initializeTargetGitRepository(
+  projectPath: string,
+  requested: boolean,
+): Promise<TargetGitInitialization> {
+  if (!requested) return { status: 'skipped' }
+  let canonicalPath: string
+  try {
+    canonicalPath = await fs.realpath(path.resolve(projectPath))
+  } catch {
+    throw new ServiceError(`Target project path could not be resolved: ${projectPath}`, 'VALIDATION', 400)
+  }
+  if (existsSync(path.join(canonicalPath, '.git'))) return { status: 'already_present' }
+  const entries = await fs.readdir(canonicalPath)
+  if (entries.length > 0)
+    throw new ServiceError(
+      'Git initialization is only available for an empty target workspace. Initialize this existing project manually.',
+      'VALIDATION',
+      400,
+    )
+  try {
+    await execFileAsync('git', ['init', '--quiet', '--initial-branch=main'], {
+      cwd: canonicalPath,
+      timeout: 10_000,
+      maxBuffer: 64 * 1024,
+    })
+    return { status: 'initialized', branch: 'main' }
+  } catch (error) {
+    throw new ServiceError(
+      `Git initialization failed: ${error instanceof Error ? error.message.split(/\r?\n/, 1)[0] : String(error)}`,
+      'INTERNAL',
+      500,
+    )
+  }
 }
 
 export async function registerTargetProject(
@@ -264,7 +317,6 @@ async function deleteProjectAuthoredRecords(targetProjectId: string, tx: Prisma.
   await tx.testCase.deleteMany({ where: { targetProjectId } })
   await tx.templateTestCase.deleteMany({ where: { targetProjectId } })
   await tx.testSuite.deleteMany({ where: { targetProjectId } })
-  await tx.stepBlock.deleteMany({ where: { targetProjectId } })
   await tx.locator.deleteMany({ where: { targetProjectId } })
   await tx.locatorGroup.deleteMany({ where: { targetProjectId } })
   await tx.module.deleteMany({ where: { targetProjectId } })

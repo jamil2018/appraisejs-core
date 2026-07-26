@@ -1,7 +1,7 @@
-import { TemplateStepType } from '@prisma/client'
+import { StepType } from '@prisma/client'
 
 export const generateGherkinStep = (
-  type: TemplateStepType,
+  type: StepType,
   signature: string,
   parameters: { value: string; order: number }[],
 ) => {

@@ -1,10 +1,12 @@
-import { projectOperationAsAction } from './action-projection'
 import { defaultOperationRegistry } from './default-operation-registry'
 
-export const operationValidationCatalog = {
-  catalogHash: defaultOperationRegistry.manifestHash,
-  readActions(refs: Array<{ id: string; version?: string }>) {
-    return defaultOperationRegistry.read(refs).map(projectOperationAsAction)
+/** Trusted operation registry surface used by Validation AST semantic checks.
+ * It deliberately exposes canonical operation descriptors, never the removed
+ * action projection compatibility vocabulary. */
+export const operationValidationRegistry = {
+  manifestHash: defaultOperationRegistry.manifestHash,
+  read(refs: Array<{ id: string; version?: string }>) {
+    return defaultOperationRegistry.read(refs)
   },
 }
 

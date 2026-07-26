@@ -2,7 +2,6 @@ import {
   CustomWorld,
   SelectorName,
   Then,
-  When,
   executeHumanOperation,
 } from '../../../../packages/cucumber-runtime/src/index.js'
 /**

@@ -32,6 +32,10 @@ depend on process memory. Readers may expose stable status/failure codes, bounde
 package versions and content hashes, evidence counts and owned links, and a fixed recovery action. They must never
 expose command arguments, absolute paths, environment values, owner tokens, raw stack traces, complete
 receipts/manifests, or artifact contents.
+When the exact Cucumber dry run fails or times out, the signed preflight result may also retain up to eight bounded,
+single-line stdout and stderr entries. Capsule paths and sealed environment values are scrubbed before persistence,
+and `test_run_diagnose` projects those entries directly so an agent can identify undefined or ambiguous steps without
+requesting raw process logs.
 
 Appraise 0.5 assumes a local loopback hub-admin boundary: the person controlling the local hub can administer every
 registered target. A `targetProjectId` query parameter is an explicit ownership filter and prevents accidental
@@ -55,6 +59,13 @@ bounded to 256 KiB. Predictive preflight results use a stable ordered check taxo
 identities. The capsule manifest binds the receipt path and hash, the receipt bytes are an independently copied and
 verified run-local file, and compiler-receipt identity remains distinct from capsule-command identity. Predictive
 preflight, persisted execution attempts, and execution all consume this same receipt.
+
+Managed v2 capsule execution consumes exact root Step Invocations and the deterministically sealed ready Step
+Definition closure. Binding generation invokes the runtime dispatcher with each invocation and that sealed closure;
+roots never select an operation string. The dispatcher executes operation handlers, reviewed extensions from sealed
+module paths, or ordered compositions, resolving parent inputs and earlier child outputs only. Managed Validation AST
+projection rows and immutable runtime-input snapshots persist canonical invocations and exact definition references
+without selecting or creating a legacy reusable-step record; operation records remain derived handler dependencies only.
 
 Materialization consumes only a `review_ready` `ValidationAstPublishOperation`. Before writing
 bytes it revalidates the immutable publish journal, exact current `PlanProjection.validationJson`, logical projection,

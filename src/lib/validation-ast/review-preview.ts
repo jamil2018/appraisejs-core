@@ -51,9 +51,9 @@ export function buildValidationAstReviewPreview(input: {
       title: boundedText(scenario.title),
       steps: scenario.steps.map(step => ({
         id: step.id,
-        keyword: step.keyword,
-        description: boundedText(step.description),
-        actionId: `${step.operation.id}@${step.operation.version}`,
+        keyword: step.invocation.presentation?.keyword ?? 'Given',
+        description: boundedText(step.invocation.presentation?.description ?? step.id),
+        actionId: `${step.invocation.step.id}@${step.invocation.step.version}`,
       })),
     })),
     coverage: (ast.coverageArgument?.mappings ?? []).map(mapping => ({

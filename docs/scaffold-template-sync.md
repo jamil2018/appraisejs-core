@@ -30,6 +30,10 @@ baselines and release-readiness contract they reference.
 Every `graphify-out/` directory is excluded from the prepared template. Repository graphs support AppraiseJS
 development and should not increase the installed scaffold or published `create-appraisejs` package size.
 
+The repository's swarm-routing configuration, agents, ledger utilities, and swarm-only commands are also excluded.
+Generated projects retain their own bundled `check:harness` command, which verifies that this repository-only
+orchestration surface has not leaked into the scaffold.
+
 Prepared scaffold databases may contain authored starter assets, but they must not contain machine-local coordinator
 credentials, leases, personal layouts, durable event rows, test runs, or reports. Template preparation verifies this
 invariant before publishing the bundled starter and blank templates.

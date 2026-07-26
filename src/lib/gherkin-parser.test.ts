@@ -62,7 +62,21 @@ Scenario: [Legacy description] Legacy title
           identifierTag: '@tc_checkout_buy',
           title: 'Buys item',
           description: 'Happy path',
-          nodes: [{ nodeId: 'node-cart', order: 1, label: 'Add item' }],
+          nodes: [
+            {
+              nodeId: 'node-cart',
+              order: 1,
+              label: 'Add item',
+              invocation: {
+                step: {
+                  id: 'browser.cart.add-item',
+                  version: '1',
+                  definitionHash: `sha256:${'a'.repeat(64)}`,
+                },
+                inputs: {},
+              },
+            },
+          ],
           flowBlocks: [{ id: 'block-cart', name: 'Cart', order: 0, nodeIds: ['node-cart'] }],
         },
       ],

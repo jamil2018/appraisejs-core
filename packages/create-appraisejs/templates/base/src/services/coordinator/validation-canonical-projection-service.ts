@@ -1,14 +1,7 @@
-import {
-  StepParameterType,
-  TagType,
-  TemplateStepGroupType,
-  TemplateStepIcon,
-  TemplateStepType,
-  type Prisma,
-  type PrismaClient,
-} from '@prisma/client'
+import { StepParameterType, TagType, StepIcon, type Prisma, type PrismaClient } from '@prisma/client'
 
 import type { ValidationArtifact } from '@/lib/plan-contract'
+import { canonicalContractJson } from '@/lib/catalog-contracts'
 import type { CompiledCustomExtension } from '@/lib/validation-ast'
 import { canonicalTagExpression, canonicalTagName } from '@/lib/tag-filters'
 import { ServiceError } from '@/services/shared/errors'
@@ -25,7 +18,6 @@ type TargetProjectMetadata = {
 const projectionTag = (planId: string) => `@appraise_plan_${planId}`
 const testCaseTag = (testCaseId: string) => `@tc_${testCaseId}`
 const testSuiteTag = (testSuiteId: string) => `@ts_${testSuiteId}`
-const validationStepGroupName = 'Appraise validation projection'
 export async function assertValidationEnvironmentsReady(
   validation: ValidationArtifact,
   client: ProjectionClient,
@@ -129,70 +121,6 @@ function parameterType(type: string | undefined) {
   const normalized = type?.toUpperCase()
   if (normalized && normalized in StepParameterType) return normalized as StepParameterType
   return StepParameterType.STRING
-}
-
-type ValidationStep =
-  ValidationArtifact['validations'][number]['appraiseArtifacts']['testCases'][number]['steps'][number]
-
-async function findMappedValidationTemplateStep(step: ValidationStep, client: ProjectionClient) {
-  if (step.templateStepId) {
-    const existing = await client.templateStep.findUnique({ where: { id: step.templateStepId } })
-    if (existing) return existing
-  }
-  if (!step.operationRef) return null
-  const separator = step.operationRef.lastIndexOf('@')
-  const existing = await client.templateStep.findFirst({
-    where: {
-      operationId: step.operationRef.slice(0, separator),
-      operationVersion: step.operationRef.slice(separator + 1),
-      operationMigrationState: 'mapped',
-    },
-  })
-  if (!existing) throw new Error(`Canonical operation projection ${step.operationRef} is not synchronized.`)
-  return existing
-}
-
-async function validationTemplateStepGroup(client: ProjectionClient) {
-  return (
-    (await client.templateStepGroup.findFirst({ where: { name: validationStepGroupName } })) ??
-    (await client.templateStepGroup.create({
-      data: {
-        name: validationStepGroupName,
-        description: 'Stable template steps created from approved validation artifacts.',
-        type: TemplateStepGroupType.VALIDATION,
-      },
-    }))
-  )
-}
-
-async function ensureValidationTemplateStep(step: ValidationStep, client: ProjectionClient) {
-  const mapped = await findMappedValidationTemplateStep(step, client)
-  if (mapped) return mapped
-  if (step.templateStepName) {
-    const existing = await client.templateStep.findFirst({ where: { name: step.templateStepName } })
-    if (existing) return existing
-  }
-  const group = await validationTemplateStepGroup(client)
-  const name = step.templateStepName ?? `Validation step ${step.id}`
-  const existing = await client.templateStep.findFirst({ where: { name, templateStepGroupId: group.id } })
-  if (existing) return existing
-  return client.templateStep.create({
-    data: {
-      name,
-      description: 'Created from an approved validation artifact.',
-      signature: step.gherkinStep,
-      type: TemplateStepType.ASSERTION,
-      icon: TemplateStepIcon.VALIDATION,
-      templateStepGroupId: group.id,
-      parameters: {
-        create: step.parameters.map((parameter, order) => ({
-          name: parameter.name,
-          order,
-          type: parameterType(parameter.type),
-        })),
-      },
-    },
-  })
 }
 
 // fallow-ignore-next-line complexity
@@ -309,16 +237,19 @@ async function projectValidationArtifactsInTransaction(
       })
       await client.testCaseStep.deleteMany({ where: { testCaseId: testCase.id } })
       for (const step of testCase.steps.sort((left, right) => left.order - right.order)) {
-        const templateStep = await ensureValidationTemplateStep(step, client)
+        // V2 managed validation owns an exact Step Invocation. It deliberately
+        // does not look up, choose between, or create retired reusable-step record rows.
+        if (!step.invocation)
+          throw new ServiceError('Managed validation projection requires an exact Step Invocation.', 'CONFLICT')
         await client.testCaseStep.create({
           data: {
             id: step.id,
             testCaseId: testCase.id,
             order: step.order,
             gherkinStep: step.gherkinStep,
-            icon: templateStep.icon,
+            icon: StepIcon.VALIDATION,
             label: step.label,
-            templateStepId: templateStep.id,
+            invocationJson: canonicalContractJson(step.invocation),
             parameters: {
               create: step.parameters.map((parameter, order) => ({
                 name: parameter.name,

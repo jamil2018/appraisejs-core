@@ -10,6 +10,10 @@ import { canonicalContractJson } from '@/lib/catalog-contracts'
 import { PlanArtifactRepository } from '@/lib/plans/artifact-repository'
 import { createCustomExtensionPolicy } from '@/lib/validation-ast/extension-policy'
 import { createPlanRuntimeTestWorkspace } from '@/test/validation-ast-test-fixtures'
+import {
+  builtInStepDefinitions,
+  computeStepReferenceHash,
+} from '../../../packages/cucumber-runtime/src/step-definitions'
 
 import { prepareValidationAstPublish, validationAstPublishOperationId } from './validation-ast-publish-journal-service'
 import { resumeValidationAstPublish } from './validation-ast-publish-orchestrator'
@@ -92,7 +96,16 @@ async function prepare(key: string) {
   const validationContent = serializeYamlArtifact('validation', validation)
   const reviewContent = oldReview.content
   const receiptHash = digest(`receipt-${key}`)
-  const action = { id: 'browser.navigation.goto', version: '1', contentHash: digest('action') }
+  const definition = builtInStepDefinitions.find(item => item.identity.id === 'browser.navigation.goto')!
+  const invocation = {
+    step: {
+      id: definition.identity.id,
+      version: definition.identity.version,
+      definitionHash: computeStepReferenceHash(definition),
+    },
+    inputs: { url: '/' },
+    presentation: { keyword: 'When' as const, description: 'the user opens home' },
+  }
   const canonicalProjection = {
     validationNode: {
       id: 'journal-ast',
@@ -100,9 +113,7 @@ async function prepare(key: string) {
       testCaseIds: ['case-one'],
       appraiseArtifacts: {
         locators: [],
-        testCases: [
-          { id: 'case-one', steps: [{ id: 'step-one', templateStepName: `${action.id}@${action.version}` }] },
-        ],
+        testCases: [{ id: 'case-one', steps: [{ id: 'step-one', invocation }] }],
       },
     },
     gherkin: ['Scenario: one'],
@@ -116,7 +127,7 @@ async function prepare(key: string) {
     runtimes: ['browser'],
   }
   const runtimeInput = {
-    schemaVersion: '1' as const,
+    schemaVersion: '2' as const,
     targetProjectId,
     targetFingerprint: `sha256:${'b'.repeat(64)}`,
     astId: 'journal-ast',
@@ -132,7 +143,8 @@ async function prepare(key: string) {
         capabilityImports: {},
       }),
     ),
-    actions: [action],
+    rootInvocations: [{ caseId: 'case-one', stepId: 'step-one', invocation }],
+    stepDefinitions: [invocation.step],
     locators: [],
     extensions: [],
     matrix: canonicalProjection.validationNode.matrix,

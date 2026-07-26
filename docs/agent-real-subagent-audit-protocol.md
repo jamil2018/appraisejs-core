@@ -1,5 +1,23 @@
 # Real Subagent Audit Protocol
 
+## Repository Engineering Routing Probe
+
+This frozen probe is separate from the Appraise product-lifecycle audit below. Exercise one task for each
+`coordinator-only`, `investigator`, `executor` or `executor-advanced`, `solver`, and `judge` route. The coordinator-only
+case must use zero subagents. Solver and judge assignments must use no inherited transcript or the smallest deliberate
+bounded context.
+
+For every case, preserve the brief, routing decision, selected named profile, delegation count, latency, retries,
+reroutes, and token/model-use data exposed by the host. Record role, model/reasoning, context inheritance, and sandbox
+as verified only when the host returns evidence for that exact property; otherwise record `unverified`. A repository
+configuration file is never a runtime receipt.
+
+Use read-only probes except for an executor fixture that explicitly authorizes an isolated temporary path. Link each
+delegated routing receipt to its scored run. Compare the observed route to
+`scripts/fixtures/swarm-routing-contracts.json`, then give the integrated diff and deterministic validation evidence
+to a fresh independent judge with no producer transcript. A mismatch is a structured harness observation and must
+follow note → notify → user guidance before any routing profile or threshold changes.
+
 Use this protocol to rerun product-real AppraiseJS agent audits without hidden coordinator shortcuts. The goal is to
 measure whether ordinary coding agents can discover AppraiseJS setup, create review-ready plans, and enter approval
 standby without implementing before Appraise approval.
@@ -22,7 +40,7 @@ Use AppraiseJS to plan a small recipe organizer app where users can add recipes,
 Run this validation-preparation fixture when auditing the post-approval path:
 
 ```text
-Use AppraiseJS to plan and prepare validations for a simple todo app. Use existing registry/template steps wherever possible.
+Use AppraiseJS to plan and prepare validations for a simple todo app. Use existing ready Step Definitions wherever possible.
 ```
 
 Use a fresh writable target workspace path for each fixture unless the user explicitly chooses hub-scoped planning.
@@ -163,7 +181,7 @@ After each subagent reports standby evidence, the coordinator independently veri
    `validation_ast_compile`, verifies `validation_review_ready`, and
    records the direct validation review URL.
 10. The validation publication includes exact managed Validation AST, preview, receipt, projection, and runtime-input hashes.
-11. The subagent follows the registry-first policy: existing registry/template steps are reused for common web
+11. The subagent follows the registry-first policy: existing ready Step Definitions are reused for common web
     workflows, the todo fixture creates zero custom step definitions, and any custom step includes a gap justification
     naming the missing reusable capability and why locators plus existing steps were insufficient.
 12. Local worktree changes are limited to expected audit artifacts.

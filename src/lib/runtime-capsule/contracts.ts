@@ -1,6 +1,11 @@
 import { createHash } from 'node:crypto'
 import { z } from 'zod'
 import { canonicalContractJson } from '@/lib/catalog-contracts'
+import {
+  computeStepDefinitionHashes,
+  computeStepReferenceHash,
+  stepDefinitionSchema,
+} from '../../../packages/cucumber-runtime/src/step-definitions/contracts'
 
 export const runtimeCapsuleSegmentSchema = z
   .string()
@@ -20,9 +25,14 @@ export const runtimeCapsuleFilePathSchema = z
     'must not contain empty, current, or parent segments',
   )
 
-export const runtimeCapsuleManifestSchema = z
+/**
+ * The Step Definition capsule is the only executable capsule format.  Keep the
+ * shared envelope separate from the semantic payload so it cannot accidentally
+ * inherit an operation-rooted compatibility field from the retired manifest.
+ */
+const runtimeCapsuleManifestEnvelopeSchema = z
   .object({
-    schemaVersion: z.literal('1'),
+    schemaVersion: z.literal('2'),
     projectId: runtimeCapsuleSegmentSchema,
     validationHash: runtimeCapsuleHashSchema,
     runId: runtimeCapsuleSegmentSchema,
@@ -30,32 +40,15 @@ export const runtimeCapsuleManifestSchema = z
     projectionHash: runtimeCapsuleHashSchema,
     receiptHash: runtimeCapsuleHashSchema,
     runtimeInputHash: runtimeCapsuleHashSchema,
-    commandReceipt: z.object({ path: z.literal('command-receipt.json'), hash: runtimeCapsuleHashSchema }).strict(),
-    generator: z
+    lifecycleCorrelation: z
       .object({
-        id: z.literal('appraise.validation-ast-capsule'),
-        version: z.enum(['1', '2']),
+        planId: z.string().regex(/^[a-zA-Z0-9._:-]{1,200}$/),
+        correlationId: z.string().regex(/^[a-zA-Z0-9._:-]{1,100}$/),
       })
-      .strict(),
-    operations: z
-      .array(
-        z
-          .object({
-            id: z.string().regex(/^[a-z0-9]+(?:[.-][a-z0-9]+)*$/),
-            version: z.string().regex(/^\d+(?:\.\d+){0,2}$/),
-            descriptorHash: runtimeCapsuleHashSchema,
-            handler: z
-              .object({
-                id: z.string().regex(/^[a-z0-9]+(?:[.-][a-z0-9]+)*$/),
-                version: z.string().regex(/^\d+(?:\.\d+){0,2}$/),
-                contentHash: runtimeCapsuleHashSchema,
-              })
-              .strict(),
-          })
-          .strict(),
-      )
-      .max(256)
-      .default([]),
+      .strict()
+      .optional(),
+    commandReceipt: z.object({ path: z.literal('command-receipt.json'), hash: runtimeCapsuleHashSchema }).strict(),
+    generator: z.object({ id: z.literal('appraise.validation-ast-capsule'), version: z.literal('2') }).strict(),
     expectedCases: z
       .array(
         z
@@ -104,14 +97,99 @@ export const runtimeCapsuleManifestSchema = z
     const expectedCaseIds = manifest.expectedCases.map(item => `${item.validationId}/${item.suiteId}/${item.caseId}`)
     if (new Set(expectedCaseIds).size !== expectedCaseIds.length)
       context.addIssue({ code: 'custom', path: ['expectedCases'], message: 'expected cases must be unique' })
-    const operationRefs = manifest.operations.map(item => `${item.id}@${item.version}`)
-    const sortedOperationRefs = [...operationRefs].sort()
-    if (
-      new Set(operationRefs).size !== operationRefs.length ||
-      operationRefs.some((ref, index) => ref !== sortedOperationRefs[index])
-    )
-      context.addIssue({ code: 'custom', path: ['operations'], message: 'operations must be unique and ordered' })
   })
+
+const sealedStepDefinitionSchema = z
+  .object({
+    step: z
+      .object({
+        id: z.string().regex(/^[a-z0-9]+(?:[.-][a-z0-9]+)*$/),
+        version: z.string().regex(/^\d+(?:\.\d+){0,2}$/),
+        definitionHash: runtimeCapsuleHashSchema,
+      })
+      .strict(),
+    definition: stepDefinitionSchema,
+    definitionHash: runtimeCapsuleHashSchema,
+    humanProjectionHash: runtimeCapsuleHashSchema,
+    agentContractHash: runtimeCapsuleHashSchema,
+    executionHash: runtimeCapsuleHashSchema,
+    publicationReceiptHash: runtimeCapsuleHashSchema,
+  })
+  .strict()
+
+function sealedDefinitionMatchesContent(sealed: z.infer<typeof sealedStepDefinitionSchema>) {
+  const hashes = computeStepDefinitionHashes(sealed.definition)
+  return (
+    sealed.definition.identity.id === sealed.step.id &&
+    sealed.definition.identity.version === sealed.step.version &&
+    computeStepReferenceHash(sealed.definition) === sealed.step.definitionHash &&
+    sealed.definitionHash === hashes.definitionHash &&
+    sealed.humanProjectionHash === hashes.humanProjectionHash &&
+    sealed.agentContractHash === hashes.agentContractHash &&
+    sealed.executionHash === hashes.executionHash
+  )
+}
+
+const runtimeCapsuleManifestSchemaInternal = runtimeCapsuleManifestEnvelopeSchema
+  .innerType()
+  .extend({
+    rootInvocations: z
+      .array(
+        z
+          .object({
+            step: sealedStepDefinitionSchema.shape.step,
+            inputs: z.record(z.string(), z.unknown()),
+            store: z.object({ output: z.string(), as: z.string() }).optional(),
+            presentation: z
+              .object({ keyword: z.enum(['Given', 'When', 'Then', 'And']), description: z.string().optional() })
+              .optional(),
+          })
+          .strict(),
+      )
+      .min(1)
+      .max(512),
+    stepDefinitions: z.array(sealedStepDefinitionSchema).min(1).max(512),
+    extensions: z
+      .array(
+        z
+          .object({
+            id: z.string().regex(/^[a-z0-9]+(?:[.-][a-z0-9]+)*$/),
+            version: z.string().regex(/^\d+(?:\.\d+){0,2}$/),
+            sourceHash: runtimeCapsuleHashSchema,
+            compiledHash: runtimeCapsuleHashSchema,
+            path: z.string().regex(/^extensions\/[a-z0-9]+(?:[.-][a-z0-9]+)*\/v\d+(?:\.\d+){0,2}\.mjs$/),
+          })
+          .strict(),
+      )
+      .max(8)
+      .default([]),
+  })
+  .superRefine((manifest, context) => {
+    const roots = manifest.rootInvocations.map(
+      invocation => `${invocation.step.id}@${invocation.step.version}#${invocation.step.definitionHash}`,
+    )
+    const definitions = new Set(
+      manifest.stepDefinitions.map(
+        definition => `${definition.step.id}@${definition.step.version}#${definition.step.definitionHash}`,
+      ),
+    )
+    if (roots.some(root => !definitions.has(root)))
+      context.addIssue({
+        code: 'custom',
+        path: ['rootInvocations'],
+        message: 'every root invocation must be sealed in the closure',
+      })
+    for (const sealed of manifest.stepDefinitions)
+      if (!sealedDefinitionMatchesContent(sealed))
+        context.addIssue({
+          code: 'custom',
+          path: ['stepDefinitions'],
+          message: 'sealed definition identity and publication hashes must match its content',
+        })
+  })
+
+/** V1 manifests are deliberately rejected: historical evidence is not executable authority. */
+export const runtimeCapsuleManifestSchema = runtimeCapsuleManifestSchemaInternal
 
 export type RuntimeCapsuleManifest = z.infer<typeof runtimeCapsuleManifestSchema>
 

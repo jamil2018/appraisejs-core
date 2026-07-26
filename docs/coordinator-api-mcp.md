@@ -153,22 +153,27 @@ coordinator operation or an explicitly documented local MCP boundary. Stable wor
 `appraise://plans/{planId}/validation-context`, and `appraise://plans/{planId}/validation-draft`; the validation-draft
 template resolves through the bounded draft-context coordinator operation.
 
-`step_search` is the preferred plan-bound discovery surface. It searches semantic human Template Step names,
-signatures, descriptions, groups, canonical operation descriptors, aliases, agent search terms, and examples as one
-ranked index. Every mapped result returns both `humanStep` and `agentOperation`; user-authored steps remain visible
-with `agentOperation: null` until they have a reviewed shared-handler mapping. `operation_categories`,
+`step_search` is the preferred unified discovery surface. It searches ready Step Definitions and returns one
+actionable Step Reference with human, agent, execution-readiness, and hash projections. Drafts and deprecated
+definitions are not executable recommendations. It searches definition-owned titles, descriptions, signatures,
+groups, aliases, search terms, and examples as one ranked index. `operation_categories`,
 `operation_search`, and `operation_read` remain the lower-level canonical catalog surface, and operation search also
-returns paired human naming. The legacy action tools remain bounded compatibility aliases during migration.
+returns paired human naming. Operation and Step Definition tools are the only supported discovery surface.
 
-`template_step_search` and `template_step_match` remain compatibility names for the same `step_search` server-side
-resolver. It scores exact and ordered intent phrases, shared semantic concepts, and exact parameter-name compatibility,
-applies a confidence threshold, returns bounded
-explained alternatives when no confident match exists, and includes resolver-call, fallback, rank, candidate-count,
-and response-size-oriented metrics without returning the full validation context. Returned template-step candidates
-include `displayName`, `humanStep`, `agentOperation`, descriptions, signatures, ordered parameters, and group metadata.
-Selection order is semantic template step,
-allowlisted structured operation, then a justified custom step; the fallback contract and allowlists are documented in
-`docs/reusable-playwright-template-steps.md`.
+`step_search` ranks the complete ready registry through one content-addressed shared index; it never applies a raw
+SQL substring prefilter that can hide multi-token or semantic-concept matches. It scores exact and ordered intent
+phrases, shared semantic concepts, plan context, and exact parameter-name compatibility; it applies a confidence
+threshold, returns bounded explained alternatives when no confident match
+exists, and includes resolver-call, fallback, rank, candidate-count, and response-size-oriented metrics without
+returning the full validation context. Results include descriptions, signatures, ordered parameters, group metadata,
+and exact Step References. Selection order is a ready Step Definition, an allowlisted structured operation, then a
+justified custom Step Definition; the fallback contract and allowlists are documented in
+`docs/reusable-playwright-step-definitions.md`.
+
+When an agent uses Step Definition discovery for a managed Validation AST, its submission includes the returned
+`stepDefinitionSelections` receipt IDs and correlations. The coordinator rejects a foreign, expired, mismatched, or
+insufficient receipt and preserves the deterministic combined-evidence binding through check, preview, compile, publication, and runtime
+telemetry. Human submissions without an agent selection receipt retain only their stable `plan:<planId>` correlation.
 
 Managed validation submission is bound to both the immutable AST operation hash and the latest `reviewStateHash`.
 The validation-node decision response atomically returns the refreshed `reviewBinding` produced after persisting the
@@ -187,6 +192,13 @@ invalidated for fresh review.
 `validation_context_read` accepts `resourceTypes`, `query`, `limit`, and `sinceHash`. Search tools use these bounded
 server-side filters instead of fetching the full context; unchanged scoped reads return `notModified` with the same
 `contextHash`.
+
+The response also carries the versioned `appraise.validation/resource-proposal` authoring contract. It includes
+machine-readable request constraints, semantic local-key relationship rules, a deterministic generic request
+example, and the stable binding shape returned by `validation_resources_propose`. The default summary preserves this
+bounded contract while omitting the rest of the full authoring bundle, allowing agents to construct a valid first
+proposal without fetching or guessing project-specific templates. Existing `proposalSchemas` identifiers remain for
+additive compatibility.
 
 Large lifecycle and run tools accept `responseMode: "summary" | "evidenceOnly" | "blockersOnly" | "linksOnly" |
 "full"` where supported. The default is `summary`; agents should request `full` only when the bounded IDs, links,
@@ -216,8 +228,8 @@ mode remains available for explicit diagnostics. Summary budgets are 2,000 estim
 agent-authored plan creation, 300 for an unchanged wait, and 1,500 for validation context or mutation.
 
 Validation-context summary responses return resource counts and search guidance instead of serializing shared resource
-libraries. Agents should use `resourceTypes`, `query`, and a small `limit`, or the dedicated template-step, Step Block,
-and locator search tools, to fetch only the candidates required for the current AST node. Use `full` only for an
+libraries. Agents should use `resourceTypes`, `query`, and a small `limit`, or the dedicated Step Definition and
+locator search tools, to fetch only the candidates required for the current AST node. Use `full` only for an
 explicit bounded diagnostic.
 
 `planning_session_create` accepts the same complete, agent-authored plan contract as `plan_create`. AppraiseJS validates
@@ -318,7 +330,7 @@ The connected agent owns execution mechanics after each review gate opens the ne
 publish, `baseline_start`, `baseline_reconcile`, `implementation_start`, implementation checkpoints, implementation
 task progress, and implementation validation reconciliation.
 
-Bounded catalog and event reads are explicit: `actions_list.limit` accepts 1-100, and `plan_events_read` defaults to
+Bounded catalog and event reads are explicit: `operation_search.limit` accepts 1-100, and `plan_events_read` defaults to
 compact event envelopes containing sequence/type plus cursor metadata. Request `responseMode: "full"` only when an
 event payload is required for a bounded diagnostic. Baseline reconciliation summaries retain `currentValidationHash`
 so a repair can call `baseline_retry` without a stale-hash discovery round trip.
@@ -436,3 +448,11 @@ Validation publication and baseline start/reconcile apply the same contract. Sum
 canonical artifact hashes and paths, counts, attempt/TestRun identity, blockers, links, and the next legal action ahead of any
 optional artifact body. Cursor reads are ascending, bounded, include the newest delivered event explicitly, and
 unchanged plan or validation waits return only cursor, timing, and next-action deltas.
+
+Step Definition authoring uses the shared registry through bounded MCP tools:
+`step_definition_draft_create`, `step_definition_draft_read`, `step_definition_draft_update`,
+`step_definition_draft_validate`, `step_definition_draft_preview`, `step_definition_artifact_save`,
+and `step_definition_artifact_compile`. Agent creation requires fresh structured search evidence (index hash, bounded
+candidate references, and optional plan binding) plus a bounded reuse justification, persisted with the draft. MCP and
+HTTP compatibility surfaces cannot review, publish, or deprecate a definition: the human UI issues the immutable local-human review receipt, then
+publishes or deprecates through its server action boundary with server-derived audit authority.

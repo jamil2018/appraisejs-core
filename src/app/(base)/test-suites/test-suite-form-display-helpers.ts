@@ -1,5 +1,6 @@
 import type { Module, Tag } from '@prisma/client'
 
+export { getFieldErrorMessage } from '@/components/form/field-error-message'
 import { testSuiteSchema } from '@/constants/form-opts/test-suite-form-opts'
 import type { ActionResponse } from '@/types/form/actionHandler'
 
@@ -22,18 +23,6 @@ export const testSuiteQuickTips = [
     description: 'Tags help filter and categorize effectively',
   },
 ] as const
-
-export function getFieldErrorMessage(error: unknown) {
-  if (typeof error === 'string') {
-    return error
-  }
-
-  if (error && typeof error === 'object' && 'message' in error && typeof error.message === 'string') {
-    return error.message
-  }
-
-  return String(error)
-}
 
 export function getActionErrorMessage(response: ActionResponse) {
   return response.error || 'An error occurred'

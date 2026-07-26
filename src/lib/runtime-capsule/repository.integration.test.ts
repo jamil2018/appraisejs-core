@@ -11,6 +11,7 @@ import {
   capsuleCommandBytes as commandBytes,
   capsuleCommandHash as commandHash,
   capsuleValidationHash as validationHash,
+  runtimeCapsuleManifestClosureFixture,
 } from '@/test/runtime-capsule-test-fixtures'
 import {
   materializeRuntimeCapsuleFile,
@@ -55,8 +56,8 @@ describe('RuntimeCapsuleRepository SQLite concurrency', () => {
         targetProjectId: project.id,
       },
     })
-    const manifest: RuntimeCapsuleManifest = {
-      schemaVersion: '1',
+    const manifest = {
+      schemaVersion: '2',
       projectId: project.id,
       validationHash,
       runId: testRun.runId,
@@ -65,11 +66,11 @@ describe('RuntimeCapsuleRepository SQLite concurrency', () => {
       receiptHash: validationHash,
       runtimeInputHash: validationHash,
       commandReceipt: { path: 'command-receipt.json', hash: commandHash },
-      generator: { id: 'appraise.validation-ast-capsule', version: '1' },
-      operations: [],
+      generator: { id: 'appraise.validation-ast-capsule', version: '2' },
+      ...runtimeCapsuleManifestClosureFixture(),
       expectedCases: [],
       files: [{ path: 'command-receipt.json', role: 'command-receipt', hash: commandHash, size: commandBytes.length }],
-    }
+    } as unknown as RuntimeCapsuleManifest
     const appraiseRoot = path.join(workspace, '.appraise')
     const blob = await new RuntimeCapsuleBlobRepository(prisma, appraiseRoot).put({
       projectId: project.id,

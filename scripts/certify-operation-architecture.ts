@@ -1,114 +1,179 @@
 #!/usr/bin/env tsx
 
+import { execFileSync } from 'node:child_process'
 import { promises as fs } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-import { defaultOperationRegistry } from '../src/lib/operation-catalog/default-operation-registry'
 import {
-  operationArchitectureDigest,
-  readAllOperationDescriptors,
-  runArchitectureScript,
-} from './lib/operation-architecture-utils'
-
-type LedgerRow = {
-  canonicalOperation: string
-  migrationState: string
-  legacySteps: unknown[]
-  managedActions: unknown[]
-  humanAuthoring: string
-  agentAuthoring: string
-  capsuleExecution: string
-}
+  builtInStepDefinitions,
+  stepDefinitionContentHash,
+} from '../packages/cucumber-runtime/src/step-definitions/index'
+import { defaultOperationRegistry } from '../src/lib/operation-catalog/default-operation-registry'
+import { operationArchitectureDigest, runArchitectureScript } from './lib/operation-architecture-utils'
 
 type CapabilityLedger = {
   ledgerHash: string
-  summary: {
-    legacyTemplateSteps: number
-    managedActions: number
-    capsuleDelegatedHandlers: number
-  }
-  rows: LedgerRow[]
+  sources: { stepDefinitionSourceHash: string; operationRegistryHash: string }
+  summary: { builtInStepDefinitions: number; trustedHandlers: number; structuredOperationCases: number }
+  rows: Array<{ reference: string; definitionHash: string; humanSignature: string; execution: { handler: string } }>
 }
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const ledgerPath = path.join(repoRoot, 'config', 'operation-capability-ledger.json')
 const receiptPath = path.join(repoRoot, 'config', 'operation-architecture-certification.json')
+const runtimeEvidenceSuites = [
+  'packages/cucumber-runtime/src/step-definitions/dispatcher.test.ts',
+  'src/services/step-definition/step-definition-registry-service.integration.test.ts',
+  'src/services/coordinator/coordinator-step-definition-service.test.ts',
+  'src/lib/runtime-capsule/materializer.test.ts',
+  'src/components/diagram/flow-diagram.test.tsx',
+] as const
+
+const forbiddenLegacySymbols = [
+  'submitForReview(',
+  'legacyRuntimeExtensionArtifact',
+  // Validation AST accepts exact Step References only; the removed action
+  // reference schema must not return through root, package, docs, or schema
+  // surfaces. Historical migration notes are the sole documented exception.
+  'actionReferenceSchema',
+] as const
+
+const repositoryAbsenceAllowlist = [
+  /^codex\/development plan\/.*\.md$/,
+  // The certification source necessarily names the forbidden tokens it scans.
+  /^scripts\/certify-operation-architecture\.ts$/,
+  /^packages\/create-appraisejs\/templates\/base\/scripts\/certify-operation-architecture\.ts$/,
+] as const
+
+async function repositoryAbsenceGate() {
+  const sources = await Promise.all(
+    [repoRoot].map(async directory => {
+      const result: string[] = []
+      const ignored = new Set(['.git', 'node_modules', '.next', 'coverage', 'dist', 'graphify-out'])
+      const visit = async (current: string): Promise<void> => {
+        for (const entry of await fs.readdir(current, { withFileTypes: true })) {
+          const target = path.join(current, entry.name)
+          if (entry.isDirectory() && !ignored.has(entry.name)) await visit(target)
+          else if (/\.(?:ts|tsx|mjs|mts|cts|md|json|prisma|ya?ml)$/.test(entry.name)) result.push(target)
+        }
+      }
+      await visit(directory)
+      return result
+    }),
+  )
+  const matches: string[] = []
+  for (const source of sources.flat()) {
+    const content = await fs.readFile(source, 'utf8')
+    const relative = path.relative(repoRoot, source)
+    if (repositoryAbsenceAllowlist.some(pattern => pattern.test(relative))) continue
+    for (const symbol of forbiddenLegacySymbols)
+      if (content.includes(symbol)) matches.push(`${relative}:${symbol}`)
+  }
+  return {
+    passed: matches.length === 0,
+    matches,
+    scannedRoots: ['.'],
+    allowlist: repositoryAbsenceAllowlist.map(pattern => pattern.source),
+  }
+}
+
+async function runtimeEvidence() {
+  const sourceHashes = await Promise.all(
+    runtimeEvidenceSuites.map(async suite => ({
+      suite,
+      sourceHash: operationArchitectureDigest(await fs.readFile(path.join(repoRoot, suite), 'utf8')),
+    })),
+  )
+  return {
+    command: `node node_modules/vitest/vitest.mjs run ${runtimeEvidenceSuites.join(' ')}`,
+    suites: sourceHashes,
+    scenarios: [
+      'built-in exact invocation',
+      'human and agent authored review receipts',
+      'reviewed-extension and composition dispatch',
+      'deprecated dependency rejection',
+      'handler readiness, receipt replay, and publication rollback',
+    ],
+  }
+}
+
+function runRuntimeEvidence(): void {
+  const vitestEntry = path.join(repoRoot, 'node_modules', 'vitest', 'vitest.mjs')
+  execFileSync(process.execPath, [vitestEntry, 'run', ...runtimeEvidenceSuites], {
+    cwd: repoRoot,
+    env: { ...process.env, TMPDIR: process.env.TMPDIR ?? '/tmp' },
+    stdio: 'inherit',
+  })
+}
 
 export async function buildOperationArchitectureCertification() {
   const ledger = JSON.parse(await fs.readFile(ledgerPath, 'utf8')) as CapabilityLedger
-  const definitions = readAllOperationDescriptors()
-  const migrationStates = Object.fromEntries(
-    [...new Set(ledger.rows.map(row => row.migrationState))]
-      .sort()
-      .map(state => [state, ledger.rows.filter(row => row.migrationState === state).length]),
-  )
-  const pendingRows = ledger.rows.filter(row => row.migrationState !== 'mapped')
-  const activeRegistryComplete = definitions.every(
-    definition =>
-      definition.handler.contentHash &&
-      definition.humanSurface.status === 'supported' &&
-      definition.humanProjections.length > 0 &&
-      definition.agentSurface.status === 'supported' &&
-      definition.agentProjection,
-  )
-  const fullLegacyCoverage = pendingRows.length === 0
+  const expectedReferences = builtInStepDefinitions
+    .map(definition => `${definition.identity.id}@${definition.identity.version}`)
+    .sort()
+  const actualReferences = ledger.rows.map(row => row.reference).sort()
+  const allBuiltInsAccountedFor =
+    expectedReferences.length === actualReferences.length &&
+    expectedReferences.every((reference, index) => reference === actualReferences[index])
+  const uniqueHumanSignatures = new Set(ledger.rows.map(row => row.humanSignature)).size === ledger.rows.length
+  const exactDefinitionHashes = ledger.rows.every(row => {
+    const definition = builtInStepDefinitions.find(
+      item => `${item.identity.id}@${item.identity.version}` === row.reference,
+    )
+    return definition && stepDefinitionContentHash(definition) === row.definitionHash
+  })
+  const evidence = await runtimeEvidence()
+  const absence = await repositoryAbsenceGate()
   const body = {
-    schemaVersion: 1,
-    status: fullLegacyCoverage ? ('certified' as const) : ('migration-in-progress' as const),
+    schemaVersion: 3,
+    status:
+      allBuiltInsAccountedFor && uniqueHumanSignatures && exactDefinitionHashes
+        ? ('certified' as const)
+        : ('invalid' as const),
     hashes: {
       capabilityLedger: ledger.ledgerHash,
+      stepDefinitionSource: stepDefinitionContentHash(builtInStepDefinitions),
       operationRegistry: defaultOperationRegistry.manifestHash,
     },
     counts: {
-      ledgerRows: ledger.rows.length,
-      legacyTemplateSteps: ledger.summary.legacyTemplateSteps,
-      legacyRowsMapped: ledger.rows.filter(row => row.legacySteps.length > 0 && row.migrationState === 'mapped').length,
-      managedActions: ledger.summary.managedActions,
-      activeOperations: definitions.length,
-      trustedHandlers: new Set(definitions.map(definition => definition.handler.id)).size,
-      humanProjections: definitions.reduce((count, definition) => count + definition.humanProjections.length, 0),
-      agentProjections: definitions.filter(definition => definition.agentSurface.status === 'supported').length,
-      aliases: definitions.reduce((count, definition) => count + definition.aliases.length, 0),
-      surfaceExceptions: definitions.filter(
-        definition => definition.humanSurface.status === 'exception' || definition.agentSurface.status === 'exception',
-      ).length,
-      pendingMigrationRows: pendingRows.length,
-      parityCases: ledger.rows.filter(
-        row => row.migrationState === 'mapped' && row.humanAuthoring === 'native' && row.agentAuthoring === 'native',
-      ).length,
+      builtInStepDefinitions: builtInStepDefinitions.length,
+      trustedHandlers: ledger.summary.trustedHandlers,
+      structuredOperationCases: ledger.summary.structuredOperationCases,
+      humanSignatures: new Set(ledger.rows.map(row => row.humanSignature)).size,
     },
-    migrationStates,
     gates: {
-      ledgerAccountsForEveryLegacyStep:
-        ledger.rows.reduce((count, row) => count + row.legacySteps.length, 0) === ledger.summary.legacyTemplateSteps,
-      ledgerAccountsForEveryManagedAction:
-        ledger.rows.reduce((count, row) => count + row.managedActions.length, 0) === ledger.summary.managedActions,
-      managedHandlersDelegated: ledger.summary.capsuleDelegatedHandlers === definitions.length,
-      activeRegistryComplete,
-      fullLegacyCoverage,
+      canonicalSourceHashMatches:
+        ledger.sources.stepDefinitionSourceHash === stepDefinitionContentHash(builtInStepDefinitions),
+      allBuiltInsAccountedFor,
+      exactDefinitionHashes,
+      uniqueHumanSignatures,
+      everyDefinitionHasTrustedHandler: ledger.rows.every(row => Boolean(row.execution.handler)),
+      runtimeEvidenceSuitesBound: evidence.suites.length === runtimeEvidenceSuites.length,
+      legacyAuthorityAndArtifactSurfacesAbsent: absence.passed,
     },
+    runtimeEvidence: evidence,
+    repositoryAbsence: absence,
   }
-  if (Object.entries(body.gates).some(([gate, passed]) => gate !== 'fullLegacyCoverage' && !passed))
-    throw new Error('Operation architecture invariant failed before certification.')
+  if (Object.values(body.gates).some(passed => !passed)) {
+    throw new Error('Step Definition architecture invariant failed before certification.')
+  }
   return { ...body, receiptHash: operationArchitectureDigest(body) }
 }
 
 async function main() {
+  runRuntimeEvidence()
   const receipt = await buildOperationArchitectureCertification()
   const rendered = `${JSON.stringify(receipt, null, 2)}\n`
   if (process.argv.includes('--check')) {
     const current = await fs.readFile(receiptPath, 'utf8').catch(() => '')
-    if (current !== rendered)
-      throw new Error('Operation architecture certification is stale. Run npm run operation:certify.')
+    if (current !== rendered) {
+      throw new Error('Step Definition architecture certification is stale. Run npm run operation:certify.')
+    }
   } else {
     await fs.writeFile(receiptPath, rendered)
   }
-  if (process.argv.includes('--require-complete') && !receipt.gates.fullLegacyCoverage)
-    throw new Error(
-      `Operation migration is not cutover-ready: ${receipt.counts.pendingMigrationRows} ledger rows remain.`,
-    )
-  console.log(`Operation architecture ${receipt.status} (${receipt.receiptHash}).`)
+  console.log(`Step Definition architecture ${receipt.status} (${receipt.receiptHash}).`)
 }
 
 runArchitectureScript(import.meta.url, main)

@@ -1,7 +1,7 @@
 'use client'
 
 import { CardTitle } from '@/components/ui/card'
-import { ArrowRight, TestTubeDiagonal, TestTubes, LayoutTemplate, HelpCircle, type LucideIcon } from 'lucide-react'
+import { ArrowRight, TestTubeDiagonal, TestTubes, BookOpenCheck, HelpCircle, type LucideIcon } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils'
 
@@ -31,10 +31,10 @@ const ENTITY_THEMES: Record<string, EntityTheme> = {
     bgClass: 'border-sky-500/20 bg-sky-500/[0.04]',
     hoverClass: 'hover:border-white/[0.15] hover:bg-white/[0.04]',
   },
-  'Template Steps': {
-    Icon: LayoutTemplate,
-    colorClass: 'text-indigo-400',
-    bgClass: 'border-indigo-500/20 bg-indigo-500/[0.04]',
+  'Step Definitions': {
+    Icon: BookOpenCheck,
+    colorClass: 'text-sky-400',
+    bgClass: 'border-sky-500/20 bg-sky-500/[0.04]',
     hoverClass: 'hover:border-white/[0.15] hover:bg-white/[0.04]',
   },
 }

@@ -149,6 +149,37 @@ describe('runtime capsule bounded diagnostics in SQLite', () => {
     const diagnostic = await readRuntimeCapsuleDiagnostic({ runId }, client, path.join(workspace, '.appraise'))
     expect(diagnostic.preflight.status).toBe('blocked')
     expect(diagnostic.blockers).toEqual([{ code: 'CAPSULE_NOT_READY', recoveryAction: 'RETRY_PREFLIGHT' }])
+    const dryRunBlocked = {
+      ...ready,
+      status: 'blocked',
+      checks: ready.checks.map((check, index) =>
+        index === 12 ? { ...check, code: 'DRY_RUN_FAILED', status: 'failed' } : check,
+      ),
+      blockers: [{ code: 'DRY_RUN_FAILED', recoveryAction: 'Repair the dry run.' }],
+      failureOutput: {
+        stdout: [],
+        stderr: ['Undefined step: I create a note'],
+        truncated: false,
+      },
+    }
+    const dryRunBlockedJson = canonicalRuntimeCapsuleJson(dryRunBlocked)
+    await client.runtimeCapsuleExecutionAttempt.update({
+      where: { id: attemptId },
+      data: {
+        preflightResultJson: dryRunBlockedJson,
+        preflightResultHash: hashRuntimeCapsuleValue(dryRunBlocked),
+      },
+    })
+    await expect(
+      readRuntimeCapsuleDiagnostic({ runId }, client, path.join(workspace, '.appraise')),
+    ).resolves.toMatchObject({
+      preflight: {
+        failureOutput: {
+          stderr: ['Undefined step: I create a note'],
+          truncated: false,
+        },
+      },
+    })
     await client.runtimeCapsuleExecutionAttempt.update({
       where: { id: attemptId },
       data: {

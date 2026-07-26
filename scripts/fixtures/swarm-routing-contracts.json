@@ -1,0 +1,89 @@
+[
+  {
+    "name": "trivial-coordinator-only",
+    "input": { "taskClass": "localized-fix", "material": false },
+    "allowedRoutes": ["coordinator-only"],
+    "prohibitedRoutes": ["investigator", "solver", "executor", "judge"],
+    "expected": { "route": "coordinator-only", "profile": "coordinator-only", "delegationCount": 0 }
+  },
+  {
+    "name": "long-mechanical-work",
+    "input": { "taskClass": "mechanical-refactor", "requiresExecution": true, "crossModule": false },
+    "allowedRoutes": ["executor"],
+    "prohibitedRoutes": ["solver", "judge"],
+    "expected": { "route": "executor", "profile": "executor" }
+  },
+  {
+    "name": "missing-cause-debugging",
+    "input": { "taskClass": "runtime-debugging", "missingEvidence": true, "highJudgment": true },
+    "allowedRoutes": ["investigator"],
+    "prohibitedRoutes": ["solver", "executor"],
+    "expected": { "route": "investigator", "profile": "investigator" }
+  },
+  {
+    "name": "evidence-gated-architecture",
+    "input": { "taskClass": "architecture-decision", "highJudgment": true, "evidenceLedger": false },
+    "allowedRoutes": ["investigator"],
+    "prohibitedRoutes": ["solver"],
+    "expected": { "route": "investigator", "profile": "investigator" }
+  },
+  {
+    "name": "architecture-with-evidence",
+    "input": { "taskClass": "architecture-decision", "highJudgment": true, "evidenceLedger": true },
+    "allowedRoutes": ["solver"],
+    "prohibitedRoutes": ["coordinator-only", "executor"],
+    "expected": { "route": "solver", "profile": "solver" }
+  },
+  {
+    "name": "cross-module-implementation",
+    "input": {
+      "taskClass": "cross-module-feature",
+      "requiresExecution": true,
+      "crossModule": true,
+      "verificationStrength": "strong"
+    },
+    "allowedRoutes": ["executor"],
+    "prohibitedRoutes": ["solver", "judge"],
+    "expected": { "route": "executor", "profile": "executor-advanced" }
+  },
+  {
+    "name": "release-evaluation",
+    "input": { "taskClass": "release-gate", "consequence": "high", "verificationStrength": "weak" },
+    "allowedRoutes": ["judge"],
+    "prohibitedRoutes": ["coordinator-only", "executor"],
+    "expected": { "route": "judge", "profile": "judge", "requiresIndependentJudge": true }
+  },
+  {
+    "name": "public-contract-risk",
+    "input": {
+      "taskClass": "public-contract-change",
+      "publicContractRisk": true,
+      "highJudgment": true,
+      "evidenceLedger": true
+    },
+    "allowedRoutes": ["solver"],
+    "prohibitedRoutes": ["coordinator-only", "executor"],
+    "expected": { "route": "solver", "profile": "solver", "requiresIndependentJudge": true }
+  },
+  {
+    "name": "security-risk-needs-evidence",
+    "input": { "taskClass": "security-change", "securityRisk": true, "evidenceLedger": false },
+    "allowedRoutes": ["investigator"],
+    "prohibitedRoutes": ["coordinator-only", "solver", "executor"],
+    "expected": { "route": "investigator", "profile": "investigator", "requiresIndependentJudge": true }
+  },
+  {
+    "name": "two-executor-failures",
+    "input": { "taskClass": "cross-module-feature", "requiresExecution": true, "executorFailures": 2 },
+    "allowedRoutes": ["investigator"],
+    "prohibitedRoutes": ["executor", "solver"],
+    "expected": { "route": "investigator", "profile": "investigator", "reclassificationRequired": true }
+  },
+  {
+    "name": "invalidated-invariant",
+    "input": { "taskClass": "localized-fix", "requiresExecution": true, "invariantInvalidated": true },
+    "allowedRoutes": ["investigator"],
+    "prohibitedRoutes": ["coordinator-only", "executor"],
+    "expected": { "route": "investigator", "profile": "investigator", "reclassificationRequired": true }
+  }
+]

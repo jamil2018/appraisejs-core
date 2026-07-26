@@ -105,7 +105,10 @@ After reconnect, verify these expected capabilities:
 active MCP transport, current-task capability visibility, and target-project binding separately. A successful tool
 call proves the active transport, but does not claim that Appraise inspected the client's persisted registration.
 Missing sentinels block lifecycle work with exact recovery steps; an unregistered expected target directs the agent
-to `project_add`. Every call stores an idempotent, content-addressed receipt. The response includes its direct Projects
+to `project_add`. For a new empty target, `project_add` accepts `initializeGit: true` (CLI: `project add --init-git`)
+to create a `main`-branch repository before the continuity marker is written. This option is deliberately rejected for
+non-empty workspaces and never modifies an existing repository. Every diagnostic call stores an idempotent,
+content-addressed receipt. The response includes its direct Projects
 URL, where the four layers, observation time, MCP server identity, and exact missing capabilities are visible. A
 zero-input receipt remains `needs_observation`; opening it in the UI does not upgrade unobserved client state.
 
@@ -146,7 +149,7 @@ repeating the brief or rendered handoff. Pending review or pending approval is n
 After `validation_preparation_started`, agents must create AppraiseJS-native validation artifacts and call
 `validation_ast_compile` after exact check and preview receipt review before entering validation review standby. The compile response should include the direct
 validation review URL, `appraise://` URL, `ValidationArtifact` path, validation count, changed-file count, manifest
-paths, reused registry/template step paths, new custom step paths, and the next review action.
+paths, reused Step Definition references, new custom step paths, and the next review action.
 Set `APPRAISE_BROWSER_ORIGIN` to the canonical loopback browser origin when the app uses a non-default local port. Returned
 review URLs include the target project. If validation review reports a stale current-state receipt while immutable
 publication content remains valid, call `validation_review_reconcile` once and reread the review before submitting

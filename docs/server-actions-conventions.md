@@ -9,8 +9,8 @@ This applies to reads as well as mutations. Lists, detail views, uniqueness chec
 test-run controls must receive the resolved project ID. Creation actions fail when no active project is selected, and
 services must persist the resolved ID rather than accepting ownership from form data.
 
-Template Steps and Template Step Groups are the explicit shared-library exception: their actions and services operate
-globally and do not require active-project resolution. Project-owned entities may reference these shared records.
+Ready Step Definitions are the shared-library exception: registry actions and services operate globally and do not
+require active-project resolution. Project-owned entities reference their exact immutable Step References.
 
 ## Local request boundary
 
@@ -25,7 +25,7 @@ origin checks remain enabled and should not be reimplemented in individual actio
 2. **Service** (`src/services/**`): Business rules and orchestration. Returns data or throws `ServiceError` from `@/services/shared/errors`. No `revalidatePath`, no `ActionResponse`.
 3. **Persistence / I/O**: Prefer Prisma via `@/config/db-config`; use dedicated helpers when logic is file/process heavy (e.g. test run executor, report parser).
 
-Domains with a `*-service.ts` include: `test-run`, `report`, `test-case`, `test-suite`, `locator`, `dashboard`, `environment`, `module`, `tag`, `locator-group`, `review`, `conflict`, `template-step`, `template-step-group`, `template-test-case`. Thin actions (`settings/sync`, stub `user`) may remain without a service.
+Domains with a `*-service.ts` include: `test-run`, `report`, `test-case`, `test-suite`, `locator`, `dashboard`, `environment`, `module`, `tag`, `locator-group`, `review`, `conflict`, `step-definition`, `template-test-case`. Thin actions (`settings/sync`, stub `user`) may remain without a service.
 
 ## Responses
 

@@ -3,21 +3,17 @@ import { canonicalRuntimeCapsuleJson } from './contracts'
 export function generateExecutableBindings(input: {
   bindings: unknown
   selectors: Record<string, string>
+  sealedDefinitions: unknown
+  extensionModules: Record<string, string>
   runtimeImport: string
 }) {
-  return `import { Given, When, Then, executeBrowserOperation } from '${input.runtimeImport}'
+  return `import { Given, When, Then, dispatchStepInvocation } from '${input.runtimeImport}'
 
 const cases = ${canonicalRuntimeCapsuleJson(input.bindings)}
 const selectors = ${canonicalRuntimeCapsuleJson(input.selectors)}
+const sealedDefinitions = ${canonicalRuntimeCapsuleJson(input.sealedDefinitions)}
+const extensionModules = Object.fromEntries(Object.entries(${canonicalRuntimeCapsuleJson(input.extensionModules)}).map(([key, value]) => [key, new URL(value, import.meta.url).href]))
 const registrations = { Given, When, Then, And: Given }
-const allowedOperationRefs = new Set(cases.flatMap(testCase => testCase.steps.map(step => step.operation)))
-const parseValue = value => {
-  try { return JSON.parse(value) } catch { return value }
-}
-const valueOf = parameters => Object.fromEntries(parameters.map(parameter => [
-  parameter.name,
-  parameter.locatorName ? { id: parameter.locatorName } : parseValue(parameter.value),
-]))
 const locatorName = reference => typeof reference === 'string' ? reference : reference?.id
 const resolveLocator = (world, reference) => {
   const selector = selectors[locatorName(reference)]
@@ -26,22 +22,29 @@ const resolveLocator = (world, reference) => {
 }
 const resolveSelector = reference => selectors[locatorName(reference)] ?? null
 const dispatch = async (world, step) => {
-  await executeBrowserOperation(step.operation, {
-    world,
-    inputs: valueOf(step.parameters),
-    resolveLocator: reference => resolveLocator(world, reference),
-    resolveSelector,
-    baseUrl: process.env.APPRAISE_BASE_URL ?? 'http://localhost',
-  }, allowedOperationRefs)
+  const baseUrl = process.env.APPRAISE_BASE_URL ?? 'http://localhost'
+  await dispatchStepInvocation({
+    invocation: step.invocation,
+    sealedDefinitions,
+    context: {
+      world,
+      resolveLocator: reference => resolveLocator(world, reference),
+      resolveSelector,
+      extensionModules,
+      baseUrl,
+      environment: { baseUrl },
+    },
+  })
 }
 const registeredExpressions = new Map()
 for (const testCase of cases) for (const step of testCase.steps) {
   const keyword = step.keywordText.slice(0, step.keywordText.indexOf(' '))
   const expressionText = step.keywordText.slice(step.keywordText.indexOf(' ') + 1)
-  const signature = JSON.stringify({ operation: step.operation, parameters: step.parameters })
+  const { presentation: _presentation, ...executionInvocation } = step.invocation
+  const signature = JSON.stringify({ invocation: executionInvocation })
   const existingSignature = registeredExpressions.get(expressionText)
   if (existingSignature !== undefined) {
-    if (existingSignature !== signature) throw new Error(\`Reviewed steps reuse "\${expressionText}" with different bindings.\`)
+    if (existingSignature !== signature) throw new Error(\`Reviewed steps reuse "\${expressionText}" with different invocations.\`)
     continue
   }
   registeredExpressions.set(expressionText, signature)

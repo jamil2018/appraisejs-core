@@ -8,7 +8,10 @@ const diagnostic = {
   attempt: { state: 'FAILED' },
   command: { sealed: true },
   identities: { node: { version: '1' } },
-  preflight: { status: 'blocked' },
+  preflight: {
+    status: 'blocked',
+    failureOutput: { stdout: [], stderr: ['Undefined step: I create a note'], truncated: false },
+  },
   blockers: [{ code: 'FILE_MISSING', recoveryAction: 'RETRY_PREFLIGHT' }],
   evidence: {
     failureSignatures: ['Expected HomeChores but found SecondWife'],
@@ -28,5 +31,10 @@ describe('capsule diagnostic response modes', () => {
   })
   it('keeps the exact nested DTO for full mode', () => {
     expect(applyCapsuleDiagnosticMode(diagnostic, 'full')).toBe(diagnostic)
+  })
+  it('keeps bounded preflight output in blockers-only mode', () => {
+    expect(applyCapsuleDiagnosticMode(diagnostic, 'blockersOnly')).toMatchObject({
+      failureOutput: { stderr: ['Undefined step: I create a note'], truncated: false },
+    })
   })
 })

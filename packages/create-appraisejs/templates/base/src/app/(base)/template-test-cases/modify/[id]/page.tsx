@@ -3,8 +3,6 @@ import {
   LocatorGroup,
   Environment,
   Module,
-  TemplateStep,
-  TemplateStepParameter,
   TemplateTestCase,
   TemplateTestCaseStep,
   TemplateTestCaseStepParameter,
@@ -15,10 +13,7 @@ import React from 'react'
 import TemplateTestCaseForm from '../../template-test-case-form'
 import HeaderSubtitle from '@/components/typography/page-header-subtitle'
 import PageHeader from '@/components/typography/page-header'
-import {
-  getAllTemplateStepParamsAction,
-  getAllTemplateStepsAction,
-} from '@/actions/template-step/template-step-actions'
+import { listReadyStepDefinitionOptionsAction } from '@/actions/step-definition/step-definition-actions'
 import { getAllLocatorGroupsAction } from '@/actions/locator-groups/locator-group-actions'
 import { getAllEnvironmentsAction } from '@/actions/environments/environment-actions'
 import { getAllModulesAction } from '@/actions/modules/module-actions'
@@ -29,6 +24,7 @@ import {
 } from '@/actions/template-test-case/template-test-case-actions'
 import { getAllLocatorsAction } from '@/actions/locator/locator-actions'
 import { Metadata } from 'next'
+import { stepInvocationSchema } from '../../../../../../packages/cucumber-runtime/src/step-definitions/contracts.ts'
 
 export const metadata: Metadata = {
   title: 'Appraise | Modify Template Test Case',
@@ -43,16 +39,14 @@ const ModifyTemplateTestCase = async ({ params }: { params: Promise<{ id: string
 
   const [
     templateCaseResponse,
-    { data: templateStepParams, error: templateStepParamsError },
-    { data: templateSteps, error: templateStepsError },
+    { data: stepDefinitions, error: stepDefinitionsError },
     { data: locators, error: locatorsError },
     { data: locatorGroups, error: locatorGroupsError },
     { data: environments, error: environmentsError },
     { data: modules, error: modulesError },
   ] = await Promise.all([
     getTemplateTestCaseByIdAction(id),
-    getAllTemplateStepParamsAction(),
-    getAllTemplateStepsAction(),
+    listReadyStepDefinitionOptionsAction(),
     getAllLocatorsAction(),
     getAllLocatorGroupsAction(),
     getAllEnvironmentsAction(),
@@ -76,8 +70,7 @@ const ModifyTemplateTestCase = async ({ params }: { params: Promise<{ id: string
     flowBlocks: (TemplateTestCaseFlowBlock & { nodes: TemplateTestCaseFlowBlockNode[] })[]
   }
   if (
-    templateStepParamsError ||
-    templateStepsError ||
+    stepDefinitionsError ||
     locatorsError ||
     locatorGroupsError ||
     environmentsError ||
@@ -86,8 +79,7 @@ const ModifyTemplateTestCase = async ({ params }: { params: Promise<{ id: string
     return (
       <div>
         Error:{' '}
-        {templateStepParamsError ||
-          templateStepsError ||
+        {stepDefinitionsError ||
           locatorsError ||
           locatorGroupsError ||
           environmentsError ||
@@ -106,8 +98,7 @@ const ModifyTemplateTestCase = async ({ params }: { params: Promise<{ id: string
         id={id}
         defaultTitle={templateTestCase.name}
         defaultDescription={templateTestCase.description || ''}
-        templateStepParams={templateStepParams as TemplateStepParameter[]}
-        templateSteps={templateSteps as TemplateStep[]}
+        stepDefinitions={(stepDefinitions ?? []) as import('@/types/step-definition-option').StepDefinitionOption[]}
         locators={locators as Locator[]}
         locatorGroups={locatorGroups as LocatorGroup[]}
         environments={environments as Environment[]}
@@ -128,7 +119,7 @@ const ModifyTemplateTestCase = async ({ params }: { params: Promise<{ id: string
                 order: param.order,
               }),
             ),
-            templateStepId: step.templateStepId,
+            invocation: stepInvocationSchema.parse(JSON.parse(step.invocationJson)),
           }
           return acc
         }, {} as TemplateTestCaseNodeOrderMap)}

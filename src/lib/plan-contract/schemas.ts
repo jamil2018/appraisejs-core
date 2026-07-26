@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { stepInvocationSchema } from '../../../packages/cucumber-runtime/src/step-definitions/contracts.ts'
 
 import { PlanContractError } from './errors'
 import { PLAN_LIFECYCLE_STATES } from './lifecycle'
@@ -116,12 +117,7 @@ const validationAppraiseArtifactsSchema = z.object({
             order: z.number().int().nonnegative(),
             label: z.string().min(1),
             gherkinStep: z.string().min(1),
-            templateStepId: idSchema.optional(),
-            operationRef: z
-              .string()
-              .regex(/^[a-z0-9]+(?:[.-][a-z0-9]+)*@\d+(?:\.\d+){0,2}$/)
-              .optional(),
-            templateStepName: z.string().min(1).optional(),
+            invocation: stepInvocationSchema.optional(),
             parameters: z
               .array(
                 z.object({
@@ -243,6 +239,14 @@ const managedValidationNodesSchema = validationNodesSchema.superRefine((items, c
         path: [index, 'astProvenance'],
         message: 'Managed validation requires exact managed Validation AST provenance.',
       })
+    for (const testCase of item.appraiseArtifacts.testCases)
+      for (const step of testCase.steps)
+        if (!step.invocation)
+          context.addIssue({
+            code: 'custom',
+            path: [index, 'appraiseArtifacts', 'testCases'],
+            message: 'Managed v2 validation steps require only an exact invocation.',
+          })
   })
 })
 
@@ -250,14 +254,6 @@ const customStepJustificationSchema = z.object({
   path: z.string().min(1),
   missingCapability: z.string().min(1),
   whyLocatorsAndExistingStepsAreInsufficient: z.string().min(1),
-})
-
-const validationReusableRefSchema = z.object({
-  id: z.string().min(1),
-  name: z.string().min(1).optional(),
-  groupId: z.string().min(1).optional(),
-  groupName: z.string().min(1).optional(),
-  path: z.string().min(1).optional(),
 })
 
 const validationDraftBlockerSchema = z.object({
@@ -412,8 +408,6 @@ export const validationArtifactSchema = artifactHeaderSchema
     validations: managedValidationNodesSchema,
     approvals: z.array(approvalSchema),
     reusedStepPaths: z.array(z.string().min(1)).optional(),
-    reusedTemplateStepRefs: z.array(validationReusableRefSchema).optional(),
-    reusedStepBlockRefs: z.array(validationReusableRefSchema).optional(),
     newStepPaths: z.array(z.string().min(1)).optional(),
     customStepJustifications: z.array(customStepJustificationSchema).optional(),
     runtimeProjections: z.array(runtimeProjectionSchema).optional(),

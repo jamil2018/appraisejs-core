@@ -32,6 +32,8 @@ jobs:
             packages/appraisejs/package-lock.json
       - run: npm ci
       - run: npm --prefix packages/appraisejs ci
+      - name: Verify agent-harness contracts
+        run: npm run check:harness
       - run: npx prisma generate
       - run: node e2e/apply-migrations.mjs
       - run: npm run lint

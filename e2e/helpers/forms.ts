@@ -24,29 +24,15 @@ export async function selectTestSuites(page: Page, ...suiteNames: string[]): Pro
   }
 }
 
-export async function addTemplateStepToFlow(page: Page, stepName = 'Open seeded page'): Promise<void> {
-  const emptyStateAdd = page.getByRole('button', { name: 'Add node', exact: true })
-  const toolbarAdd = page.getByRole('button', { name: 'Add Node' })
-
-  if (await emptyStateAdd.isVisible()) {
-    await emptyStateAdd.click()
-  } else {
-    await toolbarAdd.click()
-  }
-
-  await expect(page.getByRole('dialog', { name: 'Add Node' })).toBeVisible()
-  const addNodeDialog = page.getByRole('dialog', { name: 'Add Node' })
-  await addNodeDialog.getByRole('textbox', { name: 'Label' }).fill(stepName)
-  await addNodeDialog.getByRole('combobox', { name: 'Template Step' }).click()
-  await page.getByPlaceholder('Search template steps…').fill(stepName)
-  await page.getByRole('option', { name: stepName }).click()
-  const urlParameter = addNodeDialog.getByRole('textbox', { name: /^url/i })
-  if (await urlParameter.isVisible()) {
-    await urlParameter.fill('/')
-  }
-  await addNodeDialog.getByRole('button', { name: /^Save$/ }).click()
-  await expect(addNodeDialog).toBeHidden()
-  await expect(page.getByText(stepName, { exact: true }).first()).toBeVisible()
+export async function addStepDefinitionToFlow(page: Page): Promise<void> {
+  await page.getByLabel('Step Definition').selectOption({
+    label: 'Navigate to URL (browser.navigation.goto@1)',
+  })
+  await page.getByRole('button', { name: 'Add step' }).click()
+  const urlParameter = page.getByRole('textbox', { name: 'url' }).last()
+  await urlParameter.fill('/')
+  await expect(page.getByRole('button', { name: 'Remove Navigate to URL' })).toBeVisible()
+  await page.waitForTimeout(250)
 }
 
 export async function editRecordName(page: Page, name: string, nextName: string): Promise<void> {
@@ -82,28 +68,11 @@ export async function createLocator(page: Page, name: string, selector: string, 
   await completeNamedCreate(page, name, /\/locators$/, 'Save Locator')
 }
 
-export async function createTemplateStepGroup(page: Page, name: string): Promise<void> {
-  await page.goto('/template-step-groups/create')
-  await expectPageHeading(page, 'Create Template Step Group')
-  await page.getByLabel('Name').fill(name)
-  await completeNamedCreate(page, name, /\/template-step-groups$/)
-}
-
-export async function createTemplateStep(page: Page, name: string, groupName: string): Promise<void> {
-  await page.goto('/template-steps/create')
-  await expectPageHeading(page, 'Create Template Step')
-  await page.getByLabel('Name').fill(name)
-  await page.getByText('Template Step Group').locator('..').getByRole('combobox').click()
-  await page.getByRole('option', { name: groupName }).click()
-  await page.getByLabel('Signature').fill(`Given I ${name.toLowerCase()}`)
-  await completeNamedCreate(page, name, /\/template-steps$/)
-}
-
 export async function createTemplateTestCase(page: Page, name: string): Promise<void> {
   await page.goto('/template-test-cases/create')
   await expectPageHeading(page, 'Create Template Test Case')
   await page.getByLabel('Title').fill(name)
-  await addTemplateStepToFlow(page)
+  await addStepDefinitionToFlow(page)
   await completeNamedCreate(page, name, /\/template-test-cases$/)
 }
 
@@ -154,7 +123,7 @@ export async function createTestCaseWithSeededStep(page: Page, title: string): P
   await expectPageHeading(page, 'Create New Test Case')
   await fillTestCaseDetails(page, title)
   await expect(page.getByText('Test Case Flow', { exact: true }).first()).toBeVisible()
-  await addTemplateStepToFlow(page)
+  await addStepDefinitionToFlow(page)
   await saveTestCase(page)
   await expect(page.getByText(title, { exact: true }).first()).toBeVisible()
 }

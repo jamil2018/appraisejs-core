@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import type { ActionDescriptor } from '@/lib/action-catalog'
+import type { OperationDescriptor } from '../../../packages/cucumber-runtime/src/operations/contracts.ts'
 import type { ValidationAst } from './schemas'
 
 export const SIMPLE_HAPPY_PATH_PROFILE_ID = 'simple-happy-path' as const
@@ -13,28 +13,31 @@ export const validationAstAuthoringProfileSchema = z.object({
 
 export type ValidationAstAuthoringProfile = z.infer<typeof validationAstAuthoringProfileSchema>
 export type AuthoringProfileIssue = { code: string; message: string; referenceId?: string }
+type AuthoringOperation = Pick<OperationDescriptor, 'id' | 'version' | 'categories' | 'assertionConcerns' | 'inputs'>
 
 const SIMPLE_CONCERNS = ['accessibility', 'persistence'] as const
 const SIMPLE_RUNTIME_CLEANLINESS_ACTIONS = [
   'browser.assertions.no-console-errors@1',
   'browser.assertions.no-failed-network-requests@1',
 ] as const
-const actionKey = (action: { id: string; version: string }) => `${action.id}@${action.version}`
+const operationKey = (operation: { id: string; version: string }) => `${operation.id}@${operation.version}`
+const invocationOperation = (step: ValidationAst['scenarios'][number]['steps'][number]) => step.invocation.step
 
 function effectiveThenSteps(ast: ValidationAst) {
   return ast.scenarios.flatMap(scenario => {
     let effectiveKeyword: 'Given' | 'When' | 'Then' | undefined
     return scenario.steps.filter(step => {
-      if (step.keyword !== 'And') effectiveKeyword = step.keyword
+      if (step.invocation.presentation?.keyword && step.invocation.presentation.keyword !== 'And')
+        effectiveKeyword = step.invocation.presentation.keyword
       return effectiveKeyword === 'Then'
     })
   })
 }
 
-function assertionIssues(ast: ValidationAst, descriptors: Map<string, ActionDescriptor>): AuthoringProfileIssue[] {
+function assertionIssues(ast: ValidationAst, descriptors: Map<string, AuthoringOperation>): AuthoringProfileIssue[] {
   const thenSteps = effectiveThenSteps(ast)
   const assertedConcerns = new Set(
-    thenSteps.flatMap(step => descriptors.get(actionKey(step.operation))?.assertionConcerns ?? []),
+    thenSteps.flatMap(step => descriptors.get(operationKey(invocationOperation(step)))?.assertionConcerns ?? []),
   )
   const issues: AuthoringProfileIssue[] = SIMPLE_CONCERNS.filter(
     concern => !ast.qualityConcerns.includes(concern) || !assertedConcerns.has(concern),
@@ -43,7 +46,11 @@ function assertionIssues(ast: ValidationAst, descriptors: Map<string, ActionDesc
     message: `Simple happy-path authoring requires a registered Then assertion for the ${concern} concern.`,
     referenceId: concern,
   }))
-  if (!thenSteps.some(step => descriptors.get(actionKey(step.operation))?.categories.includes('browser.assertions')))
+  if (
+    !thenSteps.some(step =>
+      descriptors.get(operationKey(invocationOperation(step)))?.categories.includes('browser.assertions'),
+    )
+  )
     issues.push({
       code: 'simple-profile-assertion-missing',
       message: 'Simple happy-path authoring requires an explicit Then assertion.',
@@ -51,14 +58,16 @@ function assertionIssues(ast: ValidationAst, descriptors: Map<string, ActionDesc
   return issues
 }
 
-function timingIssues(ast: ValidationAst, descriptors: Map<string, ActionDescriptor>): AuthoringProfileIssue[] {
+function timingIssues(ast: ValidationAst, descriptors: Map<string, AuthoringOperation>): AuthoringProfileIssue[] {
   return ast.scenarios.flatMap(scenario =>
     scenario.steps.flatMap(step => {
-      const inputs = descriptors.get(actionKey(step.operation))?.inputs ?? []
+      const inputs = descriptors.get(operationKey(invocationOperation(step)))?.inputs ?? []
       const exceedsLimit = inputs.some(input => {
-        const value = step.operation.inputs[input.name]
-        if (typeof value !== 'number' || !input.numeric) return false
-        return (input.numeric.unit === 'milliseconds' ? value / 1_000 : value) > 30
+        const value = step.invocation.inputs[input.name]
+        if (typeof value !== 'number') return false
+        const unit = input.constraints?.unit
+        const seconds = unit === 'milliseconds' ? value / 1_000 : value
+        return seconds > 30
       })
       return exceedsLimit
         ? [
@@ -74,7 +83,7 @@ function timingIssues(ast: ValidationAst, descriptors: Map<string, ActionDescrip
 }
 
 function runtimeCleanlinessIssues(ast: ValidationAst): AuthoringProfileIssue[] {
-  const actionIds = new Set(effectiveThenSteps(ast).map(step => actionKey(step.operation)))
+  const actionIds = new Set(effectiveThenSteps(ast).map(step => operationKey(invocationOperation(step))))
   return SIMPLE_RUNTIME_CLEANLINESS_ACTIONS.filter(requiredAction => !actionIds.has(requiredAction)).map(
     requiredAction => ({
       code: 'simple-profile-runtime-cleanliness-missing',
@@ -87,7 +96,7 @@ function runtimeCleanlinessIssues(ast: ValidationAst): AuthoringProfileIssue[] {
 export function checkValidationAstAuthoringProfile(
   ast: ValidationAst,
   profile: ValidationAstAuthoringProfile,
-  actions: ActionDescriptor[],
+  operations: AuthoringOperation[],
 ): AuthoringProfileIssue[] {
   const issues: AuthoringProfileIssue[] = []
   if (ast.scenarios.length !== 1)
@@ -101,7 +110,7 @@ export function checkValidationAstAuthoringProfile(
       message:
         'Simple happy-path authoring requires one environment/browser matrix entry unless advanced matrix is enabled.',
     })
-  const descriptors = new Map(actions.map(action => [actionKey(action), action]))
+  const descriptors = new Map(operations.map(operation => [operationKey(operation), operation]))
   issues.push(...assertionIssues(ast, descriptors))
   issues.push(...runtimeCleanlinessIssues(ast))
   if (!profile.advanced.timing) issues.push(...timingIssues(ast, descriptors))

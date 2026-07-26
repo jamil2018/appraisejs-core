@@ -1,16 +1,5 @@
 import { BrowserEngine } from '@prisma/client'
-
-export function getFieldErrorMessage(error: unknown) {
-  if (typeof error === 'string') {
-    return error
-  }
-
-  if (error && typeof error === 'object' && 'message' in error && typeof error.message === 'string') {
-    return error.message
-  }
-
-  return String(error)
-}
+export { getFieldErrorMessage } from '@/components/form/field-error-message'
 
 export function getBrowserEngineOptions() {
   return [

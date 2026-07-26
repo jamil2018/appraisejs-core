@@ -3,6 +3,10 @@ import { createHash } from 'node:crypto'
 import { canonicalContractJson } from '@/lib/catalog-contracts'
 import { createCustomExtensionPolicy } from '@/lib/validation-ast/extension-policy'
 import {
+  builtInStepDefinitions,
+  computeStepReferenceHash,
+} from '../../../packages/cucumber-runtime/src/step-definitions'
+import {
   advanceValidationAstPublish,
   prepareValidationAstPublish,
   validationAstPublishOperationId,
@@ -36,10 +40,16 @@ describe('Validation AST publish journal', () => {
         findUniqueOrThrow: vi.fn().mockResolvedValue({ ...operation, phase: 'artifacts_written' }),
       },
     } as never
-    const actions = [
-      { id: 'action', version: '1', contentHash: digest('action') },
-      { id: 'assertion', version: '1', contentHash: digest('assertion') },
-    ]
+    const definition = builtInStepDefinitions.find(item => item.identity.id === 'browser.navigation.goto')!
+    const invocation = {
+      step: {
+        id: definition.identity.id,
+        version: definition.identity.version,
+        definitionHash: computeStepReferenceHash(definition),
+      },
+      inputs: { url: '/' },
+      presentation: { keyword: 'When' as const, description: 'the user opens home' },
+    }
     const projection = {
       validationNode: {
         id: 'ast',
@@ -50,10 +60,7 @@ describe('Validation AST publish journal', () => {
           testCases: [
             {
               id: 'case',
-              steps: [
-                { id: 'step', templateStepName: 'action@1' },
-                { id: 'step-two', templateStepName: 'assertion@1' },
-              ],
+              steps: [{ id: 'step', invocation }],
             },
           ],
         },
@@ -69,7 +76,7 @@ describe('Validation AST publish journal', () => {
       runtimes: ['browser'],
     }
     const runtimeInput = {
-      schemaVersion: '1' as const,
+      schemaVersion: '2' as const,
       targetProjectId: 'target',
       targetFingerprint: digest('target'),
       astId: 'ast',
@@ -83,12 +90,13 @@ describe('Validation AST publish journal', () => {
         projectFingerprint: digest('target'),
         capabilityImports: {},
       }),
-      actions,
+      rootInvocations: [{ caseId: 'case', stepId: 'step', invocation }],
+      stepDefinitions: [invocation.step],
       locators: [],
       extensions: [],
       matrix: projection.validationNode.matrix,
       expected: {
-        scenarios: [{ scenarioId: 'scenario', caseId: 'case', stepIds: ['step', 'step-two'] }],
+        scenarios: [{ scenarioId: 'scenario', caseId: 'case', stepIds: ['step'] }],
         scenarioCount: 1,
       },
       gherkinHash: contractDigest(projection.gherkin),
@@ -131,7 +139,7 @@ describe('Validation AST publish journal', () => {
     await expect(
       prepareValidationAstPublish({ ...input, runtimeInputHash: digest('tampered') }, client),
     ).rejects.toThrow(/hash does not match/)
-    const missingLastOperation = { ...runtimeInput, actions: runtimeInput.actions.slice(0, -1) }
+    const missingLastOperation = { ...runtimeInput, stepDefinitions: [] }
     await expect(
       prepareValidationAstPublish(
         {
@@ -141,12 +149,12 @@ describe('Validation AST publish journal', () => {
         },
         client,
       ),
-    ).rejects.toThrow(/operations do not match/)
+    ).rejects.toThrow(/runtime input is invalid/)
     const missingLastStep = {
       ...runtimeInput,
       expected: {
         ...runtimeInput.expected,
-        scenarios: [{ ...runtimeInput.expected.scenarios[0]!, stepIds: ['step'] }],
+        scenarios: [{ ...runtimeInput.expected.scenarios[0]!, stepIds: ['missing-step'] }],
       },
     }
     await expect(

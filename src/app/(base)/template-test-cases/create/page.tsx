@@ -33,8 +33,7 @@ const CreateTemplateTestCase = async () => {
       </div>
       <TemplateTestCaseForm
         defaultNodesOrder={{}}
-        templateStepParams={pageData.templateStepParams}
-        templateSteps={pageData.templateSteps}
+        stepDefinitions={pageData.stepDefinitions}
         locators={pageData.locators}
         locatorGroups={pageData.locatorGroups}
         environments={pageData.environments}

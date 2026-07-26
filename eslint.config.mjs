@@ -6,14 +6,19 @@ const eslintConfig = [
   ...nextTypescript,
   {
     ignores: [
-      'automation/steps/**/*.step.ts',
-      'automation/steps/**/*',
       'packages/cucumber-runtime/dist/**/*',
       'packages/locator-picker-companion/dist/**/*',
       'packages/appraisejs/registry/**/*',
       'templates/**/*',
       'packages/create-appraisejs/templates/**/*',
     ],
+  },
+  {
+    files: ['automation/steps/**/*.step.ts'],
+    rules: {
+      'no-duplicate-imports': 'error',
+      'no-redeclare': 'error',
+    },
   },
 ]
 

@@ -15,7 +15,7 @@ export type TestSuiteExecutionData = Array<{
 export type EntityMetrics = {
   testCasesCount: number
   testSuitesCount: number
-  templateStepsCount: number
+  stepDefinitionsCount: number
   runningTestRunsCount: number
 }
 
@@ -27,7 +27,7 @@ export async function getDashboardMetrics(targetProjectId: string) {
 export async function getEntityMetrics(targetProjectId: string): Promise<EntityMetrics> {
   const testCases = await prisma.testCase.count({ where: { targetProjectId } })
   const testSuites = await prisma.testSuite.count({ where: { targetProjectId } })
-  const templateSteps = await prisma.templateStep.count()
+  const stepDefinitions = await prisma.stepDefinition.count({ where: { status: 'ready' } })
   const runningTestRuns = await prisma.testRun.count({
     where: {
       targetProjectId,
@@ -40,7 +40,7 @@ export async function getEntityMetrics(targetProjectId: string): Promise<EntityM
   return {
     testCasesCount: testCases,
     testSuitesCount: testSuites,
-    templateStepsCount: templateSteps,
+    stepDefinitionsCount: stepDefinitions,
     runningTestRunsCount: runningTestRuns,
   }
 }

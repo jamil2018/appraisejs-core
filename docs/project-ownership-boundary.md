@@ -2,7 +2,7 @@
 
 AppraiseJS treats a `TargetProject` as the mandatory isolation boundary for authored data, managed lifecycle state,
 execution, reports, metrics, reviews, integrations, and evidence. System configuration and built-in contract schemas
-remain global. Template Steps and Template Step Groups form a shared library visible to every project. Step Blocks and
+remain global. Ready Step Definitions form a shared library visible to every project. Compositions are immutable
 test-case templates remain project-owned and may reference entries from that shared library.
 
 ## Active project resolution
@@ -27,9 +27,9 @@ ID, it must equal the resolved project. Project-sensitive services receive that 
 IDs before reading or mutating related records.
 
 All project-owned application reads and writes are project-scoped. Modules, suites, cases, runs, reports,
-environments, tags, locators, locator groups, case templates, Step Blocks, metrics, and dashboard aggregates are
+environments, tags, locators, locator groups, case templates, metrics, and dashboard aggregates are
 queried through the active project. Creation and update services validate that every project-owned related record
-belongs to the same project before connecting it. Template Steps and Template Step Groups are deliberately global;
+belongs to the same project before connecting it. Ready Step Definitions are deliberately global;
 their CRUD actions do not require a selected project, and project-owned cases and blocks may reference them. A missing
 active project remains a validation error for creation of any project-owned entity.
 Project-owned display names, including environment names, are unique only within their target project; identical names
@@ -43,9 +43,9 @@ are restricted to plans whose recorded `targetProjectId` matches that scope. Swi
 collection rather than carrying a foreign plan detail route into the new scope.
 
 Agent and coordinator operations use the plan-bound `targetProjectId` as their trusted scope. Validation context reads
-filter project-owned resources at the Prisma query boundary, not after loading global data. Shared Template Steps are
+filter project-owned resources at the Prisma query boundary, not after loading global data. Shared Step Definitions are
 returned alongside that scoped context. Suggested-resource proposals and canonical validation publication persist
-`targetProjectId` on every project root they create, may reuse any shared Template Step Group, and reject an existing
+`targetProjectId` on every project root they create, may reuse any ready shared Step Definition, and reject an existing
 foreign project-owned record rather than reassigning it. Ownership metadata remains provenance; it is not a substitute
 for a project-owned entity's own project foreign key.
 
@@ -62,7 +62,7 @@ or ownership return a bounded conflict instead of leaking a database uniqueness 
 
 | Class               | Records                                                                              | Enforcement                                                     |
 | ------------------- | ------------------------------------------------------------------------------------ | --------------------------------------------------------------- |
-| Shared library      | Template Steps and Template Step Groups                                              | intentionally global                                            |
+| Shared library      | Ready Step Definitions                                                               | intentionally global                                            |
 | System              | built-in schemas, provider adapter registrations, system settings                    | intentionally global                                            |
 | Project roots       | modules, cases, suites, locator groups, locators, environments, tags, case templates | direct `targetProjectId`                                        |
 | Project descendants | steps, parameters, flow blocks, reviews, tickets, joins, conflicts                   | parent ownership plus relationship validation                   |

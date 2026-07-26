@@ -203,7 +203,13 @@ describe('baseline execution contract', () => {
       ...validation.validations[0],
       expectedFailures: [
         validation.validations[0].expectedFailures[0],
-        { signature: 'Checkout total is wrong', lastPassingStepId: 'when-submit' },
+        {
+          browser: 'chromium',
+          environment: 'local',
+          order: 1,
+          signature: 'Checkout total is wrong',
+          lastPassingStepId: 'when-submit',
+        },
       ],
     }
 

@@ -75,13 +75,20 @@ Managed execution uses only the exact Appraise-owned immutable runtime capsule; 
 Successful compilation returns the exact project-scoped `review=validation` browser link and the Appraise resource
 link directly, so the agent can hand off the review gate without another plan read.
 
-Validation authoring is registry-first through the unified operation catalog and locator graph. Use
-Use `step_search` for combined human and agent discovery. It returns the semantic Template Step name together with
-the canonical operation identity when one is mapped, and includes project-authored steps without a canonical mapping.
-Use the lower-level `operation_search` and `operation_read` to inspect an exact semantic operation, then the allowlisted structured
-locator/page fallback, and only then a justified custom operation for application-specific behavior or a documented
-catalog gap. Human template search is a compatibility projection of the same migration ledger. See
-`docs/reusable-playwright-template-steps.md`.
+Validation authoring is registry-first through the unified Step Definition catalog and locator graph. The actionable
+identity is the exact versioned Step Reference. Ready Step Definitions are globally shared; project-specific behavior
+remains a reviewed extension and is not silently promoted into the shared library.
+Search uses the complete content-addressed ready-definition index, with parameter and plan-aware ranking; no caller
+may rely on a partial SQL text filter. Agent-created drafts persist fresh, bounded search evidence and a reuse
+receipt. Agent-authored Validation AST submissions likewise bind the exact `stepDefinitionSelections` receipt IDs and
+correlations returned by discovery; their sorted evidence hash is retained through check, preview, compile,
+publication, and runtime telemetry even if another search occurs for the plan. A human submission without selected
+agent evidence uses only the
+stable internal `plan:<planId>` correlation and is never relabelled from an agent search receipt.
+justification before the human-only review/publish/deprecate boundary.
+Use the lower-level `operation_search` and `operation_read` to inspect an exact semantic operation, then the
+allowlisted structured locator/page fallback, and only then a justified custom operation for application-specific
+behavior or a documented catalog gap. See `docs/reusable-playwright-step-definitions.md`.
 Extensions require exact review evidence; target file paths are never managed execution authority.
 Reusable-resource ranking gives ordered phrase matches and exact parameter names priority over loose token overlap.
 The simple happy-path authoring profile also requires explicit assertions for a clean browser console/page runtime and
@@ -117,7 +124,7 @@ Validation feedback must be routed by scope. Product-scope or plan-scope feedbac
 artifact feedback reopens validation review. `validations_approved` is required before baseline execution proceeds;
 older `validation_approved` events may exist in in-flight streams, but new events should use the plural lifecycle name.
 The validation review handoff should include the direct validation review URL, `appraise://` URL, lifecycle, revision,
-validation artifact path, validation count, changed-file count, manifest paths, reused registry/template step paths,
+validation artifact path, validation count, changed-file count, manifest paths, reused Step Definition references,
 new custom step paths, and the next review action.
 
 Explicit non-deferred requirements must have reviewable coverage mappings. `uncovered` blocks review. `partial`
@@ -215,7 +222,16 @@ Implementation start is also agent-owned: once baseline evidence is accepted, th
 `implementation_start` through MCP. Required implementation validations follow
 `implementation_validation_start -> test_run_read or test_run_diagnose -> implementation_validation_reconcile ->
 implementation_completion_review`; start creates and launches the managed capsules, so agents do not issue a second
-`test_run` call.
+`test_run` call. Before `implementation_validation_start`, call `implementation_validation_readiness` with
+`action: "check"` to verify the reviewed origins without consuming a TestRun. If an approved loopback environment is
+unavailable, `action: "launch"` may start the registered target through its known `dev` or `start` package script
+without a shell and recheck it on macOS or Linux. Appraise owns the launched process group, stops it during normal hub
+process exit on a best-effort basis, and exposes `action: "stop"` for required explicit cleanup after validation.
+Forced hub termination or restart can lose in-memory ownership, in which case the operator must stop the target
+manually. Windows, unsupported package scripts, and remote targets require a manual launch; remote reviewed
+environments remain not ready until their exact environment IDs are supplied as `confirmedRemoteEnvironmentIds` after
+an external reachability check. Managed validation should not be used as the first check that the implementation
+server was never started.
 `implementation_validation_record` is only for exceptional manual evidence and is reduced assurance; required runtime
 validations need fresh managed Appraise `TestRun` evidence with `evidenceHealth: valid` before completion can pass.
 
@@ -336,9 +352,9 @@ recipient, permission, operation key, and consumption time; this is the attached
 ## Project-scoped authored resources
 
 Agent-authored project resources inherit the plan projection's `targetProjectId`. Context discovery returns only
-modules, suites, cases, Step Blocks, locator groups, locators, and environments owned by that project, together with
-the global shared Template Step library. Resource proposals and canonical publication write the project ID onto
-created project roots, may reference shared Template Step Groups, and reject cross-project references or ID
+modules, suites, cases, locator groups, locators, and environments owned by that project, together with
+the global shared Step Definition library. Resource proposals and canonical publication write the project ID onto
+created project roots, may reference shared Step Definition groups, and reject cross-project references or ID
 collisions for project-owned entities. Project-owned names, including locator-group names, are unique within a target
 project rather than across the Appraise hub. Coordinator callers must not use global lookup as a fallback for scoped
 entity types.

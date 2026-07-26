@@ -5,8 +5,7 @@ import { describe, expect, it, vi } from 'vitest'
 
 const {
   getAllTemplateTestCasesAction,
-  getAllTemplateStepParamsAction,
-  getAllTemplateStepsAction,
+  listReadyStepDefinitionOptionsAction,
   getAllTestSuitesAction,
   getAllLocatorsAction,
   getAllLocatorGroupsAction,
@@ -20,8 +19,7 @@ const {
   testCaseFormSpy,
 } = vi.hoisted(() => ({
   getAllTemplateTestCasesAction: vi.fn(),
-  getAllTemplateStepParamsAction: vi.fn(),
-  getAllTemplateStepsAction: vi.fn(),
+  listReadyStepDefinitionOptionsAction: vi.fn(),
   getAllTestSuitesAction: vi.fn(),
   getAllLocatorsAction: vi.fn(),
   getAllLocatorGroupsAction: vi.fn(),
@@ -39,9 +37,8 @@ vi.mock('@/actions/template-test-case/template-test-case-actions', () => ({
   getAllTemplateTestCasesAction,
 }))
 
-vi.mock('@/actions/template-step/template-step-actions', () => ({
-  getAllTemplateStepParamsAction,
-  getAllTemplateStepsAction,
+vi.mock('@/actions/step-definition/step-definition-actions', () => ({
+  listReadyStepDefinitionOptionsAction,
 }))
 
 vi.mock('@/actions/locator/locator-actions', () => ({
@@ -97,7 +94,15 @@ describe('Create Test Case From Template page', () => {
               label: 'Fill email',
               gherkinStep: 'fill email',
               icon: 'INPUT',
-              templateStepId: 'step-1',
+              invocationJson: JSON.stringify({
+                step: {
+                  id: 'browser.forms.fill',
+                  version: '1',
+                  definitionHash: `sha256:${'a'.repeat(64)}`,
+                },
+                inputs: { email: 'qa@appraise.dev' },
+                presentation: { keyword: 'When', description: 'fill email' },
+              }),
               parameters: [
                 {
                   id: 'param-1',
@@ -112,8 +117,16 @@ describe('Create Test Case From Template page', () => {
         },
       ],
     })
-    getAllTemplateStepParamsAction.mockResolvedValue({ data: [{ id: 'template-param-1', templateStepId: 'step-1' }] })
-    getAllTemplateStepsAction.mockResolvedValue({ data: [{ id: 'step-1', name: 'Input' }] })
+    listReadyStepDefinitionOptionsAction.mockResolvedValue({
+      data: [
+        {
+          id: 'browser.forms.fill',
+          version: '1',
+          definitionHash: `sha256:${'a'.repeat(64)}`,
+          label: 'Fill form field',
+        },
+      ],
+    })
     getAllTestSuitesAction.mockResolvedValue({ data: [{ id: 'suite-1', name: 'Smoke' }] })
     getAllLocatorsAction.mockResolvedValue({ data: [{ id: 'locator-1', name: 'Email field' }] })
     getAllLocatorGroupsAction.mockResolvedValue({ data: [{ id: 'group-1', name: 'Auth' }] })
@@ -141,10 +154,15 @@ describe('Create Test Case From Template page', () => {
         defaultTitle: 'Login template',
         defaultDescription: 'Reusable login flow',
         environments: [{ id: 'env-1', name: 'Staging' }],
+        stepDefinitions: [
+          expect.objectContaining({ id: 'browser.forms.fill', version: '1' }),
+        ],
         defaultNodesOrder: {
           'node-0': expect.objectContaining({
             label: 'Fill email',
-            templateStepId: 'step-1',
+            invocation: expect.objectContaining({
+              step: expect.objectContaining({ id: 'browser.forms.fill', version: '1' }),
+            }),
           }),
         },
         onSubmitAction: createTestCaseAction,

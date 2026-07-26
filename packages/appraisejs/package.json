@@ -1,7 +1,7 @@
 {
   "name": "appraisejs",
   "version": "0.4.0",
-  "description": "Install AppraiseJS template steps into an existing project",
+  "description": "AppraiseJS coordinator client and MCP server",
   "license": "Apache-2.0",
   "author": "Hasnat Jamil",
   "homepage": "https://github.com/jamil2018/appraisejs-core#readme",
@@ -34,7 +34,6 @@
   },
   "files": [
     "dist",
-    "registry",
     "agent-skills"
   ],
   "scripts": {

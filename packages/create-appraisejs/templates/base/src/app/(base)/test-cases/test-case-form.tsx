@@ -13,16 +13,14 @@ import { InlineTestSuiteCreationDialog } from './inline-test-suite-creation-dial
 import TestCaseFlow from './test-case-flow'
 import type { TagFormSubmitAction } from '@/app/(base)/tags/tag-form-helpers'
 import type { TestSuiteFormSubmitAction } from '@/app/(base)/test-suites/test-suite-helpers'
-import type { FlowDiagramStepBlock } from '@/components/diagram/flow-diagram-types'
 import type { FlowBlock, NodeOrderMap } from '@/types/diagram/diagram'
 import type { TestCasePickerRow } from '@/types/test-case-picker'
+import type { StepDefinitionOption } from '@/types/step-definition-option'
 import {
   type Locator,
   type LocatorGroup,
   type Environment,
   type Module,
-  type TemplateStep,
-  type TemplateStepParameter,
   type TestSuite,
   type Tag,
 } from '@prisma/client'
@@ -57,15 +55,13 @@ import { createTestCaseFormState, testCaseFormReducer, type TestCaseFormErrors }
 
 type TestCaseFormProps = {
   defaultNodesOrder: NodeOrderMap
-  templateStepParams: TemplateStepParameter[]
-  templateSteps: TemplateStep[]
+  stepDefinitions: StepDefinitionOption[]
   locators: Array<Pick<Locator, 'id' | 'name' | 'locatorGroupId'>>
   locatorGroups: Array<Pick<LocatorGroup, 'id' | 'name' | 'route' | 'moduleId'>>
   environments: Array<Pick<Environment, 'id' | 'name'>>
   testSuites: TestSuite[]
   testCases: TestCasePickerRow[]
   moduleList: Module[]
-  stepBlocks?: FlowDiagramStepBlock[]
   tags: Tag[]
   onSubmitAction: (value: z.infer<typeof testCaseSchema>, id?: string) => Promise<ActionResponse>
   onCreateTestSuiteAction: TestSuiteFormSubmitAction
@@ -81,7 +77,6 @@ type TestCaseFormProps = {
 }
 
 const EMPTY_FLOW_BLOCKS: FlowBlock[] = []
-const EMPTY_STEP_BLOCKS: FlowDiagramStepBlock[] = []
 
 const detailsStepSchema = testCaseSubmitSchema.omit({ steps: true })
 
@@ -179,7 +174,7 @@ function buildTemplatePreviewSteps(templateTestCase: TemplateTestCaseWithSteps |
   )
 }
 
-function getTemplateStepCount(templateTestCase: TemplateTestCaseWithSteps | null): number {
+function getReusableStepCount(templateTestCase: TemplateTestCaseWithSteps | null): number {
   return templateTestCase?.steps.length ?? 0
 }
 
@@ -265,14 +260,12 @@ function WizardProgress({ steps, currentStep, onStepClick }: WizardProgressProps
 type FlowPanelProps = {
   className: string
   nodesOrder: NodeOrderMap
-  templateStepParams: TemplateStepParameter[]
-  templateSteps: TemplateStep[]
+  stepDefinitions: StepDefinitionOption[]
   locators: Array<Pick<Locator, 'id' | 'name' | 'locatorGroupId'>>
   locatorGroups: Array<Pick<LocatorGroup, 'id' | 'name' | 'route' | 'moduleId'>>
   environments: Array<Pick<Environment, 'id' | 'name'>>
   moduleList: Module[]
   flowBlocks: FlowBlock[]
-  stepBlocks: FlowDiagramStepBlock[]
   isFlowImmersive: boolean
   onNodeOrderChange: (nodesOrder: NodeOrderMap) => void
   onFlowBlocksChange: (flowBlocks: FlowBlock[]) => void
@@ -282,14 +275,12 @@ type FlowPanelProps = {
 function FlowPanel({
   className,
   nodesOrder,
-  templateStepParams,
-  templateSteps,
+  stepDefinitions,
   locators,
   locatorGroups,
   environments,
   moduleList,
   flowBlocks,
-  stepBlocks,
   isFlowImmersive,
   onNodeOrderChange,
   onFlowBlocksChange,
@@ -329,14 +320,12 @@ function FlowPanel({
             <div className="min-h-0 flex-1">
               <TestCaseFlow
                 initialNodesOrder={nodesOrder}
-                templateStepParams={templateStepParams}
-                templateSteps={templateSteps}
+                stepDefinitions={stepDefinitions}
                 onNodeOrderChange={onNodeOrderChange}
                 locators={locators}
                 locatorGroups={locatorGroups}
                 environments={environments}
                 modules={moduleList}
-                stepBlocks={stepBlocks}
                 flowBlocks={flowBlocks}
                 layoutRefreshKey={isFlowImmersive}
                 onFlowBlocksChange={onFlowBlocksChange}
@@ -353,7 +342,7 @@ type TemplateSelectionStepProps = {
   templateOptions: ReturnType<typeof getTemplateSelectionOptions>
   selectedTemplateId: string
   selectedTemplateTestCase: TemplateTestCaseWithSteps | null
-  selectedTemplateStepCount: number
+  selectedReusableStepCount: number
   selectedTemplatePreviewSteps: string[]
   errors: TestCaseFormErrors
   onTemplateChange: (value: string) => void
@@ -364,7 +353,7 @@ function TemplateSelectionStep({
   templateOptions,
   selectedTemplateId,
   selectedTemplateTestCase,
-  selectedTemplateStepCount,
+  selectedReusableStepCount,
   selectedTemplatePreviewSteps,
   errors,
   onTemplateChange,
@@ -410,7 +399,7 @@ function TemplateSelectionStep({
             <CardContent className="flex h-full flex-col gap-3">
               <SelectedTemplateSummary
                 selectedTemplateTestCase={selectedTemplateTestCase}
-                selectedTemplateStepCount={selectedTemplateStepCount}
+                selectedReusableStepCount={selectedReusableStepCount}
                 selectedTemplatePreviewSteps={selectedTemplatePreviewSteps}
               />
             </CardContent>
@@ -429,16 +418,16 @@ function TemplateSelectionStep({
 
 type SelectedTemplateSummaryProps = {
   selectedTemplateTestCase: TemplateTestCaseWithSteps | null
-  selectedTemplateStepCount: number
+  selectedReusableStepCount: number
   selectedTemplatePreviewSteps: string[]
 }
 
 function SelectedTemplateSummary({
   selectedTemplateTestCase,
-  selectedTemplateStepCount,
+  selectedReusableStepCount,
   selectedTemplatePreviewSteps,
 }: SelectedTemplateSummaryProps) {
-  const hasOverflowPreviewSteps = selectedTemplateStepCount > selectedTemplatePreviewSteps.length
+  const hasOverflowPreviewSteps = selectedReusableStepCount > selectedTemplatePreviewSteps.length
 
   return (
     <>
@@ -456,7 +445,7 @@ function SelectedTemplateSummary({
           <SelectedTemplateDetails
             hasDescription={Boolean(selectedTemplateTestCase.description)}
             hasOverflowPreviewSteps={hasOverflowPreviewSteps}
-            selectedTemplateStepCount={selectedTemplateStepCount}
+            selectedReusableStepCount={selectedReusableStepCount}
             selectedTemplatePreviewSteps={selectedTemplatePreviewSteps}
           />
         ) : (
@@ -470,21 +459,21 @@ function SelectedTemplateSummary({
 type SelectedTemplateDetailsProps = {
   hasDescription: boolean
   hasOverflowPreviewSteps: boolean
-  selectedTemplateStepCount: number
+  selectedReusableStepCount: number
   selectedTemplatePreviewSteps: string[]
 }
 
 function SelectedTemplateDetails({
   hasDescription,
   hasOverflowPreviewSteps,
-  selectedTemplateStepCount,
+  selectedReusableStepCount,
   selectedTemplatePreviewSteps,
 }: SelectedTemplateDetailsProps) {
   return (
     <div className="flex flex-col gap-3 text-sm text-muted-foreground">
       <div className="flex flex-wrap gap-2">
         <span className="rounded-full border border-border px-3 py-1 text-xs font-medium text-foreground">
-          {selectedTemplateStepCount} {selectedTemplateStepCount === 1 ? 'step' : 'steps'}
+          {selectedReusableStepCount} {selectedReusableStepCount === 1 ? 'step' : 'steps'}
         </span>
         <span className="rounded-full border border-border px-3 py-1 text-xs font-medium text-foreground">
           {hasDescription ? 'Description included' : 'No description'}
@@ -496,7 +485,7 @@ function SelectedTemplateDetails({
       <p>Continuing will load this template into the details and flow steps so you can edit before saving.</p>
       <TemplatePreviewSteps
         hasOverflowPreviewSteps={hasOverflowPreviewSteps}
-        selectedTemplateStepCount={selectedTemplateStepCount}
+        selectedReusableStepCount={selectedReusableStepCount}
         selectedTemplatePreviewSteps={selectedTemplatePreviewSteps}
       />
     </div>
@@ -505,13 +494,13 @@ function SelectedTemplateDetails({
 
 type TemplatePreviewStepsProps = {
   hasOverflowPreviewSteps: boolean
-  selectedTemplateStepCount: number
+  selectedReusableStepCount: number
   selectedTemplatePreviewSteps: string[]
 }
 
 function TemplatePreviewSteps({
   hasOverflowPreviewSteps,
-  selectedTemplateStepCount,
+  selectedReusableStepCount,
   selectedTemplatePreviewSteps,
 }: TemplatePreviewStepsProps) {
   if (selectedTemplatePreviewSteps.length === 0) {
@@ -529,7 +518,7 @@ function TemplatePreviewSteps({
         ))}
         {hasOverflowPreviewSteps ? (
           <span className="rounded-full bg-muted px-3 py-1 text-xs text-foreground">
-            +{selectedTemplateStepCount - selectedTemplatePreviewSteps.length} more
+            +{selectedReusableStepCount - selectedTemplatePreviewSteps.length} more
           </span>
         ) : null}
       </div>
@@ -868,7 +857,7 @@ function WizardStepContent({ actions, details, errors, flow, navigation, templat
         templateOptions={template.options}
         selectedTemplateId={template.selectedId}
         selectedTemplateTestCase={template.selectedTestCase}
-        selectedTemplateStepCount={template.stepCount}
+        selectedReusableStepCount={template.stepCount}
         selectedTemplatePreviewSteps={template.previewSteps}
         errors={errors}
         onTemplateChange={actions.onTemplateChange}
@@ -913,7 +902,7 @@ function WizardStepContent({ actions, details, errors, flow, navigation, templat
   )
 }
 
-function useTemplateStepNavigation({
+function useReusableStepNavigation({
   appliedTemplateId,
   detailsStepIndex,
   dispatch,
@@ -1007,7 +996,6 @@ function useTestCaseSubmitHandler({
   push,
   selectedTags,
   selectedTestSuites,
-  templateStepParams,
   title,
   dispatch,
 }: {
@@ -1020,12 +1008,11 @@ function useTestCaseSubmitHandler({
   push: ReturnType<typeof useRouter>['push']
   selectedTags: string[]
   selectedTestSuites: string[]
-  templateStepParams: TemplateStepParameter[]
   title: string
   dispatch: React.Dispatch<import('./test-case-form-reducer').TestCaseFormAction>
 }) {
   return useCallback(async () => {
-    const nodesWithMissingParams = getNodesWithMissingMandatoryParams(nodesOrder, templateStepParams)
+    const nodesWithMissingParams = getNodesWithMissingMandatoryParams(nodesOrder)
 
     if (nodesWithMissingParams.length > 0) {
       toast({
@@ -1067,7 +1054,6 @@ function useTestCaseSubmitHandler({
     selectedTags,
     selectedTestSuites,
     dispatch,
-    templateStepParams,
     title,
   ])
 }
@@ -1153,15 +1139,13 @@ function useWizardStepClick(
 
 const TestCaseForm = ({
   defaultNodesOrder,
-  templateStepParams,
-  templateSteps,
+  stepDefinitions,
   locators,
   locatorGroups,
   environments,
   testSuites,
   testCases,
   moduleList,
-  stepBlocks = EMPTY_STEP_BLOCKS,
   tags,
   id,
   defaultTitle,
@@ -1225,8 +1209,8 @@ const TestCaseForm = ({
     () => templateTestCases?.find(templateTestCase => templateTestCase.id === selectedTemplateId) ?? null,
     [selectedTemplateId, templateTestCases],
   )
-  const selectedTemplateStepCount = useMemo(
-    () => getTemplateStepCount(selectedTemplateTestCase),
+  const selectedReusableStepCount = useMemo(
+    () => getReusableStepCount(selectedTemplateTestCase),
     [selectedTemplateTestCase],
   )
   const selectedTemplatePreviewSteps = useMemo(
@@ -1297,7 +1281,7 @@ const TestCaseForm = ({
     [dispatch],
   )
 
-  const goToDetailsStep = useTemplateStepNavigation({
+  const goToDetailsStep = useReusableStepNavigation({
     appliedTemplateId,
     detailsStepIndex,
     dispatch,
@@ -1326,7 +1310,6 @@ const TestCaseForm = ({
     push,
     selectedTags,
     selectedTestSuites,
-    templateStepParams,
     title,
   })
 
@@ -1334,13 +1317,11 @@ const TestCaseForm = ({
 
   const flowPanelProps: Omit<FlowPanelProps, 'className'> = {
     nodesOrder,
-    templateStepParams,
-    templateSteps,
+    stepDefinitions,
     locators,
     locatorGroups,
     environments,
     moduleList,
-    stepBlocks,
     flowBlocks,
     isFlowImmersive,
     onNodeOrderChange,
@@ -1373,7 +1354,7 @@ const TestCaseForm = ({
       previewSteps: selectedTemplatePreviewSteps,
       selectedId: selectedTemplateId,
       selectedTestCase: selectedTemplateTestCase,
-      stepCount: selectedTemplateStepCount,
+      stepCount: selectedReusableStepCount,
     },
     actions: {
       goToDetailsStep,

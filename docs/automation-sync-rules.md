@@ -35,7 +35,7 @@ only when the task explicitly targets that output shape and the owning sync path
 ## Automation Directories
 
 - `automation/features`: generated Gherkin feature files.
-- `automation/steps`: executable step definitions and installed template step files.
+- `automation/steps`: generated executable projections for canonical Step Definitions.
 - `automation/locators`: locator data used by runtime steps.
 - `automation/mapping`: mapping data such as locator maps.
 - `automation/config`: runtime configuration, including environments.
@@ -50,10 +50,11 @@ Legacy runs continue to use `automation/reports`.
 
 The reusable Playwright catalog is projected into `automation/steps/actions/generated` and
 `automation/steps/validations/generated` by `npm run operation:projections`. Author built-in behavior in the canonical
-operation definitions and handlers, then build registry fragments from the generated wrappers rather than editing
-either the wrappers or `packages/appraisejs/registry/template-steps` directly. For
-validation authoring, prefer a semantic template step, then the structured allowlisted fallback, then a justified
-custom step. See `docs/reusable-playwright-template-steps.md` for the operation and stored-variable contract.
+operation definitions and handlers. Do not hand-edit generated wrappers. Validation authoring resolves ready Step
+Definitions and stores exact Step Invocations; see `docs/reusable-playwright-step-definitions.md` for the shared
+definition and stored-variable contract. `npm run operation:projections` lints every projected step after generation;
+`npm run lint:step-definitions` is the focused syntax/import gate and includes duplicate-import and redeclaration
+checks.
 
 Environment projections contain `passwordEnvironmentVariable`, which is only the name of a process environment
 variable. Never place a credential value or a `password` field in database seed data, sync input, generated
@@ -72,8 +73,7 @@ Appraise-managed execution.
 Use `package.json` as the command source of truth. Common sync commands are:
 
 - `npm run sync-all`: run the database-backed sync flow.
-- `npm run sync-template-step-groups`, then `npm run sync-template-steps`: synchronize canonical reusable groups and
-  steps by stable signature; referenced orphan steps are preserved rather than destructively removed.
+- `npm run sync-step-definitions`: register canonical built-in Step Definitions through the shared registry.
 - `npm run sync-features:dry-run`: preview feature/database sync before applying changes.
 - `npm run sync-features`: regenerate feature files from synced data.
 - `npm run sync-locator-groups`, `npm run sync-locators`, `npm run sync-environments`, `npm run sync-modules`,

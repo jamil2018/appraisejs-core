@@ -124,10 +124,6 @@ async function ensureCoordinatorPlanRuntimeTestSchema(databasePath: string) {
     await applyMigration(databasePath, '20260609160000_add_coordinator_events_api_mcp')
   }
 
-  if (!hasTable(databasePath, 'StepBlock')) {
-    await applyMigration(databasePath, '20260709090000_add_step_blocks')
-  }
-
   if (!hasTable(databasePath, 'BaselineAttempt')) {
     await applyMigration(databasePath, '20260711120000_add_baseline_attempt_history')
   }

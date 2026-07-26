@@ -114,6 +114,14 @@ export const runtimeCapsuleDiagnosticV1Schema = z
           )
           .max(13),
         selectedScenarioCount: z.number().int().nonnegative().max(256).optional(),
+        failureOutput: z
+          .object({
+            stdout: z.array(bounded).max(8),
+            stderr: z.array(bounded).max(8),
+            truncated: z.boolean(),
+          })
+          .strict()
+          .optional(),
       })
       .strict(),
     blockers: z

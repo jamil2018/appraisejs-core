@@ -1,8 +1,11 @@
 import { createHash } from 'node:crypto'
 import type { PrismaClient } from '@prisma/client'
+import { z } from 'zod'
 
 import prisma from '@/config/db-config'
-import { listOperationCapabilities, operationValidationCatalog } from '@/lib/operation-catalog'
+import { listOperationCapabilities, operationValidationRegistry } from '@/lib/operation-catalog'
+import { sealPersistedReadyStepDefinition } from '@/lib/runtime-capsule/step-definition-closure'
+import type { StepDefinition } from '../../../packages/cucumber-runtime/src/step-definitions/contracts.ts'
 import { canonicalContractJson } from '@/lib/catalog-contracts'
 import {
   parseYamlArtifact,
@@ -24,17 +27,18 @@ import {
 } from '@/lib/validation-ast'
 import { ServiceError } from '@/services/shared/errors'
 import { buildValidationAstReviewPreview } from '@/lib/validation-ast/review-preview'
+import { locatorBindingsForAst } from '@/lib/validation-ast/canonical-projection'
 import { readVisibleResourceOwnerships } from '@/services/project-resource/project-resource-ownership-service'
 import { buildLocatorGraph } from '@/services/locator-graph/locator-graph-service'
 import {
   buildCompiledValidationAstResult,
   PROJECT_EXTENSION_CAPABILITY_IMPORTS,
-  type ResolvedLocatorBinding,
 } from './validation-ast-compiler-service'
 import { prepareValidationAstPublish } from './validation-ast-publish-journal-service'
 import { validateStoredValidationAstPublish } from './validation-ast-publish-journal-service'
 import { resumeValidationAstPublish } from './validation-ast-publish-orchestrator'
 import { appendPlanEvent } from './coordinator-service'
+import { recordStepDefinitionTelemetry } from '@/services/step-definition/step-definition-telemetry'
 
 const hash = (value: unknown) => `sha256:${createHash('sha256').update(canonicalContractJson(value)).digest('hex')}`
 
@@ -47,17 +51,27 @@ async function loadValidationAstContext(planId: string, client: PrismaClient) {
   if (!plan.targetProject) throw new ServiceError('Plan must be bound to an authoritative target project.', 'CONFLICT')
   if (!['preparing_validations', 'validation_changes_requested'].includes(plan.lifecycle))
     throw new ServiceError('The plan is not preparing validations.', 'CONFLICT')
-  const [locatorGraph, allEnvironments, environmentOwnerships] = await Promise.all([
+  const [locatorGraph, allEnvironments, environmentOwnerships, persistedStepDefinitions] = await Promise.all([
     buildLocatorGraph(client, plan.targetProject.id),
     client.environment.findMany({ where: { targetProjectId: plan.targetProject.id }, orderBy: { name: 'asc' } }),
     readVisibleResourceOwnerships(plan.targetProject.id, ['environment'], client),
+    client.stepDefinition.findMany({
+      where: { status: 'ready' },
+      include: { publicationReceipt: true },
+      orderBy: [{ id: 'asc' }, { version: 'asc' }],
+    }),
   ])
   const environments = allEnvironments.filter(
     environment => !environmentOwnerships || environmentOwnerships.has(`environment:${environment.id}`),
   )
   const environmentContext = Object.fromEntries(
     environments.flatMap(environment => {
-      const descriptor = { keys: ['baseUrl'], name: environment.name, reference: environment.id }
+      const descriptor = {
+        keys: ['baseUrl'],
+        types: { baseUrl: 'string' },
+        name: environment.name,
+        reference: environment.id,
+      }
       return [
         [environment.id, descriptor],
         [environment.name, descriptor],
@@ -69,13 +83,31 @@ async function loadValidationAstContext(planId: string, client: PrismaClient) {
     projectFingerprint: plan.targetProject.fingerprint,
     capabilityImports: PROJECT_EXTENSION_CAPABILITY_IMPORTS,
   })
+  const stepDefinitions = new Map<string, { definition: StepDefinition; definitionHash: string; receiptHash: string }>()
+  for (const row of persistedStepDefinitions) {
+    let sealed
+    try {
+      sealed = sealPersistedReadyStepDefinition(row)
+    } catch {
+      throw new ServiceError(
+        `Persisted Step Definition ${row.id}@${row.version} is not valid published authority.`,
+        'CONFLICT',
+      )
+    }
+    stepDefinitions.set(`${sealed.step.id}@${sealed.step.version}`, {
+      definition: sealed.definition,
+      definitionHash: sealed.step.definitionHash,
+      receiptHash: sealed.hashes.publicationReceipt,
+    })
+  }
   const builtInBrowserCapabilities = listOperationCapabilities('browser')
   const compilerContext: ValidationAstCompilerContext = {
     project: { id: plan.targetProject.id, fingerprint: plan.targetProject.fingerprint },
     planScope: `${plan.targetProject.fingerprint}:${plan.planId}`,
     currentPlanHash: plan.sourceHash,
     planTaskIds: plan.tasks.map(task => task.taskId),
-    actionCatalog: operationValidationCatalog,
+    operationRegistry: operationValidationRegistry,
+    stepDefinitions,
     locatorGraph,
     environments: environmentContext,
     availableRuntimes: ['browser'],
@@ -85,7 +117,8 @@ async function loadValidationAstContext(planId: string, client: PrismaClient) {
   const contextHash = hash({
     targetFingerprint: plan.targetProject.fingerprint,
     planHash: plan.sourceHash,
-    catalogHash: operationValidationCatalog.catalogHash,
+    catalogHash: operationValidationRegistry.manifestHash,
+    stepDefinitions: [...stepDefinitions.entries()].map(([key, value]) => [key, value.definitionHash]),
     locatorGraphHash: locatorGraph.contentHash,
     environments: environmentContext,
     extensionPolicy,
@@ -93,9 +126,91 @@ async function loadValidationAstContext(planId: string, client: PrismaClient) {
   return { plan, compilerContext, contextHash }
 }
 
+type LifecycleSelection = { planId: string; correlationId: string; surface: 'agent' | 'human' }
+type ValidationAstSubmission = ReturnType<typeof validationAstSubmissionSchema.parse>
+
+function humanLifecycleSelection(planId: string): LifecycleSelection {
+  return { planId, correlationId: `plan:${planId}`, surface: 'human' }
+}
+
+function uniqueSelectionReceipts(selections: NonNullable<ValidationAstSubmission['stepDefinitionSelections']>) {
+  const sorted = [...selections].sort((left, right) => left.receiptId.localeCompare(right.receiptId))
+  if (new Set(sorted.map(item => item.receiptId)).size !== sorted.length)
+    throw new ServiceError('Validation AST Step Definition selection receipts must be unique.', 'VALIDATION')
+  return sorted
+}
+
+function isCurrentSelectionReceipt(
+  receipt: Awaited<ReturnType<PrismaClient['stepDefinitionSearchReceipt']['findUnique']>>,
+  selection: { correlationId: string },
+  planId: string,
+): receipt is NonNullable<Awaited<ReturnType<PrismaClient['stepDefinitionSearchReceipt']['findUnique']>>> {
+  return (
+    !!receipt &&
+    receipt.planId === planId &&
+    receipt.correlationId === selection.correlationId &&
+    receipt.expiresAt > new Date()
+  )
+}
+
+function receiptReferences(
+  receipt: NonNullable<Awaited<ReturnType<PrismaClient['stepDefinitionSearchReceipt']['findUnique']>>>,
+) {
+  return z
+    .array(z.object({ id: z.string(), version: z.string() }))
+    .parse(JSON.parse(receipt.candidateReferencesJson))
+    .map(reference => `${reference.id}@${reference.version}`)
+}
+
+function assertAstReferencesAreSelected(submission: ValidationAstSubmission, references: Set<string>) {
+  const astReferences = submission.ast.scenarios.flatMap(scenario =>
+    scenario.steps.map(step => `${step.invocation.step.id}@${step.invocation.step.version}`),
+  )
+  if (astReferences.some(reference => !references.has(reference)))
+    throw new ServiceError('Validation AST Step References are not covered by its exact selection receipt.', 'CONFLICT')
+}
+
+async function resolveLifecycleSelection(
+  planId: string,
+  submission: unknown,
+  client: PrismaClient,
+): Promise<{ submission: ReturnType<typeof validationAstSubmissionSchema.parse>; lifecycle: LifecycleSelection }> {
+  const parsed = validationAstSubmissionSchema.parse(submission)
+  const provided = parsed.stepDefinitionSelections
+  const receipts = client.stepDefinitionSearchReceipt
+  // Human UI submissions without a selected result retain the stable plan
+  // funnel; agent submissions must carry the server-issued receipt.
+  if (!provided) return { submission: parsed, lifecycle: humanLifecycleSelection(planId) }
+  const sorted = uniqueSelectionReceipts(provided)
+  const rows = await Promise.all(sorted.map(item => receipts.findUnique({ where: { id: item.receiptId } })))
+  const references = new Set<string>()
+  for (const [index, receipt] of rows.entries()) {
+    const evidence = sorted[index]!
+    if (!isCurrentSelectionReceipt(receipt, evidence, planId))
+      throw new ServiceError(
+        'Validation AST Step Definition selection receipt is invalid, expired, or belongs to another plan.',
+        'CONFLICT',
+      )
+    for (const reference of receiptReferences(receipt)) references.add(reference)
+  }
+  assertAstReferencesAreSelected(parsed, references)
+  return { submission: parsed, lifecycle: { planId, correlationId: hash({ selections: sorted }), surface: 'agent' } }
+}
+
 export async function checkValidationAstForPlan(planId: string, submission: unknown, client: PrismaClient = prisma) {
   const context = await loadValidationAstContext(planId, client)
-  return { ...checkValidationAst(submission, context.compilerContext), contextHash: context.contextHash }
+  const selected = await resolveLifecycleSelection(planId, submission, client)
+  const checked = checkValidationAst(selected.submission, context.compilerContext)
+  if (checked.valid) {
+    await recordStepDefinitionTelemetry(client, {
+      surface: selected.lifecycle.surface,
+      outcome: 'valid_ast',
+      correlationId: selected.lifecycle.correlationId,
+      planId: selected.lifecycle.planId,
+      payload: {},
+    })
+  }
+  return { ...checked, contextHash: context.contextHash }
 }
 
 export async function readValidationAstExtensionPolicyForPlan(planId: string, client: PrismaClient = prisma) {
@@ -128,9 +243,14 @@ export async function readValidationAstExtensionReviewsForPlan(
 
 export async function previewValidationAstForPlan(planId: string, submission: unknown, client: PrismaClient = prisma) {
   const context = await loadValidationAstContext(planId, client)
-  const preview = bindPublishProvenance(previewValidationAst(submission, context.compilerContext), context)
+  const selected = await resolveLifecycleSelection(planId, submission, client)
+  const preview = bindPublishProvenance(
+    previewValidationAst(selected.submission, context.compilerContext),
+    context,
+    selected.lifecycle,
+  )
   const eventPayload = buildValidationAstReviewPreview({
-    submission: validationAstSubmissionSchema.parse(submission),
+    submission: selected.submission,
     valid: preview.valid,
     previewHash: preview.previewHash,
     receiptHash: preview.receiptHash,
@@ -165,8 +285,9 @@ export async function previewValidationAstForPlan(planId: string, submission: un
 function bindPublishProvenance(
   preview: ReturnType<typeof previewValidationAst>,
   context: Awaited<ReturnType<typeof loadValidationAstContext>>,
+  lifecycle: LifecycleSelection,
 ) {
-  const receiptHash = hash({ previewHash: preview.previewHash, contextHash: context.contextHash })
+  const receiptHash = hash({ previewHash: preview.previewHash, contextHash: context.contextHash, lifecycle })
   const publishOperationId = `astpub_${receiptHash.slice('sha256:'.length)}`
   const runtimeInput = {
     schemaVersion: '2',
@@ -177,9 +298,24 @@ function bindPublishProvenance(
     contextHash: context.contextHash,
     previewHash: preview.previewHash,
     receiptHash,
+    lifecycleCorrelation: { planId: lifecycle.planId, correlationId: lifecycle.correlationId },
     compilerReceipt: preview.commandReceipt,
     extensionPolicy: context.compilerContext.extensionPolicy,
-    operations: preview.operations,
+    rootInvocations: preview.canonicalProjection.validationNode.appraiseArtifacts.testCases.flatMap(testCase =>
+      [...testCase.steps]
+        .sort((left, right) => left.order - right.order)
+        .map(step => ({ caseId: testCase.id, stepId: step.id, invocation: step.invocation })),
+    ),
+    stepDefinitions: [
+      ...new Map(
+        preview.canonicalProjection.validationNode.appraiseArtifacts.testCases.flatMap(testCase =>
+          testCase.steps.map(step => [
+            `${step.invocation.step.id}@${step.invocation.step.version}#${step.invocation.step.definitionHash}`,
+            step.invocation.step,
+          ]),
+        ),
+      ).values(),
+    ].sort((left, right) => `${left.id}@${left.version}`.localeCompare(`${right.id}@${right.version}`)),
     locators: preview.locators.map(locator => ({
       ...locator,
       binding: preview.canonicalProjection.validationNode.appraiseArtifacts.locators.find(
@@ -229,50 +365,18 @@ function bindPublishProvenance(
   }
 }
 
-function locatorBindings(context: ValidationAstCompilerContext, locatorIds: Set<string>): ResolvedLocatorBinding[] {
-  const groups = new Map(
-    context.locatorGraph.nodes
-      .filter(
-        (
-          node,
-        ): node is Extract<ValidationAstCompilerContext['locatorGraph']['nodes'][number], { type: 'locator-group' }> =>
-          node.type === 'locator-group',
-      )
-      .map(node => [node.id, node]),
-  )
-  return context.locatorGraph.nodes
-    .filter(
-      (node): node is Extract<ValidationAstCompilerContext['locatorGraph']['nodes'][number], { type: 'locator' }> =>
-        node.type === 'locator' && locatorIds.has(node.id),
-    )
-    .map(locator => {
-      const group = groups.get(locator.groupId)
-      const selector = locator.strategy.value.selector
-      if (!group || typeof selector !== 'string')
-        throw new ServiceError(`Locator ${locator.id} cannot be projected.`, 'VALIDATION')
-      const surface = context.locatorGraph.nodes.find(
-        node => node.type === 'surface' && node.id === locator.scope.surfaceId,
-      )
-      return {
-        refId: locator.id,
-        id: locator.id.replace(/^locator_/, ''),
-        name: locator.title,
-        value: selector,
-        groupId: group.id.replace(/^group_/, ''),
-        groupName: group.title,
-        moduleId: group.moduleId ?? '',
-        route: surface?.type === 'surface' ? (surface.route ?? '/') : '/',
-      }
-    })
-}
-
 export async function compileValidationAstForPlan(
   input: { planId: string; submission: unknown; expectedReceiptHash: string; projectDirectory?: string },
   client: PrismaClient = prisma,
 ) {
   const context = await loadValidationAstContext(input.planId, client)
-  const checked = checkValidationAst(input.submission, context.compilerContext)
-  const preview = bindPublishProvenance(previewValidationAst(input.submission, context.compilerContext), context)
+  const selected = await resolveLifecycleSelection(input.planId, input.submission, client)
+  const checked = checkValidationAst(selected.submission, context.compilerContext)
+  const preview = bindPublishProvenance(
+    previewValidationAst(selected.submission, context.compilerContext),
+    context,
+    selected.lifecycle,
+  )
   if (!preview.valid)
     throw new ServiceError('Validation AST must pass check and preview before compilation.', 'VALIDATION')
   const receiptHash = preview.receiptHash
@@ -318,10 +422,15 @@ export async function compileValidationAstForPlan(
         ]),
       ),
       validation,
-      resolvedLocators: locatorBindings(context.compilerContext, new Set(preview.locators.map(locator => locator.id))),
+      resolvedLocators: locatorBindingsForAst(
+        checked.submission.ast,
+        context.compilerContext.locatorGraph,
+        context.compilerContext.planScope,
+      ),
       planScope: context.compilerContext.planScope,
       assertCurrent: async transaction => {
         const current = await loadValidationAstContext(input.planId, transaction)
+        await resolveLifecycleSelection(input.planId, selected.submission, transaction)
         if (current.contextHash !== context.contextHash || current.plan.validationJson !== expectedValidationJson)
           throw new ServiceError('Validation AST compilation context changed after preview.', 'CONFLICT')
       },

@@ -33,6 +33,7 @@ import {
   recordImplementationValidation,
   reconcileImplementationValidation,
   readImplementationLifecycleHealth,
+  readImplementationValidationReadiness,
   reviewImplementationCompletion,
   startImplementationValidation,
   updateImplementationTask,
@@ -107,7 +108,15 @@ function appraiseArtifacts(testCaseId: string) {
             order: 0,
             label: 'Run implementation validation step',
             gherkinStep: 'Given I run the implementation validation step',
-            templateStepName: 'Run step',
+            invocation: {
+              step: {
+                id: 'browser.navigation.goto',
+                version: '1',
+                definitionHash: `sha256:${'a'.repeat(64)}`,
+              },
+              inputs: { url: '/' },
+              presentation: { keyword: 'Given' as const, description: 'I run the implementation validation step' },
+            },
             parameters: [],
           },
         ],
@@ -244,9 +253,14 @@ beforeEach(async () => {
   await Promise.all([fs.writeFile(path.join(workspace, 'package.json'), '{}'), copyMigratedTestDatabase(databasePath)])
   await ensurePlanRuntimeSchema()
   client = sqliteTestClient(databasePath)
+  vi.stubGlobal(
+    'fetch',
+    vi.fn().mockImplementation(async () => new Response('<html><title>Capsule target</title></html>')),
+  )
 })
 
 async function cleanupImplementationWorkspace() {
+  vi.unstubAllGlobals()
   vi.restoreAllMocks()
   await client.$disconnect()
   await fs.rm(workspace, { recursive: true, force: true })
@@ -368,13 +382,118 @@ describe('implementation coordinator checkpoints', () => {
     expect(JSON.stringify(result)).not.toContain('super-secret')
   })
 
+  it('checks target readiness without consuming a managed TestRun', async () => {
+    const planId = 'implementation-readiness'
+    await writeArtifacts(planId)
+    await configureReviewedCapsule(planId, 'readiness-target', validation(planId).validations[0]!.astProvenance!)
+    const prepare = vi.spyOn(RuntimeCapsuleTestRunService.prototype, 'prepare')
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('connection refused')))
+
+    await expect(
+      readImplementationValidationReadiness({ planId, action: 'check' }, { projectDirectory: workspace, client }),
+    ).resolves.toMatchObject({
+      ready: false,
+      launch: { status: 'not_requested' },
+      nextAllowedAction: { tool: 'implementation_validation_readiness' },
+    })
+    expect(prepare).not.toHaveBeenCalled()
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockImplementation(async () => new Response('<html><title>Capsule target</title></html>')),
+    )
+    await expect(
+      readImplementationValidationReadiness({ planId, action: 'check' }, { projectDirectory: workspace, client }),
+    ).resolves.toMatchObject({
+      ready: true,
+      environments: [{ status: 'verified', observedPageTitle: 'Capsule target' }],
+      nextAllowedAction: { tool: 'implementation_validation_start' },
+    })
+    expect(prepare).not.toHaveBeenCalled()
+
+    await fs.writeFile(
+      path.join(workspace, 'package.json'),
+      JSON.stringify({
+        scripts: {
+          dev: `node -e "require('fs').writeFileSync('child.pid',String(process.pid));setInterval(()=>{},1000)"`,
+        },
+      }),
+    )
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('connection refused')))
+    await expect(
+      readImplementationValidationReadiness({ planId, action: 'launch' }, { projectDirectory: workspace, client }),
+    ).resolves.toMatchObject({ ready: false, launch: { status: 'started', script: 'dev' } })
+    const launchedChildPid = Number(await fs.readFile(path.join(workspace, 'child.pid'), 'utf8'))
+    await expect(
+      readImplementationValidationReadiness({ planId, action: 'stop' }, { projectDirectory: workspace, client }),
+    ).resolves.toMatchObject({ ready: false, launch: { status: 'stopped' } })
+    await vi.waitFor(() => expect(() => process.kill(launchedChildPid, 0)).toThrow(), { timeout: 2_000 })
+    const originalPath = process.env.PATH
+    process.env.PATH = '/definitely-missing'
+    await expect(
+      readImplementationValidationReadiness({ planId, action: 'launch' }, { projectDirectory: workspace, client }),
+    ).rejects.toMatchObject({ code: 'INTERNAL' })
+    process.env.PATH = originalPath
+
+    const remoteEnvironment = await client.environment.findFirstOrThrow({
+      where: { targetProjectId: 'readiness-target', name: 'local' },
+    })
+    await client.environment.update({
+      where: { id: remoteEnvironment.id },
+      data: { baseUrl: 'https://remote.example.test' },
+    })
+    await expect(
+      readImplementationValidationReadiness({ planId, action: 'check' }, { projectDirectory: workspace, client }),
+    ).resolves.toMatchObject({ ready: false, environments: [{ origin: null }] })
+    await expect(
+      readImplementationValidationReadiness(
+        { planId, action: 'check', confirmedRemoteEnvironmentIds: [remoteEnvironment.id] },
+        { projectDirectory: workspace, client },
+      ),
+    ).resolves.toMatchObject({ ready: true, environments: [{ origin: null }] })
+    prepare.mockResolvedValue({ id: 'remote-test-run-id', runId: 'remote-public-run-id' } as never)
+    vi.spyOn(RuntimeCapsuleTestRunService.prototype, 'start').mockResolvedValue({
+      attemptId: 'remote-attempt-id',
+    } as never)
+    await expect(
+      startImplementationValidation(
+        {
+          planId,
+          validationIds: ['core-validation'],
+          commitHash: 'remote-commit',
+          confirmedRemoteEnvironmentIds: [remoteEnvironment.id],
+        },
+        { projectDirectory: workspace, client },
+      ),
+    ).resolves.toMatchObject({ runs: [{ testRunId: 'remote-public-run-id' }] })
+
+    await client.environment.deleteMany({ where: { targetProjectId: 'readiness-target' } })
+    await expect(
+      readImplementationValidationReadiness(
+        { planId, validationIds: ['core-validation'], action: 'check' },
+        { projectDirectory: workspace, client },
+      ),
+    ).resolves.toMatchObject({
+      ready: false,
+      environments: [],
+      nextAllowedAction: { tool: 'implementation_validation_readiness' },
+    })
+    await expect(
+      startImplementationValidation(
+        { planId, validationIds: ['core-validation'], commitHash: 'commit' },
+        { projectDirectory: workspace, client },
+      ),
+    ).rejects.toMatchObject({ code: 'CONFLICT', statusCode: 409 })
+    expect(prepare).toHaveBeenCalledTimes(1)
+  })
+
   async function prepareReviewedAstBatch(planId: string) {
     await writeArtifacts(planId)
     await client.targetProject.create({
       data: {
         id: `${planId}-target`,
         canonicalPath: workspace,
-        displayName: 'Capsule batch target',
+        displayName: 'Capsule target',
         fingerprint: hashFileContent(planId),
       },
     })
@@ -1269,6 +1388,28 @@ describe('implementation coordinator checkpoints', () => {
           recoveryAction: 'RECONCILE_BASELINE_EVIDENCE',
         }),
       ],
+    })
+  })
+
+  it('reports healthy pre-validation lifecycle state before validation artifacts exist', async () => {
+    const planId = 'pre-validation-lifecycle-health'
+    await fs.mkdir(path.join(workspace, 'appraise', 'plans'), { recursive: true })
+    await fs.writeFile(
+      path.join(workspace, 'appraise', 'plans', `${planId}.yaml`),
+      serializeYamlArtifact('plan', plan(planId, 'plan_approved')),
+    )
+
+    await expect(readImplementationLifecycleHealth(planId, { projectDirectory: workspace, client })).resolves.toEqual({
+      schemaVersion: 1,
+      planId,
+      lifecycle: 'plan_approved',
+      healthy: true,
+      issues: [],
+      finalSignOffId: undefined,
+      evidenceProtected: true,
+      managedRunCount: 0,
+      implementationRunCount: 0,
+      baselineRunCount: 0,
     })
   })
 })

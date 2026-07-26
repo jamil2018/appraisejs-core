@@ -473,6 +473,11 @@ export function parseCanonicalCapsuleCommandReceipt(value: string): CapsuleComma
 
 const preflightCodeSchema = z.enum(CAPSULE_PREFLIGHT_CHECK_CODES)
 const preflightFailureCodeSchema = z.enum(CAPSULE_PREFLIGHT_FAILURE_CODES)
+const diagnosticLineSchema = z
+  .string()
+  .min(1)
+  .max(256)
+  .refine(value => !/[\0\r\n]/.test(value), 'must be a single diagnostic line')
 export const capsulePreflightResultSchema = z
   .object({
     schemaVersion: z.literal('1'),
@@ -503,6 +508,14 @@ export const capsulePreflightResultSchema = z
           .strict(),
       )
       .max(32),
+    failureOutput: z
+      .object({
+        stdout: z.array(diagnosticLineSchema).max(8),
+        stderr: z.array(diagnosticLineSchema).max(8),
+        truncated: z.boolean(),
+      })
+      .strict()
+      .optional(),
     resolved: z
       .object({
         runtimeInputHash: runtimeCapsuleHashSchema.optional(),
@@ -549,9 +562,20 @@ export const capsulePreflightResultSchema = z
         path: ['blockers'],
         message: 'blocked results require matching failed checks',
       })
+    if (!failureOutputIsConsistent(value))
+      context.addIssue({
+        code: 'custom',
+        path: ['failureOutput'],
+        message: 'failure output is only valid for a blocked dry run',
+      })
   })
 
 type PreflightConsistencyInput = z.infer<typeof capsulePreflightResultSchema>
+
+function failureOutputIsConsistent(value: PreflightConsistencyInput) {
+  if (!value.failureOutput) return true
+  return value.blockers.some(blocker => blocker.code === 'DRY_RUN_FAILED' || blocker.code === 'DRY_RUN_TIMEOUT')
+}
 
 function readyPreflightIsConsistent(value: PreflightConsistencyInput) {
   if ((value.status === 'ready') !== (value.blockers.length === 0)) return false

@@ -3,6 +3,14 @@ import { type NextRequest, NextResponse } from 'next/server'
 import { ACTIVE_PROJECT_COOKIE, shouldRequireProjectSelection } from '@/lib/project-scope'
 import { evaluateLocalRequestBoundary } from '@/lib/local-request-boundary'
 
+const APPRAISE_PATHNAME_HEADER = 'x-appraise-pathname'
+
+function continueRequest(request: NextRequest) {
+  const requestHeaders = new Headers(request.headers)
+  requestHeaders.set(APPRAISE_PATHNAME_HEADER, request.nextUrl.pathname)
+  return NextResponse.next({ request: { headers: requestHeaders } })
+}
+
 export function proxy(request: NextRequest) {
   const boundary = evaluateLocalRequestBoundary({
     method: request.method,
@@ -21,7 +29,7 @@ export function proxy(request: NextRequest) {
       cookieProjectId: request.cookies.get(ACTIVE_PROJECT_COOKIE)?.value,
     })
   ) {
-    return NextResponse.next()
+    return continueRequest(request)
   }
 
   const selectionUrl = request.nextUrl.clone()

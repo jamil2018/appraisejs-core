@@ -49,8 +49,10 @@ async function main(): Promise<void> {
         console.log(`   ${index + 1}. ${item}`)
       })
 
-      console.log(`\n🔧 Would create ${dryRunResult.wouldCreate.templateSteps.length} template steps:`)
-      dryRunResult.wouldCreate.templateSteps.forEach((item, index) => {
+      console.log(
+        `\n⚠️  Missing exact invocations for ${dryRunResult.wouldCreate.missingStepInvocations.length} steps:`,
+      )
+      dryRunResult.wouldCreate.missingStepInvocations.forEach((item, index) => {
         console.log(`   ${index + 1}. ${item}`)
       })
 

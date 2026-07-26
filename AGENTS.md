@@ -33,6 +33,7 @@ When instructions conflict, follow this order:
 - Agent harness map: `docs/agent-harness.md`
 - Agent task recipes: `docs/agent-task-recipes.md`
 - Agent validation matrix: `docs/agent-validation-matrix.md`
+- Agent swarm routing and evolution: `.agents/skills/swarm-orchestrator/SKILL.md`
 - Agent Graphify workflow: `docs/agent-graphify.md`
 - Generated artifact map: `docs/agent-generated-artifacts.md`
 - Appraise lifecycle flow: `docs/agent-lifecycle-flow.md`
@@ -55,6 +56,31 @@ relevant current docs in the same change set. Treat doc drift as part of the bug
 no longer match current source, scripts, package layout, or generated-artifact rules, fix those docs before finishing.
 
 ## Task Routing
+
+Classify every project-engineering task through `swarm-orchestrator` before deciding whether to delegate. Keep the
+classification bounded: assess missing evidence, judgment, consequence, deterministic verifiability, separability,
+and estimated effort. `coordinator-only` is the default for trivial or strongly verifiable local work and uses zero
+subagents. Route missing facts to `investigator`, irreducible judgment after evidence exists to `solver`, settled
+implementation to `executor` or `executor-advanced`, and consequential residual uncertainty to an independent
+`judge`. Prefer deterministic verification over model consensus. Do not delegate trivial work, duplicate evidence
+lanes, or allow concurrent overlapping writes. This custom engineering swarm does not replace Appraise-owned product
+lifecycle gates.
+
+Persist a compact routing receipt only for meaningful project work, delegated work, routing anomalies, or
+consequential decisions. Truly trivial coordinator-only work should not create ledger bureaucracy. A receipt records
+the requested route and runtime-proof status; it must not claim the host enforced a role, model, context boundary, or
+sandbox without host evidence.
+
+Before finishing a swarm run, apply the skill's evolution criteria to performance, resource use, governance, and
+harness usability. Record and notify the user about anything non-optimal, wait for their guidance, then update only
+the approved routing, prompts, models, tools, context boundaries, concurrency, or harness behavior. Do not silently
+change the harness from its own observation.
+Close the cycle only after deterministic verification and a fresh independent re-evaluation linked to the originating
+run. The local `.appraisejs/swarm-events.jsonl` journal is Git-ignored process evidence; host-conversation user guidance
+and Appraise lifecycle approvals remain authoritative. Static agent configuration does not prove the effective named
+role or sandbox at runtime: retain host receipts where available and disclose missing proof.
+Give `solver` and `judge` no inherited parent transcript, or the smallest deliberate bounded context supported by the
+host, so their judgment is not anchored by a producing agent's narrative.
 
 For CRUD/domain work, start with `src/actions/*`, `src/services/*`, `prisma/schema.prisma`, and the matching
 page/form/table under `src/app/(base)`.
@@ -98,6 +124,13 @@ the canonical `src/graphify-out/graph.json`. Do not run bare root-level `graphif
 
 For E2E or Playwright changes, follow `docs/test-run-runtime.md` for runtime behavior and
 `docs/agent-task-recipes.md` for focused validation routing.
+
+For interactive UI verification, use the bundled `Browser` plugin and its `control-in-app-browser` skill as the
+default harness surface. Keep the Browser binding and tab alive across related checks, inspect semantic page state,
+console errors, and failed requests in place, and create screenshots or other persisted artifacts only when they are
+required as evidence. Use standalone `playwright-cli` only as a fallback when the Browser skill is unavailable or its
+documented setup and troubleshooting path cannot establish a browser session. Record the fallback reason; do not
+silently substitute Playwright CLI for Browser.
 
 ## Unified Operation Authority
 

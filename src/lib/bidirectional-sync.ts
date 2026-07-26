@@ -6,6 +6,8 @@ import { generateFeatureFile } from './feature-file-generator'
 import prisma from '@/config/db-config'
 import { Module, TestSuite } from '@prisma/client'
 import { readGeneratedAutomationOwnership } from '@/lib/automation/generated-ownership'
+import { resolveReadyExactStepDefinitions } from '@/services/shared/step-invocation-validation'
+import { stepInvocationSchema } from '../../packages/cucumber-runtime/src/step-definitions/contracts.ts'
 
 // Type for TestSuite with included module relation
 type TestSuiteWithModule = TestSuite & {
@@ -23,7 +25,7 @@ export interface SyncResult {
   // Filesystem to Database sync
   createdTestSuites: number
   createdTestCases: number
-  createdTemplateSteps: number
+  missingStepInvocations: number
   mergedTestSuites: number
   addedScenarios: number
 
@@ -43,7 +45,7 @@ export async function performBidirectionalSync(featuresBaseDir: string): Promise
     updatedFeatureFiles: 0,
     createdTestSuites: 0,
     createdTestCases: 0,
-    createdTemplateSteps: 0,
+    missingStepInvocations: 0,
     mergedTestSuites: 0,
     addedScenarios: 0,
     totalProcessed: 0,
@@ -163,7 +165,7 @@ export async function performDryRunSync(featuresBaseDir: string): Promise<{
   wouldCreate: {
     testSuites: string[]
     testCases: string[]
-    templateSteps: string[]
+    missingStepInvocations: string[]
     tags: string[]
   }
 }> {
@@ -172,7 +174,7 @@ export async function performDryRunSync(featuresBaseDir: string): Promise<{
   const wouldCreate = {
     testSuites: [] as string[],
     testCases: [] as string[],
-    templateSteps: [] as string[],
+    missingStepInvocations: [] as string[],
     tags: [] as string[],
   }
 
@@ -187,7 +189,7 @@ export async function performDryRunSync(featuresBaseDir: string): Promise<{
     console.log(`Would update ${wouldUpdate.length} feature files`)
     console.log(`Would create ${wouldCreate.testSuites.length} test suites`)
     console.log(`Would create ${wouldCreate.testCases.length} test cases`)
-    console.log(`Would create ${wouldCreate.templateSteps.length} template steps`)
+    console.log(`Missing exact Step Invocations: ${wouldCreate.missingStepInvocations.length}`)
     console.log(`Would create ${wouldCreate.tags.length} tags`)
 
     return {
@@ -206,7 +208,7 @@ export async function performDryRunSync(featuresBaseDir: string): Promise<{
 type DryRunCreateSummary = {
   testSuites: string[]
   testCases: string[]
-  templateSteps: string[]
+  missingStepInvocations: string[]
   tags: string[]
 }
 
@@ -267,16 +269,17 @@ async function checkTestCaseExists(testCaseName: string, featureName: string, mo
   }
 }
 
-async function checkTemplateStepExists(step: { keyword: string; text: string }): Promise<boolean> {
-  try {
-    const signature = `${step.keyword} ${step.text}`
-    const templateStep = await prisma.templateStep.findFirst({
-      where: {
-        signature: signature,
-      },
-    })
+function getExactStepInvocationReference(invocation: unknown) {
+  const parsed = stepInvocationSchema.safeParse(invocation)
+  return parsed.success ? parsed.data.step : null
+}
 
-    return !!templateStep
+async function hasExactStepInvocation(step: { appraiseNode?: { invocation: unknown } }): Promise<boolean> {
+  const invocation = step.appraiseNode?.invocation
+  if (!getExactStepInvocationReference(invocation)) return false
+
+  try {
+    return Boolean(await resolveReadyExactStepDefinitions([{ invocation }]))
   } catch {
     return false
   }
@@ -399,9 +402,8 @@ async function collectScenarioDryRunChanges(
   }
 
   for (const step of scenario.steps) {
-    const templateStepExists = await checkTemplateStepExists(step)
-    if (!templateStepExists) {
-      wouldCreate.templateSteps.push(`Template Step: ${step.keyword} ${step.text}`)
+    if (!(await hasExactStepInvocation(step))) {
+      wouldCreate.missingStepInvocations.push(`Step Invocation: ${step.keyword} ${step.text}`)
     }
   }
 

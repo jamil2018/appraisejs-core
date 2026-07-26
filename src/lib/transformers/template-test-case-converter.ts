@@ -4,9 +4,10 @@ import {
   TemplateTestCaseStepParameter,
   TemplateTestCaseFlowBlock,
   TemplateTestCaseFlowBlockNode,
-  TemplateStepIcon,
+  StepIcon,
 } from '@prisma/client'
 import { FlowBlock, NodeOrderMap } from '@/types/diagram/diagram'
+import { stepInvocationSchema } from '../../../packages/cucumber-runtime/src/step-definitions/contracts.ts'
 
 export interface ConvertedTestCaseData {
   title: string
@@ -53,9 +54,9 @@ export const templateTestCaseToTestCaseConverter = (
       order: step.order,
       label: step.label,
       gherkinStep: step.gherkinStep,
-      icon: step.icon as TemplateStepIcon,
+      icon: step.icon as StepIcon,
       parameters,
-      templateStepId: step.templateStepId,
+      invocation: stepInvocationSchema.parse(JSON.parse(step.invocationJson)),
     }
   })
 
@@ -97,8 +98,8 @@ export const validateConvertedTestCaseData = (
       errors.push(`Step ${nodeId}: Label is required`)
     }
 
-    if (!nodeData.templateStepId) {
-      errors.push(`Step ${nodeId}: Template step ID is required`)
+    if (!nodeData.invocation) {
+      errors.push(`Step ${nodeId}: an exact Step Invocation is required`)
     }
   })
 

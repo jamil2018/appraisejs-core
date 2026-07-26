@@ -9,17 +9,9 @@ import {
   seedCoreData,
   seededIds,
 } from './helpers/test-data'
-import {
-  createLocator,
-  createLocatorGroup,
-  createTemplateStep,
-  createTemplateStepGroup,
-  createTemplateTestCase,
-  editEnvironment,
-  editTag,
-} from './helpers/forms'
+import { createLocator, createLocatorGroup, createTemplateTestCase, editEnvironment, editTag } from './helpers/forms'
 import { createEnvironment, createModule, createTag, saveForm } from './helpers/ui'
-import { confirmDeleteDialog, deleteRowByName, editRowByName, expectRowHidden, openRowMenu } from './helpers/table'
+import { confirmDeleteDialog, deleteRowByName, expectRowHidden, openRowMenu } from './helpers/table'
 
 test.describe('Configuration CRUD @crud', () => {
   test.beforeEach(async () => {
@@ -84,44 +76,15 @@ test.describe('Configuration CRUD @crud', () => {
     await expect(page.getByText(editedEnvironmentName, { exact: true })).toHaveCount(0)
   })
 
-  test('template catalog entities support create edit and delete', async ({ page }) => {
-    const groupName = 'E2E Config Template Group'
-    const stepName = 'E2E Config Template Step'
+  test('template test cases support create and delete', async ({ page }) => {
     const templateCaseName = 'E2E Config Template Case'
 
-    await createTemplateStepGroup(page, groupName)
-    await createTemplateStep(page, stepName, groupName)
     await createTemplateTestCase(page, templateCaseName)
-
-    await page.goto('/template-step-groups')
-    await editRowByName(page, groupName)
-    await page.getByLabel('Name').fill(`${groupName} Edited`)
-    await saveForm(page)
-    await expect(page.getByText(`${groupName} Edited`, { exact: true }).first()).toBeVisible()
-
-    await page.goto('/template-steps')
-    await page.getByRole('searchbox', { name: 'Search template steps' }).fill(stepName)
-    await page.getByRole('link', { name: `Edit ${stepName}` }).click()
-    await expect(page).toHaveURL(/\/modify\//)
-    await page.getByLabel('Name').fill(`${stepName} Edited`)
-    await page.getByRole('button', { name: /^Save$/ }).click()
-    await expect(page.getByText(`${stepName} Edited`, { exact: true }).first()).toBeVisible()
 
     await page.goto('/template-test-cases')
     await deleteRowByName(page, templateCaseName)
     await page.reload()
     await expectRowHidden(page, templateCaseName)
-
-    await page.goto('/template-steps')
-    await page.getByRole('searchbox', { name: 'Search template steps' }).fill(`${stepName} Edited`)
-    await page.getByRole('button', { name: `Delete ${stepName} Edited` }).click()
-    await page.getByRole('button', { name: /^Delete$/ }).click()
-    await expect(page.getByText(`${stepName} Edited`, { exact: true })).toHaveCount(0)
-
-    await page.goto('/template-step-groups')
-    await deleteRowByName(page, `${groupName} Edited`)
-    await page.reload()
-    await expectRowHidden(page, `${groupName} Edited`)
   })
 
   test('module create edit delete remains available for configuration flows', async ({ page }) => {

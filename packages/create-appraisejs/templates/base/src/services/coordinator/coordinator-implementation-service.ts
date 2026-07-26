@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto'
+import { spawn, type ChildProcess } from 'node:child_process'
 import path from 'node:path'
 import { BrowserEngine, TestRunResult, TestRunStatus, type Prisma, type PrismaClient } from '@prisma/client'
 
@@ -20,13 +21,15 @@ import {
   type ReviewArtifact,
   type ValidationArtifact,
 } from '@/lib/plan-contract'
-import { PlanArtifactRepository } from '@/lib/plans/artifact-repository'
+import { PlanArtifactRepository, PlanRepositoryError } from '@/lib/plans/artifact-repository'
 import { planStateHash } from '@/lib/plans/plan-hashes'
 import { findProjectRoot } from '@/lib/plans/project-root'
 import { syncPlans } from '@/lib/plans/plan-sync-service'
 import { isThreadOpen } from '@/services/plan-review/plan-review-helpers'
 import { ServiceError } from '@/services/shared/errors'
 import { RuntimeCapsuleTestRunService } from '@/services/test-run/runtime-capsule-test-run-service'
+import { readTargetProjectLaunchMetadata } from '@/services/target-project/target-project-service'
+import { preflightBaselineEnvironments } from './environment-runtime-preflight-service'
 
 import {
   appendPlanEvent,
@@ -38,11 +41,7 @@ import { loadManagedImplementationRun, type ImplementationValidationRun } from '
 import { readPlanEfficiencyTelemetry } from './plan-observability-service'
 
 type CompletionCrashPhase =
-  | 'after_validation_write'
-  | 'after_review_write'
-  | 'after_sync'
-  | 'after_event_write'
-  | 'after_plan_write'
+  'after_validation_write' | 'after_review_write' | 'after_sync' | 'after_event_write' | 'after_plan_write'
 
 type Options = {
   client?: PrismaClient
@@ -51,6 +50,208 @@ type Options = {
   appraiseRoot?: string
   /** Test-only fault injection for verifying durable completion recovery. */
   completionCrashAfter?: CompletionCrashPhase
+}
+
+type ImplementationReadinessAction = 'check' | 'launch' | 'stop'
+const launchedTargetProcesses = new Map<string, ChildProcess>()
+let targetProcessShutdownHookInstalled = false
+
+function stopAllLaunchedTargetGroups() {
+  for (const child of launchedTargetProcesses.values()) {
+    if (child.pid) {
+      try {
+        process.kill(-child.pid, 'SIGTERM')
+      } catch {
+        // The process group already exited.
+      }
+    }
+  }
+  launchedTargetProcesses.clear()
+}
+
+function ensureTargetProcessShutdownHook() {
+  if (targetProcessShutdownHookInstalled) return
+  process.once('exit', stopAllLaunchedTargetGroups)
+  targetProcessShutdownHookInstalled = true
+}
+
+async function stopTargetProcessGroup(child: ChildProcess) {
+  if (!child.pid) throw new ServiceError('The target launch process has no process-group identity.', 'INTERNAL')
+  const groupId = -child.pid
+  process.kill(groupId, 'SIGTERM')
+  for (let attempt = 0; attempt < 20; attempt += 1) {
+    try {
+      process.kill(groupId, 0)
+      await new Promise(resolve => setTimeout(resolve, 25))
+    } catch {
+      return child.pid
+    }
+  }
+  throw new ServiceError('The target process group did not stop within the bounded shutdown window.', 'CONFLICT')
+}
+
+function targetLaunchCommand(metadata: { packageManager: string; scripts: Record<string, string> }) {
+  const script = ['dev', 'start'].find(candidate => metadata.scripts[candidate])
+  if (!script) return null
+  const packageManager = metadata.packageManager.split('@', 1)[0] ?? 'npm'
+  const argv = new Map([
+    ['npm', ['run', script]],
+    ['pnpm', ['run', script]],
+    ['yarn', [script]],
+    ['bun', ['run', script]],
+  ]).get(packageManager)
+  if (!argv) return null
+  return {
+    executable: packageManager,
+    argv,
+    script,
+  }
+}
+
+function liveTargetProcess(targetProjectId: string) {
+  const child = launchedTargetProcesses.get(targetProjectId)
+  if (!child || child.exitCode !== null || child.signalCode !== null) {
+    launchedTargetProcesses.delete(targetProjectId)
+    return undefined
+  }
+  return child
+}
+
+async function launchTarget(input: {
+  target: { id: string; canonicalPath: string }
+  command: NonNullable<ReturnType<typeof targetLaunchCommand>>
+}) {
+  if (process.platform === 'win32')
+    throw new ServiceError('Automatic target launch is currently supported on macOS and Linux only.', 'CONFLICT')
+  ensureTargetProcessShutdownHook()
+  const existingPid = liveTargetProcess(input.target.id)
+  if (existingPid?.pid) return { status: 'started' as const, script: input.command.script, pid: existingPid.pid }
+  const child = spawn(input.command.executable, input.command.argv, {
+    cwd: input.target.canonicalPath,
+    detached: true,
+    shell: false,
+    stdio: 'ignore',
+  })
+  await new Promise<void>((resolve, reject) => {
+    child.once('spawn', resolve)
+    child.once('error', reject)
+  }).catch(error => {
+    throw new ServiceError(
+      `The target launch process could not be started: ${error instanceof Error ? error.message : String(error)}`,
+      'INTERNAL',
+    )
+  })
+  if (!child.pid) throw new ServiceError('The target launch process could not be started.', 'INTERNAL')
+  child.unref()
+  launchedTargetProcesses.set(input.target.id, child)
+  child.once('exit', () => launchedTargetProcesses.delete(input.target.id))
+  child.once('error', () => launchedTargetProcesses.delete(input.target.id))
+  return { status: 'started' as const, script: input.command.script, pid: child.pid }
+}
+
+async function launchTargetIfRequested(input: {
+  action: ImplementationReadinessAction | undefined
+  unavailable: boolean
+  target: { id: string; canonicalPath: string }
+  command: ReturnType<typeof targetLaunchCommand>
+}) {
+  if (input.action === 'stop') {
+    const child = liveTargetProcess(input.target.id)
+    if (!child) return { status: 'not_running' as const }
+    const pid = await stopTargetProcessGroup(child)
+    launchedTargetProcesses.delete(input.target.id)
+    return { status: 'stopped' as const, pid }
+  }
+  if (input.action !== 'launch') return { status: 'not_requested' as const }
+  if (!input.unavailable) return { status: 'already_reachable' as const }
+  if (!input.command)
+    throw new ServiceError(
+      'The target has no supported dev or start package script. Start it manually, then check readiness again.',
+      'CONFLICT',
+    )
+  return launchTarget({ target: input.target, command: input.command })
+}
+
+async function waitForTargetReadiness(
+  validation: ValidationArtifact,
+  target: {
+    id: string
+    displayName: string
+    canonicalPath: string
+  },
+  client: PrismaClient,
+) {
+  let environments = await preflightBaselineEnvironments(validation, target, client)
+  for (let attempt = 0; attempt < 10 && environments.some(item => item.status === 'available'); attempt += 1) {
+    await new Promise(resolve => setTimeout(resolve, 250))
+    environments = await preflightBaselineEnvironments(validation, target, client)
+  }
+  return environments
+}
+
+export async function readImplementationValidationReadiness(
+  input: {
+    planId: string
+    validationIds?: string[]
+    confirmedRemoteEnvironmentIds?: string[]
+    action?: ImplementationReadinessAction
+  },
+  options: Options = {},
+) {
+  const { client, artifacts } = await implementationContext(input.planId, options)
+  const selected = selectImplementationValidations(artifacts.validation, input.validationIds)
+  const selectedValidation = { ...artifacts.validation, validations: selected }
+  const projection = await client.planProjection.findUnique({
+    where: { planId: input.planId },
+    select: {
+      targetProject: {
+        select: {
+          id: true,
+          displayName: true,
+          canonicalPath: true,
+        },
+      },
+    },
+  })
+  const target = projection?.targetProject
+  if (!target) throw new ServiceError('Plan must be bound to a target project.', 'CONFLICT')
+
+  let environments = await preflightBaselineEnvironments(selectedValidation, target, client)
+  const launchCommand =
+    input.action === 'launch' ? targetLaunchCommand(await readTargetProjectLaunchMetadata(target.canonicalPath)) : null
+  const launch = await launchTargetIfRequested({
+    action: input.action,
+    unavailable: environments.some(item => item.status === 'available'),
+    target,
+    command: launchCommand,
+  })
+  if (launch.status === 'started') {
+    environments = await waitForTargetReadiness(selectedValidation, target, client)
+  }
+  const expectedEnvironmentCount = new Set(
+    selected.flatMap(validation => validation.matrix.map(entry => entry.environment)),
+  ).size
+  const localEnvironments = environments.filter(environment => environment.origin !== null)
+  const remoteEnvironments = environments.filter(environment => environment.origin === null)
+  const confirmedRemoteEnvironmentIds = new Set(input.confirmedRemoteEnvironmentIds ?? [])
+  const ready =
+    environments.length === expectedEnvironmentCount &&
+    localEnvironments.every(environment => environment.status === 'verified') &&
+    remoteEnvironments.every(environment => confirmedRemoteEnvironmentIds.has(environment.environmentId)) &&
+    launch.status !== 'stopped'
+  return {
+    planId: input.planId,
+    targetProjectId: target.id,
+    ready,
+    environments,
+    launch,
+    nextAllowedAction: ready
+      ? { tool: 'implementation_validation_start', reason: 'Reviewed target environments are reachable.' }
+      : {
+          tool: 'implementation_validation_readiness',
+          reason: 'Launch the target or make each reviewed environment reachable before consuming a managed run.',
+        },
+  }
 }
 
 function completionEvidenceHash(value: unknown) {
@@ -901,7 +1102,12 @@ async function startPreparedCapsules(capsuleService: RuntimeCapsuleTestRunServic
 }
 
 export async function startImplementationValidation(
-  input: { planId: string; validationIds?: string[]; commitHash?: string },
+  input: {
+    planId: string
+    validationIds?: string[]
+    commitHash?: string
+    confirmedRemoteEnvironmentIds?: string[]
+  },
   options: Options = {},
 ) {
   const { client, artifacts, implementation } = await implementationContext(input.planId, options)
@@ -923,6 +1129,22 @@ export async function startImplementationValidation(
       reused: true,
     }
   }
+  const readiness = await readImplementationValidationReadiness(
+    {
+      planId: input.planId,
+      validationIds: input.validationIds,
+      confirmedRemoteEnvironmentIds: input.confirmedRemoteEnvironmentIds,
+      action: 'check',
+    },
+    options,
+  )
+  if (!readiness.ready)
+    throw new ServiceError(
+      'Reviewed local target environments are not ready. Check or launch them before starting managed validation.',
+      'CONFLICT',
+      409,
+      readiness,
+    )
   const startedAt = (options.now ?? new Date()).toISOString()
   const preparedCapsuleTestRunDbIds: string[] = []
   let prepared
@@ -967,10 +1189,10 @@ function assertTaskReconciliationInput(input: { verifyTaskIds?: string[]; idempo
 function managedRunSatisfiesTask(run: ImplementationValidationRun | undefined) {
   return Boolean(
     run?.fresh &&
-      run.status === 'passed' &&
-      run.evidenceSource === 'managed' &&
-      run.assurance === 'full' &&
-      run.testRunId,
+    run.status === 'passed' &&
+    run.evidenceSource === 'managed' &&
+    run.assurance === 'full' &&
+    run.testRunId,
   )
 }
 
@@ -1278,7 +1500,42 @@ export async function reviewImplementationCompletion(planId: string, options: Op
 
 export async function readImplementationLifecycleHealth(planId: string, options: Options = {}) {
   const client = options.client ?? prisma
-  const artifacts = await readArtifacts(planId, options.projectDirectory)
+  let artifacts: Awaited<ReturnType<typeof readArtifacts>>
+  try {
+    artifacts = await readArtifacts(planId, options.projectDirectory)
+  } catch (error) {
+    if (!(error instanceof PlanRepositoryError) || error.code !== 'not-found') throw error
+
+    const projectRoot = await findProjectRoot(options.projectDirectory)
+    const repository = new PlanArtifactRepository(projectRoot)
+    const planStored = await repository.read('plan', planId)
+    const plan = parseYamlArtifact('plan', planStored.content) as PlanArtifact
+    if (
+      ![
+        'draft',
+        'awaiting_plan_review',
+        'changes_requested',
+        'plan_approved',
+        'preparing_validations',
+        'validation_changes_requested',
+      ].includes(plan.lifecycle)
+    ) {
+      throw error
+    }
+
+    return {
+      schemaVersion: 1,
+      planId,
+      lifecycle: plan.lifecycle,
+      healthy: true,
+      issues: [],
+      finalSignOffId: undefined,
+      evidenceProtected: true,
+      managedRunCount: 0,
+      implementationRunCount: 0,
+      baselineRunCount: 0,
+    }
+  }
   const implementation = implementationState(artifacts.validation)
   const implementationRunIds = implementation.validationRuns.flatMap(run => (run.testRunId ? [run.testRunId] : []))
   const baselineRunIds = artifacts.validation.baselineAttempts.map(attempt => attempt.testRunId)

@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto'
 import { spawn, spawnSync, type ChildProcess } from 'node:child_process'
 import { promises as fs } from 'node:fs'
 import os from 'node:os'
@@ -6,6 +7,8 @@ import path from 'node:path'
 import { Client } from '@modelcontextprotocol/sdk/client/index.js'
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js'
 import { parse as parseYaml } from 'yaml'
+
+import { canonicalContractJson } from '../../../src/lib/catalog-contracts/index.ts'
 
 const repoRoot = path.resolve(import.meta.dirname, '../../..')
 const port = 3299
@@ -122,6 +125,10 @@ function reviewPathFor(id: string) {
   return path.join(repoRoot, 'appraise', 'plans', 'reviews', `${id}.review.yaml`)
 }
 
+function validationPathFor(id: string) {
+  return path.join(repoRoot, 'appraise', 'plans', 'validations', `${id}.validation.yaml`)
+}
+
 async function approveCurrentPlan(revision: number, contentHash: string) {
   const { approvePlanRevision } = await import('../../../src/services/plan-review/plan-review-service.ts')
   await approvePlanRevision(
@@ -138,6 +145,19 @@ async function approveCurrentPlan(revision: number, contentHash: string) {
 try {
   run(process.execPath, ['e2e/apply-migrations.mjs'], { DATABASE_URL: `file:${databasePath}` })
   run('npm', ['--prefix', 'packages/appraisejs', 'run', 'build'])
+  // Seed the source-owned registry through its real publication path so this
+  // test proves the public MCP search receipt, rather than fabricating one.
+  const [
+    { default: database },
+    { StepDefinitionRegistryService },
+    { builtInStepDefinitions, computeStepReferenceHash },
+  ] = await Promise.all([
+    import('../../../src/config/db-config.ts'),
+    import('../../../src/services/step-definition/step-definition-registry-service.ts'),
+    import('../../../packages/cucumber-runtime/src/step-definitions/index.ts'),
+  ])
+  const stepRegistry = new StepDefinitionRegistryService(database)
+  for (const definition of builtInStepDefinitions) await stepRegistry.registerBuiltIn(definition, 'mcp-e2e-source')
 
   appServer = spawn(process.execPath, ['scripts/start-local.mjs', 'dev', '-H', '127.0.0.1', '-p', String(port)], {
     cwd: repoRoot,
@@ -219,9 +239,6 @@ try {
     'project_add',
     'project_diagnostic',
     'project_list',
-    'step_block_search',
-    'template_step_match',
-    'template_step_search',
     'test_run',
     'test_run_diagnose',
     'test_run_preflight',
@@ -293,6 +310,34 @@ try {
   assert(
     validationPreparation.contents[0]?.text?.includes('appraise.validation-ast'),
     'Validation preparation resource missed artifact contract guidance.',
+  )
+  const validationAstContractResource = await client.readResource({ uri: 'appraise://contracts/validation-ast' })
+  const validationAstContract = JSON.parse(String(validationAstContractResource.contents[0]?.text)) as {
+    schema?: {
+      properties?: Record<
+        string,
+        {
+          type?: string
+          minItems?: number
+          maxItems?: number
+          items?: { type?: string; additionalProperties?: boolean; required?: string[] }
+        }
+      >
+    }
+  }
+  const discoveredSelections = validationAstContract.schema?.properties?.stepDefinitionSelections
+  assert(
+    discoveredSelections?.type === 'array' &&
+      discoveredSelections.minItems === 1 &&
+      discoveredSelections.maxItems === 32 &&
+      discoveredSelections.items?.type === 'object' &&
+      discoveredSelections.items.additionalProperties === false &&
+      discoveredSelections.items.required?.join(',') === 'receiptId,correlationId',
+    'Live validation AST contract resource did not expose bounded plural Step Definition selections.',
+  )
+  assert(
+    !('stepDefinitionSelection' in (validationAstContract.schema?.properties ?? {})),
+    'Live validation AST contract resource still exposed the stale singular Step Definition selection field.',
   )
   const observedResourceUris = resources.resources.map(resource => resource.uri)
   const diagnostic = await callTool('project_diagnostic', {
@@ -406,20 +451,82 @@ try {
     edges: [],
     implementationGroups: [],
   }
-  const created = await callTool('plan_create', { plan: initialPlan })
+  const created = await callTool('plan_create', { plan: initialPlan, target: targetWorkspacePath })
   planId = String(created.planId)
   initialPlan.planId = planId
   assert(created.lifecycle === 'awaiting_plan_review', 'Plan create did not normalize the draft lifecycle.')
+  assert(created.targetProject, 'Plan create did not bind the MCP lifecycle plan to the explicit target project.')
   const createdLinks = created.links as { appraise: string; browser: string; route: string }
   assert(
-    createdLinks.route === `/plans/${planId}`,
-    `Plan create did not return the stable review route: ${JSON.stringify(createdLinks)}`,
+    createdLinks.route.startsWith(`/plans/${planId}?project=`),
+    `Target-bound plan create did not return the scoped review route: ${JSON.stringify(createdLinks)}`,
   )
   assert(createdLinks.appraise === `appraise://plans/${planId}`, 'Plan create did not return the Appraise link.')
   assert(createdLinks.browser.includes(`/plans/${planId}`), 'Plan create did not return the browser link.')
   assert(
     created.nextRequiredAgentBehavior === 'wait_for_plan_review_ready',
     'Plan create did not require review-ready waiting.',
+  )
+
+  const search = await callTool('step_search', {
+    planId,
+    query: 'navigate browser to URL',
+    parameterNames: ['url'],
+    limit: 1,
+  })
+  const reuseEvidence = search.reuseEvidence as {
+    receiptId?: string
+    correlationId?: string
+    candidateReferences?: Array<{ id: string; version: string }>
+  }
+  assert(reuseEvidence.receiptId, 'step_search did not return a persisted reuse receipt ID.')
+  assert(reuseEvidence.correlationId, 'step_search did not return a lifecycle correlation ID.')
+  assert(Array.isArray(reuseEvidence.candidateReferences), 'step_search did not return receipt candidate references.')
+  const sourceDefinition = builtInStepDefinitions.find(
+    definition => definition.identity.id === 'browser.navigation.goto',
+  )
+  assert(sourceDefinition, 'MCP E2E source definition is missing.')
+  const draftDefinition = {
+    ...sourceDefinition,
+    identity: { id: 'mcp.e2e.navigate', version: '1', status: 'draft' },
+    provenance: {
+      creationMethod: 'agent-command',
+      createdBy: 'mcp-e2e-agent',
+      createdAt: '2026-07-25T00:00:00.000Z',
+    },
+    intent: {
+      ...sourceDefinition.intent,
+      title: 'Navigate for MCP E2E',
+      description: 'Use a persisted search receipt.',
+    },
+  }
+  const draft = await callTool('step_definition_draft_create', {
+    definition: draftDefinition,
+    reuseEvidence: {
+      ...reuseEvidence,
+      reuseJustification: 'The returned ready definition was considered before authoring.',
+    },
+  })
+  assert(typeof draft.id === 'string', 'step_definition_draft_create did not consume the returned persisted receipt.')
+  const searchToDraftEvents = await database.stepDefinitionTelemetryEvent.findMany({
+    where: { planId, correlationId: reuseEvidence.correlationId },
+    select: { outcome: true, surface: true, payloadJson: true },
+    orderBy: { createdAt: 'asc' },
+  })
+  for (const outcome of ['query_match', 'selection_selected', 'draft_created'])
+    assert(
+      searchToDraftEvents.some(event => event.surface === 'agent' && event.outcome === outcome),
+      `Official MCP search-to-draft path did not emit ${outcome} with its persisted lifecycle correlation.`,
+    )
+  assert(
+    searchToDraftEvents.every(event => {
+      const payload = JSON.parse(event.payloadJson) as Record<string, unknown>
+      return (
+        Object.keys(payload).every(key => key === 'candidateCount') &&
+        (payload.candidateCount === undefined || Number.isInteger(payload.candidateCount))
+      )
+    }),
+    'MCP lifecycle telemetry retained data outside the bounded payload contract.',
   )
 
   const ready = await callTool('plan_wait_for_review', { planId, afterSequence: 0 })
@@ -540,6 +647,245 @@ try {
   const storedPlan = parseYaml(await fs.readFile(planPathFor(planId), 'utf8')) as { lifecycle: string }
   assert(storedPlan.lifecycle === 'preparing_validations', 'Started lifecycle was not persisted.')
 
+  const proposedResources = await callTool('validation_resources_propose', {
+    planId,
+    proposal: {
+      schemaVersion: 2,
+      idempotencyKey: 'mcp-e2e-validation-environment',
+      modules: [],
+      locatorGroups: [],
+      locators: [],
+      environments: [
+        {
+          localKey: 'local',
+          name: 'local',
+          baseUrl,
+        },
+      ],
+    },
+  })
+  const environmentId = (proposedResources.bindings as { environments?: Array<{ id?: string }> }).environments?.[0]?.id
+  assert(environmentId, 'Validation resource proposal did not return the target-bound environment ID.')
+  const validationContext = await callTool('validation_context_read', { planId, responseMode: 'full' })
+  assert(
+    (validationContext.resources as { environments?: Array<{ id?: string }> }).environments?.some(
+      environment => environment.id === environmentId,
+    ),
+    'Validation context did not expose the target-bound environment created through MCP.',
+  )
+  const validationPlanHash = (validationContext.plan as { sourceHash?: string }).sourceHash
+  assert(validationPlanHash, 'Validation context did not return the authoritative target-bound plan hash.')
+
+  const gotoSearch = await callTool('step_search', {
+    planId,
+    query: 'navigate browser to URL',
+    parameterNames: ['url'],
+    limit: 1,
+  })
+  const pressSearch = await callTool('step_search', {
+    planId,
+    query: 'press keyboard key',
+    parameterNames: ['key'],
+    limit: 1,
+  })
+  const gotoEvidence = gotoSearch.reuseEvidence as {
+    receiptId?: string
+    correlationId?: string
+    candidateReferences?: Array<{ id: string; version: string }>
+  }
+  const pressEvidence = pressSearch.reuseEvidence as {
+    receiptId?: string
+    correlationId?: string
+    candidateReferences?: Array<{ id: string; version: string }>
+  }
+  assert(gotoEvidence.receiptId && gotoEvidence.correlationId, 'Navigation search did not return a persisted receipt.')
+  assert(pressEvidence.receiptId && pressEvidence.correlationId, 'Keyboard search did not return a persisted receipt.')
+  assert(gotoEvidence.receiptId !== pressEvidence.receiptId, 'Distinct search intents reused a receipt ID.')
+  assert(gotoEvidence.correlationId !== pressEvidence.correlationId, 'Distinct search intents reused a correlation ID.')
+  assert(
+    gotoEvidence.candidateReferences?.some(
+      reference => reference.id === 'browser.navigation.goto' && reference.version === '1',
+    ),
+    'Navigation search receipt did not cover the exact Navigation Step Definition reference.',
+  )
+  assert(
+    pressEvidence.candidateReferences?.some(
+      reference => reference.id === 'browser.keyboard.press' && reference.version === '1',
+    ),
+    'Keyboard search receipt did not cover the exact keyboard Step Definition reference.',
+  )
+  const gotoDefinition = builtInStepDefinitions.find(definition => definition.identity.id === 'browser.navigation.goto')
+  const pressDefinition = builtInStepDefinitions.find(definition => definition.identity.id === 'browser.keyboard.press')
+  assert(gotoDefinition && pressDefinition, 'MCP E2E registry fixture is missing one selected Step Definition.')
+
+  const validationSubmission = {
+    expectedPlanHash: validationPlanHash,
+    stepDefinitionSelections: [
+      { receiptId: gotoEvidence.receiptId, correlationId: gotoEvidence.correlationId },
+      { receiptId: pressEvidence.receiptId, correlationId: pressEvidence.correlationId },
+    ],
+    ast: {
+      schemaVersion: 2,
+      id: 'mcp-multi-receipt-validation',
+      title: 'Validate MCP receipt correlation',
+      purpose: 'Use independently persisted search evidence while compiling one managed validation.',
+      coversTaskIds: ['validate-mcp'],
+      matrix: [{ browser: 'chromium', environmentId }],
+      expectedFailures: [],
+      scenarios: [
+        {
+          id: 'search-receipt-validation',
+          title: 'Search receipts retain their selected references',
+          steps: [
+            {
+              id: 'open-home',
+              invocation: {
+                step: {
+                  id: 'browser.navigation.goto',
+                  version: '1',
+                  definitionHash: computeStepReferenceHash(gotoDefinition),
+                },
+                inputs: { url: '/' },
+                presentation: { keyword: 'Given', description: 'the application home page is open' },
+              },
+            },
+            {
+              id: 'press-tab',
+              invocation: {
+                step: {
+                  id: 'browser.keyboard.press',
+                  version: '1',
+                  definitionHash: computeStepReferenceHash(pressDefinition),
+                },
+                inputs: { key: 'Tab' },
+                presentation: { keyword: 'When', description: 'the user presses the Tab key' },
+              },
+            },
+          ],
+        },
+      ],
+      qualityConcerns: [],
+      customExtensions: [],
+    },
+    customExtensionProposals: [],
+  }
+  assert(
+    validationSubmission.ast.scenarios[0]!.steps.every(step => step.invocation.step.definitionHash),
+    'MCP E2E fixture did not calculate exact Step Definition references for managed Validation AST authoring.',
+  )
+
+  const expectToolError = async (name: string, args: Record<string, unknown>, expectedMessage: string) => {
+    const result = await client!.callTool({ name, arguments: args })
+    assert(result.isError, `${name} unexpectedly accepted invalid selection evidence.`)
+    assert(
+      result.content.some(item => item.type === 'text' && item.text.includes(expectedMessage)),
+      `${name} rejection did not explain ${expectedMessage}: ${JSON.stringify(result)}`,
+    )
+  }
+  await expectToolError(
+    'validation_ast_check',
+    {
+      planId,
+      submission: {
+        ...validationSubmission,
+        stepDefinitionSelections: [{ receiptId: gotoEvidence.receiptId, correlationId: gotoEvidence.correlationId }],
+      },
+    },
+    'not covered',
+  )
+  await expectToolError(
+    'validation_ast_check',
+    {
+      planId,
+      submission: {
+        ...validationSubmission,
+        stepDefinitionSelections: [{ receiptId: gotoEvidence.receiptId, correlationId: pressEvidence.correlationId }],
+      },
+    },
+    'invalid, expired, or belongs to another plan',
+  )
+
+  const expiredSearch = await callTool('step_search', {
+    planId,
+    query: 'navigate browser to URL',
+    parameterNames: ['url'],
+    limit: 1,
+  })
+  const expiredEvidence = expiredSearch.reuseEvidence as { receiptId?: string; correlationId?: string }
+  assert(expiredEvidence.receiptId && expiredEvidence.correlationId, 'Expiry fixture search did not persist a receipt.')
+  await database.stepDefinitionSearchReceipt.update({
+    where: { id: expiredEvidence.receiptId },
+    data: { expiresAt: new Date(Date.now() - 1) },
+  })
+  await expectToolError(
+    'validation_ast_check',
+    {
+      planId,
+      submission: {
+        ...validationSubmission,
+        stepDefinitionSelections: [
+          { receiptId: expiredEvidence.receiptId, correlationId: expiredEvidence.correlationId },
+        ],
+      },
+    },
+    'invalid, expired, or belongs to another plan',
+  )
+
+  const checkedValidation = await callTool('validation_ast_check', { planId, submission: validationSubmission })
+  assert(checkedValidation.valid === true, `Managed Validation AST check failed: ${JSON.stringify(checkedValidation)}`)
+  const laterSearch = await callTool('step_search', {
+    planId,
+    query: 'wait for the page to be ready',
+    parameterNames: [],
+    limit: 1,
+  })
+  const laterEvidence = laterSearch.reuseEvidence as { correlationId?: string }
+  assert(laterEvidence.correlationId, 'Interleaved search did not return a correlation ID.')
+  const previewedValidation = await callTool('validation_ast_preview', { planId, submission: validationSubmission })
+  assert(
+    previewedValidation.valid === true,
+    `Managed Validation AST preview failed: ${JSON.stringify(previewedValidation)}`,
+  )
+  assert(
+    typeof previewedValidation.receiptHash === 'string',
+    'Managed Validation AST preview did not return its receipt hash.',
+  )
+  const compiledValidation = await callTool('validation_ast_compile', {
+    planId,
+    submission: validationSubmission,
+    expectedReceiptHash: previewedValidation.receiptHash,
+  })
+  assert(
+    compiledValidation.operationId,
+    `Managed Validation AST compile did not publish its review operation: ${JSON.stringify(compiledValidation)}`,
+  )
+  const compiledOperation = await database.validationAstPublishOperation.findFirst({
+    where: { planId, id: String(compiledValidation.operationId) },
+    select: { runtimeInputJson: true },
+  })
+  assert(compiledOperation?.runtimeInputJson, 'Managed Validation AST compile did not persist its runtime input.')
+  const runtimeInput = JSON.parse(compiledOperation.runtimeInputJson) as {
+    lifecycleCorrelation?: { planId?: string; correlationId?: string }
+  }
+  assert(runtimeInput.lifecycleCorrelation?.planId === planId, 'Compiled runtime input did not retain the source plan.')
+  assert(
+    runtimeInput.lifecycleCorrelation?.correlationId !== laterEvidence.correlationId,
+    'Interleaved later search replaced the compiled Validation AST correlation.',
+  )
+  const expectedCorrelation = `sha256:${createHash('sha256')
+    .update(
+      canonicalContractJson({
+        selections: [...validationSubmission.stepDefinitionSelections].sort((left, right) =>
+          left.receiptId.localeCompare(right.receiptId),
+        ),
+      }),
+    )
+    .digest('hex')}`
+  assert(
+    runtimeInput.lifecycleCorrelation?.correlationId === expectedCorrelation,
+    'Compiled Validation AST correlation was not bound to the combined original receipt selections.',
+  )
+
   const libraryPlan = agentAuthoredPlan(
     'Publish a typed parsing library',
     'Agent-authored plan for a non-UI library with a build dependency.',
@@ -604,6 +950,7 @@ try {
   if (appServer) await stopAppServer(appServer)
   await fs.rm(planPathFor(planId), { force: true })
   await fs.rm(reviewPathFor(planId), { force: true })
+  await fs.rm(validationPathFor(planId), { force: true })
   for (const explicitTargetPlanId of explicitTargetPlanIds) {
     await fs.rm(planPathFor(explicitTargetPlanId), { force: true })
     await fs.rm(reviewPathFor(explicitTargetPlanId), { force: true })

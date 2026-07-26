@@ -86,7 +86,7 @@ export function immutableReviewContent(content: string) {
 export function immutableValidationProjection(value: string | null | undefined) {
   if (!value) return value ?? null
   const validation = JSON.parse(value) as ValidationArtifact
-  return JSON.stringify({ ...validation, validationDecisions: [], reviewSubmittedAt: undefined })
+  return canonicalContractJson(withoutMutableReviewState(validation))
 }
 
 export function managedValidationStateHash(content: string) {

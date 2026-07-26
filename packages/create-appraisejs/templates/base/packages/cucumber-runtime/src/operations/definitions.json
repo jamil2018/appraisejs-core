@@ -59,7 +59,7 @@
     },
     "aliases": [
       {
-        "kind": "template-step-slug",
+        "kind": "step-definition-slug",
         "value": "active-state-assertion/assert-element-active",
         "surface": "both"
       },
@@ -204,7 +204,7 @@
         "surface": "agent"
       },
       {
-        "kind": "template-step-slug",
+        "kind": "step-definition-slug",
         "value": "element-state-assertion/assert-element-checked",
         "surface": "human"
       },
@@ -673,7 +673,7 @@
     },
     "aliases": [
       {
-        "kind": "template-step-slug",
+        "kind": "step-definition-slug",
         "value": "text-assertion/assert-element-contains-text",
         "surface": "both"
       },
@@ -754,7 +754,7 @@
         "surface": "agent"
       },
       {
-        "kind": "template-step-slug",
+        "kind": "step-definition-slug",
         "value": "element-property-assertion/assert-input-value",
         "surface": "human"
       },
@@ -830,7 +830,7 @@
     },
     "aliases": [
       {
-        "kind": "template-step-slug",
+        "kind": "step-definition-slug",
         "value": "visibility-assertion/assert-element-visible",
         "surface": "both"
       },
@@ -970,7 +970,7 @@
     },
     "aliases": [
       {
-        "kind": "template-step-slug",
+        "kind": "step-definition-slug",
         "value": "browser-assertion/assert-browser-cookie",
         "surface": "both"
       },
@@ -1039,7 +1039,7 @@
     },
     "aliases": [
       {
-        "kind": "template-step-slug",
+        "kind": "step-definition-slug",
         "value": "browser-assertion/assert-full-url",
         "surface": "both"
       },
@@ -1115,7 +1115,7 @@
     },
     "aliases": [
       {
-        "kind": "template-step-slug",
+        "kind": "step-definition-slug",
         "value": "browser-assertion/assert-local-storage-value",
         "surface": "both"
       },
@@ -1184,7 +1184,7 @@
     },
     "aliases": [
       {
-        "kind": "template-step-slug",
+        "kind": "step-definition-slug",
         "value": "browser-assertion/assert-page-title",
         "surface": "both"
       },
@@ -1260,7 +1260,7 @@
     },
     "aliases": [
       {
-        "kind": "template-step-slug",
+        "kind": "step-definition-slug",
         "value": "browser-assertion/assert-session-storage-value",
         "surface": "both"
       },
@@ -1329,7 +1329,7 @@
     },
     "aliases": [
       {
-        "kind": "template-step-slug",
+        "kind": "step-definition-slug",
         "value": "browser-assertion/assert-url-contains",
         "surface": "both"
       },
@@ -1389,7 +1389,7 @@
     },
     "aliases": [
       {
-        "kind": "template-step-slug",
+        "kind": "step-definition-slug",
         "value": "browser-state/clear-browser-cookies",
         "surface": "both"
       },
@@ -1449,7 +1449,7 @@
     },
     "aliases": [
       {
-        "kind": "template-step-slug",
+        "kind": "step-definition-slug",
         "value": "browser-state/clear-web-storage",
         "surface": "both"
       },
@@ -1509,7 +1509,7 @@
     },
     "aliases": [
       {
-        "kind": "template-step-slug",
+        "kind": "step-definition-slug",
         "value": "browser-state/go-forward",
         "surface": "both"
       },
@@ -1578,7 +1578,7 @@
     },
     "aliases": [
       {
-        "kind": "template-step-slug",
+        "kind": "step-definition-slug",
         "value": "browser-state/navigate-to-stored-url",
         "surface": "both"
       },
@@ -1654,7 +1654,7 @@
     },
     "aliases": [
       {
-        "kind": "template-step-slug",
+        "kind": "step-definition-slug",
         "value": "browser-state/set-browser-cookie",
         "surface": "both"
       },
@@ -1730,7 +1730,7 @@
     },
     "aliases": [
       {
-        "kind": "template-step-slug",
+        "kind": "step-definition-slug",
         "value": "browser-state/set-local-storage-value",
         "surface": "both"
       },
@@ -1806,7 +1806,7 @@
     },
     "aliases": [
       {
-        "kind": "template-step-slug",
+        "kind": "step-definition-slug",
         "value": "browser-state/set-session-storage-value",
         "surface": "both"
       },
@@ -1882,7 +1882,7 @@
     },
     "aliases": [
       {
-        "kind": "template-step-slug",
+        "kind": "step-definition-slug",
         "value": "browser-state/set-storage-from-variable",
         "surface": "both"
       },
@@ -1951,7 +1951,7 @@
     },
     "aliases": [
       {
-        "kind": "template-step-slug",
+        "kind": "step-definition-slug",
         "value": "click/double-click",
         "surface": "both"
       },
@@ -2020,7 +2020,7 @@
     },
     "aliases": [
       {
-        "kind": "template-step-slug",
+        "kind": "step-definition-slug",
         "value": "click/right-click",
         "surface": "both"
       },
@@ -2089,7 +2089,7 @@
     },
     "aliases": [
       {
-        "kind": "template-step-slug",
+        "kind": "step-definition-slug",
         "value": "data-diagnostics/capture-page-screenshot",
         "surface": "both"
       },
@@ -2158,7 +2158,7 @@
     },
     "aliases": [
       {
-        "kind": "template-step-slug",
+        "kind": "step-definition-slug",
         "value": "data-diagnostics/log-stored-variable",
         "surface": "both"
       },
@@ -2227,7 +2227,7 @@
     },
     "aliases": [
       {
-        "kind": "template-step-slug",
+        "kind": "step-definition-slug",
         "value": "data-diagnostics/store-current-url",
         "surface": "both"
       },
@@ -2310,7 +2310,7 @@
     },
     "aliases": [
       {
-        "kind": "template-step-slug",
+        "kind": "step-definition-slug",
         "value": "data-diagnostics/store-element-attribute",
         "surface": "both"
       },
@@ -2379,7 +2379,7 @@
     },
     "aliases": [
       {
-        "kind": "template-step-slug",
+        "kind": "step-definition-slug",
         "value": "data-diagnostics/store-page-title",
         "surface": "both"
       },
@@ -2448,7 +2448,7 @@
     },
     "aliases": [
       {
-        "kind": "template-step-slug",
+        "kind": "step-definition-slug",
         "value": "download-assertion/assert-download-path-available",
         "surface": "both"
       },
@@ -2524,7 +2524,7 @@
     },
     "aliases": [
       {
-        "kind": "template-step-slug",
+        "kind": "step-definition-slug",
         "value": "download-assertion/assert-downloaded-filename",
         "surface": "both"
       },
@@ -2600,7 +2600,7 @@
     },
     "aliases": [
       {
-        "kind": "template-step-slug",
+        "kind": "step-definition-slug",
         "value": "download-assertion/assert-stored-download-filename",
         "surface": "both"
       },
@@ -2676,7 +2676,7 @@
     },
     "aliases": [
       {
-        "kind": "template-step-slug",
+        "kind": "step-definition-slug",
         "value": "downloads/click-and-store-download",
         "surface": "both"
       },
@@ -2759,7 +2759,7 @@
     },
     "aliases": [
       {
-        "kind": "template-step-slug",
+        "kind": "step-definition-slug",
         "value": "downloads/click-and-wait-for-download",
         "surface": "both"
       },
@@ -2835,7 +2835,7 @@
     },
     "aliases": [
       {
-        "kind": "template-step-slug",
+        "kind": "step-definition-slug",
         "value": "downloads/save-download-to-path",
         "surface": "both"
       },
@@ -2904,7 +2904,7 @@
     },
     "aliases": [
       {
-        "kind": "template-step-slug",
+        "kind": "step-definition-slug",
         "value": "downloads/wait-for-download-event",
         "surface": "both"
       },
@@ -2995,7 +2995,7 @@
     },
     "aliases": [
       {
-        "kind": "template-step-slug",
+        "kind": "step-definition-slug",
         "value": "element-property-assertion/assert-element-attribute",
         "surface": "both"
       },
@@ -3101,7 +3101,7 @@
     },
     "aliases": [
       {
-        "kind": "template-step-slug",
+        "kind": "step-definition-slug",
         "value": "element-property-assertion/assert-element-bounding-box",
         "surface": "both"
       },
@@ -3184,7 +3184,7 @@
     },
     "aliases": [
       {
-        "kind": "template-step-slug",
+        "kind": "step-definition-slug",
         "value": "element-property-assertion/assert-element-class",
         "surface": "both"
       },
@@ -3260,7 +3260,7 @@
     },
     "aliases": [
       {
-        "kind": "template-step-slug",
+        "kind": "step-definition-slug",
         "value": "element-property-assertion/assert-element-count",
         "surface": "both"
       },
@@ -3343,7 +3343,7 @@
     },
     "aliases": [
       {
-        "kind": "template-step-slug",
+        "kind": "step-definition-slug",
         "value": "element-property-assertion/assert-element-css-property",
         "surface": "both"
       },
@@ -3419,7 +3419,7 @@
     },
     "aliases": [
       {
-        "kind": "template-step-slug",
+        "kind": "step-definition-slug",
         "value": "element-state-assertion/assert-element-attached",
         "surface": "both"
       },
@@ -3495,7 +3495,7 @@
     },
     "aliases": [
       {
-        "kind": "template-step-slug",
+        "kind": "step-definition-slug",
         "value": "element-state-assertion/assert-element-editable",
         "surface": "both"
       },
@@ -3571,7 +3571,7 @@
     },
     "aliases": [
       {
-        "kind": "template-step-slug",
+        "kind": "step-definition-slug",
         "value": "element-state-assertion/assert-element-empty",
         "surface": "both"
       },
@@ -3647,7 +3647,7 @@
     },
     "aliases": [
       {
-        "kind": "template-step-slug",
+        "kind": "step-definition-slug",
         "value": "element-state-assertion/assert-element-enabled",
         "surface": "both"
       },
@@ -3723,7 +3723,7 @@
     },
     "aliases": [
       {
-        "kind": "template-step-slug",
+        "kind": "step-definition-slug",
         "value": "element-state-assertion/assert-element-focused",
         "surface": "both"
       },
@@ -3792,7 +3792,7 @@
     },
     "aliases": [
       {
-        "kind": "template-step-slug",
+        "kind": "step-definition-slug",
         "value": "forms/choose-radio-control",
         "surface": "both"
       },
@@ -3873,7 +3873,7 @@
         "surface": "agent"
       },
       {
-        "kind": "template-step-slug",
+        "kind": "step-definition-slug",
         "value": "input/fill",
         "surface": "human"
       },
@@ -3949,7 +3949,7 @@
     },
     "aliases": [
       {
-        "kind": "template-step-slug",
+        "kind": "step-definition-slug",
         "value": "forms/fill-content-editable-element",
         "surface": "both"
       },
@@ -4025,7 +4025,7 @@
     },
     "aliases": [
       {
-        "kind": "template-step-slug",
+        "kind": "step-definition-slug",
         "value": "forms/fill-date-input",
         "surface": "both"
       },
@@ -4101,7 +4101,7 @@
     },
     "aliases": [
       {
-        "kind": "template-step-slug",
+        "kind": "step-definition-slug",
         "value": "forms/select-dropdown-option-by-index",
         "surface": "both"
       },
@@ -4177,7 +4177,7 @@
     },
     "aliases": [
       {
-        "kind": "template-step-slug",
+        "kind": "step-definition-slug",
         "value": "forms/select-dropdown-option-by-label",
         "surface": "both"
       },
@@ -4253,7 +4253,7 @@
     },
     "aliases": [
       {
-        "kind": "template-step-slug",
+        "kind": "step-definition-slug",
         "value": "forms/select-dropdown-option-by-value",
         "surface": "both"
       },
@@ -4329,7 +4329,7 @@
     },
     "aliases": [
       {
-        "kind": "template-step-slug",
+        "kind": "step-definition-slug",
         "value": "forms/upload-file",
         "surface": "both"
       },
@@ -4405,7 +4405,7 @@
     },
     "aliases": [
       {
-        "kind": "template-step-slug",
+        "kind": "step-definition-slug",
         "value": "forms/upload-stored-file",
         "surface": "both"
       },
@@ -4474,7 +4474,7 @@
     },
     "aliases": [
       {
-        "kind": "template-step-slug",
+        "kind": "step-definition-slug",
         "value": "hover/hover",
         "surface": "both"
       },
@@ -4543,7 +4543,7 @@
     },
     "aliases": [
       {
-        "kind": "template-step-slug",
+        "kind": "step-definition-slug",
         "value": "input/check",
         "surface": "both"
       },
@@ -4612,7 +4612,7 @@
     },
     "aliases": [
       {
-        "kind": "template-step-slug",
+        "kind": "step-definition-slug",
         "value": "input/clear",
         "surface": "both"
       },
@@ -4688,7 +4688,7 @@
     },
     "aliases": [
       {
-        "kind": "template-step-slug",
+        "kind": "step-definition-slug",
         "value": "input/fill-input-with-stored-value",
         "surface": "both"
       },
@@ -4764,7 +4764,7 @@
     },
     "aliases": [
       {
-        "kind": "template-step-slug",
+        "kind": "step-definition-slug",
         "value": "input/select-dropdown-option",
         "surface": "both"
       },
@@ -4833,7 +4833,7 @@
     },
     "aliases": [
       {
-        "kind": "template-step-slug",
+        "kind": "step-definition-slug",
         "value": "input/uncheck",
         "surface": "both"
       },
@@ -4907,7 +4907,7 @@
         "surface": "agent"
       },
       {
-        "kind": "template-step-slug",
+        "kind": "step-definition-slug",
         "value": "pointer/focus-element",
         "surface": "human"
       },
@@ -4976,7 +4976,7 @@
     },
     "aliases": [
       {
-        "kind": "template-step-slug",
+        "kind": "step-definition-slug",
         "value": "keyboard/hold-keyboard-key-down",
         "surface": "both"
       },
@@ -5050,7 +5050,7 @@
         "surface": "agent"
       },
       {
-        "kind": "template-step-slug",
+        "kind": "step-definition-slug",
         "value": "keyboard/press-keyboard-shortcut",
         "surface": "human"
       },
@@ -5126,7 +5126,7 @@
     },
     "aliases": [
       {
-        "kind": "template-step-slug",
+        "kind": "step-definition-slug",
         "value": "keyboard/press-key-on-element",
         "surface": "both"
       },
@@ -5195,7 +5195,7 @@
     },
     "aliases": [
       {
-        "kind": "template-step-slug",
+        "kind": "step-definition-slug",
         "value": "keyboard/release-keyboard-key",
         "surface": "both"
       },
@@ -5278,7 +5278,7 @@
     },
     "aliases": [
       {
-        "kind": "template-step-slug",
+        "kind": "step-definition-slug",
         "value": "keyboard/type-text-sequentially",
         "surface": "both"
       },
@@ -5352,7 +5352,7 @@
         "surface": "agent"
       },
       {
-        "kind": "template-step-slug",
+        "kind": "step-definition-slug",
         "value": "click/click",
         "surface": "human"
       },
@@ -5421,7 +5421,7 @@
     },
     "aliases": [
       {
-        "kind": "template-step-slug",
+        "kind": "step-definition-slug",
         "value": "navigation-assertion/assert-url-route-equals",
         "surface": "both"
       },
@@ -5481,7 +5481,7 @@
     },
     "aliases": [
       {
-        "kind": "template-step-slug",
+        "kind": "step-definition-slug",
         "value": "navigation/go-back",
         "surface": "both"
       },
@@ -5555,7 +5555,7 @@
         "surface": "agent"
       },
       {
-        "kind": "template-step-slug",
+        "kind": "step-definition-slug",
         "value": "navigation/navigate-to-url",
         "surface": "human"
       },
@@ -5615,7 +5615,7 @@
     },
     "aliases": [
       {
-        "kind": "template-step-slug",
+        "kind": "step-definition-slug",
         "value": "navigation/navigate-to-environment-base-url",
         "surface": "both"
       },
@@ -5680,7 +5680,7 @@
         "surface": "agent"
       },
       {
-        "kind": "template-step-slug",
+        "kind": "step-definition-slug",
         "value": "navigation/reload",
         "surface": "human"
       },
@@ -5749,7 +5749,7 @@
     },
     "aliases": [
       {
-        "kind": "template-step-slug",
+        "kind": "step-definition-slug",
         "value": "pointer/blur-element",
         "surface": "both"
       },
@@ -5825,7 +5825,7 @@
     },
     "aliases": [
       {
-        "kind": "template-step-slug",
+        "kind": "step-definition-slug",
         "value": "pointer/capture-element-screenshot",
         "surface": "both"
       },
@@ -5908,7 +5908,7 @@
     },
     "aliases": [
       {
-        "kind": "template-step-slug",
+        "kind": "step-definition-slug",
         "value": "pointer/click-element-coordinates",
         "surface": "both"
       },
@@ -5984,7 +5984,7 @@
     },
     "aliases": [
       {
-        "kind": "template-step-slug",
+        "kind": "step-definition-slug",
         "value": "pointer/click-page-coordinates",
         "surface": "both"
       },
@@ -6060,7 +6060,7 @@
     },
     "aliases": [
       {
-        "kind": "template-step-slug",
+        "kind": "step-definition-slug",
         "value": "pointer/drag-element-to-element",
         "surface": "both"
       },
@@ -6129,7 +6129,7 @@
     },
     "aliases": [
       {
-        "kind": "template-step-slug",
+        "kind": "step-definition-slug",
         "value": "pointer/force-click-element",
         "surface": "both"
       },
@@ -6198,7 +6198,7 @@
     },
     "aliases": [
       {
-        "kind": "template-step-slug",
+        "kind": "step-definition-slug",
         "value": "pointer/scroll-element-into-view",
         "surface": "both"
       },
@@ -6274,7 +6274,7 @@
     },
     "aliases": [
       {
-        "kind": "template-step-slug",
+        "kind": "step-definition-slug",
         "value": "pointer/scroll-page-by-offset",
         "surface": "both"
       },
@@ -6354,7 +6354,7 @@
     },
     "aliases": [
       {
-        "kind": "template-step-slug",
+        "kind": "step-definition-slug",
         "value": "random-data/generate-random-address-and-save-in-variable",
         "surface": "both"
       },
@@ -6423,7 +6423,7 @@
     },
     "aliases": [
       {
-        "kind": "template-step-slug",
+        "kind": "step-definition-slug",
         "value": "random-data/generate-random-email-and-save-in-variable",
         "surface": "both"
       },
@@ -6504,7 +6504,7 @@
     },
     "aliases": [
       {
-        "kind": "template-step-slug",
+        "kind": "step-definition-slug",
         "value": "random-data/generate-random-first-name-and-save-in-variable",
         "surface": "both"
       },
@@ -6585,7 +6585,7 @@
     },
     "aliases": [
       {
-        "kind": "template-step-slug",
+        "kind": "step-definition-slug",
         "value": "random-data/generate-random-full-name-and-save-in-variable",
         "surface": "both"
       },
@@ -6666,7 +6666,7 @@
     },
     "aliases": [
       {
-        "kind": "template-step-slug",
+        "kind": "step-definition-slug",
         "value": "random-data/generate-random-last-name-and-save-in-variable",
         "surface": "both"
       },
@@ -6746,7 +6746,7 @@
     },
     "aliases": [
       {
-        "kind": "template-step-slug",
+        "kind": "step-definition-slug",
         "value": "random-data/generate-random-password-and-save-in-variable",
         "surface": "both"
       },
@@ -6815,7 +6815,7 @@
     },
     "aliases": [
       {
-        "kind": "template-step-slug",
+        "kind": "step-definition-slug",
         "value": "random-data/generate-random-phone-and-save-in-variable",
         "surface": "both"
       },
@@ -6896,7 +6896,7 @@
     },
     "aliases": [
       {
-        "kind": "template-step-slug",
+        "kind": "step-definition-slug",
         "value": "random-data/generate-random-unique-text-and-save-in-variable",
         "surface": "both"
       },
@@ -6972,7 +6972,7 @@
     },
     "aliases": [
       {
-        "kind": "template-step-slug",
+        "kind": "step-definition-slug",
         "value": "store/store-element-text",
         "surface": "both"
       },
@@ -7048,7 +7048,7 @@
     },
     "aliases": [
       {
-        "kind": "template-step-slug",
+        "kind": "step-definition-slug",
         "value": "store/store-text-input-text",
         "surface": "both"
       },
@@ -7124,7 +7124,7 @@
     },
     "aliases": [
       {
-        "kind": "template-step-slug",
+        "kind": "step-definition-slug",
         "value": "store/store-textarea-text",
         "surface": "both"
       },
@@ -7214,7 +7214,7 @@
     },
     "aliases": [
       {
-        "kind": "template-step-slug",
+        "kind": "step-definition-slug",
         "value": "structured-operations/run-structured-locator-operation",
         "surface": "both"
       },
@@ -7297,7 +7297,7 @@
     },
     "aliases": [
       {
-        "kind": "template-step-slug",
+        "kind": "step-definition-slug",
         "value": "structured-operations/run-structured-page-operation",
         "surface": "both"
       },
@@ -7366,7 +7366,7 @@
     },
     "aliases": [
       {
-        "kind": "template-step-slug",
+        "kind": "step-definition-slug",
         "value": "synchronization/wait-for-dialog",
         "surface": "both"
       },
@@ -7442,7 +7442,7 @@
     },
     "aliases": [
       {
-        "kind": "template-step-slug",
+        "kind": "step-definition-slug",
         "value": "synchronization/wait-for-element-state",
         "surface": "both"
       },
@@ -7518,7 +7518,7 @@
     },
     "aliases": [
       {
-        "kind": "template-step-slug",
+        "kind": "step-definition-slug",
         "value": "synchronization/wait-for-element-text",
         "surface": "both"
       },
@@ -7594,7 +7594,7 @@
     },
     "aliases": [
       {
-        "kind": "template-step-slug",
+        "kind": "step-definition-slug",
         "value": "synchronization/wait-for-input-value",
         "surface": "both"
       },
@@ -7663,7 +7663,7 @@
     },
     "aliases": [
       {
-        "kind": "template-step-slug",
+        "kind": "step-definition-slug",
         "value": "synchronization/wait-for-load-state",
         "surface": "both"
       },
@@ -7732,7 +7732,7 @@
     },
     "aliases": [
       {
-        "kind": "template-step-slug",
+        "kind": "step-definition-slug",
         "value": "synchronization/wait-for-popup",
         "surface": "both"
       },
@@ -7801,7 +7801,7 @@
     },
     "aliases": [
       {
-        "kind": "template-step-slug",
+        "kind": "step-definition-slug",
         "value": "synchronization/wait-for-request",
         "surface": "both"
       },
@@ -7877,7 +7877,7 @@
     },
     "aliases": [
       {
-        "kind": "template-step-slug",
+        "kind": "step-definition-slug",
         "value": "synchronization/wait-for-response",
         "surface": "both"
       },
@@ -7946,7 +7946,7 @@
     },
     "aliases": [
       {
-        "kind": "template-step-slug",
+        "kind": "step-definition-slug",
         "value": "synchronization/wait-for-url",
         "surface": "both"
       },
@@ -8006,7 +8006,7 @@
     },
     "aliases": [
       {
-        "kind": "template-step-slug",
+        "kind": "step-definition-slug",
         "value": "tabs-frames-dialogs/accept-next-dialog",
         "surface": "both"
       },
@@ -8085,7 +8085,7 @@
     },
     "aliases": [
       {
-        "kind": "template-step-slug",
+        "kind": "step-definition-slug",
         "value": "tabs-frames-dialogs/answer-next-prompt-dialog",
         "surface": "both"
       },
@@ -8165,7 +8165,7 @@
     },
     "aliases": [
       {
-        "kind": "template-step-slug",
+        "kind": "step-definition-slug",
         "value": "tabs-frames-dialogs/click-and-switch-to-popup",
         "surface": "both"
       },
@@ -8251,7 +8251,7 @@
     },
     "aliases": [
       {
-        "kind": "template-step-slug",
+        "kind": "step-definition-slug",
         "value": "tabs-frames-dialogs/click-element-inside-frame",
         "surface": "both"
       },
@@ -8311,7 +8311,7 @@
     },
     "aliases": [
       {
-        "kind": "template-step-slug",
+        "kind": "step-definition-slug",
         "value": "tabs-frames-dialogs/close-current-browser-tab",
         "surface": "both"
       },
@@ -8371,7 +8371,7 @@
     },
     "aliases": [
       {
-        "kind": "template-step-slug",
+        "kind": "step-definition-slug",
         "value": "tabs-frames-dialogs/dismiss-next-dialog",
         "surface": "both"
       },
@@ -8464,7 +8464,7 @@
     },
     "aliases": [
       {
-        "kind": "template-step-slug",
+        "kind": "step-definition-slug",
         "value": "tabs-frames-dialogs/fill-element-inside-frame",
         "surface": "both"
       },
@@ -8533,7 +8533,7 @@
     },
     "aliases": [
       {
-        "kind": "template-step-slug",
+        "kind": "step-definition-slug",
         "value": "tabs-frames-dialogs/switch-browser-tab",
         "surface": "both"
       },
@@ -8619,7 +8619,7 @@
     },
     "aliases": [
       {
-        "kind": "template-step-slug",
+        "kind": "step-definition-slug",
         "value": "text-assertion/assert-element-contains-stored-variable-text",
         "surface": "both"
       },
@@ -8702,7 +8702,7 @@
     },
     "aliases": [
       {
-        "kind": "template-step-slug",
+        "kind": "step-definition-slug",
         "value": "text-assertion/assert-element-equals-text",
         "surface": "both"
       },
@@ -8783,7 +8783,7 @@
         "surface": "agent"
       },
       {
-        "kind": "template-step-slug",
+        "kind": "step-definition-slug",
         "value": "browser-state/set-viewport-size",
         "surface": "human"
       },
@@ -8852,7 +8852,7 @@
     },
     "aliases": [
       {
-        "kind": "template-step-slug",
+        "kind": "step-definition-slug",
         "value": "wait/wait-for-element",
         "surface": "both"
       },
@@ -8921,7 +8921,7 @@
     },
     "aliases": [
       {
-        "kind": "template-step-slug",
+        "kind": "step-definition-slug",
         "value": "wait/wait-for-element-to-disappear",
         "surface": "both"
       },
@@ -8990,7 +8990,7 @@
     },
     "aliases": [
       {
-        "kind": "template-step-slug",
+        "kind": "step-definition-slug",
         "value": "wait/wait-for-url-route",
         "surface": "both"
       },
@@ -9069,7 +9069,7 @@
         "surface": "agent"
       },
       {
-        "kind": "template-step-slug",
+        "kind": "step-definition-slug",
         "value": "wait/wait-for-specific-amount-of-seconds",
         "surface": "human"
       },
@@ -9134,7 +9134,7 @@
         "surface": "agent"
       },
       {
-        "kind": "template-step-slug",
+        "kind": "step-definition-slug",
         "value": "wait/wait-for-page-load",
         "surface": "human"
       },

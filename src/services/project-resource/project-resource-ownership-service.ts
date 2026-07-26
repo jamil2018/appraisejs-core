@@ -5,15 +5,7 @@ import { canonicalContractJson } from '@/lib/catalog-contracts'
 import { ServiceError } from '@/services/shared/errors'
 
 export type ProjectResourceEntityType =
-  | 'module'
-  | 'test-suite'
-  | 'test-case'
-  | 'template-step'
-  | 'step-block'
-  | 'locator-group'
-  | 'locator'
-  | 'environment'
-  | 'tag'
+  'module' | 'test-suite' | 'test-case' | 'locator-group' | 'locator' | 'environment' | 'tag' | 'step-definition'
 type ResourceClient = PrismaClient | Prisma.TransactionClient
 
 const contentHash = (value: unknown) =>

@@ -27,7 +27,7 @@ Please review `CODE_OF_CONDUCT.md` before contributing.
 
 Before you begin, ensure you have the following installed:
 
-- **Node.js 18+** - [Download Node.js](https://nodejs.org/)
+- **Node.js 22** (the release-CI runtime; package minimum is Node.js 20.19+) - [Download Node.js](https://nodejs.org/)
 - **Git** - [Download Git](https://git-scm.com/)
 - **npm** (comes with Node.js)
 
@@ -283,8 +283,7 @@ This project includes various sync scripts that synchronize data between the fil
 - `npm run sync-tags` - Sync tags
 - `npm run sync-test-suites` - Sync test suites
 - `npm run sync-test-cases` - Sync test cases
-- `npm run sync-template-step-groups` - Sync template step groups
-- `npm run sync-template-steps` - Sync template steps
+- `npm run sync-step-definitions` - Register canonical built-in Step Definitions
 - `npm run sync-all` - Run all sync scripts in order for sync with test file changes
 
 ### When to Use Sync Scripts

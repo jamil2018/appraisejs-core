@@ -19,8 +19,6 @@ const localSearchTools = new Set([
   'locator_search',
   'step_search',
   'step_block_search',
-  'template_step_match',
-  'template_step_search',
 ])
 const localWorkflowTools = new Set([
   'plan_review_loop',
@@ -59,6 +57,7 @@ const exactCoordinatorOperations: Readonly<Record<string, CoordinatorOperationId
   project_list: 'target-projects-list',
   provider_list: 'providers-list',
   provider_run_read: 'provider-runs-read',
+  step_definition_draft_read: 'step-definitions-read',
   test_run: 'test-run-write',
   test_run_diagnose: 'test-run-evidence',
   test_run_preflight: 'test-run-write',
@@ -68,13 +67,12 @@ const exactCoordinatorOperations: Readonly<Record<string, CoordinatorOperationId
 }
 
 const coordinatorOperationPrefixes: ReadonlyArray<readonly [string, CoordinatorOperationId]> = [
-  ['action_', 'actions'],
-  ['actions_', 'actions'],
   ['baseline_', 'plan-baseline-write'],
   ['implementation_', 'plan-implementation-write'],
   ['operation_', 'operations'],
   ['provider_run_', 'provider-runs-write'],
   ['provider_', 'providers-write'],
+  ['step_definition_', 'step-definitions-write'],
   ['validation_', 'plan-validation-write'],
 ]
 

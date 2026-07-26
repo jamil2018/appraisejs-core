@@ -10,6 +10,7 @@ import {
   cleanupValidationResourceProposal,
   proposeValidationResources,
 } from './validation-resource-proposal-service'
+import { readValidationContext } from './validation-authoring-context-service'
 
 let workspace: string
 let client: PrismaClient
@@ -59,7 +60,7 @@ afterEach(async () => {
 })
 
 const proposal = () => ({
-  schemaVersion: 1,
+  schemaVersion: 2,
   idempotencyKey: 'todo-page-resources',
   modules: [{ localKey: 'todo', name: 'Todo' }],
   locatorGroups: [{ localKey: 'todo-page', name: 'Todo page', moduleKey: 'todo', route: '/' }],
@@ -67,10 +68,28 @@ const proposal = () => ({
     { localKey: 'todo-input', name: 'Todo input', groupKey: 'todo-page', selector: '[data-testid="todo-input"]' },
   ],
   environments: [{ localKey: 'local', name: `Local ${Date.now()}`, baseUrl: 'http://localhost:3000' }],
-  templateSteps: [],
 })
 
 describe('validation resource proposals', () => {
+  it('returns the deterministic versioned resource proposal contract in the full authoring context', async () => {
+    const first = await readValidationContext('plan-resources', { client, projectDirectory: workspace })
+    const second = await readValidationContext('plan-resources', { client, projectDirectory: workspace })
+
+    expect(first).toEqual(second)
+    expect(first.authoring?.resourceProposalContract).toMatchObject({
+      contractId: 'appraise.validation/resource-proposal',
+      version: 2,
+      request: {
+        additionalProperties: false,
+        properties: { schemaVersion: { const: 2 } },
+      },
+      example: expect.objectContaining({ schemaVersion: 2 }),
+      responseBindingExample: expect.objectContaining({
+        locators: expect.arrayContaining([expect.objectContaining({ astRef: expect.stringMatching(/^locator_/) })]),
+      }),
+    })
+  })
+
   it('creates a target-bound graph transactionally and replays by content-bound key', async () => {
     const first = await proposeValidationResources(
       { planId: 'plan-resources', proposal: proposal(), projectDirectory: workspace },
@@ -119,6 +138,27 @@ describe('validation resource proposals', () => {
         targetProjectId,
       },
     )
+  })
+
+  it('persists valid module hierarchies independently of declaration order', async () => {
+    const input = {
+      ...proposal(),
+      idempotencyKey: 'child-before-parent',
+      modules: [
+        { localKey: 'child', name: 'Child', parentKey: 'parent' },
+        { localKey: 'parent', name: 'Parent' },
+      ],
+      locatorGroups: [{ localKey: 'child-page', name: 'Child page', moduleKey: 'child', route: '/' }],
+      locators: [],
+    }
+
+    const result = await proposeValidationResources(
+      { planId: 'plan-resources', proposal: input, projectDirectory: workspace },
+      client,
+    )
+
+    const child = await client.module.findUniqueOrThrow({ where: { id: result.ids.modules.child } })
+    expect(child.parentId).toBe(result.ids.modules.parent)
   })
 
   it('allows different target projects to use the same environment name', async () => {
@@ -215,27 +255,12 @@ describe('validation resource proposals', () => {
     ).rejects.toMatchObject({ code: 'CONFLICT' })
   })
 
-  it('allows an agent-suggested template step to reference a shared group', async () => {
-    const foreignProject = await client.targetProject.create({
-      data: {
-        canonicalPath: `${workspace}-foreign`,
-        displayName: 'Foreign',
-        fingerprint: `sha256:${'e'.repeat(64)}`,
-      },
-    })
-    const foreignGroup = await client.templateStepGroup.create({
-      data: { name: 'Foreign actions', targetProjectId: foreignProject.id },
-    })
-    const input = {
-      ...proposal(),
-      templateSteps: [
-        { localKey: 'foreign-step', name: 'Foreign step', signature: 'Given foreign data', groupId: foreignGroup.id },
-      ],
-    }
+  it('rejects legacy Template Step authoring before any database write', async () => {
+    const input = { ...proposal(), templateSteps: [] }
 
     await expect(
       proposeValidationResources({ planId: 'plan-resources', proposal: input, projectDirectory: workspace }, client),
-    ).resolves.toMatchObject({ replayed: false })
-    await expect(client.templateStep.count({ where: { id: { startsWith: 'apr-' } } })).resolves.toBe(1)
+    ).rejects.toBeTruthy()
+    await expect(client.validationResourceProposal.count()).resolves.toBe(0)
   })
 })

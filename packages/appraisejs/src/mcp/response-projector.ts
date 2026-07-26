@@ -257,6 +257,10 @@ export function applyAuthoringResponseMode(value: unknown, responseMode: z.infer
     payload.plan && typeof payload.plan === 'object' && !Array.isArray(payload.plan)
       ? (payload.plan as Record<string, unknown>)
       : undefined
+  const authoring =
+    payload.authoring && typeof payload.authoring === 'object' && !Array.isArray(payload.authoring)
+      ? (payload.authoring as Record<string, unknown>)
+      : undefined
   const returnedResourceCounts = resources
     ? Object.fromEntries(
         Object.entries(resources).map(([resourceType, entries]) => [
@@ -331,9 +335,10 @@ export function applyAuthoringResponseMode(value: unknown, responseMode: z.infer
     taskDiff: payload.taskDiff,
     targetProject: payload.targetProject,
     bindings,
+    resourceProposalContract: authoring?.resourceProposalContract,
     returnedResourceCounts,
     resourceSearchGuidance: resources
-      ? 'Use validation_context_read with resourceTypes/query and a small limit, or the preferred combined step_search, step_block_search, and locator_search tools, before requesting full context.'
+      ? 'Use validation_context_read with resourceTypes/query and a small limit, or the preferred step_search and locator_search tools, before requesting full context.'
       : undefined,
   }
 }
@@ -345,6 +350,7 @@ export function applyCapsuleDiagnosticMode(value: unknown, responseMode: z.infer
     return {
       schemaVersion: diagnostic.schemaVersion,
       blockers: diagnostic.blockers,
+      failureOutput: (diagnostic.preflight as Record<string, unknown> | undefined)?.failureOutput,
       nextRecoveryAction: diagnostic.nextRecoveryAction,
     }
   if (responseMode === 'evidenceOnly')

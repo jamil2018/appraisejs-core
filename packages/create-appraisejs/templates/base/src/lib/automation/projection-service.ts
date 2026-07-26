@@ -10,20 +10,7 @@ import {
   updateLocatorMapFile,
 } from '@/lib/locator-group-file-utils'
 import { deleteFeatureFile, generateFeatureFile, regenerateAllFeatureFiles } from '@/lib/feature-file-generator'
-import {
-  createTemplateStepGroupFile,
-  removeTemplateStepGroupFile,
-  renameTemplateStepGroupFile,
-  ensureGroupJSDoc,
-} from '@/lib/utils/template-step-file-manager-intelligent'
-import { generateFileContent, writeTemplateStepFile } from '@/lib/utils/template-step-file-generator'
 import { ensureAutomationWorkspaceReady } from './paths'
-
-type TemplateStepGroupType = 'ACTION' | 'VALIDATION'
-
-function getTemplateStepGroupType(type: string | null | undefined): TemplateStepGroupType {
-  return type === 'VALIDATION' ? 'VALIDATION' : 'ACTION'
-}
 
 class AutomationProjectionService {
   async syncEnvironments(): Promise<boolean> {
@@ -75,108 +62,6 @@ class AutomationProjectionService {
   async deleteLocatorMapEntries(locatorGroupNames: string[]): Promise<boolean> {
     await ensureAutomationWorkspaceReady()
     return removeLocatorMapEntry(locatorGroupNames)
-  }
-
-  async syncTemplateStepGroup(groupId: string): Promise<void> {
-    await ensureAutomationWorkspaceReady()
-
-    const group = await prisma.templateStepGroup.findUnique({
-      where: { id: groupId },
-      include: {
-        templateSteps: {
-          orderBy: {
-            createdAt: 'asc',
-          },
-        },
-      },
-    })
-
-    if (!group) {
-      return
-    }
-
-    const groupType = getTemplateStepGroupType((group as { type?: string | null }).type)
-
-    if (group.templateSteps.length === 0) {
-      await createTemplateStepGroupFile(group.name, groupType, group.description)
-      return
-    }
-
-    const content = ensureGroupJSDoc(generateFileContent(group.templateSteps), group.name, group.description, groupType)
-    await writeTemplateStepFile(group.name, content, groupType)
-  }
-
-  async deleteTemplateStepGroup(groupId: string): Promise<void> {
-    await ensureAutomationWorkspaceReady()
-
-    const group = await prisma.templateStepGroup.findUnique({
-      where: { id: groupId },
-      select: {
-        name: true,
-        type: true,
-      },
-    })
-
-    if (!group) {
-      return
-    }
-
-    await removeTemplateStepGroupFile(group.name, getTemplateStepGroupType(group.type))
-  }
-
-  async renameTemplateStepGroup(
-    groupId: string,
-    newName: string,
-    newType: string,
-    newDescription?: string | null,
-  ): Promise<void> {
-    await ensureAutomationWorkspaceReady()
-
-    const currentGroup = await prisma.templateStepGroup.findUnique({
-      where: { id: groupId },
-      select: {
-        name: true,
-        type: true,
-      },
-    })
-
-    if (!currentGroup) {
-      return
-    }
-
-    await renameTemplateStepGroupFile(
-      currentGroup.name,
-      newName,
-      getTemplateStepGroupType(currentGroup.type),
-      getTemplateStepGroupType(newType),
-      newDescription,
-    )
-  }
-
-  async syncTemplateStep(stepId: string): Promise<void> {
-    const step = await prisma.templateStep.findUnique({
-      where: { id: stepId },
-      select: { templateStepGroupId: true },
-    })
-
-    if (!step?.templateStepGroupId) {
-      return
-    }
-
-    await this.syncTemplateStepGroup(step.templateStepGroupId)
-  }
-
-  async deleteTemplateStep(stepId: string): Promise<void> {
-    const step = await prisma.templateStep.findUnique({
-      where: { id: stepId },
-      select: { templateStepGroupId: true },
-    })
-
-    if (!step?.templateStepGroupId) {
-      return
-    }
-
-    await this.syncTemplateStepGroup(step.templateStepGroupId)
   }
 
   async generateFeature(testSuiteId: string): Promise<string> {

@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import { TestRunTestCaseResult } from '@prisma/client'
-import { getDashboardMetrics, getTestSuiteExecutionData } from './dashboard-service'
+import { getDashboardMetrics, getEntityMetrics, getTestSuiteExecutionData } from './dashboard-service'
 
 const { updateDashboardMetricsMock } = vi.hoisted(() => ({
   updateDashboardMetricsMock: vi.fn(),
@@ -8,7 +8,10 @@ const { updateDashboardMetricsMock } = vi.hoisted(() => ({
 
 vi.mock('@/config/db-config', () => ({
   default: {
-    testRun: { findMany: vi.fn() },
+    testRun: { findMany: vi.fn(), count: vi.fn() },
+    testCase: { count: vi.fn() },
+    testSuite: { count: vi.fn() },
+    stepDefinition: { count: vi.fn() },
     report: { findMany: vi.fn() },
     dashboardMetrics: { findFirst: vi.fn() },
   },
@@ -35,6 +38,23 @@ describe('getDashboardMetrics', () => {
 
     expect(updateDashboardMetricsMock).toHaveBeenCalledOnce()
     expect(prisma.dashboardMetrics.findFirst).toHaveBeenCalledOnce()
+  })
+})
+
+describe('getEntityMetrics', () => {
+  it('returns the ready unified Step Definition count', async () => {
+    vi.mocked(prisma.testCase.count).mockResolvedValue(2)
+    vi.mocked(prisma.testSuite.count).mockResolvedValue(3)
+    vi.mocked(prisma.stepDefinition.count).mockResolvedValue(7)
+    vi.mocked(prisma.testRun.count).mockResolvedValue(1)
+
+    await expect(getEntityMetrics('project-1')).resolves.toEqual({
+      testCasesCount: 2,
+      testSuitesCount: 3,
+      stepDefinitionsCount: 7,
+      runningTestRunsCount: 1,
+    })
+    expect(prisma.stepDefinition.count).toHaveBeenCalledWith({ where: { status: 'ready' } })
   })
 })
 

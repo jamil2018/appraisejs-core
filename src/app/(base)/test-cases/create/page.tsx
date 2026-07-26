@@ -2,32 +2,16 @@ import PageHeader from '@/components/typography/page-header'
 import HeaderSubtitle from '@/components/typography/page-header-subtitle'
 import React from 'react'
 import TestCaseForm from '../test-case-form'
-import {
-  getAllTemplateStepParamsAction,
-  getAllTemplateStepsAction,
-} from '@/actions/template-step/template-step-actions'
-import { getAllLocatorsAction } from '@/actions/locator/locator-actions'
-import { getAllStepBlocksAction } from '@/actions/step-block/step-block-actions'
-import { createTestCaseAction, getAllTestCasesAction } from '@/actions/test-case/test-case-actions'
-import { getAllLocatorGroupsAction } from '@/actions/locator-groups/locator-group-actions'
-import { getAllEnvironmentsAction } from '@/actions/environments/environment-actions'
-import { createTagAction, getAllTagsAction } from '@/actions/tags/tag-actions'
-import { getAllModulesAction } from '@/actions/modules/module-actions'
-import { createTestSuiteAction, getAllTestSuitesAction } from '@/actions/test-suite/test-suite-actions'
+import { createTestCaseAction } from '@/actions/test-case/test-case-actions'
+import { createTagAction } from '@/actions/tags/tag-actions'
+import { createTestSuiteAction } from '@/actions/test-suite/test-suite-actions'
 import { Metadata } from 'next'
 
 import {
-  getLocatorGroupRows,
-  getEnvironmentRows,
-  getLocatorRows,
-  getModuleRows,
-  getFlowStepBlockRows,
-  getTagRows,
-  getTemplateStepParamRows,
-  getTemplateStepRows,
-  getTestSuiteRows,
-} from '../test-case-resource-rows'
-import { getTestCaseRows } from '../test-case-row-helpers'
+  getTestCaseFormRouteResources,
+  getTestCaseRouteLoadError,
+  loadTestCaseFormResourceResponses,
+} from '../test-case-route-resource-helpers'
 
 export const metadata: Metadata = {
   title: 'Appraise | Create Test Case',
@@ -35,56 +19,14 @@ export const metadata: Metadata = {
 }
 
 const CreateTestCase = async () => {
-  const [
-    templateStepParamsResponse,
-    templateStepsResponse,
-    testSuitesResponse,
-    locatorsResponse,
-    locatorGroupsResponse,
-    tagsResponse,
-    testCasesResponse,
-    moduleListResponse,
-    environmentsResponse,
-    stepBlocksResponse,
-  ] = await Promise.all([
-    getAllTemplateStepParamsAction(),
-    getAllTemplateStepsAction(),
-    getAllTestSuitesAction(),
-    getAllLocatorsAction(),
-    getAllLocatorGroupsAction(),
-    getAllTagsAction(),
-    getAllTestCasesAction(),
-    getAllModulesAction(),
-    getAllEnvironmentsAction(),
-    getAllStepBlocksAction(),
-  ])
-
-  const loadError =
-    templateStepParamsResponse.error ||
-    templateStepsResponse.error ||
-    locatorsResponse.error ||
-    testSuitesResponse.error ||
-    locatorGroupsResponse.error ||
-    tagsResponse.error ||
-    testCasesResponse.error ||
-    moduleListResponse.error ||
-    environmentsResponse.error ||
-    stepBlocksResponse.error
+  const resourceResponses = await loadTestCaseFormResourceResponses()
+  const loadError = getTestCaseRouteLoadError(Object.values(resourceResponses))
 
   if (loadError) {
     return <div>Error: {loadError}</div>
   }
 
-  const templateStepParams = getTemplateStepParamRows(templateStepParamsResponse.data)
-  const templateSteps = getTemplateStepRows(templateStepsResponse.data)
-  const testSuites = getTestSuiteRows(testSuitesResponse.data)
-  const locators = getLocatorRows(locatorsResponse.data)
-  const locatorGroups = getLocatorGroupRows(locatorGroupsResponse.data)
-  const tags = getTagRows(tagsResponse.data)
-  const testCases = getTestCaseRows(testCasesResponse.data)
-  const moduleList = getModuleRows(moduleListResponse.data)
-  const environments = getEnvironmentRows(environmentsResponse.data)
-  const stepBlocks = getFlowStepBlockRows(stepBlocksResponse.data)
+  const resources = getTestCaseFormRouteResources(resourceResponses)
 
   return (
     <div>
@@ -94,16 +36,7 @@ const CreateTestCase = async () => {
       </div>
       <TestCaseForm
         defaultNodesOrder={{}}
-        templateStepParams={templateStepParams}
-        templateSteps={templateSteps}
-        locators={locators}
-        locatorGroups={locatorGroups}
-        environments={environments}
-        testSuites={testSuites}
-        testCases={testCases}
-        moduleList={moduleList}
-        stepBlocks={stepBlocks}
-        tags={tags}
+        {...resources}
         onSubmitAction={createTestCaseAction}
         onCreateTestSuiteAction={createTestSuiteAction}
         onCreateTagAction={createTagAction}

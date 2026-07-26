@@ -3,7 +3,6 @@
 import path from 'path'
 import { fileURLToPath } from 'url'
 import { Command } from 'commander'
-import { addStepBySlug } from './add-step.js'
 import { expectedAgentCapabilities } from './agent-setup-capabilities.js'
 import {
   CoordinatorRequestError,
@@ -323,13 +322,19 @@ addOnlineOptions(
     .command('add')
     .argument('<path>', 'target application repository path')
     .option('--display-name <name>', 'display label for the target project')
+    .option('--init-git', 'initialize a main-branch Git repository when the target workspace is empty', false)
     .option('--json', 'print machine-readable JSON', false),
-).action(async (projectPath: string, options: OnlineOptions & { displayName?: string; json: boolean }) => {
-  await runCommand(
-    async () => printJson(await (await onlineClient(options)).addTargetProject(projectPath, options.displayName)),
-    options.json,
-  )
-})
+).action(
+  async (projectPath: string, options: OnlineOptions & { displayName?: string; initGit: boolean; json: boolean }) => {
+    await runCommand(
+      async () =>
+        printJson(
+          await (await onlineClient(options)).addTargetProject(projectPath, options.displayName, options.initGit),
+        ),
+      options.json,
+    )
+  },
+)
 
 addOnlineOptions(project.command('list').option('--json', 'print machine-readable JSON', false)).action(
   async (options: OnlineOptions & { json: boolean }) => {
@@ -549,86 +554,6 @@ addOnlineOptions(
 ).action(async (planId: string, options: OnlineOptions) =>
   printJson(await (await onlineClient(options)).completionReview(planId)),
 )
-
-const actions = program.command('actions').description('Discover versioned Appraise runtime actions')
-addOnlineOptions(actions.command('categories').option('--parent <id>').option('--known-hash <hash>')).action(
-  async (options: OnlineOptions & { parent?: string; knownHash?: string }) =>
-    printJson(await (await onlineClient(options)).listActionCategories(options.parent, options.knownHash)),
-)
-addOnlineOptions(
-  actions
-    .command('list')
-    .option('--category <id>')
-    .option('--capability <id>')
-    .option('--input-type <type>')
-    .option('--runtime <runtime>')
-    .option('--deprecated <boolean>')
-    .option('--id-prefix <prefix>')
-    .option('--cursor <number>')
-    .option('--limit <number>'),
-).action(async (options: OnlineOptions & Record<string, string | undefined>) =>
-  printJson(
-    await (
-      await onlineClient(options)
-    ).listActions({
-      categoryId: options.category,
-      capability: options.capability,
-      inputType: options.inputType,
-      runtime: options.runtime,
-      deprecated: options.deprecated,
-      idPrefix: options.idPrefix,
-      cursor: options.cursor,
-      limit: options.limit,
-    }),
-  ),
-)
-addOnlineOptions(actions.command('read').argument('<refs...>', 'action-id@version')).action(
-  async (refs: string[], options: OnlineOptions) =>
-    printJson(
-      await (
-        await onlineClient(options)
-      ).readActions(
-        refs.map(ref => {
-          const [id, version] = ref.split('@')
-          return { id: id!, ...(version ? { version } : {}) }
-        }),
-      ),
-    ),
-)
-
-program
-  .command('add')
-  .description('Install AppraiseJS catalog assets into an existing project')
-  .command('step')
-  .argument('<group-slug/step-slug>', 'registry step slug to install')
-  .option('--cwd <path>', 'target Appraise project directory', process.cwd())
-  .option('--overwrite', 'replace an existing step with the same signature', false)
-  .option('--dry-run', 'print the intended install actions without writing files or syncing', false)
-  .option('--registry-url <url>', 'override the bundled registry with a manifest URL or base directory URL')
-  .option('--branch <ref>', 'registry branch to fetch from GitHub instead of using the bundled registry', 'main')
-  .action(
-    async (
-      slug: string,
-      options: { cwd: string; overwrite: boolean; dryRun: boolean; registryUrl?: string; branch: string },
-      command: Command,
-    ) => {
-      const useBundledRegistry = !options.registryUrl && command.getOptionValueSource('branch') !== 'cli'
-
-      try {
-        await addStepBySlug(slug, {
-          cwd: path.resolve(options.cwd),
-          overwrite: options.overwrite,
-          dryRun: options.dryRun,
-          registryUrl: options.registryUrl,
-          branch: options.branch,
-          useBundledRegistry,
-        })
-      } catch (error) {
-        console.error(error instanceof Error ? error.message : String(error))
-        process.exit(1)
-      }
-    },
-  )
 
 program.parseAsync(process.argv).catch(error => {
   console.error(error instanceof Error ? error.message : String(error))

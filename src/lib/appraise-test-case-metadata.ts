@@ -1,5 +1,7 @@
 import { promises as fs } from 'fs'
 
+import { stepInvocationSchema } from '../../packages/cucumber-runtime/src/step-definitions/contracts.ts'
+
 export const APPRAISE_METADATA_VERSION = 1
 export const APPRAISE_METADATA_EXTENSION = '.appraise.json'
 
@@ -7,6 +9,7 @@ export type AppraiseTestCaseMetadataNode = {
   nodeId: string
   order: number
   label: string
+  invocation: unknown
 }
 
 export type AppraiseTestCaseMetadataFlowBlock = {
@@ -34,8 +37,7 @@ export type AppraiseTestCaseMetadata = {
 }
 
 export type AppraiseMetadataReadResult =
-  | { metadata: AppraiseTestCaseMetadata | null; warnings: string[] }
-  | { metadata: null; warnings: string[] }
+  { metadata: AppraiseTestCaseMetadata | null; warnings: string[] } | { metadata: null; warnings: string[] }
 
 type MetadataInputTestCase = {
   title: string
@@ -45,6 +47,7 @@ type MetadataInputTestCase = {
     flowNodeId: string | null
     order: number
     label: string
+    invocationJson: string
   }>
   flowBlocks?: Array<{
     id: string
@@ -97,6 +100,7 @@ export function buildAppraiseMetadata(input: {
           nodeId: step.flowNodeId as string,
           order: step.order,
           label: step.label,
+          invocation: JSON.parse(step.invocationJson),
         }))
 
       const validNodeIds = new Set(nodes.map(node => node.nodeId))
@@ -172,6 +176,7 @@ function validateMetadata(value: unknown): AppraiseTestCaseMetadata {
             nodeId: node.nodeId,
             order: node.order,
             label: node.label,
+            invocation: stepInvocationSchema.parse(node.invocation),
           }
         }),
         flowBlocks: entry.flowBlocks.map((block, blockIndex) => {

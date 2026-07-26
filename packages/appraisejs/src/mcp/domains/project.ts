@@ -99,13 +99,17 @@ export function registerProjectOperations(context: McpRegistryContext): void {
     'project_add',
     {
       description:
-        'Attach an existing application repository as a target project and write a non-blocking .appraisejs/project.json continuity marker when writable.',
-      inputSchema: { path: z.string().min(1), displayName: z.string().min(1).optional() },
+        'Attach an application workspace as a target project, optionally initialize Git when the workspace is empty, and write a non-blocking .appraisejs/project.json continuity marker when writable.',
+      inputSchema: {
+        path: z.string().min(1),
+        displayName: z.string().min(1).optional(),
+        initializeGit: z.boolean().optional(),
+      },
     },
-    async ({ path, displayName }) => {
+    async ({ path, displayName, initializeGit }) => {
       try {
         return text(
-          withGuidance(await api.addTargetProject(path, displayName), {
+          withGuidance(await api.addTargetProject(path, displayName, initializeGit), {
             nextRecommendedAction:
               'Use the returned target project id, fingerprint, display name, or canonical path as plan_create target.',
           }),
@@ -280,7 +284,7 @@ export function registerProjectOperations(context: McpRegistryContext): void {
     'step_search',
     {
       description:
-        'Preferred combined discovery for human-authored and agent-authored steps. Returns semantic Template Step naming together with canonical typed operation identity when mapped.',
+        'Search ready Step Definitions by one actionable versioned identity with human, agent, and execution-readiness projections.',
       inputSchema: {
         planId: z.string(),
         query: z.string().min(1),
@@ -291,66 +295,9 @@ export function registerProjectOperations(context: McpRegistryContext): void {
     async ({ planId, query, parameterNames, limit }) =>
       text(
         await api.request(
-          `plans/${planId}/validations/resolver?intent=${encodeURIComponent(query)}&parameterNames=${encodeURIComponent(parameterNames.join(','))}&limit=${limit}`,
+          `step-definitions/search?planId=${encodeURIComponent(planId)}&query=${encodeURIComponent(query)}&parameterNames=${encodeURIComponent(parameterNames.join(','))}&limit=${limit}&surface=agent`,
         ),
       ),
-  )
-
-  server.registerTool(
-    'template_step_search',
-    {
-      description:
-        'Compatibility name for step_search. Resolve combined human Template Step and canonical agent-operation results before proposing custom steps.',
-      inputSchema: {
-        planId: z.string(),
-        query: z.string().min(1),
-        parameterNames: z.array(z.string().min(1)).default([]),
-        limit: z.number().int().positive().max(25).default(5),
-      },
-    },
-    async ({ planId, query, parameterNames, limit }) =>
-      text(
-        await api.request(
-          `plans/${planId}/validations/resolver?intent=${encodeURIComponent(query)}&parameterNames=${encodeURIComponent(parameterNames.join(','))}&limit=${limit}`,
-        ),
-      ),
-  )
-
-  server.registerTool(
-    'template_step_match',
-    {
-      description:
-        'Compatibility name for step_search. Rank combined reusable steps and step blocks for a behavior intent.',
-      inputSchema: {
-        planId: z.string(),
-        intent: z.string().min(1),
-        parameterNames: z.array(z.string().min(1)).default([]),
-        limit: z.number().int().positive().max(25).default(5),
-      },
-    },
-    async ({ planId, intent, parameterNames, limit }) =>
-      text(
-        await api.request(
-          `plans/${planId}/validations/resolver?intent=${encodeURIComponent(intent)}&parameterNames=${encodeURIComponent(parameterNames.join(','))}&limit=${limit}`,
-        ),
-      ),
-  )
-
-  server.registerTool(
-    'step_block_search',
-    {
-      description: 'Search reusable step blocks before proposing custom validation step sequences.',
-      inputSchema: { planId: z.string(), query: z.string().min(1) },
-    },
-    async ({ planId, query }) => {
-      const context = (await api.request(
-        `plans/${planId}/validations/context?resourceTypes=stepBlocks&query=${encodeURIComponent(query)}&limit=25`,
-      )) as {
-        resources?: { stepBlocks?: Array<Record<string, unknown>> }
-      }
-      const matches = context.resources?.stepBlocks ?? []
-      return text({ matches, nextRecommendedAction: 'Reuse a matching stepBlockRef when possible.' })
-    },
   )
 
   server.registerTool(
@@ -463,46 +410,5 @@ export function registerProjectOperations(context: McpRegistryContext): void {
       },
     },
     async ({ operationRefs }) => text(await api.readOperations(operationRefs)),
-  )
-
-  server.registerTool(
-    'action_categories_list',
-    {
-      description: 'List bounded action category summaries; known catalog hashes return unchanged.',
-      inputSchema: { parentCategoryId: z.string().optional(), knownCatalogHash: z.string().optional() },
-    },
-    async input => text(await api.listActionCategories(input.parentCategoryId, input.knownCatalogHash)),
-  )
-
-  server.registerTool(
-    'actions_list',
-    {
-      description: 'List deterministic bounded action summaries using exact filters; limit must be between 1 and 100.',
-      inputSchema: {
-        categoryId: z.string().optional(),
-        capability: z.string().optional(),
-        inputType: z.string().optional(),
-        runtime: z.enum(['browser', 'api', 'node', 'database']).optional(),
-        deprecated: z.boolean().optional(),
-        idPrefix: z.string().optional(),
-        cursor: z.number().int().nonnegative().optional(),
-        limit: z.number().int().min(1).max(100).optional(),
-      },
-    },
-    async input => text(await api.listActions(input)),
-  )
-
-  server.registerTool(
-    'actions_read',
-    {
-      description: 'Read exact versioned action descriptors for selected references.',
-      inputSchema: {
-        actionRefs: z
-          .array(z.object({ id: z.string(), version: z.string().optional() }))
-          .min(1)
-          .max(50),
-      },
-    },
-    async ({ actionRefs }) => text(await api.readActions(actionRefs)),
   )
 }

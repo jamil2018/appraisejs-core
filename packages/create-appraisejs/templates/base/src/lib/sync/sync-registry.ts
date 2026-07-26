@@ -43,20 +43,12 @@ export const syncScriptDefinitions = [
     dependencies: [],
   },
   {
-    id: 'sync-template-step-groups',
-    label: 'Sync Template Step Groups',
-    description: 'Syncs template step groups to DB.',
-    orderLabel: 'Template Step Groups',
-    scriptFile: 'sync-template-step-groups.ts',
+    id: 'sync-step-definitions',
+    label: 'Sync Step Definitions',
+    description: 'Publishes canonical built-in Step Definitions.',
+    orderLabel: 'Step Definitions',
+    scriptFile: 'sync-step-definitions.ts',
     dependencies: [],
-  },
-  {
-    id: 'sync-template-steps',
-    label: 'Sync Template Steps',
-    description: 'Syncs template steps to DB.',
-    orderLabel: 'Template Steps',
-    scriptFile: 'sync-template-steps.ts',
-    dependencies: ['sync-template-step-groups'],
   },
   {
     id: 'sync-locator-groups',
@@ -88,7 +80,7 @@ export const syncScriptDefinitions = [
     description: 'Syncs test cases to DB.',
     orderLabel: 'Test Cases',
     scriptFile: 'sync-test-cases.ts',
-    dependencies: ['sync-test-suites', 'sync-template-steps', 'sync-tags'],
+    dependencies: ['sync-test-suites', 'sync-step-definitions', 'sync-tags'],
   },
 ] as const satisfies readonly BaseSyncScriptDefinition[]
 

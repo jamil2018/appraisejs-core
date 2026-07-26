@@ -1,11 +1,7 @@
 import { promises as fs } from 'fs'
 import { join } from 'path'
 import { glob } from 'glob'
-import { parse } from '@babel/parser'
-import * as t from '@babel/types'
-import _traverse from '@babel/traverse'
-import type { NodePath } from '@babel/traverse'
-import { StepParameterType, TagType, TemplateStepGroupType, TemplateStepIcon, TemplateStepType } from '@prisma/client'
+import { StepParameterType, TagType, StepIcon } from '@prisma/client'
 import prisma from '@/config/db-config'
 import { getAutomationEnvironmentsDir, getAutomationFeaturesDir } from '@/lib/automation/automation-path-roots'
 import { ensureAutomationWorkspaceReady } from '@/lib/automation/automation-workspace'
@@ -16,6 +12,7 @@ import {
   type ParsedStep,
 } from '@/lib/gherkin-parser'
 import { getAllModulesWithPaths } from '@/lib/module-hierarchy-builder'
+import { parseGherkinScenarioTitle } from '@/lib/gherkin-scenario-title'
 import {
   SYNC_ALL_REQUEST_ID,
   syncScriptDefinitions,
@@ -23,7 +20,6 @@ import {
   type SyncScriptId,
 } from '@/lib/sync/sync-registry'
 import { getTagTypeFromName } from '@/lib/tag-identifiers'
-import { normalizeFunctionDefinition } from '@/lib/sync/normalize-function-definition'
 import { extractModulePathFromAutomationFile, getAutomationLocatorMapPath } from '@/lib/template-sync-utils'
 import {
   determineProjectedStepIcon,
@@ -33,15 +29,12 @@ import {
 } from '@/lib/sync/projected-feature-utils'
 import type { AppraiseTestCaseMetadataFlowBlock, AppraiseTestCaseMetadataNode } from '@/lib/appraise-test-case-metadata'
 import { countPendingPlanSync } from '@/lib/plans/plan-sync-service'
-import { aggregatePendingComparisons, pendingComparison } from '@/lib/sync/pending-comparators'
 import {
-  parseGroupJSDocLenient as parseGroupJSDoc,
-  parseStepJSDocLenient as parseStepJSDoc,
-  type StepGroupJSDoc,
-  type StepJSDoc,
-} from '@/lib/jsdoc/template-step-jsdoc'
-
-const traverse = (_traverse as { default?: typeof _traverse }).default ?? _traverse
+  builtInStepDefinitions,
+  computeStepDefinitionHashes,
+} from '../../../packages/cucumber-runtime/src/step-definitions/index'
+import { aggregatePendingComparisons, pendingComparison } from '@/lib/sync/pending-comparators'
+import { canonicalStepDefinitionJson } from '../../../packages/cucumber-runtime/src/step-definitions/contracts.ts'
 
 export type SyncPendingCounts = Record<SyncRequestId, number>
 
@@ -79,34 +72,6 @@ type LocatorFileData = {
   locators: Record<string, string>
 }
 
-type StepParameter = {
-  name: string
-  type: StepParameterType
-  order: number
-}
-
-type ParsedTemplateStep = {
-  jsdoc: StepJSDoc
-  signature: string
-  functionDefinition: string
-  normalizedFunctionDefinition: string
-  parameters: StepParameter[]
-  keyword: 'When' | 'Then' | 'Given'
-}
-
-type ParsedStepFile = {
-  group: StepGroupJSDoc
-  steps: ParsedTemplateStep[]
-}
-
-type StepKeyword = ParsedTemplateStep['keyword']
-
-type TemplateStepFromFs = {
-  step: ParsedTemplateStep
-  groupName: string
-  groupType: TemplateStepGroupType
-}
-
 type TestSuiteFromFs = {
   name: string
   description: string | null
@@ -131,21 +96,12 @@ type CollapsedTestCaseFromFs = TestCaseFromFs & {
   expectedSuiteIdentities: Set<string>
 }
 
-type ParameterMatch = {
-  name: string
-  value: string
-  order: number
-  type: StepParameterType
-}
-
 type FilesystemSnapshot = {
   environments: EnvironmentData[]
   modulePaths: Set<string>
   locatorGroups: LocatorGroupFromFs[]
   locatorFiles: LocatorFileData[]
   tagObjects: Array<{ name: string; tagExpression: string; type: TagType }>
-  templateStepGroups: StepGroupJSDoc[]
-  templateSteps: TemplateStepFromFs[]
   testSuites: TestSuiteFromFs[]
   testCases: TestCaseFromFs[]
 }
@@ -287,151 +243,6 @@ async function readLocatorFile(filePath: string): Promise<Record<string, string>
   }
 }
 
-function mapTypeToParameterType(typeName: string): StepParameterType {
-  const normalized = typeName.trim()
-
-  if (normalized === 'SelectorName') return StepParameterType.LOCATOR
-  if (normalized === 'string') return StepParameterType.STRING
-  if (normalized === 'number' || normalized === 'int') return StepParameterType.NUMBER
-  if (normalized === 'boolean') return StepParameterType.BOOLEAN
-  if (normalized === 'Date') return StepParameterType.DATE
-
-  throw new Error(`Unsupported parameter type: ${typeName}`)
-}
-
-function extractFunctionDefinition(callExpression: t.CallExpression, sourceCode: string): string {
-  const start = callExpression.start
-  const end = callExpression.end
-
-  if (start == null || end == null) {
-    throw new Error('Cannot extract function definition.')
-  }
-
-  let code = sourceCode.slice(start, end).trim()
-  const trailingSource = sourceCode.slice(end, end + 10).trim()
-  if (trailingSource.startsWith(';')) {
-    code += ';'
-  }
-
-  return code
-}
-
-function getStepKeyword(node: t.CallExpression): StepKeyword | null {
-  const callee = node.callee
-  return t.isIdentifier(callee) && (callee.name === 'When' || callee.name === 'Then' || callee.name === 'Given')
-    ? callee.name
-    : null
-}
-
-function getStepSignature(node: t.CallExpression): string | null {
-  const patternArg = node.arguments[0]
-  return t.isStringLiteral(patternArg) ? patternArg.value : null
-}
-
-function getStepFunction(node: t.CallExpression): t.Function | null {
-  const functionArg = node.arguments[1]
-  return t.isFunction(functionArg) ? functionArg : null
-}
-
-function getIdentifierParameterType(parameter: t.Identifier): string | null {
-  if (!parameter.typeAnnotation || !t.isTSTypeAnnotation(parameter.typeAnnotation)) {
-    return null
-  }
-
-  const annotation = parameter.typeAnnotation.typeAnnotation
-  if (t.isTSTypeReference(annotation) && t.isIdentifier(annotation.typeName)) {
-    return annotation.typeName.name
-  }
-
-  if (t.isTSStringKeyword(annotation)) return 'string'
-  if (t.isTSNumberKeyword(annotation)) return 'number'
-  if (t.isTSBooleanKeyword(annotation)) return 'boolean'
-  return null
-}
-
-function parseStepParameters(parameters: t.Function['params']): StepParameter[] | null {
-  const parsedParameters: StepParameter[] = []
-
-  for (const parameter of parameters) {
-    if ((t.isIdentifier(parameter) && parameter.name === 'this') || t.isObjectPattern(parameter)) {
-      continue
-    }
-
-    if (!t.isIdentifier(parameter)) {
-      continue
-    }
-
-    const typeName = getIdentifierParameterType(parameter)
-    if (!typeName) {
-      continue
-    }
-
-    try {
-      parsedParameters.push({
-        name: parameter.name,
-        type: mapTypeToParameterType(typeName),
-        order: parsedParameters.length,
-      })
-    } catch {
-      return null
-    }
-  }
-
-  return parsedParameters
-}
-
-function parseStepCall(node: t.CallExpression, content: string): ParsedTemplateStep | null {
-  const keyword = getStepKeyword(node)
-  if (!keyword || node.arguments.length < 2) return null
-
-  const signature = getStepSignature(node)
-  const functionArg = getStepFunction(node)
-  const lineNumber = node.loc?.start?.line
-  if (!signature || !functionArg || lineNumber == null) return null
-
-  const jsdoc = parseStepJSDoc(content, lineNumber - 1)
-  const parameters = parseStepParameters(functionArg.params)
-  if (!jsdoc || !parameters) return null
-
-  return {
-    jsdoc,
-    signature,
-    functionDefinition: extractFunctionDefinition(node, content),
-    normalizedFunctionDefinition: '',
-    parameters,
-    keyword,
-  }
-}
-
-function parseStepFile(content: string): ParsedStepFile | null {
-  const group = parseGroupJSDoc(content)
-  if (!group) {
-    return null
-  }
-
-  const ast = parse(content, {
-    sourceType: 'module',
-    plugins: ['typescript', 'decorators-legacy'],
-  })
-
-  const steps: ParsedTemplateStep[] = []
-
-  traverse(ast, {
-    CallExpression(path: NodePath<t.CallExpression>) {
-      const step = parseStepCall(path.node, content)
-      if (step) steps.push(step)
-    },
-  })
-
-  return { group, steps }
-}
-
-async function scanStepFiles(baseDir: string): Promise<string[]> {
-  const actionFiles = await glob('automation/steps/actions/**/*.step.ts', { cwd: baseDir })
-  const validationFiles = await glob('automation/steps/validations/**/*.step.ts', { cwd: baseDir })
-  return [...actionFiles, ...validationFiles]
-}
-
 function extractTestSuiteNameFromFilename(filePath: string): string {
   const fileName = filePath.split(/[/\\]/).pop() ?? ''
   return fileName.replace(/\.feature$/, '')
@@ -439,88 +250,6 @@ function extractTestSuiteNameFromFilename(filePath: string): string {
 
 function extractFeatureLevelTags(parsedFeature: ParsedFeature): string[] {
   return parsedFeature.tags.flatMap(splitTagLine)
-}
-
-function parseScenarioTitle(
-  scenarioName: string,
-  scenarioDescription?: string,
-): { title: string; description: string } {
-  if (scenarioDescription) {
-    return {
-      title: scenarioDescription.trim(),
-      description: scenarioName.trim(),
-    }
-  }
-
-  return {
-    title: scenarioName.trim(),
-    description: '',
-  }
-}
-
-function signatureToRegex(signature: string): RegExp {
-  let pattern = signature.replace(/[.*+?^${}()|[\]\\]/g, match => {
-    if (match === '{' || match === '}') return match
-    return `\\${match}`
-  })
-
-  pattern = pattern.replace(/\{string\}/g, '"([^"]+)"')
-  pattern = pattern.replace(/\{int\}/g, '(\\d+)')
-  pattern = pattern.replace(/\{boolean\}/g, '(true|false)')
-  pattern = pattern.replace(/\{number\}/g, '(\\d+(?:\\.\\d+)?)')
-
-  return new RegExp(`^${pattern}$`, 'i')
-}
-
-function extractParametersFromGherkinStep(
-  gherkinText: string,
-  signature: string,
-  templateStepParameters: Array<{ name: string; order: number; type: StepParameterType }>,
-): ParameterMatch[] | null {
-  const match = gherkinText.match(signatureToRegex(signature))
-  if (!match) {
-    return null
-  }
-
-  return match.slice(1).flatMap((value, index) => {
-    const parameter = templateStepParameters[index]
-    if (!parameter || value == null) {
-      return []
-    }
-
-    return [
-      {
-        name: parameter.name,
-        value,
-        order: parameter.order,
-        type: parameter.type,
-      },
-    ]
-  })
-}
-
-function matchGherkinStepToTemplateStep(
-  gherkinStep: ParsedStep,
-  templateSteps: Array<{
-    signature: string
-    parameters: Array<{ name: string; order: number; type: StepParameterType }>
-  }>,
-): { signature: string; parameters: ParameterMatch[] } | null {
-  for (const templateStep of templateSteps) {
-    const parameters = extractParametersFromGherkinStep(
-      gherkinStep.text,
-      templateStep.signature,
-      templateStep.parameters,
-    )
-    if (parameters) {
-      return {
-        signature: templateStep.signature,
-        parameters,
-      }
-    }
-  }
-
-  return null
 }
 
 function groupRecordsByKey<T>(records: T[], getKey: (record: T) => string | null | undefined): Map<string, T[]> {
@@ -551,53 +280,10 @@ function sameStringSet(left: string[], right: string[]): boolean {
   return JSON.stringify(sortedLeft) === JSON.stringify(sortedRight)
 }
 
-function sameStepParameters(
-  left: Array<{ name: string; order: number; type: StepParameterType }>,
-  right: Array<{ name: string; order: number; type: StepParameterType }>,
-): boolean {
-  if (left.length !== right.length) {
-    return false
-  }
-
-  return left.every((parameter, index) => {
-    const other = right[index]
-    return parameter.name === other?.name && parameter.order === other?.order && parameter.type === other?.type
-  })
-}
-
-function sameResolvedParameters(
-  left: Array<{ name: string; value: string; order: number; type: StepParameterType }>,
-  right: Array<{ name: string; value: string; order: number; type: StepParameterType }>,
-): boolean {
-  if (left.length !== right.length) {
-    return false
-  }
-
-  return left.every((parameter, index) => {
-    const other = right[index]
-    return (
-      parameter.name === other?.name &&
-      parameter.value === other?.value &&
-      parameter.order === other?.order &&
-      parameter.type === other?.type
-    )
-  })
-}
-
-async function buildFilesystemSnapshot(baseDir: string): Promise<FilesystemSnapshot> {
-  const featuresDir = getAutomationFeaturesDir()
-  const [environments, parsedFeatures, locatorFiles, locatorMap, stepFiles] = await Promise.all([
-    readEnvironmentsFromFile(),
-    scanFeatureFiles(featuresDir),
-    scanLocatorFiles(baseDir),
-    readLocatorMap(baseDir),
-    scanStepFiles(baseDir),
-  ])
-
+async function buildLocatorFilesystemSnapshot(baseDir: string, locatorFiles: string[], locatorMap: LocatorMapEntry[]) {
   const locatorRouteMap = new Map(locatorMap.map(entry => [entry.name, entry.path]))
   const locatorGroups: LocatorGroupFromFs[] = []
   const locatorFileData: LocatorFileData[] = []
-  const directModulePaths = new Set<string>()
 
   for (const filePath of locatorFiles) {
     const modulePath = extractModulePathFromAutomationFile(filePath, baseDir, 'locators')
@@ -614,91 +300,107 @@ async function buildFilesystemSnapshot(baseDir: string): Promise<FilesystemSnaps
       modulePath,
       locators,
     })
-    directModulePaths.add(modulePath)
   }
 
-  for (const feature of parsedFeatures) {
-    directModulePaths.add(extractModulePathFromFilePath(feature.filePath, featuresDir))
-  }
+  return { locatorGroups, locatorFileData }
+}
 
-  const tagObjects = buildTagObjects(extractUniqueTags(parsedFeatures))
-
-  const templateStepGroups: StepGroupJSDoc[] = []
-  const templateSteps: TemplateStepFromFs[] = []
-
-  for (const file of stepFiles) {
-    try {
-      const filePath = join(baseDir, file)
-      const content = await fs.readFile(filePath, 'utf-8')
-      const parsed = parseStepFile(content)
-      if (!parsed) {
-        continue
-      }
-
-      await Promise.all(
-        parsed.steps.map(async step => {
-          step.normalizedFunctionDefinition = await normalizeFunctionDefinition(step.functionDefinition)
-        }),
-      )
-
-      templateStepGroups.push(parsed.group)
-      for (const step of parsed.steps) {
-        templateSteps.push({
-          step,
-          groupName: parsed.group.name,
-          groupType: parsed.group.type,
-        })
-      }
-    } catch (error) {
-      console.error(`Unable to parse step file ${file} for sync counts:`, error)
-    }
-  }
-
-  const testSuites: TestSuiteFromFs[] = parsedFeatures.map(feature => ({
+function buildTestSuiteSnapshot(parsedFeatures: ParsedFeature[], featuresDir: string): TestSuiteFromFs[] {
+  return parsedFeatures.map(feature => ({
     name: extractTestSuiteNameFromFilename(feature.filePath),
     description: feature.featureDescription ?? feature.featureName ?? null,
     modulePath: extractModulePathFromFilePath(feature.filePath, featuresDir),
     tags: extractFeatureLevelTags(feature),
   }))
+}
 
-  const testCases: TestCaseFromFs[] = []
-  for (const feature of parsedFeatures) {
-    const modulePath = extractModulePathFromFilePath(feature.filePath, featuresDir)
-    const testSuiteName = extractTestSuiteNameFromFilename(feature.filePath)
-
-    for (const scenario of feature.scenarios) {
-      const flattenedTags = scenario.tags.flatMap(splitTagLine)
-      const identifierTag = flattenedTags.find(tag => tag.replace(/^@/, '').startsWith('tc_'))
-      if (!identifierTag) {
-        continue
-      }
-
-      const parsedTitle = parseScenarioTitle(scenario.name, scenario.description)
-      testCases.push({
-        identifierTag: normalizeTagExpression(identifierTag),
-        title: scenario.appraiseMetadata?.title ?? parsedTitle.title,
-        description: scenario.appraiseMetadata?.description ?? parsedTitle.description,
-        testSuiteName,
-        modulePath,
-        filterTags: flattenedTags.filter(tag => normalizeTagExpression(tag) !== normalizeTagExpression(identifierTag)),
-        steps: scenario.steps,
-        hasAppraiseMetadata: scenario.appraiseMetadata != null,
-        nodes: scenario.appraiseMetadata?.nodes ?? [],
-        flowBlocks: scenario.appraiseMetadata?.flowBlocks ?? [],
-      })
+function getScenarioSnapshotMetadata(scenario: ParsedFeature['scenarios'][number]) {
+  const parsedTitle = parseGherkinScenarioTitle(scenario.name, scenario.description)
+  const metadata = scenario.appraiseMetadata
+  if (!metadata) {
+    return {
+      title: parsedTitle.title,
+      description: parsedTitle.description,
+      hasAppraiseMetadata: false,
+      nodes: [],
+      flowBlocks: [],
     }
   }
 
   return {
+    title: metadata.title,
+    description: metadata.description,
+    hasAppraiseMetadata: true,
+    nodes: metadata.nodes,
+    flowBlocks: metadata.flowBlocks,
+  }
+}
+
+function buildTestCaseSnapshotForScenario(
+  scenario: ParsedFeature['scenarios'][number],
+  testSuiteName: string,
+  modulePath: string,
+): TestCaseFromFs | null {
+  const flattenedTags = scenario.tags.flatMap(splitTagLine)
+  const identifierTag = flattenedTags.find(tag => tag.replace(/^@/, '').startsWith('tc_'))
+  if (!identifierTag) return null
+
+  const metadata = getScenarioSnapshotMetadata(scenario)
+  return {
+    identifierTag: normalizeTagExpression(identifierTag),
+    title: metadata.title,
+    description: metadata.description,
+    testSuiteName,
+    modulePath,
+    filterTags: flattenedTags.filter(tag => normalizeTagExpression(tag) !== normalizeTagExpression(identifierTag)),
+    steps: scenario.steps,
+    hasAppraiseMetadata: metadata.hasAppraiseMetadata,
+    nodes: metadata.nodes,
+    flowBlocks: metadata.flowBlocks,
+  }
+}
+
+function buildTestCaseSnapshot(parsedFeatures: ParsedFeature[], featuresDir: string): TestCaseFromFs[] {
+  return parsedFeatures.flatMap(feature => {
+    const modulePath = extractModulePathFromFilePath(feature.filePath, featuresDir)
+    const testSuiteName = extractTestSuiteNameFromFilename(feature.filePath)
+    return feature.scenarios.flatMap(scenario => {
+      const testCase = buildTestCaseSnapshotForScenario(scenario, testSuiteName, modulePath)
+      return testCase ? [testCase] : []
+    })
+  })
+}
+
+function collectModulePaths(
+  locatorGroups: LocatorGroupFromFs[],
+  parsedFeatures: ParsedFeature[],
+  featuresDir: string,
+): Set<string> {
+  return new Set([
+    ...locatorGroups.map(group => group.modulePath),
+    ...parsedFeatures.map(feature => extractModulePathFromFilePath(feature.filePath, featuresDir)),
+  ])
+}
+
+async function buildFilesystemSnapshot(baseDir: string): Promise<FilesystemSnapshot> {
+  const featuresDir = getAutomationFeaturesDir()
+  const [environments, parsedFeatures, locatorFiles, locatorMap] = await Promise.all([
+    readEnvironmentsFromFile(),
+    scanFeatureFiles(featuresDir),
+    scanLocatorFiles(baseDir),
+    readLocatorMap(baseDir),
+  ])
+  const { locatorGroups, locatorFileData } = await buildLocatorFilesystemSnapshot(baseDir, locatorFiles, locatorMap)
+  const testSuites = buildTestSuiteSnapshot(parsedFeatures, featuresDir)
+
+  return {
     environments,
-    modulePaths: buildModuleTreePaths(directModulePaths),
+    modulePaths: buildModuleTreePaths(collectModulePaths(locatorGroups, parsedFeatures, featuresDir)),
     locatorGroups,
     locatorFiles: locatorFileData,
-    tagObjects,
-    templateStepGroups,
-    templateSteps,
+    tagObjects: buildTagObjects(extractUniqueTags(parsedFeatures)),
     testSuites,
-    testCases,
+    testCases: buildTestCaseSnapshot(parsedFeatures, featuresDir),
   }
 }
 
@@ -795,71 +497,6 @@ export function countTagMismatches(
   let count = 0
   for (const tag of filesystemTags) {
     const hasMatch = (dbByName.get(tag.name) ?? []).some(existing => existing.type === tag.type)
-    if (!hasMatch) {
-      count++
-    }
-  }
-
-  return count
-}
-
-export function countTemplateStepGroupMismatches(
-  filesystemGroups: StepGroupJSDoc[],
-  dbGroups: Array<{ name: string; description: string | null; type: TemplateStepGroupType }>,
-): number {
-  const dbByName = groupRecordsByKey(dbGroups, group => group.name)
-  let count = 0
-
-  for (const group of filesystemGroups) {
-    const hasMatch = (dbByName.get(group.name) ?? []).some(existing => {
-      return (existing.description ?? null) === (group.description ?? null) && existing.type === group.type
-    })
-
-    if (!hasMatch) {
-      count++
-    }
-  }
-
-  return count
-}
-
-export function countTemplateStepMismatches(
-  filesystemSteps: TemplateStepFromFs[],
-  dbSteps: Array<{
-    signature: string
-    name: string
-    description: string | null
-    functionDefinition: string | null
-    icon: TemplateStepIcon
-    type: TemplateStepType
-    templateStepGroup: { name: string }
-    parameters: Array<{ name: string; order: number; type: StepParameterType }>
-  }>,
-): number {
-  const filesystemStepsBySignature = new Map<string, TemplateStepFromFs>()
-  const dbBySignature = groupRecordsByKey(dbSteps, step => step.signature)
-  let count = 0
-
-  for (const item of filesystemSteps) {
-    filesystemStepsBySignature.set(item.step.signature, item)
-  }
-
-  for (const item of filesystemStepsBySignature.values()) {
-    const expectedType =
-      item.groupType === TemplateStepGroupType.ACTION ? TemplateStepType.ACTION : TemplateStepType.ASSERTION
-
-    const hasMatch = (dbBySignature.get(item.step.signature) ?? []).some(existing => {
-      return (
-        existing.name === item.step.jsdoc.name &&
-        (existing.description ?? '') === (item.step.jsdoc.description ?? '') &&
-        (existing.functionDefinition ?? '') === item.step.normalizedFunctionDefinition &&
-        existing.icon === item.step.jsdoc.icon &&
-        existing.type === expectedType &&
-        existing.templateStepGroup.name === item.groupName &&
-        sameStepParameters(existing.parameters, item.step.parameters)
-      )
-    })
-
     if (!hasMatch) {
       count++
     }
@@ -983,7 +620,7 @@ type ProjectedTestCaseStep = {
   order: number
   gherkinStep: string
   label: string
-  icon: TemplateStepIcon
+  icon: StepIcon
 }
 
 function normalizeProjectedFsTestCaseSteps(stepsFromFs: ParsedStep[]): ProjectedTestCaseStep[] {
@@ -1015,28 +652,21 @@ function hasProjectedTestCaseStepMismatch(
     gherkinStep: string
     flowNodeId: string | null
     label: string
-    icon: TemplateStepIcon
-    TemplateStep: { signature: string } | null
+    icon: StepIcon
+    invocationJson: string
     parameters: Array<{ name: string; value: string; order: number; type: StepParameterType }>
-  }>,
-  dbTemplateSteps: Array<{
-    signature: string
-    parameters: Array<{ name: string; order: number; type: StepParameterType }>
   }>,
 ): boolean {
   const projectedDbSteps = normalizeProjectedDbTestCaseSteps(dbSteps)
   const projectedFsSteps = normalizeProjectedFsTestCaseSteps(stepsFromFs)
   const dbStepsByOrder = new Map(projectedDbSteps.map(step => [step.order, step]))
-  const fsStepsByOrder = new Map(stepsFromFs.map(step => [step.order, step]))
   const nodesByOrder = new Map(nodesFromFs.map(node => [node.order, node]))
 
   for (const projectedFsStep of projectedFsSteps) {
     const existing = dbStepsByOrder.get(projectedFsStep.order)
-    const sourceStep = fsStepsByOrder.get(projectedFsStep.order)
     const metadataNode = nodesByOrder.get(projectedFsStep.order)
-    const matchedTemplateStep = sourceStep ? matchGherkinStepToTemplateStep(sourceStep, dbTemplateSteps) : null
 
-    if (!existing || !matchedTemplateStep) {
+    if (!existing || !metadataNode) {
       return true
     }
 
@@ -1045,8 +675,7 @@ function hasProjectedTestCaseStepMismatch(
       existing.flowNodeId !== (metadataNode?.nodeId ?? existing.flowNodeId) ||
       existing.label !== (metadataNode?.label ?? projectedFsStep.label) ||
       existing.icon !== projectedFsStep.icon ||
-      existing.templateStepSignature !== matchedTemplateStep.signature ||
-      !sameResolvedParameters(existing.parameters, matchedTemplateStep.parameters)
+      existing.invocationJson !== canonicalStepDefinitionJson(metadataNode.invocation)
     ) {
       return true
     }
@@ -1101,8 +730,8 @@ export function countTestCaseMismatches(
       gherkinStep: string
       flowNodeId: string | null
       label: string
-      icon: TemplateStepIcon
-      TemplateStep: { signature: string } | null
+      icon: StepIcon
+      invocationJson: string
       parameters: Array<{ name: string; value: string; order: number; type: StepParameterType }>
     }>
     flowBlocks: Array<{
@@ -1113,10 +742,6 @@ export function countTestCaseMismatches(
     }>
   }>,
   modulePathMap: Map<string, string>,
-  dbTemplateSteps: Array<{
-    signature: string
-    parameters: Array<{ name: string; order: number; type: StepParameterType }>
-  }>,
 ): number {
   const filesystemTestCasesByIdentifier = new Map<string, CollapsedTestCaseFromFs>()
   const dbByIdentifier = new Map<string, Array<(typeof dbTestCases)[number]>>()
@@ -1175,7 +800,7 @@ export function countTestCaseMismatches(
         existing.description === testCase.description &&
         isLinkedToExpectedSuites &&
         sameStringSet(existingFilterTags, normalizedFilterTags) &&
-        !hasProjectedTestCaseStepMismatch(testCase.steps, testCase.nodes, existing.steps, dbTemplateSteps) &&
+        !hasProjectedTestCaseStepMismatch(testCase.steps, testCase.nodes, existing.steps) &&
         !hasFlowBlockMismatch(testCase.flowBlocks, testCase.hasAppraiseMetadata, existing.flowBlocks ?? [])
       )
     })
@@ -1206,117 +831,83 @@ export async function getSyncPendingCounts(): Promise<SyncPendingCounts> {
 
     const baseDir = process.cwd()
     const filesystem = await buildFilesystemSnapshot(baseDir)
-    const [
-      dbModules,
-      dbEnvironments,
-      dbTags,
-      dbTemplateStepGroups,
-      dbTemplateSteps,
-      dbLocatorGroups,
-      dbTestSuites,
-      dbTestCases,
-    ] = await Promise.all([
-      getAllModulesWithPaths(),
-      prisma.environment.findMany({
-        select: {
-          name: true,
-          baseUrl: true,
-          apiBaseUrl: true,
-          username: true,
-          passwordEnvironmentVariable: true,
-          _count: {
-            select: { testRuns: true },
-          },
-        },
-      }),
-      prisma.tag.findMany({ select: { name: true, type: true } }),
-      prisma.templateStepGroup.findMany({ select: { name: true, description: true, type: true } }),
-      prisma.templateStep.findMany({
-        select: {
-          signature: true,
-          name: true,
-          description: true,
-          functionDefinition: true,
-          icon: true,
-          type: true,
-          parameters: {
-            select: { name: true, order: true, type: true },
-            orderBy: { order: 'asc' },
-          },
-          templateStepGroup: {
-            select: { name: true },
-          },
-        },
-      }),
-      prisma.locatorGroup.findMany({
-        select: {
-          name: true,
-          route: true,
-          moduleId: true,
-          locators: {
-            select: { name: true, value: true },
-          },
-        },
-      }),
-      prisma.testSuite.findMany({
-        select: {
-          name: true,
-          description: true,
-          moduleId: true,
-          tags: {
-            select: { tagExpression: true },
-          },
-        },
-      }),
-      prisma.testCase.findMany({
-        select: {
-          title: true,
-          description: true,
-          tags: {
-            select: { tagExpression: true, type: true },
-          },
-          TestSuite: {
-            select: { name: true, moduleId: true },
-          },
-          steps: {
-            orderBy: { order: 'asc' },
-            select: {
-              order: true,
-              gherkinStep: true,
-              flowNodeId: true,
-              label: true,
-              icon: true,
-              TemplateStep: {
-                select: { signature: true },
-              },
-              parameters: {
-                select: { name: true, value: true, order: true, type: true },
-                orderBy: { order: 'asc' },
-              },
+    const [dbModules, dbEnvironments, dbTags, dbStepDefinitions, dbLocatorGroups, dbTestSuites, dbTestCases] =
+      await Promise.all([
+        getAllModulesWithPaths(),
+        prisma.environment.findMany({
+          select: {
+            name: true,
+            baseUrl: true,
+            apiBaseUrl: true,
+            username: true,
+            passwordEnvironmentVariable: true,
+            _count: {
+              select: { testRuns: true },
             },
           },
-          flowBlocks: {
-            select: {
-              id: true,
-              name: true,
-              order: true,
-              nodes: {
-                select: {
-                  flowNodeId: true,
+        }),
+        prisma.tag.findMany({ select: { name: true, type: true } }),
+        prisma.stepDefinition.findMany({ select: { id: true, version: true, definitionHash: true } }),
+        prisma.locatorGroup.findMany({
+          select: {
+            name: true,
+            route: true,
+            moduleId: true,
+            locators: {
+              select: { name: true, value: true },
+            },
+          },
+        }),
+        prisma.testSuite.findMany({
+          select: {
+            name: true,
+            description: true,
+            moduleId: true,
+            tags: {
+              select: { tagExpression: true },
+            },
+          },
+        }),
+        prisma.testCase.findMany({
+          select: {
+            title: true,
+            description: true,
+            tags: {
+              select: { tagExpression: true, type: true },
+            },
+            TestSuite: {
+              select: { name: true, moduleId: true },
+            },
+            steps: {
+              orderBy: { order: 'asc' },
+              select: {
+                order: true,
+                gherkinStep: true,
+                flowNodeId: true,
+                label: true,
+                icon: true,
+                invocationJson: true,
+                parameters: {
+                  select: { name: true, value: true, order: true, type: true },
+                  orderBy: { order: 'asc' },
+                },
+              },
+            },
+            flowBlocks: {
+              select: {
+                id: true,
+                name: true,
+                order: true,
+                nodes: {
+                  select: {
+                    flowNodeId: true,
+                  },
                 },
               },
             },
           },
-        },
-      }),
-    ])
-
-    const normalizedDbTemplateSteps = await Promise.all(
-      dbTemplateSteps.map(async step => ({
-        ...step,
-        functionDefinition: await normalizeFunctionDefinition(step.functionDefinition),
-      })),
-    )
+        }),
+      ])
 
     const modulePathMap = new Map(
       dbModules.map(module => [module.id, module.name === 'root' && module.parentId === null ? '/' : module.path]),
@@ -1328,12 +919,13 @@ export async function getSyncPendingCounts(): Promise<SyncPendingCounts> {
       pendingComparison('sync-environments', countEnvironmentMismatches(filesystem.environments, dbEnvironments)),
       pendingComparison('sync-tags', countTagMismatches(filesystem.tagObjects, dbTags)),
       pendingComparison(
-        'sync-template-step-groups',
-        countTemplateStepGroupMismatches(filesystem.templateStepGroups, dbTemplateStepGroups),
-      ),
-      pendingComparison(
-        'sync-template-steps',
-        countTemplateStepMismatches(filesystem.templateSteps, normalizedDbTemplateSteps),
+        'sync-step-definitions',
+        builtInStepDefinitions.filter(definition => {
+          const existing = dbStepDefinitions.find(
+            candidate => candidate.id === definition.identity.id && candidate.version === definition.identity.version,
+          )
+          return existing?.definitionHash !== computeStepDefinitionHashes(definition).definitionHash
+        }).length,
       ),
       pendingComparison(
         'sync-locator-groups',
@@ -1344,15 +936,7 @@ export async function getSyncPendingCounts(): Promise<SyncPendingCounts> {
         'sync-test-suites',
         countTestSuiteMismatches(filesystem.testSuites, dbTestSuites, modulePathMap),
       ),
-      pendingComparison(
-        'sync-test-cases',
-        countTestCaseMismatches(
-          filesystem.testCases,
-          dbTestCases,
-          modulePathMap,
-          normalizedDbTemplateSteps.map(step => ({ signature: step.signature, parameters: step.parameters })),
-        ),
-      ),
+      pendingComparison('sync-test-cases', countTestCaseMismatches(filesystem.testCases, dbTestCases, modulePathMap)),
     ]
     const aggregate = aggregatePendingComparisons(comparisons)
 

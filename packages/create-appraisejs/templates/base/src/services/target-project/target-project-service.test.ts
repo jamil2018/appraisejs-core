@@ -32,10 +32,12 @@ vi.mock('@/config/db-config', () => ({
 
 import {
   deleteTargetProject,
+  initializeTargetGitRepository,
   listTargetProjects,
   renameTargetProject,
   resolveActiveProject,
   registerTargetProject,
+  readTargetProjectLaunchMetadata,
   resolveTargetProject,
   writeTargetProjectMarker,
 } from './target-project-service'
@@ -103,6 +105,41 @@ describe('target project service', () => {
         }),
       }),
     )
+  })
+
+  it('initializes Git only when explicitly requested for an empty target', async () => {
+    const workspace = await createWorkspace(null)
+
+    await expect(initializeTargetGitRepository(workspace, false)).resolves.toEqual({ status: 'skipped' })
+    await expect(initializeTargetGitRepository(workspace, true)).resolves.toEqual({
+      status: 'initialized',
+      branch: 'main',
+    })
+    await expect(fs.access(path.join(workspace, '.git'))).resolves.toBeUndefined()
+    await expect(initializeTargetGitRepository(workspace, true)).resolves.toEqual({ status: 'already_present' })
+  })
+
+  it('refuses automatic Git initialization for a non-empty target', async () => {
+    const workspace = await createWorkspace()
+    await expect(initializeTargetGitRepository(workspace, true)).rejects.toMatchObject({
+      code: 'VALIDATION',
+      statusCode: 400,
+    })
+  })
+
+  it('reads launch metadata created after an empty target was registered', async () => {
+    const workspace = await createWorkspace(null)
+    mockTargetProjectUpsert.mockImplementation(async args => ({ id: 'target-empty', ...args.create }))
+    await registerTargetProject({ projectPath: workspace, displayName: 'Empty target' })
+    await fs.writeFile(
+      path.join(workspace, 'package.json'),
+      JSON.stringify({ scripts: { dev: 'vite' }, packageManager: 'npm@11.0.0' }),
+    )
+
+    await expect(readTargetProjectLaunchMetadata(workspace)).resolves.toEqual({
+      packageManager: 'npm@11.0.0',
+      scripts: { dev: 'vite' },
+    })
   })
 
   it('writes and refreshes the Appraise continuity marker independently from registration', async () => {

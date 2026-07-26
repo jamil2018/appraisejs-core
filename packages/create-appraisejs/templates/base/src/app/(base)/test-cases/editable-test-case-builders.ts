@@ -1,9 +1,11 @@
 import type { FlowBlock, NodeOrderMap } from '@/types/diagram/diagram'
 
 import type { EditableTestCase } from './editable-test-case-types'
+import { stepInvocationSchema } from '../../../../packages/cucumber-runtime/src/step-definitions/contracts.ts'
 
 export function buildNodeOrderFromTestCaseSteps(steps: EditableTestCase['steps']): NodeOrderMap {
   return steps.reduce<NodeOrderMap>((acc, step) => {
+    const invocation = stepInvocationSchema.parse(JSON.parse(step.invocationJson))
     const nodeId = step.flowNodeId ?? step.id
     acc[nodeId] = {
       nodeId,
@@ -17,7 +19,7 @@ export function buildNodeOrderFromTestCaseSteps(steps: EditableTestCase['steps']
         type: parameter.type,
         order: parameter.order,
       })),
-      templateStepId: step.templateStepId,
+      invocation,
     }
     return acc
   }, {})

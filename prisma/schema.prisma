@@ -47,82 +47,187 @@ model LinkedJiraTicket {
   testCase      TestCase @relation(fields: [testCaseId], references: [id])
 }
 
-model TemplateStep {
-  id                      String                  @id @default(uuid())
-  name                    String
-  description             String?
-  createdAt               DateTime                @default(now())
-  updatedAt               DateTime                @updatedAt
-  signature               String
-  functionDefinition      String?
-  operationId             String?
-  operationVersion        String?
-  operationDescriptorHash String?
-  humanProjectionId       String?
-  operationMigrationState String?
-  type                    TemplateStepType
-  icon                    TemplateStepIcon
-  templateStepGroupId     String
-  templateStepGroup       TemplateStepGroup       @relation("TemplateStepGroupSteps", fields: [templateStepGroupId], references: [id], onDelete: Cascade)
-  parameters              TemplateStepParameter[]
-  TemplateTestCaseStep    TemplateTestCaseStep[]
-  TestCaseStep            TestCaseStep[]
-  StepBlockStep           StepBlockStep[]
+model StepDefinition {
+  id                  String
+  version             String
+  status              StepDefinitionStatus
+  title               String
+  description         String
+  definitionJson      String
+  definitionHash      String
+  humanProjectionHash String?
+  agentContractHash   String?
+  executionHash       String?
+  provenanceJson      String
+  createdAt           DateTime                     @default(now())
+  publishedAt         DateTime?
+  deprecatedAt        DateTime?
+  humanProjection     StepHumanProjection?
+  executionBinding    StepExecutionBinding?
+  publicationReceipt  StepPublicationReceipt?
+  deprecation         StepDefinitionDeprecation?
 
-  @@index([operationId, operationVersion])
+  @@id([id, version])
+  @@index([status, title])
 }
 
-model TemplateStepParameter {
-  id             String            @id @default(uuid())
-  name           String
-  createdAt      DateTime          @default(now())
-  updatedAt      DateTime          @updatedAt
-  templateStepId String
-  order          Int
-  type           StepParameterType
-  templateStep   TemplateStep      @relation(fields: [templateStepId], references: [id], onDelete: Cascade)
+model StepDefinitionDraft {
+  id                   String                       @id @default(uuid())
+  proposedStepId       String
+  proposedVersion      String
+  revision             Int                          @default(1)
+  draftJson            String
+  draftHash            String
+  reuseJustification   String?
+  reuseEvidenceJson    String?
+  validationReportJson String?
+  reviewedDraftHash    String?
+  reviewedBy           String?
+  reviewedAt           DateTime?
+  reviewReceiptJson    String?
+  reviewReceiptHash    String?
+  createdAt            DateTime                     @default(now())
+  updatedAt            DateTime                     @updatedAt
+  artifact             StepDefinitionDraftArtifact?
+
+  @@index([proposedStepId, proposedVersion])
 }
 
-model TemplateStepGroup {
-  id              String                @id @default(uuid())
-  name            String
-  description     String?
-  type            TemplateStepGroupType @default(ACTION)
-  createdAt       DateTime              @default(now())
-  updatedAt       DateTime              @updatedAt
-  templateSteps   TemplateStep[]        @relation("TemplateStepGroupSteps")
-  targetProjectId String?
-  targetProject   TargetProject?        @relation(fields: [targetProjectId], references: [id], onDelete: Restrict)
+model StepDefinitionSearchReceipt {
+  id                      String   @id @default(uuid())
+  indexHash               String
+  candidateReferencesJson String
+  planId                  String?
+  correlationId           String
+  searchedAt              DateTime @default(now())
+  expiresAt               DateTime
 
-  @@unique([name])
+  @@index([expiresAt])
+  @@index([planId, correlationId])
 }
 
-model StepBlock {
-  id              String          @id @default(uuid())
-  name            String
-  description     String?
-  intent          String?
-  createdAt       DateTime        @default(now())
-  updatedAt       DateTime        @updatedAt
-  steps           StepBlockStep[]
-  targetProjectId String?
-  targetProject   TargetProject?  @relation(fields: [targetProjectId], references: [id], onDelete: Restrict)
-
-  @@unique([targetProjectId, name])
+model StepDefinitionDraftArtifact {
+  draftId              String              @id
+  contractSource       String
+  handlerSource        String
+  examplesJson         String
+  manifestJson         String
+  sourceHash           String
+  compiledSource       String?
+  compiledHash         String?
+  diagnosticsJson      String?
+  conformanceJson      String?
+  conformanceHash      String?
+  reviewedArtifactHash String?
+  createdAt            DateTime            @default(now())
+  updatedAt            DateTime            @updatedAt
+  draft                StepDefinitionDraft @relation(fields: [draftId], references: [id], onDelete: Cascade)
 }
 
-model StepBlockStep {
-  id                      String       @id @default(uuid())
-  stepBlockId             String
-  templateStepId          String
-  order                   Int
-  parameterMap            String       @default("{}")
-  operationInvocationJson String?
-  compositionVersionHash  String?
-  stepBlock               StepBlock    @relation(fields: [stepBlockId], references: [id], onDelete: Cascade)
-  templateStep            TemplateStep @relation(fields: [templateStepId], references: [id], onDelete: Cascade)
+model StepReviewedExtension {
+  id               String
+  version          String
+  exportName       String
+  runtime          String
+  capabilitiesJson String
+  contractSource   String
+  source           String
+  compiledSource   String
+  sourceHash       String
+  compiledHash     String
+  conformanceJson  String
+  conformanceHash  String
+  artifactHash     String   @unique
+  reviewedBy       String
+  reviewedAt       DateTime @default(now())
+  revokedAt        DateTime?
+  revokedBy        String?
+  revocationReason String?
 
-  @@unique([stepBlockId, order])
+  @@id([id, version])
+  @@index([sourceHash, compiledHash])
+  @@index([revokedAt])
+}
+
+model StepHumanProjection {
+  stepId         String
+  stepVersion    String
+  signature      String         @unique
+  groupId        String
+  projectionJson String
+  projectionHash String
+  definition     StepDefinition @relation(fields: [stepId, stepVersion], references: [id, version], onDelete: Restrict)
+
+  @@id([stepId, stepVersion])
+  @@index([groupId])
+}
+
+model StepExecutionBinding {
+  stepId      String
+  stepVersion String
+  kind        StepExecutionKind
+  bindingJson String
+  bindingHash String
+  definition  StepDefinition    @relation(fields: [stepId, stepVersion], references: [id, version], onDelete: Restrict)
+
+  @@id([stepId, stepVersion])
+  @@index([kind])
+}
+
+model StepPublicationReceipt {
+  stepId               String
+  stepVersion          String
+  receiptJson          String
+  receiptHash          String
+  registryManifestHash String
+  conformanceRunId     String
+  reviewAuthority      String
+  publishedAt          DateTime       @default(now())
+  definition           StepDefinition @relation(fields: [stepId, stepVersion], references: [id, version], onDelete: Restrict)
+
+  @@id([stepId, stepVersion])
+  @@unique([receiptHash])
+}
+
+model StepDefinitionDeprecation {
+  stepId             String
+  stepVersion        String
+  reason             String
+  actor              String
+  replacementStepId  String?
+  replacementVersion String?
+  deprecatedAt       DateTime       @default(now())
+  definition         StepDefinition @relation(fields: [stepId, stepVersion], references: [id, version], onDelete: Restrict)
+
+  @@id([stepId, stepVersion])
+}
+
+/// Bounded, observational lifecycle telemetry. Payloads contain only the
+/// closed-vocabulary outcome details validated by the application service.
+model StepDefinitionTelemetryEvent {
+  id          String   @id @default(cuid())
+  surface     String
+  outcome     String
+  stepId      String?
+  stepVersion String?
+  correlationId String?
+  planId        String?
+  payloadJson String
+  createdAt   DateTime @default(now())
+
+  @@index([surface, outcome, createdAt])
+  @@index([stepId, stepVersion, createdAt])
+}
+
+enum StepDefinitionStatus {
+  ready
+  deprecated
+}
+
+enum StepExecutionKind {
+  operation
+  composition
+  reviewed_extension
 }
 
 model TestCase {
@@ -146,18 +251,16 @@ model TestCase {
 }
 
 model TestCaseStep {
-  id                      String                  @id @default(uuid())
-  flowNodeId              String?
-  testCaseId              String
-  order                   Int
-  gherkinStep             String
-  icon                    TemplateStepIcon
-  label                   String
-  templateStepId          String
-  operationInvocationJson String?
-  TemplateStep            TemplateStep            @relation(fields: [templateStepId], references: [id], onDelete: Cascade)
-  testCase                TestCase                @relation(fields: [testCaseId], references: [id])
-  parameters              TestCaseStepParameter[]
+  id             String                  @id @default(uuid())
+  flowNodeId     String?
+  testCaseId     String
+  order          Int
+  gherkinStep    String
+  icon           StepIcon
+  label          String
+  invocationJson String
+  testCase       TestCase                @relation(fields: [testCaseId], references: [id])
+  parameters     TestCaseStepParameter[]
 }
 
 model TestCaseFlowBlock {
@@ -191,18 +294,16 @@ model TemplateTestCase {
 }
 
 model TemplateTestCaseStep {
-  id                      String                          @id @default(uuid())
-  flowNodeId              String?
-  order                   Int
-  gherkinStep             String
-  icon                    TemplateStepIcon
-  label                   String
-  templateTestCaseId      String
-  templateStepId          String
-  operationInvocationJson String?
-  TemplateStep            TemplateStep                    @relation(fields: [templateStepId], references: [id], onDelete: Cascade)
-  templateTestCase        TemplateTestCase                @relation(fields: [templateTestCaseId], references: [id])
-  parameters              TemplateTestCaseStepParameter[]
+  id                 String                          @id @default(uuid())
+  flowNodeId         String?
+  order              Int
+  gherkinStep        String
+  icon               StepIcon
+  label              String
+  templateTestCaseId String
+  invocationJson     String
+  templateTestCase   TemplateTestCase                @relation(fields: [templateTestCaseId], references: [id])
+  parameters         TemplateTestCaseStepParameter[]
 }
 
 model TemplateTestCaseFlowBlock {
@@ -450,8 +551,6 @@ model TargetProject {
   delegatedCoordinatorReceipts   DelegatedCoordinatorReceipt[]
   testSuites                     TestSuite[]
   testCases                      TestCase[]
-  templateStepGroups             TemplateStepGroup[]
-  stepBlocks                     StepBlock[]
   templateTestCases              TemplateTestCase[]
   locators                       Locator[]
   locatorGroups                  LocatorGroup[]
@@ -1383,7 +1482,7 @@ enum TestCaseResult {
   UNTESTED
 }
 
-enum TemplateStepType {
+enum StepType {
   ACTION
   ASSERTION
 }
@@ -1402,7 +1501,7 @@ enum StepParameterValueType {
   LOCATOR
 }
 
-enum TemplateStepIcon {
+enum StepIcon {
   MOUSE
   NAVIGATION
   INPUT
@@ -1423,7 +1522,7 @@ enum BrowserEngine {
   WEBKIT
 }
 
-enum TemplateStepGroupType {
+enum StepGroupType {
   ACTION
   VALIDATION
 }

@@ -11,7 +11,7 @@ import {
 export {
   validateValidationAstRuntimeInput,
   validationAstPublishOperationId,
-  type ValidationAstRuntimeInputV1,
+  type ValidationAstRuntimeInput,
 } from './validation-ast-runtime-input-contract'
 
 const VALIDATION_AST_PUBLISH_PHASES = ['prepared', 'artifacts_written', 'projected', 'review_ready'] as const

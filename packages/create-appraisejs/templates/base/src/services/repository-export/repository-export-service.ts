@@ -13,6 +13,7 @@ import {
 } from '@/lib/repository-export/contracts'
 import { publishRepositoryExport } from '@/lib/repository-export/storage'
 import { buildReviewedRuntimeCapsuleFiles } from '@/lib/runtime-capsule/materializer'
+import { resolveRuntimeStepDefinitionClosure } from '@/lib/runtime-capsule/step-definition-closure'
 import { ServiceError } from '@/services/shared/errors'
 import {
   validateStoredValidationAstPublish,
@@ -58,7 +59,7 @@ export async function enqueueRepositoryExport(
   })
 }
 
-function buildExport(operation: Awaited<ReturnType<typeof loadExportOperation>>) {
+async function buildExport(operation: Awaited<ReturnType<typeof loadExportOperation>>, client: PrismaClient) {
   validateStoredValidationAstPublish(operation)
   const runtimeInput = validateValidationAstRuntimeInput({
     operation,
@@ -68,10 +69,25 @@ function buildExport(operation: Awaited<ReturnType<typeof loadExportOperation>>)
   const validation = validationArtifactSchema.parse(JSON.parse(operation.validationProjectionJson))
   const node = validation.validations.find(item => item.id === runtimeInput.astId)
   if (!node) throw new ServiceError('Reviewed validation node is missing from its publication.', 'CONFLICT')
+  const roots = node.appraiseArtifacts.testCases.flatMap(testCase =>
+    testCase.steps
+      .sort((left, right) => left.order - right.order)
+      .map(step => {
+        if (!step.invocation) throw new ServiceError('Repository export requires exact Step Invocations.', 'CONFLICT')
+        return step.invocation.step
+      }),
+  )
+  const sealedDefinitions = await resolveRuntimeStepDefinitionClosure(roots, step =>
+    client.stepDefinition.findUnique({
+      where: { id_version: { id: step.id, version: step.version } },
+      include: { publicationReceipt: true },
+    }),
+  )
   const built = buildReviewedRuntimeCapsuleFiles({
     node,
     runtimeInput,
     extensionArtifacts: operation.extensionReviews.map(item => JSON.parse(item.artifactJson)),
+    sealedDefinitions,
   })
   const authoredExtensionPaths = built.files.filter(file => file.role === 'extension').map(file => file.path)
   const ownership = {
@@ -132,7 +148,7 @@ export async function runRepositoryExportJob(
     data: { state: 'running', attemptCount: { increment: 1 }, failureCode: null },
   })
   try {
-    const built = buildExport(operation)
+    const built = await buildExport(operation, client)
     const result = await publishRepositoryExport({
       projectRoot: operation.targetProject.canonicalPath,
       destinationPath: job.destinationPath,

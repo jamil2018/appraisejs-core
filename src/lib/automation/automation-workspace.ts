@@ -25,9 +25,9 @@ const requiredRuntimeImports = [
   'generateRandomData',
   'RandomDataType',
 ] as const
-const structuredRuntimeImports = ['runLocatorTemplateOperation', 'runPageTemplateOperation'] as const
+const structuredRuntimeImports = ['runLocatorStepOperation', 'runPageStepOperation'] as const
 const runtimeImportPattern =
-  /^import\s*\{[\s\S]*?\}\s*from\s*['"]\.\.\/\.\.\/\.\.\/packages\/cucumber-runtime\/src\/index(?:\.js)?['"];?\r?\n*/gm
+  /^import\s*\{[\s\S]*?\}\s*from\s*['"](?:\.\.\/)+packages\/cucumber-runtime\/src\/index(?:\.js)?['"];?\r?\n*/gm
 
 const mutableLegacyDirectories = ['features', 'locators', 'mapping', 'steps'] as const
 

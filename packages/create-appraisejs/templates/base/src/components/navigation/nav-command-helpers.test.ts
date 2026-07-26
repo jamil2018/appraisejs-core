@@ -9,9 +9,7 @@ describe('getSidebarNavigationSections', () => {
     const system = sections.find(section => section.label === 'System')
 
     expect(library?.items.map(item => item.label)).toEqual([
-      'Template Steps',
-      'Step Groups',
-      'Step Blocks',
+      'Step Definitions',
       'Case Templates',
       'Locators',
       'Locator Groups',
@@ -20,5 +18,6 @@ describe('getSidebarNavigationSections', () => {
       'Tags',
     ])
     expect(system?.items.map(item => item.label)).toEqual(['Projects', 'Settings'])
+    expect(library?.items.find(item => item.label === 'Step Definitions')?.href).toBe('/step-definitions')
   })
 })

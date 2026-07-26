@@ -29,15 +29,15 @@ describe('canonical MCP contract registry', () => {
   it('matches the complete default names and schemas without depending on registration order', async () => {
     const expected = await fixture()
     await expect(definitions(false)).resolves.toEqual(expected.default)
-    expect(expected.default.filter(definition => definition.kind === 'tool')).toHaveLength(77)
-    expect(expected.default.filter(definition => definition.kind === 'resource')).toHaveLength(18)
+    expect(expected.default.filter(definition => definition.kind === 'tool')).toHaveLength(79)
+    expect(expected.default.filter(definition => definition.kind === 'resource')).toHaveLength(15)
   })
 
   it('accounts explicitly for the provider-native feature surface', async () => {
     const expected = await fixture()
     await expect(definitions(true)).resolves.toEqual(expected.providerNative)
-    expect(expected.providerNative.filter(definition => definition.kind === 'tool')).toHaveLength(84)
-    expect(expected.providerNative.filter(definition => definition.kind === 'resource')).toHaveLength(20)
+    expect(expected.providerNative.filter(definition => definition.kind === 'tool')).toHaveLength(86)
+    expect(expected.providerNative.filter(definition => definition.kind === 'resource')).toHaveLength(17)
   })
 
   it('fails fast for duplicate, invalid, and unknown definitions', () => {

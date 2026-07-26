@@ -14,7 +14,7 @@ function isTestCaseStepRow(value: unknown): value is TestCaseStep & { parameters
     value !== null &&
     'id' in value &&
     'label' in value &&
-    'templateStepId' in value &&
+    'invocationJson' in value &&
     'parameters' in value &&
     Array.isArray(value.parameters) &&
     value.parameters.every(isTestCaseStepParameterRow)

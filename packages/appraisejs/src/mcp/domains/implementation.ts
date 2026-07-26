@@ -138,6 +138,31 @@ export function registerImplementationOperations(context: McpRegistryContext): v
   )
 
   server.registerTool(
+    'implementation_validation_readiness',
+    {
+      description:
+        'Check reviewed implementation environments without consuming a managed TestRun, or explicitly launch the registered target through its dev/start package script and recheck readiness.',
+      inputSchema: {
+        planId: z.string(),
+        validationIds: z.array(z.string().min(1)).optional(),
+        confirmedRemoteEnvironmentIds: z.array(z.string().min(1)).optional(),
+        action: z.enum(['check', 'launch', 'stop']).optional(),
+        responseMode: responseModeSchema.optional(),
+      },
+    },
+    async ({ planId, validationIds, confirmedRemoteEnvironmentIds, action, responseMode }) =>
+      text(
+        applyLifecycleResponseMode(
+          await api.request(`plans/${planId}/implementation/validations/readiness`, {
+            method: 'POST',
+            body: JSON.stringify({ validationIds, confirmedRemoteEnvironmentIds, action: action ?? 'check' }),
+          }),
+          responseMode ?? 'full',
+        ),
+      ),
+  )
+
+  server.registerTool(
     'implementation_validation_start',
     {
       description:
@@ -146,17 +171,18 @@ export function registerImplementationOperations(context: McpRegistryContext): v
         planId: z.string(),
         validationIds: z.array(z.string().min(1)).optional(),
         commitHash: z.string().min(1).optional(),
+        confirmedRemoteEnvironmentIds: z.array(z.string().min(1)).optional(),
         responseMode: responseModeSchema.optional(),
       },
     },
-    async ({ planId, validationIds, commitHash, responseMode }) =>
+    async ({ planId, validationIds, commitHash, confirmedRemoteEnvironmentIds, responseMode }) =>
       text(
         applyLifecycleResponseMode(
           lifecycleToolPayload({
             planId,
             result: await api.request(`plans/${planId}/implementation/validations/start`, {
               method: 'POST',
-              body: JSON.stringify({ validationIds, commitHash }),
+              body: JSON.stringify({ validationIds, commitHash, confirmedRemoteEnvironmentIds }),
             }),
             nextRecommendedAction:
               'Managed runtime capsules start automatically. Call implementation_validation_reconcile with the returned implementation run IDs until evidence is terminal.',

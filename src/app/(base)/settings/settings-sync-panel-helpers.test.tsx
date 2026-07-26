@@ -32,7 +32,7 @@ describe('settings-sync-panel helpers', () => {
 
   it('formats the requested execution order labels', () => {
     expect(formatExecutionOrder('sync-test-cases')).toBe(
-      'Modules -> Tags -> Test Suites -> Template Step Groups -> Template Steps -> Test Cases',
+      'Modules -> Tags -> Test Suites -> Step Definitions -> Test Cases',
     )
   })
 })

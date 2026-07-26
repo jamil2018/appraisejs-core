@@ -1,6 +1,7 @@
 import path from 'path'
 import { existsSync, promises as fs } from 'fs'
 import type { TemplateId } from './template-catalog.js'
+import { isRepoOnlyTemplatePath } from './template-boundary.js'
 
 export interface TemplateMetadata {
   preparedAt: string
@@ -8,14 +9,13 @@ export interface TemplateMetadata {
   databasePath: string
 }
 
-export interface TemplateStepDataCounts {
-  stepCount: number
-  stepGroupCount: number
+export interface StepDefinitionDataCounts {
+  stepDefinitionCount: number
   localRuntimeRowCount: number
 }
 
-export const TEMPLATE_PREP_SYNC_SCRIPTS = ['sync-template-step-groups', 'sync-template-steps'] as const
-export const BLANK_TEMPLATE_PREP_SYNC_SCRIPTS = ['sync-template-steps', 'sync-template-step-groups'] as const
+export const TEMPLATE_PREP_SYNC_SCRIPTS = ['sync-step-definitions'] as const
+export const BLANK_TEMPLATE_PREP_SYNC_SCRIPTS = ['sync-step-definitions'] as const
 
 export async function collectFiles(
   dir: string,
@@ -54,7 +54,7 @@ export function getTemplatePrepSyncScripts(template: TemplateId): readonly strin
   return template === 'blank' ? BLANK_TEMPLATE_PREP_SYNC_SCRIPTS : TEMPLATE_PREP_SYNC_SCRIPTS
 }
 
-export async function readTemplateStepDataCounts(databasePath: string): Promise<TemplateStepDataCounts> {
+export async function readStepDefinitionDataCounts(databasePath: string): Promise<StepDefinitionDataCounts> {
   const { PrismaClient } = await import('@prisma/client')
   const prisma = new PrismaClient({
     datasources: {
@@ -66,8 +66,7 @@ export async function readTemplateStepDataCounts(databasePath: string): Promise<
 
   try {
     const [
-      stepCount,
-      stepGroupCount,
+      stepDefinitionCount,
       projectIdentityCount,
       coordinatorLeaseCount,
       personalLayoutCount,
@@ -75,8 +74,7 @@ export async function readTemplateStepDataCounts(databasePath: string): Promise<
       testRunCount,
       reportCount,
     ] = await prisma.$transaction([
-      prisma.templateStep.count(),
-      prisma.templateStepGroup.count(),
+      prisma.stepDefinition.count(),
       prisma.appraiseProjectIdentity.count(),
       prisma.planCoordinatorLease.count(),
       prisma.planPersonalLayout.count(),
@@ -85,8 +83,7 @@ export async function readTemplateStepDataCounts(databasePath: string): Promise<
       prisma.report.count(),
     ])
     return {
-      stepCount,
-      stepGroupCount,
+      stepDefinitionCount,
       localRuntimeRowCount:
         projectIdentityCount + coordinatorLeaseCount + personalLayoutCount + eventCount + testRunCount + reportCount,
     }
@@ -99,7 +96,9 @@ export async function verifyPreparedTemplateState(
   packageTemplateDir: string,
   template: TemplateId,
   collectFilesFn: typeof collectFiles = collectFiles,
-  readTemplateStepDataCountsFn: (databasePath: string) => Promise<TemplateStepDataCounts> = readTemplateStepDataCounts,
+  readStepDefinitionDataCountsFn: (
+    databasePath: string,
+  ) => Promise<StepDefinitionDataCounts> = readStepDefinitionDataCounts,
 ): Promise<void> {
   const seededDbPath = path.join(packageTemplateDir, 'prisma', 'dev.db')
   const staleNestedDbPath = path.join(packageTemplateDir, 'prisma', 'prisma', 'dev.db')
@@ -126,6 +125,7 @@ export async function verifyPreparedTemplateState(
   const graphifyArtifacts = await collectFilesFn(packageTemplateDir, relativePath =>
     relativePath.split('/').includes('graphify-out'),
   )
+  const repoOnlyHarnessArtifacts = await collectFilesFn(packageTemplateDir, isRepoOnlyTemplatePath)
 
   if (!existsSync(seededDbPath)) {
     throw new Error(`Prepared template is missing ${seededDbPath}`)
@@ -159,8 +159,13 @@ export async function verifyPreparedTemplateState(
   if (graphifyArtifacts.length > 0) {
     throw new Error(`Prepared template should not include Graphify artifacts, found ${graphifyArtifacts.join(', ')}`)
   }
+  if (repoOnlyHarnessArtifacts.length > 0) {
+    throw new Error(
+      `Prepared template should not include repository-only swarm harness artifacts, found ${repoOnlyHarnessArtifacts.join(', ')}`,
+    )
+  }
 
-  const stepDataCounts = await readTemplateStepDataCountsFn(seededDbPath)
+  const stepDataCounts = await readStepDefinitionDataCountsFn(seededDbPath)
   if (stepDataCounts.localRuntimeRowCount > 0) {
     throw new Error(`Prepared template database contains local runtime state at ${seededDbPath}`)
   }
@@ -169,8 +174,8 @@ export async function verifyPreparedTemplateState(
     if (bundledStepFiles.length === 0) {
       throw new Error(`Prepared starter template is missing bundled step files in ${bundledStepsDir}`)
     }
-    if (stepDataCounts.stepCount === 0 || stepDataCounts.stepGroupCount === 0) {
-      throw new Error(`Prepared starter template database should include bundled step data at ${seededDbPath}`)
+    if (stepDataCounts.stepDefinitionCount === 0) {
+      throw new Error(`Prepared starter template database should include ready Step Definitions at ${seededDbPath}`)
     }
     return
   }
@@ -180,7 +185,7 @@ export async function verifyPreparedTemplateState(
       `Prepared blank template should not include bundled step files, found ${bundledStepFiles.join(', ')}`,
     )
   }
-  if (stepDataCounts.stepCount !== 0 || stepDataCounts.stepGroupCount !== 0) {
-    throw new Error(`Prepared blank template database should not include bundled step data at ${seededDbPath}`)
+  if (stepDataCounts.stepDefinitionCount === 0) {
+    throw new Error(`Prepared blank template database should include ready Step Definitions at ${seededDbPath}`)
   }
 }

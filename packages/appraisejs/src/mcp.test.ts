@@ -312,16 +312,16 @@ describe('compact lifecycle responses', () => {
     expect(measureMcpResponse(compact).estimatedTokens).toBeLessThan(MCP_RESPONSE_TOKEN_BUDGETS.planCreation)
   })
 
-  it('summarizes validation resources as counts instead of returning full shared libraries', () => {
+  it('summarizes validation resources as counts instead of returning the full Step Definition registry', () => {
     const compact = applyAuthoringResponseMode(
       {
         planId: 'plan-1',
         contextHash: `sha256:${'a'.repeat(64)}`,
         resources: {
-          templateSteps: Array.from({ length: 35 }, (_, index) => ({
+          stepDefinitions: Array.from({ length: 35 }, (_, index) => ({
             id: `step-${index}`,
-            name: `Shared step ${index}`,
-            signature: `A verbose reusable signature ${index}`,
+            version: '1',
+            definitionHash: `sha256:${'a'.repeat(64)}`,
           })),
           modules: [],
           locators: [],
@@ -331,10 +331,66 @@ describe('compact lifecycle responses', () => {
     )
 
     expect(compact).toMatchObject({
-      returnedResourceCounts: { templateSteps: 35, modules: 0, locators: 0 },
+      returnedResourceCounts: { stepDefinitions: 35, modules: 0, locators: 0 },
       resourceSearchGuidance: expect.stringContaining('step_search'),
     })
     expect(compact).not.toHaveProperty('resources')
+    expect(measureMcpResponse(compact).estimatedTokens).toBeLessThan(MCP_RESPONSE_TOKEN_BUDGETS.validationMutation)
+  })
+
+  it('keeps the bounded resource proposal contract in the default authoring response', () => {
+    const compact = applyAuthoringResponseMode(
+      {
+        planId: 'plan-1',
+        contextHash: `sha256:${'a'.repeat(64)}`,
+        authoring: {
+          contextPack: { duplicatedIntent: 'x'.repeat(20_000) },
+          resourceProposalContract: {
+            contractId: 'appraise.validation/resource-proposal',
+            version: 2,
+            request: {
+              type: 'object',
+              additionalProperties: false,
+              required: ['schemaVersion', 'idempotencyKey'],
+              properties: {
+                schemaVersion: { const: 2 },
+                idempotencyKey: { type: 'string', pattern: '^[a-z0-9]+(?:-[a-z0-9]+)*$' },
+              },
+            },
+            relationshipRules: [
+              {
+                id: 'locator-group-reference',
+                appliesTo: ['locators[].groupKey'],
+                rule: 'Each groupKey must reference locatorGroups[].localKey.',
+              },
+            ],
+            example: {
+              schemaVersion: 2,
+              idempotencyKey: 'validation-resource-example',
+              modules: [],
+              locatorGroups: [],
+              locators: [],
+              environments: [],
+            },
+            responseBindingExample: {
+              environments: [],
+              locatorGroups: [],
+              locators: [],
+            },
+          },
+        },
+      },
+      'summary',
+    )
+
+    expect(compact).toMatchObject({
+      resourceProposalContract: {
+        contractId: 'appraise.validation/resource-proposal',
+        version: 2,
+        example: { schemaVersion: 2 },
+      },
+    })
+    expect(compact).not.toHaveProperty('authoring')
     expect(measureMcpResponse(compact).estimatedTokens).toBeLessThan(MCP_RESPONSE_TOKEN_BUDGETS.validationMutation)
   })
 
@@ -382,10 +438,23 @@ describe('compact lifecycle responses', () => {
 
   it('publishes a versioned self-describing Validation AST schema', () => {
     expect(VALIDATION_AST_JSON_SCHEMA).toMatchObject({
-      $id: 'appraise://contracts/validation-ast/v1',
-      properties: { ast: { $ref: '#/$defs/ast' } },
+      $id: 'appraise://contracts/validation-ast/v2',
+      properties: {
+        ast: { $ref: '#/$defs/ast' },
+        stepDefinitionSelections: {
+          type: 'array',
+          minItems: 1,
+          maxItems: 32,
+          items: {
+            type: 'object',
+            additionalProperties: false,
+            required: ['receiptId', 'correlationId'],
+          },
+        },
+      },
       $defs: { ast: { properties: { scenarios: expect.any(Object) } } },
     })
+    expect(VALIDATION_AST_JSON_SCHEMA.properties).not.toHaveProperty('stepDefinitionSelection')
   })
 
   it('keeps compact lifecycle mutations inside the validation and baseline budgets', () => {
@@ -788,9 +857,6 @@ describe('MCP capability and recovery metadata', () => {
     expect(mcpCapabilityMetadata.packageVersion).toMatch(/^\d+\.\d+\.\d+/)
     expect(mcpCapabilityMetadata.workflowCriticalTools).toEqual(
       expect.arrayContaining([
-        'action_categories_list',
-        'actions_list',
-        'actions_read',
         'project_diagnostic',
         'planning_session_create',
         'plan_review_loop',
@@ -815,8 +881,6 @@ describe('MCP capability and recovery metadata', () => {
     expect(mcpCapabilityMetadata.workflowCriticalTools).not.toContain('validation_decide')
     expect(mcpCapabilityMetadata.workflowResourceUris).toEqual(
       expect.arrayContaining([
-        'appraise://actions/catalog',
-        'appraise://actions/category/{categoryId}',
         'appraise://project',
         'appraise://workflow/planning',
         'appraise://workflow/validation-preparation',
