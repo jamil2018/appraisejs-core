@@ -113,6 +113,18 @@ Managed sandboxes can block `tsx` process startup, localhost binding, browser la
 registry access. If a command fails with a sandbox-shaped transport, DNS, permission, or bind error, report that
 separately from product behavior and rerun only when the task needs live validation.
 
+## Default UI Testing Surface
+
+Use the bundled `Browser` plugin and its `control-in-app-browser` skill for interactive UI verification by default.
+This is the harness control surface for navigation, semantic page inspection, clicking, typing, console and request
+checks, and selective screenshots. Reuse one Browser binding and its tabs across related checks. Do not create
+screenshots, traces, snapshots, or other persisted artifacts unless the requested evidence needs them.
+
+Standalone `playwright-cli` is a fallback, not a peer default. Use it only when the Browser skill is unavailable or
+the Browser skill's documented setup and troubleshooting path cannot establish a session. Report the exact fallback
+reason and keep its `.playwright-cli/` output local and untracked. Repository Playwright test suites remain the
+deterministic validation surface when a checked-in E2E spec or repeatable suite execution is required.
+
 ## Drift Checks
 
 Run `npm run check:harness` after editing root or package agent instructions, `docs/agent-*`, repo-local skills,

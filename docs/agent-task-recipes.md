@@ -99,12 +99,16 @@ For reviewed runtime capsules, start with `prisma/schema.prisma`, `src/lib/runti
 containment behavior, artifact routes, and package CLI/MCP response modes. Capsule execution must not write or import
 target-repository automation as authority.
 
-## E2E And Playwright
+## UI, E2E, And Playwright
 
-Prefer the native browser control surface. If browser bootstrap fails before navigation with the host-level error
-`Cannot redefine property: process`, record that exact infrastructure defect and continue the same visible-browser
-workflow with a `playwright-cli` session. Preserve screenshots, console output, scoped project URLs, and human review
-gates; the fallback must not replace Appraise-owned approvals with direct API or database edits.
+Use the bundled `Browser` plugin and its `control-in-app-browser` skill as the default surface for interactive UI
+verification. Reuse the Browser binding and tabs across related checks, inspect semantic page state plus console and
+request failures in place, and persist screenshots or other artifacts only when the evidence contract requires them.
+
+Use standalone `playwright-cli` only when the Browser skill is unavailable or the Browser skill's documented setup
+and troubleshooting path cannot establish a session. Record the exact fallback reason and preserve only required
+fallback evidence, scoped project URLs, and human review gates. The fallback must not replace Appraise-owned approvals
+with direct API or database edits.
 
 Read `docs/test-run-runtime.md`, the target spec, and shared helpers before changing assertions or setup. Keep tests
 aligned with normal user flows rather than backend shortcuts.

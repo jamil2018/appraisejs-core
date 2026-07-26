@@ -125,6 +125,13 @@ the canonical `src/graphify-out/graph.json`. Do not run bare root-level `graphif
 For E2E or Playwright changes, follow `docs/test-run-runtime.md` for runtime behavior and
 `docs/agent-task-recipes.md` for focused validation routing.
 
+For interactive UI verification, use the bundled `Browser` plugin and its `control-in-app-browser` skill as the
+default harness surface. Keep the Browser binding and tab alive across related checks, inspect semantic page state,
+console errors, and failed requests in place, and create screenshots or other persisted artifacts only when they are
+required as evidence. Use standalone `playwright-cli` only as a fallback when the Browser skill is unavailable or its
+documented setup and troubleshooting path cannot establish a browser session. Record the fallback reason; do not
+silently substitute Playwright CLI for Browser.
+
 ## Unified Operation Authority
 
 Do not add built-in browser behavior directly to generated `automation/steps` wrappers, the deprecated action

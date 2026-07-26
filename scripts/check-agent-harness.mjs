@@ -130,11 +130,28 @@ const requiredTokens = [
   },
   {
     file: 'docs/agent-harness.md',
-    tokens: ['Documentation Maintenance', 'Major behavior, architecture, workflow, package, schema, scaffold'],
+    tokens: [
+      'Documentation Maintenance',
+      'Major behavior, architecture, workflow, package, schema, scaffold',
+      'Default UI Testing Surface',
+      'control-in-app-browser',
+      'Standalone `playwright-cli` is a fallback',
+    ],
   },
   {
     file: 'docs/agent-harness-guardrails.md',
-    tokens: ['Major behavior, architecture, workflow, package, schema, scaffold'],
+    tokens: [
+      'Major behavior, architecture, workflow, package, schema, scaffold',
+      'Interactive UI testing defaults to the bundled `Browser` plugin',
+    ],
+  },
+  {
+    file: 'AGENTS.md',
+    tokens: ['use the bundled `Browser` plugin', 'Use standalone `playwright-cli` only as a fallback'],
+  },
+  {
+    file: 'docs/agent-task-recipes.md',
+    tokens: ['Use the bundled `Browser` plugin', 'Use standalone `playwright-cli` only when'],
   },
   {
     file: '.agents/skills/swarm-orchestrator/SKILL.md',

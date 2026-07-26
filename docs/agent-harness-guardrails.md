@@ -23,6 +23,9 @@ the PR template.
   context. `not-used`, `all`, and unverified/requested context cannot pass that scored-run boundary.
 - Do not add checkout-specific absolute trust entries or enable plugins merely because they are locally available.
   Each expanded authority needs an explicit, reviewed purpose and a validation contract.
+- Interactive UI testing defaults to the bundled `Browser` plugin and its `control-in-app-browser` skill. Standalone
+  `playwright-cli` must remain an explicit, reason-recorded fallback, and UI checks should persist only evidence the
+  task requires.
 - Swarm observations cover performance, model fit, resources, governance, and harness usability. They must be noted
   and presented to the user before any guided update; the harness must not mutate agent roles or routing autonomously.
 - Historical plans are not active instructions unless the user names one as the task.
