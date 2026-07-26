@@ -1279,4 +1279,26 @@ describe('implementation coordinator checkpoints', () => {
       ],
     })
   })
+
+  it('reports healthy pre-validation lifecycle state before validation artifacts exist', async () => {
+    const planId = 'pre-validation-lifecycle-health'
+    await fs.mkdir(path.join(workspace, 'appraise', 'plans'), { recursive: true })
+    await fs.writeFile(
+      path.join(workspace, 'appraise', 'plans', `${planId}.yaml`),
+      serializeYamlArtifact('plan', plan(planId, 'plan_approved')),
+    )
+
+    await expect(readImplementationLifecycleHealth(planId, { projectDirectory: workspace, client })).resolves.toEqual({
+      schemaVersion: 1,
+      planId,
+      lifecycle: 'plan_approved',
+      healthy: true,
+      issues: [],
+      finalSignOffId: undefined,
+      evidenceProtected: true,
+      managedRunCount: 0,
+      implementationRunCount: 0,
+      baselineRunCount: 0,
+    })
+  })
 })

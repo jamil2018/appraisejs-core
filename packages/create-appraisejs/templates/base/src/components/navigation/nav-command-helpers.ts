@@ -92,7 +92,7 @@ function getLibrarySection(): NavigationSection {
   return {
     label: 'Library',
     items: [
-      { href: '/step-definitions/create', label: 'Step Definitions', icon: LayoutTemplate },
+      { href: '/step-definitions', label: 'Step Definitions', icon: LayoutTemplate },
       { href: '/template-test-cases', label: 'Case Templates', icon: Blocks },
       { href: '/locators', label: 'Locators', icon: Code },
       { href: '/locator-groups', label: 'Locator Groups', icon: Group },

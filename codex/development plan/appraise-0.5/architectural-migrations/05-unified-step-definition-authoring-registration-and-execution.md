@@ -1107,8 +1107,9 @@ compositions, imports, feature generation, and bidirectional sync now persist or
 Feature import fails closed when exact invocation metadata is absent instead of creating or guessing a reusable step.
 Template Step and Template Step Group persistence, writers, routes, generated registry projections, installer
 surfaces, compatibility ledgers, and migration utilities have been deleted. The human editor and dashboard now read
-ready Step Definitions directly. Tasks 6.2 and 6.3 subsequently removed the remaining V1 Validation AST and capsule
-contracts, completing Tranche 6.
+ready Step Definitions directly; the dashboard metric links to the unified registry rather than retaining Template
+Step authority. Tasks 6.2 and 6.3 subsequently removed the remaining V1 Validation AST and capsule contracts,
+completing Tranche 6.
 
 Update test cases, template test cases, flow diagrams, parameters, imports/exports, feature generation, and sync to store
 or derive exact Step Invocations.

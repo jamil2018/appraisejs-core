@@ -2425,7 +2425,7 @@
       "label": "applyCapsuleDiagnosticMode()",
       "file_type": "code",
       "source_file": "appraisejs/src/mcp/response-projector.ts",
-      "source_location": "L341",
+      "source_location": "L346",
       "_origin": "ast",
       "community": 14,
       "norm_label": "applycapsulediagnosticmode()",
@@ -4495,10 +4495,10 @@
       "source_file": "create-appraisejs/package.json",
       "source_location": "L72",
       "_origin": "ast",
-      "community": 48,
+      "community": 44,
       "norm_label": "engines",
       "id": "create_appraisejs_package_engines",
-      "community_name": "Community 48"
+      "community_name": "Community 44"
     },
     {
       "label": "node",
@@ -4506,10 +4506,10 @@
       "source_file": "create-appraisejs/package.json",
       "source_location": "L73",
       "_origin": "ast",
-      "community": 48,
+      "community": 44,
       "norm_label": "node",
       "id": "create_appraisejs_package_engines_node",
-      "community_name": "Community 48"
+      "community_name": "Community 44"
     },
     {
       "label": "allowScripts",
@@ -4759,10 +4759,10 @@
       "source_file": "create-appraisejs/scripts/prepare-template.ts",
       "source_location": "L82",
       "_origin": "ast",
-      "community": 181,
+      "community": 37,
       "norm_label": "copyfile()",
       "id": "scripts_prepare_template_copyfile",
-      "community_name": "Community 181"
+      "community_name": "Community 37"
     },
     {
       "label": "copyDirWithFilter()",
@@ -4891,10 +4891,10 @@
       "source_file": "create-appraisejs/scripts/prepare-template.ts",
       "source_location": "L263",
       "_origin": "ast",
-      "community": 181,
+      "community": 37,
       "norm_label": "resetautomationreports()",
       "id": "scripts_prepare_template_resetautomationreports",
-      "community_name": "Community 181"
+      "community_name": "Community 37"
     },
     {
       "label": "resetAutomationLocatorMap()",
@@ -4913,10 +4913,10 @@
       "source_file": "create-appraisejs/scripts/prepare-template.ts",
       "source_location": "L276",
       "_origin": "ast",
-      "community": 181,
+      "community": 37,
       "norm_label": "resetautomationenvironments()",
       "id": "scripts_prepare_template_resetautomationenvironments",
-      "community_name": "Community 181"
+      "community_name": "Community 37"
     },
     {
       "label": "syncLegacyEnvironmentConfig()",
@@ -4924,10 +4924,10 @@
       "source_file": "create-appraisejs/scripts/prepare-template.ts",
       "source_location": "L282",
       "_origin": "ast",
-      "community": 181,
+      "community": 37,
       "norm_label": "synclegacyenvironmentconfig()",
       "id": "scripts_prepare_template_synclegacyenvironmentconfig",
-      "community_name": "Community 181"
+      "community_name": "Community 37"
     },
     {
       "label": "syncInternalPackage()",
@@ -4935,10 +4935,10 @@
       "source_file": "create-appraisejs/scripts/prepare-template.ts",
       "source_location": "L296",
       "_origin": "ast",
-      "community": 181,
+      "community": 37,
       "norm_label": "syncinternalpackage()",
       "id": "scripts_prepare_template_syncinternalpackage",
-      "community_name": "Community 181"
+      "community_name": "Community 37"
     },
     {
       "label": "writeTemplatePackageJson()",
@@ -4946,10 +4946,10 @@
       "source_file": "create-appraisejs/scripts/prepare-template.ts",
       "source_location": "L322",
       "_origin": "ast",
-      "community": 181,
+      "community": 37,
       "norm_label": "writetemplatepackagejson()",
       "id": "scripts_prepare_template_writetemplatepackagejson",
-      "community_name": "Community 181"
+      "community_name": "Community 37"
     },
     {
       "label": "writeTemplateHarnessCheck()",
@@ -4957,10 +4957,10 @@
       "source_file": "create-appraisejs/scripts/prepare-template.ts",
       "source_location": "L356",
       "_origin": "ast",
-      "community": 181,
+      "community": 37,
       "norm_label": "writetemplateharnesscheck()",
       "id": "scripts_prepare_template_writetemplateharnesscheck",
-      "community_name": "Community 181"
+      "community_name": "Community 37"
     },
     {
       "label": "preparePackagedGitignore()",
@@ -4979,10 +4979,10 @@
       "source_file": "create-appraisejs/scripts/prepare-template.ts",
       "source_location": "L373",
       "_origin": "ast",
-      "community": 181,
+      "community": 37,
       "norm_label": "createbasetemplate()",
       "id": "scripts_prepare_template_createbasetemplate",
-      "community_name": "Community 181"
+      "community_name": "Community 37"
     },
     {
       "label": "copyDirWithoutBundledExclusions()",
@@ -32581,5 +32581,5 @@
       "source_file": "appraisejs/agent-skills/appraise-planning-standby/SKILL.md"
     }
   ],
-  "built_at_commit": "0f382268eafe68967095525eb5c2548a2fa794ec"
+  "built_at_commit": "4ea9b84d38741f87d8947684b12584e14fc2c044"
 }

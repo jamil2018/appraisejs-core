@@ -1,15 +1,15 @@
-# Graph Report - packages  (2026-07-25)
+# Graph Report - packages  (2026-07-26)
 
 ## Corpus Check
 - cluster-only mode — file stats not available
 
 ## Summary
-- 1020 nodes · 2014 edges · 60 communities (57 shown, 3 thin omitted)
+- 1020 nodes · 2014 edges · 61 communities (58 shown, 3 thin omitted)
 - Extraction: 99% EXTRACTED · 1% INFERRED · 0% AMBIGUOUS · INFERRED: 12 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `0f382268`
+- Built from commit: `4ea9b84d`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -51,11 +51,12 @@
 - [[_COMMUNITY_Community 34|Community 34]]
 - [[_COMMUNITY_Create Appraisejs Package Bin  Create Appraisejs Package Bin Create Appraisejs|Create Appraisejs Package Bin / Create Appraisejs Package Bin Create Appraisejs]]
 - [[_COMMUNITY_Src Skill Policy Test  Src Skill Policy Test Skills|Src Skill Policy Test / Src Skill Policy Test Skills]]
+- [[_COMMUNITY_Community 37|Community 37]]
 - [[_COMMUNITY_Community 39|Community 39]]
 - [[_COMMUNITY_Community 40|Community 40]]
 - [[_COMMUNITY_Community 41|Community 41]]
+- [[_COMMUNITY_Community 44|Community 44]]
 - [[_COMMUNITY_Input Fill|Input Fill]]
-- [[_COMMUNITY_Community 48|Community 48]]
 - [[_COMMUNITY_Wait Wait For Page Load|Wait Wait For Page Load]]
 - [[_COMMUNITY_Community 81|Community 81]]
 - [[_COMMUNITY_Community 82|Community 82]]
@@ -100,7 +101,7 @@
 ## Hyperedges (group relationships)
 - **Appraise Planning Lifecycle Flow** — appraise_planning_standby_skill_mcp_setup_and_diagnostics, appraise_planning_standby_skill_target_workspace_registration, appraise_planning_standby_skill_plan_creation, appraise_planning_standby_skill_review_readiness, appraise_planning_standby_skill_approval_standby, appraise_planning_standby_skill_approval_outcomes, appraise_planning_standby_skill_validation_preparation [EXTRACTED 1.00]
 
-## Communities (60 total, 3 thin omitted)
+## Communities (61 total, 3 thin omitted)
 
 ### Community 0 - "Create Appraisejs Src Cli Ts Src Cli / Create Appraisejs Src Cli Ts Src Cli Main"
 Cohesion: 0.19
@@ -246,6 +247,10 @@ Nodes (5): ensureLocatorPickerCompanionBuilt(), getLatestModifiedTime(), getLoca
 Cohesion: 0.67
 Nodes (3): allowScripts, esbuild@0.28.1, fsevents@2.3.3
 
+### Community 37 - "Community 37"
+Cohesion: 0.32
+Nodes (8): copyFile(), createBaseTemplate(), resetAutomationEnvironments(), resetAutomationReports(), syncInternalPackage(), syncLegacyEnvironmentConfig(), writeTemplateHarnessCheck(), writeTemplatePackageJson()
+
 ### Community 39 - "Community 39"
 Cohesion: 0.26
 Nodes (15): asOptions(), assertAllowedOptions(), assertArgumentCount(), isPlainObject(), locatorOptionKeys, LocatorStepOperation, pageOptionKeys, PageStepOperation (+7 more)
@@ -291,8 +296,8 @@ Cohesion: 0.16
 Nodes (11): ExpressionKind, identityKey(), ResolvedStepDefinition, sortDiagnostics(), StepDefinitionCompositionDiagnostic, StepValueType, composition(), definition() (+3 more)
 
 ### Community 181 - "Community 181"
-Cohesion: 0.17
-Nodes (15): copyFile(), createBaseTemplate(), preparePackagedGitignore(), resetAutomationEnvironments(), resetAutomationLocatorMap(), resetAutomationReports(), syncInternalPackage(), syncLegacyEnvironmentConfig() (+7 more)
+Cohesion: 0.31
+Nodes (7): preparePackagedGitignore(), resetAutomationLocatorMap(), getEmptyEnvironmentsFileContent(), getEmptyLocatorMapFileContent(), SEEDED_TEMPLATE_PATHS, setSeededTemplateFilesTracked(), trimTrailingBlankLines()
 
 ### Community 182 - "Community 182"
 Cohesion: 0.22

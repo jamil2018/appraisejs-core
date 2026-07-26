@@ -27,12 +27,12 @@ import {
 } from '@/lib/validation-ast'
 import { ServiceError } from '@/services/shared/errors'
 import { buildValidationAstReviewPreview } from '@/lib/validation-ast/review-preview'
+import { locatorBindingsForAst } from '@/lib/validation-ast/canonical-projection'
 import { readVisibleResourceOwnerships } from '@/services/project-resource/project-resource-ownership-service'
 import { buildLocatorGraph } from '@/services/locator-graph/locator-graph-service'
 import {
   buildCompiledValidationAstResult,
   PROJECT_EXTENSION_CAPABILITY_IMPORTS,
-  type ResolvedLocatorBinding,
 } from './validation-ast-compiler-service'
 import { prepareValidationAstPublish } from './validation-ast-publish-journal-service'
 import { validateStoredValidationAstPublish } from './validation-ast-publish-journal-service'
@@ -365,43 +365,6 @@ function bindPublishProvenance(
   }
 }
 
-function locatorBindings(context: ValidationAstCompilerContext, locatorIds: Set<string>): ResolvedLocatorBinding[] {
-  const groups = new Map(
-    context.locatorGraph.nodes
-      .filter(
-        (
-          node,
-        ): node is Extract<ValidationAstCompilerContext['locatorGraph']['nodes'][number], { type: 'locator-group' }> =>
-          node.type === 'locator-group',
-      )
-      .map(node => [node.id, node]),
-  )
-  return context.locatorGraph.nodes
-    .filter(
-      (node): node is Extract<ValidationAstCompilerContext['locatorGraph']['nodes'][number], { type: 'locator' }> =>
-        node.type === 'locator' && locatorIds.has(node.id),
-    )
-    .map(locator => {
-      const group = groups.get(locator.groupId)
-      const selector = locator.strategy.value.selector
-      if (!group || typeof selector !== 'string')
-        throw new ServiceError(`Locator ${locator.id} cannot be projected.`, 'VALIDATION')
-      const surface = context.locatorGraph.nodes.find(
-        node => node.type === 'surface' && node.id === locator.scope.surfaceId,
-      )
-      return {
-        refId: locator.id,
-        id: locator.id.replace(/^locator_/, ''),
-        name: locator.title,
-        value: selector,
-        groupId: group.id.replace(/^group_/, ''),
-        groupName: group.title,
-        moduleId: group.moduleId ?? '',
-        route: surface?.type === 'surface' ? (surface.route ?? '/') : '/',
-      }
-    })
-}
-
 export async function compileValidationAstForPlan(
   input: { planId: string; submission: unknown; expectedReceiptHash: string; projectDirectory?: string },
   client: PrismaClient = prisma,
@@ -459,7 +422,11 @@ export async function compileValidationAstForPlan(
         ]),
       ),
       validation,
-      resolvedLocators: locatorBindings(context.compilerContext, new Set(preview.locators.map(locator => locator.id))),
+      resolvedLocators: locatorBindingsForAst(
+        checked.submission.ast,
+        context.compilerContext.locatorGraph,
+        context.compilerContext.planScope,
+      ),
       planScope: context.compilerContext.planScope,
       assertCurrent: async transaction => {
         const current = await loadValidationAstContext(input.planId, transaction)

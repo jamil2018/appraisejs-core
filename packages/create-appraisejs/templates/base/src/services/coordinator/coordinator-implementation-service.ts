@@ -20,7 +20,7 @@ import {
   type ReviewArtifact,
   type ValidationArtifact,
 } from '@/lib/plan-contract'
-import { PlanArtifactRepository } from '@/lib/plans/artifact-repository'
+import { PlanArtifactRepository, PlanRepositoryError } from '@/lib/plans/artifact-repository'
 import { planStateHash } from '@/lib/plans/plan-hashes'
 import { findProjectRoot } from '@/lib/plans/project-root'
 import { syncPlans } from '@/lib/plans/plan-sync-service'
@@ -1278,7 +1278,42 @@ export async function reviewImplementationCompletion(planId: string, options: Op
 
 export async function readImplementationLifecycleHealth(planId: string, options: Options = {}) {
   const client = options.client ?? prisma
-  const artifacts = await readArtifacts(planId, options.projectDirectory)
+  let artifacts: Awaited<ReturnType<typeof readArtifacts>>
+  try {
+    artifacts = await readArtifacts(planId, options.projectDirectory)
+  } catch (error) {
+    if (!(error instanceof PlanRepositoryError) || error.code !== 'not-found') throw error
+
+    const projectRoot = await findProjectRoot(options.projectDirectory)
+    const repository = new PlanArtifactRepository(projectRoot)
+    const planStored = await repository.read('plan', planId)
+    const plan = parseYamlArtifact('plan', planStored.content) as PlanArtifact
+    if (
+      ![
+        'draft',
+        'awaiting_plan_review',
+        'changes_requested',
+        'plan_approved',
+        'preparing_validations',
+        'validation_changes_requested',
+      ].includes(plan.lifecycle)
+    ) {
+      throw error
+    }
+
+    return {
+      schemaVersion: 1,
+      planId,
+      lifecycle: plan.lifecycle,
+      healthy: true,
+      issues: [],
+      finalSignOffId: undefined,
+      evidenceProtected: true,
+      managedRunCount: 0,
+      implementationRunCount: 0,
+      baselineRunCount: 0,
+    }
+  }
   const implementation = implementationState(artifacts.validation)
   const implementationRunIds = implementation.validationRuns.flatMap(run => (run.testRunId ? [run.testRunId] : []))
   const baselineRunIds = artifacts.validation.baselineAttempts.map(attempt => attempt.testRunId)

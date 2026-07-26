@@ -18,5 +18,6 @@ describe('getSidebarNavigationSections', () => {
       'Tags',
     ])
     expect(system?.items.map(item => item.label)).toEqual(['Projects', 'Settings'])
+    expect(library?.items.find(item => item.label === 'Step Definitions')?.href).toBe('/step-definitions')
   })
 })

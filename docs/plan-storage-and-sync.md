@@ -32,7 +32,9 @@ Projects without Git store the complete artifact contents in `PlanRevision.snaps
 ## Commands and Errors
 
 Run `npm run sync-plans` for plans only or `npm run sync-all` for every registered sync target. Settings uses the same
-registry and shows pending plan projections.
+registry and shows actionable pending plan projections. Historical projections retained only because their managed
+validation shape predates exact Step Invocations remain visible as stale records, but they do not keep the Settings
+sync badge active because rerunning sync cannot repair their canonical artifacts.
 
 Artifact parse failures, plan ID mismatches, merge conflicts, stale writes, lock timeouts, and path escapes are
 reported without partially projecting the affected plan. Other valid plans in the same run continue to sync.

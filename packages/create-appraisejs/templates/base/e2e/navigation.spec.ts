@@ -22,6 +22,7 @@ test.describe('Navigation @navigation', () => {
     { path: '/tags', heading: 'Tags' },
     { path: '/locator-groups', heading: 'Locator Groups' },
     { path: '/locators', heading: 'Locators' },
+    { path: '/step-definitions', heading: 'Step Definitions' },
     { path: '/template-test-cases', heading: 'Template Test Cases' },
     { path: '/test-suites', heading: 'Test Suites' },
     { path: '/test-cases', heading: 'Test Cases' },
