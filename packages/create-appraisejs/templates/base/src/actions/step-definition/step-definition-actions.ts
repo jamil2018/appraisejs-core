@@ -15,13 +15,14 @@ import {
   computeStepReferenceHash,
   stepDefinitionSchema,
 } from '../../../packages/cucumber-runtime/src/step-definitions/contracts.ts'
-import type { StepDefinitionOption } from '@/types/step-definition-option'
+import type { StepDefinitionDraftSummary, StepDefinitionOption } from '@/types/step-definition-option'
 
 const draftIdSchema = z.string().uuid()
 const revisionSchema = z.number().int().positive()
 const stepIdentitySchema = z.object({ stepId: z.string().min(1), version: z.string().min(1) })
 const readyDefinitionSearchSchema = z.string().trim().min(1).max(200)
 const readyStepReferenceSchema = z.object({ id: z.string().min(1).max(200), version: z.string().min(1).max(40) })
+const deprecationReasonSchema = z.string().trim().min(1).max(1_000)
 const registry = new StepDefinitionRegistryService(prisma)
 const extensions = new StepDefinitionExtensionService(prisma)
 
@@ -54,7 +55,10 @@ function registryError(error: StepDefinitionRegistryError): ActionResponse {
 async function respond<T>(operation: () => Promise<T>, revalidate = false): Promise<ActionResponse> {
   try {
     const data = await operation()
-    if (revalidate) revalidatePath('/step-definitions/create')
+    if (revalidate) {
+      revalidatePath('/step-definitions')
+      revalidatePath('/step-definitions/create')
+    }
     return { status: 200, success: true, data }
   } catch (error) {
     if (error instanceof z.ZodError) return validationError(error)
@@ -66,6 +70,10 @@ async function respond<T>(operation: () => Promise<T>, revalidate = false): Prom
 
 export async function createStepDefinitionDraftAction(definition: unknown): Promise<ActionResponse> {
   return respond(() => registry.createDraft(definition), true)
+}
+
+export async function listStepDefinitionDraftsAction(): Promise<ActionResponse> {
+  return respond(async () => (await registry.listHumanDrafts()) satisfies StepDefinitionDraftSummary[])
 }
 
 export async function searchReadyStepDefinitionContractsAction(query: string): Promise<ActionResponse> {
@@ -103,7 +111,14 @@ export async function selectReadyStepDefinitionAction(input: {
       surface: 'human',
       step: readyStepReferenceSchema.parse(input.step),
       ...(input.planId ? { planId: z.string().min(1).max(200).parse(input.planId) } : {}),
-      ...(input.correlationId ? { correlationId: z.string().regex(/^[a-zA-Z0-9._:-]{1,100}$/).parse(input.correlationId) } : {}),
+      ...(input.correlationId
+        ? {
+            correlationId: z
+              .string()
+              .regex(/^[a-zA-Z0-9._:-]{1,100}$/)
+              .parse(input.correlationId),
+          }
+        : {}),
     }),
   )
 }
@@ -120,6 +135,7 @@ export async function listReadyStepDefinitionOptionsAction(): Promise<ActionResp
         signature: definition.human.signature,
         keywordCompatibility: definition.human.keywordCompatibility,
         groupId: definition.human.groupId,
+        sourceOwned: definition.provenance.creationMethod === 'built-in-source',
         inputs: definition.inputs.map(input => ({
           name: input.name,
           type: input.type,
@@ -241,4 +257,21 @@ export async function createStepDefinitionVersionDraftAction(input: {
         .parse(input.createdBy ?? 'local-user'),
     })
   }, true)
+}
+
+export async function deprecateStepDefinitionAction(input: {
+  stepId: string
+  version: string
+  reason: string
+  replacement?: { id: string; version: string }
+}): Promise<ActionResponse> {
+  return respond(
+    () =>
+      registry.deprecateFromHumanUi({
+        ...stepIdentitySchema.parse(input),
+        reason: deprecationReasonSchema.parse(input.reason),
+        ...(input.replacement ? { replacement: readyStepReferenceSchema.parse(input.replacement) } : {}),
+      }),
+    true,
+  )
 }

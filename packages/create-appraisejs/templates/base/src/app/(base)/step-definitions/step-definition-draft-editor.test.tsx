@@ -34,6 +34,11 @@ vi.mock('@/actions/step-definition/step-definition-actions', () => ({
   saveStepDefinitionDraftArtifactAction: mocks.saveArtifact,
   validateStepDefinitionDraftAction: mocks.validate,
 }))
+vi.mock('./step-definition-code-editor', () => ({
+  StepDefinitionCodeEditor: ({ onChange, value }: { onChange: (value: string) => void; value: string }) => (
+    <textarea aria-label="User-owned handler source" value={value} onChange={event => onChange(event.target.value)} />
+  ),
+}))
 
 beforeEach(() => {
   vi.clearAllMocks()

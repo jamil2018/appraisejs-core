@@ -24,4 +24,14 @@ export type StepDefinitionOption = {
   keywordCompatibility: Array<'Given' | 'When' | 'Then' | 'And'>
   groupId: string
   inputs: StepDefinitionInputOption[]
+  sourceOwned?: boolean
+}
+
+export type StepDefinitionDraftSummary = {
+  id: string
+  proposedStepId: string
+  proposedVersion: string
+  revision: number
+  title: string
+  updatedAt: string
 }

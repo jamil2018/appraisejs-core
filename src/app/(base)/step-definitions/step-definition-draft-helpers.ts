@@ -29,7 +29,9 @@ export function deriveStepSearchTerms(definition: DraftDefinition) {
 }
 
 export function applyManagedStepMetadata(definition: DraftDefinition): DraftDefinition {
-  const id = stepDefinitionIdFromTitle(definition.intent.title)
+  const isVersionDraft = Boolean(definition.lifecycle.supersedes)
+  const id = isVersionDraft ? definition.identity.id : stepDefinitionIdFromTitle(definition.intent.title)
+  const version = isVersionDraft ? definition.identity.version : '1'
   const title = definition.intent.title.trim()
   const description = definition.intent.description.trim()
   const runtime =
@@ -38,7 +40,7 @@ export function applyManagedStepMetadata(definition: DraftDefinition): DraftDefi
       : 'node'
   return {
     ...definition,
-    identity: { ...definition.identity, id, version: '1' },
+    identity: { ...definition.identity, id, version },
     intent: { ...definition.intent, capabilities: [runtime], searchTerms: deriveStepSearchTerms(definition) },
     agent: {
       summary: title,
@@ -51,7 +53,7 @@ export function applyManagedStepMetadata(definition: DraftDefinition): DraftDefi
     human: { ...definition.human, groupId: definition.human.groupId.trim() || 'custom' },
     execution:
       definition.execution.kind === 'reviewed-extension'
-        ? { ...definition.execution, extensionId: id, extensionVersion: '1' }
+        ? { ...definition.execution, extensionId: id, extensionVersion: version }
         : definition.execution,
   }
 }

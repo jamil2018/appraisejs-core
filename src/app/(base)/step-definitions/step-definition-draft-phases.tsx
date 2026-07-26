@@ -33,6 +33,7 @@ import {
   normalizeCompositionChildren,
   type ReadyCompositionChildContract,
 } from '@/lib/step-definition/composition-authoring'
+import { StepDefinitionCodeEditor } from './step-definition-code-editor'
 import { reconcileNamedInputs, updateStepInputType, type DraftDefinition } from './step-definition-draft-helpers'
 
 type SetDefinition = Dispatch<SetStateAction<DraftDefinition>>
@@ -222,6 +223,7 @@ function WizardPhase(props: WizardPhaseProps) {
   if (props.stage === 1)
     return (
       <ConnectPhase
+        diagnostics={props.diagnostics}
         definition={props.definition}
         generatedContract={props.generatedContract}
         handlerSource={props.handlerSource}
@@ -398,6 +400,7 @@ export function DefinePhase({
 }
 
 export function ConnectPhase({
+  diagnostics,
   definition,
   generatedContract,
   handlerSource,
@@ -405,6 +408,7 @@ export function ConnectPhase({
   setDefinition,
   setHandlerSource,
 }: {
+  diagnostics: string[]
   definition: DraftDefinition
   generatedContract: string
   handlerSource: string
@@ -424,11 +428,22 @@ export function ConnectPhase({
         </div>
       </details>
       <Field label="User-owned handler source">
-        <Textarea
-          className="min-h-80 font-mono text-xs"
+        <StepDefinitionCodeEditor
+          contractSource={generatedContract}
+          diagnostics={diagnostics}
           value={handlerSource}
-          onChange={event => setHandlerSource(event.target.value)}
+          onChange={setHandlerSource}
         />
+        {diagnostics.length ? (
+          <div role="alert" className="border-destructive/30 bg-destructive/10 space-y-1 rounded-md border p-3">
+            <p className="text-xs font-medium text-destructive">Appraise compilation diagnostics</p>
+            <ul className="list-disc space-y-1 pl-4 text-xs text-muted-foreground">
+              {diagnostics.map(diagnostic => (
+                <li key={diagnostic}>{diagnostic}</li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
         <p className="text-xs text-muted-foreground">
           Replace the generated placeholder with the reviewed behavior. Metadata regeneration never overwrites this
           source.

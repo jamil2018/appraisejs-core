@@ -69,6 +69,18 @@ describe('Step Definition draft helpers', () => {
     })
   })
 
+  it('preserves exact identity and extension version for a successor draft', () => {
+    const draft = createHumanStepDraft()
+    draft.identity = { id: 'custom.existing-step', version: '2', status: 'draft' }
+    draft.lifecycle.supersedes = { id: 'custom.existing-step', version: '1' }
+    draft.intent.title = 'A renamed successor'
+
+    const managed = applyManagedStepMetadata(draft)
+
+    expect(managed.identity).toMatchObject({ id: 'custom.existing-step', version: '2' })
+    expect(managed.execution).toMatchObject({ extensionId: 'custom.existing-step', extensionVersion: '2' })
+  })
+
   it('generates deterministic human-readable example values for authored inputs', () => {
     const input = reconcileNamedInputs(createHumanStepDraft(), 'I greet {recipientName}').inputs[0]!
 

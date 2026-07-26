@@ -11,17 +11,27 @@ authoring. The supported draft transition adapters are:
 
 - Server Actions in `src/actions/step-definition/step-definition-actions.ts`.
 - HTTP routes under `/api/step-definitions/drafts` for bounded create, read, revise, delete, validate, preview, and
-  reviewed-artifact staging only. Review, publication, and deprecation compatibility routes are deleted.
+  reviewed-artifact staging only. Review, publication, and deprecation compatibility HTTP routes are deleted.
 
 These adapters parse transport input, preserve optimistic draft revisions, map registry errors, and invalidate the
 shared library view. Business rules remain in `StepDefinitionRegistryService`. The create route opens the schema-driven
 Step Definition draft editor; incomplete definitions are saved under a resumable draft URL and only exact reviewed,
 conformant drafts become immutable ready versions.
 
+The shared library lists human-authored drafts separately from immutable published versions. A draft can be resumed or
+deleted with its exact optimistic revision. A human-authored published version can be modified only by creating a new
+version draft; source-owned definitions remain versioned through source registration. Deprecation removes a ready
+version from default discovery while preserving exact historical resolution. Published versions are never deleted.
+
 The human editor separates technical execution checks, exact publication review, and immutable publication into
 distinct actions. Untouched generated handler scaffolds cannot pass execution checks. A successful publication keeps
 its version receipt visible until the user explicitly opens the library or starts another draft. The legacy
 `/template-steps` URL redirects to the canonical `/step-definitions` library.
+
+User-owned TypeScript handlers are edited in Monaco with the generated `contract.ts` loaded into the same virtual
+TypeScript workspace. Monaco provides syntax highlighting, completion, and immediate language diagnostics; Appraise
+compilation, static policy, and conformance remain the authoritative readiness gates. Server compilation diagnostics
+are also attached to the editor and retained in the verification phase.
 
 ## Selection Order
 

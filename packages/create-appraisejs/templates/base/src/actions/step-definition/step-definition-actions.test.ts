@@ -2,7 +2,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mocks = vi.hoisted(() => ({
   createDraft: vi.fn(),
+  createVersionDraft: vi.fn(),
   readDraft: vi.fn(),
+  listHumanDrafts: vi.fn(),
   updateDraft: vi.fn(),
   deleteDraft: vi.fn(),
   validateDraft: vi.fn(),
@@ -38,7 +40,10 @@ vi.mock('@/services/step-definition/step-definition-registry-service', async imp
 
 import {
   createStepDefinitionDraftAction,
+  createStepDefinitionVersionDraftAction,
+  deprecateStepDefinitionAction,
   deleteStepDefinitionDraftAction,
+  listStepDefinitionDraftsAction,
   publishStepDefinitionDraftAction,
   readStepDefinitionDraftAction,
   rejectReadyStepDefinitionSelectionAction,
@@ -65,6 +70,7 @@ describe('Step Definition Server Actions', () => {
       data: { id: draftId, revision: 1 },
     })
     expect(mocks.createDraft).toHaveBeenCalledWith({ identity: { id: 'custom.open' } })
+    expect(mocks.revalidatePath).toHaveBeenCalledWith('/step-definitions')
     expect(mocks.revalidatePath).toHaveBeenCalledWith('/step-definitions/create')
   })
 
@@ -150,6 +156,53 @@ describe('Step Definition Server Actions', () => {
 
     expect(mocks.updateDraft).toHaveBeenCalledWith(draftId, 2, { schemaVersion: '1' })
     expect(mocks.deleteDraft).toHaveBeenCalledWith(draftId, 3)
+  })
+
+  it('lists resumable human drafts through the action boundary', async () => {
+    const draft = {
+      id: draftId,
+      proposedStepId: 'custom.open',
+      proposedVersion: '2',
+      revision: 3,
+      title: 'Open a page',
+      updatedAt: '2026-07-26T00:00:00.000Z',
+    }
+    mocks.listHumanDrafts.mockResolvedValue([draft])
+
+    await expect(listStepDefinitionDraftsAction()).resolves.toMatchObject({
+      status: 200,
+      success: true,
+      data: [draft],
+    })
+  })
+
+  it('creates immutable successor drafts and deprecates ready versions with human authority', async () => {
+    mocks.createVersionDraft.mockResolvedValue({ id: draftId, revision: 1 })
+    mocks.deprecateFromHumanUi.mockResolvedValue({ receiptHash: 'sha256:receipt' })
+
+    await createStepDefinitionVersionDraftAction({
+      stepId: 'custom.open',
+      version: '1',
+      newVersion: '2',
+    })
+    await deprecateStepDefinitionAction({
+      stepId: 'custom.open',
+      version: '1',
+      reason: 'Use version 2.',
+    })
+
+    expect(mocks.createVersionDraft).toHaveBeenCalledWith({
+      stepId: 'custom.open',
+      version: '1',
+      newVersion: '2',
+      createdBy: 'local-user',
+    })
+    expect(mocks.deprecateFromHumanUi).toHaveBeenCalledWith({
+      stepId: 'custom.open',
+      version: '1',
+      reason: 'Use version 2.',
+    })
+    expect(mocks.revalidatePath).toHaveBeenCalledWith('/step-definitions')
   })
 
   it('maps stale registry revisions to a conflict envelope', async () => {

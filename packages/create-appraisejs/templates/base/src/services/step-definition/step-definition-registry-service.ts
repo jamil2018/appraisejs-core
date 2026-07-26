@@ -37,6 +37,10 @@ const reuseEvidenceSchema = z.object({
   receiptId: z.string().uuid(),
   reuseJustification: z.string().trim().min(1).max(2_000),
 })
+const draftListProjectionSchema = z.object({
+  intent: z.object({ title: z.string().optional() }),
+  provenance: z.object({ creationMethod: z.string() }),
+})
 
 export class StepDefinitionRegistryError extends Error {
   constructor(
@@ -584,6 +588,27 @@ export class StepDefinitionRegistryService {
     if (!draft)
       throw new StepDefinitionRegistryError('draft_not_found', `Step Definition draft ${draftId} was not found.`)
     return { ...draft, definition: parseDraftJson(draft.draftJson) }
+  }
+
+  async listHumanDrafts() {
+    const drafts = await this.database.stepDefinitionDraft.findMany({
+      orderBy: { updatedAt: 'desc' },
+      take: 100,
+    })
+    return drafts.flatMap(draft => {
+      const projection = draftListProjectionSchema.safeParse(parseDraftJson(draft.draftJson))
+      if (!projection.success || projection.data.provenance.creationMethod !== 'human-form') return []
+      return [
+        {
+          id: draft.id,
+          proposedStepId: draft.proposedStepId,
+          proposedVersion: draft.proposedVersion,
+          revision: draft.revision,
+          title: projection.data.intent.title || draft.proposedStepId,
+          updatedAt: draft.updatedAt.toISOString(),
+        },
+      ]
+    })
   }
 
   async updateDraft(draftId: string, expectedRevision: number, definition: unknown) {

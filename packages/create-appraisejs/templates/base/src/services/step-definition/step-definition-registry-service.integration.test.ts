@@ -122,6 +122,30 @@ afterEach(async () => {
 })
 
 describe('StepDefinitionRegistryService', () => {
+  it('lists legacy human drafts without requiring publication-valid content', async () => {
+    await prisma.stepDefinitionDraft.create({
+      data: {
+        id: '00000000-0000-4000-8000-000000000001',
+        proposedStepId: 'custom.legacy',
+        proposedVersion: '1',
+        revision: 3,
+        draftJson: JSON.stringify({
+          intent: { title: 'Legacy incomplete draft' },
+          provenance: { creationMethod: 'human-form' },
+        }),
+        draftHash: `sha256:${'0'.repeat(64)}`,
+      },
+    })
+
+    await expect(registry.listHumanDrafts()).resolves.toEqual([
+      expect.objectContaining({
+        id: '00000000-0000-4000-8000-000000000001',
+        revision: 3,
+        title: 'Legacy incomplete draft',
+      }),
+    ])
+  })
+
   it('lists ready definitions with a bounded query and deletes only the expected draft revision', async () => {
     const disposable = await registry.createDraft(definition('browser.disposable.step', 'I discard {timeout}'))
     await registry.deleteDraft(disposable.id, disposable.revision)
