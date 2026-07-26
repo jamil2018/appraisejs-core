@@ -8,6 +8,7 @@ import { ensureProjectIdentity } from '@/services/coordinator/coordinator-servic
 import { ACTIVE_PROJECT_COOKIE, requireActiveProjectForMutation } from '@/lib/active-project'
 import { ServiceError } from '@/services/shared/errors'
 import {
+  initializeTargetGitRepository,
   registerTargetProject,
   deleteTargetProject,
   renameTargetProject,
@@ -20,6 +21,7 @@ const registrationSchema = z.object({
   projectPath: z.string().trim().min(1),
   displayName: z.string().trim().min(1),
   description: z.string().trim().max(1000).optional(),
+  initializeGit: z.boolean().optional(),
 })
 const renameSchema = z.object({
   targetProjectId: z.string().uuid(),
@@ -39,6 +41,7 @@ export async function registerTargetProjectAction(input: unknown): Promise<Actio
   try {
     const value = registrationSchema.parse(input)
     const identity = await ensureProjectIdentity()
+    const git = await initializeTargetGitRepository(value.projectPath, value.initializeGit ?? false)
     const targetProject = await registerTargetProject({
       projectPath: value.projectPath,
       displayName: value.displayName,
@@ -61,7 +64,7 @@ export async function registerTargetProjectAction(input: unknown): Promise<Actio
       maxAge: 60 * 60 * 24 * 365,
     })
     revalidatePath('/', 'layout')
-    return { status: 200, success: true, data: { targetProject, marker } }
+    return { status: 200, success: true, data: { targetProject, marker, git } }
   } catch (error) {
     return errorResponse(error, 'Project registration failed')
   }

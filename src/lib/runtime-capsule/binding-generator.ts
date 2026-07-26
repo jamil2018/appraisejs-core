@@ -40,7 +40,8 @@ const registeredExpressions = new Map()
 for (const testCase of cases) for (const step of testCase.steps) {
   const keyword = step.keywordText.slice(0, step.keywordText.indexOf(' '))
   const expressionText = step.keywordText.slice(step.keywordText.indexOf(' ') + 1)
-  const signature = JSON.stringify({ invocation: step.invocation })
+  const { presentation: _presentation, ...executionInvocation } = step.invocation
+  const signature = JSON.stringify({ invocation: executionInvocation })
   const existingSignature = registeredExpressions.get(expressionText)
   if (existingSignature !== undefined) {
     if (existingSignature !== signature) throw new Error(\`Reviewed steps reuse "\${expressionText}" with different invocations.\`)

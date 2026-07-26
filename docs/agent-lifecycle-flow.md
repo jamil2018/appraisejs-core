@@ -222,7 +222,16 @@ Implementation start is also agent-owned: once baseline evidence is accepted, th
 `implementation_start` through MCP. Required implementation validations follow
 `implementation_validation_start -> test_run_read or test_run_diagnose -> implementation_validation_reconcile ->
 implementation_completion_review`; start creates and launches the managed capsules, so agents do not issue a second
-`test_run` call.
+`test_run` call. Before `implementation_validation_start`, call `implementation_validation_readiness` with
+`action: "check"` to verify the reviewed origins without consuming a TestRun. If an approved loopback environment is
+unavailable, `action: "launch"` may start the registered target through its known `dev` or `start` package script
+without a shell and recheck it on macOS or Linux. Appraise owns the launched process group, stops it during normal hub
+process exit on a best-effort basis, and exposes `action: "stop"` for required explicit cleanup after validation.
+Forced hub termination or restart can lose in-memory ownership, in which case the operator must stop the target
+manually. Windows, unsupported package scripts, and remote targets require a manual launch; remote reviewed
+environments remain not ready until their exact environment IDs are supplied as `confirmedRemoteEnvironmentIds` after
+an external reachability check. Managed validation should not be used as the first check that the implementation
+server was never started.
 `implementation_validation_record` is only for exceptional manual evidence and is reduced assurance; required runtime
 validations need fresh managed Appraise `TestRun` evidence with `evidenceHealth: valid` before completion can pass.
 

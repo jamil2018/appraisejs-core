@@ -166,6 +166,7 @@ export async function readRuntimeCapsuleDiagnostic(
       ...(preflight.resolved.selectedScenarioCount === undefined
         ? {}
         : { selectedScenarioCount: preflight.resolved.selectedScenarioCount }),
+      ...(preflight.failureOutput ? { failureOutput: preflight.failureOutput } : {}),
     },
     blockers: [
       ...(stateBlocker ? [stateBlocker] : []),

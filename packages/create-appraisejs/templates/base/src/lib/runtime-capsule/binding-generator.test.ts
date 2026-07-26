@@ -76,7 +76,12 @@ describe('executable binding generator', () => {
     const root = await fs.mkdtemp(path.join(os.tmpdir(), 'appraise-binding-generator-repeated-'))
     try {
       const runtimeImport = pathToFileURL(path.resolve('packages/cucumber-runtime/dist/index.js')).href
-      const repeatedStep = { invocation: reloadInvocation }
+      const repeatedStep = (keyword: 'When' | 'And') => ({
+        invocation: {
+          ...reloadInvocation,
+          presentation: { keyword, description: 'the page reloads' },
+        },
+      })
       const source = generateExecutableBindings({
         runtimeImport,
         selectors: {},
@@ -86,8 +91,8 @@ describe('executable binding generator', () => {
           {
             caseId: 'case',
             steps: [
-              { id: 'first', keywordText: 'When the page reloads', ...repeatedStep },
-              { id: 'second', keywordText: 'And the page reloads', ...repeatedStep },
+              { id: 'first', keywordText: 'When the page reloads', ...repeatedStep('When') },
+              { id: 'second', keywordText: 'And the page reloads', ...repeatedStep('And') },
             ],
           },
         ],
@@ -98,6 +103,57 @@ describe('executable binding generator', () => {
         source,
         'Feature: Test\n  Scenario: Run\n    When the page reloads\n    And the page reloads\n',
       )
+    } finally {
+      await fs.rm(root, { recursive: true, force: true })
+    }
+  })
+
+  it('rejects a repeated phrase with different executable inputs', async () => {
+    const root = await fs.mkdtemp(path.join(os.tmpdir(), 'appraise-binding-generator-conflict-'))
+    try {
+      const runtimeImport = pathToFileURL(path.resolve('packages/cucumber-runtime/dist/index.js')).href
+      const source = generateExecutableBindings({
+        runtimeImport,
+        selectors: {},
+        sealedDefinitions,
+        extensionModules: {},
+        bindings: [
+          {
+            caseId: 'case',
+            steps: [
+              { id: 'first', keywordText: 'When the page reloads', invocation: reloadInvocation },
+              {
+                id: 'second',
+                keywordText: 'And the page reloads',
+                invocation: { ...reloadInvocation, inputs: { unexpected: true } },
+              },
+            ],
+          },
+        ],
+      })
+      await Promise.all([
+        fs.mkdir(path.join(root, 'features')),
+        fs.mkdir(path.join(root, 'bindings')),
+        fs.mkdir(path.join(root, 'reports')),
+      ])
+      await Promise.all([
+        fs.writeFile(
+          path.join(root, 'features/test.feature'),
+          'Feature: Test\n  Scenario: Run\n    When the page reloads\n    And the page reloads\n',
+        ),
+        fs.writeFile(path.join(root, 'bindings/test.mjs'), source),
+        fs.writeFile(
+          path.join(root, 'cucumber.mjs'),
+          "export default { paths: ['features/test.feature'], import: ['bindings/test.mjs'], format: ['json:reports/test.json'], publishQuiet: true }\n",
+        ),
+      ])
+      expect(() =>
+        execFileSync(
+          process.execPath,
+          [path.resolve('node_modules/@cucumber/cucumber/bin/cucumber.js'), '--config', 'cucumber.mjs', '--dry-run'],
+          { cwd: root, stdio: 'pipe' },
+        ),
+      ).toThrow()
     } finally {
       await fs.rm(root, { recursive: true, force: true })
     }

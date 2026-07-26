@@ -350,6 +350,7 @@ export function applyCapsuleDiagnosticMode(value: unknown, responseMode: z.infer
     return {
       schemaVersion: diagnostic.schemaVersion,
       blockers: diagnostic.blockers,
+      failureOutput: (diagnostic.preflight as Record<string, unknown> | undefined)?.failureOutput,
       nextRecoveryAction: diagnostic.nextRecoveryAction,
     }
   if (responseMode === 'evidenceOnly')

@@ -11,6 +11,7 @@ import {
   planLinks,
   zodCoordinatorError,
 } from '@/lib/coordinator-api/contracts'
+import { parseValidationResourceTypes } from '@/lib/coordinator-api/validation-context-query'
 import { isProviderNativeRunsEnabled } from '@/lib/feature-flags'
 import { guardCoordinatorRequest, readCoordinatorJson } from '@/lib/coordinator-api/request-guard'
 import { CoordinatorProjectMismatchError } from '@/lib/coordinator-api/request-guard'
@@ -72,6 +73,7 @@ import {
   reachImplementationCheckpoint,
   recordImplementationValidation,
   reconcileImplementationValidation,
+  readImplementationValidationReadiness,
   reviewImplementationCompletion,
   startImplementationValidation,
   readImplementationLifecycleHealth,
@@ -124,6 +126,7 @@ import {
   readTestRunEvidenceSummary,
 } from '@/services/test-run/test-run-service'
 import {
+  initializeTargetGitRepository,
   listTargetProjects,
   registerTargetProject,
   resolveTargetProject,
@@ -294,14 +297,9 @@ async function getValidations(request: Request, operation: string[]) {
   }
   if (operation[3] === 'context') {
     const url = new URL(request.url)
-    const resourceTypes = url.searchParams.get('resourceTypes')?.split(',').filter(Boolean) as
-      | Array<
-          'modules' | 'testSuites' | 'testCases' | 'stepDefinitions' | 'locatorGroups' | 'locators' | 'environments'
-        >
-      | undefined
     return Response.json(
       await readValidationContext(planId, {
-        resourceTypes,
+        resourceTypes: parseValidationResourceTypes(url.searchParams),
         query: url.searchParams.get('query') ?? undefined,
         limit: z.coerce.number().int().positive().max(200).catch(50).parse(url.searchParams.get('limit')),
         sinceHash: url.searchParams.get('sinceHash') ?? undefined,
@@ -707,9 +705,23 @@ async function postImplementationOperation(operation: string[], body: unknown) {
     return Response.json(await controlImplementation({ planId, ...value }))
   }
   if (action === 'validations') {
+    if (operation[4] === 'readiness') {
+      const value = z
+        .object({
+          validationIds: z.array(idSchema).optional(),
+          confirmedRemoteEnvironmentIds: z.array(idSchema).optional(),
+          action: z.enum(['check', 'launch', 'stop']).optional(),
+        })
+        .parse(body)
+      return Response.json(await readImplementationValidationReadiness({ planId, ...value }))
+    }
     if (operation[4] === 'start') {
       const value = z
-        .object({ validationIds: z.array(idSchema).optional(), commitHash: z.string().min(1).optional() })
+        .object({
+          validationIds: z.array(idSchema).optional(),
+          commitHash: z.string().min(1).optional(),
+          confirmedRemoteEnvironmentIds: z.array(idSchema).optional(),
+        })
         .parse(body)
       return Response.json(await startImplementationValidation({ planId, ...value }))
     }
@@ -884,12 +896,20 @@ async function authorizeDelegatedPlanCreation(
 }
 
 async function postTargetProject(body: unknown) {
-  const value = z.object({ path: z.string().min(1), displayName: z.string().min(1).optional() }).parse(body)
+  const value = z
+    .object({
+      path: z.string().min(1),
+      displayName: z.string().min(1).optional(),
+      initializeGit: z.boolean().optional(),
+    })
+    .parse(body)
   const identity = await ensureProjectIdentity()
+  const git = await initializeTargetGitRepository(value.path, value.initializeGit ?? false)
   const targetProject = await registerTargetProject({ projectPath: value.path, displayName: value.displayName })
   return Response.json(
     {
       targetProject,
+      git,
       marker: await writeTargetProjectMarker(targetProject, identity.projectFingerprint),
     },
     { status: 201 },

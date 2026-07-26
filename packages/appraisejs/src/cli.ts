@@ -322,13 +322,19 @@ addOnlineOptions(
     .command('add')
     .argument('<path>', 'target application repository path')
     .option('--display-name <name>', 'display label for the target project')
+    .option('--init-git', 'initialize a main-branch Git repository when the target workspace is empty', false)
     .option('--json', 'print machine-readable JSON', false),
-).action(async (projectPath: string, options: OnlineOptions & { displayName?: string; json: boolean }) => {
-  await runCommand(
-    async () => printJson(await (await onlineClient(options)).addTargetProject(projectPath, options.displayName)),
-    options.json,
-  )
-})
+).action(
+  async (projectPath: string, options: OnlineOptions & { displayName?: string; initGit: boolean; json: boolean }) => {
+    await runCommand(
+      async () =>
+        printJson(
+          await (await onlineClient(options)).addTargetProject(projectPath, options.displayName, options.initGit),
+        ),
+      options.json,
+    )
+  },
+)
 
 addOnlineOptions(project.command('list').option('--json', 'print machine-readable JSON', false)).action(
   async (options: OnlineOptions & { json: boolean }) => {

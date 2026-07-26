@@ -15,5 +15,10 @@ AppraiseJS owns lifecycle and business rules. This skill implements only tasks r
 6. Do not implement while approval is pending.
 7. Start only after `baseline_accepted`; keep tasks in `pending`, `in_progress`, `implemented`, or `verified`.
 8. Treat `validation_passed` as evidence for completion review, not as final completion.
+9. Before `implementation_validation_start`, call `implementation_validation_readiness` with `action: "check"`.
+   If a reviewed loopback origin is unavailable, use its explicit `action: "launch"` only when Appraise reports a
+   supported target package script, or start the target manually. Stop an Appraise-launched target with
+   `action: "stop"` after validation. Do not spend a managed run discovering that the implementation server was never
+   started.
 
 After implementation, retain optional failures and non-blocking remarks for completion review.

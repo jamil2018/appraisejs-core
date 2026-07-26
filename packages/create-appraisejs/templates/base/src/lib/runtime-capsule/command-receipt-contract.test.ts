@@ -3,6 +3,7 @@ import os from 'node:os'
 import path from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
 import {
+  boundedProcessOutput,
   canonicalCapsuleCommandReceipt,
   CAPSULE_PREFLIGHT_CHECK_ORDER,
   capsuleCommandReceiptV1Schema,
@@ -149,6 +150,22 @@ function receipt() {
 }
 
 describe('capsule command receipt contract', () => {
+  it('bounds and scrubs dry-run process output', () => {
+    const result = boundedProcessOutput(
+      `\u001b[31mError\u001b[0m at /Users/private/runtime/file.mjs\nsecret-value\n/capsule/root/features/test.feature`,
+      ['secret-value'],
+      '/capsule/root',
+    )
+    expect(result).toEqual({
+      lines: ['Error at <path>', '<redacted>', '<capsule><path>'],
+      truncated: false,
+    })
+    expect(
+      boundedProcessOutput(`${'x'.repeat(300)}\n${Array.from({ length: 9 }, (_, index) => index).join('\n')}`, [], '/c')
+        .truncated,
+    ).toBe(true)
+  })
+
   it('rejects unresolved project placeholders before a receipt can be reviewed', () => {
     const value = receipt()
     const invalidValue = {
@@ -384,6 +401,17 @@ describe('capsule command receipt contract', () => {
         status: 'blocked',
         checks: blockedChecks,
         blockers: [{ code: 'NODE_IDENTITY_DRIFT', recoveryAction: 'Re-seal the capsule.' }],
+      }).success,
+    ).toBe(true)
+    expect(
+      capsulePreflightResultSchema.safeParse({
+        ...result,
+        status: 'blocked',
+        checks: readyChecks().map((check, index) =>
+          index < 12 ? check : { ...check, code: 'DRY_RUN_FAILED' as const, status: 'failed' as const },
+        ),
+        blockers: [{ code: 'DRY_RUN_FAILED', recoveryAction: 'Repair the dry run.' }],
+        failureOutput: { stdout: [], stderr: ['Undefined step: I create a note'], truncated: false },
       }).success,
     ).toBe(true)
     expect(

@@ -28,6 +28,8 @@ import {
 } from './preflight-validators'
 
 const invalidReceiptHash = `sha256:${'0'.repeat(64)}`
+const MAX_DIAGNOSTIC_LINES = 8
+const MAX_DIAGNOSTIC_LINE_LENGTH = 256
 
 class PreflightFailure extends Error {
   constructor(
@@ -40,6 +42,37 @@ class PreflightFailure extends Error {
 }
 
 type PreflightInput = { projectId: string; validationHash: string; testRunId: string; runId: string }
+
+export function boundedProcessOutput(value: string, secrets: string[], capsuleRoot: string) {
+  let scrubbed = value.replace(/\u001b\[[0-?]*[ -/]*[@-~]/g, '').replaceAll(capsuleRoot, '<capsule>')
+  for (const secret of secrets.filter(secret => secret.length >= 3))
+    scrubbed = scrubbed.replaceAll(secret, '<redacted>')
+  scrubbed = scrubbed.replace(/(?:file:\/\/)?\/(?:[^/\s:'"()[\]{}]+\/)*[^/\s:'"()[\]{}]+/g, '<path>')
+  const lines = scrubbed
+    .split(/\r?\n/)
+    .map(line => line.replace(/[\0-\x08\x0b\x0c\x0e-\x1f\x7f]/g, '').trim())
+    .filter(Boolean)
+  return {
+    lines: lines.slice(0, MAX_DIAGNOSTIC_LINES).map(line => line.slice(0, MAX_DIAGNOSTIC_LINE_LENGTH)),
+    truncated: lines.length > MAX_DIAGNOSTIC_LINES || lines.some(line => line.length > MAX_DIAGNOSTIC_LINE_LENGTH),
+  }
+}
+
+function failedProcessOutput(
+  result: { exitCode: number | null; stdout: string; stderr: string; timedOut: boolean },
+  env: Record<string, string>,
+  capsuleRoot: string,
+) {
+  if (!result.timedOut && result.exitCode === 0) return undefined
+  const secrets = Object.values(env)
+  const stdout = boundedProcessOutput(result.stdout, secrets, capsuleRoot)
+  const stderr = boundedProcessOutput(result.stderr, secrets, capsuleRoot)
+  return {
+    stdout: stdout.lines,
+    stderr: stderr.lines,
+    truncated: stdout.truncated || stderr.truncated,
+  }
+}
 
 function capsuleOwnershipMatches(
   capsule: { targetProjectId: string; validationHash: string; testRun: { runId: string } } | null,
@@ -98,6 +131,7 @@ export class RuntimeCapsulePreflight {
     let manifest!: NonNullable<Awaited<ReturnType<typeof readCapsuleManifest>>>
     let env: Record<string, string> = {}
     let selectedScenarioCount: number | undefined
+    let failureOutput: { stdout: string[]; stderr: string[]; truncated: boolean } | undefined
     let blocked = false
     const checks: Array<{
       order: number
@@ -292,6 +326,7 @@ export class RuntimeCapsulePreflight {
         timeoutMs: receipt.limits.timeoutMs,
         maxOutputBytes: receipt.limits.maxOutputBytes,
       })
+      failureOutput = failedProcessOutput(result, env, paths.capsuleRoot)
       if (result.timedOut)
         throw new PreflightFailure('DRY_RUN_TIMEOUT', 'Reduce the bounded dry-run or repair loaders.')
       if (result.exitCode !== 0) throw new PreflightFailure('DRY_RUN_FAILED', 'Repair undefined or ambiguous steps.')
@@ -314,6 +349,7 @@ export class RuntimeCapsulePreflight {
       status: blocked ? 'blocked' : 'ready',
       checks,
       blockers,
+      ...(failureOutput ? { failureOutput } : {}),
       resolved: {
         ...(receipt
           ? {

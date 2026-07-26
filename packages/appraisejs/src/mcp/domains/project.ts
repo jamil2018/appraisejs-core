@@ -95,18 +95,21 @@ export function registerProjectOperations(context: McpRegistryContext): void {
     )
   }
 
-
   server.registerTool(
     'project_add',
     {
       description:
-        'Attach an existing application repository as a target project and write a non-blocking .appraisejs/project.json continuity marker when writable.',
-      inputSchema: { path: z.string().min(1), displayName: z.string().min(1).optional() },
+        'Attach an application workspace as a target project, optionally initialize Git when the workspace is empty, and write a non-blocking .appraisejs/project.json continuity marker when writable.',
+      inputSchema: {
+        path: z.string().min(1),
+        displayName: z.string().min(1).optional(),
+        initializeGit: z.boolean().optional(),
+      },
     },
-    async ({ path, displayName }) => {
+    async ({ path, displayName, initializeGit }) => {
       try {
         return text(
-          withGuidance(await api.addTargetProject(path, displayName), {
+          withGuidance(await api.addTargetProject(path, displayName, initializeGit), {
             nextRecommendedAction:
               'Use the returned target project id, fingerprint, display name, or canonical path as plan_create target.',
           }),

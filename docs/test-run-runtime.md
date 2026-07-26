@@ -32,6 +32,10 @@ depend on process memory. Readers may expose stable status/failure codes, bounde
 package versions and content hashes, evidence counts and owned links, and a fixed recovery action. They must never
 expose command arguments, absolute paths, environment values, owner tokens, raw stack traces, complete
 receipts/manifests, or artifact contents.
+When the exact Cucumber dry run fails or times out, the signed preflight result may also retain up to eight bounded,
+single-line stdout and stderr entries. Capsule paths and sealed environment values are scrubbed before persistence,
+and `test_run_diagnose` projects those entries directly so an agent can identify undefined or ambiguous steps without
+requesting raw process logs.
 
 Appraise 0.5 assumes a local loopback hub-admin boundary: the person controlling the local hub can administer every
 registered target. A `targetProjectId` query parameter is an explicit ownership filter and prevents accidental

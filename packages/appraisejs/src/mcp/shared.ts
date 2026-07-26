@@ -83,6 +83,7 @@ const baseWorkflowCriticalTools = [
   'implementation_task_update',
   'implementation_validation_record',
   'implementation_validation_start',
+  'implementation_validation_readiness',
   'implementation_validation_reconcile',
   'implementation_feedback',
   'implementation_control',

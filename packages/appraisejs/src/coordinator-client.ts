@@ -203,8 +203,12 @@ export async function createCoordinatorClient(options: CoordinatorOptions) {
       target: string,
       source?: { path: string; external: boolean; warning?: string },
     ) => post('plans', { plan, source, target }),
-    addTargetProject: (projectPath: string, displayName?: string) =>
-      post('target-projects', { path: projectPath, ...(displayName ? { displayName } : {}) }),
+    addTargetProject: (projectPath: string, displayName?: string, initializeGit = false) =>
+      post('target-projects', {
+        path: projectPath,
+        ...(displayName ? { displayName } : {}),
+        ...(initializeGit ? { initializeGit: true } : {}),
+      }),
     listTargetProjects: () => request('target-projects'),
     queryLocatorGraph: (query: Record<string, string | number | undefined>) => {
       const parameters = new URLSearchParams()

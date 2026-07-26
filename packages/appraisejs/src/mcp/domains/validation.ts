@@ -140,7 +140,19 @@ export function registerValidationOperations(context: McpRegistryContext): void 
         'Read a bounded plan-intent context pack with coverage exploration, an editable deterministic AST starter/export, registry-first recipes, the versioned resource-proposal contract and examples, runtime preparation proposals, target metadata, and reusable resources.',
       inputSchema: {
         planId: z.string(),
-        resourceTypes: z.array(z.string()).optional(),
+        resourceTypes: z
+          .array(
+            z.enum([
+              'modules',
+              'testSuites',
+              'testCases',
+              'stepDefinitions',
+              'locatorGroups',
+              'locators',
+              'environments',
+            ]),
+          )
+          .optional(),
         query: z.string().optional(),
         limit: z.number().int().positive().max(200).default(50),
         sinceHash: z.string().optional(),
