@@ -53,7 +53,14 @@ export async function registerTargetProjectAction(input: unknown): Promise<Actio
           }
         : await writeTargetProjectMarker(targetProject, identity.projectFingerprint)
 
-    revalidatePath('/projects')
+    const cookieStore = await cookies()
+    cookieStore.set(ACTIVE_PROJECT_COOKIE, targetProject.id, {
+      httpOnly: true,
+      sameSite: 'lax',
+      path: '/',
+      maxAge: 60 * 60 * 24 * 365,
+    })
+    revalidatePath('/', 'layout')
     return { status: 200, success: true, data: { targetProject, marker } }
   } catch (error) {
     return errorResponse(error, 'Project registration failed')

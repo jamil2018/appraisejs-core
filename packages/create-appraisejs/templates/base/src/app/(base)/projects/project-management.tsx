@@ -1,16 +1,16 @@
 'use client'
 
-import { ArrowRight, CircleCheck, CircleHelp, CircleX, FolderGit2, Pencil, Plus, Search, Trash2 } from 'lucide-react'
+import { ArrowRight, CircleCheck, CircleHelp, CircleX, FolderGit2, Pencil, Search, Trash2 } from 'lucide-react'
 import { useMemo, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 
 import {
   deleteTargetProjectAction,
-  registerTargetProjectAction,
   renameTargetProjectAction,
   selectTargetProjectAction,
 } from '@/actions/target-project/target-project-actions'
 import { Button } from '@/components/ui/button'
+import RegisterProjectDialog from '@/components/projects/register-project-dialog'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import {
@@ -116,84 +116,6 @@ export default function ProjectManagement({
         )}
       </CardContent>
     </Card>
-  )
-}
-
-function RegisterProjectDialog() {
-  const { refresh } = useRouter()
-  const [open, setOpen] = useState(false)
-  const [projectPath, setProjectPath] = useState('')
-  const [displayName, setDisplayName] = useState('')
-  const [description, setDescription] = useState('')
-  const [isPending, startTransition] = useTransition()
-
-  function register() {
-    startTransition(async () => {
-      const response = await registerTargetProjectAction({ projectPath, displayName, description })
-      if (!response.success) {
-        toast({ title: 'Project registration failed', description: response.message, variant: 'destructive' })
-        return
-      }
-      setProjectPath('')
-      setDisplayName('')
-      setDescription('')
-      setOpen(false)
-      toast({ title: 'Project registered' })
-      refresh()
-    })
-  }
-
-  return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <Button onClick={() => setOpen(true)}>
-        <Plus aria-hidden="true" data-icon="inline-start" />
-        Register project
-      </Button>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Register workspace</DialogTitle>
-          <DialogDescription>
-            Registration uses the same canonical inspection and marker flow as agent project setup.
-          </DialogDescription>
-        </DialogHeader>
-        <div className="flex flex-col gap-4">
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="project-path">Absolute workspace path</Label>
-            <Input
-              id="project-path"
-              value={projectPath}
-              onChange={event => setProjectPath(event.target.value)}
-              placeholder="/absolute/path/to/workspace"
-            />
-          </div>
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="project-display-name">Display name</Label>
-            <Input
-              id="project-display-name"
-              value={displayName}
-              onChange={event => setDisplayName(event.target.value)}
-            />
-          </div>
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="project-description">Description (optional)</Label>
-            <Textarea
-              id="project-description"
-              value={description}
-              onChange={event => setDescription(event.target.value)}
-              placeholder="What is this workspace used for?"
-            />
-          </div>
-        </div>
-        <DialogFooter>
-          <Button type="button" variant="outline" disabled={isPending} onClick={() => setOpen(false)}>
-            Cancel
-          </Button>
-          <Button disabled={isPending || !projectPath.trim() || !displayName.trim()} onClick={register}>
-            {isPending ? 'Registering...' : 'Register project'}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
   )
 }
 

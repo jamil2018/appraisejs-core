@@ -10,6 +10,12 @@ import {
 import { ServiceError, serviceErrorToActionResponse, unknownErrorToActionResponse } from '@/services/shared/errors'
 import { requireActiveProjectForMutation } from '@/lib/active-project'
 
+function reportActionErrorResponse(error: unknown, context: string): ActionResponse {
+  if (error instanceof ServiceError) return serviceErrorToActionResponse(error)
+  console.error(context, error)
+  return unknownErrorToActionResponse(error)
+}
+
 export async function getAllReportsAction(): Promise<ActionResponse> {
   try {
     const project = await requireActiveProjectForMutation()
@@ -21,8 +27,7 @@ export async function getAllReportsAction(): Promise<ActionResponse> {
       data: reports,
     }
   } catch (error) {
-    console.error('[ReportActions] Error fetching all reports:', error)
-    return unknownErrorToActionResponse(error)
+    return reportActionErrorResponse(error, '[ReportActions] Error fetching all reports:')
   }
 }
 
@@ -37,11 +42,7 @@ export async function getReportByIdAction(reportId: string): Promise<ActionRespo
       data: report,
     }
   } catch (error) {
-    console.error(`[ReportActions] Error fetching report ${reportId}:`, error)
-    if (error instanceof ServiceError) {
-      return serviceErrorToActionResponse(error)
-    }
-    return unknownErrorToActionResponse(error)
+    return reportActionErrorResponse(error, `[ReportActions] Error fetching report ${reportId}:`)
   }
 }
 
@@ -55,12 +56,7 @@ export async function getAllTestCaseMetricsAction(filter: string): Promise<Actio
       data: testCaseMetrics,
     }
   } catch (error) {
-    console.error(`[ReportActions] Error fetching all test case metrics:`, error)
-    return {
-      status: 500,
-      success: false,
-      error: `Server error occurred: ${error instanceof Error ? error.message : 'Unknown error'}`,
-    }
+    return reportActionErrorResponse(error, '[ReportActions] Error fetching all test case metrics:')
   }
 }
 
@@ -74,11 +70,6 @@ export async function getAllTestSuiteMetricsAction(filter: string): Promise<Acti
       data: testSuiteMetrics,
     }
   } catch (error) {
-    console.error(`[ReportActions] Error fetching all test suite metrics:`, error)
-    return {
-      status: 500,
-      success: false,
-      error: `Server error occurred: ${error instanceof Error ? error.message : 'Unknown error'}`,
-    }
+    return reportActionErrorResponse(error, '[ReportActions] Error fetching all test suite metrics:')
   }
 }

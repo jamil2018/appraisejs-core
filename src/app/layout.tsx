@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next'
 import { Inter, Inter_Tight } from 'next/font/google'
+import { headers } from 'next/headers'
 import './globals.css'
 import { ThemeProvider } from '@/components/theme/theme-provider'
 import { Toaster } from '@/components/ui/toaster'
@@ -8,6 +9,8 @@ import MobileNavigation from '@/components/navigation/mobile-navigation'
 import { isProviderNativeRunsEnabled } from '@/lib/feature-flags'
 import { readActiveProjectCookie } from '@/lib/active-project'
 import { listTargetProjects } from '@/services/target-project/target-project-service'
+import ProjectRequiredEmptyState from '@/components/data-state/project-required-empty-state'
+import { isProjectScopedPath } from '@/lib/project-scope'
 
 const inter = Inter({
   variable: '--font-inter',
@@ -68,8 +71,13 @@ export default async function RootLayout({
   children: React.ReactNode
 }>) {
   const providerRunsEnabled = isProviderNativeRunsEnabled()
-  const [projects, cookieProjectId] = await Promise.all([listTargetProjects(), readActiveProjectCookie()])
+  const [projects, cookieProjectId, requestHeaders] = await Promise.all([
+    listTargetProjects(),
+    readActiveProjectCookie(),
+    headers(),
+  ])
   const projectOptions = projects.map(({ id, displayName, canonicalPath }) => ({ id, displayName, canonicalPath }))
+  const requiresProject = isProjectScopedPath(requestHeaders.get('x-appraise-pathname') ?? '/')
 
   return (
     <html lang="en" className="dark" suppressHydrationWarning>
@@ -107,7 +115,9 @@ export default async function RootLayout({
                 className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent"
                 aria-hidden="true"
               />
-              <div className="relative mx-auto max-w-screen-2xl">{children}</div>
+              <div className="relative mx-auto max-w-screen-2xl">
+                {projects.length === 0 && requiresProject ? <ProjectRequiredEmptyState /> : children}
+              </div>
             </main>
             <Toaster />
           </div>

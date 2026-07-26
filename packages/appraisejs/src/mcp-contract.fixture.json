@@ -3562,7 +3562,7 @@
     {
       "kind": "tool",
       "name": "validation_context_read",
-      "description": "Read a bounded plan-intent context pack with coverage exploration, an editable deterministic AST starter/export, registry-first recipes, runtime preparation proposals, target metadata, and reusable resources.",
+      "description": "Read a bounded plan-intent context pack with coverage exploration, an editable deterministic AST starter/export, registry-first recipes, the versioned resource-proposal contract and examples, runtime preparation proposals, target metadata, and reusable resources.",
       "inputSchema": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "type": "object",
@@ -7754,7 +7754,7 @@
     {
       "kind": "tool",
       "name": "validation_context_read",
-      "description": "Read a bounded plan-intent context pack with coverage exploration, an editable deterministic AST starter/export, registry-first recipes, runtime preparation proposals, target metadata, and reusable resources.",
+      "description": "Read a bounded plan-intent context pack with coverage exploration, an editable deterministic AST starter/export, registry-first recipes, the versioned resource-proposal contract and examples, runtime preparation proposals, target metadata, and reusable resources.",
       "inputSchema": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "type": "object",
