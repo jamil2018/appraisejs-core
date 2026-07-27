@@ -62,6 +62,7 @@ export type FlowInvocationController = {
 type InvocationEditorProps = {
   controller: FlowInvocationController
   resources: StepInvocationResources
+  variant?: 'dialog' | 'sidebar'
 }
 
 function sameDefinition(
@@ -164,7 +165,7 @@ function useFlowMutations({ flow, flowBlocks, publish, onFlowBlocksChange }: Flo
   return { flowBlocks: normalizedFlowBlocks, publishFlow, updateFlowBlocks, removeNode, moveNode, reorderNodes }
 }
 
-export function FlowInvocationEditor({ controller, resources }: InvocationEditorProps) {
+export function FlowInvocationEditor({ controller, resources, variant }: InvocationEditorProps) {
   const session = controller.session
   if (!session) return null
 
@@ -180,6 +181,7 @@ export function FlowInvocationEditor({ controller, resources }: InvocationEditor
       onErrorsChange={controller.updateErrors}
       onSave={controller.saveEditor}
       resources={resources}
+      variant={variant}
     />
   )
 }
@@ -277,6 +279,24 @@ export function useFlowInvocationController({
   const updateDraft = useCallback((name: string, value: unknown) => {
     setSession(current => (current ? { ...current, values: { ...current.values, [name]: value } } : current))
   }, [])
+  const selectDefinition = useCallback(
+    (definition?: StepDefinitionOption) => {
+      setSelectedDefinition(definition)
+      if (!definition) return
+      setSession(current => {
+        if (!current || current.editingNodeId) return current
+        return editorSession(
+          definition,
+          null,
+          current.insertingAfterNodeId,
+          nodeForKind(definition, nodeKind).invocation.inputs,
+          current.returnFocusTarget,
+          current.returnFocusSelector,
+        )
+      })
+    },
+    [nodeKind],
+  )
   const updateErrors = useCallback((errors: Record<string, string>) => {
     setSession(current => (current ? { ...current, errors } : current))
   }, [])
@@ -299,7 +319,7 @@ export function useFlowInvocationController({
 
   return {
     activeDefinition,
-    setSelectedDefinition,
+    setSelectedDefinition: selectDefinition,
     session,
     closeEditor,
     startEditing,

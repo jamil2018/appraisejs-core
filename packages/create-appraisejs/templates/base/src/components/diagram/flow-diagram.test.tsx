@@ -141,8 +141,13 @@ describe('typed Step Invocation input authoring', () => {
     }
 
     render(<Harness />)
+    expect(screen.getByRole('button', { name: 'Add first step' })).toBeDisabled()
+    expect(screen.queryByRole('dialog', { name: 'Step details' })).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Open step details' }))
+
+    expect(screen.getByRole('dialog', { name: 'Step details' })).toBeVisible()
     expect(screen.getByRole('button', { name: 'Add step' })).toBeDisabled()
-    expect(screen.getByRole('button', { name: 'Insert first step' })).toBeDisabled()
     expect(onNodeOrderChange).not.toHaveBeenCalled()
   })
 
@@ -192,7 +197,7 @@ describe('typed Step Invocation input authoring', () => {
       )
     }
     render(<Harness />)
-    fireEvent.click(screen.getByRole('button', { name: 'Add step' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Add first step' }))
     expect(screen.getByRole('dialog', { name: 'Insert step invocation' })).toBeVisible()
     fireEvent.change(screen.getByLabelText('width'), { target: { value: '' } })
     fireEvent.click(screen.getByRole('button', { name: 'Save step' }))
@@ -206,6 +211,39 @@ describe('typed Step Invocation input authoring', () => {
     expect(node.invocation.inputs).toMatchObject({ width: 1440, height: 720, enabled: false, options: {} })
     expect(node.invocation.inputs).not.toHaveProperty('target')
     expect(node.invocation.step).toEqual(definition.reference)
+  })
+
+  it('refreshes sidebar input details when the selected definition changes during insertion', () => {
+    const alternateDefinition = {
+      ...definition,
+      title: 'Wait for page',
+      signature: 'I wait for {duration}',
+      reference: {
+        id: 'browser.waits.page-ready',
+        version: '1',
+        definitionHash: 'sha256:wait',
+      },
+      inputs: [{ name: 'duration', type: 'number' as const, required: true, defaultValue: 500 }],
+    }
+    render(
+      <FlowDiagramTestHarness
+        nodeOrder={{}}
+        stepDefinitions={[definition, alternateDefinition]}
+        locators={[]}
+        locatorGroups={[]}
+        environments={[]}
+        modules={[]}
+        onNodeOrderChange={vi.fn()}
+      />,
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: 'Add first step' }))
+    expect(screen.getByLabelText('width')).toBeVisible()
+    fireEvent.change(screen.getByRole('combobox', { name: 'Step Definition results' }), {
+      target: { value: 'browser.waits.page-ready@1@sha256:wait' },
+    })
+    expect(screen.getByLabelText('duration')).toBeVisible()
+    expect(screen.queryByLabelText('width')).not.toBeInTheDocument()
   })
 
   it('renders real node handles and reorders a multi-node serial path through connect and reconnect', () => {

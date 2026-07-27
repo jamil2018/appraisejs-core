@@ -2,13 +2,24 @@
 
 import '@xyflow/react/dist/style.css'
 import type { Edge, Node, ReactFlowInstance } from '@xyflow/react'
-import { useCallback, useMemo, useRef } from 'react'
+import { PanelRightOpen, Search, X } from 'lucide-react'
+import { useCallback, useMemo, useRef, useState } from 'react'
 
+import { Button } from '@/components/ui/button'
+import {
+  Drawer,
+  DrawerClose,
+  DrawerContent,
+  DrawerDescription,
+  DrawerHeader,
+  DrawerTitle,
+} from '@/components/ui/drawer'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { flowFromNodeOrder, type AuthoredFlow } from './authored-flow-model'
 import { FlowInvocationEditor, type FlowInvocationController } from './flow-invocation-controller'
 import {
   FlowBlockControls,
-  FlowDiagramToolbar,
+  FlowAuthoringSidebar,
   FlowGraphCanvas,
   FlowNodeSearch,
   type DiagramNodeData,
@@ -20,14 +31,23 @@ export { isValidFlowConnection } from './use-flow-diagram'
 
 type FlowDiagramWithControllerProps = FlowDiagramProps & { invocationController: FlowInvocationController }
 
-function useFlowDiagramModel({ nodeOrder, invocationController }: FlowDiagramWithControllerProps) {
+function useFlowDiagramModel(
+  { nodeOrder, invocationController }: FlowDiagramWithControllerProps,
+  revealDetails: () => void,
+) {
   const flow = useMemo(() => flowFromNodeOrder(nodeOrder), [nodeOrder])
   const editor = invocationController
   const graph = useFlowGraph({
     flow,
     controller: editor,
-    onEdit: editor.startEditing,
-    onInsert: editor.startInserting,
+    onEdit: nodeId => {
+      editor.startEditing(nodeId)
+      revealDetails()
+    },
+    onInsert: nodeId => {
+      editor.startInserting(nodeId)
+      revealDetails()
+    },
   })
   const blocks = useFlowBlocks({
     flowBlocks: editor.flowBlocks,
@@ -36,79 +56,148 @@ function useFlowDiagramModel({ nodeOrder, invocationController }: FlowDiagramWit
     updateFlowBlocks: editor.updateFlowBlocks,
     clearSelection: graph.clearSelection,
   })
-  const addStep = useCallback(() => editor.startInserting(flow.at(-1)?.nodeId ?? null), [editor, flow])
+  const addStep = useCallback(() => {
+    editor.startInserting(flow.at(-1)?.nodeId ?? null)
+    revealDetails()
+  }, [editor, flow, revealDetails])
 
   return { flow, editor, graph, blocks, addStep }
 }
 
-function useFlowDiagramInteractions(flow: AuthoredFlow, editor: FlowInvocationController) {
+function useFlowDiagramInteractions(flow: AuthoredFlow, editor: FlowInvocationController, revealDetails: () => void) {
   const search = useFlowNodeSearch(flow)
   const toggleSearch = useCallback(() => search.setIsOpen(open => !open), [search])
 
   useFlowGraphShortcuts({
     lastNodeId: flow.at(-1)?.nodeId,
     toggleSearch,
-    startInserting: editor.startInserting,
+    startInserting: nodeId => {
+      editor.startInserting(nodeId)
+      revealDetails()
+    },
   })
 
-  return { search, toggleSearch }
+  return { search }
 }
 
 export default function FlowDiagram(props: FlowDiagramWithControllerProps) {
   const { stepDefinitions, locators, locatorGroups, environments, modules, onInlineLocatorSave, layoutRefreshKey } =
     props
   const flowInstanceRef = useRef<ReactFlowInstance<Node<DiagramNodeData>, Edge> | null>(null)
-  const { flow, editor, graph, blocks, addStep } = useFlowDiagramModel(props)
-  const { search, toggleSearch } = useFlowDiagramInteractions(flow, editor)
+  const [isDetailsOpen, setIsDetailsOpen] = useState(false)
+  const revealDetails = useCallback(() => setIsDetailsOpen(true), [])
+  const { flow, editor, graph, blocks, addStep } = useFlowDiagramModel(props, revealDetails)
+  const { search } = useFlowDiagramInteractions(flow, editor, revealDetails)
+  const drawerEditor = useMemo(
+    () => ({
+      ...editor,
+      closeEditor: () => {
+        editor.closeEditor()
+        setIsDetailsOpen(false)
+      },
+      saveEditor: (inputs: Record<string, unknown>) => {
+        editor.saveEditor(inputs)
+        setIsDetailsOpen(false)
+      },
+    }),
+    [editor],
+  )
 
   return (
-    <section className="flex h-full min-h-0 flex-col gap-3" aria-label="Graph step editor">
-      <FlowDiagramToolbar
-        definitions={stepDefinitions}
-        value={editor.activeDefinition}
-        onDefinitionChange={editor.setSelectedDefinition}
-        onAdd={addStep}
-        onInsertFirst={() => editor.startInserting(null)}
-        onToggleSearch={toggleSearch}
-        isSearchOpen={search.isOpen}
-      />
-      <FlowNodeSearch
-        isOpen={search.isOpen}
-        query={search.query}
-        results={search.results}
-        nodes={graph.nodes}
-        flowInstanceRef={flowInstanceRef}
-        onQueryChange={search.setQuery}
-        onEdit={editor.startEditing}
-        onClose={search.close}
-      />
-      <FlowGraphCanvas
-        nodes={graph.nodes}
-        edges={graph.edges}
-        flowBlocks={graph.flowBlocks}
-        layoutRefreshKey={layoutRefreshKey}
-        flowInstanceRef={flowInstanceRef}
-        onConnect={graph.onConnect}
-        onReconnect={graph.onReconnect}
-        onNodesChange={graph.onNodesChange}
-        onNodeDragStop={graph.onNodeDragStop}
-        isValidConnection={graph.isValidConnection}
-        onSelectionChange={graph.onSelectionChange}
-        onRenameBlock={blocks.renameBlock}
-        onDeleteBlock={blocks.deleteBlock}
-        onUpdateBlockMembership={blocks.updateMembership}
-      />
-      <FlowBlockControls
-        enabled={Boolean(props.onFlowBlocksChange)}
-        blockName={blocks.blockName}
-        selectedNodeCount={graph.selectedNodeIds.length}
-        onNameChange={blocks.setBlockName}
-        onCreate={blocks.createBlock}
-      />
-      <FlowInvocationEditor
-        controller={editor}
-        resources={{ locators, locatorGroups, environments, modules, onInlineLocatorSave }}
-      />
+    <section className="flex h-full min-h-0 flex-col overflow-hidden" aria-label="Graph step editor">
+      <div className="flex min-h-[22rem] min-w-0 flex-1 flex-col gap-2 p-3">
+        <div className="flex justify-end gap-2">
+          <FlowBlockControls
+            enabled={Boolean(props.onFlowBlocksChange)}
+            blockName={blocks.blockName}
+            selectedNodeCount={graph.selectedNodeIds.length}
+            onNameChange={blocks.setBlockName}
+            onCreate={blocks.createBlock}
+          />
+          <Popover open={search.isOpen} onOpenChange={search.setIsOpen}>
+            <PopoverTrigger asChild>
+              <Button type="button" size="icon" variant="outline" aria-label="Search nodes">
+                <Search aria-hidden />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent align="end" className="w-96 p-2">
+              <FlowNodeSearch
+                isOpen
+                query={search.query}
+                results={search.results}
+                nodes={graph.nodes}
+                flowInstanceRef={flowInstanceRef}
+                onQueryChange={search.setQuery}
+                onEdit={nodeId => {
+                  editor.startEditing(nodeId)
+                  revealDetails()
+                }}
+                onClose={search.close}
+              />
+            </PopoverContent>
+          </Popover>
+          <Button type="button" size="icon" variant="outline" aria-label="Open step details" onClick={revealDetails}>
+            <PanelRightOpen aria-hidden />
+          </Button>
+        </div>
+        <FlowGraphCanvas
+          nodes={graph.nodes}
+          edges={graph.edges}
+          flowBlocks={graph.flowBlocks}
+          layoutRefreshKey={layoutRefreshKey}
+          flowInstanceRef={flowInstanceRef}
+          onConnect={graph.onConnect}
+          onReconnect={graph.onReconnect}
+          onNodesChange={graph.onNodesChange}
+          onNodeDragStop={graph.onNodeDragStop}
+          isValidConnection={graph.isValidConnection}
+          onSelectionChange={graph.onSelectionChange}
+          onRenameBlock={blocks.renameBlock}
+          onDeleteBlock={blocks.deleteBlock}
+          onUpdateBlockMembership={blocks.updateMembership}
+          onAddFirst={() => {
+            editor.startInserting(null)
+            revealDetails()
+          }}
+          canAddFirst={Boolean(editor.activeDefinition)}
+        />
+      </div>
+      <Drawer direction="right" modal={false} open={isDetailsOpen} onOpenChange={setIsDetailsOpen}>
+        <DrawerContent
+          showOverlay={false}
+          className="inset-y-0 left-auto right-0 mt-0 h-full w-[min(24rem,calc(100vw-1rem))] rounded-l-md rounded-tr-none [&>div:first-child]:hidden"
+        >
+          <DrawerHeader className="relative border-b pr-14 text-left">
+            <DrawerTitle>Step details</DrawerTitle>
+            <DrawerDescription>Choose a ready definition, then configure its inputs.</DrawerDescription>
+            <DrawerClose asChild>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="absolute right-3 top-3"
+                aria-label="Close step details"
+              >
+                <X aria-hidden />
+              </Button>
+            </DrawerClose>
+          </DrawerHeader>
+          <FlowAuthoringSidebar
+            definitions={stepDefinitions}
+            value={editor.activeDefinition}
+            onDefinitionChange={editor.setSelectedDefinition}
+            onAdd={addStep}
+          >
+            {editor.session ? (
+              <FlowInvocationEditor
+                controller={drawerEditor}
+                variant="sidebar"
+                resources={{ locators, locatorGroups, environments, modules, onInlineLocatorSave }}
+              />
+            ) : null}
+          </FlowAuthoringSidebar>
+        </DrawerContent>
+      </Drawer>
     </section>
   )
 }

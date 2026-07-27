@@ -19,6 +19,7 @@ type StepInvocationEditorProps = {
   onErrorsChange: (errors: Record<string, string>) => void
   onSave: (values: Record<string, unknown>) => void
   resources?: StepInvocationResources
+  variant?: 'dialog' | 'sidebar'
 }
 
 type InvocationParseResult = {
@@ -65,6 +66,7 @@ export function StepInvocationEditor({
   onErrorsChange,
   onSave,
   resources,
+  variant = 'dialog',
 }: StepInvocationEditorProps) {
   const dialogRef = useRef<HTMLDivElement>(null)
   useEffect(() => {
@@ -84,9 +86,9 @@ export function StepInvocationEditor({
   return (
     <Card
       ref={dialogRef}
-      className="max-h-96 overflow-auto p-4"
+      className={variant === 'sidebar' ? 'border-0 bg-transparent p-0 shadow-none' : 'max-h-96 overflow-auto p-4'}
       role="dialog"
-      aria-modal="true"
+      aria-modal={variant === 'dialog' ? 'true' : undefined}
       aria-labelledby="step-invocation-editor-title"
     >
       <form

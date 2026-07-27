@@ -14,11 +14,12 @@ import {
   type NodeProps,
   type ReactFlowInstance,
 } from '@xyflow/react'
-import { Pencil, Plus, Search, Trash2 } from 'lucide-react'
-import { useCallback, useEffect, useRef, type MutableRefObject, type RefObject } from 'react'
+import { Boxes, Pencil, Plus, Trash2 } from 'lucide-react'
+import { useCallback, useEffect, useRef, type MutableRefObject, type ReactNode, type RefObject } from 'react'
 
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import type { FlowBlock } from '@/types/diagram/diagram'
 import type { StepDefinitionOption } from '@/types/step-definition-option'
 
@@ -92,37 +93,46 @@ function FlowStepNode({ id, data }: NodeProps<Node<DiagramNodeData>>) {
 
 const nodeTypes = { flowStep: FlowStepNode }
 
-type FlowDiagramToolbarProps = {
+type FlowAuthoringSidebarProps = {
   definitions: StepDefinitionOption[]
   value?: StepDefinitionOption
   onDefinitionChange: (definition?: StepDefinitionOption) => void
   onAdd: () => void
-  onInsertFirst: () => void
-  onToggleSearch: () => void
-  isSearchOpen: boolean
+  children?: ReactNode
 }
 
-export function FlowDiagramToolbar({
+export function FlowAuthoringSidebar({
   definitions,
   value,
   onDefinitionChange,
   onAdd,
-  onInsertFirst,
-  onToggleSearch,
-  isSearchOpen,
-}: FlowDiagramToolbarProps) {
+  children,
+}: FlowAuthoringSidebarProps) {
   return (
-    <div className="flex flex-wrap items-end gap-3">
-      <StepDefinitionPicker definitions={definitions} value={value} onChange={onDefinitionChange} />
-      <Button type="button" disabled={!value} onClick={onAdd}>
-        <Plus className="size-4" aria-hidden /> Add step
-      </Button>
-      <Button type="button" variant="outline" disabled={!value} onClick={onInsertFirst}>
-        Insert first step
-      </Button>
-      <Button type="button" variant="outline" onClick={onToggleSearch} aria-expanded={isSearchOpen}>
-        <Search className="size-4" aria-hidden /> Search nodes
-      </Button>
+    <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-4">
+      <div className="flex flex-col gap-4">
+        <StepDefinitionPicker
+          id="graph-step-definition"
+          definitions={definitions}
+          value={value}
+          onChange={onDefinitionChange}
+        />
+        {value ? (
+          <div className="rounded-md border border-white/[0.08] bg-white/[0.025] p-3">
+            <p className="text-sm font-medium">{value.title}</p>
+            <p className="mt-1 break-words text-xs text-muted-foreground">{value.signature}</p>
+            <p className="mt-2 text-xs text-muted-foreground">
+              {value.inputs.length} {value.inputs.length === 1 ? 'input' : 'inputs'}
+            </p>
+          </div>
+        ) : null}
+        {!children ? (
+          <Button type="button" className="w-full" disabled={!value} onClick={onAdd}>
+            <Plus className="size-4" aria-hidden /> Add step
+          </Button>
+        ) : null}
+        {children}
+      </div>
     </div>
   )
 }
@@ -295,9 +305,34 @@ type FlowGraphCanvasProps = {
   onRenameBlock: (blockId: string, name: string) => void
   onDeleteBlock: (blockId: string) => void
   onUpdateBlockMembership: (blockId: string, nodeIds: string[]) => void
+  onAddFirst: () => void
+  canAddFirst: boolean
 }
 
-export function FlowGraphCanvas({
+function EmptyFlowCanvas({ canAddFirst, onAddFirst }: Pick<FlowGraphCanvasProps, 'canAddFirst' | 'onAddFirst'>) {
+  return (
+    <div className="flex h-full items-center justify-center p-6">
+      <button
+        type="button"
+        data-invocation-insert="first"
+        aria-label="Add first step"
+        className="border-primary/55 bg-primary/[0.04] hover:bg-primary/[0.08] group flex min-h-28 w-64 flex-col items-center justify-center rounded-md border border-dashed p-5 text-center transition-colors hover:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        disabled={!canAddFirst}
+        onClick={onAddFirst}
+      >
+        <span className="border-primary/30 bg-primary/10 flex size-9 items-center justify-center rounded-md border text-primary">
+          <Plus className="size-4" aria-hidden />
+        </span>
+        <span className="mt-3 text-sm font-medium text-foreground">Add first step</span>
+        <span className="mt-1 text-xs text-muted-foreground">
+          {canAddFirst ? 'Open step details to configure this node' : 'No ready Step Definitions are available'}
+        </span>
+      </button>
+    </div>
+  )
+}
+
+function PopulatedFlowCanvas({
   nodes,
   edges,
   flowBlocks,
@@ -312,51 +347,55 @@ export function FlowGraphCanvas({
   onRenameBlock,
   onDeleteBlock,
   onUpdateBlockMembership,
-}: FlowGraphCanvasProps) {
+}: Omit<FlowGraphCanvasProps, 'onAddFirst' | 'canAddFirst'>) {
   const blockInputRefs = useRef<Record<string, HTMLInputElement | null>>({})
   const focusBlockEditor = useCallback((blockId: string) => blockInputRefs.current[blockId]?.focus(), [])
   const flowBlockBounds = getFlowBlockBounds(nodes, flowBlocks)
   return (
+    <ReactFlow
+      key={String(layoutRefreshKey ?? 'default')}
+      nodes={nodes}
+      edges={edges}
+      nodeTypes={nodeTypes}
+      fitView
+      colorMode="dark"
+      onConnect={onConnect}
+      onReconnect={onReconnect}
+      onNodesChange={onNodesChange}
+      onNodeDragStop={onNodeDragStop}
+      isValidConnection={isValidConnection}
+      onSelectionChange={onSelectionChange}
+      onInit={instance => {
+        flowInstanceRef.current = instance
+      }}
+      proOptions={{ hideAttribution: true }}
+    >
+      <Background />
+      <Controls />
+      <FlowDiagramBlockOverlays
+        flowBlockBounds={flowBlockBounds}
+        onEditBlock={block => focusBlockEditor(block.id)}
+        onDeleteBlock={onDeleteBlock}
+      />
+      <FlowBlocksPanel
+        flowBlocks={flowBlocks}
+        nodes={nodes}
+        onRename={onRenameBlock}
+        onDelete={onDeleteBlock}
+        onUpdateMembership={onUpdateBlockMembership}
+        blockInputRefs={blockInputRefs}
+      />
+    </ReactFlow>
+  )
+}
+
+export function FlowGraphCanvas(props: FlowGraphCanvasProps) {
+  return (
     <div className="relative min-h-80 flex-1 overflow-hidden rounded-md border border-white/[0.1] bg-[radial-gradient(circle_at_18%_8%,rgba(38,83,121,0.22),transparent_24rem),rgba(8,13,22,0.32)]">
-      {nodes.length > 0 ? (
-        <ReactFlow
-          key={String(layoutRefreshKey ?? 'default')}
-          nodes={nodes}
-          edges={edges}
-          nodeTypes={nodeTypes}
-          fitView
-          colorMode="dark"
-          onConnect={onConnect}
-          onReconnect={onReconnect}
-          onNodesChange={onNodesChange}
-          onNodeDragStop={onNodeDragStop}
-          isValidConnection={isValidConnection}
-          onSelectionChange={onSelectionChange}
-          onInit={instance => {
-            flowInstanceRef.current = instance
-          }}
-          proOptions={{ hideAttribution: true }}
-        >
-          <Background />
-          <Controls />
-          <FlowDiagramBlockOverlays
-            flowBlockBounds={flowBlockBounds}
-            onEditBlock={block => focusBlockEditor(block.id)}
-            onDeleteBlock={onDeleteBlock}
-          />
-          <FlowBlocksPanel
-            flowBlocks={flowBlocks}
-            nodes={nodes}
-            onRename={onRenameBlock}
-            onDelete={onDeleteBlock}
-            onUpdateMembership={onUpdateBlockMembership}
-            blockInputRefs={blockInputRefs}
-          />
-        </ReactFlow>
+      {props.nodes.length > 0 ? (
+        <PopulatedFlowCanvas {...props} />
       ) : (
-        <div className="flex h-full items-center justify-center p-6 text-center text-sm text-muted-foreground">
-          Select a ready Step Definition and add the first graph node.
-        </div>
+        <EmptyFlowCanvas canAddFirst={props.canAddFirst} onAddFirst={props.onAddFirst} />
       )}
     </div>
   )
@@ -379,17 +418,29 @@ export function FlowBlockControls({
 }: FlowBlockControlsProps) {
   if (!enabled) return null
   return (
-    <div className="flex flex-wrap items-center gap-2 rounded-md border p-2">
-      <input
-        aria-label="Flow block name"
-        className="h-9 rounded-md border bg-background px-2 text-sm"
-        value={blockName}
-        onChange={event => onNameChange(event.target.value)}
-        placeholder="Block name"
-      />
-      <Button type="button" size="sm" variant="outline" disabled={selectedNodeCount < 2} onClick={onCreate}>
-        Group selected nodes
-      </Button>
-    </div>
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button type="button" size="icon" variant="outline" aria-label="Create flow block">
+          <Boxes aria-hidden />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent align="end" className="flex w-72 flex-col gap-3">
+        <div className="flex flex-col gap-1">
+          <p className="text-sm font-medium">Create flow block</p>
+          <p className="text-xs text-muted-foreground">Name a block for the selected graph nodes.</p>
+        </div>
+        <input
+          aria-label="Flow block name"
+          className="h-9 rounded-md border bg-background px-2 text-sm"
+          value={blockName}
+          onChange={event => onNameChange(event.target.value)}
+          placeholder="Block name"
+        />
+        <Button type="button" size="sm" disabled={selectedNodeCount < 2} onClick={onCreate}>
+          <Boxes data-icon="inline-start" aria-hidden />
+          Group selected nodes
+        </Button>
+      </PopoverContent>
+    </Popover>
   )
 }

@@ -106,6 +106,11 @@ const deprecatedTemplateDefinition: StepDefinitionOption = {
   reference: { ...deprecatedDefinition.reference, definitionHash: `sha256:${'d'.repeat(64)}` },
 }
 
+function closeGraphDetails() {
+  const closeButton = screen.queryByRole('button', { name: 'Close step details' })
+  if (closeButton) fireEvent.click(closeButton)
+}
+
 describe('flow authoring projections', () => {
   it('keeps an invalid invocation draft and its error while switching graph and linear projections', async () => {
     const node = createAuthoredFlowNode(definition, 'viewport')
@@ -142,6 +147,7 @@ describe('flow authoring projections', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Save step' }))
     expect(screen.getByText('width is required.')).toBeVisible()
 
+    closeGraphDetails()
     fireEvent.click(screen.getByRole('button', { name: 'Linear' }))
     expect(screen.getByLabelText('Linear step editor')).toBeVisible()
     expect(screen.getByRole('dialog', { name: 'Edit step invocation' })).toBeVisible()
@@ -149,6 +155,7 @@ describe('flow authoring projections', () => {
     expect(screen.getByText('width is required.')).toBeVisible()
 
     fireEvent.click(screen.getByRole('button', { name: 'Graph' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Open step details' }))
     expect(screen.getByLabelText('Graph step editor')).toBeVisible()
     expect(screen.getByText('width is required.')).toBeVisible()
     fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
@@ -198,9 +205,11 @@ describe('flow authoring projections', () => {
     expect(screen.getByLabelText('options')).toHaveAttribute('aria-invalid', 'true')
     expect(screen.getByLabelText('Persisted JSON')).toHaveTextContent('{"seeded":true}')
 
+    closeGraphDetails()
     fireEvent.click(screen.getByRole('button', { name: 'Linear' }))
     expect(screen.getByLabelText('options')).toHaveValue('{"draft":')
     fireEvent.click(screen.getByRole('button', { name: 'Graph' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Open step details' }))
     expect(screen.getByLabelText('options')).toHaveValue('{"draft":')
 
     fireEvent.change(screen.getByLabelText('options'), { target: { value: '{"saved":true}' } })
@@ -281,11 +290,12 @@ describe('flow authoring projections', () => {
     }
 
     render(<Harness />)
-    fireEvent.click(screen.getByRole('button', { name: 'Insert first step' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Add first step' }))
     fireEvent.change(screen.getByLabelText('width'), { target: { value: '1280' } })
     fireEvent.click(screen.getByRole('button', { name: 'Save step' }))
 
     expect(screen.getByText('When I set the viewport to 1280')).toBeVisible()
+    closeGraphDetails()
     fireEvent.click(screen.getByRole('button', { name: 'Linear' }))
     expect(screen.getByLabelText('Linear step editor')).toBeVisible()
     expect(screen.getByText('When I set the viewport to 1280')).toBeVisible()
@@ -319,9 +329,9 @@ describe('flow authoring projections', () => {
     }
 
     const graph = render(<ProjectionHarness view="graph" />)
-    fireEvent.click(screen.getByRole('button', { name: 'Add step' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Add first step' }))
     fireEvent.click(screen.getByRole('button', { name: 'Save step' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Add step' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Insert after' }))
     fireEvent.click(screen.getByRole('button', { name: 'Save step' }))
     fireEvent.click(screen.getAllByRole('button', { name: 'Edit' })[0]!)
     fireEvent.change(screen.getByLabelText('width'), { target: { value: '1440' } })
@@ -381,6 +391,7 @@ describe('flow authoring projections', () => {
     expect(screen.getByText('Using created locator: Created sign in button')).toBeVisible()
     fireEvent.click(screen.getByRole('button', { name: 'Save step' }))
 
+    closeGraphDetails()
     fireEvent.click(screen.getByRole('button', { name: 'Linear' }))
     fireEvent.click(screen.getByRole('button', { name: 'Edit' }))
     expect(screen.getByLabelText('target')).toHaveValue('created-locator')
@@ -436,6 +447,7 @@ describe('flow authoring projections', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Save step' }))
     expect(screen.getByLabelText('Persisted Test Case reference')).toHaveTextContent('browser.viewport.legacy')
 
+    closeGraphDetails()
     fireEvent.click(screen.getByRole('button', { name: 'Linear' }))
     fireEvent.click(screen.getByRole('button', { name: 'Edit' }))
     expect(screen.getByRole('dialog', { name: 'Edit step invocation' })).toBeVisible()
@@ -493,6 +505,7 @@ describe('flow authoring projections', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Save step' }))
     expect(screen.getByLabelText('Persisted Template reference')).toHaveTextContent('browser.viewport.legacy')
 
+    closeGraphDetails()
     fireEvent.click(screen.getByRole('button', { name: 'Linear' }))
     fireEvent.click(screen.getByRole('button', { name: 'Edit' }))
     expect(screen.getByRole('dialog', { name: 'Edit step invocation' })).toBeVisible()
@@ -567,6 +580,7 @@ describe('flow authoring projections', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Save step' }))
     expect(screen.getByLabelText('Create from template reference')).toHaveTextContent('browser.viewport.legacy')
 
+    closeGraphDetails()
     fireEvent.click(screen.getByRole('button', { name: 'Linear' }))
     fireEvent.click(screen.getByRole('button', { name: 'Edit' }))
     fireEvent.click(screen.getByRole('button', { name: 'Save step' }))
@@ -607,7 +621,7 @@ describe('flow authoring projections', () => {
     }
 
     render(<Harness />)
-    fireEvent.click(screen.getByRole('button', { name: 'Add step' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Add first step' }))
     fireEvent.change(screen.getByLabelText('width'), { target: { value: '' } })
     fireEvent.click(screen.getByRole('button', { name: 'Save step' }))
     expect(screen.getByText('width is required.')).toBeVisible()
