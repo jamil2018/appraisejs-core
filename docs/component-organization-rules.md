@@ -65,3 +65,11 @@ turn dense tables into card feeds at small widths.
   labelled icon controls. Route-specific graph sizing is acceptable only when the workflow requires it.
 - Shared primitives should be changed only with representative route checks. For visual changes, capture the
   Dashboard, Plans, sidebar, a dense table, a form, and the changed interactive state before and after the change.
+
+## Test-case authoring projections
+
+Test-case and template-test-case forms keep one ordered exact `StepInvocation` flow as their domain state. The graph
+is the default authoring projection; Linear is an explicit alternative for keyboard-oriented sequential work. Do not
+add a view-specific reducer, persistence shape, or Template Step compatibility field. Shared authored-flow operations
+own invocation construction, input mutation, ordering, and Gherkin presentation so changing views cannot lose node
+identity, exact references, inputs, or flow-block membership.

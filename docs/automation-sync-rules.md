@@ -56,6 +56,10 @@ definition and stored-variable contract. `npm run operation:projections` lints e
 `npm run lint:step-definitions` is the focused syntax/import gate and includes duplicate-import and redeclaration
 checks.
 
+Test-case authoring may present the same ordered exact `StepInvocation` sequence as either a graph (the default) or
+an explicit linear editor. These are UI projections only: persisted ordering and generated Gherkin remain a single
+sequence, and neither projection may infer or recreate legacy Template Step identity.
+
 Environment projections contain `passwordEnvironmentVariable`, which is only the name of a process environment
 variable. Never place a credential value or a `password` field in database seed data, sync input, generated
 configuration, fixtures, or scaffold source. The Cucumber runtime resolves a configured reference only inside the

@@ -22,6 +22,9 @@ const revisionSchema = z.number().int().positive()
 const stepIdentitySchema = z.object({ stepId: z.string().min(1), version: z.string().min(1) })
 const readyDefinitionSearchSchema = z.string().trim().min(1).max(200)
 const readyStepReferenceSchema = z.object({ id: z.string().min(1).max(200), version: z.string().min(1).max(40) })
+const exactStepReferenceSchema = readyStepReferenceSchema.extend({
+  definitionHash: z.string().regex(/^sha256:[a-f0-9]{64}$/),
+})
 const deprecationReasonSchema = z.string().trim().min(1).max(1_000)
 const registry = new StepDefinitionRegistryService(prisma)
 const extensions = new StepDefinitionExtensionService(prisma)
@@ -126,24 +129,53 @@ export async function selectReadyStepDefinitionAction(input: {
 export async function listReadyStepDefinitionOptionsAction(): Promise<ActionResponse> {
   return respond(async () => {
     const rows = await registry.listAllReady()
-    return rows.map(row => {
-      const definition = stepDefinitionSchema.parse(JSON.parse(row.definitionJson))
-      return {
-        reference: { id: row.id, version: row.version, definitionHash: computeStepReferenceHash(definition) },
-        title: definition.intent.title,
-        description: definition.intent.description,
-        signature: definition.human.signature,
-        keywordCompatibility: definition.human.keywordCompatibility,
-        groupId: definition.human.groupId,
-        sourceOwned: definition.provenance.creationMethod === 'built-in-source',
-        inputs: definition.inputs.map(input => ({
-          name: input.name,
-          type: input.type,
-          required: input.required,
-          ...(input.defaultValue === undefined ? {} : { defaultValue: input.defaultValue }),
-        })),
-      } satisfies StepDefinitionOption
-    })
+    return rows.map(stepDefinitionOption)
+  })
+}
+
+function stepDefinitionOption(row: { id: string; version: string; definitionJson: string }): StepDefinitionOption {
+  const definition = stepDefinitionSchema.parse(JSON.parse(row.definitionJson))
+  return {
+    reference: { id: row.id, version: row.version, definitionHash: computeStepReferenceHash(definition) },
+    title: definition.intent.title,
+    description: definition.intent.description,
+    signature: definition.human.signature,
+    keywordCompatibility: definition.human.keywordCompatibility,
+    groupId: definition.human.groupId,
+    sourceOwned: definition.provenance.creationMethod === 'built-in-source',
+    inputs: definition.inputs.map(input => ({
+      name: input.name,
+      type: input.type,
+      required: input.required,
+      ...(input.defaultValue === undefined ? {} : { defaultValue: input.defaultValue }),
+    })),
+  }
+}
+
+export async function listReferencedStepDefinitionOptionsAction(references: unknown): Promise<ActionResponse> {
+  return respond(async () => {
+    const exactReferences = z.array(exactStepReferenceSchema).max(512).parse(references)
+    const uniqueReferences = Array.from(
+      new Map(
+        exactReferences.map(reference => [
+          `${reference.id}@${reference.version}@${reference.definitionHash}`,
+          reference,
+        ]),
+      ).values(),
+    )
+    return Promise.all(
+      uniqueReferences.map(async reference => {
+        const row = await registry.read(reference.id, reference.version)
+        const option = stepDefinitionOption(row)
+        if (option.reference.definitionHash !== reference.definitionHash) {
+          throw new StepDefinitionRegistryError(
+            'definition_not_found',
+            `Step Definition ${reference.id}@${reference.version} no longer matches the persisted reference.`,
+          )
+        }
+        return option
+      }),
+    )
   })
 }
 

@@ -13,7 +13,10 @@ import React from 'react'
 import TemplateTestCaseForm from '../../template-test-case-form'
 import HeaderSubtitle from '@/components/typography/page-header-subtitle'
 import PageHeader from '@/components/typography/page-header'
-import { listReadyStepDefinitionOptionsAction } from '@/actions/step-definition/step-definition-actions'
+import {
+  listReadyStepDefinitionOptionsAction,
+  listReferencedStepDefinitionOptionsAction,
+} from '@/actions/step-definition/step-definition-actions'
 import { getAllLocatorGroupsAction } from '@/actions/locator-groups/locator-group-actions'
 import { getAllEnvironmentsAction } from '@/actions/environments/environment-actions'
 import { getAllModulesAction } from '@/actions/modules/module-actions'
@@ -69,8 +72,32 @@ const ModifyTemplateTestCase = async ({ params }: { params: Promise<{ id: string
     })[]
     flowBlocks: (TemplateTestCaseFlowBlock & { nodes: TemplateTestCaseFlowBlockNode[] })[]
   }
+  const defaultNodesOrder = templateTestCase.steps.reduce((acc, step) => {
+    const nodeId = step.flowNodeId ?? step.id
+    acc[nodeId] = {
+      nodeId,
+      order: step.order,
+      label: step.label,
+      gherkinStep: step.gherkinStep,
+      icon: step.icon,
+      parameters: ((step.parameters || []) as TemplateTestCaseStepParameter[]).map(
+        (param: TemplateTestCaseStepParameter) => ({
+          name: param.name,
+          defaultValue: param.defaultValue,
+          type: param.type,
+          order: param.order,
+        }),
+      ),
+      invocation: stepInvocationSchema.parse(JSON.parse(step.invocationJson)),
+    }
+    return acc
+  }, {} as TemplateTestCaseNodeOrderMap)
+  const { data: editorDefinitions, error: editorDefinitionsError } = await listReferencedStepDefinitionOptionsAction(
+    Object.values(defaultNodesOrder).map(node => node.invocation.step),
+  )
   if (
     stepDefinitionsError ||
+    editorDefinitionsError ||
     locatorsError ||
     locatorGroupsError ||
     environmentsError ||
@@ -80,6 +107,7 @@ const ModifyTemplateTestCase = async ({ params }: { params: Promise<{ id: string
       <div>
         Error:{' '}
         {stepDefinitionsError ||
+          editorDefinitionsError ||
           locatorsError ||
           locatorGroupsError ||
           environmentsError ||
@@ -99,30 +127,12 @@ const ModifyTemplateTestCase = async ({ params }: { params: Promise<{ id: string
         defaultTitle={templateTestCase.name}
         defaultDescription={templateTestCase.description || ''}
         stepDefinitions={(stepDefinitions ?? []) as import('@/types/step-definition-option').StepDefinitionOption[]}
+        editorDefinitions={(editorDefinitions ?? []) as import('@/types/step-definition-option').StepDefinitionOption[]}
         locators={locators as Locator[]}
         locatorGroups={locatorGroups as LocatorGroup[]}
         environments={environments as Environment[]}
         modules={modules as Module[]}
-        defaultNodesOrder={templateTestCase.steps.reduce((acc, step) => {
-          const nodeId = step.flowNodeId ?? step.id
-          acc[nodeId] = {
-            nodeId,
-            order: step.order,
-            label: step.label,
-            gherkinStep: step.gherkinStep,
-            icon: step.icon,
-            parameters: ((step.parameters || []) as TemplateTestCaseStepParameter[]).map(
-              (param: TemplateTestCaseStepParameter) => ({
-                name: param.name,
-                defaultValue: param.defaultValue,
-                type: param.type,
-                order: param.order,
-              }),
-            ),
-            invocation: stepInvocationSchema.parse(JSON.parse(step.invocationJson)),
-          }
-          return acc
-        }, {} as TemplateTestCaseNodeOrderMap)}
+        defaultNodesOrder={defaultNodesOrder}
         defaultFlowBlocks={templateTestCase.flowBlocks
           .slice()
           .sort((left, right) => left.order - right.order)

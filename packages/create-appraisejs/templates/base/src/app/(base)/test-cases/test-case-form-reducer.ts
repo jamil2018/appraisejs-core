@@ -10,6 +10,8 @@ export type TestCaseFormErrors = {
   steps?: string[]
 }
 
+export type AuthoringView = 'graph' | 'linear'
+
 export type TestCaseFormState = {
   nodesOrder: NodeOrderMap
   flowBlocks: FlowBlock[]
@@ -25,6 +27,7 @@ export type TestCaseFormState = {
   isCreateSuiteDialogOpen: boolean
   isCreateTagDialogOpen: boolean
   isFlowImmersive: boolean
+  authoringView: AuthoringView
   errors: TestCaseFormErrors
 }
 
@@ -55,6 +58,7 @@ export type TestCaseFormAction =
   | { type: 'setIsCreateSuiteDialogOpen'; open: boolean }
   | { type: 'setIsCreateTagDialogOpen'; open: boolean }
   | { type: 'toggleFlowImmersive' }
+  | { type: 'setAuthoringView'; view: AuthoringView }
   | { type: 'patchErrors'; updater: Updater<TestCaseFormErrors> }
   | { type: 'setErrors'; errors: TestCaseFormErrors }
   | { type: 'clearErrors' }
@@ -121,6 +125,8 @@ export function testCaseFormReducer(state: TestCaseFormState, action: TestCaseFo
       return { ...state, isCreateTagDialogOpen: action.open }
     case 'toggleFlowImmersive':
       return { ...state, isFlowImmersive: !state.isFlowImmersive }
+    case 'setAuthoringView':
+      return { ...state, authoringView: action.view }
     case 'patchErrors':
       return { ...state, errors: applyUpdater(action.updater, state.errors) }
     case 'setErrors':
@@ -198,6 +204,7 @@ export function createTestCaseFormState({
     isCreateSuiteDialogOpen: false,
     isCreateTagDialogOpen: false,
     isFlowImmersive: false,
+    authoringView: 'graph',
     errors: {},
   }
 }

@@ -20,15 +20,15 @@ workers cause unique-constraint and foreign-key failures in CI and locally.
 
 ## Layout
 
-| File | Purpose |
-| --- | --- |
-| `appraise-smoke.spec.ts` | Fast regression gate |
-| `navigation.spec.ts` | Route matrix and dashboard attention links |
-| `crud-configuration.spec.ts` | Configuration entity CRUD |
-| `crud-tests.spec.ts` | Suites, cases, template-based create |
-| `authoring.spec.ts` | Inline dialogs, flow panel, authoring |
-| `runs-and-reports.spec.ts` | Seeded runs, reports, create form (no execution) |
-| `settings-sync.spec.ts` | Per-script sync buttons |
+| File                         | Purpose                                          |
+| ---------------------------- | ------------------------------------------------ |
+| `appraise-smoke.spec.ts`     | Fast regression gate                             |
+| `navigation.spec.ts`         | Route matrix and dashboard attention links       |
+| `crud-configuration.spec.ts` | Configuration entity CRUD                        |
+| `crud-tests.spec.ts`         | Suites, cases, template-based create             |
+| `authoring.spec.ts`          | Inline dialogs, flow panel, authoring            |
+| `runs-and-reports.spec.ts`   | Seeded runs, reports, create form (no execution) |
+| `settings-sync.spec.ts`      | Per-script sync buttons                          |
 
 Helpers live under `e2e/helpers/` (`ui`, `navigation`, `table`, `forms`, `test-data`).
 
@@ -54,3 +54,5 @@ Seeded IDs are exported as `seededIds` for deep-link tests.
 - Videos/screenshots retained on failure
 - Run a single file: `npx playwright test e2e/navigation.spec.ts`
 - UI mode: `npx playwright test --ui`
+- If a local server is already listening with an older SQLite schema, use a fresh port so Playwright starts a
+  new server, recreates its isolated database, and applies migrations: `E2E_PORT=3201 npx playwright test e2e/authoring.spec.ts`.

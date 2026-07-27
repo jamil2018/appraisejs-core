@@ -4,10 +4,12 @@ import { LayoutPanelTop } from 'lucide-react'
 import React from 'react'
 import { Metadata } from 'next'
 import { getTestCaseFormRouteResources, getTestCaseRouteLoadError } from '../test-case-route-resource-helpers'
+import { listReferencedStepDefinitionOptionsAction } from '@/actions/step-definition/step-definition-actions'
 
 import { CreateFromTemplateForm } from './create-from-template-form'
 import {
   loadCreateFromTemplateRouteResources,
+  collectTemplateStepReferences,
   resolveTemplateTestCaseSelection,
 } from './create-from-template-route-helpers'
 import { getTemplateTestCasesWithSteps } from './create-from-template-helpers'
@@ -26,13 +28,20 @@ const CreateTestCaseFromTemplate = async ({
   const selectedTemplateTestCaseId = resolvedSearchParams.templateTestCaseId ?? ''
 
   const { templateTestCasesResponse, resourceResponses } = await loadCreateFromTemplateRouteResources()
-  const loadError = getTestCaseRouteLoadError([templateTestCasesResponse, ...Object.values(resourceResponses)])
+  const templateTestCases = getTemplateTestCasesWithSteps(templateTestCasesResponse.data)
+  const editorDefinitionsResponse = await listReferencedStepDefinitionOptionsAction(
+    collectTemplateStepReferences(templateTestCases),
+  )
+  const loadError = getTestCaseRouteLoadError([
+    templateTestCasesResponse,
+    ...Object.values(resourceResponses),
+    editorDefinitionsResponse,
+  ])
 
   if (loadError) {
     return <div>Error: {loadError}</div>
   }
 
-  const templateTestCases = getTemplateTestCasesWithSteps(templateTestCasesResponse.data)
   const { selectedTemplateTestCase, convertedTemplateData, conversionError } = resolveTemplateTestCaseSelection(
     templateTestCases,
     selectedTemplateTestCaseId,
@@ -42,7 +51,7 @@ const CreateTestCaseFromTemplate = async ({
     return <div>{conversionError || 'Invalid template test case'}</div>
   }
 
-  const resources = getTestCaseFormRouteResources(resourceResponses)
+  const resources = getTestCaseFormRouteResources({ ...resourceResponses, editorDefinitionsResponse })
 
   return (
     <div>

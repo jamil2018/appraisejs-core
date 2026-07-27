@@ -16,6 +16,7 @@ const mocks = vi.hoisted(() => ({
   recordSelectionRejected: vi.fn(),
   recordSelectionSelected: vi.fn(),
   listAllReady: vi.fn(),
+  read: vi.fn(),
   revalidatePath: vi.fn(),
 }))
 
@@ -51,10 +52,14 @@ import {
   reviewStepDefinitionDraftAction,
   reviseStepDefinitionDraftAction,
   searchReadyStepDefinitionContractsAction,
+  listReferencedStepDefinitionOptionsAction,
   listReadyStepDefinitionOptionsAction,
 } from './step-definition-actions'
 import { StepDefinitionRegistryError } from '@/services/step-definition/step-definition-registry-service'
-import { builtInStepDefinitions } from '../../../packages/cucumber-runtime/src/step-definitions/index'
+import {
+  builtInStepDefinitions,
+  computeStepReferenceHash,
+} from '../../../packages/cucumber-runtime/src/step-definitions/index'
 
 const draftId = '00000000-0000-4000-8000-000000000001'
 
@@ -102,6 +107,34 @@ describe('Step Definition Server Actions', () => {
     expect(mocks.listAllReady).toHaveBeenCalledOnce()
     expect(result).toMatchObject({ status: 200, success: true })
     expect((result.data as unknown[]).length).toBe(rows.length)
+  })
+
+  it('loads an exact deprecated persisted reference without making it part of the ready list', async () => {
+    const readyDefinition = builtInStepDefinitions[0]!
+    const deprecatedDefinition = {
+      ...readyDefinition,
+      identity: { ...readyDefinition.identity, status: 'deprecated' as const },
+      lifecycle: { ...readyDefinition.lifecycle, deprecatedReason: 'Replaced by a supported definition.' },
+    }
+    const reference = {
+      id: deprecatedDefinition.identity.id,
+      version: deprecatedDefinition.identity.version,
+      definitionHash: computeStepReferenceHash(deprecatedDefinition),
+    }
+    mocks.read.mockResolvedValue({
+      id: reference.id,
+      version: reference.version,
+      definitionJson: JSON.stringify(deprecatedDefinition),
+    })
+
+    const result = await listReferencedStepDefinitionOptionsAction([reference])
+    expect(result).toMatchObject({
+      status: 200,
+      success: true,
+      data: [expect.objectContaining({ reference, title: deprecatedDefinition.intent.title })],
+    })
+    expect(mocks.read).toHaveBeenCalledWith(reference.id, reference.version)
+    expect(mocks.listAllReady).not.toHaveBeenCalled()
   })
 
   it('records a bounded human selection rejection through the coordinator boundary', async () => {

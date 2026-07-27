@@ -25,12 +25,12 @@ export async function selectTestSuites(page: Page, ...suiteNames: string[]): Pro
 }
 
 export async function addStepDefinitionToFlow(page: Page): Promise<void> {
-  await page.getByLabel('Step Definition').selectOption({
+  await page.getByLabel('Step Definition results').selectOption({
     label: 'Navigate to URL (browser.navigation.goto@1)',
   })
-  await page.getByRole('button', { name: 'Add step' }).click()
-  const urlParameter = page.getByRole('textbox', { name: 'url' }).last()
-  await urlParameter.fill('/')
+  await page.getByRole('button', { name: 'Insert first step' }).click()
+  await page.getByRole('textbox', { name: 'url' }).fill('/')
+  await page.getByRole('button', { name: 'Save step' }).click()
   await expect(page.getByRole('button', { name: 'Remove Navigate to URL' })).toBeVisible()
   await page.waitForTimeout(250)
 }

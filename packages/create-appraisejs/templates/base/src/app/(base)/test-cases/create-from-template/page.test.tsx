@@ -6,6 +6,7 @@ import { describe, expect, it, vi } from 'vitest'
 const {
   getAllTemplateTestCasesAction,
   listReadyStepDefinitionOptionsAction,
+  listReferencedStepDefinitionOptionsAction,
   getAllTestSuitesAction,
   getAllLocatorsAction,
   getAllLocatorGroupsAction,
@@ -20,6 +21,7 @@ const {
 } = vi.hoisted(() => ({
   getAllTemplateTestCasesAction: vi.fn(),
   listReadyStepDefinitionOptionsAction: vi.fn(),
+  listReferencedStepDefinitionOptionsAction: vi.fn(),
   getAllTestSuitesAction: vi.fn(),
   getAllLocatorsAction: vi.fn(),
   getAllLocatorGroupsAction: vi.fn(),
@@ -39,6 +41,7 @@ vi.mock('@/actions/template-test-case/template-test-case-actions', () => ({
 
 vi.mock('@/actions/step-definition/step-definition-actions', () => ({
   listReadyStepDefinitionOptionsAction,
+  listReferencedStepDefinitionOptionsAction,
 }))
 
 vi.mock('@/actions/locator/locator-actions', () => ({
@@ -78,6 +81,7 @@ vi.mock('../test-case-form', () => ({
 }))
 
 import CreateTestCaseFromTemplate from './page'
+import { collectTemplateStepReferences } from './create-from-template-route-helpers'
 
 describe('Create Test Case From Template page', () => {
   it('passes template options and the selected template defaults into the shared test case form', async () => {
@@ -115,6 +119,30 @@ describe('Create Test Case From Template page', () => {
             },
           ],
         },
+        {
+          id: 'template-2',
+          name: 'Deprecated template',
+          description: 'Keeps an immutable reference editable',
+          steps: [
+            {
+              id: 'step-row-2',
+              order: 1,
+              label: 'Deprecated fill',
+              gherkinStep: 'fill deprecated email',
+              icon: 'INPUT',
+              invocationJson: JSON.stringify({
+                step: {
+                  id: 'browser.forms.fill.deprecated',
+                  version: '1',
+                  definitionHash: `sha256:${'b'.repeat(64)}`,
+                },
+                inputs: { email: 'legacy@appraise.dev' },
+                presentation: { keyword: 'When', description: 'fill deprecated email' },
+              }),
+              parameters: [],
+            },
+          ],
+        },
       ],
     })
     listReadyStepDefinitionOptionsAction.mockResolvedValue({
@@ -124,6 +152,26 @@ describe('Create Test Case From Template page', () => {
           version: '1',
           definitionHash: `sha256:${'a'.repeat(64)}`,
           label: 'Fill form field',
+        },
+      ],
+    })
+    listReferencedStepDefinitionOptionsAction.mockResolvedValue({
+      data: [
+        {
+          reference: {
+            id: 'browser.forms.fill',
+            version: '1',
+            definitionHash: `sha256:${'a'.repeat(64)}`,
+          },
+          title: 'Deprecated fill form field',
+        },
+        {
+          reference: {
+            id: 'browser.forms.fill.deprecated',
+            version: '1',
+            definitionHash: `sha256:${'b'.repeat(64)}`,
+          },
+          title: 'Deprecated immutable fill form field',
         },
       ],
     })
@@ -142,20 +190,34 @@ describe('Create Test Case From Template page', () => {
     )
 
     expect(screen.getByText('Mock Test Case Form')).toBeInTheDocument()
+    expect(listReferencedStepDefinitionOptionsAction).toHaveBeenCalledWith([
+      {
+        id: 'browser.forms.fill',
+        version: '1',
+        definitionHash: `sha256:${'a'.repeat(64)}`,
+      },
+      {
+        id: 'browser.forms.fill.deprecated',
+        version: '1',
+        definitionHash: `sha256:${'b'.repeat(64)}`,
+      },
+    ])
     expect(testCaseFormSpy).toHaveBeenCalledWith(
       expect.objectContaining({
-        templateTestCases: [
+        templateTestCases: expect.arrayContaining([
           expect.objectContaining({
             id: 'template-1',
             name: 'Login template',
           }),
-        ],
+        ]),
         defaultTemplateTestCaseId: 'template-1',
         defaultTitle: 'Login template',
         defaultDescription: 'Reusable login flow',
         environments: [{ id: 'env-1', name: 'Staging' }],
-        stepDefinitions: [
-          expect.objectContaining({ id: 'browser.forms.fill', version: '1' }),
+        stepDefinitions: [expect.objectContaining({ id: 'browser.forms.fill', version: '1' })],
+        editorDefinitions: [
+          expect.objectContaining({ title: 'Deprecated fill form field' }),
+          expect.objectContaining({ title: 'Deprecated immutable fill form field' }),
         ],
         defaultNodesOrder: {
           'node-0': expect.objectContaining({
@@ -171,5 +233,30 @@ describe('Create Test Case From Template page', () => {
       }),
       undefined,
     )
+  })
+
+  it('deduplicates exact references before the bounded editor-metadata request', () => {
+    const reference = {
+      id: 'browser.forms.fill.deprecated',
+      version: '1',
+      definitionHash: `sha256:${'b'.repeat(64)}`,
+    }
+    const templates = [
+      {
+        id: 'template-repeated',
+        name: 'Repeated legacy references',
+        steps: Array.from({ length: 513 }, (_, index) => ({
+          id: `step-${index}`,
+          invocationJson: JSON.stringify({
+            step: reference,
+            inputs: { email: 'legacy@appraise.dev' },
+            presentation: { keyword: 'When', description: 'fill legacy email' },
+          }),
+          parameters: [],
+        })),
+      },
+    ]
+
+    expect(collectTemplateStepReferences(templates as never)).toEqual([reference])
   })
 })

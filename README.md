@@ -24,7 +24,7 @@ AppraiseJS 0.5 is a single-user local tool. Supported development, production, a
 approved. Environment credentials are configured by process-environment variable name and are resolved only inside
 the execution process—secret values are never stored by AppraiseJS.
 
-- **Visual-first authoring:** build test scenarios without writing framework glue code.
+- **Visual-first authoring:** build test scenarios with a graph-first editor, or switch explicitly to a complete linear editor without changing the authored flow.
 - **No-code and production-ready:** compose robust test flows through reusable building blocks.
 - **Portable artifacts:** generate standards-based assets such as Gherkin and Playwright-friendly outputs.
 - **Fast onboarding:** start quickly with sensible defaults and minimal setup overhead.

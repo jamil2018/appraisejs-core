@@ -6,6 +6,9 @@ import { IconToKeyTransformer } from '@/lib/transformers/key-to-icon-transformer
 import type { ActionResponse } from '@/types/form/actionHandler'
 import type { NodeOrderMap, TemplateTestCaseNodeOrderMap } from '@/types/diagram/diagram'
 import { formatOrderedGherkinSteps } from '@/lib/gherkin-step-format'
+import { flowFromNodeOrder } from '@/components/diagram/authored-flow-model'
+import { normalizeAuthoredFlowBlocks } from '@/components/diagram/authored-flow-blocks'
+import type { FlowBlock } from '@/types/diagram/diagram'
 
 type ScenarioNodeOrder = NodeOrderMap | TemplateTestCaseNodeOrderMap
 type ScenarioNode = ScenarioNodeOrder[string]
@@ -50,6 +53,19 @@ export function buildScenarioSteps(nodeOrder: ScenarioNodeOrder) {
     order: value.order,
     invocation: value.invocation,
   }))
+}
+
+export function validateScenarioTopology(nodeOrder: ScenarioNodeOrder, flowBlocks: FlowBlock[]): string | undefined {
+  try {
+    const flow = flowFromNodeOrder(nodeOrder)
+    const normalizedFlowBlocks = normalizeAuthoredFlowBlocks(flow, flowBlocks)
+    if (JSON.stringify(normalizedFlowBlocks) !== JSON.stringify(flowBlocks)) {
+      return 'Flow blocks must contain distinct, contiguous nodes from the authored flow.'
+    }
+  } catch (error) {
+    return error instanceof Error ? error.message : 'Authored flow topology is invalid.'
+  }
+  return undefined
 }
 
 export function buildScenarioPreview(title: string, description: string | undefined, nodeOrder: ScenarioNodeOrder) {

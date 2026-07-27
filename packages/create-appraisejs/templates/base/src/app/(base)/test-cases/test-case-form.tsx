@@ -32,6 +32,14 @@ import { z } from 'zod'
 
 import ErrorMessage from '@/components/form/error-message'
 import { TestScenarioPreview } from '@/components/test-case/test-scenario-preview'
+import { flowFromNodeOrder, nodeOrderFromFlow, type AuthoredFlow } from '@/components/diagram/authored-flow-model'
+import {
+  type FlowInvocationController,
+  useFlowInvocationController,
+  useMergedStepDefinitionOptions,
+} from '@/components/diagram/flow-invocation-controller'
+import { useStepInvocationResources } from '@/components/diagram/step-invocation-resources'
+import type { StepInvocationResources } from '@/components/diagram/step-invocation-resources'
 import {
   buildScenarioPreview,
   buildScenarioSteps,
@@ -39,6 +47,7 @@ import {
   handleTestCaseSaveResponse,
   testCaseQuickTips,
   testCaseSubmitSchema,
+  validateScenarioTopology,
 } from '@/components/test-case/test-case-form-helpers'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -51,11 +60,17 @@ import { testCaseSchema } from '@/constants/form-opts/test-case-form-opts'
 import { toast } from '@/hooks/use-toast'
 import { cn } from '@/lib/utils'
 import type { ActionResponse } from '@/types/form/actionHandler'
-import { createTestCaseFormState, testCaseFormReducer, type TestCaseFormErrors } from './test-case-form-reducer'
+import {
+  createTestCaseFormState,
+  testCaseFormReducer,
+  type AuthoringView,
+  type TestCaseFormErrors,
+} from './test-case-form-reducer'
 
 type TestCaseFormProps = {
   defaultNodesOrder: NodeOrderMap
   stepDefinitions: StepDefinitionOption[]
+  editorDefinitions?: StepDefinitionOption[]
   locators: Array<Pick<Locator, 'id' | 'name' | 'locatorGroupId'>>
   locatorGroups: Array<Pick<LocatorGroup, 'id' | 'name' | 'route' | 'moduleId'>>
   environments: Array<Pick<Environment, 'id' | 'name'>>
@@ -261,30 +276,30 @@ type FlowPanelProps = {
   className: string
   nodesOrder: NodeOrderMap
   stepDefinitions: StepDefinitionOption[]
-  locators: Array<Pick<Locator, 'id' | 'name' | 'locatorGroupId'>>
-  locatorGroups: Array<Pick<LocatorGroup, 'id' | 'name' | 'route' | 'moduleId'>>
-  environments: Array<Pick<Environment, 'id' | 'name'>>
-  moduleList: Module[]
+  resources: StepInvocationResources
   flowBlocks: FlowBlock[]
   isFlowImmersive: boolean
+  authoringView: AuthoringView
   onNodeOrderChange: (nodesOrder: NodeOrderMap) => void
   onFlowBlocksChange: (flowBlocks: FlowBlock[]) => void
+  invocationController: FlowInvocationController
   onToggleImmersive: () => void
+  onAuthoringViewChange: (view: AuthoringView) => void
 }
 
 function FlowPanel({
   className,
   nodesOrder,
   stepDefinitions,
-  locators,
-  locatorGroups,
-  environments,
-  moduleList,
+  resources,
   flowBlocks,
   isFlowImmersive,
+  authoringView,
   onNodeOrderChange,
   onFlowBlocksChange,
+  invocationController,
   onToggleImmersive,
+  onAuthoringViewChange,
 }: FlowPanelProps) {
   return (
     <LazyMotion features={domAnimation} strict>
@@ -314,6 +329,20 @@ function FlowPanel({
               {isFlowImmersive ? <Minimize2 className="size-4" /> : <Maximize2 className="size-4" />}
             </Button>
           </div>
+          <div className="mt-3 inline-flex rounded-md border p-1" role="group" aria-label="Flow authoring view">
+            {(['graph', 'linear'] as const).map(view => (
+              <Button
+                key={view}
+                type="button"
+                size="sm"
+                variant={authoringView === view ? 'default' : 'ghost'}
+                aria-pressed={authoringView === view}
+                onClick={() => onAuthoringViewChange(view)}
+              >
+                {view === 'graph' ? 'Graph' : 'Linear'}
+              </Button>
+            ))}
+          </div>
         </CardHeader>
         <CardContent className="flex min-h-0 flex-1 flex-col">
           <div className="flex min-h-0 flex-1 flex-col gap-2">
@@ -322,13 +351,12 @@ function FlowPanel({
                 initialNodesOrder={nodesOrder}
                 stepDefinitions={stepDefinitions}
                 onNodeOrderChange={onNodeOrderChange}
-                locators={locators}
-                locatorGroups={locatorGroups}
-                environments={environments}
-                modules={moduleList}
+                resources={resources}
                 flowBlocks={flowBlocks}
                 layoutRefreshKey={isFlowImmersive}
                 onFlowBlocksChange={onFlowBlocksChange}
+                invocationController={invocationController}
+                view={authoringView}
               />
             </div>
           </div>
@@ -917,7 +945,7 @@ function useReusableStepNavigation({
   selectedTemplateId: string
   templateTestCases?: TemplateTestCaseWithSteps[]
 }) {
-  return useCallback(() => {
+  return useCallback(async () => {
     const resolution = resolveTemplateSelection({
       hasTemplateSelectionStep,
       templateTestCases,
@@ -1005,13 +1033,18 @@ function useTestCaseSubmitHandler({
   id?: string
   nodesOrder: NodeOrderMap
   onSubmitAction: TestCaseFormProps['onSubmitAction']
-  push: ReturnType<typeof useRouter>['push']
+  push: (path: string) => void
   selectedTags: string[]
   selectedTestSuites: string[]
   title: string
   dispatch: React.Dispatch<import('./test-case-form-reducer').TestCaseFormAction>
 }) {
   return useCallback(async () => {
+    const topologyError = validateScenarioTopology(nodesOrder, flowBlocks)
+    if (topologyError) {
+      dispatch({ type: 'setErrors', errors: { steps: [topologyError] } })
+      return
+    }
     const nodesWithMissingParams = getNodesWithMissingMandatoryParams(nodesOrder)
 
     if (nodesWithMissingParams.length > 0) {
@@ -1140,6 +1173,7 @@ function useWizardStepClick(
 const TestCaseForm = ({
   defaultNodesOrder,
   stepDefinitions,
+  editorDefinitions = stepDefinitions,
   locators,
   locatorGroups,
   environments,
@@ -1196,6 +1230,7 @@ const TestCaseForm = ({
     isCreateSuiteDialogOpen,
     isCreateTagDialogOpen,
     isFlowImmersive,
+    authoringView,
     errors,
   } = formState
   const shouldReduceMotion = useReducedMotion()
@@ -1225,6 +1260,23 @@ const TestCaseForm = ({
     },
     [dispatch],
   )
+  const flow = useMemo(() => flowFromNodeOrder(nodesOrder), [nodesOrder])
+  const invocationDefinitions = useMergedStepDefinitionOptions(stepDefinitions, editorDefinitions)
+  const publishFlow = useCallback(
+    (next: AuthoredFlow) => onNodeOrderChange(nodeOrderFromFlow(next) as NodeOrderMap),
+    [onNodeOrderChange],
+  )
+  const invocationController = useFlowInvocationController({
+    flow,
+    definitions: invocationDefinitions,
+    readyDefinitions: stepDefinitions,
+    publish: publishFlow,
+    flowBlocks,
+    onFlowBlocksChange: nextFlowBlocks => dispatch({ type: 'setFlowBlocks', flowBlocks: nextFlowBlocks }),
+    nodeKind: 'test-case',
+  })
+  const invocationResources = useStepInvocationResources({ locators, locatorGroups, environments, modules: moduleList })
+  const navigateAfterSave = useCallback((path: string) => push(path), [push])
 
   const onTemplateChange = useCallback(
     (value: string) => {
@@ -1307,7 +1359,7 @@ const TestCaseForm = ({
     id,
     nodesOrder,
     onSubmitAction,
-    push,
+    push: navigateAfterSave,
     selectedTags,
     selectedTestSuites,
     title,
@@ -1318,15 +1370,15 @@ const TestCaseForm = ({
   const flowPanelProps: Omit<FlowPanelProps, 'className'> = {
     nodesOrder,
     stepDefinitions,
-    locators,
-    locatorGroups,
-    environments,
-    moduleList,
+    resources: invocationResources,
     flowBlocks,
     isFlowImmersive,
+    authoringView,
     onNodeOrderChange,
     onFlowBlocksChange: flowBlocks => dispatch({ type: 'setFlowBlocks', flowBlocks }),
+    invocationController,
     onToggleImmersive: onToggleFlowImmersive,
+    onAuthoringViewChange: view => dispatch({ type: 'setAuthoringView', view }),
   }
 
   const wizardStepContentProps: WizardStepContentProps = {

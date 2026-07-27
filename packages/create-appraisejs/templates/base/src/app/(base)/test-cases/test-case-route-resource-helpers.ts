@@ -28,6 +28,7 @@ export type TestCaseFormResourceResponses = {
   testCasesResponse: ActionResponse
   moduleListResponse: ActionResponse
   environmentsResponse: ActionResponse
+  editorDefinitionsResponse?: ActionResponse
 }
 
 export async function loadTestCaseFormResourceResponses(): Promise<TestCaseFormResourceResponses> {
@@ -76,9 +77,13 @@ export function getTestCaseFormRouteResources({
   testCasesResponse,
   moduleListResponse,
   environmentsResponse,
+  editorDefinitionsResponse,
 }: TestCaseFormResourceResponses) {
+  const stepDefinitions = (stepDefinitionsResponse.data ?? []) as StepDefinitionOption[]
+  const editorDefinitions = (editorDefinitionsResponse?.data ?? stepDefinitions) as StepDefinitionOption[]
   return {
-    stepDefinitions: (stepDefinitionsResponse.data ?? []) as StepDefinitionOption[],
+    stepDefinitions,
+    editorDefinitions,
     testSuites: getTestSuiteRows(testSuitesResponse.data),
     locators: getLocatorRows(locatorsResponse.data),
     locatorGroups: getLocatorGroupRows(locatorGroupsResponse.data),

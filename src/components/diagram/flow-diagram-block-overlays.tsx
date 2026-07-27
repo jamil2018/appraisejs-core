@@ -26,6 +26,7 @@ export function FlowDiagramBlockOverlays({
       {flowBlockBounds.map(block => (
         <div
           key={block.id}
+          data-flow-block-overlay={block.id}
           className="pointer-events-none absolute rounded-lg border border-emerald-400/70 bg-emerald-400/10"
           style={{
             left: block.x,

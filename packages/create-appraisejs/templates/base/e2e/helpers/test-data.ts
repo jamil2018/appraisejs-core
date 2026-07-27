@@ -40,6 +40,7 @@ export const seededIds = {
   reportTestCase: 'e2e-report-test-case',
   templateTestCase: 'e2e-template-test-case',
   templateTestCaseStep: 'e2e-template-test-case-step',
+  invalidTopologyTestCase: 'e2e-invalid-topology-case',
   secondModule: 'e2e-second-module',
   secondTestSuite: 'e2e-second-suite',
   secondTestCase: 'e2e-second-case',
@@ -381,6 +382,44 @@ export async function seedTemplateCatalog(
             },
           },
         ],
+      },
+    },
+  })
+}
+
+export async function seedInvalidTopologyTestCase(): Promise<void> {
+  const invocationJson = JSON.stringify(seededNavigationInvocation())
+  const nodeIds = ['e2e-invalid-topology-first', 'e2e-invalid-topology-middle', 'e2e-invalid-topology-last']
+
+  await prisma.testCase.create({
+    data: {
+      id: seededIds.invalidTopologyTestCase,
+      title: 'E2E Invalid Topology Case',
+      description: 'Persisted malformed flow block used to verify browser-facing rejection.',
+      targetProjectId: seededIds.targetProject,
+      steps: {
+        create: nodeIds.map((flowNodeId, order) => ({
+          id: `e2e-invalid-topology-step-${order + 1}`,
+          flowNodeId,
+          order,
+          gherkinStep: 'When the user navigates to the / url',
+          icon: StepIcon.NAVIGATION,
+          label: 'Navigate to URL',
+          invocationJson,
+          parameters: {
+            create: [{ name: 'url', value: '/', order: 0, type: StepParameterType.STRING }],
+          },
+        })),
+      },
+      flowBlocks: {
+        create: {
+          id: 'e2e-invalid-topology-block',
+          name: 'Malformed setup',
+          order: 0,
+          nodes: {
+            create: [{ flowNodeId: nodeIds[0]! }, { flowNodeId: nodeIds[2]! }],
+          },
+        },
       },
     },
   })

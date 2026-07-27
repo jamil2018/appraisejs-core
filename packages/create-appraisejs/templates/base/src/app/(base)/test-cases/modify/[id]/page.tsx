@@ -6,6 +6,7 @@ import PageHeader from '@/components/typography/page-header'
 import { createTagAction } from '@/actions/tags/tag-actions'
 import { createTestSuiteAction } from '@/actions/test-suite/test-suite-actions'
 import { Metadata } from 'next'
+import { listReferencedStepDefinitionOptionsAction } from '@/actions/step-definition/step-definition-actions'
 
 import {
   buildNodeOrderFromTestCaseSteps,
@@ -29,18 +30,29 @@ const ModifyTestCase = async ({ params }: { params: Promise<{ id: string }> }) =
     getTestCaseByIdAction(id),
     loadTestCaseFormResourceResponses(),
   ])
-  const loadError = getTestCaseRouteLoadError([testCaseResponse, ...Object.values(resourceResponses)])
-
-  if (loadError) {
-    return <div>Error: {loadError}</div>
+  if (testCaseResponse.error) {
+    return <div>Error: {testCaseResponse.error}</div>
   }
-
   const testCase = getEditableTestCase(testCaseResponse.data)
   if (!testCase) {
     return <div>Error: Invalid test case</div>
   }
 
-  const resources = getTestCaseFormRouteResources(resourceResponses)
+  const defaultNodesOrder = buildNodeOrderFromTestCaseSteps(testCase.steps)
+  const editorDefinitionsResponse = await listReferencedStepDefinitionOptionsAction(
+    Object.values(defaultNodesOrder).map(node => node.invocation.step),
+  )
+  const loadError = getTestCaseRouteLoadError([
+    testCaseResponse,
+    ...Object.values(resourceResponses),
+    editorDefinitionsResponse,
+  ])
+
+  if (loadError) {
+    return <div>Error: {loadError}</div>
+  }
+
+  const resources = getTestCaseFormRouteResources({ ...resourceResponses, editorDefinitionsResponse })
 
   return (
     <>
@@ -54,9 +66,9 @@ const ModifyTestCase = async ({ params }: { params: Promise<{ id: string }> }) =
         defaultTitle={testCase.title}
         defaultDescription={testCase.description}
         defaultTestSuiteIds={testCase.testSuiteIds}
-        defaultTagIds={testCase.tagIds || []}
+        defaultTagIds={testCase.tagIds}
         {...resources}
-        defaultNodesOrder={buildNodeOrderFromTestCaseSteps(testCase.steps)}
+        defaultNodesOrder={defaultNodesOrder}
         defaultFlowBlocks={buildFlowBlocksFromTestCaseRows(testCase.flowBlocks)}
         onCreateTestSuiteAction={createTestSuiteAction}
         onCreateTagAction={createTagAction}
