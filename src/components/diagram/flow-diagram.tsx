@@ -2,10 +2,11 @@
 
 import '@xyflow/react/dist/style.css'
 import type { Edge, Node, ReactFlowInstance } from '@xyflow/react'
-import { PanelRightOpen, Search, X } from 'lucide-react'
+import { Plus, Search, X } from 'lucide-react'
 import { useCallback, useMemo, useRef, useState } from 'react'
 
 import { Button } from '@/components/ui/button'
+import { ButtonGroup } from '@/components/ui/button-group'
 import {
   Drawer,
   DrawerClose,
@@ -66,7 +67,9 @@ function useFlowDiagramModel(
 
 function useFlowDiagramInteractions(flow: AuthoredFlow, editor: FlowInvocationController, revealDetails: () => void) {
   const search = useFlowNodeSearch(flow)
-  const toggleSearch = useCallback(() => search.setIsOpen(open => !open), [search])
+  const toggleSearch = useCallback(() => {
+    if (flow.length > 0) search.setIsOpen(open => !open)
+  }, [flow.length, search])
 
   useFlowGraphShortcuts({
     lastNodeId: flow.at(-1)?.nodeId,
@@ -88,6 +91,10 @@ export default function FlowDiagram(props: FlowDiagramWithControllerProps) {
   const revealDetails = useCallback(() => setIsDetailsOpen(true), [])
   const { flow, editor, graph, blocks, addStep } = useFlowDiagramModel(props, revealDetails)
   const { search } = useFlowDiagramInteractions(flow, editor, revealDetails)
+  const revealNewStepDetails = useCallback(() => {
+    if (!editor.session) editor.setSelectedDefinition(undefined)
+    revealDetails()
+  }, [editor, revealDetails])
   const drawerEditor = useMemo(
     () => ({
       ...editor,
@@ -106,39 +113,54 @@ export default function FlowDiagram(props: FlowDiagramWithControllerProps) {
   return (
     <section className="flex h-full min-h-0 flex-col overflow-hidden" aria-label="Graph step editor">
       <div className="flex min-h-[22rem] min-w-0 flex-1 flex-col gap-2 p-3">
-        <div className="flex justify-end gap-2">
-          <FlowBlockControls
-            enabled={Boolean(props.onFlowBlocksChange)}
-            blockName={blocks.blockName}
-            selectedNodeCount={graph.selectedNodeIds.length}
-            onNameChange={blocks.setBlockName}
-            onCreate={blocks.createBlock}
-          />
-          <Popover open={search.isOpen} onOpenChange={search.setIsOpen}>
-            <PopoverTrigger asChild>
-              <Button type="button" size="icon" variant="outline" aria-label="Search nodes">
-                <Search aria-hidden />
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent align="end" className="w-96 p-2">
-              <FlowNodeSearch
-                isOpen
-                query={search.query}
-                results={search.results}
-                nodes={graph.nodes}
-                flowInstanceRef={flowInstanceRef}
-                onQueryChange={search.setQuery}
-                onEdit={nodeId => {
-                  editor.startEditing(nodeId)
-                  revealDetails()
-                }}
-                onClose={search.close}
-              />
-            </PopoverContent>
-          </Popover>
-          <Button type="button" size="icon" variant="outline" aria-label="Open step details" onClick={revealDetails}>
-            <PanelRightOpen aria-hidden />
-          </Button>
+        <div className="flex justify-start">
+          <ButtonGroup aria-label="Graph authoring tools">
+            <Button
+              type="button"
+              size="icon"
+              variant="outline"
+              aria-label="Open step details"
+              onClick={revealNewStepDetails}
+            >
+              <Plus aria-hidden />
+            </Button>
+            <FlowBlockControls
+              enabled={Boolean(props.onFlowBlocksChange)}
+              disabled={graph.nodes.length < 2}
+              blockName={blocks.blockName}
+              selectedNodeCount={graph.selectedNodeIds.length}
+              onNameChange={blocks.setBlockName}
+              onCreate={blocks.createBlock}
+            />
+            <Popover open={search.isOpen} onOpenChange={search.setIsOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  type="button"
+                  size="icon"
+                  variant="outline"
+                  aria-label="Search nodes"
+                  disabled={graph.nodes.length === 0}
+                >
+                  <Search aria-hidden />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent align="start" className="w-96 p-2">
+                <FlowNodeSearch
+                  isOpen
+                  query={search.query}
+                  results={search.results}
+                  nodes={graph.nodes}
+                  flowInstanceRef={flowInstanceRef}
+                  onQueryChange={search.setQuery}
+                  onEdit={nodeId => {
+                    editor.startEditing(nodeId)
+                    revealDetails()
+                  }}
+                  onClose={search.close}
+                />
+              </PopoverContent>
+            </Popover>
+          </ButtonGroup>
         </div>
         <FlowGraphCanvas
           nodes={graph.nodes}
@@ -156,15 +178,16 @@ export default function FlowDiagram(props: FlowDiagramWithControllerProps) {
           onDeleteBlock={blocks.deleteBlock}
           onUpdateBlockMembership={blocks.updateMembership}
           onAddFirst={() => {
-            editor.startInserting(null)
+            editor.setSelectedDefinition(undefined)
             revealDetails()
           }}
-          canAddFirst={Boolean(editor.activeDefinition)}
+          canAddFirst={stepDefinitions.length > 0}
         />
       </div>
-      <Drawer direction="right" modal={false} open={isDetailsOpen} onOpenChange={setIsDetailsOpen}>
+      <Drawer direction="right" open={isDetailsOpen} onOpenChange={setIsDetailsOpen}>
         <DrawerContent
-          showOverlay={false}
+          overlayClassName="bg-transparent"
+          onOverlayClick={() => setIsDetailsOpen(false)}
           className="inset-y-0 left-auto right-0 mt-0 h-full w-[min(24rem,calc(100vw-1rem))] rounded-l-md rounded-tr-none [&>div:first-child]:hidden"
         >
           <DrawerHeader className="relative border-b pr-14 text-left">

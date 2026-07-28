@@ -111,6 +111,11 @@ function closeGraphDetails() {
   if (closeButton) fireEvent.click(closeButton)
 }
 
+function chooseStepDefinition(name = 'Set viewport') {
+  fireEvent.click(screen.getByRole('combobox', { name: 'Step Definition results' }))
+  fireEvent.click(screen.getByRole('option', { name: new RegExp(name, 'i') }))
+}
+
 describe('flow authoring projections', () => {
   it('keeps an invalid invocation draft and its error while switching graph and linear projections', async () => {
     const node = createAuthoredFlowNode(definition, 'viewport')
@@ -291,6 +296,8 @@ describe('flow authoring projections', () => {
 
     render(<Harness />)
     fireEvent.click(screen.getByRole('button', { name: 'Add first step' }))
+    chooseStepDefinition()
+    fireEvent.click(screen.getByRole('button', { name: 'Add step' }))
     fireEvent.change(screen.getByLabelText('width'), { target: { value: '1280' } })
     fireEvent.click(screen.getByRole('button', { name: 'Save step' }))
 
@@ -330,6 +337,8 @@ describe('flow authoring projections', () => {
 
     const graph = render(<ProjectionHarness view="graph" />)
     fireEvent.click(screen.getByRole('button', { name: 'Add first step' }))
+    chooseStepDefinition()
+    fireEvent.click(screen.getByRole('button', { name: 'Add step' }))
     fireEvent.click(screen.getByRole('button', { name: 'Save step' }))
     fireEvent.click(screen.getByRole('button', { name: 'Insert after' }))
     fireEvent.click(screen.getByRole('button', { name: 'Save step' }))
@@ -453,6 +462,7 @@ describe('flow authoring projections', () => {
     expect(screen.getByRole('dialog', { name: 'Edit step invocation' })).toBeVisible()
     fireEvent.click(screen.getByRole('button', { name: 'Save step' }))
     expect(screen.queryByRole('option', { name: 'Deprecated viewport' })).not.toBeInTheDocument()
+    chooseStepDefinition()
     fireEvent.click(screen.getByRole('button', { name: 'Add step' }))
     fireEvent.click(screen.getByRole('button', { name: 'Save step' }))
     expect(screen.getByLabelText('Persisted Test Case reference')).toHaveTextContent('browser.viewport.set')
@@ -511,6 +521,7 @@ describe('flow authoring projections', () => {
     expect(screen.getByRole('dialog', { name: 'Edit step invocation' })).toBeVisible()
     fireEvent.click(screen.getByRole('button', { name: 'Save step' }))
     expect(screen.queryByRole('option', { name: 'Deprecated viewport' })).not.toBeInTheDocument()
+    chooseStepDefinition()
     fireEvent.click(screen.getByRole('button', { name: 'Add step' }))
     fireEvent.click(screen.getByRole('button', { name: 'Save step' }))
     expect(screen.getByLabelText('Persisted Template reference')).toHaveTextContent('browser.viewport.set')
@@ -585,6 +596,7 @@ describe('flow authoring projections', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Edit' }))
     fireEvent.click(screen.getByRole('button', { name: 'Save step' }))
     expect(screen.queryByRole('option', { name: 'Deprecated viewport' })).not.toBeInTheDocument()
+    chooseStepDefinition()
     fireEvent.click(screen.getByRole('button', { name: 'Add step' }))
     fireEvent.click(screen.getByRole('button', { name: 'Save step' }))
     expect(screen.getByLabelText('Create from template reference')).toHaveTextContent('browser.viewport.set')
@@ -622,6 +634,8 @@ describe('flow authoring projections', () => {
 
     render(<Harness />)
     fireEvent.click(screen.getByRole('button', { name: 'Add first step' }))
+    chooseStepDefinition()
+    fireEvent.click(screen.getByRole('button', { name: 'Add step' }))
     fireEvent.change(screen.getByLabelText('width'), { target: { value: '' } })
     fireEvent.click(screen.getByRole('button', { name: 'Save step' }))
     expect(screen.getByText('width is required.')).toBeVisible()

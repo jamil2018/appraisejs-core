@@ -113,10 +113,10 @@ function activeDefinitionFor(
   selectedDefinition: StepDefinitionOption | undefined,
   definitions: StepDefinitionOption[],
 ): StepDefinitionOption | undefined {
-  if (!selectedDefinition) return definitions[0]
+  if (!selectedDefinition) return undefined
   return definitions.some(definition => sameDefinition(definition.reference, selectedDefinition.reference))
     ? selectedDefinition
-    : definitions[0]
+    : undefined
 }
 
 function editorSession(
@@ -247,6 +247,7 @@ export function useFlowInvocationController({
       const definition = definitionForFlowNode(nodeId, flow, definitions)
       const inputs = flow.find(item => item.nodeId === nodeId)?.node.invocation.inputs
       if (!definition || !inputs) return
+      setSelectedDefinition(definition)
       setSession(
         editorSession(
           definition,

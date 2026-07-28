@@ -128,7 +128,7 @@ export function FlowAuthoringSidebar({
         ) : null}
         {!children ? (
           <Button type="button" className="w-full" disabled={!value} onClick={onAdd}>
-            <Plus className="size-4" aria-hidden /> Add step
+            <Plus data-icon="inline-start" aria-hidden /> Add step
           </Button>
         ) : null}
         {children}
@@ -321,7 +321,7 @@ function EmptyFlowCanvas({ canAddFirst, onAddFirst }: Pick<FlowGraphCanvasProps,
         onClick={onAddFirst}
       >
         <span className="border-primary/30 bg-primary/10 flex size-9 items-center justify-center rounded-md border text-primary">
-          <Plus className="size-4" aria-hidden />
+          <Plus aria-hidden />
         </span>
         <span className="mt-3 text-sm font-medium text-foreground">Add first step</span>
         <span className="mt-1 text-xs text-muted-foreground">
@@ -403,6 +403,7 @@ export function FlowGraphCanvas(props: FlowGraphCanvasProps) {
 
 type FlowBlockControlsProps = {
   enabled: boolean
+  disabled?: boolean
   blockName: string
   selectedNodeCount: number
   onNameChange: (name: string) => void
@@ -411,6 +412,7 @@ type FlowBlockControlsProps = {
 
 export function FlowBlockControls({
   enabled,
+  disabled = false,
   blockName,
   selectedNodeCount,
   onNameChange,
@@ -420,7 +422,7 @@ export function FlowBlockControls({
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <Button type="button" size="icon" variant="outline" aria-label="Create flow block">
+        <Button type="button" size="icon" variant="outline" aria-label="Create flow block" disabled={disabled}>
           <Boxes aria-hidden />
         </Button>
       </PopoverTrigger>

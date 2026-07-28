@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { fireEvent, render, screen, within } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { useCallback, useMemo, useState, type ReactNode } from 'react'
 import { describe, expect, it, vi } from 'vitest'
 
@@ -119,8 +119,13 @@ function FlowDiagramTestHarness(props: FlowDiagramProps) {
   return <FlowDiagram {...props} invocationController={invocationController} />
 }
 
+function chooseStepDefinition(name: string) {
+  fireEvent.click(screen.getByRole('combobox', { name: 'Step Definition results' }))
+  fireEvent.click(screen.getByRole('option', { name: new RegExp(name, 'i') }))
+}
+
 describe('typed Step Invocation input authoring', () => {
-  it('disables graph insertion when no ready Step Definition is available', () => {
+  it('disables unavailable graph tools and dismisses step details from the overlay', async () => {
     const onNodeOrderChange = vi.fn()
     const Harness = () => {
       const [nodeOrder, setNodeOrder] = useState<NodeOrderMap>({})
@@ -132,6 +137,7 @@ describe('typed Step Invocation input authoring', () => {
           locatorGroups={[]}
           environments={[]}
           modules={[]}
+          onFlowBlocksChange={vi.fn()}
           onNodeOrderChange={next => {
             onNodeOrderChange(next)
             setNodeOrder(next as NodeOrderMap)
@@ -142,13 +148,41 @@ describe('typed Step Invocation input authoring', () => {
 
     render(<Harness />)
     expect(screen.getByRole('button', { name: 'Add first step' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Create flow block' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Search nodes' })).toBeDisabled()
     expect(screen.queryByRole('dialog', { name: 'Step details' })).not.toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('button', { name: 'Open step details' }))
 
     expect(screen.getByRole('dialog', { name: 'Step details' })).toBeVisible()
     expect(screen.getByRole('button', { name: 'Add step' })).toBeDisabled()
+    const overlay = document.querySelector('[data-slot="drawer-overlay"]')!
+    fireEvent.pointerDown(overlay)
+    fireEvent.pointerUp(overlay)
+    fireEvent.click(overlay)
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Step details' })).not.toBeInTheDocument())
     expect(onNodeOrderChange).not.toHaveBeenCalled()
+  })
+
+  it('enables flow block creation only when the graph has at least two nodes', () => {
+    const first = createAuthoredFlowNode(definition, 'first')
+    const second = { ...createAuthoredFlowNode(definition, 'second'), order: 2 }
+    const commonProps = {
+      stepDefinitions: [definition],
+      locators: [],
+      locatorGroups: [],
+      environments: [],
+      modules: [],
+      onFlowBlocksChange: vi.fn(),
+      onNodeOrderChange: vi.fn(),
+    }
+    const { rerender } = render(<FlowDiagramTestHarness {...commonProps} nodeOrder={{ first }} />)
+
+    expect(screen.getByRole('button', { name: 'Create flow block' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Search nodes' })).toBeEnabled()
+
+    rerender(<FlowDiagramTestHarness {...commonProps} nodeOrder={{ first, second }} />)
+    expect(screen.getByRole('button', { name: 'Create flow block' })).toBeEnabled()
   })
 
   it('preserves numeric timeout and viewport dimensions instead of stringifying them', () => {
@@ -198,6 +232,11 @@ describe('typed Step Invocation input authoring', () => {
     }
     render(<Harness />)
     fireEvent.click(screen.getByRole('button', { name: 'Add first step' }))
+    expect(screen.getByRole('combobox', { name: 'Step Definition results' })).toHaveTextContent(
+      'Select a ready Step Definition',
+    )
+    chooseStepDefinition('Set viewport')
+    fireEvent.click(screen.getByRole('button', { name: 'Add step' }))
     expect(screen.getByRole('dialog', { name: 'Insert step invocation' })).toBeVisible()
     fireEvent.change(screen.getByLabelText('width'), { target: { value: '' } })
     fireEvent.click(screen.getByRole('button', { name: 'Save step' }))
@@ -238,10 +277,10 @@ describe('typed Step Invocation input authoring', () => {
     )
 
     fireEvent.click(screen.getByRole('button', { name: 'Add first step' }))
+    chooseStepDefinition('Set viewport')
+    fireEvent.click(screen.getByRole('button', { name: 'Add step' }))
     expect(screen.getByLabelText('width')).toBeVisible()
-    fireEvent.change(screen.getByRole('combobox', { name: 'Step Definition results' }), {
-      target: { value: 'browser.waits.page-ready@1@sha256:wait' },
-    })
+    chooseStepDefinition('Wait for page')
     expect(screen.getByLabelText('duration')).toBeVisible()
     expect(screen.queryByLabelText('width')).not.toBeInTheDocument()
   })

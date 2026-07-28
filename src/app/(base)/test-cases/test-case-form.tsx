@@ -24,7 +24,7 @@ import {
   type TestSuite,
   type Tag,
 } from '@prisma/client'
-import { ArrowLeft, ArrowRight, Info, Maximize2, Minimize2, Plus, Save } from 'lucide-react'
+import { ArrowLeft, ArrowRight, GitBranch, Info, List, Maximize2, Minimize2, Plus, Save, Workflow } from 'lucide-react'
 import { LayoutGroup, LazyMotion, domAnimation, useReducedMotion } from 'motion/react'
 import * as motion from 'motion/react-m'
 import { useRouter } from 'next/navigation'
@@ -56,6 +56,7 @@ import { Label } from '@/components/ui/label'
 import { MultiSelect } from '@/components/ui/multi-select'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { testCaseSchema } from '@/constants/form-opts/test-case-form-opts'
 import { toast } from '@/hooks/use-toast'
 import { cn } from '@/lib/utils'
@@ -314,9 +315,14 @@ function FlowPanel({
       >
         <CardHeader className="shrink-0">
           <div className="flex items-start justify-between gap-3">
-            <div className="space-y-1">
-              <CardTitle className="text-xl font-bold text-primary">Test Case Flow</CardTitle>
-              <CardDescription>Build your test scenario step by step visually</CardDescription>
+            <div className="flex items-start gap-3">
+              <span className="bg-primary/10 flex size-9 shrink-0 items-center justify-center rounded-md border text-primary">
+                <Workflow className="size-4" aria-hidden />
+              </span>
+              <div className="space-y-1">
+                <CardTitle className="text-xl font-bold text-primary">Test Case Flow</CardTitle>
+                <CardDescription>Build your test scenario step by step visually</CardDescription>
+              </div>
             </div>
             <Button
               type="button"
@@ -329,20 +335,23 @@ function FlowPanel({
               {isFlowImmersive ? <Minimize2 className="size-4" /> : <Maximize2 className="size-4" />}
             </Button>
           </div>
-          <div className="mt-3 inline-flex rounded-md border p-1" role="group" aria-label="Flow authoring view">
-            {(['graph', 'linear'] as const).map(view => (
-              <Button
-                key={view}
-                type="button"
-                size="sm"
-                variant={authoringView === view ? 'default' : 'ghost'}
-                aria-pressed={authoringView === view}
-                onClick={() => onAuthoringViewChange(view)}
-              >
-                {view === 'graph' ? 'Graph' : 'Linear'}
-              </Button>
-            ))}
-          </div>
+          <Tabs
+            value={authoringView}
+            onValueChange={value => onAuthoringViewChange(value as AuthoringView)}
+            aria-label="Flow authoring view"
+            className="mt-3"
+          >
+            <TabsList>
+              <TabsTrigger value="graph" size="compact">
+                <GitBranch data-icon="inline-start" aria-hidden />
+                Graph
+              </TabsTrigger>
+              <TabsTrigger value="linear" size="compact">
+                <List data-icon="inline-start" aria-hidden />
+                Linear
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
         </CardHeader>
         <CardContent className="flex min-h-0 flex-1 flex-col">
           <div className="flex min-h-0 flex-1 flex-col gap-2">
