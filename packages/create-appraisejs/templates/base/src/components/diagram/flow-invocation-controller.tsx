@@ -48,7 +48,7 @@ export type FlowInvocationController = {
   session: InvocationSession | null
   closeEditor: () => void
   startEditing: (nodeId: string) => void
-  startInserting: (afterNodeId: string | null) => void
+  startInserting: (afterNodeId: string | null, definition?: StepDefinitionOption) => void
   updateDraft: (name: string, value: unknown) => void
   updateErrors: (errors: Record<string, string>) => void
   saveEditor: (inputs: Record<string, unknown>) => void
@@ -113,10 +113,10 @@ function activeDefinitionFor(
   selectedDefinition: StepDefinitionOption | undefined,
   definitions: StepDefinitionOption[],
 ): StepDefinitionOption | undefined {
-  if (!selectedDefinition) return definitions[0]
+  if (!selectedDefinition) return undefined
   return definitions.some(definition => sameDefinition(definition.reference, selectedDefinition.reference))
     ? selectedDefinition
-    : definitions[0]
+    : undefined
 }
 
 function editorSession(
@@ -172,7 +172,7 @@ export function FlowInvocationEditor({ controller, resources, variant }: Invocat
   return (
     <StepInvocationEditor
       key={`${session.editingNodeId ?? session.insertingAfterNodeId ?? 'first'}-${session.definition.reference.definitionHash}`}
-      title={session.editingNodeId ? 'Edit step invocation' : 'Insert step invocation'}
+      title="Configure step parameters"
       definition={session.definition}
       values={session.values}
       errors={session.errors}
@@ -247,6 +247,7 @@ export function useFlowInvocationController({
       const definition = definitionForFlowNode(nodeId, flow, definitions)
       const inputs = flow.find(item => item.nodeId === nodeId)?.node.invocation.inputs
       if (!definition || !inputs) return
+      setSelectedDefinition(definition)
       setSession(
         editorSession(
           definition,
@@ -261,14 +262,15 @@ export function useFlowInvocationController({
     [definitions, flow],
   )
   const startInserting = useCallback(
-    (afterNodeId: string | null) => {
-      if (!activeDefinition) return
+    (afterNodeId: string | null, definitionOverride?: StepDefinitionOption) => {
+      const definition = definitionOverride ?? activeDefinition
+      if (!definition) return
       setSession(
         editorSession(
-          activeDefinition,
+          definition,
           null,
           afterNodeId,
-          nodeForKind(activeDefinition, nodeKind).invocation.inputs,
+          nodeForKind(definition, nodeKind).invocation.inputs,
           document.activeElement as HTMLElement | null,
           `[data-invocation-insert="${afterNodeId ?? 'first'}"]`,
         ),
@@ -282,8 +284,8 @@ export function useFlowInvocationController({
   const selectDefinition = useCallback(
     (definition?: StepDefinitionOption) => {
       setSelectedDefinition(definition)
-      if (!definition) return
       setSession(current => {
+        if (!definition) return current?.editingNodeId ? current : null
         if (!current || current.editingNodeId) return current
         return editorSession(
           definition,

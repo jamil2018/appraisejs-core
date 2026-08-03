@@ -39,7 +39,7 @@ describe('LinearStepEditor', () => {
 
     render(<Harness />)
     expect(screen.getByRole('button', { name: 'Add step' })).toBeDisabled()
-    expect(screen.queryByRole('dialog', { name: 'Insert step invocation' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('dialog', { name: 'Configure step parameters' })).not.toBeInTheDocument()
   })
 
   it('opens typed insertion from the toolbar and does not persist a blank required input', () => {
@@ -63,7 +63,7 @@ describe('LinearStepEditor', () => {
 
     render(<Harness />)
     fireEvent.click(screen.getByRole('button', { name: 'Add step' }))
-    expect(screen.getByRole('dialog', { name: 'Insert step invocation' })).toBeVisible()
+    expect(screen.getByRole('dialog', { name: 'Configure step parameters' })).toBeVisible()
     fireEvent.change(screen.getByLabelText('width'), { target: { value: '' } })
     fireEvent.click(screen.getByRole('button', { name: 'Save step' }))
     expect(screen.getByText('width is required.')).toBeVisible()

@@ -10,6 +10,8 @@ const Select = SelectPrimitive.Root
 
 const SelectValue = SelectPrimitive.Value
 
+const SelectGroup = SelectPrimitive.Group
+
 function SelectTrigger({ className, children, ...props }: React.ComponentProps<typeof SelectPrimitive.Trigger>) {
   return (
     <SelectPrimitive.Trigger
@@ -122,4 +124,4 @@ function SelectItem({ className, children, ...props }: React.ComponentProps<type
 
 SelectItem.displayName = SelectPrimitive.Item.displayName
 
-export { Select, SelectValue, SelectTrigger, SelectContent, SelectItem }
+export { Select, SelectValue, SelectGroup, SelectTrigger, SelectContent, SelectItem }

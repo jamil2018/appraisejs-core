@@ -57,12 +57,7 @@ function useFlowDiagramModel(
     updateFlowBlocks: editor.updateFlowBlocks,
     clearSelection: graph.clearSelection,
   })
-  const addStep = useCallback(() => {
-    editor.startInserting(flow.at(-1)?.nodeId ?? null)
-    revealDetails()
-  }, [editor, flow, revealDetails])
-
-  return { flow, editor, graph, blocks, addStep }
+  return { flow, editor, graph, blocks }
 }
 
 function useFlowDiagramInteractions(flow: AuthoredFlow, editor: FlowInvocationController, revealDetails: () => void) {
@@ -89,12 +84,19 @@ export default function FlowDiagram(props: FlowDiagramWithControllerProps) {
   const flowInstanceRef = useRef<ReactFlowInstance<Node<DiagramNodeData>, Edge> | null>(null)
   const [isDetailsOpen, setIsDetailsOpen] = useState(false)
   const revealDetails = useCallback(() => setIsDetailsOpen(true), [])
-  const { flow, editor, graph, blocks, addStep } = useFlowDiagramModel(props, revealDetails)
+  const { flow, editor, graph, blocks } = useFlowDiagramModel(props, revealDetails)
   const { search } = useFlowDiagramInteractions(flow, editor, revealDetails)
   const revealNewStepDetails = useCallback(() => {
     if (!editor.session) editor.setSelectedDefinition(undefined)
     revealDetails()
   }, [editor, revealDetails])
+  const selectDefinitionForDrawer = useCallback(
+    (definition?: (typeof stepDefinitions)[number]) => {
+      editor.setSelectedDefinition(definition)
+      if (definition && !editor.session) editor.startInserting(flow.at(-1)?.nodeId ?? null, definition)
+    },
+    [editor, flow],
+  )
   const drawerEditor = useMemo(
     () => ({
       ...editor,
@@ -208,8 +210,7 @@ export default function FlowDiagram(props: FlowDiagramWithControllerProps) {
           <FlowAuthoringSidebar
             definitions={stepDefinitions}
             value={editor.activeDefinition}
-            onDefinitionChange={editor.setSelectedDefinition}
-            onAdd={addStep}
+            onDefinitionChange={selectDefinitionForDrawer}
           >
             {editor.session ? (
               <FlowInvocationEditor

@@ -17,9 +17,11 @@ import {
 import { Boxes, Pencil, Plus, Trash2 } from 'lucide-react'
 import { useCallback, useEffect, useRef, type MutableRefObject, type ReactNode, type RefObject } from 'react'
 
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Card } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { Separator } from '@/components/ui/separator'
 import type { FlowBlock } from '@/types/diagram/diagram'
 import type { StepDefinitionOption } from '@/types/step-definition-option'
 
@@ -31,63 +33,118 @@ import { StepDefinitionPicker } from './step-definition-picker'
 export type DiagramNodeData = {
   label: string
   gherkinStep?: string
+  parameters: Array<{ name: string; value: string }>
   onEdit: (nodeId: string) => void
   onInsert: (nodeId: string) => void
   onRemove: (nodeId: string) => void
-  onMoveLeft?: () => void
-  onMoveRight?: () => void
+  hasIncomingConnector: boolean
+  hasOutgoingConnector: boolean
   blockId?: string
   blockName?: string
 }
 
 function FlowStepNode({ id, data }: NodeProps<Node<DiagramNodeData>>) {
   return (
-    <Card className="min-w-56 border-white/15 bg-[rgba(18,37,64,0.96)] p-3 shadow-lg">
-      <Handle type="target" position={Position.Left} id="target" aria-label={`Connect before ${data.label}`} />
-      <p className="font-medium">{data.label}</p>
-      <p className="mt-1 text-sm text-muted-foreground">{data.gherkinStep}</p>
-      {data.blockName ? <p className="mt-1 text-xs text-emerald-300">Block: {data.blockName}</p> : null}
-      <div className="nodrag mt-3 flex gap-1">
-        <Button type="button" size="sm" variant="outline" data-invocation-edit={id} onClick={() => data.onEdit(id)}>
-          <Pencil className="size-3" aria-hidden /> Edit
-        </Button>
-        <Button type="button" size="sm" variant="outline" data-invocation-insert={id} onClick={() => data.onInsert(id)}>
-          <Plus className="size-3" aria-hidden /> Insert after
-        </Button>
-        <Button
-          type="button"
-          size="icon"
-          variant="ghost"
-          aria-label={`Remove ${data.label}`}
-          onClick={() => data.onRemove(id)}
-        >
-          <Trash2 className="size-4" aria-hidden />
-        </Button>
-      </div>
-      <div className="nodrag mt-2 flex gap-1">
-        <Button
-          type="button"
-          size="sm"
-          variant="ghost"
-          aria-label={`Move ${data.label} left`}
-          disabled={!data.onMoveLeft}
-          onClick={data.onMoveLeft}
-        >
-          Move left
-        </Button>
-        <Button
-          type="button"
-          size="sm"
-          variant="ghost"
-          aria-label={`Move ${data.label} right`}
-          disabled={!data.onMoveRight}
-          onClick={data.onMoveRight}
-        >
-          Move right
-        </Button>
-      </div>
-      <Handle type="source" position={Position.Right} id="source" aria-label={`Connect after ${data.label}`} />
-    </Card>
+    <div className="relative w-[31rem]">
+      {data.hasIncomingConnector ? (
+        <Handle
+          type="target"
+          position={Position.Left}
+          id="target"
+          className="z-20 !size-3 !border-2 !border-primary !bg-background"
+          aria-label={`Connect before ${data.label}`}
+        />
+      ) : null}
+      <Card className="border-border/80 bg-card/95 ring-primary/10 relative w-[28rem] overflow-hidden p-0 shadow-xl ring-1 backdrop-blur-sm">
+        <CardHeader className="flex-row items-start justify-between gap-4 p-4">
+          <div className="min-w-0">
+            <CardTitle>{data.label}</CardTitle>
+            {data.blockName ? (
+              <Badge variant="outline" className="border-primary/30 bg-primary/5 mt-2 text-primary">
+                Block: {data.blockName}
+              </Badge>
+            ) : null}
+          </div>
+          <div className="nodrag flex shrink-0 gap-2" data-node-actions>
+            <Button
+              type="button"
+              size="icon"
+              variant="outline"
+              aria-label="Edit"
+              data-invocation-edit={id}
+              onClick={() => data.onEdit(id)}
+            >
+              <Pencil aria-hidden />
+            </Button>
+            <Button
+              type="button"
+              size="icon"
+              variant="outline"
+              aria-label={`Remove ${data.label}`}
+              onClick={() => data.onRemove(id)}
+            >
+              <Trash2 aria-hidden />
+            </Button>
+          </div>
+        </CardHeader>
+        <Separator />
+        <CardContent className="flex flex-col gap-3 p-4">
+          {data.gherkinStep ? (
+            <p className="bg-muted/35 rounded-md px-3 py-2 text-sm leading-relaxed text-muted-foreground">
+              {data.gherkinStep}
+            </p>
+          ) : null}
+          <div aria-label={`${data.label} parameters`}>
+            <p className="mb-2 text-xs font-medium text-muted-foreground">Parameters</p>
+            {data.parameters.length > 0 ? (
+              <dl className="grid grid-cols-2 gap-2">
+                {data.parameters.map(parameter => (
+                  <div
+                    key={parameter.name}
+                    className="border-border/70 bg-background/35 min-w-0 rounded-md border px-3 py-2"
+                  >
+                    <dt className="truncate text-xs text-muted-foreground">{parameter.name}</dt>
+                    <dd className="mt-1 truncate font-mono text-xs font-medium text-foreground" title={parameter.value}>
+                      {parameter.value}
+                    </dd>
+                  </div>
+                ))}
+              </dl>
+            ) : (
+              <p className="text-xs text-muted-foreground">No parameters configured</p>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+      {data.hasOutgoingConnector ? (
+        <>
+          <Handle
+            type="source"
+            position={Position.Right}
+            id="source"
+            className="!left-[28rem] !right-auto z-20 !size-3 !-translate-x-1/2 !-translate-y-1/2 !border-2 !border-primary !bg-background"
+            aria-label={`Connect after ${data.label}`}
+          />
+          <div
+            className="nodrag nopan absolute left-[28rem] top-1/2 z-10 flex -translate-y-1/2 items-center"
+            data-edge-insert
+          >
+            <span className="h-0.5 w-7 bg-primary" aria-hidden />
+            <Button
+              type="button"
+              size="icon"
+              variant="outline"
+              className="border-primary/60 relative z-10 size-7 rounded-full bg-background shadow-md hover:bg-primary hover:text-primary-foreground"
+              aria-label={`Add connected step after ${data.label}`}
+              data-invocation-insert={id}
+              onClick={() => data.onInsert(id)}
+            >
+              <Plus aria-hidden />
+            </Button>
+          </div>
+        </>
+      ) : null}
+    </div>
   )
 }
 
@@ -97,17 +154,10 @@ type FlowAuthoringSidebarProps = {
   definitions: StepDefinitionOption[]
   value?: StepDefinitionOption
   onDefinitionChange: (definition?: StepDefinitionOption) => void
-  onAdd: () => void
   children?: ReactNode
 }
 
-export function FlowAuthoringSidebar({
-  definitions,
-  value,
-  onDefinitionChange,
-  onAdd,
-  children,
-}: FlowAuthoringSidebarProps) {
+export function FlowAuthoringSidebar({ definitions, value, onDefinitionChange, children }: FlowAuthoringSidebarProps) {
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-4">
       <div className="flex flex-col gap-4">
@@ -117,20 +167,6 @@ export function FlowAuthoringSidebar({
           value={value}
           onChange={onDefinitionChange}
         />
-        {value ? (
-          <div className="rounded-md border border-white/[0.08] bg-white/[0.025] p-3">
-            <p className="text-sm font-medium">{value.title}</p>
-            <p className="mt-1 break-words text-xs text-muted-foreground">{value.signature}</p>
-            <p className="mt-2 text-xs text-muted-foreground">
-              {value.inputs.length} {value.inputs.length === 1 ? 'input' : 'inputs'}
-            </p>
-          </div>
-        ) : null}
-        {!children ? (
-          <Button type="button" className="w-full" disabled={!value} onClick={onAdd}>
-            <Plus className="size-4" aria-hidden /> Add step
-          </Button>
-        ) : null}
         {children}
       </div>
     </div>
@@ -321,7 +357,7 @@ function EmptyFlowCanvas({ canAddFirst, onAddFirst }: Pick<FlowGraphCanvasProps,
         onClick={onAddFirst}
       >
         <span className="border-primary/30 bg-primary/10 flex size-9 items-center justify-center rounded-md border text-primary">
-          <Plus className="size-4" aria-hidden />
+          <Plus aria-hidden />
         </span>
         <span className="mt-3 text-sm font-medium text-foreground">Add first step</span>
         <span className="mt-1 text-xs text-muted-foreground">
@@ -403,6 +439,7 @@ export function FlowGraphCanvas(props: FlowGraphCanvasProps) {
 
 type FlowBlockControlsProps = {
   enabled: boolean
+  disabled?: boolean
   blockName: string
   selectedNodeCount: number
   onNameChange: (name: string) => void
@@ -411,6 +448,7 @@ type FlowBlockControlsProps = {
 
 export function FlowBlockControls({
   enabled,
+  disabled = false,
   blockName,
   selectedNodeCount,
   onNameChange,
@@ -420,7 +458,7 @@ export function FlowBlockControls({
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <Button type="button" size="icon" variant="outline" aria-label="Create flow block">
+        <Button type="button" size="icon" variant="outline" aria-label="Create flow block" disabled={disabled}>
           <Boxes aria-hidden />
         </Button>
       </PopoverTrigger>

@@ -155,7 +155,7 @@ describe('typed Step Invocation input authoring', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Open step details' }))
 
     expect(screen.getByRole('dialog', { name: 'Step details' })).toBeVisible()
-    expect(screen.getByRole('button', { name: 'Add step' })).toBeDisabled()
+    expect(screen.queryByRole('button', { name: 'Add step' })).not.toBeInTheDocument()
     const overlay = document.querySelector('[data-slot="drawer-overlay"]')!
     fireEvent.pointerDown(overlay)
     fireEvent.pointerUp(overlay)
@@ -236,8 +236,7 @@ describe('typed Step Invocation input authoring', () => {
       'Select a ready Step Definition',
     )
     chooseStepDefinition('Set viewport')
-    fireEvent.click(screen.getByRole('button', { name: 'Add step' }))
-    expect(screen.getByRole('dialog', { name: 'Insert step invocation' })).toBeVisible()
+    expect(screen.getByRole('dialog', { name: 'Configure step parameters' })).toBeVisible()
     fireEvent.change(screen.getByLabelText('width'), { target: { value: '' } })
     fireEvent.click(screen.getByRole('button', { name: 'Save step' }))
     expect(screen.getByText('width is required.')).toBeVisible()
@@ -250,6 +249,37 @@ describe('typed Step Invocation input authoring', () => {
     expect(node.invocation.inputs).toMatchObject({ width: 1440, height: 720, enabled: false, options: {} })
     expect(node.invocation.inputs).not.toHaveProperty('target')
     expect(node.invocation.step).toEqual(definition.reference)
+  })
+
+  it('clears stale insertion parameters when Add first step is reopened without a definition', async () => {
+    render(
+      <FlowDiagramTestHarness
+        nodeOrder={{}}
+        stepDefinitions={[definition]}
+        locators={[]}
+        locatorGroups={[]}
+        environments={[]}
+        modules={[]}
+        onNodeOrderChange={vi.fn()}
+      />,
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: 'Add first step' }))
+    chooseStepDefinition('Set viewport')
+    expect(screen.getByRole('dialog', { name: 'Configure step parameters' })).toBeVisible()
+
+    const overlay = document.querySelector('[data-slot="drawer-overlay"]')!
+    fireEvent.pointerDown(overlay)
+    fireEvent.pointerUp(overlay)
+    fireEvent.click(overlay)
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Step details' })).not.toBeInTheDocument())
+
+    fireEvent.click(screen.getByRole('button', { name: 'Add first step' }))
+    expect(screen.getByRole('combobox', { name: 'Step Definition results' })).toHaveTextContent(
+      'Select a ready Step Definition',
+    )
+    expect(screen.queryByRole('dialog', { name: 'Configure step parameters' })).not.toBeInTheDocument()
+    expect(screen.queryByLabelText('width')).not.toBeInTheDocument()
   })
 
   it('refreshes sidebar input details when the selected definition changes during insertion', () => {
@@ -278,7 +308,6 @@ describe('typed Step Invocation input authoring', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Add first step' }))
     chooseStepDefinition('Set viewport')
-    fireEvent.click(screen.getByRole('button', { name: 'Add step' }))
     expect(screen.getByLabelText('width')).toBeVisible()
     chooseStepDefinition('Wait for page')
     expect(screen.getByLabelText('duration')).toBeVisible()
@@ -314,16 +343,26 @@ describe('typed Step Invocation input authoring', () => {
 
     render(<Harness />)
     expect(screen.getAllByTestId('react-flow')).toHaveLength(1)
-    expect(screen.getAllByLabelText(/Connect before Set viewport/)).toHaveLength(3)
+    expect(screen.getAllByLabelText(/Connect before Set viewport/)).toHaveLength(2)
     expect(screen.getAllByLabelText(/Connect after Set viewport/)).toHaveLength(3)
     expect(screen.getByTestId('react-flow')).toHaveAttribute('data-edge-count', '2')
+
+    const editActions = screen.getAllByRole('button', { name: 'Edit' })[0]!.closest('[data-node-actions]')
+    expect(editActions).toHaveClass('flex', 'shrink-0', 'gap-2')
+    expect(editActions?.querySelectorAll('.border-input')).toHaveLength(2)
+    expect(screen.getAllByRole('button', { name: 'Add connected step after Set viewport' })).toHaveLength(3)
+    expect(screen.getAllByText('Parameters')).toHaveLength(3)
+    expect(screen.getAllByText('height')).toHaveLength(3)
+    expect(screen.getAllByTitle('720')).toHaveLength(3)
+    expect(screen.getAllByText('enabled')).toHaveLength(3)
+    expect(screen.getAllByTitle('false')).toHaveLength(3)
 
     fireEvent.click(screen.getByRole('button', { name: 'Offset last node' }))
     expect(screen.getByTestId('react-flow')).toHaveAttribute(
       'data-node-positions',
       JSON.stringify([
         { id: 'first', position: { x: 0, y: 80 } },
-        { id: 'second', position: { x: 340, y: 80 } },
+        { id: 'second', position: { x: 520, y: 80 } },
         { id: 'third', position: { x: 999, y: 80 } },
       ]),
     )
@@ -335,8 +374,8 @@ describe('typed Step Invocation input authoring', () => {
       'data-node-positions',
       JSON.stringify([
         { id: 'first', position: { x: 0, y: 80 } },
-        { id: 'third', position: { x: 340, y: 80 } },
-        { id: 'second', position: { x: 680, y: 80 } },
+        { id: 'third', position: { x: 520, y: 80 } },
+        { id: 'second', position: { x: 1040, y: 80 } },
       ]),
     )
 
@@ -347,34 +386,22 @@ describe('typed Step Invocation input authoring', () => {
     expect(Object.keys(onNodeOrderChange.mock.calls.at(-1)![0])).toEqual(['third', 'first', 'second'])
   })
 
-  it('moves the second graph node left to the start without dereferencing a missing predecessor', () => {
-    const first = createAuthoredFlowNode(definition, 'first')
-    const second = { ...createAuthoredFlowNode(definition, 'second'), order: 2 }
-    const onNodeOrderChange = vi.fn()
-    const Harness = () => {
-      const [nodeOrder, setNodeOrder] = useState<NodeOrderMap>({ first, second })
-      return (
-        <FlowDiagramTestHarness
-          nodeOrder={nodeOrder}
-          stepDefinitions={[definition]}
-          locators={[]}
-          locatorGroups={[]}
-          environments={[]}
-          modules={[]}
-          onNodeOrderChange={next => {
-            onNodeOrderChange(next)
-            setNodeOrder(next as NodeOrderMap)
-          }}
-        />
-      )
-    }
+  it('connects the first and only graph node to an add-after control', () => {
+    render(
+      <FlowDiagramTestHarness
+        nodeOrder={{ first: createAuthoredFlowNode(definition, 'first') }}
+        stepDefinitions={[definition]}
+        locators={[]}
+        locatorGroups={[]}
+        environments={[]}
+        modules={[]}
+        onNodeOrderChange={vi.fn()}
+      />,
+    )
 
-    render(<Harness />)
-    const moveLeftButtons = screen.getAllByRole('button', { name: 'Move Set viewport left' })
-    expect(moveLeftButtons[0]).toBeDisabled()
-    expect(moveLeftButtons[1]).toBeEnabled()
-    fireEvent.click(moveLeftButtons[1]!)
-    expect(Object.keys(onNodeOrderChange.mock.calls.at(-1)![0])).toEqual(['second', 'first'])
+    expect(screen.queryByLabelText('Connect before Set viewport')).not.toBeInTheDocument()
+    expect(screen.getByLabelText('Connect after Set viewport')).toBeVisible()
+    expect(screen.getByRole('button', { name: 'Add connected step after Set viewport' })).toBeVisible()
   })
 
   it('rejects a cross-block graph connection without changing the canonical serial path', () => {
@@ -428,7 +455,7 @@ describe('typed Step Invocation input authoring', () => {
     expect(screen.getByLabelText('Search flow nodes')).toBeVisible()
     expect(screen.getByLabelText('Search flow nodes')).toHaveFocus()
     fireEvent.keyDown(screen.getByLabelText('Search flow nodes'), { key: 'c', ctrlKey: true, shiftKey: true })
-    expect(screen.queryByRole('dialog', { name: 'Insert step invocation' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('dialog', { name: 'Configure step parameters' })).not.toBeInTheDocument()
 
     expect(screen.getByRole('group', { name: 'Setup flow block' })).toBeVisible()
     expect(screen.getAllByText('Block: Setup')).toHaveLength(2)
@@ -437,7 +464,7 @@ describe('typed Step Invocation input authoring', () => {
     expect(screen.getByTestId('react-flow').querySelector('[data-flow-block-overlay="block-1"]')).toHaveStyle({
       left: '-32px',
       top: '48px',
-      width: '664px',
+      width: '844px',
       height: '224px',
     })
     fireEvent.click(screen.getByLabelText('Edit Setup'))

@@ -612,7 +612,7 @@ function DetailsStep({
     <div className="flex flex-col gap-4">
       <div className="flex flex-col gap-4 xl:flex-row" id="meta">
         <div className="xl:w-1/2">
-          <Card className="h-full dark:border-zinc-700 dark:bg-zinc-500/10">
+          <Card className="h-full border-white/[0.1] bg-[rgba(18,37,64,0.28)] shadow-[inset_0_1px_0_rgba(255,255,255,0.035)]">
             <CardHeader className="mb-4">
               <CardTitle className="text-xl font-bold text-primary">Test Case Details</CardTitle>
               <CardDescription>Enter the core details of your test scenario</CardDescription>
@@ -753,7 +753,7 @@ function TagSelectionField({ availableTags, selectedTags, onChange, onCreateClic
 function QuickTipsPanel() {
   return (
     <div className="xl:w-1/2">
-      <Card className="h-full border-zinc-700 bg-zinc-500/10">
+      <Card className="h-full border-white/[0.1] bg-[rgba(18,37,64,0.28)] shadow-[inset_0_1px_0_rgba(255,255,255,0.035)]">
         <CardHeader className="mb-2">
           <CardTitle className="flex items-center gap-2 text-xl text-primary">
             <Info className="size-5" />

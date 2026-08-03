@@ -23,6 +23,16 @@ function distinctBlockMembership(blocks: FlowBlock[]): Map<string, string> {
   return memberships
 }
 
+function displayParameterValue(value: unknown): string {
+  if (typeof value === 'string') return value || 'Not set'
+  if (value === undefined) return 'Not set'
+  try {
+    return JSON.stringify(value) ?? String(value)
+  } catch {
+    return String(value)
+  }
+}
+
 export function isValidFlowConnection(
   connection: Pick<Connection, 'source' | 'target'>,
   membership: ReadonlyMap<string, string>,
@@ -36,7 +46,6 @@ function flowNodes(
   onEdit: (nodeId: string) => void,
   onInsert: (nodeId: string) => void,
   onRemove: (nodeId: string) => void,
-  onMove: (nodeId: string, afterNodeId: string | null) => void,
   blockMembership: ReadonlyMap<string, string>,
   blockNames: ReadonlyMap<string, string>,
   positions: Record<string, { x: number; y: number }>,
@@ -47,16 +56,20 @@ function flowNodes(
     type: 'flowStep',
     focusable: true,
     ariaLabel: `${item.node.label} flow step`,
-    position: positions[item.nodeId] ?? { x: index * 340, y: 80 },
+    position: positions[item.nodeId] ?? { x: index * 520, y: 80 },
     measured: measurements[item.nodeId],
     data: {
       label: item.node.label,
       gherkinStep: item.node.gherkinStep,
+      parameters: Object.entries(item.node.invocation.inputs).map(([name, value]) => ({
+        name,
+        value: displayParameterValue(value),
+      })),
       onEdit,
       onInsert,
       onRemove,
-      onMoveLeft: index === 0 ? undefined : () => onMove(item.nodeId, flow[index - 2]?.nodeId ?? null),
-      onMoveRight: index === flow.length - 1 ? undefined : () => onMove(item.nodeId, flow[index + 1]!.nodeId),
+      hasIncomingConnector: index > 0,
+      hasOutgoingConnector: true,
       blockId: blockMembership.get(item.nodeId),
       blockName: blockNames.get(blockMembership.get(item.nodeId) ?? ''),
     },
@@ -167,18 +180,8 @@ export function useFlowGraph({ flow, controller, onEdit, onInsert }: FlowGraphOp
   )
   const nodes = useMemo(
     () =>
-      flowNodes(
-        flow,
-        onEdit,
-        onInsert,
-        controller.removeNode,
-        moveNode,
-        membership,
-        blockNames,
-        nodePositions,
-        nodeMeasurements,
-      ),
-    [blockNames, controller.removeNode, flow, membership, moveNode, nodeMeasurements, nodePositions, onEdit, onInsert],
+      flowNodes(flow, onEdit, onInsert, controller.removeNode, membership, blockNames, nodePositions, nodeMeasurements),
+    [blockNames, controller.removeNode, flow, membership, nodeMeasurements, nodePositions, onEdit, onInsert],
   )
   const onNodesChange = useFlowNodeChanges(nodes, setNodePositions, setNodeMeasurements)
   const edges = useMemo(() => flowEdges(flow), [flow])
