@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef } from 'react'
+import { Save } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
@@ -19,6 +20,7 @@ type StepInvocationEditorProps = {
   onErrorsChange: (errors: Record<string, string>) => void
   onSave: (values: Record<string, unknown>) => void
   resources?: StepInvocationResources
+  variant?: 'dialog' | 'sidebar'
 }
 
 type InvocationParseResult = {
@@ -65,6 +67,7 @@ export function StepInvocationEditor({
   onErrorsChange,
   onSave,
   resources,
+  variant = 'dialog',
 }: StepInvocationEditorProps) {
   const dialogRef = useRef<HTMLDivElement>(null)
   useEffect(() => {
@@ -84,9 +87,9 @@ export function StepInvocationEditor({
   return (
     <Card
       ref={dialogRef}
-      className="max-h-96 overflow-auto p-4"
+      className={variant === 'sidebar' ? 'border-0 bg-transparent p-0 shadow-none' : 'max-h-96 overflow-auto p-4'}
       role="dialog"
-      aria-modal="true"
+      aria-modal={variant === 'dialog' ? 'true' : undefined}
       aria-labelledby="step-invocation-editor-title"
     >
       <form
@@ -96,13 +99,10 @@ export function StepInvocationEditor({
           submit()
         }}
       >
-        <div className="mb-3 flex items-center justify-between gap-3">
+        <div className="mb-3">
           <p id="step-invocation-editor-title" className="font-medium">
             {title}
           </p>
-          <Button type="button" size="sm" variant="ghost" onClick={onCancel}>
-            Cancel
-          </Button>
         </div>
         <StepInvocationFields
           definition={definition}
@@ -116,9 +116,15 @@ export function StepInvocationEditor({
             {errors.form}
           </p>
         ) : null}
-        <Button type="submit" className="mt-4">
-          Save step
-        </Button>
+        <div className="mt-4 flex items-center gap-2">
+          <Button type="button" variant="outline" onClick={onCancel}>
+            Cancel
+          </Button>
+          <Button type="submit">
+            <Save data-icon="inline-start" aria-hidden />
+            Save step
+          </Button>
+        </div>
       </form>
     </Card>
   )

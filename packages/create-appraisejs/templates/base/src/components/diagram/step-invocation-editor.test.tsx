@@ -42,6 +42,11 @@ const definition: StepDefinitionOption = {
   ],
 }
 
+function chooseSelectOption(label: string, option: string | RegExp) {
+  fireEvent.click(screen.getByRole('combobox', { name: label }))
+  fireEvent.click(screen.getByRole('option', { name: option }))
+}
+
 describe('StepInvocationEditor', () => {
   it('focuses the first field and omits an untouched optional boolean on keyboard form submission', () => {
     const onSave = vi.fn()
@@ -124,14 +129,16 @@ describe('typed locator and environment references', () => {
       />,
     )
 
-    fireEvent.change(screen.getByLabelText('Locator group'), { target: { value: 'login' } })
-    fireEvent.change(screen.getByLabelText('target'), { target: { value: 'sign-in' } })
-    fireEvent.change(screen.getByLabelText('environment'), { target: { value: 'local' } })
+    expect(screen.getByRole('combobox', { name: 'Locator' })).toBeDisabled()
+    chooseSelectOption('Locator group', 'Login')
+    expect(screen.getByRole('combobox', { name: 'Locator' })).toBeEnabled()
+    chooseSelectOption('Locator', 'Sign in button')
+    chooseSelectOption('environment', 'Local')
     expect(onChange).toHaveBeenCalledWith('target', 'sign-in')
     expect(onChange).toHaveBeenCalledWith('environment', 'local')
   })
 
-  it('creates a locator through the canonical inline workspace and selects its reference immediately', () => {
+  it('creates a locator through the canonical inline workspace and selects its reference immediately', async () => {
     const onChange = vi.fn()
     const Harness = () => {
       const [values, setValues] = useState<Record<string, unknown>>({})
@@ -155,10 +162,32 @@ describe('typed locator and environment references', () => {
     }
     render(<Harness />)
 
-    fireEvent.change(screen.getByLabelText('Selector source'), { target: { value: 'new' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Create Selector' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Open locator picker' }))
     fireEvent.click(screen.getByRole('button', { name: 'Save Inline Locator' }))
     expect(onChange).toHaveBeenCalledWith('target', 'created-locator')
-    expect(screen.getByText('Using created locator: Created sign in button')).toBeVisible()
+    expect(await screen.findByText('Using created locator: Created sign in button')).toBeVisible()
+  })
+
+  it('uses a labeled checkbox that explains its active and inactive values', () => {
+    const onChange = vi.fn()
+    render(
+      <StepInvocationEditor
+        title="Edit step invocation"
+        definition={definition}
+        values={{ url: '/' }}
+        errors={{}}
+        onCancel={vi.fn()}
+        onChange={onChange}
+        onErrorsChange={vi.fn()}
+        onSave={vi.fn()}
+      />,
+    )
+
+    const enabled = screen.getByRole('checkbox', { name: 'enabled' })
+    expect(screen.getByText('enabled')).toHaveAttribute('for', 'invocation-enabled')
+    expect(enabled).not.toBeChecked()
+    expect(screen.getByText('Expect active when selected; expect inactive when clear.')).toBeVisible()
+    fireEvent.click(enabled)
+    expect(onChange).toHaveBeenCalledWith('enabled', true)
   })
 })

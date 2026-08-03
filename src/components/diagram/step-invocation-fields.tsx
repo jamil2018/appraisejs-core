@@ -3,11 +3,14 @@
 import CreateLocatorWorkspace from '@/app/(base)/locators/create/create-locator-workspace'
 import type { InlineLocatorSaveResult } from '@/app/(base)/locators/create/create-locator-workspace-helpers'
 import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import type { StepDefinitionOption } from '@/types/step-definition-option'
+import { Crosshair } from 'lucide-react'
 import { useState } from 'react'
 
 import type { StepInvocationResources } from './step-invocation-resources'
@@ -64,22 +67,28 @@ function inputAttributes({ input, id, error }: Pick<FieldControlProps, 'input' |
   }
 }
 
+function selectAttributes({ input, id, error }: Pick<FieldControlProps, 'input' | 'id' | 'error'>) {
+  const { required, ...attributes } = inputAttributes({ input, id, error })
+  return { ...attributes, 'aria-required': required || undefined }
+}
+
 function EnvironmentReferenceSelect({ input, id, value, error, onChange, resources }: FieldControlProps) {
-  const options = resources?.environments
+  const options = resources?.environments ?? []
   return (
-    <select
-      {...inputAttributes({ input, id, error })}
-      className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm"
-      value={displayValue(input, value)}
-      onChange={event => onChange(event.target.value)}
-    >
-      <option value="">Select an environment</option>
-      {options?.map(resource => (
-        <option key={resource.id} value={resource.id}>
-          {resource.name}
-        </option>
-      ))}
-    </select>
+    <Select value={displayValue(input, value) || undefined} onValueChange={onChange}>
+      <SelectTrigger {...selectAttributes({ input, id, error })}>
+        <SelectValue placeholder="Select an environment" />
+      </SelectTrigger>
+      <SelectContent isEmpty={options.length === 0} emptyMessage="No environments available">
+        <SelectGroup>
+          {options.map(resource => (
+            <SelectItem key={resource.id} value={resource.id}>
+              {resource.name}
+            </SelectItem>
+          ))}
+        </SelectGroup>
+      </SelectContent>
+    </Select>
   )
 }
 
@@ -91,6 +100,7 @@ type LocatorModeContentProps = Pick<
 > & {
   selectedGroupId: string
   setSelectedGroupId: (groupId: string) => void
+  onOpenPicker: () => void
 }
 
 function ExistingLocatorReference({
@@ -102,6 +112,7 @@ function ExistingLocatorReference({
   resources,
   selectedGroupId,
   setSelectedGroupId,
+  onOpenPicker,
 }: LocatorModeContentProps) {
   const groups = resources?.locatorGroups ?? []
   const locators = (resources?.locators ?? []).filter(locator => locator.locatorGroupId === selectedGroupId)
@@ -110,39 +121,47 @@ function ExistingLocatorReference({
       <label className="text-sm font-medium" htmlFor={`${id}-group`}>
         Locator group
       </label>
-      <select
-        id={`${id}-group`}
-        className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm"
-        value={selectedGroupId}
-        onChange={event => {
-          setSelectedGroupId(event.target.value)
+      <Select
+        value={selectedGroupId || undefined}
+        onValueChange={groupId => {
+          setSelectedGroupId(groupId)
           onChange('')
         }}
       >
-        <option value="">Select a locator group</option>
-        {groups.map(group => (
-          <option key={group.id} value={group.id}>
-            {group.name}
-          </option>
-        ))}
-      </select>
+        <SelectTrigger id={`${id}-group`}>
+          <SelectValue placeholder="Select a locator group" />
+        </SelectTrigger>
+        <SelectContent isEmpty={groups.length === 0} emptyMessage="No locator groups available">
+          <SelectGroup>
+            {groups.map(group => (
+              <SelectItem key={group.id} value={group.id}>
+                {group.name}
+              </SelectItem>
+            ))}
+          </SelectGroup>
+        </SelectContent>
+      </Select>
       <label className="text-sm font-medium" htmlFor={id}>
         Locator
       </label>
-      <select
-        {...inputAttributes({ input, id, error })}
-        className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm"
-        value={displayValue(input, value)}
-        disabled={!selectedGroupId}
-        onChange={event => onChange(event.target.value)}
-      >
-        <option value="">Select a locator</option>
-        {locators.map(locator => (
-          <option key={locator.id} value={locator.id}>
-            {locator.name}
-          </option>
-        ))}
-      </select>
+      <Select value={displayValue(input, value) || undefined} onValueChange={onChange} disabled={!selectedGroupId}>
+        <SelectTrigger {...selectAttributes({ input, id, error })}>
+          <SelectValue placeholder="Select a locator" />
+        </SelectTrigger>
+        <SelectContent isEmpty={locators.length === 0} emptyMessage="No locators available in this group">
+          <SelectGroup>
+            {locators.map(locator => (
+              <SelectItem key={locator.id} value={locator.id}>
+                {locator.name}
+              </SelectItem>
+            ))}
+          </SelectGroup>
+        </SelectContent>
+      </Select>
+      <Button type="button" variant="outline" onClick={onOpenPicker}>
+        <Crosshair data-icon="inline-start" aria-hidden />
+        Open locator picker
+      </Button>
     </>
   )
 }
@@ -150,39 +169,63 @@ function ExistingLocatorReference({
 type InlineLocatorCreationProps = Pick<FieldControlProps, 'value' | 'onChange' | 'resources'> &
   Pick<LocatorModeContentProps, 'setSelectedGroupId'>
 
-function InlineLocatorCreation({ value, onChange, resources, setSelectedGroupId }: InlineLocatorCreationProps) {
-  const [isCreateOpen, setIsCreateOpen] = useState(false)
-  const selectedLocator = resources?.locators.find(locator => locator.id === value)
+function CreatedLocatorStatus({ name }: { name?: string }) {
+  if (!name) return null
+  return <p className="text-sm text-muted-foreground">Using created locator: {name}</p>
+}
+
+type LocatorCreationDialogProps = {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  onSave: (result: InlineLocatorSaveResult) => void
+  resources?: StepInvocationResources
+}
+
+function LocatorCreationDialog({ open, onOpenChange, onSave, resources }: LocatorCreationDialogProps) {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-h-[90vh] max-w-6xl overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Create New Selector</DialogTitle>
+          <DialogDescription>Save a selector here to use it in this invocation immediately.</DialogDescription>
+        </DialogHeader>
+        <CreateLocatorWorkspace
+          environments={resources?.environments ?? []}
+          locatorGroups={resources?.locatorGroups ?? []}
+          modules={resources?.modules ?? []}
+          displayMode="inline"
+          onSaveSuccess={onSave}
+          onClose={() => onOpenChange(false)}
+        />
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+function LocatorPickerUtility({ value, onChange, resources, setSelectedGroupId }: InlineLocatorCreationProps) {
+  const [isCreateOpen, setIsCreateOpen] = useState(true)
+  const [createdLocatorName, setCreatedLocatorName] = useState<string>()
+  const selectedLocatorName = resources?.locators.find(locator => locator.id === value)?.name
   const handleInlineSave = (result: InlineLocatorSaveResult) => {
-    resources?.onInlineLocatorSave?.(result)
     setSelectedGroupId(result.locatorGroupId)
     onChange(result.locatorId)
+    resources?.onInlineLocatorSave?.(result)
+    setCreatedLocatorName(result.locatorName)
     setIsCreateOpen(false)
   }
   return (
     <>
       <Button type="button" variant="outline" onClick={() => setIsCreateOpen(true)}>
-        Create Selector
+        <Crosshair data-icon="inline-start" aria-hidden />
+        Open locator picker
       </Button>
-      {selectedLocator ? (
-        <p className="text-sm text-muted-foreground">Using created locator: {selectedLocator.name}</p>
-      ) : null}
-      <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-        <DialogContent className="max-h-[90vh] max-w-6xl overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Create New Selector</DialogTitle>
-            <DialogDescription>Save a selector here to use it in this invocation immediately.</DialogDescription>
-          </DialogHeader>
-          <CreateLocatorWorkspace
-            environments={resources?.environments ?? []}
-            locatorGroups={resources?.locatorGroups ?? []}
-            modules={resources?.modules ?? []}
-            displayMode="inline"
-            onSaveSuccess={handleInlineSave}
-            onClose={() => setIsCreateOpen(false)}
-          />
-        </DialogContent>
-      </Dialog>
+      <CreatedLocatorStatus name={createdLocatorName ?? selectedLocatorName} />
+      <LocatorCreationDialog
+        open={isCreateOpen}
+        onOpenChange={setIsCreateOpen}
+        onSave={handleInlineSave}
+        resources={resources}
+      />
     </>
   )
 }
@@ -191,24 +234,36 @@ function LocatorReferenceField({ input, id, value, error, onChange, resources }:
   const [mode, setMode] = useState<'existing' | 'new'>('existing')
   const selectedLocator = resources?.locators.find(locator => locator.id === value)
   const [selectedGroupId, setSelectedGroupId] = useState(() => selectedLocator?.locatorGroupId ?? '')
-  const modeProps = { input, id, value, error, onChange, resources, selectedGroupId, setSelectedGroupId }
+  const modeProps = {
+    input,
+    id,
+    value,
+    error,
+    onChange,
+    resources,
+    selectedGroupId,
+    setSelectedGroupId,
+    onOpenPicker: () => setMode('new'),
+  }
 
   return (
     <div className="space-y-3 rounded-md border p-3">
       <label className="text-sm font-medium" htmlFor={`${id}-mode`}>
         Selector source
       </label>
-      <select
-        id={`${id}-mode`}
-        className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm"
-        value={mode}
-        onChange={event => setMode(event.target.value as 'existing' | 'new')}
-      >
-        <option value="existing">Use existing locator</option>
-        <option value="new">Create New Selector</option>
-      </select>
+      <Select value={mode} onValueChange={nextMode => setMode(nextMode === 'new' ? 'new' : 'existing')}>
+        <SelectTrigger id={`${id}-mode`}>
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectGroup>
+            <SelectItem value="existing">Use existing locator</SelectItem>
+            <SelectItem value="new">Create New Selector</SelectItem>
+          </SelectGroup>
+        </SelectContent>
+      </Select>
       {mode === 'new' ? (
-        <InlineLocatorCreation
+        <LocatorPickerUtility
           value={value}
           onChange={onChange}
           resources={resources}
@@ -225,13 +280,20 @@ function StepInvocationFieldControl(props: FieldControlProps) {
   const { input, value, onChange } = props
   const attributes = inputAttributes(props)
   if (input.type === 'boolean') {
+    const { required, 'aria-describedby': errorDescription, ...checkboxAttributes } = attributes
     return (
-      <Input
-        {...attributes}
-        type="checkbox"
-        checked={Boolean(value)}
-        onChange={event => onChange(event.target.checked)}
-      />
+      <div className="flex items-center gap-2">
+        <Checkbox
+          {...checkboxAttributes}
+          aria-describedby={[`${props.id}-boolean-help`, errorDescription].filter(Boolean).join(' ') || undefined}
+          aria-required={required || undefined}
+          checked={Boolean(value)}
+          onCheckedChange={checked => onChange(checked === true)}
+        />
+        <Label htmlFor={props.id} className="font-normal">
+          {input.name}
+        </Label>
+      </div>
     )
   }
   if (input.type === 'json') {
@@ -259,7 +321,7 @@ export function StepInvocationFields({ definition, values, errors, onChange, res
         const error = errors[input.name]
         return (
           <div key={input.name} className="space-y-1">
-            <Label htmlFor={id}>{input.name}</Label>
+            {input.type === 'locator' || input.type === 'boolean' ? null : <Label htmlFor={id}>{input.name}</Label>}
             <StepInvocationFieldControl
               input={input}
               id={id}
@@ -268,6 +330,11 @@ export function StepInvocationFields({ definition, values, errors, onChange, res
               onChange={value => onChange(input.name, value)}
               resources={resources}
             />
+            {input.type === 'boolean' ? (
+              <p id={`${id}-boolean-help`} className="text-sm text-muted-foreground">
+                Expect active when selected; expect inactive when clear.
+              </p>
+            ) : null}
             {error ? (
               <p id={`${id}-error`} className="text-sm text-destructive" role="alert">
                 {error}
