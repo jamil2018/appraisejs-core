@@ -1,7 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
 import {
   answerQualityRequirementQueries,
   approveQualityRequirements,
@@ -15,6 +13,15 @@ import {
   readQualityRequirementGraph,
   submitQualityRequirementSource,
 } from './quality-design-service'
+
+type FakeRecord = Record<string, unknown> & { id: string }
+type FakeWhere = Record<string, unknown>
+type FakeWriteArgs<TData extends Record<string, unknown> = Record<string, unknown>> = { data: TData }
+type FakeWhereArgs<TWhere extends FakeWhere = FakeWhere> = { where: TWhere }
+type FakeUpdateArgs<
+  TWhere extends FakeWhere = FakeWhere,
+  TData extends Record<string, unknown> = Record<string, unknown>,
+> = FakeWhereArgs<TWhere> & FakeWriteArgs<TData>
 
 vi.mock('@/services/target-project/target-project-service', () => ({
   resolveTargetProject: vi.fn(async () => ({
@@ -452,19 +459,19 @@ describe('quality design coordinator service', () => {
 })
 
 function createWorkingFakeClient() {
-  const revisions: any[] = []
-  const plans: any[] = []
-  const requirements: any[] = []
-  const obligations: any[] = []
-  const queries: any[] = []
-  const validationVersions: any[] = []
-  const obligationLinks: any[] = []
-  const subjects: any[] = []
-  const assessments: any[] = []
-  const decisions: any[] = []
+  const revisions: FakeRecord[] = []
+  const plans: FakeRecord[] = []
+  const requirements: FakeRecord[] = []
+  const obligations: FakeRecord[] = []
+  const queries: FakeRecord[] = []
+  const validationVersions: FakeRecord[] = []
+  const obligationLinks: FakeRecord[] = []
+  const subjects: FakeRecord[] = []
+  const assessments: FakeRecord[] = []
+  const decisions: FakeRecord[] = []
   let id = 0
   const nextId = (prefix: string) => `${prefix}-${++id}`
-  const hydrate = (revision: any) => ({
+  const hydrate = (revision: FakeRecord) => ({
     ...revision,
     qualityPlan: plans.find(plan => plan.id === revision.qualityPlanId),
     requirementSnapshots: requirements.filter(item => item.qualityPlanRevisionId === revision.id),
@@ -474,7 +481,7 @@ function createWorkingFakeClient() {
   })
   const fake = {
     qualityPlanRevision: {
-      findFirst: vi.fn(async ({ where }: any) => {
+      findFirst: vi.fn(async ({ where }: FakeWhereArgs) => {
         const found = revisions.find(
           revision =>
             (!where.qualityPlanId || revision.qualityPlanId === where.qualityPlanId) &&
@@ -484,52 +491,54 @@ function createWorkingFakeClient() {
         )
         return found ? hydrate(found) : null
       }),
-      create: vi.fn(async ({ data }: any) => {
+      create: vi.fn(async ({ data }: FakeWriteArgs) => {
         const revision = { id: nextId('revision'), status: 'DRAFT', approvedAt: null, ...data }
         revisions.push(revision)
         return revision
       }),
-      update: vi.fn(async ({ where, data }: any) => {
+      update: vi.fn(async ({ where, data }: FakeUpdateArgs<{ id: string }>) => {
         const revision = revisions.find(item => item.id === where.id)
+        if (!revision) throw new Error(`Missing fake revision ${where.id}`)
         Object.assign(revision, data)
         return hydrate(revision)
       }),
     },
     qualityPlan: {
-      create: vi.fn(async ({ data }: any) => {
+      create: vi.fn(async ({ data }: FakeWriteArgs) => {
         const plan = { id: nextId('quality-plan'), description: null, ...data }
         plans.push(plan)
         return plan
       }),
     },
     requirementSnapshot: {
-      create: vi.fn(async ({ data }: any) => {
+      create: vi.fn(async ({ data }: FakeWriteArgs) => {
         const snapshot = { id: nextId('requirement'), ...data }
         requirements.push(snapshot)
         return snapshot
       }),
     },
     qualityObligationRevision: {
-      create: vi.fn(async ({ data }: any) => {
+      create: vi.fn(async ({ data }: FakeWriteArgs) => {
         const obligation = { id: nextId('obligation'), ...data }
         obligations.push(obligation)
         return obligation
       }),
     },
     requirementQuery: {
-      create: vi.fn(async ({ data }: any) => {
+      create: vi.fn(async ({ data }: FakeWriteArgs) => {
         const query = { id: nextId('query'), answer: null, rationale: null, ...data }
         queries.push(query)
         return query
       }),
-      update: vi.fn(async ({ where, data }: any) => {
+      update: vi.fn(async ({ where, data }: FakeUpdateArgs<{ id: string }>) => {
         const query = queries.find(item => item.id === where.id)
+        if (!query) throw new Error(`Missing fake query ${where.id}`)
         Object.assign(query, data)
         return query
       }),
     },
     validationVersion: {
-      findFirst: vi.fn(async ({ where }: any) => {
+      findFirst: vi.fn(async ({ where }: FakeWhereArgs) => {
         return (
           validationVersions.find(
             item =>
@@ -539,19 +548,20 @@ function createWorkingFakeClient() {
           ) ?? null
         )
       }),
-      create: vi.fn(async ({ data }: any) => {
+      create: vi.fn(async ({ data }: FakeWriteArgs) => {
         const version = { id: nextId('validation'), reuseOutcome: null, ...data }
         validationVersions.push(version)
         return version
       }),
-      update: vi.fn(async ({ where, data }: any) => {
+      update: vi.fn(async ({ where, data }: FakeUpdateArgs<{ id: string }>) => {
         const version = validationVersions.find(item => item.id === where.id)
+        if (!version) throw new Error(`Missing fake validation version ${where.id}`)
         Object.assign(version, data)
         return version
       }),
     },
     obligationValidationVersion: {
-      create: vi.fn(async ({ data }: any) => {
+      create: vi.fn(async ({ data }: FakeWriteArgs) => {
         const link = { id: nextId('obligation-link'), ...data }
         obligationLinks.push(link)
         return link
@@ -559,9 +569,10 @@ function createWorkingFakeClient() {
     },
     evaluationSubjectRevision: {
       findFirst: vi.fn(
-        async ({ where }: any) => subjects.find(item => item.subjectDigest === where.subjectDigest) ?? null,
+        async ({ where }: FakeWhereArgs<{ subjectDigest: string }>) =>
+          subjects.find(item => item.subjectDigest === where.subjectDigest) ?? null,
       ),
-      create: vi.fn(async ({ data }: any) => {
+      create: vi.fn(async ({ data }: FakeWriteArgs) => {
         const subject = { id: nextId('subject'), metadataJson: null, ...data }
         subjects.push(subject)
         return subject
@@ -569,7 +580,7 @@ function createWorkingFakeClient() {
       update: vi.fn(),
     },
     assessment: {
-      findFirst: vi.fn(async ({ where }: any) => {
+      findFirst: vi.fn(async ({ where }: FakeWhereArgs) => {
         const assessment = assessments.find(
           item =>
             (!where.id || item.id === where.id) &&
@@ -580,7 +591,7 @@ function createWorkingFakeClient() {
         )
         return assessment ? hydrateAssessment(assessment) : null
       }),
-      create: vi.fn(async ({ data }: any) => {
+      create: vi.fn(async ({ data }: FakeWriteArgs) => {
         const assessment = {
           id: nextId('assessment'),
           status: 'CREATED',
@@ -592,34 +603,37 @@ function createWorkingFakeClient() {
         assessments.push(assessment)
         return hydrateAssessment(assessment)
       }),
-      update: vi.fn(async ({ where, data }: any) => {
+      update: vi.fn(async ({ where, data }: FakeUpdateArgs<{ id: string }>) => {
         const assessment = assessments.find(item => item.id === where.id)
+        if (!assessment) throw new Error(`Missing fake assessment ${where.id}`)
         Object.assign(assessment, data)
         return hydrateAssessment(assessment)
       }),
     },
     assessmentDecision: {
       findFirst: vi.fn(),
-      create: vi.fn(async ({ data }: any) => {
+      create: vi.fn(async ({ data }: FakeWriteArgs) => {
         const decision = { id: nextId('decision'), decidedAt: new Date(), ...data }
         decisions.push(decision)
         return decision
       }),
       update: vi.fn(),
     },
-    $transaction: vi.fn(async (operation: any) =>
+    $transaction: vi.fn(async (operation: ((transaction: typeof fake) => unknown) | Promise<unknown>[]) =>
       typeof operation === 'function' ? operation(fake) : Promise.all(operation),
     ),
   }
-  function hydrateAssessment(assessment: any) {
+  function hydrateAssessment(assessment: FakeRecord) {
+    const revision = revisions.find(item => item.id === assessment.qualityPlanRevisionId)
+    if (!revision) throw new Error(`Missing fake revision ${String(assessment.qualityPlanRevisionId)}`)
     return {
       ...assessment,
       qualityPlan: plans.find(plan => plan.id === assessment.qualityPlanId),
-      qualityPlanRevision: hydrate(revisions.find(revision => revision.id === assessment.qualityPlanRevisionId)),
+      qualityPlanRevision: hydrate(revision),
       evaluationSubjectRevision: subjects.find(subject => subject.id === assessment.evaluationSubjectRevisionId),
       evidenceReceipts: assessment.evidenceReceipts ?? [],
       decisions: decisions.filter(decision => decision.assessmentId === assessment.id),
     }
   }
-  return fake as any
+  return fake
 }
