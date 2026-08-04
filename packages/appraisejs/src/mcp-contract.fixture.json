@@ -63,8 +63,18 @@
     },
     {
       "kind": "resource",
+      "name": "workflow-assessment",
+      "uri": "appraise://workflow/assessment"
+    },
+    {
+      "kind": "resource",
       "name": "workflow-planning",
       "uri": "appraise://workflow/planning"
+    },
+    {
+      "kind": "resource",
+      "name": "workflow-quality-design",
+      "uri": "appraise://workflow/quality-design"
     },
     {
       "kind": "resource",
@@ -88,9 +98,240 @@
             "type": "string"
           }
         },
-        "required": [
-          "planId"
-        ],
+        "required": ["planId"],
+        "additionalProperties": false
+      }
+    },
+    {
+      "kind": "tool",
+      "name": "assessment_create",
+      "description": "Create a repeatable Quality Plan Assessment for an immutable evaluation subject digest.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "qualityPlanId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "revisionId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "subject": {},
+          "baselineAssessmentId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "idempotencyKey": {
+            "type": "string",
+            "minLength": 1
+          },
+          "responseMode": {
+            "default": "summary",
+            "type": "string",
+            "enum": ["summary", "evidenceOnly", "blockersOnly", "linksOnly", "full"]
+          }
+        },
+        "required": ["qualityPlanId", "revisionId", "subject", "idempotencyKey", "responseMode"],
+        "additionalProperties": false
+      }
+    },
+    {
+      "kind": "tool",
+      "name": "assessment_decide",
+      "description": "Issue an AssessmentDecision for a reviewed Quality Plan Assessment with current requirement alignment.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "assessmentId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "expectedEvidenceSetHash": {
+            "type": "string",
+            "pattern": "^sha256:.*"
+          },
+          "decision": {
+            "type": "string",
+            "enum": ["accepted", "rejected", "accepted_with_limitations"]
+          },
+          "decidedBy": {
+            "type": "string",
+            "minLength": 1
+          },
+          "rationale": {
+            "type": "string",
+            "minLength": 1
+          },
+          "responseMode": {
+            "default": "summary",
+            "type": "string",
+            "enum": ["summary", "evidenceOnly", "blockersOnly", "linksOnly", "full"]
+          }
+        },
+        "required": ["assessmentId", "expectedEvidenceSetHash", "decision", "decidedBy", "rationale", "responseMode"],
+        "additionalProperties": false
+      }
+    },
+    {
+      "kind": "tool",
+      "name": "assessment_diagnose",
+      "description": "Read the current assessment readiness and blocker packet; runtime and sealed-evidence diagnostics remain pending service publication.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "assessmentId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "responseMode": {
+            "default": "summary",
+            "type": "string",
+            "enum": ["summary", "evidenceOnly", "blockersOnly", "linksOnly", "full"]
+          }
+        },
+        "required": ["assessmentId", "responseMode"],
+        "additionalProperties": false
+      }
+    },
+    {
+      "kind": "tool",
+      "name": "assessment_readiness",
+      "description": "Read current assessment readiness blockers for scenario approval, published validation versions, and requirement alignment.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "assessmentId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "responseMode": {
+            "default": "summary",
+            "type": "string",
+            "enum": ["summary", "evidenceOnly", "blockersOnly", "linksOnly", "full"]
+          }
+        },
+        "required": ["assessmentId", "responseMode"],
+        "additionalProperties": false
+      }
+    },
+    {
+      "kind": "tool",
+      "name": "assessment_reconcile",
+      "description": "Pending service: reconcile terminal runs into sealed evidence receipts and immutable assessment evidence sets.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "assessmentId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "runIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "idempotencyKey": {
+            "type": "string",
+            "minLength": 1
+          },
+          "responseMode": {
+            "default": "summary",
+            "type": "string",
+            "enum": ["summary", "evidenceOnly", "blockersOnly", "linksOnly", "full"]
+          }
+        },
+        "required": ["assessmentId", "idempotencyKey", "responseMode"],
+        "additionalProperties": false
+      }
+    },
+    {
+      "kind": "tool",
+      "name": "assessment_review",
+      "description": "Read the assessment review packet, alignment status, evidence hash, assurance observations, and decision blockers.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "assessmentId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "responseMode": {
+            "default": "summary",
+            "type": "string",
+            "enum": ["summary", "evidenceOnly", "blockersOnly", "linksOnly", "full"]
+          }
+        },
+        "required": ["assessmentId", "responseMode"],
+        "additionalProperties": false
+      }
+    },
+    {
+      "kind": "tool",
+      "name": "assessment_run",
+      "description": "Pending service: run approved validation versions for an assessment or standalone evidence-only execution; decisions require reviewed assessments.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "assessmentId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "validationVersionIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "subject": {},
+          "runtime": {},
+          "idempotencyKey": {
+            "type": "string",
+            "minLength": 1
+          },
+          "responseMode": {
+            "default": "summary",
+            "type": "string",
+            "enum": ["summary", "evidenceOnly", "blockersOnly", "linksOnly", "full"]
+          }
+        },
+        "required": ["idempotencyKey", "responseMode"],
+        "additionalProperties": false
+      }
+    },
+    {
+      "kind": "tool",
+      "name": "assessment_stop",
+      "description": "Pending service: stop an in-flight assessment run while preserving partial sealed evidence receipts.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "assessmentId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1
+          },
+          "responseMode": {
+            "default": "summary",
+            "type": "string",
+            "enum": ["summary", "evidenceOnly", "blockersOnly", "linksOnly", "full"]
+          }
+        },
+        "required": ["assessmentId", "reason", "responseMode"],
         "additionalProperties": false
       }
     },
@@ -106,9 +347,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "planId"
-        ],
+        "required": ["planId"],
         "additionalProperties": false
       }
     },
@@ -126,19 +365,10 @@
           "responseMode": {
             "default": "summary",
             "type": "string",
-            "enum": [
-              "summary",
-              "evidenceOnly",
-              "blockersOnly",
-              "linksOnly",
-              "full"
-            ]
+            "enum": ["summary", "evidenceOnly", "blockersOnly", "linksOnly", "full"]
           }
         },
-        "required": [
-          "planId",
-          "responseMode"
-        ],
+        "required": ["planId", "responseMode"],
         "additionalProperties": false
       }
     },
@@ -161,11 +391,7 @@
             "minLength": 1
           }
         },
-        "required": [
-          "planId",
-          "attemptId",
-          "acknowledgedBy"
-        ],
+        "required": ["planId", "attemptId", "acknowledgedBy"],
         "additionalProperties": false
       }
     },
@@ -183,19 +409,10 @@
           "responseMode": {
             "default": "summary",
             "type": "string",
-            "enum": [
-              "summary",
-              "evidenceOnly",
-              "blockersOnly",
-              "linksOnly",
-              "full"
-            ]
+            "enum": ["summary", "evidenceOnly", "blockersOnly", "linksOnly", "full"]
           }
         },
-        "required": [
-          "planId",
-          "responseMode"
-        ],
+        "required": ["planId", "responseMode"],
         "additionalProperties": false
       }
     },
@@ -218,11 +435,7 @@
             "minLength": 1
           }
         },
-        "required": [
-          "planId",
-          "attemptId",
-          "justification"
-        ],
+        "required": ["planId", "attemptId", "justification"],
         "additionalProperties": false
       }
     },
@@ -248,21 +461,10 @@
           "responseMode": {
             "default": "summary",
             "type": "string",
-            "enum": [
-              "summary",
-              "evidenceOnly",
-              "blockersOnly",
-              "linksOnly",
-              "full"
-            ]
+            "enum": ["summary", "evidenceOnly", "blockersOnly", "linksOnly", "full"]
           }
         },
-        "required": [
-          "planId",
-          "reason",
-          "expectedValidationHash",
-          "responseMode"
-        ],
+        "required": ["planId", "reason", "expectedValidationHash", "responseMode"],
         "additionalProperties": false
       }
     },
@@ -280,19 +482,10 @@
           "responseMode": {
             "default": "summary",
             "type": "string",
-            "enum": [
-              "summary",
-              "evidenceOnly",
-              "blockersOnly",
-              "linksOnly",
-              "full"
-            ]
+            "enum": ["summary", "evidenceOnly", "blockersOnly", "linksOnly", "full"]
           }
         },
-        "required": [
-          "planId",
-          "responseMode"
-        ],
+        "required": ["planId", "responseMode"],
         "additionalProperties": false
       }
     },
@@ -328,12 +521,7 @@
                   "maximum": 9007199254740991
                 }
               },
-              "required": [
-                "phase",
-                "activeAppraiseMs",
-                "activeAgentMs",
-                "humanReviewMs"
-              ],
+              "required": ["phase", "activeAppraiseMs", "activeAgentMs", "humanReviewMs"],
               "additionalProperties": false
             }
           },
@@ -361,13 +549,7 @@
             "maximum": 9007199254740991
           }
         },
-        "required": [
-          "phases",
-          "responseBytes",
-          "operations",
-          "retries",
-          "approvals"
-        ],
+        "required": ["phases", "responseBytes", "operations", "retries", "approvals"],
         "additionalProperties": false
       }
     },
@@ -386,10 +568,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "planId",
-          "connectionId"
-        ],
+        "required": ["planId", "connectionId"],
         "additionalProperties": false
       }
     },
@@ -411,9 +590,7 @@
             "type": "boolean"
           }
         },
-        "required": [
-          "planId"
-        ],
+        "required": ["planId"],
         "additionalProperties": false
       }
     },
@@ -437,13 +614,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "plan",
-          "target",
-          "receipt",
-          "delegatedCoordinatorId",
-          "operationKey"
-        ],
+        "required": ["plan", "target", "receipt", "delegatedCoordinatorId", "operationKey"],
         "additionalProperties": false
       }
     },
@@ -458,10 +629,7 @@
           "submission": {},
           "receipt": {}
         },
-        "required": [
-          "submission",
-          "receipt"
-        ],
+        "required": ["submission", "receipt"],
         "additionalProperties": false
       }
     },
@@ -541,9 +709,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "id"
-        ],
+        "required": ["id"],
         "additionalProperties": false
       }
     },
@@ -565,10 +731,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "id",
-          "revokedBy"
-        ],
+        "required": ["id", "revokedBy"],
         "additionalProperties": false
       }
     },
@@ -608,20 +771,10 @@
           "responseMode": {
             "default": "summary",
             "type": "string",
-            "enum": [
-              "summary",
-              "evidenceOnly",
-              "blockersOnly",
-              "linksOnly",
-              "full"
-            ]
+            "enum": ["summary", "evidenceOnly", "blockersOnly", "linksOnly", "full"]
           }
         },
-        "required": [
-          "planId",
-          "type",
-          "responseMode"
-        ],
+        "required": ["planId", "type", "responseMode"],
         "additionalProperties": false
       }
     },
@@ -645,21 +798,10 @@
           "responseMode": {
             "default": "summary",
             "type": "string",
-            "enum": [
-              "summary",
-              "evidenceOnly",
-              "blockersOnly",
-              "linksOnly",
-              "full"
-            ]
+            "enum": ["summary", "evidenceOnly", "blockersOnly", "linksOnly", "full"]
           }
         },
-        "required": [
-          "planId",
-          "approvedBy",
-          "contentHash",
-          "responseMode"
-        ],
+        "required": ["planId", "approvedBy", "contentHash", "responseMode"],
         "additionalProperties": false
       }
     },
@@ -677,19 +819,10 @@
           "responseMode": {
             "default": "summary",
             "type": "string",
-            "enum": [
-              "summary",
-              "evidenceOnly",
-              "blockersOnly",
-              "linksOnly",
-              "full"
-            ]
+            "enum": ["summary", "evidenceOnly", "blockersOnly", "linksOnly", "full"]
           }
         },
-        "required": [
-          "planId",
-          "responseMode"
-        ],
+        "required": ["planId", "responseMode"],
         "additionalProperties": false
       }
     },
@@ -706,11 +839,7 @@
           },
           "action": {
             "type": "string",
-            "enum": [
-              "pause",
-              "resume",
-              "cancel"
-            ]
+            "enum": ["pause", "resume", "cancel"]
           },
           "stopActiveRuns": {
             "type": "boolean"
@@ -718,20 +847,10 @@
           "responseMode": {
             "default": "summary",
             "type": "string",
-            "enum": [
-              "summary",
-              "evidenceOnly",
-              "blockersOnly",
-              "linksOnly",
-              "full"
-            ]
+            "enum": ["summary", "evidenceOnly", "blockersOnly", "linksOnly", "full"]
           }
         },
-        "required": [
-          "planId",
-          "action",
-          "responseMode"
-        ],
+        "required": ["planId", "action", "responseMode"],
         "additionalProperties": false
       }
     },
@@ -762,21 +881,10 @@
           "responseMode": {
             "default": "summary",
             "type": "string",
-            "enum": [
-              "summary",
-              "evidenceOnly",
-              "blockersOnly",
-              "linksOnly",
-              "full"
-            ]
+            "enum": ["summary", "evidenceOnly", "blockersOnly", "linksOnly", "full"]
           }
         },
-        "required": [
-          "planId",
-          "affectedTaskIds",
-          "confirmed",
-          "responseMode"
-        ],
+        "required": ["planId", "affectedTaskIds", "confirmed", "responseMode"],
         "additionalProperties": false
       }
     },
@@ -802,20 +910,10 @@
           "responseMode": {
             "default": "summary",
             "type": "string",
-            "enum": [
-              "summary",
-              "evidenceOnly",
-              "blockersOnly",
-              "linksOnly",
-              "full"
-            ]
+            "enum": ["summary", "evidenceOnly", "blockersOnly", "linksOnly", "full"]
           }
         },
-        "required": [
-          "planId",
-          "groupIds",
-          "responseMode"
-        ],
+        "required": ["planId", "groupIds", "responseMode"],
         "additionalProperties": false
       }
     },
@@ -833,19 +931,10 @@
           "responseMode": {
             "default": "summary",
             "type": "string",
-            "enum": [
-              "summary",
-              "evidenceOnly",
-              "blockersOnly",
-              "linksOnly",
-              "full"
-            ]
+            "enum": ["summary", "evidenceOnly", "blockersOnly", "linksOnly", "full"]
           }
         },
-        "required": [
-          "planId",
-          "responseMode"
-        ],
+        "required": ["planId", "responseMode"],
         "additionalProperties": false
       }
     },
@@ -865,12 +954,7 @@
           },
           "status": {
             "type": "string",
-            "enum": [
-              "pending",
-              "in_progress",
-              "implemented",
-              "verified"
-            ]
+            "enum": ["pending", "in_progress", "implemented", "verified"]
           },
           "commitHash": {
             "type": "string"
@@ -878,21 +962,10 @@
           "responseMode": {
             "default": "summary",
             "type": "string",
-            "enum": [
-              "summary",
-              "evidenceOnly",
-              "blockersOnly",
-              "linksOnly",
-              "full"
-            ]
+            "enum": ["summary", "evidenceOnly", "blockersOnly", "linksOnly", "full"]
           }
         },
-        "required": [
-          "planId",
-          "taskId",
-          "status",
-          "responseMode"
-        ],
+        "required": ["planId", "taskId", "status", "responseMode"],
         "additionalProperties": false
       }
     },
@@ -923,27 +996,15 @@
           },
           "action": {
             "type": "string",
-            "enum": [
-              "check",
-              "launch",
-              "stop"
-            ]
+            "enum": ["check", "launch", "stop"]
           },
           "responseMode": {
             "default": "summary",
             "type": "string",
-            "enum": [
-              "summary",
-              "evidenceOnly",
-              "blockersOnly",
-              "linksOnly",
-              "full"
-            ]
+            "enum": ["summary", "evidenceOnly", "blockersOnly", "linksOnly", "full"]
           }
         },
-        "required": [
-          "planId"
-        ],
+        "required": ["planId"],
         "additionalProperties": false
       }
     },
@@ -979,19 +1040,10 @@
           "responseMode": {
             "default": "summary",
             "type": "string",
-            "enum": [
-              "summary",
-              "evidenceOnly",
-              "blockersOnly",
-              "linksOnly",
-              "full"
-            ]
+            "enum": ["summary", "evidenceOnly", "blockersOnly", "linksOnly", "full"]
           }
         },
-        "required": [
-          "planId",
-          "responseMode"
-        ],
+        "required": ["planId", "responseMode"],
         "additionalProperties": false
       }
     },
@@ -1030,13 +1082,7 @@
               },
               "status": {
                 "type": "string",
-                "enum": [
-                  "running",
-                  "passed",
-                  "failed",
-                  "cancelled",
-                  "infrastructure_failure"
-                ]
+                "enum": ["running", "passed", "failed", "cancelled", "infrastructure_failure"]
               },
               "fresh": {
                 "type": "boolean"
@@ -1048,18 +1094,12 @@
               "evidenceSource": {
                 "default": "manual",
                 "type": "string",
-                "enum": [
-                  "managed",
-                  "manual"
-                ]
+                "enum": ["managed", "manual"]
               },
               "assurance": {
                 "default": "reduced",
                 "type": "string",
-                "enum": [
-                  "full",
-                  "reduced"
-                ]
+                "enum": ["full", "reduced"]
               },
               "testRunId": {
                 "type": "string",
@@ -1101,10 +1141,7 @@
                     "minLength": 1
                   }
                 },
-                "required": [
-                  "gherkinPaths",
-                  "stepPaths"
-                ],
+                "required": ["gherkinPaths", "stepPaths"],
                 "additionalProperties": false
               },
               "evidenceUrls": {
@@ -1142,10 +1179,7 @@
                     }
                   }
                 },
-                "required": [
-                  "traceUrls",
-                  "screenshotUrls"
-                ],
+                "required": ["traceUrls", "screenshotUrls"],
                 "additionalProperties": false
               },
               "failureSignatureHash": {
@@ -1180,20 +1214,10 @@
           "responseMode": {
             "default": "summary",
             "type": "string",
-            "enum": [
-              "summary",
-              "evidenceOnly",
-              "blockersOnly",
-              "linksOnly",
-              "full"
-            ]
+            "enum": ["summary", "evidenceOnly", "blockersOnly", "linksOnly", "full"]
           }
         },
-        "required": [
-          "planId",
-          "run",
-          "responseMode"
-        ],
+        "required": ["planId", "run", "responseMode"],
         "additionalProperties": false
       }
     },
@@ -1229,18 +1253,10 @@
           "responseMode": {
             "default": "summary",
             "type": "string",
-            "enum": [
-              "summary",
-              "evidenceOnly",
-              "blockersOnly",
-              "linksOnly",
-              "full"
-            ]
+            "enum": ["summary", "evidenceOnly", "blockersOnly", "linksOnly", "full"]
           }
         },
-        "required": [
-          "planId"
-        ],
+        "required": ["planId"],
         "additionalProperties": false
       }
     },
@@ -1276,9 +1292,7 @@
             "maximum": 4
           }
         },
-        "required": [
-          "fromId"
-        ],
+        "required": ["fromId"],
         "additionalProperties": false
       }
     },
@@ -1298,10 +1312,7 @@
             "minLength": 1
           }
         },
-        "required": [
-          "planId",
-          "query"
-        ],
+        "required": ["planId", "query"],
         "additionalProperties": false
       }
     },
@@ -1336,10 +1347,7 @@
                   "minLength": 1
                 }
               },
-              "required": [
-                "id",
-                "title"
-              ],
+              "required": ["id", "title"],
               "additionalProperties": false
             }
           },
@@ -1369,19 +1377,12 @@
                   }
                 }
               },
-              "required": [
-                "planId",
-                "milestoneId"
-              ],
+              "required": ["planId", "milestoneId"],
               "additionalProperties": false
             }
           }
         },
-        "required": [
-          "title",
-          "milestones",
-          "plans"
-        ],
+        "required": ["title", "milestones", "plans"],
         "additionalProperties": false
       }
     },
@@ -1422,16 +1423,12 @@
                   "type": "string"
                 }
               },
-              "required": [
-                "id"
-              ],
+              "required": ["id"],
               "additionalProperties": false
             }
           }
         },
-        "required": [
-          "operationRefs"
-        ],
+        "required": ["operationRefs"],
         "additionalProperties": false
       }
     },
@@ -1467,19 +1464,11 @@
           },
           "runtime": {
             "type": "string",
-            "enum": [
-              "browser",
-              "api",
-              "node",
-              "database"
-            ]
+            "enum": ["browser", "api", "node", "database"]
           },
           "surface": {
             "type": "string",
-            "enum": [
-              "human",
-              "agent"
-            ]
+            "enum": ["human", "agent"]
           },
           "deprecated": {
             "type": "boolean"
@@ -1490,9 +1479,7 @@
             "maximum": 100
           }
         },
-        "required": [
-          "query"
-        ],
+        "required": ["query"],
         "additionalProperties": false
       }
     },
@@ -1522,10 +1509,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "planId",
-          "narrative"
-        ],
+        "required": ["planId", "narrative"],
         "additionalProperties": false
       }
     },
@@ -1609,11 +1593,7 @@
                           }
                         }
                       },
-                      "required": [
-                        "domain",
-                        "confidence",
-                        "evidence"
-                      ],
+                      "required": ["domain", "confidence", "evidence"],
                       "additionalProperties": false
                     }
                   },
@@ -1636,13 +1616,7 @@
                         },
                         "kind": {
                           "type": "string",
-                          "enum": [
-                            "functional",
-                            "data",
-                            "quality",
-                            "validation",
-                            "constraint"
-                          ]
+                          "enum": ["functional", "data", "quality", "validation", "constraint"]
                         },
                         "coveredBy": {
                           "type": "array",
@@ -1655,17 +1629,10 @@
                               },
                               "surface": {
                                 "type": "string",
-                                "enum": [
-                                  "description",
-                                  "acceptanceCriteria",
-                                  "validationIntent"
-                                ]
+                                "enum": ["description", "acceptanceCriteria", "validationIntent"]
                               }
                             },
-                            "required": [
-                              "taskId",
-                              "surface"
-                            ],
+                            "required": ["taskId", "surface"],
                             "additionalProperties": false
                           }
                         },
@@ -1674,12 +1641,7 @@
                           "minLength": 1
                         }
                       },
-                      "required": [
-                        "id",
-                        "text",
-                        "kind",
-                        "coveredBy"
-                      ],
+                      "required": ["id", "text", "kind", "coveredBy"],
                       "additionalProperties": false
                     }
                   },
@@ -1704,20 +1666,12 @@
                           "minLength": 1
                         }
                       },
-                      "required": [
-                        "code",
-                        "message"
-                      ],
+                      "required": ["code", "message"],
                       "additionalProperties": false
                     }
                   }
                 },
-                "required": [
-                  "domainCandidates",
-                  "requirements",
-                  "uncoveredRequirementIds",
-                  "warnings"
-                ],
+                "required": ["domainCandidates", "requirements", "uncoveredRequirementIds", "warnings"],
                 "additionalProperties": false
               },
               "tasks": {
@@ -1751,13 +1705,7 @@
                       "minLength": 1
                     }
                   },
-                  "required": [
-                    "id",
-                    "title",
-                    "description",
-                    "acceptanceCriteria",
-                    "validationIntent"
-                  ],
+                  "required": ["id", "title", "description", "acceptanceCriteria", "validationIntent"],
                   "additionalProperties": false
                 }
               },
@@ -1776,18 +1724,10 @@
                     },
                     "type": {
                       "type": "string",
-                      "enum": [
-                        "depends-on",
-                        "blocks",
-                        "relates-to"
-                      ]
+                      "enum": ["depends-on", "blocks", "relates-to"]
                     }
                   },
-                  "required": [
-                    "from",
-                    "to",
-                    "type"
-                  ],
+                  "required": ["from", "to", "type"],
                   "additionalProperties": false
                 }
               },
@@ -1809,10 +1749,7 @@
                       }
                     }
                   },
-                  "required": [
-                    "id",
-                    "taskIds"
-                  ],
+                  "required": ["id", "taskIds"],
                   "additionalProperties": false
                 }
               },
@@ -1840,19 +1777,10 @@
           "responseMode": {
             "default": "summary",
             "type": "string",
-            "enum": [
-              "summary",
-              "evidenceOnly",
-              "blockersOnly",
-              "linksOnly",
-              "full"
-            ]
+            "enum": ["summary", "evidenceOnly", "blockersOnly", "linksOnly", "full"]
           }
         },
-        "required": [
-          "plan",
-          "responseMode"
-        ],
+        "required": ["plan", "responseMode"],
         "additionalProperties": false
       }
     },
@@ -1873,10 +1801,7 @@
             "maximum": 9007199254740991
           }
         },
-        "required": [
-          "planId",
-          "sequence"
-        ],
+        "required": ["planId", "sequence"],
         "additionalProperties": false
       }
     },
@@ -1897,10 +1822,7 @@
             "maximum": 9007199254740991
           }
         },
-        "required": [
-          "planId",
-          "acknowledgeThroughSequence"
-        ],
+        "required": ["planId", "acknowledgeThroughSequence"],
         "additionalProperties": false
       }
     },
@@ -1930,21 +1852,10 @@
           "responseMode": {
             "default": "summary",
             "type": "string",
-            "enum": [
-              "summary",
-              "evidenceOnly",
-              "blockersOnly",
-              "linksOnly",
-              "full"
-            ]
+            "enum": ["summary", "evidenceOnly", "blockersOnly", "linksOnly", "full"]
           }
         },
-        "required": [
-          "planId",
-          "afterSequence",
-          "limit",
-          "responseMode"
-        ],
+        "required": ["planId", "afterSequence", "limit", "responseMode"],
         "additionalProperties": false
       }
     },
@@ -1962,19 +1873,10 @@
           "responseMode": {
             "default": "summary",
             "type": "string",
-            "enum": [
-              "summary",
-              "evidenceOnly",
-              "blockersOnly",
-              "linksOnly",
-              "full"
-            ]
+            "enum": ["summary", "evidenceOnly", "blockersOnly", "linksOnly", "full"]
           }
         },
-        "required": [
-          "planId",
-          "responseMode"
-        ],
+        "required": ["planId", "responseMode"],
         "additionalProperties": false
       }
     },
@@ -1995,9 +1897,7 @@
             "maximum": 9007199254740991
           }
         },
-        "required": [
-          "planId"
-        ],
+        "required": ["planId"],
         "additionalProperties": false
       }
     },
@@ -2015,19 +1915,10 @@
           "responseMode": {
             "default": "summary",
             "type": "string",
-            "enum": [
-              "summary",
-              "evidenceOnly",
-              "blockersOnly",
-              "linksOnly",
-              "full"
-            ]
+            "enum": ["summary", "evidenceOnly", "blockersOnly", "linksOnly", "full"]
           }
         },
-        "required": [
-          "planId",
-          "responseMode"
-        ],
+        "required": ["planId", "responseMode"],
         "additionalProperties": false
       }
     },
@@ -2057,21 +1948,10 @@
           "responseMode": {
             "default": "summary",
             "type": "string",
-            "enum": [
-              "summary",
-              "evidenceOnly",
-              "blockersOnly",
-              "linksOnly",
-              "full"
-            ]
+            "enum": ["summary", "evidenceOnly", "blockersOnly", "linksOnly", "full"]
           }
         },
-        "required": [
-          "planId",
-          "afterSequence",
-          "timeoutMs",
-          "responseMode"
-        ],
+        "required": ["planId", "afterSequence", "timeoutMs", "responseMode"],
         "additionalProperties": false
       }
     },
@@ -2087,9 +1967,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "planId"
-        ],
+        "required": ["planId"],
         "additionalProperties": false
       }
     },
@@ -2183,11 +2061,7 @@
                           }
                         }
                       },
-                      "required": [
-                        "domain",
-                        "confidence",
-                        "evidence"
-                      ],
+                      "required": ["domain", "confidence", "evidence"],
                       "additionalProperties": false
                     }
                   },
@@ -2210,13 +2084,7 @@
                         },
                         "kind": {
                           "type": "string",
-                          "enum": [
-                            "functional",
-                            "data",
-                            "quality",
-                            "validation",
-                            "constraint"
-                          ]
+                          "enum": ["functional", "data", "quality", "validation", "constraint"]
                         },
                         "coveredBy": {
                           "type": "array",
@@ -2229,17 +2097,10 @@
                               },
                               "surface": {
                                 "type": "string",
-                                "enum": [
-                                  "description",
-                                  "acceptanceCriteria",
-                                  "validationIntent"
-                                ]
+                                "enum": ["description", "acceptanceCriteria", "validationIntent"]
                               }
                             },
-                            "required": [
-                              "taskId",
-                              "surface"
-                            ],
+                            "required": ["taskId", "surface"],
                             "additionalProperties": false
                           }
                         },
@@ -2248,12 +2109,7 @@
                           "minLength": 1
                         }
                       },
-                      "required": [
-                        "id",
-                        "text",
-                        "kind",
-                        "coveredBy"
-                      ],
+                      "required": ["id", "text", "kind", "coveredBy"],
                       "additionalProperties": false
                     }
                   },
@@ -2278,20 +2134,12 @@
                           "minLength": 1
                         }
                       },
-                      "required": [
-                        "code",
-                        "message"
-                      ],
+                      "required": ["code", "message"],
                       "additionalProperties": false
                     }
                   }
                 },
-                "required": [
-                  "domainCandidates",
-                  "requirements",
-                  "uncoveredRequirementIds",
-                  "warnings"
-                ],
+                "required": ["domainCandidates", "requirements", "uncoveredRequirementIds", "warnings"],
                 "additionalProperties": false
               },
               "tasks": {
@@ -2325,13 +2173,7 @@
                       "minLength": 1
                     }
                   },
-                  "required": [
-                    "id",
-                    "title",
-                    "description",
-                    "acceptanceCriteria",
-                    "validationIntent"
-                  ],
+                  "required": ["id", "title", "description", "acceptanceCriteria", "validationIntent"],
                   "additionalProperties": false
                 }
               },
@@ -2350,18 +2192,10 @@
                     },
                     "type": {
                       "type": "string",
-                      "enum": [
-                        "depends-on",
-                        "blocks",
-                        "relates-to"
-                      ]
+                      "enum": ["depends-on", "blocks", "relates-to"]
                     }
                   },
-                  "required": [
-                    "from",
-                    "to",
-                    "type"
-                  ],
+                  "required": ["from", "to", "type"],
                   "additionalProperties": false
                 }
               },
@@ -2383,10 +2217,7 @@
                       }
                     }
                   },
-                  "required": [
-                    "id",
-                    "taskIds"
-                  ],
+                  "required": ["id", "taskIds"],
                   "additionalProperties": false
                 }
               }
@@ -2405,11 +2236,7 @@
             "additionalProperties": false
           }
         },
-        "required": [
-          "planId",
-          "expectedHash",
-          "plan"
-        ],
+        "required": ["planId", "expectedHash", "plan"],
         "additionalProperties": false
       }
     },
@@ -2427,19 +2254,10 @@
           "responseMode": {
             "default": "summary",
             "type": "string",
-            "enum": [
-              "summary",
-              "evidenceOnly",
-              "blockersOnly",
-              "linksOnly",
-              "full"
-            ]
+            "enum": ["summary", "evidenceOnly", "blockersOnly", "linksOnly", "full"]
           }
         },
-        "required": [
-          "planId",
-          "responseMode"
-        ],
+        "required": ["planId", "responseMode"],
         "additionalProperties": false
       }
     },
@@ -2464,11 +2282,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "planId",
-          "taskId",
-          "status"
-        ],
+        "required": ["planId", "taskId", "status"],
         "additionalProperties": false
       }
     },
@@ -2492,10 +2306,7 @@
           "mode": {
             "default": "poll",
             "type": "string",
-            "enum": [
-              "poll",
-              "long_poll"
-            ]
+            "enum": ["poll", "long_poll"]
           },
           "timeoutMs": {
             "type": "integer",
@@ -2503,11 +2314,7 @@
             "maximum": 300000
           }
         },
-        "required": [
-          "planId",
-          "afterSequence",
-          "mode"
-        ],
+        "required": ["planId", "afterSequence", "mode"],
         "additionalProperties": false
       }
     },
@@ -2529,10 +2336,7 @@
             "maximum": 9007199254740991
           }
         },
-        "required": [
-          "planId",
-          "afterSequence"
-        ],
+        "required": ["planId", "afterSequence"],
         "additionalProperties": false
       }
     },
@@ -2616,11 +2420,7 @@
                           }
                         }
                       },
-                      "required": [
-                        "domain",
-                        "confidence",
-                        "evidence"
-                      ],
+                      "required": ["domain", "confidence", "evidence"],
                       "additionalProperties": false
                     }
                   },
@@ -2643,13 +2443,7 @@
                         },
                         "kind": {
                           "type": "string",
-                          "enum": [
-                            "functional",
-                            "data",
-                            "quality",
-                            "validation",
-                            "constraint"
-                          ]
+                          "enum": ["functional", "data", "quality", "validation", "constraint"]
                         },
                         "coveredBy": {
                           "type": "array",
@@ -2662,17 +2456,10 @@
                               },
                               "surface": {
                                 "type": "string",
-                                "enum": [
-                                  "description",
-                                  "acceptanceCriteria",
-                                  "validationIntent"
-                                ]
+                                "enum": ["description", "acceptanceCriteria", "validationIntent"]
                               }
                             },
-                            "required": [
-                              "taskId",
-                              "surface"
-                            ],
+                            "required": ["taskId", "surface"],
                             "additionalProperties": false
                           }
                         },
@@ -2681,12 +2468,7 @@
                           "minLength": 1
                         }
                       },
-                      "required": [
-                        "id",
-                        "text",
-                        "kind",
-                        "coveredBy"
-                      ],
+                      "required": ["id", "text", "kind", "coveredBy"],
                       "additionalProperties": false
                     }
                   },
@@ -2711,20 +2493,12 @@
                           "minLength": 1
                         }
                       },
-                      "required": [
-                        "code",
-                        "message"
-                      ],
+                      "required": ["code", "message"],
                       "additionalProperties": false
                     }
                   }
                 },
-                "required": [
-                  "domainCandidates",
-                  "requirements",
-                  "uncoveredRequirementIds",
-                  "warnings"
-                ],
+                "required": ["domainCandidates", "requirements", "uncoveredRequirementIds", "warnings"],
                 "additionalProperties": false
               },
               "tasks": {
@@ -2758,13 +2532,7 @@
                       "minLength": 1
                     }
                   },
-                  "required": [
-                    "id",
-                    "title",
-                    "description",
-                    "acceptanceCriteria",
-                    "validationIntent"
-                  ],
+                  "required": ["id", "title", "description", "acceptanceCriteria", "validationIntent"],
                   "additionalProperties": false
                 }
               },
@@ -2783,18 +2551,10 @@
                     },
                     "type": {
                       "type": "string",
-                      "enum": [
-                        "depends-on",
-                        "blocks",
-                        "relates-to"
-                      ]
+                      "enum": ["depends-on", "blocks", "relates-to"]
                     }
                   },
-                  "required": [
-                    "from",
-                    "to",
-                    "type"
-                  ],
+                  "required": ["from", "to", "type"],
                   "additionalProperties": false
                 }
               },
@@ -2816,10 +2576,7 @@
                       }
                     }
                   },
-                  "required": [
-                    "id",
-                    "taskIds"
-                  ],
+                  "required": ["id", "taskIds"],
                   "additionalProperties": false
                 }
               },
@@ -2846,9 +2603,7 @@
           },
           "targetMode": {
             "type": "string",
-            "enum": [
-              "hub"
-            ]
+            "enum": ["hub"]
           },
           "displayName": {
             "type": "string",
@@ -2857,28 +2612,15 @@
           "mode": {
             "default": "plan_then_wait",
             "type": "string",
-            "enum": [
-              "plan_only",
-              "plan_then_wait"
-            ]
+            "enum": ["plan_only", "plan_then_wait"]
           },
           "responseMode": {
             "default": "summary",
             "type": "string",
-            "enum": [
-              "summary",
-              "evidenceOnly",
-              "blockersOnly",
-              "linksOnly",
-              "full"
-            ]
+            "enum": ["summary", "evidenceOnly", "blockersOnly", "linksOnly", "full"]
           }
         },
-        "required": [
-          "plan",
-          "mode",
-          "responseMode"
-        ],
+        "required": ["plan", "mode", "responseMode"],
         "additionalProperties": false
       }
     },
@@ -2902,9 +2644,7 @@
             "type": "boolean"
           }
         },
-        "required": [
-          "path"
-        ],
+        "required": ["path"],
         "additionalProperties": false
       }
     },
@@ -2948,6 +2688,236 @@
     },
     {
       "kind": "tool",
+      "name": "requirements_analyze",
+      "description": "Analyze the submitted source snapshot into a resolved requirement graph, queries, assumptions, and quality obligations.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "qualityPlanId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "revisionId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "responseMode": {
+            "default": "summary",
+            "type": "string",
+            "enum": ["summary", "evidenceOnly", "blockersOnly", "linksOnly", "full"]
+          }
+        },
+        "required": ["qualityPlanId", "responseMode"],
+        "additionalProperties": false
+      }
+    },
+    {
+      "kind": "tool",
+      "name": "requirements_answer_queries",
+      "description": "Answer, defer with rationale, or accept requirement queries as assumptions; unresolved blocking queries prevent approval.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "qualityPlanId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "revisionId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "answers": {
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "queryId": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "status": {
+                  "type": "string",
+                  "enum": ["ANSWERED", "DEFERRED", "ACCEPTED_ASSUMPTION"]
+                },
+                "answer": {
+                  "type": "string"
+                },
+                "rationale": {
+                  "type": "string"
+                }
+              },
+              "required": ["queryId", "status"],
+              "additionalProperties": false
+            }
+          },
+          "idempotencyKey": {
+            "type": "string",
+            "minLength": 1
+          },
+          "responseMode": {
+            "default": "summary",
+            "type": "string",
+            "enum": ["summary", "evidenceOnly", "blockersOnly", "linksOnly", "full"]
+          }
+        },
+        "required": ["qualityPlanId", "answers", "idempotencyKey", "responseMode"],
+        "additionalProperties": false
+      }
+    },
+    {
+      "kind": "tool",
+      "name": "requirements_approve",
+      "description": "Approve the resolved requirement graph and immutable QualityPlanRevision; blocking queries are rejected.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "qualityPlanId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "revisionId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "expectedRevisionHash": {
+            "type": "string",
+            "pattern": "^sha256:.*"
+          },
+          "approvedBy": {
+            "type": "string",
+            "minLength": 1
+          },
+          "responseMode": {
+            "default": "summary",
+            "type": "string",
+            "enum": ["summary", "evidenceOnly", "blockersOnly", "linksOnly", "full"]
+          }
+        },
+        "required": ["qualityPlanId", "revisionId", "expectedRevisionHash", "approvedBy", "responseMode"],
+        "additionalProperties": false
+      }
+    },
+    {
+      "kind": "tool",
+      "name": "requirements_graph_read",
+      "description": "Read the current requirement graph, quality obligations, approval state, and blocking queries.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "qualityPlanId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "revisionId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "responseMode": {
+            "default": "summary",
+            "type": "string",
+            "enum": ["summary", "evidenceOnly", "blockersOnly", "linksOnly", "full"]
+          }
+        },
+        "required": ["qualityPlanId", "responseMode"],
+        "additionalProperties": false
+      }
+    },
+    {
+      "kind": "tool",
+      "name": "requirements_report_drift",
+      "description": "Pending service: report requirement drift and proposed successor dispositions; human approval is required before successor adoption.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "qualityPlanId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "currentRevisionId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "drift": {},
+          "idempotencyKey": {
+            "type": "string",
+            "minLength": 1
+          },
+          "responseMode": {
+            "default": "summary",
+            "type": "string",
+            "enum": ["summary", "evidenceOnly", "blockersOnly", "linksOnly", "full"]
+          }
+        },
+        "required": ["qualityPlanId", "currentRevisionId", "drift", "idempotencyKey", "responseMode"],
+        "additionalProperties": false
+      }
+    },
+    {
+      "kind": "tool",
+      "name": "requirements_revise",
+      "description": "Pending service: create a successor Quality Plan revision; unchanged content-addressed requirements may be inherited.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "qualityPlanId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "expectedRevisionHash": {
+            "type": "string",
+            "pattern": "^sha256:.*"
+          },
+          "revision": {},
+          "idempotencyKey": {
+            "type": "string",
+            "minLength": 1
+          },
+          "responseMode": {
+            "default": "summary",
+            "type": "string",
+            "enum": ["summary", "evidenceOnly", "blockersOnly", "linksOnly", "full"]
+          }
+        },
+        "required": ["qualityPlanId", "expectedRevisionHash", "revision", "idempotencyKey", "responseMode"],
+        "additionalProperties": false
+      }
+    },
+    {
+      "kind": "tool",
+      "name": "requirements_submit_source",
+      "description": "Submit an immutable source specification snapshot for Appraise-owned requirement analysis and Quality Plan revisioning.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "target": {
+            "type": "string",
+            "minLength": 1
+          },
+          "source": {},
+          "idempotencyKey": {
+            "type": "string",
+            "minLength": 1
+          },
+          "responseMode": {
+            "default": "summary",
+            "type": "string",
+            "enum": ["summary", "evidenceOnly", "blockersOnly", "linksOnly", "full"]
+          }
+        },
+        "required": ["target", "source", "idempotencyKey", "responseMode"],
+        "additionalProperties": false
+      }
+    },
+    {
+      "kind": "tool",
       "name": "step_definition_draft_artifact_save",
       "description": "Save user-authored handler source and explicit examples separately from definition metadata.",
       "inputSchema": {
@@ -2966,11 +2936,7 @@
           },
           "artifact": {}
         },
-        "required": [
-          "draftId",
-          "expectedRevision",
-          "artifact"
-        ],
+        "required": ["draftId", "expectedRevision", "artifact"],
         "additionalProperties": false
       }
     },
@@ -2993,10 +2959,7 @@
             "maximum": 9007199254740991
           }
         },
-        "required": [
-          "draftId",
-          "expectedRevision"
-        ],
+        "required": ["draftId", "expectedRevision"],
         "additionalProperties": false
       }
     },
@@ -3047,10 +3010,7 @@
                       "maxLength": 40
                     }
                   },
-                  "required": [
-                    "id",
-                    "version"
-                  ],
+                  "required": ["id", "version"],
                   "additionalProperties": false
                 }
               },
@@ -3076,10 +3036,7 @@
             "additionalProperties": false
           }
         },
-        "required": [
-          "definition",
-          "reuseEvidence"
-        ],
+        "required": ["definition", "reuseEvidence"],
         "additionalProperties": false
       }
     },
@@ -3102,10 +3059,7 @@
             "maximum": 9007199254740991
           }
         },
-        "required": [
-          "draftId",
-          "expectedRevision"
-        ],
+        "required": ["draftId", "expectedRevision"],
         "additionalProperties": false
       }
     },
@@ -3123,9 +3077,7 @@
             "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
           }
         },
-        "required": [
-          "draftId"
-        ],
+        "required": ["draftId"],
         "additionalProperties": false
       }
     },
@@ -3149,11 +3101,7 @@
           },
           "definition": {}
         },
-        "required": [
-          "draftId",
-          "expectedRevision",
-          "definition"
-        ],
+        "required": ["draftId", "expectedRevision", "definition"],
         "additionalProperties": false
       }
     },
@@ -3176,10 +3124,7 @@
             "maximum": 9007199254740991
           }
         },
-        "required": [
-          "draftId",
-          "expectedRevision"
-        ],
+        "required": ["draftId", "expectedRevision"],
         "additionalProperties": false
       }
     },
@@ -3213,12 +3158,152 @@
             "maximum": 25
           }
         },
-        "required": [
-          "planId",
-          "query",
-          "parameterNames",
-          "limit"
-        ],
+        "required": ["planId", "query", "parameterNames", "limit"],
+        "additionalProperties": false
+      }
+    },
+    {
+      "kind": "tool",
+      "name": "target_discovery_inspect",
+      "description": "Pending service: inspect a managed-browser state and collect locator evidence without publishing selectors.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "sessionId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "state": {},
+          "responseMode": {
+            "default": "summary",
+            "type": "string",
+            "enum": ["summary", "evidenceOnly", "blockersOnly", "linksOnly", "full"]
+          }
+        },
+        "required": ["sessionId", "state", "responseMode"],
+        "additionalProperties": false
+      }
+    },
+    {
+      "kind": "tool",
+      "name": "target_discovery_locator_propose",
+      "description": "Pending service: propose role/name, test id, stable app attribute, or reviewed structural locator versions with provenance and fingerprint.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "sessionId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "locator": {},
+          "idempotencyKey": {
+            "type": "string",
+            "minLength": 1
+          },
+          "responseMode": {
+            "default": "summary",
+            "type": "string",
+            "enum": ["summary", "evidenceOnly", "blockersOnly", "linksOnly", "full"]
+          }
+        },
+        "required": ["sessionId", "locator", "idempotencyKey", "responseMode"],
+        "additionalProperties": false
+      }
+    },
+    {
+      "kind": "tool",
+      "name": "target_discovery_locator_publish",
+      "description": "Pending service: publish reviewed locator versions; auth-blocked, unreachable, or unstable targets remain non-executable.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "sessionId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "locatorVersionIds": {
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "expectedVerificationHash": {
+            "type": "string",
+            "pattern": "^sha256:.*"
+          },
+          "responseMode": {
+            "default": "summary",
+            "type": "string",
+            "enum": ["summary", "evidenceOnly", "blockersOnly", "linksOnly", "full"]
+          }
+        },
+        "required": ["sessionId", "locatorVersionIds", "expectedVerificationHash", "responseMode"],
+        "additionalProperties": false
+      }
+    },
+    {
+      "kind": "tool",
+      "name": "target_discovery_locator_verify",
+      "description": "Pending service: verify a proposed locator version against surface, state, environment, and element fingerprint.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "sessionId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "locatorVersionId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "verification": {},
+          "responseMode": {
+            "default": "summary",
+            "type": "string",
+            "enum": ["summary", "evidenceOnly", "blockersOnly", "linksOnly", "full"]
+          }
+        },
+        "required": ["sessionId", "locatorVersionId", "verification", "responseMode"],
+        "additionalProperties": false
+      }
+    },
+    {
+      "kind": "tool",
+      "name": "target_discovery_session_start",
+      "description": "Pending service: start an authorized managed-browser discovery session for black-box target inspection.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "target": {
+            "type": "string",
+            "minLength": 1
+          },
+          "environmentId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "purpose": {
+            "type": "string",
+            "minLength": 1
+          },
+          "idempotencyKey": {
+            "type": "string",
+            "minLength": 1
+          },
+          "responseMode": {
+            "default": "summary",
+            "type": "string",
+            "enum": ["summary", "evidenceOnly", "blockersOnly", "linksOnly", "full"]
+          }
+        },
+        "required": ["target", "environmentId", "purpose", "idempotencyKey", "responseMode"],
         "additionalProperties": false
       }
     },
@@ -3252,11 +3337,7 @@
           },
           "browserEngine": {
             "type": "string",
-            "enum": [
-              "CHROMIUM",
-              "FIREFOX",
-              "WEBKIT"
-            ]
+            "enum": ["CHROMIUM", "FIREFOX", "WEBKIT"]
           },
           "planId": {
             "type": "string",
@@ -3308,30 +3389,17 @@
                   "minLength": 1
                 }
               },
-              "required": [
-                "testCaseId",
-                "testSuiteId"
-              ],
+              "required": ["testCaseId", "testSuiteId"],
               "additionalProperties": false
             }
           },
           "responseMode": {
             "default": "summary",
             "type": "string",
-            "enum": [
-              "summary",
-              "evidenceOnly",
-              "blockersOnly",
-              "linksOnly",
-              "full"
-            ]
+            "enum": ["summary", "evidenceOnly", "blockersOnly", "linksOnly", "full"]
           }
         },
-        "required": [
-          "target",
-          "environmentId",
-          "responseMode"
-        ],
+        "required": ["target", "environmentId", "responseMode"],
         "additionalProperties": false
       }
     },
@@ -3354,19 +3422,10 @@
           "responseMode": {
             "default": "summary",
             "type": "string",
-            "enum": [
-              "summary",
-              "evidenceOnly",
-              "blockersOnly",
-              "linksOnly",
-              "full"
-            ]
+            "enum": ["summary", "evidenceOnly", "blockersOnly", "linksOnly", "full"]
           }
         },
-        "required": [
-          "runId",
-          "responseMode"
-        ],
+        "required": ["runId", "responseMode"],
         "additionalProperties": false
       }
     },
@@ -3418,18 +3477,10 @@
           "responseMode": {
             "default": "summary",
             "type": "string",
-            "enum": [
-              "summary",
-              "evidenceOnly",
-              "blockersOnly",
-              "linksOnly",
-              "full"
-            ]
+            "enum": ["summary", "evidenceOnly", "blockersOnly", "linksOnly", "full"]
           }
         },
-        "required": [
-          "responseMode"
-        ],
+        "required": ["responseMode"],
         "additionalProperties": false
       }
     },
@@ -3452,19 +3503,10 @@
           "responseMode": {
             "default": "summary",
             "type": "string",
-            "enum": [
-              "summary",
-              "evidenceOnly",
-              "blockersOnly",
-              "linksOnly",
-              "full"
-            ]
+            "enum": ["summary", "evidenceOnly", "blockersOnly", "linksOnly", "full"]
           }
         },
-        "required": [
-          "runId",
-          "responseMode"
-        ],
+        "required": ["runId", "responseMode"],
         "additionalProperties": false
       }
     },
@@ -3483,20 +3525,10 @@
           "responseMode": {
             "default": "summary",
             "type": "string",
-            "enum": [
-              "summary",
-              "evidenceOnly",
-              "blockersOnly",
-              "linksOnly",
-              "full"
-            ]
+            "enum": ["summary", "evidenceOnly", "blockersOnly", "linksOnly", "full"]
           }
         },
-        "required": [
-          "planId",
-          "submission",
-          "responseMode"
-        ],
+        "required": ["planId", "submission", "responseMode"],
         "additionalProperties": false
       }
     },
@@ -3519,21 +3551,10 @@
           "responseMode": {
             "default": "summary",
             "type": "string",
-            "enum": [
-              "summary",
-              "evidenceOnly",
-              "blockersOnly",
-              "linksOnly",
-              "full"
-            ]
+            "enum": ["summary", "evidenceOnly", "blockersOnly", "linksOnly", "full"]
           }
         },
-        "required": [
-          "planId",
-          "submission",
-          "expectedReceiptHash",
-          "responseMode"
-        ],
+        "required": ["planId", "submission", "expectedReceiptHash", "responseMode"],
         "additionalProperties": false
       }
     },
@@ -3551,19 +3572,10 @@
           "responseMode": {
             "default": "summary",
             "type": "string",
-            "enum": [
-              "summary",
-              "evidenceOnly",
-              "blockersOnly",
-              "linksOnly",
-              "full"
-            ]
+            "enum": ["summary", "evidenceOnly", "blockersOnly", "linksOnly", "full"]
           }
         },
-        "required": [
-          "planId",
-          "responseMode"
-        ],
+        "required": ["planId", "responseMode"],
         "additionalProperties": false
       }
     },
@@ -3582,9 +3594,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "planId"
-        ],
+        "required": ["planId"],
         "additionalProperties": false
       }
     },
@@ -3603,20 +3613,41 @@
           "responseMode": {
             "default": "summary",
             "type": "string",
-            "enum": [
-              "summary",
-              "evidenceOnly",
-              "blockersOnly",
-              "linksOnly",
-              "full"
-            ]
+            "enum": ["summary", "evidenceOnly", "blockersOnly", "linksOnly", "full"]
           }
         },
-        "required": [
-          "planId",
-          "submission",
-          "responseMode"
-        ],
+        "required": ["planId", "submission", "responseMode"],
+        "additionalProperties": false
+      }
+    },
+    {
+      "kind": "tool",
+      "name": "validation_compile",
+      "description": "Compile approved scenario design with mechanical realization metadata into immutable realized validation versions.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "qualityPlanId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "revisionId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "expectedDesignHash": {
+            "type": "string",
+            "pattern": "^sha256:.*"
+          },
+          "realization": {},
+          "responseMode": {
+            "default": "summary",
+            "type": "string",
+            "enum": ["summary", "evidenceOnly", "blockersOnly", "linksOnly", "full"]
+          }
+        },
+        "required": ["qualityPlanId", "revisionId", "expectedDesignHash", "realization", "responseMode"],
         "additionalProperties": false
       }
     },
@@ -3661,20 +3692,110 @@
           "responseMode": {
             "default": "summary",
             "type": "string",
-            "enum": [
-              "summary",
-              "evidenceOnly",
-              "blockersOnly",
-              "linksOnly",
-              "full"
-            ]
+            "enum": ["summary", "evidenceOnly", "blockersOnly", "linksOnly", "full"]
           }
         },
-        "required": [
-          "planId",
-          "limit",
-          "responseMode"
-        ],
+        "required": ["planId", "limit", "responseMode"],
+        "additionalProperties": false
+      }
+    },
+    {
+      "kind": "tool",
+      "name": "validation_design_approve",
+      "description": "Approve obligation-linked scenarios; mechanical selectors, runtime bindings, and locators are intentionally outside this review gate.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "qualityPlanId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "revisionId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "expectedDesignHash": {
+            "type": "string",
+            "pattern": "^sha256:.*"
+          },
+          "approvedBy": {
+            "type": "string",
+            "minLength": 1
+          },
+          "responseMode": {
+            "default": "summary",
+            "type": "string",
+            "enum": ["summary", "evidenceOnly", "blockersOnly", "linksOnly", "full"]
+          }
+        },
+        "required": ["qualityPlanId", "revisionId", "expectedDesignHash", "approvedBy", "responseMode"],
+        "additionalProperties": false
+      }
+    },
+    {
+      "kind": "tool",
+      "name": "validation_design_propose",
+      "description": "Propose obligation-linked behavioral scenarios, assertions, coverage, assurance, matrix intent, and limitations.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "qualityPlanId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "revisionId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "proposal": {},
+          "idempotencyKey": {
+            "type": "string",
+            "minLength": 1
+          },
+          "responseMode": {
+            "default": "summary",
+            "type": "string",
+            "enum": ["summary", "evidenceOnly", "blockersOnly", "linksOnly", "full"]
+          }
+        },
+        "required": ["qualityPlanId", "revisionId", "proposal", "idempotencyKey", "responseMode"],
+        "additionalProperties": false
+      }
+    },
+    {
+      "kind": "tool",
+      "name": "validation_design_revise",
+      "description": "Pending service: revise scenario design after behavioral, assertion, coverage, limitation, or matrix feedback.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "qualityPlanId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "revisionId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "expectedDesignHash": {
+            "type": "string",
+            "pattern": "^sha256:.*"
+          },
+          "revision": {},
+          "idempotencyKey": {
+            "type": "string",
+            "minLength": 1
+          },
+          "responseMode": {
+            "default": "summary",
+            "type": "string",
+            "enum": ["summary", "evidenceOnly", "blockersOnly", "linksOnly", "full"]
+          }
+        },
+        "required": ["qualityPlanId", "revisionId", "expectedDesignHash", "revision", "idempotencyKey", "responseMode"],
         "additionalProperties": false
       }
     },
@@ -3691,10 +3812,7 @@
           },
           "scope": {
             "type": "string",
-            "enum": [
-              "test_artifact",
-              "product_scope"
-            ]
+            "enum": ["test_artifact", "product_scope"]
           },
           "target": {
             "oneOf": [
@@ -3706,9 +3824,7 @@
                     "const": "plan"
                   }
                 },
-                "required": [
-                  "type"
-                ],
+                "required": ["type"],
                 "additionalProperties": false
               },
               {
@@ -3722,10 +3838,7 @@
                     "type": "string"
                   }
                 },
-                "required": [
-                  "type",
-                  "taskId"
-                ],
+                "required": ["type", "taskId"],
                 "additionalProperties": false
               },
               {
@@ -3739,10 +3852,7 @@
                     "type": "string"
                   }
                 },
-                "required": [
-                  "type",
-                  "validationId"
-                ],
+                "required": ["type", "validationId"],
                 "additionalProperties": false
               },
               {
@@ -3756,10 +3866,7 @@
                     "type": "string"
                   }
                 },
-                "required": [
-                  "type",
-                  "resultId"
-                ],
+                "required": ["type", "resultId"],
                 "additionalProperties": false
               },
               {
@@ -3773,10 +3880,7 @@
                     "type": "string"
                   }
                 },
-                "required": [
-                  "type",
-                  "path"
-                ],
+                "required": ["type", "path"],
                 "additionalProperties": false
               }
             ]
@@ -3801,12 +3905,7 @@
             }
           }
         },
-        "required": [
-          "planId",
-          "scope",
-          "target",
-          "body"
-        ],
+        "required": ["planId", "scope", "target", "body"],
         "additionalProperties": false
       }
     },
@@ -3831,12 +3930,45 @@
             "type": "string"
           }
         },
-        "required": [
-          "planId",
-          "path",
-          "contentHash",
-          "approvedBy"
-        ],
+        "required": ["planId", "path", "contentHash", "approvedBy"],
+        "additionalProperties": false
+      }
+    },
+    {
+      "kind": "tool",
+      "name": "validation_publish",
+      "description": "Publish realized validation versions using an expected compilation hash after mechanical bindings are resolved.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "qualityPlanId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "revisionId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "validationVersionIds": {
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "expectedCompilationHash": {
+            "type": "string",
+            "pattern": "^sha256:.*"
+          },
+          "responseMode": {
+            "default": "summary",
+            "type": "string",
+            "enum": ["summary", "evidenceOnly", "blockersOnly", "linksOnly", "full"]
+          }
+        },
+        "required": ["qualityPlanId", "revisionId", "validationVersionIds", "expectedCompilationHash", "responseMode"],
         "additionalProperties": false
       }
     },
@@ -3859,11 +3991,7 @@
             "minLength": 1
           }
         },
-        "required": [
-          "planId",
-          "idempotencyKey",
-          "reason"
-        ],
+        "required": ["planId", "idempotencyKey", "reason"],
         "additionalProperties": false
       }
     },
@@ -3882,10 +4010,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "planId",
-          "idempotencyKey"
-        ],
+        "required": ["planId", "idempotencyKey"],
         "additionalProperties": false
       }
     },
@@ -3904,20 +4029,45 @@
           "responseMode": {
             "default": "summary",
             "type": "string",
-            "enum": [
-              "summary",
-              "evidenceOnly",
-              "blockersOnly",
-              "linksOnly",
-              "full"
-            ]
+            "enum": ["summary", "evidenceOnly", "blockersOnly", "linksOnly", "full"]
           }
         },
-        "required": [
-          "planId",
-          "proposal",
-          "responseMode"
-        ],
+        "required": ["planId", "proposal", "responseMode"],
+        "additionalProperties": false
+      }
+    },
+    {
+      "kind": "tool",
+      "name": "validation_reuse_resolve",
+      "description": "Pending service: resolve scenario realization reuse as exact_match, compatible_reuse, version_required, no_match, or ambiguous.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "qualityPlanId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "revisionId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "candidates": {
+            "minItems": 1,
+            "type": "array",
+            "items": {}
+          },
+          "idempotencyKey": {
+            "type": "string",
+            "minLength": 1
+          },
+          "responseMode": {
+            "default": "summary",
+            "type": "string",
+            "enum": ["summary", "evidenceOnly", "blockersOnly", "linksOnly", "full"]
+          }
+        },
+        "required": ["qualityPlanId", "revisionId", "candidates", "idempotencyKey", "responseMode"],
         "additionalProperties": false
       }
     },
@@ -3947,21 +4097,10 @@
           "responseMode": {
             "default": "summary",
             "type": "string",
-            "enum": [
-              "summary",
-              "evidenceOnly",
-              "blockersOnly",
-              "linksOnly",
-              "full"
-            ]
+            "enum": ["summary", "evidenceOnly", "blockersOnly", "linksOnly", "full"]
           }
         },
-        "required": [
-          "planId",
-          "afterSequence",
-          "timeoutMs",
-          "responseMode"
-        ],
+        "required": ["planId", "afterSequence", "timeoutMs", "responseMode"],
         "additionalProperties": false
       }
     },
@@ -3977,9 +4116,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "planId"
-        ],
+        "required": ["planId"],
         "additionalProperties": false
       }
     },
@@ -4010,9 +4147,7 @@
             }
           }
         },
-        "required": [
-          "planId"
-        ],
+        "required": ["planId"],
         "additionalProperties": false
       }
     }
@@ -4090,8 +4225,18 @@
     },
     {
       "kind": "resource",
+      "name": "workflow-assessment",
+      "uri": "appraise://workflow/assessment"
+    },
+    {
+      "kind": "resource",
       "name": "workflow-planning",
       "uri": "appraise://workflow/planning"
+    },
+    {
+      "kind": "resource",
+      "name": "workflow-quality-design",
+      "uri": "appraise://workflow/quality-design"
     },
     {
       "kind": "resource",
@@ -4115,9 +4260,240 @@
             "type": "string"
           }
         },
-        "required": [
-          "planId"
-        ],
+        "required": ["planId"],
+        "additionalProperties": false
+      }
+    },
+    {
+      "kind": "tool",
+      "name": "assessment_create",
+      "description": "Create a repeatable Quality Plan Assessment for an immutable evaluation subject digest.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "qualityPlanId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "revisionId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "subject": {},
+          "baselineAssessmentId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "idempotencyKey": {
+            "type": "string",
+            "minLength": 1
+          },
+          "responseMode": {
+            "default": "summary",
+            "type": "string",
+            "enum": ["summary", "evidenceOnly", "blockersOnly", "linksOnly", "full"]
+          }
+        },
+        "required": ["qualityPlanId", "revisionId", "subject", "idempotencyKey", "responseMode"],
+        "additionalProperties": false
+      }
+    },
+    {
+      "kind": "tool",
+      "name": "assessment_decide",
+      "description": "Issue an AssessmentDecision for a reviewed Quality Plan Assessment with current requirement alignment.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "assessmentId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "expectedEvidenceSetHash": {
+            "type": "string",
+            "pattern": "^sha256:.*"
+          },
+          "decision": {
+            "type": "string",
+            "enum": ["accepted", "rejected", "accepted_with_limitations"]
+          },
+          "decidedBy": {
+            "type": "string",
+            "minLength": 1
+          },
+          "rationale": {
+            "type": "string",
+            "minLength": 1
+          },
+          "responseMode": {
+            "default": "summary",
+            "type": "string",
+            "enum": ["summary", "evidenceOnly", "blockersOnly", "linksOnly", "full"]
+          }
+        },
+        "required": ["assessmentId", "expectedEvidenceSetHash", "decision", "decidedBy", "rationale", "responseMode"],
+        "additionalProperties": false
+      }
+    },
+    {
+      "kind": "tool",
+      "name": "assessment_diagnose",
+      "description": "Read the current assessment readiness and blocker packet; runtime and sealed-evidence diagnostics remain pending service publication.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "assessmentId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "responseMode": {
+            "default": "summary",
+            "type": "string",
+            "enum": ["summary", "evidenceOnly", "blockersOnly", "linksOnly", "full"]
+          }
+        },
+        "required": ["assessmentId", "responseMode"],
+        "additionalProperties": false
+      }
+    },
+    {
+      "kind": "tool",
+      "name": "assessment_readiness",
+      "description": "Read current assessment readiness blockers for scenario approval, published validation versions, and requirement alignment.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "assessmentId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "responseMode": {
+            "default": "summary",
+            "type": "string",
+            "enum": ["summary", "evidenceOnly", "blockersOnly", "linksOnly", "full"]
+          }
+        },
+        "required": ["assessmentId", "responseMode"],
+        "additionalProperties": false
+      }
+    },
+    {
+      "kind": "tool",
+      "name": "assessment_reconcile",
+      "description": "Pending service: reconcile terminal runs into sealed evidence receipts and immutable assessment evidence sets.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "assessmentId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "runIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "idempotencyKey": {
+            "type": "string",
+            "minLength": 1
+          },
+          "responseMode": {
+            "default": "summary",
+            "type": "string",
+            "enum": ["summary", "evidenceOnly", "blockersOnly", "linksOnly", "full"]
+          }
+        },
+        "required": ["assessmentId", "idempotencyKey", "responseMode"],
+        "additionalProperties": false
+      }
+    },
+    {
+      "kind": "tool",
+      "name": "assessment_review",
+      "description": "Read the assessment review packet, alignment status, evidence hash, assurance observations, and decision blockers.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "assessmentId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "responseMode": {
+            "default": "summary",
+            "type": "string",
+            "enum": ["summary", "evidenceOnly", "blockersOnly", "linksOnly", "full"]
+          }
+        },
+        "required": ["assessmentId", "responseMode"],
+        "additionalProperties": false
+      }
+    },
+    {
+      "kind": "tool",
+      "name": "assessment_run",
+      "description": "Pending service: run approved validation versions for an assessment or standalone evidence-only execution; decisions require reviewed assessments.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "assessmentId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "validationVersionIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "subject": {},
+          "runtime": {},
+          "idempotencyKey": {
+            "type": "string",
+            "minLength": 1
+          },
+          "responseMode": {
+            "default": "summary",
+            "type": "string",
+            "enum": ["summary", "evidenceOnly", "blockersOnly", "linksOnly", "full"]
+          }
+        },
+        "required": ["idempotencyKey", "responseMode"],
+        "additionalProperties": false
+      }
+    },
+    {
+      "kind": "tool",
+      "name": "assessment_stop",
+      "description": "Pending service: stop an in-flight assessment run while preserving partial sealed evidence receipts.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "assessmentId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1
+          },
+          "responseMode": {
+            "default": "summary",
+            "type": "string",
+            "enum": ["summary", "evidenceOnly", "blockersOnly", "linksOnly", "full"]
+          }
+        },
+        "required": ["assessmentId", "reason", "responseMode"],
         "additionalProperties": false
       }
     },
@@ -4133,9 +4509,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "planId"
-        ],
+        "required": ["planId"],
         "additionalProperties": false
       }
     },
@@ -4153,19 +4527,10 @@
           "responseMode": {
             "default": "summary",
             "type": "string",
-            "enum": [
-              "summary",
-              "evidenceOnly",
-              "blockersOnly",
-              "linksOnly",
-              "full"
-            ]
+            "enum": ["summary", "evidenceOnly", "blockersOnly", "linksOnly", "full"]
           }
         },
-        "required": [
-          "planId",
-          "responseMode"
-        ],
+        "required": ["planId", "responseMode"],
         "additionalProperties": false
       }
     },
@@ -4188,11 +4553,7 @@
             "minLength": 1
           }
         },
-        "required": [
-          "planId",
-          "attemptId",
-          "acknowledgedBy"
-        ],
+        "required": ["planId", "attemptId", "acknowledgedBy"],
         "additionalProperties": false
       }
     },
@@ -4210,19 +4571,10 @@
           "responseMode": {
             "default": "summary",
             "type": "string",
-            "enum": [
-              "summary",
-              "evidenceOnly",
-              "blockersOnly",
-              "linksOnly",
-              "full"
-            ]
+            "enum": ["summary", "evidenceOnly", "blockersOnly", "linksOnly", "full"]
           }
         },
-        "required": [
-          "planId",
-          "responseMode"
-        ],
+        "required": ["planId", "responseMode"],
         "additionalProperties": false
       }
     },
@@ -4245,11 +4597,7 @@
             "minLength": 1
           }
         },
-        "required": [
-          "planId",
-          "attemptId",
-          "justification"
-        ],
+        "required": ["planId", "attemptId", "justification"],
         "additionalProperties": false
       }
     },
@@ -4275,21 +4623,10 @@
           "responseMode": {
             "default": "summary",
             "type": "string",
-            "enum": [
-              "summary",
-              "evidenceOnly",
-              "blockersOnly",
-              "linksOnly",
-              "full"
-            ]
+            "enum": ["summary", "evidenceOnly", "blockersOnly", "linksOnly", "full"]
           }
         },
-        "required": [
-          "planId",
-          "reason",
-          "expectedValidationHash",
-          "responseMode"
-        ],
+        "required": ["planId", "reason", "expectedValidationHash", "responseMode"],
         "additionalProperties": false
       }
     },
@@ -4307,19 +4644,10 @@
           "responseMode": {
             "default": "summary",
             "type": "string",
-            "enum": [
-              "summary",
-              "evidenceOnly",
-              "blockersOnly",
-              "linksOnly",
-              "full"
-            ]
+            "enum": ["summary", "evidenceOnly", "blockersOnly", "linksOnly", "full"]
           }
         },
-        "required": [
-          "planId",
-          "responseMode"
-        ],
+        "required": ["planId", "responseMode"],
         "additionalProperties": false
       }
     },
@@ -4355,12 +4683,7 @@
                   "maximum": 9007199254740991
                 }
               },
-              "required": [
-                "phase",
-                "activeAppraiseMs",
-                "activeAgentMs",
-                "humanReviewMs"
-              ],
+              "required": ["phase", "activeAppraiseMs", "activeAgentMs", "humanReviewMs"],
               "additionalProperties": false
             }
           },
@@ -4388,13 +4711,7 @@
             "maximum": 9007199254740991
           }
         },
-        "required": [
-          "phases",
-          "responseBytes",
-          "operations",
-          "retries",
-          "approvals"
-        ],
+        "required": ["phases", "responseBytes", "operations", "retries", "approvals"],
         "additionalProperties": false
       }
     },
@@ -4413,10 +4730,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "planId",
-          "connectionId"
-        ],
+        "required": ["planId", "connectionId"],
         "additionalProperties": false
       }
     },
@@ -4438,9 +4752,7 @@
             "type": "boolean"
           }
         },
-        "required": [
-          "planId"
-        ],
+        "required": ["planId"],
         "additionalProperties": false
       }
     },
@@ -4464,13 +4776,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "plan",
-          "target",
-          "receipt",
-          "delegatedCoordinatorId",
-          "operationKey"
-        ],
+        "required": ["plan", "target", "receipt", "delegatedCoordinatorId", "operationKey"],
         "additionalProperties": false
       }
     },
@@ -4485,10 +4791,7 @@
           "submission": {},
           "receipt": {}
         },
-        "required": [
-          "submission",
-          "receipt"
-        ],
+        "required": ["submission", "receipt"],
         "additionalProperties": false
       }
     },
@@ -4568,9 +4871,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "id"
-        ],
+        "required": ["id"],
         "additionalProperties": false
       }
     },
@@ -4592,10 +4893,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "id",
-          "revokedBy"
-        ],
+        "required": ["id", "revokedBy"],
         "additionalProperties": false
       }
     },
@@ -4635,20 +4933,10 @@
           "responseMode": {
             "default": "summary",
             "type": "string",
-            "enum": [
-              "summary",
-              "evidenceOnly",
-              "blockersOnly",
-              "linksOnly",
-              "full"
-            ]
+            "enum": ["summary", "evidenceOnly", "blockersOnly", "linksOnly", "full"]
           }
         },
-        "required": [
-          "planId",
-          "type",
-          "responseMode"
-        ],
+        "required": ["planId", "type", "responseMode"],
         "additionalProperties": false
       }
     },
@@ -4672,21 +4960,10 @@
           "responseMode": {
             "default": "summary",
             "type": "string",
-            "enum": [
-              "summary",
-              "evidenceOnly",
-              "blockersOnly",
-              "linksOnly",
-              "full"
-            ]
+            "enum": ["summary", "evidenceOnly", "blockersOnly", "linksOnly", "full"]
           }
         },
-        "required": [
-          "planId",
-          "approvedBy",
-          "contentHash",
-          "responseMode"
-        ],
+        "required": ["planId", "approvedBy", "contentHash", "responseMode"],
         "additionalProperties": false
       }
     },
@@ -4704,19 +4981,10 @@
           "responseMode": {
             "default": "summary",
             "type": "string",
-            "enum": [
-              "summary",
-              "evidenceOnly",
-              "blockersOnly",
-              "linksOnly",
-              "full"
-            ]
+            "enum": ["summary", "evidenceOnly", "blockersOnly", "linksOnly", "full"]
           }
         },
-        "required": [
-          "planId",
-          "responseMode"
-        ],
+        "required": ["planId", "responseMode"],
         "additionalProperties": false
       }
     },
@@ -4733,11 +5001,7 @@
           },
           "action": {
             "type": "string",
-            "enum": [
-              "pause",
-              "resume",
-              "cancel"
-            ]
+            "enum": ["pause", "resume", "cancel"]
           },
           "stopActiveRuns": {
             "type": "boolean"
@@ -4745,20 +5009,10 @@
           "responseMode": {
             "default": "summary",
             "type": "string",
-            "enum": [
-              "summary",
-              "evidenceOnly",
-              "blockersOnly",
-              "linksOnly",
-              "full"
-            ]
+            "enum": ["summary", "evidenceOnly", "blockersOnly", "linksOnly", "full"]
           }
         },
-        "required": [
-          "planId",
-          "action",
-          "responseMode"
-        ],
+        "required": ["planId", "action", "responseMode"],
         "additionalProperties": false
       }
     },
@@ -4789,21 +5043,10 @@
           "responseMode": {
             "default": "summary",
             "type": "string",
-            "enum": [
-              "summary",
-              "evidenceOnly",
-              "blockersOnly",
-              "linksOnly",
-              "full"
-            ]
+            "enum": ["summary", "evidenceOnly", "blockersOnly", "linksOnly", "full"]
           }
         },
-        "required": [
-          "planId",
-          "affectedTaskIds",
-          "confirmed",
-          "responseMode"
-        ],
+        "required": ["planId", "affectedTaskIds", "confirmed", "responseMode"],
         "additionalProperties": false
       }
     },
@@ -4829,20 +5072,10 @@
           "responseMode": {
             "default": "summary",
             "type": "string",
-            "enum": [
-              "summary",
-              "evidenceOnly",
-              "blockersOnly",
-              "linksOnly",
-              "full"
-            ]
+            "enum": ["summary", "evidenceOnly", "blockersOnly", "linksOnly", "full"]
           }
         },
-        "required": [
-          "planId",
-          "groupIds",
-          "responseMode"
-        ],
+        "required": ["planId", "groupIds", "responseMode"],
         "additionalProperties": false
       }
     },
@@ -4860,19 +5093,10 @@
           "responseMode": {
             "default": "summary",
             "type": "string",
-            "enum": [
-              "summary",
-              "evidenceOnly",
-              "blockersOnly",
-              "linksOnly",
-              "full"
-            ]
+            "enum": ["summary", "evidenceOnly", "blockersOnly", "linksOnly", "full"]
           }
         },
-        "required": [
-          "planId",
-          "responseMode"
-        ],
+        "required": ["planId", "responseMode"],
         "additionalProperties": false
       }
     },
@@ -4892,12 +5116,7 @@
           },
           "status": {
             "type": "string",
-            "enum": [
-              "pending",
-              "in_progress",
-              "implemented",
-              "verified"
-            ]
+            "enum": ["pending", "in_progress", "implemented", "verified"]
           },
           "commitHash": {
             "type": "string"
@@ -4905,21 +5124,10 @@
           "responseMode": {
             "default": "summary",
             "type": "string",
-            "enum": [
-              "summary",
-              "evidenceOnly",
-              "blockersOnly",
-              "linksOnly",
-              "full"
-            ]
+            "enum": ["summary", "evidenceOnly", "blockersOnly", "linksOnly", "full"]
           }
         },
-        "required": [
-          "planId",
-          "taskId",
-          "status",
-          "responseMode"
-        ],
+        "required": ["planId", "taskId", "status", "responseMode"],
         "additionalProperties": false
       }
     },
@@ -4950,27 +5158,15 @@
           },
           "action": {
             "type": "string",
-            "enum": [
-              "check",
-              "launch",
-              "stop"
-            ]
+            "enum": ["check", "launch", "stop"]
           },
           "responseMode": {
             "default": "summary",
             "type": "string",
-            "enum": [
-              "summary",
-              "evidenceOnly",
-              "blockersOnly",
-              "linksOnly",
-              "full"
-            ]
+            "enum": ["summary", "evidenceOnly", "blockersOnly", "linksOnly", "full"]
           }
         },
-        "required": [
-          "planId"
-        ],
+        "required": ["planId"],
         "additionalProperties": false
       }
     },
@@ -5006,19 +5202,10 @@
           "responseMode": {
             "default": "summary",
             "type": "string",
-            "enum": [
-              "summary",
-              "evidenceOnly",
-              "blockersOnly",
-              "linksOnly",
-              "full"
-            ]
+            "enum": ["summary", "evidenceOnly", "blockersOnly", "linksOnly", "full"]
           }
         },
-        "required": [
-          "planId",
-          "responseMode"
-        ],
+        "required": ["planId", "responseMode"],
         "additionalProperties": false
       }
     },
@@ -5057,13 +5244,7 @@
               },
               "status": {
                 "type": "string",
-                "enum": [
-                  "running",
-                  "passed",
-                  "failed",
-                  "cancelled",
-                  "infrastructure_failure"
-                ]
+                "enum": ["running", "passed", "failed", "cancelled", "infrastructure_failure"]
               },
               "fresh": {
                 "type": "boolean"
@@ -5075,18 +5256,12 @@
               "evidenceSource": {
                 "default": "manual",
                 "type": "string",
-                "enum": [
-                  "managed",
-                  "manual"
-                ]
+                "enum": ["managed", "manual"]
               },
               "assurance": {
                 "default": "reduced",
                 "type": "string",
-                "enum": [
-                  "full",
-                  "reduced"
-                ]
+                "enum": ["full", "reduced"]
               },
               "testRunId": {
                 "type": "string",
@@ -5128,10 +5303,7 @@
                     "minLength": 1
                   }
                 },
-                "required": [
-                  "gherkinPaths",
-                  "stepPaths"
-                ],
+                "required": ["gherkinPaths", "stepPaths"],
                 "additionalProperties": false
               },
               "evidenceUrls": {
@@ -5169,10 +5341,7 @@
                     }
                   }
                 },
-                "required": [
-                  "traceUrls",
-                  "screenshotUrls"
-                ],
+                "required": ["traceUrls", "screenshotUrls"],
                 "additionalProperties": false
               },
               "failureSignatureHash": {
@@ -5207,20 +5376,10 @@
           "responseMode": {
             "default": "summary",
             "type": "string",
-            "enum": [
-              "summary",
-              "evidenceOnly",
-              "blockersOnly",
-              "linksOnly",
-              "full"
-            ]
+            "enum": ["summary", "evidenceOnly", "blockersOnly", "linksOnly", "full"]
           }
         },
-        "required": [
-          "planId",
-          "run",
-          "responseMode"
-        ],
+        "required": ["planId", "run", "responseMode"],
         "additionalProperties": false
       }
     },
@@ -5256,18 +5415,10 @@
           "responseMode": {
             "default": "summary",
             "type": "string",
-            "enum": [
-              "summary",
-              "evidenceOnly",
-              "blockersOnly",
-              "linksOnly",
-              "full"
-            ]
+            "enum": ["summary", "evidenceOnly", "blockersOnly", "linksOnly", "full"]
           }
         },
-        "required": [
-          "planId"
-        ],
+        "required": ["planId"],
         "additionalProperties": false
       }
     },
@@ -5303,9 +5454,7 @@
             "maximum": 4
           }
         },
-        "required": [
-          "fromId"
-        ],
+        "required": ["fromId"],
         "additionalProperties": false
       }
     },
@@ -5325,10 +5474,7 @@
             "minLength": 1
           }
         },
-        "required": [
-          "planId",
-          "query"
-        ],
+        "required": ["planId", "query"],
         "additionalProperties": false
       }
     },
@@ -5363,10 +5509,7 @@
                   "minLength": 1
                 }
               },
-              "required": [
-                "id",
-                "title"
-              ],
+              "required": ["id", "title"],
               "additionalProperties": false
             }
           },
@@ -5396,19 +5539,12 @@
                   }
                 }
               },
-              "required": [
-                "planId",
-                "milestoneId"
-              ],
+              "required": ["planId", "milestoneId"],
               "additionalProperties": false
             }
           }
         },
-        "required": [
-          "title",
-          "milestones",
-          "plans"
-        ],
+        "required": ["title", "milestones", "plans"],
         "additionalProperties": false
       }
     },
@@ -5449,16 +5585,12 @@
                   "type": "string"
                 }
               },
-              "required": [
-                "id"
-              ],
+              "required": ["id"],
               "additionalProperties": false
             }
           }
         },
-        "required": [
-          "operationRefs"
-        ],
+        "required": ["operationRefs"],
         "additionalProperties": false
       }
     },
@@ -5494,19 +5626,11 @@
           },
           "runtime": {
             "type": "string",
-            "enum": [
-              "browser",
-              "api",
-              "node",
-              "database"
-            ]
+            "enum": ["browser", "api", "node", "database"]
           },
           "surface": {
             "type": "string",
-            "enum": [
-              "human",
-              "agent"
-            ]
+            "enum": ["human", "agent"]
           },
           "deprecated": {
             "type": "boolean"
@@ -5517,9 +5641,7 @@
             "maximum": 100
           }
         },
-        "required": [
-          "query"
-        ],
+        "required": ["query"],
         "additionalProperties": false
       }
     },
@@ -5549,10 +5671,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "planId",
-          "narrative"
-        ],
+        "required": ["planId", "narrative"],
         "additionalProperties": false
       }
     },
@@ -5636,11 +5755,7 @@
                           }
                         }
                       },
-                      "required": [
-                        "domain",
-                        "confidence",
-                        "evidence"
-                      ],
+                      "required": ["domain", "confidence", "evidence"],
                       "additionalProperties": false
                     }
                   },
@@ -5663,13 +5778,7 @@
                         },
                         "kind": {
                           "type": "string",
-                          "enum": [
-                            "functional",
-                            "data",
-                            "quality",
-                            "validation",
-                            "constraint"
-                          ]
+                          "enum": ["functional", "data", "quality", "validation", "constraint"]
                         },
                         "coveredBy": {
                           "type": "array",
@@ -5682,17 +5791,10 @@
                               },
                               "surface": {
                                 "type": "string",
-                                "enum": [
-                                  "description",
-                                  "acceptanceCriteria",
-                                  "validationIntent"
-                                ]
+                                "enum": ["description", "acceptanceCriteria", "validationIntent"]
                               }
                             },
-                            "required": [
-                              "taskId",
-                              "surface"
-                            ],
+                            "required": ["taskId", "surface"],
                             "additionalProperties": false
                           }
                         },
@@ -5701,12 +5803,7 @@
                           "minLength": 1
                         }
                       },
-                      "required": [
-                        "id",
-                        "text",
-                        "kind",
-                        "coveredBy"
-                      ],
+                      "required": ["id", "text", "kind", "coveredBy"],
                       "additionalProperties": false
                     }
                   },
@@ -5731,20 +5828,12 @@
                           "minLength": 1
                         }
                       },
-                      "required": [
-                        "code",
-                        "message"
-                      ],
+                      "required": ["code", "message"],
                       "additionalProperties": false
                     }
                   }
                 },
-                "required": [
-                  "domainCandidates",
-                  "requirements",
-                  "uncoveredRequirementIds",
-                  "warnings"
-                ],
+                "required": ["domainCandidates", "requirements", "uncoveredRequirementIds", "warnings"],
                 "additionalProperties": false
               },
               "tasks": {
@@ -5778,13 +5867,7 @@
                       "minLength": 1
                     }
                   },
-                  "required": [
-                    "id",
-                    "title",
-                    "description",
-                    "acceptanceCriteria",
-                    "validationIntent"
-                  ],
+                  "required": ["id", "title", "description", "acceptanceCriteria", "validationIntent"],
                   "additionalProperties": false
                 }
               },
@@ -5803,18 +5886,10 @@
                     },
                     "type": {
                       "type": "string",
-                      "enum": [
-                        "depends-on",
-                        "blocks",
-                        "relates-to"
-                      ]
+                      "enum": ["depends-on", "blocks", "relates-to"]
                     }
                   },
-                  "required": [
-                    "from",
-                    "to",
-                    "type"
-                  ],
+                  "required": ["from", "to", "type"],
                   "additionalProperties": false
                 }
               },
@@ -5836,10 +5911,7 @@
                       }
                     }
                   },
-                  "required": [
-                    "id",
-                    "taskIds"
-                  ],
+                  "required": ["id", "taskIds"],
                   "additionalProperties": false
                 }
               },
@@ -5867,19 +5939,10 @@
           "responseMode": {
             "default": "summary",
             "type": "string",
-            "enum": [
-              "summary",
-              "evidenceOnly",
-              "blockersOnly",
-              "linksOnly",
-              "full"
-            ]
+            "enum": ["summary", "evidenceOnly", "blockersOnly", "linksOnly", "full"]
           }
         },
-        "required": [
-          "plan",
-          "responseMode"
-        ],
+        "required": ["plan", "responseMode"],
         "additionalProperties": false
       }
     },
@@ -5900,10 +5963,7 @@
             "maximum": 9007199254740991
           }
         },
-        "required": [
-          "planId",
-          "sequence"
-        ],
+        "required": ["planId", "sequence"],
         "additionalProperties": false
       }
     },
@@ -5924,10 +5984,7 @@
             "maximum": 9007199254740991
           }
         },
-        "required": [
-          "planId",
-          "acknowledgeThroughSequence"
-        ],
+        "required": ["planId", "acknowledgeThroughSequence"],
         "additionalProperties": false
       }
     },
@@ -5957,21 +6014,10 @@
           "responseMode": {
             "default": "summary",
             "type": "string",
-            "enum": [
-              "summary",
-              "evidenceOnly",
-              "blockersOnly",
-              "linksOnly",
-              "full"
-            ]
+            "enum": ["summary", "evidenceOnly", "blockersOnly", "linksOnly", "full"]
           }
         },
-        "required": [
-          "planId",
-          "afterSequence",
-          "limit",
-          "responseMode"
-        ],
+        "required": ["planId", "afterSequence", "limit", "responseMode"],
         "additionalProperties": false
       }
     },
@@ -5989,19 +6035,10 @@
           "responseMode": {
             "default": "summary",
             "type": "string",
-            "enum": [
-              "summary",
-              "evidenceOnly",
-              "blockersOnly",
-              "linksOnly",
-              "full"
-            ]
+            "enum": ["summary", "evidenceOnly", "blockersOnly", "linksOnly", "full"]
           }
         },
-        "required": [
-          "planId",
-          "responseMode"
-        ],
+        "required": ["planId", "responseMode"],
         "additionalProperties": false
       }
     },
@@ -6022,9 +6059,7 @@
             "maximum": 9007199254740991
           }
         },
-        "required": [
-          "planId"
-        ],
+        "required": ["planId"],
         "additionalProperties": false
       }
     },
@@ -6042,19 +6077,10 @@
           "responseMode": {
             "default": "summary",
             "type": "string",
-            "enum": [
-              "summary",
-              "evidenceOnly",
-              "blockersOnly",
-              "linksOnly",
-              "full"
-            ]
+            "enum": ["summary", "evidenceOnly", "blockersOnly", "linksOnly", "full"]
           }
         },
-        "required": [
-          "planId",
-          "responseMode"
-        ],
+        "required": ["planId", "responseMode"],
         "additionalProperties": false
       }
     },
@@ -6084,21 +6110,10 @@
           "responseMode": {
             "default": "summary",
             "type": "string",
-            "enum": [
-              "summary",
-              "evidenceOnly",
-              "blockersOnly",
-              "linksOnly",
-              "full"
-            ]
+            "enum": ["summary", "evidenceOnly", "blockersOnly", "linksOnly", "full"]
           }
         },
-        "required": [
-          "planId",
-          "afterSequence",
-          "timeoutMs",
-          "responseMode"
-        ],
+        "required": ["planId", "afterSequence", "timeoutMs", "responseMode"],
         "additionalProperties": false
       }
     },
@@ -6114,9 +6129,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "planId"
-        ],
+        "required": ["planId"],
         "additionalProperties": false
       }
     },
@@ -6210,11 +6223,7 @@
                           }
                         }
                       },
-                      "required": [
-                        "domain",
-                        "confidence",
-                        "evidence"
-                      ],
+                      "required": ["domain", "confidence", "evidence"],
                       "additionalProperties": false
                     }
                   },
@@ -6237,13 +6246,7 @@
                         },
                         "kind": {
                           "type": "string",
-                          "enum": [
-                            "functional",
-                            "data",
-                            "quality",
-                            "validation",
-                            "constraint"
-                          ]
+                          "enum": ["functional", "data", "quality", "validation", "constraint"]
                         },
                         "coveredBy": {
                           "type": "array",
@@ -6256,17 +6259,10 @@
                               },
                               "surface": {
                                 "type": "string",
-                                "enum": [
-                                  "description",
-                                  "acceptanceCriteria",
-                                  "validationIntent"
-                                ]
+                                "enum": ["description", "acceptanceCriteria", "validationIntent"]
                               }
                             },
-                            "required": [
-                              "taskId",
-                              "surface"
-                            ],
+                            "required": ["taskId", "surface"],
                             "additionalProperties": false
                           }
                         },
@@ -6275,12 +6271,7 @@
                           "minLength": 1
                         }
                       },
-                      "required": [
-                        "id",
-                        "text",
-                        "kind",
-                        "coveredBy"
-                      ],
+                      "required": ["id", "text", "kind", "coveredBy"],
                       "additionalProperties": false
                     }
                   },
@@ -6305,20 +6296,12 @@
                           "minLength": 1
                         }
                       },
-                      "required": [
-                        "code",
-                        "message"
-                      ],
+                      "required": ["code", "message"],
                       "additionalProperties": false
                     }
                   }
                 },
-                "required": [
-                  "domainCandidates",
-                  "requirements",
-                  "uncoveredRequirementIds",
-                  "warnings"
-                ],
+                "required": ["domainCandidates", "requirements", "uncoveredRequirementIds", "warnings"],
                 "additionalProperties": false
               },
               "tasks": {
@@ -6352,13 +6335,7 @@
                       "minLength": 1
                     }
                   },
-                  "required": [
-                    "id",
-                    "title",
-                    "description",
-                    "acceptanceCriteria",
-                    "validationIntent"
-                  ],
+                  "required": ["id", "title", "description", "acceptanceCriteria", "validationIntent"],
                   "additionalProperties": false
                 }
               },
@@ -6377,18 +6354,10 @@
                     },
                     "type": {
                       "type": "string",
-                      "enum": [
-                        "depends-on",
-                        "blocks",
-                        "relates-to"
-                      ]
+                      "enum": ["depends-on", "blocks", "relates-to"]
                     }
                   },
-                  "required": [
-                    "from",
-                    "to",
-                    "type"
-                  ],
+                  "required": ["from", "to", "type"],
                   "additionalProperties": false
                 }
               },
@@ -6410,10 +6379,7 @@
                       }
                     }
                   },
-                  "required": [
-                    "id",
-                    "taskIds"
-                  ],
+                  "required": ["id", "taskIds"],
                   "additionalProperties": false
                 }
               }
@@ -6432,11 +6398,7 @@
             "additionalProperties": false
           }
         },
-        "required": [
-          "planId",
-          "expectedHash",
-          "plan"
-        ],
+        "required": ["planId", "expectedHash", "plan"],
         "additionalProperties": false
       }
     },
@@ -6454,19 +6416,10 @@
           "responseMode": {
             "default": "summary",
             "type": "string",
-            "enum": [
-              "summary",
-              "evidenceOnly",
-              "blockersOnly",
-              "linksOnly",
-              "full"
-            ]
+            "enum": ["summary", "evidenceOnly", "blockersOnly", "linksOnly", "full"]
           }
         },
-        "required": [
-          "planId",
-          "responseMode"
-        ],
+        "required": ["planId", "responseMode"],
         "additionalProperties": false
       }
     },
@@ -6491,11 +6444,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "planId",
-          "taskId",
-          "status"
-        ],
+        "required": ["planId", "taskId", "status"],
         "additionalProperties": false
       }
     },
@@ -6519,10 +6468,7 @@
           "mode": {
             "default": "poll",
             "type": "string",
-            "enum": [
-              "poll",
-              "long_poll"
-            ]
+            "enum": ["poll", "long_poll"]
           },
           "timeoutMs": {
             "type": "integer",
@@ -6530,11 +6476,7 @@
             "maximum": 300000
           }
         },
-        "required": [
-          "planId",
-          "afterSequence",
-          "mode"
-        ],
+        "required": ["planId", "afterSequence", "mode"],
         "additionalProperties": false
       }
     },
@@ -6556,10 +6498,7 @@
             "maximum": 9007199254740991
           }
         },
-        "required": [
-          "planId",
-          "afterSequence"
-        ],
+        "required": ["planId", "afterSequence"],
         "additionalProperties": false
       }
     },
@@ -6643,11 +6582,7 @@
                           }
                         }
                       },
-                      "required": [
-                        "domain",
-                        "confidence",
-                        "evidence"
-                      ],
+                      "required": ["domain", "confidence", "evidence"],
                       "additionalProperties": false
                     }
                   },
@@ -6670,13 +6605,7 @@
                         },
                         "kind": {
                           "type": "string",
-                          "enum": [
-                            "functional",
-                            "data",
-                            "quality",
-                            "validation",
-                            "constraint"
-                          ]
+                          "enum": ["functional", "data", "quality", "validation", "constraint"]
                         },
                         "coveredBy": {
                           "type": "array",
@@ -6689,17 +6618,10 @@
                               },
                               "surface": {
                                 "type": "string",
-                                "enum": [
-                                  "description",
-                                  "acceptanceCriteria",
-                                  "validationIntent"
-                                ]
+                                "enum": ["description", "acceptanceCriteria", "validationIntent"]
                               }
                             },
-                            "required": [
-                              "taskId",
-                              "surface"
-                            ],
+                            "required": ["taskId", "surface"],
                             "additionalProperties": false
                           }
                         },
@@ -6708,12 +6630,7 @@
                           "minLength": 1
                         }
                       },
-                      "required": [
-                        "id",
-                        "text",
-                        "kind",
-                        "coveredBy"
-                      ],
+                      "required": ["id", "text", "kind", "coveredBy"],
                       "additionalProperties": false
                     }
                   },
@@ -6738,20 +6655,12 @@
                           "minLength": 1
                         }
                       },
-                      "required": [
-                        "code",
-                        "message"
-                      ],
+                      "required": ["code", "message"],
                       "additionalProperties": false
                     }
                   }
                 },
-                "required": [
-                  "domainCandidates",
-                  "requirements",
-                  "uncoveredRequirementIds",
-                  "warnings"
-                ],
+                "required": ["domainCandidates", "requirements", "uncoveredRequirementIds", "warnings"],
                 "additionalProperties": false
               },
               "tasks": {
@@ -6785,13 +6694,7 @@
                       "minLength": 1
                     }
                   },
-                  "required": [
-                    "id",
-                    "title",
-                    "description",
-                    "acceptanceCriteria",
-                    "validationIntent"
-                  ],
+                  "required": ["id", "title", "description", "acceptanceCriteria", "validationIntent"],
                   "additionalProperties": false
                 }
               },
@@ -6810,18 +6713,10 @@
                     },
                     "type": {
                       "type": "string",
-                      "enum": [
-                        "depends-on",
-                        "blocks",
-                        "relates-to"
-                      ]
+                      "enum": ["depends-on", "blocks", "relates-to"]
                     }
                   },
-                  "required": [
-                    "from",
-                    "to",
-                    "type"
-                  ],
+                  "required": ["from", "to", "type"],
                   "additionalProperties": false
                 }
               },
@@ -6843,10 +6738,7 @@
                       }
                     }
                   },
-                  "required": [
-                    "id",
-                    "taskIds"
-                  ],
+                  "required": ["id", "taskIds"],
                   "additionalProperties": false
                 }
               },
@@ -6873,9 +6765,7 @@
           },
           "targetMode": {
             "type": "string",
-            "enum": [
-              "hub"
-            ]
+            "enum": ["hub"]
           },
           "displayName": {
             "type": "string",
@@ -6884,28 +6774,15 @@
           "mode": {
             "default": "plan_then_wait",
             "type": "string",
-            "enum": [
-              "plan_only",
-              "plan_then_wait"
-            ]
+            "enum": ["plan_only", "plan_then_wait"]
           },
           "responseMode": {
             "default": "summary",
             "type": "string",
-            "enum": [
-              "summary",
-              "evidenceOnly",
-              "blockersOnly",
-              "linksOnly",
-              "full"
-            ]
+            "enum": ["summary", "evidenceOnly", "blockersOnly", "linksOnly", "full"]
           }
         },
-        "required": [
-          "plan",
-          "mode",
-          "responseMode"
-        ],
+        "required": ["plan", "mode", "responseMode"],
         "additionalProperties": false
       }
     },
@@ -6929,9 +6806,7 @@
             "type": "boolean"
           }
         },
-        "required": [
-          "path"
-        ],
+        "required": ["path"],
         "additionalProperties": false
       }
     },
@@ -7003,10 +6878,7 @@
           },
           "decision": {
             "type": "string",
-            "enum": [
-              "approved",
-              "denied"
-            ]
+            "enum": ["approved", "denied"]
           },
           "riskTier": {
             "type": "string",
@@ -7032,14 +6904,7 @@
             "minLength": 1
           }
         },
-        "required": [
-          "runId",
-          "requestId",
-          "decision",
-          "riskTier",
-          "requestedScope",
-          "decidedBy"
-        ],
+        "required": ["runId", "requestId", "decision", "riskTier", "requestedScope", "decidedBy"],
         "additionalProperties": false
       }
     },
@@ -7056,9 +6921,7 @@
             "minLength": 1
           }
         },
-        "required": [
-          "providerKey"
-        ],
+        "required": ["providerKey"],
         "additionalProperties": false
       }
     },
@@ -7076,9 +6939,7 @@
             "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
           }
         },
-        "required": [
-          "runId"
-        ],
+        "required": ["runId"],
         "additionalProperties": false
       }
     },
@@ -7112,10 +6973,7 @@
             "minLength": 1
           }
         },
-        "required": [
-          "targetProjectId",
-          "launchPrompt"
-        ],
+        "required": ["targetProjectId", "launchPrompt"],
         "additionalProperties": false
       }
     },
@@ -7133,9 +6991,7 @@
             "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
           }
         },
-        "required": [
-          "runId"
-        ],
+        "required": ["runId"],
         "additionalProperties": false
       }
     },
@@ -7202,9 +7058,237 @@
             ]
           }
         },
-        "required": [
-          "providerKey"
-        ],
+        "required": ["providerKey"],
+        "additionalProperties": false
+      }
+    },
+    {
+      "kind": "tool",
+      "name": "requirements_analyze",
+      "description": "Analyze the submitted source snapshot into a resolved requirement graph, queries, assumptions, and quality obligations.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "qualityPlanId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "revisionId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "responseMode": {
+            "default": "summary",
+            "type": "string",
+            "enum": ["summary", "evidenceOnly", "blockersOnly", "linksOnly", "full"]
+          }
+        },
+        "required": ["qualityPlanId", "responseMode"],
+        "additionalProperties": false
+      }
+    },
+    {
+      "kind": "tool",
+      "name": "requirements_answer_queries",
+      "description": "Answer, defer with rationale, or accept requirement queries as assumptions; unresolved blocking queries prevent approval.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "qualityPlanId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "revisionId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "answers": {
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "queryId": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "status": {
+                  "type": "string",
+                  "enum": ["ANSWERED", "DEFERRED", "ACCEPTED_ASSUMPTION"]
+                },
+                "answer": {
+                  "type": "string"
+                },
+                "rationale": {
+                  "type": "string"
+                }
+              },
+              "required": ["queryId", "status"],
+              "additionalProperties": false
+            }
+          },
+          "idempotencyKey": {
+            "type": "string",
+            "minLength": 1
+          },
+          "responseMode": {
+            "default": "summary",
+            "type": "string",
+            "enum": ["summary", "evidenceOnly", "blockersOnly", "linksOnly", "full"]
+          }
+        },
+        "required": ["qualityPlanId", "answers", "idempotencyKey", "responseMode"],
+        "additionalProperties": false
+      }
+    },
+    {
+      "kind": "tool",
+      "name": "requirements_approve",
+      "description": "Approve the resolved requirement graph and immutable QualityPlanRevision; blocking queries are rejected.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "qualityPlanId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "revisionId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "expectedRevisionHash": {
+            "type": "string",
+            "pattern": "^sha256:.*"
+          },
+          "approvedBy": {
+            "type": "string",
+            "minLength": 1
+          },
+          "responseMode": {
+            "default": "summary",
+            "type": "string",
+            "enum": ["summary", "evidenceOnly", "blockersOnly", "linksOnly", "full"]
+          }
+        },
+        "required": ["qualityPlanId", "revisionId", "expectedRevisionHash", "approvedBy", "responseMode"],
+        "additionalProperties": false
+      }
+    },
+    {
+      "kind": "tool",
+      "name": "requirements_graph_read",
+      "description": "Read the current requirement graph, quality obligations, approval state, and blocking queries.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "qualityPlanId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "revisionId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "responseMode": {
+            "default": "summary",
+            "type": "string",
+            "enum": ["summary", "evidenceOnly", "blockersOnly", "linksOnly", "full"]
+          }
+        },
+        "required": ["qualityPlanId", "responseMode"],
+        "additionalProperties": false
+      }
+    },
+    {
+      "kind": "tool",
+      "name": "requirements_report_drift",
+      "description": "Pending service: report requirement drift and proposed successor dispositions; human approval is required before successor adoption.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "qualityPlanId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "currentRevisionId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "drift": {},
+          "idempotencyKey": {
+            "type": "string",
+            "minLength": 1
+          },
+          "responseMode": {
+            "default": "summary",
+            "type": "string",
+            "enum": ["summary", "evidenceOnly", "blockersOnly", "linksOnly", "full"]
+          }
+        },
+        "required": ["qualityPlanId", "currentRevisionId", "drift", "idempotencyKey", "responseMode"],
+        "additionalProperties": false
+      }
+    },
+    {
+      "kind": "tool",
+      "name": "requirements_revise",
+      "description": "Pending service: create a successor Quality Plan revision; unchanged content-addressed requirements may be inherited.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "qualityPlanId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "expectedRevisionHash": {
+            "type": "string",
+            "pattern": "^sha256:.*"
+          },
+          "revision": {},
+          "idempotencyKey": {
+            "type": "string",
+            "minLength": 1
+          },
+          "responseMode": {
+            "default": "summary",
+            "type": "string",
+            "enum": ["summary", "evidenceOnly", "blockersOnly", "linksOnly", "full"]
+          }
+        },
+        "required": ["qualityPlanId", "expectedRevisionHash", "revision", "idempotencyKey", "responseMode"],
+        "additionalProperties": false
+      }
+    },
+    {
+      "kind": "tool",
+      "name": "requirements_submit_source",
+      "description": "Submit an immutable source specification snapshot for Appraise-owned requirement analysis and Quality Plan revisioning.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "target": {
+            "type": "string",
+            "minLength": 1
+          },
+          "source": {},
+          "idempotencyKey": {
+            "type": "string",
+            "minLength": 1
+          },
+          "responseMode": {
+            "default": "summary",
+            "type": "string",
+            "enum": ["summary", "evidenceOnly", "blockersOnly", "linksOnly", "full"]
+          }
+        },
+        "required": ["target", "source", "idempotencyKey", "responseMode"],
         "additionalProperties": false
       }
     },
@@ -7228,11 +7312,7 @@
           },
           "artifact": {}
         },
-        "required": [
-          "draftId",
-          "expectedRevision",
-          "artifact"
-        ],
+        "required": ["draftId", "expectedRevision", "artifact"],
         "additionalProperties": false
       }
     },
@@ -7255,10 +7335,7 @@
             "maximum": 9007199254740991
           }
         },
-        "required": [
-          "draftId",
-          "expectedRevision"
-        ],
+        "required": ["draftId", "expectedRevision"],
         "additionalProperties": false
       }
     },
@@ -7309,10 +7386,7 @@
                       "maxLength": 40
                     }
                   },
-                  "required": [
-                    "id",
-                    "version"
-                  ],
+                  "required": ["id", "version"],
                   "additionalProperties": false
                 }
               },
@@ -7338,10 +7412,7 @@
             "additionalProperties": false
           }
         },
-        "required": [
-          "definition",
-          "reuseEvidence"
-        ],
+        "required": ["definition", "reuseEvidence"],
         "additionalProperties": false
       }
     },
@@ -7364,10 +7435,7 @@
             "maximum": 9007199254740991
           }
         },
-        "required": [
-          "draftId",
-          "expectedRevision"
-        ],
+        "required": ["draftId", "expectedRevision"],
         "additionalProperties": false
       }
     },
@@ -7385,9 +7453,7 @@
             "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
           }
         },
-        "required": [
-          "draftId"
-        ],
+        "required": ["draftId"],
         "additionalProperties": false
       }
     },
@@ -7411,11 +7477,7 @@
           },
           "definition": {}
         },
-        "required": [
-          "draftId",
-          "expectedRevision",
-          "definition"
-        ],
+        "required": ["draftId", "expectedRevision", "definition"],
         "additionalProperties": false
       }
     },
@@ -7438,10 +7500,7 @@
             "maximum": 9007199254740991
           }
         },
-        "required": [
-          "draftId",
-          "expectedRevision"
-        ],
+        "required": ["draftId", "expectedRevision"],
         "additionalProperties": false
       }
     },
@@ -7475,12 +7534,152 @@
             "maximum": 25
           }
         },
-        "required": [
-          "planId",
-          "query",
-          "parameterNames",
-          "limit"
-        ],
+        "required": ["planId", "query", "parameterNames", "limit"],
+        "additionalProperties": false
+      }
+    },
+    {
+      "kind": "tool",
+      "name": "target_discovery_inspect",
+      "description": "Pending service: inspect a managed-browser state and collect locator evidence without publishing selectors.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "sessionId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "state": {},
+          "responseMode": {
+            "default": "summary",
+            "type": "string",
+            "enum": ["summary", "evidenceOnly", "blockersOnly", "linksOnly", "full"]
+          }
+        },
+        "required": ["sessionId", "state", "responseMode"],
+        "additionalProperties": false
+      }
+    },
+    {
+      "kind": "tool",
+      "name": "target_discovery_locator_propose",
+      "description": "Pending service: propose role/name, test id, stable app attribute, or reviewed structural locator versions with provenance and fingerprint.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "sessionId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "locator": {},
+          "idempotencyKey": {
+            "type": "string",
+            "minLength": 1
+          },
+          "responseMode": {
+            "default": "summary",
+            "type": "string",
+            "enum": ["summary", "evidenceOnly", "blockersOnly", "linksOnly", "full"]
+          }
+        },
+        "required": ["sessionId", "locator", "idempotencyKey", "responseMode"],
+        "additionalProperties": false
+      }
+    },
+    {
+      "kind": "tool",
+      "name": "target_discovery_locator_publish",
+      "description": "Pending service: publish reviewed locator versions; auth-blocked, unreachable, or unstable targets remain non-executable.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "sessionId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "locatorVersionIds": {
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "expectedVerificationHash": {
+            "type": "string",
+            "pattern": "^sha256:.*"
+          },
+          "responseMode": {
+            "default": "summary",
+            "type": "string",
+            "enum": ["summary", "evidenceOnly", "blockersOnly", "linksOnly", "full"]
+          }
+        },
+        "required": ["sessionId", "locatorVersionIds", "expectedVerificationHash", "responseMode"],
+        "additionalProperties": false
+      }
+    },
+    {
+      "kind": "tool",
+      "name": "target_discovery_locator_verify",
+      "description": "Pending service: verify a proposed locator version against surface, state, environment, and element fingerprint.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "sessionId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "locatorVersionId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "verification": {},
+          "responseMode": {
+            "default": "summary",
+            "type": "string",
+            "enum": ["summary", "evidenceOnly", "blockersOnly", "linksOnly", "full"]
+          }
+        },
+        "required": ["sessionId", "locatorVersionId", "verification", "responseMode"],
+        "additionalProperties": false
+      }
+    },
+    {
+      "kind": "tool",
+      "name": "target_discovery_session_start",
+      "description": "Pending service: start an authorized managed-browser discovery session for black-box target inspection.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "target": {
+            "type": "string",
+            "minLength": 1
+          },
+          "environmentId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "purpose": {
+            "type": "string",
+            "minLength": 1
+          },
+          "idempotencyKey": {
+            "type": "string",
+            "minLength": 1
+          },
+          "responseMode": {
+            "default": "summary",
+            "type": "string",
+            "enum": ["summary", "evidenceOnly", "blockersOnly", "linksOnly", "full"]
+          }
+        },
+        "required": ["target", "environmentId", "purpose", "idempotencyKey", "responseMode"],
         "additionalProperties": false
       }
     },
@@ -7514,11 +7713,7 @@
           },
           "browserEngine": {
             "type": "string",
-            "enum": [
-              "CHROMIUM",
-              "FIREFOX",
-              "WEBKIT"
-            ]
+            "enum": ["CHROMIUM", "FIREFOX", "WEBKIT"]
           },
           "planId": {
             "type": "string",
@@ -7570,30 +7765,17 @@
                   "minLength": 1
                 }
               },
-              "required": [
-                "testCaseId",
-                "testSuiteId"
-              ],
+              "required": ["testCaseId", "testSuiteId"],
               "additionalProperties": false
             }
           },
           "responseMode": {
             "default": "summary",
             "type": "string",
-            "enum": [
-              "summary",
-              "evidenceOnly",
-              "blockersOnly",
-              "linksOnly",
-              "full"
-            ]
+            "enum": ["summary", "evidenceOnly", "blockersOnly", "linksOnly", "full"]
           }
         },
-        "required": [
-          "target",
-          "environmentId",
-          "responseMode"
-        ],
+        "required": ["target", "environmentId", "responseMode"],
         "additionalProperties": false
       }
     },
@@ -7616,19 +7798,10 @@
           "responseMode": {
             "default": "summary",
             "type": "string",
-            "enum": [
-              "summary",
-              "evidenceOnly",
-              "blockersOnly",
-              "linksOnly",
-              "full"
-            ]
+            "enum": ["summary", "evidenceOnly", "blockersOnly", "linksOnly", "full"]
           }
         },
-        "required": [
-          "runId",
-          "responseMode"
-        ],
+        "required": ["runId", "responseMode"],
         "additionalProperties": false
       }
     },
@@ -7680,18 +7853,10 @@
           "responseMode": {
             "default": "summary",
             "type": "string",
-            "enum": [
-              "summary",
-              "evidenceOnly",
-              "blockersOnly",
-              "linksOnly",
-              "full"
-            ]
+            "enum": ["summary", "evidenceOnly", "blockersOnly", "linksOnly", "full"]
           }
         },
-        "required": [
-          "responseMode"
-        ],
+        "required": ["responseMode"],
         "additionalProperties": false
       }
     },
@@ -7714,19 +7879,10 @@
           "responseMode": {
             "default": "summary",
             "type": "string",
-            "enum": [
-              "summary",
-              "evidenceOnly",
-              "blockersOnly",
-              "linksOnly",
-              "full"
-            ]
+            "enum": ["summary", "evidenceOnly", "blockersOnly", "linksOnly", "full"]
           }
         },
-        "required": [
-          "runId",
-          "responseMode"
-        ],
+        "required": ["runId", "responseMode"],
         "additionalProperties": false
       }
     },
@@ -7745,20 +7901,10 @@
           "responseMode": {
             "default": "summary",
             "type": "string",
-            "enum": [
-              "summary",
-              "evidenceOnly",
-              "blockersOnly",
-              "linksOnly",
-              "full"
-            ]
+            "enum": ["summary", "evidenceOnly", "blockersOnly", "linksOnly", "full"]
           }
         },
-        "required": [
-          "planId",
-          "submission",
-          "responseMode"
-        ],
+        "required": ["planId", "submission", "responseMode"],
         "additionalProperties": false
       }
     },
@@ -7781,21 +7927,10 @@
           "responseMode": {
             "default": "summary",
             "type": "string",
-            "enum": [
-              "summary",
-              "evidenceOnly",
-              "blockersOnly",
-              "linksOnly",
-              "full"
-            ]
+            "enum": ["summary", "evidenceOnly", "blockersOnly", "linksOnly", "full"]
           }
         },
-        "required": [
-          "planId",
-          "submission",
-          "expectedReceiptHash",
-          "responseMode"
-        ],
+        "required": ["planId", "submission", "expectedReceiptHash", "responseMode"],
         "additionalProperties": false
       }
     },
@@ -7813,19 +7948,10 @@
           "responseMode": {
             "default": "summary",
             "type": "string",
-            "enum": [
-              "summary",
-              "evidenceOnly",
-              "blockersOnly",
-              "linksOnly",
-              "full"
-            ]
+            "enum": ["summary", "evidenceOnly", "blockersOnly", "linksOnly", "full"]
           }
         },
-        "required": [
-          "planId",
-          "responseMode"
-        ],
+        "required": ["planId", "responseMode"],
         "additionalProperties": false
       }
     },
@@ -7844,9 +7970,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "planId"
-        ],
+        "required": ["planId"],
         "additionalProperties": false
       }
     },
@@ -7865,20 +7989,41 @@
           "responseMode": {
             "default": "summary",
             "type": "string",
-            "enum": [
-              "summary",
-              "evidenceOnly",
-              "blockersOnly",
-              "linksOnly",
-              "full"
-            ]
+            "enum": ["summary", "evidenceOnly", "blockersOnly", "linksOnly", "full"]
           }
         },
-        "required": [
-          "planId",
-          "submission",
-          "responseMode"
-        ],
+        "required": ["planId", "submission", "responseMode"],
+        "additionalProperties": false
+      }
+    },
+    {
+      "kind": "tool",
+      "name": "validation_compile",
+      "description": "Compile approved scenario design with mechanical realization metadata into immutable realized validation versions.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "qualityPlanId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "revisionId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "expectedDesignHash": {
+            "type": "string",
+            "pattern": "^sha256:.*"
+          },
+          "realization": {},
+          "responseMode": {
+            "default": "summary",
+            "type": "string",
+            "enum": ["summary", "evidenceOnly", "blockersOnly", "linksOnly", "full"]
+          }
+        },
+        "required": ["qualityPlanId", "revisionId", "expectedDesignHash", "realization", "responseMode"],
         "additionalProperties": false
       }
     },
@@ -7923,20 +8068,110 @@
           "responseMode": {
             "default": "summary",
             "type": "string",
-            "enum": [
-              "summary",
-              "evidenceOnly",
-              "blockersOnly",
-              "linksOnly",
-              "full"
-            ]
+            "enum": ["summary", "evidenceOnly", "blockersOnly", "linksOnly", "full"]
           }
         },
-        "required": [
-          "planId",
-          "limit",
-          "responseMode"
-        ],
+        "required": ["planId", "limit", "responseMode"],
+        "additionalProperties": false
+      }
+    },
+    {
+      "kind": "tool",
+      "name": "validation_design_approve",
+      "description": "Approve obligation-linked scenarios; mechanical selectors, runtime bindings, and locators are intentionally outside this review gate.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "qualityPlanId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "revisionId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "expectedDesignHash": {
+            "type": "string",
+            "pattern": "^sha256:.*"
+          },
+          "approvedBy": {
+            "type": "string",
+            "minLength": 1
+          },
+          "responseMode": {
+            "default": "summary",
+            "type": "string",
+            "enum": ["summary", "evidenceOnly", "blockersOnly", "linksOnly", "full"]
+          }
+        },
+        "required": ["qualityPlanId", "revisionId", "expectedDesignHash", "approvedBy", "responseMode"],
+        "additionalProperties": false
+      }
+    },
+    {
+      "kind": "tool",
+      "name": "validation_design_propose",
+      "description": "Propose obligation-linked behavioral scenarios, assertions, coverage, assurance, matrix intent, and limitations.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "qualityPlanId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "revisionId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "proposal": {},
+          "idempotencyKey": {
+            "type": "string",
+            "minLength": 1
+          },
+          "responseMode": {
+            "default": "summary",
+            "type": "string",
+            "enum": ["summary", "evidenceOnly", "blockersOnly", "linksOnly", "full"]
+          }
+        },
+        "required": ["qualityPlanId", "revisionId", "proposal", "idempotencyKey", "responseMode"],
+        "additionalProperties": false
+      }
+    },
+    {
+      "kind": "tool",
+      "name": "validation_design_revise",
+      "description": "Pending service: revise scenario design after behavioral, assertion, coverage, limitation, or matrix feedback.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "qualityPlanId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "revisionId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "expectedDesignHash": {
+            "type": "string",
+            "pattern": "^sha256:.*"
+          },
+          "revision": {},
+          "idempotencyKey": {
+            "type": "string",
+            "minLength": 1
+          },
+          "responseMode": {
+            "default": "summary",
+            "type": "string",
+            "enum": ["summary", "evidenceOnly", "blockersOnly", "linksOnly", "full"]
+          }
+        },
+        "required": ["qualityPlanId", "revisionId", "expectedDesignHash", "revision", "idempotencyKey", "responseMode"],
         "additionalProperties": false
       }
     },
@@ -7953,10 +8188,7 @@
           },
           "scope": {
             "type": "string",
-            "enum": [
-              "test_artifact",
-              "product_scope"
-            ]
+            "enum": ["test_artifact", "product_scope"]
           },
           "target": {
             "oneOf": [
@@ -7968,9 +8200,7 @@
                     "const": "plan"
                   }
                 },
-                "required": [
-                  "type"
-                ],
+                "required": ["type"],
                 "additionalProperties": false
               },
               {
@@ -7984,10 +8214,7 @@
                     "type": "string"
                   }
                 },
-                "required": [
-                  "type",
-                  "taskId"
-                ],
+                "required": ["type", "taskId"],
                 "additionalProperties": false
               },
               {
@@ -8001,10 +8228,7 @@
                     "type": "string"
                   }
                 },
-                "required": [
-                  "type",
-                  "validationId"
-                ],
+                "required": ["type", "validationId"],
                 "additionalProperties": false
               },
               {
@@ -8018,10 +8242,7 @@
                     "type": "string"
                   }
                 },
-                "required": [
-                  "type",
-                  "resultId"
-                ],
+                "required": ["type", "resultId"],
                 "additionalProperties": false
               },
               {
@@ -8035,10 +8256,7 @@
                     "type": "string"
                   }
                 },
-                "required": [
-                  "type",
-                  "path"
-                ],
+                "required": ["type", "path"],
                 "additionalProperties": false
               }
             ]
@@ -8063,12 +8281,7 @@
             }
           }
         },
-        "required": [
-          "planId",
-          "scope",
-          "target",
-          "body"
-        ],
+        "required": ["planId", "scope", "target", "body"],
         "additionalProperties": false
       }
     },
@@ -8093,12 +8306,45 @@
             "type": "string"
           }
         },
-        "required": [
-          "planId",
-          "path",
-          "contentHash",
-          "approvedBy"
-        ],
+        "required": ["planId", "path", "contentHash", "approvedBy"],
+        "additionalProperties": false
+      }
+    },
+    {
+      "kind": "tool",
+      "name": "validation_publish",
+      "description": "Publish realized validation versions using an expected compilation hash after mechanical bindings are resolved.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "qualityPlanId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "revisionId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "validationVersionIds": {
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "expectedCompilationHash": {
+            "type": "string",
+            "pattern": "^sha256:.*"
+          },
+          "responseMode": {
+            "default": "summary",
+            "type": "string",
+            "enum": ["summary", "evidenceOnly", "blockersOnly", "linksOnly", "full"]
+          }
+        },
+        "required": ["qualityPlanId", "revisionId", "validationVersionIds", "expectedCompilationHash", "responseMode"],
         "additionalProperties": false
       }
     },
@@ -8121,11 +8367,7 @@
             "minLength": 1
           }
         },
-        "required": [
-          "planId",
-          "idempotencyKey",
-          "reason"
-        ],
+        "required": ["planId", "idempotencyKey", "reason"],
         "additionalProperties": false
       }
     },
@@ -8144,10 +8386,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "planId",
-          "idempotencyKey"
-        ],
+        "required": ["planId", "idempotencyKey"],
         "additionalProperties": false
       }
     },
@@ -8166,20 +8405,45 @@
           "responseMode": {
             "default": "summary",
             "type": "string",
-            "enum": [
-              "summary",
-              "evidenceOnly",
-              "blockersOnly",
-              "linksOnly",
-              "full"
-            ]
+            "enum": ["summary", "evidenceOnly", "blockersOnly", "linksOnly", "full"]
           }
         },
-        "required": [
-          "planId",
-          "proposal",
-          "responseMode"
-        ],
+        "required": ["planId", "proposal", "responseMode"],
+        "additionalProperties": false
+      }
+    },
+    {
+      "kind": "tool",
+      "name": "validation_reuse_resolve",
+      "description": "Pending service: resolve scenario realization reuse as exact_match, compatible_reuse, version_required, no_match, or ambiguous.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "qualityPlanId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "revisionId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "candidates": {
+            "minItems": 1,
+            "type": "array",
+            "items": {}
+          },
+          "idempotencyKey": {
+            "type": "string",
+            "minLength": 1
+          },
+          "responseMode": {
+            "default": "summary",
+            "type": "string",
+            "enum": ["summary", "evidenceOnly", "blockersOnly", "linksOnly", "full"]
+          }
+        },
+        "required": ["qualityPlanId", "revisionId", "candidates", "idempotencyKey", "responseMode"],
         "additionalProperties": false
       }
     },
@@ -8209,21 +8473,10 @@
           "responseMode": {
             "default": "summary",
             "type": "string",
-            "enum": [
-              "summary",
-              "evidenceOnly",
-              "blockersOnly",
-              "linksOnly",
-              "full"
-            ]
+            "enum": ["summary", "evidenceOnly", "blockersOnly", "linksOnly", "full"]
           }
         },
-        "required": [
-          "planId",
-          "afterSequence",
-          "timeoutMs",
-          "responseMode"
-        ],
+        "required": ["planId", "afterSequence", "timeoutMs", "responseMode"],
         "additionalProperties": false
       }
     },
@@ -8239,9 +8492,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "planId"
-        ],
+        "required": ["planId"],
         "additionalProperties": false
       }
     },
@@ -8272,9 +8523,7 @@
             }
           }
         },
-        "required": [
-          "planId"
-        ],
+        "required": ["planId"],
         "additionalProperties": false
       }
     }

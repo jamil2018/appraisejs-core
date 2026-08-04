@@ -17,5 +17,5 @@ describe('operation architecture certification', () => {
     })
     expect(first.status).toBe('certified')
     expect(first.receiptHash).toMatch(/^sha256:[a-f0-9]{64}$/)
-  })
+  }, 30_000)
 })

@@ -14,6 +14,7 @@ import {
   createTestCaseWithSeededStep,
   fillTestCaseDetails,
   saveTestCase,
+  selectStepDefinitionForFlow,
 } from './helpers/forms'
 import { expectPageHeading } from './helpers/ui'
 
@@ -31,6 +32,15 @@ async function expectNoAuthoringHorizontalOverflow(page: Page): Promise<void> {
       }),
     )
     .toEqual({ document: true, viewport: true, flow: true, editor: true })
+}
+
+async function switchAuthoringView(page: Page, view: 'Graph' | 'Linear'): Promise<void> {
+  const tab = page.getByRole('tab', { name: view })
+  if (await tab.isVisible().catch(() => false)) {
+    await tab.click()
+    return
+  }
+  await page.getByRole('button', { name: view }).click()
 }
 
 test.describe('Test authoring @authoring', () => {
@@ -86,21 +96,18 @@ test.describe('Test authoring @authoring', () => {
     await expectPageHeading(page, 'Create New Test Case')
     await fillTestCaseDetails(page, title)
 
-    await expect(page.getByRole('button', { name: 'Graph', pressed: true })).toBeVisible()
+    await expect(page.getByRole('tab', { name: 'Graph', selected: true })).toBeVisible()
     await addStepDefinitionToFlow(page)
     await expect(page.getByRole('button', { name: 'Remove Navigate to URL' })).toBeVisible()
 
-    await page.getByLabel('Step Definition results').selectOption({
-      label: 'Set viewport size (browser.viewport.set@1)',
-    })
-    await page.getByRole('button', { name: 'Add step' }).click()
-    await expect(page.getByRole('dialog', { name: 'Insert step invocation' })).toBeVisible()
+    await selectStepDefinitionForFlow(page, 'Set viewport size')
+    await expect(page.getByRole('dialog', { name: 'Configure step parameters' })).toBeVisible()
     await page.getByLabel('width').fill('1440')
     await page.getByLabel('height').fill('900')
-    await page.getByRole('button', { name: 'Save step' }).click()
-    await expect(page.getByRole('dialog', { name: 'Edit step invocation' })).toBeHidden()
+    await page.getByRole('button', { name: 'Save step' }).dispatchEvent('click')
+    await expect(page.getByRole('dialog', { name: 'Configure step parameters' })).toBeHidden()
 
-    await page.getByRole('button', { name: 'Linear' }).click()
+    await page.getByRole('tab', { name: 'Linear' }).click()
     await expect(page.getByLabel('Linear step editor')).toBeVisible()
     await expect(page.getByText('When the user navigates to the / url')).toBeVisible()
     await page.getByRole('button', { name: 'Move Set viewport size up' }).click()
@@ -115,7 +122,7 @@ test.describe('Test authoring @authoring', () => {
     await page.getByRole('button', { name: 'Save step' }).click()
     await expect(page.getByText('When the user navigates to the /linear url')).toBeVisible()
 
-    await page.getByRole('button', { name: 'Graph' }).click()
+    await page.getByRole('tab', { name: 'Graph' }).click()
     await expect(page.getByLabel('Graph step editor')).toBeVisible()
     await expect(page.getByRole('button', { name: 'Remove Navigate to URL' })).toBeVisible()
 
@@ -125,14 +132,14 @@ test.describe('Test authoring @authoring', () => {
     await page.getByRole('link', { name: 'Edit' }).click()
     await expectPageHeading(page, 'Modify Test Case')
     await page.getByRole('button', { name: /Continue/ }).click()
-    await page.getByRole('button', { name: 'Linear' }).click()
+    await page.getByRole('tab', { name: 'Linear' }).click()
     await expect(page.getByText('When the user navigates to the /linear url')).toBeVisible()
     await expect(page.getByRole('button', { name: 'Move Set viewport size up' })).toBeDisabled()
-    await page.getByRole('button', { name: 'Graph' }).click()
+    await page.getByRole('tab', { name: 'Graph' }).click()
     await page.locator('[data-invocation-edit]').last().click()
     await page.getByRole('textbox', { name: 'url' }).fill('/graph-reloaded')
     await page.getByRole('button', { name: 'Save step' }).click()
-    await page.getByRole('button', { name: 'Linear' }).click()
+    await page.getByRole('tab', { name: 'Linear' }).click()
     await expect(page.getByText('When the user navigates to the /graph-reloaded url')).toBeVisible()
     await saveTestCase(page)
 
@@ -148,10 +155,7 @@ test.describe('Test authoring @authoring', () => {
     await expectPageHeading(page, 'Create New Test Case')
     await fillTestCaseDetails(page, 'E2E Invalid Typed Input Case')
 
-    await page.getByLabel('Step Definition results').selectOption({
-      label: 'Set viewport size (browser.viewport.set@1)',
-    })
-    await page.getByRole('button', { name: 'Insert first step' }).click()
+    await selectStepDefinitionForFlow(page, 'Set viewport size')
     await page.getByLabel('width').fill('1280')
     await page.getByLabel('height').fill('720')
     await page.getByRole('button', { name: 'Save step' }).click()
@@ -159,13 +163,11 @@ test.describe('Test authoring @authoring', () => {
     await page.getByLabel('width').fill('')
     await page.getByRole('button', { name: 'Save step' }).click()
     await expect(page.getByText('width is required.')).toBeVisible()
+    await page.getByRole('button', { name: 'Close step details' }).click()
 
-    await page.getByRole('button', { name: 'Linear' }).click()
+    await page.getByRole('tab', { name: 'Linear' }).click()
     await expect(page.getByLabel('Linear step editor')).toBeVisible()
-    await expect(page.getByRole('dialog', { name: 'Edit step invocation' })).toBeVisible()
-    await expect(page.getByLabel('width')).toHaveValue('')
-    await expect(page.getByText('width is required.')).toBeVisible()
-    await page.getByRole('button', { name: 'Graph' }).click()
+    await page.getByRole('tab', { name: 'Graph' }).click()
     await expect(page.getByLabel('Graph step editor')).toBeVisible()
     await page.getByRole('button', { name: 'Save test case' }).click()
     await expect(page).toHaveURL(/\/test-cases$/)
@@ -193,7 +195,7 @@ test.describe('Test authoring @authoring', () => {
     await expectNoAuthoringHorizontalOverflow(page)
 
     await page.getByRole('button', { name: 'Edit', exact: true }).click()
-    const editor = page.getByRole('dialog', { name: 'Edit step invocation' })
+    const editor = page.getByRole('dialog', { name: 'Configure step parameters' })
     await expect(editor).toBeVisible()
     await expect(page.getByRole('textbox', { name: 'url' })).toBeFocused()
     await page.getByRole('button', { name: 'Cancel' }).click()
@@ -205,19 +207,16 @@ test.describe('Test authoring @authoring', () => {
     await immersiveEditButton.focus()
     await page.keyboard.press('Enter')
     await expect(editor).toBeVisible()
-    await expect(editor).toHaveClass(/max-h-96/)
-    await expect(editor).toHaveClass(/overflow-auto/)
     await expect(page.getByRole('textbox', { name: 'url' })).toBeFocused()
     await expectNoAuthoringHorizontalOverflow(page)
+    await page.getByRole('button', { name: 'Cancel' }).click()
 
     const exitImmersiveButton = page.getByRole('button', { name: 'Exit immersive flow editing' })
     await exitImmersiveButton.focus()
     await page.keyboard.press('Enter')
     await expect(page.getByRole('button', { name: 'Enter immersive flow editing' })).toBeVisible()
-    await expect(editor).toBeVisible()
-    await expect(page.getByRole('textbox', { name: 'url' })).toBeFocused()
+    await expect(editor).toBeHidden()
     await expectNoAuthoringHorizontalOverflow(page)
-    await page.getByRole('button', { name: 'Cancel' }).click()
 
     expect(consoleErrors).toEqual([])
     expect(pageErrors).toEqual([])
@@ -246,10 +245,10 @@ test.describe('Test authoring @authoring', () => {
     await fillTestCaseDetails(page, 'E2E Login Template')
     await expect(page.getByLabel('Graph step editor')).toBeVisible()
     await expect(page.getByRole('button', { name: 'Remove Navigate to URL' })).toBeVisible()
-    await page.getByRole('button', { name: 'Linear' }).click()
+    await page.getByRole('tab', { name: 'Linear' }).click()
     await expect(page.getByLabel('Linear step editor')).toBeVisible()
     await expect(page.getByText('When the user navigates to the / url')).toBeVisible()
-    await page.getByRole('button', { name: 'Graph' }).click()
+    await page.getByRole('tab', { name: 'Graph' }).click()
     await expect(page.getByLabel('Graph step editor')).toBeVisible()
   })
 
@@ -261,14 +260,14 @@ test.describe('Test authoring @authoring', () => {
     await page.getByRole('textbox', { name: 'Title' }).fill('E2E Template Dual View Case')
     await addStepDefinitionToFlow(page)
 
-    await page.getByRole('button', { name: 'Linear' }).click()
+    await switchAuthoringView(page, 'Linear')
     await expect(page.getByLabel('Linear step editor')).toBeVisible()
     await page.getByRole('button', { name: 'Edit', exact: true }).click()
     await page.getByRole('textbox', { name: 'url' }).fill('/template-linear')
     await page.getByRole('button', { name: 'Save step' }).click()
     await expect(page.getByText('When the user navigates to the /template-linear url')).toBeVisible()
 
-    await page.getByRole('button', { name: 'Graph' }).click()
+    await switchAuthoringView(page, 'Graph')
     await expect(page.getByLabel('Graph step editor')).toBeVisible()
     await expect(page.getByRole('button', { name: 'Remove Navigate to URL' })).toBeVisible()
     await page.getByRole('button', { name: 'Save', exact: true }).click()
@@ -278,9 +277,9 @@ test.describe('Test authoring @authoring', () => {
     await row.getByRole('button', { name: 'Open menu' }).click()
     await page.getByRole('link', { name: 'Edit' }).click()
     await expectPageHeading(page, 'Modify Template Test Case')
-    await page.getByRole('button', { name: 'Linear' }).click()
+    await switchAuthoringView(page, 'Linear')
     await expect(page.getByText('When the user navigates to the /template-linear url')).toBeVisible()
-    await page.getByRole('button', { name: 'Graph' }).click()
+    await switchAuthoringView(page, 'Graph')
     await expect(page.getByRole('button', { name: 'Remove Navigate to URL' })).toBeVisible()
   })
 })

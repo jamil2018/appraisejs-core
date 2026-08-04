@@ -838,8 +838,29 @@ describe('MCP capability and recovery metadata', () => {
       layers: {
         currentTaskCapabilities: {
           status: 'blocked',
-          tools: { missing: expect.arrayContaining(['planning_session_create']) },
-          resources: { missing: expect.arrayContaining(['appraise://agent-guide']) },
+          tools: {
+            missing: expect.arrayContaining([
+              'planning_session_create',
+              'plan_review_loop',
+              'validation_ast_compile',
+              'baseline_start',
+              'baseline_reconcile',
+              'implementation_start',
+              'requirements_submit_source',
+              'requirements_approve',
+              'validation_design_approve',
+              'validation_publish',
+              'assessment_create',
+              'assessment_decide',
+            ]),
+          },
+          resources: {
+            missing: expect.arrayContaining([
+              'appraise://agent-guide',
+              'appraise://workflow/quality-design',
+              'appraise://workflow/assessment',
+            ]),
+          },
         },
         targetProjectBinding: { status: 'blocked' },
       },
@@ -858,6 +879,13 @@ describe('MCP capability and recovery metadata', () => {
     expect(mcpCapabilityMetadata.workflowCriticalTools).toEqual(
       expect.arrayContaining([
         'project_diagnostic',
+        'requirements_submit_source',
+        'requirements_approve',
+        'validation_design_approve',
+        'validation_compile',
+        'validation_publish',
+        'assessment_create',
+        'assessment_decide',
         'planning_session_create',
         'plan_review_loop',
         'validation_context_read',
@@ -882,6 +910,8 @@ describe('MCP capability and recovery metadata', () => {
     expect(mcpCapabilityMetadata.workflowResourceUris).toEqual(
       expect.arrayContaining([
         'appraise://project',
+        'appraise://workflow/quality-design',
+        'appraise://workflow/assessment',
         'appraise://workflow/planning',
         'appraise://workflow/validation-preparation',
         'appraise://workflow/standby',

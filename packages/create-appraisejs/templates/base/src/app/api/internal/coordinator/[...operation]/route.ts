@@ -135,6 +135,19 @@ import {
 import { recordAgentPreflightReceipt } from '@/services/agent-preflight/agent-preflight-service'
 import { projectLifecycleNotifications } from '@/lib/plans/plan-lifecycle-insights'
 import { recordCoordinatorResponseMetric } from '@/services/coordinator/plan-observability-service'
+import {
+  answerQualityRequirementQueries,
+  approveQualityRequirements,
+  approveQualityValidationDesign,
+  compileQualityValidations,
+  createQualityAssessment,
+  decideQualityAssessment,
+  publishQualityValidations,
+  proposeQualityValidationDesign,
+  readQualityRequirementGraph,
+  readQualityAssessment,
+  submitQualityRequirementSource,
+} from '@/services/coordinator/quality-design-service'
 
 export const runtime = 'nodejs'
 
@@ -609,6 +622,49 @@ async function getLocatorGraph(request: Request, operation: string[]) {
   return (handlers[operation[1] ?? 'query'] ?? handlers.query)()
 }
 
+function qualityLifecyclePending(operation: string[]) {
+  return new ServiceError(
+    'Quality Design and Assessment coordinator service is not implemented yet.',
+    'VALIDATION',
+    501,
+    {
+      code: 'QUALITY_LIFECYCLE_PENDING',
+      operation: operation.join('/'),
+      recovery:
+        'Use the legacy plan lifecycle only for existing in-flight work. New Quality Design clients should wait for requirements and assessment service publication before executing this operation.',
+      nextImplementationSlice:
+        'Implement the quality requirements service against QualityPlan, QualityPlanRevision, RequirementSnapshot, RequirementQuery, and QualityObligationRevision.',
+    },
+  )
+}
+
+async function getQualityRequirements(request: Request, operation: string[]) {
+  const url = new URL(request.url)
+  return Response.json(
+    await readQualityRequirementGraph({
+      qualityPlanId: z.string().min(1).parse(operation[2]),
+      revisionId: url.searchParams.get('revisionId') ?? undefined,
+    }),
+  )
+}
+
+async function getQualityAssessment(operation: string[]) {
+  return Response.json(await readQualityAssessment(z.string().min(1).parse(operation[2])))
+}
+
+const qualityGetHandlers: Record<string, (request: Request, operation: string[]) => Promise<Response>> = {
+  'plans/requirements': getQualityRequirements,
+  'assessments/readiness': (_request, operation) => getQualityAssessment(operation),
+  'assessments/diagnose': (_request, operation) => getQualityAssessment(operation),
+  'assessments/review': (_request, operation) => getQualityAssessment(operation),
+}
+
+async function getQualityOperation(request: Request, operation: string[]) {
+  const handler = qualityGetHandlers[`${operation[1]}/${operation[3] ?? ''}`]
+  if (handler) return handler(request, operation)
+  throw qualityLifecyclePending(operation)
+}
+
 async function getStepDefinitions(request: Request, operation: string[]) {
   const result = await coordinatorStepDefinitionService.read(operation, new URL(request.url).searchParams)
   return Response.json(result.body)
@@ -636,6 +692,9 @@ async function dispatchGet(request: Request, operation: string[]) {
       return operation.length === 1
         ? Response.json({ providerRuns: await listProviderWorkflowRuns() })
         : Response.json(await getProviderWorkflowRun(z.string().uuid().parse(operation[1])))
+    },
+    'quality-read': async () => {
+      return getQualityOperation(request, operation)
     },
     'plan-read': () => getPlan(request, operation),
     'plan-events-read': () => getEvents(request, operation),
@@ -1255,6 +1314,181 @@ async function postDiagnosticPreflight(request: Request, body: unknown) {
   })
 }
 
+function qualityPlanId(operation: string[]) {
+  return z.string().min(1).parse(operation[2])
+}
+
+function qualityAssessmentId(operation: string[]) {
+  return z.string().min(1).parse(operation[2])
+}
+
+async function postQualityRequirementSource(body: unknown) {
+  const value = z
+    .object({ target: z.string().min(1), idempotencyKey: z.string().min(1) })
+    .passthrough()
+    .parse(body)
+  if (!('source' in value)) throw new ServiceError('Quality requirement source is required.', 'VALIDATION')
+  return Response.json(await submitQualityRequirementSource({ ...value, source: value.source }), { status: 201 })
+}
+
+async function postQualityRequirementAnalyze(operation: string[], body: unknown) {
+  const value = z.object({ revisionId: z.string().min(1).optional() }).parse(body)
+  return Response.json(await readQualityRequirementGraph({ qualityPlanId: qualityPlanId(operation), ...value }))
+}
+
+async function postQualityRequirementQueries(operation: string[], body: unknown) {
+  const value = z
+    .object({
+      revisionId: z.string().min(1).optional(),
+      answers: z
+        .array(
+          z.object({
+            queryId: z.string().min(1),
+            status: z.enum(['ANSWERED', 'DEFERRED', 'ACCEPTED_ASSUMPTION']),
+            answer: z.string().optional(),
+            rationale: z.string().optional(),
+          }),
+        )
+        .min(1),
+      idempotencyKey: z.string().min(1),
+    })
+    .parse(body)
+  return Response.json(await answerQualityRequirementQueries({ qualityPlanId: qualityPlanId(operation), ...value }))
+}
+
+async function postQualityRequirementApprove(operation: string[], body: unknown) {
+  const value = z
+    .object({
+      revisionId: z.string().min(1),
+      expectedRevisionHash: z.string().startsWith('sha256:'),
+      approvedBy: z.string().min(1),
+    })
+    .parse(body)
+  return Response.json(await approveQualityRequirements({ qualityPlanId: qualityPlanId(operation), ...value }))
+}
+
+async function postQualityScenarioProposal(operation: string[], body: unknown) {
+  const value = z
+    .object({ revisionId: z.string().min(1), idempotencyKey: z.string().min(1) })
+    .passthrough()
+    .parse(body)
+  if (!('proposal' in value)) throw new ServiceError('Scenario design proposal is required.', 'VALIDATION')
+  return Response.json(
+    await proposeQualityValidationDesign({
+      qualityPlanId: qualityPlanId(operation),
+      ...value,
+      proposal: value.proposal,
+    }),
+  )
+}
+
+async function postQualityScenarioApproval(operation: string[], body: unknown) {
+  const value = z
+    .object({
+      revisionId: z.string().min(1),
+      expectedDesignHash: z.string().startsWith('sha256:'),
+      approvedBy: z.string().min(1),
+    })
+    .parse(body)
+  return Response.json(await approveQualityValidationDesign({ qualityPlanId: qualityPlanId(operation), ...value }))
+}
+
+async function postQualityValidationCompile(operation: string[], body: unknown) {
+  const value = z
+    .object({ revisionId: z.string().min(1), expectedDesignHash: z.string().startsWith('sha256:') })
+    .passthrough()
+    .parse(body)
+  if (!('realization' in value)) throw new ServiceError('Validation realization is required.', 'VALIDATION')
+  return Response.json(
+    await compileQualityValidations({
+      qualityPlanId: qualityPlanId(operation),
+      ...value,
+      realization: value.realization,
+    }),
+  )
+}
+
+async function postQualityValidationPublish(operation: string[], body: unknown) {
+  const value = z
+    .object({
+      revisionId: z.string().min(1),
+      validationVersionIds: z.array(z.string().min(1)).min(1),
+      expectedCompilationHash: z.string().startsWith('sha256:'),
+    })
+    .parse(body)
+  return Response.json(await publishQualityValidations({ qualityPlanId: qualityPlanId(operation), ...value }))
+}
+
+async function postQualityAssessmentCreate(body: unknown) {
+  const value = z
+    .object({
+      qualityPlanId: z.string().min(1),
+      revisionId: z.string().min(1),
+      baselineAssessmentId: z.string().min(1).optional(),
+      idempotencyKey: z.string().min(1),
+    })
+    .passthrough()
+    .parse(body)
+  if (!('subject' in value)) throw new ServiceError('Assessment subject is required.', 'VALIDATION')
+  return Response.json(await createQualityAssessment({ ...value, subject: value.subject }), { status: 201 })
+}
+
+async function postQualityAssessmentDecision(operation: string[], body: unknown) {
+  const value = z
+    .object({
+      expectedEvidenceSetHash: z.string().startsWith('sha256:'),
+      decision: z.enum(['accepted', 'rejected', 'accepted_with_limitations']),
+      decidedBy: z.string().min(1),
+      rationale: z.string().min(1),
+    })
+    .parse(body)
+  return Response.json(await decideQualityAssessment({ assessmentId: qualityAssessmentId(operation), ...value }))
+}
+
+const qualityPostHandlers: Record<string, (operation: string[], body: unknown) => Promise<Response>> = {
+  'requirements/source': (_operation, body) => postQualityRequirementSource(body),
+  'plans/requirements/analyze': postQualityRequirementAnalyze,
+  'plans/requirements/queries': postQualityRequirementQueries,
+  'plans/requirements/approve': postQualityRequirementApprove,
+  'plans/validation-design/proposals': postQualityScenarioProposal,
+  'plans/validation-design/approve': postQualityScenarioApproval,
+  'plans/validations/compile': postQualityValidationCompile,
+  'plans/validations/publish': postQualityValidationPublish,
+  assessments: (_operation, body) => postQualityAssessmentCreate(body),
+  'assessments/decision': postQualityAssessmentDecision,
+}
+
+const qualityPostSecondSegment: Record<string, number> = {
+  assessments: 3,
+  plans: 3,
+  requirements: 2,
+}
+
+const qualityPostThirdSegment: Record<string, number> = {
+  plans: 4,
+}
+
+function qualityPostSegment(operation: string[], indexes: Record<string, number>) {
+  return operation[indexes[operation[1] ?? '']]
+}
+
+function qualityPostHandler(operation: string[]) {
+  const key = [
+    operation[1],
+    qualityPostSegment(operation, qualityPostSecondSegment),
+    qualityPostSegment(operation, qualityPostThirdSegment),
+  ]
+    .filter(Boolean)
+    .join('/')
+  return qualityPostHandlers[key]
+}
+
+async function postQualityOperation(operation: string[], body: unknown) {
+  const handler = qualityPostHandler(operation)
+  if (handler) return handler(operation, body)
+  throw qualityLifecyclePending(operation)
+}
+
 async function postStepDefinitions(operation: string[], body: unknown) {
   const result = await coordinatorStepDefinitionService.write(operation, body)
   return result.status ? Response.json(result.body, { status: result.status }) : Response.json(result.body)
@@ -1274,6 +1508,9 @@ async function dispatchPost(request: Request, operation: string[], body: unknown
     'provider-runs-write': () => {
       assertProviderNativeRunsEnabled()
       return postProviderRun(operation, body)
+    },
+    'quality-write': async () => {
+      return postQualityOperation(operation, body)
     },
     'plan-snapshot': () => postPlanSnapshot(operation, body),
     'plan-continuation': () => postPlanContinuation(operation, body),
