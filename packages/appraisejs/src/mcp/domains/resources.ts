@@ -7,10 +7,12 @@ import {
   VALIDATION_AST_JSON_SCHEMA,
   VALIDATION_AST_SCHEMA_VERSION,
   agentGuide,
+  assessmentWorkflow,
   planCandidateHash,
   planningWorkflow,
   projectPayload,
   providerNativeRunsEnabled,
+  qualityDesignWorkflow,
   standbyWorkflow,
   validationPreparationWorkflow,
 } from '../shared.js'
@@ -163,6 +165,24 @@ export function registerResourcesOperations(context: McpRegistryContext): void {
       contents: [
         { uri: uri.href, mimeType: 'application/json', text: JSON.stringify(await api.listOperationCategories()) },
       ],
+    }),
+  )
+
+  server.registerResource(
+    'workflow-quality-design',
+    'appraise://workflow/quality-design',
+    { title: 'AppraiseJS Quality Design workflow', mimeType: 'application/json' },
+    async uri => ({
+      contents: [{ uri: uri.href, mimeType: 'application/json', text: JSON.stringify(qualityDesignWorkflow) }],
+    }),
+  )
+
+  server.registerResource(
+    'workflow-assessment',
+    'appraise://workflow/assessment',
+    { title: 'AppraiseJS assessment workflow', mimeType: 'application/json' },
+    async uri => ({
+      contents: [{ uri: uri.href, mimeType: 'application/json', text: JSON.stringify(assessmentWorkflow) }],
     }),
   )
 

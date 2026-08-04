@@ -26,7 +26,7 @@ const packageJson = require('../../package.json') as {
 
 const serverStartedAt = new Date().toISOString()
 
-const mcpSurfaceVersion = '2026-07-22.unified-step-discovery'
+const mcpSurfaceVersion = '2026-08-03.quality-design-assessment'
 
 const truthyFeatureValues = new Set(['1', 'true', 'yes', 'on'])
 
@@ -41,6 +41,32 @@ const baseWorkflowCriticalTools = [
   'project_diagnostic',
   'project_add',
   'project_list',
+  'requirements_submit_source',
+  'requirements_analyze',
+  'requirements_graph_read',
+  'requirements_answer_queries',
+  'requirements_revise',
+  'requirements_approve',
+  'requirements_report_drift',
+  'validation_design_propose',
+  'validation_design_revise',
+  'validation_design_approve',
+  'validation_reuse_resolve',
+  'validation_compile',
+  'validation_publish',
+  'target_discovery_session_start',
+  'target_discovery_inspect',
+  'target_discovery_locator_propose',
+  'target_discovery_locator_verify',
+  'target_discovery_locator_publish',
+  'assessment_create',
+  'assessment_readiness',
+  'assessment_run',
+  'assessment_stop',
+  'assessment_diagnose',
+  'assessment_reconcile',
+  'assessment_review',
+  'assessment_decide',
   'planning_session_create',
   'plan_create',
   'plan_review_loop',
@@ -119,6 +145,8 @@ const baseWorkflowResourceUris = [
   'appraise://project',
   'appraise://target-projects',
   'appraise://agent-guide',
+  'appraise://workflow/quality-design',
+  'appraise://workflow/assessment',
   'appraise://workflow/planning',
   'appraise://workflow/validation-preparation',
   'appraise://workflow/standby',
@@ -247,6 +275,9 @@ export function summarizeDiagnostic(value: Awaited<ReturnType<typeof diagnosePro
 }
 
 export const planningWorkflow = {
+  legacy: true,
+  replacement:
+    'Use the Quality Design workflow for new work: requirements_submit_source, requirements_analyze, requirements_approve, validation_design_propose, validation_design_approve, validation_compile, validation_publish, assessment_create, assessment_run, assessment_decide.',
   phases: [
     'project_diagnostic',
     'project_add when the target workspace is not registered',
@@ -260,6 +291,102 @@ export const planningWorkflow = {
     'Read delivery does not acknowledge events. afterSequence is exclusive: pass the latest handled sequence, and acknowledge a sequence only after the permitted transition or recovery action succeeds.',
   standby:
     'When approval is pending, pause at the Appraise review gate in a resumable standby state and resume with nextAfterSequence. Do not implement, finalize, or validate. Do not treat chat approval as Appraise approval.',
+}
+
+export const qualityDesignWorkflow = {
+  phase: 'quality_design',
+  ownership:
+    'Appraise owns immutable source and requirement snapshots, requirement graphs, feature-scoped Quality Plan revisions, quality obligations, scenario design, validation versions, evidence, drift, and assessment decisions.',
+  implementationStatus: {
+    executableNow: [
+      'requirements_submit_source',
+      'requirements_analyze',
+      'requirements_graph_read',
+      'requirements_answer_queries',
+      'requirements_approve',
+      'validation_design_propose',
+      'validation_design_approve',
+      'validation_compile',
+      'validation_publish',
+      'assessment_create',
+      'assessment_readiness',
+      'assessment_diagnose',
+      'assessment_review',
+      'assessment_decide',
+    ],
+    pendingServicePublication: [
+      'requirements_revise',
+      'requirements_report_drift',
+      'validation_design_revise',
+      'validation_reuse_resolve',
+      'target_discovery_session_start',
+      'target_discovery_inspect',
+      'target_discovery_locator_propose',
+      'target_discovery_locator_verify',
+      'target_discovery_locator_publish',
+      'assessment_run',
+      'assessment_stop',
+      'assessment_reconcile',
+    ],
+    pendingBehavior:
+      'Pending tools are discoverable for contract-forward clients but return QUALITY_LIFECYCLE_PENDING until their Appraise-owned services are published.',
+  },
+  publicToolGroups: {
+    requirements: [
+      'requirements_submit_source',
+      'requirements_analyze',
+      'requirements_graph_read',
+      'requirements_answer_queries',
+      'requirements_revise',
+      'requirements_approve',
+      'requirements_report_drift',
+    ],
+    validationDesign: [
+      'validation_design_propose',
+      'validation_design_revise',
+      'validation_design_approve',
+      'validation_reuse_resolve',
+      'validation_compile',
+      'validation_publish',
+    ],
+    targetDiscovery: [
+      'target_discovery_session_start',
+      'target_discovery_inspect',
+      'target_discovery_locator_propose',
+      'target_discovery_locator_verify',
+      'target_discovery_locator_publish',
+    ],
+    assessment: [
+      'assessment_create',
+      'assessment_readiness',
+      'assessment_run',
+      'assessment_stop',
+      'assessment_diagnose',
+      'assessment_reconcile',
+      'assessment_review',
+      'assessment_decide',
+    ],
+  },
+  gates: [
+    'Approve the resolved requirement graph and immutable QualityPlanRevision; blocking queries prevent approval.',
+    'Approve obligation-linked scenarios for behavioral intent, assertions, coverage, required minimum assurance, matrix intent, and limitations.',
+    'Resolve mechanical bindings against registries without reopening behavioral review unless behavior, assertions, coverage, or limitations change.',
+    'Run approved validation versions against immutable evaluation subject revisions; standalone runs produce evidence only.',
+    'Issue AssessmentDecision only from reviewed Quality Plan Assessments with current requirement alignment.',
+  ],
+  drift:
+    'Deterministic traversal identifies impacted obligations, validations, evidence, and criteria. Agents propose dispositions; humans approve impact and successor. Stale revisions cannot issue current acceptance.',
+}
+
+export const assessmentWorkflow = {
+  phase: 'assessment',
+  subjectAuthority:
+    'Evaluation subject authority is an immutable artifact or deployment snapshot digest. Commit, URL, build, and release labels are metadata.',
+  evidenceSeal:
+    'Evidence is sealed at validation-version/result-matrix-cell granularity and binds subject digest, runtime-input hash, environment/browser snapshot, data provenance, outputs/outcome, and report/log/trace hashes.',
+  assurance:
+    'Required minimum assurance is separate from observed assurance; stronger observed assurance satisfies weaker requirements.',
+  baselines: 'Baselines are optional reference assessments and are never mandatory development prerequisites.',
 }
 
 export const standbyWorkflow = {
@@ -320,14 +447,23 @@ export const compactMcpCapabilityMetadata = {
     'plan_review_loop',
     'validation_ast_compile',
     'baseline_start',
+    'baseline_reconcile',
     'implementation_start',
-    'implementation_complete',
+    'implementation_validation_start',
+    'implementation_completion_review',
+    'requirements_submit_source',
+    'requirements_approve',
+    'validation_design_approve',
+    'validation_publish',
+    'assessment_create',
+    'assessment_run',
+    'assessment_decide',
   ],
   workflowSentinelResources: [
     'appraise://agent-guide',
+    'appraise://workflow/quality-design',
+    'appraise://workflow/assessment',
     'appraise://workflow/planning',
-    'appraise://workflow/validation-preparation',
-    'appraise://workflow/standby',
   ],
   fullCapabilityResource: 'appraise://project',
 }

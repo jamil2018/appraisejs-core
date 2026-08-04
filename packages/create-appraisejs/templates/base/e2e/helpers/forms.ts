@@ -25,14 +25,18 @@ export async function selectTestSuites(page: Page, ...suiteNames: string[]): Pro
 }
 
 export async function addStepDefinitionToFlow(page: Page): Promise<void> {
-  await page.getByLabel('Step Definition results').selectOption({
-    label: 'Navigate to URL (browser.navigation.goto@1)',
-  })
-  await page.getByRole('button', { name: 'Insert first step' }).click()
+  await selectStepDefinitionForFlow(page, 'Navigate to URL')
   await page.getByRole('textbox', { name: 'url' }).fill('/')
-  await page.getByRole('button', { name: 'Save step' }).click()
+  await page.getByRole('button', { name: 'Save step' }).dispatchEvent('click')
+  await expect(page.getByRole('button', { name: 'Close step details' })).toBeHidden()
   await expect(page.getByRole('button', { name: 'Remove Navigate to URL' })).toBeVisible()
   await page.waitForTimeout(250)
+}
+
+export async function selectStepDefinitionForFlow(page: Page, title: string): Promise<void> {
+  await page.getByRole('button', { name: 'Open step details' }).click()
+  await page.getByRole('combobox', { name: 'Step Definition results' }).click()
+  await page.getByRole('option', { name: new RegExp(title) }).click()
 }
 
 export async function editRecordName(page: Page, name: string, nextName: string): Promise<void> {

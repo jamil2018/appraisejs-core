@@ -14,12 +14,7 @@ type McpFixture = { default: McpDefinition[]; providerNative: McpDefinition[] }
 export type PublicOperationReference =
   { kind: 'coordinator'; operation: CoordinatorOperationId } | { kind: 'local'; reason: string }
 
-const localSearchTools = new Set([
-  'appraise_resources_list',
-  'locator_search',
-  'step_search',
-  'step_block_search',
-])
+const localSearchTools = new Set(['appraise_resources_list', 'locator_search', 'step_search', 'step_block_search'])
 const localWorkflowTools = new Set([
   'plan_review_loop',
   'plan_wait_for_approval',
@@ -29,6 +24,9 @@ const localWorkflowTools = new Set([
 ])
 
 const exactCoordinatorOperations: Readonly<Record<string, CoordinatorOperationId>> = {
+  assessment_diagnose: 'quality-read',
+  assessment_readiness: 'quality-read',
+  assessment_review: 'quality-read',
   coordination_slo_evaluate: 'coordination-slo',
   coordinator_heartbeat: 'heartbeat',
   coordinator_register: 'register',
@@ -57,6 +55,7 @@ const exactCoordinatorOperations: Readonly<Record<string, CoordinatorOperationId
   project_list: 'target-projects-list',
   provider_list: 'providers-list',
   provider_run_read: 'provider-runs-read',
+  requirements_graph_read: 'quality-read',
   step_definition_draft_read: 'step-definitions-read',
   test_run: 'test-run-write',
   test_run_diagnose: 'test-run-evidence',
@@ -64,15 +63,22 @@ const exactCoordinatorOperations: Readonly<Record<string, CoordinatorOperationId
   test_run_read: 'test-run-evidence',
   validation_ast_extension_reviews: 'plan-validations-read',
   validation_context_read: 'plan-validations-read',
+  validation_compile: 'quality-write',
+  validation_publish: 'quality-write',
+  validation_reuse_resolve: 'quality-write',
 }
 
 const coordinatorOperationPrefixes: ReadonlyArray<readonly [string, CoordinatorOperationId]> = [
   ['baseline_', 'plan-baseline-write'],
+  ['assessment_', 'quality-write'],
   ['implementation_', 'plan-implementation-write'],
   ['operation_', 'operations'],
   ['provider_run_', 'provider-runs-write'],
   ['provider_', 'providers-write'],
+  ['requirements_', 'quality-write'],
   ['step_definition_', 'step-definitions-write'],
+  ['target_discovery_', 'quality-write'],
+  ['validation_design_', 'quality-write'],
   ['validation_', 'plan-validation-write'],
 ]
 

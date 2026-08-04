@@ -1,5 +1,4 @@
 import { createHash } from 'node:crypto'
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { promises as fs } from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
@@ -14,6 +13,46 @@ const hash = (value: string) => `sha256:${createHash('sha256').update(value).dig
 let workspace = ''
 afterEach(async () => fs.rm(workspace, { recursive: true, force: true }))
 
+type PublishOperationFixture = Record<string, unknown> & {
+  id: string
+  planId: string
+  planProjectionId: string
+  targetProjectId: string
+  expectedPlanHash: string
+  expectedPlanArtifactHash: string
+  expectedReviewHash: string
+  targetFingerprint: string
+  plan: { id: string; sourceHash: string; lifecycle: string; validationJson?: string }
+  targetProject: { id: string; fingerprint: string }
+  phase: string
+  planHash: string
+  validationHash: string
+  reviewHash: string
+  planContent: string
+  validationContent: string
+  reviewContent: string
+  astId: string
+  astHash: string
+  receiptHash: string
+  projectionJson: string
+  validationProjectionJson?: string
+  idempotencyKey?: string
+  contextHash?: string
+  previewHash?: string
+  projectionHash?: string
+  operationHash?: string
+  extensionReviews: unknown[]
+}
+
+type PublishEventFixture = Record<string, unknown> & {
+  publishOperationId?: string
+  type?: string
+}
+
+type OperationUpdateArgs = { data: Partial<PublishOperationFixture> }
+type OperationUpdateManyArgs = { where: { phase: string }; data: Partial<PublishOperationFixture> }
+type EventUpsertArgs = { create: PublishEventFixture }
+
 describe('Validation AST publish recovery', () => {
   it('resumes every crash phase and emits review-ready exactly once', async () => {
     workspace = await fs.mkdtemp(path.join(os.tmpdir(), 'ast-publish-'))
@@ -24,7 +63,7 @@ describe('Validation AST publish recovery', () => {
     const validationContent = 'validation\n',
       reviewContent = 'review\n',
       planContent = 'plan\n'
-    const operation: any = {
+    const operation: PublishOperationFixture = {
       id: 'op',
       planId: 'plan-one',
       planProjectionId: 'projection',
@@ -97,25 +136,37 @@ describe('Validation AST publish recovery', () => {
         extensionReviewHashes: [],
       }),
     )
-    const events: any[] = []
-    const client: any = {
+    const events: PublishEventFixture[] = []
+    const client = {
       validationAstPublishOperation: {
         findUnique: vi.fn(async () => operation),
         findUniqueOrThrow: vi.fn(async () => operation),
-        updateMany: vi.fn(async ({ where, data }: any) =>
+        updateMany: vi.fn(async ({ where, data }: OperationUpdateManyArgs) =>
           operation.phase === where.phase ? (Object.assign(operation, data), { count: 1 }) : { count: 0 },
         ),
       },
-      $transaction: async (fn: any) =>
+      $transaction: async (
+        fn: (transaction: {
+          validationAstPublishOperation: {
+            findUniqueOrThrow: () => Promise<PublishOperationFixture>
+            update: (args: OperationUpdateArgs) => Promise<PublishOperationFixture>
+          }
+          planProjection: { update: () => Promise<{ id: string; revision: number }> }
+          planEvent: {
+            findFirst: () => Promise<PublishEventFixture | null>
+            upsert: (args: EventUpsertArgs) => Promise<PublishEventFixture>
+          }
+        }) => Promise<unknown>,
+      ) =>
         fn({
           validationAstPublishOperation: {
             findUniqueOrThrow: async () => operation,
-            update: async ({ data }: any) => Object.assign(operation, data),
+            update: async ({ data }: OperationUpdateArgs) => Object.assign(operation, data),
           },
           planProjection: { update: async () => ({ id: 'projection', revision: 1 }) },
           planEvent: {
             findFirst: async () => events.at(-1) ?? null,
-            upsert: async ({ create }: any) => {
+            upsert: async ({ create }: EventUpsertArgs) => {
               const existing = events.find(
                 event => event.publishOperationId === create.publishOperationId && event.type === create.type,
               )
