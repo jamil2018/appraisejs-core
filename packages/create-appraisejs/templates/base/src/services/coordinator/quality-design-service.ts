@@ -326,12 +326,12 @@ function nonEmptyStrings(value: unknown): string[] {
     : []
 }
 
-function scenarioIntent(scenario: RequirementRecord) {
+function scenarioIntent(scenario: Record<string, unknown>) {
   if (typeof scenario.behavior === 'string' && scenario.behavior.trim()) return scenario.behavior.trim()
   return typeof scenario.intent === 'string' ? scenario.intent.trim() : ''
 }
 
-function scenarioProposal(scenario: RequirementRecord, index: number): ScenarioProposal {
+function scenarioProposal(scenario: Record<string, unknown>, index: number): ScenarioProposal {
   return {
     id: typeof scenario.id === 'string' && scenario.id.trim() ? scenario.id.trim() : `scenario-${index + 1}`,
     title: typeof scenario.title === 'string' && scenario.title.trim() ? scenario.title.trim() : undefined,
@@ -434,7 +434,7 @@ export async function submitQualityRequirementSource(
 async function createRequirementRevision(
   transaction: PrismaLike,
   targetProjectId: string,
-  source: NormalizedSource,
+  source: SourceSpecification,
   graph: unknown,
   contentHash: string,
 ) {
@@ -459,7 +459,7 @@ async function createRequirementRevision(
 async function createRequirementSnapshots(
   transaction: PrismaLike,
   qualityPlanRevisionId: string,
-  requirements: NormalizedSource['requirements'],
+  requirements: NonNullable<SourceSpecification['requirements']>,
 ) {
   for (const [index, requirement] of requirements.entries()) {
     const snapshot = await transaction.requirementSnapshot.create({
