@@ -999,7 +999,7 @@ describe('MCP capability and recovery metadata', () => {
 })
 
 describe('MCP planning session target selection', () => {
-  it('returns structured recovery instead of silently creating a hub-scoped plan', () => {
+  it('returns structured recovery instead of creating an unbound plan', () => {
     const response = planningSessionTargetRequiredResponse({
       planDescription: 'Agent-authored plan for a small recipe organizer app.',
       targetProjects: { targetProjects: [{ id: 'target-1', displayName: 'Recipe app' }] },
@@ -1010,9 +1010,8 @@ describe('MCP planning session target selection', () => {
       status: 'target_required',
       code: 'planning-target-required',
       nextRequiredAgentBehavior: 'choose_explicit_target_before_planning',
-      hubProject: {
+      coordinatorProject: {
         canonicalPath: '/repo/appraisejs',
-        targetMode: 'hub',
       },
     })
     expect(response.message).toContain('targetWorkspacePath')

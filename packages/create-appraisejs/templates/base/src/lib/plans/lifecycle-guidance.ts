@@ -1,9 +1,9 @@
 export const LIFECYCLE_STAGES = [
-  { id: 'plan', label: 'Plan review' },
-  { id: 'validation', label: 'Validation review' },
-  { id: 'baseline', label: 'Baseline' },
-  { id: 'implementation', label: 'Implementation' },
-  { id: 'completion', label: 'Completion' },
+  { id: 'plan', label: 'Quality plan' },
+  { id: 'validation', label: 'Validation design' },
+  { id: 'baseline', label: 'Current evidence' },
+  { id: 'implementation', label: 'External change' },
+  { id: 'completion', label: 'Final evidence' },
 ] as const
 
 const STAGE_BY_LIFECYCLE: Record<string, number> = {
@@ -25,6 +25,17 @@ const STAGE_BY_LIFECYCLE: Record<string, number> = {
   failed_validation: 3,
   validation_passed: 4,
   completed: 4,
+}
+
+const LIFECYCLE_DISPLAY_LABELS: Record<string, string> = {
+  baseline_running: 'collecting current evidence',
+  baseline_review: 'current evidence review',
+  baseline_changes_requested: 'evidence changes requested',
+  baseline_accepted: 'current evidence accepted',
+}
+
+export function lifecycleDisplayLabel(lifecycle: string) {
+  return LIFECYCLE_DISPLAY_LABELS[lifecycle] ?? lifecycle.replaceAll('_', ' ')
 }
 
 export function lifecycleProgress(lifecycle: string) {
@@ -49,16 +60,17 @@ export function nextLifecycleAction(lifecycle: string) {
   if (lifecycle === 'awaiting_validation_review')
     return { actor: 'Reviewer', action: 'Review and approve validation evidence.' }
   if (['validations_approved', 'baseline_changes_requested'].includes(lifecycle))
-    return { actor: 'Agent', action: 'Start or retry the managed baseline.' }
-  if (lifecycle === 'baseline_running') return { actor: 'Agent', action: 'Reconcile the active baseline runs.' }
-  if (lifecycle === 'baseline_review') return { actor: 'Reviewer', action: 'Review and accept baseline evidence.' }
-  if (lifecycle === 'baseline_accepted') return { actor: 'Agent', action: 'Start implementation.' }
+    return { actor: 'Agent', action: 'Collect or retry current-state evidence.' }
+  if (lifecycle === 'baseline_running') return { actor: 'Agent', action: 'Reconcile active evidence runs.' }
+  if (lifecycle === 'baseline_review') return { actor: 'Reviewer', action: 'Review and accept current-state evidence.' }
+  if (lifecycle === 'baseline_accepted')
+    return { actor: 'Agent', action: 'Current-state evidence is accepted; continue the external workflow.' }
   if (['in_progress', 'paused'].includes(lifecycle))
-    return { actor: 'Agent', action: 'Complete runnable tasks and record verification.' }
+    return { actor: 'Agent', action: 'Track the external change and record verification evidence.' }
   if (['validating', 'failed_validation'].includes(lifecycle))
-    return { actor: 'Agent', action: 'Reconcile or repair managed implementation validation.' }
+    return { actor: 'Agent', action: 'Reconcile or repair final managed validation evidence.' }
   if (lifecycle === 'validation_passed')
-    return { actor: 'Reviewer', action: 'Review final evidence and approve completion.' }
-  if (lifecycle === 'completed') return { actor: 'Complete', action: 'No further lifecycle action is required.' }
+    return { actor: 'Reviewer', action: 'Review final evidence and record the quality decision.' }
+  if (lifecycle === 'completed') return { actor: 'Complete', action: 'The quality decision is recorded.' }
   return { actor: 'Agent', action: 'Continue the current Appraise lifecycle step.' }
 }

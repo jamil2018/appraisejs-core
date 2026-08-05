@@ -2,7 +2,13 @@ import { describe, expect, it } from 'vitest'
 
 import type { PlanReviewDetail } from '@/services/plan-review/plan-review-service'
 
-import { continuationPackage, evidenceDelta, lifecycleProgress, nextLifecycleAction } from './plan-lifecycle-guidance'
+import {
+  continuationPackage,
+  evidenceDelta,
+  lifecycleDisplayLabel,
+  lifecycleProgress,
+  nextLifecycleAction,
+} from './plan-lifecycle-guidance'
 
 describe('plan lifecycle guidance', () => {
   it('maps lifecycle state to a five-stage progress rail and exact next actor', () => {
@@ -13,9 +19,22 @@ describe('plan lifecycle guidance', () => {
       'upcoming',
       'upcoming',
     ])
+    expect(lifecycleProgress('baseline_review')[2]).toMatchObject({ label: 'Current evidence', state: 'active' })
+    expect(lifecycleProgress('baseline_review').map(stage => stage.label)).toEqual([
+      'Quality plan',
+      'Validation design',
+      'Current evidence',
+      'External change',
+      'Final evidence',
+    ])
+    expect(lifecycleDisplayLabel('baseline_review')).toBe('current evidence review')
+    expect(nextLifecycleAction('baseline_accepted')).toEqual({
+      actor: 'Agent',
+      action: 'Current-state evidence is accepted; continue the external workflow.',
+    })
     expect(nextLifecycleAction('validation_passed')).toEqual({
       actor: 'Reviewer',
-      action: 'Review final evidence and approve completion.',
+      action: 'Review final evidence and record the quality decision.',
     })
   })
 

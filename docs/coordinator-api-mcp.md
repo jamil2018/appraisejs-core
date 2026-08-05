@@ -379,10 +379,11 @@ Appraise-owned execution attempts for orchestration clients, but they do not app
 baseline, implementation, or completion gates. Those lifecycle transitions remain owned by the existing Appraise
 lifecycle tools and UI review surfaces.
 
-`planning_session_create` requires explicit target selection for normal app briefs. Pass `targetWorkspacePath` for the
-writable target workspace, or pass `targetMode: "hub"` only when the plan is intentionally scoped to the Appraise hub
-checkout. When neither is provided, the tool returns `status: "target_required"` with target project candidates and
-recovery guidance instead of silently creating a hub-scoped plan.
+`planning_session_create` and `plan_create` require explicit target-project selection. Pass `targetWorkspacePath` for
+the writable target workspace, or pass an existing target identity to `plan_create`. Appraise never creates an
+unbound plan. When the project name is omitted, the agent should ask the user or infer a concise name from the brief,
+then register the writable workspace. Missing targets return `status: "target_required"` with project candidates and
+recovery guidance instead of creating a hub-scoped plan.
 
 `plan_wait_for_approval` defaults to bounded poll behavior for ordinary agents. Pending approval returns
 `status: "pending"`, browser URL, `appraise://` URL, goal, description, revision, lifecycle, content hash,

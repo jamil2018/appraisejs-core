@@ -60,7 +60,7 @@ export function registerPlanningOperations(context: McpRegistryContext): void {
         'Create a structured AppraiseJS plan with a short title in goal and a separate description, then wait until its review surface is ready.',
       inputSchema: {
         plan: planCreateInputSchema,
-        target: z.string().min(1).optional(),
+        target: z.string().min(1),
         responseMode: responseModeSchema,
       },
     },
@@ -68,7 +68,7 @@ export function registerPlanningOperations(context: McpRegistryContext): void {
       try {
         return text(
           applyAuthoringResponseMode(
-            withGuidance(target ? await api.createPlanForTarget(plan, target) : await api.createPlan(plan), {
+            withGuidance(await api.createPlanForTarget(plan, target), {
               nextRecommendedAction:
                 'Present the returned browser URL, appraise:// URL, goal, description, revision, lifecycle, content hash, currentAfterSequence when present, nextAfterSequence when present, and recommended wait call; then call plan_review_loop to wait for durable review readiness and Appraise-owned approval feedback before implementation.',
               nextRequiredAgentBehavior: 'wait_for_plan_review_ready',
@@ -86,11 +86,10 @@ export function registerPlanningOperations(context: McpRegistryContext): void {
     'planning_session_create',
     {
       description:
-        'Normal-agent entry point: diagnose, optionally register a target workspace, persist an agent-authored plan, wait for review readiness, then return standby instructions. AppraiseJS validates and gates the supplied plan but does not infer tasks from a brief.',
+        'Normal-agent entry point: diagnose, register the required target workspace, persist a target-bound agent-authored plan, wait for review readiness, then return standby instructions. AppraiseJS validates and gates the supplied plan but does not infer tasks from a brief.',
       inputSchema: {
         plan: planCreateInputSchema,
         targetWorkspacePath: z.string().min(1).optional(),
-        targetMode: z.enum(['hub']).optional(),
         displayName: z.string().min(1).optional(),
         mode: z.enum(['plan_only', 'plan_then_wait']).default('plan_then_wait'),
         responseMode: responseModeSchema,
@@ -99,7 +98,7 @@ export function registerPlanningOperations(context: McpRegistryContext): void {
     async input => {
       try {
         const diagnostic = await diagnoseProject(options)
-        if (!input.targetWorkspacePath && input.targetMode !== 'hub') {
+        if (!input.targetWorkspacePath) {
           return text(
             applyAuthoringResponseMode(
               planningSessionTargetRequiredResponse({
@@ -111,19 +110,13 @@ export function registerPlanningOperations(context: McpRegistryContext): void {
             ),
           )
         }
-        let targetProjectResult: unknown
-        let target: string | undefined
-        if (input.targetWorkspacePath) {
-          targetProjectResult = await api.addTargetProject(input.targetWorkspacePath, input.displayName)
-          const targetProject = (targetProjectResult as { targetProject?: { id?: string } }).targetProject
-          target = targetProject?.id ?? input.targetWorkspacePath
-        }
+        const targetProjectResult = await api.addTargetProject(input.targetWorkspacePath, input.displayName)
+        const targetProject = (targetProjectResult as { targetProject?: { id?: string } }).targetProject
+        const target = targetProject?.id ?? input.targetWorkspacePath
         const candidatePlan = input.plan
         const candidateHash = planCandidateHash(candidatePlan)
         const taskShapeHash = planTaskShapeHash(candidatePlan)
-        const created = (
-          target ? await api.createPlanForTarget(candidatePlan, target) : await api.createPlan(candidatePlan)
-        ) as PlanSnapshot & {
+        const created = (await api.createPlanForTarget(candidatePlan, target)) as PlanSnapshot & {
           planId?: string
           eventSequence?: number
         }

@@ -81,6 +81,7 @@ describe('plans-page-helpers', () => {
 
   it('derives card styles and labels from lifecycle state', () => {
     expect(getLifecycleLabel('awaiting_plan_review', false, false)).toBe('awaiting plan review')
+    expect(getLifecycleLabel('baseline_review', false, false)).toBe('current evidence review')
     expect(getLifecycleLabel('draft', true, false)).toBe('Stale')
     expect(getLifecycleLabel('draft', false, true)).toBe('Conflicted')
     expect(getCardStyles('plan_approved', false, false).border).toContain('emerald')

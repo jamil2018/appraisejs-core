@@ -14,7 +14,8 @@ AppraiseJS owns lifecycle and business rules.
 2. If setup text is visible but native MCP tools are missing, inspect `appraisejs agent setup --json`, verify endpoint
    reachability, reconnect, and read `appraise://agent-guide`. If `planning_session_create` or workflow resources are
    still missing, stop and ask the user to reconnect instead of using raw JSON-RPC as the normal path.
-3. Require the discovery handoff to contain a bound target and the unchanged brief. If it is missing, hand back to
+3. Require the discovery handoff to contain a bound target and the unchanged brief. Unbound and hub-scoped plans are
+   prohibited. If the target is missing, hand back to
    `.agents/skills/appraise-project-from-brief/SKILL.md`; do not register a project here.
 4. Author the complete structured plan from the brief and repository context. Prefer `planning_session_create` with
    that explicit `plan` when available; otherwise submit the same plan with `plan_create`. Appraise validates and gates
