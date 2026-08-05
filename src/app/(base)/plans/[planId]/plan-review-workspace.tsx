@@ -96,7 +96,13 @@ import { LifecycleInsightsPanel } from './lifecycle-insights-panel'
 import { PlanRemarkThreadItem } from './plan-remark-thread-item'
 import { ValidationReviewPanel } from './validation-review-panel'
 import { ValidationAstPreview } from './validation-ast-preview'
-import { continuationPackage, evidenceDelta, lifecycleProgress, nextLifecycleAction } from './plan-lifecycle-guidance'
+import {
+  continuationPackage,
+  evidenceDelta,
+  lifecycleDisplayLabel,
+  lifecycleProgress,
+  nextLifecycleAction,
+} from './plan-lifecycle-guidance'
 import { usePlanReviewController } from './use-plan-review-controller'
 
 type PlanReviewWorkspaceProps = {
@@ -255,7 +261,7 @@ const LIFECYCLE_TONE_BY_STATE: Record<string, keyof typeof LIFECYCLE_TONES> = {
 }
 
 function renderLifecycleBadge(lifecycle: string) {
-  const label = lifecycle.replaceAll('_', ' ')
+  const label = lifecycleDisplayLabel(lifecycle)
   const tone = LIFECYCLE_TONES[LIFECYCLE_TONE_BY_STATE[lifecycle] ?? 'neutral']
   const Icon = lifecycle === 'in_progress' ? Clock : tone.Icon
   const spinning = lifecycle === 'baseline_running' || lifecycle === 'validating'
@@ -377,7 +383,7 @@ export function PlanReviewWorkspace({ detail, initialTab, initialSidebarTab }: P
     lines.push(`> **Revision:** ${p.revision} | **Lifecycle:** ${p.lifecycle}`)
     if (p.implementationGroups.length > 0) {
       const groupsStr = p.implementationGroups.map(g => `\`${g.id}\` (${g.taskIds.length} tasks)`).join(', ')
-      lines.push(`> **Implementation Groups:** ${groupsStr}`)
+      lines.push(`> **Quality Groups:** ${groupsStr}`)
     }
     lines.push(``)
     lines.push(`## Description`)
@@ -734,7 +740,7 @@ export function PlanReviewWorkspace({ detail, initialTab, initialSidebarTab }: P
 
           <div className="flex flex-wrap items-center gap-x-6 gap-y-2 pt-1 text-xs text-muted-foreground">
             {detail.plan.implementationGroups.length > 0 && (
-              <div className="flex items-center gap-1.5" aria-label="Implementation groups">
+              <div className="flex items-center gap-1.5" aria-label="Quality groups">
                 <Folder className="size-3.5 text-muted-foreground" />
                 <span className="font-medium">Groups:</span>
                 <div className="flex flex-wrap gap-1">
@@ -947,10 +953,10 @@ export function PlanReviewWorkspace({ detail, initialTab, initialSidebarTab }: P
 
       <Alert className={cn('rounded-xl', !detail.executionOrder.valid && 'border-destructive/50 bg-destructive/10')}>
         <AlertTriangle className="size-4" />
-        <AlertTitle>Computed implementation order</AlertTitle>
+        <AlertTitle>Computed quality-work order</AlertTitle>
         <AlertDescription>
           {detail.executionOrder.valid
-            ? detail.executionOrder.orderedTaskIds.join(' → ') || 'No implementation tasks.'
+            ? detail.executionOrder.orderedTaskIds.join(' → ') || 'No quality tasks.'
             : `Invalid dependency graph: ${detail.executionOrder.blockedTaskIds.join(', ')}.`}
         </AlertDescription>
       </Alert>
@@ -1303,7 +1309,7 @@ export function PlanReviewWorkspace({ detail, initialTab, initialSidebarTab }: P
                       )}
                     </TabsTrigger>
                     <TabsTrigger value="baselines" className="text-xs font-semibold" disabled={!detail.validation}>
-                      Baselines
+                      Evidence
                     </TabsTrigger>
                     <TabsTrigger value="approval" className="text-xs font-semibold">
                       Approval
@@ -1549,13 +1555,13 @@ export function PlanReviewWorkspace({ detail, initialTab, initialSidebarTab }: P
                   )}
                 </TabsContent>
 
-                {/* Tab 2: Baseline & Validation (Baseline execution, runs list, and control) */}
+                {/* Tab 2: Current-state evidence execution, run history, and controls. */}
                 <TabsContent value="baselines" className="m-0 space-y-4 p-4">
                   <div>
-                    <h3 className="font-heading text-sm font-semibold">Baseline Evidence Execution</h3>
+                    <h3 className="font-heading text-sm font-semibold">Current-state evidence</h3>
                     <p className="mt-1 text-[11px] leading-normal text-muted-foreground">
-                      Required browser and environment combinations must have accepted evidence before implementation
-                      begins.
+                      Run the approved validation matrix against the current evaluation subject. Accepted evidence
+                      becomes a reference point for later assessment comparisons.
                     </p>
                   </div>
 
@@ -1563,7 +1569,7 @@ export function PlanReviewWorkspace({ detail, initialTab, initialSidebarTab }: P
                     <div className="max-h-[440px] space-y-3 overflow-y-auto pr-1">
                       {detail.validation.baselineAttempts.length === 0 ? (
                         <div className="rounded-xl border border-dashed p-6 text-center text-xs text-muted-foreground">
-                          No baseline attempts have been submitted yet.
+                          No current-state evidence runs have been submitted yet.
                         </div>
                       ) : (
                         detail.validation.baselineAttempts.map(attempt => (
@@ -1587,10 +1593,10 @@ export function PlanReviewWorkspace({ detail, initialTab, initialSidebarTab }: P
                     <section aria-labelledby="evidence-delta-heading" className="space-y-2 border-t pt-4">
                       <div>
                         <h4 id="evidence-delta-heading" className="text-xs font-semibold">
-                          Baseline to final evidence
+                          Evidence comparison
                         </h4>
                         <p className="mt-1 text-[11px] text-muted-foreground">
-                          Compare the latest pre-implementation observation with final managed validation.
+                          Compare the accepted current-state observation with the latest managed assessment evidence.
                         </p>
                       </div>
                       <div className="overflow-x-auto rounded-lg border">
@@ -1598,8 +1604,8 @@ export function PlanReviewWorkspace({ detail, initialTab, initialSidebarTab }: P
                           <thead className="bg-muted/40 text-muted-foreground">
                             <tr>
                               <th className="px-3 py-2 font-medium">Validation</th>
-                              <th className="px-3 py-2 font-medium">Baseline</th>
-                              <th className="px-3 py-2 font-medium">Final</th>
+                              <th className="px-3 py-2 font-medium">Current state</th>
+                              <th className="px-3 py-2 font-medium">Latest assessment</th>
                               <th className="px-3 py-2 font-medium">Evidence</th>
                             </tr>
                           </thead>
@@ -1616,13 +1622,14 @@ export function PlanReviewWorkspace({ detail, initialTab, initialSidebarTab }: P
                   <div className="grid gap-2 border-t pt-4">
                     {['validations_approved', 'baseline_changes_requested'].includes(detail.plan.lifecycle) && (
                       <p className="bg-muted/20 rounded-xl border p-3 text-xs leading-relaxed text-muted-foreground">
-                        Validation review is approved. The connected agent starts required baselines through MCP.
+                        Validation review is approved. The connected agent collects current-state evidence through MCP.
                       </p>
                     )}
                     {detail.plan.lifecycle === 'baseline_running' && (
                       <>
                         <p className="bg-muted/20 rounded-xl border p-3 text-xs leading-relaxed text-muted-foreground">
-                          Baseline runs are active. The connected agent reconciles run evidence through MCP.
+                          Current-state evidence runs are active. The connected agent reconciles their evidence through
+                          MCP.
                         </p>
                         <Button
                           variant="outline"
@@ -1632,11 +1639,11 @@ export function PlanReviewWorkspace({ detail, initialTab, initialSidebarTab }: P
                           onClick={() =>
                             run(
                               () => cancelBaselineExecutionAction({ planId: detail.plan.planId }),
-                              'Baseline execution cancelled.',
+                              'Evidence collection cancelled.',
                             )
                           }
                         >
-                          Cancel baseline runs
+                          Cancel evidence runs
                         </Button>
                       </>
                     )}
@@ -1652,30 +1659,33 @@ export function PlanReviewWorkspace({ detail, initialTab, initialSidebarTab }: P
                               () =>
                                 retryBaselineAfterRepairAction({
                                   planId: detail.plan.planId,
-                                  reason: 'Baseline evidence is invalid and requires validation runtime repair.',
+                                  reason: 'Current-state evidence is invalid and requires validation runtime repair.',
                                   expectedValidationHash: detail.validationContentHash,
                                 }),
-                              'Validation reopened for baseline repair.',
+                              'Validation reopened for evidence repair.',
                             )
                           }
                         >
-                          Repair validation and rerun baseline
+                          Repair validation and recollect evidence
                         </Button>
                         <Button
                           size="sm"
                           className="h-9 rounded-xl font-semibold"
                           disabled={isPending || hasInvalidBaselineEvidence}
                           onClick={() =>
-                            run(() => acceptBaselineAction({ planId: detail.plan.planId }), 'Baselines accepted.')
+                            run(
+                              () => acceptBaselineAction({ planId: detail.plan.planId }),
+                              'Current-state evidence accepted.',
+                            )
                           }
                         >
-                          Accept complete baseline
+                          Accept current-state evidence
                         </Button>
                       </div>
                     )}
                     {detail.plan.lifecycle === 'baseline_accepted' && (
                       <p className="bg-muted/20 rounded-xl border p-3 text-xs leading-relaxed text-muted-foreground">
-                        Baseline evidence is accepted. The connected agent unlocks implementation through MCP.
+                        Current-state evidence is accepted and available for comparison with later assessments.
                       </p>
                     )}
                   </div>

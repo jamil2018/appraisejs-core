@@ -1,7 +1,12 @@
 import type { PlanReviewDetail } from '@/services/plan-review/plan-review-service'
 import { nextLifecycleAction } from '@/lib/plans/lifecycle-guidance'
 
-export { LIFECYCLE_STAGES, lifecycleProgress, nextLifecycleAction } from '@/lib/plans/lifecycle-guidance'
+export {
+  LIFECYCLE_STAGES,
+  lifecycleDisplayLabel,
+  lifecycleProgress,
+  nextLifecycleAction,
+} from '@/lib/plans/lifecycle-guidance'
 
 export function continuationPackage(detail: PlanReviewDetail, browserUrl: string) {
   const latestSequence = detail.events.reduce((latest, event) => Math.max(latest, event.sequence), 0)

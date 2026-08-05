@@ -24,9 +24,9 @@ export function baselineRecoveryGuidance(validation: Validation, attempt: Attemp
 
   if (attempt.status === 'running' || attempt.status === 'scheduled') {
     return {
-      title: 'Baseline is still running',
+      title: 'Evidence collection is still running',
       rootCause: 'The managed run has not produced terminal evidence yet.',
-      allowedAction: 'Wait for the connected agent to reconcile, or cancel all active baseline runs.',
+      allowedAction: 'Wait for the connected agent to reconcile, or cancel all active evidence runs.',
       retryConsequence: 'A retry is unavailable until the active attempt reaches a terminal state.',
       expectedSignatures,
       acknowledged,
@@ -71,7 +71,7 @@ export function baselineRecoveryGuidance(validation: Validation, attempt: Attemp
     return {
       title: 'Validation authoring failed',
       rootCause: 'Step definitions, imports, Cucumber configuration, setup, or the last required setup step failed.',
-      allowedAction: 'Repair and republish the validation, then start a fresh managed baseline.',
+      allowedAction: 'Repair and republish the validation, then collect fresh current-state evidence.',
       retryConsequence:
         'Review approvals and runtime projections are cleared; prior attempts and TestRun evidence remain immutable.',
       expectedSignatures,
@@ -79,9 +79,9 @@ export function baselineRecoveryGuidance(validation: Validation, attempt: Attemp
     }
   }
   return {
-    title: 'Baseline infrastructure failed',
+    title: 'Evidence infrastructure failed',
     rootCause: 'The managed runtime ended without trustworthy product evidence.',
-    allowedAction: 'Repair the runtime prerequisite, then start a fresh managed baseline.',
+    allowedAction: 'Repair the runtime prerequisite, then collect fresh current-state evidence.',
     retryConsequence: 'The retry creates a new attempt and preserves this attempt for audit history.',
     expectedSignatures,
     acknowledged,

@@ -32,7 +32,7 @@ describe('plan lifecycle insights', () => {
       validation: { revision: 1, baseRevision: { snapshotHash: 'sha256:old' }, baselineAttempts: [] },
       orphanedThreadIds: [],
     } as unknown as PlanReviewDetail
-    expect(liveAgentActivity(detail)).toMatchObject({ phase: 'Validation review', waitState: 'waiting_for_human_gate' })
+    expect(liveAgentActivity(detail)).toMatchObject({ phase: 'Validation design', waitState: 'waiting_for_human_gate' })
     expect(revisionImpact(detail)).toMatchObject({ status: 'stale', impacted: expect.arrayContaining(['validations']) })
   })
 

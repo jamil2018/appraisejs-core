@@ -20,8 +20,9 @@ generate a plan and show it in Appraise. Also use it when continuing feature wor
    reachability, reconnect, and read `appraise://agent-guide`. If `planning_session_create` or workflow resources are
    still missing, stop and ask the user to reconnect instead of using raw JSON-RPC as the normal path.
 3. Call MCP `project_diagnostic` first and stop on blocking checks. Never silently fall back to CLI.
-4. For a brand-new app brief, choose the target explicitly before plan creation: pass `targetWorkspacePath` for the
-   writable target workspace, or use `targetMode: "hub"` only when the user knowingly wants a hub-scoped plan.
+4. Choose the target explicitly before plan creation. Pass `targetWorkspacePath` for the writable target workspace.
+   If the user omitted the project name, ask for one or infer a concise name from the brief. Never create an unbound
+   or hub-scoped plan.
 5. If the target project is not registered, call `project_add` for the writable target workspace before creating a
    plan. Empty writable directories are valid planning targets.
 6. Treat an existing `.appraisejs/project.json` marker as continuity guidance that future plans go through Appraise.

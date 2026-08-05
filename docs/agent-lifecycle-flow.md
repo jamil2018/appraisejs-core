@@ -4,6 +4,10 @@ Plans and managed lifecycle operations remain bound to their recorded target pro
 cookies, and caller-supplied IDs cannot rewrite that binding; conflicts are rejected. See
 `docs/project-ownership-boundary.md`.
 
+Every plan must begin with an explicit target-project boundary. If the user has not supplied a project name, ask for
+one or infer a concise name from the brief, register its writable workspace, and only then create the plan. Unbound
+and hub-scoped plan creation are not supported.
+
 When multiple delivered events have been handled in sequence, coordinators should cumulatively acknowledge through
 the highest handled sequence. The cumulative operation is idempotent and avoids one request per historical event;
 use single-event acknowledgement when later delivered events must remain pending.
@@ -132,6 +136,11 @@ requires an exact human acknowledgement describing the missing capability. The s
 keyboard/focus, checked/value/text/absence assertions, viewport changes, and horizontal-overflow checks.
 
 ## Baseline
+
+The legacy lifecycle and MCP operation names retain `baseline_*` for compatibility. The plan UI presents this phase as
+**Current-state evidence**: managed observations of the approved validation matrix against the current immutable
+evaluation subject. It must not describe Appraise as owning or unlocking product implementation. Accepted evidence is
+a reference point for later assessment comparison; repeatable Quality Plan assessments remain the QA-domain authority.
 
 Baseline execution evidence must be visible and accepted before implementation starts. `baseline_accepted` is the gate
 that unlocks task implementation. File hash drift or stale validation evidence should block progression until rerun or

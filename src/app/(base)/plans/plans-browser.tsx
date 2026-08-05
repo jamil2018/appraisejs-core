@@ -24,6 +24,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input'
 import type { PlanLifecycleState } from '@/lib/plan-contract/lifecycle'
 import { planCanonicalRoute } from '@/lib/plans/plan-display'
+import { lifecycleDisplayLabel } from '@/lib/plans/lifecycle-guidance'
 import { cn } from '@/lib/utils'
 
 export type PlansBrowserPlan = {
@@ -153,7 +154,7 @@ function getCardAccentClass(plan: PlansBrowserPlan): string {
 function getLifecycleLabel(plan: PlansBrowserPlan): string {
   if (plan.conflicted) return 'Conflict'
   if (plan.stale) return 'Stale'
-  return plan.lifecycle.replaceAll('_', ' ')
+  return lifecycleDisplayLabel(plan.lifecycle)
 }
 
 function PlanBadge({ plan }: { plan: PlansBrowserPlan }) {

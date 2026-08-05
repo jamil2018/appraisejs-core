@@ -812,7 +812,8 @@ describe('PlanReviewWorkspace', () => {
 
   it('opens review deep links on the requested sidebar panel', () => {
     const { unmount } = render(<PlanReviewWorkspace detail={validationDetail} initialSidebarTab="baselines" />)
-    expect(screen.getByRole('tabpanel', { name: /baselines/i })).toBeInTheDocument()
+    expect(screen.getByRole('tabpanel', { name: /evidence/i })).toBeInTheDocument()
+    expect(screen.queryByRole('tab', { name: /baselines/i })).not.toBeInTheDocument()
 
     unmount()
     render(<PlanReviewWorkspace detail={validationDetail} initialSidebarTab="approval" />)
@@ -875,7 +876,7 @@ describe('PlanReviewWorkspace', () => {
     })
 
     rerender(<PlanReviewWorkspace detail={validationDetail} initialTab="validations" />)
-    expect(screen.getByText(/submitting the validation review emits validations_approved/i)).toBeInTheDocument()
+    expect(screen.getByText(/approval enables current-state evidence collection/i)).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: /submit validation review/i }))
     expect(submitValidationReviewAction).toHaveBeenCalledWith({
       planId: 'accessible-plan',
@@ -936,7 +937,7 @@ describe('PlanReviewWorkspace', () => {
     })
   })
 
-  it('shows agent-owned baseline guidance after validation approval without a start button', () => {
+  it('shows agent-owned evidence guidance after validation approval without a start button', () => {
     const approvedDetail: PlanReviewDetail = {
       ...validationDetail,
       plan: { ...validationDetail.plan, lifecycle: 'validations_approved' },
@@ -945,7 +946,9 @@ describe('PlanReviewWorkspace', () => {
 
     render(<PlanReviewWorkspace detail={approvedDetail} initialTab="validations" />)
 
-    expect(screen.getAllByText(/connected agent starts required baselines through MCP/i).length).toBeGreaterThan(0)
+    expect(screen.getAllByText(/connected agent collects current-state evidence through MCP/i).length).toBeGreaterThan(
+      0,
+    )
     expect(screen.queryByRole('button', { name: /start required baselines/i })).not.toBeInTheDocument()
   })
 
@@ -959,14 +962,14 @@ describe('PlanReviewWorkspace', () => {
     },
     {
       lifecycle: 'baseline_running',
-      button: /cancel baseline runs/i,
+      button: /cancel evidence runs/i,
       absentButton: /reconcile run evidence/i,
-      guidance: /connected agent reconciles run evidence through MCP/i,
+      guidance: /connected agent reconciles their evidence through MCP/i,
       action: cancelBaselineExecutionAction,
     },
     {
       lifecycle: 'baseline_review',
-      button: /accept complete baseline/i,
+      button: /accept current-state evidence/i,
       absentButton: null,
       guidance: null,
       action: acceptBaselineAction,
@@ -975,7 +978,7 @@ describe('PlanReviewWorkspace', () => {
       lifecycle: 'baseline_accepted',
       button: null,
       absentButton: /unlock implementation/i,
-      guidance: /connected agent unlocks implementation through MCP/i,
+      guidance: /available for comparison with later assessments/i,
       action: null,
     },
   ] as const)('shows $lifecycle lifecycle action in the validation tab', async options => {

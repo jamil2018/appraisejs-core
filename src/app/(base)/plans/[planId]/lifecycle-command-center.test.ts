@@ -33,7 +33,7 @@ describe('lifecycleCommandCenterState', () => {
       },
     } as unknown as PlanReviewDetail
     expect(lifecycleCommandCenterState(detail)).toMatchObject({
-      gate: 'Baseline',
+      gate: 'Current evidence',
       owner: 'Agent',
       blockers: ['Runtime evidence is incomplete.'],
       activeAttempt: { id: 'attempt-one', testRunId: 'run-one' },

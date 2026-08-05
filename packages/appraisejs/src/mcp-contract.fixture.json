@@ -1780,7 +1780,7 @@
             "enum": ["summary", "evidenceOnly", "blockersOnly", "linksOnly", "full"]
           }
         },
-        "required": ["plan", "responseMode"],
+        "required": ["plan", "target", "responseMode"],
         "additionalProperties": false
       }
     },
@@ -2343,7 +2343,7 @@
     {
       "kind": "tool",
       "name": "planning_session_create",
-      "description": "Normal-agent entry point: diagnose, optionally register a target workspace, persist an agent-authored plan, wait for review readiness, then return standby instructions. AppraiseJS validates and gates the supplied plan but does not infer tasks from a brief.",
+      "description": "Normal-agent entry point: diagnose, register the required target workspace, persist a target-bound agent-authored plan, wait for review readiness, then return standby instructions. AppraiseJS validates and gates the supplied plan but does not infer tasks from a brief.",
       "inputSchema": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "type": "object",
@@ -2600,10 +2600,6 @@
           "targetWorkspacePath": {
             "type": "string",
             "minLength": 1
-          },
-          "targetMode": {
-            "type": "string",
-            "enum": ["hub"]
           },
           "displayName": {
             "type": "string",
@@ -5942,7 +5938,7 @@
             "enum": ["summary", "evidenceOnly", "blockersOnly", "linksOnly", "full"]
           }
         },
-        "required": ["plan", "responseMode"],
+        "required": ["plan", "target", "responseMode"],
         "additionalProperties": false
       }
     },
@@ -6505,7 +6501,7 @@
     {
       "kind": "tool",
       "name": "planning_session_create",
-      "description": "Normal-agent entry point: diagnose, optionally register a target workspace, persist an agent-authored plan, wait for review readiness, then return standby instructions. AppraiseJS validates and gates the supplied plan but does not infer tasks from a brief.",
+      "description": "Normal-agent entry point: diagnose, register the required target workspace, persist a target-bound agent-authored plan, wait for review readiness, then return standby instructions. AppraiseJS validates and gates the supplied plan but does not infer tasks from a brief.",
       "inputSchema": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "type": "object",
@@ -6762,10 +6758,6 @@
           "targetWorkspacePath": {
             "type": "string",
             "minLength": 1
-          },
-          "targetMode": {
-            "type": "string",
-            "enum": ["hub"]
           },
           "displayName": {
             "type": "string",

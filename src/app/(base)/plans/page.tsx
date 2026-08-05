@@ -40,11 +40,11 @@ export default async function PlansPage({ searchParams }: PlansPageProps) {
           <PageHeader>
             <span className="flex items-center gap-3">
               <Network className="size-7 text-primary sm:size-8" strokeWidth={2.2} />
-              Implementation Plans
+              Quality Plans
             </span>
           </PageHeader>
           <HeaderSubtitle>
-            Inspect canonical plan structure, leave remarks, and approve an exact revision.
+            Review requirements, quality obligations, validation intent, and exact revision evidence.
           </HeaderSubtitle>
         </div>
         <Badge

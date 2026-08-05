@@ -700,7 +700,7 @@ export function diagnosticGuidance(diagnostic: unknown, preflight?: { status?: s
   }
   return {
     nextRecommendedAction: ok
-      ? 'For an existing app, register or select the target workspace with project_add before planning. For hub checkout work, call planning_session_create with targetMode:"hub". If expected MCP tools or resources are missing, restart/reconnect the MCP client and sidecar.'
+      ? 'Register or select the target workspace with project_add before planning. If the user did not supply a project name, infer a concise name from the brief and confirm or register its writable workspace before creating the plan. If expected MCP tools or resources are missing, restart/reconnect the MCP client and sidecar.'
       : 'Resolve diagnostics first. For stale or missing MCP capabilities, restart/reconnect the MCP client, restart the Appraise MCP sidecar, then rerun npm run setup:mcp and npm run setup:agent.',
     nextRequiredAgentBehavior: ok ? 'choose_explicit_target_before_planning' : 'recover_mcp_or_project_binding',
   }
@@ -724,23 +724,20 @@ export function planningSessionTargetRequiredResponse(input: {
     status: 'target_required',
     code: 'planning-target-required',
     message:
-      'planning_session_create requires targetWorkspacePath for a new-app brief, or explicit targetMode:"hub" when the plan is intentionally scoped to the Appraise hub checkout.',
+      'planning_session_create requires targetWorkspacePath. Plans cannot be created without a registered target-project binding.',
     planDescription: input.planDescription,
     targetProjectCandidates: input.targetProjects,
-    hubProject: {
-      canonicalPath: input.hubProjectPath,
-      targetMode: 'hub',
-    },
+    coordinatorProject: { canonicalPath: input.hubProjectPath },
     recovery: {
       existingTarget:
         'If the app repository already exists, call project_add or rerun planning_session_create with targetWorkspacePath.',
       newWorkspace:
         'If this is a brand-new app, create or choose the target workspace path first, then pass targetWorkspacePath.',
-      hubMode:
-        'Only pass targetMode:"hub" when the requested work is intentionally for the AppraiseJS hub checkout itself.',
+      missingName:
+        'Ask the user for a project name or infer a concise name from the brief, then register its writable workspace with project_add.',
     },
     nextRecommendedAction:
-      'Choose an explicit targetWorkspacePath, or rerun with targetMode:"hub" for intentional hub-scoped planning.',
+      'Choose or register an explicit targetWorkspacePath, then rerun planning_session_create with that target binding.',
     nextRequiredAgentBehavior: 'choose_explicit_target_before_planning',
   }
 }

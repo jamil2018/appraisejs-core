@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import { lifecycleDisplayLabel } from '@/lib/plans/lifecycle-guidance'
 import { cn } from '@/lib/utils'
 import type { PlanReviewDetail } from '@/services/plan-review/plan-review-service'
 
@@ -18,9 +19,7 @@ type ChangedFile = ValidationArtifact['files'][number]
 type ValidationReviewState = NonNullable<PlanReviewDetail['validationReview']>
 type ValidationDecision = ValidationArtifact['validationDecisions'][number]
 type ValidationFeedbackTarget =
-  | { type: 'validation'; validationId: string }
-  | { type: 'file'; path: string }
-  | { type: 'plan' }
+  { type: 'validation'; validationId: string } | { type: 'file'; path: string } | { type: 'plan' }
 type FeedbackScope = 'test_artifact' | 'product_scope'
 
 type ValidationReviewPanelProps = {
@@ -67,7 +66,7 @@ function submitDisabledReason(
   if (integrity?.status === 'integrity_blocked')
     return `Validation publication integrity is blocked: ${integrity.mismatches.join(', ')}.`
   if (lifecycle === 'validations_approved') {
-    return 'Validations are approved. The connected agent starts required baselines through MCP.'
+    return 'Validations are approved. The connected agent collects current-state evidence through MCP.'
   }
   if (lifecycle === 'validation_changes_requested') {
     return 'Validation changes were requested. Republish updated validation artifacts before approval.'
@@ -84,14 +83,14 @@ function submitButtonLabel(lifecycle: string): string {
 
 function baselineActionDescription(lifecycle: string): string | null {
   if (lifecycle === 'validations_approved' || lifecycle === 'baseline_changes_requested') {
-    return 'Validation review is approved. The connected agent starts required baselines through MCP.'
+    return 'Validation review is approved. The connected agent collects current-state evidence through MCP.'
   }
   if (lifecycle === 'baseline_running') {
-    return 'Baseline runs are active. The connected agent reconciles run evidence through MCP.'
+    return 'Current-state evidence runs are active. The connected agent reconciles their evidence through MCP.'
   }
-  if (lifecycle === 'baseline_review') return 'Baseline evidence is ready for acceptance.'
+  if (lifecycle === 'baseline_review') return 'Current-state evidence is ready for acceptance.'
   if (lifecycle === 'baseline_accepted') {
-    return 'Baseline evidence is accepted. The connected agent unlocks implementation through MCP.'
+    return 'Current-state evidence is accepted and available for comparison with later assessments.'
   }
   return null
 }
@@ -246,14 +245,18 @@ function BaselineLifecycleActions({
             type="button"
             variant="outline"
             disabled={isPending}
-            onClick={() => run(onCancelBaseline, 'Baseline execution cancelled.')}
+            onClick={() => run(onCancelBaseline, 'Evidence collection cancelled.')}
           >
-            Cancel baseline runs
+            Cancel evidence runs
           </Button>
         ) : null}
         {lifecycle === 'baseline_review' ? (
-          <Button type="button" disabled={isPending} onClick={() => run(onAcceptBaseline, 'Baselines accepted.')}>
-            Accept complete baseline
+          <Button
+            type="button"
+            disabled={isPending}
+            onClick={() => run(onAcceptBaseline, 'Current-state evidence accepted.')}
+          >
+            Accept current-state evidence
           </Button>
         ) : null}
       </div>
@@ -288,17 +291,16 @@ function ValidationSummary({
         <div>
           <h2 className="text-base font-semibold">Validation review</h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            Approval advances to validations approved. Implementation remains locked until baseline evidence is
-            accepted.
+            Approval makes these validations eligible to collect evidence against an immutable evaluation subject.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Badge variant="outline">Revision {validation.revision}</Badge>
           <Badge variant={detail.plan.lifecycle === 'validations_approved' ? 'default' : 'secondary'}>
-            {formatState(detail.plan.lifecycle)}
+            {lifecycleDisplayLabel(detail.plan.lifecycle)}
           </Badge>
           <Badge variant={validation.baselineDecision === 'accepted' ? 'default' : 'outline'}>
-            Baseline {formatState(validation.baselineDecision)}
+            Current evidence {formatState(validation.baselineDecision)}
           </Badge>
         </div>
       </div>
@@ -310,8 +312,7 @@ function ValidationSummary({
         </ul>
       ) : detail.plan.lifecycle === 'awaiting_validation_review' ? (
         <div className="mt-4 rounded-md border border-emerald-500/30 bg-emerald-500/10 p-3 text-sm text-emerald-800 dark:text-emerald-200">
-          Validation evidence is ready. Submitting the validation review emits validations_approved and unlocks baseline
-          actions.
+          Validation evidence is ready. Approval enables current-state evidence collection for the reviewed matrix.
         </div>
       ) : null}
       <div className="mt-4">
@@ -319,7 +320,7 @@ function ValidationSummary({
           type="button"
           disabled={isPending || Boolean(disabledReason)}
           aria-describedby={disabledReason ? 'validation-submit-disabled-reason' : undefined}
-          onClick={() => run(onSubmitReview, 'Validation review approved. Baseline is now available.')}
+          onClick={() => run(onSubmitReview, 'Validation review approved. Evidence collection is now available.')}
         >
           <ShieldCheck className="mr-2 size-4" />
           {submitButtonLabel(detail.plan.lifecycle)}

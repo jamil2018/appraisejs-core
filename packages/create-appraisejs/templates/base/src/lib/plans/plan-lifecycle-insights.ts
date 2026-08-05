@@ -55,19 +55,19 @@ const NOTIFICATION_BY_EVENT: Record<
   baseline_run_start_failed: {
     kind: 'blocked_attempt',
     severity: 'warning',
-    message: 'A baseline attempt is blocked and needs recovery.',
+    message: 'A current-state evidence run is blocked and needs recovery.',
     actor: 'Agent',
   },
   baseline_review_ready: {
     kind: 'recovery_or_review_ready',
     severity: 'action',
-    message: 'Baseline evidence is ready for review.',
+    message: 'Current-state evidence is ready for review.',
     actor: 'Reviewer',
   },
   baseline_accepted: {
     kind: 'approval',
     severity: 'info',
-    message: 'Baseline evidence was accepted.',
+    message: 'Current-state evidence was accepted.',
     actor: 'Agent',
   },
   validation_failed: {
@@ -201,8 +201,8 @@ export function revisionImpact(detail: PlanReviewDetail) {
   const validationSnapshotHash = detail.validation?.baseRevision.snapshotHash
   const validationSnapshotKnown = Boolean(
     validationSnapshotHash &&
-      (validationSnapshotHash === detail.projection.sourceHash ||
-        detail.revisions?.some(revision => revision.sourceHash === validationSnapshotHash)),
+    (validationSnapshotHash === detail.projection.sourceHash ||
+      detail.revisions?.some(revision => revision.sourceHash === validationSnapshotHash)),
   )
   const validationStale = Boolean(
     detail.validation && (detail.validation.revision !== detail.plan.revision || !validationSnapshotKnown),

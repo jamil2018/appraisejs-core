@@ -1,4 +1,5 @@
 import { getPlanDisplaySlug } from '@/lib/plans/plan-display'
+import { lifecycleDisplayLabel } from '@/lib/plans/lifecycle-guidance'
 import { listPlans } from '@/services/plan-review/plan-review-service'
 
 export type ListedPlan = Awaited<ReturnType<typeof listPlans>>[number]
@@ -98,7 +99,7 @@ export function getCardStyles(lifecycle: string, stale: boolean, conflicted: boo
 export function getLifecycleLabel(lifecycle: string, stale: boolean, conflicted: boolean) {
   if (conflicted) return 'Conflicted'
   if (stale) return 'Stale'
-  return lifecycle.replaceAll('_', ' ')
+  return lifecycleDisplayLabel(lifecycle)
 }
 
 function matchesPlanTab(lifecycle: string, tab: string) {

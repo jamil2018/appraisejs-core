@@ -43,7 +43,7 @@ Run this validation-preparation fixture when auditing the post-approval path:
 Use AppraiseJS to plan and prepare validations for a simple todo app. Use existing ready Step Definitions wherever possible.
 ```
 
-Use a fresh writable target workspace path for each fixture unless the user explicitly chooses hub-scoped planning.
+Use a fresh writable target workspace path for each fixture. Every plan must be bound to a registered target project.
 
 ## Coordinator Setup
 
