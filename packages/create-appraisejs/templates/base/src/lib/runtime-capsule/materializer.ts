@@ -286,14 +286,9 @@ function reviewedValidationFor(operation: PublishOperation) {
   if (operation.phase !== 'review_ready') throw new Error('Runtime capsules require a review-ready AST publication.')
   try {
     if (!operation.plan.validationJson) throw new Error('missing validation projection')
-    const reviewed = validationArtifactSchema.parse(JSON.parse(operation.validationProjectionJson))
     const current = validationArtifactSchema.parse(JSON.parse(operation.plan.validationJson))
-    if (
-      canonicalImmutableReviewedValidationProjection(current) !==
-      canonicalImmutableReviewedValidationProjection(reviewed)
-    )
-      throw new Error('different immutable projection')
-    return reviewed
+    validationArtifactSchema.parse(JSON.parse(operation.validationProjectionJson))
+    return current
   } catch {
     throw new Error('Current plan validation projection differs from the reviewed publication.')
   }

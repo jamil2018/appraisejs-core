@@ -1031,8 +1031,8 @@ model PlanEvent {
   publishOperation   ValidationAstPublishOperation? @relation(fields: [publishOperationId], references: [id], onDelete: Restrict)
 
   @@unique([planProjectionId, sequence])
-  @@unique([publishOperationId, type])
   @@unique([publishOperationId, validationId])
+  @@index([publishOperationId, type])
   @@index([planProjectionId, acknowledgedAt, sequence])
 }
 

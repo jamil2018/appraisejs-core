@@ -838,13 +838,12 @@ async function postBaselineOperation(operation: string[], body: unknown) {
   }
   if (action === 'regressions' && operation[5] === 'justify') {
     const value = z.object({ justification: z.string().trim().min(1) }).parse(body)
-    return Response.json(
-      await justifyBaselineRegressionPass({
-        planId,
-        attemptId: idSchema.parse(operation[4]),
-        justification: value.justification,
-      }),
-    )
+    await justifyBaselineRegressionPass({
+      planId,
+      attemptId: idSchema.parse(operation[4]),
+      justification: value.justification,
+    })
+    return Response.json({ ok: true })
   }
   throw new ServiceError('Coordinator API operation not found.', 'NOT_FOUND')
 }

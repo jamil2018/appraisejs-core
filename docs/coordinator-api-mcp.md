@@ -298,6 +298,13 @@ conflict. Re-read context and preview rather than retrying with an old receipt. 
 resumes the same operation; changed inputs require a new preview. Recovery advances only through adjacent prepared,
 artifacts-written, projected, and review-ready phases. It never executes generated code or bypasses validation review.
 After `review_ready`, continue through the ordinary Appraise-owned validation review gate.
+One publication may contain multiple validation nodes. Node decisions are idempotent per publication and validation
+identity, so approving one node does not consume or block the decision slot for another node in the same publication.
+Singleton publication events such as compile and review readiness remain application-idempotent by publication and
+event type.
+Remark-thread transitions and final sign-off are review workflow bookkeeping rather than compiled validation content;
+resolving an addressed remark therefore does not invalidate the publication or its validation-review state receipt.
+Plan approvals remain bound because they authorize the plan revision used by compilation.
 
 ### Named hash families
 

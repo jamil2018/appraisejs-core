@@ -120,8 +120,8 @@ export async function auditManagedValidationIntegrity(
   ])
   const planLifecycle = /^lifecycle:\s*([^\s]+)/m.exec(planArtifact.content)?.[1]
   const event = operation
-    ? await client.planEvent.findUnique({
-        where: { publishOperationId_type: { publishOperationId: operation.id, type: 'validation_review_ready' } },
+    ? await client.planEvent.findFirst({
+        where: { publishOperationId: operation.id, type: 'validation_review_ready' },
       })
     : null
   const representations = {

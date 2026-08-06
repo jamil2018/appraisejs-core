@@ -65,6 +65,8 @@ describe('executable binding generator', () => {
       })
       expect(source).toContain('dispatchStepInvocation')
       expect(source).toContain('sealedDefinitions')
+      expect(source).toContain("name.startsWith('locator_')")
+      expect(source).toContain("name.slice('locator_'.length)")
       expect(source).not.toContain("case 'browser.navigation.reload@1'")
       await expectGeneratedBindingToDryRun(root, source, 'Feature: Test\n  Scenario: Run\n    When it runs\n')
     } finally {

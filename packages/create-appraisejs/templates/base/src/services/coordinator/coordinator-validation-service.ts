@@ -28,6 +28,19 @@ type Options = {
 }
 type ValidationFeedbackScope = 'test_artifact' | 'product_scope'
 
+function decisionEventIdentity(event: { validationId: string | null; payloadJson: string | null }) {
+  if (!event.payloadJson) return null
+  const evidence = JSON.parse(event.payloadJson)
+  return [
+    event.validationId,
+    evidence.validationId,
+    evidence.decision,
+    evidence.contentHash,
+    evidence.decidedBy,
+    evidence.decidedAt,
+  ]
+}
+
 async function readArtifacts(planId: string, projectDirectory?: string, client: PrismaClient = prisma) {
   const projectRoot = await findProjectRoot(projectDirectory)
   const repository = new PlanArtifactRepository(projectRoot)
@@ -448,28 +461,51 @@ export async function submitValidationReview(planId: string, options: Options = 
       JSON.stringify([...(options.extensionArtifactHashes ?? [])].sort()) !== JSON.stringify(expectedExtensions)
     )
       throw new ServiceError('Validation review submission is not bound to the current AST evidence.', 'CONFLICT')
-    const decisionEvidence = await client.planEvent.findMany({
-      where: { publishOperationId: publishOperation.id, validationId: { not: null } },
+    const managedValidations = artifacts.validation.validations.filter(
+      validation => validation.astProvenance?.schemaVersion === '2',
+    )
+    const decisionPublications = await client.validationAstPublishOperation.findMany({
+      where: { planId },
+      include: { extensionReviews: true },
     })
-    const evidenceByValidation = new Map(
-      decisionEvidence.map(event => [event.validationId!, event.payloadJson ? JSON.parse(event.payloadJson) : null]),
-    )
-    const astValidationIds = new Set(
-      artifacts.validation.validations.filter(validation => validation.astProvenance).map(validation => validation.id),
-    )
+    const decisionEvidence = await client.planEvent.findMany({
+      where: {
+        publishOperationId: { in: decisionPublications.map(operation => operation.id) },
+        validationId: { in: managedValidations.map(validation => validation.id) },
+        type: 'validation_node_decided',
+      },
+    })
+    const publicationById = new Map(decisionPublications.map(operation => [operation.id, operation]))
+    const astValidationIds = new Set(managedValidations.map(validation => validation.id))
     for (const decision of artifacts.validation.validationDecisions.filter(item =>
       astValidationIds.has(item.validationId),
     )) {
-      const evidence = evidenceByValidation.get(decision.validationId)
+      const expectedDecisionIdentity = [
+        decision.validationId,
+        decision.validationId,
+        decision.decision,
+        decision.contentHash,
+        decision.decidedBy,
+        decision.decidedAt,
+      ]
+      const evidenceEvent = decisionEvidence.find(
+        event => JSON.stringify(decisionEventIdentity(event)) === JSON.stringify(expectedDecisionIdentity),
+      )
+      const evidence = evidenceEvent?.payloadJson ? JSON.parse(evidenceEvent.payloadJson) : null
+      const decisionPublication = evidenceEvent?.publishOperationId
+        ? publicationById.get(evidenceEvent.publishOperationId)
+        : undefined
+      const decisionExtensions = decisionPublication?.extensionReviews.map(item => item.artifactHash).sort()
       if (
+        !decisionPublication ||
         !evidence ||
         evidence.validationId !== decision.validationId ||
         evidence.decision !== decision.decision ||
         evidence.contentHash !== decision.contentHash ||
         evidence.decidedBy !== decision.decidedBy ||
         evidence.decidedAt !== decision.decidedAt ||
-        evidence.operationHash !== publishOperation.operationHash ||
-        JSON.stringify([...(evidence.extensionArtifactHashes ?? [])].sort()) !== JSON.stringify(expectedExtensions)
+        evidence.operationHash !== decisionPublication.operationHash ||
+        JSON.stringify([...(evidence.extensionArtifactHashes ?? [])].sort()) !== JSON.stringify(decisionExtensions)
       )
         throw new ServiceError('Validation review decision does not match immutable AST evidence.', 'CONFLICT')
     }

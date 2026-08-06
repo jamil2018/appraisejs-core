@@ -27,6 +27,12 @@ describe('coordinator adapter boundaries', () => {
     expect(source).not.toMatch(/process\.stdout\.write/)
   })
 
+  it('returns serializable acknowledgement for void baseline regression mutations', async () => {
+    const source = await fs.readFile(adapterPaths.api, 'utf8')
+    expect(source).toMatch(/await justifyBaselineRegressionPass\([\s\S]*?return Response\.json\(\{ ok: true \}\)/)
+    expect(source).not.toMatch(/Response\.json\(\s*await justifyBaselineRegressionPass/)
+  })
+
   it('keeps release-critical workflow operations exposed through their supported adapters', async () => {
     const sources = Object.fromEntries(
       await Promise.all(

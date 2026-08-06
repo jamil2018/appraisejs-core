@@ -63,24 +63,26 @@ async function markValidationReviewReady(operation: PublishOperation, client: Pr
       where: { planProjectionId: plan.id },
       orderBy: { sequence: 'desc' },
     })
-    await tx.planEvent.upsert({
-      where: { publishOperationId_type: { publishOperationId: operation.id, type: 'validation_review_ready' } },
-      update: {},
-      create: {
-        planProjectionId: plan.id,
-        publishOperationId: operation.id,
-        sequence: (latest?.sequence ?? 0) + 1,
-        type: 'validation_review_ready',
-        payloadJson: JSON.stringify({
-          revision: plan.revision,
-          operationId: operation.id,
-          receiptHash: operation.receiptHash,
-          validationHash: operation.validationHash,
-          reviewHash: operation.reviewHash,
-          extensionReviewHashes: operation.extensionReviews.map(item => item.artifactHash),
-        }),
-      },
+    const existingReviewReadyEvent = await tx.planEvent.findFirst({
+      where: { publishOperationId: operation.id, type: 'validation_review_ready' },
     })
+    if (!existingReviewReadyEvent)
+      await tx.planEvent.create({
+        data: {
+          planProjectionId: plan.id,
+          publishOperationId: operation.id,
+          sequence: (latest?.sequence ?? 0) + 1,
+          type: 'validation_review_ready',
+          payloadJson: JSON.stringify({
+            revision: plan.revision,
+            operationId: operation.id,
+            receiptHash: operation.receiptHash,
+            validationHash: operation.validationHash,
+            reviewHash: operation.reviewHash,
+            extensionReviewHashes: operation.extensionReviews.map(item => item.artifactHash),
+          }),
+        },
+      })
     const reviewState = validationReviewStateReceipt({
       validationHash: managedValidationStateHash(operation.validationContent),
       reviewHash: managedReviewStateHash(operation.reviewContent),

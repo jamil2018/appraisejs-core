@@ -15,12 +15,18 @@ const sealedDefinitions = ${canonicalRuntimeCapsuleJson(input.sealedDefinitions)
 const extensionModules = Object.fromEntries(Object.entries(${canonicalRuntimeCapsuleJson(input.extensionModules)}).map(([key, value]) => [key, new URL(value, import.meta.url).href]))
 const registrations = { Given, When, Then, And: Given }
 const locatorName = reference => typeof reference === 'string' ? reference : reference?.id
+const locatorNames = reference => {
+  const name = locatorName(reference)
+  if (typeof name !== 'string') return []
+  return name.startsWith('locator_') ? [name, name.slice('locator_'.length)] : [name, 'locator_' + name]
+}
+const reviewedSelector = reference => locatorNames(reference).map(name => selectors[name]).find(Boolean) ?? null
 const resolveLocator = (world, reference) => {
-  const selector = selectors[locatorName(reference)]
+  const selector = reviewedSelector(reference)
   if (!selector) throw new Error('Reviewed locator could not be resolved.')
   return world.page.locator(selector)
 }
-const resolveSelector = reference => selectors[locatorName(reference)] ?? null
+const resolveSelector = reference => reviewedSelector(reference)
 const dispatch = async (world, step) => {
   const baseUrl = process.env.APPRAISE_BASE_URL ?? 'http://localhost'
   await dispatchStepInvocation({

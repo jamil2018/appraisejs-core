@@ -388,13 +388,10 @@ async function recordCompiledEvent(
     }),
   }
   if (input.publishOperationId) {
-    await transaction.planEvent.upsert({
-      where: {
-        publishOperationId_type: { publishOperationId: input.publishOperationId, type: 'validation_ast_compiled' },
-      },
-      update: {},
-      create: eventData,
+    const existingEvent = await transaction.planEvent.findFirst({
+      where: { publishOperationId: input.publishOperationId, type: 'validation_ast_compiled' },
     })
+    if (!existingEvent) await transaction.planEvent.create({ data: eventData })
     return
   }
   const compiledEvent = await transaction.planEvent.findFirst({

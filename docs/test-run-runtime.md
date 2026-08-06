@@ -68,8 +68,11 @@ projection rows and immutable runtime-input snapshots persist canonical invocati
 without selecting or creating a legacy reusable-step record; operation records remain derived handler dependencies only.
 
 Materialization consumes only a `review_ready` `ValidationAstPublishOperation`. Before writing
-bytes it revalidates the immutable publish journal, exact current `PlanProjection.validationJson`, logical projection,
+bytes it revalidates the immutable publish journal, schema-valid current `PlanProjection.validationJson`, the exact
+operation-specific logical projection and provenance,
 runtime-input snapshot, validation provenance, TestRun/plan/project ownership, and ordered extension-review hashes.
+Later additive reviewed publications may add other validation nodes to the current plan projection without invalidating
+an earlier operation; mutation or removal of that operation's reviewed node still blocks materialization.
 It never reads target-repository `automation/` files. Deterministic feature, binding, reviewed-extension, support,
 config, and expected-case bytes are stored as project-scoped content-addressed blobs; the run manifest references
 those blobs. Verified blob bytes are atomically copied into independent run-local files through an exclusive
@@ -85,6 +88,8 @@ review-derived allowlist. The manifest seals descriptor and handler hashes, and 
 Bindings call `page.locator` with reviewed selectors directly and never consult target automation or a mutable global
 locator cache; world and hook support uses that same runtime instance. Historical generator-version-1 capsules remain
 readable under their original semantics and are never silently upgraded. Reviewed
+locator references accept both the Step Invocation identity form (`locator_<id>`) and the canonical locator-row identity
+form (`<id>`); generated bindings normalize only that explicit prefix and still require an exact reviewed selector.
 extension bytes use validated portable ID/version paths and are never recompiled. A periodic database-lease heartbeat
 renews during slow blob writes, and ownership is reasserted before every blob, manifest, reference, and ready-state
 authority transition. Materialization alone does not authorize execution: the capsule service must prepare the

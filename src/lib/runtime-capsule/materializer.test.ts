@@ -270,7 +270,7 @@ describe('reviewed runtime capsule byte generation', () => {
         version: clickDefinition.identity.version,
         definitionHash: computeStepReferenceHash(clickDefinition),
       },
-      inputs: { target: { id: 'submit' } },
+      inputs: { target: { id: 'locator_submit' } },
     }
     step.parameters = []
     const built = buildReviewedRuntimeCapsuleFiles({
@@ -412,6 +412,15 @@ describe('reviewed runtime capsule materialization integration', () => {
     const secondRun = second.testRun
     const thirdRun = third.testRun
     if (!firstRun || !secondRun || !thirdRun) throw new Error('Expected seeded test runs')
+    const currentFirstProjection = structuredClone(first.validation)
+    currentFirstProjection.validations.push({
+      ...structuredClone(currentFirstProjection.validations[0]!),
+      id: 'later-reviewed-validation',
+    })
+    await client.planProjection.update({
+      where: { planId: 'capsule-plan-one' },
+      data: { validationJson: JSON.stringify(currentFirstProjection) },
+    })
     const materializer = new RuntimeCapsuleMaterializer(client, path.join(workspace, '.appraise'))
     const [one, two, three] = await Promise.all([
       materializer.materialize({ operationId: first.operationId, testRunId: firstRun.id }),
