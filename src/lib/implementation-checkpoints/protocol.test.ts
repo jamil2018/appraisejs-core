@@ -223,6 +223,45 @@ describe('implementation checkpoint protocol', () => {
     expect(invalid).toMatchObject({ ready: false, runState: 'invalid_evidence', activeRunIds: [] })
   })
 
+  it('preserves recovery guidance for missing and terminal required runs', () => {
+    const missing = canCompleteImplementation(plan, {
+      ...validation,
+      implementation: { ...validation.implementation, validationRuns: [] },
+    })
+    expect(missing).toMatchObject({
+      ready: false,
+      runState: 'invalid_evidence',
+      structuredBlockers: [
+        expect.objectContaining({
+          kind: 'run_missing',
+          validationId: 'core-validation',
+          state: 'missing',
+          recovery: expect.objectContaining({ tool: 'implementation_validation_readiness' }),
+        }),
+      ],
+    })
+
+    const failed = canCompleteImplementation(plan, {
+      ...validation,
+      implementation: {
+        ...validation.implementation,
+        validationRuns: validation.implementation.validationRuns.map(run => ({ ...run, status: 'failed' as const })),
+      },
+    })
+    expect(failed).toMatchObject({
+      ready: false,
+      runState: 'failed',
+      structuredBlockers: [
+        expect.objectContaining({
+          kind: 'run_terminal_failure',
+          validationId: 'core-validation',
+          state: 'failed',
+          recovery: expect.objectContaining({ tool: 'implementation_validation_start' }),
+        }),
+      ],
+    })
+  })
+
   it('carries forward only unchanged pre-existing failure acknowledgements', () => {
     const signature = `sha256:${'b'.repeat(64)}`
     expect(carriedFailureAcknowledgementIsValid(signature, signature, '2026-06-11T00:00:00.000Z')).toBe(true)

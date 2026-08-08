@@ -37,6 +37,17 @@ describe('coordinator adapter boundaries', () => {
         idempotencyKey: 'body-key',
       }),
     ).toEqual({ operation: 'delegated', planId: 'nested-plan', idempotencyKey: 'body-key' })
+
+    expect(
+      coordinatorErrorContext(bodyRequest, ['plans', 'route-plan', 'validations', 'resources', 'cleanup']),
+    ).toMatchObject({
+      operationName: 'route_validation_resources_cleanup',
+    })
+    expect(
+      coordinatorErrorContext(bodyRequest, ['plans', 'route-plan', 'validations', 'ast', 'compile']),
+    ).toMatchObject({
+      operationName: 'route_validation_ast_compile',
+    })
   })
 
   it('keeps API and MCP adapters away from Prisma, repositories, and lifecycle tables', async () => {

@@ -1,5 +1,6 @@
 import http from 'node:http'
 import { spawn } from 'node:child_process'
+import assert from 'node:assert/strict'
 
 export function startEditorTarget({ status, label }) {
   const html = `<!doctype html>
@@ -55,4 +56,16 @@ export async function readEditorTarget(directory) {
 export async function stopEditorTarget(child) {
   child.kill('SIGTERM')
   await new Promise(resolve => child.once('exit', resolve))
+}
+
+export async function verifySavedEditorTarget(directory, failureMessage) {
+  const { child, response, page } = await readEditorTarget(directory)
+  try {
+    assert.equal(response.status, 200)
+    assert.match(page, /aria-label="Notebook editor"/)
+    assert.match(page, /data-save-status="saved"/, failureMessage)
+    assert.match(page, /<textarea id="document"/)
+  } finally {
+    await stopEditorTarget(child)
+  }
 }

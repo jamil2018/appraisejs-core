@@ -123,136 +123,168 @@ export function queuedFeedbackMessage(checkpoint: CheckpointType): string {
   return `Feedback queued and will be acknowledged at the next ${checkpoint.replaceAll('_', ' ')} checkpoint.`
 }
 
-// This gate intentionally evaluates every independent completion invariant in one deterministic receipt.
-// fallow-ignore-next-line complexity
-export function canCompleteImplementation(
-  plan: PlanArtifact,
-  validation: ValidationArtifact,
-): {
+type CompletionBlocker = {
+  kind: 'task_unverified' | 'run_missing' | 'run_invalid' | 'run_terminal_failure' | 'evidence_unprotected'
+  taskId?: string
+  validationId?: string
+  runId?: string
+  state: string
+  recovery: { tool: string; arguments: Record<string, unknown> }
+}
+
+type CompletionReadiness = {
   ready: boolean
   blockers: string[]
-  structuredBlockers: Array<{
-    kind: 'task_unverified' | 'run_missing' | 'run_invalid' | 'run_terminal_failure' | 'evidence_unprotected'
-    taskId?: string
-    validationId?: string
-    runId?: string
-    state: string
-    recovery: { tool: string; arguments: Record<string, unknown> }
-  }>
+  structuredBlockers: CompletionBlocker[]
   runState: 'active' | 'passed' | 'failed' | 'cancelled' | 'infrastructure_failure' | 'invalid_evidence'
   activeRunIds: string[]
-} {
-  const blockers: string[] = []
-  const structuredBlockers: Array<{
-    kind: 'task_unverified' | 'run_missing' | 'run_invalid' | 'run_terminal_failure' | 'evidence_unprotected'
-    taskId?: string
-    validationId?: string
-    runId?: string
-    state: string
-    recovery: { tool: string; arguments: Record<string, unknown> }
-  }> = []
-  const implementation = implementationState(validation)
-  const requiredTaskIds = plan.tasks.map(task => task.id)
-  const unverified = requiredTaskIds.filter(taskId => implementation.taskStates[taskId] !== 'verified')
-  if (unverified.length) blockers.push(`Required tasks are not verified: ${unverified.join(', ')}.`)
-  structuredBlockers.push(
-    ...unverified.map(taskId => ({
+}
+
+type ValidationRun = ImplementationState['validationRuns'][number]
+type RequiredValidationRun = { validation: ValidationArtifact['validations'][number]; run: ValidationRun | undefined }
+
+function verifiedTaskBlockers(plan: PlanArtifact, implementation: ImplementationState) {
+  const unverified = plan.tasks.map(task => task.id).filter(taskId => implementation.taskStates[taskId] !== 'verified')
+  return {
+    blockers: unverified.length ? [`Required tasks are not verified: ${unverified.join(', ')}.`] : [],
+    structuredBlockers: unverified.map(taskId => ({
       kind: 'task_unverified' as const,
       taskId,
       state: implementation.taskStates[taskId] ?? 'pending',
       recovery: { tool: 'implementation_task_update', arguments: { taskId, status: 'verified' } },
     })),
-  )
+  }
+}
 
-  const requiredRuns = validation.validations
+function latestValidationRun(validationRuns: ValidationRun[], validationId: string) {
+  return [...validationRuns].reverse().find(run => run.validationId === validationId)
+}
+
+function requiredValidationRuns(
+  validation: ValidationArtifact,
+  implementation: ImplementationState,
+): RequiredValidationRun[] {
+  return validation.validations
     .filter(item => item.required)
-    .map(requiredValidation => ({
-      validation: requiredValidation,
-      run: [...implementation.validationRuns].reverse().find(item => item.validationId === requiredValidation.id),
-    }))
-  for (const requiredValidation of validation.validations.filter(item => item.required)) {
-    const run = [...implementation.validationRuns].reverse().find(item => item.validationId === requiredValidation.id)
-    if (!run?.fresh) {
-      blockers.push(`Required validation "${requiredValidation.id}" needs a fresh passing managed Appraise run.`)
-      structuredBlockers.push({
-        kind: run ? 'run_invalid' : 'run_missing',
-        validationId: requiredValidation.id,
-        runId: run?.id,
-        state: run ? 'stale' : 'missing',
-        recovery: {
-          tool: run ? 'implementation_validation_start' : 'implementation_validation_readiness',
-          arguments: { validationIds: [requiredValidation.id] },
-        },
-      })
-      continue
-    }
-    if (run.status === 'running') {
-      blockers.push(`Required validation "${requiredValidation.id}" is still active.`)
-      structuredBlockers.push({
-        kind: 'run_invalid',
-        validationId: requiredValidation.id,
-        runId: run.id,
-        state: 'active',
-        recovery: { tool: 'implementation_validation_reconcile', arguments: { runIds: [run.id] } },
-      })
-      continue
-    }
-    if (run.evidenceSource !== 'managed' || run.assurance !== 'full' || !run.testRunId) {
-      blockers.push(
-        `Required validation "${requiredValidation.id}" needs managed Appraise TestRun evidence; manual evidence is reduced assurance.`,
-      )
-      structuredBlockers.push({
-        kind: 'run_invalid',
-        validationId: requiredValidation.id,
-        runId: run.id,
-        state: 'invalid_evidence',
-        recovery: { tool: 'implementation_validation_start', arguments: { validationIds: [requiredValidation.id] } },
-      })
-      continue
-    }
-    if (run.status !== 'passed') {
-      blockers.push(`Required validation "${requiredValidation.id}" needs a fresh passing managed Appraise run.`)
-      structuredBlockers.push({
-        kind: 'run_terminal_failure',
-        validationId: requiredValidation.id,
-        runId: run.id,
-        state: run.status,
-        recovery: {
-          tool: 'implementation_validation_start',
-          arguments: { validationIds: [requiredValidation.id] },
-        },
-      })
-    }
+    .map(item => ({ validation: item, run: latestValidationRun(implementation.validationRuns, item.id) }))
+}
+
+function freshRunBlocker(validationId: string, run: ValidationRun | undefined): CompletionBlocker | undefined {
+  if (run?.fresh) return undefined
+  return {
+    kind: run ? 'run_invalid' : 'run_missing',
+    validationId,
+    runId: run?.id,
+    state: run ? 'stale' : 'missing',
+    recovery: {
+      tool: run ? 'implementation_validation_start' : 'implementation_validation_readiness',
+      arguments: { validationIds: [validationId] },
+    },
   }
-  // Signed-off completion releases mutation protection while retaining the
-  // immutable managed-run identities and artifact/sign-off hashes as proof.
-  if (!implementation.evidenceProtected && plan.lifecycle !== 'completed') {
-    blockers.push('Required evidence must remain protected until final completion.')
-    structuredBlockers.push({
-      kind: 'evidence_unprotected',
-      state: 'unprotected',
-      recovery: { tool: 'implementation_completion_review', arguments: {} },
-    })
+}
+
+function activeRunBlocker(validationId: string, run: ValidationRun): CompletionBlocker | undefined {
+  if (run.status !== 'running') return undefined
+  return {
+    kind: 'run_invalid',
+    validationId,
+    runId: run.id,
+    state: 'active',
+    recovery: { tool: 'implementation_validation_reconcile', arguments: { runIds: [run.id] } },
   }
+}
+
+function hasFullManagedEvidence(run: ValidationRun) {
+  return run.evidenceSource === 'managed' && run.assurance === 'full' && Boolean(run.testRunId)
+}
+
+function evidenceRunBlocker(validationId: string, run: ValidationRun): CompletionBlocker | undefined {
+  if (hasFullManagedEvidence(run)) return undefined
+  return {
+    kind: 'run_invalid',
+    validationId,
+    runId: run.id,
+    state: 'invalid_evidence',
+    recovery: { tool: 'implementation_validation_start', arguments: { validationIds: [validationId] } },
+  }
+}
+
+function terminalRunBlocker(validationId: string, run: ValidationRun): CompletionBlocker | undefined {
+  if (run.status === 'passed') return undefined
+  return {
+    kind: 'run_terminal_failure',
+    validationId,
+    runId: run.id,
+    state: run.status,
+    recovery: { tool: 'implementation_validation_start', arguments: { validationIds: [validationId] } },
+  }
+}
+
+function requiredRunBlocker(validationId: string, run: ValidationRun | undefined) {
+  const freshBlocker = freshRunBlocker(validationId, run)
+  if (freshBlocker) return freshBlocker
+  return (
+    activeRunBlocker(validationId, run) ??
+    evidenceRunBlocker(validationId, run) ??
+    terminalRunBlocker(validationId, run)
+  )
+}
+
+function requiredRunBlockerMessage(validationId: string, blocker: CompletionBlocker) {
+  if (blocker.state === 'active') return `Required validation "${validationId}" is still active.`
+  if (blocker.state === 'invalid_evidence')
+    return `Required validation "${validationId}" needs managed Appraise TestRun evidence; manual evidence is reduced assurance.`
+  return `Required validation "${validationId}" needs a fresh passing managed Appraise run.`
+}
+
+function completionEvidenceBlocker(
+  plan: PlanArtifact,
+  implementation: ImplementationState,
+): CompletionBlocker | undefined {
+  if (implementation.evidenceProtected || plan.lifecycle === 'completed') return undefined
+  return {
+    kind: 'evidence_unprotected',
+    state: 'unprotected',
+    recovery: { tool: 'implementation_completion_review', arguments: {} },
+  }
+}
+
+function runStateFor(run: ValidationRun | undefined) {
+  if (!run?.fresh || !hasFullManagedEvidence(run)) return 'invalid_evidence' as const
+  return run.status === 'running' ? ('active' as const) : run.status
+}
+
+function summarizeRequiredRuns(requiredRuns: RequiredValidationRun[]) {
   const activeRunIds = requiredRuns.flatMap(item => (item.run?.status === 'running' ? [item.run.id] : [])).sort()
-  const terminalStates = requiredRuns.map(item => {
-    const run = item.run
-    if (!run?.fresh || run.evidenceSource !== 'managed' || run.assurance !== 'full' || !run.testRunId)
-      return 'invalid_evidence' as const
-    return run.status === 'running' ? 'active' : run.status
-  })
-  const runState = activeRunIds.length
-    ? ('active' as const)
-    : terminalStates.every(state => state === 'passed')
-      ? ('passed' as const)
-      : terminalStates.includes('invalid_evidence')
-        ? ('invalid_evidence' as const)
-        : terminalStates.includes('infrastructure_failure')
-          ? ('infrastructure_failure' as const)
-          : terminalStates.includes('failed')
-            ? ('failed' as const)
-            : ('cancelled' as const)
-  return { ready: blockers.length === 0, blockers, structuredBlockers, runState, activeRunIds }
+  const terminalStates = requiredRuns.map(item => runStateFor(item.run))
+  if (activeRunIds.length) return { runState: 'active' as const, activeRunIds }
+  if (terminalStates.every(state => state === 'passed')) return { runState: 'passed' as const, activeRunIds }
+  if (terminalStates.includes('invalid_evidence')) return { runState: 'invalid_evidence' as const, activeRunIds }
+  if (terminalStates.includes('infrastructure_failure'))
+    return { runState: 'infrastructure_failure' as const, activeRunIds }
+  if (terminalStates.includes('failed')) return { runState: 'failed' as const, activeRunIds }
+  return { runState: 'cancelled' as const, activeRunIds }
+}
+
+export function canCompleteImplementation(plan: PlanArtifact, validation: ValidationArtifact): CompletionReadiness {
+  const implementation = implementationState(validation)
+  const taskBlockers = verifiedTaskBlockers(plan, implementation)
+  const blockers = [...taskBlockers.blockers]
+  const structuredBlockers: CompletionBlocker[] = [...taskBlockers.structuredBlockers]
+  const requiredRuns = requiredValidationRuns(validation, implementation)
+  for (const { validation: requiredValidation, run } of requiredRuns) {
+    const blocker = requiredRunBlocker(requiredValidation.id, run)
+    if (!blocker) continue
+    blockers.push(requiredRunBlockerMessage(requiredValidation.id, blocker))
+    structuredBlockers.push(blocker)
+  }
+  const evidenceBlocker = completionEvidenceBlocker(plan, implementation)
+  if (evidenceBlocker) {
+    blockers.push('Required evidence must remain protected until final completion.')
+    structuredBlockers.push(evidenceBlocker)
+  }
+  const runSummary = summarizeRequiredRuns(requiredRuns)
+  return { ready: blockers.length === 0, blockers, structuredBlockers, ...runSummary }
 }
 
 export function carriedFailureAcknowledgementIsValid(

@@ -82,131 +82,128 @@ function retry(safe: boolean, strategy: CoordinatorRetryStrategy, reason: string
   return { safe, strategy, nextAction: { tool: 'coordinator_error_recovery', reason } }
 }
 
-// The atomic public contract maps each private failure family at one reviewed boundary.
-// fallow-ignore-next-line complexity
-function errorShape(error: unknown): ErrorShape {
-  if (error instanceof CoordinatorPostCommitSerializationError) {
-    return {
-      classification: 'appraise_runtime_defect',
-      message: 'The coordinator completed the operation but could not serialize its response.',
-      status: 500,
-      outcome: 'committed',
-      retry: retry(
-        false,
-        'do_not_retry',
-        'Read the current state before deciding whether another operation is needed.',
-      ),
-      details: { consistency: 'committed' },
-    }
+function postCommitSerializationShape(error: unknown): ErrorShape | undefined {
+  if (!(error instanceof CoordinatorPostCommitSerializationError)) return undefined
+  return {
+    classification: 'appraise_runtime_defect',
+    message: 'The coordinator completed the operation but could not serialize its response.',
+    status: 500,
+    outcome: 'committed',
+    retry: retry(false, 'do_not_retry', 'Read the current state before deciding whether another operation is needed.'),
+    details: { consistency: 'committed' },
   }
-  if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
-    return {
-      classification: 'state_conflict',
-      message: 'A project resource with the same unique identity already exists.',
-      status: 409,
-      outcome: 'not_committed',
-      retry: retry(
-        true,
-        'read_state_then_retry',
-        'Reread the project-scoped resources and submit a compatible change.',
-      ),
-      details: { constraint: 'unique' },
-    }
+}
+
+const prismaErrorShapes: Partial<Record<string, ErrorShape>> = {
+  P2002: {
+    classification: 'state_conflict',
+    message: 'A project resource with the same unique identity already exists.',
+    status: 409,
+    outcome: 'not_committed',
+    retry: retry(true, 'read_state_then_retry', 'Reread the project-scoped resources and submit a compatible change.'),
+    details: { constraint: 'unique' },
+  },
+  P2022: {
+    classification: 'infrastructure_failure',
+    message: 'The Appraise database schema is behind the application code.',
+    status: 503,
+    outcome: 'not_started',
+    retry: retry(true, 'repair_appraise_then_resume', 'Run npm run migrate-db from the Appraise project, then retry.'),
+    details: { dependency: 'database_schema' },
+  },
+}
+
+function prismaErrorShape(error: unknown): ErrorShape | undefined {
+  if (!(error instanceof Prisma.PrismaClientKnownRequestError)) return undefined
+  return prismaErrorShapes[error.code]
+}
+
+function projectMismatchShape(error: unknown): ErrorShape | undefined {
+  if (!(error instanceof CoordinatorProjectMismatchError)) return undefined
+  return {
+    classification: 'authorization_failure',
+    message: 'Coordinator credentials are not valid for this project.',
+    status: 403,
+    outcome: 'not_started',
+    retry: retry(
+      false,
+      'repair_appraise_then_resume',
+      'Reconnect the coordinator to the matching project, then retry.',
+    ),
+    details: { boundary: 'project_identity' },
   }
-  if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2022') {
-    return {
-      classification: 'infrastructure_failure',
-      message: 'The Appraise database schema is behind the application code.',
-      status: 503,
-      outcome: 'not_started',
-      retry: retry(
-        true,
-        'repair_appraise_then_resume',
-        'Run npm run migrate-db from the Appraise project, then retry.',
-      ),
-      details: { dependency: 'database_schema' },
-    }
+}
+
+function planContractShape(error: unknown): ErrorShape | undefined {
+  if (!(error instanceof PlanContractError)) return undefined
+  const details = error.path.length ? { field: error.path.join('.') } : undefined
+  return {
+    classification: 'appraise_authoring_defect',
+    message: 'The authored Appraise artifact does not satisfy the required contract.',
+    status: 422,
+    outcome: 'not_started',
+    retry: retry(false, 'repair_input_then_retry', 'Correct the authored artifact and submit it again.'),
+    ...(details ? { details } : {}),
   }
-  if (error instanceof CoordinatorProjectMismatchError) {
-    return {
-      classification: 'authorization_failure',
-      message: 'Coordinator credentials are not valid for this project.',
-      status: 403,
-      outcome: 'not_started',
-      retry: retry(
-        false,
-        'repair_appraise_then_resume',
-        'Reconnect the coordinator to the matching project, then retry.',
-      ),
-      details: { boundary: 'project_identity' },
-    }
+}
+
+function partialPlanCreateShape(error: unknown): ErrorShape | undefined {
+  if (!(error instanceof CoordinatorPlanCreatePartialError)) return undefined
+  return {
+    classification: 'appraise_runtime_defect',
+    message: 'The coordinator could not confirm whether the operation completed.',
+    status: 500,
+    outcome: 'unknown',
+    retry: retry(false, 'do_not_retry', 'Read the plan state before deciding whether a new operation is needed.'),
+    details: { consistency: 'unknown' },
   }
-  if (error instanceof PlanContractError) {
-    return {
-      classification: 'appraise_authoring_defect',
-      message: 'The authored Appraise artifact does not satisfy the required contract.',
-      status: 422,
-      outcome: 'not_started',
-      retry: retry(false, 'repair_input_then_retry', 'Correct the authored artifact and submit it again.'),
-      ...(error.path.length ? { details: { field: error.path.join('.') } } : {}),
-    }
-  }
-  if (error instanceof CoordinatorPlanCreatePartialError) {
-    return {
-      classification: 'appraise_runtime_defect',
-      message: 'The coordinator could not confirm whether the operation completed.',
-      status: 500,
-      outcome: 'unknown',
-      retry: retry(false, 'do_not_retry', 'Read the plan state before deciding whether a new operation is needed.'),
-      details: { consistency: 'unknown' },
-    }
-  }
-  if (error instanceof ServiceError) {
-    if (error.code === 'NOT_FOUND') {
-      return {
-        classification: 'resource_missing',
-        message: error.message,
-        status: error.statusCode,
-        outcome: 'not_started',
-        retry: retry(false, 'do_not_retry', 'Read the current project state and use an existing resource identifier.'),
-      }
-    }
-    if (error.code === 'UNAUTHORIZED') {
-      return {
-        classification: 'authorization_failure',
-        message: 'Coordinator authorization failed.',
-        status: error.statusCode,
-        outcome: 'not_started',
-        retry: retry(
-          false,
-          'repair_appraise_then_resume',
-          'Reconnect with authorized coordinator credentials, then retry.',
-        ),
-      }
-    }
-    if (error.code === 'CONFLICT') {
-      return {
-        classification: 'state_conflict',
-        message: error.message,
-        status: error.statusCode,
-        outcome: 'not_committed',
-        retry: retry(true, 'read_state_then_retry', 'Read the current state and retry with the latest expected value.'),
-      }
-    }
-    if (error.code === 'VALIDATION') {
-      return {
-        classification: 'request_invalid',
-        message: error.message,
-        status: error.statusCode,
-        outcome: 'not_started',
-        retry: retry(
-          false,
-          'repair_input_then_retry',
-          'Correct the request according to the stated requirement, then retry.',
-        ),
-      }
-    }
-  }
+}
+
+const serviceErrorShapeFactories: Partial<Record<ServiceError['code'], (error: ServiceError) => ErrorShape>> = {
+  NOT_FOUND: error => ({
+    classification: 'resource_missing',
+    message: error.message,
+    status: error.statusCode,
+    outcome: 'not_started',
+    retry: retry(false, 'do_not_retry', 'Read the current project state and use an existing resource identifier.'),
+  }),
+  UNAUTHORIZED: error => ({
+    classification: 'authorization_failure',
+    message: 'Coordinator authorization failed.',
+    status: error.statusCode,
+    outcome: 'not_started',
+    retry: retry(
+      false,
+      'repair_appraise_then_resume',
+      'Reconnect with authorized coordinator credentials, then retry.',
+    ),
+  }),
+  CONFLICT: error => ({
+    classification: 'state_conflict',
+    message: error.message,
+    status: error.statusCode,
+    outcome: 'not_committed',
+    retry: retry(true, 'read_state_then_retry', 'Read the current state and retry with the latest expected value.'),
+  }),
+  VALIDATION: error => ({
+    classification: 'request_invalid',
+    message: error.message,
+    status: error.statusCode,
+    outcome: 'not_started',
+    retry: retry(
+      false,
+      'repair_input_then_retry',
+      'Correct the request according to the stated requirement, then retry.',
+    ),
+  }),
+}
+
+function serviceErrorShape(error: unknown): ErrorShape | undefined {
+  if (!(error instanceof ServiceError)) return undefined
+  return serviceErrorShapeFactories[error.code]?.(error)
+}
+
+function unexpectedErrorShape(): ErrorShape {
   return {
     classification: 'appraise_runtime_defect',
     message: 'The coordinator encountered an unexpected internal failure.',
@@ -214,6 +211,19 @@ function errorShape(error: unknown): ErrorShape {
     outcome: 'unknown',
     retry: retry(false, 'do_not_retry', 'Read the current state and report this error ID to the Appraise operator.'),
   }
+}
+
+// The atomic public contract maps each private failure family at one reviewed boundary.
+function errorShape(error: unknown): ErrorShape {
+  return (
+    postCommitSerializationShape(error) ??
+    prismaErrorShape(error) ??
+    projectMismatchShape(error) ??
+    planContractShape(error) ??
+    partialPlanCreateShape(error) ??
+    serviceErrorShape(error) ??
+    unexpectedErrorShape()
+  )
 }
 
 export function coordinatorError(error: unknown, context: CoordinatorErrorContext): CoordinatorErrorResponse {

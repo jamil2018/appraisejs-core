@@ -187,7 +187,6 @@ function invalidateReviewEvidence(
   return { ...review, fileApprovals: review.fileApprovals.filter(approval => !filePaths.has(approval.path)) }
 }
 
-// fallow-ignore-next-line complexity
 export async function submitValidationFeedback(
   input: {
     planId: string
@@ -265,62 +264,86 @@ type ValidationDecision = {
   decidedAt: string
 }
 
-// Receipt creation and its audit event deliberately share one transaction boundary.
-// fallow-ignore-next-line complexity
-async function recordAstValidationDecision(
-  input: { planId: string; operationHash?: string; extensionArtifactHashes?: string[]; idempotencyKey?: string },
-  publicationId: string,
-  decision: ValidationDecision,
-  transaction: Prisma.TransactionClient,
-) {
-  const publication = await transaction.validationNodePublication.findUniqueOrThrow({
+async function readDecisionPublication(publicationId: string, transaction: Prisma.TransactionClient) {
+  return transaction.validationNodePublication.findUniqueOrThrow({
     where: { id: publicationId },
     include: { publishOperation: { include: { extensionReviews: true } }, decisionReceipt: true },
   })
-  const current = publication.publishOperation
-  const expectedHashes = current.extensionReviews.map(item => item.artifactHash).sort()
+}
+
+type DecisionPublication = Awaited<ReturnType<typeof readDecisionPublication>>
+type DecisionReceipt = NonNullable<DecisionPublication['decisionReceipt']>
+
+function decisionReceiptResponse(receipt: DecisionReceipt, publication: DecisionPublication, operationHash: string) {
+  return {
+    ...receipt,
+    validationId: publication.validationId,
+    contentHash: publication.contentHash,
+    operationHash,
+  }
+}
+
+function assertDecisionReviewEvidence(
+  input: { planId: string; operationHash?: string; extensionArtifactHashes?: string[] },
+  publication: DecisionPublication,
+  decision: ValidationDecision,
+) {
+  const operation = publication.publishOperation
+  const expectedHashes = operation.extensionReviews.map(item => item.artifactHash).sort()
   const suppliedHashes = [...(input.extensionArtifactHashes ?? [])].sort()
-  if (
-    current.phase !== 'review_ready' ||
-    publication.planId !== input.planId ||
-    publication.validationId !== decision.validationId ||
-    publication.contentHash !== decision.contentHash ||
-    current.operationHash !== input.operationHash ||
-    JSON.stringify(expectedHashes) !== JSON.stringify(suppliedHashes)
-  )
-    throw new ServiceError('Validation decision review evidence changed.', 'CONFLICT')
-  const semanticRequestHash = requestHash({
+  const hasMatchingEvidence =
+    operation.phase === 'review_ready' &&
+    publication.planId === input.planId &&
+    publication.validationId === decision.validationId &&
+    publication.contentHash === decision.contentHash &&
+    operation.operationHash === input.operationHash &&
+    JSON.stringify(expectedHashes) === JSON.stringify(suppliedHashes)
+  if (!hasMatchingEvidence) throw new ServiceError('Validation decision review evidence changed.', 'CONFLICT')
+  return { operation, suppliedHashes }
+}
+
+function decisionRequestHash(publication: DecisionPublication, decision: ValidationDecision) {
+  return requestHash({
     publicationHash: publication.publicationHash,
     decision: decision.decision,
     decidedBy: decision.decidedBy,
   })
-  const idempotencyKey = input.idempotencyKey ?? `validation-decision:${semanticRequestHash}`
-  const existing = publication.decisionReceipt
-  if (existing) {
-    if (existing.requestHash !== semanticRequestHash || existing.idempotencyKey !== idempotencyKey)
-      throw new ServiceError('Validation publication already has a conflicting immutable decision.', 'CONFLICT')
-    return {
-      ...existing,
-      validationId: publication.validationId,
-      contentHash: publication.contentHash,
-      operationHash: current.operationHash,
-    }
-  }
-  const plan = await transaction.planProjection.findUniqueOrThrow({ where: { planId: input.planId } })
-  const latest = await transaction.planEvent.findFirst({
-    where: { planProjectionId: plan.id },
-    orderBy: { sequence: 'desc' },
-  })
-  const receiptHash = requestHash({
+}
+
+function replayedDecisionReceipt(
+  existing: DecisionReceipt | null,
+  semanticRequestHash: string,
+  idempotencyKey: string,
+) {
+  if (!existing) return undefined
+  if (existing.requestHash !== semanticRequestHash || existing.idempotencyKey !== idempotencyKey)
+    throw new ServiceError('Validation publication already has a conflicting immutable decision.', 'CONFLICT')
+  return existing
+}
+
+function decisionReceiptHash(
+  publication: DecisionPublication,
+  semanticRequestHash: string,
+  decision: ValidationDecision,
+) {
+  return requestHash({
     publicationHash: publication.publicationHash,
     requestHash: semanticRequestHash,
     decision: decision.decision,
     decidedBy: decision.decidedBy,
     decidedAt: decision.decidedAt,
   })
-  let receipt
+}
+
+async function createDecisionReceipt(
+  transaction: Prisma.TransactionClient,
+  publication: DecisionPublication,
+  decision: ValidationDecision,
+  semanticRequestHash: string,
+  idempotencyKey: string,
+): Promise<DecisionReceipt> {
   try {
-    receipt = await transaction.validationDecisionReceipt.create({
+    return await transaction.validationDecisionReceipt.create({
       data: {
         publicationId: publication.id,
         decision: decision.decision,
@@ -328,40 +351,80 @@ async function recordAstValidationDecision(
         decidedAt: new Date(decision.decidedAt),
         requestHash: semanticRequestHash,
         idempotencyKey,
-        receiptHash,
+        receiptHash: decisionReceiptHash(publication, semanticRequestHash, decision),
       },
     })
   } catch (error) {
     const winner = await transaction.validationDecisionReceipt.findUnique({ where: { publicationId: publication.id } })
-    if (winner?.requestHash === semanticRequestHash && winner.idempotencyKey === idempotencyKey) receipt = winner
-    else throw error
+    if (winner?.requestHash === semanticRequestHash && winner.idempotencyKey === idempotencyKey) return winner
+    throw error
   }
-  const payload = {
-    ...decision,
-    publicationId: publication.id,
-    publicationHash: publication.publicationHash,
-    decisionReceiptId: receipt.id,
-    receiptHash: receipt.receiptHash,
-    operationHash: current.operationHash,
-    extensionArtifactHashes: suppliedHashes,
-  }
+}
+
+async function decisionEventLocation(transaction: Prisma.TransactionClient, planId: string) {
+  const plan = await transaction.planProjection.findUniqueOrThrow({ where: { planId } })
+  const latest = await transaction.planEvent.findFirst({
+    where: { planProjectionId: plan.id },
+    orderBy: { sequence: 'desc' },
+  })
+  return { planProjectionId: plan.id, sequence: (latest?.sequence ?? 0) + 1 }
+}
+
+async function appendDecisionAuditEvent(
+  transaction: Prisma.TransactionClient,
+  eventLocation: { planProjectionId: string; sequence: number },
+  publication: DecisionPublication,
+  decision: ValidationDecision,
+  receipt: DecisionReceipt,
+  operationHash: string,
+  extensionArtifactHashes: string[],
+) {
   await transaction.planEvent.create({
     data: {
-      planProjectionId: plan.id,
-      publishOperationId: current.id,
+      planProjectionId: eventLocation.planProjectionId,
+      publishOperationId: publication.publishOperation.id,
       validationId: decision.validationId,
       operationEventKey: `validation_node_decided:${receipt.id}`,
-      sequence: (latest?.sequence ?? 0) + 1,
+      sequence: eventLocation.sequence,
       type: 'validation_node_decided',
-      payloadJson: JSON.stringify(payload),
+      payloadJson: JSON.stringify({
+        ...decision,
+        publicationId: publication.id,
+        publicationHash: publication.publicationHash,
+        decisionReceiptId: receipt.id,
+        receiptHash: receipt.receiptHash,
+        operationHash,
+        extensionArtifactHashes,
+      }),
     },
   })
-  return {
-    ...receipt,
-    validationId: publication.validationId,
-    contentHash: publication.contentHash,
-    operationHash: current.operationHash,
-  }
+}
+
+// Receipt creation and its audit event deliberately share one transaction boundary.
+async function recordAstValidationDecision(
+  input: { planId: string; operationHash?: string; extensionArtifactHashes?: string[]; idempotencyKey?: string },
+  publicationId: string,
+  decision: ValidationDecision,
+  transaction: Prisma.TransactionClient,
+) {
+  const publication = await readDecisionPublication(publicationId, transaction)
+  const { operation, suppliedHashes } = assertDecisionReviewEvidence(input, publication, decision)
+  const semanticRequestHash = decisionRequestHash(publication, decision)
+  const idempotencyKey = input.idempotencyKey ?? `validation-decision:${semanticRequestHash}`
+  const existing = replayedDecisionReceipt(publication.decisionReceipt, semanticRequestHash, idempotencyKey)
+  if (existing) return decisionReceiptResponse(existing, publication, operation.operationHash)
+  const eventLocation = await decisionEventLocation(transaction, input.planId)
+  const receipt = await createDecisionReceipt(transaction, publication, decision, semanticRequestHash, idempotencyKey)
+  await appendDecisionAuditEvent(
+    transaction,
+    eventLocation,
+    publication,
+    decision,
+    receipt,
+    operation.operationHash,
+    suppliedHashes,
+  )
+  return decisionReceiptResponse(receipt, publication, operation.operationHash)
 }
 
 export async function decideValidationNode(

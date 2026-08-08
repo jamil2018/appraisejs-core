@@ -186,20 +186,26 @@ const reviewTargetSchema = z.discriminatedUnion('type', [
 ])
 type RouteContext = { params: Promise<{ operation: string[] }> }
 
-// fallow-ignore-next-line complexity
+const validationReceiptOperationNames: Record<string, string> = {
+  feedback: 'route_validation_feedback',
+  submit: 'route_validation_review_submit',
+  reconcile: 'route_validation_review_reconcile',
+  nodes: 'route_validation_node_decide',
+  files: 'route_validation_file_approve',
+}
+
+function validationReceiptOperationName(action: string | undefined, detail: string | undefined) {
+  if (action === 'resources') return detail ? `route_validation_resources_${detail}` : undefined
+  if (action === 'ast') return detail === 'compile' ? 'route_validation_ast_compile' : undefined
+  return action ? validationReceiptOperationNames[action] : undefined
+}
+
 function routeReceiptOperationName(operation: string[]) {
   if (operation[0] !== 'plans') return undefined
-  if (['baseline', 'implementation'].includes(operation[2] ?? ''))
-    return `route_${operation[2]}_${operation.slice(3).join('_')}`
-  if (operation[2] !== 'validations') return undefined
-  if (operation[3] === 'resources') return `route_validation_resources_${operation[4]}`
-  if (operation[3] === 'ast' && operation[4] === 'compile') return 'route_validation_ast_compile'
-  if (operation[3] === 'feedback') return 'route_validation_feedback'
-  if (operation[3] === 'submit') return 'route_validation_review_submit'
-  if (operation[3] === 'reconcile') return 'route_validation_review_reconcile'
-  if (operation[3] === 'nodes') return 'route_validation_node_decide'
-  if (operation[3] === 'files') return 'route_validation_file_approve'
-  return undefined
+  const lifecycle = operation[2]
+  if (lifecycle === 'baseline' || lifecycle === 'implementation')
+    return `route_${lifecycle}_${operation.slice(3).join('_')}`
+  return lifecycle === 'validations' ? validationReceiptOperationName(operation[3], operation[4]) : undefined
 }
 
 function recordBody(value: unknown): Record<string, unknown> | undefined {
@@ -2953,7 +2959,6 @@ async function postEventAcknowledgement(operation: string[], body: unknown) {
 }
 
 // Request parsing branches stay in this thin HTTP adapter.
-// fallow-ignore-next-line complexity
 async function validationReceiptMutation<T>(input: {
   operationName: string
   planId: string

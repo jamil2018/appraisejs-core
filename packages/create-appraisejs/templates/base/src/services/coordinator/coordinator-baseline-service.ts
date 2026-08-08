@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto'
 import { promises as fs } from 'node:fs'
 import path from 'node:path'
 
-import { BrowserEngine, TestRunResult, TestRunStatus, type PrismaClient } from '@prisma/client'
+import { BrowserEngine, TestRunResult, TestRunStatus, type Prisma, type PrismaClient } from '@prisma/client'
 
 import prisma from '@/config/db-config'
 import {
@@ -78,6 +78,12 @@ async function prepareBaselineOperation(
     { operationName, scopeKey: planId, idempotencyKey, request, planId, recoverUnknown: true },
     client,
   )
+}
+
+function replayedBaselineOperationResult<T>(operation: Awaited<ReturnType<typeof prepareBaselineOperation>>) {
+  return operation.replay && operation.receipt.operationOutcome === 'committed'
+    ? readCoordinatorOperationResult<T>(operation.receipt)
+    : undefined
 }
 
 async function completeBaselineOperation(
@@ -190,101 +196,12 @@ async function persistBaselineHistory(
     where: { planId: plan.planId },
     select: { id: true },
   })
-  // fallow-ignore-next-line complexity
   await client.$transaction(async transaction => {
-    const appendAttemptEvent = async (input: {
-      attemptId: string
-      kind: string
-      idempotencyKey: string
-      payloadJson: string
-      createdAt?: Date
-    }) => {
-      const existing = await transaction.baselineAttemptEvent.findUnique({
-        where: {
-          attemptId_idempotencyKey: { attemptId: input.attemptId, idempotencyKey: input.idempotencyKey },
-        },
-      })
-      if (existing) return existing
-      const latest = await transaction.baselineAttemptEvent.findFirst({
-        where: { attemptId: input.attemptId },
-        orderBy: { sequence: 'desc' },
-        select: { sequence: true },
-      })
-      return transaction.baselineAttemptEvent.create({
-        data: { ...input, sequence: (latest?.sequence ?? 0) + 1 },
-      })
-    }
     const currentRequiredCombinations = new Set(requiredBaselineCombinations(validation).map(baselineCombinationKey))
-    for (const attempt of validation.baselineAttempts) {
-      const node = validation.validations.find(item => item.id === attempt.validationId)
-      const publication =
-        node?.astProvenance?.schemaVersion === '2'
-          ? await transaction.validationNodePublication.findFirst({
-              where: {
-                planId: plan.planId,
-                validationId: node.id,
-                contentHash: validationNodeHash(node),
-                publishOperationId: node.astProvenance.publishOperationId,
-              },
-              select: { id: true },
-            })
-          : null
-      if (!publication)
-        throw new ServiceError('Baseline evidence requires an exact immutable validation publication.', 'CONFLICT')
-      const existingAttempt = await transaction.baselineAttempt.findUnique({
-        where: { id: attempt.id },
-        select: { publicationId: true },
-      })
-      if (
-        existingAttempt &&
-        existingAttempt.publicationId !== publication.id &&
-        currentRequiredCombinations.has(baselineCombinationKey(attempt))
-      )
-        throw new ServiceError(
-          'Existing baseline evidence lacks the exact immutable validation publication binding.',
-          'CONFLICT',
-        )
-      if (existingAttempt && existingAttempt.publicationId !== publication.id) continue
-      await transaction.baselineAttempt.upsert({
-        where: { id: attempt.id },
-        update: {},
-        create: {
-          id: attempt.id,
-          planProjectionId: projection.id,
-          validationId: attempt.validationId,
-          validationRevision: plan.revision,
-          validationHash: hashFileContent(serializeYamlArtifact('validation', validation)),
-          browser: attempt.browser,
-          environment: attempt.environment,
-          testRunId: attempt.testRunId,
-          evidenceJson: JSON.stringify(attempt.evidence),
-          publicationId: publication.id,
-          createdAt: new Date(attempt.createdAt),
-        },
-      })
-      const state = {
-        status: attempt.status,
-        classification: attempt.classification,
-        signatureHash: attempt.signatureHash,
-        completedAt: attempt.completedAt,
-      }
-      await appendAttemptEvent({
-        attemptId: attempt.id,
-        kind: 'state_observed',
-        idempotencyKey: `state:${JSON.stringify(state)}`,
-        payloadJson: JSON.stringify(state),
-      })
-      if (attempt.regressionJustification) {
-        await appendAttemptEvent({
-          attemptId: attempt.id,
-          kind: 'regression_justified',
-          idempotencyKey: `regression_justification:${attempt.regressionJustification}`,
-          payloadJson: JSON.stringify({ justification: attempt.regressionJustification }),
-        })
-      }
-    }
+    for (const attempt of validation.baselineAttempts)
+      await persistBaselineAttempt(transaction, projection.id, plan, validation, currentRequiredCombinations, attempt)
     for (const acknowledgement of validation.baselineAcknowledgements) {
-      await appendAttemptEvent({
+      await appendBaselineAttemptEvent(transaction, {
         attemptId: acknowledgement.attemptId,
         kind: 'failure_acknowledged',
         idempotencyKey: `acknowledged:${acknowledgement.signatureHash}`,
@@ -292,6 +209,107 @@ async function persistBaselineHistory(
         createdAt: new Date(acknowledgement.acknowledgedAt),
       })
     }
+  })
+}
+
+type BaselineAttemptEventInput = {
+  attemptId: string
+  kind: string
+  idempotencyKey: string
+  payloadJson: string
+  createdAt?: Date
+}
+
+async function appendBaselineAttemptEvent(transaction: Prisma.TransactionClient, input: BaselineAttemptEventInput) {
+  const existing = await transaction.baselineAttemptEvent.findUnique({
+    where: { attemptId_idempotencyKey: { attemptId: input.attemptId, idempotencyKey: input.idempotencyKey } },
+  })
+  if (existing) return existing
+  const latest = await transaction.baselineAttemptEvent.findFirst({
+    where: { attemptId: input.attemptId },
+    orderBy: { sequence: 'desc' },
+    select: { sequence: true },
+  })
+  return transaction.baselineAttemptEvent.create({ data: { ...input, sequence: (latest?.sequence ?? 0) + 1 } })
+}
+
+async function persistBaselineAttempt(
+  transaction: Prisma.TransactionClient,
+  planProjectionId: string,
+  plan: PlanArtifact,
+  validation: ValidationArtifact,
+  currentRequiredCombinations: Set<string>,
+  attempt: ValidationArtifact['baselineAttempts'][number],
+) {
+  const publication = await findBaselinePublication(transaction, plan.planId, validation, attempt.validationId)
+  if (!publication)
+    throw new ServiceError('Baseline evidence requires an exact immutable validation publication.', 'CONFLICT')
+  const existingAttempt = await transaction.baselineAttempt.findUnique({
+    where: { id: attempt.id },
+    select: { publicationId: true },
+  })
+  if (existingAttempt?.publicationId !== publication.id) {
+    if (existingAttempt && currentRequiredCombinations.has(baselineCombinationKey(attempt)))
+      throw new ServiceError(
+        'Existing baseline evidence lacks the exact immutable validation publication binding.',
+        'CONFLICT',
+      )
+    if (existingAttempt) return
+  }
+  await transaction.baselineAttempt.upsert({
+    where: { id: attempt.id },
+    update: {},
+    create: {
+      id: attempt.id,
+      planProjectionId,
+      validationId: attempt.validationId,
+      validationRevision: plan.revision,
+      validationHash: hashFileContent(serializeYamlArtifact('validation', validation)),
+      browser: attempt.browser,
+      environment: attempt.environment,
+      testRunId: attempt.testRunId,
+      evidenceJson: JSON.stringify(attempt.evidence),
+      publicationId: publication.id,
+      createdAt: new Date(attempt.createdAt),
+    },
+  })
+  const state = {
+    status: attempt.status,
+    classification: attempt.classification,
+    signatureHash: attempt.signatureHash,
+    completedAt: attempt.completedAt,
+  }
+  await appendBaselineAttemptEvent(transaction, {
+    attemptId: attempt.id,
+    kind: 'state_observed',
+    idempotencyKey: `state:${JSON.stringify(state)}`,
+    payloadJson: JSON.stringify(state),
+  })
+  if (attempt.regressionJustification)
+    await appendBaselineAttemptEvent(transaction, {
+      attemptId: attempt.id,
+      kind: 'regression_justified',
+      idempotencyKey: `regression_justification:${attempt.regressionJustification}`,
+      payloadJson: JSON.stringify({ justification: attempt.regressionJustification }),
+    })
+}
+
+async function findBaselinePublication(
+  transaction: Prisma.TransactionClient,
+  planId: string,
+  validation: ValidationArtifact,
+  validationId: string,
+) {
+  const node = validation.validations.find(item => item.id === validationId)
+  if (node?.astProvenance?.schemaVersion !== '2') return null
+  return transaction.validationNodePublication.findFirst({
+    where: {
+      planId,
+      validationId: node.id,
+      contentHash: validationNodeHash(node),
+      publishOperationId: node.astProvenance.publishOperationId,
+    },
+    select: { id: true },
   })
 }
 
@@ -735,13 +753,12 @@ export async function reconcileBaselineExecution(planId: string, options: Baseli
     {},
     client,
   )
-  // fallow-ignore-next-line code-duplication
-  if (operation.replay && operation.receipt.operationOutcome === 'committed')
-    return readCoordinatorOperationResult<{
-      plan: PlanArtifact
-      validation: ValidationArtifact
-      currentValidationHash: string
-    }>(operation.receipt)!
+  const replay = replayedBaselineOperationResult<{
+    plan: PlanArtifact
+    validation: ValidationArtifact
+    currentValidationHash: string
+  }>(operation)
+  if (replay) return replay
   const { artifacts } = await readRunningBaselineArtifacts(planId, options)
   await assertValidationFilesUnchanged(artifacts)
   const startFailed = await client.planEvent.findFirst({
@@ -842,9 +859,8 @@ export async function cancelBaselineExecution(planId: string, options: BaselineO
     {},
     client,
   )
-  // fallow-ignore-next-line code-duplication
-  if (operation.replay && operation.receipt.operationOutcome === 'committed')
-    return readCoordinatorOperationResult<{ plan: PlanArtifact; validation: ValidationArtifact }>(operation.receipt)!
+  const replay = replayedBaselineOperationResult<{ plan: PlanArtifact; validation: ValidationArtifact }>(operation)
+  if (replay) return replay
   const { artifacts } = await readRunningBaselineArtifacts(planId, options)
   const activeAttempts = artifacts.validation.baselineAttempts.filter(attempt =>
     ['scheduled', 'running'].includes(attempt.status),
