@@ -470,7 +470,9 @@ async function submitCapsuleTestRun(
 }
 
 function isActiveTestRunStatus(status: TestRunStatus) {
-  return [TestRunStatus.RUNNING, TestRunStatus.QUEUED, TestRunStatus.CANCELLING].includes(status)
+  return (
+    status === TestRunStatus.RUNNING || status === TestRunStatus.QUEUED || status === TestRunStatus.CANCELLING
+  )
 }
 
 function isInterruptedTestRun(run: {

@@ -221,6 +221,7 @@ function terminalRunBlocker(validationId: string, run: ValidationRun): Completio
 }
 
 function requiredRunBlocker(validationId: string, run: ValidationRun | undefined) {
+  if (!run) return freshRunBlocker(validationId, run)
   const freshBlocker = freshRunBlocker(validationId, run)
   if (freshBlocker) return freshBlocker
   return (
