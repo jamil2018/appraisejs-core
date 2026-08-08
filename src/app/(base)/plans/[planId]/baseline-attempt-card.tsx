@@ -13,10 +13,7 @@ import type { PlanReviewDetail } from '@/services/plan-review/plan-review-servic
 
 import { baselineRecoveryGuidance } from './baseline-recovery-guidance'
 
-type PlanActionRunner = (
-  operation: () => Promise<{ success?: boolean; error?: string }>,
-  successMessage: string,
-) => void
+type PlanActionRunner = (operation: () => Promise<unknown>, successMessage: string) => void
 
 type BaselineAttempt = NonNullable<PlanReviewDetail['validation']>['baselineAttempts'][number]
 

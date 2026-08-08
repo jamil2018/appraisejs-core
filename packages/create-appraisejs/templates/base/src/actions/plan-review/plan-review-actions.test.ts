@@ -18,6 +18,7 @@ const {
   startBaselineExecution,
   startImplementation,
   approveImplementationCompletion,
+  CoordinatorPlanCreatePartialError,
   requireActiveProjectForPlanMutation,
   assertPlanBelongsToProject,
 } = vi.hoisted(() => ({
@@ -36,6 +37,7 @@ const {
   startBaselineExecution: vi.fn(),
   startImplementation: vi.fn(),
   approveImplementationCompletion: vi.fn(),
+  CoordinatorPlanCreatePartialError: class CoordinatorPlanCreatePartialError extends Error {},
   requireActiveProjectForPlanMutation: vi.fn(),
   assertPlanBelongsToProject: vi.fn(),
 }))
@@ -70,7 +72,10 @@ vi.mock('@/services/coordinator/coordinator-implementation-service', () => ({
 
 vi.mock('@/lib/active-project', () => ({ requireActiveProjectForPlanMutation }))
 
-vi.mock('@/services/coordinator/coordinator-plan-service', () => ({ assertPlanBelongsToProject }))
+vi.mock('@/services/coordinator/coordinator-plan-service', () => ({
+  assertPlanBelongsToProject,
+  CoordinatorPlanCreatePartialError,
+}))
 
 import { addPlanRemarkAction, completeImplementationAction } from './plan-review-actions'
 
@@ -92,7 +97,7 @@ describe('plan review actions', () => {
       blocking: true,
     })
 
-    expect(result).toEqual({ status: 200, success: true })
+    expect(result).toEqual({ kind: 'appraise.ack/v1', ok: true })
     expect(addPlanRemark).toHaveBeenCalledWith({
       planId,
       target: { type: 'plan' },
@@ -112,7 +117,14 @@ describe('plan review actions', () => {
         body: 'Nope.',
         blocking: false,
       }),
-    ).resolves.toMatchObject({ status: 400, success: false })
+    ).resolves.toMatchObject({
+      schema: 'appraise.error/v1',
+      classification: 'request_invalid',
+      code: 'request_invalid',
+      httpStatus: 400,
+      operation: { name: 'plan_review_action' },
+      operationOutcome: 'not_started',
+    })
     expect(addPlanRemark).not.toHaveBeenCalled()
   })
 
@@ -122,13 +134,13 @@ describe('plan review actions', () => {
 
     await expect(
       completeImplementationAction({ planId, evidenceHash, confirmCompletion: false }),
-    ).resolves.toMatchObject({ status: 400, success: false })
+    ).resolves.toMatchObject({ schema: 'appraise.error/v1', classification: 'request_invalid', httpStatus: 400 })
     expect(approveImplementationCompletion).not.toHaveBeenCalled()
 
     approveImplementationCompletion.mockResolvedValueOnce(undefined)
     await expect(completeImplementationAction({ planId, evidenceHash, confirmCompletion: true })).resolves.toEqual({
-      status: 200,
-      success: true,
+      kind: 'appraise.ack/v1',
+      ok: true,
     })
     expect(approveImplementationCompletion).toHaveBeenCalledWith({
       planId,
@@ -154,9 +166,29 @@ describe('plan review actions', () => {
         confirmCompletion: true,
       }),
     ).resolves.toMatchObject({
-      status: 409,
-      success: false,
+      schema: 'appraise.error/v1',
+      classification: 'state_conflict',
+      code: 'state_conflict',
+      httpStatus: 409,
       details: { staleEvidenceHash: evidenceHash, currentEvidenceHash },
     })
+  })
+
+  it('maps changed validation details to a structured recovery code without legacy action fields', async () => {
+    approveImplementationCompletion.mockRejectedValueOnce(
+      new ServiceError('Validation files changed after approval or baseline execution.', 'CONFLICT', 409, {
+        changedFiles: [{ path: 'automation/features/navigation.feature' }],
+      }),
+    )
+
+    const result = await completeImplementationAction({
+      planId: 'pln_01jz7q1by2e4prv55bda9xf39m',
+      evidenceHash: `sha256:${'a'.repeat(64)}`,
+      confirmCompletion: true,
+    })
+
+    expect(result).toMatchObject({ schema: 'appraise.error/v1', code: 'validation_artifact_changed' })
+    expect(result).not.toHaveProperty('success')
+    expect(result).not.toHaveProperty('error')
   })
 })

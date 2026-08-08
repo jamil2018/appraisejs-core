@@ -16,6 +16,32 @@ const artifactLocation: Record<ArtifactKind, { directory: string; extension: str
   layout: { directory: 'layouts', extension: '.layout.json' },
 }
 
+function artifactDirectoryPath(plansRoot: string, kind: ArtifactKind): string {
+  switch (kind) {
+    case 'plan':
+      return plansRoot
+    case 'review':
+      return path.join(plansRoot, 'reviews')
+    case 'validation':
+      return path.join(plansRoot, 'validations')
+    case 'layout':
+      return path.join(plansRoot, 'layouts')
+  }
+}
+
+function artifactFilePath(plansRoot: string, kind: ArtifactKind, planId: string): string {
+  switch (kind) {
+    case 'plan':
+      return path.join(plansRoot, `${planId}.yaml`)
+    case 'review':
+      return path.join(plansRoot, 'reviews', `${planId}.review.yaml`)
+    case 'validation':
+      return path.join(plansRoot, 'validations', `${planId}.validation.yaml`)
+    case 'layout':
+      return path.join(plansRoot, 'layouts', `${planId}.layout.json`)
+  }
+}
+
 export type PlanRepositoryErrorCode = 'already-exists' | 'lock-timeout' | 'not-found' | 'path-escape' | 'stale-write'
 
 export class PlanRepositoryError extends Error {
@@ -119,8 +145,8 @@ export class PlanArtifactRepository {
     const results: StoredPlanArtifact[] = []
 
     for (const kind of Object.keys(artifactLocation) as ArtifactKind[]) {
-      const { directory, extension } = artifactLocation[kind]
-      const artifactDirectory = path.join(plansRoot, directory)
+      const { extension } = artifactLocation[kind]
+      const artifactDirectory = artifactDirectoryPath(plansRoot, kind)
       await this.assertContainedPath(plansRoot, artifactDirectory)
       if (!(await pathExists(artifactDirectory))) continue
       for (const entry of await fs.readdir(artifactDirectory, { withFileTypes: true })) {
@@ -184,11 +210,10 @@ export class PlanArtifactRepository {
   private async resolveArtifactPath(kind: ArtifactKind, planId: string, createDirectory: boolean): Promise<string> {
     assertPlanId(planId)
     const plansRoot = await this.resolvePlansRoot(createDirectory)
-    const { directory, extension } = artifactLocation[kind]
-    const artifactDirectory = path.join(plansRoot, directory)
+    const artifactDirectory = artifactDirectoryPath(plansRoot, kind)
     await this.assertContainedPath(plansRoot, artifactDirectory)
     if (createDirectory) await fs.mkdir(artifactDirectory, { recursive: true })
-    return path.join(artifactDirectory, `${planId}${extension}`)
+    return artifactFilePath(plansRoot, kind, planId)
   }
 
   private async resolveCompletionTransactionPath(planId: string, createDirectory: boolean): Promise<string> {

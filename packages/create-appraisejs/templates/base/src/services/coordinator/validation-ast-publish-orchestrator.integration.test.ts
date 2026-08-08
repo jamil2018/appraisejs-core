@@ -254,6 +254,7 @@ describe('Validation AST publish journal with real SQLite', () => {
         data: {
           planProjectionId,
           publishOperationId: operation.id,
+          operationEventKey: `validation_review_ready:${operation.id}`,
           sequence: 3,
           type: 'validation_review_ready',
           payloadJson: '{}',
@@ -281,7 +282,11 @@ describe('Validation AST publish journal with real SQLite', () => {
       operationId: operation.id,
       operationPhase: 'artifacts_written',
       retryable: true,
-      mismatches: expect.arrayContaining(['publish_operation_phase', 'validation_review_ready_event']),
+      mismatches: expect.arrayContaining([
+        'publish_operation_phase',
+        'validation_compile_projection_hash',
+        'validation_review_state_receipt',
+      ]),
     })
   })
 

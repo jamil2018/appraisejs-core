@@ -51,7 +51,7 @@ type PublishEventFixture = Record<string, unknown> & {
 
 type OperationUpdateArgs = { data: Partial<PublishOperationFixture> }
 type OperationUpdateManyArgs = { where: { phase: string }; data: Partial<PublishOperationFixture> }
-type EventUpsertArgs = { create: PublishEventFixture }
+type EventCreateArgs = { data: PublishEventFixture }
 
 describe('Validation AST publish recovery', () => {
   it('resumes every crash phase and emits review-ready exactly once', async () => {
@@ -154,7 +154,7 @@ describe('Validation AST publish recovery', () => {
           planProjection: { update: () => Promise<{ id: string; revision: number }> }
           planEvent: {
             findFirst: () => Promise<PublishEventFixture | null>
-            upsert: (args: EventUpsertArgs) => Promise<PublishEventFixture>
+            create: (args: EventCreateArgs) => Promise<PublishEventFixture>
           }
         }) => Promise<unknown>,
       ) =>
@@ -166,12 +166,7 @@ describe('Validation AST publish recovery', () => {
           planProjection: { update: async () => ({ id: 'projection', revision: 1 }) },
           planEvent: {
             findFirst: async () => events.at(-1) ?? null,
-            upsert: async ({ create }: EventUpsertArgs) => {
-              const existing = events.find(
-                event => event.publishOperationId === create.publishOperationId && event.type === create.type,
-              )
-              return existing ?? (events.push(create), create)
-            },
+            create: async ({ data }: EventCreateArgs) => (events.push(data), data),
           },
         }),
     }
@@ -180,13 +175,23 @@ describe('Validation AST publish recovery', () => {
       return { testCases: 1 } as never
     })
     await expect(
-      resumeValidationAstPublish('op', { client, projectDirectory: workspace, crashAfter: 'after_artifacts' }),
+      resumeValidationAstPublish('op', {
+        client: client as never,
+        projectDirectory: workspace,
+        crashAfter: 'after_artifacts',
+      }),
     ).rejects.toThrow('injected-after-artifacts')
     await expect(
-      resumeValidationAstPublish('op', { client, projectDirectory: workspace, crashAfter: 'after_projection' }),
+      resumeValidationAstPublish('op', {
+        client: client as never,
+        projectDirectory: workspace,
+        crashAfter: 'after_projection',
+      }),
     ).rejects.toThrow('injected-after-projection')
     operation.plan.lifecycle = 'validation_changes_requested'
-    await expect(resumeValidationAstPublish('op', { client, projectDirectory: workspace })).resolves.toMatchObject({
+    await expect(
+      resumeValidationAstPublish('op', { client: client as never, projectDirectory: workspace }),
+    ).resolves.toMatchObject({
       phase: 'review_ready',
     })
     expect(events.filter(event => event.type === 'validation_review_ready')).toHaveLength(1)

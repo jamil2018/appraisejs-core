@@ -14,14 +14,17 @@ export function registerImplementationOperations(context: McpRegistryContext): v
     'implementation_start',
     {
       description: 'Agent-owned execution tool: start implementation after accepted baseline evidence.',
-      inputSchema: { planId: z.string(), responseMode: responseModeSchema },
+      inputSchema: { planId: z.string(), idempotencyKey: z.string().min(1), responseMode: responseModeSchema },
     },
-    async ({ planId, responseMode }) =>
+    async ({ planId, idempotencyKey, responseMode }) =>
       text(
         applyLifecycleResponseMode(
           lifecycleToolPayload({
             planId,
-            result: await api.request(`plans/${planId}/implementation/start`, { method: 'POST', body: '{}' }),
+            result: await api.request(`plans/${planId}/implementation/start`, {
+              method: 'POST',
+              body: JSON.stringify({ idempotencyKey }),
+            }),
             nextRecommendedAction: 'Approve the first implementation group, then update a returned runnable task.',
             nextRequiredAgentBehavior: 'approve_implementation_group',
             nextAllowedAction: { tool: 'implementation_group_approve' },
@@ -47,6 +50,7 @@ export function registerImplementationOperations(context: McpRegistryContext): v
         ]),
         taskIds: z.array(z.string()).optional(),
         queuedFeedbackCount: z.number().int().nonnegative().optional(),
+        idempotencyKey: z.string().min(1),
         responseMode: responseModeSchema,
       },
     },
@@ -69,17 +73,18 @@ export function registerImplementationOperations(context: McpRegistryContext): v
       inputSchema: {
         planId: z.string(),
         groupIds: z.array(z.string().min(1)).min(1),
+        idempotencyKey: z.string().min(1),
         responseMode: responseModeSchema,
       },
     },
-    async ({ planId, groupIds, responseMode }) =>
+    async ({ planId, groupIds, idempotencyKey, responseMode }) =>
       text(
         applyLifecycleResponseMode(
           lifecycleToolPayload({
             planId,
             result: await api.request(`plans/${planId}/implementation/groups`, {
               method: 'POST',
-              body: JSON.stringify({ groupIds }),
+              body: JSON.stringify({ groupIds, idempotencyKey }),
             }),
             nextRecommendedAction: 'Start one of the returned runnable tasks.',
             nextRequiredAgentBehavior: 'start_runnable_task',
@@ -99,6 +104,7 @@ export function registerImplementationOperations(context: McpRegistryContext): v
         taskId: z.string(),
         status: z.enum(['pending', 'in_progress', 'implemented', 'verified']),
         commitHash: z.string().optional(),
+        idempotencyKey: z.string().min(1),
         responseMode: responseModeSchema,
       },
     },
@@ -122,15 +128,16 @@ export function registerImplementationOperations(context: McpRegistryContext): v
       inputSchema: {
         planId: z.string(),
         run: implementationValidationRunInputSchema,
+        idempotencyKey: z.string().min(1),
         responseMode: responseModeSchema,
       },
     },
-    async ({ planId, run, responseMode }) =>
+    async ({ planId, run, idempotencyKey, responseMode }) =>
       text(
         applyLifecycleResponseMode(
           await api.request(`plans/${planId}/implementation/validations`, {
             method: 'POST',
-            body: JSON.stringify({ run }),
+            body: JSON.stringify({ run, idempotencyKey }),
           }),
           responseMode,
         ),
@@ -172,17 +179,18 @@ export function registerImplementationOperations(context: McpRegistryContext): v
         validationIds: z.array(z.string().min(1)).optional(),
         commitHash: z.string().min(1).optional(),
         confirmedRemoteEnvironmentIds: z.array(z.string().min(1)).optional(),
+        idempotencyKey: z.string().min(1),
         responseMode: responseModeSchema.optional(),
       },
     },
-    async ({ planId, validationIds, commitHash, confirmedRemoteEnvironmentIds, responseMode }) =>
+    async ({ planId, validationIds, commitHash, confirmedRemoteEnvironmentIds, idempotencyKey, responseMode }) =>
       text(
         applyLifecycleResponseMode(
           lifecycleToolPayload({
             planId,
             result: await api.request(`plans/${planId}/implementation/validations/start`, {
               method: 'POST',
-              body: JSON.stringify({ validationIds, commitHash, confirmedRemoteEnvironmentIds }),
+              body: JSON.stringify({ validationIds, commitHash, confirmedRemoteEnvironmentIds, idempotencyKey }),
             }),
             nextRecommendedAction:
               'Managed runtime capsules start automatically. Call implementation_validation_reconcile with the returned implementation run IDs until evidence is terminal.',
@@ -203,7 +211,7 @@ export function registerImplementationOperations(context: McpRegistryContext): v
         planId: z.string(),
         runIds: z.array(z.string().min(1)).optional(),
         verifyTaskIds: z.array(z.string().min(1)).optional(),
-        idempotencyKey: z.string().min(1).optional(),
+        idempotencyKey: z.string().min(1),
         responseMode: responseModeSchema,
       },
     },
@@ -235,6 +243,7 @@ export function registerImplementationOperations(context: McpRegistryContext): v
         affectedTaskIds: z.array(z.string()).min(1),
         confirmed: z.boolean(),
         pausePlanWide: z.boolean().optional(),
+        idempotencyKey: z.string().min(1),
         responseMode: responseModeSchema,
       },
     },
@@ -258,6 +267,7 @@ export function registerImplementationOperations(context: McpRegistryContext): v
         planId: z.string(),
         action: z.enum(['pause', 'resume', 'cancel']),
         stopActiveRuns: z.boolean().optional(),
+        idempotencyKey: z.string().min(1),
         responseMode: responseModeSchema,
       },
     },
@@ -291,6 +301,7 @@ export function registerImplementationOperations(context: McpRegistryContext): v
         planId: z.string(),
         approvedBy: z.string(),
         contentHash: z.string(),
+        idempotencyKey: z.string().min(1),
         responseMode: responseModeSchema,
       },
     },

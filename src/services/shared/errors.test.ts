@@ -1,5 +1,44 @@
 import { describe, expect, it, vi } from 'vitest'
-import { ServiceError, serviceErrorToActionResponse, unknownErrorToActionResponse } from './errors'
+import {
+  coordinatorAcknowledgement,
+  coordinatorAcknowledgementSchema,
+  coordinatorErrorEnvelopeSchema,
+  ServiceError,
+  serviceErrorToActionResponse,
+  unknownErrorToActionResponse,
+} from './errors'
+
+describe('coordinator public DTO schemas', () => {
+  it('accepts the exact error envelope and rejects legacy keys', () => {
+    const base = {
+      schema: 'appraise.error/v1',
+      errorId: '11111111-1111-4111-8111-111111111111',
+      occurredAt: '2026-08-07T00:00:00.000Z',
+      classification: 'request_invalid',
+      code: 'request_invalid',
+      message: 'Request is invalid.',
+      httpStatus: 400,
+      operation: { name: 'plans' },
+      operationOutcome: 'not_started',
+      targetOutcome: 'not_evaluated',
+      retry: {
+        safe: false,
+        strategy: 'repair_input_then_retry',
+        nextAction: { tool: 'coordinator_error_recovery', reason: 'Correct the request.' },
+      },
+    }
+    expect(coordinatorErrorEnvelopeSchema.parse(base)).toEqual(base)
+    expect(coordinatorErrorEnvelopeSchema.safeParse({ ...base, kind: 'appraise.error/v1' }).success).toBe(false)
+    expect(coordinatorErrorEnvelopeSchema.safeParse({ ...base, context: {} }).success).toBe(false)
+  })
+
+  it('returns the explicit validated acknowledgement DTO', () => {
+    expect(coordinatorAcknowledgementSchema.parse(coordinatorAcknowledgement())).toEqual({
+      kind: 'appraise.ack/v1',
+      ok: true,
+    })
+  })
+})
 
 describe('ServiceError', () => {
   it('uses explicit statusCode when provided', () => {

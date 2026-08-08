@@ -12,8 +12,13 @@ import {
   savePersonalPlanLayout,
   transitionPlanRemark,
 } from '@/services/plan-review/plan-review-service'
-import { ServiceError, serviceErrorToActionResponse, unknownErrorToActionResponse } from '@/services/shared/errors'
-import type { ActionResponse } from '@/types/form/actionHandler'
+import {
+  coordinatorAcknowledgement,
+  coordinatorErrorEnvelopeSchema,
+  type CoordinatorAcknowledgement,
+  type CoordinatorErrorEnvelope,
+  ServiceError,
+} from '@/services/shared/errors'
 import { planIdSchema } from '@/lib/plan-contract'
 import { requireActiveProjectForPlanMutation } from '@/lib/active-project'
 import { assertPlanBelongsToProject } from '@/services/coordinator/coordinator-plan-service'
@@ -31,6 +36,7 @@ import {
   submitValidationReview,
 } from '@/services/coordinator/coordinator-validation-service'
 import { approveImplementationCompletion } from '@/services/coordinator/coordinator-implementation-service'
+import { coordinatorError, zodCoordinatorError } from '@/lib/coordinator-api/contracts'
 
 const idSchema = z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/)
 const planTargetSchema = z.object({ type: z.literal('plan') })
@@ -41,11 +47,44 @@ const targetSchema = z.discriminatedUnion('type', [planTargetSchema, taskTargetS
 const validationFeedbackTargetSchema = z.union([planTargetSchema, validationTargetSchema, fileTargetSchema])
 const positionsSchema = z.record(idSchema, z.object({ x: z.number().finite(), y: z.number().finite() }))
 
+export type PlanReviewActionResult = CoordinatorAcknowledgement | CoordinatorErrorEnvelope
+
+function inputPlanId(input: unknown) {
+  return typeof input === 'object' && input && 'planId' in input && typeof input.planId === 'string'
+    ? input.planId
+    : undefined
+}
+
+function hasChangedValidationFiles(error: unknown) {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'details' in error &&
+    typeof error.details === 'object' &&
+    error.details !== null &&
+    'changedFiles' in error.details &&
+    Array.isArray(error.details.changedFiles)
+  )
+}
+
+function planReviewError(error: unknown, operation: string, planId?: string): CoordinatorErrorEnvelope {
+  const response =
+    error instanceof z.ZodError
+      ? zodCoordinatorError(error, { operation, planId })
+      : coordinatorError(error, { operation, planId })
+  const envelope =
+    error instanceof ServiceError && error.details ? { ...response.body, details: error.details } : response.body
+  if (hasChangedValidationFiles(error)) {
+    return coordinatorErrorEnvelopeSchema.parse({ ...envelope, code: 'validation_artifact_changed' })
+  }
+  return coordinatorErrorEnvelopeSchema.parse(envelope)
+}
+
 async function runAction<T extends { planId: string }>(
   input: unknown,
   schema: z.ZodType<T>,
   operation: (value: T) => Promise<void>,
-): Promise<ActionResponse> {
+): Promise<PlanReviewActionResult> {
   try {
     const value = schema.parse(input)
     const project = await requireActiveProjectForPlanMutation(value.planId)
@@ -53,15 +92,13 @@ async function runAction<T extends { planId: string }>(
     await operation(value)
     revalidatePath('/plans')
     revalidatePath(`/plans/${value.planId}`)
-    return { status: 200, success: true }
+    return coordinatorAcknowledgement()
   } catch (error) {
-    if (error instanceof ServiceError) return serviceErrorToActionResponse(error)
-    if (error instanceof z.ZodError) return { status: 400, success: false, error: error.issues[0]?.message }
-    return unknownErrorToActionResponse(error, 'Plan review action failed')
+    return planReviewError(error, 'plan_review_action', inputPlanId(input))
   }
 }
 
-export async function addPlanRemarkAction(input: unknown): Promise<ActionResponse> {
+export async function addPlanRemarkAction(input: unknown): Promise<PlanReviewActionResult> {
   return runAction(
     input,
     z.object({ planId: planIdSchema, target: targetSchema, body: z.string().trim().min(1), blocking: z.boolean() }),
@@ -69,7 +106,7 @@ export async function addPlanRemarkAction(input: unknown): Promise<ActionRespons
   )
 }
 
-export async function transitionPlanRemarkAction(input: unknown): Promise<ActionResponse> {
+export async function transitionPlanRemarkAction(input: unknown): Promise<PlanReviewActionResult> {
   return runAction(
     input,
     z.object({
@@ -82,13 +119,13 @@ export async function transitionPlanRemarkAction(input: unknown): Promise<Action
   )
 }
 
-export async function retargetPlanRemarkAction(input: unknown): Promise<ActionResponse> {
+export async function retargetPlanRemarkAction(input: unknown): Promise<PlanReviewActionResult> {
   return runAction(input, z.object({ planId: planIdSchema, threadId: idSchema, taskId: idSchema }), value =>
     retargetPlanRemark(value),
   )
 }
 
-export async function approvePlanRevisionAction(input: unknown): Promise<ActionResponse> {
+export async function approvePlanRevisionAction(input: unknown): Promise<PlanReviewActionResult> {
   return runAction(
     input,
     z.object({
@@ -102,7 +139,7 @@ export async function approvePlanRevisionAction(input: unknown): Promise<ActionR
   )
 }
 
-export async function requestPlanChangesAction(input: unknown): Promise<ActionResponse> {
+export async function requestPlanChangesAction(input: unknown): Promise<PlanReviewActionResult> {
   return runAction(
     input,
     z.object({
@@ -114,25 +151,25 @@ export async function requestPlanChangesAction(input: unknown): Promise<ActionRe
   )
 }
 
-export async function savePersonalPlanLayoutAction(input: unknown): Promise<ActionResponse> {
+export async function savePersonalPlanLayoutAction(input: unknown): Promise<PlanReviewActionResult> {
   return runAction(input, z.object({ planId: planIdSchema, positions: positionsSchema }), value =>
     savePersonalPlanLayout(value),
   )
 }
 
-export async function publishSharedPlanLayoutAction(input: unknown): Promise<ActionResponse> {
+export async function publishSharedPlanLayoutAction(input: unknown): Promise<PlanReviewActionResult> {
   return runAction(input, z.object({ planId: planIdSchema, positions: positionsSchema }), value =>
     publishSharedPlanLayout(value),
   )
 }
 
-export async function cancelBaselineExecutionAction(input: unknown): Promise<ActionResponse> {
+export async function cancelBaselineExecutionAction(input: unknown): Promise<PlanReviewActionResult> {
   return runAction(input, z.object({ planId: planIdSchema }), value =>
     cancelBaselineExecution(value.planId).then(() => undefined),
   )
 }
 
-export async function retryBaselineAfterRepairAction(input: unknown): Promise<ActionResponse> {
+export async function retryBaselineAfterRepairAction(input: unknown): Promise<PlanReviewActionResult> {
   return runAction(
     input,
     z.object({
@@ -144,13 +181,13 @@ export async function retryBaselineAfterRepairAction(input: unknown): Promise<Ac
   )
 }
 
-export async function acknowledgeBaselineFailureAction(input: unknown): Promise<ActionResponse> {
+export async function acknowledgeBaselineFailureAction(input: unknown): Promise<PlanReviewActionResult> {
   return runAction(input, z.object({ planId: planIdSchema, attemptId: idSchema }), value =>
     acknowledgeBaselineFailure({ ...value, acknowledgedBy: 'local-user' }).then(() => undefined),
   )
 }
 
-export async function justifyBaselineRegressionPassAction(input: unknown): Promise<ActionResponse> {
+export async function justifyBaselineRegressionPassAction(input: unknown): Promise<PlanReviewActionResult> {
   return runAction(
     input,
     z.object({ planId: planIdSchema, attemptId: idSchema, justification: z.string().trim().min(1) }),
@@ -158,13 +195,13 @@ export async function justifyBaselineRegressionPassAction(input: unknown): Promi
   )
 }
 
-export async function acceptBaselineAction(input: unknown): Promise<ActionResponse> {
+export async function acceptBaselineAction(input: unknown): Promise<PlanReviewActionResult> {
   return runAction(input, z.object({ planId: planIdSchema }), value =>
     acceptBaseline(value.planId).then(() => undefined),
   )
 }
 
-export async function completeImplementationAction(input: unknown): Promise<ActionResponse> {
+export async function completeImplementationAction(input: unknown): Promise<PlanReviewActionResult> {
   return runAction(
     input,
     z.object({
@@ -181,7 +218,7 @@ export async function completeImplementationAction(input: unknown): Promise<Acti
   )
 }
 
-export async function decideValidationNodeAction(input: unknown): Promise<ActionResponse> {
+export async function decideValidationNodeAction(input: unknown): Promise<PlanReviewActionResult> {
   return runAction(
     input,
     z.object({
@@ -195,13 +232,13 @@ export async function decideValidationNodeAction(input: unknown): Promise<Action
   )
 }
 
-export async function approveValidationFileAction(input: unknown): Promise<ActionResponse> {
+export async function approveValidationFileAction(input: unknown): Promise<PlanReviewActionResult> {
   return runAction(input, z.object({ planId: planIdSchema, path: z.string().min(1) }), value =>
     approveCurrentValidationFile({ ...value, approvedBy: 'local-user' }).then(() => undefined),
   )
 }
 
-export async function submitValidationReviewAction(input: unknown): Promise<ActionResponse> {
+export async function submitValidationReviewAction(input: unknown): Promise<PlanReviewActionResult> {
   return runAction(
     input,
     z.object({
@@ -219,7 +256,7 @@ export async function submitValidationReviewAction(input: unknown): Promise<Acti
   )
 }
 
-export async function submitValidationFeedbackAction(input: unknown): Promise<ActionResponse> {
+export async function submitValidationFeedbackAction(input: unknown): Promise<PlanReviewActionResult> {
   return runAction(
     input,
     z.object({

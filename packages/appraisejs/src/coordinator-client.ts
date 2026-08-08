@@ -1,4 +1,7 @@
 import path from 'node:path'
+import { randomUUID } from 'node:crypto'
+
+import { z } from 'zod'
 
 import { ensureLocalProjectIdentity } from './project-identity.js'
 import type {
@@ -14,33 +17,72 @@ export type CoordinatorOptions = {
   coordinatorId: string
 }
 
+const coordinatorErrorEnvelopeSchema = z
+  .object({
+    schema: z.literal('appraise.error/v1'),
+    errorId: z.string().trim().min(1),
+    occurredAt: z.string().datetime(),
+    classification: z.enum([
+      'request_invalid',
+      'authorization_failure',
+      'resource_missing',
+      'state_conflict',
+      'infrastructure_failure',
+      'appraise_authoring_defect',
+      'appraise_runtime_defect',
+    ]),
+    code: z.string().trim().min(1),
+    message: z.string().trim().min(1).max(1_000),
+    httpStatus: z.number(),
+    operation: z
+      .object({
+        name: z.string().trim().min(1).max(300),
+        planId: z.string().trim().min(1).max(300).optional(),
+        idempotencyKey: z.string().trim().min(1).max(1_000).optional(),
+      })
+      .strict(),
+    operationOutcome: z.enum(['not_started', 'not_committed', 'committed', 'unknown']),
+    targetOutcome: z.literal('not_evaluated'),
+    retry: z
+      .object({
+        safe: z.boolean(),
+        strategy: z.enum([
+          'repair_input_then_retry',
+          'wait_then_retry',
+          'read_state_then_retry',
+          'repair_appraise_then_resume',
+          'do_not_retry',
+        ]),
+        nextAction: z
+          .object({
+            tool: z.string().trim().min(1),
+            arguments: z.record(z.string(), z.unknown()).optional(),
+            reason: z.string().trim().min(1).max(1_000),
+          })
+          .strict()
+          .optional(),
+      })
+      .strict(),
+    details: z.record(z.string(), z.unknown()).optional(),
+  })
+  .strict()
+
+export type CoordinatorErrorEnvelope = z.infer<typeof coordinatorErrorEnvelopeSchema>
+
 export class CoordinatorRequestError extends Error {
   constructor(
-    message: string,
     readonly status: number,
     readonly body: unknown,
-    readonly code?: string,
-    readonly path?: string,
-    readonly recovery?: string,
-    readonly details?: Record<string, unknown>,
+    readonly envelope: CoordinatorErrorEnvelope,
     options?: ErrorOptions,
   ) {
-    super(message, options)
+    super(envelope.message, options)
     this.name = 'CoordinatorRequestError'
   }
 }
 
-export function coordinatorRequestErrorEnvelope(error: CoordinatorRequestError) {
-  return {
-    code: error.code ?? 'coordinator-request-failed',
-    message: error.message,
-    status: error.status,
-    ...(error.path ? { path: error.path } : {}),
-    recovery:
-      error.recovery ??
-      'Run appraisejs doctor --json, then check plan status, plan events, sync-plans output, and the direct review URL.',
-    ...(error.details ? { details: error.details } : {}),
-  }
+export function coordinatorRequestError(error: CoordinatorRequestError) {
+  return error.envelope
 }
 
 async function readResponseBody(response: Response): Promise<unknown> {
@@ -48,9 +90,41 @@ async function readResponseBody(response: Response): Promise<unknown> {
   if (!source) return undefined
   try {
     return JSON.parse(source) as unknown
-  } catch {
-    return { error: source, code: 'invalid-http-response' }
+  } catch (error) {
+    throw new Error('Coordinator returned malformed JSON.', { cause: error })
   }
+}
+
+export function createLocalCoordinatorFailure(
+  operation: string,
+  classification: CoordinatorErrorEnvelope['classification'],
+  message: string,
+  httpStatus = 0,
+) {
+  return coordinatorErrorEnvelopeSchema.parse({
+    schema: 'appraise.error/v1',
+    errorId: randomUUID(),
+    occurredAt: new Date().toISOString(),
+    classification,
+    code: classification,
+    message,
+    httpStatus,
+    operation: { name: operation },
+    operationOutcome: 'not_started',
+    targetOutcome: 'not_evaluated',
+    retry: {
+      safe: classification === 'infrastructure_failure',
+      strategy: classification === 'infrastructure_failure' ? 'repair_appraise_then_resume' : 'do_not_retry',
+      nextAction: {
+        tool: 'coordinator_error_recovery',
+        reason:
+          classification === 'infrastructure_failure'
+            ? 'Start the local application, verify the endpoint, then reconnect the MCP client.'
+            : 'Read the current state and report this error ID to the Appraise operator.',
+      },
+    },
+    details: { source: 'client_transport' },
+  })
 }
 
 export async function createCoordinatorClient(options: CoordinatorOptions) {
@@ -72,39 +146,43 @@ export async function createCoordinatorClient(options: CoordinatorOptions) {
       })
     } catch (error) {
       throw new CoordinatorRequestError(
-        `Coordinator transport failed for ${endpoint}.`,
         0,
         undefined,
-        'transport-failed',
-        undefined,
-        'Start the local application, verify the configured endpoint, then reconnect the MCP client.',
-        { endpoint, cause: error instanceof Error ? error.message : String(error) },
+        createLocalCoordinatorFailure(
+          operation,
+          'infrastructure_failure',
+          `Coordinator transport failed for ${endpoint}.`,
+        ),
         { cause: error },
       )
     }
-    const body = await readResponseBody(response)
-    if (!response.ok) {
-      const message =
-        typeof body === 'object' && body && 'error' in body
-          ? String((body as { error: unknown }).error)
-          : response.statusText
-      const envelope =
-        typeof body === 'object' && body
-          ? (body as { code?: unknown; path?: unknown; recovery?: unknown; details?: unknown })
-          : undefined
+    let body: unknown
+    try {
+      body = await readResponseBody(response)
+    } catch (error) {
       throw new CoordinatorRequestError(
-        message,
         response.status,
-        body,
-        typeof envelope?.code === 'string' ? envelope.code : undefined,
-        typeof envelope?.path === 'string' ? envelope.path : undefined,
-        typeof envelope?.recovery === 'string'
-          ? envelope.recovery
-          : 'Run appraisejs doctor --json, then inspect plan status, plan events, sync-plans output, and the direct review URL.',
-        envelope?.details && typeof envelope.details === 'object'
-          ? (envelope.details as Record<string, unknown>)
-          : { endpoint },
+        undefined,
+        createLocalCoordinatorFailure(
+          operation,
+          'appraise_runtime_defect',
+          'Coordinator returned malformed JSON.',
+          response.status,
+        ),
+        { cause: error },
       )
+    }
+    if (!response.ok) {
+      const parsed = coordinatorErrorEnvelopeSchema.safeParse(body)
+      const envelope = parsed.success
+        ? parsed.data
+        : createLocalCoordinatorFailure(
+            operation,
+            'appraise_runtime_defect',
+            'Coordinator returned an invalid error response.',
+            response.status,
+          )
+      throw new CoordinatorRequestError(response.status, body, envelope)
     }
     return body
   }
@@ -226,12 +304,16 @@ export async function createCoordinatorClient(options: CoordinatorOptions) {
       }) as Promise<ValidationAstExtensionReviewResult>,
     checkValidationAst: (planId: string, submission: ValidationAstSubmission) =>
       post(`plans/${planId}/validations/ast/check`, { submission }),
-    proposeValidationResources: (planId: string, proposal: unknown) =>
-      post(`plans/${planId}/validations/resources/propose`, proposal),
+    proposeValidationResources: (planId: string, proposal: unknown, idempotencyKey: string) =>
+      post(`plans/${planId}/validations/resources/propose`, { proposal, idempotencyKey }),
     previewValidationAst: (planId: string, submission: ValidationAstSubmission) =>
       post(`plans/${planId}/validations/ast/preview`, { submission }),
-    compileValidationAst: (planId: string, submission: ValidationAstSubmission, expectedReceiptHash: string) =>
-      post(`plans/${planId}/validations/ast/compile`, { submission, expectedReceiptHash }),
+    compileValidationAst: (
+      planId: string,
+      submission: ValidationAstSubmission,
+      expectedReceiptHash: string,
+      idempotencyKey: string,
+    ) => post(`plans/${planId}/validations/ast/compile`, { submission, expectedReceiptHash, idempotencyKey }),
     listProviders: () => request('providers'),
     probeProvider: (providerKey: string) => post(`providers/${providerKey}/probe`, {}),
     updateProvider: (
@@ -284,31 +366,44 @@ export async function createCoordinatorClient(options: CoordinatorOptions) {
       expectedTestCases?: Array<{ testCaseId: string; testSuiteId?: string | null }>
     }) => post('test-runs', input),
     startPlan: (planId: string) => post(`plans/${planId}/start`, {}),
-    submitValidationFeedback: (planId: string, feedback: unknown) =>
-      post(`plans/${planId}/validations/feedback`, feedback),
+    submitValidationFeedback: (planId: string, feedback: unknown, idempotencyKey: string) =>
+      post(`plans/${planId}/validations/feedback`, { ...(feedback as Record<string, unknown>), idempotencyKey }),
     submitValidation: (
       planId: string,
-      binding: { operationHash?: string; reviewStateHash?: string; extensionArtifactHashes?: string[] } = {},
+      binding: {
+        operationHash?: string
+        reviewStateHash?: string
+        extensionArtifactHashes?: string[]
+        idempotencyKey: string
+      },
     ) => post(`plans/${planId}/validations/submit`, binding),
-    reconcileValidationReview: (planId: string) => post(`plans/${planId}/validations/reconcile`, {}),
-    startBaseline: (planId: string) => post(`plans/${planId}/baseline/start`, {}),
-    reconcileBaseline: (planId: string) => post(`plans/${planId}/baseline/reconcile`, {}),
-    cancelBaseline: (planId: string) => post(`plans/${planId}/baseline/cancel`, {}),
-    acceptBaseline: (planId: string) => post(`plans/${planId}/baseline/accept`, {}),
-    acknowledgeBaselineFailure: (planId: string, attemptId: string, acknowledgedBy: string) =>
-      post(`plans/${planId}/baseline/failures/${attemptId}/acknowledge`, { acknowledgedBy }),
-    justifyBaselineRegression: (planId: string, attemptId: string, justification: string) =>
-      post(`plans/${planId}/baseline/regressions/${attemptId}/justify`, { justification }),
-    startImplementation: (planId: string) => post(`plans/${planId}/implementation/start`, {}),
-    approveImplementationGroups: (planId: string, groupIds: string[]) =>
-      post(`plans/${planId}/implementation/groups`, { groupIds }),
-    recordImplementationValidation: (planId: string, run: unknown) =>
-      post(`plans/${planId}/implementation/validations`, { run }),
-    startImplementationValidation: (planId: string, input: { validationIds?: string[]; commitHash?: string } = {}) =>
-      post(`plans/${planId}/implementation/validations/start`, input),
+    reconcileValidationReview: (planId: string, idempotencyKey: string) =>
+      post(`plans/${planId}/validations/reconcile`, { idempotencyKey }),
+    startBaseline: (planId: string, idempotencyKey: string) =>
+      post(`plans/${planId}/baseline/start`, { idempotencyKey }),
+    reconcileBaseline: (planId: string, idempotencyKey: string) =>
+      post(`plans/${planId}/baseline/reconcile`, { idempotencyKey }),
+    cancelBaseline: (planId: string, idempotencyKey: string) =>
+      post(`plans/${planId}/baseline/cancel`, { idempotencyKey }),
+    acceptBaseline: (planId: string, idempotencyKey: string) =>
+      post(`plans/${planId}/baseline/accept`, { idempotencyKey }),
+    acknowledgeBaselineFailure: (planId: string, attemptId: string, acknowledgedBy: string, idempotencyKey: string) =>
+      post(`plans/${planId}/baseline/failures/${attemptId}/acknowledge`, { acknowledgedBy, idempotencyKey }),
+    justifyBaselineRegression: (planId: string, attemptId: string, justification: string, idempotencyKey: string) =>
+      post(`plans/${planId}/baseline/regressions/${attemptId}/justify`, { justification, idempotencyKey }),
+    startImplementation: (planId: string, idempotencyKey: string) =>
+      post(`plans/${planId}/implementation/start`, { idempotencyKey }),
+    approveImplementationGroups: (planId: string, groupIds: string[], idempotencyKey: string) =>
+      post(`plans/${planId}/implementation/groups`, { groupIds, idempotencyKey }),
+    recordImplementationValidation: (planId: string, run: unknown, idempotencyKey: string) =>
+      post(`plans/${planId}/implementation/validations`, { run, idempotencyKey }),
+    startImplementationValidation: (
+      planId: string,
+      input: { validationIds?: string[]; commitHash?: string; idempotencyKey: string },
+    ) => post(`plans/${planId}/implementation/validations/start`, input),
     reconcileImplementationValidation: (
       planId: string,
-      input: { runIds?: string[]; verifyTaskIds?: string[]; idempotencyKey?: string } = {},
+      input: { runIds?: string[]; verifyTaskIds?: string[]; idempotencyKey: string },
     ) => post(`plans/${planId}/implementation/validations/reconcile`, input),
     completionReview: (planId: string) => request(`plans/${planId}/completion`),
   }

@@ -478,6 +478,60 @@ describe('compact lifecycle responses', () => {
     expect(compact).toEqual(
       expect.objectContaining({ planId: 'plan-1', nextAllowedAction: { tool: 'validation_context_read' } }),
     )
+    expect(compact).toMatchObject({
+      responseProjection: {
+        mode: 'summary',
+        truncatedFields: expect.arrayContaining(['result']),
+        resources: expect.arrayContaining([
+          expect.objectContaining({ rel: 'full:result', uri: expect.stringContaining('responseMode=full') }),
+        ]),
+      },
+    })
+  })
+
+  it('keeps unchanged lifecycle polling below 300 estimated tokens with one recovery action', () => {
+    const compact = applyLifecycleResponseMode(
+      {
+        planId: 'plan-1',
+        status: 'pending_unchanged',
+        activeRunIds: ['run-1'],
+        pollAfterMs: 1_000,
+        nextAllowedAction: {
+          tool: 'implementation_validation_reconcile',
+          arguments: { planId: 'plan-1', runIds: ['run-1'] },
+        },
+        historicalArtifact: 'x'.repeat(30_000),
+      },
+      'summary',
+    )
+
+    expect(compact).toMatchObject({
+      status: 'pending_unchanged',
+      nextAllowedAction: { tool: 'implementation_validation_reconcile' },
+      responseProjection: { mode: 'summary', truncatedFields: expect.arrayContaining(['historicalArtifact']) },
+    })
+    expect(measureMcpResponse(compact).estimatedTokens).toBeLessThan(MCP_RESPONSE_TOKEN_BUDGETS.unchangedWait)
+  })
+
+  it('does not repeat a full artifact across consecutive summary projections', () => {
+    const payload = {
+      planId: 'plan-1',
+      contentHash: `sha256:${'a'.repeat(64)}`,
+      nextAllowedAction: { tool: 'validation_context_read' },
+      validationArtifact: { source: 'x'.repeat(30_000) },
+    }
+    const first = applyLifecycleResponseMode(payload, 'summary')
+    const second = applyLifecycleResponseMode(payload, 'summary')
+
+    expect(JSON.stringify(first)).not.toContain('x'.repeat(100))
+    expect(second).toEqual(first)
+    expect(first).toMatchObject({
+      contentHash: payload.contentHash,
+      responseProjection: {
+        truncatedFields: expect.arrayContaining(['validationArtifact']),
+        resources: expect.arrayContaining([expect.objectContaining({ rel: 'full:validationArtifact' })]),
+      },
+    })
   })
 
   it('keeps bounded failure signatures in compact test-run evidence', () => {

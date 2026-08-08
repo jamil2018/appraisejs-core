@@ -11,7 +11,7 @@ import { lifecycleDisplayLabel } from '@/lib/plans/lifecycle-guidance'
 import { cn } from '@/lib/utils'
 import type { PlanReviewDetail } from '@/services/plan-review/plan-review-service'
 
-type ActionResult = { success?: boolean; error?: string }
+type ActionResult = unknown
 type ValidationArtifact = NonNullable<PlanReviewDetail['validation']>
 type ValidationNode = ValidationArtifact['validations'][number]
 type ValidationAppraiseArtifacts = ValidationNode['appraiseArtifacts']

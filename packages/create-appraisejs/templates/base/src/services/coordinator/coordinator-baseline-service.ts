@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto'
 import { promises as fs } from 'node:fs'
 import path from 'node:path'
 
-import { BrowserEngine, TestRunResult, TestRunStatus, type PrismaClient } from '@prisma/client'
+import { BrowserEngine, TestRunResult, TestRunStatus, type Prisma, type PrismaClient } from '@prisma/client'
 
 import prisma from '@/config/db-config'
 import {
@@ -24,6 +24,7 @@ import { PlanArtifactRepository } from '@/lib/plans/artifact-repository'
 import { findProjectRoot } from '@/lib/plans/project-root'
 import { syncPlans } from '@/lib/plans/plan-sync-service'
 import { hashFileContent } from '@/lib/validation-review/file-review'
+import { validationNodeHash } from '@/lib/validation-review/approval'
 import { ServiceError } from '@/services/shared/errors'
 import { getTestRunLogsService } from '@/services/test-run/test-run-service'
 import { testRunEvidenceLinks } from '@/services/test-run/test-run-evidence-links'
@@ -35,6 +36,12 @@ import {
 } from '@/services/test-run/test-run-artifact-context'
 
 import { appendPlanEvent } from './coordinator-service'
+import {
+  completeCoordinatorOperation,
+  prepareCoordinatorOperation,
+  readCoordinatorOperationResult,
+  recordCoordinatorOperationOutcome,
+} from './coordinator-operation-receipt-service'
 import { assertValidationEnvironmentsReady } from './validation-canonical-projection-service'
 import {
   preflightBaselineEnvironments,
@@ -57,6 +64,51 @@ type BaselineOptions = {
   capsuleService?: RuntimeCapsuleTestRunService
   appraiseRoot?: string
   preflightEnvironments?: typeof preflightBaselineEnvironments
+  idempotencyKey?: string
+}
+
+async function prepareBaselineOperation(
+  operationName: string,
+  planId: string,
+  idempotencyKey: string,
+  request: unknown,
+  client: PrismaClient,
+) {
+  return prepareCoordinatorOperation(
+    { operationName, scopeKey: planId, idempotencyKey, request, planId, recoverUnknown: true },
+    client,
+  )
+}
+
+function replayedBaselineOperationResult<T>(operation: Awaited<ReturnType<typeof prepareBaselineOperation>>) {
+  return operation.replay && operation.receipt.operationOutcome === 'committed'
+    ? readCoordinatorOperationResult<T>(operation.receipt)
+    : undefined
+}
+
+async function completeBaselineOperation(
+  operation: Awaited<ReturnType<typeof prepareBaselineOperation>>,
+  result: unknown,
+  client: PrismaClient,
+) {
+  await completeCoordinatorOperation(operation.receipt, result, client)
+}
+
+async function recordBaselineOperationFailure(
+  operation: Awaited<ReturnType<typeof prepareBaselineOperation>>,
+  planId: string,
+  committedLifecycles: readonly PlanArtifact['lifecycle'][],
+  options: BaselineOptions,
+  client: PrismaClient,
+) {
+  const lifecycle = await readBaselineArtifacts(planId, options.projectDirectory, client)
+    .then(result => result.plan.lifecycle)
+    .catch(() => undefined)
+  await recordCoordinatorOperationOutcome(
+    operation.receipt,
+    lifecycle && committedLifecycles.includes(lifecycle) ? 'unknown' : 'not_committed',
+    client,
+  ).catch(() => undefined)
 }
 
 export function baselineCapsulePreparationKey(input: {
@@ -67,9 +119,10 @@ export function baselineCapsulePreparationKey(input: {
   environment: string
   attemptOrdinal: number
   publishOperationId: string
+  publicationId?: string
   runtimeInputHash: string
 }) {
-  return `baseline:${input.planId}:${input.revision}:${input.publishOperationId}:${input.runtimeInputHash}:${input.validationId}:${input.browser}:${input.environment}:${input.attemptOrdinal}`
+  return `baseline:${input.planId}:${input.revision}:${input.publishOperationId}:${input.publicationId ?? 'legacy-unbound'}:${input.runtimeInputHash}:${input.validationId}:${input.browser}:${input.environment}:${input.attemptOrdinal}`
 }
 
 export async function readStoredJsonReport(reportPath: string | null | undefined) {
@@ -144,68 +197,11 @@ async function persistBaselineHistory(
     select: { id: true },
   })
   await client.$transaction(async transaction => {
-    const appendAttemptEvent = async (input: {
-      attemptId: string
-      kind: string
-      idempotencyKey: string
-      payloadJson: string
-      createdAt?: Date
-    }) => {
-      const existing = await transaction.baselineAttemptEvent.findUnique({
-        where: {
-          attemptId_idempotencyKey: { attemptId: input.attemptId, idempotencyKey: input.idempotencyKey },
-        },
-      })
-      if (existing) return existing
-      const latest = await transaction.baselineAttemptEvent.findFirst({
-        where: { attemptId: input.attemptId },
-        orderBy: { sequence: 'desc' },
-        select: { sequence: true },
-      })
-      return transaction.baselineAttemptEvent.create({
-        data: { ...input, sequence: (latest?.sequence ?? 0) + 1 },
-      })
-    }
-    for (const attempt of validation.baselineAttempts) {
-      await transaction.baselineAttempt.upsert({
-        where: { id: attempt.id },
-        update: {},
-        create: {
-          id: attempt.id,
-          planProjectionId: projection.id,
-          validationId: attempt.validationId,
-          validationRevision: plan.revision,
-          validationHash: hashFileContent(serializeYamlArtifact('validation', validation)),
-          browser: attempt.browser,
-          environment: attempt.environment,
-          testRunId: attempt.testRunId,
-          evidenceJson: JSON.stringify(attempt.evidence),
-          createdAt: new Date(attempt.createdAt),
-        },
-      })
-      const state = {
-        status: attempt.status,
-        classification: attempt.classification,
-        signatureHash: attempt.signatureHash,
-        completedAt: attempt.completedAt,
-      }
-      await appendAttemptEvent({
-        attemptId: attempt.id,
-        kind: 'state_observed',
-        idempotencyKey: `state:${JSON.stringify(state)}`,
-        payloadJson: JSON.stringify(state),
-      })
-      if (attempt.regressionJustification) {
-        await appendAttemptEvent({
-          attemptId: attempt.id,
-          kind: 'regression_justified',
-          idempotencyKey: `regression_justification:${attempt.regressionJustification}`,
-          payloadJson: JSON.stringify({ justification: attempt.regressionJustification }),
-        })
-      }
-    }
+    const currentRequiredCombinations = new Set(requiredBaselineCombinations(validation).map(baselineCombinationKey))
+    for (const attempt of validation.baselineAttempts)
+      await persistBaselineAttempt(transaction, projection.id, plan, validation, currentRequiredCombinations, attempt)
     for (const acknowledgement of validation.baselineAcknowledgements) {
-      await appendAttemptEvent({
+      await appendBaselineAttemptEvent(transaction, {
         attemptId: acknowledgement.attemptId,
         kind: 'failure_acknowledged',
         idempotencyKey: `acknowledged:${acknowledgement.signatureHash}`,
@@ -213,6 +209,107 @@ async function persistBaselineHistory(
         createdAt: new Date(acknowledgement.acknowledgedAt),
       })
     }
+  })
+}
+
+type BaselineAttemptEventInput = {
+  attemptId: string
+  kind: string
+  idempotencyKey: string
+  payloadJson: string
+  createdAt?: Date
+}
+
+async function appendBaselineAttemptEvent(transaction: Prisma.TransactionClient, input: BaselineAttemptEventInput) {
+  const existing = await transaction.baselineAttemptEvent.findUnique({
+    where: { attemptId_idempotencyKey: { attemptId: input.attemptId, idempotencyKey: input.idempotencyKey } },
+  })
+  if (existing) return existing
+  const latest = await transaction.baselineAttemptEvent.findFirst({
+    where: { attemptId: input.attemptId },
+    orderBy: { sequence: 'desc' },
+    select: { sequence: true },
+  })
+  return transaction.baselineAttemptEvent.create({ data: { ...input, sequence: (latest?.sequence ?? 0) + 1 } })
+}
+
+async function persistBaselineAttempt(
+  transaction: Prisma.TransactionClient,
+  planProjectionId: string,
+  plan: PlanArtifact,
+  validation: ValidationArtifact,
+  currentRequiredCombinations: Set<string>,
+  attempt: ValidationArtifact['baselineAttempts'][number],
+) {
+  const publication = await findBaselinePublication(transaction, plan.planId, validation, attempt.validationId)
+  if (!publication)
+    throw new ServiceError('Baseline evidence requires an exact immutable validation publication.', 'CONFLICT')
+  const existingAttempt = await transaction.baselineAttempt.findUnique({
+    where: { id: attempt.id },
+    select: { publicationId: true },
+  })
+  if (existingAttempt?.publicationId !== publication.id) {
+    if (existingAttempt && currentRequiredCombinations.has(baselineCombinationKey(attempt)))
+      throw new ServiceError(
+        'Existing baseline evidence lacks the exact immutable validation publication binding.',
+        'CONFLICT',
+      )
+    if (existingAttempt) return
+  }
+  await transaction.baselineAttempt.upsert({
+    where: { id: attempt.id },
+    update: {},
+    create: {
+      id: attempt.id,
+      planProjectionId,
+      validationId: attempt.validationId,
+      validationRevision: plan.revision,
+      validationHash: hashFileContent(serializeYamlArtifact('validation', validation)),
+      browser: attempt.browser,
+      environment: attempt.environment,
+      testRunId: attempt.testRunId,
+      evidenceJson: JSON.stringify(attempt.evidence),
+      publicationId: publication.id,
+      createdAt: new Date(attempt.createdAt),
+    },
+  })
+  const state = {
+    status: attempt.status,
+    classification: attempt.classification,
+    signatureHash: attempt.signatureHash,
+    completedAt: attempt.completedAt,
+  }
+  await appendBaselineAttemptEvent(transaction, {
+    attemptId: attempt.id,
+    kind: 'state_observed',
+    idempotencyKey: `state:${JSON.stringify(state)}`,
+    payloadJson: JSON.stringify(state),
+  })
+  if (attempt.regressionJustification)
+    await appendBaselineAttemptEvent(transaction, {
+      attemptId: attempt.id,
+      kind: 'regression_justified',
+      idempotencyKey: `regression_justification:${attempt.regressionJustification}`,
+      payloadJson: JSON.stringify({ justification: attempt.regressionJustification }),
+    })
+}
+
+async function findBaselinePublication(
+  transaction: Prisma.TransactionClient,
+  planId: string,
+  validation: ValidationArtifact,
+  validationId: string,
+) {
+  const node = validation.validations.find(item => item.id === validationId)
+  if (node?.astProvenance?.schemaVersion !== '2') return null
+  return transaction.validationNodePublication.findFirst({
+    where: {
+      planId,
+      validationId: node.id,
+      contentHash: validationNodeHash(node),
+      publishOperationId: node.astProvenance.publishOperationId,
+    },
+    select: { id: true },
   })
 }
 
@@ -372,17 +469,26 @@ async function submitCapsuleTestRun(
   }
 }
 
+function isActiveTestRunStatus(status: TestRunStatus) {
+  return (
+    status === TestRunStatus.RUNNING || status === TestRunStatus.QUEUED || status === TestRunStatus.CANCELLING
+  )
+}
+
+function isInterruptedTestRun(run: {
+  evidenceHealth: string
+  runtimeCapsuleExecutionAttempt: { state: string; failure: string | null } | null
+}) {
+  return run.evidenceHealth === 'infrastructure_failure' || run.runtimeCapsuleExecutionAttempt?.state === 'INTERRUPTED'
+}
+
 async function loadAppraiseEvidence(testRunId: string, client: PrismaClient, appraiseRoot: string) {
   const run = await client.testRun.findUnique({
     where: { runId: testRunId },
-    include: { testCases: true, runtimeCapsule: true },
+    include: { testCases: true, runtimeCapsule: true, runtimeCapsuleExecutionAttempt: true },
   })
   if (!run) throw new ServiceError('Baseline test run not found.', 'NOT_FOUND')
-  if (
-    run.status === TestRunStatus.RUNNING ||
-    run.status === TestRunStatus.QUEUED ||
-    run.status === TestRunStatus.CANCELLING
-  ) {
+  if (isActiveTestRunStatus(run.status)) {
     return {
       status: 'running' as const,
       result: 'interrupted' as const,
@@ -397,6 +503,20 @@ async function loadAppraiseEvidence(testRunId: string, client: PrismaClient, app
     .filter(log => log.type === 'stderr')
     .map(log => log.message.trim())
     .filter(Boolean)
+  if (isInterruptedTestRun(run)) {
+    return {
+      status: 'completed' as const,
+      result: 'interrupted' as const,
+      evidenceHealth: 'infrastructure_failure' as const,
+      blockers: [],
+      failureSignatures: [
+        run.runtimeCapsuleExecutionAttempt?.failure?.trim() ||
+          logFailureSignatures[0] ||
+          'Runtime capsule execution was interrupted.',
+      ],
+      completedStepIds: [],
+    }
+  }
   const evidenceSummary = await summarizeRunEvidence(testRunId, client, appraiseRoot)
   if (evidenceSummary.evidenceHealth !== 'valid') {
     return invalidBaselineEvidence({
@@ -481,6 +601,7 @@ async function prepareBaselineAttempts(input: {
   artifacts: Awaited<ReturnType<typeof readBaselineArtifacts>>
   runtimeValidation: ValidationArtifact
   submitRun: BaselineSubmitRun
+  client: PrismaClient
   now: Date
 }) {
   const active = new Set(
@@ -499,6 +620,21 @@ async function prepareBaselineAttempts(input: {
     const provenance = validation.astProvenance
     if (provenance?.schemaVersion !== '2')
       throw new ServiceError('Managed baseline requires exact managed Validation AST provenance.', 'CONFLICT')
+    if (!input.artifacts.targetProject)
+      throw new ServiceError('Reviewed AST baseline requires a registered target project.', 'CONFLICT')
+    const publication = await input.client.validationNodePublication.findFirst({
+      where: {
+        planId: input.planId,
+        targetProjectId: input.artifacts.targetProject.id,
+        validationId: validation.id,
+        contentHash: validationNodeHash(validation),
+        publishOperationId: provenance.publishOperationId,
+        runtimeInputHash: provenance.runtimeInputHash,
+      },
+      select: { id: true },
+    })
+    if (!publication)
+      throw new ServiceError('Managed baseline requires an exact immutable validation publication.', 'CONFLICT')
     const preparationKey = baselineCapsulePreparationKey({
       planId: input.planId,
       revision: input.artifacts.plan.revision,
@@ -507,6 +643,7 @@ async function prepareBaselineAttempts(input: {
       environment: combination.environment,
       attemptOrdinal,
       publishOperationId: provenance.publishOperationId,
+      publicationId: publication.id,
       runtimeInputHash: provenance.runtimeInputHash,
     })
     const submitted = await input.submitRun({
@@ -517,8 +654,6 @@ async function prepareBaselineAttempts(input: {
       ...combination,
     })
     if (submitted.start) pendingStarts.push(submitted.start)
-    if (!input.artifacts.targetProject)
-      throw new ServiceError('Reviewed AST baseline requires a registered target project.', 'CONFLICT')
     const evidenceLinks = testRunEvidenceLinks(submitted.testRunId, input.artifacts.targetProject.id)
     attempts.push({
       id: `baseline-${randomUUID()}`,
@@ -540,54 +675,93 @@ async function prepareBaselineAttempts(input: {
 export async function startBaselineExecution(planId: string, options: BaselineOptions = {}) {
   const client = options.client ?? prisma
   const artifacts = await readBaselineArtifacts(planId, options.projectDirectory, client)
-  if (artifacts.plan.lifecycle === 'baseline_running') {
-    return baselineStartResult(artifacts.plan, artifacts.validation, true)
-  }
-  if (!['validations_approved', 'baseline_changes_requested'].includes(artifacts.plan.lifecycle)) {
-    throw new ServiceError('The plan is not ready for baseline execution.', 'CONFLICT')
-  }
-  const runtimeValidation = await baselineRuntimeValidation(planId, artifacts, client)
-  if (!artifacts.targetProject)
-    throw new ServiceError('Reviewed AST baseline requires a registered target project.', 'CONFLICT')
-  const environmentPreflight = await (options.preflightEnvironments ?? preflightBaselineEnvironments)(
-    runtimeValidation,
-    artifacts.targetProject,
+  const operation = await prepareBaselineOperation(
+    'baseline_start',
+    planId,
+    options.idempotencyKey ?? `internal:${randomUUID()}`,
+    {},
     client,
   )
-  const capsuleService = options.capsuleService ?? new RuntimeCapsuleTestRunService(client)
-  const submitRun =
-    options.submitRun ??
-    (async input => {
-      if (!artifacts.targetProject)
-        throw new ServiceError('Reviewed AST baseline requires a registered target project.', 'CONFLICT')
-      return submitCapsuleTestRun({ targetProject: artifacts.targetProject, ...input }, client, capsuleService)
-    })
-  const { attempts, pendingStarts } = await prepareBaselineAttempts({
-    planId,
-    artifacts,
-    runtimeValidation,
-    submitRun,
-    now: options.now ?? new Date(),
-  })
-  const plan = { ...artifacts.plan, lifecycle: 'baseline_running' as const }
-  const validation = { ...runtimeValidation, baselineAttempts: attempts, baselineDecision: 'pending' as const }
-  await writeBaselineArtifacts(artifacts, plan, validation, client)
-  await appendPlanEvent({ planId, type: 'baseline_started', payload: { attempts: attempts.length } }, client)
-  const startResults = await Promise.allSettled(pendingStarts.map(start => start()))
-  if (startResults.some(result => result.status === 'rejected'))
-    await appendPlanEvent(
-      {
-        planId,
-        type: 'baseline_run_start_failed',
-        payload: { failures: startResults.filter(result => result.status === 'rejected').length },
-      },
+  try {
+    if (artifacts.plan.lifecycle === 'baseline_running') {
+      const result = baselineStartResult(artifacts.plan, artifacts.validation, true)
+      await completeBaselineOperation(
+        operation,
+        { lifecycle: artifacts.plan.lifecycle, attemptIds: artifacts.validation.baselineAttempts.map(item => item.id) },
+        client,
+      )
+      return result
+    }
+    if (!['validations_approved', 'baseline_changes_requested'].includes(artifacts.plan.lifecycle)) {
+      throw new ServiceError('The plan is not ready for baseline execution.', 'CONFLICT')
+    }
+    const runtimeValidation = await baselineRuntimeValidation(planId, artifacts, client)
+    if (!artifacts.targetProject)
+      throw new ServiceError('Reviewed AST baseline requires a registered target project.', 'CONFLICT')
+    const environmentPreflight = await (options.preflightEnvironments ?? preflightBaselineEnvironments)(
+      runtimeValidation,
+      artifacts.targetProject,
       client,
     )
-  return baselineStartResult(plan, validation, false, environmentPreflight)
+    const capsuleService = options.capsuleService ?? new RuntimeCapsuleTestRunService(client)
+    const submitRun =
+      options.submitRun ??
+      (async input => {
+        if (!artifacts.targetProject)
+          throw new ServiceError('Reviewed AST baseline requires a registered target project.', 'CONFLICT')
+        return submitCapsuleTestRun({ targetProject: artifacts.targetProject, ...input }, client, capsuleService)
+      })
+    const { attempts, pendingStarts } = await prepareBaselineAttempts({
+      planId,
+      artifacts,
+      runtimeValidation,
+      submitRun,
+      client,
+      now: options.now ?? new Date(),
+    })
+    const plan = { ...artifacts.plan, lifecycle: 'baseline_running' as const }
+    const validation = { ...runtimeValidation, baselineAttempts: attempts, baselineDecision: 'pending' as const }
+    await writeBaselineArtifacts(artifacts, plan, validation, client)
+    await appendPlanEvent({ planId, type: 'baseline_started', payload: { attempts: attempts.length } }, client)
+    const startResults = await Promise.allSettled(pendingStarts.map(start => start()))
+    if (startResults.some(result => result.status === 'rejected'))
+      await appendPlanEvent(
+        {
+          planId,
+          type: 'baseline_run_start_failed',
+          payload: { failures: startResults.filter(result => result.status === 'rejected').length },
+        },
+        client,
+      )
+    const result = baselineStartResult(plan, validation, false, environmentPreflight)
+    await completeBaselineOperation(
+      operation,
+      { lifecycle: plan.lifecycle, attemptIds: validation.baselineAttempts.map(item => item.id) },
+      client,
+    )
+    return result
+  } catch (error) {
+    await recordBaselineOperationFailure(operation, planId, ['baseline_running'], options, client)
+    throw error
+  }
 }
 
 export async function reconcileBaselineExecution(planId: string, options: BaselineOptions = {}) {
-  const { client, artifacts } = await readRunningBaselineArtifacts(planId, options)
+  const client = options.client ?? prisma
+  const operation = await prepareBaselineOperation(
+    'baseline_reconcile',
+    planId,
+    options.idempotencyKey ?? `internal:${randomUUID()}`,
+    {},
+    client,
+  )
+  const replay = replayedBaselineOperationResult<{
+    plan: PlanArtifact
+    validation: ValidationArtifact
+    currentValidationHash: string
+  }>(operation)
+  if (replay) return replay
+  const { artifacts } = await readRunningBaselineArtifacts(planId, options)
   await assertValidationFilesUnchanged(artifacts)
   const startFailed = await client.planEvent.findFirst({
     where: { plan: { planId }, type: 'baseline_run_start_failed' },
@@ -669,15 +843,27 @@ export async function reconcileBaselineExecution(planId: string, options: Baseli
       client,
     )
   } else if (!stillRunning) await appendPlanEvent({ planId, type: 'baseline_review_ready' }, client)
-  return {
+  const result = {
     plan,
     validation,
     currentValidationHash: hashFileContent(serializeYamlArtifact('validation', validation)),
   }
+  await completeBaselineOperation(operation, result, client)
+  return result
 }
 
 export async function cancelBaselineExecution(planId: string, options: BaselineOptions = {}) {
-  const { client, artifacts } = await readRunningBaselineArtifacts(planId, options)
+  const client = options.client ?? prisma
+  const operation = await prepareBaselineOperation(
+    'baseline_cancel',
+    planId,
+    options.idempotencyKey ?? `internal:${randomUUID()}`,
+    {},
+    client,
+  )
+  const replay = replayedBaselineOperationResult<{ plan: PlanArtifact; validation: ValidationArtifact }>(operation)
+  if (replay) return replay
+  const { artifacts } = await readRunningBaselineArtifacts(planId, options)
   const activeAttempts = artifacts.validation.baselineAttempts.filter(attempt =>
     ['scheduled', 'running'].includes(attempt.status),
   )
@@ -706,7 +892,9 @@ export async function cancelBaselineExecution(planId: string, options: BaselineO
   const plan = { ...artifacts.plan, lifecycle: 'baseline_changes_requested' as const }
   await writeBaselineArtifacts(artifacts, plan, validation, client)
   await appendPlanEvent({ planId, type: 'baseline_cancelled' }, client)
-  return { plan, validation }
+  const result = { plan, validation }
+  await completeBaselineOperation(operation, result, client)
+  return result
 }
 
 export async function acknowledgeBaselineFailure(
@@ -714,6 +902,20 @@ export async function acknowledgeBaselineFailure(
   options: BaselineOptions = {},
 ) {
   const client = options.client ?? prisma
+  const operation = await prepareBaselineOperation(
+    'baseline_failure_acknowledge',
+    input.planId,
+    options.idempotencyKey ?? `internal:${randomUUID()}`,
+    input,
+    client,
+  )
+  if (operation.replay && operation.receipt.operationOutcome === 'committed')
+    return readCoordinatorOperationResult<{
+      attemptId: string
+      signatureHash: string
+      acknowledgedBy: string
+      acknowledgedAt: string
+    }>(operation.receipt)!
   const { artifacts, attempt } = await readBaselineAttempt(input, options, client)
   if (
     !attempt?.classification ||
@@ -736,6 +938,7 @@ export async function acknowledgeBaselineFailure(
     ],
   }
   await writeBaselineArtifacts(artifacts, artifacts.plan, validation, client)
+  await completeBaselineOperation(operation, acknowledgement, client)
   return acknowledgement
 }
 
@@ -745,6 +948,14 @@ export async function justifyBaselineRegressionPass(
 ) {
   if (!input.justification.trim()) throw new ServiceError('Regression justification is required.', 'VALIDATION')
   const client = options.client ?? prisma
+  const operation = await prepareBaselineOperation(
+    'baseline_regression_justify',
+    input.planId,
+    options.idempotencyKey ?? `internal:${randomUUID()}`,
+    input,
+    client,
+  )
+  if (operation.replay && operation.receipt.operationOutcome === 'committed') return
   const { artifacts, attempt } = await readBaselineAttempt(input, options, client)
   if (attempt?.classification !== 'unexpected_pass') {
     throw new ServiceError('Only passing baselines accept regression justification.', 'CONFLICT')
@@ -756,6 +967,7 @@ export async function justifyBaselineRegressionPass(
     ),
   }
   await writeBaselineArtifacts(artifacts, artifacts.plan, validation, client)
+  await completeBaselineOperation(operation, { acknowledged: true }, client)
 }
 
 async function readBaselineAttempt(
@@ -776,6 +988,15 @@ export async function retryBaselineAfterRepair(
 ) {
   if (!input.reason.trim()) throw new ServiceError('A baseline repair reason is required.', 'VALIDATION')
   const client = options.client ?? prisma
+  const operation = await prepareBaselineOperation(
+    'baseline_retry_after_repair',
+    input.planId,
+    options.idempotencyKey ?? `internal:${randomUUID()}`,
+    input,
+    client,
+  )
+  if (operation.replay && operation.receipt.operationOutcome === 'committed')
+    return readCoordinatorOperationResult<{ plan: PlanArtifact; validation: ValidationArtifact }>(operation.receipt)!
   const artifacts = await readBaselineArtifacts(input.planId, options.projectDirectory, client)
   if (artifacts.validationStored.hash !== input.expectedValidationHash) {
     throw new ServiceError(
@@ -804,7 +1025,9 @@ export async function retryBaselineAfterRepair(
     )
   }
   if (artifacts.plan.lifecycle === 'validation_changes_requested') {
-    return { plan: artifacts.plan, validation: artifacts.validation }
+    const result = { plan: artifacts.plan, validation: artifacts.validation }
+    await completeBaselineOperation(operation, result, client)
+    return result
   }
   if (artifacts.plan.lifecycle !== 'baseline_review') {
     throw new ServiceError('Only baseline review evidence can be returned for validation repair.', 'CONFLICT')
@@ -839,32 +1062,68 @@ export async function retryBaselineAfterRepair(
     },
     client,
   )
-  return { plan, validation }
+  const result = { plan, validation }
+  await completeBaselineOperation(operation, result, client)
+  return result
 }
 
 export async function acceptBaseline(planId: string, options: BaselineOptions = {}) {
   const client = options.client ?? prisma
   const artifacts = await readBaselineArtifacts(planId, options.projectDirectory, client)
-  if (artifacts.plan.lifecycle !== 'baseline_review') {
-    throw new ServiceError('The plan is not awaiting baseline acceptance.', 'CONFLICT')
+  const operation = await prepareBaselineOperation(
+    'baseline_accept',
+    planId,
+    options.idempotencyKey ?? `internal:${randomUUID()}`,
+    {},
+    client,
+  )
+  try {
+    if (operation.replay && operation.receipt.operationOutcome === 'committed') {
+      return { plan: artifacts.plan, validation: artifacts.validation }
+    }
+    if (artifacts.plan.lifecycle !== 'baseline_review') {
+      throw new ServiceError('The plan is not awaiting baseline acceptance.', 'CONFLICT')
+    }
+    await assertBaselineReady(artifacts, client)
+    const plan = { ...artifacts.plan, lifecycle: 'baseline_accepted' as const }
+    const validation = { ...artifacts.validation, baselineDecision: 'accepted' as const }
+    await writeBaselineArtifacts(artifacts, plan, validation, client)
+    await appendPlanEvent({ planId, type: 'baseline_accepted' }, client)
+    await completeBaselineOperation(
+      operation,
+      { lifecycle: plan.lifecycle, validationHash: artifacts.validationStored.hash },
+      client,
+    )
+    return { plan, validation }
+  } catch (error) {
+    await recordBaselineOperationFailure(operation, planId, ['baseline_accepted'], options, client)
+    throw error
   }
-  await assertBaselineReady(artifacts, client)
-  const plan = { ...artifacts.plan, lifecycle: 'baseline_accepted' as const }
-  const validation = { ...artifacts.validation, baselineDecision: 'accepted' as const }
-  await writeBaselineArtifacts(artifacts, plan, validation, client)
-  await appendPlanEvent({ planId, type: 'baseline_accepted' }, client)
-  return { plan, validation }
 }
 
 export async function startImplementation(planId: string, options: BaselineOptions = {}) {
   const client = options.client ?? prisma
   const artifacts = await readBaselineArtifacts(planId, options.projectDirectory, client)
-  if (artifacts.plan.lifecycle !== 'baseline_accepted' || artifacts.validation.baselineDecision !== 'accepted') {
-    throw new ServiceError('Accepted baselines are required before implementation.', 'CONFLICT')
+  const operation = await prepareBaselineOperation(
+    'implementation_start',
+    planId,
+    options.idempotencyKey ?? `internal:${randomUUID()}`,
+    {},
+    client,
+  )
+  try {
+    if (operation.replay && operation.receipt.operationOutcome === 'committed') return artifacts.plan
+    if (artifacts.plan.lifecycle !== 'baseline_accepted' || artifacts.validation.baselineDecision !== 'accepted') {
+      throw new ServiceError('Accepted baselines are required before implementation.', 'CONFLICT')
+    }
+    await assertBaselineReady(artifacts, client)
+    const plan = { ...artifacts.plan, lifecycle: 'in_progress' as const }
+    await writeBaselineArtifacts(artifacts, plan, artifacts.validation, client)
+    await appendPlanEvent({ planId, type: 'implementation_started', payload: { revision: plan.revision } }, client)
+    await completeBaselineOperation(operation, { lifecycle: plan.lifecycle, revision: plan.revision }, client)
+    return plan
+  } catch (error) {
+    await recordBaselineOperationFailure(operation, planId, ['in_progress'], options, client)
+    throw error
   }
-  await assertBaselineReady(artifacts, client)
-  const plan = { ...artifacts.plan, lifecycle: 'in_progress' as const }
-  await writeBaselineArtifacts(artifacts, plan, artifacts.validation, client)
-  await appendPlanEvent({ planId, type: 'implementation_started', payload: { revision: plan.revision } }, client)
-  return plan
 }

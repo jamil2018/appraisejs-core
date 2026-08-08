@@ -14,6 +14,7 @@ import {
 } from './managed-validation-review-state'
 import {
   advanceValidationAstPublish,
+  ensureValidationNodePublications,
   validateStoredValidationAstPublish,
 } from './validation-ast-publish-journal-service'
 
@@ -63,24 +64,39 @@ async function markValidationReviewReady(operation: PublishOperation, client: Pr
       where: { planProjectionId: plan.id },
       orderBy: { sequence: 'desc' },
     })
-    await tx.planEvent.upsert({
-      where: { publishOperationId_type: { publishOperationId: operation.id, type: 'validation_review_ready' } },
-      update: {},
-      create: {
-        planProjectionId: plan.id,
-        publishOperationId: operation.id,
-        sequence: (latest?.sequence ?? 0) + 1,
-        type: 'validation_review_ready',
-        payloadJson: JSON.stringify({
-          revision: plan.revision,
-          operationId: operation.id,
-          receiptHash: operation.receiptHash,
-          validationHash: operation.validationHash,
-          reviewHash: operation.reviewHash,
-          extensionReviewHashes: operation.extensionReviews.map(item => item.artifactHash),
-        }),
-      },
+    const existingReviewReadyEvent = await tx.planEvent.findFirst({
+      where: { publishOperationId: operation.id, type: 'validation_review_ready' },
     })
+    if (!existingReviewReadyEvent) {
+      const validation = validationArtifactSchema.parse(JSON.parse(operation.validationProjectionJson))
+      const publications = validation.validations.length
+        ? await ensureValidationNodePublications({ operationId: operation.id, validation }, tx)
+        : []
+      if (publications.length !== validation.validations.length)
+        throw new ServiceError('Review-ready validation publication is missing immutable node identities.', 'CONFLICT')
+      await tx.planEvent.create({
+        data: {
+          planProjectionId: plan.id,
+          publishOperationId: operation.id,
+          operationEventKey: `validation_review_ready:${operation.id}`,
+          sequence: (latest?.sequence ?? 0) + 1,
+          type: 'validation_review_ready',
+          payloadJson: JSON.stringify({
+            revision: plan.revision,
+            operationId: operation.id,
+            receiptHash: operation.receiptHash,
+            validationHash: operation.validationHash,
+            reviewHash: operation.reviewHash,
+            publications: publications.map(publication => ({
+              publicationId: publication.id,
+              validationId: publication.validationId,
+              publicationHash: publication.publicationHash,
+            })),
+            extensionReviewHashes: operation.extensionReviews.map(item => item.artifactHash),
+          }),
+        },
+      })
+    }
     const reviewState = validationReviewStateReceipt({
       validationHash: managedValidationStateHash(operation.validationContent),
       reviewHash: managedReviewStateHash(operation.reviewContent),

@@ -77,7 +77,12 @@ export function immutableValidationContent(content: string) {
 export function immutableReviewContent(content: string) {
   try {
     const review = parseYamlArtifact('review', content) as ReviewArtifact
-    return serializeYamlArtifact('review', { ...review, fileApprovals: [] })
+    return serializeYamlArtifact('review', {
+      ...review,
+      threads: [],
+      fileApprovals: [],
+      finalSignOff: undefined,
+    })
   } catch {
     return content
   }
@@ -99,7 +104,7 @@ export function managedValidationStateHash(content: string) {
 
 export function managedReviewStateHash(content: string) {
   try {
-    return digest(canonicalContractJson(parseYamlArtifact('review', content)))
+    return digest(immutableReviewContent(content))
   } catch {
     return digest(content)
   }

@@ -47,7 +47,7 @@ function implementationRunStatus(testRun: ManagedTestRunEvidence) {
   if (testRun.evidenceHealth && testRun.evidenceHealth !== 'valid') {
     return testRun.evidenceHealth === 'infrastructure_failure'
       ? ('infrastructure_failure' as const)
-      : ('failed' as const)
+      : ('invalid_evidence' as const)
   }
   if (testRun.result === TestRunResult.PASSED) return 'passed' as const
   if (testRun.result === TestRunResult.CANCELLED) return 'cancelled' as const

@@ -17,7 +17,7 @@ export const DELEGATED_COORDINATOR_PERMISSIONS = [
 
 const hashSchema = z.string().regex(/^sha256:[a-f0-9]{64}$/)
 const permissionSchema = z.enum(DELEGATED_COORDINATOR_PERMISSIONS)
-const claimsSchema = z
+export const delegatedCoordinatorClaimsSchema = z
   .object({
     version: z.literal(1),
     receiptId: z.string().uuid(),
@@ -38,7 +38,7 @@ const claimsSchema = z
 
 const delegatedCoordinatorReceiptSchema = z
   .object({
-    claims: claimsSchema,
+    claims: delegatedCoordinatorClaimsSchema,
     signature: z.string().regex(/^hmac-sha256:[a-f0-9]{64}$/),
   })
   .strict()
@@ -52,7 +52,7 @@ function configuredSecret(secret?: string): string {
   return value
 }
 
-function sign(claims: z.infer<typeof claimsSchema>, secret: string): string {
+function sign(claims: z.infer<typeof delegatedCoordinatorClaimsSchema>, secret: string): string {
   return `hmac-sha256:${createHmac('sha256', secret)
     .update(JSON.stringify(canonicalize(claims)))
     .digest('hex')}`
@@ -87,7 +87,7 @@ export async function createDelegatedCoordinatorReceipt(
   if (Date.parse(input.expiresAt) <= now.getTime()) {
     throw new ServiceError('Delegation expiry must be in the future.', 'VALIDATION')
   }
-  const claims = claimsSchema.parse({
+  const claims = delegatedCoordinatorClaimsSchema.parse({
     version: 1,
     receiptId: randomUUID(),
     parentCoordinatorId: input.parentCoordinatorId,

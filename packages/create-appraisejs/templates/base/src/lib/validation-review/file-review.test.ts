@@ -182,6 +182,25 @@ describe('validation review approval', () => {
     expect(assessValidationReadiness(changed, approvedReview).ready).toBe(false)
   })
 
+  it('keeps validation identity stable across JSON and YAML property ordering', () => {
+    const current = validation.validations[0]!
+    const reordered = {
+      matrix: current.matrix,
+      expectedFailures: current.expectedFailures,
+      astProvenance: current.astProvenance,
+      executable: current.executable,
+      stepPaths: current.stepPaths,
+      gherkinPaths: current.gherkinPaths,
+      appraiseArtifacts: current.appraiseArtifacts,
+      testCaseIds: current.testCaseIds,
+      required: current.required,
+      taskIds: current.taskIds,
+      id: current.id,
+    }
+
+    expect(validationNodeHash(reordered)).toBe(validationNodeHash(current))
+  })
+
   it('invalidates file approval after content changes', () => {
     const approvedReview = {
       ...review,

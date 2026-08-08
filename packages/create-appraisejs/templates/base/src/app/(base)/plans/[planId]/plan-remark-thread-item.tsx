@@ -11,10 +11,7 @@ import { getThreadStatus, isThreadOpen } from '@/services/plan-review/plan-revie
 
 import { getRelativeTimeString, getRemarkInitials, MarkdownRemark } from './plan-remark-formatting'
 
-type PlanActionRunner = (
-  operation: () => Promise<{ success?: boolean; error?: string }>,
-  successMessage: string,
-) => void
+type PlanActionRunner = (operation: () => Promise<unknown>, successMessage: string) => void
 
 type RemarkThread = NonNullable<PlanReviewDetail['review']>['threads'][number]
 type RemarkTransitionAction = 'resolved' | 'dismissed' | 'downgraded'
@@ -24,28 +21,28 @@ const remarkTransitions: Array<{
   label: string
   tooltip: string
   message: string
-  renderIcon: () => ReactNode
+  icon: ReactNode
 }> = [
   {
     action: 'resolved',
     label: 'Resolve',
     tooltip: 'Mark as resolved',
     message: 'Remark resolved.',
-    renderIcon: () => <Check className="size-3 text-emerald-500" />,
+    icon: <Check className="size-3 text-emerald-500" />,
   },
   {
     action: 'dismissed',
     label: 'Dismiss',
     tooltip: 'Dismiss remark',
     message: 'Remark dismissed.',
-    renderIcon: () => <X className="size-3 text-muted-foreground" />,
+    icon: <X className="size-3 text-muted-foreground" />,
   },
   {
     action: 'downgraded',
     label: 'Downgrade',
     tooltip: 'Downgrade priority',
     message: 'Remark downgraded.',
-    renderIcon: () => <ArrowDown className="size-3 text-amber-500" />,
+    icon: <ArrowDown className="size-3 text-amber-500" />,
   },
 ]
 
@@ -92,7 +89,7 @@ function RemarkThreadHeader({ thread, blockingOpen }: { thread: RemarkThread; bl
   return (
     <div className="border-border/40 flex items-center justify-between gap-2 border-b pb-1.5">
       <div className="flex items-center gap-1">
-        {thread.blocking ? <ShieldAlert className="size-3 animate-bounce text-destructive" /> : null}
+        {thread.blocking ? <ShieldAlert className="size-3 text-destructive" /> : null}
         <Badge
           variant={blockingOpen ? 'destructive' : 'outline'}
           className="px-1.5 py-0 text-[9px] font-bold uppercase tracking-wider"
@@ -166,7 +163,7 @@ function RemarkThreadActions({
             key={transition.action}
             label={transition.label}
             tooltip={transition.tooltip}
-            icon={transition.renderIcon()}
+            icon={transition.icon}
             disabled={isPending}
             onClick={() =>
               run(

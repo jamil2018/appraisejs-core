@@ -8,6 +8,24 @@ import { createCoordinatorClient } from './coordinator-client.js'
 import { deriveProjectIdentity } from './project-identity.js'
 
 const workspaces: string[] = []
+const errorEnvelope = (overrides: Record<string, unknown> = {}) => ({
+  schema: 'appraise.error/v1',
+  errorId: '11111111-1111-4111-8111-111111111111',
+  occurredAt: '2026-08-07T00:00:00.000Z',
+  classification: 'state_conflict',
+  code: 'state_conflict',
+  message: 'Coordinator request failed.',
+  httpStatus: 409,
+  operation: { name: 'plans/cli-plan' },
+  operationOutcome: 'not_committed',
+  targetOutcome: 'not_evaluated',
+  retry: {
+    safe: true,
+    strategy: 'read_state_then_retry',
+    nextAction: { tool: 'coordinator_error_recovery', reason: 'Read current state and retry.' },
+  },
+  ...overrides,
+})
 
 async function workspace() {
   const cwd = await fs.mkdtemp(path.join(os.tmpdir(), 'appraise-client-'))
@@ -35,7 +53,9 @@ describe('online coordinator client', () => {
       vi
         .fn()
         .mockResolvedValueOnce(
-          new Response(JSON.stringify({ error: 'Plan changed since expected hash.' }), { status: 409 }),
+          new Response(JSON.stringify(errorEnvelope({ message: 'Plan changed since expected hash.' })), {
+            status: 409,
+          }),
         )
         .mockResolvedValueOnce(Response.json({ planId: 'cli-plan', links: { plan: 'appraise://plans/cli-plan' } })),
     )
@@ -53,17 +73,25 @@ describe('online coordinator client', () => {
     })
   })
 
-  it('preserves structured validation paths and recovery guidance', async () => {
+  it('parses only the versioned public coordinator error envelope', async () => {
     const cwd = await workspace()
     vi.stubGlobal(
       'fetch',
       vi.fn().mockResolvedValue(
         new Response(
           JSON.stringify({
-            error: 'Expected a non-empty string',
-            code: 'invalid-request',
-            path: 'plan.tasks.0.validationIntent',
-            recovery: 'Correct the identified field and retry.',
+            ...errorEnvelope({
+              classification: 'request_invalid',
+              message: 'Expected a non-empty string',
+              operation: { name: 'plans' },
+              operationOutcome: 'not_started',
+              retry: {
+                safe: false,
+                strategy: 'repair_input_then_retry',
+                nextAction: { tool: 'coordinator_error_recovery', reason: 'Correct the identified request field.' },
+              },
+              details: { field: 'plan.tasks.0.validationIntent' },
+            }),
           }),
           { status: 400 },
         ),
@@ -73,9 +101,11 @@ describe('online coordinator client', () => {
 
     await expect(client.createPlan({})).rejects.toMatchObject({
       status: 400,
-      code: 'invalid-request',
-      path: 'plan.tasks.0.validationIntent',
-      recovery: 'Correct the identified field and retry.',
+      envelope: {
+        schema: 'appraise.error/v1',
+        classification: 'request_invalid',
+        details: { field: 'plan.tasks.0.validationIntent' },
+      },
     })
   })
 
@@ -112,7 +142,11 @@ describe('online coordinator client', () => {
     const cwd = await workspace()
     vi.stubGlobal(
       'fetch',
-      vi.fn().mockResolvedValue(new Response(JSON.stringify({ error: 'active coordinator' }), { status: 409 })),
+      vi
+        .fn()
+        .mockResolvedValue(
+          new Response(JSON.stringify(errorEnvelope({ message: 'active coordinator' })), { status: 409 }),
+        ),
     )
     const client = await createCoordinatorClient({ cwd, baseUrl: 'http://localhost:3000', coordinatorId: 'agent' })
 
@@ -130,11 +164,13 @@ describe('online coordinator client', () => {
 
     await expect(client.diagnose()).rejects.toMatchObject({
       status: 0,
-      code: 'transport-failed',
       cause,
-      details: {
-        endpoint: 'http://127.0.0.1:9/api/internal/coordinator/diagnostic',
-        cause: 'connect ECONNREFUSED 127.0.0.1:9',
+      envelope: {
+        schema: 'appraise.error/v1',
+        classification: 'infrastructure_failure',
+        operation: { name: 'diagnostic' },
+        operationOutcome: 'not_started',
+        details: { source: 'client_transport' },
       },
     })
   })
@@ -229,25 +265,58 @@ describe('online coordinator client', () => {
         .fn()
         .mockResolvedValueOnce(
           Response.json(
-            {
-              error: 'Coordinator is bound to a different project.',
-              code: 'project-mismatch',
-              details: { requestedFingerprint: 'sha256:client', serverFingerprint: 'sha256:server' },
-            },
+            errorEnvelope({
+              classification: 'authorization_failure',
+              message: 'Coordinator credentials are not valid for this project.',
+              operation: { name: 'diagnostic' },
+              operationOutcome: 'not_started',
+              retry: {
+                safe: false,
+                strategy: 'repair_appraise_then_resume',
+                nextAction: { tool: 'coordinator_error_recovery', reason: 'Reconnect to the matching project.' },
+              },
+              details: { boundary: 'project_identity' },
+            }),
             { status: 409 },
           ),
         )
         .mockResolvedValueOnce(
-          Response.json({ error: 'Invalid project credentials.', code: 'UNAUTHORIZED' }, { status: 401 }),
+          Response.json(
+            errorEnvelope({
+              classification: 'authorization_failure',
+              message: 'Coordinator authorization failed.',
+              operation: { name: 'diagnostic' },
+              operationOutcome: 'not_started',
+              retry: {
+                safe: false,
+                strategy: 'repair_appraise_then_resume',
+                nextAction: { tool: 'coordinator_error_recovery', reason: 'Reconnect with authorized credentials.' },
+              },
+            }),
+            { status: 401 },
+          ),
         ),
     )
     const client = await createCoordinatorClient({ cwd, baseUrl: 'http://localhost:3000', coordinatorId: 'agent' })
 
     await expect(client.diagnose()).rejects.toMatchObject({
       status: 409,
-      code: 'project-mismatch',
-      details: { serverFingerprint: 'sha256:server' },
+      envelope: { classification: 'authorization_failure', details: { boundary: 'project_identity' } },
     })
-    await expect(client.diagnose()).rejects.toMatchObject({ status: 401, code: 'UNAUTHORIZED' })
+    await expect(client.diagnose()).rejects.toMatchObject({
+      status: 401,
+      envelope: { classification: 'authorization_failure' },
+    })
+  })
+
+  it('rejects malformed upstream error responses instead of parsing a legacy envelope', async () => {
+    const cwd = await workspace()
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('{"error":"legacy"}', { status: 500 })))
+    const client = await createCoordinatorClient({ cwd, baseUrl: 'http://localhost:3000', coordinatorId: 'agent' })
+
+    await expect(client.diagnose()).rejects.toMatchObject({
+      status: 500,
+      envelope: { schema: 'appraise.error/v1', classification: 'appraise_runtime_defect' },
+    })
   })
 })

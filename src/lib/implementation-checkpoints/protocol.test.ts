@@ -95,6 +95,7 @@ const validation = {
       {
         id: 'run-one',
         validationId: 'core-validation',
+        publicationId: 'publication-one',
         taskIds: ['foundation', 'api'],
         required: true,
         status: 'passed',
@@ -159,7 +160,13 @@ describe('implementation checkpoint protocol', () => {
   })
 
   it('requires verified tasks, fresh passing required validations, and protected evidence', () => {
-    expect(canCompleteImplementation(plan, validation)).toEqual({ ready: true, blockers: [] })
+    expect(canCompleteImplementation(plan, validation)).toMatchObject({
+      ready: true,
+      blockers: [],
+      structuredBlockers: [],
+      runState: 'passed',
+      activeRunIds: [],
+    })
     expect(
       canCompleteImplementation(
         { ...plan, lifecycle: 'completed' },
@@ -168,7 +175,7 @@ describe('implementation checkpoint protocol', () => {
           implementation: { ...validation.implementation, evidenceProtected: false },
         },
       ),
-    ).toEqual({ ready: true, blockers: [] })
+    ).toMatchObject({ ready: true, blockers: [], runState: 'passed' })
     expect(
       canCompleteImplementation(plan, {
         ...validation,
@@ -180,6 +187,79 @@ describe('implementation checkpoint protocol', () => {
         },
       }),
     ).toMatchObject({ ready: false, blockers: expect.arrayContaining([expect.stringContaining('api')]) })
+  })
+
+  it('keeps required active runs typed and distinct from terminal failures', () => {
+    const active = canCompleteImplementation(plan, {
+      ...validation,
+      implementation: {
+        ...validation.implementation,
+        validationRuns: validation.implementation.validationRuns.map(run => ({
+          ...run,
+          status: 'running' as const,
+          assurance: 'reduced' as const,
+          completedAt: undefined,
+        })),
+      },
+    })
+    expect(active).toMatchObject({
+      ready: false,
+      runState: 'active',
+      activeRunIds: ['run-one'],
+      structuredBlockers: [expect.objectContaining({ validationId: 'core-validation', state: 'active' })],
+    })
+
+    const invalid = canCompleteImplementation(plan, {
+      ...validation,
+      implementation: {
+        ...validation.implementation,
+        validationRuns: validation.implementation.validationRuns.map(run => ({
+          ...run,
+          status: 'invalid_evidence' as const,
+          assurance: 'reduced' as const,
+        })),
+      },
+    })
+    expect(invalid).toMatchObject({ ready: false, runState: 'invalid_evidence', activeRunIds: [] })
+  })
+
+  it('preserves recovery guidance for missing and terminal required runs', () => {
+    const missing = canCompleteImplementation(plan, {
+      ...validation,
+      implementation: { ...validation.implementation, validationRuns: [] },
+    })
+    expect(missing).toMatchObject({
+      ready: false,
+      runState: 'invalid_evidence',
+      structuredBlockers: [
+        expect.objectContaining({
+          kind: 'run_missing',
+          validationId: 'core-validation',
+          state: 'missing',
+          recovery: expect.objectContaining({ tool: 'implementation_validation_readiness' }),
+        }),
+      ],
+    })
+
+    const failed = canCompleteImplementation(plan, {
+      ...validation,
+      implementation: {
+        ...validation.implementation,
+        validationRuns: validation.implementation.validationRuns.map(run => ({ ...run, status: 'failed' as const })),
+      },
+    })
+    expect(failed).toMatchObject({
+      ready: false,
+      runState: 'failed',
+      structuredBlockers: [
+        expect.objectContaining({
+          kind: 'run_terminal_failure',
+          validationId: 'core-validation',
+          state: 'failed',
+          recovery: expect.objectContaining({ tool: 'implementation_validation_start' }),
+        }),
+      ],
+    })
   })
 
   it('carries forward only unchanged pre-existing failure acknowledgements', () => {

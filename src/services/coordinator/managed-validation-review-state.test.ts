@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { serializeYamlArtifact, type ReviewArtifact, type ValidationArtifact } from '@/lib/plan-contract'
 
 import {
+  immutableReviewContent,
   managedReviewStateHash,
   managedValidationProjectionState,
   managedValidationStateHash,
@@ -71,5 +72,39 @@ describe('managed validation review state', () => {
     expect(receipt(serializeYamlArtifact('validation', decided), reviewYaml, JSON.stringify(decided))).not.toBe(
       receipt(validationYaml, reviewYaml, JSON.stringify(validation)),
     )
+  })
+
+  it('keeps validation publication identity stable when remark status changes', () => {
+    const created = {
+      ...review,
+      threads: [
+        {
+          id: 'remark-one',
+          target: { type: 'plan' as const },
+          blocking: true,
+          events: [
+            {
+              id: 'remark-event-one',
+              action: 'created' as const,
+              actor: 'reviewer',
+              createdAt: '2026-08-05T12:00:00.000Z',
+              body: 'Add exact coverage.',
+            },
+          ],
+        },
+      ],
+    }
+    const resolved: ReviewArtifact = structuredClone(created)
+    resolved.threads[0]!.events.push({
+      id: 'remark-event-two',
+      action: 'resolved',
+      actor: 'reviewer',
+      createdAt: '2026-08-05T12:05:00.000Z',
+    })
+
+    const createdYaml = serializeYamlArtifact('review', created)
+    const resolvedYaml = serializeYamlArtifact('review', resolved)
+    expect(immutableReviewContent(resolvedYaml)).toBe(immutableReviewContent(createdYaml))
+    expect(managedReviewStateHash(resolvedYaml)).toBe(managedReviewStateHash(createdYaml))
   })
 })

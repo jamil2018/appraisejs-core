@@ -2,17 +2,22 @@
 
 import { useCallback, useState, useTransition } from 'react'
 
+import {
+  coordinatorAcknowledgementSchema,
+  coordinatorErrorEnvelopeSchema,
+  type CoordinatorErrorEnvelope,
+} from '@/services/shared/errors'
+
 export type PlanReviewActionMessage = {
   tone: 'success' | 'error'
   text: string
   recovery?: 'validation-drift'
 }
 
-type CommandResult = { success?: boolean; error?: string }
+type CommandResult = unknown
 
-function validationRecovery(result: CommandResult, requested?: PlanReviewActionMessage['recovery']) {
-  if (result.success || requested !== 'validation-drift') return undefined
-  return result.error?.includes('Validation files changed after approval or baseline execution') ? requested : undefined
+function validationRecovery(error: CoordinatorErrorEnvelope, requested?: PlanReviewActionMessage['recovery']) {
+  return requested === 'validation-drift' && error.code === 'validation_artifact_changed' ? requested : undefined
 }
 
 function commandMessage(
@@ -20,10 +25,13 @@ function commandMessage(
   successMessage: string,
   requestedRecovery?: PlanReviewActionMessage['recovery'],
 ): PlanReviewActionMessage {
+  if (coordinatorAcknowledgementSchema.safeParse(result).success) return { tone: 'success', text: successMessage }
+  const error = coordinatorErrorEnvelopeSchema.safeParse(result)
+  if (!error.success) return { tone: 'error', text: 'The action returned an invalid Appraise response.' }
   return {
-    tone: result.success ? 'success' : 'error',
-    text: result.success ? successMessage : (result.error ?? 'The action failed.'),
-    recovery: validationRecovery(result, requestedRecovery),
+    tone: 'error',
+    text: error.data.message,
+    recovery: validationRecovery(error.data, requestedRecovery),
   }
 }
 
@@ -34,12 +42,15 @@ async function executeCommand(
 ) {
   try {
     const result = await operation()
-    return { message: commandMessage(result, successMessage, requestedRecovery), refresh: Boolean(result.success) }
-  } catch (error) {
+    return {
+      message: commandMessage(result, successMessage, requestedRecovery),
+      refresh: coordinatorAcknowledgementSchema.safeParse(result).success,
+    }
+  } catch {
     return {
       message: {
         tone: 'error' as const,
-        text: error instanceof Error ? error.message : 'The action failed.',
+        text: 'The action could not be completed.',
       },
       refresh: false,
     }

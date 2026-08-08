@@ -1,7 +1,7 @@
 import {
   CoordinatorRequestError,
   createCoordinatorClient,
-  coordinatorRequestErrorEnvelope,
+  coordinatorRequestError,
   type CoordinatorOptions,
 } from '../coordinator-client.js'
 
@@ -18,7 +18,7 @@ export function toolError(error: unknown) {
     content: [
       {
         type: 'text' as const,
-        text: JSON.stringify(coordinatorRequestErrorEnvelope(error)),
+        text: JSON.stringify(coordinatorRequestError(error)),
       },
     ],
   }

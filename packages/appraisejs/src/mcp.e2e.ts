@@ -107,7 +107,7 @@ async function stopAppServer(child: ChildProcess): Promise<void> {
 }
 
 function toolJson(result: Awaited<ReturnType<Client['callTool']>>) {
-  assert(!result.isError, `MCP tool returned an error: ${JSON.stringify(result)}`)
+  assert(!result.isError, `MCP tool returned an error: ${JSON.stringify(result)}\nServer output:\n${serverOutput}`)
   const item = result.content[0]
   assert(item?.type === 'text', 'MCP tool did not return text content.')
   return JSON.parse(item.text) as Record<string, unknown>
@@ -649,6 +649,7 @@ try {
 
   const proposedResources = await callTool('validation_resources_propose', {
     planId,
+    idempotencyKey: 'mcp-e2e-validation-resources',
     proposal: {
       schemaVersion: 2,
       idempotencyKey: 'mcp-e2e-validation-environment',
@@ -852,6 +853,7 @@ try {
   )
   const compiledValidation = await callTool('validation_ast_compile', {
     planId,
+    idempotencyKey: 'mcp-e2e-validation-compile',
     submission: validationSubmission,
     expectedReceiptHash: previewedValidation.receiptHash,
   })

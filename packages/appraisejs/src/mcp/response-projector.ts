@@ -23,6 +23,39 @@ export function measureMcpResponse(value: unknown) {
   }
 }
 
+function withLifecycleProjectionMeta(
+  result: Record<string, unknown>,
+  source: Record<string, unknown>,
+  responseMode: z.infer<typeof responseModeSchema>,
+) {
+  const truncatedFields =
+    responseMode === 'full'
+      ? []
+      : Object.keys(source)
+          .filter(key => source[key] !== undefined && !(key in result))
+          .sort()
+  const plan =
+    source.plan && typeof source.plan === 'object' && !Array.isArray(source.plan)
+      ? (source.plan as Record<string, unknown>)
+      : undefined
+  const planId = source.planId ?? plan?.planId
+  const resources = truncatedFields.map(field => ({
+    rel: `full:${field}`,
+    uri:
+      typeof planId === 'string'
+        ? `appraise://plans/${encodeURIComponent(planId)}?responseMode=full#${encodeURIComponent(field)}`
+        : `appraise://resources/lifecycle?responseMode=full#${encodeURIComponent(field)}`,
+  }))
+  return {
+    ...result,
+    responseProjection: {
+      mode: responseMode === 'full' ? ('full' as const) : ('summary' as const),
+      truncatedFields,
+      resources,
+    },
+  }
+}
+
 export function applyResponseMode(value: unknown, responseMode: z.infer<typeof responseModeSchema>) {
   if (responseMode === 'full' || !value || typeof value !== 'object' || Array.isArray(value)) return value
   const payload = value as Record<string, unknown>
@@ -78,8 +111,9 @@ export function applyResponseMode(value: unknown, responseMode: z.infer<typeof r
 }
 
 export function applyLifecycleResponseMode(value: unknown, responseMode: z.infer<typeof responseModeSchema>) {
-  if (responseMode === 'full' || !value || typeof value !== 'object' || Array.isArray(value)) return value
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return value
   const payload = value as Record<string, unknown>
+  if (responseMode === 'full') return withLifecycleProjectionMeta(payload, payload, responseMode)
   const plan = payload.plan && typeof payload.plan === 'object' ? (payload.plan as Record<string, unknown>) : undefined
   const validation =
     payload.validation && typeof payload.validation === 'object'
@@ -153,76 +187,96 @@ export function applyLifecycleResponseMode(value: unknown, responseMode: z.infer
     contentHash: payload.contentHash ?? payload.validationHash,
     currentValidationHash: payload.currentValidationHash,
     status: payload.status,
+    activeRunIds: payload.activeRunIds,
+    pollAfterMs: payload.pollAfterMs,
     evidenceHash: payload.evidenceHash,
+    publicationId: payload.publicationId,
+    decisionReceiptId: payload.decisionReceiptId,
     eventSequence: payload.eventSequence,
     nextAllowedAction: payload.nextAllowedAction,
     nextRecommendedAction: payload.nextRecommendedAction,
     nextRequiredAgentBehavior: payload.nextRequiredAgentBehavior,
   }
   if (responseMode === 'linksOnly')
-    return { ...common, links: payload.links, browserUrl: payload.browserUrl, appraiseUrl: payload.appraiseUrl }
+    return withLifecycleProjectionMeta(
+      { ...common, links: payload.links, browserUrl: payload.browserUrl, appraiseUrl: payload.appraiseUrl },
+      payload,
+      responseMode,
+    )
   if (responseMode === 'blockersOnly')
-    return {
-      ...common,
-      blockers: payload.blockers ?? readiness?.blockers ?? payload.blockingReasons,
-      structuredBlockers: payload.structuredBlockers,
-      warnings: payload.warnings,
-    }
+    return withLifecycleProjectionMeta(
+      {
+        ...common,
+        blockers: payload.blockers ?? readiness?.blockers ?? payload.blockingReasons,
+        structuredBlockers: payload.structuredBlockers,
+        warnings: payload.warnings,
+      },
+      payload,
+      responseMode,
+    )
   if (responseMode === 'evidenceOnly') {
-    return {
+    return withLifecycleProjectionMeta(
+      {
+        ...common,
+        attemptId: payload.attemptId ?? attemptIds?.[0],
+        attemptIds,
+        testRunId: payload.testRunId,
+        testRunIds,
+        evidence: payload.evidence ?? payload.evidenceSummary ?? baselineAttempts,
+        counts: payload.counts,
+        manifestPaths: payload.manifestPaths,
+      },
+      payload,
+      responseMode,
+    )
+  }
+  return withLifecycleProjectionMeta(
+    {
       ...common,
+      published: payload.published,
       attemptId: payload.attemptId ?? attemptIds?.[0],
       attemptIds,
       testRunId: payload.testRunId,
       testRunIds,
-      evidence: payload.evidence ?? payload.evidenceSummary ?? baselineAttempts,
-      counts: payload.counts,
-      manifestPaths: payload.manifestPaths,
-    }
-  }
-  return {
-    ...common,
-    published: payload.published,
-    attemptId: payload.attemptId ?? attemptIds?.[0],
-    attemptIds,
-    testRunId: payload.testRunId,
-    testRunIds,
-    reused: payload.reused,
-    evidence: payload.evidenceSummary ?? payload.evidence ?? baselineAttempts,
-    counts:
-      payload.counts ??
-      (taskStates
-        ? {
-            tasks: Object.keys(taskStates).length,
-            verifiedTasks: Object.values(taskStates).filter(status => status === 'verified').length,
-            validationRuns: Array.isArray(implementation?.validationRuns) ? implementation.validationRuns.length : 0,
-          }
-        : completionTasks
+      reused: payload.reused,
+      evidence: payload.evidenceSummary ?? payload.evidence ?? baselineAttempts,
+      counts:
+        payload.counts ??
+        (taskStates
           ? {
-              tasks: completionTasks.length,
-              verifiedTasks: completionTasks.filter(task => (task as Record<string, unknown>).status === 'verified')
-                .length,
-              validationRuns: runs?.length ?? 0,
-              blockingRemarks: Array.isArray(payload.blockingRemarks) ? payload.blockingRemarks.length : 0,
-              nonBlockingRemarks: Array.isArray(payload.nonBlockingRemarks) ? payload.nonBlockingRemarks.length : 0,
+              tasks: Object.keys(taskStates).length,
+              verifiedTasks: Object.values(taskStates).filter(status => status === 'verified').length,
+              validationRuns: Array.isArray(implementation?.validationRuns) ? implementation.validationRuns.length : 0,
             }
-          : undefined),
-    runnableTaskIds: payload.runnableTaskIds,
-    approvedGroupIds: implementation?.approvedGroupIds,
-    taskStates,
-    ...(payload.taskStates ? {} : { checkpoint: payload.checkpoint }),
-    runs,
-    receipt: payload.receipt,
-    ready: payload.ready ?? readiness?.ready,
-    blockers: payload.blockers ?? readiness?.blockers ?? payload.blockingReasons,
-    structuredBlockers: payload.structuredBlockers,
-    warnings: payload.warnings,
-    manifestPaths: payload.manifestPaths,
-    validationArtifactPath: payload.validationArtifactPath,
-    links: payload.links,
-    browserUrl: payload.browserUrl,
-    appraiseUrl: payload.appraiseUrl,
-  }
+          : completionTasks
+            ? {
+                tasks: completionTasks.length,
+                verifiedTasks: completionTasks.filter(task => (task as Record<string, unknown>).status === 'verified')
+                  .length,
+                validationRuns: runs?.length ?? 0,
+                blockingRemarks: Array.isArray(payload.blockingRemarks) ? payload.blockingRemarks.length : 0,
+                nonBlockingRemarks: Array.isArray(payload.nonBlockingRemarks) ? payload.nonBlockingRemarks.length : 0,
+              }
+            : undefined),
+      runnableTaskIds: payload.runnableTaskIds,
+      approvedGroupIds: implementation?.approvedGroupIds,
+      taskStates,
+      ...(payload.taskStates ? {} : { checkpoint: payload.checkpoint }),
+      runs,
+      receipt: payload.receipt,
+      ready: payload.ready ?? readiness?.ready,
+      blockers: payload.blockers ?? readiness?.blockers ?? payload.blockingReasons,
+      structuredBlockers: payload.structuredBlockers,
+      warnings: payload.warnings,
+      manifestPaths: payload.manifestPaths,
+      validationArtifactPath: payload.validationArtifactPath,
+      links: payload.links,
+      browserUrl: payload.browserUrl,
+      appraiseUrl: payload.appraiseUrl,
+    },
+    payload,
+    responseMode,
+  )
 }
 
 export function applyEventResponseMode(value: unknown, responseMode: z.infer<typeof responseModeSchema>) {

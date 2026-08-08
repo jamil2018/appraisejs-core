@@ -48,12 +48,70 @@ describe('RuntimeCapsuleRepository SQLite concurrency', () => {
       update: {},
       create: { id: 'repository-capsule-local', name: 'capsule-local', baseUrl: 'http://localhost' },
     })
+    const plan = await prisma.planProjection.create({
+      data: {
+        planId: 'repository-capsule-plan',
+        revision: 1,
+        lifecycle: 'awaiting_validation_review',
+        goal: 'Exercise capsule concurrency',
+        description: 'Exercise capsule concurrency',
+        sourceHash: validationHash,
+        planPath: 'repository-capsule-plan.yaml',
+        lastValidProjectedAt: new Date(),
+        targetProjectId: project.id,
+      },
+    })
+    await prisma.validationAstPublishOperation.create({
+      data: {
+        id: 'repository-capsule-operation',
+        planId: plan.planId,
+        planProjectionId: plan.id,
+        targetProjectId: project.id,
+        targetFingerprint: project.fingerprint,
+        idempotencyKey: 'repository-capsule-operation',
+        operationHash: validationHash,
+        phase: 'review_ready',
+        expectedPlanHash: validationHash,
+        expectedPlanArtifactHash: validationHash,
+        expectedReviewHash: validationHash,
+        planHash: validationHash,
+        validationHash,
+        reviewHash: validationHash,
+        planContent: '{}',
+        validationContent: '{}',
+        reviewContent: '{}',
+        astId: 'repository-capsule-validation',
+        astHash: validationHash,
+        contextHash: validationHash,
+        previewHash: validationHash,
+        receiptHash: validationHash,
+        projectionHash: validationHash,
+        projectionJson: '{}',
+        validationProjectionJson: '{}',
+        runtimeInputHash: validationHash,
+        runtimeInputJson: '{}',
+      },
+    })
+    const publication = await prisma.validationNodePublication.create({
+      data: {
+        planId: plan.planId,
+        targetProjectId: project.id,
+        validationId: 'repository-capsule-validation',
+        contentHash: validationHash,
+        publishOperationId: 'repository-capsule-operation',
+        operationHash: validationHash,
+        runtimeInputHash: validationHash,
+        projectionHash: validationHash,
+        publicationHash: `sha256:${'d'.repeat(64)}`,
+      },
+    })
     const testRun = await prisma.testRun.create({
       data: {
         name: `capsule-${Date.now()}`,
         runId: 'run-one',
         environmentId: environment.id,
         targetProjectId: project.id,
+        planId: plan.planId,
       },
     })
     const manifest = {
@@ -85,7 +143,14 @@ describe('RuntimeCapsuleRepository SQLite concurrency', () => {
       expectedSize: commandBytes.length,
     })
     const repository = new RuntimeCapsuleRepository(prisma, appraiseRoot)
-    const input = { projectId: project.id, testRunId: testRun.id, runId: testRun.runId, validationHash, manifest }
+    const input = {
+      projectId: project.id,
+      testRunId: testRun.id,
+      runId: testRun.runId,
+      validationHash,
+      publicationId: publication.id,
+      manifest,
+    }
     const results = await Promise.all([repository.create(input), repository.create(input)])
     expect(new Set(results.map(result => result.id)).size).toBe(1)
     await expect(prisma.runtimeCapsule.count({ where: { testRunId: testRun.id } })).resolves.toBe(1)

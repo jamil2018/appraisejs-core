@@ -234,4 +234,24 @@ describe('RuntimeCapsuleRepository', () => {
       }),
     ).resolves.toBeDefined()
   })
+
+  it('rejects a second create that would change an existing capsule identity', async () => {
+    const prisma = prismaMock()
+    const repository = new RuntimeCapsuleRepository(prisma as unknown as PrismaClient, workspace)
+    const input = {
+      projectId: 'project-one',
+      testRunId: 'test-run-db-one',
+      runId: 'run-one',
+      validationHash,
+      manifest,
+    }
+    await repository.create(input)
+
+    await expect(
+      repository.create({
+        ...input,
+        manifest: { ...manifest, operationHash: `sha256:${'b'.repeat(64)}` },
+      }),
+    ).rejects.toThrow(/cannot be reassigned/)
+  })
 })

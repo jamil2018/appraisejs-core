@@ -28,6 +28,14 @@ type CapsuleBlobReference = {
   }
 }
 
+type CapsuleRowIdentity = {
+  targetProjectId: string
+  validationHash: string
+  publicationId: string | null
+  capsuleHash: string
+  manifestHash: string
+}
+
 export class RuntimeCapsuleRepository {
   constructor(
     private readonly prisma: PrismaClient,
@@ -62,6 +70,7 @@ export class RuntimeCapsuleRepository {
     projectId: string
     testRunId: string
     validationHash: string
+    publicationId?: string
     capsuleHash: string
     manifestHash: string
     manifestJson: string
@@ -69,16 +78,55 @@ export class RuntimeCapsuleRepository {
     assertLeaseOwned?: () => Promise<void>
   }) {
     const existing = await this.prisma.runtimeCapsule.findUnique({ where: { testRunId: input.testRunId } })
-    const matchesIdentity = (row: NonNullable<typeof existing>) =>
+    if (existing) return this.assertExistingCapsuleIdentity(existing, input)
+    return this.createCapsuleRow(input)
+  }
+
+  private capsuleRowMatchesIdentity(
+    row: CapsuleRowIdentity,
+    input: {
+      projectId: string
+      validationHash: string
+      publicationId?: string
+      capsuleHash: string
+      manifestHash: string
+    },
+  ) {
+    return (
       row.targetProjectId === input.projectId &&
       row.validationHash === input.validationHash &&
+      (row.publicationId ?? undefined) === input.publicationId &&
       row.capsuleHash === input.capsuleHash &&
       row.manifestHash === input.manifestHash
+    )
+  }
 
-    if (existing && !matchesIdentity(existing))
+  private assertExistingCapsuleIdentity<Row extends CapsuleRowIdentity>(
+    row: Row,
+    input: {
+      projectId: string
+      validationHash: string
+      publicationId?: string
+      capsuleHash: string
+      manifestHash: string
+    },
+  ) {
+    if (!this.capsuleRowMatchesIdentity(row, input))
       throw new Error('A TestRun cannot be reassigned to a different runtime capsule.')
-    if (existing) return existing
+    return row
+  }
 
+  private async createCapsuleRow(input: {
+    projectId: string
+    testRunId: string
+    validationHash: string
+    publicationId?: string
+    capsuleHash: string
+    manifestHash: string
+    manifestJson: string
+    storagePath: string
+    assertLeaseOwned?: () => Promise<void>
+  }) {
     try {
       await input.assertLeaseOwned?.()
       return await this.prisma.runtimeCapsule.create({
@@ -86,6 +134,7 @@ export class RuntimeCapsuleRepository {
           targetProjectId: input.projectId,
           testRunId: input.testRunId,
           validationHash: input.validationHash,
+          ...(input.publicationId ? { publicationId: input.publicationId } : {}),
           capsuleHash: input.capsuleHash,
           manifestHash: input.manifestHash,
           manifestJson: input.manifestJson,
@@ -96,7 +145,7 @@ export class RuntimeCapsuleRepository {
     } catch (error) {
       if ((error as { code?: string }).code !== 'P2002') throw error
       const concurrent = await this.prisma.runtimeCapsule.findUnique({ where: { testRunId: input.testRunId } })
-      if (!concurrent || !matchesIdentity(concurrent))
+      if (!concurrent || !this.capsuleRowMatchesIdentity(concurrent, input))
         throw new Error('Concurrent runtime capsule creation resolved to different immutable content.')
       return concurrent
     }
@@ -139,6 +188,7 @@ export class RuntimeCapsuleRepository {
     testRunId: string
     runId: string
     validationHash: string
+    publicationId?: string
     manifest: RuntimeCapsuleManifest
     assertLeaseOwned?: () => Promise<void>
   }) {

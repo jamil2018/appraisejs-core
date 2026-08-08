@@ -10,7 +10,13 @@ import {
   prepareCleanCoordinatorPlanRuntimeTestDatabase,
 } from '@/test/plan-runtime-schema-test-helper'
 import { basicValidationAstSubmission, sqliteTestClient } from '@/test/validation-ast-test-fixtures'
-import { parseYamlArtifact, serializeYamlArtifact, type ValidationArtifact } from '@/lib/plan-contract'
+import {
+  parseYamlArtifact,
+  serializeYamlArtifact,
+  type PlanArtifact,
+  type ReviewArtifact,
+  type ValidationArtifact,
+} from '@/lib/plan-contract'
 import { hashFileContent } from '@/lib/validation-review/file-review'
 import { PlanArtifactRepository } from '@/lib/plans/artifact-repository'
 import { syncPlans } from '@/lib/plans/plan-sync-service'
@@ -20,7 +26,11 @@ import {
   previewValidationAstForPlan,
   readValidationAstExtensionReviewsForPlan,
 } from './validation-ast-operation-service'
-import { decideValidationNode, submitValidationReview } from './coordinator-validation-service'
+import {
+  decideValidationNode,
+  submitValidationFeedback,
+  submitValidationReview,
+} from './coordinator-validation-service'
 import { auditManagedValidationIntegrity } from './managed-validation-integrity-audit'
 import { registerProjectResourceOwnership } from '@/services/project-resource/project-resource-ownership-service'
 import { StepDefinitionRegistryService } from '@/services/step-definition/step-definition-registry-service'
@@ -375,10 +385,8 @@ describe('Validation AST SQLite preview to compile', () => {
     const exactReview = parseYamlArtifact('validation', validationArtifact.content) as ValidationArtifact
     expect(exactReview.validations).toEqual([preview.canonicalProjection.validationNode])
     expect(validationArtifact.hash).toBe(published.validationHash)
-    const reviewReady = await client.planEvent.findUniqueOrThrow({
-      where: {
-        publishOperationId_type: { publishOperationId: published.id, type: 'validation_review_ready' },
-      },
+    const reviewReady = await client.planEvent.findFirstOrThrow({
+      where: { publishOperationId: published.id, type: 'validation_review_ready' },
     })
     expect(JSON.parse(reviewReady.payloadJson!)).toMatchObject({
       operationId: published.id,
@@ -417,13 +425,108 @@ describe('Validation AST SQLite preview to compile', () => {
         planId: 'plan-one',
         validationId: 'meditation-happy-path',
         decision: 'approved',
-        decidedBy: 'different-reviewer-on-retry',
+        decidedBy: 'reviewer',
         operationHash: published.operationHash,
         extensionArtifactHashes: [],
       },
       { client, projectDirectory: workspace },
     )
     expect(retriedDecision).toEqual(firstDecision)
+
+    await submitValidationFeedback(
+      {
+        planId: 'plan-one',
+        scope: 'test_artifact',
+        target: { type: 'plan' },
+        body: 'Add the secondary validation path.',
+      },
+      { client, projectDirectory: workspace },
+    )
+    const reviewAfterFeedbackStored = await repository.read('review', 'plan-one')
+    const reviewAfterFeedback = parseYamlArtifact('review', reviewAfterFeedbackStored.content) as ReviewArtifact
+    reviewAfterFeedback.threads.at(-1)!.events.push({
+      id: 'resolve-secondary-feedback',
+      action: 'resolved',
+      actor: 'reviewer',
+      createdAt: new Date().toISOString(),
+    })
+    await repository.compareAndWrite(
+      'review',
+      'plan-one',
+      reviewAfterFeedbackStored.hash,
+      serializeYamlArtifact('review', reviewAfterFeedback),
+    )
+    await syncPlans({ projectDirectory: workspace, client })
+    const currentPlanHash = (
+      await client.planProjection.findUniqueOrThrow({ where: { planId: 'plan-one' }, select: { sourceHash: true } })
+    ).sourceHash
+    const secondaryBase = { ...submission(), expectedPlanHash: currentPlanHash }
+    const secondaryReceipt = await client.stepDefinitionSearchReceipt.create({
+      data: {
+        indexHash: `sha256:${'e'.repeat(64)}`,
+        candidateReferencesJson: JSON.stringify(
+          secondaryBase.ast.scenarios.flatMap(scenario =>
+            scenario.steps.map(step => ({ id: step.invocation.step.id, version: step.invocation.step.version })),
+          ),
+        ),
+        planId: 'plan-one',
+        correlationId: 'secondary-validation-flow',
+        expiresAt: new Date(Date.now() + 30 * 60 * 1000),
+      },
+    })
+    const secondaryProposal = {
+      ...secondaryBase,
+      stepDefinitionSelections: [{ receiptId: secondaryReceipt.id, correlationId: secondaryReceipt.correlationId }],
+    }
+    const secondaryPreview = await previewValidationAstForPlan('plan-one', secondaryProposal, client)
+    expect(secondaryPreview).toMatchObject({ valid: true, blockers: [] })
+    const secondaryPublished = await compileValidationAstForPlan(
+      {
+        planId: 'plan-one',
+        submission: secondaryProposal,
+        expectedReceiptHash: secondaryPreview.receiptHash,
+        projectDirectory: workspace,
+      },
+      client,
+    )
+    const secondDecision = await decideValidationNode(
+      {
+        planId: 'plan-one',
+        validationId: 'navigation',
+        decision: 'approved',
+        decidedBy: 'reviewer',
+        operationHash: secondaryPublished.operationHash,
+        extensionArtifactHashes: [],
+      },
+      { client, projectDirectory: workspace },
+    )
+    expect(secondDecision.reviewBinding.operationId).toBe(secondaryPublished.id)
+    expect(
+      await client.planEvent.count({ where: { type: 'validation_node_decided', plan: { planId: 'plan-one' } } }),
+    ).toBe(2)
+    const exactReviewBinding = {
+      client,
+      projectDirectory: workspace,
+      operationHash: secondaryPublished.operationHash,
+      reviewStateHash: secondDecision.reviewBinding.reviewStateHash,
+      extensionArtifactHashes: [] as string[],
+    }
+    const firstDecisionEvent = await client.planEvent.findUniqueOrThrow({
+      where: {
+        publishOperationId_validationId: {
+          publishOperationId: published.id,
+          validationId: firstDecision.validationId,
+        },
+      },
+    })
+    await client.planEvent.update({ where: { id: firstDecisionEvent.id }, data: { validationId: 'navigation' } })
+    await expect(submitValidationReview('plan-one', exactReviewBinding)).resolves.toMatchObject({
+      plan: { lifecycle: 'validations_approved' },
+    })
+    await client.planEvent.update({
+      where: { id: firstDecisionEvent.id },
+      data: { validationId: firstDecision.validationId },
+    })
     await expect(
       decideValidationNode(
         {
@@ -460,10 +563,18 @@ describe('Validation AST SQLite preview to compile', () => {
     await expect(
       auditManagedValidationIntegrity('plan-one', { client, projectDirectory: workspace }),
     ).resolves.toMatchObject({
-      status: 'green',
+      status: 'not_applicable',
       mismatches: [],
-      nextRepairAction: undefined,
     })
+    const currentPlan = await repository.read('plan', 'plan-one')
+    const awaitingReviewPlan = parseYamlArtifact('plan', currentPlan.content) as PlanArtifact
+    await repository.compareAndWrite(
+      'plan',
+      'plan-one',
+      currentPlan.hash,
+      serializeYamlArtifact('plan', { ...awaitingReviewPlan, lifecycle: 'awaiting_validation_review' }),
+    )
+    await syncPlans({ projectDirectory: workspace, client })
     const currentValidation = await repository.read('validation', 'plan-one')
     const mismatchedValidation = parseYamlArtifact('validation', currentValidation.content) as ValidationArtifact
     mismatchedValidation.validationDecisions[0]!.decidedBy = 'tampered-reviewer'
@@ -474,16 +585,8 @@ describe('Validation AST SQLite preview to compile', () => {
       serializeYamlArtifact('validation', mismatchedValidation),
     )
     await syncPlans({ projectDirectory: workspace, client })
-    const reviewBinding = {
-      client,
-      projectDirectory: workspace,
-      operationHash: published.operationHash,
-      reviewStateHash: (await client.validationAstPublishOperation.findUniqueOrThrow({ where: { id: published.id } }))
-        .reviewStateHash!,
-      extensionArtifactHashes: [] as string[],
-    }
     // fallow-ignore-next-line code-duplication -- same binding intentionally proves reject then accept
-    await expect(submitValidationReview('plan-one', reviewBinding)).rejects.toMatchObject({ code: 'CONFLICT' })
+    await expect(submitValidationReview('plan-one', exactReviewBinding)).rejects.toMatchObject({ code: 'CONFLICT' })
     mismatchedValidation.validationDecisions[0] = firstDecision
     await repository.compareAndWrite(
       'validation',
@@ -492,7 +595,7 @@ describe('Validation AST SQLite preview to compile', () => {
       serializeYamlArtifact('validation', mismatchedValidation),
     )
     await syncPlans({ projectDirectory: workspace, client })
-    await expect(submitValidationReview('plan-one', reviewBinding)).resolves.toMatchObject({
+    await expect(submitValidationReview('plan-one', exactReviewBinding)).resolves.toMatchObject({
       plan: { lifecycle: 'validations_approved' },
     })
     expect((await client.planProjection.findUniqueOrThrow({ where: { planId: 'plan-one' } })).lifecycle).toBe(
@@ -503,7 +606,7 @@ describe('Validation AST SQLite preview to compile', () => {
       where: { planProjectionId: published.planProjectionId, type: 'validations_approved' },
     })
     expect(JSON.parse(approvedEvent.payloadJson!)).toMatchObject({
-      projection: { operationHash: published.operationHash, extensionArtifactHashes: [] },
+      projection: { operationHash: secondaryPublished.operationHash, extensionArtifactHashes: [] },
     })
   })
 
