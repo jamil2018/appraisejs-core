@@ -52,7 +52,7 @@ function configuredSecret(secret?: string): string {
   return value
 }
 
-function sign(claims: z.infer<typeof claimsSchema>, secret: string): string {
+function sign(claims: z.infer<typeof delegatedCoordinatorClaimsSchema>, secret: string): string {
   return `hmac-sha256:${createHmac('sha256', secret)
     .update(JSON.stringify(canonicalize(claims)))
     .digest('hex')}`
@@ -87,7 +87,7 @@ export async function createDelegatedCoordinatorReceipt(
   if (Date.parse(input.expiresAt) <= now.getTime()) {
     throw new ServiceError('Delegation expiry must be in the future.', 'VALIDATION')
   }
-  const claims = claimsSchema.parse({
+  const claims = delegatedCoordinatorClaimsSchema.parse({
     version: 1,
     receiptId: randomUUID(),
     parentCoordinatorId: input.parentCoordinatorId,
