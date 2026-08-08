@@ -7,6 +7,7 @@ import { expect, test } from '@playwright/test'
 import { builtInStepDefinitions, computeStepReferenceHash } from '../packages/cucumber-runtime/src/step-definitions'
 import prisma from '../src/config/db-config'
 import {
+  parseYamlArtifact,
   serializeYamlArtifact,
   type PlanArtifact,
   type ReviewArtifact,
@@ -14,6 +15,7 @@ import {
 } from '../src/lib/plan-contract'
 import { syncPlans } from '../src/lib/plans/plan-sync-service'
 import { reconcileManagedValidationReviewState } from '../src/services/coordinator/managed-validation-review-state'
+import { ensureValidationNodePublications } from '../src/services/coordinator/validation-ast-publish-journal-service'
 import { disconnectPrisma, resetE2eData } from './helpers/test-data'
 
 const seededPlanId = 'e2e-semantic-plan-flow-graph'
@@ -299,6 +301,16 @@ async function seedValidationPublishOperation(): Promise<void> {
   ])
   const digest = (label: string) => hashContent(`${validationPlanId}:${label}`)
   await prisma.planEvent.deleteMany({ where: { publishOperationId: 'astpub_validation_review_e2e' } })
+  const priorPublications = await prisma.validationNodePublication.findMany({
+    where: { publishOperationId: 'astpub_validation_review_e2e' },
+    select: { id: true },
+  })
+  await prisma.validationDecisionReceipt.deleteMany({
+    where: { publicationId: { in: priorPublications.map(publication => publication.id) } },
+  })
+  await prisma.validationNodePublication.deleteMany({
+    where: { publishOperationId: 'astpub_validation_review_e2e' },
+  })
   await prisma.validationAstPublishOperation.deleteMany({ where: { id: 'astpub_validation_review_e2e' } })
   await prisma.validationAstPublishOperation.create({
     data: {
@@ -332,6 +344,13 @@ async function seedValidationPublishOperation(): Promise<void> {
       runtimeInputJson: '{}',
     },
   })
+  await ensureValidationNodePublications(
+    {
+      operationId: 'astpub_validation_review_e2e',
+      validation: parseYamlArtifact('validation', validationContent) as ValidationArtifact,
+    },
+    prisma,
+  )
   const latestEvent = await prisma.planEvent.findFirst({
     where: { planProjectionId: projection.id },
     orderBy: { sequence: 'desc' },
@@ -427,10 +446,10 @@ test.describe('Plan review', () => {
     expect(afterNodeApproval.lifecycle).toBe('awaiting_validation_review')
 
     await page.getByRole('button', { name: /Approve file/i }).click()
-    await expect(page.getByText(/submitting the validation review emits validations_approved/i)).toBeVisible()
+    await expect(page.getByText(/validation review emits validations_approved/i)).toBeVisible()
     await page.getByRole('button', { name: /Submit validation review/i }).click()
 
-    await expect(page.getByText(/validations approved/i)).toBeVisible()
+    await expect(validationsPanel.getByText(/validations approved/i)).toBeVisible()
     await expect(validationsPanel.getByRole('button', { name: /Start required baselines/i })).toHaveCount(0)
     await expect(validationsPanel.getByText(/^Validation review is approved\./i)).toBeVisible()
 

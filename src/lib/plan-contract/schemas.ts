@@ -52,9 +52,10 @@ export const approvalSchema = z.object({
 export const implementationValidationRunSchema = z.object({
   id: idSchema,
   validationId: idSchema,
+  publicationId: z.string().min(1),
   taskIds: z.array(idSchema).min(1),
   required: z.boolean(),
-  status: z.enum(['running', 'passed', 'failed', 'cancelled', 'infrastructure_failure']),
+  status: z.enum(['running', 'passed', 'failed', 'cancelled', 'infrastructure_failure', 'invalid_evidence']),
   fresh: z.boolean(),
   commitHash: z.string().min(1),
   evidenceSource: z.enum(['managed', 'manual']).default('manual'),

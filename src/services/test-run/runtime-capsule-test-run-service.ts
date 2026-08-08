@@ -49,19 +49,22 @@ function assertCapsuleStartOwnership(
 
 function reuseExistingExecutionAttempt(
   input: StartCapsuleTestRunInput,
-  operation: { operationHash: string },
+  operation: { operationHash: string; validationNodePublications: Array<{ id: string; validationId: string }> },
   testRun: {
     id: string
     runId: string
     runtimeCapsuleExecutionAttempt: null | {
       id: string
       state: string
-      capsule: { manifestJson: string; targetProjectId: string; testRunId: string }
+      capsule: { manifestJson: string; targetProjectId: string; testRunId: string; publicationId: string | null }
     }
   },
 ) {
   const attempt = testRun.runtimeCapsuleExecutionAttempt
   if (!attempt) return null
+  const publication = operation.validationNodePublications.find(item => item.validationId === input.validationId)
+  if (!publication || attempt.capsule.publicationId !== publication.id)
+    throw new Error('Existing capsule execution attempt lacks the exact immutable publication binding.')
   const manifest = parseCanonicalRuntimeCapsuleManifest(attempt.capsule.manifestJson)
   if (
     manifest.operationHash !== operation.operationHash ||
@@ -188,7 +191,10 @@ export class RuntimeCapsuleTestRunService {
     let ownedAttempt: { id: string; ownerToken: string; version: number } | undefined
     let failedComponent = 'materialization'
     const [operation, testRun] = await Promise.all([
-      this.client.validationAstPublishOperation.findUniqueOrThrow({ where: { id: input.operationId } }),
+      this.client.validationAstPublishOperation.findUniqueOrThrow({
+        where: { id: input.operationId },
+        include: { validationNodePublications: { select: { id: true, validationId: true } } },
+      }),
       this.client.testRun.findUniqueOrThrow({
         where: { id: input.testRunDbId },
         include: {

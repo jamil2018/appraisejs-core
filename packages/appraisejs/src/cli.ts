@@ -6,8 +6,9 @@ import { Command } from 'commander'
 import { expectedAgentCapabilities } from './agent-setup-capabilities.js'
 import {
   CoordinatorRequestError,
-  coordinatorRequestErrorEnvelope,
+  coordinatorRequestError,
   createCoordinatorClient,
+  createLocalCoordinatorFailure,
 } from './coordinator-client.js'
 import { diagnoseProject, formatMcpBootstrapError } from './diagnostics.js'
 import { assertLoopbackMcpHost } from './mcp-http-security.js'
@@ -96,14 +97,16 @@ function printJson(value: unknown): void {
 
 function printErrorJson(error: unknown): void {
   if (error instanceof CoordinatorRequestError) {
-    printJson({ ok: false, ...coordinatorRequestErrorEnvelope(error) })
+    printJson(coordinatorRequestError(error))
     return
   }
-  printJson({
-    ok: false,
-    code: 'command-failed',
-    message: error instanceof Error ? error.message : String(error),
-  })
+  printJson(
+    createLocalCoordinatorFailure(
+      'cli',
+      'appraise_runtime_defect',
+      error instanceof Error ? error.message : String(error),
+    ),
+  )
 }
 
 async function runCommand(action: () => Promise<void>, json: boolean): Promise<void> {
@@ -506,9 +509,9 @@ addOnlineOptions(
   }, options.json)
 })
 
-addOnlineOptions(validation.command('submit').argument('<plan-id>')).action(
-  async (planId: string, options: OnlineOptions) =>
-    printJson(await (await onlineClient(options)).submitValidation(planId)),
+addOnlineOptions(validation.command('submit').argument('<plan-id>').requiredOption('--idempotency-key <key>')).action(
+  async (planId: string, options: OnlineOptions & { idempotencyKey: string }) =>
+    printJson(await (await onlineClient(options)).submitValidation(planId, { idempotencyKey: options.idempotencyKey })),
 )
 
 addOnlineOptions(
@@ -518,12 +521,13 @@ addOnlineOptions(
     .argument('<plan-id>')
     .requiredOption('--submission <path>')
     .option('--receipt-hash <hash>')
+    .option('--idempotency-key <key>')
     .option('--json', 'print machine-readable JSON', true),
 ).action(
   async (
     phase: string,
     planId: string,
-    options: OnlineOptions & { submission: string; receiptHash?: string; json: boolean },
+    options: OnlineOptions & { submission: string; receiptHash?: string; idempotencyKey?: string; json: boolean },
   ) => {
     await runCommand(async () => {
       const submission = JSON.parse(
@@ -532,9 +536,13 @@ addOnlineOptions(
       const client = await onlineClient(options)
       if (phase === 'check') return printJson(await client.checkValidationAst(planId, submission))
       if (phase === 'preview') return printJson(await client.previewValidationAst(planId, submission))
-      if (phase === 'compile' && options.receiptHash)
-        return printJson(await client.compileValidationAst(planId, submission, options.receiptHash))
-      throw new Error('Compile requires --receipt-hash; phase must be check, preview, or compile.')
+      if (phase === 'compile' && options.receiptHash && options.idempotencyKey)
+        return printJson(
+          await client.compileValidationAst(planId, submission, options.receiptHash, options.idempotencyKey),
+        )
+      throw new Error(
+        'Compile requires --receipt-hash and --idempotency-key; phase must be check, preview, or compile.',
+      )
     }, options.json)
   },
 )

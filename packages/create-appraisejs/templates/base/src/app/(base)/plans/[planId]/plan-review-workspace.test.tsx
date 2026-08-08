@@ -456,7 +456,7 @@ describe('PlanReviewWorkspace', () => {
       plan: { ...detail.plan, lifecycle: 'validation_passed' },
       completionReview: {
         plan: { planId: detail.plan.planId, revision: 1, lifecycle: 'validation_passed', hash: detail.planContentHash },
-        validation: { revision: 1, hash: hashA, requiredValidationIds: [] },
+        validation: { revision: 1, hash: hashA, requiredValidationIds: [], publicationIds: [], decisionReceiptHashes: [] },
         readiness: { ready: true, blockers: [] },
         tasks: [],
         commits: [],
@@ -500,7 +500,13 @@ describe('PlanReviewWorkspace', () => {
           plan: { ...detail.plan, lifecycle: 'validation_passed' },
           completionReview: {
             plan: { planId: detail.plan.planId, revision: 1, lifecycle: 'validation_passed', hash: hashA },
-            validation: { revision: 1, hash: hashA, requiredValidationIds: [] },
+            validation: {
+              revision: 1,
+              hash: hashA,
+              requiredValidationIds: [],
+              publicationIds: [],
+              decisionReceiptHashes: [],
+            },
             readiness: { ready: false, blockers: ['A required task is not verified.'] },
             tasks: [],
             commits: [],

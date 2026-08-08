@@ -36,6 +36,15 @@ export async function recordCoordinatorResponseMetric(
   client: PrismaClient = prisma,
 ) {
   const measuredBody = await input.response.clone().arrayBuffer()
+  const responseBytes = measuredBody.byteLength
+  const responseText = Buffer.from(measuredBody).toString('utf8')
+  let responsePayload: Record<string, unknown> = {}
+  try {
+    responsePayload = objectRecord(JSON.parse(responseText))
+  } catch {
+    responsePayload = {}
+  }
+  const request = objectRecord(input.body)
   return recordPlanOperationMetric(
     {
       planId: planIdForOperation(input.operation, input.body),
@@ -43,7 +52,14 @@ export async function recordCoordinatorResponseMetric(
       statusCode: input.response.status,
       durationMs: Date.now() - input.startedAt,
       requestBytes: Buffer.byteLength(JSON.stringify(input.body ?? null)),
-      responseBytes: measuredBody.byteLength,
+      responseBytes,
+      estimatedTokens: Math.ceil(responseBytes / 4),
+      responseMode: typeof request.responseMode === 'string' ? request.responseMode : 'summary',
+      retryCause: typeof request.retryCause === 'string' ? request.retryCause : undefined,
+      classification:
+        typeof responsePayload.classification === 'string' ? responsePayload.classification : undefined,
+      operationOutcome:
+        typeof responsePayload.operationOutcome === 'string' ? responsePayload.operationOutcome : undefined,
     },
     client,
   )
@@ -57,6 +73,11 @@ export async function recordPlanOperationMetric(
     durationMs: number
     requestBytes: number
     responseBytes: number
+    estimatedTokens?: number
+    responseMode?: string
+    retryCause?: string
+    classification?: string
+    operationOutcome?: string
   },
   client: PrismaClient = prisma,
 ) {
@@ -78,6 +99,11 @@ export async function recordPlanOperationMetric(
       retryCount: previous,
       requestBytes: input.requestBytes,
       responseBytes: input.responseBytes,
+      estimatedTokens: input.estimatedTokens ?? Math.ceil(input.responseBytes / 4),
+      responseMode: input.responseMode ?? 'summary',
+      retryCause: input.retryCause,
+      classification: input.classification,
+      operationOutcome: input.operationOutcome,
       recoveryCost: recovery ? Math.max(1, Math.round(input.durationMs)) : 0,
     },
   })
@@ -107,6 +133,7 @@ export async function readPlanEfficiencyTelemetry(planId: string, client: Prisma
       toolCalls: number
       responseBytes: number
       recoveryCost: number
+      estimatedTokens: number
     }
   >()
   for (const metric of metrics) {
@@ -117,6 +144,7 @@ export async function readPlanEfficiencyTelemetry(planId: string, client: Prisma
       toolCalls: 0,
       responseBytes: 0,
       recoveryCost: 0,
+      estimatedTokens: 0,
     }
     phase.durationMs += metric.durationMs
     phase.waitMs += metric.waitMs
@@ -124,6 +152,7 @@ export async function readPlanEfficiencyTelemetry(planId: string, client: Prisma
     phase.toolCalls += metric.toolCallCount
     phase.responseBytes += metric.responseBytes
     phase.recoveryCost += metric.recoveryCost
+    phase.estimatedTokens += metric.estimatedTokens ?? Math.ceil(metric.responseBytes / 4)
     byPhase.set(metric.phase, phase)
   }
   return { retained: metrics.length, phases: [...byPhase.entries()].map(([phase, totals]) => ({ phase, ...totals })) }

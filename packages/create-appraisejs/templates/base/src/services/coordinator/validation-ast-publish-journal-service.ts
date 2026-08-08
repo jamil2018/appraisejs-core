@@ -2,6 +2,8 @@ import { createHash } from 'node:crypto'
 import type { PrismaClient } from '@prisma/client'
 import prisma from '@/config/db-config'
 import { canonicalContractJson } from '@/lib/catalog-contracts'
+import { validationNodeHash } from '@/lib/validation-review/approval'
+import type { ValidationArtifact } from '@/lib/plan-contract'
 import { ServiceError } from '@/services/shared/errors'
 import {
   validateValidationAstRuntimeInput,
@@ -16,6 +18,7 @@ export {
 
 const VALIDATION_AST_PUBLISH_PHASES = ['prepared', 'artifacts_written', 'projected', 'review_ready'] as const
 type Phase = (typeof VALIDATION_AST_PUBLISH_PHASES)[number]
+type PublicationClient = PrismaClient | import('@prisma/client').Prisma.TransactionClient
 const MAX_ARTIFACT_BYTES = 1024 * 1024
 const MAX_EXTENSIONS = 8
 const MAX_EXTENSION_ARTIFACT_BYTES = 256 * 1024
@@ -53,6 +56,84 @@ const immutableOperationHash = (value: Record<string, unknown>, extensionReviewH
       : {}),
     extensionReviewHashes: [...extensionReviewHashes].sort(),
   })
+
+function validationNodePublicationHash(input: {
+  planId: string
+  targetProjectId: string
+  validationId: string
+  contentHash: string
+  publishOperationId: string
+  operationHash: string
+  runtimeInputHash: string
+  projectionHash: string
+}) {
+  return operationDigest(input)
+}
+
+export async function ensureValidationNodePublications(
+  input: { operationId: string; validation: ValidationArtifact },
+  client: PublicationClient,
+) {
+  const operation = await client.validationAstPublishOperation.findUniqueOrThrow({
+    where: { id: input.operationId },
+    select: {
+      id: true,
+      planId: true,
+      targetProjectId: true,
+      operationHash: true,
+      runtimeInputHash: true,
+      projectionHash: true,
+      createdAt: true,
+      plan: { select: { targetProjectId: true } },
+    },
+  })
+  const runtimeInputHash = operation.runtimeInputHash
+  if (!runtimeInputHash || operation.plan.targetProjectId !== operation.targetProjectId)
+    throw new ServiceError('Validation publication ownership or runtime identity is invalid.', 'CONFLICT')
+  const publications = await Promise.all(
+    input.validation.validations.map(async node => {
+      const contentHash = validationNodeHash(node)
+      const publicationHash = validationNodePublicationHash({
+        planId: operation.planId,
+        targetProjectId: operation.targetProjectId,
+        validationId: node.id,
+        contentHash,
+        publishOperationId: operation.id,
+        operationHash: operation.operationHash,
+        runtimeInputHash,
+        projectionHash: operation.projectionHash,
+      })
+      const publication = await client.validationNodePublication.upsert({
+        where: { publishOperationId_validationId: { publishOperationId: operation.id, validationId: node.id } },
+        update: {},
+        create: {
+          planId: operation.planId,
+          targetProjectId: operation.targetProjectId,
+          validationId: node.id,
+          contentHash,
+          publishOperationId: operation.id,
+          operationHash: operation.operationHash,
+          runtimeInputHash,
+          projectionHash: operation.projectionHash,
+          publicationHash,
+          publishedAt: operation.createdAt,
+        },
+      })
+      if (
+        publication.planId !== operation.planId ||
+        publication.targetProjectId !== operation.targetProjectId ||
+        publication.contentHash !== contentHash ||
+        publication.operationHash !== operation.operationHash ||
+        publication.runtimeInputHash !== runtimeInputHash ||
+        publication.projectionHash !== operation.projectionHash ||
+        publication.publicationHash !== publicationHash
+      )
+        throw new ServiceError('Validation publication identity conflicts with immutable history.', 'CONFLICT')
+      return publication
+    }),
+  )
+  return publications.sort((left, right) => left.validationId.localeCompare(right.validationId))
+}
 
 function validateExtensionReview(review: {
   extensionId: string

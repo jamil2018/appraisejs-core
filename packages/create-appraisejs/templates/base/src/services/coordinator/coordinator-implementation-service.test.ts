@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto'
 import { promises as fs } from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
@@ -16,6 +17,7 @@ import { PlanArtifactRepository } from '@/lib/plans/artifact-repository'
 import { planStateHash } from '@/lib/plans/plan-hashes'
 import { syncPlans } from '@/lib/plans/plan-sync-service'
 import { hashFileContent } from '@/lib/validation-review/file-review'
+import { validationNodeHash } from '@/lib/validation-review/approval'
 import { appendPlanEvent, readPlanEvents, withPlanEventStreamLock } from '@/services/coordinator/coordinator-service'
 import {
   copyMigratedTestDatabase,
@@ -269,6 +271,72 @@ async function cleanupImplementationWorkspace() {
 afterEach(cleanupImplementationWorkspace)
 
 describe('implementation coordinator checkpoints', () => {
+  async function seedValidationPublication(
+    planId: string,
+    targetProjectId: string,
+    node: ValidationArtifact['validations'][number],
+  ) {
+    const provenance = node.astProvenance
+    if (provenance?.schemaVersion !== '2') throw new Error('Fixture node requires managed provenance.')
+    const projection = await client.planProjection.findUniqueOrThrow({ where: { planId } })
+    const target = await client.targetProject.findUniqueOrThrow({ where: { id: targetProjectId } })
+    const digest = (value: string) => `sha256:${createHash('sha256').update(value).digest('hex')}`
+    const operationHash = digest(`operation:${planId}:${provenance.publishOperationId}`)
+    const projectionHash = digest(`projection:${planId}:${provenance.publishOperationId}`)
+    await client.validationAstPublishOperation.upsert({
+      where: { id: provenance.publishOperationId },
+      update: {},
+      create: {
+        id: provenance.publishOperationId,
+        planId,
+        planProjectionId: projection.id,
+        targetProjectId,
+        targetFingerprint: target.fingerprint,
+        idempotencyKey: `fixture:${provenance.publishOperationId}`,
+        operationHash,
+        phase: 'review_ready',
+        expectedPlanHash: digest(`expected-plan:${planId}`),
+        expectedPlanArtifactHash: digest(`expected-plan-artifact:${planId}`),
+        expectedValidationHash: digest(`expected-validation:${planId}`),
+        expectedReviewHash: digest(`expected-review:${planId}`),
+        planHash: digest(`plan:${planId}`),
+        validationHash: digest(`validation:${planId}`),
+        reviewHash: digest(`review:${planId}`),
+        planContent: '{}',
+        validationContent: '{}',
+        reviewContent: '{}',
+        astId: `fixture-ast:${planId}:${node.id}`,
+        astHash: provenance.astHash,
+        contextHash: digest(`context:${planId}`),
+        previewHash: digest(`preview:${planId}`),
+        receiptHash: provenance.receiptHash,
+        projectionHash,
+        projectionJson: '{}',
+        validationProjectionJson: '{}',
+        runtimeInputHash: provenance.runtimeInputHash,
+        runtimeInputJson: '{}',
+      },
+    })
+    await client.validationNodePublication.upsert({
+      where: {
+        publishOperationId_validationId: { publishOperationId: provenance.publishOperationId, validationId: node.id },
+      },
+      update: {},
+      create: {
+        id: `publication:${planId}:${node.id}`,
+        planId,
+        targetProjectId,
+        validationId: node.id,
+        contentHash: validationNodeHash(node),
+        publishOperationId: provenance.publishOperationId,
+        operationHash,
+        runtimeInputHash: provenance.runtimeInputHash,
+        projectionHash,
+        publicationHash: digest(`publication:${planId}:${provenance.publishOperationId}:${validationNodeHash(node)}`),
+      },
+    })
+  }
+
   async function configureReviewedCapsule(
     planId: string,
     targetProjectId: string,
@@ -292,6 +360,7 @@ describe('implementation coordinator checkpoints', () => {
     const artifact = parseYamlArtifact('validation', stored.content) as ValidationArtifact
     artifact.validations[0]!.astProvenance = provenance
     await repository.compareAndWrite('validation', planId, stored.hash, serializeYamlArtifact('validation', artifact))
+    for (const node of artifact.validations) await seedValidationPublication(planId, targetProjectId, node)
   }
 
   function mockSuccessfulCapsuleStart() {
@@ -380,6 +449,49 @@ describe('implementation coordinator checkpoints', () => {
     ])
     expect(JSON.stringify(result)).not.toContain('/Users/secret')
     expect(JSON.stringify(result)).not.toContain('super-secret')
+  })
+
+  it('keeps manually recorded active required evidence in validating without a failure event', async () => {
+    const planId = 'manual-active-validation'
+    await writeArtifacts(
+      planId,
+      { lifecycle: 'in_progress' },
+      {
+        implementation: {
+          taskStates: { foundation: 'implemented', api: 'implemented', docs: 'implemented' },
+          approvedGroupIds: ['core', 'documentation'],
+          pausedTaskIds: [],
+          validationRuns: [],
+          commits: [],
+          reconciliationReceipts: [],
+          evidenceProtected: true,
+        },
+      },
+    )
+    await expect(
+      recordImplementationValidation(
+        {
+          planId,
+          run: {
+            id: 'active-core-run',
+            validationId: 'core-validation',
+            publicationId: `publication:${planId}:core-validation`,
+            taskIds: ['foundation', 'api'],
+            required: true,
+            status: 'running',
+            fresh: true,
+            commitHash: 'commit-active',
+            evidenceUrls: ['/reports/active-core-run'],
+            evidenceSource: 'managed',
+            assurance: 'full',
+          },
+        },
+        { projectDirectory: workspace, client },
+      ),
+    ).resolves.toMatchObject({ plan: { lifecycle: 'validating' } })
+    await expect(readPlanEvents({ planId }, client)).resolves.toEqual([
+      expect.objectContaining({ type: 'validation_evidence_reconciled' }),
+    ])
   })
 
   it('checks target readiness without consuming a managed TestRun', async () => {
@@ -519,6 +631,7 @@ describe('implementation coordinator checkpoints', () => {
       }
     })
     await repository.compareAndWrite('validation', planId, stored.hash, serializeYamlArtifact('validation', artifact))
+    for (const node of artifact.validations) await seedValidationPublication(planId, `${planId}-target`, node)
   }
 
   it('cancels earlier queued capsule rows when a later prepare fails', async () => {
@@ -639,6 +752,7 @@ describe('implementation coordinator checkpoints', () => {
           {
             id: 'core-run',
             validationId: 'core-validation',
+            publicationId: `publication:${planId}:core-validation`,
             taskIds: ['foundation', 'api'],
             required: true,
             status: 'passed',
@@ -653,6 +767,7 @@ describe('implementation coordinator checkpoints', () => {
           {
             id: 'docs-run',
             validationId: 'docs-validation',
+            publicationId: `publication:${planId}:docs-validation`,
             taskIds: ['docs'],
             required: true,
             status: 'passed',
@@ -680,6 +795,9 @@ describe('implementation coordinator checkpoints', () => {
       validation: { implementation: { taskStates: { foundation: 'verified' } } },
       receipt: { idempotencyKey: 'verify-foundation-1', verifiedTaskIds: ['foundation'] },
     })
+    await client.coordinatorOperationReceipt.deleteMany({
+      where: { operationName: 'implementation_validation_reconcile', idempotencyKey: 'verify-foundation-1' },
+    })
 
     await updateImplementationTask(
       { planId, taskId: 'api', status: 'verified' },
@@ -690,12 +808,16 @@ describe('implementation coordinator checkpoints', () => {
       { projectDirectory: workspace, client },
     )
 
-    const replay = await reconcileImplementationValidation(
+    const recovered = await reconcileImplementationValidation(
       { planId, runIds: [], verifyTaskIds: ['foundation'], idempotencyKey: 'verify-foundation-1' },
       { projectDirectory: workspace, client, now: new Date('2026-06-11T00:02:00.000Z') },
     )
-    expect(replay.receipt).toEqual(first.receipt)
-    expect(replay).toMatchObject({ plan: { lifecycle: 'validation_passed' }, readiness: { ready: true } })
+    expect(recovered).toMatchObject({ plan: { lifecycle: 'validation_passed' }, readiness: { ready: true } })
+    const replay = await reconcileImplementationValidation(
+      { planId, runIds: [], verifyTaskIds: ['foundation'], idempotencyKey: 'verify-foundation-1' },
+      { projectDirectory: workspace, client, now: new Date('2026-06-11T00:03:00.000Z') },
+    )
+    expect(replay).toEqual(recovered)
     await expect(readPlanEvents({ planId }, client)).resolves.toEqual([
       expect.objectContaining({ type: 'task_evidence_reconciled' }),
       expect.objectContaining({ type: 'task_updated' }),
@@ -809,6 +931,7 @@ describe('implementation coordinator checkpoints', () => {
         run: {
           id: 'run-core-old',
           validationId: 'core-validation',
+          publicationId: `publication:${planId}:core-validation`,
           taskIds: ['foundation', 'api'],
           required: true,
           status: 'passed',
@@ -946,21 +1069,35 @@ describe('implementation coordinator checkpoints', () => {
     expect(started).not.toHaveProperty('testRunInputs')
 
     const run = started.runs[0]!
-    await expect(
-      reconcileImplementationValidation(
-        {
-          planId,
-          runIds: [run.testRunId!],
-        },
-        { projectDirectory: workspace, client, now: new Date('2026-06-11T00:02:00.000Z') },
-      ),
-    ).resolves.toMatchObject({
-      plan: { lifecycle: 'failed_validation' },
-      readiness: {
-        ready: false,
-        blockers: [expect.stringContaining('core-validation'), expect.stringContaining('docs-validation')],
+    const pendingInput = {
+      planId,
+      runIds: [run.testRunId!],
+      idempotencyKey: 'pending-run-reconcile',
+    }
+    const pending = await reconcileImplementationValidation(pendingInput, {
+      projectDirectory: workspace,
+      client,
+      now: new Date('2026-06-11T00:02:00.000Z'),
+    })
+    expect(pending).toMatchObject({
+      status: 'pending_unchanged',
+      activeRunIds: [run.id],
+      pollAfterMs: 1_000,
+      nextAction: {
+        tool: 'implementation_validation_reconcile',
+        arguments: { planId, runIds: [run.id] },
       },
     })
+    await expect(
+      reconcileImplementationValidation(pendingInput, {
+        projectDirectory: workspace,
+        client,
+        now: new Date('2026-06-11T00:03:00.000Z'),
+      }),
+    ).resolves.toEqual(pending)
+    await expect(readPlanEvents({ planId }, client)).resolves.not.toEqual(
+      expect.arrayContaining([expect.objectContaining({ type: 'validation_failed' })]),
+    )
   })
 
   it('resumes feedback-paused tasks when their implementation group is re-approved', async () => {
@@ -1036,6 +1173,7 @@ describe('implementation coordinator checkpoints', () => {
         {
           id: 'run-core-final',
           validationId: 'core-validation',
+          publicationId: `publication:${planId}:core-validation`,
           taskIds: ['foundation', 'api'],
           required: true,
           status: 'passed',
@@ -1050,6 +1188,7 @@ describe('implementation coordinator checkpoints', () => {
         {
           id: 'run-docs-final',
           validationId: 'docs-validation',
+          publicationId: `publication:${planId}:docs-validation`,
           taskIds: ['docs'],
           required: true,
           status: 'passed',
@@ -1064,6 +1203,7 @@ describe('implementation coordinator checkpoints', () => {
         {
           id: 'run-optional-final',
           validationId: 'optional-validation',
+          publicationId: `publication:${planId}:optional-validation`,
           taskIds: ['docs'],
           required: false,
           status: 'failed',
@@ -1404,6 +1544,14 @@ describe('implementation coordinator checkpoints', () => {
       planId,
       lifecycle: 'plan_approved',
       healthy: true,
+      readiness: { ready: false, runState: 'not_started', blockers: [] },
+      blockers: [],
+      activeImplementationRunIds: [],
+      activeBaselineAttemptIds: [],
+      legalNextAction: {
+        tool: 'validation_ast_check',
+        reason: 'Prepare and review validation evidence before entering implementation.',
+      },
       issues: [],
       finalSignOffId: undefined,
       evidenceProtected: true,

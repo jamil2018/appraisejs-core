@@ -5,6 +5,7 @@ import path from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { canonicalContractJson } from '@/lib/catalog-contracts'
 import { validationArtifactSchema, type ValidationArtifact } from '@/lib/plan-contract'
+import { validationNodeHash } from '@/lib/validation-review/approval'
 import { compiledCustomExtensionSchema } from '@/lib/validation-ast/custom-extension-compiler'
 import { assertSafeGeneratedGherkin } from '@/lib/validation-ast'
 import {
@@ -515,6 +516,19 @@ export class RuntimeCapsuleMaterializer {
       })
       assertMaterializationOwnership(operation, testRun)
       const node = reviewedNodeFor(operation, reviewedValidation)
+      const publication = await this.prisma.validationNodePublication.findFirst({
+        where: {
+          planId: operation.planId,
+          targetProjectId: operation.targetProjectId,
+          validationId: node.id,
+          contentHash: validationNodeHash(node),
+          publishOperationId: operation.id,
+          operationHash: operation.operationHash,
+          runtimeInputHash: operation.runtimeInputHash!,
+          projectionHash: operation.projectionHash,
+        },
+      })
+      if (!publication) throw new Error('Runtime capsule requires an exact immutable validation node publication.')
       const { built, manifest } = await buildCapsuleManifest(
         { ...operation, runtimeInputHash: operation.runtimeInputHash! },
         testRun,
@@ -554,6 +568,7 @@ export class RuntimeCapsuleMaterializer {
           testRunId: testRun.id,
           runId: testRun.runId,
           validationHash: operation.validationHash,
+          publicationId: publication.id,
           manifest,
           assertLeaseOwned: assertOwned,
         })

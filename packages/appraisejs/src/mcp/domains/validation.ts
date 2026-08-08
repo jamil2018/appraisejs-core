@@ -29,10 +29,23 @@ export function registerValidationOperations(context: McpRegistryContext): void 
     {
       description:
         'Transactionally propose target-bound managed-validation resources and receive stable IDs plus a refreshed context hash.',
-      inputSchema: { planId: z.string(), proposal: z.unknown(), responseMode: responseModeSchema },
+      inputSchema: {
+        planId: z.string(),
+        proposal: z.unknown(),
+        idempotencyKey: z.string().min(1),
+        responseMode: responseModeSchema,
+      },
     },
-    async ({ planId, proposal, responseMode }) =>
-      text(applyAuthoringResponseMode(await api.proposeValidationResources(planId, proposal), responseMode)),
+    async ({ planId, proposal, idempotencyKey, responseMode }) =>
+      text(
+        applyAuthoringResponseMode(
+          await api.request(`plans/${planId}/validations/resources/propose`, {
+            method: 'POST',
+            body: JSON.stringify({ proposal, idempotencyKey }),
+          }),
+          responseMode,
+        ),
+      ),
   )
 
   server.registerTool(
@@ -109,12 +122,16 @@ export function registerValidationOperations(context: McpRegistryContext): void 
         planId: z.string(),
         submission: z.unknown(),
         expectedReceiptHash: z.string().startsWith('sha256:'),
+        idempotencyKey: z.string().min(1),
         responseMode: responseModeSchema,
       },
     },
-    async ({ planId, submission, expectedReceiptHash, responseMode }) => {
+    async ({ planId, submission, expectedReceiptHash, idempotencyKey, responseMode }) => {
       const [result, snapshot] = await Promise.all([
-        api.compileValidationAst(planId, submission as ValidationAstSubmission, expectedReceiptHash),
+        api.request(`plans/${planId}/validations/ast/compile`, {
+          method: 'POST',
+          body: JSON.stringify({ submission, expectedReceiptHash, idempotencyKey }),
+        }),
         api.readPlan(planId) as Promise<PlanSnapshot>,
       ])
       const browserUrl = validationReviewBrowserUrl(linkFromSnapshot(snapshot.links, 'browser'))
@@ -266,7 +283,13 @@ export function registerValidationOperations(context: McpRegistryContext): void 
     {
       description:
         'Explicit user/Appraise decision relay: approve one flagged changed file for its exact current content hash.',
-      inputSchema: { planId: z.string(), path: z.string(), contentHash: z.string(), approvedBy: z.string() },
+      inputSchema: {
+        planId: z.string(),
+        path: z.string(),
+        contentHash: z.string(),
+        approvedBy: z.string(),
+        idempotencyKey: z.string().min(1),
+      },
     },
     async ({ planId, ...body }) =>
       text(
@@ -296,6 +319,7 @@ export function registerValidationOperations(context: McpRegistryContext): void 
         actor: z.string().optional(),
         affectedValidationIds: z.array(z.string()).optional(),
         affectedFilePaths: z.array(z.string()).optional(),
+        idempotencyKey: z.string().min(1),
       },
     },
     async ({ planId, ...body }) =>
@@ -312,13 +336,13 @@ export function registerValidationOperations(context: McpRegistryContext): void 
     {
       description:
         'Recovery-only reconciliation for a review_ready validation after a crash. Normal validation decisions return the refreshed review binding atomically.',
-      inputSchema: { planId: z.string() },
+      inputSchema: { planId: z.string(), idempotencyKey: z.string().min(1) },
     },
-    async ({ planId }) =>
+    async ({ planId, idempotencyKey }) =>
       text(
         await api.request(`plans/${planId}/validations/reconcile`, {
           method: 'POST',
-          body: '{}',
+          body: JSON.stringify({ idempotencyKey }),
         }),
       ),
   )
@@ -333,6 +357,7 @@ export function registerValidationOperations(context: McpRegistryContext): void 
         operationHash: z.string().startsWith('sha256:').optional(),
         reviewStateHash: z.string().startsWith('sha256:').optional(),
         extensionArtifactHashes: z.array(z.string().startsWith('sha256:')).optional(),
+        idempotencyKey: z.string().min(1),
       },
     },
     async ({ planId, ...binding }) =>

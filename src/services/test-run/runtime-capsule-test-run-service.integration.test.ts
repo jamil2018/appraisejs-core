@@ -69,6 +69,7 @@ let service: RuntimeCapsuleTestRunService
 let projectId: string
 let environmentId: string
 let operationId: string
+let publicationId: string
 
 beforeAll(async () => {
   ;({ workspace, client } = await createPlanRuntimeTestWorkspace('appraise-capsule-lifecycle-', 'appraise.db'))
@@ -168,6 +169,21 @@ beforeAll(async () => {
       runtimeInputJson: '{}',
     },
   })
+  publicationId = (
+    await client.validationNodePublication.create({
+      data: {
+        planId,
+        targetProjectId: projectId,
+        validationId,
+        contentHash: hash('4'),
+        publishOperationId: operationId,
+        operationHash: hash('7'),
+        runtimeInputHash: hash('6'),
+        projectionHash: hash('0'),
+        publicationHash: hash('1'),
+      },
+    })
+  ).id
   const appModule = await client.module.create({ data: { id: 'module-one', name: 'Module' } })
   const testCase = await client.testCase.create({
     data: { id: 'case-one', title: 'Case', description: 'Case' },
@@ -387,6 +403,7 @@ async function seededAttempt(state: 'STARTING' | 'RUNNING' | 'COMPLETED' = 'RUNN
       targetProjectId: projectId,
       testRunId: run.id,
       validationHash: hash('4'),
+      publicationId,
       capsuleHash: hash('a'),
       manifestHash: hash('b'),
       manifestJson,
@@ -432,6 +449,7 @@ async function createReadyCapsule(name: string) {
       targetProjectId: projectId,
       testRunId: prepared.id,
       validationHash: manifest.validationHash,
+      publicationId,
       capsuleHash: hash('a'),
       manifestHash: hash('b'),
       manifestJson: canonicalRuntimeCapsuleJson(manifest),
@@ -558,6 +576,11 @@ describe('RuntimeCapsuleTestRunService SQLite lifecycle races', () => {
     await expect(service.start({ ...input, name: drifted.run.name, testRunDbId: drifted.run.id })).rejects.toThrow(
       /identity differs/,
     )
+    await client.runtimeCapsule.update({
+      where: { testRunId: terminal.run.id },
+      data: { publicationId: null },
+    })
+    await expect(service.start(input)).rejects.toThrow(/exact immutable publication binding/)
     await expect(client.runtimeCapsuleExecutionAttempt.count({ where: { testRunId: terminal.run.id } })).resolves.toBe(
       1,
     )

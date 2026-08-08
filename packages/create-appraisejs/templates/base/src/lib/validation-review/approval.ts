@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto'
 
+import { canonicalContractJson } from '@/lib/catalog-contracts'
 import type { ReviewArtifact, ValidationArtifact } from '@/lib/plan-contract'
 
 export type ValidationReadiness = {
@@ -8,7 +9,7 @@ export type ValidationReadiness = {
 }
 
 function hash(value: unknown): string {
-  return `sha256:${createHash('sha256').update(JSON.stringify(value)).digest('hex')}`
+  return `sha256:${createHash('sha256').update(canonicalContractJson(value)).digest('hex')}`
 }
 
 export function validationNodeHash(node: ValidationArtifact['validations'][number]): string {

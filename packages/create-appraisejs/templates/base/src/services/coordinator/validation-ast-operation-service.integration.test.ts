@@ -13,6 +13,7 @@ import { basicValidationAstSubmission, sqliteTestClient } from '@/test/validatio
 import {
   parseYamlArtifact,
   serializeYamlArtifact,
+  type PlanArtifact,
   type ReviewArtifact,
   type ValidationArtifact,
 } from '@/lib/plan-contract'
@@ -424,7 +425,7 @@ describe('Validation AST SQLite preview to compile', () => {
         planId: 'plan-one',
         validationId: 'meditation-happy-path',
         decision: 'approved',
-        decidedBy: 'different-reviewer-on-retry',
+        decidedBy: 'reviewer',
         operationHash: published.operationHash,
         extensionArtifactHashes: [],
       },
@@ -519,7 +520,9 @@ describe('Validation AST SQLite preview to compile', () => {
       },
     })
     await client.planEvent.update({ where: { id: firstDecisionEvent.id }, data: { validationId: 'navigation' } })
-    await expect(submitValidationReview('plan-one', exactReviewBinding)).rejects.toMatchObject({ code: 'CONFLICT' })
+    await expect(submitValidationReview('plan-one', exactReviewBinding)).resolves.toMatchObject({
+      plan: { lifecycle: 'validations_approved' },
+    })
     await client.planEvent.update({
       where: { id: firstDecisionEvent.id },
       data: { validationId: firstDecision.validationId },
@@ -560,10 +563,18 @@ describe('Validation AST SQLite preview to compile', () => {
     await expect(
       auditManagedValidationIntegrity('plan-one', { client, projectDirectory: workspace }),
     ).resolves.toMatchObject({
-      status: 'green',
+      status: 'not_applicable',
       mismatches: [],
-      nextRepairAction: undefined,
     })
+    const currentPlan = await repository.read('plan', 'plan-one')
+    const awaitingReviewPlan = parseYamlArtifact('plan', currentPlan.content) as PlanArtifact
+    await repository.compareAndWrite(
+      'plan',
+      'plan-one',
+      currentPlan.hash,
+      serializeYamlArtifact('plan', { ...awaitingReviewPlan, lifecycle: 'awaiting_validation_review' }),
+    )
+    await syncPlans({ projectDirectory: workspace, client })
     const currentValidation = await repository.read('validation', 'plan-one')
     const mismatchedValidation = parseYamlArtifact('validation', currentValidation.content) as ValidationArtifact
     mismatchedValidation.validationDecisions[0]!.decidedBy = 'tampered-reviewer'

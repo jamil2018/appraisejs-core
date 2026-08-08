@@ -66,7 +66,6 @@ function integrityMismatches(input: {
   expectedValidationProjection?: string | null
   reviewStateHash?: string
   expectedReviewStateHash?: string | null
-  hasEvent: boolean
 }) {
   const checks: Array<[string, boolean]> = [
     ['plan_artifact_lifecycle', input.planLifecycle === 'awaiting_validation_review'],
@@ -77,7 +76,6 @@ function integrityMismatches(input: {
     ['plan_artifact_hash', input.planHash === input.expectedPlanHash],
     ['validation_compile_projection_hash', input.validationProjection === input.expectedValidationProjection],
     ['validation_review_state_receipt', input.reviewStateHash === input.expectedReviewStateHash],
-    ['validation_review_ready_event', input.hasEvent],
   ]
   return checks.filter(([, matches]) => !matches).map(([name]) => name)
 }
@@ -173,7 +171,6 @@ export async function auditManagedValidationIntegrity(
           }).hash
         : undefined,
     expectedReviewStateHash: operation?.reviewStateHash,
-    hasEvent: Boolean(event),
   })
   const repair = repairGuidance(operation?.phase, mismatches.length > 0)
   return {

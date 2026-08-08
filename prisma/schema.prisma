@@ -479,6 +479,9 @@ model PlanProjection {
   providerRuns                   ProviderWorkflowRun[]
   baselineAttempts               BaselineAttempt[]
   validationAstPublishOperations ValidationAstPublishOperation[]
+  validationNodePublications     ValidationNodePublication[]
+  coordinatorFailureReceipts     CoordinatorFailureReceipt[]
+  coordinatorOperationReceipts   CoordinatorOperationReceipt[]
   operationMetrics               PlanOperationMetric[]
   targetProjectId                String?
   targetProject                  TargetProject?                  @relation(fields: [targetProjectId], references: [id], onDelete: Restrict)
@@ -500,13 +503,16 @@ model BaselineAttempt {
   environment        String
   testRunId          String
   evidenceJson       String
+  publicationId      String?
   createdAt          DateTime
   recordedAt         DateTime               @default(now())
   plan               PlanProjection         @relation(fields: [planProjectionId], references: [id], onDelete: Cascade)
   events             BaselineAttemptEvent[]
+  publication        ValidationNodePublication? @relation(fields: [publicationId], references: [id], onDelete: Restrict)
 
   @@index([planProjectionId, createdAt])
   @@index([testRunId])
+  @@index([publicationId])
 }
 
 model BaselineAttemptEvent {
@@ -565,6 +571,7 @@ model TargetProject {
   qualityPlans                   QualityPlan[]
   assessments                    Assessment[]
   evidenceReceipts               EvidenceReceipt[]
+  validationNodePublications     ValidationNodePublication[]
 
   @@index([displayName])
   @@index([fingerprint])
@@ -604,6 +611,11 @@ model PlanOperationMetric {
   requestBytes     Int
   responseBytes    Int
   recoveryCost     Int            @default(0)
+  estimatedTokens  Int            @default(0)
+  responseMode     String         @default("summary")
+  retryCause       String?
+  classification   String?
+  operationOutcome String?
   recordedAt       DateTime       @default(now())
   plan             PlanProjection @relation(fields: [planProjectionId], references: [id], onDelete: Cascade)
 
@@ -751,6 +763,7 @@ model RuntimeCapsule {
   targetProjectId  String
   testRunId        String                          @unique
   validationHash   String
+  publicationId    String?
   capsuleHash      String
   manifestHash     String
   manifestJson     String
@@ -763,11 +776,13 @@ model RuntimeCapsule {
   testRun          TestRun                         @relation(fields: [testRunId], references: [id], onDelete: Restrict)
   blobReferences   RuntimeCapsuleBlobReference[]
   executionAttempt RuntimeCapsuleExecutionAttempt?
+  publication      ValidationNodePublication?      @relation(fields: [publicationId], references: [id], onDelete: Restrict)
 
   @@unique([targetProjectId, validationHash, testRunId])
   @@unique([targetProjectId, storagePath])
   @@index([targetProjectId, validationHash])
   @@index([integrityState])
+  @@index([publicationId])
 }
 
 model RuntimeCapsuleExecutionAttempt {
@@ -1015,6 +1030,7 @@ model PlanEvent {
   planProjectionId   String
   publishOperationId String?
   validationId       String?
+  operationEventKey  String?                        @unique
   sequence           Int
   type               String
   payloadJson        String?
@@ -1034,6 +1050,89 @@ model PlanEvent {
   @@unique([publishOperationId, validationId])
   @@index([publishOperationId, type])
   @@index([planProjectionId, acknowledgedAt, sequence])
+}
+
+model ValidationNodePublication {
+  id                 String                        @id @default(uuid())
+  planId             String
+  targetProjectId    String
+  validationId       String
+  contentHash        String
+  publishOperationId String
+  operationHash      String
+  runtimeInputHash   String
+  projectionHash     String
+  publicationHash    String                        @unique
+  publishedAt        DateTime                      @default(now())
+  plan               PlanProjection                @relation(fields: [planId], references: [planId], onDelete: Restrict)
+  targetProject      TargetProject                 @relation(fields: [targetProjectId], references: [id], onDelete: Restrict)
+  publishOperation   ValidationAstPublishOperation @relation(fields: [publishOperationId], references: [id], onDelete: Restrict)
+  decisionReceipt    ValidationDecisionReceipt?
+  runtimeCapsules    RuntimeCapsule[]
+  baselineAttempts   BaselineAttempt[]
+
+  @@unique([publishOperationId, validationId])
+  @@unique([planId, targetProjectId, validationId, contentHash, publishOperationId, operationHash, runtimeInputHash, projectionHash])
+  @@index([planId, validationId, publishedAt])
+  @@index([targetProjectId, validationId, publishedAt])
+}
+
+model ValidationDecisionReceipt {
+  id             String                    @id @default(uuid())
+  publicationId  String                    @unique
+  decision       String
+  decidedBy      String
+  decidedAt      DateTime
+  requestHash    String
+  idempotencyKey String
+  receiptHash    String                    @unique
+  publication    ValidationNodePublication @relation(fields: [publicationId], references: [id], onDelete: Restrict)
+
+  @@unique([publicationId, idempotencyKey])
+}
+
+model CoordinatorFailureReceipt {
+  id                  String          @id @default(uuid())
+  schemaVersion       String
+  errorId             String          @unique
+  occurredAt          DateTime        @default(now())
+  classification      String
+  code                String
+  httpStatus          Int?
+  operationName       String
+  planId              String?
+  idempotencyKeyHash  String?
+  phase               String?
+  operationOutcome    String?
+  retryStrategy       String?
+  scrubbedDetailsJson String
+  receiptHash         String          @unique
+  plan                PlanProjection? @relation(fields: [planId], references: [planId], onDelete: Restrict)
+
+  @@index([planId, occurredAt])
+  @@index([operationName, occurredAt])
+}
+
+model CoordinatorOperationReceipt {
+  id               String          @id @default(uuid())
+  operationName    String
+  scopeKey         String
+  idempotencyKey   String
+  requestHash      String
+  requestJson      String
+  resultHash       String?
+  resultJson       String?
+  phase            String
+  operationOutcome String
+  ownerToken       String          @default(uuid())
+  startedAt        DateTime        @default(now())
+  completedAt      DateTime?
+  planId           String?
+  plan             PlanProjection? @relation(fields: [planId], references: [planId], onDelete: Restrict)
+
+  @@unique([operationName, scopeKey, idempotencyKey])
+  @@index([planId, startedAt])
+  @@index([operationName, startedAt])
 }
 
 model AppraiseProjectIdentity {
@@ -1143,6 +1242,7 @@ model ValidationAstPublishOperation {
   plan                     PlanProjection              @relation(fields: [planProjectionId], references: [id], onDelete: Restrict)
   targetProject            TargetProject               @relation(fields: [targetProjectId], references: [id], onDelete: Restrict)
   repositoryExportJobs     RepositoryExportJob[]
+  validationNodePublications ValidationNodePublication[]
 
   @@unique([planId, idempotencyKey])
   @@index([phase, updatedAt])

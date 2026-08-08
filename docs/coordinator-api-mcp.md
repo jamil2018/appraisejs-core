@@ -15,10 +15,10 @@ and do not register directly.
 - Request bodies are limited to 1 MiB.
 - MCP supports stdio and Streamable HTTP. Stdout is reserved for stdio MCP protocol traffic; diagnostics go to stderr.
 - MCP failures are returned to the MCP client and never invoke a CLI fallback.
-- Every coordinator-backed MCP tool preserves the bounded public error envelope, including status, recovery guidance,
-  and structured details such as conflict codes and exact retry inputs. Unknown internal errors remain private.
-- A coordinator is bound to one canonical project. A different project fingerprint returns `project-mismatch`
-  with the requested and server fingerprints; an invalid token for the matching project remains `UNAUTHORIZED`.
+- Every coordinator-backed MCP tool preserves the exact `appraise.error/v1` envelope. Unknown internal errors remain
+  private; JSON-RPC framing may add transport fields but must embed this same envelope for coordinator failures.
+- A coordinator is bound to one canonical project. A different project fingerprint and invalid token are both bounded
+  `authorization_failure` responses; neither exposes project fingerprints or canonical server paths.
 - Local diagnostic and ownership responses may include the canonical project path. Tokens are never returned.
 
 ## Diagnostics and Recovery
@@ -31,6 +31,43 @@ actual probe produced transport evidence.
 After correcting identity, endpoint, or project binding, restart or reconnect the MCP client so tool discovery uses
 fresh credentials. Bootstrap failures print the diagnostic category and the `appraisejs doctor --json` recovery
 command to stderr.
+
+## Public Error Contract
+
+HTTP failures, MCP tool errors, CLI JSON errors, and client exceptions use exactly this strict envelope:
+
+```json
+{
+  "schema": "appraise.error/v1",
+  "errorId": "UUID",
+  "occurredAt": "ISO-8601 timestamp",
+  "classification": "request_invalid | authorization_failure | resource_missing | state_conflict | infrastructure_failure | appraise_authoring_defect | appraise_runtime_defect",
+  "code": "stable error code",
+  "message": "bounded public text",
+  "httpStatus": 409,
+  "operation": { "name": "canonical operation path", "planId": "optional", "idempotencyKey": "optional" },
+  "operationOutcome": "not_started | not_committed | committed | unknown",
+  "targetOutcome": "not_evaluated",
+  "retry": {
+    "safe": false,
+    "strategy": "repair_input_then_retry | wait_then_retry | read_state_then_retry | repair_appraise_then_resume | do_not_retry",
+    "nextAction": { "tool": "one legal tool", "arguments": {}, "reason": "bounded reason" }
+  },
+  "details": { "optional": "allowlisted bounded values only" }
+}
+```
+
+There is no parser or compatibility window for `{ error, code, path, recovery }`. Client-side transport failures may
+emit the envelope but never claim a server receipt. Server-generated failures persist a scrubbed
+`CoordinatorFailureReceipt`, keyed by `errorId`, with an allowlisted details JSON payload, an idempotency-key hash,
+and a deterministic receipt hash. Receipt-persistence failure does not change or leak through the public failure.
+
+Mutating coordinator MCP and package-client operations require a caller-supplied `idempotencyKey` where they start,
+publish, resume, reconcile, decide, or complete managed lifecycle work. The public envelope may return the caller's
+key for exact request correlation; persisted failure receipts retain only its SHA-256 hash.
+Each `CoordinatorOperationReceipt` also carries a private owner token. Recovery rotates that token through a
+compare-and-swap takeover, terminal writes require the current token, and committed replays return the exact stored
+success DTO rather than recomputing state or emitting duplicate events.
 
 Online CLI plan creation accepts files inside `--cwd` after resolving both paths through `realpath`. External,
 traversal, and symlink-resolved external files are blocked before an API request. Use
@@ -298,10 +335,11 @@ conflict. Re-read context and preview rather than retrying with an old receipt. 
 resumes the same operation; changed inputs require a new preview. Recovery advances only through adjacent prepared,
 artifacts-written, projected, and review-ready phases. It never executes generated code or bypasses validation review.
 After `review_ready`, continue through the ordinary Appraise-owned validation review gate.
-One publication may contain multiple validation nodes. Node decisions are idempotent per publication and validation
-identity, so approving one node does not consume or block the decision slot for another node in the same publication.
-Singleton publication events such as compile and review readiness remain application-idempotent by publication and
-event type.
+One publish operation may contain multiple validation nodes. Each node receives an immutable
+`ValidationNodePublication`, and each decision is an immutable `ValidationDecisionReceipt` keyed to that exact
+publication. Exact concurrent replays return the stored receipt; a different request for the same publication is a
+state conflict. `PlanEvent` records the resulting audit trail but is never read as decision or publication authority.
+Singleton publication events use a database-unique operation event key.
 Remark-thread transitions and final sign-off are review workflow bookkeeping rather than compiled validation content;
 resolving an addressed remark therefore does not invalidate the publication or its validation-review state receipt.
 Plan approvals remain bound because they authorize the plan revision used by compilation.
@@ -443,7 +481,10 @@ Lifecycle and diagnostic tools support `summary`, `blockersOnly`, `evidenceOnly`
 mutations return lifecycle delta, critical IDs and hashes, counts, links, blockers, cursor state, and exactly one legal
 next action. Contract tests enforce initial ceilings of 1,000 estimated tokens for diagnostics, 2,000 for plan creation,
 300 for unchanged waits, and 1,500 for validation or baseline mutations. Compact modes never omit recovery IDs or
-actions; full artifacts remain behind content-addressed reads.
+actions; full artifacts remain behind content-addressed reads. Lifecycle responses expose `responseProjection` with
+the effective mode, every omitted top-level field in `truncatedFields`, and bounded `appraise://` resource links for
+retrieval. Operation telemetry records response bytes/tokens, mode, retry cause, error classification, operation
+outcome, and recovery cost.
 
 With AppraiseJS running on port 3000:
 

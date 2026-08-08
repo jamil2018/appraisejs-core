@@ -175,13 +175,23 @@ describe('Validation AST publish recovery', () => {
       return { testCases: 1 } as never
     })
     await expect(
-      resumeValidationAstPublish('op', { client, projectDirectory: workspace, crashAfter: 'after_artifacts' }),
+      resumeValidationAstPublish('op', {
+        client: client as never,
+        projectDirectory: workspace,
+        crashAfter: 'after_artifacts',
+      }),
     ).rejects.toThrow('injected-after-artifacts')
     await expect(
-      resumeValidationAstPublish('op', { client, projectDirectory: workspace, crashAfter: 'after_projection' }),
+      resumeValidationAstPublish('op', {
+        client: client as never,
+        projectDirectory: workspace,
+        crashAfter: 'after_projection',
+      }),
     ).rejects.toThrow('injected-after-projection')
     operation.plan.lifecycle = 'validation_changes_requested'
-    await expect(resumeValidationAstPublish('op', { client, projectDirectory: workspace })).resolves.toMatchObject({
+    await expect(
+      resumeValidationAstPublish('op', { client: client as never, projectDirectory: workspace }),
+    ).resolves.toMatchObject({
       phase: 'review_ready',
     })
     expect(events.filter(event => event.type === 'validation_review_ready')).toHaveLength(1)

@@ -1,4 +1,4 @@
-import { randomUUID } from 'node:crypto'
+import { createHash, randomUUID } from 'node:crypto'
 
 import type { Prisma, PrismaClient } from '@prisma/client'
 
@@ -11,6 +11,7 @@ import {
   type ValidationArtifact,
 } from '@/lib/plan-contract'
 import { PlanArtifactRepository } from '@/lib/plans/artifact-repository'
+import { canonicalContractJson } from '@/lib/catalog-contracts'
 import { findProjectRoot } from '@/lib/plans/project-root'
 import { assessValidationReadiness, fileReviewHash, validationNodeHash } from '@/lib/validation-review/approval'
 import { syncPlans } from '@/lib/plans/plan-sync-service'
@@ -28,18 +29,8 @@ type Options = {
 }
 type ValidationFeedbackScope = 'test_artifact' | 'product_scope'
 
-function decisionEventIdentity(event: { validationId: string | null; payloadJson: string | null }) {
-  if (!event.payloadJson) return null
-  const evidence = JSON.parse(event.payloadJson)
-  return [
-    event.validationId,
-    evidence.validationId,
-    evidence.decision,
-    evidence.contentHash,
-    evidence.decidedBy,
-    evidence.decidedAt,
-  ]
-}
+const requestHash = (value: unknown) =>
+  `sha256:${createHash('sha256').update(canonicalContractJson(value)).digest('hex')}`
 
 async function readArtifacts(planId: string, projectDirectory?: string, client: PrismaClient = prisma) {
   const projectRoot = await findProjectRoot(projectDirectory)
@@ -79,6 +70,24 @@ function findCurrentAstPublishOperation(planId: string, client: PrismaClient) {
     where: { planId, phase: 'review_ready' },
     orderBy: { createdAt: 'desc' },
     include: { extensionReviews: true },
+  })
+}
+
+function findCurrentValidationPublication(
+  planId: string,
+  validationId: string,
+  contentHash: string,
+  client: PrismaClient,
+) {
+  return client.validationNodePublication.findFirst({
+    where: {
+      planId,
+      validationId,
+      contentHash,
+      publishOperation: { phase: 'review_ready' },
+    },
+    orderBy: { publishedAt: 'desc' },
+    include: { publishOperation: { include: { extensionReviews: true } }, decisionReceipt: true },
   })
 }
 
@@ -256,47 +265,103 @@ type ValidationDecision = {
   decidedAt: string
 }
 
+// Receipt creation and its audit event deliberately share one transaction boundary.
+// fallow-ignore-next-line complexity
 async function recordAstValidationDecision(
-  input: { planId: string; operationHash?: string; extensionArtifactHashes?: string[] },
-  operationId: string,
+  input: { planId: string; operationHash?: string; extensionArtifactHashes?: string[]; idempotencyKey?: string },
+  publicationId: string,
   decision: ValidationDecision,
   transaction: Prisma.TransactionClient,
 ) {
-  const current = await transaction.validationAstPublishOperation.findUniqueOrThrow({
-    where: { id: operationId },
-    include: { extensionReviews: true },
+  const publication = await transaction.validationNodePublication.findUniqueOrThrow({
+    where: { id: publicationId },
+    include: { publishOperation: { include: { extensionReviews: true } }, decisionReceipt: true },
   })
+  const current = publication.publishOperation
   const expectedHashes = current.extensionReviews.map(item => item.artifactHash).sort()
   const suppliedHashes = [...(input.extensionArtifactHashes ?? [])].sort()
   if (
     current.phase !== 'review_ready' ||
+    publication.planId !== input.planId ||
+    publication.validationId !== decision.validationId ||
+    publication.contentHash !== decision.contentHash ||
     current.operationHash !== input.operationHash ||
     JSON.stringify(expectedHashes) !== JSON.stringify(suppliedHashes)
   )
     throw new ServiceError('Validation decision review evidence changed.', 'CONFLICT')
-  const existing = await transaction.planEvent.findUnique({
-    where: {
-      publishOperationId_validationId: { publishOperationId: current.id, validationId: decision.validationId },
-    },
+  const semanticRequestHash = requestHash({
+    publicationHash: publication.publicationHash,
+    decision: decision.decision,
+    decidedBy: decision.decidedBy,
   })
-  if (existing?.payloadJson) return JSON.parse(existing.payloadJson) as ValidationDecision
+  const idempotencyKey = input.idempotencyKey ?? `validation-decision:${semanticRequestHash}`
+  const existing = publication.decisionReceipt
+  if (existing) {
+    if (existing.requestHash !== semanticRequestHash || existing.idempotencyKey !== idempotencyKey)
+      throw new ServiceError('Validation publication already has a conflicting immutable decision.', 'CONFLICT')
+    return {
+      ...existing,
+      validationId: publication.validationId,
+      contentHash: publication.contentHash,
+      operationHash: current.operationHash,
+    }
+  }
   const plan = await transaction.planProjection.findUniqueOrThrow({ where: { planId: input.planId } })
   const latest = await transaction.planEvent.findFirst({
     where: { planProjectionId: plan.id },
     orderBy: { sequence: 'desc' },
   })
-  const payload = { ...decision, operationHash: current.operationHash, extensionArtifactHashes: suppliedHashes }
+  const receiptHash = requestHash({
+    publicationHash: publication.publicationHash,
+    requestHash: semanticRequestHash,
+    decision: decision.decision,
+    decidedBy: decision.decidedBy,
+    decidedAt: decision.decidedAt,
+  })
+  let receipt
+  try {
+    receipt = await transaction.validationDecisionReceipt.create({
+      data: {
+        publicationId: publication.id,
+        decision: decision.decision,
+        decidedBy: decision.decidedBy,
+        decidedAt: new Date(decision.decidedAt),
+        requestHash: semanticRequestHash,
+        idempotencyKey,
+        receiptHash,
+      },
+    })
+  } catch (error) {
+    const winner = await transaction.validationDecisionReceipt.findUnique({ where: { publicationId: publication.id } })
+    if (winner?.requestHash === semanticRequestHash && winner.idempotencyKey === idempotencyKey) receipt = winner
+    else throw error
+  }
+  const payload = {
+    ...decision,
+    publicationId: publication.id,
+    publicationHash: publication.publicationHash,
+    decisionReceiptId: receipt.id,
+    receiptHash: receipt.receiptHash,
+    operationHash: current.operationHash,
+    extensionArtifactHashes: suppliedHashes,
+  }
   await transaction.planEvent.create({
     data: {
       planProjectionId: plan.id,
       publishOperationId: current.id,
       validationId: decision.validationId,
+      operationEventKey: `validation_node_decided:${receipt.id}`,
       sequence: (latest?.sequence ?? 0) + 1,
       type: 'validation_node_decided',
       payloadJson: JSON.stringify(payload),
     },
   })
-  return payload
+  return {
+    ...receipt,
+    validationId: publication.validationId,
+    contentHash: publication.contentHash,
+    operationHash: current.operationHash,
+  }
 }
 
 export async function decideValidationNode(
@@ -307,6 +372,7 @@ export async function decideValidationNode(
     decidedBy: string
     operationHash?: string
     extensionArtifactHashes?: string[]
+    idempotencyKey?: string
   },
   options: Options = {},
 ) {
@@ -321,14 +387,14 @@ export async function decideValidationNode(
       'Managed validation decisions require an exact reviewed managed Validation AST publication. Use validation_ast_check, validation_ast_preview, and validation_ast_compile.',
       'CONFLICT',
     )
-  const publishOperation = await findCurrentAstPublishOperation(input.planId, client)
-  if (!publishOperation)
+  const publication = await findCurrentValidationPublication(input.planId, node.id, validationNodeHash(node), client)
+  if (!publication)
     throw new ServiceError('The exact reviewed managed Validation AST publish operation was not found.', 'CONFLICT')
   {
-    const expectedExtensions = publishOperation.extensionReviews.map(item => item.artifactHash).sort()
+    const expectedExtensions = publication.publishOperation.extensionReviews.map(item => item.artifactHash).sort()
     const suppliedExtensions = [...(input.extensionArtifactHashes ?? [])].sort()
     if (
-      input.operationHash !== publishOperation.operationHash ||
+      input.operationHash !== publication.operationHash ||
       JSON.stringify(suppliedExtensions) !== JSON.stringify(expectedExtensions)
     )
       throw new ServiceError('Validation decision is not bound to the current AST review evidence.', 'CONFLICT')
@@ -343,16 +409,16 @@ export async function decideValidationNode(
     decidedBy: input.decidedBy,
     decidedAt: new Date().toISOString(),
   }
-  if (publishOperation) {
+  {
     const evidence = await client.$transaction(transaction =>
-      recordAstValidationDecision(input, publishOperation.id, decision, transaction),
+      recordAstValidationDecision(input, publication.id, decision, transaction),
     )
     decision = {
       validationId: evidence.validationId,
-      decision: evidence.decision,
+      decision: evidence.decision as ValidationDecision['decision'],
       contentHash: evidence.contentHash,
       decidedBy: evidence.decidedBy,
-      decidedAt: evidence.decidedAt,
+      decidedAt: evidence.decidedAt.toISOString(),
     }
   }
   const next = {
@@ -376,10 +442,10 @@ export async function decideValidationNode(
   return {
     ...decision,
     reviewBinding: {
-      operationId: publishOperation.id,
-      operationHash: publishOperation.operationHash,
+      operationId: publication.publishOperationId,
+      operationHash: publication.operationHash,
       reviewStateHash: reviewState.reviewStateHash,
-      extensionArtifactHashes: publishOperation.extensionReviews.map(item => item.artifactHash).sort(),
+      extensionArtifactHashes: publication.publishOperation.extensionReviews.map(item => item.artifactHash).sort(),
     },
   }
 }
@@ -464,48 +530,27 @@ export async function submitValidationReview(planId: string, options: Options = 
     const managedValidations = artifacts.validation.validations.filter(
       validation => validation.astProvenance?.schemaVersion === '2',
     )
-    const decisionPublications = await client.validationAstPublishOperation.findMany({
-      where: { planId },
-      include: { extensionReviews: true },
+    const publications = await client.validationNodePublication.findMany({
+      where: { planId, validationId: { in: managedValidations.map(validation => validation.id) } },
+      include: { decisionReceipt: true, publishOperation: { include: { extensionReviews: true } } },
+      orderBy: { publishedAt: 'desc' },
     })
-    const decisionEvidence = await client.planEvent.findMany({
-      where: {
-        publishOperationId: { in: decisionPublications.map(operation => operation.id) },
-        validationId: { in: managedValidations.map(validation => validation.id) },
-        type: 'validation_node_decided',
-      },
-    })
-    const publicationById = new Map(decisionPublications.map(operation => [operation.id, operation]))
     const astValidationIds = new Set(managedValidations.map(validation => validation.id))
     for (const decision of artifacts.validation.validationDecisions.filter(item =>
       astValidationIds.has(item.validationId),
     )) {
-      const expectedDecisionIdentity = [
-        decision.validationId,
-        decision.validationId,
-        decision.decision,
-        decision.contentHash,
-        decision.decidedBy,
-        decision.decidedAt,
-      ]
-      const evidenceEvent = decisionEvidence.find(
-        event => JSON.stringify(decisionEventIdentity(event)) === JSON.stringify(expectedDecisionIdentity),
+      const decisionPublication = publications.find(
+        publication =>
+          publication.validationId === decision.validationId &&
+          publication.contentHash === decision.contentHash &&
+          publication.decisionReceipt?.decision === decision.decision &&
+          publication.decisionReceipt.decidedBy === decision.decidedBy &&
+          publication.decisionReceipt.decidedAt.toISOString() === decision.decidedAt,
       )
-      const evidence = evidenceEvent?.payloadJson ? JSON.parse(evidenceEvent.payloadJson) : null
-      const decisionPublication = evidenceEvent?.publishOperationId
-        ? publicationById.get(evidenceEvent.publishOperationId)
-        : undefined
-      const decisionExtensions = decisionPublication?.extensionReviews.map(item => item.artifactHash).sort()
       if (
         !decisionPublication ||
-        !evidence ||
-        evidence.validationId !== decision.validationId ||
-        evidence.decision !== decision.decision ||
-        evidence.contentHash !== decision.contentHash ||
-        evidence.decidedBy !== decision.decidedBy ||
-        evidence.decidedAt !== decision.decidedAt ||
-        evidence.operationHash !== decisionPublication.operationHash ||
-        JSON.stringify([...(evidence.extensionArtifactHashes ?? [])].sort()) !== JSON.stringify(decisionExtensions)
+        !decisionPublication.decisionReceipt ||
+        decisionPublication.operationHash !== decisionPublication.publishOperation.operationHash
       )
         throw new ServiceError('Validation review decision does not match immutable AST evidence.', 'CONFLICT')
     }

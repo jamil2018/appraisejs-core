@@ -17,7 +17,7 @@ export const DELEGATED_COORDINATOR_PERMISSIONS = [
 
 const hashSchema = z.string().regex(/^sha256:[a-f0-9]{64}$/)
 const permissionSchema = z.enum(DELEGATED_COORDINATOR_PERMISSIONS)
-const claimsSchema = z
+export const delegatedCoordinatorClaimsSchema = z
   .object({
     version: z.literal(1),
     receiptId: z.string().uuid(),
@@ -38,7 +38,7 @@ const claimsSchema = z
 
 const delegatedCoordinatorReceiptSchema = z
   .object({
-    claims: claimsSchema,
+    claims: delegatedCoordinatorClaimsSchema,
     signature: z.string().regex(/^hmac-sha256:[a-f0-9]{64}$/),
   })
   .strict()

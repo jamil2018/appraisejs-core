@@ -10,7 +10,10 @@ import {
   type ValidationArtifact,
 } from '@/lib/plan-contract'
 import { createCustomExtensionPolicy } from '@/lib/validation-ast/extension-policy'
-import { prepareValidationAstPublish } from '@/services/coordinator/validation-ast-publish-journal-service'
+import {
+  ensureValidationNodePublications,
+  prepareValidationAstPublish,
+} from '@/services/coordinator/validation-ast-publish-journal-service'
 import {
   builtInStepDefinitions,
   canonicalStepDefinitionJson,
@@ -280,6 +283,8 @@ export async function seedReviewedCapsuleLifecycleFixture(options: {
   omitTestRun?: boolean
   planLifecycle?: PlanArtifact['lifecycle']
   lifecycleCorrelation?: { planId: string; correlationId: string }
+  targetCanonicalPath?: string
+  expectedFailures?: ValidationArtifact['validations'][number]['expectedFailures']
 }) {
   const { client, workspace, environmentId, projectId, planId, runId, extension } = options
   const fingerprint = reviewedCapsuleHashText(projectId)
@@ -288,7 +293,7 @@ export async function seedReviewedCapsuleLifecycleFixture(options: {
     update: {},
     create: {
       id: projectId,
-      canonicalPath: path.join(workspace, projectId),
+      canonicalPath: options.targetCanonicalPath ?? path.join(workspace, projectId),
       displayName: 'Same display name',
       fingerprint,
     },
@@ -325,6 +330,7 @@ export async function seedReviewedCapsuleLifecycleFixture(options: {
   const runtimeInputJson = canonicalContractJson(runtimeInput)
   const runtimeInputHash = reviewedCapsuleHashValue(runtimeInput)
   const validation = validationForReviewedCapsule(planId, operationId, receiptHash, runtimeInputHash)
+  if (options.expectedFailures) validation.validations[0]!.expectedFailures = structuredClone(options.expectedFailures)
   validation.validations[0]!.appraiseArtifacts.testCases[0]!.steps[0]!.invocation = structuredClone(invocation)
   const validationProjectionJson = JSON.stringify(validation)
   const projection = { validationNode: validation.validations[0]!, gherkin: reviewedCapsuleGherkin }
@@ -476,6 +482,7 @@ export async function seedReviewedCapsuleLifecycleFixture(options: {
     },
     client,
   )
+  await ensureValidationNodePublications({ operationId, validation }, client)
   await client.validationAstPublishOperation.update({ where: { id: operationId }, data: { phase: 'review_ready' } })
   return { operationId, testRun, planProjection, validation, runtimeInput, projectRoot }
 }

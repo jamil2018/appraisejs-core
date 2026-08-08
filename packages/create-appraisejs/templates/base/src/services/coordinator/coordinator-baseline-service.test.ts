@@ -15,6 +15,7 @@ import {
 import { PlanArtifactRepository } from '@/lib/plans/artifact-repository'
 import { syncPlans } from '@/lib/plans/plan-sync-service'
 import { hashFailureSignatures } from '@/lib/baseline-execution/baseline'
+import { validationNodeHash } from '@/lib/validation-review/approval'
 import { hashFileContent } from '@/lib/validation-review/file-review'
 import { readPlanEvents } from '@/services/coordinator/coordinator-service'
 import {
@@ -184,6 +185,83 @@ function validation(planId: string, overrides: Partial<ValidationArtifact> = {})
   return artifact
 }
 
+function fixtureHash(value: string) {
+  return `sha256:${createHash('sha256').update(value).digest('hex')}`
+}
+
+function rebindFixturePublication(node: ValidationArtifact['validations'][number], publishOperationId: string) {
+  const provenance = node.astProvenance
+  if (provenance?.schemaVersion !== '2') throw new Error('Fixture node must use managed Validation AST provenance.')
+  node.astProvenance = { ...provenance, publishOperationId }
+}
+
+async function seedValidationPublication(planId: string, node: ValidationArtifact['validations'][number]) {
+  const provenance = node.astProvenance
+  if (provenance?.schemaVersion !== '2') throw new Error('Fixture node must use managed Validation AST provenance.')
+  const projection = await client.planProjection.findUniqueOrThrow({ where: { planId } })
+  const targetProject = await client.targetProject.findUniqueOrThrow({ where: { id: projection.targetProjectId! } })
+  const operationHash = fixtureHash(`operation:${planId}:${provenance.publishOperationId}`)
+  const projectionHash = fixtureHash(`projection:${planId}:${provenance.publishOperationId}`)
+  const publicationHash = fixtureHash(
+    `publication:${planId}:${provenance.publishOperationId}:${validationNodeHash(node)}`,
+  )
+
+  await client.validationAstPublishOperation.upsert({
+    where: { id: provenance.publishOperationId },
+    update: {},
+    create: {
+      id: provenance.publishOperationId,
+      planId,
+      planProjectionId: projection.id,
+      targetProjectId: targetProject.id,
+      targetFingerprint: targetProject.fingerprint,
+      idempotencyKey: `fixture:${provenance.publishOperationId}`,
+      operationHash,
+      phase: 'review_ready',
+      expectedPlanHash: fixtureHash(`expected-plan:${planId}`),
+      expectedPlanArtifactHash: fixtureHash(`expected-plan-artifact:${planId}`),
+      expectedValidationHash: fixtureHash(`expected-validation:${planId}`),
+      expectedReviewHash: fixtureHash(`expected-review:${planId}`),
+      planHash: fixtureHash(`plan:${planId}`),
+      validationHash: fixtureHash(`validation:${planId}`),
+      reviewHash: fixtureHash(`review:${planId}`),
+      planContent: '{}',
+      validationContent: '{}',
+      reviewContent: '{}',
+      astId: `fixture-ast:${planId}`,
+      astHash: provenance.astHash,
+      contextHash: fixtureHash(`context:${planId}`),
+      previewHash: fixtureHash(`preview:${planId}`),
+      receiptHash: provenance.receiptHash,
+      projectionHash,
+      projectionJson: '{}',
+      validationProjectionJson: '{}',
+      runtimeInputHash: provenance.runtimeInputHash,
+      runtimeInputJson: '{}',
+    },
+  })
+  return client.validationNodePublication.upsert({
+    where: {
+      publishOperationId_validationId: {
+        publishOperationId: provenance.publishOperationId,
+        validationId: node.id,
+      },
+    },
+    update: {},
+    create: {
+      planId,
+      targetProjectId: targetProject.id,
+      validationId: node.id,
+      contentHash: validationNodeHash(node),
+      publishOperationId: provenance.publishOperationId,
+      operationHash,
+      runtimeInputHash: provenance.runtimeInputHash,
+      projectionHash,
+      publicationHash,
+    },
+  })
+}
+
 async function writeArtifacts(planId: string, lifecycle?: PlanArtifact['lifecycle']) {
   await fs.mkdir(path.join(workspace, 'appraise', 'plans', 'validations'), { recursive: true })
   await fs.mkdir(path.join(workspace, 'automation', 'features'), { recursive: true })
@@ -226,6 +304,7 @@ async function writeArtifacts(planId: string, lifecycle?: PlanArtifact['lifecycl
     create: { name: 'staging', baseUrl: 'https://staging.example.test', targetProjectId },
   })
   await projectValidationArtifacts({ planId, validation: validation(planId) }, client)
+  await seedValidationPublication(planId, validation(planId).validations[0]!)
 }
 
 async function readValidation(planId: string) {
@@ -310,6 +389,7 @@ describe('baseline execution and implementation gate', () => {
     await repository.compareAndWrite('validation', planId, stored.hash, serializeYamlArtifact('validation', reviewed))
     const targetProject = await client.targetProject.findUniqueOrThrow({ where: { canonicalPath: workspace } })
     await client.planProjection.update({ where: { planId }, data: { targetProjectId: targetProject.id } })
+    await seedValidationPublication(planId, reviewed.validations[0]!)
     await fs.rm(path.join(workspace, 'automation'), { recursive: true, force: true })
     const calls: Array<{ kind: string; input: Record<string, unknown> }> = []
     const capsuleService = {
@@ -343,7 +423,7 @@ describe('baseline execution and implementation gate', () => {
           browserEngine: 'CHROMIUM',
           preparationKey: expect.stringMatching(
             new RegExp(
-              `^baseline:capsule-baseline:1:publish-operation-one:sha256:[a-f0-9]{64}:required-check:chromium:${localEnvironment.id}:0$`,
+              `^baseline:capsule-baseline:1:publish-operation-one:[^:]+:sha256:[a-f0-9]{64}:required-check:chromium:${localEnvironment.id}:0$`,
             ),
           ),
         }),
@@ -355,7 +435,7 @@ describe('baseline execution and implementation gate', () => {
           operationId: 'publish-operation-one',
           preparationKey: expect.stringMatching(
             new RegExp(
-              `^baseline:capsule-baseline:1:publish-operation-one:sha256:[a-f0-9]{64}:required-check:chromium:${localEnvironment.id}:0$`,
+              `^baseline:capsule-baseline:1:publish-operation-one:[^:]+:sha256:[a-f0-9]{64}:required-check:chromium:${localEnvironment.id}:0$`,
             ),
           ),
         }),
@@ -465,6 +545,7 @@ describe('baseline execution and implementation gate', () => {
       projectDirectory: workspace,
       client,
       now: new Date('2026-06-10T00:02:00.000Z'),
+      idempotencyKey: 'reconcile-baseline',
       loadEvidence: async testRunId => {
         if (testRunId === 'run-chromium-local-0') {
           return {
@@ -490,6 +571,13 @@ describe('baseline execution and implementation gate', () => {
         }
       },
     })
+    await expect(
+      reconcileBaselineExecution(planId, {
+        projectDirectory: workspace,
+        client,
+        idempotencyKey: 'reconcile-baseline',
+      }),
+    ).resolves.toMatchObject({ plan: { lifecycle: 'baseline_review' } })
 
     const reviewed = await readValidation(planId)
     expect(reviewed.baselineAttempts).toEqual([
@@ -538,7 +626,16 @@ describe('baseline execution and implementation gate', () => {
     const passingAttempt = reviewed.baselineAttempts.find(attempt => attempt.classification === 'unexpected_pass')!
     await acknowledgeBaselineFailure(
       { planId, attemptId: unrelatedAttempt.id, acknowledgedBy: 'reviewer' },
-      { projectDirectory: workspace, client, now: new Date('2026-06-10T00:03:00.000Z') },
+      {
+        projectDirectory: workspace,
+        client,
+        now: new Date('2026-06-10T00:03:00.000Z'),
+        idempotencyKey: 'ack-unrelated',
+      },
+    )
+    await acknowledgeBaselineFailure(
+      { planId, attemptId: unrelatedAttempt.id, acknowledgedBy: 'reviewer' },
+      { projectDirectory: workspace, client, idempotencyKey: 'ack-unrelated' },
     )
     await acknowledgeBaselineFailure(
       { planId, attemptId: expectedAttempt.id, acknowledgedBy: 'reviewer' },
@@ -546,13 +643,22 @@ describe('baseline execution and implementation gate', () => {
     )
     await justifyBaselineRegressionPass(
       { planId, attemptId: passingAttempt.id, justification: 'The baseline already covers the new behavior.' },
-      { projectDirectory: workspace, client },
+      { projectDirectory: workspace, client, idempotencyKey: 'justify-pass' },
+    )
+    await justifyBaselineRegressionPass(
+      { planId, attemptId: passingAttempt.id, justification: 'The baseline already covers the new behavior.' },
+      { projectDirectory: workspace, client, idempotencyKey: 'justify-pass' },
     )
 
-    await expect(acceptBaseline(planId, { projectDirectory: workspace, client })).resolves.toMatchObject({
+    await expect(
+      acceptBaseline(planId, { projectDirectory: workspace, client, idempotencyKey: 'accept-baseline' }),
+    ).resolves.toMatchObject({
       plan: { lifecycle: 'baseline_accepted' },
       validation: { baselineDecision: 'accepted' },
     })
+    await expect(
+      acceptBaseline(planId, { projectDirectory: workspace, client, idempotencyKey: 'accept-baseline' }),
+    ).resolves.toMatchObject({ plan: { lifecycle: 'baseline_accepted' } })
     await expect(startImplementation(planId, { projectDirectory: workspace, client })).resolves.toMatchObject({
       lifecycle: 'in_progress',
     })
@@ -627,12 +733,14 @@ describe('baseline execution and implementation gate', () => {
     const initialStored = await repository.read('validation', planId)
     const initialValidation = parseYamlArtifact('validation', initialStored.content) as ValidationArtifact
     initialValidation.validations[0]!.matrix = [{ browser: 'chromium', environment: 'local' }]
+    rebindFixturePublication(initialValidation.validations[0]!, 'publish-current-matrix-initial')
     await repository.compareAndWrite(
       'validation',
       planId,
       initialStored.hash,
       serializeYamlArtifact('validation', initialValidation),
     )
+    await seedValidationPublication(planId, initialValidation.validations[0]!)
 
     await startBaselineExecution(planId, {
       projectDirectory: workspace,
@@ -664,6 +772,7 @@ describe('baseline execution and implementation gate', () => {
         lastPassingStepId: 'first-task',
       },
     ]
+    rebindFixturePublication(currentValidation.validations[0]!, 'publish-current-matrix-replacement')
     await repository.compareAndWrite(
       'plan',
       planId,
@@ -676,6 +785,7 @@ describe('baseline execution and implementation gate', () => {
       failedValidationStored.hash,
       serializeYamlArtifact('validation', currentValidation),
     )
+    await seedValidationPublication(planId, currentValidation.validations[0]!)
     const projection = await client.planProjection.findUniqueOrThrow({ where: { planId } })
     await client.environment.create({
       data: {
@@ -766,7 +876,7 @@ describe('baseline execution and implementation gate', () => {
           reason: 'The generated selector matched zero scenarios.',
           expectedValidationHash: repairedStored.hash,
         },
-        { projectDirectory: workspace, client },
+        { projectDirectory: workspace, client, idempotencyKey: 'repair-baseline' },
       ),
     ).resolves.toMatchObject({
       plan: { lifecycle: 'validation_changes_requested' },
@@ -777,6 +887,16 @@ describe('baseline execution and implementation gate', () => {
         ]),
       },
     })
+    await expect(
+      retryBaselineAfterRepair(
+        {
+          planId,
+          reason: 'The generated selector matched zero scenarios.',
+          expectedValidationHash: repairedStored.hash,
+        },
+        { projectDirectory: workspace, client, idempotencyKey: 'repair-baseline' },
+      ),
+    ).resolves.toMatchObject({ plan: { lifecycle: 'validation_changes_requested' } })
     await expect(readPlanEvents({ planId, afterSequence: 2 }, client)).resolves.toEqual([
       expect.objectContaining({
         type: 'validation_changes_requested',
@@ -850,6 +970,17 @@ describe('baseline execution and implementation gate', () => {
       },
     })
     await client.planProjection.update({ where: { planId }, data: { targetProjectId: targetProject.id } })
+    const repository = new PlanArtifactRepository(workspace)
+    const stored = await repository.read('validation', planId)
+    const targetBoundValidation = parseYamlArtifact('validation', stored.content) as ValidationArtifact
+    rebindFixturePublication(targetBoundValidation.validations[0]!, 'publish-target-bound')
+    await repository.compareAndWrite(
+      'validation',
+      planId,
+      stored.hash,
+      serializeYamlArtifact('validation', targetBoundValidation),
+    )
+    await seedValidationPublication(planId, targetBoundValidation.validations[0]!)
 
     await expect(
       startBaselineExecution(planId, {

@@ -94,7 +94,7 @@ describe('managed validation review state', () => {
         },
       ],
     }
-    const resolved = structuredClone(created)
+    const resolved: ReviewArtifact = structuredClone(created)
     resolved.threads[0]!.events.push({
       id: 'remark-event-two',
       action: 'resolved',

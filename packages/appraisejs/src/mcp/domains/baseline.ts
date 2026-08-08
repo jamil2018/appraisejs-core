@@ -16,14 +16,17 @@ export function registerBaselineOperations(context: McpRegistryContext): void {
     'baseline_start',
     {
       description: 'Agent-owned execution tool: start required baseline executions after validation review approval.',
-      inputSchema: { planId: z.string(), responseMode: responseModeSchema },
+      inputSchema: { planId: z.string(), idempotencyKey: z.string().min(1), responseMode: responseModeSchema },
     },
-    async ({ planId, responseMode }) =>
+    async ({ planId, idempotencyKey, responseMode }) =>
       text(
         applyLifecycleResponseMode(
           lifecycleToolPayload({
             planId,
-            result: await api.request(`plans/${planId}/baseline/start`, { method: 'POST', body: '{}' }),
+            result: await api.request(`plans/${planId}/baseline/start`, {
+              method: 'POST',
+              body: JSON.stringify({ idempotencyKey }),
+            }),
             nextRecommendedAction: 'Call baseline_reconcile until baseline evidence enters review.',
             nextRequiredAgentBehavior: 'reconcile_baseline',
             nextAllowedAction: { tool: 'baseline_reconcile' },
@@ -37,10 +40,13 @@ export function registerBaselineOperations(context: McpRegistryContext): void {
     'baseline_reconcile',
     {
       description: 'Agent-owned execution tool: refresh baseline evidence and detect when review is ready.',
-      inputSchema: { planId: z.string(), responseMode: responseModeSchema },
+      inputSchema: { planId: z.string(), idempotencyKey: z.string().min(1), responseMode: responseModeSchema },
     },
-    async ({ planId, responseMode }) => {
-      const result = await api.request(`plans/${planId}/baseline/reconcile`, { method: 'POST', body: '{}' })
+    async ({ planId, idempotencyKey, responseMode }) => {
+      const result = await api.request(`plans/${planId}/baseline/reconcile`, {
+        method: 'POST',
+        body: JSON.stringify({ idempotencyKey }),
+      })
       const lifecycle =
         result && typeof result === 'object' && 'plan' in result
           ? (result as { plan?: { lifecycle?: string } }).plan?.lifecycle
@@ -64,14 +70,17 @@ export function registerBaselineOperations(context: McpRegistryContext): void {
     {
       description:
         'Explicit user/Appraise interrupt relay: cancel active baseline executions and return the plan to baseline changes requested.',
-      inputSchema: { planId: z.string(), responseMode: responseModeSchema },
+      inputSchema: { planId: z.string(), idempotencyKey: z.string().min(1), responseMode: responseModeSchema },
     },
-    async ({ planId, responseMode }) =>
+    async ({ planId, idempotencyKey, responseMode }) =>
       text(
         applyLifecycleResponseMode(
           lifecycleToolPayload({
             planId,
-            result: await api.request(`plans/${planId}/baseline/cancel`, { method: 'POST', body: '{}' }),
+            result: await api.request(`plans/${planId}/baseline/cancel`, {
+              method: 'POST',
+              body: JSON.stringify({ idempotencyKey }),
+            }),
             nextRecommendedAction: 'Revise validation or baseline setup, then call baseline_start again when ready.',
             nextRequiredAgentBehavior: 'revise_baseline_or_validation',
           }),
@@ -89,10 +98,11 @@ export function registerBaselineOperations(context: McpRegistryContext): void {
         planId: z.string(),
         reason: z.string().trim().min(1),
         expectedValidationHash: z.string().startsWith('sha256:'),
+        idempotencyKey: z.string().min(1),
         responseMode: responseModeSchema,
       },
     },
-    async ({ planId, reason, expectedValidationHash, responseMode }) => {
+    async ({ planId, reason, expectedValidationHash, idempotencyKey, responseMode }) => {
       try {
         return text(
           applyLifecycleResponseMode(
@@ -100,7 +110,7 @@ export function registerBaselineOperations(context: McpRegistryContext): void {
               planId,
               result: await api.request(`plans/${planId}/baseline/retry`, {
                 method: 'POST',
-                body: JSON.stringify({ reason, expectedValidationHash }),
+                body: JSON.stringify({ reason, expectedValidationHash, idempotencyKey }),
               }),
               nextRecommendedAction:
                 'Repair the managed Validation AST and submit it through check, preview, and compile for fresh review.',
@@ -122,15 +132,20 @@ export function registerBaselineOperations(context: McpRegistryContext): void {
     {
       description:
         'Explicit user/Appraise decision relay: acknowledge a current unrelated baseline failure by attempt id.',
-      inputSchema: { planId: z.string(), attemptId: z.string(), acknowledgedBy: z.string().min(1) },
+      inputSchema: {
+        planId: z.string(),
+        attemptId: z.string(),
+        acknowledgedBy: z.string().min(1),
+        idempotencyKey: z.string().min(1),
+      },
     },
-    async ({ planId, attemptId, acknowledgedBy }) =>
+    async ({ planId, attemptId, acknowledgedBy, idempotencyKey }) =>
       text(
         lifecycleToolPayload({
           planId,
           result: await api.request(`plans/${planId}/baseline/failures/${attemptId}/acknowledge`, {
             method: 'POST',
-            body: JSON.stringify({ acknowledgedBy }),
+            body: JSON.stringify({ acknowledgedBy, idempotencyKey }),
           }),
           nextRecommendedAction: 'Continue baseline review and call baseline_accept when all blockers are resolved.',
           nextRequiredAgentBehavior: 'review_and_accept_baseline',
@@ -144,15 +159,20 @@ export function registerBaselineOperations(context: McpRegistryContext): void {
     {
       description:
         'Explicit user/Appraise decision relay: justify an accepted regression-pass baseline attempt before baseline acceptance.',
-      inputSchema: { planId: z.string(), attemptId: z.string(), justification: z.string().min(1) },
+      inputSchema: {
+        planId: z.string(),
+        attemptId: z.string(),
+        justification: z.string().min(1),
+        idempotencyKey: z.string().min(1),
+      },
     },
-    async ({ planId, attemptId, justification }) =>
+    async ({ planId, attemptId, justification, idempotencyKey }) =>
       text(
         lifecycleToolPayload({
           planId,
           result: await api.request(`plans/${planId}/baseline/regressions/${attemptId}/justify`, {
             method: 'POST',
-            body: JSON.stringify({ justification }),
+            body: JSON.stringify({ justification, idempotencyKey }),
           }),
           nextRecommendedAction: 'Continue baseline review and call baseline_accept when all blockers are resolved.',
           nextRequiredAgentBehavior: 'review_and_accept_baseline',
@@ -165,13 +185,16 @@ export function registerBaselineOperations(context: McpRegistryContext): void {
     'baseline_accept',
     {
       description: 'Explicit user/Appraise decision relay: accept complete baseline evidence.',
-      inputSchema: { planId: z.string() },
+      inputSchema: { planId: z.string(), idempotencyKey: z.string().min(1) },
     },
-    async ({ planId }) =>
+    async ({ planId, idempotencyKey }) =>
       text(
         lifecycleToolPayload({
           planId,
-          result: await api.request(`plans/${planId}/baseline/accept`, { method: 'POST', body: '{}' }),
+          result: await api.request(`plans/${planId}/baseline/accept`, {
+            method: 'POST',
+            body: JSON.stringify({ idempotencyKey }),
+          }),
           nextRecommendedAction: 'Call implementation_start before recording implementation checkpoints.',
           nextRequiredAgentBehavior: 'start_implementation',
           nextAllowedAction: { tool: 'implementation_start' },

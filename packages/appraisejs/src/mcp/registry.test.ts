@@ -48,33 +48,49 @@ describe('MCP tool registration', () => {
     )
   })
 
-  it('preserves structured coordinator recovery details for every registered tool', async () => {
+  it('embeds the exact coordinator failure envelope in every registered tool error', async () => {
     const handler = withStructuredCoordinatorErrors(async () => {
-      throw new CoordinatorRequestError(
-        'Loopback origin is reserved.',
-        409,
-        undefined,
-        'CONFLICT',
-        undefined,
-        'Repropose the environment with the suggested base URL.',
-        {
-          code: 'ENVIRONMENT_ORIGIN_RESERVED',
-          suggestedBaseUrl: 'http://127.0.0.1:4174',
+      throw new CoordinatorRequestError(409, undefined, {
+        schema: 'appraise.error/v1',
+        errorId: '11111111-1111-4111-8111-111111111111',
+        occurredAt: '2026-08-07T00:00:00.000Z',
+        classification: 'state_conflict',
+        code: 'state_conflict',
+        message: 'Loopback origin is reserved.',
+        httpStatus: 409,
+        operation: { name: 'target-projects' },
+        operationOutcome: 'not_committed',
+        targetOutcome: 'not_evaluated',
+        retry: {
+          safe: true,
+          strategy: 'read_state_then_retry',
+          nextAction: { tool: 'coordinator_error_recovery', reason: 'Repropose with the suggested base URL.' },
         },
-      )
+        details: { constraint: 'loopback_origin' },
+      })
     })
 
     const result = (await handler()) as { isError: boolean; content: Array<{ type: string; text: string }> }
 
     expect(result.isError).toBe(true)
     expect(JSON.parse(result.content[0]!.text)).toEqual({
-      code: 'CONFLICT',
+      schema: 'appraise.error/v1',
+      errorId: '11111111-1111-4111-8111-111111111111',
+      occurredAt: '2026-08-07T00:00:00.000Z',
+      classification: 'state_conflict',
+      code: 'state_conflict',
       message: 'Loopback origin is reserved.',
-      status: 409,
-      recovery: 'Repropose the environment with the suggested base URL.',
+      httpStatus: 409,
+      operation: { name: 'target-projects' },
+      operationOutcome: 'not_committed',
+      targetOutcome: 'not_evaluated',
+      retry: {
+        safe: true,
+        strategy: 'read_state_then_retry',
+        nextAction: { tool: 'coordinator_error_recovery', reason: 'Repropose with the suggested base URL.' },
+      },
       details: {
-        code: 'ENVIRONMENT_ORIGIN_RESERVED',
-        suggestedBaseUrl: 'http://127.0.0.1:4174',
+        constraint: 'loopback_origin',
       },
     })
   })

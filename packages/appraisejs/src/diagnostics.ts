@@ -80,24 +80,27 @@ export async function diagnoseProject(options: { cwd: string; baseUrl: string; c
     checks.push(...(remote?.checks ?? []))
   } catch (error) {
     const requestError = error instanceof CoordinatorRequestError ? error : undefined
+    const coordinatorFailure = requestError?.envelope
     checks.push({
       id:
-        requestError?.code === 'transport-failed'
+        coordinatorFailure?.classification === 'infrastructure_failure'
           ? 'transport'
-          : requestError?.code === 'project-mismatch'
+          : coordinatorFailure?.details?.boundary === 'project_identity'
             ? 'project'
-            : requestError?.status === 401
+            : coordinatorFailure?.classification === 'authorization_failure'
               ? 'authentication'
-              : requestError
+              : coordinatorFailure
                 ? 'http'
                 : 'identity',
       status: 'error',
       message: requestError?.message ?? (error instanceof Error ? error.message : String(error)),
-      code: requestError?.code ?? 'identity-bootstrap-failed',
+      code: coordinatorFailure?.classification ?? 'identity-bootstrap-failed',
       recovery:
-        requestError?.recovery ??
+        coordinatorFailure?.retry.nextAction?.reason ??
         'Verify the project directory and package.json, then rerun `appraisejs doctor --json`.',
-      details: requestError?.details,
+      details: coordinatorFailure
+        ? { errorId: coordinatorFailure.errorId, ...(coordinatorFailure.details ?? {}) }
+        : undefined,
     })
   }
 
@@ -129,10 +132,9 @@ export async function diagnoseProject(options: { cwd: string; baseUrl: string; c
 
 export function formatMcpBootstrapError(error: unknown): string {
   const message = error instanceof Error ? error.message : String(error)
-  const code =
-    error instanceof CoordinatorRequestError ? (error.code ?? 'coordinator-request-failed') : 'bootstrap-failed'
+  const classification = error instanceof CoordinatorRequestError ? error.envelope.classification : 'bootstrap-failed'
   return [
-    `AppraiseJS MCP bootstrap failed [${code}]: ${message}`,
+    `AppraiseJS MCP bootstrap failed [${classification}]: ${message}`,
     'No CLI fallback was attempted.',
     'Run `appraisejs doctor --json`, fix the reported category, then restart or reconnect the MCP client.',
   ].join('\n')

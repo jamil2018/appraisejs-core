@@ -71,6 +71,9 @@ Materialization consumes only a `review_ready` `ValidationAstPublishOperation`. 
 bytes it revalidates the immutable publish journal, schema-valid current `PlanProjection.validationJson`, the exact
 operation-specific logical projection and provenance,
 runtime-input snapshot, validation provenance, TestRun/plan/project ownership, and ordered extension-review hashes.
+The capsule and every new baseline attempt persist the exact `ValidationNodePublication` identity. Managed
+implementation runs carry the same identity, and completion evidence seals the consumed publication IDs and decision
+receipt hashes. Additive sibling publications remain valid; removing or changing the bound node is a conflict.
 Later additive reviewed publications may add other validation nodes to the current plan projection without invalidating
 an earlier operation; mutation or removal of that operation's reviewed node still blocks materialization.
 It never reads target-repository `automation/` files. Deterministic feature, binding, reviewed-extension, support,
@@ -226,6 +229,12 @@ agent recovery. Live `text/event-stream` requests still use SSE streaming.
 Baseline and implementation validation gates must consume `evidenceHealth`. `TestRun.result === PASSED` is only
 trusted when evidence health is `valid`; invalid or infrastructure evidence stays reduced assurance and blocks normal
 lifecycle progression.
+
+Release qualification includes three repository-owned subprocess targets under
+`scripts/fixtures/qualification-targets`: a passing editor SPA, an expected product failure, and a controlled
+infrastructure interruption. The target assertion failure remains managed evidence rather than an API error; the
+interruption remains distinct infrastructure evidence. The reviewed-capsule coordinator E2E remains the authority for
+the full real Cucumber/Playwright baseline path.
 
 Reviewed managed validations use capsule execution for baseline and implementation. Mixed artifacts keep legacy validations
 on the legacy runtime while routing reviewed managed nodes through their exact publish operation. Both paths reconcile into

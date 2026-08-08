@@ -34,10 +34,21 @@ describe('plan observability', () => {
     }
     await expect(
       recordCoordinatorResponseMetric(
-        { operation: ['plans', 'plan-one', 'start'], body: {}, response, startedAt: Date.now() - 10 },
+        {
+          operation: ['plans', 'plan-one', 'start'],
+          body: { responseMode: 'summary', retryCause: 'reconnect' },
+          response,
+          startedAt: Date.now() - 10,
+        },
         client as never,
       ),
-    ).resolves.toMatchObject({ operation: 'plans/plan-one/start', statusCode: 202 })
+    ).resolves.toMatchObject({
+      operation: 'plans/plan-one/start',
+      statusCode: 202,
+      estimatedTokens: expect.any(Number),
+      responseMode: 'summary',
+      retryCause: 'reconnect',
+    })
     await expect(response.json()).resolves.toEqual({ ok: true })
   })
 
@@ -63,7 +74,13 @@ describe('plan observability', () => {
         },
         client as never,
       ),
-    ).resolves.toMatchObject({ retryCount: 2, recoveryCost: 12, phase: 'baseline' })
+    ).resolves.toMatchObject({
+      retryCount: 2,
+      recoveryCost: 12,
+      phase: 'baseline',
+      estimatedTokens: 5,
+      responseMode: 'summary',
+    })
   })
 
   it('content-addresses certification matrices', async () => {

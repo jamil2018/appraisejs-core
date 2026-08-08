@@ -8,6 +8,24 @@ import { diagnoseProject, formatMcpBootstrapError } from './diagnostics.js'
 import { deriveProjectIdentity } from './project-identity.js'
 
 const workspaces: string[] = []
+const errorEnvelope = (overrides: Record<string, unknown> = {}) => ({
+  schema: 'appraise.error/v1',
+  errorId: '11111111-1111-4111-8111-111111111111',
+  occurredAt: '2026-08-07T00:00:00.000Z',
+  classification: 'authorization_failure',
+  code: 'authorization_failure',
+  message: 'Coordinator authorization failed.',
+  httpStatus: 401,
+  operation: { name: 'diagnostic' },
+  operationOutcome: 'not_started',
+  targetOutcome: 'not_evaluated',
+  retry: {
+    safe: false,
+    strategy: 'repair_appraise_then_resume',
+    nextAction: { tool: 'coordinator_error_recovery', reason: 'Reconnect with authorized credentials.' },
+  },
+  ...overrides,
+})
 
 afterEach(async () => {
   vi.unstubAllGlobals()
@@ -29,7 +47,7 @@ describe('CLI diagnostics', () => {
     expect(result.checks).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ id: 'git', status: 'warning' }),
-        expect.objectContaining({ id: 'transport', status: 'error', code: 'transport-failed' }),
+        expect.objectContaining({ id: 'transport', status: 'error', code: 'infrastructure_failure' }),
       ]),
     )
     expect(result.recommendedValidationBaseRevision).toMatchObject({
@@ -129,11 +147,16 @@ describe('CLI diagnostics', () => {
       'fetch',
       vi.fn().mockResolvedValue(
         Response.json(
-          {
-            error: 'Invalid project credentials.',
-            code: 'UNAUTHORIZED',
-            recovery: 'Regenerate the coordinator identity for this project.',
-          },
+          errorEnvelope({
+            retry: {
+              safe: false,
+              strategy: 'repair_appraise_then_resume',
+              nextAction: {
+                tool: 'coordinator_error_recovery',
+                reason: 'Regenerate the coordinator identity for this project.',
+              },
+            },
+          }),
           { status: 401 },
         ),
       ),
@@ -147,7 +170,7 @@ describe('CLI diagnostics', () => {
         expect.objectContaining({
           id: 'authentication',
           status: 'error',
-          code: 'UNAUTHORIZED',
+          code: 'authorization_failure',
           recovery: 'Regenerate the coordinator identity for this project.',
         }),
       ]),
@@ -168,12 +191,15 @@ describe('CLI diagnostics', () => {
       'fetch',
       vi.fn().mockResolvedValue(
         Response.json(
-          {
-            error: 'Coordinator is bound to a different project.',
-            code: 'project-mismatch',
-            details: { requestedFingerprint: project.projectFingerprint, serverFingerprint: 'sha256:server' },
-            recovery: 'Start AppraiseJS from the matching project.',
-          },
+          errorEnvelope({
+            message: 'Coordinator credentials are not valid for this project.',
+            details: { boundary: 'project_identity' },
+            retry: {
+              safe: false,
+              strategy: 'repair_appraise_then_resume',
+              nextAction: { tool: 'coordinator_error_recovery', reason: 'Start AppraiseJS from the matching project.' },
+            },
+          }),
           { status: 409 },
         ),
       ),
@@ -187,8 +213,8 @@ describe('CLI diagnostics', () => {
         expect.objectContaining({
           id: 'project',
           status: 'error',
-          code: 'project-mismatch',
-          details: expect.objectContaining({ serverFingerprint: 'sha256:server' }),
+          code: 'authorization_failure',
+          details: expect.objectContaining({ boundary: 'project_identity' }),
         }),
       ]),
     )

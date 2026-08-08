@@ -6,6 +6,7 @@ import type { CompiledCustomExtension } from '@/lib/validation-ast'
 import { canonicalTagExpression, canonicalTagName } from '@/lib/tag-filters'
 import { ServiceError } from '@/services/shared/errors'
 import { registerProjectResourceOwnership } from '@/services/project-resource/project-resource-ownership-service'
+import { ensureValidationNodePublications } from './validation-ast-publish-journal-service'
 
 type ProjectionClient = PrismaClient | Prisma.TransactionClient
 type TargetProjectMetadata = {
@@ -366,6 +367,7 @@ async function recordCompiledEvent(
   input: CompiledProjectionInput,
   counts: Awaited<ReturnType<typeof projectValidationArtifactsInTransaction>>,
   plan: { id: string },
+  publications: Array<{ id: string; validationId: string; publicationHash: string }>,
   transaction: ProjectionClient,
 ) {
   const latest = await transaction.planEvent.findFirst({
@@ -376,6 +378,7 @@ async function recordCompiledEvent(
   const eventData = {
     planProjectionId: plan.id,
     publishOperationId: input.publishOperationId,
+    operationEventKey: input.publishOperationId ? `validation_ast_compiled:${input.publishOperationId}` : undefined,
     sequence: (latest?.sequence ?? 0) + 1,
     type: 'validation_ast_compiled',
     payloadJson: JSON.stringify({
@@ -384,12 +387,17 @@ async function recordCompiledEvent(
       astHash: input.astHash,
       validationIds: input.validation.validations.map(item => item.id),
       compiledExtensionHashes: input.compiledExtensions.map(item => item.compiledHash),
+      publications: publications.map(publication => ({
+        publicationId: publication.id,
+        validationId: publication.validationId,
+        publicationHash: publication.publicationHash,
+      })),
       counts,
     }),
   }
   if (input.publishOperationId) {
     const existingEvent = await transaction.planEvent.findFirst({
-      where: { publishOperationId: input.publishOperationId, type: 'validation_ast_compiled' },
+      where: { operationEventKey: `validation_ast_compiled:${input.publishOperationId}` },
     })
     if (!existingEvent) await transaction.planEvent.create({ data: eventData })
     return
@@ -421,7 +429,13 @@ async function projectCompiledValidationArtifactsInTransaction(
     where: { id: plan.id },
     data: { validationJson: JSON.stringify(input.validation) },
   })
-  await recordCompiledEvent(input, counts, plan, transaction)
+  const publications = input.publishOperationId
+    ? await ensureValidationNodePublications(
+        { operationId: input.publishOperationId, validation: input.validation },
+        transaction,
+      )
+    : []
+  await recordCompiledEvent(input, counts, plan, publications, transaction)
   await advancePublishProjection(input, transaction)
   return counts
 }
