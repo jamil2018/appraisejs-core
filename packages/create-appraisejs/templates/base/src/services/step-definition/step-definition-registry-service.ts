@@ -29,7 +29,7 @@ const SOURCE_REVIEW_AUTHORITY = 'appraise:source-review'
 const reuseEvidenceSchema = z.object({
   indexHash: z.string().regex(/^sha256:[a-f0-9]{64}$/),
   searchedAt: z.string().datetime(),
-  planId: z.string().min(1).max(200).optional(),
+  qualityPlanId: z.string().min(1).max(200).optional(),
   correlationId: z.string().regex(/^[a-zA-Z0-9._:-]{1,100}$/),
   candidateReferences: z
     .array(z.object({ id: z.string().min(1).max(200), version: z.string().min(1).max(40) }))
@@ -527,7 +527,7 @@ export class StepDefinitionRegistryService {
     if (reuseEvidence.indexHash !== currentIndexHash) this.throwInvalidReuseEvidence()
     if (receipt.indexHash !== reuseEvidence.indexHash) this.throwInvalidReuseEvidence()
     if (receipt.correlationId !== reuseEvidence.correlationId) this.throwInvalidReuseEvidence()
-    if (receipt.planId !== (reuseEvidence.planId ?? null)) this.throwInvalidReuseEvidence()
+    if (receipt.qualityPlanId !== (reuseEvidence.qualityPlanId ?? null)) this.throwInvalidReuseEvidence()
     if (receipt.candidateReferencesJson !== canonicalStepDefinitionJson(reuseEvidence.candidateReferences))
       this.throwInvalidReuseEvidence()
   }
@@ -569,7 +569,7 @@ export class StepDefinitionRegistryService {
       outcome: 'draft_created',
       step,
       ...(reuseEvidence ? { correlationId: reuseEvidence.correlationId } : {}),
-      ...(reuseEvidence?.planId ? { planId: reuseEvidence.planId } : {}),
+      ...(reuseEvidence?.qualityPlanId ? { qualityPlanId: reuseEvidence.qualityPlanId } : {}),
       payload: {},
     })
     if (reuseEvidence)
@@ -578,7 +578,7 @@ export class StepDefinitionRegistryService {
         outcome: 'selection_selected',
         step,
         correlationId: reuseEvidence.correlationId,
-        ...(reuseEvidence.planId ? { planId: reuseEvidence.planId } : {}),
+        ...(reuseEvidence.qualityPlanId ? { qualityPlanId: reuseEvidence.qualityPlanId } : {}),
         payload: {},
       })
   }
@@ -688,7 +688,7 @@ export class StepDefinitionRegistryService {
       outcome: result.success ? 'validation_passed' : 'validation_failed',
       step: { id: draftDefinition.identity.id, version: draftDefinition.identity.version },
       ...(reuseEvidence ? { correlationId: reuseEvidence.correlationId } : {}),
-      ...(reuseEvidence?.planId ? { planId: reuseEvidence.planId } : {}),
+      ...(reuseEvidence?.qualityPlanId ? { qualityPlanId: reuseEvidence.qualityPlanId } : {}),
       payload: result.success ? {} : { reason: 'runtime_readiness' },
     })
     return report
@@ -745,7 +745,7 @@ export class StepDefinitionRegistryService {
       outcome: 'reviewed',
       step: { id: definition.identity.id, version: definition.identity.version },
       ...(reuseEvidence ? { correlationId: reuseEvidence.correlationId } : {}),
-      ...(reuseEvidence?.planId ? { planId: reuseEvidence.planId } : {}),
+      ...(reuseEvidence?.qualityPlanId ? { qualityPlanId: reuseEvidence.qualityPlanId } : {}),
       payload: {},
     })
     return updated
@@ -922,7 +922,7 @@ export class StepDefinitionRegistryService {
       outcome: 'published',
       step: { id: definition.identity.id, version: definition.identity.version },
       ...(reuseEvidence ? { correlationId: reuseEvidence.correlationId } : {}),
-      ...(reuseEvidence?.planId ? { planId: reuseEvidence.planId } : {}),
+      ...(reuseEvidence?.qualityPlanId ? { qualityPlanId: reuseEvidence.qualityPlanId } : {}),
       payload: {},
     })
   }

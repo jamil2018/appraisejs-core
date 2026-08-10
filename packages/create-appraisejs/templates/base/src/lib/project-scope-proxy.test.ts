@@ -7,19 +7,19 @@ import { proxy } from '../proxy'
 
 describe('project scope proxy', () => {
   it('redirects an unscoped resource request to project selection', () => {
-    const response = proxy(new NextRequest('http://localhost:3000/plans/plan-1?review=validation'))
+    const response = proxy(new NextRequest('http://localhost:3000/quality-plans/quality-plan-1?review=validation'))
     const redirect = new URL(response.headers.get('location')!)
 
     expect(response.status).toBe(307)
     expect(redirect.pathname).toBe('/projects')
     expect(redirect.searchParams.get('selectProject')).toBe('required')
-    expect(redirect.searchParams.get('returnTo')).toBe('/plans/plan-1?review=validation')
+    expect(redirect.searchParams.get('returnTo')).toBe('/quality-plans/quality-plan-1?review=validation')
   })
 
   it('allows project-scoped URLs and cookie-backed requests through', () => {
     const scopedResponse = proxy(new NextRequest('http://localhost:3000/test-suites?project=project-1'))
     const cookieResponse = proxy(
-      new NextRequest('http://localhost:3000/plans', {
+      new NextRequest('http://localhost:3000/quality-plans', {
         headers: { cookie: `${ACTIVE_PROJECT_COOKIE}=project-1` },
       }),
     )

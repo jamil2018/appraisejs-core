@@ -40,8 +40,8 @@ const receipt: AgentPreflightReceiptSummary = {
       },
       currentTaskCapabilities: {
         status: 'blocked',
-        tools: { status: 'blocked', missing: ['planning_session_create'] },
-        resources: { status: 'blocked', missing: ['appraise://workflow/planning'] },
+        tools: { status: 'blocked', missing: ['requirements_analyze'] },
+        resources: { status: 'blocked', missing: ['appraise://workflow/quality-design'] },
         message: 'The task snapshot is stale.',
       },
       targetProjectBinding: {
@@ -79,7 +79,7 @@ describe('ProjectManagement agent readiness', () => {
     expect(screen.getByText('Active MCP transport')).toBeInTheDocument()
     expect(screen.getByText('Current task capabilities')).toBeInTheDocument()
     expect(screen.getByText('Target project binding')).toBeInTheDocument()
-    expect(screen.getByText(/planning_session_create/)).toBeInTheDocument()
-    expect(screen.getByText(/appraise:\/\/workflow\/planning/)).toBeInTheDocument()
+    expect(screen.getByText(/requirements_analyze/)).toBeInTheDocument()
+    expect(screen.getByText(/appraise:\/\/workflow\/quality-design/)).toBeInTheDocument()
   })
 })

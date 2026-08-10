@@ -345,7 +345,7 @@ export type CompiledCustomExtensionReview = {
 }
 
 export type ValidationAstExtensionReviewResult = {
-  planId: string
+  qualityPlanId: string
   operationId: string
   operationHash: string
   decisionBindingHash: string

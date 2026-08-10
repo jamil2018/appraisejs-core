@@ -28,7 +28,6 @@ import {
   normalizeProjectedDbTestCaseSteps,
 } from '@/lib/sync/projected-feature-utils'
 import type { AppraiseTestCaseMetadataFlowBlock, AppraiseTestCaseMetadataNode } from '@/lib/appraise-test-case-metadata'
-import { countPendingPlanSync } from '@/lib/plans/plan-sync-service'
 import {
   builtInStepDefinitions,
   computeStepDefinitionHashes,
@@ -827,8 +826,6 @@ function emptyCounts(): SyncPendingCounts {
 export async function getSyncPendingCounts(): Promise<SyncPendingCounts> {
   try {
     await ensureAutomationWorkspaceReady()
-    const pendingPlans = await countPendingPlanSync()
-
     const baseDir = process.cwd()
     const filesystem = await buildFilesystemSnapshot(baseDir)
     const [dbModules, dbEnvironments, dbTags, dbStepDefinitions, dbLocatorGroups, dbTestSuites, dbTestCases] =
@@ -914,7 +911,6 @@ export async function getSyncPendingCounts(): Promise<SyncPendingCounts> {
     )
 
     const comparisons = [
-      pendingComparison('sync-plans', pendingPlans),
       pendingComparison('sync-modules', countModuleMismatches(filesystem.modulePaths, dbModules)),
       pendingComparison('sync-environments', countEnvironmentMismatches(filesystem.environments, dbEnvironments)),
       pendingComparison('sync-tags', countTagMismatches(filesystem.tagObjects, dbTags)),

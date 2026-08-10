@@ -6,10 +6,7 @@ import type { PrismaClient } from '@prisma/client'
 import { PrismaClient as TestPrismaClient } from '@prisma/client'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import {
-  copyMigratedTestDatabase,
-  prepareCleanCoordinatorPlanRuntimeTestDatabase,
-} from '@/test/plan-runtime-schema-test-helper'
+import { copyMigratedTestDatabase } from '@/test/migrated-test-database'
 
 const { mockTargetProjectUpsert, mockTargetProjectFindMany, mockTargetProjectFindUnique, mockTargetProjectUpdate } =
   vi.hoisted(() => ({
@@ -283,8 +280,6 @@ describe('target project service', () => {
     await expect(deleteTargetProject('target-1', client)).resolves.toMatchObject({ id: 'target-1' })
 
     expect(calls).toContain('runtimeCapsule.deleteMany')
-    expect(calls).toContain('validationAstPublishOperation.deleteMany')
-    expect(calls).toContain('planProjection.deleteMany')
     expect(calls).toContain('testCase.deleteMany')
     expect(calls).toContain('report.deleteMany')
     expect(calls.at(-1)).toBe('targetProject.delete')
@@ -301,11 +296,10 @@ describe('target project service', () => {
     expect(transaction).not.toHaveBeenCalled()
   })
 
-  it('deletes persisted authored, lifecycle, and run records with their project', async () => {
+  it('deletes persisted authored and run records with their project', async () => {
     const workspace = await createWorkspace()
     const databasePath = path.join(workspace, 'project-deletion.db')
     await copyMigratedTestDatabase(databasePath)
-    await prepareCleanCoordinatorPlanRuntimeTestDatabase(databasePath)
     const client = new TestPrismaClient({ datasources: { db: { url: `file:${databasePath}` } } })
     const targetProjectId = '00000000-0000-4000-8000-000000000099'
     try {
@@ -324,20 +318,6 @@ describe('target project service', () => {
       await Promise.all([
         client.testSuite.create({ data: { name: 'Deletion suite', moduleId: appModule.id, targetProjectId } }),
         client.testCase.create({ data: { title: 'Deletion case', description: 'Owned case', targetProjectId } }),
-        client.planProjection.create({
-          data: {
-            planId: 'deletion-plan',
-            slug: 'deletion-plan',
-            revision: 1,
-            lifecycle: 'draft',
-            goal: 'Delete safely',
-            description: 'Deletion fixture',
-            sourceHash: 'source',
-            planPath: '/plans/deletion-plan.yaml',
-            lastValidProjectedAt: new Date(),
-            targetProjectId,
-          },
-        }),
         client.testRun.create({ data: { name: 'Deletion run', environmentId: environment.id, targetProjectId } }),
       ])
 
@@ -347,7 +327,6 @@ describe('target project service', () => {
       await expect(client.environment.count({ where: { targetProjectId } })).resolves.toBe(0)
       await expect(client.module.count({ where: { targetProjectId } })).resolves.toBe(0)
       await expect(client.testCase.count({ where: { targetProjectId } })).resolves.toBe(0)
-      await expect(client.planProjection.count({ where: { targetProjectId } })).resolves.toBe(0)
       await expect(client.testRun.count({ where: { targetProjectId } })).resolves.toBe(0)
     } finally {
       await client.$disconnect()

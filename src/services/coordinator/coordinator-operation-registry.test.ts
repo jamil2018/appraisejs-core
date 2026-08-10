@@ -10,30 +10,26 @@ describe('coordinator operation registry', () => {
   it.each([
     ['GET', ['diagnostic'], 'diagnostic'],
     ['GET', ['quality', 'plans', 'qlp_example', 'requirements'], 'quality-read'],
-    ['GET', ['plans', 'pln_example'], 'plan-read'],
-    ['GET', ['plans', 'pln_example', 'validations', 'draft', 'context'], 'plan-validations-read'],
+    ['GET', ['quality', 'assessments', 'assessment-1'], 'quality-read'],
     ['GET', ['step-definitions', 'search'], 'step-definitions-read'],
     ['POST', ['diagnostic', 'preflight'], 'diagnostic-preflight-write'],
     ['POST', ['quality', 'assessments'], 'quality-write'],
-    ['POST', ['plans', 'pln_example', 'events', 'ack'], 'plan-event-acknowledge'],
-    ['POST', ['plans', 'pln_example', 'implementation', 'validations', 'start'], 'plan-implementation-write'],
-    ['POST', ['delegations', '7aee2494-01ac-45c4-ada7-528eaba27fe1', 'revoke'], 'delegation-revoke'],
+    ['POST', ['quality', 'assessment-runs'], 'quality-write'],
     [
       'POST',
       ['step-definitions', 'drafts', '7aee2494-01ac-45c4-ada7-528eaba27fe1', 'publish'],
       'step-definitions-write',
     ],
-    ['PUT', ['plans', 'pln_example'], 'plan-revise'],
   ] satisfies Array<[CoordinatorMethod, string[], string]>)('resolves %s /%s', (method, operation, expected) => {
     expect(coordinatorOperationRegistry.resolve(method, operation)).toBe(expected)
   })
 
   it.each([
     ['GET', []],
-    ['GET', ['plans', 'pln_example', 'unknown']],
+    ['GET', ['providers']],
     ['POST', ['diagnostic']],
-    ['POST', ['plans', 'pln_example', 'events']],
-    ['PUT', ['plans']],
+    ['POST', ['unknown-surface', 'run-1']],
+    ['PUT', ['quality', 'plans', 'quality-plan-1']],
   ] satisfies Array<[CoordinatorMethod, string[]]>)('fails closed for %s /%s', (method, operation) => {
     expect(() => coordinatorOperationRegistry.resolve(method, operation)).toThrow('Coordinator API operation not found')
   })
@@ -41,8 +37,8 @@ describe('coordinator operation registry', () => {
   it('rejects duplicate method and path patterns', () => {
     expect(() =>
       createCoordinatorOperationRegistry([
-        { id: 'first', method: 'GET', pattern: ['plans'] },
-        { id: 'second', method: 'GET', pattern: ['plans'] },
+        { id: 'first', method: 'GET', pattern: ['quality'] },
+        { id: 'second', method: 'GET', pattern: ['quality'] },
       ]),
     ).toThrow('Duplicate coordinator operation pattern')
   })

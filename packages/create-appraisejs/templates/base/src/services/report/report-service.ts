@@ -17,6 +17,7 @@ import type { ReportDetailWithRelations, ReportWithRelations } from '@/types/rep
 import {
   createTestRunArtifactAccess,
   createTestRunArtifactContext,
+  readTestRunArtifactText,
 } from '@/services/test-run/test-run-artifact-context'
 
 export type StoreReportOutcome =
@@ -425,7 +426,7 @@ export async function storeReportFromFileService(
     }
 
     const managedReportText = testRun.runtimeCapsule
-      ? await createTestRunArtifactAccess(createTestRunArtifactContext(appraiseRoot), client).readText({
+      ? await readTestRunArtifactText(createTestRunArtifactAccess(createTestRunArtifactContext(appraiseRoot), client), {
           runId: testRunId,
           kind: 'report',
         })

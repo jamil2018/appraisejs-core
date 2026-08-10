@@ -1,4 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { createHash } from 'node:crypto'
+
+import { canonicalContractJson } from '@/lib/catalog-contracts'
+import { createCustomExtensionPolicy } from '@/lib/validation-ast/extension-policy'
 
 import {
   answerQualityRequirementQueries,
@@ -7,6 +11,8 @@ import {
   compileQualityValidations,
   createQualityAssessment,
   decideQualityAssessment,
+  listQualityAssessments,
+  listQualityPlans,
   publishQualityValidations,
   proposeQualityValidationDesign,
   readQualityAssessment,
@@ -18,18 +24,188 @@ type FakeRecord = Record<string, unknown> & { id: string }
 type FakeWhere = Record<string, unknown>
 type FakeWriteArgs<TData extends Record<string, unknown> = Record<string, unknown>> = { data: TData }
 type FakeWhereArgs<TWhere extends FakeWhere = FakeWhere> = { where: TWhere }
+type QualityDesignClient = NonNullable<Parameters<typeof submitQualityRequirementSource>[1]>
 type FakeUpdateArgs<
   TWhere extends FakeWhere = FakeWhere,
   TData extends Record<string, unknown> = Record<string, unknown>,
 > = FakeWhereArgs<TWhere> & FakeWriteArgs<TData>
 
+type FakeQualityPlan = FakeRecord & {
+  targetProjectId: string
+  title: string
+  description: string | null
+}
+type FakeRequirementSnapshot = FakeRecord & {
+  qualityPlanRevisionId: string
+  externalRef: string | null
+  text: string
+  kind: string
+  contentHash: string
+}
+type FakeObligation = FakeRecord & {
+  qualityPlanRevisionId: string
+  requirementSnapshotId: string
+  title: string
+  intent: string
+  assertionScopeJson: string
+  minimumAssurance: string
+  limitations: string | null
+  contentHash: string
+}
+type FakeQuery = FakeRecord & {
+  qualityPlanRevisionId: string
+  prompt: string
+  status: 'BLOCKING' | 'DEFERRED' | 'ACCEPTED_ASSUMPTION' | 'ANSWERED'
+  answer: string | null
+  rationale: string | null
+}
+type FakeValidationVersion = FakeRecord & {
+  qualityPlanRevisionId: string
+  validationIdentity: string
+  version: number
+  status: string
+  reuseOutcome: string | null
+  canonicalAstJson: string
+  canonicalHash: string
+  realizationJson?: string | null
+  realizationHash?: string | null
+  compilationHash?: string | null
+  scenarioApprovedAt?: Date | null
+  scenarioApprovedBy?: string | null
+  scenarioApprovalHash?: string | null
+}
+type FakeRevision = FakeRecord & {
+  targetProjectId: string
+  qualityPlanId: string
+  revision: number
+  status: string
+  approvedAt: Date | null
+  contentHash: string
+  sourceSpecification: string
+  requirementGraphJson: string
+}
+type FakeEvaluationSubject = FakeRecord & {
+  subjectDigest: string
+  subjectKind: string
+  authority: string
+  metadataJson: string | null
+}
+type FakeAssessment = FakeRecord & {
+  targetProjectId: string
+  qualityPlanId: string
+  qualityPlanRevisionId: string
+  evaluationSubjectRevisionId: string
+  status: string
+  alignment: string
+  observedAssurance: string | null
+  baselineAssessmentId: string | null
+  evidenceReceipts: unknown[]
+}
+type FakeAssessmentDecision = FakeRecord & {
+  assessmentId: string
+  decision: string
+  rationale: string
+  decidedBy: string
+  decidedAt: Date
+  decisionHash: string
+}
+
 vi.mock('@/services/target-project/target-project-service', () => ({
   resolveTargetProject: vi.fn(async () => ({
     id: 'target-1',
-    fingerprint: 'sha256:target',
+    fingerprint: `sha256:${'a'.repeat(64)}`,
     canonicalPath: '/tmp/target',
   })),
 }))
+
+vi.mock('@/services/coordinator/quality-validation-publication-service', () => ({
+  publishQualityValidationRuntime: vi.fn(async () => undefined),
+}))
+
+const hash = (value: unknown) => `sha256:${createHash('sha256').update(canonicalContractJson(value)).digest('hex')}`
+
+function sealedRuntimePublication() {
+  const h = (value: string) => `sha256:${value.repeat(64).slice(0, 64)}`
+  const receiptHash = h('5')
+  const publicationId = `astpub_${receiptHash.slice('sha256:'.length)}`
+  const invocation = {
+    step: { id: 'step-checkout', version: '1.0.0', definitionHash: h('4') },
+    inputs: {},
+    presentation: { keyword: 'Given' as const, description: 'checkout is ready' },
+  }
+  const gherkin = ['Scenario: checkout is ready\n  Given checkout is ready']
+  const compilerReceipt = {
+    schemaVersion: '1' as const,
+    catalogHash: h('1'),
+    locatorGraphHash: h('2'),
+    environments: ['env-local'],
+    browsers: ['chromium'],
+    runtimes: ['node'],
+  }
+  const runtimeInput = {
+    schemaVersion: '2' as const,
+    targetProjectId: 'target-1',
+    targetFingerprint: h('a'),
+    astId: 'quality-validation',
+    astHash: h('b'),
+    contextHash: h('c'),
+    previewHash: h('d'),
+    receiptHash,
+    compilerReceipt: { ...compilerReceipt, contentHash: hash(compilerReceipt) },
+    extensionPolicy: createCustomExtensionPolicy({
+      projectId: 'target-1',
+      projectFingerprint: h('a'),
+      capabilityImports: {},
+    }),
+    rootInvocations: [{ caseId: 'case-checkout', stepId: 'case-checkout-step', invocation }],
+    stepDefinitions: [invocation.step],
+    locators: [],
+    extensions: [],
+    matrix: [{ browser: 'chromium', environment: 'env-local' }],
+    expected: {
+      scenarios: [{ scenarioId: 'scenario-checkout', caseId: 'case-checkout', stepIds: ['case-checkout-step'] }],
+      scenarioCount: 1,
+    },
+    gherkinHash: hash(gherkin),
+  }
+  const node = {
+    id: 'quality-validation',
+    testCaseIds: ['case-checkout'],
+    appraiseArtifacts: {
+      modules: [{ id: 'module-checkout', name: 'Checkout' }],
+      locatorGroups: [],
+      testSuites: [
+        { id: 'suite-checkout', name: 'Checkout', moduleId: 'module-checkout', testCaseIds: ['case-checkout'] },
+      ],
+      testCases: [
+        {
+          id: 'case-checkout',
+          title: 'Checkout',
+          description: 'Checkout succeeds.',
+          steps: [
+            { id: 'case-checkout-step', order: 1, label: 'ready', gherkinStep: 'Given checkout is ready', invocation },
+          ],
+        },
+      ],
+      locators: [],
+    },
+    astProvenance: {
+      schemaVersion: '2' as const,
+      astHash: h('b'),
+      executionAuthority: 'reviewed_publication' as const,
+      publishOperationId: publicationId,
+      receiptHash,
+      runtimeInputHash: hash(runtimeInput),
+    },
+    matrix: runtimeInput.matrix,
+  }
+  return {
+    idempotencyKey: 'quality-publication-fixture',
+    projection: { validationNode: node, gherkin },
+    validationProjection: { validations: [node], gherkin },
+    runtimeInput,
+  }
+}
 
 describe('quality design coordinator service', () => {
   let client: ReturnType<typeof createWorkingFakeClient>
@@ -57,6 +233,23 @@ describe('quality design coordinator service', () => {
     await expect(readQualityRequirementGraph({ qualityPlanId: result.qualityPlan.id }, client)).resolves.toMatchObject({
       revision: { id: result.revision.id, contentHash: result.revision.contentHash },
     })
+  })
+
+  it('lists Quality Plans and assessments within the requested project scope', async () => {
+    const qualityPlan = await submitQualityRequirementSource(
+      {
+        target: 'target-1',
+        idempotencyKey: 'list-source',
+        source: { title: 'Scoped quality', requirements: [{ text: 'A scoped requirement.' }] },
+      },
+      client,
+    )
+
+    const assessments = await listQualityAssessments({ targetProjectId: 'target-1' }, client)
+    const plans = await listQualityPlans({ targetProjectId: 'target-1' }, client)
+
+    expect(plans).toMatchObject([{ qualityPlan: { id: qualityPlan.qualityPlan.id, title: 'Scoped quality' } }])
+    expect(assessments).toEqual([])
   })
 
   it('blocks approval when source analysis has unresolved blocking queries', async () => {
@@ -271,10 +464,7 @@ describe('quality design coordinator service', () => {
         revisionId: requirements.revision.id,
         expectedDesignHash: proposal.designHash!,
         realization: {
-          default: {
-            stepInvocations: [{ stepId: 'step-checkout', stepVersion: '1.0.0', params: { expected: 'receipt' } }],
-            environmentRefs: ['env-local'],
-          },
+          default: sealedRuntimePublication(),
         },
       },
       client,
@@ -306,6 +496,7 @@ describe('quality design coordinator service', () => {
 
     expect(assessment.readiness.ready).toBe(true)
     expect(assessment.readiness.blockers).toEqual([])
+    expect(assessment.assessment.status).toBe('READY')
     expect(assessment.evidenceReceiptCount).toBe(0)
 
     await expect(
@@ -423,7 +614,7 @@ describe('quality design coordinator service', () => {
         qualityPlanId: requirements.qualityPlan.id,
         revisionId: requirements.revision.id,
         expectedDesignHash: proposal.designHash!,
-        realization: { default: { stepInvocations: [] } },
+        realization: { default: sealedRuntimePublication() },
       },
       client,
     )
@@ -459,26 +650,30 @@ describe('quality design coordinator service', () => {
 })
 
 function createWorkingFakeClient() {
-  const revisions: FakeRecord[] = []
-  const plans: FakeRecord[] = []
-  const requirements: FakeRecord[] = []
-  const obligations: FakeRecord[] = []
-  const queries: FakeRecord[] = []
-  const validationVersions: FakeRecord[] = []
+  const revisions: FakeRevision[] = []
+  const plans: FakeQualityPlan[] = []
+  const requirements: FakeRequirementSnapshot[] = []
+  const obligations: FakeObligation[] = []
+  const queries: FakeQuery[] = []
+  const validationVersions: FakeValidationVersion[] = []
   const obligationLinks: FakeRecord[] = []
-  const subjects: FakeRecord[] = []
-  const assessments: FakeRecord[] = []
-  const decisions: FakeRecord[] = []
+  const subjects: FakeEvaluationSubject[] = []
+  const assessments: FakeAssessment[] = []
+  const decisions: FakeAssessmentDecision[] = []
   let id = 0
   const nextId = (prefix: string) => `${prefix}-${++id}`
-  const hydrate = (revision: FakeRecord) => ({
-    ...revision,
-    qualityPlan: plans.find(plan => plan.id === revision.qualityPlanId),
-    requirementSnapshots: requirements.filter(item => item.qualityPlanRevisionId === revision.id),
-    obligations: obligations.filter(item => item.qualityPlanRevisionId === revision.id),
-    queries: queries.filter(item => item.qualityPlanRevisionId === revision.id),
-    validationVersions: validationVersions.filter(item => item.qualityPlanRevisionId === revision.id),
-  })
+  const hydrate = (revision: FakeRevision) => {
+    const qualityPlan = plans.find(plan => plan.id === revision.qualityPlanId)
+    if (!qualityPlan) throw new Error(`Missing fake Quality Plan ${revision.qualityPlanId}`)
+    return {
+      ...revision,
+      qualityPlan,
+      requirementSnapshots: requirements.filter(item => item.qualityPlanRevisionId === revision.id),
+      obligations: obligations.filter(item => item.qualityPlanRevisionId === revision.id),
+      queries: queries.filter(item => item.qualityPlanRevisionId === revision.id),
+      validationVersions: validationVersions.filter(item => item.qualityPlanRevisionId === revision.id),
+    }
+  }
   const fake = {
     qualityPlanRevision: {
       findFirst: vi.fn(async ({ where }: FakeWhereArgs) => {
@@ -492,9 +687,20 @@ function createWorkingFakeClient() {
         return found ? hydrate(found) : null
       }),
       create: vi.fn(async ({ data }: FakeWriteArgs) => {
-        const revision = { id: nextId('revision'), status: 'DRAFT', approvedAt: null, ...data }
+        const revision: FakeRevision = {
+          id: nextId('revision'),
+          targetProjectId: 'target-1',
+          qualityPlanId: 'quality-plan-0',
+          revision: 1,
+          status: 'DRAFT',
+          approvedAt: null,
+          contentHash: 'sha256:uninitialized',
+          sourceSpecification: '{}',
+          requirementGraphJson: '{}',
+          ...data,
+        }
         revisions.push(revision)
-        return revision
+        return hydrate(revision)
       }),
       update: vi.fn(async ({ where, data }: FakeUpdateArgs<{ id: string }>) => {
         const revision = revisions.find(item => item.id === where.id)
@@ -504,29 +710,95 @@ function createWorkingFakeClient() {
       }),
     },
     qualityPlan: {
+      findFirst: vi.fn(
+        async ({ where }: FakeWhereArgs) => plans.find(plan => !where.id || plan.id === where.id) ?? null,
+      ),
+      findMany: vi.fn(async ({ where }: FakeWhereArgs) =>
+        plans.filter(plan => !where.targetProjectId || plan.targetProjectId === where.targetProjectId),
+      ),
       create: vi.fn(async ({ data }: FakeWriteArgs) => {
-        const plan = { id: nextId('quality-plan'), description: null, ...data }
+        const plan: FakeQualityPlan = {
+          id: nextId('quality-plan'),
+          targetProjectId: 'target-1',
+          title: 'Untitled Quality Plan',
+          description: null,
+          ...data,
+        }
         plans.push(plan)
+        return plan
+      }),
+      update: vi.fn(async ({ where, data }: FakeUpdateArgs<{ id: string }>) => {
+        const plan = plans.find(item => item.id === where.id)
+        if (!plan) throw new Error(`Missing fake Quality Plan ${where.id}`)
+        Object.assign(plan, data)
         return plan
       }),
     },
     requirementSnapshot: {
+      findFirst: vi.fn(
+        async ({ where }: FakeWhereArgs) => requirements.find(item => !where.id || item.id === where.id) ?? null,
+      ),
       create: vi.fn(async ({ data }: FakeWriteArgs) => {
-        const snapshot = { id: nextId('requirement'), ...data }
+        const snapshot: FakeRequirementSnapshot = {
+          id: nextId('requirement'),
+          qualityPlanRevisionId: 'revision-0',
+          externalRef: null,
+          text: '',
+          kind: 'REQUIREMENT',
+          contentHash: 'sha256:uninitialized',
+          ...data,
+        }
         requirements.push(snapshot)
+        return snapshot
+      }),
+      update: vi.fn(async ({ where, data }: FakeUpdateArgs<{ id: string }>) => {
+        const snapshot = requirements.find(item => item.id === where.id)
+        if (!snapshot) throw new Error(`Missing fake requirement ${where.id}`)
+        Object.assign(snapshot, data)
         return snapshot
       }),
     },
     qualityObligationRevision: {
+      findFirst: vi.fn(
+        async ({ where }: FakeWhereArgs) => obligations.find(item => !where.id || item.id === where.id) ?? null,
+      ),
       create: vi.fn(async ({ data }: FakeWriteArgs) => {
-        const obligation = { id: nextId('obligation'), ...data }
+        const obligation: FakeObligation = {
+          id: nextId('obligation'),
+          qualityPlanRevisionId: 'revision-0',
+          requirementSnapshotId: 'requirement-0',
+          title: '',
+          intent: '',
+          assertionScopeJson: '{}',
+          minimumAssurance: 'STANDARD',
+          limitations: null,
+          contentHash: 'sha256:uninitialized',
+          ...data,
+        }
         obligations.push(obligation)
+        return obligation
+      }),
+      update: vi.fn(async ({ where, data }: FakeUpdateArgs<{ id: string }>) => {
+        const obligation = obligations.find(item => item.id === where.id)
+        if (!obligation) throw new Error(`Missing fake obligation ${where.id}`)
+        Object.assign(obligation, data)
         return obligation
       }),
     },
     requirementQuery: {
+      findFirst: vi.fn(
+        async ({ where }: FakeWhereArgs) => queries.find(item => !where.id || item.id === where.id) ?? null,
+      ),
       create: vi.fn(async ({ data }: FakeWriteArgs) => {
-        const query = { id: nextId('query'), answer: null, rationale: null, ...data }
+        const query: FakeQuery = {
+          id: nextId('query'),
+          qualityPlanRevisionId: 'revision-0',
+          prompt: '',
+          status: 'BLOCKING',
+          answer: null,
+          rationale: null,
+          ...data,
+        }
         queries.push(query)
         return query
       }),
@@ -549,7 +821,17 @@ function createWorkingFakeClient() {
         )
       }),
       create: vi.fn(async ({ data }: FakeWriteArgs) => {
-        const version = { id: nextId('validation'), reuseOutcome: null, ...data }
+        const version: FakeValidationVersion = {
+          id: nextId('validation'),
+          qualityPlanRevisionId: 'revision-0',
+          validationIdentity: 'validation-identity-0',
+          version: 1,
+          status: 'DRAFT',
+          reuseOutcome: null,
+          canonicalAstJson: '{}',
+          canonicalHash: 'sha256:uninitialized',
+          ...data,
+        }
         validationVersions.push(version)
         return version
       }),
@@ -561,11 +843,13 @@ function createWorkingFakeClient() {
       }),
     },
     obligationValidationVersion: {
+      findFirst: vi.fn(),
       create: vi.fn(async ({ data }: FakeWriteArgs) => {
         const link = { id: nextId('obligation-link'), ...data }
         obligationLinks.push(link)
         return link
       }),
+      update: vi.fn(),
     },
     evaluationSubjectRevision: {
       findFirst: vi.fn(
@@ -573,13 +857,25 @@ function createWorkingFakeClient() {
           subjects.find(item => item.subjectDigest === where.subjectDigest) ?? null,
       ),
       create: vi.fn(async ({ data }: FakeWriteArgs) => {
-        const subject = { id: nextId('subject'), metadataJson: null, ...data }
+        const subject: FakeEvaluationSubject = {
+          id: nextId('subject'),
+          subjectDigest: 'sha256:subject-0',
+          subjectKind: 'ARTIFACT',
+          authority: 'test',
+          metadataJson: null,
+          ...data,
+        }
         subjects.push(subject)
         return subject
       }),
       update: vi.fn(),
     },
     assessment: {
+      findMany: vi.fn(async ({ where }: FakeWhereArgs) =>
+        assessments
+          .filter(assessment => !where.targetProjectId || assessment.targetProjectId === where.targetProjectId)
+          .map(hydrateAssessment),
+      ),
       findFirst: vi.fn(async ({ where }: FakeWhereArgs) => {
         const assessment = assessments.find(
           item =>
@@ -592,11 +888,16 @@ function createWorkingFakeClient() {
         return assessment ? hydrateAssessment(assessment) : null
       }),
       create: vi.fn(async ({ data }: FakeWriteArgs) => {
-        const assessment = {
+        const assessment: FakeAssessment = {
           id: nextId('assessment'),
+          targetProjectId: 'target-1',
+          qualityPlanId: 'quality-plan-0',
+          qualityPlanRevisionId: 'revision-0',
+          evaluationSubjectRevisionId: 'subject-0',
           status: 'CREATED',
           alignment: 'CURRENT',
           observedAssurance: null,
+          baselineAssessmentId: null,
           evidenceReceipts: [],
           ...data,
         }
@@ -613,24 +914,41 @@ function createWorkingFakeClient() {
     assessmentDecision: {
       findFirst: vi.fn(),
       create: vi.fn(async ({ data }: FakeWriteArgs) => {
-        const decision = { id: nextId('decision'), decidedAt: new Date(), ...data }
+        const decision: FakeAssessmentDecision = {
+          id: nextId('decision'),
+          assessmentId: 'assessment-0',
+          decision: 'ACCEPTED',
+          rationale: '',
+          decidedBy: 'reviewer',
+          decidedAt: new Date(),
+          decisionHash: 'sha256:uninitialized',
+          ...data,
+        }
         decisions.push(decision)
         return decision
       }),
       update: vi.fn(),
     },
-    $transaction: vi.fn(async (operation: ((transaction: typeof fake) => unknown) | Promise<unknown>[]) =>
-      typeof operation === 'function' ? operation(fake) : Promise.all(operation),
-    ),
+    async $transaction<T>(operation: ((transaction: QualityDesignClient) => Promise<T>) | Promise<T>[]): Promise<T> {
+      return typeof operation === 'function'
+        ? operation(fake as QualityDesignClient)
+        : Promise.all(operation).then(values => values[0]!)
+    },
   }
-  function hydrateAssessment(assessment: FakeRecord) {
+  function hydrateAssessment(assessment: FakeAssessment) {
     const revision = revisions.find(item => item.id === assessment.qualityPlanRevisionId)
     if (!revision) throw new Error(`Missing fake revision ${String(assessment.qualityPlanRevisionId)}`)
+    const qualityPlan = plans.find(plan => plan.id === assessment.qualityPlanId)
+    if (!qualityPlan) throw new Error(`Missing fake Quality Plan ${assessment.qualityPlanId}`)
+    const evaluationSubjectRevision = subjects.find(subject => subject.id === assessment.evaluationSubjectRevisionId)
+    if (!evaluationSubjectRevision) {
+      throw new Error(`Missing fake evaluation subject ${assessment.evaluationSubjectRevisionId}`)
+    }
     return {
       ...assessment,
-      qualityPlan: plans.find(plan => plan.id === assessment.qualityPlanId),
+      qualityPlan,
       qualityPlanRevision: hydrate(revision),
-      evaluationSubjectRevision: subjects.find(subject => subject.id === assessment.evaluationSubjectRevisionId),
+      evaluationSubjectRevision,
       evidenceReceipts: assessment.evidenceReceipts ?? [],
       decisions: decisions.filter(decision => decision.assessmentId === assessment.id),
     }

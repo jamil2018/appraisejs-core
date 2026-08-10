@@ -31,7 +31,7 @@ type CapsuleBlobReference = {
 type CapsuleRowIdentity = {
   targetProjectId: string
   validationHash: string
-  publicationId: string | null
+  qualityPublicationId: string | null
   capsuleHash: string
   manifestHash: string
 }
@@ -70,7 +70,7 @@ export class RuntimeCapsuleRepository {
     projectId: string
     testRunId: string
     validationHash: string
-    publicationId?: string
+    qualityPublicationId?: string
     capsuleHash: string
     manifestHash: string
     manifestJson: string
@@ -87,7 +87,7 @@ export class RuntimeCapsuleRepository {
     input: {
       projectId: string
       validationHash: string
-      publicationId?: string
+      qualityPublicationId?: string
       capsuleHash: string
       manifestHash: string
     },
@@ -95,7 +95,7 @@ export class RuntimeCapsuleRepository {
     return (
       row.targetProjectId === input.projectId &&
       row.validationHash === input.validationHash &&
-      (row.publicationId ?? undefined) === input.publicationId &&
+      (row.qualityPublicationId ?? undefined) === input.qualityPublicationId &&
       row.capsuleHash === input.capsuleHash &&
       row.manifestHash === input.manifestHash
     )
@@ -106,7 +106,7 @@ export class RuntimeCapsuleRepository {
     input: {
       projectId: string
       validationHash: string
-      publicationId?: string
+      qualityPublicationId?: string
       capsuleHash: string
       manifestHash: string
     },
@@ -120,7 +120,7 @@ export class RuntimeCapsuleRepository {
     projectId: string
     testRunId: string
     validationHash: string
-    publicationId?: string
+    qualityPublicationId?: string
     capsuleHash: string
     manifestHash: string
     manifestJson: string
@@ -134,7 +134,7 @@ export class RuntimeCapsuleRepository {
           targetProjectId: input.projectId,
           testRunId: input.testRunId,
           validationHash: input.validationHash,
-          ...(input.publicationId ? { publicationId: input.publicationId } : {}),
+          ...(input.qualityPublicationId ? { qualityPublicationId: input.qualityPublicationId } : {}),
           capsuleHash: input.capsuleHash,
           manifestHash: input.manifestHash,
           manifestJson: input.manifestJson,
@@ -188,7 +188,7 @@ export class RuntimeCapsuleRepository {
     testRunId: string
     runId: string
     validationHash: string
-    publicationId?: string
+    qualityPublicationId?: string
     manifest: RuntimeCapsuleManifest
     assertLeaseOwned?: () => Promise<void>
   }) {

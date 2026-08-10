@@ -37,7 +37,7 @@ export const coordinatorErrorEnvelopeSchema = z
     operation: z
       .object({
         name: z.string().trim().min(1).max(300),
-        planId: z.string().trim().min(1).max(300).optional(),
+        qualityPlanId: z.string().trim().min(1).max(300).optional(),
         idempotencyKey: z.string().trim().min(1).max(1_000).optional(),
       })
       .strict(),

@@ -1,16 +1,19 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
+import type { ToolAnnotations } from '@modelcontextprotocol/sdk/types.js'
 import { z } from 'zod'
 import type { CoordinatorOptions as McpOptions } from '../coordinator-client.js'
 import { CoordinatorRequestError, toolError } from './coordinator-call.js'
-import type { PlanSnapshot } from './shared.js'
+import {
+  canonicalMcpResourceNames,
+  canonicalMcpToolNames,
+  mcpResourceAnnotations,
+  mcpToolAnnotations,
+  type McpResourceAnnotations,
+} from './contract.js'
 import { registerResourcesOperations } from './domains/resources.js'
 import { registerProjectOperations } from './domains/project.js'
-import { registerValidationOperations } from './domains/validation.js'
-import { registerPlanningOperations } from './domains/planning.js'
 import { registerDiagnosticOperations } from './domains/diagnostic.js'
 import { registerRuntimeOperations } from './domains/runtime.js'
-import { registerBaselineOperations } from './domains/baseline.js'
-import { registerImplementationOperations } from './domains/implementation.js'
 import { registerStepDefinitionOperations } from './domains/step-definitions.js'
 import { registerQualityDesignOperations } from './domains/quality-design.js'
 
@@ -18,7 +21,6 @@ export type McpRegistryContext = {
   server: McpServer
   api: Awaited<ReturnType<typeof import('../coordinator-client.js').createCoordinatorClient>>
   options: McpOptions
-  readSnapshot(planId: string): Promise<PlanSnapshot>
 }
 
 export type McpContractDefinition = {
@@ -27,6 +29,7 @@ export type McpContractDefinition = {
   description?: string
   uri?: string
   inputSchema?: unknown
+  annotations?: ToolAnnotations | McpResourceAnnotations
 }
 
 const contracts = new WeakMap<McpServer, readonly McpContractDefinition[]>()
@@ -48,24 +51,34 @@ export function withStructuredCoordinatorErrors(handler: ToolHandler): ToolHandl
 function registrationTarget(server: McpServer, definitions: McpContractDefinition[]): McpServer {
   const names = new Set<string>()
   return {
-    registerTool(name: string, config: { description?: string; inputSchema?: z.ZodRawShape }, handler: unknown) {
+    registerTool(
+      name: string,
+      config: { description?: string; inputSchema?: z.ZodRawShape; annotations?: ToolAnnotations },
+      handler: unknown,
+    ) {
+      if (!mcpToolAnnotations(name)) throw new Error(`Non-canonical MCP tool registration attempted: ${name}`)
       if (!name || names.has(`tool:${name}`)) throw new Error(`Duplicate or invalid MCP tool definition: ${name}`)
+      if (typeof handler !== 'function') throw new Error(`MCP tool ${name} does not have an implemented handler.`)
       names.add(`tool:${name}`)
+      const annotations = mcpToolAnnotations(name)!
       definitions.push({
         kind: 'tool',
         name,
         ...(config.description ? { description: config.description } : {}),
         inputSchema: z.toJSONSchema(z.object(config.inputSchema ?? {})),
+        annotations,
       })
       return server.registerTool(
         name,
-        config as never,
+        { ...config, annotations } as never,
         withStructuredCoordinatorErrors(handler as ToolHandler) as never,
       )
     },
     registerResource(name: string, uri: unknown, config: { description?: string }, handler: unknown) {
+      if (!mcpResourceAnnotations(name)) throw new Error(`Non-canonical MCP resource registration attempted: ${name}`)
       if (!name || names.has(`resource:${name}`))
         throw new Error(`Duplicate or invalid MCP resource definition: ${name}`)
+      if (typeof handler !== 'function') throw new Error(`MCP resource ${name} does not have an implemented handler.`)
       names.add(`resource:${name}`)
       const normalizedUri =
         typeof uri === 'string' ? uri : String((uri as { uriTemplate?: unknown }).uriTemplate ?? uri)
@@ -74,6 +87,7 @@ function registrationTarget(server: McpServer, definitions: McpContractDefinitio
         name,
         ...(config.description ? { description: config.description } : {}),
         uri: normalizedUri,
+        annotations: mcpResourceAnnotations(name)!,
       })
       return server.registerResource(name, uri as never, config, handler as never)
     },
@@ -83,12 +97,8 @@ function registrationTarget(server: McpServer, definitions: McpContractDefinitio
 const domainRegistries = Object.freeze([
   registerResourcesOperations,
   registerProjectOperations,
-  registerValidationOperations,
-  registerPlanningOperations,
   registerDiagnosticOperations,
   registerRuntimeOperations,
-  registerBaselineOperations,
-  registerImplementationOperations,
   registerStepDefinitionOperations,
   registerQualityDesignOperations,
 ] as const)
@@ -105,15 +115,36 @@ export function assertUniqueMcpDefinitions(definitions: readonly McpContractDefi
   }
 }
 
+export function assertCanonicalMcpDefinitions(definitions: readonly McpContractDefinition[]): void {
+  assertUniqueMcpDefinitions(definitions)
+  for (const definition of definitions)
+    if (!definition.annotations)
+      throw new Error(`Missing MCP annotations for definition: ${definition.kind}:${definition.name}`)
+  const actualTools = definitions
+    .filter(definition => definition.kind === 'tool')
+    .map(definition => definition.name)
+    .sort()
+  const actualResources = definitions
+    .filter(definition => definition.kind === 'resource')
+    .map(definition => definition.name)
+    .sort()
+  const expectedTools = [...canonicalMcpToolNames].sort()
+  const expectedResources = [...canonicalMcpResourceNames].sort()
+  if (JSON.stringify(actualTools) !== JSON.stringify(expectedTools)) {
+    throw new Error(`MCP tool contract does not match the canonical allowlist.`)
+  }
+  if (JSON.stringify(actualResources) !== JSON.stringify(expectedResources)) {
+    throw new Error(`MCP resource contract does not match the canonical allowlist.`)
+  }
+}
+
 export function registerAppraiseOperations(context: McpRegistryContext): readonly McpContractDefinition[] {
   const definitions: McpContractDefinition[] = []
   const registryContext = { ...context, server: registrationTarget(context.server, definitions) }
   for (const register of domainRegistries) register(registryContext)
-  assertUniqueMcpDefinitions(definitions)
+  assertCanonicalMcpDefinitions(definitions)
   const immutableDefinitions = Object.freeze(definitions.map(definition => Object.freeze(definition)))
-  const contractKey = definitions.some(definition => definition.name === 'provider_list')
-    ? 'provider-native'
-    : 'default'
+  const contractKey = 'default'
   const canonical = canonicalContracts.get(contractKey)
   if (canonical && JSON.stringify(canonical) !== JSON.stringify(immutableDefinitions)) {
     throw new Error(`MCP ${contractKey} definitions changed within the running process.`)

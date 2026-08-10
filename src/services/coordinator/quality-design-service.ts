@@ -1,5 +1,8 @@
 import prisma from '@/config/db-config'
+import { canonicalContractJson } from '@/lib/catalog-contracts'
 import { hashCanonical, hashQualityPlanRevision, canApproveRequirements } from '@/lib/quality-design/state'
+import { validationArtifactSchema } from '@/lib/quality-design/validation-artifact-contract'
+import { publishQualityValidationRuntime } from '@/services/coordinator/quality-validation-publication-service'
 import { ServiceError } from '@/services/shared/errors'
 import { resolveTargetProject } from '@/services/target-project/target-project-service'
 
@@ -56,11 +59,13 @@ type QualityRevisionRecord = {
     scenarioApprovedAt?: Date | null
     scenarioApprovedBy?: string | null
     scenarioApprovalHash?: string | null
+    publication?: { runtimeInputJson: string } | null
   }>
 }
 
 type Delegate<T> = {
   findFirst(args: unknown): Promise<T | null>
+  findMany?(args: unknown): Promise<T[]>
   create(args: unknown): Promise<T>
   update(args: unknown): Promise<T>
 }
@@ -99,6 +104,12 @@ type PrismaLike = {
     }
     qualityPlan: { id: string; targetProjectId: string; title: string; description: string | null }
     qualityPlanRevision: QualityRevisionRecord
+    baselineAssessment?: {
+      id: string
+      status: string
+      evidenceReceipts: unknown[]
+      decisions: Array<{ decision: string; decisionHash: string }>
+    } | null
     evidenceReceipts: unknown[]
     decisions: Array<{
       id: string
@@ -694,6 +705,8 @@ export async function compileQualityValidations(
         throw new ServiceError('Only approved scenario validation versions can be compiled.', 'CONFLICT')
       }
       const realization = realizationByValidationId.get(version.id) ?? null
+      const envelope = runtimePublicationEnvelope(realization)
+      validationArtifactSchema.parse(envelope.validationProjection)
       const realizationHash = compileRealizationHash(version.id, realization)
       await transaction.validationVersion.update({
         where: { id: version.id },
@@ -751,6 +764,57 @@ function realizationForEveryVersion(realization: unknown, versions: QualityRevis
   return new Map(versions.map(version => [version.id, realization]))
 }
 
+type RuntimePublicationEnvelope = {
+  idempotencyKey: string
+  projection: unknown
+  validationProjection: unknown
+  runtimeInput: Record<string, unknown>
+  reviewContent?: string
+  extensionReviews?: Array<{
+    extensionId: string
+    version: string
+    sourceHash: string
+    compiledHash: string
+    artifactHash: string
+    artifactJson: string
+  }>
+}
+
+// fallow-ignore-next-line complexity
+function runtimePublicationEnvelope(realization: unknown): RuntimePublicationEnvelope {
+  const value =
+    realization && typeof realization === 'object' && !Array.isArray(realization)
+      ? ((realization as { runtimePublication?: unknown }).runtimePublication ?? realization)
+      : undefined
+  if (!value || typeof value !== 'object' || Array.isArray(value))
+    throw new ServiceError(
+      'Quality validation publication requires a sealed runtime publication envelope.',
+      'VALIDATION',
+    )
+  const record = value as Record<string, unknown>
+  const runtimeInput = record.runtimeInput
+  if (
+    typeof record.idempotencyKey !== 'string' ||
+    !record.idempotencyKey ||
+    record.projection === undefined ||
+    record.validationProjection === undefined ||
+    !runtimeInput ||
+    typeof runtimeInput !== 'object' ||
+    Array.isArray(runtimeInput)
+  )
+    throw new ServiceError('Quality runtime publication envelope is incomplete.', 'VALIDATION')
+  return {
+    idempotencyKey: record.idempotencyKey,
+    projection: record.projection,
+    validationProjection: record.validationProjection,
+    runtimeInput: runtimeInput as Record<string, unknown>,
+    reviewContent: typeof record.reviewContent === 'string' ? record.reviewContent : undefined,
+    extensionReviews: Array.isArray(record.extensionReviews)
+      ? (record.extensionReviews as RuntimePublicationEnvelope['extensionReviews'])
+      : [],
+  }
+}
+
 export async function publishQualityValidations(
   input: { qualityPlanId: string; revisionId: string; validationVersionIds: string[]; expectedCompilationHash: string },
   client: PrismaLike = qualityDb,
@@ -774,6 +838,34 @@ export async function publishQualityValidations(
   const revisionCompilationHash = compilationHash(revision.validationVersions)
   if (revisionCompilationHash !== input.expectedCompilationHash) {
     throw new ServiceError('Validation compilation hash is stale.', 'CONFLICT')
+  }
+  const target = await resolveTargetProject(revision.targetProjectId)
+  for (const version of selectedVersions) {
+    const envelope = runtimePublicationEnvelope(JSON.parse(version.realizationJson ?? 'null'))
+    const runtime = envelope.runtimeInput
+    const requiredHashes = ['astId', 'astHash', 'contextHash', 'previewHash', 'receiptHash'] as const
+    if (requiredHashes.some(key => typeof runtime[key] !== 'string'))
+      throw new ServiceError('Quality runtime publication input is missing immutable compiler hashes.', 'VALIDATION')
+    await publishQualityValidationRuntime({
+      targetProjectId: revision.targetProjectId,
+      targetFingerprint: target.fingerprint,
+      qualityPlanRevisionId: revision.id,
+      validationVersionId: version.id,
+      idempotencyKey: envelope.idempotencyKey,
+      expectedRevisionHash: revision.contentHash,
+      validationHash: version.canonicalHash,
+      validationContent: version.canonicalAstJson,
+      reviewContent: envelope.reviewContent ?? canonicalContractJson(envelope.validationProjection),
+      astId: runtime.astId as string,
+      astHash: runtime.astHash as string,
+      contextHash: runtime.contextHash as string,
+      previewHash: runtime.previewHash as string,
+      receiptHash: runtime.receiptHash as string,
+      projection: envelope.projection,
+      validationProjection: envelope.validationProjection,
+      runtimeInput: runtime,
+      extensionReviews: envelope.extensionReviews ?? [],
+    })
   }
   await client.$transaction(
     selectedVersions.map(version =>
@@ -820,9 +912,10 @@ async function readAssessmentOrThrow(client: PrismaLike, assessmentId: string) {
           requirementSnapshots: true,
           obligations: true,
           queries: true,
-          validationVersions: true,
+          validationVersions: { include: { publication: true } },
         },
       },
+      baselineAssessment: { include: { evidenceReceipts: true, decisions: true } },
       evidenceReceipts: true,
       decisions: true,
     },
@@ -843,6 +936,29 @@ function assessmentEvidenceSetHash(assessment: Awaited<ReturnType<typeof readAss
   })
 }
 
+function evidenceReceiptPayload(receipt: unknown) {
+  const value = receipt as Record<string, unknown>
+  const text = (key: string) => (typeof value[key] === 'string' ? value[key] : null)
+  return {
+    id: text('id'),
+    validationVersionId: text('validationVersionId'),
+    resultMatrixCell: text('resultMatrixCell'),
+    assuranceLevel: text('assuranceLevel'),
+    outcome: text('outcome'),
+    runtimeInputHash: text('runtimeInputHash'),
+    environmentSnapshotHash: text('environmentSnapshotHash'),
+    browserSnapshotHash: text('browserSnapshotHash'),
+    dataProvenanceHash: text('dataProvenanceHash'),
+    outputHash: text('outputHash'),
+    reportHash: text('reportHash'),
+    logHash: text('logHash'),
+    traceHash: text('traceHash'),
+    receiptHash: text('receiptHash'),
+    sealedAt: value.sealedAt instanceof Date ? value.sealedAt : null,
+  }
+}
+
+// fallow-ignore-next-line complexity
 function assessmentPayload(assessment: Awaited<ReturnType<typeof readAssessmentOrThrow>>) {
   const validationVersions = assessment.qualityPlanRevision.validationVersions
   const published = validationVersions.filter(version => version.status === 'PUBLISHED')
@@ -884,9 +1000,31 @@ function assessmentPayload(assessment: Awaited<ReturnType<typeof readAssessmentO
       ready: blockers.length === 0,
       blockers,
       publishedValidationVersionIds: published.map(version => version.id),
+      runtimeCells: published.flatMap(version => {
+        const runtimeInput = version.publication?.runtimeInputJson
+          ? (JSON.parse(version.publication.runtimeInputJson) as {
+              matrix?: Array<{ browser: string; environment: string }>
+            })
+          : null
+        return (runtimeInput?.matrix ?? []).map(cell => ({
+          validationVersionId: version.id,
+          resultMatrixCell: `${cell.browser.toUpperCase()}:${cell.environment}`,
+          environmentId: cell.environment,
+          browserEngine: cell.browser.toUpperCase(),
+        }))
+      }),
     },
     evidenceReceiptCount: assessment.evidenceReceipts.length,
+    evidenceReceipts: assessment.evidenceReceipts.map(evidenceReceiptPayload),
     evidenceSetHash: assessmentEvidenceSetHash(assessment),
+    baseline: assessment.baselineAssessment
+      ? {
+          assessmentId: assessment.baselineAssessment.id,
+          status: assessment.baselineAssessment.status,
+          evidenceReceiptCount: assessment.baselineAssessment.evidenceReceipts.length,
+          decision: assessment.baselineAssessment.decisions[0]?.decision ?? null,
+        }
+      : null,
     decisions: assessment.decisions,
     nextRecommendedAction: blockers.length
       ? 'Resolve assessment readiness blockers before assessment_run or assessment_decide.'
@@ -985,11 +1123,59 @@ export async function createQualityAssessment(
       },
     })
   })
-  return assessmentPayload(created)
+  const payload = assessmentPayload(created)
+  if (!payload.readiness.ready || created.status !== 'CREATED') return payload
+  const ready = await client.assessment.update({
+    where: { id: created.id },
+    data: { status: 'READY' },
+    include: {
+      evaluationSubjectRevision: true,
+      qualityPlan: true,
+      qualityPlanRevision: {
+        include: {
+          qualityPlan: true,
+          requirementSnapshots: true,
+          obligations: true,
+          queries: true,
+          validationVersions: true,
+        },
+      },
+      baselineAssessment: { include: { evidenceReceipts: true, decisions: true } },
+      evidenceReceipts: true,
+      decisions: true,
+    },
+  })
+  return assessmentPayload(ready)
 }
 
 export async function readQualityAssessment(assessmentId: string, client: PrismaLike = qualityDb) {
   return assessmentPayload(await readAssessmentOrThrow(client, assessmentId))
+}
+
+/**
+ * Project-scoped read model for the Quality Plans browser. Detail payloads remain
+ * revision-authoritative so each card uses the same immutable content as review.
+ */
+export async function listQualityPlans(input: { targetProjectId: string }, client: PrismaLike = qualityDb) {
+  if (!client.qualityPlan.findMany) throw new ServiceError('Quality Plan list query is unavailable.', 'INTERNAL')
+  const plans = await client.qualityPlan.findMany({
+    where: { targetProjectId: input.targetProjectId },
+    orderBy: { updatedAt: 'desc' },
+  })
+  return Promise.all(plans.map(plan => readQualityRequirementGraph({ qualityPlanId: plan.id }, client)))
+}
+
+/**
+ * Project-scoped assessment review packets. Reusing the exact detail payload
+ * prevents the list from presenting readiness or evidence state differently.
+ */
+export async function listQualityAssessments(input: { targetProjectId: string }, client: PrismaLike = qualityDb) {
+  if (!client.assessment.findMany) throw new ServiceError('Assessment list query is unavailable.', 'INTERNAL')
+  const assessments = await client.assessment.findMany({
+    where: { targetProjectId: input.targetProjectId },
+    orderBy: { updatedAt: 'desc' },
+  })
+  return Promise.all(assessments.map(assessment => readQualityAssessment(assessment.id, client)))
 }
 
 export async function decideQualityAssessment(

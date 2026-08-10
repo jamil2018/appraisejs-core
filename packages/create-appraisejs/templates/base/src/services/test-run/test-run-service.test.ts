@@ -41,7 +41,6 @@ const {
   mockFsAccess,
   mockGenerateFeature,
   mockResolveTargetProject,
-  mockPlanProjectionFindMany,
   mockArtifactReadBytes,
   mockSpawnTraceViewerFromSnapshot,
 } = vi.hoisted(() => ({
@@ -75,7 +74,6 @@ const {
   mockFsAccess: vi.fn(),
   mockGenerateFeature: vi.fn(),
   mockResolveTargetProject: vi.fn(),
-  mockPlanProjectionFindMany: vi.fn(),
   mockArtifactReadBytes: vi.fn(),
   mockSpawnTraceViewerFromSnapshot: vi.fn(),
 }))
@@ -100,7 +98,6 @@ vi.mock('@/config/db-config', () => ({
       upsert: mockTestRunLogUpsert,
       findUnique: mockTestRunLogFindUnique,
     },
-    planProjection: { findMany: mockPlanProjectionFindMany },
   },
 }))
 
@@ -319,7 +316,6 @@ describe('testRunSchema', () => {
 describe('createTestRunFromValidatedValue', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    mockPlanProjectionFindMany.mockResolvedValue([])
     mockCreateTestRunLogger.mockResolvedValue({
       info: vi.fn(),
       error: vi.fn(),
@@ -381,64 +377,6 @@ describe('createTestRunFromValidatedValue', () => {
       prepareWorkspace: undefined,
     })
     expect(result).toEqual({ runId: 'run-1', id: 'db-1' })
-  })
-
-  // fallow-ignore-next-line code-duplication -- denial setup intentionally mirrors successful selection
-  it('denies a selected compiler review AST test case before creating a run', async () => {
-    mockRunnableSuite([{ id: 'tc-1', title: 'Login', tag: 'login' }])
-    mockPlanProjectionFindMany.mockResolvedValue([
-      {
-        planId: 'plan-one',
-        validationJson: JSON.stringify({
-          validations: [
-            {
-              id: 'ast-validation',
-              testCaseIds: ['tc-1'],
-              astProvenance: { executionAuthority: 'reviewed_publication' },
-            },
-          ],
-        }),
-      },
-    ])
-
-    await expect(createTestRunFromValidatedValue(baseValue, 'project-1')).rejects.toMatchObject({ code: 'CONFLICT' })
-    expect(mockTestRunCreate).not.toHaveBeenCalled()
-  })
-
-  it.each([
-    ['legacy authority string', { executionAuthority: 'runtime_capsule' }],
-    [
-      'v1 provenance',
-      { schemaVersion: '1', astHash: `sha256:${'a'.repeat(64)}`, executionAuthority: 'runtime_capsule' },
-    ],
-    [
-      'managed provenance',
-      {
-        schemaVersion: '2',
-        astHash: `sha256:${'a'.repeat(64)}`,
-        executionAuthority: 'runtime_capsule',
-        publishOperationId: 'operation-one',
-        receiptHash: `sha256:${'b'.repeat(64)}`,
-        runtimeInputHash: `sha256:${'c'.repeat(64)}`,
-      },
-    ],
-  ])('categorically denies generic target-automation execution for %s', async (_label, astProvenance) => {
-    mockRunnableSuite([{ id: 'tc-1', title: 'Login', tag: 'login' }])
-    mockPlanProjectionFindMany.mockResolvedValue([
-      {
-        planId: 'plan-one',
-        validationJson: JSON.stringify({
-          validations: [{ id: 'ast-validation', testCaseIds: ['tc-1'], astProvenance }],
-        }),
-      },
-    ])
-
-    await expect(createTestRunFromValidatedValue(baseValue, 'project-1')).rejects.toMatchObject({
-      code: 'CONFLICT',
-      message: expect.stringContaining('exact reviewed runtime capsule'),
-    })
-    expect(mockTestRunCreate).not.toHaveBeenCalled()
-    expect(mockExecuteTestRun).not.toHaveBeenCalled()
   })
 
   it('rejects duplicate run names', async () => {
@@ -537,7 +475,6 @@ describe('createTestRunFromValidatedValue', () => {
         browserEngine: BrowserEngine.FIREFOX,
         status: TestRunStatus.RUNNING,
         result: TestRunResult.PENDING,
-        planId: null,
         targetProjectId: 'target-1',
         testCases: { create: [] },
       },
@@ -565,7 +502,7 @@ describe('createTestRunFromValidatedValue', () => {
     })
   })
 
-  it('atomically creates one exact expected association for a plan-bound standalone run', async () => {
+  it('atomically creates one expected association for a standalone run', async () => {
     mockResolveTargetProject.mockResolvedValue({
       id: 'target-1',
       displayName: 'Target App',
@@ -578,85 +515,19 @@ describe('createTestRunFromValidatedValue', () => {
     await createStandaloneTargetTestRun({
       target: 'target-1',
       environmentId: 'env-1',
-      name: 'Plan validation',
-      planId: 'plan-1',
+      name: 'Standalone validation',
       tagExpression: '@ts_suite-1 and @tc_case-1',
       expectedTestCases: [{ testCaseId: 'case-1', testSuiteId: 'suite-1' }],
     })
 
     expect(mockTestRunCreate).toHaveBeenCalledWith({
       data: expect.objectContaining({
-        planId: 'plan-1',
         testCases: { create: [{ testCaseId: 'case-1', testSuiteId: 'suite-1' }] },
       }),
     })
     expect(mockExecuteTestRun).toHaveBeenCalledWith(
       expect.objectContaining({ tagExpression: '@ts_suite-1 and @tc_case-1' }),
     )
-  })
-
-  // fallow-ignore-next-line code-duplication -- denial setup intentionally mirrors standalone validation errors
-  it('denies a plan-bound standalone run selecting a compiler review AST case', async () => {
-    mockStandaloneTarget()
-    mockTestCaseFindMany.mockResolvedValue([{ id: 'case-1', TestSuite: [{ id: 'suite-1' }] }])
-    mockPlanProjectionFindMany.mockResolvedValue([
-      {
-        planId: 'plan-1',
-        validationJson: JSON.stringify({
-          validations: [
-            {
-              id: 'ast-validation',
-              testCaseIds: ['case-1'],
-              astProvenance: { executionAuthority: 'reviewed_publication' },
-            },
-          ],
-        }),
-      },
-    ])
-    await expect(
-      createStandaloneTargetTestRun({
-        target: 'target-1',
-        environmentId: 'env-1',
-        planId: 'plan-1',
-        expectedTestCases: [{ testCaseId: 'case-1', testSuiteId: 'suite-1' }],
-      }),
-    ).rejects.toMatchObject({ code: 'CONFLICT' })
-    expect(mockTestRunCreate).not.toHaveBeenCalled()
-  })
-
-  it('rejects a plan-bound standalone run without expected associations', async () => {
-    mockResolveTargetProject.mockResolvedValue({
-      id: 'target-1',
-      displayName: 'Target App',
-      canonicalPath: '/target/app',
-    })
-    mockTestRunFindFirst.mockResolvedValue(null)
-    mockEnvironmentFindUnique.mockResolvedValue({ id: 'env-1', name: 'QA' })
-
-    await expect(
-      createStandaloneTargetTestRun({ target: 'target-1', environmentId: 'env-1', planId: 'plan-1' }),
-    ).rejects.toMatchObject({ message: expect.stringContaining('exact expected test case associations') })
-    expect(mockTestRunCreate).not.toHaveBeenCalled()
-  })
-
-  it('rejects a plan-bound expected case without a suite association', async () => {
-    mockResolveTargetProject.mockResolvedValue({
-      id: 'target-1',
-      displayName: 'Target App',
-      canonicalPath: '/target/app',
-    })
-    mockTestRunFindFirst.mockResolvedValue(null)
-    mockEnvironmentFindUnique.mockResolvedValue({ id: 'env-1', name: 'QA' })
-
-    await expect(
-      createStandaloneTargetTestRun({
-        target: 'target-1',
-        environmentId: 'env-1',
-        planId: 'plan-1',
-        expectedTestCases: [{ testCaseId: 'case-1', testSuiteId: null }],
-      }),
-    ).rejects.toMatchObject({ message: expect.stringContaining('require a test suite association') })
-    expect(mockTestRunCreate).not.toHaveBeenCalled()
   })
 
   it('rejects an expected case paired with a suite it does not belong to', async () => {
@@ -667,7 +538,6 @@ describe('createTestRunFromValidatedValue', () => {
       createStandaloneTargetTestRun({
         target: 'target-1',
         environmentId: 'env-1',
-        planId: 'plan-1',
         expectedTestCases: [{ testCaseId: 'case-1', testSuiteId: 'suite-1' }],
       }),
     ).rejects.toMatchObject({ message: expect.stringContaining('is not associated with test suite') })

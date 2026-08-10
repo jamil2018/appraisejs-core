@@ -62,7 +62,7 @@ export async function readyStepDefinitionRowsForSearch(database: PrismaClient) {
   return rows
 }
 
-export function parseReadyStepDefinition(row: ReadyStepDefinitionRow) {
+function parseReadyStepDefinition(row: ReadyStepDefinitionRow) {
   const definition = stepDefinitionSchema.parse(JSON.parse(row.definitionJson))
   return {
     step: { id: row.id, version: row.version, definitionHash: computeStepReferenceHash(definition) },
@@ -94,7 +94,7 @@ function readyStepDefinitionSearchIndex(rows: ReadyStepDefinitionRow[]) {
 export function createReadySearchEvidence(input: {
   indexHash: string
   searchedAt: string
-  planId?: string
+  qualityPlanId?: string
   correlationId: string
   candidateReferences: Array<{ id: string; version: string }>
 }) {
@@ -104,7 +104,7 @@ export function createReadySearchEvidence(input: {
   const body = {
     indexHash: input.indexHash,
     searchedAt: input.searchedAt,
-    ...(input.planId ? { planId: input.planId } : {}),
+    ...(input.qualityPlanId ? { qualityPlanId: input.qualityPlanId } : {}),
     correlationId: input.correlationId,
     candidateReferences,
   }

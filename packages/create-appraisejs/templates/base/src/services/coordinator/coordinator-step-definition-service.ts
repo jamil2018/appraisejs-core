@@ -35,13 +35,13 @@ const selectionRejectionSchema = z.object({
   step: telemetryStepSchema.optional(),
   reason: z.enum(['unusable_result', 'parameter_mismatch', 'overlap', 'runtime_readiness']),
   correlationId: correlationIdSchema.optional(),
-  planId: z.string().min(1).max(200).optional(),
+  qualityPlanId: z.string().min(1).max(200).optional(),
 })
 const selectionAcceptedSchema = z.object({
   surface: telemetrySurfaceSchema,
   step: telemetryStepSchema,
   correlationId: correlationIdSchema.optional(),
-  planId: z.string().min(1).max(200).optional(),
+  qualityPlanId: z.string().min(1).max(200).optional(),
 })
 
 type ReadOperationHandler = (
@@ -68,27 +68,17 @@ function searchParameterNames(search: URLSearchParams) {
     .slice(0, 32)
 }
 
-async function searchPlanContext(planId: string | null) {
-  if (!planId) return undefined
-  const plan = await prisma.planProjection.findUnique({
-    where: { planId },
-    select: { planId: true, tasks: { select: { title: true, description: true, validationIntent: true } } },
-  })
-  if (!plan) throw new ServiceError('Step discovery plan scope was not found.', 'NOT_FOUND')
-  return JSON.stringify(plan.tasks)
-}
-
 async function recordSearchOutcome(input: {
   surface: z.infer<typeof telemetrySurfaceSchema>
   correlationId: string
-  planId: string | null
+  qualityPlanId: string | null
   candidateCount: number
 }) {
   await recordStepDefinitionTelemetry(prisma, {
     surface: input.surface,
     outcome: input.candidateCount ? 'query_match' : 'query_no_match',
     correlationId: input.correlationId,
-    ...(input.planId ? { planId: input.planId } : {}),
+    ...(input.qualityPlanId ? { qualityPlanId: input.qualityPlanId } : {}),
     payload: input.candidateCount ? { candidateCount: input.candidateCount } : { reason: 'no_match' },
   })
 }
@@ -97,13 +87,13 @@ async function createSearchReceipt(input: {
   definitions: Awaited<ReturnType<StepDefinitionRegistryService['listReadyForSearch']>>
   matches: ReturnType<typeof searchReadyStepDefinitions>
   correlationId: string
-  planId: string | null
+  qualityPlanId: string | null
 }) {
   const reuseEvidence = createReadySearchEvidence({
     indexHash: readyStepDefinitionSearchIndexHash(input.definitions),
     searchedAt: new Date().toISOString(),
     correlationId: input.correlationId,
-    ...(input.planId ? { planId: input.planId } : {}),
+    ...(input.qualityPlanId ? { qualityPlanId: input.qualityPlanId } : {}),
     candidateReferences: input.matches.map(item => ({ id: item.value.step.id, version: item.value.step.version })),
   })
   const receipt = await prisma.stepDefinitionSearchReceipt.create({
@@ -111,7 +101,7 @@ async function createSearchReceipt(input: {
       indexHash: reuseEvidence.indexHash,
       candidateReferencesJson: JSON.stringify(reuseEvidence.candidateReferences),
       correlationId: input.correlationId,
-      ...(input.planId ? { planId: input.planId } : {}),
+      ...(input.qualityPlanId ? { qualityPlanId: input.qualityPlanId } : {}),
       expiresAt: new Date(Date.now() + 30 * 60 * 1000),
     },
   })
@@ -155,22 +145,21 @@ async function searchDefinitions(
 ): Promise<StepDefinitionReadResult> {
   const surface = telemetrySurfaceSchema.catch('agent').parse(search.get('surface'))
   const parameterNames = searchParameterNames(search)
-  const planId = search.get('planId')
+  const qualityPlanId = search.get('qualityPlanId')
   const correlationId = search.get('correlationId')
     ? correlationIdSchema.parse(search.get('correlationId'))
     : randomUUID()
-  const planContext = await searchPlanContext(planId)
   const definitions = await registry.listReadyForSearch()
   const limit = z.coerce.number().int().positive().max(25).catch(5).parse(search.get('limit'))
   const query = search.get('query') ?? ''
   const ranked = searchReadyStepDefinitions(definitions, {
     intent: query,
     parameterNames,
-    planContext,
+    planContext: undefined,
     includeUnmatched: !query,
   }).slice(0, limit)
-  await recordSearchOutcome({ surface, correlationId, planId, candidateCount: ranked.length })
-  const reuseEvidence = await createSearchReceipt({ definitions, matches: ranked, correlationId, planId })
+  await recordSearchOutcome({ surface, correlationId, qualityPlanId, candidateCount: ranked.length })
+  const reuseEvidence = await createSearchReceipt({ definitions, matches: ranked, correlationId, qualityPlanId })
   return {
     body: searchResponse(reuseEvidence, ranked),
   }
@@ -213,7 +202,7 @@ async function createDraft(
         .object({
           indexHash: z.string().regex(/^sha256:[a-f0-9]{64}$/),
           searchedAt: z.string().datetime(),
-          planId: z.string().min(1).max(200).optional(),
+          qualityPlanId: z.string().min(1).max(200).optional(),
           candidateReferences: z.array(telemetryStepSchema).max(25),
           correlationId: correlationIdSchema,
           receiptId: z.string().uuid(),
@@ -339,7 +328,7 @@ function createCoordinatorStepDefinitionService() {
         outcome: 'selection_rejected',
         ...(event.step ? { step: event.step } : {}),
         ...(event.correlationId ? { correlationId: event.correlationId } : {}),
-        ...(event.planId ? { planId: event.planId } : {}),
+        ...(event.qualityPlanId ? { qualityPlanId: event.qualityPlanId } : {}),
         payload: { reason: event.reason },
       })
       return { recorded: true }
@@ -351,8 +340,10 @@ function createCoordinatorStepDefinitionService() {
         surface: event.surface,
         outcome: 'selection_selected',
         step: event.step,
-        ...(event.correlationId || event.planId ? { correlationId: event.correlationId ?? `plan:${event.planId}` } : {}),
-        ...(event.planId ? { planId: event.planId } : {}),
+        ...(event.correlationId || event.qualityPlanId
+          ? { correlationId: event.correlationId ?? `quality-plan:${event.qualityPlanId}` }
+          : {}),
+        ...(event.qualityPlanId ? { qualityPlanId: event.qualityPlanId } : {}),
         payload: {},
       })
       return { recorded: true }

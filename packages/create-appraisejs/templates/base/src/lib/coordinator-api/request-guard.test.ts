@@ -2,21 +2,18 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { guardCoordinatorRequest, readCoordinatorJson } from './request-guard'
 
-const { authenticateProject, ensureProjectIdentity } = vi.hoisted(() => ({
-  authenticateProject: vi.fn(),
-  ensureProjectIdentity: vi.fn(),
+const { deriveCoordinatorProjectIdentity, readFile } = vi.hoisted(() => ({
+  deriveCoordinatorProjectIdentity: vi.fn(),
+  readFile: vi.fn(),
 }))
 
-vi.mock('@/services/coordinator/coordinator-service', () => ({
-  COORDINATOR_MAX_REQUEST_BYTES: 1_048_576,
-  authenticateProject,
-  ensureProjectIdentity,
-}))
+vi.mock('./project-identity', () => ({ deriveCoordinatorProjectIdentity }))
+vi.mock('node:fs', () => ({ promises: { readFile } }))
 
-function request(url = 'http://127.0.0.1:3000/api/internal/coordinator/plans') {
+function request(token = 'token', url = 'http://127.0.0.1:3000/api/internal/coordinator/quality/assessments') {
   return new Request(url, {
     headers: {
-      authorization: 'Bearer token',
+      authorization: `Bearer ${token}`,
       host: '127.0.0.1:3000',
       'x-appraise-project': 'sha256:project',
     },
@@ -24,53 +21,37 @@ function request(url = 'http://127.0.0.1:3000/api/internal/coordinator/plans') {
 }
 
 beforeEach(() => {
-  authenticateProject.mockReset().mockResolvedValue(undefined)
-  ensureProjectIdentity.mockReset().mockResolvedValue({
+  deriveCoordinatorProjectIdentity.mockReset().mockResolvedValue({
     projectFingerprint: 'sha256:project',
     canonicalProjectPath: '/tmp/project',
   })
+  readFile.mockReset().mockResolvedValue(JSON.stringify({ projectFingerprint: 'sha256:project', token: 'token' }))
 })
 
 describe('coordinator request guard', () => {
-  it('accepts authenticated loopback requests', async () => {
-    ensureProjectIdentity.mockResolvedValue({
-      projectFingerprint: 'sha256:project',
-      canonicalProjectPath: '/tmp/project',
-    })
+  it('accepts authenticated loopback requests with the local project credential', async () => {
     await expect(guardCoordinatorRequest(request())).resolves.toBeUndefined()
-    expect(authenticateProject).toHaveBeenCalledWith('sha256:project', 'token')
+    expect(readFile).toHaveBeenCalledWith('/tmp/project/.appraisejs/coordinator.json', 'utf8')
   })
 
-  it('distinguishes a project mismatch before token authentication', async () => {
-    ensureProjectIdentity.mockResolvedValue({
+  it('distinguishes a project mismatch before reading a credential', async () => {
+    deriveCoordinatorProjectIdentity.mockResolvedValue({
       projectFingerprint: 'sha256:server',
       canonicalProjectPath: '/tmp/server-project',
     })
-
     await expect(guardCoordinatorRequest(request())).rejects.toMatchObject({
       name: 'CoordinatorProjectMismatchError',
       requestedFingerprint: 'sha256:project',
       serverFingerprint: 'sha256:server',
     })
-    expect(authenticateProject).not.toHaveBeenCalled()
+    expect(readFile).not.toHaveBeenCalled()
   })
 
-  it('rejects DNS-rebinding hosts and non-loopback origins', async () => {
+  it('rejects credential mismatches and non-loopback origins', async () => {
+    await expect(guardCoordinatorRequest(request('wrong-token'))).rejects.toMatchObject({ code: 'UNAUTHORIZED' })
     await expect(
       guardCoordinatorRequest(
-        new Request('http://127.0.0.1:3000/api/internal/coordinator/plans', {
-          headers: {
-            authorization: 'Bearer token',
-            host: 'attacker.example',
-            'x-appraise-project': 'sha256:project',
-          },
-        }),
-      ),
-    ).rejects.toMatchObject({ code: 'UNAUTHORIZED' })
-
-    await expect(
-      guardCoordinatorRequest(
-        new Request('http://localhost:3000/api/internal/coordinator/plans', {
+        new Request('http://localhost:3000/api/internal/coordinator/quality/assessments', {
           headers: {
             authorization: 'Bearer token',
             host: 'localhost:3000',
@@ -86,7 +67,6 @@ describe('coordinator request guard', () => {
     const declared = request()
     declared.headers.set('content-length', '1048577')
     await expect(guardCoordinatorRequest(declared)).rejects.toMatchObject({ statusCode: 413 })
-
     const actual = new Request('http://localhost', { method: 'POST', body: 'x'.repeat(1_048_577) })
     await expect(readCoordinatorJson(actual)).rejects.toMatchObject({ statusCode: 413 })
   })

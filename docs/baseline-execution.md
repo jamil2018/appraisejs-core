@@ -1,38 +1,5 @@
-# Baseline Execution
+# Evidence Execution
 
-Baseline execution starts only after validation review reaches `validations_approved`. The coordinator submits one
-existing Appraise `TestRun` for each required validation matrix combination and records every attempt in the
-Git-tracked validation sidecar.
+Evidence execution is initiated by a ready Assessment. AppraiseJS verifies the immutable target, subject revision, published Validation Version, requirement alignment, and matrix selection before materializing any managed TestRun.
 
-## Expected Failure Format
-
-Each expected failure is scoped to an exact `browser` and `environment`, has a zero-based `order`, stores the exact
-failure `signature`, and names `lastPassingStepId`. Classification compares observed signatures in order and verifies
-that the required setup step completed first.
-
-Results are classified as:
-
-- `expected_product_failure`: exact ordered signature match.
-- `unexpected_pass`: the new validation already passes and needs a written regression-coverage justification.
-- `unrelated_existing_failure`: an unmatched non-infrastructure failure that needs user acknowledgement.
-- `authoring_failure`: undefined or ambiguous steps, invalid setup/fixture authoring, or a missing required setup step.
-- `infrastructure_failure`: invalid managed evidence, infrastructure failure, cancellation, or interruption.
-
-## Evidence And Acknowledgements
-
-Each attempt preserves its Appraise test-run ID and links to logs, the run report, traces, and screenshots. Repeated
-attempts append new records; they never replace old evidence.
-
-An unrelated-failure acknowledgement binds to the attempt ID and the SHA-256 hash of its ordered failure signatures.
-A changed signature therefore requires a new acknowledgement. Both approved expected-product failures and unrelated
-existing failures require this exact acknowledgement before baseline acceptance. The baseline review surface displays
-the ordered approved signatures, observed signature hash, classified root cause, allowed action, and retry consequence
-without requiring raw database inspection. Changes to reviewed validation files block baseline
-reconciliation, acceptance, and implementation until validation review is repeated.
-
-## Implementation Unlock
-
-`startImplementation(planId)` in
-`src/services/coordinator/coordinator-baseline-service.ts` is the only baseline service call that moves a plan from
-`baseline_accepted` to `in_progress`. It rechecks every required combination, acknowledgement, regression
-justification, validation-file hash, and the accepted baseline decision before emitting `implementation_started`.
+Each execution is content-bound and idempotent. Reconciliation preserves completed matrix cells, verifies capsule and artifact integrity, and seals Evidence Receipts without discarding partial results. Reviewers use the evidence matrix and its receipt hashes when making a quality decision.

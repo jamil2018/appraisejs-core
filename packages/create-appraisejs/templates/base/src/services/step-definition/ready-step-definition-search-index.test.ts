@@ -9,7 +9,13 @@ describe('ready Step Definition search index rows', () => {
     const definition = builtInStepDefinitions[0]!
     const findMany = vi.fn().mockImplementation(({ select }: { select: Record<string, unknown> }) => {
       if ('definitionHash' in select)
-        return [{ id: definition.identity.id, version: definition.identity.version, definitionHash: computeStepDefinitionHashes(definition).definitionHash }]
+        return [
+          {
+            id: definition.identity.id,
+            version: definition.identity.version,
+            definitionHash: computeStepDefinitionHashes(definition).definitionHash,
+          },
+        ]
       return [
         {
           id: definition.identity.id,

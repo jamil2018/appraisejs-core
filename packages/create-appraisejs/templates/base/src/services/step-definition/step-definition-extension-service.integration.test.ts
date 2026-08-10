@@ -5,7 +5,7 @@ import path from 'node:path'
 import { PrismaClient } from '@prisma/client'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
-import { copyMigratedTestDatabase } from '@/test/plan-runtime-schema-test-helper'
+import { copyMigratedTestDatabase } from '@/test/migrated-test-database'
 import { StepDefinitionRegistryService } from './step-definition-registry-service'
 import {
   generateStepDefinitionContract,

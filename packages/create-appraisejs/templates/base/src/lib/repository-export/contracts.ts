@@ -2,8 +2,8 @@ import { createHash } from 'node:crypto'
 import { z } from 'zod'
 import { canonicalContractJson } from '@/lib/catalog-contracts'
 
-export const repositoryExportPolicySchema = z.enum(['disabled', 'optional', 'required'])
-export type RepositoryExportPolicyValue = z.infer<typeof repositoryExportPolicySchema>
+const repositoryExportPolicySchema = z.enum(['disabled', 'optional', 'required'])
+type RepositoryExportPolicyValue = z.infer<typeof repositoryExportPolicySchema>
 
 const repositoryExportFileSchema = z
   .object({
@@ -27,5 +27,5 @@ export type RepositoryExportManifest = z.infer<typeof repositoryExportManifestSc
 
 export const hashRepositoryExportBytes = (bytes: Uint8Array) =>
   `sha256:${createHash('sha256').update(bytes).digest('hex')}`
-export const hashRepositoryExportValue = (value: unknown) =>
+const hashRepositoryExportValue = (value: unknown) =>
   `sha256:${createHash('sha256').update(canonicalContractJson(value)).digest('hex')}`

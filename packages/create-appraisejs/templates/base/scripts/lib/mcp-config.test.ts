@@ -25,7 +25,7 @@ describe('MCP setup config', () => {
       addCommand: `codex mcp add appraisejs -- '${process.execPath}' '${cliPath}' 'mcp' '--cwd' '/tmp/appraise-hub' '--base-url' 'http://127.0.0.1:3998'`,
       verifyCommand: 'codex mcp get appraisejs',
     })
-    expect(config.skillPath).toBe('/tmp/appraise-hub/.agents/skills/appraise-project-from-brief')
+    expect(config).not.toHaveProperty('skillPath')
   })
 
   it('shell-quotes registration arguments from the resolved workspace path', () => {

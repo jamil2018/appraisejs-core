@@ -30,7 +30,6 @@ function baseRun(overrides: Record<string, unknown> = {}) {
   return {
     id: 'run-db-id',
     runId: '11111111-1111-4111-8111-111111111111',
-    planId: null,
     status: TestRunStatus.COMPLETED,
     result: TestRunResult.PASSED,
     reportPath: 'reports/cucumber.json',
@@ -126,17 +125,8 @@ describe('run evidence summary service', () => {
     expect(summary.counts.scenarios).toBe(0)
   })
 
-  it('requires expected cases for plan-bound runs', async () => {
-    mockTestRunFindUnique.mockResolvedValue(baseRun({ planId: 'plan-1' }))
-    mockParseCucumberReport.mockResolvedValue(reportWithScenario())
-
-    const summary = await summarizeRunEvidence('11111111-1111-4111-8111-111111111111')
-
-    expect(summary.evidenceHealth).toBe('invalid_missing_test_cases')
-  })
-
   it('detects unmatched scenarios against expected test cases', async () => {
-    mockTestRunFindUnique.mockResolvedValue(baseRun({ planId: 'plan-1', testCases: [expectedTestCase()] }))
+    mockTestRunFindUnique.mockResolvedValue(baseRun({ testCases: [expectedTestCase()] }))
     mockParseCucumberReport.mockResolvedValue(reportWithScenario('Unexpected scenario', []))
 
     const summary = await summarizeRunEvidence('11111111-1111-4111-8111-111111111111')
@@ -146,7 +136,7 @@ describe('run evidence summary service', () => {
   })
 
   it('persists valid health only after report and expected cases reconcile', async () => {
-    mockTestRunFindUnique.mockResolvedValue(baseRun({ planId: 'plan-1', testCases: [expectedTestCase()] }))
+    mockTestRunFindUnique.mockResolvedValue(baseRun({ testCases: [expectedTestCase()] }))
     mockParseCucumberReport.mockResolvedValue(reportWithScenario())
 
     const summary = await persistRunEvidenceHealth('11111111-1111-4111-8111-111111111111')
@@ -159,7 +149,7 @@ describe('run evidence summary service', () => {
   })
 
   it('reports authored steps separately from runtime hooks', async () => {
-    mockTestRunFindUnique.mockResolvedValue(baseRun({ planId: 'plan-1', testCases: [expectedTestCase()] }))
+    mockTestRunFindUnique.mockResolvedValue(baseRun({ testCases: [expectedTestCase()] }))
     mockParseCucumberReport.mockResolvedValue(
       reportWithScenario('Login succeeds', [{ name: '@tc_login', line: 1 }], [{ name: 'Before' }, { name: 'After' }]),
     )
@@ -170,7 +160,7 @@ describe('run evidence summary service', () => {
   })
 
   it('returns bounded first-line failure signatures from the report', async () => {
-    mockTestRunFindUnique.mockResolvedValue(baseRun({ planId: 'plan-1', testCases: [expectedTestCase()] }))
+    mockTestRunFindUnique.mockResolvedValue(baseRun({ testCases: [expectedTestCase()] }))
     const report = reportWithScenario()
     report.features[0]!.scenarios[0]!.steps = [
       {
@@ -186,13 +176,11 @@ describe('run evidence summary service', () => {
     expect(summary.failureSignatures).toEqual(['Expected HomeChores but found SecondWife'])
   })
 
-  it('preflights plan-bound run inputs before creation', async () => {
-    await expect(preflightTestRun({ planId: 'plan-1', target: '/app', environmentId: 'env-1' })).resolves.toMatchObject(
-      {
-        status: 'blocked',
-        evidenceHealth: 'invalid_stale_runtime',
-        nextAllowedAction: { tool: 'test_run_preflight' },
-      },
-    )
+  it('preflights standalone run inputs before creation', async () => {
+    await expect(preflightTestRun({ target: '/app', environmentId: 'env-1' })).resolves.toMatchObject({
+      status: 'ready',
+      evidenceHealth: 'valid',
+      nextAllowedAction: { tool: 'test_run' },
+    })
   })
 })

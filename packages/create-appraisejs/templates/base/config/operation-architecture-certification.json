@@ -22,7 +22,7 @@
     "legacyAuthorityAndArtifactSurfacesAbsent": true
   },
   "runtimeEvidence": {
-    "command": "node node_modules/vitest/vitest.mjs run packages/cucumber-runtime/src/step-definitions/dispatcher.test.ts src/services/step-definition/step-definition-registry-service.integration.test.ts src/services/coordinator/coordinator-step-definition-service.test.ts src/lib/runtime-capsule/materializer.test.ts src/components/diagram/flow-diagram.test.tsx",
+    "command": "node node_modules/vitest/vitest.mjs run packages/cucumber-runtime/src/step-definitions/dispatcher.test.ts src/services/step-definition/step-definition-registry-service.integration.test.ts src/services/coordinator/coordinator-step-definition-service.test.ts src/lib/runtime-capsule/runtime-capsule.test.ts src/components/diagram/flow-diagram.test.tsx",
     "suites": [
       {
         "suite": "packages/cucumber-runtime/src/step-definitions/dispatcher.test.ts",
@@ -30,19 +30,19 @@
       },
       {
         "suite": "src/services/step-definition/step-definition-registry-service.integration.test.ts",
-        "sourceHash": "sha256:e55cd4d9442e9edd37f4d584ca0e73055d098a3623b0c78678cf3859c8ad306e"
+        "sourceHash": "sha256:5157375372ef6b8b77ec1437b38a1e3c457cbefd510c558c93b4d5b631b484de"
       },
       {
         "suite": "src/services/coordinator/coordinator-step-definition-service.test.ts",
         "sourceHash": "sha256:9ac2450bd1aeb492cb80ece983c833e1de5cbefe41d908009e7c41d8c716e232"
       },
       {
-        "suite": "src/lib/runtime-capsule/materializer.test.ts",
-        "sourceHash": "sha256:a1a128a5d9aa8c4d4011b2c542a9bc09e3a81dd78092f2d0a77d63d7714e2f0b"
+        "suite": "src/lib/runtime-capsule/runtime-capsule.test.ts",
+        "sourceHash": "sha256:9a305a549f41b4a06a29ec860e63c1832df1bb2e4fcc611e228a13859065cf9d"
       },
       {
         "suite": "src/components/diagram/flow-diagram.test.tsx",
-        "sourceHash": "sha256:b1a161e162f917566bcd50ab571e40c2ef3bd42cd10949461c9b6776858b3df8"
+        "sourceHash": "sha256:d2f4d0c1874cd1b9919bdfc5a3f3c95b69d0fff5203b19f9c0b629ce950ee3ad"
       }
     ],
     "scenarios": [
@@ -65,5 +65,5 @@
       "^packages\\/create-appraisejs\\/templates\\/base\\/scripts\\/certify-operation-architecture\\.ts$"
     ]
   },
-  "receiptHash": "sha256:c01c253af14179f5ea5b8248477f7c2cd864103ed197b89f1b15ca1b560c17b4"
+  "receiptHash": "sha256:a9912eea485998b22fd4a775499089c57982aabecef3bde9264dd81ecfe3b08b"
 }

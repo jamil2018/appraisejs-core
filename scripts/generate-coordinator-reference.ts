@@ -10,81 +10,41 @@ import {
 } from '../src/services/coordinator/coordinator-operation-registry'
 
 type McpDefinition = { kind: 'tool' | 'resource'; name: string; description?: string; uri?: string }
-type McpFixture = { default: McpDefinition[]; providerNative: McpDefinition[] }
+type McpFixture = { default: McpDefinition[] }
 export type PublicOperationReference =
   { kind: 'coordinator'; operation: CoordinatorOperationId } | { kind: 'local'; reason: string }
 
-const localSearchTools = new Set(['appraise_resources_list', 'locator_search', 'step_search', 'step_block_search'])
-const localWorkflowTools = new Set([
-  'plan_review_loop',
-  'plan_wait_for_approval',
-  'plan_wait_for_review',
-  'planning_session_create',
-  'validation_review_loop',
-])
+const localDiscoveryTools = new Set(['locator_search'])
 
 const exactCoordinatorOperations: Readonly<Record<string, CoordinatorOperationId>> = {
   assessment_diagnose: 'quality-read',
   assessment_readiness: 'quality-read',
   assessment_review: 'quality-read',
-  coordination_slo_evaluate: 'coordination-slo',
-  coordinator_heartbeat: 'heartbeat',
-  coordinator_register: 'register',
-  delegated_plan_create: 'plan-create',
-  delegated_validation_ast_submit: 'delegated-validation-submit',
-  delegation_create: 'delegation-create',
-  delegation_read: 'delegation-read',
-  delegation_revoke: 'delegation-revoke',
-  implementation_completion_review: 'plan-completion-read',
   locator_graph_query: 'locator-graph',
-  objective_create: 'objective-create',
-  plan_continuation_package_create: 'plan-continuation',
-  plan_create: 'plan-create',
-  plan_event_acknowledge: 'plan-event-acknowledge',
-  plan_events_acknowledge_through: 'plan-event-acknowledge',
-  plan_events_read: 'plan-events-read',
-  plan_lifecycle_health: 'plan-health',
-  plan_lifecycle_snapshot: 'plan-snapshot',
-  plan_read: 'plan-read',
-  plan_review_read: 'plan-review-read',
-  plan_revise: 'plan-revise',
-  plan_start: 'plan-start',
-  plan_task_update: 'plan-task-update',
   project_add: 'target-project-write',
   project_diagnostic: 'diagnostic',
   project_list: 'target-projects-list',
-  provider_list: 'providers-list',
-  provider_run_read: 'provider-runs-read',
   requirements_graph_read: 'quality-read',
   step_definition_draft_read: 'step-definitions-read',
-  test_run: 'test-run-write',
+  step_search: 'step-definitions-read',
   test_run_diagnose: 'test-run-evidence',
   test_run_preflight: 'test-run-write',
   test_run_read: 'test-run-evidence',
-  validation_ast_extension_reviews: 'plan-validations-read',
-  validation_context_read: 'plan-validations-read',
   validation_compile: 'quality-write',
   validation_publish: 'quality-write',
-  validation_reuse_resolve: 'quality-write',
 }
 
 const coordinatorOperationPrefixes: ReadonlyArray<readonly [string, CoordinatorOperationId]> = [
-  ['baseline_', 'plan-baseline-write'],
   ['assessment_', 'quality-write'],
-  ['implementation_', 'plan-implementation-write'],
   ['operation_', 'operations'],
-  ['provider_run_', 'provider-runs-write'],
-  ['provider_', 'providers-write'],
   ['requirements_', 'quality-write'],
   ['step_definition_', 'step-definitions-write'],
-  ['target_discovery_', 'quality-write'],
   ['validation_design_', 'quality-write'],
-  ['validation_', 'plan-validation-write'],
+  ['validation_', 'quality-write'],
 ]
 
 export function referenceForMcpTool(name: string): PublicOperationReference {
-  if (localSearchTools.has(name)) return { kind: 'local', reason: 'bounded local registry search' }
-  if (localWorkflowTools.has(name)) return { kind: 'local', reason: 'multi-operation MCP workflow' }
+  if (localDiscoveryTools.has(name)) return { kind: 'local', reason: 'bounded quality discovery query' }
   const exactOperation = exactCoordinatorOperations[name]
   if (exactOperation) return coordinator(exactOperation)
   const prefixOperation = coordinatorOperationPrefixes.find(([prefix]) => name.startsWith(prefix))?.[1]
@@ -102,13 +62,7 @@ function escapeCell(value: string): string {
 
 export function generateCoordinatorReference(fixture: McpFixture): string {
   const knownOperations = new Set(coordinatorOperationRegistry.definitions.map(item => item.id))
-  const defaultNames = new Set(fixture.default.map(item => `${item.kind}:${item.name}`))
-  const definitions = [
-    ...fixture.default.map(item => ({ ...item, availability: 'default' })),
-    ...fixture.providerNative
-      .filter(item => !defaultNames.has(`${item.kind}:${item.name}`))
-      .map(item => ({ ...item, availability: 'provider experimental' })),
-  ]
+  const definitions = fixture.default.map(item => ({ ...item, availability: 'default' }))
   const toolRows = definitions
     .filter((item): item is McpDefinition & { availability: string } => item.kind === 'tool')
     .sort((left, right) => left.name.localeCompare(right.name))

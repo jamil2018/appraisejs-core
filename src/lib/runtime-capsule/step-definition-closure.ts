@@ -114,7 +114,7 @@ function sealedDefinition(step: ExactStepReference, row: RuntimeStepDefinitionRe
  * the definition's own exact content reference; the persisted hashes and
  * publication receipt are still checked by `sealedDefinition`.
  */
-export function sealPersistedReadyStepDefinition(row: RuntimeStepDefinitionRecord): SealedRuntimeStepDefinition {
+function sealPersistedReadyStepDefinition(row: RuntimeStepDefinitionRecord): SealedRuntimeStepDefinition {
   const definition = stepDefinitionSchema.parse(JSON.parse(row.definitionJson))
   return sealedDefinition(
     {

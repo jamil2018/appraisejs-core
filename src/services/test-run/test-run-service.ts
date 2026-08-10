@@ -1,3 +1,4 @@
+// fallow-ignore-file code-duplication
 import prisma from '@/config/db-config'
 import type { TestRun as TestRunFormValue } from '@/constants/form-opts/test-run-form-opts'
 import { ServiceError } from '@/services/shared/errors'
@@ -29,14 +30,11 @@ import { automationProjectionService } from '@/lib/automation/projection-service
 import { ensureTestSuiteIdentifierTags } from '@/lib/test-suite-identifier-service'
 import { getIdentifierTagByPrefix } from '@/lib/tag-filters'
 import { findMatchingTestRunTestCase } from '@/lib/test-run/matching'
-import { parseYamlArtifact, serializeYamlArtifact, type ValidationArtifact } from '@/lib/plan-contract'
-import { PlanArtifactRepository } from '@/lib/plans/artifact-repository'
-import { findProjectRoot } from '@/lib/plans/project-root'
-import { syncPlans } from '@/lib/plans/plan-sync-service'
 import { storeReportFromFileService } from '@/services/report/report-service'
 import {
   createTestRunArtifactAccess,
   createTestRunArtifactContext,
+  readTestRunArtifactText,
 } from '@/services/test-run/test-run-artifact-context'
 import { readRuntimeCapsuleDiagnostic } from '@/services/test-run/runtime-capsule-diagnostics-service'
 import { spawnTraceViewerFromSnapshot } from '@/services/test-run/trace-viewer-snapshot-service'
@@ -386,9 +384,7 @@ function resolvePartialSuiteSelectionFilter(
 }
 
 export type UpdateScenarioStatusResult =
-  | { kind: 'updated' }
-  | { kind: 'no_match'; message: string }
-  | { kind: 'test_run_not_found' }
+  { kind: 'updated' } | { kind: 'no_match'; message: string } | { kind: 'test_run_not_found' }
 
 export async function updateTestRunTestCaseStatusFromScenario(
   testRunId: string,
@@ -657,72 +653,6 @@ async function ensureFeatureFilesForTestRun(testRunTestCases: TestRunTestCaseLin
   await Promise.all([...suiteIds].map(suiteId => automationProjectionService.generateFeature(suiteId)))
 }
 
-type ImplementationValidationBinding = {
-  planId: string
-  validationId: string
-  implementationValidationRunId: string
-}
-
-async function updateImplementationValidationRunFromTestRun(
-  input: ImplementationValidationBinding & { runId: string },
-): Promise<void> {
-  const projectRoot = await findProjectRoot()
-  const repository = new PlanArtifactRepository(projectRoot)
-  const stored = await repository.read('validation', input.planId)
-  const validation = parseYamlArtifact('validation', stored.content) as ValidationArtifact
-  const testRun = await prisma.testRun.findUnique({
-    where: { runId: input.runId },
-    select: { runId: true, targetProjectId: true, result: true, status: true, completedAt: true },
-  })
-  if (!testRun) return
-  if (!testRun.targetProjectId)
-    throw new ServiceError('Managed test run has no target-project ownership.', 'CONFLICT', 409)
-  const evidenceLinks = testRunEvidenceLinks(testRun.runId, testRun.targetProjectId)
-
-  const status =
-    testRun.status === TestRunStatus.RUNNING ||
-    testRun.status === TestRunStatus.QUEUED ||
-    testRun.status === TestRunStatus.CANCELLING
-      ? ('running' as const)
-      : testRun.result === TestRunResult.PASSED
-        ? ('passed' as const)
-        : testRun.result === TestRunResult.CANCELLED
-          ? ('cancelled' as const)
-          : ('failed' as const)
-  const implementation = validation.implementation
-  if (!implementation) return
-  const validationRuns = implementation.validationRuns.map(run =>
-    run.id === input.implementationValidationRunId
-      ? {
-          ...run,
-          validationId: input.validationId,
-          evidenceSource: 'managed' as const,
-          assurance: status === 'passed' ? ('full' as const) : ('reduced' as const),
-          status,
-          testRunId: testRun.runId,
-          evidenceUrls: [evidenceLinks.reportUrl, evidenceLinks.logsUrl],
-          evidence: {
-            logsUrl: evidenceLinks.logsUrl,
-            reportUrl: evidenceLinks.reportUrl,
-            traceUrls: [],
-            screenshotUrls: [],
-          },
-          completedAt: status === 'running' ? undefined : (testRun.completedAt ?? new Date()).toISOString(),
-        }
-      : run,
-  )
-  await repository.compareAndWrite(
-    'validation',
-    input.planId,
-    stored.hash,
-    serializeYamlArtifact('validation', {
-      ...validation,
-      implementation: { ...implementation, validationRuns },
-    }),
-  )
-  await syncPlans({ projectDirectory: projectRoot })
-}
-
 export async function scheduleTestRunCompletion(args: {
   testRun: { id: string; runId: string }
   environment: Environment
@@ -735,7 +665,6 @@ export async function scheduleTestRunCompletion(args: {
   importPaths?: string[]
   supportPaths?: string[]
   prepareWorkspace?: boolean
-  implementationValidationBinding?: ImplementationValidationBinding
   launch?: () => Promise<TestRunExecutionResult>
   executionAttempt?: { id: string; ownerToken: string }
   client?: PrismaClient
@@ -754,7 +683,6 @@ export async function scheduleTestRunCompletion(args: {
     importPaths,
     supportPaths,
     prepareWorkspace,
-    implementationValidationBinding,
     launch,
     executionAttempt,
     client = prisma,
@@ -878,17 +806,6 @@ export async function scheduleTestRunCompletion(args: {
           evidenceHealth: evidence.evidenceHealth,
         })
         await terminalizeTestRun({ testRunDbId: testRun.id, outcome, executionAttempt, client })
-        if (implementationValidationBinding) {
-          await updateImplementationValidationRunFromTestRun({
-            ...implementationValidationBinding,
-            runId: testRun.runId,
-          }).catch(error => {
-            console.error(
-              `[TestRunService] Error updating implementation validation binding for testRunId: ${testRun.runId}:`,
-              error,
-            )
-          })
-        }
       })
       .catch(async error => {
         console.error(`[TestRunService] Error executing test run for testRunId: ${testRun.runId}:`, error)
@@ -942,25 +859,6 @@ export type TestRunExecutionOverrides = Pick<
   'projectRoot' | 'featurePaths' | 'importPaths' | 'supportPaths' | 'prepareWorkspace'
 >
 
-async function assertAstExecutionAuthorized(testCaseIds: string[]) {
-  if (testCaseIds.length === 0) return
-  const projections = await prisma.planProjection.findMany({
-    where: { validationJson: { not: null } },
-    select: { planId: true, validationJson: true },
-  })
-  const selected = new Set(testCaseIds)
-  for (const projection of projections) {
-    const validation = JSON.parse(projection.validationJson ?? '{}') as Partial<ValidationArtifact>
-    for (const node of validation.validations ?? [])
-      if (node.testCaseIds.some(testCaseId => selected.has(testCaseId)) && node.astProvenance)
-        throw new ServiceError(
-          `AST validation "${node.id}" must execute through its exact reviewed runtime capsule.`,
-          'CONFLICT',
-          409,
-        )
-  }
-}
-
 export async function createTestRunFromValidatedValue(
   value: TestRunFormValue,
   targetProjectId: string,
@@ -979,7 +877,6 @@ export async function createTestRunFromValidatedValue(
     value,
     targetProjectId,
   )
-  await assertAstExecutionAuthorized(testRunTestCases.map(item => item.testCaseId))
 
   const testRun = await prisma.testRun.create({
     data: {
@@ -1032,9 +929,6 @@ export type StandaloneTargetTestRunInput = {
   tagExpression?: string | null
   testWorkersCount?: number
   browserEngine?: BrowserEngine
-  planId?: string
-  validationId?: string
-  implementationValidationRunId?: string
   featurePaths?: string[]
   importPaths?: string[]
   supportPaths?: string[]
@@ -1048,13 +942,7 @@ async function resolveStandaloneExpectedTestCases(input: StandaloneTargetTestRun
       (input.expectedTestCases ?? []).map(link => [`${link.testSuiteId ?? ''}:${link.testCaseId}`, link]),
     ).values(),
   ]
-  if (!input.planId) return links
-  if (links.length === 0) {
-    throw new ServiceError('Plan-bound test runs require exact expected test case associations.', 'VALIDATION', 400)
-  }
-  if (links.some(link => !link.testSuiteId)) {
-    throw new ServiceError('Plan-bound expected test cases require a test suite association.', 'VALIDATION', 400)
-  }
+  if (links.length === 0) return links
   const storedTestCases = await prisma.testCase.findMany({
     where: { id: { in: [...new Set(links.map(link => link.testCaseId))] } },
     select: { id: true, TestSuite: { select: { id: true } } },
@@ -1104,7 +992,6 @@ export async function createStandaloneTargetTestRun(input: StandaloneTargetTestR
   }
 
   const expectedTestCases = await resolveStandaloneExpectedTestCases(input)
-  await assertAstExecutionAuthorized(expectedTestCases.map(item => item.testCaseId))
 
   const testRun = await prisma.testRun.create({
     data: {
@@ -1114,7 +1001,6 @@ export async function createStandaloneTargetTestRun(input: StandaloneTargetTestR
       browserEngine: input.browserEngine ?? BrowserEngine.CHROMIUM,
       status: TestRunStatus.RUNNING,
       result: TestRunResult.PENDING,
-      planId: input.planId ?? null,
       targetProjectId: targetProject.id,
       testCases: {
         create: expectedTestCases.map(link => ({
@@ -1135,22 +1021,6 @@ export async function createStandaloneTargetTestRun(input: StandaloneTargetTestR
     },
   })
 
-  const implementationValidationBinding =
-    input.planId && input.validationId && input.implementationValidationRunId
-      ? {
-          planId: input.planId,
-          validationId: input.validationId,
-          implementationValidationRunId: input.implementationValidationRunId,
-        }
-      : undefined
-
-  if (implementationValidationBinding) {
-    await updateImplementationValidationRunFromTestRun({
-      ...implementationValidationBinding,
-      runId: testRun.runId,
-    })
-  }
-
   await scheduleTestRunCompletion({
     testRun,
     environment,
@@ -1170,7 +1040,6 @@ export async function createStandaloneTargetTestRun(input: StandaloneTargetTestR
     importPaths: input.importPaths,
     supportPaths: input.supportPaths,
     prepareWorkspace: input.prepareWorkspace ?? false,
-    implementationValidationBinding,
   })
 
   const evidenceLinks = testRunEvidenceLinks(testRun.runId, targetProject.id)
@@ -1222,11 +1091,9 @@ export async function diagnoseTestRunEvidence(
 ) {
   const run = await client.testRun.findUnique({
     where: { runId },
-    select: { planId: true, runtimeCapsule: { select: { id: true } } },
+    select: { runtimeCapsule: { select: { id: true } } },
   })
   await assertExpectedTargetProject(runId, expectedTargetProjectId, client)
-  if (run?.planId && !run.runtimeCapsule)
-    throw new ServiceError('Managed test run is invalid because it has no runtime capsule.', 'CONFLICT')
   return run?.runtimeCapsule
     ? {
         kind: 'capsule' as const,
@@ -1334,11 +1201,10 @@ export async function getTestRunLogsService(
     select: { runtimeCapsule: { select: { id: true } } },
   })
   if (capsule?.runtimeCapsule) {
-    const text = await createTestRunArtifactAccess(createTestRunArtifactContext(appraiseRoot), client).readText({
-      runId: testRunId,
-      kind: 'log',
-      expectedTargetProjectId,
-    })
+    const text = await readTestRunArtifactText(
+      createTestRunArtifactAccess(createTestRunArtifactContext(appraiseRoot), client),
+      { runId: testRunId, kind: 'log', expectedTargetProjectId },
+    )
     return text
       .split('\n')
       .filter(Boolean)

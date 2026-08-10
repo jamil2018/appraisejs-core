@@ -1,16 +1,5 @@
 import type { ReactNode } from 'react'
-import {
-  CircleHelp,
-  BookOpenCheck,
-  Code,
-  Group,
-  ListTree,
-  Puzzle,
-  Server,
-  Tag,
-  TestTubeDiagonal,
-  TestTubes,
-} from 'lucide-react'
+import { CircleHelp, BookOpenCheck, Code, Group, Puzzle, Server, Tag, TestTubeDiagonal, TestTubes } from 'lucide-react'
 
 import {
   SYNC_ALL_REQUEST_ID,
@@ -76,10 +65,6 @@ export type SyncRunResult = {
 }
 
 export const syncPresentation: Record<SyncScriptId, { icon: ReactNode; colorKey: SyncTileColor }> = {
-  'sync-plans': {
-    icon: <ListTree />,
-    colorKey: 'emerald',
-  },
   'sync-modules': {
     icon: <Puzzle />,
     colorKey: 'violet',

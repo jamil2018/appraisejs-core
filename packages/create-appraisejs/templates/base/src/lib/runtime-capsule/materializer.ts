@@ -4,15 +4,13 @@ import { z } from 'zod'
 import path from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { canonicalContractJson } from '@/lib/catalog-contracts'
-import { validationArtifactSchema, type ValidationArtifact } from '@/lib/plan-contract'
-import { validationNodeHash } from '@/lib/validation-review/approval'
+import { validationArtifactSchema, type ValidationArtifact } from '@/lib/quality-design/validation-artifact-contract'
 import { compiledCustomExtensionSchema } from '@/lib/validation-ast/custom-extension-compiler'
-import { assertSafeGeneratedGherkin } from '@/lib/validation-ast'
+import { assertSafeGeneratedGherkin } from '@/lib/validation-ast/gherkin-safety'
 import {
-  validateStoredValidationAstPublish,
   validateValidationAstRuntimeInput,
   type ValidationAstRuntimeInput,
-} from '@/services/coordinator/validation-ast-publish-journal-service'
+} from '@/lib/quality-design/validation-runtime-input-contract'
 import {
   canonicalRuntimeCapsuleJson,
   hashRuntimeCapsuleBytes,
@@ -30,16 +28,33 @@ import { generateCucumberConfig, generateReviewedFeature, generateSupportFiles }
 import { generateExecutableBindings } from './binding-generator'
 import { resolveRuntimeStepDefinitionClosure, type SealedRuntimeStepDefinition } from './step-definition-closure'
 import { stepDefinitionContentHash } from '../../../packages/cucumber-runtime/src/step-definitions/contracts.ts'
-import {
-  recordStepDefinitionTelemetry,
-  telemetryContextForPlan,
-} from '@/services/step-definition/step-definition-telemetry'
+import { recordStepDefinitionTelemetry } from '@/services/step-definition/step-definition-telemetry'
 
 type ValidationNode = ValidationArtifact['validations'][number]
 type CapsuleFile = { path: string; role: RuntimeCapsuleManifest['files'][number]['role']; bytes: Buffer }
-type PublishOperation = Prisma.ValidationAstPublishOperationGetPayload<{
-  include: { plan: true; targetProject: true; extensionReviews: true }
+type QualityPublication = Prisma.QualityValidationPublicationGetPayload<{
+  include: { targetProject: true; extensionReviews: true; validationVersion: true }
 }>
+type CapsulePublication = Pick<
+  QualityPublication,
+  | 'id'
+  | 'targetProjectId'
+  | 'targetFingerprint'
+  | 'phase'
+  | 'operationHash'
+  | 'validationHash'
+  | 'astId'
+  | 'astHash'
+  | 'contextHash'
+  | 'previewHash'
+  | 'receiptHash'
+  | 'projectionHash'
+  | 'projectionJson'
+  | 'validationProjectionJson'
+  | 'runtimeInputHash'
+  | 'runtimeInputJson'
+  | 'extensionReviews'
+>
 type MaterializerTestRun = Prisma.TestRunGetPayload<{ include: { environment: true } }>
 type RuntimeExtensionArtifact = {
   id: string
@@ -74,23 +89,8 @@ function matchesExtensionByteHash(value: string, expectedHash: string) {
   )
 }
 
-function persistedLifecycleCorrelation(operation: { planId: string; runtimeInputJson: string | null }) {
-  try {
-    const parsed = JSON.parse(operation.runtimeInputJson ?? '') as {
-      lifecycleCorrelation?: { planId?: unknown; correlationId?: unknown }
-    }
-    const value = parsed.lifecycleCorrelation
-    if (typeof value?.planId === 'string' && typeof value.correlationId === 'string')
-      return { planId: value.planId, correlationId: value.correlationId }
-  } catch {
-    // The runtime-input validator remains the authority for normal execution;
-    // this is only a bounded telemetry fallback in an error path.
-  }
-  return undefined
-}
-
-export function canonicalImmutableReviewedValidationProjection(value: unknown) {
-  const parsed = validationArtifactSchema.parse(value)
+function canonicalImmutableReviewedValidationProjection(value: unknown) {
+  const parsed = validationArtifactSchema.parse(value) as ValidationArtifact
   const {
     approvals: _approvals,
     validationDecisions: _validationDecisions,
@@ -136,7 +136,7 @@ function expectedCases(node: ValidationNode, runtimeInput: ValidationAstRuntimeI
   return cases.sort((left, right) => left.caseId.localeCompare(right.caseId))
 }
 
-export function buildReviewedRuntimeCapsuleFiles(input: {
+function buildReviewedRuntimeCapsuleFiles(input: {
   node: ValidationNode
   runtimeInput: ValidationAstRuntimeInput
   extensionArtifacts: unknown[]
@@ -280,31 +280,7 @@ function runtimeExtensionArtifact(value: unknown, allowVerifiedCompact = false):
   return artifact
 }
 
-function reviewedValidationFor(operation: PublishOperation) {
-  validateStoredValidationAstPublish(operation)
-  if (!operation.runtimeInputHash || !operation.runtimeInputJson)
-    throw new Error('Reviewed AST publication is missing its immutable runtime input snapshot.')
-  if (operation.phase !== 'review_ready') throw new Error('Runtime capsules require a review-ready AST publication.')
-  try {
-    if (!operation.plan.validationJson) throw new Error('missing validation projection')
-    const current = validationArtifactSchema.parse(JSON.parse(operation.plan.validationJson))
-    validationArtifactSchema.parse(JSON.parse(operation.validationProjectionJson))
-    return current
-  } catch {
-    throw new Error('Current plan validation projection differs from the reviewed publication.')
-  }
-}
-
-function assertMaterializationOwnership(operation: PublishOperation, testRun: MaterializerTestRun) {
-  if (
-    testRun.planId !== operation.planId ||
-    testRun.targetProjectId !== operation.targetProjectId ||
-    operation.plan.targetProjectId !== operation.targetProjectId
-  )
-    throw new Error('TestRun, plan, publication, and target project ownership do not match.')
-}
-
-function assertReviewedPhase2Node(operation: PublishOperation, node: ValidationNode) {
+function assertReviewedPhase2Node(operation: CapsulePublication, node: ValidationNode) {
   if (
     node.astProvenance?.astHash !== operation.astHash ||
     node.astProvenance?.schemaVersion !== '2' ||
@@ -313,7 +289,7 @@ function assertReviewedPhase2Node(operation: PublishOperation, node: ValidationN
     throw new Error('Canonical validation node is not the exact reviewed compiler review AST projection.')
 }
 
-function assertReviewedPublicationProvenance(operation: PublishOperation, node: ValidationNode) {
+function assertReviewedPublicationProvenance(operation: CapsulePublication, node: ValidationNode) {
   const provenance = node.astProvenance
   if (
     provenance?.schemaVersion !== '2' ||
@@ -324,7 +300,7 @@ function assertReviewedPublicationProvenance(operation: PublishOperation, node: 
     throw new Error('Canonical validation provenance does not match the exact reviewed publication snapshot.')
 }
 
-function reviewedNodeFor(operation: PublishOperation, validation: ValidationArtifact) {
+function reviewedNodeFor(operation: CapsulePublication, validation: ValidationArtifact) {
   const logical = JSON.parse(operation.projectionJson) as { validationNode?: unknown; gherkin?: unknown }
   assertSafeGeneratedGherkin(logical.gherkin)
   const node = validation.validations.find(item => item.id === operation.astId)
@@ -336,7 +312,7 @@ function reviewedNodeFor(operation: PublishOperation, validation: ValidationArti
 }
 
 async function reviewedExtensionArtifacts(
-  operation: PublishOperation,
+  operation: CapsulePublication,
   sealedDefinitions: SealedRuntimeStepDefinition[],
   prisma: PrismaClient,
 ): Promise<RuntimeExtensionArtifact[]> {
@@ -378,7 +354,7 @@ function reviewedExtensionBindings(sealedDefinitions: SealedRuntimeStepDefinitio
   return bindings
 }
 
-function reviewedExtensionReviews(operation: PublishOperation, bindings: Map<string, ReviewedExtensionBinding>) {
+function reviewedExtensionReviews(operation: CapsulePublication, bindings: Map<string, ReviewedExtensionBinding>) {
   const reviews = new Map(operation.extensionReviews.map(review => [`${review.extensionId}@${review.version}`, review]))
   if (reviews.size !== operation.extensionReviews.length || reviews.size !== bindings.size)
     throw new Error('Reviewed extension evidence does not exactly match the sealed definition closure.')
@@ -390,7 +366,7 @@ function reviewedExtensionReviews(operation: PublishOperation, bindings: Map<str
 function verifiedRuntimeExtension(
   key: string,
   binding: ReviewedExtensionBinding,
-  review: PublishOperation['extensionReviews'][number],
+  review: CapsulePublication['extensionReviews'][number],
   artifact: PersistedReviewedExtension | undefined,
 ): RuntimeExtensionArtifact {
   if (!artifact) throw new Error(`Reviewed extension ${key} is missing its registered artifact.`)
@@ -420,7 +396,7 @@ function verifiedRuntimeExtension(
 }
 
 async function buildCapsuleManifest(
-  operation: PublishOperation & { runtimeInputHash: string },
+  operation: CapsulePublication,
   testRun: MaterializerTestRun,
   node: ValidationNode,
   prisma: PrismaClient,
@@ -499,47 +475,37 @@ export class RuntimeCapsuleMaterializer {
     private readonly appraiseRoot: string,
   ) {}
 
-  async materialize(input: { operationId: string; testRunId: string }) {
-    const operation = await this.prisma.validationAstPublishOperation.findUniqueOrThrow({
-      where: { id: input.operationId },
+  /** Materialize an immutable Quality ValidationVersion publication. The
+   * executable bytes, command receipt, blob store and lease protocol are the
+   * same as the former AST publication path; only ownership is Quality-first. */
+  async materializeQuality(input: { publicationId: string; testRunId: string }) {
+    const publication = await this.prisma.qualityValidationPublication.findUniqueOrThrow({
+      where: { id: input.publicationId },
       include: {
-        plan: true,
         targetProject: true,
+        validationVersion: true,
         extensionReviews: { orderBy: [{ extensionId: 'asc' }, { version: 'asc' }] },
       },
     })
     try {
-      const reviewedValidation = reviewedValidationFor(operation)
+      if (publication.phase !== 'review_ready')
+        throw new Error('Runtime capsules require a review-ready Quality validation publication.')
       const testRun = await this.prisma.testRun.findUniqueOrThrow({
         where: { id: input.testRunId },
         include: { environment: true },
       })
-      assertMaterializationOwnership(operation, testRun)
-      const node = reviewedNodeFor(operation, reviewedValidation)
-      const publication = await this.prisma.validationNodePublication.findFirst({
-        where: {
-          planId: operation.planId,
-          targetProjectId: operation.targetProjectId,
-          validationId: node.id,
-          contentHash: validationNodeHash(node),
-          publishOperationId: operation.id,
-          operationHash: operation.operationHash,
-          runtimeInputHash: operation.runtimeInputHash!,
-          projectionHash: operation.projectionHash,
-        },
-      })
-      if (!publication) throw new Error('Runtime capsule requires an exact immutable validation node publication.')
-      const { built, manifest } = await buildCapsuleManifest(
-        { ...operation, runtimeInputHash: operation.runtimeInputHash! },
-        testRun,
-        node,
-        this.prisma,
-      )
-      await new ManagedProjectManifestRepository(this.prisma, this.appraiseRoot).refresh(operation.targetProjectId)
+      if (testRun.targetProjectId !== publication.targetProjectId)
+        throw new Error('TestRun and Quality validation publication ownership do not match.')
+      const validation = validationArtifactSchema.parse(
+        JSON.parse(publication.validationProjectionJson),
+      ) as ValidationArtifact
+      const node = reviewedNodeFor(publication, validation)
+      const { built, manifest } = await buildCapsuleManifest(publication, testRun, node, this.prisma)
+      await new ManagedProjectManifestRepository(this.prisma, this.appraiseRoot).refresh(publication.targetProjectId)
       const leases = new RuntimeCapsuleLeaseRepository(this.prisma)
       const identity = {
-        projectId: operation.targetProjectId,
-        validationHash: operation.validationHash,
+        projectId: publication.targetProjectId,
+        validationHash: publication.validationHash,
         runId: testRun.runId,
       }
       const paths = resolveRuntimeCapsulePaths({ appraiseRoot: this.appraiseRoot, ...identity })
@@ -548,7 +514,7 @@ export class RuntimeCapsuleMaterializer {
         for (const [index, file] of built.files.entries()) {
           await assertOwned()
           const blob = await blobs.put({
-            projectId: operation.targetProjectId,
+            projectId: publication.targetProjectId,
             contentHash: manifest.files[index]!.hash,
             bytes: file.bytes,
           })
@@ -556,31 +522,28 @@ export class RuntimeCapsuleMaterializer {
           await materializeRuntimeCapsuleFile({
             paths,
             filePath: file.path,
-            blobPath: path.join(this.appraiseRoot, 'projects', operation.targetProjectId, blob.storagePath),
+            blobPath: path.join(this.appraiseRoot, 'projects', publication.targetProjectId, blob.storagePath),
             contentHash: manifest.files[index]!.hash,
             expectedSize: manifest.files[index]!.size,
           })
         }
         await assertOwned()
-        const repository = new RuntimeCapsuleRepository(this.prisma, this.appraiseRoot)
-        const row = await repository.create({
-          projectId: operation.targetProjectId,
+        const row = await new RuntimeCapsuleRepository(this.prisma, this.appraiseRoot).create({
+          projectId: publication.targetProjectId,
           testRunId: testRun.id,
           runId: testRun.runId,
-          validationHash: operation.validationHash,
-          publicationId: publication.id,
+          validationHash: publication.validationHash,
+          qualityPublicationId: publication.id,
           manifest,
           assertLeaseOwned: assertOwned,
         })
-        const telemetry =
-          manifest.lifecycleCorrelation ?? (await telemetryContextForPlan(this.prisma, operation.planId))
+        const correlationId = `quality:${publication.qualityPlanRevisionId}`
         await Promise.all(
           manifest.rootInvocations.map(invocation =>
             recordStepDefinitionTelemetry(this.prisma, {
               surface: 'runtime',
               outcome: 'runtime_ready',
-              correlationId: telemetry.correlationId,
-              planId: telemetry.planId,
+              correlationId,
               step: { id: invocation.step.id, version: invocation.step.version },
               payload: {},
             }),
@@ -589,13 +552,10 @@ export class RuntimeCapsuleMaterializer {
         return { row, manifest }
       })
     } catch (error) {
-      const telemetry =
-        persistedLifecycleCorrelation(operation) ?? (await telemetryContextForPlan(this.prisma, operation.planId))
       await recordStepDefinitionTelemetry(this.prisma, {
         surface: 'runtime',
         outcome: 'runtime_blocked',
-        correlationId: telemetry.correlationId,
-        planId: telemetry.planId,
+        correlationId: `quality:${publication.qualityPlanRevisionId}`,
         payload: { reason: 'runtime_readiness' },
       }).catch(() => undefined)
       throw error

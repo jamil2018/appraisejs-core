@@ -97,13 +97,13 @@ model StepDefinitionSearchReceipt {
   id                      String   @id @default(uuid())
   indexHash               String
   candidateReferencesJson String
-  planId                  String?
+  qualityPlanId           String?
   correlationId           String
   searchedAt              DateTime @default(now())
   expiresAt               DateTime
 
   @@index([expiresAt])
-  @@index([planId, correlationId])
+  @@index([qualityPlanId, correlationId])
 }
 
 model StepDefinitionDraftArtifact {
@@ -211,7 +211,7 @@ model StepDefinitionTelemetryEvent {
   stepId      String?
   stepVersion String?
   correlationId String?
-  planId        String?
+  qualityPlanId String?
   payloadJson String
   createdAt   DateTime @default(now())
 
@@ -430,12 +430,11 @@ model TestRun {
   logPath                        String?
   reportPath                     String?
   reports                        Report[]
-  planId                         String?
-  plan                           PlanProjection?                 @relation(fields: [planId], references: [planId], onDelete: SetNull)
   targetProjectId                String?
   targetProject                  TargetProject?                  @relation(fields: [targetProjectId], references: [id], onDelete: Restrict)
   runtimeCapsule                 RuntimeCapsule?
   runtimeCapsuleExecutionAttempt RuntimeCapsuleExecutionAttempt?
+  assessmentRunBinding           AssessmentRunBinding?
 
   @@unique([targetProjectId, preparationKey])
   @@index([completedAt])
@@ -443,91 +442,6 @@ model TestRun {
   @@index([evidenceHealth])
   @@index([targetProjectId])
   @@index([targetProjectId, startedAt, id])
-}
-
-model PlanProjection {
-  id                             String                          @id @default(uuid())
-  planId                         String                          @unique
-  slug                           String                          @default("")
-  legacyPlanId                   String?
-  revision                       Int
-  lifecycle                      String
-  goal                           String
-  description                    String
-  sourceHash                     String
-  planContentHash                String                          @default("")
-  planStateHash                  String                          @default("")
-  reviewBindingHash              String                          @default("")
-  planPath                       String
-  reviewJson                     String?
-  validationJson                 String?
-  layoutJson                     String?
-  stale                          Boolean                         @default(false)
-  conflicted                     Boolean                         @default(false)
-  deletedAt                      DateTime?
-  lastValidProjectedAt           DateTime
-  lastSyncAt                     DateTime                        @default(now())
-  createdAt                      DateTime                        @default(now())
-  updatedAt                      DateTime                        @updatedAt
-  tasks                          PlanTaskProjection[]
-  issues                         PlanSyncIssue[]
-  revisions                      PlanRevision[]
-  events                         PlanEvent[]
-  coordinatorLease               PlanCoordinatorLease?
-  personalLayouts                PlanPersonalLayout[]
-  testRuns                       TestRun[]
-  providerRuns                   ProviderWorkflowRun[]
-  baselineAttempts               BaselineAttempt[]
-  validationAstPublishOperations ValidationAstPublishOperation[]
-  validationNodePublications     ValidationNodePublication[]
-  coordinatorFailureReceipts     CoordinatorFailureReceipt[]
-  coordinatorOperationReceipts   CoordinatorOperationReceipt[]
-  operationMetrics               PlanOperationMetric[]
-  targetProjectId                String?
-  targetProject                  TargetProject?                  @relation(fields: [targetProjectId], references: [id], onDelete: Restrict)
-
-  @@index([stale])
-  @@index([conflicted])
-  @@index([slug])
-  @@index([legacyPlanId])
-  @@index([targetProjectId])
-}
-
-model BaselineAttempt {
-  id                 String                 @id
-  planProjectionId   String
-  validationId       String
-  validationRevision Int
-  validationHash     String
-  browser            String
-  environment        String
-  testRunId          String
-  evidenceJson       String
-  publicationId      String?
-  createdAt          DateTime
-  recordedAt         DateTime               @default(now())
-  plan               PlanProjection         @relation(fields: [planProjectionId], references: [id], onDelete: Cascade)
-  events             BaselineAttemptEvent[]
-  publication        ValidationNodePublication? @relation(fields: [publicationId], references: [id], onDelete: Restrict)
-
-  @@index([planProjectionId, createdAt])
-  @@index([testRunId])
-  @@index([publicationId])
-}
-
-model BaselineAttemptEvent {
-  id             String          @id @default(uuid())
-  attemptId      String
-  kind           String
-  payloadJson    String
-  idempotencyKey String
-  sequence       Int
-  createdAt      DateTime        @default(now())
-  attempt        BaselineAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
-
-  @@unique([attemptId, idempotencyKey])
-  @@unique([attemptId, sequence])
-  @@index([attemptId, createdAt])
 }
 
 model TargetProject {
@@ -542,19 +456,12 @@ model TargetProject {
   createdAt                      DateTime                        @default(now())
   updatedAt                      DateTime                        @updatedAt
   lastDetectedAt                 DateTime                        @default(now())
-  planProjections                PlanProjection[]
-  providerRuns                   ProviderWorkflowRun[]
   testRuns                       TestRun[]
-  validationAstPublishOperations ValidationAstPublishOperation[]
   runtimeCapsules                RuntimeCapsule[]
   runtimeCapsuleBlobs            RuntimeCapsuleBlob[]
   runtimeCapsuleLeases           RuntimeCapsuleLease[]
-  repositoryExportJobs           RepositoryExportJob[]
-  repositoryExportReceipts       RepositoryExportReceipt[]
   resourceOwnerships             ProjectResourceOwnership[]
   resourceImports                ProjectResourceImport[]         @relation("ResourceImportDestination")
-  validationResourceProposals    ValidationResourceProposal[]
-  delegatedCoordinatorReceipts   DelegatedCoordinatorReceipt[]
   testSuites                     TestSuite[]
   testCases                      TestCase[]
   templateTestCases              TemplateTestCase[]
@@ -569,9 +476,10 @@ model TargetProject {
   dashboardMetrics               DashboardMetrics?
   agentPreflightReceipts         AgentPreflightReceipt[]
   qualityPlans                   QualityPlan[]
+  qualityValidationPublications  QualityValidationPublication[]
   assessments                    Assessment[]
+  assessmentRuns                 AssessmentRun[]
   evidenceReceipts               EvidenceReceipt[]
-  validationNodePublications     ValidationNodePublication[]
 
   @@index([displayName])
   @@index([fingerprint])
@@ -598,31 +506,6 @@ model AgentPreflightReceipt {
   @@index([observedAt])
 }
 
-model PlanOperationMetric {
-  id               String         @id @default(cuid())
-  planProjectionId String
-  phase            String
-  operation        String
-  statusCode       Int
-  durationMs       Int
-  waitMs           Int            @default(0)
-  retryCount       Int            @default(0)
-  toolCallCount    Int            @default(1)
-  requestBytes     Int
-  responseBytes    Int
-  recoveryCost     Int            @default(0)
-  estimatedTokens  Int            @default(0)
-  responseMode     String         @default("summary")
-  retryCause       String?
-  classification   String?
-  operationOutcome String?
-  recordedAt       DateTime       @default(now())
-  plan             PlanProjection @relation(fields: [planProjectionId], references: [id], onDelete: Cascade)
-
-  @@index([planProjectionId, recordedAt])
-  @@index([recordedAt])
-}
-
 model LifecycleCertificationReceipt {
   id            String   @id @default(cuid())
   schemaVersion String
@@ -635,22 +518,6 @@ model LifecycleCertificationReceipt {
 
   @@index([recordedAt])
   @@index([status, recordedAt])
-}
-
-model ValidationResourceProposal {
-  id              String        @id @default(uuid())
-  planId          String
-  targetProjectId String
-  idempotencyKey  String
-  proposalHash    String
-  proposalJson    String
-  resultJson      String
-  createdAt       DateTime      @default(now())
-  targetProject   TargetProject @relation(fields: [targetProjectId], references: [id], onDelete: Restrict)
-
-  @@unique([planId, idempotencyKey])
-  @@unique([targetProjectId, proposalHash])
-  @@index([targetProjectId, createdAt])
 }
 
 model ProjectResourceOwnership {
@@ -702,68 +569,12 @@ enum ResourceSharingMode {
   copy
 }
 
-enum RepositoryExportPolicy {
-  disabled
-  optional
-  required
-}
-
-enum RepositoryExportJobState {
-  queued
-  running
-  conflict
-  succeeded
-  failed
-}
-
-model RepositoryExportJob {
-  id                 String                        @id @default(uuid())
-  targetProjectId    String
-  publishOperationId String
-  validationHash     String
-  destinationPath    String
-  policy             RepositoryExportPolicy        @default(disabled)
-  state              RepositoryExportJobState      @default(queued)
-  attemptCount       Int                           @default(0)
-  idempotencyKey     String                        @unique
-  manifestHash       String?
-  manifestJson       String?
-  conflictJson       String?
-  failureCode        String?
-  createdAt          DateTime                      @default(now())
-  updatedAt          DateTime                      @updatedAt
-  completedAt        DateTime?
-  targetProject      TargetProject                 @relation(fields: [targetProjectId], references: [id], onDelete: Restrict)
-  publishOperation   ValidationAstPublishOperation @relation(fields: [publishOperationId], references: [id], onDelete: Restrict)
-  receipt            RepositoryExportReceipt?
-
-  @@unique([targetProjectId, validationHash, destinationPath])
-  @@index([state, updatedAt])
-  @@index([targetProjectId, validationHash])
-}
-
-model RepositoryExportReceipt {
-  id              String              @id @default(uuid())
-  jobId           String              @unique
-  targetProjectId String
-  validationHash  String
-  manifestHash    String
-  destinationPath String
-  receiptJson     String
-  completedAt     DateTime            @default(now())
-  job             RepositoryExportJob @relation(fields: [jobId], references: [id], onDelete: Restrict)
-  targetProject   TargetProject       @relation(fields: [targetProjectId], references: [id], onDelete: Restrict)
-
-  @@unique([targetProjectId, validationHash, destinationPath])
-  @@index([targetProjectId, validationHash])
-}
-
 model RuntimeCapsule {
   id               String                          @id @default(uuid())
   targetProjectId  String
   testRunId        String                          @unique
   validationHash   String
-  publicationId    String?
+  qualityPublicationId String?
   capsuleHash      String
   manifestHash     String
   manifestJson     String
@@ -776,13 +587,13 @@ model RuntimeCapsule {
   testRun          TestRun                         @relation(fields: [testRunId], references: [id], onDelete: Restrict)
   blobReferences   RuntimeCapsuleBlobReference[]
   executionAttempt RuntimeCapsuleExecutionAttempt?
-  publication      ValidationNodePublication?      @relation(fields: [publicationId], references: [id], onDelete: Restrict)
+  qualityPublication QualityValidationPublication? @relation(fields: [qualityPublicationId], references: [id], onDelete: Restrict)
 
   @@unique([targetProjectId, validationHash, testRunId])
   @@unique([targetProjectId, storagePath])
   @@index([targetProjectId, validationHash])
   @@index([integrityState])
-  @@index([publicationId])
+  @@index([qualityPublicationId])
 }
 
 model RuntimeCapsuleExecutionAttempt {
@@ -870,426 +681,6 @@ model RuntimeCapsuleLease {
 
   @@unique([targetProjectId, validationHash, runId])
   @@index([leaseExpiresAt])
-}
-
-model ProviderAdapterRegistration {
-  id               String                @id @default(uuid())
-  key              String                @unique
-  displayName      String
-  providerKind     String
-  adapterVersion   String
-  capabilitiesJson String
-  enabled          Boolean               @default(true)
-  executablePath   String?
-  detectedVersion  String?
-  probeStatus      String                @default("not_probed")
-  probeMessage     String?
-  lastProbedAt     DateTime?
-  defaultProfile   String?
-  defaultModel     String?
-  launchEnabled    Boolean               @default(false)
-  settingsJson     String?
-  createdAt        DateTime              @default(now())
-  updatedAt        DateTime              @updatedAt
-  runs             ProviderWorkflowRun[]
-
-  @@index([providerKind, enabled])
-  @@index([enabled, launchEnabled, probeStatus])
-}
-
-model ProviderWorkflowRun {
-  id                      String                       @id @default(uuid())
-  planProjectionId        String?
-  targetProjectId         String
-  providerAdapterId       String?
-  providerKind            String
-  providerProfile         String?
-  adapterVersion          String
-  status                  String
-  lifecyclePhase          String
-  capabilitySnapshotJson  String
-  launchPrompt            String
-  approvedScopeJson       String?
-  appraiseInstructions    String
-  providerSessionId       String?
-  providerThreadId        String?
-  providerProcessId       String?
-  preRunRepoSnapshotJson  String?
-  postRunRepoSnapshotJson String?
-  changedFilesJson        String?
-  artifactHashesJson      String?
-  failureReason           String?
-  cancelledAt             DateTime?
-  startedAt               DateTime?
-  completedAt             DateTime?
-  createdAt               DateTime                     @default(now())
-  updatedAt               DateTime                     @updatedAt
-  plan                    PlanProjection?              @relation(fields: [planProjectionId], references: [id], onDelete: SetNull)
-  targetProject           TargetProject                @relation(fields: [targetProjectId], references: [id], onDelete: Cascade)
-  providerAdapter         ProviderAdapterRegistration? @relation(fields: [providerAdapterId], references: [id], onDelete: SetNull)
-  events                  ProviderRunEvent[]
-  permissionDecisions     ProviderPermissionDecision[]
-  artifactSnapshots       ProviderArtifactSnapshot[]
-
-  @@index([planProjectionId])
-  @@index([targetProjectId])
-  @@index([providerKind, status])
-  @@index([createdAt])
-}
-
-model ProviderRunEvent {
-  id          String              @id @default(uuid())
-  runId       String
-  sequence    Int
-  type        String
-  payloadJson String?
-  stream      String?
-  createdAt   DateTime            @default(now())
-  run         ProviderWorkflowRun @relation(fields: [runId], references: [id], onDelete: Cascade)
-
-  @@unique([runId, sequence])
-  @@index([runId, createdAt])
-}
-
-model ProviderPermissionDecision {
-  id             String              @id @default(uuid())
-  runId          String
-  requestId      String
-  decision       String
-  riskTier       String
-  requestedScope String
-  payloadJson    String
-  reason         String?
-  decidedBy      String
-  decidedAt      DateTime            @default(now())
-  run            ProviderWorkflowRun @relation(fields: [runId], references: [id], onDelete: Cascade)
-
-  @@unique([runId, requestId])
-  @@index([runId, decidedAt])
-}
-
-model ProviderArtifactSnapshot {
-  id           String              @id @default(uuid())
-  runId        String
-  path         String
-  kind         String
-  hash         String?
-  metadataJson String?
-  capturedAt   DateTime            @default(now())
-  run          ProviderWorkflowRun @relation(fields: [runId], references: [id], onDelete: Cascade)
-
-  @@unique([runId, path, kind])
-  @@index([runId, capturedAt])
-}
-
-model PlanTaskProjection {
-  id               String         @id @default(uuid())
-  planProjectionId String
-  taskId           String
-  title            String
-  description      String
-  acceptanceJson   String
-  validationIntent String
-  position         Int
-  plan             PlanProjection @relation(fields: [planProjectionId], references: [id], onDelete: Cascade)
-
-  @@unique([planProjectionId, taskId])
-  @@index([planProjectionId, position])
-}
-
-model PlanSyncIssue {
-  id               String         @id @default(uuid())
-  planProjectionId String
-  code             String
-  artifactPath     String?
-  message          String
-  blocking         Boolean        @default(true)
-  createdAt        DateTime       @default(now())
-  resolvedAt       DateTime?
-  plan             PlanProjection @relation(fields: [planProjectionId], references: [id], onDelete: Cascade)
-
-  @@index([planProjectionId, resolvedAt])
-}
-
-model PlanRevision {
-  id               String         @id @default(uuid())
-  planProjectionId String
-  sourceHash       String
-  gitCommit        String?
-  dirtyHashesJson  String?
-  snapshotJson     String?
-  reducedAssurance Boolean        @default(false)
-  createdAt        DateTime       @default(now())
-  plan             PlanProjection @relation(fields: [planProjectionId], references: [id], onDelete: Cascade)
-
-  @@unique([planProjectionId, sourceHash])
-}
-
-model PlanEvent {
-  id                 String                         @id @default(uuid())
-  planProjectionId   String
-  publishOperationId String?
-  validationId       String?
-  operationEventKey  String?                        @unique
-  sequence           Int
-  type               String
-  payloadJson        String?
-  previousStateHash  String?
-  stateHash          String?
-  planContentHash    String?
-  revision           Int?
-  actor              String?
-  acknowledgedAt     DateTime?
-  acknowledgedBy     String?
-  supersededAt       DateTime?
-  createdAt          DateTime                       @default(now())
-  plan               PlanProjection                 @relation(fields: [planProjectionId], references: [id], onDelete: Cascade)
-  publishOperation   ValidationAstPublishOperation? @relation(fields: [publishOperationId], references: [id], onDelete: Restrict)
-
-  @@unique([planProjectionId, sequence])
-  @@unique([publishOperationId, validationId])
-  @@index([publishOperationId, type])
-  @@index([planProjectionId, acknowledgedAt, sequence])
-}
-
-model ValidationNodePublication {
-  id                 String                        @id @default(uuid())
-  planId             String
-  targetProjectId    String
-  validationId       String
-  contentHash        String
-  publishOperationId String
-  operationHash      String
-  runtimeInputHash   String
-  projectionHash     String
-  publicationHash    String                        @unique
-  publishedAt        DateTime                      @default(now())
-  plan               PlanProjection                @relation(fields: [planId], references: [planId], onDelete: Restrict)
-  targetProject      TargetProject                 @relation(fields: [targetProjectId], references: [id], onDelete: Restrict)
-  publishOperation   ValidationAstPublishOperation @relation(fields: [publishOperationId], references: [id], onDelete: Restrict)
-  decisionReceipt    ValidationDecisionReceipt?
-  runtimeCapsules    RuntimeCapsule[]
-  baselineAttempts   BaselineAttempt[]
-
-  @@unique([publishOperationId, validationId])
-  @@unique([planId, targetProjectId, validationId, contentHash, publishOperationId, operationHash, runtimeInputHash, projectionHash])
-  @@index([planId, validationId, publishedAt])
-  @@index([targetProjectId, validationId, publishedAt])
-}
-
-model ValidationDecisionReceipt {
-  id             String                    @id @default(uuid())
-  publicationId  String                    @unique
-  decision       String
-  decidedBy      String
-  decidedAt      DateTime
-  requestHash    String
-  idempotencyKey String
-  receiptHash    String                    @unique
-  publication    ValidationNodePublication @relation(fields: [publicationId], references: [id], onDelete: Restrict)
-
-  @@unique([publicationId, idempotencyKey])
-}
-
-model CoordinatorFailureReceipt {
-  id                  String          @id @default(uuid())
-  schemaVersion       String
-  errorId             String          @unique
-  occurredAt          DateTime        @default(now())
-  classification      String
-  code                String
-  httpStatus          Int?
-  operationName       String
-  planId              String?
-  idempotencyKeyHash  String?
-  phase               String?
-  operationOutcome    String?
-  retryStrategy       String?
-  scrubbedDetailsJson String
-  receiptHash         String          @unique
-  plan                PlanProjection? @relation(fields: [planId], references: [planId], onDelete: Restrict)
-
-  @@index([planId, occurredAt])
-  @@index([operationName, occurredAt])
-}
-
-model CoordinatorOperationReceipt {
-  id               String          @id @default(uuid())
-  operationName    String
-  scopeKey         String
-  idempotencyKey   String
-  requestHash      String
-  requestJson      String
-  resultHash       String?
-  resultJson       String?
-  phase            String
-  operationOutcome String
-  ownerToken       String          @default(uuid())
-  startedAt        DateTime        @default(now())
-  completedAt      DateTime?
-  planId           String?
-  plan             PlanProjection? @relation(fields: [planId], references: [planId], onDelete: Restrict)
-
-  @@unique([operationName, scopeKey, idempotencyKey])
-  @@index([planId, startedAt])
-  @@index([operationName, startedAt])
-}
-
-model AppraiseProjectIdentity {
-  id                 String    @id @default(uuid())
-  projectFingerprint String    @unique
-  tokenHash          String
-  createdAt          DateTime  @default(now())
-  rotatedAt          DateTime?
-}
-
-model DelegatedAuthorizationNonce {
-  nonce      String   @id
-  issuer     String
-  expiresAt  DateTime
-  consumedAt DateTime @default(now())
-
-  @@index([expiresAt])
-}
-
-model DelegatedCoordinatorReceipt {
-  id                     String                            @id
-  parentCoordinatorId    String
-  delegatedCoordinatorId String
-  targetProjectId        String?
-  targetFingerprint      String
-  pathFingerprint        String
-  purpose                String
-  permissionsJson        String
-  prohibitionsJson       String
-  briefOrPlanHash        String?
-  nonce                  String                            @unique
-  receiptJson            String
-  issuedAt               DateTime                          @default(now())
-  expiresAt              DateTime
-  revokedAt              DateTime?
-  revokedBy              String?
-  revocationReason       String?
-  targetProject          TargetProject?                    @relation(fields: [targetProjectId], references: [id], onDelete: SetNull)
-  consumptions           DelegatedCoordinatorConsumption[]
-
-  @@index([delegatedCoordinatorId, expiresAt])
-  @@index([targetFingerprint, expiresAt])
-}
-
-model DelegatedCoordinatorConsumption {
-  id           String                      @id @default(uuid())
-  receiptId    String
-  permission   String
-  operationKey String
-  consumedAt   DateTime                    @default(now())
-  receipt      DelegatedCoordinatorReceipt @relation(fields: [receiptId], references: [id], onDelete: Cascade)
-
-  @@unique([receiptId, permission, operationKey])
-  @@index([receiptId, consumedAt])
-}
-
-model DelegatedValidationAstSubmission {
-  id                String   @id @default(uuid())
-  nonce             String   @unique
-  targetFingerprint String
-  planHash          String
-  issuer            String
-  astId             String
-  astJson           String
-  receiptJson       String
-  receivedAt        DateTime @default(now())
-
-  @@index([targetFingerprint, planHash, receivedAt])
-}
-
-model ValidationAstPublishOperation {
-  id                       String                      @id @default(uuid())
-  planId                   String
-  planProjectionId         String
-  targetProjectId          String
-  targetFingerprint        String
-  idempotencyKey           String
-  operationHash            String                      @unique
-  phase                    String                      @default("prepared")
-  expectedPlanHash         String
-  expectedPlanArtifactHash String
-  expectedValidationHash   String?
-  expectedReviewHash       String
-  planHash                 String
-  validationHash           String
-  reviewHash               String
-  planContent              String
-  validationContent        String
-  reviewContent            String
-  astId                    String
-  astHash                  String
-  contextHash              String
-  previewHash              String
-  receiptHash              String
-  projectionHash           String
-  projectionJson           String
-  validationProjectionJson String
-  runtimeInputHash         String?
-  runtimeInputJson         String?
-  reviewStateHash          String?
-  reviewStateJson          String?
-  failure                  String?
-  createdAt                DateTime                    @default(now())
-  updatedAt                DateTime                    @updatedAt
-  extensionReviews         ValidationExtensionReview[]
-  events                   PlanEvent[]
-  plan                     PlanProjection              @relation(fields: [planProjectionId], references: [id], onDelete: Restrict)
-  targetProject            TargetProject               @relation(fields: [targetProjectId], references: [id], onDelete: Restrict)
-  repositoryExportJobs     RepositoryExportJob[]
-  validationNodePublications ValidationNodePublication[]
-
-  @@unique([planId, idempotencyKey])
-  @@index([phase, updatedAt])
-  @@index([planProjectionId, phase])
-  @@index([targetProjectId, phase])
-}
-
-model ValidationExtensionReview {
-  id           String                        @id @default(uuid())
-  operationId  String
-  extensionId  String
-  version      String
-  sourceHash   String
-  compiledHash String
-  artifactHash String
-  artifactJson String
-  createdAt    DateTime                      @default(now())
-  operation    ValidationAstPublishOperation @relation(fields: [operationId], references: [id], onDelete: Cascade)
-
-  @@unique([operationId, extensionId, version])
-  @@index([artifactHash])
-}
-
-model PlanCoordinatorLease {
-  id               String         @id @default(uuid())
-  planProjectionId String         @unique
-  coordinatorId    String
-  connectionId     String         @unique
-  leaseExpiresAt   DateTime
-  takeoverApproved Boolean        @default(false)
-  createdAt        DateTime       @default(now())
-  updatedAt        DateTime       @updatedAt
-  plan             PlanProjection @relation(fields: [planProjectionId], references: [id], onDelete: Cascade)
-
-  @@index([leaseExpiresAt])
-}
-
-model PlanPersonalLayout {
-  id               String         @id @default(uuid())
-  planProjectionId String
-  owner            String
-  positionsJson    String
-  createdAt        DateTime       @default(now())
-  updatedAt        DateTime       @updatedAt
-  plan             PlanProjection @relation(fields: [planProjectionId], references: [id], onDelete: Cascade)
-
-  @@unique([planProjectionId, owner])
 }
 
 model TestRunLog {
@@ -1543,7 +934,9 @@ model QualityPlanRevision {
   requirementSnapshots  RequirementSnapshot[]
   obligations           QualityObligationRevision[]
   validationVersions    ValidationVersion[]
+  validationPublications QualityValidationPublication[]
   assessments           Assessment[]
+  assessmentRuns        AssessmentRun[]
   driftReports          RequirementDriftReport[]    @relation("RevisionDriftReports")
   successorDriftReports RequirementDriftReport[]    @relation("SuccessorRevisionDriftReports")
   createdAt             DateTime                    @default(now())
@@ -1629,6 +1022,8 @@ model ValidationVersion {
   qualityPlanRevision   QualityPlanRevision           @relation(fields: [qualityPlanRevisionId, targetProjectId], references: [id, targetProjectId], onDelete: Cascade)
   obligationLinks       ObligationValidationVersion[]
   evidenceReceipts      EvidenceReceipt[]
+  publication           QualityValidationPublication?
+  assessmentRunBindings AssessmentRunBinding[]
 
   @@unique([id, targetProjectId])
   @@unique([id, qualityPlanRevisionId])
@@ -1636,6 +1031,63 @@ model ValidationVersion {
   @@unique([qualityPlanRevisionId, canonicalHash])
   @@index([targetProjectId])
   @@index([qualityPlanRevisionId, status])
+}
+
+/// Immutable executable publication for one published Quality ValidationVersion.
+/// It retains the proven capsule inputs without retaining a development-plan
+/// identity or projection relation.
+model QualityValidationPublication {
+  id                    String                    @id @default(uuid())
+  targetProjectId       String
+  targetFingerprint     String
+  qualityPlanRevisionId String
+  validationVersionId   String                    @unique
+  idempotencyKey        String
+  operationHash         String                    @unique
+  phase                 String                    @default("review_ready")
+  expectedRevisionHash  String
+  validationHash        String
+  validationContent     String
+  reviewHash            String
+  reviewContent         String
+  astId                 String
+  astHash               String
+  contextHash           String
+  previewHash           String
+  receiptHash           String
+  projectionHash        String
+  projectionJson        String
+  validationProjectionJson String
+  runtimeInputHash      String
+  runtimeInputJson      String
+  failure               String?
+  createdAt             DateTime                  @default(now())
+  updatedAt             DateTime                  @updatedAt
+  targetProject         TargetProject             @relation(fields: [targetProjectId], references: [id], onDelete: Restrict)
+  qualityPlanRevision   QualityPlanRevision       @relation(fields: [qualityPlanRevisionId, targetProjectId], references: [id, targetProjectId], onDelete: Cascade)
+  validationVersion     ValidationVersion         @relation(fields: [validationVersionId, qualityPlanRevisionId], references: [id, qualityPlanRevisionId], onDelete: Cascade)
+  extensionReviews      QualityValidationExtensionReview[]
+  runtimeCapsules       RuntimeCapsule[]
+
+  @@unique([qualityPlanRevisionId, idempotencyKey])
+  @@unique([validationVersionId, qualityPlanRevisionId])
+  @@index([targetProjectId, phase])
+  @@index([qualityPlanRevisionId, validationVersionId])
+}
+
+model QualityValidationExtensionReview {
+  id            String                       @id @default(uuid())
+  publicationId String
+  extensionId   String
+  version       String
+  sourceHash    String
+  compiledHash  String
+  artifactHash  String
+  artifactJson  String
+  createdAt     DateTime                     @default(now())
+  publication   QualityValidationPublication @relation(fields: [publicationId], references: [id], onDelete: Cascade)
+
+  @@unique([publicationId, extensionId, version])
 }
 
 model ObligationValidationVersion {
@@ -1661,6 +1113,7 @@ model EvaluationSubjectRevision {
   createdAt        DateTime              @default(now())
   assessments      Assessment[]
   evidenceReceipts EvidenceReceipt[]
+  assessmentRuns   AssessmentRun[]
 }
 
 model Assessment {
@@ -1682,6 +1135,7 @@ model Assessment {
   baselineAssessment          Assessment?                @relation("AssessmentBaseline", fields: [baselineAssessmentId, targetProjectId, qualityPlanId, qualityPlanRevisionId], references: [id, targetProjectId, qualityPlanId, qualityPlanRevisionId], onDelete: Restrict)
   baselineReferences          Assessment[]               @relation("AssessmentBaseline")
   evidenceReceipts            EvidenceReceipt[]
+  runs                        AssessmentRun[]
   decisions                   AssessmentDecision[]
 
   @@unique([id, targetProjectId])
@@ -1690,6 +1144,63 @@ model Assessment {
   @@index([targetProjectId, status])
   @@index([qualityPlanId, status])
   @@index([qualityPlanRevisionId, alignment])
+}
+
+/// Idempotent execution intent for either a reviewable Assessment or a
+/// standalone evidence-only subject. The request hash freezes the selected
+/// validation versions, subject digest, and runtime inputs before any TestRun
+/// is created.
+model AssessmentRun {
+  id                          String                     @id @default(uuid())
+  targetProjectId             String
+  assessmentId                String?
+  qualityPlanRevisionId       String
+  evaluationSubjectRevisionId String
+  idempotencyScope            String
+  idempotencyKey              String
+  requestHash                 String
+  status                      AssessmentRunStatus        @default(PREPARED)
+  stopReason                  String?
+  version                     Int                        @default(1)
+  createdAt                   DateTime                   @default(now())
+  updatedAt                   DateTime                   @updatedAt
+  targetProject               TargetProject              @relation(fields: [targetProjectId], references: [id], onDelete: Restrict)
+  assessment                  Assessment?                @relation(fields: [assessmentId, targetProjectId, qualityPlanRevisionId], references: [id, targetProjectId, qualityPlanRevisionId], onDelete: Restrict)
+  qualityPlanRevision         QualityPlanRevision        @relation(fields: [qualityPlanRevisionId, targetProjectId], references: [id, targetProjectId], onDelete: Restrict)
+  evaluationSubjectRevision   EvaluationSubjectRevision  @relation(fields: [evaluationSubjectRevisionId], references: [id], onDelete: Restrict)
+  bindings                    AssessmentRunBinding[]
+
+  @@unique([id, targetProjectId])
+  @@unique([id, targetProjectId, qualityPlanRevisionId])
+  @@unique([idempotencyScope, idempotencyKey])
+  @@index([assessmentId, status])
+  @@index([targetProjectId, status])
+}
+
+/// One immutable validation/matrix-cell execution binding per AssessmentRun.
+/// A terminal EvidenceReceipt can only be attached once, preserving the first
+/// observed terminal TestRun outcome during stop/reconcile races.
+model AssessmentRunBinding {
+  id                    String           @id @default(uuid())
+  assessmentRunId       String
+  validationVersionId   String
+  resultMatrixCell      String
+  testRunId             String           @unique
+  runtimeInputHash      String
+  terminalOutcome       EvidenceOutcome?
+  terminalizedAt        DateTime?
+  evidenceReceiptId     String?
+  version               Int              @default(1)
+  createdAt             DateTime         @default(now())
+  updatedAt             DateTime         @updatedAt
+  assessmentRun         AssessmentRun    @relation(fields: [assessmentRunId], references: [id], onDelete: Cascade)
+  validationVersion     ValidationVersion @relation(fields: [validationVersionId], references: [id], onDelete: Restrict)
+  testRun               TestRun          @relation(fields: [testRunId], references: [id], onDelete: Restrict)
+  evidenceReceipt       EvidenceReceipt? @relation(fields: [evidenceReceiptId], references: [id], onDelete: Restrict)
+
+  @@unique([assessmentRunId, validationVersionId, resultMatrixCell])
+  @@index([assessmentRunId, terminalizedAt])
+  @@index([validationVersionId])
 }
 
 model EvidenceReceipt {
@@ -1710,6 +1221,7 @@ model EvidenceReceipt {
   reportHash                  String?
   logHash                     String?
   traceHash                   String?
+  assessmentRunBindings       AssessmentRunBinding[]
   receiptHash                 String                    @unique
   sealedAt                    DateTime                  @default(now())
   targetProject               TargetProject             @relation(fields: [targetProjectId], references: [id], onDelete: Restrict)
@@ -1717,7 +1229,7 @@ model EvidenceReceipt {
   validationVersion           ValidationVersion         @relation(fields: [validationVersionId, qualityPlanRevisionId], references: [id, qualityPlanRevisionId], onDelete: Restrict)
   evaluationSubjectRevision   EvaluationSubjectRevision @relation(fields: [evaluationSubjectRevisionId], references: [id], onDelete: Restrict)
 
-  @@unique([targetProjectId, validationVersionId, evaluationSubjectRevisionId, resultMatrixCell, runtimeInputHash])
+  @@index([targetProjectId, validationVersionId, evaluationSubjectRevisionId, resultMatrixCell, runtimeInputHash])
   @@index([targetProjectId, sealedAt])
   @@index([assessmentId])
 }
@@ -1947,10 +1459,18 @@ enum AssessmentStatus {
   CREATED
   READY
   RUNNING
-  STOPPED
   EVIDENCE_REVIEW
   DECIDED
+  STALE
   CANCELLED
+}
+
+enum AssessmentRunStatus {
+  PREPARED
+  RUNNING
+  STOP_REQUESTED
+  COMPLETED
+  STOPPED
 }
 
 enum RequirementAlignmentStatus {

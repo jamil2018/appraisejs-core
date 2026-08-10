@@ -4,7 +4,7 @@ import { createRequire } from 'node:module'
 import ts from 'typescript'
 import { z } from 'zod'
 import { CUSTOM_EXTENSION_RUNTIME_DECLARATIONS, type CustomExtensionPolicy } from './extension-policy'
-import { customActionExtensionProposalSchema, type CustomActionExtensionProposal } from './schemas'
+import { customActionExtensionProposalSchema, type CustomActionExtensionProposal } from './custom-extension-contract'
 
 const require = createRequire(import.meta.url)
 const FORBIDDEN_GLOBALS = new Set([
@@ -23,12 +23,12 @@ const FORBIDDEN_GLOBALS = new Set([
   'XMLHttpRequest',
 ])
 
-export type CustomExtensionCompilerPolicy = {
+type CustomExtensionCompilerPolicy = {
   policy: CustomExtensionPolicy
   cucumberModulePath?: string
 }
 
-export type CompiledCustomExtension = {
+type CompiledCustomExtension = {
   schemaVersion: '1'
   projectId: string
   projectFingerprint: string
@@ -79,7 +79,7 @@ export const compiledCustomExtensionSchema = z.object({
   cucumberModulePath: z.string().min(1).max(2_000),
 })
 
-export class CustomExtensionCompilationError extends Error {
+class CustomExtensionCompilationError extends Error {
   constructor(
     message: string,
     readonly issues: string[],
@@ -214,7 +214,7 @@ function bindCucumberImport(sourceFile: ts.SourceFile, cucumberModulePath: strin
   return ts.transform(sourceFile, [transformer]).transformed[0]
 }
 
-export function compileCustomExtension(
+function compileCustomExtension(
   input: CustomActionExtensionProposal,
   policy: CustomExtensionCompilerPolicy,
 ): CompiledCustomExtension {

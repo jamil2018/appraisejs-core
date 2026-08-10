@@ -9,18 +9,25 @@ describe('agent setup capabilities', () => {
     expect(new Set(capabilities).size).toBe(capabilities.length)
   })
 
-  it('advertises release-critical lifecycle tools', () => {
+  it('advertises only the executable quality lifecycle tools', () => {
     expect(expectedAgentCapabilities.tools).toEqual(
       expect.arrayContaining([
         'project_diagnostic',
+        'requirements_submit_source',
+        'validation_design_approve',
+        'assessment_run',
+        'assessment_reconcile',
+        'assessment_decide',
         'test_run_read',
         'test_run_diagnose',
-        'baseline_start',
-        'baseline_reconcile',
-        'baseline_accept',
-        'implementation_start',
       ]),
     )
-    expect(expectedAgentCapabilities.resources).toContain('appraise://project')
+    expect(expectedAgentCapabilities.resources).toEqual(
+      expect.arrayContaining([
+        'appraise://project',
+        'appraise://workflow/quality-design',
+        'appraise://workflow/assessment',
+      ]),
+    )
   })
 })

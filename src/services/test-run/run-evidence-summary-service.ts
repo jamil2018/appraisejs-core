@@ -6,6 +6,7 @@ import { ServiceError } from '@/services/shared/errors'
 import {
   createTestRunArtifactAccess,
   createTestRunArtifactContext,
+  readTestRunArtifactText,
 } from '@/services/test-run/test-run-artifact-context'
 import { TestRunResult, TestRunStatus, type PrismaClient } from '@prisma/client'
 import path from 'path'
@@ -25,14 +26,12 @@ export type RunEvidenceGrade = 'valid' | 'invalid' | 'infrastructure_failure' | 
 export type RunEvidenceSummary = {
   testRunPageId: string
   executionRunId: string
-  planId: string | null
-  validationId?: string | null
   reportUrl: string
   logsUrl: string
   evidenceHealth: TestRunEvidenceHealthValue
   grade: RunEvidenceGrade
   nextAllowedAction: {
-    tool: 'test_run_read' | 'test_run_diagnose' | 'test_run_preflight' | 'implementation_validation_reconcile'
+    tool: 'test_run_read' | 'test_run_diagnose' | 'test_run_preflight'
     reason: string
   }
   counts: {
@@ -203,11 +202,6 @@ function classifyReportEvidence(testRun: TestRunForEvidence, report: ParsedRepor
     return { evidenceHealth: 'invalid_empty_run' as const, blockers, missingArtifacts, counts }
   }
 
-  if (testRun.planId && testRun.testCases.length === 0) {
-    blockers.push('The plan-bound run has no expected TestRunTestCase rows to reconcile.')
-    return { evidenceHealth: 'invalid_missing_test_cases' as const, blockers, missingArtifacts, counts }
-  }
-
   if (classifyExpectedCaseEvidence(testRun, scenarios, counts)) {
     blockers.push('The Cucumber report scenarios do not match the expected test cases for this run.')
     return { evidenceHealth: 'invalid_unmatched_scenarios' as const, blockers, missingArtifacts, counts }
@@ -243,14 +237,13 @@ function summaryFromClassification(
   return {
     testRunPageId: testRun.runId,
     executionRunId: testRun.runId,
-    planId: testRun.planId,
     reportUrl: links.reportUrl,
     logsUrl: links.logsUrl,
     evidenceHealth: classification.evidenceHealth,
     grade,
     nextAllowedAction:
       grade === 'valid'
-        ? { tool: 'implementation_validation_reconcile', reason: 'Valid managed evidence can be reconciled.' }
+        ? { tool: 'test_run_read', reason: 'Valid run evidence is available for its owning assessment.' }
         : grade === 'pending'
           ? { tool: 'test_run_read', reason: 'The run is still in progress or awaiting final reconciliation.' }
           : { tool: 'test_run_diagnose', reason: 'Evidence is invalid or infrastructure failed.' },
@@ -307,10 +300,10 @@ export async function summarizeRunEvidence(
   try {
     const report = testRun.runtimeCapsule
       ? parseCucumberReportText(
-          await createTestRunArtifactAccess(
-            createTestRunArtifactContext(appraiseRoot),
-            client as PrismaClient,
-          ).readText({ runId, kind: 'report' }),
+          await readTestRunArtifactText(
+            createTestRunArtifactAccess(createTestRunArtifactContext(appraiseRoot), client as PrismaClient),
+            { runId, kind: 'report' },
+          ),
         )
       : await parseCucumberReport(resolveStoredPath(testRun.reportPath, testRun.targetProject?.canonicalPath))
     return summaryFromClassification(
@@ -375,8 +368,6 @@ export async function diagnoseRunEvidence(
 export async function preflightTestRun(input: {
   target?: string
   environmentId?: string
-  planId?: string
-  validationId?: string
   featurePaths?: string[]
   importPaths?: string[]
   supportPaths?: string[]
@@ -384,22 +375,12 @@ export async function preflightTestRun(input: {
   const blockers: string[] = []
   const warnings: string[] = []
 
-  if (input.planId && !input.validationId) {
-    blockers.push(
-      'Plan-bound test runs must include validationId so evidence can be reconciled to the approved validation.',
-    )
-  }
-
   if (!input.environmentId) {
     blockers.push('environmentId is required before Appraise can create a managed test run.')
   }
 
   if (!input.target) {
     blockers.push('target is required so Appraise can resolve the target project root.')
-  }
-
-  if (input.planId && (!input.featurePaths?.length || !input.importPaths?.length)) {
-    blockers.push('Plan-bound runs should use featurePaths and importPaths from the approved runtime projection.')
   }
 
   if (!input.supportPaths?.length) {

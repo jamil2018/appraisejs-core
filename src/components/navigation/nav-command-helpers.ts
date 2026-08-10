@@ -8,7 +8,6 @@ import {
   ListChecks,
   Network,
   FolderKanban,
-  Bot,
   Puzzle,
   Server,
   Settings2,
@@ -57,6 +56,7 @@ const commandModeLabels: Record<SearchCommandMode, string> = {
 }
 
 export type NavigationCommandGroupOptions = {
+  /** Retained until the provider configuration prop is removed from the layout shell. */
   providerRunsEnabled?: boolean
 }
 
@@ -65,13 +65,13 @@ export type NavigationSection = {
   items: NavigationCommandItem[]
 }
 
-function getControlSection(providerRunsEnabled: boolean): NavigationSection {
+function getControlSection(): NavigationSection {
   return {
     label: 'Control',
     items: [
       { href: '/', label: 'Dashboard', icon: LayoutDashboard },
-      { href: '/plans', label: 'Plans', icon: Network },
-      ...(providerRunsEnabled ? [{ href: '/provider-runs', label: 'Provider Runs', icon: Bot }] : []),
+      { href: '/quality-plans', label: 'Quality Plans', icon: Network },
+      { href: '/assessments', label: 'Assessments', icon: ListChecks },
     ],
   }
 }
@@ -113,16 +113,14 @@ function getSystemSection(): NavigationSection {
   }
 }
 
-export function getSidebarNavigationSections({
-  providerRunsEnabled = false,
-}: NavigationCommandGroupOptions = {}): NavigationSection[] {
-  return [getControlSection(providerRunsEnabled), getExecutionSection(), getLibrarySection(), getSystemSection()]
+export function getSidebarNavigationSections(_options: NavigationCommandGroupOptions = {}): NavigationSection[] {
+  void _options
+  return [getControlSection(), getExecutionSection(), getLibrarySection(), getSystemSection()]
 }
 
-export function getNavigationCommandGroups({
-  providerRunsEnabled = false,
-}: NavigationCommandGroupOptions = {}): NavigationCommandGroup[] {
-  const [control, execution, library, system] = getSidebarNavigationSections({ providerRunsEnabled })
+export function getNavigationCommandGroups(_options: NavigationCommandGroupOptions = {}): NavigationCommandGroup[] {
+  void _options
+  const [control, execution, library, system] = getSidebarNavigationSections()
 
   return [
     { heading: control.label, items: control.items },

@@ -127,15 +127,6 @@ export class TestRunArtifactAccessService {
     }
   }
 
-  // Called on factory-created service instances across report services.
-  async readText(input: Parameters<TestRunArtifactAccessService['resolve']>[0], maxCharacters = 1_000_000) {
-    const artifact = await this.readBytes(input)
-    const byteLimit = Math.min(artifact.maxBytes, maxCharacters * 4)
-    if (artifact.bytes.length > byteLimit)
-      throw new ServiceError('Capsule artifact exceeds its read cap.', 'CONFLICT', 409)
-    return artifact.bytes.toString('utf8').slice(0, maxCharacters)
-  }
-
   private toRelative(root: string, storedPath: string) {
     const absolute = path.isAbsolute(storedPath) ? storedPath : path.resolve(root, storedPath)
     const relative = path.relative(root, absolute)
@@ -262,4 +253,16 @@ export class TestRunArtifactAccessService {
   private isSafeRelativePath(relativePath: string, normalized: string) {
     return normalized === relativePath && !normalized.startsWith('../') && !path.posix.isAbsolute(normalized)
   }
+}
+
+export async function readTestRunArtifactText(
+  access: TestRunArtifactAccessService,
+  input: Parameters<TestRunArtifactAccessService['resolve']>[0],
+  maxCharacters = 1_000_000,
+) {
+  const artifact = await access.readBytes(input)
+  const byteLimit = Math.min(artifact.maxBytes, maxCharacters * 4)
+  if (artifact.bytes.length > byteLimit)
+    throw new ServiceError('Capsule artifact exceeds its read cap.', 'CONFLICT', 409)
+  return artifact.bytes.toString('utf8').slice(0, maxCharacters)
 }

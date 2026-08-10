@@ -1,7 +1,6 @@
 #!/usr/bin/env node
 
 import path from 'path'
-import { fileURLToPath } from 'url'
 import { Command } from 'commander'
 import { expectedAgentCapabilities } from './agent-setup-capabilities.js'
 import {
@@ -13,13 +12,10 @@ import {
 import { diagnoseProject, formatMcpBootstrapError } from './diagnostics.js'
 import { assertLoopbackMcpHost } from './mcp-http-security.js'
 import { runAppraiseHttpMcp, runAppraiseMcp } from './mcp.js'
-import { createOfflineDraft, readValidatedPlan, validatePlanFile } from './plan-file.js'
-import { resolvePlanSource } from './plan-source.js'
 import { ensureLocalProjectIdentity } from './project-identity.js'
 import { runTestRunDiagnose } from './test-run-diagnose-cli.js'
 
 const program = new Command()
-const packageRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const staleAgentCapabilityRecovery = [
   'Restart or reconnect the MCP/agent client.',
   'Restart the Appraise MCP sidecar.',
@@ -29,7 +25,7 @@ const toolsNotVisibleRecovery = [
   'Register the Streamable HTTP endpoint or the stdio command with the agent client.',
   'Restart or reconnect the client after changing MCP registration.',
   'Run appraisejs agent setup --json and inspect httpMcpEndpoint, stdioFallback, and expectedCapabilities.',
-  'Verify HTTP endpoint reachability, then read appraise://agent-guide after reconnect.',
+  'Verify HTTP endpoint reachability after reconnect.',
   'If native tools still are not visible, stop and ask the user to reconnect or restart the client.',
 ]
 
@@ -214,7 +210,7 @@ const agent = program.command('agent').description('Set up coding-agent access t
 
 agent
   .command('setup')
-  .description('Print MCP, skill, restart, and standby guidance for coding agents')
+  .description('Print MCP registration and restart guidance for coding agents')
   .option('--cwd <path>', 'Appraise project directory', process.cwd())
   .option('--base-url <url>', 'local AppraiseJS application URL', 'http://127.0.0.1:3000')
   .option('--host <host>', 'HTTP MCP bind host', process.env.APPRAISE_MCP_HOST ?? '127.0.0.1')
@@ -227,24 +223,16 @@ agent
       const endpoint = resolveMcpEndpoint(options)
       const { identity } = await ensureLocalProjectIdentity(cwd)
       const stdio = { command: 'appraisejs', args: ['mcp', '--cwd', cwd, '--base-url', options.baseUrl] }
-      const skillPath = path.join(packageRoot, 'agent-skills', 'appraise-planning-standby')
       const setup = {
         httpMcpEndpoint: endpoint,
         httpMcp: { url: endpoint, headers: { Authorization: `Bearer ${identity.token}` } },
         stdioFallback: stdio,
         currentBoundHubProject: cwd,
-        globalSkill: {
-          status: 'manual_install_required',
-          path: skillPath,
-          instructions: `Install or point the agent client at ${skillPath}.`,
-        },
         requiredClientAction: 'Restart or reconnect the MCP/agent client after changing registration.',
         expectedCapabilities: expectedAgentCapabilities,
         staleCapabilityRecovery: staleAgentCapabilityRecovery,
         toolsNotVisibleRecovery,
         healthCheck: 'Run appraisejs doctor --json, then call MCP project_diagnostic after reconnecting.',
-        standbyWarning:
-          'Prefer plan_review_loop when available. Otherwise keep an active bounded plan_wait_for_approval loop after plan_review_ready. Use compact continuation only for long-review or host-limit fallback; pending review or approval is not completion.',
       }
       if (options.json) {
         printJson(setup)
@@ -256,7 +244,6 @@ agent
       console.log('\nStdio fallback command config:')
       console.log(JSON.stringify({ appraisejs: setup.stdioFallback }, null, 2))
       console.log(`\nCurrent bound hub project:\n${setup.currentBoundHubProject}`)
-      console.log(`\nGlobal skill/plugin guidance:\n${setup.globalSkill.instructions}`)
       console.log('\nExpected MCP capabilities after reconnect:')
       console.log(JSON.stringify(setup.expectedCapabilities, null, 2))
       console.log(`\n${setup.requiredClientAction}`)
@@ -265,56 +252,6 @@ agent
       for (const step of setup.staleCapabilityRecovery) console.log(`- ${step}`)
       console.log('\nIf setup text is visible but native MCP tools are not:')
       for (const step of setup.toolsNotVisibleRecovery) console.log(`- ${step}`)
-      console.log(setup.standbyWarning)
-    },
-  )
-
-const plan = program.command('plan').description('Validate and coordinate AppraiseJS plans')
-
-plan
-  .command('validate-file')
-  .argument('<file>', 'plan YAML or JSON file')
-  .option('--json', 'print machine-readable JSON', false)
-  .action(async (file: string, options: { json: boolean }) => {
-    await runCommand(async () => {
-      const result = await validatePlanFile(file)
-      console.log(
-        options.json ? JSON.stringify(result, null, 2) : `Valid plan ${result.planId} revision ${result.revision}.`,
-      )
-    }, options.json)
-  })
-
-plan
-  .command('create')
-  .requiredOption('--file <path>', 'plan YAML or JSON file')
-  .option('--target <project>', 'registered target project id, fingerprint, display name, or path')
-  .option('--cwd <path>', 'Appraise project directory', process.cwd())
-  .option('--base-url <url>', 'local AppraiseJS application URL', 'http://127.0.0.1:3000')
-  .option('--coordinator-id <id>', 'stable coordinator identity', process.env.APPRAISE_COORDINATOR_ID ?? 'coordinator')
-  .option('--offline', 'create a local draft without lifecycle registration', false)
-  .option('--allow-external-plan-file', 'allow a plan file outside --cwd', false)
-  .option('--json', 'print machine-readable JSON', false)
-  .action(
-    async (
-      options: OnlineOptions & {
-        file: string
-        target?: string
-        offline: boolean
-        allowExternalPlanFile: boolean
-        json: boolean
-      },
-    ) => {
-      await runCommand(async () => {
-        if (options.offline) return printJson(await createOfflineDraft(options.file, options.cwd))
-        const source = await resolvePlanSource(options.cwd, options.file, options.allowExternalPlanFile)
-        const client = await onlineClient(options)
-        const planArtifact = await readValidatedPlan(source.path)
-        printJson(
-          options.target
-            ? await client.createPlanForTarget(planArtifact, options.target, source)
-            : await client.createPlan(planArtifact, source),
-        )
-      }, options.json)
     },
   )
 
@@ -345,7 +282,6 @@ addOnlineOptions(project.command('list').option('--json', 'print machine-readabl
   },
 )
 
-const test = program.command('test').description('Run repo-owned tests from an attached target project')
 const testRun = program.command('test-run').description('Inspect managed Appraise test runs')
 
 addOnlineOptions(
@@ -363,205 +299,6 @@ addOnlineOptions(
     if (outcome.exitCode) process.exitCode = outcome.exitCode
   }, options.json)
 })
-
-addOnlineOptions(
-  test
-    .command('run')
-    .requiredOption('--target <project>', 'registered target project id, fingerprint, display name, or path')
-    .requiredOption('--environment <id>', 'Appraise environment id to expose as ENVIRONMENT')
-    .option('--name <name>', 'test run display name')
-    .option('--tags <expression>', 'Cucumber tag expression')
-    .option('--workers <count>', 'Cucumber parallel worker count')
-    .option('--browser <browser>', 'browser engine: CHROMIUM, FIREFOX, or WEBKIT', 'CHROMIUM')
-    .option('--json', 'print machine-readable JSON', false),
-).action(
-  async (
-    options: OnlineOptions & {
-      target: string
-      environment: string
-      name?: string
-      tags?: string
-      workers?: string
-      browser: string
-      json: boolean
-    },
-  ) => {
-    await runCommand(async () => {
-      const testWorkersCount = options.workers === undefined ? undefined : Number(options.workers)
-      if (testWorkersCount !== undefined && (!Number.isInteger(testWorkersCount) || testWorkersCount < 1)) {
-        throw new Error(`Expected --workers to be a positive integer, received "${options.workers}".`)
-      }
-      printJson(
-        await (
-          await onlineClient(options)
-        ).runTargetTests({
-          target: options.target,
-          environmentId: options.environment,
-          name: options.name,
-          tagExpression: options.tags,
-          testWorkersCount,
-          browserEngine: options.browser,
-        }),
-      )
-    }, options.json)
-  },
-)
-
-addOnlineOptions(
-  plan
-    .command('status')
-    .argument('<plan-id>')
-    .description('Read current online plan status')
-    .option('--json', 'print machine-readable JSON', false),
-).action(async (planId: string, options: OnlineOptions & { json: boolean }) => {
-  await runCommand(async () => printJson(await (await onlineClient(options)).readPlan(planId)), options.json)
-})
-
-addOnlineOptions(
-  plan
-    .command('revise')
-    .argument('<plan-id>')
-    .requiredOption('--file <path>', 'revised plan file')
-    .requiredOption('--expected-hash <hash>', 'exact current plan content hash')
-    .option('--json', 'print machine-readable JSON', false),
-).action(async (planId: string, options: OnlineOptions & { file: string; expectedHash: string; json: boolean }) => {
-  await runCommand(async () => {
-    const client = await onlineClient(options)
-    printJson(
-      await client.revisePlan(planId, {
-        expectedHash: options.expectedHash,
-        plan: await readValidatedPlan(options.file),
-      }),
-    )
-  }, options.json)
-})
-
-addOnlineOptions(
-  plan
-    .command('events')
-    .argument('<plan-id>')
-    .option('--after <sequence>', 'read events after sequence', '0')
-    .option('--json', 'print machine-readable JSON', false),
-).action(async (planId: string, options: OnlineOptions & { after: string; json: boolean }) => {
-  await runCommand(
-    async () => printJson(await (await onlineClient(options)).readEvents(planId, Number(options.after))),
-    options.json,
-  )
-})
-
-addOnlineOptions(
-  plan
-    .command('ack-event')
-    .argument('<plan-id>')
-    .requiredOption('--sequence <number>', 'event sequence to acknowledge')
-    .option('--json', 'print machine-readable JSON', false),
-).action(async (planId: string, options: OnlineOptions & { sequence: string; json: boolean }) => {
-  await runCommand(
-    async () => printJson(await (await onlineClient(options)).acknowledgeEvent(planId, Number(options.sequence))),
-    options.json,
-  )
-})
-
-addOnlineOptions(
-  plan
-    .command('reconnect')
-    .argument('<plan-id>')
-    .requiredOption('--connection-id <id>', 'previous coordinator connection ID')
-    .option('--after <sequence>', 'read pending events after sequence', '0')
-    .option('--json', 'print machine-readable JSON', false),
-).action(async (planId: string, options: OnlineOptions & { connectionId: string; after: string; json: boolean }) => {
-  await runCommand(
-    async () =>
-      printJson(await (await onlineClient(options)).reconnect(planId, options.connectionId, Number(options.after))),
-    options.json,
-  )
-})
-
-addOnlineOptions(
-  plan
-    .command('register')
-    .argument('<plan-id>')
-    .option('--takeover-approved', 'confirm user-approved takeover', false)
-    .option('--json', 'print machine-readable JSON', false),
-).action(async (planId: string, options: OnlineOptions & { takeoverApproved: boolean; json: boolean }) => {
-  await runCommand(
-    async () => printJson(await (await onlineClient(options)).register(planId, options.takeoverApproved)),
-    options.json,
-  )
-})
-
-const validation = program.command('validation').description('Publish and submit validation review data')
-
-addOnlineOptions(
-  validation
-    .command('submit-delegated-ast')
-    .requiredOption('--submission <path>', 'Validation AST submission JSON')
-    .requiredOption('--receipt <path>', 'delegated authorization receipt JSON')
-    .option('--json', 'print machine-readable JSON', true),
-).action(async (options: OnlineOptions & { submission: string; receipt: string; json: boolean }) => {
-  await runCommand(async () => {
-    const fs = await import('node:fs/promises')
-    const [submission, receipt] = await Promise.all([
-      fs.readFile(path.resolve(options.submission), 'utf8').then(JSON.parse),
-      fs.readFile(path.resolve(options.receipt), 'utf8').then(JSON.parse),
-    ])
-    printJson(await (await onlineClient(options)).submitDelegatedValidationAst(submission, receipt))
-  }, options.json)
-})
-
-addOnlineOptions(validation.command('submit').argument('<plan-id>').requiredOption('--idempotency-key <key>')).action(
-  async (planId: string, options: OnlineOptions & { idempotencyKey: string }) =>
-    printJson(await (await onlineClient(options)).submitValidation(planId, { idempotencyKey: options.idempotencyKey })),
-)
-
-addOnlineOptions(
-  validation
-    .command('ast')
-    .argument('<phase>', 'check, preview, or compile')
-    .argument('<plan-id>')
-    .requiredOption('--submission <path>')
-    .option('--receipt-hash <hash>')
-    .option('--idempotency-key <key>')
-    .option('--json', 'print machine-readable JSON', true),
-).action(
-  async (
-    phase: string,
-    planId: string,
-    options: OnlineOptions & { submission: string; receiptHash?: string; idempotencyKey?: string; json: boolean },
-  ) => {
-    await runCommand(async () => {
-      const submission = JSON.parse(
-        await (await import('node:fs/promises')).readFile(path.resolve(options.submission), 'utf8'),
-      )
-      const client = await onlineClient(options)
-      if (phase === 'check') return printJson(await client.checkValidationAst(planId, submission))
-      if (phase === 'preview') return printJson(await client.previewValidationAst(planId, submission))
-      if (phase === 'compile' && options.receiptHash && options.idempotencyKey)
-        return printJson(
-          await client.compileValidationAst(planId, submission, options.receiptHash, options.idempotencyKey),
-        )
-      throw new Error(
-        'Compile requires --receipt-hash and --idempotency-key; phase must be check, preview, or compile.',
-      )
-    }, options.json)
-  },
-)
-
-addOnlineOptions(validation.command('ast-policy').argument('<plan-id>')).action(
-  async (planId: string, options: OnlineOptions) =>
-    printJson(await (await onlineClient(options)).readValidationAstExtensionPolicy(planId)),
-)
-
-addOnlineOptions(validation.command('ast-reviews').argument('<plan-id>').option('--operation-id <id>')).action(
-  async (planId: string, options: OnlineOptions & { operationId?: string }) =>
-    printJson(await (await onlineClient(options)).readValidationAstExtensionReviews(planId, options.operationId)),
-)
-
-addOnlineOptions(
-  program.command('completion').argument('<plan-id>').description('Read final completion review'),
-).action(async (planId: string, options: OnlineOptions) =>
-  printJson(await (await onlineClient(options)).completionReview(planId)),
-)
 
 program.parseAsync(process.argv).catch(error => {
   console.error(error instanceof Error ? error.message : String(error))

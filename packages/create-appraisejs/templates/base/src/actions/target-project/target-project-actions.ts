@@ -4,8 +4,8 @@ import { cookies } from 'next/headers'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 
-import { ensureProjectIdentity } from '@/services/coordinator/coordinator-service'
 import { ACTIVE_PROJECT_COOKIE, requireActiveProjectForMutation } from '@/lib/active-project'
+import { deriveCoordinatorProjectIdentity } from '@/lib/coordinator-api/project-identity'
 import { ServiceError } from '@/services/shared/errors'
 import {
   initializeTargetGitRepository,
@@ -40,7 +40,7 @@ function errorResponse(error: unknown, prefix: string): ActionResponse {
 export async function registerTargetProjectAction(input: unknown): Promise<ActionResponse> {
   try {
     const value = registrationSchema.parse(input)
-    const identity = await ensureProjectIdentity()
+    const identity = await deriveCoordinatorProjectIdentity(process.cwd())
     const git = await initializeTargetGitRepository(value.projectPath, value.initializeGit ?? false)
     const targetProject = await registerTargetProject({
       projectPath: value.projectPath,
@@ -74,7 +74,7 @@ export async function renameTargetProjectAction(input: unknown): Promise<ActionR
   try {
     const value = renameSchema.parse(input)
     await requireActiveProjectForMutation(value.targetProjectId)
-    const identity = await ensureProjectIdentity()
+    const identity = await deriveCoordinatorProjectIdentity(process.cwd())
     const targetProject = await renameTargetProject(value)
     const marker =
       targetProject.canonicalPath === identity.canonicalProjectPath
