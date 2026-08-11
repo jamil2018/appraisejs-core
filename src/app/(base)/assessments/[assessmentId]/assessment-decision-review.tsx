@@ -15,7 +15,6 @@ import { decideQualityAssessmentAction } from '../../quality-plans/quality-desig
 
 type Decision = { decision: string; rationale: string; decidedBy: string; decidedAt: Date; decisionHash: string }
 
-// fallow-ignore-next-line complexity
 export function AssessmentDecisionReview({
   assessmentId,
   evidenceSetHash,

@@ -23,12 +23,12 @@ const FORBIDDEN_GLOBALS = new Set([
   'XMLHttpRequest',
 ])
 
-export type CustomExtensionCompilerPolicy = {
+type CustomExtensionCompilerPolicy = {
   policy: CustomExtensionPolicy
   cucumberModulePath?: string
 }
 
-export type CompiledCustomExtension = {
+type CompiledCustomExtension = {
   schemaVersion: '1'
   projectId: string
   projectFingerprint: string

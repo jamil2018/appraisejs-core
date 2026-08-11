@@ -11,7 +11,6 @@ import { toast } from '@/hooks/use-toast'
 
 import { approveQualityRequirementsAction } from '../quality-design-actions'
 
-// fallow-ignore-next-line complexity
 export function QualityRequirementsReview({
   qualityPlanId,
   revisionId,

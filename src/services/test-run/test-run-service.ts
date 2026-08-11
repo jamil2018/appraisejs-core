@@ -1,4 +1,3 @@
-// fallow-ignore-file code-duplication
 import prisma from '@/config/db-config'
 import type { TestRun as TestRunFormValue } from '@/constants/form-opts/test-run-form-opts'
 import { ServiceError } from '@/services/shared/errors'

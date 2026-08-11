@@ -780,7 +780,6 @@ type RuntimePublicationEnvelope = {
   }>
 }
 
-// fallow-ignore-next-line complexity
 function runtimePublicationEnvelope(realization: unknown): RuntimePublicationEnvelope {
   const value =
     realization && typeof realization === 'object' && !Array.isArray(realization)
@@ -958,7 +957,6 @@ function evidenceReceiptPayload(receipt: unknown) {
   }
 }
 
-// fallow-ignore-next-line complexity
 function assessmentPayload(assessment: Awaited<ReturnType<typeof readAssessmentOrThrow>>) {
   const validationVersions = assessment.qualityPlanRevision.validationVersions
   const published = validationVersions.filter(version => version.status === 'PUBLISHED')

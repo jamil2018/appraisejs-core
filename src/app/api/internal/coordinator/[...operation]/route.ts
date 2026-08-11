@@ -56,7 +56,6 @@ function bodyRecord(value: unknown): Record<string, unknown> | undefined {
   return value && typeof value === 'object' && !Array.isArray(value) ? (value as Record<string, unknown>) : undefined
 }
 
-// fallow-ignore-next-line complexity
 function coordinatorErrorContext(request: Request, operation: string[], body?: unknown): CoordinatorErrorContext {
   const source = bodyRecord(body)
   const header = request.headers.get('idempotency-key')
@@ -71,7 +70,6 @@ function unknownOperation(): never {
   throw new ServiceError('Coordinator API operation not found.', 'NOT_FOUND')
 }
 
-// fallow-ignore-next-line complexity
 function errorClassification(error: unknown) {
   if (error instanceof z.ZodError) return 'request_invalid' as const
   if (error instanceof ServiceError) {
@@ -83,7 +81,6 @@ function errorClassification(error: unknown) {
   return 'appraise_runtime_defect' as const
 }
 
-// fallow-ignore-next-line complexity
 function responseError(error: unknown, context: CoordinatorErrorContext) {
   const serviceError = error instanceof ServiceError ? error : undefined
   const status = error instanceof z.ZodError ? 400 : (serviceError?.statusCode ?? 500)
@@ -137,7 +134,6 @@ function queryLimit(query: URLSearchParams, fallback = 50) {
   return query.has('limit') ? z.coerce.number().int().min(1).max(100).parse(query.get('limit')) : fallback
 }
 
-// fallow-ignore-next-line complexity
 function operationFilters(query: URLSearchParams) {
   return {
     category: query.get('category') ?? undefined,
@@ -173,7 +169,6 @@ function operationFilters(query: URLSearchParams) {
   }
 }
 
-// fallow-ignore-next-line complexity
 function getOperations(request: Request, operation: string[]) {
   const query = new URL(request.url).searchParams
   const action = operation[1] ?? 'list'
@@ -226,7 +221,6 @@ function getOperations(request: Request, operation: string[]) {
   return unknownOperation()
 }
 
-// fallow-ignore-next-line complexity
 async function getLocatorGraph(request: Request, operation: string[]) {
   if (operation[1] === 'visual') return Response.json(await readLocatorGraphVisualProjection())
   if (operation.length > 1) return unknownOperation()
@@ -243,7 +237,6 @@ async function getLocatorGraph(request: Request, operation: string[]) {
   )
 }
 
-// fallow-ignore-next-line complexity
 async function getTestRunEvidence(request: Request, operation: string[]) {
   const targetFingerprint = request.headers.get('x-appraise-target-project')
   if (!targetFingerprint) throw new ServiceError('Test run not found.', 'NOT_FOUND')
@@ -256,7 +249,6 @@ async function getTestRunEvidence(request: Request, operation: string[]) {
   return unknownOperation()
 }
 
-// fallow-ignore-next-line complexity
 async function getQualityOperation(request: Request, operation: string[]) {
   if (operation[1] === 'plans' && operation[3] === 'locators' && operation.length === 4) {
     const qualityPlanId = z.string().min(1).parse(operation[2])
@@ -303,7 +295,6 @@ async function getDiagnostic(request: Request) {
   })
 }
 
-// fallow-ignore-next-line complexity
 async function dispatchGet(request: Request, operation: string[]): Promise<Response> {
   if (operation.length === 1 && operation[0] === 'diagnostic') return getDiagnostic(request)
   if (operation.length === 1 && operation[0] === 'target-projects')
@@ -360,7 +351,6 @@ function qualityAssessmentId(operation: string[]) {
   return z.string().min(1).parse(operation[2])
 }
 
-// fallow-ignore-next-line complexity
 async function postQualityOperation(operation: string[], body: unknown): Promise<Response> {
   const key = operation.join('/')
   if (key === 'quality/requirements/source') {
@@ -521,7 +511,6 @@ async function postQualityOperation(operation: string[], body: unknown): Promise
   return unknownOperation()
 }
 
-// fallow-ignore-next-line complexity
 async function dispatchPost(operation: string[], body: unknown): Promise<Response> {
   if (operation.length === 1 && operation[0] === 'target-projects') return postTargetProject(body)
   if (operation.length === 2 && operation[0] === 'test-runs' && operation[1] === 'preflight')

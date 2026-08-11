@@ -1,4 +1,3 @@
-// fallow-ignore-file code-duplication
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { ArrowLeft, ClipboardCheck, ShieldCheck } from 'lucide-react'
@@ -25,7 +24,6 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   return { title: `Assessment ${assessmentId}` }
 }
 
-// fallow-ignore-next-line complexity
 export default async function AssessmentDetailPage({ params, searchParams }: PageProps) {
   const [{ assessmentId }, parameters] = await Promise.all([params, searchParams])
   const project = await requireActiveProject(parameters?.project)

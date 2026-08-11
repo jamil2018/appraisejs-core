@@ -115,7 +115,6 @@ export class RuntimeCapsuleTestRunService {
     })
   }
 
-  // fallow-ignore-next-line complexity
   async startQuality(input: StartQualityCapsuleTestRunInput) {
     let ownedAttempt: { id: string; ownerToken: string; version: number } | undefined
     let failedComponent = 'materialization'

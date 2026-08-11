@@ -1,4 +1,3 @@
-// fallow-ignore-file code-duplication
 'use client'
 
 import { useRouter } from 'next/navigation'

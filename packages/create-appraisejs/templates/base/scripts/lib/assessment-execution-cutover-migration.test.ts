@@ -1,11 +1,25 @@
 import { readFileSync, readdirSync, rmSync } from 'node:fs'
 import { mkdtempSync } from 'node:fs'
+import { createRequire } from 'node:module'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-// @ts-expect-error Node's bundled SQLite API is available at runtime before its ambient type ships here.
-import { DatabaseSync } from 'node:sqlite'
 
 import { afterEach, describe, expect, it } from 'vitest'
+
+type SQLiteStatement = {
+  all<T extends Record<string, unknown> = Record<string, unknown>>(...values: unknown[]): T[]
+  get<T extends Record<string, unknown> = Record<string, unknown>>(...values: unknown[]): T | undefined
+}
+
+type DatabaseSync = {
+  close(): void
+  exec(sql: string): void
+  prepare(sql: string): SQLiteStatement
+}
+
+const { DatabaseSync } = createRequire(import.meta.url)('node:sqlite') as {
+  DatabaseSync: new (path: string) => DatabaseSync
+}
 
 const cutoverMigration = '20260810000000_add_assessment_execution_cutover'
 const migrationsRoot = join(process.cwd(), 'prisma', 'migrations')
@@ -60,8 +74,8 @@ function createPreCutoverDatabase(): DatabaseSync {
 function tableColumns(database: DatabaseSync, tableName: string): string[] {
   return database
     .prepare(`PRAGMA table_info("${tableName}")`)
-    .all()
-    .map((column: { name: string }) => column.name)
+    .all<{ name: string }>()
+    .map(column => column.name)
 }
 
 function tableExists(database: DatabaseSync, tableName: string): boolean {

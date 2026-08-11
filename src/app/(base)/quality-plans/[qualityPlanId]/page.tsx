@@ -1,4 +1,3 @@
-// fallow-ignore-file code-duplication
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { ArrowLeft, ClipboardCheck, ShieldCheck } from 'lucide-react'
@@ -27,7 +26,6 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   return { title: `Quality Plan ${qualityPlanId}` }
 }
 
-// fallow-ignore-next-line complexity
 export default async function QualityPlanDetailPage({ params, searchParams }: PageProps) {
   const [{ qualityPlanId }, parameters] = await Promise.all([params, searchParams])
   const project = await requireActiveProject(parameters?.project)

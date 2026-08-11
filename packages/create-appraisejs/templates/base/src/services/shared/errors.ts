@@ -12,7 +12,7 @@ const coordinatorErrorClassificationSchema = z.enum([
 ])
 
 const coordinatorOperationOutcomeSchema = z.enum(['not_started', 'not_committed', 'committed', 'unknown'])
-export type CoordinatorOperationOutcome = z.infer<typeof coordinatorOperationOutcomeSchema>
+type CoordinatorOperationOutcome = z.infer<typeof coordinatorOperationOutcomeSchema>
 
 const coordinatorRetryStrategySchema = z.enum([
   'repair_input_then_retry',
@@ -21,7 +21,7 @@ const coordinatorRetryStrategySchema = z.enum([
   'repair_appraise_then_resume',
   'do_not_retry',
 ])
-export type CoordinatorRetryStrategy = z.infer<typeof coordinatorRetryStrategySchema>
+type CoordinatorRetryStrategy = z.infer<typeof coordinatorRetryStrategySchema>
 
 const boundedTextSchema = z.string().trim().min(1).max(1_000)
 
@@ -61,7 +61,7 @@ export const coordinatorErrorEnvelopeSchema = z
   })
   .strict()
 
-export type CoordinatorErrorEnvelope = z.infer<typeof coordinatorErrorEnvelopeSchema>
+type CoordinatorErrorEnvelope = z.infer<typeof coordinatorErrorEnvelopeSchema>
 
 export const coordinatorAcknowledgementSchema = z
   .object({

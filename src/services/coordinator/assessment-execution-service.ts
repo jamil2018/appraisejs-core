@@ -1,4 +1,3 @@
-// fallow-ignore-file code-duplication
 import { createHash } from 'node:crypto'
 import { promises as fs } from 'node:fs'
 
@@ -57,7 +56,6 @@ type AssessmentRunInput = {
   idempotencyKey: string
 }
 
-// fallow-ignore-next-line complexity
 async function executionIdentity(input: AssessmentRunInput) {
   if (input.assessmentId) {
     const assessment = await executionClient.assessment.findUniqueOrThrow({
@@ -114,7 +112,6 @@ async function executionIdentity(input: AssessmentRunInput) {
   }
 }
 
-// fallow-ignore-next-line complexity
 function validateCells(
   cells: RequestedCell[],
   identity: Awaited<ReturnType<typeof executionIdentity>>,
@@ -186,7 +183,6 @@ function derivedCells(
 /** Starts real capsule executions. The durable AssessmentRun is created before
  * materialization, while each cell binds the immutable TestRun and publication
  * receipt only after canonical preparation succeeds. */
-// fallow-ignore-next-line complexity
 export async function runQualityAssessment(input: AssessmentRunInput) {
   const identity = await executionIdentity(input)
   const cells = derivedCells(input, identity)
@@ -405,7 +401,6 @@ function assuranceFor(validationVersion: { canonicalAstJson: string }) {
 /** Reconciliation treats TestRun terminal state as authoritative. Receipt
  * hashes are calculated from artifact bytes (never their paths), then an
  * optimistic binding update preserves the first terminal outcome in races. */
-// fallow-ignore-next-line complexity
 async function reconcileQualityAssessmentRun(input: { assessmentRunId: string }) {
   const run = await executionClient.assessmentRun.findUniqueOrThrow({
     where: { id: input.assessmentRunId },
