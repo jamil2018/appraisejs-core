@@ -10,7 +10,7 @@ import {
   builtInStepDefinitions,
   computeStepReferenceHash,
 } from '../../../packages/cucumber-runtime/src/step-definitions/index.ts'
-import { copyMigratedTestDatabase } from '@/test/plan-runtime-schema-test-helper'
+import { copyMigratedTestDatabase } from '@/test/migrated-test-database'
 
 import { StepDefinitionRegistryService } from './step-definition-registry-service'
 import { createReadySearchEvidence, readyStepDefinitionSearchIndexHash } from './ready-step-definition-search-index'
@@ -507,7 +507,7 @@ describe('StepDefinitionRegistryService', () => {
       prisma.stepDefinitionTelemetryEvent.findFirst({
         where: { outcome: 'selection_selected', correlationId: 'agent-e2e' },
       }),
-    ).resolves.toMatchObject({ surface: 'agent', planId: null })
+    ).resolves.toMatchObject({ surface: 'agent', qualityPlanId: null })
 
     await registry.issueHumanReviewReceipt(draft.id, draft.revision)
     await registry.publishDraft({ draftId: draft.id, expectedRevision: draft.revision, conformanceRunId: 'agent-e2e' })

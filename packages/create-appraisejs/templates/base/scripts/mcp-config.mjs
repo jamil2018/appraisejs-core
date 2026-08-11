@@ -36,6 +36,5 @@ export function resolveMcpConfig(cwd = process.cwd(), env = process.env) {
       addCommand: `codex mcp add appraisejs -- ${codexStdioCommand}`,
       verifyCommand: 'codex mcp get appraisejs',
     },
-    skillPath: path.join(resolvedProjectPath, '.agents', 'skills', 'appraise-project-from-brief'),
   }
 }

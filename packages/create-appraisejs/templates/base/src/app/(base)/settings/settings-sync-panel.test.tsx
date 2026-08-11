@@ -40,7 +40,6 @@ describe('SettingsSyncPanel', () => {
     })
     getSyncPendingCountsAction.mockResolvedValue({
       'sync-all': 0,
-      'sync-plans': 0,
       'sync-modules': 0,
       'sync-environments': 0,
       'sync-tags': 0,
@@ -55,7 +54,6 @@ describe('SettingsSyncPanel', () => {
       <SettingsSyncPanel
         pendingCounts={{
           'sync-all': 2,
-          'sync-plans': 0,
           'sync-modules': 1,
           'sync-environments': 0,
           'sync-tags': 1,
@@ -97,7 +95,6 @@ describe('SettingsSyncPanel', () => {
       <SettingsSyncPanel
         pendingCounts={{
           'sync-all': 1,
-          'sync-plans': 0,
           'sync-modules': 0,
           'sync-environments': 0,
           'sync-tags': 1,

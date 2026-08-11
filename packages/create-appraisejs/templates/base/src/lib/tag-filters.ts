@@ -2,7 +2,7 @@ import { Tag, TagType } from '@prisma/client'
 
 type TagShape = Pick<Tag, 'name' | 'tagExpression' | 'type'>
 
-export function canonicalTagName(value: string): string {
+function canonicalTagName(value: string): string {
   return value.startsWith('@') ? value.slice(1) : value
 }
 

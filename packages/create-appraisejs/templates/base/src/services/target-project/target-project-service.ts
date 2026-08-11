@@ -265,17 +265,13 @@ export async function renameTargetProject(
 }
 
 async function deleteProjectRuntimeRecords(targetProjectId: string, tx: Prisma.TransactionClient) {
-  const [operations, capsules, blobs] = await Promise.all([
-    tx.validationAstPublishOperation.findMany({ where: { targetProjectId }, select: { id: true } }),
+  const [capsules, blobs] = await Promise.all([
     tx.runtimeCapsule.findMany({ where: { targetProjectId }, select: { id: true } }),
     tx.runtimeCapsuleBlob.findMany({ where: { targetProjectId }, select: { id: true } }),
   ])
-  const operationIds = operations.map(operation => operation.id)
   const capsuleIds = capsules.map(capsule => capsule.id)
   const blobIds = blobs.map(blob => blob.id)
 
-  await tx.repositoryExportReceipt.deleteMany({ where: { targetProjectId } })
-  await tx.repositoryExportJob.deleteMany({ where: { targetProjectId } })
   if (capsuleIds.length)
     await tx.runtimeCapsuleExecutionAttempt.deleteMany({ where: { capsuleId: { in: capsuleIds } } })
   if (capsuleIds.length || blobIds.length) {
@@ -288,8 +284,6 @@ async function deleteProjectRuntimeRecords(targetProjectId: string, tx: Prisma.T
   await tx.runtimeCapsuleLease.deleteMany({ where: { targetProjectId } })
   await tx.report.deleteMany({ where: { targetProjectId } })
   await tx.testRun.deleteMany({ where: { targetProjectId } })
-  if (operationIds.length) await tx.planEvent.deleteMany({ where: { publishOperationId: { in: operationIds } } })
-  await tx.validationAstPublishOperation.deleteMany({ where: { targetProjectId } })
 }
 
 async function deleteProjectAuthoredRecords(targetProjectId: string, tx: Prisma.TransactionClient) {
@@ -333,16 +327,12 @@ export async function deleteTargetProject(
 
   await client.$transaction(async tx => {
     await deleteProjectRuntimeRecords(existing.id, tx)
-    await tx.validationResourceProposal.deleteMany({ where: { targetProjectId: existing.id } })
     await tx.projectResourceImport.deleteMany({
       where: {
         OR: [{ destinationProjectId: existing.id }, { sourceOwnership: { targetProjectId: existing.id } }],
       },
     })
     await tx.projectResourceOwnership.deleteMany({ where: { targetProjectId: existing.id } })
-    await tx.providerWorkflowRun.deleteMany({ where: { targetProjectId: existing.id } })
-    await tx.delegatedCoordinatorReceipt.deleteMany({ where: { targetProjectId: existing.id } })
-    await tx.planProjection.deleteMany({ where: { targetProjectId: existing.id } })
     await deleteProjectAuthoredRecords(existing.id, tx)
     await tx.targetProject.delete({ where: { id: existing.id } })
   })

@@ -109,31 +109,6 @@ export function registerQualityDesignOperations(context: McpRegistryContext): vo
   )
 
   server.registerTool(
-    'requirements_revise',
-    {
-      description:
-        'Pending service: create a successor Quality Plan revision; unchanged content-addressed requirements may be inherited.',
-      inputSchema: {
-        qualityPlanId: z.string().min(1),
-        expectedRevisionHash: z.string().startsWith('sha256:'),
-        revision: z.unknown(),
-        idempotencyKey: z.string().min(1),
-        responseMode: responseModeSchema,
-      },
-    },
-    async ({ qualityPlanId, expectedRevisionHash, revision, idempotencyKey, responseMode }) =>
-      text(
-        applyAuthoringResponseMode(
-          await api.request(`quality/plans/${qualityPlanId}/requirements/revisions`, {
-            method: 'POST',
-            body: JSON.stringify({ expectedRevisionHash, revision, idempotencyKey }),
-          }),
-          responseMode,
-        ),
-      ),
-  )
-
-  server.registerTool(
     'requirements_approve',
     {
       description:
@@ -150,31 +125,6 @@ export function registerQualityDesignOperations(context: McpRegistryContext): vo
       text(
         applyAuthoringResponseMode(
           await api.request(`quality/plans/${qualityPlanId}/requirements/approve`, {
-            method: 'POST',
-            body: JSON.stringify(body),
-          }),
-          responseMode,
-        ),
-      ),
-  )
-
-  server.registerTool(
-    'requirements_report_drift',
-    {
-      description:
-        'Pending service: report requirement drift and proposed successor dispositions; human approval is required before successor adoption.',
-      inputSchema: {
-        qualityPlanId: z.string().min(1),
-        currentRevisionId: z.string().min(1),
-        drift: z.unknown(),
-        idempotencyKey: z.string().min(1),
-        responseMode: responseModeSchema,
-      },
-    },
-    async ({ qualityPlanId, responseMode, ...body }) =>
-      text(
-        applyAuthoringResponseMode(
-          await api.request(`quality/plans/${qualityPlanId}/requirements/drift`, {
             method: 'POST',
             body: JSON.stringify(body),
           }),
@@ -209,32 +159,6 @@ export function registerQualityDesignOperations(context: McpRegistryContext): vo
   )
 
   server.registerTool(
-    'validation_design_revise',
-    {
-      description:
-        'Pending service: revise scenario design after behavioral, assertion, coverage, limitation, or matrix feedback.',
-      inputSchema: {
-        qualityPlanId: z.string().min(1),
-        revisionId: z.string().min(1),
-        expectedDesignHash: z.string().startsWith('sha256:'),
-        revision: z.unknown(),
-        idempotencyKey: z.string().min(1),
-        responseMode: responseModeSchema,
-      },
-    },
-    async ({ qualityPlanId, responseMode, ...body }) =>
-      text(
-        applyAuthoringResponseMode(
-          await api.request(`quality/plans/${qualityPlanId}/validation-design/revisions`, {
-            method: 'POST',
-            body: JSON.stringify(body),
-          }),
-          responseMode,
-        ),
-      ),
-  )
-
-  server.registerTool(
     'validation_design_approve',
     {
       description:
@@ -251,31 +175,6 @@ export function registerQualityDesignOperations(context: McpRegistryContext): vo
       text(
         applyAuthoringResponseMode(
           await api.request(`quality/plans/${qualityPlanId}/validation-design/approve`, {
-            method: 'POST',
-            body: JSON.stringify(body),
-          }),
-          responseMode,
-        ),
-      ),
-  )
-
-  server.registerTool(
-    'validation_reuse_resolve',
-    {
-      description:
-        'Pending service: resolve scenario realization reuse as exact_match, compatible_reuse, version_required, no_match, or ambiguous.',
-      inputSchema: {
-        qualityPlanId: z.string().min(1),
-        revisionId: z.string().min(1),
-        candidates: z.array(z.unknown()).min(1),
-        idempotencyKey: z.string().min(1),
-        responseMode: responseModeSchema,
-      },
-    },
-    async ({ qualityPlanId, responseMode, ...body }) =>
-      text(
-        applyAuthoringResponseMode(
-          await api.request(`quality/plans/${qualityPlanId}/validations/reuse`, {
             method: 'POST',
             body: JSON.stringify(body),
           }),
@@ -335,122 +234,6 @@ export function registerQualityDesignOperations(context: McpRegistryContext): vo
   )
 
   server.registerTool(
-    'target_discovery_session_start',
-    {
-      description:
-        'Pending service: start an authorized managed-browser discovery session for black-box target inspection.',
-      inputSchema: {
-        target: z.string().min(1),
-        environmentId: z.string().min(1),
-        purpose: z.string().min(1),
-        idempotencyKey: z.string().min(1),
-        responseMode: responseModeSchema,
-      },
-    },
-    async ({ responseMode, ...body }) =>
-      text(
-        applyAuthoringResponseMode(
-          await api.request('quality/target-discovery/sessions', {
-            method: 'POST',
-            body: JSON.stringify(body),
-          }),
-          responseMode,
-        ),
-      ),
-  )
-
-  server.registerTool(
-    'target_discovery_inspect',
-    {
-      description:
-        'Pending service: inspect a managed-browser state and collect locator evidence without publishing selectors.',
-      inputSchema: { sessionId: z.string().min(1), state: z.unknown(), responseMode: responseModeSchema },
-    },
-    async ({ sessionId, state, responseMode }) =>
-      text(
-        applyAuthoringResponseMode(
-          await api.request(`quality/target-discovery/sessions/${sessionId}/inspect`, {
-            method: 'POST',
-            body: JSON.stringify({ state }),
-          }),
-          responseMode,
-        ),
-      ),
-  )
-
-  server.registerTool(
-    'target_discovery_locator_propose',
-    {
-      description:
-        'Pending service: propose role/name, test id, stable app attribute, or reviewed structural locator versions with provenance and fingerprint.',
-      inputSchema: {
-        sessionId: z.string().min(1),
-        locator: z.unknown(),
-        idempotencyKey: z.string().min(1),
-        responseMode: responseModeSchema,
-      },
-    },
-    async ({ sessionId, responseMode, ...body }) =>
-      text(
-        applyAuthoringResponseMode(
-          await api.request(`quality/target-discovery/sessions/${sessionId}/locators/propose`, {
-            method: 'POST',
-            body: JSON.stringify(body),
-          }),
-          responseMode,
-        ),
-      ),
-  )
-
-  server.registerTool(
-    'target_discovery_locator_verify',
-    {
-      description:
-        'Pending service: verify a proposed locator version against surface, state, environment, and element fingerprint.',
-      inputSchema: {
-        sessionId: z.string().min(1),
-        locatorVersionId: z.string().min(1),
-        verification: z.unknown(),
-        responseMode: responseModeSchema,
-      },
-    },
-    async ({ sessionId, responseMode, ...body }) =>
-      text(
-        applyAuthoringResponseMode(
-          await api.request(`quality/target-discovery/sessions/${sessionId}/locators/verify`, {
-            method: 'POST',
-            body: JSON.stringify(body),
-          }),
-          responseMode,
-        ),
-      ),
-  )
-
-  server.registerTool(
-    'target_discovery_locator_publish',
-    {
-      description:
-        'Pending service: publish reviewed locator versions; auth-blocked, unreachable, or unstable targets remain non-executable.',
-      inputSchema: {
-        sessionId: z.string().min(1),
-        locatorVersionIds: z.array(z.string().min(1)).min(1),
-        expectedVerificationHash: z.string().startsWith('sha256:'),
-        responseMode: responseModeSchema,
-      },
-    },
-    async ({ sessionId, responseMode, ...body }) =>
-      text(
-        applyAuthoringResponseMode(
-          await api.request(`quality/target-discovery/sessions/${sessionId}/locators/publish`, {
-            method: 'POST',
-            body: JSON.stringify(body),
-          }),
-          responseMode,
-        ),
-      ),
-  )
-
-  server.registerTool(
     'assessment_create',
     {
       description: 'Create a repeatable Quality Plan Assessment for an immutable evaluation subject digest.',
@@ -489,7 +272,7 @@ export function registerQualityDesignOperations(context: McpRegistryContext): vo
     'assessment_run',
     {
       description:
-        'Pending service: run approved validation versions for an assessment or standalone evidence-only execution; decisions require reviewed assessments.',
+        'Run approved validation versions for an assessment or standalone evidence-only execution; decisions require reviewed assessments.',
       inputSchema: {
         assessmentId: z.string().min(1).optional(),
         validationVersionIds: z.array(z.string().min(1)).optional(),
@@ -511,8 +294,7 @@ export function registerQualityDesignOperations(context: McpRegistryContext): vo
   server.registerTool(
     'assessment_stop',
     {
-      description:
-        'Pending service: stop an in-flight assessment run while preserving partial sealed evidence receipts.',
+      description: 'Stop an in-flight assessment run while preserving partial sealed evidence receipts.',
       inputSchema: { assessmentId: z.string().min(1), reason: z.string().min(1), responseMode: responseModeSchema },
     },
     async ({ assessmentId, reason, responseMode }) =>
@@ -530,8 +312,7 @@ export function registerQualityDesignOperations(context: McpRegistryContext): vo
   server.registerTool(
     'assessment_diagnose',
     {
-      description:
-        'Read the current assessment readiness and blocker packet; runtime and sealed-evidence diagnostics remain pending service publication.',
+      description: 'Read the current assessment readiness, runtime, and sealed-evidence diagnostic packet.',
       inputSchema: assessmentInputSchema.shape,
     },
     async ({ assessmentId, responseMode }) =>
@@ -541,8 +322,7 @@ export function registerQualityDesignOperations(context: McpRegistryContext): vo
   server.registerTool(
     'assessment_reconcile',
     {
-      description:
-        'Pending service: reconcile terminal runs into sealed evidence receipts and immutable assessment evidence sets.',
+      description: 'Reconcile terminal runs into sealed evidence receipts and immutable assessment evidence sets.',
       inputSchema: {
         assessmentId: z.string().min(1),
         runIds: z.array(z.string().min(1)).optional(),

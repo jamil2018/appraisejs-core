@@ -3,6 +3,8 @@ import type { PrismaClient } from '@prisma/client'
 import prisma from '@/config/db-config'
 import { TestRunArtifactAccessService } from './test-run-artifact-access-service'
 
+export { readTestRunArtifactText } from './test-run-artifact-access-service'
+
 export type TestRunArtifactContext = { appraiseRoot: string }
 
 export function createTestRunArtifactContext(

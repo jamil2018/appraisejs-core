@@ -111,7 +111,7 @@ describe('project resource ownership', () => {
           entityType: 'module',
           entityId: 'module-a',
           origin: 'proposal',
-          provenance: { planId: 'plan-a' },
+          provenance: { qualityPlanId: 'quality-plan-a' },
           content: { name: 'Todo' },
         },
         ownershipClient(),

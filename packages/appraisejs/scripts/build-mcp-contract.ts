@@ -14,8 +14,23 @@ async function contract(providerNativeRuns: boolean) {
 }
 
 const fixture = {
-  schemaVersion: 1,
+  schemaVersion: 2,
   default: await contract(false),
-  providerNative: await contract(true),
 }
 await writeFile(path.resolve('src/mcp-contract.fixture.json'), `${JSON.stringify(fixture, null, 2)}\n`)
+await writeFile(
+  path.resolve('src/agent-setup-capabilities.json'),
+  `${JSON.stringify(
+    {
+      tools: fixture.default.filter(definition => definition.kind === 'tool').map(definition => definition.name),
+      resources: fixture.default
+        .filter(
+          (definition): definition is typeof definition & { uri: string } =>
+            definition.kind === 'resource' && typeof definition.uri === 'string',
+        )
+        .map(definition => definition.uri),
+    },
+    null,
+    2,
+  )}\n`,
+)

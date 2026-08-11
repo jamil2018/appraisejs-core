@@ -56,7 +56,6 @@ export const runtimeCapsuleDiagnosticV1Schema = z
     ownership: z
       .object({
         targetProjectId: runtimeCapsuleSegmentSchema,
-        planId: bounded.nullable(),
         validationHash: runtimeCapsuleHashSchema,
         capsuleHash: runtimeCapsuleHashSchema,
         commandReceiptHash: runtimeCapsuleHashSchema,

@@ -8,8 +8,7 @@ export type SelectedElementPayload = {
 }
 
 export type LocatorInspectorMessage =
-  | { type: 'SELECTION_MODE_OFF' }
-  | { type: 'ELEMENT_SELECTED'; elementData: SelectedElementPayload }
+  { type: 'SELECTION_MODE_OFF' } | { type: 'ELEMENT_SELECTED'; elementData: SelectedElementPayload }
 
 function isSelectedElementPayload(value: unknown): value is SelectedElementPayload {
   return (

@@ -1,13 +1,15 @@
-import {
-  COORDINATOR_MAX_REQUEST_BYTES,
-  authenticateProject,
-  ensureProjectIdentity,
-} from '@/services/coordinator/coordinator-service'
+import { timingSafeEqual } from 'node:crypto'
+import { promises as fs } from 'node:fs'
+import path from 'node:path'
+
+import { deriveCoordinatorProjectIdentity } from '@/lib/coordinator-api/project-identity'
 import { ServiceError } from '@/services/shared/errors'
+
+const COORDINATOR_MAX_REQUEST_BYTES = 1_048_576
 
 const LOOPBACK_HOSTS = new Set(['localhost', '127.0.0.1', '[::1]', '::1'])
 
-export class CoordinatorProjectMismatchError extends Error {
+class CoordinatorProjectMismatchError extends Error {
   constructor(
     readonly requestedFingerprint: string,
     readonly serverFingerprint: string,
@@ -30,6 +32,30 @@ function assertLoopbackUrl(value: string, label: string): void {
   }
 }
 
+async function readCoordinatorToken(canonicalProjectPath: string, projectFingerprint: string): Promise<string> {
+  const credentialPath = path.join(canonicalProjectPath, '.appraisejs', 'coordinator.json')
+  try {
+    const value = JSON.parse(await fs.readFile(credentialPath, 'utf8')) as unknown
+    if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('Credential must be an object.')
+    const credential = value as { projectFingerprint?: unknown; token?: unknown }
+    if (
+      credential.projectFingerprint !== projectFingerprint ||
+      typeof credential.token !== 'string' ||
+      !credential.token
+    )
+      throw new Error('Credential does not match this project.')
+    return credential.token
+  } catch {
+    throw new ServiceError('Coordinator credentials are unavailable for this project.', 'UNAUTHORIZED')
+  }
+}
+
+function tokensMatch(expected: string, received: string): boolean {
+  const expectedBytes = Buffer.from(expected)
+  const receivedBytes = Buffer.from(received)
+  return expectedBytes.length === receivedBytes.length && timingSafeEqual(expectedBytes, receivedBytes)
+}
+
 export async function guardCoordinatorRequest(request: Request): Promise<void> {
   assertLoopbackUrl(request.url, 'request URL')
   const host = request.headers.get('host')
@@ -48,7 +74,7 @@ export async function guardCoordinatorRequest(request: Request): Promise<void> {
   if (!projectFingerprint || !authorization?.startsWith('Bearer ')) {
     throw new ServiceError('Project credentials are required.', 'UNAUTHORIZED')
   }
-  const serverIdentity = await ensureProjectIdentity()
+  const serverIdentity = await deriveCoordinatorProjectIdentity(process.cwd())
   if (serverIdentity.projectFingerprint !== projectFingerprint) {
     throw new CoordinatorProjectMismatchError(
       projectFingerprint,
@@ -56,7 +82,9 @@ export async function guardCoordinatorRequest(request: Request): Promise<void> {
       serverIdentity.canonicalProjectPath,
     )
   }
-  await authenticateProject(projectFingerprint, authorization.slice('Bearer '.length))
+  const token = await readCoordinatorToken(serverIdentity.canonicalProjectPath, serverIdentity.projectFingerprint)
+  if (!tokensMatch(token, authorization.slice('Bearer '.length)))
+    throw new ServiceError('Coordinator credentials are invalid.', 'UNAUTHORIZED')
 }
 
 export async function readCoordinatorJson(request: Request): Promise<unknown> {

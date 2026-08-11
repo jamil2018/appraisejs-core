@@ -192,7 +192,7 @@ export class RuntimeCapsulePreflight {
       })
       if (!capsuleOwnershipMatches(capsule, receipt, input))
         throw new PreflightFailure('OWNERSHIP_MISMATCH', 'Use the capsule owned by this exact project and TestRun.')
-      const operation = await this.prisma.validationAstPublishOperation.findUnique({
+      const operation = await this.prisma.qualityValidationPublication.findUnique({
         where: { operationHash: receipt.ownership.operationHash },
       })
       if (!publicationMatches(operation, receipt, input))

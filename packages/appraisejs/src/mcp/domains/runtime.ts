@@ -6,13 +6,12 @@ export function registerRuntimeOperations(context: McpRegistryContext): void {
   server.registerTool(
     'test_run_preflight',
     {
-      description:
-        'Read-only blocker check before creating a managed target test run. Use this before plan-bound test_run calls.',
+      description: 'Read-only blocker check before Assessment-owned managed test execution.',
       inputSchema: {
         target: z.string().min(1).optional(),
         environmentId: z.string().min(1).optional(),
-        planId: z.string().min(1).optional(),
-        validationId: z.string().min(1).optional(),
+        qualityPlanId: z.string().min(1).optional(),
+        validationVersionId: z.string().min(1).optional(),
         featurePaths: z.array(z.string().min(1)).optional(),
         importPaths: z.array(z.string().min(1)).optional(),
         supportPaths: z.array(z.string().min(1)).optional(),
@@ -33,48 +32,14 @@ export function registerRuntimeOperations(context: McpRegistryContext): void {
   )
 
   server.registerTool(
-    'test_run',
-    {
-      description:
-        'Run existing Appraise-compatible Cucumber/Playwright artifacts from an attached target repository and record a managed Appraise test run.',
-      inputSchema: {
-        target: z.string().min(1),
-        environmentId: z.string().min(1),
-        name: z.string().min(1).optional(),
-        tagExpression: z.string().optional(),
-        testWorkersCount: z.number().int().positive().optional(),
-        browserEngine: z.enum(['CHROMIUM', 'FIREFOX', 'WEBKIT']).optional(),
-        planId: z.string().min(1).optional(),
-        validationId: z.string().min(1).optional(),
-        implementationValidationRunId: z.string().min(1).optional(),
-        featurePaths: z.array(z.string().min(1)).optional(),
-        importPaths: z.array(z.string().min(1)).optional(),
-        supportPaths: z.array(z.string().min(1)).optional(),
-        prepareWorkspace: z.boolean().optional(),
-        expectedTestCases: z
-          .array(z.object({ testCaseId: z.string().min(1), testSuiteId: z.string().min(1) }))
-          .optional(),
-        responseMode: responseModeSchema,
-      },
-    },
-    async ({ responseMode, ...input }) => {
-      try {
-        return text(applyResponseMode(await api.runTargetTests(input), responseMode))
-      } catch (error) {
-        return toolError(error)
-      }
-    },
-  )
-
-  server.registerTool(
     'test_run_read',
     {
       description: 'Read bounded status and evidence summary for a managed Appraise test run.',
-      inputSchema: { runId: z.string().uuid(), planId: z.string().optional(), responseMode: responseModeSchema },
+      inputSchema: { runId: z.string().uuid(), responseMode: responseModeSchema },
     },
-    async ({ runId, planId, responseMode }) => {
+    async ({ runId, responseMode }) => {
       try {
-        return text(applyResponseMode(await api.readTestRun(runId, planId), responseMode))
+        return text(applyResponseMode(await api.readTestRun(runId), responseMode))
       } catch (error) {
         return toolError(error)
       }
@@ -85,11 +50,11 @@ export function registerRuntimeOperations(context: McpRegistryContext): void {
     'test_run_diagnose',
     {
       description: 'Diagnose invalid or suspicious managed test-run evidence with concise blockers and next action.',
-      inputSchema: { runId: z.string().uuid(), planId: z.string().optional(), responseMode: responseModeSchema },
+      inputSchema: { runId: z.string().uuid(), responseMode: responseModeSchema },
     },
-    async ({ runId, planId, responseMode }) => {
+    async ({ runId, responseMode }) => {
       try {
-        const result = (await api.diagnoseTestRun(runId, planId)) as {
+        const result = (await api.diagnoseTestRun(runId)) as {
           kind?: string
           diagnostic?: unknown
           evidence?: unknown

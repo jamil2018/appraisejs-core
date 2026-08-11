@@ -3,7 +3,7 @@ import { createHash } from 'node:crypto'
 import { canonicalContractJson } from '@/lib/catalog-contracts'
 import ts from 'typescript'
 
-export const CUSTOM_EXTENSION_POLICY_VERSION = '1' as const
+const CUSTOM_EXTENSION_POLICY_VERSION = '1' as const
 export const CUSTOM_EXTENSION_RUNTIME_DECLARATIONS = [
   "declare module '@cucumber/cucumber' { export const Given: (...args: unknown[]) => void; export const When: (...args: unknown[]) => void; export const Then: (...args: unknown[]) => void; export const Before: (...args: unknown[]) => void; export const After: (...args: unknown[]) => void; }",
   "declare module '@playwright/test' { export const expect: (actual: unknown) => unknown; }",

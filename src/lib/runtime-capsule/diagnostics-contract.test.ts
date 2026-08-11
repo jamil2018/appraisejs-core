@@ -15,7 +15,6 @@ const diagnostic = {
   },
   ownership: {
     targetProjectId: 'project',
-    planId: 'plan',
     validationHash: h,
     capsuleHash: h,
     commandReceiptHash: h,

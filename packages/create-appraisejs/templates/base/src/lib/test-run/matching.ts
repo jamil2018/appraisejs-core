@@ -36,7 +36,7 @@ function matchesIdentifier(tags: TagLike[], prefix: 'tc_' | 'ts_', expected: str
   const identifier = getIdentifierTagByPrefix(tags, prefix)
   return Boolean(
     identifier &&
-      normalizeTagExpression(identifier.tagExpression || identifier.name) === normalizeTagExpression(expected),
+    normalizeTagExpression(identifier.tagExpression || identifier.name) === normalizeTagExpression(expected),
   )
 }
 

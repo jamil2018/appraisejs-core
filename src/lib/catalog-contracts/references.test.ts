@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest'
 
 import { locatorCatalogReferenceSchema } from './references'
 import { locatorDescriptorSchema } from '@/lib/locator-graph'
-import { locatorReferenceSchema } from '@/lib/validation-ast'
 
 const hash = `sha256:${'a'.repeat(64)}`
 
@@ -22,7 +21,6 @@ describe('locator reference parity', () => {
         contentHash: hash,
       })
       expect(locatorCatalogReferenceSchema.parse(descriptor)).toEqual({ id, version: '1' })
-      expect(locatorReferenceSchema.parse({ ref: 'locator', id, version: descriptor.version })).toMatchObject({ id })
     },
   )
 })

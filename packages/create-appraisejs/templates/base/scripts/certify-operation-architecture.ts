@@ -26,7 +26,7 @@ const runtimeEvidenceSuites = [
   'packages/cucumber-runtime/src/step-definitions/dispatcher.test.ts',
   'src/services/step-definition/step-definition-registry-service.integration.test.ts',
   'src/services/coordinator/coordinator-step-definition-service.test.ts',
-  'src/lib/runtime-capsule/materializer.test.ts',
+  'src/lib/runtime-capsule/runtime-capsule.test.ts',
   'src/components/diagram/flow-diagram.test.tsx',
 ] as const
 
@@ -67,8 +67,7 @@ async function repositoryAbsenceGate() {
     const content = await fs.readFile(source, 'utf8')
     const relative = path.relative(repoRoot, source)
     if (repositoryAbsenceAllowlist.some(pattern => pattern.test(relative))) continue
-    for (const symbol of forbiddenLegacySymbols)
-      if (content.includes(symbol)) matches.push(`${relative}:${symbol}`)
+    for (const symbol of forbiddenLegacySymbols) if (content.includes(symbol)) matches.push(`${relative}:${symbol}`)
   }
   return {
     passed: matches.length === 0,

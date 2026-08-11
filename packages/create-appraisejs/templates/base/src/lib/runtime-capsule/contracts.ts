@@ -42,7 +42,7 @@ const runtimeCapsuleManifestEnvelopeSchema = z
     runtimeInputHash: runtimeCapsuleHashSchema,
     lifecycleCorrelation: z
       .object({
-        planId: z.string().regex(/^[a-zA-Z0-9._:-]{1,200}$/),
+        qualityPlanId: z.string().regex(/^[a-zA-Z0-9._:-]{1,200}$/),
         correlationId: z.string().regex(/^[a-zA-Z0-9._:-]{1,100}$/),
       })
       .strict()

@@ -18,8 +18,6 @@ const managedProjectManifestSchema = z
   .strict()
 
 export type ManagedProjectManifest = z.infer<typeof managedProjectManifestSchema>
-export type ManagedProjectManifestIntegrity = 'ready' | 'missing' | 'corrupt'
-
 function parseCanonicalProjectManifest(value: string): ManagedProjectManifest {
   if (Buffer.byteLength(value) > 64 * 1024) throw new Error('Managed project manifest exceeds 64 KiB.')
   const parsed = managedProjectManifestSchema.parse(JSON.parse(value))
@@ -77,20 +75,6 @@ export class ManagedProjectManifestRepository {
     } finally {
       await fs.unlink(temporaryPath).catch(() => undefined)
     }
-  }
-
-  async inspect(projectIdValue: string): Promise<ManagedProjectManifestIntegrity> {
-    const projectId = runtimeCapsuleSegmentSchema.parse(projectIdValue)
-    const project = await this.prisma.targetProject.findUnique({
-      where: { id: projectId },
-      select: { id: true, fingerprint: true },
-    })
-    if (!project) throw new Error('Managed project manifest target project does not exist.')
-    const value = await this.readFile(resolveManagedProjectPaths(this.appraiseRoot, projectId).projectManifestPath)
-    if (!value) return 'missing'
-    if (value === 'corrupt' || value.projectId !== project.id || value.fingerprint !== project.fingerprint)
-      return 'corrupt'
-    return 'ready'
   }
 
   private async readFile(filePath: string): Promise<ManagedProjectManifest | 'corrupt' | null> {

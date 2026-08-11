@@ -1,4 +1,4 @@
-import type { ValidationArtifact } from '@/lib/plan-contract'
+import type { ValidationArtifact } from '@/lib/quality-design/validation-artifact-contract'
 
 type ValidationNode = ValidationArtifact['validations'][number]
 

@@ -65,27 +65,18 @@ export async function readStepDefinitionDataCounts(databasePath: string): Promis
   })
 
   try {
-    const [
-      stepDefinitionCount,
-      projectIdentityCount,
-      coordinatorLeaseCount,
-      personalLayoutCount,
-      eventCount,
-      testRunCount,
-      reportCount,
-    ] = await prisma.$transaction([
-      prisma.stepDefinition.count(),
-      prisma.appraiseProjectIdentity.count(),
-      prisma.planCoordinatorLease.count(),
-      prisma.planPersonalLayout.count(),
-      prisma.planEvent.count(),
-      prisma.testRun.count(),
-      prisma.report.count(),
-    ])
+    const [stepDefinitionCount, runtimeCapsuleCount, assessmentCount, evidenceReceiptCount, testRunCount, reportCount] =
+      await prisma.$transaction([
+        prisma.stepDefinition.count(),
+        prisma.runtimeCapsule.count(),
+        prisma.assessment.count(),
+        prisma.evidenceReceipt.count(),
+        prisma.testRun.count(),
+        prisma.report.count(),
+      ])
     return {
       stepDefinitionCount,
-      localRuntimeRowCount:
-        projectIdentityCount + coordinatorLeaseCount + personalLayoutCount + eventCount + testRunCount + reportCount,
+      localRuntimeRowCount: runtimeCapsuleCount + assessmentCount + evidenceReceiptCount + testRunCount + reportCount,
     }
   } finally {
     await prisma.$disconnect()

@@ -3,6 +3,14 @@ import { describe, expect, it } from 'vitest'
 import { getSidebarNavigationSections } from './nav-command-helpers'
 
 describe('getSidebarNavigationSections', () => {
+  it('exposes the canonical Quality Plans and Assessments routes without provider-native runs', () => {
+    const sections = getSidebarNavigationSections()
+    const control = sections.find(section => section.label === 'Control')
+
+    expect(control?.items.map(item => item.label)).toEqual(['Dashboard', 'Quality Plans', 'Assessments'])
+    expect(control?.items.map(item => item.href)).toEqual(['/', '/quality-plans', '/assessments'])
+  })
+
   it('groups reusable project resources under Library', () => {
     const sections = getSidebarNavigationSections()
     const library = sections.find(section => section.label === 'Library')

@@ -106,14 +106,14 @@ export async function rejectReadyStepDefinitionSelectionAction(input: {
 // Records a deliberate human selection without retaining the search text or UI input.
 export async function selectReadyStepDefinitionAction(input: {
   step: { id: string; version: string }
-  planId?: string
+  qualityPlanId?: string
   correlationId?: string
 }): Promise<ActionResponse> {
   return respond(() =>
     coordinatorStepDefinitionService.recordSelectionSelected({
       surface: 'human',
       step: readyStepReferenceSchema.parse(input.step),
-      ...(input.planId ? { planId: z.string().min(1).max(200).parse(input.planId) } : {}),
+      ...(input.qualityPlanId ? { qualityPlanId: z.string().min(1).max(200).parse(input.qualityPlanId) } : {}),
       ...(input.correlationId
         ? {
             correlationId: z

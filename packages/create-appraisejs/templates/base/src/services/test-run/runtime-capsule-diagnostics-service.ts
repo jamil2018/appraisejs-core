@@ -119,7 +119,6 @@ export async function readRuntimeCapsuleDiagnostic(
     },
     ownership: {
       targetProjectId: run.targetProjectId,
-      planId: run.planId,
       validationHash: capsule.validationHash,
       capsuleHash: capsule.capsuleHash,
       commandReceiptHash: attempt.receiptHash,

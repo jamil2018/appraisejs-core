@@ -1,21 +1,29 @@
 import { readFile } from 'node:fs/promises'
-import { afterEach, describe, expect, it } from 'vitest'
+import { describe, expect, it } from 'vitest'
 
 import { createAppraiseMcpServer, mcpContractForServer } from './mcp.js'
-import { assertUniqueMcpDefinitions, type McpContractDefinition } from './mcp/registry.js'
+import {
+  assertCanonicalMcpDefinitions,
+  assertUniqueMcpDefinitions,
+  type McpContractDefinition,
+} from './mcp/registry.js'
+import {
+  canonicalMcpResourceAnnotations,
+  canonicalMcpResourceNames,
+  canonicalMcpToolAnnotations,
+  canonicalMcpToolNames,
+} from './mcp/contract.js'
 
 type ContractFixture = {
-  schemaVersion: 1
+  schemaVersion: 2
   default: McpContractDefinition[]
-  providerNative: McpContractDefinition[]
 }
 
 async function fixture(): Promise<ContractFixture> {
   return JSON.parse(await readFile(new URL('./mcp-contract.fixture.json', import.meta.url), 'utf8'))
 }
 
-async function definitions(providerNativeRuns: boolean) {
-  process.env.APPRAISE_EXPERIMENTAL_PROVIDER_RUNS = providerNativeRuns ? '1' : '0'
+async function definitions() {
   const server = await createAppraiseMcpServer({ cwd: process.cwd(), baseUrl: 'http://127.0.0.1:3000' })
   const contract = [...mcpContractForServer(server)].sort(
     (left, right) => left.kind.localeCompare(right.kind) || left.name.localeCompare(right.name),
@@ -25,19 +33,30 @@ async function definitions(providerNativeRuns: boolean) {
 }
 
 describe('canonical MCP contract registry', () => {
-  afterEach(() => delete process.env.APPRAISE_EXPERIMENTAL_PROVIDER_RUNS)
   it('matches the complete default names and schemas without depending on registration order', async () => {
     const expected = await fixture()
-    await expect(definitions(false)).resolves.toEqual(expected.default)
-    expect(expected.default.filter(definition => definition.kind === 'tool')).toHaveLength(105)
-    expect(expected.default.filter(definition => definition.kind === 'resource')).toHaveLength(17)
+    await expect(definitions()).resolves.toEqual(expected.default)
+    expect(expected.default.filter(definition => definition.kind === 'tool')).toHaveLength(canonicalMcpToolNames.length)
+    expect(expected.default.filter(definition => definition.kind === 'resource')).toHaveLength(
+      canonicalMcpResourceNames.length,
+    )
   })
 
-  it('accounts explicitly for the provider-native feature surface', async () => {
-    const expected = await fixture()
-    await expect(definitions(true)).resolves.toEqual(expected.providerNative)
-    expect(expected.providerNative.filter(definition => definition.kind === 'tool')).toHaveLength(112)
-    expect(expected.providerNative.filter(definition => definition.kind === 'resource')).toHaveLength(19)
+  it('has the exact quality allowlist, real handlers, and annotations', async () => {
+    const contract = await definitions()
+    expect(() => assertCanonicalMcpDefinitions(contract)).not.toThrow()
+
+    for (const definition of contract) {
+      expect(definition.annotations).toBeDefined()
+      if (definition.kind === 'tool') {
+        expect(definition.annotations).toEqual(canonicalMcpToolAnnotations[definition.name])
+      } else {
+        expect(definition.annotations).toEqual(canonicalMcpResourceAnnotations[definition.name])
+      }
+    }
+
+    const names = new Set(contract.map(definition => definition.name))
+    expect(names.size).toBe(canonicalMcpToolNames.length + canonicalMcpResourceNames.length)
   })
 
   it('fails fast for duplicate, invalid, and unknown definitions', () => {

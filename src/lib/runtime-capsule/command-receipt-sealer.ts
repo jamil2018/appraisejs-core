@@ -1,7 +1,7 @@
 import { promises as fs } from 'node:fs'
 import { createRequire } from 'node:module'
 import path from 'node:path'
-import type { ValidationAstRuntimeInput } from '@/services/coordinator/validation-ast-publish-journal-service'
+import type { ValidationAstRuntimeInput } from '@/lib/quality-design/validation-runtime-input-contract'
 import { capsuleCommandReceiptV1Schema } from './command-receipt-contract'
 import { hashRuntimeCapsuleBytes } from './contracts'
 import { resolveCapsuleRuntimeIdentity } from './runtime-identity'
@@ -16,14 +16,14 @@ type BuiltCapsuleFiles = {
   cases: Array<{ validationId: string; suiteId: string; caseId: string; scenarioId: string }>
 }
 
-export function canonicalCapsuleBaseUrl(value: string) {
+function canonicalCapsuleBaseUrl(value: string) {
   const parsed = new URL(value)
   if (!['http:', 'https:'].includes(parsed.protocol) || parsed.username || parsed.password)
     throw new Error('APPRAISE_BASE_URL must be a credential-free HTTP(S) URL.')
   return parsed.toString()
 }
 
-export function buildCapsuleSelectionTagExpression(cases: BuiltCapsuleFiles['cases']) {
+function buildCapsuleSelectionTagExpression(cases: BuiltCapsuleFiles['cases']) {
   return cases
     .map(item => `(@appraise_validation_${item.validationId} and @ts_${item.suiteId} and @tc_${item.caseId})`)
     .join(' or ')
