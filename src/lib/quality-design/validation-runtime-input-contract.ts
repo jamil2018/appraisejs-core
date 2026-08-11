@@ -143,8 +143,18 @@ export function validateValidationAstRuntimeInput(input: {
       throw new Error('Runtime input is not canonical JSON.')
     projection = projectionSchema.parse(JSON.parse(input.projectionJson))
     assertSafeGeneratedGherkin(projection.gherkin)
-  } catch {
-    throw new ServiceError('Stored Quality validation runtime input is invalid.', 'CONFLICT')
+  } catch (error) {
+    const details =
+      error instanceof z.ZodError
+        ? {
+            issues: error.issues.map(issue => ({
+              path: issue.path.join('.'),
+              code: issue.code,
+              message: issue.message,
+            })),
+          }
+        : { cause: error instanceof Error ? error.message : String(error) }
+    throw new ServiceError('Stored Quality validation runtime input is invalid.', 'CONFLICT', undefined, details)
   }
   const operationChecks = [
     [runtimeInput.targetProjectId, input.operation.targetProjectId],

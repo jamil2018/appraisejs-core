@@ -89,6 +89,26 @@ describe('agent preflight receipts', () => {
     )
   })
 
+  it('hydrates presentation-only fields omitted by an otherwise valid preflight producer', async () => {
+    const input = readyInput()
+    const legacy = structuredClone(input) as unknown as Record<string, unknown>
+    const layers = (legacy.preflight as { layers: Record<string, Record<string, unknown>> }).layers
+    delete layers.applicationAndIdentity.checks
+    delete layers.activeMcpTransport.message
+    delete layers.currentTaskCapabilities.message
+    delete layers.targetProjectBinding.message
+    const upsert = vi.fn().mockImplementation(({ create }) => ({ ...storedReceipt(input), ...create }))
+    const client = {
+      targetProject: { findUnique: vi.fn().mockResolvedValue({ id: 'target-1' }) },
+      agentPreflightReceipt: { upsert },
+    } as unknown as PrismaClient
+
+    const receipt = await recordAgentPreflightReceipt(legacy, client)
+
+    expect(receipt.preflight.layers.applicationAndIdentity.checks).toEqual([])
+    expect(receipt.preflight.layers.activeMcpTransport.message).toBeTruthy()
+  })
+
   it('projects only the latest receipt for each requested project', async () => {
     const latest = storedReceipt(readyInput(), 'latest')
     const older = {

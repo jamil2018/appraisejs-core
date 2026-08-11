@@ -30,6 +30,7 @@ import {
   stopQualityAssessment,
 } from '@/services/coordinator/assessment-execution-service'
 import { ServiceError } from '@/services/shared/errors'
+import { recordAgentPreflightReceipt } from '@/services/agent-preflight/agent-preflight-service'
 import {
   initializeTargetGitRepository,
   listTargetProjects,
@@ -104,6 +105,20 @@ function responseError(error: unknown, context: CoordinatorErrorContext) {
       operationOutcome: 'not_started',
       targetOutcome: 'not_evaluated',
       retry: { safe: false, strategy: 'do_not_retry' },
+      ...(error instanceof z.ZodError
+        ? {
+            details: {
+              issues: error.issues.map(issue => ({
+                path: issue.path.join('.'),
+                code: issue.code,
+                message: issue.message,
+              })),
+            },
+          }
+        : {}),
+      ...(!serviceError && !(error instanceof z.ZodError)
+        ? { details: { cause: error instanceof Error ? error.message : String(error) } }
+        : {}),
       ...(serviceError?.details ? { details: serviceError.details } : {}),
     },
     { status },
@@ -512,6 +527,8 @@ async function postQualityOperation(operation: string[], body: unknown): Promise
 }
 
 async function dispatchPost(operation: string[], body: unknown): Promise<Response> {
+  if (operation.length === 2 && operation[0] === 'diagnostic' && operation[1] === 'preflight')
+    return Response.json(await recordAgentPreflightReceipt(body), { status: 201 })
   if (operation.length === 1 && operation[0] === 'target-projects') return postTargetProject(body)
   if (operation.length === 2 && operation[0] === 'test-runs' && operation[1] === 'preflight')
     return postTestRunPreflight(body)

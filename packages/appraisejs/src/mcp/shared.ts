@@ -150,6 +150,13 @@ export function buildAgentPreflight(
         ),
       ) || diagnostic.hubProject.canonicalPath === expectedPath
     : true
+  const matchedScope = expectedPath
+    ? diagnostic.hubProject.canonicalPath === expectedPath
+      ? ('hub' as const)
+      : targetFound
+        ? ('target' as const)
+        : undefined
+    : undefined
   const blocked = tools.status === 'blocked' || resources.status === 'blocked' || !targetFound || !diagnostic.ok
   const unverified = tools.status === 'unverified' || resources.status === 'unverified'
   const status = blocked ? 'blocked' : unverified ? 'needs_observation' : 'ready'
@@ -158,16 +165,45 @@ export function buildAgentPreflight(
     status,
     ready: status === 'ready',
     layers: {
-      applicationAndIdentity: { status: diagnostic.ok ? 'ready' : 'blocked' },
+      applicationAndIdentity: {
+        status: diagnostic.ok ? 'ready' : 'blocked',
+        checks: diagnostic.checks.map(check => ({
+          id: check.id,
+          status: check.status,
+          ...(check.code ? { code: check.code } : {}),
+        })),
+      },
       activeMcpTransport: {
         status: 'ready',
+        message: 'The MCP request reached this server.',
         serverStartedAt,
         mcpSurfaceVersion: mcpCapabilityMetadata.mcpSurfaceVersion,
       },
-      currentTaskCapabilities: { status: blocked ? 'blocked' : unverified ? 'unverified' : 'ready', tools, resources },
+      currentTaskCapabilities: {
+        status:
+          tools.status === 'blocked' || resources.status === 'blocked'
+            ? 'blocked'
+            : unverified
+              ? 'unverified'
+              : 'ready',
+        tools,
+        resources,
+        message:
+          tools.status === 'blocked' || resources.status === 'blocked'
+            ? 'Required MCP sentinels are missing from the current task.'
+            : unverified
+              ? 'Current-task MCP capability visibility was not fully observed.'
+              : 'All required MCP sentinels are visible.',
+      },
       targetProjectBinding: {
         status: expectedPath ? (targetFound ? 'ready' : 'blocked') : 'not_applicable',
         expectedCanonicalPath: expectedPath,
+        ...(matchedScope ? { matchedScope } : {}),
+        message: expectedPath
+          ? targetFound
+            ? `The expected target is registered in ${matchedScope} scope.`
+            : 'The expected target workspace is not registered.'
+          : 'No target workspace was supplied for this diagnostic.',
       },
     },
   }

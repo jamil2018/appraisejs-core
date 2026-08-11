@@ -2,6 +2,7 @@ import prisma from '@/config/db-config'
 import { canonicalContractJson } from '@/lib/catalog-contracts'
 import { hashCanonical, hashQualityPlanRevision, canApproveRequirements } from '@/lib/quality-design/state'
 import { validationArtifactSchema } from '@/lib/quality-design/validation-artifact-contract'
+import { createCustomExtensionPolicy } from '@/lib/validation-ast/extension-policy'
 import { publishQualityValidationRuntime } from '@/services/coordinator/quality-validation-publication-service'
 import { ServiceError } from '@/services/shared/errors'
 import { resolveTargetProject } from '@/services/target-project/target-project-service'
@@ -705,14 +706,15 @@ export async function compileQualityValidations(
         throw new ServiceError('Only approved scenario validation versions can be compiled.', 'CONFLICT')
       }
       const realization = realizationByValidationId.get(version.id) ?? null
-      const envelope = runtimePublicationEnvelope(realization)
+      const envelope = normalizeRuntimePublicationEnvelope(runtimePublicationEnvelope(realization))
       validationArtifactSchema.parse(envelope.validationProjection)
-      const realizationHash = compileRealizationHash(version.id, realization)
+      const normalizedRealization = { runtimePublication: envelope }
+      const realizationHash = compileRealizationHash(version.id, normalizedRealization)
       await transaction.validationVersion.update({
         where: { id: version.id },
         data: {
           status: 'REALIZED',
-          realizationJson: JSON.stringify(realization),
+          realizationJson: JSON.stringify(normalizedRealization),
           realizationHash,
           compilationHash: hashCanonical({
             validationVersionId: version.id,
@@ -812,6 +814,115 @@ function runtimePublicationEnvelope(realization: unknown): RuntimePublicationEnv
       ? (record.extensionReviews as RuntimePublicationEnvelope['extensionReviews'])
       : [],
   }
+}
+
+type RuntimeProjection = { gherkin?: unknown; validationNode?: Record<string, unknown> }
+type ValidationRuntimeProjection = { gherkin?: unknown; validations?: Array<Record<string, unknown>> }
+type ProjectedInvocation = { caseId?: string; stepId?: string; invocation?: unknown }
+
+function normalizeScenarioDocument(document: unknown) {
+  if (typeof document !== 'string') return document
+  const lines = document.replaceAll('\r\n', '\n').trim().split('\n')
+  const scenarioIndex = lines.findIndex(line => /^\s*Scenario: /.test(line))
+  if (scenarioIndex < 0) return document
+  const steps = lines
+    .slice(scenarioIndex + 1)
+    .filter(line => /^\s+(?:Given|When|Then|And) /.test(line))
+    .map(line => `  ${line.trimStart()}`)
+  return [lines[scenarioIndex]!.trimStart(), ...steps].join('\n')
+}
+
+function normalizeGherkinDocuments(value: unknown) {
+  const documents = typeof value === 'string' ? [value] : value
+  return Array.isArray(documents) ? documents.map(normalizeScenarioDocument) : documents
+}
+
+function runtimeProjectionNodes(
+  projection: RuntimeProjection,
+  validationProjection: ValidationRuntimeProjection,
+  astId: string,
+) {
+  const projectionNode = projection.validationNode
+  const validationNode = validationProjection.validations?.find(node => node.id === astId)
+  if (!projectionNode || !validationNode)
+    throw new ServiceError('Quality runtime realization does not contain its validation node.', 'VALIDATION')
+  return { projectionNode, validationNode }
+}
+
+function projectedRootInvocations(projectionNode: Record<string, unknown>): ProjectedInvocation[] {
+  const artifacts = projectionNode.appraiseArtifacts as
+    { testCases?: Array<{ id?: string; steps?: Array<{ id?: string; invocation?: unknown }> }> } | undefined
+  const invocations = (artifacts?.testCases ?? []).flatMap(testCase =>
+    (testCase.steps ?? []).map(step => ({ caseId: testCase.id, stepId: step.id, invocation: step.invocation })),
+  )
+  if (invocations.some(item => !item.caseId || !item.stepId || !item.invocation))
+    throw new ServiceError('Quality runtime realization has incomplete projected Step Invocations.', 'VALIDATION')
+  return invocations
+}
+
+function stepDefinitionClosure(rootInvocations: ProjectedInvocation[]) {
+  const definitions = new Map<string, { id?: string; version?: string; definitionHash?: string } | undefined>()
+  for (const item of rootInvocations) {
+    const step = (item.invocation as { step?: { id?: string; version?: string; definitionHash?: string } }).step
+    definitions.set(`${step?.id}@${step?.version}#${step?.definitionHash}`, step)
+  }
+  return [...definitions.values()].sort((left, right) =>
+    `${left?.id}@${left?.version}`.localeCompare(`${right?.id}@${right?.version}`),
+  )
+}
+
+function normalizeCompilerReceipt(runtimeInput: Record<string, unknown>) {
+  const receipt = runtimeInput.compilerReceipt as Record<string, unknown>
+  if (!receipt) return
+  const receiptContent = { ...receipt }
+  delete receiptContent.contentHash
+  runtimeInput.compilerReceipt = { ...receiptContent, contentHash: hashCanonical(receiptContent) }
+}
+
+function normalizeExtensionPolicy(runtimeInput: Record<string, unknown>) {
+  const policy = runtimeInput.extensionPolicy as {
+    projectId?: string
+    projectFingerprint?: string
+    capabilityImports?: Record<string, string[]>
+  }
+  if (!policy?.projectId || !policy.projectFingerprint) return
+  runtimeInput.extensionPolicy = createCustomExtensionPolicy({
+    projectId: policy.projectId,
+    projectFingerprint: policy.projectFingerprint,
+    capabilityImports: policy.capabilityImports ?? {},
+  })
+}
+
+function normalizeRuntimePublicationEnvelope(envelope: RuntimePublicationEnvelope): RuntimePublicationEnvelope {
+  const projection = structuredClone(envelope.projection) as RuntimeProjection
+  const validationProjection = structuredClone(envelope.validationProjection) as ValidationRuntimeProjection
+  projection.gherkin = normalizeGherkinDocuments(projection.gherkin)
+  validationProjection.gherkin = normalizeGherkinDocuments(validationProjection.gherkin)
+  const runtimeInput = structuredClone(envelope.runtimeInput)
+  const { projectionNode, validationNode } = runtimeProjectionNodes(
+    projection,
+    validationProjection,
+    String(runtimeInput.astId ?? ''),
+  )
+  const rootInvocations = projectedRootInvocations(projectionNode)
+  runtimeInput.rootInvocations = rootInvocations
+  runtimeInput.stepDefinitions = stepDefinitionClosure(rootInvocations)
+  normalizeCompilerReceipt(runtimeInput)
+  normalizeExtensionPolicy(runtimeInput)
+  runtimeInput.gherkinHash = hashCanonical(projection.gherkin)
+  const runtimeInputHash = hashCanonical(runtimeInput)
+  const receiptHash = String(runtimeInput.receiptHash ?? '')
+  const provenance = {
+    schemaVersion: '2',
+    astHash: runtimeInput.astHash,
+    executionAuthority: 'reviewed_publication',
+    publishOperationId: `astpub_${receiptHash.slice('sha256:'.length)}`,
+    receiptHash,
+    runtimeInputHash,
+  }
+  projectionNode.astProvenance = provenance
+  validationNode.astProvenance = provenance
+  return { ...envelope, projection, validationProjection, runtimeInput }
 }
 
 export async function publishQualityValidations(

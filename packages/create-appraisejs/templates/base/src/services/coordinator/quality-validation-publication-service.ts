@@ -40,6 +40,76 @@ type PublicationInput = {
 const digest = (value: unknown) => `sha256:${createHash('sha256').update(canonicalContractJson(value)).digest('hex')}`
 const publicationId = (receiptHash: string) => `astpub_${receiptHash.slice('sha256:'.length)}`
 
+export async function persistProjectedExecutionArtifacts(
+  tx: Parameters<Parameters<PrismaClient['$transaction']>[0]>[0],
+  input: {
+    targetProjectId: string
+    node: import('@/lib/quality-design/validation-artifact-contract').ValidationArtifact['validations'][number]
+  },
+) {
+  const { targetProjectId, node } = input
+  for (const artifactModule of node.appraiseArtifacts.modules)
+    await tx.module.upsert({
+      where: { id: artifactModule.id },
+      create: { ...artifactModule, targetProjectId },
+      update: { name: artifactModule.name, parentId: artifactModule.parentId ?? null },
+    })
+  for (const group of node.appraiseArtifacts.locatorGroups)
+    await tx.locatorGroup.upsert({
+      where: { id: group.id },
+      create: { ...group, targetProjectId },
+      update: { name: group.name, route: group.route, moduleId: group.moduleId },
+    })
+  for (const locator of node.appraiseArtifacts.locators)
+    await tx.locator.upsert({
+      where: { id: locator.id },
+      create: { ...locator, targetProjectId },
+      update: { name: locator.name, value: locator.value, locatorGroupId: locator.locatorGroupId },
+    })
+  for (const testCase of node.appraiseArtifacts.testCases) {
+    await tx.testCase.upsert({
+      where: { id: testCase.id },
+      create: { id: testCase.id, title: testCase.title, description: testCase.description, targetProjectId },
+      update: { title: testCase.title, description: testCase.description },
+    })
+    for (const step of testCase.steps)
+      await tx.testCaseStep.upsert({
+        where: { id: step.id },
+        create: {
+          id: step.id,
+          testCaseId: testCase.id,
+          order: step.order,
+          gherkinStep: step.gherkinStep,
+          icon: 'VALIDATION',
+          label: step.label,
+          invocationJson: canonicalContractJson(step.invocation),
+        },
+        update: {
+          order: step.order,
+          gherkinStep: step.gherkinStep,
+          label: step.label,
+          invocationJson: canonicalContractJson(step.invocation),
+        },
+      })
+  }
+  for (const suite of node.appraiseArtifacts.testSuites)
+    await tx.testSuite.upsert({
+      where: { id: suite.id },
+      create: {
+        id: suite.id,
+        name: suite.name,
+        moduleId: suite.moduleId,
+        targetProjectId,
+        testCases: { connect: suite.testCaseIds.map(id => ({ id })) },
+      },
+      update: {
+        name: suite.name,
+        moduleId: suite.moduleId,
+        testCases: { set: suite.testCaseIds.map(id => ({ id })) },
+      },
+    })
+}
+
 /**
  * Seal the existing reviewed Validation AST runtime envelope under Quality
  * identities. This preserves the command-receipt/materializer contract while
@@ -112,8 +182,10 @@ export async function publishQualityValidationRuntime(input: PublicationInput, c
           'Quality validation version already has different immutable runtime publication.',
           'CONFLICT',
         )
+      await persistProjectedExecutionArtifacts(tx, { targetProjectId: input.targetProjectId, node })
       return existing
     }
+    await persistProjectedExecutionArtifacts(tx, { targetProjectId: input.targetProjectId, node })
     const created = await tx.qualityValidationPublication.create({
       data: {
         id,

@@ -4,6 +4,8 @@ TestRuns are the managed execution records used by Assessments. An Assessment ru
 
 Runtime capsules are content-addressed and materialized under the target-owned runtime root. Their manifests capture frozen validation inputs, operation identities, locator/resource resolution, environment selection, and generated artifacts. A materializer uses bounded ownership tokens so concurrent callers cannot mutate the same capsule.
 
+Before a Quality-owned TestRun is prepared, AppraiseJS projects the immutable published validation artifacts into the target-scoped relational execution index. This projection is idempotent and must complete before TestRun-to-case/suite links are inserted, so managed execution never relies on fabricated foreign-key identities.
+
 TestRun output includes report, log, trace, and runtime diagnostics artifacts. Assessment reconciliation verifies those artifacts against the capsule identity and seals one immutable Evidence Receipt for every completed assessment matrix cell. TestRun success by itself is not an assurance decision; the assessment evidence matrix and requirement alignment remain authoritative.
 
 Stopping an Assessment stops only executions it owns. Already sealed receipts remain available, while late process completion cannot overwrite an Assessment that has been stopped. Standalone evidence execution follows the same integrity rules but cannot issue an Assessment decision.
