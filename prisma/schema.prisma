@@ -480,9 +480,32 @@ model TargetProject {
   assessments                    Assessment[]
   assessmentRuns                 AssessmentRun[]
   evidenceReceipts               EvidenceReceipt[]
+  assessmentPreparations         AssessmentPreparation[]
 
   @@index([displayName])
   @@index([fingerprint])
+}
+
+/// Durable, target-scoped receipt for the resumable prepare-and-run operation.
+/// Phase receipts are append-safe JSON snapshots; immutable identities live in
+/// the input hash and are re-read before each domain phase.
+model AssessmentPreparation {
+  id                    String   @id @default(uuid())
+  targetProjectId       String
+  idempotencyKey        String
+  inputHash             String
+  qualityPlanId         String
+  qualityPlanRevisionId String
+  expectedDesignHash    String
+  phase                 String   @default("VALIDATING")
+  receiptJson           String   @default("{}")
+  failureJson           String?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  targetProject         TargetProject @relation(fields: [targetProjectId], references: [id], onDelete: Restrict)
+
+  @@unique([targetProjectId, idempotencyKey])
+  @@index([targetProjectId, phase])
 }
 
 model AgentPreflightReceipt {

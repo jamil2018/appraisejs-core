@@ -657,7 +657,7 @@ export async function approveQualityValidationDesign(
     approvedBy: input.approvedBy,
     designHash,
     nextRecommendedAction:
-      'Resolve reuse and mechanical bindings through validation_reuse_resolve and validation_compile before publication.',
+      'Use step_search and locator_search to resolve mechanical bindings, then call validation_compile or assessment_prepare_run.',
   }
 }
 

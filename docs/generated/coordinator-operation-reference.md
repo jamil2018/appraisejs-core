@@ -15,10 +15,12 @@ the canonical MCP registry. Human-owned lifecycle meaning and examples remain in
 | `step-definitions-read`      | GET    | `/api/internal/coordinator/step-definitions/*`   |
 | `target-projects-list`       | GET    | `/api/internal/coordinator/target-projects`      |
 | `locator-graph`              | GET    | `/api/internal/coordinator/locator-graph/*`      |
+| `environment-read`           | GET    | `/api/internal/coordinator/environments`         |
 | `quality-read`               | GET    | `/api/internal/coordinator/quality/*`            |
 | `step-definitions-write`     | POST   | `/api/internal/coordinator/step-definitions/*`   |
 | `diagnostic-preflight-write` | POST   | `/api/internal/coordinator/diagnostic/preflight` |
 | `quality-write`              | POST   | `/api/internal/coordinator/quality/*`            |
+| `environment-write`          | POST   | `/api/internal/coordinator/environments/ensure`  |
 | `target-project-write`       | POST   | `/api/internal/coordinator/target-projects`      |
 | `test-run-write`             | POST   | `/api/internal/coordinator/test-runs/*`          |
 
@@ -29,11 +31,14 @@ the canonical MCP registry. Human-owned lifecycle meaning and examples remain in
 | `assessment_create`           | default      | `quality-write`                        | Create a repeatable Quality Plan Assessment for an immutable evaluation subject digest.                                                                                                        |
 | `assessment_decide`           | default      | `quality-write`                        | Issue an AssessmentDecision for a reviewed Quality Plan Assessment with current requirement alignment.                                                                                         |
 | `assessment_diagnose`         | default      | `quality-read`                         | Read the current assessment readiness, runtime, and sealed-evidence diagnostic packet.                                                                                                         |
+| `assessment_prepare_run`      | default      | `quality-write`                        | Resumably prepare approved validation bindings, environment, publication, Assessment, and managed execution without reconciling evidence or issuing a decision.                                |
 | `assessment_readiness`        | default      | `quality-read`                         | Read current assessment readiness blockers for scenario approval, published validation versions, and requirement alignment.                                                                    |
 | `assessment_reconcile`        | default      | `quality-write`                        | Reconcile terminal runs into sealed evidence receipts and immutable assessment evidence sets.                                                                                                  |
 | `assessment_review`           | default      | `quality-read`                         | Read the assessment review packet, alignment status, evidence hash, assurance observations, and decision blockers.                                                                             |
 | `assessment_run`              | default      | `quality-write`                        | Run approved validation versions for an assessment or standalone evidence-only execution; decisions require reviewed assessments.                                                              |
 | `assessment_stop`             | default      | `quality-write`                        | Stop an in-flight assessment run while preserving partial sealed evidence receipts.                                                                                                            |
+| `environment_ensure`          | default      | `environment-write`                    | Resolve an exact target environment or explicitly create an immutable proposal with allowCreate: true.                                                                                         |
+| `environment_list`            | default      | `environment-read`                     | List bounded target-scoped environment summaries; a current registry hash returns an unchanged receipt.                                                                                        |
 | `locator_graph_query`         | default      | `locator-graph`                        | Query a bounded locator graph path from a surface, group, or locator node.                                                                                                                     |
 | `locator_search`              | default      | local: bounded quality discovery query | Search live locators for a Quality Plan before validation design.                                                                                                                              |
 | `operation_categories`        | default      | `operations`                           | List bounded canonical operation categories; known manifest hashes return unchanged.                                                                                                           |

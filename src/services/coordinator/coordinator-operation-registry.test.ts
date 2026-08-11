@@ -12,9 +12,12 @@ describe('coordinator operation registry', () => {
     ['GET', ['quality', 'plans', 'qlp_example', 'requirements'], 'quality-read'],
     ['GET', ['quality', 'assessments', 'assessment-1'], 'quality-read'],
     ['GET', ['step-definitions', 'search'], 'step-definitions-read'],
+    ['GET', ['environments'], 'environment-read'],
     ['POST', ['diagnostic', 'preflight'], 'diagnostic-preflight-write'],
     ['POST', ['quality', 'assessments'], 'quality-write'],
     ['POST', ['quality', 'assessment-runs'], 'quality-write'],
+    ['POST', ['quality', 'assessment-prepare-runs'], 'quality-write'],
+    ['POST', ['environments', 'ensure'], 'environment-write'],
     [
       'POST',
       ['step-definitions', 'drafts', '7aee2494-01ac-45c4-ada7-528eaba27fe1', 'publish'],

@@ -18,9 +18,90 @@ const requirementQueryAnswerSchema = z.object({
   answer: z.string().optional(),
   rationale: z.string().optional(),
 })
+const compactStepValueSchema: z.ZodType<
+  | string
+  | number
+  | boolean
+  | null
+  | Array<string | number | boolean | null>
+  | Record<string, string | number | boolean | null>
+> = z.union([
+  z.string(),
+  z.number(),
+  z.boolean(),
+  z.null(),
+  z.array(z.union([z.string(), z.number(), z.boolean(), z.null()])),
+  z.record(z.string(), z.union([z.string(), z.number(), z.boolean(), z.null()])),
+])
 
 export function registerQualityDesignOperations(context: McpRegistryContext): void {
   const { server, api } = context
+
+  server.registerTool(
+    'assessment_prepare_run',
+    {
+      description:
+        'Resumably prepare approved validation bindings, environment, publication, Assessment, and managed execution without reconciling evidence or issuing a decision.',
+      inputSchema: {
+        target: z.string().min(1),
+        qualityPlanId: z.string().min(1),
+        revisionId: z.string().min(1),
+        expectedDesignHash: z.string().startsWith('sha256:'),
+        validationBindings: z
+          .array(
+            z.object({
+              validationId: z.string().min(1),
+              steps: z
+                .array(
+                  z.object({
+                    stepId: z.string().min(1),
+                    version: z.string().min(1),
+                    inputs: z.record(z.string(), compactStepValueSchema).default({}),
+                    keyword: z.enum(['Given', 'When', 'Then', 'And']).default('Given'),
+                    description: z.string().min(1).max(500),
+                  }),
+                )
+                .min(1),
+              locatorIds: z.array(z.string().min(1)).max(100).default([]),
+            }),
+          )
+          .min(1),
+        environment: z.object({
+          environmentId: z.string().min(1).optional(),
+          allowCreate: z.literal(true).optional(),
+          proposal: z
+            .object({
+              name: z.string().min(1),
+              baseUrl: z.string().url(),
+              expectedPageTitle: z.string().max(200).optional(),
+              apiBaseUrl: z.string().url().optional(),
+              username: z.string().optional(),
+              passwordEnvironmentVariable: z
+                .string()
+                .regex(/^[A-Za-z_][A-Za-z0-9_]*$/)
+                .optional(),
+            })
+            .optional(),
+        }),
+        subject: z.object({
+          subjectDigest: z.string().startsWith('sha256:'),
+          authority: z.string().min(1),
+          subjectKind: z.enum(['ARTIFACT', 'DEPLOYMENT_SNAPSHOT']).optional(),
+          metadata: z.record(z.string(), z.union([z.string(), z.number(), z.boolean(), z.null()])).optional(),
+        }),
+        runtime: z.object({ browserEngine: z.enum(['CHROMIUM', 'FIREFOX', 'WEBKIT']).optional() }).optional(),
+        idempotencyKey: z.string().min(1),
+        responseMode: responseModeSchema,
+      },
+    },
+    async ({ responseMode, ...body }) =>
+      text(
+        applyLifecycleResponseMode(
+          await api.request('quality/assessment-prepare-runs', { method: 'POST', body: JSON.stringify(body) }),
+          responseMode,
+        ),
+      ),
+  )
 
   server.registerTool(
     'requirements_submit_source',

@@ -4,6 +4,8 @@ import { automationProjectionService } from '@/lib/automation/projection-service
 import {
   createEnvironment,
   deleteEnvironments,
+  ensureEnvironment,
+  environmentRegistryHash,
   getEnvironmentByIdOrThrow,
   listEnvironments,
   updateEnvironment,
@@ -11,6 +13,7 @@ import {
 
 vi.mock('@/config/db-config', () => ({
   default: {
+    $transaction: vi.fn(),
     environment: {
       findUnique: vi.fn(),
       findFirst: vi.fn(),
@@ -30,6 +33,8 @@ vi.mock('@/lib/automation/projection-service', () => ({
 
 import prisma from '@/config/db-config'
 const targetProjectId = 'project-1'
+
+vi.mocked(prisma.$transaction).mockImplementation(async callback => callback(prisma as never) as never)
 
 const basePayload = environmentSchema.parse({
   name: 'Dev',
@@ -83,7 +88,7 @@ describe('createEnvironment', () => {
 })
 
 describe('listEnvironments', () => {
-  it('loads environments and syncs the projection file', async () => {
+  it('loads environments without mutating automation projections', async () => {
     vi.mocked(prisma.environment.findMany).mockResolvedValue([{ id: 'env-1' }] as never)
 
     await expect(listEnvironments(targetProjectId)).resolves.toEqual([{ id: 'env-1' }])
@@ -91,7 +96,60 @@ describe('listEnvironments', () => {
       where: { targetProjectId },
       orderBy: { createdAt: 'desc' },
     })
+    expect(automationProjectionService.syncEnvironments).not.toHaveBeenCalled()
+  })
+})
+
+describe('environment coordinator preparation helpers', () => {
+  it('returns a stable redacted registry hash', () => {
+    expect(
+      environmentRegistryHash([
+        {
+          id: 'env-1',
+          name: 'Dev',
+          baseUrl: 'https://example.com',
+          expectedPageTitle: null,
+          apiBaseUrl: null,
+          username: 'operator',
+          passwordEnvironmentVariable: 'APP_PASSWORD',
+          credentialState: 'REFERENCE_CONFIGURED',
+        } as never,
+      ]),
+    ).toMatch(/^sha256:[a-f0-9]{64}$/)
+  })
+
+  it('resolves an explicit target environment without creating it', async () => {
+    vi.mocked(prisma.environment.findFirst).mockResolvedValue({ id: 'env-1', name: 'Dev' } as never)
+    await expect(ensureEnvironment({ environmentId: 'env-1' }, targetProjectId)).resolves.toMatchObject({
+      outcome: 'resolved',
+      projection: 'unchanged',
+      environment: { id: 'env-1' },
+    })
+    expect(prisma.environment.create).not.toHaveBeenCalled()
     expect(automationProjectionService.syncEnvironments).toHaveBeenCalled()
+  })
+
+  it('replays an identical explicit proposal without creating a duplicate', async () => {
+    vi.mocked(prisma.environment.findFirst).mockResolvedValue({
+      id: 'env-1',
+      name: 'Dev',
+      baseUrl: 'https://example.com',
+      expectedPageTitle: null,
+      apiBaseUrl: null,
+      username: null,
+      passwordEnvironmentVariable: null,
+    } as never)
+
+    await expect(
+      ensureEnvironment({ allowCreate: true, proposal: basePayload }, targetProjectId),
+    ).resolves.toMatchObject({ outcome: 'replayed', projection: 'unchanged', environment: { id: 'env-1' } })
+    expect(prisma.environment.create).not.toHaveBeenCalled()
+    expect(automationProjectionService.syncEnvironments).toHaveBeenCalled()
+  })
+
+  it('rejects implicit environment creation before writing', async () => {
+    await expect(ensureEnvironment({}, targetProjectId)).rejects.toMatchObject({ statusCode: 400 })
+    expect(prisma.environment.create).not.toHaveBeenCalled()
   })
 })
 

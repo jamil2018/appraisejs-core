@@ -5,6 +5,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 
 import { ensureDevDatabaseReady } from './lib/dev-startup.mjs'
+import { ensureBuiltInStepDefinitionReadiness } from './lib/built-in-readiness.mjs'
 
 const isWindows = process.platform === 'win32'
 const npmCommand = isWindows ? 'npm.cmd' : 'npm'
@@ -157,6 +158,7 @@ process.on('SIGTERM', shutdown)
 const mcp = mcpCommand()
 
 ensureDevDatabaseReady(npmCommand)
+ensureBuiltInStepDefinitionReadiness(npmCommand)
 
 if (mode === '--mcp-only') {
   startProcess('mcp', mcp.command, mcp.args)
