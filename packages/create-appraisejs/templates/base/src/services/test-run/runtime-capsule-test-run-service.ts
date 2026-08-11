@@ -13,6 +13,7 @@ import {
 } from '@/lib/runtime-capsule'
 import { canonicalRuntimeCapsuleJson, hashRuntimeCapsuleValue } from '@/lib/runtime-capsule/contracts'
 import { validationArtifactSchema } from '@/lib/quality-design/validation-artifact-contract'
+import { persistProjectedExecutionArtifacts } from '@/services/coordinator/quality-validation-publication-service'
 import { scheduleTestRunCompletion } from './test-run-service'
 
 /** Quality-owned execution never fabricates a ready capsule. It is prepared
@@ -86,6 +87,7 @@ export class RuntimeCapsuleTestRunService {
         tx.targetProject.findUnique({ where: { id: input.targetProjectId } }),
       ])
       if (!environment || !project) throw new Error('Quality capsule environment or project is missing.')
+      await persistProjectedExecutionArtifacts(tx, { targetProjectId: input.targetProjectId, node })
       const testRun = await tx.testRun.upsert({
         where: { targetProjectId_preparationKey: { targetProjectId: input.targetProjectId, preparationKey } },
         update: {},

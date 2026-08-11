@@ -14,17 +14,19 @@ export const agentPreflightSchema = z.object({
   layers: z.object({
     applicationAndIdentity: z.object({
       status: agentPreflightLayerStatusSchema,
-      checks: z.array(
-        z.object({
-          id: z.string(),
-          status: z.string(),
-          code: z.string().optional(),
-        }),
-      ),
+      checks: z
+        .array(
+          z.object({
+            id: z.string(),
+            status: z.string(),
+            code: z.string().optional(),
+          }),
+        )
+        .default([]),
     }),
     activeMcpTransport: z.object({
       status: agentPreflightLayerStatusSchema,
-      message: z.string(),
+      message: z.string().default('The MCP request reached this server.'),
       serverStartedAt: z.string().datetime(),
       mcpSurfaceVersion: z.string().min(1),
     }),
@@ -32,13 +34,13 @@ export const agentPreflightSchema = z.object({
       status: agentPreflightLayerStatusSchema,
       tools: observedCapabilitySchema,
       resources: observedCapabilitySchema,
-      message: z.string(),
+      message: z.string().default('Capability status was recorded from the current task observation.'),
     }),
     targetProjectBinding: z.object({
       status: agentPreflightLayerStatusSchema,
       expectedCanonicalPath: z.string().optional(),
       matchedScope: z.enum(['hub', 'target']).optional(),
-      message: z.string(),
+      message: z.string().default('Target binding status was recorded from the current diagnostic.'),
     }),
   }),
   recovery: z.unknown().optional(),
