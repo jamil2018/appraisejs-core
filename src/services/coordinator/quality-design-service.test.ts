@@ -232,6 +232,35 @@ describe('quality design coordinator service', () => {
 
     await expect(readQualityRequirementGraph({ qualityPlanId: result.qualityPlan.id }, client)).resolves.toMatchObject({
       revision: { id: result.revision.id, contentHash: result.revision.contentHash },
+      nextRecommendedAction: expect.stringContaining('requirements_approve'),
+    })
+  })
+
+  it('returns lifecycle guidance for the current revision state after requirement approval', async () => {
+    const result = await submitQualityRequirementSource(
+      {
+        target: 'target-1',
+        idempotencyKey: 'state-guidance-source',
+        source: { title: 'State guidance', requirements: [{ text: 'Checkout is observable.' }] },
+      },
+      client,
+    )
+
+    await approveQualityRequirements(
+      {
+        qualityPlanId: result.qualityPlan.id,
+        revisionId: result.revision.id,
+        expectedRevisionHash: result.revision.contentHash,
+        approvedBy: 'reviewer',
+      },
+      client,
+    )
+
+    await expect(
+      readQualityRequirementGraph({ qualityPlanId: result.qualityPlan.id, revisionId: result.revision.id }, client),
+    ).resolves.toMatchObject({
+      revision: { status: 'REQUIREMENTS_APPROVED' },
+      nextRecommendedAction: expect.stringContaining('validation_design_propose'),
     })
   })
 

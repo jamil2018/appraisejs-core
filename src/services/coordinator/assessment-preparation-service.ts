@@ -12,7 +12,7 @@ import { ServiceError } from '@/services/shared/errors'
 import { ensureBuiltInStepDefinitionReadiness } from '@/services/step-definition/built-in-readiness-service'
 import { resolveTargetProject } from '@/services/target-project/target-project-service'
 import {
-  computeStepDefinitionHashes,
+  computeStepReferenceHash,
   stepDefinitionSchema,
   validateStepInvocationInputs,
 } from '../../../packages/cucumber-runtime/src/step-definitions/contracts.ts'
@@ -123,6 +123,7 @@ function response(
     phase: preparation.phase,
     ...(unchanged ? { unchanged: true } : {}),
     environment: receipt.environment,
+    preflight: receipt.preflight,
     publication: receipt.publication,
     assessment: receipt.assessment,
     assessmentRun: receipt.assessmentRun,
@@ -265,7 +266,7 @@ function preparedSteps(
       step: {
         id: definition.identity.id,
         version: definition.identity.version,
-        definitionHash: computeStepDefinitionHashes(definition).definitionHash,
+        definitionHash: computeStepReferenceHash(definition),
       },
     }
   })
@@ -331,11 +332,11 @@ function realizationFor(
     validations: graph.validationVersions.map(version => {
       const binding = byId.get(version.id)!
       const design = version.design as { title?: string; behavior?: string }
-      const caseId = `quality-case:${version.id}`
-      const moduleId = `quality-module:${version.id}`
-      const suiteId = `quality-suite:${version.id}`
+      const caseId = `quality-case-${version.id}`
+      const moduleId = `quality-module-${version.id}`
+      const suiteId = `quality-suite-${version.id}`
       const steps = binding.steps.map((item, index) => ({
-        id: `${caseId}:step:${index + 1}`,
+        id: `${caseId}-step-${index + 1}`,
         order: index + 1,
         label: item.description,
         gherkinStep: `${item.keyword} ${item.description}`,
@@ -491,9 +492,33 @@ async function acquirePreparation(input: PreparationInput, targetProjectId: stri
   return preparation
 }
 
-async function ensureReadiness(state: PreparationState) {
-  const readiness = await ensureBuiltInStepDefinitionReadiness(prisma)
+async function ensureReadiness(
+  state: PreparationState,
+  readiness: Awaited<ReturnType<typeof ensureBuiltInStepDefinitionReadiness>>,
+) {
   return hasPhase(state.receipt, 'READINESS') ? state : advance(state, 'READINESS', { readiness })
+}
+
+function preparationPreflight(
+  graph: Awaited<ReturnType<typeof readQualityRequirementGraph>>,
+  bindings: PreparedBinding[],
+) {
+  const stepReferences = bindings.flatMap(binding => binding.steps.map(step => step.step))
+  const locatorReferences = bindings.flatMap(binding =>
+    binding.locators.map(locator => ({
+      id: locator.id,
+      version: locator.version,
+      contentHash: locator.contentHash,
+    })),
+  )
+  return {
+    ready: true,
+    validationCount: graph.validationVersions.length,
+    stepReferenceCount: stepReferences.length,
+    locatorReferenceCount: locatorReferences.length,
+    stepReferenceHash: digest(stepReferences),
+    locatorReferenceHash: digest(locatorReferences),
+  }
 }
 
 function environmentIdFrom(receipt: Receipt) {
@@ -620,11 +645,17 @@ async function executePreparation(
   target: { id: string; fingerprint: string },
   inputHash: string,
 ) {
+  // Synchronizing the built-in catalog is reversible readiness maintenance. All
+  // request-specific validation happens before a preparation record, environment,
+  // publication, Assessment, or TestRun is created.
+  const readiness = await ensureBuiltInStepDefinitionReadiness(prisma)
+  const { graph, bindings } = await validateAndResolveBindings(input, target.id)
+  const preflight = preparationPreflight(graph, bindings)
   const preparation = await acquirePreparation(input, target.id, inputHash)
   if (preparation.phase === 'STARTED') return response(preparation, true)
   try {
-    let state = await ensureReadiness(preparationState(preparation))
-    const { graph, bindings } = await validateAndResolveBindings(input, target.id)
+    let state = await ensureReadiness(preparationState(preparation), readiness)
+    if (!hasPhase(state.receipt, 'PREFLIGHT')) state = await advance(state, 'PREFLIGHT', { preflight })
     state = await ensurePreparationEnvironment(state, input, target.id)
     const environmentId = environmentIdFrom(state.receipt)
     state = await ensureRealized(state, input, graph, bindings, environmentId, target, inputHash)

@@ -26,6 +26,7 @@ type InvocationSession = {
   insertingAfterNodeId: string | null
   values: Record<string, unknown>
   errors: Record<string, string>
+  presentationLabel: string
   returnFocusTarget: HTMLElement | null
   returnFocusSelector: string
 }
@@ -50,6 +51,7 @@ export type FlowInvocationController = {
   startEditing: (nodeId: string) => void
   startInserting: (afterNodeId: string | null, definition?: StepDefinitionOption) => void
   updateDraft: (name: string, value: unknown) => void
+  updatePresentationLabel: (value: string) => void
   updateErrors: (errors: Record<string, string>) => void
   saveEditor: (inputs: Record<string, unknown>) => void
   flowBlocks: FlowBlock[]
@@ -126,8 +128,24 @@ function editorSession(
   values: Record<string, unknown>,
   returnFocusTarget: HTMLElement | null,
   returnFocusSelector: string,
+  presentationLabel = '',
 ): InvocationSession {
-  return { definition, editingNodeId, insertingAfterNodeId, values, errors: {}, returnFocusTarget, returnFocusSelector }
+  return {
+    definition,
+    editingNodeId,
+    insertingAfterNodeId,
+    values,
+    errors: {},
+    presentationLabel,
+    returnFocusTarget,
+    returnFocusSelector,
+  }
+}
+
+function explicitPresentationLabel(node: AuthoredFlowNode | undefined): string {
+  if (!node) return ''
+  const keyword = node.invocation.presentation?.keyword ?? node.gherkinStep?.split(' ')[0]
+  return node.gherkinStep === `${keyword} ${node.label}` ? node.label : ''
 }
 
 function nodeForKind(
@@ -176,8 +194,10 @@ export function FlowInvocationEditor({ controller, resources, variant }: Invocat
       definition={session.definition}
       values={session.values}
       errors={session.errors}
+      presentationLabel={session.presentationLabel}
       onCancel={controller.closeEditor}
       onChange={controller.updateDraft}
+      onPresentationLabelChange={controller.updatePresentationLabel}
       onErrorsChange={controller.updateErrors}
       onSave={controller.saveEditor}
       resources={resources}
@@ -245,7 +265,8 @@ export function useFlowInvocationController({
   const startEditing = useCallback(
     (nodeId: string) => {
       const definition = definitionForFlowNode(nodeId, flow, definitions)
-      const inputs = flow.find(item => item.nodeId === nodeId)?.node.invocation.inputs
+      const node = flow.find(item => item.nodeId === nodeId)?.node
+      const inputs = node?.invocation.inputs
       if (!definition || !inputs) return
       setSelectedDefinition(definition)
       setSession(
@@ -256,6 +277,7 @@ export function useFlowInvocationController({
           inputs,
           document.activeElement as HTMLElement | null,
           `[data-invocation-edit="${nodeId}"]`,
+          explicitPresentationLabel(node),
         ),
       )
     },
@@ -280,6 +302,9 @@ export function useFlowInvocationController({
   )
   const updateDraft = useCallback((name: string, value: unknown) => {
     setSession(current => (current ? { ...current, values: { ...current.values, [name]: value } } : current))
+  }, [])
+  const updatePresentationLabel = useCallback((value: string) => {
+    setSession(current => (current ? { ...current, presentationLabel: value } : current))
   }, [])
   const selectDefinition = useCallback(
     (definition?: StepDefinitionOption) => {
@@ -307,11 +332,17 @@ export function useFlowInvocationController({
       if (!session) return
       const editingNodeId = session.editingNodeId
       if (editingNodeId) {
-        publishFlow(updateFlowInvocation(flow, editingNodeId, session.definition, inputs))
+        publishFlow(updateFlowInvocation(flow, editingNodeId, session.definition, inputs, session.presentationLabel))
       } else {
         const nodeId = crypto.randomUUID()
         const node = nodeForKind(session.definition, nodeKind, nodeId)
-        const updated = updateFlowInvocation([{ nodeId, node }], nodeId, session.definition, inputs)[0]!.node
+        const updated = updateFlowInvocation(
+          [{ nodeId, node }],
+          nodeId,
+          session.definition,
+          inputs,
+          session.presentationLabel,
+        )[0]!.node
         publishFlow(insertFlowNode(flow, session.insertingAfterNodeId, updated))
       }
       closeEditor()
@@ -327,6 +358,7 @@ export function useFlowInvocationController({
     startEditing,
     startInserting,
     updateDraft,
+    updatePresentationLabel,
     updateErrors,
     saveEditor,
     flowBlocks: normalizedFlowBlocks,

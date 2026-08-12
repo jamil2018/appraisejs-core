@@ -154,6 +154,17 @@ function operationRefs(query: URLSearchParams) {
     .parse(query.get('refs') ?? '[]')
 }
 
+function readCatalogOperations(refs: Array<{ id: string; version?: string }>) {
+  try {
+    return defaultOperationRegistry.read(refs)
+  } catch (error) {
+    if (error instanceof Error && /Operation ".+" was not found\./.test(error.message)) {
+      throw new ServiceError(error.message, 'NOT_FOUND')
+    }
+    throw error
+  }
+}
+
 function queryLimit(query: URLSearchParams, fallback = 50) {
   return query.has('limit') ? z.coerce.number().int().min(1).max(100).parse(query.get('limit')) : fallback
 }
@@ -213,7 +224,7 @@ function getOperations(request: Request, operation: string[]) {
   if (action === 'read')
     return Response.json({
       manifestHash: defaultOperationRegistry.manifestHash,
-      operations: defaultOperationRegistry.read(operationRefs(query)),
+      operations: readCatalogOperations(operationRefs(query)),
     })
 
   const items = defaultOperationRegistry.list(operationFilters(query), 0, 100).items
@@ -222,7 +233,7 @@ function getOperations(request: Request, operation: string[]) {
     const requestedParameters = new Set((query.get('parameterNames') ?? '').split(',').filter(Boolean))
     const matches = items
       .map(item => {
-        const descriptor = defaultOperationRegistry.read([{ id: item.id, version: item.version }])[0]!
+        const descriptor = readCatalogOperations([{ id: item.id, version: item.version }])[0]!
         const searchable = `${item.id} ${item.title} ${descriptor.description}`.toLowerCase()
         const matchedParameters = descriptor.inputs.filter(input => requestedParameters.has(input.name)).length
         return { item, descriptor, score: Number(searchable.includes(text)) * 100 + matchedParameters }

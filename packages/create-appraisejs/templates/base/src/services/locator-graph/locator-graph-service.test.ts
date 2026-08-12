@@ -29,6 +29,37 @@ const client = {
   },
 } as unknown as PrismaClient
 
+const scopedClient = {
+  locatorGroup: {
+    findMany: async () => [
+      {
+        id: 'project-group',
+        name: 'Checkout',
+        route: '/checkout',
+        moduleId: 'module-checkout',
+        targetProjectId: 'target-one',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        module: { id: 'module-checkout', name: 'Checkout' },
+        locators: [
+          {
+            id: 'checkout-button',
+            name: 'Checkout button',
+            value: '#checkout',
+            locatorGroupId: 'project-group',
+            targetProjectId: 'target-one',
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          },
+        ],
+      },
+    ],
+  },
+  projectResourceOwnership: {
+    findMany: async () => [],
+  },
+} as unknown as PrismaClient
+
 describe('locator graph discovery', () => {
   it('builds deterministic surface, group, locator, and visual projections', async () => {
     const graph = await buildLocatorGraph(client)
@@ -45,5 +76,16 @@ describe('locator graph discovery', () => {
       nextCursor: expect.any(String),
     })
     await expect(queryLocatorGraph({ fromId: surface.id, limit: 101 }, client)).rejects.toThrow()
+  })
+
+  it('keeps directly project-scoped locators visible while ownership receipts are absent', async () => {
+    const graph = await buildLocatorGraph(scopedClient, 'target-one')
+
+    expect(graph.nodes).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ type: 'locator-group', persistentId: 'project-group' }),
+        expect.objectContaining({ type: 'locator', persistentId: 'checkout-button' }),
+      ]),
+    )
   })
 })

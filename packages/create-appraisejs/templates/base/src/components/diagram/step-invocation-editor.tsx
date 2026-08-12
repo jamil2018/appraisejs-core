@@ -5,6 +5,8 @@ import { Save } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import type { StepDefinitionOption } from '@/types/step-definition-option'
 
 import { parseStepInvocationInput, StepInvocationFields } from './step-invocation-fields'
@@ -15,8 +17,10 @@ type StepInvocationEditorProps = {
   definition: StepDefinitionOption
   values: Record<string, unknown>
   errors: Record<string, string>
+  presentationLabel?: string
   onCancel: () => void
   onChange: (name: string, value: unknown) => void
+  onPresentationLabelChange?: (value: string) => void
   onErrorsChange: (errors: Record<string, string>) => void
   onSave: (values: Record<string, unknown>) => void
   resources?: StepInvocationResources
@@ -62,8 +66,10 @@ export function StepInvocationEditor({
   definition,
   values,
   errors,
+  presentationLabel = '',
   onCancel,
   onChange,
+  onPresentationLabelChange = () => undefined,
   onErrorsChange,
   onSave,
   resources,
@@ -111,6 +117,18 @@ export function StepInvocationEditor({
           resources={resources}
           onChange={onChange}
         />
+        <div className="mt-4 space-y-2">
+          <Label htmlFor="step-presentation-label">Gherkin label (optional)</Label>
+          <Input
+            id="step-presentation-label"
+            value={presentationLabel}
+            placeholder={definition.title}
+            onChange={event => onPresentationLabelChange(event.target.value)}
+          />
+          <p className="text-xs text-muted-foreground">
+            Shown in the scenario and run log. The selected Step Definition remains the execution identity.
+          </p>
+        </div>
         {errors.form ? (
           <p className="mt-2 text-sm text-destructive" role="alert">
             {errors.form}

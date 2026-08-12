@@ -1,5 +1,33 @@
 import { canonicalRuntimeCapsuleJson } from './contracts'
 
+type GeneratedBindingStep = {
+  keywordText: string
+  invocation: { presentation?: unknown; [key: string]: unknown }
+}
+
+function registrationLines(bindings: unknown): string {
+  if (!Array.isArray(bindings)) return ''
+  const expressions = new Set<string>()
+  return bindings
+    .flatMap(testCase =>
+      testCase && typeof testCase === 'object' && Array.isArray((testCase as { steps?: unknown }).steps)
+        ? (testCase as { steps: GeneratedBindingStep[] }).steps
+        : [],
+    )
+    .flatMap(step => {
+      const separator = step.keywordText.indexOf(' ')
+      const keyword = step.keywordText.slice(0, separator)
+      const expressionText = step.keywordText.slice(separator + 1)
+      if (expressions.has(expressionText)) return []
+      expressions.add(expressionText)
+      const expression = expressionText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+      return [
+        `registrations[${JSON.stringify(keyword)}](new RegExp(${JSON.stringify(`^${expression}$`)}), async function () { await dispatch(this, ${canonicalRuntimeCapsuleJson(step)}) })`,
+      ]
+    })
+    .join('\n')
+}
+
 export function generateExecutableBindings(input: {
   bindings: unknown
   selectors: Record<string, string>
@@ -7,6 +35,7 @@ export function generateExecutableBindings(input: {
   extensionModules: Record<string, string>
   runtimeImport: string
 }) {
+  const staticRegistrations = registrationLines(input.bindings)
   return `import { Given, When, Then, dispatchStepInvocation } from '${input.runtimeImport}'
 
 const cases = ${canonicalRuntimeCapsuleJson(input.bindings)}
@@ -44,7 +73,6 @@ const dispatch = async (world, step) => {
 }
 const registeredExpressions = new Map()
 for (const testCase of cases) for (const step of testCase.steps) {
-  const keyword = step.keywordText.slice(0, step.keywordText.indexOf(' '))
   const expressionText = step.keywordText.slice(step.keywordText.indexOf(' ') + 1)
   const { presentation: _presentation, ...executionInvocation } = step.invocation
   const signature = JSON.stringify({ invocation: executionInvocation })
@@ -54,8 +82,7 @@ for (const testCase of cases) for (const step of testCase.steps) {
     continue
   }
   registeredExpressions.set(expressionText, signature)
-  const expression = expressionText.replace(/[.*+?^\${}()|[\\]\\\\]/g, '\\\\$&')
-  registrations[keyword](new RegExp(\`^\${expression}$\`), async function () { await dispatch(this, step) })
 }
+${staticRegistrations}
 `
 }

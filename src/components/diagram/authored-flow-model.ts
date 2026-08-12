@@ -27,6 +27,12 @@ function presentationFor(definition: StepDefinitionOption, inputs: Record<string
   return `${definition.keywordCompatibility[0] ?? 'When'} ${description}`
 }
 
+function labeledPresentation(definition: StepDefinitionOption, label?: string): string | undefined {
+  const description = label?.trim()
+  if (!description) return undefined
+  return `${definition.keywordCompatibility[0] ?? 'When'} ${description}`
+}
+
 function parameterValue(value: unknown): string {
   return typeof value === 'string' ? value : JSON.stringify(value)
 }
@@ -200,11 +206,13 @@ export function updateFlowInvocation(
   nodeId: string,
   definition: StepDefinitionOption,
   inputs: Record<string, unknown>,
+  presentationLabel?: string,
 ): AuthoredFlow {
   definition.inputs.forEach(input => validateInput(input, inputs[input.name]))
   return items.map(item => {
     if (item.nodeId !== nodeId) return item
-    const gherkinStep = presentationFor(definition, inputs)
+    const label = presentationLabel?.trim() || definition.title
+    const gherkinStep = labeledPresentation(definition, presentationLabel) ?? presentationFor(definition, inputs)
     const invocation = {
       ...item.node.invocation,
       step: definition.reference,
@@ -217,14 +225,14 @@ export function updateFlowInvocation(
     const node: NodeData | TemplateTestCaseNodeData = isTestCaseNode(item.node)
       ? {
           ...item.node,
-          label: definition.title,
+          label,
           gherkinStep,
           parameters: inputParameters(definition, inputs),
           invocation,
         }
       : {
           ...item.node,
-          label: definition.title,
+          label,
           gherkinStep,
           parameters: templateInputParameters(definition, inputs),
           invocation,

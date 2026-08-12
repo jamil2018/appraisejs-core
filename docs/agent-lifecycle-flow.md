@@ -12,6 +12,10 @@ Validation compilation canonicalizes the reviewed projection into the strict run
 
 For an approved revision, `assessment_prepare_run` may perform the mechanical prepare-and-start sequence from compact exact bindings. Its durable receipt is target-scoped and resumable by idempotency key; each replay repairs built-in Step Definition readiness, re-reads committed realization/publication state, and resumes only incomplete mutations. It stops before evidence reconciliation, evidence review, and Assessment decision; those remain separate Appraise-owned gates.
 
+Preparation synchronizes the reversible built-in registry first, then completes a read-only, hash-bound preflight of the approved validation set, exact Step References, typed inputs, and target-owned locators before it creates a preparation record or mutates environments, publications, Assessments, or TestRuns. Summary responses include the compact preflight counts and hashes; callers should request full payloads only for bounded diagnostics.
+
+Runtime publication seals the canonical Step Reference hash for each invocation. Compatibility reads may admit an older publication that used the persisted definition-row hash only when that hash exactly matches the authoritative row, then normalize the closure to the canonical Step Reference hash. This is a bounded read-compatibility path, not permission to publish new invocations with the legacy hash.
+
 ## Assessment
 
 An Assessment identifies an immutable evaluation subject and the published validation matrix to run. Readiness verifies target binding, published validation, subject identity, matrix coverage, and current requirement alignment before any execution starts.
