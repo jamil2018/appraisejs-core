@@ -456,11 +456,7 @@ export class StepDefinitionRegistryService {
   ) {
     assertBuiltInDefinitionIsUnchanged(existing, definition, hashes)
     const publicationReceipt = existing.publicationReceipt
-    if (!publicationReceipt)
-      throw new StepDefinitionRegistryError(
-        'validation_failed',
-        `Built-in ${definition.identity.id}@${definition.identity.version} is missing its publication receipt.`,
-      )
+    if (!publicationReceipt) return this.restoreBuiltInPublicationReceipt(existing, definition, hashes)
     const persistedReceipt = parsePublicationReceipt(publicationReceipt.receiptJson)
     if (persistedReceipt) return persistedReceipt
 
@@ -473,6 +469,46 @@ export class StepDefinitionRegistryService {
       },
     })
     return upgradedReceipt
+  }
+
+  private async restoreBuiltInPublicationReceipt(
+    existing: NonNullable<Awaited<ReturnType<PrismaClient['stepDefinition']['findUnique']>>>,
+    definition: StepDefinition,
+    hashes: ReturnType<typeof computeStepDefinitionHashes>,
+  ) {
+    const references = await this.database.stepDefinition.findMany({
+      where: { status: 'ready' },
+      select: { id: true, version: true, definitionHash: true },
+      orderBy: [{ id: 'asc' }, { version: 'asc' }],
+    })
+    const registryManifestHash = stepDefinitionContentHash(references)
+    const conformanceRunId = stepDefinitionContentHash({
+      kind: 'built-in-readiness-repair',
+      step: definition.identity,
+      definitionHash: hashes.definitionHash,
+    })
+    const receipt = stepPublicationReceiptSchema.parse({
+      step: definition.identity,
+      ...hashes,
+      registryManifestHash,
+      executableReadiness: computeStepExecutableReadiness(definition, registryManifestHash, conformanceRunId),
+      conformanceRunId,
+      reviewAuthority: SOURCE_REVIEW_AUTHORITY,
+      publishedAt: (existing.publishedAt ?? new Date()).toISOString(),
+    })
+    await this.database.stepPublicationReceipt.create({
+      data: {
+        stepId: definition.identity.id,
+        stepVersion: definition.identity.version,
+        receiptJson: canonicalStepDefinitionJson(receipt),
+        receiptHash: stepDefinitionContentHash(receipt),
+        registryManifestHash,
+        conformanceRunId,
+        reviewAuthority: SOURCE_REVIEW_AUTHORITY,
+        publishedAt: existing.publishedAt ?? new Date(),
+      },
+    })
+    return receipt
   }
 
   private async createBuiltInRegistration(definition: StepDefinition, conformanceRunId: string) {

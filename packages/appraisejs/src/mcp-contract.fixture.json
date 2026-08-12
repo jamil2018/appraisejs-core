@@ -101,10 +101,22 @@
           "responseMode": {
             "default": "summary",
             "type": "string",
-            "enum": ["summary", "evidenceOnly", "blockersOnly", "linksOnly", "full"]
+            "enum": [
+              "summary",
+              "evidenceOnly",
+              "blockersOnly",
+              "linksOnly",
+              "full"
+            ]
           }
         },
-        "required": ["qualityPlanId", "revisionId", "subject", "idempotencyKey", "responseMode"],
+        "required": [
+          "qualityPlanId",
+          "revisionId",
+          "subject",
+          "idempotencyKey",
+          "responseMode"
+        ],
         "additionalProperties": false
       },
       "annotations": {
@@ -132,7 +144,11 @@
           },
           "decision": {
             "type": "string",
-            "enum": ["accepted", "rejected", "accepted_with_limitations"]
+            "enum": [
+              "accepted",
+              "rejected",
+              "accepted_with_limitations"
+            ]
           },
           "decidedBy": {
             "type": "string",
@@ -145,10 +161,23 @@
           "responseMode": {
             "default": "summary",
             "type": "string",
-            "enum": ["summary", "evidenceOnly", "blockersOnly", "linksOnly", "full"]
+            "enum": [
+              "summary",
+              "evidenceOnly",
+              "blockersOnly",
+              "linksOnly",
+              "full"
+            ]
           }
         },
-        "required": ["assessmentId", "expectedEvidenceSetHash", "decision", "decidedBy", "rationale", "responseMode"],
+        "required": [
+          "assessmentId",
+          "expectedEvidenceSetHash",
+          "decision",
+          "decidedBy",
+          "rationale",
+          "responseMode"
+        ],
         "additionalProperties": false
       },
       "annotations": {
@@ -173,15 +202,324 @@
           "responseMode": {
             "default": "summary",
             "type": "string",
-            "enum": ["summary", "evidenceOnly", "blockersOnly", "linksOnly", "full"]
+            "enum": [
+              "summary",
+              "evidenceOnly",
+              "blockersOnly",
+              "linksOnly",
+              "full"
+            ]
           }
         },
-        "required": ["assessmentId", "responseMode"],
+        "required": [
+          "assessmentId",
+          "responseMode"
+        ],
         "additionalProperties": false
       },
       "annotations": {
         "readOnlyHint": true,
         "openWorldHint": false
+      }
+    },
+    {
+      "kind": "tool",
+      "name": "assessment_prepare_run",
+      "description": "Resumably prepare approved validation bindings, environment, publication, Assessment, and managed execution without reconciling evidence or issuing a decision.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "target": {
+            "type": "string",
+            "minLength": 1
+          },
+          "qualityPlanId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "revisionId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "expectedDesignHash": {
+            "type": "string",
+            "pattern": "^sha256:.*"
+          },
+          "validationBindings": {
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "validationId": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "steps": {
+                  "minItems": 1,
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "stepId": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "version": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "inputs": {
+                        "default": {},
+                        "type": "object",
+                        "propertyNames": {
+                          "type": "string"
+                        },
+                        "additionalProperties": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "number"
+                            },
+                            {
+                              "type": "boolean"
+                            },
+                            {
+                              "type": "null"
+                            },
+                            {
+                              "type": "array",
+                              "items": {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "number"
+                                  },
+                                  {
+                                    "type": "boolean"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              }
+                            },
+                            {
+                              "type": "object",
+                              "propertyNames": {
+                                "type": "string"
+                              },
+                              "additionalProperties": {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "number"
+                                  },
+                                  {
+                                    "type": "boolean"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              }
+                            }
+                          ]
+                        }
+                      },
+                      "keyword": {
+                        "default": "Given",
+                        "type": "string",
+                        "enum": [
+                          "Given",
+                          "When",
+                          "Then",
+                          "And"
+                        ]
+                      },
+                      "description": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 500
+                      }
+                    },
+                    "required": [
+                      "stepId",
+                      "version",
+                      "inputs",
+                      "keyword",
+                      "description"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "locatorIds": {
+                  "default": [],
+                  "maxItems": 100,
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                }
+              },
+              "required": [
+                "validationId",
+                "steps",
+                "locatorIds"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "environment": {
+            "type": "object",
+            "properties": {
+              "environmentId": {
+                "type": "string",
+                "minLength": 1
+              },
+              "allowCreate": {
+                "type": "boolean",
+                "const": true
+              },
+              "proposal": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "baseUrl": {
+                    "type": "string",
+                    "format": "uri"
+                  },
+                  "expectedPageTitle": {
+                    "type": "string",
+                    "maxLength": 200
+                  },
+                  "apiBaseUrl": {
+                    "type": "string",
+                    "format": "uri"
+                  },
+                  "username": {
+                    "type": "string"
+                  },
+                  "passwordEnvironmentVariable": {
+                    "type": "string",
+                    "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+                  }
+                },
+                "required": [
+                  "name",
+                  "baseUrl"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "additionalProperties": false
+          },
+          "subject": {
+            "type": "object",
+            "properties": {
+              "subjectDigest": {
+                "type": "string",
+                "pattern": "^sha256:.*"
+              },
+              "authority": {
+                "type": "string",
+                "minLength": 1
+              },
+              "subjectKind": {
+                "type": "string",
+                "enum": [
+                  "ARTIFACT",
+                  "DEPLOYMENT_SNAPSHOT"
+                ]
+              },
+              "metadata": {
+                "type": "object",
+                "propertyNames": {
+                  "type": "string"
+                },
+                "additionalProperties": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "boolean"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              }
+            },
+            "required": [
+              "subjectDigest",
+              "authority"
+            ],
+            "additionalProperties": false
+          },
+          "runtime": {
+            "type": "object",
+            "properties": {
+              "browserEngine": {
+                "type": "string",
+                "enum": [
+                  "CHROMIUM",
+                  "FIREFOX",
+                  "WEBKIT"
+                ]
+              }
+            },
+            "additionalProperties": false
+          },
+          "idempotencyKey": {
+            "type": "string",
+            "minLength": 1
+          },
+          "responseMode": {
+            "default": "summary",
+            "type": "string",
+            "enum": [
+              "summary",
+              "evidenceOnly",
+              "blockersOnly",
+              "linksOnly",
+              "full"
+            ]
+          }
+        },
+        "required": [
+          "target",
+          "qualityPlanId",
+          "revisionId",
+          "expectedDesignHash",
+          "validationBindings",
+          "environment",
+          "subject",
+          "idempotencyKey",
+          "responseMode"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
       }
     },
     {
@@ -199,10 +537,19 @@
           "responseMode": {
             "default": "summary",
             "type": "string",
-            "enum": ["summary", "evidenceOnly", "blockersOnly", "linksOnly", "full"]
+            "enum": [
+              "summary",
+              "evidenceOnly",
+              "blockersOnly",
+              "linksOnly",
+              "full"
+            ]
           }
         },
-        "required": ["assessmentId", "responseMode"],
+        "required": [
+          "assessmentId",
+          "responseMode"
+        ],
         "additionalProperties": false
       },
       "annotations": {
@@ -236,10 +583,20 @@
           "responseMode": {
             "default": "summary",
             "type": "string",
-            "enum": ["summary", "evidenceOnly", "blockersOnly", "linksOnly", "full"]
+            "enum": [
+              "summary",
+              "evidenceOnly",
+              "blockersOnly",
+              "linksOnly",
+              "full"
+            ]
           }
         },
-        "required": ["assessmentId", "idempotencyKey", "responseMode"],
+        "required": [
+          "assessmentId",
+          "idempotencyKey",
+          "responseMode"
+        ],
         "additionalProperties": false
       },
       "annotations": {
@@ -264,10 +621,19 @@
           "responseMode": {
             "default": "summary",
             "type": "string",
-            "enum": ["summary", "evidenceOnly", "blockersOnly", "linksOnly", "full"]
+            "enum": [
+              "summary",
+              "evidenceOnly",
+              "blockersOnly",
+              "linksOnly",
+              "full"
+            ]
           }
         },
-        "required": ["assessmentId", "responseMode"],
+        "required": [
+          "assessmentId",
+          "responseMode"
+        ],
         "additionalProperties": false
       },
       "annotations": {
@@ -303,10 +669,19 @@
           "responseMode": {
             "default": "summary",
             "type": "string",
-            "enum": ["summary", "evidenceOnly", "blockersOnly", "linksOnly", "full"]
+            "enum": [
+              "summary",
+              "evidenceOnly",
+              "blockersOnly",
+              "linksOnly",
+              "full"
+            ]
           }
         },
-        "required": ["idempotencyKey", "responseMode"],
+        "required": [
+          "idempotencyKey",
+          "responseMode"
+        ],
         "additionalProperties": false
       },
       "annotations": {
@@ -335,10 +710,20 @@
           "responseMode": {
             "default": "summary",
             "type": "string",
-            "enum": ["summary", "evidenceOnly", "blockersOnly", "linksOnly", "full"]
+            "enum": [
+              "summary",
+              "evidenceOnly",
+              "blockersOnly",
+              "linksOnly",
+              "full"
+            ]
           }
         },
-        "required": ["assessmentId", "reason", "responseMode"],
+        "required": [
+          "assessmentId",
+          "reason",
+          "responseMode"
+        ],
         "additionalProperties": false
       },
       "annotations": {
@@ -346,6 +731,97 @@
         "destructiveHint": true,
         "idempotentHint": true,
         "openWorldHint": true
+      }
+    },
+    {
+      "kind": "tool",
+      "name": "environment_ensure",
+      "description": "Resolve an exact target environment or explicitly create an immutable proposal with allowCreate: true.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "target": {
+            "type": "string",
+            "minLength": 1
+          },
+          "environmentId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "allowCreate": {
+            "type": "boolean"
+          },
+          "proposal": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "minLength": 1
+              },
+              "baseUrl": {
+                "type": "string",
+                "format": "uri"
+              },
+              "expectedPageTitle": {
+                "type": "string",
+                "maxLength": 200
+              },
+              "apiBaseUrl": {
+                "type": "string",
+                "format": "uri"
+              },
+              "username": {
+                "type": "string"
+              },
+              "passwordEnvironmentVariable": {
+                "type": "string",
+                "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+              }
+            },
+            "required": [
+              "name",
+              "baseUrl"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "target"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "kind": "tool",
+      "name": "environment_list",
+      "description": "List bounded target-scoped environment summaries; a current registry hash returns an unchanged receipt.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "target": {
+            "type": "string",
+            "minLength": 1
+          },
+          "knownRegistryHash": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "target"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": false
       }
     },
     {
@@ -380,7 +856,9 @@
             "maximum": 4
           }
         },
-        "required": ["fromId"],
+        "required": [
+          "fromId"
+        ],
         "additionalProperties": false
       },
       "annotations": {
@@ -405,7 +883,10 @@
             "minLength": 1
           }
         },
-        "required": ["qualityPlanId", "query"],
+        "required": [
+          "qualityPlanId",
+          "query"
+        ],
         "additionalProperties": false
       },
       "annotations": {
@@ -454,12 +935,16 @@
                   "type": "string"
                 }
               },
-              "required": ["id"],
+              "required": [
+                "id"
+              ],
               "additionalProperties": false
             }
           }
         },
-        "required": ["operationRefs"],
+        "required": [
+          "operationRefs"
+        ],
         "additionalProperties": false
       },
       "annotations": {
@@ -499,11 +984,19 @@
           },
           "runtime": {
             "type": "string",
-            "enum": ["browser", "api", "node", "database"]
+            "enum": [
+              "browser",
+              "api",
+              "node",
+              "database"
+            ]
           },
           "surface": {
             "type": "string",
-            "enum": ["human", "agent"]
+            "enum": [
+              "human",
+              "agent"
+            ]
           },
           "deprecated": {
             "type": "boolean"
@@ -514,7 +1007,9 @@
             "maximum": 100
           }
         },
-        "required": ["query"],
+        "required": [
+          "query"
+        ],
         "additionalProperties": false
       },
       "annotations": {
@@ -542,7 +1037,9 @@
             "type": "boolean"
           }
         },
-        "required": ["path"],
+        "required": [
+          "path"
+        ],
         "additionalProperties": false
       },
       "annotations": {
@@ -619,10 +1116,19 @@
           "responseMode": {
             "default": "summary",
             "type": "string",
-            "enum": ["summary", "evidenceOnly", "blockersOnly", "linksOnly", "full"]
+            "enum": [
+              "summary",
+              "evidenceOnly",
+              "blockersOnly",
+              "linksOnly",
+              "full"
+            ]
           }
         },
-        "required": ["qualityPlanId", "responseMode"],
+        "required": [
+          "qualityPlanId",
+          "responseMode"
+        ],
         "additionalProperties": false
       },
       "annotations": {
@@ -660,7 +1166,11 @@
                 },
                 "status": {
                   "type": "string",
-                  "enum": ["ANSWERED", "DEFERRED", "ACCEPTED_ASSUMPTION"]
+                  "enum": [
+                    "ANSWERED",
+                    "DEFERRED",
+                    "ACCEPTED_ASSUMPTION"
+                  ]
                 },
                 "answer": {
                   "type": "string"
@@ -669,7 +1179,10 @@
                   "type": "string"
                 }
               },
-              "required": ["queryId", "status"],
+              "required": [
+                "queryId",
+                "status"
+              ],
               "additionalProperties": false
             }
           },
@@ -680,10 +1193,21 @@
           "responseMode": {
             "default": "summary",
             "type": "string",
-            "enum": ["summary", "evidenceOnly", "blockersOnly", "linksOnly", "full"]
+            "enum": [
+              "summary",
+              "evidenceOnly",
+              "blockersOnly",
+              "linksOnly",
+              "full"
+            ]
           }
         },
-        "required": ["qualityPlanId", "answers", "idempotencyKey", "responseMode"],
+        "required": [
+          "qualityPlanId",
+          "answers",
+          "idempotencyKey",
+          "responseMode"
+        ],
         "additionalProperties": false
       },
       "annotations": {
@@ -720,10 +1244,22 @@
           "responseMode": {
             "default": "summary",
             "type": "string",
-            "enum": ["summary", "evidenceOnly", "blockersOnly", "linksOnly", "full"]
+            "enum": [
+              "summary",
+              "evidenceOnly",
+              "blockersOnly",
+              "linksOnly",
+              "full"
+            ]
           }
         },
-        "required": ["qualityPlanId", "revisionId", "expectedRevisionHash", "approvedBy", "responseMode"],
+        "required": [
+          "qualityPlanId",
+          "revisionId",
+          "expectedRevisionHash",
+          "approvedBy",
+          "responseMode"
+        ],
         "additionalProperties": false
       },
       "annotations": {
@@ -752,10 +1288,19 @@
           "responseMode": {
             "default": "summary",
             "type": "string",
-            "enum": ["summary", "evidenceOnly", "blockersOnly", "linksOnly", "full"]
+            "enum": [
+              "summary",
+              "evidenceOnly",
+              "blockersOnly",
+              "linksOnly",
+              "full"
+            ]
           }
         },
-        "required": ["qualityPlanId", "responseMode"],
+        "required": [
+          "qualityPlanId",
+          "responseMode"
+        ],
         "additionalProperties": false
       },
       "annotations": {
@@ -783,10 +1328,21 @@
           "responseMode": {
             "default": "summary",
             "type": "string",
-            "enum": ["summary", "evidenceOnly", "blockersOnly", "linksOnly", "full"]
+            "enum": [
+              "summary",
+              "evidenceOnly",
+              "blockersOnly",
+              "linksOnly",
+              "full"
+            ]
           }
         },
-        "required": ["target", "source", "idempotencyKey", "responseMode"],
+        "required": [
+          "target",
+          "source",
+          "idempotencyKey",
+          "responseMode"
+        ],
         "additionalProperties": false
       },
       "annotations": {
@@ -810,7 +1366,9 @@
             "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
           }
         },
-        "required": ["draftId"],
+        "required": [
+          "draftId"
+        ],
         "additionalProperties": false
       },
       "annotations": {
@@ -845,7 +1403,11 @@
             "maximum": 25
           }
         },
-        "required": ["query", "parameterNames", "limit"],
+        "required": [
+          "query",
+          "parameterNames",
+          "limit"
+        ],
         "additionalProperties": false
       },
       "annotations": {
@@ -869,10 +1431,19 @@
           "responseMode": {
             "default": "summary",
             "type": "string",
-            "enum": ["summary", "evidenceOnly", "blockersOnly", "linksOnly", "full"]
+            "enum": [
+              "summary",
+              "evidenceOnly",
+              "blockersOnly",
+              "linksOnly",
+              "full"
+            ]
           }
         },
-        "required": ["runId", "responseMode"],
+        "required": [
+          "runId",
+          "responseMode"
+        ],
         "additionalProperties": false
       },
       "annotations": {
@@ -928,10 +1499,18 @@
           "responseMode": {
             "default": "summary",
             "type": "string",
-            "enum": ["summary", "evidenceOnly", "blockersOnly", "linksOnly", "full"]
+            "enum": [
+              "summary",
+              "evidenceOnly",
+              "blockersOnly",
+              "linksOnly",
+              "full"
+            ]
           }
         },
-        "required": ["responseMode"],
+        "required": [
+          "responseMode"
+        ],
         "additionalProperties": false
       },
       "annotations": {
@@ -955,10 +1534,19 @@
           "responseMode": {
             "default": "summary",
             "type": "string",
-            "enum": ["summary", "evidenceOnly", "blockersOnly", "linksOnly", "full"]
+            "enum": [
+              "summary",
+              "evidenceOnly",
+              "blockersOnly",
+              "linksOnly",
+              "full"
+            ]
           }
         },
-        "required": ["runId", "responseMode"],
+        "required": [
+          "runId",
+          "responseMode"
+        ],
         "additionalProperties": false
       },
       "annotations": {
@@ -990,10 +1578,22 @@
           "responseMode": {
             "default": "summary",
             "type": "string",
-            "enum": ["summary", "evidenceOnly", "blockersOnly", "linksOnly", "full"]
+            "enum": [
+              "summary",
+              "evidenceOnly",
+              "blockersOnly",
+              "linksOnly",
+              "full"
+            ]
           }
         },
-        "required": ["qualityPlanId", "revisionId", "expectedDesignHash", "realization", "responseMode"],
+        "required": [
+          "qualityPlanId",
+          "revisionId",
+          "expectedDesignHash",
+          "realization",
+          "responseMode"
+        ],
         "additionalProperties": false
       },
       "annotations": {
@@ -1030,10 +1630,22 @@
           "responseMode": {
             "default": "summary",
             "type": "string",
-            "enum": ["summary", "evidenceOnly", "blockersOnly", "linksOnly", "full"]
+            "enum": [
+              "summary",
+              "evidenceOnly",
+              "blockersOnly",
+              "linksOnly",
+              "full"
+            ]
           }
         },
-        "required": ["qualityPlanId", "revisionId", "expectedDesignHash", "approvedBy", "responseMode"],
+        "required": [
+          "qualityPlanId",
+          "revisionId",
+          "expectedDesignHash",
+          "approvedBy",
+          "responseMode"
+        ],
         "additionalProperties": false
       },
       "annotations": {
@@ -1067,10 +1679,22 @@
           "responseMode": {
             "default": "summary",
             "type": "string",
-            "enum": ["summary", "evidenceOnly", "blockersOnly", "linksOnly", "full"]
+            "enum": [
+              "summary",
+              "evidenceOnly",
+              "blockersOnly",
+              "linksOnly",
+              "full"
+            ]
           }
         },
-        "required": ["qualityPlanId", "revisionId", "proposal", "idempotencyKey", "responseMode"],
+        "required": [
+          "qualityPlanId",
+          "revisionId",
+          "proposal",
+          "idempotencyKey",
+          "responseMode"
+        ],
         "additionalProperties": false
       },
       "annotations": {
@@ -1111,10 +1735,22 @@
           "responseMode": {
             "default": "summary",
             "type": "string",
-            "enum": ["summary", "evidenceOnly", "blockersOnly", "linksOnly", "full"]
+            "enum": [
+              "summary",
+              "evidenceOnly",
+              "blockersOnly",
+              "linksOnly",
+              "full"
+            ]
           }
         },
-        "required": ["qualityPlanId", "revisionId", "validationVersionIds", "expectedCompilationHash", "responseMode"],
+        "required": [
+          "qualityPlanId",
+          "revisionId",
+          "validationVersionIds",
+          "expectedCompilationHash",
+          "responseMode"
+        ],
         "additionalProperties": false
       },
       "annotations": {

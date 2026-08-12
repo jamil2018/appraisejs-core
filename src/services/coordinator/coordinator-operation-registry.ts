@@ -52,10 +52,12 @@ export const coordinatorOperationRegistry = createCoordinatorOperationRegistry([
   { id: 'step-definitions-read', method: 'GET', pattern: ['step-definitions', '*'] },
   { id: 'target-projects-list', method: 'GET', pattern: ['target-projects'] },
   { id: 'locator-graph', method: 'GET', pattern: ['locator-graph', '*'] },
+  { id: 'environment-read', method: 'GET', pattern: ['environments'] },
   { id: 'quality-read', method: 'GET', pattern: ['quality', '*'] },
   { id: 'step-definitions-write', method: 'POST', pattern: ['step-definitions', '*'] },
   { id: 'diagnostic-preflight-write', method: 'POST', pattern: ['diagnostic', 'preflight'] },
   { id: 'quality-write', method: 'POST', pattern: ['quality', '*'] },
+  { id: 'environment-write', method: 'POST', pattern: ['environments', 'ensure'] },
   { id: 'target-project-write', method: 'POST', pattern: ['target-projects'] },
   { id: 'test-run-write', method: 'POST', pattern: ['test-runs', '*'] },
 ] as const)

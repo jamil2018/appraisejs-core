@@ -59,6 +59,26 @@ describe('canonical MCP contract registry', () => {
     expect(names.size).toBe(canonicalMcpToolNames.length + canonicalMcpResourceNames.length)
   })
 
+  it('exposes only compact, explicit preparation bindings and summary identities', async () => {
+    const contract = await definitions()
+    const preparation = contract.find(definition => definition.name === 'assessment_prepare_run')
+    const schema = preparation?.inputSchema as {
+      properties?: {
+        validationBindings?: { items?: { properties?: Record<string, unknown> } }
+        environment?: { properties?: Record<string, unknown> }
+      }
+    }
+    const binding = schema.properties?.validationBindings?.items?.properties
+    const step = (binding?.steps as { items?: { properties?: Record<string, unknown> } } | undefined)?.items?.properties
+
+    expect(binding).toMatchObject({ validationId: expect.any(Object), locatorIds: expect.any(Object) })
+    expect(step).toMatchObject({ stepId: expect.any(Object), version: expect.any(Object), inputs: expect.any(Object) })
+    expect(step).not.toHaveProperty('definitionHash')
+    for (const forbidden of ['locators', 'locatorGroups', 'locatorName', 'locatorValue', 'definitionHash'])
+      expect(binding).not.toHaveProperty(forbidden)
+    expect(schema.properties?.environment).toHaveProperty('properties')
+  })
+
   it('fails fast for duplicate, invalid, and unknown definitions', () => {
     const tool = { kind: 'tool', name: 'duplicate' } as const
     expect(() => assertUniqueMcpDefinitions([tool, tool])).toThrow('Duplicate or invalid MCP definition')

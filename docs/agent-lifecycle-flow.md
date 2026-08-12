@@ -10,6 +10,8 @@ A Quality Plan revision defines obligations and the validation designs that real
 
 Validation compilation canonicalizes the reviewed projection into the strict runtime envelope: scenario-only Gherkin documents, exact Step Invocation closure, compiler and extension-policy hashes, and publication provenance. Publication also materializes the reviewed module, suite, case, step, locator-group, and locator identities required by TestRun foreign keys; runtime preparation idempotently repairs that relational execution index for an already-published version.
 
+For an approved revision, `assessment_prepare_run` may perform the mechanical prepare-and-start sequence from compact exact bindings. Its durable receipt is target-scoped and resumable by idempotency key; each replay repairs built-in Step Definition readiness, re-reads committed realization/publication state, and resumes only incomplete mutations. It stops before evidence reconciliation, evidence review, and Assessment decision; those remain separate Appraise-owned gates.
+
 ## Assessment
 
 An Assessment identifies an immutable evaluation subject and the published validation matrix to run. Readiness verifies target binding, published validation, subject identity, matrix coverage, and current requirement alignment before any execution starts.

@@ -6,6 +6,47 @@ export function registerProjectOperations(context: McpRegistryContext): void {
   const { server, api } = context
 
   server.registerTool(
+    'environment_list',
+    {
+      description:
+        'List bounded target-scoped environment summaries; a current registry hash returns an unchanged receipt.',
+      inputSchema: { target: z.string().min(1), knownRegistryHash: z.string().optional() },
+    },
+    async ({ target, knownRegistryHash }) => {
+      const query = new URLSearchParams({ target })
+      if (knownRegistryHash) query.set('knownRegistryHash', knownRegistryHash)
+      return text(await api.request(`environments?${query}`))
+    },
+  )
+
+  server.registerTool(
+    'environment_ensure',
+    {
+      description:
+        'Resolve an exact target environment or explicitly create an immutable proposal with allowCreate: true.',
+      inputSchema: {
+        target: z.string().min(1),
+        environmentId: z.string().min(1).optional(),
+        allowCreate: z.boolean().optional(),
+        proposal: z
+          .object({
+            name: z.string().min(1),
+            baseUrl: z.string().url(),
+            expectedPageTitle: z.string().max(200).optional(),
+            apiBaseUrl: z.string().url().optional(),
+            username: z.string().optional(),
+            passwordEnvironmentVariable: z
+              .string()
+              .regex(/^[A-Za-z_][A-Za-z0-9_]*$/)
+              .optional(),
+          })
+          .optional(),
+      },
+    },
+    async body => text(await api.request('environments/ensure', { method: 'POST', body: JSON.stringify(body) })),
+  )
+
+  server.registerTool(
     'locator_graph_query',
     {
       description: 'Query a bounded locator graph path from a surface, group, or locator node.',

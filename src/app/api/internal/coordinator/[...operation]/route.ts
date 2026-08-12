@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto'
 
 import { z } from 'zod'
 
+import prisma from '@/config/db-config'
 import { defaultOperationRegistry } from '@/lib/operation-catalog'
 import { deriveCoordinatorProjectIdentity } from '@/lib/coordinator-api/project-identity'
 import {
@@ -24,12 +25,20 @@ import {
   readQualityRequirementGraph,
   submitQualityRequirementSource,
 } from '@/services/coordinator/quality-design-service'
+import { prepareQualityAssessmentRun } from '@/services/coordinator/assessment-preparation-service'
 import {
   reconcileQualityAssessment,
   runQualityAssessment,
   stopQualityAssessment,
 } from '@/services/coordinator/assessment-execution-service'
 import { ServiceError } from '@/services/shared/errors'
+import {
+  ensureEnvironment,
+  environmentRegistryHash,
+  environmentSummary,
+  listEnvironments,
+} from '@/services/environment/environment-service'
+import { ensureBuiltInStepDefinitionReadiness } from '@/services/step-definition/built-in-readiness-service'
 import { recordAgentPreflightReceipt } from '@/services/agent-preflight/agent-preflight-service'
 import {
   initializeTargetGitRepository,
@@ -297,6 +306,7 @@ async function getStepDefinitions(request: Request, operation: string[]) {
 
 async function getDiagnostic(request: Request) {
   const targetProjects = await listTargetProjects()
+  const builtInStepDefinitions = await ensureBuiltInStepDefinitionReadiness(prisma)
   return Response.json({
     ok: true,
     targetProjects,
@@ -304,9 +314,25 @@ async function getDiagnostic(request: Request) {
       { id: 'application', status: 'ok', message: 'AppraiseJS quality coordinator is reachable.' },
       { id: 'authentication', status: 'ok', message: 'Coordinator authentication succeeded.' },
     ],
+    builtInStepDefinitions,
     warnings: [],
     recoveryActions: [],
     links: { application: request.headers.get('x-appraise-base-url') ?? new URL(request.url).origin },
+  })
+}
+
+async function getEnvironments(request: Request) {
+  const target = z.string().min(1).parse(new URL(request.url).searchParams.get('target'))
+  const targetProject = await resolveTargetProject(target)
+  const environments = await listEnvironments(targetProject.id)
+  const knownRegistryHash = new URL(request.url).searchParams.get('knownRegistryHash')
+  const registryHash = environmentRegistryHash(environments)
+  if (knownRegistryHash === registryHash)
+    return Response.json({ targetProjectId: targetProject.id, registryHash, unchanged: true, environments: [] })
+  return Response.json({
+    targetProjectId: targetProject.id,
+    registryHash,
+    environments: environments.map(environmentSummary),
   })
 }
 
@@ -315,6 +341,7 @@ async function dispatchGet(request: Request, operation: string[]): Promise<Respo
   if (operation.length === 1 && operation[0] === 'target-projects')
     return Response.json({ targetProjects: await listTargetProjects() })
   if (operation[0] === 'operations') return getOperations(request, operation)
+  if (operation.length === 1 && operation[0] === 'environments') return getEnvironments(request)
   if (operation[0] === 'locator-graph') return getLocatorGraph(request, operation)
   if (operation[0] === 'step-definitions') return getStepDefinitions(request, operation)
   if (operation[0] === 'test-runs') return getTestRunEvidence(request, operation)
@@ -491,6 +518,8 @@ async function postQualityOperation(operation: string[], body: unknown): Promise
       status: 202,
     })
   }
+  if (key === 'quality/assessment-prepare-runs')
+    return Response.json(await prepareQualityAssessmentRun(body), { status: 202 })
   if (operation[1] === 'assessments' && operation[3] === 'stop' && operation.length === 4) {
     const value = z.object({ reason: z.string().min(1) }).parse(body)
     return Response.json(
@@ -526,10 +555,31 @@ async function postQualityOperation(operation: string[], body: unknown): Promise
   return unknownOperation()
 }
 
+async function postEnvironmentEnsure(body: unknown): Promise<Response> {
+  const value = z
+    .object({
+      target: z.string().min(1),
+      environmentId: z.string().min(1).optional(),
+      allowCreate: z.boolean().optional(),
+      proposal: z.unknown().optional(),
+    })
+    .parse(body)
+  const target = await resolveTargetProject(value.target)
+  const result = await ensureEnvironment(value, target.id)
+  return Response.json({
+    targetProjectId: target.id,
+    outcome: result.outcome,
+    projection: result.projection,
+    environment: environmentSummary(result.environment),
+  })
+}
+
 async function dispatchPost(operation: string[], body: unknown): Promise<Response> {
   if (operation.length === 2 && operation[0] === 'diagnostic' && operation[1] === 'preflight')
     return Response.json(await recordAgentPreflightReceipt(body), { status: 201 })
   if (operation.length === 1 && operation[0] === 'target-projects') return postTargetProject(body)
+  if (operation.length === 2 && operation[0] === 'environments' && operation[1] === 'ensure')
+    return postEnvironmentEnsure(body)
   if (operation.length === 2 && operation[0] === 'test-runs' && operation[1] === 'preflight')
     return postTestRunPreflight(body)
   if (operation[0] === 'quality') return postQualityOperation(operation, body)
