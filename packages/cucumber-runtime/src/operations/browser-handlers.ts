@@ -30,6 +30,30 @@ export class OperationExecutionError extends Error {
 
 type BrowserOperationHandler = (context: BrowserOperationContext) => Promise<unknown>
 
+async function browserFailureDiagnostics(page: Page): Promise<string[]> {
+  try {
+    const messages = await page.evaluate(() => {
+      const candidates = Array.from(
+        document.querySelectorAll<HTMLElement>(
+          '[role="alert"], [aria-invalid="true"], input:invalid, select:invalid, textarea:invalid',
+        ),
+      )
+      return candidates
+        .filter(element => element.offsetParent !== null || element.getClientRects().length > 0)
+        .flatMap(element => {
+          const control = element as HTMLInputElement
+          const text = element.innerText || element.textContent || control.validationMessage || ''
+          return text.trim() ? [text.trim().replace(/\s+/g, ' ').slice(0, 200)] : []
+        })
+        .filter((message, index, all) => all.indexOf(message) === index)
+        .slice(0, 5)
+    })
+    return Array.isArray(messages) && messages.every(message => typeof message === 'string') ? messages : []
+  } catch {
+    return []
+  }
+}
+
 const required = (inputs: Record<string, unknown>, name: string) => {
   if (!(name in inputs))
     throw new OperationExecutionError('operation_input_missing', `Required input "${name}" is missing.`)
@@ -156,9 +180,11 @@ const builtinHandlers = Object.fromEntries(
           return await handler.apply(context.world as CustomWorld, args)
         } catch (error) {
           if (error instanceof OperationExecutionError) throw error
+          const diagnostics = await browserFailureDiagnostics(context.world.page)
+          const diagnosticSuffix = diagnostics.length ? ` Visible validation: ${diagnostics.join(' | ')}` : ''
           throw new OperationExecutionError(
             operation.id.includes('assertion') ? 'operation_assertion_failed' : 'operation_execution_failed',
-            error instanceof Error ? error.message : String(error),
+            `${error instanceof Error ? error.message : String(error)}${diagnosticSuffix}`,
           )
         }
       }

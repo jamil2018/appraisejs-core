@@ -29,6 +29,7 @@ function project(value: unknown, responseMode: z.infer<typeof responseModeSchema
     revisionId: payload.revisionId,
     preparationId: payload.preparationId,
     phase: payload.phase,
+    preflight: payload.preflight,
     environment: payload.environment,
     publication: payload.publication,
     assessment: payload.assessment,

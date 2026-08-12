@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 
 import {
   builtInStepDefinitions,
-  computeStepDefinitionHashes,
+  computeStepReferenceHash,
 } from '../../../packages/cucumber-runtime/src/step-definitions/index.ts'
 import { canonicalMcpToolNames } from '../../../packages/appraisejs/src/mcp/contract.ts'
 import { ServiceError } from '@/services/shared/errors'
@@ -152,6 +152,14 @@ describe('assessment preparation service', () => {
 
     expect(result).toMatchObject({
       phase: 'STARTED',
+      preflight: {
+        ready: true,
+        validationCount: 1,
+        stepReferenceCount: 1,
+        locatorReferenceCount: 0,
+        stepReferenceHash: expect.stringMatching(/^sha256:[a-f0-9]{64}$/),
+        locatorReferenceHash: expect.stringMatching(/^sha256:[a-f0-9]{64}$/),
+      },
       environment: { id: 'env-1' },
       assessment: { id: 'assessment-1' },
       assessmentRun: { id: 'run-1' },
@@ -160,7 +168,11 @@ describe('assessment preparation service', () => {
     const compileInput = vi.mocked(compileQualityValidations).mock.calls[0]?.[0] as {
       realization: {
         validations: {
-          realization: { runtimePublication: { runtimeInput: { matrix: unknown; stepDefinitions: unknown } } }
+          realization: {
+            runtimePublication: {
+              runtimeInput: { matrix: unknown; stepDefinitions: unknown; expected: { scenarios: unknown[] } }
+            }
+          }
         }[]
       }
     }
@@ -173,9 +185,14 @@ describe('assessment preparation service', () => {
       {
         id: definition.identity.id,
         version: definition.identity.version,
-        definitionHash: computeStepDefinitionHashes(definition).definitionHash,
+        definitionHash: computeStepReferenceHash(definition),
       },
     ])
+    expect(
+      compileInput.realization.validations[0]?.realization.runtimePublication.runtimeInput.expected.scenarios[0],
+    ).toMatchObject({
+      caseId: expect.stringMatching(/^quality-case-[A-Za-z0-9_-]+$/),
+    })
     const replay = await prepareQualityAssessmentRun(input)
     expect(replay).toMatchObject({ unchanged: true, phase: 'STARTED', preparationId: 'preparation-1' })
     expect(compileQualityValidations).toHaveBeenCalledTimes(1)
@@ -279,6 +296,19 @@ describe('assessment preparation service', () => {
     expect(realization.projection.validationNode.appraiseArtifacts.locators).toEqual([
       { id: 'locator-1', name: 'submit', value: '[data-testid="submit"]', locatorGroupId: 'group-1' },
     ])
+  })
+
+  it('rejects unresolved bindings before creating durable preparation state', async () => {
+    reset()
+    const unresolvedInput = {
+      ...input,
+      validationBindings: [{ ...input.validationBindings[0]!, locatorIds: ['missing-locator'] }],
+    }
+
+    await expect(prepareQualityAssessmentRun(unresolvedInput)).rejects.toMatchObject({ code: 'CONFLICT' })
+    expect(database.assessmentPreparation.upsert).not.toHaveBeenCalled()
+    expect(ensureEnvironment).not.toHaveBeenCalled()
+    expect(compileQualityValidations).not.toHaveBeenCalled()
   })
 
   it('recovers an already-realized publication after its caller loses the post-commit response', async () => {

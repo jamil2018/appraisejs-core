@@ -123,6 +123,22 @@ describe('runtime Step Definition closure', () => {
     ).rejects.toThrow(/exact reference hash|cycle/)
   })
 
+  it('repairs the former compiler hash shape when it matches the sealed persisted definition', async () => {
+    const ready = definition('browser.compiler-hash', {
+      kind: 'operation',
+      handlerId: 'browser.click',
+      handlerVersion: '1',
+      runtime: 'browser',
+    })
+    const persisted = record(ready)
+    const closure = await resolveRuntimeStepDefinitionClosure(
+      [{ id: ready.identity.id, version: ready.identity.version, definitionHash: persisted.definitionHash }],
+      async () => persisted,
+    )
+
+    expect(closure[0]?.step.definitionHash).toBe(computeStepReferenceHash(ready))
+  })
+
   it('rejects a persisted publication hash that does not match the sealed definition', async () => {
     const ready = definition('browser.tampered', {
       kind: 'operation',

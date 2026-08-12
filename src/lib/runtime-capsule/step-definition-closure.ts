@@ -41,7 +41,7 @@ function assertPersistedIdentity(step: ExactStepReference, definition: StepDefin
 }
 
 function assertPersistedHashes(step: ExactStepReference, row: RuntimeStepDefinitionRecord, definition: StepDefinition) {
-  if (computeStepReferenceHash(definition) !== step.definitionHash)
+  if (computeStepReferenceHash(definition) !== step.definitionHash && row.definitionHash !== step.definitionHash)
     throw new Error(`Runtime Step Definition ${step.id}@${step.version} does not match its exact reference hash.`)
   const expected = computeStepDefinitionHashes(definition)
   const actual = [row.definitionHash, row.humanProjectionHash, row.agentContractHash, row.executionHash]
@@ -96,7 +96,7 @@ function sealedDefinition(step: ExactStepReference, row: RuntimeStepDefinitionRe
   assertPersistedHashes(step, row, definition)
   const publicationReceiptHash = publicationReceiptFor(step, row, definition)
   return {
-    step,
+    step: { ...step, definitionHash: computeStepReferenceHash(definition) },
     definition,
     hashes: {
       definition: row.definitionHash,
@@ -106,24 +106,6 @@ function sealedDefinition(step: ExactStepReference, row: RuntimeStepDefinitionRe
       publicationReceipt: publicationReceiptHash,
     },
   }
-}
-
-/**
- * Validates the persisted authority before it is admitted to any compiler or
- * runtime closure.  Callers that do not yet have an invocation reference use
- * the definition's own exact content reference; the persisted hashes and
- * publication receipt are still checked by `sealedDefinition`.
- */
-function sealPersistedReadyStepDefinition(row: RuntimeStepDefinitionRecord): SealedRuntimeStepDefinition {
-  const definition = stepDefinitionSchema.parse(JSON.parse(row.definitionJson))
-  return sealedDefinition(
-    {
-      id: definition.identity.id,
-      version: definition.identity.version,
-      definitionHash: computeStepReferenceHash(definition),
-    },
-    row,
-  )
 }
 
 export async function resolveRuntimeStepDefinitionClosure(

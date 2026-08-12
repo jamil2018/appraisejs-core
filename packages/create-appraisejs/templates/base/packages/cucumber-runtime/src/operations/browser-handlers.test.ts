@@ -18,6 +18,7 @@ function runtime() {
     inputValue: vi.fn().mockResolvedValue('value'),
     textContent: vi.fn().mockResolvedValue('expected text'),
     evaluate: vi.fn().mockResolvedValue('Accessible name'),
+    waitFor: vi.fn(),
   } as unknown as Locator
   const page = {
     locator: vi.fn().mockReturnValue(locator),
@@ -97,6 +98,18 @@ describe('browser operation handlers', () => {
     ).rejects.toEqual(expect.objectContaining<Partial<OperationExecutionError>>({ code: 'operation_not_reviewed' }))
     await expect(executeBrowserOperation('browser.unknown@1', value.context)).rejects.toMatchObject({
       code: 'operation_unknown',
+    })
+  })
+
+  it('adds bounded visible form validation messages to browser operation failures', async () => {
+    const value = runtime()
+    value.context.inputs = { elementName: { id: 'confirmation' } }
+    vi.mocked(value.locator.waitFor).mockRejectedValueOnce(new Error('confirmation timed out'))
+    vi.mocked(value.page.evaluate).mockResolvedValueOnce(['Enter a valid card number.'] as never)
+
+    await expect(executeBrowserOperation('browser.wait.wait.for.element@1', value.context)).rejects.toMatchObject({
+      code: 'operation_execution_failed',
+      message: expect.stringContaining('Visible validation: Enter a valid card number.'),
     })
   })
 })

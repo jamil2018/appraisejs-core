@@ -11,3 +11,9 @@ TestRun output includes report, log, trace, and runtime diagnostics artifacts. A
 Stopping an Assessment stops only executions it owns. Already sealed receipts remain available, while late process completion cannot overwrite an Assessment that has been stopped. Standalone evidence execution follows the same integrity rules but cannot issue an Assessment decision.
 
 Runtime code must preserve the shared Step Definition, locator, target-project, Cucumber, Playwright, report, and TestRun infrastructure. Canonical operation definitions own browser behavior; generated projections and runtime wrappers are regenerated from those definitions.
+
+Authored flow nodes may supply an optional Gherkin presentation label. That label controls only the human-readable scenario and Cucumber log text; the exact Step Definition ID, version, definition hash, and typed inputs remain the execution identity. When no label is supplied, AppraiseJS continues to derive presentation text from the canonical Step Definition signature and inputs.
+
+Managed binding generation emits one static registration line per unique reviewed phrase. Cucumber progress output therefore points at a distinct generated registration instead of reporting every managed step against one shared loop line; repeated equivalent phrases remain registered once, and conflicting duplicate phrases still fail closed.
+
+When a browser operation fails, the runtime also captures a bounded set of visible native validation messages and alert text from the current page. These diagnostics are appended to the stable operation error rather than requiring a trace or screenshot to discover an immediately visible field-level rejection.

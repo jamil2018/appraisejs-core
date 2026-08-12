@@ -27,10 +27,15 @@ export async function buildLocatorGraph(
     ? await readVisibleResourceOwnerships(targetProjectId, ['locator-group', 'locator'], client)
     : null
   const groups = allGroups
-    .filter(group => !ownerships || ownerships.has(`locator-group:${group.id}`))
+    .filter(
+      group => !ownerships || group.targetProjectId === targetProjectId || ownerships.has(`locator-group:${group.id}`),
+    )
     .map(group => ({
       ...group,
-      locators: group.locators.filter(locator => !ownerships || ownerships.has(`locator:${locator.id}`)),
+      locators: group.locators.filter(
+        locator =>
+          !ownerships || locator.targetProjectId === targetProjectId || ownerships.has(`locator:${locator.id}`),
+      ),
     }))
   const routes = [...new Set(groups.map(group => group.route))].sort()
   const nodes: LocatorGraph['nodes'] = routes.map(route => ({

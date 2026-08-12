@@ -48,6 +48,28 @@ function chooseSelectOption(label: string, option: string | RegExp) {
 }
 
 describe('StepInvocationEditor', () => {
+  it('edits an optional scenario label independently from operation inputs', () => {
+    const onPresentationLabelChange = vi.fn()
+    render(
+      <StepInvocationEditor
+        title="Edit step invocation"
+        definition={definition}
+        values={{ url: '/' }}
+        errors={{}}
+        presentationLabel="Open checkout"
+        onCancel={vi.fn()}
+        onChange={vi.fn()}
+        onPresentationLabelChange={onPresentationLabelChange}
+        onErrorsChange={vi.fn()}
+        onSave={vi.fn()}
+      />,
+    )
+
+    fireEvent.change(screen.getByLabelText('Gherkin label (optional)'), { target: { value: 'Open cart' } })
+    expect(onPresentationLabelChange).toHaveBeenCalledWith('Open cart')
+    expect(screen.getByText(/Step Definition remains the execution identity/)).toBeVisible()
+  })
+
   it('focuses the first field and omits an untouched optional boolean on keyboard form submission', () => {
     const onSave = vi.fn()
     render(

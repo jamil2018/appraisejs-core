@@ -313,10 +313,25 @@ function revisionPayload(revision: QualityRevisionRecord) {
       scenarioApprovalHash: version.scenarioApprovalHash ?? null,
       design: JSON.parse(version.canonicalAstJson),
     })),
-    nextRecommendedAction: canApproveRequirements(queries)
-      ? 'Call requirements_approve for this exact revision hash, then propose obligation-linked scenarios.'
-      : 'Resolve blocking requirement queries before approval.',
+    nextRecommendedAction: qualityDesignNextAction(revision.status, queries),
   }
+}
+
+function qualityDesignNextAction(status: string, queries: QualityRevisionRecord['queries']) {
+  if (!canApproveRequirements(queries)) return 'Resolve blocking requirement queries before approval.'
+  if (status === 'DRAFT')
+    return 'Call requirements_approve for this exact revision hash, then propose obligation-linked scenarios.'
+  if (status === 'REQUIREMENTS_APPROVED')
+    return 'Call validation_design_propose to create obligation-linked scenarios for approval.'
+  if (status === 'SCENARIO_REVIEW')
+    return 'Review the current scenario design, then call validation_design_approve with its exact design hash.'
+  if (status === 'SCENARIOS_APPROVED')
+    return 'Use step_search and locator_search to resolve mechanical bindings, then call validation_compile or assessment_prepare_run.'
+  if (status === 'REALIZED')
+    return 'Call validation_publish with the current compilation hash to publish executable validation versions.'
+  if (status === 'PUBLISHED')
+    return 'Create or prepare an assessment for an immutable subject digest, then run the published validations.'
+  return 'Read the current Quality Plan revision state before choosing the next lifecycle action.'
 }
 
 function parseScenarioProposals(value: unknown): ScenarioProposal[] {

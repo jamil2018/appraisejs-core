@@ -79,6 +79,21 @@ describe('authored flow model', () => {
     expect(updated[0]?.node.gherkinStep).toBe('When I navigate to the / url')
   })
 
+  it('uses an optional node label as Gherkin presentation without changing operation identity', () => {
+    const node = createAuthoredFlowNode(definition, 'node')
+    const updated = updateFlowInvocation([{ nodeId: 'node', node }], 'node', definition, { width: 1280 }, 'Desktop')
+
+    expect(updated[0]?.node).toMatchObject({
+      label: 'Desktop',
+      gherkinStep: 'When Desktop',
+      invocation: {
+        step: definition.reference,
+        inputs: { width: 1280 },
+        presentation: { keyword: 'When', description: 'Desktop' },
+      },
+    })
+  })
+
   it('accepts contiguous zero-based persisted flow orders and normalizes writes to one-based orders', () => {
     const node = createAuthoredFlowNode(definition, 'node')
     const legacy = { nodeId: 'node', node: { ...node, order: 0 } }
