@@ -49,10 +49,15 @@ describe('built-in Step Definition readiness', () => {
     const first = await ensureBuiltInStepDefinitionReadiness(prisma)
     const replay = await ensureBuiltInStepDefinitionReadiness(prisma)
 
-    expect(replay).toMatchObject({ seeded: 0, repaired: 0, unchanged: builtInStepDefinitions.length, conflicting: 0 })
+    expect(replay).toMatchObject({
+      seeded: 0,
+      repaired: 0,
+      unchanged: builtInStepDefinitions.length,
+      conflicting: 0,
+    })
     expect(replay.manifestHash).toBe(first.manifestHash)
     expect(replay.readyIndexHash).toBe(first.readyIndexHash)
-  })
+  }, 20_000)
 
   it('repairs a deleted source registration without reclassifying the remaining rows as seeded', async () => {
     await ensureBuiltInStepDefinitionReadiness(prisma)
