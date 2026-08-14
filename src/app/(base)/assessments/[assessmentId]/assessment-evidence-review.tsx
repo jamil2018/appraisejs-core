@@ -57,6 +57,12 @@ export function AssessmentEvidenceReview({
         <p className="mt-1 text-sm text-muted-foreground">
           Each published validation version must contribute an immutable, sealed result for the complete matrix.
         </p>
+        {evidenceReceipts.some(receipt => receipt.outcome === 'BLOCKED') ? (
+          <p className="mt-3 text-sm text-amber-200">
+            Human verification stopped managed automation. The sealed blocked receipt records the boundary but does not
+            evaluate the target; start a fresh TestRun after the challenge is cleared.
+          </p>
+        ) : null}
         <div className="mt-4 overflow-x-auto rounded-md border border-white/[0.08]" tabIndex={0}>
           <table className="min-w-[720px] text-left text-sm">
             <thead className="border-b border-white/[0.08] text-xs text-muted-foreground">

@@ -1,40 +1,16 @@
 'use client'
 
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header'
-import { TestRunStatus, TestRunResult, TagType } from '@prisma/client'
+import { TagType } from '@prisma/client'
 import { ColumnDef } from '@tanstack/react-table'
 
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { StatusBadge } from '@/components/ui/status-badge'
-import { CheckCircle, Clock, XCircle, Eye } from 'lucide-react'
+import { Eye } from 'lucide-react'
 import Link from 'next/link'
 import { formatDuration } from './report-detail-helpers'
 import type { ReportWithRelations } from '@/types/report'
-
-const testRunStatusToBadge = (status: TestRunStatus) => {
-  switch (status) {
-    case TestRunStatus.COMPLETED:
-      return <StatusBadge label="Completed" tone="success" icon={<CheckCircle />} />
-    case TestRunStatus.CANCELLED:
-      return <StatusBadge label="Cancelled" tone="neutral" icon={<XCircle />} />
-    default:
-      return <StatusBadge label="Unknown" tone="neutral" icon={<Clock />} />
-  }
-}
-
-const testRunResultToBadge = (result: TestRunResult) => {
-  switch (result) {
-    case TestRunResult.PASSED:
-      return <StatusBadge label="Passed" tone="success" icon={<CheckCircle />} />
-    case TestRunResult.FAILED:
-      return <StatusBadge label="Failed" tone="danger" icon={<XCircle />} />
-    case TestRunResult.CANCELLED:
-      return <StatusBadge label="Cancelled" tone="neutral" icon={<XCircle />} />
-    default:
-      return <StatusBadge label="Unknown" tone="neutral" icon={<Clock />} />
-  }
-}
+import { TestRunResultBadge, TestRunStatusBadge } from '@/components/test-run/test-run-report-badges'
 
 export const reportTableCols: ColumnDef<ReportWithRelations>[] = [
   {
@@ -50,7 +26,7 @@ export const reportTableCols: ColumnDef<ReportWithRelations>[] = [
     accessorFn: row => row.testRun.status || '',
     header: ({ column }) => <DataTableColumnHeader column={column} title="Test Run Status" />,
     cell: ({ row }) => {
-      return testRunStatusToBadge(row.original.testRun.status)
+      return <TestRunStatusBadge status={row.original.testRun.status} />
     },
   },
   {
@@ -103,7 +79,7 @@ export const reportTableCols: ColumnDef<ReportWithRelations>[] = [
     accessorFn: row => row.testRun.result || '',
     header: ({ column }) => <DataTableColumnHeader column={column} title="Test Run Result" />,
     cell: ({ row }) => {
-      return testRunResultToBadge(row.original.testRun.result)
+      return <TestRunResultBadge result={row.original.testRun.result} />
     },
   },
   {

@@ -14,6 +14,7 @@ import {
 const hash = z.string().regex(/^sha256:[a-f0-9]{64}$/)
 const id = z.string().min(1).max(256)
 const descriptor = z.object({ id, version: id, contentHash: hash }).strict()
+const locatorCardinality = z.enum(['exactlyOne', 'collection'])
 const projectionSchema = z
   .object({
     gherkin: z.unknown(),
@@ -77,6 +78,15 @@ const runtimeInputSchema = z
       .array(z.object({ caseId: id, stepId: id, invocation: stepInvocationSchema }).strict())
       .min(1)
       .max(512),
+    /** Present for current managed publications; omitted only by preserved historical publications. */
+    locatorBindings: z
+      .array(z.object({ caseId: id, stepId: id, inputName: id, cardinality: locatorCardinality }).strict())
+      .max(512)
+      .optional(),
+    operationCardinalities: z
+      .array(z.object({ operation: id, inputName: id, cardinality: locatorCardinality }).strict())
+      .max(512)
+      .optional(),
     stepDefinitions: z.array(stepReferenceSchema).min(1).max(512),
     locators: z
       .array(
@@ -112,6 +122,10 @@ const runtimeInputSchema = z
       ['extensions', value.extensions.map(item => `${item.id}@${item.version}`)],
       ['scenarios', value.expected.scenarios.map(item => item.scenarioId)],
       ['cases', value.expected.scenarios.map(item => item.caseId)],
+      [
+        'locator bindings',
+        (value.locatorBindings ?? []).map(item => `${item.caseId}/${item.stepId}/${item.inputName}`),
+      ],
     ] as const)
       if (new Set(values).size !== values.length)
         context.addIssue({ code: 'custom', path: [key], message: 'identities must be unique' })

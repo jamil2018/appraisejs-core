@@ -144,6 +144,7 @@ function buildReviewedRuntimeCapsuleFiles(input: {
   verifiedExtensionArtifacts?: boolean
 }) {
   const cases = expectedCases(input.node, input.runtimeInput)
+  const locatorBindings = input.runtimeInput.locatorBindings ?? []
   const bindings = input.node.appraiseArtifacts.testCases.map(testCase => ({
     caseId: testCase.id,
     steps: [...testCase.steps]
@@ -152,6 +153,11 @@ function buildReviewedRuntimeCapsuleFiles(input: {
         id: step.id,
         keywordText: step.gherkinStep,
         invocation: step.invocation,
+        locatorCardinalities: Object.fromEntries(
+          locatorBindings
+            .filter(binding => binding.caseId === testCase.id && binding.stepId === step.id)
+            .map(binding => [binding.inputName, binding.cardinality]),
+        ),
       })),
   }))
   if (bindings.some(testCase => testCase.steps.some(step => !step.invocation)))
@@ -204,6 +210,16 @@ function buildReviewedRuntimeCapsuleFiles(input: {
         generateExecutableBindings({
           bindings,
           selectors,
+          operationCardinalities: Object.fromEntries(
+            (input.runtimeInput.operationCardinalities ?? []).map(binding => [
+              binding.operation,
+              Object.fromEntries(
+                (input.runtimeInput.operationCardinalities ?? [])
+                  .filter(candidate => candidate.operation === binding.operation)
+                  .map(candidate => [candidate.inputName, candidate.cardinality]),
+              ),
+            ]),
+          ),
           sealedDefinitions: (input.sealedDefinitions ?? []).map(sealed => ({
             step: sealed.step,
             definition: sealed.definition,

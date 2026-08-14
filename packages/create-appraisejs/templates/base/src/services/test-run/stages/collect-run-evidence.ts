@@ -38,9 +38,11 @@ export function collectRunOutput(
 
 export function resolveCollectedRunOutcome(input: {
   cancelled: boolean
+  blocked: boolean
   exitCode: number
   evidenceHealth: string
 }): TestRunTerminalOutcome {
   if (input.cancelled) return 'cancelled'
+  if (input.blocked) return 'blocked'
   return input.exitCode === 0 && input.evidenceHealth === 'valid' ? 'passed' : 'failed'
 }

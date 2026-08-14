@@ -148,6 +148,38 @@ describe('run evidence summary service', () => {
     })
   })
 
+  it('projects only sanitized human-verification facts for a blocked run', async () => {
+    mockTestRunFindUnique.mockResolvedValue(
+      baseRun({
+        result: TestRunResult.BLOCKED,
+        logs: {
+          logs: '[2026-08-14T00:00:00.000Z] [STDOUT] {"event":"appraise.runtime.blocked/v1","data":{"reason":"human_verification_required","detectorVersion":"captcha-structural/v1","provider":"recaptcha","pageOrigin":"https://example.test","frameOrigin":"https://www.google.com","signatureId":"iframe:recaptcha","checkpoint":"before_operation","step":{"id":"step.open","version":"1"},"operation":"browser.navigation.goto@1","observedAt":"2026-08-14T00:00:00.000Z","token":"never-project-this"}}',
+        },
+      }),
+    )
+    mockParseCucumberReport.mockResolvedValue(reportWithScenario())
+
+    const summary = await summarizeRunEvidence('11111111-1111-4111-8111-111111111111')
+
+    expect(summary).toMatchObject({
+      status: TestRunStatus.COMPLETED,
+      result: TestRunResult.BLOCKED,
+      humanVerification: {
+        reason: 'human_verification_required',
+        provider: 'recaptcha',
+        pageOrigin: 'https://example.test',
+        frameOrigin: 'https://www.google.com',
+        signatureId: 'iframe:recaptcha',
+        checkpoint: 'before_operation',
+        step: { id: 'step.open', version: '1' },
+        operation: 'browser.navigation.goto@1',
+        observedAt: '2026-08-14T00:00:00.000Z',
+      },
+      nextAllowedAction: { tool: 'test_run_read' },
+    })
+    expect(JSON.stringify(summary.humanVerification)).not.toContain('never-project-this')
+  })
+
   it('reports authored steps separately from runtime hooks', async () => {
     mockTestRunFindUnique.mockResolvedValue(baseRun({ testCases: [expectedTestCase()] }))
     mockParseCucumberReport.mockResolvedValue(

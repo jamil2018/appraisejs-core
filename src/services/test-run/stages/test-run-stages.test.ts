@@ -39,8 +39,25 @@ describe('test-run stages', () => {
       ['stderr', 'bad'],
       ['status', 'Process exited with code 0'],
     ])
-    expect(resolveCollectedRunOutcome({ cancelled: false, exitCode: 0, evidenceHealth: 'valid' })).toBe('passed')
-    expect(resolveCollectedRunOutcome({ cancelled: true, exitCode: 0, evidenceHealth: 'valid' })).toBe('cancelled')
-    expect(resolveCollectedRunOutcome({ cancelled: false, exitCode: 1, evidenceHealth: 'valid' })).toBe('failed')
+    expect(resolveCollectedRunOutcome({ cancelled: false, blocked: false, exitCode: 0, evidenceHealth: 'valid' })).toBe(
+      'passed',
+    )
+    expect(resolveCollectedRunOutcome({ cancelled: true, blocked: true, exitCode: 0, evidenceHealth: 'valid' })).toBe(
+      'cancelled',
+    )
+    expect(resolveCollectedRunOutcome({ cancelled: false, blocked: true, exitCode: 1, evidenceHealth: 'valid' })).toBe(
+      'blocked',
+    )
+    expect(
+      resolveCollectedRunOutcome({
+        cancelled: false,
+        blocked: true,
+        exitCode: 1,
+        evidenceHealth: 'invalid_missing_report',
+      }),
+    ).toBe('blocked')
+    expect(resolveCollectedRunOutcome({ cancelled: false, blocked: false, exitCode: 1, evidenceHealth: 'valid' })).toBe(
+      'failed',
+    )
   })
 })

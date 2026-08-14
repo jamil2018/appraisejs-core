@@ -70,6 +70,7 @@ export const operationInputSchema = z.object({
   description: z.string().min(1).max(1_000),
   defaultValue: boundedOperationValueSchema.optional(),
   constraints: z.record(z.string(), boundedOperationValueSchema).optional(),
+  cardinality: z.enum(['exactlyOne', 'collection']).optional(),
 })
 
 export const operationOutputSchema = z.object({
@@ -151,6 +152,18 @@ export const operationDefinitionSchema = z
         })
     }
     const inputNames = new Set(definition.inputs.map(item => item.name))
+    for (const input of definition.inputs) {
+      if (input.type === 'locator' && !input.cardinality)
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `Locator input ${input.name} in ${definition.id}@${definition.version} requires cardinality.`,
+        })
+      if (input.type !== 'locator' && input.cardinality)
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `Only locator input ${input.name} in ${definition.id}@${definition.version} may declare cardinality.`,
+        })
+    }
     for (const projection of definition.humanProjections) {
       const projected = [...projection.parameterOrder, ...Object.keys(projection.constants)]
       const unknown = projected.find(name => !inputNames.has(name))

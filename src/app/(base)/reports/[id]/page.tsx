@@ -1,11 +1,12 @@
 import PageHeader from '@/components/typography/page-header'
 import { Separator } from '@/components/ui/separator'
-import { BrowserEngine, TestRunResult, TestRunStatus } from '@prisma/client'
-import { Calendar, ChartLine, CheckCircle, Clock, Info, XCircle } from 'lucide-react'
+import { BrowserEngine } from '@prisma/client'
+import { Calendar, ChartLine, Clock, Info } from 'lucide-react'
 import { Metadata } from 'next'
 import ReportMetricCard from '../report-metric-card'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { StatusBadge } from '@/components/ui/status-badge'
+import { TestRunResultBadge, TestRunStatusBadge } from '@/components/test-run/test-run-report-badges'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { DurationChart, FeatureChart, OverviewChart } from '../report-charts'
 import ReportViewTable from '../report-view-table'
@@ -31,19 +32,6 @@ export const metadata: Metadata = {
   description: 'View report details and live logs',
 }
 
-const testRunResultToBadge = (result: TestRunResult) => {
-  switch (result) {
-    case TestRunResult.PASSED:
-      return <StatusBadge label="Passed" tone="success" icon={<CheckCircle />} className="text-sm" />
-    case TestRunResult.FAILED:
-      return <StatusBadge label="Failed" tone="danger" icon={<XCircle />} className="text-sm" />
-    case TestRunResult.CANCELLED:
-      return <StatusBadge label="Cancelled" tone="neutral" icon={<XCircle />} className="text-sm" />
-    default:
-      return <StatusBadge label="Unknown" tone="neutral" icon={<Clock />} className="text-sm" />
-  }
-}
-
 const browserEngineToBadge = (browserEngine: BrowserEngine) => {
   switch (browserEngine) {
     case BrowserEngine.CHROMIUM:
@@ -54,17 +42,6 @@ const browserEngineToBadge = (browserEngine: BrowserEngine) => {
       return <StatusBadge label="WebKit" tone="info" icon={browserIcons[BrowserEngine.WEBKIT]} />
     default:
       return <StatusBadge label="Unknown browser" tone="neutral" />
-  }
-}
-
-const testRunStatusToBadge = (status: TestRunStatus) => {
-  switch (status) {
-    case TestRunStatus.COMPLETED:
-      return <StatusBadge label="Completed" tone="success" icon={<CheckCircle />} />
-    case TestRunStatus.CANCELLED:
-      return <StatusBadge label="Cancelled" tone="neutral" icon={<XCircle />} />
-    default:
-      return <StatusBadge label="Unknown" tone="neutral" icon={<Clock />} />
   }
 }
 
@@ -92,7 +69,9 @@ const ViewReport = async ({ params }: { params: Promise<{ id: string }> }) => {
   return (
     <>
       <div>
-        <div className="mb-2 w-fit">{testRunResultToBadge(testRun.result)}</div>
+        <div className="mb-2 w-fit">
+          <TestRunResultBadge result={testRun.result} className="text-sm" />
+        </div>
         <PageHeader className="mb-2 text-4xl">
           <div>
             <span>Test Run Report: </span>
@@ -151,7 +130,9 @@ const ViewReport = async ({ params }: { params: Promise<{ id: string }> }) => {
               </div>
               <div className="grid gap-1 sm:grid-cols-[minmax(9rem,0.8fr)_minmax(0,1.2fr)] sm:gap-3">
                 <dt>Test Run Status</dt>
-                <dd>{testRunStatusToBadge(testRun.status)}</dd>
+                <dd>
+                  <TestRunStatusBadge status={testRun.status} />
+                </dd>
               </div>
             </dl>
           </CardContent>

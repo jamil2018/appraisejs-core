@@ -559,8 +559,52 @@ describe('quality design coordinator service', () => {
       ),
     ).rejects.toThrow('Assessment decisions require evidence review')
 
-    await client.assessment.update({ where: { id: assessment.assessment.id }, data: { status: 'EVIDENCE_REVIEW' } })
+    await client.assessment.update({
+      where: { id: assessment.assessment.id },
+      data: { status: 'EVIDENCE_REVIEW', evidenceReceipts: [{ receiptHash: 'sha256:blocked-1', outcome: 'BLOCKED' }] },
+    })
+    const blocked = await readQualityAssessment(assessment.assessment.id, client)
+    expect(blocked.targetOutcome).toBe('not_evaluated')
+    await expect(
+      decideQualityAssessment(
+        {
+          assessmentId: assessment.assessment.id,
+          expectedEvidenceSetHash: blocked.evidenceSetHash,
+          decision: 'rejected',
+          decidedBy: 'reviewer',
+          rationale: 'Blocked evidence cannot evaluate the target.',
+        },
+        client,
+      ),
+    ).rejects.toThrow('target outcome remains not evaluated')
+
+    await client.assessment.update({
+      where: { id: assessment.assessment.id },
+      data: {
+        status: 'EVIDENCE_REVIEW',
+        evidenceReceipts: [
+          {
+            id: 'receipt-blocked',
+            receiptHash: 'sha256:blocked-1',
+            outcome: 'BLOCKED',
+            validationVersionId: 'validation-1',
+            resultMatrixCell: 'CHROMIUM:env-1',
+            sealedAt: new Date('2026-08-14T00:00:00.000Z'),
+          },
+          {
+            id: 'receipt-fresh-failed',
+            receiptHash: 'sha256:evidence-1',
+            outcome: 'FAILED',
+            validationVersionId: 'validation-1',
+            resultMatrixCell: 'CHROMIUM:env-1',
+            sealedAt: new Date('2026-08-14T00:01:00.000Z'),
+          },
+        ],
+      },
+    })
     const reviewed = await readQualityAssessment(assessment.assessment.id, client)
+    expect(reviewed.targetOutcome).not.toBe('not_evaluated')
+    expect(reviewed.evidenceReceipts).toHaveLength(2)
     await expect(
       decideQualityAssessment(
         {

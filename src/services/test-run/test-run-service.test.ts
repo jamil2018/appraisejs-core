@@ -181,6 +181,7 @@ import {
   normalizeSuiteSelection,
   spawnTraceViewerService,
   storeTestRunLogsService,
+  scheduleTestRunCompletion,
   updateTestRunTestCaseStatusFromScenario,
 } from './test-run-service'
 
@@ -727,6 +728,41 @@ describe('cancelTestRunService', () => {
         result: TestRunTestCaseResult.UNTESTED,
       },
     })
+  })
+})
+
+describe('human-verification process termination', () => {
+  it('terminates once and ignores subsequent scenario events after a structured block', async () => {
+    const listeners = new Map<string, (event: Record<string, unknown>) => void>()
+    mockProcessManagerOn.mockImplementation((event: string, listener: (event: Record<string, unknown>) => void) => {
+      listeners.set(event, listener)
+    })
+    mockProcessManagerGet.mockReturnValue({ name: 'managed-process' })
+    mockKillProcess.mockReturnValue(true)
+    mockTestRunUpdate.mockResolvedValue({})
+
+    await scheduleTestRunCompletion({
+      testRun: { id: 'db-1', runId: 'run-1' },
+      environment: { id: 'env-1', name: 'QA' } as never,
+      tagExpression: '@smoke',
+      testRunTestCases: [],
+      value: { testWorkersCount: 1, browserEngine: BrowserEngine.CHROMIUM } as never,
+      logger: { info: vi.fn(), error: vi.fn() } as never,
+      prepareWorkspace: false,
+      launch: vi.fn().mockResolvedValue({
+        process: { name: 'managed-process', output: { stdout: [], stderr: [] }, startTime: new Date() },
+        reportPath: null,
+      }),
+      waitForProcess: () => new Promise(() => {}),
+    })
+
+    listeners.get('test-run::blocked')?.({ testRunId: 'run-1', reason: 'human_verification_required' })
+    listeners.get('test-run::blocked')?.({ testRunId: 'run-1', reason: 'human_verification_required' })
+    await listeners.get('scenario::end')?.({ testRunId: 'run-1', scenarioName: 'late scenario', status: 'passed' })
+
+    expect(mockKillProcess).toHaveBeenCalledOnce()
+    expect(mockKillProcess).toHaveBeenCalledWith('managed-process', 'SIGTERM')
+    expect(mockTestRunTestCaseUpdate).not.toHaveBeenCalled()
   })
 })
 

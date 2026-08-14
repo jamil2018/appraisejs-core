@@ -1312,6 +1312,7 @@ enum TestRunResult {
   PENDING
   PASSED
   FAILED
+  BLOCKED
   CANCELLED
 }
 

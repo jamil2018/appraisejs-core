@@ -1,6 +1,8 @@
 import type { Locator, Page } from 'playwright'
 
+import definitions from './definitions.json' with { type: 'json' }
 import { operationContentHash } from './contracts.ts'
+import type { OperationDefinition } from './contracts.ts'
 import { withReviewedSelectorResolver } from '../locator.util.ts'
 import { builtinBrowserOperations } from './builtins/index.ts'
 import type { CustomWorld } from '../world.ts'
@@ -8,6 +10,7 @@ import type { CustomWorld } from '../world.ts'
 export type BrowserOperationWorld = {
   page: Page
   browserRuntimeIssuesFor?: (scope: 'console-and-page' | 'network') => unknown[]
+  recordHumanVerificationRequired?: (event: import('../captcha-detector.ts').HumanVerificationRequiredEvent) => void
 }
 
 export type BrowserOperationContext = {
@@ -15,6 +18,10 @@ export type BrowserOperationContext = {
   inputs: Record<string, unknown>
   resolveLocator: (reference: unknown) => Promise<Locator> | Locator
   resolveSelector?: (reference: unknown) => string | null
+  /** Immutable managed-runtime binding data, keyed by canonical locator input name. */
+  locatorCardinalities?: Record<string, 'exactlyOne' | 'collection'>
+  /** Immutable managed-runtime cardinality data, keyed by operation ref and canonical input name. */
+  operationCardinalities?: Record<string, Record<string, 'exactlyOne' | 'collection'>>
   baseUrl?: string
 }
 
@@ -69,6 +76,40 @@ const numberInput = (inputs: Record<string, unknown>, name: string) => {
 }
 
 const target = (context: BrowserOperationContext) => context.resolveLocator(required(context.inputs, 'target'))
+
+type SourceOperation = Omit<OperationDefinition, 'handler'> & { handler: { id: string; version: string } }
+
+const operationByRef = new Map(
+  (definitions as SourceOperation[]).map(operation => [
+    `${operation.handler.id}@${operation.handler.version}`,
+    operation,
+  ]),
+)
+
+async function enforceLocatorCardinality(ref: string, context: BrowserOperationContext): Promise<void> {
+  const operation = operationByRef.get(ref)
+  if (!operation) return
+  for (const input of operation.inputs) {
+    if (input.type !== 'locator') continue
+    const cardinality =
+      context.operationCardinalities?.[ref]?.[input.name] ??
+      context.locatorCardinalities?.[input.name] ??
+      input.cardinality
+    if (!cardinality)
+      throw new OperationExecutionError(
+        'operation_locator_cardinality_missing',
+        `Locator input "${input.name}" for operation "${ref}" has no cardinality declaration.`,
+      )
+    if (cardinality === 'collection') continue
+    const locator = await context.resolveLocator(required(context.inputs, input.name))
+    const matchCount = await locator.count()
+    if (matchCount !== 1)
+      throw new OperationExecutionError(
+        'operation_locator_cardinality',
+        `Locator input "${input.name}" for operation "${ref}" must match exactly one element; found ${matchCount}.`,
+      )
+  }
+}
 
 const assertEqual = (actual: unknown, expected: unknown, message: string) => {
   if (actual !== expected) throw new OperationExecutionError('operation_assertion_failed', `${message}.`)
@@ -246,6 +287,7 @@ export async function executeBrowserOperation(
     throw new OperationExecutionError('operation_not_reviewed', `Operation "${ref}" is not in the reviewed closure.`)
   const handler = handlers[ref as BrowserOperationRef]
   if (!handler) throw new OperationExecutionError('operation_unknown', `Operation "${ref}" is not supported.`)
+  await enforceLocatorCardinality(ref, context)
   return handler(context)
 }
 

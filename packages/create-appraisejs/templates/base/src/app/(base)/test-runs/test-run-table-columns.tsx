@@ -17,7 +17,7 @@ import {
 import { cancelTestRunAction, deleteTestRunAction } from '@/actions/test-run/test-run-actions'
 import { formatDateTime } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
-import { CheckCircle, Compass, Flame, ListEnd, LoaderCircle, XCircle } from 'lucide-react'
+import { AlertTriangle, CheckCircle, Compass, Flame, ListEnd, LoaderCircle, XCircle } from 'lucide-react'
 import { getEvidenceHealthMeta } from '@/components/test-run/test-run-details-helpers'
 
 const BrowserEngineIcon = {
@@ -119,18 +119,21 @@ export const testRunTableCols: ColumnDef<
       const resultColorMap = {
         [TestRunResult.PASSED]: 'bg-primary',
         [TestRunResult.FAILED]: 'bg-pink-500 text-white',
+        [TestRunResult.BLOCKED]: 'bg-amber-600 text-white',
         [TestRunResult.CANCELLED]: 'bg-zinc-500 text-white',
         [TestRunResult.PENDING]: 'bg-yellow-500 text-white',
       }
       const resultIconMap = {
         [TestRunResult.PASSED]: <CheckCircle className="size-4" />,
         [TestRunResult.FAILED]: <XCircle className="size-4" />,
+        [TestRunResult.BLOCKED]: <AlertTriangle className="size-4" />,
         [TestRunResult.CANCELLED]: <XCircle className="size-4" />,
         [TestRunResult.PENDING]: <LoaderCircle className="size-4 animate-spin" />,
       }
       const resultTextMap = {
         [TestRunResult.PASSED]: 'Passed',
         [TestRunResult.FAILED]: 'Failed',
+        [TestRunResult.BLOCKED]: 'Blocked',
         [TestRunResult.CANCELLED]: 'Cancelled',
         [TestRunResult.PENDING]: 'Pending',
       }

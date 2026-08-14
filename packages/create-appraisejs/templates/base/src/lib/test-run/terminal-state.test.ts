@@ -9,6 +9,7 @@ describe('test-run terminal state contract', () => {
   it.each([
     ['passed', TestRunStatus.COMPLETED, TestRunResult.PASSED, 'COMPLETED'],
     ['failed', TestRunStatus.COMPLETED, TestRunResult.FAILED, 'FAILED'],
+    ['blocked', TestRunStatus.COMPLETED, TestRunResult.BLOCKED, 'COMPLETED'],
     ['cancelled', TestRunStatus.CANCELLED, TestRunResult.CANCELLED, 'CANCELLED'],
   ] as const)('maps %s through the shared terminal contract', (outcome, status, result, attemptState) => {
     expect(

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { listBrowserOperationHandlerRefs } from '../../../packages/cucumber-runtime/src/operations/index'
+import definitions from '../../../packages/cucumber-runtime/src/operations/definitions.json'
 import { defaultOperationRegistry } from './default-operation-registry'
 
 describe('default operation registry', () => {
@@ -13,6 +14,11 @@ describe('default operation registry', () => {
     expect(operations.length).toBeGreaterThanOrEqual(116)
     expect(operations.map(item => `${item.id}@${item.version}`).sort()).toEqual(listBrowserOperationHandlerRefs())
     expect(operations.every(item => item.humanSurface === 'supported' && item.agentSurface === 'supported')).toBe(true)
+    expect(
+      definitions
+        .flatMap(operation => operation.inputs.filter(input => input.type === 'locator'))
+        .every(input => input.cardinality === 'exactlyOne' || input.cardinality === 'collection'),
+    ).toBe(true)
   })
 
   it('converges action and template aliases on canonical operation identities', () => {

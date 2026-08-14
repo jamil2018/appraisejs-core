@@ -1,6 +1,7 @@
 import prisma from '@/config/db-config'
 import { resolveStoredPath } from '@/lib/automation/automation-path-roots'
 import { findMatchingTestRunTestCase } from '@/lib/test-run/matching'
+import { findHumanVerificationEvent, type HumanVerificationEvent } from '@/lib/test-run/human-verification-event'
 import { parseCucumberReport, parseCucumberReportText, type ParsedReport } from '@/lib/test-run/report-parser'
 import { ServiceError } from '@/services/shared/errors'
 import {
@@ -26,6 +27,9 @@ export type RunEvidenceGrade = 'valid' | 'invalid' | 'infrastructure_failure' | 
 export type RunEvidenceSummary = {
   testRunPageId: string
   executionRunId: string
+  status: TestRunStatus
+  result: TestRunResult
+  humanVerification: HumanVerificationEvent | null
   reportUrl: string
   logsUrl: string
   evidenceHealth: TestRunEvidenceHealthValue
@@ -50,7 +54,6 @@ export type RunEvidenceSummary = {
   logExcerpt: string[]
   completed: boolean
 }
-
 type EvidenceClient = Pick<PrismaClient, 'testRun' | 'testRunLog'>
 
 type TestRunForEvidence = NonNullable<Awaited<ReturnType<typeof loadTestRunForEvidence>>>
@@ -210,6 +213,27 @@ function classifyReportEvidence(testRun: TestRunForEvidence, report: ParsedRepor
   return { evidenceHealth: 'valid' as const, blockers, missingArtifacts, counts }
 }
 
+function evidenceGrade(testRun: TestRunForEvidence, evidenceHealth: TestRunEvidenceHealthValue): RunEvidenceGrade {
+  const completed = testRun.status === TestRunStatus.COMPLETED || testRun.status === TestRunStatus.CANCELLED
+  if (!completed || testRun.result === TestRunResult.PENDING) return 'pending'
+  if (evidenceHealth === 'valid') return 'valid'
+  return evidenceHealth === 'infrastructure_failure' ? 'infrastructure_failure' : 'invalid'
+}
+
+function nextEvidenceAction(grade: RunEvidenceGrade, humanVerification: HumanVerificationEvent | null) {
+  if (humanVerification)
+    return {
+      tool: 'test_run_read' as const,
+      reason:
+        'Human verification stopped this terminal run. Clear the challenge outside AppraiseJS, then start a fresh TestRun.',
+    }
+  if (grade === 'valid')
+    return { tool: 'test_run_read' as const, reason: 'Valid run evidence is available for its owning assessment.' }
+  if (grade === 'pending')
+    return { tool: 'test_run_read' as const, reason: 'The run is still in progress or awaiting final reconciliation.' }
+  return { tool: 'test_run_diagnose' as const, reason: 'Evidence is invalid or infrastructure failed.' }
+}
+
 function summaryFromClassification(
   testRun: TestRunForEvidence,
   classification: {
@@ -222,31 +246,23 @@ function summaryFromClassification(
   failures: string[] = [],
 ): RunEvidenceSummary {
   const completed = testRun.status === TestRunStatus.COMPLETED || testRun.status === TestRunStatus.CANCELLED
-  const grade: RunEvidenceGrade =
-    !completed || testRun.result === TestRunResult.PENDING
-      ? 'pending'
-      : classification.evidenceHealth === 'valid'
-        ? 'valid'
-        : classification.evidenceHealth === 'infrastructure_failure'
-          ? 'infrastructure_failure'
-          : 'invalid'
+  const grade = evidenceGrade(testRun, classification.evidenceHealth)
   if (!testRun.targetProjectId)
     throw new ServiceError('Test run evidence has no target-project ownership.', 'CONFLICT', 409)
   const links = testRunEvidenceLinks(testRun.runId, testRun.targetProjectId)
+  const humanVerification = findHumanVerificationEvent(testRun.logs?.logs)
 
   return {
     testRunPageId: testRun.runId,
     executionRunId: testRun.runId,
+    status: testRun.status,
+    result: testRun.result,
+    humanVerification,
     reportUrl: links.reportUrl,
     logsUrl: links.logsUrl,
     evidenceHealth: classification.evidenceHealth,
     grade,
-    nextAllowedAction:
-      grade === 'valid'
-        ? { tool: 'test_run_read', reason: 'Valid run evidence is available for its owning assessment.' }
-        : grade === 'pending'
-          ? { tool: 'test_run_read', reason: 'The run is still in progress or awaiting final reconciliation.' }
-          : { tool: 'test_run_diagnose', reason: 'Evidence is invalid or infrastructure failed.' },
+    nextAllowedAction: nextEvidenceAction(grade, humanVerification),
     counts: classification.counts,
     blockers: classification.blockers,
     missingArtifacts: classification.missingArtifacts,

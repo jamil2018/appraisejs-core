@@ -8,6 +8,7 @@ import { getLocatorGroupFilePath } from '@/lib/locator-group-file-utils'
 import { buildModuleHierarchy } from '@/lib/module-hierarchy-builder'
 import { normalizeRoute } from '@/lib/locator-picker/suggestions'
 import { locatorPickerSessionManager } from '@/lib/locator-picker/session-manager'
+import { validatePickedLocatorObservation } from '@/lib/locator-picker/selector-observation'
 import type { SavePickedLocatorRequest } from '@/types/locator-picker'
 import { promises as fs } from 'fs'
 import path from 'path'
@@ -373,6 +374,11 @@ export async function savePickedLocatorFromRequest(
   let moduleId = value.moduleId ?? ''
   const locatorName = value.locatorName.trim()
   const selector = value.selector.trim()
+
+  if (session?.pickedLocator) {
+    const observationError = validatePickedLocatorObservation(session.pickedLocator, selector)
+    if (observationError) return fail(400, observationError)
+  }
   const currentLocator = value.locatorId
     ? await prisma.locator.findFirst({
         where: { id: value.locatorId, targetProjectId },

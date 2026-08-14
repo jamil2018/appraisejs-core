@@ -22,11 +22,13 @@ export function getTestRunStatusMeta(status: TestRunStatus, result: TestRunResul
       return { label: 'Queued', icon: ListEnd, badgeClassName: 'bg-zinc-500' }
     case 'RUNNING':
       return { label: 'Running', icon: LoaderCircle, badgeClassName: 'bg-blue-500' }
+    case 'CANCELLING':
+      return { label: 'Cancelling', icon: LoaderCircle, badgeClassName: 'bg-orange-500' }
     case 'COMPLETED':
       return {
-        label: 'Completed',
-        icon: result === 'PASSED' ? CheckCircle : XCircle,
-        badgeClassName: result === 'PASSED' ? 'bg-green-700' : 'bg-red-500',
+        label: result === 'BLOCKED' ? 'Blocked' : 'Completed',
+        icon: result === 'PASSED' ? CheckCircle : result === 'BLOCKED' ? AlertTriangle : XCircle,
+        badgeClassName: result === 'PASSED' ? 'bg-green-700' : result === 'BLOCKED' ? 'bg-amber-600' : 'bg-red-500',
       }
     case 'CANCELLED':
       return { label: 'Cancelled', icon: XCircle, badgeClassName: 'bg-red-500' }
@@ -43,6 +45,8 @@ export function getTestRunResultText(result: TestRunResult) {
       return 'Passed'
     case 'FAILED':
       return 'Failed'
+    case 'BLOCKED':
+      return 'Blocked by human verification'
     case 'CANCELLED':
       return 'Cancelled'
     default:

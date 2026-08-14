@@ -3,6 +3,7 @@ import { canonicalRuntimeCapsuleJson } from './contracts'
 type GeneratedBindingStep = {
   keywordText: string
   invocation: { presentation?: unknown; [key: string]: unknown }
+  locatorCardinalities?: Record<string, 'exactlyOne' | 'collection'>
 }
 
 function registrationLines(bindings: unknown): string {
@@ -31,6 +32,7 @@ function registrationLines(bindings: unknown): string {
 export function generateExecutableBindings(input: {
   bindings: unknown
   selectors: Record<string, string>
+  operationCardinalities?: Record<string, Record<string, 'exactlyOne' | 'collection'>>
   sealedDefinitions: unknown
   extensionModules: Record<string, string>
   runtimeImport: string
@@ -40,6 +42,7 @@ export function generateExecutableBindings(input: {
 
 const cases = ${canonicalRuntimeCapsuleJson(input.bindings)}
 const selectors = ${canonicalRuntimeCapsuleJson(input.selectors)}
+const operationCardinalities = ${canonicalRuntimeCapsuleJson(input.operationCardinalities ?? {})}
 const sealedDefinitions = ${canonicalRuntimeCapsuleJson(input.sealedDefinitions)}
 const extensionModules = Object.fromEntries(Object.entries(${canonicalRuntimeCapsuleJson(input.extensionModules)}).map(([key, value]) => [key, new URL(value, import.meta.url).href]))
 const registrations = { Given, When, Then, And: Given }
@@ -65,6 +68,8 @@ const dispatch = async (world, step) => {
       world,
       resolveLocator: reference => resolveLocator(world, reference),
       resolveSelector,
+      locatorCardinalities: step.locatorCardinalities,
+      operationCardinalities,
       extensionModules,
       baseUrl,
       environment: { baseUrl },

@@ -12,7 +12,8 @@
         "name": "elementName",
         "type": "locator",
         "required": true,
-        "description": "elementName used by assert element active."
+        "description": "elementName used by assert element active.",
+        "cardinality": "exactlyOne"
       },
       {
         "name": "isActive",
@@ -88,7 +89,8 @@
         "name": "target",
         "type": "locator",
         "required": true,
-        "description": "Locator reference to inspect."
+        "description": "Locator reference to inspect.",
+        "cardinality": "exactlyOne"
       }
     ],
     "outputs": [],
@@ -152,7 +154,8 @@
         "name": "target",
         "type": "locator",
         "required": true,
-        "description": "Locator reference to inspect."
+        "description": "Locator reference to inspect.",
+        "cardinality": "exactlyOne"
       },
       {
         "name": "checked",
@@ -233,7 +236,8 @@
         "name": "target",
         "type": "locator",
         "required": true,
-        "description": "Locator reference to inspect."
+        "description": "Locator reference to inspect.",
+        "cardinality": "collection"
       }
     ],
     "outputs": [],
@@ -475,7 +479,8 @@
         "name": "target",
         "type": "locator",
         "required": true,
-        "description": "Locator reference containing the persisted result."
+        "description": "Locator reference containing the persisted result.",
+        "cardinality": "exactlyOne"
       }
     ],
     "outputs": [],
@@ -539,7 +544,8 @@
         "name": "target",
         "type": "locator",
         "required": true,
-        "description": "Locator reference to inspect."
+        "description": "Locator reference to inspect.",
+        "cardinality": "exactlyOne"
       },
       {
         "name": "text",
@@ -610,7 +616,8 @@
         "name": "elementName",
         "type": "locator",
         "required": true,
-        "description": "elementName used by assert element contains text."
+        "description": "elementName used by assert element contains text.",
+        "cardinality": "exactlyOne"
       },
       {
         "name": "shouldContain",
@@ -702,7 +709,8 @@
         "name": "target",
         "type": "locator",
         "required": true,
-        "description": "Locator reference to inspect."
+        "description": "Locator reference to inspect.",
+        "cardinality": "exactlyOne"
       },
       {
         "name": "value",
@@ -783,7 +791,8 @@
         "name": "elementName",
         "type": "locator",
         "required": true,
-        "description": "elementName used by assert element visible."
+        "description": "elementName used by assert element visible.",
+        "cardinality": "collection"
       },
       {
         "name": "isVisible",
@@ -859,7 +868,8 @@
         "name": "target",
         "type": "locator",
         "required": true,
-        "description": "Locator reference to inspect."
+        "description": "Locator reference to inspect.",
+        "cardinality": "exactlyOne"
       }
     ],
     "outputs": [],
@@ -1911,7 +1921,8 @@
         "name": "elementName",
         "type": "locator",
         "required": true,
-        "description": "elementName used by double click."
+        "description": "elementName used by double click.",
+        "cardinality": "exactlyOne"
       }
     ],
     "outputs": [],
@@ -1980,7 +1991,8 @@
         "name": "elementName",
         "type": "locator",
         "required": true,
-        "description": "elementName used by right click."
+        "description": "elementName used by right click.",
+        "cardinality": "exactlyOne"
       }
     ],
     "outputs": [],
@@ -2262,7 +2274,8 @@
         "name": "elementName",
         "type": "locator",
         "required": true,
-        "description": "elementName used by store element attribute."
+        "description": "elementName used by store element attribute.",
+        "cardinality": "exactlyOne"
       },
       {
         "name": "variableName",
@@ -2629,7 +2642,8 @@
         "name": "elementName",
         "type": "locator",
         "required": true,
-        "description": "elementName used by click and store download."
+        "description": "elementName used by click and store download.",
+        "cardinality": "exactlyOne"
       },
       {
         "name": "variableName",
@@ -2705,7 +2719,8 @@
         "name": "elementName",
         "type": "locator",
         "required": true,
-        "description": "elementName used by click and wait for download."
+        "description": "elementName used by click and wait for download.",
+        "cardinality": "exactlyOne"
       },
       {
         "name": "filenameVariable",
@@ -2933,7 +2948,8 @@
         "name": "elementName",
         "type": "locator",
         "required": true,
-        "description": "elementName used by assert element attribute."
+        "description": "elementName used by assert element attribute.",
+        "cardinality": "exactlyOne"
       },
       {
         "name": "attribute",
@@ -3024,7 +3040,8 @@
         "name": "elementName",
         "type": "locator",
         "required": true,
-        "description": "elementName used by assert element bounding box."
+        "description": "elementName used by assert element bounding box.",
+        "cardinality": "exactlyOne"
       },
       {
         "name": "x",
@@ -3130,7 +3147,8 @@
         "name": "elementName",
         "type": "locator",
         "required": true,
-        "description": "elementName used by assert element class."
+        "description": "elementName used by assert element class.",
+        "cardinality": "exactlyOne"
       },
       {
         "name": "shouldHave",
@@ -3213,7 +3231,8 @@
         "name": "elementName",
         "type": "locator",
         "required": true,
-        "description": "elementName used by assert element count."
+        "description": "elementName used by assert element count.",
+        "cardinality": "collection"
       },
       {
         "name": "expected",
@@ -3289,7 +3308,8 @@
         "name": "elementName",
         "type": "locator",
         "required": true,
-        "description": "elementName used by assert element css property."
+        "description": "elementName used by assert element css property.",
+        "cardinality": "exactlyOne"
       },
       {
         "name": "property",
@@ -3372,7 +3392,8 @@
         "name": "elementName",
         "type": "locator",
         "required": true,
-        "description": "elementName used by assert element attached."
+        "description": "elementName used by assert element attached.",
+        "cardinality": "collection"
       },
       {
         "name": "expected",
@@ -3448,7 +3469,8 @@
         "name": "elementName",
         "type": "locator",
         "required": true,
-        "description": "elementName used by assert element editable."
+        "description": "elementName used by assert element editable.",
+        "cardinality": "exactlyOne"
       },
       {
         "name": "expected",
@@ -3524,7 +3546,8 @@
         "name": "elementName",
         "type": "locator",
         "required": true,
-        "description": "elementName used by assert element empty."
+        "description": "elementName used by assert element empty.",
+        "cardinality": "exactlyOne"
       },
       {
         "name": "expected",
@@ -3600,7 +3623,8 @@
         "name": "elementName",
         "type": "locator",
         "required": true,
-        "description": "elementName used by assert element enabled."
+        "description": "elementName used by assert element enabled.",
+        "cardinality": "exactlyOne"
       },
       {
         "name": "expected",
@@ -3676,7 +3700,8 @@
         "name": "elementName",
         "type": "locator",
         "required": true,
-        "description": "elementName used by assert element focused."
+        "description": "elementName used by assert element focused.",
+        "cardinality": "exactlyOne"
       },
       {
         "name": "expected",
@@ -3752,7 +3777,8 @@
         "name": "elementName",
         "type": "locator",
         "required": true,
-        "description": "elementName used by choose radio control."
+        "description": "elementName used by choose radio control.",
+        "cardinality": "exactlyOne"
       }
     ],
     "outputs": [],
@@ -3821,7 +3847,8 @@
         "name": "target",
         "type": "locator",
         "required": true,
-        "description": "Locator reference to fill."
+        "description": "Locator reference to fill.",
+        "cardinality": "exactlyOne"
       },
       {
         "name": "value",
@@ -3902,7 +3929,8 @@
         "name": "elementName",
         "type": "locator",
         "required": true,
-        "description": "elementName used by fill content editable element."
+        "description": "elementName used by fill content editable element.",
+        "cardinality": "exactlyOne"
       },
       {
         "name": "value",
@@ -3978,7 +4006,8 @@
         "name": "elementName",
         "type": "locator",
         "required": true,
-        "description": "elementName used by fill date input."
+        "description": "elementName used by fill date input.",
+        "cardinality": "exactlyOne"
       },
       {
         "name": "value",
@@ -4060,7 +4089,8 @@
         "name": "elementName",
         "type": "locator",
         "required": true,
-        "description": "elementName used by select dropdown option by index."
+        "description": "elementName used by select dropdown option by index.",
+        "cardinality": "exactlyOne"
       }
     ],
     "outputs": [],
@@ -4136,7 +4166,8 @@
         "name": "elementName",
         "type": "locator",
         "required": true,
-        "description": "elementName used by select dropdown option by label."
+        "description": "elementName used by select dropdown option by label.",
+        "cardinality": "exactlyOne"
       }
     ],
     "outputs": [],
@@ -4212,7 +4243,8 @@
         "name": "elementName",
         "type": "locator",
         "required": true,
-        "description": "elementName used by select dropdown option by value."
+        "description": "elementName used by select dropdown option by value.",
+        "cardinality": "exactlyOne"
       }
     ],
     "outputs": [],
@@ -4288,7 +4320,8 @@
         "name": "elementName",
         "type": "locator",
         "required": true,
-        "description": "elementName used by upload file."
+        "description": "elementName used by upload file.",
+        "cardinality": "exactlyOne"
       }
     ],
     "outputs": [],
@@ -4364,7 +4397,8 @@
         "name": "elementName",
         "type": "locator",
         "required": true,
-        "description": "elementName used by upload stored file."
+        "description": "elementName used by upload stored file.",
+        "cardinality": "exactlyOne"
       }
     ],
     "outputs": [],
@@ -4434,7 +4468,8 @@
         "name": "elementName",
         "type": "locator",
         "required": true,
-        "description": "elementName used by hover."
+        "description": "elementName used by hover.",
+        "cardinality": "exactlyOne"
       }
     ],
     "outputs": [],
@@ -4503,7 +4538,8 @@
         "name": "elementName",
         "type": "locator",
         "required": true,
-        "description": "elementName used by check."
+        "description": "elementName used by check.",
+        "cardinality": "exactlyOne"
       }
     ],
     "outputs": [],
@@ -4572,7 +4608,8 @@
         "name": "elementName",
         "type": "locator",
         "required": true,
-        "description": "elementName used by clear."
+        "description": "elementName used by clear.",
+        "cardinality": "exactlyOne"
       }
     ],
     "outputs": [],
@@ -4641,7 +4678,8 @@
         "name": "fieldName",
         "type": "locator",
         "required": true,
-        "description": "fieldName used by fill input with stored value."
+        "description": "fieldName used by fill input with stored value.",
+        "cardinality": "exactlyOne"
       },
       {
         "name": "variableName",
@@ -4723,7 +4761,8 @@
         "name": "elementName",
         "type": "locator",
         "required": true,
-        "description": "elementName used by select dropdown option."
+        "description": "elementName used by select dropdown option.",
+        "cardinality": "exactlyOne"
       }
     ],
     "outputs": [],
@@ -4793,7 +4832,8 @@
         "name": "elementName",
         "type": "locator",
         "required": true,
-        "description": "elementName used by uncheck."
+        "description": "elementName used by uncheck.",
+        "cardinality": "exactlyOne"
       }
     ],
     "outputs": [],
@@ -4862,7 +4902,8 @@
         "name": "target",
         "type": "locator",
         "required": true,
-        "description": "Locator reference to focus."
+        "description": "Locator reference to focus.",
+        "cardinality": "exactlyOne"
       }
     ],
     "outputs": [],
@@ -5085,7 +5126,8 @@
         "name": "elementName",
         "type": "locator",
         "required": true,
-        "description": "elementName used by press key on element."
+        "description": "elementName used by press key on element.",
+        "cardinality": "exactlyOne"
       }
     ],
     "outputs": [],
@@ -5230,7 +5272,8 @@
         "name": "elementName",
         "type": "locator",
         "required": true,
-        "description": "elementName used by type text sequentially."
+        "description": "elementName used by type text sequentially.",
+        "cardinality": "exactlyOne"
       },
       {
         "name": "delay",
@@ -5307,7 +5350,8 @@
         "name": "target",
         "type": "locator",
         "required": true,
-        "description": "Locator reference to click."
+        "description": "Locator reference to click.",
+        "cardinality": "exactlyOne"
       }
     ],
     "outputs": [],
@@ -5709,7 +5753,8 @@
         "name": "elementName",
         "type": "locator",
         "required": true,
-        "description": "elementName used by blur element."
+        "description": "elementName used by blur element.",
+        "cardinality": "exactlyOne"
       }
     ],
     "outputs": [],
@@ -5778,7 +5823,8 @@
         "name": "elementName",
         "type": "locator",
         "required": true,
-        "description": "elementName used by capture element screenshot."
+        "description": "elementName used by capture element screenshot.",
+        "cardinality": "exactlyOne"
       },
       {
         "name": "variableName",
@@ -5866,7 +5912,8 @@
         "name": "elementName",
         "type": "locator",
         "required": true,
-        "description": "elementName used by click element coordinates."
+        "description": "elementName used by click element coordinates.",
+        "cardinality": "exactlyOne"
       }
     ],
     "outputs": [],
@@ -6013,13 +6060,15 @@
         "name": "sourceName",
         "type": "locator",
         "required": true,
-        "description": "sourceName used by drag element to element."
+        "description": "sourceName used by drag element to element.",
+        "cardinality": "exactlyOne"
       },
       {
         "name": "targetName",
         "type": "locator",
         "required": true,
-        "description": "targetName used by drag element to element."
+        "description": "targetName used by drag element to element.",
+        "cardinality": "exactlyOne"
       }
     ],
     "outputs": [],
@@ -6089,7 +6138,8 @@
         "name": "elementName",
         "type": "locator",
         "required": true,
-        "description": "elementName used by force click element."
+        "description": "elementName used by force click element.",
+        "cardinality": "exactlyOne"
       }
     ],
     "outputs": [],
@@ -6158,7 +6208,8 @@
         "name": "elementName",
         "type": "locator",
         "required": true,
-        "description": "elementName used by scroll element into view."
+        "description": "elementName used by scroll element into view.",
+        "cardinality": "exactlyOne"
       }
     ],
     "outputs": [],
@@ -6925,7 +6976,8 @@
         "name": "elementName",
         "type": "locator",
         "required": true,
-        "description": "elementName used by store element text."
+        "description": "elementName used by store element text.",
+        "cardinality": "exactlyOne"
       },
       {
         "name": "variableName",
@@ -7001,7 +7053,8 @@
         "name": "elementName",
         "type": "locator",
         "required": true,
-        "description": "elementName used by store text input text."
+        "description": "elementName used by store text input text.",
+        "cardinality": "exactlyOne"
       },
       {
         "name": "variableName",
@@ -7077,7 +7130,8 @@
         "name": "elementName",
         "type": "locator",
         "required": true,
-        "description": "elementName used by store textarea text."
+        "description": "elementName used by store textarea text.",
+        "cardinality": "exactlyOne"
       },
       {
         "name": "variableName",
@@ -7159,7 +7213,8 @@
         "name": "elementName",
         "type": "locator",
         "required": true,
-        "description": "elementName used by run structured locator operation."
+        "description": "elementName used by run structured locator operation.",
+        "cardinality": "exactlyOne"
       },
       {
         "name": "argumentsJson",
@@ -7395,7 +7450,8 @@
         "name": "elementName",
         "type": "locator",
         "required": true,
-        "description": "elementName used by wait for element state."
+        "description": "elementName used by wait for element state.",
+        "cardinality": "collection"
       },
       {
         "name": "state",
@@ -7471,7 +7527,8 @@
         "name": "elementName",
         "type": "locator",
         "required": true,
-        "description": "elementName used by wait for element text."
+        "description": "elementName used by wait for element text.",
+        "cardinality": "exactlyOne"
       },
       {
         "name": "expectedText",
@@ -7547,7 +7604,8 @@
         "name": "elementName",
         "type": "locator",
         "required": true,
-        "description": "elementName used by wait for input value."
+        "description": "elementName used by wait for input value.",
+        "cardinality": "exactlyOne"
       },
       {
         "name": "expectedValue",
@@ -8114,7 +8172,8 @@
         "name": "elementName",
         "type": "locator",
         "required": true,
-        "description": "elementName used by click and switch to popup."
+        "description": "elementName used by click and switch to popup.",
+        "cardinality": "exactlyOne"
       }
     ],
     "outputs": [],
@@ -8194,13 +8253,15 @@
         "name": "elementName",
         "type": "locator",
         "required": true,
-        "description": "elementName used by click element inside frame."
+        "description": "elementName used by click element inside frame.",
+        "cardinality": "exactlyOne"
       },
       {
         "name": "frameName",
         "type": "locator",
         "required": true,
-        "description": "frameName used by click element inside frame."
+        "description": "frameName used by click element inside frame.",
+        "cardinality": "exactlyOne"
       }
     ],
     "outputs": [],
@@ -8400,13 +8461,15 @@
         "name": "elementName",
         "type": "locator",
         "required": true,
-        "description": "elementName used by fill element inside frame."
+        "description": "elementName used by fill element inside frame.",
+        "cardinality": "exactlyOne"
       },
       {
         "name": "frameName",
         "type": "locator",
         "required": true,
-        "description": "frameName used by fill element inside frame."
+        "description": "frameName used by fill element inside frame.",
+        "cardinality": "exactlyOne"
       },
       {
         "name": "value",
@@ -8562,7 +8625,8 @@
         "name": "elementName",
         "type": "locator",
         "required": true,
-        "description": "elementName used by assert element contains stored variable text."
+        "description": "elementName used by assert element contains stored variable text.",
+        "cardinality": "exactlyOne"
       },
       {
         "name": "variableName",
@@ -8648,7 +8712,8 @@
         "name": "elementName",
         "type": "locator",
         "required": true,
-        "description": "elementName used by assert element equals text."
+        "description": "elementName used by assert element equals text.",
+        "cardinality": "exactlyOne"
       },
       {
         "name": "shouldEqual",
@@ -8812,7 +8877,8 @@
         "name": "elementName",
         "type": "locator",
         "required": true,
-        "description": "elementName used by wait for element."
+        "description": "elementName used by wait for element.",
+        "cardinality": "exactlyOne"
       }
     ],
     "outputs": [],
@@ -8881,7 +8947,8 @@
         "name": "elementName",
         "type": "locator",
         "required": true,
-        "description": "elementName used by wait for element to disappear."
+        "description": "elementName used by wait for element to disappear.",
+        "cardinality": "collection"
       }
     ],
     "outputs": [],

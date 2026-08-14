@@ -34,7 +34,8 @@ export function registerRuntimeOperations(context: McpRegistryContext): void {
   server.registerTool(
     'test_run_read',
     {
-      description: 'Read bounded status and evidence summary for a managed Appraise test run.',
+      description:
+        'Read bounded status and evidence summary for a managed Appraise test run. A human-verification block is terminal and requires a fresh TestRun; it cannot be resumed.',
       inputSchema: { runId: z.string().uuid(), responseMode: responseModeSchema },
     },
     async ({ runId, responseMode }) => {

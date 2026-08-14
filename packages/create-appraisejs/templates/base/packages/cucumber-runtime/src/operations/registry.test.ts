@@ -20,7 +20,9 @@ function operation(overrides: Partial<OperationDefinition> = {}): OperationDefin
     categories: ['browser.mouse'],
     capabilities: ['mouse'],
     runtime: 'browser',
-    inputs: [{ name: 'target', type: 'locator', required: true, description: 'Target locator.' }],
+    inputs: [
+      { name: 'target', type: 'locator', required: true, description: 'Target locator.', cardinality: 'exactlyOne' },
+    ],
     outputs: [],
     assertionConcerns: [],
     securityClass: 'built-in',
@@ -62,7 +64,13 @@ describe('operation contracts', () => {
       operationDefinitionSchema.parse(
         operation({
           inputs: [
-            { name: 'target', type: 'locator', required: true, description: 'One.' },
+            {
+              name: 'target',
+              type: 'locator',
+              required: true,
+              description: 'One.',
+              cardinality: 'exactlyOne',
+            },
             { name: 'target', type: 'string', required: true, description: 'Two.' },
           ],
         }),
@@ -91,6 +99,29 @@ describe('operation contracts', () => {
         inputs: { target: deeplyNested },
       }),
     ).toThrow('depth 10')
+  })
+
+  it('requires every canonical locator input to state whether it is singular or a collection', () => {
+    expect(() =>
+      operationDefinitionSchema.parse(
+        operation({ inputs: [{ name: 'target', type: 'locator', required: true, description: 'Target locator.' }] }),
+      ),
+    ).toThrow('requires cardinality')
+    expect(() =>
+      operationDefinitionSchema.parse(
+        operation({
+          inputs: [
+            {
+              name: 'label',
+              type: 'string',
+              required: true,
+              description: 'Label.',
+              cardinality: 'exactlyOne',
+            },
+          ],
+        }),
+      ),
+    ).toThrow('Only locator input')
   })
 })
 

@@ -188,6 +188,10 @@ function toPickedLocatorPayload(
     text: payload.text,
     accessibleName: payload.accessibleName,
     strategy: payload.strategy,
+    matchCount: payload.matchCount,
+    selectorFingerprint: payload.selectorFingerprint,
+    checkedAt: payload.checkedAt,
+    checkedUrl: payload.checkedUrl,
   }
 }
 

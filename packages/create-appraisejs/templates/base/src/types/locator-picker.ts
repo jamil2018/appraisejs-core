@@ -14,6 +14,10 @@ export interface PickedLocatorPayload {
   text?: string
   accessibleName?: string
   strategy?: PickedLocatorStrategy
+  matchCount?: number
+  selectorFingerprint?: string
+  checkedAt?: string
+  checkedUrl?: string
 }
 
 export interface LocatorPickerGroupSuggestion {
