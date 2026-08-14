@@ -609,7 +609,7 @@
     {
       "kind": "tool",
       "name": "assessment_review",
-      "description": "Read the assessment review packet, alignment status, evidence hash, assurance observations, and decision blockers.",
+      "description": "Read the assessment review packet, alignment status, evidence hash, assurance observations, and decision blockers. Human-verification blocked evidence remains targetOutcome not_evaluated.",
       "inputSchema": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "type": "object",
@@ -1521,7 +1521,7 @@
     {
       "kind": "tool",
       "name": "test_run_read",
-      "description": "Read bounded status and evidence summary for a managed Appraise test run.",
+      "description": "Read bounded status and evidence summary for a managed Appraise test run. A human-verification block is terminal and requires a fresh TestRun; it cannot be resumed.",
       "inputSchema": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "type": "object",
