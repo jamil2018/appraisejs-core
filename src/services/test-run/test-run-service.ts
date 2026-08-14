@@ -690,12 +690,32 @@ export async function scheduleTestRunCompletion(args: {
   } = args
   const runLogger = new TestRunLogger(logger)
   let cleanupListener = () => {}
+  let blockedByHumanVerification = false
+  let humanVerificationTerminationRequested = false
+  const onHumanVerificationBlocked = (eventData: { testRunId: string; reason: string }) => {
+    if (
+      humanVerificationTerminationRequested ||
+      eventData.testRunId !== testRun.runId ||
+      eventData.reason !== 'human_verification_required'
+    )
+      return
+    blockedByHumanVerification = true
+    humanVerificationTerminationRequested = true
+    const managedProcess = processManager.get(testRun.runId)
+    if (!managedProcess) return
+    if (!localExecutorAdapter.killProcess(managedProcess.name, 'SIGTERM'))
+      localExecutorAdapter.killProcess(managedProcess.name, 'SIGKILL')
+  }
 
   try {
     await prepareRun({
       prepareWorkspace: prepareWorkspace !== false,
       prepareFeatureFiles: () => ensureFeatureFilesForTestRun(testRunTestCases),
     })
+    // Register before spawning: a challenge can be emitted by the first
+    // operation and must not race process-launch bookkeeping.
+    processManager.on('test-run::blocked', onHumanVerificationBlocked)
+    cleanupListener = () => processManager.removeListener('test-run::blocked', onHumanVerificationBlocked)
 
     const { process: spawnedProcess, reportPath } = await executeRun({
       launch:
@@ -729,7 +749,7 @@ export async function scheduleTestRunCompletion(args: {
       featureName?: string
       scenarioTags?: string[]
     }) => {
-      if (eventData.testRunId !== testRun.runId) {
+      if (humanVerificationTerminationRequested || eventData.testRunId !== testRun.runId) {
         return
       }
       console.log(
@@ -759,6 +779,7 @@ export async function scheduleTestRunCompletion(args: {
 
     cleanupListener = () => {
       processManager.removeListener('scenario::end', onScenarioEnd)
+      processManager.removeListener('test-run::blocked', onHumanVerificationBlocked)
       console.log(`[TestRunService] Removed server-side scenario::end listener for testRunId: ${testRun.runId}`)
     }
 
@@ -801,6 +822,7 @@ export async function scheduleTestRunCompletion(args: {
         })
         const outcome = resolveCollectedRunOutcome({
           cancelled: isCancelledOrCancellingStatus(current.status),
+          blocked: blockedByHumanVerification,
           exitCode,
           evidenceHealth: evidence.evidenceHealth,
         })
@@ -832,6 +854,7 @@ export async function scheduleTestRunCompletion(args: {
         })
       })
   } catch (error) {
+    cleanupListener()
     console.error(`[TestRunService] Synchronous error calling executeTestRun for testRunId: ${testRun.runId}:`, error)
     console.error(`[TestRunService] Error stack:`, error instanceof Error ? error.stack : 'No stack trace')
     const message = error instanceof Error ? error.message : String(error)

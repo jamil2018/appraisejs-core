@@ -1083,6 +1083,26 @@ function evidenceReceiptPayload(receipt: unknown) {
   }
 }
 
+function receiptMatrixKey(receipt: Record<string, unknown>) {
+  const version = typeof receipt.validationVersionId === 'string' ? receipt.validationVersionId : null
+  const cell = typeof receipt.resultMatrixCell === 'string' ? receipt.resultMatrixCell : null
+  return version && cell ? `${version}:${cell}` : String(receipt.id ?? JSON.stringify(receipt))
+}
+
+function receiptSealedAt(receipt: Record<string, unknown>) {
+  return receipt.sealedAt instanceof Date ? receipt.sealedAt.getTime() : 0
+}
+
+function currentMatrixReceipts(receipts: unknown[]) {
+  const latestByCell = new Map<string, Record<string, unknown>>()
+  for (const receipt of receipts) {
+    const value = receipt as Record<string, unknown>
+    const current = latestByCell.get(receiptMatrixKey(value))
+    if (!current || receiptSealedAt(value) >= receiptSealedAt(current)) latestByCell.set(receiptMatrixKey(value), value)
+  }
+  return [...latestByCell.values()]
+}
+
 function assessmentPayload(assessment: Awaited<ReturnType<typeof readAssessmentOrThrow>>) {
   const validationVersions = assessment.qualityPlanRevision.validationVersions
   const published = validationVersions.filter(version => version.status === 'PUBLISHED')
@@ -1096,6 +1116,9 @@ function assessmentPayload(assessment: Awaited<ReturnType<typeof readAssessmentO
       : ['All validation versions must be published for this assessment.']),
     ...(assessment.alignment === 'CURRENT' ? [] : ['Requirement alignment is not current.']),
   ]
+  const humanVerificationBlocked = currentMatrixReceipts(assessment.evidenceReceipts).some(
+    receipt => (receipt as { outcome?: unknown }).outcome === 'BLOCKED',
+  )
   return {
     assessment: {
       id: assessment.id,
@@ -1104,6 +1127,7 @@ function assessmentPayload(assessment: Awaited<ReturnType<typeof readAssessmentO
       observedAssurance: assessment.observedAssurance,
       baselineAssessmentId: assessment.baselineAssessmentId,
     },
+    targetOutcome: humanVerificationBlocked ? ('not_evaluated' as const) : null,
     qualityPlan: {
       id: assessment.qualityPlan.id,
       targetProjectId: assessment.qualityPlan.targetProjectId,
@@ -1157,6 +1181,11 @@ function assessmentPayload(assessment: Awaited<ReturnType<typeof readAssessmentO
 }
 
 function assertAssessmentDecisionReady(payload: ReturnType<typeof assessmentPayload>) {
+  if (payload.targetOutcome === 'not_evaluated')
+    throw new ServiceError(
+      'Human verification blocked managed execution; the target outcome remains not evaluated. Start a fresh TestRun after the challenge is cleared.',
+      'CONFLICT',
+    )
   if (!payload.readiness.ready) {
     throw new ServiceError('Assessment is not ready for a decision.', 'CONFLICT', 409, {
       blockers: payload.readiness.blockers,

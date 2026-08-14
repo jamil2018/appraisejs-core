@@ -84,6 +84,7 @@ import {
 } from './quality-design-service'
 import { ensureBuiltInStepDefinitionReadiness } from '@/services/step-definition/built-in-readiness-service'
 import { ensureEnvironment } from '@/services/environment/environment-service'
+import { defaultOperationRegistry } from '@/lib/operation-catalog'
 
 const definition = builtInStepDefinitions.find(candidate => candidate.inputs.length === 0)!
 const designHash = `sha256:${'d'.repeat(64)}`
@@ -170,7 +171,12 @@ describe('assessment preparation service', () => {
         validations: {
           realization: {
             runtimePublication: {
-              runtimeInput: { matrix: unknown; stepDefinitions: unknown; expected: { scenarios: unknown[] } }
+              runtimeInput: {
+                matrix: unknown
+                stepDefinitions: unknown
+                locatorBindings: unknown
+                expected: { scenarios: unknown[] }
+              }
             }
           }
         }[]
@@ -188,6 +194,9 @@ describe('assessment preparation service', () => {
         definitionHash: computeStepReferenceHash(definition),
       },
     ])
+    expect(
+      compileInput.realization.validations[0]?.realization.runtimePublication.runtimeInput.locatorBindings,
+    ).toEqual([])
     expect(
       compileInput.realization.validations[0]?.realization.runtimePublication.runtimeInput.expected.scenarios[0],
     ).toMatchObject({
@@ -296,6 +305,182 @@ describe('assessment preparation service', () => {
     expect(realization.projection.validationNode.appraiseArtifacts.locators).toEqual([
       { id: 'locator-1', name: 'submit', value: '[data-testid="submit"]', locatorGroupId: 'group-1' },
     ])
+  })
+
+  it('carries canonical locator cardinality into immutable runtime inputs without opening a browser', async () => {
+    reset()
+    const locatorDefinition = builtInStepDefinitions.find(candidate =>
+      candidate.inputs.some(input => input.type === 'locator'),
+    )!
+    const locatorInputName = locatorDefinition.inputs.find(input => input.type === 'locator')!.name
+    vi.mocked(database.stepDefinition.findMany).mockResolvedValue([
+      {
+        id: locatorDefinition.identity.id,
+        version: locatorDefinition.identity.version,
+        definitionJson: JSON.stringify(locatorDefinition),
+      },
+    ] as never)
+    const cardinalityInput = {
+      ...input,
+      validationBindings: [
+        {
+          validationId: 'validation-1',
+          steps: [
+            {
+              stepId: locatorDefinition.identity.id,
+              version: locatorDefinition.identity.version,
+              inputs: Object.fromEntries(
+                locatorDefinition.inputs
+                  .filter(item => item.required)
+                  .map(item => [item.name, item.type === 'boolean' ? true : item.type === 'number' ? 1 : 'locator-1']),
+              ),
+              description: 'the locator is ready',
+            },
+          ],
+          locatorIds: [],
+        },
+      ],
+    }
+
+    await prepareQualityAssessmentRun(cardinalityInput)
+    const runtimeInput = (
+      vi.mocked(compileQualityValidations).mock.calls[0]?.[0] as {
+        realization: {
+          validations: Array<{
+            realization: { runtimePublication: { runtimeInput: { locatorBindings: unknown } } }
+          }>
+        }
+      }
+    ).realization.validations[0]!.realization.runtimePublication.runtimeInput
+
+    expect(runtimeInput.locatorBindings).toEqual([
+      {
+        caseId: 'quality-case-validation-1',
+        stepId: 'quality-case-validation-1-step-1',
+        inputName: locatorInputName,
+        cardinality: 'exactlyOne',
+      },
+    ])
+    expect(ensureEnvironment).toHaveBeenCalledTimes(1)
+  })
+
+  it('preserves locator-bearing reviewed compositions and leaves cardinality enforcement to child operations', async () => {
+    reset()
+    const child = builtInStepDefinitions.find(candidate => candidate.inputs.some(input => input.type === 'locator'))!
+    const composition = {
+      ...child,
+      identity: { ...child.identity, id: 'appraise.test.locator-composition' },
+      execution: {
+        kind: 'composition' as const,
+        steps: [
+          {
+            step: {
+              id: child.identity.id,
+              version: child.identity.version,
+              definitionHash: computeStepReferenceHash(child),
+            },
+            inputs: Object.fromEntries(child.inputs.map(item => [item.name, { input: item.name }])),
+          },
+        ],
+      },
+    }
+    vi.mocked(database.stepDefinition.findMany).mockResolvedValue([
+      {
+        id: composition.identity.id,
+        version: composition.identity.version,
+        definitionJson: JSON.stringify(composition),
+      },
+    ] as never)
+    const compositionInput = {
+      ...input,
+      validationBindings: [
+        {
+          validationId: 'validation-1',
+          steps: [
+            {
+              stepId: composition.identity.id,
+              version: composition.identity.version,
+              inputs: Object.fromEntries(
+                composition.inputs
+                  .filter(item => item.required)
+                  .map(item => [item.name, item.type === 'boolean' ? true : item.type === 'number' ? 1 : 'locator-1']),
+              ),
+              description: 'the composed locator operation is ready',
+            },
+          ],
+          locatorIds: [],
+        },
+      ],
+    }
+
+    await expect(prepareQualityAssessmentRun(compositionInput)).resolves.toMatchObject({ phase: 'STARTED' })
+    const runtimeInput = (
+      vi.mocked(compileQualityValidations).mock.calls[0]?.[0] as {
+        realization: {
+          validations: Array<{
+            realization: {
+              runtimePublication: {
+                runtimeInput: { locatorBindings: unknown[]; operationCardinalities: unknown[] }
+              }
+            }
+          }>
+        }
+      }
+    ).realization.validations[0]!.realization.runtimePublication.runtimeInput
+    expect(runtimeInput.locatorBindings).toEqual([])
+    expect(runtimeInput.operationCardinalities).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          operation: `${child.execution.kind === 'operation' ? child.execution.handlerId : ''}@${child.execution.kind === 'operation' ? child.execution.handlerVersion : ''}`,
+          cardinality: expect.stringMatching(/^(exactlyOne|collection)$/),
+        }),
+      ]),
+    )
+  })
+
+  it('rejects missing canonical locator cardinality before any browser-facing phase', async () => {
+    reset()
+    const locatorDefinition = builtInStepDefinitions.find(candidate =>
+      candidate.inputs.some(input => input.type === 'locator'),
+    )!
+    const locatorInputName = locatorDefinition.inputs.find(input => input.type === 'locator')!.name
+    vi.mocked(database.stepDefinition.findMany).mockResolvedValue([
+      {
+        id: locatorDefinition.identity.id,
+        version: locatorDefinition.identity.version,
+        definitionJson: JSON.stringify(locatorDefinition),
+      },
+    ] as never)
+    const read = vi
+      .spyOn(defaultOperationRegistry, 'read')
+      .mockReturnValueOnce([{ inputs: [{ name: locatorInputName, type: 'locator' }] }] as never)
+    const locatorInput = {
+      ...input,
+      validationBindings: [
+        {
+          ...input.validationBindings[0]!,
+          steps: [
+            {
+              stepId: locatorDefinition.identity.id,
+              version: locatorDefinition.identity.version,
+              inputs: Object.fromEntries(
+                locatorDefinition.inputs
+                  .filter(item => item.required)
+                  .map(item => [item.name, item.type === 'boolean' ? true : item.type === 'number' ? 1 : 'locator-1']),
+              ),
+              description: 'the locator is ready',
+            },
+          ],
+        },
+      ],
+    }
+
+    try {
+      await expect(prepareQualityAssessmentRun(locatorInput)).rejects.toMatchObject({ code: 'VALIDATION' })
+      expect(ensureEnvironment).not.toHaveBeenCalled()
+    } finally {
+      read.mockRestore()
+    }
   })
 
   it('rejects unresolved bindings before creating durable preparation state', async () => {

@@ -3,6 +3,7 @@ import {
   type BrowserOperationContext,
   type BrowserOperationWorld,
 } from '../operations/browser-handlers.ts'
+import { assertNoHumanVerificationRequired, HumanVerificationRequiredError } from '../captcha-detector.ts'
 
 import {
   computeStepReferenceHash,
@@ -116,13 +117,34 @@ async function invoke(
     if (definition.execution.kind === 'operation') {
       if (definition.execution.runtime !== 'browser')
         throw new Error(`Step ${definition.identity.id} requires unsupported ${definition.execution.runtime} runtime.`)
-      return outputValues(
-        definition,
-        await executeBrowserOperation(`${definition.execution.handlerId}@${definition.execution.handlerVersion}`, {
+      const operation = `${definition.execution.handlerId}@${definition.execution.handlerVersion}`
+      const checkpoint = {
+        page: context.world.page,
+        step: { id: definition.identity.id, version: definition.identity.version },
+        operation,
+      }
+      try {
+        await assertNoHumanVerificationRequired({ ...checkpoint, checkpoint: 'before_operation' })
+        const result = await executeBrowserOperation(operation, {
           ...context,
           inputs,
-        }),
-      )
+        })
+        await assertNoHumanVerificationRequired({ ...checkpoint, checkpoint: 'after_operation' })
+        return outputValues(definition, result)
+      } catch (error) {
+        if (error instanceof HumanVerificationRequiredError) {
+          context.world.recordHumanVerificationRequired?.(error.terminalEvent)
+          throw error
+        }
+        try {
+          await assertNoHumanVerificationRequired({ ...checkpoint, checkpoint: 'operation_error' })
+        } catch (detectionError) {
+          if (detectionError instanceof HumanVerificationRequiredError)
+            context.world.recordHumanVerificationRequired?.(detectionError.terminalEvent)
+          throw detectionError
+        }
+        throw error
+      }
     }
     if (definition.execution.kind === 'reviewed-extension') {
       const ref = extensionKey(definition.execution.extensionId, definition.execution.extensionVersion)

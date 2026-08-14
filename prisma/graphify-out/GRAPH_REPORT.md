@@ -1,17 +1,17 @@
 # Graph Report - prisma
 
 ## Corpus Check
-- 75 files from prisma/schema.prisma and migrations
+- 76 files from prisma/schema.prisma and migrations
 - Verdict: schema-aware graph generated because Graphify AST extraction does not currently produce Prisma/SQL nodes.
 
 ## Summary
-- 1265 nodes · 2778 edges · 247 communities
+- 1267 nodes · 2780 edges · 248 communities
 - Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS
 - Token cost: 0 input · 0 output
 
 ## God Nodes (most connected - your core abstractions)
 1. `String` - 445 edges
-2. `schema.prisma` - 186 edges
+2. `schema.prisma` - 187 edges
 3. `TargetProject` - 142 edges
 4. `DateTime` - 117 edges
 5. `TestRun` - 74 edges
@@ -42,7 +42,7 @@
 ## Import Cycles
 - None detected.
 
-## Communities (247 total)
+## Communities (248 total)
 ### Community 0 - "schema.prisma"
 Nodes (3): schema.prisma, datasource db (sqlite), Prisma client generator
 
@@ -290,7 +290,7 @@ Nodes (5): TestRunTestCaseStatus, TestRunTestCaseStatus.PENDING, TestRunTestCase
 Nodes (4): TestRunTestCaseResult, TestRunTestCaseResult.PASSED, TestRunTestCaseResult.FAILED, TestRunTestCaseResult.UNTESTED
 
 ### Community 82 - "TestRunResult"
-Nodes (5): TestRunResult, TestRunResult.PENDING, TestRunResult.PASSED, TestRunResult.FAILED, TestRunResult.CANCELLED
+Nodes (6): TestRunResult, TestRunResult.PENDING, TestRunResult.PASSED, TestRunResult.FAILED, TestRunResult.BLOCKED, TestRunResult.CANCELLED
 
 ### Community 83 - "TestRunEvidenceHealth"
 Nodes (9): TestRunEvidenceHealth, TestRunEvidenceHealth.valid, TestRunEvidenceHealth.invalid_empty_run, TestRunEvidenceHealth.invalid_missing_test_cases, TestRunEvidenceHealth.invalid_missing_report, TestRunEvidenceHealth.invalid_placeholder_binary, TestRunEvidenceHealth.invalid_unmatched_scenarios, TestRunEvidenceHealth.invalid_stale_runtime (+more)
@@ -783,6 +783,9 @@ Nodes (1): new_RuntimeCapsule
 
 ### Community 246 - "20260812000000_add_assessment_preparation"
 Nodes (1): 20260812000000_add_assessment_preparation
+
+### Community 247 - "20260814090000_add_test_run_blocked_result"
+Nodes (1): 20260814090000_add_test_run_blocked_result
 
 ## Suggested Questions
 - Which models connect Quality Plans to Assessments?

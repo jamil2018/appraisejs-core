@@ -17,6 +17,11 @@ export interface CompanionPickedLocatorPayload {
   text?: string
   accessibleName?: string
   strategy?: CompanionPickedLocatorStrategy
+  /** Recorded only when the picker confirms this selector against its live page. */
+  matchCount?: number
+  selectorFingerprint?: string
+  checkedAt?: string
+  checkedUrl?: string
 }
 
 export interface CompanionSessionFile {

@@ -12,6 +12,7 @@ import { Separator } from '@/components/ui/separator'
 import { Textarea } from '@/components/ui/textarea'
 import { ExternalLink, Loader2, Save, Target } from 'lucide-react'
 import { normalizeRoute } from '@/lib/locator-picker/suggestions'
+import type { PickedLocatorPayload } from '@/types/locator-picker'
 import type { CreateLocatorWorkspaceProps } from './create-locator-workspace-helpers'
 import {
   formatStatus,
@@ -20,6 +21,32 @@ import {
   statusTone,
 } from './create-locator-workspace-helpers'
 import { useLocatorWorkspace } from './use-locator-workspace'
+
+function PickedLocatorObservation({ pickedLocator }: { pickedLocator: PickedLocatorPayload }) {
+  return (
+    <div className="bg-muted/30 rounded-lg border p-4">
+      <div className="mb-2 flex items-center gap-2 text-sm font-medium">
+        <ExternalLink className="size-4" />
+        Picked from page
+      </div>
+      <div className="space-y-2 text-sm text-muted-foreground">
+        <div className="break-all">{pickedLocator.selector}</div>
+        <div>
+          {pickedLocator.tagName}
+          {pickedLocator.accessibleName ? ` • ${pickedLocator.accessibleName}` : ''}
+        </div>
+        <div className="break-all">{pickedLocator.currentUrl}</div>
+        {pickedLocator.matchCount === 1 && pickedLocator.checkedAt ? (
+          <div>
+            Verified as one live match at {pickedLocator.checkedAt} on{' '}
+            <span className="break-all">{pickedLocator.checkedUrl}</span>. Runtime rechecks this cardinality before
+            acting.
+          </div>
+        ) : null}
+      </div>
+    </div>
+  )
+}
 
 export default function CreateLocatorWorkspace({
   environments,
@@ -186,26 +213,13 @@ export default function CreateLocatorWorkspace({
           </CardHeader>
           <CardContent className="space-y-5">
             {session?.pickedLocator ? (
-              <div className="bg-muted/30 rounded-lg border p-4">
-                <div className="mb-2 flex items-center gap-2 text-sm font-medium">
-                  <ExternalLink className="size-4" />
-                  Picked from page
-                </div>
-                <div className="space-y-2 text-sm text-muted-foreground">
-                  <div className="break-all">{session.pickedLocator.selector}</div>
-                  <div>
-                    {session.pickedLocator.tagName}
-                    {session.pickedLocator.accessibleName ? ` • ${session.pickedLocator.accessibleName}` : ''}
-                  </div>
-                  <div className="break-all">{session.pickedLocator.currentUrl}</div>
-                </div>
-              </div>
+              <PickedLocatorObservation pickedLocator={session.pickedLocator} />
             ) : (
               <Alert>
                 <AlertTitle>Waiting for a picked selector</AlertTitle>
                 <AlertDescription>
-                  You can keep working manually below, or launch Chromium and pick one live element to populate these
-                  fields.
+                  You can keep working manually below, but manual and file-backed selectors are uniqueness-unverified at
+                  authoring. Managed runtime validates their required cardinality before acting.
                 </AlertDescription>
               </Alert>
             )}

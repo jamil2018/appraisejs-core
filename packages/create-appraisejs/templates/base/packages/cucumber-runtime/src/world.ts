@@ -1,6 +1,7 @@
 import { World, IWorldOptions, setWorldConstructor, setDefaultTimeout } from '@cucumber/cucumber'
 import { BrowserContext, Page } from 'playwright'
 import { BrowserRuntimeDiagnostics, type BrowserRuntimeIssue } from './browser-runtime-diagnostics.ts'
+import type { HumanVerificationRequiredEvent } from './captcha-detector.ts'
 export { expect } from './assertion.ts'
 
 setDefaultTimeout(120 * 1000)
@@ -17,6 +18,7 @@ export class CustomWorld extends World {
     vars: {},
   }
   private browserRuntimeDiagnostics = new BrowserRuntimeDiagnostics()
+  private humanVerificationEvent: HumanVerificationRequiredEvent | undefined
 
   constructor(options: IWorldOptions) {
     super(options)
@@ -40,6 +42,7 @@ export class CustomWorld extends World {
 
   clearBrowserRuntimeIssues(): void {
     this.browserRuntimeDiagnostics.clear()
+    this.humanVerificationEvent = undefined
   }
 
   recordBrowserRuntimeIssue(issue: BrowserRuntimeIssue): void {
@@ -48,6 +51,14 @@ export class CustomWorld extends World {
 
   browserRuntimeIssuesFor(source: BrowserRuntimeIssue['source'] | 'console-and-page'): BrowserRuntimeIssue[] {
     return this.browserRuntimeDiagnostics.read(source)
+  }
+
+  recordHumanVerificationRequired(event: HumanVerificationRequiredEvent): void {
+    this.humanVerificationEvent ??= event
+  }
+
+  humanVerificationRequiredEvent(): HumanVerificationRequiredEvent | undefined {
+    return this.humanVerificationEvent
   }
 }
 

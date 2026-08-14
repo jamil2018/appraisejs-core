@@ -1,4 +1,5 @@
 import type { SpawnedProcess } from '@/lib/process/task-spawner'
+import { parseHumanVerificationEventLine, parseRuntimeEventLine } from '@/lib/test-run/human-verification-event'
 import { EventEmitter } from 'events'
 import { taskSpawner } from '@/lib/process/task-spawner'
 
@@ -49,33 +50,27 @@ class ProcessManager extends EventEmitter {
   }
 
   private parseAndEmitCustomEvents(testRunId: string, output: string): void {
-    const lines = output.split('\n')
+    output.split('\n').forEach(line => this.emitRuntimeEvent(testRunId, line))
+  }
 
-    for (const line of lines) {
-      if (!line.trim()) {
-        continue
-      }
+  private emitRuntimeEvent(testRunId: string, line: string): void {
+    const event = parseRuntimeEventLine(line)
+    if (event?.event === 'scenario::end') this.emitScenarioEnd(testRunId, event.data)
 
-      try {
-        const jsonMatch = line.match(/\{[\s\S]*"event"[\s\S]*\}/)
-        if (jsonMatch) {
-          const eventData = JSON.parse(jsonMatch[0])
-          if (eventData.event === 'scenario::end') {
-            this.emit('scenario::end', {
-              testRunId,
-              featureName: eventData.data?.featureName,
-              scenarioName: eventData.data?.scenarioName,
-              scenarioTags: eventData.data?.scenarioTags,
-              status: eventData.data?.status,
-              tracePath: eventData.data?.tracePath,
-              ...eventData.data,
-            })
-          }
-        }
-      } catch {
-        continue
-      }
-    }
+    const humanVerification = parseHumanVerificationEventLine(line)
+    if (humanVerification) this.emit('test-run::blocked', { testRunId, ...humanVerification })
+  }
+
+  private emitScenarioEnd(testRunId: string, data: Record<string, unknown>): void {
+    this.emit('scenario::end', {
+      testRunId,
+      featureName: data.featureName,
+      scenarioName: data.scenarioName,
+      scenarioTags: data.scenarioTags,
+      status: data.status,
+      tracePath: data.tracePath,
+      ...data,
+    })
   }
 
   get(testRunId: string): SpawnedProcess | undefined {

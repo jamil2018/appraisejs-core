@@ -3,6 +3,7 @@ import type { Locator, Page } from 'playwright'
 
 import {
   browserOperationHandlerDescriptors,
+  type BrowserOperationContext,
   executeBrowserOperation,
   listBrowserOperationHandlerRefs,
   OperationExecutionError,
@@ -19,6 +20,7 @@ function runtime() {
     textContent: vi.fn().mockResolvedValue('expected text'),
     evaluate: vi.fn().mockResolvedValue('Accessible name'),
     waitFor: vi.fn(),
+    count: vi.fn().mockResolvedValue(1),
   } as unknown as Locator
   const page = {
     locator: vi.fn().mockReturnValue(locator),
@@ -89,6 +91,50 @@ describe('browser operation handlers', () => {
     await expect(executeBrowserOperation('browser.assertions.hidden@1', value.context)).rejects.toMatchObject({
       code: 'operation_assertion_failed',
     })
+  })
+
+  it.each([
+    [0, 'operation_locator_cardinality'],
+    [1, undefined],
+    [2, 'operation_locator_cardinality'],
+  ])('enforces exactly-one locator cardinality for %i live matches', async (matchCount, expectedCode) => {
+    const value = runtime()
+    value.context.inputs = { target: { id: 'title' }, value: 'Notice' }
+    vi.mocked(value.locator.count).mockResolvedValue(matchCount)
+
+    if (expectedCode) {
+      await expect(executeBrowserOperation('browser.forms.fill@1', value.context)).rejects.toMatchObject({
+        code: expectedCode,
+      })
+      expect(value.locator.fill).not.toHaveBeenCalled()
+      return
+    }
+
+    await expect(executeBrowserOperation('browser.forms.fill@1', value.context)).resolves.toBeUndefined()
+    expect(value.locator.fill).toHaveBeenCalledWith('Notice')
+  })
+
+  it('keeps collection locator operations plural', async () => {
+    const value = runtime()
+    value.context.inputs = { elementName: { id: 'rows' }, expected: 2 }
+    vi.mocked(value.locator.count).mockResolvedValue(2)
+
+    await expect(
+      executeBrowserOperation('browser.element.property.assertion.assert.element.count@1', value.context),
+    ).resolves.toBeUndefined()
+    expect(value.locator.count).toHaveBeenCalledTimes(1)
+  })
+
+  it('prefers sealed operation cardinality over the installed registry definition', async () => {
+    const value = runtime()
+    value.context.inputs = { target: { id: 'title' }, value: 'Notice' }
+    ;(value.context as BrowserOperationContext).operationCardinalities = {
+      'browser.forms.fill@1': { target: 'collection' },
+    }
+    vi.mocked(value.locator.count).mockResolvedValue(2)
+
+    await expect(executeBrowserOperation('browser.forms.fill@1', value.context)).resolves.toBeUndefined()
+    expect(value.locator.fill).toHaveBeenCalledWith('Notice')
   })
 
   it('fails closed for unknown or unreviewed operations', async () => {

@@ -6,6 +6,7 @@ import { BrowserEngine, TestRunEvidenceHealth, TestRunResult, TestRunStatus } fr
 import prisma from '@/config/db-config'
 import { canonicalContractJson } from '@/lib/catalog-contracts'
 import { hashEvidenceReceipt } from '@/lib/quality-design/state'
+import { findHumanVerificationEvent } from '@/lib/test-run/human-verification-event'
 import { RuntimeCapsuleTestRunService } from '@/services/test-run/runtime-capsule-test-run-service'
 import { ServiceError } from '@/services/shared/errors'
 
@@ -364,6 +365,7 @@ export async function stopQualityAssessment(input: { assessmentId: string; reaso
 function outcomeFor(run: { status: TestRunStatus; result: TestRunResult }) {
   if (run.result === TestRunResult.PASSED) return 'PASSED' as const
   if (run.status === TestRunStatus.CANCELLED || run.result === TestRunResult.CANCELLED) return 'BLOCKED' as const
+  if (run.result === TestRunResult.BLOCKED) return 'BLOCKED' as const
   if (run.result === TestRunResult.FAILED) return 'FAILED' as const
   return 'INCONCLUSIVE' as const
 }
@@ -372,15 +374,22 @@ function terminal(run: { status: TestRunStatus }) {
   return run.status === TestRunStatus.COMPLETED || run.status === TestRunStatus.CANCELLED
 }
 
+function hasHumanVerificationTerminalEvent(logs: string | null | undefined) {
+  return Boolean(findHumanVerificationEvent(logs))
+}
+
 function evidenceEligible(run: {
   status: TestRunStatus
   result: TestRunResult
   evidenceHealth: TestRunEvidenceHealth
   runtimeCapsule: { integrityState: string } | null
+  logs?: { logs: string } | null
 }) {
   return (
     run.status === TestRunStatus.COMPLETED &&
-    (run.result === TestRunResult.PASSED || run.result === TestRunResult.FAILED) &&
+    (run.result === TestRunResult.PASSED ||
+      run.result === TestRunResult.FAILED ||
+      (run.result === TestRunResult.BLOCKED && hasHumanVerificationTerminalEvent(run.logs?.logs))) &&
     run.evidenceHealth === TestRunEvidenceHealth.valid &&
     run.runtimeCapsule?.integrityState === 'ready'
   )
@@ -408,7 +417,14 @@ async function reconcileQualityAssessmentRun(input: { assessmentRunId: string })
       bindings: {
         include: {
           validationVersion: { include: { publication: true } },
-          testRun: { include: { environment: true, runtimeCapsule: true, testCases: { select: { tracePath: true } } } },
+          testRun: {
+            include: {
+              environment: true,
+              logs: true,
+              runtimeCapsule: true,
+              testCases: { select: { tracePath: true } },
+            },
+          },
         },
       },
       assessment: true,
@@ -519,18 +535,19 @@ async function reconcileQualityAssessmentRun(input: { assessmentRunId: string })
     current.bindings.length > 0 &&
     current.bindings.every(binding => binding.terminalizedAt || binding.evidenceReceiptId)
   const evidenceComplete = allTerminal && current.bindings.every(binding => binding.evidenceReceiptId)
+  const blockedByHumanVerification = current.bindings.some(binding => binding.terminalOutcome === 'BLOCKED')
   if (allTerminal) {
     const status = current.stopReason ? 'STOPPED' : 'COMPLETED'
     await executionClient.assessmentRun.updateMany({
       where: { id: current.id, status: { in: ['PREPARED', 'RUNNING', 'STOP_REQUESTED'] } },
       data: { status },
     })
-    if (current.assessmentId && evidenceComplete && !current.stopReason)
+    if (current.assessmentId && evidenceComplete && !current.stopReason && !blockedByHumanVerification)
       await executionClient.assessment.updateMany({
         where: { id: current.assessmentId, status: 'RUNNING' },
         data: { status: 'EVIDENCE_REVIEW' },
       })
-    if (current.assessmentId && !evidenceComplete && !current.stopReason)
+    if (current.assessmentId && (!evidenceComplete || blockedByHumanVerification) && !current.stopReason)
       await executionClient.assessment.updateMany({
         where: { id: current.assessmentId, status: 'RUNNING' },
         data: { status: 'READY' },

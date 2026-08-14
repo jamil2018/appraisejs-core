@@ -7,6 +7,7 @@ import prisma from '@/config/db-config'
 import { canonicalContractJson } from '@/lib/catalog-contracts'
 import { hashCanonical } from '@/lib/quality-design/state'
 import { createCustomExtensionPolicy } from '@/lib/validation-ast/extension-policy'
+import { defaultOperationDefinitions, defaultOperationRegistry } from '@/lib/operation-catalog'
 import { ensureEnvironment, environmentSummary } from '@/services/environment/environment-service'
 import { ServiceError } from '@/services/shared/errors'
 import { ensureBuiltInStepDefinitionReadiness } from '@/services/step-definition/built-in-readiness-service'
@@ -82,7 +83,10 @@ type Receipt = Record<string, unknown>
 type PreparedBinding = {
   validationId: string
   steps: Array<
-    z.infer<typeof compactStepBindingSchema> & { step: { id: string; version: string; definitionHash: string } }
+    z.infer<typeof compactStepBindingSchema> & {
+      step: { id: string; version: string; definitionHash: string }
+      locatorCardinalities: Array<{ inputName: string; cardinality: 'exactlyOne' | 'collection' }>
+    }
   >
   locators: Array<{
     id: string
@@ -261,6 +265,40 @@ function preparedSteps(
         'VALIDATION',
       )
     }
+    // Composition children enforce their own canonical operation cardinality
+    // when dispatched. Parent locator names may be remapped to different child
+    // input names, so treating the parent as a direct operation would reject a
+    // valid reviewed composition and seal the wrong override keys.
+    const locatorCardinalities =
+      definition.execution.kind === 'composition'
+        ? []
+        : definition.inputs
+            .filter(input => input.type === 'locator')
+            .map(input => {
+              if (definition.execution.kind !== 'operation')
+                throw new ServiceError(
+                  `Locator-consuming Step Definition ${definition.identity.id}@${definition.identity.version} must use a canonical operation binding.`,
+                  'VALIDATION',
+                )
+              let operation: ReturnType<typeof defaultOperationRegistry.read>[number] | undefined
+              try {
+                operation = defaultOperationRegistry.read([
+                  { id: definition.execution.handlerId, version: definition.execution.handlerVersion },
+                ])[0]
+              } catch {
+                throw new ServiceError(
+                  `Canonical operation ${definition.execution.handlerId}@${definition.execution.handlerVersion} is unavailable for locator cardinality validation.`,
+                  'VALIDATION',
+                )
+              }
+              const canonicalInput = operation?.inputs.find(candidate => candidate.name === input.name)
+              if (canonicalInput?.type !== 'locator' || !canonicalInput.cardinality)
+                throw new ServiceError(
+                  `Canonical locator input ${input.name} for ${definition.execution.handlerId}@${definition.execution.handlerVersion} is missing cardinality.`,
+                  'VALIDATION',
+                )
+              return { inputName: input.name, cardinality: canonicalInput.cardinality }
+            })
     return {
       ...step,
       step: {
@@ -268,6 +306,7 @@ function preparedSteps(
         version: definition.identity.version,
         definitionHash: computeStepReferenceHash(definition),
       },
+      locatorCardinalities,
     }
   })
 }
@@ -375,6 +414,30 @@ function realizationFor(
           capabilityImports: {},
         }),
         rootInvocations: steps.map(step => ({ caseId, stepId: step.id, invocation: step.invocation })),
+        locatorBindings: steps.flatMap((step, index) =>
+          binding.steps[index]!.locatorCardinalities.map(locator => ({
+            caseId,
+            stepId: step.id,
+            inputName: locator.inputName,
+            cardinality: locator.cardinality,
+          })),
+        ),
+        operationCardinalities: defaultOperationDefinitions.flatMap(operation =>
+          operation.inputs
+            .filter(input => input.type === 'locator')
+            .map(input => {
+              if (!input.cardinality)
+                throw new ServiceError(
+                  `Canonical locator input ${input.name} for ${operation.handler.id}@${operation.handler.version} is missing cardinality.`,
+                  'VALIDATION',
+                )
+              return {
+                operation: `${operation.handler.id}@${operation.handler.version}`,
+                inputName: input.name,
+                cardinality: input.cardinality,
+              }
+            }),
+        ),
         stepDefinitions: binding.steps.map(item => item.step),
         locators: binding.locators,
         extensions: [],

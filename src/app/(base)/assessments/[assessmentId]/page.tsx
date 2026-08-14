@@ -142,6 +142,7 @@ export default async function AssessmentDetailPage({ params, searchParams }: Pag
           packet.readiness.ready &&
           packet.evidenceReceiptCount > 0 &&
           packet.assessment.status === 'EVIDENCE_REVIEW' &&
+          packet.targetOutcome !== 'not_evaluated' &&
           packet.decisions.length === 0
         }
         decisions={packet.decisions}

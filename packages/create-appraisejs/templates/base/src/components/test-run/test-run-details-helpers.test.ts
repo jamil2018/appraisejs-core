@@ -63,6 +63,8 @@ describe('test-run-details helpers', () => {
   it('formats run status, result, and duration values', () => {
     expect(getTestRunStatusMeta(TestRunStatus.COMPLETED, TestRunResult.PASSED).label).toBe('Completed')
     expect(getTestRunResultText(TestRunResult.FAILED)).toBe('Failed')
+    expect(getTestRunStatusMeta(TestRunStatus.COMPLETED, TestRunResult.BLOCKED).label).toBe('Blocked')
+    expect(getTestRunResultText(TestRunResult.BLOCKED)).toBe('Blocked by human verification')
     expect(getDurationSeconds(new Date('2024-01-01T00:00:00.000Z'), new Date('2024-01-01T00:00:07.000Z'))).toBe(7)
   })
 

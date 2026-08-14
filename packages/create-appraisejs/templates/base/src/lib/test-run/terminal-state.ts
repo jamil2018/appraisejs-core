@@ -1,6 +1,6 @@
 import { TestRunResult, TestRunStatus } from '@prisma/client'
 
-export type TestRunTerminalOutcome = 'passed' | 'failed' | 'cancelled'
+export type TestRunTerminalOutcome = 'passed' | 'failed' | 'blocked' | 'cancelled'
 type ExecutionAttemptTerminalState = 'COMPLETED' | 'FAILED' | 'CANCELLED'
 
 export type TestRunTerminalArtifacts = {
@@ -12,6 +12,7 @@ export type TestRunTerminalArtifacts = {
 const TRANSITION_SOURCES: Record<TestRunTerminalOutcome, ReadonlySet<TestRunStatus>> = {
   passed: new Set([TestRunStatus.RUNNING]),
   failed: new Set([TestRunStatus.QUEUED, TestRunStatus.RUNNING]),
+  blocked: new Set([TestRunStatus.RUNNING]),
   cancelled: new Set([TestRunStatus.QUEUED, TestRunStatus.RUNNING, TestRunStatus.CANCELLING]),
 }
 
@@ -21,6 +22,7 @@ const TERMINAL_STATE: Record<
 > = {
   passed: { status: TestRunStatus.COMPLETED, result: TestRunResult.PASSED, attemptState: 'COMPLETED' },
   failed: { status: TestRunStatus.COMPLETED, result: TestRunResult.FAILED, attemptState: 'FAILED' },
+  blocked: { status: TestRunStatus.COMPLETED, result: TestRunResult.BLOCKED, attemptState: 'COMPLETED' },
   cancelled: { status: TestRunStatus.CANCELLED, result: TestRunResult.CANCELLED, attemptState: 'CANCELLED' },
 }
 

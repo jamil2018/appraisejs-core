@@ -116,11 +116,16 @@ After(async function (this: CustomWorld, scenario) {
   })
 
   process.stdout.write(eventJson + '\n')
+  const blockedEvent = this.humanVerificationRequiredEvent()
 
   currentScenarioStatus = 'unknown'
 
   await this.page.close()
   await this.context.close()
+  // Emit only after the scenario-owned browser resources are closed. The
+  // coordinator may terminate parallel managed execution as soon as it sees
+  // this terminal automation-boundary event.
+  if (blockedEvent) process.stdout.write(JSON.stringify(blockedEvent) + '\n')
 })
 
 AfterAll(async function () {

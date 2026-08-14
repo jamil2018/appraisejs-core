@@ -427,7 +427,7 @@ export function registerQualityDesignOperations(context: McpRegistryContext): vo
     'assessment_review',
     {
       description:
-        'Read the assessment review packet, alignment status, evidence hash, assurance observations, and decision blockers.',
+        'Read the assessment review packet, alignment status, evidence hash, assurance observations, and decision blockers. Human-verification blocked evidence remains targetOutcome not_evaluated.',
       inputSchema: assessmentInputSchema.shape,
     },
     async ({ assessmentId, responseMode }) =>

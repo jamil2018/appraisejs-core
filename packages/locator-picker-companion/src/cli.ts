@@ -9,6 +9,7 @@ import {
   writeLocatorPickerSessionFile,
 } from './session-file.js'
 import { generatePickedLocatorPayload } from './selector-generator.js'
+import { assertExactlyOneObservedMatch, observeSelector } from './selector-observation.js'
 import { installLocatorPickerOverlay } from './injected-picker-script.js'
 import type { CompanionPickedLocatorPayload } from './types.js'
 
@@ -207,8 +208,8 @@ class LocatorPickerCompanion {
         return this.generatePreview(page, elementHandle as ElementHandle)
       })
 
-      await this.context.exposeBinding('__appraiseLocatorPickerConfirm', async (_source, payload) => {
-        await this.confirmSelection(payload as CompanionPickedLocatorPayload)
+      await this.context.exposeBinding('__appraiseLocatorPickerConfirm', async ({ page }, payload) => {
+        await this.confirmSelection(page, payload as CompanionPickedLocatorPayload)
       })
 
       await this.context.exposeBinding('__appraiseLocatorPickerCancel', async () => {
@@ -304,16 +305,28 @@ class LocatorPickerCompanion {
     return generatePickedLocatorPayload(page, elementHandle)
   }
 
-  private async confirmSelection(payload: CompanionPickedLocatorPayload): Promise<void> {
+  private async confirmSelection(page: Page | undefined, payload: CompanionPickedLocatorPayload): Promise<void> {
+    if (!page || page.isClosed()) {
+      throw new Error('The page is no longer available to confirm this selector.')
+    }
+    const observation = await observeSelector(page, payload.selector)
+    assertExactlyOneObservedMatch(observation)
+    const pageTitle = await page.title().catch(() => payload.pageTitle)
+
     this.finalized = true
     this.requestedExitCode = 0
 
     await patchLocatorPickerSessionFile(this.sessionFile, current => ({
       status: current.status === 'saving' ? 'saving' : 'picked',
-      currentUrl: payload.currentUrl,
-      currentPathname: payload.pathname,
-      pageTitle: payload.pageTitle,
-      pickedLocator: payload,
+      currentUrl: observation.checkedUrl,
+      currentPathname: normalizeRoute(observation.checkedUrl),
+      pageTitle,
+      pickedLocator: {
+        ...payload,
+        ...observation,
+        currentUrl: observation.checkedUrl,
+        pathname: normalizeRoute(observation.checkedUrl),
+      },
       error: undefined,
       companionPid: process.pid,
     }))

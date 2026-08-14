@@ -25,4 +25,5 @@ function loadOperationDefinitions(): OperationDefinition[] {
   })
 }
 
-export const defaultOperationRegistry = createOperationRegistry(loadOperationDefinitions())
+export const defaultOperationDefinitions = loadOperationDefinitions()
+export const defaultOperationRegistry = createOperationRegistry(defaultOperationDefinitions)

@@ -310,6 +310,133 @@ describe('assessment execution guards', () => {
     }
   })
 
+  it('seals integrity-valid human-verification evidence but returns the assessment to READY', async () => {
+    const reportPath = path.join(process.cwd(), '.tmp-assessment-blocked-report.json')
+    const logPath = path.join(process.cwd(), '.tmp-assessment-blocked-run.log')
+    await Promise.all([
+      fs.writeFile(reportPath, '{"passed":false}'),
+      fs.writeFile(
+        logPath,
+        '[2026-08-14T00:00:00.000Z] [STDOUT] {"event":"appraise.runtime.blocked/v1","data":{"reason":"human_verification_required","detectorVersion":"captcha-structural/v1","provider":"recaptcha","pageOrigin":"https://example.test","frameOrigin":"https://www.google.com","signatureId":"iframe:recaptcha","checkpoint":"before_operation","operation":"browser.navigation.goto@1","step":{"id":"step.open","version":"1"},"observedAt":"2026-08-14T00:00:00.000Z"}}',
+      ),
+    ])
+    const binding = {
+      id: 'binding-1',
+      version: 0,
+      validationVersionId: 'validation-1',
+      resultMatrixCell: 'CHROMIUM:env-1',
+      runtimeInputHash: 'sha256:runtime',
+      evidenceReceiptId: null,
+      validationVersion: {
+        canonicalAstJson: JSON.stringify({ requiredMinimumAssurance: 'STANDARD' }),
+        canonicalHash: 'sha256:validation',
+        publication: { runtimeInputJson: '{"data":"fixture"}' },
+      },
+      testRun: {
+        status: 'COMPLETED',
+        result: 'BLOCKED',
+        evidenceHealth: 'valid',
+        completedAt: new Date(),
+        reportPath,
+        logPath,
+        logs: {
+          logs: '[2026-08-14T00:00:00.000Z] [STDOUT] {"event":"appraise.runtime.blocked/v1","data":{"reason":"human_verification_required","detectorVersion":"captcha-structural/v1","provider":"recaptcha","pageOrigin":"https://example.test","frameOrigin":"https://www.google.com","signatureId":"iframe:recaptcha","checkpoint":"before_operation","operation":"browser.navigation.goto@1","step":{"id":"step.open","version":"1"},"observedAt":"2026-08-14T00:00:00.000Z"}}',
+        },
+        browserEngine: 'CHROMIUM',
+        environment: { id: 'env-1', baseUrl: 'https://example.test' },
+        runtimeCapsule: { integrityState: 'ready', capsuleHash: 'sha256:capsule', manifestHash: 'sha256:manifest' },
+        testCases: [],
+      },
+    }
+    const findUniqueOrThrow = vi
+      .fn()
+      .mockResolvedValueOnce({
+        id: 'run-1',
+        targetProjectId: 'target-1',
+        qualityPlanRevisionId: 'revision-1',
+        evaluationSubjectRevisionId: 'subject-1',
+        assessmentId: 'assessment-1',
+        evaluationSubjectRevision: { subjectDigest: 'sha256:subject' },
+        bindings: [binding],
+      })
+      .mockResolvedValueOnce({
+        id: 'run-1',
+        assessmentId: 'assessment-1',
+        stopReason: null,
+        bindings: [{ evidenceReceiptId: 'receipt-1', terminalOutcome: 'BLOCKED', terminalizedAt: new Date() }],
+      })
+      .mockResolvedValueOnce({ id: 'run-1', bindings: [] })
+    const evidenceUpsert = vi.fn().mockResolvedValue({ id: 'receipt-1' })
+    const assessmentUpdate = vi.fn().mockResolvedValue({ count: 1 })
+    setAssessmentExecutionClientForTests({
+      assessmentRun: { findMany: vi.fn().mockResolvedValue([{ id: 'run-1' }]), findUniqueOrThrow, updateMany: vi.fn() },
+      assessmentRunBinding: { updateMany: vi.fn().mockResolvedValue({ count: 1 }) },
+      evidenceReceipt: { upsert: evidenceUpsert },
+      assessment: { updateMany: assessmentUpdate },
+    } as never)
+    try {
+      await reconcileQualityAssessment({ assessmentId: 'assessment-1' })
+      expect(evidenceUpsert).toHaveBeenCalledWith(
+        expect.objectContaining({ create: expect.objectContaining({ outcome: 'BLOCKED' }) }),
+      )
+      expect(assessmentUpdate).toHaveBeenCalledWith(expect.objectContaining({ data: { status: 'READY' } }))
+      expect(assessmentUpdate).not.toHaveBeenCalledWith(
+        expect.objectContaining({ data: { status: 'EVIDENCE_REVIEW' } }),
+      )
+    } finally {
+      await Promise.all([fs.rm(reportPath, { force: true }), fs.rm(logPath, { force: true })])
+    }
+  })
+
+  it('does not seal a blocked receipt when report evidence is invalid or missing', async () => {
+    const binding = {
+      id: 'binding-1',
+      version: 0,
+      validationVersionId: 'validation-1',
+      resultMatrixCell: 'CHROMIUM:env-1',
+      evidenceReceiptId: null,
+      testRun: {
+        status: 'COMPLETED',
+        result: 'BLOCKED',
+        evidenceHealth: 'invalid_missing_report',
+        completedAt: new Date(),
+        runtimeCapsule: { integrityState: 'ready' },
+        logs: {
+          logs: '{"event":"appraise.runtime.blocked/v1","data":{"reason":"human_verification_required","detectorVersion":"captcha-structural/v1","provider":"recaptcha","pageOrigin":"https://example.test","frameOrigin":"https://www.google.com","signatureId":"iframe:recaptcha","checkpoint":"before_operation","operation":"browser.navigation.goto@1","step":{"id":"step.open","version":"1"},"observedAt":"2026-08-14T00:00:00.000Z"}}',
+        },
+      },
+    }
+    const findUniqueOrThrow = vi
+      .fn()
+      .mockResolvedValueOnce({
+        id: 'run-1',
+        assessmentId: 'assessment-1',
+        bindings: [binding],
+      })
+      .mockResolvedValueOnce({
+        id: 'run-1',
+        assessmentId: 'assessment-1',
+        stopReason: null,
+        bindings: [{ terminalOutcome: 'BLOCKED', terminalizedAt: new Date(), evidenceReceiptId: null }],
+      })
+      .mockResolvedValueOnce({ id: 'run-1', bindings: [] })
+    const evidenceUpsert = vi.fn()
+    const bindingUpdate = vi.fn().mockResolvedValue({ count: 1 })
+    setAssessmentExecutionClientForTests({
+      assessmentRun: { findMany: vi.fn().mockResolvedValue([{ id: 'run-1' }]), findUniqueOrThrow, updateMany: vi.fn() },
+      assessmentRunBinding: { updateMany: bindingUpdate },
+      evidenceReceipt: { upsert: evidenceUpsert },
+      assessment: { updateMany: vi.fn() },
+    } as never)
+
+    await reconcileQualityAssessment({ assessmentId: 'assessment-1' })
+
+    expect(evidenceUpsert).not.toHaveBeenCalled()
+    expect(bindingUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ terminalOutcome: 'BLOCKED' }) }),
+    )
+  })
+
   it('terminalizes failed execution without evidence and returns the assessment to READY', async () => {
     const binding = {
       id: 'binding-1',

@@ -22,6 +22,8 @@ An Assessment identifies an immutable evaluation subject and the published valid
 
 Assessment execution prepares and starts content-bound managed runs. Replays with the same content identity are idempotent. Reconciliation waits for terminal runs, checks capsule and artifact integrity, and seals an immutable Evidence Receipt for each completed matrix cell. Partial evidence remains visible and is never discarded merely because another cell is still active or failed.
 
+Human-verification CAPTCHA blocks are terminal managed-run boundaries, not target failures or cancellations. A high-confidence, structure-only runtime event can seal an integrity-valid `EvidenceOutcome.BLOCKED` receipt, but it leaves `targetOutcome` as `not_evaluated`, prevents a pass/fail decision, and returns the Assessment to `READY` for a fresh run after the challenge is resolved outside AppraiseJS. No Appraise lifecycle API may bypass, pause, resume, or take over that browser session.
+
 Evidence reaches review only after the Assessment has completed reconciliation. A decision is hash-bound to the complete evidence set and current requirement alignment. Stale inputs are rejected. Standalone evidence execution may seal receipts but cannot create an Assessment decision.
 
 ## Recovery And Ownership

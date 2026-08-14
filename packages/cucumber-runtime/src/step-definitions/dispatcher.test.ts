@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 
 import { computeStepReferenceHash, dispatchStepInvocation, type StepDefinition, type StepInvocation } from './index.ts'
 
@@ -99,6 +99,62 @@ describe('Step Invocation dispatcher', () => {
       },
     })
     expect(calls).toEqual([9])
+  })
+
+  it('stops before an operation can resolve a locator when a visible CAPTCHA is detected', async () => {
+    const builtin = definition('captcha-before-operation', {
+      inputs: [
+        {
+          name: 'target',
+          label: 'Target',
+          description: 'Reviewed locator.',
+          type: 'locator',
+          required: true,
+          examples: ['locator_submit'],
+          aliases: [],
+        },
+      ],
+      agent: {
+        summary: 'assert visible',
+        usageGuidance: 'assert visible',
+        examples: [{ intent: 'assert visible', inputs: { target: 'locator_submit' } }],
+      },
+      execution: {
+        kind: 'operation',
+        handlerId: 'browser.assertions.visible',
+        handlerVersion: '1',
+        runtime: 'browser',
+      },
+    })
+    const resolveLocator = vi.fn()
+    const recordHumanVerificationRequired = vi.fn()
+    await expect(
+      dispatchStepInvocation({
+        invocation: invocation(builtin, { target: 'locator_submit' }),
+        sealedDefinitions: [{ step: reference(builtin), definition: builtin }],
+        context: {
+          world: {
+            page: {
+              evaluate: vi.fn().mockResolvedValue({
+                provider: 'recaptcha',
+                pageOrigin: 'https://example.test',
+                frameOrigin: 'https://www.google.com',
+                signatureId: 'iframe:recaptcha',
+              }),
+            },
+            recordHumanVerificationRequired,
+          } as never,
+          resolveLocator,
+        },
+      }),
+    ).rejects.toMatchObject({ name: 'HumanVerificationRequiredError' })
+    expect(resolveLocator).not.toHaveBeenCalled()
+    expect(recordHumanVerificationRequired).toHaveBeenCalledWith(
+      expect.objectContaining({
+        event: 'appraise.runtime.blocked/v1',
+        data: expect.objectContaining({ reason: 'human_verification_required', checkpoint: 'before_operation' }),
+      }),
+    )
   })
 
   it('runs composition children in order and maps parent inputs and earlier outputs', async () => {
