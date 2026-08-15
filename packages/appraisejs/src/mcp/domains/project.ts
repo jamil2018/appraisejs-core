@@ -1,6 +1,43 @@
 import type { McpRegistryContext } from '../registry.js'
 import { text, withGuidance, z } from '../shared.js'
 
+const nullableOptionalString = () => z.preprocess(value => (value === null ? undefined : value), z.string().optional())
+const nullableOptionalPositiveInteger = (maximum: number) =>
+  z.preprocess(value => (value === null ? undefined : value), z.number().int().positive().max(maximum).optional())
+
+const operationSearchInputSchema = z
+  .object({
+    query: nullableOptionalString().pipe(z.string().trim().min(1).max(500).optional()),
+    parameterNames: z.array(z.string().min(1)).max(32).optional(),
+    category: nullableOptionalString(),
+    capability: nullableOptionalString(),
+    inputType: nullableOptionalString(),
+    runtime: z.preprocess(
+      value => (value === null ? undefined : value),
+      z.enum(['browser', 'api', 'node', 'database']).optional(),
+    ),
+    surface: z.preprocess(value => (value === null ? undefined : value), z.enum(['human', 'agent']).optional()),
+    deprecated: z.preprocess(value => (value === null ? undefined : value), z.boolean().optional()),
+    limit: nullableOptionalPositiveInteger(100),
+  })
+  .superRefine((value, context) => {
+    if (
+      !value.query &&
+      !value.parameterNames?.length &&
+      !value.category &&
+      !value.capability &&
+      !value.inputType &&
+      !value.runtime &&
+      !value.surface &&
+      value.deprecated === undefined
+    )
+      context.addIssue({
+        code: 'custom',
+        path: ['query'],
+        message: 'Provide a query or at least one operation filter.',
+      })
+  })
+
 /** Target and bounded discovery operations available to quality workflows. */
 export function registerProjectOperations(context: McpRegistryContext): void {
   const { server, api } = context
@@ -49,17 +86,47 @@ export function registerProjectOperations(context: McpRegistryContext): void {
   server.registerTool(
     'locator_graph_query',
     {
-      description: 'Query a bounded locator graph path from a surface, group, or locator node.',
+      description:
+        'Query a bounded locator graph path within the target bound to a Quality Plan. fromId is required; omitted optional filters are normalized to absent.',
       inputSchema: {
+        target: z.string().min(1),
+        qualityPlanId: z.string().min(1),
         fromId: z.string().min(1),
-        relation: z.string().optional(),
-        toType: z.string().optional(),
-        cursor: z.string().optional(),
-        limit: z.number().int().positive().max(100).optional(),
-        depth: z.number().int().positive().max(4).optional(),
+        relation: nullableOptionalString(),
+        toType: nullableOptionalString(),
+        cursor: nullableOptionalString(),
+        limit: nullableOptionalPositiveInteger(100),
+        depth: nullableOptionalPositiveInteger(4),
       },
     },
     async input => text(await api.queryLocatorGraph(input)),
+  )
+
+  server.registerTool(
+    'locator_ensure',
+    {
+      description:
+        'Idempotently ensure one target-owned locator closure for a Quality Plan without browser interaction or credentials.',
+      inputSchema: {
+        target: z.string().min(1),
+        qualityPlanId: z.string().min(1),
+        allowCreate: z.boolean().optional(),
+        group: z.discriminatedUnion('mode', [
+          z.object({ mode: z.literal('existing'), id: z.string().min(1) }),
+          z.object({
+            mode: z.literal('ensure'),
+            name: z.string().min(1).max(200),
+            route: z.string().startsWith('/').max(2_000),
+            module: z.discriminatedUnion('mode', [
+              z.object({ mode: z.literal('existing'), id: z.string().min(1) }),
+              z.object({ mode: z.literal('ensure'), name: z.string().min(1).max(200) }),
+            ]),
+          }),
+        ]),
+        locator: z.object({ name: z.string().min(1).max(200), selector: z.string().min(1).max(10_000) }),
+      },
+    },
+    async body => text(await api.request('locators/ensure', { method: 'POST', body: JSON.stringify(body) })),
   )
 
   server.registerTool(
@@ -93,17 +160,19 @@ export function registerProjectOperations(context: McpRegistryContext): void {
   server.registerTool(
     'step_search',
     {
-      description: 'Search ready Step Definitions by one actionable versioned identity.',
+      description:
+        'Search ready Step Definitions by one actionable versioned identity. Results are paginated; limit defaults to 5 and cannot exceed 25.',
       inputSchema: {
         query: z.string().min(1),
         parameterNames: z.array(z.string().min(1)).default([]),
         limit: z.number().int().positive().max(25).default(5),
+        cursor: z.string().regex(/^\d+$/).optional(),
       },
     },
-    async ({ query, parameterNames, limit }) =>
+    async ({ query, parameterNames, limit, cursor }) =>
       text(
         await api.request(
-          `step-definitions/search?query=${encodeURIComponent(query)}&parameterNames=${encodeURIComponent(parameterNames.join(','))}&limit=${limit}&surface=agent`,
+          `step-definitions/search?query=${encodeURIComponent(query)}&parameterNames=${encodeURIComponent(parameterNames.join(','))}&limit=${limit}&surface=agent${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ''}`,
         ),
       ),
   )
@@ -111,13 +180,20 @@ export function registerProjectOperations(context: McpRegistryContext): void {
   server.registerTool(
     'locator_search',
     {
-      description: 'Search live locators for a Quality Plan before validation design.',
-      inputSchema: { qualityPlanId: z.string().min(1), query: z.string().min(1) },
+      description:
+        'Search target- and Quality Plan-scoped locators by locator name, selector, group, module, or route before validation design.',
+      inputSchema: {
+        target: z.string().min(1),
+        qualityPlanId: z.string().min(1),
+        query: z.string().min(1),
+        cursor: z.string().regex(/^\d+$/).optional(),
+        limit: z.number().int().positive().max(100).default(25),
+      },
     },
-    async ({ qualityPlanId, query }) =>
+    async ({ target, qualityPlanId, query, cursor, limit }) =>
       text(
         await api.request(
-          `quality/plans/${encodeURIComponent(qualityPlanId)}/locators?query=${encodeURIComponent(query)}&limit=25`,
+          `quality/plans/${encodeURIComponent(qualityPlanId)}/locators?target=${encodeURIComponent(target)}&query=${encodeURIComponent(query)}&limit=${limit}${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ''}`,
         ),
       ),
   )
@@ -134,20 +210,11 @@ export function registerProjectOperations(context: McpRegistryContext): void {
   server.registerTool(
     'operation_search',
     {
-      description: 'Search the canonical operation catalog with paired human Step naming.',
-      inputSchema: {
-        query: z.string().min(1).max(500),
-        parameterNames: z.array(z.string().min(1)).max(32).optional(),
-        category: z.string().optional(),
-        capability: z.string().optional(),
-        inputType: z.string().optional(),
-        runtime: z.enum(['browser', 'api', 'node', 'database']).optional(),
-        surface: z.enum(['human', 'agent']).optional(),
-        deprecated: z.boolean().optional(),
-        limit: z.number().int().min(1).max(100).optional(),
-      },
+      description:
+        'Search the bounded canonical operation catalog with paired human Step naming. Provide a query or at least one filter.',
+      inputSchema: operationSearchInputSchema.shape,
     },
-    async input => text(await api.searchOperations(input)),
+    async input => text(await api.searchOperations(operationSearchInputSchema.parse(input))),
   )
 
   server.registerTool(

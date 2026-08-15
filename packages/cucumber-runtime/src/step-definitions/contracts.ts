@@ -292,6 +292,15 @@ export function stepInputValueMatchesType(value: unknown, type: StepDefinition['
   return typeof value === 'string'
 }
 
+function isDeferredRuntimeReference(value: unknown) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false
+  const reference = value as Record<string, unknown>
+  return (
+    (reference.ref === 'environment' && typeof reference.key === 'string' && Object.keys(reference).length === 2) ||
+    (reference.ref === 'stored' && typeof reference.name === 'string' && Object.keys(reference).length === 2)
+  )
+}
+
 export function validateStepInvocationInputs(
   definition: StepDefinition,
   supplied: Record<string, unknown>,
@@ -308,7 +317,7 @@ export function validateStepInvocationInputs(
       const value = resolveValue(suppliedValue)
       if (value === undefined && input.required)
         throw new Error(`Step ${definition.identity.id} is missing required input ${input.name}.`)
-      if (value !== undefined && !stepInputValueMatchesType(value, input.type))
+      if (value !== undefined && !isDeferredRuntimeReference(value) && !stepInputValueMatchesType(value, input.type))
         throw new Error(`Step ${definition.identity.id} input ${input.name} has the wrong type.`)
       return [input.name, value]
     }),

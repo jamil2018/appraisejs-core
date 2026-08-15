@@ -63,6 +63,7 @@ import {
   type PageRequest,
 } from '@/lib/pagination'
 import { readLogTail } from '@/lib/test-run/log-tail-reader'
+import { credentialRedactor } from '@/lib/runtime-capsule/secret-redaction'
 
 export {
   buildOrExpression,
@@ -617,6 +618,22 @@ async function storeReportAfterRunIfNeeded(
   }
 }
 
+async function redactManagedReportOutput(
+  reportPath: string,
+  environment: Pick<Environment, 'passwordEnvironmentVariable'>,
+) {
+  const reference = environment.passwordEnvironmentVariable
+  const resolvedPassword = reference ? process.env[reference] : undefined
+  if (!resolvedPassword) return
+  try {
+    const report = await fs.readFile(reportPath, 'utf8')
+    const redacted = credentialRedactor([resolvedPassword])(report)
+    if (redacted !== report) await fs.writeFile(reportPath, redacted, { mode: 0o600 })
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error
+  }
+}
+
 async function ensureFeatureFilesForTestRun(testRunTestCases: TestRunTestCaseLink[]): Promise<void> {
   if (testRunTestCases.length === 0) {
     return
@@ -809,6 +826,7 @@ export async function scheduleTestRunCompletion(args: {
           client,
         })
 
+        if (executionAttempt) await redactManagedReportOutput(reportPath, environment)
         await storeReportAfterRunIfNeeded(testRun.id, testRun.runId, reportPath, client, appraiseRoot)
         const evidence = await reconcileFinalRunEvidence({
           testRunDbId: testRun.id,

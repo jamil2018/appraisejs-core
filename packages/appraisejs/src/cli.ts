@@ -64,6 +64,8 @@ const locatorGraph = program.command('locator-graph').description('Query the rea
 addOnlineOptions(
   locatorGraph
     .command('query')
+    .requiredOption('--target <path-or-fingerprint>')
+    .requiredOption('--quality-plan-id <id>')
     .requiredOption('--from-id <id>')
     .option('--relation <relation>')
     .option('--to-type <type>')
@@ -76,6 +78,8 @@ addOnlineOptions(
     const client = await onlineClient(options)
     printJson(
       await client.queryLocatorGraph({
+        target: options.target,
+        qualityPlanId: options.qualityPlanId,
         fromId: options.fromId,
         relation: options.relation,
         toType: options.toType,
@@ -288,12 +292,13 @@ addOnlineOptions(
   testRun
     .command('diagnose')
     .requiredOption('--run-id <id>', 'managed TestRun public run id')
+    .requiredOption('--target <target>', 'registered target reference')
     .option('--json', 'print the exact machine-readable diagnostic DTO', false),
-).action(async (options: OnlineOptions & { runId: string; json: boolean }) => {
+).action(async (options: OnlineOptions & { runId: string; target: string; json: boolean }) => {
   await runCommand(async () => {
     const client = await onlineClient(options)
     const outcome = await runTestRunDiagnose(options, {
-      diagnose: runId => client.diagnoseTestRun(runId) as Promise<Record<string, unknown>>,
+      diagnose: runId => client.diagnoseTestRun(runId, options.target) as Promise<Record<string, unknown>>,
       write: value => console.log(value),
     })
     if (outcome.exitCode) process.exitCode = outcome.exitCode

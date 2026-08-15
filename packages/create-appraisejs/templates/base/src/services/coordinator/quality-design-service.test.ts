@@ -10,6 +10,7 @@ import {
   approveQualityValidationDesign,
   compileQualityValidations,
   createQualityAssessment,
+  createQualityAssessmentSuccessor,
   decideQualityAssessment,
   listQualityAssessments,
   listQualityPlans,
@@ -99,6 +100,12 @@ type FakeAssessment = FakeRecord & {
   alignment: string
   observedAssurance: string | null
   baselineAssessmentId: string | null
+  lineageId: string
+  generation: number
+  supersedesAssessmentId: string | null
+  supersessionDispositionJson: string | null
+  successorIdempotencyKey: string | null
+  successorRequestHash: string | null
   evidenceReceipts: unknown[]
 }
 type FakeAssessmentDecision = FakeRecord & {
@@ -108,6 +115,21 @@ type FakeAssessmentDecision = FakeRecord & {
   decidedBy: string
   decidedAt: Date
   decisionHash: string
+}
+
+function matchesOptionalAssessmentField(actual: string | null, expected: unknown) {
+  return !expected || actual === expected
+}
+
+function matchesAssessmentWhere(assessment: FakeAssessment, where: FakeWhere) {
+  return [
+    matchesOptionalAssessmentField(assessment.id, where.id),
+    matchesOptionalAssessmentField(assessment.targetProjectId, where.targetProjectId),
+    matchesOptionalAssessmentField(assessment.qualityPlanRevisionId, where.qualityPlanRevisionId),
+    matchesOptionalAssessmentField(assessment.evaluationSubjectRevisionId, where.evaluationSubjectRevisionId),
+    matchesOptionalAssessmentField(assessment.supersedesAssessmentId, where.supersedesAssessmentId),
+    matchesOptionalAssessmentField(assessment.successorIdempotencyKey, where.successorIdempotencyKey),
+  ].every(Boolean)
 }
 
 vi.mock('@/services/target-project/target-project-service', () => ({
@@ -633,6 +655,242 @@ describe('quality design coordinator service', () => {
     ).rejects.toThrow('Assessment already has a decision')
   })
 
+  it('creates exactly one immutable READY successor with lineage, idempotency, and no inherited evidence', async () => {
+    const requirements = await submitQualityRequirementSource(
+      {
+        target: 'target-1',
+        idempotencyKey: 'successor-source',
+        source: { title: 'Retryable login', requirements: [{ text: 'Login reaches home.' }] },
+      },
+      client,
+    )
+    await approveQualityRequirements(
+      {
+        qualityPlanId: requirements.qualityPlan.id,
+        revisionId: requirements.revision.id,
+        expectedRevisionHash: requirements.revision.contentHash,
+        approvedBy: 'reviewer',
+      },
+      client,
+    )
+    const proposal = await proposeQualityValidationDesign(
+      {
+        qualityPlanId: requirements.qualityPlan.id,
+        revisionId: requirements.revision.id,
+        idempotencyKey: 'successor-design',
+        proposal: {
+          scenarios: [
+            {
+              id: 'login',
+              obligationIds: [requirements.obligations[0]!.id],
+              behavior: 'Login reaches home.',
+              assertions: ['home route'],
+              coverage: {},
+              matrixIntent: { browsers: ['chromium'] },
+              limitations: [],
+            },
+          ],
+        },
+      },
+      client,
+    )
+    const approved = await approveQualityValidationDesign(
+      {
+        qualityPlanId: requirements.qualityPlan.id,
+        revisionId: requirements.revision.id,
+        expectedDesignHash: proposal.designHash!,
+        approvedBy: 'reviewer',
+      },
+      client,
+    )
+    const realized = await compileQualityValidations(
+      {
+        qualityPlanId: requirements.qualityPlan.id,
+        revisionId: requirements.revision.id,
+        expectedDesignHash: approved.designHash!,
+        realization: { default: sealedRuntimePublication() },
+      },
+      client,
+    )
+    await publishQualityValidations(
+      {
+        qualityPlanId: requirements.qualityPlan.id,
+        revisionId: requirements.revision.id,
+        validationVersionIds: [realized.validationVersions[0]!.id],
+        expectedCompilationHash: realized.compilationHash,
+      },
+      client,
+    )
+    const predecessor = await createQualityAssessment(
+      {
+        qualityPlanId: requirements.qualityPlan.id,
+        revisionId: requirements.revision.id,
+        idempotencyKey: 'successor-predecessor',
+        subject: { subjectDigest: `sha256:${'c'.repeat(64)}`, authority: 'artifact://login-v1' },
+      },
+      client,
+    )
+    await client.assessment.update({
+      where: { id: predecessor.assessment.id },
+      data: { status: 'DECIDED', evidenceReceipts: [{ id: 'receipt-predecessor', receiptHash: 'sha256:old' }] },
+    })
+    const request = {
+      assessmentId: predecessor.assessment.id,
+      subject: { subjectDigest: `sha256:${'d'.repeat(64)}`, authority: 'artifact://login-v2' },
+      disposition: { code: 'target_changed', rationale: 'A new deployment digest needs a fresh assessment.' },
+      idempotencyKey: 'successor-retry-1',
+    }
+    const [successor, replay] = await Promise.all([
+      createQualityAssessmentSuccessor(request, client),
+      createQualityAssessmentSuccessor(request, client),
+    ])
+    expect(successor.assessment).toMatchObject({
+      status: 'READY',
+      lineageId: predecessor.assessment.lineageId,
+      generation: 1,
+      supersedesAssessmentId: predecessor.assessment.id,
+    })
+    expect(successor.subject.subjectDigest).toBe(request.subject.subjectDigest)
+    expect(successor.evidenceReceiptCount).toBe(0)
+    expect(successor.decisions).toEqual([])
+    expect(replay.assessment.id).toBe(successor.assessment.id)
+    const unchanged = await readQualityAssessment(predecessor.assessment.id, client)
+    expect(unchanged.assessment.status).toBe('DECIDED')
+    expect(unchanged.evidenceReceiptCount).toBe(1)
+    await expect(
+      createQualityAssessmentSuccessor(
+        { ...request, subject: { ...request.subject, authority: 'artifact://different' } },
+        client,
+      ),
+    ).rejects.toThrow('idempotency key was already used with different input')
+    await expect(
+      createQualityAssessmentSuccessor({ ...request, idempotencyKey: 'successor-retry-2' }, client),
+    ).rejects.toThrow('already has an immutable successor')
+  })
+
+  it('rejects active predecessors and requires an explicit retry reason from evidence review', async () => {
+    const requirements = await submitQualityRequirementSource(
+      {
+        target: 'target-1',
+        idempotencyKey: 'active-source',
+        source: { title: 'Active retry', requirements: [{ text: 'A retry preserves evidence.' }] },
+      },
+      client,
+    )
+    const active = await createQualityAssessment(
+      {
+        qualityPlanId: requirements.qualityPlan.id,
+        revisionId: requirements.revision.id,
+        idempotencyKey: 'active-predecessor',
+        subject: { subjectDigest: `sha256:${'e'.repeat(64)}`, authority: 'artifact://active' },
+      },
+      client,
+    )
+    const base = {
+      assessmentId: active.assessment.id,
+      subject: { subjectDigest: `sha256:${'f'.repeat(64)}`, authority: 'artifact://retry' },
+      disposition: { code: 'retry', rationale: 'Retry a completed assessment.' },
+      idempotencyKey: 'active-successor',
+    }
+    await expect(createQualityAssessmentSuccessor(base, client)).rejects.toThrow('require a terminal predecessor')
+    await client.assessment.update({ where: { id: active.assessment.id }, data: { status: 'EVIDENCE_REVIEW' } })
+    await expect(createQualityAssessmentSuccessor(base, client)).rejects.toThrow('require an explicit retryReason')
+    await expect(
+      createQualityAssessmentSuccessor(
+        { ...base, disposition: { ...base.disposition, retryReason: 'The runtime dependency was restored.' } },
+        client,
+      ),
+    ).resolves.toMatchObject({ assessment: { status: 'READY', generation: 1 } })
+  })
+
+  it('reuses an exactly matching canonical evaluation subject revision for a successor', async () => {
+    const requirements = await submitQualityRequirementSource(
+      {
+        target: 'target-1',
+        idempotencyKey: 'subject-reuse-source',
+        source: { title: 'Subject reuse', requirements: [{ text: 'A retry keeps its immutable subject.' }] },
+      },
+      client,
+    )
+    const subject = {
+      subjectDigest: `sha256:${'1'.repeat(64)}`,
+      subjectKind: 'DEPLOYMENT_SNAPSHOT' as const,
+      authority: 'deployment://login/1',
+      metadata: { build: '1', release: 'candidate' },
+    }
+    const predecessor = await createQualityAssessment(
+      {
+        qualityPlanId: requirements.qualityPlan.id,
+        revisionId: requirements.revision.id,
+        idempotencyKey: 'subject-reuse-predecessor',
+        subject,
+      },
+      client,
+    )
+    await client.assessment.update({ where: { id: predecessor.assessment.id }, data: { status: 'DECIDED' } })
+
+    await expect(
+      createQualityAssessmentSuccessor(
+        {
+          assessmentId: predecessor.assessment.id,
+          subject: { ...subject, metadata: { release: 'candidate', build: '1' } },
+          disposition: { code: 'rerun', rationale: 'Repeat the exact immutable deployment assessment.' },
+          idempotencyKey: 'subject-reuse-successor',
+        },
+        client,
+      ),
+    ).resolves.toMatchObject({ subject: { id: predecessor.subject.id, ...subject } })
+  })
+
+  it('rejects successor reuse when a matching digest has different authority, kind, or canonical metadata', async () => {
+    const requirements = await submitQualityRequirementSource(
+      {
+        target: 'target-1',
+        idempotencyKey: 'subject-conflict-source',
+        source: { title: 'Subject conflict', requirements: [{ text: 'A retry cannot reinterpret a digest.' }] },
+      },
+      client,
+    )
+    const subject = {
+      subjectDigest: `sha256:${'2'.repeat(64)}`,
+      subjectKind: 'DEPLOYMENT_SNAPSHOT' as const,
+      authority: 'deployment://login/2',
+      metadata: { build: '2', release: 'candidate' },
+    }
+    const predecessor = await createQualityAssessment(
+      {
+        qualityPlanId: requirements.qualityPlan.id,
+        revisionId: requirements.revision.id,
+        idempotencyKey: 'subject-conflict-predecessor',
+        subject,
+      },
+      client,
+    )
+    await client.assessment.update({ where: { id: predecessor.assessment.id }, data: { status: 'DECIDED' } })
+    const successor = (replacement: Record<string, unknown>, idempotencyKey: string) =>
+      createQualityAssessmentSuccessor(
+        {
+          assessmentId: predecessor.assessment.id,
+          subject: { ...subject, ...replacement },
+          disposition: { code: 'rerun', rationale: 'Repeat after a runtime interruption.' },
+          idempotencyKey,
+        },
+        client,
+      )
+
+    await expect(
+      successor({ authority: 'deployment://login/other' }, 'subject-conflict-authority'),
+    ).rejects.toMatchObject({
+      code: 'CONFLICT',
+    })
+    await expect(successor({ subjectKind: 'ARTIFACT' }, 'subject-conflict-kind')).rejects.toMatchObject({
+      code: 'CONFLICT',
+    })
+    await expect(
+      successor({ metadata: { build: 'different', release: 'candidate' } }, 'subject-conflict-metadata'),
+    ).rejects.toMatchObject({ code: 'CONFLICT' })
+  })
+
   it('requires full validation publication before assessment readiness', async () => {
     const requirements = await submitQualityRequirementSource(
       {
@@ -950,17 +1208,25 @@ function createWorkingFakeClient() {
           .map(hydrateAssessment),
       ),
       findFirst: vi.fn(async ({ where }: FakeWhereArgs) => {
-        const assessment = assessments.find(
-          item =>
-            (!where.id || item.id === where.id) &&
-            (!where.targetProjectId || item.targetProjectId === where.targetProjectId) &&
-            (!where.qualityPlanRevisionId || item.qualityPlanRevisionId === where.qualityPlanRevisionId) &&
-            (!where.evaluationSubjectRevisionId ||
-              item.evaluationSubjectRevisionId === where.evaluationSubjectRevisionId),
-        )
+        const assessment = assessments.find(item => matchesAssessmentWhere(item, where))
         return assessment ? hydrateAssessment(assessment) : null
       }),
       create: vi.fn(async ({ data }: FakeWriteArgs) => {
+        if (
+          assessments.some(
+            current =>
+              (data.supersedesAssessmentId && current.supersedesAssessmentId === data.supersedesAssessmentId) ||
+              (data.successorIdempotencyKey &&
+                current.targetProjectId === data.targetProjectId &&
+                current.successorIdempotencyKey === data.successorIdempotencyKey) ||
+              (data.lineageId &&
+                data.generation !== undefined &&
+                current.lineageId === data.lineageId &&
+                current.generation === data.generation),
+          )
+        ) {
+          throw Object.assign(new Error('Unique constraint failed'), { code: 'P2002' })
+        }
         const assessment: FakeAssessment = {
           id: nextId('assessment'),
           targetProjectId: 'target-1',
@@ -971,6 +1237,12 @@ function createWorkingFakeClient() {
           alignment: 'CURRENT',
           observedAssurance: null,
           baselineAssessmentId: null,
+          lineageId: '',
+          generation: 0,
+          supersedesAssessmentId: null,
+          supersessionDispositionJson: null,
+          successorIdempotencyKey: null,
+          successorRequestHash: null,
           evidenceReceipts: [],
           ...data,
         }

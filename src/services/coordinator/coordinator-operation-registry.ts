@@ -58,6 +58,7 @@ export const coordinatorOperationRegistry = createCoordinatorOperationRegistry([
   { id: 'diagnostic-preflight-write', method: 'POST', pattern: ['diagnostic', 'preflight'] },
   { id: 'quality-write', method: 'POST', pattern: ['quality', '*'] },
   { id: 'environment-write', method: 'POST', pattern: ['environments', 'ensure'] },
+  { id: 'locator-write', method: 'POST', pattern: ['locators', 'ensure'] },
   { id: 'target-project-write', method: 'POST', pattern: ['target-projects'] },
   { id: 'test-run-write', method: 'POST', pattern: ['test-runs', '*'] },
 ] as const)

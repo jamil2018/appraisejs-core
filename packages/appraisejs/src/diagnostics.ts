@@ -32,7 +32,10 @@ const gitlessBaseRevisionGuidance = {
     'Non-git target workspaces are valid with reduced assurance. Use this shape for validation baseRevision and call out the reduced reproducibility in the validation handoff.',
 }
 
-export async function diagnoseProject(options: { cwd: string; baseUrl: string; coordinatorId?: string }) {
+export async function diagnoseProject(
+  options: { cwd: string; baseUrl: string; coordinatorId?: string },
+  mcpContract?: { mcpSurfaceVersion: string; mcpContractHash: string },
+) {
   const cwd = path.resolve(options.cwd)
   const checks: Check[] = []
   const git = await gitStatus(cwd)
@@ -62,6 +65,7 @@ export async function diagnoseProject(options: { cwd: string; baseUrl: string; c
         warnings?: string[]
         recoveryActions?: string[]
         links?: Record<string, string>
+        mcpContractNegotiation?: unknown
       }
     | undefined
   try {
@@ -76,7 +80,7 @@ export async function diagnoseProject(options: { cwd: string; baseUrl: string; c
       code: 'identity-ready',
       details: { fingerprint: client.identity.projectFingerprint },
     })
-    remote = (await client.diagnose()) as typeof remote
+    remote = (await client.diagnose(mcpContract)) as typeof remote
     checks.push(...(remote?.checks ?? []))
   } catch (error) {
     const requestError = error instanceof CoordinatorRequestError ? error : undefined
@@ -118,6 +122,7 @@ export async function diagnoseProject(options: { cwd: string; baseUrl: string; c
     },
     targetProjects: remote?.targetProjects ?? [],
     contractVersion: remote?.contractVersion,
+    mcpContractNegotiation: remote?.mcpContractNegotiation,
     baseUrl: options.baseUrl,
     checks,
     warnings,

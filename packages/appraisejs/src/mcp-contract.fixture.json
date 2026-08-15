@@ -128,6 +128,107 @@
     },
     {
       "kind": "tool",
+      "name": "assessment_create_successor",
+      "description": "Create one immutable READY retry successor for a DECIDED, STALE, CANCELLED, or explicitly retried EVIDENCE_REVIEW assessment. The predecessor evidence and decision are never changed.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "assessmentId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "subject": {
+            "type": "object",
+            "properties": {
+              "subjectDigest": {
+                "type": "string",
+                "pattern": "^sha256:.*"
+              },
+              "authority": {
+                "type": "string",
+                "minLength": 1
+              },
+              "subjectKind": {
+                "type": "string",
+                "enum": [
+                  "ARTIFACT",
+                  "DEPLOYMENT_SNAPSHOT"
+                ]
+              },
+              "metadata": {
+                "type": "object",
+                "propertyNames": {
+                  "type": "string"
+                },
+                "additionalProperties": {}
+              }
+            },
+            "required": [
+              "subjectDigest",
+              "authority"
+            ],
+            "additionalProperties": false
+          },
+          "disposition": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 120
+              },
+              "rationale": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2000
+              },
+              "retryReason": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2000
+              }
+            },
+            "required": [
+              "code",
+              "rationale"
+            ],
+            "additionalProperties": false
+          },
+          "idempotencyKey": {
+            "type": "string",
+            "minLength": 1
+          },
+          "responseMode": {
+            "default": "summary",
+            "type": "string",
+            "enum": [
+              "summary",
+              "evidenceOnly",
+              "blockersOnly",
+              "linksOnly",
+              "full"
+            ]
+          }
+        },
+        "required": [
+          "assessmentId",
+          "subject",
+          "disposition",
+          "idempotencyKey",
+          "responseMode"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "kind": "tool",
       "name": "assessment_decide",
       "description": "Issue an AssessmentDecision for a reviewed Quality Plan Assessment with current requirement alignment.",
       "inputSchema": {
@@ -219,6 +320,88 @@
       },
       "annotations": {
         "readOnlyHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "kind": "tool",
+      "name": "assessment_execution_authorization_issue",
+      "description": "Exchange a compact Ed25519 host assertion for one target-bound credential execution grant. This operation never accepts UI issuance or credential values.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "assertion": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 12000
+          },
+          "responseMode": {
+            "default": "summary",
+            "type": "string",
+            "enum": [
+              "summary",
+              "evidenceOnly",
+              "blockersOnly",
+              "linksOnly",
+              "full"
+            ]
+          }
+        },
+        "required": [
+          "assertion",
+          "responseMode"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "kind": "tool",
+      "name": "assessment_execution_authorization_revoke",
+      "description": "Deny an unconsumed credential execution grant. Consumed grants cannot be revoked.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "grantId": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500
+          },
+          "responseMode": {
+            "default": "summary",
+            "type": "string",
+            "enum": [
+              "summary",
+              "evidenceOnly",
+              "blockersOnly",
+              "linksOnly",
+              "full"
+            ]
+          }
+        },
+        "required": [
+          "grantId",
+          "reason",
+          "responseMode"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": true,
         "openWorldHint": false
       }
     },
@@ -486,6 +669,20 @@
             },
             "additionalProperties": false
           },
+          "authorizationGrantId": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "executionRequestId": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "expectedRequestHash": {
+            "type": "string",
+            "pattern": "^sha256:.*"
+          },
           "idempotencyKey": {
             "type": "string",
             "minLength": 1
@@ -662,6 +859,20 @@
           },
           "subject": {},
           "runtime": {},
+          "authorizationGrantId": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "executionRequestId": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "expectedRequestHash": {
+            "type": "string",
+            "pattern": "^sha256:.*"
+          },
           "idempotencyKey": {
             "type": "string",
             "minLength": 1
@@ -826,12 +1037,164 @@
     },
     {
       "kind": "tool",
-      "name": "locator_graph_query",
-      "description": "Query a bounded locator graph path from a surface, group, or locator node.",
+      "name": "locator_ensure",
+      "description": "Idempotently ensure one target-owned locator closure for a Quality Plan without browser interaction or credentials.",
       "inputSchema": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "type": "object",
         "properties": {
+          "target": {
+            "type": "string",
+            "minLength": 1
+          },
+          "qualityPlanId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "allowCreate": {
+            "type": "boolean"
+          },
+          "group": {
+            "oneOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "mode": {
+                    "type": "string",
+                    "const": "existing"
+                  },
+                  "id": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
+                "required": [
+                  "mode",
+                  "id"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "mode": {
+                    "type": "string",
+                    "const": "ensure"
+                  },
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200
+                  },
+                  "route": {
+                    "type": "string",
+                    "maxLength": 2000,
+                    "pattern": "^\\/.*"
+                  },
+                  "module": {
+                    "oneOf": [
+                      {
+                        "type": "object",
+                        "properties": {
+                          "mode": {
+                            "type": "string",
+                            "const": "existing"
+                          },
+                          "id": {
+                            "type": "string",
+                            "minLength": 1
+                          }
+                        },
+                        "required": [
+                          "mode",
+                          "id"
+                        ],
+                        "additionalProperties": false
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "mode": {
+                            "type": "string",
+                            "const": "ensure"
+                          },
+                          "name": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 200
+                          }
+                        },
+                        "required": [
+                          "mode",
+                          "name"
+                        ],
+                        "additionalProperties": false
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "mode",
+                  "name",
+                  "route",
+                  "module"
+                ],
+                "additionalProperties": false
+              }
+            ]
+          },
+          "locator": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200
+              },
+              "selector": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 10000
+              }
+            },
+            "required": [
+              "name",
+              "selector"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "target",
+          "qualityPlanId",
+          "group",
+          "locator"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "kind": "tool",
+      "name": "locator_graph_query",
+      "description": "Query a bounded locator graph path within the target bound to a Quality Plan. fromId is required; omitted optional filters are normalized to absent.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "target": {
+            "type": "string",
+            "minLength": 1
+          },
+          "qualityPlanId": {
+            "type": "string",
+            "minLength": 1
+          },
           "fromId": {
             "type": "string",
             "minLength": 1
@@ -857,6 +1220,8 @@
           }
         },
         "required": [
+          "target",
+          "qualityPlanId",
           "fromId"
         ],
         "additionalProperties": false
@@ -869,11 +1234,15 @@
     {
       "kind": "tool",
       "name": "locator_search",
-      "description": "Search live locators for a Quality Plan before validation design.",
+      "description": "Search target- and Quality Plan-scoped locators by locator name, selector, group, module, or route before validation design.",
       "inputSchema": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "type": "object",
         "properties": {
+          "target": {
+            "type": "string",
+            "minLength": 1
+          },
           "qualityPlanId": {
             "type": "string",
             "minLength": 1
@@ -881,11 +1250,23 @@
           "query": {
             "type": "string",
             "minLength": 1
+          },
+          "cursor": {
+            "type": "string",
+            "pattern": "^\\d+$"
+          },
+          "limit": {
+            "default": 25,
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 100
           }
         },
         "required": [
+          "target",
           "qualityPlanId",
-          "query"
+          "query",
+          "limit"
         ],
         "additionalProperties": false
       },
@@ -955,7 +1336,7 @@
     {
       "kind": "tool",
       "name": "operation_search",
-      "description": "Search the canonical operation catalog with paired human Step naming.",
+      "description": "Search the bounded canonical operation catalog with paired human Step naming. Provide a query or at least one filter.",
       "inputSchema": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "type": "object",
@@ -1003,13 +1384,10 @@
           },
           "limit": {
             "type": "integer",
-            "minimum": 1,
+            "exclusiveMinimum": 0,
             "maximum": 100
           }
         },
-        "required": [
-          "query"
-        ],
         "additionalProperties": false
       },
       "annotations": {
@@ -1068,6 +1446,14 @@
             "items": {
               "type": "string"
             }
+          },
+          "observedMcpSurfaceVersion": {
+            "type": "string",
+            "minLength": 1
+          },
+          "observedMcpContractHash": {
+            "type": "string",
+            "pattern": "^sha256:[a-f0-9]{64}$"
           },
           "expectedTargetWorkspacePath": {
             "type": "string"
@@ -1379,7 +1765,7 @@
     {
       "kind": "tool",
       "name": "step_search",
-      "description": "Search ready Step Definitions by one actionable versioned identity.",
+      "description": "Search ready Step Definitions by one actionable versioned identity. Results are paginated; limit defaults to 5 and cannot exceed 25.",
       "inputSchema": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "type": "object",
@@ -1401,6 +1787,10 @@
             "type": "integer",
             "exclusiveMinimum": 0,
             "maximum": 25
+          },
+          "cursor": {
+            "type": "string",
+            "pattern": "^\\d+$"
           }
         },
         "required": [
@@ -1423,6 +1813,10 @@
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "type": "object",
         "properties": {
+          "target": {
+            "type": "string",
+            "minLength": 1
+          },
           "runId": {
             "type": "string",
             "format": "uuid",
@@ -1441,6 +1835,7 @@
           }
         },
         "required": [
+          "target",
           "runId",
           "responseMode"
         ],
@@ -1526,6 +1921,10 @@
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "type": "object",
         "properties": {
+          "target": {
+            "type": "string",
+            "minLength": 1
+          },
           "runId": {
             "type": "string",
             "format": "uuid",
@@ -1544,6 +1943,7 @@
           }
         },
         "required": [
+          "target",
           "runId",
           "responseMode"
         ],

@@ -36,11 +36,11 @@ export function registerRuntimeOperations(context: McpRegistryContext): void {
     {
       description:
         'Read bounded status and evidence summary for a managed Appraise test run. A human-verification block is terminal and requires a fresh TestRun; it cannot be resumed.',
-      inputSchema: { runId: z.string().uuid(), responseMode: responseModeSchema },
+      inputSchema: { target: z.string().min(1), runId: z.string().uuid(), responseMode: responseModeSchema },
     },
-    async ({ runId, responseMode }) => {
+    async ({ target, runId, responseMode }) => {
       try {
-        return text(applyResponseMode(await api.readTestRun(runId), responseMode))
+        return text(applyResponseMode(await api.readTestRun(runId, target), responseMode))
       } catch (error) {
         return toolError(error)
       }
@@ -51,11 +51,11 @@ export function registerRuntimeOperations(context: McpRegistryContext): void {
     'test_run_diagnose',
     {
       description: 'Diagnose invalid or suspicious managed test-run evidence with concise blockers and next action.',
-      inputSchema: { runId: z.string().uuid(), responseMode: responseModeSchema },
+      inputSchema: { target: z.string().min(1), runId: z.string().uuid(), responseMode: responseModeSchema },
     },
-    async ({ runId, responseMode }) => {
+    async ({ target, runId, responseMode }) => {
       try {
-        const result = (await api.diagnoseTestRun(runId)) as {
+        const result = (await api.diagnoseTestRun(runId, target)) as {
           kind?: string
           diagnostic?: unknown
           evidence?: unknown

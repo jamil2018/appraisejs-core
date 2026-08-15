@@ -24,6 +24,7 @@ const exactCoordinatorOperations: Readonly<Record<string, CoordinatorOperationId
   environment_list: 'environment-read',
   environment_ensure: 'environment-write',
   locator_graph_query: 'locator-graph',
+  locator_ensure: 'locator-write',
   project_add: 'target-project-write',
   project_diagnostic: 'diagnostic',
   project_list: 'target-projects-list',

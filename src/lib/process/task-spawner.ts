@@ -8,6 +8,8 @@ export interface SpawnerOptions extends ExecaOptions {
   logPrefix?: string
   captureOutput?: boolean
   retainProcessRecord?: boolean
+  /** Applied before process output is streamed, emitted, or retained. */
+  redactOutput?: (value: string) => string
 }
 
 export interface SpawnedProcess {
@@ -50,6 +52,7 @@ class TaskSpawner extends EventEmitter {
       logPrefix,
       captureOutput = false,
       retainProcessRecord = true,
+      redactOutput,
       ...spawnOptions
     } = options
 
@@ -87,6 +90,7 @@ class TaskSpawner extends EventEmitter {
       prefixLogs,
       captureOutput,
       retainProcessRecord,
+      redactOutput,
       stdioConfig,
     })
 
@@ -131,6 +135,7 @@ class TaskSpawner extends EventEmitter {
     prefixLogs: boolean,
     captureOutput: boolean,
     spawnedProcess: SpawnedProcess,
+    redactOutput: ((value: string) => string) | undefined,
   ): void {
     const buffer = this.outputBuffers.get(processName)
     if (!buffer) {
@@ -139,23 +144,17 @@ class TaskSpawner extends EventEmitter {
 
     const lines = buffer[stream].split('\n')
     buffer[stream] = lines.pop() || ''
-
-    for (const line of lines) {
-      if (captureOutput) {
-        spawnedProcess.output[stream].push(`${line}\n`)
-      }
-
-      if (streamLogs) {
-        const prefix = prefixLogs ? `[${processName}] ` : ''
-        if (stream === 'stdout') {
-          console.log(`${prefix}${line}`)
-        } else {
-          console.error(`${prefix}${line}`)
-        }
-      }
-
-      this.emit(stream, { processName, data: `${line}\n` })
-    }
+    for (const line of lines)
+      this.emitOutputLine(
+        processName,
+        stream,
+        `${line}\n`,
+        streamLogs,
+        prefixLogs,
+        captureOutput,
+        spawnedProcess,
+        redactOutput,
+      )
   }
 
   private emitOutputLine(
@@ -166,21 +165,23 @@ class TaskSpawner extends EventEmitter {
     prefixLogs: boolean,
     captureOutput: boolean,
     spawnedProcess: SpawnedProcess,
+    redactOutput: ((value: string) => string) | undefined,
   ): void {
+    const safeData = redactOutput ? redactOutput(data) : data
     if (captureOutput) {
-      spawnedProcess.output[stream].push(data)
+      spawnedProcess.output[stream].push(safeData)
     }
 
     if (streamLogs) {
       const prefix = prefixLogs ? `[${processName}] ` : ''
       if (stream === 'stdout') {
-        console.log(`${prefix}${data}`)
+        console.log(`${prefix}${safeData}`)
       } else {
-        console.error(`${prefix}${data}`)
+        console.error(`${prefix}${safeData}`)
       }
     }
 
-    this.emit(stream, { processName, data })
+    this.emit(stream, { processName, data: safeData })
   }
 
   private flushBufferedOutput(
@@ -189,6 +190,7 @@ class TaskSpawner extends EventEmitter {
     prefixLogs: boolean,
     captureOutput: boolean,
     spawnedProcess: SpawnedProcess,
+    redactOutput: ((value: string) => string) | undefined,
   ): void {
     const buffer = this.outputBuffers.get(processName)
     if (!buffer) {
@@ -196,11 +198,29 @@ class TaskSpawner extends EventEmitter {
     }
 
     if (buffer.stdout) {
-      this.emitOutputLine(processName, 'stdout', buffer.stdout, streamLogs, prefixLogs, captureOutput, spawnedProcess)
+      this.emitOutputLine(
+        processName,
+        'stdout',
+        buffer.stdout,
+        streamLogs,
+        prefixLogs,
+        captureOutput,
+        spawnedProcess,
+        redactOutput,
+      )
     }
 
     if (buffer.stderr) {
-      this.emitOutputLine(processName, 'stderr', buffer.stderr, streamLogs, prefixLogs, captureOutput, spawnedProcess)
+      this.emitOutputLine(
+        processName,
+        'stderr',
+        buffer.stderr,
+        streamLogs,
+        prefixLogs,
+        captureOutput,
+        spawnedProcess,
+        redactOutput,
+      )
     }
 
     this.outputBuffers.delete(processName)
@@ -213,10 +233,11 @@ class TaskSpawner extends EventEmitter {
       prefixLogs: boolean
       captureOutput: boolean
       retainProcessRecord: boolean
+      redactOutput?: (value: string) => string
       stdioConfig: string | string[]
     },
   ): void {
-    const { streamLogs, prefixLogs, captureOutput, retainProcessRecord, stdioConfig } = options
+    const { streamLogs, prefixLogs, captureOutput, retainProcessRecord, stdioConfig, redactOutput } = options
     const { process: childProcess, name } = spawnedProcess
 
     if (stdioConfig === 'pipe') {
@@ -227,7 +248,7 @@ class TaskSpawner extends EventEmitter {
         }
 
         buffer.stdout += data.toString()
-        this.processBufferedOutput(name, 'stdout', streamLogs, prefixLogs, captureOutput, spawnedProcess)
+        this.processBufferedOutput(name, 'stdout', streamLogs, prefixLogs, captureOutput, spawnedProcess, redactOutput)
       })
 
       childProcess.stderr?.on('data', (data: Buffer) => {
@@ -237,13 +258,13 @@ class TaskSpawner extends EventEmitter {
         }
 
         buffer.stderr += data.toString()
-        this.processBufferedOutput(name, 'stderr', streamLogs, prefixLogs, captureOutput, spawnedProcess)
+        this.processBufferedOutput(name, 'stderr', streamLogs, prefixLogs, captureOutput, spawnedProcess, redactOutput)
       })
     }
 
     childProcess.on('exit', (code: number | null) => {
       if (stdioConfig === 'pipe') {
-        this.flushBufferedOutput(name, streamLogs, prefixLogs, captureOutput, spawnedProcess)
+        this.flushBufferedOutput(name, streamLogs, prefixLogs, captureOutput, spawnedProcess, redactOutput)
       }
 
       spawnedProcess.isRunning = false

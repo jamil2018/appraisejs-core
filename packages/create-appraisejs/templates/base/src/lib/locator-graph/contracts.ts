@@ -26,6 +26,8 @@ export const locatorGroupNodeSchema = nodeBase.extend({
   astRef: id.optional(),
   targetProjectId: id.optional(),
   moduleId: id.optional(),
+  /** Human-searchable module label retained with the graph projection. */
+  moduleName: z.string().trim().min(1).optional(),
   surfaceId: id,
   componentId: id.optional(),
 })

@@ -29,6 +29,30 @@ function buildCapsuleSelectionTagExpression(cases: BuiltCapsuleFiles['cases']) {
     .join(' or ')
 }
 
+export function sealCredentialEnvironment(input: {
+  credentialState: 'NONE' | 'REFERENCE_CONFIGURED' | 'LEGACY_DISABLED'
+  passwordReference: string | null
+  resolvedPassword: string | undefined
+}) {
+  if (input.credentialState === 'LEGACY_DISABLED')
+    throw new Error('Runtime capsule cannot use a disabled legacy environment credential.')
+  if (input.credentialState === 'NONE') {
+    if (input.passwordReference !== null || input.resolvedPassword !== undefined)
+      throw new Error('Runtime capsule credential state and reference are inconsistent.')
+    return undefined
+  }
+  if (!input.passwordReference || !input.resolvedPassword)
+    throw new Error('Runtime capsule environment credential reference is unavailable.')
+  return {
+    key: 'APPRAISE_ENV_PASSWORD',
+    source: 'environment-ref' as const,
+    reference: input.passwordReference,
+    referenceKind: 'environment' as const,
+    referenceVersion: hashRuntimeCapsuleBytes(Buffer.from(input.passwordReference)),
+    expectedDigest: hashRuntimeCapsuleBytes(Buffer.from(input.resolvedPassword)),
+  }
+}
+
 export async function sealCapsuleCommandReceipt(input: {
   operation: {
     id: string
@@ -43,7 +67,14 @@ export async function sealCapsuleCommandReceipt(input: {
     id: string
     runId: string
     browserEngine: 'CHROMIUM' | 'FIREFOX' | 'WEBKIT'
-    environment: { id: string; name: string; baseUrl: string }
+    environment: {
+      id: string
+      name: string
+      baseUrl: string
+      username: string | null
+      passwordEnvironmentVariable: string | null
+      credentialState: 'NONE' | 'REFERENCE_CONFIGURED' | 'LEGACY_DISABLED'
+    }
   }
   runtimeInput: ValidationAstRuntimeInput
   built: BuiltCapsuleFiles
@@ -83,7 +114,15 @@ export async function sealCapsuleCommandReceipt(input: {
     REPORT_PATH: 'reports/cucumber.json',
     REPORT_FORMAT: 'json:reports/cucumber.json',
     TEST_RUN_ID: input.testRun.runId,
+    ...(input.testRun.environment.username ? { APPRAISE_ENV_USERNAME: input.testRun.environment.username } : {}),
   }
+  const passwordReference = input.testRun.environment.passwordEnvironmentVariable
+  const password = passwordReference ? process.env[passwordReference] : undefined
+  const credentialEntry = sealCredentialEnvironment({
+    credentialState: input.testRun.environment.credentialState,
+    passwordReference,
+    resolvedPassword: password,
+  })
   return capsuleCommandReceiptV1Schema.parse({
     schemaVersion: '1',
     receiptKind: 'appraise.capsule-command',
@@ -170,15 +209,16 @@ export async function sealCapsuleCommandReceipt(input: {
       correlationTagKind: 'case-id',
     },
     environment: {
-      allowlist: Object.keys(environmentValues).sort(),
-      entries: Object.entries(environmentValues)
-        .sort(([left], [right]) => left.localeCompare(right))
-        .map(([key, value]) => ({
+      allowlist: [...Object.keys(environmentValues), ...(credentialEntry ? [credentialEntry.key] : [])].sort(),
+      entries: [
+        ...Object.entries(environmentValues).map(([key, value]) => ({
           key,
-          source: 'literal',
+          source: 'literal' as const,
           value,
           expectedDigest: hashRuntimeCapsuleBytes(Buffer.from(value)),
         })),
+        ...(credentialEntry ? [credentialEntry] : []),
+      ].sort((left, right) => left.key.localeCompare(right.key)),
     },
     capabilities: {
       network: { mode: 'browser-only', allowedOrigins: [new URL(baseUrl).origin] },

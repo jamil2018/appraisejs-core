@@ -257,6 +257,66 @@ describe('assessment preparation service', () => {
     )
   })
 
+  it('preserves deferred environment references for runtime type validation', async () => {
+    reset()
+    const fillDefinition = builtInStepDefinitions.find(candidate => candidate.identity.id === 'browser.forms.fill')!
+    vi.mocked(database.stepDefinition.findMany).mockResolvedValue([
+      {
+        id: fillDefinition.identity.id,
+        version: fillDefinition.identity.version,
+        definitionJson: JSON.stringify(fillDefinition),
+      },
+    ] as never)
+    vi.mocked(database.locator.findMany).mockResolvedValue([
+      {
+        id: 'locator-1',
+        name: 'password',
+        value: 'input[name="password"]',
+        locatorGroupId: 'group-1',
+        locatorGroup: { id: 'group-1', name: 'Login', route: '/login', moduleId: 'module-1' },
+      },
+    ] as never)
+    const environmentReference = { ref: 'environment', key: 'password' }
+
+    await prepareQualityAssessmentRun({
+      ...input,
+      validationBindings: [
+        {
+          validationId: 'validation-1',
+          locatorIds: ['locator-1'],
+          steps: [
+            {
+              stepId: fillDefinition.identity.id,
+              version: fillDefinition.identity.version,
+              inputs: {
+                target: { ref: 'locator', id: 'locator-1', version: '1' },
+                value: environmentReference,
+              },
+              keyword: 'When' as const,
+              description: 'the user enters the configured password',
+            },
+          ],
+        },
+      ],
+    })
+
+    const realization = (
+      vi.mocked(compileQualityValidations).mock.calls[0]?.[0] as {
+        realization: {
+          validations: Array<{
+            realization: {
+              runtimePublication: {
+                runtimeInput: { rootInvocations: Array<{ invocation: { inputs: Record<string, unknown> } }> }
+              }
+            }
+          }>
+        }
+      }
+    ).realization.validations[0]!.realization.runtimePublication
+
+    expect(realization.runtimeInput.rootInvocations[0]!.invocation.inputs.value).toEqual(environmentReference)
+  })
+
   it('derives sealed locator descriptors from target-owned locator records', async () => {
     reset()
     vi.mocked(database.locator.findMany).mockResolvedValue([

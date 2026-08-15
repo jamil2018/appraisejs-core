@@ -16,6 +16,18 @@ Managed capsule output contains stable status, blocker, evidence, and recovery f
 environment values, or artifact contents. Recoverable blocked diagnostics exit with status 2. The diagnostic service
 and schema are hub-only in Appraise 0.5 and are not copied into scaffold templates.
 
+## Locator Discovery
+
+Locator graph queries are Quality Plan scoped so a target must be selected by its approved plan rather than by an
+arbitrary project ID:
+
+```bash
+appraisejs locator-graph query --target <registered-target> --quality-plan-id <quality-plan-id> --from-id <surface-id> --json
+```
+
+The MCP `locator_ensure` tool accepts a registered target reference and can create one explicit target-owned module/group/locator closure for that plan. It is
+local and idempotent; it does not browse, handle credentials, or verify a selector at authoring time.
+
 ## Requirements
 
 - Node.js 20.19+

@@ -160,6 +160,10 @@ describe('capsule command receipt contract', () => {
       lines: ['Error at <path>', '<redacted>', '<capsule><path>'],
       truncated: false,
     })
+    expect(boundedProcessOutput('failure password=x', ['x'], '/capsule')).toEqual({
+      lines: ['failure password=<redacted>'],
+      truncated: false,
+    })
     expect(
       boundedProcessOutput(`${'x'.repeat(300)}\n${Array.from({ length: 9 }, (_, index) => index).join('\n')}`, [], '/c')
         .truncated,
@@ -198,6 +202,28 @@ describe('capsule command receipt contract', () => {
     expect(parseCanonicalCapsuleCommandReceipt(canonical)).toEqual(value)
     expect(hashCapsuleCommandReceipt(value)).toBe(hashCapsuleCommandReceipt(JSON.parse(canonical)))
     expect(() => parseCanonicalCapsuleCommandReceipt(`${canonical} `)).toThrow(/canonical/)
+  })
+
+  it('requires mutually exclusive literal and environment-reference credential payloads', () => {
+    const value = receipt()
+    const entry = value.environment.entries.find(item => item.key === 'APPRAISE_BASE_URL')!
+    expect(
+      capsuleCommandReceiptV1Schema.safeParse({
+        ...value,
+        environment: {
+          ...value.environment,
+          entries: [
+            ...value.environment.entries.filter(item => item.key !== 'APPRAISE_BASE_URL'),
+            {
+              ...entry,
+              reference: 'APPRAISE_PASSWORD',
+              referenceKind: 'environment',
+              referenceVersion: h('p'),
+            },
+          ],
+        },
+      }).success,
+    ).toBe(false)
   })
 
   it('rejects unsafe argv, environment, paths, count drift, and capability widening', () => {

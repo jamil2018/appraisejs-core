@@ -72,7 +72,11 @@ const dispatch = async (world, step) => {
       operationCardinalities,
       extensionModules,
       baseUrl,
-      environment: { baseUrl },
+      environment: {
+        baseUrl,
+        ...(process.env.APPRAISE_ENV_USERNAME ? { username: process.env.APPRAISE_ENV_USERNAME } : {}),
+        ...(process.env.APPRAISE_ENV_PASSWORD ? { password: process.env.APPRAISE_ENV_PASSWORD } : {}),
+      },
     },
   })
 }

@@ -20,6 +20,12 @@ Managed binding generation emits one static registration line per unique reviewe
 
 When a browser operation fails, the runtime also captures a bounded set of visible native validation messages and alert text from the current page. These diagnostics are appended to the stable operation error rather than requiring a trace or screenshot to discover an immediately visible field-level rejection.
 
+## Credential-safe trace policy
+
+When a managed capsule resolves a credential, its scenario never writes a Playwright trace artifact. If a credential becomes present after tracing began, the runtime discards the in-memory trace without allocating a trace path; failed credential-bearing scenarios therefore publish no trace artifact reference. Screenshots and diagnostics remain subject to their separate redaction boundaries.
+
+Managed navigation waits for `domcontentloaded` and then uses the bounded route/DOM settlement detector. It does not require global network idleness, so analytics, polling, streaming, and other long-lived requests cannot indefinitely delay form interaction or route assertions. Authored operations that explicitly request network idleness remain available when that condition is part of the test design.
+
 ## Human-verification blocks
 
 Managed browser execution fails closed when a versioned detector observes a visible, non-zero-area structural CAPTCHA signature from an allowlisted provider. Text alone, hidden or offscreen markup, scripts, and network activity never auto-block a run. The runtime checks before an operation resolves locators, after operations settle, and in an operation-error path, so a CAPTCHA-replaced page is not misreported as an ordinary locator failure.

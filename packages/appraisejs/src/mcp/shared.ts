@@ -3,6 +3,7 @@ import { createRequire } from 'node:module'
 import { realpath } from 'node:fs/promises'
 import path from 'node:path'
 import { z } from 'zod'
+import mcpContractFixture from '../mcp-contract.fixture.json' with { type: 'json' }
 import { canonicalMcpResourceUris, canonicalMcpToolNames } from './contract.js'
 import type { createCoordinatorApiClient } from './coordinator-call.js'
 import { diagnoseProject } from '../diagnostics.js'
@@ -23,6 +24,7 @@ const packageJson = require('../../package.json') as { version?: string }
 const serverStartedAt = new Date().toISOString()
 const workflowTools = canonicalMcpToolNames
 const workflowResources = Object.freeze(Object.values(canonicalMcpResourceUris))
+const MCP_CONTRACT_SCHEMA_VERSION = 'appraise.mcp-contract/v1'
 
 export function text(value: unknown) {
   const serialized = JSON.stringify(value, null, 2)
@@ -47,6 +49,28 @@ export function withGuidance(
 
 export function contentHash(value: unknown): string {
   return `sha256:${createHash('sha256').update(JSON.stringify(value)).digest('hex')}`
+}
+
+function canonicalContractJson(value: unknown): string {
+  if (Array.isArray(value)) return `[${value.map(canonicalContractJson).join(',')}]`
+  if (value && typeof value === 'object') {
+    return `{${Object.entries(value as Record<string, unknown>)
+      .sort(([left], [right]) => left.localeCompare(right))
+      .map(([key, item]) => `${JSON.stringify(key)}:${canonicalContractJson(item)}`)
+      .join(',')}}`
+  }
+  return JSON.stringify(value)
+}
+
+/**
+ * A capability observation must change when a caller-visible schema changes,
+ * not merely when a tool is added or removed. The generated contract fixture
+ * is the deterministic source shared by registry conformance and publishing.
+ */
+export function mcpContractHash(definitions: unknown): string {
+  return `sha256:${createHash('sha256')
+    .update(canonicalContractJson({ schemaVersion: MCP_CONTRACT_SCHEMA_VERSION, definitions }))
+    .digest('hex')}`
 }
 
 export const qualityDesignWorkflow = {
@@ -81,7 +105,8 @@ export const assessmentWorkflow = {
 
 export const mcpCapabilityMetadata = {
   packageVersion: packageJson.version ?? '0.0.0',
-  mcpSurfaceVersion: '2026-08-10.quality-first',
+  mcpSurfaceVersion: '2026-08-15.contract-negotiation',
+  mcpContractHash: mcpContractHash(mcpContractFixture.default),
   serverStartedAt,
   workflowCriticalTools: [...workflowTools],
   workflowResourceUris: [...workflowResources],
@@ -90,12 +115,15 @@ export const mcpCapabilityMetadata = {
 export const compactMcpCapabilityMetadata = {
   packageVersion: mcpCapabilityMetadata.packageVersion,
   mcpSurfaceVersion: mcpCapabilityMetadata.mcpSurfaceVersion,
+  mcpContractHash: mcpCapabilityMetadata.mcpContractHash,
   serverStartedAt,
   workflowCriticalToolCount: workflowTools.length,
   workflowResourceCount: workflowResources.length,
   workflowSentinelTools: [
     'project_diagnostic',
     'requirements_submit_source',
+    'locator_ensure',
+    'locator_search',
     'validation_publish',
     'assessment_run',
     'assessment_decide',
@@ -111,6 +139,8 @@ export const compactMcpCapabilityMetadata = {
 type AgentPreflightObservation = {
   observedTools?: string[]
   observedResources?: string[]
+  observedMcpSurfaceVersion?: string
+  observedMcpContractHash?: string
   expectedTargetWorkspacePath?: string
 }
 
@@ -131,6 +161,24 @@ function observedCapabilityState(observed: string[] | undefined, expected: strin
   return { status: missing.length === 0 ? ('ready' as const) : ('blocked' as const), missing }
 }
 
+function observedContractState(observation: AgentPreflightObservation) {
+  const observed = {
+    ...(observation.observedMcpSurfaceVersion ? { mcpSurfaceVersion: observation.observedMcpSurfaceVersion } : {}),
+    ...(observation.observedMcpContractHash ? { mcpContractHash: observation.observedMcpContractHash } : {}),
+  }
+  const expected = {
+    mcpSurfaceVersion: mcpCapabilityMetadata.mcpSurfaceVersion,
+    mcpContractHash: mcpCapabilityMetadata.mcpContractHash,
+  }
+  if (!observed.mcpSurfaceVersion && !observed.mcpContractHash)
+    return { status: 'unverified' as const, expected, observed }
+  const status =
+    observed.mcpSurfaceVersion === expected.mcpSurfaceVersion && observed.mcpContractHash === expected.mcpContractHash
+      ? ('ready' as const)
+      : ('stale' as const)
+  return { status, expected, observed }
+}
+
 export function buildAgentPreflight(
   diagnostic: Awaited<ReturnType<typeof diagnoseProject>>,
   observation: AgentPreflightObservation = {},
@@ -140,6 +188,7 @@ export function buildAgentPreflight(
     observation.observedResources,
     compactMcpCapabilityMetadata.workflowSentinelResources,
   )
+  const contract = observedContractState(observation)
   const expectedPath = observation.expectedTargetWorkspacePath?.trim()
   const targetFound = expectedPath
     ? diagnostic.targetProjects.some(project =>
@@ -157,8 +206,14 @@ export function buildAgentPreflight(
         ? ('target' as const)
         : undefined
     : undefined
-  const blocked = tools.status === 'blocked' || resources.status === 'blocked' || !targetFound || !diagnostic.ok
-  const unverified = tools.status === 'unverified' || resources.status === 'unverified'
+  const blocked =
+    tools.status === 'blocked' ||
+    resources.status === 'blocked' ||
+    contract.status === 'stale' ||
+    !targetFound ||
+    !diagnostic.ok
+  const unverified =
+    tools.status === 'unverified' || resources.status === 'unverified' || contract.status === 'unverified'
   const status = blocked ? 'blocked' : unverified ? 'needs_observation' : 'ready'
   return {
     schemaVersion: 'appraise.agent-preflight/v1',
@@ -178,6 +233,27 @@ export function buildAgentPreflight(
         message: 'The MCP request reached this server.',
         serverStartedAt,
         mcpSurfaceVersion: mcpCapabilityMetadata.mcpSurfaceVersion,
+        mcpContractHash: mcpCapabilityMetadata.mcpContractHash,
+      },
+      contractCompatibility: {
+        status: contract.status,
+        expected: contract.expected,
+        observed: contract.observed,
+        message:
+          contract.status === 'ready'
+            ? 'The observed MCP contract matches this canonical server contract.'
+            : contract.status === 'stale'
+              ? 'The current task is using a stale MCP contract. Reconnect before continuing.'
+              : 'The current task did not report its observed MCP contract identity.',
+        reconnect:
+          contract.status === 'stale'
+            ? {
+                required: true,
+                action: 'restart_or_reconnect_mcp_client',
+                reason:
+                  'MCP tool schemas and capabilities are captured by the client process and cannot refresh in place.',
+              }
+            : { required: false },
       },
       currentTaskCapabilities: {
         status:
@@ -218,6 +294,7 @@ export function compactProjectDiagnostic(diagnostic: Awaited<ReturnType<typeof d
     ok: diagnostic.ok,
     hubProject: { fingerprint: diagnostic.hubProject.fingerprint, canonicalPath: diagnostic.hubProject.canonicalPath },
     contractVersion: diagnostic.contractVersion,
+    mcpContractNegotiation: diagnostic.mcpContractNegotiation,
     baseUrl: diagnostic.baseUrl,
     checks: diagnostic.checks.map(check => ({ id: check.id, status: check.status, code: check.code })),
     warnings: diagnostic.warnings,
@@ -227,8 +304,18 @@ export function compactProjectDiagnostic(diagnostic: Awaited<ReturnType<typeof d
   }
 }
 
-export function diagnosticGuidance(diagnostic: unknown, preflight?: { ready?: boolean }) {
+export function diagnosticGuidance(
+  diagnostic: unknown,
+  preflight?: { ready?: boolean; layers?: { contractCompatibility?: { status?: unknown } } },
+) {
   const ok = Boolean((diagnostic as { ok?: unknown } | undefined)?.ok)
+  const contract = preflight?.layers?.contractCompatibility
+  if (contract?.status === 'stale')
+    return {
+      nextRecommendedAction:
+        'Restart or reconnect the MCP client, then rerun project_diagnostic with a fresh capability observation.',
+      nextRequiredAgentBehavior: 'reconnect_mcp_client',
+    }
   if (ok && preflight?.ready)
     return {
       nextRecommendedAction: 'Submit a requirement source for the selected target.',

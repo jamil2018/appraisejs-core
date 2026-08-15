@@ -22,15 +22,31 @@ export function registerDiagnosticOperations(context: McpRegistryContext): void 
       inputSchema: {
         observedTools: z.array(z.string()).optional(),
         observedResources: z.array(z.string()).optional(),
+        observedMcpSurfaceVersion: z.string().min(1).optional(),
+        observedMcpContractHash: z
+          .string()
+          .regex(/^sha256:[a-f0-9]{64}$/)
+          .optional(),
         expectedTargetWorkspacePath: z.string().optional(),
       },
     },
-    async ({ observedTools, observedResources, expectedTargetWorkspacePath }) => {
-      const diagnostic = await diagnoseProject(options)
+    async ({
+      observedTools,
+      observedResources,
+      observedMcpSurfaceVersion,
+      observedMcpContractHash,
+      expectedTargetWorkspacePath,
+    }) => {
+      const diagnostic = await diagnoseProject(options, {
+        mcpSurfaceVersion: compactMcpCapabilityMetadata.mcpSurfaceVersion,
+        mcpContractHash: compactMcpCapabilityMetadata.mcpContractHash,
+      })
       const canonicalTargetWorkspacePath = await canonicalExpectedTargetWorkspacePath(expectedTargetWorkspacePath)
       const agentPreflight = buildAgentPreflight(diagnostic, {
         observedTools,
         observedResources,
+        observedMcpSurfaceVersion,
+        observedMcpContractHash,
         expectedTargetWorkspacePath: canonicalTargetWorkspacePath,
       })
       const preflightReceipt = await api.request('diagnostic/preflight', {
@@ -41,6 +57,7 @@ export function registerDiagnosticOperations(context: McpRegistryContext): void 
           preflight: agentPreflight,
           capabilities: {
             mcpSurfaceVersion: compactMcpCapabilityMetadata.mcpSurfaceVersion,
+            mcpContractHash: compactMcpCapabilityMetadata.mcpContractHash,
             serverStartedAt: compactMcpCapabilityMetadata.serverStartedAt,
           },
         }),

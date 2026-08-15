@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { cookies } from 'next/headers'
 import Link from 'next/link'
 import { ArrowLeft, ClipboardCheck, ShieldCheck } from 'lucide-react'
 import { notFound } from 'next/navigation'
@@ -10,18 +11,72 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { requireActiveProject } from '@/lib/active-project'
+import prisma from '@/config/db-config'
 import { readQualityAssessment } from '@/services/coordinator/quality-design-service'
+import { localUiGrantForSession } from '@/services/coordinator/credential-execution-authorization-service'
 import { ServiceError } from '@/services/shared/errors'
 
 import { AssessmentDecisionReview } from './assessment-decision-review'
 import { AssessmentEvidenceReview } from './assessment-evidence-review'
 import { AssessmentExecutionControls } from './assessment-execution-controls'
+import {
+  CredentialExecutionAuthorization,
+  type CredentialExecutionAuthorizationRequest,
+} from './credential-execution-authorization'
 
 type PageProps = { params: Promise<{ assessmentId: string }>; searchParams?: Promise<{ project?: string }> }
+const SESSION_COOKIE = 'appraise-credential-authorization-session'
+const CSRF_COOKIE = 'appraise-credential-authorization-csrf'
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { assessmentId } = await params
   return { title: `Assessment ${assessmentId}` }
+}
+
+async function readLocalCredentialGrant(authorization: { id: string }, targetProjectId: string) {
+  const store = await cookies()
+  const sessionToken = store.get(SESSION_COOKIE)
+  const csrfToken = store.get(CSRF_COOKIE)
+  if (!sessionToken || !csrfToken) return null
+  return localUiGrantForSession({
+    requestId: authorization.id,
+    targetProjectId,
+    sessionToken: sessionToken.value,
+    csrfToken: csrfToken.value,
+  }).catch(() => null)
+}
+
+async function readPendingCredentialAuthorization(
+  packet: Awaited<ReturnType<typeof readQualityAssessment>>,
+  project: Awaited<ReturnType<typeof requireActiveProject>>,
+): Promise<CredentialExecutionAuthorizationRequest | null> {
+  const authorization = await prisma.assessmentExecutionRequest.findFirst({
+    where: {
+      assessmentId: packet.assessment.id,
+      targetProjectId: project.id,
+      expiresAt: { gt: new Date() },
+      revokedAt: null,
+    },
+    orderBy: { createdAt: 'desc' },
+    include: {
+      environment: { select: { id: true, name: true, baseUrl: true } },
+      bindings: { select: { slot: true, reference: true } },
+    },
+  })
+  if (!authorization) return null
+  const grant = await readLocalCredentialGrant(authorization, project.id)
+  return {
+    requestId: authorization.id,
+    requestHash: authorization.requestHash,
+    expiresAt: authorization.expiresAt.toISOString(),
+    target: { displayName: project.displayName, id: project.id },
+    assessmentId: packet.assessment.id,
+    publicationFingerprint: authorization.publicationFingerprint,
+    runtimeInputHash: authorization.runtimeInputHash,
+    environment: authorization.environment,
+    credentialBindings: authorization.bindings,
+    grant,
+  }
 }
 
 export default async function AssessmentDetailPage({ params, searchParams }: PageProps) {
@@ -35,6 +90,7 @@ export default async function AssessmentDetailPage({ params, searchParams }: Pag
     throw error
   }
   if (packet.qualityPlan.targetProjectId !== project.id) notFound()
+  const pendingCredentialAuthorization = await readPendingCredentialAuthorization(packet, project)
 
   return (
     <main className="space-y-6 pb-10">
@@ -110,6 +166,12 @@ export default async function AssessmentDetailPage({ params, searchParams }: Pag
         }
         status={packet.assessment.status}
       />
+      {pendingCredentialAuthorization ? (
+        <CredentialExecutionAuthorization
+          assessmentId={packet.assessment.id}
+          request={pendingCredentialAuthorization}
+        />
+      ) : null}
       <DetailCard
         title="Validation design"
         description="The canonical validation versions evaluated by this assessment."

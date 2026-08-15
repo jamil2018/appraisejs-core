@@ -172,11 +172,15 @@ const preflightLayerLabels = {
   targetProjectBinding: 'Target project binding',
 } as const
 
-function PreflightStatus({
-  status,
-}: {
-  status: AgentPreflightReceiptSummary['preflight']['layers'][keyof AgentPreflightReceiptSummary['preflight']['layers']]['status']
-}) {
+type PreflightLayerStatus<T> = T extends { status: infer Status } ? Status : never
+type AgentPreflightLayerStatus = PreflightLayerStatus<
+  Exclude<
+    AgentPreflightReceiptSummary['preflight']['layers'][keyof AgentPreflightReceiptSummary['preflight']['layers']],
+    undefined
+  >
+>
+
+function PreflightStatus({ status }: { status: AgentPreflightLayerStatus }) {
   if (status === 'ready')
     return (
       <Badge className="gap-1 border-emerald-500/35 bg-emerald-500/10 text-emerald-200" variant="outline">

@@ -188,17 +188,22 @@ export async function createCoordinatorClient(options: CoordinatorOptions) {
     project: local.details,
     options: { ...options, cwd: local.details.canonicalProjectPath },
     request,
-    diagnose: () => request('diagnostic'),
-    diagnoseTestRun: async (runId: string) => {
-      const targetProject = local.details.projectFingerprint
+    diagnose: (mcpContract?: { mcpSurfaceVersion: string; mcpContractHash: string }) => {
+      const query = new URLSearchParams()
+      if (mcpContract) {
+        query.set('mcpSurfaceVersion', mcpContract.mcpSurfaceVersion)
+        query.set('mcpContractHash', mcpContract.mcpContractHash)
+      }
+      return request(`diagnostic${query.size ? `?${query}` : ''}`)
+    },
+    diagnoseTestRun: async (runId: string, targetProject: string) => {
       return request(`test-runs/${encodeURIComponent(runId)}/diagnose`, {
-        headers: { 'x-appraise-target-project': targetProject ?? local.details.projectFingerprint },
+        headers: { 'x-appraise-target-project': targetProject },
       })
     },
-    readTestRun: async (runId: string) => {
-      const targetProject = local.details.projectFingerprint
+    readTestRun: async (runId: string, targetProject: string) => {
       return request(`test-runs/${encodeURIComponent(runId)}`, {
-        headers: { 'x-appraise-target-project': targetProject ?? local.details.projectFingerprint },
+        headers: { 'x-appraise-target-project': targetProject },
       })
     },
     listOperationCategories: (knownManifestHash?: string) => {

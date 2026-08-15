@@ -3,6 +3,7 @@ import os from 'os'
 import fs from 'fs-extra'
 import { afterEach, describe, expect, it } from 'vitest'
 import {
+  assertSharedTemplateDatabaseInputs,
   BLANK_TEMPLATE_PREP_SYNC_SCRIPTS,
   TEMPLATE_PREP_SYNC_SCRIPTS,
   getTemplatePrepSyncScripts,
@@ -35,6 +36,16 @@ async function getStarterCounts(): Promise<StepDefinitionDataCounts> {
 async function getBlankCounts(): Promise<StepDefinitionDataCounts> {
   return { stepDefinitionCount: 3, localRuntimeRowCount: 0 }
 }
+
+describe('shared template database inputs', () => {
+  it('allows starter and blank to reuse one seeded database', () => {
+    expect(assertSharedTemplateDatabaseInputs(['starter', 'blank'])).toBe('starter')
+  })
+
+  it('rejects an empty template set', () => {
+    expect(() => assertSharedTemplateDatabaseInputs([])).toThrow('At least one template')
+  })
+})
 
 describe('TEMPLATE_PREP_SYNC_SCRIPTS', () => {
   it('registers canonical Step Definitions during template preparation', () => {

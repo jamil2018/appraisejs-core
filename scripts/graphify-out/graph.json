@@ -6604,138 +6604,6 @@
       "id": "certify_operation_architecture_main"
     },
     {
-      "label": "generate-coordinator-reference.ts",
-      "file_type": "code",
-      "source_file": "generate-coordinator-reference.ts",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 14,
-      "norm_label": "generate-coordinator-reference.ts",
-      "community_name": "Community 14",
-      "id": "generate_coordinator_reference"
-    },
-    {
-      "label": "McpDefinition",
-      "file_type": "code",
-      "source_file": "generate-coordinator-reference.ts",
-      "source_location": "L12",
-      "_origin": "ast",
-      "community": 14,
-      "norm_label": "mcpdefinition",
-      "community_name": "Community 14",
-      "id": "generate_coordinator_reference_mcpdefinition"
-    },
-    {
-      "label": "McpFixture",
-      "file_type": "code",
-      "source_file": "generate-coordinator-reference.ts",
-      "source_location": "L13",
-      "_origin": "ast",
-      "community": 14,
-      "norm_label": "mcpfixture",
-      "community_name": "Community 14",
-      "id": "generate_coordinator_reference_mcpfixture"
-    },
-    {
-      "label": "PublicOperationReference",
-      "file_type": "code",
-      "source_file": "generate-coordinator-reference.ts",
-      "source_location": "L14",
-      "_origin": "ast",
-      "community": 14,
-      "norm_label": "publicoperationreference",
-      "community_name": "Community 14",
-      "id": "generate_coordinator_reference_publicoperationreference"
-    },
-    {
-      "label": "localDiscoveryTools",
-      "file_type": "code",
-      "source_file": "generate-coordinator-reference.ts",
-      "source_location": "L17",
-      "_origin": "ast",
-      "community": 14,
-      "norm_label": "localdiscoverytools",
-      "community_name": "Community 14",
-      "id": "generate_coordinator_reference_localdiscoverytools"
-    },
-    {
-      "label": "exactCoordinatorOperations",
-      "file_type": "code",
-      "source_file": "generate-coordinator-reference.ts",
-      "source_location": "L19",
-      "_origin": "ast",
-      "community": 14,
-      "norm_label": "exactcoordinatoroperations",
-      "community_name": "Community 14",
-      "id": "generate_coordinator_reference_exactcoordinatoroperations"
-    },
-    {
-      "label": "coordinatorOperationPrefixes",
-      "file_type": "code",
-      "source_file": "generate-coordinator-reference.ts",
-      "source_location": "L40",
-      "_origin": "ast",
-      "community": 14,
-      "norm_label": "coordinatoroperationprefixes",
-      "community_name": "Community 14",
-      "id": "generate_coordinator_reference_coordinatoroperationprefixes"
-    },
-    {
-      "label": "referenceForMcpTool()",
-      "file_type": "code",
-      "source_file": "generate-coordinator-reference.ts",
-      "source_location": "L49",
-      "_origin": "ast",
-      "community": 14,
-      "norm_label": "referenceformcptool()",
-      "community_name": "Community 14",
-      "id": "generate_coordinator_reference_referenceformcptool"
-    },
-    {
-      "label": "coordinator()",
-      "file_type": "code",
-      "source_file": "generate-coordinator-reference.ts",
-      "source_location": "L58",
-      "_origin": "ast",
-      "community": 14,
-      "norm_label": "coordinator()",
-      "community_name": "Community 14",
-      "id": "generate_coordinator_reference_coordinator"
-    },
-    {
-      "label": "escapeCell()",
-      "file_type": "code",
-      "source_file": "generate-coordinator-reference.ts",
-      "source_location": "L62",
-      "_origin": "ast",
-      "community": 14,
-      "norm_label": "escapecell()",
-      "community_name": "Community 14",
-      "id": "generate_coordinator_reference_escapecell"
-    },
-    {
-      "label": "generateCoordinatorReference()",
-      "file_type": "code",
-      "source_file": "generate-coordinator-reference.ts",
-      "source_location": "L66",
-      "_origin": "ast",
-      "community": 14,
-      "norm_label": "generatecoordinatorreference()",
-      "community_name": "Community 14",
-      "id": "generate_coordinator_reference_generatecoordinatorreference"
-    },
-    {
-      "label": "main()",
-      "file_type": "code",
-      "source_file": "generate-coordinator-reference.ts",
-      "source_location": "L117",
-      "_origin": "ast",
-      "community": 14,
-      "norm_label": "main()",
-      "community_name": "Community 14",
-      "id": "generate_coordinator_reference_main"
-    },
-    {
       "label": "assessment-execution-cutover-migration.test.ts",
       "file_type": "code",
       "source_file": "lib/assessment-execution-cutover-migration.test.ts",
@@ -6996,8 +6864,8 @@
       "_origin": "ast",
       "community": 7,
       "norm_label": "dev-with-mcp.mjs",
-      "id": "dev_with_mcp",
-      "community_name": "Community 7"
+      "community_name": "Community 7",
+      "id": "dev_with_mcp"
     },
     {
       "label": "children",
@@ -7007,8 +6875,8 @@
       "_origin": "ast",
       "community": 7,
       "norm_label": "children",
-      "id": "dev_with_mcp_children",
-      "community_name": "Community 7"
+      "community_name": "Community 7",
+      "id": "dev_with_mcp_children"
     },
     {
       "label": "startProcess()",
@@ -7018,8 +6886,8 @@
       "_origin": "ast",
       "community": 7,
       "norm_label": "startprocess()",
-      "id": "dev_with_mcp_startprocess",
-      "community_name": "Community 7"
+      "community_name": "Community 7",
+      "id": "dev_with_mcp_startprocess"
     },
     {
       "label": "handleProcessExit()",
@@ -7029,8 +6897,8 @@
       "_origin": "ast",
       "community": 7,
       "norm_label": "handleprocessexit()",
-      "id": "dev_with_mcp_handleprocessexit",
-      "community_name": "Community 7"
+      "community_name": "Community 7",
+      "id": "dev_with_mcp_handleprocessexit"
     },
     {
       "label": "exitLabel()",
@@ -7040,8 +6908,8 @@
       "_origin": "ast",
       "community": 7,
       "norm_label": "exitlabel()",
-      "id": "dev_with_mcp_exitlabel",
-      "community_name": "Community 7"
+      "community_name": "Community 7",
+      "id": "dev_with_mcp_exitlabel"
     },
     {
       "label": "exitCode()",
@@ -7051,8 +6919,8 @@
       "_origin": "ast",
       "community": 7,
       "norm_label": "exitcode()",
-      "id": "dev_with_mcp_exitcode",
-      "community_name": "Community 7"
+      "community_name": "Community 7",
+      "id": "dev_with_mcp_exitcode"
     },
     {
       "label": "handleProcessError()",
@@ -7062,8 +6930,8 @@
       "_origin": "ast",
       "community": 7,
       "norm_label": "handleprocesserror()",
-      "id": "dev_with_mcp_handleprocesserror",
-      "community_name": "Community 7"
+      "community_name": "Community 7",
+      "id": "dev_with_mcp_handleprocesserror"
     },
     {
       "label": "handleProcessStop()",
@@ -7073,8 +6941,8 @@
       "_origin": "ast",
       "community": 7,
       "norm_label": "handleprocessstop()",
-      "id": "dev_with_mcp_handleprocessstop",
-      "community_name": "Community 7"
+      "community_name": "Community 7",
+      "id": "dev_with_mcp_handleprocessstop"
     },
     {
       "label": "stopChildren()",
@@ -7084,8 +6952,8 @@
       "_origin": "ast",
       "community": 7,
       "norm_label": "stopchildren()",
-      "id": "dev_with_mcp_stopchildren",
-      "community_name": "Community 7"
+      "community_name": "Community 7",
+      "id": "dev_with_mcp_stopchildren"
     },
     {
       "label": "shutdown()",
@@ -7095,8 +6963,8 @@
       "_origin": "ast",
       "community": 7,
       "norm_label": "shutdown()",
-      "id": "dev_with_mcp_shutdown",
-      "community_name": "Community 7"
+      "community_name": "Community 7",
+      "id": "dev_with_mcp_shutdown"
     },
     {
       "label": "optionValue()",
@@ -7106,8 +6974,8 @@
       "_origin": "ast",
       "community": 7,
       "norm_label": "optionvalue()",
-      "id": "dev_with_mcp_optionvalue",
-      "community_name": "Community 7"
+      "community_name": "Community 7",
+      "id": "dev_with_mcp_optionvalue"
     },
     {
       "label": "optionTokenValue()",
@@ -7117,8 +6985,8 @@
       "_origin": "ast",
       "community": 7,
       "norm_label": "optiontokenvalue()",
-      "id": "dev_with_mcp_optiontokenvalue",
-      "community_name": "Community 7"
+      "community_name": "Community 7",
+      "id": "dev_with_mcp_optiontokenvalue"
     },
     {
       "label": "valueForLongOption()",
@@ -7128,8 +6996,8 @@
       "_origin": "ast",
       "community": 7,
       "norm_label": "valueforlongoption()",
-      "id": "dev_with_mcp_valueforlongoption",
-      "community_name": "Community 7"
+      "community_name": "Community 7",
+      "id": "dev_with_mcp_valueforlongoption"
     },
     {
       "label": "inferredBaseUrl()",
@@ -7139,8 +7007,8 @@
       "_origin": "ast",
       "community": 7,
       "norm_label": "inferredbaseurl()",
-      "id": "dev_with_mcp_inferredbaseurl",
-      "community_name": "Community 7"
+      "community_name": "Community 7",
+      "id": "dev_with_mcp_inferredbaseurl"
     },
     {
       "label": "mcpCommand()",
@@ -7150,8 +7018,8 @@
       "_origin": "ast",
       "community": 7,
       "norm_label": "mcpcommand()",
-      "id": "dev_with_mcp_mcpcommand",
-      "community_name": "Community 7"
+      "community_name": "Community 7",
+      "id": "dev_with_mcp_mcpcommand"
     },
     {
       "label": "mcp",
@@ -7161,8 +7029,8 @@
       "_origin": "ast",
       "community": 7,
       "norm_label": "mcp",
-      "id": "dev_with_mcp_mcp",
-      "community_name": "Community 7"
+      "community_name": "Community 7",
+      "id": "dev_with_mcp_mcp"
     },
     {
       "label": "built-in-readiness.mjs",
@@ -7172,8 +7040,8 @@
       "_origin": "ast",
       "community": 7,
       "norm_label": "built-in-readiness.mjs",
-      "id": "lib_built_in_readiness",
-      "community_name": "Community 7"
+      "community_name": "Community 7",
+      "id": "lib_built_in_readiness"
     },
     {
       "label": "ensureBuiltInStepDefinitionReadiness()",
@@ -7183,8 +7051,8 @@
       "_origin": "ast",
       "community": 7,
       "norm_label": "ensurebuiltinstepdefinitionreadiness()",
-      "id": "lib_built_in_readiness_ensurebuiltinstepdefinitionreadiness",
-      "community_name": "Community 7"
+      "community_name": "Community 7",
+      "id": "lib_built_in_readiness_ensurebuiltinstepdefinitionreadiness"
     },
     {
       "label": "start-local.mjs",
@@ -7194,8 +7062,8 @@
       "_origin": "ast",
       "community": 7,
       "norm_label": "start-local.mjs",
-      "id": "start_local",
-      "community_name": "Community 7"
+      "community_name": "Community 7",
+      "id": "start_local"
     },
     {
       "label": "[mode = '', ...args]",
@@ -7205,8 +7073,8 @@
       "_origin": "ast",
       "community": 7,
       "norm_label": "[mode = '', ...args]",
-      "id": "start_local_mode_args",
-      "community_name": "Community 7"
+      "community_name": "Community 7",
+      "id": "start_local_mode_args"
     },
     {
       "label": "nextBin",
@@ -7216,8 +7084,140 @@
       "_origin": "ast",
       "community": 7,
       "norm_label": "nextbin",
-      "id": "start_local_nextbin",
-      "community_name": "Community 7"
+      "community_name": "Community 7",
+      "id": "start_local_nextbin"
+    },
+    {
+      "label": "generate-coordinator-reference.ts",
+      "file_type": "code",
+      "source_file": "generate-coordinator-reference.ts",
+      "source_location": "L1",
+      "_origin": "ast",
+      "community": 14,
+      "norm_label": "generate-coordinator-reference.ts",
+      "community_name": "Community 14",
+      "id": "generate_coordinator_reference"
+    },
+    {
+      "label": "McpDefinition",
+      "file_type": "code",
+      "source_file": "generate-coordinator-reference.ts",
+      "source_location": "L12",
+      "_origin": "ast",
+      "community": 14,
+      "norm_label": "mcpdefinition",
+      "community_name": "Community 14",
+      "id": "generate_coordinator_reference_mcpdefinition"
+    },
+    {
+      "label": "McpFixture",
+      "file_type": "code",
+      "source_file": "generate-coordinator-reference.ts",
+      "source_location": "L13",
+      "_origin": "ast",
+      "community": 14,
+      "norm_label": "mcpfixture",
+      "community_name": "Community 14",
+      "id": "generate_coordinator_reference_mcpfixture"
+    },
+    {
+      "label": "PublicOperationReference",
+      "file_type": "code",
+      "source_file": "generate-coordinator-reference.ts",
+      "source_location": "L14",
+      "_origin": "ast",
+      "community": 14,
+      "norm_label": "publicoperationreference",
+      "community_name": "Community 14",
+      "id": "generate_coordinator_reference_publicoperationreference"
+    },
+    {
+      "label": "localDiscoveryTools",
+      "file_type": "code",
+      "source_file": "generate-coordinator-reference.ts",
+      "source_location": "L17",
+      "_origin": "ast",
+      "community": 14,
+      "norm_label": "localdiscoverytools",
+      "community_name": "Community 14",
+      "id": "generate_coordinator_reference_localdiscoverytools"
+    },
+    {
+      "label": "exactCoordinatorOperations",
+      "file_type": "code",
+      "source_file": "generate-coordinator-reference.ts",
+      "source_location": "L19",
+      "_origin": "ast",
+      "community": 14,
+      "norm_label": "exactcoordinatoroperations",
+      "community_name": "Community 14",
+      "id": "generate_coordinator_reference_exactcoordinatoroperations"
+    },
+    {
+      "label": "coordinatorOperationPrefixes",
+      "file_type": "code",
+      "source_file": "generate-coordinator-reference.ts",
+      "source_location": "L41",
+      "_origin": "ast",
+      "community": 14,
+      "norm_label": "coordinatoroperationprefixes",
+      "community_name": "Community 14",
+      "id": "generate_coordinator_reference_coordinatoroperationprefixes"
+    },
+    {
+      "label": "referenceForMcpTool()",
+      "file_type": "code",
+      "source_file": "generate-coordinator-reference.ts",
+      "source_location": "L50",
+      "_origin": "ast",
+      "community": 14,
+      "norm_label": "referenceformcptool()",
+      "community_name": "Community 14",
+      "id": "generate_coordinator_reference_referenceformcptool"
+    },
+    {
+      "label": "coordinator()",
+      "file_type": "code",
+      "source_file": "generate-coordinator-reference.ts",
+      "source_location": "L59",
+      "_origin": "ast",
+      "community": 14,
+      "norm_label": "coordinator()",
+      "community_name": "Community 14",
+      "id": "generate_coordinator_reference_coordinator"
+    },
+    {
+      "label": "escapeCell()",
+      "file_type": "code",
+      "source_file": "generate-coordinator-reference.ts",
+      "source_location": "L63",
+      "_origin": "ast",
+      "community": 14,
+      "norm_label": "escapecell()",
+      "community_name": "Community 14",
+      "id": "generate_coordinator_reference_escapecell"
+    },
+    {
+      "label": "generateCoordinatorReference()",
+      "file_type": "code",
+      "source_file": "generate-coordinator-reference.ts",
+      "source_location": "L67",
+      "_origin": "ast",
+      "community": 14,
+      "norm_label": "generatecoordinatorreference()",
+      "community_name": "Community 14",
+      "id": "generate_coordinator_reference_generatecoordinatorreference"
+    },
+    {
+      "label": "main()",
+      "file_type": "code",
+      "source_file": "generate-coordinator-reference.ts",
+      "source_location": "L118",
+      "_origin": "ast",
+      "community": 14,
+      "norm_label": "main()",
+      "community_name": "Community 14",
+      "id": "generate_coordinator_reference_main"
     }
   ],
   "links": [
@@ -17149,138 +17149,6 @@
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
-      "source_file": "generate-coordinator-reference.ts",
-      "source_location": "L58",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "generate_coordinator_reference",
-      "target": "generate_coordinator_reference_coordinator"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "generate-coordinator-reference.ts",
-      "source_location": "L40",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "generate_coordinator_reference",
-      "target": "generate_coordinator_reference_coordinatoroperationprefixes"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "generate-coordinator-reference.ts",
-      "source_location": "L62",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "generate_coordinator_reference",
-      "target": "generate_coordinator_reference_escapecell"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "generate-coordinator-reference.ts",
-      "source_location": "L19",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "generate_coordinator_reference",
-      "target": "generate_coordinator_reference_exactcoordinatoroperations"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "generate-coordinator-reference.ts",
-      "source_location": "L66",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "generate_coordinator_reference",
-      "target": "generate_coordinator_reference_generatecoordinatorreference"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "generate-coordinator-reference.ts",
-      "source_location": "L17",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "generate_coordinator_reference",
-      "target": "generate_coordinator_reference_localdiscoverytools"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "generate-coordinator-reference.ts",
-      "source_location": "L117",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "generate_coordinator_reference",
-      "target": "generate_coordinator_reference_main"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "generate-coordinator-reference.ts",
-      "source_location": "L12",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "generate_coordinator_reference",
-      "target": "generate_coordinator_reference_mcpdefinition"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "generate-coordinator-reference.ts",
-      "source_location": "L13",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "generate_coordinator_reference",
-      "target": "generate_coordinator_reference_mcpfixture"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "generate-coordinator-reference.ts",
-      "source_location": "L14",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "generate_coordinator_reference",
-      "target": "generate_coordinator_reference_publicoperationreference"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "generate-coordinator-reference.ts",
-      "source_location": "L49",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "generate_coordinator_reference",
-      "target": "generate_coordinator_reference_referenceformcptool"
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "source_file": "generate-coordinator-reference.ts",
-      "source_location": "L52",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "generate_coordinator_reference_referenceformcptool",
-      "target": "generate_coordinator_reference_coordinator"
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "source_file": "generate-coordinator-reference.ts",
-      "source_location": "L123",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "generate_coordinator_reference_main",
-      "target": "generate_coordinator_reference_generatecoordinatorreference"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
       "source_file": "lib/assessment-execution-cutover-migration.test.ts",
       "source_location": "L130",
       "weight": 1.0,
@@ -17824,8 +17692,140 @@
       "confidence_score": 1.0,
       "source": "start_local",
       "target": "start_local_nextbin"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "generate-coordinator-reference.ts",
+      "source_location": "L59",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "generate_coordinator_reference",
+      "target": "generate_coordinator_reference_coordinator"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "generate-coordinator-reference.ts",
+      "source_location": "L41",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "generate_coordinator_reference",
+      "target": "generate_coordinator_reference_coordinatoroperationprefixes"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "generate-coordinator-reference.ts",
+      "source_location": "L63",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "generate_coordinator_reference",
+      "target": "generate_coordinator_reference_escapecell"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "generate-coordinator-reference.ts",
+      "source_location": "L19",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "generate_coordinator_reference",
+      "target": "generate_coordinator_reference_exactcoordinatoroperations"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "generate-coordinator-reference.ts",
+      "source_location": "L67",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "generate_coordinator_reference",
+      "target": "generate_coordinator_reference_generatecoordinatorreference"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "generate-coordinator-reference.ts",
+      "source_location": "L17",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "generate_coordinator_reference",
+      "target": "generate_coordinator_reference_localdiscoverytools"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "generate-coordinator-reference.ts",
+      "source_location": "L118",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "generate_coordinator_reference",
+      "target": "generate_coordinator_reference_main"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "generate-coordinator-reference.ts",
+      "source_location": "L12",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "generate_coordinator_reference",
+      "target": "generate_coordinator_reference_mcpdefinition"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "generate-coordinator-reference.ts",
+      "source_location": "L13",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "generate_coordinator_reference",
+      "target": "generate_coordinator_reference_mcpfixture"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "generate-coordinator-reference.ts",
+      "source_location": "L14",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "generate_coordinator_reference",
+      "target": "generate_coordinator_reference_publicoperationreference"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "generate-coordinator-reference.ts",
+      "source_location": "L50",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "generate_coordinator_reference",
+      "target": "generate_coordinator_reference_referenceformcptool"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "generate-coordinator-reference.ts",
+      "source_location": "L53",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "generate_coordinator_reference_referenceformcptool",
+      "target": "generate_coordinator_reference_coordinator"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "generate-coordinator-reference.ts",
+      "source_location": "L124",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "generate_coordinator_reference_main",
+      "target": "generate_coordinator_reference_generatecoordinatorreference"
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "f9cfd4d55cc6028e0b5af23971d8511d971779f1"
+  "built_at_commit": "834100879288f08922edae10e9dda48107a704f9"
 }

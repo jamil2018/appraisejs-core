@@ -75,6 +75,9 @@ const inputSchema = z.object({
     metadata: z.record(z.string(), primitiveSchema).optional(),
   }),
   runtime: z.object({ browserEngine: browserSchema.optional() }).default({}),
+  authorizationGrantId: z.string().uuid().optional(),
+  executionRequestId: z.string().uuid().optional(),
+  expectedRequestHash: z.string().startsWith('sha256:').optional(),
   idempotencyKey: z.string().min(1).max(1_000),
 })
 
@@ -698,6 +701,9 @@ async function ensureStarted(state: PreparationState, input: PreparationInput, e
   const run = await runQualityAssessment({
     assessmentId,
     runtime: { environmentId, browserEngine: input.runtime.browserEngine ?? BrowserEngine.CHROMIUM },
+    authorizationGrantId: input.authorizationGrantId,
+    executionRequestId: input.executionRequestId,
+    expectedRequestHash: input.expectedRequestHash,
     idempotencyKey: `prepare:${input.idempotencyKey}`,
   })
   return advance(state, 'STARTED', { assessmentRun: { id: run.id, status: run.status } })
@@ -734,6 +740,12 @@ async function executePreparation(
 export async function prepareQualityAssessmentRun(source: unknown) {
   const input = inputSchema.parse(source)
   const target = await resolveTargetProject(input.target)
-  const inputHash = digest({ ...input, targetProjectId: target.id })
+  const {
+    authorizationGrantId: _grant,
+    executionRequestId: _request,
+    expectedRequestHash: _hash,
+    ...immutableInput
+  } = input
+  const inputHash = digest({ ...immutableInput, targetProjectId: target.id })
   return executePreparation(input, target, inputHash)
 }

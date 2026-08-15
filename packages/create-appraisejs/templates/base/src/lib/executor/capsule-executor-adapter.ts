@@ -12,6 +12,7 @@ import {
 } from '@/lib/runtime-capsule'
 import { promises as fs } from 'node:fs'
 import path from 'node:path'
+import { credentialRedactor } from '@/lib/runtime-capsule/secret-redaction'
 
 export type CapsuleExecutionRequest = {
   projectId: string
@@ -53,13 +54,16 @@ export class CapsuleExecutorAdapter {
       await defaultCapsulePreflightDependencies.prepareOutput(input.capsuleRoot, receipt.outputs.report.path)
       await defaultCapsulePreflightDependencies.prepareOutput(input.capsuleRoot, receipt.outputs.log.path)
       await leases.renew({ ...identity, ownerToken: lease.ownerToken })
+      const sealedEnvironment = resolveSealedEnvironment(receipt)
       const process = await spawnTask(receipt.command.executable, receipt.command.executionArgv, {
         cwd: input.capsuleRoot,
-        env: resolveSealedEnvironment(receipt),
+        env: sealedEnvironment,
+        extendEnv: false,
         streamLogs: true,
         prefixLogs: true,
         logPrefix: `test-run-${input.runId}`,
         captureOutput: true,
+        redactOutput: credentialRedactor([sealedEnvironment.APPRAISE_ENV_PASSWORD]),
       })
       processManager.register(input.runId, process)
       timer = setInterval(() => {

@@ -54,6 +54,18 @@ export function getTemplatePrepSyncScripts(template: TemplateId): readonly strin
   return template === 'blank' ? BLANK_TEMPLATE_PREP_SYNC_SCRIPTS : TEMPLATE_PREP_SYNC_SCRIPTS
 }
 
+export function assertSharedTemplateDatabaseInputs(templates: readonly TemplateId[]): TemplateId {
+  const canonical = templates[0]
+  if (!canonical) throw new Error('At least one template is required to prepare the shared database.')
+  const scripts = JSON.stringify(getTemplatePrepSyncScripts(canonical))
+  for (const template of templates.slice(1)) {
+    if (JSON.stringify(getTemplatePrepSyncScripts(template)) !== scripts) {
+      throw new Error(`Template ${template} requires flavor-specific database preparation.`)
+    }
+  }
+  return canonical
+}
+
 export async function readStepDefinitionDataCounts(databasePath: string): Promise<StepDefinitionDataCounts> {
   const { PrismaClient } = await import('@prisma/client')
   const prisma = new PrismaClient({

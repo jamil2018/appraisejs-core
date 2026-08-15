@@ -7,6 +7,10 @@ Runtime capsule diagnostics are hub-owned in Appraise 0.5. The full base templat
 schema, and artifact gateway because a generated AppraiseJS installation can become the hub; package CLI/MCP clients
 and registered target workspaces still connect back to that hub rather than receiving a separate diagnostic runtime.
 
+The starter and blank flavors share one prepared database while their registered database inputs remain identical.
+Preparation performs migrations and Step Definition synchronization once, copies the result to both overlays, and
+still verifies both composed templates independently.
+
 ## Current Model
 
 - Base template: `packages/create-appraisejs/templates/base`

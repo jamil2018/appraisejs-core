@@ -16,6 +16,7 @@ import path from 'path'
 import { spawn } from 'child_process'
 import { fileURLToPath, pathToFileURL } from 'url'
 import {
+  assertSharedTemplateDatabaseInputs,
   collectFiles,
   getTemplatePrepSyncScripts,
   shouldAbortOnFallbackSeed,
@@ -483,20 +484,15 @@ function resetFlavorDir(template: TemplateId): void {
   mkdirSync(path.join(flavorDir, 'prisma'), { recursive: true })
 }
 
-function copyFlavorIntoWorkspace(template: TemplateId): void {
-  const flavorDir = getPackageFlavorDir(template)
-  copyDirWithFilter(flavorDir, tempWorkspaceDir, { shouldExcludePath: shouldExcludeBundledTemplatePath })
-}
-
-async function seedTemplateDatabase(
-  template: TemplateId,
+async function seedTemplateDatabases(
+  templates: readonly TemplateId[],
   inputHash: string,
   previousMetadata: TemplateMetadata | null,
 ): Promise<void> {
+  const template = assertSharedTemplateDatabaseInputs(templates)
   rmSync(tempWorkspaceDir, { recursive: true, force: true })
   mkdirSync(tempWorkspaceRootDir, { recursive: true })
   cpSync(baseTemplateDir, tempWorkspaceDir, { recursive: true, force: true })
-  copyFlavorIntoWorkspace(template)
   rmSync(path.join(tempWorkspaceDir, '.env'), { force: true })
   rmSync(path.join(tempWorkspaceDir, 'prisma', 'dev.db'), { force: true })
   rmSync(path.join(tempWorkspaceDir, 'prisma', 'prisma'), { recursive: true, force: true })
@@ -527,7 +523,9 @@ async function seedTemplateDatabase(
     throw new Error(`Seeded template database was not created at ${seededDbPath}`)
   }
 
-  cpSync(seededDbPath, path.join(getPackageFlavorDir(template), 'prisma', 'dev.db'), { force: true })
+  for (const targetTemplate of templates) {
+    cpSync(seededDbPath, path.join(getPackageFlavorDir(targetTemplate), 'prisma', 'dev.db'), { force: true })
+  }
 }
 
 function composeTemplateForVerification(template: TemplateId): string {
@@ -567,9 +565,8 @@ async function main(): Promise<void> {
     }
     copyStarterOverlayFiles()
 
-    for (const template of getTemplateDefinitions().map(definition => definition.id)) {
-      await seedTemplateDatabase(template, inputHash, previousMetadata)
-    }
+    const templates = getTemplateDefinitions().map(definition => definition.id)
+    await seedTemplateDatabases(templates, inputHash, previousMetadata)
 
     for (const template of getTemplateDefinitions().map(definition => definition.id)) {
       await verifyPreparedTemplateState(composeTemplateForVerification(template), template)

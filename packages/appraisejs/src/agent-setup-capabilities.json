@@ -1,8 +1,11 @@
 {
   "tools": [
     "assessment_create",
+    "assessment_create_successor",
     "assessment_decide",
     "assessment_diagnose",
+    "assessment_execution_authorization_issue",
+    "assessment_execution_authorization_revoke",
     "assessment_prepare_run",
     "assessment_readiness",
     "assessment_reconcile",
@@ -11,6 +14,7 @@
     "assessment_stop",
     "environment_ensure",
     "environment_list",
+    "locator_ensure",
     "locator_graph_query",
     "locator_search",
     "operation_categories",

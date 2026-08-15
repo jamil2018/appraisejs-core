@@ -34,6 +34,8 @@ const tagExpression = z
   .refine(value => !/[\0\r\n]/.test(value), 'must be a single line')
 const ALLOWED_ENV_KEYS = new Set([
   'APPRAISE_BASE_URL',
+  'APPRAISE_ENV_PASSWORD',
+  'APPRAISE_ENV_USERNAME',
   'BROWSER',
   'HEADLESS',
   'REPORT_PATH',
@@ -378,10 +380,11 @@ function refineEnvironment(value: CapsuleCommandReceiptV1, context: z.Refinement
 function environmentEntryIsConsistent(entry: CapsuleCommandReceiptV1['environment']['entries'][number]) {
   const hasReference =
     entry.reference !== undefined && entry.referenceKind === 'environment' && entry.referenceVersion !== undefined
-  return (
-    (entry.source === 'literal') === (entry.value !== undefined) &&
-    (entry.source === 'environment-ref') === hasReference
-  )
+  if (entry.source === 'literal')
+    return (
+      entry.value !== undefined && !hasReference && entry.reference === undefined && entry.referenceKind === undefined
+    )
+  return entry.value === undefined && hasReference
 }
 
 function refineSelection(value: CapsuleCommandReceiptV1, context: z.RefinementCtx) {

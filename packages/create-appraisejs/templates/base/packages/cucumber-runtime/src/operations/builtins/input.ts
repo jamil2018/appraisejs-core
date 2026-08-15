@@ -51,7 +51,7 @@ export const inputBuiltins = [
       try {
         await this.page.locator(selector).fill(value)
       } catch (error) {
-        throw new Error(`Failed to fill in the ${elementName} input field with value ${value}: ${error}`)
+        throw new Error(`Failed to fill in the ${elementName} input field: ${error}`)
       }
     },
   },

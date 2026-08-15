@@ -1,6 +1,9 @@
 import { getEnvironment } from '../../environment.util.ts'
+import { waitForRouteSettled } from '../../locator.util.ts'
 import type { CustomWorld } from '../../world.ts'
 import type { BuiltinBrowserOperation } from '../builtin-contracts.ts'
+import { gotoSealedOrigin } from '../sealed-origin.ts'
+import { SealedOriginError } from '../sealed-origin.ts'
 
 export const navigationBuiltins = [
   {
@@ -9,8 +12,12 @@ export const navigationBuiltins = [
     parameters: [{ name: 'url', type: 'STRING' }],
     execute: async function (this: CustomWorld, url: string) {
       try {
-        await this.page.goto(url, { waitUntil: 'domcontentloaded' })
+        await gotoSealedOrigin(this.page, url, this.sealedBaseUrl, { waitUntil: 'domcontentloaded' })
+        // Bound readiness by route and DOM stability. Long-lived analytics,
+        // polling, or streaming requests must not block managed navigation.
+        await waitForRouteSettled(this.page)
       } catch (error) {
+        if (error instanceof SealedOriginError) throw error
         throw new Error(`Failed to navigate to the ${url} url: ${error}`)
       }
     },
@@ -54,10 +61,11 @@ export const navigationBuiltins = [
         if (!environmentConfig) {
           throw new Error(`Environment ${environment} not found`)
         }
-        await this.page.goto(environmentConfig.baseUrl, {
+        await gotoSealedOrigin(this.page, environmentConfig.baseUrl, this.sealedBaseUrl, {
           waitUntil: 'domcontentloaded',
         })
       } catch (error) {
+        if (error instanceof SealedOriginError) throw error
         throw new Error(`Failed to navigate to the base url of the selected environment: ${error}`)
       }
     },

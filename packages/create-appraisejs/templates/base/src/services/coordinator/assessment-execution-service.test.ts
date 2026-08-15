@@ -7,6 +7,7 @@ const { database } = vi.hoisted(() => ({
     assessment: { findUniqueOrThrow: vi.fn() },
     validationVersion: { findMany: vi.fn() },
     evaluationSubjectRevision: { upsert: vi.fn() },
+    assessmentRun: { findUnique: vi.fn().mockResolvedValue(null) },
   },
 }))
 
@@ -15,6 +16,7 @@ vi.mock('@/config/db-config', () => ({ default: database }))
 import {
   runQualityAssessment,
   reconcileQualityAssessment,
+  setAssessmentCredentialAuthorizationServiceForTests,
   setAssessmentExecutionClientForTests,
   setAssessmentRuntimeServiceFactoryForTests,
   stopQualityAssessment,
@@ -24,6 +26,7 @@ describe('assessment execution guards', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     setAssessmentExecutionClientForTests()
+    setAssessmentCredentialAuthorizationServiceForTests()
     setAssessmentRuntimeServiceFactoryForTests()
   })
 
@@ -129,6 +132,68 @@ describe('assessment execution guards', () => {
         },
       }),
     ).rejects.toThrow('matrix identity')
+  })
+
+  it('denies credential execution before consuming a grant or preparing runtime work', async () => {
+    const consumeCredentialExecutionGrant = vi.fn()
+    const prepareQuality = vi.fn()
+    setAssessmentCredentialAuthorizationServiceForTests({
+      executionRequiresCredential: vi.fn().mockResolvedValue(true),
+      credentialAuthorizationInput: vi.fn().mockReturnValue({ bindings: [{ reference: 'environment:password' }] }),
+      ensureCredentialExecutionRequest: vi.fn().mockResolvedValue({
+        id: 'authorization-request-1',
+        requestHash: 'sha256:authorization',
+        expiresAt: new Date(Date.now() + 60_000),
+      }),
+      consumeCredentialExecutionGrant,
+    } as never)
+    const transaction = {
+      assessmentRun: {
+        findUnique: vi.fn().mockResolvedValue(null),
+        create: vi.fn(),
+      },
+    }
+    setAssessmentExecutionClientForTests({
+      assessment: {
+        findUniqueOrThrow: vi
+          .fn()
+          .mockResolvedValueOnce({
+            id: 'assessment-1',
+            status: 'READY',
+            alignment: 'CURRENT',
+            targetProjectId: 'target-1',
+            qualityPlanRevisionId: 'revision-1',
+            evaluationSubjectRevisionId: 'subject-1',
+            evaluationSubjectRevision: { subjectDigest: 'sha256:subject' },
+            qualityPlanRevision: {
+              validationVersions: [
+                {
+                  id: 'validation-1',
+                  status: 'PUBLISHED',
+                  publication: {
+                    phase: 'review_ready',
+                    runtimeInputJson: JSON.stringify({ matrix: [{ browser: 'chromium', environment: 'env-1' }] }),
+                  },
+                },
+              ],
+            },
+          })
+          .mockResolvedValueOnce({ qualityPlanId: 'plan-1' }),
+      },
+      assessmentRun: { findUnique: vi.fn().mockResolvedValue(null) },
+      $transaction: vi.fn(async callback => callback(transaction)),
+    } as never)
+    setAssessmentRuntimeServiceFactoryForTests(() => ({ prepareQuality, startQuality: vi.fn(), cancel: vi.fn() }))
+
+    await expect(
+      runQualityAssessment({
+        assessmentId: 'assessment-1',
+        idempotencyKey: 'run-1',
+        runtime: { environmentId: 'env-1' },
+      }),
+    ).rejects.toThrow('AUTHORIZATION_REQUIRED')
+    expect(consumeCredentialExecutionGrant).not.toHaveBeenCalled()
+    expect(prepareQuality).not.toHaveBeenCalled()
   })
 
   it('does not invoke cancellation when an assessment has no active runs', async () => {

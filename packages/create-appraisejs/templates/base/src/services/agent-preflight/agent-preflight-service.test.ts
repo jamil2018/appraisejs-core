@@ -11,6 +11,7 @@ function readyInput(): AgentPreflightReceiptInput {
     expectedTargetWorkspacePath: '/targets/notes',
     capabilities: {
       mcpSurfaceVersion: '2026-07-18.unified-agent-preflight',
+      mcpContractHash: `sha256:${'a'.repeat(64)}`,
       serverStartedAt: '2026-07-18T03:00:00.000Z',
     },
     preflight: {
@@ -24,6 +25,20 @@ function readyInput(): AgentPreflightReceiptInput {
           message: 'The MCP request reached this server.',
           serverStartedAt: '2026-07-18T03:00:00.000Z',
           mcpSurfaceVersion: '2026-07-18.unified-agent-preflight',
+          mcpContractHash: `sha256:${'a'.repeat(64)}`,
+        },
+        contractCompatibility: {
+          status: 'ready',
+          expected: {
+            mcpSurfaceVersion: '2026-07-18.unified-agent-preflight',
+            mcpContractHash: `sha256:${'a'.repeat(64)}`,
+          },
+          observed: {
+            mcpSurfaceVersion: '2026-07-18.unified-agent-preflight',
+            mcpContractHash: `sha256:${'a'.repeat(64)}`,
+          },
+          message: 'The MCP contract matches.',
+          reconnect: { required: false },
         },
         currentTaskCapabilities: {
           status: 'ready',
@@ -95,6 +110,8 @@ describe('agent preflight receipts', () => {
     const layers = (legacy.preflight as { layers: Record<string, Record<string, unknown>> }).layers
     delete layers.applicationAndIdentity.checks
     delete layers.activeMcpTransport.message
+    delete layers.activeMcpTransport.mcpContractHash
+    delete layers.contractCompatibility
     delete layers.currentTaskCapabilities.message
     delete layers.targetProjectBinding.message
     const upsert = vi.fn().mockImplementation(({ create }) => ({ ...storedReceipt(input), ...create }))
