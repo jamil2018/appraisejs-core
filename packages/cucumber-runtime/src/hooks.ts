@@ -4,6 +4,7 @@ import { promises as fs } from 'fs'
 import { chromium, firefox, webkit, ChromiumBrowser, FirefoxBrowser, WebKitBrowser } from 'playwright'
 import { getAutomationScreenshotDir, getAutomationTraceDir, toProjectRelativePath } from './paths.ts'
 import { BrowserName } from './types.ts'
+import { startRuntimeTrace, stopRuntimeTrace } from './trace-policy.ts'
 import { CustomWorld } from './world.ts'
 
 config()
@@ -35,11 +36,7 @@ Before(async function (this: CustomWorld) {
   this.clearVars()
   this.clearBrowserRuntimeIssues()
   this.context = await browser.newContext()
-  await this.context.tracing.start({
-    screenshots: true,
-    snapshots: true,
-    sources: true,
-  })
+  this.traceStarted = await startRuntimeTrace(this.context)
   this.page = await this.context.newPage()
   this.page.on('console', message => {
     if (message.type() === 'error')
@@ -95,14 +92,17 @@ AfterStep(async function (this: CustomWorld, result) {
 })
 
 After(async function (this: CustomWorld, scenario) {
-  let tracePath: string | undefined
-  if (scenario.result?.status === 'FAILED') {
-    const traceDir = getAutomationTraceDir()
-    await fs.mkdir(traceDir, { recursive: true })
-    const absoluteTracePath = `${traceDir}/${crypto.randomUUID()}.zip`
-    tracePath = toProjectRelativePath(absoluteTracePath)
-    await this.context.tracing.stop({ path: absoluteTracePath })
-  }
+  const tracePath = await stopRuntimeTrace({
+    context: this.context,
+    traceStarted: this.traceStarted,
+    failed: scenario.result?.status === 'FAILED',
+    createTracePath: async () => {
+      const traceDir = getAutomationTraceDir()
+      await fs.mkdir(traceDir, { recursive: true })
+      return `${traceDir}/${crypto.randomUUID()}.zip`
+    },
+  })
+  const relativeTracePath = tracePath ? toProjectRelativePath(tracePath) : undefined
 
   const eventJson = JSON.stringify({
     event: 'scenario::end',
@@ -111,7 +111,7 @@ After(async function (this: CustomWorld, scenario) {
       scenarioName: scenario.pickle.name,
       scenarioTags: scenario.pickle.tags?.map(tag => tag.name) ?? [],
       status: currentScenarioStatus,
-      tracePath,
+      tracePath: relativeTracePath,
     },
   })
 

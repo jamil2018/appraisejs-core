@@ -62,7 +62,9 @@ describe('Step Invocation dispatcher', () => {
       invocation: invocation(builtin, { timeout: 7 }),
       sealedDefinitions: [{ step: reference(builtin), definition: builtin }],
       context: {
-        world: { page: { waitForTimeout: async (value: number) => void calls.push(value) } } as never,
+        world: {
+          page: { url: () => 'about:blank', waitForTimeout: async (value: number) => void calls.push(value) },
+        } as never,
         resolveLocator: () => {
           throw new Error('unused')
         },
@@ -91,7 +93,9 @@ describe('Step Invocation dispatcher', () => {
       invocation: invocation(builtin, { timeout: { ref: 'environment', key: 'timeout' } }),
       sealedDefinitions: [{ step: reference(builtin), definition: builtin }],
       context: {
-        world: { page: { waitForTimeout: async (value: number) => void calls.push(value) } } as never,
+        world: {
+          page: { url: () => 'about:blank', waitForTimeout: async (value: number) => void calls.push(value) },
+        } as never,
         resolveLocator: () => {
           throw new Error('unused')
         },

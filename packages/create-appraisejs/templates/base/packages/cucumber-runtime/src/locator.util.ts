@@ -106,26 +106,40 @@ export async function waitForRouteSettled(
       }
 
       const domQuiet = await page
-        .evaluate(quietMs => {
-          return new Promise<boolean>(resolve => {
-            let lastMutation = Date.now()
-            const observer = new MutationObserver(() => {
-              lastMutation = Date.now()
-            })
-            observer.observe(document, { subtree: true, childList: true, attributes: true })
+        .evaluate(
+          ({ quietMs, deadlineMs }) => {
+            return new Promise<boolean>(resolve => {
+              let lastMutation = Date.now()
+              let settled = false
+              const observer = new MutationObserver(() => {
+                lastMutation = Date.now()
+              })
+              observer.observe(document, { subtree: true, childList: true, attributes: true })
 
-            const tick = () => {
-              if (Date.now() - lastMutation >= quietMs) {
+              const settle = (quiet: boolean) => {
+                if (settled) return
+                settled = true
                 observer.disconnect()
-                resolve(true)
-                return
+                clearTimeout(deadlineTimer)
+                resolve(quiet)
               }
-              setTimeout(tick, 50)
-            }
 
-            tick()
-          })
-        }, domQuietMs)
+              const deadlineTimer = setTimeout(() => settle(false), Math.max(0, deadlineMs - Date.now()))
+
+              const tick = () => {
+                if (settled) return
+                if (Date.now() - lastMutation >= quietMs) {
+                  settle(true)
+                  return
+                }
+                setTimeout(tick, 50)
+              }
+
+              tick()
+            })
+          },
+          { quietMs: domQuietMs, deadlineMs: deadline },
+        )
         .catch(() => false)
 
       if (domQuiet) {

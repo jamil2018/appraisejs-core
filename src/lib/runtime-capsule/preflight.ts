@@ -20,6 +20,7 @@ import { readCapsuleManifest, resolveRuntimeCapsulePaths, verifyRuntimeCapsuleFi
 import {
   expectedConfigSource,
   resolveSealedEnvironment,
+  SealedEnvironmentError,
   validateCompilerIdentity,
   validateCucumberSingleton,
   validateExpectedCaseEvidence,
@@ -45,8 +46,7 @@ type PreflightInput = { projectId: string; validationHash: string; testRunId: st
 
 export function boundedProcessOutput(value: string, secrets: string[], capsuleRoot: string) {
   let scrubbed = value.replace(/\u001b\[[0-?]*[ -/]*[@-~]/g, '').replaceAll(capsuleRoot, '<capsule>')
-  for (const secret of secrets.filter(secret => secret.length >= 3))
-    scrubbed = scrubbed.replaceAll(secret, '<redacted>')
+  for (const secret of secrets.filter(secret => secret.length > 0)) scrubbed = scrubbed.replaceAll(secret, '<redacted>')
   scrubbed = scrubbed.replace(/(?:file:\/\/)?\/(?:[^/\s:'"()[\]{}]+\/)*[^/\s:'"()[\]{}]+/g, '<path>')
   const lines = scrubbed
     .split(/\r?\n/)
@@ -277,7 +277,9 @@ export class RuntimeCapsulePreflight {
     await stage(8, async () => {
       try {
         env = resolveSealedEnvironment(receipt)
-      } catch {
+      } catch (error) {
+        if (error instanceof SealedEnvironmentError)
+          throw new PreflightFailure(error.code, 'Repair the sealed environment entry and reseal the capsule.')
         throw new PreflightFailure('CAPABILITY_DENIED', 'Reseal the bounded runtime capabilities.')
       }
     })

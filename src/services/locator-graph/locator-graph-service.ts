@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto'
-import type { PrismaClient } from '@prisma/client'
+import type { Prisma, PrismaClient } from '@prisma/client'
 
 import prisma from '@/config/db-config'
 import {
@@ -19,13 +19,43 @@ export async function buildLocatorGraph(
   client: PrismaClient = prisma,
   targetProjectId?: string,
 ): Promise<LocatorGraph> {
-  const allGroups = await client.locatorGroup.findMany({
-    include: { module: true, locators: true },
-    orderBy: { id: 'asc' },
-  })
   const ownerships = targetProjectId
     ? await readVisibleResourceOwnerships(targetProjectId, ['locator-group', 'locator'], client)
     : null
+  const visibleIds = (entityType: 'locator-group' | 'locator') =>
+    ownerships
+      ? [...ownerships.keys()]
+          .filter(key => key.startsWith(`${entityType}:`))
+          .map(key => key.slice(`${entityType}:`.length))
+      : []
+  const visibleGroupIds = visibleIds('locator-group')
+  const visibleLocatorIds = visibleIds('locator')
+  const locatorGroupWhere: Prisma.LocatorGroupWhereInput | undefined = targetProjectId
+    ? {
+        OR: [
+          { targetProjectId },
+          ...(visibleGroupIds.length ? [{ id: { in: visibleGroupIds } }] : []),
+          ...(visibleLocatorIds.length ? [{ locators: { some: { id: { in: visibleLocatorIds } } } }] : []),
+        ],
+      }
+    : undefined
+  const allGroups = await client.locatorGroup.findMany({
+    ...(locatorGroupWhere ? { where: locatorGroupWhere } : {}),
+    include: {
+      module: true,
+      locators: targetProjectId
+        ? {
+            where: {
+              OR: [{ targetProjectId }, ...(visibleLocatorIds.length ? [{ id: { in: visibleLocatorIds } }] : [])],
+            },
+          }
+        : true,
+    },
+    orderBy: { id: 'asc' },
+  })
+  // Keep the ownership predicate as defense in depth for non-Prisma test
+  // adapters and stale replica reads; the database predicate above is the
+  // primary isolation boundary and avoids loading unrelated targets.
   const groups = allGroups
     .filter(
       group => !ownerships || group.targetProjectId === targetProjectId || ownerships.has(`locator-group:${group.id}`),
@@ -59,6 +89,7 @@ export async function buildLocatorGraph(
       type: 'locator-group',
       targetProjectId: group.targetProjectId ?? undefined,
       moduleId: group.moduleId,
+      moduleName: group.module.name,
       surfaceId,
     })
     edges.push({ id: edgeId(surfaceId, groupId), fromId: surfaceId, toId: groupId, relation: 'contains' })
@@ -88,9 +119,9 @@ export async function buildLocatorGraph(
   return locatorGraphSchema.parse(graph)
 }
 
-export async function queryLocatorGraph(value: unknown, client: PrismaClient = prisma) {
+export async function queryLocatorGraph(value: unknown, client: PrismaClient = prisma, targetProjectId?: string) {
   const query = locatorGraphQuerySchema.parse(value)
-  const graph = await buildLocatorGraph(client)
+  const graph = await buildLocatorGraph(client, targetProjectId)
   const reached = new Set([query.fromId])
   let frontier = [query.fromId]
   for (let depth = 0; depth < query.depth; depth += 1) {
@@ -109,6 +140,71 @@ export async function queryLocatorGraph(value: unknown, client: PrismaClient = p
     nodes,
     edges: graph.edges.filter(edge => nodeIds.has(edge.fromId) && nodeIds.has(edge.toId)),
     nextCursor: offset + nodes.length < candidates.length ? String(offset + nodes.length) : null,
+  }
+}
+
+/**
+ * Canonical bounded locator discovery for a plan's resolved target.  Search
+ * deliberately operates on the already target-filtered graph, so a foreign
+ * target cannot become visible through a group, module, route, or selector
+ * match.
+ */
+export async function searchLocatorGraph(
+  input: { qualityPlanId: string; query: string; cursor?: string; limit?: number },
+  client: PrismaClient = prisma,
+  targetProjectId?: string,
+) {
+  const query = input.query.trim().toLocaleLowerCase()
+  const graph = await buildLocatorGraph(client, targetProjectId)
+  const groups = new Map(
+    graph.nodes
+      .filter(
+        (node): node is Extract<(typeof graph.nodes)[number], { type: 'locator-group' }> =>
+          node.type === 'locator-group',
+      )
+      .map(node => [node.id, node]),
+  )
+  const surfaces = new Map(
+    graph.nodes
+      .filter((node): node is Extract<(typeof graph.nodes)[number], { type: 'surface' }> => node.type === 'surface')
+      .map(node => [node.id, node]),
+  )
+  const matches = graph.nodes
+    .filter((node): node is Extract<(typeof graph.nodes)[number], { type: 'locator' }> => node.type === 'locator')
+    .map(locator => {
+      const group = groups.get(locator.groupId)
+      const surface = surfaces.get(locator.scope.surfaceId)
+      const selector = Object.values(locator.strategy.value).map(String).join(' ')
+      const searchable = [locator.title, selector, group?.title, group?.moduleName, surface?.route, surface?.title]
+        .filter(Boolean)
+        .join(' ')
+        .toLocaleLowerCase()
+      return { locator, group, surface, matched: searchable.includes(query) }
+    })
+    .filter(item => item.matched)
+    .sort((left, right) => left.locator.id.localeCompare(right.locator.id))
+  const offset = input.cursor ? Number.parseInt(input.cursor, 10) : 0
+  const limit = input.limit ?? 25
+  const page = matches.slice(offset, offset + limit)
+  return {
+    qualityPlanId: input.qualityPlanId,
+    ...(targetProjectId ? { targetProjectId } : {}),
+    graphHash: graph.contentHash,
+    locators: page.map(({ locator, group, surface }) => ({
+      id: locator.id,
+      persistentId: locator.persistentId,
+      name: locator.title,
+      selector: locator.strategy.value,
+      group: group ? { id: group.id, persistentId: group.persistentId, name: group.title } : undefined,
+      module: group?.moduleId ? { id: group.moduleId, name: group.moduleName } : undefined,
+      route: surface?.route ?? surface?.title,
+    })),
+    page: {
+      cursor: input.cursor ?? null,
+      limit,
+      maxLimit: 100,
+      nextCursor: offset + page.length < matches.length ? String(offset + page.length) : null,
+    },
   }
 }
 

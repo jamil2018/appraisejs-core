@@ -5,6 +5,11 @@ surfaces, groups and locators retain stable source IDs with typed prefixes, and 
 Use `GET /api/internal/coordinator/locator-graph`, MCP `locator_graph_query`, or
 `appraisejs locator-graph query --from-id <id>`. Page size is capped at 100 and traversal depth at four.
 
+Plan-bound discovery uses `locator_search` with both the registered target reference and Quality Plan ID. It is bounded
+and cursor-paginated, and matches locator name and selector plus group, module, and route labels only after target
+visibility filtering. `locator_graph_query` requires a concrete `fromId`; absent optional traversal fields are treated
+as omitted rather than literal `null` values.
+
 The human projection is available from `GET /api/internal/coordinator/locator-graph/visual` and
 `appraise://locator-graph/visual`; it is derived from the same graph and does not become a second source of truth.
 

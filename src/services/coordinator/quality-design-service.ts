@@ -1,4 +1,5 @@
 import prisma from '@/config/db-config'
+import { randomUUID } from 'node:crypto'
 import { canonicalContractJson } from '@/lib/catalog-contracts'
 import { hashCanonical, hashQualityPlanRevision, canApproveRequirements } from '@/lib/quality-design/state'
 import { validationArtifactSchema } from '@/lib/quality-design/validation-artifact-contract'
@@ -96,6 +97,12 @@ type PrismaLike = {
     alignment: string
     observedAssurance: string | null
     baselineAssessmentId: string | null
+    lineageId: string
+    generation: number
+    supersedesAssessmentId: string | null
+    supersessionDispositionJson: string | null
+    successorIdempotencyKey: string | null
+    successorRequestHash: string | null
     evaluationSubjectRevision: {
       id: string
       subjectDigest: string
@@ -1025,6 +1032,53 @@ function parseEvaluationSubject(subject: unknown): EvaluationSubjectInput {
   }
 }
 
+function canonicalSubjectMetadata(metadata: unknown): string | null {
+  return metadata === undefined ? null : canonicalContractJson(metadata)
+}
+
+function subjectRevisionMatches(
+  existing: { subjectKind: string; authority: string; metadataJson: string | null },
+  requested: EvaluationSubjectInput,
+) {
+  if (existing.subjectKind !== requested.subjectKind || existing.authority !== requested.authority) return false
+  const expectedMetadata = canonicalSubjectMetadata(requested.metadata)
+  if (existing.metadataJson === null || expectedMetadata === null) return existing.metadataJson === expectedMetadata
+  try {
+    return canonicalContractJson(JSON.parse(existing.metadataJson)) === expectedMetadata
+  } catch {
+    return false
+  }
+}
+
+type AssessmentSuccessorDisposition = {
+  code: string
+  rationale: string
+  retryReason?: string
+}
+
+function requiredDispositionText(value: Record<string, unknown>, key: 'code' | 'rationale') {
+  const text = typeof value[key] === 'string' ? value[key].trim() : ''
+  if (!text) throw new ServiceError('Assessment successor disposition requires code and rationale.', 'VALIDATION')
+  return text
+}
+
+function optionalDispositionText(value: Record<string, unknown>, key: 'retryReason') {
+  const text = typeof value[key] === 'string' ? value[key].trim() : ''
+  return text || undefined
+}
+
+function parseAssessmentSuccessorDisposition(value: unknown): AssessmentSuccessorDisposition {
+  if (!value || typeof value !== 'object' || Array.isArray(value))
+    throw new ServiceError('Assessment successor disposition must be a structured object.', 'VALIDATION')
+  const source = value as Record<string, unknown>
+  const retryReason = optionalDispositionText(source, 'retryReason')
+  return {
+    code: requiredDispositionText(source, 'code'),
+    rationale: requiredDispositionText(source, 'rationale'),
+    ...(retryReason ? { retryReason } : {}),
+  }
+}
+
 async function readAssessmentOrThrow(client: PrismaLike, assessmentId: string) {
   const assessment = await client.assessment.findFirst({
     where: { id: assessmentId },
@@ -1126,6 +1180,12 @@ function assessmentPayload(assessment: Awaited<ReturnType<typeof readAssessmentO
       alignment: assessment.alignment,
       observedAssurance: assessment.observedAssurance,
       baselineAssessmentId: assessment.baselineAssessmentId,
+      lineageId: assessment.lineageId,
+      generation: assessment.generation,
+      supersedesAssessmentId: assessment.supersedesAssessmentId,
+      supersessionDisposition: assessment.supersessionDispositionJson
+        ? JSON.parse(assessment.supersessionDispositionJson)
+        : null,
     },
     targetOutcome: humanVerificationBlocked ? ('not_evaluated' as const) : null,
     qualityPlan: {
@@ -1214,6 +1274,7 @@ export async function createQualityAssessment(
 ) {
   const revision = await readRevisionOrThrow(client, input.qualityPlanId, input.revisionId)
   const subject = parseEvaluationSubject(input.subject)
+  const rootAssessmentId = randomUUID()
   const created = await client.$transaction(async transaction => {
     const existingSubject = await transaction.evaluationSubjectRevision.findFirst({
       where: { subjectDigest: subject.subjectDigest },
@@ -1253,11 +1314,13 @@ export async function createQualityAssessment(
     if (existingAssessment) return existingAssessment
     return transaction.assessment.create({
       data: {
+        id: rootAssessmentId,
         targetProjectId: revision.targetProjectId,
         qualityPlanId: input.qualityPlanId,
         qualityPlanRevisionId: revision.id,
         evaluationSubjectRevisionId: subjectRevision.id,
         baselineAssessmentId: input.baselineAssessmentId,
+        lineageId: rootAssessmentId,
       },
       include: {
         evaluationSubjectRevision: true,
@@ -1299,6 +1362,183 @@ export async function createQualityAssessment(
     },
   })
   return assessmentPayload(ready)
+}
+
+/**
+ * Creates an immutable retry generation without reopening or changing the
+ * predecessor. Each predecessor can have exactly one successor and a caller's
+ * idempotency key freezes its complete successor request.
+ */
+const assessmentDetailInclude = {
+  evaluationSubjectRevision: true,
+  qualityPlan: true,
+  qualityPlanRevision: {
+    include: {
+      qualityPlan: true,
+      requirementSnapshots: true,
+      obligations: true,
+      queries: true,
+      validationVersions: true,
+    },
+  },
+  evidenceReceipts: true,
+  decisions: true,
+}
+
+function assertSuccessorEligible(predecessor: Awaited<ReturnType<typeof readAssessmentOrThrow>>, retryReason?: string) {
+  if (['CREATED', 'READY', 'RUNNING'].includes(predecessor.status))
+    throw new ServiceError('Assessment successors require a terminal predecessor.', 'CONFLICT')
+  if (!['DECIDED', 'STALE', 'CANCELLED', 'EVIDENCE_REVIEW'].includes(predecessor.status))
+    throw new ServiceError('Assessment status cannot create a successor.', 'CONFLICT')
+  if (predecessor.status === 'EVIDENCE_REVIEW' && !retryReason)
+    throw new ServiceError('Evidence-review successors require an explicit retryReason.', 'VALIDATION')
+}
+
+function successorRequestHash(
+  predecessor: Awaited<ReturnType<typeof readAssessmentOrThrow>>,
+  subject: EvaluationSubjectInput,
+  disposition: AssessmentSuccessorDisposition,
+) {
+  return hashCanonical({
+    predecessorAssessmentId: predecessor.id,
+    targetProjectId: predecessor.targetProjectId,
+    qualityPlanId: predecessor.qualityPlanId,
+    qualityPlanRevisionId: predecessor.qualityPlanRevisionId,
+    subject,
+    disposition,
+  })
+}
+
+function assertIdempotencyMatch(existing: { successorRequestHash: string | null } | null, requestHash: string) {
+  if (existing && existing.successorRequestHash !== requestHash)
+    throw new ServiceError('Assessment successor idempotency key was already used with different input.', 'CONFLICT')
+}
+
+function assertSuccessorMatch<
+  T extends { successorRequestHash: string | null; successorIdempotencyKey: string | null },
+>(successor: T | null, requestHash: string, idempotencyKey: string): T | null {
+  if (!successor) return null
+  if (successor.successorRequestHash === requestHash && successor.successorIdempotencyKey === idempotencyKey)
+    return successor
+  throw new ServiceError('Assessment already has an immutable successor.', 'CONFLICT')
+}
+
+async function resolveSuccessorSubject(transaction: PrismaLike, subject: EvaluationSubjectInput) {
+  const existing = await transaction.evaluationSubjectRevision.findFirst({
+    where: { subjectDigest: subject.subjectDigest },
+  })
+  if (existing && !subjectRevisionMatches(existing, subject))
+    throw new ServiceError(
+      'Existing evaluation subject digest conflicts with requested authority, kind, or metadata.',
+      'CONFLICT',
+    )
+  if (existing) return existing
+  return transaction.evaluationSubjectRevision.create({
+    data: {
+      subjectDigest: subject.subjectDigest,
+      subjectKind: subject.subjectKind,
+      authority: subject.authority,
+      metadataJson: canonicalSubjectMetadata(subject.metadata),
+    },
+  })
+}
+
+async function createSuccessorInTransaction(input: {
+  transaction: PrismaLike
+  predecessor: Awaited<ReturnType<typeof readAssessmentOrThrow>>
+  subject: EvaluationSubjectInput
+  disposition: AssessmentSuccessorDisposition
+  idempotencyKey: string
+  requestHash: string
+}) {
+  const { transaction, predecessor, subject, disposition, idempotencyKey, requestHash } = input
+  const keyMatch = await transaction.assessment.findFirst({
+    where: { targetProjectId: predecessor.targetProjectId, successorIdempotencyKey: idempotencyKey },
+    include: assessmentDetailInclude,
+  })
+  assertIdempotencyMatch(keyMatch, requestHash)
+  if (keyMatch) return keyMatch
+  const existingSuccessor = await transaction.assessment.findFirst({
+    where: { supersedesAssessmentId: predecessor.id },
+    include: assessmentDetailInclude,
+  })
+  const matchingSuccessor = assertSuccessorMatch(existingSuccessor, requestHash, idempotencyKey)
+  if (matchingSuccessor) return matchingSuccessor
+  const subjectRevision = await resolveSuccessorSubject(transaction, subject)
+  return transaction.assessment.create({
+    data: {
+      targetProjectId: predecessor.targetProjectId,
+      qualityPlanId: predecessor.qualityPlanId,
+      qualityPlanRevisionId: predecessor.qualityPlanRevisionId,
+      evaluationSubjectRevisionId: subjectRevision.id,
+      status: 'READY',
+      lineageId: predecessor.lineageId || predecessor.id,
+      generation: predecessor.generation + 1,
+      supersedesAssessmentId: predecessor.id,
+      supersessionDispositionJson: canonicalContractJson(disposition),
+      successorIdempotencyKey: idempotencyKey,
+      successorRequestHash: requestHash,
+    },
+    include: assessmentDetailInclude,
+  })
+}
+
+function uniqueConstraint(error: unknown) {
+  return Boolean(
+    error && typeof error === 'object' && 'code' in error && (error as { code?: unknown }).code === 'P2002',
+  )
+}
+
+async function recoverSuccessorFromRace(input: {
+  client: PrismaLike
+  predecessor: Awaited<ReturnType<typeof readAssessmentOrThrow>>
+  idempotencyKey: string
+  requestHash: string
+  error: unknown
+}) {
+  if (!uniqueConstraint(input.error)) throw input.error
+  const keyReplay = await input.client.assessment.findFirst({
+    where: { targetProjectId: input.predecessor.targetProjectId, successorIdempotencyKey: input.idempotencyKey },
+  })
+  const replay =
+    keyReplay ?? (await input.client.assessment.findFirst({ where: { supersedesAssessmentId: input.predecessor.id } }))
+  if (!replay) throw input.error
+  assertIdempotencyMatch(replay, input.requestHash)
+  assertSuccessorMatch(replay, input.requestHash, input.idempotencyKey)
+  return readAssessmentOrThrow(input.client, replay.id)
+}
+
+export async function createQualityAssessmentSuccessor(
+  input: {
+    assessmentId: string
+    subject: unknown
+    disposition: unknown
+    idempotencyKey: string
+  },
+  client: PrismaLike = qualityDb,
+) {
+  const predecessor = await readAssessmentOrThrow(client, input.assessmentId)
+  const subject = parseEvaluationSubject(input.subject)
+  const disposition = parseAssessmentSuccessorDisposition(input.disposition)
+  assertSuccessorEligible(predecessor, disposition.retryReason)
+  const requestHash = successorRequestHash(predecessor, subject, disposition)
+  try {
+    const created = await client.$transaction(transaction =>
+      createSuccessorInTransaction({
+        transaction,
+        predecessor,
+        subject,
+        disposition,
+        idempotencyKey: input.idempotencyKey,
+        requestHash,
+      }),
+    )
+    return assessmentPayload(created)
+  } catch (error) {
+    return assessmentPayload(
+      await recoverSuccessorFromRace({ client, predecessor, idempotencyKey: input.idempotencyKey, requestHash, error }),
+    )
+  }
 }
 
 export async function readQualityAssessment(assessmentId: string, client: PrismaLike = qualityDb) {

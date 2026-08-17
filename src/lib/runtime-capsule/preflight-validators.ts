@@ -10,6 +10,16 @@ import type { RuntimeCapsuleManifest } from './contracts'
 const require = createRequire(import.meta.url)
 const hashText = (value: string) => `sha256:${createHash('sha256').update(value).digest('hex')}`
 
+export class SealedEnvironmentError extends Error {
+  constructor(
+    readonly code: 'ENV_REFERENCE_MISSING' | 'ENV_VALUE_DRIFT' | 'CAPABILITY_DENIED' | 'ORIGIN_DENIED',
+    message: string,
+  ) {
+    super(message)
+    this.name = 'SealedEnvironmentError'
+  }
+}
+
 export function validateRuntimeIdentity(
   receipt: CapsuleCommandReceiptV1,
   current: Awaited<ReturnType<typeof resolveCapsuleRuntimeIdentity>>,
@@ -83,10 +93,12 @@ export function validateCompilerIdentity(receipt: CapsuleCommandReceiptV1) {
 export function resolveSealedEnvironment(receipt: CapsuleCommandReceiptV1): Record<string, string> {
   const env: Record<string, string> = {}
   for (const entry of receipt.environment.entries) {
-    if (entry.source !== 'literal' || entry.value === undefined) throw new Error('unresolved environment reference')
-    if (hashRuntimeCapsuleBytes(Buffer.from(entry.value)) !== entry.expectedDigest)
-      throw new Error('environment value drift')
-    env[entry.key] = entry.value
+    const value = entry.source === 'literal' ? entry.value : entry.reference ? process.env[entry.reference] : undefined
+    if (value === undefined)
+      throw new SealedEnvironmentError('ENV_REFERENCE_MISSING', 'unresolved environment reference')
+    if (hashRuntimeCapsuleBytes(Buffer.from(value)) !== entry.expectedDigest)
+      throw new SealedEnvironmentError('ENV_VALUE_DRIFT', 'environment value drift')
+    env[entry.key] = value
   }
   if (
     canonicalRuntimeCapsuleJson(Object.keys(env).sort()) !==
@@ -97,9 +109,9 @@ export function resolveSealedEnvironment(receipt: CapsuleCommandReceiptV1): Reco
     canonicalRuntimeCapsuleJson(receipt.capabilities.imports.allowed) !==
       canonicalRuntimeCapsuleJson(receipt.runtime.moduleImports.map(item => item.resolvedRealPath).sort())
   )
-    throw new Error('capability mismatch')
+    throw new SealedEnvironmentError('CAPABILITY_DENIED', 'capability mismatch')
   if (!receipt.capabilities.network.allowedOrigins.includes(new URL(env.APPRAISE_BASE_URL!).origin))
-    throw new Error('origin denied')
+    throw new SealedEnvironmentError('ORIGIN_DENIED', 'origin denied')
   return env
 }
 

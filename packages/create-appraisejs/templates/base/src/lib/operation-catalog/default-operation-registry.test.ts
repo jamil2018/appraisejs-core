@@ -17,7 +17,9 @@ describe('default operation registry', () => {
     expect(
       definitions
         .flatMap(operation => operation.inputs.filter(input => input.type === 'locator'))
-        .every(input => input.cardinality === 'exactlyOne' || input.cardinality === 'collection'),
+        .every(
+          input => 'cardinality' in input && (input.cardinality === 'exactlyOne' || input.cardinality === 'collection'),
+        ),
     ).toBe(true)
   })
 

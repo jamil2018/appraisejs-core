@@ -25,12 +25,16 @@ function runtime() {
   const page = {
     locator: vi.fn().mockReturnValue(locator),
     goto: vi.fn(),
+    url: vi.fn().mockReturnValue('https://example.test/home'),
     reload: vi.fn(),
     keyboard: { press: vi.fn() },
     setViewportSize: vi.fn(),
     waitForLoadState: vi.fn(),
+    waitForURL: vi.fn(),
     waitForTimeout: vi.fn(),
     evaluate: vi.fn().mockResolvedValue(true),
+    on: vi.fn(),
+    off: vi.fn(),
   } as unknown as Page
   return {
     locator,
@@ -91,6 +95,94 @@ describe('browser operation handlers', () => {
     await expect(executeBrowserOperation('browser.assertions.hidden@1', value.context)).rejects.toMatchObject({
       code: 'operation_assertion_failed',
     })
+  })
+
+  it('waits for an expected route before asserting it', async () => {
+    const value = runtime()
+    value.context.inputs = { route: '/home' }
+
+    await executeBrowserOperation('browser.navigation.assertion.assert.url.route.equals@1', value.context)
+
+    expect(value.page.waitForURL).toHaveBeenCalledOnce()
+    const predicate = vi.mocked(value.page.waitForURL).mock.calls[0]![0] as (url: URL) => boolean
+    expect(predicate(new URL('https://example.test/home'))).toBe(true)
+    expect(predicate(new URL('https://example.test/login'))).toBe(false)
+    expect(value.page.waitForLoadState).toHaveBeenCalledWith('domcontentloaded', { timeout: 15000 })
+    expect(value.page.waitForLoadState).not.toHaveBeenCalledWith('networkidle')
+  })
+
+  it('denies an absolute navigation outside the sealed target origin before navigation', async () => {
+    const value = runtime()
+    value.context.inputs = { url: 'https://attacker.test/home' }
+
+    await expect(executeBrowserOperation('browser.navigation.goto@1', value.context)).rejects.toMatchObject({
+      code: 'ORIGIN_DENIED',
+    })
+    expect(value.page.goto).not.toHaveBeenCalled()
+  })
+
+  it('denies a cross-origin redirect after navigation', async () => {
+    const value = runtime()
+    value.context.inputs = { url: '/home' }
+    vi.mocked(value.page.url)
+      .mockReturnValueOnce('https://example.test/home')
+      .mockReturnValue('https://attacker.test/home')
+
+    await expect(executeBrowserOperation('browser.navigation.goto@1', value.context)).rejects.toMatchObject({
+      code: 'ORIGIN_DENIED',
+    })
+  })
+
+  it('denies a same-route assertion on an unsealed origin', async () => {
+    const value = runtime()
+    value.context.inputs = { route: '/home' }
+    vi.mocked(value.page.url).mockReturnValue('https://attacker.test/home')
+
+    await expect(
+      executeBrowserOperation('browser.navigation.assertion.assert.url.route.equals@1', value.context),
+    ).rejects.toMatchObject({ code: 'ORIGIN_DENIED' })
+    expect(value.page.waitForURL).not.toHaveBeenCalled()
+  })
+
+  it('does not fill a resolved credential before reaching the sealed origin and redacts it from errors', async () => {
+    const value = runtime()
+    const priorCredential = process.env.APPRAISE_ENV_PASSWORD
+    process.env.APPRAISE_ENV_PASSWORD = 'resolved-test-password'
+    try {
+      value.context.inputs = { target: { id: 'password' }, value: 'resolved-test-password' }
+      vi.mocked(value.page.url).mockReturnValue('about:blank')
+      await expect(executeBrowserOperation('browser.forms.fill@1', value.context)).rejects.toMatchObject({
+        code: 'ORIGIN_DENIED',
+      })
+      expect(value.locator.fill).not.toHaveBeenCalled()
+
+      vi.mocked(value.page.url).mockReturnValue('https://example.test/login')
+      vi.mocked(value.locator.fill).mockRejectedValueOnce(new Error('fill rejected resolved-test-password'))
+      await expect(executeBrowserOperation('browser.forms.fill@1', value.context)).rejects.toMatchObject({
+        code: 'operation_execution_failed',
+        message: expect.not.stringContaining('resolved-test-password'),
+      })
+    } finally {
+      if (priorCredential === undefined) delete process.env.APPRAISE_ENV_PASSWORD
+      else process.env.APPRAISE_ENV_PASSWORD = priorCredential
+    }
+  })
+
+  it('treats a one-character resolved credential as sensitive', async () => {
+    const value = runtime()
+    const priorCredential = process.env.APPRAISE_ENV_PASSWORD
+    process.env.APPRAISE_ENV_PASSWORD = 'x'
+    try {
+      value.context.inputs = { target: { id: 'password' }, value: 'x' }
+      vi.mocked(value.page.url).mockReturnValue('about:blank')
+      await expect(executeBrowserOperation('browser.forms.fill@1', value.context)).rejects.toMatchObject({
+        code: 'ORIGIN_DENIED',
+      })
+      expect(value.locator.fill).not.toHaveBeenCalled()
+    } finally {
+      if (priorCredential === undefined) delete process.env.APPRAISE_ENV_PASSWORD
+      else process.env.APPRAISE_ENV_PASSWORD = priorCredential
+    }
   })
 
   it.each([

@@ -18,6 +18,7 @@ describe('coordinator operation registry', () => {
     ['POST', ['quality', 'assessment-runs'], 'quality-write'],
     ['POST', ['quality', 'assessment-prepare-runs'], 'quality-write'],
     ['POST', ['environments', 'ensure'], 'environment-write'],
+    ['POST', ['locators', 'ensure'], 'locator-write'],
     [
       'POST',
       ['step-definitions', 'drafts', '7aee2494-01ac-45c4-ada7-528eaba27fe1', 'publish'],

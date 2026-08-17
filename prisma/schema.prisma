@@ -481,6 +481,7 @@ model TargetProject {
   assessmentRuns                 AssessmentRun[]
   evidenceReceipts               EvidenceReceipt[]
   assessmentPreparations         AssessmentPreparation[]
+  credentialExecutionRequests   AssessmentExecutionRequest[]
 
   @@index([displayName])
   @@index([fingerprint])
@@ -721,6 +722,11 @@ enum EnvironmentCredentialState {
   LEGACY_DISABLED
 }
 
+enum CredentialExecutionAuthorizationIssuer {
+  LOCAL_UI_SESSION
+  HOST_ASSERTION
+}
+
 model Environment {
   id                          String                     @id @default(uuid())
   name                        String
@@ -736,6 +742,7 @@ model Environment {
   testRuns                    TestRun[]
   targetProjectId             String?
   targetProject               TargetProject?             @relation(fields: [targetProjectId], references: [id], onDelete: Restrict)
+  credentialExecutionRequests AssessmentExecutionRequest[]
 
   @@unique([targetProjectId, name])
 }
@@ -1149,6 +1156,14 @@ model Assessment {
   alignment                   RequirementAlignmentStatus @default(CURRENT)
   observedAssurance           AssuranceLevel?
   baselineAssessmentId        String?
+  /// Immutable retry/supersession lineage. Existing assessments are roots
+  /// (lineageId = id, generation = 0); successors never modify their predecessor.
+  lineageId                   String
+  generation                  Int                        @default(0)
+  supersedesAssessmentId      String?                    @unique
+  supersessionDispositionJson String?
+  successorIdempotencyKey     String?
+  successorRequestHash        String?
   createdAt                   DateTime                   @default(now())
   updatedAt                   DateTime                   @updatedAt
   targetProject               TargetProject              @relation(fields: [targetProjectId], references: [id], onDelete: Restrict)
@@ -1157,9 +1172,12 @@ model Assessment {
   evaluationSubjectRevision   EvaluationSubjectRevision  @relation(fields: [evaluationSubjectRevisionId], references: [id], onDelete: Restrict)
   baselineAssessment          Assessment?                @relation("AssessmentBaseline", fields: [baselineAssessmentId, targetProjectId, qualityPlanId, qualityPlanRevisionId], references: [id, targetProjectId, qualityPlanId, qualityPlanRevisionId], onDelete: Restrict)
   baselineReferences          Assessment[]               @relation("AssessmentBaseline")
+  supersedesAssessment        Assessment?                @relation("AssessmentSuccessor", fields: [supersedesAssessmentId], references: [id], onDelete: Restrict)
+  successorAssessment         Assessment?                @relation("AssessmentSuccessor")
   evidenceReceipts            EvidenceReceipt[]
   runs                        AssessmentRun[]
   decisions                   AssessmentDecision[]
+  credentialExecutionRequests AssessmentExecutionRequest[]
 
   @@unique([id, targetProjectId])
   @@unique([id, targetProjectId, qualityPlanRevisionId])
@@ -1167,6 +1185,8 @@ model Assessment {
   @@index([targetProjectId, status])
   @@index([qualityPlanId, status])
   @@index([qualityPlanRevisionId, alignment])
+  @@unique([lineageId, generation])
+  @@unique([targetProjectId, successorIdempotencyKey])
 }
 
 /// Idempotent execution intent for either a reviewable Assessment or a
@@ -1187,17 +1207,101 @@ model AssessmentRun {
   version                     Int                        @default(1)
   createdAt                   DateTime                   @default(now())
   updatedAt                   DateTime                   @updatedAt
+  executionRequestId          String?                    @unique
+  executionRequestHash        String?
+  executionAuthorizationGrantId String?                  @unique
   targetProject               TargetProject              @relation(fields: [targetProjectId], references: [id], onDelete: Restrict)
   assessment                  Assessment?                @relation(fields: [assessmentId, targetProjectId, qualityPlanRevisionId], references: [id, targetProjectId, qualityPlanRevisionId], onDelete: Restrict)
   qualityPlanRevision         QualityPlanRevision        @relation(fields: [qualityPlanRevisionId, targetProjectId], references: [id, targetProjectId], onDelete: Restrict)
   evaluationSubjectRevision   EvaluationSubjectRevision  @relation(fields: [evaluationSubjectRevisionId], references: [id], onDelete: Restrict)
   bindings                    AssessmentRunBinding[]
+  executionRequest            AssessmentExecutionRequest? @relation(fields: [executionRequestId], references: [id], onDelete: Restrict)
+  executionAuthorizationGrant AssessmentExecutionAuthorizationGrant? @relation(fields: [executionAuthorizationGrantId], references: [id], onDelete: Restrict)
 
   @@unique([id, targetProjectId])
   @@unique([id, targetProjectId, qualityPlanRevisionId])
   @@unique([idempotencyScope, idempotencyKey])
   @@index([assessmentId, status])
   @@index([targetProjectId, status])
+}
+
+/// Immutable credential-bearing execution scope. It stores references and
+/// hashes only; resolved values and value hashes are never persisted here.
+model AssessmentExecutionRequest {
+  id                          String   @id @default(uuid())
+  targetProjectId             String
+  assessmentId                String
+  qualityPlanId               String
+  qualityPlanRevisionId       String
+  evaluationSubjectRevisionId String
+  subjectDigest               String
+  environmentId               String
+  publicationFingerprint      String
+  runtimeInputHash            String
+  bindingsHash                String
+  /// Unique while this request is live. Retired requests clear it so a fresh
+  /// authorization request can be issued for the same immutable scope.
+  activeScopeKey              String?  @unique
+  requestHash                 String   @unique
+  canonicalRequestJson        String
+  expiresAt                   DateTime
+  revokedAt                   DateTime?
+  createdAt                   DateTime @default(now())
+  targetProject               TargetProject @relation(fields: [targetProjectId], references: [id], onDelete: Restrict)
+  assessment                  Assessment @relation(fields: [assessmentId], references: [id], onDelete: Restrict)
+  environment                 Environment @relation(fields: [environmentId], references: [id], onDelete: Restrict)
+  bindings                    AssessmentExecutionCredentialBinding[]
+  grants                      AssessmentExecutionAuthorizationGrant[]
+  run                         AssessmentRun?
+
+  @@index([targetProjectId, assessmentId, expiresAt])
+  @@index([qualityPlanId, qualityPlanRevisionId])
+}
+
+model AssessmentExecutionCredentialBinding {
+  requestId String
+  slot      String
+  reference String
+  request   AssessmentExecutionRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+
+  @@id([requestId, slot])
+}
+
+model CredentialAuthorizationUiSession {
+  id               String   @id @default(uuid())
+  sessionTokenHash String   @unique
+  csrfTokenHash    String
+  targetProjectId  String
+  expiresAt        DateTime
+  revokedAt        DateTime?
+  createdAt        DateTime @default(now())
+  lastSeenAt       DateTime @default(now())
+  grants           AssessmentExecutionAuthorizationGrant[]
+
+  @@index([targetProjectId, expiresAt, revokedAt])
+}
+
+model AssessmentExecutionAuthorizationGrant {
+  id                   String                              @id @default(uuid())
+  requestId            String                              @unique
+  issuerKind           CredentialExecutionAuthorizationIssuer
+  localUiSessionId     String?
+  hostIssuer           String?
+  hostKeyId            String?
+  hostAssertionJti     String?
+  hostAssertionHash    String?
+  notBefore            DateTime
+  expiresAt            DateTime
+  consumedAt           DateTime?
+  revokedAt            DateTime?
+  revokedReason        String?
+  createdAt            DateTime                            @default(now())
+  request              AssessmentExecutionRequest         @relation(fields: [requestId], references: [id], onDelete: Restrict)
+  localUiSession       CredentialAuthorizationUiSession?   @relation(fields: [localUiSessionId], references: [id], onDelete: Restrict)
+  run                  AssessmentRun?
+
+  @@unique([hostIssuer, hostAssertionJti])
+  @@index([requestId, expiresAt, consumedAt, revokedAt])
 }
 
 /// One immutable validation/matrix-cell execution binding per AssessmentRun.

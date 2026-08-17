@@ -38,6 +38,10 @@ Prepared scaffold databases may contain authored starter assets, but they must n
 credentials, leases, personal layouts, durable event rows, test runs, or reports. Template preparation verifies this
 invariant before publishing the bundled starter and blank templates.
 
+Starter and blank currently share the same schema and Step Definition seed inputs. Template preparation therefore
+migrates and synchronizes one canonical temporary database, copies it to both flavor overlays, and verifies each
+composed flavor independently. Preparation fails before reuse if the registered database sync scripts diverge.
+
 ## When Direct Template Edits Are Acceptable
 
 Direct edits can be appropriate for template-only metadata, README content, scaffold packaging behavior, or files that

@@ -38,6 +38,43 @@ export function registerQualityDesignOperations(context: McpRegistryContext): vo
   const { server, api } = context
 
   server.registerTool(
+    'assessment_execution_authorization_issue',
+    {
+      description:
+        'Exchange a compact Ed25519 host assertion for one target-bound credential execution grant. This operation never accepts UI issuance or credential values.',
+      inputSchema: { assertion: z.string().min(1).max(12_000), responseMode: responseModeSchema },
+    },
+    async ({ assertion, responseMode }) =>
+      text(
+        applyLifecycleResponseMode(
+          await api.request('quality/assessment-execution-authorizations/host', {
+            method: 'POST',
+            body: JSON.stringify({ assertion }),
+          }),
+          responseMode,
+        ),
+      ),
+  )
+
+  server.registerTool(
+    'assessment_execution_authorization_revoke',
+    {
+      description: 'Deny an unconsumed credential execution grant. Consumed grants cannot be revoked.',
+      inputSchema: { grantId: z.string().uuid(), reason: z.string().min(1).max(500), responseMode: responseModeSchema },
+    },
+    async ({ grantId, reason, responseMode }) =>
+      text(
+        applyLifecycleResponseMode(
+          await api.request('quality/assessment-execution-authorizations/revoke', {
+            method: 'POST',
+            body: JSON.stringify({ grantId, reason }),
+          }),
+          responseMode,
+        ),
+      ),
+  )
+
+  server.registerTool(
     'assessment_prepare_run',
     {
       description:
@@ -90,6 +127,9 @@ export function registerQualityDesignOperations(context: McpRegistryContext): vo
           metadata: z.record(z.string(), z.union([z.string(), z.number(), z.boolean(), z.null()])).optional(),
         }),
         runtime: z.object({ browserEngine: z.enum(['CHROMIUM', 'FIREFOX', 'WEBKIT']).optional() }).optional(),
+        authorizationGrantId: z.string().uuid().optional(),
+        executionRequestId: z.string().uuid().optional(),
+        expectedRequestHash: z.string().startsWith('sha256:').optional(),
         idempotencyKey: z.string().min(1),
         responseMode: responseModeSchema,
       },
@@ -337,6 +377,40 @@ export function registerQualityDesignOperations(context: McpRegistryContext): vo
   )
 
   server.registerTool(
+    'assessment_create_successor',
+    {
+      description:
+        'Create one immutable READY retry successor for a DECIDED, STALE, CANCELLED, or explicitly retried EVIDENCE_REVIEW assessment. The predecessor evidence and decision are never changed.',
+      inputSchema: {
+        assessmentId: z.string().min(1),
+        subject: z.object({
+          subjectDigest: z.string().startsWith('sha256:'),
+          authority: z.string().min(1),
+          subjectKind: z.enum(['ARTIFACT', 'DEPLOYMENT_SNAPSHOT']).optional(),
+          metadata: z.record(z.string(), z.unknown()).optional(),
+        }),
+        disposition: z.object({
+          code: z.string().min(1).max(120),
+          rationale: z.string().min(1).max(2_000),
+          retryReason: z.string().min(1).max(2_000).optional(),
+        }),
+        idempotencyKey: z.string().min(1),
+        responseMode: responseModeSchema,
+      },
+    },
+    async ({ assessmentId, responseMode, ...body }) =>
+      text(
+        applyLifecycleResponseMode(
+          await api.request(`quality/assessments/${assessmentId}/successors`, {
+            method: 'POST',
+            body: JSON.stringify(body),
+          }),
+          responseMode,
+        ),
+      ),
+  )
+
+  server.registerTool(
     'assessment_readiness',
     {
       description:
@@ -359,6 +433,9 @@ export function registerQualityDesignOperations(context: McpRegistryContext): vo
         validationVersionIds: z.array(z.string().min(1)).optional(),
         subject: z.unknown().optional(),
         runtime: z.unknown().optional(),
+        authorizationGrantId: z.string().uuid().optional(),
+        executionRequestId: z.string().uuid().optional(),
+        expectedRequestHash: z.string().startsWith('sha256:').optional(),
         idempotencyKey: z.string().min(1),
         responseMode: responseModeSchema,
       },

@@ -1,15 +1,18 @@
-import { randomUUID } from 'node:crypto'
+import { createHash, randomUUID } from 'node:crypto'
 
+import { CredentialExecutionAuthorizationIssuer } from '@prisma/client'
 import { z } from 'zod'
 
 import prisma from '@/config/db-config'
 import { defaultOperationRegistry } from '@/lib/operation-catalog'
+import { coordinatorOperationRegistry } from '@/services/coordinator/coordinator-operation-registry'
 import { deriveCoordinatorProjectIdentity } from '@/lib/coordinator-api/project-identity'
 import {
-  buildLocatorGraph,
   readLocatorGraphVisualProjection,
   queryLocatorGraph,
+  searchLocatorGraph,
 } from '@/services/locator-graph/locator-graph-service'
+import { ensureTargetLocator } from '@/services/coordinator/locator-ensure-service'
 import { guardCoordinatorRequest, readCoordinatorJson } from '@/lib/coordinator-api/request-guard'
 import { coordinatorStepDefinitionService } from '@/services/coordinator/coordinator-step-definition-service'
 import {
@@ -18,6 +21,7 @@ import {
   approveQualityValidationDesign,
   compileQualityValidations,
   createQualityAssessment,
+  createQualityAssessmentSuccessor,
   decideQualityAssessment,
   publishQualityValidations,
   proposeQualityValidationDesign,
@@ -32,6 +36,10 @@ import {
   stopQualityAssessment,
 } from '@/services/coordinator/assessment-execution-service'
 import { ServiceError } from '@/services/shared/errors'
+import {
+  issueHostAssertionGrant,
+  revokeCredentialExecutionGrant,
+} from '@/services/coordinator/credential-execution-authorization-service'
 import {
   ensureEnvironment,
   environmentRegistryHash,
@@ -74,6 +82,11 @@ function coordinatorErrorContext(request: Request, operation: string[], body?: u
     operation: operation.join('/') || 'unknown',
     ...(idempotencyKey ? { idempotencyKey } : {}),
   }
+}
+
+function assertPlanMatchesTarget(plan: { targetProjectId: string }, target: { id: string; fingerprint: string }): void {
+  if (plan.targetProjectId !== target.id)
+    throw new ServiceError('Quality Plan not found for the requested target.', 'NOT_FOUND')
 }
 
 function unknownOperation(): never {
@@ -204,6 +217,23 @@ function operationFilters(query: URLSearchParams) {
   }
 }
 
+function hasOperationSearchCriteria(
+  text: string | undefined,
+  filters: ReturnType<typeof operationFilters>,
+  parameterNames: readonly string[],
+) {
+  return Boolean(
+    text ||
+    parameterNames.length ||
+    filters.category ||
+    filters.capability ||
+    filters.runtime ||
+    filters.inputType ||
+    filters.surface ||
+    filters.deprecated !== undefined,
+  )
+}
+
 function getOperations(request: Request, operation: string[]) {
   const query = new URL(request.url).searchParams
   const action = operation[1] ?? 'list'
@@ -227,22 +257,32 @@ function getOperations(request: Request, operation: string[]) {
       operations: readCatalogOperations(operationRefs(query)),
     })
 
-  const items = defaultOperationRegistry.list(operationFilters(query), 0, 100).items
+  const filters = operationFilters(query)
+  const items = defaultOperationRegistry.list(filters, 0, 100).items
   if (action === 'search') {
-    const text = z.string().trim().min(1).max(500).parse(query.get('query')).toLowerCase()
+    const queryText = query.get('query')?.trim()
+    const text = queryText ? z.string().min(1).max(500).parse(queryText).toLowerCase() : undefined
     const requestedParameters = new Set((query.get('parameterNames') ?? '').split(',').filter(Boolean))
+    if (!hasOperationSearchCriteria(text, filters, [...requestedParameters]))
+      throw new ServiceError('operation_search requires a query or at least one filter.', 'VALIDATION')
     const matches = items
       .map(item => {
         const descriptor = readCatalogOperations([{ id: item.id, version: item.version }])[0]!
         const searchable = `${item.id} ${item.title} ${descriptor.description}`.toLowerCase()
         const matchedParameters = descriptor.inputs.filter(input => requestedParameters.has(input.name)).length
-        return { item, descriptor, score: Number(searchable.includes(text)) * 100 + matchedParameters }
+        return { item, descriptor, score: Number(!text || searchable.includes(text)) * 100 + matchedParameters }
       })
       .filter(match => match.score > 0)
       .sort((left, right) => right.score - left.score || left.item.id.localeCompare(right.item.id))
       .slice(0, queryLimit(query, 25))
       .map(({ item, descriptor }) => ({ ...item, descriptor }))
-    return Response.json({ manifestHash: defaultOperationRegistry.manifestHash, query: text, operations: matches })
+    return Response.json({
+      manifestHash: defaultOperationRegistry.manifestHash,
+      query: text ?? null,
+      filters,
+      page: { limit: queryLimit(query, 25), maxLimit: 100 },
+      operations: matches,
+    })
   }
   if (action === 'list')
     return Response.json(
@@ -260,15 +300,25 @@ async function getLocatorGraph(request: Request, operation: string[]) {
   if (operation[1] === 'visual') return Response.json(await readLocatorGraphVisualProjection())
   if (operation.length > 1) return unknownOperation()
   const query = new URL(request.url).searchParams
+  const target = await resolveTargetProject(z.string().min(1).parse(query.get('target')))
+  const qualityPlanId = z.string().min(1).parse(query.get('qualityPlanId'))
+  const qualityPlan = await readQualityRequirementGraph({ qualityPlanId })
+  assertPlanMatchesTarget(qualityPlan.qualityPlan, target)
+  const fromId = query.get('fromId')?.trim()
+  if (!fromId) throw new ServiceError('locator_graph_query requires a non-empty fromId.', 'VALIDATION')
   return Response.json(
-    await queryLocatorGraph({
-      fromId: query.get('fromId'),
-      relation: query.get('relation') ?? undefined,
-      toType: query.get('toType') ?? undefined,
-      cursor: query.get('cursor') ?? undefined,
-      limit: z.coerce.number().int().positive().max(100).catch(25).parse(query.get('limit')),
-      depth: z.coerce.number().int().positive().max(4).catch(1).parse(query.get('depth')),
-    }),
+    await queryLocatorGraph(
+      {
+        fromId,
+        relation: query.get('relation') ?? undefined,
+        toType: query.get('toType') ?? undefined,
+        cursor: query.get('cursor') ?? undefined,
+        limit: z.coerce.number().int().positive().max(100).catch(25).parse(query.get('limit')),
+        depth: z.coerce.number().int().positive().max(4).catch(1).parse(query.get('depth')),
+      },
+      undefined,
+      target.id,
+    ),
   )
 }
 
@@ -286,14 +336,27 @@ async function getTestRunEvidence(request: Request, operation: string[]) {
 
 async function getQualityOperation(request: Request, operation: string[]) {
   if (operation[1] === 'plans' && operation[3] === 'locators' && operation.length === 4) {
+    const parameters = new URL(request.url).searchParams
     const qualityPlanId = z.string().min(1).parse(operation[2])
     const qualityPlan = await readQualityRequirementGraph({ qualityPlanId })
-    const query = z.string().trim().min(1).max(500).parse(new URL(request.url).searchParams.get('query')).toLowerCase()
-    const graph = await buildLocatorGraph(undefined, qualityPlan.qualityPlan.targetProjectId)
-    const locators = graph.nodes
-      .filter(node => node.type === 'locator' && node.title.toLowerCase().includes(query))
-      .slice(0, 25)
-    return Response.json({ qualityPlanId, graphHash: graph.contentHash, locators })
+    const target = await resolveTargetProject(z.string().min(1).parse(parameters.get('target')))
+    assertPlanMatchesTarget(qualityPlan.qualityPlan, target)
+    return Response.json(
+      await searchLocatorGraph(
+        {
+          qualityPlanId,
+          query: z.string().trim().min(1).max(500).parse(parameters.get('query')),
+          cursor: z
+            .string()
+            .regex(/^\d+$/, 'Cursor must be a non-negative integer.')
+            .optional()
+            .parse(parameters.get('cursor') ?? undefined),
+          limit: z.coerce.number().int().positive().max(100).catch(25).parse(parameters.get('limit')),
+        },
+        undefined,
+        target.id,
+      ),
+    )
   }
   if (operation[1] === 'plans' && operation[3] === 'requirements' && operation.length === 4) {
     const revisionId = new URL(request.url).searchParams.get('revisionId') ?? undefined
@@ -318,6 +381,12 @@ async function getStepDefinitions(request: Request, operation: string[]) {
 async function getDiagnostic(request: Request) {
   const targetProjects = await listTargetProjects()
   const builtInStepDefinitions = await ensureBuiltInStepDefinitionReadiness(prisma)
+  const coordinatorContract = {
+    version: 'appraise.coordinator-contract/v1',
+    hash: `sha256:${createHash('sha256')
+      .update(JSON.stringify(coordinatorOperationRegistry.definitions))
+      .digest('hex')}`,
+  }
   return Response.json({
     ok: true,
     targetProjects,
@@ -328,6 +397,7 @@ async function getDiagnostic(request: Request) {
     builtInStepDefinitions,
     warnings: [],
     recoveryActions: [],
+    coordinatorContract,
     links: { application: request.headers.get('x-appraise-base-url') ?? new URL(request.url).origin },
   })
 }
@@ -515,6 +585,27 @@ async function postQualityOperation(operation: string[], body: unknown): Promise
       { status: 201 },
     )
   }
+  if (operation[1] === 'assessments' && operation[3] === 'successors' && operation.length === 4) {
+    const value = z
+      .object({
+        subject: z.unknown(),
+        disposition: z.object({
+          code: z.string().min(1).max(120),
+          rationale: z.string().min(1).max(2_000),
+          retryReason: z.string().min(1).max(2_000).optional(),
+        }),
+        idempotencyKey: z.string().min(1),
+      })
+      .parse(body)
+    return Response.json(
+      await createQualityAssessmentSuccessor({
+        assessmentId: qualityAssessmentId(operation),
+        ...value,
+        subject: value.subject as NonNullable<typeof value.subject>,
+      }),
+      { status: 201 },
+    )
+  }
   if (key === 'quality/assessment-runs') {
     const value = z
       .object({
@@ -522,12 +613,29 @@ async function postQualityOperation(operation: string[], body: unknown): Promise
         validationVersionIds: z.array(z.string().min(1)).optional(),
         subject: z.unknown().optional(),
         runtime: z.unknown().optional(),
+        authorizationGrantId: z.string().uuid().optional(),
+        executionRequestId: z.string().uuid().optional(),
+        expectedRequestHash: z.string().startsWith('sha256:').optional(),
         idempotencyKey: z.string().min(1),
       })
       .parse(body)
     return Response.json(await runQualityAssessment(value as unknown as Parameters<typeof runQualityAssessment>[0]), {
       status: 202,
     })
+  }
+  if (key === 'quality/assessment-execution-authorizations/host') {
+    const value = z.object({ assertion: z.string().min(1).max(12_000) }).parse(body)
+    return Response.json(await issueHostAssertionGrant(value.assertion), { status: 201 })
+  }
+  if (key === 'quality/assessment-execution-authorizations/revoke') {
+    const value = z.object({ grantId: z.string().uuid(), reason: z.string().min(1).max(500) }).parse(body)
+    return Response.json(
+      await revokeCredentialExecutionGrant({
+        grantId: value.grantId,
+        reason: value.reason,
+        expectedIssuer: CredentialExecutionAuthorizationIssuer.HOST_ASSERTION,
+      }),
+    )
   }
   if (key === 'quality/assessment-prepare-runs')
     return Response.json(await prepareQualityAssessmentRun(body), { status: 202 })
@@ -585,12 +693,45 @@ async function postEnvironmentEnsure(body: unknown): Promise<Response> {
   })
 }
 
-async function dispatchPost(operation: string[], body: unknown): Promise<Response> {
+async function postLocatorEnsure(request: Request, body: unknown): Promise<Response> {
+  const moduleSpec = z.discriminatedUnion('mode', [
+    z.object({ mode: z.literal('existing'), id: z.string().min(1) }).strict(),
+    z.object({ mode: z.literal('ensure'), name: z.string().trim().min(1).max(200) }).strict(),
+  ])
+  const value = z
+    .object({
+      target: z.string().min(1),
+      qualityPlanId: z.string().min(1),
+      allowCreate: z.boolean().optional(),
+      group: z.discriminatedUnion('mode', [
+        z.object({ mode: z.literal('existing'), id: z.string().min(1) }).strict(),
+        z
+          .object({
+            mode: z.literal('ensure'),
+            name: z.string().trim().min(1).max(200),
+            route: z.string().trim().startsWith('/').max(2_000),
+            module: moduleSpec,
+          })
+          .strict(),
+      ]),
+      locator: z
+        .object({ name: z.string().trim().min(1).max(200), selector: z.string().trim().min(1).max(10_000) })
+        .strict(),
+    })
+    .strict()
+    .parse(body)
+  const target = await resolveTargetProject(value.target)
+  return Response.json(await ensureTargetLocator(value, target))
+}
+
+async function dispatchPost(request: Request, operation: string[], body: unknown): Promise<Response> {
   if (operation.length === 2 && operation[0] === 'diagnostic' && operation[1] === 'preflight')
     return Response.json(await recordAgentPreflightReceipt(body), { status: 201 })
   if (operation.length === 1 && operation[0] === 'target-projects') return postTargetProject(body)
   if (operation.length === 2 && operation[0] === 'environments' && operation[1] === 'ensure')
     return postEnvironmentEnsure(body)
+  if (operation.length === 2 && operation[0] === 'locators' && operation[1] === 'ensure')
+    return postLocatorEnsure(request, body)
   if (operation.length === 2 && operation[0] === 'test-runs' && operation[1] === 'preflight')
     return postTestRunPreflight(body)
   if (operation[0] === 'quality') return postQualityOperation(operation, body)
@@ -615,7 +756,7 @@ export async function POST(request: Request, context: RouteContext) {
     await guardCoordinatorRequest(request)
     operation = (await context.params).operation
     body = await readCoordinatorJson(request)
-    return await dispatchPost(operation, body)
+    return await dispatchPost(request, operation, body)
   } catch (error) {
     return responseError(error, coordinatorErrorContext(request, operation, body))
   }

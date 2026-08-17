@@ -111,6 +111,7 @@ async function createSearchReceipt(input: {
 function searchResponse(
   reuseEvidence: Awaited<ReturnType<typeof createSearchReceipt>>,
   matches: ReturnType<typeof searchReadyStepDefinitions>,
+  page: { cursor: string | null; limit: number; maxLimit: number; nextCursor: string | null },
 ) {
   return {
     reuseEvidence,
@@ -129,11 +130,12 @@ function searchResponse(
         agentContract: item.integrity.agentContractHash,
         execution: item.integrity.executionHash,
       },
-      rank: index + 1,
+      rank: Number(page.cursor ?? 0) + index + 1,
       confidence,
       parameterCompatibility,
       explanation,
     })),
+    page,
     nextRecommendedAction: 'Use the returned Step Reference directly in managed authoring.',
   }
 }
@@ -157,11 +159,23 @@ async function searchDefinitions(
     parameterNames,
     planContext: undefined,
     includeUnmatched: !query,
-  }).slice(0, limit)
-  await recordSearchOutcome({ surface, correlationId, qualityPlanId, candidateCount: ranked.length })
-  const reuseEvidence = await createSearchReceipt({ definitions, matches: ranked, correlationId, qualityPlanId })
+  })
+  const cursor = z
+    .string()
+    .regex(/^\d+$/)
+    .optional()
+    .parse(search.get('cursor') ?? undefined)
+  const offset = cursor ? Number.parseInt(cursor, 10) : 0
+  const pageMatches = ranked.slice(offset, offset + limit)
+  await recordSearchOutcome({ surface, correlationId, qualityPlanId, candidateCount: pageMatches.length })
+  const reuseEvidence = await createSearchReceipt({ definitions, matches: pageMatches, correlationId, qualityPlanId })
   return {
-    body: searchResponse(reuseEvidence, ranked),
+    body: searchResponse(reuseEvidence, pageMatches, {
+      cursor: cursor ?? null,
+      limit,
+      maxLimit: 25,
+      nextCursor: offset + pageMatches.length < ranked.length ? String(offset + pageMatches.length) : null,
+    }),
   }
 }
 

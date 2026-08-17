@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto'
 import { promises as fs } from 'node:fs'
 
-import { BrowserEngine, TestRunEvidenceHealth, TestRunResult, TestRunStatus } from '@prisma/client'
+import { BrowserEngine, Prisma, TestRunEvidenceHealth, TestRunResult, TestRunStatus } from '@prisma/client'
 
 import prisma from '@/config/db-config'
 import { canonicalContractJson } from '@/lib/catalog-contracts'
@@ -9,6 +9,12 @@ import { hashEvidenceReceipt } from '@/lib/quality-design/state'
 import { findHumanVerificationEvent } from '@/lib/test-run/human-verification-event'
 import { RuntimeCapsuleTestRunService } from '@/services/test-run/runtime-capsule-test-run-service'
 import { ServiceError } from '@/services/shared/errors'
+import {
+  consumeCredentialExecutionGrant,
+  credentialAuthorizationInput,
+  ensureCredentialExecutionRequest,
+  executionRequiresCredential,
+} from './credential-execution-authorization-service'
 
 type AssessmentExecutionClient = typeof prisma
 let executionClient: AssessmentExecutionClient = prisma
@@ -16,6 +22,31 @@ let executionClient: AssessmentExecutionClient = prisma
 /** Replaces the transaction-capable client only for focused orchestration tests. */
 export function setAssessmentExecutionClientForTests(client?: AssessmentExecutionClient) {
   executionClient = client ?? prisma
+}
+
+type CredentialAuthorizationService = Pick<
+  typeof import('./credential-execution-authorization-service'),
+  | 'consumeCredentialExecutionGrant'
+  | 'credentialAuthorizationInput'
+  | 'ensureCredentialExecutionRequest'
+  | 'executionRequiresCredential'
+>
+let credentialAuthorizationService: CredentialAuthorizationService = {
+  consumeCredentialExecutionGrant,
+  credentialAuthorizationInput,
+  ensureCredentialExecutionRequest,
+  executionRequiresCredential,
+}
+
+/** Keeps authorization checks deterministic in lifecycle tests without
+ * providing production code a bypass around grant consumption. */
+export function setAssessmentCredentialAuthorizationServiceForTests(service?: CredentialAuthorizationService) {
+  credentialAuthorizationService = service ?? {
+    consumeCredentialExecutionGrant,
+    credentialAuthorizationInput,
+    ensureCredentialExecutionRequest,
+    executionRequiresCredential,
+  }
 }
 
 const hash = (value: unknown) => `sha256:${createHash('sha256').update(canonicalContractJson(value)).digest('hex')}`
@@ -54,6 +85,9 @@ type AssessmentRunInput = {
     metadata?: unknown
   }
   runtime?: { cells?: RequestedCell[]; environmentId?: string; browserEngine?: BrowserEngine }
+  authorizationGrantId?: string
+  executionRequestId?: string
+  expectedRequestHash?: string
   idempotencyKey: string
 }
 
@@ -61,15 +95,20 @@ async function executionIdentity(input: AssessmentRunInput) {
   if (input.assessmentId) {
     const assessment = await executionClient.assessment.findUniqueOrThrow({
       where: { id: input.assessmentId },
-      include: { qualityPlanRevision: { include: { validationVersions: { include: { publication: true } } } } },
+      include: {
+        evaluationSubjectRevision: { select: { subjectDigest: true } },
+        qualityPlanRevision: { include: { validationVersions: { include: { publication: true } } } },
+      },
     })
     if (assessment.alignment !== 'CURRENT')
       throw new ServiceError('Assessment execution requires current requirement alignment.', 'CONFLICT')
     return {
       assessmentId: assessment.id,
       targetProjectId: assessment.targetProjectId,
+      qualityPlanId: assessment.qualityPlanId,
       qualityPlanRevisionId: assessment.qualityPlanRevisionId,
       evaluationSubjectRevisionId: assessment.evaluationSubjectRevisionId,
+      subjectDigest: assessment.evaluationSubjectRevision?.subjectDigest ?? '',
       assessmentStatus: assessment.status,
       versions: assessment.qualityPlanRevision.validationVersions,
     }
@@ -106,11 +145,38 @@ async function executionIdentity(input: AssessmentRunInput) {
   return {
     assessmentId: null,
     targetProjectId: revision.targetProjectId,
+    qualityPlanId: revision.qualityPlanId,
     qualityPlanRevisionId: revision.id,
     evaluationSubjectRevisionId: subject.id,
+    subjectDigest: subject.subjectDigest,
     assessmentStatus: null,
     versions,
   }
+}
+
+type ExecutionIdentity = Awaited<ReturnType<typeof executionIdentity>>
+
+async function assertCurrentReadyAssessment(tx: Prisma.TransactionClient, identity: ExecutionIdentity) {
+  if (!identity.assessmentId) return
+  // Re-read the immutable identity and READY state immediately before grant
+  // consumption. A cancellation or reassignment race cannot consume a grant.
+  const assessment = await tx.assessment.findUnique({
+    where: { id: identity.assessmentId },
+    select: {
+      targetProjectId: true,
+      qualityPlanRevisionId: true,
+      evaluationSubjectRevisionId: true,
+      status: true,
+    },
+  })
+  if (
+    !assessment ||
+    assessment.targetProjectId !== identity.targetProjectId ||
+    assessment.qualityPlanRevisionId !== identity.qualityPlanRevisionId ||
+    assessment.evaluationSubjectRevisionId !== identity.evaluationSubjectRevisionId ||
+    assessment.status !== 'READY'
+  )
+    throw new ServiceError('New Assessment execution requires the same READY assessment.', 'CONFLICT')
 }
 
 function validateCells(
@@ -188,11 +254,8 @@ export async function runQualityAssessment(input: AssessmentRunInput) {
   const identity = await executionIdentity(input)
   const cells = derivedCells(input, identity)
   const publications = validateCells(cells, identity, input.validationVersionIds)
-  const supplied = new Set(cells.map(cell => `${cell.validationVersionId}:${cell.resultMatrixCell}`))
-  const required = requiredMatrixCells(publications.values())
-  if (required.size !== supplied.size || [...required].some(cell => !supplied.has(cell)))
-    throw new ServiceError('Assessment execution must cover the complete published validation matrix.', 'VALIDATION')
-  const requestHash = hash({
+  assertCompletePublishedMatrix(cells, publications)
+  const requestHash = assessmentExecutionRequestHash({
     assessmentId: identity.assessmentId,
     targetProjectId: identity.targetProjectId,
     qualityPlanRevisionId: identity.qualityPlanRevisionId,
@@ -201,117 +264,306 @@ export async function runQualityAssessment(input: AssessmentRunInput) {
       `${a.validationVersionId}:${a.resultMatrixCell}`.localeCompare(`${b.validationVersionId}:${b.resultMatrixCell}`),
     ),
   })
-  const idempotencyScope =
+  const idempotencyScope = assessmentIdempotencyScope(identity)
+  const authorizationRequest = await prepareCredentialAuthorization({
+    input,
+    identity,
+    cells,
+    publications,
+    requestHash,
+    idempotencyScope,
+  })
+  const run = await createAssessmentRun({ input, identity, requestHash, idempotencyScope, authorizationRequest })
+  await materializeAssessmentRun({ run, identity, cells, publications })
+  await markAssessmentRunStarted(run, identity)
+  return reconcileQualityAssessmentRun({ assessmentRunId: run.id })
+}
+
+function assessmentIdempotencyScope(identity: ExecutionIdentity) {
+  return (
     identity.assessmentId ??
     `standalone:${identity.targetProjectId}:${identity.qualityPlanRevisionId}:${identity.evaluationSubjectRevisionId}`
-  const run = await executionClient.$transaction(async tx => {
+  )
+}
+
+function assertCompletePublishedMatrix(cells: RequestedCell[], publications: ReturnType<typeof validateCells>) {
+  const supplied = new Set(cells.map(cell => `${cell.validationVersionId}:${cell.resultMatrixCell}`))
+  const required = requiredMatrixCells(publications.values())
+  if (required.size !== supplied.size || [...required].some(cell => !supplied.has(cell)))
+    throw new ServiceError('Assessment execution must cover the complete published validation matrix.', 'VALIDATION')
+}
+
+async function priorAssessmentRun(idempotencyScope: string, idempotencyKey: string) {
+  const replayClient = executionClient as Partial<Pick<AssessmentExecutionClient, 'assessmentRun'>>
+  if (!replayClient.assessmentRun?.findUnique) return null
+  return replayClient.assessmentRun.findUnique({
+    where: { idempotencyScope_idempotencyKey: { idempotencyScope, idempotencyKey } },
+    include: { bindings: true },
+  })
+}
+
+function assertMatchingRequestHash(run: { requestHash: string } | null, requestHash: string) {
+  if (run && run.requestHash !== requestHash)
+    throw new ServiceError('Assessment execution idempotency key has different request content.', 'CONFLICT')
+}
+
+function credentialScopeFor<
+  T extends {
+    publication: { id: string; operationHash: string; runtimeInputHash: string; runtimeInputJson: string } | null
+  },
+>(input: { identity: ExecutionIdentity; cells: RequestedCell[]; publications: Map<string, T>; requestHash: string }) {
+  const { identity, cells, publications, requestHash } = input
+  return credentialAuthorizationService.credentialAuthorizationInput({
+    assessmentId: identity.assessmentId!,
+    targetProjectId: identity.targetProjectId,
+    qualityPlanId: identity.qualityPlanId,
+    qualityPlanRevisionId: identity.qualityPlanRevisionId,
+    evaluationSubjectRevisionId: identity.evaluationSubjectRevisionId,
+    subjectDigest: identity.subjectDigest,
+    environmentId: cells[0]!.environmentId,
+    publications: [...publications.values()].map(version => version.publication!),
+    requestHash,
+  })
+}
+
+async function prepareCredentialAuthorization<
+  T extends {
+    publication: { id: string; operationHash: string; runtimeInputHash: string; runtimeInputJson: string } | null
+  },
+>(input: {
+  input: AssessmentRunInput
+  identity: ExecutionIdentity
+  cells: RequestedCell[]
+  publications: Map<string, T>
+  requestHash: string
+  idempotencyScope: string
+}) {
+  const credentialRequired = (
+    await Promise.all(
+      input.cells.map(cell => credentialAuthorizationService.executionRequiresCredential(cell.environmentId)),
+    )
+  ).some(Boolean)
+  if (!credentialRequired) return undefined
+  if (!input.identity.assessmentId) throw new ServiceError('AUTHORIZATION_REQUIRED', 'UNAUTHORIZED', 403)
+  if (new Set(input.cells.map(cell => cell.environmentId)).size !== 1)
+    throw new ServiceError('Credential execution requires one exact environment scope.', 'CONFLICT')
+  const priorRun = await priorAssessmentRun(input.idempotencyScope, input.input.idempotencyKey)
+  assertMatchingRequestHash(priorRun, input.requestHash)
+  if (priorRun) return undefined
+  return credentialAuthorizationService.ensureCredentialExecutionRequest(
+    credentialScopeFor({
+      identity: input.identity,
+      cells: input.cells,
+      publications: input.publications,
+      requestHash: input.requestHash,
+    }),
+  )
+}
+
+function requireAuthorizationGrant(
+  input: AssessmentRunInput,
+  authorizationRequest: Awaited<ReturnType<typeof ensureCredentialExecutionRequest>>,
+) {
+  if (
+    !input.authorizationGrantId ||
+    input.executionRequestId !== authorizationRequest.id ||
+    input.expectedRequestHash !== authorizationRequest.requestHash
+  )
+    throw new ServiceError('AUTHORIZATION_REQUIRED', 'UNAUTHORIZED', 403, {
+      requestId: authorizationRequest.id,
+      requestHash: authorizationRequest.requestHash,
+      expiresAt: authorizationRequest.expiresAt.toISOString(),
+      issuerLabel: 'Local Appraise UI session (unauthenticated local possession)',
+    })
+  return input.authorizationGrantId
+}
+
+async function authorizeAssessmentRunCreation(
+  tx: Prisma.TransactionClient,
+  input: AssessmentRunInput,
+  identity: ExecutionIdentity,
+  authorizationRequest: Awaited<ReturnType<typeof ensureCredentialExecutionRequest>> | undefined,
+) {
+  if (!authorizationRequest) {
+    await assertCurrentReadyAssessment(tx, identity)
+    return undefined
+  }
+  const grantId = requireAuthorizationGrant(input, authorizationRequest)
+  await assertCurrentReadyAssessment(tx, identity)
+  await credentialAuthorizationService.consumeCredentialExecutionGrant(tx, {
+    grantId,
+    requestId: authorizationRequest.id,
+    requestHash: authorizationRequest.requestHash,
+  })
+  return grantId
+}
+
+async function createAssessmentRun(input: {
+  input: AssessmentRunInput
+  identity: ExecutionIdentity
+  requestHash: string
+  idempotencyScope: string
+  authorizationRequest: Awaited<ReturnType<typeof ensureCredentialExecutionRequest>> | undefined
+}) {
+  return executionClient.$transaction(async tx => {
     const existing = await tx.assessmentRun.findUnique({
-      where: { idempotencyScope_idempotencyKey: { idempotencyScope, idempotencyKey: input.idempotencyKey } },
+      where: {
+        idempotencyScope_idempotencyKey: {
+          idempotencyScope: input.idempotencyScope,
+          idempotencyKey: input.input.idempotencyKey,
+        },
+      },
       include: { bindings: true },
     })
-    if (existing) {
-      if (existing.requestHash !== requestHash)
-        throw new ServiceError('Assessment execution idempotency key has different request content.', 'CONFLICT')
-      return existing
-    }
-    if (identity.assessmentId && identity.assessmentStatus !== 'READY')
-      throw new ServiceError('New Assessment execution requires a READY assessment.', 'CONFLICT')
+    assertMatchingRequestHash(existing, input.requestHash)
+    if (existing) return existing
+    const grantId = await authorizeAssessmentRunCreation(tx, input.input, input.identity, input.authorizationRequest)
     return tx.assessmentRun.create({
       data: {
-        assessmentId: identity.assessmentId,
-        targetProjectId: identity.targetProjectId,
-        qualityPlanRevisionId: identity.qualityPlanRevisionId,
-        evaluationSubjectRevisionId: identity.evaluationSubjectRevisionId,
-        idempotencyScope,
-        idempotencyKey: input.idempotencyKey,
-        requestHash,
+        assessmentId: input.identity.assessmentId,
+        targetProjectId: input.identity.targetProjectId,
+        qualityPlanRevisionId: input.identity.qualityPlanRevisionId,
+        evaluationSubjectRevisionId: input.identity.evaluationSubjectRevisionId,
+        idempotencyScope: input.idempotencyScope,
+        idempotencyKey: input.input.idempotencyKey,
+        requestHash: input.requestHash,
+        ...(input.authorizationRequest
+          ? {
+              executionRequestId: input.authorizationRequest.id,
+              executionRequestHash: input.authorizationRequest.requestHash,
+              executionAuthorizationGrantId: grantId!,
+            }
+          : {}),
       },
       include: { bindings: true },
     })
   })
-  // Replay must repair a partially prepared run rather than only returning its
-  // current receipt state; completed bindings are left immutable.
+}
+
+function stopped(status: string) {
+  return status === 'STOP_REQUESTED' || status === 'STOPPED'
+}
+
+async function runStatus(runId: string) {
+  return executionClient.assessmentRun.findUniqueOrThrow({ where: { id: runId }, select: { status: true } })
+}
+
+function bindingKey(versionId: string, cell: RequestedCell) {
+  return `${versionId}:${cell.resultMatrixCell}`
+}
+
+function assertBindingContent(binding: { runtimeInputHash: string }, runtimeInputHash: string) {
+  if (binding.runtimeInputHash !== runtimeInputHash)
+    throw new ServiceError('Concurrent AssessmentRun binding has different immutable execution content.', 'CONFLICT')
+}
+
+async function startExistingBinding(input: {
+  binding: {
+    runtimeInputHash: string
+    testRun: { status: TestRunStatus; name: string; browserEngine: BrowserEngine }
+    testRunId: string
+  }
+  publication: { id: string; runtimeInputHash: string }
+  versionId: string
+  identity: ExecutionIdentity
+  cell: RequestedCell
+  runtime: RuntimeService
+}) {
+  assertBindingContent(input.binding, input.publication.runtimeInputHash)
+  if (input.binding.testRun.status !== TestRunStatus.QUEUED) return
+  await input.runtime.startQuality({
+    publicationId: input.publication.id,
+    validationVersionId: input.versionId,
+    targetProjectId: input.identity.targetProjectId,
+    environmentId: input.cell.environmentId,
+    name: input.binding.testRun.name,
+    browserEngine: input.binding.testRun.browserEngine,
+    testRunDbId: input.binding.testRunId,
+  })
+}
+
+async function prepareAndStartBinding(input: {
+  run: { id: string }
+  identity: ExecutionIdentity
+  cell: RequestedCell
+  version: { id: string; publication: { id: string; runtimeInputHash: string } | null }
+  runtime: RuntimeService
+}) {
+  const publication = input.version.publication!
+  const prepared = await input.runtime.prepareQuality({
+    publicationId: publication.id,
+    validationVersionId: input.version.id,
+    targetProjectId: input.identity.targetProjectId,
+    environmentId: input.cell.environmentId,
+    name: `assessment:${input.run.id}:${input.cell.resultMatrixCell}`,
+    browserEngine: input.cell.browserEngine ?? BrowserEngine.CHROMIUM,
+    preparationKey: hash({
+      assessmentRunId: input.run.id,
+      validationVersionId: input.version.id,
+      cell: input.cell.resultMatrixCell,
+    }),
+  })
+  const binding = await executionClient.assessmentRunBinding.upsert({
+    where: {
+      assessmentRunId_validationVersionId_resultMatrixCell: {
+        assessmentRunId: input.run.id,
+        validationVersionId: input.version.id,
+        resultMatrixCell: input.cell.resultMatrixCell,
+      },
+    },
+    create: {
+      assessmentRunId: input.run.id,
+      validationVersionId: input.version.id,
+      resultMatrixCell: input.cell.resultMatrixCell,
+      testRunId: prepared.id,
+      runtimeInputHash: publication.runtimeInputHash,
+    },
+    update: {},
+  })
+  assertBindingContent(binding, publication.runtimeInputHash)
+  if (binding.testRunId !== prepared.id)
+    throw new ServiceError('Concurrent AssessmentRun binding has different immutable execution content.', 'CONFLICT')
+  if (stopped((await runStatus(input.run.id)).status)) return input.runtime.cancel(prepared.id)
+  return input.runtime.startQuality({
+    publicationId: publication.id,
+    validationVersionId: input.version.id,
+    targetProjectId: input.identity.targetProjectId,
+    environmentId: input.cell.environmentId,
+    name: prepared.name,
+    browserEngine: prepared.browserEngine,
+    testRunDbId: prepared.id,
+  })
+}
+
+async function materializeAssessmentRun<
+  T extends { id: string; publication: { id: string; runtimeInputHash: string } | null },
+>(input: { run: { id: string }; identity: ExecutionIdentity; cells: RequestedCell[]; publications: Map<string, T> }) {
   const durableBindings = await executionClient.assessmentRunBinding.findMany({
-    where: { assessmentRunId: run.id },
+    where: { assessmentRunId: input.run.id },
     include: { testRun: true },
   })
   const existingBindings = new Map(
     durableBindings.map(binding => [`${binding.validationVersionId}:${binding.resultMatrixCell}`, binding]),
   )
   const runtime = runtimeServiceFactory()
-  for (const cell of cells) {
-    const currentRun = await executionClient.assessmentRun.findUniqueOrThrow({
-      where: { id: run.id },
-      select: { status: true },
-    })
-    if (currentRun.status === 'STOP_REQUESTED' || currentRun.status === 'STOPPED') break
-    const version = publications.get(cell.validationVersionId)!
-    const publication = version.publication!
-    const existing = existingBindings.get(`${version.id}:${cell.resultMatrixCell}`)
-    if (existing) {
-      if (existing.runtimeInputHash !== publication.runtimeInputHash)
-        throw new ServiceError(
-          'Concurrent AssessmentRun binding has different immutable execution content.',
-          'CONFLICT',
-        )
-      if (existing.testRun.status === TestRunStatus.QUEUED)
-        await runtime.startQuality({
-          publicationId: publication.id,
-          validationVersionId: version.id,
-          targetProjectId: identity.targetProjectId,
-          environmentId: cell.environmentId,
-          name: existing.testRun.name,
-          browserEngine: existing.testRun.browserEngine,
-          testRunDbId: existing.testRunId,
-        })
-      continue
-    }
-    const prepared = await runtime.prepareQuality({
-      publicationId: publication.id,
-      validationVersionId: version.id,
-      targetProjectId: identity.targetProjectId,
-      environmentId: cell.environmentId,
-      name: `assessment:${run.id}:${cell.resultMatrixCell}`,
-      browserEngine: cell.browserEngine ?? BrowserEngine.CHROMIUM,
-      preparationKey: hash({ assessmentRunId: run.id, validationVersionId: version.id, cell: cell.resultMatrixCell }),
-    })
-    const binding = await executionClient.assessmentRunBinding.upsert({
-      where: {
-        assessmentRunId_validationVersionId_resultMatrixCell: {
-          assessmentRunId: run.id,
-          validationVersionId: version.id,
-          resultMatrixCell: cell.resultMatrixCell,
-        },
-      },
-      create: {
-        assessmentRunId: run.id,
-        validationVersionId: version.id,
-        resultMatrixCell: cell.resultMatrixCell,
-        testRunId: prepared.id,
-        runtimeInputHash: publication.runtimeInputHash,
-      },
-      update: {},
-    })
-    if (binding.testRunId !== prepared.id || binding.runtimeInputHash !== publication.runtimeInputHash)
-      throw new ServiceError('Concurrent AssessmentRun binding has different immutable execution content.', 'CONFLICT')
-    const beforeStart = await executionClient.assessmentRun.findUniqueOrThrow({
-      where: { id: run.id },
-      select: { status: true },
-    })
-    if (beforeStart.status === 'STOP_REQUESTED' || beforeStart.status === 'STOPPED') {
-      await runtime.cancel(prepared.id)
-      break
-    }
-    await runtime.startQuality({
-      publicationId: publication.id,
-      validationVersionId: version.id,
-      targetProjectId: identity.targetProjectId,
-      environmentId: cell.environmentId,
-      name: prepared.name,
-      browserEngine: prepared.browserEngine,
-      testRunDbId: prepared.id,
-    })
+  for (const cell of input.cells) {
+    if (stopped((await runStatus(input.run.id)).status)) break
+    const version = input.publications.get(cell.validationVersionId)!
+    const existing = existingBindings.get(bindingKey(version.id, cell))
+    if (existing)
+      await startExistingBinding({
+        binding: existing,
+        publication: version.publication!,
+        versionId: version.id,
+        identity: input.identity,
+        cell,
+        runtime,
+      })
+    else await prepareAndStartBinding({ run: input.run, identity: input.identity, cell, version, runtime })
   }
+}
+
+async function markAssessmentRunStarted(run: { id: string }, identity: ExecutionIdentity) {
   const started = await executionClient.assessmentRun.updateMany({
     where: { id: run.id, status: 'PREPARED' },
     data: { status: 'RUNNING', version: { increment: 1 } },
@@ -321,7 +573,24 @@ export async function runQualityAssessment(input: AssessmentRunInput) {
       where: { id: identity.assessmentId, status: 'READY' },
       data: { status: 'RUNNING' },
     })
-  return reconcileQualityAssessmentRun({ assessmentRunId: run.id })
+}
+
+function assessmentExecutionRequestHash(value: {
+  assessmentId: string | null
+  targetProjectId: string
+  qualityPlanRevisionId: string
+  evaluationSubjectRevisionId: string
+  cells: RequestedCell[]
+}) {
+  return hash({
+    assessmentId: value.assessmentId,
+    targetProjectId: value.targetProjectId,
+    qualityPlanRevisionId: value.qualityPlanRevisionId,
+    evaluationSubjectRevisionId: value.evaluationSubjectRevisionId,
+    cells: [...value.cells].sort((a, b) =>
+      `${a.validationVersionId}:${a.resultMatrixCell}`.localeCompare(`${b.validationVersionId}:${b.resultMatrixCell}`),
+    ),
+  })
 }
 
 async function stopQualityAssessmentRun(input: { assessmentRunId: string; reason?: string }) {

@@ -29,7 +29,33 @@ export const agentPreflightSchema = z.object({
       message: z.string().default('The MCP request reached this server.'),
       serverStartedAt: z.string().datetime(),
       mcpSurfaceVersion: z.string().min(1),
+      mcpContractHash: z
+        .string()
+        .regex(/^sha256:[a-f0-9]{64}$/)
+        .optional(),
     }),
+    contractCompatibility: z
+      .object({
+        status: z.enum(['ready', 'stale', 'unverified']),
+        expected: z.object({
+          mcpSurfaceVersion: z.string().min(1),
+          mcpContractHash: z.string().regex(/^sha256:[a-f0-9]{64}$/),
+        }),
+        observed: z.object({
+          mcpSurfaceVersion: z.string().min(1).optional(),
+          mcpContractHash: z
+            .string()
+            .regex(/^sha256:[a-f0-9]{64}$/)
+            .optional(),
+        }),
+        message: z.string().min(1),
+        reconnect: z.object({
+          required: z.boolean(),
+          action: z.string().min(1).optional(),
+          reason: z.string().min(1).optional(),
+        }),
+      })
+      .optional(),
     currentTaskCapabilities: z.object({
       status: agentPreflightLayerStatusSchema,
       tools: observedCapabilitySchema,
@@ -54,6 +80,10 @@ export const agentPreflightReceiptInputSchema = z.object({
   preflight: agentPreflightSchema,
   capabilities: z.object({
     mcpSurfaceVersion: z.string().min(1),
+    mcpContractHash: z
+      .string()
+      .regex(/^sha256:[a-f0-9]{64}$/)
+      .optional(),
     serverStartedAt: z.string().datetime(),
   }),
 })

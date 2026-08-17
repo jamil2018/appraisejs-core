@@ -3,12 +3,14 @@ import type { Locator, Page } from 'playwright'
 import definitions from './definitions.json' with { type: 'json' }
 import { operationContentHash } from './contracts.ts'
 import type { OperationDefinition } from './contracts.ts'
-import { withReviewedSelectorResolver } from '../locator.util.ts'
+import { waitForRouteSettled, withReviewedSelectorResolver } from '../locator.util.ts'
 import { builtinBrowserOperations } from './builtins/index.ts'
 import type { CustomWorld } from '../world.ts'
+import { assertSealedPageOrigin, resolveSealedNavigationUrl, SealedOriginError } from './sealed-origin.ts'
 
 export type BrowserOperationWorld = {
   page: Page
+  sealedBaseUrl?: string
   browserRuntimeIssuesFor?: (scope: 'console-and-page' | 'network') => unknown[]
   recordHumanVerificationRequired?: (event: import('../captcha-detector.ts').HumanVerificationRequiredEvent) => void
 }
@@ -132,12 +134,12 @@ const managedHandlers = {
       throw new OperationExecutionError('operation_assertion_failed', `Target text did not contain "${expected}".`)
   },
   'browser.assertions.no-console-errors@1': async context => {
-    await context.world.page.waitForLoadState('networkidle')
+    await waitForRouteSettled(context.world.page)
     const issues = context.world.browserRuntimeIssuesFor?.('console-and-page') ?? []
     assertEqual(issues.length, 0, 'Browser console or page errors were recorded')
   },
   'browser.assertions.no-failed-network-requests@1': async context => {
-    await context.world.page.waitForLoadState('networkidle')
+    await waitForRouteSettled(context.world.page)
     const issues = context.world.browserRuntimeIssuesFor?.('network') ?? []
     assertEqual(issues.length, 0, 'Failed browser network activity was recorded')
   },
@@ -201,8 +203,20 @@ const normalizeBuiltinInput = (
 ) => {
   if (ref !== 'browser.navigation.goto@1' || parameterName !== 'url') return value
   const url = String(value)
-  if (!context.baseUrl) return url
-  return new URL(url, context.baseUrl).toString()
+  return resolveSealedNavigationUrl(url, context.baseUrl)
+}
+
+function redactResolvedCredential(value: string) {
+  const credential = process.env.APPRAISE_ENV_PASSWORD
+  return credential ? value.split(credential).join('[REDACTED]') : value
+}
+
+function inputsContainResolvedCredential(value: unknown): boolean {
+  const credential = process.env.APPRAISE_ENV_PASSWORD
+  if (!credential) return false
+  if (value === credential) return true
+  if (!value || typeof value !== 'object') return false
+  return Object.values(value).some(inputsContainResolvedCredential)
 }
 
 const builtinHandlers = Object.fromEntries(
@@ -221,11 +235,12 @@ const builtinHandlers = Object.fromEntries(
           return await handler.apply(context.world as CustomWorld, args)
         } catch (error) {
           if (error instanceof OperationExecutionError) throw error
+          if (error instanceof SealedOriginError) throw new OperationExecutionError('ORIGIN_DENIED', error.message)
           const diagnostics = await browserFailureDiagnostics(context.world.page)
           const diagnosticSuffix = diagnostics.length ? ` Visible validation: ${diagnostics.join(' | ')}` : ''
           throw new OperationExecutionError(
             operation.id.includes('assertion') ? 'operation_assertion_failed' : 'operation_execution_failed',
-            `${error instanceof Error ? error.message : String(error)}${diagnosticSuffix}`,
+            redactResolvedCredential(`${error instanceof Error ? error.message : String(error)}${diagnosticSuffix}`),
           )
         }
       }
@@ -287,8 +302,25 @@ export async function executeBrowserOperation(
     throw new OperationExecutionError('operation_not_reviewed', `Operation "${ref}" is not in the reviewed closure.`)
   const handler = handlers[ref as BrowserOperationRef]
   if (!handler) throw new OperationExecutionError('operation_unknown', `Operation "${ref}" is not supported.`)
+  context.world.sealedBaseUrl = context.baseUrl
+  try {
+    // A fresh browser starts at about:blank; any later operation must stay on the sealed origin.
+    assertSealedPageOrigin(context.world.page.url(), context.baseUrl, !inputsContainResolvedCredential(context.inputs))
+  } catch (error) {
+    if (error instanceof SealedOriginError) throw new OperationExecutionError('ORIGIN_DENIED', error.message)
+    throw error
+  }
   await enforceLocatorCardinality(ref, context)
-  return handler(context)
+  try {
+    const result = await handler(context)
+    assertSealedPageOrigin(context.world.page.url(), context.baseUrl)
+    return result
+  } catch (error) {
+    if (error instanceof OperationExecutionError)
+      throw new OperationExecutionError(error.code, redactResolvedCredential(error.message))
+    if (error instanceof SealedOriginError) throw new OperationExecutionError('ORIGIN_DENIED', error.message)
+    throw error
+  }
 }
 
 export async function executeBuiltinHumanOperation(

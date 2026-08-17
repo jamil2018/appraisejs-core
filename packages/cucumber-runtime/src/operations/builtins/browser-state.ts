@@ -1,5 +1,6 @@
 import type { CustomWorld } from '../../world.ts'
 import type { BuiltinBrowserOperation } from '../builtin-contracts.ts'
+import { gotoSealedOrigin } from '../sealed-origin.ts'
 
 export const browserStateBuiltins = [
   {
@@ -17,7 +18,7 @@ export const browserStateBuiltins = [
     execute: async function (this: CustomWorld, variableName: string) {
       const url = this.getVar<unknown>(variableName)
       if (typeof url !== 'string') throw new Error(`Stored variable ${variableName} must contain a URL string`)
-      await this.page.goto(url, { waitUntil: 'domcontentloaded' })
+      await gotoSealedOrigin(this.page, url, this.sealedBaseUrl, { waitUntil: 'domcontentloaded' })
     },
   },
   {

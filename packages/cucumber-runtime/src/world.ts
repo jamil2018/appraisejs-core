@@ -14,6 +14,9 @@ export interface ScenarioData {
 export class CustomWorld extends World {
   context!: BrowserContext
   page!: Page
+  traceStarted = false
+  /** Set only by the managed operation dispatcher; human-authored execution stays unchanged. */
+  sealedBaseUrl: string | undefined
   data: ScenarioData = {
     vars: {},
   }

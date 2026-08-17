@@ -79,6 +79,14 @@ describe('canonical MCP contract registry', () => {
     expect(schema.properties?.environment).toHaveProperty('properties')
   })
 
+  it('defaults assessment_review to the compact summary response mode', async () => {
+    const contract = await definitions()
+    const review = contract.find(definition => definition.name === 'assessment_review')
+    const schema = review?.inputSchema as { properties?: { responseMode?: { default?: unknown } } }
+
+    expect(schema.properties?.responseMode?.default).toBe('summary')
+  })
+
   it('fails fast for duplicate, invalid, and unknown definitions', () => {
     const tool = { kind: 'tool', name: 'duplicate' } as const
     expect(() => assertUniqueMcpDefinitions([tool, tool])).toThrow('Duplicate or invalid MCP definition')
