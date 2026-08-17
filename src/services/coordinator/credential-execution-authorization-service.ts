@@ -671,7 +671,7 @@ function hostAuthorizationClaim(payload: Record<string, unknown>): HostClaim {
       'requestHash',
       'targetProjectId',
       'assessmentId',
-      'planId',
+      'qualityPlanId',
       'qualityPlanRevisionId',
       'subjectRevisionId',
       'environmentId',
@@ -756,7 +756,7 @@ function requestIdentityMatches(
     request.requestHash === claim.requestHash &&
     request.targetProjectId === claim.targetProjectId &&
     request.assessmentId === claim.assessmentId &&
-    request.qualityPlanId === claim.planId &&
+    request.qualityPlanId === claim.qualityPlanId &&
     request.qualityPlanRevisionId === claim.qualityPlanRevisionId &&
     request.evaluationSubjectRevisionId === claim.subjectRevisionId &&
     request.subjectDigest === subjectDigest

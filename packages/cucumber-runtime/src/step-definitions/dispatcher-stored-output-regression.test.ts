@@ -68,7 +68,7 @@ describe('Step Invocation stored output dispatch', () => {
       ],
       context: {
         world: {
-          page: { waitForTimeout: async (value: number) => void calls.push(value) },
+          page: { url: () => 'about:blank', waitForTimeout: async (value: number) => void calls.push(value) },
           appraiseStepOutputs: new Map([['delay', 7]]),
         } as never,
         resolveLocator: () => {

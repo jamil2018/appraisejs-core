@@ -322,7 +322,7 @@ describe('credential execution authorization', () => {
         requestHash: request.requestHash,
         targetProjectId: request.targetProjectId,
         assessmentId: request.assessmentId,
-        planId: request.qualityPlanId,
+        qualityPlanId: request.qualityPlanId,
         qualityPlanRevisionId: request.qualityPlanRevisionId,
         subjectRevisionId: request.evaluationSubjectRevisionId,
         environmentId: request.environmentId,
