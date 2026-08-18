@@ -166,6 +166,21 @@ async function runPrismaMigrateDeploy(cwd: string): Promise<void> {
   )
 }
 
+async function removeLegacyTemplateTargetProject(databasePath: string): Promise<void> {
+  const { PrismaClient } = await import('@prisma/client')
+  const prisma = new PrismaClient({
+    datasources: { db: { url: `file:${databasePath}` } },
+  })
+
+  try {
+    await prisma.targetProject.deleteMany({
+      where: { id: '00000000-0000-4000-8000-000000000001' },
+    })
+  } finally {
+    await prisma.$disconnect()
+  }
+}
+
 async function hashFile(filePath: string): Promise<Buffer> {
   const hash = crypto.createHash('sha256')
   await new Promise<void>((resolve, reject) => {
@@ -522,6 +537,7 @@ async function seedTemplateDatabases(
   if (!existsSync(seededDbPath)) {
     throw new Error(`Seeded template database was not created at ${seededDbPath}`)
   }
+  await removeLegacyTemplateTargetProject(seededDbPath)
 
   for (const targetTemplate of templates) {
     cpSync(seededDbPath, path.join(getPackageFlavorDir(targetTemplate), 'prisma', 'dev.db'), { force: true })

@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest'
 
-import { isProjectScopedPath, shouldRequireProjectSelection, withProjectScope } from './project-scope'
+import {
+  isProjectScopedPath,
+  shouldRequireProjectSelection,
+  staleProjectScopeReturnTo,
+  withProjectScope,
+} from './project-scope'
 
 describe('project scope route gate', () => {
   it('recognizes scoped collection and detail routes', () => {
@@ -22,5 +27,38 @@ describe('project scope route gate', () => {
       '/quality-plans/quality-plan-1?review=validation&project=project+1',
     )
     expect(withProjectScope('https://example.com', 'project-1')).toBe('/?project=project-1')
+  })
+})
+
+describe('stale project scope cleanup', () => {
+  const registeredProjectIds = new Set(['project-1'])
+
+  it('removes a deleted project while preserving unrelated query parameters', () => {
+    expect(
+      staleProjectScopeReturnTo({
+        requestTarget: '/reports?project=deleted&view=failed',
+        registeredProjectIds,
+      }),
+    ).toBe('/reports?view=failed')
+  })
+
+  it('clears an invalid cookie without changing a valid project URL', () => {
+    expect(
+      staleProjectScopeReturnTo({
+        requestTarget: '/reports?project=project-1',
+        registeredProjectIds,
+        cookieProjectId: 'deleted',
+      }),
+    ).toBe('/reports?project=project-1')
+  })
+
+  it('leaves valid URL and cookie scope unchanged', () => {
+    expect(
+      staleProjectScopeReturnTo({
+        requestTarget: '/reports?project=project-1',
+        registeredProjectIds,
+        cookieProjectId: 'project-1',
+      }),
+    ).toBeNull()
   })
 })

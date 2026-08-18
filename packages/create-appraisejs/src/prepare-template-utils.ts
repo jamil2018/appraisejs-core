@@ -12,6 +12,7 @@ export interface TemplateMetadata {
 export interface StepDefinitionDataCounts {
   stepDefinitionCount: number
   localRuntimeRowCount: number
+  targetProjectCount: number
 }
 
 export const TEMPLATE_PREP_SYNC_SCRIPTS = ['sync-step-definitions'] as const
@@ -77,17 +78,26 @@ export async function readStepDefinitionDataCounts(databasePath: string): Promis
   })
 
   try {
-    const [stepDefinitionCount, runtimeCapsuleCount, assessmentCount, evidenceReceiptCount, testRunCount, reportCount] =
-      await prisma.$transaction([
-        prisma.stepDefinition.count(),
-        prisma.runtimeCapsule.count(),
-        prisma.assessment.count(),
-        prisma.evidenceReceipt.count(),
-        prisma.testRun.count(),
-        prisma.report.count(),
-      ])
+    const [
+      stepDefinitionCount,
+      targetProjectCount,
+      runtimeCapsuleCount,
+      assessmentCount,
+      evidenceReceiptCount,
+      testRunCount,
+      reportCount,
+    ] = await prisma.$transaction([
+      prisma.stepDefinition.count(),
+      prisma.targetProject.count(),
+      prisma.runtimeCapsule.count(),
+      prisma.assessment.count(),
+      prisma.evidenceReceipt.count(),
+      prisma.testRun.count(),
+      prisma.report.count(),
+    ])
     return {
       stepDefinitionCount,
+      targetProjectCount,
       localRuntimeRowCount: runtimeCapsuleCount + assessmentCount + evidenceReceiptCount + testRunCount + reportCount,
     }
   } finally {
@@ -171,6 +181,9 @@ export async function verifyPreparedTemplateState(
   const stepDataCounts = await readStepDefinitionDataCountsFn(seededDbPath)
   if (stepDataCounts.localRuntimeRowCount > 0) {
     throw new Error(`Prepared template database contains local runtime state at ${seededDbPath}`)
+  }
+  if (stepDataCounts.targetProjectCount > 0) {
+    throw new Error(`Prepared template database contains target project state at ${seededDbPath}`)
   }
 
   if (template === 'starter') {

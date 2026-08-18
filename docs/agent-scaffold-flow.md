@@ -26,6 +26,8 @@ README content, packaging behavior, or files that preparation intentionally pres
 
 Prepared templates should start with clean runtime output. They may contain seeded starter data, but must not contain
 machine-local coordinator credentials, leases, durable events, test runs, reports, or personal layout state.
+Fresh prepared databases must also contain no registered `TargetProject` rows; target identity is discovered and
+registered in the generated user's workspace, never inherited from the repository or template-build directory.
 
 ## Validation
 

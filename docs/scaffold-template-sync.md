@@ -36,7 +36,8 @@ orchestration surface has not leaked into the scaffold.
 
 Prepared scaffold databases may contain authored starter assets, but they must not contain machine-local coordinator
 credentials, leases, personal layouts, durable event rows, test runs, or reports. Template preparation verifies this
-invariant before publishing the bundled starter and blank templates.
+invariant before publishing the bundled starter and blank templates. They must also contain zero `TargetProject`
+rows so a generated app cannot inherit the producer machine's repository or temporary build path.
 
 Starter and blank currently share the same schema and Step Definition seed inputs. Template preparation therefore
 migrates and synchronizes one canonical temporary database, copies it to both flavor overlays, and verifies each

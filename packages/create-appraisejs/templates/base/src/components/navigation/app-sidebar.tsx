@@ -56,7 +56,11 @@ export default function AppSidebar({
   projects = [],
   cookieProjectId,
 }: ProjectNavigationProps) {
-  const { pathname, projectId, sections } = useProjectNavigationState({ providerRunsEnabled, cookieProjectId })
+  const { pathname, projectId, sections } = useProjectNavigationState({
+    providerRunsEnabled,
+    projects,
+    cookieProjectId,
+  })
 
   return (
     <aside

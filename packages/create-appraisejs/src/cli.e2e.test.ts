@@ -38,7 +38,9 @@ describe('CLI E2E', () => {
     expect(await fs.pathExists(gitignorePath)).toBe(true)
     expect(await fs.pathExists(seededDbPath)).toBe(true)
     expect(await fs.pathExists(staleNestedDbPath)).toBe(false)
-    expect(await fs.pathExists(path.join(destDir, 'automation', 'steps', 'actions', 'click.step.ts'))).toBe(true)
+    expect(
+      await fs.pathExists(path.join(destDir, 'automation', 'steps', 'actions', 'generated', 'click.step.ts')),
+    ).toBe(true)
     expect(await fs.pathExists(path.join(destDir, '.fallowrc.json'))).toBe(true)
     expect(await fs.pathExists(path.join(destDir, 'config', 'fallow-baseline-root.json'))).toBe(true)
     expect(await fs.pathExists(path.join(destDir, 'config', 'release-readiness.json'))).toBe(true)

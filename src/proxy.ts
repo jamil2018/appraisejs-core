@@ -1,13 +1,17 @@
 import { type NextRequest, NextResponse } from 'next/server'
 
-import { ACTIVE_PROJECT_COOKIE, shouldRequireProjectSelection } from '@/lib/project-scope'
+import {
+  ACTIVE_PROJECT_COOKIE,
+  APPRAISE_PATHNAME_HEADER,
+  APPRAISE_REQUEST_TARGET_HEADER,
+  shouldRequireProjectSelection,
+} from '@/lib/project-scope'
 import { evaluateLocalRequestBoundary } from '@/lib/local-request-boundary'
-
-const APPRAISE_PATHNAME_HEADER = 'x-appraise-pathname'
 
 function continueRequest(request: NextRequest) {
   const requestHeaders = new Headers(request.headers)
   requestHeaders.set(APPRAISE_PATHNAME_HEADER, request.nextUrl.pathname)
+  requestHeaders.set(APPRAISE_REQUEST_TARGET_HEADER, `${request.nextUrl.pathname}${request.nextUrl.search}`)
   return NextResponse.next({ request: { headers: requestHeaders } })
 }
 

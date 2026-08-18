@@ -30,11 +30,11 @@ async function createPreparedTemplateFixture(rootDir: string): Promise<void> {
 }
 
 async function getStarterCounts(): Promise<StepDefinitionDataCounts> {
-  return { stepDefinitionCount: 3, localRuntimeRowCount: 0 }
+  return { stepDefinitionCount: 3, localRuntimeRowCount: 0, targetProjectCount: 0 }
 }
 
 async function getBlankCounts(): Promise<StepDefinitionDataCounts> {
-  return { stepDefinitionCount: 3, localRuntimeRowCount: 0 }
+  return { stepDefinitionCount: 3, localRuntimeRowCount: 0, targetProjectCount: 0 }
 }
 
 describe('shared template database inputs', () => {
@@ -185,6 +185,7 @@ describe('verifyPreparedTemplateState', () => {
       verifyPreparedTemplateState(dir, 'blank', undefined, async () => ({
         stepDefinitionCount: 0,
         localRuntimeRowCount: 0,
+        targetProjectCount: 0,
       })),
     ).rejects.toThrow(/should include ready Step Definitions/)
   })
@@ -196,8 +197,21 @@ describe('verifyPreparedTemplateState', () => {
       verifyPreparedTemplateState(dir, 'starter', undefined, async () => ({
         stepDefinitionCount: 3,
         localRuntimeRowCount: 1,
+        targetProjectCount: 0,
       })),
     ).rejects.toThrow(/local runtime state/)
+  })
+
+  it('fails when the seeded database contains a target project', async () => {
+    const dir = await createTempTemplateDir()
+
+    await expect(
+      verifyPreparedTemplateState(dir, 'starter', undefined, async () => ({
+        stepDefinitionCount: 3,
+        localRuntimeRowCount: 0,
+        targetProjectCount: 1,
+      })),
+    ).rejects.toThrow(/target project state/)
   })
 
   it('fails when OS artifacts are present', async () => {

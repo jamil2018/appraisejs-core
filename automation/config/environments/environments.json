@@ -1,8 +1,1 @@
-{
-  "e2e_local": {
-    "baseUrl": "http://127.0.0.1:3200",
-    "apiBaseUrl": "http://127.0.0.1:3200/api",
-    "email": "tester",
-    "passwordEnvironmentVariable": "APPRAISE_E2E_PASSWORD"
-  }
-}
+{}
