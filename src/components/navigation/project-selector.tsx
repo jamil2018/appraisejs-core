@@ -40,17 +40,18 @@ export default function ProjectSelector({
 }) {
   const pathname = usePathname()
   const searchParams = useSearchParams()
-  const router = useRouter()
+  const { push } = useRouter()
   const [isPending, startTransition] = useTransition()
   const urlProjectId = searchParams.get('project')
-  const activeProjectId = projects.some(project => project.id === urlProjectId)
+  const validUrlProject = projects.some(project => project.id === urlProjectId)
+  const validCookieProject = projects.some(project => project.id === cookieProjectId)
+  const activeProjectId = validUrlProject
     ? urlProjectId!
     : urlProjectId
       ? ''
-      : projects.some(project => project.id === cookieProjectId)
+      : validCookieProject
         ? cookieProjectId!
         : ''
-
   return (
     <Select
       value={activeProjectId}
@@ -61,7 +62,7 @@ export default function ProjectSelector({
           if (!response.success) return
           const params = new URLSearchParams()
           params.set('project', targetProjectId)
-          router.push(`${equivalentProjectRoute(pathname)}?${params.toString()}`)
+          push(`${equivalentProjectRoute(pathname)}?${params.toString()}`)
         })
       }
     >

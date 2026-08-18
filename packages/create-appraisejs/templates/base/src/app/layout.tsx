@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next'
 import { Inter, Inter_Tight } from 'next/font/google'
 import { headers } from 'next/headers'
+import { redirect } from 'next/navigation'
 import './globals.css'
 import { ThemeProvider } from '@/components/theme/theme-provider'
 import { Toaster } from '@/components/ui/toaster'
@@ -10,7 +11,7 @@ import { isProviderNativeRunsEnabled } from '@/lib/feature-flags'
 import { readActiveProjectCookie } from '@/lib/active-project'
 import { listTargetProjects } from '@/services/target-project/target-project-service'
 import ProjectRequiredEmptyState from '@/components/data-state/project-required-empty-state'
-import { isProjectScopedPath } from '@/lib/project-scope'
+import { APPRAISE_REQUEST_TARGET_HEADER, isProjectScopedPath, staleProjectScopeReturnTo } from '@/lib/project-scope'
 
 const inter = Inter({
   variable: '--font-inter',
@@ -65,6 +66,27 @@ export const metadata: Metadata = {
   },
 }
 
+function redirectInvalidProjectScope(input: {
+  requestTarget: string
+  registeredProjectIds: ReadonlySet<string>
+  cookieProjectId?: string | null
+}) {
+  const returnTo = staleProjectScopeReturnTo(input)
+  if (returnTo) redirect(`/api/internal/project-scope/clear?returnTo=${encodeURIComponent(returnTo)}`)
+}
+
+function ProjectScopedContent({
+  hasProjects,
+  requiresProject,
+  children,
+}: {
+  hasProjects: boolean
+  requiresProject: boolean
+  children: React.ReactNode
+}) {
+  return !hasProjects && requiresProject ? <ProjectRequiredEmptyState /> : children
+}
+
 export default async function RootLayout({
   children,
 }: Readonly<{
@@ -78,6 +100,12 @@ export default async function RootLayout({
   ])
   const projectOptions = projects.map(({ id, displayName, canonicalPath }) => ({ id, displayName, canonicalPath }))
   const requiresProject = isProjectScopedPath(requestHeaders.get('x-appraise-pathname') ?? '/')
+  const registeredProjectIds = new Set(projectOptions.map(project => project.id))
+  redirectInvalidProjectScope({
+    requestTarget: requestHeaders.get(APPRAISE_REQUEST_TARGET_HEADER) ?? '/',
+    registeredProjectIds,
+    cookieProjectId,
+  })
 
   return (
     <html lang="en" className="dark" suppressHydrationWarning>
@@ -116,7 +144,9 @@ export default async function RootLayout({
                 aria-hidden="true"
               />
               <div className="relative mx-auto max-w-screen-2xl">
-                {projects.length === 0 && requiresProject ? <ProjectRequiredEmptyState /> : children}
+                <ProjectScopedContent hasProjects={projects.length > 0} requiresProject={requiresProject}>
+                  {children}
+                </ProjectScopedContent>
               </div>
             </main>
             <Toaster />

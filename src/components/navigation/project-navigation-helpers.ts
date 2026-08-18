@@ -18,12 +18,25 @@ export function projectScopedHref(href: string, projectId?: string) {
   return projectId ? `${href}?project=${encodeURIComponent(projectId)}` : href
 }
 
-export function useProjectNavigationState({ providerRunsEnabled = false, cookieProjectId }: ProjectNavigationProps) {
+export function resolveNavigationProjectId(
+  projects: ProjectNavigationProps['projects'],
+  urlProjectId?: string | null,
+  cookieProjectId?: string,
+) {
+  const candidate = urlProjectId ?? cookieProjectId
+  return candidate && projects?.some(project => project.id === candidate) ? candidate : undefined
+}
+
+export function useProjectNavigationState({
+  providerRunsEnabled = false,
+  projects,
+  cookieProjectId,
+}: ProjectNavigationProps) {
   const pathname = usePathname()
   const searchParams = useSearchParams()
   return {
     pathname,
-    projectId: searchParams.get('project') ?? cookieProjectId,
+    projectId: resolveNavigationProjectId(projects, searchParams.get('project'), cookieProjectId),
     sections: getSidebarNavigationSections({ providerRunsEnabled }),
   }
 }

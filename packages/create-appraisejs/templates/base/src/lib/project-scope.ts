@@ -1,4 +1,6 @@
 export const ACTIVE_PROJECT_COOKIE = 'appraise-active-project'
+export const APPRAISE_PATHNAME_HEADER = 'x-appraise-pathname'
+export const APPRAISE_REQUEST_TARGET_HEADER = 'x-appraise-request-target'
 
 const PROJECT_SCOPED_ROUTE_SEGMENTS = new Set([
   'environments',
@@ -36,4 +38,19 @@ export function withProjectScope(returnTo: string, projectId: string) {
   const searchParams = new URLSearchParams(query)
   searchParams.set('project', projectId)
   return `${pathname}?${searchParams.toString()}`
+}
+
+export function staleProjectScopeReturnTo(input: {
+  requestTarget: string
+  registeredProjectIds: ReadonlySet<string>
+  cookieProjectId?: string | null
+}) {
+  const requestTarget = new URL(input.requestTarget, 'http://appraise.local')
+  const urlProjectId = requestTarget.searchParams.get('project')
+  const invalidUrlProject = Boolean(urlProjectId && !input.registeredProjectIds.has(urlProjectId))
+  const invalidCookieProject = Boolean(input.cookieProjectId && !input.registeredProjectIds.has(input.cookieProjectId))
+  if (!invalidUrlProject && !invalidCookieProject) return null
+
+  if (invalidUrlProject) requestTarget.searchParams.delete('project')
+  return `${requestTarget.pathname}${requestTarget.search}`
 }

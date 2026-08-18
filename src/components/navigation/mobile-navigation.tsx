@@ -56,7 +56,11 @@ export default function MobileNavigation({
   projects = [],
   cookieProjectId,
 }: ProjectNavigationProps) {
-  const { pathname, projectId, sections } = useProjectNavigationState({ providerRunsEnabled, cookieProjectId })
+  const { pathname, projectId, sections } = useProjectNavigationState({
+    providerRunsEnabled,
+    projects,
+    cookieProjectId,
+  })
   const [open, setOpen] = useState(false)
 
   return (
