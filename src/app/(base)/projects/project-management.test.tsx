@@ -62,9 +62,12 @@ describe('ProjectManagement agent readiness', () => {
         projects={[
           {
             id: 'target-1',
+            kind: 'LOCAL_WORKSPACE',
             displayName: 'Notes',
             description: null,
+            canonicalIdentity: 'path:/targets/notes',
             canonicalPath: '/targets/notes',
+            normalizedRemoteOrigin: null,
             lastDetectedAt: new Date('2026-07-18T02:00:00.000Z'),
             preflight: receipt,
           },

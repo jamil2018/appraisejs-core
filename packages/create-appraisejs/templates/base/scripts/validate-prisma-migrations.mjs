@@ -48,40 +48,44 @@ try {
   if (environmentColumns.split('\n').some(line => line.split('|')[1] === 'password')) {
     throw new Error('Environment.password still exists after the credential-reference migration.')
   }
-  const migratedLegacyRow = execFileSync(
-    'sqlite3',
-    [
-      databasePath,
-      `SELECT credentialState || '|' || (legacyCredentialDetectedAt IS NOT NULL) FROM Environment WHERE id = 'legacy-env';`,
-    ],
-    { encoding: 'utf8' },
-  ).trim()
-  if (migratedLegacyRow !== 'LEGACY_DISABLED|1') {
-    throw new Error(`Legacy environment was not disabled and inventoried: ${migratedLegacyRow || 'missing'}`)
-  }
+  if (environmentColumns.split('\n').some(line => line.split('|')[1] === 'legacyCredentialDetectedAt'))
+    throw new Error('Environment.legacyCredentialDetectedAt survived the capsule-only cutover.')
   const databaseDump = execFileSync('sqlite3', [databasePath, '.dump Environment'], { encoding: 'utf8' })
   if (databaseDump.includes('known-fixture-secret-sentinel')) {
     throw new Error('Legacy environment credential remained in the migrated database dump.')
   }
-  const legacyCompositions = execFileSync(
+  const resetRows = execFileSync(
     'sqlite3',
     [
       databasePath,
       `SELECT
-        (SELECT count(*) FROM StepDefinitionDraft WHERE id = 'legacy-composition-draft') +
-        (SELECT count(*) FROM StepDefinition WHERE id = 'legacy.composition.ready');`,
+        (SELECT count(*) FROM TargetProject) +
+        (SELECT count(*) FROM Environment) +
+        (SELECT count(*) FROM TestRun) +
+        (SELECT count(*) FROM AssessmentRun) +
+        (SELECT count(*) FROM EvidenceReceipt) +
+        (SELECT count(*) FROM StepDefinition);`,
     ],
     { encoding: 'utf8' },
   ).trim()
-  if (legacyCompositions !== '0') {
-    throw new Error(`Legacy pre-hash compositions survived the exact-reference migration: ${legacyCompositions}`)
-  }
+  if (resetRows !== '0') throw new Error(`The destructive cutover retained application data: ${resetRows}`)
+
+  execFileSync('node', ['--import', 'tsx', 'scripts/sync-step-definitions.ts'], {
+    cwd: process.cwd(),
+    env: { ...process.env, DATABASE_URL: `file:${databasePath}`, NODE_ENV: 'production' },
+    stdio: ['ignore', 'pipe', 'pipe'],
+  })
+  const reseededDefinitions = execFileSync('sqlite3', [databasePath, 'SELECT count(*) FROM StepDefinition;'], {
+    encoding: 'utf8',
+  }).trim()
+  if (reseededDefinitions === '0')
+    throw new Error('Canonical built-in Step Definitions were not reseeded after cutover.')
 
   execFileSync('sqlite3', [databasePath, 'PRAGMA foreign_key_check;'], {
     stdio: ['ignore', 'pipe', 'pipe'],
   })
   console.log(
-    `Applied ${migrations.length} migrations and verified populated legacy credential and composition removal.`,
+    `Applied ${migrations.length} migrations and verified destructive reset plus canonical built-in Step Definition reseed.`,
   )
 } finally {
   rmSync(workspace, { recursive: true, force: true })

@@ -14,7 +14,7 @@ For an approved revision, `assessment_prepare_run` may perform the mechanical pr
 
 Preparation synchronizes the reversible built-in registry first, then completes a read-only, hash-bound preflight of the approved validation set, exact Step References, typed inputs, and target-owned locators before it creates a preparation record or mutates environments, publications, Assessments, or TestRuns. Summary responses include the compact preflight counts and hashes; callers should request full payloads only for bounded diagnostics.
 
-Runtime publication seals the canonical Step Reference hash for each invocation. Compatibility reads may admit an older publication that used the persisted definition-row hash only when that hash exactly matches the authoritative row, then normalize the closure to the canonical Step Reference hash. This is a bounded read-compatibility path, not permission to publish new invocations with the legacy hash.
+Runtime publication seals the canonical Step Reference hash for each invocation. Runtime closure resolution accepts only that exact canonical hash; persisted definition-row hashes are publication metadata and are never invocation authority.
 
 ## Assessment
 

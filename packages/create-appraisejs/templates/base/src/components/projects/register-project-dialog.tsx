@@ -23,7 +23,8 @@ import { toast } from '@/hooks/use-toast'
 export default function RegisterProjectDialog() {
   const { refresh } = useRouter()
   const [open, setOpen] = useState(false)
-  const [projectPath, setProjectPath] = useState('')
+  const [targetKind, setTargetKind] = useState<'LOCAL_WORKSPACE' | 'REMOTE_BLACK_BOX'>('LOCAL_WORKSPACE')
+  const [targetLocation, setTargetLocation] = useState('')
   const [displayName, setDisplayName] = useState('')
   const [description, setDescription] = useState('')
   const [initializeGit, setInitializeGit] = useState(false)
@@ -31,12 +32,16 @@ export default function RegisterProjectDialog() {
 
   function register() {
     startTransition(async () => {
-      const response = await registerTargetProjectAction({ projectPath, displayName, description, initializeGit })
+      const response = await registerTargetProjectAction(
+        targetKind === 'LOCAL_WORKSPACE'
+          ? { path: targetLocation, displayName, description, initializeGit }
+          : { url: targetLocation, displayName, description },
+      )
       if (!response.success) {
         toast({ title: 'Project registration failed', description: response.message, variant: 'destructive' })
         return
       }
-      setProjectPath('')
+      setTargetLocation('')
       setDisplayName('')
       setDescription('')
       setInitializeGit(false)
@@ -54,34 +59,54 @@ export default function RegisterProjectDialog() {
       </Button>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Register workspace</DialogTitle>
+          <DialogTitle>Register target</DialogTitle>
           <DialogDescription>
-            Registration uses the same canonical inspection and marker flow as agent project setup.
+            Register a local workspace or a remote black-box target. Remote targets never require workspace access.
           </DialogDescription>
         </DialogHeader>
         <div className="flex flex-col gap-4">
+          <div className="grid grid-cols-2 gap-2" aria-label="Target kind">
+            <Button
+              type="button"
+              variant={targetKind === 'LOCAL_WORKSPACE' ? 'default' : 'outline'}
+              onClick={() => setTargetKind('LOCAL_WORKSPACE')}
+            >
+              Local workspace
+            </Button>
+            <Button
+              type="button"
+              variant={targetKind === 'REMOTE_BLACK_BOX' ? 'default' : 'outline'}
+              onClick={() => setTargetKind('REMOTE_BLACK_BOX')}
+            >
+              Remote URL
+            </Button>
+          </div>
           <div className="flex flex-col gap-2">
-            <Label htmlFor="project-path">Absolute workspace path</Label>
+            <Label htmlFor="project-target-location">
+              {targetKind === 'LOCAL_WORKSPACE' ? 'Absolute workspace path' : 'HTTP(S) target URL'}
+            </Label>
             <Input
-              id="project-path"
-              value={projectPath}
-              onChange={event => setProjectPath(event.target.value)}
-              placeholder="/absolute/path/to/workspace"
+              id="project-target-location"
+              value={targetLocation}
+              onChange={event => setTargetLocation(event.target.value)}
+              placeholder={targetKind === 'LOCAL_WORKSPACE' ? '/absolute/path/to/workspace' : 'https://example.com'}
             />
           </div>
-          <div className="flex items-start gap-2">
-            <Checkbox
-              id="project-initialize-git"
-              checked={initializeGit}
-              onCheckedChange={checked => setInitializeGit(checked === true)}
-            />
-            <div className="grid gap-1">
-              <Label htmlFor="project-initialize-git">Initialize Git for an empty workspace</Label>
-              <p className="text-sm text-muted-foreground">
-                Creates a main-branch repository so implementation checkpoints can record commit evidence.
-              </p>
+          {targetKind === 'LOCAL_WORKSPACE' ? (
+            <div className="flex items-start gap-2">
+              <Checkbox
+                id="project-initialize-git"
+                checked={initializeGit}
+                onCheckedChange={checked => setInitializeGit(checked === true)}
+              />
+              <div className="grid gap-1">
+                <Label htmlFor="project-initialize-git">Initialize Git for an empty workspace</Label>
+                <p className="text-sm text-muted-foreground">
+                  Creates a main-branch repository so implementation checkpoints can record commit evidence.
+                </p>
+              </div>
             </div>
-          </div>
+          ) : null}
           <div className="flex flex-col gap-2">
             <Label htmlFor="project-display-name">Display name</Label>
             <Input
@@ -104,7 +129,7 @@ export default function RegisterProjectDialog() {
           <Button type="button" variant="outline" disabled={isPending} onClick={() => setOpen(false)}>
             Cancel
           </Button>
-          <Button disabled={isPending || !projectPath.trim() || !displayName.trim()} onClick={register}>
+          <Button disabled={isPending || !targetLocation.trim()} onClick={register}>
             {isPending ? 'Registering...' : 'Register project'}
           </Button>
         </DialogFooter>

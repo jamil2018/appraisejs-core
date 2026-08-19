@@ -2,8 +2,6 @@ import { test, expect, type Page } from '@playwright/test'
 
 import {
   disconnectPrisma,
-  generateSeededFeature,
-  readGeneratedFeature,
   resetE2eData,
   seedCoreData,
   seedInvalidTopologyTestCase,
@@ -88,7 +86,7 @@ test.describe('Test authoring @authoring', () => {
     await expect(page.getByText('E2E Authored Case', { exact: true }).first()).toBeVisible()
   })
 
-  test('Graph and Linear authoring views preserve typed invocations and canonical order through save, reload, and feature projection', async ({
+  test('Graph and Linear authoring views preserve typed invocations and canonical order through save and reload', async ({
     page,
   }) => {
     const title = 'E2E Dual View Case'
@@ -142,10 +140,6 @@ test.describe('Test authoring @authoring', () => {
     await page.getByRole('tab', { name: 'Linear' }).click()
     await expect(page.getByText('When the user navigates to the /graph-reloaded url')).toBeVisible()
     await saveTestCase(page)
-
-    await generateSeededFeature()
-    expect(readGeneratedFeature()).toContain(`Scenario: [${title}]`)
-    expect(readGeneratedFeature()).toContain('When the user navigates to the /graph-reloaded url')
   })
 
   test('invalid typed graph input remains invalid after a view switch instead of being silently persisted', async ({

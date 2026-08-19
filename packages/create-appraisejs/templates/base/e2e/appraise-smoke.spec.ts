@@ -1,14 +1,6 @@
 import { test, expect } from '@playwright/test'
 
-import {
-  disconnectPrisma,
-  findModuleByName,
-  generateSeededFeature,
-  readGeneratedFeature,
-  resetE2eData,
-  seedCoreData,
-  seededIds,
-} from './helpers/test-data'
+import { disconnectPrisma, findModuleByName, resetE2eData, seedCoreData, seededIds } from './helpers/test-data'
 import { createModule, expectPageHeading } from './helpers/ui'
 
 test.describe('Smoke @smoke', () => {
@@ -55,24 +47,9 @@ test.describe('Smoke @smoke', () => {
     await expect(page.getByText('E2E seeded login works')).toBeVisible()
   })
 
-  test('settings sync all completes without a fatal error', async ({ page }) => {
-    test.setTimeout(120_000)
-
+  test('settings exposes no filesystem synchronization authority', async ({ page }) => {
     await page.goto('/settings')
     await expectPageHeading(page, 'Settings')
-    await page.getByRole('button', { name: 'Sync All' }).click()
-    await expect(page.getByText(/Sync completed|Sync failed/).first()).toBeVisible({ timeout: 90_000 })
-    await expect(page.getByText(/fatal|uncaught/i)).toHaveCount(0)
-  })
-
-  test('feature generation writes suite-backed feature output', async () => {
-    const featurePath = await generateSeededFeature()
-    const featureContent = readGeneratedFeature()
-
-    expect(featurePath.replaceAll('\\', '/')).toContain('automation/features/E2E Auth/e2e-auth-suite.feature')
-    expect(featureContent).toContain('Feature: Seeded suite for E2E feature generation')
-    expect(featureContent).toContain('@e2e-smoke')
-    expect(featureContent).toContain('Scenario: [E2E seeded login works] Seeded login smoke case')
-    expect(featureContent).toContain('Given the user navigates to the / url')
+    await expect(page.getByRole('button', { name: /Sync/ })).toHaveCount(0)
   })
 })

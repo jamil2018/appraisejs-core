@@ -38,6 +38,8 @@ function receipt() {
       validationHash: h('a'),
       runId: 'run',
       testRunId: 'test-run',
+      sourceKind: 'PUBLISHED_VALIDATION',
+      sourceHash: h('a'),
       publishOperationId: 'operation',
       operationHash: h('d'),
       projectionHash: h('e'),
@@ -150,6 +152,24 @@ function receipt() {
 }
 
 describe('capsule command receipt contract', () => {
+  it('permits authored snapshots only without publication provenance', () => {
+    const authored = receipt()
+    const ownership = {
+      ...authored.ownership,
+      sourceKind: 'AUTHORED_TEST_SNAPSHOT' as const,
+      sourceHash: h('b'),
+    }
+    delete (ownership as { publishOperationId?: string }).publishOperationId
+
+    expect(capsuleCommandReceiptV1Schema.parse({ ...authored, ownership }).ownership.publishOperationId).toBeUndefined()
+    expect(
+      capsuleCommandReceiptV1Schema.safeParse({
+        ...authored,
+        ownership: { ...ownership, publishOperationId: 'must-not-exist' },
+      }).success,
+    ).toBe(false)
+  })
+
   it('bounds and scrubs dry-run process output', () => {
     const result = boundedProcessOutput(
       `\u001b[31mError\u001b[0m at /Users/private/runtime/file.mjs\nsecret-value\n/capsule/root/features/test.feature`,

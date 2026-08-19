@@ -14,7 +14,7 @@ import { withProjectScope } from '@/lib/project-scope'
 type ProjectOption = {
   id: string
   displayName: string
-  canonicalPath: string
+  targetIdentity: string
 }
 
 export default function ProjectSelectionDialog({
@@ -48,7 +48,7 @@ export default function ProjectSelectionDialog({
         <DialogHeader>
           <DialogTitle>Select a project</DialogTitle>
           <DialogDescription>
-            This page contains project-scoped data. Choose the workspace you want to use before continuing.
+            This page contains project-scoped data. Choose the target you want to use before continuing.
           </DialogDescription>
         </DialogHeader>
 
@@ -67,7 +67,7 @@ export default function ProjectSelectionDialog({
                   <span className="min-w-0">
                     <span className="block truncate font-medium">{project.displayName}</span>
                     <span className="block truncate text-xs font-normal text-muted-foreground">
-                      {project.canonicalPath}
+                      {project.targetIdentity}
                     </span>
                   </span>
                 </Button>

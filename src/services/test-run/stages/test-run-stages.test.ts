@@ -2,21 +2,8 @@ import { describe, expect, it, vi } from 'vitest'
 
 import { collectRunOutput, resolveCollectedRunOutcome } from './collect-run-evidence'
 import { executeRun } from './execute-run'
-import { prepareRun } from './prepare-run'
 
 describe('test-run stages', () => {
-  it('prepares only when requested', async () => {
-    const prepareFeatureFiles = vi.fn().mockResolvedValue(undefined)
-    await expect(prepareRun({ prepareWorkspace: false, prepareFeatureFiles })).resolves.toEqual({
-      workspacePrepared: false,
-    })
-    expect(prepareFeatureFiles).not.toHaveBeenCalled()
-    await expect(prepareRun({ prepareWorkspace: true, prepareFeatureFiles })).resolves.toEqual({
-      workspacePrepared: true,
-    })
-    expect(prepareFeatureFiles).toHaveBeenCalledOnce()
-  })
-
   it('returns the executor stage result unchanged', async () => {
     const result = { process: { name: 'run' }, reportPath: '/tmp/report.json' }
     await expect(executeRun({ launch: vi.fn().mockResolvedValue(result) })).resolves.toBe(result)

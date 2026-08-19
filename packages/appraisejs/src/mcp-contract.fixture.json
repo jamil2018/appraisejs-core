@@ -841,7 +841,7 @@
     {
       "kind": "tool",
       "name": "assessment_run",
-      "description": "Run approved validation versions for an assessment or standalone evidence-only execution; decisions require reviewed assessments.",
+      "description": "Run the published validation matrix owned by an existing reviewable assessment.",
       "inputSchema": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "type": "object",
@@ -857,7 +857,6 @@
               "minLength": 1
             }
           },
-          "subject": {},
           "runtime": {},
           "authorizationGrantId": {
             "type": "string",
@@ -890,6 +889,7 @@
           }
         },
         "required": [
+          "assessmentId",
           "idempotencyKey",
           "responseMode"
         ],
@@ -1398,7 +1398,7 @@
     {
       "kind": "tool",
       "name": "project_add",
-      "description": "Attach an application workspace as a target project, optionally initialize Git when the workspace is empty, and write a non-blocking .appraisejs/project.json continuity marker when writable.",
+      "description": "Register either one local application workspace or one remote HTTP(S) black-box target. Local registration may initialize Git and write a non-blocking continuity marker; remote registration creates its initial environment without workspace access.",
       "inputSchema": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "type": "object",
@@ -1406,6 +1406,10 @@
           "path": {
             "type": "string",
             "minLength": 1
+          },
+          "url": {
+            "type": "string",
+            "format": "uri"
           },
           "displayName": {
             "type": "string",
@@ -1415,9 +1419,6 @@
             "type": "boolean"
           }
         },
-        "required": [
-          "path"
-        ],
         "additionalProperties": false
       },
       "annotations": {
@@ -1848,73 +1849,6 @@
     },
     {
       "kind": "tool",
-      "name": "test_run_preflight",
-      "description": "Read-only blocker check before Assessment-owned managed test execution.",
-      "inputSchema": {
-        "$schema": "https://json-schema.org/draft/2020-12/schema",
-        "type": "object",
-        "properties": {
-          "target": {
-            "type": "string",
-            "minLength": 1
-          },
-          "environmentId": {
-            "type": "string",
-            "minLength": 1
-          },
-          "qualityPlanId": {
-            "type": "string",
-            "minLength": 1
-          },
-          "validationVersionId": {
-            "type": "string",
-            "minLength": 1
-          },
-          "featurePaths": {
-            "type": "array",
-            "items": {
-              "type": "string",
-              "minLength": 1
-            }
-          },
-          "importPaths": {
-            "type": "array",
-            "items": {
-              "type": "string",
-              "minLength": 1
-            }
-          },
-          "supportPaths": {
-            "type": "array",
-            "items": {
-              "type": "string",
-              "minLength": 1
-            }
-          },
-          "responseMode": {
-            "default": "summary",
-            "type": "string",
-            "enum": [
-              "summary",
-              "evidenceOnly",
-              "blockersOnly",
-              "linksOnly",
-              "full"
-            ]
-          }
-        },
-        "required": [
-          "responseMode"
-        ],
-        "additionalProperties": false
-      },
-      "annotations": {
-        "readOnlyHint": true,
-        "openWorldHint": false
-      }
-    },
-    {
-      "kind": "tool",
       "name": "test_run_read",
       "description": "Read bounded status and evidence summary for a managed Appraise test run. A human-verification block is terminal and requires a fresh TestRun; it cannot be resumed.",
       "inputSchema": {
@@ -1952,6 +1886,132 @@
       "annotations": {
         "readOnlyHint": true,
         "openWorldHint": false
+      }
+    },
+    {
+      "kind": "tool",
+      "name": "test_run_start",
+      "description": "Start an independent capsule-only TestRun from an exact published validation or target-owned authored suite/case selection. Independent runs never create Assessment evidence.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "target": {
+            "type": "string",
+            "minLength": 1
+          },
+          "environmentId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "source": {
+            "oneOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "sourceKind": {
+                    "type": "string",
+                    "const": "PUBLISHED_VALIDATION"
+                  },
+                  "publicationId": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "validationVersionId": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "idempotencyKey": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
+                "required": [
+                  "sourceKind",
+                  "publicationId",
+                  "validationVersionId",
+                  "idempotencyKey"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "sourceKind": {
+                    "type": "string",
+                    "const": "AUTHORED_TEST_SNAPSHOT"
+                  },
+                  "selections": {
+                    "minItems": 1,
+                    "maxItems": 200,
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "testSuiteId": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "testCaseId": {
+                          "type": "string",
+                          "minLength": 1
+                        }
+                      },
+                      "required": [
+                        "testSuiteId",
+                        "testCaseId"
+                      ],
+                      "additionalProperties": false
+                    }
+                  }
+                },
+                "required": [
+                  "sourceKind",
+                  "selections"
+                ],
+                "additionalProperties": false
+              }
+            ]
+          },
+          "browserEngine": {
+            "type": "string",
+            "enum": [
+              "CHROMIUM",
+              "FIREFOX",
+              "WEBKIT"
+            ]
+          },
+          "responseMode": {
+            "default": "summary",
+            "type": "string",
+            "enum": [
+              "summary",
+              "evidenceOnly",
+              "blockersOnly",
+              "linksOnly",
+              "full"
+            ]
+          }
+        },
+        "required": [
+          "target",
+          "environmentId",
+          "name",
+          "source",
+          "responseMode"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
       }
     },
     {

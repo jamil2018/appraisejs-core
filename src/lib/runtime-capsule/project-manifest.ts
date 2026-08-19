@@ -7,10 +7,13 @@ import { prepareManagedProjectDirectory, resolveManagedProjectPaths } from './st
 
 const managedProjectManifestSchema = z
   .object({
-    schemaVersion: z.literal('1'),
+    schemaVersion: z.literal('2'),
     projectId: runtimeCapsuleSegmentSchema,
+    kind: z.enum(['LOCAL_WORKSPACE', 'REMOTE_BLACK_BOX']),
+    canonicalIdentity: z.string().min(1).max(4096),
     displayName: z.string().min(1).max(512),
-    canonicalPath: z.string().min(1).max(4096),
+    canonicalPath: z.string().min(1).max(4096).nullable(),
+    normalizedRemoteOrigin: z.string().url().nullable(),
     fingerprint: runtimeCapsuleHashSchema,
     registeredAt: z.string().datetime({ offset: true }),
     lastVerifiedAt: z.string().datetime({ offset: true }),
@@ -36,7 +39,16 @@ export class ManagedProjectManifestRepository {
     const projectId = runtimeCapsuleSegmentSchema.parse(projectIdValue)
     const project = await this.prisma.targetProject.findUnique({
       where: { id: projectId },
-      select: { id: true, displayName: true, canonicalPath: true, fingerprint: true, createdAt: true },
+      select: {
+        id: true,
+        kind: true,
+        canonicalIdentity: true,
+        displayName: true,
+        canonicalPath: true,
+        normalizedRemoteOrigin: true,
+        fingerprint: true,
+        createdAt: true,
+      },
     })
     if (!project) throw new Error('Managed project manifest target project does not exist.')
     const paths = resolveManagedProjectPaths(this.appraiseRoot, projectId)
@@ -46,10 +58,13 @@ export class ManagedProjectManifestRepository {
     if (current && (current.projectId !== project.id || current.fingerprint !== project.fingerprint))
       throw new Error('Managed project manifest identity does not match database ownership.')
     const manifest = managedProjectManifestSchema.parse({
-      schemaVersion: '1',
+      schemaVersion: '2',
       projectId: project.id,
+      kind: project.kind,
+      canonicalIdentity: project.canonicalIdentity,
       displayName: project.displayName,
       canonicalPath: project.canonicalPath,
+      normalizedRemoteOrigin: project.normalizedRemoteOrigin,
       fingerprint: project.fingerprint,
       registeredAt: current?.registeredAt ?? project.createdAt.toISOString(),
       lastVerifiedAt: this.now().toISOString(),

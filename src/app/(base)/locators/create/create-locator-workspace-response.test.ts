@@ -21,7 +21,6 @@ describe('create-locator-workspace response helpers', () => {
       username: null,
       passwordEnvironmentVariable: null,
       credentialState: 'NONE',
-      legacyCredentialDetectedAt: null,
       createdAt: now,
       updatedAt: now,
     }

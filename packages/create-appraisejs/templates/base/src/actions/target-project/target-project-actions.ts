@@ -17,12 +17,23 @@ import {
 } from '@/services/target-project/target-project-service'
 import type { ActionResponse } from '@/types/form/actionHandler'
 
-const registrationSchema = z.object({
-  projectPath: z.string().trim().min(1),
-  displayName: z.string().trim().min(1),
-  description: z.string().trim().max(1000).optional(),
-  initializeGit: z.boolean().optional(),
-})
+const registrationSchema = z.union([
+  z
+    .object({
+      path: z.string().trim().min(1),
+      displayName: z.string().trim().min(1).optional(),
+      description: z.string().trim().max(1000).optional(),
+      initializeGit: z.boolean().optional(),
+    })
+    .strict(),
+  z
+    .object({
+      url: z.string().trim().url(),
+      displayName: z.string().trim().min(1).optional(),
+      description: z.string().trim().max(1000).optional(),
+    })
+    .strict(),
+])
 const renameSchema = z.object({
   targetProjectId: z.string().uuid(),
   displayName: z.string().trim().min(1),
@@ -40,21 +51,17 @@ function errorResponse(error: unknown, prefix: string): ActionResponse {
 export async function registerTargetProjectAction(input: unknown): Promise<ActionResponse> {
   try {
     const value = registrationSchema.parse(input)
-    const identity = await deriveCoordinatorProjectIdentity(process.cwd())
-    const git = await initializeTargetGitRepository(value.projectPath, value.initializeGit ?? false)
-    const targetProject = await registerTargetProject({
-      projectPath: value.projectPath,
-      displayName: value.displayName,
-      description: value.description,
-    })
+    const git =
+      'path' in value ? await initializeTargetGitRepository(value.path, value.initializeGit ?? false) : undefined
+    const targetProject = await registerTargetProject(value)
     const marker =
-      targetProject.canonicalPath === identity.canonicalProjectPath
-        ? {
-            status: 'skipped' as const,
-            path: `${targetProject.canonicalPath}/.appraisejs/project.json`,
-            warning: undefined,
-          }
-        : await writeTargetProjectMarker(targetProject, identity.projectFingerprint)
+      targetProject.kind === 'LOCAL_WORKSPACE'
+        ? await deriveCoordinatorProjectIdentity(process.cwd()).then(identity =>
+            targetProject.canonicalPath === identity.canonicalProjectPath
+              ? { status: 'skipped' as const }
+              : writeTargetProjectMarker(targetProject, identity.projectFingerprint),
+          )
+        : { status: 'skipped' as const }
 
     const cookieStore = await cookies()
     cookieStore.set(ACTIVE_PROJECT_COOKIE, targetProject.id, {
@@ -74,12 +81,15 @@ export async function renameTargetProjectAction(input: unknown): Promise<ActionR
   try {
     const value = renameSchema.parse(input)
     await requireActiveProjectForMutation(value.targetProjectId)
-    const identity = await deriveCoordinatorProjectIdentity(process.cwd())
     const targetProject = await renameTargetProject(value)
     const marker =
-      targetProject.canonicalPath === identity.canonicalProjectPath
-        ? { status: 'skipped' as const, path: `${targetProject.canonicalPath}/.appraisejs/project.json` }
-        : await writeTargetProjectMarker(targetProject, identity.projectFingerprint)
+      targetProject.kind === 'LOCAL_WORKSPACE'
+        ? await deriveCoordinatorProjectIdentity(process.cwd()).then(identity =>
+            targetProject.canonicalPath === identity.canonicalProjectPath
+              ? { status: 'skipped' as const }
+              : writeTargetProjectMarker(targetProject, identity.projectFingerprint),
+          )
+        : { status: 'skipped' as const }
     revalidatePath('/projects')
     return { status: 200, success: true, data: { targetProject, marker } }
   } catch (error) {

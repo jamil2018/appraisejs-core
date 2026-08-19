@@ -9,23 +9,18 @@ import {
   TestRunTestCaseResult,
   Tag,
   Environment,
-  BrowserEngine,
   type Prisma,
   type PrismaClient,
 } from '@prisma/client'
-import { localExecutorAdapter } from '@/lib/executor/local-executor-adapter'
-import type { TestRunExecutionRequest, TestRunExecutionResult } from '@/lib/executor/types'
-import { formatLogsForStorage, parseLogsFromStorage, type LogEntry } from '@/lib/test-run/log-formatter'
+import type { TestRunExecutionResult } from '@/lib/executor/types'
+import { formatLogsForStorage, type LogEntry } from '@/lib/test-run/log-formatter'
 import { processManager } from '@/lib/test-run/process-manager'
-import { createTestRunLogger, getLogFilePath } from '@/lib/test-run/winston-logger'
+import { createTestRunLogger } from '@/lib/test-run/winston-logger'
 import { TestRunLogger } from '@/lib/test-run/test-run-logger'
 import { resolveTestRunTerminalState, type TestRunTerminalOutcome } from '@/lib/test-run/terminal-state'
 import { promises as fs } from 'fs'
 import path from 'path'
-import { testRunEvidenceLinks } from './test-run-evidence-links'
 import { updateTestCaseMetrics, updateMetricsForTestRun } from '@/lib/metrics/metric-calculator'
-import { getAutomationReportRunDir, resolveStoredPath } from '@/lib/automation/automation-path-roots'
-import { automationProjectionService } from '@/lib/automation/projection-service'
 import { ensureTestSuiteIdentifierTags } from '@/lib/test-suite-identifier-service'
 import { getIdentifierTagByPrefix } from '@/lib/tag-filters'
 import { findMatchingTestRunTestCase } from '@/lib/test-run/matching'
@@ -37,11 +32,8 @@ import {
 } from '@/services/test-run/test-run-artifact-context'
 import { readRuntimeCapsuleDiagnostic } from '@/services/test-run/runtime-capsule-diagnostics-service'
 import { spawnTraceViewerFromSnapshot } from '@/services/test-run/trace-viewer-snapshot-service'
-import { resolveTargetProject } from '@/services/target-project/target-project-service'
 import {
-  diagnoseRunEvidence,
   persistRunEvidenceHealth,
-  preflightTestRun,
   summarizeRunEvidence,
   type RunEvidenceSummary,
 } from '@/services/test-run/run-evidence-summary-service'
@@ -51,7 +43,6 @@ import {
   isCancelledOrCancellingStatus,
   normalizeSuiteSelection,
 } from '@/services/test-run/test-run-helpers'
-import { prepareRun } from '@/services/test-run/stages/prepare-run'
 import { executeRun } from '@/services/test-run/stages/execute-run'
 import { collectRunOutput, resolveCollectedRunOutcome } from '@/services/test-run/stages/collect-run-evidence'
 import {
@@ -63,14 +54,13 @@ import {
   type PageRequest,
 } from '@/lib/pagination'
 import { readLogTail } from '@/lib/test-run/log-tail-reader'
+import { spawnTask, waitForTask } from '@/lib/process/task-spawner'
 import { credentialRedactor } from '@/lib/runtime-capsule/secret-redaction'
-
-export {
-  buildOrExpression,
-  buildTestRunsWhereClause,
-  isCancelledOrCancellingStatus,
-  normalizeSuiteSelection,
-} from '@/services/test-run/test-run-helpers'
+import {
+  computeStepReferenceHash,
+  stepDefinitionSchema,
+  stepInvocationSchema,
+} from '../../../packages/cucumber-runtime/src/step-definitions/contracts'
 
 export async function isTestRunNameTaken(name: string, targetProjectId: string, excludeId?: string): Promise<boolean> {
   const existing = await prisma.testRun.findFirst({
@@ -383,10 +373,10 @@ function resolvePartialSuiteSelectionFilter(
   }
 }
 
-export type UpdateScenarioStatusResult =
+type UpdateScenarioStatusResult =
   { kind: 'updated' } | { kind: 'no_match'; message: string } | { kind: 'test_run_not_found' }
 
-export async function updateTestRunTestCaseStatusFromScenario(
+async function updateTestRunTestCaseStatusFromScenario(
   testRunId: string,
   scenario: {
     scenarioName: string
@@ -634,54 +624,11 @@ async function redactManagedReportOutput(
   }
 }
 
-async function ensureFeatureFilesForTestRun(testRunTestCases: TestRunTestCaseLink[]): Promise<void> {
-  if (testRunTestCases.length === 0) {
-    return
-  }
-
-  const suiteIds = new Set<string>()
-
-  for (const link of testRunTestCases) {
-    if (link.testSuiteId) {
-      suiteIds.add(link.testSuiteId)
-    }
-  }
-
-  const unresolvedTestCaseIds = testRunTestCases.filter(link => !link.testSuiteId).map(link => link.testCaseId)
-
-  if (unresolvedTestCaseIds.length > 0) {
-    const testCases = await prisma.testCase.findMany({
-      where: { id: { in: unresolvedTestCaseIds } },
-      select: {
-        TestSuite: {
-          select: { id: true },
-        },
-      },
-    })
-
-    for (const testCase of testCases) {
-      for (const suite of testCase.TestSuite) {
-        suiteIds.add(suite.id)
-      }
-    }
-  }
-
-  await Promise.all([...suiteIds].map(suiteId => automationProjectionService.generateFeature(suiteId)))
-}
-
 export async function scheduleTestRunCompletion(args: {
   testRun: { id: string; runId: string }
   environment: Environment
-  tagExpression: string
-  testRunTestCases: TestRunTestCaseLink[]
-  value: TestRunFormValue
   logger: Awaited<ReturnType<typeof createTestRunLogger>>
-  projectRoot?: string
-  featurePaths?: string[]
-  importPaths?: string[]
-  supportPaths?: string[]
-  prepareWorkspace?: boolean
-  launch?: () => Promise<TestRunExecutionResult>
+  launch: () => Promise<TestRunExecutionResult>
   executionAttempt?: { id: string; ownerToken: string }
   client?: PrismaClient
   waitForProcess?: (processName: string) => Promise<number | null>
@@ -690,19 +637,11 @@ export async function scheduleTestRunCompletion(args: {
   const {
     testRun,
     environment,
-    tagExpression,
-    testRunTestCases,
-    value,
     logger,
-    projectRoot,
-    featurePaths,
-    importPaths,
-    supportPaths,
-    prepareWorkspace,
     launch,
     executionAttempt,
     client = prisma,
-    waitForProcess = processName => localExecutorAdapter.waitForProcess(processName),
+    waitForProcess = processName => waitForTask(processName),
     appraiseRoot,
   } = args
   const runLogger = new TestRunLogger(logger)
@@ -720,38 +659,16 @@ export async function scheduleTestRunCompletion(args: {
     humanVerificationTerminationRequested = true
     const managedProcess = processManager.get(testRun.runId)
     if (!managedProcess) return
-    if (!localExecutorAdapter.killProcess(managedProcess.name, 'SIGTERM'))
-      localExecutorAdapter.killProcess(managedProcess.name, 'SIGKILL')
+    managedProcess.process.kill('SIGTERM')
   }
 
   try {
-    await prepareRun({
-      prepareWorkspace: prepareWorkspace !== false,
-      prepareFeatureFiles: () => ensureFeatureFilesForTestRun(testRunTestCases),
-    })
     // Register before spawning: a challenge can be emitted by the first
     // operation and must not race process-launch bookkeeping.
     processManager.on('test-run::blocked', onHumanVerificationBlocked)
     cleanupListener = () => processManager.removeListener('test-run::blocked', onHumanVerificationBlocked)
 
-    const { process: spawnedProcess, reportPath } = await executeRun({
-      launch:
-        launch ??
-        (() =>
-          localExecutorAdapter.executeTestRun({
-            testRunId: testRun.runId,
-            environment,
-            tagExpression,
-            testWorkersCount: value.testWorkersCount || 1,
-            browserEngine: value.browserEngine,
-            headless: true,
-            projectRoot,
-            featurePaths,
-            importPaths,
-            supportPaths,
-            prepareWorkspace,
-          })),
-    })
+    const { process: spawnedProcess, reportPath } = await executeRun({ launch })
 
     await client.testRun.update({
       where: { id: testRun.id },
@@ -803,7 +720,6 @@ export async function scheduleTestRunCompletion(args: {
     const executePromise = Promise.resolve(spawnedProcess)
 
     executePromise
-      // fallow-ignore-next-line complexity
       .then(async proc => {
         const exitCodeRaw = await waitForProcess(proc.name)
         const exitCode = exitCodeRaw ?? 1
@@ -894,210 +810,116 @@ export async function scheduleTestRunCompletion(args: {
   }
 }
 
-export type TestRunExecutionOverrides = Pick<
-  TestRunExecutionRequest,
-  'projectRoot' | 'featurePaths' | 'importPaths' | 'supportPaths' | 'prepareWorkspace'
->
-
 export async function createTestRunFromValidatedValue(
   value: TestRunFormValue,
   targetProjectId: string,
-  executionOverrides: TestRunExecutionOverrides = {},
 ): Promise<{ runId: string; id: string }> {
-  const nameTaken = await isTestRunNameTaken(value.name, targetProjectId)
-  if (nameTaken) {
-    throw new ServiceError(
-      'A test run with this name already exists. Please choose a different name.',
-      'VALIDATION',
-      400,
-    )
-  }
-
-  const { tagExpression, tags, testRunTestCases, environment } = await resolveTagExpressionAndTestCases(
-    value,
+  const { tags, testRunTestCases } = await resolveTagExpressionAndTestCases(value, targetProjectId)
+  if (testRunTestCases.some(selection => !selection.testSuiteId))
+    throw new ServiceError('Independent authored runs require explicit suite/case selections.', 'VALIDATION', 400)
+  return createIndependentAuthoredCapsuleTestRun({
     targetProjectId,
-  )
-
-  const testRun = await prisma.testRun.create({
-    data: {
-      name: value.name,
-      targetProjectId,
-      environmentId: value.environmentId,
-      testWorkersCount: value.testWorkersCount || 1,
-      browserEngine: value.browserEngine,
-      status: TestRunStatus.RUNNING,
-      result: TestRunResult.PENDING,
-      tags: {
-        connect: tags.map(tag => ({ id: tag.id })),
-      },
-      testCases: {
-        create: testRunTestCases.map(tc => ({
-          testCaseId: tc.testCaseId,
-          testSuiteId: tc.testSuiteId ?? null,
-        })),
-      },
-    },
+    environmentId: value.environmentId,
+    name: value.name,
+    selections: testRunTestCases.map(selection => ({
+      testSuiteId: selection.testSuiteId as string,
+      testCaseId: selection.testCaseId,
+    })),
+    browserEngine: value.browserEngine,
+    testWorkersCount: value.testWorkersCount || 1,
+    tagIds: tags.map(tag => tag.id),
   })
-
-  const logger = await createTestRunLogger(testRun.runId)
-  const logFilePath = getLogFilePath(testRun.runId)
-
-  await prisma.testRun.update({
-    where: { id: testRun.id },
-    data: {
-      logPath: logFilePath,
-    },
-  })
-
-  await scheduleTestRunCompletion({
-    testRun,
-    environment,
-    tagExpression,
-    testRunTestCases,
-    value,
-    logger,
-    ...executionOverrides,
-  })
-
-  return { runId: testRun.runId, id: testRun.id }
 }
 
-export type StandaloneTargetTestRunInput = {
-  target: string
-  environmentId: string
-  name?: string
-  tagExpression?: string | null
-  testWorkersCount?: number
-  browserEngine?: BrowserEngine
-  featurePaths?: string[]
-  importPaths?: string[]
-  supportPaths?: string[]
-  prepareWorkspace?: boolean
-  expectedTestCases?: TestRunTestCaseLink[]
-}
-
-async function resolveStandaloneExpectedTestCases(input: StandaloneTargetTestRunInput): Promise<TestRunTestCaseLink[]> {
-  const links = [
-    ...new Map(
-      (input.expectedTestCases ?? []).map(link => [`${link.testSuiteId ?? ''}:${link.testCaseId}`, link]),
-    ).values(),
-  ]
-  if (links.length === 0) return links
-  const storedTestCases = await prisma.testCase.findMany({
-    where: { id: { in: [...new Set(links.map(link => link.testCaseId))] } },
-    select: { id: true, TestSuite: { select: { id: true } } },
-  })
-  const suitesByCase = new Map(
-    storedTestCases.map(testCase => [testCase.id, new Set(testCase.TestSuite.map(suite => suite.id))]),
-  )
-  const invalid = links.find(link => !suitesByCase.get(link.testCaseId)?.has(link.testSuiteId as string))
-  if (invalid) {
-    throw new ServiceError(
-      `Test case "${invalid.testCaseId}" is not associated with test suite "${invalid.testSuiteId}".`,
-      'VALIDATION',
-      400,
-    )
-  }
-  return links
-}
-
-export async function createStandaloneTargetTestRun(input: StandaloneTargetTestRunInput): Promise<{
-  runId: string
-  id: string
+export type IndependentAuthoredSelectionInput = {
   targetProjectId: string
-  testRunPageId: string
-  executionRunId: string
-  reportUrl: string
-  logsUrl: string
-  evidenceHealth: string
-  nextAllowedAction: { tool: string; reason: string }
-}> {
-  const targetProject = await resolveTargetProject(input.target)
-  const environment = await prisma.environment.findUnique({
-    where: { id: input.environmentId },
-  })
+  environmentId: string
+  name: string
+  selections: Array<{ testSuiteId: string; testCaseId: string }>
+  browserEngine?: 'CHROMIUM' | 'FIREFOX' | 'WEBKIT'
+  testWorkersCount?: number
+  tagIds?: string[]
+}
 
-  if (!environment) {
-    throw new ServiceError('Environment not found', 'VALIDATION', 400)
-  }
-
-  const name = input.name?.trim() || `${targetProject.displayName} standalone ${new Date().toISOString()}`
-  const nameTaken = await isTestRunNameTaken(name, targetProject.id)
-  if (nameTaken) {
-    throw new ServiceError(
-      'A test run with this name already exists. Please choose a different name.',
-      'VALIDATION',
-      400,
+/** Validates canonical authored authority before a TestRun or capsule exists. */
+export async function createIndependentAuthoredCapsuleTestRun(input: IndependentAuthoredSelectionInput) {
+  const selections = [
+    ...new Map(input.selections.map(item => [`${item.testSuiteId}:${item.testCaseId}`, item])).values(),
+  ]
+  if (selections.length === 0) throw new ServiceError('Select at least one authored test case.', 'VALIDATION', 400)
+  const [environment, cases] = await Promise.all([
+    prisma.environment.findFirst({ where: { id: input.environmentId, targetProjectId: input.targetProjectId } }),
+    prisma.testCase.findMany({
+      where: { id: { in: selections.map(item => item.testCaseId) }, targetProjectId: input.targetProjectId },
+      include: { steps: { orderBy: { order: 'asc' } }, TestSuite: { select: { id: true, targetProjectId: true } } },
+    }),
+  ])
+  if (!environment) throw new ServiceError('Target-owned environment not found.', 'VALIDATION', 400)
+  const caseById = new Map(cases.map(testCase => [testCase.id, testCase]))
+  const invocations = []
+  for (const selection of selections) {
+    const testCase = caseById.get(selection.testCaseId)
+    if (
+      !testCase ||
+      !testCase.TestSuite.some(
+        suite => suite.id === selection.testSuiteId && suite.targetProjectId === input.targetProjectId,
+      )
     )
+      throw new ServiceError(
+        'Authored selection contains an unavailable or cross-project suite/case.',
+        'VALIDATION',
+        400,
+      )
+    if (testCase.steps.length === 0)
+      throw new ServiceError(`Authored test case ${testCase.id} has no executable Step Invocations.`, 'VALIDATION', 400)
+    for (const step of testCase.steps) {
+      try {
+        invocations.push(stepInvocationSchema.parse(JSON.parse(step.invocationJson)))
+      } catch {
+        throw new ServiceError(
+          `Authored test case ${testCase.id} has an incomplete canonical Step Invocation.`,
+          'VALIDATION',
+          400,
+        )
+      }
+    }
   }
-
-  const expectedTestCases = await resolveStandaloneExpectedTestCases(input)
-
+  const references = [...new Map(invocations.map(item => [`${item.step.id}@${item.step.version}`, item.step])).values()]
+  const definitions = await prisma.stepDefinition.findMany({
+    where: {
+      OR: references.map(step => ({ id: step.id, version: step.version, status: { in: ['ready', 'deprecated'] } })),
+    },
+  })
+  const definitionByRef = new Map(definitions.map(row => [`${row.id}@${row.version}`, row]))
+  for (const reference of references) {
+    const row = definitionByRef.get(`${reference.id}@${reference.version}`)
+    if (
+      !row ||
+      computeStepReferenceHash(stepDefinitionSchema.parse(JSON.parse(row.definitionJson))) !== reference.definitionHash
+    )
+      throw new ServiceError(
+        'Authored selection contains a stale or unavailable exact Step Reference.',
+        'VALIDATION',
+        400,
+      )
+  }
+  if (await isTestRunNameTaken(input.name, input.targetProjectId))
+    throw new ServiceError('A test run with this name already exists.', 'VALIDATION', 400)
   const testRun = await prisma.testRun.create({
     data: {
-      name,
-      environmentId: environment.id,
-      testWorkersCount: input.testWorkersCount || 1,
-      browserEngine: input.browserEngine ?? BrowserEngine.CHROMIUM,
-      status: TestRunStatus.RUNNING,
-      result: TestRunResult.PENDING,
-      targetProjectId: targetProject.id,
-      testCases: {
-        create: expectedTestCases.map(link => ({
-          testCaseId: link.testCaseId,
-          testSuiteId: link.testSuiteId ?? null,
-        })),
-      },
+      name: input.name,
+      targetProjectId: input.targetProjectId,
+      environmentId: input.environmentId,
+      browserEngine: input.browserEngine ?? 'CHROMIUM',
+      testWorkersCount: input.testWorkersCount ?? 1,
+      status: 'QUEUED',
+      result: 'PENDING',
+      intent: 'INDEPENDENT',
+      tags: { connect: (input.tagIds ?? []).map(id => ({ id })) },
+      testCases: { create: selections },
     },
   })
-
-  const logger = await createTestRunLogger(testRun.runId)
-  const logFilePath = getLogFilePath(testRun.runId)
-
-  await prisma.testRun.update({
-    where: { id: testRun.id },
-    data: {
-      logPath: logFilePath,
-    },
-  })
-
-  await scheduleTestRunCompletion({
-    testRun,
-    environment,
-    tagExpression: input.tagExpression ?? '',
-    testRunTestCases: expectedTestCases,
-    value: {
-      name,
-      environmentId: environment.id,
-      tags: [],
-      testSuites: [],
-      testWorkersCount: input.testWorkersCount || 1,
-      browserEngine: input.browserEngine ?? BrowserEngine.CHROMIUM,
-    },
-    logger,
-    projectRoot: targetProject.canonicalPath,
-    featurePaths: input.featurePaths,
-    importPaths: input.importPaths,
-    supportPaths: input.supportPaths,
-    prepareWorkspace: input.prepareWorkspace ?? false,
-  })
-
-  const evidenceLinks = testRunEvidenceLinks(testRun.runId, targetProject.id)
-
-  return {
-    runId: testRun.runId,
-    id: testRun.id,
-    targetProjectId: targetProject.id,
-    testRunPageId: testRun.runId,
-    executionRunId: testRun.runId,
-    reportUrl: evidenceLinks.reportUrl,
-    logsUrl: evidenceLinks.logsUrl,
-    evidenceHealth: 'invalid_missing_report',
-    nextAllowedAction: {
-      tool: 'test_run_read',
-      reason: 'Poll bounded run evidence until the managed test run completes.',
-    },
-  }
+  return { id: testRun.id, runId: testRun.runId }
 }
 
 async function assertExpectedTargetProject(
@@ -1134,16 +956,11 @@ export async function diagnoseTestRunEvidence(
     select: { runtimeCapsule: { select: { id: true } } },
   })
   await assertExpectedTargetProject(runId, expectedTargetProjectId, client)
-  return run?.runtimeCapsule
-    ? {
-        kind: 'capsule' as const,
-        diagnostic: await readRuntimeCapsuleDiagnostic({ runId, expectedTargetProjectId }, client, appraiseRoot),
-      }
-    : { kind: 'manual' as const, evidence: await diagnoseRunEvidence(runId, client, appraiseRoot) }
-}
-
-export async function preflightStandaloneTargetTestRun(input: Parameters<typeof preflightTestRun>[0]) {
-  return preflightTestRun(input)
+  if (!run?.runtimeCapsule) throw new ServiceError('TestRun has no immutable runtime capsule.', 'CONFLICT', 409)
+  return {
+    kind: 'capsule' as const,
+    diagnostic: await readRuntimeCapsuleDiagnostic({ runId, expectedTargetProjectId }, client, appraiseRoot),
+  }
 }
 
 export async function deleteTestRunsByIds(ids: string[], targetProjectId: string): Promise<void> {
@@ -1163,20 +980,6 @@ export async function deleteTestRunsByIds(ids: string[], targetProjectId: string
   })
 
   const deletedRunTestCaseIds = testRuns.flatMap(testRun => testRun.testCases.map(testCase => testCase.testCaseId))
-
-  for (const testRun of testRuns) {
-    await fs.rm(getAutomationReportRunDir(testRun.runId), { recursive: true, force: true })
-
-    const manualArtifactPaths = [
-      testRun.logPath,
-      testRun.reportPath,
-      ...testRun.testCases.map(testCase => testCase.tracePath),
-    ].filter((artifactPath): artifactPath is string => Boolean(artifactPath))
-
-    for (const artifactPath of manualArtifactPaths) {
-      await fs.rm(resolveStoredPath(artifactPath), { force: true }).catch(() => {})
-    }
-  }
 
   await prisma.testRun.deleteMany({
     where: { id: { in: ids }, targetProjectId },
@@ -1213,23 +1016,6 @@ export async function deleteTestRunsByIds(ids: string[], targetProjectId: string
   await updateDashboardMetrics(targetProjectId)
 }
 
-export async function storeTestRunLogsService(testRunId: string, logs: LogEntry[]): Promise<void> {
-  if (logs.length === 0) {
-    return
-  }
-  const formattedLogs = formatLogsForStorage(logs)
-  await prisma.testRunLog.upsert({
-    where: { testRunId },
-    create: {
-      testRunId,
-      logs: formattedLogs,
-    },
-    update: {
-      logs: formattedLogs,
-    },
-  })
-}
-
 export async function getTestRunLogsService(
   testRunId: string,
   expectedTargetProjectId?: string,
@@ -1240,23 +1026,15 @@ export async function getTestRunLogsService(
     where: { runId: testRunId },
     select: { runtimeCapsule: { select: { id: true } } },
   })
-  if (capsule?.runtimeCapsule) {
-    const text = await readTestRunArtifactText(
-      createTestRunArtifactAccess(createTestRunArtifactContext(appraiseRoot), client),
-      { runId: testRunId, kind: 'log', expectedTargetProjectId },
-    )
-    return text
-      .split('\n')
-      .filter(Boolean)
-      .map((message, index) => ({ type: 'stdout', message, timestamp: new Date(index) }))
-  }
-  const testRunLog = await client.testRunLog.findUnique({
-    where: { testRunId },
-  })
-  if (!testRunLog) {
-    return []
-  }
-  return parseLogsFromStorage(testRunLog.logs)
+  if (!capsule?.runtimeCapsule) throw new ServiceError('TestRun has no immutable runtime capsule.', 'CONFLICT', 409)
+  const text = await readTestRunArtifactText(
+    createTestRunArtifactAccess(createTestRunArtifactContext(appraiseRoot), client),
+    { runId: testRunId, kind: 'log', expectedTargetProjectId },
+  )
+  return text
+    .split('\n')
+    .filter(Boolean)
+    .map((message, index) => ({ type: 'stdout', message, timestamp: new Date(index) }))
 }
 
 export async function getTestRunLogTailService(
@@ -1270,34 +1048,16 @@ export async function getTestRunLogTailService(
     where: { runId: testRunId },
     select: { runtimeCapsule: { select: { id: true } } },
   })
-  if (capsule?.runtimeCapsule) {
-    const access = createTestRunArtifactAccess(createTestRunArtifactContext(appraiseRoot), client)
-    const artifact = await access.resolve({ runId: testRunId, kind: 'log', expectedTargetProjectId })
-    const tail = await readLogTail(artifact.absolutePath, Math.min(maxBytes, artifact.maxBytes))
-    return {
-      ...tail,
-      logs: tail.text
-        .split('\n')
-        .filter(Boolean)
-        .map((message, index) => ({ type: 'stdout' as const, message, timestamp: new Date(index) })),
-    }
-  }
-  const logs = await getTestRunLogsService(testRunId, expectedTargetProjectId, appraiseRoot, client)
-  const selected: LogEntry[] = []
-  let bytes = 0
-  for (let index = logs.length - 1; index >= 0; index -= 1) {
-    const entryBytes = Buffer.byteLength(logs[index].message, 'utf8')
-    if (selected.length > 0 && bytes + entryBytes > maxBytes) break
-    selected.unshift(logs[index])
-    bytes += entryBytes
-  }
+  if (!capsule?.runtimeCapsule) throw new ServiceError('TestRun has no immutable runtime capsule.', 'CONFLICT', 409)
+  const access = createTestRunArtifactAccess(createTestRunArtifactContext(appraiseRoot), client)
+  const artifact = await access.resolve({ runId: testRunId, kind: 'log', expectedTargetProjectId })
+  const tail = await readLogTail(artifact.absolutePath, Math.min(maxBytes, artifact.maxBytes))
   return {
-    text: selected.map(log => log.message).join('\n'),
-    logs: selected,
-    truncated: selected.length < logs.length,
-    startOffset: Math.max(0, logs.length - selected.length),
-    endOffset: logs.length,
-    partialStart: false,
+    ...tail,
+    logs: tail.text
+      .split('\n')
+      .filter(Boolean)
+      .map((message, index) => ({ type: 'stdout' as const, message, timestamp: new Date(index) })),
   }
 }
 
@@ -1353,13 +1113,7 @@ export async function cancelTestRunService(testRunId: string): Promise<CancelTes
     return { kind: 'cancelled_no_process' }
   }
 
-  const killed = localExecutorAdapter.killProcess(process.name, 'SIGTERM')
-  if (!killed) {
-    const forceKilled = localExecutorAdapter.killProcess(process.name, 'SIGKILL')
-    if (!forceKilled) {
-      console.warn(`[TestRunService] Failed to force kill process for testRunId: ${testRunId}`)
-    }
-  }
+  process.process.kill('SIGTERM')
 
   await prisma.testRun.update({
     where: { id: testRun.id },
@@ -1419,7 +1173,7 @@ export async function checkTraceViewerStatusService(
   if (membership.kind !== 'found') return membership
 
   const processName = `trace-viewer-${testCaseId}`
-  const proc = localExecutorAdapter.getProcess(processName)
+  const proc = processManager.get(processName)
   const isRunning = proc?.isRunning ?? false
 
   return {
@@ -1448,28 +1202,20 @@ export async function spawnTraceViewerService(
     return { kind: 'no_trace_path' }
   }
 
-  if (testRun.runtimeCapsule) {
-    const artifact = await createTestRunArtifactAccess(createTestRunArtifactContext(), prisma).readBytes({
-      runId: testRunId,
-      kind: 'trace',
-      testCaseId,
-      storedPath: tracePath,
-    })
-    const spawnedProcess = await spawnTraceViewerFromSnapshot(artifact.bytes, snapshotPath =>
-      localExecutorAdapter.spawnTraceViewer(testCaseId, snapshotPath),
-    )
-    return { kind: 'ok', processName: spawnedProcess.name }
-  }
-
-  const absoluteTracePath = resolveStoredPath(tracePath)
-
-  try {
-    await fs.access(absoluteTracePath)
-  } catch {
-    return { kind: 'trace_file_missing', path: tracePath }
-  }
-
-  const spawnedProcess = await localExecutorAdapter.spawnTraceViewer(testCaseId, absoluteTracePath)
+  if (!testRun.runtimeCapsule) return { kind: 'trace_file_missing', path: tracePath }
+  const artifact = await createTestRunArtifactAccess(createTestRunArtifactContext(), prisma).readBytes({
+    runId: testRunId,
+    kind: 'trace',
+    testCaseId,
+    storedPath: tracePath,
+  })
+  const spawnedProcess = await spawnTraceViewerFromSnapshot(artifact.bytes, snapshotPath =>
+    spawnTask('npx', ['playwright', 'show-trace', snapshotPath], {
+      captureOutput: true,
+      streamLogs: false,
+      logPrefix: `trace-viewer-${testCaseId}`,
+    }),
+  )
 
   return { kind: 'ok', processName: spawnedProcess.name }
 }

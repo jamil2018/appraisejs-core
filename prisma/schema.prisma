@@ -19,8 +19,8 @@ model TestSuite {
   tags            Tag[]
   metrics         TestSuiteMetrics?
   testRuns        TestRunTestCase[]
-  targetProjectId String?
-  targetProject   TargetProject?    @relation(fields: [targetProjectId], references: [id], onDelete: Restrict)
+  targetProjectId String
+  targetProject   TargetProject     @relation(fields: [targetProjectId], references: [id], onDelete: Restrict)
 
   @@index([targetProjectId])
 }
@@ -59,7 +59,7 @@ model StepDefinition {
   agentContractHash   String?
   executionHash       String?
   provenanceJson      String
-  createdAt           DateTime                     @default(now())
+  createdAt           DateTime                   @default(now())
   publishedAt         DateTime?
   deprecatedAt        DateTime?
   humanProjection     StepHumanProjection?
@@ -137,9 +137,9 @@ model StepReviewedExtension {
   compiledHash     String
   conformanceJson  String
   conformanceHash  String
-  artifactHash     String   @unique
+  artifactHash     String    @unique
   reviewedBy       String
-  reviewedAt       DateTime @default(now())
+  reviewedAt       DateTime  @default(now())
   revokedAt        DateTime?
   revokedBy        String?
   revocationReason String?
@@ -205,15 +205,15 @@ model StepDefinitionDeprecation {
 /// Bounded, observational lifecycle telemetry. Payloads contain only the
 /// closed-vocabulary outcome details validated by the application service.
 model StepDefinitionTelemetryEvent {
-  id          String   @id @default(cuid())
-  surface     String
-  outcome     String
-  stepId      String?
-  stepVersion String?
+  id            String   @id @default(cuid())
+  surface       String
+  outcome       String
+  stepId        String?
+  stepVersion   String?
   correlationId String?
   qualityPlanId String?
-  payloadJson String
-  createdAt   DateTime @default(now())
+  payloadJson   String
+  createdAt     DateTime @default(now())
 
   @@index([surface, outcome, createdAt])
   @@index([stepId, stepVersion, createdAt])
@@ -244,8 +244,8 @@ model TestCase {
   tags              Tag[]
   metrics           TestCaseMetrics?
   flowBlocks        TestCaseFlowBlock[]
-  targetProjectId   String?
-  targetProject     TargetProject?      @relation(fields: [targetProjectId], references: [id], onDelete: Restrict)
+  targetProjectId   String
+  targetProject     TargetProject       @relation(fields: [targetProjectId], references: [id], onDelete: Restrict)
 
   @@index([targetProjectId])
 }
@@ -287,8 +287,8 @@ model TemplateTestCase {
   updatedAt       DateTime                    @updatedAt
   steps           TemplateTestCaseStep[]
   flowBlocks      TemplateTestCaseFlowBlock[]
-  targetProjectId String?
-  targetProject   TargetProject?              @relation(fields: [targetProjectId], references: [id], onDelete: Restrict)
+  targetProjectId String
+  targetProject   TargetProject               @relation(fields: [targetProjectId], references: [id], onDelete: Restrict)
 
   @@unique([targetProjectId, name])
 }
@@ -358,23 +358,23 @@ model Locator {
   TemplateTestCaseStepParameter TemplateTestCaseStepParameter[]
   stepParameters                TestCaseStepParameter[]
   conflicts                     ConflictResolution[]
-  targetProjectId               String?
-  targetProject                 TargetProject?                  @relation(fields: [targetProjectId], references: [id], onDelete: Restrict)
+  targetProjectId               String
+  targetProject                 TargetProject                   @relation(fields: [targetProjectId], references: [id], onDelete: Restrict)
 
   @@index([targetProjectId])
 }
 
 model LocatorGroup {
-  id              String         @id @default(uuid())
+  id              String        @id @default(uuid())
   name            String
-  route           String         @default("/")
-  createdAt       DateTime       @default(now())
-  updatedAt       DateTime       @updatedAt
+  route           String        @default("/")
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
   moduleId        String
   locators        Locator[]
-  module          Module         @relation(fields: [moduleId], references: [id], onDelete: Cascade)
-  targetProjectId String?
-  targetProject   TargetProject? @relation(fields: [targetProjectId], references: [id], onDelete: Restrict)
+  module          Module        @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  targetProjectId String
+  targetProject   TargetProject @relation(fields: [targetProjectId], references: [id], onDelete: Restrict)
 
   @@unique([targetProjectId, name])
 }
@@ -389,8 +389,8 @@ model Module {
   parent          Module?        @relation("ModuleHierarchy", fields: [parentId], references: [id], onDelete: Cascade)
   children        Module[]       @relation("ModuleHierarchy")
   testSuites      TestSuite[]
-  targetProjectId String?
-  targetProject   TargetProject? @relation(fields: [targetProjectId], references: [id], onDelete: Restrict)
+  targetProjectId String
+  targetProject   TargetProject  @relation(fields: [targetProjectId], references: [id], onDelete: Restrict)
 
   @@index([targetProjectId])
 }
@@ -418,6 +418,7 @@ model TestRun {
   completedAt                    DateTime?
   status                         TestRunStatus                   @default(QUEUED)
   result                         TestRunResult                   @default(PENDING)
+  intent                         TestRunIntent                   @default(INDEPENDENT)
   evidenceHealth                 TestRunEvidenceHealth           @default(invalid_missing_report)
   testCases                      TestRunTestCase[]
   updatedAt                      DateTime                        @updatedAt
@@ -430,8 +431,8 @@ model TestRun {
   logPath                        String?
   reportPath                     String?
   reports                        Report[]
-  targetProjectId                String?
-  targetProject                  TargetProject?                  @relation(fields: [targetProjectId], references: [id], onDelete: Restrict)
+  targetProjectId                String
+  targetProject                  TargetProject                   @relation(fields: [targetProjectId], references: [id], onDelete: Restrict)
   runtimeCapsule                 RuntimeCapsule?
   runtimeCapsuleExecutionAttempt RuntimeCapsuleExecutionAttempt?
   assessmentRunBinding           AssessmentRunBinding?
@@ -445,45 +446,50 @@ model TestRun {
 }
 
 model TargetProject {
-  id                             String                          @id @default(uuid())
-  canonicalPath                  String                          @unique
-  displayName                    String
-  description                    String?
-  packageName                    String?
-  packageManager                 String?
-  packageJson                    String?
-  fingerprint                    String                          @unique
-  createdAt                      DateTime                        @default(now())
-  updatedAt                      DateTime                        @updatedAt
-  lastDetectedAt                 DateTime                        @default(now())
-  testRuns                       TestRun[]
-  runtimeCapsules                RuntimeCapsule[]
-  runtimeCapsuleBlobs            RuntimeCapsuleBlob[]
-  runtimeCapsuleLeases           RuntimeCapsuleLease[]
-  resourceOwnerships             ProjectResourceOwnership[]
-  resourceImports                ProjectResourceImport[]         @relation("ResourceImportDestination")
-  testSuites                     TestSuite[]
-  testCases                      TestCase[]
-  templateTestCases              TemplateTestCase[]
-  locators                       Locator[]
-  locatorGroups                  LocatorGroup[]
-  modules                        Module[]
-  environments                   Environment[]
-  tags                           Tag[]
-  reports                        Report[]
-  testCaseMetrics                TestCaseMetrics[]
-  testSuiteMetrics               TestSuiteMetrics[]
-  dashboardMetrics               DashboardMetrics?
-  agentPreflightReceipts         AgentPreflightReceipt[]
-  qualityPlans                   QualityPlan[]
-  qualityValidationPublications  QualityValidationPublication[]
-  assessments                    Assessment[]
-  assessmentRuns                 AssessmentRun[]
-  evidenceReceipts               EvidenceReceipt[]
-  assessmentPreparations         AssessmentPreparation[]
+  id                            String                         @id @default(uuid())
+  kind                          TargetProjectKind
+  canonicalIdentity             String                         @unique
+  canonicalPath                 String?
+  normalizedRemoteOrigin        String?
+  displayName                   String
+  description                   String?
+  packageName                   String?
+  packageManager                String?
+  packageJson                   String?
+  fingerprint                   String                         @unique
+  createdAt                     DateTime                       @default(now())
+  updatedAt                     DateTime                       @updatedAt
+  lastDetectedAt                DateTime                       @default(now())
+  testRuns                      TestRun[]
+  runtimeCapsules               RuntimeCapsule[]
+  runtimeCapsuleBlobs           RuntimeCapsuleBlob[]
+  runtimeCapsuleLeases          RuntimeCapsuleLease[]
+  resourceOwnerships            ProjectResourceOwnership[]
+  resourceImports               ProjectResourceImport[]        @relation("ResourceImportDestination")
+  testSuites                    TestSuite[]
+  testCases                     TestCase[]
+  templateTestCases             TemplateTestCase[]
+  locators                      Locator[]
+  locatorGroups                 LocatorGroup[]
+  modules                       Module[]
+  environments                  Environment[]
+  tags                          Tag[]
+  reports                       Report[]
+  testCaseMetrics               TestCaseMetrics[]
+  testSuiteMetrics              TestSuiteMetrics[]
+  dashboardMetrics              DashboardMetrics?
+  agentPreflightReceipts        AgentPreflightReceipt[]
+  qualityPlans                  QualityPlan[]
+  qualityValidationPublications QualityValidationPublication[]
+  assessments                   Assessment[]
+  assessmentRuns                AssessmentRun[]
+  evidenceReceipts              EvidenceReceipt[]
+  assessmentPreparations        AssessmentPreparation[]
   credentialExecutionRequests   AssessmentExecutionRequest[]
 
   @@index([displayName])
+  @@index([canonicalPath])
+  @@index([normalizedRemoteOrigin])
   @@index([fingerprint])
 }
 
@@ -491,18 +497,18 @@ model TargetProject {
 /// Phase receipts are append-safe JSON snapshots; immutable identities live in
 /// the input hash and are re-read before each domain phase.
 model AssessmentPreparation {
-  id                    String   @id @default(uuid())
+  id                    String        @id @default(uuid())
   targetProjectId       String
   idempotencyKey        String
   inputHash             String
   qualityPlanId         String
   qualityPlanRevisionId String
   expectedDesignHash    String
-  phase                 String   @default("VALIDATING")
-  receiptJson           String   @default("{}")
+  phase                 String        @default("VALIDATING")
+  receiptJson           String        @default("{}")
   failureJson           String?
-  createdAt             DateTime @default(now())
-  updatedAt             DateTime @updatedAt
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
   targetProject         TargetProject @relation(fields: [targetProjectId], references: [id], onDelete: Restrict)
 
   @@unique([targetProjectId, idempotencyKey])
@@ -549,13 +555,13 @@ model ProjectResourceOwnership {
   entityType      String
   entityId        String
   scope           ResourceScope
-  targetProjectId String?
+  targetProjectId String
   origin          String
   provenanceJson  String                  @default("{}")
   contentHash     String
   createdAt       DateTime                @default(now())
   updatedAt       DateTime                @updatedAt
-  targetProject   TargetProject?          @relation(fields: [targetProjectId], references: [id], onDelete: Restrict)
+  targetProject   TargetProject           @relation(fields: [targetProjectId], references: [id], onDelete: Restrict)
   imports         ProjectResourceImport[]
 
   @@unique([entityType, entityId])
@@ -594,24 +600,24 @@ enum ResourceSharingMode {
 }
 
 model RuntimeCapsule {
-  id               String                          @id @default(uuid())
-  targetProjectId  String
-  testRunId        String                          @unique
-  validationHash   String
+  id                   String                          @id @default(uuid())
+  targetProjectId      String
+  testRunId            String                          @unique
+  validationHash       String
   qualityPublicationId String?
-  capsuleHash      String
-  manifestHash     String
-  manifestJson     String
-  storagePath      String
-  integrityState   RuntimeCapsuleIntegrityState    @default(staging)
-  version          Int                             @default(1)
-  createdAt        DateTime                        @default(now())
-  updatedAt        DateTime                        @updatedAt
-  targetProject    TargetProject                   @relation(fields: [targetProjectId], references: [id], onDelete: Restrict)
-  testRun          TestRun                         @relation(fields: [testRunId], references: [id], onDelete: Restrict)
-  blobReferences   RuntimeCapsuleBlobReference[]
-  executionAttempt RuntimeCapsuleExecutionAttempt?
-  qualityPublication QualityValidationPublication? @relation(fields: [qualityPublicationId], references: [id], onDelete: Restrict)
+  capsuleHash          String
+  manifestHash         String
+  manifestJson         String
+  storagePath          String
+  integrityState       RuntimeCapsuleIntegrityState    @default(staging)
+  version              Int                             @default(1)
+  createdAt            DateTime                        @default(now())
+  updatedAt            DateTime                        @updatedAt
+  targetProject        TargetProject                   @relation(fields: [targetProjectId], references: [id], onDelete: Restrict)
+  testRun              TestRun                         @relation(fields: [testRunId], references: [id], onDelete: Restrict)
+  blobReferences       RuntimeCapsuleBlobReference[]
+  executionAttempt     RuntimeCapsuleExecutionAttempt?
+  qualityPublication   QualityValidationPublication?   @relation(fields: [qualityPublicationId], references: [id], onDelete: Restrict)
 
   @@unique([targetProjectId, validationHash, testRunId])
   @@unique([targetProjectId, storagePath])
@@ -719,7 +725,6 @@ model TestRunLog {
 enum EnvironmentCredentialState {
   NONE
   REFERENCE_CONFIGURED
-  LEGACY_DISABLED
 }
 
 enum CredentialExecutionAuthorizationIssuer {
@@ -728,37 +733,36 @@ enum CredentialExecutionAuthorizationIssuer {
 }
 
 model Environment {
-  id                          String                     @id @default(uuid())
+  id                          String                       @id @default(uuid())
   name                        String
   baseUrl                     String
   expectedPageTitle           String?
   apiBaseUrl                  String?
   username                    String?
   passwordEnvironmentVariable String?
-  credentialState             EnvironmentCredentialState @default(NONE)
-  legacyCredentialDetectedAt  DateTime?
-  createdAt                   DateTime                   @default(now())
-  updatedAt                   DateTime                   @updatedAt
+  credentialState             EnvironmentCredentialState   @default(NONE)
+  createdAt                   DateTime                     @default(now())
+  updatedAt                   DateTime                     @updatedAt
   testRuns                    TestRun[]
-  targetProjectId             String?
-  targetProject               TargetProject?             @relation(fields: [targetProjectId], references: [id], onDelete: Restrict)
+  targetProjectId             String
+  targetProject               TargetProject                @relation(fields: [targetProjectId], references: [id], onDelete: Restrict)
   credentialExecutionRequests AssessmentExecutionRequest[]
 
   @@unique([targetProjectId, name])
 }
 
 model Tag {
-  id              String         @id @default(uuid())
+  id              String        @id @default(uuid())
   name            String
   tagExpression   String
-  type            TagType        @default(FILTER)
-  createdAt       DateTime       @default(now())
-  updatedAt       DateTime       @updatedAt
+  type            TagType       @default(FILTER)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
   testRuns        TestRun[]
   testSuites      TestSuite[]
   testCases       TestCase[]
-  targetProjectId String?
-  targetProject   TargetProject? @relation(fields: [targetProjectId], references: [id], onDelete: Restrict)
+  targetProjectId String
+  targetProject   TargetProject @relation(fields: [targetProjectId], references: [id], onDelete: Restrict)
 
   @@unique([targetProjectId, name, type])
 }
@@ -798,8 +802,8 @@ model Report {
   testRun         TestRun          @relation(fields: [testRunId], references: [id], onDelete: Cascade)
   testCases       ReportTestCase[]
   features        ReportFeature[]
-  targetProjectId String?
-  targetProject   TargetProject?   @relation(fields: [targetProjectId], references: [id], onDelete: Restrict)
+  targetProjectId String
+  targetProject   TargetProject    @relation(fields: [targetProjectId], references: [id], onDelete: Restrict)
 
   @@index([targetProjectId])
 }
@@ -889,50 +893,50 @@ model ReportHook {
 }
 
 model TestCaseMetrics {
-  id                  String         @id @default(uuid())
-  testCaseId          String         @unique
-  isRepeatedlyFailing Boolean        @default(false)
-  isFlaky             Boolean        @default(false)
-  consecutiveFailures Int            @default(0)
-  failureRate         Float          @default(0)
-  totalRecentRuns     Int            @default(0)
-  failedRecentRuns    Int            @default(0)
+  id                  String        @id @default(uuid())
+  testCaseId          String        @unique
+  isRepeatedlyFailing Boolean       @default(false)
+  isFlaky             Boolean       @default(false)
+  consecutiveFailures Int           @default(0)
+  failureRate         Float         @default(0)
+  totalRecentRuns     Int           @default(0)
+  failedRecentRuns    Int           @default(0)
   lastExecutedAt      DateTime?
   lastFailedAt        DateTime?
   lastPassedAt        DateTime?
-  createdAt           DateTime       @default(now())
-  updatedAt           DateTime       @updatedAt
-  testCase            TestCase       @relation(fields: [testCaseId], references: [id], onDelete: Cascade)
-  targetProjectId     String?
-  targetProject       TargetProject? @relation(fields: [targetProjectId], references: [id], onDelete: Restrict)
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+  testCase            TestCase      @relation(fields: [testCaseId], references: [id], onDelete: Cascade)
+  targetProjectId     String
+  targetProject       TargetProject @relation(fields: [targetProjectId], references: [id], onDelete: Restrict)
 
   @@index([isRepeatedlyFailing])
   @@index([isFlaky])
 }
 
 model TestSuiteMetrics {
-  id              String         @id @default(uuid())
-  testSuiteId     String         @unique
+  id              String        @id @default(uuid())
+  testSuiteId     String        @unique
   lastExecutedAt  DateTime?
-  createdAt       DateTime       @default(now())
-  updatedAt       DateTime       @updatedAt
-  testSuite       TestSuite      @relation(fields: [testSuiteId], references: [id], onDelete: Cascade)
-  targetProjectId String?
-  targetProject   TargetProject? @relation(fields: [targetProjectId], references: [id], onDelete: Restrict)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  testSuite       TestSuite     @relation(fields: [testSuiteId], references: [id], onDelete: Cascade)
+  targetProjectId String
+  targetProject   TargetProject @relation(fields: [targetProjectId], references: [id], onDelete: Restrict)
 
   @@index([lastExecutedAt])
 }
 
 model DashboardMetrics {
-  id                             String         @id @default(uuid())
-  failedRecentRunsCount          Int            @default(0)
-  repeatedlyFailingTestsCount    Int            @default(0)
-  flakyTestsCount                Int            @default(0)
-  suitesNotExecutedRecentlyCount Int            @default(0)
-  lastUpdatedAt                  DateTime       @default(now())
-  createdAt                      DateTime       @default(now())
-  targetProjectId                String?        @unique
-  targetProject                  TargetProject? @relation(fields: [targetProjectId], references: [id], onDelete: Restrict)
+  id                             String        @id @default(uuid())
+  failedRecentRunsCount          Int           @default(0)
+  repeatedlyFailingTestsCount    Int           @default(0)
+  flakyTestsCount                Int           @default(0)
+  suitesNotExecutedRecentlyCount Int           @default(0)
+  lastUpdatedAt                  DateTime      @default(now())
+  createdAt                      DateTime      @default(now())
+  targetProjectId                String        @unique
+  targetProject                  TargetProject @relation(fields: [targetProjectId], references: [id], onDelete: Restrict)
 }
 
 model QualityPlan {
@@ -951,27 +955,27 @@ model QualityPlan {
 }
 
 model QualityPlanRevision {
-  id                    String                      @id @default(uuid())
-  targetProjectId       String
-  qualityPlanId         String
-  revision              Int
-  status                QualityPlanRevisionStatus   @default(DRAFT)
-  approvedAt            DateTime?
-  contentHash           String
-  sourceSpecification   String
-  requirementGraphJson  String
-  queries               RequirementQuery[]
-  requirementSnapshots  RequirementSnapshot[]
-  obligations           QualityObligationRevision[]
-  validationVersions    ValidationVersion[]
+  id                     String                         @id @default(uuid())
+  targetProjectId        String
+  qualityPlanId          String
+  revision               Int
+  status                 QualityPlanRevisionStatus      @default(DRAFT)
+  approvedAt             DateTime?
+  contentHash            String
+  sourceSpecification    String
+  requirementGraphJson   String
+  queries                RequirementQuery[]
+  requirementSnapshots   RequirementSnapshot[]
+  obligations            QualityObligationRevision[]
+  validationVersions     ValidationVersion[]
   validationPublications QualityValidationPublication[]
-  assessments           Assessment[]
-  assessmentRuns        AssessmentRun[]
-  driftReports          RequirementDriftReport[]    @relation("RevisionDriftReports")
-  successorDriftReports RequirementDriftReport[]    @relation("SuccessorRevisionDriftReports")
-  createdAt             DateTime                    @default(now())
-  updatedAt             DateTime                    @updatedAt
-  qualityPlan           QualityPlan                 @relation(fields: [qualityPlanId, targetProjectId], references: [id, targetProjectId], onDelete: Cascade)
+  assessments            Assessment[]
+  assessmentRuns         AssessmentRun[]
+  driftReports           RequirementDriftReport[]       @relation("RevisionDriftReports")
+  successorDriftReports  RequirementDriftReport[]       @relation("SuccessorRevisionDriftReports")
+  createdAt              DateTime                       @default(now())
+  updatedAt              DateTime                       @updatedAt
+  qualityPlan            QualityPlan                    @relation(fields: [qualityPlanId, targetProjectId], references: [id, targetProjectId], onDelete: Cascade)
 
   @@unique([id, targetProjectId])
   @@unique([id, qualityPlanId])
@@ -1067,37 +1071,37 @@ model ValidationVersion {
 /// It retains the proven capsule inputs without retaining a development-plan
 /// identity or projection relation.
 model QualityValidationPublication {
-  id                    String                    @id @default(uuid())
-  targetProjectId       String
-  targetFingerprint     String
-  qualityPlanRevisionId String
-  validationVersionId   String                    @unique
-  idempotencyKey        String
-  operationHash         String                    @unique
-  phase                 String                    @default("review_ready")
-  expectedRevisionHash  String
-  validationHash        String
-  validationContent     String
-  reviewHash            String
-  reviewContent         String
-  astId                 String
-  astHash               String
-  contextHash           String
-  previewHash           String
-  receiptHash           String
-  projectionHash        String
-  projectionJson        String
+  id                       String                             @id @default(uuid())
+  targetProjectId          String
+  targetFingerprint        String
+  qualityPlanRevisionId    String
+  validationVersionId      String                             @unique
+  idempotencyKey           String
+  operationHash            String                             @unique
+  phase                    String                             @default("review_ready")
+  expectedRevisionHash     String
+  validationHash           String
+  validationContent        String
+  reviewHash               String
+  reviewContent            String
+  astId                    String
+  astHash                  String
+  contextHash              String
+  previewHash              String
+  receiptHash              String
+  projectionHash           String
+  projectionJson           String
   validationProjectionJson String
-  runtimeInputHash      String
-  runtimeInputJson      String
-  failure               String?
-  createdAt             DateTime                  @default(now())
-  updatedAt             DateTime                  @updatedAt
-  targetProject         TargetProject             @relation(fields: [targetProjectId], references: [id], onDelete: Restrict)
-  qualityPlanRevision   QualityPlanRevision       @relation(fields: [qualityPlanRevisionId, targetProjectId], references: [id, targetProjectId], onDelete: Cascade)
-  validationVersion     ValidationVersion         @relation(fields: [validationVersionId, qualityPlanRevisionId], references: [id, qualityPlanRevisionId], onDelete: Cascade)
-  extensionReviews      QualityValidationExtensionReview[]
-  runtimeCapsules       RuntimeCapsule[]
+  runtimeInputHash         String
+  runtimeInputJson         String
+  failure                  String?
+  createdAt                DateTime                           @default(now())
+  updatedAt                DateTime                           @updatedAt
+  targetProject            TargetProject                      @relation(fields: [targetProjectId], references: [id], onDelete: Restrict)
+  qualityPlanRevision      QualityPlanRevision                @relation(fields: [qualityPlanRevisionId, targetProjectId], references: [id, targetProjectId], onDelete: Cascade)
+  validationVersion        ValidationVersion                  @relation(fields: [validationVersionId, qualityPlanRevisionId], references: [id, qualityPlanRevisionId], onDelete: Cascade)
+  extensionReviews         QualityValidationExtensionReview[]
+  runtimeCapsules          RuntimeCapsule[]
 
   @@unique([qualityPlanRevisionId, idempotencyKey])
   @@unique([validationVersionId, qualityPlanRevisionId])
@@ -1147,33 +1151,33 @@ model EvaluationSubjectRevision {
 }
 
 model Assessment {
-  id                          String                     @id @default(uuid())
+  id                          String                       @id @default(uuid())
   targetProjectId             String
   qualityPlanId               String
   qualityPlanRevisionId       String
   evaluationSubjectRevisionId String
-  status                      AssessmentStatus           @default(CREATED)
-  alignment                   RequirementAlignmentStatus @default(CURRENT)
+  status                      AssessmentStatus             @default(CREATED)
+  alignment                   RequirementAlignmentStatus   @default(CURRENT)
   observedAssurance           AssuranceLevel?
   baselineAssessmentId        String?
   /// Immutable retry/supersession lineage. Existing assessments are roots
   /// (lineageId = id, generation = 0); successors never modify their predecessor.
   lineageId                   String
-  generation                  Int                        @default(0)
-  supersedesAssessmentId      String?                    @unique
+  generation                  Int                          @default(0)
+  supersedesAssessmentId      String?                      @unique
   supersessionDispositionJson String?
   successorIdempotencyKey     String?
   successorRequestHash        String?
-  createdAt                   DateTime                   @default(now())
-  updatedAt                   DateTime                   @updatedAt
-  targetProject               TargetProject              @relation(fields: [targetProjectId], references: [id], onDelete: Restrict)
-  qualityPlan                 QualityPlan                @relation(fields: [qualityPlanId, targetProjectId], references: [id, targetProjectId], onDelete: Cascade)
-  qualityPlanRevision         QualityPlanRevision        @relation(fields: [qualityPlanRevisionId, qualityPlanId, targetProjectId], references: [id, qualityPlanId, targetProjectId], onDelete: Restrict)
-  evaluationSubjectRevision   EvaluationSubjectRevision  @relation(fields: [evaluationSubjectRevisionId], references: [id], onDelete: Restrict)
-  baselineAssessment          Assessment?                @relation("AssessmentBaseline", fields: [baselineAssessmentId, targetProjectId, qualityPlanId, qualityPlanRevisionId], references: [id, targetProjectId, qualityPlanId, qualityPlanRevisionId], onDelete: Restrict)
-  baselineReferences          Assessment[]               @relation("AssessmentBaseline")
-  supersedesAssessment        Assessment?                @relation("AssessmentSuccessor", fields: [supersedesAssessmentId], references: [id], onDelete: Restrict)
-  successorAssessment         Assessment?                @relation("AssessmentSuccessor")
+  createdAt                   DateTime                     @default(now())
+  updatedAt                   DateTime                     @updatedAt
+  targetProject               TargetProject                @relation(fields: [targetProjectId], references: [id], onDelete: Restrict)
+  qualityPlan                 QualityPlan                  @relation(fields: [qualityPlanId, targetProjectId], references: [id, targetProjectId], onDelete: Cascade)
+  qualityPlanRevision         QualityPlanRevision          @relation(fields: [qualityPlanRevisionId, qualityPlanId, targetProjectId], references: [id, qualityPlanId, targetProjectId], onDelete: Restrict)
+  evaluationSubjectRevision   EvaluationSubjectRevision    @relation(fields: [evaluationSubjectRevisionId], references: [id], onDelete: Restrict)
+  baselineAssessment          Assessment?                  @relation("AssessmentBaseline", fields: [baselineAssessmentId, targetProjectId, qualityPlanId, qualityPlanRevisionId], references: [id, targetProjectId, qualityPlanId, qualityPlanRevisionId], onDelete: Restrict)
+  baselineReferences          Assessment[]                 @relation("AssessmentBaseline")
+  supersedesAssessment        Assessment?                  @relation("AssessmentSuccessor", fields: [supersedesAssessmentId], references: [id], onDelete: Restrict)
+  successorAssessment         Assessment?                  @relation("AssessmentSuccessor")
   evidenceReceipts            EvidenceReceipt[]
   runs                        AssessmentRun[]
   decisions                   AssessmentDecision[]
@@ -1182,11 +1186,11 @@ model Assessment {
   @@unique([id, targetProjectId])
   @@unique([id, targetProjectId, qualityPlanRevisionId])
   @@unique([id, targetProjectId, qualityPlanId, qualityPlanRevisionId])
+  @@unique([lineageId, generation])
+  @@unique([targetProjectId, successorIdempotencyKey])
   @@index([targetProjectId, status])
   @@index([qualityPlanId, status])
   @@index([qualityPlanRevisionId, alignment])
-  @@unique([lineageId, generation])
-  @@unique([targetProjectId, successorIdempotencyKey])
 }
 
 /// Idempotent execution intent for either a reviewable Assessment or a
@@ -1194,29 +1198,29 @@ model Assessment {
 /// validation versions, subject digest, and runtime inputs before any TestRun
 /// is created.
 model AssessmentRun {
-  id                          String                     @id @default(uuid())
-  targetProjectId             String
-  assessmentId                String?
-  qualityPlanRevisionId       String
-  evaluationSubjectRevisionId String
-  idempotencyScope            String
-  idempotencyKey              String
-  requestHash                 String
-  status                      AssessmentRunStatus        @default(PREPARED)
-  stopReason                  String?
-  version                     Int                        @default(1)
-  createdAt                   DateTime                   @default(now())
-  updatedAt                   DateTime                   @updatedAt
-  executionRequestId          String?                    @unique
-  executionRequestHash        String?
-  executionAuthorizationGrantId String?                  @unique
-  targetProject               TargetProject              @relation(fields: [targetProjectId], references: [id], onDelete: Restrict)
-  assessment                  Assessment?                @relation(fields: [assessmentId, targetProjectId, qualityPlanRevisionId], references: [id, targetProjectId, qualityPlanRevisionId], onDelete: Restrict)
-  qualityPlanRevision         QualityPlanRevision        @relation(fields: [qualityPlanRevisionId, targetProjectId], references: [id, targetProjectId], onDelete: Restrict)
-  evaluationSubjectRevision   EvaluationSubjectRevision  @relation(fields: [evaluationSubjectRevisionId], references: [id], onDelete: Restrict)
-  bindings                    AssessmentRunBinding[]
-  executionRequest            AssessmentExecutionRequest? @relation(fields: [executionRequestId], references: [id], onDelete: Restrict)
-  executionAuthorizationGrant AssessmentExecutionAuthorizationGrant? @relation(fields: [executionAuthorizationGrantId], references: [id], onDelete: Restrict)
+  id                            String                                 @id @default(uuid())
+  targetProjectId               String
+  assessmentId                  String
+  qualityPlanRevisionId         String
+  evaluationSubjectRevisionId   String
+  idempotencyScope              String
+  idempotencyKey                String
+  requestHash                   String
+  status                        AssessmentRunStatus                    @default(PREPARED)
+  stopReason                    String?
+  version                       Int                                    @default(1)
+  createdAt                     DateTime                               @default(now())
+  updatedAt                     DateTime                               @updatedAt
+  executionRequestId            String?                                @unique
+  executionRequestHash          String?
+  executionAuthorizationGrantId String?                                @unique
+  targetProject                 TargetProject                          @relation(fields: [targetProjectId], references: [id], onDelete: Restrict)
+  assessment                    Assessment                             @relation(fields: [assessmentId, targetProjectId, qualityPlanRevisionId], references: [id, targetProjectId, qualityPlanRevisionId], onDelete: Restrict)
+  qualityPlanRevision           QualityPlanRevision                    @relation(fields: [qualityPlanRevisionId, targetProjectId], references: [id, targetProjectId], onDelete: Restrict)
+  evaluationSubjectRevision     EvaluationSubjectRevision              @relation(fields: [evaluationSubjectRevisionId], references: [id], onDelete: Restrict)
+  bindings                      AssessmentRunBinding[]
+  executionRequest              AssessmentExecutionRequest?            @relation(fields: [executionRequestId], references: [id], onDelete: Restrict)
+  executionAuthorizationGrant   AssessmentExecutionAuthorizationGrant? @relation(fields: [executionAuthorizationGrantId], references: [id], onDelete: Restrict)
 
   @@unique([id, targetProjectId])
   @@unique([id, targetProjectId, qualityPlanRevisionId])
@@ -1228,7 +1232,7 @@ model AssessmentRun {
 /// Immutable credential-bearing execution scope. It stores references and
 /// hashes only; resolved values and value hashes are never persisted here.
 model AssessmentExecutionRequest {
-  id                          String   @id @default(uuid())
+  id                          String                                  @id @default(uuid())
   targetProjectId             String
   assessmentId                String
   qualityPlanId               String
@@ -1241,15 +1245,15 @@ model AssessmentExecutionRequest {
   bindingsHash                String
   /// Unique while this request is live. Retired requests clear it so a fresh
   /// authorization request can be issued for the same immutable scope.
-  activeScopeKey              String?  @unique
-  requestHash                 String   @unique
+  activeScopeKey              String?                                 @unique
+  requestHash                 String                                  @unique
   canonicalRequestJson        String
   expiresAt                   DateTime
   revokedAt                   DateTime?
-  createdAt                   DateTime @default(now())
-  targetProject               TargetProject @relation(fields: [targetProjectId], references: [id], onDelete: Restrict)
-  assessment                  Assessment @relation(fields: [assessmentId], references: [id], onDelete: Restrict)
-  environment                 Environment @relation(fields: [environmentId], references: [id], onDelete: Restrict)
+  createdAt                   DateTime                                @default(now())
+  targetProject               TargetProject                           @relation(fields: [targetProjectId], references: [id], onDelete: Restrict)
+  assessment                  Assessment                              @relation(fields: [assessmentId], references: [id], onDelete: Restrict)
+  environment                 Environment                             @relation(fields: [environmentId], references: [id], onDelete: Restrict)
   bindings                    AssessmentExecutionCredentialBinding[]
   grants                      AssessmentExecutionAuthorizationGrant[]
   run                         AssessmentRun?
@@ -1268,37 +1272,37 @@ model AssessmentExecutionCredentialBinding {
 }
 
 model CredentialAuthorizationUiSession {
-  id               String   @id @default(uuid())
-  sessionTokenHash String   @unique
+  id               String                                  @id @default(uuid())
+  sessionTokenHash String                                  @unique
   csrfTokenHash    String
   targetProjectId  String
   expiresAt        DateTime
   revokedAt        DateTime?
-  createdAt        DateTime @default(now())
-  lastSeenAt       DateTime @default(now())
+  createdAt        DateTime                                @default(now())
+  lastSeenAt       DateTime                                @default(now())
   grants           AssessmentExecutionAuthorizationGrant[]
 
   @@index([targetProjectId, expiresAt, revokedAt])
 }
 
 model AssessmentExecutionAuthorizationGrant {
-  id                   String                              @id @default(uuid())
-  requestId            String                              @unique
-  issuerKind           CredentialExecutionAuthorizationIssuer
-  localUiSessionId     String?
-  hostIssuer           String?
-  hostKeyId            String?
-  hostAssertionJti     String?
-  hostAssertionHash    String?
-  notBefore            DateTime
-  expiresAt            DateTime
-  consumedAt           DateTime?
-  revokedAt            DateTime?
-  revokedReason        String?
-  createdAt            DateTime                            @default(now())
-  request              AssessmentExecutionRequest         @relation(fields: [requestId], references: [id], onDelete: Restrict)
-  localUiSession       CredentialAuthorizationUiSession?   @relation(fields: [localUiSessionId], references: [id], onDelete: Restrict)
-  run                  AssessmentRun?
+  id                String                                 @id @default(uuid())
+  requestId         String                                 @unique
+  issuerKind        CredentialExecutionAuthorizationIssuer
+  localUiSessionId  String?
+  hostIssuer        String?
+  hostKeyId         String?
+  hostAssertionJti  String?
+  hostAssertionHash String?
+  notBefore         DateTime
+  expiresAt         DateTime
+  consumedAt        DateTime?
+  revokedAt         DateTime?
+  revokedReason     String?
+  createdAt         DateTime                               @default(now())
+  request           AssessmentExecutionRequest             @relation(fields: [requestId], references: [id], onDelete: Restrict)
+  localUiSession    CredentialAuthorizationUiSession?      @relation(fields: [localUiSessionId], references: [id], onDelete: Restrict)
+  run               AssessmentRun?
 
   @@unique([hostIssuer, hostAssertionJti])
   @@index([requestId, expiresAt, consumedAt, revokedAt])
@@ -1308,22 +1312,22 @@ model AssessmentExecutionAuthorizationGrant {
 /// A terminal EvidenceReceipt can only be attached once, preserving the first
 /// observed terminal TestRun outcome during stop/reconcile races.
 model AssessmentRunBinding {
-  id                    String           @id @default(uuid())
-  assessmentRunId       String
-  validationVersionId   String
-  resultMatrixCell      String
-  testRunId             String           @unique
-  runtimeInputHash      String
-  terminalOutcome       EvidenceOutcome?
-  terminalizedAt        DateTime?
-  evidenceReceiptId     String?
-  version               Int              @default(1)
-  createdAt             DateTime         @default(now())
-  updatedAt             DateTime         @updatedAt
-  assessmentRun         AssessmentRun    @relation(fields: [assessmentRunId], references: [id], onDelete: Cascade)
-  validationVersion     ValidationVersion @relation(fields: [validationVersionId], references: [id], onDelete: Restrict)
-  testRun               TestRun          @relation(fields: [testRunId], references: [id], onDelete: Restrict)
-  evidenceReceipt       EvidenceReceipt? @relation(fields: [evidenceReceiptId], references: [id], onDelete: Restrict)
+  id                  String            @id @default(uuid())
+  assessmentRunId     String
+  validationVersionId String
+  resultMatrixCell    String
+  testRunId           String            @unique
+  runtimeInputHash    String
+  terminalOutcome     EvidenceOutcome?
+  terminalizedAt      DateTime?
+  evidenceReceiptId   String?
+  version             Int               @default(1)
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+  assessmentRun       AssessmentRun     @relation(fields: [assessmentRunId], references: [id], onDelete: Cascade)
+  validationVersion   ValidationVersion @relation(fields: [validationVersionId], references: [id], onDelete: Restrict)
+  testRun             TestRun           @relation(fields: [testRunId], references: [id], onDelete: Restrict)
+  evidenceReceipt     EvidenceReceipt?  @relation(fields: [evidenceReceiptId], references: [id], onDelete: Restrict)
 
   @@unique([assessmentRunId, validationVersionId, resultMatrixCell])
   @@index([assessmentRunId, terminalizedAt])
@@ -1373,22 +1377,32 @@ model AssessmentDecision {
 }
 
 model RequirementDriftReport {
-  id                    String                 @id @default(uuid())
-  qualityPlanId         String
-  qualityPlanRevisionId String
-  successorRevisionId   String?
-  status                RequirementDriftStatus @default(PROPOSED)
+  id                      String                 @id @default(uuid())
+  qualityPlanId           String
+  qualityPlanRevisionId   String
+  successorRevisionId     String?
+  status                  RequirementDriftStatus @default(PROPOSED)
   impactTraversalJson     String
   proposedDispositionJson String
-  approvedAt            DateTime?
-  createdAt             DateTime               @default(now())
-  qualityPlanRevision   QualityPlanRevision    @relation("RevisionDriftReports", fields: [qualityPlanRevisionId, qualityPlanId], references: [id, qualityPlanId], onDelete: Cascade)
-  successorRevision     QualityPlanRevision?   @relation("SuccessorRevisionDriftReports", fields: [successorRevisionId, qualityPlanId], references: [id, qualityPlanId], onDelete: Restrict)
+  approvedAt              DateTime?
+  createdAt               DateTime               @default(now())
+  qualityPlanRevision     QualityPlanRevision    @relation("RevisionDriftReports", fields: [qualityPlanRevisionId, qualityPlanId], references: [id, qualityPlanId], onDelete: Cascade)
+  successorRevision       QualityPlanRevision?   @relation("SuccessorRevisionDriftReports", fields: [successorRevisionId, qualityPlanId], references: [id, qualityPlanId], onDelete: Restrict)
 }
 
 enum TagType {
   IDENTIFIER
   FILTER
+}
+
+enum TargetProjectKind {
+  LOCAL_WORKSPACE
+  REMOTE_BLACK_BOX
+}
+
+enum TestRunIntent {
+  INDEPENDENT
+  ASSESSMENT
 }
 
 enum TestRunStatus {

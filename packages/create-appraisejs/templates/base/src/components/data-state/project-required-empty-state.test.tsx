@@ -21,6 +21,6 @@ describe('ProjectRequiredEmptyState', () => {
 
     await user.click(screen.getByRole('button', { name: 'Register project' }))
 
-    expect(screen.getByRole('dialog', { name: 'Register workspace' })).toBeInTheDocument()
+    expect(screen.getByRole('dialog', { name: 'Register target' })).toBeInTheDocument()
   })
 })

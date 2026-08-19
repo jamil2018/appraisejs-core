@@ -1,6 +1,5 @@
 import prisma from '@/config/db-config'
 import { moduleSchema, ROOT_MODULE_UUID } from '@/constants/form-opts/module-form-opts'
-import { automationProjectionService } from '@/lib/automation/projection-service'
 import { ServiceError } from '@/services/shared/errors'
 import type { Module } from '@prisma/client'
 import { Prisma } from '@prisma/client'
@@ -23,7 +22,6 @@ export async function listModules(targetProjectId: string): Promise<ModuleWithPa
 
 export async function deleteModules(ids: string[], targetProjectId: string): Promise<void> {
   await prisma.module.deleteMany({ where: { id: { in: ids }, targetProjectId } })
-  await automationProjectionService.regenerateAllPathDependentArtifacts()
 }
 
 export async function createModule(value: z.infer<typeof moduleSchema>, targetProjectId: string): Promise<Module> {
@@ -40,7 +38,6 @@ export async function createModule(value: z.infer<typeof moduleSchema>, targetPr
     parentId: value.parentId === ROOT_MODULE_UUID ? null : value.parentId,
   }
   const newModule = await prisma.module.create({ data: moduleData })
-  await automationProjectionService.regenerateAllPathDependentArtifacts()
   return newModule
 }
 
@@ -79,6 +76,5 @@ export async function updateModule(
     where: { id },
     data: moduleData,
   })
-  await automationProjectionService.regenerateAllPathDependentArtifacts()
   return updatedModule
 }

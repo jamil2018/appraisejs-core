@@ -133,19 +133,28 @@ export function registerProjectOperations(context: McpRegistryContext): void {
     'project_add',
     {
       description:
-        'Attach an application workspace as a target project, optionally initialize Git when the workspace is empty, and write a non-blocking .appraisejs/project.json continuity marker when writable.',
+        'Register either one local application workspace or one remote HTTP(S) black-box target. Local registration may initialize Git and write a non-blocking continuity marker; remote registration creates its initial environment without workspace access.',
       inputSchema: {
-        path: z.string().min(1),
+        path: z.string().min(1).optional(),
+        url: z.string().url().optional(),
         displayName: z.string().min(1).optional(),
         initializeGit: z.boolean().optional(),
       },
     },
-    async ({ path, displayName, initializeGit }) =>
-      text(
-        withGuidance(await api.addTargetProject(path, displayName, initializeGit), {
-          nextRecommendedAction: 'Submit an immutable requirement source for the returned target identity.',
-        }),
-      ),
+    async ({ path, url, displayName, initializeGit }) => {
+      if (Boolean(path) === Boolean(url)) throw new Error('Provide exactly one of path or url.')
+      if (url && initializeGit) throw new Error('Git initialization is available only for local workspace targets.')
+      return text(
+        withGuidance(
+          await api.addTargetProject(
+            path
+              ? { path, ...(displayName ? { displayName } : {}), ...(initializeGit ? { initializeGit: true } : {}) }
+              : { url: url!, ...(displayName ? { displayName } : {}) },
+          ),
+          { nextRecommendedAction: 'Submit an immutable requirement source for the returned target identity.' },
+        ),
+      )
+    },
   )
 
   server.registerTool(

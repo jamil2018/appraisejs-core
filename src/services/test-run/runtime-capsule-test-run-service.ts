@@ -29,6 +29,12 @@ export type PrepareQualityCapsuleTestRunInput = {
   preparationKey?: string
 }
 export type StartQualityCapsuleTestRunInput = PrepareQualityCapsuleTestRunInput & { testRunDbId: string }
+/** Explicit published-validation path for a standalone TestRun. It deliberately
+ * shares the sealed publication materializer but never creates Assessment state. */
+export type PrepareIndependentPublishedCapsuleTestRunInput = PrepareQualityCapsuleTestRunInput
+export type StartIndependentPublishedCapsuleTestRunInput = PrepareIndependentPublishedCapsuleTestRunInput & {
+  testRunDbId: string
+}
 
 function qualityCapsulePreparationKey(input: PrepareQualityCapsuleTestRunInput) {
   if (input.preparationKey) return input.preparationKey
@@ -58,6 +64,14 @@ export class RuntimeCapsuleTestRunService {
   ) {}
 
   async prepareQuality(input: PrepareQualityCapsuleTestRunInput) {
+    return this.preparePublished(input, 'ASSESSMENT')
+  }
+
+  async prepareIndependentPublished(input: PrepareIndependentPublishedCapsuleTestRunInput) {
+    return this.preparePublished(input, 'INDEPENDENT')
+  }
+
+  private async preparePublished(input: PrepareQualityCapsuleTestRunInput, intent: 'ASSESSMENT' | 'INDEPENDENT') {
     const publication = await this.client.qualityValidationPublication.findUniqueOrThrow({
       where: { id: input.publicationId },
     })
@@ -83,7 +97,7 @@ export class RuntimeCapsuleTestRunService {
     const preparationKey = qualityCapsulePreparationKey(input)
     return this.client.$transaction(async tx => {
       const [environment, project] = await Promise.all([
-        tx.environment.findUnique({ where: { id: input.environmentId } }),
+        tx.environment.findFirst({ where: { id: input.environmentId, targetProjectId: input.targetProjectId } }),
         tx.targetProject.findUnique({ where: { id: input.targetProjectId } }),
       ])
       if (!environment || !project) throw new Error('Quality capsule environment or project is missing.')
@@ -99,16 +113,19 @@ export class RuntimeCapsuleTestRunService {
           testWorkersCount: 1,
           status: TestRunStatus.QUEUED,
           result: TestRunResult.PENDING,
+          intent,
           targetProjectId: project.id,
           testCases: { create: links.map(link => ({ testCaseId: link.testCaseId, testSuiteId: link.testSuiteId! })) },
         },
-        include: { environment: true, testCases: true },
+        include: { environment: true, testCases: true, assessmentRunBinding: true },
       })
       const expectedLinks = new Set(links.map(link => `${link.testCaseId}:${link.testSuiteId}`))
       const actualLinks = new Set(testRun.testCases.map(link => `${link.testCaseId}:${link.testSuiteId}`))
       if (
         testRun.targetProjectId !== input.targetProjectId ||
         testRun.environmentId !== input.environmentId ||
+        testRun.intent !== intent ||
+        (intent === 'INDEPENDENT' && testRun.assessmentRunBinding !== null) ||
         expectedLinks.size !== actualLinks.size ||
         [...expectedLinks].some(link => !actualLinks.has(link))
       )
@@ -118,13 +135,26 @@ export class RuntimeCapsuleTestRunService {
   }
 
   async startQuality(input: StartQualityCapsuleTestRunInput) {
+    return this.startPublished(input, 'ASSESSMENT')
+  }
+
+  async startIndependentPublished(input: StartIndependentPublishedCapsuleTestRunInput) {
+    return this.startPublished(input, 'INDEPENDENT')
+  }
+
+  private async startPublished(input: StartQualityCapsuleTestRunInput, intent: 'ASSESSMENT' | 'INDEPENDENT') {
     let ownedAttempt: { id: string; ownerToken: string; version: number } | undefined
     let failedComponent = 'materialization'
     const [publication, testRun] = await Promise.all([
       this.client.qualityValidationPublication.findUniqueOrThrow({ where: { id: input.publicationId } }),
       this.client.testRun.findUniqueOrThrow({
         where: { id: input.testRunDbId },
-        include: { environment: true, testCases: true, runtimeCapsuleExecutionAttempt: { include: { capsule: true } } },
+        include: {
+          environment: true,
+          testCases: true,
+          assessmentRunBinding: true,
+          runtimeCapsuleExecutionAttempt: { include: { capsule: true } },
+        },
       }),
     ])
     if (
@@ -132,9 +162,11 @@ export class RuntimeCapsuleTestRunService {
       publication.targetProjectId !== input.targetProjectId ||
       publication.validationVersionId !== input.validationVersionId ||
       testRun.targetProjectId !== input.targetProjectId ||
-      testRun.environmentId !== input.environmentId
+      testRun.environmentId !== input.environmentId ||
+      testRun.intent !== intent ||
+      (intent === 'INDEPENDENT' && testRun.assessmentRunBinding !== null)
     )
-      throw new Error('Prepared Quality capsule TestRun ownership differs from the start request.')
+      throw new Error('Prepared published capsule TestRun ownership differs from the start request.')
     if (testRun.status !== TestRunStatus.QUEUED)
       throw new Error('Prepared Quality capsule TestRun is no longer queued for execution.')
     const existing = testRun.runtimeCapsuleExecutionAttempt
@@ -167,10 +199,10 @@ export class RuntimeCapsuleTestRunService {
       const ownerToken = crypto.randomUUID()
       const attempt = await this.client.$transaction(async tx => {
         const claimedRun = await tx.testRun.updateMany({
-          where: { id: testRun.id, status: TestRunStatus.QUEUED },
+          where: { id: testRun.id, status: TestRunStatus.QUEUED, intent },
           data: { status: TestRunStatus.RUNNING },
         })
-        if (claimedRun.count !== 1) throw new Error('Quality TestRun was cancelled before execution claim.')
+        if (claimedRun.count !== 1) throw new Error('Published capsule TestRun was cancelled before execution claim.')
         return tx.runtimeCapsuleExecutionAttempt.upsert({
           where: { testRunId: testRun.id },
           update: {},
@@ -209,18 +241,7 @@ export class RuntimeCapsuleTestRunService {
       await scheduleTestRunCompletion({
         testRun,
         environment: testRun.environment,
-        tagExpression: '',
-        testRunTestCases: testRun.testCases,
-        value: {
-          name: testRun.name,
-          environmentId: testRun.environmentId,
-          tags: [],
-          testSuites: [],
-          testWorkersCount: 1,
-          browserEngine: testRun.browserEngine,
-        },
         logger,
-        prepareWorkspace: false,
         launch: async () => {
           const current = await this.client.runtimeCapsuleExecutionAttempt.findUniqueOrThrow({
             where: { id: attempt.id },
@@ -298,6 +319,161 @@ export class RuntimeCapsuleTestRunService {
             {
               type: 'stderr',
               message: `Infrastructure failure in Quality runtime capsule ${failedComponent}: ${message}`,
+              timestamp: completedAt,
+            },
+          ]),
+        },
+      })
+      throw error
+    }
+  }
+
+  async startIndependentAuthored(input: { testRunDbId: string }) {
+    let ownedAttempt: { id: string; ownerToken: string; version: number } | undefined
+    let failedComponent = 'materialization'
+    const testRun = await this.client.testRun.findUniqueOrThrow({
+      where: { id: input.testRunDbId },
+      include: {
+        environment: true,
+        testCases: true,
+        assessmentRunBinding: true,
+        runtimeCapsuleExecutionAttempt: { include: { capsule: true } },
+      },
+    })
+    if (testRun.intent !== 'INDEPENDENT' || testRun.assessmentRunBinding)
+      throw new Error('Independent TestRun cannot be prepared as Assessment execution.')
+    if (testRun.status !== TestRunStatus.QUEUED)
+      throw new Error('Independent TestRun is no longer queued for capsule execution.')
+    const existing = testRun.runtimeCapsuleExecutionAttempt
+    if (existing) return { testRunId: testRun.id, runId: testRun.runId, attemptId: existing.id, state: existing.state }
+    try {
+      const materialized = await new RuntimeCapsuleMaterializer(this.client, this.appraiseRoot).materializeAuthored({
+        testRunId: testRun.id,
+      })
+      const paths = resolveRuntimeCapsulePaths({
+        appraiseRoot: this.appraiseRoot,
+        projectId: testRun.targetProjectId,
+        validationHash: materialized.row.validationHash,
+        runId: testRun.runId,
+      })
+      failedComponent = 'preflight'
+      const preflight = await new RuntimeCapsulePreflight(this.client, this.appraiseRoot).check({
+        projectId: testRun.targetProjectId,
+        validationHash: materialized.row.validationHash,
+        testRunId: testRun.id,
+        runId: testRun.runId,
+      })
+      const ownerToken = crypto.randomUUID()
+      const attempt = await this.client.$transaction(async tx => {
+        const claimed = await tx.testRun.updateMany({
+          where: { id: testRun.id, status: TestRunStatus.QUEUED, intent: 'INDEPENDENT' },
+          data: { status: TestRunStatus.RUNNING },
+        })
+        if (claimed.count !== 1) throw new Error('Independent TestRun was cancelled before execution claim.')
+        return tx.runtimeCapsuleExecutionAttempt.upsert({
+          where: { testRunId: testRun.id },
+          update: {},
+          create: {
+            testRunId: testRun.id,
+            capsuleId: materialized.row.id,
+            receiptHash: materialized.manifest.commandReceipt.hash,
+            preflightResultJson: canonicalRuntimeCapsuleJson(preflight),
+            preflightResultHash: hashRuntimeCapsuleValue(preflight),
+            preflightCheckedAt: new Date(preflight.checkedAt),
+            state: 'STARTING',
+            ownerToken,
+          },
+        })
+      })
+      if (attempt.ownerToken !== ownerToken)
+        return { testRunId: testRun.id, runId: testRun.runId, attemptId: attempt.id, state: attempt.state }
+      ownedAttempt = { id: attempt.id, ownerToken, version: attempt.version }
+      assertCapsulePreflightReady(preflight)
+      const claimed = await this.client.runtimeCapsuleExecutionAttempt.updateMany({
+        where: { id: attempt.id, state: 'STARTING', ownerToken, version: attempt.version },
+        data: { version: { increment: 1 } },
+      })
+      if (claimed.count !== 1) throw new Error('Independent capsule execution ownership changed before spawn.')
+      ownedAttempt.version += 1
+      const logger = await createTestRunLogger(testRun.runId, path.join(paths.capsuleRoot, 'logs/cucumber.log'))
+      await this.client.testRun.update({
+        where: { id: testRun.id },
+        data: { logPath: path.join(paths.capsuleRoot, 'logs/cucumber.log') },
+      })
+      const adapter = new CapsuleExecutorAdapter(this.client, this.appraiseRoot)
+      await scheduleTestRunCompletion({
+        testRun,
+        environment: testRun.environment,
+        logger,
+        launch: async () => {
+          const current = await this.client.runtimeCapsuleExecutionAttempt.findUniqueOrThrow({
+            where: { id: attempt.id },
+          })
+          if (current.state !== 'STARTING' || current.ownerToken !== ownerToken)
+            throw new Error('Independent capsule execution was cancelled before spawn.')
+          const launched = await adapter.execute({
+            projectId: testRun.targetProjectId,
+            validationHash: materialized.row.validationHash,
+            testRunId: testRun.id,
+            runId: testRun.runId,
+            capsuleRoot: paths.capsuleRoot,
+            receiptHash: materialized.manifest.commandReceipt.hash,
+          })
+          const running = await this.client.runtimeCapsuleExecutionAttempt.updateMany({
+            where: { id: attempt.id, state: 'STARTING', ownerToken },
+            data: { state: 'RUNNING', startedAt: new Date(), version: { increment: 1 } },
+          })
+          if (running.count !== 1) {
+            launched.process.process.kill('SIGTERM')
+            throw new Error('Independent capsule execution ownership changed during spawn registration.')
+          }
+          return launched
+        },
+        executionAttempt: { id: attempt.id, ownerToken },
+        client: this.client,
+        waitForProcess: name => adapter.waitForProcess(name),
+        appraiseRoot: this.appraiseRoot,
+      })
+      return { testRunId: testRun.id, runId: testRun.runId, attemptId: attempt.id, preflight }
+    } catch (error) {
+      const completedAt = new Date()
+      const message = (error instanceof Error ? error.message : String(error)).slice(0, 500)
+      if (ownedAttempt)
+        await this.client.runtimeCapsuleExecutionAttempt.updateMany({
+          where: {
+            id: ownedAttempt.id,
+            ownerToken: ownedAttempt.ownerToken,
+            state: 'STARTING',
+            version: ownedAttempt.version,
+          },
+          data: { state: 'FAILED', completedAt, failure: message, version: { increment: 1 } },
+        })
+      await this.client.testRun.updateMany({
+        where: { id: testRun.id, intent: 'INDEPENDENT', status: { in: [TestRunStatus.QUEUED, TestRunStatus.RUNNING] } },
+        data: {
+          status: TestRunStatus.COMPLETED,
+          result: TestRunResult.FAILED,
+          evidenceHealth: 'infrastructure_failure',
+          completedAt,
+        },
+      })
+      await this.client.testRunLog.upsert({
+        where: { testRunId: testRun.runId },
+        create: {
+          testRunId: testRun.runId,
+          logs: formatLogsForStorage([
+            {
+              type: 'stderr',
+              message: `Infrastructure failure in independent runtime capsule ${failedComponent}: ${message}`,
+              timestamp: completedAt,
+            },
+          ]),
+        },
+        update: {
+          logs: formatLogsForStorage([
+            {
+              type: 'stderr',
+              message: `Infrastructure failure in independent runtime capsule ${failedComponent}: ${message}`,
               timestamp: completedAt,
             },
           ]),

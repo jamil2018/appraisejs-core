@@ -1,83 +1,47 @@
-import { Readable } from 'stream'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const { mockAccess, mockCreateReadStream, mockFindUnique } = vi.hoisted(() => ({
-  mockAccess: vi.fn(),
-  mockCreateReadStream: vi.fn(),
-  mockFindUnique: vi.fn(),
-}))
+const { mockFindUnique, mockReadBytes } = vi.hoisted(() => ({ mockFindUnique: vi.fn(), mockReadBytes: vi.fn() }))
 
-vi.mock('fs', () => ({
-  promises: {
-    access: mockAccess,
+vi.mock('@/config/db-config', () => ({ default: { reportStep: { findUnique: mockFindUnique } } }))
+vi.mock('@/services/test-run/test-run-artifact-access-service', () => ({
+  TestRunArtifactAccessService: class {
+    readBytes = mockReadBytes
   },
-  createReadStream: mockCreateReadStream,
-}))
-
-vi.mock('@/config/db-config', () => ({
-  default: {
-    reportStep: {
-      findUnique: mockFindUnique,
-    },
-  },
-}))
-
-vi.mock('@/lib/automation/automation-path-roots', () => ({
-  resolveStoredPath: vi.fn((storedPath: string) => `/resolved/${storedPath}`),
 }))
 
 import { GET } from './route'
 
 describe('report screenshot route', () => {
-  beforeEach(() => {
-    vi.clearAllMocks()
-  })
+  beforeEach(() => vi.clearAllMocks())
 
   it('returns 404 when the report step is missing', async () => {
     mockFindUnique.mockResolvedValue(null)
-
-    const response = await GET(new Request('http://localhost/api/reports/steps/step-1/screenshot'), {
+    const response = await GET(new Request('http://localhost/api/reports/steps/step-1/screenshot?targetProjectId=p1'), {
       params: Promise.resolve({ stepId: 'step-1' }),
     })
-
     expect(response.status).toBe(404)
-    await expect(response.json()).resolves.toEqual({ error: 'Report step not found' })
   })
 
-  it('returns 404 when the step has no screenshot path', async () => {
-    mockFindUnique.mockResolvedValue({ screenshotPath: null })
-
-    const response = await GET(new Request('http://localhost/api/reports/steps/step-1/screenshot'), {
+  it('reads the screenshot through the run capsule with target containment', async () => {
+    mockFindUnique.mockResolvedValue({
+      screenshotPath: 'evidence/shots/step-1.png',
+      reportScenario: {
+        reportTestCases: [{ testRunTestCaseId: 'trtc-1' }],
+        reportFeature: { report: { testRun: { runId: 'run-1', targetProjectId: 'p1' } } },
+      },
+    })
+    mockReadBytes.mockResolvedValue({ bytes: Buffer.from('png'), contentType: 'image/png' })
+    const response = await GET(new Request('http://localhost/api/reports/steps/step-1/screenshot?targetProjectId=p1'), {
       params: Promise.resolve({ stepId: 'step-1' }),
     })
-
-    expect(response.status).toBe(404)
-    await expect(response.json()).resolves.toEqual({ error: 'Screenshot not available for this step' })
-  })
-
-  it('returns 404 when the screenshot file is missing', async () => {
-    mockFindUnique.mockResolvedValue({ screenshotPath: 'shots/step-1.png' })
-    mockAccess.mockRejectedValue(new Error('missing'))
-
-    const response = await GET(new Request('http://localhost/api/reports/steps/step-1/screenshot'), {
-      params: Promise.resolve({ stepId: 'step-1' }),
+    expect(mockReadBytes).toHaveBeenCalledWith({
+      runId: 'run-1',
+      kind: 'screenshot',
+      testCaseId: 'trtc-1',
+      storedPath: 'evidence/shots/step-1.png',
+      expectedTargetProjectId: 'p1',
     })
-
-    expect(response.status).toBe(404)
-    await expect(response.json()).resolves.toEqual({ error: 'Screenshot file not found' })
-  })
-
-  it('streams the screenshot when the file exists', async () => {
-    mockFindUnique.mockResolvedValue({ screenshotPath: 'shots/step-1.png' })
-    mockAccess.mockResolvedValue(undefined)
-    mockCreateReadStream.mockReturnValue(Readable.from([Buffer.from('png')]))
-
-    const response = await GET(new Request('http://localhost/api/reports/steps/step-1/screenshot'), {
-      params: Promise.resolve({ stepId: 'step-1' }),
-    })
-
     expect(response.status).toBe(200)
     expect(response.headers.get('Content-Type')).toBe('image/png')
-    await expect(response.arrayBuffer()).resolves.toBeInstanceOf(ArrayBuffer)
   })
 })

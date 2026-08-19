@@ -56,10 +56,11 @@ import {
   writeTargetProjectMarker,
 } from '@/services/target-project/target-project-service'
 import {
+  createIndependentAuthoredCapsuleTestRun,
   diagnoseTestRunEvidence,
-  preflightStandaloneTargetTestRun,
   readTestRunEvidenceSummary,
 } from '@/services/test-run/test-run-service'
+import { RuntimeCapsuleTestRunService } from '@/services/test-run/runtime-capsule-test-run-service'
 
 export const runtime = 'nodejs'
 
@@ -432,38 +433,85 @@ async function dispatchGet(request: Request, operation: string[]): Promise<Respo
 
 async function postTargetProject(body: unknown) {
   const value = z
-    .object({
-      path: z.string().min(1),
-      displayName: z.string().min(1).optional(),
-      initializeGit: z.boolean().optional(),
-    })
+    .union([
+      z
+        .object({
+          path: z.string().min(1),
+          displayName: z.string().min(1).optional(),
+          initializeGit: z.boolean().optional(),
+        })
+        .strict(),
+      z.object({ url: z.string().url(), displayName: z.string().min(1).optional() }).strict(),
+    ])
     .parse(body)
-  const [identity, git] = await Promise.all([
-    deriveCoordinatorProjectIdentity(process.cwd()),
-    initializeTargetGitRepository(value.path, value.initializeGit ?? false),
-  ])
-  const targetProject = await registerTargetProject({ projectPath: value.path, displayName: value.displayName })
+  const git =
+    'path' in value ? await initializeTargetGitRepository(value.path, value.initializeGit ?? false) : undefined
+  const targetProject = await registerTargetProject(value)
+  const marker =
+    targetProject.kind === 'LOCAL_WORKSPACE'
+      ? await deriveCoordinatorProjectIdentity(process.cwd()).then(identity =>
+          writeTargetProjectMarker(targetProject, identity.projectFingerprint),
+        )
+      : { status: 'skipped' as const }
   return Response.json(
     {
       targetProject,
       git,
-      marker: await writeTargetProjectMarker(targetProject, identity.projectFingerprint),
+      marker,
     },
     { status: 201 },
   )
 }
 
-async function postTestRunPreflight(body: unknown) {
+async function postIndependentTestRun(body: unknown) {
+  const common = {
+    target: z.string().min(1),
+    environmentId: z.string().min(1),
+    name: z.string().trim().min(1).max(200),
+    browserEngine: z.enum(['CHROMIUM', 'FIREFOX', 'WEBKIT']).optional(),
+  }
   const value = z
-    .object({
-      target: z.string().min(1).optional(),
-      environmentId: z.string().min(1).optional(),
-      featurePaths: z.array(z.string().min(1)).optional(),
-      importPaths: z.array(z.string().min(1)).optional(),
-      supportPaths: z.array(z.string().min(1)).optional(),
-    })
+    .discriminatedUnion('sourceKind', [
+      z
+        .object({
+          ...common,
+          sourceKind: z.literal('PUBLISHED_VALIDATION'),
+          publicationId: z.string().min(1),
+          validationVersionId: z.string().min(1),
+          idempotencyKey: z.string().min(1),
+        })
+        .strict(),
+      z
+        .object({
+          ...common,
+          sourceKind: z.literal('AUTHORED_TEST_SNAPSHOT'),
+          selections: z
+            .array(z.object({ testSuiteId: z.string().min(1), testCaseId: z.string().min(1) }).strict())
+            .min(1)
+            .max(200),
+        })
+        .strict(),
+    ])
     .parse(body)
-  return Response.json(await preflightStandaloneTargetTestRun(value))
+  const target = await resolveTargetProject(value.target)
+  const service = new RuntimeCapsuleTestRunService()
+  if (value.sourceKind === 'AUTHORED_TEST_SNAPSHOT') {
+    const prepared = await createIndependentAuthoredCapsuleTestRun({ ...value, targetProjectId: target.id })
+    const execution = await service.startIndependentAuthored({ testRunDbId: prepared.id })
+    return Response.json({ ...execution, ...prepared }, { status: 201 })
+  }
+  const prepared = await service.prepareIndependentPublished({
+    ...value,
+    targetProjectId: target.id,
+    preparationKey: value.idempotencyKey,
+  })
+  const execution = await service.startIndependentPublished({
+    ...value,
+    targetProjectId: target.id,
+    preparationKey: value.idempotencyKey,
+    testRunDbId: prepared.id,
+  })
+  return Response.json({ ...execution, id: prepared.id, runId: prepared.runId }, { status: 201 })
 }
 
 function qualityPlanId(operation: string[]) {
@@ -688,7 +736,6 @@ async function postEnvironmentEnsure(body: unknown): Promise<Response> {
   return Response.json({
     targetProjectId: target.id,
     outcome: result.outcome,
-    projection: result.projection,
     environment: environmentSummary(result.environment),
   })
 }
@@ -732,8 +779,7 @@ async function dispatchPost(request: Request, operation: string[], body: unknown
     return postEnvironmentEnsure(body)
   if (operation.length === 2 && operation[0] === 'locators' && operation[1] === 'ensure')
     return postLocatorEnsure(request, body)
-  if (operation.length === 2 && operation[0] === 'test-runs' && operation[1] === 'preflight')
-    return postTestRunPreflight(body)
+  if (operation.length === 1 && operation[0] === 'test-runs') return postIndependentTestRun(body)
   if (operation[0] === 'quality') return postQualityOperation(operation, body)
   return unknownOperation()
 }

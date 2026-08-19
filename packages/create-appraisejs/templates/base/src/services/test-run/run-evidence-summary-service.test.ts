@@ -1,11 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { TagType, TestRunResult, TestRunStatus, TestRunTestCaseStatus } from '@prisma/client'
 
-const { mockTestRunFindUnique, mockTestRunUpdate, mockParseCucumberReport } = vi.hoisted(() => ({
-  mockTestRunFindUnique: vi.fn(),
-  mockTestRunUpdate: vi.fn(),
-  mockParseCucumberReport: vi.fn(),
-}))
+const { mockTestRunFindUnique, mockTestRunUpdate, mockParseCucumberReport, mockReadTestRunArtifactText } = vi.hoisted(
+  () => ({
+    mockTestRunFindUnique: vi.fn(),
+    mockTestRunUpdate: vi.fn(),
+    mockParseCucumberReport: vi.fn(),
+    mockReadTestRunArtifactText: vi.fn(),
+  }),
+)
 
 vi.mock('@/config/db-config', () => ({
   default: {
@@ -16,15 +19,17 @@ vi.mock('@/config/db-config', () => ({
   },
 }))
 
-vi.mock('@/lib/automation/automation-path-roots', () => ({
-  resolveStoredPath: vi.fn((storedPath: string) => `/resolved/${storedPath}`),
-}))
-
 vi.mock('@/lib/test-run/report-parser', () => ({
-  parseCucumberReport: mockParseCucumberReport,
+  parseCucumberReportText: mockParseCucumberReport,
 }))
 
-import { persistRunEvidenceHealth, preflightTestRun, summarizeRunEvidence } from './run-evidence-summary-service'
+vi.mock('@/services/test-run/test-run-artifact-context', () => ({
+  createTestRunArtifactAccess: vi.fn(),
+  createTestRunArtifactContext: vi.fn(),
+  readTestRunArtifactText: mockReadTestRunArtifactText,
+}))
+
+import { persistRunEvidenceHealth, summarizeRunEvidence } from './run-evidence-summary-service'
 
 function baseRun(overrides: Record<string, unknown> = {}) {
   return {
@@ -33,8 +38,9 @@ function baseRun(overrides: Record<string, unknown> = {}) {
     status: TestRunStatus.COMPLETED,
     result: TestRunResult.PASSED,
     reportPath: 'reports/cucumber.json',
+    runtimeCapsule: { id: 'capsule-1' },
     targetProjectId: 'project one',
-    targetProject: { canonicalPath: '/workspace/app' },
+    targetProject: {},
     logs: { logs: 'status: Process exited with code 0' },
     testCases: [],
     ...overrides,
@@ -87,6 +93,8 @@ describe('run evidence summary service', () => {
     mockTestRunFindUnique.mockReset()
     mockTestRunUpdate.mockReset()
     mockParseCucumberReport.mockReset()
+    mockReadTestRunArtifactText.mockReset()
+    mockReadTestRunArtifactText.mockResolvedValue('{}')
   })
 
   it('classifies completed runs without a report as invalid missing report', async () => {
@@ -117,7 +125,7 @@ describe('run evidence summary service', () => {
 
   it('classifies empty Cucumber reports as invalid empty run', async () => {
     mockTestRunFindUnique.mockResolvedValue(baseRun())
-    mockParseCucumberReport.mockResolvedValue({ features: [] })
+    mockParseCucumberReport.mockReturnValue({ features: [] })
 
     const summary = await summarizeRunEvidence('11111111-1111-4111-8111-111111111111')
 
@@ -127,7 +135,7 @@ describe('run evidence summary service', () => {
 
   it('detects unmatched scenarios against expected test cases', async () => {
     mockTestRunFindUnique.mockResolvedValue(baseRun({ testCases: [expectedTestCase()] }))
-    mockParseCucumberReport.mockResolvedValue(reportWithScenario('Unexpected scenario', []))
+    mockParseCucumberReport.mockReturnValue(reportWithScenario('Unexpected scenario', []))
 
     const summary = await summarizeRunEvidence('11111111-1111-4111-8111-111111111111')
 
@@ -137,7 +145,7 @@ describe('run evidence summary service', () => {
 
   it('persists valid health only after report and expected cases reconcile', async () => {
     mockTestRunFindUnique.mockResolvedValue(baseRun({ testCases: [expectedTestCase()] }))
-    mockParseCucumberReport.mockResolvedValue(reportWithScenario())
+    mockParseCucumberReport.mockReturnValue(reportWithScenario())
 
     const summary = await persistRunEvidenceHealth('11111111-1111-4111-8111-111111111111')
 
@@ -157,7 +165,7 @@ describe('run evidence summary service', () => {
         },
       }),
     )
-    mockParseCucumberReport.mockResolvedValue(reportWithScenario())
+    mockParseCucumberReport.mockReturnValue(reportWithScenario())
 
     const summary = await summarizeRunEvidence('11111111-1111-4111-8111-111111111111')
 
@@ -182,7 +190,7 @@ describe('run evidence summary service', () => {
 
   it('reports authored steps separately from runtime hooks', async () => {
     mockTestRunFindUnique.mockResolvedValue(baseRun({ testCases: [expectedTestCase()] }))
-    mockParseCucumberReport.mockResolvedValue(
+    mockParseCucumberReport.mockReturnValue(
       reportWithScenario('Login succeeds', [{ name: '@tc_login', line: 1 }], [{ name: 'Before' }, { name: 'After' }]),
     )
 
@@ -201,18 +209,10 @@ describe('run evidence summary service', () => {
         errorMessage: `Expected HomeChores but found SecondWife\n${'stack detail '.repeat(40)}`,
       },
     ] as never
-    mockParseCucumberReport.mockResolvedValue(report)
+    mockParseCucumberReport.mockReturnValue(report)
 
     const summary = await summarizeRunEvidence('11111111-1111-4111-8111-111111111111')
 
     expect(summary.failureSignatures).toEqual(['Expected HomeChores but found SecondWife'])
-  })
-
-  it('preflights standalone run inputs before creation', async () => {
-    await expect(preflightTestRun({ target: '/app', environmentId: 'env-1' })).resolves.toMatchObject({
-      status: 'ready',
-      evidenceHealth: 'valid',
-      nextAllowedAction: { tool: 'test_run' },
-    })
   })
 })

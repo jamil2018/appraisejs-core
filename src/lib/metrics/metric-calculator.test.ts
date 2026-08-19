@@ -6,7 +6,9 @@ const {
   mockTestRunTestCaseFindFirst,
   mockTestCaseMetricsUpsert,
   mockTestCaseCount,
+  mockTestCaseFindUnique,
   mockTestSuiteCount,
+  mockTestSuiteFindUnique,
   mockTestRunCount,
   mockDashboardMetricsFindFirst,
   mockDashboardMetricsUpdate,
@@ -16,7 +18,9 @@ const {
   mockTestRunTestCaseFindFirst: vi.fn(),
   mockTestCaseMetricsUpsert: vi.fn(),
   mockTestCaseCount: vi.fn(),
+  mockTestCaseFindUnique: vi.fn(),
   mockTestSuiteCount: vi.fn(),
+  mockTestSuiteFindUnique: vi.fn(),
   mockTestRunCount: vi.fn(),
   mockDashboardMetricsFindFirst: vi.fn(),
   mockDashboardMetricsUpdate: vi.fn(),
@@ -36,6 +40,7 @@ vi.mock('@/config/db-config', () => ({
     },
     testCase: {
       count: mockTestCaseCount,
+      findUnique: mockTestCaseFindUnique,
     },
     testSuiteMetrics: {
       upsert: vi.fn(),
@@ -43,6 +48,7 @@ vi.mock('@/config/db-config', () => ({
     },
     testSuite: {
       count: mockTestSuiteCount,
+      findUnique: mockTestSuiteFindUnique,
     },
     testRun: {
       count: mockTestRunCount,
@@ -73,6 +79,7 @@ describe('recalculateTestCaseMetrics', () => {
     vi.setSystemTime(new Date('2026-05-12T00:00:00.000Z'))
     vi.clearAllMocks()
     mockTestCaseMetricsUpsert.mockResolvedValue({})
+    mockTestCaseFindUnique.mockResolvedValue({ targetProjectId: 'project-1' })
     mockTestRunTestCaseFindFirst.mockResolvedValue(null)
   })
 
@@ -105,6 +112,7 @@ describe('recalculateTestCaseMetrics', () => {
       where: { testCaseId: 'tc-1' },
       create: expect.objectContaining({
         testCaseId: 'tc-1',
+        targetProjectId: 'project-1',
         lastExecutedAt: failedAt,
         lastFailedAt: failedAt,
         lastPassedAt: passedAt,
@@ -152,6 +160,7 @@ describe('recalculateTestCaseMetrics', () => {
       where: { testCaseId: 'tc-2' },
       create: expect.objectContaining({
         testCaseId: 'tc-2',
+        targetProjectId: 'project-1',
         lastExecutedAt: olderPassAt,
         lastFailedAt: olderFailureAt,
         lastPassedAt: olderPassAt,
@@ -185,6 +194,7 @@ describe('updateDashboardMetrics', () => {
     mockTestRunCount.mockResolvedValue(4)
     mockTestCaseCount.mockResolvedValueOnce(2).mockResolvedValueOnce(1)
     mockTestSuiteCount.mockResolvedValue(3)
+    mockTestSuiteFindUnique.mockResolvedValue({ targetProjectId: 'project-1' })
     mockDashboardMetricsFindFirst.mockResolvedValue({ id: 'dashboard-metrics-1' })
     mockDashboardMetricsUpdate.mockResolvedValue({})
     mockDashboardMetricsCreate.mockResolvedValue({})

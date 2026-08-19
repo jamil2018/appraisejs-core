@@ -69,7 +69,7 @@ export const canonicalMcpToolAnnotations = Object.freeze({
   assessment_reconcile: localMutation,
   assessment_review: readOnly,
   assessment_decide: localDecision,
-  test_run_preflight: readOnly,
+  test_run_start: externalExecution,
   test_run_read: readOnly,
   test_run_diagnose: readOnly,
 } satisfies Record<string, ToolAnnotations>)

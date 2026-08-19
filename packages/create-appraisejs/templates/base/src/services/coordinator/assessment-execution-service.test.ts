@@ -41,14 +41,15 @@ describe('assessment execution guards', () => {
     ).rejects.toThrow('current requirement alignment')
   })
 
-  it('rejects standalone execution without an immutable subject before runtime preparation', async () => {
+  it('requires an existing assessment before runtime preparation', async () => {
+    database.assessment.findUniqueOrThrow.mockRejectedValue(new Error('Assessment not found'))
     await expect(
       runQualityAssessment({
-        validationVersionIds: ['validation-1'],
+        assessmentId: 'missing-assessment',
         idempotencyKey: 'run-1',
         runtime: { environmentId: 'env-1' },
       }),
-    ).rejects.toThrow('immutable digest subject')
+    ).rejects.toThrow('Assessment not found')
   })
 
   it('rejects partial explicit matrix coverage before creating an AssessmentRun', async () => {

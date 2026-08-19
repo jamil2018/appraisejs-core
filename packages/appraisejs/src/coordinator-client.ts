@@ -11,6 +11,9 @@ export type CoordinatorOptions = {
   coordinatorId: string
 }
 
+export type TargetProjectRegistrationInput =
+  { path: string; displayName?: string; initializeGit?: boolean } | { url: string; displayName?: string }
+
 const coordinatorErrorEnvelopeSchema = z
   .object({
     schema: z.literal('appraise.error/v1'),
@@ -219,11 +222,11 @@ export async function createCoordinatorClient(options: CoordinatorOptions) {
     },
     readOperations: (refs: Array<{ id: string; version?: string }>) =>
       request(`operations/read?refs=${encodeURIComponent(JSON.stringify(refs))}`),
-    addTargetProject: (projectPath: string, displayName?: string, initializeGit = false) =>
+    addTargetProject: (input: TargetProjectRegistrationInput) =>
       post('target-projects', {
-        path: projectPath,
-        ...(displayName ? { displayName } : {}),
-        ...(initializeGit ? { initializeGit: true } : {}),
+        ...input,
+        ...(input.displayName ? { displayName: input.displayName } : {}),
+        ...('path' in input && input.initializeGit ? { initializeGit: true } : {}),
       }),
     listTargetProjects: () => request('target-projects'),
     queryLocatorGraph: (query: Record<string, string | number | undefined>) => {

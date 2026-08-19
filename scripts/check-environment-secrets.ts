@@ -44,10 +44,8 @@ async function main(): Promise<void> {
     const { PrismaClient } = await import('@prisma/client')
     const database = new PrismaClient()
     let columns: Array<{ name: string }>
-    let legacyRows: number
     try {
       columns = await database.$queryRawUnsafe<Array<{ name: string }>>('PRAGMA table_info("Environment")')
-      legacyRows = await database.environment.count({ where: { credentialState: 'LEGACY_DISABLED' } })
     } finally {
       await database.$disconnect()
     }
@@ -63,7 +61,7 @@ async function main(): Promise<void> {
     const jsonFailures = jsonPaths.flatMap((relativePath, index) =>
       jsonContents[index] === null ? [] : environmentJsonFailures(relativePath, jsonContents[index]),
     )
-    report([...environmentSchemaFailures(columns, legacyRows, schema), ...jsonFailures])
+    report([...environmentSchemaFailures(columns, schema), ...jsonFailures])
   } finally {
     await fs.rm(workspace, { recursive: true, force: true })
   }

@@ -1,6 +1,5 @@
 import prisma from '@/config/db-config'
 import { tagSchema } from '@/constants/form-opts/tag-form-opts'
-import { automationProjectionService } from '@/lib/automation/projection-service'
 import { ServiceError } from '@/services/shared/errors'
 import { TagType } from '@prisma/client'
 import type { Tag } from '@prisma/client'
@@ -42,7 +41,6 @@ export async function listFilterTags(targetProjectId: string): Promise<Tag[]> {
 
 export async function deleteTags(ids: string[], targetProjectId: string): Promise<void> {
   await prisma.tag.deleteMany({ where: { id: { in: ids }, targetProjectId } })
-  await automationProjectionService.regenerateAllFeatures()
 }
 
 export async function createTag(value: z.infer<typeof tagSchema>, targetProjectId: string): Promise<Tag> {
@@ -65,7 +63,6 @@ export async function createTag(value: z.infer<typeof tagSchema>, targetProjectI
   }
 
   const newTag = await prisma.tag.create({ data: { ...value, targetProjectId } })
-  await automationProjectionService.regenerateAllFeatures()
   return newTag
 }
 
@@ -117,6 +114,5 @@ export async function updateTag(
   }
 
   const updatedTag = await prisma.tag.update({ where: { id }, data: value })
-  await automationProjectionService.regenerateAllFeatures()
   return updatedTag
 }

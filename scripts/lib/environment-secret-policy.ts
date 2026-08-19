@@ -1,9 +1,8 @@
 export type EnvironmentColumn = { name: string }
 
-export function environmentSchemaFailures(columns: EnvironmentColumn[], legacyRows: number, schema: string): string[] {
+export function environmentSchemaFailures(columns: EnvironmentColumn[], schema: string): string[] {
   return [
     columns.some(column => column.name === 'password') ? 'Environment table still has a password column' : null,
-    legacyRows > 0 ? `${legacyRows} environment row(s) remain disabled with unresolved legacy credentials` : null,
     /^\s*password\s+String\??/m.test(schema) ? 'Prisma schema still declares Environment.password' : null,
   ].filter((failure): failure is string => failure !== null)
 }

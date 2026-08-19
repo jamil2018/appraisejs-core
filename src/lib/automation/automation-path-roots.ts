@@ -52,12 +52,8 @@ export function getAutomationReportsDir(projectRoot?: string): string {
   return path.join(getAutomationRoot(projectRoot), 'reports')
 }
 
-export function getAutomationReportRunDir(runId: string, projectRoot?: string): string {
+function getAutomationReportRunDir(runId: string, projectRoot?: string): string {
   return path.join(getAutomationReportsDir(projectRoot), runId)
-}
-
-export function getAutomationRunReportPath(runId: string, projectRoot?: string): string {
-  return path.join(getAutomationReportRunDir(runId, projectRoot), 'cucumber.json')
 }
 
 export function buildJsonReportFormat(reportPath: string, projectRoot?: string): string {
@@ -79,13 +75,6 @@ export function toProjectRelativePath(targetPath: string, projectRoot?: string):
     ? path.posix.relative(normalizedRepoRoot, normalizedTargetPath)
     : normalizedTargetPath
   return normalizedPath
-}
-
-export function resolveStoredPath(storedPath: string, projectRoot?: string): string {
-  if (path.isAbsolute(storedPath)) {
-    return storedPath
-  }
-  return path.join(getPathRoot(projectRoot), storedPath)
 }
 
 export function getAutomationStepsDir(projectRoot?: string): string {

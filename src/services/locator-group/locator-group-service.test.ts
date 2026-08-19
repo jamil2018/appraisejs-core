@@ -1,5 +1,4 @@
 import { describe, expect, it, vi } from 'vitest'
-import { automationProjectionService } from '@/lib/automation/projection-service'
 import {
   checkLocatorGroupNameUnique,
   createLocatorGroup,
@@ -20,22 +19,6 @@ vi.mock('@/config/db-config', () => ({
     },
     module: { findFirst: vi.fn() },
     locator: { findMany: vi.fn() },
-  },
-}))
-
-vi.mock('@/lib/locator-group-file-utils', () => ({
-  getLocatorGroupFilePath: vi.fn().mockResolvedValue('/tmp/group.json'),
-}))
-
-vi.mock('@/lib/automation/projection-service', () => ({
-  automationProjectionService: {
-    createEmptyLocatorGroup: vi.fn().mockResolvedValue(undefined),
-    syncLocatorMap: vi.fn().mockResolvedValue(undefined),
-    moveLocatorGroup: vi.fn().mockResolvedValue(undefined),
-    renameLocatorGroup: vi.fn().mockResolvedValue(undefined),
-    syncLocatorGroup: vi.fn().mockResolvedValue(true),
-    deleteLocatorMapEntries: vi.fn().mockResolvedValue(undefined),
-    deleteLocatorGroup: vi.fn().mockResolvedValue(undefined),
   },
 }))
 
@@ -65,7 +48,7 @@ describe('checkLocatorGroupNameUnique', () => {
 })
 
 describe('createLocatorGroup', () => {
-  it('creates the group and syncs its files', async () => {
+  it('creates the group without synchronizing target files', async () => {
     vi.mocked(prisma.module.findFirst).mockResolvedValue({ id: 'module-1' } as never)
     vi.mocked(prisma.locator.findMany).mockResolvedValue([{ id: 'loc-1' }] as never)
     vi.mocked(prisma.locatorGroup.findFirst).mockResolvedValue(null)
@@ -82,14 +65,11 @@ describe('createLocatorGroup', () => {
         targetProjectId,
       ),
     ).resolves.toEqual({ id: 'group-1', name: 'Home' })
-
-    expect(automationProjectionService.createEmptyLocatorGroup).toHaveBeenCalledWith('group-1')
-    expect(automationProjectionService.syncLocatorMap).toHaveBeenCalledWith('Home', '/home')
   })
 })
 
 describe('updateLocatorGroup', () => {
-  it('renames the group and updates the locator map when the name changes', async () => {
+  it('renames the group without updating a locator map file', async () => {
     vi.mocked(prisma.locatorGroup.findFirst).mockResolvedValueOnce({
       id: 'group-1',
       name: 'Old Name',
@@ -116,20 +96,14 @@ describe('updateLocatorGroup', () => {
       },
       targetProjectId,
     )
-
-    expect(automationProjectionService.renameLocatorGroup).toHaveBeenCalledWith('group-1', 'New Name', 'Old Name')
-    expect(automationProjectionService.syncLocatorMap).toHaveBeenCalledWith('/old', '/new', 'Old Name', 'New Name')
   })
 })
 
 describe('deleteLocatorGroups', () => {
-  it('deletes locator map entries, group files, and db records', async () => {
-    vi.mocked(prisma.locatorGroup.findMany).mockResolvedValue([{ name: 'Home' }] as never)
+  it('deletes database records without deleting target files', async () => {
     vi.mocked(prisma.locatorGroup.deleteMany).mockResolvedValue({ count: 1 } as never)
 
     await expect(deleteLocatorGroups(['group-1'], targetProjectId)).resolves.toEqual(['group-1'])
-    expect(automationProjectionService.deleteLocatorMapEntries).toHaveBeenCalledWith(['Home'])
-    expect(automationProjectionService.deleteLocatorGroup).toHaveBeenCalledWith('group-1')
     expect(prisma.locatorGroup.deleteMany).toHaveBeenCalledWith({
       where: { id: { in: ['group-1'] }, targetProjectId },
     })

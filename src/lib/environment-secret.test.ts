@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { EnvironmentSecretConfigurationError, resolveEnvironmentPassword } from './environment-secret'
+import { resolveEnvironmentPassword } from './environment-secret'
 
 describe('environment secret resolution', () => {
   it('resolves only the named process environment variable at execution time', () => {
@@ -16,12 +16,6 @@ describe('environment secret resolution', () => {
     expect(
       resolveEnvironmentPassword({ passwordEnvironmentVariable: null, credentialState: 'NONE' }, {}),
     ).toBeUndefined()
-  })
-
-  it('fails closed without exposing a legacy value', () => {
-    expect(() =>
-      resolveEnvironmentPassword({ passwordEnvironmentVariable: null, credentialState: 'LEGACY_DISABLED' }, {}),
-    ).toThrow(EnvironmentSecretConfigurationError)
   })
 
   it('reports the missing reference name without a secret value', () => {

@@ -1,5 +1,3 @@
-import { existsSync, readFileSync, rmSync } from 'node:fs'
-import { join } from 'node:path'
 import {
   BrowserEngine,
   StepKeyword,
@@ -14,7 +12,6 @@ import {
 } from '@prisma/client'
 
 import prisma from '../../src/config/db-config'
-import { generateFeatureFile } from '../../src/lib/feature-file-generator'
 import { StepDefinitionRegistryService } from '../../src/services/step-definition/step-definition-registry-service'
 import { builtInStepDefinitions, computeStepReferenceHash } from '../../packages/cucumber-runtime/src/step-definitions'
 
@@ -51,16 +48,6 @@ export const seededIds = {
   runningTestRun: 'e2e-running-run',
   runningTestRunRunId: 'e2e-running-run-id',
 }
-
-const generatedFeaturePath = join(process.cwd(), 'automation', 'features', 'E2E Auth', 'e2e-auth-suite.feature')
-const generatedCrudSuiteFeaturePath = join(process.cwd(), 'automation', 'features', 'E2E Auth', 'e2e-ui-suite.feature')
-const generatedCrudSuiteMetadataPath = join(
-  process.cwd(),
-  'automation',
-  'features',
-  'E2E Auth',
-  'e2e-ui-suite.appraise.json',
-)
 
 function seededNavigationInvocation() {
   const definition = builtInStepDefinitions.find(item => item.identity.id === seededIds.stepDefinition)
@@ -109,11 +96,8 @@ export async function resetE2eData(): Promise<void> {
     prisma.testCaseMetrics.deleteMany(),
     prisma.testSuiteMetrics.deleteMany(),
     prisma.dashboardMetrics.deleteMany(),
+    prisma.targetProject.deleteMany({ where: { id: seededIds.targetProject } }),
   ])
-
-  rmSync(generatedFeaturePath, { force: true })
-  rmSync(generatedCrudSuiteFeaturePath, { force: true })
-  rmSync(generatedCrudSuiteMetadataPath, { force: true })
 }
 
 export async function seedCoreData(): Promise<void> {
@@ -124,10 +108,22 @@ export async function seedCoreData(): Promise<void> {
     await stepRegistry.registerBuiltIn(definition, 'e2e-source-conformance')
   const navigationInvocationJson = JSON.stringify(seededNavigationInvocation())
 
+  await prisma.targetProject.create({
+    data: {
+      id: seededIds.targetProject,
+      kind: 'LOCAL_WORKSPACE',
+      canonicalIdentity: 'workspace:/e2e/appraisejs',
+      canonicalPath: '/e2e/appraisejs',
+      displayName: 'E2E AppraiseJS',
+      fingerprint: 'e2e-appraisejs-fixture',
+    },
+  })
+
   await prisma.module.create({
     data: {
       id: seededIds.module,
       name: 'E2E Auth',
+      targetProjectId: seededIds.targetProject,
     },
   })
 
@@ -140,6 +136,7 @@ export async function seedCoreData(): Promise<void> {
       username: 'tester',
       passwordEnvironmentVariable: 'APPRAISE_E2E_PASSWORD',
       credentialState: 'REFERENCE_CONFIGURED',
+      targetProjectId: seededIds.targetProject,
     },
   })
 
@@ -149,6 +146,7 @@ export async function seedCoreData(): Promise<void> {
       name: 'E2E Smoke',
       tagExpression: '@e2e-smoke',
       type: TagType.FILTER,
+      targetProjectId: seededIds.targetProject,
     },
   })
 
@@ -158,6 +156,7 @@ export async function seedCoreData(): Promise<void> {
       name: 'E2E Login Page',
       route: '/login',
       moduleId: seededIds.module,
+      targetProjectId: seededIds.targetProject,
     },
   })
 
@@ -167,6 +166,7 @@ export async function seedCoreData(): Promise<void> {
       name: 'E2E Sign In Button',
       value: 'text=Sign in',
       locatorGroupId: seededIds.locatorGroup,
+      targetProjectId: seededIds.targetProject,
     },
   })
 
@@ -175,6 +175,7 @@ export async function seedCoreData(): Promise<void> {
       id: seededIds.testCase,
       title: 'E2E seeded login works',
       description: 'Seeded login smoke case',
+      targetProjectId: seededIds.targetProject,
       tags: {
         connect: [{ id: seededIds.tag }],
       },
@@ -209,6 +210,7 @@ export async function seedCoreData(): Promise<void> {
       name: 'E2E Auth Suite',
       description: 'Seeded suite for E2E feature generation',
       moduleId: seededIds.module,
+      targetProjectId: seededIds.targetProject,
       tags: {
         connect: [{ id: seededIds.tag }],
       },
@@ -230,6 +232,7 @@ export async function seedCoreData(): Promise<void> {
       environmentId: seededIds.environment,
       browserEngine: BrowserEngine.CHROMIUM,
       testWorkersCount: 1,
+      targetProjectId: seededIds.targetProject,
       tags: {
         connect: [{ id: seededIds.tag }],
       },
@@ -272,6 +275,7 @@ export async function seedCoreData(): Promise<void> {
       name: 'E2E Report',
       description: 'Seeded report for E2E smoke coverage',
       testRunId: seededIds.testRun,
+      targetProjectId: seededIds.targetProject,
       features: {
         create: [
           {
@@ -329,6 +333,7 @@ export async function seedCoreData(): Promise<void> {
       repeatedlyFailingTestsCount: 0,
       flakyTestsCount: 0,
       suitesNotExecutedRecentlyCount: 1,
+      targetProjectId: seededIds.targetProject,
     },
   })
 
@@ -336,21 +341,6 @@ export async function seedCoreData(): Promise<void> {
   await seedSecondModuleSuite()
   await seedTestRunVariants()
   await seedDashboardAttentionMetrics()
-  await Promise.all([
-    prisma.module.updateMany({ data: { targetProjectId: seededIds.targetProject } }),
-    prisma.environment.updateMany({ data: { targetProjectId: seededIds.targetProject } }),
-    prisma.tag.updateMany({ data: { targetProjectId: seededIds.targetProject } }),
-    prisma.locatorGroup.updateMany({ data: { targetProjectId: seededIds.targetProject } }),
-    prisma.locator.updateMany({ data: { targetProjectId: seededIds.targetProject } }),
-    prisma.testCase.updateMany({ data: { targetProjectId: seededIds.targetProject } }),
-    prisma.testSuite.updateMany({ data: { targetProjectId: seededIds.targetProject } }),
-    prisma.templateTestCase.updateMany({ data: { targetProjectId: seededIds.targetProject } }),
-    prisma.testRun.updateMany({ data: { targetProjectId: seededIds.targetProject } }),
-    prisma.report.updateMany({ data: { targetProjectId: seededIds.targetProject } }),
-    prisma.testCaseMetrics.updateMany({ data: { targetProjectId: seededIds.targetProject } }),
-    prisma.testSuiteMetrics.updateMany({ data: { targetProjectId: seededIds.targetProject } }),
-    prisma.dashboardMetrics.updateMany({ data: { targetProjectId: seededIds.targetProject } }),
-  ])
 }
 
 export async function seedTemplateCatalog(
@@ -361,6 +351,7 @@ export async function seedTemplateCatalog(
       id: seededIds.templateTestCase,
       name: 'E2E Login Template',
       description: 'Reusable login flow for E2E',
+      targetProjectId: seededIds.targetProject,
       steps: {
         create: [
           {
@@ -430,6 +421,7 @@ export async function seedSecondModuleSuite(): Promise<void> {
     data: {
       id: seededIds.secondModule,
       name: 'E2E Secondary',
+      targetProjectId: seededIds.targetProject,
     },
   })
 
@@ -438,6 +430,7 @@ export async function seedSecondModuleSuite(): Promise<void> {
       id: seededIds.secondTestCase,
       title: 'E2E secondary case',
       description: 'Secondary module assignment case',
+      targetProjectId: seededIds.targetProject,
     },
   })
 
@@ -447,6 +440,7 @@ export async function seedSecondModuleSuite(): Promise<void> {
       name: 'E2E Secondary Suite',
       description: 'Suite for assignment coverage',
       moduleId: seededIds.secondModule,
+      targetProjectId: seededIds.targetProject,
       testCases: {
         connect: [{ id: seededIds.secondTestCase }],
       },
@@ -470,6 +464,7 @@ export async function seedTestRunVariants(): Promise<void> {
       environmentId: seededIds.environment,
       browserEngine: BrowserEngine.CHROMIUM,
       testWorkersCount: 1,
+      targetProjectId: seededIds.targetProject,
       testCases: {
         create: [
           {
@@ -493,6 +488,7 @@ export async function seedTestRunVariants(): Promise<void> {
       environmentId: seededIds.environment,
       browserEngine: BrowserEngine.CHROMIUM,
       testWorkersCount: 1,
+      targetProjectId: seededIds.targetProject,
     },
   })
 
@@ -507,6 +503,7 @@ export async function seedTestRunVariants(): Promise<void> {
       environmentId: seededIds.environment,
       browserEngine: BrowserEngine.CHROMIUM,
       testWorkersCount: 1,
+      targetProjectId: seededIds.targetProject,
       testCases: {
         create: [
           {
@@ -526,6 +523,7 @@ export async function seedDashboardAttentionMetrics(): Promise<void> {
     where: { testCaseId: seededIds.testCase },
     create: {
       testCaseId: seededIds.testCase,
+      targetProjectId: seededIds.targetProject,
       isRepeatedlyFailing: true,
       isFlaky: true,
       failureRate: 0.5,
@@ -549,6 +547,7 @@ export async function seedDashboardAttentionMetrics(): Promise<void> {
     where: { testSuiteId: seededIds.testSuite },
     create: {
       testSuiteId: seededIds.testSuite,
+      targetProjectId: seededIds.targetProject,
       lastExecutedAt: null,
     },
     update: {
@@ -563,20 +562,9 @@ export async function seedDashboardAttentionMetrics(): Promise<void> {
       repeatedlyFailingTestsCount: 1,
       flakyTestsCount: 1,
       suitesNotExecutedRecentlyCount: 1,
+      targetProjectId: seededIds.targetProject,
     },
   })
-}
-
-export async function generateSeededFeature(): Promise<string> {
-  return generateFeatureFile(seededIds.testSuite, 'E2E Auth Suite', 'Seeded suite for E2E feature generation')
-}
-
-export function readGeneratedFeature(): string {
-  if (!existsSync(generatedFeaturePath)) {
-    return ''
-  }
-
-  return readFileSync(generatedFeaturePath, 'utf8')
 }
 
 export async function findModuleByName(name: string) {

@@ -1,6 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
 import { ROOT_MODULE_UUID } from '@/constants/form-opts/module-form-opts'
-import { automationProjectionService } from '@/lib/automation/projection-service'
 import { createModule, deleteModules, getModuleByIdOrThrow, updateModule } from './module-service'
 
 vi.mock('@/config/db-config', () => ({
@@ -11,12 +10,6 @@ vi.mock('@/config/db-config', () => ({
       update: vi.fn(),
       deleteMany: vi.fn(),
     },
-  },
-}))
-
-vi.mock('@/lib/automation/projection-service', () => ({
-  automationProjectionService: {
-    regenerateAllPathDependentArtifacts: vi.fn().mockResolvedValue(undefined),
   },
 }))
 
@@ -34,7 +27,7 @@ describe('getModuleByIdOrThrow', () => {
 })
 
 describe('createModule', () => {
-  it('normalizes the root parent id and regenerates artifacts', async () => {
+  it('normalizes the root parent id without generating target artifacts', async () => {
     vi.mocked(prisma.module.create).mockResolvedValue({ id: 'module-1', name: 'Checkout' } as never)
 
     await expect(
@@ -54,12 +47,11 @@ describe('createModule', () => {
         parentId: null,
       },
     })
-    expect(automationProjectionService.regenerateAllPathDependentArtifacts).toHaveBeenCalled()
   })
 })
 
 describe('updateModule', () => {
-  it('updates the module and regenerates path-dependent artifacts', async () => {
+  it('updates the module without generating path-dependent artifacts', async () => {
     vi.mocked(prisma.module.update).mockResolvedValue({ id: 'module-1', name: 'Checkout' } as never)
     vi.mocked(prisma.module.findFirst)
       .mockResolvedValueOnce({ id: 'module-1' } as never)
@@ -83,12 +75,11 @@ describe('updateModule', () => {
         parentId: 'parent-1',
       },
     })
-    expect(automationProjectionService.regenerateAllPathDependentArtifacts).toHaveBeenCalled()
   })
 })
 
 describe('deleteModules', () => {
-  it('deletes modules and regenerates path-dependent artifacts', async () => {
+  it('deletes modules without generating path-dependent artifacts', async () => {
     vi.mocked(prisma.module.deleteMany).mockResolvedValue({ count: 2 } as never)
 
     await deleteModules(['module-1', 'module-2'], targetProjectId)
@@ -96,6 +87,5 @@ describe('deleteModules', () => {
     expect(prisma.module.deleteMany).toHaveBeenCalledWith({
       where: { id: { in: ['module-1', 'module-2'] }, targetProjectId },
     })
-    expect(automationProjectionService.regenerateAllPathDependentArtifacts).toHaveBeenCalled()
   })
 })

@@ -98,7 +98,6 @@ appraise/
 ├── scripts/             # Utility scripts for syncing and setup
 │   ├── sync-*.ts       # Various sync scripts
 │   ├── setup-env.ts    # Environment setup
-│   └── regenerate-features.ts
 ├── src/
 │   ├── app/            # Next.js app directory (pages and routes)
 │   ├── actions/        # Server actions

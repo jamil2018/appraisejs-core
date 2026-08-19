@@ -4,25 +4,38 @@ import { applyCapsuleDiagnosticMode, applyResponseMode, responseModeSchema, text
 export function registerRuntimeOperations(context: McpRegistryContext): void {
   const { server, api } = context
   server.registerTool(
-    'test_run_preflight',
+    'test_run_start',
     {
-      description: 'Read-only blocker check before Assessment-owned managed test execution.',
+      description:
+        'Start an independent capsule-only TestRun from an exact published validation or target-owned authored suite/case selection. Independent runs never create Assessment evidence.',
       inputSchema: {
-        target: z.string().min(1).optional(),
-        environmentId: z.string().min(1).optional(),
-        qualityPlanId: z.string().min(1).optional(),
-        validationVersionId: z.string().min(1).optional(),
-        featurePaths: z.array(z.string().min(1)).optional(),
-        importPaths: z.array(z.string().min(1)).optional(),
-        supportPaths: z.array(z.string().min(1)).optional(),
+        target: z.string().min(1),
+        environmentId: z.string().min(1),
+        name: z.string().min(1).max(200),
+        source: z.discriminatedUnion('sourceKind', [
+          z.object({
+            sourceKind: z.literal('PUBLISHED_VALIDATION'),
+            publicationId: z.string().min(1),
+            validationVersionId: z.string().min(1),
+            idempotencyKey: z.string().min(1),
+          }),
+          z.object({
+            sourceKind: z.literal('AUTHORED_TEST_SNAPSHOT'),
+            selections: z
+              .array(z.object({ testSuiteId: z.string().min(1), testCaseId: z.string().min(1) }))
+              .min(1)
+              .max(200),
+          }),
+        ]),
+        browserEngine: z.enum(['CHROMIUM', 'FIREFOX', 'WEBKIT']).optional(),
         responseMode: responseModeSchema,
       },
     },
-    async ({ responseMode, ...input }) => {
+    async ({ responseMode, source, ...input }) => {
       try {
-        const result = await api.request('test-runs/preflight', {
+        const result = await api.request('test-runs', {
           method: 'POST',
-          body: JSON.stringify(input),
+          body: JSON.stringify({ ...input, ...source }),
         })
         return text(applyResponseMode(result, responseMode))
       } catch (error) {

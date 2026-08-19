@@ -76,7 +76,7 @@ type RequestedCell = {
 }
 
 type AssessmentRunInput = {
-  assessmentId?: string
+  assessmentId: string
   validationVersionIds?: string[]
   subject?: {
     subjectDigest: string
@@ -92,72 +92,30 @@ type AssessmentRunInput = {
 }
 
 async function executionIdentity(input: AssessmentRunInput) {
-  if (input.assessmentId) {
-    const assessment = await executionClient.assessment.findUniqueOrThrow({
-      where: { id: input.assessmentId },
-      include: {
-        evaluationSubjectRevision: { select: { subjectDigest: true } },
-        qualityPlanRevision: { include: { validationVersions: { include: { publication: true } } } },
-      },
-    })
-    if (assessment.alignment !== 'CURRENT')
-      throw new ServiceError('Assessment execution requires current requirement alignment.', 'CONFLICT')
-    return {
-      assessmentId: assessment.id,
-      targetProjectId: assessment.targetProjectId,
-      qualityPlanId: assessment.qualityPlanId,
-      qualityPlanRevisionId: assessment.qualityPlanRevisionId,
-      evaluationSubjectRevisionId: assessment.evaluationSubjectRevisionId,
-      subjectDigest: assessment.evaluationSubjectRevision?.subjectDigest ?? '',
-      assessmentStatus: assessment.status,
-      versions: assessment.qualityPlanRevision.validationVersions,
-    }
-  }
-  if (!input.subject?.subjectDigest?.startsWith('sha256:') || !input.subject.authority)
-    throw new ServiceError(
-      'Standalone assessment execution requires an immutable digest subject and authority.',
-      'VALIDATION',
-    )
-  if (!input.validationVersionIds?.length)
-    throw new ServiceError(
-      'Standalone assessment execution requires selected published validation versions.',
-      'VALIDATION',
-    )
-  const versions = await executionClient.validationVersion.findMany({
-    where: { id: { in: input.validationVersionIds } },
-    include: { publication: true, qualityPlanRevision: true },
-  })
-  if (versions.length !== new Set(input.validationVersionIds).size)
-    throw new ServiceError('Standalone assessment execution references an unknown validation version.', 'NOT_FOUND')
-  const revision = versions[0]!.qualityPlanRevision
-  if (versions.some(version => version.qualityPlanRevisionId !== revision.id))
-    throw new ServiceError('Standalone validations must belong to one Quality Plan revision.', 'CONFLICT')
-  const subject = await executionClient.evaluationSubjectRevision.upsert({
-    where: { subjectDigest: input.subject.subjectDigest },
-    create: {
-      subjectDigest: input.subject.subjectDigest,
-      subjectKind: input.subject.subjectKind ?? 'ARTIFACT',
-      authority: input.subject.authority,
-      metadataJson: input.subject.metadata === undefined ? null : canonicalContractJson(input.subject.metadata),
+  const assessment = await executionClient.assessment.findUniqueOrThrow({
+    where: { id: input.assessmentId },
+    include: {
+      evaluationSubjectRevision: { select: { subjectDigest: true } },
+      qualityPlanRevision: { include: { validationVersions: { include: { publication: true } } } },
     },
-    update: {},
   })
+  if (assessment.alignment !== 'CURRENT')
+    throw new ServiceError('Assessment execution requires current requirement alignment.', 'CONFLICT')
   return {
-    assessmentId: null,
-    targetProjectId: revision.targetProjectId,
-    qualityPlanId: revision.qualityPlanId,
-    qualityPlanRevisionId: revision.id,
-    evaluationSubjectRevisionId: subject.id,
-    subjectDigest: subject.subjectDigest,
-    assessmentStatus: null,
-    versions,
+    assessmentId: assessment.id,
+    targetProjectId: assessment.targetProjectId,
+    qualityPlanId: assessment.qualityPlanId,
+    qualityPlanRevisionId: assessment.qualityPlanRevisionId,
+    evaluationSubjectRevisionId: assessment.evaluationSubjectRevisionId,
+    subjectDigest: assessment.evaluationSubjectRevision?.subjectDigest ?? '',
+    assessmentStatus: assessment.status,
+    versions: assessment.qualityPlanRevision.validationVersions,
   }
 }
 
 type ExecutionIdentity = Awaited<ReturnType<typeof executionIdentity>>
 
 async function assertCurrentReadyAssessment(tx: Prisma.TransactionClient, identity: ExecutionIdentity) {
-  if (!identity.assessmentId) return
   // Re-read the immutable identity and READY state immediately before grant
   // consumption. A cancellation or reassignment race cannot consume a grant.
   const assessment = await tx.assessment.findUnique({
@@ -280,10 +238,7 @@ export async function runQualityAssessment(input: AssessmentRunInput) {
 }
 
 function assessmentIdempotencyScope(identity: ExecutionIdentity) {
-  return (
-    identity.assessmentId ??
-    `standalone:${identity.targetProjectId}:${identity.qualityPlanRevisionId}:${identity.evaluationSubjectRevisionId}`
-  )
+  return identity.assessmentId
 }
 
 function assertCompletePublishedMatrix(cells: RequestedCell[], publications: ReturnType<typeof validateCells>) {
@@ -344,7 +299,6 @@ async function prepareCredentialAuthorization<
     )
   ).some(Boolean)
   if (!credentialRequired) return undefined
-  if (!input.identity.assessmentId) throw new ServiceError('AUTHORIZATION_REQUIRED', 'UNAUTHORIZED', 403)
   if (new Set(input.cells.map(cell => cell.environmentId)).size !== 1)
     throw new ServiceError('Credential execution requires one exact environment scope.', 'CONFLICT')
   const priorRun = await priorAssessmentRun(input.idempotencyScope, input.input.idempotencyKey)

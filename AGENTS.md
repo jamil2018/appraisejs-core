@@ -88,9 +88,9 @@ page/form/table under `src/app/(base)`.
 For database/schema work, read `prisma/schema.prisma` first and check affected services, actions, migrations, sync
 scripts, and tests before changing the model.
 
-For authored test structure, feature generation, or sync behavior, follow `docs/automation-sync-rules.md`, then check
-`src/lib/feature-file-generator.ts`, `src/lib/bidirectional-sync.ts`, `src/lib/database-sync.ts`,
-`src/lib/gherkin-parser.ts`, and the relevant `scripts/sync-*.ts`.
+For authored test structure or repository export behavior, follow `docs/automation-sync-rules.md`, then check
+`src/lib/repository-export/`, `src/lib/feature-file-generator.ts`, and the explicit export service. Database-owned
+authored entities and runtime capsules never import from or synchronize bidirectionally with `automation/`.
 
 For test execution, reports, or logs, follow `docs/test-run-runtime.md`, then start with
 `src/actions/test-run/test-run-actions.ts`, `src/services/test-run/test-run-service.ts`,

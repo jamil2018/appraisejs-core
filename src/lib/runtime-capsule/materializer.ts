@@ -14,6 +14,7 @@ import {
 import {
   canonicalRuntimeCapsuleJson,
   hashRuntimeCapsuleBytes,
+  hashRuntimeCapsuleValue,
   runtimeCapsuleManifestSchema,
   runtimeCapsuleSegmentSchema,
   type RuntimeCapsuleManifest,
@@ -29,6 +30,12 @@ import { generateExecutableBindings } from './binding-generator'
 import { resolveRuntimeStepDefinitionClosure, type SealedRuntimeStepDefinition } from './step-definition-closure'
 import { stepDefinitionContentHash } from '../../../packages/cucumber-runtime/src/step-definitions/contracts.ts'
 import { recordStepDefinitionTelemetry } from '@/services/step-definition/step-definition-telemetry'
+import { createCustomExtensionPolicy } from '@/lib/validation-ast/extension-policy'
+import { defaultOperationDefinitions } from '@/lib/operation-catalog/default-operation-registry'
+import {
+  stepInvocationSchema,
+  validateStepInvocationInputs,
+} from '../../../packages/cucumber-runtime/src/step-definitions/contracts.ts'
 
 type ValidationNode = ValidationArtifact['validations'][number]
 type CapsuleFile = { path: string; role: RuntimeCapsuleManifest['files'][number]['role']; bytes: Buffer }
@@ -89,22 +96,6 @@ function matchesExtensionByteHash(value: string, expectedHash: string) {
   )
 }
 
-function canonicalImmutableReviewedValidationProjection(value: unknown) {
-  const parsed = validationArtifactSchema.parse(value) as ValidationArtifact
-  const {
-    approvals: _approvals,
-    validationDecisions: _validationDecisions,
-    reviewSubmittedAt: _reviewSubmittedAt,
-    baselineAttempts: _baselineAttempts,
-    baselineAcknowledgements: _baselineAcknowledgements,
-    baselineDecision: _baselineDecision,
-    implementation: _implementation,
-    ...immutable
-  } = parsed
-  void [_approvals, _validationDecisions, _reviewSubmittedAt, _baselineAttempts, _baselineAcknowledgements]
-  void [_baselineDecision, _implementation]
-  return canonicalContractJson(immutable)
-}
 function expectedCases(node: ValidationNode, runtimeInput: ValidationAstRuntimeInput) {
   const suiteByCase = new Map<string, string>()
   for (const suite of node.appraiseArtifacts.testSuites)
@@ -411,6 +402,43 @@ function verifiedRuntimeExtension(
   }
 }
 
+async function authoredExtensionArtifacts(sealedDefinitions: SealedRuntimeStepDefinition[], prisma: PrismaClient) {
+  const bindings = reviewedExtensionBindings(sealedDefinitions)
+  if (bindings.size === 0) return []
+  const artifacts = await prisma.stepReviewedExtension.findMany({
+    where: {
+      OR: [...bindings.values()].map(binding => ({ id: binding.extensionId, version: binding.extensionVersion })),
+    },
+  })
+  const byKey = new Map(artifacts.map(artifact => [`${artifact.id}@${artifact.version}`, artifact]))
+  if (byKey.size !== bindings.size)
+    throw new Error('Authored runtime capsule reviewed-extension binding has no reviewed artifact.')
+  return [...bindings.entries()]
+    .sort(([left], [right]) => left.localeCompare(right))
+    .map(([key, binding]) => {
+      const artifact = byKey.get(key)
+      if (!artifact || artifact.sourceHash !== binding.sourceHash || artifact.compiledHash !== binding.compiledHash)
+        throw new Error(`Authored reviewed extension ${key} does not match its sealed Step Definition.`)
+      const conformance = JSON.parse(artifact.conformanceJson)
+      const conformanceHash = stepDefinitionContentHash(conformance)
+      if (
+        !matchesExtensionByteHash(artifact.source, artifact.sourceHash) ||
+        !matchesExtensionByteHash(artifact.compiledSource, artifact.compiledHash) ||
+        (artifact.conformanceHash !== conformanceHash &&
+          artifact.conformanceHash !==
+            `sha256:${createHash('sha256').update(canonicalContractJson(conformance)).digest('hex')}`)
+      )
+        throw new Error(`Authored reviewed extension ${key} lacks valid review artifact evidence.`)
+      return {
+        id: artifact.id,
+        version: artifact.version,
+        sourceHash: artifact.sourceHash,
+        compiledHash: artifact.compiledHash,
+        compiledSource: artifact.compiledSource,
+      }
+    })
+}
+
 async function buildCapsuleManifest(
   operation: CapsulePublication,
   testRun: MaterializerTestRun,
@@ -460,6 +488,11 @@ async function buildCapsuleManifest(
     projectionHash: operation.projectionHash,
     receiptHash: operation.receiptHash,
     runtimeInputHash: operation.runtimeInputHash,
+    source: {
+      kind: 'PUBLISHED_VALIDATION',
+      sourceHash: operation.validationHash,
+      publishOperationId: operation.id,
+    },
     ...(runtimeInput.lifecycleCorrelation ? { lifecycleCorrelation: runtimeInput.lifecycleCorrelation } : {}),
     commandReceipt: { path: 'command-receipt.json', hash: hashCapsuleCommandReceipt(commandReceipt) },
     generator: GENERATOR,
@@ -576,6 +609,299 @@ export class RuntimeCapsuleMaterializer {
       }).catch(() => undefined)
       throw error
     }
+  }
+
+  /** Authoring is executable only after it is frozen as a target-owned snapshot.
+   * The snapshot is deliberately not a Quality publication and can never be
+   * used as Assessment evidence authority. */
+  async materializeAuthored(input: { testRunId: string }) {
+    const testRun = await this.prisma.testRun.findUniqueOrThrow({
+      where: { id: input.testRunId },
+      include: {
+        environment: true,
+        targetProject: true,
+        testCases: {
+          include: {
+            testSuite: { select: { id: true, targetProjectId: true, name: true } },
+            testCase: {
+              include: {
+                steps: { orderBy: { order: 'asc' } },
+              },
+            },
+          },
+          orderBy: { id: 'asc' },
+        },
+        assessmentRunBinding: true,
+      },
+    })
+    if (testRun.intent !== 'INDEPENDENT')
+      throw new Error('Authored runtime capsules are available only to independent TestRuns.')
+    if (testRun.assessmentRunBinding)
+      throw new Error('Independent authored TestRuns cannot have an AssessmentRun binding.')
+    if (testRun.testCases.length === 0) throw new Error('Authored runtime capsules require at least one selected case.')
+
+    const selected = testRun.testCases.map(link => {
+      if (
+        !link.testSuite ||
+        link.testSuite.targetProjectId !== testRun.targetProjectId ||
+        link.testCase.targetProjectId !== testRun.targetProjectId
+      )
+        throw new Error('Authored runtime selection must contain target-owned explicit suite/case links.')
+      if (link.testCase.steps.length === 0)
+        throw new Error(`Authored test case ${link.testCaseId} has no executable Step Invocations.`)
+      const steps = link.testCase.steps.map(step => ({
+        id: step.id,
+        order: step.order,
+        label: step.label,
+        gherkinStep: step.gherkinStep,
+        invocation: stepInvocationSchema.parse(JSON.parse(step.invocationJson)),
+      }))
+      return {
+        suite: { id: link.testSuite.id, name: link.testSuite.name },
+        testCase: { id: link.testCase.id, title: link.testCase.title, description: link.testCase.description, steps },
+      }
+    })
+    const sourceSnapshot = {
+      schemaVersion: '1',
+      targetProjectId: testRun.targetProjectId,
+      targetFingerprint: testRun.targetProject.fingerprint,
+      environmentId: testRun.environmentId,
+      browserEngine: testRun.browserEngine,
+      selection: [...selected].sort((left, right) =>
+        `${left.suite.id}/${left.testCase.id}`.localeCompare(`${right.suite.id}/${right.testCase.id}`),
+      ),
+    }
+    const validationId = `authored_${hashRuntimeCapsuleValue(sourceSnapshot).slice('sha256:'.length)}`
+    if (new Set(selected.map(item => item.testCase.id)).size !== selected.length)
+      throw new Error('Authored runtime selection cannot include one case through multiple suites.')
+    const allInvocations = selected.flatMap(item => item.testCase.steps.map(step => step.invocation))
+    const sealedDefinitions = await resolveRuntimeStepDefinitionClosure(
+      allInvocations.map(invocation => invocation.step),
+      async step =>
+        this.prisma.stepDefinition.findUnique({
+          where: { id_version: { id: step.id, version: step.version } },
+          include: { publicationReceipt: true },
+        }),
+    )
+    const definitionByRef = new Map(
+      sealedDefinitions.map(definition => [`${definition.step.id}@${definition.step.version}`, definition.definition]),
+    )
+    for (const invocation of allInvocations) {
+      const definition = definitionByRef.get(`${invocation.step.id}@${invocation.step.version}`)
+      if (!definition) throw new Error('Authored Step Invocation is missing its sealed Step Definition.')
+      validateStepInvocationInputs(definition, invocation.inputs)
+    }
+    const locatorIds = new Set<string>()
+    for (const invocation of allInvocations) {
+      const definition = definitionByRef.get(`${invocation.step.id}@${invocation.step.version}`)!
+      for (const inputDefinition of definition.inputs.filter(item => item.type === 'locator')) {
+        const value = invocation.inputs[inputDefinition.name]
+        if (typeof value !== 'string' || !value)
+          throw new Error(`Authored locator input ${inputDefinition.name} must reference a target-owned locator ID.`)
+        locatorIds.add(value)
+      }
+    }
+    const locators = await this.prisma.locator.findMany({
+      where: { id: { in: [...locatorIds] }, targetProjectId: testRun.targetProjectId },
+      select: { id: true, name: true, value: true, locatorGroupId: true },
+    })
+    if (locators.length !== locatorIds.size)
+      throw new Error('Authored runtime selection references an unavailable or cross-project locator.')
+    const snapshotWithLocators = {
+      ...sourceSnapshot,
+      locators: [...locators].sort((left, right) => left.id.localeCompare(right.id)),
+    }
+    const sealedSourceHash = hashRuntimeCapsuleValue(snapshotWithLocators)
+    const node = {
+      id: validationId,
+      testCaseIds: selected.map(item => item.testCase.id),
+      appraiseArtifacts: {
+        modules: [],
+        locatorGroups: [],
+        testSuites: selected.map(item => ({
+          id: item.suite.id,
+          name: item.suite.name,
+          moduleId: `authored-module-${item.suite.id}`,
+          testCaseIds: [item.testCase.id],
+        })),
+        testCases: selected.map(item => ({
+          ...item.testCase,
+          steps: item.testCase.steps.map(step => ({ ...step, parameters: [] })),
+        })),
+        locators: locators.map(locator => ({ ...locator, locatorGroupId: locator.locatorGroupId ?? 'unassigned' })),
+      },
+      matrix: [{ browser: testRun.browserEngine.toLowerCase(), environment: testRun.environmentId }],
+    } as ValidationNode
+    const gherkin = node.appraiseArtifacts.testCases.map(testCase => ({
+      caseId: testCase.id,
+      steps: testCase.steps.map(step => step.gherkinStep),
+    }))
+    const compilerReceipt = {
+      schemaVersion: '1' as const,
+      catalogHash: hashRuntimeCapsuleValue(sealedDefinitions.map(item => item.step)),
+      locatorGraphHash: hashRuntimeCapsuleValue(snapshotWithLocators.locators),
+      environments: [testRun.environmentId],
+      browsers: [testRun.browserEngine.toLowerCase()],
+      runtimes: ['node'],
+    }
+    const runtimeInput = {
+      schemaVersion: '2' as const,
+      targetProjectId: testRun.targetProjectId,
+      targetFingerprint: testRun.targetProject.fingerprint,
+      astId: validationId,
+      astHash: sealedSourceHash,
+      contextHash: hashRuntimeCapsuleValue({ targetProjectId: testRun.targetProjectId, sourceHash: sealedSourceHash }),
+      previewHash: hashRuntimeCapsuleValue(gherkin),
+      receiptHash: sealedSourceHash,
+      compilerReceipt: { ...compilerReceipt, contentHash: hashRuntimeCapsuleValue(compilerReceipt) },
+      extensionPolicy: {
+        ...createCustomExtensionPolicy({
+          projectId: testRun.targetProjectId,
+          projectFingerprint: testRun.targetProject.fingerprint,
+          capabilityImports: {},
+        }),
+        capabilityImports: {},
+      },
+      rootInvocations: selected.flatMap(item =>
+        item.testCase.steps.map(step => ({ caseId: item.testCase.id, stepId: step.id, invocation: step.invocation })),
+      ),
+      locatorBindings: selected.flatMap(item =>
+        item.testCase.steps.flatMap(step => {
+          const definition = definitionByRef.get(`${step.invocation.step.id}@${step.invocation.step.version}`)!
+          return definition.inputs
+            .filter(input => input.type === 'locator')
+            .map(input => ({
+              caseId: item.testCase.id,
+              stepId: step.id,
+              inputName: input.name,
+              cardinality: 'exactlyOne' as const,
+            }))
+        }),
+      ),
+      operationCardinalities: defaultOperationDefinitions.flatMap(operation =>
+        operation.inputs
+          .filter(input => input.type === 'locator' && input.cardinality)
+          .map(input => ({
+            operation: `${operation.handler.id}@${operation.handler.version}`,
+            inputName: input.name,
+            cardinality: input.cardinality!,
+          })),
+      ),
+      stepDefinitions: sealedDefinitions.map(item => item.step),
+      locators: locators.map(locator => ({
+        id: locator.id,
+        version: '1',
+        contentHash: hashRuntimeCapsuleValue(locator),
+        binding: {
+          id: locator.id,
+          name: locator.name,
+          value: locator.value,
+          locatorGroupId: locator.locatorGroupId ?? 'unassigned',
+        },
+      })),
+      extensions: [],
+      matrix: node.matrix,
+      expected: {
+        scenarios: selected.map(item => ({
+          scenarioId: `authored-scenario-${item.testCase.id}`,
+          caseId: item.testCase.id,
+          stepIds: item.testCase.steps.map(step => step.id),
+        })),
+        scenarioCount: selected.length,
+      },
+      gherkinHash: hashRuntimeCapsuleValue(gherkin),
+    } satisfies ValidationAstRuntimeInput
+    const operation = {
+      id: `authored_${sealedSourceHash.slice('sha256:'.length)}`,
+      sourceKind: 'AUTHORED_TEST_SNAPSHOT' as const,
+      sourceHash: sealedSourceHash,
+      targetProjectId: testRun.targetProjectId,
+      validationHash: sealedSourceHash,
+      operationHash: hashRuntimeCapsuleValue(snapshotWithLocators),
+      projectionHash: hashRuntimeCapsuleValue(node),
+      receiptHash: sealedSourceHash,
+      runtimeInputHash: hashRuntimeCapsuleValue(runtimeInput),
+    }
+    const extensionArtifacts = await authoredExtensionArtifacts(sealedDefinitions, this.prisma)
+    const built = buildReviewedRuntimeCapsuleFiles({
+      node,
+      runtimeInput,
+      extensionArtifacts,
+      sealedDefinitions,
+      verifiedExtensionArtifacts: true,
+    })
+    const commandReceipt = await sealCapsuleCommandReceipt({ operation, testRun, runtimeInput, built })
+    built.files.push({
+      path: 'command-receipt.json',
+      role: 'command-receipt',
+      bytes: Buffer.from(canonicalCapsuleCommandReceipt(commandReceipt)),
+    })
+    built.files.sort((left, right) => left.path.localeCompare(right.path))
+    const manifest = runtimeCapsuleManifestSchema.parse({
+      schemaVersion: '2',
+      projectId: testRun.targetProjectId,
+      validationHash: sealedSourceHash,
+      runId: testRun.runId,
+      operationHash: operation.operationHash,
+      projectionHash: operation.projectionHash,
+      receiptHash: operation.receiptHash,
+      runtimeInputHash: operation.runtimeInputHash,
+      source: { kind: 'AUTHORED_TEST_SNAPSHOT', sourceHash: sealedSourceHash, snapshot: snapshotWithLocators },
+      commandReceipt: { path: 'command-receipt.json', hash: hashCapsuleCommandReceipt(commandReceipt) },
+      generator: GENERATOR,
+      rootInvocations: allInvocations,
+      stepDefinitions: sealedDefinitions.map(sealed => ({
+        step: sealed.step,
+        definition: sealed.definition,
+        definitionHash: sealed.hashes.definition,
+        humanProjectionHash: sealed.hashes.humanProjection,
+        agentContractHash: sealed.hashes.agentContract,
+        executionHash: sealed.hashes.execution,
+        publicationReceiptHash: sealed.hashes.publicationReceipt,
+      })),
+      extensions: built.extensions,
+      expectedCases: built.cases,
+      files: built.files.map(file => ({
+        path: file.path,
+        role: file.role,
+        hash: hashRuntimeCapsuleBytes(file.bytes),
+        size: file.bytes.byteLength,
+      })),
+    })
+    await new ManagedProjectManifestRepository(this.prisma, this.appraiseRoot).refresh(testRun.targetProjectId)
+    const identity = { projectId: testRun.targetProjectId, validationHash: sealedSourceHash, runId: testRun.runId }
+    const paths = resolveRuntimeCapsulePaths({ appraiseRoot: this.appraiseRoot, ...identity })
+    return withRuntimeCapsuleLeaseHeartbeat(
+      new RuntimeCapsuleLeaseRepository(this.prisma),
+      identity,
+      async assertOwned => {
+        const blobs = new RuntimeCapsuleBlobRepository(this.prisma, this.appraiseRoot)
+        for (const [index, file] of built.files.entries()) {
+          await assertOwned()
+          const blob = await blobs.put({
+            projectId: testRun.targetProjectId,
+            contentHash: manifest.files[index]!.hash,
+            bytes: file.bytes,
+          })
+          await materializeRuntimeCapsuleFile({
+            paths,
+            filePath: file.path,
+            blobPath: path.join(this.appraiseRoot, 'projects', testRun.targetProjectId, blob.storagePath),
+            contentHash: manifest.files[index]!.hash,
+            expectedSize: manifest.files[index]!.size,
+          })
+        }
+        const row = await new RuntimeCapsuleRepository(this.prisma, this.appraiseRoot).create({
+          projectId: testRun.targetProjectId,
+          testRunId: testRun.id,
+          runId: testRun.runId,
+          validationHash: sealedSourceHash,
+          manifest,
+          assertLeaseOwned: assertOwned,
+        })
+        return { row, manifest }
+      },
+    )
   }
 }
 

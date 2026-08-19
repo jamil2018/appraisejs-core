@@ -26,12 +26,11 @@ test.describe('Runs and reports @runs', () => {
     await expect(page.getByText('E2E Completed Run', { exact: true }).first()).toBeHidden()
   })
 
-  test('test run detail shows status logs and report navigation', async ({ page }) => {
+  test('test run detail shows status and report navigation', async ({ page }) => {
     await page.goto(`/test-runs/${seededIds.testRun}`)
     await expectPageHeading(page, 'Test Run Details')
     await expect(page.getByText('E2E Completed Run')).toBeVisible()
     await expect(page.getByText('Finished', { exact: true }).first()).toBeVisible()
-    await expect(page.getByText('E2E seeded run started')).toBeVisible()
     await expect(page.getByText('E2E seeded login works')).toBeVisible()
 
     await page.getByRole('link', { name: /View Report/ }).click()

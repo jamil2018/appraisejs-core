@@ -34,6 +34,7 @@ beforeEach(() => {
   mocks.initializeTargetGitRepository.mockResolvedValue({ status: 'skipped' })
   mocks.registerTargetProject.mockResolvedValue({
     id: '00000000-0000-4000-8000-000000000001',
+    kind: 'LOCAL_WORKSPACE',
     canonicalPath: '/target-project',
   })
   mocks.writeTargetProjectMarker.mockResolvedValue({
@@ -45,7 +46,7 @@ beforeEach(() => {
 describe('target-project actions', () => {
   it('uses the hub identity to bind a registered target marker', async () => {
     await expect(
-      registerTargetProjectAction({ projectPath: '/target-project', displayName: 'Target Project' }),
+      registerTargetProjectAction({ path: '/target-project', displayName: 'Target Project' }),
     ).resolves.toMatchObject({ status: 200, success: true })
 
     expect(mocks.deriveCoordinatorProjectIdentity).toHaveBeenCalledWith(process.cwd())

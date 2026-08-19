@@ -8,16 +8,23 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { copyMigratedTestDatabase } from '@/test/migrated-test-database'
 
-const { mockTargetProjectUpsert, mockTargetProjectFindMany, mockTargetProjectFindUnique, mockTargetProjectUpdate } =
-  vi.hoisted(() => ({
-    mockTargetProjectUpsert: vi.fn(),
-    mockTargetProjectFindMany: vi.fn(),
-    mockTargetProjectFindUnique: vi.fn(),
-    mockTargetProjectUpdate: vi.fn(),
-  }))
+const {
+  mockEnvironmentUpsert,
+  mockTargetProjectUpsert,
+  mockTargetProjectFindMany,
+  mockTargetProjectFindUnique,
+  mockTargetProjectUpdate,
+} = vi.hoisted(() => ({
+  mockEnvironmentUpsert: vi.fn(),
+  mockTargetProjectUpsert: vi.fn(),
+  mockTargetProjectFindMany: vi.fn(),
+  mockTargetProjectFindUnique: vi.fn(),
+  mockTargetProjectUpdate: vi.fn(),
+}))
 
 vi.mock('@/config/db-config', () => ({
   default: {
+    environment: { upsert: mockEnvironmentUpsert },
     targetProject: {
       upsert: mockTargetProjectUpsert,
       findMany: mockTargetProjectFindMany,
@@ -64,7 +71,7 @@ describe('target project service', () => {
     const workspace = await createWorkspace()
     mockTargetProjectUpsert.mockImplementation(async args => ({ id: 'target-1', ...args.create }))
 
-    const result = await registerTargetProject({ projectPath: workspace })
+    const result = await registerTargetProject({ path: workspace })
 
     expect(result).toMatchObject({
       canonicalPath: await fs.realpath(workspace),
@@ -73,8 +80,9 @@ describe('target project service', () => {
     })
     expect(mockTargetProjectUpsert).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: { canonicalPath: await fs.realpath(workspace) },
+        where: { canonicalIdentity: `path:${await fs.realpath(workspace)}` },
         create: expect.objectContaining({
+          kind: 'LOCAL_WORKSPACE',
           packageJson: expect.stringContaining('"scripts"'),
           fingerprint: expect.stringMatching(/^sha256:/),
         }),
@@ -87,7 +95,7 @@ describe('target project service', () => {
     const workspace = await createWorkspace(null)
     mockTargetProjectUpsert.mockImplementation(async args => ({ id: 'target-empty', ...args.create }))
 
-    const result = await registerTargetProject({ projectPath: workspace, displayName: 'Empty target' })
+    const result = await registerTargetProject({ path: workspace, displayName: 'Empty target' })
 
     expect(result).toMatchObject({
       canonicalPath: await fs.realpath(workspace),
@@ -103,6 +111,36 @@ describe('target project service', () => {
       }),
     )
   })
+
+  it('normalizes a remote target origin and creates its initial environment', async () => {
+    mockTargetProjectUpsert.mockResolvedValue({ id: 'remote-target', kind: 'REMOTE_BLACK_BOX' })
+
+    await expect(
+      registerTargetProject({ url: 'https://example.test/path?ignored=true', displayName: 'Example' }),
+    ).resolves.toMatchObject({ id: 'remote-target' })
+
+    expect(mockTargetProjectUpsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { canonicalIdentity: 'url:https://example.test' },
+        create: expect.objectContaining({
+          kind: 'REMOTE_BLACK_BOX',
+          normalizedRemoteOrigin: 'https://example.test',
+        }),
+      }),
+    )
+    expect(mockEnvironmentUpsert).toHaveBeenCalledWith({
+      where: { targetProjectId_name: { targetProjectId: 'remote-target', name: 'default' } },
+      create: { targetProjectId: 'remote-target', name: 'default', baseUrl: 'https://example.test' },
+      update: { baseUrl: 'https://example.test' },
+    })
+  })
+
+  it.each(['ftp://example.test', 'https://user:pass@example.test', 'https://example.test/#fragment'])(
+    'rejects an unsafe remote target URL: %s',
+    async url => {
+      await expect(registerTargetProject({ url })).rejects.toMatchObject({ code: 'VALIDATION', statusCode: 400 })
+    },
+  )
 
   it('initializes Git only when explicitly requested for an empty target', async () => {
     const workspace = await createWorkspace(null)
@@ -127,13 +165,13 @@ describe('target project service', () => {
   it('reads launch metadata created after an empty target was registered', async () => {
     const workspace = await createWorkspace(null)
     mockTargetProjectUpsert.mockImplementation(async args => ({ id: 'target-empty', ...args.create }))
-    await registerTargetProject({ projectPath: workspace, displayName: 'Empty target' })
+    const targetProject = await registerTargetProject({ path: workspace, displayName: 'Empty target' })
     await fs.writeFile(
       path.join(workspace, 'package.json'),
       JSON.stringify({ scripts: { dev: 'vite' }, packageManager: 'npm@11.0.0' }),
     )
 
-    await expect(readTargetProjectLaunchMetadata(workspace)).resolves.toEqual({
+    await expect(readTargetProjectLaunchMetadata(targetProject)).resolves.toEqual({
       packageManager: 'npm@11.0.0',
       scripts: { dev: 'vite' },
     })
@@ -141,16 +179,18 @@ describe('target project service', () => {
 
   it('writes and refreshes the Appraise continuity marker independently from registration', async () => {
     const workspace = await createWorkspace()
+    const canonicalPath = await fs.realpath(workspace)
     const targetProject = {
       id: 'target-1',
-      canonicalPath: await fs.realpath(workspace),
+      kind: 'LOCAL_WORKSPACE',
+      canonicalPath,
       displayName: 'Target app',
       fingerprint: 'sha256:target',
     } as Parameters<typeof writeTargetProjectMarker>[0]
 
     await expect(writeTargetProjectMarker(targetProject, 'sha256:hub')).resolves.toMatchObject({
       status: 'written',
-      path: path.join(targetProject.canonicalPath, '.appraisejs', 'project.json'),
+      path: path.join(canonicalPath, '.appraisejs', 'project.json'),
     })
     await expect(writeTargetProjectMarker(targetProject, 'sha256:hub')).resolves.toMatchObject({
       status: 'refreshed',
@@ -173,6 +213,7 @@ describe('target project service', () => {
     const blockedPath = path.join(workspace, 'package.json')
     const targetProject = {
       id: 'target-1',
+      kind: 'LOCAL_WORKSPACE',
       canonicalPath: blockedPath,
       displayName: 'Target app',
       fingerprint: 'sha256:target',
@@ -189,7 +230,7 @@ describe('target project service', () => {
 
     await expect(listTargetProjects()).resolves.toEqual([{ id: 'target-1' }])
     expect(mockTargetProjectFindMany).toHaveBeenCalledWith({
-      orderBy: [{ displayName: 'asc' }, { canonicalPath: 'asc' }],
+      orderBy: [{ displayName: 'asc' }, { canonicalIdentity: 'asc' }],
     })
   })
 
@@ -200,14 +241,21 @@ describe('target project service', () => {
   })
 
   it('resolves URL project scope before cookie scope without silently falling back', async () => {
-    mockTargetProjectFindUnique.mockResolvedValueOnce({ id: 'url-project', displayName: 'URL', canonicalPath: '/url' })
+    mockTargetProjectFindUnique.mockResolvedValueOnce({
+      id: 'url-project',
+      kind: 'REMOTE_BLACK_BOX',
+      displayName: 'URL',
+      canonicalIdentity: 'url:https://example.test',
+      canonicalPath: null,
+      normalizedRemoteOrigin: 'https://example.test',
+    })
 
     await expect(
       resolveActiveProject({ urlProjectId: 'url-project', cookieProjectId: 'cookie-project' }),
-    ).resolves.toEqual({ id: 'url-project', displayName: 'URL', canonicalPath: '/url', source: 'url' })
+    ).resolves.toMatchObject({ id: 'url-project', kind: 'REMOTE_BLACK_BOX', source: 'url' })
     expect(mockTargetProjectFindUnique).toHaveBeenCalledWith({
       where: { id: 'url-project' },
-      select: { id: true, displayName: true, canonicalPath: true },
+      select: expect.objectContaining({ id: true, kind: true, canonicalIdentity: true, canonicalPath: true }),
     })
 
     mockTargetProjectFindUnique.mockResolvedValueOnce(null)
@@ -306,6 +354,8 @@ describe('target project service', () => {
       await client.targetProject.create({
         data: {
           id: targetProjectId,
+          kind: 'LOCAL_WORKSPACE',
+          canonicalIdentity: `path:${workspace}`,
           canonicalPath: workspace,
           displayName: 'Deletion target',
           fingerprint: `sha256:${'9'.repeat(64)}`,

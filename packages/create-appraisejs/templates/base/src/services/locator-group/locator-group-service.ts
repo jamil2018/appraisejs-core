@@ -1,7 +1,5 @@
 import prisma from '@/config/db-config'
 import { locatorGroupSchema } from '@/constants/form-opts/locator-group-form-opts'
-import { automationProjectionService } from '@/lib/automation/projection-service'
-import { getLocatorGroupFilePath } from '@/lib/locator-group-file-utils'
 import { ServiceError } from '@/services/shared/errors'
 import type { LocatorGroup } from '@prisma/client'
 import { Prisma } from '@prisma/client'
@@ -76,8 +74,6 @@ export async function createLocatorGroup(
       },
     })
 
-    await automationProjectionService.createEmptyLocatorGroup(locatorGroup.id)
-    await automationProjectionService.syncLocatorMap(value.name, value.route ?? '/')
     return locatorGroup
   } catch (error) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
@@ -120,7 +116,6 @@ export async function updateLocatorGroup(
     }
   }
 
-  const previousFilePath = await getLocatorGroupFilePath(id)
   const [module, locators] = await Promise.all([
     prisma.module.findFirst({ where: { id: value.moduleId, targetProjectId }, select: { id: true } }),
     prisma.locator.findMany({ where: { id: { in: value.locators ?? [] }, targetProjectId }, select: { id: true } }),
@@ -145,27 +140,6 @@ export async function updateLocatorGroup(
       include: locatorGroupInclude,
     })
 
-    const nameChanged = currentLocatorGroup.name !== value.name
-    const moduleChanged = currentLocatorGroup.moduleId !== value.moduleId
-    const routeChanged = currentLocatorGroup.route !== value.route
-
-    if (moduleChanged) {
-      await automationProjectionService.moveLocatorGroup(id, previousFilePath ?? undefined)
-    } else if (nameChanged) {
-      await automationProjectionService.renameLocatorGroup(id, value.name, currentLocatorGroup.name)
-    } else {
-      await automationProjectionService.syncLocatorGroup(id)
-    }
-
-    if (routeChanged || nameChanged) {
-      await automationProjectionService.syncLocatorMap(
-        currentLocatorGroup.route,
-        value.route ?? '/',
-        currentLocatorGroup.name,
-        value.name,
-      )
-    }
-
     return updatedLocatorGroup
   } catch (error) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
@@ -180,14 +154,6 @@ export async function updateLocatorGroup(
 }
 
 export async function deleteLocatorGroups(ids: string[], targetProjectId: string): Promise<string[]> {
-  const locatorGroupsToDelete = await prisma.locatorGroup.findMany({
-    where: { id: { in: ids }, targetProjectId },
-    select: { name: true },
-  })
-
-  await automationProjectionService.deleteLocatorMapEntries(locatorGroupsToDelete.map(group => group.name))
-  await Promise.all(ids.map(id => automationProjectionService.deleteLocatorGroup(id)))
-
   await prisma.locatorGroup.deleteMany({
     where: { id: { in: ids }, targetProjectId },
   })

@@ -426,12 +426,10 @@ export function registerQualityDesignOperations(context: McpRegistryContext): vo
   server.registerTool(
     'assessment_run',
     {
-      description:
-        'Run approved validation versions for an assessment or standalone evidence-only execution; decisions require reviewed assessments.',
+      description: 'Run the published validation matrix owned by an existing reviewable assessment.',
       inputSchema: {
-        assessmentId: z.string().min(1).optional(),
+        assessmentId: z.string().min(1),
         validationVersionIds: z.array(z.string().min(1)).optional(),
-        subject: z.unknown().optional(),
         runtime: z.unknown().optional(),
         authorizationGrantId: z.string().uuid().optional(),
         executionRequestId: z.string().uuid().optional(),

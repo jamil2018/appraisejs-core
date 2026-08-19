@@ -1,15 +1,12 @@
 import prisma from '@/config/db-config'
 import {
-  parseCucumberReport,
   parseCucumberReportText,
   getStepStatusEnum,
   getStepKeywordEnum,
   type ParsedReport,
 } from '@/lib/test-run/report-parser'
 import type { Prisma, PrismaClient } from '@prisma/client'
-import { existsSync } from 'fs'
 import { updateTestSuiteMetrics } from '@/lib/metrics/metric-calculator'
-import { resolveStoredPath, toProjectRelativePath } from '@/lib/automation/automation-path-roots'
 import { findMatchingTestRunTestCase } from '@/lib/test-run/matching'
 import { RECENT_PERIOD_DAYS } from '@/services/shared/constants'
 import { ServiceError } from '@/services/shared/errors'
@@ -185,8 +182,10 @@ async function createReportShell(testRun: ReportStorageTestRun, reportPath: stri
     data: {
       name: `Test Run Report - ${testRun.name}`,
       description: `Report for test run: ${testRun.name}`,
-      reportPath: toProjectRelativePath(reportPath, testRun.targetProject?.canonicalPath),
+      // This is display metadata. Artifact retrieval always goes through the capsule.
+      reportPath,
       testRunId: testRun.id,
+      targetProjectId: testRun.targetProjectId,
     },
   })
 }
@@ -249,7 +248,6 @@ async function createReportScenario(
 async function createReportScenarioExecutionRows(
   reportScenarioId: string,
   scenario: ParsedReportScenario,
-  projectRoot?: string,
   client: PrismaClient = prisma,
 ) {
   for (const step of scenario.steps) {
@@ -264,7 +262,7 @@ async function createReportScenarioExecutionRows(
         duration: String(step.duration),
         errorMessage: step.errorMessage,
         errorTrace: step.errorTrace,
-        screenshotPath: step.screenshotPath ? toProjectRelativePath(step.screenshotPath, projectRoot) : null,
+        screenshotPath: step.screenshotPath,
         hidden: step.hidden,
         order: step.order,
       },
@@ -343,7 +341,7 @@ async function createParsedReportGraph(
 
     for (const scenario of feature.scenarios) {
       const reportScenario = await createReportScenario(reportFeature.id, scenario, client)
-      await createReportScenarioExecutionRows(reportScenario.id, scenario, testRun.targetProject?.canonicalPath, client)
+      await createReportScenarioExecutionRows(reportScenario.id, scenario, client)
       await linkReportScenarioToTestCase(reportId, reportScenario.id, scenario, testRun, executedTestCases, client)
     }
   }
@@ -425,27 +423,20 @@ export async function storeReportFromFileService(
       }
     }
 
-    const managedReportText = testRun.runtimeCapsule
-      ? await readTestRunArtifactText(createTestRunArtifactAccess(createTestRunArtifactContext(appraiseRoot), client), {
-          runId: testRunId,
-          kind: 'report',
-        })
-      : null
-    const resolvedReportPath = resolveStoredPath(reportPath, testRun.targetProject?.canonicalPath)
-
-    if (!testRun.runtimeCapsule && !existsSync(resolvedReportPath)) {
-      console.warn(`[ReportService] Report file not found at ${reportPath} for testRunId: ${testRunId}`)
+    if (!testRun.runtimeCapsule) {
       return {
         success: false,
-        reason: 'file_not_found',
-        message: `Report file not found at ${reportPath}`,
+        reason: 'storage_failed',
+        message: `Test run ${testRunId} has no runtime capsule`,
       }
     }
 
-    const parsedReport = managedReportText
-      ? parseCucumberReportText(managedReportText)
-      : await parseCucumberReport(resolvedReportPath)
-    const report = await createReportShell(testRun, reportPath, client)
+    const managedReportText = await readTestRunArtifactText(
+      createTestRunArtifactAccess(createTestRunArtifactContext(appraiseRoot), client),
+      { runId: testRunId, kind: 'report' },
+    )
+    const parsedReport = parseCucumberReportText(managedReportText)
+    const report = await createReportShell(testRun, 'reports/cucumber.json', client)
     const executedTestCases = await createParsedReportGraph(report.id, parsedReport, testRun, client)
     await updateExecutedSuiteMetrics(testRun, executedTestCases, client)
 

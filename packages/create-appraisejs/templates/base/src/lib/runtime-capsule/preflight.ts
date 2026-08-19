@@ -13,6 +13,7 @@ import {
 import { CucumberDryRunReconciliationError, parseAndReconcileCucumberDryRun } from './cucumber-dry-run-report'
 import { defaultCapsulePreflightDependencies, type CapsulePreflightDependencies } from './preflight-dependencies'
 import { RuntimeCapsuleRepository } from './repository'
+import { hashRuntimeCapsuleValue } from './contracts'
 import { RuntimeCapsuleLeaseRepository } from './lease-repository'
 import { withRuntimeCapsuleLeaseHeartbeat } from './materializer'
 import { resolveCapsuleRuntimeIdentity } from './runtime-identity'
@@ -101,8 +102,9 @@ function publicationMatches(
   receipt: CapsuleCommandReceiptV1,
   input: PreflightInput,
 ) {
+  if (!operation || receipt.ownership.sourceKind !== 'PUBLISHED_VALIDATION') return false
   return (
-    operation?.id === receipt.ownership.publishOperationId &&
+    operation.id === receipt.ownership.publishOperationId &&
     operation.targetProjectId === input.projectId &&
     operation.projectionHash === receipt.ownership.projectionHash &&
     operation.receiptHash === receipt.ownership.compilerReceiptHash &&
@@ -192,6 +194,17 @@ export class RuntimeCapsulePreflight {
       })
       if (!capsuleOwnershipMatches(capsule, receipt, input))
         throw new PreflightFailure('OWNERSHIP_MISMATCH', 'Use the capsule owned by this exact project and TestRun.')
+      if (
+        manifest.source.kind !== receipt.ownership.sourceKind ||
+        manifest.source.sourceHash !== receipt.ownership.sourceHash
+      )
+        throw new PreflightFailure('OWNERSHIP_MISMATCH', 'Reseal the exact capsule source identity.')
+      if (
+        manifest.source.kind === 'AUTHORED_TEST_SNAPSHOT' &&
+        hashRuntimeCapsuleValue(manifest.source.snapshot) !== receipt.ownership.sourceHash
+      )
+        throw new PreflightFailure('OWNERSHIP_MISMATCH', 'Reseal the canonical authored test snapshot.')
+      if (manifest.source.kind === 'AUTHORED_TEST_SNAPSHOT') return
       const operation = await this.prisma.qualityValidationPublication.findUnique({
         where: { operationHash: receipt.ownership.operationHash },
       })
