@@ -56,9 +56,5 @@ export function rewriteScriptsForPackageManager(
   if (rewrittenScripts['appraisejs:setup'] !== undefined) {
     rewrittenScripts['appraisejs:setup'] = `${profile.runPrefix} setup`
   }
-  if (rewrittenScripts['appraisejs:sync'] !== undefined) {
-    rewrittenScripts['appraisejs:sync'] = `${profile.runPrefix} sync-all`
-  }
-
   return rewrittenScripts
 }

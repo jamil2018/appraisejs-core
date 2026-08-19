@@ -91,6 +91,11 @@ function validateSecurityCommands(workflow) {
   if (packageInstallIndex === -1 || mcpHttpCheckIndex === -1 || packageInstallIndex > mcpHttpCheckIndex) {
     throw new Error('Security CI must install appraisejs package dependencies before running MCP HTTP checks.')
   }
+  requireCommand(
+    commands,
+    'npm run release:check:capsule-cutover',
+    'Security CI must enforce the capsule-only cutover guard.',
+  )
 }
 
 function validateDependabot(dependabot) {

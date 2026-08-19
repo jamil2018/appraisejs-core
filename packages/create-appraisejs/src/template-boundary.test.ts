@@ -19,7 +19,7 @@ describe('isRepoOnlyTemplatePath', () => {
 
   it('keeps project-owned runtime scripts available', () => {
     expect(isRepoOnlyTemplatePath('scripts/check-agent-harness.mjs')).toBe(false)
-    expect(isRepoOnlyTemplatePath('scripts/sync-all.ts')).toBe(false)
+    expect(isRepoOnlyTemplatePath('scripts/sync-step-definitions.ts')).toBe(false)
   })
 })
 

@@ -49,6 +49,7 @@
     "migrate-db": "npx prisma migrate deploy",
     "validate:migrations": "node scripts/validate-prisma-migrations.mjs",
     "generate-db-client": "npx prisma generate --schema prisma/schema.prisma",
+    "sync-step-definitions": "npx tsx scripts/sync-step-definitions.ts",
     "setup": "npm run install-dependencies && npm run setup:db && npm run build:local && npm run protect-seeded-files",
     "test": "cucumber-js",
     "validate:unit": "node --import tsx scripts/run-vitest.ts",

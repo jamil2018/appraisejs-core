@@ -141,6 +141,30 @@ describe('coordinator locator_ensure route', () => {
     expect(ensureTargetLocator).not.toHaveBeenCalled()
   })
 
+  it('rejects Assessment execution without exact Assessment ownership at the HTTP boundary', async () => {
+    const missingAssessment = await POST(request({ idempotencyKey: 'assessment-run-missing-owner' }, ''), {
+      params: Promise.resolve({ operation: ['quality', 'assessment-runs'] }),
+    })
+    expect(missingAssessment.status).toBe(400)
+
+    const obsoleteStandaloneSubject = await POST(
+      request(
+        {
+          assessmentId: 'assessment-1',
+          subject: { subjectDigest: `sha256:${'1'.repeat(64)}` },
+          idempotencyKey: 'assessment-run-obsolete-subject',
+        },
+        '',
+      ),
+      { params: Promise.resolve({ operation: ['quality', 'assessment-runs'] }) },
+    )
+    expect(obsoleteStandaloneSubject.status).toBe(400)
+    await expect(obsoleteStandaloneSubject.json()).resolves.toMatchObject({
+      classification: 'request_invalid',
+      code: 'VALIDATION',
+    })
+  })
+
   it('requires a Quality Plan and derives locator graph scope from its target', async () => {
     const response = await GET(
       new Request(

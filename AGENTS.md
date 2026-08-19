@@ -89,12 +89,13 @@ For database/schema work, read `prisma/schema.prisma` first and check affected s
 scripts, and tests before changing the model.
 
 For authored test structure or repository export behavior, follow `docs/automation-sync-rules.md`, then check
-`src/lib/repository-export/`, `src/lib/feature-file-generator.ts`, and the explicit export service. Database-owned
-authored entities and runtime capsules never import from or synchronize bidirectionally with `automation/`.
+`src/lib/repository-export/` and the explicit export service. Database-owned authored entities and runtime capsules
+never import from or synchronize bidirectionally with `automation/`.
 
 For test execution, reports, or logs, follow `docs/test-run-runtime.md`, then start with
 `src/actions/test-run/test-run-actions.ts`, `src/services/test-run/test-run-service.ts`,
-`src/lib/executor/local-executor-adapter.ts`, `src/lib/test-run/process-manager.ts`,
+`src/services/test-run/runtime-capsule-test-run-service.ts`, `src/lib/runtime-capsule/`,
+`src/lib/test-run/process-manager.ts`,
 `src/app/api/test-runs/[runId]/logs/route.ts`, and `cucumber.mjs`.
 
 For UI organization, follow `docs/component-organization-rules.md`. Keep route-specific UI local unless reuse or

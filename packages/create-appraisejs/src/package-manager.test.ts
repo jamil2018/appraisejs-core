@@ -5,15 +5,15 @@ const TEMPLATE_SCRIPTS = {
   'install-dependencies': 'npm install --legacy-peer-deps',
   setup: 'npm run install-dependencies && npm run setup-env && npm run build:local && npm run protect-seeded-files',
   'appraisejs:setup': 'npm run setup',
-  'appraisejs:sync': 'npm run sync-all',
+  'appraisejs:sync': 'npm run sync-step-definitions',
   'build:local': 'npm run build:cucumber-runtime && npm run build:locator-picker-companion && next build',
   'protect-seeded-files': 'npx tsx scripts/protect-seeded-files.ts',
   'setup-env': 'npx tsx scripts/setup-env.ts',
   'migrate-db': 'npx prisma migrate deploy',
   'install-playwright': 'npx playwright install',
-  'setup:db': 'npm run setup-env && npm run migrate-db && npm run sync-all',
+  'setup:db': 'npm run setup-env && npm run migrate-db && npm run sync-step-definitions',
   'setup:full': 'npm run install-dependencies && npm run setup:db && npm run build:local',
-  'sync-all': 'npx tsx scripts/sync-all.ts',
+  'sync-step-definitions': 'npx tsx scripts/sync-step-definitions.ts',
 }
 
 describe('getPackageManagerProfile', () => {
@@ -36,7 +36,7 @@ describe('rewriteScriptsForPackageManager', () => {
       'pnpm run install-dependencies && pnpm run setup-env && pnpm run build:local && pnpm run protect-seeded-files',
     )
     expect(scripts['appraisejs:setup']).toBe('pnpm run setup')
-    expect(scripts['appraisejs:sync']).toBe('pnpm run sync-all')
+    expect(scripts['appraisejs:sync']).toBe('pnpm run sync-step-definitions')
     expect(scripts['protect-seeded-files']).toBe('pnpm exec tsx scripts/protect-seeded-files.ts')
     expect(scripts['setup-env']).toBe('pnpm exec tsx scripts/setup-env.ts')
     expect(scripts['install-playwright']).toBe('pnpm exec playwright install')
@@ -62,6 +62,6 @@ describe('rewriteScriptsForPackageManager', () => {
     expect(scripts['protect-seeded-files']).toBe('bunx tsx scripts/protect-seeded-files.ts')
     expect(scripts['setup-env']).toBe('bunx tsx scripts/setup-env.ts')
     expect(scripts['migrate-db']).toBe('bunx prisma migrate deploy')
-    expect(scripts['sync-all']).toBe('bunx tsx scripts/sync-all.ts')
+    expect(scripts['sync-step-definitions']).toBe('bunx tsx scripts/sync-step-definitions.ts')
   })
 })

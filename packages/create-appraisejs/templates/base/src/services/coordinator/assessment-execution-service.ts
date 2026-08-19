@@ -78,12 +78,6 @@ type RequestedCell = {
 type AssessmentRunInput = {
   assessmentId: string
   validationVersionIds?: string[]
-  subject?: {
-    subjectDigest: string
-    subjectKind?: 'ARTIFACT' | 'DEPLOYMENT_SNAPSHOT'
-    authority: string
-    metadata?: unknown
-  }
   runtime?: { cells?: RequestedCell[]; environmentId?: string; browserEngine?: BrowserEngine }
   authorizationGrantId?: string
   executionRequestId?: string

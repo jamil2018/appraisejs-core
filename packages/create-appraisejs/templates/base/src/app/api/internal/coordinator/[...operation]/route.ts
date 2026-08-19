@@ -657,19 +657,35 @@ async function postQualityOperation(operation: string[], body: unknown): Promise
   if (key === 'quality/assessment-runs') {
     const value = z
       .object({
-        assessmentId: z.string().min(1).optional(),
+        assessmentId: z.string().min(1),
         validationVersionIds: z.array(z.string().min(1)).optional(),
-        subject: z.unknown().optional(),
-        runtime: z.unknown().optional(),
+        runtime: z
+          .object({
+            environmentId: z.string().min(1).optional(),
+            browserEngine: z.enum(['CHROMIUM', 'FIREFOX', 'WEBKIT']).optional(),
+            cells: z
+              .array(
+                z
+                  .object({
+                    validationVersionId: z.string().min(1),
+                    resultMatrixCell: z.string().min(1),
+                    environmentId: z.string().min(1),
+                    browserEngine: z.enum(['CHROMIUM', 'FIREFOX', 'WEBKIT']).optional(),
+                  })
+                  .strict(),
+              )
+              .optional(),
+          })
+          .strict()
+          .optional(),
         authorizationGrantId: z.string().uuid().optional(),
         executionRequestId: z.string().uuid().optional(),
         expectedRequestHash: z.string().startsWith('sha256:').optional(),
         idempotencyKey: z.string().min(1),
       })
+      .strict()
       .parse(body)
-    return Response.json(await runQualityAssessment(value as unknown as Parameters<typeof runQualityAssessment>[0]), {
-      status: 202,
-    })
+    return Response.json(await runQualityAssessment(value), { status: 202 })
   }
   if (key === 'quality/assessment-execution-authorizations/host') {
     const value = z.object({ assertion: z.string().min(1).max(12_000) }).parse(body)

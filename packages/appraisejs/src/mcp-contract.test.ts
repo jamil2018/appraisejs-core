@@ -87,6 +87,14 @@ describe('canonical MCP contract registry', () => {
     expect(schema.properties?.responseMode?.default).toBe('summary')
   })
 
+  it('explicitly rejects the removed standalone assessment subject', async () => {
+    const contract = await definitions()
+    const run = contract.find(definition => definition.name === 'assessment_run')
+    const schema = run?.inputSchema as { properties?: { subject?: unknown } }
+
+    expect(schema.properties?.subject).toEqual({ not: {} })
+  })
+
   it('fails fast for duplicate, invalid, and unknown definitions', () => {
     const tool = { kind: 'tool', name: 'duplicate' } as const
     expect(() => assertUniqueMcpDefinitions([tool, tool])).toThrow('Duplicate or invalid MCP definition')

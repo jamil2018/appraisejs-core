@@ -850,6 +850,9 @@
             "type": "string",
             "minLength": 1
           },
+          "subject": {
+            "not": {}
+          },
           "validationVersionIds": {
             "type": "array",
             "items": {
@@ -857,7 +860,58 @@
               "minLength": 1
             }
           },
-          "runtime": {},
+          "runtime": {
+            "type": "object",
+            "properties": {
+              "environmentId": {
+                "type": "string",
+                "minLength": 1
+              },
+              "browserEngine": {
+                "type": "string",
+                "enum": [
+                  "CHROMIUM",
+                  "FIREFOX",
+                  "WEBKIT"
+                ]
+              },
+              "cells": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "validationVersionId": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "resultMatrixCell": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "environmentId": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "browserEngine": {
+                      "type": "string",
+                      "enum": [
+                        "CHROMIUM",
+                        "FIREFOX",
+                        "WEBKIT"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "validationVersionId",
+                    "resultMatrixCell",
+                    "environmentId"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            },
+            "additionalProperties": false
+          },
           "authorizationGrantId": {
             "type": "string",
             "format": "uuid",

@@ -40,8 +40,8 @@ invariant before publishing the bundled starter and blank templates. They must a
 rows so a generated app cannot inherit the producer machine's repository or temporary build path.
 
 Starter and blank currently share the same schema and Step Definition seed inputs. Template preparation therefore
-migrates and synchronizes one canonical temporary database, copies it to both flavor overlays, and verifies each
-composed flavor independently. Preparation fails before reuse if the registered database sync scripts diverge.
+migrates and seeds one canonical temporary database, copies it to both flavor overlays, and verifies each composed
+flavor independently. Preparation fails before reuse if the registered Step Definition readiness inputs diverge.
 
 ## When Direct Template Edits Are Acceptable
 
