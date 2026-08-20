@@ -1,6 +1,5 @@
 import prisma from '@/config/db-config'
 import { environmentSchema } from '@/constants/form-opts/environment-form-opts'
-import { automationProjectionService } from '@/lib/automation/projection-service'
 import { ServiceError } from '@/services/shared/errors'
 import type { Environment } from '@prisma/client'
 import type { z } from 'zod'
@@ -27,7 +26,6 @@ function normalizeEnvironmentPayload(value: z.infer<typeof environmentSchema>) {
     username: value.username === '' ? null : value.username,
     passwordEnvironmentVariable,
     credentialState: passwordEnvironmentVariable ? ('REFERENCE_CONFIGURED' as const) : ('NONE' as const),
-    legacyCredentialDetectedAt: null,
   }
 }
 
@@ -40,7 +38,6 @@ export async function listEnvironments(targetProjectId: string): Promise<Environ
 
 export async function deleteEnvironments(ids: string[], targetProjectId: string): Promise<void> {
   await prisma.environment.deleteMany({ where: { id: { in: ids }, targetProjectId } })
-  await automationProjectionService.syncEnvironments()
 }
 
 export async function createEnvironment(
@@ -59,7 +56,6 @@ export async function createEnvironment(
   const newEnvironment = await prisma.environment.create({
     data: { ...normalizeEnvironmentPayload(value), targetProjectId },
   })
-  await automationProjectionService.syncEnvironments()
   return newEnvironment
 }
 
@@ -161,8 +157,7 @@ export async function ensureEnvironment(
       ? resolveExistingEnvironment(transaction, input.environmentId, targetProjectId)
       : createOrReplayEnvironment(transaction, creationProposal(input), targetProjectId),
   )
-  const projectionRepaired = await automationProjectionService.syncEnvironments()
-  return { ...result, projection: projectionRepaired ? ('repaired' as const) : ('unchanged' as const) }
+  return result
 }
 
 export async function updateEnvironment(
@@ -198,6 +193,5 @@ export async function updateEnvironment(
     where: { id },
     data: normalizeEnvironmentPayload(value),
   })
-  await automationProjectionService.syncEnvironments()
   return updatedEnvironment
 }

@@ -28,6 +28,7 @@ const manifest = {
   projectionHash: validationHash,
   receiptHash: validationHash,
   runtimeInputHash: validationHash,
+  source: { kind: 'PUBLISHED_VALIDATION', sourceHash: validationHash, publishOperationId: 'publication-one' },
   commandReceipt: { path: 'command-receipt.json', hash: commandHash },
   generator: { id: 'appraise.validation-ast-capsule', version: '2' },
   ...runtimeCapsuleManifestClosureFixture(),

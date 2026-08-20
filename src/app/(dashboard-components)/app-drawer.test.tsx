@@ -37,7 +37,7 @@ describe('AppDrawer', () => {
           suitesNotExecutedRecentlyCount: 0,
           lastUpdatedAt: new Date(),
           createdAt: new Date(),
-          targetProjectId: null,
+          targetProjectId: 'project-1',
         }}
         title="Attention Needed"
         description="Issues requiring action"

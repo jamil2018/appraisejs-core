@@ -80,13 +80,17 @@ describe('agent preflight receipts', () => {
     const input = readyInput()
     const upsert = vi.fn().mockImplementation(({ create }) => storedReceipt(input, create.id))
     const client = {
-      targetProject: { findUnique: vi.fn().mockResolvedValue({ id: 'target-1' }) },
+      targetProject: { findFirst: vi.fn().mockResolvedValue({ id: 'target-1' }) },
       agentPreflightReceipt: { upsert },
     } as unknown as PrismaClient
 
     const receipt = await recordAgentPreflightReceipt(input, client)
 
     expect(receipt).toMatchObject({ status: 'ready', ready: true, targetProjectId: 'target-1' })
+    expect(client.targetProject.findFirst).toHaveBeenCalledWith({
+      where: { canonicalPath: '/targets/notes', kind: 'LOCAL_WORKSPACE' },
+      select: { id: true },
+    })
     expect(upsert).toHaveBeenCalledWith(
       expect.objectContaining({
         create: expect.objectContaining({ targetProjectId: 'target-1', expectedCanonicalPath: '/targets/notes' }),
@@ -116,7 +120,7 @@ describe('agent preflight receipts', () => {
     delete layers.targetProjectBinding.message
     const upsert = vi.fn().mockImplementation(({ create }) => ({ ...storedReceipt(input), ...create }))
     const client = {
-      targetProject: { findUnique: vi.fn().mockResolvedValue({ id: 'target-1' }) },
+      targetProject: { findFirst: vi.fn().mockResolvedValue({ id: 'target-1' }) },
       agentPreflightReceipt: { upsert },
     } as unknown as PrismaClient
 

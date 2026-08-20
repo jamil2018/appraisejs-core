@@ -1,18 +1,10 @@
 import prisma from '@/config/db-config'
 import { z } from 'zod'
-import { automationProjectionService } from '@/lib/automation/projection-service'
-import { extractLocatorGroupName, extractModulePathFromLocatorFile } from '@/services/locator/locator-path-utils'
-import { mergeMissingLocators } from '@/services/locator/locator-sync-utils'
 import { ServiceError } from '@/services/shared/errors'
-import { getLocatorGroupFilePath } from '@/lib/locator-group-file-utils'
-import { buildModuleHierarchy } from '@/lib/module-hierarchy-builder'
 import { normalizeRoute } from '@/lib/locator-picker/suggestions'
 import { locatorPickerSessionManager } from '@/lib/locator-picker/session-manager'
 import { validatePickedLocatorObservation } from '@/lib/locator-picker/selector-observation'
 import type { SavePickedLocatorRequest } from '@/types/locator-picker'
-import { promises as fs } from 'fs'
-import path from 'path'
-import { glob } from 'glob'
 
 export async function listLocators(targetProjectId: string) {
   return prisma.locator.findMany({
@@ -32,30 +24,10 @@ export async function listLocators(targetProjectId: string) {
   })
 }
 
-async function updateLocatorGroupFile(locatorGroupId: string | null): Promise<void> {
-  if (!locatorGroupId) {
-    return
-  }
-
-  try {
-    await automationProjectionService.syncLocatorGroup(locatorGroupId)
-  } catch (error) {
-    console.error('Error updating locator group file:', error)
-  }
-}
-
 export async function deleteLocators(ids: string[], targetProjectId: string) {
-  const locatorsToDelete = await prisma.locator.findMany({
-    where: { id: { in: ids }, targetProjectId },
-    select: { locatorGroupId: true },
-  })
-
-  const locatorGroupIds = [...new Set(locatorsToDelete.map(locator => locator.locatorGroupId).filter(Boolean))]
   const result = await prisma.locator.deleteMany({
     where: { id: { in: ids }, targetProjectId },
   })
-
-  await Promise.all(locatorGroupIds.map(groupId => updateLocatorGroupFile(groupId)))
 
   return result
 }
@@ -163,168 +135,6 @@ export async function detectAndCreateConflicts(
   }
 
   return conflictCount
-}
-
-export type SyncLocatorsFromFilesResult = {
-  /** New locator rows created in the DB from JSON file entries. */
-  locatorsCreated: number
-  /** DB-only locators appended into JSON files (file was missing those keys). */
-  locatorsMergedToFile: number
-  conflicts: number
-  errors: string[]
-}
-
-export async function syncLocatorsFromFiles(): Promise<SyncLocatorsFromFilesResult> {
-  const pattern = 'automation/locators/**/*.json'
-  const relativeFiles = await glob(pattern, {
-    cwd: process.cwd(),
-  })
-  const files = relativeFiles.map(file => path.resolve(process.cwd(), file))
-
-  let locatorsCreated = 0
-  let locatorsMergedToFile = 0
-  let totalConflicts = 0
-  const errors: string[] = []
-  const affectedLocatorGroupIds = new Set<string>()
-
-  for (const filePath of files) {
-    try {
-      const content = await fs.readFile(filePath, 'utf-8')
-      const locators = JSON.parse(content) as Record<string, string>
-
-      const modulePath = extractModulePathFromLocatorFile(filePath)
-      const moduleId = await buildModuleHierarchy(modulePath)
-      const groupName = extractLocatorGroupName(filePath)
-
-      let locatorGroup = await prisma.locatorGroup.findFirst({
-        where: {
-          name: groupName,
-          moduleId,
-        },
-      })
-
-      if (!locatorGroup) {
-        locatorGroup = await prisma.locatorGroup.create({
-          data: {
-            name: groupName,
-            route: `/${groupName}`,
-            moduleId,
-          },
-        })
-      }
-
-      affectedLocatorGroupIds.add(locatorGroup.id)
-
-      for (const [locatorName, locatorValue] of Object.entries(locators)) {
-        const existingLocator = await prisma.locator.findFirst({
-          where: {
-            name: locatorName,
-            locatorGroupId: locatorGroup.id,
-          },
-        })
-
-        let locatorId: string
-
-        if (existingLocator) {
-          if (existingLocator.value !== locatorValue) {
-            await prisma.locator.update({
-              where: { id: existingLocator.id },
-              data: { value: locatorValue },
-            })
-          }
-          locatorId = existingLocator.id
-        } else {
-          const newLocator = await prisma.locator.create({
-            data: {
-              name: locatorName,
-              value: locatorValue,
-              locatorGroupId: locatorGroup.id,
-            },
-          })
-          locatorId = newLocator.id
-          locatorsCreated++
-        }
-
-        totalConflicts += await detectAndCreateConflicts(locatorId, locatorName, locatorValue, locatorGroup.id)
-      }
-
-      const dbLocators = await prisma.locator.findMany({
-        where: { locatorGroupId: locatorGroup.id },
-        select: { name: true, value: true },
-      })
-
-      const { mergedLocators, addedCount } = mergeMissingLocators(
-        locators,
-        Object.fromEntries(dbLocators.map(dbLocator => [dbLocator.name, dbLocator.value])),
-      )
-      locatorsMergedToFile += addedCount
-
-      await fs.writeFile(filePath, JSON.stringify(mergedLocators, null, 2) + '\n', 'utf-8')
-    } catch (error) {
-      const errorMessage = `Error syncing locator file ${filePath}: ${error}`
-      console.error(errorMessage)
-      errors.push(errorMessage)
-    }
-  }
-
-  try {
-    const allLocatorGroups = await prisma.locatorGroup.findMany({
-      include: {
-        locators: {
-          select: { name: true, value: true },
-        },
-      },
-    })
-
-    for (const locatorGroup of allLocatorGroups) {
-      if (affectedLocatorGroupIds.has(locatorGroup.id)) {
-        continue
-      }
-
-      try {
-        const filePath = await getLocatorGroupFilePath(locatorGroup.id)
-        if (!filePath) {
-          continue
-        }
-
-        try {
-          await fs.access(filePath)
-          const fileContent = await fs.readFile(filePath, 'utf-8')
-          const fileLocators = JSON.parse(fileContent) as Record<string, string>
-          const { mergedLocators, addedCount } = mergeMissingLocators(
-            fileLocators,
-            Object.fromEntries(locatorGroup.locators.map(locator => [locator.name, locator.value])),
-          )
-          locatorsMergedToFile += addedCount
-
-          await fs.writeFile(filePath, JSON.stringify(mergedLocators, null, 2) + '\n', 'utf-8')
-        } catch {
-          await fs.mkdir(path.dirname(filePath), { recursive: true })
-          const { mergedLocators, addedCount } = mergeMissingLocators(
-            {},
-            Object.fromEntries(locatorGroup.locators.map(locator => [locator.name, locator.value])),
-          )
-          locatorsMergedToFile += addedCount
-          await fs.writeFile(filePath, JSON.stringify(mergedLocators, null, 2) + '\n', 'utf-8')
-        }
-      } catch (error) {
-        const errorMessage = `Error syncing locator group ${locatorGroup.id} to file: ${error}`
-        console.error(errorMessage)
-        errors.push(errorMessage)
-      }
-    }
-  } catch (error) {
-    const errorMessage = `Error syncing database locators to files: ${error}`
-    console.error(errorMessage)
-    errors.push(errorMessage)
-  }
-
-  return {
-    locatorsCreated,
-    locatorsMergedToFile,
-    conflicts: totalConflicts,
-    errors,
-  }
 }
 
 const savePickedLocatorSchema = z.object({
@@ -443,9 +253,6 @@ export async function savePickedLocatorFromRequest(
     locatorGroupId = newLocatorGroup.id
     locatorGroupName = newLocatorGroup.name
     moduleId = newLocatorGroup.moduleId
-
-    await automationProjectionService.createEmptyLocatorGroup(newLocatorGroup.id)
-    await automationProjectionService.syncLocatorMap(newLocatorGroup.name, route)
   }
 
   if (!locatorGroupId) {
@@ -490,12 +297,6 @@ export async function savePickedLocatorFromRequest(
         },
       })
 
-  const groupsToSync = new Set<string>([locatorGroupId])
-  if (currentLocator?.locatorGroupId && currentLocator.locatorGroupId !== locatorGroupId) {
-    groupsToSync.add(currentLocator.locatorGroupId)
-  }
-
-  await Promise.all(Array.from(groupsToSync).map(groupId => automationProjectionService.syncLocatorGroup(groupId)))
   await locatorPickerSessionManager.markReadyAfterSave(value.sessionId)
 
   return {

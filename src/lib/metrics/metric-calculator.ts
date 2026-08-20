@@ -126,10 +126,14 @@ export async function updateTestCaseMetrics(
   executedAt: Date,
 ): Promise<void> {
   try {
-    // Get existing metrics or create new one
-    await prisma.testCaseMetrics.findUnique({
-      where: { testCaseId },
+    const testCase = await prisma.testCase.findUnique({
+      where: { id: testCaseId },
+      select: { targetProjectId: true },
     })
+    if (!testCase) {
+      console.warn(`[MetricCalculator] Test case ${testCaseId} not found while updating metrics`)
+      return
+    }
 
     // Query recent runs for this test case (last 7 days)
     const recentPeriodDate = getRecentPeriodDate()
@@ -171,6 +175,7 @@ export async function updateTestCaseMetrics(
       where: { testCaseId },
       create: {
         testCaseId,
+        targetProjectId: testCase.targetProjectId,
         ...updateData,
       },
       update: updateData,
@@ -188,10 +193,20 @@ export async function updateTestCaseMetrics(
  */
 export async function updateTestSuiteMetrics(testSuiteId: string, executedAt: Date): Promise<void> {
   try {
+    const testSuite = await prisma.testSuite.findUnique({
+      where: { id: testSuiteId },
+      select: { targetProjectId: true },
+    })
+    if (!testSuite) {
+      console.warn(`[MetricCalculator] Test suite ${testSuiteId} not found while updating metrics`)
+      return
+    }
+
     await prisma.testSuiteMetrics.upsert({
       where: { testSuiteId },
       create: {
         testSuiteId,
+        targetProjectId: testSuite.targetProjectId,
         lastExecutedAt: executedAt,
       },
       update: {
@@ -372,6 +387,15 @@ export async function updateDashboardMetrics(targetProjectId: string): Promise<v
  */
 export async function recalculateTestCaseMetrics(testCaseId: string): Promise<void> {
   try {
+    const testCase = await prisma.testCase.findUnique({
+      where: { id: testCaseId },
+      select: { targetProjectId: true },
+    })
+    if (!testCase) {
+      console.warn(`[MetricCalculator] Test case ${testCaseId} not found while recalculating metrics`)
+      return
+    }
+
     const recentPeriodDate = getRecentPeriodDate()
 
     const recentTestRunTestCases = await findRecentCompletedTestRunTestCases(testCaseId, recentPeriodDate)
@@ -385,6 +409,7 @@ export async function recalculateTestCaseMetrics(testCaseId: string): Promise<vo
       where: { testCaseId },
       create: {
         testCaseId,
+        targetProjectId: testCase.targetProjectId,
         lastExecutedAt: recalculatedDates.lastExecutedAt || undefined,
         lastFailedAt: recalculatedDates.lastFailedAt || undefined,
         lastPassedAt: recalculatedDates.lastPassedAt || undefined,
@@ -589,7 +614,7 @@ export async function updateMetricsForTestRun(testRunId: string): Promise<void> 
     await updateTestSuitesForTestRun(testRunId, executedAt)
 
     // Update dashboard metrics
-    if (testRun.targetProjectId) await updateDashboardMetrics(testRun.targetProjectId)
+    await updateDashboardMetrics(testRun.targetProjectId)
   } catch (error) {
     console.error(`[MetricCalculator] Error updating metrics for test run ${testRunId}:`, error)
     // Don't throw - metrics are non-critical

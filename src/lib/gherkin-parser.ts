@@ -1,12 +1,10 @@
 import { promises as fs } from 'fs'
-import { join } from 'path'
 import {
   getAppraiseMetadataPath,
   getMetadataByIdentifier,
   readAppraiseMetadataFile,
   type AppraiseTestCaseMetadataEntry,
 } from '@/lib/appraise-test-case-metadata'
-import { getFeatureModulePath } from '@/lib/path-helpers/feature-path'
 
 /**
  * Represents a parsed feature file with its scenarios and steps
@@ -236,41 +234,3 @@ export async function parseFeatureFile(filePath: string): Promise<ParsedFeature 
  * @param directoryPath - Path to scan for feature files
  * @returns Promise<ParsedFeature[]> - Array of parsed feature files
  */
-export async function scanFeatureFiles(directoryPath: string): Promise<ParsedFeature[]> {
-  const parsedFeatures: ParsedFeature[] = []
-
-  try {
-    const entries = await fs.readdir(directoryPath, { withFileTypes: true })
-
-    for (const entry of entries) {
-      const fullPath = join(directoryPath, entry.name)
-
-      if (entry.isDirectory()) {
-        // Recursively scan subdirectories
-        const subFeatures = await scanFeatureFiles(fullPath)
-        parsedFeatures.push(...subFeatures)
-      } else if (entry.isFile() && entry.name.endsWith('.feature')) {
-        // Parse feature file
-        const parsedFeature = await parseFeatureFile(fullPath)
-        if (parsedFeature) {
-          parsedFeatures.push(parsedFeature)
-        }
-      }
-    }
-  } catch (error) {
-    console.error(`Error scanning directory ${directoryPath}:`, error)
-  }
-
-  return parsedFeatures
-}
-
-/**
- * Extracts module path from feature file path
- * Works cross-platform (Windows, Mac, Linux)
- * @param featureFilePath - Full path to the feature file
- * @param featuresBaseDir - Base directory for features
- * @returns string - Module path (e.g., "/module1/submodule")
- */
-export function extractModulePathFromFilePath(featureFilePath: string, featuresBaseDir: string): string {
-  return getFeatureModulePath(featureFilePath, featuresBaseDir)
-}

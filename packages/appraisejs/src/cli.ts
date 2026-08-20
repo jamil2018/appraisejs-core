@@ -264,21 +264,30 @@ const project = program.command('project').description('Manage repos attached to
 addOnlineOptions(
   project
     .command('add')
-    .argument('<path>', 'target application repository path')
+    .argument('<target>', 'target application workspace path or HTTP(S) URL')
     .option('--display-name <name>', 'display label for the target project')
     .option('--init-git', 'initialize a main-branch Git repository when the target workspace is empty', false)
     .option('--json', 'print machine-readable JSON', false),
-).action(
-  async (projectPath: string, options: OnlineOptions & { displayName?: string; initGit: boolean; json: boolean }) => {
-    await runCommand(
-      async () =>
-        printJson(
-          await (await onlineClient(options)).addTargetProject(projectPath, options.displayName, options.initGit),
+).action(async (target: string, options: OnlineOptions & { displayName?: string; initGit: boolean; json: boolean }) => {
+  const isRemoteTarget = /^https?:\/\//i.test(target)
+  await runCommand(
+    async () =>
+      printJson(
+        await (
+          await onlineClient(options)
+        ).addTargetProject(
+          isRemoteTarget
+            ? { url: target, ...(options.displayName ? { displayName: options.displayName } : {}) }
+            : {
+                path: target,
+                ...(options.displayName ? { displayName: options.displayName } : {}),
+                ...(options.initGit ? { initializeGit: true } : {}),
+              },
         ),
-      options.json,
-    )
-  },
-)
+      ),
+    options.json,
+  )
+})
 
 addOnlineOptions(project.command('list').option('--json', 'print machine-readable JSON', false)).action(
   async (options: OnlineOptions & { json: boolean }) => {

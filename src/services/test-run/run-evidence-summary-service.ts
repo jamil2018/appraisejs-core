@@ -1,8 +1,7 @@
 import prisma from '@/config/db-config'
-import { resolveStoredPath } from '@/lib/automation/automation-path-roots'
 import { findMatchingTestRunTestCase } from '@/lib/test-run/matching'
 import { findHumanVerificationEvent, type HumanVerificationEvent } from '@/lib/test-run/human-verification-event'
-import { parseCucumberReport, parseCucumberReportText, type ParsedReport } from '@/lib/test-run/report-parser'
+import { parseCucumberReportText, type ParsedReport } from '@/lib/test-run/report-parser'
 import { ServiceError } from '@/services/shared/errors'
 import {
   createTestRunArtifactAccess,
@@ -35,7 +34,7 @@ export type RunEvidenceSummary = {
   evidenceHealth: TestRunEvidenceHealthValue
   grade: RunEvidenceGrade
   nextAllowedAction: {
-    tool: 'test_run_read' | 'test_run_diagnose' | 'test_run_preflight'
+    tool: 'test_run_read' | 'test_run_diagnose' | 'test_run_start'
     reason: string
   }
   counts: {
@@ -314,14 +313,13 @@ export async function summarizeRunEvidence(
   }
 
   try {
-    const report = testRun.runtimeCapsule
-      ? parseCucumberReportText(
-          await readTestRunArtifactText(
-            createTestRunArtifactAccess(createTestRunArtifactContext(appraiseRoot), client as PrismaClient),
-            { runId, kind: 'report' },
-          ),
-        )
-      : await parseCucumberReport(resolveStoredPath(testRun.reportPath, testRun.targetProject?.canonicalPath))
+    if (!testRun.runtimeCapsule) throw new ServiceError('TestRun has no immutable runtime capsule.', 'CONFLICT', 409)
+    const report = parseCucumberReportText(
+      await readTestRunArtifactText(
+        createTestRunArtifactAccess(createTestRunArtifactContext(appraiseRoot), client as PrismaClient),
+        { runId, kind: 'report' },
+      ),
+    )
     return summaryFromClassification(
       testRun,
       classifyReportEvidence(testRun, report, logExcerpt),
@@ -365,53 +363,4 @@ export async function persistRunEvidenceHealth(
     })
   }
   return summary
-}
-
-export async function diagnoseRunEvidence(
-  runId: string,
-  client: EvidenceClient = prisma,
-  appraiseRoot = path.join(process.cwd(), '.appraise'),
-) {
-  const summary = await summarizeRunEvidence(runId, client, appraiseRoot)
-  return {
-    ...summary,
-    rootCause: summary.blockers[0] ?? 'No evidence-health blockers were detected.',
-    missingArtifacts: summary.missingArtifacts,
-    nextAction: summary.nextAllowedAction,
-  }
-}
-
-export async function preflightTestRun(input: {
-  target?: string
-  environmentId?: string
-  featurePaths?: string[]
-  importPaths?: string[]
-  supportPaths?: string[]
-}) {
-  const blockers: string[] = []
-  const warnings: string[] = []
-
-  if (!input.environmentId) {
-    blockers.push('environmentId is required before Appraise can create a managed test run.')
-  }
-
-  if (!input.target) {
-    blockers.push('target is required so Appraise can resolve the target project root.')
-  }
-
-  if (!input.supportPaths?.length) {
-    warnings.push(
-      'No supportPaths were provided. This is allowed only when the runtime projection does not require support imports.',
-    )
-  }
-
-  return {
-    status: blockers.length ? 'blocked' : 'ready',
-    evidenceHealth: blockers.length ? ('invalid_stale_runtime' as const) : ('valid' as const),
-    blockers,
-    warnings,
-    nextAllowedAction: blockers.length
-      ? { tool: 'test_run_preflight' as const, reason: 'Resolve blockers before creating the run.' }
-      : { tool: 'test_run' as const, reason: 'Preflight blockers are clear.' },
-  }
 }

@@ -2,8 +2,8 @@ import { promises as fs } from 'fs'
 
 import { stepInvocationSchema } from '../../packages/cucumber-runtime/src/step-definitions/contracts.ts'
 
-export const APPRAISE_METADATA_VERSION = 1
-export const APPRAISE_METADATA_EXTENSION = '.appraise.json'
+const APPRAISE_METADATA_VERSION = 1
+const APPRAISE_METADATA_EXTENSION = '.appraise.json'
 
 export type AppraiseTestCaseMetadataNode = {
   nodeId: string
@@ -39,88 +39,12 @@ export type AppraiseTestCaseMetadata = {
 export type AppraiseMetadataReadResult =
   { metadata: AppraiseTestCaseMetadata | null; warnings: string[] } | { metadata: null; warnings: string[] }
 
-type MetadataInputTestCase = {
-  title: string
-  description: string
-  tags?: Array<{ tagExpression: string }>
-  steps?: Array<{
-    flowNodeId: string | null
-    order: number
-    label: string
-    invocationJson: string
-  }>
-  flowBlocks?: Array<{
-    id: string
-    name: string
-    order: number
-    nodes: Array<{ flowNodeId: string }>
-  }>
-}
-
 export function getAppraiseMetadataPath(featureFilePath: string): string {
   return featureFilePath.replace(/\.feature$/, APPRAISE_METADATA_EXTENSION)
 }
 
-export function normalizeMetadataTag(tagExpression: string): string {
+function normalizeMetadataTag(tagExpression: string): string {
   return tagExpression.startsWith('@') ? tagExpression : `@${tagExpression}`
-}
-
-export function findIdentifierTag(tags: Array<{ tagExpression: string } | string> = []): string | null {
-  for (const tag of tags) {
-    const tagExpression = typeof tag === 'string' ? tag : tag.tagExpression
-    const normalized = normalizeMetadataTag(tagExpression)
-    if (normalized.replace(/^@/, '').startsWith('tc_')) {
-      return normalized
-    }
-  }
-
-  return null
-}
-
-export function buildAppraiseMetadata(input: {
-  testSuiteName: string
-  modulePath: string
-  testCases: MetadataInputTestCase[]
-}): AppraiseTestCaseMetadata {
-  return {
-    version: APPRAISE_METADATA_VERSION,
-    testSuite: {
-      name: input.testSuiteName,
-      modulePath: input.modulePath,
-    },
-    testCases: input.testCases.flatMap(testCase => {
-      const identifierTag = findIdentifierTag(testCase.tags)
-      if (!identifierTag) {
-        return []
-      }
-
-      const nodes = (testCase.steps ?? [])
-        .filter(step => step.flowNodeId)
-        .map(step => ({
-          nodeId: step.flowNodeId as string,
-          order: step.order,
-          label: step.label,
-          invocation: JSON.parse(step.invocationJson),
-        }))
-
-      const validNodeIds = new Set(nodes.map(node => node.nodeId))
-
-      return [
-        {
-          identifierTag,
-          title: testCase.title,
-          description: testCase.description,
-          nodes,
-          flowBlocks: (testCase.flowBlocks ?? []).map(block => ({
-            id: block.id,
-            name: block.name,
-            order: block.order,
-            nodeIds: block.nodes.map(node => node.flowNodeId).filter(nodeId => validNodeIds.has(nodeId)),
-          })),
-        },
-      ]
-    }),
-  }
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

@@ -41,7 +41,7 @@ function assertPersistedIdentity(step: ExactStepReference, definition: StepDefin
 }
 
 function assertPersistedHashes(step: ExactStepReference, row: RuntimeStepDefinitionRecord, definition: StepDefinition) {
-  if (computeStepReferenceHash(definition) !== step.definitionHash && row.definitionHash !== step.definitionHash)
+  if (computeStepReferenceHash(definition) !== step.definitionHash)
     throw new Error(`Runtime Step Definition ${step.id}@${step.version} does not match its exact reference hash.`)
   const expected = computeStepDefinitionHashes(definition)
   const actual = [row.definitionHash, row.humanProjectionHash, row.agentContractHash, row.executionHash]
@@ -96,7 +96,7 @@ function sealedDefinition(step: ExactStepReference, row: RuntimeStepDefinitionRe
   assertPersistedHashes(step, row, definition)
   const publicationReceiptHash = publicationReceiptFor(step, row, definition)
   return {
-    step: { ...step, definitionHash: computeStepReferenceHash(definition) },
+    step,
     definition,
     hashes: {
       definition: row.definitionHash,

@@ -22,7 +22,7 @@ function ProjectSelectionPrompt({
   projects,
 }: {
   searchParams?: ProjectSearchParams
-  projects: Array<{ id: string; displayName: string; canonicalPath: string }>
+  projects: Array<{ id: string; displayName: string; targetIdentity: string }>
 }) {
   if (searchParams?.selectProject !== 'required') return null
   return <ProjectSelectionDialog projects={projects} returnTo={searchParams.returnTo ?? '/'} />
@@ -31,7 +31,11 @@ function ProjectSelectionPrompt({
 export default async function ProjectsPage({ searchParams }: { searchParams?: Promise<ProjectSearchParams> }) {
   const [resolvedSearchParams, projects] = await Promise.all([searchParams, listTargetProjects()])
   const preflightReceipts = await listLatestAgentPreflightReceipts(projects.map(project => project.id))
-  const projectOptions = projects.map(({ id, displayName, canonicalPath }) => ({ id, displayName, canonicalPath }))
+  const projectOptions = projects.map(project => ({
+    id: project.id,
+    displayName: project.displayName,
+    targetIdentity: project.canonicalPath ?? project.normalizedRemoteOrigin ?? project.canonicalIdentity,
+  }))
 
   return (
     <div className="flex flex-col gap-8">
@@ -45,14 +49,28 @@ export default async function ProjectsPage({ searchParams }: { searchParams?: Pr
         <HeaderSubtitle>Register and manage the workspaces isolated by AppraiseJS project ownership.</HeaderSubtitle>
       </div>
       <ProjectManagement
-        projects={projects.map(({ id, displayName, description, canonicalPath, lastDetectedAt }) => ({
-          id,
-          displayName,
-          description,
-          canonicalPath,
-          lastDetectedAt,
-          preflight: preflightReceipts[id],
-        }))}
+        projects={projects.map(
+          ({
+            id,
+            kind,
+            displayName,
+            description,
+            canonicalIdentity,
+            canonicalPath,
+            normalizedRemoteOrigin,
+            lastDetectedAt,
+          }) => ({
+            id,
+            kind,
+            displayName,
+            description,
+            canonicalIdentity,
+            canonicalPath,
+            normalizedRemoteOrigin,
+            lastDetectedAt,
+            preflight: preflightReceipts[id],
+          }),
+        )}
         highlightedPreflightId={preflightHighlight(resolvedSearchParams)}
       />
       <ProjectSelectionPrompt searchParams={resolvedSearchParams} projects={projectOptions} />

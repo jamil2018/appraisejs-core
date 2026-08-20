@@ -135,6 +135,16 @@
       "releaseBlocking": true,
       "verificationCommands": ["npm run release:check:packages"],
       "requiredEvidence": ["Root refusal and publishable package tarball inventories"]
+    },
+    {
+      "id": "A-14",
+      "severity": "high",
+      "title": "Capsule-only execution and legacy authority removal",
+      "owner": "test-run-runtime",
+      "status": "verified",
+      "releaseBlocking": true,
+      "verificationCommands": ["npm run release:check:capsule-cutover"],
+      "requiredEvidence": ["Root and scaffold compatibility-path guards"]
     }
   ]
 }

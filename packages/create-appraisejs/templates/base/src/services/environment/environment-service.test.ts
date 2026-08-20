@@ -1,6 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
 import { environmentSchema } from '@/constants/form-opts/environment-form-opts'
-import { automationProjectionService } from '@/lib/automation/projection-service'
 import {
   createEnvironment,
   deleteEnvironments,
@@ -22,12 +21,6 @@ vi.mock('@/config/db-config', () => ({
       deleteMany: vi.fn(),
       update: vi.fn(),
     },
-  },
-}))
-
-vi.mock('@/lib/automation/projection-service', () => ({
-  automationProjectionService: {
-    syncEnvironments: vi.fn().mockResolvedValue(undefined),
   },
 }))
 
@@ -79,16 +72,14 @@ describe('createEnvironment', () => {
         username: null,
         passwordEnvironmentVariable: null,
         credentialState: 'NONE',
-        legacyCredentialDetectedAt: null,
         targetProjectId,
       },
     })
-    expect(automationProjectionService.syncEnvironments).toHaveBeenCalled()
   })
 })
 
 describe('listEnvironments', () => {
-  it('loads environments without mutating automation projections', async () => {
+  it('loads environments without writing target files', async () => {
     vi.mocked(prisma.environment.findMany).mockResolvedValue([{ id: 'env-1' }] as never)
 
     await expect(listEnvironments(targetProjectId)).resolves.toEqual([{ id: 'env-1' }])
@@ -96,7 +87,6 @@ describe('listEnvironments', () => {
       where: { targetProjectId },
       orderBy: { createdAt: 'desc' },
     })
-    expect(automationProjectionService.syncEnvironments).not.toHaveBeenCalled()
   })
 })
 
@@ -122,11 +112,9 @@ describe('environment coordinator preparation helpers', () => {
     vi.mocked(prisma.environment.findFirst).mockResolvedValue({ id: 'env-1', name: 'Dev' } as never)
     await expect(ensureEnvironment({ environmentId: 'env-1' }, targetProjectId)).resolves.toMatchObject({
       outcome: 'resolved',
-      projection: 'unchanged',
       environment: { id: 'env-1' },
     })
     expect(prisma.environment.create).not.toHaveBeenCalled()
-    expect(automationProjectionService.syncEnvironments).toHaveBeenCalled()
   })
 
   it('replays an identical explicit proposal without creating a duplicate', async () => {
@@ -142,9 +130,8 @@ describe('environment coordinator preparation helpers', () => {
 
     await expect(
       ensureEnvironment({ allowCreate: true, proposal: basePayload }, targetProjectId),
-    ).resolves.toMatchObject({ outcome: 'replayed', projection: 'unchanged', environment: { id: 'env-1' } })
+    ).resolves.toMatchObject({ outcome: 'replayed', environment: { id: 'env-1' } })
     expect(prisma.environment.create).not.toHaveBeenCalled()
-    expect(automationProjectionService.syncEnvironments).toHaveBeenCalled()
   })
 
   it('rejects implicit environment creation before writing', async () => {
@@ -154,7 +141,7 @@ describe('environment coordinator preparation helpers', () => {
 })
 
 describe('deleteEnvironments', () => {
-  it('deletes environments and syncs projection output', async () => {
+  it('deletes environments without projection output', async () => {
     vi.mocked(prisma.environment.deleteMany).mockResolvedValue({ count: 1 } as never)
 
     await deleteEnvironments(['env-1'], targetProjectId)
@@ -162,12 +149,11 @@ describe('deleteEnvironments', () => {
     expect(prisma.environment.deleteMany).toHaveBeenCalledWith({
       where: { id: { in: ['env-1'] }, targetProjectId },
     })
-    expect(automationProjectionService.syncEnvironments).toHaveBeenCalled()
   })
 })
 
 describe('updateEnvironment', () => {
-  it('updates the environment, normalizes blank fields, and syncs projections', async () => {
+  it('updates the environment and normalizes blank fields without projection output', async () => {
     vi.mocked(prisma.environment.findFirst)
       .mockResolvedValueOnce({ name: 'Old Name' } as never)
       .mockResolvedValueOnce(null)
@@ -197,9 +183,7 @@ describe('updateEnvironment', () => {
         username: null,
         passwordEnvironmentVariable: null,
         credentialState: 'NONE',
-        legacyCredentialDetectedAt: null,
       },
     })
-    expect(automationProjectionService.syncEnvironments).toHaveBeenCalled()
   })
 })

@@ -66,8 +66,8 @@ The generated project includes:
 
 - a seeded SQLite database at `prisma/dev.db`
 - the AppraiseJS dashboard and application code
-- automation sync scripts and reusable step definitions
-- package-manager-aware scripts such as `setup`, `setup:db`, `setup:full`, `appraisejs:sync`, and `appraisejs:install-step`
+- canonical built-in Step Definitions and their readiness command
+- package-manager-aware scripts such as `setup`, `setup:db`, `setup:full`, and `appraisejs:sync`
 
 The generated project does not include:
 
@@ -87,11 +87,11 @@ contents are stored as one full `templates/base` scaffold plus small `templates/
 | Script                                       | What it does                                                                                       |
 | -------------------------------------------- | -------------------------------------------------------------------------------------------------- |
 | `npm run setup`                              | Install dependencies, create `.env`, rebuild the local DB, build the app, and protect seeded files |
-| `npm run setup:db`                           | Recreate the local SQLite database from migrations and rerun the sync pipeline                     |
+| `npm run setup:db`                           | Recreate the local SQLite database and ensure built-in Step Definitions are ready                  |
 | `npm run setup:full`                         | Reinstall dependencies, rebuild the DB, rebuild the app, and protect seeded files                  |
 | `npm run install-playwright -- <browser...>` | Install selected Playwright browsers                                                               |
-| `npm run sync-all`                           | Run the full sync pipeline                                                                         |
-| `npm run appraisejs:sync`                    | Alias for `sync-all`                                                                               |
+| `npm run sync-step-definitions`              | Seed or repair canonical built-in Step Definitions                                                 |
+| `npm run appraisejs:sync`                    | Alias for `sync-step-definitions`                                                                  |
 | `npm run start`                              | Start the local production server                                                                  |
 | `npm run dev`                                | Start the Next.js development server                                                               |
 

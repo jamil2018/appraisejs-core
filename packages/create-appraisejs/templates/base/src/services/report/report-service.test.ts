@@ -1,3 +1,4 @@
+import { readFileSync } from 'fs'
 import path from 'path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { TagType, TestRunTestCaseStatus } from '@prisma/client'
@@ -20,6 +21,7 @@ const {
   mockTestSuiteFindMany,
   mockTestSuiteMetricsFindMany,
   mockUpdateTestSuiteMetrics,
+  mockReadTestRunArtifactText,
 } = vi.hoisted(() => ({
   mockReportFindUnique: vi.fn(),
   mockReportFindFirst: vi.fn(),
@@ -37,6 +39,7 @@ const {
   mockTestSuiteFindMany: vi.fn(),
   mockTestSuiteMetricsFindMany: vi.fn(),
   mockUpdateTestSuiteMetrics: vi.fn(),
+  mockReadTestRunArtifactText: vi.fn(),
 }))
 
 vi.mock('@/config/db-config', () => ({
@@ -65,9 +68,10 @@ vi.mock('@/lib/metrics/metric-calculator', () => ({
   updateTestSuiteMetrics: mockUpdateTestSuiteMetrics,
 }))
 
-vi.mock('@/lib/automation/automation-path-roots', () => ({
-  resolveStoredPath: vi.fn((storedPath: string) => storedPath),
-  toProjectRelativePath: vi.fn((storedPath: string) => storedPath),
+vi.mock('@/services/test-run/test-run-artifact-context', () => ({
+  createTestRunArtifactAccess: vi.fn(),
+  createTestRunArtifactContext: vi.fn(),
+  readTestRunArtifactText: mockReadTestRunArtifactText,
 }))
 
 import {
@@ -100,6 +104,7 @@ describe('storeReportFromFileService', () => {
     mockReportStepCreate.mockResolvedValue({ id: 'step-1' })
     mockReportHookCreate.mockResolvedValue({ id: 'hook-1' })
     mockReportTestCaseCreate.mockResolvedValue({ id: 'rtc-1' })
+    mockReadTestRunArtifactText.mockResolvedValue(readFileSync(fixturePath, 'utf8'))
   })
 
   it('stores a parsed cucumber report, links scenarios to test run test cases, and updates suite metrics', async () => {
@@ -107,6 +112,8 @@ describe('storeReportFromFileService', () => {
       id: 'db-run-1',
       runId: 'run-1',
       name: 'Nightly',
+      targetProjectId: 'project-1',
+      runtimeCapsule: { id: 'capsule-1' },
       completedAt: new Date('2025-02-01T00:00:00.000Z'),
       startedAt: new Date('2025-01-31T23:00:00.000Z'),
       testCases: [
@@ -136,8 +143,9 @@ describe('storeReportFromFileService', () => {
       data: {
         name: 'Test Run Report - Nightly',
         description: 'Report for test run: Nightly',
-        reportPath: fixturePath,
+        reportPath: 'reports/cucumber.json',
         testRunId: 'db-run-1',
+        targetProjectId: 'project-1',
       },
     })
     expect(mockReportFeatureCreate).toHaveBeenCalledTimes(1)
@@ -154,14 +162,6 @@ describe('storeReportFromFileService', () => {
       }),
     })
     expect(mockUpdateTestSuiteMetrics).toHaveBeenCalledWith('suite-1', new Date('2025-02-01T00:00:00.000Z'))
-  })
-
-  it('returns file_not_found when the report file does not exist', async () => {
-    await expect(storeReportFromFileService('run-1', '/missing/report.json')).resolves.toEqual({
-      success: false,
-      reason: 'file_not_found',
-      message: 'Report file not found at /missing/report.json',
-    })
   })
 
   it('returns test_run_not_found when the run cannot be loaded', async () => {

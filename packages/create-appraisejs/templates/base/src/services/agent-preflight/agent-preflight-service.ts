@@ -53,7 +53,10 @@ export async function recordAgentPreflightReceipt(
   }
 
   const targetProject = expectedCanonicalPath
-    ? await client.targetProject.findUnique({ where: { canonicalPath: expectedCanonicalPath }, select: { id: true } })
+    ? await client.targetProject.findFirst({
+        where: { canonicalPath: expectedCanonicalPath, kind: 'LOCAL_WORKSPACE' },
+        select: { id: true },
+      })
     : null
   if (value.preflight.layers.targetProjectBinding.matchedScope === 'target' && !targetProject) {
     throw new ServiceError('Agent preflight references a target project that is not registered.', 'CONFLICT')

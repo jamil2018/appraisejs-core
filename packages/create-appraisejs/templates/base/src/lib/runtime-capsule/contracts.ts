@@ -40,6 +40,22 @@ const runtimeCapsuleManifestEnvelopeSchema = z
     projectionHash: runtimeCapsuleHashSchema,
     receiptHash: runtimeCapsuleHashSchema,
     runtimeInputHash: runtimeCapsuleHashSchema,
+    source: z.discriminatedUnion('kind', [
+      z
+        .object({
+          kind: z.literal('PUBLISHED_VALIDATION'),
+          sourceHash: runtimeCapsuleHashSchema,
+          publishOperationId: z.string().min(1).max(4096),
+        })
+        .strict(),
+      z
+        .object({
+          kind: z.literal('AUTHORED_TEST_SNAPSHOT'),
+          sourceHash: runtimeCapsuleHashSchema,
+          snapshot: z.unknown(),
+        })
+        .strict(),
+    ]),
     lifecycleCorrelation: z
       .object({
         qualityPlanId: z.string().regex(/^[a-zA-Z0-9._:-]{1,200}$/),
@@ -81,6 +97,15 @@ const runtimeCapsuleManifestEnvelopeSchema = z
   })
   .strict()
   .superRefine((manifest, context) => {
+    if (
+      manifest.source.kind === 'AUTHORED_TEST_SNAPSHOT' &&
+      hashRuntimeCapsuleValue(manifest.source.snapshot) !== manifest.source.sourceHash
+    )
+      context.addIssue({
+        code: 'custom',
+        path: ['source'],
+        message: 'authored source snapshot hash must match its sealed canonical content',
+      })
     const paths = manifest.files.map(file => file.path)
     if (new Set(paths).size !== paths.length)
       context.addIssue({ code: 'custom', path: ['files'], message: 'file paths must be unique' })

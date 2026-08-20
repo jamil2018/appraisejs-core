@@ -24,7 +24,8 @@ found during repo inspection as part of the task scope.
 
 ## Prisma Schema And Migrations
 
-Read `prisma/schema.prisma`, affected services/actions, migrations, sync scripts, and tests before changing models.
+Read `prisma/schema.prisma`, affected services/actions, migrations, readiness/projection scripts, and tests before
+changing models.
 Check generated or prepared artifacts only after the canonical model and migration behavior are correct.
 
 Validation: migration validation, affected tests, and `npm run build` for broad schema or package impacts.
@@ -60,7 +61,8 @@ template files, or seeded-data rules change.
 ## Test Run, Reports, And Logs
 
 Read `docs/test-run-runtime.md`, then inspect `src/actions/test-run/test-run-actions.ts`,
-`src/services/test-run/test-run-service.ts`, `src/lib/executor/local-executor-adapter.ts`,
+`src/services/test-run/test-run-service.ts`, `src/services/test-run/runtime-capsule-test-run-service.ts`,
+`src/lib/runtime-capsule/`,
 `src/lib/test-run/process-manager.ts`, `src/app/api/test-runs/[runId]/logs/route.ts`, and `cucumber.mjs`.
 
 Validation: focused unit tests, Cucumber or Playwright checks when runtime behavior changes, and `npm run build` for
@@ -83,15 +85,14 @@ Extract shared UI only after multiple real consumers, an independent responsibil
 provides evidence. For Server Actions, test parsing, scope/authorization mapping, cache invalidation, and error
 envelopes when the action owns those decisions; do not add tests for a pure pass-through wrapper.
 
-## Automation Sync
+## Canonical Step Definition Readiness And Projections
 
-Read `docs/automation-sync-rules.md`, then inspect the relevant generator, parser, database sync, and `scripts/sync-*`
-entry point. Prefer source data, generators, or sync logic over direct generated-output edits.
+Read `docs/automation-sync-rules.md`, then inspect `scripts/sync-step-definitions.ts` for built-in registry readiness or
+`scripts/generate-operation-projections.ts` for explicit human-readable projections. Authored test structure remains
+database-owned; do not introduce filesystem-to-database synchronization.
 
-Validation: dry-run sync when available, affected sync tests, and review of generated diffs.
-
-Update automation sync or generated-artifact docs when canonical sources, sync commands, or generated output ownership
-changes.
+Validation: `npm run sync-step-definitions`, `npm run operation:projections` when projection sources change, affected
+tests, and review of generated diffs.
 
 For reviewed runtime capsules, start with `prisma/schema.prisma`, `src/lib/runtime-capsule/`,
 `src/services/test-run/runtime-capsule-test-run-service.ts`, the capsule executor, diagnostics service/routes, and

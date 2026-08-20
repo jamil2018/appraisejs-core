@@ -16,6 +16,7 @@ import {
   listTestSuiteTestCases,
   spawnTraceViewerService,
 } from '@/services/test-run/test-run-service'
+import { RuntimeCapsuleTestRunService } from '@/services/test-run/runtime-capsule-test-run-service'
 import { ServiceError, serviceErrorToActionResponse, unknownErrorToActionResponse } from '@/services/shared/errors'
 import { requireActiveProjectForMutation } from '@/lib/active-project'
 
@@ -110,6 +111,7 @@ export async function createTestRunAction(
 
     const project = await requireActiveProjectForMutation()
     const result = await createTestRunFromValidatedValue(value, project.id)
+    await new RuntimeCapsuleTestRunService().startIndependentAuthored({ testRunDbId: result.id })
 
     return {
       status: 200,

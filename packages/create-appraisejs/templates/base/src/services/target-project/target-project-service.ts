@@ -16,11 +16,17 @@ type PackageMetadata = {
   packageManager?: string
 }
 
-type RegisterTargetProjectInput = {
-  projectPath: string
-  displayName?: string
-  description?: string
-}
+export type RegisterTargetProjectInput =
+  | {
+      path: string
+      displayName?: string
+      description?: string
+    }
+  | {
+      url: string
+      displayName?: string
+      description?: string
+    }
 
 const execFileAsync = promisify(execFile)
 
@@ -32,14 +38,17 @@ export type TargetGitInitialization = {
 
 export type ActiveProjectSelectionSource = 'url' | 'cookie'
 
-export type ActiveProjectContext = Pick<TargetProject, 'id' | 'displayName' | 'canonicalPath'> & {
+export type ActiveProjectContext = Pick<
+  TargetProject,
+  'id' | 'kind' | 'displayName' | 'canonicalIdentity' | 'canonicalPath' | 'normalizedRemoteOrigin'
+> & {
   source: ActiveProjectSelectionSource
 }
 
 type PackageJsonShape = Record<string, unknown>
 export type TargetProjectMarkerStatus = {
   status: 'written' | 'refreshed' | 'skipped'
-  path: string
+  path?: string
   warning?: string
 }
 
@@ -91,18 +100,49 @@ async function readPackageMetadata(projectRoot: string): Promise<PackageMetadata
   }
 }
 
-export async function readTargetProjectLaunchMetadata(projectRoot: string) {
-  const metadata = await readPackageMetadata(projectRoot)
+function isLocalTargetProject(
+  targetProject: Pick<TargetProject, 'kind' | 'canonicalPath'>,
+): targetProject is Pick<TargetProject, 'kind' | 'canonicalPath'> & { kind: 'LOCAL_WORKSPACE'; canonicalPath: string } {
+  return targetProject.kind === 'LOCAL_WORKSPACE' && Boolean(targetProject.canonicalPath)
+}
+
+export async function readTargetProjectLaunchMetadata(targetProject: Pick<TargetProject, 'kind' | 'canonicalPath'>) {
+  if (!isLocalTargetProject(targetProject))
+    throw new ServiceError('Launch metadata is available only for local workspace targets.', 'VALIDATION', 400)
+  const metadata = await readPackageMetadata(targetProject.canonicalPath)
   return {
-    packageManager: metadata.packageManager ?? detectPackageManager(projectRoot) ?? 'npm',
+    packageManager: metadata.packageManager ?? detectPackageManager(targetProject.canonicalPath) ?? 'npm',
     scripts: metadata.scripts ?? {},
   }
 }
 
-function fingerprintTargetProject(canonicalPath: string, packageName?: string): string {
+function fingerprintTargetProject(canonicalIdentity: string, packageName?: string): string {
   return `sha256:${createHash('sha256')
-    .update(`${canonicalPath}\0${packageName ?? 'appraisejs-target'}`)
+    .update(`${canonicalIdentity}\0${packageName ?? 'appraisejs-target'}`)
     .digest('hex')}`
+}
+
+function normalizeRemoteOrigin(value: string): string {
+  let parsed: URL
+  try {
+    parsed = new URL(value)
+  } catch {
+    throw new ServiceError('Target URL must be a valid HTTP(S) URL.', 'VALIDATION', 400)
+  }
+  if (!['http:', 'https:'].includes(parsed.protocol))
+    throw new ServiceError('Target URL must use HTTP or HTTPS.', 'VALIDATION', 400)
+  if (parsed.username || parsed.password)
+    throw new ServiceError('Target URL must not include credentials.', 'VALIDATION', 400)
+  if (parsed.hash) throw new ServiceError('Target URL must not include a fragment.', 'VALIDATION', 400)
+  return parsed.origin
+}
+
+function localCanonicalIdentity(canonicalPath: string) {
+  return `path:${canonicalPath}`
+}
+
+function remoteCanonicalIdentity(normalizedRemoteOrigin: string) {
+  return `url:${normalizedRemoteOrigin}`
 }
 
 export async function initializeTargetGitRepository(
@@ -144,51 +184,82 @@ export async function registerTargetProject(
   input: RegisterTargetProjectInput,
   client: PrismaClient = prisma,
 ): Promise<TargetProject> {
-  let canonicalPath: string
-  try {
-    canonicalPath = await fs.realpath(path.resolve(input.projectPath))
-  } catch {
-    throw new ServiceError(`Target project path could not be resolved: ${input.projectPath}`, 'VALIDATION', 400)
+  if ('path' in input) {
+    let canonicalPath: string
+    try {
+      canonicalPath = await fs.realpath(path.resolve(input.path))
+    } catch {
+      throw new ServiceError(`Target project path could not be resolved: ${input.path}`, 'VALIDATION', 400)
+    }
+
+    const metadata = await readPackageMetadata(canonicalPath)
+    const packageManager = metadata.packageManager ?? detectPackageManager(canonicalPath)
+    const canonicalIdentity = localCanonicalIdentity(canonicalPath)
+    const displayName = input.displayName?.trim() || metadata.name || path.basename(canonicalPath)
+    const packageJson = JSON.stringify({
+      name: metadata.name,
+      version: metadata.version,
+      scripts: metadata.scripts,
+      packageManager,
+    })
+
+    return client.targetProject.upsert({
+      where: { canonicalIdentity },
+      create: {
+        kind: 'LOCAL_WORKSPACE',
+        canonicalIdentity,
+        canonicalPath,
+        displayName,
+        description: input.description?.trim() || null,
+        packageName: metadata.name,
+        packageManager,
+        packageJson,
+        fingerprint: fingerprintTargetProject(canonicalIdentity, metadata.name),
+      },
+      update: {
+        displayName,
+        description: input.description?.trim() || null,
+        packageName: metadata.name,
+        packageManager,
+        packageJson,
+        fingerprint: fingerprintTargetProject(canonicalIdentity, metadata.name),
+        lastDetectedAt: new Date(),
+      },
+    })
   }
 
-  const metadata = await readPackageMetadata(canonicalPath)
-  const packageManager = metadata.packageManager ?? detectPackageManager(canonicalPath)
-  const fingerprint = fingerprintTargetProject(canonicalPath, metadata.name)
-  const displayName = input.displayName?.trim() || metadata.name || path.basename(canonicalPath)
-  const packageJson = JSON.stringify({
-    name: metadata.name,
-    version: metadata.version,
-    scripts: metadata.scripts,
-    packageManager,
-  })
-
-  return client.targetProject.upsert({
-    where: { canonicalPath },
+  const normalizedRemoteOrigin = normalizeRemoteOrigin(input.url)
+  const canonicalIdentity = remoteCanonicalIdentity(normalizedRemoteOrigin)
+  const displayName = input.displayName?.trim() || new URL(normalizedRemoteOrigin).hostname
+  const targetProject = await client.targetProject.upsert({
+    where: { canonicalIdentity },
     create: {
-      canonicalPath,
+      kind: 'REMOTE_BLACK_BOX',
+      canonicalIdentity,
+      normalizedRemoteOrigin,
       displayName,
       description: input.description?.trim() || null,
-      packageName: metadata.name,
-      packageManager,
-      packageJson,
-      fingerprint,
+      fingerprint: fingerprintTargetProject(canonicalIdentity),
     },
     update: {
       displayName,
       description: input.description?.trim() || null,
-      packageName: metadata.name,
-      packageManager,
-      packageJson,
-      fingerprint,
       lastDetectedAt: new Date(),
     },
   })
+  await client.environment.upsert({
+    where: { targetProjectId_name: { targetProjectId: targetProject.id, name: 'default' } },
+    create: { targetProjectId: targetProject.id, name: 'default', baseUrl: normalizedRemoteOrigin },
+    update: { baseUrl: normalizedRemoteOrigin },
+  })
+  return targetProject
 }
 
 export async function writeTargetProjectMarker(
   targetProject: TargetProject,
   hubFingerprint: string,
 ): Promise<TargetProjectMarkerStatus> {
+  if (!isLocalTargetProject(targetProject)) return { status: 'skipped' }
   const markerDirectory = path.join(targetProject.canonicalPath, '.appraisejs')
   const markerPath = path.join(markerDirectory, 'project.json')
   try {
@@ -225,7 +296,7 @@ export async function writeTargetProjectMarker(
 }
 
 export async function listTargetProjects(client: PrismaClient = prisma): Promise<TargetProject[]> {
-  return client.targetProject.findMany({ orderBy: [{ displayName: 'asc' }, { canonicalPath: 'asc' }] })
+  return client.targetProject.findMany({ orderBy: [{ displayName: 'asc' }, { canonicalIdentity: 'asc' }] })
 }
 
 export async function resolveActiveProject(
@@ -242,7 +313,14 @@ export async function resolveActiveProject(
 
   const project = await client.targetProject.findUnique({
     where: { id },
-    select: { id: true, displayName: true, canonicalPath: true },
+    select: {
+      id: true,
+      kind: true,
+      displayName: true,
+      canonicalIdentity: true,
+      canonicalPath: true,
+      normalizedRemoteOrigin: true,
+    },
   })
   return project ? { ...project, source } : null
 }
@@ -344,13 +422,18 @@ export async function resolveTargetProject(reference: string, client: PrismaClie
   const trimmed = reference.trim()
   if (!trimmed) throw new ServiceError('Target project is required.', 'VALIDATION', 400)
 
+  const localPath = trimmed.includes('://') ? undefined : path.resolve(trimmed)
+  const remoteOrigin = trimmed.includes('://') ? normalizeRemoteOrigin(trimmed) : undefined
+
   const candidates = await client.targetProject.findMany({
     where: {
       OR: [
         { id: trimmed },
         { fingerprint: trimmed },
         { displayName: trimmed },
-        { canonicalPath: path.resolve(trimmed) },
+        { canonicalIdentity: trimmed },
+        ...(localPath ? [{ canonicalPath: localPath }] : []),
+        ...(remoteOrigin ? [{ normalizedRemoteOrigin: remoteOrigin }] : []),
       ],
     },
     take: 2,
@@ -373,7 +456,9 @@ export async function resolveTargetProject(reference: string, client: PrismaClie
   }
 
   if (canonicalPath) {
-    const byPath = await client.targetProject.findUnique({ where: { canonicalPath } })
+    const byPath = await client.targetProject.findUnique({
+      where: { canonicalIdentity: localCanonicalIdentity(canonicalPath) },
+    })
     if (byPath) return byPath
   }
 

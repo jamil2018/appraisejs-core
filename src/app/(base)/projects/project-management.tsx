@@ -30,11 +30,20 @@ import type { AgentPreflightReceiptSummary } from '@/lib/agent-preflight/contrac
 
 type Project = {
   id: string
+  kind: 'LOCAL_WORKSPACE' | 'REMOTE_BLACK_BOX'
   displayName: string
   description: string | null
-  canonicalPath: string
+  canonicalIdentity: string
+  canonicalPath: string | null
+  normalizedRemoteOrigin: string | null
   lastDetectedAt: Date
   preflight?: AgentPreflightReceiptSummary
+}
+
+function projectIdentityLabel(
+  project: Pick<Project, 'canonicalPath' | 'normalizedRemoteOrigin' | 'canonicalIdentity'>,
+) {
+  return project.canonicalPath ?? project.normalizedRemoteOrigin ?? project.canonicalIdentity
 }
 
 const projectDateFormatter = new Intl.DateTimeFormat(undefined, { dateStyle: 'medium' })
@@ -51,7 +60,7 @@ export default function ProjectManagement({
     const normalized = query.trim().toLocaleLowerCase()
     if (!normalized) return projects
     return projects.filter(project =>
-      [project.displayName, project.description ?? '', project.canonicalPath].some(value =>
+      [project.displayName, project.description ?? '', projectIdentityLabel(project)].some(value =>
         value.toLocaleLowerCase().includes(normalized),
       ),
     )
@@ -62,7 +71,9 @@ export default function ProjectManagement({
       <CardHeader className="flex-row items-start justify-between gap-4">
         <div className="flex flex-col gap-1.5">
           <CardTitle>Registered projects</CardTitle>
-          <CardDescription>Search, select, rename, or permanently remove registered workspaces.</CardDescription>
+          <CardDescription>
+            Search, select, rename, or permanently remove registered local and remote targets.
+          </CardDescription>
         </div>
         <RegisterProjectDialog />
       </CardHeader>
@@ -86,7 +97,7 @@ export default function ProjectManagement({
           <div className="flex min-h-48 flex-col items-center justify-center gap-2 text-center">
             <FolderGit2 aria-hidden="true" className="size-8 text-muted-foreground" />
             <p className="font-medium">No projects registered</p>
-            <p className="text-sm text-muted-foreground">Register a workspace to begin.</p>
+            <p className="text-sm text-muted-foreground">Register a local workspace or remote target to begin.</p>
           </div>
         ) : filteredProjects.length === 0 ? (
           <div className="flex min-h-32 items-center justify-center text-sm text-muted-foreground" role="status">
@@ -97,7 +108,7 @@ export default function ProjectManagement({
             <TableHeader>
               <TableRow>
                 <TableHead>Project</TableHead>
-                <TableHead>Workspace path</TableHead>
+                <TableHead>Target identity</TableHead>
                 <TableHead>Last detected</TableHead>
                 <TableHead>Agent readiness</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
@@ -131,8 +142,8 @@ function ProjectRow({ project, highlightPreflight }: { project: Project; highlig
           <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{project.description}</p>
         ) : null}
       </TableCell>
-      <TableCell className="max-w-md truncate font-mono text-xs" title={project.canonicalPath}>
-        {project.canonicalPath}
+      <TableCell className="max-w-md truncate font-mono text-xs" title={projectIdentityLabel(project)}>
+        {projectIdentityLabel(project)}
       </TableCell>
       <TableCell className="whitespace-nowrap text-muted-foreground">
         {projectDateFormatter.format(new Date(project.lastDetectedAt))}
@@ -315,7 +326,8 @@ function EditProjectDialog({ project }: { project: Project }) {
         <DialogHeader>
           <DialogTitle>Rename project</DialogTitle>
           <DialogDescription>
-            Only project metadata changes. The canonical path, project ID, and ownership history stay unchanged.
+            Only project metadata changes. The canonical target identity, project ID, and ownership history stay
+            unchanged.
           </DialogDescription>
         </DialogHeader>
         <div className="flex flex-col gap-2">

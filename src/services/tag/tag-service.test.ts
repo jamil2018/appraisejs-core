@@ -1,6 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { tagSchema } from '@/constants/form-opts/tag-form-opts'
-import { automationProjectionService } from '@/lib/automation/projection-service'
 import { createTag, getTagByIdOrThrow, updateTag } from './tag-service'
 
 vi.mock('@/config/db-config', () => ({
@@ -11,12 +10,6 @@ vi.mock('@/config/db-config', () => ({
       create: vi.fn(),
       update: vi.fn(),
     },
-  },
-}))
-
-vi.mock('@/lib/automation/projection-service', () => ({
-  automationProjectionService: {
-    regenerateAllFeatures: vi.fn().mockResolvedValue(undefined),
   },
 }))
 
@@ -34,7 +27,6 @@ beforeEach(() => {
   vi.mocked(prisma.tag.findUnique).mockReset()
   vi.mocked(prisma.tag.create).mockReset()
   vi.mocked(prisma.tag.update).mockReset()
-  vi.mocked(automationProjectionService.regenerateAllFeatures).mockResolvedValue([])
 })
 
 describe('getTagByIdOrThrow', () => {
@@ -80,7 +72,6 @@ describe('createTag', () => {
 
     await expect(createTag(basePayload, targetProjectId)).resolves.toEqual(created)
     expect(prisma.tag.create).toHaveBeenCalledWith({ data: { ...basePayload, targetProjectId } })
-    expect(automationProjectionService.regenerateAllFeatures).toHaveBeenCalled()
   })
 })
 
@@ -163,6 +154,5 @@ describe('updateTag', () => {
         tagExpression: '@smoke',
       },
     })
-    expect(automationProjectionService.regenerateAllFeatures).toHaveBeenCalled()
   })
 })

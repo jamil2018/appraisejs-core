@@ -1,5 +1,4 @@
 import { describe, expect, it, vi } from 'vitest'
-import { automationProjectionService } from '@/lib/automation/projection-service'
 import { deleteLocators, detectAndCreateConflicts, savePickedLocatorFromRequest } from './locator-service'
 
 vi.mock('@/lib/locator-picker/session-manager', () => ({
@@ -7,14 +6,6 @@ vi.mock('@/lib/locator-picker/session-manager', () => ({
     getSession: vi.fn(),
     markSaving: vi.fn().mockResolvedValue(undefined),
     markReadyAfterSave: vi.fn().mockResolvedValue(undefined),
-  },
-}))
-
-vi.mock('@/lib/automation/projection-service', () => ({
-  automationProjectionService: {
-    syncLocatorGroup: vi.fn().mockResolvedValue(undefined),
-    createEmptyLocatorGroup: vi.fn().mockResolvedValue(undefined),
-    syncLocatorMap: vi.fn().mockResolvedValue(undefined),
   },
 }))
 
@@ -48,20 +39,13 @@ describe('detectAndCreateConflicts', () => {
 })
 
 describe('deleteLocators', () => {
-  it('deletes locators and syncs the affected locator group files', async () => {
-    vi.mocked(prisma.locator.findMany).mockResolvedValue([
-      { locatorGroupId: 'group-1' },
-      { locatorGroupId: 'group-1' },
-      { locatorGroupId: 'group-2' },
-    ] as never)
+  it('deletes locators without synchronizing target files', async () => {
     vi.mocked(prisma.locator.deleteMany).mockResolvedValue({ count: 3 } as never)
 
     await expect(deleteLocators(['loc-1', 'loc-2', 'loc-3'], 'project-1')).resolves.toEqual({ count: 3 })
     expect(prisma.locator.deleteMany).toHaveBeenCalledWith({
       where: { id: { in: ['loc-1', 'loc-2', 'loc-3'] }, targetProjectId: 'project-1' },
     })
-    expect(automationProjectionService.syncLocatorGroup).toHaveBeenCalledWith('group-1')
-    expect(automationProjectionService.syncLocatorGroup).toHaveBeenCalledWith('group-2')
   })
 })
 

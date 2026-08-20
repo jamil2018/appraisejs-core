@@ -33,12 +33,5 @@ describe('sealed capsule credentials', () => {
         resolvedPassword: undefined,
       }),
     ).toThrow('credential reference is unavailable')
-    expect(() =>
-      sealCredentialEnvironment({
-        credentialState: 'LEGACY_DISABLED',
-        passwordReference: null,
-        resolvedPassword: undefined,
-      }),
-    ).toThrow('disabled legacy environment credential')
   })
 })

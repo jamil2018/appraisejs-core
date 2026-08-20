@@ -40,7 +40,10 @@ describe('credential authorization grant persistence', () => {
     const target = await prisma.targetProject.create({
       data: {
         id: 'target-real',
+        kind: 'LOCAL_WORKSPACE',
+        canonicalIdentity: `path:${workspace}`,
         canonicalPath: workspace,
+        normalizedRemoteOrigin: null,
         displayName: 'Real SQLite target',
         fingerprint: digest('target'),
       },
@@ -143,7 +146,10 @@ describe('credential authorization grant persistence', () => {
     const target = await prisma.targetProject.create({
       data: {
         id: 'target-fresh',
+        kind: 'LOCAL_WORKSPACE',
+        canonicalIdentity: `path:${workspace}`,
         canonicalPath: workspace,
+        normalizedRemoteOrigin: null,
         displayName: 'Target',
         fingerprint: digest('target-fresh'),
       },

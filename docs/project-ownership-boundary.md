@@ -18,8 +18,11 @@ a required project-selection dialog. The browser keeps the requested URL, and se
 same path and query with `project=<targetProjectId>` added, preventing missing-scope errors from becoming route-level
 500 responses.
 
-The project-management page presents registered projects in a searchable table. Registration and metadata changes
-use modal forms; UI registration requires a display name and accepts an optional description. Removing a project is
+The project-management page presents registered projects in a searchable table. A target is either `LOCAL_WORKSPACE`,
+registered by canonical local path, or `REMOTE_BLACK_BOX`, registered by a normalized credential-free HTTP(S) origin.
+Remote registration creates the initial default Environment and never fabricates workspace metadata, Git state,
+markers, or launch capability. Local registration retains those workspace-only capabilities. Both kinds use a unique
+`canonicalIdentity`; `canonicalPath` is optional and never substitutes for a remote origin. Removing a project is
 an explicit, name-confirmed destructive operation that transactionally deletes all project-owned authored,
 lifecycle, runtime, reporting, metric, evidence, export, and supporting records before deleting the project identity.
 Agent registration remains compatible with derived display names when callers omit one.
@@ -71,9 +74,7 @@ or ownership return a bounded conflict instead of leaking a database uniqueness 
 | Publication         | plans, validation proposals and publications, export jobs and receipts               | direct target and immutable plan/publication provenance         |
 | Runtime             | capsules, TestRuns, attempts, logs, reports, traces, screenshots, metrics            | direct target on roots and transitive immutable runtime binding |
 
-The migration first registers the hub checkout as **Legacy AppraiseJS**, adds nullable ownership columns, and
-backfills existing rows. Nullable columns remain a compatibility seam for databases created before project support;
-new project-owned application and coordinator writes must never rely on null ownership. Shared library entities are
-excluded from that invariant even if legacy rows retain historical ownership metadata. A constraint-finalization migration is
-applied only after integrity checks prove that every root and descendant resolves to exactly one project. The hub
-legacy registration does not create an external-target `.appraisejs/project.json` marker.
+The unreleased capsule-only cutover intentionally clears authored, lifecycle, execution, evidence, credential, and
+projection data before rebuilding mandatory ownership constraints. No synthetic legacy project or nullable ownership
+fallback survives. Canonical built-in Step Definitions are reseeded through the source-owned readiness workflow after
+the reset; all new project-owned roots require an exact `targetProjectId`.

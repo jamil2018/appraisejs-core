@@ -12,7 +12,7 @@ Thank you for your interest in contributing to AppraiseJS Core! This document pr
 - [Development Workflow](#development-workflow)
 - [Testing](#testing)
 - [Database Migrations](#database-migrations)
-- [Sync Scripts](#sync-scripts)
+- [Canonical Readiness and Projections](#canonical-readiness-and-projections)
 - [Pull Request Process](#pull-request-process)
 - [Common Tasks](#common-tasks)
 
@@ -95,18 +95,17 @@ appraise/
 ├── prisma/              # Database schema and migrations
 │   ├── schema.prisma    # Prisma schema definition
 │   └── migrations/      # Database migration files
-├── scripts/             # Utility scripts for syncing and setup
-│   ├── sync-*.ts       # Various sync scripts
+├── scripts/             # Setup, validation, readiness, and projection utilities
+│   ├── sync-step-definitions.ts # Seeds the canonical built-in registry
 │   ├── setup-env.ts    # Environment setup
-│   └── regenerate-features.ts
 ├── src/
 │   ├── app/            # Next.js app directory (pages and routes)
 │   ├── actions/        # Server actions
 │   ├── components/     # React components
 │   ├── lib/            # Utility functions and libraries
-│   └── tests/          # Generated Test files (Cucumber features and steps)
+│   └── tests/          # Runtime support and sealed capsule execution assets
 │       ├── config/     # Configuration files (environment, executor scripts)
-│       ├── features/   # Generated Gherkin feature files
+│       ├── features/   # Runtime-owned feature materialization
 │       ├── hooks/      # Cucumber hooks
 │       ├── locators/   # Test locators (generated)
 │       ├── mapping/    # Locator group to route maps (generated)
@@ -269,31 +268,12 @@ When modifying the Prisma schema (`prisma/schema.prisma`):
 - Keep migrations focused and atomic
 - Never edit existing migration files (create new ones instead)
 
-## Sync Scripts
+## Canonical Readiness and Projections
 
-This project includes various sync scripts that synchronize data between the filesystem and database:
-
-### Available Sync Scripts
-
-- `npm run sync-features` - Regenerate feature files from database
-- `npm run sync-locator-groups` - Sync locator groups
-- `npm run sync-environments` - Sync environments
-- `npm run sync-locators` - Sync locators
-- `npm run sync-modules` - Sync modules
-- `npm run sync-tags` - Sync tags
-- `npm run sync-test-suites` - Sync test suites
-- `npm run sync-test-cases` - Sync test cases
-- `npm run sync-step-definitions` - Register canonical built-in Step Definitions
-- `npm run sync-all` - Run all sync scripts in order for sync with test file changes
-
-### When to Use Sync Scripts
-
-- After importing test data
-- When feature files are out of sync with the database
-- When restructuring test organization
-- Before committing changes that affect test structure
-
-**Important:** Always review changes made by sync scripts before committing.
+The database is the sole authoring authority for test structure and configuration; AppraiseJS does not synchronize
+those domains with `automation/`. Run `npm run sync-step-definitions` to seed or repair canonical built-in Step
+Definitions. Generate human-readable Step projections with `npm run operation:projections`; those projections and
+explicit repository exports are derived outputs, never managed inputs or execution authority.
 
 ## Pull Request Process
 

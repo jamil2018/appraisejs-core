@@ -32,7 +32,7 @@ const exactCoordinatorOperations: Readonly<Record<string, CoordinatorOperationId
   step_definition_draft_read: 'step-definitions-read',
   step_search: 'step-definitions-read',
   test_run_diagnose: 'test-run-evidence',
-  test_run_preflight: 'test-run-write',
+  test_run_start: 'test-run-write',
   test_run_read: 'test-run-evidence',
   validation_compile: 'quality-write',
   validation_publish: 'quality-write',

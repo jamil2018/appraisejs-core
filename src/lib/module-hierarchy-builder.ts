@@ -14,6 +14,7 @@ async function createOrFindModule(
   modulePath: string,
   moduleName: string,
   parentId: string | undefined,
+  targetProjectId: string,
   client: ModuleClient,
 ): Promise<string> {
   try {
@@ -22,6 +23,7 @@ async function createOrFindModule(
       where: {
         name: moduleName,
         parentId: parentId || null,
+        targetProjectId,
       },
     })
 
@@ -34,6 +36,7 @@ async function createOrFindModule(
       data: {
         name: moduleName,
         parentId: parentId || null,
+        targetProjectId,
         // Add description only if it's required by the schema
         // For now, we'll leave it empty since it's optional
       },
@@ -52,7 +55,11 @@ async function createOrFindModule(
  * @param modulePath - The module path (e.g., "/module1/submodule")
  * @returns Promise<string> - The ID of the leaf module
  */
-export async function buildModuleHierarchy(modulePath: string, client: ModuleClient = prisma): Promise<string> {
+export async function buildModuleHierarchy(
+  modulePath: string,
+  targetProjectId: string,
+  client: ModuleClient = prisma,
+): Promise<string> {
   try {
     // Parse the module path
     const pathParts = modulePath.split('/').filter(part => part && part !== '')
@@ -63,6 +70,7 @@ export async function buildModuleHierarchy(modulePath: string, client: ModuleCli
         where: {
           name: 'root',
           parentId: null,
+          targetProjectId,
         },
       })
 
@@ -75,6 +83,7 @@ export async function buildModuleHierarchy(modulePath: string, client: ModuleCli
         data: {
           name: 'root',
           parentId: null,
+          targetProjectId,
         },
       })
 
@@ -90,7 +99,7 @@ export async function buildModuleHierarchy(modulePath: string, client: ModuleCli
       const moduleName = pathParts[i]
       currentPath += `/${moduleName}`
 
-      const moduleId = await createOrFindModule(currentPath, moduleName, currentParentId, client)
+      const moduleId = await createOrFindModule(currentPath, moduleName, currentParentId, targetProjectId, client)
 
       currentParentId = moduleId
     }
@@ -106,7 +115,7 @@ export async function buildModuleHierarchy(modulePath: string, client: ModuleCli
  * Gets all existing modules as a flat list with their paths
  * @returns Promise<Array<{id: string, name: string, path: string, parentId: string | null}>>
  */
-export async function getAllModulesWithPaths(): Promise<
+export async function getAllModulesWithPaths(targetProjectId: string): Promise<
   Array<{
     id: string
     name: string
@@ -116,6 +125,7 @@ export async function getAllModulesWithPaths(): Promise<
 > {
   try {
     const modules = await prisma.module.findMany({
+      where: { targetProjectId },
       orderBy: [{ parentId: 'asc' }, { name: 'asc' }],
     })
 
@@ -170,9 +180,9 @@ function buildModulePath(
  * @param modulePath - The module path to find
  * @returns Promise<string | null> - The module ID or null if not found
  */
-export async function findModuleByPath(modulePath: string): Promise<string | null> {
+export async function findModuleByPath(modulePath: string, targetProjectId: string): Promise<string | null> {
   try {
-    const modules = await prisma.module.findMany()
+    const modules = await prisma.module.findMany({ where: { targetProjectId } })
     const pathParts = modulePath.split('/').filter(part => part && part !== '')
 
     if (pathParts.length === 0) {

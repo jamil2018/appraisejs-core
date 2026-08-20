@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { promises as fs } from 'fs'
 import { taskSpawner } from '@/lib/process/task-spawner'
 import prisma from '@/config/db-config'
-import { resolveStoredPath } from '@/lib/automation/automation-path-roots'
 import { TestRunArtifactAccessService } from '@/services/test-run/test-run-artifact-access-service'
 import { opaqueArtifactError } from '@/app/api/test-runs/artifact-route-error'
 import { spawnTraceViewerFromSnapshot } from '@/services/test-run/trace-viewer-snapshot-service'
@@ -17,8 +15,6 @@ async function loadTraceTestRun(runId: string, testCaseId: string, targetProject
   return prisma.testRun.findFirst({
     where: { runId, targetProjectId },
     include: {
-      runtimeCapsule: true,
-      targetProject: true,
       testCases: {
         where: { id: testCaseId },
         include: { testCase: true },
@@ -102,37 +98,21 @@ export async function POST(request: NextRequest, context: TraceRouteContext) {
       return NextResponse.json({ error: 'No trace path available for this test case' }, { status: 400 })
     }
 
-    let spawnedProcess
-    if (testRun.runtimeCapsule) {
-      const artifact = await new TestRunArtifactAccessService(prisma).readBytes({
-        runId,
-        kind: 'trace',
-        testCaseId,
-        storedPath: tracePath,
-        expectedTargetProjectId: expectedTargetProjectId ?? undefined,
-      })
-      spawnedProcess = await spawnTraceViewerFromSnapshot(artifact.bytes, traceViewerPath =>
-        taskSpawner.spawn('npx', ['playwright', 'show-trace', traceViewerPath], {
-          streamLogs: true,
-          prefixLogs: true,
-          logPrefix: `trace-viewer-${testCaseId}`,
-          captureOutput: false,
-        }),
-      )
-    } else {
-      const traceViewerPath = resolveStoredPath(tracePath, testRun.targetProject?.canonicalPath)
-      try {
-        await fs.access(traceViewerPath)
-      } catch {
-        return NextResponse.json({ error: `Trace file not found at path: ${tracePath}` }, { status: 404 })
-      }
-      spawnedProcess = await taskSpawner.spawn('npx', ['playwright', 'show-trace', traceViewerPath], {
+    const artifact = await new TestRunArtifactAccessService(prisma).readBytes({
+      runId,
+      kind: 'trace',
+      testCaseId,
+      storedPath: tracePath,
+      expectedTargetProjectId: expectedTargetProjectId ?? undefined,
+    })
+    const spawnedProcess = await spawnTraceViewerFromSnapshot(artifact.bytes, traceViewerPath =>
+      taskSpawner.spawn('npx', ['playwright', 'show-trace', traceViewerPath], {
         streamLogs: true,
         prefixLogs: true,
         logPrefix: `trace-viewer-${testCaseId}`,
-        captureOutput: false, // No need to capture output for trace viewer
-      })
-    }
+        captureOutput: false,
+      }),
+    )
 
     return NextResponse.json({
       success: true,

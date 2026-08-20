@@ -23,3 +23,13 @@ test('release CI rejects a workflow without the ordered harness gate', () => {
     /Root CI must run the harness check after root\/package dependency installation/,
   )
 })
+
+test('release CI rejects a workflow without the capsule-only cutover gate', () => {
+  const workflow = fixture('ci-missing-harness.yml')
+  workflow.jobs['root-app'].steps.splice(2, 0, { run: 'npm run check:harness' })
+
+  assert.throws(
+    () => validateReleaseCiWorkflow(workflow, dependabot),
+    /Security CI must enforce the capsule-only cutover guard/,
+  )
+})

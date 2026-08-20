@@ -20,7 +20,8 @@ describe('quality coordinator boundary', () => {
     expect(source).toContain("'quality/assessment-runs'")
     expect(source).toContain('recordAgentPreflightReceipt(body)')
     expect(source).toContain('error.issues.map')
-    expect(source).toContain("'test-runs' && operation[1] === 'preflight'")
+    expect(source).toContain("operation[0] === 'test-runs'")
+    expect(source).toContain('postIndependentTestRun(body)')
     expect(source).toContain("operation[0] === 'step-definitions'")
     expect(source).toContain("operation[3] === 'locators'")
     expect(source).not.toMatch(

@@ -134,7 +134,9 @@ export const capsuleCommandReceiptV1Schema = z
         validationHash: runtimeCapsuleHashSchema,
         runId: runtimeCapsuleSegmentSchema,
         testRunId: runtimeCapsuleSegmentSchema,
-        publishOperationId: boundedText,
+        sourceKind: z.enum(['PUBLISHED_VALIDATION', 'AUTHORED_TEST_SNAPSHOT']),
+        sourceHash: runtimeCapsuleHashSchema,
+        publishOperationId: boundedText.optional(),
         operationHash: runtimeCapsuleHashSchema,
         projectionHash: runtimeCapsuleHashSchema,
         compilerReceiptHash: runtimeCapsuleHashSchema,
@@ -323,6 +325,13 @@ export const capsuleCommandReceiptV1Schema = z
   })
   .strict()
   .superRefine((value, context) => {
+    const published = value.ownership.sourceKind === 'PUBLISHED_VALIDATION'
+    if (published !== Boolean(value.ownership.publishOperationId))
+      context.addIssue({
+        code: 'custom',
+        path: ['ownership'],
+        message: 'published sources require publishOperationId and authored snapshots must not carry one',
+      })
     refineEnvironment(value, context)
     refineSelection(value, context)
     const receiptFiles = [

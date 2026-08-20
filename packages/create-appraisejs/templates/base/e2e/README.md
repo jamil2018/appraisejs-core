@@ -28,7 +28,6 @@ workers cause unique-constraint and foreign-key failures in CI and locally.
 | `crud-tests.spec.ts`         | Suites, cases, template-based create             |
 | `authoring.spec.ts`          | Inline dialogs, flow panel, authoring            |
 | `runs-and-reports.spec.ts`   | Seeded runs, reports, create form (no execution) |
-| `settings-sync.spec.ts`      | Per-script sync buttons                          |
 
 Helpers live under `e2e/helpers/` (`ui`, `navigation`, `table`, `forms`, `test-data`).
 
@@ -46,7 +45,7 @@ Seeded IDs are exported as `seededIds` for deep-link tests.
 
 - Live `cucumber-js` execution and report JSON ingestion during E2E
 - Locator picker companion / external browser extension flows
-- Bidirectional feature sync CLI unless exposed in Settings UI
+- Runtime capsule execution, which is covered by focused runtime and artifact-access suites
 
 ## Debugging
 

@@ -1,6 +1,5 @@
 import prisma from '@/config/db-config'
 import { testSuiteSchema } from '@/constants/form-opts/test-suite-form-opts'
-import { automationProjectionService } from '@/lib/automation/projection-service'
 import { getOrCreateTestSuiteIdentifierTagId } from '@/lib/test-suite-identifier-service'
 import { ensureTestSuiteIdentifierTags } from '@/lib/test-suite-identifier-service'
 import { generateUniqueTestSuiteIdentifier } from '@/lib/test-suite-utils'
@@ -60,12 +59,6 @@ export async function createTestSuiteFromInput(value: z.infer<typeof testSuiteSc
     })
   })
 
-  try {
-    await automationProjectionService.generateFeature(newTestSuite.id)
-  } catch (error) {
-    console.error('Error generating feature file:', error)
-  }
-
   return newTestSuite
 }
 
@@ -112,14 +105,6 @@ export async function deleteTestSuitesByIds(ids: string[], targetProjectId: stri
       id: true,
     },
   })
-
-  for (const testSuiteId of ids) {
-    try {
-      await automationProjectionService.deleteFeature(testSuiteId)
-    } catch (error) {
-      console.error(`Error deleting feature file for test suite ${testSuiteId}:`, error)
-    }
-  }
 
   await prisma.testSuite.deleteMany({
     where: { id: { in: ids }, targetProjectId },
@@ -176,19 +161,8 @@ export async function updateTestSuiteFromInput(
   if (!module || testCases.length !== (value.testCases ?? []).length || tags.length !== (value.tagIds ?? []).length)
     throw new ServiceError('Test suite relationships must belong to the active project', 'VALIDATION', 400)
 
-  const nameChanged = currentTestSuite.name !== value.name
-  const moduleChanged = currentTestSuite.moduleId !== value.moduleId
-
-  if (nameChanged || moduleChanged) {
-    try {
-      await automationProjectionService.deleteFeature(currentTestSuite.id)
-    } catch (error) {
-      console.error('Error deleting old feature file:', error)
-    }
-  }
-
   const suiteIdentifierTagId = await getOrCreateTestSuiteIdentifierTagId(id, targetProjectId)
-  const updatedTestSuite = await prisma.testSuite.update({
+  await prisma.testSuite.update({
     where: { id },
     data: {
       name: value.name,
@@ -208,10 +182,4 @@ export async function updateTestSuiteFromInput(
       },
     },
   })
-
-  try {
-    await automationProjectionService.generateFeature(updatedTestSuite.id)
-  } catch (error) {
-    console.error('Error generating updated feature file:', error)
-  }
 }

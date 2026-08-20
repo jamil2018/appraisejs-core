@@ -1,6 +1,5 @@
 import prisma from '@/config/db-config'
 import { testCaseSchema } from '@/constants/form-opts/test-case-form-opts'
-import { automationProjectionService } from '@/lib/automation/projection-service'
 import { generateUniqueTestCaseIdentifier } from '@/lib/test-case-utils'
 import { z } from 'zod'
 import { TagType } from '@prisma/client'
@@ -9,20 +8,6 @@ import { flowBlockCreates, testCaseStepCreates } from '@/services/shared/authore
 import { resolveReadyExactStepDefinitions } from '@/services/shared/step-invocation-validation'
 
 export async function deleteTestCasesByIds(ids: string[], targetProjectId: string): Promise<void> {
-  const affectedTestSuites = await prisma.testSuite.findMany({
-    where: {
-      targetProjectId,
-      testCases: {
-        some: {
-          id: {
-            in: ids,
-          },
-        },
-      },
-    },
-    select: { id: true },
-  })
-
   const testCaseIdentifierTags = await prisma.tag.findMany({
     where: {
       type: TagType.IDENTIFIER,
@@ -93,8 +78,6 @@ export async function deleteTestCasesByIds(ids: string[], targetProjectId: strin
       where: { id: { in: ids }, targetProjectId },
     })
   })
-
-  await Promise.all(affectedTestSuites.map(testSuite => automationProjectionService.generateFeature(testSuite.id)))
 }
 
 export async function listTestCases(targetProjectId: string) {
@@ -170,8 +153,6 @@ export async function createTestCaseFromInput(value: TestCaseInput, targetProjec
     })
   })
 
-  await Promise.all(newTestCase.TestSuite.map(testSuite => automationProjectionService.generateFeature(testSuite.id)))
-
   return newTestCase
 }
 
@@ -220,20 +201,6 @@ export async function updateTestCaseFromInput(value: TestCaseInput, id: string, 
   await getTestCaseByIdOrThrow(id, targetProjectId)
   const definitions = await validateTestCaseRelationships(value, targetProjectId)
   const prepared = prepareTestCaseWrites(value, definitions)
-  const affectedTestSuites = await prisma.testSuite.findMany({
-    where: {
-      targetProjectId,
-      testCases: {
-        some: {
-          id,
-        },
-      },
-    },
-    select: {
-      id: true,
-    },
-  })
-
   const steps = await prisma.testCaseStep.findMany({
     where: { testCaseId: id },
     select: { id: true },
@@ -281,8 +248,6 @@ export async function updateTestCaseFromInput(value: TestCaseInput, id: string, 
       include: { steps: true },
     })
   })
-
-  await Promise.all(affectedTestSuites.map(testSuite => automationProjectionService.generateFeature(testSuite.id)))
 
   return testCase
 }

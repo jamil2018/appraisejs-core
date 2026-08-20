@@ -8,7 +8,7 @@ const TEMPLATE_SCRIPTS = {
   'install-dependencies': 'npm install --legacy-peer-deps',
   setup: 'npm run install-dependencies && npm run setup:db && npm run build:local && npm run protect-seeded-files',
   'appraisejs:setup': 'npm run setup',
-  'appraisejs:sync': 'npm run sync-all',
+  'appraisejs:sync': 'npm run sync-step-definitions',
   'build:local':
     'npm run generate-db-client && npm run build:cucumber-runtime && npm run build:locator-picker-companion && next build',
   'protect-seeded-files': 'npx tsx scripts/protect-seeded-files.ts',
@@ -16,9 +16,9 @@ const TEMPLATE_SCRIPTS = {
   'generate-db-client': 'npx prisma generate --schema prisma/schema.prisma',
   'migrate-db': 'npx prisma migrate deploy',
   'install-playwright': 'npx playwright install',
-  'setup:db': 'npm run setup-env && npm run generate-db-client && npm run migrate-db && npm run sync-all',
+  'setup:db': 'npm run setup-env && npm run generate-db-client && npm run migrate-db && npm run sync-step-definitions',
   'setup:full': 'npm run install-dependencies && npm run setup:db && npm run build:local',
-  'sync-all': 'npx tsx scripts/sync-all.ts',
+  'sync-step-definitions': 'npx tsx scripts/sync-step-definitions.ts',
 }
 
 async function patchAndRead(dir: string, pm: 'npm' | 'pnpm' | 'yarn' | 'bun') {
@@ -37,7 +37,7 @@ describe('patchPackageJsonScripts', () => {
         'pnpm run install-dependencies && pnpm run setup:db && pnpm run build:local && pnpm run protect-seeded-files',
       )
       expect(pkg.scripts['appraisejs:setup']).toBe('pnpm run setup')
-      expect(pkg.scripts['appraisejs:sync']).toBe('pnpm run sync-all')
+      expect(pkg.scripts['appraisejs:sync']).toBe('pnpm run sync-step-definitions')
       expect(pkg.scripts['build:local']).toBe(
         'pnpm run generate-db-client && pnpm run build:cucumber-runtime && pnpm run build:locator-picker-companion && next build',
       )
@@ -47,12 +47,12 @@ describe('patchPackageJsonScripts', () => {
       expect(pkg.scripts['migrate-db']).toBe('pnpm exec prisma migrate deploy')
       expect(pkg.scripts['install-playwright']).toBe('pnpm exec playwright install')
       expect(pkg.scripts['setup:db']).toBe(
-        'pnpm run setup-env && pnpm run generate-db-client && pnpm run migrate-db && pnpm run sync-all',
+        'pnpm run setup-env && pnpm run generate-db-client && pnpm run migrate-db && pnpm run sync-step-definitions',
       )
       expect(pkg.scripts['setup:full']).toBe(
         'pnpm run install-dependencies && pnpm run setup:db && pnpm run build:local',
       )
-      expect(pkg.scripts['sync-all']).toBe('pnpm exec tsx scripts/sync-all.ts')
+      expect(pkg.scripts['sync-step-definitions']).toBe('pnpm exec tsx scripts/sync-step-definitions.ts')
       expect(pkg.scripts['setup-env']).not.toContain('npx ')
     } finally {
       await fs.remove(dir).catch(() => {})
@@ -73,7 +73,7 @@ describe('patchPackageJsonScripts', () => {
       expect(pkg.scripts['setup-env']).toContain('npx ')
       expect(pkg.scripts['setup-env']).toBe('npx tsx scripts/setup-env.ts')
       expect(pkg.scripts['generate-db-client']).toBe('npx prisma generate --schema prisma/schema.prisma')
-      expect(pkg.scripts['sync-all']).toBe('npx tsx scripts/sync-all.ts')
+      expect(pkg.scripts['sync-step-definitions']).toBe('npx tsx scripts/sync-step-definitions.ts')
     } finally {
       await fs.remove(dir).catch(() => {})
     }
@@ -92,7 +92,7 @@ describe('patchPackageJsonScripts', () => {
       expect(pkg.scripts['setup-env']).toBe('yarn run tsx scripts/setup-env.ts')
       expect(pkg.scripts['generate-db-client']).toBe('yarn run prisma generate --schema prisma/schema.prisma')
       expect(pkg.scripts['install-playwright']).toBe('yarn run playwright install')
-      expect(pkg.scripts['sync-all']).not.toContain('npx ')
+      expect(pkg.scripts['sync-step-definitions']).not.toContain('npx ')
     } finally {
       await fs.remove(dir).catch(() => {})
     }
@@ -106,13 +106,13 @@ describe('patchPackageJsonScripts', () => {
       expect(pkg.scripts.setup).toContain('bun run install-dependencies')
       expect(pkg.scripts.setup).toContain('bun run setup:db')
       expect(pkg.scripts.setup).toContain('bun run protect-seeded-files')
-      expect(pkg.scripts['appraisejs:sync']).toBe('bun run sync-all')
+      expect(pkg.scripts['appraisejs:sync']).toBe('bun run sync-step-definitions')
       expect(pkg.scripts['protect-seeded-files']).toBe('bunx tsx scripts/protect-seeded-files.ts')
       expect(pkg.scripts['setup-env']).toBe('bunx tsx scripts/setup-env.ts')
       expect(pkg.scripts['generate-db-client']).toBe('bunx prisma generate --schema prisma/schema.prisma')
       expect(pkg.scripts['migrate-db']).toBe('bunx prisma migrate deploy')
-      expect(pkg.scripts['sync-all']).toContain('bunx ')
-      expect(pkg.scripts['sync-all']).not.toContain('npx ')
+      expect(pkg.scripts['sync-step-definitions']).toContain('bunx ')
+      expect(pkg.scripts['sync-step-definitions']).not.toContain('npx ')
     } finally {
       await fs.remove(dir).catch(() => {})
     }

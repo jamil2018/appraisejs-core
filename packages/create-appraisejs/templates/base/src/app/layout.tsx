@@ -98,7 +98,11 @@ export default async function RootLayout({
     readActiveProjectCookie(),
     headers(),
   ])
-  const projectOptions = projects.map(({ id, displayName, canonicalPath }) => ({ id, displayName, canonicalPath }))
+  const projectOptions = projects.map(project => ({
+    id: project.id,
+    displayName: project.displayName,
+    canonicalPath: project.canonicalPath ?? project.normalizedRemoteOrigin ?? project.canonicalIdentity,
+  }))
   const requiresProject = isProjectScopedPath(requestHeaders.get('x-appraise-pathname') ?? '/')
   const registeredProjectIds = new Set(projectOptions.map(project => project.id))
   redirectInvalidProjectScope({

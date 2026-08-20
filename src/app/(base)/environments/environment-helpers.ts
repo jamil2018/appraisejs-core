@@ -12,8 +12,7 @@ export type EnvironmentTableRow = {
   apiBaseUrl: string | null
   username: string | null
   passwordEnvironmentVariable: string | null
-  credentialState: 'NONE' | 'REFERENCE_CONFIGURED' | 'LEGACY_DISABLED'
-  legacyCredentialDetectedAt: Date | null
+  credentialState: 'NONE' | 'REFERENCE_CONFIGURED'
   createdAt: Date
   updatedAt: Date
 }
@@ -56,9 +55,7 @@ function isEnvironmentRow(value: unknown): value is EnvironmentTableRow {
     'passwordEnvironmentVariable' in value &&
     (typeof value.passwordEnvironmentVariable === 'string' || value.passwordEnvironmentVariable === null) &&
     'credentialState' in value &&
-    ['NONE', 'REFERENCE_CONFIGURED', 'LEGACY_DISABLED'].includes(String(value.credentialState)) &&
-    'legacyCredentialDetectedAt' in value &&
-    (value.legacyCredentialDetectedAt instanceof Date || value.legacyCredentialDetectedAt === null) &&
+    ['NONE', 'REFERENCE_CONFIGURED'].includes(String(value.credentialState)) &&
     'createdAt' in value &&
     value.createdAt instanceof Date &&
     'updatedAt' in value &&

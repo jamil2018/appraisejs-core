@@ -30,12 +30,10 @@ function buildCapsuleSelectionTagExpression(cases: BuiltCapsuleFiles['cases']) {
 }
 
 export function sealCredentialEnvironment(input: {
-  credentialState: 'NONE' | 'REFERENCE_CONFIGURED' | 'LEGACY_DISABLED'
+  credentialState: 'NONE' | 'REFERENCE_CONFIGURED'
   passwordReference: string | null
   resolvedPassword: string | undefined
 }) {
-  if (input.credentialState === 'LEGACY_DISABLED')
-    throw new Error('Runtime capsule cannot use a disabled legacy environment credential.')
   if (input.credentialState === 'NONE') {
     if (input.passwordReference !== null || input.resolvedPassword !== undefined)
       throw new Error('Runtime capsule credential state and reference are inconsistent.')
@@ -56,6 +54,8 @@ export function sealCredentialEnvironment(input: {
 export async function sealCapsuleCommandReceipt(input: {
   operation: {
     id: string
+    sourceKind?: 'PUBLISHED_VALIDATION' | 'AUTHORED_TEST_SNAPSHOT'
+    sourceHash?: string
     operationHash: string
     projectionHash: string
     receiptHash: string
@@ -73,7 +73,7 @@ export async function sealCapsuleCommandReceipt(input: {
       baseUrl: string
       username: string | null
       passwordEnvironmentVariable: string | null
-      credentialState: 'NONE' | 'REFERENCE_CONFIGURED' | 'LEGACY_DISABLED'
+      credentialState: 'NONE' | 'REFERENCE_CONFIGURED'
     }
   }
   runtimeInput: ValidationAstRuntimeInput
@@ -131,7 +131,9 @@ export async function sealCapsuleCommandReceipt(input: {
       validationHash: input.operation.validationHash,
       runId: input.testRun.runId,
       testRunId: input.testRun.id,
-      publishOperationId: input.operation.id,
+      sourceKind: input.operation.sourceKind ?? 'PUBLISHED_VALIDATION',
+      sourceHash: input.operation.sourceHash ?? input.operation.validationHash,
+      ...(input.operation.sourceKind === 'AUTHORED_TEST_SNAPSHOT' ? {} : { publishOperationId: input.operation.id }),
       operationHash: input.operation.operationHash,
       projectionHash: input.operation.projectionHash,
       compilerReceiptHash: input.operation.receiptHash,
