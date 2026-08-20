@@ -4,6 +4,8 @@ TestRuns are the managed execution records used by Assessments. An Assessment ru
 
 Runtime capsules are content-addressed and materialized under the target-owned runtime root. Their manifests capture frozen validation inputs, operation identities, locator/resource resolution, environment selection, and generated artifacts. A materializer uses bounded ownership tokens so concurrent callers cannot mutate the same capsule.
 
+Local startup verifies that the built Appraise Cucumber runtime entrypoints exist and runs the canonical `build:cucumber-runtime` script only when they are missing. Assessment execution repeats this as a read-only gate before durable `AssessmentRun` creation, so an unavailable runtime cannot leave a failed lifecycle record behind.
+
 Every TestRun executes from a capsule. `intent=ASSESSMENT` is reserved for Assessment-owned executions and their evidence reconciliation. `intent=INDEPENDENT` never creates an AssessmentRun or EvidenceReceipt. Independent sources are either an exact reviewed published validation or an `AUTHORED_TEST_SNAPSHOT`: a canonical, target-owned suite/case/ordered-Step-Invocation/locator snapshot sealed into the capsule. Authored snapshots must have complete exact Step References and target-owned locator IDs; manual, incomplete, cross-project, or ambiguous selections are rejected before a TestRun capsule is created. The synthetic validation ID used in its capsule tags is only a deterministic routing identity derived from the snapshot hash, never a Quality publication.
 
 There is no workspace executor, execution-time feature generation, or target-workspace report path. Features, bindings, support files, configuration, logs, reports, traces, and screenshots are generated or accessed through the capsule root only.
@@ -11,6 +13,8 @@ There is no workspace executor, execution-time feature generation, or target-wor
 Before a Quality-owned TestRun is prepared, AppraiseJS projects the immutable published validation artifacts into the target-scoped relational execution index. This projection is idempotent and must complete before TestRun-to-case/suite links are inserted, so managed execution never relies on fabricated foreign-key identities.
 
 TestRun output includes report, log, trace, and runtime diagnostics artifacts. Assessment reconciliation verifies those artifacts against the capsule identity and seals one immutable Evidence Receipt for every completed assessment matrix cell. TestRun success by itself is not an assurance decision; the assessment evidence matrix and requirement alignment remain authoritative.
+
+When `assessment_run` omits `runtime`, Appraise derives the exact cells from each selected published Validation Version's immutable runtime matrix. Explicit cells and the shorthand `runtime.environmentId` remain supported, but every request must still cover the complete selected published matrix.
 
 Stopping an Assessment stops only executions it owns. Already sealed receipts remain available, while late process completion cannot overwrite an Assessment that has been stopped. Independent TestRuns remain ordinary runtime records and cannot issue Evidence Receipts or an Assessment decision.
 

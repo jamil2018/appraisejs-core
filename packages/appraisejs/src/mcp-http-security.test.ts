@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest'
 
 import {
   assertLoopbackMcpHost,
+  assertLoopbackMcpEndpoint,
   HttpMcpRequestError,
   readBoundedJsonBody,
   validateHttpMcpRequest,
@@ -23,6 +24,14 @@ const valid = (overrides: Partial<Parameters<typeof validateHttpMcpRequest>[0]> 
 describe('HTTP MCP security policy', () => {
   it.each(['0.0.0.0', '192.168.1.5', 'example.test'])('rejects non-loopback bind host %s', host => {
     expect(() => assertLoopbackMcpHost(host)).toThrow('HTTP MCP is local-only')
+  })
+
+  it('accepts only credential-free HTTP loopback bridge endpoints', () => {
+    expect(assertLoopbackMcpEndpoint('http://127.0.0.1:3010/mcp').pathname).toBe('/mcp')
+    expect(assertLoopbackMcpEndpoint('http://localhost:3010/mcp').hostname).toBe('localhost')
+    expect(() => assertLoopbackMcpEndpoint('https://127.0.0.1:3010/mcp')).toThrow('loopback')
+    expect(() => assertLoopbackMcpEndpoint('http://example.test:3010/mcp')).toThrow('loopback')
+    expect(() => assertLoopbackMcpEndpoint('http://user:secret@127.0.0.1:3010/mcp')).toThrow('credential-free')
   })
 
   it('authenticates before request parsing with the coordinator bearer identity', () => {

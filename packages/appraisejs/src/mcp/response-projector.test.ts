@@ -43,4 +43,33 @@ describe('lifecycle response projection', () => {
       links: undefined,
     })
   })
+
+  it('keeps only decision-critical evidence state in decisionOnly mode', () => {
+    expect(
+      applyLifecycleResponseMode(
+        {
+          assessment: { id: 'assessment-1', status: 'EVIDENCE_REVIEW' },
+          evidenceSetHash: 'sha256:evidence',
+          evidenceReceiptCount: 1,
+          targetOutcome: null,
+          readiness: { ready: true, blockers: [], runtimeCells: [{ large: 'omitted' }] },
+          decisions: [],
+          evidenceReceipts: [{ large: 'omitted' }],
+          revision: { large: 'omitted' },
+        },
+        'decisionOnly',
+      ),
+    ).toEqual(
+      expect.objectContaining({
+        assessment: { id: 'assessment-1', status: 'EVIDENCE_REVIEW' },
+        evidenceSetHash: 'sha256:evidence',
+        evidenceReceiptCount: 1,
+        targetOutcome: null,
+        decisions: [],
+      }),
+    )
+    expect(
+      applyLifecycleResponseMode({ revision: { large: true }, evidenceReceipts: [{ large: true }] }, 'decisionOnly'),
+    ).not.toHaveProperty('evidenceReceipts')
+  })
 })

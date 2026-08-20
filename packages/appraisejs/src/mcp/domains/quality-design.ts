@@ -1,5 +1,12 @@
 import type { McpRegistryContext } from '../registry.js'
-import { applyAuthoringResponseMode, applyLifecycleResponseMode, responseModeSchema, text, z } from '../shared.js'
+import {
+  applyAuthoringResponseMode,
+  applyLifecycleResponseMode,
+  decisionResponseModeSchema,
+  responseModeSchema,
+  text,
+  z,
+} from '../shared.js'
 
 const qualityPlanRevisionInputSchema = z.object({
   qualityPlanId: z.string().min(1),
@@ -10,6 +17,11 @@ const qualityPlanRevisionInputSchema = z.object({
 const assessmentInputSchema = z.object({
   assessmentId: z.string().min(1),
   responseMode: responseModeSchema,
+})
+
+const assessmentDecisionInputSchema = z.object({
+  assessmentId: z.string().min(1),
+  responseMode: decisionResponseModeSchema,
 })
 
 const requirementQueryAnswerSchema = z.object({
@@ -522,7 +534,7 @@ export function registerQualityDesignOperations(context: McpRegistryContext): vo
     {
       description:
         'Read the assessment review packet, alignment status, evidence hash, assurance observations, and decision blockers. Human-verification blocked evidence remains targetOutcome not_evaluated.',
-      inputSchema: assessmentInputSchema.shape,
+      inputSchema: assessmentDecisionInputSchema.shape,
     },
     async ({ assessmentId, responseMode }) =>
       text(applyLifecycleResponseMode(await api.request(`quality/assessments/${assessmentId}/review`), responseMode)),
@@ -539,7 +551,7 @@ export function registerQualityDesignOperations(context: McpRegistryContext): vo
         decision: z.enum(['accepted', 'rejected', 'accepted_with_limitations']),
         decidedBy: z.string().min(1),
         rationale: z.string().min(1),
-        responseMode: responseModeSchema,
+        responseMode: decisionResponseModeSchema,
       },
     },
     async ({ assessmentId, responseMode, ...body }) =>

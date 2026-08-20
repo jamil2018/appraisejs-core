@@ -79,12 +79,18 @@ describe('canonical MCP contract registry', () => {
     expect(schema.properties?.environment).toHaveProperty('properties')
   })
 
-  it('defaults assessment_review to the compact summary response mode', async () => {
+  it('defaults assessment review and decision to the compact decision response mode', async () => {
     const contract = await definitions()
     const review = contract.find(definition => definition.name === 'assessment_review')
-    const schema = review?.inputSchema as { properties?: { responseMode?: { default?: unknown } } }
+    const decision = contract.find(definition => definition.name === 'assessment_decide')
+    const schema = review?.inputSchema as {
+      properties?: { responseMode?: { default?: unknown; description?: string } }
+    }
+    const decisionSchema = decision?.inputSchema as { properties?: { responseMode?: { default?: unknown } } }
 
-    expect(schema.properties?.responseMode?.default).toBe('summary')
+    expect(schema.properties?.responseMode?.default).toBe('decisionOnly')
+    expect(decisionSchema.properties?.responseMode?.default).toBe('decisionOnly')
+    expect(schema.properties?.responseMode?.description).toContain('full (largest payload)')
   })
 
   it('explicitly rejects the removed standalone assessment subject', async () => {

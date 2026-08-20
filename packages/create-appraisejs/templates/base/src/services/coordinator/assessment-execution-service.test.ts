@@ -14,6 +14,7 @@ const { database } = vi.hoisted(() => ({
 vi.mock('@/config/db-config', () => ({ default: database }))
 
 import {
+  derivedAssessmentCells,
   runQualityAssessment,
   reconcileQualityAssessment,
   setAssessmentCredentialAuthorizationServiceForTests,
@@ -28,6 +29,39 @@ describe('assessment execution guards', () => {
     setAssessmentExecutionClientForTests()
     setAssessmentCredentialAuthorizationServiceForTests()
     setAssessmentRuntimeServiceFactoryForTests()
+  })
+
+  it('derives omitted runtime cells from the immutable published matrix', () => {
+    expect(
+      derivedAssessmentCells({ assessmentId: 'assessment-1', idempotencyKey: 'run-1' }, {
+        versions: [
+          {
+            id: 'validation-1',
+            publication: {
+              runtimeInputJson: JSON.stringify({
+                matrix: [
+                  { browser: 'chromium', environment: 'env-1' },
+                  { browser: 'firefox', environment: 'env-2' },
+                ],
+              }),
+            },
+          },
+        ],
+      } as never),
+    ).toEqual([
+      {
+        validationVersionId: 'validation-1',
+        resultMatrixCell: 'CHROMIUM:env-1',
+        environmentId: 'env-1',
+        browserEngine: 'CHROMIUM',
+      },
+      {
+        validationVersionId: 'validation-1',
+        resultMatrixCell: 'FIREFOX:env-2',
+        environmentId: 'env-2',
+        browserEngine: 'FIREFOX',
+      },
+    ])
   })
 
   it('rejects an assessment with stale requirement alignment before runtime preparation', async () => {

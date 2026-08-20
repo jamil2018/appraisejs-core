@@ -12,6 +12,7 @@ import {
 import { diagnoseProject, formatMcpBootstrapError } from './diagnostics.js'
 import { assertLoopbackMcpHost } from './mcp-http-security.js'
 import { runAppraiseHttpMcp, runAppraiseMcp } from './mcp.js'
+import { callLocalMcpTool, parseMcpToolArguments, unwrapMcpToolResult } from './mcp-call.js'
 import { ensureLocalProjectIdentity } from './project-identity.js'
 import { runTestRunDiagnose } from './test-run-diagnose-cli.js'
 
@@ -184,6 +185,28 @@ program
         process.exitCode = 1
       }
     },
+  )
+
+program
+  .command('mcp-call')
+  .description('Call one tool through the authenticated local HTTP MCP bridge')
+  .argument('<tool>', 'MCP tool name')
+  .option('--input-json <json>', 'tool arguments as a JSON object', '{}')
+  .option('--cwd <path>', 'Appraise project directory', process.cwd())
+  .option('--endpoint <url>', 'local AppraiseJS MCP endpoint')
+  .action(async (tool: string, options: { inputJson: string; cwd: string; endpoint?: string }) =>
+    runCommand(async () => {
+      printJson(
+        unwrapMcpToolResult(
+          await callLocalMcpTool({
+            cwd: path.resolve(options.cwd),
+            endpoint: options.endpoint ?? resolveMcpEndpoint(),
+            tool,
+            arguments: parseMcpToolArguments(options.inputJson),
+          }),
+        ),
+      )
+    }, true),
   )
 
 function parsePositiveInteger(value: string, option: string): number {

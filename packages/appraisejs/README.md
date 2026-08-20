@@ -32,3 +32,13 @@ local and idempotent; it does not browse, handle credentials, or verify a select
 
 - Node.js 20.19+
 - An existing Appraise project with the coordinator configured
+
+## Local MCP Bridge
+
+When an agent host cannot attach native MCP tools to a delegated task, call the authenticated loopback MCP endpoint without exposing the coordinator token:
+
+```bash
+appraisejs mcp-call project_diagnostic --input-json '{"expectedTargetWorkspacePath":"/absolute/target"}'
+```
+
+Pass `--endpoint` only when the local sidecar uses a non-default loopback port or path.

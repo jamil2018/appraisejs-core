@@ -6,6 +6,7 @@ import { BrowserEngine, Prisma, TestRunEvidenceHealth, TestRunResult, TestRunSta
 import prisma from '@/config/db-config'
 import { canonicalContractJson } from '@/lib/catalog-contracts'
 import { hashEvidenceReceipt } from '@/lib/quality-design/state'
+import { assertManagedRuntimeReady } from '@/lib/runtime-capsule/runtime-readiness'
 import { findHumanVerificationEvent } from '@/lib/test-run/human-verification-event'
 import { RuntimeCapsuleTestRunService } from '@/services/test-run/runtime-capsule-test-run-service'
 import { ServiceError } from '@/services/shared/errors'
@@ -179,18 +180,38 @@ function requiredMatrixCells(versions: Iterable<{ id: string; publication: { run
   return required
 }
 
-function derivedCells(
+export function derivedAssessmentCells(
   input: AssessmentRunInput,
   identity: Awaited<ReturnType<typeof executionIdentity>>,
 ): RequestedCell[] {
   if (input.runtime?.cells?.length) return input.runtime.cells
-  if (!input.runtime?.environmentId)
-    throw new ServiceError('Assessment runtime requires environmentId or explicit matrix cells.', 'VALIDATION')
-  const environmentId = input.runtime.environmentId
-  const browserEngine = input.runtime.browserEngine ?? BrowserEngine.CHROMIUM
   const versionIds = input.validationVersionIds?.length
     ? input.validationVersionIds
     : identity.versions.map(version => version.id)
+  if (!input.runtime?.environmentId) {
+    return identity.versions
+      .filter(version => versionIds.includes(version.id))
+      .flatMap(version => {
+        if (!version.publication)
+          throw new ServiceError('Assessment execution references an unpublished validation version.', 'CONFLICT')
+        const runtimeInput = JSON.parse(version.publication.runtimeInputJson) as {
+          matrix?: Array<{ browser: string; environment: string }>
+        }
+        return (runtimeInput.matrix ?? []).map(cell => {
+          const browserEngine = cell.browser.toUpperCase() as BrowserEngine
+          if (!Object.values(BrowserEngine).includes(browserEngine))
+            throw new ServiceError(`Published validation has unsupported browser "${cell.browser}".`, 'CONFLICT')
+          return {
+            validationVersionId: version.id,
+            resultMatrixCell: `${browserEngine}:${cell.environment}`,
+            environmentId: cell.environment,
+            browserEngine,
+          }
+        })
+      })
+  }
+  const environmentId = input.runtime.environmentId
+  const browserEngine = input.runtime.browserEngine ?? BrowserEngine.CHROMIUM
   return versionIds.map(validationVersionId => ({
     validationVersionId,
     resultMatrixCell: `${browserEngine}:${environmentId}`,
@@ -204,9 +225,10 @@ function derivedCells(
  * receipt only after canonical preparation succeeds. */
 export async function runQualityAssessment(input: AssessmentRunInput) {
   const identity = await executionIdentity(input)
-  const cells = derivedCells(input, identity)
+  const cells = derivedAssessmentCells(input, identity)
   const publications = validateCells(cells, identity, input.validationVersionIds)
   assertCompletePublishedMatrix(cells, publications)
+  await assertManagedRuntimeReady()
   const requestHash = assessmentExecutionRequestHash({
     assessmentId: identity.assessmentId,
     targetProjectId: identity.targetProjectId,

@@ -6,6 +6,7 @@ import path from 'node:path'
 
 import { ensureDevDatabaseReady } from './lib/dev-startup.mjs'
 import { ensureBuiltInStepDefinitionReadiness } from './lib/built-in-readiness.mjs'
+import { ensureCucumberRuntimeReadiness } from './lib/runtime-readiness.mjs'
 
 const isWindows = process.platform === 'win32'
 const npmCommand = isWindows ? 'npm.cmd' : 'npm'
@@ -158,6 +159,7 @@ process.on('SIGTERM', shutdown)
 const mcp = mcpCommand()
 
 ensureDevDatabaseReady(npmCommand)
+ensureCucumberRuntimeReadiness(npmCommand)
 ensureBuiltInStepDefinitionReadiness(npmCommand)
 
 if (mode === '--mcp-only') {

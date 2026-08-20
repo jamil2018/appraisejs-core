@@ -32,7 +32,7 @@ function jsonRpcError(res: http.ServerResponse, status: number, code: number, me
 
 export async function runAppraiseHttpMcp(options: AppraiseHttpMcpOptions): Promise<void> {
   assertLoopbackMcpHost(options.host)
-  const { identity } = await ensureLocalProjectIdentity(options.cwd)
+  await ensureLocalProjectIdentity(options.cwd)
   const endpointOrigin = `http://${options.host}:${options.port}`
   const allowedOrigins = new Set([endpointOrigin, new URL(options.baseUrl).origin])
   const bodyLimit = options.bodyLimitBytes ?? DEFAULT_HTTP_MCP_BODY_LIMIT_BYTES
@@ -70,6 +70,7 @@ export async function runAppraiseHttpMcp(options: AppraiseHttpMcpOptions): Promi
     }
 
     try {
+      const { identity } = await ensureLocalProjectIdentity(options.cwd)
       validateHttpMcpRequest({
         authorization: req.headers.authorization,
         expectedToken: identity.token,

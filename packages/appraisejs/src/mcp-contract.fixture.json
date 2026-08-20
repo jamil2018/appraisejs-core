@@ -103,11 +103,13 @@
             "type": "string",
             "enum": [
               "summary",
+              "decisionOnly",
               "evidenceOnly",
               "blockersOnly",
               "linksOnly",
               "full"
-            ]
+            ],
+            "description": "Response projection: summary (compact default), decisionOnly (decision hash/status/counts), evidenceOnly, blockersOnly, linksOnly, or full (largest payload)."
           }
         },
         "required": [
@@ -204,11 +206,13 @@
             "type": "string",
             "enum": [
               "summary",
+              "decisionOnly",
               "evidenceOnly",
               "blockersOnly",
               "linksOnly",
               "full"
-            ]
+            ],
+            "description": "Response projection: summary (compact default), decisionOnly (decision hash/status/counts), evidenceOnly, blockersOnly, linksOnly, or full (largest payload)."
           }
         },
         "required": [
@@ -260,15 +264,17 @@
             "minLength": 1
           },
           "responseMode": {
-            "default": "summary",
+            "default": "decisionOnly",
             "type": "string",
             "enum": [
               "summary",
+              "decisionOnly",
               "evidenceOnly",
               "blockersOnly",
               "linksOnly",
               "full"
-            ]
+            ],
+            "description": "Response projection: summary (compact default), decisionOnly (decision hash/status/counts), evidenceOnly, blockersOnly, linksOnly, or full (largest payload)."
           }
         },
         "required": [
@@ -305,11 +311,13 @@
             "type": "string",
             "enum": [
               "summary",
+              "decisionOnly",
               "evidenceOnly",
               "blockersOnly",
               "linksOnly",
               "full"
-            ]
+            ],
+            "description": "Response projection: summary (compact default), decisionOnly (decision hash/status/counts), evidenceOnly, blockersOnly, linksOnly, or full (largest payload)."
           }
         },
         "required": [
@@ -341,11 +349,13 @@
             "type": "string",
             "enum": [
               "summary",
+              "decisionOnly",
               "evidenceOnly",
               "blockersOnly",
               "linksOnly",
               "full"
-            ]
+            ],
+            "description": "Response projection: summary (compact default), decisionOnly (decision hash/status/counts), evidenceOnly, blockersOnly, linksOnly, or full (largest payload)."
           }
         },
         "required": [
@@ -384,11 +394,13 @@
             "type": "string",
             "enum": [
               "summary",
+              "decisionOnly",
               "evidenceOnly",
               "blockersOnly",
               "linksOnly",
               "full"
-            ]
+            ],
+            "description": "Response projection: summary (compact default), decisionOnly (decision hash/status/counts), evidenceOnly, blockersOnly, linksOnly, or full (largest payload)."
           }
         },
         "required": [
@@ -692,11 +704,13 @@
             "type": "string",
             "enum": [
               "summary",
+              "decisionOnly",
               "evidenceOnly",
               "blockersOnly",
               "linksOnly",
               "full"
-            ]
+            ],
+            "description": "Response projection: summary (compact default), decisionOnly (decision hash/status/counts), evidenceOnly, blockersOnly, linksOnly, or full (largest payload)."
           }
         },
         "required": [
@@ -736,11 +750,13 @@
             "type": "string",
             "enum": [
               "summary",
+              "decisionOnly",
               "evidenceOnly",
               "blockersOnly",
               "linksOnly",
               "full"
-            ]
+            ],
+            "description": "Response projection: summary (compact default), decisionOnly (decision hash/status/counts), evidenceOnly, blockersOnly, linksOnly, or full (largest payload)."
           }
         },
         "required": [
@@ -782,11 +798,13 @@
             "type": "string",
             "enum": [
               "summary",
+              "decisionOnly",
               "evidenceOnly",
               "blockersOnly",
               "linksOnly",
               "full"
-            ]
+            ],
+            "description": "Response projection: summary (compact default), decisionOnly (decision hash/status/counts), evidenceOnly, blockersOnly, linksOnly, or full (largest payload)."
           }
         },
         "required": [
@@ -816,15 +834,17 @@
             "minLength": 1
           },
           "responseMode": {
-            "default": "summary",
+            "default": "decisionOnly",
             "type": "string",
             "enum": [
               "summary",
+              "decisionOnly",
               "evidenceOnly",
               "blockersOnly",
               "linksOnly",
               "full"
-            ]
+            ],
+            "description": "Response projection: summary (compact default), decisionOnly (decision hash/status/counts), evidenceOnly, blockersOnly, linksOnly, or full (largest payload)."
           }
         },
         "required": [
@@ -935,11 +955,13 @@
             "type": "string",
             "enum": [
               "summary",
+              "decisionOnly",
               "evidenceOnly",
               "blockersOnly",
               "linksOnly",
               "full"
-            ]
+            ],
+            "description": "Response projection: summary (compact default), decisionOnly (decision hash/status/counts), evidenceOnly, blockersOnly, linksOnly, or full (largest payload)."
           }
         },
         "required": [
@@ -977,11 +999,13 @@
             "type": "string",
             "enum": [
               "summary",
+              "decisionOnly",
               "evidenceOnly",
               "blockersOnly",
               "linksOnly",
               "full"
-            ]
+            ],
+            "description": "Response projection: summary (compact default), decisionOnly (decision hash/status/counts), evidenceOnly, blockersOnly, linksOnly, or full (largest payload)."
           }
         },
         "required": [
@@ -1559,11 +1583,13 @@
             "type": "string",
             "enum": [
               "summary",
+              "decisionOnly",
               "evidenceOnly",
               "blockersOnly",
               "linksOnly",
               "full"
-            ]
+            ],
+            "description": "Response projection: summary (compact default), decisionOnly (decision hash/status/counts), evidenceOnly, blockersOnly, linksOnly, or full (largest payload)."
           }
         },
         "required": [
@@ -1636,11 +1662,13 @@
             "type": "string",
             "enum": [
               "summary",
+              "decisionOnly",
               "evidenceOnly",
               "blockersOnly",
               "linksOnly",
               "full"
-            ]
+            ],
+            "description": "Response projection: summary (compact default), decisionOnly (decision hash/status/counts), evidenceOnly, blockersOnly, linksOnly, or full (largest payload)."
           }
         },
         "required": [
@@ -1687,11 +1715,13 @@
             "type": "string",
             "enum": [
               "summary",
+              "decisionOnly",
               "evidenceOnly",
               "blockersOnly",
               "linksOnly",
               "full"
-            ]
+            ],
+            "description": "Response projection: summary (compact default), decisionOnly (decision hash/status/counts), evidenceOnly, blockersOnly, linksOnly, or full (largest payload)."
           }
         },
         "required": [
@@ -1731,11 +1761,13 @@
             "type": "string",
             "enum": [
               "summary",
+              "decisionOnly",
               "evidenceOnly",
               "blockersOnly",
               "linksOnly",
               "full"
-            ]
+            ],
+            "description": "Response projection: summary (compact default), decisionOnly (decision hash/status/counts), evidenceOnly, blockersOnly, linksOnly, or full (largest payload)."
           }
         },
         "required": [
@@ -1771,11 +1803,13 @@
             "type": "string",
             "enum": [
               "summary",
+              "decisionOnly",
               "evidenceOnly",
               "blockersOnly",
               "linksOnly",
               "full"
-            ]
+            ],
+            "description": "Response projection: summary (compact default), decisionOnly (decision hash/status/counts), evidenceOnly, blockersOnly, linksOnly, or full (largest payload)."
           }
         },
         "required": [
@@ -1882,11 +1916,13 @@
             "type": "string",
             "enum": [
               "summary",
+              "decisionOnly",
               "evidenceOnly",
               "blockersOnly",
               "linksOnly",
               "full"
-            ]
+            ],
+            "description": "Response projection: summary (compact default), decisionOnly (decision hash/status/counts), evidenceOnly, blockersOnly, linksOnly, or full (largest payload)."
           }
         },
         "required": [
@@ -1923,11 +1959,13 @@
             "type": "string",
             "enum": [
               "summary",
+              "decisionOnly",
               "evidenceOnly",
               "blockersOnly",
               "linksOnly",
               "full"
-            ]
+            ],
+            "description": "Response projection: summary (compact default), decisionOnly (decision hash/status/counts), evidenceOnly, blockersOnly, linksOnly, or full (largest payload)."
           }
         },
         "required": [
@@ -2045,11 +2083,13 @@
             "type": "string",
             "enum": [
               "summary",
+              "decisionOnly",
               "evidenceOnly",
               "blockersOnly",
               "linksOnly",
               "full"
-            ]
+            ],
+            "description": "Response projection: summary (compact default), decisionOnly (decision hash/status/counts), evidenceOnly, blockersOnly, linksOnly, or full (largest payload)."
           }
         },
         "required": [
@@ -2094,11 +2134,13 @@
             "type": "string",
             "enum": [
               "summary",
+              "decisionOnly",
               "evidenceOnly",
               "blockersOnly",
               "linksOnly",
               "full"
-            ]
+            ],
+            "description": "Response projection: summary (compact default), decisionOnly (decision hash/status/counts), evidenceOnly, blockersOnly, linksOnly, or full (largest payload)."
           }
         },
         "required": [
@@ -2146,11 +2188,13 @@
             "type": "string",
             "enum": [
               "summary",
+              "decisionOnly",
               "evidenceOnly",
               "blockersOnly",
               "linksOnly",
               "full"
-            ]
+            ],
+            "description": "Response projection: summary (compact default), decisionOnly (decision hash/status/counts), evidenceOnly, blockersOnly, linksOnly, or full (largest payload)."
           }
         },
         "required": [
@@ -2195,11 +2239,13 @@
             "type": "string",
             "enum": [
               "summary",
+              "decisionOnly",
               "evidenceOnly",
               "blockersOnly",
               "linksOnly",
               "full"
-            ]
+            ],
+            "description": "Response projection: summary (compact default), decisionOnly (decision hash/status/counts), evidenceOnly, blockersOnly, linksOnly, or full (largest payload)."
           }
         },
         "required": [
@@ -2251,11 +2297,13 @@
             "type": "string",
             "enum": [
               "summary",
+              "decisionOnly",
               "evidenceOnly",
               "blockersOnly",
               "linksOnly",
               "full"
-            ]
+            ],
+            "description": "Response projection: summary (compact default), decisionOnly (decision hash/status/counts), evidenceOnly, blockersOnly, linksOnly, or full (largest payload)."
           }
         },
         "required": [
