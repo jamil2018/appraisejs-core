@@ -534,6 +534,8 @@ describe('quality design coordinator service', () => {
       client,
     )
     expect(published.validationVersions[0]).toMatchObject({ status: 'PUBLISHED' })
+    expect(published.nextRecommendedAction).toContain('assessment')
+    expect(published.nextRecommendedAction).not.toContain('validation_publish')
 
     const assessment = await createQualityAssessment(
       {
@@ -627,6 +629,8 @@ describe('quality design coordinator service', () => {
     const reviewed = await readQualityAssessment(assessment.assessment.id, client)
     expect(reviewed.targetOutcome).not.toBe('not_evaluated')
     expect(reviewed.evidenceReceipts).toHaveLength(2)
+    expect(reviewed.nextRecommendedAction).toContain('assessment_decide')
+    expect(reviewed.nextRecommendedAction).not.toContain('assessment_run')
     await expect(
       decideQualityAssessment(
         {
@@ -641,6 +645,9 @@ describe('quality design coordinator service', () => {
     ).resolves.toMatchObject({ assessment: { status: 'DECIDED' } })
 
     const decided = await readQualityAssessment(assessment.assessment.id, client)
+    expect(decided.nextRecommendedAction).toContain('Assessment is decided')
+    expect(decided.nextRecommendedAction).not.toContain('assessment_run')
+    expect(decided.nextRecommendedAction).not.toContain('assessment_decide')
     await expect(
       decideQualityAssessment(
         {

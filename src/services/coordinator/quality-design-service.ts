@@ -320,25 +320,33 @@ function revisionPayload(revision: QualityRevisionRecord) {
       scenarioApprovalHash: version.scenarioApprovalHash ?? null,
       design: JSON.parse(version.canonicalAstJson),
     })),
-    nextRecommendedAction: qualityDesignNextAction(revision.status, queries),
+    nextRecommendedAction: qualityDesignNextAction(revision.status, queries, orderedValidationVersions),
   }
 }
 
-function qualityDesignNextAction(status: string, queries: QualityRevisionRecord['queries']) {
+const qualityDesignStatusActions: Record<string, string> = {
+  DRAFT: 'Call requirements_approve for this exact revision hash, then propose obligation-linked scenarios.',
+  REQUIREMENTS_APPROVED: 'Call validation_design_propose to create obligation-linked scenarios for approval.',
+  SCENARIO_REVIEW:
+    'Review the current scenario design, then call validation_design_approve with its exact design hash.',
+  SCENARIOS_APPROVED:
+    'Use step_search and locator_search to resolve mechanical bindings, then call validation_compile or assessment_prepare_run.',
+  REALIZED: 'Call validation_publish with the current compilation hash to publish executable validation versions.',
+  PUBLISHED: 'Create or prepare an assessment for an immutable subject digest, then run the published validations.',
+}
+
+function qualityDesignNextAction(
+  status: string,
+  queries: QualityRevisionRecord['queries'],
+  validationVersions: Array<{ status: string }>,
+) {
   if (!canApproveRequirements(queries)) return 'Resolve blocking requirement queries before approval.'
-  if (status === 'DRAFT')
-    return 'Call requirements_approve for this exact revision hash, then propose obligation-linked scenarios.'
-  if (status === 'REQUIREMENTS_APPROVED')
-    return 'Call validation_design_propose to create obligation-linked scenarios for approval.'
-  if (status === 'SCENARIO_REVIEW')
-    return 'Review the current scenario design, then call validation_design_approve with its exact design hash.'
-  if (status === 'SCENARIOS_APPROVED')
-    return 'Use step_search and locator_search to resolve mechanical bindings, then call validation_compile or assessment_prepare_run.'
-  if (status === 'REALIZED')
-    return 'Call validation_publish with the current compilation hash to publish executable validation versions.'
-  if (status === 'PUBLISHED')
-    return 'Create or prepare an assessment for an immutable subject digest, then run the published validations.'
-  return 'Read the current Quality Plan revision state before choosing the next lifecycle action.'
+  if (validationVersions.length > 0 && validationVersions.every(version => version.status === 'PUBLISHED'))
+    return qualityDesignStatusActions.PUBLISHED
+  return (
+    qualityDesignStatusActions[status] ??
+    'Read the current Quality Plan revision state before choosing the next lifecycle action.'
+  )
 }
 
 function parseScenarioProposals(value: unknown): ScenarioProposal[] {
@@ -1234,10 +1242,17 @@ function assessmentPayload(assessment: Awaited<ReturnType<typeof readAssessmentO
         }
       : null,
     decisions: assessment.decisions,
-    nextRecommendedAction: blockers.length
-      ? 'Resolve assessment readiness blockers before assessment_run or assessment_decide.'
-      : 'Call assessment_run to collect sealed evidence, then assessment_review and assessment_decide.',
+    nextRecommendedAction: assessmentNextAction(blockers.length, assessment.status, assessment.evidenceReceipts.length),
   }
+}
+
+function assessmentNextAction(blockerCount: number, status: string, evidenceReceiptCount: number) {
+  if (blockerCount > 0) return 'Resolve assessment readiness blockers before assessment_run or assessment_decide.'
+  if (status === 'DECIDED')
+    return 'Assessment is decided. Create a successor only when a new immutable evaluation is required.'
+  if (status === 'EVIDENCE_REVIEW' && evidenceReceiptCount > 0)
+    return 'Review the sealed evidence, then call assessment_decide with the exact evidence set hash.'
+  return 'Call assessment_run to collect sealed evidence, then assessment_review and assessment_decide.'
 }
 
 function assertAssessmentDecisionReady(payload: ReturnType<typeof assessmentPayload>) {
