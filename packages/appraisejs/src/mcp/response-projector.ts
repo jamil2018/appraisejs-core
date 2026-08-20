@@ -1,8 +1,12 @@
 import { z } from 'zod'
 
-export const responseModeSchema = z
-  .enum(['summary', 'evidenceOnly', 'blockersOnly', 'linksOnly', 'full'])
-  .default('summary')
+export const responseModeEnum = z
+  .enum(['summary', 'decisionOnly', 'evidenceOnly', 'blockersOnly', 'linksOnly', 'full'])
+  .describe(
+    'Response projection: summary (compact default), decisionOnly (decision hash/status/counts), evidenceOnly, blockersOnly, linksOnly, or full (largest payload).',
+  )
+export const responseModeSchema = responseModeEnum.default('summary')
+export const decisionResponseModeSchema = responseModeEnum.default('decisionOnly')
 
 export const MCP_RESPONSE_TOKEN_BUDGETS = {
   diagnostic: 1000,
@@ -42,6 +46,14 @@ function project(value: unknown, responseMode: z.infer<typeof responseModeSchema
     nextRecommendedAction: payload.nextRecommendedAction,
     nextRequiredAgentBehavior: payload.nextRequiredAgentBehavior,
   }
+  if (responseMode === 'decisionOnly')
+    return {
+      ...common,
+      targetOutcome: payload.targetOutcome,
+      readiness: payload.readiness,
+      evidenceReceiptCount: payload.evidenceReceiptCount,
+      decisions: payload.decisions,
+    }
   if (responseMode === 'linksOnly') return { ...common, links: payload.links, browserUrl: payload.browserUrl }
   if (responseMode === 'blockersOnly') return { ...common, blockers: payload.blockers, warnings: payload.warnings }
   if (responseMode === 'evidenceOnly')

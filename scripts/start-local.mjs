@@ -5,11 +5,13 @@ import path from 'node:path'
 
 import { resolveLocalNextArgs } from './lib/local-startup.mjs'
 import { ensureBuiltInStepDefinitionReadiness } from './lib/built-in-readiness.mjs'
+import { ensureCucumberRuntimeReadiness } from './lib/runtime-readiness.mjs'
 
 const [mode = '', ...args] = process.argv.slice(2)
 const nextBin = path.join(process.cwd(), 'node_modules', 'next', 'dist', 'bin', 'next')
 
 try {
+  ensureCucumberRuntimeReadiness(process.platform === 'win32' ? 'npm.cmd' : 'npm')
   ensureBuiltInStepDefinitionReadiness(process.platform === 'win32' ? 'npm.cmd' : 'npm')
   const child = spawn(process.execPath, [nextBin, ...resolveLocalNextArgs(mode, args)], {
     cwd: process.cwd(),

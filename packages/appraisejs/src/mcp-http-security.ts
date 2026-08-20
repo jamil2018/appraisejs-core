@@ -33,6 +33,19 @@ export function assertLoopbackMcpHost(host: string) {
   }
 }
 
+export function assertLoopbackMcpEndpoint(value: string): URL {
+  const endpoint = new URL(value)
+  if (
+    endpoint.protocol !== 'http:' ||
+    endpoint.username ||
+    endpoint.password ||
+    !isLoopbackHostname(endpoint.hostname)
+  ) {
+    throw new Error('Appraise MCP endpoints must use credential-free HTTP on a loopback host.')
+  }
+  return endpoint
+}
+
 function hostHeaderIsAllowed(value: string | undefined, port: number) {
   if (!value) return false
   try {

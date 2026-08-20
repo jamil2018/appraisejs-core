@@ -93,6 +93,11 @@ export async function ensureLocalProjectIdentity(projectDirectory: string) {
     token: randomBytes(32).toString('base64url'),
   }
   await fs.mkdir(path.dirname(identityPath), { recursive: true, mode: 0o700 })
-  await fs.writeFile(identityPath, `${JSON.stringify(identity, null, 2)}\n`, { flag: 'wx', mode: 0o600 })
+  try {
+    await fs.writeFile(identityPath, `${JSON.stringify(identity, null, 2)}\n`, { flag: 'wx', mode: 0o600 })
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== 'EEXIST') throw error
+    return ensureLocalProjectIdentity(projectDirectory)
+  }
   return { identity, details, created: true }
 }
