@@ -10,6 +10,7 @@ import { assertManagedRuntimeReady } from '@/lib/runtime-capsule/runtime-readine
 import { findHumanVerificationEvent } from '@/lib/test-run/human-verification-event'
 import { RuntimeCapsuleTestRunService } from '@/services/test-run/runtime-capsule-test-run-service'
 import { ServiceError } from '@/services/shared/errors'
+import { consentPolicy } from './quality-operating-system-service'
 import {
   consumeCredentialExecutionGrant,
   credentialAuthorizationInput,
@@ -83,6 +84,18 @@ type AssessmentRunInput = {
   authorizationGrantId?: string
   executionRequestId?: string
   expectedRequestHash?: string
+  consentId?: string
+  expectedExecutionManifestHash?: string
+  riskClassification?: 'READ_ONLY' | 'REVERSIBLE_WRITE' | 'MATERIAL_EFFECT'
+  materialEffects?: Array<
+    | 'PERMISSION_ESCALATION'
+    | 'ACCOUNT_CREATION'
+    | 'PURCHASE'
+    | 'DESTRUCTIVE_MUTATION'
+    | 'EXTERNAL_MESSAGE'
+    | 'IRREVERSIBLE_SIDE_EFFECT'
+    | 'UNCLASSIFIED_OPERATION'
+  >
   idempotencyKey: string
 }
 
@@ -247,7 +260,16 @@ export async function runQualityAssessment(input: AssessmentRunInput) {
     requestHash,
     idempotencyScope,
   })
-  const run = await createAssessmentRun({ input, identity, requestHash, idempotencyScope, authorizationRequest })
+  if (authorizationRequest) requireAuthorizationGrant(input, authorizationRequest)
+  const executionConsent = await ensureExecutionConsent({ input, identity, cells, requestHash, authorizationRequest })
+  const run = await createAssessmentRun({
+    input,
+    identity,
+    requestHash,
+    idempotencyScope,
+    authorizationRequest,
+    executionConsent,
+  })
   await materializeAssessmentRun({ run, identity, cells, publications })
   await markAssessmentRunStarted(run, identity)
   return reconcileQualityAssessmentRun({ assessmentRunId: run.id })
@@ -368,13 +390,126 @@ async function authorizeAssessmentRunCreation(
   return grantId
 }
 
+type PreparedExecutionConsent = { id: string; manifestHash: string; replayConsumed: boolean }
+
+export function deriveExecutionEffects(identity: ExecutionIdentity, cells: RequestedCell[]) {
+  const selected = new Set(cells.map(cell => cell.validationVersionId))
+  const hasUnclassifiedOperation = identity.versions.some(version => {
+    if (!selected.has(version.id) || !version.publication) return false
+    const runtimeInput = JSON.parse(version.publication.runtimeInputJson) as {
+      stepDefinitions?: unknown[]
+      extensions?: unknown[]
+    }
+    return Boolean(runtimeInput.stepDefinitions?.length || runtimeInput.extensions?.length)
+  })
+  return hasUnclassifiedOperation
+    ? {
+        riskClassification: 'MATERIAL_EFFECT' as const,
+        materialEffects: ['UNCLASSIFIED_OPERATION' as const],
+      }
+    : { riskClassification: 'READ_ONLY' as const, materialEffects: [] }
+}
+
+// fallow-ignore-next-line complexity -- consent policy, replay, and manifest drift form one security boundary.
+async function ensureExecutionConsent(input: {
+  input: AssessmentRunInput
+  identity: ExecutionIdentity
+  cells: RequestedCell[]
+  requestHash: string
+  authorizationRequest: Awaited<ReturnType<typeof ensureCredentialExecutionRequest>> | undefined
+}): Promise<PreparedExecutionConsent> {
+  const derivedEffects = deriveExecutionEffects(input.identity, input.cells)
+  const manifest = {
+    schema: 'appraise.execution-manifest/v1',
+    assessmentId: input.identity.assessmentId,
+    targetProjectId: input.identity.targetProjectId,
+    qualityPlanRevisionId: input.identity.qualityPlanRevisionId,
+    evaluationSubjectRevisionId: input.identity.evaluationSubjectRevisionId,
+    requestHash: input.requestHash,
+    credentialRequired: Boolean(input.authorizationRequest),
+    declaredRiskClassification: input.input.riskClassification ?? null,
+    declaredMaterialEffects: [...(input.input.materialEffects ?? [])].sort(),
+    riskClassification: derivedEffects.riskClassification,
+    materialEffects: derivedEffects.materialEffects,
+    cells: [...input.cells].sort((left, right) =>
+      `${left.validationVersionId}:${left.resultMatrixCell}`.localeCompare(
+        `${right.validationVersionId}:${right.resultMatrixCell}`,
+      ),
+    ),
+  }
+  const manifestHash = hash(manifest)
+  if (input.input.expectedExecutionManifestHash && input.input.expectedExecutionManifestHash !== manifestHash)
+    throw new ServiceError('Execution manifest hash is stale.', 'CONFLICT')
+  const [project, assessment, existing] = await Promise.all([
+    executionClient.targetProject.findUnique({
+      where: { id: input.identity.targetProjectId },
+      select: { executionConsentMode: true },
+    }),
+    executionClient.assessment.findUnique({
+      where: { id: input.identity.assessmentId },
+      select: { executionManifestHash: true, executionConsentSnapshotHash: true },
+    }),
+    executionClient.executionConsent.findUnique({ where: { assessmentId: input.identity.assessmentId } }),
+  ])
+  if (!project || !assessment) throw new ServiceError('Execution consent scope is unavailable.', 'NOT_FOUND')
+  if (assessment.executionManifestHash && assessment.executionManifestHash !== manifestHash)
+    throw new ServiceError('Execution inputs changed after consent was requested.', 'CONFLICT')
+  if (existing) {
+    if (existing.executionManifestHash !== manifestHash)
+      throw new ServiceError('Execution consent belongs to a stale manifest.', 'CONFLICT')
+    if (existing.status === 'CONSUMED' && assessment.executionConsentSnapshotHash)
+      return { id: existing.id, manifestHash, replayConsumed: true }
+    if (existing.status !== 'GRANTED' || input.input.consentId !== existing.id)
+      throw new ServiceError('Explicit execution consent is required.', 'CONFLICT', 409, {
+        consentId: existing.id,
+        executionManifestHash: manifestHash,
+        consentStatus: existing.status,
+      })
+    return { id: existing.id, manifestHash, replayConsumed: false }
+  }
+  const { explicitConsentRequired } = consentPolicy({
+    projectMode: project.executionConsentMode,
+    credentialRequired: manifest.credentialRequired,
+    materialEffects: manifest.materialEffects,
+    riskClassification: manifest.riskClassification,
+  })
+  const scopeJson = canonicalContractJson(manifest)
+  const created = await executionClient.$transaction(async transaction => {
+    await transaction.assessment.update({
+      where: { id: input.identity.assessmentId },
+      data: { executionManifestHash: manifestHash },
+    })
+    return transaction.executionConsent.create({
+      data: {
+        targetProjectId: input.identity.targetProjectId,
+        assessmentId: input.identity.assessmentId,
+        executionManifestHash: manifestHash,
+        mode: project.executionConsentMode,
+        status: explicitConsentRequired ? 'REQUESTED' : 'GRANTED',
+        scopeJson,
+        consentHash: hash({ manifestHash, mode: project.executionConsentMode, scopeJson }),
+        ...(explicitConsentRequired ? {} : { grantedBy: 'appraise-policy', grantedAt: new Date() }),
+      },
+    })
+  })
+  if (explicitConsentRequired)
+    throw new ServiceError('Explicit execution consent is required.', 'CONFLICT', 409, {
+      consentId: created.id,
+      executionManifestHash: manifestHash,
+      consentStatus: created.status,
+    })
+  return { id: created.id, manifestHash, replayConsumed: false }
+}
+
 async function createAssessmentRun(input: {
   input: AssessmentRunInput
   identity: ExecutionIdentity
   requestHash: string
   idempotencyScope: string
   authorizationRequest: Awaited<ReturnType<typeof ensureCredentialExecutionRequest>> | undefined
+  executionConsent: PreparedExecutionConsent
 }) {
+  // fallow-ignore-next-line complexity -- authorization and consent consumption are atomic with run creation.
   return executionClient.$transaction(async tx => {
     const existing = await tx.assessmentRun.findUnique({
       where: {
@@ -386,9 +521,33 @@ async function createAssessmentRun(input: {
       include: { bindings: true },
     })
     assertMatchingRequestHash(existing, input.requestHash)
-    if (existing) return existing
+    if (existing) {
+      if (!input.executionConsent.replayConsumed)
+        throw new ServiceError('Existing AssessmentRun is missing consumed execution consent.', 'CONFLICT')
+      return existing
+    }
+    if (input.executionConsent.replayConsumed)
+      throw new ServiceError('Consumed execution consent has no matching durable AssessmentRun.', 'CONFLICT')
     const grantId = await authorizeAssessmentRunCreation(tx, input.input, input.identity, input.authorizationRequest)
-    return tx.assessmentRun.create({
+    const consent = await tx.executionConsent.findUnique({ where: { id: input.executionConsent.id } })
+    if (
+      !consent ||
+      consent.status !== 'GRANTED' ||
+      consent.executionManifestHash !== input.executionConsent.manifestHash
+    )
+      throw new ServiceError('Execution consent is not active for this manifest.', 'CONFLICT')
+    if (consent.expiresAt && consent.expiresAt <= new Date()) {
+      await tx.executionConsent.update({ where: { id: consent.id }, data: { status: 'EXPIRED' } })
+      throw new ServiceError('Execution consent has expired.', 'CONFLICT')
+    }
+    const consumedAt = new Date()
+    const snapshot = {
+      consentHash: consent.consentHash,
+      consumedAt: consumedAt.toISOString(),
+      executionManifestHash: consent.executionManifestHash,
+      mode: consent.mode,
+    }
+    const created = await tx.assessmentRun.create({
       data: {
         assessmentId: input.identity.assessmentId,
         targetProjectId: input.identity.targetProjectId,
@@ -407,6 +566,15 @@ async function createAssessmentRun(input: {
       },
       include: { bindings: true },
     })
+    await tx.executionConsent.update({ where: { id: consent.id }, data: { status: 'CONSUMED', consumedAt } })
+    await tx.assessment.update({
+      where: { id: input.identity.assessmentId },
+      data: {
+        executionConsentSnapshotJson: canonicalContractJson(snapshot),
+        executionConsentSnapshotHash: hash(snapshot),
+      },
+    })
+    return created
   })
 }
 

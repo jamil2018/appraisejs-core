@@ -1,6 +1,6 @@
 import { spawnSync } from 'node:child_process'
 
-const FINDING_IDS = Array.from({ length: 13 }, (_, index) => `A-${String(index + 1).padStart(2, '0')}`)
+const FINDING_IDS = Array.from({ length: 15 }, (_, index) => `A-${String(index + 1).padStart(2, '0')}`)
 const SEVERITIES = new Set(['critical', 'high', 'medium', 'low'])
 const STATUSES = new Set(['open', 'verified', 'waived'])
 const COMMAND_OUTPUT_BUFFER_BYTES = 32 * 1024 * 1024

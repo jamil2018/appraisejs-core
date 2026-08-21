@@ -2,6 +2,7 @@ import prisma from '@/config/db-config'
 import { randomUUID } from 'node:crypto'
 import { canonicalContractJson } from '@/lib/catalog-contracts'
 import { hashCanonical, hashQualityPlanRevision, canApproveRequirements } from '@/lib/quality-design/state'
+import { builtInMethodologyRef } from '@/lib/quality-design/methodology-registry'
 import { validationArtifactSchema } from '@/lib/quality-design/validation-artifact-contract'
 import { createCustomExtensionPolicy } from '@/lib/validation-ast/extension-policy'
 import { publishQualityValidationRuntime } from '@/services/coordinator/quality-validation-publication-service'
@@ -28,6 +29,12 @@ type QualityRevisionRecord = {
   contentHash: string
   sourceSpecification: string
   requirementGraphJson: string
+  methodologyId?: string
+  methodologyVersion?: string
+  methodologyHash?: string
+  predecessorRevisionId?: string | null
+  queryAnswerIdempotencyKey?: string | null
+  queryAnswerRequestHash?: string | null
   qualityPlan: { id: string; targetProjectId: string; title: string; description: string | null }
   requirementSnapshots: Array<{
     id: string
@@ -119,6 +126,16 @@ type PrismaLike = {
       decisions: Array<{ decision: string; decisionHash: string }>
     } | null
     evidenceReceipts: unknown[]
+    findings: Array<{
+      id: string
+      qualityObligationRevisionId: string
+      outcome: string
+      attribution: string
+      evidenceSetHash: string
+      findingHash: string
+      reviewStatus?: string
+      reviewHash?: string | null
+    }>
     decisions: Array<{
       id: string
       decision: string
@@ -129,6 +146,7 @@ type PrismaLike = {
     }>
   }>
   assessmentDecision: Delegate<unknown>
+  assessmentFinding?: Delegate<unknown>
   $transaction<T>(operation: (transaction: PrismaLike) => Promise<T>): Promise<T>
   $transaction<T>(operations: Promise<T>[]): Promise<T[]>
 }
@@ -267,7 +285,15 @@ function revisionPayload(revision: QualityRevisionRecord) {
     left.canonicalHash.localeCompare(right.canonicalHash),
   )
   const validationDesigns = orderedValidationVersions.map(version => JSON.parse(version.canonicalAstJson))
-  const designHash = validationDesigns.length ? hashCanonical(validationDesigns) : null
+  const approvedDesignHashes = new Set(
+    orderedValidationVersions.map(version => version.scenarioApprovalHash).filter((value): value is string => !!value),
+  )
+  const designHash =
+    approvedDesignHashes.size === 1
+      ? [...approvedDesignHashes][0]
+      : validationDesigns.length
+        ? hashCanonical(validationDesigns)
+        : null
   return {
     qualityPlan: {
       id: revision.qualityPlan.id,
@@ -325,10 +351,10 @@ function revisionPayload(revision: QualityRevisionRecord) {
 }
 
 const qualityDesignStatusActions: Record<string, string> = {
-  DRAFT: 'Call requirements_approve for this exact revision hash, then propose obligation-linked scenarios.',
-  REQUIREMENTS_APPROVED: 'Call validation_design_propose to create obligation-linked scenarios for approval.',
-  SCENARIO_REVIEW:
-    'Review the current scenario design, then call validation_design_approve with its exact design hash.',
+  DRAFT: 'Call requirement_analysis_propose with the selected methodology and exact RequirementSnapshot IDs.',
+  REQUIREMENT_REVIEW: 'Review and decide the immutable requirement analysis revision.',
+  REQUIREMENTS_APPROVED: 'Call validation_design_propose with the approved analysis and obligation-set hashes.',
+  SCENARIO_REVIEW: 'Review the current validation strategy and scenario portfolio, then call validation_design_decide.',
   SCENARIOS_APPROVED:
     'Use step_search and locator_search to resolve mechanical bindings, then call validation_compile or assessment_prepare_run.',
   REALIZED: 'Call validation_publish with the current compilation hash to publish executable validation versions.',
@@ -491,6 +517,9 @@ async function createRequirementRevision(
       contentHash,
       sourceSpecification: JSON.stringify(source),
       requirementGraphJson: JSON.stringify(graph),
+      methodologyId: builtInMethodologyRef.methodologyId,
+      methodologyVersion: builtInMethodologyRef.version,
+      methodologyHash: builtInMethodologyRef.digest,
     },
   })
   await createRequirementSnapshots(transaction, revision.id, source.requirements ?? [])
@@ -504,25 +533,13 @@ async function createRequirementSnapshots(
   requirements: NonNullable<SourceSpecification['requirements']>,
 ) {
   for (const [index, requirement] of requirements.entries()) {
-    const snapshot = await transaction.requirementSnapshot.create({
+    await transaction.requirementSnapshot.create({
       data: {
         qualityPlanRevisionId,
         externalRef: requirement.externalRef,
         text: requirement.text,
         kind: requirement.kind ?? 'FUNCTIONAL',
         contentHash: hashCanonical({ text: requirement.text, externalRef: requirement.externalRef, index }),
-      },
-    })
-    await transaction.qualityObligationRevision.create({
-      data: {
-        qualityPlanRevisionId,
-        requirementSnapshotId: snapshot.id,
-        title: requirement.externalRef ?? requirement.id ?? `Requirement ${index + 1}`,
-        intent: requirement.text,
-        assertionScopeJson: JSON.stringify({ requirementSnapshotId: snapshot.id }),
-        minimumAssurance: requirement.minimumAssurance ?? 'STANDARD',
-        limitations: requirement.limitations,
-        contentHash: hashCanonical({ requirement, index }),
       },
     })
   }
@@ -565,6 +582,72 @@ export async function answerQualityRequirementQueries(
     if (!revisionQueryIds.has(answer.queryId)) {
       throw new ServiceError('Requirement query does not belong to this Quality Plan revision.', 'CONFLICT')
     }
+  }
+  if (revision.status !== 'DRAFT') {
+    const orderedAnswers = [...input.answers].sort((left, right) => left.queryId.localeCompare(right.queryId))
+    const requestHash = hashCanonical({ predecessorRevisionId: revision.id, answers: orderedAnswers })
+    const replay = await client.qualityPlanRevision.findFirst({
+      where: { qualityPlanId: revision.qualityPlanId, queryAnswerIdempotencyKey: input.idempotencyKey },
+      include: {
+        qualityPlan: true,
+        requirementSnapshots: true,
+        obligations: true,
+        queries: true,
+        validationVersions: true,
+      },
+    })
+    if (replay) {
+      if (replay.queryAnswerRequestHash !== requestHash)
+        throw new ServiceError('Requirement query idempotency key was reused with different answers.', 'CONFLICT')
+      return { idempotent: true, ...revisionPayload(replay) }
+    }
+    // fallow-ignore-next-line complexity -- successor creation atomically clones each approved upstream artifact class.
+    const successor = await client.$transaction(async transaction => {
+      const created = await transaction.qualityPlanRevision.create({
+        data: {
+          targetProjectId: revision.targetProjectId,
+          qualityPlanId: revision.qualityPlanId,
+          revision: revision.revision + 1,
+          status: 'DRAFT',
+          contentHash: hashCanonical({ predecessorContentHash: revision.contentHash, requestHash }),
+          sourceSpecification: revision.sourceSpecification,
+          requirementGraphJson: revision.requirementGraphJson,
+          methodologyId: revision.methodologyId ?? builtInMethodologyRef.methodologyId,
+          methodologyVersion: revision.methodologyVersion ?? builtInMethodologyRef.version,
+          methodologyHash: revision.methodologyHash ?? builtInMethodologyRef.digest,
+          predecessorRevisionId: revision.id,
+          queryAnswerIdempotencyKey: input.idempotencyKey,
+          queryAnswerRequestHash: requestHash,
+        },
+      })
+      for (const snapshot of revision.requirementSnapshots) {
+        await transaction.requirementSnapshot.create({
+          data: {
+            qualityPlanRevisionId: created.id,
+            externalRef: snapshot.externalRef,
+            text: snapshot.text,
+            kind: snapshot.kind,
+            contentHash: snapshot.contentHash,
+          },
+        })
+      }
+      const answers = new Map(orderedAnswers.map(answer => [answer.queryId, answer]))
+      for (const query of revision.queries) {
+        const answer = answers.get(query.id)
+        await transaction.requirementQuery.create({
+          data: {
+            qualityPlanRevisionId: created.id,
+            prompt: query.prompt,
+            status: answer?.status ?? query.status,
+            answer: answer?.answer ?? query.answer,
+            rationale: answer?.rationale ?? query.rationale,
+          },
+        })
+      }
+      await transaction.qualityPlanRevision.update({ where: { id: revision.id }, data: { status: 'SUPERSEDED' } })
+      return readRevisionOrThrow(transaction, revision.qualityPlanId, created.id)
+    })
+    return { idempotent: false, predecessorRevisionId: revision.id, ...revisionPayload(successor) }
   }
   await client.$transaction(
     input.answers.map(answer =>
@@ -1104,6 +1187,7 @@ async function readAssessmentOrThrow(client: PrismaLike, assessmentId: string) {
       },
       baselineAssessment: { include: { evidenceReceipts: true, decisions: true } },
       evidenceReceipts: true,
+      findings: true,
       decisions: true,
     },
   })
@@ -1232,6 +1316,7 @@ function assessmentPayload(assessment: Awaited<ReturnType<typeof readAssessmentO
     },
     evidenceReceiptCount: assessment.evidenceReceipts.length,
     evidenceReceipts: assessment.evidenceReceipts.map(evidenceReceiptPayload),
+    findings: assessment.findings,
     evidenceSetHash: assessmentEvidenceSetHash(assessment),
     baseline: assessment.baselineAssessment
       ? {
@@ -1590,7 +1675,7 @@ export async function decideQualityAssessment(
   input: {
     assessmentId: string
     expectedEvidenceSetHash: string
-    decision: 'accepted' | 'rejected' | 'accepted_with_limitations'
+    decision: 'accepted' | 'rejected' | 'accepted_with_limitations' | 'needs_revision'
     decidedBy: string
     rationale: string
   },
@@ -1603,13 +1688,60 @@ export async function decideQualityAssessment(
     throw new ServiceError('Assessment evidence set hash is stale.', 'CONFLICT')
   }
   if (assessment.alignment !== 'CURRENT') throw new ServiceError('Assessment alignment is not current.', 'CONFLICT')
+  const obligationIds = assessment.qualityPlanRevision.obligations.map(obligation => obligation.id)
+  const findingByObligation = new Map(
+    assessment.findings.map(finding => [finding.qualityObligationRevisionId, finding]),
+  )
+  if (obligationIds.some(id => !findingByObligation.has(id)))
+    throw new ServiceError('Every quality obligation requires an attributed finding before decision.', 'CONFLICT')
+  const findings = [...findingByObligation.values()]
+  const targetDefects = findings.filter(
+    finding => finding.outcome === 'VIOLATED' && finding.attribution === 'TARGET_DEFECT',
+  )
+  if (input.decision === 'rejected' && !targetDefects.length)
+    throw new ServiceError('Assessment rejection requires at least one target_defect finding.', 'CONFLICT')
+  if ((input.decision === 'accepted' || input.decision === 'accepted_with_limitations') && targetDefects.length)
+    throw new ServiceError('An Assessment with a target_defect finding cannot be accepted.', 'CONFLICT')
+  if (input.decision === 'accepted' && findings.some(finding => finding.outcome !== 'SATISFIED'))
+    throw new ServiceError('Unqualified acceptance requires every obligation to be satisfied.', 'CONFLICT')
+  const findingBasis = findings
+    .map(finding => ({
+      findingHash: finding.findingHash,
+      obligationId: finding.qualityObligationRevisionId,
+      outcome: finding.outcome,
+      attribution: finding.attribution,
+    }))
+    .sort((left, right) => left.obligationId.localeCompare(right.obligationId))
   const decisionHash = hashCanonical({
     assessmentId: assessment.id,
     evidenceSetHash: payload.evidenceSetHash,
+    findings: findingBasis,
     decision: input.decision,
     rationale: input.rationale,
+    decidedBy: input.decidedBy,
   })
   await client.$transaction(async transaction => {
+    const reviewedAt = new Date()
+    for (const finding of findings) {
+      const reviewStatus = input.decision === 'needs_revision' ? 'NEEDS_REVISION' : 'APPROVED'
+      const reviewHash = hashCanonical({
+        findingHash: finding.findingHash,
+        status: reviewStatus,
+        reviewedBy: input.decidedBy,
+        reviewedAt: reviewedAt.toISOString(),
+        rationale: input.rationale,
+      })
+      await transaction.assessmentFinding?.update({
+        where: { id: finding.id },
+        data: {
+          reviewStatus,
+          reviewedBy: input.decidedBy,
+          reviewedAt,
+          reviewRationale: input.rationale,
+          reviewHash,
+        },
+      })
+    }
     await transaction.assessmentDecision.create({
       data: {
         assessmentId: assessment.id,

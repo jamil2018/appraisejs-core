@@ -1,22 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { createHash } from 'node:crypto'
-
-import { canonicalContractJson } from '@/lib/catalog-contracts'
-import { createCustomExtensionPolicy } from '@/lib/validation-ast/extension-policy'
-
 import {
   answerQualityRequirementQueries,
   approveQualityRequirements,
-  approveQualityValidationDesign,
-  compileQualityValidations,
   createQualityAssessment,
   createQualityAssessmentSuccessor,
-  decideQualityAssessment,
   listQualityAssessments,
   listQualityPlans,
-  publishQualityValidations,
-  proposeQualityValidationDesign,
-  readQualityAssessment,
   readQualityRequirementGraph,
   submitQualityRequirementSource,
 } from './quality-design-service'
@@ -107,6 +96,14 @@ type FakeAssessment = FakeRecord & {
   successorIdempotencyKey: string | null
   successorRequestHash: string | null
   evidenceReceipts: unknown[]
+  findings: Array<{
+    id: string
+    qualityObligationRevisionId: string
+    outcome: string
+    attribution: string
+    evidenceSetHash: string
+    findingHash: string
+  }>
 }
 type FakeAssessmentDecision = FakeRecord & {
   assessmentId: string
@@ -144,91 +141,6 @@ vi.mock('@/services/coordinator/quality-validation-publication-service', () => (
   publishQualityValidationRuntime: vi.fn(async () => undefined),
 }))
 
-const hash = (value: unknown) => `sha256:${createHash('sha256').update(canonicalContractJson(value)).digest('hex')}`
-
-function sealedRuntimePublication() {
-  const h = (value: string) => `sha256:${value.repeat(64).slice(0, 64)}`
-  const receiptHash = h('5')
-  const publicationId = `astpub_${receiptHash.slice('sha256:'.length)}`
-  const invocation = {
-    step: { id: 'step-checkout', version: '1.0.0', definitionHash: h('4') },
-    inputs: {},
-    presentation: { keyword: 'Given' as const, description: 'checkout is ready' },
-  }
-  const gherkin = ['Scenario: checkout is ready\n  Given checkout is ready']
-  const compilerReceipt = {
-    schemaVersion: '1' as const,
-    catalogHash: h('1'),
-    locatorGraphHash: h('2'),
-    environments: ['env-local'],
-    browsers: ['chromium'],
-    runtimes: ['node'],
-  }
-  const runtimeInput = {
-    schemaVersion: '2' as const,
-    targetProjectId: 'target-1',
-    targetFingerprint: h('a'),
-    astId: 'quality-validation',
-    astHash: h('b'),
-    contextHash: h('c'),
-    previewHash: h('d'),
-    receiptHash,
-    compilerReceipt: { ...compilerReceipt, contentHash: hash(compilerReceipt) },
-    extensionPolicy: createCustomExtensionPolicy({
-      projectId: 'target-1',
-      projectFingerprint: h('a'),
-      capabilityImports: {},
-    }),
-    rootInvocations: [{ caseId: 'case-checkout', stepId: 'case-checkout-step', invocation }],
-    stepDefinitions: [invocation.step],
-    locators: [],
-    extensions: [],
-    matrix: [{ browser: 'chromium', environment: 'env-local' }],
-    expected: {
-      scenarios: [{ scenarioId: 'scenario-checkout', caseId: 'case-checkout', stepIds: ['case-checkout-step'] }],
-      scenarioCount: 1,
-    },
-    gherkinHash: hash(gherkin),
-  }
-  const node = {
-    id: 'quality-validation',
-    testCaseIds: ['case-checkout'],
-    appraiseArtifacts: {
-      modules: [{ id: 'module-checkout', name: 'Checkout' }],
-      locatorGroups: [],
-      testSuites: [
-        { id: 'suite-checkout', name: 'Checkout', moduleId: 'module-checkout', testCaseIds: ['case-checkout'] },
-      ],
-      testCases: [
-        {
-          id: 'case-checkout',
-          title: 'Checkout',
-          description: 'Checkout succeeds.',
-          steps: [
-            { id: 'case-checkout-step', order: 1, label: 'ready', gherkinStep: 'Given checkout is ready', invocation },
-          ],
-        },
-      ],
-      locators: [],
-    },
-    astProvenance: {
-      schemaVersion: '2' as const,
-      astHash: h('b'),
-      executionAuthority: 'reviewed_publication' as const,
-      publishOperationId: publicationId,
-      receiptHash,
-      runtimeInputHash: hash(runtimeInput),
-    },
-    matrix: runtimeInput.matrix,
-  }
-  return {
-    idempotencyKey: 'quality-publication-fixture',
-    projection: { validationNode: node, gherkin },
-    validationProjection: { validations: [node], gherkin },
-    runtimeInput,
-  }
-}
-
 describe('quality design coordinator service', () => {
   let client: ReturnType<typeof createWorkingFakeClient>
 
@@ -236,7 +148,7 @@ describe('quality design coordinator service', () => {
     client = createWorkingFakeClient()
   })
 
-  it('creates a Quality Plan revision with requirement obligations', async () => {
+  it('creates a Quality Plan revision with snapshots but no obligations before analysis approval', async () => {
     const result = await submitQualityRequirementSource(
       {
         target: 'target-1',
@@ -248,13 +160,13 @@ describe('quality design coordinator service', () => {
 
     expect(result.idempotent).toBe(false)
     expect(result.requirements).toHaveLength(1)
-    expect(result.obligations).toHaveLength(1)
+    expect(result.obligations).toHaveLength(0)
     expect(result.approval).toEqual({ blocked: false })
     expect(result.revision.contentHash).toMatch(/^sha256:/)
 
     await expect(readQualityRequirementGraph({ qualityPlanId: result.qualityPlan.id }, client)).resolves.toMatchObject({
       revision: { id: result.revision.id, contentHash: result.revision.contentHash },
-      nextRecommendedAction: expect.stringContaining('requirements_approve'),
+      nextRecommendedAction: expect.stringContaining('requirement_analysis_propose'),
     })
   })
 
@@ -345,434 +257,46 @@ describe('quality design coordinator service', () => {
     ).rejects.toThrow('Requirement query does not belong to this Quality Plan revision')
   })
 
-  it('proposes and approves obligation-linked scenario designs after requirement approval', async () => {
-    const requirements = await submitQualityRequirementSource(
+  it('creates one idempotent successor when an approved requirement answer changes', async () => {
+    const draft = await submitQualityRequirementSource(
+      { target: 'target-1', idempotencyKey: 'successor-source', source: { title: 'Clarified plan' } },
+      client,
+    )
+    const queryId = draft.queries[0]!.id
+    await answerQualityRequirementQueries(
       {
-        target: 'target-1',
-        idempotencyKey: 'source-5',
-        source: { title: 'Checkout quality', requirements: [{ text: 'Checkout requires a receipt.' }] },
+        qualityPlanId: draft.qualityPlan.id,
+        revisionId: draft.revision.id,
+        idempotencyKey: 'draft-answer',
+        answers: [{ queryId, status: 'ANSWERED', answer: 'Exports include selected rows.' }],
       },
       client,
     )
     await approveQualityRequirements(
       {
-        qualityPlanId: requirements.qualityPlan.id,
-        revisionId: requirements.revision.id,
-        expectedRevisionHash: requirements.revision.contentHash,
+        qualityPlanId: draft.qualityPlan.id,
+        revisionId: draft.revision.id,
+        expectedRevisionHash: draft.revision.contentHash,
         approvedBy: 'reviewer',
       },
       client,
     )
-
-    const proposal = await proposeQualityValidationDesign(
-      {
-        qualityPlanId: requirements.qualityPlan.id,
-        revisionId: requirements.revision.id,
-        idempotencyKey: 'scenario-1',
-        proposal: {
-          scenarios: [
-            {
-              id: 'receipt-scenario',
-              obligationIds: [requirements.obligations[0]!.id],
-              behavior: 'Complete checkout and show a receipt.',
-              assertions: ['receipt is visible'],
-              coverage: { obligation: 'receipt' },
-              matrixIntent: { browsers: ['chromium'] },
-              limitations: [],
-            },
-          ],
-        },
-      },
-      client,
-    )
-
-    expect(proposal.revision.status).toBe('SCENARIO_REVIEW')
-    expect(proposal.validationVersions).toHaveLength(1)
-    expect(proposal.designHash).toMatch(/^sha256:/)
-
-    const reproposal = await proposeQualityValidationDesign(
-      {
-        qualityPlanId: requirements.qualityPlan.id,
-        revisionId: requirements.revision.id,
-        idempotencyKey: 'scenario-1-retry',
-        proposal: {
-          scenarios: [
-            {
-              id: 'receipt-scenario',
-              obligationIds: [requirements.obligations[0]!.id],
-              behavior: 'Complete checkout and show a receipt.',
-              assertions: ['receipt is visible'],
-              coverage: { obligation: 'receipt' },
-              matrixIntent: { browsers: ['chromium'] },
-              limitations: [],
-            },
-          ],
-        },
-      },
-      client,
-    )
-    expect(reproposal.validationVersions).toHaveLength(1)
-
-    await expect(
-      approveQualityValidationDesign(
-        {
-          qualityPlanId: requirements.qualityPlan.id,
-          revisionId: requirements.revision.id,
-          expectedDesignHash: proposal.designHash!,
-          approvedBy: 'reviewer',
-        },
-        client,
-      ),
-    ).resolves.toMatchObject({
-      revision: { status: 'SCENARIOS_APPROVED' },
-      validationVersions: [{ scenarioApprovedBy: 'reviewer', scenarioApprovalHash: proposal.designHash }],
-    })
-  })
-
-  it('rejects under-specified scenario designs before review', async () => {
-    const requirements = await submitQualityRequirementSource(
-      {
-        target: 'target-1',
-        idempotencyKey: 'source-6',
-        source: { title: 'Checkout quality', requirements: [{ text: 'Checkout requires a receipt.' }] },
-      },
-      client,
-    )
-    await approveQualityRequirements(
-      {
-        qualityPlanId: requirements.qualityPlan.id,
-        revisionId: requirements.revision.id,
-        expectedRevisionHash: requirements.revision.contentHash,
-        approvedBy: 'reviewer',
-      },
-      client,
-    )
-
-    await expect(
-      proposeQualityValidationDesign(
-        {
-          qualityPlanId: requirements.qualityPlan.id,
-          revisionId: requirements.revision.id,
-          idempotencyKey: 'scenario-2',
-          proposal: { scenarios: [{ obligationIds: [requirements.obligations[0]!.id], assertions: [] }] },
-        },
-        client,
-      ),
-    ).rejects.toThrow('Scenario proposals require behavioral intent')
-  })
-
-  it('creates assessment review packets and blocks decisions until evidence is ready', async () => {
-    const requirements = await submitQualityRequirementSource(
-      {
-        target: 'target-1',
-        idempotencyKey: 'source-7',
-        source: { title: 'Checkout quality', requirements: [{ text: 'Checkout requires a receipt.' }] },
-      },
-      client,
-    )
-    await approveQualityRequirements(
-      {
-        qualityPlanId: requirements.qualityPlan.id,
-        revisionId: requirements.revision.id,
-        expectedRevisionHash: requirements.revision.contentHash,
-        approvedBy: 'reviewer',
-      },
-      client,
-    )
-    const proposal = await proposeQualityValidationDesign(
-      {
-        qualityPlanId: requirements.qualityPlan.id,
-        revisionId: requirements.revision.id,
-        idempotencyKey: 'scenario-3',
-        proposal: {
-          scenarios: [
-            {
-              obligationIds: [requirements.obligations[0]!.id],
-              behavior: 'Complete checkout and show a receipt.',
-              assertions: ['receipt is visible'],
-              coverage: { obligation: 'receipt' },
-              matrixIntent: { browsers: ['chromium'] },
-              limitations: [],
-            },
-          ],
-        },
-      },
-      client,
-    )
-    await approveQualityValidationDesign(
-      {
-        qualityPlanId: requirements.qualityPlan.id,
-        revisionId: requirements.revision.id,
-        expectedDesignHash: proposal.designHash!,
-        approvedBy: 'reviewer',
-      },
-      client,
-    )
-
-    const realized = await compileQualityValidations(
-      {
-        qualityPlanId: requirements.qualityPlan.id,
-        revisionId: requirements.revision.id,
-        expectedDesignHash: proposal.designHash!,
-        realization: {
-          default: sealedRuntimePublication(),
-        },
-      },
-      client,
-    )
-    expect(realized.revision.status).toBe('REALIZED')
-    expect(realized.compilationHash).toMatch(/^sha256:/)
-    expect(realized.validationVersions[0]).toMatchObject({ status: 'REALIZED' })
-
-    const published = await publishQualityValidations(
-      {
-        qualityPlanId: requirements.qualityPlan.id,
-        revisionId: requirements.revision.id,
-        validationVersionIds: [realized.validationVersions[0]!.id],
-        expectedCompilationHash: realized.compilationHash,
-      },
-      client,
-    )
-    expect(published.validationVersions[0]).toMatchObject({ status: 'PUBLISHED' })
-    expect(published.nextRecommendedAction).toContain('assessment')
-    expect(published.nextRecommendedAction).not.toContain('validation_publish')
-
-    const assessment = await createQualityAssessment(
-      {
-        qualityPlanId: requirements.qualityPlan.id,
-        revisionId: requirements.revision.id,
-        idempotencyKey: 'assessment-1',
-        subject: { subjectDigest: `sha256:${'a'.repeat(64)}`, authority: 'artifact://build-1' },
-      },
-      client,
-    )
-
-    expect(assessment.readiness.ready).toBe(true)
-    expect(assessment.readiness.blockers).toEqual([])
-    expect(assessment.assessment.status).toBe('READY')
-    expect(assessment.evidenceReceiptCount).toBe(0)
-
-    await expect(
-      decideQualityAssessment(
-        {
-          assessmentId: assessment.assessment.id,
-          expectedEvidenceSetHash: assessment.evidenceSetHash,
-          decision: 'accepted_with_limitations',
-          decidedBy: 'reviewer',
-          rationale: 'Evidence-only dry review.',
-        },
-        client,
-      ),
-    ).rejects.toThrow('Assessment decisions require sealed evidence receipts')
-
-    await client.assessment.update({
-      where: { id: assessment.assessment.id },
-      data: { status: 'READY', evidenceReceipts: [{ receiptHash: 'sha256:evidence-1' }] },
-    })
-    const evidenceReady = await readQualityAssessment(assessment.assessment.id, client)
-    await expect(
-      decideQualityAssessment(
-        {
-          assessmentId: assessment.assessment.id,
-          expectedEvidenceSetHash: evidenceReady.evidenceSetHash,
-          decision: 'accepted_with_limitations',
-          decidedBy: 'reviewer',
-          rationale: 'Evidence is present but not reviewed.',
-        },
-        client,
-      ),
-    ).rejects.toThrow('Assessment decisions require evidence review')
-
-    await client.assessment.update({
-      where: { id: assessment.assessment.id },
-      data: { status: 'EVIDENCE_REVIEW', evidenceReceipts: [{ receiptHash: 'sha256:blocked-1', outcome: 'BLOCKED' }] },
-    })
-    const blocked = await readQualityAssessment(assessment.assessment.id, client)
-    expect(blocked.targetOutcome).toBe('not_evaluated')
-    await expect(
-      decideQualityAssessment(
-        {
-          assessmentId: assessment.assessment.id,
-          expectedEvidenceSetHash: blocked.evidenceSetHash,
-          decision: 'rejected',
-          decidedBy: 'reviewer',
-          rationale: 'Blocked evidence cannot evaluate the target.',
-        },
-        client,
-      ),
-    ).rejects.toThrow('target outcome remains not evaluated')
-
-    await client.assessment.update({
-      where: { id: assessment.assessment.id },
-      data: {
-        status: 'EVIDENCE_REVIEW',
-        evidenceReceipts: [
-          {
-            id: 'receipt-blocked',
-            receiptHash: 'sha256:blocked-1',
-            outcome: 'BLOCKED',
-            validationVersionId: 'validation-1',
-            resultMatrixCell: 'CHROMIUM:env-1',
-            sealedAt: new Date('2026-08-14T00:00:00.000Z'),
-          },
-          {
-            id: 'receipt-fresh-failed',
-            receiptHash: 'sha256:evidence-1',
-            outcome: 'FAILED',
-            validationVersionId: 'validation-1',
-            resultMatrixCell: 'CHROMIUM:env-1',
-            sealedAt: new Date('2026-08-14T00:01:00.000Z'),
-          },
-        ],
-      },
-    })
-    const reviewed = await readQualityAssessment(assessment.assessment.id, client)
-    expect(reviewed.targetOutcome).not.toBe('not_evaluated')
-    expect(reviewed.evidenceReceipts).toHaveLength(2)
-    expect(reviewed.nextRecommendedAction).toContain('assessment_decide')
-    expect(reviewed.nextRecommendedAction).not.toContain('assessment_run')
-    await expect(
-      decideQualityAssessment(
-        {
-          assessmentId: assessment.assessment.id,
-          expectedEvidenceSetHash: reviewed.evidenceSetHash,
-          decision: 'accepted_with_limitations',
-          decidedBy: 'reviewer',
-          rationale: 'Evidence review accepted limitations.',
-        },
-        client,
-      ),
-    ).resolves.toMatchObject({ assessment: { status: 'DECIDED' } })
-
-    const decided = await readQualityAssessment(assessment.assessment.id, client)
-    expect(decided.nextRecommendedAction).toContain('Assessment is decided')
-    expect(decided.nextRecommendedAction).not.toContain('assessment_run')
-    expect(decided.nextRecommendedAction).not.toContain('assessment_decide')
-    await expect(
-      decideQualityAssessment(
-        {
-          assessmentId: assessment.assessment.id,
-          expectedEvidenceSetHash: decided.evidenceSetHash,
-          decision: 'accepted_with_limitations',
-          decidedBy: 'reviewer',
-          rationale: 'Duplicate decision.',
-        },
-        client,
-      ),
-    ).rejects.toThrow('Assessment already has a decision')
-  })
-
-  it('creates exactly one immutable READY successor with lineage, idempotency, and no inherited evidence', async () => {
-    const requirements = await submitQualityRequirementSource(
-      {
-        target: 'target-1',
-        idempotencyKey: 'successor-source',
-        source: { title: 'Retryable login', requirements: [{ text: 'Login reaches home.' }] },
-      },
-      client,
-    )
-    await approveQualityRequirements(
-      {
-        qualityPlanId: requirements.qualityPlan.id,
-        revisionId: requirements.revision.id,
-        expectedRevisionHash: requirements.revision.contentHash,
-        approvedBy: 'reviewer',
-      },
-      client,
-    )
-    const proposal = await proposeQualityValidationDesign(
-      {
-        qualityPlanId: requirements.qualityPlan.id,
-        revisionId: requirements.revision.id,
-        idempotencyKey: 'successor-design',
-        proposal: {
-          scenarios: [
-            {
-              id: 'login',
-              obligationIds: [requirements.obligations[0]!.id],
-              behavior: 'Login reaches home.',
-              assertions: ['home route'],
-              coverage: {},
-              matrixIntent: { browsers: ['chromium'] },
-              limitations: [],
-            },
-          ],
-        },
-      },
-      client,
-    )
-    const approved = await approveQualityValidationDesign(
-      {
-        qualityPlanId: requirements.qualityPlan.id,
-        revisionId: requirements.revision.id,
-        expectedDesignHash: proposal.designHash!,
-        approvedBy: 'reviewer',
-      },
-      client,
-    )
-    const realized = await compileQualityValidations(
-      {
-        qualityPlanId: requirements.qualityPlan.id,
-        revisionId: requirements.revision.id,
-        expectedDesignHash: approved.designHash!,
-        realization: { default: sealedRuntimePublication() },
-      },
-      client,
-    )
-    await publishQualityValidations(
-      {
-        qualityPlanId: requirements.qualityPlan.id,
-        revisionId: requirements.revision.id,
-        validationVersionIds: [realized.validationVersions[0]!.id],
-        expectedCompilationHash: realized.compilationHash,
-      },
-      client,
-    )
-    const predecessor = await createQualityAssessment(
-      {
-        qualityPlanId: requirements.qualityPlan.id,
-        revisionId: requirements.revision.id,
-        idempotencyKey: 'successor-predecessor',
-        subject: { subjectDigest: `sha256:${'c'.repeat(64)}`, authority: 'artifact://login-v1' },
-      },
-      client,
-    )
-    await client.assessment.update({
-      where: { id: predecessor.assessment.id },
-      data: { status: 'DECIDED', evidenceReceipts: [{ id: 'receipt-predecessor', receiptHash: 'sha256:old' }] },
-    })
-    const request = {
-      assessmentId: predecessor.assessment.id,
-      subject: { subjectDigest: `sha256:${'d'.repeat(64)}`, authority: 'artifact://login-v2' },
-      disposition: { code: 'target_changed', rationale: 'A new deployment digest needs a fresh assessment.' },
-      idempotencyKey: 'successor-retry-1',
+    const command = {
+      qualityPlanId: draft.qualityPlan.id,
+      revisionId: draft.revision.id,
+      idempotencyKey: 'approved-answer-successor',
+      answers: [{ queryId, status: 'ACCEPTED_ASSUMPTION' as const, rationale: 'Approved clarification.' }],
     }
-    const [successor, replay] = await Promise.all([
-      createQualityAssessmentSuccessor(request, client),
-      createQualityAssessmentSuccessor(request, client),
-    ])
-    expect(successor.assessment).toMatchObject({
-      status: 'READY',
-      lineageId: predecessor.assessment.lineageId,
-      generation: 1,
-      supersedesAssessmentId: predecessor.assessment.id,
+    const successor = await answerQualityRequirementQueries(command, client)
+    expect(successor).toMatchObject({
+      idempotent: false,
+      predecessorRevisionId: draft.revision.id,
+      revision: { revision: 2 },
     })
-    expect(successor.subject.subjectDigest).toBe(request.subject.subjectDigest)
-    expect(successor.evidenceReceiptCount).toBe(0)
-    expect(successor.decisions).toEqual([])
-    expect(replay.assessment.id).toBe(successor.assessment.id)
-    const unchanged = await readQualityAssessment(predecessor.assessment.id, client)
-    expect(unchanged.assessment.status).toBe('DECIDED')
-    expect(unchanged.evidenceReceiptCount).toBe(1)
-    await expect(
-      createQualityAssessmentSuccessor(
-        { ...request, subject: { ...request.subject, authority: 'artifact://different' } },
-        client,
-      ),
-    ).rejects.toThrow('idempotency key was already used with different input')
-    await expect(
-      createQualityAssessmentSuccessor({ ...request, idempotencyKey: 'successor-retry-2' }, client),
-    ).rejects.toThrow('already has an immutable successor')
+    await expect(answerQualityRequirementQueries(command, client)).resolves.toMatchObject({
+      idempotent: true,
+      revision: { id: successor.revision.id },
+    })
   })
 
   it('rejects active predecessors and requires an explicit retry reason from evidence review', async () => {
@@ -897,94 +421,6 @@ describe('quality design coordinator service', () => {
       successor({ metadata: { build: 'different', release: 'candidate' } }, 'subject-conflict-metadata'),
     ).rejects.toMatchObject({ code: 'CONFLICT' })
   })
-
-  it('requires full validation publication before assessment readiness', async () => {
-    const requirements = await submitQualityRequirementSource(
-      {
-        target: 'target-1',
-        idempotencyKey: 'source-8',
-        source: {
-          title: 'Checkout quality',
-          requirements: [{ text: 'Checkout requires a receipt.' }, { text: 'Checkout requires an order id.' }],
-        },
-      },
-      client,
-    )
-    await approveQualityRequirements(
-      {
-        qualityPlanId: requirements.qualityPlan.id,
-        revisionId: requirements.revision.id,
-        expectedRevisionHash: requirements.revision.contentHash,
-        approvedBy: 'reviewer',
-      },
-      client,
-    )
-    const proposal = await proposeQualityValidationDesign(
-      {
-        qualityPlanId: requirements.qualityPlan.id,
-        revisionId: requirements.revision.id,
-        idempotencyKey: 'scenario-4',
-        proposal: {
-          scenarios: requirements.obligations.map((obligation, index) => ({
-            id: `scenario-${index}`,
-            obligationIds: [obligation.id],
-            behavior: `Exercise obligation ${index}.`,
-            assertions: ['expected value is visible'],
-            coverage: { obligation: obligation.id },
-            matrixIntent: { browsers: ['chromium'] },
-            limitations: [],
-          })),
-        },
-      },
-      client,
-    )
-    await approveQualityValidationDesign(
-      {
-        qualityPlanId: requirements.qualityPlan.id,
-        revisionId: requirements.revision.id,
-        expectedDesignHash: proposal.designHash!,
-        approvedBy: 'reviewer',
-      },
-      client,
-    )
-    const realized = await compileQualityValidations(
-      {
-        qualityPlanId: requirements.qualityPlan.id,
-        revisionId: requirements.revision.id,
-        expectedDesignHash: proposal.designHash!,
-        realization: { default: sealedRuntimePublication() },
-      },
-      client,
-    )
-
-    await expect(
-      compileQualityValidations(
-        {
-          qualityPlanId: requirements.qualityPlan.id,
-          revisionId: requirements.revision.id,
-          expectedDesignHash: proposal.designHash!,
-          realization: {
-            validations: [
-              { validationVersionId: realized.validationVersions[0]!.id, realization: { stepInvocations: [] } },
-            ],
-          },
-        },
-        client,
-      ),
-    ).rejects.toThrow('Validation realization must cover every validation version exactly once')
-
-    await expect(
-      publishQualityValidations(
-        {
-          qualityPlanId: requirements.qualityPlan.id,
-          revisionId: requirements.revision.id,
-          validationVersionIds: [realized.validationVersions[0]!.id],
-          expectedCompilationHash: realized.compilationHash,
-        },
-        client,
-      ),
-    ).rejects.toThrow('Validation publication must include the full realized validation set')
-  })
 })
 
 function createWorkingFakeClient() {
@@ -1015,12 +451,8 @@ function createWorkingFakeClient() {
   const fake = {
     qualityPlanRevision: {
       findFirst: vi.fn(async ({ where }: FakeWhereArgs) => {
-        const found = revisions.find(
-          revision =>
-            (!where.qualityPlanId || revision.qualityPlanId === where.qualityPlanId) &&
-            (!where.targetProjectId || revision.targetProjectId === where.targetProjectId) &&
-            (!where.contentHash || revision.contentHash === where.contentHash) &&
-            (!where.id || revision.id === where.id),
+        const found = revisions.find(revision =>
+          Object.entries(where).every(([field, value]) => !value || revision[field as keyof typeof revision] === value),
         )
         return found ? hydrate(found) : null
       }),
@@ -1251,6 +683,7 @@ function createWorkingFakeClient() {
           successorIdempotencyKey: null,
           successorRequestHash: null,
           evidenceReceipts: [],
+          findings: [],
           ...data,
         }
         assessments.push(assessment)
@@ -1302,6 +735,7 @@ function createWorkingFakeClient() {
       qualityPlanRevision: hydrate(revision),
       evaluationSubjectRevision,
       evidenceReceipts: assessment.evidenceReceipts ?? [],
+      findings: assessment.findings ?? [],
       decisions: decisions.filter(decision => decision.assessmentId === assessment.id),
     }
   }

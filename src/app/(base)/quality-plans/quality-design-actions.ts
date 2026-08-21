@@ -17,6 +17,12 @@ import {
   readQualityRequirementGraph,
 } from '@/services/coordinator/quality-design-service'
 import {
+  decideRequirementAnalysis,
+  decideValidationDesign,
+  readRequirementAnalysis,
+  readValidationDesign,
+} from '@/services/coordinator/quality-operating-system-service'
+import {
   reconcileQualityAssessment,
   runQualityAssessment,
   stopQualityAssessment,
@@ -29,6 +35,15 @@ const qualityPlanApprovalSchema = z.object({
   revisionId: z.string().min(1),
   expectedRevisionHash: z.string().startsWith('sha256:'),
   approvedBy: z.string().trim().min(1).max(200),
+})
+
+const qualityOsDecisionSchema = z.object({
+  qualityPlanId: z.string().min(1),
+  artifactId: z.string().min(1),
+  expectedContentHash: z.string().startsWith('sha256:'),
+  decision: z.enum(['APPROVED', 'NEEDS_REVISION', 'REJECTED']),
+  decidedBy: z.string().trim().min(1).max(200),
+  rationale: z.string().trim().min(1).max(2_000),
 })
 
 const qualityAssessmentDecisionSchema = z.object({
@@ -160,6 +175,52 @@ export async function approveQualityRequirementsAction(input: unknown): Promise<
     return { status: 200, success: true }
   } catch (error) {
     return actionError(error, 'Quality Plan requirement approval failed')
+  }
+}
+
+export async function decideRequirementAnalysisAction(input: unknown): Promise<ActionResponse> {
+  try {
+    const value = qualityOsDecisionSchema.parse(input)
+    const analysis = await readRequirementAnalysis({
+      qualityPlanId: value.qualityPlanId,
+      analysisRevisionId: value.artifactId,
+    })
+    await assertQualityPlanScope(value.qualityPlanId, analysis.qualityPlanRevisionId)
+    await decideRequirementAnalysis({
+      analysisRevisionId: value.artifactId,
+      qualityPlanId: value.qualityPlanId,
+      expectedAnalysisHash: value.expectedContentHash,
+      decision: value.decision,
+      decidedBy: value.decidedBy,
+      rationale: value.rationale,
+    })
+    revalidateQualityPaths(value.qualityPlanId)
+    return { status: 200, success: true }
+  } catch (error) {
+    return actionError(error, 'Requirement analysis decision failed')
+  }
+}
+
+export async function decideValidationDesignAction(input: unknown): Promise<ActionResponse> {
+  try {
+    const value = qualityOsDecisionSchema.parse(input)
+    const design = await readValidationDesign({
+      qualityPlanId: value.qualityPlanId,
+      validationDesignRevisionId: value.artifactId,
+    })
+    await assertQualityPlanScope(value.qualityPlanId, design.qualityPlanRevisionId)
+    await decideValidationDesign({
+      validationDesignRevisionId: value.artifactId,
+      qualityPlanId: value.qualityPlanId,
+      expectedDesignHash: value.expectedContentHash,
+      decision: value.decision,
+      decidedBy: value.decidedBy,
+      rationale: value.rationale,
+    })
+    revalidateQualityPaths(value.qualityPlanId)
+    return { status: 200, success: true }
+  } catch (error) {
+    return actionError(error, 'Validation design decision failed')
   }
 }
 

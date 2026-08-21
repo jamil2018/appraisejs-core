@@ -205,10 +205,10 @@
       "source_file": "appraisejs/package.json",
       "source_location": "L25",
       "_origin": "ast",
-      "community": 18,
+      "community": 4,
       "norm_label": "bin",
       "id": "appraisejs_package_bin",
-      "community_name": "Community 18"
+      "community_name": "Community 4"
     },
     {
       "label": "appraisejs",
@@ -216,10 +216,10 @@
       "source_file": "appraisejs/package.json",
       "source_location": "L26",
       "_origin": "ast",
-      "community": 18,
+      "community": 4,
       "norm_label": "appraisejs",
       "id": "appraisejs_package_bin_appraisejs",
-      "community_name": "Community 18"
+      "community_name": "Community 4"
     },
     {
       "label": "exports",
@@ -546,10 +546,10 @@
       "source_file": "appraisejs/package.json",
       "source_location": "L66",
       "_origin": "ast",
-      "community": 4,
+      "community": 36,
       "norm_label": "engines",
       "id": "appraisejs_package_engines",
-      "community_name": "Community 4"
+      "community_name": "Community 36"
     },
     {
       "label": "node",
@@ -557,10 +557,10 @@
       "source_file": "appraisejs/package.json",
       "source_location": "L67",
       "_origin": "ast",
-      "community": 4,
+      "community": 36,
       "norm_label": "node",
       "id": "appraisejs_package_engines_node",
-      "community_name": "Community 4"
+      "community_name": "Community 36"
     },
     {
       "label": "allowScripts",
@@ -788,10 +788,10 @@
       "source_file": "appraisejs/src/cli.ts",
       "source_location": "L60",
       "_origin": "ast",
-      "community": 37,
+      "community": 20,
       "norm_label": "onlineclient()",
       "id": "src_cli_onlineclient",
-      "community_name": "Community 37"
+      "community_name": "Community 20"
     },
     {
       "label": "locatorGraph",
@@ -898,10 +898,10 @@
       "source_file": "appraisejs/src/coordinator-client.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 12,
+      "community": 14,
       "norm_label": "coordinator-client.ts",
       "id": "src_coordinator_client",
-      "community_name": "Community 12"
+      "community_name": "Community 14"
     },
     {
       "label": "CoordinatorOptions",
@@ -909,10 +909,10 @@
       "source_file": "appraisejs/src/coordinator-client.ts",
       "source_location": "L8",
       "_origin": "ast",
-      "community": 12,
+      "community": 14,
       "norm_label": "coordinatoroptions",
       "id": "src_coordinator_client_coordinatoroptions",
-      "community_name": "Community 12"
+      "community_name": "Community 14"
     },
     {
       "label": "TargetProjectRegistrationInput",
@@ -920,10 +920,10 @@
       "source_file": "appraisejs/src/coordinator-client.ts",
       "source_location": "L14",
       "_origin": "ast",
-      "community": 12,
+      "community": 14,
       "norm_label": "targetprojectregistrationinput",
       "id": "src_coordinator_client_targetprojectregistrationinput",
-      "community_name": "Community 12"
+      "community_name": "Community 14"
     },
     {
       "label": "coordinatorErrorEnvelopeSchema",
@@ -931,10 +931,10 @@
       "source_file": "appraisejs/src/coordinator-client.ts",
       "source_location": "L17",
       "_origin": "ast",
-      "community": 12,
+      "community": 14,
       "norm_label": "coordinatorerrorenvelopeschema",
       "id": "src_coordinator_client_coordinatorerrorenvelopeschema",
-      "community_name": "Community 12"
+      "community_name": "Community 14"
     },
     {
       "label": "CoordinatorErrorEnvelope",
@@ -942,10 +942,10 @@
       "source_file": "appraisejs/src/coordinator-client.ts",
       "source_location": "L67",
       "_origin": "ast",
-      "community": 12,
+      "community": 14,
       "norm_label": "coordinatorerrorenvelope",
       "id": "src_coordinator_client_coordinatorerrorenvelope",
-      "community_name": "Community 12"
+      "community_name": "Community 14"
     },
     {
       "label": "coordinatorRequestError",
@@ -953,10 +953,10 @@
       "source_file": "appraisejs/src/coordinator-client.ts",
       "source_location": "L81",
       "_origin": "ast",
-      "community": 37,
+      "community": 7,
       "norm_label": "coordinatorrequesterror",
       "id": "src_coordinator_client_coordinatorrequesterror",
-      "community_name": "Community 37"
+      "community_name": "Community 7"
     },
     {
       "label": ".constructor()",
@@ -964,10 +964,10 @@
       "source_file": "appraisejs/src/coordinator-client.ts",
       "source_location": "L70",
       "_origin": "ast",
-      "community": 37,
+      "community": 7,
       "norm_label": ".constructor()",
       "id": "src_coordinator_client_coordinatorrequesterror_constructor",
-      "community_name": "Community 37"
+      "community_name": "Community 7"
     },
     {
       "label": "readResponseBody()",
@@ -975,10 +975,10 @@
       "source_file": "appraisejs/src/coordinator-client.ts",
       "source_location": "L85",
       "_origin": "ast",
-      "community": 12,
+      "community": 14,
       "norm_label": "readresponsebody()",
       "id": "src_coordinator_client_readresponsebody",
-      "community_name": "Community 12"
+      "community_name": "Community 14"
     },
     {
       "label": "createLocalCoordinatorFailure()",
@@ -997,10 +997,10 @@
       "source_file": "appraisejs/src/coordinator-client.ts",
       "source_location": "L127",
       "_origin": "ast",
-      "community": 37,
+      "community": 14,
       "norm_label": "createcoordinatorclient()",
       "id": "src_coordinator_client_createcoordinatorclient",
-      "community_name": "Community 37"
+      "community_name": "Community 14"
     },
     {
       "label": "diagnostics.test.ts",
@@ -1107,10 +1107,10 @@
       "source_file": "appraisejs/src/managed-validation-contracts.test.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 12,
+      "community": 29,
       "norm_label": "managed-validation-contracts.test.ts",
       "id": "src_managed_validation_contracts_test",
-      "community_name": "Community 12"
+      "community_name": "Community 29"
     },
     {
       "label": "HasSingularSelection",
@@ -1118,10 +1118,10 @@
       "source_file": "appraisejs/src/managed-validation-contracts.test.ts",
       "source_location": "L14",
       "_origin": "ast",
-      "community": 12,
+      "community": 29,
       "norm_label": "hassingularselection",
       "id": "src_managed_validation_contracts_test_hassingularselection",
-      "community_name": "Community 12"
+      "community_name": "Community 29"
     },
     {
       "label": "managed-validation-contracts.ts",
@@ -1129,10 +1129,10 @@
       "source_file": "appraisejs/src/managed-validation-contracts.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 12,
+      "community": 29,
       "norm_label": "managed-validation-contracts.ts",
       "id": "src_managed_validation_contracts",
-      "community_name": "Community 12"
+      "community_name": "Community 29"
     },
     {
       "label": "OPERATION_CATALOG_CONTRACT_VERSION",
@@ -1162,10 +1162,10 @@
       "source_file": "appraisejs/src/managed-validation-contracts.ts",
       "source_location": "L3",
       "_origin": "ast",
-      "community": 12,
+      "community": 49,
       "norm_label": "validation_ast_schema_version",
       "id": "src_managed_validation_contracts_validation_ast_schema_version",
-      "community_name": "Community 12"
+      "community_name": "Community 49"
     },
     {
       "label": "DELEGATED_AUTHORIZATION_VERSION",
@@ -1184,10 +1184,10 @@
       "source_file": "appraisejs/src/managed-validation-contracts.ts",
       "source_location": "L6",
       "_origin": "ast",
-      "community": 12,
+      "community": 49,
       "norm_label": "validation_ast_json_schema",
       "id": "src_managed_validation_contracts_validation_ast_json_schema",
-      "community_name": "Community 12"
+      "community_name": "Community 49"
     },
     {
       "label": "ActionAssertionConcern",
@@ -1195,10 +1195,10 @@
       "source_file": "appraisejs/src/managed-validation-contracts.ts",
       "source_location": "L226",
       "_origin": "ast",
-      "community": 12,
+      "community": 29,
       "norm_label": "actionassertionconcern",
       "id": "src_managed_validation_contracts_actionassertionconcern",
-      "community_name": "Community 12"
+      "community_name": "Community 29"
     },
     {
       "label": "ActionNumericUnit",
@@ -1206,10 +1206,10 @@
       "source_file": "appraisejs/src/managed-validation-contracts.ts",
       "source_location": "L227",
       "_origin": "ast",
-      "community": 12,
+      "community": 29,
       "norm_label": "actionnumericunit",
       "id": "src_managed_validation_contracts_actionnumericunit",
-      "community_name": "Community 12"
+      "community_name": "Community 29"
     },
     {
       "label": "ActionInputDescriptor",
@@ -1217,10 +1217,10 @@
       "source_file": "appraisejs/src/managed-validation-contracts.ts",
       "source_location": "L228",
       "_origin": "ast",
-      "community": 12,
+      "community": 29,
       "norm_label": "actioninputdescriptor",
       "id": "src_managed_validation_contracts_actioninputdescriptor",
-      "community_name": "Community 12"
+      "community_name": "Community 29"
     },
     {
       "label": "ActionDescriptor",
@@ -1228,10 +1228,10 @@
       "source_file": "appraisejs/src/managed-validation-contracts.ts",
       "source_location": "L236",
       "_origin": "ast",
-      "community": 12,
+      "community": 29,
       "norm_label": "actiondescriptor",
       "id": "src_managed_validation_contracts_actiondescriptor",
-      "community_name": "Community 12"
+      "community_name": "Community 29"
     },
     {
       "label": "ValidationAstValue",
@@ -1239,10 +1239,10 @@
       "source_file": "appraisejs/src/managed-validation-contracts.ts",
       "source_location": "L249",
       "_origin": "ast",
-      "community": 12,
+      "community": 29,
       "norm_label": "validationastvalue",
       "id": "src_managed_validation_contracts_validationastvalue",
-      "community_name": "Community 12"
+      "community_name": "Community 29"
     },
     {
       "label": "ValidationAst",
@@ -1250,10 +1250,10 @@
       "source_file": "appraisejs/src/managed-validation-contracts.ts",
       "source_location": "L261",
       "_origin": "ast",
-      "community": 12,
+      "community": 29,
       "norm_label": "validationast",
       "id": "src_managed_validation_contracts_validationast",
-      "community_name": "Community 12"
+      "community_name": "Community 29"
     },
     {
       "label": "CustomActionExtensionProposal",
@@ -1261,10 +1261,10 @@
       "source_file": "appraisejs/src/managed-validation-contracts.ts",
       "source_location": "L298",
       "_origin": "ast",
-      "community": 12,
+      "community": 29,
       "norm_label": "customactionextensionproposal",
       "id": "src_managed_validation_contracts_customactionextensionproposal",
-      "community_name": "Community 12"
+      "community_name": "Community 29"
     },
     {
       "label": "ValidationAstSubmission",
@@ -1272,10 +1272,10 @@
       "source_file": "appraisejs/src/managed-validation-contracts.ts",
       "source_location": "L311",
       "_origin": "ast",
-      "community": 12,
+      "community": 29,
       "norm_label": "validationastsubmission",
       "id": "src_managed_validation_contracts_validationastsubmission",
-      "community_name": "Community 12"
+      "community_name": "Community 29"
     },
     {
       "label": "CustomExtensionPolicy",
@@ -1283,10 +1283,10 @@
       "source_file": "appraisejs/src/managed-validation-contracts.ts",
       "source_location": "L323",
       "_origin": "ast",
-      "community": 12,
+      "community": 29,
       "norm_label": "customextensionpolicy",
       "id": "src_managed_validation_contracts_customextensionpolicy",
-      "community_name": "Community 12"
+      "community_name": "Community 29"
     },
     {
       "label": "CompiledCustomExtensionReview",
@@ -1294,10 +1294,10 @@
       "source_file": "appraisejs/src/managed-validation-contracts.ts",
       "source_location": "L333",
       "_origin": "ast",
-      "community": 12,
+      "community": 29,
       "norm_label": "compiledcustomextensionreview",
       "id": "src_managed_validation_contracts_compiledcustomextensionreview",
-      "community_name": "Community 12"
+      "community_name": "Community 29"
     },
     {
       "label": "ValidationAstExtensionReviewResult",
@@ -1305,10 +1305,10 @@
       "source_file": "appraisejs/src/managed-validation-contracts.ts",
       "source_location": "L347",
       "_origin": "ast",
-      "community": 12,
+      "community": 29,
       "norm_label": "validationastextensionreviewresult",
       "id": "src_managed_validation_contracts_validationastextensionreviewresult",
-      "community_name": "Community 12"
+      "community_name": "Community 29"
     },
     {
       "label": "DelegatedAuthorizationReceipt",
@@ -1316,10 +1316,10 @@
       "source_file": "appraisejs/src/managed-validation-contracts.ts",
       "source_location": "L356",
       "_origin": "ast",
-      "community": 12,
+      "community": 14,
       "norm_label": "delegatedauthorizationreceipt",
       "id": "src_managed_validation_contracts_delegatedauthorizationreceipt",
-      "community_name": "Community 12"
+      "community_name": "Community 14"
     },
     {
       "label": "mcp-call.test.ts",
@@ -1426,10 +1426,10 @@
       "source_file": "appraisejs/src/mcp-http-security.test.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 20,
+      "community": 18,
       "norm_label": "mcp-http-security.test.ts",
       "id": "src_mcp_http_security_test",
-      "community_name": "Community 20"
+      "community_name": "Community 18"
     },
     {
       "label": "valid()",
@@ -1437,10 +1437,10 @@
       "source_file": "appraisejs/src/mcp-http-security.test.ts",
       "source_location": "L13",
       "_origin": "ast",
-      "community": 20,
+      "community": 18,
       "norm_label": "valid()",
       "id": "src_mcp_http_security_test_valid",
-      "community_name": "Community 20"
+      "community_name": "Community 18"
     },
     {
       "label": "mcp-http-security.ts",
@@ -1448,10 +1448,10 @@
       "source_file": "appraisejs/src/mcp-http-security.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 20,
+      "community": 18,
       "norm_label": "mcp-http-security.ts",
       "id": "src_mcp_http_security",
-      "community_name": "Community 20"
+      "community_name": "Community 18"
     },
     {
       "label": "LOOPBACK_HOSTS",
@@ -1459,10 +1459,10 @@
       "source_file": "appraisejs/src/mcp-http-security.ts",
       "source_location": "L7",
       "_origin": "ast",
-      "community": 20,
+      "community": 18,
       "norm_label": "loopback_hosts",
       "id": "src_mcp_http_security_loopback_hosts",
-      "community_name": "Community 20"
+      "community_name": "Community 18"
     },
     {
       "label": "HttpMcpRequestError",
@@ -1470,10 +1470,10 @@
       "source_file": "appraisejs/src/mcp-http-security.ts",
       "source_location": "L9",
       "_origin": "ast",
-      "community": 20,
+      "community": 18,
       "norm_label": "httpmcprequesterror",
       "id": "src_mcp_http_security_httpmcprequesterror",
-      "community_name": "Community 20"
+      "community_name": "Community 18"
     },
     {
       "label": ".constructor()",
@@ -1481,10 +1481,10 @@
       "source_file": "appraisejs/src/mcp-http-security.ts",
       "source_location": "L10",
       "_origin": "ast",
-      "community": 20,
+      "community": 18,
       "norm_label": ".constructor()",
       "id": "src_mcp_http_security_httpmcprequesterror_constructor",
-      "community_name": "Community 20"
+      "community_name": "Community 18"
     },
     {
       "label": "normalizedHostname()",
@@ -1492,10 +1492,10 @@
       "source_file": "appraisejs/src/mcp-http-security.ts",
       "source_location": "L20",
       "_origin": "ast",
-      "community": 20,
+      "community": 18,
       "norm_label": "normalizedhostname()",
       "id": "src_mcp_http_security_normalizedhostname",
-      "community_name": "Community 20"
+      "community_name": "Community 18"
     },
     {
       "label": "isLoopbackHostname()",
@@ -1503,10 +1503,10 @@
       "source_file": "appraisejs/src/mcp-http-security.ts",
       "source_location": "L24",
       "_origin": "ast",
-      "community": 20,
+      "community": 18,
       "norm_label": "isloopbackhostname()",
       "id": "src_mcp_http_security_isloopbackhostname",
-      "community_name": "Community 20"
+      "community_name": "Community 18"
     },
     {
       "label": "assertLoopbackMcpHost()",
@@ -1514,10 +1514,10 @@
       "source_file": "appraisejs/src/mcp-http-security.ts",
       "source_location": "L28",
       "_origin": "ast",
-      "community": 20,
+      "community": 18,
       "norm_label": "assertloopbackmcphost()",
       "id": "src_mcp_http_security_assertloopbackmcphost",
-      "community_name": "Community 20"
+      "community_name": "Community 18"
     },
     {
       "label": "assertLoopbackMcpEndpoint()",
@@ -1536,10 +1536,10 @@
       "source_file": "appraisejs/src/mcp-http-security.ts",
       "source_location": "L49",
       "_origin": "ast",
-      "community": 20,
+      "community": 18,
       "norm_label": "hostheaderisallowed()",
       "id": "src_mcp_http_security_hostheaderisallowed",
-      "community_name": "Community 20"
+      "community_name": "Community 18"
     },
     {
       "label": "peerIsLoopback()",
@@ -1547,10 +1547,10 @@
       "source_file": "appraisejs/src/mcp-http-security.ts",
       "source_location": "L59",
       "_origin": "ast",
-      "community": 20,
+      "community": 18,
       "norm_label": "peerisloopback()",
       "id": "src_mcp_http_security_peerisloopback",
-      "community_name": "Community 20"
+      "community_name": "Community 18"
     },
     {
       "label": "secureTokenEquals()",
@@ -1558,10 +1558,10 @@
       "source_file": "appraisejs/src/mcp-http-security.ts",
       "source_location": "L65",
       "_origin": "ast",
-      "community": 20,
+      "community": 18,
       "norm_label": "securetokenequals()",
       "id": "src_mcp_http_security_securetokenequals",
-      "community_name": "Community 20"
+      "community_name": "Community 18"
     },
     {
       "label": "bearerToken()",
@@ -1569,10 +1569,10 @@
       "source_file": "appraisejs/src/mcp-http-security.ts",
       "source_location": "L71",
       "_origin": "ast",
-      "community": 20,
+      "community": 18,
       "norm_label": "bearertoken()",
       "id": "src_mcp_http_security_bearertoken",
-      "community_name": "Community 20"
+      "community_name": "Community 18"
     },
     {
       "label": "originIsAllowed()",
@@ -1580,10 +1580,10 @@
       "source_file": "appraisejs/src/mcp-http-security.ts",
       "source_location": "L76",
       "_origin": "ast",
-      "community": 20,
+      "community": 18,
       "norm_label": "originisallowed()",
       "id": "src_mcp_http_security_originisallowed",
-      "community_name": "Community 20"
+      "community_name": "Community 18"
     },
     {
       "label": "validateHttpMcpRequest()",
@@ -1591,10 +1591,10 @@
       "source_file": "appraisejs/src/mcp-http-security.ts",
       "source_location": "L85",
       "_origin": "ast",
-      "community": 20,
+      "community": 18,
       "norm_label": "validatehttpmcprequest()",
       "id": "src_mcp_http_security_validatehttpmcprequest",
-      "community_name": "Community 20"
+      "community_name": "Community 18"
     },
     {
       "label": "validateHttpMcpLocality()",
@@ -1602,10 +1602,10 @@
       "source_file": "appraisejs/src/mcp-http-security.ts",
       "source_location": "L101",
       "_origin": "ast",
-      "community": 20,
+      "community": 18,
       "norm_label": "validatehttpmcplocality()",
       "id": "src_mcp_http_security_validatehttpmcplocality",
-      "community_name": "Community 20"
+      "community_name": "Community 18"
     },
     {
       "label": "readBoundedJsonBody()",
@@ -1613,10 +1613,10 @@
       "source_file": "appraisejs/src/mcp-http-security.ts",
       "source_location": "L119",
       "_origin": "ast",
-      "community": 20,
+      "community": 18,
       "norm_label": "readboundedjsonbody()",
       "id": "src_mcp_http_security_readboundedjsonbody",
-      "community_name": "Community 20"
+      "community_name": "Community 18"
     },
     {
       "label": "mcp.ts",
@@ -1624,10 +1624,10 @@
       "source_file": "appraisejs/src/mcp.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 12,
+      "community": 14,
       "norm_label": "mcp.ts",
       "id": "src_mcp",
-      "community_name": "Community 12"
+      "community_name": "Community 14"
     },
     {
       "label": "contract.ts",
@@ -1644,7 +1644,7 @@
       "label": "mcpResourceAnnotations",
       "file_type": "code",
       "source_file": "appraisejs/src/mcp/contract.ts",
-      "source_location": "L108",
+      "source_location": "L116",
       "_origin": "ast",
       "community": 7,
       "norm_label": "mcpresourceannotations",
@@ -1721,7 +1721,7 @@
       "label": "canonicalMcpResourceAnnotations",
       "file_type": "code",
       "source_file": "appraisejs/src/mcp/contract.ts",
-      "source_location": "L77",
+      "source_location": "L83",
       "_origin": "ast",
       "community": 7,
       "norm_label": "canonicalmcpresourceannotations",
@@ -1732,7 +1732,7 @@
       "label": "canonicalMcpResourceUris",
       "file_type": "code",
       "source_file": "appraisejs/src/mcp/contract.ts",
-      "source_location": "L89",
+      "source_location": "L96",
       "_origin": "ast",
       "community": 7,
       "norm_label": "canonicalmcpresourceuris",
@@ -1743,7 +1743,7 @@
       "label": "canonicalMcpToolNames",
       "file_type": "code",
       "source_file": "appraisejs/src/mcp/contract.ts",
-      "source_location": "L101",
+      "source_location": "L109",
       "_origin": "ast",
       "community": 7,
       "norm_label": "canonicalmcptoolnames",
@@ -1754,7 +1754,7 @@
       "label": "canonicalMcpResourceNames",
       "file_type": "code",
       "source_file": "appraisejs/src/mcp/contract.ts",
-      "source_location": "L102",
+      "source_location": "L110",
       "_origin": "ast",
       "community": 7,
       "norm_label": "canonicalmcpresourcenames",
@@ -1765,7 +1765,7 @@
       "label": "mcpToolAnnotations()",
       "file_type": "code",
       "source_file": "appraisejs/src/mcp/contract.ts",
-      "source_location": "L104",
+      "source_location": "L112",
       "_origin": "ast",
       "community": 7,
       "norm_label": "mcptoolannotations()",
@@ -1778,10 +1778,10 @@
       "source_file": "appraisejs/src/mcp/coordinator-call.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 37,
+      "community": 7,
       "norm_label": "coordinator-call.ts",
       "id": "mcp_coordinator_call",
-      "community_name": "Community 37"
+      "community_name": "Community 7"
     },
     {
       "label": "createCoordinatorApiClient()",
@@ -1789,10 +1789,10 @@
       "source_file": "appraisejs/src/mcp/coordinator-call.ts",
       "source_location": "L10",
       "_origin": "ast",
-      "community": 37,
+      "community": 14,
       "norm_label": "createcoordinatorapiclient()",
       "id": "mcp_coordinator_call_createcoordinatorapiclient",
-      "community_name": "Community 37"
+      "community_name": "Community 14"
     },
     {
       "label": "toolError()",
@@ -1800,10 +1800,10 @@
       "source_file": "appraisejs/src/mcp/coordinator-call.ts",
       "source_location": "L14",
       "_origin": "ast",
-      "community": 33,
+      "community": 7,
       "norm_label": "toolerror()",
       "id": "mcp_coordinator_call_toolerror",
-      "community_name": "Community 33"
+      "community_name": "Community 7"
     },
     {
       "label": "diagnostic.ts",
@@ -1833,10 +1833,10 @@
       "source_file": "appraisejs/src/mcp/domains/project.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 33,
+      "community": 34,
       "norm_label": "project.ts",
       "id": "domains_project",
-      "community_name": "Community 33"
+      "community_name": "Community 34"
     },
     {
       "label": "nullableOptionalString()",
@@ -1844,10 +1844,10 @@
       "source_file": "appraisejs/src/mcp/domains/project.ts",
       "source_location": "L4",
       "_origin": "ast",
-      "community": 33,
+      "community": 34,
       "norm_label": "nullableoptionalstring()",
       "id": "domains_project_nullableoptionalstring",
-      "community_name": "Community 33"
+      "community_name": "Community 34"
     },
     {
       "label": "nullableOptionalPositiveInteger()",
@@ -1855,10 +1855,10 @@
       "source_file": "appraisejs/src/mcp/domains/project.ts",
       "source_location": "L5",
       "_origin": "ast",
-      "community": 33,
+      "community": 34,
       "norm_label": "nullableoptionalpositiveinteger()",
       "id": "domains_project_nullableoptionalpositiveinteger",
-      "community_name": "Community 33"
+      "community_name": "Community 34"
     },
     {
       "label": "operationSearchInputSchema",
@@ -1866,10 +1866,10 @@
       "source_file": "appraisejs/src/mcp/domains/project.ts",
       "source_location": "L8",
       "_origin": "ast",
-      "community": 33,
+      "community": 34,
       "norm_label": "operationsearchinputschema",
       "id": "domains_project_operationsearchinputschema",
-      "community_name": "Community 33"
+      "community_name": "Community 34"
     },
     {
       "label": "registerProjectOperations()",
@@ -1877,10 +1877,10 @@
       "source_file": "appraisejs/src/mcp/domains/project.ts",
       "source_location": "L42",
       "_origin": "ast",
-      "community": 33,
+      "community": 34,
       "norm_label": "registerprojectoperations()",
       "id": "domains_project_registerprojectoperations",
-      "community_name": "Community 33"
+      "community_name": "Community 34"
     },
     {
       "label": "quality-design.ts",
@@ -1938,10 +1938,54 @@
       "community_name": "Community 33"
     },
     {
-      "label": "compactStepValueSchema",
+      "label": "methodologyRefSchema",
       "file_type": "code",
       "source_file": "appraisejs/src/mcp/domains/quality-design.ts",
       "source_location": "L33",
+      "_origin": "ast",
+      "community": 33,
+      "norm_label": "methodologyrefschema",
+      "id": "domains_quality_design_methodologyrefschema",
+      "community_name": "Community 33"
+    },
+    {
+      "label": "provenanceSchema",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/domains/quality-design.ts",
+      "source_location": "L41",
+      "_origin": "ast",
+      "community": 33,
+      "norm_label": "provenanceschema",
+      "id": "domains_quality_design_provenanceschema",
+      "community_name": "Community 33"
+    },
+    {
+      "label": "requirementAnalysisProposalSchema",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/domains/quality-design.ts",
+      "source_location": "L42",
+      "_origin": "ast",
+      "community": 33,
+      "norm_label": "requirementanalysisproposalschema",
+      "id": "domains_quality_design_requirementanalysisproposalschema",
+      "community_name": "Community 33"
+    },
+    {
+      "label": "validationDesignProposalSchema",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/domains/quality-design.ts",
+      "source_location": "L72",
+      "_origin": "ast",
+      "community": 33,
+      "norm_label": "validationdesignproposalschema",
+      "id": "domains_quality_design_validationdesignproposalschema",
+      "community_name": "Community 33"
+    },
+    {
+      "label": "compactStepValueSchema",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/domains/quality-design.ts",
+      "source_location": "L107",
       "_origin": "ast",
       "community": 33,
       "norm_label": "compactstepvalueschema",
@@ -1952,7 +1996,7 @@
       "label": "registerQualityDesignOperations()",
       "file_type": "code",
       "source_file": "appraisejs/src/mcp/domains/quality-design.ts",
-      "source_location": "L49",
+      "source_location": "L123",
       "_origin": "ast",
       "community": 33,
       "norm_label": "registerqualitydesignoperations()",
@@ -2009,10 +2053,10 @@
       "source_file": "appraisejs/src/mcp/domains/step-definitions.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 33,
+      "community": 49,
       "norm_label": "step-definitions.ts",
       "id": "domains_step_definitions",
-      "community_name": "Community 33"
+      "community_name": "Community 49"
     },
     {
       "label": "registerStepDefinitionOperations()",
@@ -2020,10 +2064,10 @@
       "source_file": "appraisejs/src/mcp/domains/step-definitions.ts",
       "source_location": "L4",
       "_origin": "ast",
-      "community": 33,
+      "community": 49,
       "norm_label": "registerstepdefinitionoperations()",
       "id": "domains_step_definitions_registerstepdefinitionoperations",
-      "community_name": "Community 33"
+      "community_name": "Community 49"
     },
     {
       "label": "http-server.ts",
@@ -2031,10 +2075,10 @@
       "source_file": "appraisejs/src/mcp/http-server.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 20,
+      "community": 14,
       "norm_label": "http-server.ts",
       "id": "mcp_http_server",
-      "community_name": "Community 20"
+      "community_name": "Community 14"
     },
     {
       "label": "AppraiseHttpMcpOptions",
@@ -2042,10 +2086,10 @@
       "source_file": "appraisejs/src/mcp/http-server.ts",
       "source_location": "L20",
       "_origin": "ast",
-      "community": 12,
+      "community": 14,
       "norm_label": "appraisehttpmcpoptions",
       "id": "mcp_http_server_appraisehttpmcpoptions",
-      "community_name": "Community 12"
+      "community_name": "Community 14"
     },
     {
       "label": "jsonRpcError()",
@@ -2053,10 +2097,10 @@
       "source_file": "appraisejs/src/mcp/http-server.ts",
       "source_location": "L28",
       "_origin": "ast",
-      "community": 20,
+      "community": 14,
       "norm_label": "jsonrpcerror()",
       "id": "mcp_http_server_jsonrpcerror",
-      "community_name": "Community 20"
+      "community_name": "Community 14"
     },
     {
       "label": "runAppraiseHttpMcp()",
@@ -2064,10 +2108,10 @@
       "source_file": "appraisejs/src/mcp/http-server.ts",
       "source_location": "L33",
       "_origin": "ast",
-      "community": 20,
+      "community": 14,
       "norm_label": "runappraisehttpmcp()",
       "id": "mcp_http_server_runappraisehttpmcp",
-      "community_name": "Community 20"
+      "community_name": "Community 14"
     },
     {
       "label": "registry.test.ts",
@@ -2097,10 +2141,10 @@
       "source_file": "appraisejs/src/mcp/registry.ts",
       "source_location": "L20",
       "_origin": "ast",
-      "community": 33,
+      "community": 49,
       "norm_label": "mcpregistrycontext",
       "id": "mcp_registry_mcpregistrycontext",
-      "community_name": "Community 33"
+      "community_name": "Community 49"
     },
     {
       "label": "McpContractDefinition",
@@ -2372,10 +2416,10 @@
       "source_file": "appraisejs/src/mcp/server-factory.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 12,
+      "community": 14,
       "norm_label": "server-factory.ts",
       "id": "mcp_server_factory",
-      "community_name": "Community 12"
+      "community_name": "Community 14"
     },
     {
       "label": "createAppraiseMcpServer()",
@@ -2460,10 +2504,10 @@
       "source_file": "appraisejs/src/mcp/shared.ts",
       "source_location": "L29",
       "_origin": "ast",
-      "community": 33,
+      "community": 49,
       "norm_label": "text()",
       "id": "mcp_shared_text",
-      "community_name": "Community 33"
+      "community_name": "Community 49"
     },
     {
       "label": "withGuidance()",
@@ -2471,10 +2515,10 @@
       "source_file": "appraisejs/src/mcp/shared.ts",
       "source_location": "L42",
       "_origin": "ast",
-      "community": 33,
+      "community": 34,
       "norm_label": "withguidance()",
       "id": "mcp_shared_withguidance",
-      "community_name": "Community 33"
+      "community_name": "Community 34"
     },
     {
       "label": "contentHash()",
@@ -2524,7 +2568,7 @@
       "label": "assessmentWorkflow",
       "file_type": "code",
       "source_file": "appraisejs/src/mcp/shared.ts",
-      "source_location": "L97",
+      "source_location": "L100",
       "_origin": "ast",
       "community": 49,
       "norm_label": "assessmentworkflow",
@@ -2535,7 +2579,7 @@
       "label": "mcpCapabilityMetadata",
       "file_type": "code",
       "source_file": "appraisejs/src/mcp/shared.ts",
-      "source_location": "L106",
+      "source_location": "L113",
       "_origin": "ast",
       "community": 49,
       "norm_label": "mcpcapabilitymetadata",
@@ -2546,7 +2590,7 @@
       "label": "compactMcpCapabilityMetadata",
       "file_type": "code",
       "source_file": "appraisejs/src/mcp/shared.ts",
-      "source_location": "L115",
+      "source_location": "L122",
       "_origin": "ast",
       "community": 49,
       "norm_label": "compactmcpcapabilitymetadata",
@@ -2557,7 +2601,7 @@
       "label": "AgentPreflightObservation",
       "file_type": "code",
       "source_file": "appraisejs/src/mcp/shared.ts",
-      "source_location": "L139",
+      "source_location": "L149",
       "_origin": "ast",
       "community": 49,
       "norm_label": "agentpreflightobservation",
@@ -2568,7 +2612,7 @@
       "label": "canonicalExpectedTargetWorkspacePath()",
       "file_type": "code",
       "source_file": "appraisejs/src/mcp/shared.ts",
-      "source_location": "L147",
+      "source_location": "L157",
       "_origin": "ast",
       "community": 49,
       "norm_label": "canonicalexpectedtargetworkspacepath()",
@@ -2579,7 +2623,7 @@
       "label": "observedCapabilityState()",
       "file_type": "code",
       "source_file": "appraisejs/src/mcp/shared.ts",
-      "source_location": "L157",
+      "source_location": "L167",
       "_origin": "ast",
       "community": 49,
       "norm_label": "observedcapabilitystate()",
@@ -2590,7 +2634,7 @@
       "label": "observedContractState()",
       "file_type": "code",
       "source_file": "appraisejs/src/mcp/shared.ts",
-      "source_location": "L164",
+      "source_location": "L174",
       "_origin": "ast",
       "community": 49,
       "norm_label": "observedcontractstate()",
@@ -2601,7 +2645,7 @@
       "label": "buildAgentPreflight()",
       "file_type": "code",
       "source_file": "appraisejs/src/mcp/shared.ts",
-      "source_location": "L182",
+      "source_location": "L192",
       "_origin": "ast",
       "community": 49,
       "norm_label": "buildagentpreflight()",
@@ -2612,7 +2656,7 @@
       "label": "compactAgentPreflight()",
       "file_type": "code",
       "source_file": "appraisejs/src/mcp/shared.ts",
-      "source_location": "L288",
+      "source_location": "L298",
       "_origin": "ast",
       "community": 49,
       "norm_label": "compactagentpreflight()",
@@ -2623,7 +2667,7 @@
       "label": "compactProjectDiagnostic()",
       "file_type": "code",
       "source_file": "appraisejs/src/mcp/shared.ts",
-      "source_location": "L292",
+      "source_location": "L302",
       "_origin": "ast",
       "community": 49,
       "norm_label": "compactprojectdiagnostic()",
@@ -2634,7 +2678,7 @@
       "label": "diagnosticGuidance()",
       "file_type": "code",
       "source_file": "appraisejs/src/mcp/shared.ts",
-      "source_location": "L307",
+      "source_location": "L317",
       "_origin": "ast",
       "community": 49,
       "norm_label": "diagnosticguidance()",
@@ -2645,7 +2689,7 @@
       "label": "projectPayload()",
       "file_type": "code",
       "source_file": "appraisejs/src/mcp/shared.ts",
-      "source_location": "L332",
+      "source_location": "L342",
       "_origin": "ast",
       "community": 49,
       "norm_label": "projectpayload()",
@@ -2658,10 +2702,10 @@
       "source_file": "appraisejs/src/mcp/stdio-server.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 12,
+      "community": 14,
       "norm_label": "stdio-server.ts",
       "id": "mcp_stdio_server",
-      "community_name": "Community 12"
+      "community_name": "Community 14"
     },
     {
       "label": "runAppraiseMcp()",
@@ -2669,10 +2713,10 @@
       "source_file": "appraisejs/src/mcp/stdio-server.ts",
       "source_location": "L6",
       "_origin": "ast",
-      "community": 12,
+      "community": 14,
       "norm_label": "runappraisemcp()",
       "id": "mcp_stdio_server_runappraisemcp",
-      "community_name": "Community 12"
+      "community_name": "Community 14"
     },
     {
       "label": "project-identity.test.ts",
@@ -2680,10 +2724,10 @@
       "source_file": "appraisejs/src/project-identity.test.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 20,
+      "community": 37,
       "norm_label": "project-identity.test.ts",
       "id": "src_project_identity_test",
-      "community_name": "Community 20"
+      "community_name": "Community 37"
     },
     {
       "label": "workspaces",
@@ -2691,10 +2735,10 @@
       "source_file": "appraisejs/src/project-identity.test.ts",
       "source_location": "L9",
       "_origin": "ast",
-      "community": 20,
+      "community": 37,
       "norm_label": "workspaces",
       "id": "src_project_identity_test_workspaces",
-      "community_name": "Community 20"
+      "community_name": "Community 37"
     },
     {
       "label": "project-identity.ts",
@@ -2702,10 +2746,10 @@
       "source_file": "appraisejs/src/project-identity.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 20,
+      "community": 37,
       "norm_label": "project-identity.ts",
       "id": "src_project_identity",
-      "community_name": "Community 20"
+      "community_name": "Community 37"
     },
     {
       "label": "ProjectIdentity",
@@ -2713,10 +2757,10 @@
       "source_file": "appraisejs/src/project-identity.ts",
       "source_location": "L5",
       "_origin": "ast",
-      "community": 20,
+      "community": 37,
       "norm_label": "projectidentity",
       "id": "src_project_identity_projectidentity",
-      "community_name": "Community 20"
+      "community_name": "Community 37"
     },
     {
       "label": "ProjectIdentityDetails",
@@ -2724,10 +2768,10 @@
       "source_file": "appraisejs/src/project-identity.ts",
       "source_location": "L6",
       "_origin": "ast",
-      "community": 20,
+      "community": 37,
       "norm_label": "projectidentitydetails",
       "id": "src_project_identity_projectidentitydetails",
-      "community_name": "Community 20"
+      "community_name": "Community 37"
     },
     {
       "label": "ProjectIdentityError",
@@ -2735,10 +2779,10 @@
       "source_file": "appraisejs/src/project-identity.ts",
       "source_location": "L12",
       "_origin": "ast",
-      "community": 20,
+      "community": 37,
       "norm_label": "projectidentityerror",
       "id": "src_project_identity_projectidentityerror",
-      "community_name": "Community 20"
+      "community_name": "Community 37"
     },
     {
       "label": ".constructor()",
@@ -2746,10 +2790,10 @@
       "source_file": "appraisejs/src/project-identity.ts",
       "source_location": "L13",
       "_origin": "ast",
-      "community": 20,
+      "community": 37,
       "norm_label": ".constructor()",
       "id": "src_project_identity_projectidentityerror_constructor",
-      "community_name": "Community 20"
+      "community_name": "Community 37"
     },
     {
       "label": "deriveProjectIdentity()",
@@ -2757,10 +2801,10 @@
       "source_file": "appraisejs/src/project-identity.ts",
       "source_location": "L24",
       "_origin": "ast",
-      "community": 20,
+      "community": 37,
       "norm_label": "deriveprojectidentity()",
       "id": "src_project_identity_deriveprojectidentity",
-      "community_name": "Community 20"
+      "community_name": "Community 37"
     },
     {
       "label": "ensureLocalProjectIdentity()",
@@ -2768,10 +2812,10 @@
       "source_file": "appraisejs/src/project-identity.ts",
       "source_location": "L68",
       "_origin": "ast",
-      "community": 20,
+      "community": 14,
       "norm_label": "ensurelocalprojectidentity()",
       "id": "src_project_identity_ensurelocalprojectidentity",
-      "community_name": "Community 20"
+      "community_name": "Community 14"
     },
     {
       "label": "test-run-diagnose-cli.test.ts",
@@ -2779,10 +2823,10 @@
       "source_file": "appraisejs/src/test-run-diagnose-cli.test.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 20,
+      "community": 27,
       "norm_label": "test-run-diagnose-cli.test.ts",
       "id": "src_test_run_diagnose_cli_test",
-      "community_name": "Community 20"
+      "community_name": "Community 27"
     },
     {
       "label": "ready",
@@ -2790,10 +2834,10 @@
       "source_file": "appraisejs/src/test-run-diagnose-cli.test.ts",
       "source_location": "L4",
       "_origin": "ast",
-      "community": 20,
+      "community": 27,
       "norm_label": "ready",
       "id": "src_test_run_diagnose_cli_test_ready",
-      "community_name": "Community 20"
+      "community_name": "Community 27"
     },
     {
       "label": "test-run-diagnose-cli.ts",
@@ -2801,10 +2845,10 @@
       "source_file": "appraisejs/src/test-run-diagnose-cli.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 20,
+      "community": 27,
       "norm_label": "test-run-diagnose-cli.ts",
       "id": "src_test_run_diagnose_cli",
-      "community_name": "Community 20"
+      "community_name": "Community 27"
     },
     {
       "label": "TestRunDiagnosticResponse",
@@ -2812,10 +2856,10 @@
       "source_file": "appraisejs/src/test-run-diagnose-cli.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 20,
+      "community": 27,
       "norm_label": "testrundiagnosticresponse",
       "id": "src_test_run_diagnose_cli_testrundiagnosticresponse",
-      "community_name": "Community 20"
+      "community_name": "Community 27"
     },
     {
       "label": "DiagnoseDependencies",
@@ -2823,10 +2867,10 @@
       "source_file": "appraisejs/src/test-run-diagnose-cli.ts",
       "source_location": "L3",
       "_origin": "ast",
-      "community": 20,
+      "community": 27,
       "norm_label": "diagnosedependencies",
       "id": "src_test_run_diagnose_cli_diagnosedependencies",
-      "community_name": "Community 20"
+      "community_name": "Community 27"
     },
     {
       "label": "TestRunDiagnoseResult",
@@ -2834,10 +2878,10 @@
       "source_file": "appraisejs/src/test-run-diagnose-cli.ts",
       "source_location": "L8",
       "_origin": "ast",
-      "community": 20,
+      "community": 27,
       "norm_label": "testrundiagnoseresult",
       "id": "src_test_run_diagnose_cli_testrundiagnoseresult",
-      "community_name": "Community 20"
+      "community_name": "Community 27"
     },
     {
       "label": "diagnosticDto()",
@@ -2845,10 +2889,10 @@
       "source_file": "appraisejs/src/test-run-diagnose-cli.ts",
       "source_location": "L13",
       "_origin": "ast",
-      "community": 20,
+      "community": 27,
       "norm_label": "diagnosticdto()",
       "id": "src_test_run_diagnose_cli_diagnosticdto",
-      "community_name": "Community 20"
+      "community_name": "Community 27"
     },
     {
       "label": "isBlocked()",
@@ -2856,10 +2900,10 @@
       "source_file": "appraisejs/src/test-run-diagnose-cli.ts",
       "source_location": "L18",
       "_origin": "ast",
-      "community": 20,
+      "community": 27,
       "norm_label": "isblocked()",
       "id": "src_test_run_diagnose_cli_isblocked",
-      "community_name": "Community 20"
+      "community_name": "Community 27"
     },
     {
       "label": "boundedText()",
@@ -2867,10 +2911,10 @@
       "source_file": "appraisejs/src/test-run-diagnose-cli.ts",
       "source_location": "L28",
       "_origin": "ast",
-      "community": 20,
+      "community": 27,
       "norm_label": "boundedtext()",
       "id": "src_test_run_diagnose_cli_boundedtext",
-      "community_name": "Community 20"
+      "community_name": "Community 27"
     },
     {
       "label": "humanBlocker()",
@@ -2878,10 +2922,10 @@
       "source_file": "appraisejs/src/test-run-diagnose-cli.ts",
       "source_location": "L32",
       "_origin": "ast",
-      "community": 20,
+      "community": 27,
       "norm_label": "humanblocker()",
       "id": "src_test_run_diagnose_cli_humanblocker",
-      "community_name": "Community 20"
+      "community_name": "Community 27"
     },
     {
       "label": "runTestRunDiagnose()",
@@ -2889,10 +2933,10 @@
       "source_file": "appraisejs/src/test-run-diagnose-cli.ts",
       "source_location": "L42",
       "_origin": "ast",
-      "community": 20,
+      "community": 27,
       "norm_label": "runtestrundiagnose()",
       "id": "src_test_run_diagnose_cli_runtestrundiagnose",
-      "community_name": "Community 20"
+      "community_name": "Community 27"
     },
     {
       "label": "tsconfig.json",
@@ -3670,10 +3714,10 @@
       "source_file": "create-appraisejs/package.json",
       "source_location": "L72",
       "_origin": "ast",
-      "community": 51,
+      "community": 40,
       "norm_label": "engines",
       "id": "create_appraisejs_package_engines",
-      "community_name": "Community 51"
+      "community_name": "Community 40"
     },
     {
       "label": "node",
@@ -3681,10 +3725,10 @@
       "source_file": "create-appraisejs/package.json",
       "source_location": "L73",
       "_origin": "ast",
-      "community": 51,
+      "community": 40,
       "norm_label": "node",
       "id": "create_appraisejs_package_engines_node",
-      "community_name": "Community 51"
+      "community_name": "Community 40"
     },
     {
       "label": "allowScripts",
@@ -4000,10 +4044,10 @@
       "source_file": "create-appraisejs/scripts/prepare-template.ts",
       "source_location": "L184",
       "_origin": "ast",
-      "community": 29,
+      "community": 12,
       "norm_label": "hashfile()",
       "id": "scripts_prepare_template_hashfile",
-      "community_name": "Community 29"
+      "community_name": "Community 12"
     },
     {
       "label": "computeTemplateInputHash()",
@@ -4011,10 +4055,10 @@
       "source_file": "create-appraisejs/scripts/prepare-template.ts",
       "source_location": "L195",
       "_origin": "ast",
-      "community": 29,
+      "community": 12,
       "norm_label": "computetemplateinputhash()",
       "id": "scripts_prepare_template_computetemplateinputhash",
-      "community_name": "Community 29"
+      "community_name": "Community 12"
     },
     {
       "label": "readExistingTemplateMetadata()",
@@ -5100,10 +5144,10 @@
       "source_file": "create-appraisejs/src/prepare-template-utils.ts",
       "source_location": "L21",
       "_origin": "ast",
-      "community": 29,
+      "community": 12,
       "norm_label": "collectfiles()",
       "id": "src_prepare_template_utils_collectfiles",
-      "community_name": "Community 29"
+      "community_name": "Community 12"
     },
     {
       "label": "shouldAbortOnFallbackSeed()",
@@ -11671,6 +11715,17 @@
       "target": "src_agent_setup_capabilities"
     },
     {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/shared.test.ts",
+      "source_location": "L4",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_shared_test",
+      "target": "src_agent_setup_capabilities"
+    },
+    {
       "relation": "re_exports",
       "context": "export",
       "confidence": "EXTRACTED",
@@ -14867,6 +14922,26 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "appraisejs/src/mcp/domains/quality-design.ts",
+      "source_location": "L33",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "domains_quality_design",
+      "target": "domains_quality_design_methodologyrefschema"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/domains/quality-design.ts",
+      "source_location": "L41",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "domains_quality_design",
+      "target": "domains_quality_design_provenanceschema"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/domains/quality-design.ts",
       "source_location": "L4",
       "weight": 1.0,
       "confidence_score": 1.0,
@@ -14887,11 +14962,31 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "appraisejs/src/mcp/domains/quality-design.ts",
+      "source_location": "L42",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "domains_quality_design",
+      "target": "domains_quality_design_requirementanalysisproposalschema"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/domains/quality-design.ts",
       "source_location": "L15",
       "weight": 1.0,
       "confidence_score": 1.0,
       "source": "domains_quality_design",
       "target": "domains_quality_design_requirementqueryanswerschema"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/domains/quality-design.ts",
+      "source_location": "L72",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "domains_quality_design",
+      "target": "domains_quality_design_validationdesignproposalschema"
     },
     {
       "relation": "imports_from",
@@ -15918,6 +16013,17 @@
       "confidence_score": 1.0,
       "source": "mcp_shared_test",
       "target": "mcp_shared_mcpcontracthash"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/shared.test.ts",
+      "source_location": "L4",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_shared_test",
+      "target": "src_agent_setup_capabilities_expectedagentcapabilities"
     },
     {
       "relation": "contains",
@@ -31508,5 +31614,5 @@
       "source_file": "appraisejs/agent-skills/appraise-planning-standby/SKILL.md"
     }
   ],
-  "built_at_commit": "3cd72eaaad37ddcd5e8d1ffb83040a7ea180d20d"
+  "built_at_commit": "76ebd97d212ca8ec1c454d1d2abc400ffb6e5a94"
 }

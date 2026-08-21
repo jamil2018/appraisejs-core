@@ -1,0 +1,68 @@
+{
+  "checks": [
+    "class_specific_semantic_planning_alignment",
+    "irrelevant_plan_rejection",
+    "shared_subject_wrong_quality_rejection",
+    "irrelevant_requirement_query_rejection",
+    "strict_requirement_analysis_contract",
+    "deterministic_requirement_critique",
+    "exact_hash_requirement_decision",
+    "strict_validation_design_contract",
+    "deterministic_validation_critique",
+    "exact_hash_validation_decision",
+    "manifest_bound_execution_consent",
+    "sealed_evidence_failure_attribution",
+    "target_defect_only_violation"
+  ],
+  "methodology": {
+    "digest": "sha256:f3919b0318cc469ebf1850096a640dc2f0b4729768f23f1f058dae368f69383c",
+    "methodologyId": "quality-os-core",
+    "providerId": "appraise.built-in",
+    "version": "1.0.0"
+  },
+  "methodologyMethodIds": [
+    "requirement-decomposition",
+    "ambiguity-analysis",
+    "risk-discovery",
+    "quality-attributes",
+    "state-transitions",
+    "boundary-and-equivalence",
+    "negative-and-recovery",
+    "accessibility",
+    "security",
+    "data-integrity",
+    "reliability",
+    "compatibility",
+    "performance"
+  ],
+  "receiptHash": "sha256:31d32ee5590dc98c7e5915cd8bf6441e3fcb1b3df98f853ceb95cbd4b8f93b2d",
+  "result": "PASS",
+  "schema": "appraise.quality-os-certification/v1",
+  "suiteEvidence": [
+    {
+      "file": "src/lib/quality-design/methodology-registry.test.ts",
+      "result": "PASS",
+      "sourceHash": "sha256:9b2ad74829ec3cd31118179f379541fd5e8f6368e564fec860b417945b756840"
+    },
+    {
+      "file": "src/services/coordinator/quality-operating-system-service.test.ts",
+      "result": "PASS",
+      "sourceHash": "sha256:e0d07009678c248b9d31da2476be3514e19d3cd57552175649d7d65d79cbc588"
+    },
+    {
+      "file": "src/services/coordinator/assessment-execution-service.test.ts",
+      "result": "PASS",
+      "sourceHash": "sha256:441885844103abab7c13ddc4f0dbccace65e375c73d6aa2dd031ebe0c1701a45"
+    },
+    {
+      "file": "src/services/coordinator/assessment-preparation-service.test.ts",
+      "result": "PASS",
+      "sourceHash": "sha256:099df5208b225836e2f7d581f26f9d13cd0c68fc057b5d9456a10a85e160a7e3"
+    },
+    {
+      "file": "src/services/coordinator/quality-design-service.test.ts",
+      "result": "PASS",
+      "sourceHash": "sha256:9ee0df083949f0bc8656bfe79330b3b6645f56b50344117be44b11a3c0c9146a"
+    }
+  ]
+}

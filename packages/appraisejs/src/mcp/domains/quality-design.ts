@@ -30,6 +30,80 @@ const requirementQueryAnswerSchema = z.object({
   answer: z.string().optional(),
   rationale: z.string().optional(),
 })
+const methodologyRefSchema = z
+  .object({
+    providerId: z.string().min(1),
+    methodologyId: z.string().min(1),
+    version: z.string().min(1),
+    digest: z.string().startsWith('sha256:'),
+  })
+  .strict()
+const provenanceSchema = z.object({ sourceRequirementIds: z.array(z.string().min(1)), rationale: z.string() }).strict()
+const requirementAnalysisProposalSchema = z
+  .object({
+    schemaVersion: z.literal('1'),
+    methodology: methodologyRefSchema,
+    requirements: z.array(z.object({ id: z.string().min(1), text: z.string().min(1) }).strict()).min(1),
+    inferences: z.array(
+      z
+        .object({
+          id: z.string().min(1),
+          statement: z.string().min(1),
+          confidence: z.enum(['LOW', 'MEDIUM', 'HIGH']),
+          provenance: provenanceSchema,
+        })
+        .strict(),
+    ),
+    obligations: z
+      .array(
+        z
+          .object({
+            id: z.string().min(1),
+            requirementIds: z.array(z.string().min(1)).min(1),
+            intent: z.string().min(1),
+            minimumAssurance: z.enum(['SMOKE', 'STANDARD', 'HIGH', 'EXHAUSTIVE']),
+            provenance: provenanceSchema,
+          })
+          .strict(),
+      )
+      .min(1),
+  })
+  .strict()
+const validationDesignProposalSchema = z
+  .object({
+    schemaVersion: z.literal('1'),
+    methodology: methodologyRefSchema,
+    requiredAssurance: z.enum(['SMOKE', 'STANDARD', 'HIGH', 'EXHAUSTIVE']),
+    scenarios: z
+      .array(
+        z
+          .object({
+            id: z.string().min(1),
+            title: z.string().min(1),
+            obligationIds: z.array(z.string().min(1)).min(1),
+            behavior: z.string().min(1),
+            kind: z.enum(['POSITIVE', 'NEGATIVE', 'RECOVERY']),
+            assertions: z
+              .array(
+                z.object({ id: z.string().min(1), statement: z.string().min(1), observable: z.boolean() }).strict(),
+              )
+              .min(1),
+            requiredMinimumAssurance: z.enum(['SMOKE', 'STANDARD', 'HIGH', 'EXHAUSTIVE']),
+            matrix: z
+              .object({
+                cells: z
+                  .array(z.object({ browser: z.string().min(1), environment: z.string().min(1) }).strict())
+                  .min(1),
+                rationale: z.string(),
+              })
+              .strict(),
+            failureMeaning: z.string(),
+          })
+          .strict(),
+      )
+      .min(1),
+  })
+  .strict()
 const compactStepValueSchema: z.ZodType<
   | string
   | number
@@ -48,6 +122,22 @@ const compactStepValueSchema: z.ZodType<
 
 export function registerQualityDesignOperations(context: McpRegistryContext): void {
   const { server, api } = context
+
+  server.registerTool(
+    'methodology_list',
+    { description: 'List the versioned Appraise quality methodologies available to guide host-agent reasoning.' },
+    async () => text(await api.request('quality/methodologies')),
+  )
+
+  server.registerTool(
+    'methodology_get',
+    {
+      description: 'Read one exact methodology manifest, rubric, planner contract, and critique contract.',
+      inputSchema: { providerId: z.string().min(1), methodologyId: z.string().min(1), version: z.string().min(1) },
+    },
+    async ({ providerId, methodologyId, version }) =>
+      text(await api.request(`quality/methodologies/${providerId}/${methodologyId}/${version}`)),
+  )
 
   server.registerTool(
     'assessment_execution_authorization_issue',
@@ -142,6 +232,22 @@ export function registerQualityDesignOperations(context: McpRegistryContext): vo
         authorizationGrantId: z.string().uuid().optional(),
         executionRequestId: z.string().uuid().optional(),
         expectedRequestHash: z.string().startsWith('sha256:').optional(),
+        consentId: z.string().uuid().optional(),
+        expectedExecutionManifestHash: z.string().startsWith('sha256:').optional(),
+        riskClassification: z.enum(['READ_ONLY', 'REVERSIBLE_WRITE', 'MATERIAL_EFFECT']).optional(),
+        materialEffects: z
+          .array(
+            z.enum([
+              'PERMISSION_ESCALATION',
+              'ACCOUNT_CREATION',
+              'PURCHASE',
+              'DESTRUCTIVE_MUTATION',
+              'EXTERNAL_MESSAGE',
+              'IRREVERSIBLE_SIDE_EFFECT',
+              'UNCLASSIFIED_OPERATION',
+            ]),
+          )
+          .optional(),
         idempotencyKey: z.string().min(1),
         responseMode: responseModeSchema,
       },
@@ -173,25 +279,6 @@ export function registerQualityDesignOperations(context: McpRegistryContext): vo
           await api.request('quality/requirements/source', {
             method: 'POST',
             body: JSON.stringify({ target, source, idempotencyKey }),
-          }),
-          responseMode,
-        ),
-      ),
-  )
-
-  server.registerTool(
-    'requirements_analyze',
-    {
-      description:
-        'Analyze the submitted source snapshot into a resolved requirement graph, queries, assumptions, and quality obligations.',
-      inputSchema: qualityPlanRevisionInputSchema.shape,
-    },
-    async ({ qualityPlanId, revisionId, responseMode }) =>
-      text(
-        applyAuthoringResponseMode(
-          await api.request(`quality/plans/${qualityPlanId}/requirements/analyze`, {
-            method: 'POST',
-            body: JSON.stringify({ revisionId }),
           }),
           responseMode,
         ),
@@ -242,22 +329,66 @@ export function registerQualityDesignOperations(context: McpRegistryContext): vo
   )
 
   server.registerTool(
-    'requirements_approve',
+    'requirement_analysis_propose',
     {
       description:
-        'Approve the resolved requirement graph and immutable QualityPlanRevision; blocking queries are rejected.',
+        'Submit a methodology-bound requirement analysis that separates facts, inferences, provenance, and derived obligations.',
       inputSchema: {
         qualityPlanId: z.string().min(1),
         revisionId: z.string().min(1),
-        expectedRevisionHash: z.string().startsWith('sha256:'),
-        approvedBy: z.string().min(1),
+        proposal: requirementAnalysisProposalSchema,
         responseMode: responseModeSchema,
       },
     },
     async ({ qualityPlanId, responseMode, ...body }) =>
       text(
         applyAuthoringResponseMode(
-          await api.request(`quality/plans/${qualityPlanId}/requirements/approve`, {
+          await api.request(`quality/plans/${qualityPlanId}/requirement-analyses`, {
+            method: 'POST',
+            body: JSON.stringify(body),
+          }),
+          responseMode,
+        ),
+      ),
+  )
+
+  server.registerTool(
+    'requirement_analysis_read',
+    {
+      description: 'Read an immutable requirement analysis, critique, provenance, queries, and review state.',
+      inputSchema: {
+        qualityPlanId: z.string().min(1),
+        analysisId: z.string().min(1),
+        responseMode: responseModeSchema,
+      },
+    },
+    async ({ qualityPlanId, analysisId, responseMode }) =>
+      text(
+        applyAuthoringResponseMode(
+          await api.request(`quality/plans/${qualityPlanId}/requirement-analyses/${analysisId}`),
+          responseMode,
+        ),
+      ),
+  )
+
+  server.registerTool(
+    'requirement_analysis_decide',
+    {
+      description: 'Approve or reject one exact requirement-analysis content hash after resolving blocking queries.',
+      inputSchema: {
+        qualityPlanId: z.string().min(1),
+        analysisId: z.string().min(1),
+        expectedContentHash: z.string().startsWith('sha256:'),
+        decision: z.enum(['APPROVED', 'NEEDS_REVISION', 'REJECTED']),
+        decidedBy: z.string().min(1),
+        rationale: z.string().min(1),
+        responseMode: responseModeSchema,
+      },
+    },
+    async ({ qualityPlanId, analysisId, responseMode, ...body }) =>
+      text(
+        applyAuthoringResponseMode(
+          await api.request(`quality/plans/${qualityPlanId}/requirement-analyses/${analysisId}/decision`, {
             method: 'POST',
             body: JSON.stringify(body),
           }),
@@ -274,8 +405,10 @@ export function registerQualityDesignOperations(context: McpRegistryContext): vo
       inputSchema: {
         qualityPlanId: z.string().min(1),
         revisionId: z.string().min(1),
-        proposal: z.unknown(),
-        idempotencyKey: z.string().min(1),
+        requirementAnalysisId: z.string().min(1),
+        expectedAnalysisHash: z.string().startsWith('sha256:'),
+        expectedObligationSetHash: z.string().startsWith('sha256:'),
+        proposal: validationDesignProposalSchema,
         responseMode: responseModeSchema,
       },
     },
@@ -292,22 +425,42 @@ export function registerQualityDesignOperations(context: McpRegistryContext): vo
   )
 
   server.registerTool(
-    'validation_design_approve',
+    'validation_design_read',
     {
-      description:
-        'Approve obligation-linked scenarios; mechanical selectors, runtime bindings, and locators are intentionally outside this review gate.',
+      description: 'Read one immutable validation strategy and scenario portfolio with deterministic critique.',
       inputSchema: {
         qualityPlanId: z.string().min(1),
-        revisionId: z.string().min(1),
-        expectedDesignHash: z.string().startsWith('sha256:'),
-        approvedBy: z.string().min(1),
+        designId: z.string().min(1),
         responseMode: responseModeSchema,
       },
     },
-    async ({ qualityPlanId, responseMode, ...body }) =>
+    async ({ qualityPlanId, designId, responseMode }) =>
       text(
         applyAuthoringResponseMode(
-          await api.request(`quality/plans/${qualityPlanId}/validation-design/approve`, {
+          await api.request(`quality/plans/${qualityPlanId}/validation-designs/${designId}`),
+          responseMode,
+        ),
+      ),
+  )
+
+  server.registerTool(
+    'validation_design_decide',
+    {
+      description: 'Approve or reject one exact strategy-and-scenario design hash before mechanical realization.',
+      inputSchema: {
+        qualityPlanId: z.string().min(1),
+        designId: z.string().min(1),
+        expectedContentHash: z.string().startsWith('sha256:'),
+        decision: z.enum(['APPROVED', 'NEEDS_REVISION', 'REJECTED']),
+        decidedBy: z.string().min(1),
+        rationale: z.string().min(1),
+        responseMode: responseModeSchema,
+      },
+    },
+    async ({ qualityPlanId, designId, responseMode, ...body }) =>
+      text(
+        applyAuthoringResponseMode(
+          await api.request(`quality/plans/${qualityPlanId}/validation-designs/${designId}/decision`, {
             method: 'POST',
             body: JSON.stringify(body),
           }),
@@ -465,6 +618,22 @@ export function registerQualityDesignOperations(context: McpRegistryContext): vo
         authorizationGrantId: z.string().uuid().optional(),
         executionRequestId: z.string().uuid().optional(),
         expectedRequestHash: z.string().startsWith('sha256:').optional(),
+        consentId: z.string().uuid().optional(),
+        expectedExecutionManifestHash: z.string().startsWith('sha256:').optional(),
+        riskClassification: z.enum(['READ_ONLY', 'REVERSIBLE_WRITE', 'MATERIAL_EFFECT']).optional(),
+        materialEffects: z
+          .array(
+            z.enum([
+              'PERMISSION_ESCALATION',
+              'ACCOUNT_CREATION',
+              'PURCHASE',
+              'DESTRUCTIVE_MUTATION',
+              'EXTERNAL_MESSAGE',
+              'IRREVERSIBLE_SIDE_EFFECT',
+              'UNCLASSIFIED_OPERATION',
+            ]),
+          )
+          .optional(),
         idempotencyKey: z.string().min(1),
         responseMode: responseModeSchema,
       },
@@ -473,6 +642,82 @@ export function registerQualityDesignOperations(context: McpRegistryContext): vo
       text(
         applyLifecycleResponseMode(
           await api.request('quality/assessment-runs', { method: 'POST', body: JSON.stringify(body) }),
+          responseMode,
+        ),
+      ),
+  )
+
+  server.registerTool(
+    'execution_consent_decide',
+    {
+      description:
+        'Grant or deny one execution manifest under the target consent policy. Consent is separate from credential authorization.',
+      inputSchema: {
+        assessmentId: z.string().min(1),
+        consentId: z.string().uuid(),
+        expectedExecutionManifestHash: z.string().startsWith('sha256:'),
+        decision: z.enum(['GRANTED', 'REVOKED']),
+        decidedBy: z.string().min(1),
+        rationale: z.string().min(1),
+        expiresAt: z.string().datetime().optional(),
+        responseMode: responseModeSchema,
+      },
+    },
+    async ({ assessmentId, responseMode, ...body }) =>
+      text(
+        applyLifecycleResponseMode(
+          await api.request(`quality/assessments/${assessmentId}/execution-consent`, {
+            method: 'POST',
+            body: JSON.stringify(body),
+          }),
+          responseMode,
+        ),
+      ),
+  )
+
+  server.registerTool(
+    'assessment_finding_record',
+    {
+      description:
+        'Record a hash-bound obligation finding from sealed evidence. Only target_defect attribution may violate an obligation.',
+      inputSchema: {
+        assessmentId: z.string().min(1),
+        obligationId: z.string().min(1),
+        outcome: z.enum(['SATISFIED', 'VIOLATED', 'NOT_EVALUATED']),
+        attribution: z
+          .object({
+            schemaVersion: z.literal('1'),
+            kind: z.enum([
+              'target_defect',
+              'requirement_ambiguity',
+              'validation_design_defect',
+              'validation_realization_defect',
+              'appraise_runtime_defect',
+              'environment_or_data_defect',
+              'automation_blocked',
+              'inconclusive',
+            ]),
+            supportingEvidenceHashes: z.array(z.string().startsWith('sha256:')).min(1),
+            contradictingEvidenceHashes: z.array(z.string().startsWith('sha256:')),
+            validationRechecked: z.boolean(),
+            requirementAlignmentConfirmed: z.boolean(),
+            confidence: z.enum(['LOW', 'MEDIUM', 'HIGH']),
+            rationale: z.string().min(1),
+          })
+          .strict()
+          .optional(),
+        evidenceReceiptIds: z.array(z.string().min(1)).min(1),
+        expectedEvidenceSetHash: z.string().startsWith('sha256:'),
+        responseMode: responseModeSchema,
+      },
+    },
+    async ({ assessmentId, responseMode, ...body }) =>
+      text(
+        applyLifecycleResponseMode(
+          await api.request(`quality/assessments/${assessmentId}/findings`, {
+            method: 'POST',
+            body: JSON.stringify(body),
+          }),
           responseMode,
         ),
       ),
@@ -548,7 +793,7 @@ export function registerQualityDesignOperations(context: McpRegistryContext): vo
       inputSchema: {
         assessmentId: z.string().min(1),
         expectedEvidenceSetHash: z.string().startsWith('sha256:'),
-        decision: z.enum(['accepted', 'rejected', 'accepted_with_limitations']),
+        decision: z.enum(['accepted', 'rejected', 'accepted_with_limitations', 'needs_revision']),
         decidedBy: z.string().min(1),
         rationale: z.string().min(1),
         responseMode: decisionResponseModeSchema,

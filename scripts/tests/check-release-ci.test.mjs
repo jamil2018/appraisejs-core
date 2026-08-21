@@ -33,3 +33,14 @@ test('release CI rejects a workflow without the capsule-only cutover gate', () =
     /Security CI must enforce the capsule-only cutover guard/,
   )
 })
+
+test('release CI rejects a workflow without the Quality OS certification gate', () => {
+  const workflow = fixture('ci-missing-harness.yml')
+  workflow.jobs['root-app'].steps.splice(2, 0, { run: 'npm run check:harness' })
+  workflow.jobs['security-and-quality'].steps.push({ run: 'npm run release:check:capsule-cutover' })
+
+  assert.throws(
+    () => validateReleaseCiWorkflow(workflow, dependabot),
+    /Security CI must enforce the Quality OS planner certification gate/,
+  )
+})

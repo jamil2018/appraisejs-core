@@ -78,6 +78,22 @@ const inputSchema = z.object({
   authorizationGrantId: z.string().uuid().optional(),
   executionRequestId: z.string().uuid().optional(),
   expectedRequestHash: z.string().startsWith('sha256:').optional(),
+  consentId: z.string().uuid().optional(),
+  expectedExecutionManifestHash: z.string().startsWith('sha256:').optional(),
+  riskClassification: z.enum(['READ_ONLY', 'REVERSIBLE_WRITE', 'MATERIAL_EFFECT']).optional(),
+  materialEffects: z
+    .array(
+      z.enum([
+        'PERMISSION_ESCALATION',
+        'ACCOUNT_CREATION',
+        'PURCHASE',
+        'DESTRUCTIVE_MUTATION',
+        'EXTERNAL_MESSAGE',
+        'IRREVERSIBLE_SIDE_EFFECT',
+        'UNCLASSIFIED_OPERATION',
+      ]),
+    )
+    .optional(),
   idempotencyKey: z.string().min(1).max(1_000),
 })
 
@@ -704,6 +720,10 @@ async function ensureStarted(state: PreparationState, input: PreparationInput, e
     authorizationGrantId: input.authorizationGrantId,
     executionRequestId: input.executionRequestId,
     expectedRequestHash: input.expectedRequestHash,
+    consentId: input.consentId,
+    expectedExecutionManifestHash: input.expectedExecutionManifestHash,
+    riskClassification: input.riskClassification,
+    materialEffects: input.materialEffects,
     idempotencyKey: `prepare:${input.idempotencyKey}`,
   })
   return advance(state, 'STARTED', { assessmentRun: { id: run.id, status: run.status } })
@@ -744,8 +764,11 @@ export async function prepareQualityAssessmentRun(source: unknown) {
     authorizationGrantId: _grant,
     executionRequestId: _request,
     expectedRequestHash: _hash,
+    consentId: _consent,
+    expectedExecutionManifestHash: _manifestHash,
     ...immutableInput
   } = input
+  void [_grant, _request, _hash, _consent, _manifestHash]
   const inputHash = digest({ ...immutableInput, targetProjectId: target.id })
   return executePreparation(input, target, inputHash)
 }

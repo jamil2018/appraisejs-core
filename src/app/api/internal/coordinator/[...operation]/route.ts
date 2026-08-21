@@ -17,18 +17,28 @@ import { guardCoordinatorRequest, readCoordinatorJson } from '@/lib/coordinator-
 import { coordinatorStepDefinitionService } from '@/services/coordinator/coordinator-step-definition-service'
 import {
   answerQualityRequirementQueries,
-  approveQualityRequirements,
-  approveQualityValidationDesign,
   compileQualityValidations,
   createQualityAssessment,
   createQualityAssessmentSuccessor,
   decideQualityAssessment,
   publishQualityValidations,
-  proposeQualityValidationDesign,
   readQualityAssessment,
   readQualityRequirementGraph,
   submitQualityRequirementSource,
 } from '@/services/coordinator/quality-design-service'
+import {
+  decideExecutionConsent,
+  decideRequirementAnalysis,
+  decideValidationDesign,
+  listQualityMethodologies,
+  proposeRequirementAnalysis,
+  proposeValidationDesign,
+  readQualityMethodology,
+  readRequirementAnalysis,
+  readValidationDesign,
+  recordAssessmentFinding,
+  revokeExecutionConsent,
+} from '@/services/coordinator/quality-operating-system-service'
 import { prepareQualityAssessmentRun } from '@/services/coordinator/assessment-preparation-service'
 import {
   reconcileQualityAssessment,
@@ -63,6 +73,21 @@ import {
 import { RuntimeCapsuleTestRunService } from '@/services/test-run/runtime-capsule-test-run-service'
 
 export const runtime = 'nodejs'
+
+const qualityReviewDecisionSchema = z.object({
+  expectedContentHash: z.string().startsWith('sha256:'),
+  decision: z.enum(['APPROVED', 'NEEDS_REVISION', 'REJECTED']),
+  decidedBy: z.string().min(1),
+  rationale: z.string().min(1),
+})
+
+function qualityReviewDecisionInput(value: z.infer<typeof qualityReviewDecisionSchema>) {
+  return {
+    decision: value.decision,
+    decidedBy: value.decidedBy,
+    rationale: value.rationale,
+  }
+}
 
 type RouteContext = { params: Promise<{ operation: string[] }> }
 
@@ -335,7 +360,13 @@ async function getTestRunEvidence(request: Request, operation: string[]) {
   return unknownOperation()
 }
 
+// fallow-ignore-next-line complexity -- read-only dispatcher; domain rules remain in services.
 async function getQualityOperation(request: Request, operation: string[]) {
+  if (operation[1] === 'methodologies' && operation.length === 2) return Response.json(listQualityMethodologies())
+  if (operation[1] === 'methodologies' && operation.length === 5)
+    return Response.json(
+      readQualityMethodology({ providerId: operation[2], methodologyId: operation[3], version: operation[4] }),
+    )
   if (operation[1] === 'plans' && operation[3] === 'locators' && operation.length === 4) {
     const parameters = new URL(request.url).searchParams
     const qualityPlanId = z.string().min(1).parse(operation[2])
@@ -365,6 +396,22 @@ async function getQualityOperation(request: Request, operation: string[]) {
       await readQualityRequirementGraph({ qualityPlanId: z.string().min(1).parse(operation[2]), revisionId }),
     )
   }
+  if (operation[1] === 'plans' && operation[3] === 'requirement-analyses' && operation.length === 5) {
+    return Response.json(
+      await readRequirementAnalysis({
+        qualityPlanId: operation[2],
+        analysisRevisionId: operation[4],
+      }),
+    )
+  }
+  if (operation[1] === 'plans' && operation[3] === 'validation-designs' && operation.length === 5) {
+    return Response.json(
+      await readValidationDesign({
+        qualityPlanId: operation[2],
+        validationDesignRevisionId: operation[4],
+      }),
+    )
+  }
   if (
     operation[1] === 'assessments' &&
     ['readiness', 'diagnose', 'review'].includes(operation[3] ?? '') &&
@@ -381,7 +428,10 @@ async function getStepDefinitions(request: Request, operation: string[]) {
 
 async function getDiagnostic(request: Request) {
   const targetProjects = await listTargetProjects()
-  const builtInStepDefinitions = await ensureBuiltInStepDefinitionReadiness(prisma)
+  const builtInStepDefinitions = await ensureBuiltInStepDefinitionReadiness(prisma).catch(error => ({
+    status: 'blocked' as const,
+    message: error instanceof Error ? error.message : 'Built-in Step Definition readiness could not be established.',
+  }))
   const coordinatorContract = {
     version: 'appraise.coordinator-contract/v1',
     hash: `sha256:${createHash('sha256')
@@ -534,10 +584,6 @@ async function postQualityOperation(operation: string[], body: unknown): Promise
       { status: 201 },
     )
   }
-  if (key === `quality/plans/${operation[2]}/requirements/analyze`) {
-    const value = z.object({ revisionId: z.string().min(1).optional() }).parse(body)
-    return Response.json(await readQualityRequirementGraph({ qualityPlanId: qualityPlanId(operation), ...value }))
-  }
   if (key === `quality/plans/${operation[2]}/requirements/queries`) {
     const value = z
       .object({
@@ -557,38 +603,66 @@ async function postQualityOperation(operation: string[], body: unknown): Promise
       .parse(body)
     return Response.json(await answerQualityRequirementQueries({ qualityPlanId: qualityPlanId(operation), ...value }))
   }
-  if (key === `quality/plans/${operation[2]}/requirements/approve`) {
-    const value = z
-      .object({
-        revisionId: z.string().min(1),
-        expectedRevisionHash: z.string().startsWith('sha256:'),
-        approvedBy: z.string().min(1),
-      })
-      .parse(body)
-    return Response.json(await approveQualityRequirements({ qualityPlanId: qualityPlanId(operation), ...value }))
-  }
-  if (key === `quality/plans/${operation[2]}/validation-design/proposals`) {
-    const value = z
-      .object({ revisionId: z.string().min(1), proposal: z.unknown(), idempotencyKey: z.string().min(1) })
-      .parse(body)
-    if (!('proposal' in value)) throw new ServiceError('Validation design proposal is required.', 'VALIDATION')
+  if (key === `quality/plans/${operation[2]}/requirement-analyses`) {
+    const value = z.object({ revisionId: z.string().min(1), proposal: z.unknown() }).parse(body)
+    const graph = await readQualityRequirementGraph({
+      qualityPlanId: qualityPlanId(operation),
+      revisionId: value.revisionId,
+    })
     return Response.json(
-      await proposeQualityValidationDesign({
+      await proposeRequirementAnalysis({
+        targetProjectId: graph.qualityPlan.targetProjectId,
+        qualityPlanRevisionId: value.revisionId,
+        proposal: value.proposal,
+      }),
+      { status: 201 },
+    )
+  }
+  if (key === `quality/plans/${operation[2]}/requirement-analyses/${operation[4]}/decision`) {
+    const value = qualityReviewDecisionSchema.parse(body)
+    return Response.json(
+      await decideRequirementAnalysis({
+        analysisRevisionId: z.string().min(1).parse(operation[4]),
         qualityPlanId: qualityPlanId(operation),
-        ...value,
-        proposal: value.proposal as NonNullable<typeof value.proposal>,
+        expectedAnalysisHash: value.expectedContentHash,
+        ...qualityReviewDecisionInput(value),
       }),
     )
   }
-  if (key === `quality/plans/${operation[2]}/validation-design/approve`) {
+  if (key === `quality/plans/${operation[2]}/validation-design/proposals`) {
     const value = z
       .object({
         revisionId: z.string().min(1),
-        expectedDesignHash: z.string().startsWith('sha256:'),
-        approvedBy: z.string().min(1),
+        requirementAnalysisId: z.string().min(1),
+        expectedAnalysisHash: z.string().startsWith('sha256:'),
+        expectedObligationSetHash: z.string().startsWith('sha256:'),
+        proposal: z.unknown(),
       })
       .parse(body)
-    return Response.json(await approveQualityValidationDesign({ qualityPlanId: qualityPlanId(operation), ...value }))
+    if (!('proposal' in value)) throw new ServiceError('Validation design proposal is required.', 'VALIDATION')
+    return Response.json(
+      await proposeValidationDesign({
+        targetProjectId: (
+          await readQualityRequirementGraph({ qualityPlanId: qualityPlanId(operation), revisionId: value.revisionId })
+        ).qualityPlan.targetProjectId,
+        qualityPlanRevisionId: value.revisionId,
+        requirementAnalysisRevisionId: value.requirementAnalysisId,
+        expectedAnalysisHash: value.expectedAnalysisHash,
+        expectedObligationSetHash: value.expectedObligationSetHash,
+        proposal: value.proposal,
+      }),
+    )
+  }
+  if (key === `quality/plans/${operation[2]}/validation-designs/${operation[4]}/decision`) {
+    const value = qualityReviewDecisionSchema.parse(body)
+    return Response.json(
+      await decideValidationDesign({
+        validationDesignRevisionId: z.string().min(1).parse(operation[4]),
+        qualityPlanId: qualityPlanId(operation),
+        expectedDesignHash: value.expectedContentHash,
+        ...qualityReviewDecisionInput(value),
+      }),
+    )
   }
   if (key === `quality/plans/${operation[2]}/validations/compile`) {
     const value = z
@@ -681,6 +755,22 @@ async function postQualityOperation(operation: string[], body: unknown): Promise
         authorizationGrantId: z.string().uuid().optional(),
         executionRequestId: z.string().uuid().optional(),
         expectedRequestHash: z.string().startsWith('sha256:').optional(),
+        consentId: z.string().uuid().optional(),
+        expectedExecutionManifestHash: z.string().startsWith('sha256:').optional(),
+        riskClassification: z.enum(['READ_ONLY', 'REVERSIBLE_WRITE', 'MATERIAL_EFFECT']).optional(),
+        materialEffects: z
+          .array(
+            z.enum([
+              'PERMISSION_ESCALATION',
+              'ACCOUNT_CREATION',
+              'PURCHASE',
+              'DESTRUCTIVE_MUTATION',
+              'EXTERNAL_MESSAGE',
+              'IRREVERSIBLE_SIDE_EFFECT',
+              'UNCLASSIFIED_OPERATION',
+            ]),
+          )
+          .optional(),
         idempotencyKey: z.string().min(1),
       })
       .strict()
@@ -724,11 +814,68 @@ async function postQualityOperation(operation: string[], body: unknown): Promise
       }),
     )
   }
+  if (operation[1] === 'assessments' && operation[3] === 'execution-consent' && operation.length === 4) {
+    const value = z
+      .object({
+        consentId: z.string().min(1),
+        expectedExecutionManifestHash: z.string().startsWith('sha256:'),
+        decision: z.enum(['GRANTED', 'REVOKED']),
+        decidedBy: z.string().min(1),
+        rationale: z.string().min(1),
+        expiresAt: z.string().datetime().optional(),
+      })
+      .parse(body)
+    if (value.decision === 'REVOKED')
+      return Response.json(
+        await revokeExecutionConsent({
+          consentId: value.consentId,
+          assessmentId: qualityAssessmentId(operation),
+          reason: value.rationale,
+        }),
+      )
+    return Response.json(
+      await decideExecutionConsent({
+        consentId: value.consentId,
+        assessmentId: qualityAssessmentId(operation),
+        expectedManifestHash: value.expectedExecutionManifestHash,
+        grantedBy: value.decidedBy,
+        expiresAt: value.expiresAt ? new Date(value.expiresAt) : undefined,
+      }),
+    )
+  }
+  if (operation[1] === 'assessments' && operation[3] === 'findings' && operation.length === 4) {
+    const value = z
+      .object({
+        obligationId: z.string().min(1),
+        outcome: z.enum(['SATISFIED', 'VIOLATED', 'NOT_EVALUATED']),
+        attribution: z.unknown().optional(),
+        limitations: z.unknown().optional(),
+        evidenceReceiptIds: z.array(z.string().min(1)).min(1),
+        expectedEvidenceSetHash: z.string().startsWith('sha256:'),
+      })
+      .parse(body)
+    return Response.json(
+      await recordAssessmentFinding({
+        assessmentId: qualityAssessmentId(operation),
+        qualityObligationRevisionId: value.obligationId,
+        evidenceReceiptIds: value.evidenceReceiptIds,
+        expectedEvidenceSetHash: value.expectedEvidenceSetHash,
+        finding: {
+          schemaVersion: '1',
+          obligationId: value.obligationId,
+          outcome: value.outcome,
+          attribution: value.attribution,
+        },
+        limitations: value.limitations,
+      }),
+      { status: 201 },
+    )
+  }
   if (operation[1] === 'assessments' && operation[3] === 'decision' && operation.length === 4) {
     const value = z
       .object({
         expectedEvidenceSetHash: z.string().startsWith('sha256:'),
-        decision: z.enum(['accepted', 'rejected', 'accepted_with_limitations']),
+        decision: z.enum(['accepted', 'rejected', 'accepted_with_limitations', 'needs_revision']),
         decidedBy: z.string().min(1),
         rationale: z.string().min(1),
       })

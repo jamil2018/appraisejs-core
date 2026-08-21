@@ -12,7 +12,7 @@ There is no workspace executor, execution-time feature generation, or target-wor
 
 Before a Quality-owned TestRun is prepared, AppraiseJS projects the immutable published validation artifacts into the target-scoped relational execution index. This projection is idempotent and must complete before TestRun-to-case/suite links are inserted, so managed execution never relies on fabricated foreign-key identities.
 
-TestRun output includes report, log, trace, and runtime diagnostics artifacts. Assessment reconciliation verifies those artifacts against the capsule identity and seals one immutable Evidence Receipt for every completed assessment matrix cell. TestRun success by itself is not an assurance decision; the assessment evidence matrix and requirement alignment remain authoritative.
+TestRun output includes report, log, trace, and runtime diagnostics artifacts. Assessment reconciliation verifies those artifacts against the capsule identity and seals one immutable Evidence Receipt for every completed assessment matrix cell. TestRun success or failure by itself is not an assurance decision. A negative observation must be reviewed against requirements, validation design, realization, Appraise runtime, environment/data, and automation boundaries; only a sealed `TARGET_DEFECT` finding may violate an obligation.
 
 When `assessment_run` omits `runtime`, Appraise derives the exact cells from each selected published Validation Version's immutable runtime matrix. Explicit cells and the shorthand `runtime.environmentId` remain supported, but every request must still cover the complete selected published matrix.
 

@@ -40,7 +40,10 @@ const exactCoordinatorOperations: Readonly<Record<string, CoordinatorOperationId
 
 const coordinatorOperationPrefixes: ReadonlyArray<readonly [string, CoordinatorOperationId]> = [
   ['assessment_', 'quality-write'],
+  ['execution_consent_', 'quality-write'],
+  ['methodology_', 'quality-read'],
   ['operation_', 'operations'],
+  ['requirement_analysis_', 'quality-write'],
   ['requirements_', 'quality-write'],
   ['step_definition_', 'step-definitions-write'],
   ['validation_design_', 'quality-write'],

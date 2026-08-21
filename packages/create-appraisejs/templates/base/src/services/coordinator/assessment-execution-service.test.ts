@@ -14,6 +14,7 @@ const { database } = vi.hoisted(() => ({
 vi.mock('@/config/db-config', () => ({ default: database }))
 
 import {
+  deriveExecutionEffects,
   derivedAssessmentCells,
   runQualityAssessment,
   reconcileQualityAssessment,
@@ -62,6 +63,24 @@ describe('assessment execution guards', () => {
         browserEngine: 'FIREFOX',
       },
     ])
+  })
+
+  it('hard-gates an unclassified runtime operation even when callers omit risk declarations', () => {
+    const effects = deriveExecutionEffects(
+      {
+        versions: [
+          {
+            id: 'validation-1',
+            publication: { runtimeInputJson: JSON.stringify({ stepDefinitions: [{ id: 'operation-1' }] }) },
+          },
+        ],
+      } as never,
+      [{ validationVersionId: 'validation-1', resultMatrixCell: 'CHROMIUM:env-1', environmentId: 'env-1' }],
+    )
+    expect(effects).toEqual({
+      riskClassification: 'MATERIAL_EFFECT',
+      materialEffects: ['UNCLASSIFIED_OPERATION'],
+    })
   })
 
   it('rejects an assessment with stale requirement alignment before runtime preparation', async () => {
