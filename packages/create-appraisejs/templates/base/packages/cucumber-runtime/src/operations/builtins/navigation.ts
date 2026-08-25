@@ -53,15 +53,12 @@ export const navigationBuiltins = [
     parameters: [],
     execute: async function (this: CustomWorld) {
       try {
-        const environment = process.env.ENVIRONMENT as string
-        if (!environment) {
-          throw new Error('Environment is not set')
-        }
-        const environmentConfig = getEnvironment(environment)
-        if (!environmentConfig) {
-          throw new Error(`Environment ${environment} not found`)
-        }
-        await gotoSealedOrigin(this.page, environmentConfig.baseUrl, this.sealedBaseUrl, {
+        // Managed capsules carry the immutable environment packet as their
+        // sealed base URL and deliberately do not inherit the mutable
+        // ENVIRONMENT name. Preserve the legacy lookup only for ordinary CLI
+        // execution, where no managed origin has been sealed on the World.
+        const baseUrl = this.sealedBaseUrl ?? legacyEnvironmentBaseUrl()
+        await gotoSealedOrigin(this.page, baseUrl, this.sealedBaseUrl, {
           waitUntil: 'domcontentloaded',
         })
       } catch (error) {
@@ -71,3 +68,11 @@ export const navigationBuiltins = [
     },
   },
 ] satisfies readonly BuiltinBrowserOperation[]
+
+function legacyEnvironmentBaseUrl() {
+  const environment = process.env.ENVIRONMENT as string
+  if (!environment) throw new Error('Environment is not set')
+  const environmentConfig = getEnvironment(environment)
+  if (!environmentConfig) throw new Error(`Environment ${environment} not found`)
+  return environmentConfig.baseUrl
+}

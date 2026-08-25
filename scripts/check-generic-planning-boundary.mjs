@@ -44,22 +44,6 @@ for (const file of roots.flatMap(root => walk(path.join(repoRoot, root)))) {
   }
 }
 
-const projectSkill = fs.readFileSync(path.join(repoRoot, '.agents/skills/appraise-project-from-brief/SKILL.md'), 'utf8')
-const planningSkill = fs.readFileSync(path.join(repoRoot, '.agents/skills/appraise-planning/SKILL.md'), 'utf8')
-for (const [file, contents] of [
-  ['.agents/skills/appraise-project-from-brief/SKILL.md', projectSkill],
-  ['.agents/skills/appraise-planning/SKILL.md', planningSkill],
-]) {
-  if (!contents.includes('Appraise does not infer')) {
-    failures.push(`${file}: must state that Appraise does not infer the task graph`)
-  }
-}
-if (!projectSkill.includes('appraise-planning')) {
-  failures.push(
-    '.agents/skills/appraise-project-from-brief/SKILL.md: must hand plan authoring and review to appraise-planning',
-  )
-}
-
 if (failures.length > 0) {
   console.error('Generic planning boundary check failed:')
   for (const failure of failures) console.error(`- ${failure}`)

@@ -8,7 +8,12 @@ import {
   CredentialExecutionAuthorization,
   authorizationMessage,
   expirationState,
+  responseJson,
 } from './credential-execution-authorization'
+import {
+  CREDENTIAL_AUTHORIZATION_UI_BOOTSTRAP_HEADER,
+  CREDENTIAL_AUTHORIZATION_UI_BOOTSTRAP_VALUE,
+} from '@/lib/credential-execution-authorization-ui'
 
 const mocks = vi.hoisted(() => ({ refresh: vi.fn() }))
 
@@ -65,11 +70,18 @@ describe('CredentialExecutionAuthorization', () => {
 
     await waitFor(() => expect(fetch).toHaveBeenCalledTimes(2))
     expect(fetch.mock.calls[0][0]).toContain('requestId=request-1')
-    expect(fetch.mock.calls[0][1]).toMatchObject({ credentials: 'same-origin', cache: 'no-store' })
+    expect(fetch.mock.calls[0][1]).toMatchObject({
+      credentials: 'same-origin',
+      cache: 'no-store',
+      headers: { [CREDENTIAL_AUTHORIZATION_UI_BOOTSTRAP_HEADER]: CREDENTIAL_AUTHORIZATION_UI_BOOTSTRAP_VALUE },
+    })
     expect(fetch.mock.calls[1][1]).toMatchObject({
       method: 'POST',
       credentials: 'same-origin',
-      headers: expect.objectContaining({ 'x-appraise-csrf': 'csrf-token' }),
+      headers: expect.objectContaining({
+        'x-appraise-csrf': 'csrf-token',
+        [CREDENTIAL_AUTHORIZATION_UI_BOOTSTRAP_HEADER]: CREDENTIAL_AUTHORIZATION_UI_BOOTSTRAP_VALUE,
+      }),
     })
     expect(fetch.mock.calls[1][1].body).toBe(JSON.stringify({ requestId: 'request-1' }))
     expect(JSON.stringify(fetch.mock.calls)).not.toContain('sessionToken')
@@ -103,6 +115,12 @@ describe('CredentialExecutionAuthorization', () => {
     await user.click(screen.getByRole('button', { name: 'Revoke authorization' }))
 
     expect(await screen.findByText(/already been consumed and can no longer be revoked/)).toBeInTheDocument()
+    expect(fetch.mock.calls[2][1]).toMatchObject({
+      method: 'POST',
+      headers: expect.objectContaining({
+        [CREDENTIAL_AUTHORIZATION_UI_BOOTSTRAP_HEADER]: CREDENTIAL_AUTHORIZATION_UI_BOOTSTRAP_VALUE,
+      }),
+    })
   })
 
   it('renders an expired request as unavailable', () => {
@@ -119,9 +137,24 @@ describe('CredentialExecutionAuthorization', () => {
 })
 
 describe('credential authorization helpers', () => {
-  it('recognizes expiry and maps replay/expiry response codes to clear UI messages', () => {
+  it('recognizes expiry and maps replay, expiry, and provenance response codes to clear UI messages', () => {
     expect(expirationState('2020-01-01T00:00:00.000Z')).toBe(true)
     expect(authorizationMessage(new Error('AUTHORIZATION_EXPIRED'))).toMatch(/expired/)
     expect(authorizationMessage(new Error('AUTHORIZATION_REQUEST_CONFLICT'))).toMatch(/another issuer/)
+    expect(authorizationMessage(new Error('CSRF_HOST_INVALID'))).toMatch(/Appraise address did not match/)
+    expect(authorizationMessage(new Error('CSRF_UI_BOOTSTRAP_INVALID'))).toMatch(/fresh Appraise UI session/)
+    expect(authorizationMessage(new Error('CSRF_FETCH_SITE_INVALID'))).toMatch(
+      /Open this authorization request directly/,
+    )
+    expect(authorizationMessage(new Error('CSRF_ORIGIN_INVALID'))).toMatch(/active Appraise UI origin/)
+  })
+
+  it('retains a typed string route denial as a failed UI request', async () => {
+    await expect(
+      responseJson(json({ code: 'CSRF_ORIGIN_INVALID', error: 'CSRF_ORIGIN_INVALID' }, 403)),
+    ).rejects.toThrow('CSRF_ORIGIN_INVALID')
+    await expect(responseJson(json({ error: { code: 'AUTHORIZATION_EXPIRED' } }, 403))).rejects.toThrow(
+      'AUTHORIZATION_EXPIRED',
+    )
   })
 })

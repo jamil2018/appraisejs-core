@@ -57,7 +57,14 @@ function renderProjection({ operation, projection, validation }: Projection) {
   })
   const inputNames = [...projection.parameterOrder, ...Object.keys(projection.constants)]
   const values = [
-    ...projection.parameterOrder,
+    ...projection.parameterOrder.map(name => {
+      const input = inputs.get(name)
+      if (!input) throw new Error(`${projection.id} references unknown input ${name}.`)
+      // Cucumber placeholder values are strings. Canonical JSON inputs keep
+      // their typed operation contract by parsing only at the human projection
+      // boundary; managed Step Invocations already carry the native value.
+      return input.type === 'json' ? `JSON.parse(${name})` : name
+    }),
     ...Object.values(projection.constants).map(value => JSON.stringify(value)),
   ]
   return `/**

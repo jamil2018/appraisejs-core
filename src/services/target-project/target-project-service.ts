@@ -250,7 +250,10 @@ export async function registerTargetProject(
   await client.environment.upsert({
     where: { targetProjectId_name: { targetProjectId: targetProject.id, name: 'default' } },
     create: { targetProjectId: targetProject.id, name: 'default', baseUrl: normalizedRemoteOrigin },
-    update: { baseUrl: normalizedRemoteOrigin },
+    // Registration refresh is an Environment write too. Preserve the remote
+    // scope invariant even when the origin happens to be unchanged: callers
+    // must issue a new scope after a target registration refresh.
+    update: { baseUrl: normalizedRemoteOrigin, scopeVersion: { increment: 1 } },
   })
   return targetProject
 }

@@ -31,4 +31,17 @@ describe('default operation registry', () => {
       'browser.mouse.click',
     )
   })
+
+  it('exposes ordered collection text assertions as one canonical collection operation', () => {
+    const operation = defaultOperationRegistry.read([{ id: 'browser.assertions.ordered.texts', version: '1' }])[0]
+
+    expect(operation).toMatchObject({
+      handler: { id: 'browser.assertions.ordered.texts', version: '1' },
+      inputs: [
+        { name: 'target', type: 'locator', required: true, cardinality: 'collection' },
+        { name: 'expectedTexts', type: 'json', required: true },
+      ],
+    })
+    expect(operation?.inputs).not.toContainEqual(expect.objectContaining({ name: 'index' }))
+  })
 })

@@ -19,17 +19,23 @@ import {
   answerQualityRequirementQueries,
   approveQualityRequirements,
   approveQualityValidationDesign,
-  compileQualityValidations,
   createQualityAssessment,
   createQualityAssessmentSuccessor,
   decideQualityAssessment,
-  publishQualityValidations,
   proposeQualityValidationDesign,
   readQualityAssessment,
   readQualityRequirementGraph,
   submitQualityRequirementSource,
 } from '@/services/coordinator/quality-design-service'
-import { prepareQualityAssessmentRun } from '@/services/coordinator/assessment-preparation-service'
+import {
+  preflightQualityAssessmentRun,
+  prepareQualityAssessmentRun,
+} from '@/services/coordinator/assessment-preparation-service'
+import {
+  createRemoteEvaluationScope,
+  createRemoteEvaluationScopePartition,
+  readRemoteEvaluationScope,
+} from '@/services/coordinator/remote-evaluation-scope-service'
 import {
   reconcileQualityAssessment,
   runQualityAssessment,
@@ -105,8 +111,57 @@ function errorClassification(error: unknown) {
   return 'appraise_runtime_defect' as const
 }
 
+function recoveryRetry(error: ServiceError | undefined) {
+  if (error?.details?.code === 'assessment_execution_terminal')
+    return {
+      safe: false,
+      strategy: 'do_not_retry' as const,
+      nextAction: {
+        tool: 'assessment_prepare_run',
+        reason:
+          'The existing Assessment is READY after terminal startup history. Resubmit the original compact preparation request with a newly generated idempotencyKey; do not replay assessment_run or the prior preparation key.',
+      },
+    }
+  if (
+    error?.details?.code === 'assessment_execution_reserved' ||
+    error?.details?.code === 'assessment_execution_incomplete'
+  )
+    return {
+      safe: false,
+      strategy: 'read_state_then_retry' as const,
+      nextAction: {
+        tool: 'assessment_reconcile',
+        reason:
+          'This Assessment still has active or unsealed execution work. Wait for it to become terminal, then read or reconcile before starting any new preparation.',
+      },
+    }
+  return { safe: false, strategy: 'do_not_retry' as const }
+}
+
+const authorizationHandoffSchema = z
+  .object({
+    executionRequestId: z.string().uuid(),
+    expectedRequestHash: z.string().startsWith('sha256:'),
+    expiresAt: z.string().datetime(),
+    authorizationRequestCreated: z.literal(true),
+    nextAction: z
+      .object({
+        tool: z.literal('assessment_prepare_run'),
+        reason: z.string().trim().min(1).max(1_000),
+      })
+      .strict(),
+  })
+  .strict()
+
+function authorizationHandoff(error: ServiceError | undefined) {
+  if (error?.code !== 'UNAUTHORIZED' || error.message !== 'AUTHORIZATION_REQUIRED') return undefined
+  const parsed = authorizationHandoffSchema.safeParse(error.details?.authorization)
+  return parsed.success ? parsed.data : undefined
+}
+
 function responseError(error: unknown, context: CoordinatorErrorContext) {
   const serviceError = error instanceof ServiceError ? error : undefined
+  const authorization = authorizationHandoff(serviceError)
   const status = error instanceof z.ZodError ? 400 : (serviceError?.statusCode ?? 500)
   const message =
     error instanceof z.ZodError
@@ -118,16 +173,30 @@ function responseError(error: unknown, context: CoordinatorErrorContext) {
       errorId: randomUUID(),
       occurredAt: new Date().toISOString(),
       classification: errorClassification(error),
-      code: serviceError?.code ?? (error instanceof z.ZodError ? 'VALIDATION' : 'INTERNAL'),
+      code: authorization
+        ? 'AUTHORIZATION_REQUIRED'
+        : (serviceError?.code ?? (error instanceof z.ZodError ? 'VALIDATION' : 'INTERNAL')),
       message,
       httpStatus: status,
       operation: {
         name: context.operation,
         ...(context.idempotencyKey ? { idempotencyKey: context.idempotencyKey } : {}),
       },
-      operationOutcome: 'not_started',
+      operationOutcome: authorization ? 'committed' : 'not_started',
       targetOutcome: 'not_evaluated',
-      retry: { safe: false, strategy: 'do_not_retry' },
+      retry: authorization
+        ? {
+            safe: false,
+            strategy: 'read_state_then_retry',
+            nextAction: authorization.nextAction,
+          }
+        : recoveryRetry(serviceError),
+      ...(authorization
+        ? {
+            durableState: 'authorization_request_committed',
+            authorization,
+          }
+        : {}),
       ...(error instanceof z.ZodError
         ? {
             details: {
@@ -590,33 +659,6 @@ async function postQualityOperation(operation: string[], body: unknown): Promise
       .parse(body)
     return Response.json(await approveQualityValidationDesign({ qualityPlanId: qualityPlanId(operation), ...value }))
   }
-  if (key === `quality/plans/${operation[2]}/validations/compile`) {
-    const value = z
-      .object({
-        revisionId: z.string().min(1),
-        expectedDesignHash: z.string().startsWith('sha256:'),
-        realization: z.unknown(),
-      })
-      .parse(body)
-    if (!('realization' in value)) throw new ServiceError('Validation realization is required.', 'VALIDATION')
-    return Response.json(
-      await compileQualityValidations({
-        qualityPlanId: qualityPlanId(operation),
-        ...value,
-        realization: value.realization as NonNullable<typeof value.realization>,
-      }),
-    )
-  }
-  if (key === `quality/plans/${operation[2]}/validations/publish`) {
-    const value = z
-      .object({
-        revisionId: z.string().min(1),
-        validationVersionIds: z.array(z.string().min(1)).min(1),
-        expectedCompilationHash: z.string().startsWith('sha256:'),
-      })
-      .parse(body)
-    return Response.json(await publishQualityValidations({ qualityPlanId: qualityPlanId(operation), ...value }))
-  }
   if (key === 'quality/assessments') {
     const value = z
       .object({
@@ -703,6 +745,13 @@ async function postQualityOperation(operation: string[], body: unknown): Promise
   }
   if (key === 'quality/assessment-prepare-runs')
     return Response.json(await prepareQualityAssessmentRun(body), { status: 202 })
+  if (key === 'quality/assessment-preflights') return Response.json(await preflightQualityAssessmentRun(body))
+  if (key === 'quality/evaluation-subjects/remote-scopes')
+    return Response.json(await createRemoteEvaluationScope(body), { status: 201 })
+  if (key === 'quality/evaluation-subjects/remote-scope-partitions')
+    return Response.json(await createRemoteEvaluationScopePartition(body), { status: 201 })
+  if (key === 'quality/evaluation-subjects/remote-scopes/read')
+    return Response.json(await readRemoteEvaluationScope(body))
   if (operation[1] === 'assessments' && operation[3] === 'stop' && operation.length === 4) {
     const value = z.object({ reason: z.string().min(1) }).parse(body)
     return Response.json(

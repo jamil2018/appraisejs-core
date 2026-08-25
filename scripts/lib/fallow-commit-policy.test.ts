@@ -11,6 +11,24 @@ describe('requiresReleaseBaselineAudit', () => {
     expect(requiresReleaseBaselineAudit('+function work() {}')).toBe(false)
   })
 
+  it('uses release baselines for a release-scale staged cutover', () => {
+    const patch = Array.from(
+      { length: 100 },
+      (_, index) => `diff --git a/src/file-${index}.ts b/src/file-${index}.ts`,
+    ).join('\n')
+
+    expect(requiresReleaseBaselineAudit(patch)).toBe(true)
+  })
+
+  it('keeps release-scale routing when the cutover includes a suppression', () => {
+    const patch = Array.from(
+      { length: 100 },
+      (_, index) => `diff --git a/src/file-${index}.ts b/src/file-${index}.ts`,
+    ).join('\n')
+
+    expect(requiresReleaseBaselineAudit(`${patch}\n+// fallow-ignore-next-line unused-export`)).toBe(true)
+  })
+
   it('never grants the removal path when a suppression is added', () => {
     expect(
       requiresReleaseBaselineAudit('-// fallow-ignore-next-line complexity\n+// fallow-ignore-file code-duplication'),

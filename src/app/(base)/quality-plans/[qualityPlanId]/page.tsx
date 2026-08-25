@@ -86,6 +86,7 @@ export default async function QualityPlanDetailPage({ params, searchParams }: Pa
         queries={packet.queries}
         revisionId={packet.revision.id}
         revisionStatus={packet.revision.status}
+        targetKind={project.kind}
         validations={packet.validationVersions}
       />
 

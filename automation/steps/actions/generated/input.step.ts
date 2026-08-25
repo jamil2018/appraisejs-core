@@ -11,6 +11,18 @@ import {
  */
 
 /**
+ * @name Fill configured credential
+ * @description Fill a field with the credential resolved from the selected environment at runtime.
+ * @icon INPUT
+ */
+When(
+  'the user fills the {string} field with the configured environment credential',
+  async function (this: CustomWorld, target: SelectorName) {
+    await executeHumanOperation('browser.forms.fill.configured.credential@1', this, ['target'], [target])
+  },
+)
+
+/**
  * @name Fill field
  * @description Replace a field value through a resolved locator.
  * @icon INPUT

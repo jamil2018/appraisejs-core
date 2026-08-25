@@ -190,7 +190,7 @@ export function registerProjectOperations(context: McpRegistryContext): void {
     'locator_search',
     {
       description:
-        'Search target- and Quality Plan-scoped locators by locator name, selector, group, module, or route before validation design.',
+        'Search target- and Quality Plan-scoped locators before validation design. Result id is the bindable persistent locator ID; presentationId is graph-only for locator_graph_query.',
       inputSchema: {
         target: z.string().min(1),
         qualityPlanId: z.string().min(1),

@@ -8,14 +8,17 @@ import {
   answerQualityRequirementQueries,
   approveQualityRequirements,
   approveQualityValidationDesign,
-  compileQualityValidations,
   createQualityAssessment,
   decideQualityAssessment,
   proposeQualityValidationDesign,
-  publishQualityValidations,
   readQualityAssessment,
   readQualityRequirementGraph,
 } from '@/services/coordinator/quality-design-service'
+import { createRemoteEvaluationScope } from '@/services/coordinator/remote-evaluation-scope-service'
+import {
+  preflightQualityAssessmentRun,
+  prepareQualityAssessmentRun,
+} from '@/services/coordinator/assessment-preparation-service'
 import {
   reconcileQualityAssessment,
   runQualityAssessment,
@@ -69,32 +72,42 @@ const validationDesignApprovalSchema = z.object({
   approvedBy: z.string().trim().min(1).max(200),
 })
 
-const validationCompileSchema = z.object({
+const qualityPlanRevisionSchema = {
   qualityPlanId: z.string().min(1),
   revisionId: z.string().min(1),
-  expectedDesignHash: z.string().startsWith('sha256:'),
-  realization: z.unknown(),
-})
-
-const validationPublishSchema = z.object({
-  qualityPlanId: z.string().min(1),
-  revisionId: z.string().min(1),
-  validationVersionIds: z.array(z.string().min(1)).min(1),
-  expectedCompilationHash: z.string().startsWith('sha256:'),
-})
-
-const assessmentCreateSchema = z.object({
-  qualityPlanId: z.string().min(1),
-  revisionId: z.string().min(1),
-  idempotencyKey: z.string().trim().min(1).max(200),
-  baselineAssessmentId: z.string().min(1).optional(),
-  subject: z.object({
-    subjectDigest: z.string().startsWith('sha256:'),
+}
+const designHashSchema = z.string().startsWith('sha256:')
+const idempotencyKeySchema = z.string().trim().min(1).max(200)
+const remoteScopeIdempotencyKeySchema = z.string().min(1)
+const remoteScopeSubjectSchema = z
+  .object({
+    subjectRevisionId: z.string().min(1),
+    expectedSubjectDigest: designHashSchema.optional(),
+  })
+  .strict()
+const artifactSubjectSchema = z
+  .object({
+    subjectDigest: designHashSchema,
     subjectKind: z.enum(['ARTIFACT', 'DEPLOYMENT_SNAPSHOT']).optional(),
     authority: z.string().trim().min(1).max(1_000),
     metadata: z.unknown().optional(),
-  }),
+  })
+  .strict()
+const assessmentSubjectSchema = z.union([artifactSubjectSchema, remoteScopeSubjectSchema])
+const approvedBindingsSchema = z.object({
+  expectedDesignHash: designHashSchema,
+  validationBindings: z.unknown(),
+  environmentId: z.string().min(1),
 })
+
+const assessmentCreateSchema = z
+  .object({
+    ...qualityPlanRevisionSchema,
+    idempotencyKey: idempotencyKeySchema,
+    baselineAssessmentId: z.string().min(1).optional(),
+    subject: assessmentSubjectSchema,
+  })
+  .strict()
 
 const assessmentRunSchema = z.object({
   assessmentId: z.string().min(1),
@@ -112,6 +125,29 @@ const assessmentRunSchema = z.object({
       .min(1),
   }),
 })
+const remoteScopeCreateSchema = z
+  .object({
+    ...qualityPlanRevisionSchema,
+    ...approvedBindingsSchema.shape,
+    idempotencyKey: remoteScopeIdempotencyKeySchema,
+  })
+  .strict()
+const assessmentPreparationSchema = z
+  .object({
+    ...qualityPlanRevisionSchema,
+    ...approvedBindingsSchema.shape,
+    subject: assessmentSubjectSchema,
+    runtime: z.object({ browserEngine: z.literal('CHROMIUM').optional() }).default({}),
+    expectedPreflight: z
+      .object({
+        algorithmVersion: z.literal('appraise.quality-assessment-preflight/v2'),
+        preflightHash: designHashSchema,
+      })
+      .strict()
+      .optional(),
+    idempotencyKey: idempotencyKeySchema.optional(),
+  })
+  .strict()
 
 const assessmentStopSchema = z.object({ assessmentId: z.string().min(1), reason: z.string().trim().min(1).max(2_000) })
 const assessmentReconcileSchema = z.object({
@@ -211,30 +247,6 @@ export async function approveQualityValidationDesignAction(input: unknown): Prom
   }
 }
 
-export async function compileQualityValidationsAction(input: unknown): Promise<ActionResponse> {
-  try {
-    const value = validationCompileSchema.parse(input)
-    await assertQualityPlanScope(value.qualityPlanId, value.revisionId)
-    await compileQualityValidations({ ...value, realization: value.realization })
-    revalidateQualityPaths(value.qualityPlanId)
-    return { status: 200, success: true }
-  } catch (error) {
-    return actionError(error, 'Validation compilation failed')
-  }
-}
-
-export async function publishQualityValidationsAction(input: unknown): Promise<ActionResponse> {
-  try {
-    const value = validationPublishSchema.parse(input)
-    await assertQualityPlanScope(value.qualityPlanId, value.revisionId)
-    await publishQualityValidations(value)
-    revalidateQualityPaths(value.qualityPlanId)
-    return { status: 200, success: true }
-  } catch (error) {
-    return actionError(error, 'Validation publication failed')
-  }
-}
-
 export async function createQualityAssessmentAction(input: unknown): Promise<ActionResponse> {
   try {
     const value = assessmentCreateSchema.parse(input)
@@ -244,6 +256,69 @@ export async function createQualityAssessmentAction(input: unknown): Promise<Act
     return { status: 200, success: true, data: { assessmentId: packet.assessment.id } }
   } catch (error) {
     return actionError(error, 'Assessment creation failed')
+  }
+}
+
+export async function createRemoteEvaluationScopeAction(input: unknown): Promise<ActionResponse> {
+  try {
+    const value = remoteScopeCreateSchema.parse(input)
+    const project = await requireActiveProjectForMutation()
+    const result = await createRemoteEvaluationScope({
+      target: project.id,
+      qualityPlanId: value.qualityPlanId,
+      revisionId: value.revisionId,
+      expectedDesignHash: value.expectedDesignHash,
+      validationBindings: value.validationBindings,
+      environment: { environmentId: value.environmentId },
+      idempotencyKey: value.idempotencyKey,
+    })
+    revalidateQualityPaths(value.qualityPlanId)
+    return { status: 201, success: true, data: { subjectRevisionId: result.subject.id } }
+  } catch (error) {
+    return actionError(error, 'Remote evaluation scope creation failed')
+  }
+}
+
+export async function assessmentPreflightAction(input: unknown): Promise<ActionResponse> {
+  try {
+    const value = assessmentPreparationSchema.parse(input)
+    const project = await requireActiveProjectForMutation()
+    const preflight = await preflightQualityAssessmentRun({
+      target: project.id,
+      qualityPlanId: value.qualityPlanId,
+      revisionId: value.revisionId,
+      expectedDesignHash: value.expectedDesignHash,
+      validationBindings: value.validationBindings,
+      environment: { environmentId: value.environmentId },
+      subject: value.subject,
+      runtime: value.runtime,
+    })
+    return { status: 200, success: true, data: preflight }
+  } catch (error) {
+    return actionError(error, 'Assessment preflight failed')
+  }
+}
+
+export async function assessmentPrepareAction(input: unknown): Promise<ActionResponse> {
+  try {
+    const value = assessmentPreparationSchema.extend({ idempotencyKey: idempotencyKeySchema }).parse(input)
+    const project = await requireActiveProjectForMutation()
+    const prepared = await prepareQualityAssessmentRun({
+      target: project.id,
+      qualityPlanId: value.qualityPlanId,
+      revisionId: value.revisionId,
+      expectedDesignHash: value.expectedDesignHash,
+      validationBindings: value.validationBindings,
+      environment: { environmentId: value.environmentId },
+      subject: value.subject,
+      runtime: value.runtime,
+      expectedPreflight: value.expectedPreflight,
+      idempotencyKey: value.idempotencyKey,
+    })
+    revalidateQualityPaths(value.qualityPlanId)
+    return { status: 200, success: true, data: prepared }
+  } catch (error) {
+    return actionError(error, 'Assessment preparation failed')
   }
 }
 

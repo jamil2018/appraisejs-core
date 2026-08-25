@@ -3,6 +3,8 @@ import { createHash } from 'node:crypto'
 
 import { canonicalContractJson } from '@/lib/catalog-contracts'
 import { createCustomExtensionPolicy } from '@/lib/validation-ast/extension-policy'
+import { resolveTargetProject } from '@/services/target-project/target-project-service'
+import { publishQualityValidationRuntime } from '@/services/coordinator/quality-validation-publication-service'
 
 import {
   answerQualityRequirementQueries,
@@ -107,6 +109,32 @@ type FakeAssessment = FakeRecord & {
   successorIdempotencyKey: string | null
   successorRequestHash: string | null
   evidenceReceipts: unknown[]
+  targetProjectKind?: 'LOCAL_WORKSPACE' | 'REMOTE_BLACK_BOX'
+  runs?: FakeAssessmentRun[]
+}
+type FakeAssessmentRun = {
+  id?: string
+  status?: string
+  stopReason?: string | null
+  createdAt?: Date
+  bindings: Array<{
+    evidenceReceiptId: string | null
+    terminalOutcome: string | null
+    terminalizedAt?: Date | null
+    integrityRejectionCode?: string | null
+    testRun: {
+      id?: string
+      status?: string
+      result?: string
+      evidenceHealth?: string
+      targetProjectId: string
+      targetProject: { kind: string }
+      environment: { id: string }
+      environmentSnapshotHash: string | null
+      environmentSnapshotJson: string | null
+      environmentSnapshotVersion: number | null
+    }
+  }>
 }
 type FakeAssessmentDecision = FakeRecord & {
   assessmentId: string
@@ -142,6 +170,13 @@ vi.mock('@/services/target-project/target-project-service', () => ({
 
 vi.mock('@/services/coordinator/quality-validation-publication-service', () => ({
   publishQualityValidationRuntime: vi.fn(async () => undefined),
+}))
+
+vi.mock('@/services/coordinator/remote-evaluation-scope-service', () => ({
+  assertRemoteEvaluationScopeCurrent: vi.fn(),
+  assertRemoteEvaluationScopeEnvironmentSnapshot: vi.fn(),
+  parseRemoteSubjectReference: vi.fn(() => null),
+  resolveRemoteEvaluationScopeSubject: vi.fn(),
 }))
 
 const hash = (value: unknown) => `sha256:${createHash('sha256').update(canonicalContractJson(value)).digest('hex')}`
@@ -234,7 +269,107 @@ describe('quality design coordinator service', () => {
 
   beforeEach(() => {
     client = createWorkingFakeClient()
+    vi.mocked(publishQualityValidationRuntime).mockImplementation(async (input, publicationClient) => {
+      await (publicationClient as unknown as typeof client).validationVersion.update({
+        where: { id: input.validationVersionId },
+        data: {
+          activeGeneration: {
+            id: `generation-${input.validationVersionId}`,
+            generationKey: `sha256:generation-${input.validationVersionId}`,
+            disposition: 'ACTIVE',
+            preflightAlgorithmVersion: 'appraise.quality-assessment-preflight/v2',
+            preflightAuthority: 'appraisejs:quality-validation-publication:v2',
+            canonicalRealizationJson: '{}',
+            realizationHash: `sha256:realization-${input.validationVersionId}`,
+            publication: {
+              id: `publication-${input.validationVersionId}`,
+              generationId: `generation-${input.validationVersionId}`,
+              operationHash: `sha256:publication-${input.validationVersionId}`,
+              phase: 'review_ready',
+              preflightAlgorithmVersion: 'appraise.quality-assessment-preflight/v2',
+              preflightAuthority: 'appraisejs:quality-validation-publication:v2',
+              preflightDisposition: 'ACTIVE',
+              runtimeInputHash: hash(input.runtimeInput),
+              runtimeInputJson: JSON.stringify(input.runtimeInput),
+              receiptHash: input.receiptHash,
+            },
+          },
+        },
+      } as never)
+      return undefined as never
+    })
   })
+
+  async function executableFixture(idempotencyKey: string) {
+    const requirements = await submitQualityRequirementSource(
+      {
+        target: 'target-1',
+        idempotencyKey: `${idempotencyKey}-source`,
+        source: {
+          title: 'Generation authority',
+          requirements: [{ text: 'Executable evidence needs a current generation.' }],
+        },
+      },
+      client,
+    )
+    await approveQualityRequirements(
+      {
+        qualityPlanId: requirements.qualityPlan.id,
+        revisionId: requirements.revision.id,
+        expectedRevisionHash: requirements.revision.contentHash,
+        approvedBy: 'reviewer',
+      },
+      client,
+    )
+    const proposal = await proposeQualityValidationDesign(
+      {
+        qualityPlanId: requirements.qualityPlan.id,
+        revisionId: requirements.revision.id,
+        idempotencyKey: `${idempotencyKey}-proposal`,
+        proposal: {
+          scenarios: [
+            {
+              obligationIds: [requirements.obligations[0]!.id],
+              behavior: 'The generation is executable.',
+              assertions: ['the reviewed publication is current'],
+              coverage: {},
+              matrixIntent: { browsers: ['chromium'] },
+              limitations: [],
+            },
+          ],
+        },
+      },
+      client,
+    )
+    const approved = await approveQualityValidationDesign(
+      {
+        qualityPlanId: requirements.qualityPlan.id,
+        revisionId: requirements.revision.id,
+        expectedDesignHash: proposal.designHash!,
+        approvedBy: 'reviewer',
+      },
+      client,
+    )
+    const realized = await compileQualityValidations(
+      {
+        qualityPlanId: requirements.qualityPlan.id,
+        revisionId: requirements.revision.id,
+        expectedDesignHash: approved.designHash!,
+        realization: { default: sealedRuntimePublication() },
+      },
+      client,
+    )
+    const published = await publishQualityValidations(
+      {
+        qualityPlanId: requirements.qualityPlan.id,
+        revisionId: requirements.revision.id,
+        validationVersionIds: [realized.validationVersions[0]!.id],
+        expectedCompilationHash: realized.compilationHash,
+      },
+      client,
+    )
+    return { requirements, published, validation: published.validationVersions[0]! }
+  }
 
   it('creates a Quality Plan revision with requirement obligations', async () => {
     const result = await submitQualityRequirementSource(
@@ -256,6 +391,140 @@ describe('quality design coordinator service', () => {
       revision: { id: result.revision.id, contentHash: result.revision.contentHash },
       nextRecommendedAction: expect.stringContaining('requirements_approve'),
     })
+  })
+
+  it('treats historical PUBLISHED status without an active generation as non-executable', async () => {
+    const fixture = await executableFixture('published-without-generation')
+    await client.validationVersion.update({
+      where: { id: fixture.validation.id },
+      data: { status: 'PUBLISHED', activeGeneration: null },
+    })
+
+    const graph = await readQualityRequirementGraph(
+      { qualityPlanId: fixture.requirements.qualityPlan.id, revisionId: fixture.requirements.revision.id },
+      client,
+    )
+    const assessment = await createQualityAssessment(
+      {
+        qualityPlanId: fixture.requirements.qualityPlan.id,
+        revisionId: fixture.requirements.revision.id,
+        idempotencyKey: 'published-without-generation-assessment',
+        subject: { subjectDigest: `sha256:${'b'.repeat(64)}`, authority: 'artifact://missing-generation' },
+      },
+      client,
+    )
+
+    expect(graph.validationVersions[0]).toMatchObject({ status: 'PUBLISHED', activeGeneration: null })
+    expect(graph.nextRecommendedAction).not.toContain('run the published validations')
+    expect(assessment.readiness).toMatchObject({
+      ready: false,
+      blockers: ['All validation versions must have an active executable generation for this assessment.'],
+    })
+  })
+
+  it('uses the supported active generation, not historical status, for readiness and runtime input hash projection', async () => {
+    const fixture = await executableFixture('active-generation-readiness')
+    await client.validationVersion.update({
+      where: { id: fixture.validation.id },
+      data: { status: 'SCENARIO_APPROVED' },
+    })
+
+    const assessment = await createQualityAssessment(
+      {
+        qualityPlanId: fixture.requirements.qualityPlan.id,
+        revisionId: fixture.requirements.revision.id,
+        idempotencyKey: 'active-generation-readiness-assessment',
+        subject: { subjectDigest: `sha256:${'c'.repeat(64)}`, authority: 'artifact://active-generation' },
+      },
+      client,
+    )
+
+    expect(assessment.readiness.ready).toBe(true)
+    expect(assessment.revision.validationVersions[0]).toMatchObject({
+      status: 'SCENARIO_APPROVED',
+      activeGeneration: { runtimeInputHash: hash(sealedRuntimePublication().runtimeInput) },
+    })
+  })
+
+  it('fails closed for a foreign authority and binds current evidence to the exact publication tuple', async () => {
+    const fixture = await executableFixture('generation-evidence-identity')
+    const active = fixture.validation.activeGeneration!
+    const assessment = await createQualityAssessment(
+      {
+        qualityPlanId: fixture.requirements.qualityPlan.id,
+        revisionId: fixture.requirements.revision.id,
+        idempotencyKey: 'generation-evidence-identity-assessment',
+        subject: { subjectDigest: `sha256:${'d'.repeat(64)}`, authority: 'artifact://evidence-generation' },
+      },
+      client,
+    )
+    const receipt = {
+      id: 'receipt-generation-identity',
+      receiptHash: 'sha256:receipt-generation-identity',
+      validationVersionId: fixture.validation.id,
+      resultMatrixCell: 'CHROMIUM:env-local',
+      outcome: 'PASSED',
+      generationId: active.id,
+      publicationId: active.publicationId,
+      publicationOperationHash: active.operationHash,
+    }
+    await client.assessment.update({
+      where: { id: assessment.assessment.id },
+      data: { status: 'EVIDENCE_REVIEW', evidenceReceipts: [receipt] },
+    })
+    const first = await readQualityAssessment(assessment.assessment.id, client)
+    await client.validationVersion.update({ where: { id: fixture.validation.id }, data: { status: 'REALIZED' } })
+    const statusOnly = await readQualityAssessment(assessment.assessment.id, client)
+    await client.assessment.update({
+      where: { id: assessment.assessment.id },
+      data: { evidenceReceipts: [{ ...receipt, publicationOperationHash: 'sha256:other-publication' }] },
+    })
+    const changedPublication = await readQualityAssessment(assessment.assessment.id, client)
+    await client.validationVersion.update({
+      where: { id: fixture.validation.id },
+      data: { activeGeneration: { ...active, preflightAlgorithmVersion: 'appraise.quality-assessment-preflight/v1' } },
+    })
+    const unsupported = await readQualityAssessment(assessment.assessment.id, client)
+    await client.validationVersion.update({
+      where: { id: fixture.validation.id },
+      data: { activeGeneration: { ...active, preflightAuthority: 'foreign:authority' } },
+    })
+    const foreign = await readQualityAssessment(assessment.assessment.id, client)
+
+    expect(statusOnly.evidenceSetHash).toBe(first.evidenceSetHash)
+    expect(changedPublication.evidenceSetHash).not.toBe(first.evidenceSetHash)
+    expect(changedPublication.evidenceReceiptCount).toBe(0)
+    expect(unsupported.readiness.ready).toBe(false)
+    expect(foreign.readiness.ready).toBe(false)
+  })
+
+  it('rejects a raw descriptor at remote assessment creation before creating a subject or root reservation', async () => {
+    const requirements = await submitQualityRequirementSource(
+      {
+        target: 'target-1',
+        idempotencyKey: 'remote-descriptor-source',
+        source: { title: 'Remote descriptor guard', requirements: [{ text: 'Scope identity is required.' }] },
+      },
+      client,
+    )
+    vi.mocked(resolveTargetProject).mockResolvedValueOnce({
+      id: 'target-1',
+      kind: 'REMOTE_BLACK_BOX',
+      fingerprint: `sha256:${'a'.repeat(64)}`,
+    } as never)
+    await expect(
+      createQualityAssessment(
+        {
+          qualityPlanId: requirements.qualityPlan.id,
+          revisionId: requirements.revision.id,
+          idempotencyKey: 'remote-descriptor-assessment',
+          subject: { subjectDigest: `sha256:${'b'.repeat(64)}`, authority: 'artifact://forbidden' },
+        },
+        client,
+      ),
+    ).rejects.toMatchObject({ code: 'VALIDATION' })
+    expect(client.evaluationSubjectRevision.create).not.toHaveBeenCalled()
+    expect(client.assessment.create).not.toHaveBeenCalled()
   })
 
   it('returns lifecycle guidance for the current revision state after requirement approval', async () => {
@@ -535,7 +804,13 @@ describe('quality design coordinator service', () => {
     )
     expect(published.validationVersions[0]).toMatchObject({ status: 'PUBLISHED' })
     expect(published.nextRecommendedAction).toContain('assessment')
-    expect(published.nextRecommendedAction).not.toContain('validation_publish')
+    const activePublication = published.validationVersions[0]!.activeGeneration!
+    const evidenceTuple = {
+      validationVersionId: published.validationVersions[0]!.id,
+      generationId: activePublication.id,
+      publicationId: activePublication.publicationId,
+      publicationOperationHash: activePublication.operationHash,
+    }
 
     const assessment = await createQualityAssessment(
       {
@@ -552,6 +827,55 @@ describe('quality design coordinator service', () => {
     expect(assessment.assessment.status).toBe('READY')
     expect(assessment.evidenceReceiptCount).toBe(0)
 
+    await client.assessment.update({
+      where: { id: assessment.assessment.id },
+      data: {
+        runs: [
+          {
+            id: 'assessment-run-terminal',
+            status: 'COMPLETED',
+            stopReason: null,
+            createdAt: new Date('2026-08-24T14:00:00.000Z'),
+            bindings: [
+              {
+                evidenceReceiptId: null,
+                terminalOutcome: 'FAILED',
+                terminalizedAt: new Date('2026-08-24T14:00:01.000Z'),
+                testRun: {
+                  id: 'test-run-infrastructure-failure',
+                  status: 'COMPLETED',
+                  result: 'FAILED',
+                  evidenceHealth: 'infrastructure_failure',
+                  targetProjectId: 'target-1',
+                  targetProject: { kind: 'LOCAL_WORKSPACE' },
+                  environment: { id: 'env-local' },
+                  environmentSnapshotHash: null,
+                  environmentSnapshotJson: null,
+                  environmentSnapshotVersion: null,
+                },
+              },
+            ],
+          },
+        ],
+      },
+    })
+    const terminalDiagnostic = await readQualityAssessment(assessment.assessment.id, client)
+    expect(terminalDiagnostic.assessmentRun).toMatchObject({
+      id: 'assessment-run-terminal',
+      status: 'COMPLETED',
+      testRuns: [
+        {
+          id: 'test-run-infrastructure-failure',
+          status: 'COMPLETED',
+          result: 'FAILED',
+          evidenceHealth: 'infrastructure_failure',
+        },
+      ],
+    })
+    expect(terminalDiagnostic.nextRecommendedAction).toContain('assessment_prepare_run')
+    expect(terminalDiagnostic.nextRecommendedAction).not.toContain('assessment_run to collect')
+    await client.assessment.update({ where: { id: assessment.assessment.id }, data: { runs: [] } })
+
     await expect(
       decideQualityAssessment(
         {
@@ -567,7 +891,7 @@ describe('quality design coordinator service', () => {
 
     await client.assessment.update({
       where: { id: assessment.assessment.id },
-      data: { status: 'READY', evidenceReceipts: [{ receiptHash: 'sha256:evidence-1' }] },
+      data: { status: 'READY', evidenceReceipts: [{ receiptHash: 'sha256:evidence-1', ...evidenceTuple }] },
     })
     const evidenceReady = await readQualityAssessment(assessment.assessment.id, client)
     await expect(
@@ -585,7 +909,10 @@ describe('quality design coordinator service', () => {
 
     await client.assessment.update({
       where: { id: assessment.assessment.id },
-      data: { status: 'EVIDENCE_REVIEW', evidenceReceipts: [{ receiptHash: 'sha256:blocked-1', outcome: 'BLOCKED' }] },
+      data: {
+        status: 'EVIDENCE_REVIEW',
+        evidenceReceipts: [{ receiptHash: 'sha256:blocked-1', outcome: 'BLOCKED', ...evidenceTuple }],
+      },
     })
     const blocked = await readQualityAssessment(assessment.assessment.id, client)
     expect(blocked.targetOutcome).toBe('not_evaluated')
@@ -600,18 +927,126 @@ describe('quality design coordinator service', () => {
         },
         client,
       ),
-    ).rejects.toThrow('target outcome remains not evaluated')
+    ).rejects.toThrow('target remains not evaluated')
+
+    // Reconciliation terminalized this remote legacy artifact cell as
+    // INCONCLUSIVE before receipt creation because its frozen packet was
+    // missing. Review must surface the exact target outcome even though there
+    // is no BLOCKED receipt to infer it from.
+    await client.assessment.update({
+      where: { id: assessment.assessment.id },
+      data: {
+        status: 'READY',
+        targetProjectKind: 'REMOTE_BLACK_BOX',
+        evidenceReceipts: [],
+        runs: [
+          {
+            bindings: [
+              {
+                evidenceReceiptId: null,
+                terminalOutcome: 'INCONCLUSIVE',
+                testRun: {
+                  targetProjectId: 'target-1',
+                  targetProject: { kind: 'REMOTE_BLACK_BOX' },
+                  environment: { id: 'env-1' },
+                  environmentSnapshotHash: null,
+                  environmentSnapshotJson: null,
+                  environmentSnapshotVersion: null,
+                },
+              },
+            ],
+          },
+        ],
+      },
+    })
+    const packetRejected = await readQualityAssessment(assessment.assessment.id, client)
+    expect(packetRejected.evidenceReceiptCount).toBe(0)
+    expect(packetRejected.targetOutcome).toBe('not_evaluated')
+    await expect(
+      decideQualityAssessment(
+        {
+          assessmentId: assessment.assessment.id,
+          expectedEvidenceSetHash: packetRejected.evidenceSetHash,
+          decision: 'rejected',
+          decidedBy: 'reviewer',
+          rationale: 'Packet integrity rejected the remote result before sealing evidence.',
+        },
+        client,
+      ),
+    ).rejects.toThrow('target remains not evaluated')
+
+    // The same not-evaluated projection applies to a local managed-capsule
+    // tuple rejection. It is explicit on the binding, so a normal unsealed
+    // INCONCLUSIVE infrastructure outcome is not broadened into this state.
+    await client.assessment.update({
+      where: { id: assessment.assessment.id },
+      data: {
+        status: 'READY',
+        targetProjectKind: 'LOCAL_WORKSPACE',
+        evidenceReceipts: [],
+        runs: [
+          {
+            bindings: [
+              {
+                evidenceReceiptId: null,
+                terminalOutcome: 'INCONCLUSIVE',
+                integrityRejectionCode: 'managed_capsule_integrity',
+                testRun: {
+                  targetProjectId: 'target-1',
+                  targetProject: { kind: 'LOCAL_WORKSPACE' },
+                  environment: { id: 'env-1' },
+                },
+              },
+            ],
+          },
+        ],
+      },
+    })
+    const managedIntegrityRejected = await readQualityAssessment(assessment.assessment.id, client)
+    expect(managedIntegrityRejected).toMatchObject({
+      assessment: { status: 'READY' },
+      evidenceReceiptCount: 0,
+      targetOutcome: 'not_evaluated',
+    })
+
+    await client.assessment.update({
+      where: { id: assessment.assessment.id },
+      data: {
+        status: 'READY',
+        targetProjectKind: 'LOCAL_WORKSPACE',
+        evidenceReceipts: [],
+        runs: [
+          {
+            bindings: [
+              {
+                evidenceReceiptId: null,
+                terminalOutcome: 'INCONCLUSIVE',
+                integrityRejectionCode: null,
+                testRun: {
+                  targetProjectId: 'target-1',
+                  targetProject: { kind: 'LOCAL_WORKSPACE' },
+                  environment: { id: 'env-1' },
+                },
+              },
+            ],
+          },
+        ],
+      },
+    })
+    expect((await readQualityAssessment(assessment.assessment.id, client)).targetOutcome).toBeNull()
 
     await client.assessment.update({
       where: { id: assessment.assessment.id },
       data: {
         status: 'EVIDENCE_REVIEW',
+        targetProjectKind: 'LOCAL_WORKSPACE',
+        runs: [],
         evidenceReceipts: [
           {
             id: 'receipt-blocked',
             receiptHash: 'sha256:blocked-1',
             outcome: 'BLOCKED',
-            validationVersionId: 'validation-1',
+            ...evidenceTuple,
             resultMatrixCell: 'CHROMIUM:env-1',
             sealedAt: new Date('2026-08-14T00:00:00.000Z'),
           },
@@ -619,7 +1054,7 @@ describe('quality design coordinator service', () => {
             id: 'receipt-fresh-failed',
             receiptHash: 'sha256:evidence-1',
             outcome: 'FAILED',
-            validationVersionId: 'validation-1',
+            ...evidenceTuple,
             resultMatrixCell: 'CHROMIUM:env-1',
             sealedAt: new Date('2026-08-14T00:01:00.000Z'),
           },
@@ -628,7 +1063,7 @@ describe('quality design coordinator service', () => {
     })
     const reviewed = await readQualityAssessment(assessment.assessment.id, client)
     expect(reviewed.targetOutcome).not.toBe('not_evaluated')
-    expect(reviewed.evidenceReceipts).toHaveLength(2)
+    expect(reviewed.evidenceReceipts).toHaveLength(1)
     expect(reviewed.nextRecommendedAction).toContain('assessment_decide')
     expect(reviewed.nextRecommendedAction).not.toContain('assessment_run')
     await expect(
@@ -719,7 +1154,7 @@ describe('quality design coordinator service', () => {
       },
       client,
     )
-    await publishQualityValidations(
+    const published = await publishQualityValidations(
       {
         qualityPlanId: requirements.qualityPlan.id,
         revisionId: requirements.revision.id,
@@ -728,6 +1163,7 @@ describe('quality design coordinator service', () => {
       },
       client,
     )
+    const predecessorGeneration = published.validationVersions[0]!.activeGeneration!
     const predecessor = await createQualityAssessment(
       {
         qualityPlanId: requirements.qualityPlan.id,
@@ -739,7 +1175,19 @@ describe('quality design coordinator service', () => {
     )
     await client.assessment.update({
       where: { id: predecessor.assessment.id },
-      data: { status: 'DECIDED', evidenceReceipts: [{ id: 'receipt-predecessor', receiptHash: 'sha256:old' }] },
+      data: {
+        status: 'DECIDED',
+        evidenceReceipts: [
+          {
+            id: 'receipt-predecessor',
+            receiptHash: 'sha256:old',
+            validationVersionId: published.validationVersions[0]!.id,
+            generationId: predecessorGeneration.id,
+            publicationId: predecessorGeneration.publicationId,
+            publicationOperationHash: predecessorGeneration.operationHash,
+          },
+        ],
+      },
     })
     const request = {
       assessmentId: predecessor.assessment.id,
@@ -898,6 +1346,134 @@ describe('quality design coordinator service', () => {
     ).rejects.toMatchObject({ code: 'CONFLICT' })
   })
 
+  it('rejects final PUBLISHED status when a remote validation changes after projection', async () => {
+    const requirements = await submitQualityRequirementSource(
+      {
+        target: 'target-1',
+        idempotencyKey: 'remote-publication-source',
+        source: { title: 'Remote publication CAS', requirements: [{ text: 'The published validation is immutable.' }] },
+      },
+      client,
+    )
+    await approveQualityRequirements(
+      {
+        qualityPlanId: requirements.qualityPlan.id,
+        revisionId: requirements.revision.id,
+        expectedRevisionHash: requirements.revision.contentHash,
+        approvedBy: 'reviewer',
+      },
+      client,
+    )
+    const proposal = await proposeQualityValidationDesign(
+      {
+        qualityPlanId: requirements.qualityPlan.id,
+        revisionId: requirements.revision.id,
+        idempotencyKey: 'remote-publication-scenario',
+        proposal: {
+          scenarios: [
+            {
+              obligationIds: [requirements.obligations[0]!.id],
+              behavior: 'Publish the immutable remote validation.',
+              assertions: ['the publication is sealed'],
+              coverage: {},
+              matrixIntent: { browsers: ['chromium'] },
+              limitations: [],
+            },
+          ],
+        },
+      },
+      client,
+    )
+    await approveQualityValidationDesign(
+      {
+        qualityPlanId: requirements.qualityPlan.id,
+        revisionId: requirements.revision.id,
+        expectedDesignHash: proposal.designHash!,
+        approvedBy: 'reviewer',
+      },
+      client,
+    )
+    const realized = await compileQualityValidations(
+      {
+        qualityPlanId: requirements.qualityPlan.id,
+        revisionId: requirements.revision.id,
+        expectedDesignHash: proposal.designHash!,
+        realization: { default: sealedRuntimePublication() },
+      },
+      client,
+    )
+    const validationVersionId = realized.validationVersions[0]!.id
+    vi.mocked(publishQualityValidationRuntime).mockImplementation(async (_input, publicationClient) => {
+      await (publicationClient as unknown as typeof client).validationVersion.update({
+        where: { id: validationVersionId },
+        data: {
+          activeGeneration: {
+            id: 'remote-generation',
+            generationKey: 'sha256:remote-generation',
+            disposition: 'ACTIVE',
+            preflightAlgorithmVersion: 'appraise.quality-assessment-preflight/v2',
+            preflightAuthority: 'appraisejs:quality-validation-publication:v2',
+            canonicalRealizationJson: '{}',
+            realizationHash: 'sha256:remote-realization',
+            publication: {
+              id: 'remote-publication',
+              generationId: 'remote-generation',
+              operationHash: 'sha256:sealed-publication',
+              phase: 'review_ready',
+              preflightAlgorithmVersion: 'appraise.quality-assessment-preflight/v2',
+              preflightAuthority: 'appraisejs:quality-validation-publication:v2',
+              preflightDisposition: 'ACTIVE',
+              runtimeInputHash: 'sha256:remote-runtime-input',
+              runtimeInputJson: '{}',
+              receiptHash: 'sha256:sealed-publication',
+            },
+          },
+        },
+      })
+      return undefined as never
+    })
+    const transact = client.$transaction.bind(client) as <T>(
+      operation: (transaction: QualityDesignClient) => Promise<T>,
+    ) => Promise<T>
+    ;(client as unknown as { $transaction: typeof transact }).$transaction = async operation => {
+      await client.validationVersion.update({
+        where: { id: validationVersionId },
+        data: { canonicalHash: 'sha256:changed-after-projection' },
+      })
+      return transact(operation)
+    }
+
+    await expect(
+      publishQualityValidations(
+        {
+          qualityPlanId: requirements.qualityPlan.id,
+          revisionId: requirements.revision.id,
+          validationVersionIds: [validationVersionId],
+          expectedCompilationHash: realized.compilationHash,
+          remoteScopeBinding: {
+            subjectRevisionId: 'subject-1',
+            targetProjectId: 'target-1',
+            qualityPlanId: requirements.qualityPlan.id,
+            qualityPlanRevisionId: requirements.revision.id,
+            environmentId: 'environment-1',
+            scopeHash: 'sha256:scope',
+            environmentSnapshotHash: 'sha256:environment',
+            environmentSnapshotJson: '{}',
+            environmentScopeVersion: 1,
+            environmentUpdatedAt: new Date('2026-08-22T00:00:00.000Z'),
+          },
+        },
+        client,
+      ),
+    ).rejects.toMatchObject({ code: 'CONFLICT', details: { code: 'remote_evaluation_scope_stale' } })
+    expect(
+      (await readQualityRequirementGraph({ qualityPlanId: requirements.qualityPlan.id }, client)).validationVersions[0],
+    ).toMatchObject({
+      status: 'REALIZED',
+      canonicalHash: 'sha256:changed-after-projection',
+    })
+  })
+
   it('requires full validation publication before assessment readiness', async () => {
     const requirements = await submitQualityRequirementSource(
       {
@@ -987,7 +1563,7 @@ describe('quality design coordinator service', () => {
   })
 })
 
-function createWorkingFakeClient() {
+function createWorkingFakeClient(): QualityDesignClient {
   const revisions: FakeRevision[] = []
   const plans: FakeQualityPlan[] = []
   const requirements: FakeRequirementSnapshot[] = []
@@ -1251,6 +1827,8 @@ function createWorkingFakeClient() {
           successorIdempotencyKey: null,
           successorRequestHash: null,
           evidenceReceipts: [],
+          targetProjectKind: 'LOCAL_WORKSPACE',
+          runs: [],
           ...data,
         }
         assessments.push(assessment)
@@ -1283,7 +1861,9 @@ function createWorkingFakeClient() {
     },
     async $transaction<T>(operation: ((transaction: QualityDesignClient) => Promise<T>) | Promise<T>[]): Promise<T> {
       return typeof operation === 'function'
-        ? operation(fake as QualityDesignClient)
+        ? // The in-memory delegate intentionally implements the service-facing
+          // subset only; this is the single mock boundary for PrismaLike.
+          operation(fake as unknown as QualityDesignClient)
         : Promise.all(operation).then(values => values[0]!)
     },
   }
@@ -1301,9 +1881,11 @@ function createWorkingFakeClient() {
       qualityPlan,
       qualityPlanRevision: hydrate(revision),
       evaluationSubjectRevision,
+      targetProject: { kind: assessment.targetProjectKind ?? 'LOCAL_WORKSPACE' },
       evidenceReceipts: assessment.evidenceReceipts ?? [],
       decisions: decisions.filter(decision => decision.assessmentId === assessment.id),
+      runs: assessment.runs ?? [],
     }
   }
-  return fake
+  return fake as unknown as QualityDesignClient
 }

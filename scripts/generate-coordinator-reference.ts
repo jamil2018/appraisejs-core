@@ -18,8 +18,10 @@ const localDiscoveryTools = new Set(['locator_search'])
 
 const exactCoordinatorOperations: Readonly<Record<string, CoordinatorOperationId>> = {
   assessment_diagnose: 'quality-read',
+  assessment_preflight: 'quality-read',
   assessment_readiness: 'quality-read',
   assessment_review: 'quality-read',
+  evaluation_subject_remote_scope_read: 'quality-read',
   assessment_prepare_run: 'quality-write',
   environment_list: 'environment-read',
   environment_ensure: 'environment-write',
@@ -34,12 +36,11 @@ const exactCoordinatorOperations: Readonly<Record<string, CoordinatorOperationId
   test_run_diagnose: 'test-run-evidence',
   test_run_start: 'test-run-write',
   test_run_read: 'test-run-evidence',
-  validation_compile: 'quality-write',
-  validation_publish: 'quality-write',
 }
 
 const coordinatorOperationPrefixes: ReadonlyArray<readonly [string, CoordinatorOperationId]> = [
   ['assessment_', 'quality-write'],
+  ['evaluation_subject_', 'quality-write'],
   ['operation_', 'operations'],
   ['requirements_', 'quality-write'],
   ['step_definition_', 'step-definitions-write'],

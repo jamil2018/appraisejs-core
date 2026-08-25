@@ -26,7 +26,16 @@ export function registerResourcesOperations(context: McpRegistryContext): void {
       name: 'locator-graph-contract',
       uri: 'appraise://contracts/locator-graph',
       title: 'Surface and locator graph contract',
-      value: { version: LOCATOR_GRAPH_CONTRACT_VERSION, boundedQueries: true, visualProjection: true },
+      value: {
+        version: LOCATOR_GRAPH_CONTRACT_VERSION,
+        boundedQueries: true,
+        visualProjection: true,
+        locatorSearch: {
+          id: 'persistent-locator-id',
+          presentationId: 'locator_<persistent-locator-id>',
+          group: { id: 'persistent-locator-group-id', presentationId: 'group_<persistent-locator-group-id>' },
+        },
+      },
     },
     {
       name: 'validation-ast-contract',

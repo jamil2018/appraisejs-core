@@ -30,4 +30,18 @@ describe('built-in Step Definitions', () => {
       expect(computeStepDefinitionHashes(definition).definitionHash).toMatch(/^sha256:[a-f0-9]{64}$/)
     }
   })
+
+  it('projects the canonical ordered collection text assertion without an index selector input', () => {
+    const definition = builtInStepDefinitions.find(item => item.identity.id === 'browser.assertions.ordered.texts')
+
+    expect(definition).toMatchObject({
+      identity: { version: '1', status: 'ready' },
+      inputs: [
+        { name: 'target', type: 'locator', required: true },
+        { name: 'expectedTexts', type: 'json', required: true },
+      ],
+      execution: { handlerId: 'browser.assertions.ordered.texts', handlerVersion: '1' },
+    })
+    expect(definition?.inputs).not.toContainEqual(expect.objectContaining({ name: 'index' }))
+  })
 })

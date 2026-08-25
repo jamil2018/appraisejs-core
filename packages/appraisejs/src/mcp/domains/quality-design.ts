@@ -2,6 +2,9 @@ import type { McpRegistryContext } from '../registry.js'
 import {
   applyAuthoringResponseMode,
   applyLifecycleResponseMode,
+  projectRemoteScopeCreateResponse,
+  projectRemoteScopePartitionCreateResponse,
+  projectRemoteScopeReadResponse,
   decisionResponseModeSchema,
   responseModeSchema,
   text,
@@ -30,24 +33,268 @@ const requirementQueryAnswerSchema = z.object({
   answer: z.string().optional(),
   rationale: z.string().optional(),
 })
-const compactStepValueSchema: z.ZodType<
-  | string
-  | number
-  | boolean
-  | null
-  | Array<string | number | boolean | null>
-  | Record<string, string | number | boolean | null>
-> = z.union([
-  z.string(),
-  z.number(),
-  z.boolean(),
-  z.null(),
-  z.array(z.union([z.string(), z.number(), z.boolean(), z.null()])),
-  z.record(z.string(), z.union([z.string(), z.number(), z.boolean(), z.null()])),
+const validationScenarioProposalSchema = z
+  .object({
+    id: z.string().min(1).optional(),
+    title: z.string().min(1).optional(),
+    obligationIds: z.array(z.string().min(1)).min(1),
+    behavior: z.string().min(1),
+    assertions: z.array(z.unknown()).min(1),
+    coverage: z.unknown(),
+    requiredMinimumAssurance: z.enum(['SMOKE', 'STANDARD', 'HIGH', 'EXHAUSTIVE']).optional(),
+    matrixIntent: z.unknown(),
+    limitations: z.unknown(),
+  })
+  .strict()
+const validationDesignProposalSchema = z
+  .object({ scenarios: z.array(validationScenarioProposalSchema).min(1) })
+  .strict()
+const compactStepValueSchema: z.ZodType<unknown> = z.lazy(() =>
+  z.union([
+    z.string().max(16_384),
+    z.number().finite(),
+    z.boolean(),
+    z.null(),
+    z.array(compactStepValueSchema).max(100),
+    z.record(z.string().max(128), compactStepValueSchema),
+  ]),
+)
+const boundedCompactStepValueSchema = compactStepValueSchema.superRefine((value, context) => {
+  const visit = (candidate: unknown, depth: number, nodes: { count: number }) => {
+    nodes.count += 1
+    if (nodes.count > 1_000) {
+      context.addIssue({ code: z.ZodIssueCode.custom, message: 'Operation value exceeds 1,000 nodes.' })
+      return
+    }
+    if (depth > 10) {
+      context.addIssue({ code: z.ZodIssueCode.custom, message: 'Operation value exceeds depth 10.' })
+      return
+    }
+    if (Array.isArray(candidate)) candidate.forEach(item => visit(item, depth + 1, nodes))
+    else if (candidate && typeof candidate === 'object')
+      Object.values(candidate as Record<string, unknown>).forEach(item => visit(item, depth + 1, nodes))
+  }
+  visit(value, 0, { count: 0 })
+})
+const assessmentEnvironmentProposalSchema = z
+  .object({
+    name: z.string().min(1),
+    baseUrl: z.string().url(),
+    expectedPageTitle: z.string().max(200).optional().or(z.literal('')),
+    apiBaseUrl: z.string().url().optional().or(z.literal('')),
+    username: z.string().optional().or(z.literal('')),
+    passwordEnvironmentVariable: z
+      .string()
+      .regex(/^[A-Za-z_][A-Za-z0-9_]*$/)
+      .optional()
+      .or(z.literal('')),
+  })
+  .strict()
+const assessmentPreparationEnvironmentSchema = z.union([
+  z.object({ environmentId: z.string().min(1) }).strict(),
+  z.object({ allowCreate: z.literal(true), proposal: assessmentEnvironmentProposalSchema }).strict(),
 ])
+const compactAssessmentStepSchema = z
+  .object({
+    stepId: z.string().min(1),
+    version: z.string().min(1),
+    inputs: z.record(z.string(), boundedCompactStepValueSchema).default({}),
+    keyword: z.enum(['Given', 'When', 'Then', 'And']).default('Given'),
+    description: z.string().min(1).max(500),
+  })
+  .strict()
+const compactAssessmentBindingSchema = z
+  .object({
+    validationId: z.string().min(1),
+    steps: z.array(compactAssessmentStepSchema).min(1),
+    locatorIds: z.array(z.string().min(1)).max(100).default([]),
+  })
+  .strict()
+const compactAssessmentSubjectSchema = z.union([
+  z
+    .object({
+      subjectDigest: z.string().startsWith('sha256:'),
+      authority: z.string().min(1),
+      subjectKind: z.enum(['ARTIFACT', 'DEPLOYMENT_SNAPSHOT']).optional(),
+      metadata: z.record(z.string(), z.union([z.string(), z.number(), z.boolean(), z.null()])).optional(),
+    })
+    .strict(),
+  z
+    .object({
+      subjectRevisionId: z.string().min(1),
+      expectedSubjectDigest: z.string().startsWith('sha256:').optional(),
+    })
+    .strict(),
+])
+const compactAssessmentRuntimeSchema = z
+  .object({ browserEngine: z.enum(['CHROMIUM', 'FIREFOX', 'WEBKIT']).optional() })
+  .strict()
+const compactAssessmentFields = {
+  target: z.string().min(1),
+  qualityPlanId: z.string().min(1),
+  revisionId: z.string().min(1),
+  expectedDesignHash: z.string().startsWith('sha256:'),
+  validationBindings: z.array(compactAssessmentBindingSchema).min(1),
+}
+const compactAssessmentRecoveryFields = {
+  ...compactAssessmentFields,
+  // The service makes this target-dependent: local requests still fail unless
+  // they carry bindings, while an exact v2 remote subject can hydrate its
+  // immutable binding packet before preflight/preparation.
+  validationBindings: z.array(compactAssessmentBindingSchema).min(1).optional(),
+}
+const remoteScopeEnvironmentSchema = z.object({ environmentId: z.string().min(1) }).strict()
+
+async function lifecyclePost(
+  api: McpRegistryContext['api'],
+  path: string,
+  body: unknown,
+  responseMode: z.infer<typeof responseModeSchema>,
+) {
+  return text(
+    applyLifecycleResponseMode(await api.request(path, { method: 'POST', body: JSON.stringify(body) }), responseMode),
+  )
+}
+
+function assessmentSuccessorPath(assessmentId: string) {
+  return `quality/assessments/${assessmentId}/successors`
+}
+
+function assessmentReconciliationPath(assessmentId: string) {
+  return `quality/assessments/${assessmentId}/reconcile`
+}
+
+export const assessmentPreflightInputSchema = z
+  .object({
+    ...compactAssessmentRecoveryFields,
+    environment: remoteScopeEnvironmentSchema,
+    subject: compactAssessmentSubjectSchema,
+    runtime: compactAssessmentRuntimeSchema.optional(),
+    responseMode: responseModeSchema,
+  })
+  .strict()
+
+export const assessmentPrepareInputSchema = z
+  .object({
+    ...compactAssessmentRecoveryFields,
+    environment: assessmentPreparationEnvironmentSchema,
+    subject: compactAssessmentSubjectSchema,
+    runtime: compactAssessmentRuntimeSchema.optional(),
+    authorizationGrantId: z.string().uuid().optional(),
+    executionRequestId: z.string().uuid().optional(),
+    expectedRequestHash: z.string().startsWith('sha256:').optional(),
+    expectedPreflight: z
+      .object({
+        algorithmVersion: z.literal('appraise.quality-assessment-preflight/v2'),
+        preflightHash: z.string().startsWith('sha256:'),
+      })
+      .strict()
+      .optional(),
+    assessmentId: z.string().min(1).optional(),
+    idempotencyKey: z.string().min(1),
+    responseMode: responseModeSchema,
+  })
+  .strict()
 
 export function registerQualityDesignOperations(context: McpRegistryContext): void {
   const { server, api } = context
+
+  server.registerTool(
+    'evaluation_subject_remote_scope_create',
+    {
+      description:
+        'Create or replay an Appraise-owned REMOTE_EVALUATION_SCOPE for an approved remote black-box evaluation. It performs zero target I/O and returns a bounded v2 handoff: subjectRevisionId plus algorithmVersion, scopeIntentHash, realizationIntentHash, preflightHash, and expectedPreflight. It asserts no deployment or content identity.',
+      inputSchema: {
+        ...compactAssessmentFields,
+        environment: remoteScopeEnvironmentSchema,
+        runtime: z
+          .object({ browserEngine: z.literal('CHROMIUM').optional() })
+          .strict()
+          .optional(),
+        idempotencyKey: z.string().min(1),
+        responseMode: responseModeSchema,
+      },
+    },
+    async ({ responseMode, ...body }) =>
+      text(
+        projectRemoteScopeCreateResponse(
+          await api.request('quality/evaluation-subjects/remote-scopes', {
+            method: 'POST',
+            body: JSON.stringify(body),
+          }),
+          responseMode,
+        ),
+      ),
+  )
+
+  server.registerTool(
+    'evaluation_subject_remote_scope_partition_create',
+    {
+      description:
+        'Atomically create or replay an Appraise-owned manifest that partitions every current approved remote ValidationVersion exactly once across frozen environments. Each returned child is the only authority for its own validations and performs zero target I/O during issuance.',
+      inputSchema: {
+        target: z.string().min(1),
+        qualityPlanId: z.string().min(1),
+        revisionId: z.string().min(1),
+        expectedDesignHash: z.string().startsWith('sha256:'),
+        partitions: z
+          .array(
+            z
+              .object({
+                partitionKey: z.string().min(1).max(200),
+                environment: remoteScopeEnvironmentSchema,
+                validationBindings: z.array(compactAssessmentBindingSchema).min(1),
+              })
+              .strict(),
+          )
+          .min(1),
+        runtime: z
+          .object({ browserEngine: z.literal('CHROMIUM').optional() })
+          .strict()
+          .optional(),
+        idempotencyKey: z.string().min(1),
+        responseMode: responseModeSchema,
+      },
+    },
+    async ({ responseMode, ...body }) =>
+      text(
+        projectRemoteScopePartitionCreateResponse(
+          await api.request('quality/evaluation-subjects/remote-scope-partitions', {
+            method: 'POST',
+            body: JSON.stringify(body),
+          }),
+          responseMode,
+        ),
+      ),
+  )
+
+  server.registerTool(
+    'evaluation_subject_remote_scope_read',
+    {
+      description:
+        'Read the exact persisted v2 REMOTE_EVALUATION_SCOPE packet after an interrupted workflow. This is DB-only and read-only: it neither issues a scope nor performs target I/O. Use full only when the complete compact bindings are needed for assessment_preflight or assessment_prepare_run.',
+      inputSchema: {
+        target: z.string().min(1),
+        qualityPlanId: z.string().min(1),
+        revisionId: z.string().min(1),
+        subjectRevisionId: z.string().min(1),
+        expectedSubjectDigest: z.string().startsWith('sha256:').optional(),
+        expectedScopeHash: z.string().startsWith('sha256:').optional(),
+        expectedPreflightHash: z.string().startsWith('sha256:').optional(),
+        responseMode: responseModeSchema,
+      },
+    },
+    async ({ responseMode, ...body }) =>
+      text(
+        projectRemoteScopeReadResponse(
+          await api.request('quality/evaluation-subjects/remote-scopes/read', {
+            method: 'POST',
+            body: JSON.stringify({ ...body, responseMode }),
+          }),
+          responseMode,
+        ),
+      ),
+  )
 
   server.registerTool(
     'assessment_execution_authorization_issue',
@@ -87,72 +334,23 @@ export function registerQualityDesignOperations(context: McpRegistryContext): vo
   )
 
   server.registerTool(
+    'assessment_preflight',
+    {
+      description:
+        'Read-only, browser-free v2 canonical preflight for compact approved bindings against an existing environment. Returns algorithmVersion, scopeIntentHash, realizationIntentHash, preflightHash, and bounded diagnostics; it never creates or executes anything.',
+      inputSchema: assessmentPreflightInputSchema.shape,
+    },
+    async ({ responseMode, ...body }) => lifecyclePost(api, 'quality/assessment-preflights', body, responseMode),
+  )
+
+  server.registerTool(
     'assessment_prepare_run',
     {
       description:
-        'Resumably prepare approved validation bindings, environment, publication, Assessment, and managed execution without reconciling evidence or issuing a decision.',
-      inputSchema: {
-        target: z.string().min(1),
-        qualityPlanId: z.string().min(1),
-        revisionId: z.string().min(1),
-        expectedDesignHash: z.string().startsWith('sha256:'),
-        validationBindings: z
-          .array(
-            z.object({
-              validationId: z.string().min(1),
-              steps: z
-                .array(
-                  z.object({
-                    stepId: z.string().min(1),
-                    version: z.string().min(1),
-                    inputs: z.record(z.string(), compactStepValueSchema).default({}),
-                    keyword: z.enum(['Given', 'When', 'Then', 'And']).default('Given'),
-                    description: z.string().min(1).max(500),
-                  }),
-                )
-                .min(1),
-              locatorIds: z.array(z.string().min(1)).max(100).default([]),
-            }),
-          )
-          .min(1),
-        environment: z.object({
-          environmentId: z.string().min(1).optional(),
-          allowCreate: z.literal(true).optional(),
-          proposal: z
-            .object({
-              name: z.string().min(1),
-              baseUrl: z.string().url(),
-              expectedPageTitle: z.string().max(200).optional(),
-              apiBaseUrl: z.string().url().optional(),
-              username: z.string().optional(),
-              passwordEnvironmentVariable: z
-                .string()
-                .regex(/^[A-Za-z_][A-Za-z0-9_]*$/)
-                .optional(),
-            })
-            .optional(),
-        }),
-        subject: z.object({
-          subjectDigest: z.string().startsWith('sha256:'),
-          authority: z.string().min(1),
-          subjectKind: z.enum(['ARTIFACT', 'DEPLOYMENT_SNAPSHOT']).optional(),
-          metadata: z.record(z.string(), z.union([z.string(), z.number(), z.boolean(), z.null()])).optional(),
-        }),
-        runtime: z.object({ browserEngine: z.enum(['CHROMIUM', 'FIREFOX', 'WEBKIT']).optional() }).optional(),
-        authorizationGrantId: z.string().uuid().optional(),
-        executionRequestId: z.string().uuid().optional(),
-        expectedRequestHash: z.string().startsWith('sha256:').optional(),
-        idempotencyKey: z.string().min(1),
-        responseMode: responseModeSchema,
-      },
+        'Resumably prepare approved validation bindings, environment, publication, Assessment, and managed execution without reconciling evidence or issuing a decision. Optionally bind one exact READY Assessment (including an explicitly selected successor); this never selects a latest successor. REMOTE_BLACK_BOX preparation must supply the exact v2 expectedPreflight returned by assessment_preflight.',
+      inputSchema: assessmentPrepareInputSchema.shape,
     },
-    async ({ responseMode, ...body }) =>
-      text(
-        applyLifecycleResponseMode(
-          await api.request('quality/assessment-prepare-runs', { method: 'POST', body: JSON.stringify(body) }),
-          responseMode,
-        ),
-      ),
+    async ({ responseMode, ...body }) => lifecyclePost(api, 'quality/assessment-prepare-runs', body, responseMode),
   )
 
   server.registerTool(
@@ -274,7 +472,9 @@ export function registerQualityDesignOperations(context: McpRegistryContext): vo
       inputSchema: {
         qualityPlanId: z.string().min(1),
         revisionId: z.string().min(1),
-        proposal: z.unknown(),
+        proposal: validationDesignProposalSchema.describe(
+          'Envelope containing one or more obligation-linked scenario proposals.',
+        ),
         idempotencyKey: z.string().min(1),
         responseMode: responseModeSchema,
       },
@@ -317,75 +517,20 @@ export function registerQualityDesignOperations(context: McpRegistryContext): vo
   )
 
   server.registerTool(
-    'validation_compile',
-    {
-      description:
-        'Compile approved scenario design with mechanical realization metadata into immutable realized validation versions.',
-      inputSchema: {
-        qualityPlanId: z.string().min(1),
-        revisionId: z.string().min(1),
-        expectedDesignHash: z.string().startsWith('sha256:'),
-        realization: z.unknown(),
-        responseMode: responseModeSchema,
-      },
-    },
-    async ({ qualityPlanId, responseMode, ...body }) =>
-      text(
-        applyAuthoringResponseMode(
-          await api.request(`quality/plans/${qualityPlanId}/validations/compile`, {
-            method: 'POST',
-            body: JSON.stringify(body),
-          }),
-          responseMode,
-        ),
-      ),
-  )
-
-  server.registerTool(
-    'validation_publish',
-    {
-      description:
-        'Publish realized validation versions using an expected compilation hash after mechanical bindings are resolved.',
-      inputSchema: {
-        qualityPlanId: z.string().min(1),
-        revisionId: z.string().min(1),
-        validationVersionIds: z.array(z.string().min(1)).min(1),
-        expectedCompilationHash: z.string().startsWith('sha256:'),
-        responseMode: responseModeSchema,
-      },
-    },
-    async ({ qualityPlanId, responseMode, ...body }) =>
-      text(
-        applyAuthoringResponseMode(
-          await api.request(`quality/plans/${qualityPlanId}/validations/publish`, {
-            method: 'POST',
-            body: JSON.stringify(body),
-          }),
-          responseMode,
-        ),
-      ),
-  )
-
-  server.registerTool(
     'assessment_create',
     {
-      description: 'Create a repeatable Quality Plan Assessment for an immutable evaluation subject digest.',
+      description:
+        'Create a repeatable Quality Plan Assessment. REMOTE_BLACK_BOX targets require an Appraise-owned remote scope subjectRevisionId; it is evaluation-scope identity only, not content identity.',
       inputSchema: {
         qualityPlanId: z.string().min(1),
         revisionId: z.string().min(1),
-        subject: z.unknown(),
+        subject: compactAssessmentSubjectSchema,
         baselineAssessmentId: z.string().min(1).optional(),
         idempotencyKey: z.string().min(1),
         responseMode: responseModeSchema,
       },
     },
-    async ({ responseMode, ...body }) =>
-      text(
-        applyLifecycleResponseMode(
-          await api.request('quality/assessments', { method: 'POST', body: JSON.stringify(body) }),
-          responseMode,
-        ),
-      ),
+    async ({ responseMode, ...body }) => lifecyclePost(api, 'quality/assessments', body, responseMode),
   )
 
   server.registerTool(
@@ -395,12 +540,7 @@ export function registerQualityDesignOperations(context: McpRegistryContext): vo
         'Create one immutable READY retry successor for a DECIDED, STALE, CANCELLED, or explicitly retried EVIDENCE_REVIEW assessment. The predecessor evidence and decision are never changed.',
       inputSchema: {
         assessmentId: z.string().min(1),
-        subject: z.object({
-          subjectDigest: z.string().startsWith('sha256:'),
-          authority: z.string().min(1),
-          subjectKind: z.enum(['ARTIFACT', 'DEPLOYMENT_SNAPSHOT']).optional(),
-          metadata: z.record(z.string(), z.unknown()).optional(),
-        }),
+        subject: compactAssessmentSubjectSchema,
         disposition: z.object({
           code: z.string().min(1).max(120),
           rationale: z.string().min(1).max(2_000),
@@ -411,15 +551,7 @@ export function registerQualityDesignOperations(context: McpRegistryContext): vo
       },
     },
     async ({ assessmentId, responseMode, ...body }) =>
-      text(
-        applyLifecycleResponseMode(
-          await api.request(`quality/assessments/${assessmentId}/successors`, {
-            method: 'POST',
-            body: JSON.stringify(body),
-          }),
-          responseMode,
-        ),
-      ),
+      lifecyclePost(api, assessmentSuccessorPath(assessmentId), body, responseMode),
   )
 
   server.registerTool(
@@ -469,13 +601,7 @@ export function registerQualityDesignOperations(context: McpRegistryContext): vo
         responseMode: responseModeSchema,
       },
     },
-    async ({ responseMode, ...body }) =>
-      text(
-        applyLifecycleResponseMode(
-          await api.request('quality/assessment-runs', { method: 'POST', body: JSON.stringify(body) }),
-          responseMode,
-        ),
-      ),
+    async ({ responseMode, ...body }) => lifecyclePost(api, 'quality/assessment-runs', body, responseMode),
   )
 
   server.registerTool(
@@ -518,15 +644,7 @@ export function registerQualityDesignOperations(context: McpRegistryContext): vo
       },
     },
     async ({ assessmentId, responseMode, ...body }) =>
-      text(
-        applyLifecycleResponseMode(
-          await api.request(`quality/assessments/${assessmentId}/reconcile`, {
-            method: 'POST',
-            body: JSON.stringify(body),
-          }),
-          responseMode,
-        ),
-      ),
+      lifecyclePost(api, assessmentReconciliationPath(assessmentId), body, responseMode),
   )
 
   server.registerTool(
@@ -555,14 +673,6 @@ export function registerQualityDesignOperations(context: McpRegistryContext): vo
       },
     },
     async ({ assessmentId, responseMode, ...body }) =>
-      text(
-        applyLifecycleResponseMode(
-          await api.request(`quality/assessments/${assessmentId}/decision`, {
-            method: 'POST',
-            body: JSON.stringify(body),
-          }),
-          responseMode,
-        ),
-      ),
+      lifecyclePost(api, `quality/assessments/${assessmentId}/decision`, body, responseMode),
   )
 }

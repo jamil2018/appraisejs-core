@@ -96,7 +96,18 @@ export function resolveSealedEnvironment(receipt: CapsuleCommandReceiptV1): Reco
     const value = entry.source === 'literal' ? entry.value : entry.reference ? process.env[entry.reference] : undefined
     if (value === undefined)
       throw new SealedEnvironmentError('ENV_REFERENCE_MISSING', 'unresolved environment reference')
-    if (hashRuntimeCapsuleBytes(Buffer.from(value)) !== entry.expectedDigest)
+    // Literal values are sealed directly into the receipt, so their digest is
+    // an immutable integrity check. An environment reference deliberately
+    // seals only the stable reference identity: hashing its current resolved
+    // value would make a credential-derived durable identity and reject a
+    // valid authorized credential rotation at preflight.
+    if (
+      (entry.source === 'literal' && hashRuntimeCapsuleBytes(Buffer.from(value)) !== entry.expectedDigest) ||
+      (entry.source === 'environment-ref' &&
+        (!entry.reference ||
+          entry.referenceKind !== 'environment' ||
+          entry.referenceVersion !== hashRuntimeCapsuleBytes(Buffer.from(entry.reference))))
+    )
       throw new SealedEnvironmentError('ENV_VALUE_DRIFT', 'environment value drift')
     env[entry.key] = value
   }

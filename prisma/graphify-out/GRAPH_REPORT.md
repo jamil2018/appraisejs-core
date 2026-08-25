@@ -1,25 +1,25 @@
 # Graph Report - prisma
 
 ## Corpus Check
-- 78 files from prisma/schema.prisma and migrations
+- 85 files from prisma/schema.prisma and migrations
 - Verdict: schema-aware graph generated because Graphify AST extraction does not currently produce Prisma/SQL nodes.
 
 ## Summary
-- 1347 nodes · 2977 edges · 257 communities
+- 1545 nodes · 3511 edges · 290 communities
 - Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS
 - Token cost: 0 input · 0 output
 
 ## God Nodes (most connected - your core abstractions)
-1. `String` - 482 edges
-2. `schema.prisma` - 194 edges
-3. `TargetProject` - 147 edges
-4. `DateTime` - 129 edges
-5. `Assessment` - 75 edges
-6. `TestRun` - 74 edges
-7. `QualityPlanRevision` - 70 edges
-8. `QualityValidationPublication` - 53 edges
-9. `TestCase` - 52 edges
-10. `AssessmentRun` - 51 edges
+1. `String` - 587 edges
+2. `schema.prisma` - 210 edges
+3. `TargetProject` - 176 edges
+4. `DateTime` - 136 edges
+5. `QualityValidationPublication` - 98 edges
+6. `TestRun` - 80 edges
+7. `Assessment` - 79 edges
+8. `QualityPlanRevision` - 70 edges
+9. `ValidationVersion` - 66 edges
+10. `AssessmentRun` - 59 edges
 
 ## Surprising Connections (you probably didn't know these)
 - `TestSuite` --relates_to--> `Module`  [EXTRACTED]
@@ -42,7 +42,7 @@
 ## Import Cycles
 - None detected.
 
-## Communities (257 total)
+## Communities (290 total)
 ### Community 0 - "schema.prisma"
 Nodes (3): schema.prisma, datasource db (sqlite), Prisma client generator
 
@@ -134,10 +134,10 @@ Nodes (12): Module, Module.id, Module.name, Module.parentId, Module.createdAt, M
 Nodes (12): TestRunTestCase, TestRunTestCase.id, TestRunTestCase.testRunId, TestRunTestCase.testCaseId, TestRunTestCase.testSuiteId, TestRunTestCase.status, TestRunTestCase.result, TestRunTestCase.tracePath (+more)
 
 ### Community 30 - "TestRun"
-Nodes (26): TestRun, TestRun.id, TestRun.name, TestRun.preparationKey, TestRun.runId, TestRun.startedAt, TestRun.completedAt, TestRun.status (+more)
+Nodes (30): TestRun, TestRun.id, TestRun.name, TestRun.preparationKey, TestRun.runId, TestRun.startedAt, TestRun.completedAt, TestRun.status (+more)
 
 ### Community 31 - "TargetProject"
-Nodes (38): TargetProject, TargetProject.id, TargetProject.canonicalPath, TargetProject.displayName, TargetProject.description, TargetProject.packageName, TargetProject.packageManager, TargetProject.packageJson (+more)
+Nodes (46): TargetProject, TargetProject.id, TargetProject.kind, TargetProject.canonicalIdentity, TargetProject.canonicalPath, TargetProject.normalizedRemoteOrigin, TargetProject.displayName, TargetProject.description (+more)
 
 ### Community 32 - "AssessmentPreparation"
 Nodes (14): AssessmentPreparation, AssessmentPreparation.id, AssessmentPreparation.targetProjectId, AssessmentPreparation.idempotencyKey, AssessmentPreparation.inputHash, AssessmentPreparation.qualityPlanId, AssessmentPreparation.qualityPlanRevisionId, AssessmentPreparation.expectedDesignHash (+more)
@@ -185,7 +185,7 @@ Nodes (11): RuntimeCapsuleLease, RuntimeCapsuleLease.id, RuntimeCapsuleLease.tar
 Nodes (7): TestRunLog, TestRunLog.id, TestRunLog.testRunId, TestRunLog.logs, TestRunLog.createdAt, TestRunLog.updatedAt, TestRunLog.testRun
 
 ### Community 47 - "EnvironmentCredentialState"
-Nodes (4): EnvironmentCredentialState, EnvironmentCredentialState.NONE, EnvironmentCredentialState.REFERENCE_CONFIGURED, EnvironmentCredentialState.LEGACY_DISABLED
+Nodes (3): EnvironmentCredentialState, EnvironmentCredentialState.NONE, EnvironmentCredentialState.REFERENCE_CONFIGURED
 
 ### Community 48 - "CredentialExecutionAuthorizationIssuer"
 Nodes (3): CredentialExecutionAuthorizationIssuer, CredentialExecutionAuthorizationIssuer.LOCAL_UI_SESSION, CredentialExecutionAuthorizationIssuer.HOST_ASSERTION
@@ -248,571 +248,670 @@ Nodes (10): RequirementQuery, RequirementQuery.id, RequirementQuery.qualityPlanR
 Nodes (14): QualityObligationRevision, QualityObligationRevision.id, QualityObligationRevision.qualityPlanRevisionId, QualityObligationRevision.requirementSnapshotId, QualityObligationRevision.title, QualityObligationRevision.intent, QualityObligationRevision.assertionScopeJson, QualityObligationRevision.minimumAssurance (+more)
 
 ### Community 68 - "ValidationVersion"
-Nodes (23): ValidationVersion, ValidationVersion.id, ValidationVersion.targetProjectId, ValidationVersion.qualityPlanRevisionId, ValidationVersion.validationIdentity, ValidationVersion.version, ValidationVersion.status, ValidationVersion.reuseOutcome (+more)
+Nodes (27): ValidationVersion, ValidationVersion.id, ValidationVersion.targetProjectId, ValidationVersion.qualityPlanRevisionId, ValidationVersion.validationIdentity, ValidationVersion.version, ValidationVersion.status, ValidationVersion.reuseOutcome (+more)
 
-### Community 69 - "QualityValidationPublication"
-Nodes (32): QualityValidationPublication, QualityValidationPublication.id, QualityValidationPublication.targetProjectId, QualityValidationPublication.targetFingerprint, QualityValidationPublication.qualityPlanRevisionId, QualityValidationPublication.validationVersionId, QualityValidationPublication.idempotencyKey, QualityValidationPublication.operationHash (+more)
+### Community 69 - "QualityValidationGeneration"
+Nodes (25): QualityValidationGeneration, QualityValidationGeneration.id, QualityValidationGeneration.generationKey, QualityValidationGeneration.targetProjectId, QualityValidationGeneration.qualityPlanRevisionId, QualityValidationGeneration.validationVersionId, QualityValidationGeneration.artifactSchemaVersion, QualityValidationGeneration.preflightAlgorithmVersion (+more)
 
-### Community 70 - "QualityValidationExtensionReview"
+### Community 70 - "QualityValidationPublication"
+Nodes (44): QualityValidationPublication, QualityValidationPublication.id, QualityValidationPublication.generationId, QualityValidationPublication.targetProjectId, QualityValidationPublication.targetFingerprint, QualityValidationPublication.qualityPlanRevisionId, QualityValidationPublication.validationVersionId, QualityValidationPublication.idempotencyKey (+more)
+
+### Community 71 - "QualityValidationPublicationCommandReceipt"
+Nodes (11): QualityValidationPublicationCommandReceipt, QualityValidationPublicationCommandReceipt.id, QualityValidationPublicationCommandReceipt.targetProjectId, QualityValidationPublicationCommandReceipt.idempotencyKey, QualityValidationPublicationCommandReceipt.requestHash, QualityValidationPublicationCommandReceipt.generationKey, QualityValidationPublicationCommandReceipt.operationHash, QualityValidationPublicationCommandReceipt.publicationId (+more)
+
+### Community 72 - "QualityValidationExtensionReview"
 Nodes (11): QualityValidationExtensionReview, QualityValidationExtensionReview.id, QualityValidationExtensionReview.publicationId, QualityValidationExtensionReview.extensionId, QualityValidationExtensionReview.version, QualityValidationExtensionReview.sourceHash, QualityValidationExtensionReview.compiledHash, QualityValidationExtensionReview.artifactHash (+more)
 
-### Community 71 - "ObligationValidationVersion"
+### Community 73 - "ObligationValidationVersion"
 Nodes (9): ObligationValidationVersion, ObligationValidationVersion.id, ObligationValidationVersion.qualityPlanRevisionId, ObligationValidationVersion.qualityObligationRevisionId, ObligationValidationVersion.validationVersionId, ObligationValidationVersion.coverageIntentJson, ObligationValidationVersion.createdAt, ObligationValidationVersion.obligation (+more)
 
-### Community 72 - "EvaluationSubjectRevision"
-Nodes (10): EvaluationSubjectRevision, EvaluationSubjectRevision.id, EvaluationSubjectRevision.subjectDigest, EvaluationSubjectRevision.subjectKind, EvaluationSubjectRevision.authority, EvaluationSubjectRevision.metadataJson, EvaluationSubjectRevision.createdAt, EvaluationSubjectRevision.assessments (+more)
+### Community 74 - "EvaluationSubjectRevision"
+Nodes (12): EvaluationSubjectRevision, EvaluationSubjectRevision.id, EvaluationSubjectRevision.subjectDigest, EvaluationSubjectRevision.subjectKind, EvaluationSubjectRevision.authority, EvaluationSubjectRevision.metadataJson, EvaluationSubjectRevision.createdAt, EvaluationSubjectRevision.assessments (+more)
 
-### Community 73 - "Assessment"
-Nodes (30): Assessment, Assessment.id, Assessment.targetProjectId, Assessment.qualityPlanId, Assessment.qualityPlanRevisionId, Assessment.evaluationSubjectRevisionId, Assessment.status, Assessment.alignment (+more)
+### Community 75 - "RemoteEvaluationScopeBinding"
+Nodes (32): RemoteEvaluationScopeBinding, RemoteEvaluationScopeBinding.id, RemoteEvaluationScopeBinding.evaluationSubjectRevisionId, RemoteEvaluationScopeBinding.targetProjectId, RemoteEvaluationScopeBinding.qualityPlanId, RemoteEvaluationScopeBinding.qualityPlanRevisionId, RemoteEvaluationScopeBinding.environmentId, RemoteEvaluationScopeBinding.scopeHash (+more)
 
-### Community 74 - "AssessmentRun"
-Nodes (24): AssessmentRun, AssessmentRun.id, AssessmentRun.targetProjectId, AssessmentRun.assessmentId, AssessmentRun.qualityPlanRevisionId, AssessmentRun.evaluationSubjectRevisionId, AssessmentRun.idempotencyScope, AssessmentRun.idempotencyKey (+more)
+### Community 76 - "RemoteEvaluationScopePartitionManifest"
+Nodes (14): RemoteEvaluationScopePartitionManifest, RemoteEvaluationScopePartitionManifest.id, RemoteEvaluationScopePartitionManifest.targetProjectId, RemoteEvaluationScopePartitionManifest.qualityPlanId, RemoteEvaluationScopePartitionManifest.qualityPlanRevisionId, RemoteEvaluationScopePartitionManifest.designHash, RemoteEvaluationScopePartitionManifest.coverageHash, RemoteEvaluationScopePartitionManifest.manifestHash (+more)
 
-### Community 75 - "AssessmentExecutionRequest"
+### Community 77 - "RemoteEvaluationScopePartition"
+Nodes (12): RemoteEvaluationScopePartition, RemoteEvaluationScopePartition.id, RemoteEvaluationScopePartition.manifestId, RemoteEvaluationScopePartition.partitionKey, RemoteEvaluationScopePartition.environmentId, RemoteEvaluationScopePartition.remoteEvaluationScopeBindingId, RemoteEvaluationScopePartition.validationVersionIdsJson, RemoteEvaluationScopePartition.validationBindingsHash (+more)
+
+### Community 78 - "RemoteEvaluationScopeIssuance"
+Nodes (9): RemoteEvaluationScopeIssuance, RemoteEvaluationScopeIssuance.id, RemoteEvaluationScopeIssuance.targetProjectId, RemoteEvaluationScopeIssuance.idempotencyKey, RemoteEvaluationScopeIssuance.requestHash, RemoteEvaluationScopeIssuance.evaluationSubjectRevisionId, RemoteEvaluationScopeIssuance.createdAt, RemoteEvaluationScopeIssuance.targetProject (+more)
+
+### Community 79 - "Assessment"
+Nodes (33): Assessment, Assessment.id, Assessment.targetProjectId, Assessment.qualityPlanId, Assessment.qualityPlanRevisionId, Assessment.evaluationSubjectRevisionId, Assessment.status, Assessment.alignment (+more)
+
+### Community 80 - "AssessmentRun"
+Nodes (25): AssessmentRun, AssessmentRun.id, AssessmentRun.targetProjectId, AssessmentRun.assessmentId, AssessmentRun.qualityPlanRevisionId, AssessmentRun.evaluationSubjectRevisionId, AssessmentRun.idempotencyScope, AssessmentRun.idempotencyKey (+more)
+
+### Community 81 - "AssessmentExecutionRequest"
 Nodes (24): AssessmentExecutionRequest, AssessmentExecutionRequest.id, AssessmentExecutionRequest.targetProjectId, AssessmentExecutionRequest.assessmentId, AssessmentExecutionRequest.qualityPlanId, AssessmentExecutionRequest.qualityPlanRevisionId, AssessmentExecutionRequest.evaluationSubjectRevisionId, AssessmentExecutionRequest.subjectDigest (+more)
 
-### Community 76 - "AssessmentExecutionCredentialBinding"
+### Community 82 - "AssessmentExecutionCredentialBinding"
 Nodes (5): AssessmentExecutionCredentialBinding, AssessmentExecutionCredentialBinding.requestId, AssessmentExecutionCredentialBinding.slot, AssessmentExecutionCredentialBinding.reference, AssessmentExecutionCredentialBinding.request
 
-### Community 77 - "CredentialAuthorizationUiSession"
+### Community 83 - "CredentialAuthorizationUiSession"
 Nodes (10): CredentialAuthorizationUiSession, CredentialAuthorizationUiSession.id, CredentialAuthorizationUiSession.sessionTokenHash, CredentialAuthorizationUiSession.csrfTokenHash, CredentialAuthorizationUiSession.targetProjectId, CredentialAuthorizationUiSession.expiresAt, CredentialAuthorizationUiSession.revokedAt, CredentialAuthorizationUiSession.createdAt (+more)
 
-### Community 78 - "AssessmentExecutionAuthorizationGrant"
+### Community 84 - "AssessmentExecutionAuthorizationGrant"
 Nodes (18): AssessmentExecutionAuthorizationGrant, AssessmentExecutionAuthorizationGrant.id, AssessmentExecutionAuthorizationGrant.requestId, AssessmentExecutionAuthorizationGrant.issuerKind, AssessmentExecutionAuthorizationGrant.localUiSessionId, AssessmentExecutionAuthorizationGrant.hostIssuer, AssessmentExecutionAuthorizationGrant.hostKeyId, AssessmentExecutionAuthorizationGrant.hostAssertionJti (+more)
 
-### Community 79 - "AssessmentRunBinding"
-Nodes (17): AssessmentRunBinding, AssessmentRunBinding.id, AssessmentRunBinding.assessmentRunId, AssessmentRunBinding.validationVersionId, AssessmentRunBinding.resultMatrixCell, AssessmentRunBinding.testRunId, AssessmentRunBinding.runtimeInputHash, AssessmentRunBinding.terminalOutcome (+more)
+### Community 85 - "AssessmentRunBinding"
+Nodes (26): AssessmentRunBinding, AssessmentRunBinding.id, AssessmentRunBinding.assessmentRunId, AssessmentRunBinding.targetProjectId, AssessmentRunBinding.qualityPlanRevisionId, AssessmentRunBinding.validationVersionId, AssessmentRunBinding.resultMatrixCell, AssessmentRunBinding.testRunId (+more)
 
-### Community 80 - "EvidenceReceipt"
-Nodes (25): EvidenceReceipt, EvidenceReceipt.id, EvidenceReceipt.targetProjectId, EvidenceReceipt.qualityPlanRevisionId, EvidenceReceipt.assessmentId, EvidenceReceipt.validationVersionId, EvidenceReceipt.evaluationSubjectRevisionId, EvidenceReceipt.resultMatrixCell (+more)
+### Community 86 - "AssessmentRunPublicationCheckpoint"
+Nodes (16): AssessmentRunPublicationCheckpoint, AssessmentRunPublicationCheckpoint.id, AssessmentRunPublicationCheckpoint.assessmentRunId, AssessmentRunPublicationCheckpoint.targetProjectId, AssessmentRunPublicationCheckpoint.qualityPlanRevisionId, AssessmentRunPublicationCheckpoint.validationVersionId, AssessmentRunPublicationCheckpoint.generationId, AssessmentRunPublicationCheckpoint.publicationId (+more)
 
-### Community 81 - "AssessmentDecision"
+### Community 87 - "EvidenceReceipt"
+Nodes (31): EvidenceReceipt, EvidenceReceipt.id, EvidenceReceipt.targetProjectId, EvidenceReceipt.qualityPlanRevisionId, EvidenceReceipt.assessmentId, EvidenceReceipt.validationVersionId, EvidenceReceipt.evaluationSubjectRevisionId, EvidenceReceipt.resultMatrixCell (+more)
+
+### Community 88 - "AssessmentDecision"
 Nodes (9): AssessmentDecision, AssessmentDecision.id, AssessmentDecision.assessmentId, AssessmentDecision.decision, AssessmentDecision.rationale, AssessmentDecision.decidedBy, AssessmentDecision.decidedAt, AssessmentDecision.decisionHash (+more)
 
-### Community 82 - "RequirementDriftReport"
+### Community 89 - "RequirementDriftReport"
 Nodes (12): RequirementDriftReport, RequirementDriftReport.id, RequirementDriftReport.qualityPlanId, RequirementDriftReport.qualityPlanRevisionId, RequirementDriftReport.successorRevisionId, RequirementDriftReport.status, RequirementDriftReport.impactTraversalJson, RequirementDriftReport.proposedDispositionJson (+more)
 
-### Community 83 - "TagType"
+### Community 90 - "TagType"
 Nodes (3): TagType, TagType.IDENTIFIER, TagType.FILTER
 
-### Community 84 - "TestRunStatus"
+### Community 91 - "TargetProjectKind"
+Nodes (3): TargetProjectKind, TargetProjectKind.LOCAL_WORKSPACE, TargetProjectKind.REMOTE_BLACK_BOX
+
+### Community 92 - "TestRunIntent"
+Nodes (3): TestRunIntent, TestRunIntent.INDEPENDENT, TestRunIntent.ASSESSMENT
+
+### Community 93 - "TestRunStatus"
 Nodes (6): TestRunStatus, TestRunStatus.QUEUED, TestRunStatus.RUNNING, TestRunStatus.CANCELLING, TestRunStatus.COMPLETED, TestRunStatus.CANCELLED
 
-### Community 85 - "TestRunTestCaseStatus"
+### Community 94 - "TestRunTestCaseStatus"
 Nodes (5): TestRunTestCaseStatus, TestRunTestCaseStatus.PENDING, TestRunTestCaseStatus.RUNNING, TestRunTestCaseStatus.COMPLETED, TestRunTestCaseStatus.CANCELLED
 
-### Community 86 - "TestRunTestCaseResult"
+### Community 95 - "TestRunTestCaseResult"
 Nodes (4): TestRunTestCaseResult, TestRunTestCaseResult.PASSED, TestRunTestCaseResult.FAILED, TestRunTestCaseResult.UNTESTED
 
-### Community 87 - "TestRunResult"
+### Community 96 - "TestRunResult"
 Nodes (6): TestRunResult, TestRunResult.PENDING, TestRunResult.PASSED, TestRunResult.FAILED, TestRunResult.BLOCKED, TestRunResult.CANCELLED
 
-### Community 88 - "TestRunEvidenceHealth"
+### Community 97 - "TestRunEvidenceHealth"
 Nodes (9): TestRunEvidenceHealth, TestRunEvidenceHealth.valid, TestRunEvidenceHealth.invalid_empty_run, TestRunEvidenceHealth.invalid_missing_test_cases, TestRunEvidenceHealth.invalid_missing_report, TestRunEvidenceHealth.invalid_placeholder_binary, TestRunEvidenceHealth.invalid_unmatched_scenarios, TestRunEvidenceHealth.invalid_stale_runtime (+more)
 
-### Community 89 - "Role"
+### Community 98 - "Role"
 Nodes (4): Role, Role.ADMIN, Role.TESTER, Role.REVIEWER
 
-### Community 90 - "ReviewStatus"
+### Community 99 - "ReviewStatus"
 Nodes (4): ReviewStatus, ReviewStatus.PENDING, ReviewStatus.APPROVED, ReviewStatus.CHANGES_REQUESTED
 
-### Community 91 - "TestCaseStatus"
+### Community 100 - "TestCaseStatus"
 Nodes (4): TestCaseStatus, TestCaseStatus.PENDING, TestCaseStatus.IN_PROGRESS, TestCaseStatus.COMPLETED
 
-### Community 92 - "TestCaseResult"
+### Community 101 - "TestCaseResult"
 Nodes (7): TestCaseResult, TestCaseResult.PASSED, TestCaseResult.FAILED, TestCaseResult.BLOCKED, TestCaseResult.SKIPPED, TestCaseResult.RETEST, TestCaseResult.UNTESTED
 
-### Community 93 - "StepType"
+### Community 102 - "StepType"
 Nodes (3): StepType, StepType.ACTION, StepType.ASSERTION
 
-### Community 94 - "StepParameterType"
+### Community 103 - "StepParameterType"
 Nodes (6): StepParameterType, StepParameterType.NUMBER, StepParameterType.STRING, StepParameterType.DATE, StepParameterType.BOOLEAN, StepParameterType.LOCATOR
 
-### Community 95 - "StepParameterValueType"
+### Community 104 - "StepParameterValueType"
 Nodes (4): StepParameterValueType, StepParameterValueType.STRING, StepParameterValueType.NUMBER, StepParameterValueType.LOCATOR
 
-### Community 96 - "StepIcon"
+### Community 105 - "StepIcon"
 Nodes (13): StepIcon, StepIcon.MOUSE, StepIcon.NAVIGATION, StepIcon.INPUT, StepIcon.DOWNLOAD, StepIcon.API, StepIcon.STORE, StepIcon.FORMAT (+more)
 
-### Community 97 - "BrowserEngine"
+### Community 106 - "BrowserEngine"
 Nodes (4): BrowserEngine, BrowserEngine.CHROMIUM, BrowserEngine.FIREFOX, BrowserEngine.WEBKIT
 
-### Community 98 - "StepGroupType"
+### Community 107 - "StepGroupType"
 Nodes (3): StepGroupType, StepGroupType.ACTION, StepGroupType.VALIDATION
 
-### Community 99 - "EntityType"
+### Community 108 - "EntityType"
 Nodes (2): EntityType, EntityType.LOCATOR
 
-### Community 100 - "ConflictType"
+### Community 109 - "ConflictType"
 Nodes (3): ConflictType, ConflictType.DUPLICATE_NAME, ConflictType.DUPLICATE_VALUE
 
-### Community 101 - "StepStatus"
+### Community 110 - "StepStatus"
 Nodes (6): StepStatus, StepStatus.PASSED, StepStatus.FAILED, StepStatus.SKIPPED, StepStatus.PENDING, StepStatus.UNDEFINED
 
-### Community 102 - "StepKeyword"
+### Community 111 - "StepKeyword"
 Nodes (8): StepKeyword, StepKeyword.GIVEN, StepKeyword.WHEN, StepKeyword.THEN, StepKeyword.AND, StepKeyword.BUT, StepKeyword.BEFORE, StepKeyword.AFTER
 
-### Community 103 - "QualityPlanRevisionStatus"
+### Community 112 - "QualityPlanRevisionStatus"
 Nodes (8): QualityPlanRevisionStatus, QualityPlanRevisionStatus.DRAFT, QualityPlanRevisionStatus.REQUIREMENT_REVIEW, QualityPlanRevisionStatus.REQUIREMENTS_APPROVED, QualityPlanRevisionStatus.SCENARIO_REVIEW, QualityPlanRevisionStatus.SCENARIOS_APPROVED, QualityPlanRevisionStatus.REALIZED, QualityPlanRevisionStatus.SUPERSEDED
 
-### Community 104 - "RequirementSnapshotKind"
+### Community 113 - "RequirementSnapshotKind"
 Nodes (6): RequirementSnapshotKind, RequirementSnapshotKind.FUNCTIONAL, RequirementSnapshotKind.DATA, RequirementSnapshotKind.QUALITY, RequirementSnapshotKind.VALIDATION, RequirementSnapshotKind.CONSTRAINT
 
-### Community 105 - "RequirementQueryStatus"
+### Community 114 - "RequirementQueryStatus"
 Nodes (5): RequirementQueryStatus, RequirementQueryStatus.BLOCKING, RequirementQueryStatus.DEFERRED, RequirementQueryStatus.ACCEPTED_ASSUMPTION, RequirementQueryStatus.ANSWERED
 
-### Community 106 - "AssuranceLevel"
+### Community 115 - "AssuranceLevel"
 Nodes (5): AssuranceLevel, AssuranceLevel.SMOKE, AssuranceLevel.STANDARD, AssuranceLevel.HIGH, AssuranceLevel.EXHAUSTIVE
 
-### Community 107 - "ValidationVersionStatus"
+### Community 116 - "ValidationVersionStatus"
 Nodes (6): ValidationVersionStatus, ValidationVersionStatus.DESIGNED, ValidationVersionStatus.SCENARIO_APPROVED, ValidationVersionStatus.REALIZED, ValidationVersionStatus.PUBLISHED, ValidationVersionStatus.BLOCKED
 
-### Community 108 - "ValidationReuseOutcome"
+### Community 117 - "ValidationReuseOutcome"
 Nodes (6): ValidationReuseOutcome, ValidationReuseOutcome.EXACT_MATCH, ValidationReuseOutcome.COMPATIBLE_REUSE, ValidationReuseOutcome.VERSION_REQUIRED, ValidationReuseOutcome.NO_MATCH, ValidationReuseOutcome.AMBIGUOUS
 
-### Community 109 - "EvaluationSubjectKind"
-Nodes (3): EvaluationSubjectKind, EvaluationSubjectKind.ARTIFACT, EvaluationSubjectKind.DEPLOYMENT_SNAPSHOT
+### Community 118 - "EvaluationSubjectKind"
+Nodes (4): EvaluationSubjectKind, EvaluationSubjectKind.ARTIFACT, EvaluationSubjectKind.DEPLOYMENT_SNAPSHOT, EvaluationSubjectKind.REMOTE_EVALUATION_SCOPE
 
-### Community 110 - "AssessmentStatus"
+### Community 119 - "AssessmentStatus"
 Nodes (8): AssessmentStatus, AssessmentStatus.CREATED, AssessmentStatus.READY, AssessmentStatus.RUNNING, AssessmentStatus.EVIDENCE_REVIEW, AssessmentStatus.DECIDED, AssessmentStatus.STALE, AssessmentStatus.CANCELLED
 
-### Community 111 - "AssessmentRunStatus"
+### Community 120 - "AssessmentRunStatus"
 Nodes (6): AssessmentRunStatus, AssessmentRunStatus.PREPARED, AssessmentRunStatus.RUNNING, AssessmentRunStatus.STOP_REQUESTED, AssessmentRunStatus.COMPLETED, AssessmentRunStatus.STOPPED
 
-### Community 112 - "RequirementAlignmentStatus"
+### Community 121 - "RequirementAlignmentStatus"
 Nodes (4): RequirementAlignmentStatus, RequirementAlignmentStatus.CURRENT, RequirementAlignmentStatus.DRIFT_DETECTED, RequirementAlignmentStatus.REVISION_REQUIRED
 
-### Community 113 - "EvidenceOutcome"
+### Community 122 - "EvidenceOutcome"
 Nodes (5): EvidenceOutcome, EvidenceOutcome.PASSED, EvidenceOutcome.FAILED, EvidenceOutcome.BLOCKED, EvidenceOutcome.INCONCLUSIVE
 
-### Community 114 - "AssessmentDecisionOutcome"
+### Community 123 - "AssessmentDecisionOutcome"
 Nodes (5): AssessmentDecisionOutcome, AssessmentDecisionOutcome.ACCEPTED, AssessmentDecisionOutcome.REJECTED, AssessmentDecisionOutcome.ACCEPTED_WITH_LIMITATIONS, AssessmentDecisionOutcome.NEEDS_REVISION
 
-### Community 115 - "RequirementDriftStatus"
+### Community 124 - "RequirementDriftStatus"
 Nodes (4): RequirementDriftStatus, RequirementDriftStatus.PROPOSED, RequirementDriftStatus.APPROVED, RequirementDriftStatus.SUPERSEDED
 
-### Community 116 - "String"
+### Community 125 - "String"
 Nodes (1): String
 
-### Community 117 - "DateTime"
+### Community 126 - "DateTime"
 Nodes (1): DateTime
 
-### Community 118 - "Int"
+### Community 127 - "Int"
 Nodes (1): Int
 
-### Community 119 - "Boolean"
+### Community 128 - "Boolean"
 Nodes (1): Boolean
 
-### Community 120 - "Float"
+### Community 129 - "Float"
 Nodes (1): Float
 
-### Community 121 - "20251026202316_migrate_back_to_sqlite"
+### Community 130 - "20251026202316_migrate_back_to_sqlite"
 Nodes (1): 20251026202316_migrate_back_to_sqlite
 
-### Community 122 - "TemplateStep"
+### Community 131 - "TemplateStep"
 Nodes (1): TemplateStep
 
-### Community 123 - "TemplateStepGroup"
+### Community 132 - "TemplateStepGroup"
 Nodes (1): TemplateStepGroup
 
-### Community 124 - "TemplateStepParameter"
+### Community 133 - "TemplateStepParameter"
 Nodes (1): TemplateStepParameter
 
-### Community 125 - "_TagToTestRun"
+### Community 134 - "_TagToTestRun"
 Nodes (1): _TagToTestRun
 
-### Community 126 - "_TestSuiteTestCases"
+### Community 135 - "_TestSuiteTestCases"
 Nodes (1): _TestSuiteTestCases
 
-### Community 127 - "20251104113456_add_type_for_template_step_groups"
+### Community 136 - "20251104113456_add_type_for_template_step_groups"
 Nodes (1): 20251104113456_add_type_for_template_step_groups
 
-### Community 128 - "new_TemplateStepGroup"
+### Community 137 - "new_TemplateStepGroup"
 Nodes (1): new_TemplateStepGroup
 
-### Community 129 - "20251104170946_add_tags_to_test_suite_and_test_case"
+### Community 138 - "20251104170946_add_tags_to_test_suite_and_test_case"
 Nodes (1): 20251104170946_add_tags_to_test_suite_and_test_case
 
-### Community 130 - "_TagToTestCase"
+### Community 139 - "_TagToTestCase"
 Nodes (1): _TagToTestCase
 
-### Community 131 - "_TagToTestSuite"
+### Community 140 - "_TagToTestSuite"
 Nodes (1): _TagToTestSuite
 
-### Community 132 - "20251112190024_add_cascade_delete_to_test_run_test_case"
+### Community 141 - "20251112190024_add_cascade_delete_to_test_run_test_case"
 Nodes (1): 20251112190024_add_cascade_delete_to_test_run_test_case
 
-### Community 133 - "new_TestRunTestCase"
+### Community 142 - "new_TestRunTestCase"
 Nodes (1): new_TestRunTestCase
 
-### Community 134 - "20251113181100_add_test_run_log"
+### Community 143 - "20251113181100_add_test_run_log"
 Nodes (1): 20251113181100_add_test_run_log
 
-### Community 135 - "20251119191838_add_tag_type"
+### Community 144 - "20251119191838_add_tag_type"
 Nodes (1): 20251119191838_add_tag_type
 
-### Community 136 - "new_Tag"
+### Community 145 - "new_Tag"
 Nodes (1): new_Tag
 
-### Community 137 - "20251121164059_add_conflict_resolution"
+### Community 146 - "20251121164059_add_conflict_resolution"
 Nodes (1): 20251121164059_add_conflict_resolution
 
-### Community 138 - "20251130190737_add_trace_path_to_test_run_test_case"
+### Community 147 - "20251130190737_add_trace_path_to_test_run_test_case"
 Nodes (1): 20251130190737_add_trace_path_to_test_run_test_case
 
-### Community 139 - "20251213074835_add_log_path_to_test_run"
+### Community 148 - "20251213074835_add_log_path_to_test_run"
 Nodes (1): 20251213074835_add_log_path_to_test_run
 
-### Community 140 - "20251213183952_add_name_property_for_the_test_run_entities"
+### Community 149 - "20251213183952_add_name_property_for_the_test_run_entities"
 Nodes (1): 20251213183952_add_name_property_for_the_test_run_entities
 
-### Community 141 - "new_TestRun"
+### Community 150 - "new_TestRun"
 Nodes (1): new_TestRun
 
-### Community 142 - "20251223183400_add_report_model_to_db_schema"
+### Community 151 - "20251223183400_add_report_model_to_db_schema"
 Nodes (1): 20251223183400_add_report_model_to_db_schema
 
-### Community 143 - "20251223183637_add_report_test_case_entity_for_storing_test_results_for_individual_test_cases"
+### Community 152 - "20251223183637_add_report_test_case_entity_for_storing_test_results_for_individual_test_cases"
 Nodes (1): 20251223183637_add_report_test_case_entity_for_storing_test_results_for_individual_test_cases
 
-### Community 144 - "20251224083549_add_comprehensive_report_storage"
+### Community 153 - "20251224083549_add_comprehensive_report_storage"
 Nodes (1): 20251224083549_add_comprehensive_report_storage
 
-### Community 145 - "new_ReportTestCase"
+### Community 154 - "new_ReportTestCase"
 Nodes (1): new_ReportTestCase
 
-### Community 146 - "20251229194422_migrate_duration_to_string"
+### Community 155 - "20251229194422_migrate_duration_to_string"
 Nodes (1): 20251229194422_migrate_duration_to_string
 
-### Community 147 - "new_ReportHook"
+### Community 156 - "new_ReportHook"
 Nodes (1): new_ReportHook
 
-### Community 148 - "new_ReportStep"
+### Community 157 - "new_ReportStep"
 Nodes (1): new_ReportStep
 
-### Community 149 - "20251230124637_add_unique_constraint_to_test_run_name"
+### Community 158 - "20251230124637_add_unique_constraint_to_test_run_name"
 Nodes (1): 20251230124637_add_unique_constraint_to_test_run_name
 
-### Community 150 - "20260115094436_add_dashboard_metrics"
+### Community 159 - "20260115094436_add_dashboard_metrics"
 Nodes (1): 20260115094436_add_dashboard_metrics
 
-### Community 151 - "20260127172022_add_cascade_delete_to_step_parameters"
+### Community 160 - "20260127172022_add_cascade_delete_to_step_parameters"
 Nodes (1): 20260127172022_add_cascade_delete_to_step_parameters
 
-### Community 152 - "new_TemplateTestCaseStepParameter"
+### Community 161 - "new_TemplateTestCaseStepParameter"
 Nodes (1): new_TemplateTestCaseStepParameter
 
-### Community 153 - "new_TestCaseStepParameter"
+### Community 162 - "new_TestCaseStepParameter"
 Nodes (1): new_TestCaseStepParameter
 
-### Community 154 - "20260313093000_add_report_step_screenshot_path"
+### Community 163 - "20260313093000_add_report_step_screenshot_path"
 Nodes (1): 20260313093000_add_report_step_screenshot_path
 
-### Community 155 - "20260318120000_add_test_suite_context_to_test_run_test_case"
+### Community 164 - "20260318120000_add_test_suite_context_to_test_run_test_case"
 Nodes (1): 20260318120000_add_test_suite_context_to_test_run_test_case
 
-### Community 156 - "20260318173512_add_support_of_test_suite_level_runs"
+### Community 165 - "20260318173512_add_support_of_test_suite_level_runs"
 Nodes (1): 20260318173512_add_support_of_test_suite_level_runs
 
-### Community 157 - "20260507000000_add_flow_builder_node_grouping"
+### Community 166 - "20260507000000_add_flow_builder_node_grouping"
 Nodes (1): 20260507000000_add_flow_builder_node_grouping
 
-### Community 158 - "20260609002500_add_plan_projection_and_sync"
+### Community 167 - "20260609002500_add_plan_projection_and_sync"
 Nodes (1): 20260609002500_add_plan_projection_and_sync
 
-### Community 159 - "PlanProjection"
+### Community 168 - "PlanProjection"
 Nodes (1): PlanProjection
 
-### Community 160 - "PlanRevision"
+### Community 169 - "PlanRevision"
 Nodes (1): PlanRevision
 
-### Community 161 - "PlanSyncIssue"
+### Community 170 - "PlanSyncIssue"
 Nodes (1): PlanSyncIssue
 
-### Community 162 - "PlanTaskProjection"
+### Community 171 - "PlanTaskProjection"
 Nodes (1): PlanTaskProjection
 
-### Community 163 - "20260609090000_add_plan_review_runtime"
+### Community 172 - "20260609090000_add_plan_review_runtime"
 Nodes (1): 20260609090000_add_plan_review_runtime
 
-### Community 164 - "PlanEvent"
+### Community 173 - "PlanEvent"
 Nodes (1): PlanEvent
 
-### Community 165 - "PlanPersonalLayout"
+### Community 174 - "PlanPersonalLayout"
 Nodes (1): PlanPersonalLayout
 
-### Community 166 - "20260609160000_add_coordinator_events_api_mcp"
+### Community 175 - "20260609160000_add_coordinator_events_api_mcp"
 Nodes (1): 20260609160000_add_coordinator_events_api_mcp
 
-### Community 167 - "AppraiseProjectIdentity"
+### Community 176 - "AppraiseProjectIdentity"
 Nodes (1): AppraiseProjectIdentity
 
-### Community 168 - "PlanCoordinatorLease"
+### Community 177 - "PlanCoordinatorLease"
 Nodes (1): PlanCoordinatorLease
 
-### Community 169 - "new_PlanEvent"
+### Community 178 - "new_PlanEvent"
 Nodes (1): new_PlanEvent
 
-### Community 170 - "20260613015000_add_plan_description"
+### Community 179 - "20260613015000_add_plan_description"
 Nodes (1): 20260613015000_add_plan_description
 
-### Community 171 - "20260628090000_add_target_projects"
+### Community 180 - "20260628090000_add_target_projects"
 Nodes (1): 20260628090000_add_target_projects
 
-### Community 172 - "new_PlanProjection"
+### Community 181 - "new_PlanProjection"
 Nodes (1): new_PlanProjection
 
-### Community 173 - "20260628103000_add_plan_slug_legacy_identity"
+### Community 182 - "20260628103000_add_plan_slug_legacy_identity"
 Nodes (1): 20260628103000_add_plan_slug_legacy_identity
 
-### Community 174 - "20260701090000_add_provider_workflow_runs"
+### Community 183 - "20260701090000_add_provider_workflow_runs"
 Nodes (1): 20260701090000_add_provider_workflow_runs
 
-### Community 175 - "ProviderAdapterRegistration"
+### Community 184 - "ProviderAdapterRegistration"
 Nodes (1): ProviderAdapterRegistration
 
-### Community 176 - "ProviderArtifactSnapshot"
+### Community 185 - "ProviderArtifactSnapshot"
 Nodes (1): ProviderArtifactSnapshot
 
-### Community 177 - "ProviderPermissionDecision"
+### Community 186 - "ProviderPermissionDecision"
 Nodes (1): ProviderPermissionDecision
 
-### Community 178 - "ProviderRunEvent"
+### Community 187 - "ProviderRunEvent"
 Nodes (1): ProviderRunEvent
 
-### Community 179 - "ProviderWorkflowRun"
+### Community 188 - "ProviderWorkflowRun"
 Nodes (1): ProviderWorkflowRun
 
-### Community 180 - "20260701120000_add_provider_registration_settings"
+### Community 189 - "20260701120000_add_provider_registration_settings"
 Nodes (1): 20260701120000_add_provider_registration_settings
 
-### Community 181 - "20260708090000_add_test_run_evidence_health"
+### Community 190 - "20260708090000_add_test_run_evidence_health"
 Nodes (1): 20260708090000_add_test_run_evidence_health
 
-### Community 182 - "20260709090000_add_step_blocks"
+### Community 191 - "20260709090000_add_step_blocks"
 Nodes (1): 20260709090000_add_step_blocks
 
-### Community 183 - "StepBlock"
+### Community 192 - "StepBlock"
 Nodes (1): StepBlock
 
-### Community 184 - "StepBlockStep"
+### Community 193 - "StepBlockStep"
 Nodes (1): StepBlockStep
 
-### Community 185 - "20260711120000_add_baseline_attempt_history"
+### Community 194 - "20260711120000_add_baseline_attempt_history"
 Nodes (1): 20260711120000_add_baseline_attempt_history
 
-### Community 186 - "BaselineAttempt"
+### Community 195 - "BaselineAttempt"
 Nodes (1): BaselineAttempt
 
-### Community 187 - "BaselineAttemptEvent"
+### Community 196 - "BaselineAttemptEvent"
 Nodes (1): BaselineAttemptEvent
 
-### Community 188 - "20260711150000_add_delegated_authorization_nonces"
+### Community 197 - "20260711150000_add_delegated_authorization_nonces"
 Nodes (1): 20260711150000_add_delegated_authorization_nonces
 
-### Community 189 - "DelegatedAuthorizationNonce"
+### Community 198 - "DelegatedAuthorizationNonce"
 Nodes (1): DelegatedAuthorizationNonce
 
-### Community 190 - "20260711170000_add_delegated_ast_submissions"
+### Community 199 - "20260711170000_add_delegated_ast_submissions"
 Nodes (1): 20260711170000_add_delegated_ast_submissions
 
-### Community 191 - "DelegatedValidationAstSubmission"
+### Community 200 - "DelegatedValidationAstSubmission"
 Nodes (1): DelegatedValidationAstSubmission
 
-### Community 192 - "20260711190000_add_validation_ast_publish_journal"
+### Community 201 - "20260711190000_add_validation_ast_publish_journal"
 Nodes (1): 20260711190000_add_validation_ast_publish_journal
 
-### Community 193 - "ValidationAstPublishOperation"
+### Community 202 - "ValidationAstPublishOperation"
 Nodes (1): ValidationAstPublishOperation
 
-### Community 194 - "ValidationExtensionReview"
+### Community 203 - "ValidationExtensionReview"
 Nodes (1): ValidationExtensionReview
 
-### Community 195 - "20260711220000_add_runtime_capsules"
+### Community 204 - "20260711220000_add_runtime_capsules"
 Nodes (1): 20260711220000_add_runtime_capsules
 
-### Community 196 - "20260712010000_add_runtime_capsule_execution_attempt"
+### Community 205 - "20260712010000_add_runtime_capsule_execution_attempt"
 Nodes (1): 20260712010000_add_runtime_capsule_execution_attempt
 
-### Community 197 - "20260712020000_add_test_run_preparation_key"
+### Community 206 - "20260712020000_add_test_run_preparation_key"
 Nodes (1): 20260712020000_add_test_run_preparation_key
 
-### Community 198 - "20260712180000_add_repository_exports"
+### Community 207 - "20260712180000_add_repository_exports"
 Nodes (1): 20260712180000_add_repository_exports
 
-### Community 199 - "RepositoryExportJob"
+### Community 208 - "RepositoryExportJob"
 Nodes (1): RepositoryExportJob
 
-### Community 200 - "RepositoryExportReceipt"
+### Community 209 - "RepositoryExportReceipt"
 Nodes (1): RepositoryExportReceipt
 
-### Community 201 - "20260713143000_add_project_resource_ownership"
+### Community 210 - "20260713143000_add_project_resource_ownership"
 Nodes (1): 20260713143000_add_project_resource_ownership
 
-### Community 202 - "20260713153000_add_validation_resource_proposals"
+### Community 211 - "20260713153000_add_validation_resource_proposals"
 Nodes (1): 20260713153000_add_validation_resource_proposals
 
-### Community 203 - "ValidationResourceProposal"
+### Community 212 - "ValidationResourceProposal"
 Nodes (1): ValidationResourceProposal
 
-### Community 204 - "20260713163000_normalize_managed_validation_vocabulary"
+### Community 213 - "20260713163000_normalize_managed_validation_vocabulary"
 Nodes (1): 20260713163000_normalize_managed_validation_vocabulary
 
-### Community 205 - "20260713173000_add_named_plan_hashes"
+### Community 214 - "20260713173000_add_named_plan_hashes"
 Nodes (1): 20260713173000_add_named_plan_hashes
 
-### Community 206 - "20260713183000_add_delegated_coordinator_receipts"
+### Community 215 - "20260713183000_add_delegated_coordinator_receipts"
 Nodes (1): 20260713183000_add_delegated_coordinator_receipts
 
-### Community 207 - "DelegatedCoordinatorConsumption"
+### Community 216 - "DelegatedCoordinatorConsumption"
 Nodes (1): DelegatedCoordinatorConsumption
 
-### Community 208 - "DelegatedCoordinatorReceipt"
+### Community 217 - "DelegatedCoordinatorReceipt"
 Nodes (1): DelegatedCoordinatorReceipt
 
-### Community 209 - "20260713200000_stage_complete_project_ownership"
+### Community 218 - "20260713200000_stage_complete_project_ownership"
 Nodes (1): 20260713200000_stage_complete_project_ownership
 
-### Community 210 - "20260713210000_add_target_project_description"
+### Community 219 - "20260713210000_add_target_project_description"
 Nodes (1): 20260713210000_add_target_project_description
 
-### Community 211 - "20260713211000_scope_test_run_preparation_key"
+### Community 220 - "20260713211000_scope_test_run_preparation_key"
 Nodes (1): 20260713211000_scope_test_run_preparation_key
 
-### Community 212 - "20260714000000_make_template_library_shared"
+### Community 221 - "20260714000000_make_template_library_shared"
 Nodes (1): 20260714000000_make_template_library_shared
 
-### Community 213 - "20260714143000_add_validation_review_state_receipt"
+### Community 222 - "20260714143000_add_validation_review_state_receipt"
 Nodes (1): 20260714143000_add_validation_review_state_receipt
 
-### Community 214 - "20260714160500_scope_environment_names_to_project"
+### Community 223 - "20260714160500_scope_environment_names_to_project"
 Nodes (1): 20260714160500_scope_environment_names_to_project
 
-### Community 215 - "20260716190000_replace_environment_password_with_reference"
+### Community 224 - "20260716190000_replace_environment_password_with_reference"
 Nodes (1): 20260716190000_replace_environment_password_with_reference
 
-### Community 216 - "new_Environment"
+### Community 225 - "new_Environment"
 Nodes (1): new_Environment
 
-### Community 217 - "20260716210000_add_measured_test_run_pagination_index"
+### Community 226 - "20260716210000_add_measured_test_run_pagination_index"
 Nodes (1): 20260716210000_add_measured_test_run_pagination_index
 
-### Community 218 - "20260718110000_add_agent_preflight_receipts"
+### Community 227 - "20260718110000_add_agent_preflight_receipts"
 Nodes (1): 20260718110000_add_agent_preflight_receipts
 
-### Community 219 - "20260718160000_add_plan_observability"
+### Community 228 - "20260718160000_add_plan_observability"
 Nodes (1): 20260718160000_add_plan_observability
 
-### Community 220 - "PlanOperationMetric"
+### Community 229 - "PlanOperationMetric"
 Nodes (1): PlanOperationMetric
 
-### Community 221 - "20260718193000_add_environment_identity_expectation"
+### Community 230 - "20260718193000_add_environment_identity_expectation"
 Nodes (1): 20260718193000_add_environment_identity_expectation
 
-### Community 222 - "20260720010000_add_canonical_operation_mappings"
+### Community 231 - "20260720010000_add_canonical_operation_mappings"
 Nodes (1): 20260720010000_add_canonical_operation_mappings
 
-### Community 223 - "20260722013000_scope_locator_group_names_to_project"
+### Community 232 - "20260722013000_scope_locator_group_names_to_project"
 Nodes (1): 20260722013000_scope_locator_group_names_to_project
 
-### Community 224 - "20260722190000_add_step_definition_registry"
+### Community 233 - "20260722190000_add_step_definition_registry"
 Nodes (1): 20260722190000_add_step_definition_registry
 
-### Community 225 - "StepCompatibilityReference"
+### Community 234 - "StepCompatibilityReference"
 Nodes (1): StepCompatibilityReference
 
-### Community 226 - "20260722223000_add_step_definition_reviewed_extensions"
+### Community 235 - "20260722223000_add_step_definition_reviewed_extensions"
 Nodes (1): 20260722223000_add_step_definition_reviewed_extensions
 
-### Community 227 - "20260725190000_add_step_block_migration_ledger"
+### Community 236 - "20260725190000_add_step_block_migration_ledger"
 Nodes (1): 20260725190000_add_step_block_migration_ledger
 
-### Community 228 - "StepBlockMigrationLedger"
+### Community 237 - "StepBlockMigrationLedger"
 Nodes (1): StepBlockMigrationLedger
 
-### Community 229 - "_LegacyCompositionDefinition"
+### Community 238 - "_LegacyCompositionDefinition"
 Nodes (1): _LegacyCompositionDefinition
 
-### Community 230 - "20260725193000_make_validation_projection_template_step_optional"
+### Community 239 - "20260725193000_make_validation_projection_template_step_optional"
 Nodes (1): 20260725193000_make_validation_projection_template_step_optional
 
-### Community 231 - "new_TestCaseStep"
+### Community 240 - "new_TestCaseStep"
 Nodes (1): new_TestCaseStep
 
-### Community 232 - "20260725194500_cut_over_authored_steps_to_step_invocations"
+### Community 241 - "20260725194500_cut_over_authored_steps_to_step_invocations"
 Nodes (1): 20260725194500_cut_over_authored_steps_to_step_invocations
 
-### Community 233 - "IF"
+### Community 242 - "IF"
 Nodes (1): IF
 
-### Community 234 - "20260725200000_remove_legacy_step_authority"
+### Community 243 - "20260725200000_remove_legacy_step_authority"
 Nodes (1): 20260725200000_remove_legacy_step_authority
 
-### Community 235 - "20260725201000_add_step_definition_telemetry"
+### Community 244 - "20260725201000_add_step_definition_telemetry"
 Nodes (1): 20260725201000_add_step_definition_telemetry
 
-### Community 236 - "20260725202000_add_step_definition_reuse_justification"
+### Community 245 - "20260725202000_add_step_definition_reuse_justification"
 Nodes (1): 20260725202000_add_step_definition_reuse_justification
 
-### Community 237 - "20260725203000_add_step_definition_review_receipts"
+### Community 246 - "20260725203000_add_step_definition_review_receipts"
 Nodes (1): 20260725203000_add_step_definition_review_receipts
 
-### Community 238 - "20260725204000_harden_step_definition_evidence_and_telemetry"
+### Community 247 - "20260725204000_harden_step_definition_evidence_and_telemetry"
 Nodes (1): 20260725204000_harden_step_definition_evidence_and_telemetry
 
-### Community 239 - "20260725205000_add_reviewed_extension_revocation"
+### Community 248 - "20260725205000_add_reviewed_extension_revocation"
 Nodes (1): 20260725205000_add_reviewed_extension_revocation
 
-### Community 240 - "20260725206000_add_step_definition_search_receipts"
+### Community 249 - "20260725206000_add_step_definition_search_receipts"
 Nodes (1): 20260725206000_add_step_definition_search_receipts
 
-### Community 241 - "20260803000000_add_quality_design_assessment"
+### Community 250 - "20260803000000_add_quality_design_assessment"
 Nodes (1): 20260803000000_add_quality_design_assessment
 
-### Community 242 - "20260805200000_allow_multiple_validation_node_decisions"
+### Community 251 - "20260805200000_allow_multiple_validation_node_decisions"
 Nodes (1): 20260805200000_allow_multiple_validation_node_decisions
 
-### Community 243 - "20260807110000_add_workflow_reliability_receipts"
+### Community 252 - "20260807110000_add_workflow_reliability_receipts"
 Nodes (1): 20260807110000_add_workflow_reliability_receipts
 
-### Community 244 - "CoordinatorFailureReceipt"
+### Community 253 - "CoordinatorFailureReceipt"
 Nodes (1): CoordinatorFailureReceipt
 
-### Community 245 - "CoordinatorOperationReceipt"
+### Community 254 - "CoordinatorOperationReceipt"
 Nodes (1): CoordinatorOperationReceipt
 
-### Community 246 - "ValidationDecisionReceipt"
+### Community 255 - "ValidationDecisionReceipt"
 Nodes (1): ValidationDecisionReceipt
 
-### Community 247 - "ValidationNodePublication"
+### Community 256 - "ValidationNodePublication"
 Nodes (1): ValidationNodePublication
 
-### Community 248 - "__WorkflowReliabilityMigrationGuard"
+### Community 257 - "__WorkflowReliabilityMigrationGuard"
 Nodes (1): __WorkflowReliabilityMigrationGuard
 
-### Community 249 - "20260810000000_add_assessment_execution_cutover"
+### Community 258 - "20260810000000_add_assessment_execution_cutover"
 Nodes (1): 20260810000000_add_assessment_execution_cutover
 
-### Community 250 - "new_RuntimeCapsule"
+### Community 259 - "new_RuntimeCapsule"
 Nodes (1): new_RuntimeCapsule
 
-### Community 251 - "20260812000000_add_assessment_preparation"
+### Community 260 - "20260812000000_add_assessment_preparation"
 Nodes (1): 20260812000000_add_assessment_preparation
 
-### Community 252 - "20260814090000_add_test_run_blocked_result"
+### Community 261 - "20260814090000_add_test_run_blocked_result"
 Nodes (1): 20260814090000_add_test_run_blocked_result
 
-### Community 253 - "20260815090000_add_assessment_successor_lineage"
+### Community 262 - "20260815090000_add_assessment_successor_lineage"
 Nodes (1): 20260815090000_add_assessment_successor_lineage
 
-### Community 254 - "new_Assessment"
+### Community 263 - "new_Assessment"
 Nodes (1): new_Assessment
 
-### Community 255 - "20260816093000_add_credential_execution_authorization"
+### Community 264 - "20260816093000_add_credential_execution_authorization"
 Nodes (1): 20260816093000_add_credential_execution_authorization
 
-### Community 256 - "new_AssessmentRun"
+### Community 265 - "new_AssessmentRun"
 Nodes (1): new_AssessmentRun
+
+### Community 266 - "20260819090000_canonical_capsule_target_cutover"
+Nodes (1): 20260819090000_canonical_capsule_target_cutover
+
+### Community 267 - "20260822090000_remote_evaluation_scope_v1"
+Nodes (1): 20260822090000_remote_evaluation_scope_v1
+
+### Community 268 - "new_EvaluationSubjectRevision"
+Nodes (1): new_EvaluationSubjectRevision
+
+### Community 269 - "20260822100000_unified_assessment_preflight_v2"
+Nodes (1): 20260822100000_unified_assessment_preflight_v2
+
+### Community 270 - "_appraise_v2_preflight_guard"
+Nodes (1): _appraise_v2_preflight_guard
+
+### Community 271 - "20260824120000_quality_validation_generation_v3"
+Nodes (1): 20260824120000_quality_validation_generation_v3
+
+### Community 272 - "_qvg_binding_copy_guard"
+Nodes (1): _qvg_binding_copy_guard
+
+### Community 273 - "_qvg_copy_guard"
+Nodes (1): _qvg_copy_guard
+
+### Community 274 - "_qvg_evidence_copy_guard"
+Nodes (1): _qvg_evidence_copy_guard
+
+### Community 275 - "_qvg_fk_guard"
+Nodes (1): _qvg_fk_guard
+
+### Community 276 - "_qvg_guard"
+Nodes (1): _qvg_guard
+
+### Community 277 - "_qvg_legacy_binding_snapshot"
+Nodes (1): _qvg_legacy_binding_snapshot
+
+### Community 278 - "_qvg_legacy_evidence_snapshot"
+Nodes (1): _qvg_legacy_evidence_snapshot
+
+### Community 279 - "_qvg_legacy_publication_snapshot"
+Nodes (1): _qvg_legacy_publication_snapshot
+
+### Community 280 - "_qvg_legacy_validation_snapshot"
+Nodes (1): _qvg_legacy_validation_snapshot
+
+### Community 281 - "_qvg_validation_copy_guard"
+Nodes (1): _qvg_validation_copy_guard
+
+### Community 282 - "new_AssessmentRunBinding"
+Nodes (1): new_AssessmentRunBinding
+
+### Community 283 - "new_EvidenceReceipt"
+Nodes (1): new_EvidenceReceipt
+
+### Community 284 - "new_QualityValidationExtensionReview"
+Nodes (1): new_QualityValidationExtensionReview
+
+### Community 285 - "new_QualityValidationPublication"
+Nodes (1): new_QualityValidationPublication
+
+### Community 286 - "new_ValidationVersion"
+Nodes (1): new_ValidationVersion
+
+### Community 287 - "20260824130000_remote_scope_audit_rows_insert_only"
+Nodes (1): 20260824130000_remote_scope_audit_rows_insert_only
+
+### Community 288 - "20260824140000_assessment_binding_integrity_rejection"
+Nodes (1): 20260824140000_assessment_binding_integrity_rejection
+
+### Community 289 - "20260825090000_add_remote_scope_partition_manifest"
+Nodes (1): 20260825090000_add_remote_scope_partition_manifest
 
 ## Suggested Questions
 - Which models connect Quality Plans to Assessments?

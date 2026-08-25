@@ -14,6 +14,10 @@ type EvidenceReceipt = {
   reportHash: string | null
   logHash: string | null
   traceHash: string | null
+  generationId: string | null
+  publicationId: string | null
+  publicationOperationHash: string | null
+  publicationAuthority: string | null
   receiptHash: string | null
   sealedAt: Date | null
 }
@@ -117,6 +121,9 @@ export function AssessmentEvidenceReview({
                     </span>
                   </div>
                   <Hash label="Receipt" value={receipt.receiptHash} />
+                  <Hash label="Generation" value={receipt.generationId} />
+                  <Hash label="Publication" value={receipt.publicationId} />
+                  <Hash label="Publication operation" value={receipt.publicationOperationHash} />
                   <Hash label="Runtime input" value={receipt.runtimeInputHash} />
                   <Hash label="Output" value={receipt.outputHash} />
                   <Hash label="Report" value={receipt.reportHash} />

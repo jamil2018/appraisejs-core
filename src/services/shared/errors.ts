@@ -24,6 +24,46 @@ const coordinatorRetryStrategySchema = z.enum([
 type CoordinatorRetryStrategy = z.infer<typeof coordinatorRetryStrategySchema>
 
 const boundedTextSchema = z.string().trim().min(1).max(1_000)
+export const coordinatorAuthorizationHandoffSchema = z
+  .object({
+    executionRequestId: z.string().uuid(),
+    expectedRequestHash: z.string().startsWith('sha256:'),
+    expiresAt: z.string().datetime(),
+    authorizationRequestCreated: z.literal(true),
+    nextAction: z
+      .object({
+        tool: z.literal('assessment_prepare_run'),
+        reason: boundedTextSchema,
+      })
+      .strict(),
+  })
+  .strict()
+
+const coordinatorAuthorizationRequestDetailsSchema = z
+  .object({
+    requestId: z.string().uuid(),
+    requestHash: z.string().startsWith('sha256:'),
+    expiresAt: z.string().datetime(),
+  })
+  .passthrough()
+
+/** Convert only the durable authorization-request identity into the public
+ * handoff. Callers must never persist arbitrary transient ServiceError data. */
+export function coordinatorAuthorizationHandoffFromDetails(details: Record<string, unknown> | undefined) {
+  const parsed = coordinatorAuthorizationRequestDetailsSchema.safeParse(details)
+  if (!parsed.success) return undefined
+  return coordinatorAuthorizationHandoffSchema.parse({
+    executionRequestId: parsed.data.requestId,
+    expectedRequestHash: parsed.data.requestHash,
+    expiresAt: parsed.data.expiresAt,
+    authorizationRequestCreated: true,
+    nextAction: {
+      tool: 'assessment_prepare_run',
+      reason:
+        'The credential authorization request is committed. Issue a grant, then replay the original compact preparation request with this same idempotencyKey.',
+    },
+  })
+}
 
 export const coordinatorErrorEnvelopeSchema = z
   .object({
@@ -42,7 +82,9 @@ export const coordinatorErrorEnvelopeSchema = z
       })
       .strict(),
     operationOutcome: coordinatorOperationOutcomeSchema,
+    durableState: z.literal('authorization_request_committed').optional(),
     targetOutcome: z.literal('not_evaluated'),
+    authorization: coordinatorAuthorizationHandoffSchema.optional(),
     retry: z
       .object({
         safe: z.boolean(),

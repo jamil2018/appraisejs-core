@@ -6,6 +6,7 @@
     "assessment_diagnose",
     "assessment_execution_authorization_issue",
     "assessment_execution_authorization_revoke",
+    "assessment_preflight",
     "assessment_prepare_run",
     "assessment_readiness",
     "assessment_reconcile",
@@ -14,6 +15,9 @@
     "assessment_stop",
     "environment_ensure",
     "environment_list",
+    "evaluation_subject_remote_scope_create",
+    "evaluation_subject_remote_scope_partition_create",
+    "evaluation_subject_remote_scope_read",
     "locator_ensure",
     "locator_graph_query",
     "locator_search",
@@ -33,10 +37,8 @@
     "test_run_diagnose",
     "test_run_read",
     "test_run_start",
-    "validation_compile",
     "validation_design_approve",
-    "validation_design_propose",
-    "validation_publish"
+    "validation_design_propose"
   ],
   "resources": [
     "appraise://contracts/locator-graph",

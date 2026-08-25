@@ -32,6 +32,64 @@ async function definitions() {
   return contract
 }
 
+function preparationInputSchema(contract: McpContractDefinition[]) {
+  const preparation = contract.find(definition => definition.name === 'assessment_prepare_run')
+  return preparation?.inputSchema as {
+    properties?: {
+      validationBindings?: { items?: { properties?: Record<string, unknown> } }
+      environment?: { anyOf?: Array<{ properties?: Record<string, unknown>; required?: string[] }> }
+    }
+  }
+}
+
+function assertCompactBindingSchema(schema: ReturnType<typeof preparationInputSchema>) {
+  const binding = schema.properties?.validationBindings?.items?.properties
+  const step = (binding?.steps as { items?: { properties?: Record<string, unknown> } } | undefined)?.items?.properties
+
+  expect(binding).toMatchObject({ validationId: expect.any(Object), locatorIds: expect.any(Object) })
+  expect(step).toMatchObject({ stepId: expect.any(Object), version: expect.any(Object), inputs: expect.any(Object) })
+  expect(step).not.toHaveProperty('definitionHash')
+  for (const forbidden of ['locators', 'locatorGroups', 'locatorName', 'locatorValue', 'definitionHash'])
+    expect(binding).not.toHaveProperty(forbidden)
+}
+
+function assertPreparationEnvironmentSchema(schema: ReturnType<typeof preparationInputSchema>) {
+  expect(schema.properties?.environment?.anyOf).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({ required: ['environmentId'] }),
+      expect.objectContaining({ required: ['allowCreate', 'proposal'] }),
+    ]),
+  )
+  expect(schema.properties).toHaveProperty('assessmentId')
+  expect(schema.properties).toHaveProperty('expectedPreflight')
+  expect(schema.properties).not.toHaveProperty('expectedRealizationPreflightHash')
+}
+
+function assertPreflightSchema(contract: McpContractDefinition[]) {
+  const preflight = contract.find(definition => definition.name === 'assessment_preflight')
+  const schema = preflight?.inputSchema as {
+    properties?: Record<string, unknown>
+    $defs?: { __schema0?: { anyOf?: Array<{ type?: string; additionalProperties?: unknown }> } }
+  }
+  expect(schema.properties).toHaveProperty('environment')
+  expect(schema.properties).not.toHaveProperty('assessmentId')
+  expect(schema.properties).not.toHaveProperty('idempotencyKey')
+  expect(schema.properties).not.toHaveProperty('authorizationGrantId')
+  expect(schema.properties).not.toHaveProperty('executionRequestId')
+  const inputs = (
+    schema.properties?.validationBindings as {
+      items?: { properties?: { steps?: { items?: { properties?: { inputs?: unknown } } } } }
+    }
+  )?.items?.properties?.steps?.items?.properties?.inputs as { additionalProperties?: { $ref?: string } }
+  expect(inputs.additionalProperties?.$ref).toBe('#/$defs/__schema0')
+  expect(schema.$defs?.__schema0?.anyOf).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({ type: 'array' }),
+      expect.objectContaining({ type: 'object', additionalProperties: expect.any(Object) }),
+    ]),
+  )
+}
+
 describe('canonical MCP contract registry', () => {
   it('matches the complete default names and schemas without depending on registration order', async () => {
     const expected = await fixture()
@@ -61,22 +119,19 @@ describe('canonical MCP contract registry', () => {
 
   it('exposes only compact, explicit preparation bindings and summary identities', async () => {
     const contract = await definitions()
-    const preparation = contract.find(definition => definition.name === 'assessment_prepare_run')
-    const schema = preparation?.inputSchema as {
-      properties?: {
-        validationBindings?: { items?: { properties?: Record<string, unknown> } }
-        environment?: { properties?: Record<string, unknown> }
-      }
-    }
-    const binding = schema.properties?.validationBindings?.items?.properties
-    const step = (binding?.steps as { items?: { properties?: Record<string, unknown> } } | undefined)?.items?.properties
+    const schema = preparationInputSchema(contract)
+    assertCompactBindingSchema(schema)
+    assertPreparationEnvironmentSchema(schema)
+    assertPreflightSchema(contract)
+  })
 
-    expect(binding).toMatchObject({ validationId: expect.any(Object), locatorIds: expect.any(Object) })
-    expect(step).toMatchObject({ stepId: expect.any(Object), version: expect.any(Object), inputs: expect.any(Object) })
-    expect(step).not.toHaveProperty('definitionHash')
-    for (const forbidden of ['locators', 'locatorGroups', 'locatorName', 'locatorValue', 'definitionHash'])
-      expect(binding).not.toHaveProperty(forbidden)
-    expect(schema.properties?.environment).toHaveProperty('properties')
+  it('removes caller-authored compilation and publication from the public MCP surface', async () => {
+    const contract = await definitions()
+    const names = contract.map(definition => definition.name)
+
+    expect(names).toContain('assessment_preflight')
+    expect(names).not.toContain('validation_compile')
+    expect(names).not.toContain('validation_publish')
   })
 
   it('defaults assessment review and decision to the compact decision response mode', async () => {

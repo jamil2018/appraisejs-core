@@ -11,6 +11,23 @@ import {
  */
 
 /**
+ * @name Assert ordered texts
+ * @description Assert exact text values and order for a reviewed collection locator.
+ * @icon VALIDATION
+ */
+Then(
+  'the {string} elements should have ordered texts {string}',
+  async function (this: CustomWorld, target: SelectorName, expectedTexts: string) {
+    await executeHumanOperation(
+      'browser.assertions.ordered.texts@1',
+      this,
+      ['target', 'expectedTexts'],
+      [target, JSON.parse(expectedTexts)],
+    )
+  },
+)
+
+/**
  * @name assert element contains text
  * @description Template step for validating whether an element contains a certain text or not
  * @icon VALIDATION

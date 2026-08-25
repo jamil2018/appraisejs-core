@@ -17,6 +17,9 @@ const stagedPatch = spawnSync('git', ['diff', '--cached', '--unified=0', '--', '
   cwd: repoRoot,
   encoding: 'utf8',
   env,
+  // Large lifecycle/scaffold changes can legitimately exceed Node's 1 MiB
+  // spawnSync default even though the policy only inspects the patch text.
+  maxBuffer: 64 * 1024 * 1024,
 })
 
 if (stagedPatch.error || stagedPatch.status !== 0) {

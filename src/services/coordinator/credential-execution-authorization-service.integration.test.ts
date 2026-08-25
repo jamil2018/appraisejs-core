@@ -10,10 +10,15 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { copyMigratedTestDatabase } from '@/test/migrated-test-database'
 import {
   consumeCredentialExecutionGrant,
+  credentialAuthorizationInput,
   ensureCredentialExecutionRequest,
   issueLocalUiGrant,
   setCredentialAuthorizationClientForTests,
 } from './credential-execution-authorization-service'
+import {
+  builtInStepDefinitions,
+  computeStepReferenceHash,
+} from '../../../packages/cucumber-runtime/src/step-definitions/index.ts'
 
 const digest = (value: string) => `sha256:${value.padEnd(64, 'a').slice(0, 64)}`
 const valueHash = (value: string) => `sha256:${createHash('sha256').update(value).digest('hex')}`
@@ -36,6 +41,117 @@ afterEach(async () => {
 })
 
 describe('credential authorization grant persistence', () => {
+  it('creates one secret-free request from a sealed configured-credential invocation and READY Assessment', async () => {
+    const target = await prisma.targetProject.create({
+      data: {
+        id: 'target-configured-credential',
+        kind: 'LOCAL_WORKSPACE',
+        canonicalIdentity: `path:${workspace}`,
+        canonicalPath: workspace,
+        normalizedRemoteOrigin: null,
+        displayName: 'Configured credential target',
+        fingerprint: digest('target-configured-credential'),
+      },
+    })
+    const plan = await prisma.qualityPlan.create({
+      data: { id: 'plan-configured-credential', targetProjectId: target.id, title: 'Configured credential plan' },
+    })
+    const revision = await prisma.qualityPlanRevision.create({
+      data: {
+        id: 'revision-configured-credential',
+        targetProjectId: target.id,
+        qualityPlanId: plan.id,
+        revision: 1,
+        contentHash: digest('revision-configured-credential'),
+        sourceSpecification: 'specification',
+        requirementGraphJson: '{}',
+      },
+    })
+    const subject = await prisma.evaluationSubjectRevision.create({
+      data: {
+        id: 'subject-configured-credential',
+        subjectDigest: digest('subject-configured-credential'),
+        subjectKind: 'ARTIFACT',
+        authority: 'test',
+      },
+    })
+    const assessment = await prisma.assessment.create({
+      data: {
+        id: 'assessment-configured-credential',
+        targetProjectId: target.id,
+        qualityPlanId: plan.id,
+        qualityPlanRevisionId: revision.id,
+        evaluationSubjectRevisionId: subject.id,
+        lineageId: 'assessment-configured-credential',
+        status: 'READY',
+      },
+    })
+    const environment = await prisma.environment.create({
+      data: {
+        id: 'environment-configured-credential',
+        targetProjectId: target.id,
+        name: 'SauceDemo credential environment',
+        baseUrl: 'https://www.saucedemo.com',
+        passwordEnvironmentVariable: 'SAUCEDEMO_PASSWORD',
+        credentialState: 'REFERENCE_CONFIGURED',
+      },
+    })
+    const definition = builtInStepDefinitions.find(
+      candidate => candidate.identity.id === 'browser.forms.fill.configured.credential',
+    )!
+    const scope = credentialAuthorizationInput({
+      assessmentId: assessment.id,
+      targetProjectId: target.id,
+      qualityPlanId: plan.id,
+      qualityPlanRevisionId: revision.id,
+      evaluationSubjectRevisionId: subject.id,
+      subjectDigest: subject.subjectDigest,
+      environmentId: environment.id,
+      requestHash: digest('configured-credential-execution'),
+      publications: [
+        {
+          generationId: 'generation-configured-credential',
+          publicationId: 'publication-configured-credential',
+          operationHash: digest('configured-credential-operation'),
+          runtimeInputHash: digest('configured-credential-runtime'),
+          runtimeInputJson: JSON.stringify({
+            rootInvocations: [
+              {
+                caseId: 'case-login',
+                stepId: 'step-fill-password',
+                invocation: {
+                  step: {
+                    id: definition.identity.id,
+                    version: definition.identity.version,
+                    definitionHash: computeStepReferenceHash(definition),
+                  },
+                  inputs: { target: 'locator-password' },
+                },
+              },
+            ],
+          }),
+        },
+      ],
+    })
+
+    expect(scope.bindings).toEqual([
+      { slot: 'case-login:step-fill-password:password', reference: 'environment:password' },
+    ])
+    const first = await ensureCredentialExecutionRequest(scope)
+    const replay = await ensureCredentialExecutionRequest(scope)
+    expect(replay.id).toBe(first.id)
+    expect(await prisma.assessmentExecutionRequest.count()).toBe(1)
+    const persisted = await prisma.assessmentExecutionRequest.findUniqueOrThrow({
+      where: { id: first.id },
+      include: { bindings: true },
+    })
+    expect(persisted.bindings).toEqual([
+      expect.objectContaining({ slot: 'case-login:step-fill-password:password', reference: 'environment:password' }),
+    ])
+    expect(persisted.canonicalRequestJson).not.toContain('SAUCEDEMO_PASSWORD')
+    expect(persisted.canonicalRequestJson).not.toContain('resolved-test-password')
+  })
+
   it('consumes a grant once with SQLite CAS and rejects the exact replay', async () => {
     const target = await prisma.targetProject.create({
       data: {

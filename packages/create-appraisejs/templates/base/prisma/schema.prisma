@@ -430,6 +430,12 @@ model TestRun {
   logs                           TestRunLog?
   logPath                        String?
   reportPath                     String?
+  environmentSnapshotHash        String?
+  environmentSnapshotJson        String?
+  /// The explicit Environment scope token captured with a remote snapshot.
+  /// Timestamps are not a safe optimistic-concurrency token on every SQLite
+  /// platform, so remote lifecycle boundaries compare this integer as well.
+  environmentSnapshotVersion     Int?
   reports                        Report[]
   targetProjectId                String
   targetProject                  TargetProject                   @relation(fields: [targetProjectId], references: [id], onDelete: Restrict)
@@ -446,46 +452,51 @@ model TestRun {
 }
 
 model TargetProject {
-  id                            String                         @id @default(uuid())
-  kind                          TargetProjectKind
-  canonicalIdentity             String                         @unique
-  canonicalPath                 String?
-  normalizedRemoteOrigin        String?
-  displayName                   String
-  description                   String?
-  packageName                   String?
-  packageManager                String?
-  packageJson                   String?
-  fingerprint                   String                         @unique
-  createdAt                     DateTime                       @default(now())
-  updatedAt                     DateTime                       @updatedAt
-  lastDetectedAt                DateTime                       @default(now())
-  testRuns                      TestRun[]
-  runtimeCapsules               RuntimeCapsule[]
-  runtimeCapsuleBlobs           RuntimeCapsuleBlob[]
-  runtimeCapsuleLeases          RuntimeCapsuleLease[]
-  resourceOwnerships            ProjectResourceOwnership[]
-  resourceImports               ProjectResourceImport[]        @relation("ResourceImportDestination")
-  testSuites                    TestSuite[]
-  testCases                     TestCase[]
-  templateTestCases             TemplateTestCase[]
-  locators                      Locator[]
-  locatorGroups                 LocatorGroup[]
-  modules                       Module[]
-  environments                  Environment[]
-  tags                          Tag[]
-  reports                       Report[]
-  testCaseMetrics               TestCaseMetrics[]
-  testSuiteMetrics              TestSuiteMetrics[]
-  dashboardMetrics              DashboardMetrics?
-  agentPreflightReceipts        AgentPreflightReceipt[]
-  qualityPlans                  QualityPlan[]
-  qualityValidationPublications QualityValidationPublication[]
-  assessments                   Assessment[]
-  assessmentRuns                AssessmentRun[]
-  evidenceReceipts              EvidenceReceipt[]
-  assessmentPreparations        AssessmentPreparation[]
-  credentialExecutionRequests   AssessmentExecutionRequest[]
+  id                                          String                                       @id @default(uuid())
+  kind                                        TargetProjectKind
+  canonicalIdentity                           String                                       @unique
+  canonicalPath                               String?
+  normalizedRemoteOrigin                      String?
+  displayName                                 String
+  description                                 String?
+  packageName                                 String?
+  packageManager                              String?
+  packageJson                                 String?
+  fingerprint                                 String                                       @unique
+  createdAt                                   DateTime                                     @default(now())
+  updatedAt                                   DateTime                                     @updatedAt
+  lastDetectedAt                              DateTime                                     @default(now())
+  testRuns                                    TestRun[]
+  runtimeCapsules                             RuntimeCapsule[]
+  runtimeCapsuleBlobs                         RuntimeCapsuleBlob[]
+  runtimeCapsuleLeases                        RuntimeCapsuleLease[]
+  resourceOwnerships                          ProjectResourceOwnership[]
+  resourceImports                             ProjectResourceImport[]                      @relation("ResourceImportDestination")
+  testSuites                                  TestSuite[]
+  testCases                                   TestCase[]
+  templateTestCases                           TemplateTestCase[]
+  locators                                    Locator[]
+  locatorGroups                               LocatorGroup[]
+  modules                                     Module[]
+  environments                                Environment[]
+  tags                                        Tag[]
+  reports                                     Report[]
+  testCaseMetrics                             TestCaseMetrics[]
+  testSuiteMetrics                            TestSuiteMetrics[]
+  dashboardMetrics                            DashboardMetrics?
+  agentPreflightReceipts                      AgentPreflightReceipt[]
+  qualityPlans                                QualityPlan[]
+  qualityValidationPublications               QualityValidationPublication[]
+  qualityValidationGenerations                QualityValidationGeneration[]
+  qualityValidationPublicationCommandReceipts QualityValidationPublicationCommandReceipt[]
+  assessments                                 Assessment[]
+  assessmentRuns                              AssessmentRun[]
+  evidenceReceipts                            EvidenceReceipt[]
+  assessmentPreparations                      AssessmentPreparation[]
+  remoteEvaluationScopeBindings               RemoteEvaluationScopeBinding[]
+  remoteEvaluationScopeIssuances              RemoteEvaluationScopeIssuance[]
+  remoteEvaluationScopePartitionManifests     RemoteEvaluationScopePartitionManifest[]
+  credentialExecutionRequests                 AssessmentExecutionRequest[]
 
   @@index([displayName])
   @@index([canonicalPath])
@@ -741,6 +752,10 @@ model Environment {
   username                    String?
   passwordEnvironmentVariable String?
   credentialState             EnvironmentCredentialState   @default(NONE)
+  /// Explicit optimistic-concurrency token for remote evaluation scope.
+  /// Environment editors increment it whenever the canonical environment
+  /// payload changes; remote scope snapshots bind this value immutably.
+  scopeVersion                Int                          @default(1)
   createdAt                   DateTime                     @default(now())
   updatedAt                   DateTime                     @updatedAt
   testRuns                    TestRun[]
@@ -1036,77 +1051,156 @@ model QualityObligationRevision {
 }
 
 model ValidationVersion {
-  id                    String                        @id @default(uuid())
-  targetProjectId       String
-  qualityPlanRevisionId String
-  validationIdentity    String
-  version               Int
-  status                ValidationVersionStatus       @default(DESIGNED)
-  reuseOutcome          ValidationReuseOutcome?
-  canonicalAstJson      String
-  canonicalHash         String
-  realizationJson       String?
-  realizationHash       String?
-  compilationHash       String?
-  scenarioApprovedAt    DateTime?
-  scenarioApprovedBy    String?
-  scenarioApprovalHash  String?
-  publishedAt           DateTime?
-  createdAt             DateTime                      @default(now())
-  qualityPlanRevision   QualityPlanRevision           @relation(fields: [qualityPlanRevisionId, targetProjectId], references: [id, targetProjectId], onDelete: Cascade)
-  obligationLinks       ObligationValidationVersion[]
-  evidenceReceipts      EvidenceReceipt[]
-  publication           QualityValidationPublication?
-  assessmentRunBindings AssessmentRunBinding[]
+  id                     String                               @id @default(uuid())
+  targetProjectId        String
+  qualityPlanRevisionId  String
+  validationIdentity     String
+  version                Int
+  status                 ValidationVersionStatus              @default(DESIGNED)
+  reuseOutcome           ValidationReuseOutcome?
+  canonicalAstJson       String
+  canonicalHash          String
+  realizationJson        String?
+  realizationHash        String?
+  compilationHash        String?
+  scenarioApprovedAt     DateTime?
+  scenarioApprovedBy     String?
+  scenarioApprovalHash   String?
+  publishedAt            DateTime?
+  /// The executable authority for this immutable validation version. Historical
+  /// v1 summaries deliberately leave this null; consumers must never infer an
+  /// active generation from status or newest-row ordering.
+  activeGenerationId     String?
+  createdAt              DateTime                             @default(now())
+  qualityPlanRevision    QualityPlanRevision                  @relation(fields: [qualityPlanRevisionId, targetProjectId], references: [id, targetProjectId], onDelete: Cascade)
+  obligationLinks        ObligationValidationVersion[]
+  evidenceReceipts       EvidenceReceipt[]
+  publications           QualityValidationPublication[]
+  generations            QualityValidationGeneration[]        @relation("ValidationVersionGenerations")
+  activeGeneration       QualityValidationGeneration?         @relation("ValidationVersionActiveGeneration", fields: [activeGenerationId, id], references: [id, validationVersionId], onDelete: Restrict)
+  assessmentRunBindings  AssessmentRunBinding[]
+  publicationCheckpoints AssessmentRunPublicationCheckpoint[]
 
   @@unique([id, targetProjectId])
   @@unique([id, qualityPlanRevisionId])
+  @@unique([id, qualityPlanRevisionId, targetProjectId])
+  @@unique([activeGenerationId, id])
   @@unique([validationIdentity, version])
   @@unique([qualityPlanRevisionId, canonicalHash])
   @@index([targetProjectId])
   @@index([qualityPlanRevisionId, status])
 }
 
+/// Insert-only executable authority for a ValidationVersion. Its deterministic
+/// key excludes command idempotency and timestamps, so an equivalent request
+/// from another caller identifies the same immutable generation.
+model QualityValidationGeneration {
+  id                        String                               @id
+  generationKey             String                               @unique
+  targetProjectId           String
+  qualityPlanRevisionId     String
+  validationVersionId       String
+  artifactSchemaVersion     String
+  preflightAlgorithmVersion String
+  preflightAuthority        String
+  scopeIntentHash           String
+  realizationIntentHash     String
+  preflightHash             String
+  canonicalRealizationJson  String
+  realizationHash           String
+  compilationHash           String
+  assuranceLevel            String
+  disposition               String                               @default("ACTIVE")
+  createdAt                 DateTime                             @default(now())
+  targetProject             TargetProject                        @relation(fields: [targetProjectId], references: [id], onDelete: Restrict)
+  validationVersion         ValidationVersion                    @relation("ValidationVersionGenerations", fields: [validationVersionId, qualityPlanRevisionId, targetProjectId], references: [id, qualityPlanRevisionId, targetProjectId], onDelete: Restrict)
+  activeForValidation       ValidationVersion?                   @relation("ValidationVersionActiveGeneration")
+  publication               QualityValidationPublication?
+  assessmentRunBindings     AssessmentRunBinding[]
+  evidenceReceipts          EvidenceReceipt[]
+  publicationCheckpoints    AssessmentRunPublicationCheckpoint[]
+
+  @@unique([id, validationVersionId])
+  @@unique([id, validationVersionId, qualityPlanRevisionId, targetProjectId])
+  @@index([targetProjectId, qualityPlanRevisionId, validationVersionId])
+  @@index([validationVersionId, disposition])
+}
+
 /// Immutable executable publication for one published Quality ValidationVersion.
 /// It retains the proven capsule inputs without retaining a development-plan
 /// identity or projection relation.
 model QualityValidationPublication {
-  id                       String                             @id @default(uuid())
-  targetProjectId          String
-  targetFingerprint        String
-  qualityPlanRevisionId    String
-  validationVersionId      String                             @unique
-  idempotencyKey           String
-  operationHash            String                             @unique
-  phase                    String                             @default("review_ready")
-  expectedRevisionHash     String
-  validationHash           String
-  validationContent        String
-  reviewHash               String
-  reviewContent            String
-  astId                    String
-  astHash                  String
-  contextHash              String
-  previewHash              String
-  receiptHash              String
-  projectionHash           String
-  projectionJson           String
-  validationProjectionJson String
-  runtimeInputHash         String
-  runtimeInputJson         String
-  failure                  String?
-  createdAt                DateTime                           @default(now())
-  updatedAt                DateTime                           @updatedAt
-  targetProject            TargetProject                      @relation(fields: [targetProjectId], references: [id], onDelete: Restrict)
-  qualityPlanRevision      QualityPlanRevision                @relation(fields: [qualityPlanRevisionId, targetProjectId], references: [id, targetProjectId], onDelete: Cascade)
-  validationVersion        ValidationVersion                  @relation(fields: [validationVersionId, qualityPlanRevisionId], references: [id, qualityPlanRevisionId], onDelete: Cascade)
-  extensionReviews         QualityValidationExtensionReview[]
-  runtimeCapsules          RuntimeCapsule[]
+  id                        String                                       @id @default(uuid())
+  generationId              String                                       @unique
+  targetProjectId           String
+  targetFingerprint         String
+  qualityPlanRevisionId     String
+  validationVersionId       String
+  /// Historical caller key retained only as an audit summary. New artifact
+  /// rows leave it null; command replay lives in QualityValidationPublicationCommandReceipt.
+  idempotencyKey            String?
+  operationHash             String                                       @unique
+  phase                     String                                       @default("review_ready")
+  /// v2 execution authority. Existing v1 publication bytes stay queryable
+  /// but are retired by the cutover migration and cannot materialize/run.
+  preflightAlgorithmVersion String                                       @default("appraise.quality-assessment-preflight/v2")
+  preflightAuthority        String                                       @default("appraisejs:quality-validation-publication:v2")
+  scopeIntentHash           String                                       @default("")
+  realizationIntentHash     String                                       @default("")
+  preflightHash             String                                       @default("")
+  preflightDisposition      String                                       @default("ACTIVE")
+  expectedRevisionHash      String
+  validationHash            String
+  validationContent         String
+  reviewHash                String
+  reviewContent             String
+  astId                     String
+  astHash                   String
+  contextHash               String
+  previewHash               String
+  receiptHash               String
+  projectionHash            String
+  projectionJson            String
+  validationProjectionJson  String
+  runtimeInputHash          String
+  runtimeInputJson          String
+  failure                   String?
+  createdAt                 DateTime                                     @default(now())
+  updatedAt                 DateTime                                     @updatedAt
+  targetProject             TargetProject                                @relation(fields: [targetProjectId], references: [id], onDelete: Restrict)
+  qualityPlanRevision       QualityPlanRevision                          @relation(fields: [qualityPlanRevisionId, targetProjectId], references: [id, targetProjectId], onDelete: Cascade)
+  validationVersion         ValidationVersion                            @relation(fields: [validationVersionId, qualityPlanRevisionId, targetProjectId], references: [id, qualityPlanRevisionId, targetProjectId], onDelete: Restrict)
+  generation                QualityValidationGeneration                  @relation(fields: [generationId, validationVersionId, qualityPlanRevisionId, targetProjectId], references: [id, validationVersionId, qualityPlanRevisionId, targetProjectId], onDelete: Restrict)
+  extensionReviews          QualityValidationExtensionReview[]
+  runtimeCapsules           RuntimeCapsule[]
+  commandReceipts           QualityValidationPublicationCommandReceipt[]
+  assessmentRunBindings     AssessmentRunBinding[]
+  evidenceReceipts          EvidenceReceipt[]
+  publicationCheckpoints    AssessmentRunPublicationCheckpoint[]
 
-  @@unique([qualityPlanRevisionId, idempotencyKey])
-  @@unique([validationVersionId, qualityPlanRevisionId])
+  @@unique([generationId, validationVersionId, qualityPlanRevisionId, targetProjectId])
+  @@unique([id, generationId, validationVersionId, qualityPlanRevisionId, targetProjectId])
   @@index([targetProjectId, phase])
+  @@index([preflightAlgorithmVersion, preflightDisposition])
   @@index([qualityPlanRevisionId, validationVersionId])
+}
+
+/// Caller-command replay receipt. This is intentionally separate from the
+/// immutable generation/publication artifact rows.
+model QualityValidationPublicationCommandReceipt {
+  id              String                       @id @default(uuid())
+  targetProjectId String
+  idempotencyKey  String
+  requestHash     String
+  generationKey   String
+  operationHash   String
+  publicationId   String
+  createdAt       DateTime                     @default(now())
+  targetProject   TargetProject                @relation(fields: [targetProjectId], references: [id], onDelete: Restrict)
+  publication     QualityValidationPublication @relation(fields: [publicationId], references: [id], onDelete: Restrict)
+
+  @@unique([targetProjectId, idempotencyKey])
+  @@index([generationKey, operationHash])
 }
 
 model QualityValidationExtensionReview {
@@ -1119,7 +1213,7 @@ model QualityValidationExtensionReview {
   artifactHash  String
   artifactJson  String
   createdAt     DateTime                     @default(now())
-  publication   QualityValidationPublication @relation(fields: [publicationId], references: [id], onDelete: Cascade)
+  publication   QualityValidationPublication @relation(fields: [publicationId], references: [id], onDelete: Restrict)
 
   @@unique([publicationId, extensionId, version])
 }
@@ -1139,15 +1233,126 @@ model ObligationValidationVersion {
 }
 
 model EvaluationSubjectRevision {
-  id               String                @id @default(uuid())
-  subjectDigest    String                @unique
-  subjectKind      EvaluationSubjectKind
-  authority        String
-  metadataJson     String?
-  createdAt        DateTime              @default(now())
-  assessments      Assessment[]
-  evidenceReceipts EvidenceReceipt[]
-  assessmentRuns   AssessmentRun[]
+  id                             String                          @id @default(uuid())
+  subjectDigest                  String                          @unique
+  subjectKind                    EvaluationSubjectKind
+  authority                      String
+  metadataJson                   String?
+  createdAt                      DateTime                        @default(now())
+  assessments                    Assessment[]
+  evidenceReceipts               EvidenceReceipt[]
+  assessmentRuns                 AssessmentRun[]
+  remoteEvaluationScopeBinding   RemoteEvaluationScopeBinding?
+  remoteEvaluationScopeIssuances RemoteEvaluationScopeIssuance[]
+}
+
+/// Appraise-owned, immutable evaluation identity for a REMOTE_BLACK_BOX target.
+/// It deliberately identifies the approved evaluation scope, not the remote
+/// deployment or its content. A remote content/deployment assertion requires a
+/// separate trusted attestation contract. Rows are insert-only audit facts:
+/// changes and deletions are rejected by the database migration trigger.
+model RemoteEvaluationScopeBinding {
+  id                          String                    @id @default(uuid())
+  evaluationSubjectRevisionId String                    @unique
+  targetProjectId             String
+  qualityPlanId               String
+  qualityPlanRevisionId       String
+  environmentId               String
+  scopeHash                   String
+  /// v2 is a clean cutover. v1 rows are retained but never executable.
+  scopeSchemaVersion          String                    @default("appraise.remote-evaluation-scope/v1")
+  preflightAlgorithmVersion   String                    @default("appraise.quality-assessment-preflight/v1")
+  /// Immutable user-approved/external-dependency identity.
+  scopeIntentHash             String                    @default("")
+  /// Compiler canonical intent, deliberately distinct from realization output.
+  realizationIntentHash       String                    @default("")
+  /// H(v2 algorithm, scope intent, realization intent).
+  preflightHash               String                    @default("")
+  canonicalPreflightJson      String                    @default("{}")
+  targetFingerprint           String
+  designHash                  String
+  revisionContentHash         String
+  validationBindingsHash      String
+  realizationPreflightHash    String
+  runtimePolicyHash           String
+  securityPolicyHash          String
+  evidencePolicyHash          String
+  canonicalScopeJson          String
+  validationBindingsJson      String
+  environmentSnapshotHash     String
+  environmentSnapshotJson     String
+  environmentScopeVersion     Int
+  environmentUpdatedAt        DateTime
+  createdAt                   DateTime                  @default(now())
+  evaluationSubjectRevision   EvaluationSubjectRevision @relation(fields: [evaluationSubjectRevisionId], references: [id], onDelete: Restrict)
+  targetProject               TargetProject             @relation(fields: [targetProjectId], references: [id], onDelete: Restrict)
+  partitionMembership         RemoteEvaluationScopePartition?
+
+  @@unique([targetProjectId, scopeHash])
+  @@index([targetProjectId, scopeSchemaVersion, preflightAlgorithmVersion])
+  @@index([targetProjectId, qualityPlanRevisionId])
+}
+
+/// Immutable, target-scoped authority for splitting one approved validation
+/// set across multiple frozen remote environments. It contains identifiers
+/// and canonical hashes only; child compact bindings remain in the existing
+/// scope binding rows.
+model RemoteEvaluationScopePartitionManifest {
+  id                    String                         @id @default(uuid())
+  targetProjectId       String
+  qualityPlanId         String
+  qualityPlanRevisionId String
+  designHash            String
+  coverageHash          String
+  manifestHash          String
+  requestHash           String
+  idempotencyKey        String
+  canonicalManifestJson String
+  createdAt             DateTime                       @default(now())
+  targetProject         TargetProject                  @relation(fields: [targetProjectId], references: [id], onDelete: Restrict)
+  partitions            RemoteEvaluationScopePartition[]
+
+  @@unique([targetProjectId, idempotencyKey])
+  @@unique([targetProjectId, manifestHash])
+  @@index([targetProjectId, qualityPlanRevisionId])
+}
+
+/// One environment-homogeneous child of an immutable partition manifest.
+/// The unique remote scope binding link is the execution authority: phase
+/// services may only use the listed ValidationVersion identifiers.
+model RemoteEvaluationScopePartition {
+  id                           String                              @id @default(uuid())
+  manifestId                   String
+  partitionKey                 String
+  environmentId                String
+  remoteEvaluationScopeBindingId String                            @unique
+  validationVersionIdsJson     String
+  validationBindingsHash       String
+  childHash                    String
+  createdAt                    DateTime                            @default(now())
+  manifest                     RemoteEvaluationScopePartitionManifest @relation(fields: [manifestId], references: [id], onDelete: Restrict)
+  remoteEvaluationScopeBinding RemoteEvaluationScopeBinding       @relation(fields: [remoteEvaluationScopeBindingId], references: [id], onDelete: Restrict)
+
+  @@unique([manifestId, partitionKey])
+  @@index([environmentId])
+}
+
+/// Target-scoped command receipt for issuing an Appraise-owned remote scope.
+/// New issuance keys may point to an existing identical subject; a key itself
+/// remains an immutable exact replay identity. Rows are insert-only audit
+/// facts and database triggers reject both UPDATE and DELETE.
+model RemoteEvaluationScopeIssuance {
+  id                          String                    @id @default(uuid())
+  targetProjectId             String
+  idempotencyKey              String
+  requestHash                 String
+  evaluationSubjectRevisionId String
+  createdAt                   DateTime                  @default(now())
+  targetProject               TargetProject             @relation(fields: [targetProjectId], references: [id], onDelete: Restrict)
+  evaluationSubjectRevision   EvaluationSubjectRevision @relation(fields: [evaluationSubjectRevisionId], references: [id], onDelete: Restrict)
+
+  @@unique([targetProjectId, idempotencyKey])
+  @@index([targetProjectId, evaluationSubjectRevisionId])
 }
 
 model Assessment {
@@ -1168,6 +1373,9 @@ model Assessment {
   supersessionDispositionJson String?
   successorIdempotencyKey     String?
   successorRequestHash        String?
+  rootIdempotencyKey          String?
+  rootRequestHash             String?
+  rootScopeReservationHash    String?
   createdAt                   DateTime                     @default(now())
   updatedAt                   DateTime                     @updatedAt
   targetProject               TargetProject                @relation(fields: [targetProjectId], references: [id], onDelete: Restrict)
@@ -1188,6 +1396,8 @@ model Assessment {
   @@unique([id, targetProjectId, qualityPlanId, qualityPlanRevisionId])
   @@unique([lineageId, generation])
   @@unique([targetProjectId, successorIdempotencyKey])
+  @@unique([targetProjectId, rootIdempotencyKey])
+  @@unique([targetProjectId, rootScopeReservationHash])
   @@index([targetProjectId, status])
   @@index([qualityPlanId, status])
   @@index([qualityPlanRevisionId, alignment])
@@ -1219,6 +1429,7 @@ model AssessmentRun {
   qualityPlanRevision           QualityPlanRevision                    @relation(fields: [qualityPlanRevisionId, targetProjectId], references: [id, targetProjectId], onDelete: Restrict)
   evaluationSubjectRevision     EvaluationSubjectRevision              @relation(fields: [evaluationSubjectRevisionId], references: [id], onDelete: Restrict)
   bindings                      AssessmentRunBinding[]
+  publicationCheckpoints        AssessmentRunPublicationCheckpoint[]
   executionRequest              AssessmentExecutionRequest?            @relation(fields: [executionRequestId], references: [id], onDelete: Restrict)
   executionAuthorizationGrant   AssessmentExecutionAuthorizationGrant? @relation(fields: [executionAuthorizationGrantId], references: [id], onDelete: Restrict)
 
@@ -1312,30 +1523,70 @@ model AssessmentExecutionAuthorizationGrant {
 /// A terminal EvidenceReceipt can only be attached once, preserving the first
 /// observed terminal TestRun outcome during stop/reconcile races.
 model AssessmentRunBinding {
-  id                  String            @id @default(uuid())
-  assessmentRunId     String
-  validationVersionId String
-  resultMatrixCell    String
-  testRunId           String            @unique
-  runtimeInputHash    String
-  terminalOutcome     EvidenceOutcome?
-  terminalizedAt      DateTime?
-  evidenceReceiptId   String?
-  version             Int               @default(1)
-  createdAt           DateTime          @default(now())
-  updatedAt           DateTime          @updatedAt
-  assessmentRun       AssessmentRun     @relation(fields: [assessmentRunId], references: [id], onDelete: Cascade)
-  validationVersion   ValidationVersion @relation(fields: [validationVersionId], references: [id], onDelete: Restrict)
-  testRun             TestRun           @relation(fields: [testRunId], references: [id], onDelete: Restrict)
-  evidenceReceipt     EvidenceReceipt?  @relation(fields: [evidenceReceiptId], references: [id], onDelete: Restrict)
+  id                       String                              @id @default(uuid())
+  assessmentRunId          String
+  targetProjectId          String?
+  qualityPlanRevisionId    String?
+  validationVersionId      String
+  resultMatrixCell         String
+  testRunId                String                              @unique
+  runtimeInputHash         String
+  /// Historical bindings are unbound. New managed bindings retain this exact
+  /// generation/publication tuple rather than resolving an active selector.
+  generationId             String?
+  publicationId            String?
+  publicationOperationHash String?
+  /// Durable reason for a managed identity rejection that terminalized this
+  /// cell before receipt creation. This is deliberately separate from an
+  /// ordinary target/runtime terminal outcome so read models can preserve the
+  /// target's not-evaluated state without inferring from missing evidence.
+  integrityRejectionCode   String?
+  terminalOutcome          EvidenceOutcome?
+  terminalizedAt           DateTime?
+  evidenceReceiptId        String?
+  version                  Int                                 @default(1)
+  createdAt                DateTime                            @default(now())
+  updatedAt                DateTime                            @updatedAt
+  assessmentRun            AssessmentRun                       @relation(fields: [assessmentRunId], references: [id], onDelete: Cascade)
+  validationVersion        ValidationVersion                   @relation(fields: [validationVersionId], references: [id], onDelete: Restrict)
+  testRun                  TestRun                             @relation(fields: [testRunId], references: [id], onDelete: Restrict)
+  evidenceReceipt          EvidenceReceipt?                    @relation(fields: [evidenceReceiptId], references: [id], onDelete: Restrict)
+  generation               QualityValidationGeneration?        @relation(fields: [generationId], references: [id], onDelete: Restrict)
+  publication              QualityValidationPublication?       @relation(fields: [publicationId, generationId, validationVersionId, qualityPlanRevisionId, targetProjectId], references: [id, generationId, validationVersionId, qualityPlanRevisionId, targetProjectId], onDelete: Restrict)
+  checkpoint               AssessmentRunPublicationCheckpoint? @relation(fields: [assessmentRunId, validationVersionId, generationId, publicationId], references: [assessmentRunId, validationVersionId, generationId, publicationId], onDelete: Restrict)
 
   @@unique([assessmentRunId, validationVersionId, resultMatrixCell])
   @@index([assessmentRunId, terminalizedAt])
   @@index([validationVersionId])
 }
 
+/// Durable pre-binding checkpoint. It closes the crash window between exact
+/// publication selection and AssessmentRunBinding creation without consulting
+/// whichever generation happens to be active later.
+model AssessmentRunPublicationCheckpoint {
+  id                       String                       @id @default(uuid())
+  assessmentRunId          String
+  targetProjectId          String
+  qualityPlanRevisionId    String
+  validationVersionId      String
+  generationId             String
+  publicationId            String
+  publicationOperationHash String
+  runtimeInputHash         String
+  createdAt                DateTime                     @default(now())
+  assessmentRun            AssessmentRun                @relation(fields: [assessmentRunId, targetProjectId, qualityPlanRevisionId], references: [id, targetProjectId, qualityPlanRevisionId], onDelete: Restrict)
+  publication              QualityValidationPublication @relation(fields: [publicationId, generationId, validationVersionId, qualityPlanRevisionId, targetProjectId], references: [id, generationId, validationVersionId, qualityPlanRevisionId, targetProjectId], onDelete: Restrict)
+  bindings                 AssessmentRunBinding[]
+  validationVersion        ValidationVersion            @relation(fields: [validationVersionId], references: [id])
+  generation               QualityValidationGeneration  @relation(fields: [generationId], references: [id], onDelete: Restrict)
+
+  @@unique([assessmentRunId, validationVersionId])
+  @@unique([assessmentRunId, validationVersionId, generationId, publicationId])
+  @@index([generationId, publicationId])
+}
+
 model EvidenceReceipt {
-  id                          String                    @id @default(uuid())
+  id                          String                        @id @default(uuid())
   targetProjectId             String
   qualityPlanRevisionId       String
   assessmentId                String?
@@ -1345,6 +1596,12 @@ model EvidenceReceipt {
   assuranceLevel              AssuranceLevel
   outcome                     EvidenceOutcome
   runtimeInputHash            String
+  /// Null only for preserved legacy evidence. A new receipt carries the exact
+  /// publication tuple used by its binding, never a current active selector.
+  generationId                String?
+  publicationId               String?
+  publicationOperationHash    String?
+  publicationAuthority        String?
   environmentSnapshotHash     String
   browserSnapshotHash         String?
   dataProvenanceHash          String
@@ -1353,12 +1610,14 @@ model EvidenceReceipt {
   logHash                     String?
   traceHash                   String?
   assessmentRunBindings       AssessmentRunBinding[]
-  receiptHash                 String                    @unique
-  sealedAt                    DateTime                  @default(now())
-  targetProject               TargetProject             @relation(fields: [targetProjectId], references: [id], onDelete: Restrict)
-  assessment                  Assessment?               @relation(fields: [assessmentId, targetProjectId, qualityPlanRevisionId], references: [id, targetProjectId, qualityPlanRevisionId], onDelete: Restrict)
-  validationVersion           ValidationVersion         @relation(fields: [validationVersionId, qualityPlanRevisionId], references: [id, qualityPlanRevisionId], onDelete: Restrict)
-  evaluationSubjectRevision   EvaluationSubjectRevision @relation(fields: [evaluationSubjectRevisionId], references: [id], onDelete: Restrict)
+  receiptHash                 String                        @unique
+  sealedAt                    DateTime                      @default(now())
+  targetProject               TargetProject                 @relation(fields: [targetProjectId], references: [id], onDelete: Restrict)
+  assessment                  Assessment?                   @relation(fields: [assessmentId, targetProjectId, qualityPlanRevisionId], references: [id, targetProjectId, qualityPlanRevisionId], onDelete: Restrict)
+  validationVersion           ValidationVersion             @relation(fields: [validationVersionId, qualityPlanRevisionId], references: [id, qualityPlanRevisionId], onDelete: Restrict)
+  evaluationSubjectRevision   EvaluationSubjectRevision     @relation(fields: [evaluationSubjectRevisionId], references: [id], onDelete: Restrict)
+  generation                  QualityValidationGeneration?  @relation(fields: [generationId], references: [id], onDelete: Restrict)
+  publication                 QualityValidationPublication? @relation(fields: [publicationId, generationId, validationVersionId, qualityPlanRevisionId, targetProjectId], references: [id, generationId, validationVersionId, qualityPlanRevisionId, targetProjectId], onDelete: Restrict)
 
   @@index([targetProjectId, validationVersionId, evaluationSubjectRevisionId, resultMatrixCell, runtimeInputHash])
   @@index([targetProjectId, sealedAt])
@@ -1595,6 +1854,7 @@ enum ValidationReuseOutcome {
 enum EvaluationSubjectKind {
   ARTIFACT
   DEPLOYMENT_SNAPSHOT
+  REMOTE_EVALUATION_SCOPE
 }
 
 enum AssessmentStatus {

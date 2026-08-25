@@ -1,0 +1,22 @@
+# Appraise-owned lifecycle session migration checklist
+
+- [ ] 0.1 Freeze representative lifecycle fixtures.
+- [ ] 1.1 Define the canonical safe session projection and hash.
+- [ ] 1.2 Add immutable session/revision persistence and migrations.
+- [ ] 1.3 Implement target-scoped session create/list/read.
+- [ ] Checkpoint A: independently verify read-only projection authority.
+- [ ] 2.1 Add compare-and-swap transition reservations and recovery.
+- [ ] 2.2 Register typed session MCP operations and projections.
+- [ ] 3.1 Route requirements submission and approval through sessions.
+- [ ] 3.2 Route design proposal and approval through sessions.
+- [ ] Checkpoint B: prove planning parity with a zero-context agent.
+- [ ] 4.1 Derive remote environment partitions inside Appraise.
+- [ ] 4.2 Internalize preflight, realization, publication, and preparation continuation.
+- [ ] 5.1 Represent credential authorization as a resumable session blocker.
+- [ ] 5.2 Route managed execution and evidence reconciliation through sessions.
+- [ ] 5.3 Route evidence review, decision, and successor lineage through sessions.
+- [ ] Checkpoint C: complete local and remote partitioned lifecycle runs using session tools only.
+- [ ] 6.1 Move Quality Plan and Assessment UI controls onto the shared session read model.
+- [ ] 6.2 Deprecate low-level agent mutations after two clean-room session stress runs.
+- [ ] Synchronize root/scaffold, regenerate contracts/docs/Graphify, and run final release gates.
+- [ ] Perform one exact-artifact independent review before cutover acceptance.

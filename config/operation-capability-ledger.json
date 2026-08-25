@@ -1,13 +1,13 @@
 {
   "schemaVersion": 3,
   "summary": {
-    "builtInStepDefinitions": 125,
-    "trustedHandlers": 125,
+    "builtInStepDefinitions": 127,
+    "trustedHandlers": 127,
     "structuredOperationCases": 2
   },
   "sources": {
-    "stepDefinitionSourceHash": "sha256:1adf92b7c8d7670e458ad2b6e3774771c280fb7fba3dce1006b081819b3cb31a",
-    "operationRegistryHash": "sha256:15256a0d0490ec91ec3ec7cad9b0283129b781efc1c5336b79679fc73edf9fab"
+    "stepDefinitionSourceHash": "sha256:f1fea3b4ddaf4afa2689cce00ea747f4e5bb2b382603ddc3516ece2ed8f9e067",
+    "operationRegistryHash": "sha256:54fa383b3f660a43d50f4d4bed1294c9670462b25f4267199beb7c197e1284c6"
   },
   "rows": [
     {
@@ -77,6 +77,16 @@
       "execution": {
         "kind": "operation",
         "handler": "browser.assertions.no-horizontal-overflow@1",
+        "runtime": "browser"
+      }
+    },
+    {
+      "reference": "browser.assertions.ordered.texts@1",
+      "definitionHash": "sha256:b0b47fe6595e59af69780b96a30158101c42956003d9e5ed3b8340184fd86cca",
+      "humanSignature": "the {string} elements should have ordered texts {string}",
+      "execution": {
+        "kind": "operation",
+        "handler": "browser.assertions.ordered.texts@1",
         "runtime": "browser"
       }
     },
@@ -527,6 +537,16 @@
       "execution": {
         "kind": "operation",
         "handler": "browser.forms.choose.radio.control@1",
+        "runtime": "browser"
+      }
+    },
+    {
+      "reference": "browser.forms.fill.configured.credential@1",
+      "definitionHash": "sha256:c122f60fd218b1eeb7b3e1ee452f92c75314694382e3e3060fcdc1d5d709b24d",
+      "humanSignature": "the user fills the {string} field with the configured environment credential",
+      "execution": {
+        "kind": "operation",
+        "handler": "browser.forms.fill.configured.credential@1",
         "runtime": "browser"
       }
     },
@@ -1261,5 +1281,5 @@
       }
     }
   ],
-  "ledgerHash": "sha256:f35802b5c93616c018fec3e23507773f8767eca372d8b7aff9eb06a2ef322b60"
+  "ledgerHash": "sha256:dca28460b12950ff5ca4a200a44f8643e115e8156408463c2bb8229ff12fb6d0"
 }

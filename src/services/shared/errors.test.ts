@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 import {
   coordinatorAcknowledgement,
   coordinatorAcknowledgementSchema,
+  coordinatorAuthorizationHandoffFromDetails,
   coordinatorErrorEnvelopeSchema,
   ServiceError,
   serviceErrorToActionResponse,
@@ -30,6 +31,30 @@ describe('coordinator public DTO schemas', () => {
     expect(coordinatorErrorEnvelopeSchema.parse(base)).toEqual(base)
     expect(coordinatorErrorEnvelopeSchema.safeParse({ ...base, kind: 'appraise.error/v1' }).success).toBe(false)
     expect(coordinatorErrorEnvelopeSchema.safeParse({ ...base, context: {} }).success).toBe(false)
+  })
+
+  it('creates the authorization handoff from only the stable request identity', () => {
+    const handoff = coordinatorAuthorizationHandoffFromDetails({
+      requestId: '5a9fb98f-8912-44a9-b843-30fb19dd6129',
+      requestHash: `sha256:${'e'.repeat(64)}`,
+      expiresAt: '2026-08-24T12:00:00.000Z',
+      password: 'must-not-project',
+      grant: 'must-not-project',
+    })
+    expect(handoff).toMatchObject({
+      executionRequestId: '5a9fb98f-8912-44a9-b843-30fb19dd6129',
+      expectedRequestHash: `sha256:${'e'.repeat(64)}`,
+      authorizationRequestCreated: true,
+      nextAction: { tool: 'assessment_prepare_run' },
+    })
+    expect(JSON.stringify(handoff)).not.toContain('must-not-project')
+    expect(
+      coordinatorAuthorizationHandoffFromDetails({
+        requestId: 'not-a-uuid',
+        requestHash: `sha256:${'e'.repeat(64)}`,
+        expiresAt: '2026-08-24T12:00:00.000Z',
+      }),
+    ).toBeUndefined()
   })
 
   it('returns the explicit validated acknowledgement DTO', () => {

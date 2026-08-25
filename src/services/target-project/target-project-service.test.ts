@@ -131,7 +131,7 @@ describe('target project service', () => {
     expect(mockEnvironmentUpsert).toHaveBeenCalledWith({
       where: { targetProjectId_name: { targetProjectId: 'remote-target', name: 'default' } },
       create: { targetProjectId: 'remote-target', name: 'default', baseUrl: 'https://example.test' },
-      update: { baseUrl: 'https://example.test' },
+      update: { baseUrl: 'https://example.test', scopeVersion: { increment: 1 } },
     })
   })
 

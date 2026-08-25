@@ -1,6 +1,8 @@
 import { describe, expect, it, vi } from 'vitest'
 import type { Locator, Page } from 'playwright'
 
+import definitions from './definitions.json'
+
 import {
   browserOperationHandlerDescriptors,
   type BrowserOperationContext,
@@ -18,6 +20,7 @@ function runtime() {
     isChecked: vi.fn().mockResolvedValue(true),
     inputValue: vi.fn().mockResolvedValue('value'),
     textContent: vi.fn().mockResolvedValue('expected text'),
+    allTextContents: vi.fn().mockResolvedValue(['Sauce Labs Backpack', 'Sauce Labs Bike Light']),
     evaluate: vi.fn().mockResolvedValue('Accessible name'),
     waitFor: vi.fn(),
     count: vi.fn().mockResolvedValue(1),
@@ -85,6 +88,19 @@ describe('browser operation handlers', () => {
     else expect(call).toHaveBeenCalledWith(expected)
   })
 
+  it('navigates to the managed sealed environment base URL without a legacy ENVIRONMENT name', async () => {
+    const value = runtime()
+    const priorEnvironment = process.env.ENVIRONMENT
+    delete process.env.ENVIRONMENT
+    try {
+      await executeBrowserOperation('browser.navigation.navigate.to.environment.base.url@1', value.context)
+      expect(value.page.goto).toHaveBeenCalledWith('https://example.test/', { waitUntil: 'domcontentloaded' })
+    } finally {
+      if (priorEnvironment === undefined) delete process.env.ENVIRONMENT
+      else process.env.ENVIRONMENT = priorEnvironment
+    }
+  })
+
   it('executes locator primitives and preserves stable failure codes', async () => {
     const value = runtime()
     value.context.inputs = { target: { id: 'title' }, value: 'Notice' }
@@ -94,6 +110,45 @@ describe('browser operation handlers', () => {
     value.context.inputs = { target: { id: 'title' } }
     await expect(executeBrowserOperation('browser.assertions.hidden@1', value.context)).rejects.toMatchObject({
       code: 'operation_assertion_failed',
+    })
+  })
+
+  it('asserts reviewed collection text in exact document order without inventing a selector', async () => {
+    const value = runtime()
+    value.context.inputs = {
+      target: { id: 'inventory-item-names' },
+      expectedTexts: ['Sauce Labs Backpack', 'Sauce Labs Bike Light'],
+    }
+
+    await expect(executeBrowserOperation('browser.assertions.ordered.texts@1', value.context)).resolves.toBeUndefined()
+
+    expect(value.context.resolveLocator).toHaveBeenCalledWith({ id: 'inventory-item-names' })
+    expect(value.locator.allTextContents).toHaveBeenCalledOnce()
+    expect(value.locator.count).not.toHaveBeenCalled()
+    expect(value.page.locator).not.toHaveBeenCalled()
+  })
+
+  it('reports a bounded ordered-text mismatch without sorting collection values', async () => {
+    const value = runtime()
+    value.context.inputs = {
+      target: { id: 'inventory-item-names' },
+      expectedTexts: ['Sauce Labs Backpack', 'Sauce Labs Bike Light'],
+    }
+    vi.mocked(value.locator.allTextContents).mockResolvedValue(['Sauce Labs Bike Light', 'Sauce Labs Backpack'])
+
+    await expect(executeBrowserOperation('browser.assertions.ordered.texts@1', value.context)).rejects.toMatchObject({
+      code: 'operation_assertion_failed',
+      message: 'Ordered text mismatch at index 0: expected "Sauce Labs Backpack", found "Sauce Labs Bike Light".',
+    })
+  })
+
+  it('rejects an ordered-text collection length mismatch', async () => {
+    const value = runtime()
+    value.context.inputs = { target: { id: 'inventory-item-names' }, expectedTexts: ['Sauce Labs Backpack'] }
+
+    await expect(executeBrowserOperation('browser.assertions.ordered.texts@1', value.context)).rejects.toMatchObject({
+      code: 'operation_assertion_failed',
+      message: 'Ordered text count mismatch: expected 1, found 2.',
     })
   })
 
@@ -177,6 +232,63 @@ describe('browser operation handlers', () => {
       vi.mocked(value.page.url).mockReturnValue('about:blank')
       await expect(executeBrowserOperation('browser.forms.fill@1', value.context)).rejects.toMatchObject({
         code: 'ORIGIN_DENIED',
+      })
+      expect(value.locator.fill).not.toHaveBeenCalled()
+    } finally {
+      if (priorCredential === undefined) delete process.env.APPRAISE_ENV_PASSWORD
+      else process.env.APPRAISE_ENV_PASSWORD = priorCredential
+    }
+  })
+
+  it('fills only the runtime-resolved configured credential after sealed-origin validation without retaining it in inputs', async () => {
+    const value = runtime()
+    const priorCredential = process.env.APPRAISE_ENV_PASSWORD
+    process.env.APPRAISE_ENV_PASSWORD = 'resolved-test-password'
+    try {
+      const definition = definitions.find(item => item.id === 'browser.forms.fill.configured.credential')
+      expect(definition).toMatchObject({ credentialSource: 'environment-resolved' })
+      expect(definition?.inputs).toEqual([
+        expect.objectContaining({ name: 'target', type: 'locator', required: true, cardinality: 'exactlyOne' }),
+      ])
+      value.context.inputs = { target: { id: 'password' } }
+      vi.mocked(value.page.url).mockReturnValue('about:blank')
+      await expect(
+        executeBrowserOperation('browser.forms.fill.configured.credential@1', value.context),
+      ).rejects.toMatchObject({ code: 'ORIGIN_DENIED' })
+      expect(value.locator.fill).not.toHaveBeenCalled()
+
+      vi.mocked(value.page.url).mockReturnValue('https://example.test/login')
+      await expect(
+        executeBrowserOperation('browser.forms.fill.configured.credential@1', value.context),
+      ).resolves.toBeUndefined()
+      expect(value.locator.fill).toHaveBeenCalledWith('resolved-test-password')
+      expect(value.context.inputs).toEqual({ target: { id: 'password' } })
+
+      vi.mocked(value.locator.fill).mockRejectedValueOnce(new Error('fill rejected resolved-test-password'))
+      await expect(
+        executeBrowserOperation('browser.forms.fill.configured.credential@1', value.context),
+      ).rejects.toMatchObject({
+        code: 'credential_fill_failed',
+        message: expect.not.stringContaining('resolved-test-password'),
+      })
+    } finally {
+      if (priorCredential === undefined) delete process.env.APPRAISE_ENV_PASSWORD
+      else process.env.APPRAISE_ENV_PASSWORD = priorCredential
+    }
+  })
+
+  it('fails closed without a resolved configured credential', async () => {
+    const value = runtime()
+    const priorCredential = process.env.APPRAISE_ENV_PASSWORD
+    delete process.env.APPRAISE_ENV_PASSWORD
+    try {
+      value.context.inputs = { target: { id: 'password' } }
+      vi.mocked(value.page.url).mockReturnValue('https://example.test/login')
+      await expect(
+        executeBrowserOperation('browser.forms.fill.configured.credential@1', value.context),
+      ).rejects.toMatchObject({
+        code: 'credential_prerequisite_unavailable',
+        message: 'Configured environment credential is unavailable.',
       })
       expect(value.locator.fill).not.toHaveBeenCalled()
     } finally {

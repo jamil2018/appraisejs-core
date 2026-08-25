@@ -2,7 +2,7 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import type { ToolAnnotations } from '@modelcontextprotocol/sdk/types.js'
 import { z } from 'zod'
 import type { CoordinatorOptions as McpOptions } from '../coordinator-client.js'
-import { CoordinatorRequestError, toolError } from './coordinator-call.js'
+import { CoordinatorRequestError, coordinatorRequestError, toolError } from './coordinator-call.js'
 import {
   canonicalMcpResourceNames,
   canonicalMcpToolNames,
@@ -36,6 +36,25 @@ const contracts = new WeakMap<McpServer, readonly McpContractDefinition[]>()
 const canonicalContracts = new Map<string, readonly McpContractDefinition[]>()
 
 type ToolHandler = (...args: unknown[]) => unknown
+
+function resourceError(error: CoordinatorRequestError) {
+  const envelope = coordinatorRequestError(error)
+  return {
+    schema: envelope.schema,
+    errorId: envelope.errorId,
+    occurredAt: envelope.occurredAt,
+    classification: envelope.classification,
+    code: envelope.code,
+    message: envelope.message,
+    httpStatus: envelope.httpStatus,
+    operation: envelope.operation,
+    operationOutcome: envelope.operationOutcome,
+    ...(envelope.durableState ? { durableState: envelope.durableState } : {}),
+    targetOutcome: envelope.targetOutcome,
+    retry: envelope.retry,
+    ...(envelope.authorization ? { authorization: envelope.authorization } : {}),
+  }
+}
 
 export function withStructuredCoordinatorErrors(handler: ToolHandler): ToolHandler {
   return async (...args: unknown[]) => {
@@ -89,7 +108,18 @@ function registrationTarget(server: McpServer, definitions: McpContractDefinitio
         uri: normalizedUri,
         annotations: mcpResourceAnnotations(name)!,
       })
-      return server.registerResource(name, uri as never, config, handler as never)
+      const resourceHandler = async (...args: unknown[]) => {
+        try {
+          return await (handler as (...handlerArguments: unknown[]) => unknown)(...args)
+        } catch (error) {
+          if (!(error instanceof CoordinatorRequestError)) throw error
+          const resourceUri = args[0] instanceof URL ? args[0].href : String(uri)
+          return {
+            contents: [{ uri: resourceUri, mimeType: 'application/json', text: JSON.stringify(resourceError(error)) }],
+          }
+        }
+      }
+      return server.registerResource(name, uri as never, config, resourceHandler as never)
     },
   } as McpServer
 }

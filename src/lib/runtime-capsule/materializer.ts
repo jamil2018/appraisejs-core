@@ -4,11 +4,16 @@ import { z } from 'zod'
 import path from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { canonicalContractJson } from '@/lib/catalog-contracts'
+import {
+  frozenEnvironmentSnapshot,
+  runtimeEnvironmentFromFrozenPacket,
+} from '@/lib/quality-design/frozen-environment-snapshot'
 import { validationArtifactSchema, type ValidationArtifact } from '@/lib/quality-design/validation-artifact-contract'
 import { compiledCustomExtensionSchema } from '@/lib/validation-ast/custom-extension-compiler'
 import { assertSafeGeneratedGherkin } from '@/lib/validation-ast/gherkin-safety'
 import {
   validateValidationAstRuntimeInput,
+  validationAstPublishOperationIdFromReceiptHash,
   type ValidationAstRuntimeInput,
 } from '@/lib/quality-design/validation-runtime-input-contract'
 import {
@@ -30,17 +35,23 @@ import { generateExecutableBindings } from './binding-generator'
 import { resolveRuntimeStepDefinitionClosure, type SealedRuntimeStepDefinition } from './step-definition-closure'
 import { stepDefinitionContentHash } from '../../../packages/cucumber-runtime/src/step-definitions/contracts.ts'
 import { recordStepDefinitionTelemetry } from '@/services/step-definition/step-definition-telemetry'
+import { ServiceError } from '@/services/shared/errors'
+import {
+  ASSESSMENT_PREFLIGHT_ALGORITHM,
+  expectedQualityPublicationPreflightAuthority,
+} from '@/lib/quality-design/remote-evaluation-scope-contract'
 import { createCustomExtensionPolicy } from '@/lib/validation-ast/extension-policy'
 import { defaultOperationDefinitions } from '@/lib/operation-catalog/default-operation-registry'
 import {
   stepInvocationSchema,
   validateStepInvocationInputs,
+  type StepInvocation,
 } from '../../../packages/cucumber-runtime/src/step-definitions/contracts.ts'
 
 type ValidationNode = ValidationArtifact['validations'][number]
 type CapsuleFile = { path: string; role: RuntimeCapsuleManifest['files'][number]['role']; bytes: Buffer }
 type QualityPublication = Prisma.QualityValidationPublicationGetPayload<{
-  include: { targetProject: true; extensionReviews: true; validationVersion: true }
+  include: { targetProject: true; extensionReviews: true; validationVersion: true; generation: true }
 }>
 type CapsulePublication = Pick<
   QualityPublication,
@@ -61,6 +72,7 @@ type CapsulePublication = Pick<
   | 'runtimeInputHash'
   | 'runtimeInputJson'
   | 'extensionReviews'
+  | 'generation'
 >
 type MaterializerTestRun = Prisma.TestRunGetPayload<{ include: { environment: true } }>
 type RuntimeExtensionArtifact = {
@@ -82,12 +94,134 @@ type ReviewedExtensionBinding = Extract<
   { kind: 'reviewed-extension' }
 >
 type PersistedReviewedExtension = NonNullable<Awaited<ReturnType<PrismaClient['stepReviewedExtension']['findFirst']>>>
+type AuthoredPersistedTestRun = Prisma.TestRunGetPayload<{
+  include: {
+    environment: true
+    targetProject: true
+    testCases: {
+      include: {
+        testSuite: { select: { id: true; targetProjectId: true; name: true } }
+        testCase: { include: { steps: true } }
+      }
+    }
+    assessmentRunBinding: true
+  }
+}>
+type AuthoredStep = {
+  id: string
+  order: number
+  label: string | null
+  gherkinStep: string
+  invocation: StepInvocation
+}
+type AuthoredSelection = {
+  suite: { id: string; name: string }
+  testCase: { id: string; title: string; description: string | null; steps: AuthoredStep[] }
+}
 
 const GENERATOR = { id: 'appraise.validation-ast-capsule', version: '2' } as const
 const APPRAISE_RUNTIME_IMPORT = pathToFileURL(
   path.resolve(process.cwd(), 'packages/cucumber-runtime/dist/index.js'),
 ).href
 const APPRAISE_HOOKS_IMPORT = pathToFileURL(path.resolve(process.cwd(), 'packages/cucumber-runtime/dist/hooks.js')).href
+
+function withFrozenEnvironment<
+  T extends {
+    environment: { id: string }
+    environmentSnapshotJson?: string | null
+    environmentSnapshotHash?: string | null
+    environmentSnapshotVersion?: number | null
+  },
+>(testRun: T, remoteScopeRequired = false) {
+  const packet = frozenEnvironmentSnapshot(testRun, { required: remoteScopeRequired })
+  if (!packet) return testRun
+  return { ...testRun, environment: runtimeEnvironmentFromFrozenPacket(testRun.environment as never, packet) }
+}
+
+function authoredSelection(testRun: AuthoredPersistedTestRun): AuthoredSelection[] {
+  if (testRun.testCases.length === 0) throw new Error('Authored runtime capsules require at least one selected case.')
+  return testRun.testCases.map(link => {
+    if (
+      !link.testSuite ||
+      link.testSuite.targetProjectId !== testRun.targetProjectId ||
+      link.testCase.targetProjectId !== testRun.targetProjectId
+    )
+      throw new Error('Authored runtime selection must contain target-owned explicit suite/case links.')
+    if (link.testCase.steps.length === 0)
+      throw new Error(`Authored test case ${link.testCaseId} has no executable Step Invocations.`)
+    const steps = link.testCase.steps.map(step => ({
+      id: step.id,
+      order: step.order,
+      label: step.label,
+      gherkinStep: step.gherkinStep,
+      invocation: stepInvocationSchema.parse(JSON.parse(step.invocationJson)),
+    }))
+    return {
+      suite: { id: link.testSuite.id, name: link.testSuite.name },
+      testCase: { id: link.testCase.id, title: link.testCase.title, description: link.testCase.description, steps },
+    }
+  })
+}
+
+function authoredSourceSnapshot(testRun: AuthoredPersistedTestRun, selected: AuthoredSelection[]) {
+  return {
+    schemaVersion: '1',
+    targetProjectId: testRun.targetProjectId,
+    targetFingerprint: testRun.targetProject.fingerprint,
+    environmentId: testRun.environmentId,
+    ...(testRun.targetProject.kind === 'REMOTE_BLACK_BOX'
+      ? {
+          // The authored snapshot remains independent-run provenance, but its
+          // executable environment identity is the already-validated
+          // non-secret remote packet—not a mutable Environment lookup.
+          remoteEnvironment: {
+            snapshotHash: testRun.environmentSnapshotHash,
+            snapshotVersion: testRun.environmentSnapshotVersion,
+            binding: {
+              id: testRun.environment.id,
+              baseUrl: testRun.environment.baseUrl,
+              expectedPageTitle: testRun.environment.expectedPageTitle ?? null,
+              apiBaseUrl: testRun.environment.apiBaseUrl ?? null,
+              username: testRun.environment.username ?? null,
+              credentialState: testRun.environment.credentialState,
+              passwordEnvironmentVariable: testRun.environment.passwordEnvironmentVariable ?? null,
+            },
+          },
+        }
+      : {}),
+    browserEngine: testRun.browserEngine,
+    selection: [...selected].sort((left, right) =>
+      `${left.suite.id}/${left.testCase.id}`.localeCompare(`${right.suite.id}/${right.testCase.id}`),
+    ),
+  }
+}
+
+async function resolveAuthoredDefinitions(input: { invocations: StepInvocation[]; prisma: PrismaClient }) {
+  const sealedDefinitions = await resolveRuntimeStepDefinitionClosure(
+    input.invocations.map(invocation => invocation.step),
+    async step =>
+      input.prisma.stepDefinition.findUnique({
+        where: { id_version: { id: step.id, version: step.version } },
+        include: { publicationReceipt: true },
+      }),
+  )
+  const definitionByRef = new Map(
+    sealedDefinitions.map(definition => [`${definition.step.id}@${definition.step.version}`, definition.definition]),
+  )
+  const locatorIds = new Set<string>()
+  for (const invocation of input.invocations) {
+    const definition = definitionByRef.get(`${invocation.step.id}@${invocation.step.version}`)
+    if (!definition) throw new Error('Authored Step Invocation is missing its sealed Step Definition.')
+    validateStepInvocationInputs(definition, invocation.inputs)
+    for (const inputDefinition of definition.inputs.filter(item => item.type === 'locator')) {
+      const value = invocation.inputs[inputDefinition.name]
+      if (typeof value !== 'string' || !value)
+        throw new Error(`Authored locator input ${inputDefinition.name} must reference a target-owned locator ID.`)
+      locatorIds.add(value)
+    }
+  }
+  return { sealedDefinitions, definitionByRef, locatorIds }
+}
 
 function matchesExtensionByteHash(value: string, expectedHash: string) {
   return (
@@ -298,9 +432,13 @@ function assertReviewedPhase2Node(operation: CapsulePublication, node: Validatio
 
 function assertReviewedPublicationProvenance(operation: CapsulePublication, node: ValidationNode) {
   const provenance = node.astProvenance
+  // The compiler-sealed AST operation ID derives from its receipt and remains
+  // distinct from the v3 persistence publication identity (qvp_*).  Both are
+  // immutable and the receipt/runtime bytes bind them together.
+  const expectedAstPublicationId = validationAstPublishOperationIdFromReceiptHash(operation.receiptHash)
   if (
     provenance?.schemaVersion !== '2' ||
-    provenance.publishOperationId !== operation.id ||
+    provenance.publishOperationId !== expectedAstPublicationId ||
     provenance.receiptHash !== operation.receiptHash ||
     provenance.runtimeInputHash !== operation.runtimeInputHash
   )
@@ -446,7 +584,13 @@ async function buildCapsuleManifest(
   prisma: PrismaClient,
 ) {
   const runtimeInput = validateValidationAstRuntimeInput({
-    operation,
+    operation: {
+      ...operation,
+      // The compiler contract seals astpub_* from the receipt. The durable
+      // v3 qvp_* row is checked separately by this materializer's exact
+      // publication/generation binding.
+      id: validationAstPublishOperationIdFromReceiptHash(operation.receiptHash),
+    },
     projectionJson: operation.projectionJson,
     extensionReviews: operation.extensionReviews,
   })
@@ -491,7 +635,13 @@ async function buildCapsuleManifest(
     source: {
       kind: 'PUBLISHED_VALIDATION',
       sourceHash: operation.validationHash,
+      // Runtime-capsule ownership is the durable Quality publication. The
+      // compiler-local astpub_* identity remains sealed in astProvenance and
+      // is verified above; it must not replace the qvp_* row that preflight
+      // and Assessment bindings use for publication authority.
       publishOperationId: operation.id,
+      generationId: operation.generation.id,
+      generationKey: operation.generation.generationKey,
     },
     ...(runtimeInput.lifecycleCorrelation ? { lifecycleCorrelation: runtimeInput.lifecycleCorrelation } : {}),
     commandReceipt: { path: 'command-receipt.json', hash: hashCapsuleCommandReceipt(commandReceipt) },
@@ -533,18 +683,50 @@ export class RuntimeCapsuleMaterializer {
       include: {
         targetProject: true,
         validationVersion: true,
+        generation: true,
         extensionReviews: { orderBy: [{ extensionId: 'asc' }, { version: 'asc' }] },
       },
     })
     try {
+      if (
+        publication.preflightAlgorithmVersion !== undefined &&
+        (publication.preflightAlgorithmVersion !== ASSESSMENT_PREFLIGHT_ALGORITHM ||
+          publication.preflightDisposition !== 'ACTIVE' ||
+          publication.preflightAuthority !==
+            expectedQualityPublicationPreflightAuthority(publication.targetProject.kind))
+      )
+        throw new ServiceError(
+          'Quality validation publication uses an unsupported v2 preflight authority or algorithm and cannot materialize.',
+          'CONFLICT',
+          409,
+          { code: 'preflight_algorithm_unsupported', targetOutcome: 'not_evaluated' },
+        )
       if (publication.phase !== 'review_ready')
         throw new Error('Runtime capsules require a review-ready Quality validation publication.')
-      const testRun = await this.prisma.testRun.findUniqueOrThrow({
+      const persistedTestRun = await this.prisma.testRun.findUniqueOrThrow({
         where: { id: input.testRunId },
-        include: { environment: true },
+        include: { environment: true, assessmentRunBinding: true },
       })
+      // The materializer's own durable publication read is authoritative for
+      // remoteness. Re-validate and project the frozen packet before parsing
+      // validation bytes, resolving locators, sealing a receipt, or writing a
+      // blob/capsule; a valid packet observed by a caller cannot authorize a
+      // later mutable or corrupt TestRun row.
+      const testRun = withFrozenEnvironment(persistedTestRun, publication.targetProject.kind === 'REMOTE_BLACK_BOX')
       if (testRun.targetProjectId !== publication.targetProjectId)
         throw new Error('TestRun and Quality validation publication ownership do not match.')
+      const binding = testRun.assessmentRunBinding
+      if (binding) {
+        if (!binding.generationId || !binding.publicationId || !binding.publicationOperationHash)
+          throw new Error('Legacy-unbound Assessment binding cannot materialize new managed evidence.')
+        if (
+          binding.validationVersionId !== publication.validationVersionId ||
+          binding.generationId !== publication.generation.id ||
+          binding.publicationId !== publication.id ||
+          binding.publicationOperationHash !== publication.operationHash
+        )
+          throw new Error('Assessment binding does not match the exact Quality generation and publication.')
+      }
       const validation = validationArtifactSchema.parse(
         JSON.parse(publication.validationProjectionJson),
       ) as ValidationArtifact
@@ -615,7 +797,7 @@ export class RuntimeCapsuleMaterializer {
    * The snapshot is deliberately not a Quality publication and can never be
    * used as Assessment evidence authority. */
   async materializeAuthored(input: { testRunId: string }) {
-    const testRun = await this.prisma.testRun.findUniqueOrThrow({
+    const persistedTestRun = await this.prisma.testRun.findUniqueOrThrow({
       where: { id: input.testRunId },
       include: {
         environment: true,
@@ -634,73 +816,25 @@ export class RuntimeCapsuleMaterializer {
         assessmentRunBinding: true,
       },
     })
+    // A REMOTE_BLACK_BOX authored run is just as scope-bound as a published
+    // remote run.  Validate and substitute its immutable packet before any
+    // selected-case, locator, command-receipt, or capsule work can read the
+    // mutable Environment relation.
+    const testRun = withFrozenEnvironment(persistedTestRun, persistedTestRun.targetProject.kind === 'REMOTE_BLACK_BOX')
     if (testRun.intent !== 'INDEPENDENT')
       throw new Error('Authored runtime capsules are available only to independent TestRuns.')
     if (testRun.assessmentRunBinding)
       throw new Error('Independent authored TestRuns cannot have an AssessmentRun binding.')
-    if (testRun.testCases.length === 0) throw new Error('Authored runtime capsules require at least one selected case.')
-
-    const selected = testRun.testCases.map(link => {
-      if (
-        !link.testSuite ||
-        link.testSuite.targetProjectId !== testRun.targetProjectId ||
-        link.testCase.targetProjectId !== testRun.targetProjectId
-      )
-        throw new Error('Authored runtime selection must contain target-owned explicit suite/case links.')
-      if (link.testCase.steps.length === 0)
-        throw new Error(`Authored test case ${link.testCaseId} has no executable Step Invocations.`)
-      const steps = link.testCase.steps.map(step => ({
-        id: step.id,
-        order: step.order,
-        label: step.label,
-        gherkinStep: step.gherkinStep,
-        invocation: stepInvocationSchema.parse(JSON.parse(step.invocationJson)),
-      }))
-      return {
-        suite: { id: link.testSuite.id, name: link.testSuite.name },
-        testCase: { id: link.testCase.id, title: link.testCase.title, description: link.testCase.description, steps },
-      }
-    })
-    const sourceSnapshot = {
-      schemaVersion: '1',
-      targetProjectId: testRun.targetProjectId,
-      targetFingerprint: testRun.targetProject.fingerprint,
-      environmentId: testRun.environmentId,
-      browserEngine: testRun.browserEngine,
-      selection: [...selected].sort((left, right) =>
-        `${left.suite.id}/${left.testCase.id}`.localeCompare(`${right.suite.id}/${right.testCase.id}`),
-      ),
-    }
+    const selected = authoredSelection(testRun)
+    const sourceSnapshot = authoredSourceSnapshot(testRun, selected)
     const validationId = `authored_${hashRuntimeCapsuleValue(sourceSnapshot).slice('sha256:'.length)}`
     if (new Set(selected.map(item => item.testCase.id)).size !== selected.length)
       throw new Error('Authored runtime selection cannot include one case through multiple suites.')
     const allInvocations = selected.flatMap(item => item.testCase.steps.map(step => step.invocation))
-    const sealedDefinitions = await resolveRuntimeStepDefinitionClosure(
-      allInvocations.map(invocation => invocation.step),
-      async step =>
-        this.prisma.stepDefinition.findUnique({
-          where: { id_version: { id: step.id, version: step.version } },
-          include: { publicationReceipt: true },
-        }),
-    )
-    const definitionByRef = new Map(
-      sealedDefinitions.map(definition => [`${definition.step.id}@${definition.step.version}`, definition.definition]),
-    )
-    for (const invocation of allInvocations) {
-      const definition = definitionByRef.get(`${invocation.step.id}@${invocation.step.version}`)
-      if (!definition) throw new Error('Authored Step Invocation is missing its sealed Step Definition.')
-      validateStepInvocationInputs(definition, invocation.inputs)
-    }
-    const locatorIds = new Set<string>()
-    for (const invocation of allInvocations) {
-      const definition = definitionByRef.get(`${invocation.step.id}@${invocation.step.version}`)!
-      for (const inputDefinition of definition.inputs.filter(item => item.type === 'locator')) {
-        const value = invocation.inputs[inputDefinition.name]
-        if (typeof value !== 'string' || !value)
-          throw new Error(`Authored locator input ${inputDefinition.name} must reference a target-owned locator ID.`)
-        locatorIds.add(value)
-      }
-    }
+    const { sealedDefinitions, definitionByRef, locatorIds } = await resolveAuthoredDefinitions({
+      invocations: allInvocations,
+      prisma: this.prisma,
+    })
     const locators = await this.prisma.locator.findMany({
       where: { id: { in: [...locatorIds] }, targetProjectId: testRun.targetProjectId },
       select: { id: true, name: true, value: true, locatorGroupId: true },

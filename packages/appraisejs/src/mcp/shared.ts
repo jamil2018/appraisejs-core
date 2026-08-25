@@ -85,12 +85,7 @@ export const qualityDesignWorkflow = {
       'requirements_answer_queries',
       'requirements_approve',
     ],
-    validationDesign: [
-      'validation_design_propose',
-      'validation_design_approve',
-      'validation_compile',
-      'validation_publish',
-    ],
+    validationDesign: ['validation_design_propose', 'validation_design_approve'],
   },
 }
 
@@ -105,7 +100,7 @@ export const assessmentWorkflow = {
 
 export const mcpCapabilityMetadata = {
   packageVersion: packageJson.version ?? '0.0.0',
-  mcpSurfaceVersion: '2026-08-15.contract-negotiation',
+  mcpSurfaceVersion: '2026-08-21.assessment-preflight-cutover',
   mcpContractHash: mcpContractHash(mcpContractFixture.default),
   serverStartedAt,
   workflowCriticalTools: [...workflowTools],
@@ -124,7 +119,7 @@ export const compactMcpCapabilityMetadata = {
     'requirements_submit_source',
     'locator_ensure',
     'locator_search',
-    'validation_publish',
+    'assessment_preflight',
     'assessment_run',
     'assessment_decide',
   ],

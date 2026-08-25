@@ -5,6 +5,18 @@ export type RequirementQueryStatus = 'BLOCKING' | 'DEFERRED' | 'ACCEPTED_ASSUMPT
 export type AssuranceLevel = 'SMOKE' | 'STANDARD' | 'HIGH' | 'EXHAUSTIVE'
 
 export type EvidenceReceiptHashInput = {
+  /** Managed provenance is part of the sealed identity.  These values are
+   * intentionally nullable only for historical/standalone call sites; all
+   * newly reconciled managed receipts supply the exact durable identities. */
+  targetProjectId?: string | null
+  assessmentId?: string | null
+  assessmentRunId?: string | null
+  /** All three are required together for newly sealed managed evidence. They
+   * remain absent for historical receipts so their stored v1 hash is never
+   * reinterpreted under a new schema. */
+  generationId?: string | null
+  publicationId?: string | null
+  publicationOperationHash?: string | null
   validationVersionHash: string
   resultMatrixCell: string
   subjectDigest: string
@@ -59,7 +71,12 @@ export function assuranceSatisfies(observed: AssuranceLevel, required: Assurance
 }
 
 export function hashEvidenceReceipt(input: EvidenceReceiptHashInput): string {
+  const publicationIdentity = [input.generationId, input.publicationId, input.publicationOperationHash]
+  if (publicationIdentity.some(value => value != null) && publicationIdentity.some(value => !value))
+    throw new Error('Evidence publication identity requires generationId, publicationId, and publicationOperationHash.')
   return hashCanonical({
+    assessmentId: input.assessmentId ?? null,
+    assessmentRunId: input.assessmentRunId ?? null,
     browserSnapshotHash: input.browserSnapshotHash ?? null,
     dataProvenanceHash: input.dataProvenanceHash,
     environmentSnapshotHash: input.environmentSnapshotHash,
@@ -70,8 +87,16 @@ export function hashEvidenceReceipt(input: EvidenceReceiptHashInput): string {
     resultMatrixCell: input.resultMatrixCell,
     runtimeInputHash: input.runtimeInputHash,
     subjectDigest: input.subjectDigest,
+    targetProjectId: input.targetProjectId ?? null,
     traceHash: input.traceHash ?? null,
     validationVersionHash: input.validationVersionHash,
+    ...(input.generationId
+      ? {
+          generationId: input.generationId,
+          publicationId: input.publicationId,
+          publicationOperationHash: input.publicationOperationHash,
+        }
+      : {}),
   })
 }
 

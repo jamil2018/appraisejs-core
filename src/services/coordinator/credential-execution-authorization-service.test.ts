@@ -4,6 +4,10 @@ import { mkdtemp, rm, writeFile } from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import {
+  builtInStepDefinitions,
+  computeStepReferenceHash,
+} from '../../../packages/cucumber-runtime/src/step-definitions/index.ts'
 
 const { database } = vi.hoisted(() => {
   const database = {
@@ -49,6 +53,28 @@ const scope = {
   requestHash: sha('execution'),
 }
 
+const configuredCredentialDefinition = builtInStepDefinitions.find(
+  definition => definition.identity.id === 'browser.forms.fill.configured.credential',
+)!
+const ordinaryFillDefinition = builtInStepDefinitions.find(
+  definition => definition.identity.id === 'browser.forms.fill',
+)!
+
+function rootInvocation(
+  definition: (typeof builtInStepDefinitions)[number],
+  inputs: Record<string, unknown>,
+  hash = computeStepReferenceHash(definition),
+) {
+  return {
+    caseId: 'case-1',
+    stepId: 'step-1',
+    invocation: {
+      step: { id: definition.identity.id, version: definition.identity.version, definitionHash: hash },
+      inputs,
+    },
+  }
+}
+
 function base64(value: unknown) {
   return Buffer.from(JSON.stringify(value)).toString('base64url')
 }
@@ -78,33 +104,124 @@ describe('credential execution authorization', () => {
     delete process.env.APPRAISE_HOST_ASSERTION_TRUST_FILE
   })
 
-  it('extracts only exact environment references from the authoritative invocation AST', () => {
+  it('derives the environment password only from an exact configured-credential invocation', () => {
     const input = credentialAuthorizationInput({
       ...scope,
       publications: [
         {
+          generationId: 'generation-1',
+          publicationId: 'publication-1',
           operationHash: sha('operation'),
           runtimeInputHash: sha('input'),
           runtimeInputJson: JSON.stringify({
-            rootInvocations: [
-              {
-                caseId: 'case-1',
-                stepId: 'step-1',
-                invocation: {
-                  inputs: {
-                    password: { ref: 'environment', key: 'password' },
-                    legacy: 'env:password',
-                    forged: { ref: 'environment', key: 'password', extra: true },
-                  },
-                },
-              },
-            ],
+            rootInvocations: [rootInvocation(configuredCredentialDefinition, { target: 'locator-password' })],
           }),
         },
       ],
     })
 
     expect(input.bindings).toEqual([{ slot: 'case-1:step-1:password', reference: 'environment:password' }])
+  })
+
+  it('does not derive a binding from ordinary fills, malformed references, or forged operation identity', () => {
+    const runtimeInput = (rootInvocations: unknown[]) =>
+      credentialAuthorizationInput({
+        ...scope,
+        publications: [
+          {
+            generationId: 'generation-1',
+            publicationId: 'publication-1',
+            operationHash: sha('operation'),
+            runtimeInputHash: sha('input'),
+            runtimeInputJson: JSON.stringify({ rootInvocations }),
+          },
+        ],
+      })
+
+    expect(
+      runtimeInput([rootInvocation(ordinaryFillDefinition, { target: 'locator', value: 'plain' })]).bindings,
+    ).toEqual([])
+    expect(
+      runtimeInput([
+        rootInvocation(ordinaryFillDefinition, {
+          target: { ref: 'environment', key: 'password', extra: true },
+          value: 'plain',
+        }),
+      ]).bindings,
+    ).toEqual([])
+    expect(
+      runtimeInput([rootInvocation(ordinaryFillDefinition, { target: 'locator', value: 'env:password' })]).bindings,
+    ).toEqual([])
+    expect(
+      runtimeInput([rootInvocation(configuredCredentialDefinition, { target: 'locator-password' }, sha('forged'))])
+        .bindings,
+    ).toEqual([])
+    expect(
+      runtimeInput([
+        {
+          ...rootInvocation(ordinaryFillDefinition, { target: 'locator', value: 'plain' }),
+          invocation: {
+            step: {
+              id: configuredCredentialDefinition.identity.id,
+              version: configuredCredentialDefinition.identity.version,
+              definitionHash: computeStepReferenceHash(ordinaryFillDefinition),
+            },
+            inputs: { target: 'locator-password' },
+          },
+        },
+      ]).bindings,
+    ).toEqual([])
+  })
+
+  it('retains exact published environment references and rejects conflicting stable slots', () => {
+    const exact = credentialAuthorizationInput({
+      ...scope,
+      publications: [
+        {
+          generationId: 'generation-1',
+          publicationId: 'publication-1',
+          operationHash: sha('operation'),
+          runtimeInputHash: sha('input'),
+          runtimeInputJson: JSON.stringify({
+            rootInvocations: [
+              rootInvocation(ordinaryFillDefinition, {
+                target: 'locator',
+                value: { ref: 'environment', key: 'password' },
+              }),
+            ],
+          }),
+        },
+      ],
+    })
+    expect(exact.bindings).toEqual([{ slot: 'case-1:step-1:value', reference: 'environment:password' }])
+
+    expect(() =>
+      credentialAuthorizationInput({
+        ...scope,
+        publications: [
+          {
+            generationId: 'generation-1',
+            publicationId: 'publication-1',
+            operationHash: sha('operation'),
+            runtimeInputHash: sha('input'),
+            runtimeInputJson: JSON.stringify({
+              rootInvocations: [
+                rootInvocation(ordinaryFillDefinition, {
+                  target: 'locator',
+                  value: { ref: 'environment', key: 'password' },
+                }),
+                {
+                  ...rootInvocation(ordinaryFillDefinition, {
+                    target: 'locator',
+                    value: { ref: 'environment', key: 'token' },
+                  }),
+                },
+              ],
+            }),
+          },
+        ],
+      }),
+    ).toThrow('ambiguous published environment bindings')
   })
 
   it('fails closed rather than fabricating a credential binding', async () => {

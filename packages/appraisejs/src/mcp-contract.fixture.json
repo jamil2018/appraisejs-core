@@ -76,7 +76,7 @@
     {
       "kind": "tool",
       "name": "assessment_create",
-      "description": "Create a repeatable Quality Plan Assessment for an immutable evaluation subject digest.",
+      "description": "Create a repeatable Quality Plan Assessment. REMOTE_BLACK_BOX targets require an Appraise-owned remote scope subjectRevisionId; it is evaluation-scope identity only, not content identity.",
       "inputSchema": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "type": "object",
@@ -89,7 +89,74 @@
             "type": "string",
             "minLength": 1
           },
-          "subject": {},
+          "subject": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "subjectDigest": {
+                    "type": "string",
+                    "pattern": "^sha256:.*"
+                  },
+                  "authority": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "subjectKind": {
+                    "type": "string",
+                    "enum": [
+                      "ARTIFACT",
+                      "DEPLOYMENT_SNAPSHOT"
+                    ]
+                  },
+                  "metadata": {
+                    "type": "object",
+                    "propertyNames": {
+                      "type": "string"
+                    },
+                    "additionalProperties": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "number"
+                        },
+                        {
+                          "type": "boolean"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  }
+                },
+                "required": [
+                  "subjectDigest",
+                  "authority"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "subjectRevisionId": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "expectedSubjectDigest": {
+                    "type": "string",
+                    "pattern": "^sha256:.*"
+                  }
+                },
+                "required": [
+                  "subjectRevisionId"
+                ],
+                "additionalProperties": false
+              }
+            ]
+          },
           "baselineAssessmentId": {
             "type": "string",
             "minLength": 1
@@ -141,36 +208,72 @@
             "minLength": 1
           },
           "subject": {
-            "type": "object",
-            "properties": {
-              "subjectDigest": {
-                "type": "string",
-                "pattern": "^sha256:.*"
-              },
-              "authority": {
-                "type": "string",
-                "minLength": 1
-              },
-              "subjectKind": {
-                "type": "string",
-                "enum": [
-                  "ARTIFACT",
-                  "DEPLOYMENT_SNAPSHOT"
-                ]
-              },
-              "metadata": {
+            "anyOf": [
+              {
                 "type": "object",
-                "propertyNames": {
-                  "type": "string"
+                "properties": {
+                  "subjectDigest": {
+                    "type": "string",
+                    "pattern": "^sha256:.*"
+                  },
+                  "authority": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "subjectKind": {
+                    "type": "string",
+                    "enum": [
+                      "ARTIFACT",
+                      "DEPLOYMENT_SNAPSHOT"
+                    ]
+                  },
+                  "metadata": {
+                    "type": "object",
+                    "propertyNames": {
+                      "type": "string"
+                    },
+                    "additionalProperties": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "number"
+                        },
+                        {
+                          "type": "boolean"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  }
                 },
-                "additionalProperties": {}
+                "required": [
+                  "subjectDigest",
+                  "authority"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "subjectRevisionId": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "expectedSubjectDigest": {
+                    "type": "string",
+                    "pattern": "^sha256:.*"
+                  }
+                },
+                "required": [
+                  "subjectRevisionId"
+                ],
+                "additionalProperties": false
               }
-            },
-            "required": [
-              "subjectDigest",
-              "authority"
-            ],
-            "additionalProperties": false
+            ]
           },
           "disposition": {
             "type": "object",
@@ -419,8 +522,8 @@
     },
     {
       "kind": "tool",
-      "name": "assessment_prepare_run",
-      "description": "Resumably prepare approved validation bindings, environment, publication, Assessment, and managed execution without reconciling evidence or issuing a decision.",
+      "name": "assessment_preflight",
+      "description": "Read-only, browser-free v2 canonical preflight for compact approved bindings against an existing environment. Returns algorithmVersion, scopeIntentHash, realizationIntentHash, preflightHash, and bounded diagnostics; it never creates or executes anything.",
       "inputSchema": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "type": "object",
@@ -472,61 +575,7 @@
                           "type": "string"
                         },
                         "additionalProperties": {
-                          "anyOf": [
-                            {
-                              "type": "string"
-                            },
-                            {
-                              "type": "number"
-                            },
-                            {
-                              "type": "boolean"
-                            },
-                            {
-                              "type": "null"
-                            },
-                            {
-                              "type": "array",
-                              "items": {
-                                "anyOf": [
-                                  {
-                                    "type": "string"
-                                  },
-                                  {
-                                    "type": "number"
-                                  },
-                                  {
-                                    "type": "boolean"
-                                  },
-                                  {
-                                    "type": "null"
-                                  }
-                                ]
-                              }
-                            },
-                            {
-                              "type": "object",
-                              "propertyNames": {
-                                "type": "string"
-                              },
-                              "additionalProperties": {
-                                "anyOf": [
-                                  {
-                                    "type": "string"
-                                  },
-                                  {
-                                    "type": "number"
-                                  },
-                                  {
-                                    "type": "boolean"
-                                  },
-                                  {
-                                    "type": "null"
-                                  }
-                                ]
-                              }
-                            }
-                          ]
+                          "$ref": "#/$defs/__schema0"
                         }
                       },
                       "keyword": {
@@ -579,93 +628,426 @@
               "environmentId": {
                 "type": "string",
                 "minLength": 1
-              },
-              "allowCreate": {
-                "type": "boolean",
-                "const": true
-              },
-              "proposal": {
+              }
+            },
+            "required": [
+              "environmentId"
+            ],
+            "additionalProperties": false
+          },
+          "subject": {
+            "anyOf": [
+              {
                 "type": "object",
                 "properties": {
-                  "name": {
+                  "subjectDigest": {
+                    "type": "string",
+                    "pattern": "^sha256:.*"
+                  },
+                  "authority": {
                     "type": "string",
                     "minLength": 1
                   },
-                  "baseUrl": {
+                  "subjectKind": {
                     "type": "string",
-                    "format": "uri"
+                    "enum": [
+                      "ARTIFACT",
+                      "DEPLOYMENT_SNAPSHOT"
+                    ]
                   },
-                  "expectedPageTitle": {
-                    "type": "string",
-                    "maxLength": 200
-                  },
-                  "apiBaseUrl": {
-                    "type": "string",
-                    "format": "uri"
-                  },
-                  "username": {
-                    "type": "string"
-                  },
-                  "passwordEnvironmentVariable": {
-                    "type": "string",
-                    "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+                  "metadata": {
+                    "type": "object",
+                    "propertyNames": {
+                      "type": "string"
+                    },
+                    "additionalProperties": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "number"
+                        },
+                        {
+                          "type": "boolean"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
                   }
                 },
                 "required": [
-                  "name",
-                  "baseUrl"
+                  "subjectDigest",
+                  "authority"
                 ],
                 "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "subjectRevisionId": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "expectedSubjectDigest": {
+                    "type": "string",
+                    "pattern": "^sha256:.*"
+                  }
+                },
+                "required": [
+                  "subjectRevisionId"
+                ],
+                "additionalProperties": false
+              }
+            ]
+          },
+          "runtime": {
+            "type": "object",
+            "properties": {
+              "browserEngine": {
+                "type": "string",
+                "enum": [
+                  "CHROMIUM",
+                  "FIREFOX",
+                  "WEBKIT"
+                ]
               }
             },
             "additionalProperties": false
           },
-          "subject": {
-            "type": "object",
-            "properties": {
-              "subjectDigest": {
+          "responseMode": {
+            "default": "summary",
+            "type": "string",
+            "enum": [
+              "summary",
+              "decisionOnly",
+              "evidenceOnly",
+              "blockersOnly",
+              "linksOnly",
+              "full"
+            ],
+            "description": "Response projection: summary (compact default), decisionOnly (decision hash/status/counts), evidenceOnly, blockersOnly, linksOnly, or full (largest payload)."
+          }
+        },
+        "required": [
+          "target",
+          "qualityPlanId",
+          "revisionId",
+          "expectedDesignHash",
+          "environment",
+          "subject",
+          "responseMode"
+        ],
+        "additionalProperties": false,
+        "$defs": {
+          "__schema0": {
+            "anyOf": [
+              {
                 "type": "string",
-                "pattern": "^sha256:.*"
+                "maxLength": 16384
               },
-              "authority": {
-                "type": "string",
-                "minLength": 1
+              {
+                "type": "number"
               },
-              "subjectKind": {
-                "type": "string",
-                "enum": [
-                  "ARTIFACT",
-                  "DEPLOYMENT_SNAPSHOT"
-                ]
+              {
+                "type": "boolean"
               },
-              "metadata": {
+              {
+                "type": "null"
+              },
+              {
+                "maxItems": 100,
+                "type": "array",
+                "items": {
+                  "$ref": "#/$defs/__schema0"
+                }
+              },
+              {
                 "type": "object",
                 "propertyNames": {
-                  "type": "string"
+                  "type": "string",
+                  "maxLength": 128
                 },
                 "additionalProperties": {
-                  "anyOf": [
-                    {
-                      "type": "string"
-                    },
-                    {
-                      "type": "number"
-                    },
-                    {
-                      "type": "boolean"
-                    },
-                    {
-                      "type": "null"
-                    }
-                  ]
+                  "$ref": "#/$defs/__schema0"
                 }
               }
-            },
-            "required": [
-              "subjectDigest",
-              "authority"
-            ],
-            "additionalProperties": false
+            ]
+          }
+        }
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "kind": "tool",
+      "name": "assessment_prepare_run",
+      "description": "Resumably prepare approved validation bindings, environment, publication, Assessment, and managed execution without reconciling evidence or issuing a decision. Optionally bind one exact READY Assessment (including an explicitly selected successor); this never selects a latest successor. REMOTE_BLACK_BOX preparation must supply the exact v2 expectedPreflight returned by assessment_preflight.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "target": {
+            "type": "string",
+            "minLength": 1
+          },
+          "qualityPlanId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "revisionId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "expectedDesignHash": {
+            "type": "string",
+            "pattern": "^sha256:.*"
+          },
+          "validationBindings": {
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "validationId": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "steps": {
+                  "minItems": 1,
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "stepId": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "version": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "inputs": {
+                        "default": {},
+                        "type": "object",
+                        "propertyNames": {
+                          "type": "string"
+                        },
+                        "additionalProperties": {
+                          "$ref": "#/$defs/__schema0"
+                        }
+                      },
+                      "keyword": {
+                        "default": "Given",
+                        "type": "string",
+                        "enum": [
+                          "Given",
+                          "When",
+                          "Then",
+                          "And"
+                        ]
+                      },
+                      "description": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 500
+                      }
+                    },
+                    "required": [
+                      "stepId",
+                      "version",
+                      "inputs",
+                      "keyword",
+                      "description"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "locatorIds": {
+                  "default": [],
+                  "maxItems": 100,
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                }
+              },
+              "required": [
+                "validationId",
+                "steps",
+                "locatorIds"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "environment": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "environmentId": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
+                "required": [
+                  "environmentId"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "allowCreate": {
+                    "type": "boolean",
+                    "const": true
+                  },
+                  "proposal": {
+                    "type": "object",
+                    "properties": {
+                      "name": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "baseUrl": {
+                        "type": "string",
+                        "format": "uri"
+                      },
+                      "expectedPageTitle": {
+                        "anyOf": [
+                          {
+                            "type": "string",
+                            "maxLength": 200
+                          },
+                          {
+                            "type": "string",
+                            "const": ""
+                          }
+                        ]
+                      },
+                      "apiBaseUrl": {
+                        "anyOf": [
+                          {
+                            "type": "string",
+                            "format": "uri"
+                          },
+                          {
+                            "type": "string",
+                            "const": ""
+                          }
+                        ]
+                      },
+                      "username": {
+                        "anyOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "string",
+                            "const": ""
+                          }
+                        ]
+                      },
+                      "passwordEnvironmentVariable": {
+                        "anyOf": [
+                          {
+                            "type": "string",
+                            "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+                          },
+                          {
+                            "type": "string",
+                            "const": ""
+                          }
+                        ]
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "baseUrl"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "required": [
+                  "allowCreate",
+                  "proposal"
+                ],
+                "additionalProperties": false
+              }
+            ]
+          },
+          "subject": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "subjectDigest": {
+                    "type": "string",
+                    "pattern": "^sha256:.*"
+                  },
+                  "authority": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "subjectKind": {
+                    "type": "string",
+                    "enum": [
+                      "ARTIFACT",
+                      "DEPLOYMENT_SNAPSHOT"
+                    ]
+                  },
+                  "metadata": {
+                    "type": "object",
+                    "propertyNames": {
+                      "type": "string"
+                    },
+                    "additionalProperties": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "number"
+                        },
+                        {
+                          "type": "boolean"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  }
+                },
+                "required": [
+                  "subjectDigest",
+                  "authority"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "subjectRevisionId": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "expectedSubjectDigest": {
+                    "type": "string",
+                    "pattern": "^sha256:.*"
+                  }
+                },
+                "required": [
+                  "subjectRevisionId"
+                ],
+                "additionalProperties": false
+              }
+            ]
           },
           "runtime": {
             "type": "object",
@@ -695,6 +1077,28 @@
             "type": "string",
             "pattern": "^sha256:.*"
           },
+          "expectedPreflight": {
+            "type": "object",
+            "properties": {
+              "algorithmVersion": {
+                "type": "string",
+                "const": "appraise.quality-assessment-preflight/v2"
+              },
+              "preflightHash": {
+                "type": "string",
+                "pattern": "^sha256:.*"
+              }
+            },
+            "required": [
+              "algorithmVersion",
+              "preflightHash"
+            ],
+            "additionalProperties": false
+          },
+          "assessmentId": {
+            "type": "string",
+            "minLength": 1
+          },
           "idempotencyKey": {
             "type": "string",
             "minLength": 1
@@ -718,13 +1122,48 @@
           "qualityPlanId",
           "revisionId",
           "expectedDesignHash",
-          "validationBindings",
           "environment",
           "subject",
           "idempotencyKey",
           "responseMode"
         ],
-        "additionalProperties": false
+        "additionalProperties": false,
+        "$defs": {
+          "__schema0": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 16384
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              },
+              {
+                "maxItems": 100,
+                "type": "array",
+                "items": {
+                  "$ref": "#/$defs/__schema0"
+                }
+              },
+              {
+                "type": "object",
+                "propertyNames": {
+                  "type": "string",
+                  "maxLength": 128
+                },
+                "additionalProperties": {
+                  "$ref": "#/$defs/__schema0"
+                }
+              }
+            ]
+          }
+        }
       },
       "annotations": {
         "readOnlyHint": false,
@@ -1115,6 +1554,485 @@
     },
     {
       "kind": "tool",
+      "name": "evaluation_subject_remote_scope_create",
+      "description": "Create or replay an Appraise-owned REMOTE_EVALUATION_SCOPE for an approved remote black-box evaluation. It performs zero target I/O and returns a bounded v2 handoff: subjectRevisionId plus algorithmVersion, scopeIntentHash, realizationIntentHash, preflightHash, and expectedPreflight. It asserts no deployment or content identity.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "target": {
+            "type": "string",
+            "minLength": 1
+          },
+          "qualityPlanId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "revisionId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "expectedDesignHash": {
+            "type": "string",
+            "pattern": "^sha256:.*"
+          },
+          "validationBindings": {
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "validationId": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "steps": {
+                  "minItems": 1,
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "stepId": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "version": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "inputs": {
+                        "default": {},
+                        "type": "object",
+                        "propertyNames": {
+                          "type": "string"
+                        },
+                        "additionalProperties": {
+                          "$ref": "#/$defs/__schema0"
+                        }
+                      },
+                      "keyword": {
+                        "default": "Given",
+                        "type": "string",
+                        "enum": [
+                          "Given",
+                          "When",
+                          "Then",
+                          "And"
+                        ]
+                      },
+                      "description": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 500
+                      }
+                    },
+                    "required": [
+                      "stepId",
+                      "version",
+                      "inputs",
+                      "keyword",
+                      "description"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "locatorIds": {
+                  "default": [],
+                  "maxItems": 100,
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                }
+              },
+              "required": [
+                "validationId",
+                "steps",
+                "locatorIds"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "environment": {
+            "type": "object",
+            "properties": {
+              "environmentId": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "required": [
+              "environmentId"
+            ],
+            "additionalProperties": false
+          },
+          "runtime": {
+            "type": "object",
+            "properties": {
+              "browserEngine": {
+                "type": "string",
+                "const": "CHROMIUM"
+              }
+            },
+            "additionalProperties": false
+          },
+          "idempotencyKey": {
+            "type": "string",
+            "minLength": 1
+          },
+          "responseMode": {
+            "default": "summary",
+            "type": "string",
+            "enum": [
+              "summary",
+              "decisionOnly",
+              "evidenceOnly",
+              "blockersOnly",
+              "linksOnly",
+              "full"
+            ],
+            "description": "Response projection: summary (compact default), decisionOnly (decision hash/status/counts), evidenceOnly, blockersOnly, linksOnly, or full (largest payload)."
+          }
+        },
+        "required": [
+          "target",
+          "qualityPlanId",
+          "revisionId",
+          "expectedDesignHash",
+          "validationBindings",
+          "environment",
+          "idempotencyKey",
+          "responseMode"
+        ],
+        "additionalProperties": false,
+        "$defs": {
+          "__schema0": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 16384
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              },
+              {
+                "maxItems": 100,
+                "type": "array",
+                "items": {
+                  "$ref": "#/$defs/__schema0"
+                }
+              },
+              {
+                "type": "object",
+                "propertyNames": {
+                  "type": "string",
+                  "maxLength": 128
+                },
+                "additionalProperties": {
+                  "$ref": "#/$defs/__schema0"
+                }
+              }
+            ]
+          }
+        }
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "kind": "tool",
+      "name": "evaluation_subject_remote_scope_partition_create",
+      "description": "Atomically create or replay an Appraise-owned manifest that partitions every current approved remote ValidationVersion exactly once across frozen environments. Each returned child is the only authority for its own validations and performs zero target I/O during issuance.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "target": {
+            "type": "string",
+            "minLength": 1
+          },
+          "qualityPlanId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "revisionId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "expectedDesignHash": {
+            "type": "string",
+            "pattern": "^sha256:.*"
+          },
+          "partitions": {
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "partitionKey": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200
+                },
+                "environment": {
+                  "type": "object",
+                  "properties": {
+                    "environmentId": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "required": [
+                    "environmentId"
+                  ],
+                  "additionalProperties": false
+                },
+                "validationBindings": {
+                  "minItems": 1,
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "validationId": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "steps": {
+                        "minItems": 1,
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "stepId": {
+                              "type": "string",
+                              "minLength": 1
+                            },
+                            "version": {
+                              "type": "string",
+                              "minLength": 1
+                            },
+                            "inputs": {
+                              "default": {},
+                              "type": "object",
+                              "propertyNames": {
+                                "type": "string"
+                              },
+                              "additionalProperties": {
+                                "$ref": "#/$defs/__schema0"
+                              }
+                            },
+                            "keyword": {
+                              "default": "Given",
+                              "type": "string",
+                              "enum": [
+                                "Given",
+                                "When",
+                                "Then",
+                                "And"
+                              ]
+                            },
+                            "description": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 500
+                            }
+                          },
+                          "required": [
+                            "stepId",
+                            "version",
+                            "inputs",
+                            "keyword",
+                            "description"
+                          ],
+                          "additionalProperties": false
+                        }
+                      },
+                      "locatorIds": {
+                        "default": [],
+                        "maxItems": 100,
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "minLength": 1
+                        }
+                      }
+                    },
+                    "required": [
+                      "validationId",
+                      "steps",
+                      "locatorIds"
+                    ],
+                    "additionalProperties": false
+                  }
+                }
+              },
+              "required": [
+                "partitionKey",
+                "environment",
+                "validationBindings"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "runtime": {
+            "type": "object",
+            "properties": {
+              "browserEngine": {
+                "type": "string",
+                "const": "CHROMIUM"
+              }
+            },
+            "additionalProperties": false
+          },
+          "idempotencyKey": {
+            "type": "string",
+            "minLength": 1
+          },
+          "responseMode": {
+            "default": "summary",
+            "type": "string",
+            "enum": [
+              "summary",
+              "decisionOnly",
+              "evidenceOnly",
+              "blockersOnly",
+              "linksOnly",
+              "full"
+            ],
+            "description": "Response projection: summary (compact default), decisionOnly (decision hash/status/counts), evidenceOnly, blockersOnly, linksOnly, or full (largest payload)."
+          }
+        },
+        "required": [
+          "target",
+          "qualityPlanId",
+          "revisionId",
+          "expectedDesignHash",
+          "partitions",
+          "idempotencyKey",
+          "responseMode"
+        ],
+        "additionalProperties": false,
+        "$defs": {
+          "__schema0": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 16384
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              },
+              {
+                "maxItems": 100,
+                "type": "array",
+                "items": {
+                  "$ref": "#/$defs/__schema0"
+                }
+              },
+              {
+                "type": "object",
+                "propertyNames": {
+                  "type": "string",
+                  "maxLength": 128
+                },
+                "additionalProperties": {
+                  "$ref": "#/$defs/__schema0"
+                }
+              }
+            ]
+          }
+        }
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "kind": "tool",
+      "name": "evaluation_subject_remote_scope_read",
+      "description": "Read the exact persisted v2 REMOTE_EVALUATION_SCOPE packet after an interrupted workflow. This is DB-only and read-only: it neither issues a scope nor performs target I/O. Use full only when the complete compact bindings are needed for assessment_preflight or assessment_prepare_run.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "target": {
+            "type": "string",
+            "minLength": 1
+          },
+          "qualityPlanId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "revisionId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "subjectRevisionId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "expectedSubjectDigest": {
+            "type": "string",
+            "pattern": "^sha256:.*"
+          },
+          "expectedScopeHash": {
+            "type": "string",
+            "pattern": "^sha256:.*"
+          },
+          "expectedPreflightHash": {
+            "type": "string",
+            "pattern": "^sha256:.*"
+          },
+          "responseMode": {
+            "default": "summary",
+            "type": "string",
+            "enum": [
+              "summary",
+              "decisionOnly",
+              "evidenceOnly",
+              "blockersOnly",
+              "linksOnly",
+              "full"
+            ],
+            "description": "Response projection: summary (compact default), decisionOnly (decision hash/status/counts), evidenceOnly, blockersOnly, linksOnly, or full (largest payload)."
+          }
+        },
+        "required": [
+          "target",
+          "qualityPlanId",
+          "revisionId",
+          "subjectRevisionId",
+          "responseMode"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "kind": "tool",
       "name": "locator_ensure",
       "description": "Idempotently ensure one target-owned locator closure for a Quality Plan without browser interaction or credentials.",
       "inputSchema": {
@@ -1312,7 +2230,7 @@
     {
       "kind": "tool",
       "name": "locator_search",
-      "description": "Search target- and Quality Plan-scoped locators by locator name, selector, group, module, or route before validation design.",
+      "description": "Search target- and Quality Plan-scoped locators before validation design. Result id is the bindable persistent locator ID; presentationId is graph-only for locator_graph_query.",
       "inputSchema": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "type": "object",
@@ -2110,57 +3028,6 @@
     },
     {
       "kind": "tool",
-      "name": "validation_compile",
-      "description": "Compile approved scenario design with mechanical realization metadata into immutable realized validation versions.",
-      "inputSchema": {
-        "$schema": "https://json-schema.org/draft/2020-12/schema",
-        "type": "object",
-        "properties": {
-          "qualityPlanId": {
-            "type": "string",
-            "minLength": 1
-          },
-          "revisionId": {
-            "type": "string",
-            "minLength": 1
-          },
-          "expectedDesignHash": {
-            "type": "string",
-            "pattern": "^sha256:.*"
-          },
-          "realization": {},
-          "responseMode": {
-            "default": "summary",
-            "type": "string",
-            "enum": [
-              "summary",
-              "decisionOnly",
-              "evidenceOnly",
-              "blockersOnly",
-              "linksOnly",
-              "full"
-            ],
-            "description": "Response projection: summary (compact default), decisionOnly (decision hash/status/counts), evidenceOnly, blockersOnly, linksOnly, or full (largest payload)."
-          }
-        },
-        "required": [
-          "qualityPlanId",
-          "revisionId",
-          "expectedDesignHash",
-          "realization",
-          "responseMode"
-        ],
-        "additionalProperties": false
-      },
-      "annotations": {
-        "readOnlyHint": false,
-        "destructiveHint": false,
-        "idempotentHint": true,
-        "openWorldHint": false
-      }
-    },
-    {
-      "kind": "tool",
       "name": "validation_design_approve",
       "description": "Approve obligation-linked scenarios; mechanical selectors, runtime bindings, and locators are intentionally outside this review gate.",
       "inputSchema": {
@@ -2229,7 +3096,71 @@
             "type": "string",
             "minLength": 1
           },
-          "proposal": {},
+          "proposal": {
+            "type": "object",
+            "properties": {
+              "scenarios": {
+                "minItems": 1,
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "title": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "obligationIds": {
+                      "minItems": 1,
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    },
+                    "behavior": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "assertions": {
+                      "minItems": 1,
+                      "type": "array",
+                      "items": {}
+                    },
+                    "coverage": {},
+                    "requiredMinimumAssurance": {
+                      "type": "string",
+                      "enum": [
+                        "SMOKE",
+                        "STANDARD",
+                        "HIGH",
+                        "EXHAUSTIVE"
+                      ]
+                    },
+                    "matrixIntent": {},
+                    "limitations": {}
+                  },
+                  "required": [
+                    "obligationIds",
+                    "behavior",
+                    "assertions",
+                    "coverage",
+                    "matrixIntent",
+                    "limitations"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            },
+            "required": [
+              "scenarios"
+            ],
+            "additionalProperties": false,
+            "description": "Envelope containing one or more obligation-linked scenario proposals."
+          },
           "idempotencyKey": {
             "type": "string",
             "minLength": 1
@@ -2261,64 +3192,6 @@
         "readOnlyHint": false,
         "destructiveHint": false,
         "idempotentHint": true,
-        "openWorldHint": false
-      }
-    },
-    {
-      "kind": "tool",
-      "name": "validation_publish",
-      "description": "Publish realized validation versions using an expected compilation hash after mechanical bindings are resolved.",
-      "inputSchema": {
-        "$schema": "https://json-schema.org/draft/2020-12/schema",
-        "type": "object",
-        "properties": {
-          "qualityPlanId": {
-            "type": "string",
-            "minLength": 1
-          },
-          "revisionId": {
-            "type": "string",
-            "minLength": 1
-          },
-          "validationVersionIds": {
-            "minItems": 1,
-            "type": "array",
-            "items": {
-              "type": "string",
-              "minLength": 1
-            }
-          },
-          "expectedCompilationHash": {
-            "type": "string",
-            "pattern": "^sha256:.*"
-          },
-          "responseMode": {
-            "default": "summary",
-            "type": "string",
-            "enum": [
-              "summary",
-              "decisionOnly",
-              "evidenceOnly",
-              "blockersOnly",
-              "linksOnly",
-              "full"
-            ],
-            "description": "Response projection: summary (compact default), decisionOnly (decision hash/status/counts), evidenceOnly, blockersOnly, linksOnly, or full (largest payload)."
-          }
-        },
-        "required": [
-          "qualityPlanId",
-          "revisionId",
-          "validationVersionIds",
-          "expectedCompilationHash",
-          "responseMode"
-        ],
-        "additionalProperties": false
-      },
-      "annotations": {
-        "readOnlyHint": false,
-        "destructiveHint": false,
-        "idempotentHint": false,
         "openWorldHint": false
       }
     }

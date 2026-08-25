@@ -19,7 +19,7 @@ describe('agent preflight contract', () => {
           'requirements_submit_source',
           'locator_ensure',
           'locator_search',
-          'validation_publish',
+          'assessment_preflight',
           'assessment_run',
           'assessment_decide',
         ],
