@@ -1877,10 +1877,14 @@ async function reconcileQualityAssessmentRun(input: { assessmentRunId: string })
         where: { id: current.assessmentId, status: 'RUNNING' },
         data: { status: 'EVIDENCE_REVIEW' },
       })
+    // A terminal run with incomplete evidence (including an external human
+    // verification boundary) cannot reopen its Assessment. Its one-use
+    // consent is already consumed, so make the immutable predecessor
+    // successor-eligible rather than returning it to READY for another run.
     if (current.assessmentId && (!evidenceComplete || blockedByHumanVerification) && !current.stopReason)
       await executionClient.assessment.updateMany({
         where: { id: current.assessmentId, status: 'RUNNING' },
-        data: { status: 'READY' },
+        data: { status: 'CANCELLED' },
       })
   }
   if (current.assessmentId && current.stopReason && allTerminal)

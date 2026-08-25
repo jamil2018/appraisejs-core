@@ -78,6 +78,21 @@ function validSubjectRevisionId(payload: Record<string, unknown>) {
   return typeof id === 'string' && id.trim().length > 0 ? id : undefined
 }
 
+/** A requirement-query answer can create a new immutable Quality Plan
+ * revision. Keep its exact successor handoff machine-usable in compact MCP
+ * responses, without projecting the revision's source, requirement graph, or
+ * other authoring payload. */
+function revisionIdentity(value: unknown) {
+  const revision = record(value)
+  if (!revision) return undefined
+  return {
+    id: revision.id,
+    revision: revision.revision,
+    status: revision.status,
+    contentHash: revision.contentHash,
+  }
+}
+
 const sha256HashSchema = z.string().regex(/^sha256:[a-f0-9]{64}$/)
 const authorizationHandoffSchema = z
   .object({
@@ -299,6 +314,9 @@ function lifecycleIdentityResponse(payload: Record<string, unknown>) {
     status: payload.status,
     qualityPlanId: payload.qualityPlanId,
     revisionId: payload.revisionId,
+    revision: revisionIdentity(payload.revision),
+    predecessorRevisionId: payload.predecessorRevisionId,
+    idempotent: payload.idempotent,
     preparationId: payload.preparationId,
     phase: payload.phase,
     subject: payload.subject,

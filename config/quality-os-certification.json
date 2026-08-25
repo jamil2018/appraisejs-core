@@ -36,7 +36,7 @@
     "compatibility",
     "performance"
   ],
-  "receiptHash": "sha256:07647f0ad21d0b3df3bc6fb08cd551e80eda016813e9ab860e9356701fd9d963",
+  "receiptHash": "sha256:e0e42f455375b92d1838516d1f4f1906d842ebb2b431d224f0b90e8d026963ad",
   "result": "PASS",
   "schema": "appraise.quality-os-certification/v1",
   "suiteEvidence": [
@@ -53,22 +53,22 @@
     {
       "file": "src/services/coordinator/assessment-execution-service.test.ts",
       "result": "PASS",
-      "sourceHash": "sha256:0a93621cc665c0e5d4c454f94a837ded548f7a42602d3a78463a75c1b05dcc54"
+      "sourceHash": "sha256:f29358a08fba1a8a5de0b4c6aefafc54faf64ecdfc8e9447cc2d9f5ee32933b4"
     },
     {
       "file": "src/services/coordinator/assessment-preparation-service.test.ts",
       "result": "PASS",
-      "sourceHash": "sha256:14cf2a5315b7ab4764aaa52b5b70ff7794fc231d50c5b9d397d852b548daf272"
+      "sourceHash": "sha256:ac57dacf1479667a27205a2ac79300ae9dc9ea267ca2c0dc887132041607189f"
     },
     {
       "file": "src/services/coordinator/quality-design-service.test.ts",
       "result": "PASS",
-      "sourceHash": "sha256:f080e0d5586d5a7f90e55ca9c4b27a610bd81d4e7247ff96383bf5b64c2fdf89"
+      "sourceHash": "sha256:dca82a649dbc3cc64e16dbca53e377d99cf8fae6f37175b6c97387f3b85285b2"
     },
     {
       "file": "src/app/api/internal/coordinator/[...operation]/route.test.ts",
       "result": "PASS",
-      "sourceHash": "sha256:2f2f2713de2ea12cdc7b4d69133741cbaacce28b30c61b4c41ad9bfce67b17c2"
+      "sourceHash": "sha256:6816259af54c7e76ef948806dae669d0799efcdd56ab047bb2e91212d856c693"
     },
     {
       "file": "packages/appraisejs/src/coordinator-client.test.ts",
@@ -78,7 +78,7 @@
     {
       "file": "packages/appraisejs/src/mcp/response-projector.test.ts",
       "result": "PASS",
-      "sourceHash": "sha256:c359fa5a57c9deb85e8bd8e5685b1d8bf7ccd6879e91a85232689d4066c9c5f1"
+      "sourceHash": "sha256:39ea3bd8b54326220ca5d3813b10f4054dbb2f11c40af6806ef37ccd8581c648"
     }
   ]
 }

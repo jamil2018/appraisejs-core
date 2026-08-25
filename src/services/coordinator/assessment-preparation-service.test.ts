@@ -5,7 +5,6 @@ import {
   builtInStepDefinitions,
   computeStepReferenceHash,
 } from '../../../packages/cucumber-runtime/src/step-definitions/index.ts'
-import { canonicalMcpToolNames } from '../../../packages/appraisejs/src/mcp/contract.ts'
 import { ServiceError } from '@/services/shared/errors'
 
 const { preparation, database, transaction } = vi.hoisted(() => {
@@ -1801,6 +1800,94 @@ describe('assessment preparation service', () => {
     expect(publishQualityValidations).toHaveBeenCalledTimes(1)
   })
 
+  it('persists and replays a newly committed execution-consent handoff without recreating it', async () => {
+    reset()
+    const consentId = '5a9fb98f-8912-44a9-b843-30fb19dd6129'
+    const expectedExecutionManifestHash = `sha256:${'e'.repeat(64)}`
+    vi.mocked(runQualityAssessment).mockRejectedValueOnce(
+      new ServiceError('Explicit execution consent is required.', 'CONFLICT', 409, {
+        assessmentId: 'assessment-1',
+        consentId,
+        executionManifestHash: expectedExecutionManifestHash,
+        consentRequestCreated: true,
+        scopeJson: 'must-not-persist',
+      }),
+    )
+    const expectedExecutionConsent = {
+      assessmentId: 'assessment-1',
+      consentId,
+      expectedExecutionManifestHash,
+      consentRequestCreated: true,
+      nextAction: {
+        tool: 'execution_consent_decide',
+        arguments: { assessmentId: 'assessment-1', consentId, expectedExecutionManifestHash },
+        reason:
+          'The execution consent request is committed. Decide it, then replay the original compact preparation request with this same idempotencyKey and the returned consent identity.',
+      },
+    }
+
+    const first = await prepareQualityAssessmentRun(input)
+
+    expect(first).toMatchObject({
+      phase: 'ASSESSMENT',
+      operationOutcome: 'committed',
+      durableState: 'execution_consent_request_committed',
+      executionConsent: expectedExecutionConsent,
+      retry: { classification: 'execution_consent_required', safe: false },
+      nextRecommendedAction: 'execution_consent_decide',
+      nextRequiredAgentBehavior: 'decide_execution_consent_then_replay_same_idempotency_key',
+    })
+    expect(JSON.parse(preparation.failureJson!)).toEqual({
+      message: 'Explicit execution consent is required.',
+      classification: 'execution_consent_required',
+      executionConsent: expectedExecutionConsent,
+    })
+    expect(preparation.failureJson).not.toContain('must-not-persist')
+
+    const replay = await prepareQualityAssessmentRun(input)
+
+    expect(replay).toMatchObject({
+      preparationId: first.preparationId,
+      unchanged: true,
+      operationOutcome: 'committed',
+      durableState: 'execution_consent_request_committed',
+      executionConsent: expectedExecutionConsent,
+      nextRecommendedAction: 'execution_consent_decide',
+    })
+    expect(runQualityAssessment).toHaveBeenCalledTimes(1)
+
+    await expect(
+      prepareQualityAssessmentRun({ ...input, consentId, expectedExecutionManifestHash }),
+    ).resolves.toMatchObject({ phase: 'STARTED', assessmentRun: { id: 'run-1' } })
+    expect(runQualityAssessment).toHaveBeenCalledTimes(2)
+  })
+
+  it('does not report a new commit for a pre-existing ungranted execution consent', async () => {
+    reset()
+    vi.mocked(runQualityAssessment).mockRejectedValueOnce(
+      new ServiceError('Explicit execution consent is required.', 'CONFLICT', 409, {
+        consentId: '5a9fb98f-8912-44a9-b843-30fb19dd6129',
+        executionManifestHash: `sha256:${'e'.repeat(64)}`,
+        consentStatus: 'REQUESTED',
+      }),
+    )
+
+    const result = await prepareQualityAssessmentRun(input)
+
+    expect(result).toMatchObject({
+      phase: 'ASSESSMENT',
+      retry: { classification: 'state_conflict', safe: false },
+      nextRecommendedAction: 'project_diagnostic',
+    })
+    expect(result).not.toHaveProperty('operationOutcome')
+    expect(result).not.toHaveProperty('durableState')
+    expect(result).not.toHaveProperty('executionConsent')
+    expect(JSON.parse(preparation.failureJson!)).toEqual({
+      message: 'Explicit execution consent is required.',
+      classification: 'state_conflict',
+    })
+  })
+
   it('only recommends live canonical MCP actions for retry and non-retryable preparation state', async () => {
     reset()
     vi.mocked(compileQualityValidations).mockRejectedValueOnce(new ServiceError('stale realization', 'CONFLICT'))
@@ -1812,7 +1899,7 @@ describe('assessment preparation service', () => {
       nextRecommendedAction: 'project_diagnostic',
       nextRequiredAgentBehavior: 'inspect_diagnostic_and_revise_request_or_state',
     })
-    expect(canonicalMcpToolNames).toContain(failed.nextRecommendedAction)
+    expect(failed.nextRecommendedAction).toBe('project_diagnostic')
   })
 
   it('preserves successor guidance after terminal capsule-start failure as immutable idempotency history', async () => {
@@ -1834,7 +1921,7 @@ describe('assessment preparation service', () => {
       nextRecommendedAction: 'assessment_create_successor',
       nextRequiredAgentBehavior: 'create_successor_then_prepare_with_a_new_idempotency_key',
     })
-    expect(canonicalMcpToolNames).toContain(first.nextRecommendedAction)
+    expect(first.nextRecommendedAction).toBe('assessment_create_successor')
 
     const replay = await prepareQualityAssessmentRun(input)
 

@@ -484,7 +484,7 @@ describe('assessment evidence reconciliation SQLite isolation', () => {
     ).resolves.toMatchObject({ stderr: '' })
   }, 60_000)
 
-  it('returns a terminal startup failure to READY and atomically admits only one fresh execution reservation', async () => {
+  it('returns a terminal startup failure as a cancellation that cannot reserve another root execution', async () => {
     const workspace = await fs.mkdtemp(path.join(os.tmpdir(), 'appraise-recovery-reservation-sqlite-'))
     workspaces.push(workspace)
     const databasePath = path.join(workspace, 'appraise.db')
@@ -639,7 +639,7 @@ describe('assessment evidence reconciliation SQLite isolation', () => {
       setAssessmentExecutionClientForTests(client)
       await reconcileQualityAssessment({ assessmentId: 'assessment-recovery' })
       expect(await client.assessment.findUniqueOrThrow({ where: { id: 'assessment-recovery' } })).toMatchObject({
-        status: 'READY',
+        status: 'CANCELLED',
       })
       expect(
         await client.assessmentRunBinding.findFirstOrThrow({ where: { testRunId: 'test-run-recovery' } }),
@@ -647,7 +647,6 @@ describe('assessment evidence reconciliation SQLite isolation', () => {
         terminalOutcome: 'FAILED',
         evidenceReceiptId: null,
       })
-
       const identity = {
         assessmentId: 'assessment-recovery',
         targetProjectId: 'target-recovery',
@@ -658,12 +657,10 @@ describe('assessment evidence reconciliation SQLite isolation', () => {
         reserveReadyAssessmentForTests(client as never, identity as never),
         reserveReadyAssessmentForTests(client as never, identity as never),
       ])
-      expect(attempts.filter(attempt => attempt.status === 'fulfilled')).toHaveLength(1)
-      expect(attempts.find(attempt => attempt.status === 'rejected')).toMatchObject({
-        reason: { code: 'CONFLICT', details: { code: 'assessment_execution_reserved' } },
-      })
+      expect(attempts.filter(attempt => attempt.status === 'fulfilled')).toHaveLength(0)
+      expect(attempts.filter(attempt => attempt.status === 'rejected')).toHaveLength(2)
       expect(await client.assessment.findUniqueOrThrow({ where: { id: 'assessment-recovery' } })).toMatchObject({
-        status: 'RUNNING',
+        status: 'CANCELLED',
       })
     } finally {
       await client.$disconnect()
@@ -898,7 +895,7 @@ describe('assessment evidence reconciliation SQLite isolation', () => {
         client as unknown as Parameters<typeof readQualityAssessment>[1],
       )
       expect(review).toMatchObject({
-        assessment: { status: 'READY' },
+        assessment: { status: 'CANCELLED' },
         evidenceReceiptCount: 0,
         targetOutcome: 'not_evaluated',
       })
@@ -1114,7 +1111,7 @@ describe('assessment evidence reconciliation SQLite isolation', () => {
       expect(
         await readQualityAssessment(ids.assessment, client as unknown as Parameters<typeof readQualityAssessment>[1]),
       ).toMatchObject({
-        assessment: { status: 'READY' },
+        assessment: { status: 'CANCELLED' },
         evidenceReceiptCount: 0,
         targetOutcome: 'not_evaluated',
       })

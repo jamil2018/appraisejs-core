@@ -1379,6 +1379,37 @@ describe('quality design coordinator service', () => {
     ).resolves.toMatchObject({ assessment: { status: 'READY', generation: 1 } })
   })
 
+  it('creates an explicit successor for a terminal incomplete-evidence cancellation', async () => {
+    const fixture = await executableFixture('cancelled-successor')
+    const predecessor = await createQualityAssessment(
+      {
+        qualityPlanId: fixture.requirements.qualityPlan.id,
+        revisionId: fixture.requirements.revision.id,
+        idempotencyKey: 'cancelled-successor-predecessor',
+        subject: { subjectDigest: `sha256:${'c'.repeat(64)}`, authority: 'artifact://terminal-runtime' },
+      },
+      client,
+    )
+    await client.assessment.update({ where: { id: predecessor.assessment.id }, data: { status: 'CANCELLED' } })
+
+    await expect(
+      createQualityAssessmentSuccessor(
+        {
+          assessmentId: predecessor.assessment.id,
+          subject: { subjectDigest: `sha256:${'c'.repeat(64)}`, authority: 'artifact://terminal-runtime' },
+          disposition: {
+            code: 'terminal_runtime_recovery',
+            rationale: 'The terminal capsule-start failure requires a new immutable generation.',
+          },
+          idempotencyKey: 'cancelled-successor-key',
+        },
+        client,
+      ),
+    ).resolves.toMatchObject({
+      assessment: { status: 'READY', generation: 1, supersedesAssessmentId: predecessor.assessment.id },
+    })
+  })
+
   it('reuses an exactly matching canonical evaluation subject revision for a successor', async () => {
     const requirements = await submitQualityRequirementSource(
       {

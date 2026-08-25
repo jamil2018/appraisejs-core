@@ -47,7 +47,7 @@ const coordinatorAuthorizationRequestDetailsSchema = z
   })
   .passthrough()
 
-const coordinatorExecutionConsentHandoffSchema = z
+export const coordinatorExecutionConsentHandoffSchema = z
   .object({
     assessmentId: z.string().trim().min(1),
     consentId: z.string().uuid(),

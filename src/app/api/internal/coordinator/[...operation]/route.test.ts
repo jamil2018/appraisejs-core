@@ -94,6 +94,9 @@ vi.mock('@/services/coordinator/remote-evaluation-scope-service', () => ({
   createRemoteEvaluationScope: vi.fn(),
   readRemoteEvaluationScope,
 }))
+vi.mock('@/services/step-definition/built-in-readiness-service', () => ({
+  ensureBuiltInStepDefinitionReadiness: vi.fn(async () => ({ seeded: 0, repaired: 0, unchanged: 127, errors: [] })),
+}))
 
 import { GET, POST } from './route'
 

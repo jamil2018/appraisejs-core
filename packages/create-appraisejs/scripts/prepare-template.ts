@@ -32,6 +32,7 @@ import { getTemplateDefinition, getTemplateDefinitions, type TemplateId } from '
 import { isRepoOnlyTemplatePath, REPO_ONLY_TEMPLATE_SCRIPT_NAMES } from '../src/template-boundary.js'
 import { shouldExcludeBundledTemplatePath } from '../src/sync-templates-utils.js'
 import { shouldBackfillLegacyEnvironmentConfig, shouldExcludeTemplatePath } from '../../../src/lib/template-sync-utils'
+import { canonicalContractJson } from '../../../src/lib/catalog-contracts'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const packageRoot = path.join(__dirname, '..')
@@ -377,6 +378,27 @@ function writeTemplateHarnessCheck(): void {
   )
 }
 
+/** The root certification includes repository-only package contract suites.
+ * Generated apps do not ship packages/appraisejs, so retain only evidence for
+ * suites that are actually present in the scaffold and re-seal the receipt. */
+function writeTemplateQualityOsCertificationReceipt(): void {
+  const receiptPath = path.join(baseTemplateDir, 'config', 'quality-os-certification.json')
+  if (!existsSync(receiptPath)) return
+  const receipt = JSON.parse(readFileSync(receiptPath, 'utf8')) as {
+    suiteEvidence?: Array<{ file: string }>
+    receiptHash?: string
+    [key: string]: unknown
+  }
+  const content = { ...receipt }
+  delete content.receiptHash
+  content.suiteEvidence = (receipt.suiteEvidence ?? []).filter(evidence => !evidence.file.startsWith('packages/appraisejs/'))
+  const templateReceipt = {
+    ...content,
+    receiptHash: `sha256:${crypto.createHash('sha256').update(canonicalContractJson(content)).digest('hex')}`,
+  }
+  writeFileSync(receiptPath, `${JSON.stringify(JSON.parse(canonicalContractJson(templateReceipt)), null, 2)}\n`)
+}
+
 function preparePackagedGitignore(): void {
   const gitignorePath = path.join(baseTemplateDir, '.gitignore')
   const packagedGitignorePath = path.join(baseTemplateDir, 'gitignore')
@@ -445,6 +467,8 @@ function createBaseTemplate(): void {
     'next.config.ts',
     'next-env.d.ts',
     'playwright.config.ts',
+    'vitest.config.ts',
+    'vitest.setup.ts',
     '.env.example',
     'package-lock.json',
     'yarn.lock',
@@ -470,6 +494,7 @@ function createBaseTemplate(): void {
 
   writeTemplatePackageJson()
   writeTemplateHarnessCheck()
+  writeTemplateQualityOsCertificationReceipt()
   preparePackagedGitignore()
   rmSync(path.join(baseTemplateDir, '.env'), { force: true })
   rmSync(path.join(baseTemplateDir, 'prisma', 'dev.db'), { force: true })

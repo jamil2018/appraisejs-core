@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  applyAuthoringResponseMode,
   applyLifecycleResponseMode,
   projectRemoteScopePartitionCreateResponse,
   projectRemoteScopeReadResponse,
@@ -10,6 +11,55 @@ import { assessmentPreflightInputSchema, assessmentPrepareInputSchema } from './
 const hash = (letter: string) => `sha256:${letter.repeat(64)}`
 
 describe('lifecycle response projection', () => {
+  it.each([
+    ['initial successor', false],
+    ['exact idempotency replay', true],
+  ])('keeps the immutable requirement-query successor handoff for %s', (_label, idempotent) => {
+    const projected = applyAuthoringResponseMode(
+      {
+        idempotent,
+        predecessorRevisionId: 'revision-predecessor-1',
+        qualityPlan: { id: 'plan-1', title: 'Not needed for the next call' },
+        revision: {
+          id: 'revision-successor-2',
+          revision: 2,
+          status: 'DRAFT',
+          contentHash: hash('a'),
+          sourceSpecification: { sensitive: 'unrelated source payload' },
+          requirementGraph: { nodes: ['unrelated requirement graph'] },
+          methodology: { methodologyId: 'appraise.built-in/quality-os-core' },
+        },
+        requirements: [{ id: 'requirement-1', text: 'not needed for successor handoff' }],
+        queries: [{ id: 'query-1', answer: 'not needed for successor handoff' }],
+        validationVersions: [{ id: 'validation-1' }],
+      },
+      'summary',
+    ) as Record<string, unknown>
+
+    expect(projected).toMatchObject({
+      idempotent,
+      predecessorRevisionId: 'revision-predecessor-1',
+      revision: {
+        id: 'revision-successor-2',
+        revision: 2,
+        status: 'DRAFT',
+        contentHash: hash('a'),
+      },
+    })
+    expect(projected.revision).toEqual({
+      id: 'revision-successor-2',
+      revision: 2,
+      status: 'DRAFT',
+      contentHash: hash('a'),
+    })
+    expect(projected).not.toHaveProperty('qualityPlan')
+    expect(projected).not.toHaveProperty('requirements')
+    expect(projected).not.toHaveProperty('queries')
+    expect(projected).not.toHaveProperty('validationVersions')
+    expect(JSON.stringify(projected)).not.toContain('unrelated source payload')
+    expect(JSON.stringify(projected)).not.toContain('unrelated requirement graph')
+  })
+
   it('labels a malformed committed partition receipt with its own recovery operation', () => {
     try {
       projectRemoteScopePartitionCreateResponse({ manifest: {} }, 'summary')
@@ -130,6 +180,9 @@ describe('lifecycle response projection', () => {
       status: undefined,
       qualityPlanId: undefined,
       revisionId: undefined,
+      revision: undefined,
+      predecessorRevisionId: undefined,
+      idempotent: undefined,
       preparationId: 'prepare-1',
       phase: 'STARTED',
       environment: { id: 'environment-1' },

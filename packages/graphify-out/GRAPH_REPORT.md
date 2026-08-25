@@ -4,12 +4,12 @@
 - cluster-only mode — file stats not available
 
 ## Summary
-- 1067 nodes · 2068 edges · 71 communities (66 shown, 5 thin omitted)
-- Extraction: 99% EXTRACTED · 1% INFERRED · 0% AMBIGUOUS · INFERRED: 14 edges (avg confidence: 0.8)
+- 1069 nodes · 2075 edges · 62 communities (58 shown, 4 thin omitted)
+- Extraction: 99% EXTRACTED · 1% INFERRED · 0% AMBIGUOUS · INFERRED: 15 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `0ef97932`
+- Built from commit: `76be922a`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -57,19 +57,10 @@
 - [[_COMMUNITY_Community 41|Community 41]]
 - [[_COMMUNITY_Community 44|Community 44]]
 - [[_COMMUNITY_Community 45|Community 45]]
-- [[_COMMUNITY_Community 46|Community 46]]
 - [[_COMMUNITY_Community 47|Community 47]]
-- [[_COMMUNITY_Community 48|Community 48]]
 - [[_COMMUNITY_Community 49|Community 49]]
 - [[_COMMUNITY_Community 50|Community 50]]
-- [[_COMMUNITY_Community 51|Community 51]]
 - [[_COMMUNITY_Community 52|Community 52]]
-- [[_COMMUNITY_Community 53|Community 53]]
-- [[_COMMUNITY_Community 54|Community 54]]
-- [[_COMMUNITY_Community 55|Community 55]]
-- [[_COMMUNITY_Community 56|Community 56]]
-- [[_COMMUNITY_Community 57|Community 57]]
-- [[_COMMUNITY_Community 58|Community 58]]
 - [[_COMMUNITY_Community 75|Community 75]]
 - [[_COMMUNITY_Community 81|Community 81]]
 - [[_COMMUNITY_Community 83|Community 83]]
@@ -91,9 +82,11 @@
 7. `LocatorPickerCompanion` - 16 edges
 8. `createAppraiseMcpServer()` - 15 edges
 9. `scripts` - 15 edges
-10. `compilerOptions` - 15 edges
+10. `createBaseTemplate()` - 15 edges
 
 ## Surprising Connections (you probably didn't know these)
+- `writeTemplateQualityOsCertificationReceipt()` --calls--> `canonicalContractJson()`  [INFERRED]
+  create-appraisejs/scripts/prepare-template.ts → appraisejs/src/mcp/shared.ts
 - `bootstrap()` --calls--> `Config`  [INFERRED]
   cucumber-runtime/src/executor.ts → create-appraisejs/src/config.ts
 - `resolveMcpEndpoint()` --calls--> `assertLoopbackMcpHost()`  [EXTRACTED]
@@ -102,8 +95,6 @@
   appraisejs/src/mcp/registry.ts → appraisejs/src/coordinator-client.ts
 - `localCoordinatorBaseUrl()` --calls--> `isLoopbackHostname()`  [EXTRACTED]
   appraisejs/src/coordinator-client.ts → appraisejs/src/mcp-http-security.ts
-- `onlineClient()` --calls--> `createCoordinatorClient()`  [EXTRACTED]
-  appraisejs/src/cli.ts → appraisejs/src/coordinator-client.ts
 
 ## Import Cycles
 - 1-file cycle: `appraisejs/src/agent-setup-capabilities.ts -> appraisejs/src/agent-setup-capabilities.ts`
@@ -111,23 +102,23 @@
 ## Hyperedges (group relationships)
 - **Appraise Planning Lifecycle Flow** — appraise_planning_standby_skill_mcp_setup_and_diagnostics, appraise_planning_standby_skill_target_workspace_registration, appraise_planning_standby_skill_plan_creation, appraise_planning_standby_skill_review_readiness, appraise_planning_standby_skill_approval_standby, appraise_planning_standby_skill_approval_outcomes, appraise_planning_standby_skill_validation_preparation [EXTRACTED 1.00]
 
-## Communities (71 total, 5 thin omitted)
+## Communities (62 total, 4 thin omitted)
 
 ### Community 0 - "Community 0"
-Cohesion: 0.32
-Nodes (8): copyFile(), createBaseTemplate(), preparePackagedGitignore(), resetAutomationReports(), syncInternalPackage(), syncLegacyEnvironmentConfig(), writeTemplateHarnessCheck(), writeTemplatePackageJson()
+Cohesion: 0.28
+Nodes (9): copyFile(), createBaseTemplate(), resetAutomationEnvironments(), resetAutomationReports(), syncInternalPackage(), syncLegacyEnvironmentConfig(), writeTemplateHarnessCheck(), writeTemplatePackageJson() (+1 more)
 
 ### Community 1 - "Community 1"
-Cohesion: 0.12
-Nodes (25): baseTemplateDir, composedVerifyDir, copyFallbackSeedDatabase(), __dirname, flavorsDir, getPrismaCliPath(), getSeedDatabaseCandidates(), getTsNodeLoaderPath() (+17 more)
+Cohesion: 0.11
+Nodes (28): baseTemplateDir, composedVerifyDir, computeTemplateInputHash(), copyFallbackSeedDatabase(), __dirname, flavorsDir, getPrismaCliPath(), getSeedDatabaseCandidates() (+20 more)
 
 ### Community 2 - "Community 2"
-Cohesion: 0.06
-Nodes (48): CliOptions, main(), BrowserLaunchCandidate, LocatorPickerCompanion, parseArgs(), installLocatorPickerOverlay(), buildCssSelector(), buildPrimarySelector() (+40 more)
+Cohesion: 0.05
+Nodes (53): CliOptions, main(), BrowserLaunchCandidate, LocatorPickerCompanion, parseArgs(), installLocatorPickerOverlay(), ensureLocatorPickerCompanionBuilt(), getLatestModifiedTime() (+45 more)
 
 ### Community 3 - "Community 3"
-Cohesion: 0.12
-Nodes (15): agentOperationProjectionSchema, boundedOperationValueSchema, humanOperationProjectionSchema, identifierSchema, operationAliasSchema, operationDescriptorSchema, operationHashSchema, operationIdSchema (+7 more)
+Cohesion: 0.10
+Nodes (23): agentOperationProjectionSchema, canonicalOperationJson(), humanOperationProjectionSchema, identifierSchema, OPERATION_CONTRACT_VERSION, operationAliasSchema, operationContentHash(), OperationDefinition (+15 more)
 
 ### Community 4 - "Community 4"
 Cohesion: 0.13
@@ -142,8 +133,8 @@ Cohesion: 0.22
 Nodes (13): BrowserOperationWorld, executeHumanOperation(), computeStepReferenceHash(), stepInputValueMatchesType(), validateStepInvocationInputs(), definitionKey(), dispatchStepInvocation(), extensionKey() (+5 more)
 
 ### Community 7 - "Community 7"
-Cohesion: 0.12
-Nodes (13): canonicalMcpResourceAnnotations, canonicalMcpResourceNames, canonicalMcpResourceUris, canonicalMcpToolAnnotations, canonicalMcpToolNames, externalExecution, externalStop, localDecision (+5 more)
+Cohesion: 0.10
+Nodes (25): registerQualityDesignOperations(), canonicalMcpResourceAnnotations, canonicalMcpResourceNames, canonicalMcpResourceUris, canonicalMcpToolAnnotations, canonicalMcpToolNames, externalExecution, externalStop (+17 more)
 
 ### Community 8 - "Community 8"
 Cohesion: 0.10
@@ -155,7 +146,7 @@ Nodes (17): compilerOptions, declaration, declarationMap, esModuleInterop, force
 
 ### Community 10 - "Community 10"
 Cohesion: 0.12
-Nodes (15): author, bugs, url, description, engines, node, exports, files (+7 more)
+Nodes (15): author, bin, create-appraisejs, bugs, url, description, exports, files (+7 more)
 
 ### Community 11 - "Community 11"
 Cohesion: 0.13
@@ -166,8 +157,8 @@ Cohesion: 0.11
 Nodes (21): registerResourcesOperations(), assessmentWorkflow, contentHash(), projectPayload(), qualityDesignWorkflow, ActionAssertionConcern, ActionDescriptor, ActionInputDescriptor (+13 more)
 
 ### Community 13 - "Community 13"
-Cohesion: 0.11
-Nodes (19): builtinBrowserOperations, BrowserOperationHandler, BrowserOperationRef, builtinHandlerImplementations, builtinHandlers, canonicalInputAliases, enforceLocatorCardinality(), executeBrowserOperation() (+11 more)
+Cohesion: 0.08
+Nodes (29): builtinBrowserOperations, BrowserOperationContext, BrowserOperationHandler, browserOperationHandlerDescriptors, BrowserOperationRef, builtinHandlerImplementations, builtinHandlers, canonicalInputAliases (+21 more)
 
 ### Community 14 - "Community 14"
 Cohesion: 0.16
@@ -178,8 +169,8 @@ Cohesion: 0.14
 Nodes (13): exports, ./launcher, ./session-file, ./types, main, name, private, scripts (+5 more)
 
 ### Community 16 - "Community 16"
-Cohesion: 0.09
-Nodes (24): canonicalStepDefinitionJson(), computeStepDefinitionHashes(), computeStepExecutableReadiness(), identifierSchema, STEP_DEFINITION_SCHEMA_VERSION, stepDefinitionContentHash(), StepDefinitionDraft, stepDefinitionDraftAuthoringSchema (+16 more)
+Cohesion: 0.08
+Nodes (25): boundedOperationValueSchema, canonicalStepDefinitionJson(), computeStepDefinitionHashes(), computeStepExecutableReadiness(), identifierSchema, STEP_DEFINITION_SCHEMA_VERSION, stepDefinitionContentHash(), StepDefinitionDraft (+17 more)
 
 ### Community 17 - "Community 17"
 Cohesion: 0.15
@@ -190,8 +181,8 @@ Cohesion: 0.31
 Nodes (6): Check, diagnoseProject(), formatMcpBootstrapError(), gitlessBaseRevisionGuidance, gitStatus(), workspaces
 
 ### Community 19 - "Community 19"
-Cohesion: 0.05
-Nodes (42): legacyEnvironmentBaseUrl(), CliOptions, program, LocatorCache, LocatorMapCache, toGlobPath(), BROWSER_CHOICES, environmentNames (+34 more)
+Cohesion: 0.06
+Nodes (38): legacyEnvironmentBaseUrl(), CliOptions, program, LocatorCache, LocatorMapCache, toGlobPath(), BROWSER_CHOICES, environmentNames (+30 more)
 
 ### Community 20 - "Community 20"
 Cohesion: 0.14
@@ -229,13 +220,9 @@ Nodes (16): AppraiseHttpMcpOptions, runAppraiseHttpMcp(), assertLoopbackMcpEndpo
 Cohesion: 0.38
 Nodes (3): builtInStepDefinitions, SourceOperation, stepDefinitionSchema
 
-### Community 29 - "Community 29"
-Cohesion: 0.12
-Nodes (25): authorizationHandoff(), authorizationHandoffSchema, authorizationLifecycleResponse(), commonLifecycleResponse(), compactPreparationPreflight(), decisionResponseModeSchema, executionConsentHandoffSchema, lifecycleIdentityResponse() (+17 more)
-
 ### Community 30 - "Community 30"
 Cohesion: 0.09
-Nodes (19): BuiltinBrowserOperation, BuiltinOperationParameter, BrowserRuntimeDiagnostics, BrowserRuntimeIssue, HumanVerificationRequiredEvent, resolveLocator(), retry(), reviewedSelectorResolvers (+11 more)
+Nodes (23): BuiltinBrowserOperation, BuiltinOperationParameter, BrowserRuntimeDiagnostics, BrowserRuntimeIssue, HumanVerificationRequiredEvent, resolveLocator(), retry(), reviewedSelectorResolvers (+15 more)
 
 ### Community 31 - "Community 31"
 Cohesion: 0.40
@@ -258,8 +245,8 @@ Cohesion: 0.67
 Nodes (3): allowScripts, esbuild@0.28.1, fsevents@2.3.3
 
 ### Community 36 - "Community 36"
-Cohesion: 0.08
-Nodes (24): assessmentDecisionInputSchema, assessmentEnvironmentProposalSchema, assessmentInputSchema, assessmentPreflightInputSchema, assessmentPreparationEnvironmentSchema, assessmentPrepareInputSchema, boundedCompactStepValueSchema, compactAssessmentBindingSchema (+16 more)
+Cohesion: 0.05
+Nodes (60): assessmentDecisionInputSchema, assessmentEnvironmentProposalSchema, assessmentInputSchema, assessmentPreflightInputSchema, assessmentPreparationEnvironmentSchema, assessmentPrepareInputSchema, boundedCompactStepValueSchema, compactAssessmentBindingSchema (+52 more)
 
 ### Community 37 - "Community 37"
 Cohesion: 0.29
@@ -273,17 +260,13 @@ Nodes (15): asOptions(), assertAllowedOptions(), assertArgumentCount(), isPlainO
 Cohesion: 0.13
 Nodes (15): onlineClient(), coordinatorEndpointMismatch(), CoordinatorErrorEnvelope, coordinatorErrorEnvelopeSchema, coordinatorRequestError, createCoordinatorClient(), createLocalCoordinatorFailure(), localCoordinatorBaseUrl() (+7 more)
 
-### Community 41 - "Community 41"
-Cohesion: 0.48
-Nodes (5): ensureLocatorPickerCompanionBuilt(), getLatestModifiedTime(), getLocatorPickerCompanionPaths(), pathExists(), resolveLocatorPickerCompanionInvocation()
-
 ### Community 44 - "Community 44"
 Cohesion: 0.43
 Nodes (5): isRepoOnlyTemplatePath(), REPO_ONLY_TEMPLATE_PATHS, REPO_ONLY_TEMPLATE_PREFIXES, REPO_ONLY_TEMPLATE_SCRIPT_NAMES, toPosixPath()
 
 ### Community 45 - "Community 45"
-Cohesion: 0.24
-Nodes (9): nullableOptionalPositiveInteger(), nullableOptionalString(), operationSearchInputSchema, registerProjectOperations(), registerRuntimeOperations(), toolError(), applyAuthoringResponseMode(), applyResponseMode() (+1 more)
+Cohesion: 0.19
+Nodes (12): nullableOptionalPositiveInteger(), nullableOptionalString(), operationSearchInputSchema, registerProjectOperations(), registerRuntimeOperations(), registerStepDefinitionOperations(), toolError(), McpRegistryContext (+4 more)
 
 ### Community 47 - "Community 47"
 Cohesion: 0.67
@@ -291,35 +274,11 @@ Nodes (3): allowScripts, esbuild@0.28.1, fsevents@2.3.3
 
 ### Community 49 - "Community 49"
 Cohesion: 0.17
-Nodes (18): registerDiagnosticOperations(), AgentPreflightObservation, buildAgentPreflight(), canonicalContractJson(), canonicalExpectedTargetWorkspacePath(), compactAgentPreflight(), compactMcpCapabilityMetadata, compactProjectDiagnostic() (+10 more)
-
-### Community 51 - "Community 51"
-Cohesion: 0.19
-Nodes (14): registerQualityDesignOperations(), registerStepDefinitionOperations(), mcpResourceAnnotations, mcpToolAnnotations(), assertCanonicalMcpDefinitions(), assertUniqueMcpDefinitions(), canonicalContracts, contracts (+6 more)
+Nodes (17): registerDiagnosticOperations(), AgentPreflightObservation, buildAgentPreflight(), canonicalContractJson(), canonicalExpectedTargetWorkspacePath(), compactAgentPreflight(), compactMcpCapabilityMetadata, compactProjectDiagnostic() (+9 more)
 
 ### Community 52 - "Community 52"
 Cohesion: 0.21
 Nodes (12): cleanupTempWorkspace(), composeTemplateForVerification(), copyDirWithFilter(), copyDirWithoutBundledExclusions(), copyStarterOverlayFiles(), getPackageFlavorDir(), main(), readExistingTemplateMetadata() (+4 more)
-
-### Community 53 - "Community 53"
-Cohesion: 0.21
-Nodes (9): canonicalOperationJson(), OPERATION_CONTRACT_VERSION, operationContentHash(), OperationDefinition, operationDefinitionSchema, OperationDescriptor, operationInvocationSchema, createOperationRegistry() (+1 more)
-
-### Community 54 - "Community 54"
-Cohesion: 0.28
-Nodes (8): applyCapsuleDiagnosticMode(), invalidRemoteScopeReceiptError(), projectRemoteScopeCreateResponse(), projectRemoteScopePartitionCreateResponse(), record(), remoteScopeReceipt(), validSubjectRevisionId(), diagnostic
-
-### Community 55 - "Community 55"
-Cohesion: 0.36
-Nodes (6): normalizeBuiltinInput(), assertSealedPageOrigin(), gotoSealedOrigin(), resolveSealedNavigationUrl(), sealedOrigin(), SealedOriginError
-
-### Community 56 - "Community 56"
-Cohesion: 0.29
-Nodes (4): BrowserOperationContext, browserOperationHandlerDescriptors, listBrowserOperationHandlerRefs(), OperationExecutionError
-
-### Community 57 - "Community 57"
-Cohesion: 0.67
-Nodes (3): computeTemplateInputHash(), hashFile(), collectFiles()
 
 ### Community 75 - "Community 75"
 Cohesion: 0.18
@@ -347,7 +306,7 @@ Nodes (11): ExpressionKind, identityKey(), ResolvedStepDefinition, sortDiagnosti
 
 ### Community 181 - "Community 181"
 Cohesion: 0.31
-Nodes (7): resetAutomationEnvironments(), resetAutomationLocatorMap(), getEmptyEnvironmentsFileContent(), getEmptyLocatorMapFileContent(), SEEDED_TEMPLATE_PATHS, setSeededTemplateFilesTracked(), trimTrailingBlankLines()
+Nodes (7): preparePackagedGitignore(), resetAutomationLocatorMap(), getEmptyEnvironmentsFileContent(), getEmptyLocatorMapFileContent(), SEEDED_TEMPLATE_PATHS, setSeededTemplateFilesTracked(), trimTrailingBlankLines()
 
 ### Community 182 - "Community 182"
 Cohesion: 0.23
@@ -360,22 +319,22 @@ Nodes (5): forbiddenPaths, forbiddenScripts, packageJson, repoRoot, scriptsDir
 ## Knowledge Gaps
 - **360 isolated node(s):** `name`, `version`, `description`, `license`, `author` (+355 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **5 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **4 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `bootstrap()` connect `Community 19` to `Community 5`?**
-  _High betweenness centrality (0.110) - this node is a cross-community bridge._
 - **Why does `Config` connect `Community 5` to `Community 19`?**
-  _High betweenness centrality (0.110) - this node is a cross-community bridge._
+  _High betweenness centrality (0.286) - this node is a cross-community bridge._
+- **Why does `bootstrap()` connect `Community 19` to `Community 5`?**
+  _High betweenness centrality (0.286) - this node is a cross-community bridge._
 - **What connects `name`, `version`, `description` to the rest of the system?**
   _362 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `Community 1` be split into smaller, more focused modules?**
-  _Cohesion score 0.11692307692307692 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.10591133004926108 - nodes in this community are weakly interconnected._
 - **Should `Community 2` be split into smaller, more focused modules?**
-  _Cohesion score 0.0594679186228482 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.05290490100616683 - nodes in this community are weakly interconnected._
 - **Should `Community 3` be split into smaller, more focused modules?**
-  _Cohesion score 0.11764705882352941 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.09885057471264368 - nodes in this community are weakly interconnected._
 - **Should `Community 4` be split into smaller, more focused modules?**
   _Cohesion score 0.13333333333333333 - nodes in this community are weakly interconnected._

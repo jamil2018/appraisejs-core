@@ -36,6 +36,7 @@ import {
 import {
   coordinatorAuthorizationHandoffFromDetails,
   coordinatorAuthorizationHandoffSchema,
+  coordinatorExecutionConsentHandoffSchema,
   ServiceError,
 } from '@/services/shared/errors'
 import { ensureBuiltInStepDefinitionReadiness } from '@/services/step-definition/built-in-readiness-service'
@@ -175,13 +176,45 @@ type PreparationFailureClassification =
   | 'terminal_execution_failure'
   | 'active_execution'
   | 'execution_reserved'
+  | 'execution_consent_required'
   | 'authorization_required'
   | 'target_failure'
+
+const executionConsentRequestDetailsSchema = z
+  .object({
+    assessmentId: z.string().trim().min(1),
+    consentId: z.string().uuid(),
+    executionManifestHash: z.string().startsWith('sha256:'),
+    consentRequestCreated: z.literal(true),
+  })
+  .passthrough()
 
 type PreparationFailure = {
   message: string
   classification: PreparationFailureClassification
   authorization?: z.infer<typeof coordinatorAuthorizationHandoffSchema>
+  executionConsent?: z.infer<typeof coordinatorExecutionConsentHandoffSchema>
+}
+
+/** The execution service owns consent creation. Preparation records only the
+ * immutable identity of a request created by this invocation, never arbitrary
+ * error details and never a pre-existing ungranted request as a new commit. */
+function preparationExecutionConsentHandoffFromDetails(details: Record<string, unknown> | undefined) {
+  const parsed = executionConsentRequestDetailsSchema.safeParse(details)
+  if (!parsed.success) return undefined
+  const { assessmentId, consentId, executionManifestHash } = parsed.data
+  return coordinatorExecutionConsentHandoffSchema.parse({
+    assessmentId,
+    consentId,
+    expectedExecutionManifestHash: executionManifestHash,
+    consentRequestCreated: true,
+    nextAction: {
+      tool: 'execution_consent_decide',
+      arguments: { assessmentId, consentId, expectedExecutionManifestHash: executionManifestHash },
+      reason:
+        'The execution consent request is committed. Decide it, then replay the original compact preparation request with this same idempotencyKey and the returned consent identity.',
+    },
+  })
 }
 
 async function hydratePreparationBindings<T extends PreparationRequest | PreflightRequest>(
@@ -322,6 +355,7 @@ function response(
   const receipt = receiptFor(preparation)
   const failure = preparation.failureJson ? (JSON.parse(preparation.failureJson) as PreparationFailure) : undefined
   const authorization = coordinatorAuthorizationHandoffSchema.safeParse(failure?.authorization)
+  const executionConsent = coordinatorExecutionConsentHandoffSchema.safeParse(failure?.executionConsent)
   const complete = preparation.phase === 'STARTED'
   const retry = preparationRetry(failure, complete)
   return {
@@ -339,9 +373,23 @@ function response(
     ...(authorization.success
       ? { durableState: 'authorization_request_committed' as const, authorization: authorization.data }
       : {}),
+    ...executionConsentResponse(executionConsent),
     retry,
-    nextRecommendedAction: recommendedAction(complete, retry),
-    nextRequiredAgentBehavior: requiredBehavior(complete, retry),
+    nextRecommendedAction: executionConsent.success ? 'execution_consent_decide' : recommendedAction(complete, retry),
+    nextRequiredAgentBehavior: executionConsent.success
+      ? 'decide_execution_consent_then_replay_same_idempotency_key'
+      : requiredBehavior(complete, retry),
+  }
+}
+
+function executionConsentResponse(
+  executionConsent: ReturnType<typeof coordinatorExecutionConsentHandoffSchema.safeParse>,
+) {
+  if (!executionConsent.success) return {}
+  return {
+    operationOutcome: 'committed' as const,
+    durableState: 'execution_consent_request_committed' as const,
+    executionConsent: executionConsent.data,
   }
 }
 
@@ -406,24 +454,33 @@ async function recordFailure(preparationId: string, error: unknown) {
     error instanceof ServiceError && error.code === 'UNAUTHORIZED' && error.message === 'AUTHORIZATION_REQUIRED'
       ? coordinatorAuthorizationHandoffFromDetails(error.details)
       : undefined
+  const executionConsent =
+    error instanceof ServiceError &&
+    error.code === 'CONFLICT' &&
+    error.message === 'Explicit execution consent is required.'
+      ? preparationExecutionConsentHandoffFromDetails(error.details)
+      : undefined
   const failure: PreparationFailure = {
     message: error instanceof Error ? error.message : 'Preparation failed.',
-    classification: authorization
-      ? 'authorization_required'
-      : terminalExecutionFailure
-        ? 'terminal_execution_failure'
-        : executionReserved
-          ? 'execution_reserved'
-          : activeExecution
-            ? 'active_execution'
-            : error instanceof ServiceError && error.code === 'CONFLICT'
-              ? 'state_conflict'
-              : error instanceof ServiceError && error.code === 'VALIDATION'
-                ? 'request_invalid'
-                : error instanceof ServiceError && error.code === 'NOT_FOUND'
-                  ? 'prerequisite_missing'
-                  : 'infrastructure_failure',
+    classification: executionConsent
+      ? 'execution_consent_required'
+      : authorization
+        ? 'authorization_required'
+        : terminalExecutionFailure
+          ? 'terminal_execution_failure'
+          : executionReserved
+            ? 'execution_reserved'
+            : activeExecution
+              ? 'active_execution'
+              : error instanceof ServiceError && error.code === 'CONFLICT'
+                ? 'state_conflict'
+                : error instanceof ServiceError && error.code === 'VALIDATION'
+                  ? 'request_invalid'
+                  : error instanceof ServiceError && error.code === 'NOT_FOUND'
+                    ? 'prerequisite_missing'
+                    : 'infrastructure_failure',
     ...(authorization ? { authorization } : {}),
+    ...(executionConsent ? { executionConsent } : {}),
   }
   return prisma.assessmentPreparation.update({
     where: { id: preparationId },
@@ -1416,34 +1473,43 @@ async function ensureAssessment(state: PreparationState, input: PreparationInput
       assessment: { id: created.assessment.id, status: created.assessment.status },
     })
   } catch (error) {
-    // A fresh preparation key after a terminal capsule-start failure must use
-    // the same still-READY Assessment root. The root reservation conflict is
-    // the proof that it is the exact target/revision/subject scope requested
-    // above; re-read it and let the new preparation own a new AssessmentRun.
     const assessmentId =
       error instanceof ServiceError && error.details?.code === 'assessment_scope_reserved'
         ? error.details.assessmentId
         : undefined
     if (typeof assessmentId !== 'string') throw error
     const existing = await readQualityAssessment(assessmentId)
-    if (existing.assessment.status !== 'READY') {
-      if (existing.assessment.status === 'RUNNING')
-        throw new ServiceError(
-          'Assessment execution is already reserved by an active run; wait for it or reconcile its terminal evidence.',
-          'CONFLICT',
-          409,
-          {
-            code: 'assessment_execution_reserved',
-            assessmentId,
-            nextRecommendedAction: 'assessment_reconcile',
-            nextRequiredAgentBehavior: 'wait_for_active_assessment_execution_then_reconcile',
-          },
-        )
-      throw error
-    }
-    return advance(state, 'ASSESSMENT', {
-      assessment: { id: existing.assessment.id, status: existing.assessment.status },
-    })
+    const latestRun = existing.assessmentRun
+    const terminalHistory =
+      Boolean(latestRun?.testRuns.length) &&
+      latestRun!.testRuns.every(
+        testRun => Boolean(testRun.terminalOutcome) && ['COMPLETED', 'CANCELLED'].includes(testRun.status ?? ''),
+      )
+    if (terminalHistory)
+      throw new ServiceError(
+        'Assessment execution has terminal TestRun history; create an immutable successor before preparing another run.',
+        'CONFLICT',
+        409,
+        {
+          code: 'assessment_execution_terminal',
+          assessmentId,
+          nextRecommendedAction: 'assessment_create_successor',
+          nextRequiredAgentBehavior: 'create_successor_then_prepare_with_a_new_idempotency_key',
+        },
+      )
+    if (existing.assessment.status === 'RUNNING')
+      throw new ServiceError(
+        'Assessment execution is already reserved by an active run; wait for it or reconcile its terminal evidence.',
+        'CONFLICT',
+        409,
+        {
+          code: 'assessment_execution_reserved',
+          assessmentId,
+          nextRecommendedAction: 'assessment_reconcile',
+          nextRequiredAgentBehavior: 'wait_for_active_assessment_execution_then_reconcile',
+        },
+      )
+    throw error
   }
 }
 
@@ -1465,12 +1531,8 @@ async function ensureStarted(state: PreparationState, input: PreparationInput, e
 }
 
 async function startedPreparationReplay(input: PreparationInput, targetProjectId: string, inputHash: string) {
-  const preparation = (await prisma.assessmentPreparation.findUnique({
-    where: { targetProjectId_idempotencyKey: { targetProjectId, idempotencyKey: input.idempotencyKey } },
-  })) as PreparationRecord | null
+  const preparation = await preparationReplayRecord(input, targetProjectId, inputHash)
   if (!preparation) return null
-  if (preparation.inputHash !== inputHash)
-    throw new ServiceError('assessment_prepare_run idempotency key has different canonical input.', 'CONFLICT')
   if (preparation.phase !== 'STARTED') return null
   assertCompletedReplayPreflight(preparation, input.expectedPreflight)
   return response(preparation, true)
@@ -1479,15 +1541,40 @@ async function startedPreparationReplay(input: PreparationInput, targetProjectId
 /** A terminal TestRun is immutable history. Its preparation key must remain a
  * stable receipt rather than silently discovering that a second replay can no
  * longer perform any execution work. After reconciliation returns the exact
- * Assessment root to READY, a new preparation key owns the retry. */
+ * Assessment root to a terminal successor-eligible state, a new preparation
+ * key may be used only for the explicit successor. */
 async function terminalExecutionPreparationReplay(input: PreparationInput, targetProjectId: string, inputHash: string) {
+  const preparation = await preparationReplayRecord(input, targetProjectId, inputHash)
+  if (!preparation) return null
+  return isTerminalExecutionFailure(preparation) ? response(preparation, true) : null
+}
+
+/** A committed consent request is a stable handoff until the caller supplies
+ * its returned identity. This avoids re-running preparation merely to report
+ * an already-created request, while an approved replay still advances. */
+async function executionConsentPreparationReplay(input: PreparationInput, targetProjectId: string, inputHash: string) {
+  if (input.consentId || input.expectedExecutionManifestHash) return null
+  const preparation = await preparationReplayRecord(input, targetProjectId, inputHash)
+  if (!preparation) return null
+  if (!preparation.failureJson) return null
+  try {
+    const failure = JSON.parse(preparation.failureJson) as PreparationFailure
+    return coordinatorExecutionConsentHandoffSchema.safeParse(failure.executionConsent).success
+      ? response(preparation, true)
+      : null
+  } catch {
+    return null
+  }
+}
+
+async function preparationReplayRecord(input: PreparationInput, targetProjectId: string, inputHash: string) {
   const preparation = (await prisma.assessmentPreparation.findUnique({
     where: { targetProjectId_idempotencyKey: { targetProjectId, idempotencyKey: input.idempotencyKey } },
   })) as PreparationRecord | null
   if (!preparation) return null
   if (preparation.inputHash !== inputHash)
     throw new ServiceError('assessment_prepare_run idempotency key has different canonical input.', 'CONFLICT')
-  return isTerminalExecutionFailure(preparation) ? response(preparation, true) : null
+  return preparation
 }
 
 function existingEnvironmentIdFor(input: PreparationInput) {
@@ -1670,6 +1757,8 @@ async function executePreparation(
   if (complete) return complete
   const terminalFailure = await terminalExecutionPreparationReplay(input, target.id, inputHash)
   if (terminalFailure) return terminalFailure
+  const executionConsent = await executionConsentPreparationReplay(input, target.id, inputHash)
+  if (executionConsent) return executionConsent
   // Scope binding is resolved before readiness maintenance. This prevents a
   // raw, stale, or allowCreate remote command from changing durable state.
   const context = await resolvePreparationContext(input, target)
@@ -1683,6 +1772,8 @@ async function executePreparation(
   if (completedAfterReadiness) return completedAfterReadiness
   const terminalFailureAfterReadiness = await terminalExecutionPreparationReplay(input, target.id, inputHash)
   if (terminalFailureAfterReadiness) return terminalFailureAfterReadiness
+  const executionConsentAfterReadiness = await executionConsentPreparationReplay(input, target.id, inputHash)
+  if (executionConsentAfterReadiness) return executionConsentAfterReadiness
   await assertCurrentPreparationRemoteScope(context.remoteScope)
   const preparation = await acquirePreparation(input, target.id, inputHash, context.remoteScope?.phaseBinding)
   if (preparation.phase === 'STARTED') {

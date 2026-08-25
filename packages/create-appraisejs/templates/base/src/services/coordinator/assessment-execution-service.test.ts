@@ -1253,7 +1253,7 @@ describe('assessment execution guards', () => {
       expect(bindingUpdate).toHaveBeenCalledWith(
         expect.objectContaining({ data: expect.objectContaining({ terminalOutcome: 'INCONCLUSIVE' }) }),
       )
-      expect(assessmentUpdate).toHaveBeenCalledWith(expect.objectContaining({ data: { status: 'READY' } }))
+      expect(assessmentUpdate).toHaveBeenCalledWith(expect.objectContaining({ data: { status: 'CANCELLED' } }))
     } finally {
       await Promise.all([fs.rm(reportPath, { force: true }), fs.rm(logPath, { force: true })])
     }
@@ -1573,7 +1573,7 @@ describe('assessment execution guards', () => {
     }
   })
 
-  it('seals integrity-valid human-verification evidence but returns the assessment to READY', async () => {
+  it('seals integrity-valid human-verification evidence as a successor-eligible cancellation', async () => {
     const reportPath = path.join(process.cwd(), '.tmp-assessment-blocked-report.json')
     const logPath = path.join(process.cwd(), '.tmp-assessment-blocked-run.log')
     await Promise.all([
@@ -1647,7 +1647,7 @@ describe('assessment execution guards', () => {
       expect(evidenceUpsert).toHaveBeenCalledWith(
         expect.objectContaining({ create: expect.objectContaining({ outcome: 'BLOCKED' }) }),
       )
-      expect(assessmentUpdate).toHaveBeenCalledWith(expect.objectContaining({ data: { status: 'READY' } }))
+      expect(assessmentUpdate).toHaveBeenCalledWith(expect.objectContaining({ data: { status: 'CANCELLED' } }))
       expect(assessmentUpdate).not.toHaveBeenCalledWith(
         expect.objectContaining({ data: { status: 'EVIDENCE_REVIEW' } }),
       )
@@ -1705,7 +1705,7 @@ describe('assessment execution guards', () => {
     )
   })
 
-  it('terminalizes failed execution without evidence and returns the assessment to READY', async () => {
+  it('terminalizes failed execution without evidence as a successor-eligible cancellation', async () => {
     const binding = {
       id: 'binding-1',
       version: 0,
@@ -1755,6 +1755,6 @@ describe('assessment execution guards', () => {
     } as never)
     await reconcileQualityAssessment({ assessmentId: 'assessment-1' })
     expect(evidenceUpsert).not.toHaveBeenCalled()
-    expect(assessmentUpdate).toHaveBeenCalledWith(expect.objectContaining({ data: { status: 'READY' } }))
+    expect(assessmentUpdate).toHaveBeenCalledWith(expect.objectContaining({ data: { status: 'CANCELLED' } }))
   })
 })

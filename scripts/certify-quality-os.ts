@@ -1,6 +1,6 @@
 import { execFileSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
-import { readFileSync, writeFileSync } from 'node:fs'
+import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 
 import {
@@ -21,8 +21,13 @@ const behavioralSuites = [
 ]
 const packageBehavioralSuites = ['src/coordinator-client.test.ts', 'src/mcp/response-projector.test.ts']
 execFileSync('npm', ['run', 'validate:unit', '--', ...behavioralSuites], { stdio: 'inherit' })
-execFileSync('npm', ['--prefix', 'packages/appraisejs', 'test', '--', ...packageBehavioralSuites], { stdio: 'inherit' })
-const certifiedSuites = [...behavioralSuites, ...packageBehavioralSuites.map(file => `packages/appraisejs/${file}`)]
+const packageWorkspacePresent = existsSync(resolve('packages/appraisejs/package.json'))
+if (packageWorkspacePresent)
+  execFileSync('npm', ['--prefix', 'packages/appraisejs', 'test', '--', ...packageBehavioralSuites], { stdio: 'inherit' })
+const certifiedSuites = [
+  ...behavioralSuites,
+  ...(packageWorkspacePresent ? packageBehavioralSuites.map(file => `packages/appraisejs/${file}`) : []),
+]
 const suiteEvidence = certifiedSuites.map(file => ({
   file,
   sourceHash: `sha256:${createHash('sha256')

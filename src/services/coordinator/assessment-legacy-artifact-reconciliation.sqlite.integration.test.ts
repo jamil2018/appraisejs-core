@@ -184,7 +184,7 @@ describe('legacy remote artifact reconciliation', () => {
         client as unknown as Parameters<typeof readQualityAssessment>[1],
       )
       expect(review).toMatchObject({
-        assessment: { status: 'READY' },
+        assessment: { status: 'CANCELLED' },
         evidenceReceiptCount: 0,
         targetOutcome: 'not_evaluated',
       })
