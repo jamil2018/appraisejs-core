@@ -518,6 +518,7 @@ export async function runQualityAssessment(input: AssessmentRunInput) {
       throw recoveryErrorForBindings(identity, reconciled.bindings)
     }
   }
+  if (identity.assessmentStatus === 'CANCELLED') throw terminalAssessmentExecutionError(identity)
   const cells = derivedAssessmentCells(effectiveInput, identity)
   const publications = validateCells(cells, identity, effectiveInput.validationVersionIds)
   assertCompletePublishedMatrix(cells, publications)
@@ -630,14 +631,34 @@ type AssessmentRunBindingState = {
   hasNoBindings: boolean
 }
 
-function assessmentRunReplayState(run: {
+type AssessmentRunReplayInput = {
   status: string
   bindings: Array<{ terminalizedAt: Date | null; evidenceReceiptId: string | null; testRun: { status: TestRunStatus } }>
-}) {
-  if (run.bindings.length > 0 && run.bindings.every(binding => binding.testRun.status === TestRunStatus.QUEUED))
-    return 'resume' as const
-  if (run.bindings.length > 0 && run.bindings.every(terminalAndSealedBinding)) return 'terminal' as const
-  if (run.status === 'COMPLETED' || run.status === 'STOPPED' || run.bindings.length) return 'incomplete' as const
+}
+
+function isZeroBindingTerminalRun(run: AssessmentRunReplayInput) {
+  // A stop can win before the first binding exists. That STOPPED run is still
+  // immutable terminal history: its Assessment has been CANCELLED and a
+  // replay must direct callers to an explicit successor, not reconciliation.
+  return !run.bindings.length && (run.status === 'STOPPED' || run.status === 'COMPLETED')
+}
+
+function hasOnlyQueuedBindings(run: AssessmentRunReplayInput) {
+  return run.bindings.length > 0 && run.bindings.every(binding => binding.testRun.status === TestRunStatus.QUEUED)
+}
+
+function hasOnlyTerminalAndSealedBindings(run: AssessmentRunReplayInput) {
+  return run.bindings.length > 0 && run.bindings.every(terminalAndSealedBinding)
+}
+
+function hasIncompleteAssessmentRunState(run: AssessmentRunReplayInput) {
+  return run.status === 'COMPLETED' || run.status === 'STOPPED' || run.bindings.length > 0
+}
+
+function assessmentRunReplayState(run: AssessmentRunReplayInput) {
+  if (isZeroBindingTerminalRun(run) || hasOnlyTerminalAndSealedBindings(run)) return 'terminal' as const
+  if (hasOnlyQueuedBindings(run)) return 'resume' as const
+  if (hasIncompleteAssessmentRunState(run)) return 'incomplete' as const
   return 'resume' as const
 }
 

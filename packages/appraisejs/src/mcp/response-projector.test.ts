@@ -275,6 +275,7 @@ describe('lifecycle response projection', () => {
       const projected = applyLifecycleResponseMode(
         {
           durableState: 'execution_consent_request_committed',
+          operationOutcome: 'committed',
           executionConsent,
           nextRecommendedAction: 'execution_consent_decide',
           nextRequiredAgentBehavior: 'decide_then_replay_same_preparation_key',
@@ -284,6 +285,7 @@ describe('lifecycle response projection', () => {
 
       expect(projected).toMatchObject({
         durableState: 'execution_consent_request_committed',
+        operationOutcome: 'committed',
         executionConsent,
         nextRecommendedAction: 'execution_consent_decide',
       })

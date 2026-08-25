@@ -839,9 +839,9 @@ function assertAnswersBelongToRevision(revision: QualityRevisionRecord, answers:
     throw new ServiceError('Requirement query does not belong to this Quality Plan revision.', 'CONFLICT')
 }
 
-async function findQueryAnswerSuccessor(client: PrismaLike, revision: QualityRevisionRecord, idempotencyKey: string) {
+async function findQueryAnswerSuccessor(client: PrismaLike, qualityPlanId: string, idempotencyKey: string) {
   return client.qualityPlanRevision.findFirst({
-    where: { qualityPlanId: revision.qualityPlanId, queryAnswerIdempotencyKey: idempotencyKey },
+    where: { qualityPlanId, queryAnswerIdempotencyKey: idempotencyKey },
     include: {
       qualityPlan: { include: { targetProject: { select: { kind: true } } } },
       requirementSnapshots: true,
@@ -932,15 +932,25 @@ export async function answerQualityRequirementQueries(
   },
   client: PrismaLike = qualityDb,
 ) {
+  const orderedAnswers = [...input.answers].sort((left, right) => left.queryId.localeCompare(right.queryId))
+  // An omitted revisionId selects the latest revision for a new command. An
+  // idempotent retry instead remains bound to its immutable predecessor.
+  const existingReplay = await findQueryAnswerSuccessor(client, input.qualityPlanId, input.idempotencyKey)
+  if (existingReplay) {
+    const requestHash = hashCanonical({
+      predecessorRevisionId: input.revisionId ?? existingReplay.predecessorRevisionId,
+      answers: orderedAnswers,
+    })
+    return queryAnswerReplay(existingReplay, requestHash)
+  }
   const revision = await readRevisionOrThrow(client, input.qualityPlanId, input.revisionId)
   assertAnswersBelongToRevision(revision, input.answers)
   // A post-draft answer is a new requirements interpretation.  Do not mutate
   // an approved/reviewed revision (or any of its analysis/design descendants):
   // record the changed answers on a new, content-addressed successor instead.
   if (revision.status !== 'DRAFT') {
-    const orderedAnswers = [...input.answers].sort((left, right) => left.queryId.localeCompare(right.queryId))
     const requestHash = hashCanonical({ predecessorRevisionId: revision.id, answers: orderedAnswers })
-    const replay = await findQueryAnswerSuccessor(client, revision, input.idempotencyKey)
+    const replay = await findQueryAnswerSuccessor(client, input.qualityPlanId, input.idempotencyKey)
     if (replay) return queryAnswerReplay(replay, requestHash)
     try {
       return await createQueryAnswerSuccessor({
@@ -952,7 +962,7 @@ export async function answerQualityRequirementQueries(
       })
     } catch (error) {
       if (!uniqueConstraint(error)) throw error
-      const raced = await findQueryAnswerSuccessor(client, revision, input.idempotencyKey)
+      const raced = await findQueryAnswerSuccessor(client, input.qualityPlanId, input.idempotencyKey)
       if (!raced) throw error
       return queryAnswerReplay(raced, requestHash)
     }
@@ -1863,7 +1873,10 @@ function assessmentRunPayload(assessment: AssessmentRecord) {
 function assessmentExecutionNextAction(assessment: AssessmentRecord, evidenceReceiptCount: number) {
   if (evidenceReceiptCount > 0) return undefined
   const run = latestAssessmentRun(assessment)
-  if (!run?.bindings.length) return undefined
+  if (!run) return undefined
+  if (!run.bindings.length && (run.status === 'STOPPED' || run.status === 'COMPLETED'))
+    return 'Call assessment_create_successor for this immutable predecessor, then prepare the returned successor with a new idempotency key and consent; the latest AssessmentRun stopped before any TestRun binding.'
+  if (!run.bindings.length) return undefined
   const terminal = run.bindings.every(
     binding =>
       Boolean(binding.terminalizedAt || binding.evidenceReceiptId) &&

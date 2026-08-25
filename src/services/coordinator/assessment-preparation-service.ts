@@ -1402,10 +1402,23 @@ function selectedAssessmentConflict(code: string, message: string, assessmentId:
   throw new ServiceError(message, 'CONFLICT', 409, { code, assessmentId })
 }
 
-async function selectedReadyAssessment(input: PreparationInput, target: { id: string }) {
-  if (!input.assessmentId) return null
-  const selected = await readQualityAssessment(input.assessmentId)
-  const assessment = selected.assessment
+function terminalAssessmentExecutionConflict(assessmentId: string): never {
+  throw new ServiceError(
+    'Assessment execution has terminal history; create an immutable successor before preparing another run.',
+    'CONFLICT',
+    409,
+    {
+      code: 'assessment_execution_terminal',
+      assessmentId,
+      nextRecommendedAction: 'assessment_create_successor',
+      nextRequiredAgentBehavior: 'create_successor_then_prepare_with_a_new_idempotency_key',
+    },
+  )
+}
+
+type SelectedAssessment = Awaited<ReturnType<typeof readQualityAssessment>>
+
+function assertSelectedAssessmentScope(selected: SelectedAssessment, input: PreparationInput, target: { id: string }) {
   const scopeMatches =
     selected.qualityPlan?.id === input.qualityPlanId &&
     selected.qualityPlan?.targetProjectId === target.id &&
@@ -1414,44 +1427,140 @@ async function selectedReadyAssessment(input: PreparationInput, target: { id: st
     selectedAssessmentConflict(
       'assessment_selector_scope_mismatch',
       'Selected Assessment does not match the requested target, Quality Plan, or revision.',
-      input.assessmentId,
+      input.assessmentId!,
     )
+}
 
-  const expectedSubject = input.subject
-  const subjectMatches =
-    'subjectRevisionId' in expectedSubject
-      ? selected.subject?.id === expectedSubject.subjectRevisionId &&
-        (!expectedSubject.expectedSubjectDigest ||
-          selected.subject?.subjectDigest === expectedSubject.expectedSubjectDigest)
-      : selected.subject?.subjectDigest === expectedSubject.subjectDigest &&
-        selected.subject?.authority === expectedSubject.authority &&
-        selected.subject?.subjectKind === (expectedSubject.subjectKind ?? 'ARTIFACT') &&
-        canonicalContractJson(selected.subject?.metadata ?? null) ===
-          canonicalContractJson(expectedSubject.metadata ?? null)
-  if (!subjectMatches)
+function selectedSubjectMatchesExpectedDigest(selected: SelectedAssessment, expectedDigest: string | undefined) {
+  return !expectedDigest || selected.subject?.subjectDigest === expectedDigest
+}
+
+function selectedSubjectMatchesRevisionReference(
+  selected: SelectedAssessment,
+  subject: Extract<PreparationInput['subject'], { subjectRevisionId: string }>,
+) {
+  return (
+    selected.subject?.id === subject.subjectRevisionId &&
+    selectedSubjectMatchesExpectedDigest(selected, subject.expectedSubjectDigest)
+  )
+}
+
+function selectedSubjectMatchesDescriptor(
+  selected: SelectedAssessment,
+  subject: Exclude<PreparationInput['subject'], { subjectRevisionId: string }>,
+) {
+  const selectedSubject = selected.subject
+  return (
+    selectedSubject?.subjectDigest === subject.subjectDigest &&
+    selectedSubject.authority === subject.authority &&
+    selectedSubject.subjectKind === (subject.subjectKind ?? 'ARTIFACT') &&
+    canonicalContractJson(selectedSubject.metadata ?? null) === canonicalContractJson(subject.metadata ?? null)
+  )
+}
+
+function selectedAssessmentMatchesSubject(selected: SelectedAssessment, subject: PreparationInput['subject']) {
+  return 'subjectRevisionId' in subject
+    ? selectedSubjectMatchesRevisionReference(selected, subject)
+    : selectedSubjectMatchesDescriptor(selected, subject)
+}
+
+function assertSelectedAssessmentSubject(selected: SelectedAssessment, input: PreparationInput) {
+  if (!selectedAssessmentMatchesSubject(selected, input.subject))
     selectedAssessmentConflict(
       'assessment_selector_scope_mismatch',
       'Selected Assessment does not match the requested immutable subject.',
-      input.assessmentId,
+      input.assessmentId!,
     )
+}
 
-  const isRoot = assessment.supersedesAssessmentId === null
-  const lineageMatches = isRoot
-    ? assessment.generation === 0 && assessment.lineageId === assessment.id
-    : assessment.generation > 0 && Boolean(assessment.lineageId) && assessment.lineageId !== assessment.id
-  if (!lineageMatches)
+function selectedAssessmentHasValidLineage(selected: SelectedAssessment) {
+  const assessment = selected.assessment
+  if (assessment.supersedesAssessmentId === null)
+    return assessment.generation === 0 && assessment.lineageId === assessment.id
+  return assessment.generation > 0 && Boolean(assessment.lineageId) && assessment.lineageId !== assessment.id
+}
+
+function assertSelectedAssessmentLineage(selected: SelectedAssessment, assessmentId: string) {
+  if (!selectedAssessmentHasValidLineage(selected))
     selectedAssessmentConflict(
       'assessment_selector_lineage_invalid',
       'Selected Assessment has an inconsistent immutable lineage.',
-      input.assessmentId,
+      assessmentId,
     )
-  if (assessment.status !== 'READY')
+}
+
+function assertSelectedAssessmentReady(selected: SelectedAssessment, assessmentId: string, requireReady: boolean) {
+  if (!requireReady) return
+  if (selected.assessment.status === 'CANCELLED') terminalAssessmentExecutionConflict(assessmentId)
+  if (selected.assessment.status !== 'READY')
     selectedAssessmentConflict(
       'assessment_selector_not_ready',
       'Selected Assessment must be READY before preparation can bind a new AssessmentRun.',
-      input.assessmentId,
+      assessmentId,
     )
+}
+
+async function selectedAssessment(input: PreparationInput, target: { id: string }, requireReady = true) {
+  if (!input.assessmentId) return null
+  const selected = await readQualityAssessment(input.assessmentId)
+  assertSelectedAssessmentScope(selected, input, target)
+  assertSelectedAssessmentSubject(selected, input)
+  assertSelectedAssessmentLineage(selected, input.assessmentId)
+  assertSelectedAssessmentReady(selected, input.assessmentId, requireReady)
   return selected
+}
+
+async function selectedReadyAssessment(input: PreparationInput, target: { id: string }) {
+  return selectedAssessment(input, target)
+}
+
+function reservedAssessmentId(error: unknown) {
+  if (!(error instanceof ServiceError) || error.details?.code !== 'assessment_scope_reserved') return undefined
+  return typeof error.details.assessmentId === 'string' ? error.details.assessmentId : undefined
+}
+
+function hasTerminalTestRunHistory(run: SelectedAssessment['assessmentRun']) {
+  return (
+    Boolean(run?.testRuns.length) &&
+    run!.testRuns.every(
+      testRun => Boolean(testRun.terminalOutcome) && ['COMPLETED', 'CANCELLED'].includes(testRun.status ?? ''),
+    )
+  )
+}
+
+function hasTerminalZeroBindingHistory(run: SelectedAssessment['assessmentRun']) {
+  return !run?.testRuns.length && ['STOPPED', 'COMPLETED'].includes(run?.status ?? '')
+}
+
+function reservedAssessmentIsTerminal(existing: SelectedAssessment) {
+  return (
+    existing.assessment.status === 'CANCELLED' ||
+    hasTerminalTestRunHistory(existing.assessmentRun) ||
+    hasTerminalZeroBindingHistory(existing.assessmentRun)
+  )
+}
+
+function reservedAssessmentActiveConflict(assessmentId: string): never {
+  throw new ServiceError(
+    'Assessment execution is already reserved by an active run; wait for it or reconcile its terminal evidence.',
+    'CONFLICT',
+    409,
+    {
+      code: 'assessment_execution_reserved',
+      assessmentId,
+      nextRecommendedAction: 'assessment_reconcile',
+      nextRequiredAgentBehavior: 'wait_for_active_assessment_execution_then_reconcile',
+    },
+  )
+}
+
+async function recoverReservedAssessment(error: unknown) {
+  const assessmentId = reservedAssessmentId(error)
+  if (!assessmentId) throw error
+  const existing = await readQualityAssessment(assessmentId)
+  if (reservedAssessmentIsTerminal(existing)) terminalAssessmentExecutionConflict(assessmentId)
+  if (existing.assessment.status === 'RUNNING') reservedAssessmentActiveConflict(assessmentId)
+  throw error
 }
 
 async function ensureAssessment(state: PreparationState, input: PreparationInput, target: { id: string }) {
@@ -1473,43 +1582,7 @@ async function ensureAssessment(state: PreparationState, input: PreparationInput
       assessment: { id: created.assessment.id, status: created.assessment.status },
     })
   } catch (error) {
-    const assessmentId =
-      error instanceof ServiceError && error.details?.code === 'assessment_scope_reserved'
-        ? error.details.assessmentId
-        : undefined
-    if (typeof assessmentId !== 'string') throw error
-    const existing = await readQualityAssessment(assessmentId)
-    const latestRun = existing.assessmentRun
-    const terminalHistory =
-      Boolean(latestRun?.testRuns.length) &&
-      latestRun!.testRuns.every(
-        testRun => Boolean(testRun.terminalOutcome) && ['COMPLETED', 'CANCELLED'].includes(testRun.status ?? ''),
-      )
-    if (terminalHistory)
-      throw new ServiceError(
-        'Assessment execution has terminal TestRun history; create an immutable successor before preparing another run.',
-        'CONFLICT',
-        409,
-        {
-          code: 'assessment_execution_terminal',
-          assessmentId,
-          nextRecommendedAction: 'assessment_create_successor',
-          nextRequiredAgentBehavior: 'create_successor_then_prepare_with_a_new_idempotency_key',
-        },
-      )
-    if (existing.assessment.status === 'RUNNING')
-      throw new ServiceError(
-        'Assessment execution is already reserved by an active run; wait for it or reconcile its terminal evidence.',
-        'CONFLICT',
-        409,
-        {
-          code: 'assessment_execution_reserved',
-          assessmentId,
-          nextRecommendedAction: 'assessment_reconcile',
-          nextRequiredAgentBehavior: 'wait_for_active_assessment_execution_then_reconcile',
-        },
-      )
-    throw error
+    return recoverReservedAssessment(error)
   }
 }
 
@@ -1824,10 +1897,20 @@ export async function prepareQualityAssessmentRun(source: unknown) {
   // must not be invalidated by later mutable catalog/locator drift.
   const complete = await startedPreparationReplay(input, target.id, inputHash)
   if (complete) return complete
-  // Validate an explicit successor selector before any readiness, environment,
-  // realization, publication, preparation, or runtime mutation. It is read
-  // again immediately before binding the AssessmentRun to close a status race.
-  await selectedReadyAssessment(input, target)
+  // An immutable terminal preparation receipt may be replayed after
+  // reconciliation cancels its selected Assessment. Keep all selector
+  // identity and lineage checks, but defer only READY enforcement until after
+  // the exact terminal receipt lookup so replay cannot start another run.
+  const selected = await selectedAssessment(input, target, false)
+  const terminalFailure = await terminalExecutionPreparationReplay(input, target.id, inputHash)
+  if (terminalFailure) return terminalFailure
+  if (selected?.assessment.status === 'CANCELLED') terminalAssessmentExecutionConflict(input.assessmentId!)
+  if (selected && selected.assessment.status !== 'READY')
+    selectedAssessmentConflict(
+      'assessment_selector_not_ready',
+      'Selected Assessment must be READY before preparation can bind a new AssessmentRun.',
+      input.assessmentId!,
+    )
   return executePreparation(input, target, inputHash, hydrated.bindings)
 }
 

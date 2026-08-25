@@ -711,6 +711,50 @@ describe('quality design coordinator service', () => {
     })
   })
 
+  it('replays an immutable query-answer successor when revisionId is omitted', async () => {
+    const draft = await submitQualityRequirementSource(
+      { target: 'target-1', idempotencyKey: 'omitted-revision-source', source: { title: 'Replay by plan scope' } },
+      client,
+    )
+    const queryId = draft.queries[0]!.id
+    await answerQualityRequirementQueries(
+      {
+        qualityPlanId: draft.qualityPlan.id,
+        revisionId: draft.revision.id,
+        idempotencyKey: 'omitted-revision-draft-answer',
+        answers: [{ queryId, status: 'ANSWERED', answer: 'The requirement was clarified.' }],
+      },
+      client,
+    )
+    await approveQualityRequirements(
+      {
+        qualityPlanId: draft.qualityPlan.id,
+        revisionId: draft.revision.id,
+        expectedRevisionHash: draft.revision.contentHash,
+        approvedBy: 'reviewer',
+      },
+      client,
+    )
+    const command = {
+      qualityPlanId: draft.qualityPlan.id,
+      idempotencyKey: 'omitted-revision-successor',
+      answers: [{ queryId, status: 'ACCEPTED_ASSUMPTION' as const, rationale: 'Recorded after approval.' }],
+    }
+
+    const successor = await answerQualityRequirementQueries(command, client)
+    expect(successor).toMatchObject({ idempotent: false, predecessorRevisionId: draft.revision.id })
+    await expect(answerQualityRequirementQueries(command, client)).resolves.toMatchObject({
+      idempotent: true,
+      revision: { id: successor.revision.id },
+    })
+    await expect(
+      answerQualityRequirementQueries(
+        { ...command, answers: [{ queryId, status: 'DEFERRED', rationale: 'Different answer.' }] },
+        client,
+      ),
+    ).rejects.toThrow('Requirement query idempotency key was reused with different answers')
+  })
+
   it('proposes and approves obligation-linked scenario designs after requirement approval', async () => {
     const requirements = await submitQualityRequirementSource(
       {
@@ -973,6 +1017,32 @@ describe('quality design coordinator service', () => {
     expect(terminalDiagnostic.nextRecommendedAction).toContain('new idempotency key and consent')
     expect(terminalDiagnostic.nextRecommendedAction).not.toContain('assessment_run to collect')
     await client.assessment.update({ where: { id: assessment.assessment.id }, data: { runs: [] } })
+
+    await client.assessment.update({
+      where: { id: assessment.assessment.id },
+      data: {
+        status: 'CANCELLED',
+        runs: [
+          {
+            id: 'assessment-run-stopped-before-binding',
+            status: 'STOPPED',
+            stopReason: 'operator stopped before first binding',
+            createdAt: new Date('2026-08-24T14:00:02.000Z'),
+            bindings: [],
+          },
+        ],
+      },
+    })
+    const stoppedBeforeBinding = await readQualityAssessment(assessment.assessment.id, client)
+    expect(stoppedBeforeBinding.assessmentRun).toMatchObject({
+      id: 'assessment-run-stopped-before-binding',
+      status: 'STOPPED',
+      testRuns: [],
+    })
+    expect(stoppedBeforeBinding.nextRecommendedAction).toContain('assessment_create_successor')
+    expect(stoppedBeforeBinding.nextRecommendedAction).toContain('new idempotency key and consent')
+    expect(stoppedBeforeBinding.nextRecommendedAction).not.toContain('assessment_run to collect')
+    await client.assessment.update({ where: { id: assessment.assessment.id }, data: { status: 'READY', runs: [] } })
 
     await expect(
       decideQualityAssessment(

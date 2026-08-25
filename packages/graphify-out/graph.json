@@ -2986,7 +2986,7 @@
       "label": "commonLifecycleResponse()",
       "file_type": "code",
       "source_file": "appraisejs/src/mcp/response-projector.ts",
-      "source_location": "L344",
+      "source_location": "L345",
       "_origin": "ast",
       "community": 36,
       "norm_label": "commonlifecycleresponse()",
@@ -2997,7 +2997,7 @@
       "label": "projectDecisionOnly()",
       "file_type": "code",
       "source_file": "appraisejs/src/mcp/response-projector.ts",
-      "source_location": "L348",
+      "source_location": "L349",
       "_origin": "ast",
       "community": 36,
       "norm_label": "projectdecisiononly()",
@@ -3008,7 +3008,7 @@
       "label": "projectLinksOnly()",
       "file_type": "code",
       "source_file": "appraisejs/src/mcp/response-projector.ts",
-      "source_location": "L358",
+      "source_location": "L359",
       "_origin": "ast",
       "community": 36,
       "norm_label": "projectlinksonly()",
@@ -3019,7 +3019,7 @@
       "label": "projectBlockersOnly()",
       "file_type": "code",
       "source_file": "appraisejs/src/mcp/response-projector.ts",
-      "source_location": "L362",
+      "source_location": "L363",
       "_origin": "ast",
       "community": 36,
       "norm_label": "projectblockersonly()",
@@ -3030,7 +3030,7 @@
       "label": "projectEvidenceOnly()",
       "file_type": "code",
       "source_file": "appraisejs/src/mcp/response-projector.ts",
-      "source_location": "L366",
+      "source_location": "L367",
       "_origin": "ast",
       "community": 36,
       "norm_label": "projectevidenceonly()",
@@ -3041,7 +3041,7 @@
       "label": "projectSummary()",
       "file_type": "code",
       "source_file": "appraisejs/src/mcp/response-projector.ts",
-      "source_location": "L376",
+      "source_location": "L377",
       "_origin": "ast",
       "community": 36,
       "norm_label": "projectsummary()",
@@ -3052,7 +3052,7 @@
       "label": "project()",
       "file_type": "code",
       "source_file": "appraisejs/src/mcp/response-projector.ts",
-      "source_location": "L386",
+      "source_location": "L387",
       "_origin": "ast",
       "community": 36,
       "norm_label": "project()",
@@ -3063,7 +3063,7 @@
       "label": "applyResponseMode()",
       "file_type": "code",
       "source_file": "appraisejs/src/mcp/response-projector.ts",
-      "source_location": "L439",
+      "source_location": "L440",
       "_origin": "ast",
       "community": 45,
       "norm_label": "applyresponsemode()",
@@ -3074,7 +3074,7 @@
       "label": "projectRemoteScopeCreateResponse()",
       "file_type": "code",
       "source_file": "appraisejs/src/mcp/response-projector.ts",
-      "source_location": "L446",
+      "source_location": "L447",
       "_origin": "ast",
       "community": 36,
       "norm_label": "projectremotescopecreateresponse()",
@@ -3085,7 +3085,7 @@
       "label": "remoteScopePartitionCreateResponseSchema",
       "file_type": "code",
       "source_file": "appraisejs/src/mcp/response-projector.ts",
-      "source_location": "L454",
+      "source_location": "L455",
       "_origin": "ast",
       "community": 36,
       "norm_label": "remotescopepartitioncreateresponseschema",
@@ -3096,7 +3096,7 @@
       "label": "projectRemoteScopePartitionCreateResponse()",
       "file_type": "code",
       "source_file": "appraisejs/src/mcp/response-projector.ts",
-      "source_location": "L489",
+      "source_location": "L490",
       "_origin": "ast",
       "community": 36,
       "norm_label": "projectremotescopepartitioncreateresponse()",
@@ -3107,7 +3107,7 @@
       "label": "applyLifecycleResponseMode()",
       "file_type": "code",
       "source_file": "appraisejs/src/mcp/response-projector.ts",
-      "source_location": "L499",
+      "source_location": "L500",
       "_origin": "ast",
       "community": 36,
       "norm_label": "applylifecycleresponsemode()",
@@ -3118,7 +3118,7 @@
       "label": "applyAuthoringResponseMode()",
       "file_type": "code",
       "source_file": "appraisejs/src/mcp/response-projector.ts",
-      "source_location": "L503",
+      "source_location": "L504",
       "_origin": "ast",
       "community": 36,
       "norm_label": "applyauthoringresponsemode()",
@@ -3129,7 +3129,7 @@
       "label": "applyCapsuleDiagnosticMode()",
       "file_type": "code",
       "source_file": "appraisejs/src/mcp/response-projector.ts",
-      "source_location": "L507",
+      "source_location": "L508",
       "_origin": "ast",
       "community": 36,
       "norm_label": "applycapsulediagnosticmode()",
@@ -4088,10 +4088,10 @@
       "source_file": "create-appraisejs/package.json",
       "source_location": "L28",
       "_origin": "ast",
-      "community": 10,
+      "community": 46,
       "norm_label": "bin",
       "id": "create_appraisejs_package_bin",
-      "community_name": "Community 10"
+      "community_name": "Community 46"
     },
     {
       "label": "create-appraisejs",
@@ -4099,10 +4099,10 @@
       "source_file": "create-appraisejs/package.json",
       "source_location": "L29",
       "_origin": "ast",
-      "community": 10,
+      "community": 46,
       "norm_label": "create-appraisejs",
       "id": "create_appraisejs_package_bin_create_appraisejs",
-      "community_name": "Community 10"
+      "community_name": "Community 46"
     },
     {
       "label": "exports",
@@ -4440,10 +4440,10 @@
       "source_file": "create-appraisejs/package.json",
       "source_location": "L72",
       "_origin": "ast",
-      "community": 29,
+      "community": 10,
       "norm_label": "engines",
       "id": "create_appraisejs_package_engines",
-      "community_name": "Community 29"
+      "community_name": "Community 10"
     },
     {
       "label": "node",
@@ -4451,10 +4451,10 @@
       "source_file": "create-appraisejs/package.json",
       "source_location": "L73",
       "_origin": "ast",
-      "community": 29,
+      "community": 10,
       "norm_label": "node",
       "id": "create_appraisejs_package_engines_node",
-      "community_name": "Community 29"
+      "community_name": "Community 10"
     },
     {
       "label": "allowScripts",
@@ -4770,10 +4770,10 @@
       "source_file": "create-appraisejs/scripts/prepare-template.ts",
       "source_location": "L185",
       "_origin": "ast",
-      "community": 1,
+      "community": 29,
       "norm_label": "hashfile()",
       "id": "scripts_prepare_template_hashfile",
-      "community_name": "Community 1"
+      "community_name": "Community 29"
     },
     {
       "label": "computeTemplateInputHash()",
@@ -4781,10 +4781,10 @@
       "source_file": "create-appraisejs/scripts/prepare-template.ts",
       "source_location": "L196",
       "_origin": "ast",
-      "community": 1,
+      "community": 29,
       "norm_label": "computetemplateinputhash()",
       "id": "scripts_prepare_template_computetemplateinputhash",
-      "community_name": "Community 1"
+      "community_name": "Community 29"
     },
     {
       "label": "readExistingTemplateMetadata()",
@@ -5881,10 +5881,10 @@
       "source_file": "create-appraisejs/src/prepare-template-utils.ts",
       "source_location": "L21",
       "_origin": "ast",
-      "community": 1,
+      "community": 29,
       "norm_label": "collectfiles()",
       "id": "src_prepare_template_utils_collectfiles",
-      "community_name": "Community 1"
+      "community_name": "Community 29"
     },
     {
       "label": "shouldAbortOnFallbackSeed()",
@@ -33747,5 +33747,5 @@
       "source_file": "appraisejs/agent-skills/appraise-planning-standby/SKILL.md"
     }
   ],
-  "built_at_commit": "76be922a51f7fa952cea6ff2d9c79ed0a8a4cb55"
+  "built_at_commit": "d9156a34ce830d5d2ffc173cd1b6d51a6ef52e73"
 }

@@ -296,7 +296,49 @@ describe('assessment preparation service', () => {
     expect(readQualityAssessment).toHaveBeenCalledTimes(2)
   })
 
+  it('replays an explicit selected Assessment terminal receipt after reconciliation cancels it', async () => {
+    reset()
+    const selected = selectedAssessment()
+    vi.mocked(readQualityAssessment).mockResolvedValue(selected as never)
+    const request = {
+      ...input,
+      assessmentId: 'assessment-successor-1',
+      idempotencyKey: 'prepare-terminal-selected-replay',
+    }
+    await prepareQualityAssessmentRun(request)
+    Object.assign(preparation, {
+      phase: 'PUBLISHED',
+      failureJson: JSON.stringify({
+        message:
+          'Assessment execution has terminal TestRun history; create an immutable successor before preparing another run.',
+        classification: 'terminal_execution_failure',
+      }),
+    })
+    vi.clearAllMocks()
+    vi.mocked(readQualityAssessment).mockResolvedValue(
+      selectedAssessment({ assessment: { ...selected.assessment, status: 'CANCELLED' } }) as never,
+    )
+
+    await expect(prepareQualityAssessmentRun(request)).resolves.toMatchObject({
+      preparationId: 'preparation-1',
+      unchanged: true,
+      assessment: { id: 'assessment-successor-1' },
+      failure: { classification: 'terminal_execution_failure' },
+      nextRecommendedAction: 'assessment_create_successor',
+      nextRequiredAgentBehavior: 'create_successor_then_prepare_with_a_new_idempotency_key',
+    })
+    expect(ensureBuiltInStepDefinitionReadiness).not.toHaveBeenCalled()
+    expect(database.assessmentPreparation.upsert).not.toHaveBeenCalled()
+    expect(createQualityAssessment).not.toHaveBeenCalled()
+    expect(runQualityAssessment).not.toHaveBeenCalled()
+  })
+
   it.each([
+    [
+      'cancelled terminal predecessor',
+      selectedAssessment({ assessment: { ...selectedAssessment().assessment, status: 'CANCELLED' } }),
+      'assessment_execution_terminal',
+    ],
     [
       'decided',
       selectedAssessment({ assessment: { ...selectedAssessment().assessment, status: 'DECIDED' } }),

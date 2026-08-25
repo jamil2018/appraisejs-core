@@ -384,6 +384,44 @@ describe('assessment execution guards', () => {
     expect(prepareQuality).not.toHaveBeenCalled()
   })
 
+  it('directs a stopped zero-binding replay to an immutable successor', async () => {
+    const prepareQuality = vi.fn()
+    const assessment = {
+      id: 'assessment-zero-binding-terminal',
+      status: 'CANCELLED',
+      alignment: 'CURRENT',
+      targetProjectId: 'target-1',
+      qualityPlanId: 'plan-1',
+      qualityPlanRevisionId: 'revision-1',
+      evaluationSubjectRevisionId: 'subject-1',
+      evaluationSubjectRevision: { subjectDigest: 'sha256:subject' },
+      qualityPlanRevision: { validationVersions: [] },
+    }
+    const stoppedRun = {
+      id: 'run-zero-binding-terminal',
+      status: 'STOPPED',
+      requestHash: 'sha256:unused',
+      bindings: [],
+    }
+    setAssessmentRuntimeServiceFactoryForTests(() => ({ prepareQuality, startQuality: vi.fn(), cancel: vi.fn() }))
+    setAssessmentExecutionClientForTests({
+      assessment: { findUniqueOrThrow: vi.fn().mockResolvedValue(assessment) },
+      assessmentRun: { findUnique: vi.fn().mockResolvedValue(stoppedRun) },
+    } as never)
+
+    await expect(
+      runQualityAssessment({ assessmentId: assessment.id, idempotencyKey: 'zero-binding-terminal-key' }),
+    ).rejects.toMatchObject({
+      code: 'CONFLICT',
+      details: {
+        code: 'assessment_execution_terminal',
+        nextRecommendedAction: 'assessment_create_successor',
+        nextRequiredAgentBehavior: 'create_successor_then_prepare_with_a_new_idempotency_key',
+      },
+    })
+    expect(prepareQuality).not.toHaveBeenCalled()
+  })
+
   it('atomically reserves a READY Assessment so concurrent fresh keys cannot create parallel runs', async () => {
     let assessmentStatus = 'READY'
     const transaction = {

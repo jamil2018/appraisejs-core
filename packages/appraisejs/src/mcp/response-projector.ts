@@ -311,6 +311,7 @@ export function projectRemoteScopeReadResponse(value: unknown, responseMode: z.i
 
 function lifecycleIdentityResponse(payload: Record<string, unknown>) {
   return {
+    operationOutcome: payload.operationOutcome,
     status: payload.status,
     qualityPlanId: payload.qualityPlanId,
     revisionId: payload.revisionId,
