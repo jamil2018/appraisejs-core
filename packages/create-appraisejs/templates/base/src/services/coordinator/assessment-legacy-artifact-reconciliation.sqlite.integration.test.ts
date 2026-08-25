@@ -58,11 +58,46 @@ describe('legacy remote artifact reconciliation', () => {
           requirementGraphJson: '{}',
         },
       })
+      await client.requirementAnalysisRevision.create({
+        data: {
+          id: 'analysis-legacy-remote',
+          targetProjectId: 'target-legacy-remote',
+          qualityPlanRevisionId: 'revision-legacy-remote',
+          revision: 1,
+          status: 'APPROVED',
+          decision: 'APPROVED',
+          analysisJson: '{}',
+          provenanceJson: '{}',
+          analysisHash: `sha256:${'d'.repeat(64)}`,
+          approvedAt: new Date(),
+          approvedBy: 'fixture',
+          approvalHash: `sha256:${'e'.repeat(64)}`,
+        },
+      })
+      await client.validationDesignRevision.create({
+        data: {
+          id: 'design-legacy-remote',
+          targetProjectId: 'target-legacy-remote',
+          qualityPlanRevisionId: 'revision-legacy-remote',
+          requirementAnalysisRevisionId: 'analysis-legacy-remote',
+          revision: 1,
+          status: 'APPROVED',
+          decision: 'APPROVED',
+          strategyJson: '{}',
+          scenarioPortfolioJson: '{}',
+          provenanceJson: '{}',
+          designHash: `sha256:${'f'.repeat(64)}`,
+          approvedAt: new Date(),
+          approvedBy: 'fixture',
+          approvalHash: `sha256:${'g'.repeat(64)}`,
+        },
+      })
       await client.validationVersion.create({
         data: {
           id: 'validation-legacy-remote',
           targetProjectId: 'target-legacy-remote',
           qualityPlanRevisionId: 'revision-legacy-remote',
+          validationDesignRevisionId: 'design-legacy-remote',
           validationIdentity: 'legacy remote artifact',
           version: 1,
           status: 'PUBLISHED',

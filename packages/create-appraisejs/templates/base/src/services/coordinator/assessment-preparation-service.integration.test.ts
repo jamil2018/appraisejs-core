@@ -54,8 +54,19 @@ describe('assessment preflight SQLite boundary', () => {
           id: 'revision-preflight', targetProjectId: 'target-preflight', qualityPlanId: 'plan-preflight', revision: 1,
           status: 'SCENARIOS_APPROVED', contentHash: hash('b'), sourceSpecification: '{}', requirementGraphJson: '{}',
         }})
+        await prisma.requirementAnalysisRevision.create({ data: {
+          id: 'analysis-preflight', targetProjectId: 'target-preflight', qualityPlanRevisionId: 'revision-preflight', revision: 1,
+          status: 'APPROVED', decision: 'APPROVED', analysisJson: '{}', provenanceJson: '{}', analysisHash: hash('analysis-preflight'),
+          decisionRationale: 'Fixture analysis.', decidedBy: 'fixture', decidedAt: new Date(), approvedAt: new Date(), approvedBy: 'fixture', approvalHash: hash('analysis-approval-preflight'),
+        }})
+        await prisma.validationDesignRevision.create({ data: {
+          id: 'design-preflight', targetProjectId: 'target-preflight', qualityPlanRevisionId: 'revision-preflight', requirementAnalysisRevisionId: 'analysis-preflight', revision: 1,
+          status: 'APPROVED', decision: 'APPROVED', strategyJson: '{}', scenarioPortfolioJson: '[]', provenanceJson: '{}', designHash: hash('design-preflight'),
+          decisionRationale: 'Fixture design.', decidedBy: 'fixture', decidedAt: new Date(), approvedAt: new Date(), approvedBy: 'fixture', approvalHash: hash('design-approval-preflight'),
+        }})
         await prisma.validationVersion.create({ data: {
           id: 'validation-preflight', targetProjectId: 'target-preflight', qualityPlanRevisionId: 'revision-preflight',
+          validationDesignRevisionId: 'design-preflight',
           validationIdentity: 'preflight validation', version: 1, status: 'SCENARIO_APPROVED',
           canonicalAstJson: JSON.stringify(design), canonicalHash: hash('c'),
         }})
@@ -111,6 +122,7 @@ describe('assessment preflight SQLite boundary', () => {
       import { compileQualityValidations } from '${path.join(process.cwd(), 'src/services/coordinator/quality-design-service.ts').replaceAll('\\', '\\\\')}'
       import { preflightQualityAssessmentRun, prepareQualityAssessmentRun } from '${path.join(process.cwd(), 'src/services/coordinator/assessment-preparation-service.ts').replaceAll('\\', '\\\\')}'
       import { setAssessmentRuntimeServiceFactoryForTests } from '${path.join(process.cwd(), 'src/services/coordinator/assessment-execution-service.ts').replaceAll('\\', '\\\\')}'
+      import { decideExecutionConsent } from '${path.join(process.cwd(), 'src/services/coordinator/quality-operating-system-service.ts').replaceAll('\\', '\\\\')}'
       import { ensureBuiltInStepDefinitionReadiness } from '${path.join(process.cwd(), 'src/services/step-definition/built-in-readiness-service.ts').replaceAll('\\', '\\\\')}'
       import { createCustomExtensionPolicy } from '${path.join(process.cwd(), 'src/lib/validation-ast/extension-policy.ts').replaceAll('\\', '\\\\')}'
       import { hashCanonical } from '${path.join(process.cwd(), 'src/lib/quality-design/state.ts').replaceAll('\\', '\\\\')}'
@@ -173,10 +185,12 @@ describe('assessment preflight SQLite boundary', () => {
           }, matrix: runtimeInput.matrix,
         }
         const realization = { validations: [{ validationVersionId: versionId, realization: { runtimePublication: { idempotencyKey: 'replay-1', projection: { validationNode: node, gherkin }, validationProjection: { validations: [node], gherkin }, runtimeInput, extensionReviews: [] } } }] }
-        await prisma.targetProject.create({ data: { id: targetId, kind: 'LOCAL_WORKSPACE', canonicalIdentity: 'path:${workspace.replaceAll('\\', '\\\\')}', canonicalPath: '${workspace.replaceAll('\\', '\\\\')}', displayName: 'replay target', fingerprint: targetFingerprint } })
+        await prisma.targetProject.create({ data: { id: targetId, kind: 'LOCAL_WORKSPACE', canonicalIdentity: 'path:${workspace.replaceAll('\\', '\\\\')}', canonicalPath: '${workspace.replaceAll('\\', '\\\\')}', displayName: 'replay target', fingerprint: targetFingerprint, executionConsentMode: 'TRUSTED_AGENT' } })
         await prisma.qualityPlan.create({ data: { id: qualityPlanId, targetProjectId: targetId, title: 'Replay' } })
         await prisma.qualityPlanRevision.create({ data: { id: revisionId, targetProjectId: targetId, qualityPlanId, revision: 1, status: 'SCENARIOS_APPROVED', contentHash: hash('2'), sourceSpecification: '{}', requirementGraphJson: '{}' } })
-        await prisma.validationVersion.create({ data: { id: versionId, targetProjectId: targetId, qualityPlanRevisionId: revisionId, validationIdentity: 'replay', version: 1, status: 'SCENARIO_APPROVED', canonicalAstJson: JSON.stringify(design), canonicalHash } })
+        await prisma.requirementAnalysisRevision.create({ data: { id: 'analysis-' + revisionId, targetProjectId: targetId, qualityPlanRevisionId: revisionId, revision: 1, status: 'APPROVED', decision: 'APPROVED', analysisJson: '{}', provenanceJson: '{}', analysisHash: hash('analysis'), decisionRationale: 'Fixture analysis.', decidedBy: 'fixture', decidedAt: new Date(), approvedAt: new Date(), approvedBy: 'fixture', approvalHash: hash('analysis-approval') } })
+        await prisma.validationDesignRevision.create({ data: { id: 'design-' + revisionId, targetProjectId: targetId, qualityPlanRevisionId: revisionId, requirementAnalysisRevisionId: 'analysis-' + revisionId, revision: 1, status: 'APPROVED', decision: 'APPROVED', strategyJson: '{}', scenarioPortfolioJson: '[]', provenanceJson: '{}', designHash: hash('design'), decisionRationale: 'Fixture design.', decidedBy: 'fixture', decidedAt: new Date(), approvedAt: new Date(), approvedBy: 'fixture', approvalHash: hash('design-approval') } })
+        await prisma.validationVersion.create({ data: { id: versionId, targetProjectId: targetId, qualityPlanRevisionId: revisionId, validationDesignRevisionId: 'design-' + revisionId, validationIdentity: 'replay', version: 1, status: 'SCENARIO_APPROVED', canonicalAstJson: JSON.stringify(design), canonicalHash } })
         await prisma.environment.create({ data: { id: environmentId, targetProjectId: targetId, name: 'Replay', baseUrl: 'https://example.test' } })
         const command = { qualityPlanId, revisionId, expectedDesignHash: hashCanonical([design]), realization }
         await compileQualityValidations(command)
@@ -206,12 +220,27 @@ describe('assessment preflight SQLite boundary', () => {
           },
           cancel: async () => undefined,
         }))
-        const firstRecovery = await prepareQualityAssessmentRun({ ...compact, idempotencyKey: 'terminal-startup-key' })
+        const consentRequested = await prepareQualityAssessmentRun({ ...compact, idempotencyKey: 'terminal-startup-key' })
+        if (consentRequested.failure?.message !== 'Explicit execution consent is required.' || !consentRequested.assessment?.id)
+          throw new Error('Preparation did not create an explicit consent boundary: ' + JSON.stringify(consentRequested))
+        const consent = await prisma.executionConsent.findUniqueOrThrow({ where: { assessmentId: consentRequested.assessment.id } })
+        await decideExecutionConsent({
+          consentId: consent.id,
+          assessmentId: consentRequested.assessment.id,
+          expectedManifestHash: consent.executionManifestHash,
+          grantedBy: 'fixture',
+        })
+        const firstRecovery = await prepareQualityAssessmentRun({
+          ...compact,
+          idempotencyKey: 'terminal-startup-key',
+          consentId: consent.id,
+          expectedExecutionManifestHash: consent.executionManifestHash,
+        })
         if (
           firstRecovery.failure?.classification !== 'terminal_execution_failure' ||
-          firstRecovery.nextRecommendedAction !== 'assessment_prepare_run' ||
-          firstRecovery.nextRequiredAgentBehavior !== 'start_fresh_assessment_preparation_with_a_new_idempotency_key'
-        ) throw new Error('Terminal preparation did not issue fresh-key recovery guidance: ' + JSON.stringify(firstRecovery))
+          firstRecovery.nextRecommendedAction !== 'assessment_create_successor' ||
+          firstRecovery.nextRequiredAgentBehavior !== 'create_successor_then_prepare_with_a_new_idempotency_key'
+        ) throw new Error('Terminal preparation did not issue immutable-successor recovery guidance: ' + JSON.stringify(firstRecovery))
         const beforeReplay = await prisma.assessmentRun.findMany({
           where: { assessmentId: firstRecovery.assessment?.id }, include: { bindings: { include: { testRun: true } } },
         })
@@ -223,36 +252,18 @@ describe('assessment preflight SQLite boundary', () => {
         })
         if (JSON.stringify(beforeReplay) !== JSON.stringify(afterReplay))
           throw new Error('Terminal preparation replay created or mutated execution history')
-        const [freshLeft, freshRight] = await Promise.all([
-          prepareQualityAssessmentRun({ ...compact, idempotencyKey: 'fresh-concurrent-left' }),
-          prepareQualityAssessmentRun({ ...compact, idempotencyKey: 'fresh-concurrent-right' }),
-        ])
-        const fresh = [freshLeft, freshRight]
-        if (fresh.filter(result => result.phase === 'STARTED').length !== 1)
-          throw new Error('Concurrent fresh keys did not yield one production-path winner: ' + JSON.stringify(fresh))
-        const loser = fresh.find(result => result.phase !== 'STARTED')
-        if (
-          loser?.failure?.classification !== 'execution_reserved' ||
-          loser.nextRecommendedAction !== 'assessment_reconcile' ||
-          loser.nextRequiredAgentBehavior !== 'wait_for_active_assessment_execution_then_reconcile'
-        ) throw new Error('Concurrent fresh-key loser received unsafe recovery advice: ' + JSON.stringify(loser))
         const assessmentId = firstRecovery.assessment?.id
-        if (!assessmentId || fresh.find(result => result.phase === 'STARTED')?.assessment?.id !== assessmentId)
-          throw new Error('Fresh preparation did not reuse the exact READY Assessment root')
         const runs = await prisma.assessmentRun.findMany({
           where: { assessmentId }, include: { bindings: { include: { testRun: true } } }, orderBy: { idempotencyKey: 'asc' },
         })
-        if (runs.length !== 2 || runs.filter(run => ['PREPARED', 'RUNNING'].includes(run.status)).length !== 1)
-          throw new Error('Concurrent fresh preparation created duplicate active AssessmentRuns: ' + JSON.stringify(runs))
+        const consumedConsent = await prisma.executionConsent.findUniqueOrThrow({ where: { assessmentId } })
         const failed = runs.find(run => run.idempotencyKey === 'prepare:terminal-startup-key')
-        const replacement = runs.find(run => run.idempotencyKey !== 'prepare:terminal-startup-key')
         if (
-          !failed || !replacement || failed.assessmentId !== replacement.assessmentId ||
-          failed.bindings.length !== 1 || replacement.bindings.length !== 1 ||
+          !assessmentId || runs.length !== 1 || consumedConsent.status !== 'CONSUMED' || !failed ||
+          failed.bindings.length !== 1 ||
           failed.bindings[0].testRun.status !== 'COMPLETED' || failed.bindings[0].testRun.result !== 'FAILED' ||
-          !failed.bindings[0].terminalizedAt || failed.bindings[0].evidenceReceiptId !== null ||
-          failed.bindings[0].testRunId === replacement.bindings[0].testRunId
-        ) throw new Error('Fresh preparation did not preserve immutable failed history while creating distinct runtime rows')
+          !failed.bindings[0].terminalizedAt || failed.bindings[0].evidenceReceiptId !== null
+        ) throw new Error('Terminal predecessor did not remain immutable after consuming execution consent')
         await preflightQualityAssessmentRun({ ...compact, validationBindings: [{ ...compact.validationBindings[0], steps: [{ ...compact.validationBindings[0].steps[0], description: 'changed semantic intent' }] }] }).then(() => { throw new Error('Changed compact intent was accepted') }, error => { if (error.details?.code !== 'active_generation_conflict') throw error })
         await prisma.validationVersion.update({ where: { id: versionId }, data: { realizationJson: JSON.stringify({ historical: true }), realizationHash: hash('7'), status: 'REALIZED' } })
         const historicalBefore = await snapshot()

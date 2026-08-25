@@ -33,6 +33,7 @@ describe('remote evaluation scope preparation SQLite lifecycle', () => {
       import { preflightQualityAssessmentRun, prepareQualityAssessmentRun, resolveCanonicalAssessmentPreflight } from '${source('src/services/coordinator/assessment-preparation-service.ts')}'
       import { readQualityAssessment } from '${source('src/services/coordinator/quality-design-service.ts')}'
       import { setAssessmentRuntimeServiceFactoryForTests } from '${source('src/services/coordinator/assessment-execution-service.ts')}'
+      import { decideExecutionConsent } from '${source('src/services/coordinator/quality-operating-system-service.ts')}'
       import { RuntimeCapsuleMaterializer } from '${source('src/lib/runtime-capsule/materializer.ts')}'
       import { RuntimeCapsulePreflight } from '${source('src/lib/runtime-capsule/preflight.ts')}'
       import { canonicalContractJson } from '${source('src/lib/catalog-contracts/index.ts')}'
@@ -55,7 +56,7 @@ describe('remote evaluation scope preparation SQLite lifecycle', () => {
         await ensureBuiltInStepDefinitionReadiness(prisma)
         await prisma.targetProject.create({ data: {
           id: targetId, kind: 'REMOTE_BLACK_BOX', canonicalIdentity: 'remote:https://www.saucedemo.com',
-          normalizedRemoteOrigin: 'https://www.saucedemo.com', displayName: 'Sauce Demo', fingerprint: hash('a'),
+          normalizedRemoteOrigin: 'https://www.saucedemo.com', displayName: 'Sauce Demo', fingerprint: hash('a'), executionConsentMode: 'TRUSTED_AGENT',
         }})
         await prisma.module.create({ data: { id: 'module-scope-preparation', name: 'Login', targetProjectId: targetId } })
         await prisma.locatorGroup.create({ data: {
@@ -72,8 +73,19 @@ describe('remote evaluation scope preparation SQLite lifecycle', () => {
           id: revisionId, targetProjectId: targetId, qualityPlanId, revision: 1, status: 'SCENARIOS_APPROVED',
           contentHash: hash('b'), sourceSpecification: '{}', requirementGraphJson: '{}',
         }})
+        await prisma.requirementAnalysisRevision.create({ data: {
+          id: 'analysis-' + revisionId, targetProjectId: targetId, qualityPlanRevisionId: revisionId, revision: 1,
+          status: 'APPROVED', decision: 'APPROVED', analysisJson: '{}', provenanceJson: '{}', analysisHash: hash('analysis'),
+          decisionRationale: 'Fixture analysis.', decidedBy: 'fixture', decidedAt: new Date(), approvedAt: new Date(), approvedBy: 'fixture', approvalHash: hash('analysis-approval'),
+        }})
+        await prisma.validationDesignRevision.create({ data: {
+          id: 'design-' + revisionId, targetProjectId: targetId, qualityPlanRevisionId: revisionId, requirementAnalysisRevisionId: 'analysis-' + revisionId, revision: 1,
+          status: 'APPROVED', decision: 'APPROVED', strategyJson: '{}', scenarioPortfolioJson: '[]', provenanceJson: '{}', designHash: hash('design'),
+          decisionRationale: 'Fixture design.', decidedBy: 'fixture', decidedAt: new Date(), approvedAt: new Date(), approvedBy: 'fixture', approvalHash: hash('design-approval'),
+        }})
         await prisma.validationVersion.create({ data: {
           id: validationId, targetProjectId: targetId, qualityPlanRevisionId: revisionId,
+          validationDesignRevisionId: 'design-' + revisionId,
           validationIdentity: 'visible login form', version: 1, status: 'SCENARIO_APPROVED',
           canonicalAstJson: JSON.stringify(design), canonicalHash: hash('c'),
         }})
@@ -193,12 +205,32 @@ describe('remote evaluation scope preparation SQLite lifecycle', () => {
           startQuality: async () => undefined,
           cancel: async () => undefined,
         }))
-        const prepared = await prepareQualityAssessmentRun({
+        const consentRequested = await prepareQualityAssessmentRun({
           ...request, subject: { subjectRevisionId: issued.subject.id },
           expectedPreflight: {
             algorithmVersion: preflight.algorithmVersion,
             preflightHash: preflight.preflightHash,
           }, idempotencyKey: 'remote-scope-prepare',
+        })
+        if (consentRequested.failure?.message !== 'Explicit execution consent is required.' || !consentRequested.assessment?.id)
+          throw new Error('Remote preparation did not create an explicit consent boundary: ' + JSON.stringify(consentRequested))
+        const consent = await prisma.executionConsent.findUniqueOrThrow({ where: { assessmentId: consentRequested.assessment.id } })
+        await decideExecutionConsent({
+          consentId: consent.id,
+          assessmentId: consentRequested.assessment.id,
+          expectedManifestHash: consent.executionManifestHash,
+          grantedBy: 'fixture',
+        })
+        const prepared = await prepareQualityAssessmentRun({
+          ...request,
+          subject: { subjectRevisionId: issued.subject.id },
+          expectedPreflight: {
+            algorithmVersion: preflight.algorithmVersion,
+            preflightHash: preflight.preflightHash,
+          },
+          idempotencyKey: 'remote-scope-prepare',
+          consentId: consent.id,
+          expectedExecutionManifestHash: consent.executionManifestHash,
         })
         if (prepared.phase !== 'STARTED' || !prepared.assessment?.id)
           throw new Error('Expected a started prepared Assessment: ' + JSON.stringify(prepared))
@@ -413,7 +445,9 @@ describe('remote evaluation scope preparation SQLite lifecycle', () => {
         await prisma.locator.create({ data: { id: locatorId, targetProjectId: targetId, locatorGroupId: 'group-public-preflight', name: 'login form', value: '#login_button' }})
         await prisma.qualityPlan.create({ data: { id: qualityPlanId, targetProjectId: targetId, title: 'Public preflight' }})
         await prisma.qualityPlanRevision.create({ data: { id: revisionId, targetProjectId: targetId, qualityPlanId, revision: 1, status: 'SCENARIOS_APPROVED', contentHash: hash('b'), sourceSpecification: '{}', requirementGraphJson: '{}' }})
-        await prisma.validationVersion.create({ data: { id: validationId, targetProjectId: targetId, qualityPlanRevisionId: revisionId, validationIdentity: 'login form visible', version: 1, status: 'SCENARIO_APPROVED', canonicalAstJson: JSON.stringify(design), canonicalHash: hash('c') }})
+        await prisma.requirementAnalysisRevision.create({ data: { id: 'analysis-' + revisionId, targetProjectId: targetId, qualityPlanRevisionId: revisionId, revision: 1, status: 'APPROVED', decision: 'APPROVED', analysisJson: '{}', provenanceJson: '{}', analysisHash: hash('analysis'), decisionRationale: 'Fixture analysis.', decidedBy: 'fixture', decidedAt: new Date(), approvedAt: new Date(), approvedBy: 'fixture', approvalHash: hash('analysis-approval') }})
+        await prisma.validationDesignRevision.create({ data: { id: 'design-' + revisionId, targetProjectId: targetId, qualityPlanRevisionId: revisionId, requirementAnalysisRevisionId: 'analysis-' + revisionId, revision: 1, status: 'APPROVED', decision: 'APPROVED', strategyJson: '{}', scenarioPortfolioJson: '[]', provenanceJson: '{}', designHash: hash('design'), decisionRationale: 'Fixture design.', decidedBy: 'fixture', decidedAt: new Date(), approvedAt: new Date(), approvedBy: 'fixture', approvalHash: hash('design-approval') }})
+        await prisma.validationVersion.create({ data: { id: validationId, targetProjectId: targetId, qualityPlanRevisionId: revisionId, validationDesignRevisionId: 'design-' + revisionId, validationIdentity: 'login form visible', version: 1, status: 'SCENARIO_APPROVED', canonicalAstJson: JSON.stringify(design), canonicalHash: hash('c') }})
         await prisma.environment.create({ data: { id: environmentId, targetProjectId: targetId, name: 'Sauce Demo', baseUrl: 'https://www.saucedemo.com' }})
         const request = {
           target: targetId, qualityPlanId, revisionId, expectedDesignHash: hashCanonical([design]),

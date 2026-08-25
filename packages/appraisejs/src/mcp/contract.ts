@@ -48,16 +48,20 @@ export const canonicalMcpToolAnnotations = Object.freeze({
   locator_search: readOnly,
   environment_list: readOnly,
   environment_ensure: localMutation,
+  methodology_list: readOnly,
+  methodology_get: readOnly,
   requirements_submit_source: localMutation,
-  requirements_analyze: localMutation,
   requirements_graph_read: readOnly,
   requirements_answer_queries: localMutation,
-  requirements_approve: localDecision,
+  requirement_analysis_propose: localMutation,
+  requirement_analysis_read: readOnly,
+  requirement_analysis_decide: localDecision,
   validation_design_propose: localMutation,
-  validation_design_approve: localDecision,
   evaluation_subject_remote_scope_create: localMutation,
   evaluation_subject_remote_scope_partition_create: localMutation,
   evaluation_subject_remote_scope_read: readOnly,
+  validation_design_read: readOnly,
+  validation_design_decide: localDecision,
   assessment_create: localMutation,
   assessment_create_successor: localMutation,
   assessment_readiness: readOnly,
@@ -66,6 +70,8 @@ export const canonicalMcpToolAnnotations = Object.freeze({
   assessment_prepare_run: externalExecution,
   assessment_execution_authorization_issue: localMutation,
   assessment_execution_authorization_revoke: localMutation,
+  execution_consent_decide: localDecision,
+  assessment_finding_record: localDecision,
   assessment_stop: externalStop,
   assessment_diagnose: readOnly,
   assessment_reconcile: localMutation,
@@ -86,6 +92,7 @@ export const canonicalMcpResourceAnnotations = Object.freeze({
   'operation-catalog': Object.freeze({ readOnlyHint: true }),
   'workflow-quality-design': Object.freeze({ readOnlyHint: true }),
   'workflow-assessment': Object.freeze({ readOnlyHint: true }),
+  'quality-methodology': Object.freeze({ readOnlyHint: true }),
 } satisfies Record<string, McpResourceAnnotations>)
 
 export const canonicalMcpResourceUris = Object.freeze({
@@ -98,6 +105,7 @@ export const canonicalMcpResourceUris = Object.freeze({
   'operation-catalog': 'appraise://operations/catalog',
   'workflow-quality-design': 'appraise://workflow/quality-design',
   'workflow-assessment': 'appraise://workflow/assessment',
+  'quality-methodology': 'appraise://quality/methodologies/appraise.built-in/quality-os-core/1.0.0',
 } as const)
 
 export const canonicalMcpToolNames = Object.freeze(Object.keys(canonicalMcpToolAnnotations))

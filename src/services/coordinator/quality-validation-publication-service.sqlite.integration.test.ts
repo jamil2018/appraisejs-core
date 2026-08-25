@@ -55,11 +55,46 @@ describe('quality validation publication SQLite concurrency', () => {
           requirementGraphJson: '{}',
         },
       })
+      await prisma.requirementAnalysisRevision.create({
+        data: {
+          id: 'analysis-publication-service-race',
+          targetProjectId: 'target-publication-service-race',
+          qualityPlanRevisionId: 'revision-publication-service-race',
+          revision: 1,
+          status: 'APPROVED',
+          decision: 'APPROVED',
+          analysisJson: '{}',
+          provenanceJson: '{}',
+          analysisHash: hash('d'),
+          approvedAt: new Date(),
+          approvedBy: 'fixture',
+          approvalHash: hash('e'),
+        },
+      })
+      await prisma.validationDesignRevision.create({
+        data: {
+          id: 'design-publication-service-race',
+          targetProjectId: 'target-publication-service-race',
+          qualityPlanRevisionId: 'revision-publication-service-race',
+          requirementAnalysisRevisionId: 'analysis-publication-service-race',
+          revision: 1,
+          status: 'APPROVED',
+          decision: 'APPROVED',
+          strategyJson: '{}',
+          scenarioPortfolioJson: '{}',
+          provenanceJson: '{}',
+          designHash: hash('f'),
+          approvedAt: new Date(),
+          approvedBy: 'fixture',
+          approvalHash: hash('g'),
+        },
+      })
       await prisma.validationVersion.create({
         data: {
           id: 'validation-publication-service-race',
           targetProjectId: 'target-publication-service-race',
           qualityPlanRevisionId: 'revision-publication-service-race',
+          validationDesignRevisionId: 'design-publication-service-race',
           validationIdentity: 'publication service race',
           version: 1,
           status: 'SCENARIO_APPROVED',

@@ -11,10 +11,12 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { requireActiveProject } from '@/lib/active-project'
 import { readQualityRequirementGraph } from '@/services/coordinator/quality-design-service'
+import { readRequirementAnalysis, readValidationDesign } from '@/services/coordinator/quality-operating-system-service'
 import { ServiceError } from '@/services/shared/errors'
 
 import { QualityRequirementsReview } from './quality-requirements-review'
 import { QualityLifecycleControls } from './quality-lifecycle-controls'
+import { QualityOsReviewControls } from './quality-os-review-controls'
 
 type PageProps = {
   params: Promise<{ qualityPlanId: string }>
@@ -37,6 +39,16 @@ export default async function QualityPlanDetailPage({ params, searchParams }: Pa
     throw error
   }
   if (packet.qualityPlan.targetProjectId !== project.id) notFound()
+  const [analysis, design] = await Promise.all([
+    readRequirementAnalysis({ qualityPlanRevisionId: packet.revision.id }).catch(error => {
+      if (error instanceof ServiceError && error.code === 'NOT_FOUND') return null
+      throw error
+    }),
+    readValidationDesign({ qualityPlanRevisionId: packet.revision.id }).catch(error => {
+      if (error instanceof ServiceError && error.code === 'NOT_FOUND') return null
+      throw error
+    }),
+  ])
 
   return (
     <main className="space-y-6 pb-10">
@@ -88,6 +100,32 @@ export default async function QualityPlanDetailPage({ params, searchParams }: Pa
         revisionStatus={packet.revision.status}
         targetKind={project.kind}
         validations={packet.validationVersions}
+      />
+
+      <QualityOsReviewControls
+        analysis={
+          analysis
+            ? {
+                id: analysis.id,
+                decision: analysis.decision,
+                contentHash: analysis.analysisHash,
+                proposal: analysis.proposal,
+                critique: analysis.critique,
+              }
+            : null
+        }
+        design={
+          design
+            ? {
+                id: design.id,
+                decision: design.decision,
+                contentHash: design.designHash,
+                proposal: { strategy: design.strategy, scenarios: design.scenarios, provenance: design.provenance },
+                critique: design.critique,
+              }
+            : null
+        }
+        qualityPlanId={packet.qualityPlan.id}
       />
 
       <section className="grid gap-6 xl:grid-cols-2">

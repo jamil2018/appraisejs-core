@@ -8,6 +8,7 @@ import {
   deleteTargetProjectAction,
   renameTargetProjectAction,
   selectTargetProjectAction,
+  updateTargetProjectExecutionConsentModeAction,
 } from '@/actions/target-project/target-project-actions'
 import { Button } from '@/components/ui/button'
 import RegisterProjectDialog from '@/components/projects/register-project-dialog'
@@ -23,6 +24,7 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Textarea } from '@/components/ui/textarea'
 import { toast } from '@/hooks/use-toast'
@@ -37,6 +39,7 @@ type Project = {
   canonicalPath: string | null
   normalizedRemoteOrigin: string | null
   lastDetectedAt: Date
+  executionConsentMode: 'ALWAYS_ASK' | 'RISK_AWARE' | 'TRUSTED_AGENT'
   preflight?: AgentPreflightReceiptSummary
 }
 
@@ -111,6 +114,7 @@ export default function ProjectManagement({
                 <TableHead>Target identity</TableHead>
                 <TableHead>Last detected</TableHead>
                 <TableHead>Agent readiness</TableHead>
+                <TableHead>Execution consent</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -151,6 +155,9 @@ function ProjectRow({ project, highlightPreflight }: { project: Project; highlig
       <TableCell>
         <AgentPreflightDialog receipt={project.preflight} initiallyOpen={highlightPreflight} />
       </TableCell>
+      <TableCell className="min-w-48">
+        <ExecutionConsentModeSelect project={project} />
+      </TableCell>
       <TableCell>
         <div className="flex justify-end gap-2">
           <EditProjectDialog project={project} />
@@ -173,6 +180,40 @@ function ProjectRow({ project, highlightPreflight }: { project: Project; highlig
         </div>
       </TableCell>
     </TableRow>
+  )
+}
+
+function ExecutionConsentModeSelect({ project }: { project: Project }) {
+  const { refresh } = useRouter()
+  const [isPending, startTransition] = useTransition()
+  return (
+    <Select
+      disabled={isPending}
+      value={project.executionConsentMode}
+      onValueChange={mode =>
+        startTransition(async () => {
+          const response = await updateTargetProjectExecutionConsentModeAction({
+            targetProjectId: project.id,
+            mode,
+          })
+          if (!response.success)
+            toast({ title: 'Consent policy update failed', description: response.message, variant: 'destructive' })
+          else {
+            toast({ title: 'Execution consent policy updated' })
+            refresh()
+          }
+        })
+      }
+    >
+      <SelectTrigger aria-label={`Execution consent for ${project.displayName}`}>
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent>
+        <SelectItem value="ALWAYS_ASK">Always ask</SelectItem>
+        <SelectItem value="RISK_AWARE">Risk aware</SelectItem>
+        <SelectItem value="TRUSTED_AGENT">Trusted agent</SelectItem>
+      </SelectContent>
+    </Select>
   )
 }
 

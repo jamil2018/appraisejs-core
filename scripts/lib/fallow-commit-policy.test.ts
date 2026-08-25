@@ -20,6 +20,12 @@ describe('requiresReleaseBaselineAudit', () => {
     expect(requiresReleaseBaselineAudit(patch)).toBe(true)
   })
 
+  it('counts non-code staged files when routing a release-scale cutover', () => {
+    const stagedFiles = Array.from({ length: 100 }, (_, index) => `docs/file-${index}.md`).join('\n')
+
+    expect(requiresReleaseBaselineAudit('+function work() {}', stagedFiles)).toBe(true)
+  })
+
   it('keeps release-scale routing when the cutover includes a suppression', () => {
     const patch = Array.from(
       { length: 100 },

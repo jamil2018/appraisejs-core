@@ -47,6 +47,7 @@ type FakeRequirementSnapshot = FakeRecord & {
 }
 type FakeObligation = FakeRecord & {
   qualityPlanRevisionId: string
+  requirementAnalysisRevisionId: string
   requirementSnapshotId: string
   title: string
   intent: string
@@ -64,6 +65,7 @@ type FakeQuery = FakeRecord & {
 }
 type FakeValidationVersion = FakeRecord & {
   qualityPlanRevisionId: string
+  validationDesignRevisionId: string
   validationIdentity: string
   version: number
   status: string
@@ -86,6 +88,21 @@ type FakeRevision = FakeRecord & {
   contentHash: string
   sourceSpecification: string
   requirementGraphJson: string
+  methodologyId: string
+  methodologyVersion: string
+  methodologyHash: string
+}
+type FakeRequirementAnalysis = FakeRecord & { qualityPlanRevisionId: string; revision: number }
+type FakeValidationDesign = FakeRecord & { qualityPlanRevisionId: string; revision: number; designHash: string }
+type FakeAssessmentFinding = FakeRecord & {
+  assessmentId: string
+  qualityObligationRevisionId: string
+  outcome: string
+  attribution: string
+  evidenceSetHash: string
+  findingHash: string
+  reviewStatus: string
+  reviewHash: string | null
 }
 type FakeEvaluationSubject = FakeRecord & {
   subjectDigest: string
@@ -109,6 +126,7 @@ type FakeAssessment = FakeRecord & {
   successorIdempotencyKey: string | null
   successorRequestHash: string | null
   evidenceReceipts: unknown[]
+  findings?: FakeAssessmentFinding[]
   targetProjectKind?: 'LOCAL_WORKSPACE' | 'REMOTE_BLACK_BOX'
   runs?: FakeAssessmentRun[]
 }
@@ -386,6 +404,19 @@ describe('quality design coordinator service', () => {
     expect(result.obligations).toHaveLength(1)
     expect(result.approval).toEqual({ blocked: false })
     expect(result.revision.contentHash).toMatch(/^sha256:/)
+    expect(result.revision.methodology).toMatchObject({ methodologyId: 'quality-os-core', version: '1.0.0' })
+    expect(client.requirementAnalysisRevision.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          status: 'APPROVED',
+          decision: 'APPROVED',
+          qualityPlanRevisionId: result.revision.id,
+        }),
+      }),
+    )
+    expect(client.qualityObligationRevision.create).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ requirementAnalysisRevisionId: expect.any(String) }) }),
+    )
 
     await expect(readQualityRequirementGraph({ qualityPlanId: result.qualityPlan.id }, client)).resolves.toMatchObject({
       revision: { id: result.revision.id, contentHash: result.revision.contentHash },
@@ -1064,8 +1095,31 @@ describe('quality design coordinator service', () => {
     const reviewed = await readQualityAssessment(assessment.assessment.id, client)
     expect(reviewed.targetOutcome).not.toBe('not_evaluated')
     expect(reviewed.evidenceReceipts).toHaveLength(1)
+    expect(reviewed.findings).toEqual([])
     expect(reviewed.nextRecommendedAction).toContain('assessment_decide')
     expect(reviewed.nextRecommendedAction).not.toContain('assessment_run')
+    await expect(
+      decideQualityAssessment(
+        {
+          assessmentId: assessment.assessment.id,
+          expectedEvidenceSetHash: reviewed.evidenceSetHash,
+          decision: 'accepted_with_limitations',
+          decidedBy: 'reviewer',
+          rationale: 'Findings have not yet been attributed.',
+        },
+        client,
+      ),
+    ).rejects.toThrow('Every quality obligation requires an attributed finding')
+    await client.assessmentFinding?.create({
+      data: {
+        assessmentId: assessment.assessment.id,
+        qualityObligationRevisionId: requirements.obligations[0]!.id,
+        outcome: 'SATISFIED',
+        attribution: 'NOT_APPLICABLE',
+        evidenceSetHash: reviewed.evidenceSetHash,
+        findingHash: `sha256:${'b'.repeat(64)}`,
+      },
+    })
     await expect(
       decideQualityAssessment(
         {
@@ -1456,6 +1510,10 @@ describe('quality design coordinator service', () => {
             qualityPlanId: requirements.qualityPlan.id,
             qualityPlanRevisionId: requirements.revision.id,
             environmentId: 'environment-1',
+            preflightAlgorithmVersion: 'appraise.quality-assessment-preflight/v2',
+            scopeIntentHash: 'sha256:scope-intent',
+            realizationIntentHash: 'sha256:realization-intent',
+            preflightHash: 'sha256:preflight',
             scopeHash: 'sha256:scope',
             environmentSnapshotHash: 'sha256:environment',
             environmentSnapshotJson: '{}',
@@ -1568,6 +1626,8 @@ function createWorkingFakeClient(): QualityDesignClient {
   const plans: FakeQualityPlan[] = []
   const requirements: FakeRequirementSnapshot[] = []
   const obligations: FakeObligation[] = []
+  const requirementAnalyses: FakeRequirementAnalysis[] = []
+  const validationDesigns: FakeValidationDesign[] = []
   const queries: FakeQuery[] = []
   const validationVersions: FakeValidationVersion[] = []
   const obligationLinks: FakeRecord[] = []
@@ -1611,6 +1671,9 @@ function createWorkingFakeClient(): QualityDesignClient {
           contentHash: 'sha256:uninitialized',
           sourceSpecification: '{}',
           requirementGraphJson: '{}',
+          methodologyId: 'quality-os-core',
+          methodologyVersion: '1.0.0',
+          methodologyHash: `sha256:${'f'.repeat(64)}`,
           ...data,
         }
         revisions.push(revision)
@@ -1680,6 +1743,7 @@ function createWorkingFakeClient(): QualityDesignClient {
         const obligation: FakeObligation = {
           id: nextId('obligation'),
           qualityPlanRevisionId: 'revision-0',
+          requirementAnalysisRevisionId: 'legacy-analysis:revision-0',
           requirementSnapshotId: 'requirement-0',
           title: '',
           intent: '',
@@ -1697,6 +1761,65 @@ function createWorkingFakeClient(): QualityDesignClient {
         if (!obligation) throw new Error(`Missing fake obligation ${where.id}`)
         Object.assign(obligation, data)
         return obligation
+      }),
+    },
+    requirementAnalysisRevision: {
+      findFirst: vi.fn(
+        async ({ where }: FakeWhereArgs) =>
+          requirementAnalyses.find(
+            item =>
+              (!where.id || item.id === where.id) &&
+              (!where.qualityPlanRevisionId || item.qualityPlanRevisionId === where.qualityPlanRevisionId),
+          ) ?? null,
+      ),
+      create: vi.fn(async ({ data }: FakeWriteArgs) => {
+        const analysis: FakeRequirementAnalysis = {
+          id: nextId('analysis'),
+          qualityPlanRevisionId: 'revision-0',
+          revision: 1,
+          ...data,
+        }
+        requirementAnalyses.push(analysis)
+        return analysis
+      }),
+      update: vi.fn(async ({ where, data }: FakeUpdateArgs<{ id: string }>) => {
+        const analysis = requirementAnalyses.find(item => item.id === where.id)
+        if (!analysis) throw new Error(`Missing fake requirement analysis ${where.id}`)
+        Object.assign(analysis, data)
+        return analysis
+      }),
+    },
+    validationDesignRevision: {
+      findFirst: vi.fn(
+        async ({ where }: FakeWhereArgs) =>
+          validationDesigns.find(
+            item =>
+              (!where.id || item.id === where.id) &&
+              (!where.qualityPlanRevisionId || item.qualityPlanRevisionId === where.qualityPlanRevisionId) &&
+              (!where.designHash || item.designHash === where.designHash),
+          ) ?? null,
+      ),
+      findMany: vi.fn(async ({ where }: FakeWhereArgs) =>
+        validationDesigns.filter(
+          item => !where.qualityPlanRevisionId || item.qualityPlanRevisionId === where.qualityPlanRevisionId,
+        ),
+      ),
+      create: vi.fn(async ({ data }: FakeWriteArgs) => {
+        const design: FakeValidationDesign = {
+          id: nextId('validation-design'),
+          qualityPlanRevisionId: 'revision-0',
+          revision: 1,
+          designHash: 'sha256:uninitialized',
+          ...data,
+        }
+        validationDesigns.push(design)
+        return design
+      }),
+      update: vi.fn(async ({ where, data }: FakeUpdateArgs<{ id: string }>) => {
+        const design = validationDesigns.find(item => item.id === where.id)
+        if (!design) throw new Error(`Missing fake validation design ${where.id}`)
+        Object.assign(design, data)
+        return design
       }),
     },
     requirementQuery: {
@@ -1738,6 +1861,7 @@ function createWorkingFakeClient(): QualityDesignClient {
         const version: FakeValidationVersion = {
           id: nextId('validation'),
           qualityPlanRevisionId: 'revision-0',
+          validationDesignRevisionId: 'validation-design-0',
           validationIdentity: 'validation-identity-0',
           version: 1,
           status: 'DRAFT',
@@ -1827,6 +1951,7 @@ function createWorkingFakeClient(): QualityDesignClient {
           successorIdempotencyKey: null,
           successorRequestHash: null,
           evidenceReceipts: [],
+          findings: [],
           targetProjectKind: 'LOCAL_WORKSPACE',
           runs: [],
           ...data,
@@ -1859,6 +1984,37 @@ function createWorkingFakeClient(): QualityDesignClient {
       }),
       update: vi.fn(),
     },
+    assessmentFinding: {
+      findFirst: vi.fn(),
+      create: vi.fn(async ({ data }: FakeWriteArgs) => {
+        const assessment = assessments.find(item => item.id === data.assessmentId)
+        if (!assessment) throw new Error(`Missing fake assessment ${String(data.assessmentId)}`)
+        const finding: FakeAssessmentFinding = {
+          id: nextId('finding'),
+          assessmentId: assessment.id,
+          qualityObligationRevisionId: 'obligation-0',
+          outcome: 'SATISFIED',
+          attribution: 'NOT_APPLICABLE',
+          evidenceSetHash: 'sha256:uninitialized',
+          findingHash: 'sha256:uninitialized',
+          reviewStatus: 'PENDING',
+          reviewHash: null,
+          ...data,
+        }
+        assessment.findings = [...(assessment.findings ?? []), finding]
+        return finding
+      }),
+      update: vi.fn(async ({ where, data }: FakeUpdateArgs<{ id: string }>) => {
+        for (const assessment of assessments) {
+          const finding = assessment.findings?.find(item => item.id === where.id)
+          if (finding) {
+            Object.assign(finding, data)
+            return finding
+          }
+        }
+        throw new Error(`Missing fake assessment finding ${where.id}`)
+      }),
+    },
     async $transaction<T>(operation: ((transaction: QualityDesignClient) => Promise<T>) | Promise<T>[]): Promise<T> {
       return typeof operation === 'function'
         ? // The in-memory delegate intentionally implements the service-facing
@@ -1883,6 +2039,7 @@ function createWorkingFakeClient(): QualityDesignClient {
       evaluationSubjectRevision,
       targetProject: { kind: assessment.targetProjectKind ?? 'LOCAL_WORKSPACE' },
       evidenceReceipts: assessment.evidenceReceipts ?? [],
+      findings: assessment.findings ?? [],
       decisions: decisions.filter(decision => decision.assessmentId === assessment.id),
       runs: assessment.runs ?? [],
     }

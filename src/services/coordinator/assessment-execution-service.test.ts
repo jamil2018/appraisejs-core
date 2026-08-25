@@ -33,6 +33,7 @@ vi.mock('@/services/target-project/target-project-service', () => ({
 }))
 
 import {
+  deriveExecutionEffects,
   derivedAssessmentCells,
   runQualityAssessment,
   reconcileQualityAssessment,
@@ -263,6 +264,27 @@ describe('assessment execution guards', () => {
     ])
   })
 
+  it('hard-gates an unclassified runtime operation even when callers omit risk declarations', () => {
+    const effects = deriveExecutionEffects(
+      {
+        versions: [
+          {
+            id: 'validation-1',
+            activeGeneration: executableGeneration({
+              runtimeInputHash: 'sha256:runtime',
+              runtimeInputJson: JSON.stringify({ stepDefinitions: [{ id: 'operation-1' }] }),
+            }),
+          },
+        ],
+      } as never,
+      [{ validationVersionId: 'validation-1', resultMatrixCell: 'CHROMIUM:env-1', environmentId: 'env-1' }],
+    )
+    expect(effects).toEqual({
+      riskClassification: 'MATERIAL_EFFECT',
+      materialEffects: ['UNCLASSIFIED_OPERATION'],
+    })
+  })
+
   it('rejects an assessment with stale requirement alignment before runtime preparation', async () => {
     database.assessment.findUniqueOrThrow.mockResolvedValue({ status: 'READY', alignment: 'STALE' })
     await expect(
@@ -352,7 +374,7 @@ describe('assessment execution guards', () => {
     setAssessmentRuntimeServiceFactoryForTests(() => ({ prepareQuality, startQuality: vi.fn(), cancel: vi.fn() }))
     setAssessmentExecutionClientForTests({
       assessment: { findUniqueOrThrow: vi.fn().mockResolvedValue(assessment) },
-      assessmentRun: { findUnique: vi.fn().mockResolvedValue(null) },
+      assessmentRun: { findUnique: vi.fn().mockResolvedValue(terminalRun) },
       $transaction: vi.fn(async callback => callback(transaction)),
     } as never)
 
@@ -457,8 +479,8 @@ describe('assessment execution guards', () => {
       code: 'CONFLICT',
       details: {
         code: 'assessment_execution_terminal',
-        nextRecommendedAction: 'assessment_prepare_run',
-        nextRequiredAgentBehavior: 'start_fresh_assessment_preparation_with_a_new_idempotency_key',
+        nextRecommendedAction: 'assessment_create_successor',
+        nextRequiredAgentBehavior: 'create_successor_then_prepare_with_a_new_idempotency_key',
       },
     })
   })
@@ -560,13 +582,23 @@ describe('assessment execution guards', () => {
         ],
       },
     }
+    let createdConsent: Record<string, unknown> | undefined
     const transaction = {
       assessment: {
         findUnique: vi.fn().mockResolvedValue(assessment),
         updateMany: vi.fn().mockResolvedValue({ count: 1 }),
+        update: vi.fn(),
       },
       assessmentRun: { findUnique: vi.fn().mockResolvedValue(null), create: vi.fn().mockResolvedValue(run) },
       assessmentRunPublicationCheckpoint: { createMany: vi.fn().mockResolvedValue({ count: 1 }) },
+      executionConsent: {
+        create: vi.fn(async ({ data }) => {
+          createdConsent = data
+          return { id: 'consent-remote-1', ...data }
+        }),
+        findUnique: vi.fn(() => ({ id: 'consent-remote-1', ...createdConsent, expiresAt: null })),
+        update: vi.fn(),
+      },
       environment: {
         findFirst: vi.fn().mockResolvedValue({
           id: 'environment-1',
@@ -583,7 +615,12 @@ describe('assessment execution guards', () => {
       },
     }
     setAssessmentExecutionClientForTests({
-      assessment: { findUniqueOrThrow: vi.fn().mockResolvedValue(assessment) },
+      assessment: {
+        findUniqueOrThrow: vi.fn().mockResolvedValue(assessment),
+        findUnique: vi.fn().mockResolvedValue({ executionManifestHash: null, executionConsentSnapshotHash: null }),
+      },
+      targetProject: { findUnique: vi.fn().mockResolvedValue({ executionConsentMode: 'TRUSTED_AGENT' }) },
+      executionConsent: { findUnique: vi.fn().mockResolvedValue(null) },
       assessmentRun: { findUnique: vi.fn().mockResolvedValue(null), findUniqueOrThrow: vi.fn().mockResolvedValue(run) },
       assessmentRunBinding: { findMany: vi.fn().mockResolvedValue([]) },
       assessmentRunPublicationCheckpoint: {
@@ -676,8 +713,9 @@ describe('assessment execution guards', () => {
       },
     }
     const transaction = {
-      assessment: { findUnique: vi.fn().mockResolvedValue(assessment) },
+      assessment: { findUnique: vi.fn().mockResolvedValue(assessment), update: vi.fn() },
       assessmentRun: { findUnique: vi.fn().mockResolvedValue(null), create },
+      executionConsent: { create: vi.fn().mockResolvedValue({ id: 'consent-remote-1', status: 'GRANTED' }) },
       environment: {
         // This is the second read, inside the transaction: it models a write
         // racing immediately after the initial scope-current assertion.
@@ -690,7 +728,12 @@ describe('assessment execution guards', () => {
       },
     }
     setAssessmentExecutionClientForTests({
-      assessment: { findUniqueOrThrow: vi.fn().mockResolvedValue(assessment) },
+      assessment: {
+        findUniqueOrThrow: vi.fn().mockResolvedValue(assessment),
+        findUnique: vi.fn().mockResolvedValue({ executionManifestHash: null, executionConsentSnapshotHash: null }),
+      },
+      targetProject: { findUnique: vi.fn().mockResolvedValue({ executionConsentMode: 'TRUSTED_AGENT' }) },
+      executionConsent: { findUnique: vi.fn().mockResolvedValue(null) },
       assessmentRun: { findUnique: vi.fn().mockResolvedValue(null), findUniqueOrThrow: vi.fn() },
       assessmentRunBinding: { findMany: vi.fn().mockResolvedValue([]) },
       $transaction: vi.fn(async callback => callback(transaction)),
@@ -892,7 +935,6 @@ describe('assessment execution guards', () => {
       version: 0,
       validationVersionId: 'validation-1',
       resultMatrixCell: 'CHROMIUM:env-1',
-      runtimeInputHash: 'sha256:runtime',
       evidenceReceiptId: null,
       ...currentManagedBinding(),
       validationVersion: {
@@ -963,7 +1005,6 @@ describe('assessment execution guards', () => {
       version: 0,
       validationVersionId: 'validation-1',
       resultMatrixCell: 'CHROMIUM:env-1',
-      runtimeInputHash: 'sha256:runtime',
       evidenceReceiptId: null,
       ...managed,
       validationVersion: {
@@ -1038,7 +1079,11 @@ describe('assessment execution guards', () => {
   })
 
   it.each([
-    ['null publication id', ({ capsule }: CapsuleMismatchFixture) => (capsule.qualityPublicationId = null)],
+    [
+      'null publication id',
+      ({ capsule }: CapsuleMismatchFixture) =>
+        ((capsule as unknown as { qualityPublicationId: string | null }).qualityPublicationId = null),
+    ],
     [
       'wrong publication id',
       ({ capsule }: CapsuleMismatchFixture) => (capsule.qualityPublicationId = 'publication-other'),
@@ -1306,7 +1351,6 @@ describe('assessment execution guards', () => {
       version: 0,
       validationVersionId: 'validation-1',
       resultMatrixCell: 'CHROMIUM:env-1',
-      runtimeInputHash: 'sha256:runtime',
       evidenceReceiptId: null,
       ...currentManagedBinding(),
       validationVersion: {
@@ -1467,7 +1511,6 @@ describe('assessment execution guards', () => {
       version: 0,
       validationVersionId: 'validation-1',
       resultMatrixCell: 'CHROMIUM:env-1',
-      runtimeInputHash: 'sha256:runtime',
       evidenceReceiptId: null,
       ...currentManagedBinding(),
       validationVersion: {
@@ -1546,7 +1589,6 @@ describe('assessment execution guards', () => {
       version: 0,
       validationVersionId: 'validation-1',
       resultMatrixCell: 'CHROMIUM:env-1',
-      runtimeInputHash: 'sha256:runtime',
       evidenceReceiptId: null,
       ...managed,
       validationVersion: {

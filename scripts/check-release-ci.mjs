@@ -96,6 +96,11 @@ function validateSecurityCommands(workflow) {
     'npm run release:check:capsule-cutover',
     'Security CI must enforce the capsule-only cutover guard.',
   )
+  requireCommand(
+    commands,
+    'npm run release:check:quality-os',
+    'Security CI must enforce the Quality OS planner certification gate.',
+  )
 }
 
 function validateDependabot(dependabot) {

@@ -267,6 +267,7 @@ describe('assessment evidence reconciliation SQLite isolation', () => {
         await prisma.targetProject.create({ data: {
           id: targetId, kind: 'LOCAL_WORKSPACE', canonicalIdentity: 'path:${workspace.replaceAll('\\', '\\\\')}',
           canonicalPath: '${workspace.replaceAll('\\', '\\\\')}', displayName: 'Partial startup fixture', fingerprint: hash('a'),
+          executionConsentMode: 'TRUSTED_AGENT',
         }})
         await prisma.environment.create({ data: { id: environmentId, targetProjectId: targetId, name: 'Fixture', baseUrl: 'https://fixture.test' }})
         await prisma.qualityPlan.create({ data: { id: qualityPlanId, targetProjectId: targetId, title: 'Partial startup' }})
@@ -274,9 +275,20 @@ describe('assessment evidence reconciliation SQLite isolation', () => {
           id: revisionId, targetProjectId: targetId, qualityPlanId, revision: 1, status: 'REALIZED',
           contentHash: hash('b'), sourceSpecification: '{}', requirementGraphJson: '{}',
         }})
+        await prisma.requirementAnalysisRevision.create({ data: {
+          id: 'analysis-partial-startup', targetProjectId: targetId, qualityPlanRevisionId: revisionId, revision: 1,
+          status: 'APPROVED', decision: 'APPROVED', analysisJson: '{}', provenanceJson: '{}', analysisHash: hash('analysis-partial-startup'),
+          approvedAt: new Date(), approvedBy: 'fixture', approvalHash: hash('approval-partial-startup'),
+        }})
+        await prisma.validationDesignRevision.create({ data: {
+          id: 'design-partial-startup', targetProjectId: targetId, qualityPlanRevisionId: revisionId,
+          requirementAnalysisRevisionId: 'analysis-partial-startup', revision: 1, status: 'APPROVED', decision: 'APPROVED',
+          strategyJson: '{}', scenarioPortfolioJson: '{}', provenanceJson: '{}', designHash: hash('design-partial-startup'),
+          approvedAt: new Date(), approvedBy: 'fixture', approvalHash: hash('approval-design-partial-startup'),
+        }})
         for (const [id, identity, marker] of [['validation-partial-one', 'one', 'c'], ['validation-partial-two', 'two', 'd']]) {
           await prisma.validationVersion.create({ data: {
-            id, targetProjectId: targetId, qualityPlanRevisionId: revisionId, validationIdentity: identity, version: 1,
+            id, targetProjectId: targetId, qualityPlanRevisionId: revisionId, validationDesignRevisionId: 'design-partial-startup', validationIdentity: identity, version: 1,
             status: 'PUBLISHED', canonicalAstJson: JSON.stringify({ requiredMinimumAssurance: 'STANDARD' }), canonicalHash: hash(marker),
           }})
           await prisma.qualityValidationGeneration.create({ data: {
@@ -512,11 +524,46 @@ describe('assessment evidence reconciliation SQLite isolation', () => {
           requirementGraphJson: '{}',
         },
       })
+      await client.requirementAnalysisRevision.create({
+        data: {
+          id: 'analysis-recovery',
+          targetProjectId: 'target-recovery',
+          qualityPlanRevisionId: 'revision-recovery',
+          revision: 1,
+          status: 'APPROVED',
+          decision: 'APPROVED',
+          analysisJson: '{}',
+          provenanceJson: '{}',
+          analysisHash: `sha256:${'analysis'.padEnd(64, 'a')}`,
+          approvedAt: new Date(),
+          approvedBy: 'fixture',
+          approvalHash: `sha256:${'approval'.padEnd(64, 'a')}`,
+        },
+      })
+      await client.validationDesignRevision.create({
+        data: {
+          id: 'design-recovery',
+          targetProjectId: 'target-recovery',
+          qualityPlanRevisionId: 'revision-recovery',
+          requirementAnalysisRevisionId: 'analysis-recovery',
+          revision: 1,
+          status: 'APPROVED',
+          decision: 'APPROVED',
+          strategyJson: '{}',
+          scenarioPortfolioJson: '{}',
+          provenanceJson: '{}',
+          designHash: `sha256:${'design'.padEnd(64, 'a')}`,
+          approvedAt: new Date(),
+          approvedBy: 'fixture',
+          approvalHash: `sha256:${'approval-design'.padEnd(64, 'a')}`,
+        },
+      })
       await client.validationVersion.create({
         data: {
           id: 'validation-recovery',
           targetProjectId: 'target-recovery',
           qualityPlanRevisionId: 'revision-recovery',
+          validationDesignRevisionId: 'design-recovery',
           validationIdentity: 'Recovery reservation',
           version: 1,
           status: 'PUBLISHED',
@@ -669,11 +716,46 @@ describe('assessment evidence reconciliation SQLite isolation', () => {
           requirementGraphJson: '{}',
         },
       })
+      await client.requirementAnalysisRevision.create({
+        data: {
+          id: 'analysis-reconcile',
+          targetProjectId: 'target-reconcile',
+          qualityPlanRevisionId: 'revision-reconcile',
+          revision: 1,
+          status: 'APPROVED',
+          decision: 'APPROVED',
+          analysisJson: '{}',
+          provenanceJson: '{}',
+          analysisHash: `sha256:${'analysis'.padEnd(64, 'b')}`,
+          approvedAt: new Date(),
+          approvedBy: 'fixture',
+          approvalHash: `sha256:${'approval'.padEnd(64, 'b')}`,
+        },
+      })
+      await client.validationDesignRevision.create({
+        data: {
+          id: 'design-reconcile',
+          targetProjectId: 'target-reconcile',
+          qualityPlanRevisionId: 'revision-reconcile',
+          requirementAnalysisRevisionId: 'analysis-reconcile',
+          revision: 1,
+          status: 'APPROVED',
+          decision: 'APPROVED',
+          strategyJson: '{}',
+          scenarioPortfolioJson: '{}',
+          provenanceJson: '{}',
+          designHash: `sha256:${'design'.padEnd(64, 'b')}`,
+          approvedAt: new Date(),
+          approvedBy: 'fixture',
+          approvalHash: `sha256:${'approval-design'.padEnd(64, 'b')}`,
+        },
+      })
       await client.validationVersion.create({
         data: {
           id: 'validation-reconcile',
           targetProjectId: 'target-reconcile',
           qualityPlanRevisionId: 'revision-reconcile',
+          validationDesignRevisionId: 'design-reconcile',
           validationIdentity: 'receipt isolation',
           version: 1,
           status: 'PUBLISHED',
@@ -879,11 +961,46 @@ describe('assessment evidence reconciliation SQLite isolation', () => {
           requirementGraphJson: '{}',
         },
       })
+      await client.requirementAnalysisRevision.create({
+        data: {
+          id: 'analysis-remote-tuple',
+          targetProjectId: ids.target,
+          qualityPlanRevisionId: ids.revision,
+          revision: 1,
+          status: 'APPROVED',
+          decision: 'APPROVED',
+          analysisJson: '{}',
+          provenanceJson: '{}',
+          analysisHash: hash('analysis'),
+          approvedAt: new Date(),
+          approvedBy: 'fixture',
+          approvalHash: hash('approval-analysis'),
+        },
+      })
+      await client.validationDesignRevision.create({
+        data: {
+          id: 'design-remote-tuple',
+          targetProjectId: ids.target,
+          qualityPlanRevisionId: ids.revision,
+          requirementAnalysisRevisionId: 'analysis-remote-tuple',
+          revision: 1,
+          status: 'APPROVED',
+          decision: 'APPROVED',
+          strategyJson: '{}',
+          scenarioPortfolioJson: '{}',
+          provenanceJson: '{}',
+          designHash: hash('design'),
+          approvedAt: new Date(),
+          approvedBy: 'fixture',
+          approvalHash: hash('approval-design'),
+        },
+      })
       await client.validationVersion.create({
         data: {
           id: ids.validation,
           targetProjectId: ids.target,
           qualityPlanRevisionId: ids.revision,
+          validationDesignRevisionId: 'design-remote-tuple',
           validationIdentity: 'remote tuple',
           version: 1,
           status: 'PUBLISHED',

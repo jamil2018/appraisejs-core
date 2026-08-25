@@ -6,6 +6,27 @@ Introduce a resumable, Appraise-owned lifecycle session that lets human and agen
 requirements-to-decision workflow without reconstructing Appraise's internal packets. Preserve every current
 approval, credential, execution, evidence, and decision gate. Existing domain records remain authoritative.
 
+## Integrated baseline (2026-08-26)
+
+The Quality Operating System work recovered from `codex/quality-operating-system` at `8bb197b2` is now the retained
+domain foundation for this plan. It adds methodology-bound requirement analysis, validation-design revisions,
+execution consent, evidence-backed findings, attribution rules, deterministic critique, and Quality OS certification.
+The current branch additionally owns remote target scope, frozen environment partitions, canonical preflight,
+validation generation/publication, credential authorization, and managed execution hardening.
+
+This baseline is substantial but does **not** implement lifecycle sessions or a product-level multi-agent role
+runtime. In particular, it has no canonical session projection/head hash, compare-and-swap session command,
+session-safe reconnect surface, role work item, lease, or role-scoped capability contract. Quality OS services remain
+authoritative domain transitions that the session and role layers will orchestrate rather than replace.
+
+Current coverage against this plan:
+
+- Phase 0 is partial: analysis/design fixtures exist, but the complete local, remote, partitioned, credential,
+  blocked, successor, and decided session corpus does not.
+- Phases 1 and 2 are unimplemented.
+- Phases 3 through 5 have strong underlying domain authorities but no session transition layer.
+- Phase 6 and clean-room session cutover are unimplemented.
+
 ## Success criteria
 
 - A zero-context agent can select and resume a target-scoped session from Appraise data alone.
@@ -22,12 +43,14 @@ approval, credential, execution, evidence, and decision gate. Existing domain re
 
 ### Existing authorities retained
 
-- Requirements and design: `quality-design-service.ts`, `QualityPlanRevision`, `ValidationVersion`.
+- Methodology, requirements, and design: `quality-operating-system-service.ts`, `quality-design-service.ts`,
+  `RequirementAnalysisRevision`, `ValidationDesignRevision`, `QualityPlanRevision`, and `ValidationVersion`.
 - Realization and preparation: `assessment-preparation-service.ts`.
 - Remote identity and partitions: `remote-evaluation-scope-service.ts`.
 - Publication authority: `QualityValidationGeneration` and `QualityValidationPublication`.
 - Credential authority: `credential-execution-authorization-service.ts`.
-- Execution and evidence: `assessment-execution-service.ts`, `AssessmentRun`, `EvidenceReceipt`.
+- Authorization, execution, and evidence: `ExecutionConsent`, `assessment-execution-service.ts`, `AssessmentRun`,
+  `EvidenceReceipt`, and `AssessmentFinding`.
 - Decision: `decideQualityAssessment` and `AssessmentDecision`.
 
 ### New session responsibilities
@@ -37,6 +60,35 @@ approval, credential, execution, evidence, and decision gate. Existing domain re
 - Append-only state revisions and a compare-and-swap head hash.
 - Typed allowed actions, blockers, and recovery guidance.
 - Durable transition reservations that reconcile exact idempotent domain outcomes after interruption.
+- Appraise-owned role work items that expose only the safe inputs and admissible outputs for the current phase.
+
+### Multi-agent role model
+
+Distinct agents are execution workers, never lifecycle authorities. The session coordinator derives a bounded work
+item from its current authoritative head and assigns one role at a time unless two tasks are proven independent. A
+role submission is an immutable proposal or observation bound to the work-item input hash; Appraise validates it and
+performs the domain transition. Agents do not share mutable conversational state and a replacement worker resumes
+from the latest Appraise projection.
+
+Initial roles are:
+
+- `requirement_analyst`: produces facts, inferences, assumptions, queries, and obligation proposals against exact
+  requirement snapshots and methodology.
+- `target_explorer`: records bounded target capabilities and observations; credentials/selectors remain runtime
+  realization inputs and are not promoted to requirement truth.
+- `validation_designer`: proposes strategy, scenario portfolio, coverage, and failure meaning against an approved
+  analysis and obligation-set hash.
+- `validation_implementer`: realizes approved scenarios using the operation catalog and returns compiler-verifiable
+  artifacts; it cannot approve its own design or authorize execution.
+- `validation_executor`: requests or continues managed execution only after Appraise-owned preflight, consent, and
+  credential gates.
+- `evidence_analyst`: proposes per-obligation findings and failure attribution from sealed evidence.
+- `independent_reviewer`: evaluates stabilized analysis, design, findings, or release evidence without inheriting the
+  producing worker narrative; Appraise or an explicit human records the binding decision.
+
+Each role contract defines input schema, output schema, allowed tools/actions, lease/retry semantics, artifact hash,
+and prohibited authority. Role assignment and completion are projected into the session state hash, but transient
+agent identity, prompts, model metadata, and narration are excluded.
 
 ### Explicit non-responsibilities
 
@@ -73,6 +125,9 @@ conflicts.
 ## Delivery phases
 
 ### Phase 0: Contract fixtures and lifecycle corpus
+
+Quality OS supplies focused methodology, analysis, design, consent, and finding fixtures. Task 0.1 remains open until
+those fixtures are extended into the representative end-to-end session corpus below.
 
 #### Task 0.1 — Freeze representative lifecycle fixtures
 
@@ -186,6 +241,24 @@ versioned discriminated `evaluation_session_transition` contract.
 
 **Likely files:** `packages/appraisejs/src/mcp/`, coordinator registry/routes, generated reference.
 
+#### Task 2.3 — Add role work-item assignment and submission
+
+**Description:** Project phase-specific role work items from the session head and accept immutable, hash-bound role
+outputs without granting workers direct lifecycle mutation authority.
+
+**Acceptance criteria:**
+
+- Every role receives only its allowlisted safe projection, input hash, allowed actions, and output schema.
+- Lease expiry, replacement workers, exact replay, and stale submissions are deterministic and resumable.
+- No role may approve its own artifact, bypass consent, mutate evidence, or advance the session directly.
+
+**Verification:** Role capability negative tests, lease/reconnect races, producer/reviewer separation, secret canaries,
+and zero-context worker replacement tests.
+
+**Dependencies:** Tasks 2.1–2.2.
+
+**Likely files:** Session role contract/service, coordinator registry, MCP domain, tests, scaffold mirrors.
+
 ### Phase 3: Planning gates through the session
 
 #### Task 3.1 — Route requirements submission and approval
@@ -201,7 +274,7 @@ requirements hashes into the next session revision.
 
 **Verification:** Direct/session parity and concurrent-approval tests.
 
-**Dependencies:** Checkpoint A and Task 2.1.
+**Dependencies:** Checkpoint A and Tasks 2.1–2.3.
 
 #### Task 3.2 — Route design proposal and approval
 
@@ -219,7 +292,8 @@ requirements hashes into the next session revision.
 
 ### Checkpoint B — Planning parity
 
-- A fresh agent completes requirements and design solely through the session surface.
+- Fresh requirement-analysis and validation-design workers complete their bounded assignments solely through the
+  session surface, and a replacement worker resumes without transcript replay.
 - Existing human UI and low-level APIs retain behavior.
 - Approval hashes and audit records are byte-equivalent across paths.
 
@@ -255,6 +329,22 @@ Assessment identities through existing services.
 
 **Dependencies:** Task 4.1.
 
+#### Task 4.3 — Route exploration and realization roles
+
+**Description:** Let target explorers submit bounded observations and validation implementers submit operation-catalog
+realizations while Appraise owns partitioning, canonicalization, compilation, and publication.
+
+**Acceptance criteria:**
+
+- Explorer observations cannot silently rewrite requirements or approved design intent.
+- Implementers receive no approval or execution authority and cannot publish arbitrary runtime packets.
+- Rejected realization output returns structured critique and a new work item without weakening the approved hashes.
+
+**Verification:** Cross-role authority negatives, stale work-item replay, unsupported-operation, and partitioned
+realization tests.
+
+**Dependencies:** Tasks 4.1–4.2 and Task 2.3.
+
 ### Phase 5: Authorization, execution, evidence, and decision
 
 #### Task 5.1 — Represent authorization-required as session state
@@ -269,7 +359,7 @@ Assessment identities through existing services.
 
 **Verification:** Local UI and host assertion issuance, expiry, revocation, replay, and secret-canary tests.
 
-**Dependencies:** Task 4.2.
+**Dependencies:** Tasks 4.2–4.3.
 
 #### Task 5.2 — Route managed run and reconciliation
 
@@ -299,6 +389,21 @@ reconciliation.
 **Verification:** Accepted, limited, rejected, stale, and successor parity tests.
 
 **Dependencies:** Task 5.2.
+
+#### Task 5.4 — Separate evidence analysis from binding review
+
+**Description:** Assign sealed evidence to an evidence analyst for a hash-bound finding proposal, then require an
+independent reviewer or explicit human gate before Appraise records the final finding/decision transition.
+
+**Acceptance criteria:**
+
+- Only attributed `TARGET_DEFECT` may produce a violated obligation; all other causes remain not evaluated.
+- Producer and reviewer role identities cannot collapse into one binding agent decision.
+- Later evidence or successor state invalidates the reviewed work-item hash and requires re-evaluation.
+
+**Verification:** Attribution matrix, producer/reviewer separation, stale evidence-set, and successor-lineage tests.
+
+**Dependencies:** Task 5.3 and Task 2.3.
 
 ### Checkpoint C — Complete managed lifecycle
 
@@ -359,6 +464,8 @@ successful clean-room session stress runs.
 | Compatibility layer persists indefinitely              | Medium   | Publish measurable cutover gates and remove only after UI parity and two clean-room runs.            |
 | Session reads leak credentials or internal packets     | Critical | Safe projection boundary, recursive secret guard, canary tests, and independent security review.     |
 | Large implementation recreates current boundary sprawl | High     | Deliver vertical phases with parity checkpoints; do not add a second implementation of domain rules. |
+| Role agents become shadow lifecycle authorities        | Critical | Appraise issues work items, validates outputs, and alone commits transitions and approval decisions. |
+| Producer narrative anchors independent review          | High     | Reviewer receives the exact artifact, criteria, and evidence ledger with no inherited producer chat. |
 
 ## Open decisions before implementation
 
@@ -367,3 +474,5 @@ successful clean-room session stress runs.
 3. Which low-level MCP mutations remain public during the compatibility window and their removal release.
 4. Whether human UI approval advances the same session automatically or requires an explicit session transition
    receipt after the domain approval commits.
+5. Whether role execution is host-provided through MCP callbacks, Appraise-managed local workers, or both behind one
+   role-work-item contract; the lifecycle protocol must remain transport-neutral.

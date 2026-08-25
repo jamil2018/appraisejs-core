@@ -1,7 +1,7 @@
 const fallowSuppression = /^(?:\/\/|\/\*)\s*fallow-ignore(?:-next-line|-file)?\b/
 const RELEASE_SCALE_FILE_COUNT = 100
 
-export function requiresReleaseBaselineAudit(stagedPatch) {
+export function requiresReleaseBaselineAudit(stagedPatch, stagedFiles = '') {
   let removedSuppression = false
   let addedSuppression = false
   const changedFiles = new Set()
@@ -13,6 +13,10 @@ export function requiresReleaseBaselineAudit(stagedPatch) {
     const content = line.slice(1).trim()
     if (line.startsWith('+') && fallowSuppression.test(content)) addedSuppression = true
     if (line.startsWith('-') && fallowSuppression.test(content)) removedSuppression = true
+  }
+
+  for (const file of stagedFiles.split('\n')) {
+    if (file.trim()) changedFiles.add(file.trim())
   }
 
   if (changedFiles.size >= RELEASE_SCALE_FILE_COUNT) return true

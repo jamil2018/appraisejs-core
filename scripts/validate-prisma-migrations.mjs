@@ -39,6 +39,21 @@ try {
         stdio: ['pipe', 'pipe', 'pipe'],
       })
     }
+    if (migration === '20260826000000_add_quality_operating_system_foundation') {
+      execFileSync('sqlite3', [databasePath], {
+        input: `
+          INSERT INTO "TargetProject" ("id", "kind", "canonicalIdentity", "canonicalPath", "displayName", "fingerprint", "createdAt", "updatedAt", "lastDetectedAt")
+          VALUES ('preserved-target', 'LOCAL_WORKSPACE', 'migration-preservation-fixture', '/migration-preservation-fixture', 'Preserved target', 'sha256:preserved-target', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+          INSERT INTO "Environment" ("id", "name", "baseUrl", "credentialState", "createdAt", "updatedAt", "targetProjectId")
+          VALUES ('preserved-environment', 'Migration fixture', 'https://example.test', 'NONE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 'preserved-target');
+          INSERT INTO "TestRun" ("id", "name", "runId", "startedAt", "status", "result", "intent", "evidenceHealth", "updatedAt", "environmentId", "browserEngine", "targetProjectId")
+          VALUES ('preserved-run', 'Preserved independent run', 'preserved-run-id', CURRENT_TIMESTAMP, 'COMPLETED', 'PASSED', 'INDEPENDENT', 'valid', CURRENT_TIMESTAMP, 'preserved-environment', 'CHROMIUM', 'preserved-target');
+          INSERT INTO "Report" ("id", "name", "createdAt", "updatedAt", "testRunId", "targetProjectId")
+          VALUES ('preserved-report', 'Preserved report', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 'preserved-run', 'preserved-target');
+        `,
+        stdio: ['pipe', 'pipe', 'pipe'],
+      })
+    }
     execFileSync('sqlite3', [databasePath], { input: sql, stdio: ['pipe', 'pipe', 'pipe'] })
   }
 
@@ -59,16 +74,34 @@ try {
     [
       databasePath,
       `SELECT
-        (SELECT count(*) FROM TargetProject) +
-        (SELECT count(*) FROM Environment) +
-        (SELECT count(*) FROM TestRun) +
         (SELECT count(*) FROM AssessmentRun) +
         (SELECT count(*) FROM EvidenceReceipt) +
         (SELECT count(*) FROM StepDefinition);`,
     ],
     { encoding: 'utf8' },
   ).trim()
-  if (resetRows !== '0') throw new Error(`The destructive cutover retained application data: ${resetRows}`)
+  if (resetRows !== '0') throw new Error(`The Quality lifecycle cutover retained incompatible rows: ${resetRows}`)
+  const preservedRows = execFileSync(
+    'sqlite3',
+    [
+      databasePath,
+      `SELECT
+        (SELECT count(*) FROM TargetProject WHERE id = 'preserved-target') +
+        (SELECT count(*) FROM Environment WHERE id = 'preserved-environment') +
+        (SELECT count(*) FROM TestRun WHERE id = 'preserved-run') +
+        (SELECT count(*) FROM Report WHERE id = 'preserved-report');`,
+    ],
+    { encoding: 'utf8' },
+  ).trim()
+  if (preservedRows !== '4')
+    throw new Error(`The Quality lifecycle cutover lost shared product history: ${preservedRows}`)
+
+  const validationVersionColumns = execFileSync('sqlite3', [databasePath, 'PRAGMA table_info("ValidationVersion");'], {
+    encoding: 'utf8',
+  })
+  if (!validationVersionColumns.split('\n').some(line => line.split('|')[1] === 'validationDesignRevisionId')) {
+    throw new Error('A later migration dropped ValidationVersion.validationDesignRevisionId.')
+  }
 
   execFileSync('node', ['--import', 'tsx', 'scripts/sync-step-definitions.ts'], {
     cwd: process.cwd(),
@@ -85,7 +118,7 @@ try {
     stdio: ['ignore', 'pipe', 'pipe'],
   })
   console.log(
-    `Applied ${migrations.length} migrations and verified destructive reset plus canonical built-in Step Definition reseed.`,
+    `Applied ${migrations.length} migrations; verified Quality-state reset, product-history preservation, and built-in Step Definition reseed.`,
   )
 } finally {
   rmSync(workspace, { recursive: true, force: true })

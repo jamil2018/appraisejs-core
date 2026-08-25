@@ -1815,7 +1815,7 @@ describe('assessment preparation service', () => {
     expect(canonicalMcpToolNames).toContain(failed.nextRecommendedAction)
   })
 
-  it('preserves terminal capsule-start guidance after direct recovery/reconciliation failure as immutable idempotency history', async () => {
+  it('preserves successor guidance after terminal capsule-start failure as immutable idempotency history', async () => {
     reset()
     vi.mocked(runQualityAssessment).mockRejectedValue(
       new ServiceError(
@@ -1831,8 +1831,8 @@ describe('assessment preparation service', () => {
     expect(first).toMatchObject({
       phase: 'ASSESSMENT',
       retry: { classification: 'terminal_execution_failure', safe: false },
-      nextRecommendedAction: 'assessment_prepare_run',
-      nextRequiredAgentBehavior: 'start_fresh_assessment_preparation_with_a_new_idempotency_key',
+      nextRecommendedAction: 'assessment_create_successor',
+      nextRequiredAgentBehavior: 'create_successor_then_prepare_with_a_new_idempotency_key',
     })
     expect(canonicalMcpToolNames).toContain(first.nextRecommendedAction)
 
@@ -1842,40 +1842,14 @@ describe('assessment preparation service', () => {
       unchanged: true,
       phase: 'ASSESSMENT',
       retry: { classification: 'terminal_execution_failure', safe: false },
-      nextRecommendedAction: 'assessment_prepare_run',
+      nextRecommendedAction: 'assessment_create_successor',
     })
     expect(runQualityAssessment).toHaveBeenCalledTimes(1)
     expect(compileQualityValidations).toHaveBeenCalledTimes(1)
     expect(publishQualityValidations).toHaveBeenCalledTimes(1)
     expect(createQualityAssessment).toHaveBeenCalledTimes(1)
 
-    // The unit seam intentionally stores one preparation row. Start a second
-    // row so this branch models a new caller key while retaining the mocked
-    // READY Assessment root above.
-    Object.assign(preparation, {
-      idempotencyKey: 'prepare-terminal-recovery',
-      inputHash: '',
-      phase: 'VALIDATING',
-      receiptJson: '{}',
-      failureJson: null,
-    })
-    vi.mocked(createQualityAssessment).mockRejectedValueOnce(
-      new ServiceError('Assessment scope already has an active Assessment.', 'CONFLICT', 409, {
-        code: 'assessment_scope_reserved',
-        assessmentId: 'assessment-1',
-      }),
-    )
-    vi.mocked(runQualityAssessment).mockResolvedValueOnce({ id: 'run-2', status: 'RUNNING' } as never)
-
-    await expect(
-      prepareQualityAssessmentRun({ ...input, idempotencyKey: 'prepare-terminal-recovery' }),
-    ).resolves.toMatchObject({ phase: 'STARTED', assessment: { id: 'assessment-1' }, assessmentRun: { id: 'run-2' } })
-    expect(readQualityAssessment).toHaveBeenCalledWith('assessment-1')
-    expect(runQualityAssessment).toHaveBeenCalledTimes(2)
-    expect(vi.mocked(runQualityAssessment).mock.calls[1]![0]).toMatchObject({
-      assessmentId: 'assessment-1',
-      idempotencyKey: 'prepare:prepare-terminal-recovery',
-    })
+    expect(runQualityAssessment).toHaveBeenCalledTimes(1)
   })
 
   it('preserves an execution reservation conflict through the preparation receipt and directs reconciliation', async () => {

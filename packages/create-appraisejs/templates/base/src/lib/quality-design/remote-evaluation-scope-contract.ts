@@ -137,12 +137,12 @@ export const remoteSubjectReferenceSchema = z
 
 export type RemoteEvaluationScopeCreateInput = z.infer<typeof remoteEvaluationScopeCreateSchema>
 export type RemoteEvaluationScopePartitionCreateInput = z.infer<typeof remoteEvaluationScopePartitionCreateSchema>
-export type RemoteEvaluationScopeReadInput = z.infer<typeof remoteEvaluationScopeReadSchema>
+type RemoteEvaluationScopeReadInput = z.infer<typeof remoteEvaluationScopeReadSchema>
 export type RemoteSubjectReference = z.infer<typeof remoteSubjectReferenceSchema>
 
 /** Immutable approved-validation catalog identity. The scope binds this
  * separately from server-owned realization/publication lifecycle output. */
-export type RemoteScopeValidationIdentity = {
+type RemoteScopeValidationIdentity = {
   validationVersionId: string
   validationIdentity: string
   version: number

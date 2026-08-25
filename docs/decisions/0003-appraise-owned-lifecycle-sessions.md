@@ -26,6 +26,10 @@ would reduce integrity without correcting that ownership problem.
 Add an Appraise-owned, target-scoped lifecycle session as an orchestration and continuation layer over the existing
 domain services.
 
+The merged Quality Operating System domain model is the baseline under this layer: methodology-bound requirement
+analysis, validation-design revisions, execution consent, evidence-backed findings, and attribution remain separate
+authorities. Their existence does not constitute a session and does not make a host agent the lifecycle owner.
+
 The session does not replace Quality Plan revisions, approvals, remote scopes, publications, Assessments, evidence,
 or decisions. Those records remain authoritative. A session revision contains only allowlisted references to those
 records, their public hashes, the derived lifecycle phase, blockers, and the actions currently permitted. Appraise
@@ -61,6 +65,13 @@ services remain idempotent authorities. A reserved transition that is interrupte
 domain command receipt before the session head advances; the session never claims a transition that the domain
 authority did not commit.
 
+Multi-agent execution uses Appraise-owned role work items projected from the session head. Requirement analysts,
+target explorers, validation designers, validation implementers, executors, evidence analysts, and independent
+reviewers receive role-scoped inputs and may submit only immutable, hash-bound outputs. Appraise validates those
+outputs and alone performs lifecycle transitions. Workers do not share a mutable evaluation transcript, cannot
+approve their own artifacts, and can be replaced by a zero-context worker that resumes from the latest safe session
+projection.
+
 ## Public surface
 
 The target surface is intentionally small:
@@ -69,6 +80,7 @@ The target surface is intentionally small:
 - `evaluation_session_list`
 - `evaluation_session_read`
 - `evaluation_session_transition`
+- role work-item read/claim/submit actions exposed through the versioned session transition contract
 
 `evaluation_session_transition` is a discriminated union of versioned actions such as requirements submission and
 approval, design submission and approval, preparation, authorization continuation, managed execution,
@@ -107,5 +119,7 @@ operations are deprecated.
 - The coordinator gains a single bounded state projection and recovery path.
 - Session orchestration adds persistence, recovery, compatibility, and migration work; it must not duplicate domain
   business rules.
+- Distinct agent roles improve separation of concerns, but their prompts, models, and narration are execution details;
+  only Appraise-owned work items, hashes, evidence, and decisions are durable lifecycle state.
 - Existing low-level operations remain supported until parity, UI cutover, scaffold synchronization, and clean-room
   agent validation are complete.

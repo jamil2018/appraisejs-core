@@ -365,17 +365,17 @@ describe('coordinator locator_ensure route', () => {
     })
   })
 
-  it('turns direct terminal assessment_run history into executable fresh-preparation guidance', async () => {
+  it('turns direct terminal assessment_run history into immutable successor guidance', async () => {
     runQualityAssessment.mockRejectedValueOnce(
       new ServiceError(
-        'Assessment execution has terminal TestRun history; resubmit the original compact assessment preparation with a new idempotency key.',
+        'Assessment execution has terminal TestRun history; create an immutable successor before preparing another run.',
         'CONFLICT',
         409,
         {
           code: 'assessment_execution_terminal',
           assessmentId: 'assessment-terminal',
-          nextRecommendedAction: 'assessment_prepare_run',
-          nextRequiredAgentBehavior: 'start_fresh_assessment_preparation_with_a_new_idempotency_key',
+          nextRecommendedAction: 'assessment_create_successor',
+          nextRequiredAgentBehavior: 'create_successor_then_prepare_with_a_new_idempotency_key',
         },
       ),
     )
@@ -388,13 +388,13 @@ describe('coordinator locator_ensure route', () => {
     await expect(response.json()).resolves.toMatchObject({
       details: {
         code: 'assessment_execution_terminal',
-        nextRecommendedAction: 'assessment_prepare_run',
-        nextRequiredAgentBehavior: 'start_fresh_assessment_preparation_with_a_new_idempotency_key',
+        nextRecommendedAction: 'assessment_create_successor',
+        nextRequiredAgentBehavior: 'create_successor_then_prepare_with_a_new_idempotency_key',
       },
       retry: {
         safe: false,
         strategy: 'do_not_retry',
-        nextAction: { tool: 'assessment_prepare_run' },
+        nextAction: { tool: 'assessment_create_successor' },
       },
     })
   })

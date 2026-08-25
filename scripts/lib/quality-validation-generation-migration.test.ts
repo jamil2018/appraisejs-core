@@ -17,6 +17,7 @@ const { DatabaseSync } = createRequire(import.meta.url)('node:sqlite') as {
 }
 
 const generationMigration = '20260824120000_quality_validation_generation_v3'
+const qualityOperatingSystemMigration = '20260826000000_add_quality_operating_system_foundation'
 const migrationsRoot = join(process.cwd(), 'prisma', 'migrations')
 const workspaces: string[] = []
 
@@ -34,6 +35,14 @@ function databaseBeforeGenerationMigration() {
 
 function applyGenerationMigration(database: DatabaseSync) {
   database.exec(readFileSync(join(migrationsRoot, generationMigration, 'migration.sql'), 'utf8'))
+}
+
+function applyQualityOperatingSystemMigration(database: DatabaseSync) {
+  for (const migration of readdirSync(migrationsRoot).sort()) {
+    if (migration <= generationMigration || migration >= qualityOperatingSystemMigration) continue
+    database.exec(readFileSync(join(migrationsRoot, migration, 'migration.sql'), 'utf8'))
+  }
+  database.exec(readFileSync(join(migrationsRoot, qualityOperatingSystemMigration, 'migration.sql'), 'utf8'))
 }
 
 function seedLegacyPublication(
@@ -215,7 +224,18 @@ describe('quality validation generation v3 migration', () => {
     try {
       seedLegacyPublication(database)
       applyGenerationMigration(database)
+      applyQualityOperatingSystemMigration(database)
       database.exec(`
+        INSERT INTO "QualityPlan" ("id", "targetProjectId", "title", "updatedAt")
+        VALUES ('plan-1', 'target-1', 'Generation CAS plan', CURRENT_TIMESTAMP);
+        INSERT INTO "QualityPlanRevision" ("id", "targetProjectId", "qualityPlanId", "revision", "status", "contentHash", "sourceSpecification", "requirementGraphJson", "updatedAt")
+        VALUES ('revision-1', 'target-1', 'plan-1', 1, 'PUBLISHED', 'sha256:revision-cas', '{}', '{}', CURRENT_TIMESTAMP);
+        INSERT INTO "RequirementAnalysisRevision" ("id", "targetProjectId", "qualityPlanRevisionId", "revision", "status", "decision", "analysisJson", "provenanceJson", "analysisHash")
+        VALUES ('analysis-1', 'target-1', 'revision-1', 1, 'APPROVED', 'APPROVED', '{}', '{}', 'sha256:analysis-cas');
+        INSERT INTO "ValidationDesignRevision" ("id", "targetProjectId", "qualityPlanRevisionId", "requirementAnalysisRevisionId", "revision", "status", "decision", "strategyJson", "scenarioPortfolioJson", "provenanceJson", "designHash")
+        VALUES ('design-1', 'target-1', 'revision-1', 'analysis-1', 1, 'APPROVED', 'APPROVED', '{}', '{}', '{}', 'sha256:design-cas');
+        INSERT INTO "ValidationVersion" ("id", "targetProjectId", "qualityPlanRevisionId", "validationDesignRevisionId", "validationIdentity", "version", "status", "canonicalAstJson", "canonicalHash")
+        VALUES ('validation-1', 'target-1', 'revision-1', 'design-1', 'Validation CAS', 1, 'DESIGNED', '{}', 'sha256:validation-cas');
         INSERT INTO "QualityValidationGeneration" (
           "id", "generationKey", "targetProjectId", "qualityPlanRevisionId", "validationVersionId", "artifactSchemaVersion",
           "preflightAlgorithmVersion", "preflightAuthority", "scopeIntentHash", "realizationIntentHash", "preflightHash",

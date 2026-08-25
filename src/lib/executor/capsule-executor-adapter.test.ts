@@ -12,6 +12,7 @@ import {
 } from '@/lib/runtime-capsule/command-receipt-contract'
 import { sealCapsuleCommandReceipt } from '@/lib/runtime-capsule/command-receipt-sealer'
 import { hashRuntimeCapsuleBytes } from '@/lib/runtime-capsule/contracts'
+import { createCustomExtensionPolicy } from '@/lib/validation-ast/extension-policy'
 
 const hash = (character: string) => `sha256:${character.repeat(64)}`
 const workspaces: string[] = []
@@ -90,7 +91,16 @@ async function sealedCredentialReceipt() {
         passwordEnvironmentVariable: 'APPRAISE_TEST_PASSWORD',
       },
     },
-    runtimeInput: { extensionPolicy: { declarationHash: hash('f'), compilerVersion: '1' } },
+    runtimeInput: {
+      extensionPolicy: {
+        ...createCustomExtensionPolicy({
+          projectId: 'target',
+          projectFingerprint: hash('f'),
+          capabilityImports: {},
+        }),
+        capabilityImports: {},
+      },
+    },
     built: {
       cases: expectedCases,
       files: [

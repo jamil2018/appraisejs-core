@@ -93,6 +93,8 @@ const inputSchema = remoteEvaluationScopeCreateSchema
     authorizationGrantId: z.string().uuid().optional(),
     executionRequestId: z.string().uuid().optional(),
     expectedRequestHash: z.string().startsWith('sha256:').optional(),
+    consentId: z.string().uuid().optional(),
+    expectedExecutionManifestHash: z.string().startsWith('sha256:').optional(),
     expectedPreflight: z
       .object({
         algorithmVersion: z.literal(ASSESSMENT_PREFLIGHT_ALGORITHM),
@@ -118,6 +120,8 @@ const preflightInputSchema = inputSchema
     authorizationGrantId: true,
     executionRequestId: true,
     expectedRequestHash: true,
+    consentId: true,
+    expectedExecutionManifestHash: true,
     expectedPreflight: true,
     assessmentId: true,
     idempotencyKey: true,
@@ -354,7 +358,7 @@ function preparationRetry(failure: PreparationFailure | undefined, complete: boo
 
 function recommendedAction(complete: boolean, retry: ReturnType<typeof preparationRetry>) {
   if (complete) return 'assessment_reconcile'
-  if (retry.classification === 'terminal_execution_failure') return 'assessment_prepare_run'
+  if (retry.classification === 'terminal_execution_failure') return 'assessment_create_successor'
   if (retry.classification === 'active_execution' || retry.classification === 'execution_reserved')
     return 'assessment_reconcile'
   return retry.safe ? 'assessment_prepare_run' : 'project_diagnostic'
@@ -363,7 +367,7 @@ function recommendedAction(complete: boolean, retry: ReturnType<typeof preparati
 function requiredBehavior(complete: boolean, retry: ReturnType<typeof preparationRetry>) {
   if (complete) return 'wait_for_terminal_execution_then_reconcile'
   if (retry.classification === 'terminal_execution_failure')
-    return 'start_fresh_assessment_preparation_with_a_new_idempotency_key'
+    return 'create_successor_then_prepare_with_a_new_idempotency_key'
   if (retry.classification === 'active_execution' || retry.classification === 'execution_reserved')
     return 'wait_for_active_assessment_execution_then_reconcile'
   return retry.safe ? 'replay_same_idempotency_key_to_resume' : 'inspect_diagnostic_and_revise_request_or_state'
@@ -1062,6 +1066,8 @@ export type CanonicalAssessmentPreflight = ReturnType<typeof preparationPrefligh
   preflightHash: string
 }
 
+// Imported by the SQLite integration harness through an isolated generated module.
+// fallow-ignore-next-line unused-export
 export async function resolveCanonicalAssessmentPreflight(
   source: unknown,
   client: typeof prisma = prisma,
@@ -1451,6 +1457,8 @@ async function ensureStarted(state: PreparationState, input: PreparationInput, e
     authorizationGrantId: input.authorizationGrantId,
     executionRequestId: input.executionRequestId,
     expectedRequestHash: input.expectedRequestHash,
+    consentId: input.consentId,
+    expectedExecutionManifestHash: input.expectedExecutionManifestHash,
     idempotencyKey: `prepare:${input.idempotencyKey}`,
   })
   return advance(state, 'STARTED', { assessmentRun: { id: run.id, status: run.status } })
@@ -1710,7 +1718,14 @@ export async function prepareQualityAssessmentRun(source: unknown) {
   const immutableInput = Object.fromEntries(
     Object.entries(input).filter(
       ([key]) =>
-        !['authorizationGrantId', 'executionRequestId', 'expectedRequestHash', 'expectedPreflight'].includes(key),
+        ![
+          'authorizationGrantId',
+          'executionRequestId',
+          'expectedRequestHash',
+          'consentId',
+          'expectedExecutionManifestHash',
+          'expectedPreflight',
+        ].includes(key),
     ),
   )
   const inputHash = digest({ ...immutableInput, targetProjectId: target.id })

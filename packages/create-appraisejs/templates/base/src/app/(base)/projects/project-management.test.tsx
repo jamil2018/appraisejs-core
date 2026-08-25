@@ -68,6 +68,7 @@ describe('ProjectManagement agent readiness', () => {
             canonicalIdentity: 'path:/targets/notes',
             canonicalPath: '/targets/notes',
             normalizedRemoteOrigin: null,
+            executionConsentMode: 'ALWAYS_ASK',
             lastDetectedAt: new Date('2026-07-18T02:00:00.000Z'),
             preflight: receipt,
           },

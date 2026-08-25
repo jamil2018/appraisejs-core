@@ -40,6 +40,7 @@ describe('remote evaluation scope service SQLite concurrency', () => {
           normalizedRemoteOrigin: 'https://www.saucedemo.com',
           displayName: 'Sauce Demo',
           fingerprint: `sha256:${'a'.repeat(64)}`,
+          executionConsentMode: 'TRUSTED_AGENT',
         },
       })
       await prisma.qualityPlan.create({
@@ -55,6 +56,40 @@ describe('remote evaluation scope service SQLite concurrency', () => {
           contentHash: `sha256:${'b'.repeat(64)}`,
           sourceSpecification: '{}',
           requirementGraphJson: '{}',
+        },
+      })
+      await prisma.requirementAnalysisRevision.create({
+        data: {
+          id: 'analysis-remote-concurrent',
+          targetProjectId: 'target-remote-concurrent',
+          qualityPlanRevisionId: 'revision-remote-concurrent',
+          revision: 1,
+          status: 'APPROVED',
+          decision: 'APPROVED',
+          analysisJson: '{}',
+          provenanceJson: '{}',
+          analysisHash: `sha256:${'c'.repeat(64)}`,
+          approvedAt: new Date(),
+          approvedBy: 'fixture',
+          approvalHash: `sha256:${'d'.repeat(64)}`,
+        },
+      })
+      await prisma.validationDesignRevision.create({
+        data: {
+          id: 'design-remote-concurrent',
+          targetProjectId: 'target-remote-concurrent',
+          qualityPlanRevisionId: 'revision-remote-concurrent',
+          requirementAnalysisRevisionId: 'analysis-remote-concurrent',
+          revision: 1,
+          status: 'APPROVED',
+          decision: 'APPROVED',
+          strategyJson: '{}',
+          scenarioPortfolioJson: '{}',
+          provenanceJson: '{}',
+          designHash: `sha256:${'e'.repeat(64)}`,
+          approvedAt: new Date(),
+          approvedBy: 'fixture',
+          approvalHash: `sha256:${'f'.repeat(64)}`,
         },
       })
       await prisma.environment.create({
@@ -91,6 +126,7 @@ describe('remote evaluation scope service SQLite concurrency', () => {
           id: 'validation-remote-concurrent',
           targetProjectId: 'target-remote-concurrent',
           qualityPlanRevisionId: 'revision-remote-concurrent',
+          validationDesignRevisionId: 'design-remote-concurrent',
           validationIdentity: 'login form visible',
           version: 1,
           status: 'SCENARIO_APPROVED',
@@ -185,6 +221,7 @@ describe('remote evaluation scope service SQLite concurrency', () => {
             id: 'validation-remote-concurrent-secondary',
             targetProjectId: 'target-remote-concurrent',
             qualityPlanRevisionId: 'revision-remote-concurrent',
+            validationDesignRevisionId: 'design-remote-concurrent',
             validationIdentity: 'secondary login form visible',
             version: 1,
             status: 'SCENARIO_APPROVED',
@@ -195,6 +232,7 @@ describe('remote evaluation scope service SQLite concurrency', () => {
             id: 'validation-remote-concurrent-tertiary',
             targetProjectId: 'target-remote-concurrent',
             qualityPlanRevisionId: 'revision-remote-concurrent',
+            validationDesignRevisionId: 'design-remote-concurrent',
             validationIdentity: 'tertiary login form visible',
             version: 1,
             status: 'SCENARIO_APPROVED',
@@ -364,6 +402,9 @@ describe('remote evaluation scope service SQLite concurrency', () => {
         const assessment = await prisma.assessment.findUniqueOrThrow({
           where: { id: preparedReady.assessment.id }, select: { status: true },
         })
+        const consent = await prisma.executionConsent.findUniqueOrThrow({
+          where: { assessmentId: preparedReady.assessment.id }, select: { status: true },
+        })
         let executionViolation
         try {
           await runQualityAssessment({
@@ -387,7 +428,7 @@ describe('remote evaluation scope service SQLite concurrency', () => {
           },
           partitionViolation,
           executionViolation,
-          prepared: { phase: prepared.phase, assessmentStatus: assessment.status, statuses },
+          prepared: { phase: prepared.phase, assessmentStatus: assessment.status, consentStatus: consent.status, statuses },
         }))
         await prisma.$disconnect()
       `
@@ -409,6 +450,7 @@ describe('remote evaluation scope service SQLite concurrency', () => {
         prepared: {
           phase: string
           assessmentStatus?: string
+          consentStatus: string
           statuses: Array<{ id: string; status: string; activeGenerationId: string | null }>
         }
       }
@@ -439,8 +481,9 @@ describe('remote evaluation scope service SQLite concurrency', () => {
         partitionViolation: { code: 'CONFLICT', detail: 'REMOTE_SCOPE_PARTITION_AUTHORITY_VIOLATION' },
         executionViolation: { code: 'CONFLICT', detail: 'REMOTE_SCOPE_PARTITION_AUTHORITY_VIOLATION' },
         prepared: {
-          phase: 'STARTED',
-          assessmentStatus: 'RUNNING',
+          phase: 'ASSESSMENT',
+          assessmentStatus: 'READY',
+          consentStatus: 'REQUESTED',
           statuses: [
             { id: 'validation-remote-concurrent', status: 'PUBLISHED', activeGenerationId: expect.any(String) },
             { id: 'validation-remote-concurrent-secondary', status: 'SCENARIO_APPROVED', activeGenerationId: null },
@@ -531,12 +574,47 @@ describe('remote evaluation scope service SQLite concurrency', () => {
           requirementGraphJson: '{}',
         },
       })
+      await prisma.requirementAnalysisRevision.create({
+        data: {
+          id: 'analysis-root-concurrent',
+          targetProjectId: 'target-root-concurrent',
+          qualityPlanRevisionId: 'revision-root-concurrent',
+          revision: 1,
+          status: 'APPROVED',
+          decision: 'APPROVED',
+          analysisJson: '{}',
+          provenanceJson: '{}',
+          analysisHash: `sha256:${'2'.repeat(64)}`,
+          approvedAt: new Date(),
+          approvedBy: 'fixture',
+          approvalHash: `sha256:${'3'.repeat(64)}`,
+        },
+      })
+      await prisma.validationDesignRevision.create({
+        data: {
+          id: 'design-root-concurrent',
+          targetProjectId: 'target-root-concurrent',
+          qualityPlanRevisionId: 'revision-root-concurrent',
+          requirementAnalysisRevisionId: 'analysis-root-concurrent',
+          revision: 1,
+          status: 'APPROVED',
+          decision: 'APPROVED',
+          strategyJson: '{}',
+          scenarioPortfolioJson: '{}',
+          provenanceJson: '{}',
+          designHash: `sha256:${'4'.repeat(64)}`,
+          approvedAt: new Date(),
+          approvedBy: 'fixture',
+          approvalHash: `sha256:${'5'.repeat(64)}`,
+        },
+      })
       const rootHash = (value: string) => `sha256:${value.repeat(64)}`
       await prisma.validationVersion.create({
         data: {
           id: 'validation-root-concurrent',
           targetProjectId: 'target-root-concurrent',
           qualityPlanRevisionId: 'revision-root-concurrent',
+          validationDesignRevisionId: 'design-root-concurrent',
           validationIdentity: 'root readiness validation',
           version: 1,
           status: 'PUBLISHED',
@@ -672,11 +750,46 @@ describe('remote evaluation scope service SQLite concurrency', () => {
           requirementGraphJson: '{}',
         },
       })
+      await prisma.requirementAnalysisRevision.create({
+        data: {
+          id: 'analysis-publication-race',
+          targetProjectId: 'target-publication-race',
+          qualityPlanRevisionId: 'revision-publication-race',
+          revision: 1,
+          status: 'APPROVED',
+          decision: 'APPROVED',
+          analysisJson: '{}',
+          provenanceJson: '{}',
+          analysisHash: hash('d'),
+          approvedAt: new Date(),
+          approvedBy: 'fixture',
+          approvalHash: hash('e'),
+        },
+      })
+      await prisma.validationDesignRevision.create({
+        data: {
+          id: 'design-publication-race',
+          targetProjectId: 'target-publication-race',
+          qualityPlanRevisionId: 'revision-publication-race',
+          requirementAnalysisRevisionId: 'analysis-publication-race',
+          revision: 1,
+          status: 'APPROVED',
+          decision: 'APPROVED',
+          strategyJson: '{}',
+          scenarioPortfolioJson: '{}',
+          provenanceJson: '{}',
+          designHash: hash('f'),
+          approvedAt: new Date(),
+          approvedBy: 'fixture',
+          approvalHash: hash('g'),
+        },
+      })
       await prisma.validationVersion.create({
         data: {
           id: 'validation-publication-race',
           targetProjectId: 'target-publication-race',
           qualityPlanRevisionId: 'revision-publication-race',
+          validationDesignRevisionId: 'design-publication-race',
           validationIdentity: 'publication race validation',
           version: 1,
           status: 'SCENARIO_APPROVED',
@@ -815,6 +928,40 @@ describe('remote evaluation scope service SQLite concurrency', () => {
           requirementGraphJson: '{}',
         },
       })
+      await prisma.requirementAnalysisRevision.create({
+        data: {
+          id: 'analysis-successor-race',
+          targetProjectId: 'target-successor-race',
+          qualityPlanRevisionId: 'revision-successor-race',
+          revision: 1,
+          status: 'APPROVED',
+          decision: 'APPROVED',
+          analysisJson: '{}',
+          provenanceJson: '{}',
+          analysisHash: hash('d'),
+          approvedAt: new Date(),
+          approvedBy: 'fixture',
+          approvalHash: hash('e'),
+        },
+      })
+      await prisma.validationDesignRevision.create({
+        data: {
+          id: 'design-successor-race',
+          targetProjectId: 'target-successor-race',
+          qualityPlanRevisionId: 'revision-successor-race',
+          requirementAnalysisRevisionId: 'analysis-successor-race',
+          revision: 1,
+          status: 'APPROVED',
+          decision: 'APPROVED',
+          strategyJson: '{}',
+          scenarioPortfolioJson: '{}',
+          provenanceJson: '{}',
+          designHash: hash('f'),
+          approvedAt: new Date(),
+          approvedBy: 'fixture',
+          approvalHash: hash('g'),
+        },
+      })
       await prisma.environment.create({
         data: {
           id: 'environment-successor-race',
@@ -849,6 +996,7 @@ describe('remote evaluation scope service SQLite concurrency', () => {
           id: 'validation-successor-race',
           targetProjectId: 'target-successor-race',
           qualityPlanRevisionId: 'revision-successor-race',
+          validationDesignRevisionId: 'design-successor-race',
           validationIdentity: 'login form visible',
           version: 1,
           status: 'SCENARIO_APPROVED',

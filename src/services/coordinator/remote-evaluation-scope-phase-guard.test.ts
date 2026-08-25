@@ -254,7 +254,16 @@ function persistedPartitionRecord(subject: Record<string, unknown>, binding: Rec
     ],
   }
   const manifestHash = digest({ schemaVersion: REMOTE_EVALUATION_SCOPE_PARTITION_SCHEMA, identity: identityBase })
-  const partition = {
+  const partition: {
+    partitionKey: string
+    environmentId: unknown
+    validationVersionIdsJson: string
+    validationBindingsHash: unknown
+    childHash: string
+    remoteEvaluationScopeBinding: Record<string, unknown> & {
+      evaluationSubjectRevision: Record<string, unknown>
+    }
+  } = {
     partitionKey: 'primary',
     environmentId: binding.environmentId,
     validationVersionIdsJson: canonicalContractJson(validationVersionIds),

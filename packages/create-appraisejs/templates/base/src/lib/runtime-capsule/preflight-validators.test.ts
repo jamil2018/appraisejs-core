@@ -4,6 +4,7 @@ import { canonicalCapsuleCommandReceipt, parseCanonicalCapsuleCommandReceipt } f
 import { sealCapsuleCommandReceipt } from './command-receipt-sealer'
 import { hashRuntimeCapsuleBytes, type RuntimeCapsuleManifest } from './contracts'
 import { resolveSealedEnvironment, validateOperationClosure } from './preflight-validators'
+import { createCustomExtensionPolicy } from '@/lib/validation-ast/extension-policy'
 
 const hash = (character: string) => `sha256:${character.repeat(64)}`
 
@@ -46,7 +47,14 @@ async function sealedConfiguredCredentialReceipt() {
     // Receipt sealing only consumes this immutable compiler identity. The
     // full runtime-input parser is exercised at publication before sealing.
     runtimeInput: {
-      extensionPolicy: { declarationHash: hash('f'), compilerVersion: '1' },
+      extensionPolicy: {
+        ...createCustomExtensionPolicy({
+          projectId: 'target',
+          projectFingerprint: hash('f'),
+          capabilityImports: {},
+        }),
+        capabilityImports: {},
+      },
     },
     built,
   })

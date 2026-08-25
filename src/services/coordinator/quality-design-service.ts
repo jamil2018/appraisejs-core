@@ -2,6 +2,7 @@ import prisma from '@/config/db-config'
 import { randomUUID } from 'node:crypto'
 import { canonicalContractJson } from '@/lib/catalog-contracts'
 import { hashCanonical, hashQualityPlanRevision, canApproveRequirements } from '@/lib/quality-design/state'
+import { builtInMethodologyRef } from '@/lib/quality-design/methodology-registry'
 import { canonicalizeAndValidateQualityRealization } from '@/lib/quality-design/validation-realization'
 import { frozenEnvironmentSnapshot } from '@/lib/quality-design/frozen-environment-snapshot'
 import {
@@ -39,6 +40,9 @@ type QualityRevisionRecord = {
   contentHash: string
   sourceSpecification: string
   requirementGraphJson: string
+  methodologyId: string
+  methodologyVersion: string
+  methodologyHash: string
   qualityPlan: {
     id: string
     targetProjectId: string
@@ -68,6 +72,7 @@ type QualityRevisionRecord = {
     id: string
     validationIdentity: string
     version: number
+    validationDesignRevisionId: string
     status: string
     reuseOutcome: string | null
     canonicalAstJson: string
@@ -115,6 +120,8 @@ type PrismaLike = {
   qualityPlan: Delegate<{ id: string }>
   requirementSnapshot: Delegate<{ id: string }>
   qualityObligationRevision: Delegate<unknown>
+  requirementAnalysisRevision: Delegate<{ id: string }>
+  validationDesignRevision: Delegate<{ id: string }>
   requirementQuery: Delegate<QualityQueryRecord>
   validationVersion: Delegate<QualityRevisionRecord['validationVersions'][number]>
   obligationValidationVersion: Delegate<unknown>
@@ -163,6 +170,16 @@ type PrismaLike = {
       decisions: Array<{ decision: string; decisionHash: string }>
     } | null
     evidenceReceipts: unknown[]
+    findings: Array<{
+      id: string
+      qualityObligationRevisionId: string
+      outcome: string
+      attribution: string
+      evidenceSetHash: string
+      findingHash: string
+      reviewStatus: string
+      reviewHash: string | null
+    }>
     decisions: Array<{
       id: string
       decision: string
@@ -198,6 +215,7 @@ type PrismaLike = {
     }>
   }>
   assessmentDecision: Delegate<unknown>
+  assessmentFinding?: Delegate<unknown>
   $transaction<T>(operation: (transaction: PrismaLike) => Promise<T>): Promise<T>
   $transaction<T>(operations: Promise<T>[]): Promise<T[]>
 }
@@ -352,6 +370,11 @@ function revisionPayload(revision: QualityRevisionRecord) {
       revision: revision.revision,
       status: revision.status,
       contentHash: revision.contentHash,
+      methodology: {
+        methodologyId: revision.methodologyId,
+        version: revision.methodologyVersion,
+        digest: revision.methodologyHash,
+      },
       approvedAt: revision.approvedAt,
       sourceSpecification: JSON.parse(revision.sourceSpecification),
       requirementGraph: JSON.parse(revision.requirementGraphJson),
@@ -551,6 +574,89 @@ function assertScenarioReviewFields(scenario: ScenarioProposal) {
   if (missingField) throw new ServiceError(missingField[1] as string, 'VALIDATION')
 }
 
+function legacyValidationDesignProposal(scenarios: ScenarioProposal[]) {
+  return {
+    schemaVersion: '1' as const,
+    methodology: builtInMethodologyRef,
+    requiredAssurance: scenarios.reduce<NonNullable<ScenarioProposal['requiredMinimumAssurance']>>(
+      (highest, scenario) =>
+        assuranceRank[scenario.requiredMinimumAssurance ?? 'STANDARD'] > assuranceRank[highest]
+          ? (scenario.requiredMinimumAssurance ?? 'STANDARD')
+          : highest,
+      'STANDARD',
+    ),
+    techniques: ['legacy quality-design API projection'],
+    layers: ['managed validation runtime'],
+    risks: ['Legacy caller supplied a compact scenario proposal.'],
+    evidenceExpectations: ['Sealed evidence receipt for each selected validation matrix cell.'],
+    limitations: scenarios.flatMap(scenario =>
+      Array.isArray(scenario.limitations)
+        ? scenario.limitations.filter((value): value is string => typeof value === 'string' && Boolean(value.trim()))
+        : [],
+    ),
+    scenarios: scenarios.map((scenario, index) => ({
+      id: scenario.id ?? `scenario-${index + 1}`,
+      title: scenario.title ?? scenario.behavior,
+      obligationIds: scenario.obligationIds,
+      behavior: scenario.behavior,
+      kind: 'POSITIVE' as const,
+      assertions: scenario.assertions.map((assertion, assertionIndex) => ({
+        id: `legacy-assertion-${index + 1}-${assertionIndex + 1}`,
+        statement:
+          typeof assertion === 'string' && assertion.trim() ? assertion.trim() : canonicalContractJson(assertion),
+        observable: true,
+      })),
+      requiredMinimumAssurance: scenario.requiredMinimumAssurance ?? 'STANDARD',
+      matrix: {
+        cells: [{ browser: 'chromium', environment: 'legacy-default' }],
+        rationale: 'The executable matrix is bound later by the reviewed runtime publication.',
+      },
+      failureMeaning: 'The expected behavior or observable assertion was not met.',
+    })),
+  }
+}
+
+async function createLegacyValidationDesign(
+  transaction: PrismaLike,
+  revision: QualityRevisionRecord,
+  scenarios: ScenarioProposal[],
+) {
+  const proposal = legacyValidationDesignProposal(scenarios)
+  const designHash = hashCanonical({ kind: 'appraise.validation-design/legacy-projection/v1', proposal })
+  const existing = await transaction.validationDesignRevision.findFirst({
+    where: { qualityPlanRevisionId: revision.id, designHash },
+  })
+  if (existing) return { id: existing.id, designHash }
+  const existingDesigns = transaction.validationDesignRevision.findMany
+    ? await transaction.validationDesignRevision.findMany({ where: { qualityPlanRevisionId: revision.id } })
+    : []
+  const nextRevision =
+    existingDesigns.reduce((highest, design) => {
+      const revisionNumber = (design as { revision?: unknown }).revision
+      return typeof revisionNumber === 'number' ? Math.max(highest, revisionNumber) : highest
+    }, 0) + 1
+  const analysisId = `legacy-analysis:${revision.id}`
+  const created = await transaction.validationDesignRevision.create({
+    data: {
+      targetProjectId: revision.targetProjectId,
+      qualityPlanRevisionId: revision.id,
+      requirementAnalysisRevisionId: analysisId,
+      revision: nextRevision,
+      status: 'IN_REVIEW',
+      decision: 'PENDING',
+      strategyJson: canonicalContractJson({
+        methodology: builtInMethodologyRef,
+        requiredAssurance: proposal.requiredAssurance,
+      }),
+      scenarioPortfolioJson: canonicalContractJson(proposal.scenarios),
+      critiqueJson: canonicalContractJson([]),
+      provenanceJson: canonicalContractJson({ source: 'quality-design-service:legacy-projection/v1' }),
+      designHash,
+    },
+  })
+  return { id: created.id, designHash }
+}
+
 function requiredAssurance(
   scenario: ScenarioProposal,
   obligationsById: Map<string, QualityRevisionRecord['obligations'][number]>,
@@ -609,18 +715,23 @@ async function createRequirementRevision(
       contentHash,
       sourceSpecification: JSON.stringify(source),
       requirementGraphJson: JSON.stringify(graph),
+      methodologyId: builtInMethodologyRef.methodologyId,
+      methodologyVersion: builtInMethodologyRef.version,
+      methodologyHash: builtInMethodologyRef.digest,
     },
   })
-  await createRequirementSnapshots(transaction, revision.id, source.requirements ?? [])
+  await createRequirementSnapshots(transaction, targetProjectId, revision.id, source.requirements ?? [])
   if (!source.requirements?.length) await createBlockingRequirementQuery(transaction, revision.id)
   return readRevisionOrThrow(transaction, qualityPlan.id, revision.id)
 }
 
 async function createRequirementSnapshots(
   transaction: PrismaLike,
+  targetProjectId: string,
   qualityPlanRevisionId: string,
   requirements: NonNullable<SourceSpecification['requirements']>,
 ) {
+  const snapshots: Array<{ id: string; requirement: QualityRequirementInput; index: number }> = []
   for (const [index, requirement] of requirements.entries()) {
     const snapshot = await transaction.requirementSnapshot.create({
       data: {
@@ -631,16 +742,72 @@ async function createRequirementSnapshots(
         contentHash: hashCanonical({ text: requirement.text, externalRef: requirement.externalRef, index }),
       },
     })
+    snapshots.push({ id: snapshot.id, requirement, index })
+  }
+  if (!snapshots.length) return
+
+  // The legacy source-submission API still projects simple requirements into
+  // obligations. Persist that projection as an already-reviewed immutable
+  // analysis so it satisfies the Quality OS's non-null provenance boundary
+  // without weakening the newer analysis/design APIs.
+  const analysisId = `legacy-analysis:${qualityPlanRevisionId}`
+  const obligations = snapshots.map(({ id, requirement, index }) => ({
+    id: `legacy-obligation:${id}`,
+    requirementIds: [id],
+    intent: requirement.text,
+    minimumAssurance: requirement.minimumAssurance ?? 'STANDARD',
+    provenance: {
+      sourceRequirementIds: [id],
+      rationale: `Legacy source projection for requirement ${requirement.externalRef ?? requirement.id ?? index + 1}.`,
+    },
+  }))
+  const proposal = {
+    schemaVersion: '1' as const,
+    methodology: builtInMethodologyRef,
+    requirements: snapshots.map(({ id, requirement }) => ({ id, text: requirement.text })),
+    inferences: [],
+    assumptions: [],
+    ambiguities: [],
+    contradictions: [],
+    proposedQueries: [],
+    obligations,
+  }
+  const analysisHash = hashCanonical({ kind: 'appraise.requirement-analysis/legacy-projection/v1', proposal })
+  const approvedAt = new Date()
+  await transaction.requirementAnalysisRevision.create({
+    data: {
+      id: analysisId,
+      targetProjectId,
+      qualityPlanRevisionId,
+      revision: 1,
+      status: 'APPROVED',
+      decision: 'APPROVED',
+      analysisJson: canonicalContractJson(proposal),
+      provenanceJson: canonicalContractJson({ source: 'quality-design-service:legacy-projection/v1' }),
+      critiqueJson: canonicalContractJson([]),
+      analysisHash,
+      decisionRationale: 'Legacy requirement source projection is preserved as an approved analysis artifact.',
+      decidedBy: 'appraisejs:legacy-quality-design-api',
+      decidedAt: approvedAt,
+      approvedAt,
+      approvedBy: 'appraisejs:legacy-quality-design-api',
+      approvalHash: hashCanonical({ analysisHash, approvedAt: approvedAt.toISOString() }),
+    },
+  })
+  for (const [snapshotIndex, snapshot] of snapshots.entries()) {
+    const obligation = obligations[snapshotIndex]!
     await transaction.qualityObligationRevision.create({
       data: {
+        id: obligation.id,
         qualityPlanRevisionId,
+        requirementAnalysisRevisionId: analysisId,
         requirementSnapshotId: snapshot.id,
-        title: requirement.externalRef ?? requirement.id ?? `Requirement ${index + 1}`,
-        intent: requirement.text,
+        title: snapshot.requirement.externalRef ?? snapshot.requirement.id ?? `Requirement ${snapshot.index + 1}`,
+        intent: snapshot.requirement.text,
         assertionScopeJson: JSON.stringify({ requirementSnapshotId: snapshot.id }),
-        minimumAssurance: requirement.minimumAssurance ?? 'STANDARD',
-        limitations: requirement.limitations,
-        contentHash: hashCanonical({ requirement, index }),
+        minimumAssurance: snapshot.requirement.minimumAssurance ?? 'STANDARD',
+        limitations: snapshot.requirement.limitations,
+        contentHash: hashCanonical({ analysisHash, obligation }),
       },
     })
   }
@@ -735,6 +902,7 @@ export async function proposeQualityValidationDesign(
   const scenarios = parseScenarioProposals(input.proposal)
   assertScenariosCoverKnownObligations(revision, scenarios)
   await client.$transaction(async transaction => {
+    const designRevision = await createLegacyValidationDesign(transaction, revision, scenarios)
     for (const scenario of scenarios) {
       const design = scenarioDesign(scenario)
       const canonicalHash = hashCanonical(design)
@@ -746,6 +914,7 @@ export async function proposeQualityValidationDesign(
         data: {
           targetProjectId: revision.targetProjectId,
           qualityPlanRevisionId: revision.id,
+          validationDesignRevisionId: designRevision.id,
           validationIdentity: `${revision.id}:${scenario.id ?? canonicalHash}`,
           version: 1,
           status: 'DESIGNED',
@@ -787,14 +956,34 @@ export async function approveQualityValidationDesign(
   const designHash = hashCanonical(orderedVersions.map(version => JSON.parse(version.canonicalAstJson)))
   if (designHash !== input.expectedDesignHash) throw new ServiceError('Scenario design hash is stale.', 'CONFLICT')
   await client.$transaction(async transaction => {
+    const approvedAt = new Date()
     for (const version of orderedVersions) {
       await transaction.validationVersion.update({
         where: { id: version.id },
         data: {
           status: 'SCENARIO_APPROVED',
-          scenarioApprovedAt: new Date(),
+          scenarioApprovedAt: approvedAt,
           scenarioApprovedBy: input.approvedBy,
           scenarioApprovalHash: designHash,
+        },
+      })
+    }
+    for (const designRevisionId of new Set(orderedVersions.map(version => version.validationDesignRevisionId))) {
+      await transaction.validationDesignRevision.update({
+        where: { id: designRevisionId },
+        data: {
+          status: 'APPROVED',
+          decision: 'APPROVED',
+          decisionRationale: 'Approved through the compatible quality-design API.',
+          decidedBy: input.approvedBy,
+          decidedAt: approvedAt,
+          approvedAt,
+          approvedBy: input.approvedBy,
+          approvalHash: hashCanonical({
+            designHash,
+            approvedAt: approvedAt.toISOString(),
+            approvedBy: input.approvedBy,
+          }),
         },
       })
     }
@@ -1283,6 +1472,7 @@ async function readAssessmentOrThrow(client: PrismaLike, assessmentId: string) {
       },
       baselineAssessment: { include: { evidenceReceipts: true, decisions: true } },
       evidenceReceipts: true,
+      findings: true,
       decisions: true,
       runs: {
         include: {
@@ -1629,6 +1819,7 @@ function assessmentPayload(assessment: Awaited<ReturnType<typeof readAssessmentO
     evidenceReceiptCount: currentEvidenceReceipts.length,
     evidenceReceipts: currentEvidenceReceipts.map(evidenceReceiptPayload),
     historicalEvidenceReceiptCount: assessment.evidenceReceipts.length - currentEvidenceReceipts.length,
+    findings: assessment.findings,
     evidenceSetHash: assessmentEvidenceSetHash(assessment),
     baseline: assessmentBaselinePayload(assessment),
     assessmentRun: assessmentRunPayload(assessment),
@@ -1897,6 +2088,7 @@ const assessmentDetailInclude = {
     },
   },
   evidenceReceipts: true,
+  findings: true,
   decisions: true,
   runs: {
     include: {
@@ -2155,7 +2347,7 @@ export async function decideQualityAssessment(
   input: {
     assessmentId: string
     expectedEvidenceSetHash: string
-    decision: 'accepted' | 'rejected' | 'accepted_with_limitations'
+    decision: 'accepted' | 'rejected' | 'accepted_with_limitations' | 'needs_revision'
     decidedBy: string
     rationale: string
   },
@@ -2168,13 +2360,60 @@ export async function decideQualityAssessment(
     throw new ServiceError('Assessment evidence set hash is stale.', 'CONFLICT')
   }
   if (assessment.alignment !== 'CURRENT') throw new ServiceError('Assessment alignment is not current.', 'CONFLICT')
+  const obligationIds = assessment.qualityPlanRevision.obligations.map(obligation => obligation.id)
+  const findingByObligation = new Map(
+    assessment.findings.map(finding => [finding.qualityObligationRevisionId, finding]),
+  )
+  if (obligationIds.some(id => !findingByObligation.has(id)))
+    throw new ServiceError('Every quality obligation requires an attributed finding before decision.', 'CONFLICT')
+  const findings = [...findingByObligation.values()]
+  const targetDefects = findings.filter(
+    finding => finding.outcome === 'VIOLATED' && finding.attribution === 'TARGET_DEFECT',
+  )
+  if (input.decision === 'rejected' && !targetDefects.length)
+    throw new ServiceError('Assessment rejection requires at least one target_defect finding.', 'CONFLICT')
+  if ((input.decision === 'accepted' || input.decision === 'accepted_with_limitations') && targetDefects.length)
+    throw new ServiceError('An Assessment with a target_defect finding cannot be accepted.', 'CONFLICT')
+  if (input.decision === 'accepted' && findings.some(finding => finding.outcome !== 'SATISFIED'))
+    throw new ServiceError('Unqualified acceptance requires every obligation to be satisfied.', 'CONFLICT')
+  const findingBasis = findings
+    .map(finding => ({
+      findingHash: finding.findingHash,
+      obligationId: finding.qualityObligationRevisionId,
+      outcome: finding.outcome,
+      attribution: finding.attribution,
+    }))
+    .sort((left, right) => left.obligationId.localeCompare(right.obligationId))
   const decisionHash = hashCanonical({
     assessmentId: assessment.id,
     evidenceSetHash: payload.evidenceSetHash,
+    findings: findingBasis,
     decision: input.decision,
     rationale: input.rationale,
+    decidedBy: input.decidedBy,
   })
   await client.$transaction(async transaction => {
+    const reviewedAt = new Date()
+    for (const finding of findings) {
+      const reviewStatus = input.decision === 'needs_revision' ? 'NEEDS_REVISION' : 'APPROVED'
+      const reviewHash = hashCanonical({
+        findingHash: finding.findingHash,
+        status: reviewStatus,
+        reviewedBy: input.decidedBy,
+        reviewedAt: reviewedAt.toISOString(),
+        rationale: input.rationale,
+      })
+      await transaction.assessmentFinding?.update({
+        where: { id: finding.id },
+        data: {
+          reviewStatus,
+          reviewedBy: input.decidedBy,
+          reviewedAt,
+          reviewRationale: input.rationale,
+          reviewHash,
+        },
+      })
+    }
     await transaction.assessmentDecision.create({
       data: {
         assessmentId: assessment.id,

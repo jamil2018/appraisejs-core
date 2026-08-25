@@ -44,6 +44,27 @@ for (const file of roots.flatMap(root => walk(path.join(repoRoot, root)))) {
   }
 }
 
+const harnessDoc = fs.readFileSync(path.join(repoRoot, 'docs/agent-harness.md'), 'utf8')
+const lifecycleDoc = fs.readFileSync(path.join(repoRoot, 'docs/agent-lifecycle-flow.md'), 'utf8')
+const methodologyRegistry = fs.readFileSync(
+  path.join(repoRoot, 'src/lib/quality-design/methodology-registry.ts'),
+  'utf8',
+)
+if (!harnessDoc.includes('The host agent supplies semantic reasoning')) {
+  failures.push('docs/agent-harness.md: must assign semantic reasoning to the host agent')
+}
+if (!lifecycleDoc.includes('the host agent performs semantic reasoning with a versioned Appraise methodology')) {
+  failures.push('docs/agent-lifecycle-flow.md: must bind host reasoning to the versioned Appraise methodology')
+}
+for (const requiredContract of [
+  'plannerContract',
+  "artifactType: 'REQUIREMENT_ANALYSIS'",
+  "artifactType: 'VALIDATION_DESIGN'",
+]) {
+  if (!methodologyRegistry.includes(requiredContract)) {
+    failures.push(`src/lib/quality-design/methodology-registry.ts: missing ${requiredContract}`)
+  }
+}
 if (failures.length > 0) {
   console.error('Generic planning boundary check failed:')
   for (const failure of failures) console.error(`- ${failure}`)
