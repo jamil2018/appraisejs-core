@@ -11,6 +11,7 @@
     "deterministic_validation_critique",
     "exact_hash_validation_decision",
     "manifest_bound_execution_consent",
+    "committed_execution_consent_handoff",
     "sealed_evidence_failure_attribution",
     "target_defect_only_violation"
   ],
@@ -35,7 +36,7 @@
     "compatibility",
     "performance"
   ],
-  "receiptHash": "sha256:8e6d89028bd067a201b992aeea50356ad514e4eea9c39e540f592b5a4bad5428",
+  "receiptHash": "sha256:07647f0ad21d0b3df3bc6fb08cd551e80eda016813e9ab860e9356701fd9d963",
   "result": "PASS",
   "schema": "appraise.quality-os-certification/v1",
   "suiteEvidence": [
@@ -62,7 +63,22 @@
     {
       "file": "src/services/coordinator/quality-design-service.test.ts",
       "result": "PASS",
-      "sourceHash": "sha256:f85b88b81465d146a252eb797828dc2f550f5992b6a0be140d826c1ffa1a4131"
+      "sourceHash": "sha256:f080e0d5586d5a7f90e55ca9c4b27a610bd81d4e7247ff96383bf5b64c2fdf89"
+    },
+    {
+      "file": "src/app/api/internal/coordinator/[...operation]/route.test.ts",
+      "result": "PASS",
+      "sourceHash": "sha256:2f2f2713de2ea12cdc7b4d69133741cbaacce28b30c61b4c41ad9bfce67b17c2"
+    },
+    {
+      "file": "packages/appraisejs/src/coordinator-client.test.ts",
+      "result": "PASS",
+      "sourceHash": "sha256:97337d028a9ab9e505f8ac781a0b820eb2e400160a3728adb0a02c84cd5c4c82"
+    },
+    {
+      "file": "packages/appraisejs/src/mcp/response-projector.test.ts",
+      "result": "PASS",
+      "sourceHash": "sha256:c359fa5a57c9deb85e8bd8e5685b1d8bf7ccd6879e91a85232689d4066c9c5f1"
     }
   ]
 }

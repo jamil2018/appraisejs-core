@@ -33,6 +33,38 @@ describe('coordinator public DTO schemas', () => {
     expect(coordinatorErrorEnvelopeSchema.safeParse({ ...base, context: {} }).success).toBe(false)
   })
 
+  it('accepts a bounded committed execution-consent handoff', () => {
+    const consentId = '5a9fb98f-8912-44a9-b843-30fb19dd6129'
+    const expectedExecutionManifestHash = `sha256:${'e'.repeat(64)}`
+    expect(
+      coordinatorErrorEnvelopeSchema.parse({
+        schema: 'appraise.error/v1',
+        errorId: '11111111-1111-4111-8111-111111111111',
+        occurredAt: '2026-08-26T00:00:00.000Z',
+        classification: 'state_conflict',
+        code: 'CONFLICT',
+        message: 'Explicit execution consent is required.',
+        httpStatus: 409,
+        operation: { name: 'quality/assessment-runs', idempotencyKey: 'consent-key' },
+        operationOutcome: 'committed',
+        durableState: 'execution_consent_request_committed',
+        targetOutcome: 'not_evaluated',
+        executionConsent: {
+          assessmentId: 'assessment-1',
+          consentId,
+          expectedExecutionManifestHash,
+          consentRequestCreated: true,
+          nextAction: {
+            tool: 'execution_consent_decide',
+            arguments: { assessmentId: 'assessment-1', consentId, expectedExecutionManifestHash },
+            reason: 'Decide the committed consent request.',
+          },
+        },
+        retry: { safe: false, strategy: 'read_state_then_retry' },
+      }),
+    ).toMatchObject({ durableState: 'execution_consent_request_committed' })
+  })
+
   it('creates the authorization handoff from only the stable request identity', () => {
     const handoff = coordinatorAuthorizationHandoffFromDetails({
       requestId: '5a9fb98f-8912-44a9-b843-30fb19dd6129',

@@ -201,6 +201,42 @@ describe('lifecycle response projection', () => {
     },
   )
 
+  it.each(['summary', 'full', 'blockersOnly'] as const)(
+    'retains the machine-safe committed execution-consent handoff in %s mode',
+    responseMode => {
+      const executionConsent = {
+        assessmentId: 'assessment-1',
+        consentId: '5a9fb98f-8912-44a9-b843-30fb19dd6129',
+        expectedExecutionManifestHash: hash('e'),
+        consentRequestCreated: true,
+        nextAction: {
+          tool: 'execution_consent_decide',
+          arguments: {
+            assessmentId: 'assessment-1',
+            consentId: '5a9fb98f-8912-44a9-b843-30fb19dd6129',
+            expectedExecutionManifestHash: hash('e'),
+          },
+          reason: 'Decide the committed execution-consent request.',
+        },
+      }
+      const projected = applyLifecycleResponseMode(
+        {
+          durableState: 'execution_consent_request_committed',
+          executionConsent,
+          nextRecommendedAction: 'execution_consent_decide',
+          nextRequiredAgentBehavior: 'decide_then_replay_same_preparation_key',
+        },
+        responseMode,
+      ) as Record<string, unknown>
+
+      expect(projected).toMatchObject({
+        durableState: 'execution_consent_request_committed',
+        executionConsent,
+        nextRecommendedAction: 'execution_consent_decide',
+      })
+    },
+  )
+
   it('keeps the v2 preflight identity at the top level of the default MCP response', () => {
     expect(
       applyLifecycleResponseMode(

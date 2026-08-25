@@ -4,12 +4,12 @@
 - cluster-only mode — file stats not available
 
 ## Summary
-- 644 nodes · 947 edges · 46 communities (41 shown, 5 thin omitted)
+- 647 nodes · 950 edges · 46 communities (41 shown, 5 thin omitted)
 - Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS · INFERRED: 1 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `503882ad`
+- Built from commit: `0ef97932`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -94,44 +94,44 @@ Cohesion: 0.07
 Nodes (37): allowedAgentKeys, config, failures, isIgnorableAgentLine(), parseAgentLine(), parseAgentValue(), parseFlatAgentToml(), parseMultilineValue() (+29 more)
 
 ### Community 2 - "Community 2"
-Cohesion: 0.11
-Nodes (39): withLockedSwarmJournal(), acquireLedgerLock(), releaseLedgerLock(), addRecordedRun(), appendEvent(), applyRunTransition(), assert(), eventHash() (+31 more)
-
-### Community 3 - "Community 3"
 Cohesion: 0.07
 Nodes (32): actualSignatures, expectedHandlers, expectedSignatures, extra, extraHandlers, handlerRefs, missing, missingHandlers (+24 more)
 
-### Community 4 - "Community 4"
+### Community 3 - "Community 3"
 Cohesion: 0.09
 Nodes (24): children, exitCode(), exitLabel(), handleProcessError(), handleProcessExit(), handleProcessStop(), inferredBaseUrl(), mcp (+16 more)
 
-### Community 5 - "Community 5"
+### Community 4 - "Community 4"
 Cohesion: 0.10
 Nodes (32): createRoutingDecision(), defaultValue(), hasMaterialRisk(), normalizedSignals(), recommendSwarmRoute(), riskSignals, routingRules, unverifiedRuntimeProof() (+24 more)
 
+### Community 5 - "Community 5"
+Cohesion: 0.12
+Nodes (29): withLockedSwarmJournal(), acquireLedgerLock(), attemptLockAcquisition(), createLock(), existingLockReclaim(), existingLockState(), inspectExistingLock(), isLockOwnerRecord() (+21 more)
+
 ### Community 6 - "Community 6"
+Cohesion: 0.15
+Nodes (29): addRecordedRun(), appendEvent(), applyRunTransition(), assert(), eventHash(), expectedStatus(), journalLineBytes(), nonBlank() (+21 more)
+
+### Community 7 - "Community 7"
 Cohesion: 0.08
 Nodes (22): argv, comparableWindow(), contexts, criticalObservation, dimensionOptions, dimensions, linkedRoutingDecision(), metricNames (+14 more)
 
-### Community 7 - "Community 7"
+### Community 8 - "Community 8"
 Cohesion: 0.13
 Nodes (21): commandResults, ledger, ledgerPath, repoRoot, result, schemaErrors, evaluateReleaseLedger(), FINDING_IDS (+13 more)
 
-### Community 8 - "Community 8"
+### Community 9 - "Community 9"
 Cohesion: 0.12
 Nodes (18): buildOperationCapabilityLedger(), main(), outputPath, repoRoot, buildOperationArchitectureCertification(), CapabilityLedger, forbiddenLegacySymbols, ledgerPath (+10 more)
 
-### Community 9 - "Community 9"
+### Community 10 - "Community 10"
 Cohesion: 0.13
 Nodes (15): argumentName(), argumentWriters, assertKnownArgument(), assertRequiredArguments(), normalizeArgumentValue(), parseStrictArgs(), readArgument(), readArgumentValue() (+7 more)
 
-### Community 10 - "Community 10"
+### Community 11 - "Community 11"
 Cohesion: 0.10
 Nodes (17): activeFiles, checkRootRelativeReferences(), ciContents, ciNodeMajor, collectEntryFiles(), failures, hasRootAgentHarness, lineFor() (+9 more)
-
-### Community 11 - "Community 11"
-Cohesion: 0.21
-Nodes (19): attemptLockAcquisition(), createLock(), existingLockReclaim(), existingLockState(), inspectExistingLock(), isLockOwnerRecord(), nonBlankString(), processExists() (+11 more)
 
 ### Community 12 - "Community 12"
 Cohesion: 0.20
@@ -174,12 +174,12 @@ Cohesion: 0.18
 Nodes (5): DatabaseSync, migrationsRoot, retiredTables, SQLiteStatement, workspaces
 
 ### Community 22 - "Community 22"
-Cohesion: 0.29
-Nodes (8): allowedDatabaseFixtures, committedGraphifyFiles, committedGraphifyScopes, findForbiddenRuntimeArtifacts(), gitPaths(), main(), runtimeArtifactReason(), runtimeDirectoryPatterns
+Cohesion: 0.22
+Nodes (8): requiresReleaseBaselineAudit(), env, fallowArgs, fallowCli, repoRoot, scriptDir, stagedFiles, stagedPatch
 
 ### Community 23 - "Community 23"
-Cohesion: 0.24
-Nodes (7): requiresReleaseBaselineAudit(), env, fallowArgs, fallowCli, repoRoot, scriptDir, stagedPatch
+Cohesion: 0.29
+Nodes (8): allowedDatabaseFixtures, committedGraphifyFiles, committedGraphifyScopes, findForbiddenRuntimeArtifacts(), gitPaths(), main(), runtimeArtifactReason(), runtimeDirectoryPatterns
 
 ### Community 24 - "Community 24"
 Cohesion: 0.22
@@ -190,24 +190,24 @@ Cohesion: 0.22
 Nodes (4): DatabaseSync, migrationsRoot, Statement, workspaces
 
 ### Community 26 - "Community 26"
-Cohesion: 0.48
-Nodes (4): baseIndex, suppressions, addedQualitySuppressions(), readQualityDiff()
+Cohesion: 0.25
+Nodes (7): behavioralSuites, certifiedSuites, content, packageBehavioralSuites, receipt, receiptPath, suiteEvidence
 
 ### Community 27 - "Community 27"
 Cohesion: 0.48
-Nodes (5): buildCucumberRuntime(), getRequiredTempDirectory(), getTempDirectory(), main(), runVitest()
+Nodes (4): baseIndex, suppressions, addedQualitySuppressions(), readQualityDiff()
 
 ### Community 28 - "Community 28"
+Cohesion: 0.48
+Nodes (5): buildCucumberRuntime(), getRequiredTempDirectory(), getTempDirectory(), main(), runVitest()
+
+### Community 29 - "Community 29"
 Cohesion: 0.38
 Nodes (6): findCommand(), findCommandInUvToolBin(), findCommandOnPath(), graphifyCommand, install, uvCommand
 
-### Community 29 - "Community 29"
+### Community 30 - "Community 30"
 Cohesion: 0.47
 Nodes (5): database, measure(), plan(), root, runSql()
-
-### Community 30 - "Community 30"
-Cohesion: 0.33
-Nodes (5): behavioralSuites, content, receipt, receiptPath, suiteEvidence
 
 ### Community 31 - "Community 31"
 Cohesion: 0.40
@@ -230,24 +230,24 @@ Cohesion: 0.50
 Nodes (3): databasePath, migrationsRoot, workspace
 
 ## Knowledge Gaps
-- **235 isolated node(s):** `root`, `database`, `repoRoot`, `outputPath`, `repoRoot` (+230 more)
+- **238 isolated node(s):** `root`, `database`, `repoRoot`, `outputPath`, `repoRoot` (+233 more)
   These have ≤1 connection - possible missing edges or undocumented components.
 - **5 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `normalizeTaskClass()` connect `Community 5` to `Community 2`, `Community 6`?**
+- **Why does `normalizeTaskClass()` connect `Community 4` to `Community 5`, `Community 7`?**
   _High betweenness centrality (0.003) - this node is a cross-community bridge._
-- **Why does `parseStrictArgs()` connect `Community 9` to `Community 2`, `Community 6`?**
+- **Why does `parseStrictArgs()` connect `Community 10` to `Community 5`, `Community 6`, `Community 7`?**
   _High betweenness centrality (0.002) - this node is a cross-community bridge._
-- **Why does `validateRun()` connect `Community 2` to `Community 6`?**
+- **Why does `validateRun()` connect `Community 6` to `Community 5`, `Community 7`?**
   _High betweenness centrality (0.002) - this node is a cross-community bridge._
 - **What connects `root`, `database`, `repoRoot` to the rest of the system?**
-  _235 weakly-connected nodes found - possible documentation gaps or missing edges._
+  _238 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `Community 0` be split into smaller, more focused modules?**
   _Cohesion score 0.06787330316742081 - nodes in this community are weakly interconnected._
 - **Should `Community 1` be split into smaller, more focused modules?**
   _Cohesion score 0.06765327695560254 - nodes in this community are weakly interconnected._
 - **Should `Community 2` be split into smaller, more focused modules?**
-  _Cohesion score 0.10520487264673312 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.07017543859649122 - nodes in this community are weakly interconnected._

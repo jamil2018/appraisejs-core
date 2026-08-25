@@ -101,8 +101,37 @@ function authorizationHandoff(payload: Record<string, unknown>) {
 
 function authorizationLifecycleResponse(payload: Record<string, unknown>) {
   const authorization = authorizationHandoff(payload)
-  return authorization ? { durableState: 'authorization_request_committed' as const, authorization } : {}
+  if (authorization) return { durableState: 'authorization_request_committed' as const, authorization }
+  const executionConsent = executionConsentHandoffSchema.safeParse(payload.executionConsent)
+  return executionConsent.success
+    ? {
+        durableState: 'execution_consent_request_committed' as const,
+        executionConsent: executionConsent.data,
+      }
+    : {}
 }
+
+const executionConsentHandoffSchema = z
+  .object({
+    assessmentId: z.string().min(1),
+    consentId: z.string().uuid(),
+    expectedExecutionManifestHash: sha256HashSchema,
+    consentRequestCreated: z.literal(true),
+    nextAction: z
+      .object({
+        tool: z.literal('execution_consent_decide'),
+        arguments: z
+          .object({
+            assessmentId: z.string().min(1),
+            consentId: z.string().uuid(),
+            expectedExecutionManifestHash: sha256HashSchema,
+          })
+          .strict(),
+        reason: z.string().trim().min(1).max(1_000),
+      })
+      .strict(),
+  })
+  .strict()
 
 const remotePreflightTokenSchema = z
   .object({
@@ -362,6 +391,7 @@ function project(value: unknown, responseMode: z.infer<typeof responseModeSchema
       delete next.realizationIntent
       delete next.validationBindings
       delete next.authorization
+      delete next.executionConsent
       delete next.durableState
       return next
     }

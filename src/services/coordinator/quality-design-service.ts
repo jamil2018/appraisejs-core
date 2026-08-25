@@ -43,6 +43,9 @@ type QualityRevisionRecord = {
   methodologyId: string
   methodologyVersion: string
   methodologyHash: string
+  predecessorRevisionId?: string | null
+  queryAnswerIdempotencyKey?: string | null
+  queryAnswerRequestHash?: string | null
   qualityPlan: {
     id: string
     targetProjectId: string
@@ -823,6 +826,96 @@ async function createBlockingRequirementQuery(transaction: PrismaLike, qualityPl
   })
 }
 
+type RequirementQueryAnswerInput = {
+  queryId: string
+  status: 'ANSWERED' | 'DEFERRED' | 'ACCEPTED_ASSUMPTION'
+  answer?: string
+  rationale?: string
+}
+
+function assertAnswersBelongToRevision(revision: QualityRevisionRecord, answers: RequirementQueryAnswerInput[]) {
+  const revisionQueryIds = new Set(revision.queries.map(query => query.id))
+  if (answers.some(answer => !revisionQueryIds.has(answer.queryId)))
+    throw new ServiceError('Requirement query does not belong to this Quality Plan revision.', 'CONFLICT')
+}
+
+async function findQueryAnswerSuccessor(client: PrismaLike, revision: QualityRevisionRecord, idempotencyKey: string) {
+  return client.qualityPlanRevision.findFirst({
+    where: { qualityPlanId: revision.qualityPlanId, queryAnswerIdempotencyKey: idempotencyKey },
+    include: {
+      qualityPlan: { include: { targetProject: { select: { kind: true } } } },
+      requirementSnapshots: true,
+      obligations: true,
+      queries: true,
+      validationVersions: { include: { activeGeneration: { include: { publication: true } } } },
+    },
+  })
+}
+
+function queryAnswerReplay(successor: QualityRevisionRecord, requestHash: string) {
+  if (successor.queryAnswerRequestHash !== requestHash)
+    throw new ServiceError('Requirement query idempotency key was reused with different answers.', 'CONFLICT')
+  return { idempotent: true, ...revisionPayload(successor) }
+}
+
+async function createQueryAnswerSuccessor(input: {
+  client: PrismaLike
+  revision: QualityRevisionRecord
+  answers: RequirementQueryAnswerInput[]
+  idempotencyKey: string
+  requestHash: string
+}) {
+  const successor = await input.client.$transaction(async transaction => {
+    const created = await transaction.qualityPlanRevision.create({
+      data: {
+        targetProjectId: input.revision.targetProjectId,
+        qualityPlanId: input.revision.qualityPlanId,
+        revision: input.revision.revision + 1,
+        status: 'DRAFT',
+        contentHash: hashCanonical({
+          predecessorContentHash: input.revision.contentHash,
+          requestHash: input.requestHash,
+        }),
+        sourceSpecification: input.revision.sourceSpecification,
+        requirementGraphJson: input.revision.requirementGraphJson,
+        methodologyId: input.revision.methodologyId,
+        methodologyVersion: input.revision.methodologyVersion,
+        methodologyHash: input.revision.methodologyHash,
+        predecessorRevisionId: input.revision.id,
+        queryAnswerIdempotencyKey: input.idempotencyKey,
+        queryAnswerRequestHash: input.requestHash,
+      },
+    })
+    for (const snapshot of input.revision.requirementSnapshots) {
+      await transaction.requirementSnapshot.create({
+        data: {
+          qualityPlanRevisionId: created.id,
+          externalRef: snapshot.externalRef,
+          text: snapshot.text,
+          kind: snapshot.kind,
+          contentHash: snapshot.contentHash,
+        },
+      })
+    }
+    const answers = new Map(input.answers.map(answer => [answer.queryId, answer]))
+    for (const query of input.revision.queries) {
+      const answer = answers.get(query.id)
+      await transaction.requirementQuery.create({
+        data: {
+          qualityPlanRevisionId: created.id,
+          prompt: query.prompt,
+          status: answer?.status ?? query.status,
+          answer: answer?.answer ?? query.answer,
+          rationale: answer?.rationale ?? query.rationale,
+        },
+      })
+    }
+    await transaction.qualityPlanRevision.update({ where: { id: input.revision.id }, data: { status: 'SUPERSEDED' } })
+    return readRevisionOrThrow(transaction, input.revision.qualityPlanId, created.id)
+  })
+  return { idempotent: false, predecessorRevisionId: input.revision.id, ...revisionPayload(successor) }
+}
+
 export async function readQualityRequirementGraph(
   input: { qualityPlanId: string; revisionId?: string },
   client: PrismaLike = qualityDb,
@@ -834,21 +927,34 @@ export async function answerQualityRequirementQueries(
   input: {
     qualityPlanId: string
     revisionId?: string
-    answers: Array<{
-      queryId: string
-      status: 'ANSWERED' | 'DEFERRED' | 'ACCEPTED_ASSUMPTION'
-      answer?: string
-      rationale?: string
-    }>
+    answers: RequirementQueryAnswerInput[]
     idempotencyKey: string
   },
   client: PrismaLike = qualityDb,
 ) {
   const revision = await readRevisionOrThrow(client, input.qualityPlanId, input.revisionId)
-  const revisionQueryIds = new Set(revision.queries.map(query => query.id))
-  for (const answer of input.answers) {
-    if (!revisionQueryIds.has(answer.queryId)) {
-      throw new ServiceError('Requirement query does not belong to this Quality Plan revision.', 'CONFLICT')
+  assertAnswersBelongToRevision(revision, input.answers)
+  // A post-draft answer is a new requirements interpretation.  Do not mutate
+  // an approved/reviewed revision (or any of its analysis/design descendants):
+  // record the changed answers on a new, content-addressed successor instead.
+  if (revision.status !== 'DRAFT') {
+    const orderedAnswers = [...input.answers].sort((left, right) => left.queryId.localeCompare(right.queryId))
+    const requestHash = hashCanonical({ predecessorRevisionId: revision.id, answers: orderedAnswers })
+    const replay = await findQueryAnswerSuccessor(client, revision, input.idempotencyKey)
+    if (replay) return queryAnswerReplay(replay, requestHash)
+    try {
+      return await createQueryAnswerSuccessor({
+        client,
+        revision,
+        answers: orderedAnswers,
+        idempotencyKey: input.idempotencyKey,
+        requestHash,
+      })
+    } catch (error) {
+      if (!uniqueConstraint(error)) throw error
+      const raced = await findQueryAnswerSuccessor(client, revision, input.idempotencyKey)
+      if (!raced) throw error
+      return queryAnswerReplay(raced, requestHash)
     }
   }
   await client.$transaction(
@@ -1764,7 +1870,7 @@ function assessmentExecutionNextAction(assessment: AssessmentRecord, evidenceRec
       ['COMPLETED', 'CANCELLED'].includes(binding.testRun.status ?? ''),
   )
   if (terminal)
-    return 'Call assessment_prepare_run with the original compact preparation and a new idempotency key; the latest AssessmentRun has terminal TestRun history.'
+    return 'Call assessment_create_successor for this immutable predecessor, then prepare the returned successor with a new idempotency key and consent; the latest AssessmentRun has terminal TestRun history.'
   return 'Call assessment_reconcile for the latest AssessmentRun before attempting another preparation or execution.'
 }
 

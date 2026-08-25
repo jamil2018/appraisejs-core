@@ -1044,9 +1044,11 @@ async function ensureExecutionConsent(input: {
   })
   if (explicitConsentRequired)
     throw new ServiceError('Explicit execution consent is required.', 'CONFLICT', 409, {
+      assessmentId: input.identity.assessmentId,
       consentId: created.id,
       executionManifestHash: manifestHash,
       consentStatus: created.status,
+      consentRequestCreated: true,
     })
   return { id: created.id, manifestHash }
 }

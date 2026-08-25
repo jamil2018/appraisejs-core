@@ -47,6 +47,28 @@ const coordinatorAuthorizationRequestDetailsSchema = z
   })
   .passthrough()
 
+const coordinatorExecutionConsentHandoffSchema = z
+  .object({
+    assessmentId: z.string().trim().min(1),
+    consentId: z.string().uuid(),
+    expectedExecutionManifestHash: z.string().startsWith('sha256:'),
+    consentRequestCreated: z.literal(true),
+    nextAction: z
+      .object({
+        tool: z.literal('execution_consent_decide'),
+        arguments: z
+          .object({
+            assessmentId: z.string().trim().min(1),
+            consentId: z.string().uuid(),
+            expectedExecutionManifestHash: z.string().startsWith('sha256:'),
+          })
+          .strict(),
+        reason: boundedTextSchema,
+      })
+      .strict(),
+  })
+  .strict()
+
 /** Convert only the durable authorization-request identity into the public
  * handoff. Callers must never persist arbitrary transient ServiceError data. */
 export function coordinatorAuthorizationHandoffFromDetails(details: Record<string, unknown> | undefined) {
@@ -82,9 +104,10 @@ export const coordinatorErrorEnvelopeSchema = z
       })
       .strict(),
     operationOutcome: coordinatorOperationOutcomeSchema,
-    durableState: z.literal('authorization_request_committed').optional(),
+    durableState: z.enum(['authorization_request_committed', 'execution_consent_request_committed']).optional(),
     targetOutcome: z.literal('not_evaluated'),
     authorization: coordinatorAuthorizationHandoffSchema.optional(),
+    executionConsent: coordinatorExecutionConsentHandoffSchema.optional(),
     retry: z
       .object({
         safe: z.boolean(),

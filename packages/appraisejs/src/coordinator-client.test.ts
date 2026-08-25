@@ -132,6 +132,47 @@ describe('coordinator client endpoint contracts', () => {
     })
   })
 
+  it('preserves a bounded committed execution-consent decision handoff', async () => {
+    const consentId = '5a9fb98f-8912-44a9-b843-30fb19dd6129'
+    const expectedExecutionManifestHash = `sha256:${'e'.repeat(64)}`
+    const executionConsent = {
+      assessmentId: 'assessment-1',
+      consentId,
+      expectedExecutionManifestHash,
+      consentRequestCreated: true,
+      nextAction: {
+        tool: 'execution_consent_decide',
+        arguments: { assessmentId: 'assessment-1', consentId, expectedExecutionManifestHash },
+        reason: 'Decide the committed execution-consent request.',
+      },
+    }
+    const envelope = {
+      schema: 'appraise.error/v1',
+      errorId: '11111111-1111-4111-8111-111111111111',
+      occurredAt: '2026-08-26T00:00:00.000Z',
+      classification: 'state_conflict',
+      code: 'CONFLICT',
+      message: 'Explicit execution consent is required.',
+      httpStatus: 409,
+      operation: { name: 'quality/assessment-runs', idempotencyKey: 'consent-key' },
+      operationOutcome: 'committed',
+      durableState: 'execution_consent_request_committed',
+      targetOutcome: 'not_evaluated',
+      retry: { safe: false, strategy: 'read_state_then_retry', nextAction: executionConsent.nextAction },
+      executionConsent,
+    }
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(Response.json(envelope, { status: 409 })))
+    const api = await client()
+
+    await expect(api.request('quality/assessment-runs', { method: 'POST', body: '{}' })).rejects.toMatchObject({
+      envelope: {
+        operationOutcome: 'committed',
+        durableState: 'execution_consent_request_committed',
+        executionConsent,
+      },
+    })
+  })
+
   it('does not send local coordinator identity headers to a non-loopback endpoint', async () => {
     const fetchMock = vi.fn()
     vi.stubGlobal('fetch', fetchMock)

@@ -53,6 +53,7 @@ function resourceError(error: CoordinatorRequestError) {
     targetOutcome: envelope.targetOutcome,
     retry: envelope.retry,
     ...(envelope.authorization ? { authorization: envelope.authorization } : {}),
+    ...(envelope.executionConsent ? { executionConsent: envelope.executionConsent } : {}),
   }
 }
 

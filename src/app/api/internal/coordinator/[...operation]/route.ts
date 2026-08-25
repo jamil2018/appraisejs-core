@@ -183,9 +183,41 @@ function authorizationHandoff(error: ServiceError | undefined) {
   return parsed.success ? parsed.data : undefined
 }
 
+const executionConsentDetailsSchema = z
+  .object({
+    assessmentId: z.string().min(1),
+    consentId: z.string().uuid(),
+    executionManifestHash: z.string().startsWith('sha256:'),
+    consentStatus: z.literal('REQUESTED'),
+    consentRequestCreated: z.literal(true),
+  })
+  .passthrough()
+
+function executionConsentHandoff(error: ServiceError | undefined) {
+  if (error?.code !== 'CONFLICT' || error.message !== 'Explicit execution consent is required.') return undefined
+  const parsed = executionConsentDetailsSchema.safeParse(error.details)
+  if (!parsed.success) return undefined
+  const arguments_ = {
+    assessmentId: parsed.data.assessmentId,
+    consentId: parsed.data.consentId,
+    expectedExecutionManifestHash: parsed.data.executionManifestHash,
+  }
+  return {
+    ...arguments_,
+    consentRequestCreated: true as const,
+    nextAction: {
+      tool: 'execution_consent_decide' as const,
+      arguments: arguments_,
+      reason:
+        'The manifest-bound execution consent request is committed. Grant or revoke it explicitly; after a grant, replay the original compact preparation with the same idempotencyKey and returned consent identity.',
+    },
+  }
+}
+
 function responseError(error: unknown, context: CoordinatorErrorContext) {
   const serviceError = error instanceof ServiceError ? error : undefined
   const authorization = authorizationHandoff(serviceError)
+  const executionConsent = executionConsentHandoff(serviceError)
   const status = error instanceof z.ZodError ? 400 : (serviceError?.statusCode ?? 500)
   const message =
     error instanceof z.ZodError
@@ -206,19 +238,26 @@ function responseError(error: unknown, context: CoordinatorErrorContext) {
         name: context.operation,
         ...(context.idempotencyKey ? { idempotencyKey: context.idempotencyKey } : {}),
       },
-      operationOutcome: authorization ? 'committed' : 'not_started',
+      operationOutcome: authorization || executionConsent ? 'committed' : 'not_started',
       targetOutcome: 'not_evaluated',
-      retry: authorization
-        ? {
-            safe: false,
-            strategy: 'read_state_then_retry',
-            nextAction: authorization.nextAction,
-          }
-        : recoveryRetry(serviceError),
+      retry:
+        authorization || executionConsent
+          ? {
+              safe: false,
+              strategy: 'read_state_then_retry',
+              nextAction: (authorization ?? executionConsent)!.nextAction,
+            }
+          : recoveryRetry(serviceError),
       ...(authorization
         ? {
             durableState: 'authorization_request_committed',
             authorization,
+          }
+        : {}),
+      ...(executionConsent
+        ? {
+            durableState: 'execution_consent_request_committed',
+            executionConsent,
           }
         : {}),
       ...(error instanceof z.ZodError

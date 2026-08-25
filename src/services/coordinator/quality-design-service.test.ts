@@ -91,6 +91,9 @@ type FakeRevision = FakeRecord & {
   methodologyId: string
   methodologyVersion: string
   methodologyHash: string
+  predecessorRevisionId?: string | null
+  queryAnswerIdempotencyKey?: string | null
+  queryAnswerRequestHash?: string | null
 }
 type FakeRequirementAnalysis = FakeRecord & { qualityPlanRevisionId: string; revision: number }
 type FakeValidationDesign = FakeRecord & { qualityPlanRevisionId: string; revision: number; designHash: string }
@@ -176,6 +179,11 @@ function matchesAssessmentWhere(assessment: FakeAssessment, where: FakeWhere) {
     matchesOptionalAssessmentField(assessment.supersedesAssessmentId, where.supersedesAssessmentId),
     matchesOptionalAssessmentField(assessment.successorIdempotencyKey, where.successorIdempotencyKey),
   ].every(Boolean)
+}
+
+function matchesRevisionWhere(revision: FakeRevision, where: FakeWhere) {
+  const keys = ['qualityPlanId', 'targetProjectId', 'contentHash', 'queryAnswerIdempotencyKey', 'id'] as const
+  return keys.every(key => !where[key] || revision[key] === where[key])
 }
 
 vi.mock('@/services/target-project/target-project-service', () => ({
@@ -645,6 +653,64 @@ describe('quality design coordinator service', () => {
     ).rejects.toThrow('Requirement query does not belong to this Quality Plan revision')
   })
 
+  it('creates one immutable successor for a post-draft answer and replays only the exact command', async () => {
+    const draft = await submitQualityRequirementSource(
+      { target: 'target-1', idempotencyKey: 'successor-source', source: { title: 'Clarified plan' } },
+      client,
+    )
+    const queryId = draft.queries[0]!.id
+    await answerQualityRequirementQueries(
+      {
+        qualityPlanId: draft.qualityPlan.id,
+        revisionId: draft.revision.id,
+        idempotencyKey: 'draft-answer',
+        answers: [{ queryId, status: 'ANSWERED', answer: 'Exports include selected rows.' }],
+      },
+      client,
+    )
+    await approveQualityRequirements(
+      {
+        qualityPlanId: draft.qualityPlan.id,
+        revisionId: draft.revision.id,
+        expectedRevisionHash: draft.revision.contentHash,
+        approvedBy: 'reviewer',
+      },
+      client,
+    )
+    const command = {
+      qualityPlanId: draft.qualityPlan.id,
+      revisionId: draft.revision.id,
+      idempotencyKey: 'approved-answer-successor',
+      answers: [{ queryId, status: 'ACCEPTED_ASSUMPTION' as const, rationale: 'Approved clarification.' }],
+    }
+
+    const successor = await answerQualityRequirementQueries(command, client)
+    expect(successor).toMatchObject({
+      idempotent: false,
+      predecessorRevisionId: draft.revision.id,
+      revision: { revision: 2, status: 'DRAFT' },
+      obligations: [],
+      validationVersions: [],
+      queries: [{ status: 'ACCEPTED_ASSUMPTION', rationale: 'Approved clarification.' }],
+    })
+    await expect(answerQualityRequirementQueries(command, client)).resolves.toMatchObject({
+      idempotent: true,
+      revision: { id: successor.revision.id },
+    })
+    await expect(
+      answerQualityRequirementQueries(
+        { ...command, answers: [{ queryId, status: 'DEFERRED', rationale: 'Different answer.' }] },
+        client,
+      ),
+    ).rejects.toThrow('Requirement query idempotency key was reused with different answers')
+    await expect(
+      readQualityRequirementGraph({ qualityPlanId: draft.qualityPlan.id, revisionId: draft.revision.id }, client),
+    ).resolves.toMatchObject({
+      revision: { status: 'SUPERSEDED' },
+      queries: [{ status: 'ANSWERED', answer: 'Exports include selected rows.' }],
+    })
+  })
+
   it('proposes and approves obligation-linked scenario designs after requirement approval', async () => {
     const requirements = await submitQualityRequirementSource(
       {
@@ -903,7 +969,8 @@ describe('quality design coordinator service', () => {
         },
       ],
     })
-    expect(terminalDiagnostic.nextRecommendedAction).toContain('assessment_prepare_run')
+    expect(terminalDiagnostic.nextRecommendedAction).toContain('assessment_create_successor')
+    expect(terminalDiagnostic.nextRecommendedAction).toContain('new idempotency key and consent')
     expect(terminalDiagnostic.nextRecommendedAction).not.toContain('assessment_run to collect')
     await client.assessment.update({ where: { id: assessment.assessment.id }, data: { runs: [] } })
 
@@ -1651,13 +1718,7 @@ function createWorkingFakeClient(): QualityDesignClient {
   const fake = {
     qualityPlanRevision: {
       findFirst: vi.fn(async ({ where }: FakeWhereArgs) => {
-        const found = revisions.find(
-          revision =>
-            (!where.qualityPlanId || revision.qualityPlanId === where.qualityPlanId) &&
-            (!where.targetProjectId || revision.targetProjectId === where.targetProjectId) &&
-            (!where.contentHash || revision.contentHash === where.contentHash) &&
-            (!where.id || revision.id === where.id),
-        )
+        const found = revisions.find(revision => matchesRevisionWhere(revision, where))
         return found ? hydrate(found) : null
       }),
       create: vi.fn(async ({ data }: FakeWriteArgs) => {

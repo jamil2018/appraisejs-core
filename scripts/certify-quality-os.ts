@@ -17,9 +17,13 @@ const behavioralSuites = [
   'src/services/coordinator/assessment-execution-service.test.ts',
   'src/services/coordinator/assessment-preparation-service.test.ts',
   'src/services/coordinator/quality-design-service.test.ts',
+  'src/app/api/internal/coordinator/[...operation]/route.test.ts',
 ]
+const packageBehavioralSuites = ['src/coordinator-client.test.ts', 'src/mcp/response-projector.test.ts']
 execFileSync('npm', ['run', 'validate:unit', '--', ...behavioralSuites], { stdio: 'inherit' })
-const suiteEvidence = behavioralSuites.map(file => ({
+execFileSync('npm', ['--prefix', 'packages/appraisejs', 'test', '--', ...packageBehavioralSuites], { stdio: 'inherit' })
+const certifiedSuites = [...behavioralSuites, ...packageBehavioralSuites.map(file => `packages/appraisejs/${file}`)]
+const suiteEvidence = certifiedSuites.map(file => ({
   file,
   sourceHash: `sha256:${createHash('sha256')
     .update(readFileSync(resolve(file)))
@@ -43,6 +47,7 @@ const content = {
     'deterministic_validation_critique',
     'exact_hash_validation_decision',
     'manifest_bound_execution_consent',
+    'committed_execution_consent_handoff',
     'sealed_evidence_failure_attribution',
     'target_defect_only_violation',
   ],

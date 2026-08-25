@@ -399,6 +399,50 @@ describe('coordinator locator_ensure route', () => {
     })
   })
 
+  it('reports a newly committed execution-consent request with an explicit decision handoff', async () => {
+    const consentId = '5a9fb98f-8912-44a9-b843-30fb19dd6129'
+    const manifestHash = `sha256:${'e'.repeat(64)}`
+    runQualityAssessment.mockRejectedValueOnce(
+      new ServiceError('Explicit execution consent is required.', 'CONFLICT', 409, {
+        assessmentId: 'assessment-consent',
+        consentId,
+        executionManifestHash: manifestHash,
+        consentStatus: 'REQUESTED',
+        consentRequestCreated: true,
+      }),
+    )
+
+    const response = await POST(
+      request({ assessmentId: 'assessment-consent', idempotencyKey: 'consent-run-key' }, ''),
+      { params: Promise.resolve({ operation: ['quality', 'assessment-runs'] }) },
+    )
+
+    expect(response.status).toBe(409)
+    await expect(response.json()).resolves.toMatchObject({
+      operationOutcome: 'committed',
+      durableState: 'execution_consent_request_committed',
+      executionConsent: {
+        assessmentId: 'assessment-consent',
+        consentId,
+        expectedExecutionManifestHash: manifestHash,
+        consentRequestCreated: true,
+        nextAction: {
+          tool: 'execution_consent_decide',
+          arguments: {
+            assessmentId: 'assessment-consent',
+            consentId,
+            expectedExecutionManifestHash: manifestHash,
+          },
+        },
+      },
+      retry: {
+        safe: false,
+        strategy: 'read_state_then_retry',
+        nextAction: { tool: 'execution_consent_decide' },
+      },
+    })
+  })
+
   it('keeps direct partial assessment startup on reconcile/wait guidance', async () => {
     runQualityAssessment.mockRejectedValueOnce(
       new ServiceError('Assessment execution still has active or unsealed TestRun bindings.', 'CONFLICT', 409, {
