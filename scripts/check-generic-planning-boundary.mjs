@@ -44,22 +44,27 @@ for (const file of roots.flatMap(root => walk(path.join(repoRoot, root)))) {
   }
 }
 
-const projectSkill = fs.readFileSync(path.join(repoRoot, '.agents/skills/appraise-project-from-brief/SKILL.md'), 'utf8')
-const planningSkill = fs.readFileSync(path.join(repoRoot, '.agents/skills/appraise-planning/SKILL.md'), 'utf8')
-for (const [file, contents] of [
-  ['.agents/skills/appraise-project-from-brief/SKILL.md', projectSkill],
-  ['.agents/skills/appraise-planning/SKILL.md', planningSkill],
+const harnessDoc = fs.readFileSync(path.join(repoRoot, 'docs/agent-harness.md'), 'utf8')
+const lifecycleDoc = fs.readFileSync(path.join(repoRoot, 'docs/agent-lifecycle-flow.md'), 'utf8')
+const methodologyRegistry = fs.readFileSync(
+  path.join(repoRoot, 'src/lib/quality-design/methodology-registry.ts'),
+  'utf8',
+)
+if (!harnessDoc.includes('The host agent supplies semantic reasoning')) {
+  failures.push('docs/agent-harness.md: must assign semantic reasoning to the host agent')
+}
+if (!lifecycleDoc.includes('the host agent performs semantic reasoning with a versioned Appraise methodology')) {
+  failures.push('docs/agent-lifecycle-flow.md: must bind host reasoning to the versioned Appraise methodology')
+}
+for (const requiredContract of [
+  'plannerContract',
+  "artifactType: 'REQUIREMENT_ANALYSIS'",
+  "artifactType: 'VALIDATION_DESIGN'",
 ]) {
-  if (!contents.includes('Appraise does not infer')) {
-    failures.push(`${file}: must state that Appraise does not infer the task graph`)
+  if (!methodologyRegistry.includes(requiredContract)) {
+    failures.push(`src/lib/quality-design/methodology-registry.ts: missing ${requiredContract}`)
   }
 }
-if (!projectSkill.includes('appraise-planning')) {
-  failures.push(
-    '.agents/skills/appraise-project-from-brief/SKILL.md: must hand plan authoring and review to appraise-planning',
-  )
-}
-
 if (failures.length > 0) {
   console.error('Generic planning boundary check failed:')
   for (const failure of failures) console.error(`- ${failure}`)

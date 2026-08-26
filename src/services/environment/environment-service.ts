@@ -191,7 +191,7 @@ export async function updateEnvironment(
 
   const updatedEnvironment = await prisma.environment.update({
     where: { id },
-    data: normalizeEnvironmentPayload(value),
+    data: { ...normalizeEnvironmentPayload(value), scopeVersion: { increment: 1 } },
   })
   return updatedEnvironment
 }

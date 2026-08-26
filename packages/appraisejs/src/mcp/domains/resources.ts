@@ -26,7 +26,16 @@ export function registerResourcesOperations(context: McpRegistryContext): void {
       name: 'locator-graph-contract',
       uri: 'appraise://contracts/locator-graph',
       title: 'Surface and locator graph contract',
-      value: { version: LOCATOR_GRAPH_CONTRACT_VERSION, boundedQueries: true, visualProjection: true },
+      value: {
+        version: LOCATOR_GRAPH_CONTRACT_VERSION,
+        boundedQueries: true,
+        visualProjection: true,
+        locatorSearch: {
+          id: 'persistent-locator-id',
+          presentationId: 'locator_<persistent-locator-id>',
+          group: { id: 'persistent-locator-group-id', presentationId: 'group_<persistent-locator-group-id>' },
+        },
+      },
     },
     {
       name: 'validation-ast-contract',
@@ -130,6 +139,31 @@ export function registerResourcesOperations(context: McpRegistryContext): void {
     { title: 'AppraiseJS assessment workflow', mimeType: 'application/json' },
     async uri => ({
       contents: [{ uri: uri.href, mimeType: 'application/json', text: JSON.stringify(assessmentWorkflow) }],
+    }),
+  )
+
+  server.registerResource(
+    'quality-methodology',
+    'appraise://quality/methodologies/appraise.built-in/quality-os-core/1.0.0',
+    { title: 'Appraise Quality OS core methodology', mimeType: 'application/json' },
+    async uri => ({
+      contents: [
+        {
+          uri: uri.href,
+          mimeType: 'application/json',
+          text: JSON.stringify({
+            providerId: 'appraise.built-in',
+            methodologyId: 'quality-os-core',
+            version: '1.0.0',
+            instructions: [
+              'Separate supplied facts, agent inferences, assumptions, and unresolved queries.',
+              'Derive risk- and assurance-linked obligations before proposing validation scenarios.',
+              'Use falsifiable observations and state what each failure would mean.',
+              'Treat failed execution as an observation until Appraise records an attributed finding.',
+            ],
+          }),
+        },
+      ],
     }),
   )
 }

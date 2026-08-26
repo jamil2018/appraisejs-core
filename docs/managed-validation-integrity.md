@@ -4,7 +4,7 @@ Appraise-managed quality work is target-bound from requirements through sealed e
 
 ## Validation design and publication
 
-Validation authoring exposes only target-visible resources and stable environment references. Coverage maps requirements to executable scenarios, observations, rationale, state, and limitations. Claims without assertion-capable observations are rejected; partial and uncovered mappings remain visible during review.
+Validation authoring begins only after an immutable, methodology-bound Requirement Analysis is approved. Coverage maps approved obligations to executable scenarios, observations, rationale, state, failure meaning, and limitations. Deterministic critiques block missing provenance, uncovered requirements or obligations, non-falsifiable assertions, happy-path-only portfolios, duplicate scenarios, unjustified matrices, and assurance downgrades.
 
 Check and preview are read-only. Compilation validates the canonical AST and creates immutable runtime inputs. Publication records the exact Quality Plan revision and Validation Version consumed by managed execution. Runtime capsules execute from Appraise storage and must not create managed `automation/` output in the target.
 
@@ -12,7 +12,7 @@ Check and preview are read-only. Compilation validates the canonical AST and cre
 
 Assessment readiness verifies the target, immutable evaluation subject, published validation, matrix, and requirement alignment. Managed executions are content-bound, and reconciliation verifies the runtime capsule and artifacts before sealing each Evidence Receipt. Stale validation, subject, requirement, or evidence-set identities are rejected during review and decision.
 
-Receipts preserve partial evidence, report, log, trace, and assurance provenance. TestRun success is runtime evidence rather than a quality decision. An Assessment decision requires complete evidence review, current alignment, and the exact evidence-set hash.
+Receipts preserve partial evidence, report, log, trace, and assurance provenance. TestRun success or failure is runtime evidence rather than a quality decision. Every obligation needs a sealed-evidence finding; a negative target verdict requires explicit `TARGET_DEFECT` attribution after the requirement, design, realization, runtime, environment, data, and automation categories have been considered. An Assessment decision requires complete evidence and finding review, current alignment, and the exact evidence-set hash.
 
 ## Generated artifacts
 

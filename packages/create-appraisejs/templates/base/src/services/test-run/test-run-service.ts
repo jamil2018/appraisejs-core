@@ -1,4 +1,5 @@
 import prisma from '@/config/db-config'
+import { frozenRemoteEnvironmentPacketSnapshot } from '@/lib/quality-design/frozen-environment-snapshot'
 import type { TestRun as TestRunFormValue } from '@/constants/form-opts/test-run-form-opts'
 import { ServiceError } from '@/services/shared/errors'
 import { RECENT_PERIOD_DAYS } from '@/services/shared/constants'
@@ -847,14 +848,15 @@ export async function createIndependentAuthoredCapsuleTestRun(input: Independent
     ...new Map(input.selections.map(item => [`${item.testSuiteId}:${item.testCaseId}`, item])).values(),
   ]
   if (selections.length === 0) throw new ServiceError('Select at least one authored test case.', 'VALIDATION', 400)
-  const [environment, cases] = await Promise.all([
+  const [environment, cases, targetProject] = await Promise.all([
     prisma.environment.findFirst({ where: { id: input.environmentId, targetProjectId: input.targetProjectId } }),
     prisma.testCase.findMany({
       where: { id: { in: selections.map(item => item.testCaseId) }, targetProjectId: input.targetProjectId },
       include: { steps: { orderBy: { order: 'asc' } }, TestSuite: { select: { id: true, targetProjectId: true } } },
     }),
+    prisma.targetProject.findUnique({ where: { id: input.targetProjectId }, select: { kind: true } }),
   ])
-  if (!environment) throw new ServiceError('Target-owned environment not found.', 'VALIDATION', 400)
+  if (!environment || !targetProject) throw new ServiceError('Target-owned environment not found.', 'VALIDATION', 400)
   const caseById = new Map(cases.map(testCase => [testCase.id, testCase]))
   const invocations = []
   for (const selection of selections) {
@@ -905,19 +907,36 @@ export async function createIndependentAuthoredCapsuleTestRun(input: Independent
   }
   if (await isTestRunNameTaken(input.name, input.targetProjectId))
     throw new ServiceError('A test run with this name already exists.', 'VALIDATION', 400)
-  const testRun = await prisma.testRun.create({
-    data: {
-      name: input.name,
-      targetProjectId: input.targetProjectId,
-      environmentId: input.environmentId,
-      browserEngine: input.browserEngine ?? 'CHROMIUM',
-      testWorkersCount: input.testWorkersCount ?? 1,
-      status: 'QUEUED',
-      result: 'PENDING',
-      intent: 'INDEPENDENT',
-      tags: { connect: (input.tagIds ?? []).map(id => ({ id })) },
-      testCases: { create: selections },
-    },
+  const testRun = await prisma.$transaction(async tx => {
+    const [currentEnvironment, currentTarget] = await Promise.all([
+      tx.environment.findFirst({ where: { id: input.environmentId, targetProjectId: input.targetProjectId } }),
+      tx.targetProject.findUnique({ where: { id: input.targetProjectId }, select: { kind: true } }),
+    ])
+    if (!currentEnvironment || !currentTarget)
+      throw new ServiceError('Target-owned environment not found.', 'VALIDATION', 400)
+    const environmentSnapshot =
+      currentTarget.kind === 'REMOTE_BLACK_BOX' ? frozenRemoteEnvironmentPacketSnapshot(currentEnvironment) : null
+    return tx.testRun.create({
+      data: {
+        name: input.name,
+        targetProjectId: input.targetProjectId,
+        environmentId: input.environmentId,
+        browserEngine: input.browserEngine ?? 'CHROMIUM',
+        testWorkersCount: input.testWorkersCount ?? 1,
+        status: 'QUEUED',
+        result: 'PENDING',
+        intent: 'INDEPENDENT',
+        ...(environmentSnapshot
+          ? {
+              environmentSnapshotHash: environmentSnapshot.hash,
+              environmentSnapshotJson: environmentSnapshot.json,
+              environmentSnapshotVersion: environmentSnapshot.version,
+            }
+          : {}),
+        tags: { connect: (input.tagIds ?? []).map(id => ({ id })) },
+        testCases: { create: selections },
+      },
+    })
   })
   return { id: testRun.id, runId: testRun.runId }
 }

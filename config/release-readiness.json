@@ -145,6 +145,16 @@
       "releaseBlocking": true,
       "verificationCommands": ["npm run release:check:capsule-cutover"],
       "requiredEvidence": ["Root and scaffold compatibility-path guards"]
+    },
+    {
+      "id": "A-15",
+      "severity": "critical",
+      "title": "Quality OS planning and lifecycle certification",
+      "owner": "quality-operating-system",
+      "status": "verified",
+      "releaseBlocking": true,
+      "verificationCommands": ["npm run release:check:quality-os"],
+      "requiredEvidence": ["Content-addressed planner rubric and lifecycle behavioral suites"]
     }
   ]
 }

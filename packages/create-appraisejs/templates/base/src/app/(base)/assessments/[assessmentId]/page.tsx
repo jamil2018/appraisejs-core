@@ -150,6 +150,13 @@ export default async function AssessmentDetailPage({ params, searchParams }: Pag
           <p className="mt-2 break-all font-mono text-[11px] text-muted-foreground">
             Evidence set: {packet.evidenceSetHash}
           </p>
+          {packet.historicalEvidenceReceiptCount ? (
+            <p className="mt-2 text-xs text-amber-200">
+              {packet.historicalEvidenceReceiptCount} historical receipt
+              {packet.historicalEvidenceReceiptCount === 1 ? '' : 's'} do not match the active generation publication
+              and cannot satisfy current evidence readiness.
+            </p>
+          ) : null}
         </DetailCard>
       </section>
       <AssessmentExecutionControls

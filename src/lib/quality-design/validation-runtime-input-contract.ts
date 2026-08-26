@@ -133,7 +133,11 @@ const runtimeInputSchema = z
 
 export type ValidationAstRuntimeInput = z.infer<typeof runtimeInputSchema>
 const digest = (value: unknown) => `sha256:${createHash('sha256').update(canonicalContractJson(value)).digest('hex')}`
-const qualityValidationPublicationId = (receiptHash: string) =>
+/**
+ * Compiler-owned AST publication identity. It names reviewed AST bytes and is
+ * deliberately separate from the durable v3 QualityValidationPublication row.
+ */
+export const validationAstPublishOperationIdFromReceiptHash = (receiptHash: string) =>
   `astpub_${hash.parse(receiptHash).slice('sha256:'.length)}`
 
 export function validateValidationAstRuntimeInput(input: {
@@ -180,7 +184,7 @@ export function validateValidationAstRuntimeInput(input: {
     [runtimeInput.contextHash, input.operation.contextHash],
     [runtimeInput.previewHash, input.operation.previewHash],
     [runtimeInput.receiptHash, input.operation.receiptHash],
-    [qualityValidationPublicationId(runtimeInput.receiptHash), input.operation.id],
+    [validationAstPublishOperationIdFromReceiptHash(runtimeInput.receiptHash), input.operation.id],
     [digest(runtimeInput), input.operation.runtimeInputHash],
     [runtimeInput.astId, projection.validationNode?.id],
     [runtimeInput.gherkinHash, digest(projection.gherkin)],

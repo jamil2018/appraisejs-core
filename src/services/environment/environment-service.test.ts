@@ -183,6 +183,7 @@ describe('updateEnvironment', () => {
         username: null,
         passwordEnvironmentVariable: null,
         credentialState: 'NONE',
+        scopeVersion: { increment: 1 },
       },
     })
   })

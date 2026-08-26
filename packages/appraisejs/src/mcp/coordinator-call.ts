@@ -5,7 +5,7 @@ import {
   type CoordinatorOptions,
 } from '../coordinator-client.js'
 
-export { CoordinatorRequestError }
+export { CoordinatorRequestError, coordinatorRequestError }
 
 export async function createCoordinatorApiClient(options: CoordinatorOptions) {
   return createCoordinatorClient(options)

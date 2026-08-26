@@ -2,15 +2,15 @@
   "schemaVersion": 3,
   "status": "certified",
   "hashes": {
-    "capabilityLedger": "sha256:f35802b5c93616c018fec3e23507773f8767eca372d8b7aff9eb06a2ef322b60",
-    "stepDefinitionSource": "sha256:1adf92b7c8d7670e458ad2b6e3774771c280fb7fba3dce1006b081819b3cb31a",
-    "operationRegistry": "sha256:15256a0d0490ec91ec3ec7cad9b0283129b781efc1c5336b79679fc73edf9fab"
+    "capabilityLedger": "sha256:dca28460b12950ff5ca4a200a44f8643e115e8156408463c2bb8229ff12fb6d0",
+    "stepDefinitionSource": "sha256:f1fea3b4ddaf4afa2689cce00ea747f4e5bb2b382603ddc3516ece2ed8f9e067",
+    "operationRegistry": "sha256:54fa383b3f660a43d50f4d4bed1294c9670462b25f4267199beb7c197e1284c6"
   },
   "counts": {
-    "builtInStepDefinitions": 125,
-    "trustedHandlers": 125,
+    "builtInStepDefinitions": 127,
+    "trustedHandlers": 127,
     "structuredOperationCases": 2,
-    "humanSignatures": 125
+    "humanSignatures": 127
   },
   "gates": {
     "canonicalSourceHashMatches": true,
@@ -26,7 +26,7 @@
     "suites": [
       {
         "suite": "packages/cucumber-runtime/src/step-definitions/dispatcher.test.ts",
-        "sourceHash": "sha256:1a66ba587d01119acd04e9a261077d14f415721a5e917a80f78af7a6d67c19f5"
+        "sourceHash": "sha256:0d04bcb4efcb9ed02e1bf886ce5a9d720db676d22e364ba306efd1e7dcf3faa4"
       },
       {
         "suite": "src/services/step-definition/step-definition-registry-service.integration.test.ts",
@@ -38,7 +38,7 @@
       },
       {
         "suite": "src/lib/runtime-capsule/runtime-capsule.test.ts",
-        "sourceHash": "sha256:9a305a549f41b4a06a29ec860e63c1832df1bb2e4fcc611e228a13859065cf9d"
+        "sourceHash": "sha256:83581d8c3033609b8de65253cdcbcfc3e88a8ba3e0856ceb51638b01904e482a"
       },
       {
         "suite": "src/components/diagram/flow-diagram.test.tsx",
@@ -65,5 +65,5 @@
       "^packages\\/create-appraisejs\\/templates\\/base\\/scripts\\/certify-operation-architecture\\.ts$"
     ]
   },
-  "receiptHash": "sha256:a9912eea485998b22fd4a775499089c57982aabecef3bde9264dd81ecfe3b08b"
+  "receiptHash": "sha256:313c0603ecf1d1c6c6c628b99dd8ec97b19a63bb0bc0b3c5ea1a7d27a1b0cc6e"
 }

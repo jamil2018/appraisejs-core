@@ -3,6 +3,7 @@ import { randomUUID } from 'node:crypto'
 
 import { z } from 'zod'
 
+import { isLoopbackHostname } from './mcp-http-security.js'
 import { ensureLocalProjectIdentity } from './project-identity.js'
 
 export type CoordinatorOptions = {
@@ -39,7 +40,45 @@ const coordinatorErrorEnvelopeSchema = z
       })
       .strict(),
     operationOutcome: z.enum(['not_started', 'not_committed', 'committed', 'unknown']),
+    durableState: z.enum(['authorization_request_committed', 'execution_consent_request_committed']).optional(),
     targetOutcome: z.literal('not_evaluated'),
+    authorization: z
+      .object({
+        executionRequestId: z.string().uuid(),
+        expectedRequestHash: z.string().startsWith('sha256:'),
+        expiresAt: z.string().datetime(),
+        authorizationRequestCreated: z.literal(true),
+        nextAction: z
+          .object({
+            tool: z.literal('assessment_prepare_run'),
+            reason: z.string().trim().min(1).max(1_000),
+          })
+          .strict(),
+      })
+      .strict()
+      .optional(),
+    executionConsent: z
+      .object({
+        assessmentId: z.string().trim().min(1),
+        consentId: z.string().uuid(),
+        expectedExecutionManifestHash: z.string().startsWith('sha256:'),
+        consentRequestCreated: z.literal(true),
+        nextAction: z
+          .object({
+            tool: z.literal('execution_consent_decide'),
+            arguments: z
+              .object({
+                assessmentId: z.string().trim().min(1),
+                consentId: z.string().uuid(),
+                expectedExecutionManifestHash: z.string().startsWith('sha256:'),
+              })
+              .strict(),
+            reason: z.string().trim().min(1).max(1_000),
+          })
+          .strict(),
+      })
+      .strict()
+      .optional(),
     retry: z
       .object({
         safe: z.boolean(),
@@ -82,11 +121,13 @@ export function coordinatorRequestError(error: CoordinatorRequestError) {
   return error.envelope
 }
 
-async function readResponseBody(response: Response): Promise<unknown> {
+type ParsedResponseBody = { body: unknown; isJson: boolean }
+
+async function readResponseBody(response: Response): Promise<ParsedResponseBody> {
   const source = await response.text()
-  if (!source) return undefined
+  if (!source) return { body: undefined, isJson: false }
   try {
-    return JSON.parse(source) as unknown
+    return { body: JSON.parse(source) as unknown, isJson: true }
   } catch (error) {
     throw new Error('Coordinator returned malformed JSON.', { cause: error })
   }
@@ -97,13 +138,14 @@ export function createLocalCoordinatorFailure(
   classification: CoordinatorErrorEnvelope['classification'],
   message: string,
   httpStatus = 0,
+  options?: { code?: string; recoveryReason?: string },
 ) {
   return coordinatorErrorEnvelopeSchema.parse({
     schema: 'appraise.error/v1',
     errorId: randomUUID(),
     occurredAt: new Date().toISOString(),
     classification,
-    code: classification,
+    code: options?.code ?? classification,
     message,
     httpStatus,
     operation: { name: operation },
@@ -116,7 +158,8 @@ export function createLocalCoordinatorFailure(
         tool: 'coordinator_error_recovery',
         reason:
           classification === 'infrastructure_failure'
-            ? 'Start the local application, verify the endpoint, then reconnect the MCP client.'
+            ? (options?.recoveryReason ??
+              'Start the local application, verify the endpoint, then reconnect the MCP client.')
             : 'Read the current state and report this error ID to the Appraise operator.',
       },
     },
@@ -124,11 +167,61 @@ export function createLocalCoordinatorFailure(
   })
 }
 
+function coordinatorEndpointMismatch(operation: string, httpStatus: number) {
+  return createLocalCoordinatorFailure(
+    operation,
+    'infrastructure_failure',
+    'The configured coordinator endpoint is not an AppraiseJS hub.',
+    httpStatus,
+    {
+      code: 'coordinator_endpoint_mismatch',
+      recoveryReason: 'Verify --base-url points to the AppraiseJS hub, then reconnect the MCP client.',
+    },
+  )
+}
+
+function localCoordinatorBaseUrl(value: string): { baseUrl: string } | { message: string } {
+  try {
+    const parsed = new URL(value)
+    if (
+      (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') ||
+      parsed.username ||
+      parsed.password ||
+      !isLoopbackHostname(parsed.hostname)
+    ) {
+      return { message: 'Coordinator --base-url must use credential-free HTTP(S) on a loopback AppraiseJS hub.' }
+    }
+    return { baseUrl: parsed.toString().replace(/\/$/, '') }
+  } catch {
+    return { message: 'Coordinator --base-url must be a valid credential-free loopback AppraiseJS hub URL.' }
+  }
+}
+
+function untrustedCoordinatorEndpoint(operation: string) {
+  return createLocalCoordinatorFailure(
+    operation,
+    'infrastructure_failure',
+    'The configured coordinator endpoint is not a trusted local AppraiseJS hub.',
+    0,
+    {
+      code: 'coordinator_endpoint_untrusted',
+      recoveryReason:
+        'Use a credential-free HTTP(S) loopback AppraiseJS hub URL for --base-url, then reconnect the MCP client.',
+    },
+  )
+}
+
 export async function createCoordinatorClient(options: CoordinatorOptions) {
   const local = await ensureLocalProjectIdentity(path.resolve(options.cwd))
   const identity = local.identity
   const request = async (operation: string, init?: RequestInit) => {
-    const endpoint = `${options.baseUrl.replace(/\/$/, '')}/api/internal/coordinator/${operation}`
+    const localBaseUrl = localCoordinatorBaseUrl(options.baseUrl)
+    if (!('baseUrl' in localBaseUrl)) {
+      throw new CoordinatorRequestError(0, undefined, untrustedCoordinatorEndpoint(operation), {
+        cause: new Error(localBaseUrl.message),
+      })
+    }
+    const endpoint = `${localBaseUrl.baseUrl}/api/internal/coordinator/${operation}`
     let response: Response
     try {
       response = await fetch(endpoint, {
@@ -137,7 +230,7 @@ export async function createCoordinatorClient(options: CoordinatorOptions) {
           authorization: `Bearer ${identity.token}`,
           'content-type': 'application/json',
           'x-appraise-project': identity.projectFingerprint,
-          'x-appraise-base-url': options.baseUrl.replace(/\/$/, ''),
+          'x-appraise-base-url': localBaseUrl.baseUrl,
           ...init?.headers,
         },
       })
@@ -153,24 +246,33 @@ export async function createCoordinatorClient(options: CoordinatorOptions) {
         { cause: error },
       )
     }
-    let body: unknown
+    let responseBody: ParsedResponseBody
     try {
-      body = await readResponseBody(response)
+      responseBody = await readResponseBody(response)
     } catch (error) {
       throw new CoordinatorRequestError(
         response.status,
         undefined,
-        createLocalCoordinatorFailure(
-          operation,
-          'appraise_runtime_defect',
-          'Coordinator returned malformed JSON.',
-          response.status,
-        ),
+        response.status === 404 || response.status === 405
+          ? coordinatorEndpointMismatch(operation, response.status)
+          : createLocalCoordinatorFailure(
+              operation,
+              'appraise_runtime_defect',
+              'Coordinator returned malformed JSON.',
+              response.status,
+            ),
         { cause: error },
       )
     }
     if (!response.ok) {
-      const parsed = coordinatorErrorEnvelopeSchema.safeParse(body)
+      if (!responseBody.isJson && (response.status === 404 || response.status === 405)) {
+        throw new CoordinatorRequestError(
+          response.status,
+          responseBody.body,
+          coordinatorEndpointMismatch(operation, response.status),
+        )
+      }
+      const parsed = coordinatorErrorEnvelopeSchema.safeParse(responseBody.body)
       const envelope = parsed.success
         ? parsed.data
         : createLocalCoordinatorFailure(
@@ -179,9 +281,9 @@ export async function createCoordinatorClient(options: CoordinatorOptions) {
             'Coordinator returned an invalid error response.',
             response.status,
           )
-      throw new CoordinatorRequestError(response.status, body, envelope)
+      throw new CoordinatorRequestError(response.status, responseBody.body, envelope)
     }
-    return body
+    return responseBody.body
   }
 
   const post = (operation: string, body: unknown) => request(operation, { method: 'POST', body: JSON.stringify(body) })

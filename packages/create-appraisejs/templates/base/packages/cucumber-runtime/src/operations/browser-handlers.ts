@@ -76,6 +76,14 @@ const numberInput = (inputs: Record<string, unknown>, name: string) => {
     throw new OperationExecutionError('operation_input_invalid', `Input "${name}" must be finite.`)
   return value
 }
+const orderedStringArrayInput = (inputs: Record<string, unknown>, name: string) => {
+  const value = required(inputs, name)
+  if (!Array.isArray(value) || value.some(item => typeof item !== 'string'))
+    throw new OperationExecutionError('operation_input_invalid', `Input "${name}" must be an ordered array of strings.`)
+  return value
+}
+
+const boundedText = (value: string) => JSON.stringify(value.slice(0, 200))
 
 const target = (context: BrowserOperationContext) => context.resolveLocator(required(context.inputs, 'target'))
 
@@ -133,6 +141,23 @@ const managedHandlers = {
     if (!actual.includes(expected))
       throw new OperationExecutionError('operation_assertion_failed', `Target text did not contain "${expected}".`)
   },
+  'browser.assertions.ordered.texts@1': async context => {
+    const expected = orderedStringArrayInput(context.inputs, 'expectedTexts')
+    // allTextContents preserves locator order. Do not sort, index, or derive a
+    // selector here: the reviewed collection locator remains the authority.
+    const actual = await (await target(context)).allTextContents()
+    if (actual.length !== expected.length)
+      throw new OperationExecutionError(
+        'operation_assertion_failed',
+        `Ordered text count mismatch: expected ${expected.length}, found ${actual.length}.`,
+      )
+    const mismatch = actual.findIndex((value, index) => value !== expected[index])
+    if (mismatch >= 0)
+      throw new OperationExecutionError(
+        'operation_assertion_failed',
+        `Ordered text mismatch at index ${mismatch}: expected ${boundedText(expected[mismatch]!)}, found ${boundedText(actual[mismatch]!)}.`,
+      )
+  },
   'browser.assertions.no-console-errors@1': async context => {
     await waitForRouteSettled(context.world.page)
     const issues = context.world.browserRuntimeIssuesFor?.('console-and-page') ?? []
@@ -182,6 +207,32 @@ const managedHandlers = {
   },
   'browser.assertions.persisted@1': async context => {
     assertEqual(await (await target(context)).isVisible(), true, 'Persisted result target was not visible')
+  },
+  'browser.forms.fill.configured.credential@1': async context => {
+    const credential = process.env.APPRAISE_ENV_PASSWORD
+    if (!credential)
+      throw new OperationExecutionError(
+        'credential_prerequisite_unavailable',
+        'Configured environment credential is unavailable.',
+      )
+    if (!context.baseUrl)
+      throw new OperationExecutionError(
+        'credential_prerequisite_unavailable',
+        'Configured environment credential requires a sealed target origin.',
+      )
+    // Do this again at the handler boundary: a configured credential must
+    // never reach locator fill on the fresh about:blank page or another origin.
+    assertSealedPageOrigin(context.world.page.url(), context.baseUrl)
+    try {
+      await (await target(context)).fill(credential)
+    } catch {
+      // Browser errors may echo entered values. Keep the failure typed and
+      // value-free; process/report redactors remain a second boundary.
+      throw new OperationExecutionError(
+        'credential_fill_failed',
+        'Configured environment credential could not be filled.',
+      )
+    }
   },
 } satisfies Record<string, BrowserOperationHandler>
 
@@ -305,7 +356,12 @@ export async function executeBrowserOperation(
   context.world.sealedBaseUrl = context.baseUrl
   try {
     // A fresh browser starts at about:blank; any later operation must stay on the sealed origin.
-    assertSealedPageOrigin(context.world.page.url(), context.baseUrl, !inputsContainResolvedCredential(context.inputs))
+    const credentialOperation = operationByRef.get(ref)?.credentialSource === 'environment-resolved'
+    assertSealedPageOrigin(
+      context.world.page.url(),
+      context.baseUrl,
+      !credentialOperation && !inputsContainResolvedCredential(context.inputs),
+    )
   } catch (error) {
     if (error instanceof SealedOriginError) throw new OperationExecutionError('ORIGIN_DENIED', error.message)
     throw error

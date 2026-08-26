@@ -28,6 +28,16 @@ appraisejs locator-graph query --target <registered-target> --quality-plan-id <q
 The MCP `locator_ensure` tool accepts a registered target reference and can create one explicit target-owned module/group/locator closure for that plan. It is
 local and idempotent; it does not browse, handle credentials, or verify a selector at authoring time.
 
+## Remote Assessment Preflight
+
+For a `REMOTE_BLACK_BOX` target, first create an Appraise-owned remote scope, then call
+`assessment_preflight`. The scope receipt itself carries the bounded v2 handoff:
+`subjectRevisionId`, `algorithmVersion`, `scopeIntentHash`, `realizationIntentHash`,
+`preflightHash`, and an exact `expectedPreflight` token. Use `subjectRevisionId` for
+preflight, then pass that exact two-field token to `assessment_prepare_run`; do not reuse a preflight after Step Definition, locator, design,
+environment, runtime, or policy drift. Legacy v1 scopes are historical-only and return an explicit algorithm
+unsupported error.
+
 ## Requirements
 
 - Node.js 20.19+
@@ -42,3 +52,7 @@ appraisejs mcp-call project_diagnostic --input-json '{"expectedTargetWorkspacePa
 ```
 
 Pass `--endpoint` only when the local sidecar uses a non-default loopback port or path.
+
+The coordinator `--base-url` is also local-only: use a credential-free HTTP(S) URL on `localhost`, `127.0.0.1`, or
+`::1`. The client never sends its project identity or bearer token to a non-loopback endpoint. A non-JSON `404` or
+`405` means the selected local service is not an AppraiseJS hub; verify `--base-url` and reconnect the MCP client.

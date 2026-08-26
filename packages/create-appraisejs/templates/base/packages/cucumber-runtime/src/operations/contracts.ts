@@ -125,6 +125,14 @@ export const operationDefinitionSchema = z
     categories: z.array(operationIdSchema).min(1).max(20),
     capabilities: z.array(operationIdSchema).max(30),
     runtime: z.enum(['browser', 'api', 'node', 'database']),
+    /** A built-in may consume only the runtime-sealed environment credential, never an authored secret input. */
+    credentialSource: z.literal('environment-resolved').optional(),
+    /**
+     * Browser context semantics are catalog-owned.  An establishing operation
+     * is the only operation that can make a fresh managed page usable for
+     * page-dependent work in a scenario.
+     */
+    pageContext: z.enum(['establishes', 'requires']).optional(),
     inputs: z.array(operationInputSchema).max(30),
     outputs: z.array(operationOutputSchema).max(20),
     assertionConcerns: z.array(z.enum(['accessibility', 'persistence', 'responsive'])).max(10),
@@ -179,6 +187,23 @@ export const operationDefinitionSchema = z
       context.addIssue({ code: z.ZodIssueCode.custom, message: 'Supported agent surface requires a projection.' })
     if (definition.deprecated && !definition.replacement)
       context.addIssue({ code: z.ZodIssueCode.custom, message: 'Deprecated operations require a replacement.' })
+    if (definition.credentialSource === 'environment-resolved') {
+      const [input] = definition.inputs
+      if (
+        definition.runtime !== 'browser' ||
+        definition.inputs.length !== 1 ||
+        !input ||
+        input.type !== 'locator' ||
+        !input.required ||
+        input.cardinality !== 'exactlyOne' ||
+        definition.outputs.length !== 0
+      )
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          message:
+            'An environment-resolved credential operation must be a browser operation with exactly one required singular locator input and no outputs.',
+        })
+    }
   })
 
 export const operationDescriptorSchema = operationDefinitionSchema.and(

@@ -17,14 +17,24 @@ const stagedPatch = spawnSync('git', ['diff', '--cached', '--unified=0', '--', '
   cwd: repoRoot,
   encoding: 'utf8',
   env,
+  // Large lifecycle/scaffold changes can legitimately exceed Node's 1 MiB
+  // spawnSync default even though the policy only inspects the patch text.
+  maxBuffer: 64 * 1024 * 1024,
 })
 
-if (stagedPatch.error || stagedPatch.status !== 0) {
-  console.error(stagedPatch.error ?? stagedPatch.stderr)
+const stagedFiles = spawnSync('git', ['diff', '--cached', '--name-only'], {
+  cwd: repoRoot,
+  encoding: 'utf8',
+  env,
+  maxBuffer: 64 * 1024 * 1024,
+})
+
+if (stagedPatch.error || stagedPatch.status !== 0 || stagedFiles.error || stagedFiles.status !== 0) {
+  console.error(stagedPatch.error ?? stagedFiles.error ?? stagedPatch.stderr ?? stagedFiles.stderr)
   process.exit(2)
 }
 
-const result = requiresReleaseBaselineAudit(stagedPatch.stdout)
+const result = requiresReleaseBaselineAudit(stagedPatch.stdout, stagedFiles.stdout)
   ? spawnSync('npm', ['run', 'quality:fallow:release'], { cwd: repoRoot, env, stdio: 'inherit' })
   : spawnSync(process.execPath, [fallowCli, ...fallowArgs], { cwd: repoRoot, env, stdio: 'inherit' })
 

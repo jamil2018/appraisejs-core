@@ -250,7 +250,10 @@ export async function registerTargetProject(
   await client.environment.upsert({
     where: { targetProjectId_name: { targetProjectId: targetProject.id, name: 'default' } },
     create: { targetProjectId: targetProject.id, name: 'default', baseUrl: normalizedRemoteOrigin },
-    update: { baseUrl: normalizedRemoteOrigin },
+    // Registration refresh is an Environment write too. Preserve the remote
+    // scope invariant even when the origin happens to be unchanged: callers
+    // must issue a new scope after a target registration refresh.
+    update: { baseUrl: normalizedRemoteOrigin, scopeVersion: { increment: 1 } },
   })
   return targetProject
 }
@@ -339,6 +342,20 @@ export async function renameTargetProject(
   return client.targetProject.update({
     where: { id: existing.id },
     data: { displayName, ...(description !== undefined ? { description } : {}) },
+  })
+}
+
+export type ExecutionConsentModeValue = 'ALWAYS_ASK' | 'RISK_AWARE' | 'TRUSTED_AGENT'
+
+export async function updateTargetProjectExecutionConsentMode(
+  input: { targetProjectId: string; mode: ExecutionConsentModeValue },
+  client: PrismaClient = prisma,
+): Promise<TargetProject> {
+  const existing = await client.targetProject.findUnique({ where: { id: input.targetProjectId } })
+  if (!existing) throw new ServiceError('Target project not found.', 'NOT_FOUND', 404)
+  return client.targetProject.update({
+    where: { id: existing.id },
+    data: { executionConsentMode: input.mode },
   })
 }
 

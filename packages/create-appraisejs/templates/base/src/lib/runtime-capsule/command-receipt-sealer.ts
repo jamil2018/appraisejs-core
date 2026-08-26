@@ -47,7 +47,6 @@ export function sealCredentialEnvironment(input: {
     reference: input.passwordReference,
     referenceKind: 'environment' as const,
     referenceVersion: hashRuntimeCapsuleBytes(Buffer.from(input.passwordReference)),
-    expectedDigest: hashRuntimeCapsuleBytes(Buffer.from(input.resolvedPassword)),
   }
 }
 
@@ -76,7 +75,9 @@ export async function sealCapsuleCommandReceipt(input: {
       credentialState: 'NONE' | 'REFERENCE_CONFIGURED'
     }
   }
-  runtimeInput: ValidationAstRuntimeInput
+  /** Receipt sealing needs only this already-validated immutable compiler
+   * identity; publication owns complete runtime-input validation. */
+  runtimeInput: Pick<ValidationAstRuntimeInput, 'extensionPolicy'>
   built: BuiltCapsuleFiles
 }) {
   const cucumberModulePath = runtimeRequire.resolve('@cucumber/cucumber')

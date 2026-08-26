@@ -20,27 +20,27 @@ function ledger(overrides: Record<string, unknown> = {}) {
   return {
     version: 1,
     blockingSeverities: ['critical', 'high'],
-    findings: Array.from({ length: 13 }, (_, index) => finding(index + 1)),
+    findings: Array.from({ length: 15 }, (_, index) => finding(index + 1)),
     ...overrides,
   }
 }
 
 describe('release-readiness ledger', () => {
-  it('requires the complete A-01 through A-13 inventory and named evidence', () => {
+  it('requires the complete A-01 through A-15 inventory and named evidence', () => {
     expect(validateReleaseLedger(ledger())).toEqual([])
     expect(validateReleaseLedger(ledger({ findings: [finding(1, { requiredEvidence: [] })] }))).toEqual(
-      expect.arrayContaining(['A-01: requiredEvidence must contain named evidence', 'A-13: finding is missing']),
+      expect.arrayContaining(['A-01: requiredEvidence must contain named evidence', 'A-15: finding is missing']),
     )
   })
 
   it('keeps release blocking while an owned finding is open', () => {
     const result = evaluateReleaseLedger(ledger())
     expect(result.ok).toBe(false)
-    expect(result.blockingFindings).toHaveLength(13)
+    expect(result.blockingFindings).toHaveLength(15)
   })
 
   it('rejects undocumented or expired waivers', () => {
-    const findings = Array.from({ length: 13 }, (_, index) => finding(index + 1))
+    const findings = Array.from({ length: 15 }, (_, index) => finding(index + 1))
     findings[0] = finding(1, {
       status: 'waived',
       waiver: { owner: 'security', rationale: 'Temporary', expiresOn: '2025-01-01', review: '' },
@@ -51,7 +51,7 @@ describe('release-readiness ledger', () => {
   })
 
   it('deduplicates and runs only commands for verified findings', () => {
-    const findings = Array.from({ length: 13 }, (_, index) => finding(index + 1))
+    const findings = Array.from({ length: 15 }, (_, index) => finding(index + 1))
     findings[0] = finding(1, { status: 'verified', verificationCommands: ['npm run shared-check'] })
     findings[1] = finding(2, { status: 'verified', verificationCommands: ['npm run shared-check'] })
     const runner = vi.fn().mockReturnValue({ status: 0, stdout: 'ok', stderr: '' })

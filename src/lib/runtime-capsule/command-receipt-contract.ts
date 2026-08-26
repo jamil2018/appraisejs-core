@@ -241,9 +241,21 @@ export const capsuleCommandReceiptV1Schema = z
                 reference: runtimeCapsuleSegmentSchema.optional(),
                 referenceKind: z.literal('environment').optional(),
                 referenceVersion: runtimeCapsuleHashSchema.optional(),
-                expectedDigest: runtimeCapsuleHashSchema,
+                expectedDigest: runtimeCapsuleHashSchema.optional(),
               })
-              .strict(),
+              .strict()
+              .superRefine((entry, context) => {
+                if (entry.source === 'literal' && !entry.expectedDigest)
+                  context.addIssue({
+                    code: z.ZodIssueCode.custom,
+                    message: 'Literal environment entries require expectedDigest.',
+                  })
+                if (entry.source === 'environment-ref' && entry.expectedDigest !== undefined)
+                  context.addIssue({
+                    code: z.ZodIssueCode.custom,
+                    message: 'Environment references must not retain resolved secret digests.',
+                  })
+              }),
           )
           .max(32),
       })

@@ -76,21 +76,18 @@ export function mcpContractHash(definitions: unknown): string {
 export const qualityDesignWorkflow = {
   phase: 'quality_design',
   ownership:
-    'Appraise owns requirement snapshots, Quality Plan revisions, quality obligations, validation design, managed evidence, and quality decisions.',
+    'The host agent proposes methodology-bound analysis and validation meaning. Appraise owns critique, immutable review gates, managed evidence, attributed findings, and quality decisions.',
   publicToolGroups: {
+    methodology: ['methodology_list', 'methodology_get'],
     requirements: [
       'requirements_submit_source',
-      'requirements_analyze',
       'requirements_graph_read',
       'requirements_answer_queries',
-      'requirements_approve',
+      'requirement_analysis_propose',
+      'requirement_analysis_read',
+      'requirement_analysis_decide',
     ],
-    validationDesign: [
-      'validation_design_propose',
-      'validation_design_approve',
-      'validation_compile',
-      'validation_publish',
-    ],
+    validationDesign: ['validation_design_propose', 'validation_design_read', 'validation_design_decide'],
   },
 }
 
@@ -101,11 +98,15 @@ export const assessmentWorkflow = {
   evidenceSeal:
     'Evidence is sealed per validation version and result-matrix cell, bound to subject, runtime inputs, environment, outputs, and report hashes.',
   assurance: 'Required minimum assurance is separate from observed assurance.',
+  failureAttribution:
+    'A failed TestRun is an observation. Only a reviewed target_defect finding may violate an obligation.',
+  executionConsent:
+    'Execution consent is manifest-bound and distinct from credential authorization; new targets default to always ask.',
 }
 
 export const mcpCapabilityMetadata = {
   packageVersion: packageJson.version ?? '0.0.0',
-  mcpSurfaceVersion: '2026-08-15.contract-negotiation',
+  mcpSurfaceVersion: '2026-08-26.quality-os-assessment-preflight',
   mcpContractHash: mcpContractHash(mcpContractFixture.default),
   serverStartedAt,
   workflowCriticalTools: [...workflowTools],
@@ -122,16 +123,19 @@ export const compactMcpCapabilityMetadata = {
   workflowSentinelTools: [
     'project_diagnostic',
     'requirements_submit_source',
+    'requirement_analysis_decide',
     'locator_ensure',
     'locator_search',
-    'validation_publish',
+    'assessment_preflight',
     'assessment_run',
     'assessment_decide',
+    'assessment_finding_record',
   ],
   workflowSentinelResources: [
     'appraise://project',
     'appraise://workflow/quality-design',
     'appraise://workflow/assessment',
+    'appraise://quality/methodologies/appraise.built-in/quality-os-core/1.0.0',
   ],
   fullCapabilityResource: 'appraise://project',
 }

@@ -604,6 +604,78 @@
     }
   },
   {
+    "id": "browser.assertions.ordered.texts",
+    "version": "1",
+    "title": "Assert ordered texts",
+    "description": "Assert that a reviewed collection locator has exactly the expected text values in document order.",
+    "categories": ["browser.assertions"],
+    "capabilities": ["assertions"],
+    "runtime": "browser",
+    "inputs": [
+      {
+        "name": "target",
+        "type": "locator",
+        "required": true,
+        "description": "Reviewed collection locator whose text values are compared in document order.",
+        "cardinality": "collection"
+      },
+      {
+        "name": "expectedTexts",
+        "type": "json",
+        "required": true,
+        "description": "Ordered array of expected text values."
+      }
+    ],
+    "outputs": [],
+    "assertionConcerns": [],
+    "securityClass": "built-in",
+    "humanProjections": [
+      {
+        "id": "browser.assertions.ordered.texts.gherkin",
+        "signature": "the {string} elements should have ordered texts {string}",
+        "title": "Assert ordered texts",
+        "description": "Assert exact text values and order for a reviewed collection locator.",
+        "group": "text assertion",
+        "icon": "VALIDATION",
+        "parameterOrder": ["target", "expectedTexts"],
+        "constants": {},
+        "deprecated": false
+      }
+    ],
+    "humanSurface": {
+      "status": "supported"
+    },
+    "agentProjection": {
+      "title": "Assert ordered texts",
+      "description": "Use one reviewed collection locator and provide every expected text value in exact document order.",
+      "searchTerms": ["browser", "assertions", "ordered", "texts", "collection", "list"],
+      "examples": [
+        {
+          "description": "Verify inventory names are presented in the expected order.",
+          "inputs": {
+            "target": "inventory-item-names",
+            "expectedTexts": ["Sauce Labs Backpack", "Sauce Labs Bike Light"]
+          }
+        }
+      ]
+    },
+    "agentSurface": {
+      "status": "supported"
+    },
+    "aliases": [
+      {
+        "kind": "action-id",
+        "value": "browser.assertions.ordered.texts",
+        "surface": "agent"
+      }
+    ],
+    "deprecated": false,
+    "handler": {
+      "id": "browser.assertions.ordered.texts",
+      "version": "1"
+    }
+  },
+  {
     "id": "browser.assertions.text-contains",
     "version": "1",
     "title": "assert element contains text",
@@ -3917,6 +3989,82 @@
     }
   },
   {
+    "id": "browser.forms.fill.configured.credential",
+    "version": "1",
+    "title": "Fill configured credential",
+    "description": "Fill a field with the credential resolved from the selected environment at runtime.",
+    "categories": ["browser.forms"],
+    "capabilities": ["forms"],
+    "runtime": "browser",
+    "credentialSource": "environment-resolved",
+    "inputs": [
+      {
+        "name": "target",
+        "type": "locator",
+        "required": true,
+        "description": "Locator reference for the credential field.",
+        "cardinality": "exactlyOne"
+      }
+    ],
+    "outputs": [],
+    "assertionConcerns": [],
+    "securityClass": "built-in",
+    "humanProjections": [
+      {
+        "id": "browser.forms.fill.configured.credential.gherkin",
+        "signature": "the user fills the {string} field with the configured environment credential",
+        "title": "Fill configured credential",
+        "description": "Fill a field with the credential resolved from the selected environment at runtime.",
+        "group": "input",
+        "icon": "INPUT",
+        "parameterOrder": ["target"],
+        "constants": {},
+        "deprecated": false
+      }
+    ],
+    "humanSurface": {
+      "status": "supported"
+    },
+    "agentProjection": {
+      "title": "Fill configured credential",
+      "description": "Use only after the selected environment's credential has been authorized for this managed run.",
+      "searchTerms": ["browser.forms", "credential", "environment", "password", "fill"],
+      "examples": [
+        {
+          "description": "Fill the password field from the configured environment credential.",
+          "inputs": {
+            "target": "password-input"
+          }
+        }
+      ]
+    },
+    "agentSurface": {
+      "status": "supported"
+    },
+    "aliases": [
+      {
+        "kind": "action-id",
+        "value": "browser.forms.fill.configured.credential",
+        "surface": "agent"
+      },
+      {
+        "kind": "step-definition-slug",
+        "value": "input/fill-configured-credential",
+        "surface": "both"
+      },
+      {
+        "kind": "cucumber-signature",
+        "value": "the user fills the {string} field with the configured environment credential",
+        "surface": "human"
+      }
+    ],
+    "deprecated": false,
+    "handler": {
+      "id": "browser.forms.fill.configured.credential",
+      "version": "1"
+    }
+  },
+  {
     "id": "browser.forms.fill.content.editable.element",
     "version": "1",
     "title": "fill content editable element",
@@ -5549,6 +5697,7 @@
     "categories": ["browser.navigation"],
     "capabilities": ["navigation"],
     "runtime": "browser",
+    "pageContext": "establishes",
     "inputs": [
       {
         "name": "url",
@@ -5623,6 +5772,7 @@
     "categories": ["browser.navigation"],
     "capabilities": ["navigation"],
     "runtime": "browser",
+    "pageContext": "establishes",
     "inputs": [],
     "outputs": [],
     "assertionConcerns": [],

@@ -62,5 +62,32 @@ describe('quality design state policy', () => {
     expect(hashEvidenceReceipt(baseReceipt)).not.toBe(
       hashEvidenceReceipt({ ...baseReceipt, validationVersionHash: 'successor-validation-version-hash' }),
     )
+    const managed = {
+      ...baseReceipt,
+      targetProjectId: 'target-a',
+      assessmentId: 'assessment-root',
+      assessmentRunId: 'assessment-run-1',
+    }
+    expect(hashEvidenceReceipt(managed)).toBe(hashEvidenceReceipt({ ...managed }))
+    for (const change of [
+      { targetProjectId: 'target-b' },
+      { assessmentId: 'assessment-successor' },
+      { assessmentRunId: 'assessment-run-2' },
+    ])
+      expect(hashEvidenceReceipt(managed)).not.toBe(hashEvidenceReceipt({ ...managed, ...change }))
+
+    const generationBound = {
+      ...managed,
+      generationId: 'generation-1',
+      publicationId: 'publication-1',
+      publicationOperationHash: 'sha256:publication-operation',
+    }
+    expect(hashEvidenceReceipt(generationBound)).not.toBe(hashEvidenceReceipt(managed))
+    expect(hashEvidenceReceipt(generationBound)).not.toBe(
+      hashEvidenceReceipt({ ...generationBound, publicationId: 'publication-2' }),
+    )
+    expect(() => hashEvidenceReceipt({ ...managed, generationId: 'generation-1' })).toThrow(
+      /generationId, publicationId, and publicationOperationHash/,
+    )
   })
 })

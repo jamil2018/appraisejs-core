@@ -13,8 +13,14 @@ describe('agent setup capabilities', () => {
     expect(expectedAgentCapabilities.tools).toEqual(
       expect.arrayContaining([
         'project_diagnostic',
+        'methodology_list',
         'requirements_submit_source',
-        'validation_design_approve',
+        'requirement_analysis_propose',
+        'requirement_analysis_decide',
+        'validation_design_propose',
+        'validation_design_decide',
+        'execution_consent_decide',
+        'assessment_finding_record',
         'assessment_run',
         'assessment_reconcile',
         'assessment_decide',

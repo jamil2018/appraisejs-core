@@ -46,6 +46,11 @@ const runtimeCapsuleManifestEnvelopeSchema = z
           kind: z.literal('PUBLISHED_VALIDATION'),
           sourceHash: runtimeCapsuleHashSchema,
           publishOperationId: z.string().min(1).max(4096),
+          /** The immutable executable generation selected before the run was
+           * reserved.  A publication ID alone is not enough to prove that a
+           * later replay did not silently select a successor generation. */
+          generationId: runtimeCapsuleSegmentSchema,
+          generationKey: runtimeCapsuleHashSchema,
         })
         .strict(),
       z

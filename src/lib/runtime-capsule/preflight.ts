@@ -14,6 +14,10 @@ import { CucumberDryRunReconciliationError, parseAndReconcileCucumberDryRun } fr
 import { defaultCapsulePreflightDependencies, type CapsulePreflightDependencies } from './preflight-dependencies'
 import { RuntimeCapsuleRepository } from './repository'
 import { hashRuntimeCapsuleValue } from './contracts'
+import {
+  ASSESSMENT_PREFLIGHT_ALGORITHM,
+  expectedQualityPublicationPreflightAuthority,
+} from '@/lib/quality-design/remote-evaluation-scope-contract'
 import { RuntimeCapsuleLeaseRepository } from './lease-repository'
 import { withRuntimeCapsuleLeaseHeartbeat } from './materializer'
 import { resolveCapsuleRuntimeIdentity } from './runtime-identity'
@@ -190,9 +194,11 @@ export class RuntimeCapsulePreflight {
     await stage(1, async () => {
       const capsule = await this.prisma.runtimeCapsule.findUnique({
         where: { testRunId: input.testRunId },
-        include: { testRun: true, targetProject: true },
+        include: { testRun: { include: { assessmentRunBinding: true } }, targetProject: true },
       })
       if (!capsuleOwnershipMatches(capsule, receipt, input))
+        throw new PreflightFailure('OWNERSHIP_MISMATCH', 'Use the capsule owned by this exact project and TestRun.')
+      if (!capsule)
         throw new PreflightFailure('OWNERSHIP_MISMATCH', 'Use the capsule owned by this exact project and TestRun.')
       if (
         manifest.source.kind !== receipt.ownership.sourceKind ||
@@ -205,11 +211,39 @@ export class RuntimeCapsulePreflight {
       )
         throw new PreflightFailure('OWNERSHIP_MISMATCH', 'Reseal the canonical authored test snapshot.')
       if (manifest.source.kind === 'AUTHORED_TEST_SNAPSHOT') return
-      const operation = await this.prisma.qualityValidationPublication.findUnique({
-        where: { operationHash: receipt.ownership.operationHash },
-      })
-      if (!publicationMatches(operation, receipt, input))
+      if (!capsule.qualityPublicationId)
         throw new PreflightFailure('PUBLICATION_MISMATCH', 'Reseal from the exact reviewed publication.')
+      const operation = await this.prisma.qualityValidationPublication.findUnique({
+        where: { id: capsule.qualityPublicationId },
+        include: { generation: true },
+      })
+      if (!operation || !publicationMatches(operation, receipt, input))
+        throw new PreflightFailure('PUBLICATION_MISMATCH', 'Reseal from the exact reviewed publication.')
+      if (
+        manifest.source.kind !== 'PUBLISHED_VALIDATION' ||
+        manifest.source.publishOperationId !== operation.id ||
+        manifest.source.generationId !== operation.generationId ||
+        manifest.source.generationKey !== operation.generation.generationKey
+      )
+        throw new PreflightFailure('PUBLICATION_MISMATCH', 'Reseal from the exact reviewed generation.')
+      if (
+        operation.generation.disposition !== 'ACTIVE' ||
+        operation.generation.preflightAlgorithmVersion !== ASSESSMENT_PREFLIGHT_ALGORITHM ||
+        operation.generation.preflightAuthority !==
+          expectedQualityPublicationPreflightAuthority(capsule.targetProject.kind)
+      )
+        throw new PreflightFailure('PUBLICATION_MISMATCH', 'Reseal from a supported exact executable generation.')
+      const binding = capsule.testRun.assessmentRunBinding
+      if (
+        binding &&
+        (!binding.generationId ||
+          !binding.publicationId ||
+          !binding.publicationOperationHash ||
+          binding.generationId !== operation.generationId ||
+          binding.publicationId !== operation.id ||
+          binding.publicationOperationHash !== operation.operationHash)
+      )
+        throw new PreflightFailure('PUBLICATION_MISMATCH', 'Reseal from the exact Assessment binding publication.')
     })
 
     await stage(2, async () => {

@@ -1,5 +1,7 @@
 import { readFile } from 'node:fs/promises'
 import { describe, expect, it } from 'vitest'
+
+import definitions from './definitions.json'
 import {
   canonicalOperationJson,
   operationContentHash,
@@ -122,6 +124,43 @@ describe('operation contracts', () => {
         }),
       ),
     ).toThrow('Only locator input')
+  })
+
+  it('allows environment-resolved credentials only for one locator-only browser operation', () => {
+    expect(() =>
+      operationDefinitionSchema.parse(
+        operation({
+          credentialSource: 'environment-resolved',
+          inputs: [
+            {
+              name: 'target',
+              type: 'locator',
+              required: true,
+              description: 'Target locator.',
+              cardinality: 'exactlyOne',
+            },
+            { name: 'value', type: 'string', required: true, description: 'Untrusted authored secret.' },
+          ],
+        }),
+      ),
+    ).toThrow('environment-resolved credential operation')
+  })
+
+  it('accepts the ordered text assertion only with a collection locator and json expected texts', () => {
+    const orderedTexts = definitions.find(item => item.id === 'browser.assertions.ordered.texts')
+
+    expect(
+      operationDefinitionSchema.parse({
+        ...orderedTexts,
+        handler: { ...orderedTexts?.handler, contentHash: HASH },
+      }),
+    ).toMatchObject({
+      id: 'browser.assertions.ordered.texts',
+      inputs: [
+        { name: 'target', type: 'locator', cardinality: 'collection' },
+        { name: 'expectedTexts', type: 'json', required: true },
+      ],
+    })
   })
 })
 

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { agentPreflightSchema } from '../../../../src/lib/agent-preflight/contracts.ts'
+import { expectedAgentCapabilities } from '../agent-setup-capabilities.js'
 
 import { buildAgentPreflight, diagnosticGuidance, mcpCapabilityMetadata, mcpContractHash } from './shared.js'
 
@@ -14,20 +15,8 @@ describe('agent preflight contract', () => {
         checks: [{ id: 'application', status: 'ok' }],
       } as never,
       {
-        observedTools: [
-          'project_diagnostic',
-          'requirements_submit_source',
-          'locator_ensure',
-          'locator_search',
-          'validation_publish',
-          'assessment_run',
-          'assessment_decide',
-        ],
-        observedResources: [
-          'appraise://project',
-          'appraise://workflow/quality-design',
-          'appraise://workflow/assessment',
-        ],
+        observedTools: expectedAgentCapabilities.tools,
+        observedResources: expectedAgentCapabilities.resources,
         observedMcpSurfaceVersion: mcpCapabilityMetadata.mcpSurfaceVersion,
         observedMcpContractHash: mcpCapabilityMetadata.mcpContractHash,
         expectedTargetWorkspacePath: '/target',

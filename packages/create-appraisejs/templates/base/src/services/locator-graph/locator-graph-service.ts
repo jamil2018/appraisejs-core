@@ -190,15 +190,33 @@ export async function searchLocatorGraph(
     qualityPlanId: input.qualityPlanId,
     ...(targetProjectId ? { targetProjectId } : {}),
     graphHash: graph.contentHash,
-    locators: page.map(({ locator, group, surface }) => ({
-      id: locator.id,
-      persistentId: locator.persistentId,
-      name: locator.title,
-      selector: locator.strategy.value,
-      group: group ? { id: group.id, persistentId: group.persistentId, name: group.title } : undefined,
-      module: group?.moduleId ? { id: group.moduleId, name: group.moduleName } : undefined,
-      route: surface?.route ?? surface?.title,
-    })),
+    locators: page.map(({ locator, group, surface }) => {
+      if (!locator.persistentId) throw new Error('Locator graph locator is missing its persistent ID.')
+      if (group && !group.persistentId) throw new Error('Locator graph group is missing its persistent ID.')
+      return {
+        // `locator_search` is a binding-discovery boundary, not a graph
+        // traversal boundary. Return the persistent locator identity in `id`
+        // so an agent can place it directly in compact validation bindings and
+        // locator-valued Step inputs. Keep the graph projection identifier in
+        // its own explicit field for callers that subsequently traverse the
+        // graph with `locator_graph_query`.
+        id: locator.persistentId,
+        presentationId: locator.id,
+        persistentId: locator.persistentId,
+        name: locator.title,
+        selector: locator.strategy.value,
+        group: group
+          ? {
+              id: group.persistentId,
+              presentationId: group.id,
+              persistentId: group.persistentId,
+              name: group.title,
+            }
+          : undefined,
+        module: group?.moduleId ? { id: group.moduleId, name: group.moduleName } : undefined,
+        route: surface?.route ?? surface?.title,
+      }
+    }),
     page: {
       cursor: input.cursor ?? null,
       limit,

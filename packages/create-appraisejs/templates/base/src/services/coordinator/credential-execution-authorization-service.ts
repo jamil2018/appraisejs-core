@@ -5,7 +5,12 @@ import { CredentialExecutionAuthorizationIssuer, Prisma } from '@prisma/client'
 
 import prisma from '@/config/db-config'
 import { canonicalContractJson } from '@/lib/catalog-contracts'
+import { defaultOperationRegistry } from '@/lib/operation-catalog'
 import { ServiceError } from '@/services/shared/errors'
+import {
+  builtInStepDefinitions,
+  computeStepReferenceHash,
+} from '../../../packages/cucumber-runtime/src/step-definitions/index.ts'
 
 let credentialAuthorizationClient = prisma
 
@@ -48,9 +53,10 @@ function exactEnvironmentReference(value: unknown): string | undefined {
 }
 
 /**
- * Only the immutable published Validation AST can authorize an environment
- * binding. `env:` strings and inferred password references are intentionally
- * ignored: neither reaches the runtime dispatcher as an environment reference.
+ * Only immutable published invocations can authorize an environment binding.
+ * Exact canonical credential operations derive the one environment password
+ * slot from catalog semantics; explicit environment references remain valid
+ * only on a verified invocation. Legacy `env:` strings are never authority.
  */
 function credentialReferences(rootInvocations: unknown[]): CredentialBinding[] {
   const entries = rootInvocations.flatMap(credentialBindingsForRoot)
@@ -65,13 +71,53 @@ function credentialReferences(rootInvocations: unknown[]): CredentialBinding[] {
 }
 
 function credentialBindingsForRoot(root: unknown): CredentialBinding[] {
-  if (!isRecord(root) || !isRecord(root.invocation) || !isRecord(root.invocation.inputs)) return []
+  if (!isRecord(root)) return []
+  const invocation = canonicalPublishedInvocation(root)
+  if (!invocation) return []
   const caseId = typeof root.caseId === 'string' ? root.caseId : 'root'
   const stepId = typeof root.stepId === 'string' ? root.stepId : 'step'
-  return Object.entries(root.invocation.inputs).flatMap(([inputName, value]) => {
+  if (invocation.operation.credentialSource === 'environment-resolved')
+    return [{ slot: `${caseId}:${stepId}:password`, reference: 'environment:password' }]
+  return Object.entries(invocation.inputs).flatMap(([inputName, value]) => {
+    const declaredInput = invocation.operation.inputs.find(input => input.name === inputName)
+    if (!declaredInput) return []
     const key = exactEnvironmentReference(value)
     return key ? [{ slot: `${caseId}:${stepId}:${inputName}`, reference: `environment:${key}` }] : []
   })
+}
+
+/** Resolves only the built-in operation that the sealed Step Invocation
+ * actually references. An authored ID/version/hash cannot claim the catalog's
+ * credential semantics by resemblance: every component must equal the
+ * registry descriptor and its projected built-in Step Definition. */
+function canonicalPublishedInvocation(root: unknown) {
+  if (!isRecord(root) || !isRecord(root.invocation) || !isRecord(root.invocation.inputs)) return undefined
+  const step = root.invocation.step
+  if (
+    !isRecord(step) ||
+    typeof step.id !== 'string' ||
+    typeof step.version !== 'string' ||
+    typeof step.definitionHash !== 'string'
+  )
+    return undefined
+  let operation: ReturnType<typeof defaultOperationRegistry.read>[number]
+  try {
+    operation = defaultOperationRegistry.read([{ id: step.id, version: step.version }])[0]!
+  } catch {
+    return undefined
+  }
+  const definition = builtInStepDefinitions.find(
+    candidate => candidate.identity.id === operation.id && candidate.identity.version === operation.version,
+  )
+  if (
+    !definition ||
+    computeStepReferenceHash(definition) !== step.definitionHash ||
+    definition.execution.kind !== 'operation' ||
+    definition.execution.handlerId !== operation.handler.id ||
+    definition.execution.handlerVersion !== operation.handler.version
+  )
+    return undefined
+  return { operation, inputs: root.invocation.inputs }
 }
 
 export async function executionRequiresCredential(environmentId: string) {
@@ -239,7 +285,13 @@ export function credentialAuthorizationInput(scope: {
   evaluationSubjectRevisionId: string
   subjectDigest: string
   environmentId: string
-  publications: Array<{ operationHash: string; runtimeInputHash: string; runtimeInputJson: string }>
+  publications: Array<{
+    generationId: string
+    publicationId: string
+    operationHash: string
+    runtimeInputHash: string
+    runtimeInputJson: string
+  }>
   requestHash: string
 }): ExecutionScope {
   const bindings = credentialReferences(
@@ -254,7 +306,20 @@ export function credentialAuthorizationInput(scope: {
   )
   return {
     ...scope,
-    publicationFingerprint: sha256(canonicalContractJson(scope.publications.map(item => item.operationHash).sort())),
+    publicationFingerprint: sha256(
+      canonicalContractJson(
+        scope.publications
+          .map(item => ({
+            generationId: item.generationId,
+            publicationId: item.publicationId,
+            operationHash: item.operationHash,
+            runtimeInputHash: item.runtimeInputHash,
+          }))
+          .sort((left, right) =>
+            `${left.generationId}:${left.publicationId}`.localeCompare(`${right.generationId}:${right.publicationId}`),
+          ),
+      ),
+    ),
     runtimeInputHash: sha256(canonicalContractJson(scope.publications.map(item => item.runtimeInputHash).sort())),
     bindings,
   }

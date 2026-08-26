@@ -8,6 +8,10 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+  CREDENTIAL_AUTHORIZATION_UI_BOOTSTRAP_HEADER,
+  CREDENTIAL_AUTHORIZATION_UI_BOOTSTRAP_VALUE,
+} from '@/lib/credential-execution-authorization-ui'
 
 export type CredentialExecutionAuthorizationRequest = {
   requestId: string
@@ -49,16 +53,43 @@ function authorizationMessage(error: unknown) {
     return 'This authorization request has expired. Start a fresh run.'
   if (error.message.includes('AUTHORIZATION_REQUEST_CONFLICT'))
     return 'This request was already authorized by another issuer and cannot be changed here.'
+  if (error.message.includes('CSRF_HOST_INVALID'))
+    return 'The Appraise address did not match this authorization request. Refresh the page and try again.'
+  if (error.message.includes('CSRF_ORIGIN_INVALID'))
+    return 'This authorization request must be completed from the active Appraise UI origin. Refresh the page and try again.'
+  if (error.message.includes('CSRF_UI_BOOTSTRAP_INVALID'))
+    return 'This authorization request needs a fresh Appraise UI session. Refresh the page and try again.'
+  if (error.message.includes('CSRF_FETCH_SITE_INVALID'))
+    return 'Open this authorization request directly in the active Appraise UI and try again.'
+  if (error.message.includes('AUTHORIZATION_UI_SESSION_INVALID'))
+    return 'This Appraise UI authorization session is no longer valid. Refresh the page and try again.'
   return error.message || 'The authorization request could not be completed.'
 }
 
-async function responseJson<T>(response: Response): Promise<T> {
+type RouteErrorBody = {
+  code?: string
+  error?: string | { message?: string; code?: string }
+  message?: string
+}
+
+function routeErrorMessage(body: RouteErrorBody, status: number) {
+  if (typeof body.code === 'string' && body.code) return body.code
+  if (typeof body.error === 'string' && body.error) return body.error
+  if (typeof body.error === 'object' && body.error) {
+    if (typeof body.error.code === 'string' && body.error.code) return body.error.code
+    if (typeof body.error.message === 'string' && body.error.message) return body.error.message
+  }
+  if (typeof body.message === 'string' && body.message) return body.message
+  return `Request failed (${status})`
+}
+
+export async function responseJson<T>(response: Response): Promise<T> {
   const body = (await response.json().catch(() => ({}))) as {
-    error?: { message?: string; code?: string }
+    code?: string
+    error?: string | { message?: string; code?: string }
     message?: string
   }
-  if (!response.ok)
-    throw new Error(body.error?.code ?? body.error?.message ?? body.message ?? `Request failed (${response.status})`)
+  if (!response.ok) throw new Error(routeErrorMessage(body, response.status))
   return body as T
 }
 
@@ -91,7 +122,15 @@ export function CredentialExecutionAuthorization({
 
   const bootstrapSession = async () => {
     if (bootstrap) return bootstrap
-    const next = await responseJson<Bootstrap>(await fetch(endpoint, { cache: 'no-store', credentials: 'same-origin' }))
+    const next = await responseJson<Bootstrap>(
+      await fetch(endpoint, {
+        cache: 'no-store',
+        credentials: 'same-origin',
+        headers: {
+          [CREDENTIAL_AUTHORIZATION_UI_BOOTSTRAP_HEADER]: CREDENTIAL_AUTHORIZATION_UI_BOOTSTRAP_VALUE,
+        },
+      }),
+    )
     if (!next.request || next.request.requestHash !== request.requestHash)
       throw new Error('Authorization request binding changed. Refresh and review again.')
     setBootstrap(next)
@@ -112,7 +151,11 @@ export function CredentialExecutionAuthorization({
           await fetch(endpoint, {
             method: 'POST',
             credentials: 'same-origin',
-            headers: { 'Content-Type': 'application/json', 'x-appraise-csrf': session.csrfToken },
+            headers: {
+              'Content-Type': 'application/json',
+              'x-appraise-csrf': session.csrfToken,
+              [CREDENTIAL_AUTHORIZATION_UI_BOOTSTRAP_HEADER]: CREDENTIAL_AUTHORIZATION_UI_BOOTSTRAP_VALUE,
+            },
             body: JSON.stringify({ requestId: request.requestId }),
           }),
         )
@@ -133,7 +176,11 @@ export function CredentialExecutionAuthorization({
           await fetch(endpoint, {
             method: 'POST',
             credentials: 'same-origin',
-            headers: { 'Content-Type': 'application/json', 'x-appraise-csrf': session.csrfToken },
+            headers: {
+              'Content-Type': 'application/json',
+              'x-appraise-csrf': session.csrfToken,
+              [CREDENTIAL_AUTHORIZATION_UI_BOOTSTRAP_HEADER]: CREDENTIAL_AUTHORIZATION_UI_BOOTSTRAP_VALUE,
+            },
             body: JSON.stringify({
               revokeGrantId: grant.grantId,
               reason: 'Revoked from the local Appraise UI session.',

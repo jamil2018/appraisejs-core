@@ -11,12 +11,13 @@ import { Textarea } from '@/components/ui/textarea'
 import { toast } from '@/hooks/use-toast'
 
 import {
+  assessmentPreflightAction,
+  assessmentPrepareAction,
   approveQualityValidationDesignAction,
   answerQualityRequirementQueriesAction,
-  compileQualityValidationsAction,
   createQualityAssessmentAction,
+  createRemoteEvaluationScopeAction,
   proposeQualityValidationDesignAction,
-  publishQualityValidationsAction,
 } from '../quality-design-actions'
 
 type Query = { id: string; prompt: string; status: string; answer: string | null; rationale: string | null }
@@ -25,6 +26,19 @@ type Validation = {
   id: string
   status: string
   compilationHash: string | null
+  activeGeneration?: {
+    id: string
+    publicationId: string
+    operationHash: string
+    runtimeInputHash: string
+  } | null
+}
+
+type RemotePreflightToken = {
+  algorithmVersion: 'appraise.quality-assessment-preflight/v2'
+  scopeIntentHash: string
+  realizationIntentHash: string
+  preflightHash: string
 }
 
 type QualityLifecycleControlsProps = {
@@ -35,6 +49,7 @@ type QualityLifecycleControlsProps = {
   queries: Query[]
   obligations: Obligation[]
   validations: Validation[]
+  targetKind?: string
 }
 
 function idempotencyKey(prefix: string) {
@@ -52,10 +67,15 @@ function parseJson(value: string, label: string) {
 function useMutation() {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
-  const run = (title: string, operation: () => Promise<{ success?: boolean; error?: string }>) =>
+  const run = (
+    title: string,
+    operation: () => Promise<{ success?: boolean; error?: string; data?: unknown }>,
+    onSuccess?: (data: unknown) => void,
+  ) =>
     startTransition(async () => {
       const response = await operation()
       if (response.success) {
+        onSuccess?.(response.data)
         toast({ title })
         router.refresh()
       } else {
@@ -77,10 +97,9 @@ export function QualityLifecycleControls({
   queries,
   obligations,
   validations,
+  targetKind,
 }: QualityLifecycleControlsProps) {
   const unresolvedQueries = queries.filter(query => query.status === 'BLOCKING')
-  const compilationHash = validations.find(validation => validation.compilationHash)?.compilationHash ?? null
-
   return (
     <section className="grid gap-6 xl:grid-cols-2" aria-label="Quality lifecycle controls">
       <RequirementQueryAnswers qualityPlanId={qualityPlanId} queries={unresolvedQueries} revisionId={revisionId} />
@@ -91,18 +110,20 @@ export function QualityLifecycleControls({
         revisionId={revisionId}
         revisionStatus={revisionStatus}
       />
-      <ValidationRealizationControls
-        compilationHash={compilationHash}
+      <AssessmentPreparationControls
         designHash={designHash}
         qualityPlanId={qualityPlanId}
         revisionId={revisionId}
         revisionStatus={revisionStatus}
+        targetKind={targetKind}
         validations={validations}
       />
       <AssessmentCreateControls
         qualityPlanId={qualityPlanId}
         revisionId={revisionId}
         revisionStatus={revisionStatus}
+        targetKind={targetKind}
+        designHash={designHash}
         validations={validations}
       />
     </section>
@@ -291,88 +312,378 @@ function ScenarioDesignControls({
   )
 }
 
-function ValidationRealizationControls({
-  compilationHash,
-  designHash,
+type BindingFieldsProps = {
+  environmentId: string
+  bindingsJson: string
+  onEnvironmentIdChange: (value: string) => void
+  onBindingsJsonChange: (value: string) => void
+  environmentLabel: string
+  environmentInputId: string
+  bindingsLabel: string
+  bindingsInputId: string
+  bindingsClassName?: string
+}
+
+function CompactBindingFields({
+  environmentId,
+  bindingsJson,
+  onEnvironmentIdChange,
+  onBindingsJsonChange,
+  environmentLabel,
+  environmentInputId,
+  bindingsLabel,
+  bindingsInputId,
+  bindingsClassName,
+}: BindingFieldsProps) {
+  return (
+    <>
+      <div className="space-y-2">
+        <Label htmlFor={environmentInputId}>{environmentLabel}</Label>
+        <Input
+          id={environmentInputId}
+          value={environmentId}
+          onChange={event => onEnvironmentIdChange(event.target.value)}
+        />
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor={bindingsInputId}>{bindingsLabel}</Label>
+        <Textarea
+          className={bindingsClassName}
+          id={bindingsInputId}
+          value={bindingsJson}
+          onChange={event => onBindingsJsonChange(event.target.value)}
+        />
+      </div>
+    </>
+  )
+}
+
+function ArtifactSubjectInputs({
+  digest,
+  authority,
+  onDigestChange,
+  onAuthorityChange,
+  digestLabel,
+  authorityLabel,
+}: {
+  digest: string
+  authority: string
+  onDigestChange: (value: string) => void
+  onAuthorityChange: (value: string) => void
+  digestLabel: string
+  authorityLabel: string
+}) {
+  return (
+    <>
+      <Input
+        aria-label={digestLabel}
+        value={digest}
+        onChange={event => onDigestChange(event.target.value)}
+        placeholder="sha256:…"
+      />
+      <Input
+        aria-label={authorityLabel}
+        value={authority}
+        onChange={event => onAuthorityChange(event.target.value)}
+        placeholder="artifact://build"
+      />
+    </>
+  )
+}
+
+function RemoteScopeCreateButton({ disabled, onCreate }: { disabled: boolean; onCreate: () => void }) {
+  return (
+    <Button type="button" variant="outline" disabled={disabled} onClick={onCreate}>
+      Create remote evaluation scope
+    </Button>
+  )
+}
+
+function RemoteScopeSubjectInput({
+  inputId,
+  value,
+  onChange,
+  label,
+  placeholder,
+}: {
+  inputId: string
+  value: string
+  onChange: (value: string) => void
+  label: string
+  placeholder?: string
+}) {
+  return (
+    <div className="space-y-2">
+      <Label htmlFor={inputId}>{label}</Label>
+      <Input id={inputId} value={value} onChange={event => onChange(event.target.value)} placeholder={placeholder} />
+    </div>
+  )
+}
+
+type MutationRunner = ReturnType<typeof useMutation>['run']
+
+function createRemoteScopeFromBindings(input: {
+  run: MutationRunner
+  qualityPlanId: string
+  revisionId: string
+  designHash: string | null
+  bindingsJson: string
+  environmentId: string
+  onCreated: (id: string) => void
+  detailedError?: boolean
+}) {
+  try {
+    input.run(
+      'Remote evaluation scope created',
+      () =>
+        createRemoteEvaluationScopeAction({
+          qualityPlanId: input.qualityPlanId,
+          revisionId: input.revisionId,
+          expectedDesignHash: input.designHash,
+          validationBindings: parseJson(input.bindingsJson, 'Validation bindings'),
+          environmentId: input.environmentId.trim(),
+          idempotencyKey: idempotencyKey('remote-scope'),
+        }),
+      data => {
+        const id = (data as { subjectRevisionId?: unknown } | undefined)?.subjectRevisionId
+        if (typeof id === 'string') input.onCreated(id)
+      },
+    )
+  } catch (error) {
+    toast({
+      title: 'Validation bindings are invalid',
+      description: input.detailedError && error instanceof Error ? error.message : undefined,
+      variant: 'destructive',
+    })
+  }
+}
+
+function runAssessmentPreflight(input: {
+  run: MutationRunner
+  compact: () => object
+  onCompleted: (token: RemotePreflightToken | null) => void
+}) {
+  try {
+    input.run(
+      'Assessment preflight completed',
+      () => assessmentPreflightAction(input.compact()),
+      data => {
+        const candidate = data as Partial<RemotePreflightToken> | undefined
+        const token =
+          candidate?.algorithmVersion === 'appraise.quality-assessment-preflight/v2' &&
+          typeof candidate.scopeIntentHash === 'string' &&
+          typeof candidate.realizationIntentHash === 'string' &&
+          typeof candidate.preflightHash === 'string'
+            ? {
+                algorithmVersion: candidate.algorithmVersion,
+                scopeIntentHash: candidate.scopeIntentHash,
+                realizationIntentHash: candidate.realizationIntentHash,
+                preflightHash: candidate.preflightHash,
+              }
+            : null
+        input.onCompleted(token)
+      },
+    )
+  } catch {
+    toast({ title: 'Validation bindings are invalid', variant: 'destructive' })
+  }
+}
+
+function preparationReady(revisionStatus: string, designHash: string | null, validations: Validation[]) {
+  return revisionStatus === 'SCENARIOS_APPROVED' && Boolean(designHash) && validations.length > 0
+}
+
+function preparationSubject(remote: boolean, subjectRevisionId: string, subjectDigest: string, authority: string) {
+  return remote
+    ? { subjectRevisionId: subjectRevisionId.trim() }
+    : { subjectDigest: subjectDigest.trim(), authority: authority.trim(), subjectKind: 'ARTIFACT' as const }
+}
+
+function preflightDisabled(input: {
+  ready: boolean
+  environmentId: string
+  isPending: boolean
+  remote: boolean
+  subjectRevisionId: string
+  subjectDigest: string
+  authority: string
+}) {
+  return (
+    !input.ready ||
+    !input.environmentId.trim() ||
+    input.isPending ||
+    (input.remote ? !input.subjectRevisionId.trim() : !input.subjectDigest || !input.authority)
+  )
+}
+
+function assessmentReady(revisionStatus: string, validations: Validation[]) {
+  return (
+    revisionStatus === 'REALIZED' &&
+    validations.length > 0 &&
+    validations.every(validation => validation.activeGeneration)
+  )
+}
+
+function assessmentCreateDisabled(input: {
+  ready: boolean
+  isPending: boolean
+  remote: boolean
+  subjectRevisionId: string
+  subjectDigest: string
+  authority: string
+}) {
+  return (
+    !input.ready ||
+    input.isPending ||
+    (input.remote
+      ? !input.subjectRevisionId.trim()
+      : !input.subjectDigest.startsWith('sha256:') || !input.authority.trim())
+  )
+}
+
+function AssessmentPreparationControls({
   qualityPlanId,
   revisionId,
   revisionStatus,
+  designHash,
   validations,
-}: {
-  compilationHash: string | null
-  designHash: string | null
-  qualityPlanId: string
-  revisionId: string
-  revisionStatus: string
-  validations: Validation[]
-}) {
-  const [realization, setRealization] = useState('')
+  targetKind,
+}: Pick<
+  QualityLifecycleControlsProps,
+  'qualityPlanId' | 'revisionId' | 'revisionStatus' | 'designHash' | 'validations' | 'targetKind'
+>) {
+  const [environmentId, setEnvironmentId] = useState('')
+  const [bindingsJson, setBindingsJson] = useState('[]')
+  const [subjectDigest, setSubjectDigest] = useState('')
+  const [authority, setAuthority] = useState('')
+  const [subjectRevisionId, setSubjectRevisionId] = useState('')
+  const [preflightToken, setPreflightToken] = useState<RemotePreflightToken | null>(null)
+  const [preflightCompleted, setPreflightCompleted] = useState(false)
   const { isPending, run } = useMutation()
-  const canCompile = revisionStatus === 'SCENARIOS_APPROVED' || revisionStatus === 'REALIZED'
-  const canPublish = revisionStatus === 'REALIZED' && Boolean(compilationHash)
-
+  const remote = targetKind === 'REMOTE_BLACK_BOX'
+  const ready = preparationReady(revisionStatus, designHash, validations)
+  const executableValidationCount = validations.filter(validation => validation.activeGeneration).length
+  const subject = preparationSubject(remote, subjectRevisionId, subjectDigest, authority)
+  const compact = () => ({
+    qualityPlanId,
+    revisionId,
+    expectedDesignHash: designHash!,
+    validationBindings: parseJson(bindingsJson, 'Validation bindings'),
+    environmentId: environmentId.trim(),
+    subject,
+    runtime: { browserEngine: 'CHROMIUM' as const },
+  })
   return (
     <LifecycleCard
-      title="Validation realization and publication"
-      description="Compile the reviewed scenarios with a sealed runtime-publication envelope, then publish the complete realized set."
+      title="Assessment preparation"
+      description="Resolve compact bindings through Appraise-owned preflight, then prepare the managed assessment. Raw realization JSON is not accepted."
     >
-      <Label htmlFor="quality-realization">Realization JSON</Label>
-      <Textarea
-        className="mt-2 min-h-40 font-mono text-xs"
-        id="quality-realization"
-        onChange={event => setRealization(event.target.value)}
-        placeholder='{"default":{"runtimePublication":{...}}}'
-        value={realization}
-      />
-      <p className="mt-2 text-xs text-muted-foreground">
-        The envelope must contain the reviewed projection, validation projection, runtime input, and immutable compiler
-        hashes.
+      <p className="text-sm text-muted-foreground">
+        Historical validation status is informational. Executable readiness requires an active generation with its exact
+        review-ready publication ({executableValidationCount} of {validations.length} available).
       </p>
-      <div className="mt-4 flex flex-wrap gap-2">
-        <Button
-          disabled={!canCompile || isPending || !designHash || !realization.trim()}
-          onClick={() => {
-            try {
-              const parsed = parseJson(realization, 'Realization')
-              run('Validations compiled', () =>
-                compileQualityValidationsAction({
+      <div className="grid gap-3">
+        <CompactBindingFields
+          environmentId={environmentId}
+          bindingsJson={bindingsJson}
+          onEnvironmentIdChange={setEnvironmentId}
+          onBindingsJsonChange={setBindingsJson}
+          environmentLabel="Existing environment ID"
+          environmentInputId="prepare-environment"
+          bindingsLabel="Approved compact validation bindings JSON"
+          bindingsInputId="prepare-bindings"
+        />
+        {remote ? (
+          <>
+            <RemoteScopeCreateButton
+              disabled={!ready || !environmentId.trim() || isPending}
+              onCreate={() =>
+                createRemoteScopeFromBindings({
+                  run,
                   qualityPlanId,
                   revisionId,
-                  expectedDesignHash: designHash!,
-                  realization: parsed,
-                }),
-              )
-            } catch (error) {
-              toast({
-                title: 'Realization is invalid',
-                description: error instanceof Error ? error.message : undefined,
-                variant: 'destructive',
-              })
-            }
-          }}
+                  designHash,
+                  bindingsJson,
+                  environmentId,
+                  onCreated: setSubjectRevisionId,
+                })
+              }
+            />
+            <RemoteScopeSubjectInput
+              inputId="prepare-remote-subject"
+              label="Remote evaluation scope subject ID"
+              value={subjectRevisionId}
+              onChange={setSubjectRevisionId}
+            />
+          </>
+        ) : (
+          <ArtifactSubjectInputs
+            digest={subjectDigest}
+            authority={authority}
+            onDigestChange={setSubjectDigest}
+            onAuthorityChange={setAuthority}
+            digestLabel="Preparation subject digest"
+            authorityLabel="Preparation subject authority"
+          />
+        )}
+      </div>
+      <div className="mt-4 flex gap-2">
+        <Button
           type="button"
+          variant="outline"
+          disabled={preflightDisabled({
+            ready,
+            environmentId,
+            isPending,
+            remote,
+            subjectRevisionId,
+            subjectDigest,
+            authority,
+          })}
+          onClick={() =>
+            runAssessmentPreflight({
+              run,
+              compact,
+              onCompleted: token => {
+                setPreflightCompleted(true)
+                setPreflightToken(token)
+              },
+            })
+          }
         >
-          Compile validations
+          Run preflight
         </Button>
         <Button
-          disabled={!canPublish || isPending}
+          type="button"
+          disabled={!preflightCompleted || (remote && !preflightToken) || isPending}
           onClick={() =>
-            run('Validations published', () =>
-              publishQualityValidationsAction({
-                qualityPlanId,
-                revisionId,
-                validationVersionIds: validations.map(validation => validation.id),
-                expectedCompilationHash: compilationHash!,
+            run('Managed assessment prepared', () =>
+              assessmentPrepareAction({
+                ...compact(),
+                ...(remote && preflightToken
+                  ? {
+                      expectedPreflight: {
+                        algorithmVersion: preflightToken.algorithmVersion,
+                        preflightHash: preflightToken.preflightHash,
+                      },
+                    }
+                  : {}),
+                idempotencyKey: idempotencyKey('prepare'),
               }),
             )
           }
-          type="button"
-          variant="outline"
         >
-          Publish validations
+          Prepare and launch
         </Button>
       </div>
-      {compilationHash ? <HashHint label="Current compilation hash" value={compilationHash} /> : null}
+      {preflightToken ? (
+        <div className="grid gap-1">
+          <HashHint label="Preflight algorithm" value={preflightToken.algorithmVersion} />
+          <HashHint label="Scope intent hash" value={preflightToken.scopeIntentHash} />
+          <HashHint label="Realization intent hash" value={preflightToken.realizationIntentHash} />
+          <HashHint label="Preflight hash" value={preflightToken.preflightHash} />
+        </div>
+      ) : null}
     </LifecycleCard>
   )
 }
@@ -382,40 +693,93 @@ function AssessmentCreateControls({
   revisionId,
   revisionStatus,
   validations,
-}: Pick<QualityLifecycleControlsProps, 'qualityPlanId' | 'revisionId' | 'revisionStatus' | 'validations'>) {
+  targetKind,
+  designHash,
+}: Pick<
+  QualityLifecycleControlsProps,
+  'qualityPlanId' | 'revisionId' | 'revisionStatus' | 'validations' | 'targetKind' | 'designHash'
+>) {
   const [subjectDigest, setSubjectDigest] = useState('')
   const [authority, setAuthority] = useState('')
+  const [subjectRevisionId, setSubjectRevisionId] = useState('')
   const [baselineAssessmentId, setBaselineAssessmentId] = useState('')
+  const [environmentId, setEnvironmentId] = useState('')
+  const [bindingsJson, setBindingsJson] = useState('[]')
   const { isPending, run } = useMutation()
-  const readyForAssessment =
-    revisionStatus === 'REALIZED' &&
-    validations.length > 0 &&
-    validations.every(validation => validation.status === 'PUBLISHED')
-
+  const readyForAssessment = assessmentReady(revisionStatus, validations)
+  const remote = targetKind === 'REMOTE_BLACK_BOX'
   return (
     <LifecycleCard
       title="Create Assessment"
-      description="Bind the published validation matrix to an immutable subject before execution and evidence review."
+      description={
+        remote
+          ? 'Create an Appraise-owned remote evaluation scope from approved compact bindings, then bind its subject revision. This asserts evaluation scope only; target content identity is not asserted.'
+          : 'Bind the published validation matrix to an immutable subject before execution and evidence review.'
+      }
     >
       <div className="grid gap-3">
-        <div className="space-y-2">
-          <Label htmlFor="assessment-subject-digest">Subject digest</Label>
-          <Input
-            id="assessment-subject-digest"
-            onChange={event => setSubjectDigest(event.target.value)}
-            placeholder="sha256:…"
-            value={subjectDigest}
-          />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="assessment-authority">Subject authority</Label>
-          <Input
-            id="assessment-authority"
-            onChange={event => setAuthority(event.target.value)}
-            placeholder="artifact://build-123"
-            value={authority}
-          />
-        </div>
+        {remote ? (
+          <div className="space-y-3">
+            <CompactBindingFields
+              environmentId={environmentId}
+              bindingsJson={bindingsJson}
+              onEnvironmentIdChange={setEnvironmentId}
+              onBindingsJsonChange={setBindingsJson}
+              environmentLabel="Existing environment ID"
+              environmentInputId="assessment-remote-environment"
+              bindingsLabel="Approved compact validation bindings JSON"
+              bindingsInputId="assessment-remote-bindings"
+              bindingsClassName="min-h-40 font-mono text-xs"
+            />
+            <RemoteScopeCreateButton
+              disabled={isPending || !designHash || !environmentId.trim()}
+              onCreate={() =>
+                createRemoteScopeFromBindings({
+                  run,
+                  qualityPlanId,
+                  revisionId,
+                  designHash,
+                  bindingsJson,
+                  environmentId,
+                  onCreated: setSubjectRevisionId,
+                  detailedError: true,
+                })
+              }
+            />
+            <RemoteScopeSubjectInput
+              inputId="assessment-remote-scope-subject"
+              label="Remote evaluation scope subject ID"
+              placeholder="Created by evaluation_subject_remote_scope_create"
+              value={subjectRevisionId}
+              onChange={setSubjectRevisionId}
+            />
+            <p className="text-xs text-muted-foreground">
+              Use the scope-create flow with approved bindings and an existing environment. Do not paste a deployment,
+              URL, authority, or content digest here.
+            </p>
+          </div>
+        ) : (
+          <>
+            <div className="space-y-2">
+              <Label htmlFor="assessment-subject-digest">Subject digest</Label>
+              <Input
+                id="assessment-subject-digest"
+                onChange={event => setSubjectDigest(event.target.value)}
+                placeholder="sha256:…"
+                value={subjectDigest}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="assessment-authority">Subject authority</Label>
+              <Input
+                id="assessment-authority"
+                onChange={event => setAuthority(event.target.value)}
+                placeholder="artifact://build-123"
+                value={authority}
+              />
+            </div>
+          </>
+        )}
         <div className="space-y-2">
           <Label htmlFor="assessment-baseline">Baseline Assessment ID (optional)</Label>
           <Input
@@ -427,7 +791,14 @@ function AssessmentCreateControls({
       </div>
       <Button
         className="mt-4"
-        disabled={!readyForAssessment || isPending || !subjectDigest.startsWith('sha256:') || !authority.trim()}
+        disabled={assessmentCreateDisabled({
+          ready: readyForAssessment,
+          isPending,
+          remote,
+          subjectRevisionId,
+          subjectDigest,
+          authority,
+        })}
         onClick={() =>
           run('Assessment created', () =>
             createQualityAssessmentAction({
@@ -435,7 +806,9 @@ function AssessmentCreateControls({
               revisionId,
               idempotencyKey: idempotencyKey('assessment'),
               baselineAssessmentId: baselineAssessmentId.trim() || undefined,
-              subject: { subjectDigest, authority, subjectKind: 'ARTIFACT' },
+              subject: remote
+                ? { subjectRevisionId: subjectRevisionId.trim() }
+                : { subjectDigest, authority, subjectKind: 'ARTIFACT' },
             }),
           )
         }
@@ -445,7 +818,8 @@ function AssessmentCreateControls({
       </Button>
       {!readyForAssessment ? (
         <p className="mt-3 text-sm text-amber-200">
-          Publish every validation version before creating an executable Assessment.
+          Every validation needs a supported active generation and its exact review-ready publication before creating an
+          executable Assessment. A historical Published status alone is not sufficient.
         </p>
       ) : null}
     </LifecycleCard>

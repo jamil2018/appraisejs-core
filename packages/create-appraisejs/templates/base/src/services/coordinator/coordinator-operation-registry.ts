@@ -54,6 +54,10 @@ export const coordinatorOperationRegistry = createCoordinatorOperationRegistry([
   { id: 'locator-graph', method: 'GET', pattern: ['locator-graph', '*'] },
   { id: 'environment-read', method: 'GET', pattern: ['environments'] },
   { id: 'quality-read', method: 'GET', pattern: ['quality', '*'] },
+  // Coordinator reads usually use GET. This compact recovery packet needs a
+  // strict structured body, but remains read-only and must not be folded into
+  // the broad quality-write operation in public contract diagnostics.
+  { id: 'quality-read', method: 'POST', pattern: ['quality', 'evaluation-subjects', 'remote-scopes', 'read'] },
   { id: 'step-definitions-write', method: 'POST', pattern: ['step-definitions', '*'] },
   { id: 'diagnostic-preflight-write', method: 'POST', pattern: ['diagnostic', 'preflight'] },
   { id: 'quality-write', method: 'POST', pattern: ['quality', '*'] },

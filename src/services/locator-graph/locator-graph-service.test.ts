@@ -234,12 +234,49 @@ describe('locator graph discovery', () => {
       const result = await searchLocatorGraph({ qualityPlanId: 'plan-one', query }, client, 'target-one')
       expect(result.locators).toEqual([
         expect.objectContaining({
+          id: 'email-input',
+          presentationId: 'locator_email-input',
           persistentId: 'email-input',
           route: '/login',
+          group: {
+            id: 'login-group',
+            presentationId: 'group_login-group',
+            persistentId: 'login-group',
+            name: 'Login form',
+          },
           module: expect.objectContaining({ name: 'Authentication' }),
         }),
       ])
       expect(result.page).toMatchObject({ maxLimit: 100, nextCursor: null })
     }
+  })
+
+  it('keeps graph traversal identifiers prefixed while search returns bindable persistent identities', async () => {
+    const graph = await buildLocatorGraph(scopedClient, 'target-one')
+    const result = await searchLocatorGraph(
+      { qualityPlanId: 'plan-one', query: 'checkout' },
+      scopedClient,
+      'target-one',
+    )
+
+    expect(graph.nodes).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: 'group_project-group', persistentId: 'project-group' }),
+        expect.objectContaining({ id: 'locator_checkout-button', persistentId: 'checkout-button' }),
+      ]),
+    )
+    expect(result.locators).toEqual([
+      expect.objectContaining({
+        id: 'checkout-button',
+        presentationId: 'locator_checkout-button',
+        persistentId: 'checkout-button',
+        group: {
+          id: 'project-group',
+          presentationId: 'group_project-group',
+          persistentId: 'project-group',
+          name: 'Checkout',
+        },
+      }),
+    ])
   })
 })
