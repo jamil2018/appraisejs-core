@@ -1124,7 +1124,6 @@ export type CanonicalAssessmentPreflight = ReturnType<typeof preparationPrefligh
 }
 
 // Imported by the SQLite integration harness through an isolated generated module.
-// fallow-ignore-next-line unused-export
 export async function resolveCanonicalAssessmentPreflight(
   source: unknown,
   client: typeof prisma = prisma,
@@ -1554,7 +1553,7 @@ function reservedAssessmentActiveConflict(assessmentId: string): never {
   )
 }
 
-async function recoverReservedAssessment(error: unknown) {
+async function recoverReservedAssessment(error: unknown): Promise<never> {
   const assessmentId = reservedAssessmentId(error)
   if (!assessmentId) throw error
   const existing = await readQualityAssessment(assessmentId)

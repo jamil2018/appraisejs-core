@@ -951,7 +951,6 @@ export function deriveExecutionEffects(identity: ExecutionIdentity, cells: Reque
     : { riskClassification: 'READ_ONLY' as const, materialEffects: [] }
 }
 
-// fallow-ignore-next-line complexity -- consent policy, immutable publication selection, and replay safety form one boundary.
 async function ensureExecutionConsent(input: {
   input: AssessmentRunInput
   identity: ExecutionIdentity

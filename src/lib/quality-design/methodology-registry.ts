@@ -386,7 +386,6 @@ export function critiqueRequirementAnalysis(proposal: RequirementAnalysisProposa
   return findings
 }
 
-// fallow-ignore-next-line complexity -- branches are independent declarative methodology critique rules.
 export function critiqueValidationDesign(
   proposal: ValidationDesignProposal,
   expectedObligationIds: readonly string[],
@@ -539,7 +538,6 @@ function hasRelevantRequirementQueries(analysis: RequirementAnalysisProposal) {
   })
 }
 
-// fallow-ignore-next-line complexity -- independent rubric dimensions intentionally remain visible and auditable together.
 export function evaluateQualityPlanning(input: {
   analysis: RequirementAnalysisProposal
   design: ValidationDesignProposal

@@ -399,7 +399,6 @@ export async function decideRequirementAnalysis(
   client: PrismaLike = qualityOsDb,
 ) {
   if (!terminalAnalysisDecisions.has(input.decision)) throw new ServiceError('Invalid analysis decision.', 'VALIDATION')
-  // fallow-ignore-next-line complexity -- approval provenance is verified and sealed atomically.
   return client.$transaction(async transaction => {
     const analysis = await transaction.requirementAnalysisRevision.findFirst({
       where: { id: input.analysisRevisionId },
@@ -593,7 +592,6 @@ export async function decideValidationDesign(
 ) {
   if (!terminalDesignDecisions.has(input.decision))
     throw new ServiceError('Invalid validation design decision.', 'VALIDATION')
-  // fallow-ignore-next-line complexity -- the approved portfolio is verified and materialized atomically.
   return client.$transaction(async transaction => {
     const design = await transaction.validationDesignRevision.findFirst({
       where: { id: input.validationDesignRevisionId },
@@ -733,7 +731,6 @@ export async function decideExecutionConsent(
   },
   client: PrismaLike = qualityOsDb,
 ) {
-  // fallow-ignore-next-line code-duplication -- grant and revoke enforce the same immutable consent scope.
   const consent = await client.executionConsent.findFirst({ where: { id: input.consentId } })
   if (!consent) throw new ServiceError('Execution consent not found.', 'NOT_FOUND')
   if (input.assessmentId && consent.assessmentId !== input.assessmentId)
@@ -752,7 +749,6 @@ export async function revokeExecutionConsent(
   input: { consentId: string; assessmentId?: string; reason: string },
   client: PrismaLike = qualityOsDb,
 ) {
-  // fallow-ignore-next-line code-duplication -- grant and revoke enforce the same immutable consent scope.
   const consent = await client.executionConsent.findFirst({ where: { id: input.consentId } })
   if (!consent) throw new ServiceError('Execution consent not found.', 'NOT_FOUND')
   if (input.assessmentId && consent.assessmentId !== input.assessmentId)
@@ -795,7 +791,6 @@ export async function recordAssessmentFinding(
   uniqueIds(input.evidenceReceiptIds, 'Finding evidence')
   if (!input.evidenceReceiptIds.length)
     throw new ServiceError('A finding requires sealed evidence receipts.', 'VALIDATION')
-  // fallow-ignore-next-line complexity -- evidence membership and attribution are sealed atomically.
   return client.$transaction(async transaction => {
     const assessment = await transaction.assessment.findFirst({ where: { id: input.assessmentId } })
     if (!assessment) throw new ServiceError('Assessment not found.', 'NOT_FOUND')

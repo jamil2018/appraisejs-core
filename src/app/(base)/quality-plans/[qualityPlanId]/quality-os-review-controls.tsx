@@ -18,7 +18,6 @@ type ReviewArtifact = {
   critique: unknown
 }
 
-// fallow-ignore-next-line complexity -- this card owns its bounded review submission state machine.
 function ReviewCard({
   artifact,
   kind,
