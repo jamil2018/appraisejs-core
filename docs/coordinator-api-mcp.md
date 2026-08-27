@@ -1,5 +1,11 @@
 # Coordinator API And MCP Contract
 
+The Quality Journey Phase 0 contracts reserve the additive Phase 1 surface `quality_journey_create`,
+`quality_journey_get`, `quality_journey_resume`, `quality_journey_command_submit`, `quality_journey_work_claim`,
+`quality_journey_work_complete`, and `quality_journey_artifacts_list`. These operations are not implemented or
+advertised by the current executable coordinator registry yet. See `docs/quality-journey-contracts.md`; clients must
+continue using the current generated operation inventory until the kernel and registry land.
+
 The internal coordinator boundary and MCP server expose the same executable quality-management capabilities. Their canonical definitions provide request validation, safety annotations, generated setup output, and the operation reference.
 
 The supported workflow is target registration; methodology discovery; immutable requirement-source submission; requirement-analysis proposal, critique, query resolution, and exact-hash decision; validation-design proposal, critique, and exact-hash decision; mechanical realization and publication; Assessment creation; manifest-bound execution consent; managed execution and evidence reconciliation; attributed obligation findings; and an exact hash-bound Assessment decision. Every mutation remains target-scoped and identity-bound.

@@ -1,8 +1,8 @@
-# ADR-0003: Add Appraise-owned lifecycle sessions for agent coordination
+# ADR-0003: Add Appraise-owned Quality Journeys for agent coordination
 
 ## Status
 
-Proposed
+Accepted for phased delivery
 
 ## Date
 
@@ -23,8 +23,13 @@ would reduce integrity without correcting that ownership problem.
 
 ## Decision
 
-Add an Appraise-owned, target-scoped lifecycle session as an orchestration and continuation layer over the existing
+Add an Appraise-owned, target-scoped Quality Journey as an orchestration and continuation layer over the existing
 domain services.
+
+The Quality Journey Role-Based Workflow contract supersedes the provisional `evaluation_session_*` naming in this
+ADR. `QualityJourney` is the durable product concept; a server-side session is only a role-scoped projection of that
+authority. The executable Phase 0 contracts and transition tables live under `src/lib/quality-journey/` and are
+documented in `docs/quality-journey-contracts.md`.
 
 The merged Quality Operating System domain model is the baseline under this layer: methodology-bound requirement
 analysis, validation-design revisions, execution consent, evidence-backed findings, and attribution remain separate
@@ -74,19 +79,22 @@ projection.
 
 ## Public surface
 
-The target surface is intentionally small:
+The target Phase 1 surface is intentionally small:
 
-- `evaluation_session_create`
-- `evaluation_session_list`
-- `evaluation_session_read`
-- `evaluation_session_transition`
-- role work-item read/claim/submit actions exposed through the versioned session transition contract
+- `quality_journey_create`
+- `quality_journey_get`
+- `quality_journey_resume`
+- `quality_journey_command_submit`
+- `quality_journey_work_claim`
+- `quality_journey_work_complete`
+- `quality_journey_artifacts_list`
 
-`evaluation_session_transition` is a discriminated union of versioned actions such as requirements submission and
-approval, design submission and approval, preparation, authorization continuation, managed execution,
-reconciliation, and decision. `evaluation_session_read` returns the current phase, state hash, authoritative links,
-blockers, allowed actions, and the next recommended action. Full internal realization packets, environment snapshots,
-publication internals, and credential values are never returned.
+`quality_journey_command_submit` is a discriminated union of versioned commands such as requirement submission,
+exact-revision approval, discovery, scenario approval, preparation, managed execution, reporting, remediation, and
+closure. `quality_journey_get` returns the current stage, state hash, authoritative links, blockers, allowed commands,
+and next recommended command. Full internal realization packets, environment snapshots, publication internals, and
+credential values are never returned. The provisional `evaluation_session_*` names were never implemented and do
+not receive compatibility aliases.
 
 ## Alternatives considered
 
