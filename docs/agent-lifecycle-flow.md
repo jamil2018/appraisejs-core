@@ -2,6 +2,12 @@
 
 AppraiseJS manages quality work within an explicit target-project boundary. The caller supplies the target workspace during diagnostic and registration; a selected UI project, URL parameter, cookie, or arbitrary identifier cannot replace that binding.
 
+The role-based end-to-end workflow is the Appraise-owned Quality Journey. Its current executable vocabulary,
+transition table, six semantic Role Definitions, command/conflict envelopes, closure rules, and shared golden fixtures
+are documented in `docs/quality-journey-contracts.md` and implemented under `src/lib/quality-journey/`. These contracts
+are the foundation for the deterministic Runner and future `quality_journey_*` coordinator/MCP surface; they do not
+yet replace the Quality Plan and Assessment services described below.
+
 ## Quality Design
 
 The quality workflow begins by registering a target and supplying a requirements source. Appraise stores immutable Requirement Snapshots; the host agent performs semantic reasoning with a versioned Appraise methodology and submits a strict Requirement Analysis proposal. The proposal must separate source facts, inferences, provenance, ambiguities, queries, and derived obligations. Appraise runs deterministic critique and presents the exact artifact and hash for `APPROVED`, `NEEDS_REVISION`, or `REJECTED` review. Obligations do not exist until the exact analysis is approved.
