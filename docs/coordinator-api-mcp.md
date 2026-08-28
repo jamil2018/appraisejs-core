@@ -1,10 +1,12 @@
 # Coordinator API And MCP Contract
 
-The additive Quality Journey Phase 1 surface is `quality_journey_create`, `quality_journey_get`,
+The additive Quality Journey surface is `quality_journey_create`, `quality_journey_get`,
 `quality_journey_resume`, `quality_journey_command_submit`, `quality_journey_work_claim`,
-`quality_journey_work_complete`, and `quality_journey_artifacts_list`. All seven operations are implemented by the
-coordinator API and advertised by the canonical MCP registry. They operate on target-bound Appraise-owned state;
-conversation never substitutes for an exact state hash, idempotency key, work lease, or worker result envelope.
+`quality_journey_work_spawn_receipt_record`, `quality_journey_work_complete`, and
+`quality_journey_artifacts_list`. These eight operations are implemented by the coordinator API and advertised by the
+canonical MCP registry. The Phase 2 receipt transition durably validates the provider's effective runtime boundaries
+before completion. They operate on target-bound Appraise-owned state; conversation never substitutes for an exact
+state hash, idempotency key, work lease, spawn receipt, or worker result envelope.
 
 The internal coordinator boundary and MCP server expose the same executable quality-management capabilities. Their canonical definitions provide request validation, safety annotations, generated setup output, and the operation reference.
 

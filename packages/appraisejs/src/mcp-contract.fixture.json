@@ -3065,6 +3065,59 @@
     },
     {
       "kind": "tool",
+      "name": "quality_journey_work_spawn_receipt_record",
+      "description": "Validate and durably bind a provider spawn receipt to one exact leased work attempt.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "target": {
+            "type": "string",
+            "minLength": 1
+          },
+          "journeyId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "workItemId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "leaseId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "ownerToken": {
+            "type": "string",
+            "minLength": 1
+          },
+          "receipt": {
+            "type": "object",
+            "propertyNames": {
+              "type": "string"
+            },
+            "additionalProperties": {}
+          }
+        },
+        "required": [
+          "target",
+          "journeyId",
+          "workItemId",
+          "leaseId",
+          "ownerToken",
+          "receipt"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "kind": "tool",
       "name": "requirement_analysis_decide",
       "description": "Approve or reject one exact requirement-analysis content hash after resolving blocking queries.",
       "inputSchema": {

@@ -28,10 +28,13 @@ The executable Quality Journey foundation is in `src/lib/quality-journey/`:
 - `runner.ts` derives stage-role eligibility, stable work-item identities, complete node projections, and deterministic
   active-lease expiry from Appraise state.
 - `quality-journey-service.ts` persists the authoritative projection, immutable revisions/cycles/commands/events and
-  artifact links, blockers, work items, attempts, lease authority, and exact result envelopes. Compare-and-swap state
-  mutation, command/event creation, work claims, completion, expiry, and replacement are transactional.
+  artifact links, blockers, work-item authorization, assignment manifests, spawn requests and receipts, attempt
+  replacement lineage, lease authority, and exact result envelopes. Compare-and-swap state mutation, command/event
+  creation, work claims, receipt recording, completion, expiry, and replacement are transactional.
 - Prisma migration `20260828140000_add_quality_journey_phase_1` establishes the durable aggregate and database-enforced
   append-only lifecycle history. Prepared scaffold databases contain the schema but no journey, event, or lease state.
+- Prisma migration `20260828150000_add_quality_journey_factory_lineage` adds immutable work-item authorization and
+  append-only Factory assignment/request/receipt lineage to those durable attempts.
 
 ## Lifecycle
 
@@ -43,9 +46,13 @@ Analysis, scenario, and report decisions bind exact immutable revisions. A chang
 the approvals and downstream artifacts whose reviewed scope changed. Material execution still requires the existing
 conditional execution-consent and credential-authorization gates.
 
-Role work items use one durable attempt loop. Terminal states are `COMPLETED`, `CANCELLED`, and `SUPERSEDED`. Lease
-expiry leads to a replacement attempt on the same work item; the replacement receives the current assignment-scoped
-artifact projection and structured attempt diagnostics, not a transcript replay.
+Role work items have one immutable authorization record and a separate durable attempt lineage. Each claim atomically
+persists its Assignment Manifest, canonical spawn request, hashes, and any predecessor-attempt link. A claim with no
+issued authorization fails closed. Explicit resume conservatively recovers authorization for active Phase 1 work from
+Appraise-owned work-item fields and the current canonical role registry; callers cannot supply or broaden that scope.
+Terminal states are `COMPLETED`, `CANCELLED`, and `SUPERSEDED`. Lease expiry leads to a replacement attempt on the same
+work item with explicit predecessor ancestry and no transcript replay. Current artifact successor projection and
+structured attempt diagnostics remain pending. A late predecessor cannot complete once a replacement is current.
 
 ## Commands and conflicts
 
@@ -55,10 +62,11 @@ returns its successor stage and state hash. A stale command returns `STALE_STATE
 hash, and next commands and commits no lifecycle event. Reusing an idempotency key with changed canonical input is an
 `IDEMPOTENCY_KEY_REUSED` conflict; an exact replay returns the original result.
 
-Phase 1 exposes these contracts through `quality_journey_create`, `quality_journey_get`, `quality_journey_resume`,
+Phase 1 exposes the journey kernel through `quality_journey_create`, `quality_journey_get`, `quality_journey_resume`,
 `quality_journey_command_submit`, `quality_journey_work_claim`, `quality_journey_work_complete`, and
-`quality_journey_artifacts_list`. The earlier proposed `evaluation_session_*` names are superseded before public
-implementation; no compatibility aliases exist yet.
+`quality_journey_artifacts_list`. Phase 2 adds `quality_journey_work_spawn_receipt_record` between claim and completion
+so a provider's effective boundary evidence is durably validated before Appraise accepts worker output. The earlier
+proposed `evaluation_session_*` names are superseded before public implementation; no compatibility aliases exist yet.
 
 An identical command replay returns its original committed result and creates no second event. Reusing an idempotency
 key with changed input conflicts. Competing commands from one predecessor hash can produce only one compare-and-swap
@@ -84,16 +92,19 @@ worker acceptance. Requested and effective context, filesystem, network, target,
 values are structured and effective values cannot exceed the assignment; effective tools must remain within the
 assignment and profile.
 
-Assignment issuance must use the registry-aware validator with the resolved Role Definition and capability profile.
-The Phase 2 Factory additionally enforces exact registry version and digest binding. Registry-backed route, resource,
-path, origin, and credential authorization and durable assignment/spawn-receipt persistence remain for the next Phase 2
-slice. Schema parsing alone does not issue an assignment.
+Assignment issuance uses the registry-aware validator with the resolved Role Definition and capability profile, and
+enforces exact registry version and digest binding. The durable authorization record contains only assignment-scoped
+authority: it has no transcript, credential value, or provider model. A claim persists the concrete attempt manifest
+and provider-neutral spawn request atomically. Internal receipt recording revalidates the canonical persisted request;
+an identical receipt replay is idempotent and a different second receipt conflicts. Schema parsing alone does not issue
+an assignment.
 
-Worker results are accepted only when assignment, work item, attempt, role, role-contract digest, and current input hash
-match the issued authority. Output artifact kinds must be permitted by both the semantic role and the exact assignment.
-Replacement assignment construction parses the prior strict manifest and accepts a caller-supplied successor state,
-artifact projection, and lease while rejecting hidden transcript fields. Durable Factory integration must establish
-that those successor inputs came from current Appraise state before issuing the replacement to a provider.
+Worker results are accepted only after a persisted, validated spawn receipt and when assignment, work item, attempt,
+role, role-contract digest, and current input hash match the issued authority. Output artifact kinds must be permitted
+by both the semantic role and the exact assignment. Replacement assignment construction parses the prior strict manifest
+and accepts a caller-supplied successor state, artifact projection, and lease while rejecting hidden transcript fields.
+Replacement attempts retain durable predecessor ancestry; current-artifact successor projection, provider adapters,
+attempt budgets, and cancellation/revocation remain later Phase 2 work.
 
 ## Closure and traceability invariants
 

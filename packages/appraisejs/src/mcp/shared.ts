@@ -94,6 +94,7 @@ export const qualityDesignWorkflow = {
       'quality_journey_resume',
       'quality_journey_command_submit',
       'quality_journey_work_claim',
+      'quality_journey_work_spawn_receipt_record',
       'quality_journey_work_complete',
       'quality_journey_artifacts_list',
     ],

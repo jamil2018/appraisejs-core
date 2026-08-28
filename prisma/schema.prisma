@@ -508,22 +508,22 @@ model TargetProject {
 }
 
 model QualityJourney {
-  id                        String                       @id
+  id                        String                            @id
   targetProjectId           String
   rootIdempotencyKey        String
   rootRequestHash           String
-  stage                     QualityJourneyStage          @default(INTAKE)
-  status                    String                       @default("ACTIVE")
+  stage                     QualityJourneyStage               @default(INTAKE)
+  status                    String                            @default("ACTIVE")
   activeCycleId             String
-  activeRevisionIdsJson     String                       @default("{}")
-  unresolvedQuestionIdsJson String                       @default("[]")
-  blockerIdsJson            String                       @default("[]")
-  activeWorkItemIdsJson     String                       @default("[]")
+  activeRevisionIdsJson     String                            @default("{}")
+  unresolvedQuestionIdsJson String                            @default("[]")
+  blockerIdsJson            String                            @default("[]")
+  activeWorkItemIdsJson     String                            @default("[]")
   stateHash                 String
-  version                   Int                          @default(0)
-  createdAt                 DateTime                     @default(now())
-  updatedAt                 DateTime                     @updatedAt
-  targetProject             TargetProject                @relation(fields: [targetProjectId], references: [id], onDelete: Restrict)
+  version                   Int                               @default(0)
+  createdAt                 DateTime                          @default(now())
+  updatedAt                 DateTime                          @updatedAt
+  targetProject             TargetProject                     @relation(fields: [targetProjectId], references: [id], onDelete: Restrict)
   revisions                 QualityJourneyRevision[]
   cycles                    QualityJourneyCycle[]
   commands                  QualityJourneyCommand[]
@@ -532,6 +532,7 @@ model QualityJourney {
   blockers                  QualityJourneyBlocker[]
   artifactLinks             QualityJourneyArtifactLink[]
   artifacts                 QualityJourneyArtifact[]
+  workAuthorizations        QualityJourneyWorkAuthorization[]
 
   @@unique([targetProjectId, rootIdempotencyKey])
   @@index([targetProjectId, status])
@@ -617,22 +618,23 @@ model QualityJourneyEvent {
 }
 
 model QualityJourneyWorkItem {
-  id                     String                       @id
+  id                     String                           @id
   journeyId              String
   targetProjectId        String
   cycleId                String
   role                   QualityJourneyRole
-  status                 QualityJourneyWorkItemStatus @default(ELIGIBLE)
+  status                 QualityJourneyWorkItemStatus     @default(ELIGIBLE)
   inputHash              String
   roleContractDigest     String
-  inputArtifactRefsJson  String                       @default("[]")
-  allowedOutputsJson     String                       @default("[]")
-  completionCriteriaJson String                       @default("[]")
-  currentAttempt         Int                          @default(0)
-  version                Int                          @default(0)
-  createdAt              DateTime                     @default(now())
-  updatedAt              DateTime                     @updatedAt
-  journey                QualityJourney               @relation(fields: [journeyId], references: [id], onDelete: Restrict)
+  inputArtifactRefsJson  String                           @default("[]")
+  allowedOutputsJson     String                           @default("[]")
+  completionCriteriaJson String                           @default("[]")
+  currentAttempt         Int                              @default(0)
+  version                Int                              @default(0)
+  createdAt              DateTime                         @default(now())
+  updatedAt              DateTime                         @updatedAt
+  journey                QualityJourney                   @relation(fields: [journeyId], references: [id], onDelete: Restrict)
+  authorization          QualityJourneyWorkAuthorization?
   attempts               QualityJourneyWorkAttempt[]
 
   @@index([journeyId, status])
@@ -640,24 +642,63 @@ model QualityJourneyWorkItem {
   @@index([targetProjectId, status])
 }
 
+model QualityJourneyWorkAuthorization {
+  id                    String                      @id
+  journeyId             String
+  targetProjectId       String
+  workItemId            String                      @unique
+  role                  QualityJourneyRole
+  roleContractDigest    String
+  capabilityProfileId   String
+  capabilityProfileHash String
+  authorizationJson     String
+  authorizationHash     String
+  createdAt             DateTime                    @default(now())
+  journey               QualityJourney              @relation(fields: [journeyId], references: [id], onDelete: Restrict)
+  workItem              QualityJourneyWorkItem      @relation(fields: [workItemId], references: [id], onDelete: Restrict)
+  attempts              QualityJourneyWorkAttempt[]
+
+  @@index([targetProjectId, role])
+  @@index([journeyId, workItemId])
+}
+
 model QualityJourneyWorkAttempt {
-  id               String                 @id
-  workItemId       String
-  attempt          Int
-  status           String                 @default("CLAIMED")
-  leaseId          String                 @unique
-  ownerTokenHash   String
-  leaseExpiresAt   DateTime
-  heartbeatSeconds Int
-  resultJson       String?
-  resultHash       String?
-  failureJson      String?
-  startedAt        DateTime               @default(now())
-  completedAt      DateTime?
-  workItem         QualityJourneyWorkItem @relation(fields: [workItemId], references: [id], onDelete: Restrict)
+  id                  String                           @id
+  workItemId          String
+  attempt             Int
+  status              String                           @default("CLAIMED")
+  leaseId             String                           @unique
+  ownerTokenHash      String
+  leaseExpiresAt      DateTime
+  heartbeatSeconds    Int
+  authorizationId     String?
+  assignmentId        String?
+  assignmentJson      String?
+  assignmentHash      String?
+  spawnRequestId      String?
+  spawnRequestJson    String?
+  spawnRequestHash    String?
+  spawnReceiptId      String?
+  spawnReceiptJson    String?
+  spawnReceiptHash    String?
+  replacesAttemptId   String?
+  resultJson          String?
+  resultHash          String?
+  failureJson         String?
+  startedAt           DateTime                         @default(now())
+  completedAt         DateTime?
+  workItem            QualityJourneyWorkItem           @relation(fields: [workItemId], references: [id], onDelete: Restrict)
+  authorization       QualityJourneyWorkAuthorization? @relation(fields: [authorizationId], references: [id], onDelete: Restrict)
+  replacesAttempt     QualityJourneyWorkAttempt?       @relation("QualityJourneyWorkAttemptReplacement", fields: [replacesAttemptId], references: [id], onDelete: Restrict)
+  replacementAttempts QualityJourneyWorkAttempt[]      @relation("QualityJourneyWorkAttemptReplacement")
 
   @@unique([workItemId, attempt])
+  @@unique([assignmentId])
+  @@unique([spawnRequestId])
+  @@unique([spawnReceiptId])
   @@index([leaseExpiresAt, status])
+  @@index([authorizationId, attempt])
+  @@index([replacesAttemptId])
 }
 
 model QualityJourneyBlocker {
