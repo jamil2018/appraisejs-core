@@ -5,7 +5,7 @@ scenario review, automation, managed execution, triage, report review, and closu
 artifact revisions, approvals, evidence, commands, and transitions. Coordinator conversation and worker sessions are
 never lifecycle authority.
 
-The Phase 0 executable contract is in `src/lib/quality-journey/`:
+The executable Quality Journey foundation is in `src/lib/quality-journey/`:
 
 - `contracts.ts` defines versioned strict schemas for stages, roles, artifacts, assignments, provider-neutral
   capability requests, spawn receipts, worker results, commands, conflicts, and closure.
@@ -18,6 +18,12 @@ The Phase 0 executable contract is in `src/lib/quality-journey/`:
 - `golden-fixtures.ts` exports the shared fixtures that later kernel, API, UI, and MCP tests must consume.
   Its current validator checks command stage, actor, successor-state-hash sequencing, and individual work-item
   transitions. Phase 0 still needs full cross-step replay for spawn, closure, attribution, and continuous work state.
+- `kernel.ts` begins Phase 1 with a pure deterministic command kernel. It enforces journey scope, exact-state
+  compare-and-swap, actor/stage transitions, immutable idempotency replay, changed-request conflicts, successor
+  projections, and append-only lifecycle events without treating conversation as authority.
+- `runner.ts` derives stage-role eligibility from Appraise state and performs deterministic active-lease expiry. Durable
+  persistence, atomic database transactions, work claiming/completion, blocker resumption, coordinator API, and MCP
+  publication remain later Phase 1 slices and are not implied by these pure helpers.
 
 ## Lifecycle
 

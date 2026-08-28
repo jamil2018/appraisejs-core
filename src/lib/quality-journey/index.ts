@@ -1,5 +1,7 @@
 export * from './contracts'
 export * from './golden-fixtures'
+export * from './kernel'
 export * from './lifecycle'
 export * from './role-definitions'
+export * from './runner'
 export * from './state'
