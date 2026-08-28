@@ -1,11 +1,14 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it } from 'vitest'
 
 import {
   createReplacementAssignment,
   createWorkerSpawnRequest,
+  clearAgentFactoryProviderAdaptersForTest,
+  dispatchWorkerSpawnRequest,
   qualityJourneyCapabilityProfiles,
   qualityJourneyContractDigest,
   qualityJourneyRoleDefinitions,
+  registerAgentFactoryProviderAdapter,
   validateWorkerResult,
   validateWorkerSpawnReceipt,
   type AssignmentManifest,
@@ -14,6 +17,8 @@ import {
 const digest = (character: string) => `sha256:${character.repeat(64)}`
 const scout = qualityJourneyRoleDefinitions.find(definition => definition.role === 'SCOUT')!
 const profile = qualityJourneyCapabilityProfiles.fastObservation
+
+afterEach(() => clearAgentFactoryProviderAdaptersForTest())
 
 function manifest(): AssignmentManifest {
   return {
@@ -56,7 +61,8 @@ function startedReceipt(request: ReturnType<typeof createWorkerSpawnRequest>) {
     capabilityProfileDigest: request.capabilityProfileDigest,
     effectiveWorker: {
       modelId: 'provider-selected-model',
-      reasoningLevel: 'medium',
+      reasoningLevel: 'MEDIUM' as const,
+      latencyPreference: 'FAST' as const,
       toolIds: ['target.observe', 'evidence.publish'],
     },
     boundaries: request.requiredBoundaries.map(boundary => ({
@@ -83,6 +89,23 @@ describe('Quality Journey Agent Factory', () => {
     expect(request.role).toBe('SCOUT')
     expect(Object.keys(request)).not.toContain('modelId')
     expect(JSON.stringify(request.capabilityProfile).toLowerCase()).not.toContain('model')
+    expect(request).toMatchObject({ requestedJudgment: 'MEDIUM', requestedLatency: 'FAST' })
+  })
+
+  it('dispatches only through a compatible provider-neutral adapter', async () => {
+    const request = createWorkerSpawnRequest({ requestId: 'request-1', attemptId: 'attempt-1', manifest: manifest() })
+    await expect(dispatchWorkerSpawnRequest(request, 'dispatch-1')).rejects.toThrow(
+      'No compatible Agent Factory provider adapter',
+    )
+    registerAgentFactoryProviderAdapter({
+      adapterId: 'deterministic-conformance',
+      supports: candidate => candidate.capabilityProfile.profileId === 'fast-observation',
+      dispatch: async candidate => startedReceipt(candidate),
+    })
+    await expect(dispatchWorkerSpawnRequest(request, 'dispatch-1')).resolves.toMatchObject({
+      adapterId: 'deterministic-conformance',
+      receipt: { attemptId: request.attemptId, outcome: 'STARTED' },
+    })
   })
 
   it('binds assignments to the exact registry version and digests', () => {
@@ -126,6 +149,17 @@ describe('Quality Journey Agent Factory', () => {
         request,
       ),
     ).toThrow()
+    expect(() =>
+      validateWorkerSpawnReceipt(
+        {
+          ...receipt,
+          boundaries: receipt.boundaries.map(boundary =>
+            boundary.boundary === 'TARGET' ? { ...boundary, status: 'ENFORCED' as const, evidence: [] } : boundary,
+          ),
+        },
+        request,
+      ),
+    ).toThrow('required TARGET boundary must be verified before worker start')
   })
 
   it('rejects effective runtime scope broader than the assignment', () => {
@@ -164,6 +198,84 @@ describe('Quality Journey Agent Factory', () => {
     ).toThrow('unrequested FILESYSTEM boundary was reported')
   })
 
+  it('enforces effective judgment and latency against the requested capability profile', () => {
+    const request = createWorkerSpawnRequest({ requestId: 'request-1', attemptId: 'attempt-1', manifest: manifest() })
+    expect(() =>
+      validateWorkerSpawnReceipt(
+        {
+          ...startedReceipt(request),
+          effectiveWorker: { ...startedReceipt(request).effectiveWorker, reasoningLevel: 'LOW' },
+        },
+        request,
+      ),
+    ).toThrow('effective worker judgment is below the requested capability')
+    expect(() =>
+      validateWorkerSpawnReceipt(
+        {
+          ...startedReceipt(request),
+          effectiveWorker: { ...startedReceipt(request).effectiveWorker, latencyPreference: 'BALANCED' },
+        },
+        request,
+      ),
+    ).toThrow('effective worker latency exceeds the requested preference')
+  })
+
+  it('accepts a structured refused receipt without treating it as a started worker', () => {
+    const request = createWorkerSpawnRequest({ requestId: 'request-1', attemptId: 'attempt-1', manifest: manifest() })
+    expect(
+      validateWorkerSpawnReceipt(
+        {
+          schemaVersion: 'appraise.quality-journey/v1',
+          outcome: 'REFUSED',
+          refusalCode: 'REQUIRED_BOUNDARY_UNSUPPORTED',
+          spawnReceiptId: 'refused-1',
+          assignmentId: request.assignmentId,
+          workItemId: request.workItemId,
+          attemptId: request.attemptId,
+          roleDefinitionDigest: request.roleDefinitionDigest,
+          capabilityProfileDigest: request.capabilityProfileDigest,
+          boundaries: request.requiredBoundaries.map(boundary => ({
+            boundary: boundary.boundary,
+            requested: boundary.allowedValues,
+            status: boundary.boundary === 'TARGET' ? 'UNSUPPORTED' : 'ENFORCED',
+            evidence: boundary.boundary === 'TARGET' ? [digest('f')] : [],
+          })),
+          refusedAt: '2026-08-28T15:00:00.000Z',
+        },
+        request,
+      ),
+    ).toMatchObject({ outcome: 'REFUSED', refusalCode: 'REQUIRED_BOUNDARY_UNSUPPORTED' })
+  })
+
+  it('rejects a refusal unrelated to a requested runtime boundary', () => {
+    const request = createWorkerSpawnRequest({ requestId: 'request-1', attemptId: 'attempt-1', manifest: manifest() })
+    expect(() =>
+      validateWorkerSpawnReceipt(
+        {
+          schemaVersion: 'appraise.quality-journey/v1',
+          outcome: 'REFUSED',
+          refusalCode: 'REQUIRED_BOUNDARY_UNSUPPORTED',
+          spawnReceiptId: 'refused-model-1',
+          assignmentId: request.assignmentId,
+          workItemId: request.workItemId,
+          attemptId: request.attemptId,
+          roleDefinitionDigest: request.roleDefinitionDigest,
+          capabilityProfileDigest: request.capabilityProfileDigest,
+          boundaries: [
+            {
+              boundary: 'MODEL',
+              requested: ['provider-selected-worker'],
+              status: 'UNSUPPORTED',
+              evidence: [digest('f')],
+            },
+          ],
+          refusedAt: '2026-08-28T15:00:00.000Z',
+        },
+        request,
+      ),
+    ).toThrow('unrequested MODEL boundary was reported')
+  })
+
   it('revalidates received spawn requests against canonical assignment authority', () => {
     const request = createWorkerSpawnRequest({ requestId: 'request-1', attemptId: 'attempt-1', manifest: manifest() })
     const tampered = {
@@ -194,6 +306,19 @@ describe('Quality Journey Agent Factory', () => {
         { spawnRequest: tampered, spawnReceipt: startedReceipt(request), currentInputHash: request.inputHash },
       ),
     ).toThrow('request does not match canonical assignment authority')
+  })
+
+  it('rejects input artifacts beyond the role readable-artifact contract', () => {
+    expect(() =>
+      createWorkerSpawnRequest({
+        requestId: 'request-1',
+        attemptId: 'attempt-1',
+        manifest: {
+          ...manifest(),
+          inputArtifacts: [{ kind: 'TEST_CASE', artifactId: 'case-1', contentHash: digest('c') }],
+        },
+      }),
+    ).toThrow('input artifact scope exceeds role authority')
   })
 
   it('allows provider model changes without changing journey or work identity', () => {
@@ -281,6 +406,11 @@ describe('Quality Journey Agent Factory', () => {
       inputArtifacts: [],
       lease: { leaseId: 'lease-2', expiresAt: '2026-08-28T17:00:00.000Z', heartbeatSeconds: 30 },
       idempotencyKey: 'assignment-2',
+      replacement: {
+        projectionHash: digest('2'),
+        predecessorAttemptId: 'attempt-1',
+        diagnostics: { status: 'LEASE_EXPIRED' },
+      },
     })
     expect(replacement.workItemId).toBe('work-1')
     expect(replacement.assignmentId).toBe('assignment-2')
@@ -295,6 +425,11 @@ describe('Quality Journey Agent Factory', () => {
           inputArtifacts: [],
           lease: { leaseId: 'lease-2', expiresAt: '2026-08-28T17:00:00.000Z', heartbeatSeconds: 30 },
           idempotencyKey: 'assignment-2',
+          replacement: {
+            projectionHash: digest('2'),
+            predecessorAttemptId: 'attempt-1',
+            diagnostics: { status: 'LEASE_EXPIRED' },
+          },
         },
       ),
     ).toThrow()

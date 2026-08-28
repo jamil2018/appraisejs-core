@@ -5,17 +5,23 @@ import { PrismaClient } from '@prisma/client'
 import { afterEach, describe, expect, it } from 'vitest'
 import { copyMigratedTestDatabase } from '@/test/migrated-test-database'
 import {
+  AgentFactoryDispatchNotStartedError,
+  clearAgentFactoryProviderAdaptersForTest,
   qualityJourneyContractDigest,
   qualityJourneyRoleDefinitions,
   qualityJourneyWorkItemId,
+  registerAgentFactoryProviderAdapter,
 } from '@/lib/quality-journey'
 import {
   claimQualityJourneyWork,
+  cancelQualityJourneyWork,
   completeQualityJourneyWork,
   createQualityJourney,
+  dispatchQualityJourneyWork,
   getQualityJourney,
+  inspectQualityJourneyFactoryEvidence,
   listQualityJourneyArtifacts,
-  recordQualityJourneyWorkerSpawnReceipt,
+  revokeQualityJourneyWorkAuthorization,
   resumeQualityJourney,
   submitDurableQualityJourneyCommand,
 } from './quality-journey-service'
@@ -24,6 +30,7 @@ const workspaces: string[] = []
 const digest = (character: string) => `sha256:${character.repeat(64)}`
 
 afterEach(async () => {
+  clearAgentFactoryProviderAdaptersForTest()
   await Promise.all(workspaces.splice(0).map(workspace => fs.rm(workspace, { recursive: true, force: true })))
 })
 
@@ -46,6 +53,28 @@ async function fixture() {
   return client
 }
 
+async function dispatchReceiptForTest(
+  claim: Awaited<ReturnType<typeof claimQualityJourneyWork>>,
+  receipt: unknown,
+  client: PrismaClient,
+) {
+  registerAgentFactoryProviderAdapter({
+    adapterId: `test-receipt-${claim.attempt.id}`,
+    supports: request => request.attemptId === claim.attempt.id,
+    dispatch: async () => receipt as never,
+  })
+  return dispatchQualityJourneyWork(
+    {
+      journeyId: claim.spawnRequest.journeyId,
+      targetProjectId: claim.spawnRequest.targetProjectId,
+      workItemId: claim.workItem.id,
+      leaseId: claim.attempt.leaseId,
+      ownerToken: claim.ownerToken,
+    },
+    client,
+  )
+}
+
 function startedReceipt(claim: Awaited<ReturnType<typeof claimQualityJourneyWork>>) {
   return {
     schemaVersion: 'appraise.quality-journey/v1' as const,
@@ -58,7 +87,8 @@ function startedReceipt(claim: Awaited<ReturnType<typeof claimQualityJourneyWork
     capabilityProfileDigest: claim.spawnRequest.capabilityProfileDigest,
     effectiveWorker: {
       modelId: 'provider-selected-worker',
-      reasoningLevel: 'medium',
+      reasoningLevel: 'HIGH',
+      latencyPreference: 'DELIBERATE',
       toolIds: claim.spawnRequest.scope.permittedTools,
     },
     boundaries: claim.spawnRequest.requiredBoundaries.map(boundary => ({
@@ -72,7 +102,60 @@ function startedReceipt(claim: Awaited<ReturnType<typeof claimQualityJourneyWork
   }
 }
 
-describe('Quality Journey Phase 1 durable service', () => {
+function startedReceiptForRequest(request: Awaited<ReturnType<typeof claimQualityJourneyWork>>['spawnRequest']) {
+  return {
+    schemaVersion: 'appraise.quality-journey/v1' as const,
+    outcome: 'STARTED' as const,
+    spawnReceiptId: `receipt-${request.attemptId}`,
+    assignmentId: request.assignmentId,
+    workItemId: request.workItemId,
+    attemptId: request.attemptId,
+    roleDefinitionDigest: request.roleDefinitionDigest,
+    capabilityProfileDigest: request.capabilityProfileDigest,
+    effectiveWorker: {
+      modelId: 'provider-selected-worker',
+      reasoningLevel: 'HIGH' as const,
+      latencyPreference: 'DELIBERATE' as const,
+      toolIds: request.scope.permittedTools,
+    },
+    boundaries: request.requiredBoundaries.map(boundary => ({
+      boundary: boundary.boundary,
+      requested: boundary.allowedValues,
+      effective: boundary.allowedValues,
+      status: 'VERIFIED' as const,
+      evidence: [digest('f')],
+    })),
+    startedAt: '2026-08-28T15:00:00.000Z',
+  }
+}
+
+function completedResult(claim: Awaited<ReturnType<typeof claimQualityJourneyWork>>, suffix: string) {
+  return {
+    schemaVersion: 'appraise.quality-journey/v1' as const,
+    assignmentId: claim.assignment.assignmentId,
+    workItemId: claim.workItem.id,
+    attemptId: claim.attempt.id,
+    roleContractDigest: claim.workItem.roleContractDigest,
+    inputHash: claim.workItem.inputHash,
+    role: 'REQUIREMENT_ANALYZER' as const,
+    status: 'COMPLETED' as const,
+    outputs: [
+      {
+        kind: 'ANALYSIS_CHARTER_REVISION' as const,
+        artifactId: `analysis-charter-${suffix}`,
+        revisionId: `analysis-charter-revision-${suffix}`,
+        contentHash: digest('e'),
+      },
+    ],
+    evidenceReceipts: [],
+    assumptions: [],
+    blockers: [],
+    unresolvedQuestions: [],
+    submittedAt: new Date().toISOString(),
+  }
+}
+
+describe('Quality Journey Phase 2 durable Factory service', () => {
   it('recovers conservative Factory authorization for a pre-existing unassigned work item only on resume', async () => {
     const client = await fixture()
     try {
@@ -331,45 +414,64 @@ describe('Quality Journey Phase 1 durable service', () => {
           client,
         ),
       ).rejects.toMatchObject({ code: 'UNAUTHORIZED' })
-      expect(
-        await recordQualityJourneyWorkerSpawnReceipt(
-          {
-            journeyId: created.journey.journeyId,
-            targetProjectId: 'target-journey-1',
-            workItemId: claim.workItem.id,
-            leaseId: claim.attempt.leaseId,
-            ownerToken: claim.ownerToken,
-            receipt: startedReceipt(claim),
-          },
-          client,
-        ),
-      ).toMatchObject({ status: 'IN_PROGRESS', replayed: false })
-      expect(
-        await recordQualityJourneyWorkerSpawnReceipt(
-          {
-            journeyId: created.journey.journeyId,
-            targetProjectId: 'target-journey-1',
-            workItemId: claim.workItem.id,
-            leaseId: claim.attempt.leaseId,
-            ownerToken: claim.ownerToken,
-            receipt: startedReceipt(claim),
-          },
-          client,
-        ),
-      ).toMatchObject({ replayed: true })
       await expect(
-        recordQualityJourneyWorkerSpawnReceipt(
+        dispatchQualityJourneyWork(
           {
             journeyId: created.journey.journeyId,
             targetProjectId: 'target-journey-1',
             workItemId: claim.workItem.id,
             leaseId: claim.attempt.leaseId,
             ownerToken: claim.ownerToken,
-            receipt: { ...startedReceipt(claim), spawnReceiptId: 'conflicting-receipt' },
           },
           client,
         ),
       ).rejects.toMatchObject({ code: 'CONFLICT' })
+      expect(
+        await client.qualityJourneyWorkAttempt.findUniqueOrThrow({ where: { id: claim.attempt.id } }),
+      ).toMatchObject({
+        dispatchReservedAt: null,
+        dispatchStartedAt: null,
+      })
+      const initialDispatch = await dispatchReceiptForTest(claim, startedReceipt(claim), client)
+      expect(initialDispatch).toMatchObject({
+        status: 'IN_PROGRESS',
+        replayed: false,
+      })
+      expect(Object.keys(initialDispatch).sort()).toEqual([
+        'adapterId',
+        'attemptId',
+        'replayed',
+        'spawnReceiptHash',
+        'spawnReceiptId',
+        'status',
+        'workItemId',
+      ])
+      expect(initialDispatch).not.toHaveProperty('receipt')
+      expect(initialDispatch).not.toHaveProperty('effectiveWorker')
+      expect(initialDispatch).not.toHaveProperty('boundaries')
+      const replayDispatch = await dispatchQualityJourneyWork(
+        {
+          journeyId: created.journey.journeyId,
+          targetProjectId: 'target-journey-1',
+          workItemId: claim.workItem.id,
+          leaseId: claim.attempt.leaseId,
+          ownerToken: claim.ownerToken,
+        },
+        client,
+      )
+      expect(replayDispatch).toMatchObject({ replayed: true, status: 'IN_PROGRESS' })
+      expect(Object.keys(replayDispatch).sort()).toEqual([
+        'adapterId',
+        'attemptId',
+        'replayed',
+        'spawnReceiptHash',
+        'spawnReceiptId',
+        'status',
+        'workItemId',
+      ])
+      expect(replayDispatch).not.toHaveProperty('receipt')
+      expect(replayDispatch).not.toHaveProperty('effectiveWorker')
+      expect(replayDispatch).not.toHaveProperty('boundaries')
       expect(
         await completeQualityJourneyWork(
           {
@@ -401,14 +503,13 @@ describe('Quality Journey Phase 1 durable service', () => {
         data: { leaseExpiresAt: new Date('2026-08-27T00:00:00.000Z') },
       })
       expect(
-        await recordQualityJourneyWorkerSpawnReceipt(
+        await dispatchQualityJourneyWork(
           {
             journeyId: created.journey.journeyId,
             targetProjectId: 'target-journey-1',
             workItemId: claim.workItem.id,
             leaseId: claim.attempt.leaseId,
             ownerToken: claim.ownerToken,
-            receipt: startedReceipt(claim),
           },
           client,
         ),
@@ -498,6 +599,52 @@ describe('Quality Journey Phase 1 durable service', () => {
         where: { id: predecessor.attempt.id },
         data: { leaseExpiresAt: new Date('2026-08-27T00:00:00.000Z') },
       })
+      await client.qualityJourneyArtifact.create({
+        data: {
+          id: 'replacement-current-artifact',
+          identityKey: 'JOURNEY_REVISION:current-journey-revision:revision-current',
+          journeyId: created.journey.journeyId,
+          targetProjectId: 'target-journey-1',
+          cycleId: created.journey.activeCycleId,
+          kind: 'JOURNEY_REVISION',
+          artifactId: 'current-journey-revision',
+          revisionId: 'revision-current',
+          contentHash: digest('e'),
+          artifactJson: JSON.stringify({ safe: 'current-artifact-only' }),
+        },
+      })
+      await client.qualityJourneyArtifact.create({
+        data: {
+          id: 'replacement-historical-artifact',
+          identityKey: 'JOURNEY_REVISION:historical-journey-revision:revision-historical',
+          journeyId: created.journey.journeyId,
+          targetProjectId: 'target-journey-1',
+          cycleId: created.journey.activeCycleId,
+          kind: 'JOURNEY_REVISION',
+          artifactId: 'historical-journey-revision',
+          revisionId: 'revision-historical',
+          contentHash: digest('f'),
+          artifactJson: JSON.stringify({ safe: 'historical' }),
+        },
+      })
+      await client.qualityJourney.update({
+        where: { id: created.journey.journeyId },
+        data: { activeRevisionIdsJson: JSON.stringify({ journey: 'revision-current' }) },
+      })
+      await client.qualityJourneyArtifact.create({
+        data: {
+          id: 'replacement-out-of-scope-artifact',
+          identityKey: 'TEST_REPORT_ANALYSIS:private-triage-output:revision-private',
+          journeyId: created.journey.journeyId,
+          targetProjectId: 'target-journey-1',
+          cycleId: created.journey.activeCycleId,
+          kind: 'TEST_REPORT_ANALYSIS',
+          artifactId: 'private-triage-output',
+          revisionId: 'revision-private',
+          contentHash: digest('f'),
+          artifactJson: JSON.stringify({ mustNotReachRequirementAnalyzer: true }),
+        },
+      })
       await resumeQualityJourney(
         {
           journeyId: created.journey.journeyId,
@@ -517,6 +664,23 @@ describe('Quality Journey Phase 1 durable service', () => {
 
       expect(replacement.attempt).toMatchObject({ attempt: 2, replacesAttemptId: predecessor.attempt.id })
       expect(replacement.assignment.assignmentId).not.toBe(predecessor.assignment.assignmentId)
+      expect(replacement.assignment).toMatchObject({
+        inputArtifacts: [
+          {
+            kind: 'JOURNEY_REVISION',
+            artifactId: 'current-journey-revision',
+            revisionId: 'revision-current',
+            contentHash: digest('e'),
+          },
+        ],
+      })
+      expect(replacement.assignment.inputArtifacts).not.toContainEqual(
+        expect.objectContaining({ artifactId: 'private-triage-output' }),
+      )
+      expect(replacement.assignment.inputArtifacts).not.toContainEqual(
+        expect.objectContaining({ artifactId: 'historical-journey-revision' }),
+      )
+      expect(replacement.assignment.replacement).toMatchObject({ predecessorAttemptId: predecessor.attempt.id })
       await expect(
         client.qualityJourneyWorkAttempt.update({
           where: { id: replacement.attempt.id },
@@ -526,19 +690,874 @@ describe('Quality Journey Phase 1 durable service', () => {
       expect(
         await client.qualityJourneyWorkAttempt.findUniqueOrThrow({ where: { id: replacement.attempt.id } }),
       ).toMatchObject({ replacesAttemptId: predecessor.attempt.id })
+      expect(await dispatchReceiptForTest(replacement, startedReceipt(replacement), client)).toMatchObject({
+        status: 'IN_PROGRESS',
+      })
+      expect(
+        await completeQualityJourneyWork(
+          {
+            journeyId: created.journey.journeyId,
+            targetProjectId: 'target-journey-1',
+            workItemId: replacement.workItem.id,
+            leaseId: replacement.attempt.leaseId,
+            ownerToken: replacement.ownerToken,
+            result: {
+              schemaVersion: 'appraise.quality-journey/v1',
+              assignmentId: replacement.assignment.assignmentId,
+              workItemId: replacement.workItem.id,
+              attemptId: replacement.attempt.id,
+              roleContractDigest: replacement.workItem.roleContractDigest,
+              inputHash: replacement.workItem.inputHash,
+              role: 'REQUIREMENT_ANALYZER',
+              status: 'COMPLETED',
+              outputs: [
+                {
+                  kind: 'ANALYSIS_CHARTER_REVISION',
+                  artifactId: 'replacement-analysis-charter',
+                  revisionId: 'replacement-analysis-charter-revision',
+                  contentHash: digest('a'),
+                },
+              ],
+              evidenceReceipts: [],
+              assumptions: [],
+              blockers: [],
+              unresolvedQuestions: [],
+              submittedAt: new Date().toISOString(),
+            },
+          },
+          client,
+        ),
+      ).toMatchObject({ status: 'COMPLETED' })
       await expect(
-        recordQualityJourneyWorkerSpawnReceipt(
+        dispatchQualityJourneyWork(
           {
             journeyId: created.journey.journeyId,
             targetProjectId: 'target-journey-1',
             workItemId: predecessor.workItem.id,
             leaseId: predecessor.attempt.leaseId,
             ownerToken: predecessor.ownerToken,
-            receipt: startedReceipt(predecessor),
           },
           client,
         ),
       ).rejects.toMatchObject({ code: 'CONFLICT' })
+    } finally {
+      await client.$disconnect()
+    }
+  }, 60_000)
+
+  it('atomically consumes the hard attempt budget and prevents a fourth claim', async () => {
+    const client = await fixture()
+    try {
+      const created = await createQualityJourney(
+        { targetProjectId: 'target-journey-1', idempotencyKey: 'attempt-budget', requirement: { objective: 'Budget' } },
+        client,
+      )
+      await submitDurableQualityJourneyCommand(
+        {
+          schemaVersion: 'appraise.quality-journey/v1',
+          commandId: 'attempt-budget-analysis',
+          journeyId: created.journey.journeyId,
+          targetProjectId: 'target-journey-1',
+          actor: 'USER',
+          command: 'SUBMIT_REQUIREMENT',
+          expectedStateHash: created.journey.stateHash,
+          idempotencyKey: 'attempt-budget-analysis',
+          inputArtifactRefs: [],
+          payload: { journeyRevisionId: 'attempt-budget-revision', requirementHash: digest('b') },
+        },
+        client,
+      )
+      for (const attemptNumber of [1, 2, 3]) {
+        const claim = await claimQualityJourneyWork(
+          {
+            journeyId: created.journey.journeyId,
+            targetProjectId: 'target-journey-1',
+            role: 'REQUIREMENT_ANALYZER',
+          },
+          client,
+        )
+        expect(claim.attempt.attempt).toBe(attemptNumber)
+        await client.qualityJourneyWorkAttempt.update({
+          where: { id: claim.attempt.id },
+          data: { leaseExpiresAt: new Date('2026-08-27T00:00:00.000Z') },
+        })
+        await resumeQualityJourney(
+          {
+            journeyId: created.journey.journeyId,
+            targetProjectId: 'target-journey-1',
+            now: new Date('2026-08-28T00:00:00.000Z'),
+          },
+          client,
+        )
+      }
+      const exhausted = await getQualityJourney(
+        { journeyId: created.journey.journeyId, targetProjectId: 'target-journey-1' },
+        client,
+      )
+      expect(exhausted).toMatchObject({
+        workItems: [{ role: 'REQUIREMENT_ANALYZER', status: 'BLOCKED' }],
+        blockers: [
+          {
+            reasonCode: 'ATTEMPT_BUDGET_EXHAUSTED',
+            safeResumeCommand: 'NONE',
+            requiredResolution: expect.stringContaining('new Quality Journey'),
+          },
+        ],
+      })
+      await expect(
+        resumeQualityJourney(
+          {
+            journeyId: created.journey.journeyId,
+            targetProjectId: 'target-journey-1',
+            now: new Date('2026-08-29T00:00:00.000Z'),
+          },
+          client,
+        ),
+      ).resolves.toBeDefined()
+      await expect(
+        claimQualityJourneyWork(
+          {
+            journeyId: created.journey.journeyId,
+            targetProjectId: 'target-journey-1',
+            role: 'REQUIREMENT_ANALYZER',
+          },
+          client,
+        ),
+      ).rejects.toMatchObject({ code: 'CONFLICT' })
+    } finally {
+      await client.$disconnect()
+    }
+  }, 60_000)
+
+  it('cancels and revokes Appraise-side authority before late worker ingress', async () => {
+    const client = await fixture()
+    try {
+      const created = await createQualityJourney(
+        {
+          targetProjectId: 'target-journey-1',
+          idempotencyKey: 'terminal-authority',
+          requirement: { objective: 'Stop' },
+        },
+        client,
+      )
+      await submitDurableQualityJourneyCommand(
+        {
+          schemaVersion: 'appraise.quality-journey/v1',
+          commandId: 'terminal-authority-analysis',
+          journeyId: created.journey.journeyId,
+          targetProjectId: 'target-journey-1',
+          actor: 'USER',
+          command: 'SUBMIT_REQUIREMENT',
+          expectedStateHash: created.journey.stateHash,
+          idempotencyKey: 'terminal-authority-analysis',
+          inputArtifactRefs: [],
+          payload: { journeyRevisionId: 'terminal-authority-revision', requirementHash: digest('c') },
+        },
+        client,
+      )
+      const cancelled = await claimQualityJourneyWork(
+        {
+          journeyId: created.journey.journeyId,
+          targetProjectId: 'target-journey-1',
+          role: 'REQUIREMENT_ANALYZER',
+        },
+        client,
+      )
+      await expect(dispatchReceiptForTest(cancelled, startedReceipt(cancelled), client)).resolves.toMatchObject({
+        status: 'IN_PROGRESS',
+      })
+      await expect(
+        cancelQualityJourneyWork(
+          {
+            journeyId: created.journey.journeyId,
+            targetProjectId: 'target-journey-1',
+            workItemId: cancelled.workItem.id,
+            actor: 'USER',
+            reason: 'User stopped the work.',
+          },
+          client,
+        ),
+      ).resolves.toMatchObject({ replayed: false, status: 'CANCELLED' })
+      await expect(
+        dispatchQualityJourneyWork(
+          {
+            journeyId: created.journey.journeyId,
+            targetProjectId: 'target-journey-1',
+            workItemId: cancelled.workItem.id,
+            leaseId: cancelled.attempt.leaseId,
+            ownerToken: cancelled.ownerToken,
+          },
+          client,
+        ),
+      ).rejects.toMatchObject({ code: 'CONFLICT' })
+      await expect(
+        completeQualityJourneyWork(
+          {
+            journeyId: created.journey.journeyId,
+            targetProjectId: 'target-journey-1',
+            workItemId: cancelled.workItem.id,
+            leaseId: cancelled.attempt.leaseId,
+            ownerToken: cancelled.ownerToken,
+            result: completedResult(cancelled, 'cancelled'),
+          },
+          client,
+        ),
+      ).rejects.toMatchObject({ code: 'CONFLICT' })
+
+      const createdRevocation = await createQualityJourney(
+        {
+          targetProjectId: 'target-journey-1',
+          idempotencyKey: 'revoke-authority',
+          requirement: { objective: 'Revoke' },
+        },
+        client,
+      )
+      await submitDurableQualityJourneyCommand(
+        {
+          schemaVersion: 'appraise.quality-journey/v1',
+          commandId: 'revoke-authority-analysis',
+          journeyId: createdRevocation.journey.journeyId,
+          targetProjectId: 'target-journey-1',
+          actor: 'USER',
+          command: 'SUBMIT_REQUIREMENT',
+          expectedStateHash: createdRevocation.journey.stateHash,
+          idempotencyKey: 'revoke-authority-analysis',
+          inputArtifactRefs: [],
+          payload: { journeyRevisionId: 'revoke-authority-revision', requirementHash: digest('d') },
+        },
+        client,
+      )
+      const revoked = await claimQualityJourneyWork(
+        {
+          journeyId: createdRevocation.journey.journeyId,
+          targetProjectId: 'target-journey-1',
+          role: 'REQUIREMENT_ANALYZER',
+        },
+        client,
+      )
+      await expect(dispatchReceiptForTest(revoked, startedReceipt(revoked), client)).resolves.toMatchObject({
+        status: 'IN_PROGRESS',
+      })
+      await revokeQualityJourneyWorkAuthorization(
+        {
+          journeyId: createdRevocation.journey.journeyId,
+          targetProjectId: 'target-journey-1',
+          workItemId: revoked.workItem.id,
+          actor: 'COORDINATOR',
+          reason: 'Coordinator revoked authority.',
+        },
+        client,
+      )
+      await expect(
+        dispatchQualityJourneyWork(
+          {
+            journeyId: createdRevocation.journey.journeyId,
+            targetProjectId: 'target-journey-1',
+            workItemId: revoked.workItem.id,
+            leaseId: revoked.attempt.leaseId,
+            ownerToken: revoked.ownerToken,
+          },
+          client,
+        ),
+      ).rejects.toMatchObject({ code: 'UNAUTHORIZED' })
+      await expect(
+        completeQualityJourneyWork(
+          {
+            journeyId: createdRevocation.journey.journeyId,
+            targetProjectId: 'target-journey-1',
+            workItemId: revoked.workItem.id,
+            leaseId: revoked.attempt.leaseId,
+            ownerToken: revoked.ownerToken,
+            result: completedResult(revoked, 'revoked'),
+          },
+          client,
+        ),
+      ).rejects.toMatchObject({ code: 'UNAUTHORIZED' })
+    } finally {
+      await client.$disconnect()
+    }
+  }, 60_000)
+
+  it('does not expose Factory evidence across target-project boundaries', async () => {
+    const client = await fixture()
+    try {
+      const created = await createQualityJourney(
+        {
+          targetProjectId: 'target-journey-1',
+          idempotencyKey: 'factory-evidence-isolation',
+          requirement: { objective: 'Evidence isolation' },
+        },
+        client,
+      )
+      await client.targetProject.create({
+        data: {
+          id: 'target-journey-2',
+          kind: 'LOCAL_WORKSPACE',
+          canonicalIdentity: 'path:/quality-journey-isolation-target',
+          canonicalPath: '/quality-journey-isolation-target',
+          displayName: 'Other Quality Journey fixture',
+          fingerprint: digest('z'),
+        },
+      })
+      await expect(
+        inspectQualityJourneyFactoryEvidence(
+          { journeyId: created.journey.journeyId, targetProjectId: 'target-journey-2' },
+          client,
+        ),
+      ).rejects.toMatchObject({ code: 'NOT_FOUND' })
+    } finally {
+      await client.$disconnect()
+    }
+  }, 60_000)
+
+  it('stops safely and idempotently when restart recovery finds an unresolved provider dispatch', async () => {
+    const client = await fixture()
+    try {
+      const created = await createQualityJourney(
+        {
+          targetProjectId: 'target-journey-1',
+          idempotencyKey: 'restart-unresolved-dispatch',
+          requirement: { objective: 'Recover an ambiguous provider dispatch' },
+        },
+        client,
+      )
+      await submitDurableQualityJourneyCommand(
+        {
+          schemaVersion: 'appraise.quality-journey/v1',
+          commandId: 'restart-unresolved-dispatch-analysis',
+          journeyId: created.journey.journeyId,
+          targetProjectId: 'target-journey-1',
+          actor: 'USER',
+          command: 'SUBMIT_REQUIREMENT',
+          expectedStateHash: created.journey.stateHash,
+          idempotencyKey: 'restart-unresolved-dispatch-analysis',
+          inputArtifactRefs: [],
+          payload: { journeyRevisionId: 'restart-unresolved-revision', requirementHash: digest('a') },
+        },
+        client,
+      )
+      const claim = await claimQualityJourneyWork(
+        {
+          journeyId: created.journey.journeyId,
+          targetProjectId: 'target-journey-1',
+          role: 'REQUIREMENT_ANALYZER',
+        },
+        client,
+      )
+      await client.qualityJourneyWorkAttempt.update({
+        where: { id: claim.attempt.id },
+        data: {
+          dispatchAdapterId: 'persisted-lost-response-adapter',
+          dispatchReservedAt: new Date('2026-08-27T00:00:00.000Z'),
+          dispatchStartedAt: new Date('2026-08-27T00:00:00.000Z'),
+          leaseExpiresAt: new Date('2026-08-28T00:00:00.000Z'),
+        },
+      })
+      expect(
+        await resumeQualityJourney(
+          {
+            journeyId: created.journey.journeyId,
+            targetProjectId: 'target-journey-1',
+            now: new Date('2026-08-29T00:00:00.000Z'),
+          },
+          client,
+        ),
+      ).toMatchObject({ expiredAttemptIds: [claim.attempt.id] })
+      expect(
+        await resumeQualityJourney(
+          {
+            journeyId: created.journey.journeyId,
+            targetProjectId: 'target-journey-1',
+            now: new Date('2026-08-30T00:00:00.000Z'),
+          },
+          client,
+        ),
+      ).toMatchObject({ expiredAttemptIds: [] })
+      expect(
+        await getQualityJourney({ journeyId: created.journey.journeyId, targetProjectId: 'target-journey-1' }, client),
+      ).toMatchObject({
+        workItems: [{ id: claim.workItem.id, status: 'BLOCKED' }],
+        blockers: [{ reasonCode: 'AMBIGUOUS_PROVIDER_DISPATCH' }],
+      })
+      await expect(
+        claimQualityJourneyWork(
+          {
+            journeyId: created.journey.journeyId,
+            targetProjectId: 'target-journey-1',
+            role: 'REQUIREMENT_ANALYZER',
+          },
+          client,
+        ),
+      ).rejects.toMatchObject({ code: 'CONFLICT' })
+    } finally {
+      await client.$disconnect()
+    }
+  }, 60_000)
+
+  it('allows one concurrent claim and leaves terminal cancellation/revocation races fail-closed', async () => {
+    const firstClient = await fixture()
+    const target = await firstClient.targetProject.findUniqueOrThrow({ where: { id: 'target-journey-1' } })
+    const secondClient = new PrismaClient({
+      datasources: { db: { url: `file:${path.join(target.canonicalPath!, 'appraise.db')}` } },
+    })
+    try {
+      const created = await createQualityJourney(
+        { targetProjectId: 'target-journey-1', idempotencyKey: 'terminal-race', requirement: { objective: 'Race' } },
+        firstClient,
+      )
+      await submitDurableQualityJourneyCommand(
+        {
+          schemaVersion: 'appraise.quality-journey/v1',
+          commandId: 'terminal-race-analysis',
+          journeyId: created.journey.journeyId,
+          targetProjectId: 'target-journey-1',
+          actor: 'USER',
+          command: 'SUBMIT_REQUIREMENT',
+          expectedStateHash: created.journey.stateHash,
+          idempotencyKey: 'terminal-race-analysis',
+          inputArtifactRefs: [],
+          payload: { journeyRevisionId: 'terminal-race-revision', requirementHash: digest('e') },
+        },
+        firstClient,
+      )
+      const claims = await Promise.allSettled([
+        claimQualityJourneyWork(
+          { journeyId: created.journey.journeyId, targetProjectId: 'target-journey-1', role: 'REQUIREMENT_ANALYZER' },
+          firstClient,
+        ),
+        claimQualityJourneyWork(
+          { journeyId: created.journey.journeyId, targetProjectId: 'target-journey-1', role: 'REQUIREMENT_ANALYZER' },
+          secondClient,
+        ),
+      ])
+      const claimed = claims.filter(
+        (outcome): outcome is PromiseFulfilledResult<Awaited<ReturnType<typeof claimQualityJourneyWork>>> =>
+          outcome.status === 'fulfilled',
+      )
+      expect(claimed).toHaveLength(1)
+      const workItemId = claimed[0]!.value.workItem.id
+      const terminal = await Promise.allSettled([
+        cancelQualityJourneyWork(
+          {
+            journeyId: created.journey.journeyId,
+            targetProjectId: 'target-journey-1',
+            workItemId,
+            actor: 'USER',
+            reason: 'Concurrent cancellation.',
+          },
+          firstClient,
+        ),
+        revokeQualityJourneyWorkAuthorization(
+          {
+            journeyId: created.journey.journeyId,
+            targetProjectId: 'target-journey-1',
+            workItemId,
+            actor: 'COORDINATOR',
+            reason: 'Concurrent revocation.',
+          },
+          secondClient,
+        ),
+      ])
+      expect(terminal.some(outcome => outcome.status === 'fulfilled')).toBe(true)
+      const authorization = await firstClient.qualityJourneyWorkAuthorization.findUniqueOrThrow({
+        where: { workItemId },
+      })
+      expect(authorization.revokedAt).not.toBeNull()
+      await expect(
+        dispatchQualityJourneyWork(
+          {
+            journeyId: created.journey.journeyId,
+            targetProjectId: 'target-journey-1',
+            workItemId,
+            leaseId: claimed[0]!.value.attempt.leaseId,
+            ownerToken: claimed[0]!.value.ownerToken,
+          },
+          firstClient,
+        ),
+      ).rejects.toMatchObject({ code: 'UNAUTHORIZED' })
+    } finally {
+      await Promise.all([firstClient.$disconnect(), secondClient.$disconnect()])
+    }
+  }, 60_000)
+
+  it('dispatches a lease at most once and persists a refused Factory receipt as blocked evidence', async () => {
+    const client = await fixture()
+    try {
+      const created = await createQualityJourney(
+        {
+          targetProjectId: 'target-journey-1',
+          idempotencyKey: 'dispatch-idempotency',
+          requirement: { objective: 'Dispatch' },
+        },
+        client,
+      )
+      await submitDurableQualityJourneyCommand(
+        {
+          schemaVersion: 'appraise.quality-journey/v1',
+          commandId: 'dispatch-idempotency-analysis',
+          journeyId: created.journey.journeyId,
+          targetProjectId: 'target-journey-1',
+          actor: 'USER',
+          command: 'SUBMIT_REQUIREMENT',
+          expectedStateHash: created.journey.stateHash,
+          idempotencyKey: 'dispatch-idempotency-analysis',
+          inputArtifactRefs: [],
+          payload: { journeyRevisionId: 'dispatch-idempotency-revision', requirementHash: digest('e') },
+        },
+        client,
+      )
+      const claim = await claimQualityJourneyWork(
+        { journeyId: created.journey.journeyId, targetProjectId: 'target-journey-1', role: 'REQUIREMENT_ANALYZER' },
+        client,
+      )
+      const dispatchKeys: string[] = []
+      let failOnce = true
+      let signalAdapterEntered!: () => void
+      let releaseAdapter!: () => void
+      const adapterEntered = new Promise<void>(resolve => {
+        signalAdapterEntered = resolve
+      })
+      const adapterRelease = new Promise<void>(resolve => {
+        releaseAdapter = resolve
+      })
+      registerAgentFactoryProviderAdapter({
+        adapterId: 'deterministic-started',
+        supports: () => true,
+        dispatch: async (request, dispatchKey) => {
+          dispatchKeys.push(dispatchKey)
+          if (failOnce) throw new AgentFactoryDispatchNotStartedError('adapter confirmed no worker was started')
+          signalAdapterEntered()
+          await adapterRelease
+          return startedReceiptForRequest(request)
+        },
+      })
+      const input = {
+        journeyId: created.journey.journeyId,
+        targetProjectId: 'target-journey-1',
+        workItemId: claim.workItem.id,
+        leaseId: claim.attempt.leaseId,
+        ownerToken: claim.ownerToken,
+      }
+      await expect(dispatchQualityJourneyWork(input, client)).rejects.toMatchObject({ code: 'CONFLICT' })
+      expect(
+        await client.qualityJourneyWorkAttempt.findUniqueOrThrow({ where: { id: claim.attempt.id } }),
+      ).toMatchObject({
+        dispatchAdapterId: 'deterministic-started',
+        dispatchReservedAt: null,
+        dispatchStartedAt: null,
+      })
+      failOnce = false
+      const firstDispatch = dispatchQualityJourneyWork(input, client)
+      await adapterEntered
+      expect(await dispatchQualityJourneyWork(input, client)).toMatchObject({
+        replayed: true,
+        status: 'DISPATCH_PENDING',
+        adapterId: 'deterministic-started',
+      })
+      releaseAdapter()
+      const completedDispatch = await firstDispatch
+      expect(completedDispatch).toMatchObject({ status: 'IN_PROGRESS', adapterId: 'deterministic-started' })
+      expect(completedDispatch).not.toHaveProperty('receipt')
+      expect(await dispatchQualityJourneyWork(input, client)).toMatchObject({ replayed: true })
+      expect(dispatchKeys).toEqual([claim.attempt.dispatchKey, claim.attempt.dispatchKey])
+
+      const refusedJourney = await createQualityJourney(
+        {
+          targetProjectId: 'target-journey-1',
+          idempotencyKey: 'dispatch-refused',
+          requirement: { objective: 'Refuse' },
+        },
+        client,
+      )
+      await submitDurableQualityJourneyCommand(
+        {
+          schemaVersion: 'appraise.quality-journey/v1',
+          commandId: 'dispatch-refused-analysis',
+          journeyId: refusedJourney.journey.journeyId,
+          targetProjectId: 'target-journey-1',
+          actor: 'USER',
+          command: 'SUBMIT_REQUIREMENT',
+          expectedStateHash: refusedJourney.journey.stateHash,
+          idempotencyKey: 'dispatch-refused-analysis',
+          inputArtifactRefs: [],
+          payload: { journeyRevisionId: 'dispatch-refused-revision', requirementHash: digest('f') },
+        },
+        client,
+      )
+      const refusedClaim = await claimQualityJourneyWork(
+        {
+          journeyId: refusedJourney.journey.journeyId,
+          targetProjectId: 'target-journey-1',
+          role: 'REQUIREMENT_ANALYZER',
+        },
+        client,
+      )
+      clearAgentFactoryProviderAdaptersForTest()
+      registerAgentFactoryProviderAdapter({
+        adapterId: 'deterministic-refused',
+        supports: () => true,
+        dispatch: async request => ({
+          schemaVersion: 'appraise.quality-journey/v1',
+          outcome: 'REFUSED',
+          refusalCode: 'REQUIRED_BOUNDARY_UNSUPPORTED',
+          spawnReceiptId: `refused-${request.attemptId}`,
+          assignmentId: request.assignmentId,
+          workItemId: request.workItemId,
+          attemptId: request.attemptId,
+          roleDefinitionDigest: request.roleDefinitionDigest,
+          capabilityProfileDigest: request.capabilityProfileDigest,
+          boundaries: request.requiredBoundaries.map(boundary => ({
+            boundary: boundary.boundary,
+            requested: boundary.allowedValues,
+            status: boundary.boundary === request.requiredBoundaries[0]?.boundary ? 'UNSUPPORTED' : 'ENFORCED',
+            evidence: boundary.boundary === request.requiredBoundaries[0]?.boundary ? [digest('f')] : [],
+          })),
+          refusedAt: '2026-08-28T15:00:00.000Z',
+        }),
+      })
+      expect(
+        await dispatchQualityJourneyWork(
+          {
+            journeyId: refusedJourney.journey.journeyId,
+            targetProjectId: 'target-journey-1',
+            workItemId: refusedClaim.workItem.id,
+            leaseId: refusedClaim.attempt.leaseId,
+            ownerToken: refusedClaim.ownerToken,
+          },
+          client,
+        ),
+      ).toMatchObject({ status: 'BLOCKED', adapterId: 'deterministic-refused' })
+      expect(
+        await inspectQualityJourneyFactoryEvidence(
+          { journeyId: refusedJourney.journey.journeyId, targetProjectId: 'target-journey-1' },
+          client,
+        ),
+      ).toMatchObject({ attempts: [{ status: 'REFUSED', spawnReceiptHash: expect.stringMatching(/^sha256:/) }] })
+      expect(
+        await getQualityJourney(
+          { journeyId: refusedJourney.journey.journeyId, targetProjectId: 'target-journey-1' },
+          client,
+        ),
+      ).toMatchObject({
+        workItems: [{ id: refusedClaim.workItem.id, status: 'BLOCKED' }],
+        blockers: [{ reasonCode: 'REQUIRED_BOUNDARY_UNSUPPORTED', responsibleActor: 'COORDINATOR' }],
+      })
+      expect(
+        await resumeQualityJourney(
+          {
+            journeyId: refusedJourney.journey.journeyId,
+            targetProjectId: 'target-journey-1',
+            now: new Date('2026-08-29T00:00:00.000Z'),
+          },
+          client,
+        ),
+      ).toMatchObject({ resumedRefusedAttemptIds: [refusedClaim.attempt.id] })
+      expect(
+        await resumeQualityJourney(
+          {
+            journeyId: refusedJourney.journey.journeyId,
+            targetProjectId: 'target-journey-1',
+            now: new Date('2026-08-30T00:00:00.000Z'),
+          },
+          client,
+        ),
+      ).toMatchObject({ resumedRefusedAttemptIds: [] })
+      expect(
+        await getQualityJourney(
+          { journeyId: refusedJourney.journey.journeyId, targetProjectId: 'target-journey-1' },
+          client,
+        ),
+      ).toMatchObject({ workItems: [{ id: refusedClaim.workItem.id, status: 'REPLACEMENT_REQUESTED' }], blockers: [] })
+      const refusedReplacement = await claimQualityJourneyWork(
+        {
+          journeyId: refusedJourney.journey.journeyId,
+          targetProjectId: 'target-journey-1',
+          role: 'REQUIREMENT_ANALYZER',
+        },
+        client,
+      )
+      expect(refusedReplacement.attempt).toMatchObject({ attempt: 2, replacesAttemptId: refusedClaim.attempt.id })
+      await expect(
+        dispatchQualityJourneyWork(
+          {
+            journeyId: refusedJourney.journey.journeyId,
+            targetProjectId: 'target-journey-1',
+            workItemId: refusedReplacement.workItem.id,
+            leaseId: refusedReplacement.attempt.leaseId,
+            ownerToken: refusedReplacement.ownerToken,
+          },
+          client,
+        ),
+      ).resolves.toMatchObject({ status: 'BLOCKED', adapterId: 'deterministic-refused' })
+      await expect(
+        resumeQualityJourney(
+          {
+            journeyId: refusedJourney.journey.journeyId,
+            targetProjectId: 'target-journey-1',
+            now: new Date('2026-08-31T00:00:00.000Z'),
+          },
+          client,
+        ),
+      ).resolves.toMatchObject({ resumedRefusedAttemptIds: [refusedReplacement.attempt.id] })
+      const finalRefusedClaim = await claimQualityJourneyWork(
+        {
+          journeyId: refusedJourney.journey.journeyId,
+          targetProjectId: 'target-journey-1',
+          role: 'REQUIREMENT_ANALYZER',
+        },
+        client,
+      )
+      expect(finalRefusedClaim.attempt).toMatchObject({ attempt: 3, replacesAttemptId: refusedReplacement.attempt.id })
+      await expect(
+        dispatchQualityJourneyWork(
+          {
+            journeyId: refusedJourney.journey.journeyId,
+            targetProjectId: 'target-journey-1',
+            workItemId: finalRefusedClaim.workItem.id,
+            leaseId: finalRefusedClaim.attempt.leaseId,
+            ownerToken: finalRefusedClaim.ownerToken,
+          },
+          client,
+        ),
+      ).resolves.toMatchObject({ status: 'BLOCKED', adapterId: 'deterministic-refused' })
+      await expect(
+        resumeQualityJourney(
+          {
+            journeyId: refusedJourney.journey.journeyId,
+            targetProjectId: 'target-journey-1',
+            now: new Date('2026-09-01T00:00:00.000Z'),
+          },
+          client,
+        ),
+      ).resolves.toMatchObject({ resumedRefusedAttemptIds: [] })
+      expect(
+        await getQualityJourney(
+          { journeyId: refusedJourney.journey.journeyId, targetProjectId: 'target-journey-1' },
+          client,
+        ),
+      ).toMatchObject({
+        workItems: [{ id: refusedClaim.workItem.id, status: 'BLOCKED' }],
+        blockers: [{ reasonCode: 'ATTEMPT_BUDGET_EXHAUSTED', safeResumeCommand: 'NONE' }],
+      })
+
+      const unresolvedJourney = await createQualityJourney(
+        {
+          targetProjectId: 'target-journey-1',
+          idempotencyKey: 'dispatch-unresolved',
+          requirement: { objective: 'Unresolved dispatch' },
+        },
+        client,
+      )
+      await submitDurableQualityJourneyCommand(
+        {
+          schemaVersion: 'appraise.quality-journey/v1',
+          commandId: 'dispatch-unresolved-analysis',
+          journeyId: unresolvedJourney.journey.journeyId,
+          targetProjectId: 'target-journey-1',
+          actor: 'USER',
+          command: 'SUBMIT_REQUIREMENT',
+          expectedStateHash: unresolvedJourney.journey.stateHash,
+          idempotencyKey: 'dispatch-unresolved-analysis',
+          inputArtifactRefs: [],
+          payload: { journeyRevisionId: 'dispatch-unresolved-revision', requirementHash: digest('a') },
+        },
+        client,
+      )
+      const unresolvedClaim = await claimQualityJourneyWork(
+        {
+          journeyId: unresolvedJourney.journey.journeyId,
+          targetProjectId: 'target-journey-1',
+          role: 'REQUIREMENT_ANALYZER',
+        },
+        client,
+      )
+      clearAgentFactoryProviderAdaptersForTest()
+      registerAgentFactoryProviderAdapter({
+        adapterId: 'lost-response-adapter',
+        supports: () => true,
+        dispatch: async () => {
+          throw new Error('provider connection closed after dispatch request')
+        },
+      })
+      expect(
+        await dispatchQualityJourneyWork(
+          {
+            journeyId: unresolvedJourney.journey.journeyId,
+            targetProjectId: 'target-journey-1',
+            workItemId: unresolvedClaim.workItem.id,
+            leaseId: unresolvedClaim.attempt.leaseId,
+            ownerToken: unresolvedClaim.ownerToken,
+          },
+          client,
+        ),
+      ).toMatchObject({
+        status: 'DISPATCH_UNRESOLVED',
+        attemptId: unresolvedClaim.attempt.id,
+        adapterId: 'lost-response-adapter',
+      })
+      await client.qualityJourneyWorkAttempt.update({
+        where: { id: unresolvedClaim.attempt.id },
+        data: {
+          leaseExpiresAt: new Date('2026-08-28T00:00:00.000Z'),
+        },
+      })
+      await resumeQualityJourney(
+        {
+          journeyId: unresolvedJourney.journey.journeyId,
+          targetProjectId: 'target-journey-1',
+          now: new Date('2026-08-29T00:00:00.000Z'),
+        },
+        client,
+      )
+      const repeatedResume = await resumeQualityJourney(
+        {
+          journeyId: unresolvedJourney.journey.journeyId,
+          targetProjectId: 'target-journey-1',
+          now: new Date('2026-08-30T00:00:00.000Z'),
+        },
+        client,
+      )
+      expect(repeatedResume.expiredAttemptIds).toEqual([])
+      await expect(
+        claimQualityJourneyWork(
+          {
+            journeyId: unresolvedJourney.journey.journeyId,
+            targetProjectId: 'target-journey-1',
+            role: 'REQUIREMENT_ANALYZER',
+          },
+          client,
+        ),
+      ).rejects.toMatchObject({ code: 'CONFLICT' })
+      expect(
+        await getQualityJourney(
+          { journeyId: unresolvedJourney.journey.journeyId, targetProjectId: 'target-journey-1' },
+          client,
+        ),
+      ).toMatchObject({
+        workItems: [{ id: unresolvedClaim.workItem.id, status: 'BLOCKED' }],
+        blockers: [{ reasonCode: 'AMBIGUOUS_PROVIDER_DISPATCH' }],
+      })
+      expect(
+        await client.qualityJourneyBlocker.count({
+          where: { journeyId: unresolvedJourney.journey.journeyId, reasonCode: 'AMBIGUOUS_PROVIDER_DISPATCH' },
+        }),
+      ).toBe(1)
+      expect(
+        await dispatchQualityJourneyWork(
+          {
+            journeyId: unresolvedJourney.journey.journeyId,
+            targetProjectId: 'target-journey-1',
+            workItemId: unresolvedClaim.workItem.id,
+            leaseId: unresolvedClaim.attempt.leaseId,
+            ownerToken: unresolvedClaim.ownerToken,
+          },
+          client,
+        ),
+      ).toMatchObject({
+        status: 'DISPATCH_UNRESOLVED',
+        attemptId: unresolvedClaim.attempt.id,
+        adapterId: 'lost-response-adapter',
+      })
     } finally {
       await client.$disconnect()
     }

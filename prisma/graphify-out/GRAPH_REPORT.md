@@ -1,19 +1,19 @@
 # Graph Report - prisma
 
 ## Corpus Check
-- 88 files from prisma/schema.prisma and migrations
+- 89 files from prisma/schema.prisma and migrations
 - Verdict: schema-aware graph generated because Graphify AST extraction does not currently produce Prisma/SQL nodes.
 
 ## Summary
-- 1915 nodes · 4303 edges · 322 communities
+- 1932 nodes · 4339 edges · 323 communities
 - Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS
 - Token cost: 0 input · 0 output
 
 ## God Nodes (most connected - your core abstractions)
-1. `String` - 746 edges
-2. `schema.prisma` - 241 edges
+1. `String` - 756 edges
+2. `schema.prisma` - 242 edges
 3. `TargetProject` - 188 edges
-4. `DateTime` - 167 edges
+4. `DateTime` - 172 edges
 5. `QualityValidationPublication` - 98 edges
 6. `Assessment` - 95 edges
 7. `QualityPlanRevision` - 89 edges
@@ -42,7 +42,7 @@
 ## Import Cycles
 - None detected.
 
-## Communities (322 total)
+## Communities (323 total)
 ### Community 0 - "schema.prisma"
 Nodes (3): schema.prisma, datasource db (sqlite), Prisma client generator
 
@@ -161,10 +161,10 @@ Nodes (12): QualityJourneyEvent, QualityJourneyEvent.id, QualityJourneyEvent.jou
 Nodes (19): QualityJourneyWorkItem, QualityJourneyWorkItem.id, QualityJourneyWorkItem.journeyId, QualityJourneyWorkItem.targetProjectId, QualityJourneyWorkItem.cycleId, QualityJourneyWorkItem.role, QualityJourneyWorkItem.status, QualityJourneyWorkItem.inputHash (+more)
 
 ### Community 39 - "QualityJourneyWorkAuthorization"
-Nodes (15): QualityJourneyWorkAuthorization, QualityJourneyWorkAuthorization.id, QualityJourneyWorkAuthorization.journeyId, QualityJourneyWorkAuthorization.targetProjectId, QualityJourneyWorkAuthorization.workItemId, QualityJourneyWorkAuthorization.role, QualityJourneyWorkAuthorization.roleContractDigest, QualityJourneyWorkAuthorization.capabilityProfileId (+more)
+Nodes (22): QualityJourneyWorkAuthorization, QualityJourneyWorkAuthorization.id, QualityJourneyWorkAuthorization.journeyId, QualityJourneyWorkAuthorization.targetProjectId, QualityJourneyWorkAuthorization.workItemId, QualityJourneyWorkAuthorization.role, QualityJourneyWorkAuthorization.roleContractDigest, QualityJourneyWorkAuthorization.capabilityProfileId (+more)
 
 ### Community 40 - "QualityJourneyWorkAttempt"
-Nodes (29): QualityJourneyWorkAttempt, QualityJourneyWorkAttempt.id, QualityJourneyWorkAttempt.workItemId, QualityJourneyWorkAttempt.attempt, QualityJourneyWorkAttempt.status, QualityJourneyWorkAttempt.leaseId, QualityJourneyWorkAttempt.ownerTokenHash, QualityJourneyWorkAttempt.leaseExpiresAt (+more)
+Nodes (38): QualityJourneyWorkAttempt, QualityJourneyWorkAttempt.id, QualityJourneyWorkAttempt.workItemId, QualityJourneyWorkAttempt.attempt, QualityJourneyWorkAttempt.status, QualityJourneyWorkAttempt.leaseId, QualityJourneyWorkAttempt.ownerTokenHash, QualityJourneyWorkAttempt.leaseExpiresAt (+more)
 
 ### Community 41 - "QualityJourneyBlocker"
 Nodes (16): QualityJourneyBlocker, QualityJourneyBlocker.id, QualityJourneyBlocker.journeyId, QualityJourneyBlocker.targetProjectId, QualityJourneyBlocker.reasonCode, QualityJourneyBlocker.summary, QualityJourneyBlocker.evidenceJson, QualityJourneyBlocker.responsibleActor (+more)
@@ -1008,6 +1008,9 @@ Nodes (1): 20260828140000_add_quality_journey_phase_1
 
 ### Community 321 - "20260828150000_add_quality_journey_factory_lineage"
 Nodes (1): 20260828150000_add_quality_journey_factory_lineage
+
+### Community 322 - "20260828160000_complete_quality_journey_factory_phase_2"
+Nodes (1): 20260828160000_complete_quality_journey_factory_phase_2
 
 ## Suggested Questions
 - Which models connect Quality Plans to Assessments?

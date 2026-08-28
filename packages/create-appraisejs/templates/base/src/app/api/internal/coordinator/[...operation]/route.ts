@@ -83,11 +83,14 @@ import {
 import { RuntimeCapsuleTestRunService } from '@/services/test-run/runtime-capsule-test-run-service'
 import {
   claimQualityJourneyWork,
+  cancelQualityJourneyWork,
   completeQualityJourneyWork,
   createQualityJourney,
+  dispatchQualityJourneyWork,
   getQualityJourney,
+  inspectQualityJourneyFactoryEvidence,
   listQualityJourneyArtifacts,
-  recordQualityJourneyWorkerSpawnReceipt,
+  revokeQualityJourneyWorkAuthorization,
   resumeQualityJourney,
   submitDurableQualityJourneyCommand,
 } from '@/services/coordinator/quality-journey-service'
@@ -487,6 +490,12 @@ async function getQualityOperation(request: Request, operation: string[]) {
     const target = await resolveTargetProject(z.string().min(1).parse(new URL(request.url).searchParams.get('target')))
     return Response.json(await listQualityJourneyArtifacts({ journeyId: operation[2]!, targetProjectId: target.id }))
   }
+  if (operation[1] === 'journeys' && operation[3] === 'factory-evidence' && operation.length === 4) {
+    const target = await resolveTargetProject(z.string().min(1).parse(new URL(request.url).searchParams.get('target')))
+    return Response.json(
+      await inspectQualityJourneyFactoryEvidence({ journeyId: operation[2]!, targetProjectId: target.id }),
+    )
+  }
   if (operation[1] === 'methodologies' && operation.length === 2) return Response.json(listQualityMethodologies())
   if (operation[1] === 'methodologies' && operation.length === 5)
     return Response.json(
@@ -691,6 +700,11 @@ const qualityJourneyWorkLeaseSchema = z.object({
   leaseId: z.string().min(1),
   ownerToken: z.string().min(1),
 })
+const qualityJourneyWorkControlSchema = z.object({
+  target: z.string().min(1),
+  actor: z.enum(['USER', 'COORDINATOR', 'RUNNER']),
+  reason: z.string().trim().min(1).max(8_000),
+})
 
 function isQualityJourneyWorkOperation(operation: string[], action: string) {
   return operation.length === 6 && operation[1] === 'journeys' && operation[3] === 'work' && operation[5] === action
@@ -735,18 +749,42 @@ async function postQualityOperation(operation: string[], body: unknown): Promise
       await claimQualityJourneyWork({ ...value, journeyId: operation[2]!, targetProjectId: target.id }),
     )
   }
-  if (isQualityJourneyWorkOperation(operation, 'spawn-receipt')) {
-    const value = qualityJourneyWorkLeaseSchema.extend({ receipt: z.unknown() }).parse(body)
-    if (!('receipt' in value)) throw new ServiceError('Quality Journey spawn receipt is required.', 'VALIDATION')
+  if (isQualityJourneyWorkOperation(operation, 'dispatch')) {
+    const value = qualityJourneyWorkLeaseSchema.parse(body)
     const target = await resolveTargetProject(value.target)
     return Response.json(
-      await recordQualityJourneyWorkerSpawnReceipt({
+      await dispatchQualityJourneyWork({
         leaseId: value.leaseId,
         ownerToken: value.ownerToken,
-        receipt: value.receipt,
         journeyId: operation[2]!,
         workItemId: operation[4]!,
         targetProjectId: target.id,
+      }),
+    )
+  }
+  if (isQualityJourneyWorkOperation(operation, 'cancel')) {
+    const value = qualityJourneyWorkControlSchema.parse(body)
+    const target = await resolveTargetProject(value.target)
+    return Response.json(
+      await cancelQualityJourneyWork({
+        journeyId: operation[2]!,
+        workItemId: operation[4]!,
+        targetProjectId: target.id,
+        actor: value.actor,
+        reason: value.reason,
+      }),
+    )
+  }
+  if (isQualityJourneyWorkOperation(operation, 'revoke')) {
+    const value = qualityJourneyWorkControlSchema.parse(body)
+    const target = await resolveTargetProject(value.target)
+    return Response.json(
+      await revokeQualityJourneyWorkAuthorization({
+        journeyId: operation[2]!,
+        workItemId: operation[4]!,
+        targetProjectId: target.id,
+        actor: value.actor,
+        reason: value.reason,
       }),
     )
   }

@@ -653,6 +653,15 @@ model QualityJourneyWorkAuthorization {
   capabilityProfileHash String
   authorizationJson     String
   authorizationHash     String
+  /// Factory claims consume this hard ceiling atomically. It is deliberately
+  /// not a provider/token/cost budget.
+  maxAttempts           Int                         @default(3)
+  cancelledAt           DateTime?
+  cancelledBy           String?
+  cancellationReason    String?
+  revokedAt             DateTime?
+  revokedBy             String?
+  revocationReason      String?
   createdAt             DateTime                    @default(now())
   journey               QualityJourney              @relation(fields: [journeyId], references: [id], onDelete: Restrict)
   workItem              QualityJourneyWorkItem      @relation(fields: [workItemId], references: [id], onDelete: Restrict)
@@ -660,6 +669,7 @@ model QualityJourneyWorkAuthorization {
 
   @@index([targetProjectId, role])
   @@index([journeyId, workItemId])
+  @@index([revokedAt])
 }
 
 model QualityJourneyWorkAttempt {
@@ -678,13 +688,22 @@ model QualityJourneyWorkAttempt {
   spawnRequestId      String?
   spawnRequestJson    String?
   spawnRequestHash    String?
+  dispatchKey         String?                          @unique
+  dispatchAdapterId   String?
+  dispatchReservedAt  DateTime?
+  dispatchStartedAt   DateTime?
   spawnReceiptId      String?
   spawnReceiptJson    String?
   spawnReceiptHash    String?
   replacesAttemptId   String?
+  replacementProjectionHash String?
+  predecessorDiagnosticsJson String?
   resultJson          String?
   resultHash          String?
   failureJson         String?
+  cancelledAt         DateTime?
+  cancelledBy         String?
+  cancellationReason  String?
   startedAt           DateTime                         @default(now())
   completedAt         DateTime?
   workItem            QualityJourneyWorkItem           @relation(fields: [workItemId], references: [id], onDelete: Restrict)
@@ -699,6 +718,7 @@ model QualityJourneyWorkAttempt {
   @@index([leaseExpiresAt, status])
   @@index([authorizationId, attempt])
   @@index([replacesAttemptId])
+  @@index([dispatchReservedAt])
 }
 
 model QualityJourneyBlocker {

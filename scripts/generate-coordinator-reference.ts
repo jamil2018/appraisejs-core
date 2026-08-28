@@ -30,6 +30,7 @@ const exactCoordinatorOperations: Readonly<Record<string, CoordinatorOperationId
   project_add: 'target-project-write',
   project_diagnostic: 'diagnostic',
   project_list: 'target-projects-list',
+  quality_journey_factory_evidence_inspect: 'quality-read',
   quality_journey_artifacts_list: 'quality-read',
   quality_journey_get: 'quality-read',
   requirements_graph_read: 'quality-read',

@@ -19,6 +19,7 @@ describe('public coordinator operation reference', () => {
   it('classifies Step Definition reads before the generic write prefix', () => {
     const expectedReferences = {
       step_definition_draft_read: 'step-definitions-read',
+      quality_journey_factory_evidence_inspect: 'quality-read',
     } as const
 
     for (const [tool, operation] of Object.entries(expectedReferences))

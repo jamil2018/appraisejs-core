@@ -11,7 +11,7 @@ The executable Quality Journey foundation is in `src/lib/quality-journey/`:
   capability requests, spawn receipts, worker results, commands, conflicts, and closure.
 - `role-definitions.ts` defines the six semantic roles and their negative authority. Coordinator, Runner, Factory,
   managed runtime, and optional independent review are control or assurance components, not semantic worker roles.
-- `agent-factory.ts` starts the Phase 2 provider-neutral Factory boundary. It creates least-privilege spawn requests,
+- `agent-factory.ts` implements the Phase 2 provider-neutral Factory boundary. It creates least-privilege spawn requests,
   resolves role/profile authority from the canonical registries, binds assignments to their exact version and digest,
   validates structured effective boundary and tool receipts, rejects forged or stale results, and creates replacement
   assignment projections without transcript fields.
@@ -29,12 +29,16 @@ The executable Quality Journey foundation is in `src/lib/quality-journey/`:
   active-lease expiry from Appraise state.
 - `quality-journey-service.ts` persists the authoritative projection, immutable revisions/cycles/commands/events and
   artifact links, blockers, work-item authorization, assignment manifests, spawn requests and receipts, attempt
-  replacement lineage, lease authority, and exact result envelopes. Compare-and-swap state mutation, command/event
-  creation, work claims, receipt recording, completion, expiry, and replacement are transactional.
+  replacement lineage, lease authority, hard attempt ceilings, cancellation/revocation state, and exact result
+  envelopes. Compare-and-swap state mutation, command/event creation, work claims, dispatch, receipt recording,
+  completion, expiry, cancellation, revocation, and replacement are transactional.
 - Prisma migration `20260828140000_add_quality_journey_phase_1` establishes the durable aggregate and database-enforced
   append-only lifecycle history. Prepared scaffold databases contain the schema but no journey, event, or lease state.
 - Prisma migration `20260828150000_add_quality_journey_factory_lineage` adds immutable work-item authorization and
   append-only Factory assignment/request/receipt lineage to those durable attempts.
+- Prisma migration `20260828160000_complete_quality_journey_factory_phase_2` adds hard attempt ceilings, terminal
+  cancellation/revocation state, durable dispatch reservations, and replacement-projection lineage. Existing recovered
+  authorizations receive one attempt; newly issued authorizations receive three.
 
 ## Lifecycle
 
@@ -50,9 +54,12 @@ Role work items have one immutable authorization record and a separate durable a
 persists its Assignment Manifest, canonical spawn request, hashes, and any predecessor-attempt link. A claim with no
 issued authorization fails closed. Explicit resume conservatively recovers authorization for active Phase 1 work from
 Appraise-owned work-item fields and the current canonical role registry; callers cannot supply or broaden that scope.
-Terminal states are `COMPLETED`, `CANCELLED`, and `SUPERSEDED`. Lease expiry leads to a replacement attempt on the same
-work item with explicit predecessor ancestry and no transcript replay. Current artifact successor projection and
-structured attempt diagnostics remain pending. A late predecessor cannot complete once a replacement is current.
+Work items can be `COMPLETED`, `CANCELLED`, `SUPERSEDED`, or `BLOCKED`; `REFUSED` is a terminal attempt state that
+blocks its work item. Lease expiry leads to a replacement attempt on the same work item with explicit predecessor
+ancestry and no transcript replay. Replacement input derives canonically
+from current work-item references, the active journey revision, and durable `QualityJourneyArtifact` records for the
+same cycle; its projection hash and structured predecessor diagnostics are persisted. A late predecessor cannot complete
+once a replacement is current.
 
 ## Commands and conflicts
 
@@ -62,16 +69,31 @@ returns its successor stage and state hash. A stale command returns `STALE_STATE
 hash, and next commands and commits no lifecycle event. Reusing an idempotency key with changed canonical input is an
 `IDEMPOTENCY_KEY_REUSED` conflict; an exact replay returns the original result.
 
-Phase 1 exposes the journey kernel through `quality_journey_create`, `quality_journey_get`, `quality_journey_resume`,
-`quality_journey_command_submit`, `quality_journey_work_claim`, `quality_journey_work_complete`, and
-`quality_journey_artifacts_list`. Phase 2 adds `quality_journey_work_spawn_receipt_record` between claim and completion
-so a provider's effective boundary evidence is durably validated before Appraise accepts worker output. The earlier
-proposed `evaluation_session_*` names are superseded before public implementation; no compatibility aliases exist yet.
+The journey kernel is exposed through `quality_journey_create`, `quality_journey_get`, `quality_journey_resume`,
+`quality_journey_command_submit`, `quality_journey_work_claim`, `quality_journey_work_dispatch`,
+`quality_journey_work_complete`, `quality_journey_work_cancel`,
+`quality_journey_work_revoke`, `quality_journey_factory_evidence_inspect`, and `quality_journey_artifacts_list`.
+Dispatch selects only a compatible registered provider-neutral adapter; no adapter blocks before execution. A durable
+per-attempt dispatch key is the adapter idempotency key. Only an adapter-thrown
+`AgentFactoryDispatchNotStartedError`—an explicit attestation that no worker was created—clears its in-flight
+reservation and may retry the same adapter/key; a live concurrent retry observes `DISPATCH_PENDING`. Any generic or
+unclassified adapter rejection is ambiguous. If the provider response is lost after dispatch begins, Appraise cannot
+prove that no worker exists: lease recovery records
+`DISPATCH_UNRESOLVED` and an `AMBIGUOUS_PROVIDER_DISPATCH` blocker, retains the adapter/key, and issues no replacement
+until a future adapter-reconciliation capability exists. Receipt ingress requires both the exact lease owner token and
+the durable dispatch reservation. Cancellation and revocation accept only the explicit
+Appraise control actors `USER`, `COORDINATOR`, and `RUNNER`; no provider or worker actor is recognized.
+Public dispatch responses are bounded to replay/status, work-item and attempt IDs, receipt ID/hash, and adapter ID as
+applicable. They never return a receipt payload, boundary evidence, effective worker model/runtime, prompt, or key.
 
 An identical command replay returns its original committed result and creates no second event. Reusing an idempotency
 key with changed input conflicts. Competing commands from one predecessor hash can produce only one compare-and-swap
 successor. `quality_journey_resume` reconstructs every semantic role node from durable stage/work-item/blocker state,
-expires elapsed leases, and makes the same work item replacement-claimable without replaying a worker transcript.
+expires elapsed leases, and makes only eligible, non-ambiguous work with attempts remaining replacement-claimable
+without replaying a worker transcript. It resolves an active Factory refusal blocker only when its current refused
+attempt has budget remaining, then requests a replacement attempt with current artifact projection. An exhausted
+authorization instead retains an `ATTEMPT_BUDGET_EXHAUSTED` blocker with safe-resume command `NONE`: a new journey or
+future explicit re-authorization is required and `quality_journey_resume` cannot restart it.
 
 ## Role authority
 
@@ -87,24 +109,30 @@ expires elapsed leases, and makes the same work item replacement-claimable witho
 Capability-profile requests contain judgment, latency, isolation, tool, and runtime-boundary requirements but no
 provider or model names. Factory spawn requests preserve that neutral profile and the exact assignment scope. Effective
 model and runtime properties belong only in the attempt-level spawn receipt, where each requested boundary is recorded
-as enforced, verified, unverified, or unsupported. A missing, unsupported, or unverifiable required boundary blocks
-worker acceptance. Requested and effective context, filesystem, network, target, credential, and lifecycle-command
-values are structured and effective values cannot exceed the assignment; effective tools must remain within the
-assignment and profile.
+as enforced, verified, unverified, or unsupported. Every configured high-risk runtime boundary must be `VERIFIED` with
+evidence before a `STARTED` receipt is accepted; a missing, unsupported, or unverifiable required boundary blocks worker
+acceptance. Effective reasoning must meet the requested ranking, effective latency may not exceed the requested
+preference, requested/effective context, filesystem, network, target, credential, and lifecycle-command values are
+structured and effective values cannot exceed the assignment; effective tools must satisfy required tools, exclude
+forbidden tools, and remain within the assignment.
 
 Assignment issuance uses the registry-aware validator with the resolved Role Definition and capability profile, and
-enforces exact registry version and digest binding. The durable authorization record contains only assignment-scoped
-authority: it has no transcript, credential value, or provider model. A claim persists the concrete attempt manifest
-and provider-neutral spawn request atomically. Internal receipt recording revalidates the canonical persisted request;
-an identical receipt replay is idempotent and a different second receipt conflicts. Schema parsing alone does not issue
-an assignment.
+enforces exact registry version and digest binding, including the role's readable input-artifact kinds. The durable
+authorization record contains only assignment-scoped authority: it has no transcript, credential value, or provider model. A claim persists the concrete attempt manifest
+and provider-neutral spawn request atomically. Only the selected adapter may return the receipt through the internal
+dispatch path; no public coordinator operation accepts a receipt payload. The persisted dispatch key and adapter identity
+make retries idempotent, including a retry after an adapter failure. Schema parsing alone does not issue an assignment.
 
 Worker results are accepted only after a persisted, validated spawn receipt and when assignment, work item, attempt,
 role, role-contract digest, and current input hash match the issued authority. Output artifact kinds must be permitted
-by both the semantic role and the exact assignment. Replacement assignment construction parses the prior strict manifest
-and accepts a caller-supplied successor state, artifact projection, and lease while rejecting hidden transcript fields.
-Replacement attempts retain durable predecessor ancestry; current-artifact successor projection, provider adapters,
-attempt budgets, and cancellation/revocation remain later Phase 2 work.
+by both the semantic role and the exact assignment. Replacement attempts retain durable predecessor ancestry; the
+service derives successor artifact projection and input hash server-side rather than accepting caller transcript or
+provider data. A structured `REFUSED` receipt is terminal evidence: it records a `REFUSED` attempt, blocks the work
+item, and creates an actionable refusal-code blocker; it is never represented as in progress. Authorization cancellation
+immediately invalidates active attempts; revocation is terminal and rejects late receipt/result/completion ingress.
+Read-authorized `GET` Factory evidence exposes hashes, terminal state, and bounded operational dispatch metadata
+(adapter ID, dispatch key, and reservation/start timestamps), never lease secrets, prompts, transcripts, credentials,
+or raw worker output.
 
 ## Closure and traceability invariants
 

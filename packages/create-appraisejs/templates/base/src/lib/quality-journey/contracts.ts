@@ -208,6 +208,9 @@ export const providerCapabilityProfileSchema = z
     requiredRuntimeBoundaries: z.array(
       z.enum(['CONTEXT', 'FILESYSTEM', 'NETWORK', 'TARGET', 'CREDENTIAL', 'LIFECYCLE_COMMAND']),
     ),
+    requiredVerifiedRuntimeBoundaries: z.array(
+      z.enum(['CONTEXT', 'FILESYSTEM', 'NETWORK', 'TARGET', 'CREDENTIAL', 'LIFECYCLE_COMMAND']),
+    ),
   })
   .strict()
   .superRefine((profile, context) => {
@@ -220,6 +223,12 @@ export const providerCapabilityProfileSchema = z
       context.addIssue({ code: 'custom', message: 'A tool cannot be both required and forbidden.' })
     if (new Set(profile.requiredRuntimeBoundaries).size !== profile.requiredRuntimeBoundaries.length)
       context.addIssue({ code: 'custom', message: 'Required runtime boundaries must be unique.' })
+    if (new Set(profile.requiredVerifiedRuntimeBoundaries).size !== profile.requiredVerifiedRuntimeBoundaries.length)
+      context.addIssue({ code: 'custom', message: 'Required verified runtime boundaries must be unique.' })
+    if (
+      profile.requiredVerifiedRuntimeBoundaries.some(boundary => !profile.requiredRuntimeBoundaries.includes(boundary))
+    )
+      context.addIssue({ code: 'custom', message: 'A required verified boundary must be a required runtime boundary.' })
   })
 export type ProviderCapabilityProfile = z.infer<typeof providerCapabilityProfileSchema>
 
@@ -269,6 +278,21 @@ export const assignmentManifestSchema = z
       .strict(),
     stateHash: digest,
     inputHash: digest,
+    replacement: z
+      .object({
+        projectionHash: digest,
+        predecessorAttemptId: id,
+        diagnostics: z
+          .object({
+            status: z.string().min(1).max(100),
+            completedAt: z.string().datetime().optional(),
+            resultHash: digest.optional(),
+            failureHash: digest.optional(),
+          })
+          .strict(),
+      })
+      .strict()
+      .optional(),
     lease: z
       .object({ leaseId: id, expiresAt: z.string().datetime(), heartbeatSeconds: z.number().int().positive() })
       .strict(),
@@ -294,6 +318,8 @@ function assignmentAuthorityViolations(manifest: AssignmentManifest, roleDefinit
   const violations: string[] = []
   if (manifest.writableArtifactKinds.some(kind => !roleDefinition.writableArtifacts.includes(kind)))
     violations.push('writable artifact scope exceeds role authority')
+  if (manifest.inputArtifacts.some(reference => !roleDefinition.readableArtifacts.includes(reference.kind)))
+    violations.push('input artifact scope exceeds role authority')
   if (manifest.scope.permittedTools.some(tool => !roleDefinition.permittedTools.includes(tool)))
     violations.push('tool scope exceeds role authority')
   if (manifest.scope.permittedCommands.some(command => !roleDefinition.permittedCommands.includes(command)))
@@ -373,7 +399,16 @@ export const workerSpawnReceiptSchema = z.union([
   spawnReceiptBase
     .extend({
       outcome: z.literal('STARTED'),
-      effectiveWorker: z.object({ modelId: id, reasoningLevel: id, toolIds: z.array(id) }).strict(),
+      // Model identity is receipt-only provider evidence. It is never copied
+      // into an authorization, assignment, replacement projection, or request.
+      effectiveWorker: z
+        .object({
+          modelId: id,
+          reasoningLevel: z.enum(['LOW', 'MEDIUM', 'HIGH']),
+          latencyPreference: z.enum(['FAST', 'BALANCED', 'DELIBERATE']),
+          toolIds: z.array(id),
+        })
+        .strict(),
       startedAt: z.string().datetime(),
     })
     .strict()
