@@ -3,6 +3,7 @@ import {
   createQualityJourneyKernelState,
   expireQualityJourneyLeases,
   runnableQualityJourneyRoles,
+  reconstructQualityJourneyRunner,
   submitQualityJourneyCommand,
 } from './index'
 
@@ -147,6 +148,19 @@ describe('Quality Journey Phase 1 kernel', () => {
       ]),
     ).toEqual(['RESOURCE_EXPLORER'])
     expect(runnableQualityJourneyRoles('ANALYSIS_REVIEW', [])).toEqual([])
+    expect(
+      reconstructQualityJourneyRunner(
+        'DISCOVERY',
+        [{ workItemId: 'analysis-1', role: 'REQUIREMENT_ANALYZER', status: 'COMPLETED' }],
+        [],
+      ),
+    ).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ role: 'REQUIREMENT_ANALYZER', state: 'COMPLETED' }),
+        expect.objectContaining({ role: 'SCOUT', state: 'RUNNABLE' }),
+        expect.objectContaining({ role: 'AUTOMATOR', state: 'WAITING' }),
+      ]),
+    )
 
     expect(
       expireQualityJourneyLeases(

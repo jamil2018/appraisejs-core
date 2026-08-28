@@ -25,7 +25,7 @@ export const qualityJourneyStageSchema = z.enum([
 ])
 export type QualityJourneyStage = z.infer<typeof qualityJourneyStageSchema>
 
-const qualityJourneyRoleSchema = z.enum([
+export const qualityJourneyRoleSchema = z.enum([
   'REQUIREMENT_ANALYZER',
   'SCOUT',
   'RESOURCE_EXPLORER',

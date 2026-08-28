@@ -9,6 +9,7 @@ import {
 } from './contracts'
 import { qualityJourneyTransitions } from './lifecycle'
 import { hashQualityJourneyState, type QualityJourneyStateHashInput } from './state'
+import { expectedQualityJourneyWorkItemIds } from './runner'
 
 export type QualityJourneyLifecycleEvent = {
   eventId: string
@@ -146,6 +147,7 @@ function applyProjection(
     stage,
     activeRevisionIds,
     blockerIds: resolvedBlockerId ? current.blockerIds.filter(id => id !== resolvedBlockerId) : current.blockerIds,
+    activeWorkItemIds: expectedQualityJourneyWorkItemIds(current.journeyId, current.activeCycleId, stage),
   })
 }
 

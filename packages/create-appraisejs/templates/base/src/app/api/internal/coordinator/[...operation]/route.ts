@@ -2,6 +2,7 @@ import { createHash, randomUUID } from 'node:crypto'
 
 import { CredentialExecutionAuthorizationIssuer } from '@prisma/client'
 import { z } from 'zod'
+import { journeyCommandSchema, qualityJourneyRoleSchema } from '@/lib/quality-journey'
 
 import prisma from '@/config/db-config'
 import { defaultOperationRegistry } from '@/lib/operation-catalog'
@@ -80,6 +81,15 @@ import {
   readTestRunEvidenceSummary,
 } from '@/services/test-run/test-run-service'
 import { RuntimeCapsuleTestRunService } from '@/services/test-run/runtime-capsule-test-run-service'
+import {
+  claimQualityJourneyWork,
+  completeQualityJourneyWork,
+  createQualityJourney,
+  getQualityJourney,
+  listQualityJourneyArtifacts,
+  resumeQualityJourney,
+  submitDurableQualityJourneyCommand,
+} from '@/services/coordinator/quality-journey-service'
 
 export const runtime = 'nodejs'
 
@@ -468,6 +478,14 @@ async function getTestRunEvidence(request: Request, operation: string[]) {
 }
 
 async function getQualityOperation(request: Request, operation: string[]) {
+  if (operation[1] === 'journeys' && operation.length === 3) {
+    const target = await resolveTargetProject(z.string().min(1).parse(new URL(request.url).searchParams.get('target')))
+    return Response.json(await getQualityJourney({ journeyId: operation[2]!, targetProjectId: target.id }))
+  }
+  if (operation[1] === 'journeys' && operation[3] === 'artifacts' && operation.length === 4) {
+    const target = await resolveTargetProject(z.string().min(1).parse(new URL(request.url).searchParams.get('target')))
+    return Response.json(await listQualityJourneyArtifacts({ journeyId: operation[2]!, targetProjectId: target.id }))
+  }
   if (operation[1] === 'methodologies' && operation.length === 2) return Response.json(listQualityMethodologies())
   if (operation[1] === 'methodologies' && operation.length === 5)
     return Response.json(
@@ -669,6 +687,65 @@ function qualityAssessmentId(operation: string[]) {
 
 async function postQualityOperation(operation: string[], body: unknown): Promise<Response> {
   const key = operation.join('/')
+  if (key === 'quality/journeys') {
+    const value = z
+      .object({ target: z.string().min(1), idempotencyKey: z.string().min(1), requirement: z.unknown() })
+      .parse(body)
+    if (!('requirement' in value)) throw new ServiceError('Quality Journey requirement is required.', 'VALIDATION')
+    const target = await resolveTargetProject(value.target)
+    return Response.json(
+      await createQualityJourney({
+        targetProjectId: target.id,
+        idempotencyKey: value.idempotencyKey,
+        requirement: value.requirement,
+      }),
+      { status: 201 },
+    )
+  }
+  if (key === `quality/journeys/${operation[2]}/resume`) {
+    const value = z.object({ target: z.string().min(1) }).parse(body)
+    const target = await resolveTargetProject(value.target)
+    return Response.json(await resumeQualityJourney({ journeyId: operation[2]!, targetProjectId: target.id }))
+  }
+  if (key === `quality/journeys/${operation[2]}/commands`) {
+    const value = z.object({ target: z.string().min(1), command: z.unknown() }).parse(body)
+    const target = await resolveTargetProject(value.target)
+    const command = journeyCommandSchema.parse(value.command)
+    if (command.journeyId !== operation[2] || command.targetProjectId !== target.id)
+      throw new ServiceError('Quality Journey command scope does not match the requested journey.', 'CONFLICT')
+    return Response.json(await submitDurableQualityJourneyCommand(command))
+  }
+  if (key === `quality/journeys/${operation[2]}/work/claim`) {
+    const value = z
+      .object({ target: z.string().min(1), role: qualityJourneyRoleSchema, leaseSeconds: z.number().int().optional() })
+      .parse(body)
+    const target = await resolveTargetProject(value.target)
+    return Response.json(
+      await claimQualityJourneyWork({ ...value, journeyId: operation[2]!, targetProjectId: target.id }),
+    )
+  }
+  if (operation[1] === 'journeys' && operation[3] === 'work' && operation[5] === 'complete' && operation.length === 6) {
+    const value = z
+      .object({
+        target: z.string().min(1),
+        leaseId: z.string().min(1),
+        ownerToken: z.string().min(1),
+        result: z.unknown(),
+      })
+      .parse(body)
+    if (!('result' in value)) throw new ServiceError('Quality Journey worker result is required.', 'VALIDATION')
+    const target = await resolveTargetProject(value.target)
+    return Response.json(
+      await completeQualityJourneyWork({
+        leaseId: value.leaseId,
+        ownerToken: value.ownerToken,
+        result: value.result,
+        journeyId: operation[2]!,
+        workItemId: operation[4]!,
+        targetProjectId: target.id,
+      }),
+    )
+  }
   if (key === 'quality/requirements/source') {
     const value = z
       .object({ target: z.string().min(1), source: z.unknown(), idempotencyKey: z.string().min(1) })

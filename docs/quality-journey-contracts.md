@@ -18,12 +18,16 @@ The executable Quality Journey foundation is in `src/lib/quality-journey/`:
 - `golden-fixtures.ts` exports the shared fixtures that later kernel, API, UI, and MCP tests must consume.
   Its current validator checks command stage, actor, successor-state-hash sequencing, and individual work-item
   transitions. Phase 0 still needs full cross-step replay for spawn, closure, attribution, and continuous work state.
-- `kernel.ts` begins Phase 1 with a pure deterministic command kernel. It enforces journey scope, exact-state
+- `kernel.ts` provides the pure deterministic command kernel. It enforces journey scope, exact-state
   compare-and-swap, actor/stage transitions, immutable idempotency replay, changed-request conflicts, successor
   projections, and append-only lifecycle events without treating conversation as authority.
-- `runner.ts` derives stage-role eligibility from Appraise state and performs deterministic active-lease expiry. Durable
-  persistence, atomic database transactions, work claiming/completion, blocker resumption, coordinator API, and MCP
-  publication remain later Phase 1 slices and are not implied by these pure helpers.
+- `runner.ts` derives stage-role eligibility, stable work-item identities, complete node projections, and deterministic
+  active-lease expiry from Appraise state.
+- `quality-journey-service.ts` persists the authoritative projection, immutable revisions/cycles/commands/events and
+  artifact links, blockers, work items, attempts, lease authority, and exact result envelopes. Compare-and-swap state
+  mutation, command/event creation, work claims, completion, expiry, and replacement are transactional.
+- Prisma migration `20260828140000_add_quality_journey_phase_1` establishes the durable aggregate and database-enforced
+  append-only lifecycle history. Prepared scaffold databases contain the schema but no journey, event, or lease state.
 
 ## Lifecycle
 
@@ -51,6 +55,11 @@ Phase 1 exposes these contracts through `quality_journey_create`, `quality_journ
 `quality_journey_command_submit`, `quality_journey_work_claim`, `quality_journey_work_complete`, and
 `quality_journey_artifacts_list`. The earlier proposed `evaluation_session_*` names are superseded before public
 implementation; no compatibility aliases exist yet.
+
+An identical command replay returns its original committed result and creates no second event. Reusing an idempotency
+key with changed input conflicts. Competing commands from one predecessor hash can produce only one compare-and-swap
+successor. `quality_journey_resume` reconstructs every semantic role node from durable stage/work-item/blocker state,
+expires elapsed leases, and makes the same work item replacement-claimable without replaying a worker transcript.
 
 ## Role authority
 

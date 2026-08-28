@@ -499,11 +499,202 @@ model TargetProject {
   remoteEvaluationScopePartitionManifests     RemoteEvaluationScopePartitionManifest[]
   credentialExecutionRequests                 AssessmentExecutionRequest[]
   executionConsents                           ExecutionConsent[]
+  qualityJourneys                             QualityJourney[]
 
   @@index([displayName])
   @@index([canonicalPath])
   @@index([normalizedRemoteOrigin])
   @@index([fingerprint])
+}
+
+model QualityJourney {
+  id                        String                       @id
+  targetProjectId           String
+  rootIdempotencyKey        String
+  rootRequestHash           String
+  stage                     QualityJourneyStage          @default(INTAKE)
+  status                    String                       @default("ACTIVE")
+  activeCycleId             String
+  activeRevisionIdsJson     String                       @default("{}")
+  unresolvedQuestionIdsJson String                       @default("[]")
+  blockerIdsJson            String                       @default("[]")
+  activeWorkItemIdsJson     String                       @default("[]")
+  stateHash                 String
+  version                   Int                          @default(0)
+  createdAt                 DateTime                     @default(now())
+  updatedAt                 DateTime                     @updatedAt
+  targetProject             TargetProject                @relation(fields: [targetProjectId], references: [id], onDelete: Restrict)
+  revisions                 QualityJourneyRevision[]
+  cycles                    QualityJourneyCycle[]
+  commands                  QualityJourneyCommand[]
+  events                    QualityJourneyEvent[]
+  workItems                 QualityJourneyWorkItem[]
+  blockers                  QualityJourneyBlocker[]
+  artifactLinks             QualityJourneyArtifactLink[]
+  artifacts                 QualityJourneyArtifact[]
+
+  @@unique([targetProjectId, rootIdempotencyKey])
+  @@index([targetProjectId, status])
+  @@index([targetProjectId, stage])
+}
+
+model QualityJourneyArtifact {
+  id              String         @id
+  identityKey     String
+  journeyId       String
+  targetProjectId String
+  cycleId         String
+  kind            String
+  artifactId      String
+  revisionId      String?
+  contentHash     String
+  artifactJson    String
+  createdAt       DateTime       @default(now())
+  journey         QualityJourney @relation(fields: [journeyId], references: [id], onDelete: Restrict)
+
+  @@unique([journeyId, identityKey])
+  @@index([targetProjectId, kind])
+  @@index([journeyId, artifactId])
+}
+
+model QualityJourneyRevision {
+  id          String         @id
+  journeyId   String
+  revision    Int
+  contentJson String
+  contentHash String
+  createdAt   DateTime       @default(now())
+  journey     QualityJourney @relation(fields: [journeyId], references: [id], onDelete: Restrict)
+
+  @@unique([journeyId, revision])
+  @@index([journeyId, createdAt])
+}
+
+model QualityJourneyCycle {
+  id                 String         @id
+  journeyId          String
+  sequence           Int
+  predecessorCycleId String?
+  scopeJson          String         @default("{}")
+  createdAt          DateTime       @default(now())
+  journey            QualityJourney @relation(fields: [journeyId], references: [id], onDelete: Restrict)
+
+  @@unique([journeyId, sequence])
+}
+
+model QualityJourneyCommand {
+  id              String         @id
+  journeyId       String
+  targetProjectId String
+  idempotencyKey  String
+  requestHash     String
+  requestJson     String
+  resultJson      String
+  eventId         String?
+  createdAt       DateTime       @default(now())
+  journey         QualityJourney @relation(fields: [journeyId], references: [id], onDelete: Restrict)
+
+  @@unique([journeyId, idempotencyKey])
+  @@unique([journeyId, id])
+  @@index([targetProjectId, createdAt])
+}
+
+model QualityJourneyEvent {
+  id                   String         @id
+  journeyId            String
+  targetProjectId      String
+  sequence             Int
+  eventType            String
+  commandId            String?
+  predecessorStateHash String
+  successorStateHash   String
+  payloadJson          String
+  createdAt            DateTime       @default(now())
+  journey              QualityJourney @relation(fields: [journeyId], references: [id], onDelete: Restrict)
+
+  @@unique([journeyId, sequence])
+  @@index([targetProjectId, createdAt])
+}
+
+model QualityJourneyWorkItem {
+  id                     String                       @id
+  journeyId              String
+  targetProjectId        String
+  cycleId                String
+  role                   QualityJourneyRole
+  status                 QualityJourneyWorkItemStatus @default(ELIGIBLE)
+  inputHash              String
+  roleContractDigest     String
+  inputArtifactRefsJson  String                       @default("[]")
+  allowedOutputsJson     String                       @default("[]")
+  completionCriteriaJson String                       @default("[]")
+  currentAttempt         Int                          @default(0)
+  version                Int                          @default(0)
+  createdAt              DateTime                     @default(now())
+  updatedAt              DateTime                     @updatedAt
+  journey                QualityJourney               @relation(fields: [journeyId], references: [id], onDelete: Restrict)
+  attempts               QualityJourneyWorkAttempt[]
+
+  @@index([journeyId, status])
+  @@index([journeyId, role, cycleId])
+  @@index([targetProjectId, status])
+}
+
+model QualityJourneyWorkAttempt {
+  id               String                 @id
+  workItemId       String
+  attempt          Int
+  status           String                 @default("CLAIMED")
+  leaseId          String                 @unique
+  ownerTokenHash   String
+  leaseExpiresAt   DateTime
+  heartbeatSeconds Int
+  resultJson       String?
+  resultHash       String?
+  failureJson      String?
+  startedAt        DateTime               @default(now())
+  completedAt      DateTime?
+  workItem         QualityJourneyWorkItem @relation(fields: [workItemId], references: [id], onDelete: Restrict)
+
+  @@unique([workItemId, attempt])
+  @@index([leaseExpiresAt, status])
+}
+
+model QualityJourneyBlocker {
+  id                  String         @id
+  journeyId           String
+  targetProjectId     String
+  reasonCode          String
+  summary             String
+  evidenceJson        String         @default("[]")
+  responsibleActor    String
+  affectedNodeIdsJson String         @default("[]")
+  requiredResolution  String
+  safeResumeCommand   String
+  status              String         @default("ACTIVE")
+  resolutionJson      String?
+  createdAt           DateTime       @default(now())
+  resolvedAt          DateTime?
+  journey             QualityJourney @relation(fields: [journeyId], references: [id], onDelete: Restrict)
+
+  @@index([journeyId, status])
+  @@index([targetProjectId, status])
+}
+
+model QualityJourneyArtifactLink {
+  id              String         @id
+  journeyId       String
+  targetProjectId String
+  cycleId         String
+  relation        String
+  sourceJson      String
+  targetJson      String
+  linkHash        String
+  createdAt       DateTime       @default(now())
+  journey         QualityJourney @relation(fields: [journeyId], references: [id], onDelete: Restrict)
+
+  @@unique([journeyId, linkHash])
+  @@index([targetProjectId, cycleId])
 }
 
 /// Durable, target-scoped receipt for the resumable prepare-and-run operation.
@@ -2109,5 +2300,48 @@ enum AssessmentDecisionOutcome {
 enum RequirementDriftStatus {
   PROPOSED
   APPROVED
+  SUPERSEDED
+}
+
+enum QualityJourneyStage {
+  INTAKE
+  ANALYSIS
+  ANALYSIS_REVIEW
+  DISCOVERY
+  SCENARIO_DESIGN
+  SCENARIO_REVIEW
+  AUTOMATION
+  EXECUTION
+  TRIAGE
+  REPORT_REVIEW
+  CLOSED
+}
+
+enum QualityJourneyRole {
+  REQUIREMENT_ANALYZER
+  SCOUT
+  RESOURCE_EXPLORER
+  TEST_SCENARIO_DESIGNER
+  AUTOMATOR
+  TRIAGER
+}
+
+enum QualityJourneyWorkItemStatus {
+  ELIGIBLE
+  WORK_ITEM_ISSUED
+  WORKER_REQUESTED
+  WORKER_STARTED
+  IN_PROGRESS
+  QUESTION_RAISED
+  WAITING_FOR_INPUT
+  OUTPUT_SUBMITTED
+  OUTPUT_VALIDATED
+  COMPLETED
+  BLOCKED
+  ESCALATED
+  LEASE_EXPIRED
+  REPLACEMENT_REQUESTED
+  REVISION_REQUIRED
+  CANCELLED
   SUPERSEDED
 }
