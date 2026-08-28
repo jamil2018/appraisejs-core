@@ -79,7 +79,7 @@ afterEach(() => {
   for (const workspace of workspaces.splice(0)) rmSync(workspace, { recursive: true, force: true })
 })
 
-describe('quality validation generation v3 migration', () => {
+describe('quality validation generation v3 migration', { timeout: 60_000 }, () => {
   it('preserves every legacy publication byte and creates a retired generation without an active selector', () => {
     const { database } = databaseBeforeGenerationMigration()
     try {

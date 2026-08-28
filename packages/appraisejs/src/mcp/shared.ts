@@ -88,6 +88,15 @@ export const qualityDesignWorkflow = {
       'requirement_analysis_decide',
     ],
     validationDesign: ['validation_design_propose', 'validation_design_read', 'validation_design_decide'],
+    qualityJourney: [
+      'quality_journey_create',
+      'quality_journey_get',
+      'quality_journey_resume',
+      'quality_journey_command_submit',
+      'quality_journey_work_claim',
+      'quality_journey_work_complete',
+      'quality_journey_artifacts_list',
+    ],
   },
 }
 

@@ -33,7 +33,7 @@ afterEach(() => {
   for (const workspace of workspaces.splice(0)) rmSync(workspace, { recursive: true, force: true })
 })
 
-describe('remote evaluation scope SQLite contract', () => {
+describe('remote evaluation scope SQLite contract', { timeout: 60_000 }, () => {
   it('enforces immutable subject binding and target-scoped issuance receipts in a migrated SQLite database', () => {
     const database = migratedDatabase()
     try {

@@ -5,8 +5,10 @@ AppraiseJS manages quality work within an explicit target-project boundary. The 
 The role-based end-to-end workflow is the Appraise-owned Quality Journey. Its current executable vocabulary,
 transition table, six semantic Role Definitions, command/conflict envelopes, closure rules, and shared golden fixtures
 are documented in `docs/quality-journey-contracts.md` and implemented under `src/lib/quality-journey/`. These contracts
-are the foundation for the deterministic Runner and future `quality_journey_*` coordinator/MCP surface; they do not
-yet replace the Quality Plan and Assessment services described below.
+include the deterministic kernel, durable lifecycle projection and append-only events, transactional commands,
+reclaimable work leases, Runner reconstruction, and the seven `quality_journey_*` coordinator/MCP operations. This
+Phase 1 kernel remains additive and does not yet replace the Quality Plan and Assessment services described below;
+role-specific Analysis Charter product behavior begins in Phase 3 after the Phase 2 Agent Factory boundary.
 
 ## Quality Design
 

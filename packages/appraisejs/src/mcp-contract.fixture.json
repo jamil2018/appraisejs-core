@@ -112,7 +112,10 @@
                   },
                   "subjectKind": {
                     "type": "string",
-                    "enum": ["ARTIFACT", "DEPLOYMENT_SNAPSHOT"]
+                    "enum": [
+                      "ARTIFACT",
+                      "DEPLOYMENT_SNAPSHOT"
+                    ]
                   },
                   "metadata": {
                     "type": "object",
@@ -137,7 +140,10 @@
                     }
                   }
                 },
-                "required": ["subjectDigest", "authority"],
+                "required": [
+                  "subjectDigest",
+                  "authority"
+                ],
                 "additionalProperties": false
               },
               {
@@ -152,7 +158,9 @@
                     "pattern": "^sha256:.*"
                   }
                 },
-                "required": ["subjectRevisionId"],
+                "required": [
+                  "subjectRevisionId"
+                ],
                 "additionalProperties": false
               }
             ]
@@ -168,11 +176,24 @@
           "responseMode": {
             "default": "summary",
             "type": "string",
-            "enum": ["summary", "decisionOnly", "evidenceOnly", "blockersOnly", "linksOnly", "full"],
+            "enum": [
+              "summary",
+              "decisionOnly",
+              "evidenceOnly",
+              "blockersOnly",
+              "linksOnly",
+              "full"
+            ],
             "description": "Response projection: summary (compact default), decisionOnly (decision hash/status/counts), evidenceOnly, blockersOnly, linksOnly, or full (largest payload)."
           }
         },
-        "required": ["qualityPlanId", "revisionId", "subject", "idempotencyKey", "responseMode"],
+        "required": [
+          "qualityPlanId",
+          "revisionId",
+          "subject",
+          "idempotencyKey",
+          "responseMode"
+        ],
         "additionalProperties": false
       },
       "annotations": {
@@ -209,7 +230,10 @@
                   },
                   "subjectKind": {
                     "type": "string",
-                    "enum": ["ARTIFACT", "DEPLOYMENT_SNAPSHOT"]
+                    "enum": [
+                      "ARTIFACT",
+                      "DEPLOYMENT_SNAPSHOT"
+                    ]
                   },
                   "metadata": {
                     "type": "object",
@@ -234,7 +258,10 @@
                     }
                   }
                 },
-                "required": ["subjectDigest", "authority"],
+                "required": [
+                  "subjectDigest",
+                  "authority"
+                ],
                 "additionalProperties": false
               },
               {
@@ -249,7 +276,9 @@
                     "pattern": "^sha256:.*"
                   }
                 },
-                "required": ["subjectRevisionId"],
+                "required": [
+                  "subjectRevisionId"
+                ],
                 "additionalProperties": false
               }
             ]
@@ -273,7 +302,10 @@
                 "maxLength": 2000
               }
             },
-            "required": ["code", "rationale"],
+            "required": [
+              "code",
+              "rationale"
+            ],
             "additionalProperties": false
           },
           "idempotencyKey": {
@@ -283,11 +315,24 @@
           "responseMode": {
             "default": "summary",
             "type": "string",
-            "enum": ["summary", "decisionOnly", "evidenceOnly", "blockersOnly", "linksOnly", "full"],
+            "enum": [
+              "summary",
+              "decisionOnly",
+              "evidenceOnly",
+              "blockersOnly",
+              "linksOnly",
+              "full"
+            ],
             "description": "Response projection: summary (compact default), decisionOnly (decision hash/status/counts), evidenceOnly, blockersOnly, linksOnly, or full (largest payload)."
           }
         },
-        "required": ["assessmentId", "subject", "disposition", "idempotencyKey", "responseMode"],
+        "required": [
+          "assessmentId",
+          "subject",
+          "disposition",
+          "idempotencyKey",
+          "responseMode"
+        ],
         "additionalProperties": false
       },
       "annotations": {
@@ -315,7 +360,12 @@
           },
           "decision": {
             "type": "string",
-            "enum": ["accepted", "rejected", "accepted_with_limitations", "needs_revision"]
+            "enum": [
+              "accepted",
+              "rejected",
+              "accepted_with_limitations",
+              "needs_revision"
+            ]
           },
           "decidedBy": {
             "type": "string",
@@ -328,11 +378,25 @@
           "responseMode": {
             "default": "decisionOnly",
             "type": "string",
-            "enum": ["summary", "decisionOnly", "evidenceOnly", "blockersOnly", "linksOnly", "full"],
+            "enum": [
+              "summary",
+              "decisionOnly",
+              "evidenceOnly",
+              "blockersOnly",
+              "linksOnly",
+              "full"
+            ],
             "description": "Response projection: summary (compact default), decisionOnly (decision hash/status/counts), evidenceOnly, blockersOnly, linksOnly, or full (largest payload)."
           }
         },
-        "required": ["assessmentId", "expectedEvidenceSetHash", "decision", "decidedBy", "rationale", "responseMode"],
+        "required": [
+          "assessmentId",
+          "expectedEvidenceSetHash",
+          "decision",
+          "decidedBy",
+          "rationale",
+          "responseMode"
+        ],
         "additionalProperties": false
       },
       "annotations": {
@@ -357,11 +421,21 @@
           "responseMode": {
             "default": "summary",
             "type": "string",
-            "enum": ["summary", "decisionOnly", "evidenceOnly", "blockersOnly", "linksOnly", "full"],
+            "enum": [
+              "summary",
+              "decisionOnly",
+              "evidenceOnly",
+              "blockersOnly",
+              "linksOnly",
+              "full"
+            ],
             "description": "Response projection: summary (compact default), decisionOnly (decision hash/status/counts), evidenceOnly, blockersOnly, linksOnly, or full (largest payload)."
           }
         },
-        "required": ["assessmentId", "responseMode"],
+        "required": [
+          "assessmentId",
+          "responseMode"
+        ],
         "additionalProperties": false
       },
       "annotations": {
@@ -385,11 +459,21 @@
           "responseMode": {
             "default": "summary",
             "type": "string",
-            "enum": ["summary", "decisionOnly", "evidenceOnly", "blockersOnly", "linksOnly", "full"],
+            "enum": [
+              "summary",
+              "decisionOnly",
+              "evidenceOnly",
+              "blockersOnly",
+              "linksOnly",
+              "full"
+            ],
             "description": "Response projection: summary (compact default), decisionOnly (decision hash/status/counts), evidenceOnly, blockersOnly, linksOnly, or full (largest payload)."
           }
         },
-        "required": ["assertion", "responseMode"],
+        "required": [
+          "assertion",
+          "responseMode"
+        ],
         "additionalProperties": false
       },
       "annotations": {
@@ -420,11 +504,22 @@
           "responseMode": {
             "default": "summary",
             "type": "string",
-            "enum": ["summary", "decisionOnly", "evidenceOnly", "blockersOnly", "linksOnly", "full"],
+            "enum": [
+              "summary",
+              "decisionOnly",
+              "evidenceOnly",
+              "blockersOnly",
+              "linksOnly",
+              "full"
+            ],
             "description": "Response projection: summary (compact default), decisionOnly (decision hash/status/counts), evidenceOnly, blockersOnly, linksOnly, or full (largest payload)."
           }
         },
-        "required": ["grantId", "reason", "responseMode"],
+        "required": [
+          "grantId",
+          "reason",
+          "responseMode"
+        ],
         "additionalProperties": false
       },
       "annotations": {
@@ -452,7 +547,11 @@
           },
           "outcome": {
             "type": "string",
-            "enum": ["SATISFIED", "VIOLATED", "NOT_EVALUATED"]
+            "enum": [
+              "SATISFIED",
+              "VIOLATED",
+              "NOT_EVALUATED"
+            ]
           },
           "attribution": {
             "type": "object",
@@ -497,7 +596,11 @@
               },
               "confidence": {
                 "type": "string",
-                "enum": ["LOW", "MEDIUM", "HIGH"]
+                "enum": [
+                  "LOW",
+                  "MEDIUM",
+                  "HIGH"
+                ]
               },
               "rationale": {
                 "type": "string",
@@ -531,7 +634,14 @@
           "responseMode": {
             "default": "summary",
             "type": "string",
-            "enum": ["summary", "decisionOnly", "evidenceOnly", "blockersOnly", "linksOnly", "full"],
+            "enum": [
+              "summary",
+              "decisionOnly",
+              "evidenceOnly",
+              "blockersOnly",
+              "linksOnly",
+              "full"
+            ],
             "description": "Response projection: summary (compact default), decisionOnly (decision hash/status/counts), evidenceOnly, blockersOnly, linksOnly, or full (largest payload)."
           }
         },
@@ -613,7 +723,12 @@
                       "keyword": {
                         "default": "Given",
                         "type": "string",
-                        "enum": ["Given", "When", "Then", "And"]
+                        "enum": [
+                          "Given",
+                          "When",
+                          "Then",
+                          "And"
+                        ]
                       },
                       "description": {
                         "type": "string",
@@ -621,7 +736,13 @@
                         "maxLength": 500
                       }
                     },
-                    "required": ["stepId", "version", "inputs", "keyword", "description"],
+                    "required": [
+                      "stepId",
+                      "version",
+                      "inputs",
+                      "keyword",
+                      "description"
+                    ],
                     "additionalProperties": false
                   }
                 },
@@ -635,7 +756,11 @@
                   }
                 }
               },
-              "required": ["validationId", "steps", "locatorIds"],
+              "required": [
+                "validationId",
+                "steps",
+                "locatorIds"
+              ],
               "additionalProperties": false
             }
           },
@@ -647,7 +772,9 @@
                 "minLength": 1
               }
             },
-            "required": ["environmentId"],
+            "required": [
+              "environmentId"
+            ],
             "additionalProperties": false
           },
           "subject": {
@@ -665,7 +792,10 @@
                   },
                   "subjectKind": {
                     "type": "string",
-                    "enum": ["ARTIFACT", "DEPLOYMENT_SNAPSHOT"]
+                    "enum": [
+                      "ARTIFACT",
+                      "DEPLOYMENT_SNAPSHOT"
+                    ]
                   },
                   "metadata": {
                     "type": "object",
@@ -690,7 +820,10 @@
                     }
                   }
                 },
-                "required": ["subjectDigest", "authority"],
+                "required": [
+                  "subjectDigest",
+                  "authority"
+                ],
                 "additionalProperties": false
               },
               {
@@ -705,7 +838,9 @@
                     "pattern": "^sha256:.*"
                   }
                 },
-                "required": ["subjectRevisionId"],
+                "required": [
+                  "subjectRevisionId"
+                ],
                 "additionalProperties": false
               }
             ]
@@ -715,7 +850,11 @@
             "properties": {
               "browserEngine": {
                 "type": "string",
-                "enum": ["CHROMIUM", "FIREFOX", "WEBKIT"]
+                "enum": [
+                  "CHROMIUM",
+                  "FIREFOX",
+                  "WEBKIT"
+                ]
               }
             },
             "additionalProperties": false
@@ -723,7 +862,14 @@
           "responseMode": {
             "default": "summary",
             "type": "string",
-            "enum": ["summary", "decisionOnly", "evidenceOnly", "blockersOnly", "linksOnly", "full"],
+            "enum": [
+              "summary",
+              "decisionOnly",
+              "evidenceOnly",
+              "blockersOnly",
+              "linksOnly",
+              "full"
+            ],
             "description": "Response projection: summary (compact default), decisionOnly (decision hash/status/counts), evidenceOnly, blockersOnly, linksOnly, or full (largest payload)."
           }
         },
@@ -840,7 +986,12 @@
                       "keyword": {
                         "default": "Given",
                         "type": "string",
-                        "enum": ["Given", "When", "Then", "And"]
+                        "enum": [
+                          "Given",
+                          "When",
+                          "Then",
+                          "And"
+                        ]
                       },
                       "description": {
                         "type": "string",
@@ -848,7 +999,13 @@
                         "maxLength": 500
                       }
                     },
-                    "required": ["stepId", "version", "inputs", "keyword", "description"],
+                    "required": [
+                      "stepId",
+                      "version",
+                      "inputs",
+                      "keyword",
+                      "description"
+                    ],
                     "additionalProperties": false
                   }
                 },
@@ -862,7 +1019,11 @@
                   }
                 }
               },
-              "required": ["validationId", "steps", "locatorIds"],
+              "required": [
+                "validationId",
+                "steps",
+                "locatorIds"
+              ],
               "additionalProperties": false
             }
           },
@@ -876,7 +1037,9 @@
                     "minLength": 1
                   }
                 },
-                "required": ["environmentId"],
+                "required": [
+                  "environmentId"
+                ],
                 "additionalProperties": false
               },
               {
@@ -945,11 +1108,17 @@
                         ]
                       }
                     },
-                    "required": ["name", "baseUrl"],
+                    "required": [
+                      "name",
+                      "baseUrl"
+                    ],
                     "additionalProperties": false
                   }
                 },
-                "required": ["allowCreate", "proposal"],
+                "required": [
+                  "allowCreate",
+                  "proposal"
+                ],
                 "additionalProperties": false
               }
             ]
@@ -969,7 +1138,10 @@
                   },
                   "subjectKind": {
                     "type": "string",
-                    "enum": ["ARTIFACT", "DEPLOYMENT_SNAPSHOT"]
+                    "enum": [
+                      "ARTIFACT",
+                      "DEPLOYMENT_SNAPSHOT"
+                    ]
                   },
                   "metadata": {
                     "type": "object",
@@ -994,7 +1166,10 @@
                     }
                   }
                 },
-                "required": ["subjectDigest", "authority"],
+                "required": [
+                  "subjectDigest",
+                  "authority"
+                ],
                 "additionalProperties": false
               },
               {
@@ -1009,7 +1184,9 @@
                     "pattern": "^sha256:.*"
                   }
                 },
-                "required": ["subjectRevisionId"],
+                "required": [
+                  "subjectRevisionId"
+                ],
                 "additionalProperties": false
               }
             ]
@@ -1019,7 +1196,11 @@
             "properties": {
               "browserEngine": {
                 "type": "string",
-                "enum": ["CHROMIUM", "FIREFOX", "WEBKIT"]
+                "enum": [
+                  "CHROMIUM",
+                  "FIREFOX",
+                  "WEBKIT"
+                ]
               }
             },
             "additionalProperties": false
@@ -1049,7 +1230,11 @@
           },
           "riskClassification": {
             "type": "string",
-            "enum": ["READ_ONLY", "REVERSIBLE_WRITE", "MATERIAL_EFFECT"]
+            "enum": [
+              "READ_ONLY",
+              "REVERSIBLE_WRITE",
+              "MATERIAL_EFFECT"
+            ]
           },
           "materialEffects": {
             "type": "array",
@@ -1078,7 +1263,10 @@
                 "pattern": "^sha256:.*"
               }
             },
-            "required": ["algorithmVersion", "preflightHash"],
+            "required": [
+              "algorithmVersion",
+              "preflightHash"
+            ],
             "additionalProperties": false
           },
           "assessmentId": {
@@ -1092,7 +1280,14 @@
           "responseMode": {
             "default": "summary",
             "type": "string",
-            "enum": ["summary", "decisionOnly", "evidenceOnly", "blockersOnly", "linksOnly", "full"],
+            "enum": [
+              "summary",
+              "decisionOnly",
+              "evidenceOnly",
+              "blockersOnly",
+              "linksOnly",
+              "full"
+            ],
             "description": "Response projection: summary (compact default), decisionOnly (decision hash/status/counts), evidenceOnly, blockersOnly, linksOnly, or full (largest payload)."
           }
         },
@@ -1166,11 +1361,21 @@
           "responseMode": {
             "default": "summary",
             "type": "string",
-            "enum": ["summary", "decisionOnly", "evidenceOnly", "blockersOnly", "linksOnly", "full"],
+            "enum": [
+              "summary",
+              "decisionOnly",
+              "evidenceOnly",
+              "blockersOnly",
+              "linksOnly",
+              "full"
+            ],
             "description": "Response projection: summary (compact default), decisionOnly (decision hash/status/counts), evidenceOnly, blockersOnly, linksOnly, or full (largest payload)."
           }
         },
-        "required": ["assessmentId", "responseMode"],
+        "required": [
+          "assessmentId",
+          "responseMode"
+        ],
         "additionalProperties": false
       },
       "annotations": {
@@ -1204,11 +1409,22 @@
           "responseMode": {
             "default": "summary",
             "type": "string",
-            "enum": ["summary", "decisionOnly", "evidenceOnly", "blockersOnly", "linksOnly", "full"],
+            "enum": [
+              "summary",
+              "decisionOnly",
+              "evidenceOnly",
+              "blockersOnly",
+              "linksOnly",
+              "full"
+            ],
             "description": "Response projection: summary (compact default), decisionOnly (decision hash/status/counts), evidenceOnly, blockersOnly, linksOnly, or full (largest payload)."
           }
         },
-        "required": ["assessmentId", "idempotencyKey", "responseMode"],
+        "required": [
+          "assessmentId",
+          "idempotencyKey",
+          "responseMode"
+        ],
         "additionalProperties": false
       },
       "annotations": {
@@ -1233,11 +1449,21 @@
           "responseMode": {
             "default": "decisionOnly",
             "type": "string",
-            "enum": ["summary", "decisionOnly", "evidenceOnly", "blockersOnly", "linksOnly", "full"],
+            "enum": [
+              "summary",
+              "decisionOnly",
+              "evidenceOnly",
+              "blockersOnly",
+              "linksOnly",
+              "full"
+            ],
             "description": "Response projection: summary (compact default), decisionOnly (decision hash/status/counts), evidenceOnly, blockersOnly, linksOnly, or full (largest payload)."
           }
         },
-        "required": ["assessmentId", "responseMode"],
+        "required": [
+          "assessmentId",
+          "responseMode"
+        ],
         "additionalProperties": false
       },
       "annotations": {
@@ -1276,7 +1502,11 @@
               },
               "browserEngine": {
                 "type": "string",
-                "enum": ["CHROMIUM", "FIREFOX", "WEBKIT"]
+                "enum": [
+                  "CHROMIUM",
+                  "FIREFOX",
+                  "WEBKIT"
+                ]
               },
               "cells": {
                 "type": "array",
@@ -1297,10 +1527,18 @@
                     },
                     "browserEngine": {
                       "type": "string",
-                      "enum": ["CHROMIUM", "FIREFOX", "WEBKIT"]
+                      "enum": [
+                        "CHROMIUM",
+                        "FIREFOX",
+                        "WEBKIT"
+                      ]
                     }
                   },
-                  "required": ["validationVersionId", "resultMatrixCell", "environmentId"],
+                  "required": [
+                    "validationVersionId",
+                    "resultMatrixCell",
+                    "environmentId"
+                  ],
                   "additionalProperties": false
                 }
               }
@@ -1332,7 +1570,11 @@
           },
           "riskClassification": {
             "type": "string",
-            "enum": ["READ_ONLY", "REVERSIBLE_WRITE", "MATERIAL_EFFECT"]
+            "enum": [
+              "READ_ONLY",
+              "REVERSIBLE_WRITE",
+              "MATERIAL_EFFECT"
+            ]
           },
           "materialEffects": {
             "type": "array",
@@ -1356,11 +1598,22 @@
           "responseMode": {
             "default": "summary",
             "type": "string",
-            "enum": ["summary", "decisionOnly", "evidenceOnly", "blockersOnly", "linksOnly", "full"],
+            "enum": [
+              "summary",
+              "decisionOnly",
+              "evidenceOnly",
+              "blockersOnly",
+              "linksOnly",
+              "full"
+            ],
             "description": "Response projection: summary (compact default), decisionOnly (decision hash/status/counts), evidenceOnly, blockersOnly, linksOnly, or full (largest payload)."
           }
         },
-        "required": ["assessmentId", "idempotencyKey", "responseMode"],
+        "required": [
+          "assessmentId",
+          "idempotencyKey",
+          "responseMode"
+        ],
         "additionalProperties": false
       },
       "annotations": {
@@ -1389,11 +1642,22 @@
           "responseMode": {
             "default": "summary",
             "type": "string",
-            "enum": ["summary", "decisionOnly", "evidenceOnly", "blockersOnly", "linksOnly", "full"],
+            "enum": [
+              "summary",
+              "decisionOnly",
+              "evidenceOnly",
+              "blockersOnly",
+              "linksOnly",
+              "full"
+            ],
             "description": "Response projection: summary (compact default), decisionOnly (decision hash/status/counts), evidenceOnly, blockersOnly, linksOnly, or full (largest payload)."
           }
         },
-        "required": ["assessmentId", "reason", "responseMode"],
+        "required": [
+          "assessmentId",
+          "reason",
+          "responseMode"
+        ],
         "additionalProperties": false
       },
       "annotations": {
@@ -1449,11 +1713,16 @@
                 "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
               }
             },
-            "required": ["name", "baseUrl"],
+            "required": [
+              "name",
+              "baseUrl"
+            ],
             "additionalProperties": false
           }
         },
-        "required": ["target"],
+        "required": [
+          "target"
+        ],
         "additionalProperties": false
       },
       "annotations": {
@@ -1479,7 +1748,9 @@
             "type": "string"
           }
         },
-        "required": ["target"],
+        "required": [
+          "target"
+        ],
         "additionalProperties": false
       },
       "annotations": {
@@ -1548,7 +1819,12 @@
                       "keyword": {
                         "default": "Given",
                         "type": "string",
-                        "enum": ["Given", "When", "Then", "And"]
+                        "enum": [
+                          "Given",
+                          "When",
+                          "Then",
+                          "And"
+                        ]
                       },
                       "description": {
                         "type": "string",
@@ -1556,7 +1832,13 @@
                         "maxLength": 500
                       }
                     },
-                    "required": ["stepId", "version", "inputs", "keyword", "description"],
+                    "required": [
+                      "stepId",
+                      "version",
+                      "inputs",
+                      "keyword",
+                      "description"
+                    ],
                     "additionalProperties": false
                   }
                 },
@@ -1570,7 +1852,11 @@
                   }
                 }
               },
-              "required": ["validationId", "steps", "locatorIds"],
+              "required": [
+                "validationId",
+                "steps",
+                "locatorIds"
+              ],
               "additionalProperties": false
             }
           },
@@ -1582,7 +1868,9 @@
                 "minLength": 1
               }
             },
-            "required": ["environmentId"],
+            "required": [
+              "environmentId"
+            ],
             "additionalProperties": false
           },
           "runtime": {
@@ -1602,7 +1890,14 @@
           "responseMode": {
             "default": "summary",
             "type": "string",
-            "enum": ["summary", "decisionOnly", "evidenceOnly", "blockersOnly", "linksOnly", "full"],
+            "enum": [
+              "summary",
+              "decisionOnly",
+              "evidenceOnly",
+              "blockersOnly",
+              "linksOnly",
+              "full"
+            ],
             "description": "Response projection: summary (compact default), decisionOnly (decision hash/status/counts), evidenceOnly, blockersOnly, linksOnly, or full (largest payload)."
           }
         },
@@ -1704,7 +1999,9 @@
                       "minLength": 1
                     }
                   },
-                  "required": ["environmentId"],
+                  "required": [
+                    "environmentId"
+                  ],
                   "additionalProperties": false
                 },
                 "validationBindings": {
@@ -1744,7 +2041,12 @@
                             "keyword": {
                               "default": "Given",
                               "type": "string",
-                              "enum": ["Given", "When", "Then", "And"]
+                              "enum": [
+                                "Given",
+                                "When",
+                                "Then",
+                                "And"
+                              ]
                             },
                             "description": {
                               "type": "string",
@@ -1752,7 +2054,13 @@
                               "maxLength": 500
                             }
                           },
-                          "required": ["stepId", "version", "inputs", "keyword", "description"],
+                          "required": [
+                            "stepId",
+                            "version",
+                            "inputs",
+                            "keyword",
+                            "description"
+                          ],
                           "additionalProperties": false
                         }
                       },
@@ -1766,12 +2074,20 @@
                         }
                       }
                     },
-                    "required": ["validationId", "steps", "locatorIds"],
+                    "required": [
+                      "validationId",
+                      "steps",
+                      "locatorIds"
+                    ],
                     "additionalProperties": false
                   }
                 }
               },
-              "required": ["partitionKey", "environment", "validationBindings"],
+              "required": [
+                "partitionKey",
+                "environment",
+                "validationBindings"
+              ],
               "additionalProperties": false
             }
           },
@@ -1792,7 +2108,14 @@
           "responseMode": {
             "default": "summary",
             "type": "string",
-            "enum": ["summary", "decisionOnly", "evidenceOnly", "blockersOnly", "linksOnly", "full"],
+            "enum": [
+              "summary",
+              "decisionOnly",
+              "evidenceOnly",
+              "blockersOnly",
+              "linksOnly",
+              "full"
+            ],
             "description": "Response projection: summary (compact default), decisionOnly (decision hash/status/counts), evidenceOnly, blockersOnly, linksOnly, or full (largest payload)."
           }
         },
@@ -1889,11 +2212,24 @@
           "responseMode": {
             "default": "summary",
             "type": "string",
-            "enum": ["summary", "decisionOnly", "evidenceOnly", "blockersOnly", "linksOnly", "full"],
+            "enum": [
+              "summary",
+              "decisionOnly",
+              "evidenceOnly",
+              "blockersOnly",
+              "linksOnly",
+              "full"
+            ],
             "description": "Response projection: summary (compact default), decisionOnly (decision hash/status/counts), evidenceOnly, blockersOnly, linksOnly, or full (largest payload)."
           }
         },
-        "required": ["target", "qualityPlanId", "revisionId", "subjectRevisionId", "responseMode"],
+        "required": [
+          "target",
+          "qualityPlanId",
+          "revisionId",
+          "subjectRevisionId",
+          "responseMode"
+        ],
         "additionalProperties": false
       },
       "annotations": {
@@ -1924,7 +2260,10 @@
           },
           "decision": {
             "type": "string",
-            "enum": ["GRANTED", "REVOKED"]
+            "enum": [
+              "GRANTED",
+              "REVOKED"
+            ]
           },
           "decidedBy": {
             "type": "string",
@@ -1942,7 +2281,14 @@
           "responseMode": {
             "default": "summary",
             "type": "string",
-            "enum": ["summary", "decisionOnly", "evidenceOnly", "blockersOnly", "linksOnly", "full"],
+            "enum": [
+              "summary",
+              "decisionOnly",
+              "evidenceOnly",
+              "blockersOnly",
+              "linksOnly",
+              "full"
+            ],
             "description": "Response projection: summary (compact default), decisionOnly (decision hash/status/counts), evidenceOnly, blockersOnly, linksOnly, or full (largest payload)."
           }
         },
@@ -1997,7 +2343,10 @@
                     "minLength": 1
                   }
                 },
-                "required": ["mode", "id"],
+                "required": [
+                  "mode",
+                  "id"
+                ],
                 "additionalProperties": false
               },
               {
@@ -2031,7 +2380,10 @@
                             "minLength": 1
                           }
                         },
-                        "required": ["mode", "id"],
+                        "required": [
+                          "mode",
+                          "id"
+                        ],
                         "additionalProperties": false
                       },
                       {
@@ -2047,13 +2399,21 @@
                             "maxLength": 200
                           }
                         },
-                        "required": ["mode", "name"],
+                        "required": [
+                          "mode",
+                          "name"
+                        ],
                         "additionalProperties": false
                       }
                     ]
                   }
                 },
-                "required": ["mode", "name", "route", "module"],
+                "required": [
+                  "mode",
+                  "name",
+                  "route",
+                  "module"
+                ],
                 "additionalProperties": false
               }
             ]
@@ -2072,11 +2432,19 @@
                 "maxLength": 10000
               }
             },
-            "required": ["name", "selector"],
+            "required": [
+              "name",
+              "selector"
+            ],
             "additionalProperties": false
           }
         },
-        "required": ["target", "qualityPlanId", "group", "locator"],
+        "required": [
+          "target",
+          "qualityPlanId",
+          "group",
+          "locator"
+        ],
         "additionalProperties": false
       },
       "annotations": {
@@ -2126,7 +2494,11 @@
             "maximum": 4
           }
         },
-        "required": ["target", "qualityPlanId", "fromId"],
+        "required": [
+          "target",
+          "qualityPlanId",
+          "fromId"
+        ],
         "additionalProperties": false
       },
       "annotations": {
@@ -2165,7 +2537,12 @@
             "maximum": 100
           }
         },
-        "required": ["target", "qualityPlanId", "query", "limit"],
+        "required": [
+          "target",
+          "qualityPlanId",
+          "query",
+          "limit"
+        ],
         "additionalProperties": false
       },
       "annotations": {
@@ -2194,7 +2571,11 @@
             "minLength": 1
           }
         },
-        "required": ["providerId", "methodologyId", "version"],
+        "required": [
+          "providerId",
+          "methodologyId",
+          "version"
+        ],
         "additionalProperties": false
       },
       "annotations": {
@@ -2258,12 +2639,16 @@
                   "type": "string"
                 }
               },
-              "required": ["id"],
+              "required": [
+                "id"
+              ],
               "additionalProperties": false
             }
           }
         },
-        "required": ["operationRefs"],
+        "required": [
+          "operationRefs"
+        ],
         "additionalProperties": false
       },
       "annotations": {
@@ -2303,11 +2688,19 @@
           },
           "runtime": {
             "type": "string",
-            "enum": ["browser", "api", "node", "database"]
+            "enum": [
+              "browser",
+              "api",
+              "node",
+              "database"
+            ]
           },
           "surface": {
             "type": "string",
-            "enum": ["human", "agent"]
+            "enum": [
+              "human",
+              "agent"
+            ]
           },
           "deprecated": {
             "type": "boolean"
@@ -2416,6 +2809,262 @@
     },
     {
       "kind": "tool",
+      "name": "quality_journey_artifacts_list",
+      "description": "List revision, cycle, and artifact-link lineage for one exact Quality Journey.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "target": {
+            "type": "string",
+            "minLength": 1
+          },
+          "journeyId": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "target",
+          "journeyId"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "kind": "tool",
+      "name": "quality_journey_command_submit",
+      "description": "Submit one exact-state, idempotent Appraise-owned Quality Journey lifecycle command.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "target": {
+            "type": "string",
+            "minLength": 1
+          },
+          "journeyId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "command": {
+            "type": "object",
+            "propertyNames": {
+              "type": "string"
+            },
+            "additionalProperties": {}
+          }
+        },
+        "required": [
+          "target",
+          "journeyId",
+          "command"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "kind": "tool",
+      "name": "quality_journey_create",
+      "description": "Create or replay one durable target-bound Quality Journey at the intake gate.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "target": {
+            "type": "string",
+            "minLength": 1
+          },
+          "idempotencyKey": {
+            "type": "string",
+            "minLength": 1
+          },
+          "requirement": {}
+        },
+        "required": [
+          "target",
+          "idempotencyKey",
+          "requirement"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "kind": "tool",
+      "name": "quality_journey_get",
+      "description": "Read the authoritative Quality Journey projection, work items, blockers, and event stream.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "target": {
+            "type": "string",
+            "minLength": 1
+          },
+          "journeyId": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "target",
+          "journeyId"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "kind": "tool",
+      "name": "quality_journey_resume",
+      "description": "Reconstruct runner state, expire elapsed leases, and make replacement work reclaimable.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "target": {
+            "type": "string",
+            "minLength": 1
+          },
+          "journeyId": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "target",
+          "journeyId"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "kind": "tool",
+      "name": "quality_journey_work_claim",
+      "description": "Atomically claim one eligible role work item and receive its bounded lease authority.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "target": {
+            "type": "string",
+            "minLength": 1
+          },
+          "journeyId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "REQUIREMENT_ANALYZER",
+              "SCOUT",
+              "RESOURCE_EXPLORER",
+              "TEST_SCENARIO_DESIGNER",
+              "AUTOMATOR",
+              "TRIAGER"
+            ]
+          },
+          "leaseSeconds": {
+            "type": "integer",
+            "minimum": 30,
+            "maximum": 900
+          }
+        },
+        "required": [
+          "target",
+          "journeyId",
+          "role"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "kind": "tool",
+      "name": "quality_journey_work_complete",
+      "description": "Complete an exact claimed work attempt with a contract-bound worker result envelope.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "target": {
+            "type": "string",
+            "minLength": 1
+          },
+          "journeyId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "workItemId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "leaseId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "ownerToken": {
+            "type": "string",
+            "minLength": 1
+          },
+          "result": {
+            "type": "object",
+            "propertyNames": {
+              "type": "string"
+            },
+            "additionalProperties": {}
+          }
+        },
+        "required": [
+          "target",
+          "journeyId",
+          "workItemId",
+          "leaseId",
+          "ownerToken",
+          "result"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "kind": "tool",
       "name": "requirement_analysis_decide",
       "description": "Approve or reject one exact requirement-analysis content hash after resolving blocking queries.",
       "inputSchema": {
@@ -2436,7 +3085,11 @@
           },
           "decision": {
             "type": "string",
-            "enum": ["APPROVED", "NEEDS_REVISION", "REJECTED"]
+            "enum": [
+              "APPROVED",
+              "NEEDS_REVISION",
+              "REJECTED"
+            ]
           },
           "decidedBy": {
             "type": "string",
@@ -2449,7 +3102,14 @@
           "responseMode": {
             "default": "summary",
             "type": "string",
-            "enum": ["summary", "decisionOnly", "evidenceOnly", "blockersOnly", "linksOnly", "full"],
+            "enum": [
+              "summary",
+              "decisionOnly",
+              "evidenceOnly",
+              "blockersOnly",
+              "linksOnly",
+              "full"
+            ],
             "description": "Response projection: summary (compact default), decisionOnly (decision hash/status/counts), evidenceOnly, blockersOnly, linksOnly, or full (largest payload)."
           }
         },
@@ -2514,7 +3174,12 @@
                     "pattern": "^sha256:.*"
                   }
                 },
-                "required": ["providerId", "methodologyId", "version", "digest"],
+                "required": [
+                  "providerId",
+                  "methodologyId",
+                  "version",
+                  "digest"
+                ],
                 "additionalProperties": false
               },
               "requirements": {
@@ -2532,7 +3197,10 @@
                       "minLength": 1
                     }
                   },
-                  "required": ["id", "text"],
+                  "required": [
+                    "id",
+                    "text"
+                  ],
                   "additionalProperties": false
                 }
               },
@@ -2551,7 +3219,11 @@
                     },
                     "confidence": {
                       "type": "string",
-                      "enum": ["LOW", "MEDIUM", "HIGH"]
+                      "enum": [
+                        "LOW",
+                        "MEDIUM",
+                        "HIGH"
+                      ]
                     },
                     "provenance": {
                       "type": "object",
@@ -2567,11 +3239,19 @@
                           "type": "string"
                         }
                       },
-                      "required": ["sourceRequirementIds", "rationale"],
+                      "required": [
+                        "sourceRequirementIds",
+                        "rationale"
+                      ],
                       "additionalProperties": false
                     }
                   },
-                  "required": ["id", "statement", "confidence", "provenance"],
+                  "required": [
+                    "id",
+                    "statement",
+                    "confidence",
+                    "provenance"
+                  ],
                   "additionalProperties": false
                 }
               },
@@ -2599,7 +3279,12 @@
                     },
                     "minimumAssurance": {
                       "type": "string",
-                      "enum": ["SMOKE", "STANDARD", "HIGH", "EXHAUSTIVE"]
+                      "enum": [
+                        "SMOKE",
+                        "STANDARD",
+                        "HIGH",
+                        "EXHAUSTIVE"
+                      ]
                     },
                     "provenance": {
                       "type": "object",
@@ -2615,26 +3300,53 @@
                           "type": "string"
                         }
                       },
-                      "required": ["sourceRequirementIds", "rationale"],
+                      "required": [
+                        "sourceRequirementIds",
+                        "rationale"
+                      ],
                       "additionalProperties": false
                     }
                   },
-                  "required": ["id", "requirementIds", "intent", "minimumAssurance", "provenance"],
+                  "required": [
+                    "id",
+                    "requirementIds",
+                    "intent",
+                    "minimumAssurance",
+                    "provenance"
+                  ],
                   "additionalProperties": false
                 }
               }
             },
-            "required": ["schemaVersion", "methodology", "requirements", "inferences", "obligations"],
+            "required": [
+              "schemaVersion",
+              "methodology",
+              "requirements",
+              "inferences",
+              "obligations"
+            ],
             "additionalProperties": false
           },
           "responseMode": {
             "default": "summary",
             "type": "string",
-            "enum": ["summary", "decisionOnly", "evidenceOnly", "blockersOnly", "linksOnly", "full"],
+            "enum": [
+              "summary",
+              "decisionOnly",
+              "evidenceOnly",
+              "blockersOnly",
+              "linksOnly",
+              "full"
+            ],
             "description": "Response projection: summary (compact default), decisionOnly (decision hash/status/counts), evidenceOnly, blockersOnly, linksOnly, or full (largest payload)."
           }
         },
-        "required": ["qualityPlanId", "revisionId", "proposal", "responseMode"],
+        "required": [
+          "qualityPlanId",
+          "revisionId",
+          "proposal",
+          "responseMode"
+        ],
         "additionalProperties": false
       },
       "annotations": {
@@ -2663,11 +3375,22 @@
           "responseMode": {
             "default": "summary",
             "type": "string",
-            "enum": ["summary", "decisionOnly", "evidenceOnly", "blockersOnly", "linksOnly", "full"],
+            "enum": [
+              "summary",
+              "decisionOnly",
+              "evidenceOnly",
+              "blockersOnly",
+              "linksOnly",
+              "full"
+            ],
             "description": "Response projection: summary (compact default), decisionOnly (decision hash/status/counts), evidenceOnly, blockersOnly, linksOnly, or full (largest payload)."
           }
         },
-        "required": ["qualityPlanId", "analysisId", "responseMode"],
+        "required": [
+          "qualityPlanId",
+          "analysisId",
+          "responseMode"
+        ],
         "additionalProperties": false
       },
       "annotations": {
@@ -2703,7 +3426,11 @@
                 },
                 "status": {
                   "type": "string",
-                  "enum": ["ANSWERED", "DEFERRED", "ACCEPTED_ASSUMPTION"]
+                  "enum": [
+                    "ANSWERED",
+                    "DEFERRED",
+                    "ACCEPTED_ASSUMPTION"
+                  ]
                 },
                 "answer": {
                   "type": "string"
@@ -2712,7 +3439,10 @@
                   "type": "string"
                 }
               },
-              "required": ["queryId", "status"],
+              "required": [
+                "queryId",
+                "status"
+              ],
               "additionalProperties": false
             }
           },
@@ -2723,11 +3453,23 @@
           "responseMode": {
             "default": "summary",
             "type": "string",
-            "enum": ["summary", "decisionOnly", "evidenceOnly", "blockersOnly", "linksOnly", "full"],
+            "enum": [
+              "summary",
+              "decisionOnly",
+              "evidenceOnly",
+              "blockersOnly",
+              "linksOnly",
+              "full"
+            ],
             "description": "Response projection: summary (compact default), decisionOnly (decision hash/status/counts), evidenceOnly, blockersOnly, linksOnly, or full (largest payload)."
           }
         },
-        "required": ["qualityPlanId", "answers", "idempotencyKey", "responseMode"],
+        "required": [
+          "qualityPlanId",
+          "answers",
+          "idempotencyKey",
+          "responseMode"
+        ],
         "additionalProperties": false
       },
       "annotations": {
@@ -2756,11 +3498,21 @@
           "responseMode": {
             "default": "summary",
             "type": "string",
-            "enum": ["summary", "decisionOnly", "evidenceOnly", "blockersOnly", "linksOnly", "full"],
+            "enum": [
+              "summary",
+              "decisionOnly",
+              "evidenceOnly",
+              "blockersOnly",
+              "linksOnly",
+              "full"
+            ],
             "description": "Response projection: summary (compact default), decisionOnly (decision hash/status/counts), evidenceOnly, blockersOnly, linksOnly, or full (largest payload)."
           }
         },
-        "required": ["qualityPlanId", "responseMode"],
+        "required": [
+          "qualityPlanId",
+          "responseMode"
+        ],
         "additionalProperties": false
       },
       "annotations": {
@@ -2788,11 +3540,23 @@
           "responseMode": {
             "default": "summary",
             "type": "string",
-            "enum": ["summary", "decisionOnly", "evidenceOnly", "blockersOnly", "linksOnly", "full"],
+            "enum": [
+              "summary",
+              "decisionOnly",
+              "evidenceOnly",
+              "blockersOnly",
+              "linksOnly",
+              "full"
+            ],
             "description": "Response projection: summary (compact default), decisionOnly (decision hash/status/counts), evidenceOnly, blockersOnly, linksOnly, or full (largest payload)."
           }
         },
-        "required": ["target", "source", "idempotencyKey", "responseMode"],
+        "required": [
+          "target",
+          "source",
+          "idempotencyKey",
+          "responseMode"
+        ],
         "additionalProperties": false
       },
       "annotations": {
@@ -2816,7 +3580,9 @@
             "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
           }
         },
-        "required": ["draftId"],
+        "required": [
+          "draftId"
+        ],
         "additionalProperties": false
       },
       "annotations": {
@@ -2855,7 +3621,11 @@
             "pattern": "^\\d+$"
           }
         },
-        "required": ["query", "parameterNames", "limit"],
+        "required": [
+          "query",
+          "parameterNames",
+          "limit"
+        ],
         "additionalProperties": false
       },
       "annotations": {
@@ -2883,11 +3653,22 @@
           "responseMode": {
             "default": "summary",
             "type": "string",
-            "enum": ["summary", "decisionOnly", "evidenceOnly", "blockersOnly", "linksOnly", "full"],
+            "enum": [
+              "summary",
+              "decisionOnly",
+              "evidenceOnly",
+              "blockersOnly",
+              "linksOnly",
+              "full"
+            ],
             "description": "Response projection: summary (compact default), decisionOnly (decision hash/status/counts), evidenceOnly, blockersOnly, linksOnly, or full (largest payload)."
           }
         },
-        "required": ["target", "runId", "responseMode"],
+        "required": [
+          "target",
+          "runId",
+          "responseMode"
+        ],
         "additionalProperties": false
       },
       "annotations": {
@@ -2915,11 +3696,22 @@
           "responseMode": {
             "default": "summary",
             "type": "string",
-            "enum": ["summary", "decisionOnly", "evidenceOnly", "blockersOnly", "linksOnly", "full"],
+            "enum": [
+              "summary",
+              "decisionOnly",
+              "evidenceOnly",
+              "blockersOnly",
+              "linksOnly",
+              "full"
+            ],
             "description": "Response projection: summary (compact default), decisionOnly (decision hash/status/counts), evidenceOnly, blockersOnly, linksOnly, or full (largest payload)."
           }
         },
-        "required": ["target", "runId", "responseMode"],
+        "required": [
+          "target",
+          "runId",
+          "responseMode"
+        ],
         "additionalProperties": false
       },
       "annotations": {
@@ -2970,7 +3762,12 @@
                     "minLength": 1
                   }
                 },
-                "required": ["sourceKind", "publicationId", "validationVersionId", "idempotencyKey"],
+                "required": [
+                  "sourceKind",
+                  "publicationId",
+                  "validationVersionId",
+                  "idempotencyKey"
+                ],
                 "additionalProperties": false
               },
               {
@@ -2996,28 +3793,51 @@
                           "minLength": 1
                         }
                       },
-                      "required": ["testSuiteId", "testCaseId"],
+                      "required": [
+                        "testSuiteId",
+                        "testCaseId"
+                      ],
                       "additionalProperties": false
                     }
                   }
                 },
-                "required": ["sourceKind", "selections"],
+                "required": [
+                  "sourceKind",
+                  "selections"
+                ],
                 "additionalProperties": false
               }
             ]
           },
           "browserEngine": {
             "type": "string",
-            "enum": ["CHROMIUM", "FIREFOX", "WEBKIT"]
+            "enum": [
+              "CHROMIUM",
+              "FIREFOX",
+              "WEBKIT"
+            ]
           },
           "responseMode": {
             "default": "summary",
             "type": "string",
-            "enum": ["summary", "decisionOnly", "evidenceOnly", "blockersOnly", "linksOnly", "full"],
+            "enum": [
+              "summary",
+              "decisionOnly",
+              "evidenceOnly",
+              "blockersOnly",
+              "linksOnly",
+              "full"
+            ],
             "description": "Response projection: summary (compact default), decisionOnly (decision hash/status/counts), evidenceOnly, blockersOnly, linksOnly, or full (largest payload)."
           }
         },
-        "required": ["target", "environmentId", "name", "source", "responseMode"],
+        "required": [
+          "target",
+          "environmentId",
+          "name",
+          "source",
+          "responseMode"
+        ],
         "additionalProperties": false
       },
       "annotations": {
@@ -3049,7 +3869,11 @@
           },
           "decision": {
             "type": "string",
-            "enum": ["APPROVED", "NEEDS_REVISION", "REJECTED"]
+            "enum": [
+              "APPROVED",
+              "NEEDS_REVISION",
+              "REJECTED"
+            ]
           },
           "decidedBy": {
             "type": "string",
@@ -3062,7 +3886,14 @@
           "responseMode": {
             "default": "summary",
             "type": "string",
-            "enum": ["summary", "decisionOnly", "evidenceOnly", "blockersOnly", "linksOnly", "full"],
+            "enum": [
+              "summary",
+              "decisionOnly",
+              "evidenceOnly",
+              "blockersOnly",
+              "linksOnly",
+              "full"
+            ],
             "description": "Response projection: summary (compact default), decisionOnly (decision hash/status/counts), evidenceOnly, blockersOnly, linksOnly, or full (largest payload)."
           }
         },
@@ -3139,12 +3970,22 @@
                     "pattern": "^sha256:.*"
                   }
                 },
-                "required": ["providerId", "methodologyId", "version", "digest"],
+                "required": [
+                  "providerId",
+                  "methodologyId",
+                  "version",
+                  "digest"
+                ],
                 "additionalProperties": false
               },
               "requiredAssurance": {
                 "type": "string",
-                "enum": ["SMOKE", "STANDARD", "HIGH", "EXHAUSTIVE"]
+                "enum": [
+                  "SMOKE",
+                  "STANDARD",
+                  "HIGH",
+                  "EXHAUSTIVE"
+                ]
               },
               "scenarios": {
                 "minItems": 1,
@@ -3174,7 +4015,11 @@
                     },
                     "kind": {
                       "type": "string",
-                      "enum": ["POSITIVE", "NEGATIVE", "RECOVERY"]
+                      "enum": [
+                        "POSITIVE",
+                        "NEGATIVE",
+                        "RECOVERY"
+                      ]
                     },
                     "assertions": {
                       "minItems": 1,
@@ -3194,13 +4039,22 @@
                             "type": "boolean"
                           }
                         },
-                        "required": ["id", "statement", "observable"],
+                        "required": [
+                          "id",
+                          "statement",
+                          "observable"
+                        ],
                         "additionalProperties": false
                       }
                     },
                     "requiredMinimumAssurance": {
                       "type": "string",
-                      "enum": ["SMOKE", "STANDARD", "HIGH", "EXHAUSTIVE"]
+                      "enum": [
+                        "SMOKE",
+                        "STANDARD",
+                        "HIGH",
+                        "EXHAUSTIVE"
+                      ]
                     },
                     "matrix": {
                       "type": "object",
@@ -3220,7 +4074,10 @@
                                 "minLength": 1
                               }
                             },
-                            "required": ["browser", "environment"],
+                            "required": [
+                              "browser",
+                              "environment"
+                            ],
                             "additionalProperties": false
                           }
                         },
@@ -3228,7 +4085,10 @@
                           "type": "string"
                         }
                       },
-                      "required": ["cells", "rationale"],
+                      "required": [
+                        "cells",
+                        "rationale"
+                      ],
                       "additionalProperties": false
                     },
                     "failureMeaning": {
@@ -3250,13 +4110,25 @@
                 }
               }
             },
-            "required": ["schemaVersion", "methodology", "requiredAssurance", "scenarios"],
+            "required": [
+              "schemaVersion",
+              "methodology",
+              "requiredAssurance",
+              "scenarios"
+            ],
             "additionalProperties": false
           },
           "responseMode": {
             "default": "summary",
             "type": "string",
-            "enum": ["summary", "decisionOnly", "evidenceOnly", "blockersOnly", "linksOnly", "full"],
+            "enum": [
+              "summary",
+              "decisionOnly",
+              "evidenceOnly",
+              "blockersOnly",
+              "linksOnly",
+              "full"
+            ],
             "description": "Response projection: summary (compact default), decisionOnly (decision hash/status/counts), evidenceOnly, blockersOnly, linksOnly, or full (largest payload)."
           }
         },
@@ -3297,11 +4169,22 @@
           "responseMode": {
             "default": "summary",
             "type": "string",
-            "enum": ["summary", "decisionOnly", "evidenceOnly", "blockersOnly", "linksOnly", "full"],
+            "enum": [
+              "summary",
+              "decisionOnly",
+              "evidenceOnly",
+              "blockersOnly",
+              "linksOnly",
+              "full"
+            ],
             "description": "Response projection: summary (compact default), decisionOnly (decision hash/status/counts), evidenceOnly, blockersOnly, linksOnly, or full (largest payload)."
           }
         },
-        "required": ["qualityPlanId", "designId", "responseMode"],
+        "required": [
+          "qualityPlanId",
+          "designId",
+          "responseMode"
+        ],
         "additionalProperties": false
       },
       "annotations": {

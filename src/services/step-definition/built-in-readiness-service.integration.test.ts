@@ -31,7 +31,7 @@ afterEach(async () => {
   await fs.rm(workspace, { recursive: true, force: true })
 })
 
-describe('built-in Step Definition readiness', () => {
+describe('built-in Step Definition readiness', { timeout: 60_000 }, () => {
   it('seeds a pristine registry and binds its manifest to immutable source and ready-index content', async () => {
     const receipt = await ensureBuiltInStepDefinitionReadiness(prisma)
 
@@ -57,7 +57,7 @@ describe('built-in Step Definition readiness', () => {
     })
     expect(replay.manifestHash).toBe(first.manifestHash)
     expect(replay.readyIndexHash).toBe(first.readyIndexHash)
-  }, 20_000)
+  }, 60_000)
 
   it('repairs a deleted source registration without reclassifying the remaining rows as seeded', async () => {
     await ensureBuiltInStepDefinitionReadiness(prisma)

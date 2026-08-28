@@ -305,6 +305,11 @@ Exit criteria:
 
 ### Phase 1 - Quality Journey Kernel and Deterministic Runner
 
+Status: completed on 2026-08-28 in `codex/quality-journey-phase-1`. The delivered scope includes the durable aggregate,
+immutable lifecycle history, transactional state/hash and idempotency enforcement, deterministic Runner projection,
+work leases and replacement, immutable artifact publication, the seven coordinator/MCP operations, scaffold sync, and
+the Phase 1 exit-criteria regression suite. Phase 2 remains the next delivery boundary.
+
 Implement the durable journey, revision, command, work-item, lease, cycle, and artifact-link foundations. Add atomic
 compare-and-swap transitions, idempotent command handling, successor projections, reconnect/reclaim behavior, and an
 append-only lifecycle event stream. Implement the deterministic Runner's eligibility calculation, dependency

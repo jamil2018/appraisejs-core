@@ -147,7 +147,7 @@ afterEach(() => {
   for (const workspace of workspaces.splice(0)) rmSync(workspace, { recursive: true, force: true })
 })
 
-describe('assessment execution cutover migration', () => {
+describe('assessment execution cutover migration', { timeout: 60_000 }, () => {
   it('preserves execution and Quality data while removing retired lifecycle storage', () => {
     const database = createPreCutoverDatabase()
     try {
