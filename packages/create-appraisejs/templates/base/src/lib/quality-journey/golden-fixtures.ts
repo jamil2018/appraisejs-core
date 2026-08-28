@@ -389,7 +389,7 @@ export const qualityJourneyGoldenFixtures: readonly QualityJourneyGoldenFixture[
           boundaries: [
             {
               boundary: 'LIFECYCLE_COMMAND',
-              requested: 'No lifecycle mutation authority.',
+              requested: [],
               status: 'UNSUPPORTED',
               evidence: [],
             },

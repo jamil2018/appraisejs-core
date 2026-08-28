@@ -334,6 +334,13 @@ Exit criteria:
 
 ### Phase 2 - Agent Factory and Capability Enforcement
 
+Status: in progress on `codex/quality-journey-phase-2`. The first slice adds canonical-registry, version, and
+digest-bound Assignment Manifest validation, provider-neutral least-privilege spawn requests, structured fail-closed
+effective boundary/tool receipt validation, exact current-request result-envelope enforcement, and transcript-free
+replacement assignment projection construction.
+Durable Factory persistence, attempt budgets, cancellation/revocation, provider adapters, and coordinator/MCP
+integration remain pending.
+
 Implement versioned Role Definitions, provider-neutral profile resolution, Assignment Manifest issuance, least-privilege
 spawn specifications, effective-property receipts, typed result validation, attempt budgets, cancellation, revocation,
 and replacement-worker creation. The Factory must distinguish requested, enforced, verified, unverified, and

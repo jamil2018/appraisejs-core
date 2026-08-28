@@ -1,5 +1,13 @@
+import { createHash } from 'node:crypto'
+import { canonicalContractJson } from '@/lib/catalog-contracts'
 import type { ProviderCapabilityProfile, RoleDefinition } from './contracts'
 import { providerCapabilityProfileSchema, qualityJourneyContractVersion, roleDefinitionSchema } from './contracts'
+
+export const qualityJourneyRoleRegistryVersion = '1' as const
+
+export function qualityJourneyContractDigest(value: RoleDefinition | ProviderCapabilityProfile): string {
+  return `sha256:${createHash('sha256').update(canonicalContractJson(value)).digest('hex')}`
+}
 
 export const qualityJourneyCapabilityProfiles = {
   structuredAnalysis: {
