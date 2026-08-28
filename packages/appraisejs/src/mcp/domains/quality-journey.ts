@@ -78,6 +78,27 @@ export function registerQualityJourneyOperations({ server, api }: McpRegistryCon
       ),
   )
   server.registerTool(
+    'quality_journey_work_spawn_receipt_record',
+    {
+      description: 'Validate and durably bind a provider spawn receipt to one exact leased work attempt.',
+      inputSchema: {
+        target,
+        journeyId,
+        workItemId: z.string().min(1),
+        leaseId: z.string().min(1),
+        ownerToken: z.string().min(1),
+        receipt: z.record(z.string(), z.unknown()),
+      },
+    },
+    async ({ target: targetRef, journeyId: id, workItemId, ...body }) =>
+      text(
+        await api.request(`quality/journeys/${id}/work/${workItemId}/spawn-receipt`, {
+          method: 'POST',
+          body: JSON.stringify({ target: targetRef, ...body }),
+        }),
+      ),
+  )
+  server.registerTool(
     'quality_journey_work_complete',
     {
       description: 'Complete an exact claimed work attempt with a contract-bound worker result envelope.',

@@ -11,16 +11,22 @@ import prisma from '@/config/db-config'
 import { canonicalContractJson } from '@/lib/catalog-contracts'
 import {
   createQualityJourneyKernelState,
+  createWorkerSpawnRequest,
   hashQualityJourneyState,
   journeyCommandResultSchema,
   journeyCommandSchema,
+  qualityJourneyCapabilityProfiles,
   qualityJourneyContractDigest,
   qualityJourneyRoleDefinitions,
+  qualityJourneyRoleRegistryVersion,
   qualityJourneyWorkItemId,
   runnableQualityJourneyRoles,
   reconstructQualityJourneyRunner,
   submitQualityJourneyCommand,
+  validateWorkerResult,
+  validateWorkerSpawnReceipt,
   workerResultEnvelopeSchema,
+  type AssignmentManifest,
   type QualityJourneyKernelState,
   type QualityJourneyRole,
   type QualityJourneyStage,
@@ -33,6 +39,137 @@ const hash = (value: unknown) => `sha256:${createHash('sha256').update(json(valu
 const tokenHash = (value: string) => createHash('sha256').update(value).digest('hex')
 const parseArray = (value: string): string[] => JSON.parse(value) as string[]
 const parseRecord = (value: string): Record<string, string> => JSON.parse(value) as Record<string, string>
+
+type FactoryAuthorization = Pick<
+  AssignmentManifest,
+  | 'schemaVersion'
+  | 'journeyId'
+  | 'targetProjectId'
+  | 'workItemId'
+  | 'roleDefinition'
+  | 'capabilityProfile'
+  | 'inputArtifacts'
+  | 'allowedTargetRoutes'
+  | 'allowedResourceIds'
+  | 'writableArtifactKinds'
+  | 'scope'
+  | 'completionCriteria'
+> & { authorizationId: string }
+
+function roleAuthority(role: QualityJourneyRole) {
+  const roleDefinition = qualityJourneyRoleDefinitions.find(definition => definition.role === role)
+  if (!roleDefinition) throw new ServiceError('Quality Journey role authority is unavailable.', 'CONFLICT')
+  const capabilityProfile = Object.values(qualityJourneyCapabilityProfiles).find(
+    profile => profile.profileId === roleDefinition.capabilityProfileId,
+  )
+  if (!capabilityProfile) throw new ServiceError('Quality Journey capability profile is unavailable.', 'CONFLICT')
+  return { roleDefinition, capabilityProfile }
+}
+
+function factoryAuthorization(
+  authorizationId: string,
+  journey: Pick<QualityJourney, 'id' | 'targetProjectId'>,
+  item: Pick<
+    QualityJourneyWorkItem,
+    'id' | 'role' | 'inputArtifactRefsJson' | 'allowedOutputsJson' | 'completionCriteriaJson'
+  >,
+): FactoryAuthorization {
+  const { roleDefinition, capabilityProfile } = roleAuthority(item.role as QualityJourneyRole)
+  return {
+    schemaVersion: 'appraise.quality-journey/v1',
+    authorizationId,
+    journeyId: journey.id,
+    targetProjectId: journey.targetProjectId,
+    workItemId: item.id,
+    roleDefinition: {
+      role: roleDefinition.role,
+      version: qualityJourneyRoleRegistryVersion,
+      digest: qualityJourneyContractDigest(roleDefinition),
+    },
+    capabilityProfile: {
+      profileId: capabilityProfile.profileId,
+      version: qualityJourneyRoleRegistryVersion,
+      digest: qualityJourneyContractDigest(capabilityProfile),
+    },
+    inputArtifacts: JSON.parse(item.inputArtifactRefsJson),
+    allowedTargetRoutes: [],
+    allowedResourceIds: [],
+    writableArtifactKinds: JSON.parse(item.allowedOutputsJson),
+    scope: {
+      permittedTools: [...roleDefinition.permittedTools],
+      permittedCommands: [...roleDefinition.permittedCommands],
+      filesystemPaths: [],
+      networkOrigins: [],
+      credentialGrantIds: [],
+      targetAccess: item.role === 'SCOUT' ? 'READ_ONLY' : 'NONE',
+    },
+    completionCriteria: JSON.parse(item.completionCriteriaJson),
+  }
+}
+
+function validateFactoryAuthorization(
+  authorization: {
+    id: string
+    journeyId: string
+    targetProjectId: string
+    workItemId: string
+    role: QualityJourneyRole
+    roleContractDigest: string
+    capabilityProfileId: string
+    capabilityProfileHash: string
+    authorizationJson: string
+    authorizationHash: string
+  },
+  journey: Pick<QualityJourney, 'id' | 'targetProjectId'>,
+  item: QualityJourneyWorkItem,
+): FactoryAuthorization {
+  const persisted = JSON.parse(authorization.authorizationJson) as FactoryAuthorization
+  const canonical = factoryAuthorization(authorization.id, journey, item)
+  const bindings = [
+    [authorization.authorizationHash, hash(persisted)],
+    [json(persisted), json(canonical)],
+    [authorization.journeyId, journey.id],
+    [authorization.targetProjectId, journey.targetProjectId],
+    [authorization.workItemId, item.id],
+    [authorization.role, item.role],
+    [authorization.roleContractDigest, item.roleContractDigest],
+    [authorization.capabilityProfileId, canonical.capabilityProfile.profileId],
+    [authorization.capabilityProfileHash, canonical.capabilityProfile.digest],
+  ]
+  if (bindings.some(([actual, expected]) => actual !== expected))
+    throw new ServiceError('Quality Journey work authorization is invalid.', 'UNAUTHORIZED')
+  return canonical
+}
+
+function assignmentFromAuthorization(
+  authorization: FactoryAuthorization,
+  item: QualityJourneyWorkItem,
+  attempt: { id: string; leaseId: string; leaseExpiresAt: Date; heartbeatSeconds: number },
+): AssignmentManifest {
+  return {
+    schemaVersion: authorization.schemaVersion,
+    journeyId: authorization.journeyId,
+    targetProjectId: authorization.targetProjectId,
+    workItemId: authorization.workItemId,
+    roleDefinition: authorization.roleDefinition,
+    capabilityProfile: authorization.capabilityProfile,
+    inputArtifacts: authorization.inputArtifacts,
+    allowedTargetRoutes: authorization.allowedTargetRoutes,
+    allowedResourceIds: authorization.allowedResourceIds,
+    writableArtifactKinds: authorization.writableArtifactKinds,
+    scope: authorization.scope,
+    completionCriteria: authorization.completionCriteria,
+    assignmentId: `qjma_${attempt.id}`,
+    stateHash: item.inputHash,
+    inputHash: item.inputHash,
+    lease: {
+      leaseId: attempt.leaseId,
+      expiresAt: attempt.leaseExpiresAt.toISOString(),
+      heartbeatSeconds: attempt.heartbeatSeconds,
+    },
+    idempotencyKey: `assignment_${attempt.id}`,
+  }
+}
 
 function projection(row: QualityJourney) {
   const activeRevisionIds = parseRecord(row.activeRevisionIdsJson)
@@ -71,28 +208,58 @@ async function readJourney(journeyId: string, targetProjectId: string, db: Db) {
   return row
 }
 
+async function createWorkAuthorization(row: QualityJourney, item: QualityJourneyWorkItem, db: Db) {
+  const authorizationId = `qjwa_${createHash('sha256').update(`${row.id}:${item.id}`).digest('hex').slice(0, 24)}`
+  const authorization = factoryAuthorization(authorizationId, row, item)
+  await db.qualityJourneyWorkAuthorization.create({
+    data: {
+      id: authorizationId,
+      journeyId: row.id,
+      targetProjectId: row.targetProjectId,
+      workItemId: item.id,
+      role: item.role,
+      roleContractDigest: item.roleContractDigest,
+      capabilityProfileId: authorization.capabilityProfile.profileId,
+      capabilityProfileHash: authorization.capabilityProfile.digest,
+      authorizationJson: json(authorization),
+      authorizationHash: hash(authorization),
+    },
+  })
+}
+
 async function ensureEligibleWorkItems(row: QualityJourney, db: Db) {
   const roles = runnableQualityJourneyRoles(row.stage as QualityJourneyStage, [])
   for (const role of roles) {
     const definition = qualityJourneyRoleDefinitions.find(item => item.role === role)!
     const id = qualityJourneyWorkItemId(row.id, row.activeCycleId, role)
-    await db.qualityJourneyWorkItem.upsert({
-      where: { id },
-      update: {},
-      create: {
-        id,
-        journeyId: row.id,
-        targetProjectId: row.targetProjectId,
-        cycleId: row.activeCycleId,
-        role,
-        status: 'ELIGIBLE',
-        inputHash: row.stateHash,
-        roleContractDigest: qualityJourneyContractDigest(definition),
-        allowedOutputsJson: json(definition.writableArtifacts),
-        completionCriteriaJson: json([`Submit a contract-valid ${role} result envelope.`]),
-      },
-    })
+    const existingItem = await db.qualityJourneyWorkItem.findUnique({ where: { id } })
+    let item = existingItem
+    if (!item) {
+      item = await db.qualityJourneyWorkItem.create({
+        data: {
+          id,
+          journeyId: row.id,
+          targetProjectId: row.targetProjectId,
+          cycleId: row.activeCycleId,
+          role,
+          status: 'ELIGIBLE',
+          inputHash: row.stateHash,
+          roleContractDigest: qualityJourneyContractDigest(definition),
+          allowedOutputsJson: json(definition.writableArtifacts),
+          completionCriteriaJson: json([`Submit a contract-valid ${role} result envelope.`]),
+        },
+      })
+      await createWorkAuthorization(row, item, db)
+    }
   }
+}
+
+async function recoverLegacyFactoryAuthorizations(row: QualityJourney, db: Db) {
+  const items = await db.qualityJourneyWorkItem.findMany({
+    where: { journeyId: row.id, authorization: null, status: { notIn: ['COMPLETED', 'CANCELLED', 'SUPERSEDED'] } },
+  })
+  for (const item of items) await createWorkAuthorization(row, item, db)
+  return items.map(item => item.id)
 }
 
 export async function createQualityJourney(
@@ -312,8 +479,13 @@ export async function resumeQualityJourney(
   const now = input.now ?? new Date()
   return client.$transaction(async tx => {
     const row = await readJourney(input.journeyId, input.targetProjectId, tx)
+    const recoveredWorkItemIds = await recoverLegacyFactoryAuthorizations(row, tx)
     const expired = await tx.qualityJourneyWorkAttempt.findMany({
-      where: { workItem: { journeyId: row.id }, status: 'CLAIMED', leaseExpiresAt: { lte: now } },
+      where: {
+        workItem: { journeyId: row.id },
+        status: { in: ['CLAIMED', 'WORKER_REQUESTED', 'IN_PROGRESS'] },
+        leaseExpiresAt: { lte: now },
+      },
     })
     for (const attempt of expired) {
       await tx.qualityJourneyWorkAttempt.update({
@@ -321,12 +493,12 @@ export async function resumeQualityJourney(
         data: { status: 'LEASE_EXPIRED', completedAt: now },
       })
       await tx.qualityJourneyWorkItem.updateMany({
-        where: { id: attempt.workItemId, status: 'IN_PROGRESS' },
+        where: { id: attempt.workItemId, status: { in: ['WORKER_REQUESTED', 'IN_PROGRESS'] } },
         data: { status: 'REPLACEMENT_REQUESTED', version: { increment: 1 } },
       })
     }
     await ensureEligibleWorkItems(row, tx)
-    return { expiredAttemptIds: expired.map(item => item.id), journey: projection(row) }
+    return { recoveredWorkItemIds, expiredAttemptIds: expired.map(item => item.id), journey: projection(row) }
   })
 }
 
@@ -343,27 +515,66 @@ export async function claimQualityJourneyWork(
       orderBy: { createdAt: 'asc' },
     })
     if (!item) throw new ServiceError('No eligible Quality Journey work item is available.', 'CONFLICT')
+    const authorization = await tx.qualityJourneyWorkAuthorization.findUnique({ where: { workItemId: item.id } })
+    if (!authorization)
+      throw new ServiceError('Quality Journey work has no issued Factory authorization.', 'UNAUTHORIZED')
+    const authorizationPayload = validateFactoryAuthorization(authorization, journey, item)
     const attempt = item.currentAttempt + 1
     const claimed = await tx.qualityJourneyWorkItem.updateMany({
       where: { id: item.id, version: item.version, status: item.status },
-      data: { status: 'IN_PROGRESS', currentAttempt: attempt, version: { increment: 1 } },
+      data: { status: 'WORKER_REQUESTED', currentAttempt: attempt, version: { increment: 1 } },
     })
     if (claimed.count !== 1) throw new ServiceError('Quality Journey work item was claimed concurrently.', 'CONFLICT')
     const ownerToken = randomUUID()
     const leaseId = `qjl_${randomUUID()}`
     const leaseExpiresAt = new Date(Date.now() + leaseSeconds * 1000)
+    const attemptId = `qja_${randomUUID()}`
+    const prior =
+      item.status === 'REPLACEMENT_REQUESTED'
+        ? await tx.qualityJourneyWorkAttempt.findFirst({
+            where: { workItemId: item.id },
+            orderBy: { attempt: 'desc' },
+          })
+        : null
+    const heartbeatSeconds = Math.max(10, Math.floor(leaseSeconds / 3))
+    const manifest = assignmentFromAuthorization(authorizationPayload, item, {
+      id: attemptId,
+      leaseId,
+      leaseExpiresAt,
+      heartbeatSeconds,
+    })
+    const spawnRequest = createWorkerSpawnRequest({
+      requestId: `qjsr_${randomUUID()}`,
+      attemptId,
+      manifest,
+    })
     const workAttempt = await tx.qualityJourneyWorkAttempt.create({
       data: {
-        id: `qja_${randomUUID()}`,
+        id: attemptId,
         workItemId: item.id,
         attempt,
+        status: 'WORKER_REQUESTED',
         leaseId,
         ownerTokenHash: tokenHash(ownerToken),
         leaseExpiresAt,
-        heartbeatSeconds: Math.max(10, Math.floor(leaseSeconds / 3)),
+        heartbeatSeconds,
+        authorizationId: authorization.id,
+        assignmentId: manifest.assignmentId,
+        assignmentJson: json(manifest),
+        assignmentHash: hash(manifest),
+        spawnRequestId: spawnRequest.requestId,
+        spawnRequestJson: json(spawnRequest),
+        spawnRequestHash: hash(spawnRequest),
+        replacesAttemptId: prior?.id,
       },
     })
-    return { workItem: { ...item, status: 'IN_PROGRESS', currentAttempt: attempt }, attempt: workAttempt, ownerToken }
+    return {
+      workItem: { ...item, status: 'WORKER_REQUESTED' as const, currentAttempt: attempt },
+      attempt: workAttempt,
+      assignment: manifest,
+      spawnRequest,
+      ownerToken,
+    }
   })
 }
 
@@ -377,24 +588,100 @@ type WorkCompletionInput = {
 }
 type WorkerResult = ReturnType<typeof workerResultEnvelopeSchema.parse>
 
+type WorkLeaseInput = Omit<WorkCompletionInput, 'result'>
+type WorkSpawnReceiptInput = WorkLeaseInput & { receipt: unknown }
+
+function assertLeaseAuthority(
+  input: Pick<WorkCompletionInput, 'ownerToken'>,
+  item: QualityJourneyWorkItem,
+  attempt: QualityJourneyWorkAttempt | null,
+) {
+  if (!attempt || attempt.workItemId !== item.id || attempt.ownerTokenHash !== tokenHash(input.ownerToken))
+    throw new ServiceError('Quality Journey lease authority is invalid.', 'UNAUTHORIZED')
+  return attempt
+}
+
+async function readWorkAttempt(input: WorkLeaseInput, tx: Prisma.TransactionClient) {
+  await readJourney(input.journeyId, input.targetProjectId, tx)
+  const item = await tx.qualityJourneyWorkItem.findFirst({
+    where: { id: input.workItemId, journeyId: input.journeyId, targetProjectId: input.targetProjectId },
+  })
+  if (!item) throw new ServiceError('Quality Journey work item not found.', 'NOT_FOUND')
+  const attempt = await tx.qualityJourneyWorkAttempt.findUnique({ where: { leaseId: input.leaseId } })
+  return { item, attempt }
+}
+
+function validatedSpawnReceipt(input: WorkSpawnReceiptInput, attempt: QualityJourneyWorkAttempt) {
+  if (!attempt.spawnRequestJson || !attempt.spawnRequestHash)
+    throw new ServiceError('Quality Journey worker request was not durably issued.', 'UNAUTHORIZED')
+  const spawnRequest = JSON.parse(attempt.spawnRequestJson)
+  if (attempt.spawnRequestHash !== hash(spawnRequest))
+    throw new ServiceError('Quality Journey worker request lineage is invalid.', 'UNAUTHORIZED')
+  const receipt = validateWorkerSpawnReceipt(input.receipt, spawnRequest)
+  return { receipt, receiptHash: hash(receipt) }
+}
+
+function replayedSpawnReceipt(item: QualityJourneyWorkItem, attempt: QualityJourneyWorkAttempt, receiptHash: string) {
+  if (!attempt.spawnReceiptHash) return null
+  if (attempt.spawnReceiptHash !== receiptHash)
+    throw new ServiceError('Quality Journey worker receipt was replayed with different input.', 'CONFLICT')
+  return { replayed: true, workItemId: item.id, status: item.status }
+}
+
+function assertSpawnReceiptCurrent(item: QualityJourneyWorkItem, attempt: QualityJourneyWorkAttempt) {
+  if (attempt.leaseExpiresAt <= new Date()) throw new ServiceError('Quality Journey work lease expired.', 'CONFLICT')
+  if (item.currentAttempt !== attempt.attempt || item.status !== 'WORKER_REQUESTED')
+    throw new ServiceError('Quality Journey worker receipt is stale.', 'CONFLICT')
+}
+
+export async function recordQualityJourneyWorkerSpawnReceipt(
+  input: WorkSpawnReceiptInput,
+  client: PrismaClient = prisma,
+) {
+  return client.$transaction(async tx => {
+    const loaded = await readWorkAttempt(input, tx)
+    const { item } = loaded
+    const attempt = assertLeaseAuthority(input, item, loaded.attempt)
+    const { receipt, receiptHash } = validatedSpawnReceipt(input, attempt)
+    const replay = replayedSpawnReceipt(item, attempt, receiptHash)
+    if (replay) return replay
+    assertSpawnReceiptCurrent(item, attempt)
+    const recorded = await tx.qualityJourneyWorkAttempt.updateMany({
+      where: { id: attempt.id, spawnReceiptId: null, status: 'WORKER_REQUESTED' },
+      data: {
+        status: 'IN_PROGRESS',
+        spawnReceiptId: receipt.spawnReceiptId,
+        spawnReceiptJson: json(receipt),
+        spawnReceiptHash: receiptHash,
+      },
+    })
+    if (recorded.count !== 1) throw new ServiceError('Quality Journey worker receipt changed concurrently.', 'CONFLICT')
+    const started = await tx.qualityJourneyWorkItem.updateMany({
+      where: { id: item.id, version: item.version, currentAttempt: attempt.attempt, status: 'WORKER_REQUESTED' },
+      data: { status: 'IN_PROGRESS', version: { increment: 1 } },
+    })
+    if (started.count !== 1) throw new ServiceError('Quality Journey worker receipt changed concurrently.', 'CONFLICT')
+    return { replayed: false, workItemId: item.id, status: 'IN_PROGRESS' as const }
+  })
+}
+
 function validateWorkAttempt(
   input: WorkCompletionInput,
   item: QualityJourneyWorkItem,
   attempt: QualityJourneyWorkAttempt | null,
   result: WorkerResult,
 ) {
-  if (!attempt) throw new ServiceError('Quality Journey lease authority is invalid.', 'UNAUTHORIZED')
-  if (attempt.workItemId !== item.id)
-    throw new ServiceError('Quality Journey lease authority is invalid.', 'UNAUTHORIZED')
-  if (attempt.ownerTokenHash !== tokenHash(input.ownerToken))
-    throw new ServiceError('Quality Journey lease authority is invalid.', 'UNAUTHORIZED')
-  if (attempt.status === 'COMPLETED') {
-    if (attempt.resultHash !== hash(result))
+  const authorizedAttempt = assertLeaseAuthority(input, item, attempt)
+  if (authorizedAttempt.status === 'COMPLETED') {
+    if (authorizedAttempt.resultHash !== hash(result))
       throw new ServiceError('Quality Journey work completion was replayed with a different result.', 'CONFLICT')
     return { replayed: true, workItemId: item.id, status: item.status }
   }
-  if (attempt.leaseExpiresAt <= new Date()) throw new ServiceError('Quality Journey work lease expired.', 'CONFLICT')
-  const claimedValues = [item.id, attempt.id, item.inputHash, item.role, item.roleContractDigest]
+  if (authorizedAttempt.leaseExpiresAt <= new Date())
+    throw new ServiceError('Quality Journey work lease expired.', 'CONFLICT')
+  if (item.currentAttempt !== authorizedAttempt.attempt || item.status !== 'IN_PROGRESS')
+    throw new ServiceError('Quality Journey work completion is stale.', 'CONFLICT')
+  const claimedValues = [item.id, authorizedAttempt.id, item.inputHash, item.role, item.roleContractDigest]
   const resultValues = [result.workItemId, result.attemptId, result.inputHash, result.role, result.roleContractDigest]
   if (claimedValues.some((value, index) => value !== resultValues[index]))
     throw new ServiceError('Worker result does not match the claimed Quality Journey work item.', 'CONFLICT')
@@ -464,18 +751,62 @@ async function advanceAfterWorkCompletion(
   })
 }
 
+async function validateDurableWorkerLineage(
+  input: WorkCompletionInput,
+  item: QualityJourneyWorkItem,
+  attempt: QualityJourneyWorkAttempt,
+  result: WorkerResult,
+  tx: Prisma.TransactionClient,
+) {
+  const lineage = [
+    attempt.authorizationId,
+    attempt.assignmentJson,
+    attempt.assignmentHash,
+    attempt.spawnRequestJson,
+    attempt.spawnRequestHash,
+    attempt.spawnReceiptJson,
+    attempt.spawnReceiptHash,
+  ]
+  if (lineage.some(value => !value))
+    throw new ServiceError('Quality Journey work completion has no validated Factory receipt.', 'UNAUTHORIZED')
+  const authorization = await tx.qualityJourneyWorkAuthorization.findUnique({
+    where: { id: attempt.authorizationId! },
+  })
+  if (!authorization) throw new ServiceError('Quality Journey work authorization is unavailable.', 'UNAUTHORIZED')
+  const journey = await readJourney(input.journeyId, input.targetProjectId, tx)
+  const authorizationPayload = validateFactoryAuthorization(authorization, journey, item)
+  const persistedAssignment = JSON.parse(attempt.assignmentJson!)
+  const expectedAssignment = assignmentFromAuthorization(authorizationPayload, item, attempt)
+  if (attempt.assignmentHash !== hash(persistedAssignment) || json(persistedAssignment) !== json(expectedAssignment))
+    throw new ServiceError('Quality Journey assignment lineage is invalid.', 'UNAUTHORIZED')
+  const spawnRequest = JSON.parse(attempt.spawnRequestJson!)
+  const spawnReceipt = JSON.parse(attempt.spawnReceiptJson!)
+  const requestBindings = [
+    [attempt.spawnRequestHash, hash(spawnRequest)],
+    [attempt.spawnReceiptHash, hash(spawnReceipt)],
+    [spawnRequest.assignmentId, attempt.assignmentId],
+    [spawnRequest.requestId, attempt.spawnRequestId],
+  ]
+  if (requestBindings.some(([actual, expected]) => actual !== expected))
+    throw new ServiceError('Quality Journey worker request lineage is invalid.', 'UNAUTHORIZED')
+  try {
+    validateWorkerResult(result, { spawnRequest, spawnReceipt, currentInputHash: item.inputHash })
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unknown validation error.'
+    throw new ServiceError(`Quality Journey worker result is invalid: ${message}`, 'CONFLICT')
+  }
+}
+
 export async function completeQualityJourneyWork(input: WorkCompletionInput, client: PrismaClient = prisma) {
   const result = workerResultEnvelopeSchema.parse(input.result)
   return client.$transaction(async tx => {
-    await readJourney(input.journeyId, input.targetProjectId, tx)
-    const item = await tx.qualityJourneyWorkItem.findFirst({
-      where: { id: input.workItemId, journeyId: input.journeyId, targetProjectId: input.targetProjectId },
-    })
-    if (!item) throw new ServiceError('Quality Journey work item not found.', 'NOT_FOUND')
-    const attempt = await tx.qualityJourneyWorkAttempt.findUnique({ where: { leaseId: input.leaseId } })
+    const { item, attempt } = await readWorkAttempt(input, tx)
+    if (attempt && attempt.status !== 'COMPLETED' && (!attempt.spawnReceiptJson || !attempt.spawnReceiptHash))
+      throw new ServiceError('Quality Journey work completion has no validated Factory receipt.', 'UNAUTHORIZED')
     const replay = validateWorkAttempt(input, item, attempt, result)
     if (replay) return replay
     if (!attempt) throw new ServiceError('Quality Journey lease authority is invalid.', 'UNAUTHORIZED')
+    await validateDurableWorkerLineage(input, item, attempt, result, tx)
     await persistWorkerOutputs(input, item, result, tx)
     await tx.qualityJourneyWorkAttempt.update({
       where: { id: attempt.id },

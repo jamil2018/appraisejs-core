@@ -38,6 +38,7 @@
     "quality_journey_resume",
     "quality_journey_work_claim",
     "quality_journey_work_complete",
+    "quality_journey_work_spawn_receipt_record",
     "requirement_analysis_decide",
     "requirement_analysis_propose",
     "requirement_analysis_read",
