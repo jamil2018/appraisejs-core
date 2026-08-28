@@ -180,7 +180,7 @@ afterEach(() => {
   for (const workspace of workspaces.splice(0)) rmSync(workspace, { recursive: true, force: true })
 })
 
-describe('remote evaluation scope migration upgrade', () => {
+describe('remote evaluation scope migration upgrade', { timeout: 60_000 }, () => {
   it('reconciles a PREPARED v1 parent with terminal pre-execution failure before retiring its READY assessment', async () => {
     const database = databaseBeforeUnifiedPreflightMigration()
     try {

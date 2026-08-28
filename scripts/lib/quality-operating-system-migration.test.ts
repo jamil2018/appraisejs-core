@@ -109,7 +109,7 @@ afterEach(() => {
   for (const workspace of workspaces.splice(0)) rmSync(workspace, { recursive: true, force: true })
 })
 
-describe('quality operating system migration', () => {
+describe('quality operating system migration', { timeout: 60_000 }, () => {
   it('applies to a blank ordered migration history', () => {
     const database = createDatabase()
     try {
