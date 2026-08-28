@@ -34,6 +34,16 @@ const stageOrder: readonly QualityJourneyStage[] = [
 ]
 
 const terminalWorkItemStatuses: readonly JourneyWorkItemStatus[] = ['COMPLETED', 'CANCELLED', 'SUPERSEDED']
+const activeRunnerStates: Partial<Record<JourneyWorkItemStatus, JourneyRunnerNodeState>> = {
+  WORKER_REQUESTED: 'IN_PROGRESS',
+  WORKER_STARTED: 'IN_PROGRESS',
+  IN_PROGRESS: 'IN_PROGRESS',
+  LEASE_EXPIRED: 'IN_PROGRESS',
+  REPLACEMENT_REQUESTED: 'IN_PROGRESS',
+  BLOCKED: 'BLOCKED',
+  ESCALATED: 'BLOCKED',
+  COMPLETED: 'COMPLETED',
+}
 
 export function qualityJourneyWorkItemId(journeyId: string, cycleId: string, role: QualityJourneyRole): string {
   return `qjw_${createHash('sha256').update(`${journeyId}:${cycleId}:${role}`).digest('hex').slice(0, 24)}`
@@ -75,18 +85,16 @@ export function expireQualityJourneyLeases(
   })
 }
 
-// fallow-ignore-next-line complexity
 function runnerNodeState(
   role: QualityJourneyRole,
   stage: QualityJourneyStage,
   item: JourneyRunnerWorkItem | undefined,
   hasBlockers: boolean,
 ): JourneyRunnerNodeState {
-  if (item?.status === 'COMPLETED') return 'COMPLETED'
-  if (item?.status === 'BLOCKED' || item?.status === 'ESCALATED') return 'BLOCKED'
-  if (item && !terminalWorkItemStatuses.includes(item.status)) return 'IN_PROGRESS'
+  const persistedState = item ? activeRunnerStates[item.status] : undefined
+  if (persistedState) return persistedState
   if (stage === 'CLOSED') return 'TERMINAL'
-  if (roleStages[role] === stage && !hasBlockers) return 'RUNNABLE'
+  if (roleStages[role] === stage) return hasBlockers ? 'WAITING' : 'RUNNABLE'
   return stageOrder.indexOf(roleStages[role]) < stageOrder.indexOf(stage) ? 'COMPLETED' : 'WAITING'
 }
 

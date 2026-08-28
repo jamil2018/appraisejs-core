@@ -3,6 +3,7 @@ import type {
   Prisma,
   PrismaClient,
   QualityJourney,
+  QualityJourneyCommand,
   QualityJourneyWorkAttempt,
   QualityJourneyWorkItem,
 } from '@prisma/client'
@@ -180,114 +181,126 @@ export async function getQualityJourney(
   }
 }
 
+type JourneyCommand = ReturnType<typeof journeyCommandSchema.parse>
+type AppliedJourneyCommand = ReturnType<typeof submitQualityJourneyCommand>
+
+function commandConflict(
+  command: JourneyCommand,
+  row: QualityJourney,
+  code: 'IDEMPOTENCY_KEY_REUSED' | 'PRECONDITION_FAILED' | 'STALE_STATE_HASH',
+  safeNextCommands = projection(row).permittedCommands,
+) {
+  return journeyCommandResultSchema.parse({
+    schemaVersion: 'appraise.quality-journey/v1',
+    outcome: 'CONFLICT',
+    commandId: command.commandId,
+    code,
+    currentStateHash: row.stateHash,
+    currentStage: row.stage,
+    safeNextCommands,
+  })
+}
+
+function replayCommand(command: JourneyCommand, row: QualityJourney, existing: QualityJourneyCommand) {
+  if (existing.requestHash !== hash(command)) return commandConflict(command, row, 'IDEMPOTENCY_KEY_REUSED')
+  const replay = journeyCommandResultSchema.parse(JSON.parse(existing.resultJson))
+  return replay.outcome === 'COMMITTED' ? { ...replay, replayed: true } : replay
+}
+
+async function runnerPreconditionConflict(command: JourneyCommand, row: QualityJourney, tx: Prisma.TransactionClient) {
+  if (command.actor !== 'RUNNER') return null
+  if (['RETRY_DISCOVERY', 'RETRY_AUTOMATION'].includes(command.command)) return null
+  const activeIds = parseArray(row.activeWorkItemIdsJson)
+  if (activeIds.length === 0) return null
+  const incomplete = await tx.qualityJourneyWorkItem.count({
+    where: { id: { in: activeIds }, status: { not: 'COMPLETED' } },
+  })
+  return incomplete ? commandConflict(command, row, 'PRECONDITION_FAILED') : null
+}
+
+async function loadKernelState(row: QualityJourney, tx: Prisma.TransactionClient) {
+  const [commands, events] = await Promise.all([
+    tx.qualityJourneyCommand.findMany({ where: { journeyId: row.id } }),
+    tx.qualityJourneyEvent.findMany({ where: { journeyId: row.id }, orderBy: { sequence: 'asc' } }),
+  ])
+  const state: QualityJourneyKernelState = {
+    ...projection(row),
+    events: events.filter(event => event.commandId).map(event => JSON.parse(event.payloadJson)),
+    committedCommands: Object.fromEntries(
+      commands.map(receipt => [
+        receipt.idempotencyKey,
+        { requestHash: receipt.requestHash.replace(/^sha256:/, ''), result: JSON.parse(receipt.resultJson) },
+      ]),
+    ),
+  }
+  return { state, eventCount: events.length }
+}
+
+async function commitAppliedCommand(
+  command: JourneyCommand,
+  row: QualityJourney,
+  applied: AppliedJourneyCommand,
+  eventCount: number,
+  tx: Prisma.TransactionClient,
+) {
+  if (applied.result.outcome !== 'COMMITTED') return applied.result
+  const claimed = await tx.qualityJourney.updateMany({
+    where: { id: row.id, version: row.version, stateHash: row.stateHash },
+    data: {
+      stage: applied.state.stage,
+      activeRevisionIdsJson: json(applied.state.activeRevisionIds),
+      blockerIdsJson: json(applied.state.blockerIds),
+      activeWorkItemIdsJson: json(applied.state.activeWorkItemIds),
+      stateHash: applied.state.stateHash,
+      version: { increment: 1 },
+      status: applied.state.stage === 'CLOSED' ? 'CLOSED' : row.status,
+    },
+  })
+  if (claimed.count !== 1) return commandConflict(command, row, 'STALE_STATE_HASH', projection(row).permittedCommands)
+  const event = applied.state.events.at(-1)!
+  await tx.qualityJourneyEvent.create({
+    data: {
+      id: event.eventId,
+      journeyId: row.id,
+      targetProjectId: row.targetProjectId,
+      sequence: eventCount + 1,
+      eventType: `COMMAND_${command.command}`,
+      commandId: command.commandId,
+      predecessorStateHash: event.predecessorStateHash,
+      successorStateHash: event.successorStateHash,
+      payloadJson: json(event),
+    },
+  })
+  await tx.qualityJourneyCommand.create({
+    data: {
+      id: command.commandId,
+      journeyId: row.id,
+      targetProjectId: row.targetProjectId,
+      idempotencyKey: command.idempotencyKey,
+      requestHash: hash(command),
+      requestJson: json(command),
+      resultJson: json(applied.result),
+      eventId: event.eventId,
+    },
+  })
+  const updated = await tx.qualityJourney.findUniqueOrThrow({ where: { id: row.id } })
+  await ensureEligibleWorkItems(updated, tx)
+  return applied.result
+}
+
 export async function submitDurableQualityJourneyCommand(value: unknown, client: PrismaClient = prisma) {
   const command = journeyCommandSchema.parse(value)
-  // fallow-ignore-next-line complexity
   return client.$transaction(async tx => {
     const row = await readJourney(command.journeyId, command.targetProjectId, tx)
     const existing = await tx.qualityJourneyCommand.findUnique({
       where: { journeyId_idempotencyKey: { journeyId: row.id, idempotencyKey: command.idempotencyKey } },
     })
-    const requestHash = hash(command)
-    if (existing) {
-      if (existing.requestHash !== requestHash)
-        return journeyCommandResultSchema.parse({
-          schemaVersion: 'appraise.quality-journey/v1',
-          outcome: 'CONFLICT',
-          commandId: command.commandId,
-          code: 'IDEMPOTENCY_KEY_REUSED',
-          currentStateHash: row.stateHash,
-          currentStage: row.stage,
-          safeNextCommands: projection(row).permittedCommands,
-        })
-      const replay = journeyCommandResultSchema.parse(JSON.parse(existing.resultJson))
-      return replay.outcome === 'COMMITTED' ? { ...replay, replayed: true } : replay
-    }
-    if (command.actor === 'RUNNER' && !['RETRY_DISCOVERY', 'RETRY_AUTOMATION'].includes(command.command)) {
-      const activeIds = parseArray(row.activeWorkItemIdsJson)
-      if (activeIds.length) {
-        const incomplete = await tx.qualityJourneyWorkItem.count({
-          where: { id: { in: activeIds }, status: { not: 'COMPLETED' } },
-        })
-        if (incomplete)
-          return journeyCommandResultSchema.parse({
-            schemaVersion: 'appraise.quality-journey/v1',
-            outcome: 'CONFLICT',
-            commandId: command.commandId,
-            code: 'PRECONDITION_FAILED',
-            currentStateHash: row.stateHash,
-            currentStage: row.stage,
-            safeNextCommands: projection(row).permittedCommands,
-          })
-      }
-    }
-    const commands = await tx.qualityJourneyCommand.findMany({ where: { journeyId: row.id } })
-    const events = await tx.qualityJourneyEvent.findMany({ where: { journeyId: row.id }, orderBy: { sequence: 'asc' } })
-    const base = projection(row)
-    const state: QualityJourneyKernelState = {
-      ...base,
-      events: events.filter(event => event.commandId).map(event => JSON.parse(event.payloadJson)),
-      committedCommands: Object.fromEntries(
-        commands.map(receipt => [
-          receipt.idempotencyKey,
-          { requestHash: receipt.requestHash.replace(/^sha256:/, ''), result: JSON.parse(receipt.resultJson) },
-        ]),
-      ),
-    }
+    if (existing) return replayCommand(command, row, existing)
+    const preconditionConflict = await runnerPreconditionConflict(command, row, tx)
+    if (preconditionConflict) return preconditionConflict
+    const { state, eventCount } = await loadKernelState(row, tx)
     const applied = submitQualityJourneyCommand(state, command)
-    if (applied.result.outcome !== 'COMMITTED') return applied.result
-    const claimed = await tx.qualityJourney.updateMany({
-      where: { id: row.id, version: row.version, stateHash: row.stateHash },
-      data: {
-        stage: applied.state.stage,
-        activeRevisionIdsJson: json(applied.state.activeRevisionIds),
-        blockerIdsJson: json(applied.state.blockerIds),
-        activeWorkItemIdsJson: json(applied.state.activeWorkItemIds),
-        stateHash: applied.state.stateHash,
-        version: { increment: 1 },
-        status: applied.state.stage === 'CLOSED' ? 'CLOSED' : row.status,
-      },
-    })
-    if (claimed.count !== 1)
-      return journeyCommandResultSchema.parse({
-        schemaVersion: 'appraise.quality-journey/v1',
-        outcome: 'CONFLICT',
-        commandId: command.commandId,
-        code: 'STALE_STATE_HASH',
-        currentStateHash: row.stateHash,
-        currentStage: row.stage,
-        safeNextCommands: base.permittedCommands,
-      })
-    const event = applied.state.events.at(-1)!
-    const sequence = events.length + 1
-    await tx.qualityJourneyEvent.create({
-      data: {
-        id: event.eventId,
-        journeyId: row.id,
-        targetProjectId: row.targetProjectId,
-        sequence,
-        eventType: `COMMAND_${command.command}`,
-        commandId: command.commandId,
-        predecessorStateHash: event.predecessorStateHash,
-        successorStateHash: event.successorStateHash,
-        payloadJson: json(event),
-      },
-    })
-    await tx.qualityJourneyCommand.create({
-      data: {
-        id: command.commandId,
-        journeyId: row.id,
-        targetProjectId: row.targetProjectId,
-        idempotencyKey: command.idempotencyKey,
-        requestHash,
-        requestJson: json(command),
-        resultJson: json(applied.result),
-        eventId: event.eventId,
-      },
-    })
-    const updated = await tx.qualityJourney.findUniqueOrThrow({ where: { id: row.id } })
-    await ensureEligibleWorkItems(updated, tx)
-    return applied.result
+    return commitAppliedCommand(command, row, applied, eventCount, tx)
   })
 }
 
@@ -363,14 +376,16 @@ type WorkCompletionInput = {
 }
 type WorkerResult = ReturnType<typeof workerResultEnvelopeSchema.parse>
 
-// fallow-ignore-next-line complexity
 function validateWorkAttempt(
   input: WorkCompletionInput,
   item: QualityJourneyWorkItem,
   attempt: QualityJourneyWorkAttempt | null,
   result: WorkerResult,
 ) {
-  if (!attempt || attempt.workItemId !== item.id || attempt.ownerTokenHash !== tokenHash(input.ownerToken))
+  if (!attempt) throw new ServiceError('Quality Journey lease authority is invalid.', 'UNAUTHORIZED')
+  if (attempt.workItemId !== item.id)
+    throw new ServiceError('Quality Journey lease authority is invalid.', 'UNAUTHORIZED')
+  if (attempt.ownerTokenHash !== tokenHash(input.ownerToken))
     throw new ServiceError('Quality Journey lease authority is invalid.', 'UNAUTHORIZED')
   if (attempt.status === 'COMPLETED') {
     if (attempt.resultHash !== hash(result))
@@ -378,13 +393,9 @@ function validateWorkAttempt(
     return { replayed: true, workItemId: item.id, status: item.status }
   }
   if (attempt.leaseExpiresAt <= new Date()) throw new ServiceError('Quality Journey work lease expired.', 'CONFLICT')
-  const matchesClaim =
-    result.workItemId === item.id &&
-    result.attemptId === attempt.id &&
-    result.inputHash === item.inputHash &&
-    result.role === item.role &&
-    result.roleContractDigest === item.roleContractDigest
-  if (!matchesClaim)
+  const claimedValues = [item.id, attempt.id, item.inputHash, item.role, item.roleContractDigest]
+  const resultValues = [result.workItemId, result.attemptId, result.inputHash, result.role, result.roleContractDigest]
+  if (claimedValues.some((value, index) => value !== resultValues[index]))
     throw new ServiceError('Worker result does not match the claimed Quality Journey work item.', 'CONFLICT')
   return null
 }
