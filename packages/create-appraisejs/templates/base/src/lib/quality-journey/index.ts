@@ -1,3 +1,4 @@
+export * from './agent-factory'
 export * from './contracts'
 export * from './golden-fixtures'
 export * from './kernel'

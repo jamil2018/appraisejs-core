@@ -59,7 +59,7 @@ describe('Quality Journey Phase 0 contracts', () => {
         roleDefinitionDigest: digest('a'),
         capabilityProfileDigest: digest('b'),
         effectiveWorker: { modelId: 'effective-worker', reasoningLevel: 'medium', toolIds: [] },
-        boundaries: [{ boundary: 'LIFECYCLE_COMMAND', requested: 'No mutation.', status: 'UNSUPPORTED', evidence: [] }],
+        boundaries: [{ boundary: 'LIFECYCLE_COMMAND', requested: [], status: 'UNSUPPORTED', evidence: [] }],
         startedAt: '2026-08-28T00:00:00.000Z',
       }),
     ).toThrow()

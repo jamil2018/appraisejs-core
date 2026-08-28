@@ -244,7 +244,7 @@ export const roleDefinitionSchema = z
   .strict()
 export type RoleDefinition = z.infer<typeof roleDefinitionSchema>
 
-const assignmentManifestSchema = z
+export const assignmentManifestSchema = z
   .object({
     schemaVersion: z.literal(qualityJourneyContractVersion),
     assignmentId: id,
@@ -352,13 +352,12 @@ const runtimeBoundarySchema = z
       'CREDENTIAL',
       'LIFECYCLE_COMMAND',
     ]),
-    requested: nonEmptyText,
+    requested: z.array(z.string().min(1).max(2_000)).max(256),
     status: z.enum(['ENFORCED', 'VERIFIED', 'UNVERIFIED', 'UNSUPPORTED']),
-    effective: nonEmptyText.optional(),
+    effective: z.array(z.string().min(1).max(2_000)).max(256).optional(),
     evidence: z.array(digest).max(32),
   })
   .strict()
-
 const spawnReceiptBase = z.object({
   schemaVersion: z.literal(qualityJourneyContractVersion),
   spawnReceiptId: id,
@@ -403,6 +402,7 @@ export const workerSpawnReceiptSchema = z.union([
         })
     }),
 ])
+export type WorkerSpawnReceipt = z.infer<typeof workerSpawnReceiptSchema>
 
 export const workerResultEnvelopeSchema = z
   .object({
@@ -438,6 +438,7 @@ export const workerResultEnvelopeSchema = z
     if (result.outputs.some(output => !allowed[result.role].includes(output.kind)))
       context.addIssue({ code: 'custom', path: ['outputs'], message: 'Output artifact kind is forbidden for role.' })
   })
+export type WorkerResultEnvelope = z.infer<typeof workerResultEnvelopeSchema>
 
 export const journeyCommandKindSchema = z.enum([
   'SUBMIT_REQUIREMENT',

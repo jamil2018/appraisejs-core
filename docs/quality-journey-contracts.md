@@ -11,6 +11,10 @@ The executable Quality Journey foundation is in `src/lib/quality-journey/`:
   capability requests, spawn receipts, worker results, commands, conflicts, and closure.
 - `role-definitions.ts` defines the six semantic roles and their negative authority. Coordinator, Runner, Factory,
   managed runtime, and optional independent review are control or assurance components, not semantic worker roles.
+- `agent-factory.ts` starts the Phase 2 provider-neutral Factory boundary. It creates least-privilege spawn requests,
+  resolves role/profile authority from the canonical registries, binds assignments to their exact version and digest,
+  validates structured effective boundary and tool receipts, rejects forged or stale results, and creates replacement
+  assignment projections without transcript fields.
 - `lifecycle.ts` defines normal stage transitions, actors, required artifacts, forbidden capabilities, failure codes,
   work-item transitions, and role eligibility.
 - `state.ts` defines the domain-separated canonical state hash input. Timestamps, idempotency keys, credentials,
@@ -73,14 +77,23 @@ expires elapsed leases, and makes the same work item replacement-claimable witho
 | Triager                | Test Report Analysis                | Cannot modify automation, rewrite results, or approve closure       |
 
 Capability-profile requests contain judgment, latency, isolation, tool, and runtime-boundary requirements but no
-provider or model names. Effective model and runtime properties belong only in the attempt-level spawn receipt, where
-each requested boundary is recorded as enforced, verified, unverified, or unsupported. A required unsupported
-high-risk boundary blocks worker start.
+provider or model names. Factory spawn requests preserve that neutral profile and the exact assignment scope. Effective
+model and runtime properties belong only in the attempt-level spawn receipt, where each requested boundary is recorded
+as enforced, verified, unverified, or unsupported. A missing, unsupported, or unverifiable required boundary blocks
+worker acceptance. Requested and effective context, filesystem, network, target, credential, and lifecycle-command
+values are structured and effective values cannot exceed the assignment; effective tools must remain within the
+assignment and profile.
 
 Assignment issuance must use the registry-aware validator with the resolved Role Definition and capability profile.
-The current validator enforces the initial role/profile subset rules; Phase 0 still needs digest/version binding and
-registry-backed route, resource, path, origin, credential, and required-boundary checks. Schema parsing alone does not
-issue an assignment.
+The Phase 2 Factory additionally enforces exact registry version and digest binding. Registry-backed route, resource,
+path, origin, and credential authorization and durable assignment/spawn-receipt persistence remain for the next Phase 2
+slice. Schema parsing alone does not issue an assignment.
+
+Worker results are accepted only when assignment, work item, attempt, role, role-contract digest, and current input hash
+match the issued authority. Output artifact kinds must be permitted by both the semantic role and the exact assignment.
+Replacement assignment construction parses the prior strict manifest and accepts a caller-supplied successor state,
+artifact projection, and lease while rejecting hidden transcript fields. Durable Factory integration must establish
+that those successor inputs came from current Appraise state before issuing the replacement to a provider.
 
 ## Closure and traceability invariants
 
