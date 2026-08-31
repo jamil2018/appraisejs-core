@@ -53,13 +53,51 @@ const workerSpawnRequestSchema = z
     roleDefinitionDigest: digest,
     capabilityProfile: providerCapabilityProfileSchema,
     capabilityProfileDigest: digest,
+    requestedJudgment: z.enum(['LOW', 'MEDIUM', 'HIGH']),
+    requestedLatency: z.enum(['FAST', 'BALANCED', 'DELIBERATE']),
     inputHash: digest,
     assignment: assignmentManifestSchema,
     scope: spawnScopeSchema,
     requiredBoundaries: z.array(requestedBoundarySchema),
+    requiredVerifiedBoundaries: z.array(runtimeBoundaryNameSchema),
   })
   .strict()
 export type WorkerSpawnRequest = z.infer<typeof workerSpawnRequestSchema>
+
+/**
+ * Provider integrations live behind this capability-only boundary. Adapter
+ * selection is deliberately not part of an Appraise authorization or spawn
+ * request: a provider may change its worker implementation without changing
+ * the Quality Journey identity or authority.
+ */
+export interface AgentFactoryProviderAdapter {
+  readonly adapterId: string
+  supports(request: WorkerSpawnRequest): boolean
+  /** Implementations must treat dispatchKey as an idempotency key. */
+  dispatch(request: WorkerSpawnRequest, dispatchKey: string): Promise<WorkerSpawnReceipt>
+}
+
+/** An adapter may throw this only when it can attest that no provider worker
+ * was created for the dispatch key. All other failures are ambiguous. */
+export class AgentFactoryDispatchNotStartedError extends Error {
+  constructor(message = 'The provider adapter confirmed that no worker was started.') {
+    super(message)
+    this.name = 'AgentFactoryDispatchNotStartedError'
+  }
+}
+
+const providerAdapters = new Map<string, AgentFactoryProviderAdapter>()
+
+export function registerAgentFactoryProviderAdapter(adapter: AgentFactoryProviderAdapter): () => void {
+  if (providerAdapters.has(adapter.adapterId))
+    throw new Error(`Agent Factory adapter ${adapter.adapterId} is already registered.`)
+  providerAdapters.set(adapter.adapterId, adapter)
+  return () => providerAdapters.delete(adapter.adapterId)
+}
+
+export function clearAgentFactoryProviderAdaptersForTest(): void {
+  providerAdapters.clear()
+}
 
 type SpawnRequestInput = {
   requestId: string
@@ -122,6 +160,8 @@ function buildWorkerSpawnRequest(input: SpawnRequestInput): WorkerSpawnRequest {
     roleDefinitionDigest: manifest.roleDefinition.digest,
     capabilityProfile,
     capabilityProfileDigest: manifest.capabilityProfile.digest,
+    requestedJudgment: capabilityProfile.minimumJudgment,
+    requestedLatency: capabilityProfile.latencyPreference,
     inputHash: manifest.inputHash,
     assignment: manifest,
     scope: manifest.scope,
@@ -129,6 +169,7 @@ function buildWorkerSpawnRequest(input: SpawnRequestInput): WorkerSpawnRequest {
       boundary,
       allowedValues: requestedBoundaryValues(manifest, boundary, capabilityProfile.contextIsolation),
     })),
+    requiredVerifiedBoundaries: capabilityProfile.requiredVerifiedRuntimeBoundaries,
   })
 }
 
@@ -170,17 +211,20 @@ function requiredBoundaryViolations(
   boundary: string,
   allowedValues: readonly string[],
   evidence: WorkerSpawnReceipt['boundaries'][number] | undefined,
+  requiresVerification: boolean,
 ): string[] {
   const violations: string[] = []
   if (!evidence) return [`required ${boundary} boundary was not reported`]
   if (evidence.status === 'UNVERIFIED' || evidence.status === 'UNSUPPORTED')
     return [`required ${boundary} boundary is ${evidence.status.toLowerCase()}`]
+  if (requiresVerification && evidence.status !== 'VERIFIED')
+    return [`required ${boundary} boundary must be verified before worker start`]
   if (JSON.stringify([...evidence.requested].sort()) !== JSON.stringify(allowedValues))
     violations.push(`requested ${boundary} boundary does not match the assignment`)
   if (!evidence.effective) violations.push(`effective ${boundary} boundary was not reported`)
   else if (evidence.effective.some(value => !allowedValues.includes(value)))
     violations.push(`effective ${boundary} boundary exceeds the assignment`)
-  if (evidence.status === 'VERIFIED' && evidence.evidence.length === 0)
+  if ((requiresVerification || evidence.status === 'VERIFIED') && evidence.evidence.length === 0)
     violations.push(`verified ${boundary} boundary requires evidence`)
   return violations
 }
@@ -195,10 +239,27 @@ function boundaryViolations(request: WorkerSpawnRequest, receipt: WorkerSpawnRec
   return request.requiredBoundaries.reduce<string[]>(
     (violations, boundary) => [
       ...violations,
-      ...requiredBoundaryViolations(boundary.boundary, boundary.allowedValues, reported.get(boundary.boundary)),
+      ...requiredBoundaryViolations(
+        boundary.boundary,
+        boundary.allowedValues,
+        reported.get(boundary.boundary),
+        request.requiredVerifiedBoundaries.includes(boundary.boundary),
+      ),
     ],
     [...uniqueness, ...unrequested],
   )
+}
+
+function refusalBoundaryViolations(request: WorkerSpawnRequest, receipt: WorkerSpawnReceipt): string[] {
+  const reported = new Map(receipt.boundaries.map(boundary => [boundary.boundary, boundary]))
+  const violations = reported.size === receipt.boundaries.length ? [] : ['runtime boundaries must be unique']
+  for (const boundary of receipt.boundaries) {
+    const expected = request.requiredBoundaries.find(candidate => candidate.boundary === boundary.boundary)
+    if (!expected) violations.push(`unrequested ${boundary.boundary} boundary was reported`)
+    else if (JSON.stringify([...boundary.requested].sort()) !== JSON.stringify(expected.allowedValues))
+      violations.push(`requested ${boundary.boundary} boundary does not match the assignment`)
+  }
+  return violations
 }
 
 function toolViolations(request: WorkerSpawnRequest, receipt: WorkerSpawnReceipt): string[] {
@@ -217,17 +278,66 @@ function toolViolations(request: WorkerSpawnRequest, receipt: WorkerSpawnReceipt
   return violations
 }
 
+const judgmentRank = { LOW: 1, MEDIUM: 2, HIGH: 3 } as const
+const latencyRank = { FAST: 1, BALANCED: 2, DELIBERATE: 3 } as const
+
+function effectiveCapabilityViolations(request: WorkerSpawnRequest, receipt: WorkerSpawnReceipt): string[] {
+  if (receipt.outcome !== 'STARTED') return []
+  const violations: string[] = []
+  if (judgmentRank[receipt.effectiveWorker.reasoningLevel] < judgmentRank[request.requestedJudgment])
+    violations.push('effective worker judgment is below the requested capability')
+  if (latencyRank[receipt.effectiveWorker.latencyPreference] > latencyRank[request.requestedLatency])
+    violations.push('effective worker latency exceeds the requested preference')
+  return violations
+}
+
 export function validateWorkerSpawnReceipt(value: unknown, requestValue: unknown): WorkerSpawnReceipt {
   const request = validateCanonicalWorkerSpawnRequest(requestValue)
   const receipt = workerSpawnReceiptSchema.parse(value)
+  if (receipt.outcome === 'REFUSED') {
+    const unsupportedStatus = receipt.refusalCode === 'REQUIRED_BOUNDARY_UNSUPPORTED' ? 'UNSUPPORTED' : 'UNVERIFIED'
+    const refusalBoundary = receipt.boundaries.find(boundary => boundary.status === unsupportedStatus)
+    const violations = [
+      ...receiptIdentityViolations(request, receipt),
+      ...refusalBoundaryViolations(request, receipt),
+      ...(refusalBoundary && request.requiredBoundaries.some(boundary => boundary.boundary === refusalBoundary.boundary)
+        ? []
+        : ['refusal must identify an unsupported or unverified required runtime boundary']),
+      ...(refusalBoundary?.evidence.length ? [] : ['refusal boundary requires evidence']),
+    ]
+    if (violations.length > 0) throw new Error(`Invalid worker spawn receipt: ${violations.join('; ')}.`)
+    return receipt
+  }
   const violations = [
     ...receiptIdentityViolations(request, receipt),
     ...boundaryViolations(request, receipt),
     ...toolViolations(request, receipt),
+    ...effectiveCapabilityViolations(request, receipt),
   ]
   if (violations.length > 0) throw new Error(`Invalid worker spawn receipt: ${violations.join('; ')}.`)
-  if (receipt.outcome === 'REFUSED') throw new Error(`Worker spawn refused: ${receipt.refusalCode}.`)
   return receipt
+}
+
+export function resolveAgentFactoryProviderAdapter(requestValue: unknown, expectedAdapterId?: string) {
+  const request = validateCanonicalWorkerSpawnRequest(requestValue)
+  const adapter = expectedAdapterId
+    ? providerAdapters.get(expectedAdapterId)
+    : [...providerAdapters.values()].find(candidate => candidate.supports(request))
+  if (!adapter)
+    throw new Error('No compatible Agent Factory provider adapter is available for this capability profile.')
+  if (!adapter.supports(request))
+    throw new Error('Persisted Agent Factory provider adapter is incompatible with this capability profile.')
+  return { adapter, request }
+}
+
+export async function dispatchWorkerSpawnRequest(
+  requestValue: unknown,
+  dispatchKey: string,
+  expectedAdapterId?: string,
+) {
+  const { adapter, request } = resolveAgentFactoryProviderAdapter(requestValue, expectedAdapterId)
+  const receipt = await adapter.dispatch(request, dispatchKey)
+  return { adapterId: adapter.adapterId, receipt: validateWorkerSpawnReceipt(receipt, request) }
 }
 
 type ResultValidationContext = {
@@ -271,17 +381,24 @@ type ReplacementInput = {
   inputArtifacts: AssignmentManifest['inputArtifacts']
   lease: AssignmentManifest['lease']
   idempotencyKey: string
+  replacement: NonNullable<AssignmentManifest['replacement']>
 }
 
 export function createReplacementAssignment(priorValue: unknown, replacement: ReplacementInput): AssignmentManifest {
   const prior = assignmentManifestSchema.parse(priorValue)
-  return assignmentManifestSchema.parse({
-    ...prior,
-    assignmentId: replacement.assignmentId,
-    stateHash: replacement.stateHash,
-    inputHash: replacement.inputHash,
-    inputArtifacts: replacement.inputArtifacts,
-    lease: replacement.lease,
-    idempotencyKey: replacement.idempotencyKey,
-  })
+  const { roleDefinition, capabilityProfile } = resolveRegistryAuthority(prior)
+  return validateAssignmentManifest(
+    {
+      ...prior,
+      assignmentId: replacement.assignmentId,
+      stateHash: replacement.stateHash,
+      inputHash: replacement.inputHash,
+      inputArtifacts: replacement.inputArtifacts,
+      lease: replacement.lease,
+      idempotencyKey: replacement.idempotencyKey,
+      replacement: replacement.replacement,
+    },
+    roleDefinitionSchema.parse(roleDefinition),
+    providerCapabilityProfileSchema.parse(capabilityProfile),
+  )
 }

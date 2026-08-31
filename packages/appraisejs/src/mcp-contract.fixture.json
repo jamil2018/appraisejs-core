@@ -2907,6 +2907,34 @@
     },
     {
       "kind": "tool",
+      "name": "quality_journey_factory_evidence_inspect",
+      "description": "Read durable Factory authorization, attempt, receipt, replacement, and terminal-state hashes.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "target": {
+            "type": "string",
+            "minLength": 1
+          },
+          "journeyId": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "target",
+          "journeyId"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "kind": "tool",
       "name": "quality_journey_get",
       "description": "Read the authoritative Quality Journey projection, work items, blockers, and event stream.",
       "inputSchema": {
@@ -2961,6 +2989,56 @@
         "destructiveHint": false,
         "idempotentHint": true,
         "openWorldHint": false
+      }
+    },
+    {
+      "kind": "tool",
+      "name": "quality_journey_work_cancel",
+      "description": "Immediately invalidate an active Factory work authorization.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "target": {
+            "type": "string",
+            "minLength": 1
+          },
+          "journeyId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "workItemId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "actor": {
+            "type": "string",
+            "enum": [
+              "USER",
+              "COORDINATOR",
+              "RUNNER"
+            ]
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 8000
+          }
+        },
+        "required": [
+          "target",
+          "journeyId",
+          "workItemId",
+          "actor",
+          "reason"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true,
+        "openWorldHint": true
       }
     },
     {
@@ -3065,8 +3143,8 @@
     },
     {
       "kind": "tool",
-      "name": "quality_journey_work_spawn_receipt_record",
-      "description": "Validate and durably bind a provider spawn receipt to one exact leased work attempt.",
+      "name": "quality_journey_work_dispatch",
+      "description": "Dispatch one exact leased Factory request through a compatible provider-neutral adapter.",
       "inputSchema": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "type": "object",
@@ -3090,13 +3168,6 @@
           "ownerToken": {
             "type": "string",
             "minLength": 1
-          },
-          "receipt": {
-            "type": "object",
-            "propertyNames": {
-              "type": "string"
-            },
-            "additionalProperties": {}
           }
         },
         "required": [
@@ -3104,8 +3175,57 @@
           "journeyId",
           "workItemId",
           "leaseId",
-          "ownerToken",
-          "receipt"
+          "ownerToken"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      }
+    },
+    {
+      "kind": "tool",
+      "name": "quality_journey_work_revoke",
+      "description": "Terminally revoke Factory authority and reject all late worker ingress.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "target": {
+            "type": "string",
+            "minLength": 1
+          },
+          "journeyId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "workItemId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "actor": {
+            "type": "string",
+            "enum": [
+              "USER",
+              "COORDINATOR",
+              "RUNNER"
+            ]
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 8000
+          }
+        },
+        "required": [
+          "target",
+          "journeyId",
+          "workItemId",
+          "actor",
+          "reason"
         ],
         "additionalProperties": false
       },

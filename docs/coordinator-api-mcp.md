@@ -2,11 +2,17 @@
 
 The additive Quality Journey surface is `quality_journey_create`, `quality_journey_get`,
 `quality_journey_resume`, `quality_journey_command_submit`, `quality_journey_work_claim`,
-`quality_journey_work_spawn_receipt_record`, `quality_journey_work_complete`, and
-`quality_journey_artifacts_list`. These eight operations are implemented by the coordinator API and advertised by the
-canonical MCP registry. The Phase 2 receipt transition durably validates the provider's effective runtime boundaries
-before completion. They operate on target-bound Appraise-owned state; conversation never substitutes for an exact
+`quality_journey_work_dispatch`, `quality_journey_work_complete`, `quality_journey_work_cancel`,
+`quality_journey_work_revoke`, `quality_journey_factory_evidence_inspect`, and `quality_journey_artifacts_list`.
+These eleven operations form the public surface. The public
+surface does not accept Factory receipt payloads: the selected provider-neutral adapter returns its receipt only to the
+private dispatch ingress after runtime-boundary validation. These operations are implemented by the coordinator API and
+advertised by the canonical MCP registry. They operate on target-bound Appraise-owned state; conversation never substitutes for an exact
 state hash, idempotency key, work lease, spawn receipt, or worker result envelope.
+
+If an adapter call may have started a provider worker but its receipt is lost, Appraise marks the attempt
+`DISPATCH_UNRESOLVED`, blocks the work item with `AMBIGUOUS_PROVIDER_DISPATCH`, and retains the exact adapter/key.
+Phase 2 does not issue a replacement; a future adapter-reconciliation capability must establish the outcome first.
 
 The internal coordinator boundary and MCP server expose the same executable quality-management capabilities. Their canonical definitions provide request validation, safety annotations, generated setup output, and the operation reference.
 

@@ -52,6 +52,15 @@ export function registerQualityJourneyOperations({ server, api }: McpRegistryCon
       ),
   )
   server.registerTool(
+    'quality_journey_factory_evidence_inspect',
+    {
+      description: 'Read durable Factory authorization, attempt, receipt, replacement, and terminal-state hashes.',
+      inputSchema: { target, journeyId },
+    },
+    async ({ target: targetRef, journeyId: id }) =>
+      text(await api.request(`quality/journeys/${id}/factory-evidence?target=${encodeURIComponent(targetRef)}`)),
+  )
+  server.registerTool(
     'quality_journey_work_claim',
     {
       description: 'Atomically claim one eligible role work item and receive its bounded lease authority.',
@@ -78,26 +87,54 @@ export function registerQualityJourneyOperations({ server, api }: McpRegistryCon
       ),
   )
   server.registerTool(
-    'quality_journey_work_spawn_receipt_record',
+    'quality_journey_work_dispatch',
     {
-      description: 'Validate and durably bind a provider spawn receipt to one exact leased work attempt.',
+      description: 'Dispatch one exact leased Factory request through a compatible provider-neutral adapter.',
       inputSchema: {
         target,
         journeyId,
         workItemId: z.string().min(1),
         leaseId: z.string().min(1),
         ownerToken: z.string().min(1),
-        receipt: z.record(z.string(), z.unknown()),
       },
     },
     async ({ target: targetRef, journeyId: id, workItemId, ...body }) =>
       text(
-        await api.request(`quality/journeys/${id}/work/${workItemId}/spawn-receipt`, {
+        await api.request(`quality/journeys/${id}/work/${workItemId}/dispatch`, {
           method: 'POST',
           body: JSON.stringify({ target: targetRef, ...body }),
         }),
       ),
   )
+  for (const [name, action, description] of [
+    ['quality_journey_work_cancel', 'cancel', 'Immediately invalidate an active Factory work authorization.'],
+    [
+      'quality_journey_work_revoke',
+      'revoke',
+      'Terminally revoke Factory authority and reject all late worker ingress.',
+    ],
+  ] as const) {
+    server.registerTool(
+      name,
+      {
+        description,
+        inputSchema: {
+          target,
+          journeyId,
+          workItemId: z.string().min(1),
+          actor: z.enum(['USER', 'COORDINATOR', 'RUNNER']),
+          reason: z.string().min(1).max(8_000),
+        },
+      },
+      async ({ target: targetRef, journeyId: id, workItemId, ...body }) =>
+        text(
+          await api.request(`quality/journeys/${id}/work/${workItemId}/${action}`, {
+            method: 'POST',
+            body: JSON.stringify({ target: targetRef, ...body }),
+          }),
+        ),
+    )
+  }
   server.registerTool(
     'quality_journey_work_complete',
     {

@@ -19,6 +19,7 @@ export const qualityJourneyCapabilityProfiles = {
     requiredTools: ['artifact.read', 'artifact.propose'],
     forbiddenTools: ['target.observe', 'execution.start'],
     requiredRuntimeBoundaries: ['CONTEXT', 'LIFECYCLE_COMMAND'],
+    requiredVerifiedRuntimeBoundaries: ['CONTEXT', 'LIFECYCLE_COMMAND'],
   },
   fastObservation: {
     schemaVersion: qualityJourneyContractVersion,
@@ -29,6 +30,7 @@ export const qualityJourneyCapabilityProfiles = {
     requiredTools: ['target.observe', 'evidence.publish'],
     forbiddenTools: ['catalog.write', 'lifecycle.approve'],
     requiredRuntimeBoundaries: ['CONTEXT', 'TARGET', 'NETWORK'],
+    requiredVerifiedRuntimeBoundaries: ['CONTEXT', 'TARGET', 'NETWORK'],
   },
   resourceResolution: {
     schemaVersion: qualityJourneyContractVersion,
@@ -39,6 +41,7 @@ export const qualityJourneyCapabilityProfiles = {
     requiredTools: ['catalog.search', 'artifact.read'],
     forbiddenTools: ['target.observe', 'catalog.write'],
     requiredRuntimeBoundaries: ['CONTEXT', 'TARGET', 'LIFECYCLE_COMMAND'],
+    requiredVerifiedRuntimeBoundaries: ['CONTEXT', 'TARGET', 'LIFECYCLE_COMMAND'],
   },
   highJudgmentDesign: {
     schemaVersion: qualityJourneyContractVersion,
@@ -49,6 +52,7 @@ export const qualityJourneyCapabilityProfiles = {
     requiredTools: ['artifact.read', 'scenario.propose'],
     forbiddenTools: ['target.observe', 'automation.write', 'lifecycle.approve'],
     requiredRuntimeBoundaries: ['CONTEXT', 'LIFECYCLE_COMMAND'],
+    requiredVerifiedRuntimeBoundaries: ['CONTEXT', 'LIFECYCLE_COMMAND'],
   },
   mechanicalImplementation: {
     schemaVersion: qualityJourneyContractVersion,
@@ -59,6 +63,7 @@ export const qualityJourneyCapabilityProfiles = {
     requiredTools: ['catalog.search', 'automation.write', 'runtime-capsule.publish'],
     forbiddenTools: ['scenario.intent.write', 'lifecycle.approve'],
     requiredRuntimeBoundaries: ['CONTEXT', 'FILESYSTEM', 'TARGET', 'LIFECYCLE_COMMAND'],
+    requiredVerifiedRuntimeBoundaries: ['CONTEXT', 'FILESYSTEM', 'TARGET', 'LIFECYCLE_COMMAND'],
   },
   independentAttribution: {
     schemaVersion: qualityJourneyContractVersion,
@@ -69,6 +74,7 @@ export const qualityJourneyCapabilityProfiles = {
     requiredTools: ['artifact.read', 'evidence.read', 'report.propose'],
     forbiddenTools: ['automation.write', 'target.mutate', 'lifecycle.approve'],
     requiredRuntimeBoundaries: ['CONTEXT', 'FILESYSTEM', 'NETWORK', 'LIFECYCLE_COMMAND'],
+    requiredVerifiedRuntimeBoundaries: ['CONTEXT', 'FILESYSTEM', 'NETWORK', 'LIFECYCLE_COMMAND'],
   },
 } as const satisfies Record<string, ProviderCapabilityProfile>
 

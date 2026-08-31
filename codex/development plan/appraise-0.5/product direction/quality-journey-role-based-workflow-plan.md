@@ -334,12 +334,14 @@ Exit criteria:
 
 ### Phase 2 - Agent Factory and Capability Enforcement
 
-Status: in progress on `codex/quality-journey-phase-2`. The first slice adds canonical-registry, version, and
-digest-bound Assignment Manifest validation, provider-neutral least-privilege spawn requests, structured fail-closed
-effective boundary/tool receipt validation, exact current-request result-envelope enforcement, and transcript-free
-replacement assignment projection construction.
-Durable Factory persistence, attempt budgets, cancellation/revocation, provider adapters, and coordinator/MCP
-integration remain pending.
+Status: completed. Phase 2 now provides canonical-registry, version, and digest-bound Assignment Manifest validation;
+provider-neutral least-privilege spawn requests; adapter-registry dispatch that blocks when no compatible adapter is
+registered; durable idempotent adapter dispatch with private receipt ingress; structured fail-closed capability receipts; exact current-request
+result-envelope enforcement; durable Factory persistence; hard atomic attempt ceilings; cancellation and terminal
+revocation; coordinator/MCP control and read-only evidence operations; and server-derived replacement projections built
+from authoritative current artifacts and work inputs.
+Provider/model identity remains receipt-only and never changes Appraise authorization, assignment, replacement, or
+spawn-request identity.
 
 Implement versioned Role Definitions, provider-neutral profile resolution, Assignment Manifest issuance, least-privilege
 spawn specifications, effective-property receipts, typed result validation, attempt budgets, cancellation, revocation,
@@ -351,8 +353,12 @@ Exit criteria:
 - Factory requests never encode provider model names.
 - A provider may change the selected model without changing journey or work-item identity.
 - Workers receive only assignment-scoped tools, artifacts, target access, credentials, network, and filesystem rights.
-- Required but unverifiable high-risk boundaries stop before worker execution.
-- Replacement workers resume from current Appraise artifacts without hidden transcript replay.
+- Required high-risk boundaries must be VERIFIED with evidence before a `STARTED` receipt is accepted.
+- Replacement workers resume from authoritative current Appraise artifacts without hidden transcript replay; the
+  projection hash and structured predecessor diagnostics are bound to the replacement lineage.
+- Dispatch uses a durable deterministic idempotency key and adapter identity; failed dispatches may retry the same
+  adapter/key while public coordinator callers cannot submit receipt evidence. Factory evidence exposes terminal refused
+  receipts as hashes and status only.
 - Forged, stale, cross-role, and out-of-scope result envelopes are rejected.
 
 ### Phase 3 - Analysis Charter and Requirement Q&A
