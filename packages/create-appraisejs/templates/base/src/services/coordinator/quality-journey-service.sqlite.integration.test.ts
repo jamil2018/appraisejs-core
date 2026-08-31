@@ -202,14 +202,14 @@ describe('Quality Journey Phase 2 durable Factory service', () => {
         ),
       ).rejects.toMatchObject({ code: 'UNAUTHORIZED' })
       expect(await client.qualityJourneyWorkAttempt.count({ where: { workItemId } })).toBe(0)
-      expect(await client.qualityJourneyWorkAuthorization.findUnique({ where: { workItemId } })).toBeNull()
+      expect(await client.qualityJourneyWorkAuthorization.findFirst({ where: { workItemId } })).toBeNull()
       expect(
         await resumeQualityJourney(
           { journeyId: created.journey.journeyId, targetProjectId: 'target-journey-1' },
           client,
         ),
       ).toMatchObject({ recoveredWorkItemIds: [workItemId] })
-      const recovered = await client.qualityJourneyWorkAuthorization.findUniqueOrThrow({ where: { workItemId } })
+      const recovered = await client.qualityJourneyWorkAuthorization.findFirstOrThrow({ where: { workItemId } })
       expect(JSON.parse(recovered.authorizationJson)).toMatchObject({
         authorizationId: recovered.id,
         allowedTargetRoutes: [],
@@ -1159,7 +1159,7 @@ describe('Quality Journey Phase 2 durable Factory service', () => {
         ),
       ])
       expect(terminal.some(outcome => outcome.status === 'fulfilled')).toBe(true)
-      const authorization = await firstClient.qualityJourneyWorkAuthorization.findUniqueOrThrow({
+      const authorization = await firstClient.qualityJourneyWorkAuthorization.findFirstOrThrow({
         where: { workItemId },
       })
       expect(authorization.revokedAt).not.toBeNull()

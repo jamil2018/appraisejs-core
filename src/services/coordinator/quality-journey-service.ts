@@ -25,6 +25,7 @@ import {
   qualityJourneyWorkItemId,
   runnableQualityJourneyRoles,
   reconstructQualityJourneyRunner,
+  resolveQualityJourneyRoleDefinition,
   resolveAgentFactoryProviderAdapter,
   submitQualityJourneyCommand,
   validateWorkerResult,
@@ -60,8 +61,8 @@ type FactoryAuthorization = Pick<
   | 'completionCriteria'
 > & { authorizationId: string }
 
-function roleAuthority(role: QualityJourneyRole) {
-  const roleDefinition = qualityJourneyRoleDefinitions.find(definition => definition.role === role)
+function roleAuthority(role: QualityJourneyRole, version: string = qualityJourneyRoleRegistryVersion) {
+  const roleDefinition = resolveQualityJourneyRoleDefinition(version, role)
   if (!roleDefinition) throw new ServiceError('Quality Journey role authority is unavailable.', 'CONFLICT')
   const capabilityProfile = Object.values(qualityJourneyCapabilityProfiles).find(
     profile => profile.profileId === roleDefinition.capabilityProfileId,
@@ -77,8 +78,9 @@ function factoryAuthorization(
     QualityJourneyWorkItem,
     'id' | 'role' | 'inputArtifactRefsJson' | 'allowedOutputsJson' | 'completionCriteriaJson'
   >,
+  registryVersion: string = qualityJourneyRoleRegistryVersion,
 ): FactoryAuthorization {
-  const { roleDefinition, capabilityProfile } = roleAuthority(item.role as QualityJourneyRole)
+  const { roleDefinition, capabilityProfile } = roleAuthority(item.role as QualityJourneyRole, registryVersion)
   return {
     schemaVersion: 'appraise.quality-journey/v1',
     authorizationId,
@@ -87,12 +89,12 @@ function factoryAuthorization(
     workItemId: item.id,
     roleDefinition: {
       role: roleDefinition.role,
-      version: qualityJourneyRoleRegistryVersion,
+      version: registryVersion,
       digest: qualityJourneyContractDigest(roleDefinition),
     },
     capabilityProfile: {
       profileId: capabilityProfile.profileId,
-      version: qualityJourneyRoleRegistryVersion,
+      version: registryVersion,
       digest: qualityJourneyContractDigest(capabilityProfile),
     },
     inputArtifacts: JSON.parse(item.inputArtifactRefsJson),
@@ -128,7 +130,7 @@ function validateFactoryAuthorization(
   item: QualityJourneyWorkItem,
 ): FactoryAuthorization {
   const persisted = JSON.parse(authorization.authorizationJson) as FactoryAuthorization
-  const canonical = factoryAuthorization(authorization.id, journey, item)
+  const canonical = factoryAuthorization(authorization.id, journey, item, persisted.roleDefinition.version)
   const bindings = [
     [authorization.authorizationHash, hash(persisted)],
     [json(persisted), json(canonical)],
@@ -136,9 +138,12 @@ function validateFactoryAuthorization(
     [authorization.targetProjectId, journey.targetProjectId],
     [authorization.workItemId, item.id],
     [authorization.role, item.role],
-    [authorization.roleContractDigest, item.roleContractDigest],
+    [authorization.roleContractDigest, canonical.roleDefinition.digest],
+    [persisted.roleDefinition.digest, canonical.roleDefinition.digest],
+    [persisted.roleDefinition.version, canonical.roleDefinition.version],
     [authorization.capabilityProfileId, canonical.capabilityProfile.profileId],
     [authorization.capabilityProfileHash, canonical.capabilityProfile.digest],
+    [persisted.capabilityProfile.version, canonical.capabilityProfile.version],
   ]
   if (bindings.some(([actual, expected]) => actual !== expected))
     throw new ServiceError('Quality Journey work authorization is invalid.', 'UNAUTHORIZED')
@@ -178,6 +183,7 @@ function assignmentFromAuthorization(
 
 function projection(row: QualityJourney) {
   const activeRevisionIds = parseRecord(row.activeRevisionIdsJson)
+  const analysisReviewHash = row.analysisReviewHash ?? undefined
   const unresolvedQuestionIds = parseArray(row.unresolvedQuestionIdsJson)
   const blockerIds = parseArray(row.blockerIdsJson)
   const activeWorkItemIds = parseArray(row.activeWorkItemIdsJson)
@@ -187,6 +193,7 @@ function projection(row: QualityJourney) {
     activeCycleId: row.activeCycleId,
     stage: row.stage as QualityJourneyStage,
     activeRevisionIds,
+    analysisReviewHash,
     unresolvedQuestionIds,
     blockerIds,
     activeWorkItemIds,
@@ -198,6 +205,7 @@ function projection(row: QualityJourney) {
     status: row.status,
     activeCycleId: row.activeCycleId,
     activeRevisionIds,
+    analysisReviewHash,
     unresolvedQuestionIds,
     blockerIds,
     activeWorkItemIds,
@@ -213,8 +221,17 @@ async function readJourney(journeyId: string, targetProjectId: string, db: Db) {
   return row
 }
 
-async function createWorkAuthorization(row: QualityJourney, item: QualityJourneyWorkItem, db: Db, maxAttempts = 3) {
-  const authorizationId = `qjwa_${createHash('sha256').update(`${row.id}:${item.id}`).digest('hex').slice(0, 24)}`
+async function createWorkAuthorization(
+  row: QualityJourney,
+  item: QualityJourneyWorkItem,
+  db: Db,
+  maxAttempts = 3,
+  supersedesAuthorizationId?: string,
+) {
+  const authorizationId = `qjwa_${createHash('sha256')
+    .update(`${row.id}:${item.id}:${supersedesAuthorizationId ?? 'initial'}`)
+    .digest('hex')
+    .slice(0, 24)}`
   const authorization = factoryAuthorization(authorizationId, row, item)
   await db.qualityJourneyWorkAuthorization.create({
     data: {
@@ -222,6 +239,7 @@ async function createWorkAuthorization(row: QualityJourney, item: QualityJourney
       journeyId: row.id,
       targetProjectId: row.targetProjectId,
       workItemId: item.id,
+      ...(supersedesAuthorizationId ? { supersedesAuthorizationId } : {}),
       role: item.role,
       roleContractDigest: item.roleContractDigest,
       capabilityProfileId: authorization.capabilityProfile.profileId,
@@ -233,13 +251,98 @@ async function createWorkAuthorization(row: QualityJourney, item: QualityJourney
   })
 }
 
+async function currentWorkAuthorization(workItemId: string, db: Db) {
+  return db.qualityJourneyWorkAuthorization.findFirst({
+    where: { workItemId, successorAuthorization: { is: null } },
+  })
+}
+
+/** A revision request is a new, transcript-free Analyzer authorization. Its
+ * input is derived only from immutable predecessor artifacts, not coordinator
+ * memory or a prior worker's transcript. */
+async function predecessorAnalysisInputArtifacts(
+  row: QualityJourney,
+  db: Db,
+): Promise<AssignmentManifest['inputArtifacts']> {
+  const predecessorRevisionId = parseRecord(row.activeRevisionIdsJson).analysis
+  if (!predecessorRevisionId)
+    throw new ServiceError(
+      'Analysis revision work cannot be reissued without an active predecessor charter.',
+      'CONFLICT',
+    )
+  const predecessor = await db.qualityJourneyAnalysisRevision.findFirst({
+    where: { journeyId: row.id, artifactRevisionId: predecessorRevisionId },
+    include: {
+      artifact: true,
+      questions: { include: { artifact: true, answers: { include: { artifact: true } } } },
+    },
+  })
+  if (!predecessor)
+    throw new ServiceError('Analysis revision work cannot be reissued without durable predecessor lineage.', 'CONFLICT')
+  const feedback = await db.qualityJourneyArtifact.findFirst({
+    where: {
+      journeyId: row.id,
+      kind: 'ANALYSIS_REVISION_FEEDBACK',
+      revisionId: predecessorRevisionId,
+    },
+    orderBy: { createdAt: 'desc' },
+  })
+  if (!feedback)
+    throw new ServiceError('Analysis revision work cannot be reissued without durable user feedback.', 'CONFLICT')
+  const artifacts = [
+    predecessor.artifact,
+    ...predecessor.questions.flatMap(question => [
+      question.artifact,
+      ...question.answers.map(answer => answer.artifact),
+    ]),
+    feedback,
+  ]
+  return artifacts
+    .map(artifact => ({
+      kind: artifact.kind,
+      artifactId: artifact.artifactId,
+      ...(artifact.revisionId ? { revisionId: artifact.revisionId } : {}),
+      contentHash: artifact.contentHash,
+    }))
+    .sort((left, right) =>
+      canonicalContractJson(left).localeCompare(canonicalContractJson(right)),
+    ) as AssignmentManifest['inputArtifacts']
+}
+
 async function ensureEligibleWorkItems(row: QualityJourney, db: Db) {
   const roles = runnableQualityJourneyRoles(row.stage as QualityJourneyStage, [])
+  const activeWorkItemIds = parseArray(row.activeWorkItemIdsJson)
   for (const role of roles) {
     const definition = qualityJourneyRoleDefinitions.find(item => item.role === role)!
     const id = qualityJourneyWorkItemId(row.id, row.activeCycleId, role)
     const existingItem = await db.qualityJourneyWorkItem.findUnique({ where: { id } })
     let item = existingItem
+    if (
+      item &&
+      item.role === 'REQUIREMENT_ANALYZER' &&
+      row.stage === 'ANALYSIS' &&
+      item.status === 'COMPLETED' &&
+      activeWorkItemIds.includes(item.id)
+    ) {
+      const inputArtifacts = await predecessorAnalysisInputArtifacts(row, db)
+      const authorization = await currentWorkAuthorization(item.id, db)
+      if (!authorization)
+        throw new ServiceError(
+          'Analysis revision work has no predecessor Factory authorization to supersede.',
+          'CONFLICT',
+        )
+      item = await db.qualityJourneyWorkItem.update({
+        where: { id: item.id },
+        data: {
+          status: 'ELIGIBLE',
+          inputHash: row.stateHash,
+          inputArtifactRefsJson: json(inputArtifacts),
+          roleContractDigest: qualityJourneyContractDigest(definition),
+          version: { increment: 1 },
+        },
+      })
+      await createWorkAuthorization(row, item, db, 3, authorization.id)
+    }
     if (!item) {
       item = await db.qualityJourneyWorkItem.create({
         data: {
@@ -262,7 +365,11 @@ async function ensureEligibleWorkItems(row: QualityJourney, db: Db) {
 
 async function recoverLegacyFactoryAuthorizations(row: QualityJourney, db: Db) {
   const items = await db.qualityJourneyWorkItem.findMany({
-    where: { journeyId: row.id, authorization: null, status: { notIn: ['COMPLETED', 'CANCELLED', 'SUPERSEDED'] } },
+    where: {
+      journeyId: row.id,
+      authorizations: { none: {} },
+      status: { notIn: ['COMPLETED', 'CANCELLED', 'SUPERSEDED'] },
+    },
   })
   for (const item of items) await createWorkAuthorization(row, item, db, 1)
   return items.map(item => item.id)
@@ -423,6 +530,7 @@ async function commitAppliedCommand(
     data: {
       stage: applied.state.stage,
       activeRevisionIdsJson: json(applied.state.activeRevisionIds),
+      analysisReviewHash: applied.state.analysisReviewHash ?? null,
       blockerIdsJson: json(applied.state.blockerIds),
       activeWorkItemIdsJson: json(applied.state.activeWorkItemIds),
       stateHash: applied.state.stateHash,
@@ -457,25 +565,75 @@ async function commitAppliedCommand(
       eventId: event.eventId,
     },
   })
+  await persistAnalysisRevisionFeedbackArtifact(command, row, tx)
   const updated = await tx.qualityJourney.findUniqueOrThrow({ where: { id: row.id } })
   await ensureEligibleWorkItems(updated, tx)
   return applied.result
 }
 
-export async function submitDurableQualityJourneyCommand(value: unknown, client: PrismaClient = prisma) {
-  const command = journeyCommandSchema.parse(value)
-  return client.$transaction(async tx => {
-    const row = await readJourney(command.journeyId, command.targetProjectId, tx)
-    const existing = await tx.qualityJourneyCommand.findUnique({
-      where: { journeyId_idempotencyKey: { journeyId: row.id, idempotencyKey: command.idempotencyKey } },
-    })
-    if (existing) return replayCommand(command, row, existing)
-    const preconditionConflict = await runnerPreconditionConflict(command, row, tx)
-    if (preconditionConflict) return preconditionConflict
-    const { state, eventCount } = await loadKernelState(row, tx)
-    const applied = submitQualityJourneyCommand(state, command)
-    return commitAppliedCommand(command, row, applied, eventCount, tx)
+/** Revision feedback is Appraise-owned durable input: a fresh Analyzer gets a
+ * reference it may read, never a prior worker transcript or hidden state. */
+async function persistAnalysisRevisionFeedbackArtifact(
+  command: JourneyCommand,
+  row: QualityJourney,
+  tx: Prisma.TransactionClient,
+) {
+  if (command.command !== 'REQUEST_ANALYSIS_REVISION') return
+  const payload = {
+    schemaVersion: 'appraise.quality-journey/v1' as const,
+    feedbackId: `analysis-revision-feedback:${command.commandId}`,
+    journeyId: row.id,
+    targetProjectId: row.targetProjectId,
+    reviewedRevisionId: command.payload.reviewedRevisionId,
+    reviewedHash: command.payload.reviewedHash,
+    feedback: command.payload.feedback,
+    commandId: command.commandId,
+  }
+  const identityKey = `ANALYSIS_REVISION_FEEDBACK:${command.commandId}:unrevisioned`
+  const contentHash = hash(payload)
+  const existing = await tx.qualityJourneyArtifact.findUnique({
+    where: { journeyId_identityKey: { journeyId: row.id, identityKey } },
   })
+  if (existing) {
+    if (existing.contentHash !== contentHash || existing.artifactJson !== json(payload))
+      throw new ServiceError(
+        'Analysis revision feedback artifact conflicts with immutable command identity.',
+        'CONFLICT',
+      )
+    return existing
+  }
+  return tx.qualityJourneyArtifact.create({
+    data: {
+      id: `qjar_${createHash('sha256').update(`${row.id}:${identityKey}`).digest('hex').slice(0, 24)}`,
+      identityKey,
+      journeyId: row.id,
+      targetProjectId: row.targetProjectId,
+      cycleId: row.activeCycleId,
+      kind: 'ANALYSIS_REVISION_FEEDBACK',
+      artifactId: payload.feedbackId,
+      revisionId: command.payload.reviewedRevisionId,
+      contentHash,
+      artifactJson: json(payload),
+    },
+  })
+}
+
+export async function submitDurableQualityJourneyCommandInTransaction(value: unknown, tx: Prisma.TransactionClient) {
+  const command = journeyCommandSchema.parse(value)
+  const row = await readJourney(command.journeyId, command.targetProjectId, tx)
+  const existing = await tx.qualityJourneyCommand.findUnique({
+    where: { journeyId_idempotencyKey: { journeyId: row.id, idempotencyKey: command.idempotencyKey } },
+  })
+  if (existing) return replayCommand(command, row, existing)
+  const preconditionConflict = await runnerPreconditionConflict(command, row, tx)
+  if (preconditionConflict) return preconditionConflict
+  const { state, eventCount } = await loadKernelState(row, tx)
+  const applied = submitQualityJourneyCommand(state, command)
+  return commitAppliedCommand(command, row, applied, eventCount, tx)
+}
+
+export async function submitDurableQualityJourneyCommand(value: unknown, client: PrismaClient = prisma) {
+  return client.$transaction(tx => submitDurableQualityJourneyCommandInTransaction(value, tx))
 }
 
 async function blockExpiredQualityJourneyWork(
@@ -501,6 +659,9 @@ async function createAttemptBudgetBlocker(
 ) {
   const authorization = await tx.qualityJourneyWorkAuthorization.findUnique({ where: { id: attempt.authorizationId! } })
   if (!authorization) return
+  const authorizationAttemptCount = await tx.qualityJourneyWorkAttempt.count({
+    where: { authorizationId: authorization.id },
+  })
   await tx.qualityJourneyBlocker.upsert({
     where: { id: `qjb_attempt_budget_${attempt.workItemId}` },
     update: {},
@@ -510,7 +671,13 @@ async function createAttemptBudgetBlocker(
       targetProjectId: row.targetProjectId,
       reasonCode: 'ATTEMPT_BUDGET_EXHAUSTED',
       summary: 'The work authorization exhausted its hard maximum attempt count.',
-      evidenceJson: json({ attemptId: attempt.id, attempt: attempt.attempt, maxAttempts: authorization.maxAttempts }),
+      evidenceJson: json({
+        attemptId: attempt.id,
+        attemptSequence: attempt.attempt,
+        authorizationId: authorization.id,
+        authorizationAttemptCount,
+        maxAttempts: authorization.maxAttempts,
+      }),
       responsibleActor: 'COORDINATOR',
       affectedNodeIdsJson: json([attempt.workItemId]),
       requiredResolution:
@@ -528,7 +695,10 @@ async function resumeRefusedFactoryWork(row: QualityJourney, now: Date, tx: Pris
   const resumedAttemptIds: string[] = []
   for (const attempt of refused) {
     if (attempt.workItem.status !== 'BLOCKED' || attempt.workItem.currentAttempt !== attempt.attempt) continue
-    if (!attempt.authorization || attempt.attempt >= attempt.authorization.maxAttempts) {
+    const authorizationAttempts = attempt.authorization
+      ? await tx.qualityJourneyWorkAttempt.count({ where: { authorizationId: attempt.authorization.id } })
+      : 0
+    if (!attempt.authorization || authorizationAttempts >= attempt.authorization.maxAttempts) {
       if (attempt.authorization) {
         await tx.qualityJourneyBlocker.updateMany({
           where: { id: `qjb_factory_refused_${attempt.id}`, status: 'ACTIVE' },
@@ -605,7 +775,10 @@ export async function resumeQualityJourney(
       const authorization = attempt.authorizationId
         ? await tx.qualityJourneyWorkAuthorization.findUnique({ where: { id: attempt.authorizationId } })
         : null
-      if (authorization && attempt.attempt >= authorization.maxAttempts) {
+      const authorizationAttempts = authorization
+        ? await tx.qualityJourneyWorkAttempt.count({ where: { authorizationId: authorization.id } })
+        : 0
+      if (authorization && authorizationAttempts >= authorization.maxAttempts) {
         await blockExpiredQualityJourneyWork(tx, attempt, 'LEASE_EXPIRED', now)
         await createAttemptBudgetBlocker(tx, row, attempt)
         continue
@@ -669,16 +842,11 @@ async function replacementArtifactProjection(
   }
 }
 
-function assertClaimableAuthorization(
-  authorization: { revokedAt: Date | null; cancelledAt: Date | null; maxAttempts: number },
-  item: QualityJourneyWorkItem,
-) {
+function assertClaimableAuthorization(authorization: { revokedAt: Date | null; cancelledAt: Date | null }) {
   if (authorization.revokedAt)
     throw new ServiceError('Quality Journey work authorization has been revoked.', 'UNAUTHORIZED')
   if (authorization.cancelledAt)
     throw new ServiceError('Quality Journey work authorization has been cancelled.', 'CONFLICT')
-  if (item.currentAttempt >= authorization.maxAttempts)
-    throw new ServiceError('Quality Journey work has exhausted its maximum attempt budget.', 'CONFLICT')
 }
 
 async function deriveClaimInput(item: QualityJourneyWorkItem, authorization: FactoryAuthorization, db: Db) {
@@ -688,15 +856,10 @@ async function deriveClaimInput(item: QualityJourneyWorkItem, authorization: Fac
   return { ...projection, inputHash: hash({ workItemId: item.id, projectionHash: projection.projectionHash }) }
 }
 
-async function persistWorkClaim(
-  item: QualityJourneyWorkItem,
-  maxAttempts: number,
-  inputHash: string,
-  tx: Prisma.TransactionClient,
-) {
+async function persistWorkClaim(item: QualityJourneyWorkItem, inputHash: string, tx: Prisma.TransactionClient) {
   const attempt = item.currentAttempt + 1
   const claimed = await tx.qualityJourneyWorkItem.updateMany({
-    where: { id: item.id, version: item.version, status: item.status, currentAttempt: { lt: maxAttempts } },
+    where: { id: item.id, version: item.version, status: item.status },
     data: { status: 'WORKER_REQUESTED', currentAttempt: attempt, inputHash, version: { increment: 1 } },
   })
   if (claimed.count !== 1) throw new ServiceError('Quality Journey work item was claimed concurrently.', 'CONFLICT')
@@ -755,13 +918,18 @@ export async function claimQualityJourneyWork(
       orderBy: { createdAt: 'asc' },
     })
     if (!item) throw new ServiceError('No eligible Quality Journey work item is available.', 'CONFLICT')
-    const authorization = await tx.qualityJourneyWorkAuthorization.findUnique({ where: { workItemId: item.id } })
+    const authorization = await currentWorkAuthorization(item.id, tx)
     if (!authorization)
       throw new ServiceError('Quality Journey work has no issued Factory authorization.', 'UNAUTHORIZED')
-    assertClaimableAuthorization(authorization, item)
+    assertClaimableAuthorization(authorization)
+    const authorizationAttemptCount = await tx.qualityJourneyWorkAttempt.count({
+      where: { authorizationId: authorization.id },
+    })
+    if (authorizationAttemptCount >= authorization.maxAttempts)
+      throw new ServiceError('Quality Journey work has exhausted its maximum attempt budget.', 'CONFLICT')
     const authorizationPayload = validateFactoryAuthorization(authorization, journey, item)
     const { inputArtifacts, inputHash, projectionHash } = await deriveClaimInput(item, authorizationPayload, tx)
-    const attempt = await persistWorkClaim(item, authorization.maxAttempts, inputHash, tx)
+    const attempt = await persistWorkClaim(item, inputHash, tx)
     const ownerToken = randomUUID()
     const leaseId = `qjl_${randomUUID()}`
     const leaseExpiresAt = new Date(Date.now() + leaseSeconds * 1000)
@@ -815,7 +983,7 @@ export async function claimQualityJourneyWork(
   })
 }
 
-type WorkCompletionInput = {
+export type WorkCompletionInput = {
   journeyId: string
   targetProjectId: string
   workItemId: string
@@ -842,7 +1010,9 @@ async function readWorkAttempt(input: WorkLeaseInput, tx: Prisma.TransactionClie
   await readJourney(input.journeyId, input.targetProjectId, tx)
   const item = await readScopedWorkItem(input, tx)
   const attempt = await tx.qualityJourneyWorkAttempt.findUnique({ where: { leaseId: input.leaseId } })
-  const authorization = await tx.qualityJourneyWorkAuthorization.findUnique({ where: { workItemId: item.id } })
+  const authorization = attempt?.authorizationId
+    ? await tx.qualityJourneyWorkAuthorization.findUnique({ where: { id: attempt.authorizationId } })
+    : null
   return { item, attempt, authorization }
 }
 
@@ -1166,7 +1336,7 @@ type WorkTerminationInput = {
 async function readWorkAuthorizationForControl(input: WorkTerminationInput, tx: Prisma.TransactionClient) {
   await readJourney(input.journeyId, input.targetProjectId, tx)
   const item = await readScopedWorkItem(input, tx)
-  const authorization = await tx.qualityJourneyWorkAuthorization.findUnique({ where: { workItemId: item.id } })
+  const authorization = await currentWorkAuthorization(item.id, tx)
   if (!authorization) throw new ServiceError('Quality Journey work authorization is unavailable.', 'UNAUTHORIZED')
   return { item, authorization }
 }
@@ -1401,30 +1571,34 @@ async function validateDurableWorkerLineage(
   }
 }
 
-export async function completeQualityJourneyWork(input: WorkCompletionInput, client: PrismaClient = prisma) {
+export async function completeQualityJourneyWorkInTransaction(
+  input: WorkCompletionInput,
+  tx: Prisma.TransactionClient,
+) {
   const result = workerResultEnvelopeSchema.parse(input.result)
-  return client.$transaction(async tx => {
-    const { item, attempt } = await readWorkAttempt(input, tx)
-    const authorization = await tx.qualityJourneyWorkAuthorization.findUnique({ where: { workItemId: item.id } })
-    assertFactoryAuthorityCurrent(item, authorization)
-    if (attempt && attempt.status !== 'COMPLETED' && (!attempt.spawnReceiptJson || !attempt.spawnReceiptHash))
-      throw new ServiceError('Quality Journey work completion has no validated Factory receipt.', 'UNAUTHORIZED')
-    const replay = validateWorkAttempt(input, item, attempt, result)
-    if (replay) return replay
-    if (!attempt) throw new ServiceError('Quality Journey lease authority is invalid.', 'UNAUTHORIZED')
-    await validateDurableWorkerLineage(input, item, attempt, result, tx)
-    await persistWorkerOutputs(input, item, result, tx)
-    await tx.qualityJourneyWorkAttempt.update({
-      where: { id: attempt.id },
-      data: { status: 'COMPLETED', completedAt: new Date(), resultJson: json(result), resultHash: hash(result) },
-    })
-    await tx.qualityJourneyWorkItem.update({
-      where: { id: item.id },
-      data: { status: 'COMPLETED', version: { increment: 1 } },
-    })
-    await advanceAfterWorkCompletion(input, item, attempt, result, tx)
-    return { replayed: false, workItemId: item.id, status: 'COMPLETED' as const }
+  const { item, attempt, authorization } = await readWorkAttempt(input, tx)
+  assertFactoryAuthorityCurrent(item, authorization)
+  if (attempt && attempt.status !== 'COMPLETED' && (!attempt.spawnReceiptJson || !attempt.spawnReceiptHash))
+    throw new ServiceError('Quality Journey work completion has no validated Factory receipt.', 'UNAUTHORIZED')
+  const replay = validateWorkAttempt(input, item, attempt, result)
+  if (replay) return replay
+  if (!attempt) throw new ServiceError('Quality Journey lease authority is invalid.', 'UNAUTHORIZED')
+  await validateDurableWorkerLineage(input, item, attempt, result, tx)
+  await persistWorkerOutputs(input, item, result, tx)
+  await tx.qualityJourneyWorkAttempt.update({
+    where: { id: attempt.id },
+    data: { status: 'COMPLETED', completedAt: new Date(), resultJson: json(result), resultHash: hash(result) },
   })
+  await tx.qualityJourneyWorkItem.update({
+    where: { id: item.id },
+    data: { status: 'COMPLETED', version: { increment: 1 } },
+  })
+  await advanceAfterWorkCompletion(input, item, attempt, result, tx)
+  return { replayed: false, workItemId: item.id, status: 'COMPLETED' as const }
+}
+
+export async function completeQualityJourneyWork(input: WorkCompletionInput, client: PrismaClient = prisma) {
+  return client.$transaction(tx => completeQualityJourneyWorkInTransaction(input, tx))
 }
 
 export async function listQualityJourneyArtifacts(

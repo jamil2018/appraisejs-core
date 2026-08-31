@@ -32,6 +32,11 @@ The executable Quality Journey foundation is in `src/lib/quality-journey/`:
   replacement lineage, lease authority, hard attempt ceilings, cancellation/revocation state, and exact result
   envelopes. Compare-and-swap state mutation, command/event creation, work claims, dispatch, receipt recording,
   completion, expiry, cancellation, revocation, and replacement are transactional.
+- `analysis-contracts.ts` defines the strict Phase 3 Analysis Charter, question, answer, successor, and canonical-hash
+  payloads. Stable requirement IDs are charter content, never generated from a revision hash.
+- `quality-journey-analysis-service.ts` adds the private coordinator-service control plane for assignment-bound
+  Analyzer submission, immutable Q&A, publication, and exact approval. It is deliberately not yet an action, MCP,
+  or UI surface.
 - Prisma migration `20260828140000_add_quality_journey_phase_1` establishes the durable aggregate and database-enforced
   append-only lifecycle history. Prepared scaffold databases contain the schema but no journey, event, or lease state.
 - Prisma migration `20260828150000_add_quality_journey_factory_lineage` adds immutable work-item authorization and
@@ -39,6 +44,9 @@ The executable Quality Journey foundation is in `src/lib/quality-journey/`:
 - Prisma migration `20260828160000_complete_quality_journey_factory_phase_2` adds hard attempt ceilings, terminal
   cancellation/revocation state, durable dispatch reservations, and replacement-projection lineage. Existing recovered
   authorizations receive one attempt; newly issued authorizations receive three.
+- Prisma migration `20260901090000_add_quality_journey_analysis_control_plane` adds insert-only analysis revision,
+  question, answer, publication, and approval records. Each points to an immutable `QualityJourneyArtifact` payload;
+  publication and approval therefore never update the reviewed charter in place.
 
 ## Lifecycle
 
@@ -50,7 +58,52 @@ Analysis, scenario, and report decisions bind exact immutable revisions. A chang
 the approvals and downstream artifacts whose reviewed scope changed. Material execution still requires the existing
 conditional execution-consent and credential-authorization gates.
 
-Role work items have one immutable authorization record and a separate durable attempt lineage. Each claim atomically
+## Phase 3 analysis control plane
+
+The first Phase 3 backend increment is intentionally narrow. A Requirement Analyzer submits an Analysis Charter only
+through its current, receipt-validated `REQUIREMENT_ANALYZER` assignment and lease. Appraise atomically stores the
+canonical charter and each unresolved question as immutable artifact payloads, records the analysis control rows, and
+completes the assigned work item. The charter binds the active requirement revision and cycle; each obligation refers
+to a unique, stable charter requirement ID. A successor must carry each predecessor requirement ID forward or mark it
+retired, retains the retired-ID history, and cannot reuse a retired ID. `unresolvedQuestionIdsJson` is a derived
+transactional projection of the relational required-question head, never caller authority. Submission provenance is
+also relational: an analysis revision retains restrictive foreign keys to the exact completed Analyzer work item and
+attempt that produced it.
+
+A user may append an immutable answer or answer correction only for a question on the current analysis revision,
+including before publication. Once approved, that revision rejects further answers: a changed analysis must go through the normal
+`REQUEST_ANALYSIS_REVISION` loop and a successor Analyzer assignment. A successor may cite resolved answer artifact IDs
+only from its immediate predecessor, preventing a hidden cross-revision answer import.
+On that revision loop Appraise supersedes the completed Analyzer authorization with a new immutable authorization and
+provides a fresh worker only the exact predecessor charter, questions, and answers as artifact references; it never
+reuses a coordinator-held transcript or undisclosed database identifiers.
+The accepted `REQUEST_ANALYSIS_REVISION.feedback` is itself stored as an immutable
+`ANALYSIS_REVISION_FEEDBACK` artifact and is included in that assignment, so the fresh worker receives the exact user
+instruction through Appraise-owned authority. Exact command replay preserves that one feedback artifact, while
+changed idempotent input is rejected.
+This added read authority is RoleDefinition registry version 2. Version 1 remains immutable and validates already
+issued Factory authorizations against its original Analyzer scope.
+The attempt ceiling is scoped to that immutable authorization, so legitimate semantic revision rounds do not consume
+one another's retry allowance; work-attempt sequence numbers remain monotonic for audit lineage. An exhaustion
+blocker records its authorization ID and authorization-local attempt count alongside that monotonic sequence.
+
+The Runner publishes by submitting the existing `PUBLISH_ANALYSIS` command with exactly one matching Analysis Charter
+artifact reference, and publication is blocked until every required question has an answer. The user approves through
+the existing `DECIDE_ANALYSIS` command with the same exact reference and hash. Both the kernel command and the new
+publication/decision record commit in one transaction. The coordinator derives a canonical review hash from the
+charter and ordered immutable Q&A payloads and incorporates it in the authoritative state hash, so an answer or
+correction invalidates a stale decision request. Approval fails while any required question for that exact revision has
+no answer, and it also rejects a formerly published revision after a successor becomes active. Decision explicitly
+compares the publication's stored review hash with the current canonical Q&A review hash, so a post-publication
+correction is fail-closed even when the command's state-hash CAS is otherwise current. The review identity is stored
+in a dedicated durable `analysisReviewHash` projection and contributes to the kernel state hash; it is not an entry in
+the revision-ID map. Exact replay of the original
+publish returns its immutable publication receipt even after a later Q&A correction; reusing that idempotency key
+with changed input is rejected. Exact decision replay likewise returns its matching immutable decision rather than
+attempting to create another row. These backend service operations are not yet exposed as
+coordinator actions, MCP operations, or screens; those remain follow-on Phase 3 work.
+
+Role work items have an immutable authorization lineage and a separate durable attempt lineage. Each claim atomically
 persists its Assignment Manifest, canonical spawn request, hashes, and any predecessor-attempt link. A claim with no
 issued authorization fails closed. Explicit resume conservatively recovers authorization for active Phase 1 work from
 Appraise-owned work-item fields and the current canonical role registry; callers cannot supply or broaden that scope.

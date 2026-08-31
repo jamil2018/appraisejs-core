@@ -16,8 +16,7 @@ import {
 import {
   qualityJourneyCapabilityProfiles,
   qualityJourneyContractDigest,
-  qualityJourneyRoleDefinitions,
-  qualityJourneyRoleRegistryVersion,
+  resolveQualityJourneyRoleDefinition,
 } from './role-definitions'
 
 const id = z
@@ -106,14 +105,15 @@ type SpawnRequestInput = {
 }
 
 function resolveRegistryAuthority(manifest: AssignmentManifest) {
-  const roleDefinition = qualityJourneyRoleDefinitions.find(item => item.role === manifest.roleDefinition.role)
+  const registryVersion = manifest.roleDefinition.version
+  const roleDefinition = resolveQualityJourneyRoleDefinition(registryVersion, manifest.roleDefinition.role)
   const capabilityProfile = Object.values(qualityJourneyCapabilityProfiles).find(
     item => item.profileId === manifest.capabilityProfile.profileId,
   )
   if (!roleDefinition || !capabilityProfile) throw new Error('Invalid assignment manifest: registry entry not found.')
   if (roleDefinition.capabilityProfileId !== capabilityProfile.profileId)
     throw new Error('Invalid assignment manifest: role and capability profile are not registered together.')
-  return { roleDefinition, capabilityProfile }
+  return { roleDefinition, capabilityProfile, registryVersion }
 }
 
 function requestedBoundaryValues(
@@ -139,12 +139,12 @@ function buildWorkerSpawnRequest(input: SpawnRequestInput): WorkerSpawnRequest {
   const capabilityProfile = providerCapabilityProfileSchema.parse(resolved.capabilityProfile)
   const manifest = validateAssignmentManifest(input.manifest, roleDefinition, capabilityProfile)
   if (
-    manifest.roleDefinition.version !== qualityJourneyRoleRegistryVersion ||
+    manifest.roleDefinition.version !== resolved.registryVersion ||
     manifest.roleDefinition.digest !== qualityJourneyContractDigest(roleDefinition)
   )
     throw new Error('Invalid assignment manifest: role definition version or digest mismatch.')
   if (
-    manifest.capabilityProfile.version !== qualityJourneyRoleRegistryVersion ||
+    manifest.capabilityProfile.version !== resolved.registryVersion ||
     manifest.capabilityProfile.digest !== qualityJourneyContractDigest(capabilityProfile)
   )
     throw new Error('Invalid assignment manifest: capability profile version or digest mismatch.')
