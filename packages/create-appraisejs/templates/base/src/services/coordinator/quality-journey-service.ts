@@ -494,6 +494,72 @@ async function blockExpiredQualityJourneyWork(
   })
 }
 
+async function createAttemptBudgetBlocker(
+  tx: Prisma.TransactionClient,
+  row: QualityJourney,
+  attempt: QualityJourneyWorkAttempt,
+) {
+  const authorization = await tx.qualityJourneyWorkAuthorization.findUnique({ where: { id: attempt.authorizationId! } })
+  if (!authorization) return
+  await tx.qualityJourneyBlocker.upsert({
+    where: { id: `qjb_attempt_budget_${attempt.workItemId}` },
+    update: {},
+    create: {
+      id: `qjb_attempt_budget_${attempt.workItemId}`,
+      journeyId: row.id,
+      targetProjectId: row.targetProjectId,
+      reasonCode: 'ATTEMPT_BUDGET_EXHAUSTED',
+      summary: 'The work authorization exhausted its hard maximum attempt count.',
+      evidenceJson: json({ attemptId: attempt.id, attempt: attempt.attempt, maxAttempts: authorization.maxAttempts }),
+      responsibleActor: 'COORDINATOR',
+      affectedNodeIdsJson: json([attempt.workItemId]),
+      requiredResolution:
+        'Start a new Quality Journey or use a future authorized re-authorization workflow; this exhausted authorization cannot be resumed.',
+      safeResumeCommand: 'NONE',
+    },
+  })
+}
+
+async function resumeRefusedFactoryWork(row: QualityJourney, now: Date, tx: Prisma.TransactionClient) {
+  const refused = await tx.qualityJourneyWorkAttempt.findMany({
+    where: { workItem: { journeyId: row.id, targetProjectId: row.targetProjectId }, status: 'REFUSED' },
+    include: { workItem: true, authorization: true },
+  })
+  const resumedAttemptIds: string[] = []
+  for (const attempt of refused) {
+    if (attempt.workItem.status !== 'BLOCKED' || attempt.workItem.currentAttempt !== attempt.attempt) continue
+    if (!attempt.authorization || attempt.attempt >= attempt.authorization.maxAttempts) {
+      if (attempt.authorization) {
+        await tx.qualityJourneyBlocker.updateMany({
+          where: { id: `qjb_factory_refused_${attempt.id}`, status: 'ACTIVE' },
+          data: {
+            status: 'RESOLVED',
+            resolvedAt: now,
+            resolutionJson: json({ action: 'ATTEMPT_BUDGET_EXHAUSTED' }),
+          },
+        })
+        await createAttemptBudgetBlocker(tx, row, attempt)
+      }
+      continue
+    }
+    const replaced = await tx.qualityJourneyWorkItem.updateMany({
+      where: { id: attempt.workItemId, status: 'BLOCKED', currentAttempt: attempt.attempt },
+      data: { status: 'REPLACEMENT_REQUESTED', version: { increment: 1 } },
+    })
+    if (replaced.count !== 1) continue
+    await tx.qualityJourneyBlocker.updateMany({
+      where: { id: `qjb_factory_refused_${attempt.id}`, status: 'ACTIVE' },
+      data: {
+        status: 'RESOLVED',
+        resolvedAt: now,
+        resolutionJson: json({ action: 'REPLACEMENT_REQUESTED', successorAttempt: attempt.attempt + 1 }),
+      },
+    })
+    resumedAttemptIds.push(attempt.id)
+  }
+  return resumedAttemptIds
+}
+
 export async function resumeQualityJourney(
   input: { journeyId: string; targetProjectId: string; now?: Date },
   client: PrismaClient = prisma,
@@ -541,27 +607,7 @@ export async function resumeQualityJourney(
         : null
       if (authorization && attempt.attempt >= authorization.maxAttempts) {
         await blockExpiredQualityJourneyWork(tx, attempt, 'LEASE_EXPIRED', now)
-        await tx.qualityJourneyBlocker.upsert({
-          where: { id: `qjb_attempt_budget_${attempt.workItemId}` },
-          update: {},
-          create: {
-            id: `qjb_attempt_budget_${attempt.workItemId}`,
-            journeyId: row.id,
-            targetProjectId: row.targetProjectId,
-            reasonCode: 'ATTEMPT_BUDGET_EXHAUSTED',
-            summary: 'The work authorization exhausted its hard maximum attempt count after lease expiry.',
-            evidenceJson: json({
-              attemptId: attempt.id,
-              attempt: attempt.attempt,
-              maxAttempts: authorization.maxAttempts,
-            }),
-            responsibleActor: 'COORDINATOR',
-            affectedNodeIdsJson: json([attempt.workItemId]),
-            requiredResolution:
-              'Re-authorize the work with a new Appraise-issued authorization before another worker may run.',
-            safeResumeCommand: 'quality_journey_resume',
-          },
-        })
+        await createAttemptBudgetBlocker(tx, row, attempt)
         continue
       }
       await tx.qualityJourneyWorkAttempt.update({
@@ -573,8 +619,14 @@ export async function resumeQualityJourney(
         data: { status: 'REPLACEMENT_REQUESTED', version: { increment: 1 } },
       })
     }
+    const resumedRefusedAttemptIds = await resumeRefusedFactoryWork(row, now, tx)
     await ensureEligibleWorkItems(row, tx)
-    return { recoveredWorkItemIds, expiredAttemptIds: expired.map(item => item.id), journey: projection(row) }
+    return {
+      recoveredWorkItemIds,
+      expiredAttemptIds: expired.map(item => item.id),
+      resumedRefusedAttemptIds,
+      journey: projection(row),
+    }
   })
 }
 
@@ -955,67 +1007,123 @@ async function markDispatchUnresolved(input: WorkLeaseInput, adapterId: string, 
 /** Dispatch is an Appraise-owned handoff. The selected adapter identity and
  * idempotency key are durable, while a failed call releases only the in-flight
  * reservation so that the same adapter may retry the exact request. */
-// fallow-ignore-next-line complexity -- the transaction deliberately preserves each dispatch race invariant explicitly.
+function publicDispatchProjection(input: {
+  replayed: boolean
+  status: string
+  workItemId: string
+  attemptId: string
+  spawnReceiptId?: string | null
+  spawnReceiptHash?: string | null
+  adapterId?: string | null
+}) {
+  return {
+    replayed: input.replayed,
+    status: input.status,
+    workItemId: input.workItemId,
+    attemptId: input.attemptId,
+    ...(input.spawnReceiptId ? { spawnReceiptId: input.spawnReceiptId } : {}),
+    ...(input.spawnReceiptHash ? { spawnReceiptHash: input.spawnReceiptHash } : {}),
+    ...(input.adapterId ? { adapterId: input.adapterId } : {}),
+  }
+}
+
 export async function dispatchQualityJourneyWork(input: WorkLeaseInput, client: PrismaClient = prisma) {
-  const pending = await client.$transaction(
-    // fallow-ignore-next-line complexity -- each branch is a durable dispatch race invariant.
-    async tx => {
-      const loaded = await readWorkAttempt(input, tx)
-      assertFactoryAuthorityCurrent(loaded.item, loaded.authorization)
-      const attempt = assertLeaseAuthority(input, loaded.item, loaded.attempt)
-      if (attempt.spawnReceiptJson && attempt.spawnReceiptHash) {
-        if (attempt.spawnReceiptHash !== hash(JSON.parse(attempt.spawnReceiptJson)))
-          throw new ServiceError('Quality Journey worker receipt lineage is invalid.', 'UNAUTHORIZED')
-        return { replay: true as const, receipt: JSON.parse(attempt.spawnReceiptJson) }
+  const pending = await client.$transaction(async tx => {
+    const loaded = await readWorkAttempt(input, tx)
+    assertFactoryAuthorityCurrent(loaded.item, loaded.authorization)
+    const attempt = assertLeaseAuthority(input, loaded.item, loaded.attempt)
+    if (attempt.spawnReceiptJson && attempt.spawnReceiptHash) {
+      if (attempt.spawnReceiptHash !== hash(JSON.parse(attempt.spawnReceiptJson)))
+        throw new ServiceError('Quality Journey worker receipt lineage is invalid.', 'UNAUTHORIZED')
+      return {
+        replay: true as const,
+        status: loaded.item.status,
+        workItemId: loaded.item.id,
+        attemptId: attempt.id,
+        spawnReceiptId: attempt.spawnReceiptId,
+        spawnReceiptHash: attempt.spawnReceiptHash,
+        adapterId: attempt.dispatchAdapterId,
       }
-      if (attempt.status === 'DISPATCH_UNRESOLVED')
-        return {
-          replay: true as const,
-          unresolved: true as const,
-          dispatchKey: attempt.dispatchKey,
-          adapterId: attempt.dispatchAdapterId,
-        }
-      if (attempt.status !== 'WORKER_REQUESTED' || attempt.leaseExpiresAt <= new Date())
-        throw new ServiceError('Quality Journey worker dispatch is stale.', 'CONFLICT')
-      if (
-        !attempt.spawnRequestJson ||
-        attempt.spawnRequestHash !== hash(JSON.parse(attempt.spawnRequestJson ?? 'null'))
-      )
-        throw new ServiceError('Quality Journey worker request lineage is invalid.', 'UNAUTHORIZED')
-      if (!attempt.dispatchKey)
-        throw new ServiceError('Quality Journey worker dispatch key is unavailable.', 'UNAUTHORIZED')
-      const request = JSON.parse(attempt.spawnRequestJson)
-      let adapterId: string
-      try {
-        adapterId = resolveAgentFactoryProviderAdapter(request, attempt.dispatchAdapterId ?? undefined).adapter
-          .adapterId
-      } catch (error) {
-        const message = error instanceof Error ? error.message : 'No compatible provider adapter is available.'
-        throw new ServiceError(`Quality Journey worker dispatch was blocked: ${message}`, 'CONFLICT')
-      }
-      if (attempt.dispatchStartedAt)
-        return { replay: true as const, pending: true as const, dispatchKey: attempt.dispatchKey }
-      const now = new Date()
-      const reserved = await tx.qualityJourneyWorkAttempt.updateMany({
-        where: { id: attempt.id, dispatchReservedAt: null, dispatchStartedAt: null, status: 'WORKER_REQUESTED' },
-        data: { dispatchAdapterId: adapterId, dispatchReservedAt: now, dispatchStartedAt: now },
-      })
-      if (reserved.count !== 1) {
-        return { replay: true as const, pending: true as const, dispatchKey: attempt.dispatchKey }
-      }
-      return { replay: false as const, request, dispatchKey: attempt.dispatchKey, adapterId }
-    },
-  )
-  if ('unresolved' in pending)
-    return {
-      replayed: true,
-      status: 'DISPATCH_UNRESOLVED' as const,
-      dispatchKey: pending.dispatchKey,
-      adapterId: pending.adapterId,
     }
+    if (attempt.status === 'DISPATCH_UNRESOLVED')
+      return {
+        replay: true as const,
+        unresolved: true as const,
+        workItemId: loaded.item.id,
+        attemptId: attempt.id,
+        adapterId: attempt.dispatchAdapterId,
+      }
+    if (attempt.status !== 'WORKER_REQUESTED' || attempt.leaseExpiresAt <= new Date())
+      throw new ServiceError('Quality Journey worker dispatch is stale.', 'CONFLICT')
+    if (!attempt.spawnRequestJson || attempt.spawnRequestHash !== hash(JSON.parse(attempt.spawnRequestJson ?? 'null')))
+      throw new ServiceError('Quality Journey worker request lineage is invalid.', 'UNAUTHORIZED')
+    if (!attempt.dispatchKey)
+      throw new ServiceError('Quality Journey worker dispatch key is unavailable.', 'UNAUTHORIZED')
+    const request = JSON.parse(attempt.spawnRequestJson)
+    let adapterId: string
+    try {
+      adapterId = resolveAgentFactoryProviderAdapter(request, attempt.dispatchAdapterId ?? undefined).adapter.adapterId
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'No compatible provider adapter is available.'
+      throw new ServiceError(`Quality Journey worker dispatch was blocked: ${message}`, 'CONFLICT')
+    }
+    if (attempt.dispatchStartedAt)
+      return {
+        replay: true as const,
+        pending: true as const,
+        workItemId: loaded.item.id,
+        attemptId: attempt.id,
+        adapterId,
+      }
+    const now = new Date()
+    const reserved = await tx.qualityJourneyWorkAttempt.updateMany({
+      where: { id: attempt.id, dispatchReservedAt: null, dispatchStartedAt: null, status: 'WORKER_REQUESTED' },
+      data: { dispatchAdapterId: adapterId, dispatchReservedAt: now, dispatchStartedAt: now },
+    })
+    if (reserved.count !== 1) {
+      return {
+        replay: true as const,
+        pending: true as const,
+        workItemId: loaded.item.id,
+        attemptId: attempt.id,
+        adapterId,
+      }
+    }
+    return {
+      replay: false as const,
+      request,
+      dispatchKey: attempt.dispatchKey,
+      adapterId,
+      workItemId: loaded.item.id,
+      attemptId: attempt.id,
+    }
+  })
+  if ('unresolved' in pending)
+    return publicDispatchProjection({
+      replayed: true,
+      status: 'DISPATCH_UNRESOLVED',
+      workItemId: pending.workItemId,
+      attemptId: pending.attemptId,
+      adapterId: pending.adapterId,
+    })
   if ('pending' in pending)
-    return { replayed: true, status: 'DISPATCH_PENDING' as const, dispatchKey: pending.dispatchKey }
-  if (pending.replay) return { replayed: true, receipt: pending.receipt }
+    return publicDispatchProjection({
+      replayed: true,
+      status: 'DISPATCH_PENDING',
+      workItemId: pending.workItemId,
+      attemptId: pending.attemptId,
+      adapterId: pending.adapterId,
+    })
+  if (pending.replay)
+    return publicDispatchProjection({
+      replayed: true,
+      status: pending.status,
+      workItemId: pending.workItemId,
+      attemptId: pending.attemptId,
+      spawnReceiptId: pending.spawnReceiptId,
+      spawnReceiptHash: pending.spawnReceiptHash,
+      adapterId: pending.adapterId,
+    })
   let dispatched: Awaited<ReturnType<typeof dispatchWorkerSpawnRequest>>
   try {
     dispatched = await dispatchWorkerSpawnRequest(pending.request, pending.dispatchKey, pending.adapterId)
@@ -1026,17 +1134,24 @@ export async function dispatchQualityJourneyWork(input: WorkLeaseInput, client: 
       throw new ServiceError(`Quality Journey worker dispatch was blocked: ${message}`, 'CONFLICT')
     }
     await markDispatchUnresolved(input, pending.adapterId, client)
-    const message = error instanceof Error ? error.message : 'Provider adapter dispatch failed.'
-    return {
+    return publicDispatchProjection({
       replayed: false,
-      status: 'DISPATCH_UNRESOLVED' as const,
-      dispatchKey: pending.dispatchKey,
+      status: 'DISPATCH_UNRESOLVED',
+      workItemId: pending.workItemId,
+      attemptId: pending.attemptId,
       adapterId: pending.adapterId,
-      message: `Quality Journey worker dispatch is ambiguous: ${message}`,
-    }
+    })
   }
   const recorded = await recordAdapterSpawnReceipt({ ...input, receipt: dispatched.receipt }, client)
-  return { ...recorded, adapterId: dispatched.adapterId, receipt: dispatched.receipt }
+  return publicDispatchProjection({
+    replayed: recorded.replayed,
+    status: recorded.status,
+    workItemId: recorded.workItemId,
+    attemptId: pending.attemptId,
+    spawnReceiptId: dispatched.receipt.spawnReceiptId,
+    spawnReceiptHash: hash(dispatched.receipt),
+    adapterId: dispatched.adapterId,
+  })
 }
 
 type FactoryControlActor = 'USER' | 'COORDINATOR' | 'RUNNER'
@@ -1206,7 +1321,6 @@ async function advanceAfterWorkCompletion(
   })
 }
 
-// fallow-ignore-next-line complexity -- every binding is independently required to reject forged durable lineage.
 async function validateDurableWorkerLineage(
   input: WorkCompletionInput,
   item: QualityJourneyWorkItem,

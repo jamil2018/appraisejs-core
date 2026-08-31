@@ -1027,85 +1027,77 @@ function publicDispatchProjection(input: {
   }
 }
 
-// fallow-ignore-next-line complexity -- the transaction deliberately preserves each dispatch race invariant explicitly.
 export async function dispatchQualityJourneyWork(input: WorkLeaseInput, client: PrismaClient = prisma) {
-  const pending = await client.$transaction(
-    // fallow-ignore-next-line complexity -- each branch is a durable dispatch race invariant.
-    async tx => {
-      const loaded = await readWorkAttempt(input, tx)
-      assertFactoryAuthorityCurrent(loaded.item, loaded.authorization)
-      const attempt = assertLeaseAuthority(input, loaded.item, loaded.attempt)
-      if (attempt.spawnReceiptJson && attempt.spawnReceiptHash) {
-        if (attempt.spawnReceiptHash !== hash(JSON.parse(attempt.spawnReceiptJson)))
-          throw new ServiceError('Quality Journey worker receipt lineage is invalid.', 'UNAUTHORIZED')
-        return {
-          replay: true as const,
-          status: loaded.item.status,
-          workItemId: loaded.item.id,
-          attemptId: attempt.id,
-          spawnReceiptId: attempt.spawnReceiptId,
-          spawnReceiptHash: attempt.spawnReceiptHash,
-          adapterId: attempt.dispatchAdapterId,
-        }
-      }
-      if (attempt.status === 'DISPATCH_UNRESOLVED')
-        return {
-          replay: true as const,
-          unresolved: true as const,
-          workItemId: loaded.item.id,
-          attemptId: attempt.id,
-          adapterId: attempt.dispatchAdapterId,
-        }
-      if (attempt.status !== 'WORKER_REQUESTED' || attempt.leaseExpiresAt <= new Date())
-        throw new ServiceError('Quality Journey worker dispatch is stale.', 'CONFLICT')
-      if (
-        !attempt.spawnRequestJson ||
-        attempt.spawnRequestHash !== hash(JSON.parse(attempt.spawnRequestJson ?? 'null'))
-      )
-        throw new ServiceError('Quality Journey worker request lineage is invalid.', 'UNAUTHORIZED')
-      if (!attempt.dispatchKey)
-        throw new ServiceError('Quality Journey worker dispatch key is unavailable.', 'UNAUTHORIZED')
-      const request = JSON.parse(attempt.spawnRequestJson)
-      let adapterId: string
-      try {
-        adapterId = resolveAgentFactoryProviderAdapter(request, attempt.dispatchAdapterId ?? undefined).adapter
-          .adapterId
-      } catch (error) {
-        const message = error instanceof Error ? error.message : 'No compatible provider adapter is available.'
-        throw new ServiceError(`Quality Journey worker dispatch was blocked: ${message}`, 'CONFLICT')
-      }
-      if (attempt.dispatchStartedAt)
-        return {
-          replay: true as const,
-          pending: true as const,
-          workItemId: loaded.item.id,
-          attemptId: attempt.id,
-          adapterId,
-        }
-      const now = new Date()
-      const reserved = await tx.qualityJourneyWorkAttempt.updateMany({
-        where: { id: attempt.id, dispatchReservedAt: null, dispatchStartedAt: null, status: 'WORKER_REQUESTED' },
-        data: { dispatchAdapterId: adapterId, dispatchReservedAt: now, dispatchStartedAt: now },
-      })
-      if (reserved.count !== 1) {
-        return {
-          replay: true as const,
-          pending: true as const,
-          workItemId: loaded.item.id,
-          attemptId: attempt.id,
-          adapterId,
-        }
-      }
+  const pending = await client.$transaction(async tx => {
+    const loaded = await readWorkAttempt(input, tx)
+    assertFactoryAuthorityCurrent(loaded.item, loaded.authorization)
+    const attempt = assertLeaseAuthority(input, loaded.item, loaded.attempt)
+    if (attempt.spawnReceiptJson && attempt.spawnReceiptHash) {
+      if (attempt.spawnReceiptHash !== hash(JSON.parse(attempt.spawnReceiptJson)))
+        throw new ServiceError('Quality Journey worker receipt lineage is invalid.', 'UNAUTHORIZED')
       return {
-        replay: false as const,
-        request,
-        dispatchKey: attempt.dispatchKey,
-        adapterId,
+        replay: true as const,
+        status: loaded.item.status,
         workItemId: loaded.item.id,
         attemptId: attempt.id,
+        spawnReceiptId: attempt.spawnReceiptId,
+        spawnReceiptHash: attempt.spawnReceiptHash,
+        adapterId: attempt.dispatchAdapterId,
       }
-    },
-  )
+    }
+    if (attempt.status === 'DISPATCH_UNRESOLVED')
+      return {
+        replay: true as const,
+        unresolved: true as const,
+        workItemId: loaded.item.id,
+        attemptId: attempt.id,
+        adapterId: attempt.dispatchAdapterId,
+      }
+    if (attempt.status !== 'WORKER_REQUESTED' || attempt.leaseExpiresAt <= new Date())
+      throw new ServiceError('Quality Journey worker dispatch is stale.', 'CONFLICT')
+    if (!attempt.spawnRequestJson || attempt.spawnRequestHash !== hash(JSON.parse(attempt.spawnRequestJson ?? 'null')))
+      throw new ServiceError('Quality Journey worker request lineage is invalid.', 'UNAUTHORIZED')
+    if (!attempt.dispatchKey)
+      throw new ServiceError('Quality Journey worker dispatch key is unavailable.', 'UNAUTHORIZED')
+    const request = JSON.parse(attempt.spawnRequestJson)
+    let adapterId: string
+    try {
+      adapterId = resolveAgentFactoryProviderAdapter(request, attempt.dispatchAdapterId ?? undefined).adapter.adapterId
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'No compatible provider adapter is available.'
+      throw new ServiceError(`Quality Journey worker dispatch was blocked: ${message}`, 'CONFLICT')
+    }
+    if (attempt.dispatchStartedAt)
+      return {
+        replay: true as const,
+        pending: true as const,
+        workItemId: loaded.item.id,
+        attemptId: attempt.id,
+        adapterId,
+      }
+    const now = new Date()
+    const reserved = await tx.qualityJourneyWorkAttempt.updateMany({
+      where: { id: attempt.id, dispatchReservedAt: null, dispatchStartedAt: null, status: 'WORKER_REQUESTED' },
+      data: { dispatchAdapterId: adapterId, dispatchReservedAt: now, dispatchStartedAt: now },
+    })
+    if (reserved.count !== 1) {
+      return {
+        replay: true as const,
+        pending: true as const,
+        workItemId: loaded.item.id,
+        attemptId: attempt.id,
+        adapterId,
+      }
+    }
+    return {
+      replay: false as const,
+      request,
+      dispatchKey: attempt.dispatchKey,
+      adapterId,
+      workItemId: loaded.item.id,
+      attemptId: attempt.id,
+    }
+  })
   if ('unresolved' in pending)
     return publicDispatchProjection({
       replayed: true,
@@ -1329,7 +1321,6 @@ async function advanceAfterWorkCompletion(
   })
 }
 
-// fallow-ignore-next-line complexity -- every binding is independently required to reject forged durable lineage.
 async function validateDurableWorkerLineage(
   input: WorkCompletionInput,
   item: QualityJourneyWorkItem,

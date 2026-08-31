@@ -207,7 +207,6 @@ function receiptIdentityViolations(request: WorkerSpawnRequest, receipt: WorkerS
   return expected.some((value, index) => value !== actual[index]) ? ['spawn receipt identity mismatch'] : []
 }
 
-// fallow-ignore-next-line complexity -- each branch is a distinct fail-closed runtime-boundary invariant.
 function requiredBoundaryViolations(
   boundary: string,
   allowedValues: readonly string[],
