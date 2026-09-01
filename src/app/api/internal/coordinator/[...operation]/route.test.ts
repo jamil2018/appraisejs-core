@@ -12,6 +12,12 @@ const {
   resolveTargetProject,
   runQualityAssessment,
   searchLocatorGraph,
+  getQualityJourneyAnalysis,
+  submitQualityJourneyAnalysisSuccessor,
+  answerQualityJourneyAnalysisQuestion,
+  publishQualityJourneyAnalysis,
+  requestQualityJourneyAnalysisRevision,
+  decideQualityJourneyAnalysis,
 } = vi.hoisted(() => ({
   ensureTargetLocator: vi.fn(async (value: Record<string, unknown>) => ({
     ...value,
@@ -48,6 +54,12 @@ const {
     fingerprint,
   })),
   runQualityAssessment: vi.fn(),
+  getQualityJourneyAnalysis: vi.fn(async (value: unknown) => ({ received: value })),
+  submitQualityJourneyAnalysisSuccessor: vi.fn(async (value: unknown) => ({ received: value })),
+  answerQualityJourneyAnalysisQuestion: vi.fn(async (value: unknown) => ({ received: value })),
+  publishQualityJourneyAnalysis: vi.fn(async (value: unknown) => ({ received: value })),
+  requestQualityJourneyAnalysisRevision: vi.fn(async (value: unknown) => ({ received: value })),
+  decideQualityJourneyAnalysis: vi.fn(async (value: unknown) => ({ received: value })),
 }))
 
 vi.mock('@/lib/coordinator-api/request-guard', () => ({
@@ -94,6 +106,14 @@ vi.mock('@/services/coordinator/remote-evaluation-scope-service', () => ({
   createRemoteEvaluationScope: vi.fn(),
   readRemoteEvaluationScope,
 }))
+vi.mock('@/services/coordinator/quality-journey-analysis-service', () => ({
+  getQualityJourneyAnalysis,
+  submitQualityJourneyAnalysisSuccessor,
+  answerQualityJourneyAnalysisQuestion,
+  publishQualityJourneyAnalysis,
+  requestQualityJourneyAnalysisRevision,
+  decideQualityJourneyAnalysis,
+}))
 vi.mock('@/services/step-definition/built-in-readiness-service', () => ({
   ensureBuiltInStepDefinitionReadiness: vi.fn(async () => ({ seeded: 0, repaired: 0, unchanged: 127, errors: [] })),
 }))
@@ -119,6 +139,232 @@ const body = {
 }
 
 describe('coordinator locator_ensure route', () => {
+  it('maps the exact target-bound Analysis Charter read route to its specialized service', async () => {
+    const response = await GET(
+      new Request(
+        `http://127.0.0.1:3000/api/internal/coordinator/quality/journeys/journey-analysis/analysis?target=${encodeURIComponent(targetFingerprint)}`,
+      ),
+      { params: Promise.resolve({ operation: ['quality', 'journeys', 'journey-analysis', 'analysis'] }) },
+    )
+
+    expect(response.status).toBe(200)
+    expect(getQualityJourneyAnalysis).toHaveBeenCalledWith({
+      journeyId: 'journey-analysis',
+      targetProjectId: 'target-login',
+    })
+  })
+
+  it('derives submission scope from the path and target while rejecting caller-controlled scope fields', async () => {
+    const charter = {
+      charterId: 'analysis-charter-1',
+      analysisRevisionId: 'analysis-revision-1',
+      cycleId: 'cycle-1',
+      requirementRevisionId: 'requirement-revision-1',
+      objectives: ['Checkout'],
+      scope: { included: ['Checkout'], excluded: [] },
+      actors: ['Shopper'],
+      requirements: [{ requirementId: 'REQ-1', statement: 'A shopper checks out.', sourceRefs: ['brief:1'] }],
+      obligations: [
+        {
+          obligationId: 'OBL-1',
+          requirementId: 'REQ-1',
+          statement: 'Checkout completes.',
+          acceptanceSignals: ['Confirmation'],
+        },
+      ],
+      constraints: [],
+      assumptions: [],
+      risks: [],
+      acceptanceSignals: ['Confirmation'],
+      retiredRequirementIds: [],
+      questions: [],
+      resolvedQuestionAnswerIds: [],
+    }
+    const submission = {
+      target: targetFingerprint,
+      workItemId: 'work-1',
+      attemptId: 'attempt-1',
+      leaseId: 'lease-1',
+      ownerToken: 'owner-token',
+      idempotencyKey: 'submit-analysis-1',
+      charter,
+    }
+    const response = await POST(request(submission, ''), {
+      params: Promise.resolve({ operation: ['quality', 'journeys', 'journey-analysis', 'analysis', 'submissions'] }),
+    })
+
+    expect(response.status).toBe(201)
+    expect(submitQualityJourneyAnalysisSuccessor).toHaveBeenCalledWith(
+      expect.objectContaining({ journeyId: 'journey-analysis', targetProjectId: 'target-login' }),
+    )
+    expect(submitQualityJourneyAnalysisSuccessor).toHaveBeenCalledWith(
+      expect.objectContaining({
+        charter: expect.objectContaining({
+          schemaVersion: 'appraise.quality-journey/v1',
+          journeyId: 'journey-analysis',
+          targetProjectId: 'target-login',
+        }),
+      }),
+    )
+
+    const forged = await POST(request({ ...submission, journeyId: 'journey-forged' }, ''), {
+      params: Promise.resolve({ operation: ['quality', 'journeys', 'journey-analysis', 'analysis', 'submissions'] }),
+    })
+    expect(forged.status).toBe(400)
+  })
+
+  it('constructs user and Runner analysis commands server-side', async () => {
+    const command = {
+      target: targetFingerprint,
+      commandId: 'analysis-command-1',
+      expectedStateHash: `sha256:${'a'.repeat(64)}`,
+      idempotencyKey: 'analysis-command-key',
+      charterId: 'analysis-charter-1',
+      analysisRevisionId: 'analysis-revision-1',
+      contentHash: `sha256:${'b'.repeat(64)}`,
+    }
+    const publication = await POST(request(command, ''), {
+      params: Promise.resolve({ operation: ['quality', 'journeys', 'journey-analysis', 'analysis', 'publications'] }),
+    })
+    expect(publication.status).toBe(200)
+    expect(publishQualityJourneyAnalysis).toHaveBeenCalledWith(
+      expect.objectContaining({
+        actor: 'RUNNER',
+        command: 'PUBLISH_ANALYSIS',
+        journeyId: 'journey-analysis',
+        inputArtifactRefs: [
+          {
+            kind: 'ANALYSIS_CHARTER_REVISION',
+            artifactId: 'analysis-charter-1',
+            revisionId: 'analysis-revision-1',
+            contentHash: `sha256:${'b'.repeat(64)}`,
+          },
+        ],
+      }),
+    )
+    const forgedPublication = await POST(
+      request(
+        {
+          ...command,
+          actor: 'USER',
+          command: 'DECIDE_ANALYSIS',
+          targetProjectId: 'target-forged',
+        },
+        '',
+      ),
+      {
+        params: Promise.resolve({ operation: ['quality', 'journeys', 'journey-analysis', 'analysis', 'publications'] }),
+      },
+    )
+    expect(forgedPublication.status).toBe(400)
+
+    const decision = await POST(request(command, ''), {
+      params: Promise.resolve({ operation: ['quality', 'journeys', 'journey-analysis', 'analysis', 'decisions'] }),
+    })
+    expect(decision.status).toBe(200)
+    expect(decideQualityJourneyAnalysis).toHaveBeenCalledWith(
+      expect.objectContaining({ actor: 'USER', command: 'DECIDE_ANALYSIS', journeyId: 'journey-analysis' }),
+    )
+
+    const revision = await POST(
+      request(
+        {
+          ...command,
+          expectedReviewHash: `sha256:${'c'.repeat(64)}`,
+          feedback: 'Clarify payment scope.',
+        },
+        '',
+      ),
+      {
+        params: Promise.resolve({
+          operation: ['quality', 'journeys', 'journey-analysis', 'analysis', 'revision-requests'],
+        }),
+      },
+    )
+    expect(revision.status).toBe(200)
+    expect(requestQualityJourneyAnalysisRevision).toHaveBeenCalledWith(
+      expect.objectContaining({
+        expectedReviewHash: `sha256:${'c'.repeat(64)}`,
+        command: expect.objectContaining({
+          actor: 'USER',
+          command: 'REQUEST_ANALYSIS_REVISION',
+          inputArtifactRefs: [
+            {
+              kind: 'ANALYSIS_CHARTER_REVISION',
+              artifactId: 'analysis-charter-1',
+              revisionId: 'analysis-revision-1',
+              contentHash: `sha256:${'b'.repeat(64)}`,
+            },
+          ],
+        }),
+      }),
+    )
+  })
+
+  it('fails closed when the generic command route receives a Phase 3 analysis command', async () => {
+    const command = {
+      schemaVersion: 'appraise.quality-journey/v1',
+      commandId: 'forged-analysis-command',
+      journeyId: 'journey-analysis',
+      targetProjectId: 'target-login',
+      actor: 'USER',
+      expectedStateHash: `sha256:${'a'.repeat(64)}`,
+      idempotencyKey: 'forged-analysis-command',
+      inputArtifactRefs: [],
+    }
+    const commands = [
+      {
+        ...command,
+        command: 'PUBLISH_ANALYSIS',
+        actor: 'RUNNER',
+        payload: { artifactRevisionId: 'analysis-revision-1', artifactHash: `sha256:${'b'.repeat(64)}` },
+      },
+      {
+        ...command,
+        command: 'REQUEST_ANALYSIS_REVISION',
+        payload: {
+          reviewedRevisionId: 'analysis-revision-1',
+          reviewedHash: `sha256:${'b'.repeat(64)}`,
+          feedback: 'Forged generic request.',
+        },
+      },
+      {
+        ...command,
+        command: 'DECIDE_ANALYSIS',
+        payload: { revisionId: 'analysis-revision-1', contentHash: `sha256:${'b'.repeat(64)}`, decision: 'APPROVED' },
+      },
+    ]
+    for (const specialized of commands) {
+      const response = await POST(request({ target: targetFingerprint, command: specialized }, ''), {
+        params: Promise.resolve({ operation: ['quality', 'journeys', 'journey-analysis', 'commands'] }),
+      })
+      expect(response.status).toBe(401)
+      await expect(response.json()).resolves.toMatchObject({ code: 'UNAUTHORIZED' })
+    }
+  })
+
+  it('constructs a USER answer envelope and rejects caller-provided actor authority', async () => {
+    const answer = {
+      target: targetFingerprint,
+      idempotencyKey: 'answer-key',
+      answerId: 'answer-1',
+      analysisRevisionId: 'analysis-revision-1',
+      questionId: 'question-1',
+      answer: 'Credit card.',
+    }
+    const response = await POST(request(answer, ''), {
+      params: Promise.resolve({ operation: ['quality', 'journeys', 'journey-analysis', 'analysis', 'answers'] }),
+    })
+    expect(response.status).toBe(201)
+    expect(answerQualityJourneyAnalysisQuestion).toHaveBeenCalledWith(
+      expect.objectContaining({ answer: expect.objectContaining({ actor: 'USER', journeyId: 'journey-analysis' }) }),
+    )
+
+    const forged = await POST(request({ ...answer, actor: 'RUNNER' }, ''), {
+      params: Promise.resolve({ operation: ['quality', 'journeys', 'journey-analysis', 'analysis', 'answers'] }),
+    })
+    expect(forged.status).toBe(400)
+  })
   it('dispatches remote scope recovery as a read-only coordinator operation without an issuance key', async () => {
     const body = {
       target: 'target-login',

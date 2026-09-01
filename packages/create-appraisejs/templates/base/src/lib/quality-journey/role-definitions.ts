@@ -3,7 +3,9 @@ import { canonicalContractJson } from '@/lib/catalog-contracts'
 import type { ProviderCapabilityProfile, RoleDefinition } from './contracts'
 import { providerCapabilityProfileSchema, qualityJourneyContractVersion, roleDefinitionSchema } from './contracts'
 
-export const qualityJourneyRoleRegistryVersion = '1' as const
+/** Version 1 remains immutable for already-issued Factory authorizations.
+ * Version 2 adds durable revision-feedback read authority to the Analyzer. */
+export const qualityJourneyRoleRegistryVersion = '2' as const
 
 export function qualityJourneyContractDigest(value: RoleDefinition | ProviderCapabilityProfile): string {
   return `sha256:${createHash('sha256').update(canonicalContractJson(value)).digest('hex')}`
@@ -84,7 +86,13 @@ export const qualityJourneyRoleDefinitions = [
     role: 'REQUIREMENT_ANALYZER',
     purpose: 'Propose a revisioned Analysis Charter and unresolved requirement questions.',
     capabilityProfileId: 'structured-analysis',
-    readableArtifacts: ['JOURNEY_REVISION'],
+    readableArtifacts: [
+      'JOURNEY_REVISION',
+      'ANALYSIS_CHARTER_REVISION',
+      'ANALYSIS_QUESTION',
+      'ANALYSIS_ANSWER',
+      'ANALYSIS_REVISION_FEEDBACK',
+    ],
     writableArtifacts: ['ANALYSIS_CHARTER_REVISION', 'ANALYSIS_QUESTION'],
     permittedTools: ['artifact.read', 'artifact.propose'],
     permittedCommands: ['work.output.submit'],
@@ -161,5 +169,21 @@ export const qualityJourneyRoleDefinitions = [
   },
 ] as const satisfies readonly RoleDefinition[]
 
+export const qualityJourneyRoleDefinitionsV1 = qualityJourneyRoleDefinitions.map(definition =>
+  definition.role === 'REQUIREMENT_ANALYZER'
+    ? {
+        ...definition,
+        readableArtifacts: ['JOURNEY_REVISION'] as const,
+      }
+    : definition,
+) as readonly RoleDefinition[]
+
+export function resolveQualityJourneyRoleDefinition(version: string, role: RoleDefinition['role']) {
+  const registry =
+    version === '1' ? qualityJourneyRoleDefinitionsV1 : version === '2' ? qualityJourneyRoleDefinitions : []
+  return registry.find(definition => definition.role === role)
+}
+
 for (const profile of Object.values(qualityJourneyCapabilityProfiles)) providerCapabilityProfileSchema.parse(profile)
 for (const definition of qualityJourneyRoleDefinitions) roleDefinitionSchema.parse(definition)
+for (const definition of qualityJourneyRoleDefinitionsV1) roleDefinitionSchema.parse(definition)

@@ -8,6 +8,8 @@ export type QualityJourneyStateHashInput = {
   stage: QualityJourneyStage
   activeCycleId: string
   activeRevisionIds: Readonly<Record<string, string>>
+  /** Durable canonical Q&A identity; deliberately not an artifact revision ID. */
+  analysisReviewHash?: string
   unresolvedQuestionIds: readonly string[]
   blockerIds: readonly string[]
   activeWorkItemIds: readonly string[]

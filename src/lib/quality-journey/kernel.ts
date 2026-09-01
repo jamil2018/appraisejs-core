@@ -40,12 +40,23 @@ export type QualityJourneyKernelState = QualityJourneyStateHashInput & {
 export function createQualityJourneyKernelState(
   input: Omit<
     QualityJourneyStateHashInput,
-    'stage' | 'activeRevisionIds' | 'unresolvedQuestionIds' | 'blockerIds' | 'activeWorkItemIds' | 'permittedCommands'
+    | 'stage'
+    | 'activeRevisionIds'
+    | 'analysisReviewHash'
+    | 'unresolvedQuestionIds'
+    | 'blockerIds'
+    | 'activeWorkItemIds'
+    | 'permittedCommands'
   > &
     Partial<
       Pick<
         QualityJourneyStateHashInput,
-        'stage' | 'activeRevisionIds' | 'unresolvedQuestionIds' | 'blockerIds' | 'activeWorkItemIds'
+        | 'stage'
+        | 'activeRevisionIds'
+        | 'analysisReviewHash'
+        | 'unresolvedQuestionIds'
+        | 'blockerIds'
+        | 'activeWorkItemIds'
       >
     >,
 ): QualityJourneyKernelState {

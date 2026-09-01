@@ -8,6 +8,7 @@ import {
   qualityJourneyCapabilityProfiles,
   qualityJourneyContractDigest,
   qualityJourneyRoleDefinitions,
+  qualityJourneyRoleDefinitionsV1,
   registerAgentFactoryProviderAdapter,
   validateWorkerResult,
   validateWorkerSpawnReceipt,
@@ -123,6 +124,58 @@ describe('Quality Journey Agent Factory', () => {
         manifest: { ...manifest(), capabilityProfile: { ...manifest().capabilityProfile, version: '2' } },
       }),
     ).toThrow('capability profile version or digest mismatch')
+  })
+
+  it('accepts persisted Analyzer v1 authority while new feedback authority uses v2', () => {
+    const analyzerV1 = qualityJourneyRoleDefinitionsV1.find(definition => definition.role === 'REQUIREMENT_ANALYZER')!
+    const analyzerV2 = qualityJourneyRoleDefinitions.find(definition => definition.role === 'REQUIREMENT_ANALYZER')!
+    const profile = qualityJourneyCapabilityProfiles.structuredAnalysis
+    const analyzerManifest = (
+      version: '1' | '2',
+      definition: typeof analyzerV1,
+      inputArtifacts: AssignmentManifest['inputArtifacts'],
+    ) =>
+      ({
+        ...manifest(),
+        assignmentId: `analyzer-assignment-${version}`,
+        roleDefinition: {
+          role: 'REQUIREMENT_ANALYZER' as const,
+          version,
+          digest: qualityJourneyContractDigest(definition),
+        },
+        capabilityProfile: { profileId: profile.profileId, version, digest: qualityJourneyContractDigest(profile) },
+        inputArtifacts,
+        writableArtifactKinds: ['ANALYSIS_CHARTER_REVISION', 'ANALYSIS_QUESTION'],
+        scope: {
+          permittedTools: ['artifact.read', 'artifact.propose'],
+          permittedCommands: ['work.output.submit'],
+          filesystemPaths: [],
+          networkOrigins: [],
+          credentialGrantIds: [],
+          targetAccess: 'NONE' as const,
+        },
+      }) satisfies AssignmentManifest
+    const persistedV1 = analyzerManifest('1', analyzerV1, [
+      { kind: 'JOURNEY_REVISION', artifactId: 'requirement-1', revisionId: 'requirement-1', contentHash: digest('a') },
+    ])
+    const phase3V2 = analyzerManifest('2', analyzerV2, [
+      {
+        kind: 'ANALYSIS_REVISION_FEEDBACK',
+        artifactId: 'feedback-1',
+        revisionId: 'analysis-1',
+        contentHash: digest('b'),
+      },
+    ])
+    expect(
+      createWorkerSpawnRequest({ requestId: 'persisted-v1', attemptId: 'attempt-v1', manifest: persistedV1 }),
+    ).toMatchObject({
+      roleDefinitionDigest: qualityJourneyContractDigest(analyzerV1),
+    })
+    expect(
+      createWorkerSpawnRequest({ requestId: 'phase3-v2', attemptId: 'attempt-v2', manifest: phase3V2 }),
+    ).toMatchObject({
+      roleDefinitionDigest: qualityJourneyContractDigest(analyzerV2),
+    })
   })
 
   it('fails closed for missing or unverifiable required boundaries', () => {

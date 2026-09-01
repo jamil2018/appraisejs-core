@@ -363,6 +363,11 @@ Exit criteria:
 
 ### Phase 3 - Analysis Charter and Requirement Q&A
 
+Status: completed on 2026-09-01 in `codex/quality-journey-phase-3`. The delivered scope includes immutable Analysis
+Charter and Q&A lineage, stable downstream requirement IDs, exact publication/revision/approval gates, clean-room
+Analyzer revision assignments, six typed coordinator/MCP analysis operations, and the project-scoped Quality Journey
+intake, overview, and analysis-review screens. Phase 4 remains the next delivery boundary.
+
 Build Analysis Charter creation, revision, publication, questions, answers, resolution, and exact-revision approval.
 Add the Requirement Analyzer work-item loop and the first Journey Overview and analysis-review screens.
 

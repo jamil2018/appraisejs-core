@@ -2,7 +2,11 @@ import { createHash, randomUUID } from 'node:crypto'
 
 import { CredentialExecutionAuthorizationIssuer } from '@prisma/client'
 import { z } from 'zod'
-import { journeyCommandSchema, qualityJourneyRoleSchema } from '@/lib/quality-journey'
+import {
+  isSpecializedAnalysisLifecycleCommand,
+  journeyCommandSchema,
+  qualityJourneyRoleSchema,
+} from '@/lib/quality-journey'
 
 import prisma from '@/config/db-config'
 import { defaultOperationRegistry } from '@/lib/operation-catalog'
@@ -94,6 +98,7 @@ import {
   resumeQualityJourney,
   submitDurableQualityJourneyCommand,
 } from '@/services/coordinator/quality-journey-service'
+import { getQualityJourneyAnalysisRoute, postQualityJourneyAnalysisRoute } from './quality-journey-analysis-route'
 
 export const runtime = 'nodejs'
 
@@ -482,6 +487,8 @@ async function getTestRunEvidence(request: Request, operation: string[]) {
 }
 
 async function getQualityOperation(request: Request, operation: string[]) {
+  const analysisResponse = await getQualityJourneyAnalysisRoute(operation, new URL(request.url).searchParams)
+  if (analysisResponse) return analysisResponse
   if (operation[1] === 'journeys' && operation.length === 3) {
     const target = await resolveTargetProject(z.string().min(1).parse(new URL(request.url).searchParams.get('target')))
     return Response.json(await getQualityJourney({ journeyId: operation[2]!, targetProjectId: target.id }))
@@ -711,6 +718,8 @@ function isQualityJourneyWorkOperation(operation: string[], action: string) {
 }
 
 async function postQualityOperation(operation: string[], body: unknown): Promise<Response> {
+  const analysisResponse = await postQualityJourneyAnalysisRoute(operation, body)
+  if (analysisResponse) return analysisResponse
   const key = operation.join('/')
   if (key === 'quality/journeys') {
     const value = z
@@ -738,6 +747,8 @@ async function postQualityOperation(operation: string[], body: unknown): Promise
     const command = journeyCommandSchema.parse(value.command)
     if (command.journeyId !== operation[2] || command.targetProjectId !== target.id)
       throw new ServiceError('Quality Journey command scope does not match the requested journey.', 'CONFLICT')
+    if (isSpecializedAnalysisLifecycleCommand(command.command))
+      throw new ServiceError('Phase 3 analysis commands require their dedicated coordinator operation.', 'UNAUTHORIZED')
     return Response.json(await submitDurableQualityJourneyCommand(command))
   }
   if (key === `quality/journeys/${operation[2]}/work/claim`) {
