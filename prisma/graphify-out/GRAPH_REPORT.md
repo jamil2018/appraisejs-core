@@ -1,17 +1,17 @@
 # Graph Report - prisma
 
 ## Corpus Check
-- 90 files from prisma/schema.prisma and migrations
+- 91 files from prisma/schema.prisma and migrations
 - Verdict: schema-aware graph generated because Graphify AST extraction does not currently produce Prisma/SQL nodes.
 
 ## Summary
-- 2028 nodes · 4610 edges · 329 communities
+- 2029 nodes · 4612 edges · 330 communities
 - Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS
 - Token cost: 0 input · 0 output
 
 ## God Nodes (most connected - your core abstractions)
 1. `String` - 803 edges
-2. `schema.prisma` - 248 edges
+2. `schema.prisma` - 249 edges
 3. `TargetProject` - 188 edges
 4. `DateTime` - 177 edges
 5. `QualityValidationPublication` - 98 edges
@@ -42,7 +42,7 @@
 ## Import Cycles
 - None detected.
 
-## Communities (329 total)
+## Communities (330 total)
 ### Community 0 - "schema.prisma"
 Nodes (3): schema.prisma, datasource db (sqlite), Prisma client generator
 
@@ -1029,6 +1029,9 @@ Nodes (1): 20260828160000_complete_quality_journey_factory_phase_2
 
 ### Community 328 - "20260901090000_add_quality_journey_analysis_control_plane"
 Nodes (1): 20260901090000_add_quality_journey_analysis_control_plane
+
+### Community 329 - "20260901110000_enforce_quality_journey_analysis_answer_heads"
+Nodes (1): 20260901110000_enforce_quality_journey_analysis_answer_heads
 
 ## Suggested Questions
 - Which models connect Quality Plans to Assessments?

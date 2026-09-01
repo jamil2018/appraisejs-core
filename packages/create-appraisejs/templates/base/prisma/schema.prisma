@@ -639,10 +639,11 @@ model QualityJourneyAnalysisAnswer {
   question             QualityJourneyAnalysisQuestion @relation(fields: [questionRecordId], references: [id], onDelete: Restrict)
   artifact             QualityJourneyArtifact         @relation(fields: [artifactRecordId], references: [id], onDelete: Restrict)
   correctionOf         QualityJourneyAnalysisAnswer?  @relation("QualityJourneyAnalysisAnswerCorrection", fields: [correctionOfAnswerId], references: [id], onDelete: Restrict)
-  corrections          QualityJourneyAnalysisAnswer[] @relation("QualityJourneyAnalysisAnswerCorrection")
+  correction           QualityJourneyAnalysisAnswer?  @relation("QualityJourneyAnalysisAnswerCorrection")
 
   @@unique([journeyId, answerId])
   @@unique([journeyId, idempotencyKey])
+  @@unique([correctionOfAnswerId])
   @@index([questionRecordId, createdAt])
 }
 

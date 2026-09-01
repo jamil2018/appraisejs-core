@@ -10,6 +10,21 @@ private dispatch ingress after runtime-boundary validation. These operations are
 advertised by the canonical MCP registry. They operate on target-bound Appraise-owned state; conversation never substitutes for an exact
 state hash, idempotency key, work lease, spawn receipt, or worker result envelope.
 
+Phase 3 adds six Analysis Charter operations: `quality_journey_analysis_get`,
+`quality_journey_analysis_submit`, `quality_journey_analysis_answer`, `quality_journey_analysis_publish`,
+`quality_journey_analysis_revision_request`, and `quality_journey_analysis_decide`. Their coordinator routes are
+under `quality/journeys/:journeyId/analysis`; the path owns `journeyId`, the target reference resolves server-side,
+and strict bodies reject caller-provided lifecycle actor, command, journey, and durable target identifiers. The
+coordinator creates `RUNNER` publication and `USER` answer/revision/approval envelopes. Revision requests require
+the active published charter, exact content hash, and the current immutable Q&A review hash; publication keeps its
+historical review hash so a correction safely requires a successor rather than silently reviving an old approval.
+The compatibility `quality_journey_command_submit` route/tool rejects those three Phase 3 lifecycle commands, so it
+cannot bypass the typed publication, revision-request, or decision gates. Each question's immutable answers form one
+linear head: roots are allowed only once, corrections extend only that head, and successor charters resolve the head
+rather than corrected historical answers.
+After a revision request, predecessor Q&A is frozen while its fresh Analyzer assignment is pending; only the submitted
+successor may receive further answers, so an authorized assignment's immutable input cannot be invalidated in place.
+
 If an adapter call may have started a provider worker but its receipt is lost, Appraise marks the attempt
 `DISPATCH_UNRESOLVED`, blocks the work item with `AMBIGUOUS_PROVIDER_DISPATCH`, and retains the exact adapter/key.
 Phase 2 does not issue a replacement; a future adapter-reconciliation capability must establish the outcome first.

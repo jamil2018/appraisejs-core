@@ -10,6 +10,7 @@ describe('coordinator operation registry', () => {
   it.each([
     ['GET', ['diagnostic'], 'diagnostic'],
     ['GET', ['quality', 'plans', 'qlp_example', 'requirements'], 'quality-read'],
+    ['GET', ['quality', 'journeys', 'journey-1', 'analysis'], 'quality-read'],
     ['GET', ['quality', 'assessments', 'assessment-1'], 'quality-read'],
     ['GET', ['step-definitions', 'search'], 'step-definitions-read'],
     ['GET', ['environments'], 'environment-read'],

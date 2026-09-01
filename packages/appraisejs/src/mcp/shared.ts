@@ -100,6 +100,12 @@ export const qualityDesignWorkflow = {
       'quality_journey_work_cancel',
       'quality_journey_work_revoke',
       'quality_journey_artifacts_list',
+      'quality_journey_analysis_get',
+      'quality_journey_analysis_submit',
+      'quality_journey_analysis_answer',
+      'quality_journey_analysis_publish',
+      'quality_journey_analysis_revision_request',
+      'quality_journey_analysis_decide',
     ],
   },
 }

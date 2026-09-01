@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto'
 import type { Prisma, PrismaClient } from '@prisma/client'
+import { z } from 'zod'
 import prisma from '@/config/db-config'
 import { canonicalContractJson } from '@/lib/catalog-contracts'
 import {
@@ -307,6 +308,19 @@ function assertStableRequirementLineage(charter: AnalysisCharter, predecessorCha
     throw new ServiceError('Analysis successor violates stable requirement ID lineage.', 'CONFLICT')
 }
 
+async function assertResolvedAnswersUseCurrentHeads(answers: readonly { id: string }[], tx: Prisma.TransactionClient) {
+  if (answers.length === 0) return
+  const superseded = await tx.qualityJourneyAnalysisAnswer.findMany({
+    where: { correctionOfAnswerId: { in: answers.map(answer => answer.id) } },
+    select: { answerId: true },
+  })
+  if (superseded.length > 0)
+    throw new ServiceError(
+      'Analysis successor must reference the current answer head for every resolved question.',
+      'CONFLICT',
+    )
+}
+
 async function validatedAnalysisSuccessorLineage(
   submission: AnalysisSubmission,
   charter: AnalysisCharter,
@@ -330,6 +344,7 @@ async function validatedAnalysisSuccessorLineage(
   )
   if (resolvedAnswers.length !== charter.resolvedQuestionAnswerIds.length || hasForeignAnswer)
     throw new ServiceError('Analysis successor references answers outside its immediate predecessor.', 'CONFLICT')
+  await assertResolvedAnswersUseCurrentHeads(resolvedAnswers, tx)
   if (!predecessor) return { predecessor, resolvedAnswers }
   assertStableRequirementLineage(charter, analysisCharterSchema.parse(JSON.parse(predecessor.artifact.artifactJson)))
   const predecessorQuestions = await tx.qualityJourneyAnalysisQuestion.findMany({
@@ -580,6 +595,20 @@ async function assertAnswerTargetsCurrentAnalysis(
   if (journey.stage === 'ANALYSIS_REVIEW' && activeIds.analysis !== answer.analysisRevisionId)
     throw new ServiceError('Analysis answer is not for the current exact review revision.', 'CONFLICT')
   if (journey.stage !== 'ANALYSIS') return
+  const pendingAnalyzer = await tx.qualityJourneyWorkItem.findFirst({
+    where: {
+      journeyId: journey.id,
+      cycleId: journey.activeCycleId,
+      role: 'REQUIREMENT_ANALYZER',
+      status: { not: 'COMPLETED' },
+    },
+    select: { id: true },
+  })
+  if (pendingAnalyzer)
+    throw new ServiceError(
+      'Analysis answers are frozen while a requested successor Analyzer submission is pending.',
+      'CONFLICT',
+    )
   const candidate = await tx.qualityJourneyAnalysisRevision.findFirst({
     where: { id: answer.analysisRevisionId, journeyId: journey.id },
   })
@@ -598,12 +627,25 @@ async function answerQuestionOrThrow(answer: AnalysisAnswer, journeyId: string, 
     where: { analysisRevisionId: answer.analysisRevisionId },
   })
   if (decision) throw new ServiceError('Approved analysis cannot be changed; submit a successor revision.', 'CONFLICT')
-  if (!answer.correctionOfAnswerId) return { question, corrected: null }
-  const corrected = await tx.qualityJourneyAnalysisAnswer.findFirst({
-    where: { answerId: answer.correctionOfAnswerId, questionRecordId: question.id },
+  const answers = await tx.qualityJourneyAnalysisAnswer.findMany({
+    where: { questionRecordId: question.id },
+    select: { id: true, answerId: true, correctionOfAnswerId: true },
   })
-  if (!corrected) throw new ServiceError('Answer correction does not reference the same analysis question.', 'CONFLICT')
-  return { question, corrected }
+  if (!answer.correctionOfAnswerId) {
+    if (answers.length > 0)
+      throw new ServiceError(
+        'An analysis question already has an answer head; submit a correction instead.',
+        'CONFLICT',
+      )
+    return { question, corrected: null }
+  }
+  const correctedIds = new Set(
+    answers.flatMap(existing => (existing.correctionOfAnswerId ? [existing.correctionOfAnswerId] : [])),
+  )
+  const heads = answers.filter(existing => !correctedIds.has(existing.id))
+  if (heads.length !== 1 || heads[0]!.answerId !== answer.correctionOfAnswerId)
+    throw new ServiceError('Answer correction must extend the current answer head for the exact question.', 'CONFLICT')
+  return { question, corrected: heads[0] }
 }
 
 async function persistAnalysisAnswer(
@@ -907,4 +949,41 @@ export async function decideQualityJourneyAnalysis(value: unknown, client: Prism
   if (command.command !== 'DECIDE_ANALYSIS' || command.actor !== 'USER')
     throw new ServiceError('Only a user may approve an Analysis Charter.', 'UNAUTHORIZED')
   return client.$transaction(tx => decideQualityJourneyAnalysisInTransaction(command, tx))
+}
+
+const qualityJourneyAnalysisRevisionRequestSchema = z
+  .object({ command: journeyCommandSchema, expectedReviewHash: z.string().regex(/^sha256:[a-f0-9]{64}$/) })
+  .strict()
+
+/** A user-requested revision is a new immutable Analyzer round. Public callers
+ * cannot turn the generic command endpoint into an alternate approval path. */
+export async function requestQualityJourneyAnalysisRevision(value: unknown, client: PrismaClient = prisma) {
+  const request = qualityJourneyAnalysisRevisionRequestSchema.parse(value)
+  const command = request.command
+  if (command.command !== 'REQUEST_ANALYSIS_REVISION' || command.actor !== 'USER')
+    throw new ServiceError('Only a user may request an Analysis Charter revision.', 'UNAUTHORIZED')
+  return client.$transaction(async tx => {
+    const journey = await journeyOrThrow(command.journeyId, command.targetProjectId, tx)
+    const revision = await tx.qualityJourneyAnalysisRevision.findFirst({
+      where: { journeyId: journey.id, artifactRevisionId: command.payload.reviewedRevisionId },
+    })
+    if (!revision || revision.contentHash !== command.payload.reviewedHash)
+      throw new ServiceError('Analysis revision request does not bind an exact immutable charter revision.', 'CONFLICT')
+    assertExactCommandArtifact(command, revision)
+    const activeIds = JSON.parse(journey.activeRevisionIdsJson) as Record<string, string>
+    if (activeIds.analysis !== revision.artifactRevisionId)
+      throw new ServiceError('Analysis revision request does not bind the active analysis revision.', 'CONFLICT')
+    const publication = await tx.qualityJourneyAnalysisPublication.findUnique({
+      where: { analysisRevisionId: revision.id },
+    })
+    if (!publication || publication.artifactHash !== revision.contentHash)
+      throw new ServiceError('Analysis revision request requires an exact published analysis revision.', 'CONFLICT')
+    const reviewHash = await currentAnalysisReviewHash(revision.id, tx)
+    if (request.expectedReviewHash !== reviewHash)
+      throw new ServiceError(
+        'Analysis revision request review identity is stale; refresh the current charter and Q&A.',
+        'CONFLICT',
+      )
+    return submitDurableQualityJourneyCommandInTransaction(command, tx)
+  })
 }

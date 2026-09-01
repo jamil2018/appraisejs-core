@@ -34,9 +34,9 @@ The executable Quality Journey foundation is in `src/lib/quality-journey/`:
   completion, expiry, cancellation, revocation, and replacement are transactional.
 - `analysis-contracts.ts` defines the strict Phase 3 Analysis Charter, question, answer, successor, and canonical-hash
   payloads. Stable requirement IDs are charter content, never generated from a revision hash.
-- `quality-journey-analysis-service.ts` adds the private coordinator-service control plane for assignment-bound
-  Analyzer submission, immutable Q&A, publication, and exact approval. It is deliberately not yet an action, MCP,
-  or UI surface.
+- `quality-journey-analysis-service.ts` owns the coordinator-service control plane for assignment-bound Analyzer
+  submission, immutable Q&A, publication, revision requests, and exact approval. Six typed coordinator/MCP operations
+  expose that boundary, while the project-scoped Quality Journeys screens expose only user-authorized controls.
 - Prisma migration `20260828140000_add_quality_journey_phase_1` establishes the durable aggregate and database-enforced
   append-only lifecycle history. Prepared scaffold databases contain the schema but no journey, event, or lease state.
 - Prisma migration `20260828150000_add_quality_journey_factory_lineage` adds immutable work-item authorization and
@@ -60,7 +60,7 @@ conditional execution-consent and credential-authorization gates.
 
 ## Phase 3 analysis control plane
 
-The first Phase 3 backend increment is intentionally narrow. A Requirement Analyzer submits an Analysis Charter only
+A Requirement Analyzer submits an Analysis Charter only
 through its current, receipt-validated `REQUIREMENT_ANALYZER` assignment and lease. Appraise atomically stores the
 canonical charter and each unresolved question as immutable artifact payloads, records the analysis control rows, and
 completes the assigned work item. The charter binds the active requirement revision and cycle; each obligation refers
@@ -100,8 +100,16 @@ in a dedicated durable `analysisReviewHash` projection and contributes to the ke
 the revision-ID map. Exact replay of the original
 publish returns its immutable publication receipt even after a later Q&A correction; reusing that idempotency key
 with changed input is rejected. Exact decision replay likewise returns its matching immutable decision rather than
-attempting to create another row. These backend service operations are not yet exposed as
-coordinator actions, MCP operations, or screens; those remain follow-on Phase 3 work.
+attempting to create another row.
+
+The public Phase 3 surface adds `quality_journey_analysis_get`, `quality_journey_analysis_submit`,
+`quality_journey_analysis_answer`, `quality_journey_analysis_publish`,
+`quality_journey_analysis_revision_request`, and `quality_journey_analysis_decide`. Its route path owns the journey
+identity and resolves the target reference server-side; strict request bodies reject caller `journeyId`,
+`targetProjectId`, `actor`, and `command` fields. The coordinator constructs `USER` and `RUNNER` command semantics
+itself. A revision request must bind the active, published charter, exact content hash, and current Q&A review hash;
+the publication's historical review hash is retained for stale-decision detection, so a later answer correction can
+still enter the immutable successor loop.
 
 Role work items have an immutable authorization lineage and a separate durable attempt lineage. Each claim atomically
 persists its Assignment Manifest, canonical spawn request, hashes, and any predecessor-attempt link. A claim with no
@@ -122,10 +130,13 @@ returns its successor stage and state hash. A stale command returns `STALE_STATE
 hash, and next commands and commits no lifecycle event. Reusing an idempotency key with changed canonical input is an
 `IDEMPOTENCY_KEY_REUSED` conflict; an exact replay returns the original result.
 
-The journey kernel is exposed through `quality_journey_create`, `quality_journey_get`, `quality_journey_resume`,
+The original journey kernel surface is exposed through `quality_journey_create`, `quality_journey_get`, `quality_journey_resume`,
 `quality_journey_command_submit`, `quality_journey_work_claim`, `quality_journey_work_dispatch`,
 `quality_journey_work_complete`, `quality_journey_work_cancel`,
 `quality_journey_work_revoke`, `quality_journey_factory_evidence_inspect`, and `quality_journey_artifacts_list`.
+`quality_journey_command_submit` remains available for the original kernel commands, but the public coordinator and
+MCP boundary reject `PUBLISH_ANALYSIS`, `REQUEST_ANALYSIS_REVISION`, and `DECIDE_ANALYSIS`: each must use its typed
+Phase 3 operation so publication, revision, and approval retain their specialized authority and exact-review gates.
 Dispatch selects only a compatible registered provider-neutral adapter; no adapter blocks before execution. A durable
 per-attempt dispatch key is the adapter idempotency key. Only an adapter-thrown
 `AgentFactoryDispatchNotStartedError`—an explicit attestation that no worker was created—clears its in-flight
@@ -147,6 +158,13 @@ without replaying a worker transcript. It resolves an active Factory refusal blo
 attempt has budget remaining, then requests a replacement attempt with current artifact projection. An exhausted
 authorization instead retains an `ATTEMPT_BUDGET_EXHAUSTED` blocker with safe-resume command `NONE`: a new journey or
 future explicit re-authorization is required and `quality_journey_resume` cannot restart it.
+
+Analysis answers are append-only linear chains per exact question. The first answer is the only permitted root; every
+correction must name the sole current head, and a database uniqueness constraint prevents competing correction
+successors. A successor charter may resolve a predecessor question only by naming that current head, never a corrected
+historical answer. Once a user requests a revision, predecessor answers freeze until the receipt-validated Analyzer
+submits the successor; that preserves the immutable artifact set authorized for the fresh worker. The new unpublished
+successor accepts its own questions and answers after submission.
 
 ## Role authority
 

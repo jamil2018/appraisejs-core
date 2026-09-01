@@ -3,7 +3,8 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 
 import { CoordinatorRequestError } from './coordinator-call.js'
 import { mcpContractForServer, registerAppraiseOperations, withStructuredCoordinatorErrors } from './registry.js'
-import { canonicalMcpResourceNames, canonicalMcpToolNames } from './contract.js'
+import { canonicalMcpResourceNames, canonicalMcpToolAnnotations, canonicalMcpToolNames } from './contract.js'
+import { genericQualityJourneyCommandSchema } from './domains/quality-journey.js'
 
 describe('MCP tool registration', () => {
   it('exposes only the canonical Quality Design and Assessment surface', () => {
@@ -40,6 +41,56 @@ describe('MCP tool registration', () => {
           responseMode: expect.anything(),
         },
       },
+    })
+  })
+
+  it('assigns the narrow analysis-review annotation class to each Phase 3 operation', () => {
+    const expected = {
+      quality_journey_analysis_get: { readOnlyHint: true, openWorldHint: false },
+      quality_journey_analysis_submit: {
+        readOnlyHint: false,
+        destructiveHint: true,
+        idempotentHint: true,
+        openWorldHint: false,
+      },
+      quality_journey_analysis_answer: {
+        readOnlyHint: false,
+        destructiveHint: true,
+        idempotentHint: true,
+        openWorldHint: false,
+      },
+      quality_journey_analysis_publish: {
+        readOnlyHint: false,
+        destructiveHint: true,
+        idempotentHint: true,
+        openWorldHint: false,
+      },
+      quality_journey_analysis_revision_request: {
+        readOnlyHint: false,
+        destructiveHint: true,
+        idempotentHint: true,
+        openWorldHint: false,
+      },
+      quality_journey_analysis_decide: {
+        readOnlyHint: false,
+        destructiveHint: true,
+        idempotentHint: true,
+        openWorldHint: false,
+      },
+    }
+    for (const [name, annotation] of Object.entries(expected)) {
+      expect(canonicalMcpToolNames).toContain(name)
+      expect(canonicalMcpToolAnnotations[name]).toEqual(annotation)
+    }
+  })
+
+  it('rejects Phase 3 analysis commands from the generic Quality Journey MCP tool', () => {
+    for (const command of ['PUBLISH_ANALYSIS', 'REQUEST_ANALYSIS_REVISION', 'DECIDE_ANALYSIS'])
+      expect(() => genericQualityJourneyCommandSchema.parse({ command })).toThrow(
+        'Phase 3 analysis commands require their dedicated MCP tool.',
+      )
+    expect(genericQualityJourneyCommandSchema.parse({ command: 'SUBMIT_REQUIREMENT' })).toMatchObject({
+      command: 'SUBMIT_REQUIREMENT',
     })
   })
 

@@ -18,6 +18,7 @@ import {
   decideQualityJourneyAnalysis,
   getQualityJourneyAnalysis,
   publishQualityJourneyAnalysis,
+  requestQualityJourneyAnalysisRevision,
   submitQualityJourneyAnalysisSuccessor,
 } from './quality-journey-analysis-service'
 
@@ -344,6 +345,181 @@ describe('Quality Journey Phase 3 analysis control plane', () => {
     }
   }, 60_000)
 
+  it('keeps each analysis-question answer lineage to one current head', async () => {
+    const client = await fixture()
+    try {
+      const { created, claim } = await readyAnalyzer(client)
+      const first = await submitQualityJourneyAnalysisSuccessor(
+        {
+          journeyId: created.journey.journeyId,
+          targetProjectId: 'target-analysis-1',
+          workItemId: claim.workItem.id,
+          attemptId: claim.attempt.id,
+          leaseId: claim.attempt.leaseId,
+          ownerToken: claim.ownerToken,
+          idempotencyKey: 'answer-head-submit-first',
+          charter: charter(created.journey.journeyId, created.journey.activeCycleId, 'answer-head-first'),
+        },
+        client,
+      )
+      const answer = (answerId: string, correctionOfAnswerId?: string) => ({
+        idempotencyKey: `answer-head-${answerId}`,
+        answer: {
+          schemaVersion: 'appraise.quality-journey/v1' as const,
+          answerId,
+          journeyId: created.journey.journeyId,
+          targetProjectId: 'target-analysis-1',
+          analysisRevisionId: first.analysisRevision.id,
+          questionId: 'question-payment',
+          answer: `Answer ${answerId}.`,
+          actor: 'USER' as const,
+          ...(correctionOfAnswerId ? { correctionOfAnswerId } : {}),
+        },
+      })
+      await answerQualityJourneyAnalysisQuestion(answer('answer-head-1'), client)
+      await expect(answerQualityJourneyAnalysisQuestion(answer('answer-head-root-2'), client)).rejects.toMatchObject({
+        code: 'CONFLICT',
+      })
+      await answerQualityJourneyAnalysisQuestion(answer('answer-head-2', 'answer-head-1'), client)
+      await expect(
+        answerQualityJourneyAnalysisQuestion(answer('answer-head-branch', 'answer-head-1'), client),
+      ).rejects.toMatchObject({
+        code: 'CONFLICT',
+      })
+
+      const reviewed = await getQualityJourney(
+        { journeyId: created.journey.journeyId, targetProjectId: 'target-analysis-1' },
+        client,
+      )
+      const charterRef = {
+        kind: 'ANALYSIS_CHARTER_REVISION' as const,
+        artifactId: 'analysis-charter-answer-head-first',
+        revisionId: 'analysis-revision-answer-head-first',
+        contentHash: first.analysisRevision.contentHash,
+      }
+      await publishQualityJourneyAnalysis(
+        {
+          schemaVersion: 'appraise.quality-journey/v1',
+          commandId: 'answer-head-publish',
+          journeyId: created.journey.journeyId,
+          targetProjectId: 'target-analysis-1',
+          actor: 'RUNNER',
+          command: 'PUBLISH_ANALYSIS',
+          expectedStateHash: reviewed.journey.stateHash,
+          idempotencyKey: 'answer-head-publish',
+          inputArtifactRefs: [charterRef],
+          payload: { artifactRevisionId: first.analysisRevision.id, artifactHash: first.analysisRevision.contentHash },
+        },
+        client,
+      )
+      const published = await getQualityJourney(
+        { journeyId: created.journey.journeyId, targetProjectId: 'target-analysis-1' },
+        client,
+      )
+      await requestQualityJourneyAnalysisRevision(
+        {
+          expectedReviewHash: published.journey.analysisReviewHash,
+          command: {
+            schemaVersion: 'appraise.quality-journey/v1',
+            commandId: 'answer-head-revision-request',
+            journeyId: created.journey.journeyId,
+            targetProjectId: 'target-analysis-1',
+            actor: 'USER',
+            command: 'REQUEST_ANALYSIS_REVISION',
+            expectedStateHash: published.journey.stateHash,
+            idempotencyKey: 'answer-head-revision-request',
+            inputArtifactRefs: [charterRef],
+            payload: {
+              reviewedRevisionId: first.analysisRevision.id,
+              reviewedHash: first.analysisRevision.contentHash,
+              feedback: 'Carry the corrected answer forward.',
+            },
+          },
+        },
+        client,
+      )
+      await expect(
+        answerQualityJourneyAnalysisQuestion(answer('answer-head-frozen', 'answer-head-2'), client),
+      ).rejects.toMatchObject({ code: 'CONFLICT' })
+      const successorClaim = await claimQualityJourneyWork(
+        { journeyId: created.journey.journeyId, targetProjectId: 'target-analysis-1', role: 'REQUIREMENT_ANALYZER' },
+        client,
+      )
+      registerStartedAnalyzerAdapter(successorClaim.attempt.id, 'answer-head-successor-adapter')
+      await dispatchQualityJourneyWork(
+        {
+          journeyId: created.journey.journeyId,
+          targetProjectId: 'target-analysis-1',
+          workItemId: successorClaim.workItem.id,
+          leaseId: successorClaim.attempt.leaseId,
+          ownerToken: successorClaim.ownerToken,
+        },
+        client,
+      )
+      const successorInput = {
+        journeyId: created.journey.journeyId,
+        targetProjectId: 'target-analysis-1',
+        workItemId: successorClaim.workItem.id,
+        attemptId: successorClaim.attempt.id,
+        leaseId: successorClaim.attempt.leaseId,
+        ownerToken: successorClaim.ownerToken,
+        idempotencyKey: 'answer-head-successor',
+        predecessorAnalysisRevisionId: first.analysisRevision.id,
+      }
+      await expect(
+        submitQualityJourneyAnalysisSuccessor(
+          {
+            ...successorInput,
+            charter: {
+              ...charter(created.journey.journeyId, created.journey.activeCycleId, 'answer-head-historical'),
+              questions: [],
+              resolvedQuestionAnswerIds: ['answer-head-1'],
+            },
+          },
+          client,
+        ),
+      ).rejects.toMatchObject({ code: 'CONFLICT' })
+      const successor = await submitQualityJourneyAnalysisSuccessor(
+        {
+          ...successorInput,
+          charter: {
+            ...charter(created.journey.journeyId, created.journey.activeCycleId, 'answer-head-current'),
+            questions: [
+              {
+                questionId: 'question-shipping',
+                prompt: 'Which shipping method is in scope?',
+                required: true,
+                rationale: 'The successor charter must bound shipping coverage.',
+              },
+            ],
+            resolvedQuestionAnswerIds: ['answer-head-2'],
+          },
+        },
+        client,
+      )
+      await expect(
+        answerQualityJourneyAnalysisQuestion(
+          {
+            idempotencyKey: 'answer-head-successor-question',
+            answer: {
+              schemaVersion: 'appraise.quality-journey/v1',
+              answerId: 'answer-head-successor-question',
+              journeyId: created.journey.journeyId,
+              targetProjectId: 'target-analysis-1',
+              analysisRevisionId: successor.analysisRevision.id,
+              questionId: 'question-shipping',
+              answer: 'Standard shipping.',
+              actor: 'USER',
+            },
+          },
+          client,
+        ),
+      ).resolves.toMatchObject({ replayed: false })
+    } finally {
+      await client.$disconnect()
+    }
+  }, 60_000)
+
   it('rolls back immutable analysis control rows when assigned-work completion cannot commit', async () => {
     const client = await fixture()
     try {
@@ -503,6 +679,30 @@ describe('Quality Journey Phase 3 analysis control plane', () => {
           client,
         ),
       ).rejects.toMatchObject({ code: 'CONFLICT' })
+      await expect(
+        requestQualityJourneyAnalysisRevision(
+          {
+            expectedReviewHash: corrected.journey.analysisReviewHash,
+            command: {
+              schemaVersion: 'appraise.quality-journey/v1',
+              commandId: 'analysis-review-hash-revision-request',
+              journeyId: created.journey.journeyId,
+              targetProjectId: 'target-analysis-1',
+              actor: 'USER',
+              command: 'REQUEST_ANALYSIS_REVISION',
+              expectedStateHash: corrected.journey.stateHash,
+              idempotencyKey: 'analysis-review-hash-revision-request',
+              inputArtifactRefs: [charterRef],
+              payload: {
+                reviewedRevisionId: 'analysis-revision-review-hash',
+                reviewedHash: submitted.analysisRevision.contentHash,
+                feedback: 'Update payment scope after the corrected answer.',
+              },
+            },
+          },
+          client,
+        ),
+      ).resolves.toMatchObject({ outcome: 'COMMITTED', successorStage: 'ANALYSIS' })
     } finally {
       await client.$disconnect()
     }

@@ -9,6 +9,7 @@ import {
   Network,
   FolderKanban,
   Puzzle,
+  Route,
   Server,
   Settings2,
   Tag,
@@ -70,6 +71,7 @@ function getControlSection(): NavigationSection {
     label: 'Control',
     items: [
       { href: '/', label: 'Dashboard', icon: LayoutDashboard },
+      { href: '/quality-journeys', label: 'Quality Journeys', icon: Route },
       { href: '/quality-plans', label: 'Quality Plans', icon: Network },
       { href: '/assessments', label: 'Assessments', icon: ListChecks },
     ],

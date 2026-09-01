@@ -98,7 +98,7 @@ export const analysisSubmissionSchema = z
   })
   .strict()
 
-const analysisAnswerSchema = z
+export const analysisAnswerSchema = z
   .object({
     schemaVersion: z.literal(qualityJourneyContractVersion),
     answerId: id,
@@ -113,6 +113,16 @@ const analysisAnswerSchema = z
   .strict()
 
 export const analysisAnswerRequestSchema = z.object({ idempotencyKey: id, answer: analysisAnswerSchema }).strict()
+
+const specializedAnalysisLifecycleCommands = [
+  'PUBLISH_ANALYSIS',
+  'REQUEST_ANALYSIS_REVISION',
+  'DECIDE_ANALYSIS',
+] as const
+
+export function isSpecializedAnalysisLifecycleCommand(command: unknown): boolean {
+  return typeof command === 'string' && specializedAnalysisLifecycleCommands.includes(command as never)
+}
 
 export function hashAnalysisCharter(value: unknown): string {
   return hashCanonical(analysisCharterSchema.parse(value))

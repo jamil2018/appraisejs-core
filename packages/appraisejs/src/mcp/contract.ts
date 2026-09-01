@@ -11,6 +11,12 @@ const localMutation = Object.freeze({
   idempotentHint: true,
   openWorldHint: false,
 } satisfies ToolAnnotations)
+const durableLifecycleMutation = Object.freeze({
+  readOnlyHint: false,
+  destructiveHint: true,
+  idempotentHint: true,
+  openWorldHint: false,
+} satisfies ToolAnnotations)
 const localDecision = Object.freeze({
   readOnlyHint: false,
   destructiveHint: false,
@@ -61,6 +67,12 @@ export const canonicalMcpToolAnnotations = Object.freeze({
   quality_journey_work_cancel: externalStop,
   quality_journey_work_revoke: localMutation,
   quality_journey_artifacts_list: readOnly,
+  quality_journey_analysis_get: readOnly,
+  quality_journey_analysis_submit: durableLifecycleMutation,
+  quality_journey_analysis_answer: durableLifecycleMutation,
+  quality_journey_analysis_publish: durableLifecycleMutation,
+  quality_journey_analysis_revision_request: durableLifecycleMutation,
+  quality_journey_analysis_decide: durableLifecycleMutation,
   requirements_submit_source: localMutation,
   requirements_graph_read: readOnly,
   requirements_answer_queries: localMutation,
