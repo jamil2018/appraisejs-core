@@ -25,6 +25,22 @@ rather than corrected historical answers.
 After a revision request, predecessor Q&A is frozen while its fresh Analyzer assignment is pending; only the submitted
 successor may receive further answers, so an authorized assignment's immutable input cannot be invalidated in place.
 
+Phase 4 adds five discovery operations: `quality_journey_discovery_get`,
+`quality_journey_target_observation_submit`, `quality_journey_resource_resolution_submit`,
+`quality_journey_discovery_retry`, and `quality_journey_discovery_revalidate`. Exact analysis approval atomically
+freezes one discovery revision and issues independent Scout and Resource Explorer work items. Their input hashes bind
+the approved charter and decision, target and cycle, approved requirement set, and target-scoped environment, route,
+locator, Step Definition, and canonical-operation registries. The Scout assignment has read-only target routes and
+origins but no catalog write authority; the Resource Explorer has finite catalog IDs and no target or network access.
+
+Both result submissions require the current Factory attempt, lease owner token, authorization, input hash, assignment
+scope hash, and a strict role-specific bundle. Generic work completion rejects both discovery roles, and
+`quality_journey_command_submit` rejects `RETRY_DISCOVERY`, so neither path can bypass provenance, scope membership,
+or bundle validation. Outputs become immutable independently; the discovery revision completes exactly once after
+both exist and does not advance into Phase 5. Revalidation compares all frozen registry and input hashes with current
+authority. Drift invalidates the revision, while retry supersedes a terminal or invalidated revision and issues two
+fresh work items without copying output or reopening the approved analysis.
+
 If an adapter call may have started a provider worker but its receipt is lost, Appraise marks the attempt
 `DISPATCH_UNRESOLVED`, blocks the work item with `AMBIGUOUS_PROVIDER_DISPATCH`, and retains the exact adapter/key.
 Phase 2 does not issue a replacement; a future adapter-reconciliation capability must establish the outcome first.

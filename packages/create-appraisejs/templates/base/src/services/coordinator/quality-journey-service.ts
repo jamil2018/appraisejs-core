@@ -18,13 +18,13 @@ import {
   hashQualityJourneyState,
   journeyCommandResultSchema,
   journeyCommandSchema,
-  qualityJourneyCapabilityProfiles,
   qualityJourneyContractDigest,
   qualityJourneyRoleDefinitions,
   qualityJourneyRoleRegistryVersion,
   qualityJourneyWorkItemId,
   runnableQualityJourneyRoles,
   reconstructQualityJourneyRunner,
+  resolveQualityJourneyCapabilityProfile,
   resolveQualityJourneyRoleDefinition,
   resolveAgentFactoryProviderAdapter,
   submitQualityJourneyCommand,
@@ -37,6 +37,7 @@ import {
   type QualityJourneyStage,
 } from '@/lib/quality-journey'
 import { ServiceError } from '@/services/shared/errors'
+import { getQualityJourneyDiscoveryBootstrap } from './quality-journey-discovery-bootstrap'
 
 type Db = PrismaClient | Prisma.TransactionClient
 const json = (value: unknown) => canonicalContractJson(value)
@@ -56,6 +57,7 @@ type FactoryAuthorization = Pick<
   | 'inputArtifacts'
   | 'allowedTargetRoutes'
   | 'allowedResourceIds'
+  | 'targetEnvironmentBindings'
   | 'writableArtifactKinds'
   | 'scope'
   | 'completionCriteria'
@@ -64,9 +66,7 @@ type FactoryAuthorization = Pick<
 function roleAuthority(role: QualityJourneyRole, version: string = qualityJourneyRoleRegistryVersion) {
   const roleDefinition = resolveQualityJourneyRoleDefinition(version, role)
   if (!roleDefinition) throw new ServiceError('Quality Journey role authority is unavailable.', 'CONFLICT')
-  const capabilityProfile = Object.values(qualityJourneyCapabilityProfiles).find(
-    profile => profile.profileId === roleDefinition.capabilityProfileId,
-  )
+  const capabilityProfile = resolveQualityJourneyCapabilityProfile(version, roleDefinition.capabilityProfileId)
   if (!capabilityProfile) throw new ServiceError('Quality Journey capability profile is unavailable.', 'CONFLICT')
   return { roleDefinition, capabilityProfile }
 }
@@ -76,11 +76,14 @@ function factoryAuthorization(
   journey: Pick<QualityJourney, 'id' | 'targetProjectId'>,
   item: Pick<
     QualityJourneyWorkItem,
-    'id' | 'role' | 'inputArtifactRefsJson' | 'allowedOutputsJson' | 'completionCriteriaJson'
+    'id' | 'role' | 'inputArtifactRefsJson' | 'allowedOutputsJson' | 'completionCriteriaJson' | 'authorizationScopeJson'
   >,
   registryVersion: string = qualityJourneyRoleRegistryVersion,
 ): FactoryAuthorization {
   const { roleDefinition, capabilityProfile } = roleAuthority(item.role as QualityJourneyRole, registryVersion)
+  const persistedScope = JSON.parse(item.authorizationScopeJson) as Partial<
+    Pick<FactoryAuthorization, 'allowedTargetRoutes' | 'allowedResourceIds' | 'targetEnvironmentBindings' | 'scope'>
+  >
   return {
     schemaVersion: 'appraise.quality-journey/v1',
     authorizationId,
@@ -98,10 +101,13 @@ function factoryAuthorization(
       digest: qualityJourneyContractDigest(capabilityProfile),
     },
     inputArtifacts: JSON.parse(item.inputArtifactRefsJson),
-    allowedTargetRoutes: [],
-    allowedResourceIds: [],
+    allowedTargetRoutes: persistedScope.allowedTargetRoutes ?? [],
+    allowedResourceIds: persistedScope.allowedResourceIds ?? [],
+    ...(persistedScope.targetEnvironmentBindings
+      ? { targetEnvironmentBindings: persistedScope.targetEnvironmentBindings }
+      : {}),
     writableArtifactKinds: JSON.parse(item.allowedOutputsJson),
-    scope: {
+    scope: persistedScope.scope ?? {
       permittedTools: [...roleDefinition.permittedTools],
       permittedCommands: [...roleDefinition.permittedCommands],
       filesystemPaths: [],
@@ -166,6 +172,9 @@ function assignmentFromAuthorization(
     inputArtifacts,
     allowedTargetRoutes: authorization.allowedTargetRoutes,
     allowedResourceIds: authorization.allowedResourceIds,
+    ...(authorization.targetEnvironmentBindings
+      ? { targetEnvironmentBindings: authorization.targetEnvironmentBindings }
+      : {}),
     writableArtifactKinds: authorization.writableArtifactKinds,
     scope: authorization.scope,
     completionCriteria: authorization.completionCriteria,
@@ -310,7 +319,7 @@ async function predecessorAnalysisInputArtifacts(
 }
 
 async function ensureEligibleWorkItems(row: QualityJourney, db: Db) {
-  const roles = runnableQualityJourneyRoles(row.stage as QualityJourneyStage, [])
+  const roles = eligibleRolesForAutomaticIssuance(row.stage as QualityJourneyStage)
   const activeWorkItemIds = parseArray(row.activeWorkItemIdsJson)
   for (const role of roles) {
     const definition = qualityJourneyRoleDefinitions.find(item => item.role === role)!
@@ -361,6 +370,81 @@ async function ensureEligibleWorkItems(row: QualityJourney, db: Db) {
       await createWorkAuthorization(row, item, db)
     }
   }
+}
+
+function eligibleRolesForAutomaticIssuance(stage: QualityJourneyStage) {
+  // Discovery assignments have immutable, role-specific scopes compiled from
+  // the approved analysis. They are issued only by the discovery service.
+  return stage === 'DISCOVERY' ? [] : runnableQualityJourneyRoles(stage, [])
+}
+
+export type DiscoveryWorkItemSpec = {
+  id: string
+  role: Extract<QualityJourneyRole, 'SCOUT' | 'RESOURCE_EXPLORER'>
+  inputHash: string
+  inputArtifacts: AssignmentManifest['inputArtifacts']
+  authorizationScope: Pick<
+    FactoryAuthorization,
+    'allowedTargetRoutes' | 'allowedResourceIds' | 'targetEnvironmentBindings' | 'scope'
+  >
+  completionCriteria: readonly string[]
+}
+
+/** Issued only after the discovery revision has frozen its authority.  Keeping
+ * this beside Factory authorization creation makes a claim replay validate the
+ * same persisted scope the discovery compiler issued. */
+export async function issueQualityJourneyDiscoveryWorkItems(
+  row: QualityJourney,
+  specs: readonly DiscoveryWorkItemSpec[],
+  tx: Prisma.TransactionClient,
+) {
+  for (const spec of specs) {
+    const definition = qualityJourneyRoleDefinitions.find(candidate => candidate.role === spec.role)!
+    const existing = await tx.qualityJourneyWorkItem.findUnique({ where: { id: spec.id } })
+    if (existing) {
+      if (
+        existing.journeyId !== row.id ||
+        existing.role !== spec.role ||
+        existing.inputHash !== spec.inputHash ||
+        existing.inputArtifactRefsJson !== json(spec.inputArtifacts) ||
+        existing.authorizationScopeJson !== json(spec.authorizationScope)
+      )
+        throw new ServiceError('Discovery work item identity conflicts with frozen authority.', 'CONFLICT')
+      continue
+    }
+    const item = await tx.qualityJourneyWorkItem.create({
+      data: {
+        id: spec.id,
+        journeyId: row.id,
+        targetProjectId: row.targetProjectId,
+        cycleId: row.activeCycleId,
+        role: spec.role,
+        status: 'ELIGIBLE',
+        inputHash: spec.inputHash,
+        roleContractDigest: qualityJourneyContractDigest(definition),
+        inputArtifactRefsJson: json(spec.inputArtifacts),
+        allowedOutputsJson: json(definition.writableArtifacts),
+        completionCriteriaJson: json(spec.completionCriteria),
+        authorizationScopeJson: json(spec.authorizationScope),
+      },
+    })
+    await createWorkAuthorization(row, item, tx)
+  }
+}
+
+export async function setQualityJourneyActiveWorkItems(
+  journeyId: string,
+  workItemIds: readonly string[],
+  tx: Prisma.TransactionClient,
+) {
+  const journey = await tx.qualityJourney.findUniqueOrThrow({ where: { id: journeyId } })
+  const current = projection(journey)
+  const activeWorkItemIds = [...workItemIds]
+  const stateHash = hashQualityJourneyState({ ...current, activeWorkItemIds })
+  await tx.qualityJourney.update({
+    where: { id: journey.id },
+    data: { activeWorkItemIdsJson: json(activeWorkItemIds), stateHash, version: { increment: 1 } },
+  })
 }
 
 async function recoverLegacyFactoryAuthorizations(row: QualityJourney, db: Db) {
@@ -491,6 +575,12 @@ function replayCommand(command: JourneyCommand, row: QualityJourney, existing: Q
 async function runnerPreconditionConflict(command: JourneyCommand, row: QualityJourney, tx: Prisma.TransactionClient) {
   if (command.actor !== 'RUNNER') return null
   if (['RETRY_DISCOVERY', 'RETRY_AUTOMATION'].includes(command.command)) return null
+  if (command.command === 'START_SCENARIO_DESIGN') {
+    const discovery = row.activeDiscoveryRevisionId
+      ? await tx.qualityJourneyDiscoveryRevision.findUnique({ where: { id: row.activeDiscoveryRevisionId } })
+      : null
+    if (!discovery || discovery.status !== 'COMPLETED') return commandConflict(command, row, 'PRECONDITION_FAILED')
+  }
   const activeIds = parseArray(row.activeWorkItemIdsJson)
   if (activeIds.length === 0) return null
   const incomplete = await tx.qualityJourneyWorkItem.count({
@@ -618,8 +708,14 @@ async function persistAnalysisRevisionFeedbackArtifact(
   })
 }
 
-export async function submitDurableQualityJourneyCommandInTransaction(value: unknown, tx: Prisma.TransactionClient) {
+export async function submitDurableQualityJourneyCommandInTransaction(
+  value: unknown,
+  tx: Prisma.TransactionClient,
+  allowSpecializedCommand = false,
+) {
   const command = journeyCommandSchema.parse(value)
+  if (!allowSpecializedCommand && ['RETRY_DISCOVERY'].includes(command.command))
+    throw new ServiceError('This Quality Journey command requires its specialized authority boundary.', 'UNAUTHORIZED')
   const row = await readJourney(command.journeyId, command.targetProjectId, tx)
   const existing = await tx.qualityJourneyCommand.findUnique({
     where: { journeyId_idempotencyKey: { journeyId: row.id, idempotencyKey: command.idempotencyKey } },
@@ -905,13 +1001,59 @@ function predecessorDiagnostics(prior: QualityJourneyWorkAttempt | null, project
   } satisfies NonNullable<AssignmentManifest['replacement']>
 }
 
+async function retireLegacyDiscoveryAuthority(journeyId: string, tx: Prisma.TransactionClient) {
+  const legacyItems = await tx.qualityJourneyWorkItem.findMany({
+    where: { journeyId, role: { in: ['SCOUT', 'RESOURCE_EXPLORER'] } },
+    select: { id: true },
+  })
+  const legacyIds = legacyItems.map(item => item.id)
+  if (!legacyIds.length) return
+  const retiredAt = new Date()
+  await tx.qualityJourneyWorkAttempt.updateMany({
+    where: {
+      workItemId: { in: legacyIds },
+      status: { notIn: ['COMPLETED', 'CANCELLED', 'REFUSED', 'FAILED', 'EXPIRED'] },
+    },
+    data: {
+      status: 'CANCELLED',
+      cancelledAt: retiredAt,
+      cancelledBy: 'RUNNER',
+      cancellationReason: 'Superseded by the Phase 4 discovery control-plane upgrade.',
+    },
+  })
+  await tx.qualityJourneyWorkAuthorization.updateMany({
+    where: { workItemId: { in: legacyIds }, revokedAt: null },
+    data: {
+      revokedAt: retiredAt,
+      revokedBy: 'RUNNER',
+      revocationReason: 'Superseded by the Phase 4 discovery control-plane upgrade.',
+    },
+  })
+  await tx.qualityJourneyWorkItem.updateMany({
+    where: { id: { in: legacyIds }, status: { not: 'COMPLETED' } },
+    data: { status: 'SUPERSEDED', version: { increment: 1 } },
+  })
+}
+
+async function upgradeLegacyDiscoveryOnClaim(journey: QualityJourney, tx: Prisma.TransactionClient) {
+  if (journey.stage !== 'DISCOVERY' || journey.activeDiscoveryRevisionId) return journey
+  await retireLegacyDiscoveryAuthority(journey.id, tx)
+  const bootstrap = getQualityJourneyDiscoveryBootstrap()
+  if (!bootstrap) throw new ServiceError('Quality Journey discovery bootstrap is unavailable.', 'CONFLICT')
+  await bootstrap({ journeyId: journey.id, targetProjectId: journey.targetProjectId }, tx)
+  return readJourney(journey.id, journey.targetProjectId, tx)
+}
+
 export async function claimQualityJourneyWork(
   input: { journeyId: string; targetProjectId: string; role: QualityJourneyRole; leaseSeconds?: number },
   client: PrismaClient = prisma,
 ) {
   const leaseSeconds = Math.min(Math.max(input.leaseSeconds ?? 120, 30), 900)
   return client.$transaction(async tx => {
-    const journey = await readJourney(input.journeyId, input.targetProjectId, tx)
+    const persistedJourney = await readJourney(input.journeyId, input.targetProjectId, tx)
+    // Frozen target/catalog authority cannot be synthesized safely in SQL.
+    // Upgrade pre-Phase-4 DISCOVERY rows transactionally on their first claim.
+    const journey = await upgradeLegacyDiscoveryOnClaim(persistedJourney, tx)
     await ensureEligibleWorkItems(journey, tx)
     const item = await tx.qualityJourneyWorkItem.findFirst({
       where: { journeyId: journey.id, role: input.role, status: { in: ['ELIGIBLE', 'REPLACEMENT_REQUESTED'] } },
@@ -1526,6 +1668,7 @@ async function validateDurableWorkerLineage(
     [json(persistedAssignment.capabilityProfile), json(expectedAssignment.capabilityProfile)],
     [json(persistedAssignment.allowedTargetRoutes), json(expectedAssignment.allowedTargetRoutes)],
     [json(persistedAssignment.allowedResourceIds), json(expectedAssignment.allowedResourceIds)],
+    [json(persistedAssignment.targetEnvironmentBindings), json(expectedAssignment.targetEnvironmentBindings)],
     [json(persistedAssignment.writableArtifactKinds), json(expectedAssignment.writableArtifactKinds)],
     [json(persistedAssignment.scope), json(expectedAssignment.scope)],
     [json(persistedAssignment.completionCriteria), json(expectedAssignment.completionCriteria)],
@@ -1577,6 +1720,11 @@ export async function completeQualityJourneyWorkInTransaction(
 ) {
   const result = workerResultEnvelopeSchema.parse(input.result)
   const { item, attempt, authorization } = await readWorkAttempt(input, tx)
+  if (item.role === 'SCOUT' || item.role === 'RESOURCE_EXPLORER')
+    throw new ServiceError(
+      'Discovery roles must submit through their specialized discovery bundle boundary.',
+      'UNAUTHORIZED',
+    )
   assertFactoryAuthorityCurrent(item, authorization)
   if (attempt && attempt.status !== 'COMPLETED' && (!attempt.spawnReceiptJson || !attempt.spawnReceiptHash))
     throw new ServiceError('Quality Journey work completion has no validated Factory receipt.', 'UNAUTHORIZED')

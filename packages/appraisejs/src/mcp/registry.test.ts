@@ -84,10 +84,35 @@ describe('MCP tool registration', () => {
     }
   })
 
-  it('rejects Phase 3 analysis commands from the generic Quality Journey MCP tool', () => {
-    for (const command of ['PUBLISH_ANALYSIS', 'REQUEST_ANALYSIS_REVISION', 'DECIDE_ANALYSIS'])
+  it('assigns exact discovery annotations to each Phase 4 specialized operation', () => {
+    const durableMutation = {
+      readOnlyHint: false,
+      destructiveHint: true,
+      idempotentHint: true,
+      openWorldHint: false,
+    }
+    const expected = {
+      quality_journey_discovery_get: { readOnlyHint: true, openWorldHint: false },
+      quality_journey_target_observation_submit: durableMutation,
+      quality_journey_resource_resolution_submit: durableMutation,
+      quality_journey_discovery_retry: durableMutation,
+      quality_journey_discovery_revalidate: {
+        readOnlyHint: false,
+        destructiveHint: false,
+        idempotentHint: true,
+        openWorldHint: false,
+      },
+    }
+    for (const [name, annotation] of Object.entries(expected)) {
+      expect(canonicalMcpToolNames).toContain(name)
+      expect(canonicalMcpToolAnnotations[name]).toEqual(annotation)
+    }
+  })
+
+  it('rejects specialized analysis and discovery commands from the generic Quality Journey MCP tool', () => {
+    for (const command of ['PUBLISH_ANALYSIS', 'REQUEST_ANALYSIS_REVISION', 'DECIDE_ANALYSIS', 'RETRY_DISCOVERY'])
       expect(() => genericQualityJourneyCommandSchema.parse({ command })).toThrow(
-        'Phase 3 analysis commands require their dedicated MCP tool.',
+        'Specialized Quality Journey commands require their dedicated MCP tool.',
       )
     expect(genericQualityJourneyCommandSchema.parse({ command: 'SUBMIT_REQUIREMENT' })).toMatchObject({
       command: 'SUBMIT_REQUIREMENT',

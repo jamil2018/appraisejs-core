@@ -37,6 +37,10 @@ The executable Quality Journey foundation is in `src/lib/quality-journey/`:
 - `quality-journey-analysis-service.ts` owns the coordinator-service control plane for assignment-bound Analyzer
   submission, immutable Q&A, publication, revision requests, and exact approval. Six typed coordinator/MCP operations
   expose that boundary, while the project-scoped Quality Journeys screens expose only user-authorized controls.
+- `discovery-contracts.ts` defines strict provenance-bound Target Observation and Resource Resolution Bundles,
+  canonical ordering, requirement coverage, ranked classifications, confidence/stability, and revalidation policy.
+- `quality-journey-discovery-service.ts` freezes Phase 4 registry authority, issues the two least-privilege assignments,
+  accepts only their specialized output envelopes, completes the join, and owns revalidation and retry lineage.
 - Prisma migration `20260828140000_add_quality_journey_phase_1` establishes the durable aggregate and database-enforced
   append-only lifecycle history. Prepared scaffold databases contain the schema but no journey, event, or lease state.
 - Prisma migration `20260828150000_add_quality_journey_factory_lineage` adds immutable work-item authorization and
@@ -47,6 +51,9 @@ The executable Quality Journey foundation is in `src/lib/quality-journey/`:
 - Prisma migration `20260901090000_add_quality_journey_analysis_control_plane` adds insert-only analysis revision,
   question, answer, publication, and approval records. Each points to an immutable `QualityJourneyArtifact` payload;
   publication and approval therefore never update the reviewed charter in place.
+- Prisma migration `20260903120000_add_quality_journey_discovery_control_plane` adds the active discovery pointer,
+  immutable discovery revisions, fixed Scout and Resource Explorer work-item links, frozen scope and input hashes,
+  independent outputs, completion/invalidation state, and single-successor retry lineage.
 
 ## Lifecycle
 
@@ -83,6 +90,8 @@ instruction through Appraise-owned authority. Exact command replay preserves tha
 changed idempotent input is rejected.
 This added read authority is RoleDefinition registry version 2. Version 1 remains immutable and validates already
 issued Factory authorizations against its original Analyzer scope.
+Phase 4 uses registry version 3 for the Scout and Resource Explorer approval input and Resource Explorer network
+isolation. Versions 1 and 2 retain their original role and capability-profile digests for persisted authorizations.
 The attempt ceiling is scoped to that immutable authorization, so legitimate semantic revision rounds do not consume
 one another's retry allowance; work-attempt sequence numbers remain monotonic for audit lineage. An exhaustion
 blocker records its authorization ID and authorization-local attempt count alongside that monotonic sequence.
@@ -110,6 +119,40 @@ identity and resolves the target reference server-side; strict request bodies re
 itself. A revision request must bind the active, published charter, exact content hash, and current Q&A review hash;
 the publication's historical review hash is retained for stale-decision detection, so a later answer correction can
 still enter the immutable successor loop.
+
+## Phase 4 discovery control plane
+
+Exact analysis approval creates one active discovery revision in the approval transaction. Appraise derives its
+authority from the journey target: existing environments, target-owned locator groups and locators, visible ready Step
+Definitions, and the canonical operation registry. The compiler fails closed without an environment, a route-bearing
+locator group, or any finite resource inventory. It never derives scope from requirement prose and never grants a
+wildcard. The revision stores registry hashes, role-specific scope and input hashes, the approved requirement-set hash,
+and exact analysis revision and decision identities.
+
+Journeys already persisted at `DISCOVERY` before Phase 4 are upgraded on their first work claim inside the claim
+transaction. This runtime migration recompiles real target and catalog authority; the SQL migration deliberately does
+not invent frozen hashes or broad placeholder scope.
+
+The Scout work item may observe only its frozen environment IDs and routes through read-only target access. Its
+Assignment Manifest preserves each environment ID-to-origin binding instead of exposing independently sorted lists. Its Target
+Observation Bundle binds a snapshot, evidence receipts, environment and route, confidence and rationale, stability and
+rationale, and explicit revalidation triggers. The Resource Explorer work item receives only finite stable resource
+and operation IDs and has no target or network access. Its Resource Resolution Bundle covers every approved
+requirement and classifies ranked candidates as reusable, incompatible, stale, or cross-target, or records an explicit
+missing capability. Service validation checks resource ID, kind, and frozen owning target against the inventory, so an
+imported cross-target resource cannot be relabelled as local or attributed to another project.
+
+Each submission binds the exact work item, in-progress attempt, authorization, lease owner, input hash, assignment
+scope hash, and immutable upstream artifact set. Output is compare-and-swap immutable with exact idempotent replay.
+Parallel submissions write separate columns and converge on one completion hash and one `DISCOVERY_COMPLETED` event;
+completion deliberately remains in `DISCOVERY` until Phase 5 defines scenario-design authority. Generic Factory result
+completion rejects Scout and Resource Explorer output, and generic lifecycle commands reject `RETRY_DISCOVERY`.
+
+Revalidation recompiles current authority and invalidates the active revision on analysis or registry drift. A retry
+is allowed only for an active terminal or invalidated revision, has one idempotent successor, supersedes the predecessor,
+revokes and cancels its remaining claim authority, and issues two fresh work items. It copies neither output bundle nor
+worker transcript and retains the exact approved analysis unless a future explicit analysis revision is separately
+authorized.
 
 Role work items have an immutable authorization lineage and a separate durable attempt lineage. Each claim atomically
 persists its Assignment Manifest, canonical spawn request, hashes, and any predecessor-attempt link. A claim with no

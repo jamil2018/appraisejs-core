@@ -539,6 +539,9 @@ model QualityJourney {
   analysisPublications      QualityJourneyAnalysisPublication[]
   analysisDecisions         QualityJourneyAnalysisDecision[]
   workAuthorizations        QualityJourneyWorkAuthorization[]
+  discoveryRevisions        QualityJourneyDiscoveryRevision[]   @relation("JourneyDiscoveryRevisions")
+  activeDiscoveryRevisionId String?                             @unique
+  activeDiscoveryRevision   QualityJourneyDiscoveryRevision?    @relation("ActiveQualityJourneyDiscoveryRevision", fields: [activeDiscoveryRevisionId], references: [id], onDelete: Restrict)
 
   @@unique([targetProjectId, rootIdempotencyKey])
   @@index([targetProjectId, status])
@@ -597,6 +600,7 @@ model QualityJourneyAnalysisRevision {
   questions                QualityJourneyAnalysisQuestion[]
   publication              QualityJourneyAnalysisPublication?
   decision                 QualityJourneyAnalysisDecision?
+  discoveryRevisions       QualityJourneyDiscoveryRevision[]
 
   @@unique([journeyId, artifactRevisionId])
   @@unique([journeyId, revision])
@@ -662,21 +666,86 @@ model QualityJourneyAnalysisPublication {
 }
 
 model QualityJourneyAnalysisDecision {
-  id                 String                         @id
+  id                 String                            @id
   journeyId          String
-  analysisRevisionId String                         @unique
-  artifactRecordId   String                         @unique
-  commandId          String                         @unique
+  analysisRevisionId String                            @unique
+  artifactRecordId   String                            @unique
+  commandId          String                            @unique
   contentHash        String
   reviewHash         String
   decision           String
   actor              String
-  createdAt          DateTime                       @default(now())
-  journey            QualityJourney                 @relation(fields: [journeyId], references: [id], onDelete: Restrict)
-  analysisRevision   QualityJourneyAnalysisRevision @relation(fields: [analysisRevisionId], references: [id], onDelete: Restrict)
-  artifact           QualityJourneyArtifact         @relation(fields: [artifactRecordId], references: [id], onDelete: Restrict)
+  createdAt          DateTime                          @default(now())
+  journey            QualityJourney                    @relation(fields: [journeyId], references: [id], onDelete: Restrict)
+  analysisRevision   QualityJourneyAnalysisRevision    @relation(fields: [analysisRevisionId], references: [id], onDelete: Restrict)
+  artifact           QualityJourneyArtifact            @relation(fields: [artifactRecordId], references: [id], onDelete: Restrict)
+  discoveryRevisions QualityJourneyDiscoveryRevision[] @relation("QualityJourneyAnalysisDecisionDiscoveryRevisions")
 
   @@index([journeyId, createdAt])
+}
+
+/// Phase 4 freezes the exact discovery authority derived from one approved
+/// Analysis revision.  Payloads remain immutable JSON so workers can be
+/// replayed without consulting a later catalog; relational fields are the
+/// authority for lineage, work-item ownership, and active-revision selection.
+model QualityJourneyDiscoveryRevision {
+  id                               String                           @id
+  journeyId                        String
+  targetProjectId                  String
+  cycleId                          String
+  analysisRevisionId               String
+  analysisDecisionId               String
+  analysisArtifactId               String
+  analysisRevisionArtifactId       String
+  analysisRevisionContentHash      String
+  analysisApprovalArtifactId       String
+  analysisApprovalContentHash      String
+  approvedRequirementSetHash       String
+  environmentRegistryHash          String
+  locatorRegistryHash              String
+  resourceRegistryHash             String
+  stepDefinitionRegistryHash       String
+  operationRegistryHash            String
+  scoutScopeJson                   String
+  scoutInputHash                   String
+  resourceScopeJson                String
+  resourceInputHash                String
+  scopeHash                        String
+  scoutWorkItemId                  String                           @unique
+  resourceWorkItemId               String                           @unique
+  targetObservationJson            String?
+  targetObservationHash            String?
+  targetObservationIdempotencyKey  String?
+  targetObservationSubmittedAt     DateTime?
+  resourceResolutionJson           String?
+  resourceResolutionHash           String?
+  resourceResolutionIdempotencyKey String?
+  resourceResolutionSubmittedAt    DateTime?
+  status                           String                           @default("COLLECTING")
+  predecessorRevisionId            String?                          @unique
+  retryIdempotencyKey              String?
+  retryRequestHash                 String?
+  rowVersion                       Int                              @default(0)
+  completionHash                   String?
+  createdAt                        DateTime                         @default(now())
+  completedAt                      DateTime?
+  invalidatedAt                    DateTime?
+  supersededAt                     DateTime?
+  journey                          QualityJourney                   @relation("JourneyDiscoveryRevisions", fields: [journeyId], references: [id], onDelete: Restrict)
+  activeForJourney                 QualityJourney?                  @relation("ActiveQualityJourneyDiscoveryRevision")
+  analysisRevision                 QualityJourneyAnalysisRevision   @relation(fields: [analysisRevisionId], references: [id], onDelete: Restrict)
+  analysisDecision                 QualityJourneyAnalysisDecision   @relation("QualityJourneyAnalysisDecisionDiscoveryRevisions", fields: [analysisDecisionId], references: [id], onDelete: Restrict)
+  scoutWorkItem                    QualityJourneyWorkItem           @relation("DiscoveryScoutWorkItem", fields: [scoutWorkItemId], references: [id], onDelete: Restrict)
+  resourceWorkItem                 QualityJourneyWorkItem           @relation("DiscoveryResourceWorkItem", fields: [resourceWorkItemId], references: [id], onDelete: Restrict)
+  predecessor                      QualityJourneyDiscoveryRevision? @relation("DiscoveryRevisionPredecessor", fields: [predecessorRevisionId], references: [id], onDelete: Restrict)
+  successor                        QualityJourneyDiscoveryRevision? @relation("DiscoveryRevisionPredecessor")
+
+  @@index([journeyId, status])
+  @@unique([journeyId, targetObservationIdempotencyKey])
+  @@unique([journeyId, resourceResolutionIdempotencyKey])
+  @@unique([journeyId, retryIdempotencyKey])
+  @@index([targetProjectId, createdAt])
+  @@index([analysisRevisionId])
 }
 
 model QualityJourneyRevision {
@@ -739,25 +808,28 @@ model QualityJourneyEvent {
 }
 
 model QualityJourneyWorkItem {
-  id                     String                            @id
-  journeyId              String
-  targetProjectId        String
-  cycleId                String
-  role                   QualityJourneyRole
-  status                 QualityJourneyWorkItemStatus      @default(ELIGIBLE)
-  inputHash              String
-  roleContractDigest     String
-  inputArtifactRefsJson  String                            @default("[]")
-  allowedOutputsJson     String                            @default("[]")
-  completionCriteriaJson String                            @default("[]")
-  currentAttempt         Int                               @default(0)
-  version                Int                               @default(0)
-  createdAt              DateTime                          @default(now())
-  updatedAt              DateTime                          @updatedAt
-  journey                QualityJourney                    @relation(fields: [journeyId], references: [id], onDelete: Restrict)
-  authorizations         QualityJourneyWorkAuthorization[]
-  attempts               QualityJourneyWorkAttempt[]
-  analysisSubmissions    QualityJourneyAnalysisRevision[]  @relation("QualityJourneyAnalysisSubmittedWorkItem")
+  id                        String                            @id
+  journeyId                 String
+  targetProjectId           String
+  cycleId                   String
+  role                      QualityJourneyRole
+  status                    QualityJourneyWorkItemStatus      @default(ELIGIBLE)
+  inputHash                 String
+  roleContractDigest        String
+  inputArtifactRefsJson     String                            @default("[]")
+  allowedOutputsJson        String                            @default("[]")
+  completionCriteriaJson    String                            @default("[]")
+  authorizationScopeJson    String                            @default("{}")
+  currentAttempt            Int                               @default(0)
+  version                   Int                               @default(0)
+  createdAt                 DateTime                          @default(now())
+  updatedAt                 DateTime                          @updatedAt
+  journey                   QualityJourney                    @relation(fields: [journeyId], references: [id], onDelete: Restrict)
+  authorizations            QualityJourneyWorkAuthorization[]
+  attempts                  QualityJourneyWorkAttempt[]
+  analysisSubmissions       QualityJourneyAnalysisRevision[]  @relation("QualityJourneyAnalysisSubmittedWorkItem")
+  scoutDiscoveryRevision    QualityJourneyDiscoveryRevision?  @relation("DiscoveryScoutWorkItem")
+  resourceDiscoveryRevision QualityJourneyDiscoveryRevision?  @relation("DiscoveryResourceWorkItem")
 
   @@index([journeyId, status])
   @@index([journeyId, role, cycleId])

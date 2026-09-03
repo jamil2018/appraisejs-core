@@ -381,6 +381,11 @@ Exit criteria:
 
 ### Phase 4 - Scout and Resource Explorer Discovery
 
+Status: completed on 2026-09-04 in `codex/quality-journey-phase-04`. The delivered scope includes strict observation
+and resource-resolution contracts, an immutable discovery revision with frozen target and catalog authority, parallel
+least-privilege Factory work items, specialized coordinator/MCP submission boundaries, compare-and-swap output join,
+drift revalidation, and whole-revision retry lineage. Phase 5 remains the next delivery boundary.
+
 Implement parallel Scout and Resource Explorer work items after analysis approval. Scout publishes provenance-bound
 Target Observation Bundles. Resource Explorer publishes ranked Resource Resolution Bundles using stable Appraise IDs,
 compatibility reasons, rejected candidates, and missing-capability declarations.

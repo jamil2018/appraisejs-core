@@ -18,6 +18,11 @@ const {
   publishQualityJourneyAnalysis,
   requestQualityJourneyAnalysisRevision,
   decideQualityJourneyAnalysis,
+  getQualityJourneyDiscovery,
+  submitQualityJourneyTargetObservation,
+  submitQualityJourneyResourceResolution,
+  retryQualityJourneyDiscovery,
+  revalidateQualityJourneyDiscovery,
 } = vi.hoisted(() => ({
   ensureTargetLocator: vi.fn(async (value: Record<string, unknown>) => ({
     ...value,
@@ -60,6 +65,11 @@ const {
   publishQualityJourneyAnalysis: vi.fn(async (value: unknown) => ({ received: value })),
   requestQualityJourneyAnalysisRevision: vi.fn(async (value: unknown) => ({ received: value })),
   decideQualityJourneyAnalysis: vi.fn(async (value: unknown) => ({ received: value })),
+  getQualityJourneyDiscovery: vi.fn(async (value: unknown) => ({ received: value })),
+  submitQualityJourneyTargetObservation: vi.fn(async (value: unknown) => ({ received: value })),
+  submitQualityJourneyResourceResolution: vi.fn(async (value: unknown) => ({ received: value })),
+  retryQualityJourneyDiscovery: vi.fn(async (value: unknown) => ({ received: value })),
+  revalidateQualityJourneyDiscovery: vi.fn(async (value: unknown) => ({ received: value })),
 }))
 
 vi.mock('@/lib/coordinator-api/request-guard', () => ({
@@ -114,6 +124,13 @@ vi.mock('@/services/coordinator/quality-journey-analysis-service', () => ({
   requestQualityJourneyAnalysisRevision,
   decideQualityJourneyAnalysis,
 }))
+vi.mock('@/services/coordinator/quality-journey-discovery-service', () => ({
+  getQualityJourneyDiscovery,
+  submitQualityJourneyTargetObservation,
+  submitQualityJourneyResourceResolution,
+  retryQualityJourneyDiscovery,
+  revalidateQualityJourneyDiscovery,
+}))
 vi.mock('@/services/step-definition/built-in-readiness-service', () => ({
   ensureBuiltInStepDefinitionReadiness: vi.fn(async () => ({ seeded: 0, repaired: 0, unchanged: 127, errors: [] })),
 }))
@@ -138,7 +155,230 @@ const body = {
   locator: { name: 'Email input', selector: '[data-testid="email"]' },
 }
 
+const discoveryHash = `sha256:${'d'.repeat(64)}`
+
+function discoveryBundleBase() {
+  return {
+    bundleId: 'discovery-bundle-1',
+    cycleId: 'cycle-1',
+    analysisRevision: {
+      artifactId: 'analysis-charter-1',
+      revisionId: 'analysis-revision-1',
+      contentHash: discoveryHash,
+    },
+    analysisApproval: { artifactId: 'analysis-approval-1', contentHash: discoveryHash },
+    authorizationId: 'authorization-1',
+    inputHash: discoveryHash,
+    assignmentScopeHash: discoveryHash,
+    approvedRequirementSetHash: discoveryHash,
+    inputArtifacts: [
+      {
+        kind: 'ANALYSIS_CHARTER_REVISION',
+        artifactId: 'analysis-charter-1',
+        revisionId: 'analysis-revision-1',
+        contentHash: discoveryHash,
+      },
+      { kind: 'JOURNEY_APPROVAL', artifactId: 'analysis-approval-1', contentHash: discoveryHash },
+    ],
+    evidenceReceipts: [{ artifactId: 'evidence-1', contentHash: discoveryHash }],
+  }
+}
+
+function targetObservationBundle() {
+  return {
+    ...discoveryBundleBase(),
+    observedAt: '2026-09-03T12:00:00.000Z',
+    targetSnapshot: {
+      snapshotId: 'target-snapshot-1',
+      capturedAt: '2026-09-03T12:00:00.000Z',
+      contentHash: discoveryHash,
+    },
+    observations: [
+      {
+        observationId: 'observation-1',
+        snapshotId: 'target-snapshot-1',
+        routeId: 'route-login',
+        environmentId: 'environment-login',
+        fact: 'The login route accepts an email address.',
+        evidenceReceiptIds: ['evidence-1'],
+        confidence: 'HIGH',
+        confidenceRationale: 'Observed from the assigned target snapshot.',
+        stability: 'CONDITIONAL',
+        stabilityRationale: 'The behavior depends on the assigned environment.',
+        revalidationPolicy: { triggers: ['environment-change'] },
+      },
+    ],
+  }
+}
+
+function resourceResolutionBundle() {
+  return {
+    ...discoveryBundleBase(),
+    resolvedAt: '2026-09-03T12:00:00.000Z',
+    approvedRequirementIds: ['REQ-1'],
+    reusable: [],
+    incompatible: [],
+    stale: [],
+    crossTarget: [],
+    missing: [
+      {
+        requirementId: 'REQ-1',
+        capabilityId: 'capability-login',
+        reasonCode: 'NOT_FOUND',
+        explanation: 'No reusable resource was available in the frozen scope.',
+        evidenceReceiptIds: ['evidence-1'],
+      },
+    ],
+  }
+}
+
 describe('coordinator locator_ensure route', () => {
+  it('maps the exact target-bound discovery read route to its specialized service', async () => {
+    const response = await GET(
+      new Request(
+        `http://127.0.0.1:3000/api/internal/coordinator/quality/journeys/journey-discovery/discovery?target=${encodeURIComponent(targetFingerprint)}`,
+      ),
+      { params: Promise.resolve({ operation: ['quality', 'journeys', 'journey-discovery', 'discovery'] }) },
+    )
+
+    expect(response.status).toBe(200)
+    expect(getQualityJourneyDiscovery).toHaveBeenCalledWith({
+      journeyId: 'journey-discovery',
+      targetProjectId: 'target-login',
+    })
+  })
+
+  it('derives Target Observation and Resource Resolution submission scope from the route and rejects forged scope', async () => {
+    const submission = {
+      target: targetFingerprint,
+      discoveryRevisionId: 'discovery-revision-1',
+      workItemId: 'scout-work-1',
+      attemptId: 'scout-attempt-1',
+      leaseId: 'scout-lease-1',
+      ownerToken: 'scout-owner-token',
+      idempotencyKey: 'scout-submit-1',
+      expectedInputHash: discoveryHash,
+      expectedScopeHash: discoveryHash,
+      bundle: targetObservationBundle(),
+    }
+    const observation = await POST(request(submission, ''), {
+      params: Promise.resolve({
+        operation: ['quality', 'journeys', 'journey-discovery', 'discovery', 'target-observations'],
+      }),
+    })
+    expect(observation.status).toBe(201)
+    expect(submitQualityJourneyTargetObservation).toHaveBeenCalledWith(
+      expect.objectContaining({
+        journeyId: 'journey-discovery',
+        targetProjectId: 'target-login',
+        discoveryRevisionId: 'discovery-revision-1',
+        expectedInputHash: discoveryHash,
+        expectedScopeHash: discoveryHash,
+        bundle: expect.objectContaining({
+          schemaVersion: 'appraise.quality-journey/v1',
+          journeyId: 'journey-discovery',
+          targetProjectId: 'target-login',
+          workItemId: 'scout-work-1',
+          attemptId: 'scout-attempt-1',
+        }),
+      }),
+    )
+
+    const resolution = await POST(
+      request(
+        {
+          ...submission,
+          workItemId: 'resource-work-1',
+          attemptId: 'resource-attempt-1',
+          leaseId: 'resource-lease-1',
+          idempotencyKey: 'resource-submit-1',
+          expectedInputHash: `sha256:${'e'.repeat(64)}`,
+          expectedScopeHash: `sha256:${'f'.repeat(64)}`,
+          bundle: resourceResolutionBundle(),
+        },
+        '',
+      ),
+      {
+        params: Promise.resolve({
+          operation: ['quality', 'journeys', 'journey-discovery', 'discovery', 'resource-resolutions'],
+        }),
+      },
+    )
+    expect(resolution.status).toBe(201)
+    expect(submitQualityJourneyResourceResolution).toHaveBeenCalledWith(
+      expect.objectContaining({
+        workItemId: 'resource-work-1',
+        attemptId: 'resource-attempt-1',
+        expectedInputHash: `sha256:${'e'.repeat(64)}`,
+        expectedScopeHash: `sha256:${'f'.repeat(64)}`,
+      }),
+    )
+
+    const forged = await POST(request({ ...submission, journeyId: 'forged-journey' }, ''), {
+      params: Promise.resolve({
+        operation: ['quality', 'journeys', 'journey-discovery', 'discovery', 'target-observations'],
+      }),
+    })
+    expect(forged.status).toBe(400)
+
+    const forgedBundleScope = await POST(
+      request({ ...submission, bundle: { ...targetObservationBundle(), journeyId: 'forged-journey' } }, ''),
+      {
+        params: Promise.resolve({
+          operation: ['quality', 'journeys', 'journey-discovery', 'discovery', 'target-observations'],
+        }),
+      },
+    )
+    expect(forgedBundleScope.status).toBe(400)
+
+    const missingExpectationBody = { ...submission }
+    Reflect.deleteProperty(missingExpectationBody, 'expectedInputHash')
+    const missingExpectation = await POST(request(missingExpectationBody, ''), {
+      params: Promise.resolve({
+        operation: ['quality', 'journeys', 'journey-discovery', 'discovery', 'target-observations'],
+      }),
+    })
+    expect(missingExpectation.status).toBe(400)
+  })
+
+  it('uses only specialized retry and revalidation operations for an active discovery revision', async () => {
+    const retry = await POST(
+      request(
+        {
+          target: targetFingerprint,
+          expectedActiveDiscoveryRevisionId: 'discovery-revision-1',
+          idempotencyKey: 'discovery-retry-1',
+          reason: 'The frozen environment registry changed.',
+        },
+        '',
+      ),
+      { params: Promise.resolve({ operation: ['quality', 'journeys', 'journey-discovery', 'discovery', 'retries'] }) },
+    )
+    expect(retry.status).toBe(201)
+    expect(retryQualityJourneyDiscovery).toHaveBeenCalledWith({
+      journeyId: 'journey-discovery',
+      targetProjectId: 'target-login',
+      expectedActiveDiscoveryRevisionId: 'discovery-revision-1',
+      idempotencyKey: 'discovery-retry-1',
+      reason: 'The frozen environment registry changed.',
+    })
+
+    const revalidation = await POST(
+      request({ target: targetFingerprint, expectedActiveDiscoveryRevisionId: 'discovery-revision-1' }, ''),
+      {
+        params: Promise.resolve({
+          operation: ['quality', 'journeys', 'journey-discovery', 'discovery', 'revalidations'],
+        }),
+      },
+    )
+    expect(revalidation.status).toBe(200)
+    expect(revalidateQualityJourneyDiscovery).toHaveBeenCalledWith({
+      journeyId: 'journey-discovery',
+      targetProjectId: 'target-login',
+      expectedActiveDiscoveryRevisionId: 'discovery-revision-1',
+    })
+  })
+
   it('maps the exact target-bound Analysis Charter read route to its specialized service', async () => {
     const response = await GET(
       new Request(
@@ -341,6 +581,33 @@ describe('coordinator locator_ensure route', () => {
       expect(response.status).toBe(401)
       await expect(response.json()).resolves.toMatchObject({ code: 'UNAUTHORIZED' })
     }
+  })
+
+  it('fails closed when the generic command route receives a Phase 4 discovery retry', async () => {
+    const response = await POST(
+      request(
+        {
+          target: targetFingerprint,
+          command: {
+            schemaVersion: 'appraise.quality-journey/v1',
+            commandId: 'forged-discovery-retry',
+            journeyId: 'journey-discovery',
+            targetProjectId: 'target-login',
+            actor: 'USER',
+            command: 'RETRY_DISCOVERY',
+            expectedStateHash: `sha256:${'a'.repeat(64)}`,
+            idempotencyKey: 'forged-discovery-retry',
+            inputArtifactRefs: [],
+            payload: { blockerId: 'discovery-blocker-1', resolutionArtifactIds: ['artifact-1'] },
+          },
+        },
+        '',
+      ),
+      { params: Promise.resolve({ operation: ['quality', 'journeys', 'journey-discovery', 'commands'] }) },
+    )
+
+    expect(response.status).toBe(401)
+    await expect(response.json()).resolves.toMatchObject({ code: 'UNAUTHORIZED' })
   })
 
   it('constructs a USER answer envelope and rejects caller-provided actor authority', async () => {
