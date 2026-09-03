@@ -13,6 +13,7 @@ import {
 } from '@/lib/quality-journey'
 import { readVisibleResourceOwnerships } from '@/services/project-resource/project-resource-ownership-service'
 import { ServiceError } from '@/services/shared/errors'
+import { registerQualityJourneyDiscoveryBootstrap } from './quality-journey-discovery-bootstrap'
 import { issueQualityJourneyDiscoveryWorkItems, setQualityJourneyActiveWorkItems } from './quality-journey-service'
 
 type Db = PrismaClient | Prisma.TransactionClient
@@ -787,6 +788,8 @@ export async function retryQualityJourneyDiscovery(input: unknown, client: Prism
     return { replayed: false, discoveryRevision: fresh }
   })
 }
+
+registerQualityJourneyDiscoveryBootstrap(ensureQualityJourneyDiscoveryForApprovedAnalysis)
 
 export async function revalidateQualityJourneyDiscovery(
   input: { journeyId: string; targetProjectId: string; expectedActiveDiscoveryRevisionId: string },

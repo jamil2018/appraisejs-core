@@ -37,6 +37,7 @@ import {
   type QualityJourneyStage,
 } from '@/lib/quality-journey'
 import { ServiceError } from '@/services/shared/errors'
+import { getQualityJourneyDiscoveryBootstrap } from './quality-journey-discovery-bootstrap'
 
 type Db = PrismaClient | Prisma.TransactionClient
 const json = (value: unknown) => canonicalContractJson(value)
@@ -1037,13 +1038,9 @@ async function retireLegacyDiscoveryAuthority(journeyId: string, tx: Prisma.Tran
 async function upgradeLegacyDiscoveryOnClaim(journey: QualityJourney, tx: Prisma.TransactionClient) {
   if (journey.stage !== 'DISCOVERY' || journey.activeDiscoveryRevisionId) return journey
   await retireLegacyDiscoveryAuthority(journey.id, tx)
-  // Dynamic import defers the one-time upgrade edge until both service modules are initialized.
-  // fallow-ignore-next-line circular-dependency
-  const { ensureQualityJourneyDiscoveryForApprovedAnalysis } = await import('./quality-journey-discovery-service')
-  await ensureQualityJourneyDiscoveryForApprovedAnalysis(
-    { journeyId: journey.id, targetProjectId: journey.targetProjectId },
-    tx,
-  )
+  const bootstrap = getQualityJourneyDiscoveryBootstrap()
+  if (!bootstrap) throw new ServiceError('Quality Journey discovery bootstrap is unavailable.', 'CONFLICT')
+  await bootstrap({ journeyId: journey.id, targetProjectId: journey.targetProjectId }, tx)
   return readJourney(journey.id, journey.targetProjectId, tx)
 }
 
