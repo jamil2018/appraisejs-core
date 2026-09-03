@@ -43,7 +43,7 @@ const targetObservationSchema = z
   .object({
     observationId: id,
     snapshotId: id,
-    routeId: id,
+    routeId: z.string().min(1).max(2_000),
     environmentId: id,
     fact: text,
     evidenceReceiptIds: evidenceReceiptIdsSchema,

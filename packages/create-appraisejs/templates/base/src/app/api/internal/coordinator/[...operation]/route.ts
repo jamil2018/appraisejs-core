@@ -99,6 +99,7 @@ import {
   submitDurableQualityJourneyCommand,
 } from '@/services/coordinator/quality-journey-service'
 import { getQualityJourneyAnalysisRoute, postQualityJourneyAnalysisRoute } from './quality-journey-analysis-route'
+import { getQualityJourneyDiscoveryRoute, postQualityJourneyDiscoveryRoute } from './quality-journey-discovery-route'
 
 export const runtime = 'nodejs'
 
@@ -487,6 +488,8 @@ async function getTestRunEvidence(request: Request, operation: string[]) {
 }
 
 async function getQualityOperation(request: Request, operation: string[]) {
+  const discoveryResponse = await getQualityJourneyDiscoveryRoute(operation, new URL(request.url).searchParams)
+  if (discoveryResponse) return discoveryResponse
   const analysisResponse = await getQualityJourneyAnalysisRoute(operation, new URL(request.url).searchParams)
   if (analysisResponse) return analysisResponse
   if (operation[1] === 'journeys' && operation.length === 3) {
@@ -718,6 +721,8 @@ function isQualityJourneyWorkOperation(operation: string[], action: string) {
 }
 
 async function postQualityOperation(operation: string[], body: unknown): Promise<Response> {
+  const discoveryResponse = await postQualityJourneyDiscoveryRoute(operation, body)
+  if (discoveryResponse) return discoveryResponse
   const analysisResponse = await postQualityJourneyAnalysisRoute(operation, body)
   if (analysisResponse) return analysisResponse
   const key = operation.join('/')
@@ -749,6 +754,8 @@ async function postQualityOperation(operation: string[], body: unknown): Promise
       throw new ServiceError('Quality Journey command scope does not match the requested journey.', 'CONFLICT')
     if (isSpecializedAnalysisLifecycleCommand(command.command))
       throw new ServiceError('Phase 3 analysis commands require their dedicated coordinator operation.', 'UNAUTHORIZED')
+    if (command.command === 'RETRY_DISCOVERY')
+      throw new ServiceError('Phase 4 discovery retries require their dedicated coordinator operation.', 'UNAUTHORIZED')
     return Response.json(await submitDurableQualityJourneyCommand(command))
   }
   if (key === `quality/journeys/${operation[2]}/work/claim`) {

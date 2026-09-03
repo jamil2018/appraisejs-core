@@ -6,9 +6,11 @@ import {
   clearAgentFactoryProviderAdaptersForTest,
   dispatchWorkerSpawnRequest,
   qualityJourneyCapabilityProfiles,
+  qualityJourneyCapabilityProfilesV2,
   qualityJourneyContractDigest,
   qualityJourneyRoleDefinitions,
   qualityJourneyRoleDefinitionsV1,
+  qualityJourneyRoleDefinitionsV2,
   registerAgentFactoryProviderAdapter,
   validateWorkerResult,
   validateWorkerSpawnReceipt,
@@ -28,8 +30,8 @@ function manifest(): AssignmentManifest {
     journeyId: 'journey-1',
     targetProjectId: 'target-1',
     workItemId: 'work-1',
-    roleDefinition: { role: 'SCOUT', version: '1', digest: qualityJourneyContractDigest(scout) },
-    capabilityProfile: { profileId: profile.profileId, version: '1', digest: qualityJourneyContractDigest(profile) },
+    roleDefinition: { role: 'SCOUT', version: '3', digest: qualityJourneyContractDigest(scout) },
+    capabilityProfile: { profileId: profile.profileId, version: '3', digest: qualityJourneyContractDigest(profile) },
     inputArtifacts: [],
     allowedTargetRoutes: ['/checkout'],
     allowedResourceIds: [],
@@ -126,9 +128,34 @@ describe('Quality Journey Agent Factory', () => {
     ).toThrow('capability profile version or digest mismatch')
   })
 
+  it('retains immutable Phase 2 Scout and Resource Explorer authority under registry v2', () => {
+    const scoutV2 = qualityJourneyRoleDefinitionsV2.find(definition => definition.role === 'SCOUT')!
+    const resourceV2 = qualityJourneyRoleDefinitionsV2.find(definition => definition.role === 'RESOURCE_EXPLORER')!
+    expect(scoutV2.readableArtifacts).toEqual(['ANALYSIS_CHARTER_REVISION'])
+    expect(resourceV2.readableArtifacts).toEqual(['ANALYSIS_CHARTER_REVISION'])
+    expect(qualityJourneyCapabilityProfilesV2.resourceResolution.requiredVerifiedRuntimeBoundaries).not.toContain(
+      'NETWORK',
+    )
+    expect(
+      createWorkerSpawnRequest({
+        requestId: 'historical-scout-request',
+        attemptId: 'historical-scout-attempt',
+        manifest: {
+          ...manifest(),
+          roleDefinition: { role: 'SCOUT', version: '2', digest: qualityJourneyContractDigest(scoutV2) },
+          capabilityProfile: {
+            profileId: qualityJourneyCapabilityProfilesV2.fastObservation.profileId,
+            version: '2',
+            digest: qualityJourneyContractDigest(qualityJourneyCapabilityProfilesV2.fastObservation),
+          },
+        },
+      }).role,
+    ).toBe('SCOUT')
+  })
+
   it('accepts persisted Analyzer v1 authority while new feedback authority uses v2', () => {
     const analyzerV1 = qualityJourneyRoleDefinitionsV1.find(definition => definition.role === 'REQUIREMENT_ANALYZER')!
-    const analyzerV2 = qualityJourneyRoleDefinitions.find(definition => definition.role === 'REQUIREMENT_ANALYZER')!
+    const analyzerV2 = qualityJourneyRoleDefinitionsV2.find(definition => definition.role === 'REQUIREMENT_ANALYZER')!
     const profile = qualityJourneyCapabilityProfiles.structuredAnalysis
     const analyzerManifest = (
       version: '1' | '2',

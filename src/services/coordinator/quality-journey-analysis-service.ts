@@ -22,6 +22,7 @@ import {
   submitDurableQualityJourneyCommandInTransaction,
   type WorkCompletionInput,
 } from './quality-journey-service'
+import { ensureQualityJourneyDiscoveryForApprovedAnalysis } from './quality-journey-discovery-service'
 
 type Db = PrismaClient | Prisma.TransactionClient
 const json = (value: unknown) => canonicalContractJson(value)
@@ -752,7 +753,7 @@ async function replayedAnalysisPublication(
     where: { journeyId_idempotencyKey: { journeyId, idempotencyKey: command.idempotencyKey } },
   })
   if (!existingCommand) return null
-  const replay = await submitDurableQualityJourneyCommandInTransaction(command, tx)
+  const replay = await submitDurableQualityJourneyCommandInTransaction(command, tx, true)
   if (replay.outcome !== 'COMMITTED' || !replay.replayed) return replay
   const publication = await tx.qualityJourneyAnalysisPublication.findUnique({ where: { commandId: command.commandId } })
   if (!publication)
@@ -822,7 +823,7 @@ async function publishQualityJourneyAnalysisInTransaction(
   const reviewHash = await currentAnalysisReviewHash(revision.id, tx)
   if (journey.analysisReviewHash !== reviewHash)
     throw new ServiceError('Analysis review identity is stale; refresh the current charter and Q&A.', 'CONFLICT')
-  const result = await submitDurableQualityJourneyCommandInTransaction(command, tx)
+  const result = await submitDurableQualityJourneyCommandInTransaction(command, tx, true)
   if (result.outcome !== 'COMMITTED') return result
   const publication = await ensureAnalysisPublication({ command, journey, revision, reviewHash }, tx)
   return { ...result, publication }
@@ -939,8 +940,14 @@ async function ensureAnalysisDecision(
 async function decideQualityJourneyAnalysisInTransaction(command: DecideAnalysisCommand, tx: Prisma.TransactionClient) {
   const journey = await journeyOrThrow(command.journeyId, command.targetProjectId, tx)
   const { revision, reviewHash } = await decidableAnalysisRevisionOrThrow(command, journey, tx)
-  const result = await submitDurableQualityJourneyCommandInTransaction(command, tx)
-  if (result.outcome === 'COMMITTED') await ensureAnalysisDecision({ command, journey, revision, reviewHash }, tx)
+  const result = await submitDurableQualityJourneyCommandInTransaction(command, tx, true)
+  if (result.outcome === 'COMMITTED') {
+    await ensureAnalysisDecision({ command, journey, revision, reviewHash }, tx)
+    await ensureQualityJourneyDiscoveryForApprovedAnalysis(
+      { journeyId: journey.id, targetProjectId: journey.targetProjectId },
+      tx,
+    )
+  }
   return result
 }
 
@@ -984,6 +991,6 @@ export async function requestQualityJourneyAnalysisRevision(value: unknown, clie
         'Analysis revision request review identity is stale; refresh the current charter and Q&A.',
         'CONFLICT',
       )
-    return submitDurableQualityJourneyCommandInTransaction(command, tx)
+    return submitDurableQualityJourneyCommandInTransaction(command, tx, true)
   })
 }

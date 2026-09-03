@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto'
 import { promises as fs } from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
@@ -5,6 +6,7 @@ import { PrismaClient } from '@prisma/client'
 import { afterEach, describe, expect, it } from 'vitest'
 import { copyMigratedTestDatabase } from '@/test/migrated-test-database'
 import { clearAgentFactoryProviderAdaptersForTest, registerAgentFactoryProviderAdapter } from '@/lib/quality-journey'
+import { canonicalContractJson } from '@/lib/catalog-contracts'
 import {
   claimQualityJourneyWork,
   createQualityJourney,
@@ -21,9 +23,17 @@ import {
   requestQualityJourneyAnalysisRevision,
   submitQualityJourneyAnalysisSuccessor,
 } from './quality-journey-analysis-service'
+import {
+  getQualityJourneyDiscovery,
+  revalidateQualityJourneyDiscovery,
+  retryQualityJourneyDiscovery,
+  submitQualityJourneyResourceResolution,
+  submitQualityJourneyTargetObservation,
+} from './quality-journey-discovery-service'
 
 const workspaces: string[] = []
 const digest = (character: string) => `sha256:${character.repeat(64)}`
+const hash = (value: unknown) => `sha256:${createHash('sha256').update(canonicalContractJson(value)).digest('hex')}`
 
 afterEach(async () => {
   clearAgentFactoryProviderAdaptersForTest()
@@ -44,6 +54,26 @@ async function fixture() {
       canonicalPath: workspace,
       displayName: 'Analysis fixture',
       fingerprint: digest('a'),
+    },
+  })
+  await client.environment.create({
+    data: {
+      id: 'environment-analysis-1',
+      name: 'local',
+      baseUrl: 'https://example.test',
+      targetProjectId: 'target-analysis-1',
+    },
+  })
+  await client.module.create({
+    data: { id: 'module-analysis-1', name: 'Checkout', targetProjectId: 'target-analysis-1' },
+  })
+  await client.locatorGroup.create({
+    data: {
+      id: 'locator-group-analysis-1',
+      name: 'Checkout route',
+      route: '/checkout',
+      moduleId: 'module-analysis-1',
+      targetProjectId: 'target-analysis-1',
     },
   })
   return client
@@ -158,7 +188,11 @@ async function readyAnalyzer(client: PrismaClient) {
   return { created, state, claim }
 }
 
-function registerStartedAnalyzerAdapter(attemptId: string, adapterId: string) {
+function registerStartedAnalyzerAdapter(
+  attemptId: string,
+  adapterId: string,
+  latencyPreference: 'FAST' | 'DELIBERATE' = 'DELIBERATE',
+) {
   registerAgentFactoryProviderAdapter({
     adapterId,
     supports: request => request.attemptId === attemptId,
@@ -174,7 +208,7 @@ function registerStartedAnalyzerAdapter(attemptId: string, adapterId: string) {
       effectiveWorker: {
         modelId: 'provider-selected',
         reasoningLevel: 'HIGH',
-        latencyPreference: 'DELIBERATE',
+        latencyPreference,
         toolIds: request.scope.permittedTools,
       },
       boundaries: request.requiredBoundaries.map(boundary => ({
@@ -300,6 +334,349 @@ describe('Quality Journey Phase 3 analysis control plane', () => {
         decideQualityJourneyAnalysis({ ...decide, commandId: 'decide-analysis-1-changed' }, client),
       ).resolves.toMatchObject({ outcome: 'CONFLICT', code: 'IDEMPOTENCY_KEY_REUSED' })
       expect(await client.qualityJourneyAnalysisDecision.count()).toBe(1)
+      const discovery = await getQualityJourneyDiscovery(
+        { journeyId: created.journey.journeyId, targetProjectId: 'target-analysis-1' },
+        client,
+      )
+      expect(discovery.revisions).toHaveLength(1)
+      const discoveryRevision = discovery.revisions[0]
+      expect(discoveryRevision.status).toBe('COLLECTING')
+      expect([discoveryRevision.scoutWorkItem.role, discoveryRevision.resourceWorkItem.role]).toEqual([
+        'SCOUT',
+        'RESOURCE_EXPLORER',
+      ])
+      const scoutClaim = await claimQualityJourneyWork(
+        { journeyId: created.journey.journeyId, targetProjectId: 'target-analysis-1', role: 'SCOUT' },
+        client,
+      )
+      const resourceClaim = await claimQualityJourneyWork(
+        {
+          journeyId: created.journey.journeyId,
+          targetProjectId: 'target-analysis-1',
+          role: 'RESOURCE_EXPLORER',
+        },
+        client,
+      )
+      expect(scoutClaim.assignment.allowedResourceIds).toContain('environment-analysis-1')
+      expect(scoutClaim.assignment.allowedTargetRoutes).toContain('/checkout')
+      expect(scoutClaim.assignment.targetEnvironmentBindings).toEqual([
+        { environmentId: 'environment-analysis-1', origin: 'https://example.test' },
+      ])
+      const collectingState = await getQualityJourney(
+        { journeyId: created.journey.journeyId, targetProjectId: 'target-analysis-1' },
+        client,
+      )
+      await expect(
+        submitDurableQualityJourneyCommand(
+          {
+            schemaVersion: 'appraise.quality-journey/v1',
+            commandId: 'premature-scenario-design',
+            journeyId: created.journey.journeyId,
+            targetProjectId: 'target-analysis-1',
+            actor: 'RUNNER',
+            command: 'START_SCENARIO_DESIGN',
+            expectedStateHash: collectingState.journey.stateHash,
+            idempotencyKey: 'premature-scenario-design',
+            inputArtifactRefs: [],
+            payload: {},
+          },
+          client,
+        ),
+      ).resolves.toMatchObject({ outcome: 'CONFLICT', code: 'PRECONDITION_FAILED' })
+      registerStartedAnalyzerAdapter(scoutClaim.attempt.id, 'discovery-scout-adapter', 'FAST')
+      registerStartedAnalyzerAdapter(resourceClaim.attempt.id, 'discovery-resource-adapter', 'FAST')
+      await dispatchQualityJourneyWork(
+        {
+          journeyId: created.journey.journeyId,
+          targetProjectId: 'target-analysis-1',
+          workItemId: scoutClaim.workItem.id,
+          leaseId: scoutClaim.attempt.leaseId,
+          ownerToken: scoutClaim.ownerToken,
+        },
+        client,
+      )
+      expect(
+        await client.qualityJourneyWorkAttempt.findUniqueOrThrow({ where: { id: scoutClaim.attempt.id } }),
+      ).toMatchObject({
+        status: 'IN_PROGRESS',
+        authorizationId: scoutClaim.attempt.authorizationId,
+        leaseId: scoutClaim.attempt.leaseId,
+      })
+      await dispatchQualityJourneyWork(
+        {
+          journeyId: created.journey.journeyId,
+          targetProjectId: 'target-analysis-1',
+          workItemId: resourceClaim.workItem.id,
+          leaseId: resourceClaim.attempt.leaseId,
+          ownerToken: resourceClaim.ownerToken,
+        },
+        client,
+      )
+      const inputArtifacts = JSON.parse(discoveryRevision.scoutWorkItem.inputArtifactRefsJson)
+      const bundleBase = {
+        schemaVersion: 'appraise.quality-journey/v1' as const,
+        journeyId: created.journey.journeyId,
+        targetProjectId: 'target-analysis-1',
+        cycleId: created.journey.activeCycleId,
+        analysisRevision: {
+          artifactId: discoveryRevision.analysisRevisionArtifactId,
+          revisionId: 'analysis-revision-1',
+          contentHash: discoveryRevision.analysisRevisionContentHash,
+        },
+        analysisApproval: {
+          artifactId: discoveryRevision.analysisApprovalArtifactId,
+          contentHash: discoveryRevision.analysisApprovalContentHash,
+        },
+        approvedRequirementSetHash: discoveryRevision.approvedRequirementSetHash,
+        inputArtifacts,
+        evidenceReceipts: [{ artifactId: 'evidence-1', contentHash: digest('e') }],
+      }
+      const scoutScope = JSON.parse(discoveryRevision.scoutWorkItem.authorizationScopeJson)
+      const scoutBundle = {
+        ...bundleBase,
+        bundleId: 'observation-bundle-1',
+        workItemId: scoutClaim.workItem.id,
+        attemptId: scoutClaim.attempt.id,
+        authorizationId: scoutClaim.attempt.authorizationId!,
+        inputHash: discoveryRevision.scoutInputHash,
+        assignmentScopeHash: hash(scoutScope),
+        observedAt: '2026-09-04T00:00:00.000Z',
+        targetSnapshot: {
+          snapshotId: 'snapshot-1',
+          capturedAt: '2026-09-04T00:00:00.000Z',
+          contentHash: digest('c'),
+        },
+        observations: [
+          {
+            observationId: 'observation-1',
+            snapshotId: 'snapshot-1',
+            routeId: '/checkout',
+            environmentId: 'environment-analysis-1',
+            fact: 'Checkout is visible.',
+            evidenceReceiptIds: ['evidence-1'],
+            confidence: 'HIGH' as const,
+            confidenceRationale: 'The snapshot directly shows the checkout.',
+            stability: 'STABLE' as const,
+            stabilityRationale: 'The route is part of the registered target.',
+            revalidationPolicy: { triggers: ['environment_registry_changed'] },
+          },
+        ],
+      }
+      await expect(
+        submitQualityJourneyTargetObservation(
+          {
+            journeyId: created.journey.journeyId,
+            targetProjectId: 'target-analysis-1',
+            discoveryRevisionId: discoveryRevision.id,
+            workItemId: scoutClaim.workItem.id,
+            attemptId: scoutClaim.attempt.id,
+            leaseId: scoutClaim.attempt.leaseId,
+            ownerToken: scoutClaim.ownerToken,
+            idempotencyKey: 'submit-observation-1',
+            expectedInputHash: discoveryRevision.scoutInputHash,
+            expectedScopeHash: hash(scoutScope),
+            bundle: scoutBundle,
+          },
+          client,
+        ),
+      ).resolves.toMatchObject({ replayed: false, discoveryRevision: { status: 'COLLECTING' } })
+      await expect(
+        submitQualityJourneyTargetObservation(
+          {
+            journeyId: created.journey.journeyId,
+            targetProjectId: 'target-analysis-1',
+            discoveryRevisionId: discoveryRevision.id,
+            workItemId: scoutClaim.workItem.id,
+            attemptId: scoutClaim.attempt.id,
+            leaseId: scoutClaim.attempt.leaseId,
+            ownerToken: scoutClaim.ownerToken,
+            idempotencyKey: 'submit-observation-1',
+            expectedInputHash: discoveryRevision.scoutInputHash,
+            expectedScopeHash: hash(scoutScope),
+            bundle: scoutBundle,
+          },
+          client,
+        ),
+      ).resolves.toMatchObject({ replayed: true })
+      await expect(
+        submitQualityJourneyTargetObservation(
+          {
+            journeyId: created.journey.journeyId,
+            targetProjectId: 'target-analysis-1',
+            discoveryRevisionId: discoveryRevision.id,
+            workItemId: scoutClaim.workItem.id,
+            attemptId: scoutClaim.attempt.id,
+            leaseId: scoutClaim.attempt.leaseId,
+            ownerToken: 'not-the-lease-owner',
+            idempotencyKey: 'submit-observation-1',
+            expectedInputHash: discoveryRevision.scoutInputHash,
+            expectedScopeHash: hash(scoutScope),
+            bundle: scoutBundle,
+          },
+          client,
+        ),
+      ).rejects.toMatchObject({ code: 'UNAUTHORIZED' })
+      const resourceScope = JSON.parse(discoveryRevision.resourceWorkItem.authorizationScopeJson)
+      const frozenResource = (
+        JSON.parse(discoveryRevision.resourceScopeJson) as { resources: Array<{ id: string; kind: string }> }
+      ).resources[0]
+      const resourceBundle = {
+        ...bundleBase,
+        bundleId: 'resource-bundle-1',
+        workItemId: resourceClaim.workItem.id,
+        attemptId: resourceClaim.attempt.id,
+        authorizationId: resourceClaim.attempt.authorizationId!,
+        inputHash: discoveryRevision.resourceInputHash,
+        assignmentScopeHash: hash(resourceScope),
+        resolvedAt: '2026-09-04T00:00:00.000Z',
+        approvedRequirementIds: ['REQ-CHECKOUT-1'],
+        reusable: [
+          {
+            resourceId: frozenResource.id,
+            resourceKind: frozenResource.kind,
+            requirementId: 'REQ-CHECKOUT-1',
+            rank: 1,
+            explanation: 'The frozen resource is compatible.',
+            evidenceReceiptIds: ['evidence-1'],
+            reasonCode: 'COMPATIBLE' as const,
+          },
+        ],
+        incompatible: [],
+        stale: [],
+        crossTarget: [],
+        missing: [],
+      }
+      await expect(
+        submitQualityJourneyResourceResolution(
+          {
+            journeyId: created.journey.journeyId,
+            targetProjectId: 'target-analysis-1',
+            discoveryRevisionId: discoveryRevision.id,
+            workItemId: resourceClaim.workItem.id,
+            attemptId: resourceClaim.attempt.id,
+            leaseId: resourceClaim.attempt.leaseId,
+            ownerToken: resourceClaim.ownerToken,
+            idempotencyKey: 'submit-resource-wrong-kind',
+            expectedInputHash: discoveryRevision.resourceInputHash,
+            expectedScopeHash: hash(resourceScope),
+            bundle: {
+              ...resourceBundle,
+              reusable: [{ ...resourceBundle.reusable[0], resourceKind: 'TEMPLATE' }],
+            },
+          },
+          client,
+        ),
+      ).rejects.toMatchObject({ code: 'CONFLICT' })
+      await expect(
+        submitQualityJourneyResourceResolution(
+          {
+            journeyId: created.journey.journeyId,
+            targetProjectId: 'target-analysis-1',
+            discoveryRevisionId: discoveryRevision.id,
+            workItemId: resourceClaim.workItem.id,
+            attemptId: resourceClaim.attempt.id,
+            leaseId: resourceClaim.attempt.leaseId,
+            ownerToken: resourceClaim.ownerToken,
+            idempotencyKey: 'submit-resource-1',
+            expectedInputHash: discoveryRevision.resourceInputHash,
+            expectedScopeHash: hash(resourceScope),
+            bundle: resourceBundle,
+          },
+          client,
+        ),
+      ).resolves.toMatchObject({ replayed: false, discoveryRevision: { status: 'COMPLETED' } })
+      expect(
+        await client.qualityJourneyEvent.count({
+          where: { journeyId: created.journey.journeyId, eventType: 'DISCOVERY_COMPLETED' },
+        }),
+      ).toBe(1)
+      await client.environment.update({
+        where: { id: 'environment-analysis-1' },
+        data: { scopeVersion: { increment: 1 } },
+      })
+      await expect(
+        revalidateQualityJourneyDiscovery(
+          {
+            journeyId: created.journey.journeyId,
+            targetProjectId: 'target-analysis-1',
+            expectedActiveDiscoveryRevisionId: discoveryRevision.id,
+          },
+          client,
+        ),
+      ).resolves.toMatchObject({ valid: false, discoveryRevision: { status: 'INVALIDATED' } })
+      const invalidatedState = await getQualityJourney(
+        { journeyId: created.journey.journeyId, targetProjectId: 'target-analysis-1' },
+        client,
+      )
+      await expect(
+        submitDurableQualityJourneyCommand(
+          {
+            schemaVersion: 'appraise.quality-journey/v1',
+            commandId: 'scenario-design-invalidated-discovery',
+            journeyId: created.journey.journeyId,
+            targetProjectId: 'target-analysis-1',
+            actor: 'RUNNER',
+            command: 'START_SCENARIO_DESIGN',
+            expectedStateHash: invalidatedState.journey.stateHash,
+            idempotencyKey: 'scenario-design-invalidated-discovery',
+            inputArtifactRefs: [],
+            payload: {},
+          },
+          client,
+        ),
+      ).resolves.toMatchObject({ outcome: 'CONFLICT', code: 'PRECONDITION_FAILED' })
+      const retried = await retryQualityJourneyDiscovery(
+        {
+          journeyId: created.journey.journeyId,
+          targetProjectId: 'target-analysis-1',
+          expectedActiveDiscoveryRevisionId: discoveryRevision.id,
+          idempotencyKey: 'retry-discovery-1',
+          reason: 'The environment registry changed.',
+        },
+        client,
+      )
+      expect(retried).toMatchObject({
+        replayed: false,
+        discoveryRevision: {
+          status: 'COLLECTING',
+          predecessorRevisionId: discoveryRevision.id,
+          targetObservationHash: null,
+          resourceResolutionHash: null,
+        },
+      })
+      const retriedState = await getQualityJourney(
+        { journeyId: created.journey.journeyId, targetProjectId: 'target-analysis-1' },
+        client,
+      )
+      await expect(
+        submitDurableQualityJourneyCommand(
+          {
+            schemaVersion: 'appraise.quality-journey/v1',
+            commandId: 'premature-scenario-design-after-retry',
+            journeyId: created.journey.journeyId,
+            targetProjectId: 'target-analysis-1',
+            actor: 'RUNNER',
+            command: 'START_SCENARIO_DESIGN',
+            expectedStateHash: retriedState.journey.stateHash,
+            idempotencyKey: 'premature-scenario-design-after-retry',
+            inputArtifactRefs: [],
+            payload: {},
+          },
+          client,
+        ),
+      ).resolves.toMatchObject({ outcome: 'CONFLICT', code: 'PRECONDITION_FAILED' })
+      await expect(
+        retryQualityJourneyDiscovery(
+          {
+            journeyId: created.journey.journeyId,
+            targetProjectId: 'target-analysis-1',
+            expectedActiveDiscoveryRevisionId: discoveryRevision.id,
+            idempotencyKey: 'retry-discovery-1',
+            reason: 'The environment registry changed.',
+          },
+          client,
+        ),
+      ).resolves.toMatchObject({ replayed: true, discoveryRevision: { id: retried.discoveryRevision.id } })
       const analysis = await getQualityJourneyAnalysis(
         { journeyId: created.journey.journeyId, targetProjectId: 'target-analysis-1' },
         client,
@@ -843,17 +1220,28 @@ describe('Quality Journey Phase 3 analysis control plane', () => {
           feedback: 'Clarify the outcome.',
         },
       } as const
-      await submitDurableQualityJourneyCommand(firstRevisionRequest, client)
-      await expect(submitDurableQualityJourneyCommand(firstRevisionRequest, client)).resolves.toMatchObject({
+      await requestQualityJourneyAnalysisRevision(
+        { command: firstRevisionRequest, expectedReviewHash: firstReview.journey.analysisReviewHash },
+        client,
+      )
+      await expect(
+        requestQualityJourneyAnalysisRevision(
+          { command: firstRevisionRequest, expectedReviewHash: firstReview.journey.analysisReviewHash },
+          client,
+        ),
+      ).resolves.toMatchObject({
         outcome: 'COMMITTED',
         replayed: true,
       })
       await expect(
-        submitDurableQualityJourneyCommand(
+        requestQualityJourneyAnalysisRevision(
           {
-            ...firstRevisionRequest,
-            commandId: 'analysis-successor-request-changed',
-            payload: { ...firstRevisionRequest.payload, feedback: 'Different hidden context.' },
+            command: {
+              ...firstRevisionRequest,
+              commandId: 'analysis-successor-request-changed',
+              payload: { ...firstRevisionRequest.payload, feedback: 'Different hidden context.' },
+            },
+            expectedReviewHash: firstReview.journey.analysisReviewHash,
           },
           client,
         ),
@@ -921,7 +1309,7 @@ describe('Quality Journey Phase 3 analysis control plane', () => {
       expect(JSON.parse(reauthorization.authorizationJson).inputArtifacts).toEqual(
         successorClaim.assignment.inputArtifacts,
       )
-      expect(JSON.parse(reauthorization.authorizationJson).roleDefinition.version).toBe('2')
+      expect(JSON.parse(reauthorization.authorizationJson).roleDefinition.version).toBe('3')
       registerAgentFactoryProviderAdapter({
         adapterId: 'analysis-successor-adapter',
         supports: request => request.attemptId === successorClaim.attempt.id,
@@ -1011,22 +1399,25 @@ describe('Quality Journey Phase 3 analysis control plane', () => {
         { journeyId: created.journey.journeyId, targetProjectId: 'target-analysis-1' },
         client,
       )
-      await submitDurableQualityJourneyCommand(
+      await requestQualityJourneyAnalysisRevision(
         {
-          schemaVersion: 'appraise.quality-journey/v1',
-          commandId: 'analysis-successor-request-second',
-          journeyId: created.journey.journeyId,
-          targetProjectId: 'target-analysis-1',
-          actor: 'USER',
-          command: 'REQUEST_ANALYSIS_REVISION',
-          expectedStateHash: secondReview.journey.stateHash,
-          idempotencyKey: 'analysis-successor-request-second',
-          inputArtifactRefs: [secondRef],
-          payload: {
-            reviewedRevisionId: 'analysis-revision-second',
-            reviewedHash: second.analysisRevision.contentHash,
-            feedback: 'Clarify the next outcome.',
+          command: {
+            schemaVersion: 'appraise.quality-journey/v1',
+            commandId: 'analysis-successor-request-second',
+            journeyId: created.journey.journeyId,
+            targetProjectId: 'target-analysis-1',
+            actor: 'USER',
+            command: 'REQUEST_ANALYSIS_REVISION',
+            expectedStateHash: secondReview.journey.stateHash,
+            idempotencyKey: 'analysis-successor-request-second',
+            inputArtifactRefs: [secondRef],
+            payload: {
+              reviewedRevisionId: 'analysis-revision-second',
+              reviewedHash: second.analysisRevision.contentHash,
+              feedback: 'Clarify the next outcome.',
+            },
           },
+          expectedReviewHash: secondReview.journey.analysisReviewHash,
         },
         client,
       )
@@ -1088,22 +1479,25 @@ describe('Quality Journey Phase 3 analysis control plane', () => {
         { journeyId: created.journey.journeyId, targetProjectId: 'target-analysis-1' },
         client,
       )
-      await submitDurableQualityJourneyCommand(
+      await requestQualityJourneyAnalysisRevision(
         {
-          schemaVersion: 'appraise.quality-journey/v1',
-          commandId: 'analysis-successor-request-third',
-          journeyId: created.journey.journeyId,
-          targetProjectId: 'target-analysis-1',
-          actor: 'USER',
-          command: 'REQUEST_ANALYSIS_REVISION',
-          expectedStateHash: thirdReview.journey.stateHash,
-          idempotencyKey: 'analysis-successor-request-third',
-          inputArtifactRefs: [thirdRef],
-          payload: {
-            reviewedRevisionId: 'analysis-revision-third',
-            reviewedHash: third.analysisRevision.contentHash,
-            feedback: 'One more authorized revision.',
+          command: {
+            schemaVersion: 'appraise.quality-journey/v1',
+            commandId: 'analysis-successor-request-third',
+            journeyId: created.journey.journeyId,
+            targetProjectId: 'target-analysis-1',
+            actor: 'USER',
+            command: 'REQUEST_ANALYSIS_REVISION',
+            expectedStateHash: thirdReview.journey.stateHash,
+            idempotencyKey: 'analysis-successor-request-third',
+            inputArtifactRefs: [thirdRef],
+            payload: {
+              reviewedRevisionId: 'analysis-revision-third',
+              reviewedHash: third.analysisRevision.contentHash,
+              feedback: 'One more authorized revision.',
+            },
           },
+          expectedReviewHash: thirdReview.journey.analysisReviewHash,
         },
         client,
       )

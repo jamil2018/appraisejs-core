@@ -3,9 +3,9 @@ import { canonicalContractJson } from '@/lib/catalog-contracts'
 import type { ProviderCapabilityProfile, RoleDefinition } from './contracts'
 import { providerCapabilityProfileSchema, qualityJourneyContractVersion, roleDefinitionSchema } from './contracts'
 
-/** Version 1 remains immutable for already-issued Factory authorizations.
- * Version 2 adds durable revision-feedback read authority to the Analyzer. */
-export const qualityJourneyRoleRegistryVersion = '2' as const
+/** Historical registries remain immutable for already-issued Factory authorizations.
+ * Version 3 adds the Phase 4 approval input and verified Resource Explorer network isolation. */
+export const qualityJourneyRoleRegistryVersion = '3' as const
 
 export function qualityJourneyContractDigest(value: RoleDefinition | ProviderCapabilityProfile): string {
   return `sha256:${createHash('sha256').update(canonicalContractJson(value)).digest('hex')}`
@@ -42,8 +42,8 @@ export const qualityJourneyCapabilityProfiles = {
     contextIsolation: 'BOUNDED',
     requiredTools: ['catalog.search', 'artifact.read'],
     forbiddenTools: ['target.observe', 'catalog.write'],
-    requiredRuntimeBoundaries: ['CONTEXT', 'TARGET', 'LIFECYCLE_COMMAND'],
-    requiredVerifiedRuntimeBoundaries: ['CONTEXT', 'TARGET', 'LIFECYCLE_COMMAND'],
+    requiredRuntimeBoundaries: ['CONTEXT', 'TARGET', 'NETWORK', 'LIFECYCLE_COMMAND'],
+    requiredVerifiedRuntimeBoundaries: ['CONTEXT', 'TARGET', 'NETWORK', 'LIFECYCLE_COMMAND'],
   },
   highJudgmentDesign: {
     schemaVersion: qualityJourneyContractVersion,
@@ -105,7 +105,7 @@ export const qualityJourneyRoleDefinitions = [
     role: 'SCOUT',
     purpose: 'Publish bounded target observations with evidence, confidence, stability, and revalidation policy.',
     capabilityProfileId: 'fast-observation',
-    readableArtifacts: ['ANALYSIS_CHARTER_REVISION'],
+    readableArtifacts: ['ANALYSIS_CHARTER_REVISION', 'JOURNEY_APPROVAL'],
     writableArtifacts: ['TARGET_OBSERVATION_BUNDLE', 'EVIDENCE_RECEIPT'],
     permittedTools: ['target.observe', 'evidence.publish'],
     permittedCommands: ['work.output.submit'],
@@ -118,7 +118,7 @@ export const qualityJourneyRoleDefinitions = [
     role: 'RESOURCE_EXPLORER',
     purpose: 'Resolve reusable Appraise-owned resources and declare compatibility gaps.',
     capabilityProfileId: 'resource-resolution',
-    readableArtifacts: ['ANALYSIS_CHARTER_REVISION'],
+    readableArtifacts: ['ANALYSIS_CHARTER_REVISION', 'JOURNEY_APPROVAL'],
     writableArtifacts: ['RESOURCE_RESOLUTION_BUNDLE'],
     permittedTools: ['catalog.search', 'artifact.read'],
     permittedCommands: ['work.output.submit'],
@@ -175,15 +175,53 @@ export const qualityJourneyRoleDefinitionsV1 = qualityJourneyRoleDefinitions.map
         ...definition,
         readableArtifacts: ['JOURNEY_REVISION'] as const,
       }
+    : definition.role === 'SCOUT' || definition.role === 'RESOURCE_EXPLORER'
+      ? { ...definition, readableArtifacts: ['ANALYSIS_CHARTER_REVISION'] as const }
+      : definition,
+) as readonly RoleDefinition[]
+
+export const qualityJourneyRoleDefinitionsV2 = qualityJourneyRoleDefinitions.map(definition =>
+  definition.role === 'SCOUT' || definition.role === 'RESOURCE_EXPLORER'
+    ? { ...definition, readableArtifacts: ['ANALYSIS_CHARTER_REVISION'] as const }
     : definition,
 ) as readonly RoleDefinition[]
 
+export const qualityJourneyCapabilityProfilesV2 = {
+  ...qualityJourneyCapabilityProfiles,
+  resourceResolution: {
+    ...qualityJourneyCapabilityProfiles.resourceResolution,
+    requiredRuntimeBoundaries: ['CONTEXT', 'TARGET', 'LIFECYCLE_COMMAND'] as const,
+    requiredVerifiedRuntimeBoundaries: ['CONTEXT', 'TARGET', 'LIFECYCLE_COMMAND'] as const,
+  },
+} as const satisfies Record<string, ProviderCapabilityProfile>
+
 export function resolveQualityJourneyRoleDefinition(version: string, role: RoleDefinition['role']) {
   const registry =
-    version === '1' ? qualityJourneyRoleDefinitionsV1 : version === '2' ? qualityJourneyRoleDefinitions : []
+    version === '1'
+      ? qualityJourneyRoleDefinitionsV1
+      : version === '2'
+        ? qualityJourneyRoleDefinitionsV2
+        : version === '3'
+          ? qualityJourneyRoleDefinitions
+          : []
   return registry.find(definition => definition.role === role)
+}
+
+export function resolveQualityJourneyCapabilityProfile(
+  version: string,
+  profileId: string,
+): ProviderCapabilityProfile | undefined {
+  const registry: Record<string, ProviderCapabilityProfile> =
+    version === '1' || version === '2'
+      ? qualityJourneyCapabilityProfilesV2
+      : version === '3'
+        ? qualityJourneyCapabilityProfiles
+        : {}
+  return Object.values(registry).find(profile => profile.profileId === profileId)
 }
 
 for (const profile of Object.values(qualityJourneyCapabilityProfiles)) providerCapabilityProfileSchema.parse(profile)
 for (const definition of qualityJourneyRoleDefinitions) roleDefinitionSchema.parse(definition)
 for (const definition of qualityJourneyRoleDefinitionsV1) roleDefinitionSchema.parse(definition)
+for (const definition of qualityJourneyRoleDefinitionsV2) roleDefinitionSchema.parse(definition)
+for (const profile of Object.values(qualityJourneyCapabilityProfilesV2)) providerCapabilityProfileSchema.parse(profile)

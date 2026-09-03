@@ -14,8 +14,8 @@ import {
   type WorkerSpawnReceipt,
 } from './contracts'
 import {
-  qualityJourneyCapabilityProfiles,
   qualityJourneyContractDigest,
+  resolveQualityJourneyCapabilityProfile,
   resolveQualityJourneyRoleDefinition,
 } from './role-definitions'
 
@@ -107,8 +107,9 @@ type SpawnRequestInput = {
 function resolveRegistryAuthority(manifest: AssignmentManifest) {
   const registryVersion = manifest.roleDefinition.version
   const roleDefinition = resolveQualityJourneyRoleDefinition(registryVersion, manifest.roleDefinition.role)
-  const capabilityProfile = Object.values(qualityJourneyCapabilityProfiles).find(
-    item => item.profileId === manifest.capabilityProfile.profileId,
+  const capabilityProfile = resolveQualityJourneyCapabilityProfile(
+    registryVersion,
+    manifest.capabilityProfile.profileId,
   )
   if (!roleDefinition || !capabilityProfile) throw new Error('Invalid assignment manifest: registry entry not found.')
   if (roleDefinition.capabilityProfileId !== capabilityProfile.profileId)
