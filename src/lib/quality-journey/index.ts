@@ -1,6 +1,7 @@
 export * from './agent-factory'
 export * from './analysis-contracts'
 export * from './contracts'
+export * from './discovery-contracts'
 export * from './golden-fixtures'
 export * from './kernel'
 export * from './lifecycle'
