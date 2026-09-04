@@ -36,7 +36,7 @@
     "compatibility",
     "performance"
   ],
-  "receiptHash": "sha256:9d986d04fd0576ad68256735fc82eb86612a576e90ee3204427d4288924efa23",
+  "receiptHash": "sha256:3a4e21bb303b922ca89bf0cb7d488a15dd258ec1aaaed74dcace8f871c157060",
   "result": "PASS",
   "schema": "appraise.quality-os-certification/v1",
   "suiteEvidence": [
@@ -78,7 +78,7 @@
     {
       "file": "src/app/(base)/quality-journeys/[journeyId]/scenario-portfolio-review.test.tsx",
       "result": "PASS",
-      "sourceHash": "sha256:9e1ef28c2357bd351f5afe89cfd89afb621e6dd7246c7778a87ea9e3c19db043"
+      "sourceHash": "sha256:8117e444f51e7ae25e37b23713e9604966ecfb86ae6acda9c1947710b3e7a6cc"
     },
     {
       "file": "src/lib/quality-journey/automation-contracts.mcp-parity.test.ts",
