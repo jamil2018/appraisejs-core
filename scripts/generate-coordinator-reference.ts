@@ -9,7 +9,13 @@ import {
   type CoordinatorOperationId,
 } from '../src/services/coordinator/coordinator-operation-registry'
 
-type McpDefinition = { kind: 'tool' | 'resource'; name: string; description?: string; uri?: string }
+type McpDefinition = {
+  kind: 'tool' | 'resource'
+  name: string
+  description?: string
+  uri?: string
+  annotations?: { readOnlyHint?: boolean }
+}
 type McpFixture = { default: McpDefinition[] }
 export type PublicOperationReference =
   { kind: 'coordinator'; operation: CoordinatorOperationId } | { kind: 'local'; reason: string }
@@ -75,7 +81,10 @@ function escapeCell(value: string): string {
 
 export function generateCoordinatorReference(fixture: McpFixture): string {
   const knownOperations = new Set(coordinatorOperationRegistry.definitions.map(item => item.id))
-  const definitions = fixture.default.map(item => ({ ...item, availability: 'default' }))
+  const definitions = fixture.default.map(item => ({
+    ...item,
+    availability: item.annotations?.readOnlyHint ? 'read-only' : 'default',
+  }))
   const toolRows = definitions
     .filter((item): item is McpDefinition & { availability: string } => item.kind === 'tool')
     .sort((left, right) => left.name.localeCompare(right.name))

@@ -4,8 +4,8 @@ import type { ProviderCapabilityProfile, RoleDefinition } from './contracts'
 import { providerCapabilityProfileSchema, qualityJourneyContractVersion, roleDefinitionSchema } from './contracts'
 
 /** Historical registries remain immutable for already-issued Factory authorizations.
- * Version 3 adds the Phase 4 approval input and verified Resource Explorer network isolation. */
-export const qualityJourneyRoleRegistryVersion = '3' as const
+ * Version 4 grants a successor Designer its prior portfolio and durable feedback. */
+export const qualityJourneyRoleRegistryVersion = '4' as const
 
 export function qualityJourneyContractDigest(value: RoleDefinition | ProviderCapabilityProfile): string {
   return `sha256:${createHash('sha256').update(canonicalContractJson(value)).digest('hex')}`
@@ -80,7 +80,7 @@ export const qualityJourneyCapabilityProfiles = {
   },
 } as const satisfies Record<string, ProviderCapabilityProfile>
 
-export const qualityJourneyRoleDefinitions = [
+const qualityJourneyRoleDefinitionsV3 = [
   {
     schemaVersion: qualityJourneyContractVersion,
     role: 'REQUIREMENT_ANALYZER',
@@ -169,7 +169,23 @@ export const qualityJourneyRoleDefinitions = [
   },
 ] as const satisfies readonly RoleDefinition[]
 
-export const qualityJourneyRoleDefinitionsV1 = qualityJourneyRoleDefinitions.map(definition =>
+export const qualityJourneyRoleDefinitions = qualityJourneyRoleDefinitionsV3.map(definition =>
+  definition.role === 'TEST_SCENARIO_DESIGNER'
+    ? {
+        ...definition,
+        readableArtifacts: [
+          ...definition.readableArtifacts,
+          'SCENARIO_PORTFOLIO_REVISION',
+          'SCENARIO_REVISION',
+          'SCENARIO_REVISION_FEEDBACK',
+        ] as const,
+      }
+    : definition,
+) as readonly RoleDefinition[]
+
+// Historical registries are frozen snapshots.  Newer Designer inputs belong
+// exclusively to registry v4 and must never silently alter a v1/v2 manifest.
+export const qualityJourneyRoleDefinitionsV1 = qualityJourneyRoleDefinitionsV3.map(definition =>
   definition.role === 'REQUIREMENT_ANALYZER'
     ? {
         ...definition,
@@ -180,7 +196,7 @@ export const qualityJourneyRoleDefinitionsV1 = qualityJourneyRoleDefinitions.map
       : definition,
 ) as readonly RoleDefinition[]
 
-export const qualityJourneyRoleDefinitionsV2 = qualityJourneyRoleDefinitions.map(definition =>
+export const qualityJourneyRoleDefinitionsV2 = qualityJourneyRoleDefinitionsV3.map(definition =>
   definition.role === 'SCOUT' || definition.role === 'RESOURCE_EXPLORER'
     ? { ...definition, readableArtifacts: ['ANALYSIS_CHARTER_REVISION'] as const }
     : definition,
@@ -202,8 +218,10 @@ export function resolveQualityJourneyRoleDefinition(version: string, role: RoleD
       : version === '2'
         ? qualityJourneyRoleDefinitionsV2
         : version === '3'
-          ? qualityJourneyRoleDefinitions
-          : []
+          ? qualityJourneyRoleDefinitionsV3
+          : version === '4'
+            ? qualityJourneyRoleDefinitions
+            : []
   return registry.find(definition => definition.role === role)
 }
 
@@ -214,7 +232,7 @@ export function resolveQualityJourneyCapabilityProfile(
   const registry: Record<string, ProviderCapabilityProfile> =
     version === '1' || version === '2'
       ? qualityJourneyCapabilityProfilesV2
-      : version === '3'
+      : version === '3' || version === '4'
         ? qualityJourneyCapabilityProfiles
         : {}
   return Object.values(registry).find(profile => profile.profileId === profileId)
@@ -224,4 +242,5 @@ for (const profile of Object.values(qualityJourneyCapabilityProfiles)) providerC
 for (const definition of qualityJourneyRoleDefinitions) roleDefinitionSchema.parse(definition)
 for (const definition of qualityJourneyRoleDefinitionsV1) roleDefinitionSchema.parse(definition)
 for (const definition of qualityJourneyRoleDefinitionsV2) roleDefinitionSchema.parse(definition)
+for (const definition of qualityJourneyRoleDefinitionsV3) roleDefinitionSchema.parse(definition)
 for (const profile of Object.values(qualityJourneyCapabilityProfilesV2)) providerCapabilityProfileSchema.parse(profile)

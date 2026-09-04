@@ -30,6 +30,12 @@ baselines and release-readiness contract they reference.
 Every `graphify-out/` directory is excluded from the prepared template. Repository graphs support AppraiseJS
 development and should not increase the installed scaffold or published `create-appraisejs` package size.
 
+Repository-only parity harnesses that reach across package boundaries are also excluded from the prepared template.
+For example, the Scenario Portfolio MCP parity corpus compares root canonical source with the independently published
+MCP package; generated applications retain their self-contained tests and must not import the producer repository.
+The Quality OS certifier resolves repository-only suites only when their files exist, so generated apps never attempt
+to run excluded parity tests or record them in their certification receipt.
+
 The repository's swarm-routing configuration, agents, ledger utilities, and swarm-only commands are also excluded.
 Generated projects retain their own bundled `check:harness` command, which verifies that this repository-only
 orchestration surface has not leaked into the scaffold.

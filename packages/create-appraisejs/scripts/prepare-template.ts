@@ -378,9 +378,9 @@ function writeTemplateHarnessCheck(): void {
   )
 }
 
-/** The root certification includes repository-only package contract suites.
- * Generated apps do not ship packages/appraisejs, so retain only evidence for
- * suites that are actually present in the scaffold and re-seal the receipt. */
+/** The root certification includes repository-only package and cross-package parity suites.
+ * Generated apps retain only evidence for suites that are actually present in
+ * the scaffold, then re-seal the receipt. */
 function writeTemplateQualityOsCertificationReceipt(): void {
   const receiptPath = path.join(baseTemplateDir, 'config', 'quality-os-certification.json')
   if (!existsSync(receiptPath)) return
@@ -391,7 +391,11 @@ function writeTemplateQualityOsCertificationReceipt(): void {
   }
   const content = { ...receipt }
   delete content.receiptHash
-  content.suiteEvidence = (receipt.suiteEvidence ?? []).filter(evidence => !evidence.file.startsWith('packages/appraisejs/'))
+  content.suiteEvidence = (receipt.suiteEvidence ?? []).filter(
+    evidence =>
+      !evidence.file.startsWith('packages/appraisejs/') &&
+      evidence.file !== 'src/lib/quality-journey/scenario-contracts.mcp-parity.test.ts',
+  )
   const templateReceipt = {
     ...content,
     receiptHash: `sha256:${crypto.createHash('sha256').update(canonicalContractJson(content)).digest('hex')}`,

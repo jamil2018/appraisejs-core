@@ -157,4 +157,78 @@ describe('Quality Journey discovery MCP contracts', () => {
       await server.close()
     }
   })
+
+  it('rejects the same malformed and oversized scenario decision IDs as the coordinator HTTP ingress', async () => {
+    const cwd = await fs.mkdtemp(path.join(os.tmpdir(), 'appraise-mcp-scenario-decision-'))
+    workspaces.push(cwd)
+    await fs.writeFile(path.join(cwd, 'package.json'), '{"name":"mcp-scenario-decision-test"}')
+    const fetch = vi.fn()
+    vi.stubGlobal('fetch', fetch)
+    const server = await createAppraiseMcpServer({ cwd, baseUrl: 'http://127.0.0.1:3999', coordinatorId: 'test' })
+    const client = new Client({ name: 'scenario-decision-contract-test', version: '1' })
+    const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair()
+    const decision = {
+      target: 'target-1',
+      journeyId: 'journey-1',
+      commandId: 'scenario-command-1',
+      expectedStateHash: digest('a'),
+      idempotencyKey: 'scenario-decision-1',
+      portfolioId: 'portfolio-1',
+      portfolioRevisionId: 'portfolio-r1',
+      portfolioHash: digest('b'),
+      expectedReviewHash: digest('c'),
+      rejectedScenarioRevisionIds: [],
+    }
+    try {
+      await server.connect(serverTransport)
+      await client.connect(clientTransport)
+      for (const approvedScenarioRevisionIds of [
+        ['scenario revision with spaces'],
+        Array.from({ length: 513 }, (_, index) => `scenario-r${index}`),
+      ]) {
+        const result = await client.callTool({
+          name: 'quality_journey_scenarios_decide',
+          arguments: { ...decision, approvedScenarioRevisionIds },
+        })
+        expect(result.isError).toBe(true)
+      }
+      expect(fetch).not.toHaveBeenCalled()
+    } finally {
+      await client.close()
+      await server.close()
+    }
+  })
+
+  it('rejects generic completion for specialized discovery and Scenario Designer roles before coordinator I/O', async () => {
+    const cwd = await fs.mkdtemp(path.join(os.tmpdir(), 'appraise-mcp-work-complete-'))
+    workspaces.push(cwd)
+    await fs.writeFile(path.join(cwd, 'package.json'), '{"name":"mcp-work-complete-test"}')
+    const fetch = vi.fn()
+    vi.stubGlobal('fetch', fetch)
+    const server = await createAppraiseMcpServer({ cwd, baseUrl: 'http://127.0.0.1:3999', coordinatorId: 'test' })
+    const client = new Client({ name: 'work-complete-boundary-test', version: '1' })
+    const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair()
+    try {
+      await server.connect(serverTransport)
+      await client.connect(clientTransport)
+      for (const role of ['SCOUT', 'RESOURCE_EXPLORER', 'TEST_SCENARIO_DESIGNER']) {
+        const result = await client.callTool({
+          name: 'quality_journey_work_complete',
+          arguments: {
+            target: 'target-1',
+            journeyId: 'journey-1',
+            workItemId: 'work-1',
+            leaseId: 'lease-1',
+            ownerToken: 'owner-token',
+            result: { role },
+          },
+        })
+        expect(result.isError).toBe(true)
+      }
+      expect(fetch).not.toHaveBeenCalled()
+    } finally {
+      await client.close()
+      await server.close()
+    }
+  })
 })

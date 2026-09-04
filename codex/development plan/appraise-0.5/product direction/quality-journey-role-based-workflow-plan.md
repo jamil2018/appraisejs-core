@@ -400,6 +400,12 @@ Exit criteria:
 
 ### Phase 5 - Scenario Portfolio and Graph Review
 
+Status: implemented on 2026-09-04 in `codex/quality-journey-phase-05`. The delivery persists immutable scenario
+portfolio and scenario revisions, separates behavioral-intent, feasibility-enrichment, and graph-layout hashes,
+requires completed Scout and Resource Explorer provenance, supports accumulated partial decisions, and permits the
+final transition only when every scenario is classified and approved scenarios cover every mandatory requirement.
+The specialized coordinator/MCP boundary rejects all Phase 5 lifecycle commands from the generic command path.
+
 Build the scenario portfolio and scenario revision model, requirement-coverage links, review comments, partial and
 portfolio approval, and feedback-driven revision flow. Adapt the existing React Flow interface into a read/review
 projection while preserving its established interaction language. Separate behavioral intent from feasibility

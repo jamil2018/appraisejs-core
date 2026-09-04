@@ -30,6 +30,17 @@ import {
   submitQualityJourneyResourceResolution,
   submitQualityJourneyTargetObservation,
 } from './quality-journey-discovery-service'
+import {
+  commentQualityJourneyScenarioPortfolio,
+  decideQualityJourneyScenarios,
+  disposeQualityJourneyScenarioComment,
+  getQualityJourneyScenarioPortfolio,
+  publishQualityJourneyScenarioPortfolio,
+  requestQualityJourneyScenarioRevision,
+  startQualityJourneyScenarioDesign,
+  submitQualityJourneyScenarioPortfolio,
+} from './quality-journey-scenario-service'
+import { hashScenarioPortfolio } from '@/lib/quality-journey'
 
 const workspaces: string[] = []
 const digest = (character: string) => `sha256:${character.repeat(64)}`
@@ -223,7 +234,237 @@ function registerStartedAnalyzerAdapter(
   })
 }
 
-describe('Quality Journey Phase 3 analysis control plane', () => {
+/** Builds the smallest real Phase 3/4 lineage needed by the Phase 5 successor
+ * tests.  It deliberately goes through the public services: a revision
+ * successor must not be tested against synthetic discovery authority. */
+async function completedDiscovery(client: PrismaClient, suffix: string) {
+  const { created, claim } = await readyAnalyzer(client)
+  const submitted = await submitQualityJourneyAnalysisSuccessor(
+    {
+      journeyId: created.journey.journeyId,
+      targetProjectId: 'target-analysis-1',
+      workItemId: claim.workItem.id,
+      attemptId: claim.attempt.id,
+      leaseId: claim.attempt.leaseId,
+      ownerToken: claim.ownerToken,
+      idempotencyKey: `${suffix}-analysis-submit`,
+      charter: charter(created.journey.journeyId, created.journey.activeCycleId, suffix),
+    },
+    client,
+  )
+  await answerQualityJourneyAnalysisQuestion(
+    {
+      idempotencyKey: `${suffix}-answer`,
+      answer: {
+        schemaVersion: 'appraise.quality-journey/v1',
+        answerId: `${suffix}-answer`,
+        journeyId: created.journey.journeyId,
+        targetProjectId: 'target-analysis-1',
+        analysisRevisionId: submitted.analysisRevision.id,
+        questionId: 'question-payment',
+        answer: 'Card payment.',
+        actor: 'USER',
+      },
+    },
+    client,
+  )
+  const analysisRef = {
+    kind: 'ANALYSIS_CHARTER_REVISION' as const,
+    artifactId: `analysis-charter-${suffix}`,
+    revisionId: `analysis-revision-${suffix}`,
+    contentHash: submitted.analysisRevision.contentHash,
+  }
+  const readyForPublish = await getQualityJourney(
+    { journeyId: created.journey.journeyId, targetProjectId: 'target-analysis-1' },
+    client,
+  )
+  await publishQualityJourneyAnalysis(
+    {
+      schemaVersion: 'appraise.quality-journey/v1',
+      commandId: `${suffix}-publish-analysis`,
+      journeyId: created.journey.journeyId,
+      targetProjectId: 'target-analysis-1',
+      actor: 'RUNNER',
+      command: 'PUBLISH_ANALYSIS',
+      expectedStateHash: readyForPublish.journey.stateHash,
+      idempotencyKey: `${suffix}-publish-analysis`,
+      inputArtifactRefs: [analysisRef],
+      payload: {
+        artifactRevisionId: submitted.analysisRevision.id,
+        artifactHash: submitted.analysisRevision.contentHash,
+      },
+    },
+    client,
+  )
+  const readyForDecision = await getQualityJourney(
+    { journeyId: created.journey.journeyId, targetProjectId: 'target-analysis-1' },
+    client,
+  )
+  await decideQualityJourneyAnalysis(
+    {
+      schemaVersion: 'appraise.quality-journey/v1',
+      commandId: `${suffix}-approve-analysis`,
+      journeyId: created.journey.journeyId,
+      targetProjectId: 'target-analysis-1',
+      actor: 'USER',
+      command: 'DECIDE_ANALYSIS',
+      expectedStateHash: readyForDecision.journey.stateHash,
+      idempotencyKey: `${suffix}-approve-analysis`,
+      inputArtifactRefs: [analysisRef],
+      payload: {
+        revisionId: submitted.analysisRevision.id,
+        contentHash: submitted.analysisRevision.contentHash,
+        decision: 'APPROVED',
+      },
+    },
+    client,
+  )
+  const discovery = (
+    await getQualityJourneyDiscovery(
+      { journeyId: created.journey.journeyId, targetProjectId: 'target-analysis-1' },
+      client,
+    )
+  ).revisions[0]
+  const [scout, resource] = await Promise.all([
+    claimQualityJourneyWork(
+      { journeyId: created.journey.journeyId, targetProjectId: 'target-analysis-1', role: 'SCOUT' },
+      client,
+    ),
+    claimQualityJourneyWork(
+      { journeyId: created.journey.journeyId, targetProjectId: 'target-analysis-1', role: 'RESOURCE_EXPLORER' },
+      client,
+    ),
+  ])
+  registerStartedAnalyzerAdapter(scout.attempt.id, `${suffix}-scout-adapter`, 'FAST')
+  registerStartedAnalyzerAdapter(resource.attempt.id, `${suffix}-resource-adapter`, 'FAST')
+  await Promise.all(
+    [scout, resource].map(work =>
+      dispatchQualityJourneyWork(
+        {
+          journeyId: created.journey.journeyId,
+          targetProjectId: 'target-analysis-1',
+          workItemId: work.workItem.id,
+          leaseId: work.attempt.leaseId,
+          ownerToken: work.ownerToken,
+        },
+        client,
+      ),
+    ),
+  )
+  const inputArtifacts = JSON.parse(discovery.scoutWorkItem.inputArtifactRefsJson)
+  const baseBundle = {
+    schemaVersion: 'appraise.quality-journey/v1' as const,
+    journeyId: created.journey.journeyId,
+    targetProjectId: 'target-analysis-1',
+    cycleId: created.journey.activeCycleId,
+    analysisRevision: {
+      artifactId: discovery.analysisRevisionArtifactId,
+      revisionId: submitted.analysisRevision.id,
+      contentHash: discovery.analysisRevisionContentHash,
+    },
+    analysisApproval: {
+      artifactId: discovery.analysisApprovalArtifactId,
+      contentHash: discovery.analysisApprovalContentHash,
+    },
+    approvedRequirementSetHash: discovery.approvedRequirementSetHash,
+    inputArtifacts,
+    evidenceReceipts: [{ artifactId: `${suffix}-evidence`, contentHash: digest('e') }],
+  }
+  const scoutScope = JSON.parse(discovery.scoutWorkItem.authorizationScopeJson)
+  await submitQualityJourneyTargetObservation(
+    {
+      journeyId: created.journey.journeyId,
+      targetProjectId: 'target-analysis-1',
+      discoveryRevisionId: discovery.id,
+      workItemId: scout.workItem.id,
+      attemptId: scout.attempt.id,
+      leaseId: scout.attempt.leaseId,
+      ownerToken: scout.ownerToken,
+      idempotencyKey: `${suffix}-observation`,
+      expectedInputHash: discovery.scoutInputHash,
+      expectedScopeHash: hash(scoutScope),
+      bundle: {
+        ...baseBundle,
+        bundleId: `${suffix}-observation-bundle`,
+        workItemId: scout.workItem.id,
+        attemptId: scout.attempt.id,
+        authorizationId: scout.attempt.authorizationId!,
+        inputHash: discovery.scoutInputHash,
+        assignmentScopeHash: hash(scoutScope),
+        observedAt: '2026-09-04T00:00:00.000Z',
+        targetSnapshot: {
+          snapshotId: `${suffix}-snapshot`,
+          capturedAt: '2026-09-04T00:00:00.000Z',
+          contentHash: digest('c'),
+        },
+        observations: [
+          {
+            observationId: `${suffix}-observation`,
+            snapshotId: `${suffix}-snapshot`,
+            routeId: '/checkout',
+            environmentId: 'environment-analysis-1',
+            fact: 'Checkout is visible.',
+            evidenceReceiptIds: [`${suffix}-evidence`],
+            confidence: 'HIGH' as const,
+            confidenceRationale: 'The snapshot directly shows the checkout.',
+            stability: 'STABLE' as const,
+            stabilityRationale: 'The route is part of the registered target.',
+            revalidationPolicy: { triggers: ['environment_registry_changed'] },
+          },
+        ],
+      },
+    },
+    client,
+  )
+  const frozenResource = (JSON.parse(discovery.resourceScopeJson) as { resources: Array<{ id: string; kind: string }> })
+    .resources[0]
+  const resourceScope = JSON.parse(discovery.resourceWorkItem.authorizationScopeJson)
+  await submitQualityJourneyResourceResolution(
+    {
+      journeyId: created.journey.journeyId,
+      targetProjectId: 'target-analysis-1',
+      discoveryRevisionId: discovery.id,
+      workItemId: resource.workItem.id,
+      attemptId: resource.attempt.id,
+      leaseId: resource.attempt.leaseId,
+      ownerToken: resource.ownerToken,
+      idempotencyKey: `${suffix}-resource`,
+      expectedInputHash: discovery.resourceInputHash,
+      expectedScopeHash: hash(resourceScope),
+      bundle: {
+        ...baseBundle,
+        bundleId: `${suffix}-resource-bundle`,
+        workItemId: resource.workItem.id,
+        attemptId: resource.attempt.id,
+        authorizationId: resource.attempt.authorizationId!,
+        inputHash: discovery.resourceInputHash,
+        assignmentScopeHash: hash(resourceScope),
+        resolvedAt: '2026-09-04T00:00:00.000Z',
+        approvedRequirementIds: ['REQ-CHECKOUT-1'],
+        reusable: [
+          {
+            resourceId: frozenResource.id,
+            resourceKind: frozenResource.kind,
+            requirementId: 'REQ-CHECKOUT-1',
+            rank: 1,
+            explanation: 'The frozen resource is compatible.',
+            evidenceReceiptIds: [`${suffix}-evidence`],
+            reasonCode: 'COMPATIBLE' as const,
+          },
+        ],
+        incompatible: [],
+        stale: [],
+        crossTarget: [],
+        missing: [],
+      },
+    },
+    client,
+  )
+  const completed = await client.qualityJourneyDiscoveryRevision.findUniqueOrThrow({ where: { id: discovery.id } })
+  return { created, submitted, discovery: completed, frozenResource }
+}
+
+describe('Quality Journey Phase 3 through Phase 5 control plane', () => {
   it('keeps charter/question/answer lineage immutable and blocks approval until required Q&A resolves', async () => {
     const client = await fixture()
     try {
@@ -382,7 +623,7 @@ describe('Quality Journey Phase 3 analysis control plane', () => {
           },
           client,
         ),
-      ).resolves.toMatchObject({ outcome: 'CONFLICT', code: 'PRECONDITION_FAILED' })
+      ).rejects.toMatchObject({ code: 'UNAUTHORIZED' })
       registerStartedAnalyzerAdapter(scoutClaim.attempt.id, 'discovery-scout-adapter', 'FAST')
       registerStartedAnalyzerAdapter(resourceClaim.attempt.id, 'discovery-resource-adapter', 'FAST')
       await dispatchQualityJourneyWork(
@@ -590,6 +831,396 @@ describe('Quality Journey Phase 3 analysis control plane', () => {
           where: { journeyId: created.journey.journeyId, eventType: 'DISCOVERY_COMPLETED' },
         }),
       ).toBe(1)
+      const scenarioStartState = await getQualityJourney(
+        { journeyId: created.journey.journeyId, targetProjectId: 'target-analysis-1' },
+        client,
+      )
+      await expect(
+        startQualityJourneyScenarioDesign(
+          {
+            schemaVersion: 'appraise.quality-journey/v1',
+            commandId: 'start-scenarios-1',
+            journeyId: created.journey.journeyId,
+            targetProjectId: 'target-analysis-1',
+            actor: 'RUNNER',
+            expectedStateHash: scenarioStartState.journey.stateHash,
+            idempotencyKey: 'start-scenarios-1',
+            inputArtifactRefs: [],
+            command: 'START_SCENARIO_DESIGN',
+            payload: {},
+          },
+          client,
+        ),
+      ).resolves.toMatchObject({ outcome: 'COMMITTED', successorStage: 'SCENARIO_DESIGN' })
+      const designerClaim = await claimQualityJourneyWork(
+        { journeyId: created.journey.journeyId, targetProjectId: 'target-analysis-1', role: 'TEST_SCENARIO_DESIGNER' },
+        client,
+      )
+      registerStartedAnalyzerAdapter(designerClaim.attempt.id, 'scenario-designer-adapter')
+      await dispatchQualityJourneyWork(
+        {
+          journeyId: created.journey.journeyId,
+          targetProjectId: 'target-analysis-1',
+          workItemId: designerClaim.workItem.id,
+          leaseId: designerClaim.attempt.leaseId,
+          ownerToken: designerClaim.ownerToken,
+        },
+        client,
+      )
+      const scenarioPortfolio = {
+        schemaVersion: 'appraise.quality-journey/v1' as const,
+        portfolioId: 'portfolio-1',
+        portfolioRevisionId: 'portfolio-r1',
+        journeyId: created.journey.journeyId,
+        targetProjectId: 'target-analysis-1',
+        cycleId: created.journey.activeCycleId,
+        discoveryRevisionId: discoveryRevision.id,
+        discoveryCompletionHash: (
+          await client.qualityJourneyDiscoveryRevision.findUniqueOrThrow({ where: { id: discoveryRevision.id } })
+        ).completionHash!,
+        coverageRationale: 'The set covers checkout confirmation while retaining an explicitly deferred branch.',
+        graph: {
+          edges: [
+            {
+              sourceScenarioRevisionId: 'scenario-1-r1',
+              targetScenarioRevisionId: 'scenario-2-r1',
+              relation: 'BRANCHES_TO' as const,
+              rationale: 'A shopper can continue through the alternate checkout branch.',
+            },
+          ],
+          sharedSetup: [
+            {
+              setupId: 'checkout-session',
+              label: 'Authenticated checkout session',
+              scenarioRevisionIds: ['scenario-1-r1', 'scenario-2-r1'],
+            },
+          ],
+        },
+        scenarios: ['scenario-1', 'scenario-2', 'scenario-3'].map((stableScenarioId, index) => ({
+          stableScenarioId,
+          scenarioRevisionId: `${stableScenarioId}-r1`,
+          behavioralIntent: {
+            title: `Checkout ${index + 1}`,
+            narrative: 'A shopper completes checkout.',
+            requirementIds: ['REQ-CHECKOUT-1'],
+            expectedSignals: ['Confirmation'],
+            steps: [{ stepId: `${stableScenarioId}-step`, action: 'Submit checkout', expected: 'Confirmation' }],
+          },
+          enrichment: {
+            observationIds: ['observation-1'],
+            resourceAssumptionIds: [frozenResource.id],
+            feasibilityNotes: [],
+          },
+          layout: { x: index * 100, y: 0, sequence: index },
+        })),
+      }
+      const portfolioHash = hashScenarioPortfolio(scenarioPortfolio)
+      const scenarioOutputs = [
+        {
+          kind: 'SCENARIO_PORTFOLIO_REVISION' as const,
+          artifactId: 'portfolio-1',
+          revisionId: 'portfolio-r1',
+          contentHash: portfolioHash,
+        },
+        ...scenarioPortfolio.scenarios.map(scenario => ({
+          kind: 'SCENARIO_REVISION' as const,
+          artifactId: scenario.stableScenarioId,
+          revisionId: scenario.scenarioRevisionId,
+          contentHash: hash(scenario),
+        })),
+      ]
+      const result = {
+        schemaVersion: 'appraise.quality-journey/v1' as const,
+        assignmentId: designerClaim.assignment.assignmentId,
+        workItemId: designerClaim.workItem.id,
+        attemptId: designerClaim.attempt.id,
+        roleContractDigest: designerClaim.assignment.roleDefinition.digest,
+        inputHash: designerClaim.assignment.inputHash,
+        role: 'TEST_SCENARIO_DESIGNER' as const,
+        status: 'COMPLETED' as const,
+        outputs: scenarioOutputs,
+        evidenceReceipts: [],
+        assumptions: [],
+        blockers: [],
+        unresolvedQuestions: [],
+        submittedAt: '2026-09-04T00:00:00.000Z',
+      }
+      const scenarioSubmission = {
+        journeyId: created.journey.journeyId,
+        targetProjectId: 'target-analysis-1',
+        workItemId: designerClaim.workItem.id,
+        attemptId: designerClaim.attempt.id,
+        leaseId: designerClaim.attempt.leaseId,
+        ownerToken: designerClaim.ownerToken,
+        idempotencyKey: 'scenario-submit-1',
+        expectedInputHash: designerClaim.assignment.inputHash,
+        expectedScopeHash: hash(JSON.parse(designerClaim.workItem.authorizationScopeJson)),
+        portfolio: scenarioPortfolio,
+        result,
+      }
+      await expect(submitQualityJourneyScenarioPortfolio(scenarioSubmission, client)).resolves.toMatchObject({
+        replayed: false,
+      })
+      await expect(submitQualityJourneyScenarioPortfolio(scenarioSubmission, client)).resolves.toMatchObject({
+        replayed: true,
+      })
+      await expect(
+        submitQualityJourneyScenarioPortfolio(
+          { ...scenarioSubmission, ownerToken: 'wrong-designer-owner-token' },
+          client,
+        ),
+      ).rejects.toMatchObject({ code: 'UNAUTHORIZED' })
+      await expect(
+        submitQualityJourneyScenarioPortfolio({ ...scenarioSubmission, expectedInputHash: digest('a') }, client),
+      ).rejects.toMatchObject({ code: 'CONFLICT' })
+      const submittedScenarioState = await getQualityJourney(
+        { journeyId: created.journey.journeyId, targetProjectId: 'target-analysis-1' },
+        client,
+      )
+      const portfolioRef = {
+        kind: 'SCENARIO_PORTFOLIO_REVISION' as const,
+        artifactId: 'portfolio-1',
+        revisionId: 'portfolio-r1',
+        contentHash: portfolioHash,
+      }
+      await publishQualityJourneyScenarioPortfolio(
+        {
+          schemaVersion: 'appraise.quality-journey/v1',
+          commandId: 'publish-scenarios-1',
+          journeyId: created.journey.journeyId,
+          targetProjectId: 'target-analysis-1',
+          actor: 'RUNNER',
+          command: 'PUBLISH_SCENARIO_PORTFOLIO',
+          expectedStateHash: submittedScenarioState.journey.stateHash,
+          idempotencyKey: 'publish-scenarios-1',
+          inputArtifactRefs: [portfolioRef],
+          payload: { artifactRevisionId: 'portfolio-r1', artifactHash: portfolioHash },
+        },
+        client,
+      )
+      await expect(submitQualityJourneyScenarioPortfolio(scenarioSubmission, client)).resolves.toMatchObject({
+        replayed: true,
+      })
+      await client.qualityJourneyWorkAuthorization.update({
+        where: { id: designerClaim.attempt.authorizationId! },
+        data: { revokedAt: new Date(), revokedBy: 'RUNNER', revocationReason: 'Replay authorization withdrawn.' },
+      })
+      await expect(submitQualityJourneyScenarioPortfolio(scenarioSubmission, client)).rejects.toMatchObject({
+        code: 'UNAUTHORIZED',
+      })
+      await client.qualityJourneyWorkAuthorization.update({
+        where: { id: designerClaim.attempt.authorizationId! },
+        data: { revokedAt: null, revokedBy: null, revocationReason: null },
+      })
+      await client.qualityJourneyWorkAttempt.update({
+        where: { id: designerClaim.attempt.id },
+        data: {
+          status: 'CANCELLED',
+          cancelledAt: new Date(),
+          cancelledBy: 'RUNNER',
+          cancellationReason: 'Replay cancelled.',
+        },
+      })
+      await expect(submitQualityJourneyScenarioPortfolio(scenarioSubmission, client)).rejects.toMatchObject({
+        code: 'UNAUTHORIZED',
+      })
+      const reviewed = await getQualityJourneyScenarioPortfolio(
+        { journeyId: created.journey.journeyId, targetProjectId: 'target-analysis-1' },
+        client,
+      )
+      const commentInput = {
+        journeyId: created.journey.journeyId,
+        targetProjectId: 'target-analysis-1',
+        portfolioRevisionId: 'portfolio-r1',
+        scenarioRevisionId: 'scenario-2-r1',
+        comment: 'Resolve this before approval.',
+        blocking: true,
+        actor: 'USER',
+        idempotencyKey: 'scenario-comment-1',
+        expectedReviewHash: reviewed.portfolio.reviewHash,
+      }
+      const comment = await commentQualityJourneyScenarioPortfolio(commentInput, client)
+      if (!comment.comment) throw new Error('Scenario comment creation did not return its durable record.')
+      const commentId = comment.comment.id
+      await expect(commentQualityJourneyScenarioPortfolio(commentInput, client)).resolves.toMatchObject({
+        replayed: true,
+      })
+      await expect(
+        commentQualityJourneyScenarioPortfolio({ ...commentInput, comment: 'Conflicting reuse.' }, client),
+      ).rejects.toMatchObject({ code: 'CONFLICT' })
+      await expect(
+        client.$executeRawUnsafe(
+          `UPDATE "QualityJourneyScenarioReviewComment" SET "disposedAt" = '2000-01-01T00:00:00.000Z' WHERE "id" = '${commentId}'`,
+        ),
+      ).rejects.toThrow('Scenario comment disposition is one-time and immutable')
+      const dispositionInput = {
+        journeyId: created.journey.journeyId,
+        targetProjectId: 'target-analysis-1',
+        portfolioRevisionId: 'portfolio-r1',
+        commentId,
+        actor: 'USER',
+        idempotencyKey: 'dispose-scenario-comment-1',
+        expectedReviewHash: comment.reviewHash,
+      }
+      const disposedComment = await disposeQualityJourneyScenarioComment(dispositionInput, client)
+      await expect(disposeQualityJourneyScenarioComment(dispositionInput, client)).resolves.toMatchObject({
+        replayed: true,
+      })
+      await expect(
+        disposeQualityJourneyScenarioComment({ ...dispositionInput, actor: 'OTHER' }, client),
+      ).rejects.toMatchObject({ code: 'CONFLICT' })
+      const laterComment = await commentQualityJourneyScenarioPortfolio(
+        {
+          ...commentInput,
+          comment: 'A later review mutation must not rewrite the original receipt.',
+          blocking: false,
+          idempotencyKey: 'scenario-comment-2',
+          expectedReviewHash: (
+            await getQualityJourneyScenarioPortfolio(
+              {
+                journeyId: created.journey.journeyId,
+                targetProjectId: 'target-analysis-1',
+              },
+              client,
+            )
+          ).portfolio.reviewHash,
+        },
+        client,
+      )
+      await expect(commentQualityJourneyScenarioPortfolio(commentInput, client)).resolves.toMatchObject({
+        replayed: true,
+        comment: { disposition: 'OPEN' },
+        reviewHash: comment.reviewHash,
+      })
+      await expect(disposeQualityJourneyScenarioComment(dispositionInput, client)).resolves.toMatchObject({
+        replayed: true,
+        reviewHash: disposedComment.reviewHash,
+      })
+      const postComment = await getQualityJourneyScenarioPortfolio(
+        { journeyId: created.journey.journeyId, targetProjectId: 'target-analysis-1' },
+        client,
+      )
+      await expect(
+        client.$executeRawUnsafe(
+          `INSERT INTO "QualityJourneyScenarioReviewComment" ("id", "portfolioRevisionId", "scenarioRevisionId", "comment", "actor", "idempotencyKey", "requestHash") VALUES ('cross-portfolio-comment', '${postComment.portfolio.id}', 'foreign-scenario-revision', 'Invalid cross-portfolio comment.', 'USER', 'cross-portfolio-comment', '${digest('c')}')`,
+        ),
+      ).rejects.toThrow('Scenario comment must reference a scenario in its portfolio')
+      await expect(
+        client.$executeRawUnsafe(
+          `UPDATE "QualityJourneyScenarioRevision" SET "stableScenarioId" = 'tampered-scenario' WHERE "scenarioRevisionId" = 'scenario-1-r1'`,
+        ),
+      ).rejects.toThrow('Scenario revisions are immutable')
+      await expect(
+        client.$executeRawUnsafe(
+          `UPDATE "QualityJourneyScenarioPortfolioRevision" SET "graphJson" = '{"edges":[]}' WHERE "id" = '${postComment.portfolio.id}'`,
+        ),
+      ).rejects.toThrow('Scenario portfolio authority and graph are immutable')
+      await expect(
+        client.$executeRawUnsafe(
+          `UPDATE "QualityJourneyScenarioPortfolioRevision" SET "createdAt" = '2000-01-01T00:00:00.000Z' WHERE "id" = '${postComment.portfolio.id}'`,
+        ),
+      ).rejects.toThrow('Scenario portfolio authority and graph are immutable')
+      await expect(
+        client.$executeRawUnsafe(
+          `UPDATE "QualityJourneyScenarioPortfolioRevision" SET "reviewedAt" = '2000-01-01T00:00:00.000Z' WHERE "id" = '${postComment.portfolio.id}'`,
+        ),
+      ).rejects.toThrow('Scenario portfolio review transition is invalid or immutable')
+      await expect(
+        client.$executeRawUnsafe(
+          `UPDATE "QualityJourneyScenarioPortfolioRevision" SET "supersededAt" = '2000-01-01T00:00:00.000Z' WHERE "id" = '${postComment.portfolio.id}'`,
+        ),
+      ).rejects.toThrow('Scenario portfolio review transition is invalid or immutable')
+      await expect(
+        client.$executeRawUnsafe(
+          `UPDATE "QualityJourneyScenarioReviewComment" SET "comment" = 'tampered' WHERE "id" = '${commentId}'`,
+        ),
+      ).rejects.toThrow('Scenario comment evidence is immutable')
+      await expect(
+        client.$executeRawUnsafe(
+          `UPDATE "QualityJourneyScenarioReviewComment" SET "disposedBy" = 'OTHER' WHERE "id" = '${commentId}'`,
+        ),
+      ).rejects.toThrow('Scenario comment disposition is one-time and immutable')
+      await expect(
+        client.$executeRawUnsafe(
+          `UPDATE "QualityJourneyScenarioPortfolioRevision" SET "status" = 'PUBLISHED' WHERE "id" = '${postComment.portfolio.id}'`,
+        ),
+      ).rejects.toThrow('Scenario portfolio review transition is invalid or immutable')
+      const decisionBase = {
+        schemaVersion: 'appraise.quality-journey/v1' as const,
+        journeyId: created.journey.journeyId,
+        targetProjectId: 'target-analysis-1',
+        actor: 'USER' as const,
+        command: 'DECIDE_SCENARIOS' as const,
+        expectedStateHash: (
+          await getQualityJourney(
+            { journeyId: created.journey.journeyId, targetProjectId: 'target-analysis-1' },
+            client,
+          )
+        ).journey.stateHash,
+        inputArtifactRefs: [portfolioRef],
+        payload: {
+          portfolioRevisionId: 'portfolio-r1',
+          portfolioHash,
+          approvedScenarioRevisionIds: ['scenario-1-r1', 'scenario-2-r1'],
+          rejectedScenarioRevisionIds: [],
+        },
+      }
+      await expect(
+        decideQualityJourneyScenarios(
+          {
+            expectedReviewHash: postComment.portfolio.reviewHash,
+            approvedScenarioRevisionIds: ['scenario-1-r1', 'scenario-2-r1'],
+            rejectedScenarioRevisionIds: [],
+            command: { ...decisionBase, commandId: 'decide-scenario-1', idempotencyKey: 'decide-scenario-1' },
+          },
+          client,
+        ),
+      ).resolves.toMatchObject({ outcome: 'PARTIAL' })
+      const finalRejectedOnlyDecision = {
+        expectedReviewHash: postComment.portfolio.reviewHash,
+        approvedScenarioRevisionIds: [],
+        rejectedScenarioRevisionIds: ['scenario-3-r1'],
+        feedback: 'Scenario three is intentionally deferred for revision.',
+        command: {
+          ...decisionBase,
+          commandId: 'decide-scenario-2',
+          idempotencyKey: 'decide-scenario-2',
+          payload: {
+            ...decisionBase.payload,
+            approvedScenarioRevisionIds: [],
+            rejectedScenarioRevisionIds: ['scenario-3-r1'],
+            feedback: 'Scenario three is intentionally deferred for revision.',
+          },
+        },
+      }
+      await expect(decideQualityJourneyScenarios(finalRejectedOnlyDecision, client)).resolves.toMatchObject({
+        outcome: 'COMMITTED',
+        successorStage: 'AUTOMATION',
+      })
+      await expect(decideQualityJourneyScenarios(finalRejectedOnlyDecision, client)).resolves.toMatchObject({
+        outcome: 'COMMITTED',
+        successorStage: 'AUTOMATION',
+        replayed: true,
+      })
+      await expect(
+        client.$executeRawUnsafe(
+          `UPDATE "QualityJourneyScenarioDecisionReceipt" SET "resultJson" = '{}' WHERE "journeyId" = '${created.journey.journeyId}' AND "idempotencyKey" = 'decide-scenario-2'`,
+        ),
+      ).rejects.toThrow('Scenario decision receipts are immutable')
+      const phaseFiveTerminal = await getQualityJourney(
+        { journeyId: created.journey.journeyId, targetProjectId: 'target-analysis-1' },
+        client,
+      )
+      expect(phaseFiveTerminal.journey.stage).toBe('AUTOMATION')
+    } finally {
+      await client.$disconnect()
+    }
+  }, 60_000)
+
+  it('keeps completed discovery history immutable while a valid Discovery retry owns the stage', async () => {
+    const client = await fixture()
+    try {
+      const { created, submitted, discovery } = await completedDiscovery(client, 'discovery-retry')
       await client.environment.update({
         where: { id: 'environment-analysis-1' },
         data: { scopeVersion: { increment: 1 } },
@@ -599,12 +1230,12 @@ describe('Quality Journey Phase 3 analysis control plane', () => {
           {
             journeyId: created.journey.journeyId,
             targetProjectId: 'target-analysis-1',
-            expectedActiveDiscoveryRevisionId: discoveryRevision.id,
+            expectedActiveDiscoveryRevisionId: discovery.id,
           },
           client,
         ),
       ).resolves.toMatchObject({ valid: false, discoveryRevision: { status: 'INVALIDATED' } })
-      const invalidatedState = await getQualityJourney(
+      const invalidated = await getQualityJourney(
         { journeyId: created.journey.journeyId, targetProjectId: 'target-analysis-1' },
         client,
       )
@@ -617,29 +1248,27 @@ describe('Quality Journey Phase 3 analysis control plane', () => {
             targetProjectId: 'target-analysis-1',
             actor: 'RUNNER',
             command: 'START_SCENARIO_DESIGN',
-            expectedStateHash: invalidatedState.journey.stateHash,
+            expectedStateHash: invalidated.journey.stateHash,
             idempotencyKey: 'scenario-design-invalidated-discovery',
             inputArtifactRefs: [],
             payload: {},
           },
           client,
         ),
-      ).resolves.toMatchObject({ outcome: 'CONFLICT', code: 'PRECONDITION_FAILED' })
-      const retried = await retryQualityJourneyDiscovery(
-        {
-          journeyId: created.journey.journeyId,
-          targetProjectId: 'target-analysis-1',
-          expectedActiveDiscoveryRevisionId: discoveryRevision.id,
-          idempotencyKey: 'retry-discovery-1',
-          reason: 'The environment registry changed.',
-        },
-        client,
-      )
+      ).rejects.toMatchObject({ code: 'UNAUTHORIZED' })
+      const retry = {
+        journeyId: created.journey.journeyId,
+        targetProjectId: 'target-analysis-1',
+        expectedActiveDiscoveryRevisionId: discovery.id,
+        idempotencyKey: 'retry-discovery-1',
+        reason: 'The environment registry changed.',
+      }
+      const retried = await retryQualityJourneyDiscovery(retry, client)
       expect(retried).toMatchObject({
         replayed: false,
         discoveryRevision: {
           status: 'COLLECTING',
-          predecessorRevisionId: discoveryRevision.id,
+          predecessorRevisionId: discovery.id,
           targetObservationHash: null,
           resourceResolutionHash: null,
         },
@@ -664,19 +1293,11 @@ describe('Quality Journey Phase 3 analysis control plane', () => {
           },
           client,
         ),
-      ).resolves.toMatchObject({ outcome: 'CONFLICT', code: 'PRECONDITION_FAILED' })
-      await expect(
-        retryQualityJourneyDiscovery(
-          {
-            journeyId: created.journey.journeyId,
-            targetProjectId: 'target-analysis-1',
-            expectedActiveDiscoveryRevisionId: discoveryRevision.id,
-            idempotencyKey: 'retry-discovery-1',
-            reason: 'The environment registry changed.',
-          },
-          client,
-        ),
-      ).resolves.toMatchObject({ replayed: true, discoveryRevision: { id: retried.discoveryRevision.id } })
+      ).rejects.toMatchObject({ code: 'UNAUTHORIZED' })
+      await expect(retryQualityJourneyDiscovery(retry, client)).resolves.toMatchObject({
+        replayed: true,
+        discoveryRevision: { id: retried.discoveryRevision.id },
+      })
       const analysis = await getQualityJourneyAnalysis(
         { journeyId: created.journey.journeyId, targetProjectId: 'target-analysis-1' },
         client,
@@ -688,13 +1309,6 @@ describe('Quality Journey Phase 3 analysis control plane', () => {
           data: { artifactJson: '{}' },
         }),
       ).rejects.toThrow()
-      expect(
-        (
-          await client.qualityJourneyArtifact.findUniqueOrThrow({
-            where: { id: analysis.revisions[0].artifactRecordId },
-          })
-        ).artifactJson,
-      ).not.toBe('{}')
       await expect(
         client.qualityJourneyWorkAttempt.delete({ where: { id: submitted.analysisRevision.submittedAttemptId } }),
       ).rejects.toThrow()
@@ -707,16 +1321,419 @@ describe('Quality Journey Phase 3 analysis control plane', () => {
               answerId: 'answer-payment-2',
               journeyId: created.journey.journeyId,
               targetProjectId: 'target-analysis-1',
-              analysisRevisionId: 'analysis-revision-1',
+              analysisRevisionId: submitted.analysisRevision.id,
               questionId: 'question-payment',
               answer: 'Wallet payment.',
               actor: 'USER',
-              correctionOfAnswerId: 'answer-payment-1',
+              correctionOfAnswerId: `${'discovery-retry'}-answer`,
             },
           },
           client,
         ),
       ).rejects.toMatchObject({ code: 'CONFLICT' })
+    } finally {
+      await client.$disconnect()
+    }
+  }, 60_000)
+
+  it('reissues Scenario Designer with exact revision inputs and carries only unchanged behavioral decisions', async () => {
+    const client = await fixture()
+    try {
+      const { created, discovery, frozenResource } = await completedDiscovery(client, 'scenario-revision')
+      const startState = await getQualityJourney(
+        { journeyId: created.journey.journeyId, targetProjectId: 'target-analysis-1' },
+        client,
+      )
+      await startQualityJourneyScenarioDesign(
+        {
+          schemaVersion: 'appraise.quality-journey/v1',
+          commandId: 'scenario-revision-start',
+          journeyId: created.journey.journeyId,
+          targetProjectId: 'target-analysis-1',
+          actor: 'RUNNER',
+          command: 'START_SCENARIO_DESIGN',
+          expectedStateHash: startState.journey.stateHash,
+          idempotencyKey: 'scenario-revision-start',
+          inputArtifactRefs: [],
+          payload: {},
+        },
+        client,
+      )
+      const initialDesigner = await claimQualityJourneyWork(
+        { journeyId: created.journey.journeyId, targetProjectId: 'target-analysis-1', role: 'TEST_SCENARIO_DESIGNER' },
+        client,
+      )
+      registerStartedAnalyzerAdapter(initialDesigner.attempt.id, 'scenario-revision-initial-designer')
+      await dispatchQualityJourneyWork(
+        {
+          journeyId: created.journey.journeyId,
+          targetProjectId: 'target-analysis-1',
+          workItemId: initialDesigner.workItem.id,
+          leaseId: initialDesigner.attempt.leaseId,
+          ownerToken: initialDesigner.ownerToken,
+        },
+        client,
+      )
+      const makePortfolio = (
+        portfolioRevisionId: string,
+        scenarioSuffix: string,
+        predecessorPortfolioRevisionId?: string,
+      ) => ({
+        schemaVersion: 'appraise.quality-journey/v1' as const,
+        portfolioId: 'scenario-revision-portfolio',
+        portfolioRevisionId,
+        journeyId: created.journey.journeyId,
+        targetProjectId: 'target-analysis-1',
+        cycleId: created.journey.activeCycleId,
+        discoveryRevisionId: discovery.id,
+        discoveryCompletionHash: discovery.completionHash!,
+        ...(predecessorPortfolioRevisionId ? { predecessorPortfolioRevisionId } : {}),
+        coverageRationale: 'One scenario preserves approved checkout behavior while the other responds to review.',
+        graph: { edges: [], sharedSetup: [] },
+        scenarios: [
+          {
+            stableScenarioId: 'scenario-a-unchanged',
+            scenarioRevisionId: `scenario-a-unchanged-${scenarioSuffix}`,
+            behavioralIntent: {
+              title: 'Checkout confirmation',
+              narrative: 'A shopper completes checkout.',
+              requirementIds: ['REQ-CHECKOUT-1'],
+              expectedSignals: ['Confirmation'],
+              steps: [{ stepId: 'confirmation', action: 'Submit checkout', expected: 'Confirmation' }],
+            },
+            enrichment: {
+              observationIds: ['scenario-revision-observation'],
+              resourceAssumptionIds: [frozenResource.id],
+              feasibilityNotes: [`${scenarioSuffix} feasibility`],
+            },
+            layout: { x: 0, y: 0, sequence: 0 },
+          },
+          {
+            stableScenarioId: 'scenario-b-revised',
+            scenarioRevisionId: `scenario-b-revised-${scenarioSuffix}`,
+            behavioralIntent: {
+              title: scenarioSuffix === 'r1' ? 'Checkout receipt' : 'Checkout receipt and payment audit',
+              narrative:
+                scenarioSuffix === 'r1'
+                  ? 'A shopper receives a receipt.'
+                  : 'A shopper receives a receipt with payment audit details.',
+              requirementIds: ['REQ-CHECKOUT-1'],
+              expectedSignals: scenarioSuffix === 'r1' ? ['Receipt'] : ['Receipt', 'Payment audit'],
+              steps: [
+                {
+                  stepId: 'receipt',
+                  action: 'Complete checkout',
+                  expected: scenarioSuffix === 'r1' ? 'Receipt' : 'Receipt and payment audit',
+                },
+              ],
+            },
+            enrichment: {
+              observationIds: ['scenario-revision-observation'],
+              resourceAssumptionIds: [frozenResource.id],
+              feasibilityNotes: [`${scenarioSuffix} feasibility`],
+            },
+            layout: { x: 100, y: 0, sequence: 1 },
+          },
+        ],
+      })
+      const submitPortfolio = async (
+        portfolio: ReturnType<typeof makePortfolio>,
+        designer: Awaited<ReturnType<typeof claimQualityJourneyWork>>,
+        idempotencyKey: string,
+      ) => {
+        const portfolioHash = hashScenarioPortfolio(portfolio)
+        return submitQualityJourneyScenarioPortfolio(
+          {
+            journeyId: created.journey.journeyId,
+            targetProjectId: 'target-analysis-1',
+            workItemId: designer.workItem.id,
+            attemptId: designer.attempt.id,
+            leaseId: designer.attempt.leaseId,
+            ownerToken: designer.ownerToken,
+            idempotencyKey,
+            expectedInputHash: designer.assignment.inputHash,
+            expectedScopeHash: hash(JSON.parse(designer.workItem.authorizationScopeJson)),
+            portfolio,
+            result: {
+              schemaVersion: 'appraise.quality-journey/v1',
+              assignmentId: designer.assignment.assignmentId,
+              workItemId: designer.workItem.id,
+              attemptId: designer.attempt.id,
+              roleContractDigest: designer.assignment.roleDefinition.digest,
+              inputHash: designer.assignment.inputHash,
+              role: 'TEST_SCENARIO_DESIGNER',
+              status: 'COMPLETED',
+              outputs: [
+                {
+                  kind: 'SCENARIO_PORTFOLIO_REVISION',
+                  artifactId: portfolio.portfolioId,
+                  revisionId: portfolio.portfolioRevisionId,
+                  contentHash: portfolioHash,
+                },
+                ...portfolio.scenarios.map(scenario => ({
+                  kind: 'SCENARIO_REVISION' as const,
+                  artifactId: scenario.stableScenarioId,
+                  revisionId: scenario.scenarioRevisionId,
+                  contentHash: hash(scenario),
+                })),
+              ],
+              evidenceReceipts: [],
+              assumptions: [],
+              blockers: [],
+              unresolvedQuestions: [],
+              submittedAt: '2026-09-04T00:00:00.000Z',
+            },
+          },
+          client,
+        )
+      }
+      const initialPortfolio = makePortfolio('scenario-revision-r1', 'r1')
+      const initialSubmission = await submitPortfolio(initialPortfolio, initialDesigner, 'scenario-revision-submit-r1')
+      const initialHash = hashScenarioPortfolio(initialPortfolio)
+      const portfolioRef = {
+        kind: 'SCENARIO_PORTFOLIO_REVISION' as const,
+        artifactId: initialPortfolio.portfolioId,
+        revisionId: initialPortfolio.portfolioRevisionId,
+        contentHash: initialHash,
+      }
+      const submittedState = await getQualityJourney(
+        { journeyId: created.journey.journeyId, targetProjectId: 'target-analysis-1' },
+        client,
+      )
+      await publishQualityJourneyScenarioPortfolio(
+        {
+          schemaVersion: 'appraise.quality-journey/v1',
+          commandId: 'scenario-revision-publish-r1',
+          journeyId: created.journey.journeyId,
+          targetProjectId: 'target-analysis-1',
+          actor: 'RUNNER',
+          command: 'PUBLISH_SCENARIO_PORTFOLIO',
+          expectedStateHash: submittedState.journey.stateHash,
+          idempotencyKey: 'scenario-revision-publish-r1',
+          inputArtifactRefs: [portfolioRef],
+          payload: { artifactRevisionId: initialPortfolio.portfolioRevisionId, artifactHash: initialHash },
+        },
+        client,
+      )
+      const reviewed = await getQualityJourneyScenarioPortfolio(
+        { journeyId: created.journey.journeyId, targetProjectId: 'target-analysis-1' },
+        client,
+      )
+      await commentQualityJourneyScenarioPortfolio(
+        {
+          journeyId: created.journey.journeyId,
+          targetProjectId: 'target-analysis-1',
+          portfolioRevisionId: initialPortfolio.portfolioRevisionId,
+          scenarioRevisionId: 'scenario-b-revised-r1',
+          comment: 'Include payment audit details in the revised scenario.',
+          blocking: false,
+          actor: 'USER',
+          idempotencyKey: 'scenario-revision-comment',
+          expectedReviewHash: reviewed.portfolio.reviewHash,
+        },
+        client,
+      )
+      const afterComment = await getQualityJourneyScenarioPortfolio(
+        { journeyId: created.journey.journeyId, targetProjectId: 'target-analysis-1' },
+        client,
+      )
+      const decisionState = await getQualityJourney(
+        { journeyId: created.journey.journeyId, targetProjectId: 'target-analysis-1' },
+        client,
+      )
+      await expect(
+        decideQualityJourneyScenarios(
+          {
+            expectedReviewHash: afterComment.portfolio.reviewHash,
+            approvedScenarioRevisionIds: ['scenario-a-unchanged-r1'],
+            rejectedScenarioRevisionIds: [],
+            command: {
+              schemaVersion: 'appraise.quality-journey/v1',
+              commandId: 'scenario-revision-partial-decision',
+              journeyId: created.journey.journeyId,
+              targetProjectId: 'target-analysis-1',
+              actor: 'USER',
+              command: 'DECIDE_SCENARIOS',
+              expectedStateHash: decisionState.journey.stateHash,
+              idempotencyKey: 'scenario-revision-partial-decision',
+              inputArtifactRefs: [portfolioRef],
+              payload: {
+                portfolioRevisionId: initialPortfolio.portfolioRevisionId,
+                portfolioHash: initialHash,
+                approvedScenarioRevisionIds: ['scenario-a-unchanged-r1'],
+                rejectedScenarioRevisionIds: [],
+              },
+            },
+          },
+          client,
+        ),
+      ).resolves.toMatchObject({ outcome: 'PARTIAL' })
+      const revisionState = await getQualityJourney(
+        { journeyId: created.journey.journeyId, targetProjectId: 'target-analysis-1' },
+        client,
+      )
+      await requestQualityJourneyScenarioRevision(
+        {
+          expectedReviewHash: afterComment.portfolio.reviewHash,
+          command: {
+            schemaVersion: 'appraise.quality-journey/v1',
+            commandId: 'scenario-revision-request',
+            journeyId: created.journey.journeyId,
+            targetProjectId: 'target-analysis-1',
+            actor: 'USER',
+            command: 'REQUEST_SCENARIO_REVISION',
+            expectedStateHash: revisionState.journey.stateHash,
+            idempotencyKey: 'scenario-revision-request',
+            inputArtifactRefs: [portfolioRef],
+            payload: {
+              reviewedRevisionId: initialPortfolio.portfolioRevisionId,
+              reviewedHash: initialHash,
+              feedback: 'Retain the confirmation scenario and revise receipt coverage.',
+            },
+          },
+        },
+        client,
+      )
+      await expect(
+        requestQualityJourneyScenarioRevision(
+          {
+            expectedReviewHash: digest('f'),
+            command: {
+              schemaVersion: 'appraise.quality-journey/v1',
+              commandId: 'scenario-revision-request',
+              journeyId: created.journey.journeyId,
+              targetProjectId: 'target-analysis-1',
+              actor: 'USER',
+              command: 'REQUEST_SCENARIO_REVISION',
+              expectedStateHash: revisionState.journey.stateHash,
+              idempotencyKey: 'scenario-revision-request',
+              inputArtifactRefs: [portfolioRef],
+              payload: {
+                reviewedRevisionId: initialPortfolio.portfolioRevisionId,
+                reviewedHash: initialHash,
+                feedback: 'Retain the confirmation scenario and revise receipt coverage.',
+              },
+            },
+          },
+          client,
+        ),
+      ).rejects.toMatchObject({ code: 'CONFLICT' })
+      await expect(
+        client.qualityJourneyScenarioPortfolioRevision.findUniqueOrThrow({
+          where: { id: initialSubmission.portfolio.id },
+        }),
+      ).resolves.toMatchObject({ status: 'REVISION_REQUIRED' })
+      const successorDesigner = await claimQualityJourneyWork(
+        { journeyId: created.journey.journeyId, targetProjectId: 'target-analysis-1', role: 'TEST_SCENARIO_DESIGNER' },
+        client,
+      )
+      const successorInputs = successorDesigner.assignment.inputArtifacts
+      expect(successorInputs).toEqual(
+        expect.arrayContaining([
+          portfolioRef,
+          {
+            kind: 'SCENARIO_REVISION',
+            artifactId: 'scenario-a-unchanged',
+            revisionId: 'scenario-a-unchanged-r1',
+            contentHash: hash(initialPortfolio.scenarios[0]),
+          },
+          {
+            kind: 'SCENARIO_REVISION_FEEDBACK',
+            artifactId: 'scenario-revision-feedback:scenario-revision-request',
+            revisionId: initialPortfolio.portfolioRevisionId,
+            contentHash: expect.stringMatching(/^sha256:[a-f0-9]{64}$/),
+          },
+        ]),
+      )
+      const feedbackReference = successorInputs.find(input => input.kind === 'SCENARIO_REVISION_FEEDBACK')
+      if (!feedbackReference) throw new Error('Successor assignment omitted revision feedback.')
+      const feedback = await client.qualityJourneyArtifact.findFirstOrThrow({
+        where: {
+          journeyId: created.journey.journeyId,
+          kind: feedbackReference.kind,
+          artifactId: feedbackReference.artifactId,
+          revisionId: feedbackReference.revisionId,
+          contentHash: feedbackReference.contentHash,
+        },
+      })
+      expect(JSON.parse(feedback.artifactJson)).toMatchObject({
+        feedback: 'Retain the confirmation scenario and revise receipt coverage.',
+        decisions: [{ scenarioRevisionId: 'scenario-a-unchanged-r1', decision: 'APPROVED' }],
+        comments: [
+          {
+            scenarioRevisionId: 'scenario-b-revised-r1',
+            comment: 'Include payment audit details in the revised scenario.',
+          },
+        ],
+      })
+      registerStartedAnalyzerAdapter(successorDesigner.attempt.id, 'scenario-revision-successor-designer')
+      await dispatchQualityJourneyWork(
+        {
+          journeyId: created.journey.journeyId,
+          targetProjectId: 'target-analysis-1',
+          workItemId: successorDesigner.workItem.id,
+          leaseId: successorDesigner.attempt.leaseId,
+          ownerToken: successorDesigner.ownerToken,
+        },
+        client,
+      )
+      const successorDraft = makePortfolio('scenario-revision-r2', 'r2', initialPortfolio.portfolioRevisionId)
+      const successorPortfolio = { ...successorDraft, scenarios: successorDraft.scenarios.slice(0, 1) }
+      await expect(
+        submitPortfolio(
+          { ...successorPortfolio, portfolioId: 'foreign-successor-portfolio' },
+          successorDesigner,
+          'bad-successor-id',
+        ),
+      ).rejects.toMatchObject({ code: 'CONFLICT' })
+      const successorSubmission = await submitPortfolio(
+        successorPortfolio,
+        successorDesigner,
+        'scenario-revision-submit-r2',
+      )
+      expect(successorSubmission).toMatchObject({ replayed: false })
+      const successorDecisions = await client.qualityJourneyScenarioDecision.findMany({
+        where: { portfolioRevisionId: successorSubmission.portfolio.id },
+        orderBy: { scenarioRevisionId: 'asc' },
+      })
+      expect(successorDecisions).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            scenarioRevisionId: 'scenario-a-unchanged-r2',
+            decision: 'APPROVED',
+            actor: 'SYSTEM',
+          }),
+        ]),
+      )
+      const successorState = await getQualityJourney(
+        { journeyId: created.journey.journeyId, targetProjectId: 'target-analysis-1' },
+        client,
+      )
+      const successorHash = hashScenarioPortfolio(successorPortfolio)
+      await expect(
+        publishQualityJourneyScenarioPortfolio(
+          {
+            schemaVersion: 'appraise.quality-journey/v1',
+            commandId: 'scenario-revision-publish-r2',
+            journeyId: created.journey.journeyId,
+            targetProjectId: 'target-analysis-1',
+            actor: 'RUNNER',
+            command: 'PUBLISH_SCENARIO_PORTFOLIO',
+            expectedStateHash: successorState.journey.stateHash,
+            idempotencyKey: 'scenario-revision-publish-r2',
+            inputArtifactRefs: [
+              {
+                kind: 'SCENARIO_PORTFOLIO_REVISION',
+                artifactId: successorPortfolio.portfolioId,
+                revisionId: successorPortfolio.portfolioRevisionId,
+                contentHash: successorHash,
+              },
+            ],
+            payload: { artifactRevisionId: successorPortfolio.portfolioRevisionId, artifactHash: successorHash },
+          },
+          client,
+        ),
+      ).resolves.toMatchObject({ successorStage: 'AUTOMATION' })
     } finally {
       await client.$disconnect()
     }
@@ -1309,7 +2326,7 @@ describe('Quality Journey Phase 3 analysis control plane', () => {
       expect(JSON.parse(reauthorization.authorizationJson).inputArtifacts).toEqual(
         successorClaim.assignment.inputArtifacts,
       )
-      expect(JSON.parse(reauthorization.authorizationJson).roleDefinition.version).toBe('3')
+      expect(JSON.parse(reauthorization.authorizationJson).roleDefinition.version).toBe('4')
       registerAgentFactoryProviderAdapter({
         adapterId: 'analysis-successor-adapter',
         supports: request => request.attemptId === successorClaim.attempt.id,

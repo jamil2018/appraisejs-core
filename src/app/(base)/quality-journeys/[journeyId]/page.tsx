@@ -11,15 +11,18 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { requireActiveProject } from '@/lib/active-project'
 import { getQualityJourneyAnalysis } from '@/services/coordinator/quality-journey-analysis-service'
 import { getQualityJourney } from '@/services/coordinator/quality-journey-service'
+import { getQualityJourneyScenarioPortfolio } from '@/services/coordinator/quality-journey-scenario-service'
 import { ServiceError } from '@/services/shared/errors'
 
 import { AnalysisReviewControls } from './analysis-review-controls'
+import { ScenarioPortfolioReview } from './scenario-portfolio-review'
 import { qualityJourneyLabel, toAnalysisRevisionView } from './quality-journey-view-model'
 
 type PageProps = { params: Promise<{ journeyId: string }>; searchParams?: Promise<{ project?: string }> }
 type JourneyDetail = Awaited<ReturnType<typeof getQualityJourney>>
 type ActiveProject = Awaited<ReturnType<typeof requireActiveProject>>
 type ActiveAnalysis = ReturnType<typeof toAnalysisRevisionView> | null
+type ActiveScenarioPortfolio = Awaited<ReturnType<typeof getQualityJourneyScenarioPortfolio>>['portfolio'] | null
 
 async function loadJourneyDetail(journeyId: string, projectId: string) {
   const [journey, analysis] = await Promise.all([
@@ -47,7 +50,10 @@ async function loadJourneyDetail(journeyId: string, projectId: string) {
     node => node.stage === journey.journey.stage && ['RUNNABLE', 'IN_PROGRESS', 'BLOCKED'].includes(node.state),
   )
 
-  return { activeAnalysis, activeRunner, answerable, journey }
+  const scenarios = ['SCENARIO_DESIGN', 'SCENARIO_REVIEW', 'AUTOMATION'].includes(journey.journey.stage)
+    ? await getQualityJourneyScenarioPortfolio({ journeyId, targetProjectId: projectId }).catch(() => null)
+    : null
+  return { activeAnalysis, activeRunner, answerable, journey, scenarios }
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
@@ -58,7 +64,10 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 export default async function QualityJourneyDetailPage({ params, searchParams }: PageProps) {
   const [{ journeyId }, parameters] = await Promise.all([params, searchParams])
   const project = await requireActiveProject(parameters?.project)
-  const { activeAnalysis, activeRunner, answerable, journey } = await loadJourneyDetail(journeyId, project.id)
+  const { activeAnalysis, activeRunner, answerable, journey, scenarios } = await loadJourneyDetail(
+    journeyId,
+    project.id,
+  )
 
   return (
     <main className="space-y-6 pb-10">
@@ -68,6 +77,12 @@ export default async function QualityJourneyDetailPage({ params, searchParams }:
       <section className="grid gap-6 xl:grid-cols-[minmax(0,1.65fr)_minmax(20rem,0.85fr)]">
         <div className="space-y-6">
           <AnalysisDocument analysis={activeAnalysis} />
+          <ScenarioPortfolioReview
+            journeyId={journey.journey.journeyId}
+            portfolio={scenarios?.portfolio ?? null}
+            stage={journey.journey.stage}
+            stateHash={journey.journey.stateHash}
+          />
           <AnalysisReviewControls
             analysis={activeAnalysis}
             answerable={answerable}
@@ -78,7 +93,7 @@ export default async function QualityJourneyDetailPage({ params, searchParams }:
             unresolvedQuestionIds={journey.journey.unresolvedQuestionIds}
           />
         </div>
-        <JourneySidebar activeAnalysis={activeAnalysis} journey={journey} />
+        <JourneySidebar activeAnalysis={activeAnalysis} journey={journey} scenarios={scenarios?.portfolio ?? null} />
       </section>
     </main>
   )
@@ -142,36 +157,70 @@ function JourneyOverview({
   )
 }
 
-function JourneySidebar({ activeAnalysis, journey }: { activeAnalysis: ActiveAnalysis; journey: JourneyDetail }) {
+function JourneySidebar({
+  activeAnalysis,
+  journey,
+  scenarios,
+}: {
+  activeAnalysis: ActiveAnalysis
+  journey: JourneyDetail
+  scenarios: ActiveScenarioPortfolio
+}) {
   const questionCount = journey.journey.unresolvedQuestionIds.length
-  const pendingDecision = journey.journey.stage === 'ANALYSIS_REVIEW' && !activeAnalysis?.decision
+  const pendingAnalysisDecision = journey.journey.stage === 'ANALYSIS_REVIEW' && !activeAnalysis?.decision
+  const pendingScenarioDecision =
+    journey.journey.stage === 'SCENARIO_REVIEW' &&
+    Boolean(scenarios?.reviewHash) &&
+    Boolean(scenarios?.scenarios.some(scenario => !scenario.decisions.length))
 
   return (
     <aside className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base">
-            <UserRoundCheck aria-hidden="true" className="size-4 text-primary" />
-            Pending user decisions
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3 text-sm">
-          {pendingDecision ? (
-            <p>Review the current published analysis revision or request a revision with durable feedback.</p>
-          ) : null}
-          {questionCount ? (
-            <p>
-              {questionCount} required question{questionCount === 1 ? '' : 's'} must be resolved before approval.
-            </p>
-          ) : null}
-          {!pendingDecision && questionCount === 0 ? (
-            <p className="text-muted-foreground">No user decision is currently pending.</p>
-          ) : null}
-        </CardContent>
-      </Card>
+      <PendingUserDecisions
+        pendingAnalysisDecision={pendingAnalysisDecision}
+        pendingScenarioDecision={pendingScenarioDecision}
+        questionCount={questionCount}
+      />
       <BlockerCard blockers={journey.blockers} />
       <Timeline events={journey.events} />
     </aside>
+  )
+}
+
+function PendingUserDecisions({
+  pendingAnalysisDecision,
+  pendingScenarioDecision,
+  questionCount,
+}: {
+  pendingAnalysisDecision: boolean
+  pendingScenarioDecision: boolean
+  questionCount: number
+}) {
+  const hasPendingDecision = pendingAnalysisDecision || pendingScenarioDecision
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2 text-base">
+          <UserRoundCheck aria-hidden="true" className="size-4 text-primary" />
+          Pending user decisions
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-3 text-sm">
+        {pendingAnalysisDecision ? (
+          <p>Review the current published analysis revision or request a revision with durable feedback.</p>
+        ) : null}
+        {pendingScenarioDecision ? (
+          <p>Review the pending Scenario Portfolio decisions; existing durable scenario decisions are preserved.</p>
+        ) : null}
+        {questionCount ? (
+          <p>
+            {questionCount} required question{questionCount === 1 ? '' : 's'} must be resolved before approval.
+          </p>
+        ) : null}
+        {!hasPendingDecision && questionCount === 0 ? (
+          <p className="text-muted-foreground">No user decision is currently pending.</p>
+        ) : null}
+      </CardContent>
+    </Card>
   )
 }
 

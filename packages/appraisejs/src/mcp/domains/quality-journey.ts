@@ -89,7 +89,14 @@ const specializedAnalysisLifecycleCommands = new Set([
   'REQUEST_ANALYSIS_REVISION',
   'DECIDE_ANALYSIS',
 ])
-const specializedQualityJourneyCommands = new Set([...specializedAnalysisLifecycleCommands, 'RETRY_DISCOVERY'])
+const specializedQualityJourneyCommands = new Set([
+  ...specializedAnalysisLifecycleCommands,
+  'RETRY_DISCOVERY',
+  'START_SCENARIO_DESIGN',
+  'PUBLISH_SCENARIO_PORTFOLIO',
+  'DECIDE_SCENARIOS',
+  'REQUEST_SCENARIO_REVISION',
+])
 
 export const genericQualityJourneyCommandSchema = z
   .record(z.string(), z.unknown())
@@ -97,6 +104,36 @@ export const genericQualityJourneyCommandSchema = z
     command => typeof command.command !== 'string' || !specializedQualityJourneyCommands.has(command.command),
     'Specialized Quality Journey commands require their dedicated MCP tool.',
   )
+
+const genericQualityJourneyWorkCompletionResultSchema = z
+  .record(z.string(), z.unknown())
+  .refine(
+    result =>
+      result.role !== 'SCOUT' && result.role !== 'RESOURCE_EXPLORER' && result.role !== 'TEST_SCENARIO_DESIGNER',
+    'Discovery and Scenario Designer roles require their specialized completion tools.',
+  )
+
+// The package is published independently of the coordinator, so this is a
+// deliberate mirror of src/lib/quality-journey/scenario-contracts.ts rather
+// than an import from the app. Keep the structural constraints here in lock
+// step with the canonical contract; the parity corpus in the root test suite
+// exercises both ingress schemas against the same inputs.
+const scenarioIdentifier = z
+  .string()
+  .min(1)
+  .max(200)
+  .regex(/^[A-Za-z0-9._:-]+$/)
+const sortedUniqueScenarioIds = (options?: { min?: number; max?: number; message?: string }) => {
+  const { min = 1, max = 512, message = 'IDs must be unique and lexicographically sorted.' } = options ?? {}
+  return z
+    .array(scenarioIdentifier)
+    .min(min)
+    .max(max)
+    .superRefine((values, context) => {
+      if (new Set(values).size !== values.length || values.some((value, index) => index && values[index - 1] >= value))
+        context.addIssue({ code: 'custom', message })
+    })
+}
 
 const artifactReference = z
   .object({
@@ -128,6 +165,223 @@ const artifactReference = z
     if (reference.kind.endsWith('_REVISION') && !reference.revisionId)
       context.addIssue({ code: 'custom', path: ['revisionId'], message: 'Revisioned artifacts require revisionId.' })
   })
+
+const scenarioBehavioralIntent = z
+  .object({
+    title: boundedText,
+    narrative: boundedText,
+    requirementIds: sortedUniqueScenarioIds().optional(),
+    exploratoryRationale: boundedText.optional(),
+    expectedSignals: z.array(boundedText).min(1).max(64),
+    steps: z
+      .array(z.object({ stepId: scenarioIdentifier, action: boundedText, expected: boundedText }).strict())
+      .min(1)
+      .max(128),
+  })
+  .strict()
+  .superRefine((intent, context) => {
+    if (!intent.requirementIds?.length && !intent.exploratoryRationale)
+      context.addIssue({
+        code: 'custom',
+        message: 'A scenario needs approved requirement traceability or an exploratory rationale.',
+      })
+  })
+
+const scenarioEnrichment = z
+  .object({
+    observationIds: sortedUniqueScenarioIds(),
+    resourceAssumptionIds: sortedUniqueScenarioIds({
+      min: 0,
+      message: 'Resource assumption IDs must be unique and sorted.',
+    }),
+    feasibilityNotes: z.array(boundedText).max(128),
+  })
+  .strict()
+
+const scenarioRevision = z
+  .object({
+    stableScenarioId: scenarioIdentifier,
+    scenarioRevisionId: scenarioIdentifier,
+    behavioralIntent: scenarioBehavioralIntent,
+    enrichment: scenarioEnrichment,
+    layout: z
+      .object({ x: z.number().finite(), y: z.number().finite(), sequence: z.number().int().nonnegative() })
+      .strict(),
+  })
+  .strict()
+
+const scenarioGraph = z
+  .object({
+    edges: z
+      .array(
+        z
+          .object({
+            sourceScenarioRevisionId: scenarioIdentifier,
+            targetScenarioRevisionId: scenarioIdentifier,
+            relation: z.enum(['DEPENDS_ON', 'BRANCHES_TO', 'SHARED_SETUP']),
+            rationale: boundedText,
+          })
+          .strict(),
+      )
+      .max(2_048),
+    sharedSetup: z
+      .array(
+        z
+          .object({
+            setupId: scenarioIdentifier,
+            label: boundedText,
+            scenarioRevisionIds: z.array(scenarioIdentifier).min(2),
+          })
+          .strict(),
+      )
+      .max(512),
+  })
+  .strict()
+
+type ScenarioDraft = z.infer<typeof scenarioRevision>
+type ScenarioGraph = z.infer<typeof scenarioGraph>
+
+function validateScenarioIds(scenarios: ScenarioDraft[], context: z.RefinementCtx) {
+  const stableIds = scenarios.map(scenario => scenario.stableScenarioId)
+  const revisionIds = scenarios.map(scenario => scenario.scenarioRevisionId)
+  if (
+    new Set(stableIds).size !== stableIds.length ||
+    stableIds.some((value, index) => index && stableIds[index - 1] >= value)
+  )
+    context.addIssue({ code: 'custom', path: ['scenarios'], message: 'Stable scenario IDs must be unique and sorted.' })
+  if (new Set(revisionIds).size !== revisionIds.length)
+    context.addIssue({ code: 'custom', path: ['scenarios'], message: 'Scenario revision IDs must be unique.' })
+  const sequences = scenarios.map(scenario => scenario.layout.sequence)
+  if (new Set(sequences).size !== sequences.length)
+    context.addIssue({ code: 'custom', path: ['scenarios'], message: 'Scenario layout sequences must be unique.' })
+  return new Set(revisionIds)
+}
+
+function validateGraphEdges(edges: ScenarioGraph['edges'], known: Set<string>, context: z.RefinementCtx) {
+  const edgeKeys = new Set<string>()
+  for (const [index, edge] of edges.entries()) {
+    const edgeKey = `${edge.sourceScenarioRevisionId}\u0000${edge.targetScenarioRevisionId}\u0000${edge.relation}`
+    if (index && [...edgeKeys].at(-1)! >= edgeKey)
+      context.addIssue({
+        code: 'custom',
+        path: ['graph', 'edges', index],
+        message: 'Graph edges must use deterministic source, target, and relation order.',
+      })
+    if (edgeKeys.has(edgeKey))
+      context.addIssue({
+        code: 'custom',
+        path: ['graph', 'edges', index],
+        message: 'Graph edges must not duplicate a dependency or branch relation.',
+      })
+    edgeKeys.add(edgeKey)
+    if (!known.has(edge.sourceScenarioRevisionId) || !known.has(edge.targetScenarioRevisionId))
+      context.addIssue({
+        code: 'custom',
+        path: ['graph', 'edges', index],
+        message: 'Graph edges must reference portfolio scenarios.',
+      })
+    if (edge.sourceScenarioRevisionId === edge.targetScenarioRevisionId)
+      context.addIssue({
+        code: 'custom',
+        path: ['graph', 'edges', index],
+        message: 'Graph edges cannot self-reference.',
+      })
+  }
+}
+
+function validateSharedSetups(setups: ScenarioGraph['sharedSetup'], known: Set<string>, context: z.RefinementCtx) {
+  const setupIds = setups.map(setup => setup.setupId)
+  if (
+    new Set(setupIds).size !== setupIds.length ||
+    setupIds.some((setupId, index) => index && setupIds[index - 1] >= setupId)
+  )
+    context.addIssue({
+      code: 'custom',
+      path: ['graph', 'sharedSetup'],
+      message: 'Shared setup IDs must be unique and sorted.',
+    })
+  for (const [index, setup] of setups.entries()) {
+    if (setup.scenarioRevisionIds.some(scenarioRevisionId => !known.has(scenarioRevisionId)))
+      context.addIssue({
+        code: 'custom',
+        path: ['graph', 'sharedSetup', index],
+        message: 'Shared setup must reference portfolio scenarios.',
+      })
+    if (
+      new Set(setup.scenarioRevisionIds).size !== setup.scenarioRevisionIds.length ||
+      setup.scenarioRevisionIds.some(
+        (scenarioRevisionId, scenarioIndex) =>
+          scenarioIndex && setup.scenarioRevisionIds[scenarioIndex - 1] >= scenarioRevisionId,
+      )
+    )
+      context.addIssue({
+        code: 'custom',
+        path: ['graph', 'sharedSetup', index],
+        message: 'Shared setup scenario IDs must be unique and sorted.',
+      })
+  }
+}
+
+export const scenarioPortfolioSchema = z
+  .object({
+    schemaVersion: z.literal('appraise.quality-journey/v1'),
+    portfolioId: scenarioIdentifier,
+    portfolioRevisionId: scenarioIdentifier,
+    journeyId: scenarioIdentifier,
+    targetProjectId: scenarioIdentifier,
+    cycleId: scenarioIdentifier,
+    discoveryRevisionId: scenarioIdentifier,
+    discoveryCompletionHash: hash,
+    predecessorPortfolioRevisionId: scenarioIdentifier.optional(),
+    coverageRationale: boundedText,
+    graph: scenarioGraph,
+    scenarios: z.array(scenarioRevision).min(1).max(512),
+  })
+  .strict()
+  .superRefine((value, context) => {
+    const known = validateScenarioIds(value.scenarios, context)
+    validateGraphEdges(value.graph.edges, known, context)
+    validateSharedSetups(value.graph.sharedSetup, known, context)
+  })
+
+const workerResult = z
+  .object({
+    schemaVersion: z.literal('appraise.quality-journey/v1'),
+    assignmentId: id,
+    workItemId: id,
+    attemptId: id,
+    roleContractDigest: hash,
+    inputHash: hash,
+    role: z.enum([
+      'REQUIREMENT_ANALYZER',
+      'SCOUT',
+      'RESOURCE_EXPLORER',
+      'TEST_SCENARIO_DESIGNER',
+      'AUTOMATOR',
+      'TRIAGER',
+    ]),
+    status: z.enum(['COMPLETED', 'BLOCKED', 'QUESTION_RAISED', 'REVISION_REQUIRED']),
+    outputs: z.array(artifactReference),
+    evidenceReceipts: z.array(hash),
+    assumptions: z.array(boundedText),
+    blockers: z.array(
+      z.object({ code: id, summary: boundedText, evidence: z.array(hash), requiredResolution: boundedText }).strict(),
+    ),
+    unresolvedQuestions: z.array(z.object({ questionId: id, prompt: boundedText, required: z.boolean() }).strict()),
+    submittedAt: timestamp,
+  })
+  .strict()
+  .refine(
+    result =>
+      result.role !== 'TEST_SCENARIO_DESIGNER' ||
+      result.outputs.every(
+        output => output.kind === 'SCENARIO_PORTFOLIO_REVISION' || output.kind === 'SCENARIO_REVISION',
+      ),
+    {
+      message: 'Designer worker results may only publish Scenario Portfolio or Scenario Revision artifacts.',
+      path: ['outputs'],
+    },
+  )
 
 const discoveryBundleBase = z
   .object({
@@ -516,6 +770,178 @@ export function registerQualityJourneyOperations({ server, api }: McpRegistryCon
       ),
   )
   server.registerTool(
+    'quality_journey_scenarios_start',
+    {
+      description:
+        'Start scenario design only from the exact completed discovery revision and issue the Designer assignment.',
+      inputSchema: { target, journeyId, commandId: id, expectedStateHash: hash, idempotencyKey: id },
+    },
+    async ({ target: targetRef, journeyId: journey, ...body }) =>
+      text(
+        await api.request(`quality/journeys/${journey}/scenarios/starts`, {
+          method: 'POST',
+          body: JSON.stringify({ target: targetRef, ...body }),
+        }),
+      ),
+  )
+  server.registerTool(
+    'quality_journey_scenarios_get',
+    {
+      description:
+        'Read the exact active Scenario Portfolio, graph coordinates, feasibility enrichment, and accumulated review decisions.',
+      inputSchema: { target, journeyId },
+    },
+    async ({ target: targetRef, journeyId: journey }) =>
+      text(await api.request(`quality/journeys/${journey}/scenarios?target=${encodeURIComponent(targetRef)}`)),
+  )
+  server.registerTool(
+    'quality_journey_scenarios_submit',
+    {
+      description:
+        'Submit a provenance-bound Scenario Portfolio only through the active leased Test Scenario Designer assignment.',
+      inputSchema: {
+        target,
+        journeyId,
+        workItemId: id,
+        attemptId: id,
+        leaseId: id,
+        ownerToken: z.string().min(1),
+        idempotencyKey: id,
+        expectedInputHash: hash,
+        expectedScopeHash: hash,
+        portfolio: scenarioPortfolioSchema,
+        result: workerResult,
+      },
+    },
+    async ({ target: targetRef, journeyId: journey, ...body }) =>
+      text(
+        await api.request(`quality/journeys/${journey}/scenarios/submissions`, {
+          method: 'POST',
+          body: JSON.stringify({ target: targetRef, ...body }),
+        }),
+      ),
+  )
+  server.registerTool(
+    'quality_journey_scenarios_publish',
+    {
+      description: 'Publish one exact Scenario Portfolio for review after the Designer submission is durably recorded.',
+      inputSchema: {
+        target,
+        journeyId,
+        commandId: id,
+        expectedStateHash: hash,
+        idempotencyKey: id,
+        portfolioId: id,
+        portfolioRevisionId: id,
+        portfolioHash: hash,
+      },
+    },
+    async ({ target: targetRef, journeyId: journey, ...body }) =>
+      text(
+        await api.request(`quality/journeys/${journey}/scenarios/publications`, {
+          method: 'POST',
+          body: JSON.stringify({ target: targetRef, ...body }),
+        }),
+      ),
+  )
+  server.registerTool(
+    'quality_journey_scenarios_decide',
+    {
+      description:
+        'Accumulate exact scenario approvals or rejections during review; only a complete mandatory-coverage decision advances to automation.',
+      inputSchema: {
+        target,
+        journeyId,
+        commandId: id,
+        expectedStateHash: hash,
+        idempotencyKey: id,
+        portfolioId: id,
+        portfolioRevisionId: id,
+        portfolioHash: hash,
+        expectedReviewHash: hash,
+        approvedScenarioRevisionIds: z.array(scenarioIdentifier).max(512),
+        rejectedScenarioRevisionIds: z.array(scenarioIdentifier).max(512),
+        feedback: boundedText.optional(),
+      },
+    },
+    async ({ target: targetRef, journeyId: journey, ...body }) =>
+      text(
+        await api.request(`quality/journeys/${journey}/scenarios/decisions`, {
+          method: 'POST',
+          body: JSON.stringify({ target: targetRef, ...body }),
+        }),
+      ),
+  )
+  server.registerTool(
+    'quality_journey_scenarios_comment',
+    {
+      description: 'Append an exact scoped scenario review comment without mutating scenario intent.',
+      inputSchema: {
+        target,
+        journeyId,
+        portfolioRevisionId: id,
+        scenarioRevisionId: id.optional(),
+        comment: boundedText,
+        blocking: z.boolean().default(false),
+        idempotencyKey: id,
+        expectedReviewHash: hash,
+      },
+    },
+    async ({ target: targetRef, journeyId: journey, ...body }) =>
+      text(
+        await api.request(`quality/journeys/${journey}/scenarios/comments`, {
+          method: 'POST',
+          body: JSON.stringify({ target: targetRef, ...body }),
+        }),
+      ),
+  )
+  server.registerTool(
+    'quality_journey_scenarios_comment_dispose',
+    {
+      description: 'Dispose one exact scenario review comment with a durable idempotency receipt.',
+      inputSchema: {
+        target,
+        journeyId,
+        portfolioRevisionId: id,
+        commentId: id,
+        idempotencyKey: id,
+        expectedReviewHash: hash,
+      },
+    },
+    async ({ target: targetRef, journeyId: journey, ...body }) =>
+      text(
+        await api.request(`quality/journeys/${journey}/scenarios/comment-dispositions`, {
+          method: 'POST',
+          body: JSON.stringify({ target: targetRef, ...body }),
+        }),
+      ),
+  )
+  server.registerTool(
+    'quality_journey_scenarios_revision_request',
+    {
+      description: 'Request a feedback-bound successor Scenario Portfolio from one exact reviewed revision.',
+      inputSchema: {
+        target,
+        journeyId,
+        commandId: id,
+        expectedStateHash: hash,
+        idempotencyKey: id,
+        portfolioId: id,
+        portfolioRevisionId: id,
+        portfolioHash: hash,
+        expectedReviewHash: hash,
+        feedback: boundedText,
+      },
+    },
+    async ({ target: targetRef, journeyId: journey, ...body }) =>
+      text(
+        await api.request(`quality/journeys/${journey}/scenarios/revision-requests`, {
+          method: 'POST',
+          body: JSON.stringify({ target: targetRef, ...body }),
+        }),
+      ),
+  )
+  server.registerTool(
     'quality_journey_resume',
     {
       description: 'Reconstruct runner state, expire elapsed leases, and make replacement work reclaimable.',
@@ -631,14 +1057,15 @@ export function registerQualityJourneyOperations({ server, api }: McpRegistryCon
   server.registerTool(
     'quality_journey_work_complete',
     {
-      description: 'Complete an exact claimed work attempt with a contract-bound worker result envelope.',
+      description:
+        'Complete an exact claimed work attempt with a contract-bound worker result envelope; Discovery and Scenario Designer roles require their specialized completion tools.',
       inputSchema: {
         target,
         journeyId,
         workItemId: z.string().min(1),
         leaseId: z.string().min(1),
         ownerToken: z.string().min(1),
-        result: z.record(z.string(), z.unknown()),
+        result: genericQualityJourneyWorkCompletionResultSchema,
       },
     },
     async ({ target: targetRef, journeyId: id, workItemId, ...body }) =>
