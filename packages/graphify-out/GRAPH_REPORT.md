@@ -4,12 +4,12 @@
 - cluster-only mode — file stats not available
 
 ## Summary
-- 1110 nodes · 2126 edges · 63 communities (60 shown, 3 thin omitted)
+- 1115 nodes · 2131 edges · 61 communities (58 shown, 3 thin omitted)
 - Extraction: 99% EXTRACTED · 1% INFERRED · 0% AMBIGUOUS · INFERRED: 15 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `371a57a6`
+- Built from commit: `980f8dc2`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -43,10 +43,10 @@
 - [[_COMMUNITY_Community 26|Community 26]]
 - [[_COMMUNITY_Community 27|Community 27]]
 - [[_COMMUNITY_Community 28|Community 28]]
+- [[_COMMUNITY_Community 29|Community 29]]
 - [[_COMMUNITY_Community 30|Community 30]]
 - [[_COMMUNITY_Community 31|Community 31]]
 - [[_COMMUNITY_Community 32|Community 32]]
-- [[_COMMUNITY_Community 33|Community 33]]
 - [[_COMMUNITY_Community 35|Community 35]]
 - [[_COMMUNITY_Community 37|Community 37]]
 - [[_COMMUNITY_Community 39|Community 39]]
@@ -54,10 +54,8 @@
 - [[_COMMUNITY_Community 41|Community 41]]
 - [[_COMMUNITY_Community 44|Community 44]]
 - [[_COMMUNITY_Community 45|Community 45]]
-- [[_COMMUNITY_Community 46|Community 46]]
 - [[_COMMUNITY_Community 47|Community 47]]
 - [[_COMMUNITY_Community 49|Community 49]]
-- [[_COMMUNITY_Community 51|Community 51]]
 - [[_COMMUNITY_Community 52|Community 52]]
 - [[_COMMUNITY_Community 53|Community 53]]
 - [[_COMMUNITY_Community 55|Community 55]]
@@ -86,15 +84,15 @@
 10. `createBaseTemplate()` - 15 edges
 
 ## Surprising Connections (you probably didn't know these)
-- `bootstrap()` --calls--> `Config`  [INFERRED]
-  cucumber-runtime/src/executor.ts → create-appraisejs/src/config.ts
 - `writeTemplateQualityOsCertificationReceipt()` --calls--> `canonicalContractJson()`  [INFERRED]
   create-appraisejs/scripts/prepare-template.ts → appraisejs/src/mcp/shared.ts
+- `bootstrap()` --calls--> `Config`  [INFERRED]
+  cucumber-runtime/src/executor.ts → create-appraisejs/src/config.ts
 - `resolveMcpEndpoint()` --calls--> `assertLoopbackMcpHost()`  [EXTRACTED]
   appraisejs/src/cli.ts → appraisejs/src/mcp-http-security.ts
+- `localCoordinatorBaseUrl()` --calls--> `isLoopbackHostname()`  [EXTRACTED]
+  appraisejs/src/coordinator-client.ts → appraisejs/src/mcp-http-security.ts
 - `onlineClient()` --calls--> `createCoordinatorClient()`  [EXTRACTED]
-  appraisejs/src/cli.ts → appraisejs/src/coordinator-client.ts
-- `printErrorJson()` --calls--> `createLocalCoordinatorFailure()`  [EXTRACTED]
   appraisejs/src/cli.ts → appraisejs/src/coordinator-client.ts
 
 ## Import Cycles
@@ -103,11 +101,11 @@
 ## Hyperedges (group relationships)
 - **Appraise Planning Lifecycle Flow** — appraise_planning_standby_skill_mcp_setup_and_diagnostics, appraise_planning_standby_skill_target_workspace_registration, appraise_planning_standby_skill_plan_creation, appraise_planning_standby_skill_review_readiness, appraise_planning_standby_skill_approval_standby, appraise_planning_standby_skill_approval_outcomes, appraise_planning_standby_skill_validation_preparation [EXTRACTED 1.00]
 
-## Communities (63 total, 3 thin omitted)
+## Communities (61 total, 3 thin omitted)
 
 ### Community 0 - "Community 0"
-Cohesion: 0.32
-Nodes (8): copyFile(), createBaseTemplate(), preparePackagedGitignore(), resetAutomationReports(), syncInternalPackage(), syncLegacyEnvironmentConfig(), writeTemplateHarnessCheck(), writeTemplatePackageJson()
+Cohesion: 0.17
+Nodes (13): copyFile(), createBaseTemplate(), resetAutomationEnvironments(), resetAutomationReports(), syncInternalPackage(), syncLegacyEnvironmentConfig(), writeTemplateHarnessCheck(), writeTemplatePackageJson() (+5 more)
 
 ### Community 1 - "Community 1"
 Cohesion: 0.11
@@ -127,7 +125,7 @@ Nodes (14): author, bin, appraisejs, bugs, url, description, files, homepage (+6
 
 ### Community 5 - "Community 5"
 Cohesion: 0.05
-Nodes (62): main(), CliOptions, getTemplateFlagValue(), parseCliArgs(), formatBrowserInstallStep(), getSuccessMessageLines(), printSuccessMessage(), Config (+54 more)
+Nodes (63): main(), CliOptions, getTemplateFlagValue(), parseCliArgs(), formatBrowserInstallStep(), getSuccessMessageLines(), printSuccessMessage(), Config (+55 more)
 
 ### Community 6 - "Community 6"
 Cohesion: 0.22
@@ -135,7 +133,7 @@ Nodes (13): BrowserOperationWorld, executeHumanOperation(), computeStepReference
 
 ### Community 7 - "Community 7"
 Cohesion: 0.09
-Nodes (28): registerQualityDesignOperations(), genericQualityJourneyCommandSchema, registerQualityJourneyOperations(), scenarioPortfolioSchema, canonicalMcpResourceAnnotations, canonicalMcpResourceNames, canonicalMcpResourceUris, canonicalMcpToolAnnotations (+20 more)
+Nodes (29): registerDiagnosticOperations(), registerQualityDesignOperations(), genericQualityJourneyCommandSchema, registerQualityJourneyOperations(), scenarioPortfolioSchema, canonicalMcpResourceAnnotations, canonicalMcpResourceNames, canonicalMcpResourceUris (+21 more)
 
 ### Community 8 - "Community 8"
 Cohesion: 0.10
@@ -163,7 +161,7 @@ Nodes (29): builtinBrowserOperations, BrowserOperationContext, BrowserOperationH
 
 ### Community 14 - "Community 14"
 Cohesion: 0.12
-Nodes (16): createCoordinatorApiClient(), workspaces, discoveryBase, workspaces, mcpContractForServer(), callRemoteScopeTool(), receiptInput, workspaces (+8 more)
+Nodes (17): createCoordinatorApiClient(), AppraiseHttpMcpOptions, workspaces, discoveryBase, workspaces, mcpContractForServer(), callRemoteScopeTool(), receiptInput (+9 more)
 
 ### Community 15 - "Community 15"
 Cohesion: 0.14
@@ -186,8 +184,8 @@ Cohesion: 0.05
 Nodes (42): legacyEnvironmentBaseUrl(), CliOptions, program, LocatorCache, LocatorMapCache, toGlobPath(), BROWSER_CHOICES, environmentNames (+34 more)
 
 ### Community 20 - "Community 20"
-Cohesion: 0.18
-Nodes (10): onlineClient(), createCoordinatorClient(), client(), workspaces, Check, diagnoseProject(), formatMcpBootstrapError(), gitlessBaseRevisionGuidance (+2 more)
+Cohesion: 0.17
+Nodes (11): resourceError(), onlineClient(), coordinatorRequestError, createCoordinatorClient(), client(), workspaces, Check, diagnoseProject() (+3 more)
 
 ### Community 21 - "Community 21"
 Cohesion: 0.22
@@ -214,8 +212,8 @@ Cohesion: 0.14
 Nodes (14): scripts, benchmark:mcp-registry, build, build:mcp-contract, bump:alpha, bump:beta, bump:major, bump:minor (+6 more)
 
 ### Community 27 - "Community 27"
-Cohesion: 0.17
-Nodes (17): AppraiseHttpMcpOptions, runAppraiseHttpMcp(), resolveMcpEndpoint(), localCoordinatorBaseUrl(), assertLoopbackMcpHost(), bearerToken(), hostHeaderIsAllowed(), HttpMcpRequestError (+9 more)
+Cohesion: 0.20
+Nodes (15): runAppraiseHttpMcp(), assertLoopbackMcpEndpoint(), assertLoopbackMcpHost(), bearerToken(), hostHeaderIsAllowed(), HttpMcpRequestError, isLoopbackHostname(), LOOPBACK_HOSTS (+7 more)
 
 ### Community 28 - "Community 28"
 Cohesion: 0.38
@@ -239,19 +237,19 @@ Nodes (3): allowScripts, esbuild@0.28.1, fsevents@2.3.3
 
 ### Community 37 - "Community 37"
 Cohesion: 0.13
-Nodes (13): program, resourceError(), agent, locatorGraph, OnlineOptions, printErrorJson(), printJson(), project (+5 more)
+Nodes (13): program, expectedAgentCapabilities, agent, locatorGraph, OnlineOptions, printErrorJson(), printJson(), project (+5 more)
 
 ### Community 39 - "Community 39"
 Cohesion: 0.26
 Nodes (15): asOptions(), assertAllowedOptions(), assertArgumentCount(), isPlainObject(), locatorOptionKeys, LocatorStepOperation, pageOptionKeys, PageStepOperation (+7 more)
 
 ### Community 40 - "Community 40"
-Cohesion: 0.20
-Nodes (10): callLocalMcpTool(), parseMcpToolArguments(), unwrapMcpToolResult(), assertLoopbackMcpEndpoint(), deriveProjectIdentity(), ensureLocalProjectIdentity(), ProjectIdentity, ProjectIdentityDetails (+2 more)
+Cohesion: 0.17
+Nodes (10): workspaces, callLocalMcpTool(), parseMcpToolArguments(), unwrapMcpToolResult(), deriveProjectIdentity(), ensureLocalProjectIdentity(), ProjectIdentity, ProjectIdentityDetails (+2 more)
 
 ### Community 41 - "Community 41"
-Cohesion: 0.06
-Nodes (28): analysisCharter, analysisCommand, artifactReference, boundedText, discoveryBundleBase, discoverySubmission, evidenceReceiptIds, genericQualityJourneyWorkCompletionResultSchema (+20 more)
+Cohesion: 0.05
+Nodes (33): analysisCharter, analysisCommand, artifactReference, automationLocator, automationMaterializationInput, automationParameter, automationStep, automationTestData (+25 more)
 
 ### Community 44 - "Community 44"
 Cohesion: 0.43
@@ -261,33 +259,25 @@ Nodes (5): isRepoOnlyTemplatePath(), REPO_ONLY_TEMPLATE_PATHS, REPO_ONLY_TEMPLAT
 Cohesion: 0.29
 Nodes (9): boundedText(), DiagnoseDependencies, diagnosticDto(), humanBlocker(), isBlocked(), runTestRunDiagnose(), ready, TestRunDiagnoseResult (+1 more)
 
-### Community 46 - "Community 46"
-Cohesion: 0.28
-Nodes (7): coordinatorEndpointMismatch(), CoordinatorErrorEnvelope, coordinatorErrorEnvelopeSchema, createLocalCoordinatorFailure(), ParsedResponseBody, TargetProjectRegistrationInput, untrustedCoordinatorEndpoint()
-
 ### Community 47 - "Community 47"
 Cohesion: 0.67
 Nodes (3): allowScripts, esbuild@0.28.1, fsevents@2.3.3
 
 ### Community 49 - "Community 49"
 Cohesion: 0.10
-Nodes (28): registerResourcesOperations(), AgentPreflightObservation, assessmentWorkflow, contentHash(), packageJson, projectPayload(), qualityDesignWorkflow, require (+20 more)
-
-### Community 51 - "Community 51"
-Cohesion: 0.47
-Nodes (4): EXCLUDED_TEMPLATE_FILENAMES, EXCLUDED_TEMPLATE_PATH_PREFIXES, shouldExcludeBundledTemplatePath(), toPosixPath()
+Nodes (23): coordinatorEndpointMismatch(), CoordinatorErrorEnvelope, coordinatorErrorEnvelopeSchema, createLocalCoordinatorFailure(), localCoordinatorBaseUrl(), ParsedResponseBody, TargetProjectRegistrationInput, untrustedCoordinatorEndpoint() (+15 more)
 
 ### Community 52 - "Community 52"
-Cohesion: 0.21
-Nodes (12): cleanupTempWorkspace(), composeTemplateForVerification(), copyDirWithFilter(), copyDirWithoutBundledExclusions(), copyStarterOverlayFiles(), getPackageFlavorDir(), main(), readExistingTemplateMetadata() (+4 more)
+Cohesion: 0.24
+Nodes (11): cleanupTempWorkspace(), composeTemplateForVerification(), copyDirWithFilter(), copyDirWithoutBundledExclusions(), copyStarterOverlayFiles(), getPackageFlavorDir(), main(), readExistingTemplateMetadata() (+3 more)
 
 ### Community 55 - "Community 55"
-Cohesion: 0.14
-Nodes (14): registerDiagnosticOperations(), buildAgentPreflight(), canonicalContractJson(), canonicalExpectedTargetWorkspacePath(), compactAgentPreflight(), compactMcpCapabilityMetadata, compactProjectDiagnostic(), diagnosticGuidance() (+6 more)
+Cohesion: 0.13
+Nodes (25): registerResourcesOperations(), AgentPreflightObservation, assessmentWorkflow, buildAgentPreflight(), canonicalContractJson(), canonicalExpectedTargetWorkspacePath(), compactAgentPreflight(), compactMcpCapabilityMetadata (+17 more)
 
 ### Community 56 - "Community 56"
-Cohesion: 0.19
-Nodes (12): nullableOptionalPositiveInteger(), nullableOptionalString(), operationSearchInputSchema, registerProjectOperations(), lifecyclePost(), registerRuntimeOperations(), registerStepDefinitionOperations(), toolError() (+4 more)
+Cohesion: 0.21
+Nodes (11): nullableOptionalPositiveInteger(), nullableOptionalString(), operationSearchInputSchema, registerProjectOperations(), registerRuntimeOperations(), registerStepDefinitionOperations(), toolError(), McpRegistryContext (+3 more)
 
 ### Community 75 - "Community 75"
 Cohesion: 0.18
@@ -315,7 +305,7 @@ Nodes (11): ExpressionKind, identityKey(), ResolvedStepDefinition, sortDiagnosti
 
 ### Community 181 - "Community 181"
 Cohesion: 0.31
-Nodes (7): resetAutomationEnvironments(), resetAutomationLocatorMap(), getEmptyEnvironmentsFileContent(), getEmptyLocatorMapFileContent(), SEEDED_TEMPLATE_PATHS, setSeededTemplateFilesTracked(), trimTrailingBlankLines()
+Nodes (7): preparePackagedGitignore(), resetAutomationLocatorMap(), getEmptyEnvironmentsFileContent(), getEmptyLocatorMapFileContent(), SEEDED_TEMPLATE_PATHS, setSeededTemplateFilesTracked(), trimTrailingBlankLines()
 
 ### Community 182 - "Community 182"
 Cohesion: 0.23
@@ -326,21 +316,21 @@ Cohesion: 0.33
 Nodes (5): forbiddenPaths, forbiddenScripts, packageJson, repoRoot, scriptsDir
 
 ## Knowledge Gaps
-- **389 isolated node(s):** `name`, `version`, `description`, `license`, `author` (+384 more)
+- **394 isolated node(s):** `name`, `version`, `description`, `license`, `author` (+389 more)
   These have ≤1 connection - possible missing edges or undocumented components.
 - **3 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `writeTemplateQualityOsCertificationReceipt()` connect `Community 55` to `Community 0`, `Community 1`?**
-  _High betweenness centrality (0.283) - this node is a cross-community bridge._
-- **Why does `canonicalContractJson()` connect `Community 55` to `Community 49`?**
-  _High betweenness centrality (0.283) - this node is a cross-community bridge._
+- **Why does `writeTemplateQualityOsCertificationReceipt()` connect `Community 0` to `Community 1`, `Community 55`?**
+  _High betweenness centrality (0.272) - this node is a cross-community bridge._
+- **Why does `canonicalContractJson()` connect `Community 55` to `Community 0`?**
+  _High betweenness centrality (0.272) - this node is a cross-community bridge._
 - **Why does `Config` connect `Community 5` to `Community 19`?**
-  _High betweenness centrality (0.276) - this node is a cross-community bridge._
+  _High betweenness centrality (0.264) - this node is a cross-community bridge._
 - **What connects `name`, `version`, `description` to the rest of the system?**
-  _391 weakly-connected nodes found - possible documentation gaps or missing edges._
+  _396 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `Community 1` be split into smaller, more focused modules?**
   _Cohesion score 0.10591133004926108 - nodes in this community are weakly interconnected._
 - **Should `Community 2` be split into smaller, more focused modules?**

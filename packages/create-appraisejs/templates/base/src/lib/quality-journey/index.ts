@@ -1,5 +1,6 @@
 export * from './agent-factory'
 export * from './analysis-contracts'
+export * from './automation-contracts'
 export * from './contracts'
 export * from './discovery-contracts'
 export * from './scenario-contracts'

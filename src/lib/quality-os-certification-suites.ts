@@ -14,6 +14,7 @@ const qualityOsBaseBehavioralSuites = [
 
 /** Cross-package parity only exists in the AppraiseJS producer repository. */
 const repositoryOnlyQualityOsBehavioralSuites = [
+  'src/lib/quality-journey/automation-contracts.mcp-parity.test.ts',
   'src/lib/quality-journey/scenario-contracts.mcp-parity.test.ts',
 ] as const
 

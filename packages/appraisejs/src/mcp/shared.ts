@@ -119,6 +119,8 @@ export const qualityDesignWorkflow = {
       'quality_journey_scenarios_comment_dispose',
       'quality_journey_scenarios_start',
       'quality_journey_scenarios_revision_request',
+      'quality_journey_automation_context_get',
+      'quality_journey_automation_materialize',
     ],
   },
 }

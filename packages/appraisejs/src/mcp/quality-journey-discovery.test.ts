@@ -199,7 +199,7 @@ describe('Quality Journey discovery MCP contracts', () => {
     }
   })
 
-  it('rejects generic completion for specialized discovery and Scenario Designer roles before coordinator I/O', async () => {
+  it('rejects generic completion for specialized discovery, Scenario Designer, and Automator roles before coordinator I/O', async () => {
     const cwd = await fs.mkdtemp(path.join(os.tmpdir(), 'appraise-mcp-work-complete-'))
     workspaces.push(cwd)
     await fs.writeFile(path.join(cwd, 'package.json'), '{"name":"mcp-work-complete-test"}')
@@ -211,7 +211,7 @@ describe('Quality Journey discovery MCP contracts', () => {
     try {
       await server.connect(serverTransport)
       await client.connect(clientTransport)
-      for (const role of ['SCOUT', 'RESOURCE_EXPLORER', 'TEST_SCENARIO_DESIGNER']) {
+      for (const role of ['SCOUT', 'RESOURCE_EXPLORER', 'TEST_SCENARIO_DESIGNER', 'AUTOMATOR']) {
         const result = await client.callTool({
           name: 'quality_journey_work_complete',
           arguments: {
@@ -225,6 +225,60 @@ describe('Quality Journey discovery MCP contracts', () => {
         })
         expect(result.isError).toBe(true)
       }
+      expect(fetch).not.toHaveBeenCalled()
+    } finally {
+      await client.close()
+      await server.close()
+    }
+  })
+
+  it('rejects Automator materialization without an explicit locator binding before coordinator I/O', async () => {
+    const cwd = await fs.mkdtemp(path.join(os.tmpdir(), 'appraise-mcp-automator-'))
+    workspaces.push(cwd)
+    await fs.writeFile(path.join(cwd, 'package.json'), '{"name":"mcp-automator-test"}')
+    const fetch = vi.fn()
+    vi.stubGlobal('fetch', fetch)
+    const server = await createAppraiseMcpServer({ cwd, baseUrl: 'http://127.0.0.1:3999', coordinatorId: 'test' })
+    const client = new Client({ name: 'automator-contract-test', version: '1' })
+    const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair()
+    try {
+      await server.connect(serverTransport)
+      await client.connect(clientTransport)
+      const result = await client.callTool({
+        name: 'quality_journey_automation_materialize',
+        arguments: {
+          target: 'target-1',
+          journeyId: 'journey-1',
+          workItemId: 'work-1',
+          attemptId: 'attempt-1',
+          leaseId: 'lease-1',
+          ownerToken: 'owner-token',
+          idempotencyKey: 'materialize-1',
+          expectedInputHash: digest('a'),
+          expectedScopeHash: digest('b'),
+          scenarios: [
+            {
+              scenarioRevisionId: 'scenario-1',
+              steps: [
+                {
+                  sourceScenarioStepId: 'step-1',
+                  stepDefinition: { id: 'definition-1', version: '1', definitionHash: digest('c') },
+                  operation: {
+                    id: 'operation-1',
+                    version: '1',
+                    handler: { id: 'handler-1', version: '1', contentHash: digest('d') },
+                  },
+                  parameters: [],
+                  testData: [],
+                  locatorRequirements: [{ requirementId: 'locator-1', parameterName: 'selector' }],
+                },
+              ],
+            },
+          ],
+          result: { role: 'AUTOMATOR' },
+        },
+      })
+      expect(result.isError).toBe(true)
       expect(fetch).not.toHaveBeenCalled()
     } finally {
       await client.close()

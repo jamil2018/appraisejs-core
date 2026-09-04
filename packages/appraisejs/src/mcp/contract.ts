@@ -83,6 +83,8 @@ export const canonicalMcpToolAnnotations = Object.freeze({
   quality_journey_scenarios_publish: durableLifecycleMutation,
   quality_journey_scenarios_decide: durableLifecycleMutation,
   quality_journey_scenarios_comment: durableLifecycleMutation,
+  quality_journey_automation_context_get: readOnly,
+  quality_journey_automation_materialize: durableLifecycleMutation,
   quality_journey_scenarios_comment_dispose: durableLifecycleMutation,
   quality_journey_scenarios_start: durableLifecycleMutation,
   quality_journey_scenarios_revision_request: durableLifecycleMutation,

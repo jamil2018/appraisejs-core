@@ -16,6 +16,7 @@ import {
   workerResultEnvelopeSchema,
 } from '@/lib/quality-journey'
 import { ServiceError } from '@/services/shared/errors'
+import { ensureQualityJourneyAutomationForApprovedScenarios } from './quality-journey-automation-service'
 import {
   completeScenarioDesignerWorkInTransaction,
   ensureEligibleQualityJourneyWorkItemsInTransaction,
@@ -966,6 +967,12 @@ async function finalizeScenarioDecisions(
       ),
     },
   })
+  // Phase 6 compiles the exact approval/decision set into a bounded Automator
+  // assignment in the same transaction. It does not create runtime execution.
+  await ensureQualityJourneyAutomationForApprovedScenarios(
+    { journeyId: value.command.journeyId, targetProjectId: value.command.targetProjectId },
+    tx,
+  )
   return result
 }
 

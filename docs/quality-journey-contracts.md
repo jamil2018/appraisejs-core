@@ -180,6 +180,31 @@ revokes and cancels its remaining claim authority, and issues two fresh work ite
 worker transcript and retains the exact approved analysis unless a future explicit analysis revision is separately
 authorized.
 
+## Phase 6 approved-scenario materialization
+
+The Automator receives one specialized assignment compiled from the exact approved Scenario Portfolio, each approved
+Scenario Revision and decision, and the canonical operation catalog hash. `quality_journey_automation_materialize`
+requires its current work item, attempt, lease owner, Factory receipt, input hash, and scope hash. It refuses
+partial, rejected, superseded, cross-target, or hash-drifted inputs. Generic completion rejects `AUTOMATOR` so a
+worker cannot publish a generic result in place of the materialization record.
+
+For every accepted scenario, Appraise persistently records the decision, target-owned suite/case/step identities,
+the selected ready Step Definition and canonical operation for every source scenario step, `MATERIALIZES` links, and
+a typed immutable prepared-capsule manifest. Replays use the exact `(journey, scenario revision, input hash)` key and
+reuse the durable result. Phase 6 never writes `TestRun` or `RuntimeCapsule`, nor does it alter
+`RuntimeCapsule.testRunId`; managed execution remains exclusively behind the Phase 7 `START_EXECUTION` gate. Missing
+module or compatible ready Step Definition authority is a classified materialization conflict and cannot advance the
+journey beyond `AUTOMATION`.
+
+The shared completed-worker envelope permits at most 1,536 outputs: the complete, non-aggregated Phase 6 result for
+up to 512 approved scenarios (one suite, case, and prepared capsule per scenario). The MCP ingress applies the same
+bound, so a complete 86- or 512-scenario result is neither truncated nor accepted through a broader adapter path.
+
+Resource Explorer freezes canonical hashes for the full compatible operation descriptors, including inputs, effects,
+and handler fields. An Automator proposal may select only an operation `(id, version)` that the completed Resource
+Resolution Bundle marked compatible; catalog descriptor drift changes the assignment hash and is rejected before any
+materialization write.
+
 Role work items have an immutable authorization lineage and a separate durable attempt lineage. Each claim atomically
 persists its Assignment Manifest, canonical spawn request, hashes, and any predecessor-attempt link. A claim with no
 issued authorization fails closed. Explicit resume conservatively recovers authorization for active Phase 1 work from
@@ -204,7 +229,8 @@ The original journey kernel surface is exposed through `quality_journey_create`,
 `quality_journey_work_complete`, `quality_journey_work_cancel`,
 `quality_journey_work_revoke`, `quality_journey_factory_evidence_inspect`, and `quality_journey_artifacts_list`.
 Generic `quality_journey_work_complete` is not a semantic-output bypass: Scout and Resource Explorer work must use the
-Discovery Bundle boundary, and Test Scenario Designer work must use the Scenario Portfolio boundary.
+Discovery Bundle boundary, Test Scenario Designer work must use the Scenario Portfolio boundary, and Automator work
+must use the approved-scenario materialization boundary.
 `quality_journey_command_submit` remains available for the original kernel commands, but the public coordinator and
 MCP boundary reject `PUBLISH_ANALYSIS`, `REQUEST_ANALYSIS_REVISION`, and `DECIDE_ANALYSIS`: each must use its typed
 Phase 3 operation so publication, revision, and approval retain their specialized authority and exact-review gates.

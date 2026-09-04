@@ -8,6 +8,7 @@ const mocks = vi.hoisted(() => ({
   getAnalysis: vi.fn(),
   getJourney: vi.fn(),
   getScenarios: vi.fn(),
+  getAutomation: vi.fn(),
   notFound: vi.fn(),
   project: vi.fn(),
 }))
@@ -22,6 +23,9 @@ vi.mock('@/services/coordinator/quality-journey-analysis-service', () => ({
 }))
 vi.mock('@/services/coordinator/quality-journey-scenario-service', () => ({
   getQualityJourneyScenarioPortfolio: mocks.getScenarios,
+}))
+vi.mock('@/services/coordinator/quality-journey-automation-service', () => ({
+  getQualityJourneyAutomationContext: mocks.getAutomation,
 }))
 vi.mock('@/services/coordinator/quality-journey-service', () => ({ getQualityJourney: mocks.getJourney }))
 vi.mock('../quality-journey-actions', () => ({
@@ -111,6 +115,7 @@ beforeEach(() => {
   mocks.getJourney.mockResolvedValue(journey())
   mocks.getAnalysis.mockResolvedValue({ revisions: [] })
   mocks.getScenarios.mockResolvedValue({ portfolio: null })
+  mocks.getAutomation.mockResolvedValue(null)
 })
 
 describe('QualityJourneyDetailPage', () => {
@@ -132,6 +137,41 @@ describe('QualityJourneyDetailPage', () => {
 
     expect(screen.getByText('No user decision is currently pending.')).toBeInTheDocument()
     expect(screen.getByText('The assigned Requirement Analyzer has not produced a charter yet.')).toBeInTheDocument()
+  })
+
+  it('counts only prepared capsules as materialized and keeps failed Automator receipts visible', async () => {
+    mocks.getJourney.mockResolvedValue(journey({ stage: 'AUTOMATION', unresolvedQuestionIds: [] }))
+    mocks.getAutomation.mockResolvedValue({
+      inputHash: digest('c'),
+      scopeHash: digest('d'),
+      portfolioRevisionId: 'portfolio-r1',
+      scenarioRevisionIds: ['scenario-1', 'scenario-2'],
+      materializations: [
+        {
+          scenarioRevisionId: 'scenario-1',
+          status: 'MATERIALIZED',
+          suiteId: 'suite-1',
+          testCaseId: 'case-1',
+          preparedCapsule: { id: 'prepared-1', status: 'PREPARED' },
+        },
+        {
+          scenarioRevisionId: 'scenario-2',
+          status: 'FAILED',
+          suiteId: null,
+          testCaseId: null,
+          preparedCapsule: null,
+          failureKind: 'DESIGN_DEFECT',
+        },
+      ],
+    })
+
+    await renderPage()
+
+    expect(screen.getByText('1/2 approved scenarios materialized. No TestRun has been created.')).toBeInTheDocument()
+    expect(screen.getByText('DESIGN_DEFECT — repair and retry')).toBeInTheDocument()
+    expect(
+      screen.getByText('1 failed materialization remains visible and is not counted as prepared.'),
+    ).toBeInTheDocument()
   })
 
   it('surfaces pending Scenario Portfolio decisions without treating carried decisions as pending', async () => {
@@ -176,6 +216,31 @@ describe('QualityJourneyDetailPage', () => {
         'Review the pending Scenario Portfolio decisions; existing durable scenario decisions are preserved.',
       ),
     ).toBeInTheDocument()
+  })
+
+  it('projects prepared automation without implying a TestRun exists', async () => {
+    mocks.getJourney.mockResolvedValue(journey({ stage: 'AUTOMATION', unresolvedQuestionIds: [] }))
+    mocks.getAutomation.mockResolvedValue({
+      inputHash: digest('z'),
+      scopeHash: digest('y'),
+      portfolioRevisionId: 'portfolio-r1',
+      scenarioRevisionIds: ['scenario-r1'],
+      materializations: [
+        {
+          scenarioRevisionId: 'scenario-r1',
+          status: 'MATERIALIZED',
+          suiteId: 'suite-1',
+          testCaseId: 'case-1',
+          preparedCapsule: { id: 'prepared-1', status: 'PREPARED' },
+        },
+      ],
+    })
+
+    await renderPage()
+
+    expect(screen.getByText('Prepared capsule only')).toBeInTheDocument()
+    expect(screen.getByText(/No TestRun has been created/)).toBeInTheDocument()
+    expect(mocks.getAutomation).toHaveBeenCalledWith({ journeyId: 'journey-1', targetProjectId: 'project-1' })
   })
 
   it('selects the latest unpublished successor during analysis so Q&A can continue after a revision request', async () => {

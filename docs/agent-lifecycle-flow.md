@@ -7,11 +7,14 @@ transition table, six semantic Role Definitions, command/conflict envelopes, clo
 are documented in `docs/quality-journey-contracts.md` and implemented under `src/lib/quality-journey/`. These contracts
 include the deterministic kernel, durable lifecycle projection and append-only events, transactional commands,
 reclaimable work leases, Runner reconstruction, the original eleven generic `quality_journey_*` coordinator/MCP
-operations, six narrow Phase 3 analysis operations, five Phase 4 discovery operations, and eight Phase 5 Scenario
+operations, six narrow Phase 3 analysis operations, five Phase 4 discovery operations, eight Phase 5 Scenario
 Portfolio operations. Phase 5 owns exact Designer submission, immutable portfolio/scenario revisions, canonical
 coverage and dependency graphs, comments, partial and portfolio decisions, and feedback-driven successors. Generic
 work completion rejects the specialized Scout, Resource Explorer, and Test Scenario Designer roles; their
-role-specific submission boundaries validate semantic payloads and durable authority before completing work. The
+role-specific submission boundaries validate semantic payloads and durable authority before completing work. Phase 6
+adds a specialized Automator materialization boundary that produces target-owned artifacts and typed prepared capsules
+from exact approved scenario decisions; it never creates a TestRun or RuntimeCapsule and cannot move into execution.
+The generic completion path rejects Automator alongside the other specialized roles. The
 Phase 1 kernel plus the Phase 2 adapter-only receipt transition remain
 additive; they do not yet replace the Quality Plan and Assessment services described below.
 

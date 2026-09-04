@@ -36,7 +36,7 @@
     "compatibility",
     "performance"
   ],
-  "receiptHash": "sha256:c6f30eeb9eebf240f8414e8bfca06d00a9221f5886aa55937efcf3e2fb1a25d6",
+  "receiptHash": "sha256:9d986d04fd0576ad68256735fc82eb86612a576e90ee3204427d4288924efa23",
   "result": "PASS",
   "schema": "appraise.quality-os-certification/v1",
   "suiteEvidence": [
@@ -68,17 +68,22 @@
     {
       "file": "src/services/coordinator/quality-journey-analysis-service.sqlite.integration.test.ts",
       "result": "PASS",
-      "sourceHash": "sha256:30ef105ccaf52c850da2d04885b1becf90c5ca61a6d8671be2c4d065e6a59395"
+      "sourceHash": "sha256:2089579ec32fd409f23633aedb6110367c9056129271cd4f6b2af94a1cb3e55d"
     },
     {
       "file": "src/app/api/internal/coordinator/[...operation]/route.test.ts",
       "result": "PASS",
-      "sourceHash": "sha256:db5694fb460c0a0c6f54aa42624bea1f8a91e11647f7dc6cb74b0cb51228aa92"
+      "sourceHash": "sha256:2f54afc068cb887b714bf2b8e8b821c135e47ab0ff63579d196fa05e2ae79acd"
     },
     {
       "file": "src/app/(base)/quality-journeys/[journeyId]/scenario-portfolio-review.test.tsx",
       "result": "PASS",
       "sourceHash": "sha256:9e1ef28c2357bd351f5afe89cfd89afb621e6dd7246c7778a87ea9e3c19db043"
+    },
+    {
+      "file": "src/lib/quality-journey/automation-contracts.mcp-parity.test.ts",
+      "result": "PASS",
+      "sourceHash": "sha256:08f82798110804c3ff1a595845111d112d7e9694abc6736d01ebd694c5fd9666"
     },
     {
       "file": "src/lib/quality-journey/scenario-contracts.mcp-parity.test.ts",
@@ -108,7 +113,7 @@
     {
       "file": "packages/appraisejs/src/mcp/quality-journey-discovery.test.ts",
       "result": "PASS",
-      "sourceHash": "sha256:e649d65459eca86fd87b0093e3ae011a43ddfac47eb01512d1ad55e136c19e29"
+      "sourceHash": "sha256:88e4ea2dd37fb5bbc14dcf5fb6e391f28ef49a18450e8153116f01b88caf91e5"
     }
   ]
 }

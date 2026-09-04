@@ -241,6 +241,7 @@ function resourceResolutionBundle() {
   return {
     ...discoveryBundleBase(),
     resolvedAt: '2026-09-03T12:00:00.000Z',
+    destinationModuleId: 'module-1',
     approvedRequirementIds: ['REQ-1'],
     reusable: [],
     incompatible: [],

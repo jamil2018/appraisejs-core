@@ -59,6 +59,14 @@ The compatibility `quality_journey_command_submit` route/tool also rejects the f
 callers cannot bypass start, publication, decision, or revision authority. Scenario reads and graph layout are
 review projections only: changing presentation layout does not mutate approved behavioral intent.
 
+Phase 6 adds `quality_journey_automation_context_get` and `quality_journey_automation_materialize`. The latter is
+the only Automator ingress: it requires the exact claimed attempt, lease owner, spawn receipt, frozen input/scope
+hashes, and an approved Scenario Portfolio decision set. It creates target-owned suites, cases, steps, and typed
+`QualityJourneyPreparedRuntimeCapsule` records with Scenario Revision, ready Step Definition, and canonical operation
+lineage. Prepared capsules have no `TestRun` or `RuntimeCapsule` binding; `START_EXECUTION` remains a Phase 7 gate.
+Repeated requests are input-bound idempotent. Generic work completion rejects `AUTOMATOR`, and a materialization
+failure leaves the journey in `AUTOMATION`.
+
 If an adapter call may have started a provider worker but its receipt is lost, Appraise marks the attempt
 `DISPATCH_UNRESOLVED`, blocks the work item with `AMBIGUOUS_PROVIDER_DISPATCH`, and retains the exact adapter/key.
 Phase 2 does not issue a replacement; a future adapter-reconciliation capability must establish the outcome first.

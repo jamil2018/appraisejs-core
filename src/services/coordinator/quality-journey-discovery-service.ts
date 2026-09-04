@@ -28,7 +28,7 @@ const idFor = (kind: string, ...parts: string[]) =>
 
 type FrozenResource = {
   id: string
-  kind: 'OPERATION' | 'STEP_DEFINITION' | 'LOCATOR'
+  kind: 'OPERATION' | 'STEP_DEFINITION' | 'LOCATOR' | 'MODULE'
   contentHash: string
   sourceTargetProjectId: string | null
 }
@@ -39,6 +39,7 @@ type FrozenScope = {
   resources: FrozenResource[]
   operationIds: string[]
 }
+type ResourceResolutionBundle = ReturnType<typeof resourceResolutionBundleSchema.parse>
 
 function canonicalArtifacts(
   analysis: { artifactId: string; artifactRevisionId: string; contentHash: string },
@@ -56,10 +57,11 @@ function canonicalArtifacts(
 }
 
 async function compileFrozenScope(targetProjectId: string, db: Db): Promise<FrozenScope> {
-  const [environments, allGroups, allLocators, steps, ownerships] = await Promise.all([
+  const [environments, allGroups, allLocators, modules, steps, ownerships] = await Promise.all([
     db.environment.findMany({ where: { targetProjectId }, select: { id: true, baseUrl: true, scopeVersion: true } }),
     db.locatorGroup.findMany({ where: { targetProjectId }, select: { id: true, route: true, moduleId: true } }),
     db.locator.findMany({ select: { id: true, value: true, updatedAt: true, targetProjectId: true } }),
+    db.module.findMany({ where: { targetProjectId }, select: { id: true, name: true, updatedAt: true } }),
     db.stepDefinition.findMany({
       where: { status: 'ready' },
       select: { id: true, version: true, definitionHash: true },
@@ -89,15 +91,26 @@ async function compileFrozenScope(targetProjectId: string, db: Db): Promise<Froz
       contentHash: step.definitionHash,
       sourceTargetProjectId: sourceTarget('step-definition', step.id, null),
     }))
+  const destinationModules = modules.map(module => ({
+    id: `module:${module.id}`,
+    kind: 'MODULE' as const,
+    contentHash: hash(module),
+    sourceTargetProjectId: targetProjectId,
+  }))
   const operations = defaultOperationDefinitions
     .map(operation => ({
       id: `operation:${operation.id}:${operation.version}`,
       kind: 'OPERATION' as const,
-      contentHash: hash({ id: operation.id, version: operation.version, handler: operation.handler }),
+      contentHash: hash(operation),
       sourceTargetProjectId: null,
     }))
     .sort((left, right) => left.id.localeCompare(right.id))
-  if (!environments.length || !locatorGroups.length || ![...locators, ...readySteps, ...operations].length)
+  if (
+    !environments.length ||
+    !locatorGroups.length ||
+    !destinationModules.length ||
+    ![...locators, ...readySteps, ...operations].length
+  )
     throw new ServiceError(
       'Discovery cannot be issued until environment, locator-group, and resource inventory authority is available.',
       'CONFLICT',
@@ -105,7 +118,9 @@ async function compileFrozenScope(targetProjectId: string, db: Db): Promise<Froz
   return {
     environments: environments.sort((left, right) => left.id.localeCompare(right.id)),
     locatorGroups,
-    resources: [...locators, ...readySteps, ...operations].sort((left, right) => left.id.localeCompare(right.id)),
+    resources: [...locators, ...destinationModules, ...readySteps, ...operations].sort((left, right) =>
+      left.id.localeCompare(right.id),
+    ),
     operationIds: operations.map(operation => operation.id),
   }
 }
@@ -144,7 +159,7 @@ function scopes(
   const locatorRegistryHash = hash(scope.locatorGroups)
   const resourceRegistryHash = hash(scope.resources)
   const stepDefinitionRegistryHash = hash(scope.resources.filter(resource => resource.kind === 'STEP_DEFINITION'))
-  const operationRegistryHash = hash(scope.operationIds)
+  const operationRegistryHash = hash(scope.resources.filter(resource => resource.kind === 'OPERATION'))
   const scoutScope = {
     environmentIds: scope.environments.map(environment => environment.id),
     routes: [...new Set(scope.locatorGroups.map(group => group.route))].sort(),
@@ -175,6 +190,55 @@ function scopes(
     resourceInputHash: hash({ ...shared, role: 'RESOURCE_EXPLORER', scope: resourceScope }),
     scopeHash: hash({ ...shared, scoutScope, resourceScope }),
   }
+}
+
+function assertResolvedResourcesAreFrozen(bundle: ResourceResolutionBundle, scope: { resources: FrozenResource[] }) {
+  const resources = [...bundle.reusable, ...bundle.incompatible, ...bundle.stale, ...bundle.crossTarget]
+  if (
+    resources.some(
+      resource =>
+        !scope.resources.some(
+          authorized => authorized.id === resource.resourceId && authorized.kind === resource.resourceKind,
+        ),
+    )
+  )
+    throw new ServiceError('Resource resolution exceeds the frozen inventory.', 'CONFLICT')
+}
+
+function frozenDestinationModule(
+  bundle: ResourceResolutionBundle,
+  scope: { resources: FrozenResource[] },
+  targetProjectId: string,
+) {
+  const destination = scope.resources.find(resource => resource.id === `module:${bundle.destinationModuleId}`)
+  if (!destination || destination.kind !== 'MODULE' || destination.sourceTargetProjectId !== targetProjectId)
+    throw new ServiceError('Resource resolution destination module is outside the frozen target inventory.', 'CONFLICT')
+  if (!bundle.reusable.some(resource => resource.resourceId === destination.id && resource.resourceKind === 'MODULE'))
+    throw new ServiceError('Resource resolution destination module must be approved as compatible.', 'CONFLICT')
+  return destination
+}
+
+function assertCrossTargetResourcesMatchFrozenOwnership(
+  bundle: ResourceResolutionBundle,
+  scope: { resources: FrozenResource[] },
+) {
+  if (
+    bundle.crossTarget.some(entry => {
+      const authorized = scope.resources.find(resource => resource.id === entry.resourceId)
+      return !authorized?.sourceTargetProjectId || authorized.sourceTargetProjectId !== entry.sourceTargetProjectId
+    })
+  )
+    throw new ServiceError('Cross-target resource provenance does not match frozen ownership.', 'CONFLICT')
+}
+
+function assertResourceResolutionWithinFrozenScope(
+  bundle: ResourceResolutionBundle,
+  scope: { resources: FrozenResource[] },
+  targetProjectId: string,
+) {
+  assertResolvedResourcesAreFrozen(bundle, scope)
+  frozenDestinationModule(bundle, scope, targetProjectId)
+  assertCrossTargetResourcesMatchFrozenOwnership(bundle, scope)
 }
 
 /** Called by exact analysis approval inside the same transaction. */
@@ -679,23 +743,7 @@ export async function submitQualityJourneyResourceResolution(input: unknown, cli
     if (request.expectedScopeHash !== scopeHashForAuthorization(item.authorizationScopeJson))
       throw new ServiceError('Resource Explorer assignment scope hash is stale.', 'CONFLICT')
     const scope = JSON.parse(revision.resourceScopeJson) as { resources: FrozenResource[] }
-    const resources = [...bundle.reusable, ...bundle.incompatible, ...bundle.stale, ...bundle.crossTarget]
-    if (
-      resources.some(
-        resource =>
-          !scope.resources.some(
-            authorized => authorized.id === resource.resourceId && authorized.kind === resource.resourceKind,
-          ),
-      )
-    )
-      throw new ServiceError('Resource resolution exceeds the frozen inventory.', 'CONFLICT')
-    if (
-      bundle.crossTarget.some(entry => {
-        const authorized = scope.resources.find(resource => resource.id === entry.resourceId)
-        return !authorized?.sourceTargetProjectId || authorized.sourceTargetProjectId !== entry.sourceTargetProjectId
-      })
-    )
-      throw new ServiceError('Cross-target resource provenance does not match frozen ownership.', 'CONFLICT')
+    assertResourceResolutionWithinFrozenScope(bundle, scope, request.targetProjectId)
     const updated = await tx.qualityJourneyDiscoveryRevision.updateMany({
       where: { id: revision.id, status: 'COLLECTING', resourceResolutionHash: null },
       data: {

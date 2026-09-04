@@ -421,6 +421,11 @@ Exit criteria:
 
 ### Phase 6 - Automator and Approved Scenario Materialization
 
+Status: implemented on 2026-09-05. The Automator receives an assignment compiled from exact approved Phase 5
+decisions and materializes deterministic target-owned suites, cases, steps, and typed prepared capsules. Phase 6 is
+preparation-only: no `TestRun` or legacy `RuntimeCapsule` is created or changed, and execution remains gated by
+Phase 7.
+
 Add deterministic conversion from approved scenarios into suites, cases, steps, data, locator requirements, and
 runtime capsules through bounded Automator work items. Preserve explicit links between scenario revisions and
 executable artifacts. Reuse compatible catalog resources before creating missing assets. Separate design defects from

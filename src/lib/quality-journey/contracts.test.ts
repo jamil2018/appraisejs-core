@@ -159,6 +159,18 @@ describe('Quality Journey Phase 0 contracts', () => {
         ],
       }),
     ).toThrow()
+    const completeCapacity = Array.from({ length: 512 }, (_, index) => [
+      { kind: 'TEST_SUITE' as const, artifactId: `suite-${index}`, contentHash: digest('f') },
+      { kind: 'TEST_CASE' as const, artifactId: `case-${index}`, contentHash: digest('f') },
+      { kind: 'RUNTIME_CAPSULE' as const, artifactId: `capsule-${index}`, contentHash: digest('f') },
+    ]).flat()
+    expect(workerResultEnvelopeSchema.safeParse({ ...result, outputs: completeCapacity }).success).toBe(true)
+    expect(
+      workerResultEnvelopeSchema.safeParse({
+        ...result,
+        outputs: [...completeCapacity, { kind: 'TEST_CASE', artifactId: 'overflow', contentHash: digest('f') }],
+      }).success,
+    ).toBe(false)
   })
 
   it('requires explicit risk acceptance for closure with unresolved items', () => {

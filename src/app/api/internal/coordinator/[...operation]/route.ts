@@ -101,6 +101,7 @@ import {
 import { getQualityJourneyAnalysisRoute, postQualityJourneyAnalysisRoute } from './quality-journey-analysis-route'
 import { getQualityJourneyDiscoveryRoute, postQualityJourneyDiscoveryRoute } from './quality-journey-discovery-route'
 import { getQualityJourneyScenarioRoute, postQualityJourneyScenarioRoute } from './quality-journey-scenario-route'
+import { getQualityJourneyAutomationRoute, postQualityJourneyAutomationRoute } from './quality-journey-automation-route'
 
 export const runtime = 'nodejs'
 
@@ -493,6 +494,8 @@ async function getQualityOperation(request: Request, operation: string[]) {
   if (discoveryResponse) return discoveryResponse
   const scenarioResponse = await getQualityJourneyScenarioRoute(operation, new URL(request.url).searchParams)
   if (scenarioResponse) return scenarioResponse
+  const automationResponse = await getQualityJourneyAutomationRoute(operation, new URL(request.url).searchParams)
+  if (automationResponse) return automationResponse
   const analysisResponse = await getQualityJourneyAnalysisRoute(operation, new URL(request.url).searchParams)
   if (analysisResponse) return analysisResponse
   if (operation[1] === 'journeys' && operation.length === 3) {
@@ -743,6 +746,8 @@ async function postQualityOperation(operation: string[], body: unknown): Promise
   if (discoveryResponse) return discoveryResponse
   const scenarioResponse = await postQualityJourneyScenarioRoute(operation, body)
   if (scenarioResponse) return scenarioResponse
+  const automationResponse = await postQualityJourneyAutomationRoute(operation, body)
+  if (automationResponse) return automationResponse
   const analysisResponse = await postQualityJourneyAnalysisRoute(operation, body)
   if (analysisResponse) return analysisResponse
   const key = operation.join('/')
@@ -776,6 +781,11 @@ async function postQualityOperation(operation: string[], body: unknown): Promise
       throw new ServiceError('Phase 3 analysis commands require their dedicated coordinator operation.', 'UNAUTHORIZED')
     if (command.command === 'RETRY_DISCOVERY')
       throw new ServiceError('Phase 4 discovery retries require their dedicated coordinator operation.', 'UNAUTHORIZED')
+    if (['RETRY_AUTOMATION', 'START_EXECUTION'].includes(command.command))
+      throw new ServiceError(
+        'Phase 6 automation commands require their dedicated coordinator operation.',
+        'UNAUTHORIZED',
+      )
     if (
       ['START_SCENARIO_DESIGN', 'PUBLISH_SCENARIO_PORTFOLIO', 'DECIDE_SCENARIOS', 'REQUEST_SCENARIO_REVISION'].includes(
         command.command,
