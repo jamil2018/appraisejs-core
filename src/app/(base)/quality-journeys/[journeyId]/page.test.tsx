@@ -168,7 +168,7 @@ describe('QualityJourneyDetailPage', () => {
     await renderPage()
 
     expect(screen.getByText('1/2 approved scenarios materialized. No TestRun has been created.')).toBeInTheDocument()
-    expect(screen.getByText('DESIGN_DEFECT — repair and retry')).toBeInTheDocument()
+    expect(screen.getByText('DESIGN_DEFECT: repair and retry')).toBeInTheDocument()
     expect(
       screen.getByText('1 failed materialization remains visible and is not counted as prepared.'),
     ).toBeInTheDocument()
