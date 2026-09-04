@@ -23,6 +23,14 @@ const {
   submitQualityJourneyResourceResolution,
   retryQualityJourneyDiscovery,
   revalidateQualityJourneyDiscovery,
+  getQualityJourneyScenarioPortfolio,
+  startQualityJourneyScenarioDesign,
+  submitQualityJourneyScenarioPortfolio,
+  publishQualityJourneyScenarioPortfolio,
+  decideQualityJourneyScenarios,
+  commentQualityJourneyScenarioPortfolio,
+  disposeQualityJourneyScenarioComment,
+  requestQualityJourneyScenarioRevision,
 } = vi.hoisted(() => ({
   ensureTargetLocator: vi.fn(async (value: Record<string, unknown>) => ({
     ...value,
@@ -70,6 +78,14 @@ const {
   submitQualityJourneyResourceResolution: vi.fn(async (value: unknown) => ({ received: value })),
   retryQualityJourneyDiscovery: vi.fn(async (value: unknown) => ({ received: value })),
   revalidateQualityJourneyDiscovery: vi.fn(async (value: unknown) => ({ received: value })),
+  getQualityJourneyScenarioPortfolio: vi.fn(async (value: unknown) => ({ received: value })),
+  startQualityJourneyScenarioDesign: vi.fn(async (value: unknown) => ({ received: value })),
+  submitQualityJourneyScenarioPortfolio: vi.fn(async (value: unknown) => ({ received: value })),
+  publishQualityJourneyScenarioPortfolio: vi.fn(async (value: unknown) => ({ received: value })),
+  decideQualityJourneyScenarios: vi.fn(async (value: unknown) => ({ received: value })),
+  commentQualityJourneyScenarioPortfolio: vi.fn(async (value: unknown) => ({ received: value })),
+  disposeQualityJourneyScenarioComment: vi.fn(async (value: unknown) => ({ received: value })),
+  requestQualityJourneyScenarioRevision: vi.fn(async (value: unknown) => ({ received: value })),
 }))
 
 vi.mock('@/lib/coordinator-api/request-guard', () => ({
@@ -130,6 +146,16 @@ vi.mock('@/services/coordinator/quality-journey-discovery-service', () => ({
   submitQualityJourneyResourceResolution,
   retryQualityJourneyDiscovery,
   revalidateQualityJourneyDiscovery,
+}))
+vi.mock('@/services/coordinator/quality-journey-scenario-service', () => ({
+  getQualityJourneyScenarioPortfolio,
+  startQualityJourneyScenarioDesign,
+  submitQualityJourneyScenarioPortfolio,
+  publishQualityJourneyScenarioPortfolio,
+  decideQualityJourneyScenarios,
+  commentQualityJourneyScenarioPortfolio,
+  disposeQualityJourneyScenarioComment,
+  requestQualityJourneyScenarioRevision,
 }))
 vi.mock('@/services/step-definition/built-in-readiness-service', () => ({
   ensureBuiltInStepDefinitionReadiness: vi.fn(async () => ({ seeded: 0, repaired: 0, unchanged: 127, errors: [] })),
@@ -610,6 +636,27 @@ describe('coordinator locator_ensure route', () => {
     await expect(response.json()).resolves.toMatchObject({ code: 'UNAUTHORIZED' })
   })
 
+  it('fails closed when generic work completion carries a specialized semantic role', async () => {
+    for (const role of ['SCOUT', 'RESOURCE_EXPLORER', 'TEST_SCENARIO_DESIGNER']) {
+      const response = await POST(
+        request(
+          {
+            target: targetFingerprint,
+            leaseId: 'lease-1',
+            ownerToken: 'owner-token-1',
+            result: { role },
+          },
+          '',
+        ),
+        {
+          params: Promise.resolve({ operation: ['quality', 'journeys', 'journey-1', 'work', 'work-1', 'complete'] }),
+        },
+      )
+      expect(response.status).toBe(401)
+      await expect(response.json()).resolves.toMatchObject({ code: 'UNAUTHORIZED' })
+    }
+  })
+
   it('constructs a USER answer envelope and rejects caller-provided actor authority', async () => {
     const answer = {
       target: targetFingerprint,
@@ -1069,6 +1116,187 @@ describe('coordinator locator_ensure route', () => {
     await expect(empty.json()).resolves.toMatchObject({
       classification: 'request_invalid',
       message: 'operation_search requires a query or at least one filter.',
+    })
+  })
+
+  it('derives the exact scenario submission scope and rejects forged route authority', async () => {
+    const submission = {
+      target: targetFingerprint,
+      workItemId: 'scenario-work-1',
+      attemptId: 'scenario-attempt-1',
+      leaseId: 'scenario-lease-1',
+      ownerToken: 'scenario-owner',
+      idempotencyKey: 'scenario-submit-1',
+      expectedInputHash: `sha256:${'a'.repeat(64)}`,
+      expectedScopeHash: `sha256:${'b'.repeat(64)}`,
+      portfolio: {},
+      result: {},
+    }
+    const response = await POST(request(submission, ''), {
+      params: Promise.resolve({ operation: ['quality', 'journeys', 'journey-scenario', 'scenarios', 'submissions'] }),
+    })
+    expect(response.status).toBe(201)
+    expect(submitQualityJourneyScenarioPortfolio).toHaveBeenCalledWith(
+      expect.objectContaining({
+        journeyId: 'journey-scenario',
+        targetProjectId: 'target-login',
+        expectedInputHash: submission.expectedInputHash,
+        expectedScopeHash: submission.expectedScopeHash,
+      }),
+    )
+    const forged = await POST(request({ ...submission, journeyId: 'foreign-journey' }, ''), {
+      params: Promise.resolve({ operation: ['quality', 'journeys', 'journey-scenario', 'scenarios', 'submissions'] }),
+    })
+    expect(forged.status).toBe(400)
+  })
+
+  it('strips public target selectors before strict scenario comment and disposition services', async () => {
+    const comment = await POST(
+      request(
+        {
+          target: targetFingerprint,
+          portfolioRevisionId: 'portfolio-r1',
+          comment: 'Review this exact scenario.',
+          blocking: true,
+          idempotencyKey: 'comment-1',
+          expectedReviewHash: `sha256:${'c'.repeat(64)}`,
+        },
+        '',
+      ),
+      { params: Promise.resolve({ operation: ['quality', 'journeys', 'journey-scenario', 'scenarios', 'comments'] }) },
+    )
+    expect(comment.status).toBe(201)
+    expect(commentQualityJourneyScenarioPortfolio).toHaveBeenCalledWith(
+      expect.objectContaining({ journeyId: 'journey-scenario', targetProjectId: 'target-login', actor: 'USER' }),
+    )
+    expect(commentQualityJourneyScenarioPortfolio).not.toHaveBeenCalledWith(
+      expect.objectContaining({ target: targetFingerprint }),
+    )
+    const disposition = await POST(
+      request(
+        {
+          target: targetFingerprint,
+          portfolioRevisionId: 'portfolio-r1',
+          commentId: 'comment-1',
+          idempotencyKey: 'dispose-1',
+          expectedReviewHash: `sha256:${'d'.repeat(64)}`,
+        },
+        '',
+      ),
+      {
+        params: Promise.resolve({
+          operation: ['quality', 'journeys', 'journey-scenario', 'scenarios', 'comment-dispositions'],
+        }),
+      },
+    )
+    expect(disposition.status).toBe(200)
+    expect(disposeQualityJourneyScenarioComment).toHaveBeenCalledWith(
+      expect.objectContaining({ journeyId: 'journey-scenario', targetProjectId: 'target-login', actor: 'USER' }),
+    )
+    expect(disposeQualityJourneyScenarioComment).not.toHaveBeenCalledWith(
+      expect.objectContaining({ target: targetFingerprint }),
+    )
+  })
+
+  it('parses and forwards every specialized scenario operation through its narrow route shape', async () => {
+    const operation = (leaf: string) =>
+      ({
+        params: Promise.resolve({ operation: ['quality', 'journeys', 'journey-scenario', 'scenarios', leaf] }),
+      }) as never
+    const scenarioCommand = {
+      target: targetFingerprint,
+      commandId: 'scenario-command-1',
+      expectedStateHash: `sha256:${'a'.repeat(64)}`,
+      idempotencyKey: 'scenario-command-1',
+      portfolioId: 'portfolio-1',
+      portfolioRevisionId: 'portfolio-r1',
+      portfolioHash: `sha256:${'b'.repeat(64)}`,
+    }
+    const start = await POST(
+      request(
+        {
+          target: targetFingerprint,
+          commandId: 'scenario-start-1',
+          expectedStateHash: `sha256:${'a'.repeat(64)}`,
+          idempotencyKey: 'scenario-start-1',
+        },
+        '',
+      ),
+      operation('starts'),
+    )
+    expect(start.status).toBe(200)
+    expect(startQualityJourneyScenarioDesign).toHaveBeenCalledWith(
+      expect.objectContaining({ journeyId: 'journey-scenario', targetProjectId: 'target-login', actor: 'RUNNER' }),
+    )
+    const publication = await POST(request(scenarioCommand, ''), operation('publications'))
+    expect(publication.status).toBe(200)
+    expect(publishQualityJourneyScenarioPortfolio).toHaveBeenCalledWith(
+      expect.objectContaining({ journeyId: 'journey-scenario', targetProjectId: 'target-login', actor: 'RUNNER' }),
+    )
+    const decision = await POST(
+      request(
+        {
+          ...scenarioCommand,
+          approvedScenarioRevisionIds: ['scenario-r1'],
+          rejectedScenarioRevisionIds: [],
+          expectedReviewHash: `sha256:${'c'.repeat(64)}`,
+        },
+        '',
+      ),
+      operation('decisions'),
+    )
+    expect(decision.status).toBe(200)
+    expect(decideQualityJourneyScenarios).toHaveBeenCalledWith(
+      expect.objectContaining({ command: expect.objectContaining({ actor: 'USER', targetProjectId: 'target-login' }) }),
+    )
+    const malformedDecisionId = await POST(
+      request(
+        {
+          ...scenarioCommand,
+          approvedScenarioRevisionIds: ['scenario revision with spaces'],
+          rejectedScenarioRevisionIds: [],
+          expectedReviewHash: `sha256:${'c'.repeat(64)}`,
+        },
+        '',
+      ),
+      operation('decisions'),
+    )
+    expect(malformedDecisionId.status).toBe(400)
+    const excessiveDecisionIds = await POST(
+      request(
+        {
+          ...scenarioCommand,
+          approvedScenarioRevisionIds: Array.from({ length: 513 }, (_, index) => `scenario-r${index}`),
+          rejectedScenarioRevisionIds: [],
+          expectedReviewHash: `sha256:${'c'.repeat(64)}`,
+        },
+        '',
+      ),
+      operation('decisions'),
+    )
+    expect(excessiveDecisionIds.status).toBe(400)
+    expect(decideQualityJourneyScenarios).toHaveBeenCalledTimes(1)
+    const revision = await POST(
+      request(
+        { ...scenarioCommand, feedback: 'Create a successor.', expectedReviewHash: `sha256:${'d'.repeat(64)}` },
+        '',
+      ),
+      operation('revision-requests'),
+    )
+    expect(revision.status).toBe(200)
+    expect(requestQualityJourneyScenarioRevision).toHaveBeenCalledWith(
+      expect.objectContaining({ command: expect.objectContaining({ actor: 'USER', targetProjectId: 'target-login' }) }),
+    )
+    const read = await GET(
+      new Request(
+        `http://127.0.0.1:3000/api/internal/coordinator/quality/journeys/journey-scenario/scenarios?target=${targetFingerprint}`,
+      ),
+      { params: Promise.resolve({ operation: ['quality', 'journeys', 'journey-scenario', 'scenarios'] }) } as never,
+    )
+    expect(read.status).toBe(200)
+    expect(getQualityJourneyScenarioPortfolio).toHaveBeenCalledWith({
+      journeyId: 'journey-scenario',
+      targetProjectId: 'target-login',
     })
   })
 })

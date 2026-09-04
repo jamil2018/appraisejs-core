@@ -1,13 +1,13 @@
 import { createHash } from 'node:crypto'
 import { z } from 'zod'
 import { canonicalContractJson } from '@/lib/catalog-contracts'
-import { artifactReferenceContractSchema, qualityJourneyContractVersion } from './contracts'
+import {
+  artifactReferenceContractSchema,
+  qualityJourneyContractVersion,
+  qualityJourneyIdentifierSchema,
+} from './contracts'
 
-const id = z
-  .string()
-  .min(1)
-  .max(200)
-  .regex(/^[A-Za-z0-9._:-]+$/)
+const id = qualityJourneyIdentifierSchema
 const digest = z.string().regex(/^sha256:[a-f0-9]{64}$/)
 const text = z.string().trim().min(1).max(8_000)
 const timestamp = z.string().datetime()

@@ -36,7 +36,7 @@
     "compatibility",
     "performance"
   ],
-  "receiptHash": "sha256:dde89d1a8fdbd565c129c86b56d3da51a219becde1840c280128f09ef0807068",
+  "receiptHash": "sha256:c6f30eeb9eebf240f8414e8bfca06d00a9221f5886aa55937efcf3e2fb1a25d6",
   "result": "PASS",
   "schema": "appraise.quality-os-certification/v1",
   "suiteEvidence": [
@@ -66,9 +66,24 @@
       "sourceHash": "sha256:c62312ee044fbc4d2d3f97886d85e8c522397e7b58fda013f70b3bc777267df3"
     },
     {
+      "file": "src/services/coordinator/quality-journey-analysis-service.sqlite.integration.test.ts",
+      "result": "PASS",
+      "sourceHash": "sha256:30ef105ccaf52c850da2d04885b1becf90c5ca61a6d8671be2c4d065e6a59395"
+    },
+    {
       "file": "src/app/api/internal/coordinator/[...operation]/route.test.ts",
       "result": "PASS",
-      "sourceHash": "sha256:39d5c194e69a69878e2af8699618260b8c234f7ab591d2a20296b7f1e5ed87a5"
+      "sourceHash": "sha256:db5694fb460c0a0c6f54aa42624bea1f8a91e11647f7dc6cb74b0cb51228aa92"
+    },
+    {
+      "file": "src/app/(base)/quality-journeys/[journeyId]/scenario-portfolio-review.test.tsx",
+      "result": "PASS",
+      "sourceHash": "sha256:9e1ef28c2357bd351f5afe89cfd89afb621e6dd7246c7778a87ea9e3c19db043"
+    },
+    {
+      "file": "src/lib/quality-journey/scenario-contracts.mcp-parity.test.ts",
+      "result": "PASS",
+      "sourceHash": "sha256:2e0e9bd0ff1ba988a1273609fb29f626c85dc031f68be7d1f4f9337c12f52a20"
     },
     {
       "file": "packages/appraisejs/src/coordinator-client.test.ts",
@@ -79,6 +94,21 @@
       "file": "packages/appraisejs/src/mcp/response-projector.test.ts",
       "result": "PASS",
       "sourceHash": "sha256:ceb0228ae27cd25ae375fc754877f5ddae5fdd2ca7862af3d3aaa1b9cd8704f4"
+    },
+    {
+      "file": "packages/appraisejs/src/mcp/registry.test.ts",
+      "result": "PASS",
+      "sourceHash": "sha256:49f87268cf0c05b87ea737cadc419ded13932e40c9a84d74f143cf8d38c743e5"
+    },
+    {
+      "file": "packages/appraisejs/src/mcp-contract.test.ts",
+      "result": "PASS",
+      "sourceHash": "sha256:672f230675b400bf7183a9921cba2a1d40a416295257e64197785ca2fee2a328"
+    },
+    {
+      "file": "packages/appraisejs/src/mcp/quality-journey-discovery.test.ts",
+      "result": "PASS",
+      "sourceHash": "sha256:e649d65459eca86fd87b0093e3ae011a43ddfac47eb01512d1ad55e136c19e29"
     }
   ]
 }

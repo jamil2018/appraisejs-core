@@ -129,9 +129,35 @@ locator group, or any finite resource inventory. It never derives scope from req
 wildcard. The revision stores registry hashes, role-specific scope and input hashes, the approved requirement-set hash,
 and exact analysis revision and decision identities.
 
-Journeys already persisted at `DISCOVERY` before Phase 4 are upgraded on their first work claim inside the claim
-transaction. This runtime migration recompiles real target and catalog authority; the SQL migration deliberately does
-not invent frozen hashes or broad placeholder scope.
+Journeys already persisted at `DISCOVERY` before Phase 4 are upgraded during their first work claim. This runtime
+migration recompiles real target and catalog authority; the SQL migration deliberately does not invent frozen hashes
+or broad placeholder scope.
+
+## Phase 5 scenario review control plane
+
+Phase 5 persists immutable Scenario Portfolio and Scenario Revision records after an exact completed discovery
+revision. Each portfolio records its coverage rationale plus explicit dependency, branch, and shared-setup graph
+semantics; React Flow renders only those declared edges. Each scenario separates behavioral intent from feasibility
+enrichment and layout, with independent hashes. Scout observation IDs and Resource Explorer resource assumptions are checked against the frozen discovery
+bundle; no Designer submission can invent those facts.
+
+`quality_journey_scenarios_start`, `quality_journey_scenarios_submit`, `quality_journey_scenarios_publish`,
+`quality_journey_scenarios_comment`, `quality_journey_scenarios_comment_dispose`, `quality_journey_scenarios_decide`, and
+`quality_journey_scenarios_revision_request` are specialized operations. The generic command path rejects their
+lifecycle commands. Review comments are append-only and may be scoped to an exact scenario revision; public HTTP and
+MCP boundaries derive the `USER` actor rather than trusting a caller-provided identity. Scenario
+decisions are append-only/idempotent, with rejected decisions requiring feedback. A review remains in
+`SCENARIO_REVIEW` until every scenario is classified; only then can the approved subset advance when it covers every
+mandatory approved requirement. The final portfolio stores the approved-intent, coverage, and decision-set hashes.
+
+A Designer submission also binds the claimed Assignment Manifest's input and authorization-scope hashes and carries a
+completed `WorkerResultEnvelope` whose output references exactly the submitted portfolio and scenario revisions.
+Factory authorization, spawn receipt, role digest, lease, and input hash are revalidated by the common completion
+path before any scenario record is committed. A requested revision makes the predecessor immutable, persists durable
+feedback, and reissues the Designer from canonical predecessor artifacts only. Decisions carry forward only where a
+successor keeps the same stable scenario ID and behavioral-intent hash; enrichment or graph-layout changes cannot
+manufacture or invalidate that human decision. Open blocking comments prevent approval until explicitly disposed, and
+every comment mutation advances the exact review hash.
 
 The Scout work item may observe only its frozen environment IDs and routes through read-only target access. Its
 Assignment Manifest preserves each environment ID-to-origin binding instead of exposing independently sorted lists. Its Target
@@ -177,6 +203,8 @@ The original journey kernel surface is exposed through `quality_journey_create`,
 `quality_journey_command_submit`, `quality_journey_work_claim`, `quality_journey_work_dispatch`,
 `quality_journey_work_complete`, `quality_journey_work_cancel`,
 `quality_journey_work_revoke`, `quality_journey_factory_evidence_inspect`, and `quality_journey_artifacts_list`.
+Generic `quality_journey_work_complete` is not a semantic-output bypass: Scout and Resource Explorer work must use the
+Discovery Bundle boundary, and Test Scenario Designer work must use the Scenario Portfolio boundary.
 `quality_journey_command_submit` remains available for the original kernel commands, but the public coordinator and
 MCP boundary reject `PUBLISH_ANALYSIS`, `REQUEST_ANALYSIS_REVISION`, and `DECIDE_ANALYSIS`: each must use its typed
 Phase 3 operation so publication, revision, and approval retain their specialized authority and exact-review gates.

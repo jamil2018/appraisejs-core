@@ -4,9 +4,51 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { CoordinatorRequestError } from './coordinator-call.js'
 import { mcpContractForServer, registerAppraiseOperations, withStructuredCoordinatorErrors } from './registry.js'
 import { canonicalMcpResourceNames, canonicalMcpToolAnnotations, canonicalMcpToolNames } from './contract.js'
-import { genericQualityJourneyCommandSchema } from './domains/quality-journey.js'
+import { genericQualityJourneyCommandSchema, scenarioPortfolioSchema } from './domains/quality-journey.js'
 
 describe('MCP tool registration', () => {
+  it('accepts only canonical Scenario Portfolio shape at the MCP ingress', () => {
+    const portfolio = {
+      schemaVersion: 'appraise.quality-journey/v1',
+      portfolioId: 'portfolio-1',
+      portfolioRevisionId: 'portfolio-r1',
+      journeyId: 'journey-1',
+      targetProjectId: 'target-1',
+      cycleId: 'cycle-1',
+      discoveryRevisionId: 'discovery-r1',
+      discoveryCompletionHash: `sha256:${'a'.repeat(64)}`,
+      coverageRationale: 'Covers the checkout requirement.',
+      graph: { edges: [], sharedSetup: [] },
+      scenarios: [
+        {
+          stableScenarioId: 'scenario-1',
+          scenarioRevisionId: 'scenario-r1',
+          behavioralIntent: {
+            title: 'Checkout',
+            narrative: 'A shopper checks out.',
+            requirementIds: ['REQ-1'],
+            expectedSignals: ['Confirmation'],
+            steps: [{ stepId: 'step-1', action: 'Submit', expected: 'Confirmation' }],
+          },
+          enrichment: { observationIds: ['observation-1'], resourceAssumptionIds: [], feasibilityNotes: [] },
+          layout: { x: 0, y: 0, sequence: 0 },
+        },
+      ],
+    }
+    expect(scenarioPortfolioSchema.safeParse(portfolio).success).toBe(true)
+    expect(scenarioPortfolioSchema.safeParse({ ...portfolio, scenarios: [] }).success).toBe(false)
+    expect(
+      scenarioPortfolioSchema.safeParse({
+        ...portfolio,
+        scenarios: [
+          {
+            ...portfolio.scenarios[0],
+            behavioralIntent: { ...portfolio.scenarios[0].behavioralIntent, requirementIds: [] },
+          },
+        ],
+      }).success,
+    ).toBe(false)
+  })
   it('exposes only the canonical Quality Design and Assessment surface', () => {
     const server = new McpServer({ name: 'contract-test', version: '0.0.0' })
     const request = async () => ({})
@@ -110,7 +152,15 @@ describe('MCP tool registration', () => {
   })
 
   it('rejects specialized analysis and discovery commands from the generic Quality Journey MCP tool', () => {
-    for (const command of ['PUBLISH_ANALYSIS', 'REQUEST_ANALYSIS_REVISION', 'DECIDE_ANALYSIS', 'RETRY_DISCOVERY'])
+    for (const command of [
+      'PUBLISH_ANALYSIS',
+      'REQUEST_ANALYSIS_REVISION',
+      'DECIDE_ANALYSIS',
+      'RETRY_DISCOVERY',
+      'PUBLISH_SCENARIO_PORTFOLIO',
+      'DECIDE_SCENARIOS',
+      'REQUEST_SCENARIO_REVISION',
+    ])
       expect(() => genericQualityJourneyCommandSchema.parse({ command })).toThrow(
         'Specialized Quality Journey commands require their dedicated MCP tool.',
       )

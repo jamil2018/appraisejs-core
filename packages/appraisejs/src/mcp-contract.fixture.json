@@ -4305,6 +4305,1041 @@
     },
     {
       "kind": "tool",
+      "name": "quality_journey_scenarios_comment",
+      "description": "Append an exact scoped scenario review comment without mutating scenario intent.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "target": {
+            "type": "string",
+            "minLength": 1
+          },
+          "journeyId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "portfolioRevisionId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "scenarioRevisionId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "comment": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 8000
+          },
+          "blocking": {
+            "default": false,
+            "type": "boolean"
+          },
+          "idempotencyKey": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "expectedReviewHash": {
+            "type": "string",
+            "pattern": "^sha256:[a-f0-9]{64}$"
+          }
+        },
+        "required": [
+          "target",
+          "journeyId",
+          "portfolioRevisionId",
+          "comment",
+          "blocking",
+          "idempotencyKey",
+          "expectedReviewHash"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "kind": "tool",
+      "name": "quality_journey_scenarios_comment_dispose",
+      "description": "Dispose one exact scenario review comment with a durable idempotency receipt.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "target": {
+            "type": "string",
+            "minLength": 1
+          },
+          "journeyId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "portfolioRevisionId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "commentId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "idempotencyKey": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "expectedReviewHash": {
+            "type": "string",
+            "pattern": "^sha256:[a-f0-9]{64}$"
+          }
+        },
+        "required": [
+          "target",
+          "journeyId",
+          "portfolioRevisionId",
+          "commentId",
+          "idempotencyKey",
+          "expectedReviewHash"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "kind": "tool",
+      "name": "quality_journey_scenarios_decide",
+      "description": "Accumulate exact scenario approvals or rejections during review; only a complete mandatory-coverage decision advances to automation.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "target": {
+            "type": "string",
+            "minLength": 1
+          },
+          "journeyId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "commandId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "expectedStateHash": {
+            "type": "string",
+            "pattern": "^sha256:[a-f0-9]{64}$"
+          },
+          "idempotencyKey": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "portfolioId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "portfolioRevisionId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "portfolioHash": {
+            "type": "string",
+            "pattern": "^sha256:[a-f0-9]{64}$"
+          },
+          "expectedReviewHash": {
+            "type": "string",
+            "pattern": "^sha256:[a-f0-9]{64}$"
+          },
+          "approvedScenarioRevisionIds": {
+            "maxItems": 512,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200,
+              "pattern": "^[A-Za-z0-9._:-]+$"
+            }
+          },
+          "rejectedScenarioRevisionIds": {
+            "maxItems": 512,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200,
+              "pattern": "^[A-Za-z0-9._:-]+$"
+            }
+          },
+          "feedback": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 8000
+          }
+        },
+        "required": [
+          "target",
+          "journeyId",
+          "commandId",
+          "expectedStateHash",
+          "idempotencyKey",
+          "portfolioId",
+          "portfolioRevisionId",
+          "portfolioHash",
+          "expectedReviewHash",
+          "approvedScenarioRevisionIds",
+          "rejectedScenarioRevisionIds"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "kind": "tool",
+      "name": "quality_journey_scenarios_get",
+      "description": "Read the exact active Scenario Portfolio, graph coordinates, feasibility enrichment, and accumulated review decisions.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "target": {
+            "type": "string",
+            "minLength": 1
+          },
+          "journeyId": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "target",
+          "journeyId"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "kind": "tool",
+      "name": "quality_journey_scenarios_publish",
+      "description": "Publish one exact Scenario Portfolio for review after the Designer submission is durably recorded.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "target": {
+            "type": "string",
+            "minLength": 1
+          },
+          "journeyId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "commandId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "expectedStateHash": {
+            "type": "string",
+            "pattern": "^sha256:[a-f0-9]{64}$"
+          },
+          "idempotencyKey": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "portfolioId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "portfolioRevisionId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "portfolioHash": {
+            "type": "string",
+            "pattern": "^sha256:[a-f0-9]{64}$"
+          }
+        },
+        "required": [
+          "target",
+          "journeyId",
+          "commandId",
+          "expectedStateHash",
+          "idempotencyKey",
+          "portfolioId",
+          "portfolioRevisionId",
+          "portfolioHash"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "kind": "tool",
+      "name": "quality_journey_scenarios_revision_request",
+      "description": "Request a feedback-bound successor Scenario Portfolio from one exact reviewed revision.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "target": {
+            "type": "string",
+            "minLength": 1
+          },
+          "journeyId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "commandId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "expectedStateHash": {
+            "type": "string",
+            "pattern": "^sha256:[a-f0-9]{64}$"
+          },
+          "idempotencyKey": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "portfolioId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "portfolioRevisionId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "portfolioHash": {
+            "type": "string",
+            "pattern": "^sha256:[a-f0-9]{64}$"
+          },
+          "expectedReviewHash": {
+            "type": "string",
+            "pattern": "^sha256:[a-f0-9]{64}$"
+          },
+          "feedback": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 8000
+          }
+        },
+        "required": [
+          "target",
+          "journeyId",
+          "commandId",
+          "expectedStateHash",
+          "idempotencyKey",
+          "portfolioId",
+          "portfolioRevisionId",
+          "portfolioHash",
+          "expectedReviewHash",
+          "feedback"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "kind": "tool",
+      "name": "quality_journey_scenarios_start",
+      "description": "Start scenario design only from the exact completed discovery revision and issue the Designer assignment.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "target": {
+            "type": "string",
+            "minLength": 1
+          },
+          "journeyId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "commandId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "expectedStateHash": {
+            "type": "string",
+            "pattern": "^sha256:[a-f0-9]{64}$"
+          },
+          "idempotencyKey": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          }
+        },
+        "required": [
+          "target",
+          "journeyId",
+          "commandId",
+          "expectedStateHash",
+          "idempotencyKey"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "kind": "tool",
+      "name": "quality_journey_scenarios_submit",
+      "description": "Submit a provenance-bound Scenario Portfolio only through the active leased Test Scenario Designer assignment.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "target": {
+            "type": "string",
+            "minLength": 1
+          },
+          "journeyId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "workItemId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "attemptId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "leaseId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "ownerToken": {
+            "type": "string",
+            "minLength": 1
+          },
+          "idempotencyKey": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "expectedInputHash": {
+            "type": "string",
+            "pattern": "^sha256:[a-f0-9]{64}$"
+          },
+          "expectedScopeHash": {
+            "type": "string",
+            "pattern": "^sha256:[a-f0-9]{64}$"
+          },
+          "portfolio": {
+            "type": "object",
+            "properties": {
+              "schemaVersion": {
+                "type": "string",
+                "const": "appraise.quality-journey/v1"
+              },
+              "portfolioId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200,
+                "pattern": "^[A-Za-z0-9._:-]+$"
+              },
+              "portfolioRevisionId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200,
+                "pattern": "^[A-Za-z0-9._:-]+$"
+              },
+              "journeyId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200,
+                "pattern": "^[A-Za-z0-9._:-]+$"
+              },
+              "targetProjectId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200,
+                "pattern": "^[A-Za-z0-9._:-]+$"
+              },
+              "cycleId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200,
+                "pattern": "^[A-Za-z0-9._:-]+$"
+              },
+              "discoveryRevisionId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200,
+                "pattern": "^[A-Za-z0-9._:-]+$"
+              },
+              "discoveryCompletionHash": {
+                "type": "string",
+                "pattern": "^sha256:[a-f0-9]{64}$"
+              },
+              "predecessorPortfolioRevisionId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200,
+                "pattern": "^[A-Za-z0-9._:-]+$"
+              },
+              "coverageRationale": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 8000
+              },
+              "graph": {
+                "type": "object",
+                "properties": {
+                  "edges": {
+                    "maxItems": 2048,
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "sourceScenarioRevisionId": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 200,
+                          "pattern": "^[A-Za-z0-9._:-]+$"
+                        },
+                        "targetScenarioRevisionId": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 200,
+                          "pattern": "^[A-Za-z0-9._:-]+$"
+                        },
+                        "relation": {
+                          "type": "string",
+                          "enum": [
+                            "DEPENDS_ON",
+                            "BRANCHES_TO",
+                            "SHARED_SETUP"
+                          ]
+                        },
+                        "rationale": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 8000
+                        }
+                      },
+                      "required": [
+                        "sourceScenarioRevisionId",
+                        "targetScenarioRevisionId",
+                        "relation",
+                        "rationale"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "sharedSetup": {
+                    "maxItems": 512,
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "setupId": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 200,
+                          "pattern": "^[A-Za-z0-9._:-]+$"
+                        },
+                        "label": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 8000
+                        },
+                        "scenarioRevisionIds": {
+                          "minItems": 2,
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 200,
+                            "pattern": "^[A-Za-z0-9._:-]+$"
+                          }
+                        }
+                      },
+                      "required": [
+                        "setupId",
+                        "label",
+                        "scenarioRevisionIds"
+                      ],
+                      "additionalProperties": false
+                    }
+                  }
+                },
+                "required": [
+                  "edges",
+                  "sharedSetup"
+                ],
+                "additionalProperties": false
+              },
+              "scenarios": {
+                "minItems": 1,
+                "maxItems": 512,
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "stableScenarioId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 200,
+                      "pattern": "^[A-Za-z0-9._:-]+$"
+                    },
+                    "scenarioRevisionId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 200,
+                      "pattern": "^[A-Za-z0-9._:-]+$"
+                    },
+                    "behavioralIntent": {
+                      "type": "object",
+                      "properties": {
+                        "title": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 8000
+                        },
+                        "narrative": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 8000
+                        },
+                        "requirementIds": {
+                          "minItems": 1,
+                          "maxItems": 512,
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 200,
+                            "pattern": "^[A-Za-z0-9._:-]+$"
+                          }
+                        },
+                        "exploratoryRationale": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 8000
+                        },
+                        "expectedSignals": {
+                          "minItems": 1,
+                          "maxItems": 64,
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 8000
+                          }
+                        },
+                        "steps": {
+                          "minItems": 1,
+                          "maxItems": 128,
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "stepId": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 200,
+                                "pattern": "^[A-Za-z0-9._:-]+$"
+                              },
+                              "action": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 8000
+                              },
+                              "expected": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 8000
+                              }
+                            },
+                            "required": [
+                              "stepId",
+                              "action",
+                              "expected"
+                            ],
+                            "additionalProperties": false
+                          }
+                        }
+                      },
+                      "required": [
+                        "title",
+                        "narrative",
+                        "expectedSignals",
+                        "steps"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "enrichment": {
+                      "type": "object",
+                      "properties": {
+                        "observationIds": {
+                          "minItems": 1,
+                          "maxItems": 512,
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 200,
+                            "pattern": "^[A-Za-z0-9._:-]+$"
+                          }
+                        },
+                        "resourceAssumptionIds": {
+                          "minItems": 0,
+                          "maxItems": 512,
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 200,
+                            "pattern": "^[A-Za-z0-9._:-]+$"
+                          }
+                        },
+                        "feasibilityNotes": {
+                          "maxItems": 128,
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 8000
+                          }
+                        }
+                      },
+                      "required": [
+                        "observationIds",
+                        "resourceAssumptionIds",
+                        "feasibilityNotes"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "layout": {
+                      "type": "object",
+                      "properties": {
+                        "x": {
+                          "type": "number"
+                        },
+                        "y": {
+                          "type": "number"
+                        },
+                        "sequence": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991
+                        }
+                      },
+                      "required": [
+                        "x",
+                        "y",
+                        "sequence"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "stableScenarioId",
+                    "scenarioRevisionId",
+                    "behavioralIntent",
+                    "enrichment",
+                    "layout"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            },
+            "required": [
+              "schemaVersion",
+              "portfolioId",
+              "portfolioRevisionId",
+              "journeyId",
+              "targetProjectId",
+              "cycleId",
+              "discoveryRevisionId",
+              "discoveryCompletionHash",
+              "coverageRationale",
+              "graph",
+              "scenarios"
+            ],
+            "additionalProperties": false
+          },
+          "result": {
+            "type": "object",
+            "properties": {
+              "schemaVersion": {
+                "type": "string",
+                "const": "appraise.quality-journey/v1"
+              },
+              "assignmentId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200
+              },
+              "workItemId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200
+              },
+              "attemptId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200
+              },
+              "roleContractDigest": {
+                "type": "string",
+                "pattern": "^sha256:[a-f0-9]{64}$"
+              },
+              "inputHash": {
+                "type": "string",
+                "pattern": "^sha256:[a-f0-9]{64}$"
+              },
+              "role": {
+                "type": "string",
+                "enum": [
+                  "REQUIREMENT_ANALYZER",
+                  "SCOUT",
+                  "RESOURCE_EXPLORER",
+                  "TEST_SCENARIO_DESIGNER",
+                  "AUTOMATOR",
+                  "TRIAGER"
+                ]
+              },
+              "status": {
+                "type": "string",
+                "enum": [
+                  "COMPLETED",
+                  "BLOCKED",
+                  "QUESTION_RAISED",
+                  "REVISION_REQUIRED"
+                ]
+              },
+              "outputs": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "kind": {
+                      "type": "string",
+                      "enum": [
+                        "JOURNEY_REVISION",
+                        "ANALYSIS_CHARTER_REVISION",
+                        "ANALYSIS_QUESTION",
+                        "ANALYSIS_ANSWER",
+                        "ANALYSIS_REVISION_FEEDBACK",
+                        "TARGET_OBSERVATION_BUNDLE",
+                        "RESOURCE_RESOLUTION_BUNDLE",
+                        "SCENARIO_PORTFOLIO_REVISION",
+                        "SCENARIO_REVISION",
+                        "TEST_SUITE",
+                        "TEST_CASE",
+                        "RUNTIME_CAPSULE",
+                        "TEST_RUN",
+                        "EVIDENCE_RECEIPT",
+                        "TEST_REPORT_ANALYSIS_REVISION",
+                        "JOURNEY_APPROVAL",
+                        "JOURNEY_CLOSURE"
+                      ]
+                    },
+                    "artifactId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 200
+                    },
+                    "revisionId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 200
+                    },
+                    "contentHash": {
+                      "type": "string",
+                      "pattern": "^sha256:[a-f0-9]{64}$"
+                    }
+                  },
+                  "required": [
+                    "kind",
+                    "artifactId",
+                    "contentHash"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "evidenceReceipts": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "pattern": "^sha256:[a-f0-9]{64}$"
+                }
+              },
+              "assumptions": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 8000
+                }
+              },
+              "blockers": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 200
+                    },
+                    "summary": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 8000
+                    },
+                    "evidence": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "pattern": "^sha256:[a-f0-9]{64}$"
+                      }
+                    },
+                    "requiredResolution": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 8000
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "summary",
+                    "evidence",
+                    "requiredResolution"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "unresolvedQuestions": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "questionId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 200
+                    },
+                    "prompt": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 8000
+                    },
+                    "required": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "questionId",
+                    "prompt",
+                    "required"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "submittedAt": {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+              }
+            },
+            "required": [
+              "schemaVersion",
+              "assignmentId",
+              "workItemId",
+              "attemptId",
+              "roleContractDigest",
+              "inputHash",
+              "role",
+              "status",
+              "outputs",
+              "evidenceReceipts",
+              "assumptions",
+              "blockers",
+              "unresolvedQuestions",
+              "submittedAt"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "target",
+          "journeyId",
+          "workItemId",
+          "attemptId",
+          "leaseId",
+          "ownerToken",
+          "idempotencyKey",
+          "expectedInputHash",
+          "expectedScopeHash",
+          "portfolio",
+          "result"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "kind": "tool",
       "name": "quality_journey_target_observation_submit",
       "description": "Submit one strict Target Observation Bundle only through the exact leased Scout discovery assignment.",
       "inputSchema": {
@@ -4787,7 +5822,7 @@
     {
       "kind": "tool",
       "name": "quality_journey_work_complete",
-      "description": "Complete an exact claimed work attempt with a contract-bound worker result envelope.",
+      "description": "Complete an exact claimed work attempt with a contract-bound worker result envelope; Discovery and Scenario Designer roles require their specialized completion tools.",
       "inputSchema": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "type": "object",

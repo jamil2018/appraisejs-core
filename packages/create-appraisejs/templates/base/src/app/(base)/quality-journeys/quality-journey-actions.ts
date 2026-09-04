@@ -12,6 +12,12 @@ import {
   requestQualityJourneyAnalysisRevision,
 } from '@/services/coordinator/quality-journey-analysis-service'
 import {
+  commentQualityJourneyScenarioPortfolio,
+  decideQualityJourneyScenarios,
+  disposeQualityJourneyScenarioComment,
+  requestQualityJourneyScenarioRevision,
+} from '@/services/coordinator/quality-journey-scenario-service'
+import {
   createQualityJourney,
   getQualityJourney,
   submitDurableQualityJourneyCommand,
@@ -60,6 +66,42 @@ const reviewCommandSchema = z
 
 const requestRevisionSchema = reviewCommandSchema
   .extend({ feedback: z.string().trim().min(1).max(8_000), expectedReviewHash: hash })
+  .strict()
+
+const scenarioReviewSchema = z
+  .object({
+    journeyId: id,
+    portfolioId: id,
+    portfolioRevisionId: id,
+    portfolioHash: hash,
+    expectedStateHash: hash,
+    expectedReviewHash: hash,
+    commandId: id,
+    idempotencyKey: id,
+  })
+  .strict()
+const scenarioDecisionSchema = scenarioReviewSchema
+  .extend({
+    approvedScenarioRevisionIds: z.array(id).max(512),
+    rejectedScenarioRevisionIds: z.array(id).max(512),
+    feedback: z.string().trim().min(1).max(8_000).optional(),
+  })
+  .strict()
+const scenarioCommentSchema = scenarioReviewSchema
+  .pick({ journeyId: true, portfolioRevisionId: true, expectedReviewHash: true })
+  .extend({
+    scenarioRevisionId: id.optional(),
+    comment: z.string().trim().min(1).max(8_000),
+    blocking: z.boolean().default(false),
+    idempotencyKey: id,
+  })
+  .strict()
+const scenarioCommentDispositionSchema = scenarioReviewSchema
+  .pick({ journeyId: true, portfolioRevisionId: true, expectedReviewHash: true })
+  .extend({ commentId: id, idempotencyKey: id })
+  .strict()
+const scenarioRevisionRequestSchema = scenarioReviewSchema
+  .extend({ feedback: z.string().trim().min(1).max(8_000) })
   .strict()
 
 function qualityJourneyActionError(error: unknown): ActionResponse {
@@ -204,6 +246,108 @@ export async function approveQualityJourneyAnalysisAction(input: unknown): Promi
         },
       ],
       payload: { revisionId: value.analysisRevisionId, contentHash: value.contentHash, decision: 'APPROVED' },
+    })
+    revalidatePath(`/quality-journeys/${value.journeyId}`)
+    return { status: 200, success: true, data: result }
+  } catch (error) {
+    return qualityJourneyActionError(error)
+  }
+}
+
+function scenarioArtifactRef(value: z.infer<typeof scenarioReviewSchema>) {
+  return {
+    kind: 'SCENARIO_PORTFOLIO_REVISION' as const,
+    artifactId: value.portfolioId,
+    revisionId: value.portfolioRevisionId,
+    contentHash: value.portfolioHash,
+  }
+}
+
+export async function decideQualityJourneyScenariosAction(input: unknown): Promise<ActionResponse> {
+  try {
+    const value = scenarioDecisionSchema.parse(input)
+    const project = await requireActiveProjectForMutation()
+    const result = await decideQualityJourneyScenarios({
+      expectedReviewHash: value.expectedReviewHash,
+      approvedScenarioRevisionIds: value.approvedScenarioRevisionIds,
+      rejectedScenarioRevisionIds: value.rejectedScenarioRevisionIds,
+      feedback: value.feedback,
+      command: {
+        schemaVersion: 'appraise.quality-journey/v1',
+        commandId: value.commandId,
+        journeyId: value.journeyId,
+        targetProjectId: project.id,
+        actor: 'USER',
+        command: 'DECIDE_SCENARIOS',
+        expectedStateHash: value.expectedStateHash,
+        idempotencyKey: value.idempotencyKey,
+        inputArtifactRefs: [scenarioArtifactRef(value)],
+        payload: {
+          portfolioRevisionId: value.portfolioRevisionId,
+          portfolioHash: value.portfolioHash,
+          approvedScenarioRevisionIds: value.approvedScenarioRevisionIds,
+          rejectedScenarioRevisionIds: value.rejectedScenarioRevisionIds,
+          ...(value.feedback ? { feedback: value.feedback } : {}),
+        },
+      },
+    })
+    revalidatePath(`/quality-journeys/${value.journeyId}`)
+    return { status: 200, success: true, data: result }
+  } catch (error) {
+    return qualityJourneyActionError(error)
+  }
+}
+
+export async function commentQualityJourneyScenarioPortfolioAction(input: unknown): Promise<ActionResponse> {
+  try {
+    const value = scenarioCommentSchema.parse(input)
+    const project = await requireActiveProjectForMutation()
+    const result = await commentQualityJourneyScenarioPortfolio({
+      ...value,
+      targetProjectId: project.id,
+      actor: 'USER',
+    })
+    revalidatePath(`/quality-journeys/${value.journeyId}`)
+    return { status: 201, success: true, data: result }
+  } catch (error) {
+    return qualityJourneyActionError(error)
+  }
+}
+
+export async function disposeQualityJourneyScenarioCommentAction(input: unknown): Promise<ActionResponse> {
+  try {
+    const value = scenarioCommentDispositionSchema.parse(input)
+    const project = await requireActiveProjectForMutation()
+    const result = await disposeQualityJourneyScenarioComment({ ...value, targetProjectId: project.id, actor: 'USER' })
+    revalidatePath(`/quality-journeys/${value.journeyId}`)
+    return { status: 200, success: true, data: result }
+  } catch (error) {
+    return qualityJourneyActionError(error)
+  }
+}
+
+export async function requestQualityJourneyScenarioRevisionAction(input: unknown): Promise<ActionResponse> {
+  try {
+    const value = scenarioRevisionRequestSchema.parse(input)
+    const project = await requireActiveProjectForMutation()
+    const result = await requestQualityJourneyScenarioRevision({
+      expectedReviewHash: value.expectedReviewHash,
+      command: {
+        schemaVersion: 'appraise.quality-journey/v1',
+        commandId: value.commandId,
+        journeyId: value.journeyId,
+        targetProjectId: project.id,
+        actor: 'USER',
+        command: 'REQUEST_SCENARIO_REVISION',
+        expectedStateHash: value.expectedStateHash,
+        idempotencyKey: value.idempotencyKey,
+        inputArtifactRefs: [scenarioArtifactRef(value)],
+        payload: {
+          reviewedRevisionId: value.portfolioRevisionId,
+          reviewedHash: value.portfolioHash,
+          feedback: value.feedback,
+        },
+      },
     })
     revalidatePath(`/quality-journeys/${value.journeyId}`)
     return { status: 200, success: true, data: result }

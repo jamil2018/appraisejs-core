@@ -100,6 +100,7 @@ import {
 } from '@/services/coordinator/quality-journey-service'
 import { getQualityJourneyAnalysisRoute, postQualityJourneyAnalysisRoute } from './quality-journey-analysis-route'
 import { getQualityJourneyDiscoveryRoute, postQualityJourneyDiscoveryRoute } from './quality-journey-discovery-route'
+import { getQualityJourneyScenarioRoute, postQualityJourneyScenarioRoute } from './quality-journey-scenario-route'
 
 export const runtime = 'nodejs'
 
@@ -490,6 +491,8 @@ async function getTestRunEvidence(request: Request, operation: string[]) {
 async function getQualityOperation(request: Request, operation: string[]) {
   const discoveryResponse = await getQualityJourneyDiscoveryRoute(operation, new URL(request.url).searchParams)
   if (discoveryResponse) return discoveryResponse
+  const scenarioResponse = await getQualityJourneyScenarioRoute(operation, new URL(request.url).searchParams)
+  if (scenarioResponse) return scenarioResponse
   const analysisResponse = await getQualityJourneyAnalysisRoute(operation, new URL(request.url).searchParams)
   if (analysisResponse) return analysisResponse
   if (operation[1] === 'journeys' && operation.length === 3) {
@@ -710,6 +713,21 @@ const qualityJourneyWorkLeaseSchema = z.object({
   leaseId: z.string().min(1),
   ownerToken: z.string().min(1),
 })
+
+function assertGenericQualityJourneyWorkCompletion(result: unknown) {
+  if (typeof result !== 'object' || !result || !('role' in result)) return
+  const role = result.role
+  if (role === 'SCOUT' || role === 'RESOURCE_EXPLORER')
+    throw new ServiceError(
+      'Discovery roles must submit through their specialized discovery bundle boundary.',
+      'UNAUTHORIZED',
+    )
+  if (role === 'TEST_SCENARIO_DESIGNER')
+    throw new ServiceError(
+      'Scenario Designer work must submit through the specialized Scenario Portfolio boundary.',
+      'UNAUTHORIZED',
+    )
+}
 const qualityJourneyWorkControlSchema = z.object({
   target: z.string().min(1),
   actor: z.enum(['USER', 'COORDINATOR', 'RUNNER']),
@@ -723,6 +741,8 @@ function isQualityJourneyWorkOperation(operation: string[], action: string) {
 async function postQualityOperation(operation: string[], body: unknown): Promise<Response> {
   const discoveryResponse = await postQualityJourneyDiscoveryRoute(operation, body)
   if (discoveryResponse) return discoveryResponse
+  const scenarioResponse = await postQualityJourneyScenarioRoute(operation, body)
+  if (scenarioResponse) return scenarioResponse
   const analysisResponse = await postQualityJourneyAnalysisRoute(operation, body)
   if (analysisResponse) return analysisResponse
   const key = operation.join('/')
@@ -756,6 +776,12 @@ async function postQualityOperation(operation: string[], body: unknown): Promise
       throw new ServiceError('Phase 3 analysis commands require their dedicated coordinator operation.', 'UNAUTHORIZED')
     if (command.command === 'RETRY_DISCOVERY')
       throw new ServiceError('Phase 4 discovery retries require their dedicated coordinator operation.', 'UNAUTHORIZED')
+    if (
+      ['START_SCENARIO_DESIGN', 'PUBLISH_SCENARIO_PORTFOLIO', 'DECIDE_SCENARIOS', 'REQUEST_SCENARIO_REVISION'].includes(
+        command.command,
+      )
+    )
+      throw new ServiceError('Phase 5 scenario commands require their dedicated coordinator operation.', 'UNAUTHORIZED')
     return Response.json(await submitDurableQualityJourneyCommand(command))
   }
   if (key === `quality/journeys/${operation[2]}/work/claim`) {
@@ -809,6 +835,7 @@ async function postQualityOperation(operation: string[], body: unknown): Promise
   if (isQualityJourneyWorkOperation(operation, 'complete')) {
     const value = qualityJourneyWorkLeaseSchema.extend({ result: z.unknown() }).parse(body)
     if (!('result' in value)) throw new ServiceError('Quality Journey worker result is required.', 'VALIDATION')
+    assertGenericQualityJourneyWorkCompletion(value.result)
     const target = await resolveTargetProject(value.target)
     return Response.json(
       await completeQualityJourneyWork({

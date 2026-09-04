@@ -266,6 +266,20 @@ async function currentWorkAuthorization(workItemId: string, db: Db) {
   })
 }
 
+/** Internal issuance repair for a specialized stage compiler that has just
+ * persisted its bounded input artifacts and scope before the work is claimed. */
+export async function refreshQualityJourneyWorkAuthorizationInTransaction(
+  journeyId: string,
+  workItemId: string,
+  tx: Prisma.TransactionClient,
+) {
+  const journey = await tx.qualityJourney.findUniqueOrThrow({ where: { id: journeyId } })
+  const item = await tx.qualityJourneyWorkItem.findUniqueOrThrow({ where: { id: workItemId } })
+  const predecessor = await currentWorkAuthorization(item.id, tx)
+  if (!predecessor) throw new ServiceError('Specialized work issuance has no authorization to supersede.', 'CONFLICT')
+  await createWorkAuthorization(journey, item, tx, 3, predecessor.id)
+}
+
 /** A revision request is a new, transcript-free Analyzer authorization. Its
  * input is derived only from immutable predecessor artifacts, not coordinator
  * memory or a prior worker's transcript. */
@@ -318,6 +332,158 @@ async function predecessorAnalysisInputArtifacts(
     ) as AssignmentManifest['inputArtifacts']
 }
 
+/** A successor Designer sees canonical predecessor revisions, accumulated
+ * decisions and feedback—not a prior worker's private transcript. */
+async function completedDiscoveryScenarioInputs(
+  row: QualityJourney,
+  db: Db,
+): Promise<AssignmentManifest['inputArtifacts']> {
+  const discovery = row.activeDiscoveryRevisionId
+    ? await db.qualityJourneyDiscoveryRevision.findUnique({ where: { id: row.activeDiscoveryRevisionId } })
+    : null
+  if (
+    !discovery ||
+    discovery.status !== 'COMPLETED' ||
+    !discovery.targetObservationHash ||
+    !discovery.resourceResolutionHash
+  )
+    throw new ServiceError(
+      'Scenario revision work cannot be reissued without exact completed discovery authority.',
+      'CONFLICT',
+    )
+  return [
+    {
+      kind: 'ANALYSIS_CHARTER_REVISION',
+      artifactId: discovery.analysisArtifactId,
+      revisionId: discovery.analysisRevisionArtifactId,
+      contentHash: discovery.analysisRevisionContentHash,
+    },
+    { kind: 'TARGET_OBSERVATION_BUNDLE', artifactId: discovery.id, contentHash: discovery.targetObservationHash },
+    { kind: 'RESOURCE_RESOLUTION_BUNDLE', artifactId: discovery.id, contentHash: discovery.resourceResolutionHash },
+  ] as AssignmentManifest['inputArtifacts']
+}
+
+async function predecessorScenarioPortfolioInputArtifacts(
+  row: QualityJourney,
+  db: Db,
+): Promise<AssignmentManifest['inputArtifacts']> {
+  const predecessorRevisionId = parseRecord(row.activeRevisionIdsJson).scenarioPortfolio
+  if (!predecessorRevisionId)
+    throw new ServiceError(
+      'Scenario revision work cannot be reissued without an active predecessor portfolio.',
+      'CONFLICT',
+    )
+  const predecessor = await db.qualityJourneyScenarioPortfolioRevision.findFirst({
+    where: { journeyId: row.id, artifactRevisionId: predecessorRevisionId, status: 'REVISION_REQUIRED' },
+    include: { scenarios: { include: { decisions: true } } },
+  })
+  if (!predecessor)
+    throw new ServiceError('Scenario revision work cannot be reissued without durable predecessor lineage.', 'CONFLICT')
+  const feedback = await db.qualityJourneyArtifact.findFirst({
+    where: { journeyId: row.id, kind: 'SCENARIO_REVISION_FEEDBACK', revisionId: predecessorRevisionId },
+    orderBy: { createdAt: 'desc' },
+  })
+  if (!feedback)
+    throw new ServiceError('Scenario revision work cannot be reissued without durable user feedback.', 'CONFLICT')
+  const discoveryInputs = await completedDiscoveryScenarioInputs(row, db)
+  const artifacts = [
+    ...discoveryInputs,
+    {
+      kind: 'SCENARIO_PORTFOLIO_REVISION',
+      artifactId: predecessor.artifactId,
+      revisionId: predecessor.artifactRevisionId,
+      contentHash: predecessor.contentHash,
+    },
+    ...predecessor.scenarios.map(scenario => ({
+      kind: 'SCENARIO_REVISION',
+      artifactId: scenario.stableScenarioId,
+      revisionId: scenario.scenarioRevisionId,
+      contentHash: scenario.contentHash,
+    })),
+    {
+      kind: feedback.kind,
+      artifactId: feedback.artifactId,
+      ...(feedback.revisionId ? { revisionId: feedback.revisionId } : {}),
+      contentHash: feedback.contentHash,
+    },
+  ]
+  return artifacts.sort((left, right) =>
+    canonicalContractJson(left).localeCompare(canonicalContractJson(right)),
+  ) as AssignmentManifest['inputArtifacts']
+}
+
+function isCompletedActiveWorkItem(
+  item: QualityJourneyWorkItem | null,
+  role: QualityJourneyRole,
+  stage: QualityJourneyStage,
+  row: QualityJourney,
+  activeWorkItemIds: readonly string[],
+): item is QualityJourneyWorkItem {
+  return Boolean(
+    item &&
+    item.role === role &&
+    row.stage === stage &&
+    item.status === 'COMPLETED' &&
+    activeWorkItemIds.includes(item.id),
+  )
+}
+
+async function reissueCompletedAnalysisWorkItem(
+  row: QualityJourney,
+  item: QualityJourneyWorkItem | null,
+  activeWorkItemIds: readonly string[],
+  roleContractDigest: string,
+  db: Db,
+) {
+  if (!isCompletedActiveWorkItem(item, 'REQUIREMENT_ANALYZER', 'ANALYSIS', row, activeWorkItemIds)) return item
+  const [inputArtifacts, authorization] = await Promise.all([
+    predecessorAnalysisInputArtifacts(row, db),
+    currentWorkAuthorization(item.id, db),
+  ])
+  if (!authorization)
+    throw new ServiceError('Analysis revision work has no predecessor Factory authorization to supersede.', 'CONFLICT')
+  const reissued = await db.qualityJourneyWorkItem.update({
+    where: { id: item.id },
+    data: {
+      status: 'ELIGIBLE',
+      inputHash: row.stateHash,
+      inputArtifactRefsJson: json(inputArtifacts),
+      roleContractDigest,
+      version: { increment: 1 },
+    },
+  })
+  await createWorkAuthorization(row, reissued, db, 3, authorization.id)
+  return reissued
+}
+
+async function reissueCompletedScenarioDesignerWorkItem(
+  row: QualityJourney,
+  item: QualityJourneyWorkItem | null,
+  activeWorkItemIds: readonly string[],
+  roleContractDigest: string,
+  db: Db,
+) {
+  if (!isCompletedActiveWorkItem(item, 'TEST_SCENARIO_DESIGNER', 'SCENARIO_DESIGN', row, activeWorkItemIds)) return item
+  const [inputArtifacts, authorization] = await Promise.all([
+    predecessorScenarioPortfolioInputArtifacts(row, db),
+    currentWorkAuthorization(item.id, db),
+  ])
+  if (!authorization)
+    throw new ServiceError('Scenario revision work has no predecessor Factory authorization to supersede.', 'CONFLICT')
+  const reissued = await db.qualityJourneyWorkItem.update({
+    where: { id: item.id },
+    data: {
+      status: 'ELIGIBLE',
+      inputHash: row.stateHash,
+      inputArtifactRefsJson: json(inputArtifacts),
+      roleContractDigest,
+      version: { increment: 1 },
+    },
+  })
+  await createWorkAuthorization(row, reissued, db, 3, authorization.id)
+  return reissued
+}
+
 async function ensureEligibleWorkItems(row: QualityJourney, db: Db) {
   const roles = eligibleRolesForAutomaticIssuance(row.stage as QualityJourneyStage)
   const activeWorkItemIds = parseArray(row.activeWorkItemIdsJson)
@@ -326,32 +492,9 @@ async function ensureEligibleWorkItems(row: QualityJourney, db: Db) {
     const id = qualityJourneyWorkItemId(row.id, row.activeCycleId, role)
     const existingItem = await db.qualityJourneyWorkItem.findUnique({ where: { id } })
     let item = existingItem
-    if (
-      item &&
-      item.role === 'REQUIREMENT_ANALYZER' &&
-      row.stage === 'ANALYSIS' &&
-      item.status === 'COMPLETED' &&
-      activeWorkItemIds.includes(item.id)
-    ) {
-      const inputArtifacts = await predecessorAnalysisInputArtifacts(row, db)
-      const authorization = await currentWorkAuthorization(item.id, db)
-      if (!authorization)
-        throw new ServiceError(
-          'Analysis revision work has no predecessor Factory authorization to supersede.',
-          'CONFLICT',
-        )
-      item = await db.qualityJourneyWorkItem.update({
-        where: { id: item.id },
-        data: {
-          status: 'ELIGIBLE',
-          inputHash: row.stateHash,
-          inputArtifactRefsJson: json(inputArtifacts),
-          roleContractDigest: qualityJourneyContractDigest(definition),
-          version: { increment: 1 },
-        },
-      })
-      await createWorkAuthorization(row, item, db, 3, authorization.id)
-    }
+    const roleContractDigest = qualityJourneyContractDigest(definition)
+    item = await reissueCompletedAnalysisWorkItem(row, item, activeWorkItemIds, roleContractDigest, db)
+    item = await reissueCompletedScenarioDesignerWorkItem(row, item, activeWorkItemIds, roleContractDigest, db)
     if (!item) {
       item = await db.qualityJourneyWorkItem.create({
         data: {
@@ -362,7 +505,7 @@ async function ensureEligibleWorkItems(row: QualityJourney, db: Db) {
           role,
           status: 'ELIGIBLE',
           inputHash: row.stateHash,
-          roleContractDigest: qualityJourneyContractDigest(definition),
+          roleContractDigest,
           allowedOutputsJson: json(definition.writableArtifacts),
           completionCriteriaJson: json([`Submit a contract-valid ${role} result envelope.`]),
         },
@@ -613,6 +756,7 @@ async function commitAppliedCommand(
   applied: AppliedJourneyCommand,
   eventCount: number,
   tx: Prisma.TransactionClient,
+  issueEligibleWorkItems = true,
 ) {
   if (applied.result.outcome !== 'COMMITTED') return applied.result
   const claimed = await tx.qualityJourney.updateMany({
@@ -655,31 +799,80 @@ async function commitAppliedCommand(
       eventId: event.eventId,
     },
   })
-  await persistAnalysisRevisionFeedbackArtifact(command, row, tx)
+  await persistRevisionFeedbackArtifact(command, row, tx)
   const updated = await tx.qualityJourney.findUniqueOrThrow({ where: { id: row.id } })
-  await ensureEligibleWorkItems(updated, tx)
+  if (issueEligibleWorkItems) await ensureEligibleWorkItems(updated, tx)
   return applied.result
 }
 
-/** Revision feedback is Appraise-owned durable input: a fresh Analyzer gets a
- * reference it may read, never a prior worker transcript or hidden state. */
-async function persistAnalysisRevisionFeedbackArtifact(
+async function scenarioRevisionFeedbackReview(
   command: JourneyCommand,
   row: QualityJourney,
   tx: Prisma.TransactionClient,
 ) {
-  if (command.command !== 'REQUEST_ANALYSIS_REVISION') return
-  const payload = {
+  if (command.command !== 'REQUEST_SCENARIO_REVISION') return null
+  const review = await tx.qualityJourneyScenarioPortfolioRevision.findFirst({
+    where: { journeyId: row.id, artifactRevisionId: command.payload.reviewedRevisionId },
+    include: { scenarios: { include: { decisions: true } }, comments: true },
+  })
+  if (!review) throw new ServiceError('Scenario revision feedback requires the exact reviewed portfolio.', 'CONFLICT')
+  return review
+}
+
+function carriedScenarioReviewInput(review: NonNullable<Awaited<ReturnType<typeof scenarioRevisionFeedbackReview>>>) {
+  return {
+    decisions: review.scenarios
+      .flatMap(record => record.decisions)
+      .map(decision => ({
+        scenarioRevisionId: decision.scenarioRevisionId,
+        decision: decision.decision,
+        feedback: decision.feedback,
+        contentHash: decision.contentHash,
+      }))
+      .sort((left, right) => left.scenarioRevisionId.localeCompare(right.scenarioRevisionId)),
+    comments: review.comments
+      .map(comment => ({
+        id: comment.id,
+        scenarioRevisionId: comment.scenarioRevisionId,
+        comment: comment.comment,
+        blocking: comment.blocking,
+        disposition: comment.disposition,
+        dispositionRequestHash: comment.dispositionRequestHash,
+      }))
+      .sort((left, right) => left.id.localeCompare(right.id)),
+  }
+}
+
+function revisionFeedbackPayload(
+  command: Extract<JourneyCommand, { command: 'REQUEST_ANALYSIS_REVISION' | 'REQUEST_SCENARIO_REVISION' }>,
+  row: QualityJourney,
+  scenarioReview: Awaited<ReturnType<typeof scenarioRevisionFeedbackReview>>,
+) {
+  return {
     schemaVersion: 'appraise.quality-journey/v1' as const,
-    feedbackId: `analysis-revision-feedback:${command.commandId}`,
+    feedbackId: `${command.command === 'REQUEST_SCENARIO_REVISION' ? 'scenario' : 'analysis'}-revision-feedback:${command.commandId}`,
     journeyId: row.id,
     targetProjectId: row.targetProjectId,
     reviewedRevisionId: command.payload.reviewedRevisionId,
     reviewedHash: command.payload.reviewedHash,
     feedback: command.payload.feedback,
     commandId: command.commandId,
+    ...(scenarioReview ? carriedScenarioReviewInput(scenarioReview) : {}),
   }
-  const identityKey = `ANALYSIS_REVISION_FEEDBACK:${command.commandId}:unrevisioned`
+}
+
+/** Revision feedback is Appraise-owned durable input: a fresh Analyzer gets a
+ * reference it may read, never a prior worker transcript or hidden state. */
+async function persistRevisionFeedbackArtifact(
+  command: JourneyCommand,
+  row: QualityJourney,
+  tx: Prisma.TransactionClient,
+) {
+  if (command.command !== 'REQUEST_ANALYSIS_REVISION' && command.command !== 'REQUEST_SCENARIO_REVISION') return
+  const scenario = command.command === 'REQUEST_SCENARIO_REVISION'
+  const scenarioReview = await scenarioRevisionFeedbackReview(command, row, tx)
+  const payload = revisionFeedbackPayload(command, row, scenarioReview)
+  const identityKey = `${scenario ? 'SCENARIO' : 'ANALYSIS'}_REVISION_FEEDBACK:${command.commandId}:unrevisioned`
   const contentHash = hash(payload)
   const existing = await tx.qualityJourneyArtifact.findUnique({
     where: { journeyId_identityKey: { journeyId: row.id, identityKey } },
@@ -699,7 +892,7 @@ async function persistAnalysisRevisionFeedbackArtifact(
       journeyId: row.id,
       targetProjectId: row.targetProjectId,
       cycleId: row.activeCycleId,
-      kind: 'ANALYSIS_REVISION_FEEDBACK',
+      kind: scenario ? 'SCENARIO_REVISION_FEEDBACK' : 'ANALYSIS_REVISION_FEEDBACK',
       artifactId: payload.feedbackId,
       revisionId: command.payload.reviewedRevisionId,
       contentHash,
@@ -712,9 +905,19 @@ export async function submitDurableQualityJourneyCommandInTransaction(
   value: unknown,
   tx: Prisma.TransactionClient,
   allowSpecializedCommand = false,
+  issueEligibleWorkItems = true,
 ) {
   const command = journeyCommandSchema.parse(value)
-  if (!allowSpecializedCommand && ['RETRY_DISCOVERY'].includes(command.command))
+  if (
+    !allowSpecializedCommand &&
+    [
+      'RETRY_DISCOVERY',
+      'START_SCENARIO_DESIGN',
+      'PUBLISH_SCENARIO_PORTFOLIO',
+      'DECIDE_SCENARIOS',
+      'REQUEST_SCENARIO_REVISION',
+    ].includes(command.command)
+  )
     throw new ServiceError('This Quality Journey command requires its specialized authority boundary.', 'UNAUTHORIZED')
   const row = await readJourney(command.journeyId, command.targetProjectId, tx)
   const existing = await tx.qualityJourneyCommand.findUnique({
@@ -725,7 +928,17 @@ export async function submitDurableQualityJourneyCommandInTransaction(
   if (preconditionConflict) return preconditionConflict
   const { state, eventCount } = await loadKernelState(row, tx)
   const applied = submitQualityJourneyCommand(state, command)
-  return commitAppliedCommand(command, row, applied, eventCount, tx)
+  return commitAppliedCommand(command, row, applied, eventCount, tx, issueEligibleWorkItems)
+}
+
+/** Specialized boundaries may update their durable projection before issuing a
+ * newly eligible assignment. Both operations remain in one transaction. */
+export async function ensureEligibleQualityJourneyWorkItemsInTransaction(
+  journeyId: string,
+  tx: Prisma.TransactionClient,
+) {
+  const row = await tx.qualityJourney.findUniqueOrThrow({ where: { id: journeyId } })
+  await ensureEligibleWorkItems(row, tx)
 }
 
 export async function submitDurableQualityJourneyCommand(value: unknown, client: PrismaClient = prisma) {
@@ -1714,17 +1927,27 @@ async function validateDurableWorkerLineage(
   }
 }
 
-export async function completeQualityJourneyWorkInTransaction(
-  input: WorkCompletionInput,
-  tx: Prisma.TransactionClient,
-) {
-  const result = workerResultEnvelopeSchema.parse(input.result)
-  const { item, attempt, authorization } = await readWorkAttempt(input, tx)
-  if (item.role === 'SCOUT' || item.role === 'RESOURCE_EXPLORER')
+function assertWorkCompletionRole(role: QualityJourneyRole, allowScenarioDesignerCompletion: boolean) {
+  if (role === 'SCOUT' || role === 'RESOURCE_EXPLORER')
     throw new ServiceError(
       'Discovery roles must submit through their specialized discovery bundle boundary.',
       'UNAUTHORIZED',
     )
+  if (!allowScenarioDesignerCompletion && role === 'TEST_SCENARIO_DESIGNER')
+    throw new ServiceError(
+      'Scenario Designer work must submit through the specialized Scenario Portfolio boundary.',
+      'UNAUTHORIZED',
+    )
+}
+
+async function completeQualityJourneyWorkWithAuthorityInTransaction(
+  input: WorkCompletionInput,
+  tx: Prisma.TransactionClient,
+  allowScenarioDesignerCompletion: boolean,
+) {
+  const result = workerResultEnvelopeSchema.parse(input.result)
+  const { item, attempt, authorization } = await readWorkAttempt(input, tx)
+  assertWorkCompletionRole(item.role, allowScenarioDesignerCompletion)
   assertFactoryAuthorityCurrent(item, authorization)
   if (attempt && attempt.status !== 'COMPLETED' && (!attempt.spawnReceiptJson || !attempt.spawnReceiptHash))
     throw new ServiceError('Quality Journey work completion has no validated Factory receipt.', 'UNAUTHORIZED')
@@ -1743,6 +1966,16 @@ export async function completeQualityJourneyWorkInTransaction(
   })
   await advanceAfterWorkCompletion(input, item, attempt, result, tx)
   return { replayed: false, workItemId: item.id, status: 'COMPLETED' as const }
+}
+
+/** Generic work completion must not bypass a role's specialized semantic ingress. */
+export function completeQualityJourneyWorkInTransaction(input: WorkCompletionInput, tx: Prisma.TransactionClient) {
+  return completeQualityJourneyWorkWithAuthorityInTransaction(input, tx, false)
+}
+
+/** Scenario Portfolio ingress has already validated the Designer-specific submission contract. */
+export function completeScenarioDesignerWorkInTransaction(input: WorkCompletionInput, tx: Prisma.TransactionClient) {
+  return completeQualityJourneyWorkWithAuthorityInTransaction(input, tx, true)
 }
 
 export async function completeQualityJourneyWork(input: WorkCompletionInput, client: PrismaClient = prisma) {

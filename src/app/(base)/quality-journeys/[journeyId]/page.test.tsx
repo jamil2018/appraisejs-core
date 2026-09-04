@@ -7,6 +7,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 const mocks = vi.hoisted(() => ({
   getAnalysis: vi.fn(),
   getJourney: vi.fn(),
+  getScenarios: vi.fn(),
   notFound: vi.fn(),
   project: vi.fn(),
 }))
@@ -18,6 +19,9 @@ vi.mock('next/navigation', () => ({
 vi.mock('@/lib/active-project', () => ({ requireActiveProject: mocks.project }))
 vi.mock('@/services/coordinator/quality-journey-analysis-service', () => ({
   getQualityJourneyAnalysis: mocks.getAnalysis,
+}))
+vi.mock('@/services/coordinator/quality-journey-scenario-service', () => ({
+  getQualityJourneyScenarioPortfolio: mocks.getScenarios,
 }))
 vi.mock('@/services/coordinator/quality-journey-service', () => ({ getQualityJourney: mocks.getJourney }))
 vi.mock('../quality-journey-actions', () => ({
@@ -106,6 +110,7 @@ beforeEach(() => {
   mocks.project.mockResolvedValue(project)
   mocks.getJourney.mockResolvedValue(journey())
   mocks.getAnalysis.mockResolvedValue({ revisions: [] })
+  mocks.getScenarios.mockResolvedValue({ portfolio: null })
 })
 
 describe('QualityJourneyDetailPage', () => {
@@ -127,6 +132,50 @@ describe('QualityJourneyDetailPage', () => {
 
     expect(screen.getByText('No user decision is currently pending.')).toBeInTheDocument()
     expect(screen.getByText('The assigned Requirement Analyzer has not produced a charter yet.')).toBeInTheDocument()
+  })
+
+  it('surfaces pending Scenario Portfolio decisions without treating carried decisions as pending', async () => {
+    mocks.getJourney.mockResolvedValue(journey({ stage: 'SCENARIO_REVIEW', unresolvedQuestionIds: [] }))
+    mocks.getScenarios.mockResolvedValue({
+      portfolio: {
+        artifactId: 'portfolio-1',
+        artifactRevisionId: 'portfolio-r1',
+        contentHash: digest('c'),
+        behavioralIntentHash: digest('d'),
+        enrichmentHash: digest('e'),
+        layoutHash: digest('f'),
+        coverageRationale: 'Coverage.',
+        graphJson: JSON.stringify({ edges: [], sharedSetup: [] }),
+        reviewHash: digest('g'),
+        comments: [],
+        scenarios: [
+          {
+            stableScenarioId: 'scenario-1',
+            scenarioRevisionId: 'scenario-r1',
+            behavioralIntentJson: JSON.stringify({ title: 'Carried scenario' }),
+            enrichmentJson: '{}',
+            layoutJson: JSON.stringify({ sequence: 0 }),
+            decisions: [{ decision: 'APPROVED' }],
+          },
+          {
+            stableScenarioId: 'scenario-2',
+            scenarioRevisionId: 'scenario-r2',
+            behavioralIntentJson: JSON.stringify({ title: 'Pending scenario' }),
+            enrichmentJson: '{}',
+            layoutJson: JSON.stringify({ sequence: 1 }),
+            decisions: [],
+          },
+        ],
+      },
+    })
+
+    await renderPage()
+
+    expect(
+      screen.getByText(
+        'Review the pending Scenario Portfolio decisions; existing durable scenario decisions are preserved.',
+      ),
+    ).toBeInTheDocument()
   })
 
   it('selects the latest unpublished successor during analysis so Q&A can continue after a revision request', async () => {

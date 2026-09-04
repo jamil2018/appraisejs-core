@@ -2,13 +2,26 @@ import { z } from 'zod'
 
 export const qualityJourneyContractVersion = 'appraise.quality-journey/v1' as const
 
-const id = z
+export const qualityJourneyIdentifierSchema = z
   .string()
   .min(1)
   .max(200)
   .regex(/^[A-Za-z0-9._:-]+$/)
+const id = qualityJourneyIdentifierSchema
 const digest = z.string().regex(/^sha256:[a-f0-9]{64}$/)
 const nonEmptyText = z.string().trim().min(1).max(8_000)
+
+export function sortedUniqueQualityJourneyIdsSchema(options?: { min?: number; max?: number; message?: string }) {
+  const { min = 1, max = 512, message = 'IDs must be unique and lexicographically sorted.' } = options ?? {}
+  return z
+    .array(qualityJourneyIdentifierSchema)
+    .min(min)
+    .max(max)
+    .superRefine((values, context) => {
+      if (new Set(values).size !== values.length || values.some((value, index) => index && values[index - 1] >= value))
+        context.addIssue({ code: 'custom', message })
+    })
+}
 
 export const qualityJourneyStageSchema = z.enum([
   'INTAKE',
@@ -41,6 +54,7 @@ const qualityJourneyArtifactKindSchema = z.enum([
   'ANALYSIS_QUESTION',
   'ANALYSIS_ANSWER',
   'ANALYSIS_REVISION_FEEDBACK',
+  'SCENARIO_REVISION_FEEDBACK',
   'TARGET_OBSERVATION_BUNDLE',
   'RESOURCE_RESOLUTION_BUNDLE',
   'SCENARIO_PORTFOLIO_REVISION',
@@ -548,7 +562,7 @@ export const journeyCommandSchema = z.discriminatedUnion('command', [
         .object({
           portfolioRevisionId: id,
           portfolioHash: digest,
-          approvedScenarioRevisionIds: z.array(id).min(1),
+          approvedScenarioRevisionIds: z.array(id),
           rejectedScenarioRevisionIds: z.array(id),
           feedback: nonEmptyText.optional(),
         })

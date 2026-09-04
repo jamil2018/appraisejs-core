@@ -156,6 +156,106 @@ function completedResult(claim: Awaited<ReturnType<typeof claimQualityJourneyWor
 }
 
 describe('Quality Journey Phase 2 durable Factory service', () => {
+  it('rejects generic Scenario Designer completion without mutating the attempt, item, or artifacts', async () => {
+    const client = await fixture()
+    try {
+      const created = await createQualityJourney(
+        {
+          targetProjectId: 'target-journey-1',
+          idempotencyKey: 'create-designer-boundary',
+          requirement: { objective: 'Checkout' },
+        },
+        client,
+      )
+      const role = 'TEST_SCENARIO_DESIGNER' as const
+      const definition = qualityJourneyRoleDefinitions.find(item => item.role === role)!
+      const workItemId = qualityJourneyWorkItemId(created.journey.journeyId, created.journey.activeCycleId, role)
+      const item = await client.qualityJourneyWorkItem.create({
+        data: {
+          id: workItemId,
+          journeyId: created.journey.journeyId,
+          targetProjectId: 'target-journey-1',
+          cycleId: created.journey.activeCycleId,
+          role,
+          status: 'IN_PROGRESS',
+          inputHash: digest('b'),
+          roleContractDigest: qualityJourneyContractDigest(definition),
+          allowedOutputsJson: JSON.stringify(definition.writableArtifacts),
+          completionCriteriaJson: JSON.stringify(['Submit through the Scenario Portfolio boundary.']),
+        },
+      })
+      const attempt = await client.qualityJourneyWorkAttempt.create({
+        data: {
+          id: 'designer-attempt-1',
+          workItemId,
+          attempt: 1,
+          status: 'IN_PROGRESS',
+          leaseId: 'designer-lease-1',
+          ownerTokenHash: 'owner-token-hash',
+          leaseExpiresAt: new Date('2030-01-01T00:00:00.000Z'),
+          heartbeatSeconds: 60,
+        },
+      })
+      const before = await Promise.all([
+        client.qualityJourneyArtifact.count({ where: { journeyId: created.journey.journeyId } }),
+        client.qualityJourneyWorkItem.findUniqueOrThrow({
+          where: { id: item.id },
+          select: { status: true, version: true, currentAttempt: true },
+        }),
+        client.qualityJourneyWorkAttempt.findUniqueOrThrow({
+          where: { id: attempt.id },
+          select: { status: true, resultJson: true, resultHash: true, completedAt: true },
+        }),
+      ])
+      await expect(
+        completeQualityJourneyWork(
+          {
+            journeyId: created.journey.journeyId,
+            targetProjectId: 'target-journey-1',
+            workItemId,
+            leaseId: attempt.leaseId,
+            ownerToken: 'owner-token',
+            result: {
+              schemaVersion: 'appraise.quality-journey/v1',
+              assignmentId: 'designer-assignment-1',
+              workItemId,
+              attemptId: attempt.id,
+              roleContractDigest: item.roleContractDigest,
+              inputHash: item.inputHash,
+              role,
+              status: 'COMPLETED',
+              outputs: [],
+              evidenceReceipts: [],
+              assumptions: [],
+              blockers: [],
+              unresolvedQuestions: [],
+              submittedAt: new Date().toISOString(),
+            },
+          },
+          client,
+        ),
+      ).rejects.toMatchObject({
+        code: 'UNAUTHORIZED',
+        message: 'Scenario Designer work must submit through the specialized Scenario Portfolio boundary.',
+      })
+      await expect(
+        Promise.all([
+          client.qualityJourneyArtifact.count({ where: { journeyId: created.journey.journeyId } }),
+          client.qualityJourneyWorkItem.findUniqueOrThrow({
+            where: { id: item.id },
+            select: { status: true, version: true, currentAttempt: true },
+          }),
+          client.qualityJourneyWorkAttempt.findUniqueOrThrow({
+            where: { id: attempt.id },
+            select: { status: true, resultJson: true, resultHash: true, completedAt: true },
+          }),
+        ]),
+      ).resolves.toEqual(before)
+    } finally {
+      await client.$disconnect()
+    }
+  }, 60_000)
+
   it('recovers conservative Factory authorization for a pre-existing unassigned work item only on resume', async () => {
     const client = await fixture()
     try {

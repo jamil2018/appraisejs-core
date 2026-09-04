@@ -12,6 +12,8 @@ describe('template sync utils', () => {
     expect(shouldExcludeTemplatePath('node_modules/react/index.js')).toBe(true)
     expect(shouldExcludeTemplatePath('automation/reports/latest.json')).toBe(true)
     expect(shouldExcludeTemplatePath('prisma/dev.sqlite3')).toBe(true)
+    expect(shouldExcludeTemplatePath('src/lib/quality-journey/scenario-contracts.mcp-parity.test.ts')).toBe(true)
+    expect(shouldExcludeTemplatePath('lib/quality-journey/scenario-contracts.mcp-parity.test.ts')).toBe(true)
     expect(shouldExcludeTemplatePath('src/app/page.tsx')).toBe(false)
   })
 

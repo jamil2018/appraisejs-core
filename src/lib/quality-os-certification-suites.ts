@@ -1,0 +1,25 @@
+import { existsSync } from 'node:fs'
+import { resolve } from 'node:path'
+
+const qualityOsBaseBehavioralSuites = [
+  'src/lib/quality-design/methodology-registry.test.ts',
+  'src/services/coordinator/quality-operating-system-service.test.ts',
+  'src/services/coordinator/assessment-execution-service.test.ts',
+  'src/services/coordinator/assessment-preparation-service.test.ts',
+  'src/services/coordinator/quality-design-service.test.ts',
+  'src/services/coordinator/quality-journey-analysis-service.sqlite.integration.test.ts',
+  'src/app/api/internal/coordinator/[...operation]/route.test.ts',
+  'src/app/(base)/quality-journeys/[journeyId]/scenario-portfolio-review.test.tsx',
+] as const
+
+/** Cross-package parity only exists in the AppraiseJS producer repository. */
+const repositoryOnlyQualityOsBehavioralSuites = [
+  'src/lib/quality-journey/scenario-contracts.mcp-parity.test.ts',
+] as const
+
+export function resolveQualityOsBehavioralSuites(rootDirectory: string): string[] {
+  return [
+    ...qualityOsBaseBehavioralSuites,
+    ...repositoryOnlyQualityOsBehavioralSuites.filter(file => existsSync(resolve(rootDirectory, file))),
+  ]
+}

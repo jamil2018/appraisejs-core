@@ -4,7 +4,7 @@ The additive Quality Journey surface is `quality_journey_create`, `quality_journ
 `quality_journey_resume`, `quality_journey_command_submit`, `quality_journey_work_claim`,
 `quality_journey_work_dispatch`, `quality_journey_work_complete`, `quality_journey_work_cancel`,
 `quality_journey_work_revoke`, `quality_journey_factory_evidence_inspect`, and `quality_journey_artifacts_list`.
-These eleven operations form the public surface. The public
+These eleven operations form the original generic public surface. The phase-specific operations below extend it. The public
 surface does not accept Factory receipt payloads: the selected provider-neutral adapter returns its receipt only to the
 private dispatch ingress after runtime-boundary validation. These operations are implemented by the coordinator API and
 advertised by the canonical MCP registry. They operate on target-bound Appraise-owned state; conversation never substitutes for an exact
@@ -40,6 +40,24 @@ or bundle validation. Outputs become immutable independently; the discovery revi
 both exist and does not advance into Phase 5. Revalidation compares all frozen registry and input hashes with current
 authority. Drift invalidates the revision, while retry supersedes a terminal or invalidated revision and issues two
 fresh work items without copying output or reopening the approved analysis.
+
+Phase 5 adds eight Scenario Portfolio operations: `quality_journey_scenarios_start`,
+`quality_journey_scenarios_submit`, `quality_journey_scenarios_publish`, `quality_journey_scenarios_get`,
+`quality_journey_scenarios_comment`, `quality_journey_scenarios_comment_dispose`,
+`quality_journey_scenarios_decide`, and `quality_journey_scenarios_revision_request`. They bind an immutable
+portfolio revision to the approved analysis, completed discovery revision, exact Designer assignment and attempt,
+stable portfolio and scenario identifiers, requirement or exploratory traceability, resource and observation
+provenance, and a canonical dependency/shared-setup graph. Publication opens exact-revision review. Comments,
+comment dispositions, partial or portfolio decisions, and revision requests are hash- and idempotency-bound; only a
+fully classified portfolio with mandatory requirement coverage and no open blocking comments advances to Automation.
+Behaviorally unchanged successor scenarios may carry approved decisions, while changed behavior remains pending.
+
+Scenario Designer completion is deliberately unavailable through generic `quality_journey_work_complete`. As with
+Scout and Resource Explorer results, the role-specific submission operation is the only public semantic-completion
+boundary; it validates the complete portfolio contract and durable worker authority before completing the attempt.
+The compatibility `quality_journey_command_submit` route/tool also rejects the four Phase 5 lifecycle commands, so
+callers cannot bypass start, publication, decision, or revision authority. Scenario reads and graph layout are
+review projections only: changing presentation layout does not mutate approved behavioral intent.
 
 If an adapter call may have started a provider worker but its receipt is lost, Appraise marks the attempt
 `DISPATCH_UNRESOLVED`, blocks the work item with `AMBIGUOUS_PROVIDER_DISPATCH`, and retains the exact adapter/key.

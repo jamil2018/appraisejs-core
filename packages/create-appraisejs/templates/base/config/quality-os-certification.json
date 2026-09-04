@@ -36,7 +36,7 @@
     "compatibility",
     "performance"
   ],
-  "receiptHash": "sha256:44c5a3b9a017d33684a94afc1b678bcc9aabee1ff566dd3ce3ed7897c640f657",
+  "receiptHash": "sha256:c5df452efdefc96e925abf10bf2453d1848ecb59523a146b7d1deb3fe0f64129",
   "result": "PASS",
   "schema": "appraise.quality-os-certification/v1",
   "suiteEvidence": [
@@ -66,9 +66,19 @@
       "sourceHash": "sha256:c62312ee044fbc4d2d3f97886d85e8c522397e7b58fda013f70b3bc777267df3"
     },
     {
+      "file": "src/services/coordinator/quality-journey-analysis-service.sqlite.integration.test.ts",
+      "result": "PASS",
+      "sourceHash": "sha256:30ef105ccaf52c850da2d04885b1becf90c5ca61a6d8671be2c4d065e6a59395"
+    },
+    {
       "file": "src/app/api/internal/coordinator/[...operation]/route.test.ts",
       "result": "PASS",
-      "sourceHash": "sha256:39d5c194e69a69878e2af8699618260b8c234f7ab591d2a20296b7f1e5ed87a5"
+      "sourceHash": "sha256:db5694fb460c0a0c6f54aa42624bea1f8a91e11647f7dc6cb74b0cb51228aa92"
+    },
+    {
+      "file": "src/app/(base)/quality-journeys/[journeyId]/scenario-portfolio-review.test.tsx",
+      "result": "PASS",
+      "sourceHash": "sha256:9e1ef28c2357bd351f5afe89cfd89afb621e6dd7246c7778a87ea9e3c19db043"
     }
   ]
 }
