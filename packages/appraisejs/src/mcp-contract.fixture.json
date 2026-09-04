@@ -112,10 +112,7 @@
                   },
                   "subjectKind": {
                     "type": "string",
-                    "enum": [
-                      "ARTIFACT",
-                      "DEPLOYMENT_SNAPSHOT"
-                    ]
+                    "enum": ["ARTIFACT", "DEPLOYMENT_SNAPSHOT"]
                   },
                   "metadata": {
                     "type": "object",
@@ -140,10 +137,7 @@
                     }
                   }
                 },
-                "required": [
-                  "subjectDigest",
-                  "authority"
-                ],
+                "required": ["subjectDigest", "authority"],
                 "additionalProperties": false
               },
               {
@@ -158,9 +152,7 @@
                     "pattern": "^sha256:.*"
                   }
                 },
-                "required": [
-                  "subjectRevisionId"
-                ],
+                "required": ["subjectRevisionId"],
                 "additionalProperties": false
               }
             ]
@@ -176,24 +168,11 @@
           "responseMode": {
             "default": "summary",
             "type": "string",
-            "enum": [
-              "summary",
-              "decisionOnly",
-              "evidenceOnly",
-              "blockersOnly",
-              "linksOnly",
-              "full"
-            ],
+            "enum": ["summary", "decisionOnly", "evidenceOnly", "blockersOnly", "linksOnly", "full"],
             "description": "Response projection: summary (compact default), decisionOnly (decision hash/status/counts), evidenceOnly, blockersOnly, linksOnly, or full (largest payload)."
           }
         },
-        "required": [
-          "qualityPlanId",
-          "revisionId",
-          "subject",
-          "idempotencyKey",
-          "responseMode"
-        ],
+        "required": ["qualityPlanId", "revisionId", "subject", "idempotencyKey", "responseMode"],
         "additionalProperties": false
       },
       "annotations": {
@@ -230,10 +209,7 @@
                   },
                   "subjectKind": {
                     "type": "string",
-                    "enum": [
-                      "ARTIFACT",
-                      "DEPLOYMENT_SNAPSHOT"
-                    ]
+                    "enum": ["ARTIFACT", "DEPLOYMENT_SNAPSHOT"]
                   },
                   "metadata": {
                     "type": "object",
@@ -258,10 +234,7 @@
                     }
                   }
                 },
-                "required": [
-                  "subjectDigest",
-                  "authority"
-                ],
+                "required": ["subjectDigest", "authority"],
                 "additionalProperties": false
               },
               {
@@ -276,9 +249,7 @@
                     "pattern": "^sha256:.*"
                   }
                 },
-                "required": [
-                  "subjectRevisionId"
-                ],
+                "required": ["subjectRevisionId"],
                 "additionalProperties": false
               }
             ]
@@ -302,10 +273,7 @@
                 "maxLength": 2000
               }
             },
-            "required": [
-              "code",
-              "rationale"
-            ],
+            "required": ["code", "rationale"],
             "additionalProperties": false
           },
           "idempotencyKey": {
@@ -315,24 +283,11 @@
           "responseMode": {
             "default": "summary",
             "type": "string",
-            "enum": [
-              "summary",
-              "decisionOnly",
-              "evidenceOnly",
-              "blockersOnly",
-              "linksOnly",
-              "full"
-            ],
+            "enum": ["summary", "decisionOnly", "evidenceOnly", "blockersOnly", "linksOnly", "full"],
             "description": "Response projection: summary (compact default), decisionOnly (decision hash/status/counts), evidenceOnly, blockersOnly, linksOnly, or full (largest payload)."
           }
         },
-        "required": [
-          "assessmentId",
-          "subject",
-          "disposition",
-          "idempotencyKey",
-          "responseMode"
-        ],
+        "required": ["assessmentId", "subject", "disposition", "idempotencyKey", "responseMode"],
         "additionalProperties": false
       },
       "annotations": {
@@ -360,12 +315,7 @@
           },
           "decision": {
             "type": "string",
-            "enum": [
-              "accepted",
-              "rejected",
-              "accepted_with_limitations",
-              "needs_revision"
-            ]
+            "enum": ["accepted", "rejected", "accepted_with_limitations", "needs_revision"]
           },
           "decidedBy": {
             "type": "string",
@@ -378,25 +328,11 @@
           "responseMode": {
             "default": "decisionOnly",
             "type": "string",
-            "enum": [
-              "summary",
-              "decisionOnly",
-              "evidenceOnly",
-              "blockersOnly",
-              "linksOnly",
-              "full"
-            ],
+            "enum": ["summary", "decisionOnly", "evidenceOnly", "blockersOnly", "linksOnly", "full"],
             "description": "Response projection: summary (compact default), decisionOnly (decision hash/status/counts), evidenceOnly, blockersOnly, linksOnly, or full (largest payload)."
           }
         },
-        "required": [
-          "assessmentId",
-          "expectedEvidenceSetHash",
-          "decision",
-          "decidedBy",
-          "rationale",
-          "responseMode"
-        ],
+        "required": ["assessmentId", "expectedEvidenceSetHash", "decision", "decidedBy", "rationale", "responseMode"],
         "additionalProperties": false
       },
       "annotations": {
@@ -421,21 +357,11 @@
           "responseMode": {
             "default": "summary",
             "type": "string",
-            "enum": [
-              "summary",
-              "decisionOnly",
-              "evidenceOnly",
-              "blockersOnly",
-              "linksOnly",
-              "full"
-            ],
+            "enum": ["summary", "decisionOnly", "evidenceOnly", "blockersOnly", "linksOnly", "full"],
             "description": "Response projection: summary (compact default), decisionOnly (decision hash/status/counts), evidenceOnly, blockersOnly, linksOnly, or full (largest payload)."
           }
         },
-        "required": [
-          "assessmentId",
-          "responseMode"
-        ],
+        "required": ["assessmentId", "responseMode"],
         "additionalProperties": false
       },
       "annotations": {
@@ -459,21 +385,11 @@
           "responseMode": {
             "default": "summary",
             "type": "string",
-            "enum": [
-              "summary",
-              "decisionOnly",
-              "evidenceOnly",
-              "blockersOnly",
-              "linksOnly",
-              "full"
-            ],
+            "enum": ["summary", "decisionOnly", "evidenceOnly", "blockersOnly", "linksOnly", "full"],
             "description": "Response projection: summary (compact default), decisionOnly (decision hash/status/counts), evidenceOnly, blockersOnly, linksOnly, or full (largest payload)."
           }
         },
-        "required": [
-          "assertion",
-          "responseMode"
-        ],
+        "required": ["assertion", "responseMode"],
         "additionalProperties": false
       },
       "annotations": {
@@ -504,22 +420,11 @@
           "responseMode": {
             "default": "summary",
             "type": "string",
-            "enum": [
-              "summary",
-              "decisionOnly",
-              "evidenceOnly",
-              "blockersOnly",
-              "linksOnly",
-              "full"
-            ],
+            "enum": ["summary", "decisionOnly", "evidenceOnly", "blockersOnly", "linksOnly", "full"],
             "description": "Response projection: summary (compact default), decisionOnly (decision hash/status/counts), evidenceOnly, blockersOnly, linksOnly, or full (largest payload)."
           }
         },
-        "required": [
-          "grantId",
-          "reason",
-          "responseMode"
-        ],
+        "required": ["grantId", "reason", "responseMode"],
         "additionalProperties": false
       },
       "annotations": {
@@ -547,11 +452,7 @@
           },
           "outcome": {
             "type": "string",
-            "enum": [
-              "SATISFIED",
-              "VIOLATED",
-              "NOT_EVALUATED"
-            ]
+            "enum": ["SATISFIED", "VIOLATED", "NOT_EVALUATED"]
           },
           "attribution": {
             "type": "object",
@@ -596,11 +497,7 @@
               },
               "confidence": {
                 "type": "string",
-                "enum": [
-                  "LOW",
-                  "MEDIUM",
-                  "HIGH"
-                ]
+                "enum": ["LOW", "MEDIUM", "HIGH"]
               },
               "rationale": {
                 "type": "string",
@@ -634,14 +531,7 @@
           "responseMode": {
             "default": "summary",
             "type": "string",
-            "enum": [
-              "summary",
-              "decisionOnly",
-              "evidenceOnly",
-              "blockersOnly",
-              "linksOnly",
-              "full"
-            ],
+            "enum": ["summary", "decisionOnly", "evidenceOnly", "blockersOnly", "linksOnly", "full"],
             "description": "Response projection: summary (compact default), decisionOnly (decision hash/status/counts), evidenceOnly, blockersOnly, linksOnly, or full (largest payload)."
           }
         },
@@ -723,12 +613,7 @@
                       "keyword": {
                         "default": "Given",
                         "type": "string",
-                        "enum": [
-                          "Given",
-                          "When",
-                          "Then",
-                          "And"
-                        ]
+                        "enum": ["Given", "When", "Then", "And"]
                       },
                       "description": {
                         "type": "string",
@@ -736,13 +621,7 @@
                         "maxLength": 500
                       }
                     },
-                    "required": [
-                      "stepId",
-                      "version",
-                      "inputs",
-                      "keyword",
-                      "description"
-                    ],
+                    "required": ["stepId", "version", "inputs", "keyword", "description"],
                     "additionalProperties": false
                   }
                 },
@@ -756,11 +635,7 @@
                   }
                 }
               },
-              "required": [
-                "validationId",
-                "steps",
-                "locatorIds"
-              ],
+              "required": ["validationId", "steps", "locatorIds"],
               "additionalProperties": false
             }
           },
@@ -772,9 +647,7 @@
                 "minLength": 1
               }
             },
-            "required": [
-              "environmentId"
-            ],
+            "required": ["environmentId"],
             "additionalProperties": false
           },
           "subject": {
@@ -792,10 +665,7 @@
                   },
                   "subjectKind": {
                     "type": "string",
-                    "enum": [
-                      "ARTIFACT",
-                      "DEPLOYMENT_SNAPSHOT"
-                    ]
+                    "enum": ["ARTIFACT", "DEPLOYMENT_SNAPSHOT"]
                   },
                   "metadata": {
                     "type": "object",
@@ -820,10 +690,7 @@
                     }
                   }
                 },
-                "required": [
-                  "subjectDigest",
-                  "authority"
-                ],
+                "required": ["subjectDigest", "authority"],
                 "additionalProperties": false
               },
               {
@@ -838,9 +705,7 @@
                     "pattern": "^sha256:.*"
                   }
                 },
-                "required": [
-                  "subjectRevisionId"
-                ],
+                "required": ["subjectRevisionId"],
                 "additionalProperties": false
               }
             ]
@@ -850,11 +715,7 @@
             "properties": {
               "browserEngine": {
                 "type": "string",
-                "enum": [
-                  "CHROMIUM",
-                  "FIREFOX",
-                  "WEBKIT"
-                ]
+                "enum": ["CHROMIUM", "FIREFOX", "WEBKIT"]
               }
             },
             "additionalProperties": false
@@ -862,14 +723,7 @@
           "responseMode": {
             "default": "summary",
             "type": "string",
-            "enum": [
-              "summary",
-              "decisionOnly",
-              "evidenceOnly",
-              "blockersOnly",
-              "linksOnly",
-              "full"
-            ],
+            "enum": ["summary", "decisionOnly", "evidenceOnly", "blockersOnly", "linksOnly", "full"],
             "description": "Response projection: summary (compact default), decisionOnly (decision hash/status/counts), evidenceOnly, blockersOnly, linksOnly, or full (largest payload)."
           }
         },
@@ -986,12 +840,7 @@
                       "keyword": {
                         "default": "Given",
                         "type": "string",
-                        "enum": [
-                          "Given",
-                          "When",
-                          "Then",
-                          "And"
-                        ]
+                        "enum": ["Given", "When", "Then", "And"]
                       },
                       "description": {
                         "type": "string",
@@ -999,13 +848,7 @@
                         "maxLength": 500
                       }
                     },
-                    "required": [
-                      "stepId",
-                      "version",
-                      "inputs",
-                      "keyword",
-                      "description"
-                    ],
+                    "required": ["stepId", "version", "inputs", "keyword", "description"],
                     "additionalProperties": false
                   }
                 },
@@ -1019,11 +862,7 @@
                   }
                 }
               },
-              "required": [
-                "validationId",
-                "steps",
-                "locatorIds"
-              ],
+              "required": ["validationId", "steps", "locatorIds"],
               "additionalProperties": false
             }
           },
@@ -1037,9 +876,7 @@
                     "minLength": 1
                   }
                 },
-                "required": [
-                  "environmentId"
-                ],
+                "required": ["environmentId"],
                 "additionalProperties": false
               },
               {
@@ -1108,17 +945,11 @@
                         ]
                       }
                     },
-                    "required": [
-                      "name",
-                      "baseUrl"
-                    ],
+                    "required": ["name", "baseUrl"],
                     "additionalProperties": false
                   }
                 },
-                "required": [
-                  "allowCreate",
-                  "proposal"
-                ],
+                "required": ["allowCreate", "proposal"],
                 "additionalProperties": false
               }
             ]
@@ -1138,10 +969,7 @@
                   },
                   "subjectKind": {
                     "type": "string",
-                    "enum": [
-                      "ARTIFACT",
-                      "DEPLOYMENT_SNAPSHOT"
-                    ]
+                    "enum": ["ARTIFACT", "DEPLOYMENT_SNAPSHOT"]
                   },
                   "metadata": {
                     "type": "object",
@@ -1166,10 +994,7 @@
                     }
                   }
                 },
-                "required": [
-                  "subjectDigest",
-                  "authority"
-                ],
+                "required": ["subjectDigest", "authority"],
                 "additionalProperties": false
               },
               {
@@ -1184,9 +1009,7 @@
                     "pattern": "^sha256:.*"
                   }
                 },
-                "required": [
-                  "subjectRevisionId"
-                ],
+                "required": ["subjectRevisionId"],
                 "additionalProperties": false
               }
             ]
@@ -1196,11 +1019,7 @@
             "properties": {
               "browserEngine": {
                 "type": "string",
-                "enum": [
-                  "CHROMIUM",
-                  "FIREFOX",
-                  "WEBKIT"
-                ]
+                "enum": ["CHROMIUM", "FIREFOX", "WEBKIT"]
               }
             },
             "additionalProperties": false
@@ -1230,11 +1049,7 @@
           },
           "riskClassification": {
             "type": "string",
-            "enum": [
-              "READ_ONLY",
-              "REVERSIBLE_WRITE",
-              "MATERIAL_EFFECT"
-            ]
+            "enum": ["READ_ONLY", "REVERSIBLE_WRITE", "MATERIAL_EFFECT"]
           },
           "materialEffects": {
             "type": "array",
@@ -1263,10 +1078,7 @@
                 "pattern": "^sha256:.*"
               }
             },
-            "required": [
-              "algorithmVersion",
-              "preflightHash"
-            ],
+            "required": ["algorithmVersion", "preflightHash"],
             "additionalProperties": false
           },
           "assessmentId": {
@@ -1280,14 +1092,7 @@
           "responseMode": {
             "default": "summary",
             "type": "string",
-            "enum": [
-              "summary",
-              "decisionOnly",
-              "evidenceOnly",
-              "blockersOnly",
-              "linksOnly",
-              "full"
-            ],
+            "enum": ["summary", "decisionOnly", "evidenceOnly", "blockersOnly", "linksOnly", "full"],
             "description": "Response projection: summary (compact default), decisionOnly (decision hash/status/counts), evidenceOnly, blockersOnly, linksOnly, or full (largest payload)."
           }
         },
@@ -1361,21 +1166,11 @@
           "responseMode": {
             "default": "summary",
             "type": "string",
-            "enum": [
-              "summary",
-              "decisionOnly",
-              "evidenceOnly",
-              "blockersOnly",
-              "linksOnly",
-              "full"
-            ],
+            "enum": ["summary", "decisionOnly", "evidenceOnly", "blockersOnly", "linksOnly", "full"],
             "description": "Response projection: summary (compact default), decisionOnly (decision hash/status/counts), evidenceOnly, blockersOnly, linksOnly, or full (largest payload)."
           }
         },
-        "required": [
-          "assessmentId",
-          "responseMode"
-        ],
+        "required": ["assessmentId", "responseMode"],
         "additionalProperties": false
       },
       "annotations": {
@@ -1409,22 +1204,11 @@
           "responseMode": {
             "default": "summary",
             "type": "string",
-            "enum": [
-              "summary",
-              "decisionOnly",
-              "evidenceOnly",
-              "blockersOnly",
-              "linksOnly",
-              "full"
-            ],
+            "enum": ["summary", "decisionOnly", "evidenceOnly", "blockersOnly", "linksOnly", "full"],
             "description": "Response projection: summary (compact default), decisionOnly (decision hash/status/counts), evidenceOnly, blockersOnly, linksOnly, or full (largest payload)."
           }
         },
-        "required": [
-          "assessmentId",
-          "idempotencyKey",
-          "responseMode"
-        ],
+        "required": ["assessmentId", "idempotencyKey", "responseMode"],
         "additionalProperties": false
       },
       "annotations": {
@@ -1449,21 +1233,11 @@
           "responseMode": {
             "default": "decisionOnly",
             "type": "string",
-            "enum": [
-              "summary",
-              "decisionOnly",
-              "evidenceOnly",
-              "blockersOnly",
-              "linksOnly",
-              "full"
-            ],
+            "enum": ["summary", "decisionOnly", "evidenceOnly", "blockersOnly", "linksOnly", "full"],
             "description": "Response projection: summary (compact default), decisionOnly (decision hash/status/counts), evidenceOnly, blockersOnly, linksOnly, or full (largest payload)."
           }
         },
-        "required": [
-          "assessmentId",
-          "responseMode"
-        ],
+        "required": ["assessmentId", "responseMode"],
         "additionalProperties": false
       },
       "annotations": {
@@ -1502,11 +1276,7 @@
               },
               "browserEngine": {
                 "type": "string",
-                "enum": [
-                  "CHROMIUM",
-                  "FIREFOX",
-                  "WEBKIT"
-                ]
+                "enum": ["CHROMIUM", "FIREFOX", "WEBKIT"]
               },
               "cells": {
                 "type": "array",
@@ -1527,18 +1297,10 @@
                     },
                     "browserEngine": {
                       "type": "string",
-                      "enum": [
-                        "CHROMIUM",
-                        "FIREFOX",
-                        "WEBKIT"
-                      ]
+                      "enum": ["CHROMIUM", "FIREFOX", "WEBKIT"]
                     }
                   },
-                  "required": [
-                    "validationVersionId",
-                    "resultMatrixCell",
-                    "environmentId"
-                  ],
+                  "required": ["validationVersionId", "resultMatrixCell", "environmentId"],
                   "additionalProperties": false
                 }
               }
@@ -1570,11 +1332,7 @@
           },
           "riskClassification": {
             "type": "string",
-            "enum": [
-              "READ_ONLY",
-              "REVERSIBLE_WRITE",
-              "MATERIAL_EFFECT"
-            ]
+            "enum": ["READ_ONLY", "REVERSIBLE_WRITE", "MATERIAL_EFFECT"]
           },
           "materialEffects": {
             "type": "array",
@@ -1598,22 +1356,11 @@
           "responseMode": {
             "default": "summary",
             "type": "string",
-            "enum": [
-              "summary",
-              "decisionOnly",
-              "evidenceOnly",
-              "blockersOnly",
-              "linksOnly",
-              "full"
-            ],
+            "enum": ["summary", "decisionOnly", "evidenceOnly", "blockersOnly", "linksOnly", "full"],
             "description": "Response projection: summary (compact default), decisionOnly (decision hash/status/counts), evidenceOnly, blockersOnly, linksOnly, or full (largest payload)."
           }
         },
-        "required": [
-          "assessmentId",
-          "idempotencyKey",
-          "responseMode"
-        ],
+        "required": ["assessmentId", "idempotencyKey", "responseMode"],
         "additionalProperties": false
       },
       "annotations": {
@@ -1642,22 +1389,11 @@
           "responseMode": {
             "default": "summary",
             "type": "string",
-            "enum": [
-              "summary",
-              "decisionOnly",
-              "evidenceOnly",
-              "blockersOnly",
-              "linksOnly",
-              "full"
-            ],
+            "enum": ["summary", "decisionOnly", "evidenceOnly", "blockersOnly", "linksOnly", "full"],
             "description": "Response projection: summary (compact default), decisionOnly (decision hash/status/counts), evidenceOnly, blockersOnly, linksOnly, or full (largest payload)."
           }
         },
-        "required": [
-          "assessmentId",
-          "reason",
-          "responseMode"
-        ],
+        "required": ["assessmentId", "reason", "responseMode"],
         "additionalProperties": false
       },
       "annotations": {
@@ -1713,16 +1449,11 @@
                 "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
               }
             },
-            "required": [
-              "name",
-              "baseUrl"
-            ],
+            "required": ["name", "baseUrl"],
             "additionalProperties": false
           }
         },
-        "required": [
-          "target"
-        ],
+        "required": ["target"],
         "additionalProperties": false
       },
       "annotations": {
@@ -1748,9 +1479,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "target"
-        ],
+        "required": ["target"],
         "additionalProperties": false
       },
       "annotations": {
@@ -1819,12 +1548,7 @@
                       "keyword": {
                         "default": "Given",
                         "type": "string",
-                        "enum": [
-                          "Given",
-                          "When",
-                          "Then",
-                          "And"
-                        ]
+                        "enum": ["Given", "When", "Then", "And"]
                       },
                       "description": {
                         "type": "string",
@@ -1832,13 +1556,7 @@
                         "maxLength": 500
                       }
                     },
-                    "required": [
-                      "stepId",
-                      "version",
-                      "inputs",
-                      "keyword",
-                      "description"
-                    ],
+                    "required": ["stepId", "version", "inputs", "keyword", "description"],
                     "additionalProperties": false
                   }
                 },
@@ -1852,11 +1570,7 @@
                   }
                 }
               },
-              "required": [
-                "validationId",
-                "steps",
-                "locatorIds"
-              ],
+              "required": ["validationId", "steps", "locatorIds"],
               "additionalProperties": false
             }
           },
@@ -1868,9 +1582,7 @@
                 "minLength": 1
               }
             },
-            "required": [
-              "environmentId"
-            ],
+            "required": ["environmentId"],
             "additionalProperties": false
           },
           "runtime": {
@@ -1890,14 +1602,7 @@
           "responseMode": {
             "default": "summary",
             "type": "string",
-            "enum": [
-              "summary",
-              "decisionOnly",
-              "evidenceOnly",
-              "blockersOnly",
-              "linksOnly",
-              "full"
-            ],
+            "enum": ["summary", "decisionOnly", "evidenceOnly", "blockersOnly", "linksOnly", "full"],
             "description": "Response projection: summary (compact default), decisionOnly (decision hash/status/counts), evidenceOnly, blockersOnly, linksOnly, or full (largest payload)."
           }
         },
@@ -1999,9 +1704,7 @@
                       "minLength": 1
                     }
                   },
-                  "required": [
-                    "environmentId"
-                  ],
+                  "required": ["environmentId"],
                   "additionalProperties": false
                 },
                 "validationBindings": {
@@ -2041,12 +1744,7 @@
                             "keyword": {
                               "default": "Given",
                               "type": "string",
-                              "enum": [
-                                "Given",
-                                "When",
-                                "Then",
-                                "And"
-                              ]
+                              "enum": ["Given", "When", "Then", "And"]
                             },
                             "description": {
                               "type": "string",
@@ -2054,13 +1752,7 @@
                               "maxLength": 500
                             }
                           },
-                          "required": [
-                            "stepId",
-                            "version",
-                            "inputs",
-                            "keyword",
-                            "description"
-                          ],
+                          "required": ["stepId", "version", "inputs", "keyword", "description"],
                           "additionalProperties": false
                         }
                       },
@@ -2074,20 +1766,12 @@
                         }
                       }
                     },
-                    "required": [
-                      "validationId",
-                      "steps",
-                      "locatorIds"
-                    ],
+                    "required": ["validationId", "steps", "locatorIds"],
                     "additionalProperties": false
                   }
                 }
               },
-              "required": [
-                "partitionKey",
-                "environment",
-                "validationBindings"
-              ],
+              "required": ["partitionKey", "environment", "validationBindings"],
               "additionalProperties": false
             }
           },
@@ -2108,14 +1792,7 @@
           "responseMode": {
             "default": "summary",
             "type": "string",
-            "enum": [
-              "summary",
-              "decisionOnly",
-              "evidenceOnly",
-              "blockersOnly",
-              "linksOnly",
-              "full"
-            ],
+            "enum": ["summary", "decisionOnly", "evidenceOnly", "blockersOnly", "linksOnly", "full"],
             "description": "Response projection: summary (compact default), decisionOnly (decision hash/status/counts), evidenceOnly, blockersOnly, linksOnly, or full (largest payload)."
           }
         },
@@ -2212,24 +1889,11 @@
           "responseMode": {
             "default": "summary",
             "type": "string",
-            "enum": [
-              "summary",
-              "decisionOnly",
-              "evidenceOnly",
-              "blockersOnly",
-              "linksOnly",
-              "full"
-            ],
+            "enum": ["summary", "decisionOnly", "evidenceOnly", "blockersOnly", "linksOnly", "full"],
             "description": "Response projection: summary (compact default), decisionOnly (decision hash/status/counts), evidenceOnly, blockersOnly, linksOnly, or full (largest payload)."
           }
         },
-        "required": [
-          "target",
-          "qualityPlanId",
-          "revisionId",
-          "subjectRevisionId",
-          "responseMode"
-        ],
+        "required": ["target", "qualityPlanId", "revisionId", "subjectRevisionId", "responseMode"],
         "additionalProperties": false
       },
       "annotations": {
@@ -2260,10 +1924,7 @@
           },
           "decision": {
             "type": "string",
-            "enum": [
-              "GRANTED",
-              "REVOKED"
-            ]
+            "enum": ["GRANTED", "REVOKED"]
           },
           "decidedBy": {
             "type": "string",
@@ -2281,14 +1942,7 @@
           "responseMode": {
             "default": "summary",
             "type": "string",
-            "enum": [
-              "summary",
-              "decisionOnly",
-              "evidenceOnly",
-              "blockersOnly",
-              "linksOnly",
-              "full"
-            ],
+            "enum": ["summary", "decisionOnly", "evidenceOnly", "blockersOnly", "linksOnly", "full"],
             "description": "Response projection: summary (compact default), decisionOnly (decision hash/status/counts), evidenceOnly, blockersOnly, linksOnly, or full (largest payload)."
           }
         },
@@ -2343,10 +1997,7 @@
                     "minLength": 1
                   }
                 },
-                "required": [
-                  "mode",
-                  "id"
-                ],
+                "required": ["mode", "id"],
                 "additionalProperties": false
               },
               {
@@ -2380,10 +2031,7 @@
                             "minLength": 1
                           }
                         },
-                        "required": [
-                          "mode",
-                          "id"
-                        ],
+                        "required": ["mode", "id"],
                         "additionalProperties": false
                       },
                       {
@@ -2399,21 +2047,13 @@
                             "maxLength": 200
                           }
                         },
-                        "required": [
-                          "mode",
-                          "name"
-                        ],
+                        "required": ["mode", "name"],
                         "additionalProperties": false
                       }
                     ]
                   }
                 },
-                "required": [
-                  "mode",
-                  "name",
-                  "route",
-                  "module"
-                ],
+                "required": ["mode", "name", "route", "module"],
                 "additionalProperties": false
               }
             ]
@@ -2432,19 +2072,11 @@
                 "maxLength": 10000
               }
             },
-            "required": [
-              "name",
-              "selector"
-            ],
+            "required": ["name", "selector"],
             "additionalProperties": false
           }
         },
-        "required": [
-          "target",
-          "qualityPlanId",
-          "group",
-          "locator"
-        ],
+        "required": ["target", "qualityPlanId", "group", "locator"],
         "additionalProperties": false
       },
       "annotations": {
@@ -2494,11 +2126,7 @@
             "maximum": 4
           }
         },
-        "required": [
-          "target",
-          "qualityPlanId",
-          "fromId"
-        ],
+        "required": ["target", "qualityPlanId", "fromId"],
         "additionalProperties": false
       },
       "annotations": {
@@ -2537,12 +2165,7 @@
             "maximum": 100
           }
         },
-        "required": [
-          "target",
-          "qualityPlanId",
-          "query",
-          "limit"
-        ],
+        "required": ["target", "qualityPlanId", "query", "limit"],
         "additionalProperties": false
       },
       "annotations": {
@@ -2571,11 +2194,7 @@
             "minLength": 1
           }
         },
-        "required": [
-          "providerId",
-          "methodologyId",
-          "version"
-        ],
+        "required": ["providerId", "methodologyId", "version"],
         "additionalProperties": false
       },
       "annotations": {
@@ -2639,16 +2258,12 @@
                   "type": "string"
                 }
               },
-              "required": [
-                "id"
-              ],
+              "required": ["id"],
               "additionalProperties": false
             }
           }
         },
-        "required": [
-          "operationRefs"
-        ],
+        "required": ["operationRefs"],
         "additionalProperties": false
       },
       "annotations": {
@@ -2688,19 +2303,11 @@
           },
           "runtime": {
             "type": "string",
-            "enum": [
-              "browser",
-              "api",
-              "node",
-              "database"
-            ]
+            "enum": ["browser", "api", "node", "database"]
           },
           "surface": {
             "type": "string",
-            "enum": [
-              "human",
-              "agent"
-            ]
+            "enum": ["human", "agent"]
           },
           "deprecated": {
             "type": "boolean"
@@ -2826,22 +2433,26 @@
           "idempotencyKey": {
             "type": "string",
             "minLength": 1,
-            "maxLength": 200
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
           },
           "answerId": {
             "type": "string",
             "minLength": 1,
-            "maxLength": 200
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
           },
           "analysisRevisionId": {
             "type": "string",
             "minLength": 1,
-            "maxLength": 200
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
           },
           "questionId": {
             "type": "string",
             "minLength": 1,
-            "maxLength": 200
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
           },
           "answer": {
             "type": "string",
@@ -2851,18 +2462,11 @@
           "correctionOfAnswerId": {
             "type": "string",
             "minLength": 1,
-            "maxLength": 200
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
           }
         },
-        "required": [
-          "target",
-          "journeyId",
-          "idempotencyKey",
-          "answerId",
-          "analysisRevisionId",
-          "questionId",
-          "answer"
-        ],
+        "required": ["target", "journeyId", "idempotencyKey", "answerId", "analysisRevisionId", "questionId", "answer"],
         "additionalProperties": false
       },
       "annotations": {
@@ -2891,7 +2495,8 @@
           "commandId": {
             "type": "string",
             "minLength": 1,
-            "maxLength": 200
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
           },
           "expectedStateHash": {
             "type": "string",
@@ -2900,17 +2505,20 @@
           "idempotencyKey": {
             "type": "string",
             "minLength": 1,
-            "maxLength": 200
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
           },
           "charterId": {
             "type": "string",
             "minLength": 1,
-            "maxLength": 200
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
           },
           "analysisRevisionId": {
             "type": "string",
             "minLength": 1,
-            "maxLength": 200
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
           },
           "contentHash": {
             "type": "string",
@@ -2953,10 +2561,7 @@
             "minLength": 1
           }
         },
-        "required": [
-          "target",
-          "journeyId"
-        ],
+        "required": ["target", "journeyId"],
         "additionalProperties": false
       },
       "annotations": {
@@ -2983,7 +2588,8 @@
           "commandId": {
             "type": "string",
             "minLength": 1,
-            "maxLength": 200
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
           },
           "expectedStateHash": {
             "type": "string",
@@ -2992,17 +2598,20 @@
           "idempotencyKey": {
             "type": "string",
             "minLength": 1,
-            "maxLength": 200
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
           },
           "charterId": {
             "type": "string",
             "minLength": 1,
-            "maxLength": 200
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
           },
           "analysisRevisionId": {
             "type": "string",
             "minLength": 1,
-            "maxLength": 200
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
           },
           "contentHash": {
             "type": "string",
@@ -3047,7 +2656,8 @@
           "commandId": {
             "type": "string",
             "minLength": 1,
-            "maxLength": 200
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
           },
           "expectedStateHash": {
             "type": "string",
@@ -3056,17 +2666,20 @@
           "idempotencyKey": {
             "type": "string",
             "minLength": 1,
-            "maxLength": 200
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
           },
           "charterId": {
             "type": "string",
             "minLength": 1,
-            "maxLength": 200
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
           },
           "analysisRevisionId": {
             "type": "string",
             "minLength": 1,
-            "maxLength": 200
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
           },
           "contentHash": {
             "type": "string",
@@ -3122,17 +2735,20 @@
           "workItemId": {
             "type": "string",
             "minLength": 1,
-            "maxLength": 200
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
           },
           "attemptId": {
             "type": "string",
             "minLength": 1,
-            "maxLength": 200
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
           },
           "leaseId": {
             "type": "string",
             "minLength": 1,
-            "maxLength": 200
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
           },
           "ownerToken": {
             "type": "string",
@@ -3142,12 +2758,14 @@
           "idempotencyKey": {
             "type": "string",
             "minLength": 1,
-            "maxLength": 200
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
           },
           "predecessorAnalysisRevisionId": {
             "type": "string",
             "minLength": 1,
-            "maxLength": 200
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
           },
           "charter": {
             "type": "object",
@@ -3155,22 +2773,26 @@
               "charterId": {
                 "type": "string",
                 "minLength": 1,
-                "maxLength": 200
+                "maxLength": 200,
+                "pattern": "^[A-Za-z0-9._:-]+$"
               },
               "analysisRevisionId": {
                 "type": "string",
                 "minLength": 1,
-                "maxLength": 200
+                "maxLength": 200,
+                "pattern": "^[A-Za-z0-9._:-]+$"
               },
               "cycleId": {
                 "type": "string",
                 "minLength": 1,
-                "maxLength": 200
+                "maxLength": 200,
+                "pattern": "^[A-Za-z0-9._:-]+$"
               },
               "requirementRevisionId": {
                 "type": "string",
                 "minLength": 1,
-                "maxLength": 200
+                "maxLength": 200,
+                "pattern": "^[A-Za-z0-9._:-]+$"
               },
               "objectives": {
                 "minItems": 1,
@@ -3205,10 +2827,7 @@
                     }
                   }
                 },
-                "required": [
-                  "included",
-                  "excluded"
-                ],
+                "required": ["included", "excluded"],
                 "additionalProperties": false
               },
               "actors": {
@@ -3230,7 +2849,8 @@
                     "requirementId": {
                       "type": "string",
                       "minLength": 1,
-                      "maxLength": 200
+                      "maxLength": 200,
+                      "pattern": "^[A-Za-z0-9._:-]+$"
                     },
                     "statement": {
                       "type": "string",
@@ -3248,11 +2868,7 @@
                       }
                     }
                   },
-                  "required": [
-                    "requirementId",
-                    "statement",
-                    "sourceRefs"
-                  ],
+                  "required": ["requirementId", "statement", "sourceRefs"],
                   "additionalProperties": false
                 }
               },
@@ -3266,12 +2882,14 @@
                     "obligationId": {
                       "type": "string",
                       "minLength": 1,
-                      "maxLength": 200
+                      "maxLength": 200,
+                      "pattern": "^[A-Za-z0-9._:-]+$"
                     },
                     "requirementId": {
                       "type": "string",
                       "minLength": 1,
-                      "maxLength": 200
+                      "maxLength": 200,
+                      "pattern": "^[A-Za-z0-9._:-]+$"
                     },
                     "statement": {
                       "type": "string",
@@ -3289,12 +2907,7 @@
                       }
                     }
                   },
-                  "required": [
-                    "obligationId",
-                    "requirementId",
-                    "statement",
-                    "acceptanceSignals"
-                  ],
+                  "required": ["obligationId", "requirementId", "statement", "acceptanceSignals"],
                   "additionalProperties": false
                 }
               },
@@ -3341,7 +2954,8 @@
                 "items": {
                   "type": "string",
                   "minLength": 1,
-                  "maxLength": 200
+                  "maxLength": 200,
+                  "pattern": "^[A-Za-z0-9._:-]+$"
                 }
               },
               "questions": {
@@ -3353,7 +2967,8 @@
                     "questionId": {
                       "type": "string",
                       "minLength": 1,
-                      "maxLength": 200
+                      "maxLength": 200,
+                      "pattern": "^[A-Za-z0-9._:-]+$"
                     },
                     "prompt": {
                       "type": "string",
@@ -3369,12 +2984,7 @@
                       "maxLength": 8000
                     }
                   },
-                  "required": [
-                    "questionId",
-                    "prompt",
-                    "required",
-                    "rationale"
-                  ],
+                  "required": ["questionId", "prompt", "required", "rationale"],
                   "additionalProperties": false
                 }
               },
@@ -3384,7 +2994,8 @@
                 "items": {
                   "type": "string",
                   "minLength": 1,
-                  "maxLength": 200
+                  "maxLength": 200,
+                  "pattern": "^[A-Za-z0-9._:-]+$"
                 }
               }
             },
@@ -3445,14 +3056,486 @@
             "minLength": 1
           }
         },
-        "required": [
-          "target",
-          "journeyId"
-        ],
+        "required": ["target", "journeyId"],
         "additionalProperties": false
       },
       "annotations": {
         "readOnlyHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "kind": "tool",
+      "name": "quality_journey_automation_context_get",
+      "description": "Read the immutable approved-scenario materialization context and prepared capsule receipts. This never starts execution.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "target": {
+            "type": "string",
+            "minLength": 1
+          },
+          "journeyId": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": ["target", "journeyId"],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "kind": "tool",
+      "name": "quality_journey_automation_materialize",
+      "description": "Materialize exact approved Scenario revisions through the leased Automator ingress. It creates prepared capsules only; TestRuns and RuntimeCapsules remain Phase 7 authority.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "target": {
+            "type": "string",
+            "minLength": 1
+          },
+          "journeyId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
+          },
+          "workItemId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
+          },
+          "attemptId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
+          },
+          "leaseId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
+          },
+          "ownerToken": {
+            "type": "string",
+            "minLength": 1
+          },
+          "idempotencyKey": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
+          },
+          "expectedInputHash": {
+            "type": "string",
+            "pattern": "^sha256:[a-f0-9]{64}$"
+          },
+          "expectedScopeHash": {
+            "type": "string",
+            "pattern": "^sha256:[a-f0-9]{64}$"
+          },
+          "scenarios": {
+            "minItems": 1,
+            "maxItems": 512,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "scenarioRevisionId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200,
+                  "pattern": "^[A-Za-z0-9._:-]+$"
+                },
+                "steps": {
+                  "minItems": 1,
+                  "maxItems": 128,
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "sourceScenarioStepId": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 200,
+                        "pattern": "^[A-Za-z0-9._:-]+$"
+                      },
+                      "stepDefinition": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 200,
+                            "pattern": "^[A-Za-z0-9._:-]+$"
+                          },
+                          "version": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 64
+                          },
+                          "definitionHash": {
+                            "type": "string",
+                            "pattern": "^sha256:[a-f0-9]{64}$"
+                          }
+                        },
+                        "required": ["id", "version", "definitionHash"],
+                        "additionalProperties": false
+                      },
+                      "operation": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 200,
+                            "pattern": "^[A-Za-z0-9._:-]+$"
+                          },
+                          "version": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 64
+                          },
+                          "handler": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 200,
+                                "pattern": "^[A-Za-z0-9._:-]+$"
+                              },
+                              "version": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 64
+                              },
+                              "contentHash": {
+                                "type": "string",
+                                "pattern": "^sha256:[a-f0-9]{64}$"
+                              }
+                            },
+                            "required": ["id", "version", "contentHash"],
+                            "additionalProperties": false
+                          }
+                        },
+                        "required": ["id", "version", "handler"],
+                        "additionalProperties": false
+                      },
+                      "parameters": {
+                        "maxItems": 128,
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "name": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 200
+                            },
+                            "type": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 100
+                            },
+                            "value": {}
+                          },
+                          "required": ["name", "type", "value"],
+                          "additionalProperties": false
+                        }
+                      },
+                      "testData": {
+                        "maxItems": 128,
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "key": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 200
+                            },
+                            "type": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 100
+                            },
+                            "value": {}
+                          },
+                          "required": ["key", "type", "value"],
+                          "additionalProperties": false
+                        }
+                      },
+                      "locatorRequirements": {
+                        "maxItems": 128,
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "requirementId": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 200,
+                              "pattern": "^[A-Za-z0-9._:-]+$"
+                            },
+                            "parameterName": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 200
+                            },
+                            "locatorId": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 200,
+                              "pattern": "^[A-Za-z0-9._:-]+$"
+                            },
+                            "runtimeParameter": {
+                              "type": "boolean"
+                            }
+                          },
+                          "required": ["requirementId", "parameterName"],
+                          "additionalProperties": false
+                        }
+                      }
+                    },
+                    "required": [
+                      "sourceScenarioStepId",
+                      "stepDefinition",
+                      "operation",
+                      "parameters",
+                      "testData",
+                      "locatorRequirements"
+                    ],
+                    "additionalProperties": false
+                  }
+                }
+              },
+              "required": ["scenarioRevisionId", "steps"],
+              "additionalProperties": false
+            }
+          },
+          "result": {
+            "type": "object",
+            "properties": {
+              "schemaVersion": {
+                "type": "string",
+                "const": "appraise.quality-journey/v1"
+              },
+              "assignmentId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200,
+                "pattern": "^[A-Za-z0-9._:-]+$"
+              },
+              "workItemId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200,
+                "pattern": "^[A-Za-z0-9._:-]+$"
+              },
+              "attemptId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200,
+                "pattern": "^[A-Za-z0-9._:-]+$"
+              },
+              "roleContractDigest": {
+                "type": "string",
+                "pattern": "^sha256:[a-f0-9]{64}$"
+              },
+              "inputHash": {
+                "type": "string",
+                "pattern": "^sha256:[a-f0-9]{64}$"
+              },
+              "role": {
+                "type": "string",
+                "enum": [
+                  "REQUIREMENT_ANALYZER",
+                  "SCOUT",
+                  "RESOURCE_EXPLORER",
+                  "TEST_SCENARIO_DESIGNER",
+                  "AUTOMATOR",
+                  "TRIAGER"
+                ]
+              },
+              "status": {
+                "type": "string",
+                "enum": ["COMPLETED", "BLOCKED", "QUESTION_RAISED", "REVISION_REQUIRED"]
+              },
+              "outputs": {
+                "maxItems": 1536,
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "kind": {
+                      "type": "string",
+                      "enum": [
+                        "JOURNEY_REVISION",
+                        "ANALYSIS_CHARTER_REVISION",
+                        "ANALYSIS_QUESTION",
+                        "ANALYSIS_ANSWER",
+                        "ANALYSIS_REVISION_FEEDBACK",
+                        "TARGET_OBSERVATION_BUNDLE",
+                        "RESOURCE_RESOLUTION_BUNDLE",
+                        "SCENARIO_PORTFOLIO_REVISION",
+                        "SCENARIO_REVISION",
+                        "TEST_SUITE",
+                        "TEST_CASE",
+                        "RUNTIME_CAPSULE",
+                        "TEST_RUN",
+                        "EVIDENCE_RECEIPT",
+                        "TEST_REPORT_ANALYSIS_REVISION",
+                        "JOURNEY_APPROVAL",
+                        "JOURNEY_CLOSURE"
+                      ]
+                    },
+                    "artifactId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 200,
+                      "pattern": "^[A-Za-z0-9._:-]+$"
+                    },
+                    "revisionId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 200,
+                      "pattern": "^[A-Za-z0-9._:-]+$"
+                    },
+                    "contentHash": {
+                      "type": "string",
+                      "pattern": "^sha256:[a-f0-9]{64}$"
+                    }
+                  },
+                  "required": ["kind", "artifactId", "contentHash"],
+                  "additionalProperties": false
+                }
+              },
+              "evidenceReceipts": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "pattern": "^sha256:[a-f0-9]{64}$"
+                }
+              },
+              "assumptions": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 8000
+                }
+              },
+              "blockers": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 200,
+                      "pattern": "^[A-Za-z0-9._:-]+$"
+                    },
+                    "summary": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 8000
+                    },
+                    "evidence": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "pattern": "^sha256:[a-f0-9]{64}$"
+                      }
+                    },
+                    "requiredResolution": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 8000
+                    }
+                  },
+                  "required": ["code", "summary", "evidence", "requiredResolution"],
+                  "additionalProperties": false
+                }
+              },
+              "unresolvedQuestions": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "questionId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 200,
+                      "pattern": "^[A-Za-z0-9._:-]+$"
+                    },
+                    "prompt": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 8000
+                    },
+                    "required": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": ["questionId", "prompt", "required"],
+                  "additionalProperties": false
+                }
+              },
+              "submittedAt": {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+              }
+            },
+            "required": [
+              "schemaVersion",
+              "assignmentId",
+              "workItemId",
+              "attemptId",
+              "roleContractDigest",
+              "inputHash",
+              "role",
+              "status",
+              "outputs",
+              "evidenceReceipts",
+              "assumptions",
+              "blockers",
+              "unresolvedQuestions",
+              "submittedAt"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "target",
+          "journeyId",
+          "workItemId",
+          "attemptId",
+          "leaseId",
+          "ownerToken",
+          "idempotencyKey",
+          "expectedInputHash",
+          "expectedScopeHash",
+          "scenarios",
+          "result"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true,
         "openWorldHint": false
       }
     },
@@ -3480,11 +3563,7 @@
             "additionalProperties": {}
           }
         },
-        "required": [
-          "target",
-          "journeyId",
-          "command"
-        ],
+        "required": ["target", "journeyId", "command"],
         "additionalProperties": false
       },
       "annotations": {
@@ -3512,11 +3591,7 @@
           },
           "requirement": {}
         },
-        "required": [
-          "target",
-          "idempotencyKey",
-          "requirement"
-        ],
+        "required": ["target", "idempotencyKey", "requirement"],
         "additionalProperties": false
       },
       "annotations": {
@@ -3543,10 +3618,7 @@
             "minLength": 1
           }
         },
-        "required": [
-          "target",
-          "journeyId"
-        ],
+        "required": ["target", "journeyId"],
         "additionalProperties": false
       },
       "annotations": {
@@ -3573,12 +3645,14 @@
           "expectedActiveDiscoveryRevisionId": {
             "type": "string",
             "minLength": 1,
-            "maxLength": 200
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
           },
           "idempotencyKey": {
             "type": "string",
             "minLength": 1,
-            "maxLength": 200
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
           },
           "reason": {
             "type": "string",
@@ -3586,13 +3660,7 @@
             "maxLength": 8000
           }
         },
-        "required": [
-          "target",
-          "journeyId",
-          "expectedActiveDiscoveryRevisionId",
-          "idempotencyKey",
-          "reason"
-        ],
+        "required": ["target", "journeyId", "expectedActiveDiscoveryRevisionId", "idempotencyKey", "reason"],
         "additionalProperties": false
       },
       "annotations": {
@@ -3621,14 +3689,11 @@
           "expectedActiveDiscoveryRevisionId": {
             "type": "string",
             "minLength": 1,
-            "maxLength": 200
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
           }
         },
-        "required": [
-          "target",
-          "journeyId",
-          "expectedActiveDiscoveryRevisionId"
-        ],
+        "required": ["target", "journeyId", "expectedActiveDiscoveryRevisionId"],
         "additionalProperties": false
       },
       "annotations": {
@@ -3655,10 +3720,7 @@
             "minLength": 1
           }
         },
-        "required": [
-          "target",
-          "journeyId"
-        ],
+        "required": ["target", "journeyId"],
         "additionalProperties": false
       },
       "annotations": {
@@ -3683,10 +3745,7 @@
             "minLength": 1
           }
         },
-        "required": [
-          "target",
-          "journeyId"
-        ],
+        "required": ["target", "journeyId"],
         "additionalProperties": false
       },
       "annotations": {
@@ -3713,22 +3772,26 @@
           "discoveryRevisionId": {
             "type": "string",
             "minLength": 1,
-            "maxLength": 200
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
           },
           "workItemId": {
             "type": "string",
             "minLength": 1,
-            "maxLength": 200
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
           },
           "attemptId": {
             "type": "string",
             "minLength": 1,
-            "maxLength": 200
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
           },
           "leaseId": {
             "type": "string",
             "minLength": 1,
-            "maxLength": 200
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
           },
           "ownerToken": {
             "type": "string",
@@ -3738,7 +3801,8 @@
           "idempotencyKey": {
             "type": "string",
             "minLength": 1,
-            "maxLength": 200
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
           },
           "expectedInputHash": {
             "type": "string",
@@ -3754,12 +3818,14 @@
               "bundleId": {
                 "type": "string",
                 "minLength": 1,
-                "maxLength": 200
+                "maxLength": 200,
+                "pattern": "^[A-Za-z0-9._:-]+$"
               },
               "cycleId": {
                 "type": "string",
                 "minLength": 1,
-                "maxLength": 200
+                "maxLength": 200,
+                "pattern": "^[A-Za-z0-9._:-]+$"
               },
               "analysisRevision": {
                 "type": "object",
@@ -3767,23 +3833,21 @@
                   "artifactId": {
                     "type": "string",
                     "minLength": 1,
-                    "maxLength": 200
+                    "maxLength": 200,
+                    "pattern": "^[A-Za-z0-9._:-]+$"
                   },
                   "revisionId": {
                     "type": "string",
                     "minLength": 1,
-                    "maxLength": 200
+                    "maxLength": 200,
+                    "pattern": "^[A-Za-z0-9._:-]+$"
                   },
                   "contentHash": {
                     "type": "string",
                     "pattern": "^sha256:[a-f0-9]{64}$"
                   }
                 },
-                "required": [
-                  "artifactId",
-                  "revisionId",
-                  "contentHash"
-                ],
+                "required": ["artifactId", "revisionId", "contentHash"],
                 "additionalProperties": false
               },
               "analysisApproval": {
@@ -3792,23 +3856,22 @@
                   "artifactId": {
                     "type": "string",
                     "minLength": 1,
-                    "maxLength": 200
+                    "maxLength": 200,
+                    "pattern": "^[A-Za-z0-9._:-]+$"
                   },
                   "contentHash": {
                     "type": "string",
                     "pattern": "^sha256:[a-f0-9]{64}$"
                   }
                 },
-                "required": [
-                  "artifactId",
-                  "contentHash"
-                ],
+                "required": ["artifactId", "contentHash"],
                 "additionalProperties": false
               },
               "authorizationId": {
                 "type": "string",
                 "minLength": 1,
-                "maxLength": 200
+                "maxLength": 200,
+                "pattern": "^[A-Za-z0-9._:-]+$"
               },
               "inputHash": {
                 "type": "string",
@@ -3854,23 +3917,21 @@
                     "artifactId": {
                       "type": "string",
                       "minLength": 1,
-                      "maxLength": 200
+                      "maxLength": 200,
+                      "pattern": "^[A-Za-z0-9._:-]+$"
                     },
                     "revisionId": {
                       "type": "string",
                       "minLength": 1,
-                      "maxLength": 200
+                      "maxLength": 200,
+                      "pattern": "^[A-Za-z0-9._:-]+$"
                     },
                     "contentHash": {
                       "type": "string",
                       "pattern": "^sha256:[a-f0-9]{64}$"
                     }
                   },
-                  "required": [
-                    "kind",
-                    "artifactId",
-                    "contentHash"
-                  ],
+                  "required": ["kind", "artifactId", "contentHash"],
                   "additionalProperties": false
                 }
               },
@@ -3884,17 +3945,15 @@
                     "artifactId": {
                       "type": "string",
                       "minLength": 1,
-                      "maxLength": 200
+                      "maxLength": 200,
+                      "pattern": "^[A-Za-z0-9._:-]+$"
                     },
                     "contentHash": {
                       "type": "string",
                       "pattern": "^sha256:[a-f0-9]{64}$"
                     }
                   },
-                  "required": [
-                    "artifactId",
-                    "contentHash"
-                  ],
+                  "required": ["artifactId", "contentHash"],
                   "additionalProperties": false
                 }
               },
@@ -3903,6 +3962,12 @@
                 "format": "date-time",
                 "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
               },
+              "destinationModuleId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200,
+                "pattern": "^[A-Za-z0-9._:-]+$"
+              },
               "approvedRequirementIds": {
                 "minItems": 1,
                 "maxItems": 512,
@@ -3910,7 +3975,8 @@
                 "items": {
                   "type": "string",
                   "minLength": 1,
-                  "maxLength": 200
+                  "maxLength": 200,
+                  "pattern": "^[A-Za-z0-9._:-]+$"
                 }
               },
               "reusable": {
@@ -3922,7 +3988,8 @@
                     "resourceId": {
                       "type": "string",
                       "minLength": 1,
-                      "maxLength": 200
+                      "maxLength": 200,
+                      "pattern": "^[A-Za-z0-9._:-]+$"
                     },
                     "resourceKind": {
                       "type": "string",
@@ -3930,6 +3997,7 @@
                         "OPERATION",
                         "STEP_DEFINITION",
                         "LOCATOR",
+                        "MODULE",
                         "TEMPLATE",
                         "DATA",
                         "EXAMPLE",
@@ -3939,7 +4007,8 @@
                     "requirementId": {
                       "type": "string",
                       "minLength": 1,
-                      "maxLength": 200
+                      "maxLength": 200,
+                      "pattern": "^[A-Za-z0-9._:-]+$"
                     },
                     "rank": {
                       "type": "integer",
@@ -3958,7 +4027,8 @@
                       "items": {
                         "type": "string",
                         "minLength": 1,
-                        "maxLength": 200
+                        "maxLength": 200,
+                        "pattern": "^[A-Za-z0-9._:-]+$"
                       }
                     },
                     "reasonCode": {
@@ -3987,7 +4057,8 @@
                     "resourceId": {
                       "type": "string",
                       "minLength": 1,
-                      "maxLength": 200
+                      "maxLength": 200,
+                      "pattern": "^[A-Za-z0-9._:-]+$"
                     },
                     "resourceKind": {
                       "type": "string",
@@ -3995,6 +4066,7 @@
                         "OPERATION",
                         "STEP_DEFINITION",
                         "LOCATOR",
+                        "MODULE",
                         "TEMPLATE",
                         "DATA",
                         "EXAMPLE",
@@ -4004,7 +4076,8 @@
                     "requirementId": {
                       "type": "string",
                       "minLength": 1,
-                      "maxLength": 200
+                      "maxLength": 200,
+                      "pattern": "^[A-Za-z0-9._:-]+$"
                     },
                     "rank": {
                       "type": "integer",
@@ -4023,7 +4096,8 @@
                       "items": {
                         "type": "string",
                         "minLength": 1,
-                        "maxLength": 200
+                        "maxLength": 200,
+                        "pattern": "^[A-Za-z0-9._:-]+$"
                       }
                     },
                     "reasonCode": {
@@ -4052,7 +4126,8 @@
                     "resourceId": {
                       "type": "string",
                       "minLength": 1,
-                      "maxLength": 200
+                      "maxLength": 200,
+                      "pattern": "^[A-Za-z0-9._:-]+$"
                     },
                     "resourceKind": {
                       "type": "string",
@@ -4060,6 +4135,7 @@
                         "OPERATION",
                         "STEP_DEFINITION",
                         "LOCATOR",
+                        "MODULE",
                         "TEMPLATE",
                         "DATA",
                         "EXAMPLE",
@@ -4069,7 +4145,8 @@
                     "requirementId": {
                       "type": "string",
                       "minLength": 1,
-                      "maxLength": 200
+                      "maxLength": 200,
+                      "pattern": "^[A-Za-z0-9._:-]+$"
                     },
                     "rank": {
                       "type": "integer",
@@ -4088,7 +4165,8 @@
                       "items": {
                         "type": "string",
                         "minLength": 1,
-                        "maxLength": 200
+                        "maxLength": 200,
+                        "pattern": "^[A-Za-z0-9._:-]+$"
                       }
                     },
                     "reasonCode": {
@@ -4117,7 +4195,8 @@
                     "resourceId": {
                       "type": "string",
                       "minLength": 1,
-                      "maxLength": 200
+                      "maxLength": 200,
+                      "pattern": "^[A-Za-z0-9._:-]+$"
                     },
                     "resourceKind": {
                       "type": "string",
@@ -4125,6 +4204,7 @@
                         "OPERATION",
                         "STEP_DEFINITION",
                         "LOCATOR",
+                        "MODULE",
                         "TEMPLATE",
                         "DATA",
                         "EXAMPLE",
@@ -4134,7 +4214,8 @@
                     "requirementId": {
                       "type": "string",
                       "minLength": 1,
-                      "maxLength": 200
+                      "maxLength": 200,
+                      "pattern": "^[A-Za-z0-9._:-]+$"
                     },
                     "rank": {
                       "type": "integer",
@@ -4153,7 +4234,8 @@
                       "items": {
                         "type": "string",
                         "minLength": 1,
-                        "maxLength": 200
+                        "maxLength": 200,
+                        "pattern": "^[A-Za-z0-9._:-]+$"
                       }
                     },
                     "reasonCode": {
@@ -4163,7 +4245,8 @@
                     "sourceTargetProjectId": {
                       "type": "string",
                       "minLength": 1,
-                      "maxLength": 200
+                      "maxLength": 200,
+                      "pattern": "^[A-Za-z0-9._:-]+$"
                     }
                   },
                   "required": [
@@ -4188,19 +4271,18 @@
                     "requirementId": {
                       "type": "string",
                       "minLength": 1,
-                      "maxLength": 200
+                      "maxLength": 200,
+                      "pattern": "^[A-Za-z0-9._:-]+$"
                     },
                     "capabilityId": {
                       "type": "string",
                       "minLength": 1,
-                      "maxLength": 200
+                      "maxLength": 200,
+                      "pattern": "^[A-Za-z0-9._:-]+$"
                     },
                     "reasonCode": {
                       "type": "string",
-                      "enum": [
-                        "NOT_FOUND",
-                        "CAPABILITY_GAP"
-                      ]
+                      "enum": ["NOT_FOUND", "CAPABILITY_GAP"]
                     },
                     "explanation": {
                       "type": "string",
@@ -4214,17 +4296,12 @@
                       "items": {
                         "type": "string",
                         "minLength": 1,
-                        "maxLength": 200
+                        "maxLength": 200,
+                        "pattern": "^[A-Za-z0-9._:-]+$"
                       }
                     }
                   },
-                  "required": [
-                    "requirementId",
-                    "capabilityId",
-                    "reasonCode",
-                    "explanation",
-                    "evidenceReceiptIds"
-                  ],
+                  "required": ["requirementId", "capabilityId", "reasonCode", "explanation", "evidenceReceiptIds"],
                   "additionalProperties": false
                 }
               }
@@ -4241,6 +4318,7 @@
               "inputArtifacts",
               "evidenceReceipts",
               "resolvedAt",
+              "destinationModuleId",
               "approvedRequirementIds",
               "reusable",
               "incompatible",
@@ -4290,10 +4368,7 @@
             "minLength": 1
           }
         },
-        "required": [
-          "target",
-          "journeyId"
-        ],
+        "required": ["target", "journeyId"],
         "additionalProperties": false
       },
       "annotations": {
@@ -4322,12 +4397,14 @@
           "portfolioRevisionId": {
             "type": "string",
             "minLength": 1,
-            "maxLength": 200
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
           },
           "scenarioRevisionId": {
             "type": "string",
             "minLength": 1,
-            "maxLength": 200
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
           },
           "comment": {
             "type": "string",
@@ -4341,7 +4418,8 @@
           "idempotencyKey": {
             "type": "string",
             "minLength": 1,
-            "maxLength": 200
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
           },
           "expectedReviewHash": {
             "type": "string",
@@ -4385,31 +4463,27 @@
           "portfolioRevisionId": {
             "type": "string",
             "minLength": 1,
-            "maxLength": 200
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
           },
           "commentId": {
             "type": "string",
             "minLength": 1,
-            "maxLength": 200
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
           },
           "idempotencyKey": {
             "type": "string",
             "minLength": 1,
-            "maxLength": 200
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
           },
           "expectedReviewHash": {
             "type": "string",
             "pattern": "^sha256:[a-f0-9]{64}$"
           }
         },
-        "required": [
-          "target",
-          "journeyId",
-          "portfolioRevisionId",
-          "commentId",
-          "idempotencyKey",
-          "expectedReviewHash"
-        ],
+        "required": ["target", "journeyId", "portfolioRevisionId", "commentId", "idempotencyKey", "expectedReviewHash"],
         "additionalProperties": false
       },
       "annotations": {
@@ -4438,7 +4512,8 @@
           "commandId": {
             "type": "string",
             "minLength": 1,
-            "maxLength": 200
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
           },
           "expectedStateHash": {
             "type": "string",
@@ -4447,17 +4522,20 @@
           "idempotencyKey": {
             "type": "string",
             "minLength": 1,
-            "maxLength": 200
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
           },
           "portfolioId": {
             "type": "string",
             "minLength": 1,
-            "maxLength": 200
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
           },
           "portfolioRevisionId": {
             "type": "string",
             "minLength": 1,
-            "maxLength": 200
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
           },
           "portfolioHash": {
             "type": "string",
@@ -4532,10 +4610,7 @@
             "minLength": 1
           }
         },
-        "required": [
-          "target",
-          "journeyId"
-        ],
+        "required": ["target", "journeyId"],
         "additionalProperties": false
       },
       "annotations": {
@@ -4562,7 +4637,8 @@
           "commandId": {
             "type": "string",
             "minLength": 1,
-            "maxLength": 200
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
           },
           "expectedStateHash": {
             "type": "string",
@@ -4571,17 +4647,20 @@
           "idempotencyKey": {
             "type": "string",
             "minLength": 1,
-            "maxLength": 200
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
           },
           "portfolioId": {
             "type": "string",
             "minLength": 1,
-            "maxLength": 200
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
           },
           "portfolioRevisionId": {
             "type": "string",
             "minLength": 1,
-            "maxLength": 200
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
           },
           "portfolioHash": {
             "type": "string",
@@ -4626,7 +4705,8 @@
           "commandId": {
             "type": "string",
             "minLength": 1,
-            "maxLength": 200
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
           },
           "expectedStateHash": {
             "type": "string",
@@ -4635,17 +4715,20 @@
           "idempotencyKey": {
             "type": "string",
             "minLength": 1,
-            "maxLength": 200
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
           },
           "portfolioId": {
             "type": "string",
             "minLength": 1,
-            "maxLength": 200
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
           },
           "portfolioRevisionId": {
             "type": "string",
             "minLength": 1,
-            "maxLength": 200
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
           },
           "portfolioHash": {
             "type": "string",
@@ -4701,7 +4784,8 @@
           "commandId": {
             "type": "string",
             "minLength": 1,
-            "maxLength": 200
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
           },
           "expectedStateHash": {
             "type": "string",
@@ -4710,16 +4794,11 @@
           "idempotencyKey": {
             "type": "string",
             "minLength": 1,
-            "maxLength": 200
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
           }
         },
-        "required": [
-          "target",
-          "journeyId",
-          "commandId",
-          "expectedStateHash",
-          "idempotencyKey"
-        ],
+        "required": ["target", "journeyId", "commandId", "expectedStateHash", "idempotencyKey"],
         "additionalProperties": false
       },
       "annotations": {
@@ -4748,17 +4827,20 @@
           "workItemId": {
             "type": "string",
             "minLength": 1,
-            "maxLength": 200
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
           },
           "attemptId": {
             "type": "string",
             "minLength": 1,
-            "maxLength": 200
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
           },
           "leaseId": {
             "type": "string",
             "minLength": 1,
-            "maxLength": 200
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
           },
           "ownerToken": {
             "type": "string",
@@ -4767,7 +4849,8 @@
           "idempotencyKey": {
             "type": "string",
             "minLength": 1,
-            "maxLength": 200
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
           },
           "expectedInputHash": {
             "type": "string",
@@ -4858,11 +4941,7 @@
                         },
                         "relation": {
                           "type": "string",
-                          "enum": [
-                            "DEPENDS_ON",
-                            "BRANCHES_TO",
-                            "SHARED_SETUP"
-                          ]
+                          "enum": ["DEPENDS_ON", "BRANCHES_TO", "SHARED_SETUP"]
                         },
                         "rationale": {
                           "type": "string",
@@ -4870,12 +4949,7 @@
                           "maxLength": 8000
                         }
                       },
-                      "required": [
-                        "sourceScenarioRevisionId",
-                        "targetScenarioRevisionId",
-                        "relation",
-                        "rationale"
-                      ],
+                      "required": ["sourceScenarioRevisionId", "targetScenarioRevisionId", "relation", "rationale"],
                       "additionalProperties": false
                     }
                   },
@@ -4907,19 +4981,12 @@
                           }
                         }
                       },
-                      "required": [
-                        "setupId",
-                        "label",
-                        "scenarioRevisionIds"
-                      ],
+                      "required": ["setupId", "label", "scenarioRevisionIds"],
                       "additionalProperties": false
                     }
                   }
                 },
-                "required": [
-                  "edges",
-                  "sharedSetup"
-                ],
+                "required": ["edges", "sharedSetup"],
                 "additionalProperties": false
               },
               "scenarios": {
@@ -5004,21 +5071,12 @@
                                 "maxLength": 8000
                               }
                             },
-                            "required": [
-                              "stepId",
-                              "action",
-                              "expected"
-                            ],
+                            "required": ["stepId", "action", "expected"],
                             "additionalProperties": false
                           }
                         }
                       },
-                      "required": [
-                        "title",
-                        "narrative",
-                        "expectedSignals",
-                        "steps"
-                      ],
+                      "required": ["title", "narrative", "expectedSignals", "steps"],
                       "additionalProperties": false
                     },
                     "enrichment": {
@@ -5056,11 +5114,7 @@
                           }
                         }
                       },
-                      "required": [
-                        "observationIds",
-                        "resourceAssumptionIds",
-                        "feasibilityNotes"
-                      ],
+                      "required": ["observationIds", "resourceAssumptionIds", "feasibilityNotes"],
                       "additionalProperties": false
                     },
                     "layout": {
@@ -5078,21 +5132,11 @@
                           "maximum": 9007199254740991
                         }
                       },
-                      "required": [
-                        "x",
-                        "y",
-                        "sequence"
-                      ],
+                      "required": ["x", "y", "sequence"],
                       "additionalProperties": false
                     }
                   },
-                  "required": [
-                    "stableScenarioId",
-                    "scenarioRevisionId",
-                    "behavioralIntent",
-                    "enrichment",
-                    "layout"
-                  ],
+                  "required": ["stableScenarioId", "scenarioRevisionId", "behavioralIntent", "enrichment", "layout"],
                   "additionalProperties": false
                 }
               }
@@ -5122,17 +5166,20 @@
               "assignmentId": {
                 "type": "string",
                 "minLength": 1,
-                "maxLength": 200
+                "maxLength": 200,
+                "pattern": "^[A-Za-z0-9._:-]+$"
               },
               "workItemId": {
                 "type": "string",
                 "minLength": 1,
-                "maxLength": 200
+                "maxLength": 200,
+                "pattern": "^[A-Za-z0-9._:-]+$"
               },
               "attemptId": {
                 "type": "string",
                 "minLength": 1,
-                "maxLength": 200
+                "maxLength": 200,
+                "pattern": "^[A-Za-z0-9._:-]+$"
               },
               "roleContractDigest": {
                 "type": "string",
@@ -5155,14 +5202,10 @@
               },
               "status": {
                 "type": "string",
-                "enum": [
-                  "COMPLETED",
-                  "BLOCKED",
-                  "QUESTION_RAISED",
-                  "REVISION_REQUIRED"
-                ]
+                "enum": ["COMPLETED", "BLOCKED", "QUESTION_RAISED", "REVISION_REQUIRED"]
               },
               "outputs": {
+                "maxItems": 1536,
                 "type": "array",
                 "items": {
                   "type": "object",
@@ -5192,23 +5235,21 @@
                     "artifactId": {
                       "type": "string",
                       "minLength": 1,
-                      "maxLength": 200
+                      "maxLength": 200,
+                      "pattern": "^[A-Za-z0-9._:-]+$"
                     },
                     "revisionId": {
                       "type": "string",
                       "minLength": 1,
-                      "maxLength": 200
+                      "maxLength": 200,
+                      "pattern": "^[A-Za-z0-9._:-]+$"
                     },
                     "contentHash": {
                       "type": "string",
                       "pattern": "^sha256:[a-f0-9]{64}$"
                     }
                   },
-                  "required": [
-                    "kind",
-                    "artifactId",
-                    "contentHash"
-                  ],
+                  "required": ["kind", "artifactId", "contentHash"],
                   "additionalProperties": false
                 }
               },
@@ -5235,7 +5276,8 @@
                     "code": {
                       "type": "string",
                       "minLength": 1,
-                      "maxLength": 200
+                      "maxLength": 200,
+                      "pattern": "^[A-Za-z0-9._:-]+$"
                     },
                     "summary": {
                       "type": "string",
@@ -5255,12 +5297,7 @@
                       "maxLength": 8000
                     }
                   },
-                  "required": [
-                    "code",
-                    "summary",
-                    "evidence",
-                    "requiredResolution"
-                  ],
+                  "required": ["code", "summary", "evidence", "requiredResolution"],
                   "additionalProperties": false
                 }
               },
@@ -5272,7 +5309,8 @@
                     "questionId": {
                       "type": "string",
                       "minLength": 1,
-                      "maxLength": 200
+                      "maxLength": 200,
+                      "pattern": "^[A-Za-z0-9._:-]+$"
                     },
                     "prompt": {
                       "type": "string",
@@ -5283,11 +5321,7 @@
                       "type": "boolean"
                     }
                   },
-                  "required": [
-                    "questionId",
-                    "prompt",
-                    "required"
-                  ],
+                  "required": ["questionId", "prompt", "required"],
                   "additionalProperties": false
                 }
               },
@@ -5357,22 +5391,26 @@
           "discoveryRevisionId": {
             "type": "string",
             "minLength": 1,
-            "maxLength": 200
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
           },
           "workItemId": {
             "type": "string",
             "minLength": 1,
-            "maxLength": 200
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
           },
           "attemptId": {
             "type": "string",
             "minLength": 1,
-            "maxLength": 200
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
           },
           "leaseId": {
             "type": "string",
             "minLength": 1,
-            "maxLength": 200
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
           },
           "ownerToken": {
             "type": "string",
@@ -5382,7 +5420,8 @@
           "idempotencyKey": {
             "type": "string",
             "minLength": 1,
-            "maxLength": 200
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
           },
           "expectedInputHash": {
             "type": "string",
@@ -5398,12 +5437,14 @@
               "bundleId": {
                 "type": "string",
                 "minLength": 1,
-                "maxLength": 200
+                "maxLength": 200,
+                "pattern": "^[A-Za-z0-9._:-]+$"
               },
               "cycleId": {
                 "type": "string",
                 "minLength": 1,
-                "maxLength": 200
+                "maxLength": 200,
+                "pattern": "^[A-Za-z0-9._:-]+$"
               },
               "analysisRevision": {
                 "type": "object",
@@ -5411,23 +5452,21 @@
                   "artifactId": {
                     "type": "string",
                     "minLength": 1,
-                    "maxLength": 200
+                    "maxLength": 200,
+                    "pattern": "^[A-Za-z0-9._:-]+$"
                   },
                   "revisionId": {
                     "type": "string",
                     "minLength": 1,
-                    "maxLength": 200
+                    "maxLength": 200,
+                    "pattern": "^[A-Za-z0-9._:-]+$"
                   },
                   "contentHash": {
                     "type": "string",
                     "pattern": "^sha256:[a-f0-9]{64}$"
                   }
                 },
-                "required": [
-                  "artifactId",
-                  "revisionId",
-                  "contentHash"
-                ],
+                "required": ["artifactId", "revisionId", "contentHash"],
                 "additionalProperties": false
               },
               "analysisApproval": {
@@ -5436,23 +5475,22 @@
                   "artifactId": {
                     "type": "string",
                     "minLength": 1,
-                    "maxLength": 200
+                    "maxLength": 200,
+                    "pattern": "^[A-Za-z0-9._:-]+$"
                   },
                   "contentHash": {
                     "type": "string",
                     "pattern": "^sha256:[a-f0-9]{64}$"
                   }
                 },
-                "required": [
-                  "artifactId",
-                  "contentHash"
-                ],
+                "required": ["artifactId", "contentHash"],
                 "additionalProperties": false
               },
               "authorizationId": {
                 "type": "string",
                 "minLength": 1,
-                "maxLength": 200
+                "maxLength": 200,
+                "pattern": "^[A-Za-z0-9._:-]+$"
               },
               "inputHash": {
                 "type": "string",
@@ -5498,23 +5536,21 @@
                     "artifactId": {
                       "type": "string",
                       "minLength": 1,
-                      "maxLength": 200
+                      "maxLength": 200,
+                      "pattern": "^[A-Za-z0-9._:-]+$"
                     },
                     "revisionId": {
                       "type": "string",
                       "minLength": 1,
-                      "maxLength": 200
+                      "maxLength": 200,
+                      "pattern": "^[A-Za-z0-9._:-]+$"
                     },
                     "contentHash": {
                       "type": "string",
                       "pattern": "^sha256:[a-f0-9]{64}$"
                     }
                   },
-                  "required": [
-                    "kind",
-                    "artifactId",
-                    "contentHash"
-                  ],
+                  "required": ["kind", "artifactId", "contentHash"],
                   "additionalProperties": false
                 }
               },
@@ -5528,17 +5564,15 @@
                     "artifactId": {
                       "type": "string",
                       "minLength": 1,
-                      "maxLength": 200
+                      "maxLength": 200,
+                      "pattern": "^[A-Za-z0-9._:-]+$"
                     },
                     "contentHash": {
                       "type": "string",
                       "pattern": "^sha256:[a-f0-9]{64}$"
                     }
                   },
-                  "required": [
-                    "artifactId",
-                    "contentHash"
-                  ],
+                  "required": ["artifactId", "contentHash"],
                   "additionalProperties": false
                 }
               },
@@ -5553,7 +5587,8 @@
                   "snapshotId": {
                     "type": "string",
                     "minLength": 1,
-                    "maxLength": 200
+                    "maxLength": 200,
+                    "pattern": "^[A-Za-z0-9._:-]+$"
                   },
                   "capturedAt": {
                     "type": "string",
@@ -5565,11 +5600,7 @@
                     "pattern": "^sha256:[a-f0-9]{64}$"
                   }
                 },
-                "required": [
-                  "snapshotId",
-                  "capturedAt",
-                  "contentHash"
-                ],
+                "required": ["snapshotId", "capturedAt", "contentHash"],
                 "additionalProperties": false
               },
               "observations": {
@@ -5582,12 +5613,14 @@
                     "observationId": {
                       "type": "string",
                       "minLength": 1,
-                      "maxLength": 200
+                      "maxLength": 200,
+                      "pattern": "^[A-Za-z0-9._:-]+$"
                     },
                     "snapshotId": {
                       "type": "string",
                       "minLength": 1,
-                      "maxLength": 200
+                      "maxLength": 200,
+                      "pattern": "^[A-Za-z0-9._:-]+$"
                     },
                     "routeId": {
                       "type": "string",
@@ -5597,7 +5630,8 @@
                     "environmentId": {
                       "type": "string",
                       "minLength": 1,
-                      "maxLength": 200
+                      "maxLength": 200,
+                      "pattern": "^[A-Za-z0-9._:-]+$"
                     },
                     "fact": {
                       "type": "string",
@@ -5611,16 +5645,13 @@
                       "items": {
                         "type": "string",
                         "minLength": 1,
-                        "maxLength": 200
+                        "maxLength": 200,
+                        "pattern": "^[A-Za-z0-9._:-]+$"
                       }
                     },
                     "confidence": {
                       "type": "string",
-                      "enum": [
-                        "LOW",
-                        "MEDIUM",
-                        "HIGH"
-                      ]
+                      "enum": ["LOW", "MEDIUM", "HIGH"]
                     },
                     "confidenceRationale": {
                       "type": "string",
@@ -5629,11 +5660,7 @@
                     },
                     "stability": {
                       "type": "string",
-                      "enum": [
-                        "STABLE",
-                        "CONDITIONAL",
-                        "VOLATILE"
-                      ]
+                      "enum": ["STABLE", "CONDITIONAL", "VOLATILE"]
                     },
                     "stabilityRationale": {
                       "type": "string",
@@ -5659,9 +5686,7 @@
                           "maximum": 31536000
                         }
                       },
-                      "required": [
-                        "triggers"
-                      ],
+                      "required": ["triggers"],
                       "additionalProperties": false
                     }
                   },
@@ -5744,11 +5769,7 @@
           },
           "actor": {
             "type": "string",
-            "enum": [
-              "USER",
-              "COORDINATOR",
-              "RUNNER"
-            ]
+            "enum": ["USER", "COORDINATOR", "RUNNER"]
           },
           "reason": {
             "type": "string",
@@ -5756,13 +5777,7 @@
             "maxLength": 8000
           }
         },
-        "required": [
-          "target",
-          "journeyId",
-          "workItemId",
-          "actor",
-          "reason"
-        ],
+        "required": ["target", "journeyId", "workItemId", "actor", "reason"],
         "additionalProperties": false
       },
       "annotations": {
@@ -5805,11 +5820,7 @@
             "maximum": 900
           }
         },
-        "required": [
-          "target",
-          "journeyId",
-          "role"
-        ],
+        "required": ["target", "journeyId", "role"],
         "additionalProperties": false
       },
       "annotations": {
@@ -5855,14 +5866,7 @@
             "additionalProperties": {}
           }
         },
-        "required": [
-          "target",
-          "journeyId",
-          "workItemId",
-          "leaseId",
-          "ownerToken",
-          "result"
-        ],
+        "required": ["target", "journeyId", "workItemId", "leaseId", "ownerToken", "result"],
         "additionalProperties": false
       },
       "annotations": {
@@ -5901,13 +5905,7 @@
             "minLength": 1
           }
         },
-        "required": [
-          "target",
-          "journeyId",
-          "workItemId",
-          "leaseId",
-          "ownerToken"
-        ],
+        "required": ["target", "journeyId", "workItemId", "leaseId", "ownerToken"],
         "additionalProperties": false
       },
       "annotations": {
@@ -5939,11 +5937,7 @@
           },
           "actor": {
             "type": "string",
-            "enum": [
-              "USER",
-              "COORDINATOR",
-              "RUNNER"
-            ]
+            "enum": ["USER", "COORDINATOR", "RUNNER"]
           },
           "reason": {
             "type": "string",
@@ -5951,13 +5945,7 @@
             "maxLength": 8000
           }
         },
-        "required": [
-          "target",
-          "journeyId",
-          "workItemId",
-          "actor",
-          "reason"
-        ],
+        "required": ["target", "journeyId", "workItemId", "actor", "reason"],
         "additionalProperties": false
       },
       "annotations": {
@@ -5989,11 +5977,7 @@
           },
           "decision": {
             "type": "string",
-            "enum": [
-              "APPROVED",
-              "NEEDS_REVISION",
-              "REJECTED"
-            ]
+            "enum": ["APPROVED", "NEEDS_REVISION", "REJECTED"]
           },
           "decidedBy": {
             "type": "string",
@@ -6006,14 +5990,7 @@
           "responseMode": {
             "default": "summary",
             "type": "string",
-            "enum": [
-              "summary",
-              "decisionOnly",
-              "evidenceOnly",
-              "blockersOnly",
-              "linksOnly",
-              "full"
-            ],
+            "enum": ["summary", "decisionOnly", "evidenceOnly", "blockersOnly", "linksOnly", "full"],
             "description": "Response projection: summary (compact default), decisionOnly (decision hash/status/counts), evidenceOnly, blockersOnly, linksOnly, or full (largest payload)."
           }
         },
@@ -6078,12 +6055,7 @@
                     "pattern": "^sha256:.*"
                   }
                 },
-                "required": [
-                  "providerId",
-                  "methodologyId",
-                  "version",
-                  "digest"
-                ],
+                "required": ["providerId", "methodologyId", "version", "digest"],
                 "additionalProperties": false
               },
               "requirements": {
@@ -6101,10 +6073,7 @@
                       "minLength": 1
                     }
                   },
-                  "required": [
-                    "id",
-                    "text"
-                  ],
+                  "required": ["id", "text"],
                   "additionalProperties": false
                 }
               },
@@ -6123,11 +6092,7 @@
                     },
                     "confidence": {
                       "type": "string",
-                      "enum": [
-                        "LOW",
-                        "MEDIUM",
-                        "HIGH"
-                      ]
+                      "enum": ["LOW", "MEDIUM", "HIGH"]
                     },
                     "provenance": {
                       "type": "object",
@@ -6143,19 +6108,11 @@
                           "type": "string"
                         }
                       },
-                      "required": [
-                        "sourceRequirementIds",
-                        "rationale"
-                      ],
+                      "required": ["sourceRequirementIds", "rationale"],
                       "additionalProperties": false
                     }
                   },
-                  "required": [
-                    "id",
-                    "statement",
-                    "confidence",
-                    "provenance"
-                  ],
+                  "required": ["id", "statement", "confidence", "provenance"],
                   "additionalProperties": false
                 }
               },
@@ -6183,12 +6140,7 @@
                     },
                     "minimumAssurance": {
                       "type": "string",
-                      "enum": [
-                        "SMOKE",
-                        "STANDARD",
-                        "HIGH",
-                        "EXHAUSTIVE"
-                      ]
+                      "enum": ["SMOKE", "STANDARD", "HIGH", "EXHAUSTIVE"]
                     },
                     "provenance": {
                       "type": "object",
@@ -6204,53 +6156,26 @@
                           "type": "string"
                         }
                       },
-                      "required": [
-                        "sourceRequirementIds",
-                        "rationale"
-                      ],
+                      "required": ["sourceRequirementIds", "rationale"],
                       "additionalProperties": false
                     }
                   },
-                  "required": [
-                    "id",
-                    "requirementIds",
-                    "intent",
-                    "minimumAssurance",
-                    "provenance"
-                  ],
+                  "required": ["id", "requirementIds", "intent", "minimumAssurance", "provenance"],
                   "additionalProperties": false
                 }
               }
             },
-            "required": [
-              "schemaVersion",
-              "methodology",
-              "requirements",
-              "inferences",
-              "obligations"
-            ],
+            "required": ["schemaVersion", "methodology", "requirements", "inferences", "obligations"],
             "additionalProperties": false
           },
           "responseMode": {
             "default": "summary",
             "type": "string",
-            "enum": [
-              "summary",
-              "decisionOnly",
-              "evidenceOnly",
-              "blockersOnly",
-              "linksOnly",
-              "full"
-            ],
+            "enum": ["summary", "decisionOnly", "evidenceOnly", "blockersOnly", "linksOnly", "full"],
             "description": "Response projection: summary (compact default), decisionOnly (decision hash/status/counts), evidenceOnly, blockersOnly, linksOnly, or full (largest payload)."
           }
         },
-        "required": [
-          "qualityPlanId",
-          "revisionId",
-          "proposal",
-          "responseMode"
-        ],
+        "required": ["qualityPlanId", "revisionId", "proposal", "responseMode"],
         "additionalProperties": false
       },
       "annotations": {
@@ -6279,22 +6204,11 @@
           "responseMode": {
             "default": "summary",
             "type": "string",
-            "enum": [
-              "summary",
-              "decisionOnly",
-              "evidenceOnly",
-              "blockersOnly",
-              "linksOnly",
-              "full"
-            ],
+            "enum": ["summary", "decisionOnly", "evidenceOnly", "blockersOnly", "linksOnly", "full"],
             "description": "Response projection: summary (compact default), decisionOnly (decision hash/status/counts), evidenceOnly, blockersOnly, linksOnly, or full (largest payload)."
           }
         },
-        "required": [
-          "qualityPlanId",
-          "analysisId",
-          "responseMode"
-        ],
+        "required": ["qualityPlanId", "analysisId", "responseMode"],
         "additionalProperties": false
       },
       "annotations": {
@@ -6330,11 +6244,7 @@
                 },
                 "status": {
                   "type": "string",
-                  "enum": [
-                    "ANSWERED",
-                    "DEFERRED",
-                    "ACCEPTED_ASSUMPTION"
-                  ]
+                  "enum": ["ANSWERED", "DEFERRED", "ACCEPTED_ASSUMPTION"]
                 },
                 "answer": {
                   "type": "string"
@@ -6343,10 +6253,7 @@
                   "type": "string"
                 }
               },
-              "required": [
-                "queryId",
-                "status"
-              ],
+              "required": ["queryId", "status"],
               "additionalProperties": false
             }
           },
@@ -6357,23 +6264,11 @@
           "responseMode": {
             "default": "summary",
             "type": "string",
-            "enum": [
-              "summary",
-              "decisionOnly",
-              "evidenceOnly",
-              "blockersOnly",
-              "linksOnly",
-              "full"
-            ],
+            "enum": ["summary", "decisionOnly", "evidenceOnly", "blockersOnly", "linksOnly", "full"],
             "description": "Response projection: summary (compact default), decisionOnly (decision hash/status/counts), evidenceOnly, blockersOnly, linksOnly, or full (largest payload)."
           }
         },
-        "required": [
-          "qualityPlanId",
-          "answers",
-          "idempotencyKey",
-          "responseMode"
-        ],
+        "required": ["qualityPlanId", "answers", "idempotencyKey", "responseMode"],
         "additionalProperties": false
       },
       "annotations": {
@@ -6402,21 +6297,11 @@
           "responseMode": {
             "default": "summary",
             "type": "string",
-            "enum": [
-              "summary",
-              "decisionOnly",
-              "evidenceOnly",
-              "blockersOnly",
-              "linksOnly",
-              "full"
-            ],
+            "enum": ["summary", "decisionOnly", "evidenceOnly", "blockersOnly", "linksOnly", "full"],
             "description": "Response projection: summary (compact default), decisionOnly (decision hash/status/counts), evidenceOnly, blockersOnly, linksOnly, or full (largest payload)."
           }
         },
-        "required": [
-          "qualityPlanId",
-          "responseMode"
-        ],
+        "required": ["qualityPlanId", "responseMode"],
         "additionalProperties": false
       },
       "annotations": {
@@ -6444,23 +6329,11 @@
           "responseMode": {
             "default": "summary",
             "type": "string",
-            "enum": [
-              "summary",
-              "decisionOnly",
-              "evidenceOnly",
-              "blockersOnly",
-              "linksOnly",
-              "full"
-            ],
+            "enum": ["summary", "decisionOnly", "evidenceOnly", "blockersOnly", "linksOnly", "full"],
             "description": "Response projection: summary (compact default), decisionOnly (decision hash/status/counts), evidenceOnly, blockersOnly, linksOnly, or full (largest payload)."
           }
         },
-        "required": [
-          "target",
-          "source",
-          "idempotencyKey",
-          "responseMode"
-        ],
+        "required": ["target", "source", "idempotencyKey", "responseMode"],
         "additionalProperties": false
       },
       "annotations": {
@@ -6484,9 +6357,7 @@
             "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
           }
         },
-        "required": [
-          "draftId"
-        ],
+        "required": ["draftId"],
         "additionalProperties": false
       },
       "annotations": {
@@ -6525,11 +6396,7 @@
             "pattern": "^\\d+$"
           }
         },
-        "required": [
-          "query",
-          "parameterNames",
-          "limit"
-        ],
+        "required": ["query", "parameterNames", "limit"],
         "additionalProperties": false
       },
       "annotations": {
@@ -6557,22 +6424,11 @@
           "responseMode": {
             "default": "summary",
             "type": "string",
-            "enum": [
-              "summary",
-              "decisionOnly",
-              "evidenceOnly",
-              "blockersOnly",
-              "linksOnly",
-              "full"
-            ],
+            "enum": ["summary", "decisionOnly", "evidenceOnly", "blockersOnly", "linksOnly", "full"],
             "description": "Response projection: summary (compact default), decisionOnly (decision hash/status/counts), evidenceOnly, blockersOnly, linksOnly, or full (largest payload)."
           }
         },
-        "required": [
-          "target",
-          "runId",
-          "responseMode"
-        ],
+        "required": ["target", "runId", "responseMode"],
         "additionalProperties": false
       },
       "annotations": {
@@ -6600,22 +6456,11 @@
           "responseMode": {
             "default": "summary",
             "type": "string",
-            "enum": [
-              "summary",
-              "decisionOnly",
-              "evidenceOnly",
-              "blockersOnly",
-              "linksOnly",
-              "full"
-            ],
+            "enum": ["summary", "decisionOnly", "evidenceOnly", "blockersOnly", "linksOnly", "full"],
             "description": "Response projection: summary (compact default), decisionOnly (decision hash/status/counts), evidenceOnly, blockersOnly, linksOnly, or full (largest payload)."
           }
         },
-        "required": [
-          "target",
-          "runId",
-          "responseMode"
-        ],
+        "required": ["target", "runId", "responseMode"],
         "additionalProperties": false
       },
       "annotations": {
@@ -6666,12 +6511,7 @@
                     "minLength": 1
                   }
                 },
-                "required": [
-                  "sourceKind",
-                  "publicationId",
-                  "validationVersionId",
-                  "idempotencyKey"
-                ],
+                "required": ["sourceKind", "publicationId", "validationVersionId", "idempotencyKey"],
                 "additionalProperties": false
               },
               {
@@ -6697,51 +6537,28 @@
                           "minLength": 1
                         }
                       },
-                      "required": [
-                        "testSuiteId",
-                        "testCaseId"
-                      ],
+                      "required": ["testSuiteId", "testCaseId"],
                       "additionalProperties": false
                     }
                   }
                 },
-                "required": [
-                  "sourceKind",
-                  "selections"
-                ],
+                "required": ["sourceKind", "selections"],
                 "additionalProperties": false
               }
             ]
           },
           "browserEngine": {
             "type": "string",
-            "enum": [
-              "CHROMIUM",
-              "FIREFOX",
-              "WEBKIT"
-            ]
+            "enum": ["CHROMIUM", "FIREFOX", "WEBKIT"]
           },
           "responseMode": {
             "default": "summary",
             "type": "string",
-            "enum": [
-              "summary",
-              "decisionOnly",
-              "evidenceOnly",
-              "blockersOnly",
-              "linksOnly",
-              "full"
-            ],
+            "enum": ["summary", "decisionOnly", "evidenceOnly", "blockersOnly", "linksOnly", "full"],
             "description": "Response projection: summary (compact default), decisionOnly (decision hash/status/counts), evidenceOnly, blockersOnly, linksOnly, or full (largest payload)."
           }
         },
-        "required": [
-          "target",
-          "environmentId",
-          "name",
-          "source",
-          "responseMode"
-        ],
+        "required": ["target", "environmentId", "name", "source", "responseMode"],
         "additionalProperties": false
       },
       "annotations": {
@@ -6773,11 +6590,7 @@
           },
           "decision": {
             "type": "string",
-            "enum": [
-              "APPROVED",
-              "NEEDS_REVISION",
-              "REJECTED"
-            ]
+            "enum": ["APPROVED", "NEEDS_REVISION", "REJECTED"]
           },
           "decidedBy": {
             "type": "string",
@@ -6790,14 +6603,7 @@
           "responseMode": {
             "default": "summary",
             "type": "string",
-            "enum": [
-              "summary",
-              "decisionOnly",
-              "evidenceOnly",
-              "blockersOnly",
-              "linksOnly",
-              "full"
-            ],
+            "enum": ["summary", "decisionOnly", "evidenceOnly", "blockersOnly", "linksOnly", "full"],
             "description": "Response projection: summary (compact default), decisionOnly (decision hash/status/counts), evidenceOnly, blockersOnly, linksOnly, or full (largest payload)."
           }
         },
@@ -6874,22 +6680,12 @@
                     "pattern": "^sha256:.*"
                   }
                 },
-                "required": [
-                  "providerId",
-                  "methodologyId",
-                  "version",
-                  "digest"
-                ],
+                "required": ["providerId", "methodologyId", "version", "digest"],
                 "additionalProperties": false
               },
               "requiredAssurance": {
                 "type": "string",
-                "enum": [
-                  "SMOKE",
-                  "STANDARD",
-                  "HIGH",
-                  "EXHAUSTIVE"
-                ]
+                "enum": ["SMOKE", "STANDARD", "HIGH", "EXHAUSTIVE"]
               },
               "scenarios": {
                 "minItems": 1,
@@ -6919,11 +6715,7 @@
                     },
                     "kind": {
                       "type": "string",
-                      "enum": [
-                        "POSITIVE",
-                        "NEGATIVE",
-                        "RECOVERY"
-                      ]
+                      "enum": ["POSITIVE", "NEGATIVE", "RECOVERY"]
                     },
                     "assertions": {
                       "minItems": 1,
@@ -6943,22 +6735,13 @@
                             "type": "boolean"
                           }
                         },
-                        "required": [
-                          "id",
-                          "statement",
-                          "observable"
-                        ],
+                        "required": ["id", "statement", "observable"],
                         "additionalProperties": false
                       }
                     },
                     "requiredMinimumAssurance": {
                       "type": "string",
-                      "enum": [
-                        "SMOKE",
-                        "STANDARD",
-                        "HIGH",
-                        "EXHAUSTIVE"
-                      ]
+                      "enum": ["SMOKE", "STANDARD", "HIGH", "EXHAUSTIVE"]
                     },
                     "matrix": {
                       "type": "object",
@@ -6978,10 +6761,7 @@
                                 "minLength": 1
                               }
                             },
-                            "required": [
-                              "browser",
-                              "environment"
-                            ],
+                            "required": ["browser", "environment"],
                             "additionalProperties": false
                           }
                         },
@@ -6989,10 +6769,7 @@
                           "type": "string"
                         }
                       },
-                      "required": [
-                        "cells",
-                        "rationale"
-                      ],
+                      "required": ["cells", "rationale"],
                       "additionalProperties": false
                     },
                     "failureMeaning": {
@@ -7014,25 +6791,13 @@
                 }
               }
             },
-            "required": [
-              "schemaVersion",
-              "methodology",
-              "requiredAssurance",
-              "scenarios"
-            ],
+            "required": ["schemaVersion", "methodology", "requiredAssurance", "scenarios"],
             "additionalProperties": false
           },
           "responseMode": {
             "default": "summary",
             "type": "string",
-            "enum": [
-              "summary",
-              "decisionOnly",
-              "evidenceOnly",
-              "blockersOnly",
-              "linksOnly",
-              "full"
-            ],
+            "enum": ["summary", "decisionOnly", "evidenceOnly", "blockersOnly", "linksOnly", "full"],
             "description": "Response projection: summary (compact default), decisionOnly (decision hash/status/counts), evidenceOnly, blockersOnly, linksOnly, or full (largest payload)."
           }
         },
@@ -7073,22 +6838,11 @@
           "responseMode": {
             "default": "summary",
             "type": "string",
-            "enum": [
-              "summary",
-              "decisionOnly",
-              "evidenceOnly",
-              "blockersOnly",
-              "linksOnly",
-              "full"
-            ],
+            "enum": ["summary", "decisionOnly", "evidenceOnly", "blockersOnly", "linksOnly", "full"],
             "description": "Response projection: summary (compact default), decisionOnly (decision hash/status/counts), evidenceOnly, blockersOnly, linksOnly, or full (largest payload)."
           }
         },
-        "required": [
-          "qualityPlanId",
-          "designId",
-          "responseMode"
-        ],
+        "required": ["qualityPlanId", "designId", "responseMode"],
         "additionalProperties": false
       },
       "annotations": {

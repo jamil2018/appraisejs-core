@@ -41,10 +41,24 @@ import {
   submitQualityJourneyScenarioPortfolio,
 } from './quality-journey-scenario-service'
 import { hashScenarioPortfolio } from '@/lib/quality-journey'
+import { defaultOperationDefinitions } from '@/lib/operation-catalog'
+import {
+  builtInStepDefinitions,
+  canonicalStepDefinitionJson,
+  computeStepDefinitionHashes,
+  computeStepReferenceHash,
+  stepInvocationSchema,
+} from '../../../packages/cucumber-runtime/src/step-definitions/index.ts'
+import {
+  getQualityJourneyAutomationContext,
+  materializeQualityJourneyApprovedScenarios,
+} from './quality-journey-automation-service'
 
 const workspaces: string[] = []
 const digest = (character: string) => `sha256:${character.repeat(64)}`
 const hash = (value: unknown) => `sha256:${createHash('sha256').update(canonicalContractJson(value)).digest('hex')}`
+const phaseSixId = (kind: string, ...parts: string[]) =>
+  `qja_${kind}_${createHash('sha256').update(parts.join(':')).digest('hex').slice(0, 24)}`
 
 afterEach(async () => {
   clearAgentFactoryProviderAdaptersForTest()
@@ -416,8 +430,13 @@ async function completedDiscovery(client: PrismaClient, suffix: string) {
     },
     client,
   )
-  const frozenResource = (JSON.parse(discovery.resourceScopeJson) as { resources: Array<{ id: string; kind: string }> })
-    .resources[0]
+  const frozenResources = (
+    JSON.parse(discovery.resourceScopeJson) as {
+      resources: Array<{ id: string; kind: string }>
+    }
+  ).resources
+  const frozenResource = frozenResources.find(resource => resource.kind !== 'MODULE')!
+  const frozenModule = frozenResources.find(resource => resource.kind === 'MODULE')!
   const resourceScope = JSON.parse(discovery.resourceWorkItem.authorizationScopeJson)
   await submitQualityJourneyResourceResolution(
     {
@@ -440,18 +459,17 @@ async function completedDiscovery(client: PrismaClient, suffix: string) {
         inputHash: discovery.resourceInputHash,
         assignmentScopeHash: hash(resourceScope),
         resolvedAt: '2026-09-04T00:00:00.000Z',
+        destinationModuleId: frozenModule.id.slice('module:'.length),
         approvedRequirementIds: ['REQ-CHECKOUT-1'],
-        reusable: [
-          {
-            resourceId: frozenResource.id,
-            resourceKind: frozenResource.kind,
-            requirementId: 'REQ-CHECKOUT-1',
-            rank: 1,
-            explanation: 'The frozen resource is compatible.',
-            evidenceReceiptIds: [`${suffix}-evidence`],
-            reasonCode: 'COMPATIBLE' as const,
-          },
-        ],
+        reusable: frozenResources.map((resource, index) => ({
+          resourceId: resource.id,
+          resourceKind: resource.kind,
+          requirementId: 'REQ-CHECKOUT-1',
+          rank: index + 1,
+          explanation: 'The frozen resource is compatible.',
+          evidenceReceiptIds: [`${suffix}-evidence`],
+          reasonCode: 'COMPATIBLE' as const,
+        })),
         incompatible: [],
         stale: [],
         crossTarget: [],
@@ -563,6 +581,51 @@ describe('Quality Journey Phase 3 through Phase 5 control plane', () => {
         inputArtifactRefs: [charterRef],
         payload: { revisionId: 'analysis-revision-1', contentHash, decision: 'APPROVED' },
       }
+      // Discovery freezes the resource catalog. Seed the Step Definition
+      // before approval so the later Automator assignment may legitimately
+      // select it from the Resource Explorer output.
+      const discoveryOperation = defaultOperationDefinitions.find(
+        candidate => candidate.id === 'browser.assertions.no-console-errors',
+      )!
+      const discoveryDefinition = builtInStepDefinitions.find(
+        candidate =>
+          candidate.execution.kind === 'operation' &&
+          candidate.execution.handlerId === discoveryOperation.handler.id &&
+          candidate.execution.handlerVersion === discoveryOperation.handler.version,
+      )!
+      const discoveryDefinitionHashes = computeStepDefinitionHashes(discoveryDefinition)
+      await client.stepDefinition.create({
+        data: {
+          id: discoveryDefinition.identity.id,
+          version: discoveryDefinition.identity.version,
+          status: 'ready',
+          title: discoveryDefinition.intent.title,
+          description: discoveryDefinition.intent.description,
+          definitionJson: canonicalContractJson(discoveryDefinition),
+          definitionHash: discoveryDefinitionHashes.definitionHash,
+          humanProjectionHash: discoveryDefinitionHashes.humanProjectionHash,
+          executionHash: discoveryDefinitionHashes.executionHash,
+          provenanceJson: canonicalContractJson(discoveryDefinition.provenance),
+          executionBinding: {
+            create: {
+              kind: 'operation',
+              bindingJson: canonicalContractJson(discoveryDefinition.execution),
+              bindingHash: discoveryDefinitionHashes.executionHash,
+            },
+          },
+        },
+      })
+      await client.projectResourceOwnership.create({
+        data: {
+          id: `ownership-${discoveryDefinition.identity.id}`,
+          entityType: 'step-definition',
+          entityId: discoveryDefinition.identity.id,
+          scope: 'project',
+          targetProjectId: 'target-analysis-1',
+          origin: 'fixture',
+          contentHash: discoveryDefinitionHashes.definitionHash,
+        },
+      })
       await expect(decideQualityJourneyAnalysis(decide, client)).resolves.toMatchObject({
         outcome: 'COMMITTED',
         successorStage: 'DISCOVERY',
@@ -758,9 +821,15 @@ describe('Quality Journey Phase 3 through Phase 5 control plane', () => {
         ),
       ).rejects.toMatchObject({ code: 'UNAUTHORIZED' })
       const resourceScope = JSON.parse(discoveryRevision.resourceWorkItem.authorizationScopeJson)
-      const frozenResource = (
+      const frozenResources = (
         JSON.parse(discoveryRevision.resourceScopeJson) as { resources: Array<{ id: string; kind: string }> }
-      ).resources[0]
+      ).resources
+      const frozenResource = frozenResources.find(resource => resource.kind !== 'MODULE')!
+      const frozenModule = frozenResources.find(resource => resource.kind === 'MODULE')!
+      const compatibleOperation = defaultOperationDefinitions.find(
+        candidate => candidate.id === 'browser.assertions.no-console-errors',
+      )!
+      const compatibleOperationId = `operation:${compatibleOperation.id}:${compatibleOperation.version}`
       const resourceBundle = {
         ...bundleBase,
         bundleId: 'resource-bundle-1',
@@ -770,19 +839,33 @@ describe('Quality Journey Phase 3 through Phase 5 control plane', () => {
         inputHash: discoveryRevision.resourceInputHash,
         assignmentScopeHash: hash(resourceScope),
         resolvedAt: '2026-09-04T00:00:00.000Z',
+        destinationModuleId: frozenModule.id.slice('module:'.length),
         approvedRequirementIds: ['REQ-CHECKOUT-1'],
-        reusable: [
-          {
-            resourceId: frozenResource.id,
-            resourceKind: frozenResource.kind,
+        reusable: frozenResources
+          .filter(resource => resource.kind !== 'OPERATION' || resource.id === compatibleOperationId)
+          .map((resource, index) => ({
+            resourceId: resource.id,
+            resourceKind: resource.kind,
             requirementId: 'REQ-CHECKOUT-1',
-            rank: 1,
+            rank: index + 1,
             explanation: 'The frozen resource is compatible.',
             evidenceReceiptIds: ['evidence-1'],
             reasonCode: 'COMPATIBLE' as const,
-          },
-        ],
-        incompatible: [],
+          })),
+        incompatible: frozenResources
+          .filter(resource => resource.kind === 'OPERATION' && resource.id !== compatibleOperationId)
+          .map((resource, index) => ({
+            resourceId: resource.id,
+            resourceKind: resource.kind,
+            requirementId: 'REQ-CHECKOUT-1',
+            rank:
+              frozenResources.filter(item => item.kind !== 'OPERATION' || item.id === compatibleOperationId).length +
+              index +
+              1,
+            explanation: 'This operation is not approved for the selected scenario authority.',
+            evidenceReceiptIds: ['evidence-1'],
+            reasonCode: 'INCOMPATIBLE' as const,
+          })),
         stale: [],
         crossTarget: [],
         missing: [],
@@ -802,7 +885,9 @@ describe('Quality Journey Phase 3 through Phase 5 control plane', () => {
             expectedScopeHash: hash(resourceScope),
             bundle: {
               ...resourceBundle,
-              reusable: [{ ...resourceBundle.reusable[0], resourceKind: 'TEMPLATE' }],
+              reusable: resourceBundle.reusable.map((resource, index) =>
+                index === 0 ? { ...resource, resourceKind: 'TEMPLATE' } : resource,
+              ),
             },
           },
           client,
@@ -900,7 +985,10 @@ describe('Quality Journey Phase 3 through Phase 5 control plane', () => {
           stableScenarioId,
           scenarioRevisionId: `${stableScenarioId}-r1`,
           behavioralIntent: {
-            title: `Checkout ${index + 1}`,
+            // The two approved revisions deliberately have equivalent target
+            // intent so the second materialization must reuse the first
+            // durable semantic binding, not rediscover an arbitrary case.
+            title: index < 2 ? 'Checkout' : 'Checkout 3',
             narrative: 'A shopper completes checkout.',
             requirementIds: ['REQ-CHECKOUT-1'],
             expectedSignals: ['Confirmation'],
@@ -1069,7 +1157,7 @@ describe('Quality Journey Phase 3 through Phase 5 control plane', () => {
       await expect(
         disposeQualityJourneyScenarioComment({ ...dispositionInput, actor: 'OTHER' }, client),
       ).rejects.toMatchObject({ code: 'CONFLICT' })
-      const laterComment = await commentQualityJourneyScenarioPortfolio(
+      await commentQualityJourneyScenarioPortfolio(
         {
           ...commentInput,
           comment: 'A later review mutation must not rewrite the original receipt.',
@@ -1207,6 +1295,585 @@ describe('Quality Journey Phase 3 through Phase 5 control plane', () => {
           `UPDATE "QualityJourneyScenarioDecisionReceipt" SET "resultJson" = '{}' WHERE "journeyId" = '${created.journey.journeyId}' AND "idempotencyKey" = 'decide-scenario-2'`,
         ),
       ).rejects.toThrow('Scenario decision receipts are immutable')
+      const operation = defaultOperationDefinitions.find(
+        candidate => candidate.id === 'browser.assertions.no-console-errors',
+      )!
+      const readyDefinition = builtInStepDefinitions.find(
+        candidate =>
+          candidate.execution.kind === 'operation' &&
+          candidate.execution.handlerId === operation.handler.id &&
+          candidate.execution.handlerVersion === operation.handler.version,
+      )!
+      const definitionHashes = computeStepDefinitionHashes(readyDefinition)
+      await client.stepDefinition.upsert({
+        where: { id_version: { id: readyDefinition.identity.id, version: readyDefinition.identity.version } },
+        create: {
+          id: readyDefinition.identity.id,
+          version: readyDefinition.identity.version,
+          status: 'ready',
+          title: readyDefinition.intent.title,
+          description: readyDefinition.intent.description,
+          definitionJson: canonicalContractJson(readyDefinition),
+          definitionHash: definitionHashes.definitionHash,
+          humanProjectionHash: definitionHashes.humanProjectionHash,
+          executionHash: definitionHashes.executionHash,
+          provenanceJson: canonicalContractJson(readyDefinition.provenance),
+          executionBinding: {
+            create: {
+              kind: 'operation',
+              bindingJson: canonicalContractJson(readyDefinition.execution),
+              bindingHash: definitionHashes.executionHash,
+            },
+          },
+        },
+        update: {},
+      })
+      const automatorClaim = await claimQualityJourneyWork(
+        { journeyId: created.journey.journeyId, targetProjectId: 'target-analysis-1', role: 'AUTOMATOR' },
+        client,
+      )
+      registerStartedAnalyzerAdapter(automatorClaim.attempt.id, 'phase-6-automator-adapter', 'FAST')
+      const phaseSixDispatch = await dispatchQualityJourneyWork(
+        {
+          journeyId: created.journey.journeyId,
+          targetProjectId: 'target-analysis-1',
+          workItemId: automatorClaim.workItem.id,
+          leaseId: automatorClaim.attempt.leaseId,
+          ownerToken: automatorClaim.ownerToken,
+        },
+        client,
+      )
+      expect(phaseSixDispatch.status).toBe('IN_PROGRESS')
+      expect(
+        (await client.qualityJourneyWorkAttempt.findUniqueOrThrow({ where: { id: automatorClaim.attempt.id } }))
+          .spawnReceiptHash,
+      ).toBeTruthy()
+      const automationContext = await getQualityJourneyAutomationContext(
+        { journeyId: created.journey.journeyId, targetProjectId: 'target-analysis-1' },
+        client,
+      )
+      // Scenario-3 was deliberately rejected; only exact approved decisions materialize.
+      expect(automationContext.scenarioRevisionIds).toEqual(['scenario-1-r1', 'scenario-2-r1'])
+      const approvedScenarios = await client.qualityJourneyScenarioRevision.findMany({
+        where: { scenarioRevisionId: { in: automationContext.scenarioRevisionIds } },
+        orderBy: { scenarioRevisionId: 'asc' },
+      })
+      const proposals = approvedScenarios.map(scenario => ({
+        scenarioRevisionId: scenario.scenarioRevisionId,
+        steps: [
+          {
+            sourceScenarioStepId: `${scenario.stableScenarioId}-step`,
+            stepDefinition: {
+              id: readyDefinition.identity.id,
+              version: readyDefinition.identity.version,
+              definitionHash: computeStepReferenceHash(readyDefinition),
+            },
+            operation: { id: operation.id, version: operation.version, handler: operation.handler },
+            parameters: [],
+            testData: [],
+            locatorRequirements: [],
+          },
+        ],
+      }))
+      // A matching authored target must be reused only inside the request's
+      // target. The otherwise-identical foreign target guards against an
+      // unscoped semantic lookup.
+      const reusableScenario = approvedScenarios[0]!
+      const reusableProposal = proposals.find(
+        proposal => proposal.scenarioRevisionId === reusableScenario.scenarioRevisionId,
+      )!
+      const reusableIntent = JSON.parse(reusableScenario.behavioralIntentJson) as {
+        title: string
+        narrative: string
+        steps: Array<{ action: string; expected: string }>
+      }
+      const reusableSuiteId = 'existing-semantic-suite'
+      const reusableCaseId = 'existing-semantic-case'
+      const reusableInvocation = canonicalStepDefinitionJson({
+        step: reusableProposal.steps[0]!.stepDefinition,
+        inputs: {},
+        presentation: { keyword: 'Then', description: reusableIntent.steps[0]!.expected },
+      })
+      const seedReusableTarget = async (targetProjectId: string, moduleId: string, suffix: string) => {
+        const suiteId = `${reusableSuiteId}-${suffix}`
+        const testCaseId = `${reusableCaseId}-${suffix}`
+        await client.testSuite.create({
+          data: {
+            id: suiteId,
+            name: reusableIntent.title,
+            description: reusableIntent.narrative,
+            moduleId,
+            targetProjectId,
+          },
+        })
+        await client.testCase.create({
+          data: {
+            id: testCaseId,
+            title: reusableIntent.title,
+            description: reusableIntent.narrative,
+            targetProjectId,
+            TestSuite: { connect: { id: suiteId } },
+            steps: {
+              create: {
+                id: `existing-semantic-step-${suffix}`,
+                order: 0,
+                gherkinStep: reusableIntent.steps[0]!.action,
+                label: reusableIntent.steps[0]!.expected,
+                icon: 'VALIDATION',
+                invocationJson: reusableInvocation,
+              },
+            },
+          },
+        })
+        return { suiteId, testCaseId }
+      }
+      const reusableTarget = await seedReusableTarget('target-analysis-1', 'module-analysis-1', 'local')
+      await client.targetProject.create({
+        data: {
+          id: 'target-semantic-foreign',
+          kind: 'LOCAL_WORKSPACE',
+          canonicalIdentity: 'path:/semantic-foreign',
+          canonicalPath: '/semantic-foreign',
+          displayName: 'Foreign semantic fixture',
+          fingerprint: digest('f'),
+        },
+      })
+      await client.module.create({
+        data: { id: 'module-semantic-foreign', name: 'Checkout', targetProjectId: 'target-semantic-foreign' },
+      })
+      await seedReusableTarget('target-semantic-foreign', 'module-semantic-foreign', 'foreign')
+      const expectedOutputs = approvedScenarios.flatMap(scenario => {
+        const materializationId = phaseSixId(
+          'materialization',
+          created.journey.journeyId,
+          scenario.scenarioRevisionId,
+          automationContext.inputHash,
+        )
+        const sharedTargetMaterializationId = phaseSixId(
+          'materialization',
+          created.journey.journeyId,
+          approvedScenarios[0]!.scenarioRevisionId,
+          automationContext.inputHash,
+        )
+        const suiteId = phaseSixId('suite', sharedTargetMaterializationId)
+        const caseId = phaseSixId('case', sharedTargetMaterializationId)
+        const proposal = proposals.find(candidate => candidate.scenarioRevisionId === scenario.scenarioRevisionId)!
+        const source = JSON.parse(scenario.behavioralIntentJson).steps[0]
+        const manifest = {
+          schemaVersion: 'appraise.quality-journey/v1',
+          kind: 'PREPARED_RUNTIME_CAPSULE',
+          materializationId,
+          sourceScenarioRevisionId: scenario.scenarioRevisionId,
+          sourceScenarioContentHash: scenario.contentHash,
+          suiteId,
+          testCaseId: caseId,
+          steps: [
+            {
+              stepId: source.stepId,
+              definition: proposal.steps[0]!.stepDefinition,
+              operation: proposal.steps[0]!.operation,
+              parameters: [],
+              testData: [],
+              locatorRequirements: [],
+            },
+          ],
+          dataRequirements: [],
+          locatorRequirements: [],
+        }
+        const capsuleId = phaseSixId('prepared', materializationId)
+        const capsuleHash = hash({
+          schemaVersion: 'appraise.quality-journey/v1',
+          capsuleId,
+          journeyId: created.journey.journeyId,
+          targetProjectId: 'target-analysis-1',
+          cycleId: created.journey.activeCycleId,
+          materializationId,
+          inputHash: automationContext.inputHash,
+          manifestHash: hash(manifest),
+          status: 'PREPARED',
+        })
+        return [
+          { kind: 'TEST_SUITE' as const, artifactId: suiteId, contentHash: hash({ id: suiteId }) },
+          { kind: 'TEST_CASE' as const, artifactId: caseId, contentHash: hash({ id: caseId }) },
+          { kind: 'RUNTIME_CAPSULE' as const, artifactId: capsuleId, contentHash: capsuleHash },
+        ]
+      })
+      const materializeInput = {
+        journeyId: created.journey.journeyId,
+        targetProjectId: 'target-analysis-1',
+        workItemId: automatorClaim.workItem.id,
+        attemptId: automatorClaim.attempt.id,
+        leaseId: automatorClaim.attempt.leaseId,
+        ownerToken: automatorClaim.ownerToken,
+        idempotencyKey: 'phase-6-materialize',
+        expectedInputHash: automationContext.inputHash,
+        expectedScopeHash: automationContext.scopeHash,
+        scenarios: proposals,
+        result: {
+          schemaVersion: 'appraise.quality-journey/v1' as const,
+          assignmentId: automatorClaim.assignment.assignmentId,
+          workItemId: automatorClaim.workItem.id,
+          attemptId: automatorClaim.attempt.id,
+          roleContractDigest: automatorClaim.assignment.roleDefinition.digest,
+          inputHash: automatorClaim.assignment.inputHash,
+          role: 'AUTOMATOR' as const,
+          status: 'COMPLETED' as const,
+          outputs: expectedOutputs,
+          evidenceReceipts: [],
+          assumptions: [],
+          blockers: [],
+          unresolvedQuestions: [],
+          submittedAt: '2026-09-05T00:00:00.000Z',
+        },
+      }
+      const incompatibleOperation = defaultOperationDefinitions.find(candidate => candidate.id !== operation.id)!
+      await expect(
+        materializeQualityJourneyApprovedScenarios(
+          {
+            ...materializeInput,
+            idempotencyKey: 'phase-6-operation-outside-resource-authority',
+            scenarios: materializeInput.scenarios.map(proposal => ({
+              ...proposal,
+              steps: proposal.steps.map(step => ({
+                ...step,
+                operation: {
+                  id: incompatibleOperation.id,
+                  version: incompatibleOperation.version,
+                  handler: incompatibleOperation.handler,
+                },
+              })),
+            })),
+          },
+          client,
+        ),
+      ).rejects.toMatchObject({
+        code: 'CONFLICT',
+        message: 'Automator proposal operation is outside the compatible Resource Explorer authority.',
+      })
+      const originalOperationInputs = [...operation.inputs]
+      ;(operation.inputs as Array<unknown>).push({
+        name: 'drifted-input',
+        type: 'string',
+        required: false,
+        description: 'Drifted after frozen Resource Explorer authority.',
+      })
+      await expect(materializeQualityJourneyApprovedScenarios(materializeInput, client)).rejects.toMatchObject({
+        code: 'CONFLICT',
+        message: 'Automator materialization input authority is stale or forged.',
+      })
+      operation.inputs.splice(0, operation.inputs.length, ...originalOperationInputs)
+      const frozenDefinition = await client.stepDefinition.findUniqueOrThrow({
+        where: { id_version: { id: readyDefinition.identity.id, version: readyDefinition.identity.version } },
+        select: {
+          definitionHash: true,
+          definitionJson: true,
+          executionBinding: { select: { bindingJson: true, bindingHash: true } },
+        },
+      })
+      await client.stepDefinition.update({
+        where: { id_version: { id: readyDefinition.identity.id, version: readyDefinition.identity.version } },
+        data: { definitionHash: 'mutated-after-resource-explorer-freeze' },
+      })
+      const mutatedResourceInput = { ...materializeInput, idempotencyKey: 'phase-6-mutated-resource' }
+      await expect(materializeQualityJourneyApprovedScenarios(mutatedResourceInput, client)).rejects.toMatchObject({
+        code: 'CONFLICT',
+      })
+      const mutatedResourceReceipt = await client.qualityJourneyAutomationRequestReceipt.findUniqueOrThrow({
+        where: {
+          journeyId_idempotencyKey: {
+            journeyId: created.journey.journeyId,
+            idempotencyKey: mutatedResourceInput.idempotencyKey,
+          },
+        },
+      })
+      expect(JSON.parse(mutatedResourceReceipt.resultJson).scenarios).toEqual([
+        { scenarioRevisionId: 'scenario-1-r1', disposition: 'VALID_ROLLED_BACK' },
+        { scenarioRevisionId: 'scenario-2-r1', disposition: 'VALID_ROLLED_BACK' },
+      ])
+      const receiptBytes = mutatedResourceReceipt.resultJson
+      await expect(
+        client.$executeRawUnsafe(
+          `UPDATE "QualityJourneyAutomationRequestReceipt" SET "resultJson" = '{}' WHERE "id" = '${mutatedResourceReceipt.id}'`,
+        ),
+      ).rejects.toThrow('Automator request receipts are immutable')
+      await expect(
+        client.$executeRawUnsafe(
+          `DELETE FROM "QualityJourneyAutomationRequestReceipt" WHERE "id" = '${mutatedResourceReceipt.id}'`,
+        ),
+      ).rejects.toThrow('Automator request receipts are append-only')
+      expect(
+        (
+          await client.qualityJourneyAutomationRequestReceipt.findUniqueOrThrow({
+            where: { id: mutatedResourceReceipt.id },
+          })
+        ).resultJson,
+      ).toBe(receiptBytes)
+      await client.stepDefinition.update({
+        where: { id_version: { id: readyDefinition.identity.id, version: readyDefinition.identity.version } },
+        data: { definitionHash: frozenDefinition.definitionHash },
+      })
+      const mutatedDefinitionJson = JSON.parse(frozenDefinition.definitionJson) as { intent: { description: string } }
+      mutatedDefinitionJson.intent.description = 'Tampered without changing the stored definition hash.'
+      await client.stepDefinition.update({
+        where: { id_version: { id: readyDefinition.identity.id, version: readyDefinition.identity.version } },
+        data: { definitionJson: canonicalContractJson(mutatedDefinitionJson) },
+      })
+      await expect(
+        materializeQualityJourneyApprovedScenarios(
+          { ...materializeInput, idempotencyKey: 'phase-6-mutated-definition-json' },
+          client,
+        ),
+      ).rejects.toMatchObject({ code: 'CONFLICT' })
+      await client.stepDefinition.update({
+        where: { id_version: { id: readyDefinition.identity.id, version: readyDefinition.identity.version } },
+        data: { definitionJson: frozenDefinition.definitionJson },
+      })
+      if (!frozenDefinition.executionBinding) throw new Error('Phase 6 fixture requires an execution binding.')
+      const mutatedBindingJson = JSON.parse(frozenDefinition.executionBinding.bindingJson) as { runtime?: string }
+      mutatedBindingJson.runtime = 'api'
+      await client.stepExecutionBinding.update({
+        where: {
+          stepId_stepVersion: { stepId: readyDefinition.identity.id, stepVersion: readyDefinition.identity.version },
+        },
+        data: { bindingJson: canonicalContractJson(mutatedBindingJson) },
+      })
+      await expect(
+        materializeQualityJourneyApprovedScenarios(
+          { ...materializeInput, idempotencyKey: 'phase-6-mutated-binding-json' },
+          client,
+        ),
+      ).rejects.toMatchObject({ code: 'CONFLICT' })
+      await client.stepExecutionBinding.update({
+        where: {
+          stepId_stepVersion: { stepId: readyDefinition.identity.id, stepVersion: readyDefinition.identity.version },
+        },
+        data: {
+          bindingJson: frozenDefinition.executionBinding.bindingJson,
+          bindingHash: frozenDefinition.executionBinding.bindingHash,
+        },
+      })
+      await client.stepExecutionBinding.update({
+        where: {
+          stepId_stepVersion: { stepId: readyDefinition.identity.id, stepVersion: readyDefinition.identity.version },
+        },
+        data: { bindingHash: 'sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff' },
+      })
+      await expect(
+        materializeQualityJourneyApprovedScenarios(
+          { ...materializeInput, idempotencyKey: 'phase-6-mutated-binding-hash' },
+          client,
+        ),
+      ).rejects.toMatchObject({ code: 'CONFLICT' })
+      await client.stepExecutionBinding.update({
+        where: {
+          stepId_stepVersion: { stepId: readyDefinition.identity.id, stepVersion: readyDefinition.identity.version },
+        },
+        data: { bindingHash: frozenDefinition.executionBinding.bindingHash },
+      })
+      const invalidMapping = {
+        ...materializeInput,
+        idempotencyKey: 'phase-6-invalid-mapping',
+        // A mixed packet is atomic: the first proposal is valid but must be
+        // rolled back when the second proposal fails validation.
+        scenarios: materializeInput.scenarios.map((proposal, index) => ({
+          ...proposal,
+          steps: proposal.steps.map(step => ({
+            ...step,
+            operation: index === 1 ? { ...step.operation, version: '999' } : step.operation,
+          })),
+        })),
+      }
+      await expect(materializeQualityJourneyApprovedScenarios(invalidMapping, client)).rejects.toMatchObject({
+        code: 'CONFLICT',
+        details: { failureKind: 'DESIGN_DEFECT' },
+      })
+      expect(
+        await client.qualityJourneyAutomationMaterialization.count({
+          where: { journeyId: created.journey.journeyId, status: 'FAILED', failureKind: 'DESIGN_DEFECT' },
+        }),
+      ).toBe(3)
+      // A failed packet is a durable receipt: exact replay reports the same
+      // typed diagnosis, while a changed packet may not hijack its key.
+      await expect(materializeQualityJourneyApprovedScenarios(invalidMapping, client)).rejects.toMatchObject({
+        code: 'CONFLICT',
+        details: {
+          failureKind: 'DESIGN_DEFECT',
+          replayed: true,
+          scenarios: [
+            { scenarioRevisionId: 'scenario-1-r1', disposition: 'VALID_ROLLED_BACK' },
+            { scenarioRevisionId: 'scenario-2-r1', disposition: 'FAILED' },
+          ],
+        },
+      })
+      await expect(
+        materializeQualityJourneyApprovedScenarios(
+          {
+            ...invalidMapping,
+            scenarios: invalidMapping.scenarios.map(proposal => ({
+              ...proposal,
+              steps: proposal.steps.map(step => ({ ...step, operation: { ...step.operation, version: '998' } })),
+            })),
+          },
+          client,
+        ),
+      ).rejects.toMatchObject({ code: 'CONFLICT' })
+      expect(
+        await client.qualityJourneyAutomationMaterialization.count({
+          where: { journeyId: created.journey.journeyId, status: 'FAILED', failureKind: 'DESIGN_DEFECT' },
+        }),
+      ).toBe(3)
+      await expect(
+        materializeQualityJourneyApprovedScenarios(
+          { ...invalidMapping, idempotencyKey: 'phase-6-invalid-mapping-distinct' },
+          client,
+        ),
+      ).rejects.toMatchObject({ code: 'CONFLICT', details: { failureKind: 'DESIGN_DEFECT' } })
+      expect(
+        await client.qualityJourneyAutomationMaterialization.count({
+          where: { journeyId: created.journey.journeyId, status: 'FAILED', failureKind: 'DESIGN_DEFECT' },
+        }),
+      ).toBe(4)
+      await expect(materializeQualityJourneyApprovedScenarios(materializeInput, client)).resolves.toMatchObject({
+        stage: 'AUTOMATION',
+        materializations: [{ status: 'MATERIALIZED' }, { status: 'MATERIALIZED' }],
+        completion: { status: 'COMPLETED' },
+      })
+      await expect(materializeQualityJourneyApprovedScenarios(materializeInput, client)).resolves.toMatchObject({
+        replayed: true,
+      })
+      const authoredSteps = await client.testCaseStep.findMany({
+        where: {
+          testCaseId: {
+            in: expectedOutputs.filter(output => output.kind === 'TEST_CASE').map(output => output.artifactId),
+          },
+        },
+      })
+      expect(authoredSteps).toHaveLength(1)
+      authoredSteps.forEach(step =>
+        expect(stepInvocationSchema.parse(JSON.parse(step.invocationJson))).toMatchObject({
+          step: { id: readyDefinition.identity.id },
+        }),
+      )
+      expect(
+        await client.qualityJourneyAutomationTargetBinding.count({ where: { testCaseId: reusableTarget.testCaseId } }),
+      ).toBe(0)
+      expect(
+        (
+          await client.qualityJourneyAutomationMaterializationBinding.groupBy({
+            by: ['bindingId'],
+            _count: { bindingId: true },
+          })
+        ).some(binding => binding._count.bindingId === 2),
+      ).toBe(true)
+      expect(await client.testRun.count({ where: { targetProjectId: 'target-analysis-1' } })).toBe(0)
+      expect(await client.runtimeCapsule.count({ where: { targetProjectId: 'target-analysis-1' } })).toBe(0)
+      expect(
+        await client.qualityJourneyArtifactLink.count({
+          where: { journeyId: created.journey.journeyId, relation: 'MATERIALIZES' },
+        }),
+      ).toBe(6)
+      const materialization = await client.qualityJourneyAutomationMaterialization.findFirstOrThrow({
+        where: { journeyId: created.journey.journeyId, status: 'MATERIALIZED' },
+      })
+      const materializationBytes = materialization.artifactJson
+      await expect(
+        client.$executeRawUnsafe(`DELETE FROM "QualityJourneyWorkAttempt" WHERE "id" = '${materialization.attemptId}'`),
+      ).rejects.toThrow()
+      await expect(
+        client.$executeRawUnsafe(
+          `DELETE FROM "QualityJourneyScenarioDecision" WHERE "id" = '${materialization.decisionId}'`,
+        ),
+      ).rejects.toThrow()
+      await expect(
+        client.$executeRawUnsafe(
+          `DELETE FROM "QualityJourneyScenarioPortfolioRevision" WHERE "id" = '${materialization.portfolioRecordId}'`,
+        ),
+      ).rejects.toThrow()
+      await expect(
+        client.$executeRawUnsafe(`DELETE FROM "QualityJourneyWorkItem" WHERE "id" = '${materialization.workItemId}'`),
+      ).rejects.toThrow()
+      expect(
+        (await client.qualityJourneyAutomationMaterialization.findUniqueOrThrow({ where: { id: materialization.id } }))
+          .artifactJson,
+      ).toBe(materializationBytes)
+      await expect(
+        client.$executeRawUnsafe(
+          `UPDATE "QualityJourneyAutomationMaterialization" SET "artifactJson" = '{}' WHERE "id" = '${materialization.id}'`,
+        ),
+      ).rejects.toThrow('Automator materializations are immutable')
+      await expect(
+        client.$executeRawUnsafe(
+          `DELETE FROM "QualityJourneyPreparedRuntimeCapsule" WHERE "materializationId" = '${materialization.id}'`,
+        ),
+      ).rejects.toThrow('Prepared runtime capsules are append-only')
+      await expect(
+        client.$executeRawUnsafe(
+          `UPDATE "QualityJourneyAutomationTargetBinding" SET "bindingJson" = '{}' WHERE "id" = (SELECT "bindingId" FROM "QualityJourneyAutomationMaterializationBinding" WHERE "materializationId" = '${materialization.id}')`,
+        ),
+      ).rejects.toThrow('Automator target bindings are immutable')
+      const bindingAssociation = await client.qualityJourneyAutomationMaterializationBinding.findUniqueOrThrow({
+        where: { materializationId: materialization.id },
+        include: { targetBinding: true },
+      })
+      const bindingBytes = bindingAssociation.targetBinding.bindingJson
+      // The receipt-to-binding association is one-to-one at the receipt end,
+      // while a canonical semantic binding can serve future receipts. Direct
+      // SQL cannot create a second association or mutate/remove the evidence.
+      await expect(
+        client.$executeRawUnsafe(
+          `INSERT INTO "QualityJourneyAutomationMaterializationBinding" ("materializationId", "bindingId") VALUES ('${materialization.id}', '${bindingAssociation.bindingId}')`,
+        ),
+      ).rejects.toThrow()
+      await expect(
+        client.$executeRawUnsafe(
+          `UPDATE "QualityJourneyAutomationMaterializationBinding" SET "bindingId" = '${bindingAssociation.bindingId}' WHERE "materializationId" = '${materialization.id}'`,
+        ),
+      ).rejects.toThrow('Automator materialization bindings are immutable')
+      await expect(
+        client.$executeRawUnsafe(
+          `DELETE FROM "QualityJourneyAutomationMaterializationBinding" WHERE "materializationId" = '${materialization.id}'`,
+        ),
+      ).rejects.toThrow('Automator materialization bindings are append-only')
+      expect(
+        (
+          await client.qualityJourneyAutomationMaterializationBinding.findUniqueOrThrow({
+            where: { materializationId: materialization.id },
+            include: { targetBinding: true },
+          })
+        ).targetBinding.bindingJson,
+      ).toBe(bindingBytes)
+      await client.qualityJourneyWorkAttempt.update({
+        where: { id: automatorClaim.attempt.id },
+        data: { leaseExpiresAt: new Date('2000-01-01T00:00:00.000Z') },
+      })
+      await expect(materializeQualityJourneyApprovedScenarios(materializeInput, client)).resolves.toMatchObject({
+        replayed: true,
+      })
+      // A matching terminal failure is replayed before checking a live lease;
+      // a changed request still cannot take over that idempotency key.
+      await expect(materializeQualityJourneyApprovedScenarios(invalidMapping, client)).rejects.toMatchObject({
+        code: 'CONFLICT',
+        details: {
+          failureKind: 'DESIGN_DEFECT',
+          replayed: true,
+          scenarios: [
+            { scenarioRevisionId: 'scenario-1-r1', disposition: 'VALID_ROLLED_BACK' },
+            { scenarioRevisionId: 'scenario-2-r1', disposition: 'FAILED' },
+          ],
+        },
+      })
+      await expect(
+        materializeQualityJourneyApprovedScenarios(
+          {
+            ...invalidMapping,
+            scenarios: invalidMapping.scenarios.map(proposal => ({
+              ...proposal,
+              steps: proposal.steps.map(step => ({ ...step, operation: { ...step.operation, version: '998' } })),
+            })),
+          },
+          client,
+        ),
+      ).rejects.toMatchObject({ code: 'CONFLICT' })
       const phaseFiveTerminal = await getQualityJourney(
         { journeyId: created.journey.journeyId, targetProjectId: 'target-analysis-1' },
         client,

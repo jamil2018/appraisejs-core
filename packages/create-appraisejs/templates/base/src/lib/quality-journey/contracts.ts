@@ -468,7 +468,9 @@ export const workerResultEnvelopeSchema = z
     inputHash: digest,
     role: qualityJourneyRoleSchema,
     status: z.enum(['COMPLETED', 'BLOCKED', 'QUESTION_RAISED', 'REVISION_REQUIRED']),
-    outputs: z.array(artifactReferenceSchema).max(256),
+    // Phase 5 may approve 512 scenarios and Phase 6 emits a suite, case, and
+    // prepared capsule for each; retain the complete bounded result envelope.
+    outputs: z.array(artifactReferenceSchema).max(1_536),
     evidenceReceipts: z.array(digest).max(512),
     assumptions: z.array(nonEmptyText).max(128),
     blockers: z.array(

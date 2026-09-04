@@ -231,7 +231,7 @@ async function readJourney(journeyId: string, targetProjectId: string, db: Db) {
 }
 
 async function createWorkAuthorization(
-  row: QualityJourney,
+  row: Pick<QualityJourney, 'id' | 'targetProjectId'>,
   item: QualityJourneyWorkItem,
   db: Db,
   maxAttempts = 3,
@@ -518,7 +518,9 @@ async function ensureEligibleWorkItems(row: QualityJourney, db: Db) {
 function eligibleRolesForAutomaticIssuance(stage: QualityJourneyStage) {
   // Discovery assignments have immutable, role-specific scopes compiled from
   // the approved analysis. They are issued only by the discovery service.
-  return stage === 'DISCOVERY' ? [] : runnableQualityJourneyRoles(stage, [])
+  // Discovery and Automation both have compiler-owned assignments. Their
+  // scope must be frozen from approved artifacts before Factory authorization.
+  return stage === 'DISCOVERY' || stage === 'AUTOMATION' ? [] : runnableQualityJourneyRoles(stage, [])
 }
 
 export type DiscoveryWorkItemSpec = {
@@ -541,38 +543,64 @@ export async function issueQualityJourneyDiscoveryWorkItems(
   specs: readonly DiscoveryWorkItemSpec[],
   tx: Prisma.TransactionClient,
 ) {
-  for (const spec of specs) {
-    const definition = qualityJourneyRoleDefinitions.find(candidate => candidate.role === spec.role)!
-    const existing = await tx.qualityJourneyWorkItem.findUnique({ where: { id: spec.id } })
-    if (existing) {
-      if (
-        existing.journeyId !== row.id ||
-        existing.role !== spec.role ||
-        existing.inputHash !== spec.inputHash ||
-        existing.inputArtifactRefsJson !== json(spec.inputArtifacts) ||
-        existing.authorizationScopeJson !== json(spec.authorizationScope)
+  for (const spec of specs)
+    await issueQualityJourneySpecializedWorkItem(row, { ...spec, conflictLabel: 'Discovery' }, tx)
+}
+
+/** Creates a frozen specialized work item after its phase compiler has derived
+ * input lineage.  Generic automatic issuance is intentionally not sufficient
+ * for roles whose input is revision/hash bound. */
+export async function issueQualityJourneySpecializedWorkItem(
+  row: Pick<QualityJourney, 'id' | 'targetProjectId' | 'activeCycleId'>,
+  spec: {
+    id: string
+    role: QualityJourneyRole
+    inputHash: string
+    inputArtifacts: AssignmentManifest['inputArtifacts']
+    authorizationScope: Pick<
+      FactoryAuthorization,
+      'allowedTargetRoutes' | 'allowedResourceIds' | 'targetEnvironmentBindings' | 'scope'
+    >
+    completionCriteria: readonly string[]
+    conflictLabel?: string
+  },
+  tx: Prisma.TransactionClient,
+) {
+  const definition = qualityJourneyRoleDefinitions.find(candidate => candidate.role === spec.role)
+  if (!definition) throw new ServiceError('Quality Journey role authority is unavailable.', 'CONFLICT')
+  const existing = await tx.qualityJourneyWorkItem.findUnique({ where: { id: spec.id } })
+  if (existing) {
+    if (
+      existing.journeyId !== row.id ||
+      existing.role !== spec.role ||
+      existing.inputHash !== spec.inputHash ||
+      existing.inputArtifactRefsJson !== json(spec.inputArtifacts) ||
+      existing.authorizationScopeJson !== json(spec.authorizationScope)
+    )
+      throw new ServiceError(
+        `${spec.conflictLabel ?? 'Specialized'} work item identity conflicts with frozen authority.`,
+        'CONFLICT',
       )
-        throw new ServiceError('Discovery work item identity conflicts with frozen authority.', 'CONFLICT')
-      continue
-    }
-    const item = await tx.qualityJourneyWorkItem.create({
-      data: {
-        id: spec.id,
-        journeyId: row.id,
-        targetProjectId: row.targetProjectId,
-        cycleId: row.activeCycleId,
-        role: spec.role,
-        status: 'ELIGIBLE',
-        inputHash: spec.inputHash,
-        roleContractDigest: qualityJourneyContractDigest(definition),
-        inputArtifactRefsJson: json(spec.inputArtifacts),
-        allowedOutputsJson: json(definition.writableArtifacts),
-        completionCriteriaJson: json(spec.completionCriteria),
-        authorizationScopeJson: json(spec.authorizationScope),
-      },
-    })
-    await createWorkAuthorization(row, item, tx)
+    return existing
   }
+  const item = await tx.qualityJourneyWorkItem.create({
+    data: {
+      id: spec.id,
+      journeyId: row.id,
+      targetProjectId: row.targetProjectId,
+      cycleId: row.activeCycleId,
+      role: spec.role,
+      status: 'ELIGIBLE',
+      inputHash: spec.inputHash,
+      roleContractDigest: qualityJourneyContractDigest(definition),
+      inputArtifactRefsJson: json(spec.inputArtifacts),
+      allowedOutputsJson: json(definition.writableArtifacts),
+      completionCriteriaJson: json(spec.completionCriteria),
+      authorizationScopeJson: json(spec.authorizationScope),
+    },
+  })
+  await createWorkAuthorization(row, item, tx)
+  return item
 }
 
 export async function setQualityJourneyActiveWorkItems(
@@ -912,6 +940,8 @@ export async function submitDurableQualityJourneyCommandInTransaction(
     !allowSpecializedCommand &&
     [
       'RETRY_DISCOVERY',
+      'RETRY_AUTOMATION',
+      'START_EXECUTION',
       'START_SCENARIO_DESIGN',
       'PUBLISH_SCENARIO_PORTFOLIO',
       'DECIDE_SCENARIOS',
@@ -1927,7 +1957,11 @@ async function validateDurableWorkerLineage(
   }
 }
 
-function assertWorkCompletionRole(role: QualityJourneyRole, allowScenarioDesignerCompletion: boolean) {
+function assertWorkCompletionRole(
+  role: QualityJourneyRole,
+  allowScenarioDesignerCompletion: boolean,
+  allowAutomatorCompletion: boolean,
+) {
   if (role === 'SCOUT' || role === 'RESOURCE_EXPLORER')
     throw new ServiceError(
       'Discovery roles must submit through their specialized discovery bundle boundary.',
@@ -1938,16 +1972,22 @@ function assertWorkCompletionRole(role: QualityJourneyRole, allowScenarioDesigne
       'Scenario Designer work must submit through the specialized Scenario Portfolio boundary.',
       'UNAUTHORIZED',
     )
+  if (role === 'AUTOMATOR' && !allowAutomatorCompletion)
+    throw new ServiceError(
+      'Automator work must submit through the specialized approved-scenario materialization boundary.',
+      'UNAUTHORIZED',
+    )
 }
 
 async function completeQualityJourneyWorkWithAuthorityInTransaction(
   input: WorkCompletionInput,
   tx: Prisma.TransactionClient,
   allowScenarioDesignerCompletion: boolean,
+  allowAutomatorCompletion = false,
 ) {
   const result = workerResultEnvelopeSchema.parse(input.result)
   const { item, attempt, authorization } = await readWorkAttempt(input, tx)
-  assertWorkCompletionRole(item.role, allowScenarioDesignerCompletion)
+  assertWorkCompletionRole(item.role, allowScenarioDesignerCompletion, allowAutomatorCompletion)
   assertFactoryAuthorityCurrent(item, authorization)
   if (attempt && attempt.status !== 'COMPLETED' && (!attempt.spawnReceiptJson || !attempt.spawnReceiptHash))
     throw new ServiceError('Quality Journey work completion has no validated Factory receipt.', 'UNAUTHORIZED')
@@ -1976,6 +2016,12 @@ export function completeQualityJourneyWorkInTransaction(input: WorkCompletionInp
 /** Scenario Portfolio ingress has already validated the Designer-specific submission contract. */
 export function completeScenarioDesignerWorkInTransaction(input: WorkCompletionInput, tx: Prisma.TransactionClient) {
   return completeQualityJourneyWorkWithAuthorityInTransaction(input, tx, true)
+}
+
+/** Automator output is valid only after the specialized materializer has
+ * persisted and cross-checked its concrete artifact lineage. */
+export function completeAutomatorWorkInTransaction(input: WorkCompletionInput, tx: Prisma.TransactionClient) {
+  return completeQualityJourneyWorkWithAuthorityInTransaction(input, tx, false, true)
 }
 
 export async function completeQualityJourneyWork(input: WorkCompletionInput, client: PrismaClient = prisma) {

@@ -119,15 +119,18 @@ describe('ScenarioPortfolioReview', () => {
     expect(actions.decide).toHaveBeenLastCalledWith(
       expect.objectContaining({ approvedScenarioRevisionIds: ['scenario-r1'], rejectedScenarioRevisionIds: [] }),
     )
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Request revision' })).toBeEnabled())
     fireEvent.click(screen.getByRole('button', { name: 'Request revision' }))
     await waitFor(() =>
       expect(actions.revision).toHaveBeenCalledWith(expect.objectContaining({ feedback: 'Needs revision.' })),
     )
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Dispose' })).toBeEnabled())
     fireEvent.click(screen.getByRole('button', { name: 'Dispose' }))
     await waitFor(() =>
       expect(actions.dispose).toHaveBeenCalledWith(expect.objectContaining({ commentId: 'comment-1' })),
     )
     fireEvent.change(screen.getByLabelText('Comment'), { target: { value: 'A focused review comment.' } })
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Add comment' })).toBeEnabled())
     fireEvent.click(screen.getByRole('button', { name: 'Add comment' }))
     await waitFor(() => expect(actions.comment).toHaveBeenCalledTimes(1))
     await waitFor(() => {

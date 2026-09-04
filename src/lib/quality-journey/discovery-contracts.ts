@@ -229,6 +229,7 @@ const resourceKindSchema = z.enum([
   'OPERATION',
   'STEP_DEFINITION',
   'LOCATOR',
+  'MODULE',
   'TEMPLATE',
   'DATA',
   'EXAMPLE',
@@ -440,6 +441,9 @@ export const resourceResolutionBundleSchema = discoveryBundleBaseSchema
   .extend({
     bundleId: id,
     resolvedAt: timestamp,
+    // The Resource Explorer chooses the sole target-owned destination for
+    // Automator output while the inventory is still immutable.
+    destinationModuleId: id,
     /** The service must verify this declaration and approvedRequirementSetHash against the exact approved charter;
      * the contract hash includes both fields. */
     approvedRequirementIds: z.array(id).min(1).max(512),

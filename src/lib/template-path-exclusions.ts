@@ -1,7 +1,10 @@
 const EXCLUDED_DIRS = new Set(['node_modules', '.next', '.git', 'dist', 'graphify-out'])
 const EXCLUDED_EXTENSIONS = new Set(['.db', '.sqlite', '.sqlite3', '.tsbuildinfo'])
 const EXCLUDED_PATH_PREFIXES = ['automation/reports/']
-const REPOSITORY_ONLY_TEMPLATE_PATHS = new Set(['src/lib/quality-journey/scenario-contracts.mcp-parity.test.ts'])
+const REPOSITORY_ONLY_TEMPLATE_PATHS = new Set([
+  'src/lib/quality-journey/automation-contracts.mcp-parity.test.ts',
+  'src/lib/quality-journey/scenario-contracts.mcp-parity.test.ts',
+])
 const EXCLUDED_FILENAMES = new Set(['.DS_Store'])
 
 function toPosixPath(value: string): string {

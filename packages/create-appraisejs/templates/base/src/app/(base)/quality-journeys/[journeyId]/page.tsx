@@ -12,9 +12,11 @@ import { requireActiveProject } from '@/lib/active-project'
 import { getQualityJourneyAnalysis } from '@/services/coordinator/quality-journey-analysis-service'
 import { getQualityJourney } from '@/services/coordinator/quality-journey-service'
 import { getQualityJourneyScenarioPortfolio } from '@/services/coordinator/quality-journey-scenario-service'
+import { getQualityJourneyAutomationContext } from '@/services/coordinator/quality-journey-automation-service'
 import { ServiceError } from '@/services/shared/errors'
 
 import { AnalysisReviewControls } from './analysis-review-controls'
+import { AutomationMaterializationStatus } from './automation-materialization-status'
 import { ScenarioPortfolioReview } from './scenario-portfolio-review'
 import { qualityJourneyLabel, toAnalysisRevisionView } from './quality-journey-view-model'
 
@@ -23,6 +25,19 @@ type JourneyDetail = Awaited<ReturnType<typeof getQualityJourney>>
 type ActiveProject = Awaited<ReturnType<typeof requireActiveProject>>
 type ActiveAnalysis = ReturnType<typeof toAnalysisRevisionView> | null
 type ActiveScenarioPortfolio = Awaited<ReturnType<typeof getQualityJourneyScenarioPortfolio>>['portfolio'] | null
+
+async function loadJourneySupplementalArtifacts(journeyId: string, projectId: string, stage: string) {
+  if (!['SCENARIO_DESIGN', 'SCENARIO_REVIEW', 'AUTOMATION'].includes(stage))
+    return { scenarios: null, automation: null }
+  const scenarios = await getQualityJourneyScenarioPortfolio({ journeyId, targetProjectId: projectId }).catch(
+    () => null,
+  )
+  if (stage !== 'AUTOMATION') return { scenarios, automation: null }
+  const automation = await getQualityJourneyAutomationContext({ journeyId, targetProjectId: projectId }).catch(
+    () => null,
+  )
+  return { scenarios, automation }
+}
 
 async function loadJourneyDetail(journeyId: string, projectId: string) {
   const [journey, analysis] = await Promise.all([
@@ -50,10 +65,8 @@ async function loadJourneyDetail(journeyId: string, projectId: string) {
     node => node.stage === journey.journey.stage && ['RUNNABLE', 'IN_PROGRESS', 'BLOCKED'].includes(node.state),
   )
 
-  const scenarios = ['SCENARIO_DESIGN', 'SCENARIO_REVIEW', 'AUTOMATION'].includes(journey.journey.stage)
-    ? await getQualityJourneyScenarioPortfolio({ journeyId, targetProjectId: projectId }).catch(() => null)
-    : null
-  return { activeAnalysis, activeRunner, answerable, journey, scenarios }
+  const { scenarios, automation } = await loadJourneySupplementalArtifacts(journeyId, projectId, journey.journey.stage)
+  return { activeAnalysis, activeRunner, answerable, journey, scenarios, automation }
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
@@ -64,7 +77,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 export default async function QualityJourneyDetailPage({ params, searchParams }: PageProps) {
   const [{ journeyId }, parameters] = await Promise.all([params, searchParams])
   const project = await requireActiveProject(parameters?.project)
-  const { activeAnalysis, activeRunner, answerable, journey, scenarios } = await loadJourneyDetail(
+  const { activeAnalysis, activeRunner, answerable, journey, scenarios, automation } = await loadJourneyDetail(
     journeyId,
     project.id,
   )
@@ -83,6 +96,7 @@ export default async function QualityJourneyDetailPage({ params, searchParams }:
             stage={journey.journey.stage}
             stateHash={journey.journey.stateHash}
           />
+          <AutomationMaterializationStatus context={automation} />
           <AnalysisReviewControls
             analysis={activeAnalysis}
             answerable={answerable}

@@ -74,10 +74,16 @@ function observationBundle() {
   }
 }
 
-function resourceEntry(resourceId: string, requirementId = 'REQ-CHECKOUT-1', rank = 1, reasonCode = 'COMPATIBLE') {
+function resourceEntry(
+  resourceId: string,
+  requirementId = 'REQ-CHECKOUT-1',
+  rank = 1,
+  reasonCode = 'COMPATIBLE',
+  resourceKind: 'OPERATION' | 'MODULE' = 'OPERATION',
+) {
   return {
     resourceId,
-    resourceKind: 'OPERATION' as const,
+    resourceKind,
     requirementId,
     rank,
     reasonCode,
@@ -91,13 +97,17 @@ function resourceBundle() {
     ...provenance(),
     bundleId: 'resource-bundle-1',
     resolvedAt: '2026-09-03T10:01:00.000Z',
+    destinationModuleId: 'module-1',
     approvedRequirementIds: ['REQ-CHECKOUT-1', 'REQ-CHECKOUT-2'],
-    reusable: [resourceEntry('operation-1')],
+    reusable: [
+      resourceEntry('module-1', 'REQ-CHECKOUT-1', 1, 'COMPATIBLE', 'MODULE'),
+      resourceEntry('operation-1', 'REQ-CHECKOUT-1', 2),
+    ],
     incompatible: [resourceEntry('operation-2', 'REQ-CHECKOUT-2', 1, 'INCOMPATIBLE')],
-    stale: [resourceEntry('operation-3', 'REQ-CHECKOUT-1', 2, 'STALE')],
+    stale: [resourceEntry('operation-3', 'REQ-CHECKOUT-1', 3, 'STALE')],
     crossTarget: [
       {
-        ...resourceEntry('operation-4', 'REQ-CHECKOUT-1', 3, 'CROSS_TARGET'),
+        ...resourceEntry('operation-4', 'REQ-CHECKOUT-1', 4, 'CROSS_TARGET'),
         sourceTargetProjectId: 'target-previous',
       },
     ],

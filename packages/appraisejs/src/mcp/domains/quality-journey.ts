@@ -5,7 +5,11 @@ import { text } from '../shared.js'
 const journeyId = z.string().min(1)
 const target = z.string().min(1)
 const hash = z.string().regex(/^sha256:[a-f0-9]{64}$/)
-const id = z.string().min(1).max(200)
+const id = z
+  .string()
+  .min(1)
+  .max(200)
+  .regex(/^[A-Za-z0-9._:-]+$/)
 const timestamp = z.string().datetime()
 const boundedText = z.string().trim().min(1).max(8_000)
 const sortedUnique = (values: string[]) =>
@@ -92,6 +96,8 @@ const specializedAnalysisLifecycleCommands = new Set([
 const specializedQualityJourneyCommands = new Set([
   ...specializedAnalysisLifecycleCommands,
   'RETRY_DISCOVERY',
+  'RETRY_AUTOMATION',
+  'START_EXECUTION',
   'START_SCENARIO_DESIGN',
   'PUBLISH_SCENARIO_PORTFOLIO',
   'DECIDE_SCENARIOS',
@@ -109,8 +115,11 @@ const genericQualityJourneyWorkCompletionResultSchema = z
   .record(z.string(), z.unknown())
   .refine(
     result =>
-      result.role !== 'SCOUT' && result.role !== 'RESOURCE_EXPLORER' && result.role !== 'TEST_SCENARIO_DESIGNER',
-    'Discovery and Scenario Designer roles require their specialized completion tools.',
+      result.role !== 'SCOUT' &&
+      result.role !== 'RESOURCE_EXPLORER' &&
+      result.role !== 'TEST_SCENARIO_DESIGNER' &&
+      result.role !== 'AUTOMATOR',
+    'Discovery, Scenario Designer, and Automator roles require their specialized completion tools.',
   )
 
 // The package is published independently of the coordinator, so this is a
@@ -361,7 +370,7 @@ const workerResult = z
       'TRIAGER',
     ]),
     status: z.enum(['COMPLETED', 'BLOCKED', 'QUESTION_RAISED', 'REVISION_REQUIRED']),
-    outputs: z.array(artifactReference),
+    outputs: z.array(artifactReference).max(1_536),
     evidenceReceipts: z.array(hash),
     assumptions: z.array(boundedText),
     blockers: z.array(
@@ -382,6 +391,87 @@ const workerResult = z
       path: ['outputs'],
     },
   )
+
+// Keep this independently published MCP ingress structurally identical to
+// src/lib/quality-journey/automation-contracts.ts. The root parity corpus
+// exercises both positive and negative packets.
+const automationParameter = z
+  .object({ name: z.string().min(1).max(200), type: z.string().min(1).max(100), value: z.unknown() })
+  .strict()
+const automationTestData = z
+  .object({ key: z.string().min(1).max(200), type: z.string().min(1).max(100), value: z.unknown() })
+  .strict()
+const automationLocator = z
+  .object({
+    requirementId: id,
+    parameterName: z.string().min(1).max(200),
+    locatorId: id.optional(),
+    runtimeParameter: z.boolean().optional(),
+  })
+  .strict()
+  .superRefine((value, context) => {
+    if (!value.locatorId && !value.runtimeParameter)
+      context.addIssue({
+        code: 'custom',
+        message: 'A locator requirement needs a same-target locator or runtime parameter.',
+      })
+  })
+const automationStep = z
+  .object({
+    sourceScenarioStepId: id,
+    stepDefinition: z.object({ id, version: z.string().min(1).max(64), definitionHash: hash }).strict(),
+    operation: z
+      .object({
+        id,
+        version: z.string().min(1).max(64),
+        handler: z.object({ id, version: z.string().min(1).max(64), contentHash: hash }).strict(),
+      })
+      .strict(),
+    parameters: z.array(automationParameter).max(128),
+    testData: z.array(automationTestData).max(128),
+    locatorRequirements: z.array(automationLocator).max(128),
+  })
+  .strict()
+export const automationMaterializationInput = z
+  .object({
+    target,
+    journeyId: id,
+    workItemId: id,
+    attemptId: id,
+    leaseId: id,
+    ownerToken: z.string().min(1),
+    idempotencyKey: id,
+    expectedInputHash: hash,
+    expectedScopeHash: hash,
+    scenarios: z
+      .array(z.object({ scenarioRevisionId: id, steps: z.array(automationStep).min(1).max(128) }).strict())
+      .min(1)
+      .max(512),
+    result: workerResult,
+  })
+  .strict()
+  .superRefine((value, context) => {
+    if (new Set(value.scenarios.map(scenario => scenario.scenarioRevisionId)).size !== value.scenarios.length)
+      context.addIssue({ code: 'custom', path: ['scenarios'], message: 'Scenario revisions must be unique.' })
+    if (value.result.role !== 'AUTOMATOR')
+      context.addIssue({
+        code: 'custom',
+        path: ['result', 'role'],
+        message: 'Automator materialization requires the Automator role.',
+      })
+    if (value.result.status !== 'COMPLETED')
+      context.addIssue({
+        code: 'custom',
+        path: ['result', 'status'],
+        message: 'Automator materialization requires a completed worker result.',
+      })
+    if (value.result.outputs.some(output => !['TEST_SUITE', 'TEST_CASE', 'RUNTIME_CAPSULE'].includes(output.kind)))
+      context.addIssue({
+        code: 'custom',
+        path: ['result', 'outputs'],
+        message: 'Output artifact kind is forbidden for role.',
+      })
+  })
 
 const discoveryBundleBase = z
   .object({
@@ -484,7 +574,16 @@ const observationBundle = discoveryBundleBase
 const resourceEntry = z
   .object({
     resourceId: id,
-    resourceKind: z.enum(['OPERATION', 'STEP_DEFINITION', 'LOCATOR', 'TEMPLATE', 'DATA', 'EXAMPLE', 'SCENARIO']),
+    resourceKind: z.enum([
+      'OPERATION',
+      'STEP_DEFINITION',
+      'LOCATOR',
+      'MODULE',
+      'TEMPLATE',
+      'DATA',
+      'EXAMPLE',
+      'SCENARIO',
+    ]),
     requirementId: id,
     rank: z.number().int().positive().max(512),
     explanation: boundedText,
@@ -494,6 +593,7 @@ const resourceEntry = z
 const resourceResolutionBundle = discoveryBundleBase
   .extend({
     resolvedAt: timestamp,
+    destinationModuleId: id,
     approvedRequirementIds: z.array(id).min(1).max(512),
     reusable: z.array(resourceEntry.extend({ reasonCode: z.literal('COMPATIBLE') }).strict()).max(512),
     incompatible: z.array(resourceEntry.extend({ reasonCode: z.literal('INCOMPATIBLE') }).strict()).max(512),
@@ -793,6 +893,33 @@ export function registerQualityJourneyOperations({ server, api }: McpRegistryCon
     },
     async ({ target: targetRef, journeyId: journey }) =>
       text(await api.request(`quality/journeys/${journey}/scenarios?target=${encodeURIComponent(targetRef)}`)),
+  )
+  server.registerTool(
+    'quality_journey_automation_context_get',
+    {
+      description:
+        'Read the immutable approved-scenario materialization context and prepared capsule receipts. This never starts execution.',
+      inputSchema: { target, journeyId },
+    },
+    async ({ target: targetRef, journeyId: journey }) =>
+      text(await api.request(`quality/journeys/${journey}/automation/context?target=${encodeURIComponent(targetRef)}`)),
+  )
+  server.registerTool(
+    'quality_journey_automation_materialize',
+    {
+      description:
+        'Materialize exact approved Scenario revisions through the leased Automator ingress. It creates prepared capsules only; TestRuns and RuntimeCapsules remain Phase 7 authority.',
+      inputSchema: automationMaterializationInput.shape,
+    },
+    async input => {
+      const { target: targetRef, journeyId: journey, ...body } = automationMaterializationInput.parse(input)
+      return text(
+        await api.request(`quality/journeys/${journey}/automation/materializations`, {
+          method: 'POST',
+          body: JSON.stringify({ target: targetRef, ...body }),
+        }),
+      )
+    },
   )
   server.registerTool(
     'quality_journey_scenarios_submit',

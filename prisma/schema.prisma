@@ -500,6 +500,7 @@ model TargetProject {
   credentialExecutionRequests                 AssessmentExecutionRequest[]
   executionConsents                           ExecutionConsent[]
   qualityJourneys                             QualityJourney[]
+  qualityJourneyAutomationTargetBindings      QualityJourneyAutomationTargetBinding[]
 
   @@index([displayName])
   @@index([canonicalPath])
@@ -546,6 +547,10 @@ model QualityJourney {
   scenarioDecisionReceipts          QualityJourneyScenarioDecisionReceipt[]
   activeScenarioPortfolioRevisionId String?                                   @unique
   activeScenarioPortfolioRevision   QualityJourneyScenarioPortfolioRevision?  @relation("ActiveQualityJourneyScenarioPortfolioRevision", fields: [activeScenarioPortfolioRevisionId], references: [id], onDelete: Restrict)
+  automationMaterializations        QualityJourneyAutomationMaterialization[]
+  automationRequestReceipts         QualityJourneyAutomationRequestReceipt[]
+  preparedRuntimeCapsules           QualityJourneyPreparedRuntimeCapsule[]
+  automationTargetBindings          QualityJourneyAutomationTargetBinding[]
 
   @@unique([targetProjectId, rootIdempotencyKey])
   @@index([targetProjectId, status])
@@ -553,23 +558,24 @@ model QualityJourney {
 }
 
 model QualityJourneyArtifact {
-  id                        String                                   @id
-  identityKey               String
-  journeyId                 String
-  targetProjectId           String
-  cycleId                   String
-  kind                      String
-  artifactId                String
-  revisionId                String?
-  contentHash               String
-  artifactJson              String
-  createdAt                 DateTime                                 @default(now())
-  journey                   QualityJourney                           @relation(fields: [journeyId], references: [id], onDelete: Restrict)
-  analysisRevision          QualityJourneyAnalysisRevision?
-  analysisQuestion          QualityJourneyAnalysisQuestion?
-  analysisAnswer            QualityJourneyAnalysisAnswer?
-  analysisDecision          QualityJourneyAnalysisDecision?
-  scenarioPortfolioRevision QualityJourneyScenarioPortfolioRevision?
+  id                         String                                    @id
+  identityKey                String
+  journeyId                  String
+  targetProjectId            String
+  cycleId                    String
+  kind                       String
+  artifactId                 String
+  revisionId                 String?
+  contentHash                String
+  artifactJson               String
+  createdAt                  DateTime                                  @default(now())
+  journey                    QualityJourney                            @relation(fields: [journeyId], references: [id], onDelete: Restrict)
+  analysisRevision           QualityJourneyAnalysisRevision?
+  analysisQuestion           QualityJourneyAnalysisQuestion?
+  analysisAnswer             QualityJourneyAnalysisAnswer?
+  analysisDecision           QualityJourneyAnalysisDecision?
+  scenarioPortfolioRevision  QualityJourneyScenarioPortfolioRevision?
+  automationMaterializations QualityJourneyAutomationMaterialization[]
 
   @@unique([journeyId, identityKey])
   @@index([targetProjectId, kind])
@@ -758,14 +764,14 @@ model QualityJourneyDiscoveryRevision {
 /// enrichment and graph layout.  A layout or feasibility refresh therefore
 /// cannot alter approved scenario semantics.
 model QualityJourneyScenarioPortfolioRevision {
-  id                                     String                                   @id
+  id                                     String                                    @id
   journeyId                              String
   targetProjectId                        String
   cycleId                                String
   discoveryRevisionId                    String
   discoveryCompletionHash                String
-  predecessorPortfolioRevisionId         String?                                  @unique
-  artifactRecordId                       String                                   @unique
+  predecessorPortfolioRevisionId         String?                                   @unique
+  artifactRecordId                       String                                    @unique
   artifactId                             String
   artifactRevisionId                     String
   revision                               Int
@@ -779,26 +785,27 @@ model QualityJourneyScenarioPortfolioRevision {
   submissionHash                         String
   submittedWorkItemId                    String
   submittedAttemptId                     String
-  status                                 String                                   @default("PUBLISHED")
+  status                                 String                                    @default("PUBLISHED")
   reviewHash                             String?
   approvedIntentHash                     String?
   approvedCoverageHash                   String?
   decisionSetHash                        String?
-  createdAt                              DateTime                                 @default(now())
+  createdAt                              DateTime                                  @default(now())
   reviewedAt                             DateTime?
   supersededAt                           DateTime?
-  journey                                QualityJourney                           @relation("JourneyScenarioPortfolioRevisions", fields: [journeyId], references: [id], onDelete: Restrict)
-  discoveryRevision                      QualityJourneyDiscoveryRevision          @relation("ScenarioPortfolioDiscoveryRevision", fields: [discoveryRevisionId], references: [id], onDelete: Restrict)
-  artifact                               QualityJourneyArtifact                   @relation(fields: [artifactRecordId], references: [id], onDelete: Restrict)
-  submittedWorkItem                      QualityJourneyWorkItem                   @relation("QualityJourneyScenarioSubmittedWorkItem", fields: [submittedWorkItemId], references: [id], onDelete: Restrict)
-  submittedAttempt                       QualityJourneyWorkAttempt                @relation("QualityJourneyScenarioSubmittedAttempt", fields: [submittedAttemptId], references: [id], onDelete: Restrict)
-  activeForJourney                       QualityJourney?                          @relation("ActiveQualityJourneyScenarioPortfolioRevision")
-  predecessorPortfolioRevision           QualityJourneyScenarioPortfolioRevision? @relation("ScenarioPortfolioSuccessor", fields: [predecessorPortfolioRevisionId], references: [id], onDelete: Restrict)
-  successorPortfolioRevision             QualityJourneyScenarioPortfolioRevision? @relation("ScenarioPortfolioSuccessor")
+  journey                                QualityJourney                            @relation("JourneyScenarioPortfolioRevisions", fields: [journeyId], references: [id], onDelete: Restrict)
+  discoveryRevision                      QualityJourneyDiscoveryRevision           @relation("ScenarioPortfolioDiscoveryRevision", fields: [discoveryRevisionId], references: [id], onDelete: Restrict)
+  artifact                               QualityJourneyArtifact                    @relation(fields: [artifactRecordId], references: [id], onDelete: Restrict)
+  submittedWorkItem                      QualityJourneyWorkItem                    @relation("QualityJourneyScenarioSubmittedWorkItem", fields: [submittedWorkItemId], references: [id], onDelete: Restrict)
+  submittedAttempt                       QualityJourneyWorkAttempt                 @relation("QualityJourneyScenarioSubmittedAttempt", fields: [submittedAttemptId], references: [id], onDelete: Restrict)
+  activeForJourney                       QualityJourney?                           @relation("ActiveQualityJourneyScenarioPortfolioRevision")
+  predecessorPortfolioRevision           QualityJourneyScenarioPortfolioRevision?  @relation("ScenarioPortfolioSuccessor", fields: [predecessorPortfolioRevisionId], references: [id], onDelete: Restrict)
+  successorPortfolioRevision             QualityJourneyScenarioPortfolioRevision?  @relation("ScenarioPortfolioSuccessor")
   scenarios                              QualityJourneyScenarioRevision[]
   decisions                              QualityJourneyScenarioDecision[]
   comments                               QualityJourneyScenarioReviewComment[]
   qualityJourneyScenarioDecisionReceipts QualityJourneyScenarioDecisionReceipt[]
+  automationMaterializations             QualityJourneyAutomationMaterialization[]
 
   @@unique([journeyId, artifactRevisionId])
   @@unique([journeyId, revision])
@@ -809,21 +816,22 @@ model QualityJourneyScenarioPortfolioRevision {
 }
 
 model QualityJourneyScenarioRevision {
-  id                   String                                  @id
-  portfolioRevisionId  String
-  stableScenarioId     String
-  scenarioRevisionId   String
-  behavioralIntentJson String
-  behavioralIntentHash String
-  enrichmentJson       String
-  enrichmentHash       String
-  layoutJson           String
-  layoutHash           String
-  contentHash          String
-  createdAt            DateTime                                @default(now())
-  portfolioRevision    QualityJourneyScenarioPortfolioRevision @relation(fields: [portfolioRevisionId], references: [id], onDelete: Restrict)
-  decisions            QualityJourneyScenarioDecision[]
-  comments             QualityJourneyScenarioReviewComment[]
+  id                         String                                    @id
+  portfolioRevisionId        String
+  stableScenarioId           String
+  scenarioRevisionId         String
+  behavioralIntentJson       String
+  behavioralIntentHash       String
+  enrichmentJson             String
+  enrichmentHash             String
+  layoutJson                 String
+  layoutHash                 String
+  contentHash                String
+  createdAt                  DateTime                                  @default(now())
+  portfolioRevision          QualityJourneyScenarioPortfolioRevision   @relation(fields: [portfolioRevisionId], references: [id], onDelete: Restrict)
+  decisions                  QualityJourneyScenarioDecision[]
+  comments                   QualityJourneyScenarioReviewComment[]
+  automationMaterializations QualityJourneyAutomationMaterialization[]
 
   @@unique([portfolioRevisionId, scenarioRevisionId])
   @@unique([portfolioRevisionId, stableScenarioId])
@@ -831,22 +839,152 @@ model QualityJourneyScenarioRevision {
   @@index([stableScenarioId])
 }
 
+/// Phase 6 is deliberately preparation-only.  This immutable record is not a
+/// RuntimeCapsule: RuntimeCapsule remains test-run bound and is owned by the
+/// managed execution phase.
+model QualityJourneyPreparedRuntimeCapsule {
+  id                String                                  @id
+  journeyId         String
+  targetProjectId   String
+  cycleId           String
+  materializationId String                                  @unique
+  inputHash         String
+  capsuleHash       String
+  manifestJson      String
+  manifestHash      String
+  status            String                                  @default("PREPARED")
+  createdAt         DateTime                                @default(now())
+  journey           QualityJourney                          @relation(fields: [journeyId], references: [id], onDelete: Restrict)
+  materialization   QualityJourneyAutomationMaterialization @relation(fields: [materializationId], references: [id], onDelete: Restrict)
+
+  @@unique([journeyId, materializationId])
+  @@index([targetProjectId, cycleId])
+}
+
+/// Durable, input-bound Automator receipt.  It records the exact approved
+/// scenario decision and the target-owned artifacts it materialized.  No
+/// TestRun or RuntimeCapsule foreign key is present by design.
+model QualityJourneyAutomationMaterialization {
+  id                        String                                           @id
+  journeyId                 String
+  targetProjectId           String
+  cycleId                   String
+  scenarioRevisionId        String
+  scenarioContentHash       String
+  portfolioRevisionId       String
+  portfolioContentHash      String
+  decisionId                String
+  decisionHash              String
+  workItemId                String
+  attemptId                 String
+  leaseId                   String
+  ownerTokenHash            String
+  inputHash                 String
+  idempotencyKey            String
+  requestHash               String
+  materializationHash       String
+  status                    String                                           @default("MATERIALIZED")
+  failureKind               String?
+  failureJson               String?
+  suiteId                   String?
+  testCaseId                String?
+  artifactRecordId          String                                           @unique
+  portfolioRecordId         String
+  artifactJson              String
+  createdAt                 DateTime                                         @default(now())
+  journey                   QualityJourney                                   @relation(fields: [journeyId], references: [id], onDelete: Restrict)
+  scenarioRevision          QualityJourneyScenarioRevision                   @relation(fields: [scenarioRevisionId], references: [scenarioRevisionId], onDelete: Restrict)
+  artifact                  QualityJourneyArtifact                           @relation(fields: [artifactRecordId], references: [id], onDelete: Restrict)
+  portfolioRevision         QualityJourneyScenarioPortfolioRevision          @relation(fields: [portfolioRecordId], references: [id], onDelete: Restrict)
+  decision                  QualityJourneyScenarioDecision                   @relation(fields: [decisionId], references: [id], onDelete: Restrict)
+  workItem                  QualityJourneyWorkItem                           @relation(fields: [workItemId], references: [id], onDelete: Restrict)
+  attempt                   QualityJourneyWorkAttempt                        @relation(fields: [attemptId], references: [id], onDelete: Restrict)
+  preparedCapsule           QualityJourneyPreparedRuntimeCapsule?
+  targetBindingAssociations QualityJourneyAutomationMaterializationBinding[]
+
+  @@unique([journeyId, idempotencyKey])
+  // A classified failure is durable per input-bound request. A fresh Factory
+  // idempotency key may record a distinct diagnosis or repair the input.
+  @@unique([journeyId, scenarioRevisionId, inputHash, status, failureKind, idempotencyKey])
+  @@index([workItemId, attemptId])
+  @@index([targetProjectId, cycleId])
+}
+
+/// A target-owned semantic reservation for an Automator materialization. The
+/// hashes cover the complete suite, case, and ordered step packet so an
+/// independently authored matching case may be reused without a name-only
+/// match. The row is insert-only evidence, not a mutable cache.
+model QualityJourneyAutomationTargetBinding {
+  id                          String                                           @id
+  journeyId                   String
+  targetProjectId             String
+  semanticHash                String
+  suiteId                     String
+  testCaseId                  String
+  suiteHash                   String
+  testCaseHash                String
+  stepHash                    String
+  bindingJson                 String
+  resourceHashJson            String
+  createdAt                   DateTime                                         @default(now())
+  journey                     QualityJourney                                   @relation(fields: [journeyId], references: [id], onDelete: Restrict)
+  targetProject               TargetProject                                    @relation(fields: [targetProjectId], references: [id], onDelete: Restrict)
+  materializationAssociations QualityJourneyAutomationMaterializationBinding[]
+
+  @@unique([targetProjectId, semanticHash])
+  @@index([journeyId, targetProjectId])
+}
+
+/// Immutable association: one canonical target binding may prove semantic
+/// reuse for many Automator receipts without weakening either receipt.
+model QualityJourneyAutomationMaterializationBinding {
+  materializationId String                                  @id
+  bindingId         String
+  createdAt         DateTime                                @default(now())
+  materialization   QualityJourneyAutomationMaterialization @relation(fields: [materializationId], references: [id], onDelete: Restrict)
+  targetBinding     QualityJourneyAutomationTargetBinding   @relation(fields: [bindingId], references: [id], onDelete: Restrict)
+
+  @@index([bindingId])
+}
+
+/// Terminal, request-level Automator diagnosis. It prevents a mixed batch
+/// rollback from inventing a per-scenario materialization failure.
+model QualityJourneyAutomationRequestReceipt {
+  id             String                    @id
+  journeyId      String
+  workItemId     String
+  attemptId      String
+  ownerTokenHash String
+  idempotencyKey String
+  requestHash    String
+  status         String
+  resultJson     String
+  createdAt      DateTime                  @default(now())
+  journey        QualityJourney            @relation(fields: [journeyId], references: [id], onDelete: Restrict)
+  workItem       QualityJourneyWorkItem    @relation(fields: [workItemId], references: [id], onDelete: Restrict)
+  attempt        QualityJourneyWorkAttempt @relation(fields: [attemptId], references: [id], onDelete: Restrict)
+
+  @@unique([journeyId, idempotencyKey])
+  @@index([attemptId])
+}
+
 model QualityJourneyScenarioDecision {
-  id                    String                                  @id
-  portfolioRevisionId   String
-  scenarioRevisionId    String
-  decision              String
-  feedback              String?
-  actor                 String
-  idempotencyKey        String
-  requestHash           String
-  contentHash           String
-  carriedFromDecisionId String?
-  createdAt             DateTime                                @default(now())
-  portfolioRevision     QualityJourneyScenarioPortfolioRevision @relation(fields: [portfolioRevisionId], references: [id], onDelete: Restrict)
-  scenarioRevision      QualityJourneyScenarioRevision          @relation(fields: [scenarioRevisionId], references: [scenarioRevisionId], onDelete: Restrict)
-  carriedFromDecision   QualityJourneyScenarioDecision?         @relation("ScenarioDecisionCarryForward", fields: [carriedFromDecisionId], references: [id], onDelete: Restrict)
-  carriedDecisions      QualityJourneyScenarioDecision[]        @relation("ScenarioDecisionCarryForward")
+  id                         String                                    @id
+  portfolioRevisionId        String
+  scenarioRevisionId         String
+  decision                   String
+  feedback                   String?
+  actor                      String
+  idempotencyKey             String
+  requestHash                String
+  contentHash                String
+  carriedFromDecisionId      String?
+  createdAt                  DateTime                                  @default(now())
+  portfolioRevision          QualityJourneyScenarioPortfolioRevision   @relation(fields: [portfolioRevisionId], references: [id], onDelete: Restrict)
+  scenarioRevision           QualityJourneyScenarioRevision            @relation(fields: [scenarioRevisionId], references: [scenarioRevisionId], onDelete: Restrict)
+  carriedFromDecision        QualityJourneyScenarioDecision?           @relation("ScenarioDecisionCarryForward", fields: [carriedFromDecisionId], references: [id], onDelete: Restrict)
+  carriedDecisions           QualityJourneyScenarioDecision[]          @relation("ScenarioDecisionCarryForward")
+  automationMaterializations QualityJourneyAutomationMaterialization[]
 
   @@unique([portfolioRevisionId, scenarioRevisionId])
   @@unique([portfolioRevisionId, idempotencyKey])
@@ -953,29 +1091,31 @@ model QualityJourneyEvent {
 }
 
 model QualityJourneyWorkItem {
-  id                        String                                    @id
-  journeyId                 String
-  targetProjectId           String
-  cycleId                   String
-  role                      QualityJourneyRole
-  status                    QualityJourneyWorkItemStatus              @default(ELIGIBLE)
-  inputHash                 String
-  roleContractDigest        String
-  inputArtifactRefsJson     String                                    @default("[]")
-  allowedOutputsJson        String                                    @default("[]")
-  completionCriteriaJson    String                                    @default("[]")
-  authorizationScopeJson    String                                    @default("{}")
-  currentAttempt            Int                                       @default(0)
-  version                   Int                                       @default(0)
-  createdAt                 DateTime                                  @default(now())
-  updatedAt                 DateTime                                  @updatedAt
-  journey                   QualityJourney                            @relation(fields: [journeyId], references: [id], onDelete: Restrict)
-  authorizations            QualityJourneyWorkAuthorization[]
-  attempts                  QualityJourneyWorkAttempt[]
-  analysisSubmissions       QualityJourneyAnalysisRevision[]          @relation("QualityJourneyAnalysisSubmittedWorkItem")
-  scenarioSubmissions       QualityJourneyScenarioPortfolioRevision[] @relation("QualityJourneyScenarioSubmittedWorkItem")
-  scoutDiscoveryRevision    QualityJourneyDiscoveryRevision?          @relation("DiscoveryScoutWorkItem")
-  resourceDiscoveryRevision QualityJourneyDiscoveryRevision?          @relation("DiscoveryResourceWorkItem")
+  id                         String                                    @id
+  journeyId                  String
+  targetProjectId            String
+  cycleId                    String
+  role                       QualityJourneyRole
+  status                     QualityJourneyWorkItemStatus              @default(ELIGIBLE)
+  inputHash                  String
+  roleContractDigest         String
+  inputArtifactRefsJson      String                                    @default("[]")
+  allowedOutputsJson         String                                    @default("[]")
+  completionCriteriaJson     String                                    @default("[]")
+  authorizationScopeJson     String                                    @default("{}")
+  currentAttempt             Int                                       @default(0)
+  version                    Int                                       @default(0)
+  createdAt                  DateTime                                  @default(now())
+  updatedAt                  DateTime                                  @updatedAt
+  journey                    QualityJourney                            @relation(fields: [journeyId], references: [id], onDelete: Restrict)
+  authorizations             QualityJourneyWorkAuthorization[]
+  attempts                   QualityJourneyWorkAttempt[]
+  analysisSubmissions        QualityJourneyAnalysisRevision[]          @relation("QualityJourneyAnalysisSubmittedWorkItem")
+  scenarioSubmissions        QualityJourneyScenarioPortfolioRevision[] @relation("QualityJourneyScenarioSubmittedWorkItem")
+  automationMaterializations QualityJourneyAutomationMaterialization[]
+  scoutDiscoveryRevision     QualityJourneyDiscoveryRevision?          @relation("DiscoveryScoutWorkItem")
+  resourceDiscoveryRevision  QualityJourneyDiscoveryRevision?          @relation("DiscoveryResourceWorkItem")
+  automationRequestReceipts  QualityJourneyAutomationRequestReceipt[]
 
   @@index([journeyId, status])
   @@index([journeyId, role, cycleId])
@@ -1056,6 +1196,8 @@ model QualityJourneyWorkAttempt {
   replacementAttempts        QualityJourneyWorkAttempt[]               @relation("QualityJourneyWorkAttemptReplacement")
   analysisSubmissions        QualityJourneyAnalysisRevision[]          @relation("QualityJourneyAnalysisSubmittedAttempt")
   scenarioSubmissions        QualityJourneyScenarioPortfolioRevision[] @relation("QualityJourneyScenarioSubmittedAttempt")
+  automationMaterializations QualityJourneyAutomationMaterialization[]
+  automationRequestReceipts  QualityJourneyAutomationRequestReceipt[]
 
   @@unique([workItemId, attempt])
   @@unique([assignmentId])
