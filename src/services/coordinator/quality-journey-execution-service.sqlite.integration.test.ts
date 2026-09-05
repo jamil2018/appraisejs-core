@@ -44,7 +44,9 @@ async function fixture(
   workspaces.push(workspace)
   const databasePath = path.join(workspace, 'appraise.db')
   await copyMigratedTestDatabase(databasePath)
-  const client = new PrismaClient({ datasources: { db: { url: `file:${databasePath}` } } })
+  // SQLite PRAGMAs are connection-local. Keep fixture setup and restoration
+  // on one connection on every host, including multi-core Linux CI runners.
+  const client = new PrismaClient({ datasources: { db: { url: `file:${databasePath}?connection_limit=1` } } })
   await client.targetProject.create({
     data: {
       id: 'target-execution',
@@ -255,6 +257,8 @@ async function fixture(
     await seedSecondPreparedCapsule(client, created.journey.journeyId, created.journey.activeCycleId, manifest)
   }
   await client.$executeRawUnsafe('PRAGMA foreign_keys=ON')
+  const enforcement = await client.$queryRawUnsafe<Array<{ foreign_keys: bigint }>>('PRAGMA foreign_keys')
+  expect(Number(enforcement[0].foreign_keys)).toBe(1)
   return {
     client,
     journeyId: created.journey.journeyId,
