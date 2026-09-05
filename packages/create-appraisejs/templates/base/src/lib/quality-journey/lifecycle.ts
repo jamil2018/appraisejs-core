@@ -93,6 +93,15 @@ export const qualityJourneyTransitions = [
     failureCodes: ['RERUN_SCOPE_NOT_APPROVED', 'STALE_STATE_HASH'],
   },
   {
+    from: 'REPORT_REVIEW',
+    command: 'START_RERUN_CYCLE',
+    actor: 'USER',
+    to: 'EXECUTION',
+    requiredArtifacts: ['TEST_REPORT_ANALYSIS_REVISION', 'TEST_RUN', 'EVIDENCE_RECEIPT'],
+    forbiddenCapabilities: ['rewrite predecessor execution evidence'],
+    failureCodes: ['RERUN_SCOPE_NOT_APPROVED', 'REPORT_SUPERSEDED', 'STALE_STATE_HASH'],
+  },
+  {
     from: 'TRIAGE',
     command: 'PUBLISH_TRIAGE_REPORT',
     actor: 'RUNNER',

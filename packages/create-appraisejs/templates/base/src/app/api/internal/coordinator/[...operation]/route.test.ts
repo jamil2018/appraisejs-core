@@ -638,7 +638,7 @@ describe('coordinator locator_ensure route', () => {
   })
 
   it('fails closed when generic work completion carries a specialized semantic role', async () => {
-    for (const role of ['SCOUT', 'RESOURCE_EXPLORER', 'TEST_SCENARIO_DESIGNER']) {
+    for (const role of ['SCOUT', 'RESOURCE_EXPLORER', 'TEST_SCENARIO_DESIGNER', 'TRIAGER']) {
       const response = await POST(
         request(
           {

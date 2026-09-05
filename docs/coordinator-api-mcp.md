@@ -152,3 +152,36 @@ an actor or grant-source string. Generic commands reject `START_EXECUTION`, `STA
 Run links use the ordinary TestRun screen for live logs, reports and traces. Reconciliation never starts a process.
 A missing process handle for an active durable attempt is an unresolved ownership condition, not permission to
 launch again. Reruns preserve predecessor evidence and do not constitute a Phase 8 defect attribution or report.
+
+## Journey triage and report review
+
+Phase 8 adds four specialized operations under `quality/journeys/:journeyId/triage`:
+
+| MCP operation                          | HTTP suffix     | Purpose                                                              |
+| -------------------------------------- | --------------- | -------------------------------------------------------------------- |
+| `quality_journey_triage_get`           | `GET context`   | Read frozen assignments, report revisions, and durable review result |
+| `quality_journey_triage_evidence_read` | `POST evidence` | Read one bounded sealed report or log artifact                       |
+| `quality_journey_triage_prepare`       | `POST prepare`  | Issue or recover a Triager assignment for one sealed execution cycle |
+| `quality_journey_triage_submit`        | `POST submit`   | Submit a report bound to the lease and frozen source input           |
+
+Bodies carry a target reference and Appraise resolves its durable target identity; the path supplies the Journey ID.
+Preparation accepts only an exact execution-cycle ID. Submission carries leased work and attempt identities, the
+report, and the worker result. The report is attributed from accepted analysis, approved scenarios, exact runs, and
+sealed evidence, without producer narrative or mutable execution summaries. Its content hash is
+`hash({ report, source: assignment.input })`. Context returns report history and durable review outcomes but no
+mutation authority.
+
+Evidence read accepts only the active Triager work/attempt/lease/owner-token bundle, receipt ID, `report` or `log`
+kind, and an optional bounded text page. Appraise resolves the target and verifies the current specialized assignment,
+Factory receipt, authorization, lease, receipt's Journey/cycle/TestRun/capsule identity, and the sealed artifact byte
+hash and size through `TestRunArtifactAccessService`; it never accepts or returns a filesystem path. It rechecks that
+lease before responding, rejects artifacts over 2 MiB, and returns at most 64 KiB per page.
+
+Full-report revision feedback and exact automation-remediation approval are local UI decisions. They bind the current
+report hash and Journey state hash and are absent from MCP, so a worker cannot self-review or approve remediation. A
+remediation successor records the reviewed report identity, its hash, source execution cycle, selected findings and
+scenario revisions, and the bounded correction scope.
+
+When a rerun is proposed from `REPORT_REVIEW`, Appraise derives the current active report revision and content hash
+server-side and persists them in the proposal. Rerun approval and start recheck that report binding against the exact
+source execution cycle, so review, replacement, or cross-cycle drift rejects the stale proposal.

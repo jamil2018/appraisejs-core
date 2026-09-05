@@ -1,6 +1,7 @@
 import { createHash, randomUUID } from 'node:crypto'
 import type { Prisma, PrismaClient } from '@prisma/client'
 import prisma from '@/config/db-config'
+import { qualityJourneyRemediationScope } from './quality-journey-remediation-scope'
 import { canonicalContractJson } from '@/lib/catalog-contracts'
 import {
   hashQualityJourneyExecutionValue,
@@ -388,7 +389,7 @@ async function validateExecutionReservationRequest(
   }
   if (journey.stateHash !== input.expectedStateHash)
     throw conflict('Quality Journey state changed before execution reservation.')
-  if (journey.stage !== (rerun ? 'TRIAGE' : 'AUTOMATION'))
+  if (rerun ? !['TRIAGE', 'REPORT_REVIEW'].includes(journey.stage) : journey.stage !== 'AUTOMATION')
     throw conflict('Quality Journey is not ready to start this execution cycle.')
   return { journey, requestHash, rerun }
 }
@@ -436,8 +437,13 @@ async function assertInitialPreparedSelection(
         include: { scenarios: { include: { decisions: true } } },
       })
     : null
+  const remediation = await qualityJourneyRemediationScope(journey.id, journey.activeCycleId, tx)
   const approvedScenarioIds = portfolio?.scenarios
-    .filter(item => item.decisions.some(decision => decision.decision === 'APPROVED'))
+    .filter(
+      item =>
+        item.decisions.some(decision => decision.decision === 'APPROVED') &&
+        (!remediation || remediation.scenarioRevisionIds.includes(item.scenarioRevisionId)),
+    )
     .map(item => item.scenarioRevisionId)
     .sort()
   const preparedScenarioIds = frozen.map(item => item.scenarioRevisionId).sort()
@@ -807,7 +813,9 @@ export async function proposeQualityJourneyRerun(value: unknown, client: PrismaC
       if (existing.requestHash !== requestHash) throw conflict('Rerun proposal idempotency key was reused.')
       return existing
     }
+    const reportBinding = await currentRerunReportBinding(input.journeyId, source.id, tx)
     const proposal = {
+      ...reportBinding,
       sourceCycleId: input.sourceCycleId,
       sourceEvidenceReceiptIds: input.sourceEvidenceReceiptIds,
       selectedScenarioRevisionIds: input.selectedScenarioRevisionIds,
@@ -819,6 +827,7 @@ export async function proposeQualityJourneyRerun(value: unknown, client: PrismaC
         journeyId: input.journeyId,
         targetProjectId: input.targetProjectId,
         sourceExecutionCycleId: input.sourceCycleId,
+        ...reportBinding,
         sourceEvidenceJson: json(input.sourceEvidenceReceiptIds),
         selectedScenariosJson: json(input.selectedScenarioRevisionIds),
         reason: input.reason,
@@ -839,6 +848,19 @@ export async function approveQualityJourneyRerun(value: unknown, client: PrismaC
     })
     if (!proposal || proposal.proposalHash !== input.expectedProposalHash || proposal.status !== 'PROPOSED')
       throw conflict('Rerun proposal cannot be approved.')
+    await assertRerunReportCurrent(proposal, tx)
+    if (proposal.reportRevisionId)
+      await tx.qualityJourneyReportReview.create({
+        data: {
+          id: stableId('qjrr', proposal.id),
+          journeyId: input.journeyId,
+          reportRevisionId: proposal.reportRevisionId,
+          kind: 'RERUN_APPROVED',
+          feedback: input.reason ?? proposal.reason,
+          idempotencyKey: `rerun:${proposal.id}`,
+          requestHash: hash({ proposalId: proposal.id, proposalHash: proposal.proposalHash }),
+        },
+      })
     return tx.qualityJourneyExecutionRerunProposal.update({
       where: { id: proposal.id },
       data: { status: 'APPROVED', approvedAt: new Date() },
@@ -854,6 +876,7 @@ export async function startQualityJourneyRerun(value: unknown, client: PrismaCli
     })
     if (!proposal || !['APPROVED', 'STARTED'].includes(proposal.status))
       throw new ServiceError('A persisted UI approval is required before rerunning.', 'UNAUTHORIZED', 403)
+    if (proposal.status !== 'STARTED') await assertRerunReportCurrent(proposal, tx)
     const source = await tx.qualityJourneyExecutionCycle.findUniqueOrThrow({
       where: { id: proposal.sourceExecutionCycleId },
     })
@@ -889,4 +912,58 @@ export async function startQualityJourneyRerun(value: unknown, client: PrismaCli
     { journeyId: input.journeyId, targetProjectId: input.targetProjectId, cycleId: result.executionCycleId },
     client,
   )
+}
+
+async function currentRerunReportBinding(
+  journeyId: string,
+  sourceExecutionCycleId: string,
+  tx: Prisma.TransactionClient,
+  approvedProposal?: { id: string; proposalHash: string },
+) {
+  const journey = await tx.qualityJourney.findUniqueOrThrow({ where: { id: journeyId } })
+  if (journey.stage !== 'REPORT_REVIEW') return { reportRevisionId: null, reportHash: null }
+  const report = await tx.qualityJourneyTriageReport.findFirst({
+    where: { id: journey.activeTriageReportId ?? '', journeyId },
+    include: { assignment: true, review: true },
+  })
+  if (
+    !report ||
+    !rerunReviewIsCurrent(report, approvedProposal) ||
+    report.assignment.executionCycleId !== sourceExecutionCycleId
+  )
+    throw conflict('Report-review reruns must bind the current report and its exact execution cycle.')
+  return { reportRevisionId: report.id, reportHash: report.contentHash }
+}
+
+function rerunReviewIsCurrent(
+  report: { review: { kind: string; requestHash: string } | null },
+  approvedProposal?: { id: string; proposalHash: string },
+) {
+  if (!approvedProposal) return !report.review
+  return (
+    report.review?.kind === 'RERUN_APPROVED' &&
+    report.review.requestHash === hash({ proposalId: approvedProposal.id, proposalHash: approvedProposal.proposalHash })
+  )
+}
+
+async function assertRerunReportCurrent(
+  proposal: {
+    id: string
+    proposalHash: string
+    status: string
+    journeyId: string
+    sourceExecutionCycleId: string
+    reportRevisionId: string | null
+    reportHash: string | null
+  },
+  tx: Prisma.TransactionClient,
+) {
+  const current = await currentRerunReportBinding(
+    proposal.journeyId,
+    proposal.sourceExecutionCycleId,
+    tx,
+    proposal.status === 'APPROVED' ? proposal : undefined,
+  )
+  if (proposal.reportRevisionId !== current.reportRevisionId || proposal.reportHash !== current.reportHash)
+    throw conflict('Rerun report approval is stale; propose and approve the current report scope.')
 }

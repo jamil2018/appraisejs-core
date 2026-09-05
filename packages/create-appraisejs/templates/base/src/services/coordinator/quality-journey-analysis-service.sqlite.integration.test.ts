@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto'
 import { promises as fs } from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
-import { PrismaClient } from '@prisma/client'
+import { PrismaClient, type QualityJourney } from '@prisma/client'
 import { afterEach, describe, expect, it } from 'vitest'
 import { copyMigratedTestDatabase } from '@/test/migrated-test-database'
 import { clearAgentFactoryProviderAdaptersForTest, registerAgentFactoryProviderAdapter } from '@/lib/quality-journey'
@@ -40,7 +40,12 @@ import {
   startQualityJourneyScenarioDesign,
   submitQualityJourneyScenarioPortfolio,
 } from './quality-journey-scenario-service'
-import { hashScenarioPortfolio } from '@/lib/quality-journey'
+import {
+  createQualityJourneyKernelState,
+  hashScenarioPortfolio,
+  qualityJourneyRoleDefinitions,
+  qualityJourneyRoleRegistryVersion,
+} from '@/lib/quality-journey'
 import { defaultOperationDefinitions } from '@/lib/operation-catalog'
 import {
   builtInStepDefinitions,
@@ -53,6 +58,7 @@ import {
   getQualityJourneyAutomationContext,
   materializeQualityJourneyApprovedScenarios,
 } from './quality-journey-automation-service'
+import { approveQualityJourneyRemediation } from './quality-journey-triage-service'
 
 const workspaces: string[] = []
 const digest = (character: string) => `sha256:${character.repeat(64)}`
@@ -102,6 +108,33 @@ async function fixture() {
     },
   })
   return client
+}
+
+function frozenRouteAssertionDefinition() {
+  const operation = defaultOperationDefinitions.find(
+    candidate => candidate.id === 'browser.navigation.assertion.assert.url.route.equals',
+  )!
+  const definition = builtInStepDefinitions.find(
+    candidate =>
+      candidate.execution.kind === 'operation' &&
+      candidate.execution.handlerId === operation.handler.id &&
+      candidate.execution.handlerVersion === operation.handler.version,
+  )!
+  return definition
+}
+
+function reportReviewKernelState(reportReview: QualityJourney) {
+  return createQualityJourneyKernelState({
+    journeyId: reportReview.id,
+    targetProjectId: reportReview.targetProjectId,
+    activeCycleId: reportReview.activeCycleId,
+    stage: 'REPORT_REVIEW',
+    activeRevisionIds: JSON.parse(reportReview.activeRevisionIdsJson),
+    ...(reportReview.analysisReviewHash ? { analysisReviewHash: reportReview.analysisReviewHash } : {}),
+    unresolvedQuestionIds: JSON.parse(reportReview.unresolvedQuestionIdsJson),
+    blockerIds: JSON.parse(reportReview.blockerIdsJson),
+    activeWorkItemIds: JSON.parse(reportReview.activeWorkItemIdsJson),
+  })
 }
 
 function charter(journeyId: string, cycleId: string, suffix = '1') {
@@ -584,15 +617,7 @@ describe('Quality Journey Phase 3 through Phase 5 control plane', () => {
       // Discovery freezes the resource catalog. Seed the Step Definition
       // before approval so the later Automator assignment may legitimately
       // select it from the Resource Explorer output.
-      const discoveryOperation = defaultOperationDefinitions.find(
-        candidate => candidate.id === 'browser.assertions.no-console-errors',
-      )!
-      const discoveryDefinition = builtInStepDefinitions.find(
-        candidate =>
-          candidate.execution.kind === 'operation' &&
-          candidate.execution.handlerId === discoveryOperation.handler.id &&
-          candidate.execution.handlerVersion === discoveryOperation.handler.version,
-      )!
+      const discoveryDefinition = frozenRouteAssertionDefinition()
       const discoveryDefinitionHashes = computeStepDefinitionHashes(discoveryDefinition)
       await client.stepDefinition.create({
         data: {
@@ -827,7 +852,7 @@ describe('Quality Journey Phase 3 through Phase 5 control plane', () => {
       const frozenResource = frozenResources.find(resource => resource.kind !== 'MODULE')!
       const frozenModule = frozenResources.find(resource => resource.kind === 'MODULE')!
       const compatibleOperation = defaultOperationDefinitions.find(
-        candidate => candidate.id === 'browser.assertions.no-console-errors',
+        candidate => candidate.id === 'browser.navigation.assertion.assert.url.route.equals',
       )!
       const compatibleOperationId = `operation:${compatibleOperation.id}:${compatibleOperation.version}`
       const resourceBundle = {
@@ -1296,7 +1321,7 @@ describe('Quality Journey Phase 3 through Phase 5 control plane', () => {
         ),
       ).rejects.toThrow('Scenario decision receipts are immutable')
       const operation = defaultOperationDefinitions.find(
-        candidate => candidate.id === 'browser.assertions.no-console-errors',
+        candidate => candidate.id === 'browser.navigation.assertion.assert.url.route.equals',
       )!
       const readyDefinition = builtInStepDefinitions.find(
         candidate =>
@@ -1369,7 +1394,7 @@ describe('Quality Journey Phase 3 through Phase 5 control plane', () => {
               definitionHash: computeStepReferenceHash(readyDefinition),
             },
             operation: { id: operation.id, version: operation.version, handler: operation.handler },
-            parameters: [],
+            parameters: [{ name: 'route', type: 'string', value: '/checkout' }],
             testData: [],
             locatorRequirements: [],
           },
@@ -1391,7 +1416,7 @@ describe('Quality Journey Phase 3 through Phase 5 control plane', () => {
       const reusableCaseId = 'existing-semantic-case'
       const reusableInvocation = canonicalStepDefinitionJson({
         step: reusableProposal.steps[0]!.stepDefinition,
-        inputs: {},
+        inputs: { route: '/checkout' },
         presentation: { keyword: 'Then', description: reusableIntent.steps[0]!.expected },
       })
       const seedReusableTarget = async (targetProjectId: string, moduleId: string, suffix: string) => {
@@ -1472,7 +1497,7 @@ describe('Quality Journey Phase 3 through Phase 5 control plane', () => {
               stepId: source.stepId,
               definition: proposal.steps[0]!.stepDefinition,
               operation: proposal.steps[0]!.operation,
-              parameters: [],
+              parameters: proposal.steps[0]!.parameters,
               testData: [],
               locatorRequirements: [],
             },
@@ -1526,7 +1551,25 @@ describe('Quality Journey Phase 3 through Phase 5 control plane', () => {
           submittedAt: '2026-09-05T00:00:00.000Z',
         },
       }
-      const incompatibleOperation = defaultOperationDefinitions.find(candidate => candidate.id !== operation.id)!
+      const automationDiscovery = await client.qualityJourneyDiscoveryRevision.findUniqueOrThrow({
+        where: {
+          id: (await client.qualityJourney.findUniqueOrThrow({ where: { id: created.journey.journeyId } }))
+            .activeDiscoveryRevisionId!,
+        },
+        select: { resourceResolutionJson: true },
+      })
+      const allowedOperationReferences = new Set(
+        (
+          JSON.parse(automationDiscovery.resourceResolutionJson!) as {
+            reusable: Array<{ resourceId: string; resourceKind: string }>
+          }
+        ).reusable
+          .filter(resource => resource.resourceKind === 'OPERATION')
+          .map(resource => resource.resourceId),
+      )
+      const incompatibleOperation = defaultOperationDefinitions.find(
+        candidate => !allowedOperationReferences.has(`operation:${candidate.id}:${candidate.version}`),
+      )!
       await expect(
         materializeQualityJourneyApprovedScenarios(
           {
@@ -1874,6 +1917,654 @@ describe('Quality Journey Phase 3 through Phase 5 control plane', () => {
           client,
         ),
       ).rejects.toMatchObject({ code: 'CONFLICT' })
+      const sourceCapsules = await client.qualityJourneyPreparedRuntimeCapsule.findMany({
+        where: { journeyId: created.journey.journeyId, cycleId: created.journey.activeCycleId },
+        include: { materialization: true },
+        orderBy: { materialization: { scenarioRevisionId: 'asc' } },
+      })
+      const frozenSourceCapsules = sourceCapsules
+        .filter(capsule => capsule.materialization.scenarioRevisionId === 'scenario-1-r1')
+        .map(capsule => ({
+          preparedCapsuleId: capsule.id,
+          materializationId: capsule.materializationId,
+          scenarioRevisionId: capsule.materialization.scenarioRevisionId,
+        }))
+      const sourceExecutionCycleId = 'execution-remediation-source'
+      await client.qualityJourneyExecutionCycle.create({
+        data: {
+          id: sourceExecutionCycleId,
+          journeyId: created.journey.journeyId,
+          targetProjectId: 'target-analysis-1',
+          cycleId: created.journey.activeCycleId,
+          preparedCapsulesJson: canonicalContractJson(frozenSourceCapsules),
+          preparedCapsulesHash: hash(frozenSourceCapsules),
+          environmentId: 'environment-analysis-1',
+          environmentSnapshotJson: '{}',
+          environmentSnapshotHash: digest('a'),
+          environmentSnapshotVersion: 1,
+          targetFingerprint: digest('a'),
+          stateHash: (
+            await getQualityJourney(
+              { journeyId: created.journey.journeyId, targetProjectId: 'target-analysis-1' },
+              client,
+            )
+          ).journey.stateHash,
+          idempotencyKey: 'execution-remediation-source',
+          requestHash: digest('a'),
+          status: 'COMPLETED',
+          completedAt: new Date('2026-09-05T00:00:00.000Z'),
+        },
+      })
+      const reportWorkItemId = 'triage-remediation-source'
+      await client.qualityJourneyWorkItem.create({
+        data: {
+          id: reportWorkItemId,
+          journeyId: created.journey.journeyId,
+          targetProjectId: 'target-analysis-1',
+          cycleId: created.journey.activeCycleId,
+          role: 'TRIAGER',
+          status: 'COMPLETED',
+          inputHash: digest('a'),
+          roleContractDigest: digest('a'),
+          completionCriteriaJson: '[]',
+        },
+      })
+      await client.qualityJourneyTriageAssignment.create({
+        data: {
+          id: 'triage-assignment-remediation-source',
+          journeyId: created.journey.journeyId,
+          executionCycleId: sourceExecutionCycleId,
+          workItemId: reportWorkItemId,
+          inputHash: digest('a'),
+          inputJson: '{}',
+        },
+      })
+      const remediationReport = {
+        schemaVersion: 'appraise.quality-journey/v1' as const,
+        reportRevisionId: 'report-remediation-source',
+        executionCycleId: sourceExecutionCycleId,
+        cycleId: created.journey.activeCycleId,
+        inputHash: digest('a'),
+        summary: 'The selected scenario requires a corrected route assertion.',
+        findings: [],
+        coverage: [
+          {
+            requirementId: 'REQ-CHECKOUT-1',
+            scenarioRevisionIds: ['scenario-1-r1'],
+            testRunIds: [],
+            outcome: 'NOT_EVALUATED' as const,
+            rationale: 'The correction is limited to the selected scenario.',
+          },
+        ],
+        residualRisks: ['Execution still requires a new sealed cycle.'],
+        recommendations: ['Correct only the approved automation realization.'],
+        remediation: {
+          kind: 'AUTOMATION_CORRECTION' as const,
+          findingIds: ['finding-remediation-source'],
+          scenarioRevisionIds: ['scenario-1-r1'],
+          scope: 'Correct the route assertion without broadening scenario authority.',
+        },
+      }
+      const remediationReportHash = hash(remediationReport)
+      await client.qualityJourneyTriageReport.create({
+        data: {
+          id: remediationReport.reportRevisionId,
+          journeyId: created.journey.journeyId,
+          assignmentId: 'triage-assignment-remediation-source',
+          contentHash: remediationReportHash,
+          reportJson: canonicalContractJson(remediationReport),
+          idempotencyKey: 'report-remediation-source',
+          requestHash: digest('a'),
+        },
+      })
+      const reportReviewSeed = await client.qualityJourney.findUniqueOrThrow({
+        where: { id: created.journey.journeyId },
+      })
+      const reportReviewState = reportReviewKernelState(reportReviewSeed)
+      await client.qualityJourney.update({
+        where: { id: created.journey.journeyId },
+        data: {
+          stage: 'REPORT_REVIEW',
+          activeTriageReportId: remediationReport.reportRevisionId,
+          stateHash: reportReviewState.stateHash,
+        },
+      })
+      const correctionApproval = await approveQualityJourneyRemediation(
+        {
+          journeyId: created.journey.journeyId,
+          targetProjectId: 'target-analysis-1',
+          reportRevisionId: remediationReport.reportRevisionId,
+          expectedReportHash: remediationReportHash,
+          expectedStateHash: reportReviewState.stateHash,
+          idempotencyKey: 'approve-remediation-source',
+          feedback: 'Approve the narrowly scoped correction.',
+        },
+        client,
+      )
+      if (!('successorCycleId' in correctionApproval) || !correctionApproval.successorCycleId)
+        throw new Error('Correction approval did not create a successor cycle.')
+      const correctionCycleId = correctionApproval.successorCycleId
+      const correctionContext = await getQualityJourneyAutomationContext(
+        { journeyId: created.journey.journeyId, targetProjectId: 'target-analysis-1' },
+        client,
+      )
+      const expectedRemediation = {
+        reportRevisionId: remediationReport.reportRevisionId,
+        reportHash: remediationReportHash,
+        sourceExecutionCycleId,
+        ...remediationReport.remediation,
+      }
+      expect(correctionContext.scenarioRevisionIds).toEqual(['scenario-1-r1'])
+      expect(correctionContext.remediation).toEqual(expectedRemediation)
+      const correctionCycle = await client.qualityJourneyCycle.findUniqueOrThrow({ where: { id: correctionCycleId } })
+      expect(JSON.parse(correctionCycle.scopeJson)).toEqual({
+        remediation: expectedRemediation,
+        scopeHash: hash(expectedRemediation),
+      })
+      const remediationArtifact = await client.qualityJourneyArtifact.findFirstOrThrow({
+        where: {
+          journeyId: created.journey.journeyId,
+          cycleId: correctionCycleId,
+          kind: 'REMEDIATION_APPROVAL',
+          artifactId: `remediation:${remediationReport.reportRevisionId}`,
+        },
+      })
+      expect(remediationArtifact).toMatchObject({
+        contentHash: hash(expectedRemediation),
+        artifactJson: canonicalContractJson(expectedRemediation),
+      })
+      await expect(
+        client.$executeRawUnsafe(
+          `UPDATE "QualityJourneyCycle" SET "scopeJson" = '{}' WHERE "id" = '${correctionCycleId}'`,
+        ),
+      ).rejects.toThrow('Quality Journey remediation cycle is immutable')
+      const correctionClaim = await claimQualityJourneyWork(
+        { journeyId: created.journey.journeyId, targetProjectId: 'target-analysis-1', role: 'AUTOMATOR' },
+        client,
+      )
+      expect(
+        qualityJourneyRoleDefinitions.find(definition => definition.role === 'AUTOMATOR')!.readableArtifacts,
+      ).toContain('REMEDIATION_APPROVAL')
+      expect(correctionClaim.assignment.inputArtifacts).toContainEqual({
+        kind: 'REMEDIATION_APPROVAL',
+        artifactId: `remediation:${remediationReport.reportRevisionId}`,
+        contentHash: hash(expectedRemediation),
+      })
+      registerStartedAnalyzerAdapter(correctionClaim.attempt.id, 'remediation-automator-adapter', 'FAST')
+      await dispatchQualityJourneyWork(
+        {
+          journeyId: created.journey.journeyId,
+          targetProjectId: 'target-analysis-1',
+          workItemId: correctionClaim.workItem.id,
+          leaseId: correctionClaim.attempt.leaseId,
+          ownerToken: correctionClaim.ownerToken,
+        },
+        client,
+      )
+      const correctedScenario = proposals.find(proposal => proposal.scenarioRevisionId === 'scenario-1-r1')!
+      const correctedProposal = {
+        ...correctedScenario,
+        steps: correctedScenario.steps.map(step => ({
+          ...step,
+          parameters: step.parameters.map(parameter => ({
+            ...parameter,
+            value: parameter.name === 'route' ? '/corrected-checkout' : parameter.value,
+          })),
+        })),
+      }
+      const correctionMaterializationId = phaseSixId(
+        'materialization',
+        created.journey.journeyId,
+        correctedProposal.scenarioRevisionId,
+        correctionContext.inputHash,
+      )
+      const correctionSuiteId = phaseSixId('suite', correctionMaterializationId)
+      const correctionCaseId = phaseSixId('case', correctionMaterializationId)
+      const correctedSource = JSON.parse(
+        approvedScenarios.find(scenario => scenario.scenarioRevisionId === correctedProposal.scenarioRevisionId)!
+          .behavioralIntentJson,
+      ).steps[0]
+      const correctionManifest = {
+        schemaVersion: 'appraise.quality-journey/v1',
+        kind: 'PREPARED_RUNTIME_CAPSULE',
+        materializationId: correctionMaterializationId,
+        sourceScenarioRevisionId: correctedProposal.scenarioRevisionId,
+        sourceScenarioContentHash: approvedScenarios.find(
+          scenario => scenario.scenarioRevisionId === correctedProposal.scenarioRevisionId,
+        )!.contentHash,
+        suiteId: correctionSuiteId,
+        testCaseId: correctionCaseId,
+        steps: [
+          {
+            stepId: correctedSource.stepId,
+            definition: correctedProposal.steps[0]!.stepDefinition,
+            operation: correctedProposal.steps[0]!.operation,
+            parameters: correctedProposal.steps[0]!.parameters,
+            testData: [],
+            locatorRequirements: [],
+          },
+        ],
+        dataRequirements: [],
+        locatorRequirements: [],
+      }
+      const correctionCapsuleId = phaseSixId('prepared', correctionMaterializationId)
+      const correctionCapsuleHash = hash({
+        schemaVersion: 'appraise.quality-journey/v1',
+        capsuleId: correctionCapsuleId,
+        journeyId: created.journey.journeyId,
+        targetProjectId: 'target-analysis-1',
+        cycleId: correctionCycleId,
+        materializationId: correctionMaterializationId,
+        inputHash: correctionContext.inputHash,
+        manifestHash: hash(correctionManifest),
+        status: 'PREPARED',
+      })
+      const correctionInput = {
+        journeyId: created.journey.journeyId,
+        targetProjectId: 'target-analysis-1',
+        workItemId: correctionClaim.workItem.id,
+        attemptId: correctionClaim.attempt.id,
+        leaseId: correctionClaim.attempt.leaseId,
+        ownerToken: correctionClaim.ownerToken,
+        idempotencyKey: 'materialize-remediation-correction',
+        expectedInputHash: correctionContext.inputHash,
+        expectedScopeHash: correctionContext.scopeHash,
+        scenarios: [correctedProposal],
+        result: {
+          schemaVersion: 'appraise.quality-journey/v1' as const,
+          assignmentId: correctionClaim.assignment.assignmentId,
+          workItemId: correctionClaim.workItem.id,
+          attemptId: correctionClaim.attempt.id,
+          roleContractDigest: correctionClaim.assignment.roleDefinition.digest,
+          inputHash: correctionClaim.assignment.inputHash,
+          role: 'AUTOMATOR' as const,
+          status: 'COMPLETED' as const,
+          outputs: [
+            {
+              kind: 'TEST_SUITE' as const,
+              artifactId: correctionSuiteId,
+              contentHash: hash({ id: correctionSuiteId }),
+            },
+            { kind: 'TEST_CASE' as const, artifactId: correctionCaseId, contentHash: hash({ id: correctionCaseId }) },
+            { kind: 'RUNTIME_CAPSULE' as const, artifactId: correctionCapsuleId, contentHash: correctionCapsuleHash },
+          ],
+          evidenceReceipts: [],
+          assumptions: [],
+          blockers: [],
+          unresolvedQuestions: [],
+          submittedAt: '2026-09-05T00:00:00.000Z',
+        },
+      }
+      await expect(
+        materializeQualityJourneyApprovedScenarios(
+          {
+            ...correctionInput,
+            idempotencyKey: 'materialize-remediation-nonselected',
+            scenarios: [proposals.find(proposal => proposal.scenarioRevisionId === 'scenario-2-r1')!],
+          },
+          client,
+        ),
+      ).rejects.toMatchObject({ code: 'CONFLICT' })
+      await expect(materializeQualityJourneyApprovedScenarios(correctionInput, client)).resolves.toMatchObject({
+        materializations: [{ cycleId: correctionCycleId, scenarioRevisionId: 'scenario-1-r1', status: 'MATERIALIZED' }],
+      })
+      const priorOutputs = await client.qualityJourneyAutomationMaterialization.findMany({
+        where: {
+          journeyId: created.journey.journeyId,
+          cycleId: reportReviewSeed.activeCycleId,
+          status: 'MATERIALIZED',
+        },
+        select: { id: true, artifactJson: true },
+      })
+      expect(priorOutputs).toHaveLength(2)
+      expect(priorOutputs.map(output => output.artifactJson)).toEqual(
+        expect.arrayContaining(sourceCapsules.map(capsule => capsule.materialization.artifactJson)),
+      )
+      const supersession = await client.qualityJourneyArtifactLink.findFirstOrThrow({
+        where: {
+          journeyId: created.journey.journeyId,
+          cycleId: correctionCycleId,
+          relation: 'SUPERSEDES',
+        },
+      })
+      expect(JSON.parse(supersession.targetJson)).toMatchObject({
+        artifactId: frozenSourceCapsules[0]!.materializationId,
+      })
+      const correctionOutput = await client.qualityJourneyAutomationMaterialization.findFirstOrThrow({
+        where: { journeyId: created.journey.journeyId, cycleId: correctionCycleId, status: 'MATERIALIZED' },
+        include: { preparedCapsule: true },
+      })
+      if (!correctionOutput.preparedCapsule) throw new Error('Correction materialization did not prepare a capsule.')
+      const unchangedSourceCycleId = 'execution-remediation-unchanged-source'
+      const unchangedFrozenCapsules = [
+        {
+          preparedCapsuleId: correctionOutput.preparedCapsule.id,
+          materializationId: correctionOutput.id,
+          scenarioRevisionId: correctionOutput.scenarioRevisionId,
+        },
+      ]
+      await client.qualityJourneyExecutionCycle.create({
+        data: {
+          id: unchangedSourceCycleId,
+          journeyId: created.journey.journeyId,
+          targetProjectId: 'target-analysis-1',
+          cycleId: correctionCycleId,
+          preparedCapsulesJson: canonicalContractJson(unchangedFrozenCapsules),
+          preparedCapsulesHash: hash(unchangedFrozenCapsules),
+          environmentId: 'environment-analysis-1',
+          environmentSnapshotJson: '{}',
+          environmentSnapshotHash: digest('b'),
+          environmentSnapshotVersion: 1,
+          targetFingerprint: digest('b'),
+          stateHash: (
+            await getQualityJourney(
+              { journeyId: created.journey.journeyId, targetProjectId: 'target-analysis-1' },
+              client,
+            )
+          ).journey.stateHash,
+          idempotencyKey: 'execution-remediation-unchanged-source',
+          requestHash: digest('b'),
+          status: 'COMPLETED',
+          completedAt: new Date('2026-09-05T00:01:00.000Z'),
+        },
+      })
+      const unchangedReportWorkItemId = 'triage-remediation-unchanged-source'
+      await client.qualityJourneyWorkItem.create({
+        data: {
+          id: unchangedReportWorkItemId,
+          journeyId: created.journey.journeyId,
+          targetProjectId: 'target-analysis-1',
+          cycleId: correctionCycleId,
+          role: 'TRIAGER',
+          status: 'COMPLETED',
+          inputHash: digest('b'),
+          roleContractDigest: digest('b'),
+          completionCriteriaJson: '[]',
+        },
+      })
+      await client.qualityJourneyTriageAssignment.create({
+        data: {
+          id: 'triage-assignment-remediation-unchanged-source',
+          journeyId: created.journey.journeyId,
+          executionCycleId: unchangedSourceCycleId,
+          workItemId: unchangedReportWorkItemId,
+          inputHash: digest('b'),
+          inputJson: '{}',
+        },
+      })
+      const unchangedReport = {
+        ...remediationReport,
+        reportRevisionId: 'report-remediation-unchanged-source',
+        executionCycleId: unchangedSourceCycleId,
+        cycleId: correctionCycleId,
+        inputHash: digest('b'),
+      }
+      const unchangedReportHash = hash(unchangedReport)
+      await client.qualityJourneyTriageReport.create({
+        data: {
+          id: unchangedReport.reportRevisionId,
+          journeyId: created.journey.journeyId,
+          assignmentId: 'triage-assignment-remediation-unchanged-source',
+          contentHash: unchangedReportHash,
+          reportJson: canonicalContractJson(unchangedReport),
+          idempotencyKey: 'report-remediation-unchanged-source',
+          requestHash: digest('b'),
+        },
+      })
+      const unchangedReviewSeed = await client.qualityJourney.findUniqueOrThrow({
+        where: { id: created.journey.journeyId },
+      })
+      const unchangedReviewState = createQualityJourneyKernelState({
+        journeyId: unchangedReviewSeed.id,
+        targetProjectId: unchangedReviewSeed.targetProjectId,
+        activeCycleId: unchangedReviewSeed.activeCycleId,
+        stage: 'REPORT_REVIEW',
+        activeRevisionIds: JSON.parse(unchangedReviewSeed.activeRevisionIdsJson),
+        ...(unchangedReviewSeed.analysisReviewHash
+          ? { analysisReviewHash: unchangedReviewSeed.analysisReviewHash }
+          : {}),
+        unresolvedQuestionIds: JSON.parse(unchangedReviewSeed.unresolvedQuestionIdsJson),
+        blockerIds: JSON.parse(unchangedReviewSeed.blockerIdsJson),
+        activeWorkItemIds: JSON.parse(unchangedReviewSeed.activeWorkItemIdsJson),
+      })
+      await client.qualityJourney.update({
+        where: { id: created.journey.journeyId },
+        data: {
+          stage: 'REPORT_REVIEW',
+          activeTriageReportId: unchangedReport.reportRevisionId,
+          stateHash: unchangedReviewState.stateHash,
+        },
+      })
+      await approveQualityJourneyRemediation(
+        {
+          journeyId: created.journey.journeyId,
+          targetProjectId: 'target-analysis-1',
+          reportRevisionId: unchangedReport.reportRevisionId,
+          expectedReportHash: unchangedReportHash,
+          expectedStateHash: unchangedReviewState.stateHash,
+          idempotencyKey: 'approve-remediation-unchanged-source',
+          feedback: 'Confirm that a non-change must use rerun authority.',
+        },
+        client,
+      )
+      const unchangedContext = await getQualityJourneyAutomationContext(
+        { journeyId: created.journey.journeyId, targetProjectId: 'target-analysis-1' },
+        client,
+      )
+      const unchangedClaim = await claimQualityJourneyWork(
+        { journeyId: created.journey.journeyId, targetProjectId: 'target-analysis-1', role: 'AUTOMATOR' },
+        client,
+      )
+      registerStartedAnalyzerAdapter(unchangedClaim.attempt.id, 'unchanged-remediation-automator-adapter', 'FAST')
+      await dispatchQualityJourneyWork(
+        {
+          journeyId: created.journey.journeyId,
+          targetProjectId: 'target-analysis-1',
+          workItemId: unchangedClaim.workItem.id,
+          leaseId: unchangedClaim.attempt.leaseId,
+          ownerToken: unchangedClaim.ownerToken,
+        },
+        client,
+      )
+      await expect(
+        materializeQualityJourneyApprovedScenarios(
+          {
+            ...correctionInput,
+            workItemId: unchangedClaim.workItem.id,
+            attemptId: unchangedClaim.attempt.id,
+            leaseId: unchangedClaim.attempt.leaseId,
+            ownerToken: unchangedClaim.ownerToken,
+            idempotencyKey: 'materialize-remediation-unchanged',
+            expectedInputHash: unchangedContext.inputHash,
+            expectedScopeHash: unchangedContext.scopeHash,
+            result: {
+              ...correctionInput.result,
+              assignmentId: unchangedClaim.assignment.assignmentId,
+              workItemId: unchangedClaim.workItem.id,
+              attemptId: unchangedClaim.attempt.id,
+              roleContractDigest: unchangedClaim.assignment.roleDefinition.digest,
+              inputHash: unchangedClaim.assignment.inputHash,
+              outputs: [],
+            },
+          },
+          client,
+        ),
+      ).rejects.toMatchObject({
+        code: 'CONFLICT',
+        message: 'Unchanged automation requires a rerun, not an automation correction.',
+      })
+      const mixedSourceCycleId = 'execution-remediation-mixed-source'
+      const mixedFrozenCapsules = sourceCapsules.map(capsule => ({
+        preparedCapsuleId: capsule.id,
+        materializationId: capsule.materializationId,
+        scenarioRevisionId: capsule.materialization.scenarioRevisionId,
+      }))
+      const mixedReviewSeed = await client.qualityJourney.findUniqueOrThrow({
+        where: { id: created.journey.journeyId },
+      })
+      await client.qualityJourneyExecutionCycle.create({
+        data: {
+          id: mixedSourceCycleId,
+          journeyId: created.journey.journeyId,
+          targetProjectId: 'target-analysis-1',
+          cycleId: reportReviewSeed.activeCycleId,
+          preparedCapsulesJson: canonicalContractJson(mixedFrozenCapsules),
+          preparedCapsulesHash: hash(mixedFrozenCapsules),
+          environmentId: 'environment-analysis-1',
+          environmentSnapshotJson: '{}',
+          environmentSnapshotHash: digest('c'),
+          environmentSnapshotVersion: 1,
+          targetFingerprint: digest('c'),
+          stateHash: mixedReviewSeed.stateHash,
+          idempotencyKey: 'execution-remediation-mixed-source',
+          requestHash: digest('c'),
+          status: 'COMPLETED',
+          completedAt: new Date('2026-09-05T00:02:00.000Z'),
+        },
+      })
+      const mixedReportWorkItemId = 'triage-remediation-mixed-source'
+      await client.qualityJourneyWorkItem.create({
+        data: {
+          id: mixedReportWorkItemId,
+          journeyId: created.journey.journeyId,
+          targetProjectId: 'target-analysis-1',
+          cycleId: reportReviewSeed.activeCycleId,
+          role: 'TRIAGER',
+          status: 'COMPLETED',
+          inputHash: digest('c'),
+          roleContractDigest: digest('c'),
+          completionCriteriaJson: '[]',
+        },
+      })
+      await client.qualityJourneyTriageAssignment.create({
+        data: {
+          id: 'triage-assignment-remediation-mixed-source',
+          journeyId: created.journey.journeyId,
+          executionCycleId: mixedSourceCycleId,
+          workItemId: mixedReportWorkItemId,
+          inputHash: digest('c'),
+          inputJson: '{}',
+        },
+      })
+      const mixedReport = {
+        ...remediationReport,
+        reportRevisionId: 'report-remediation-mixed-source',
+        executionCycleId: mixedSourceCycleId,
+        cycleId: mixedReviewSeed.activeCycleId,
+        inputHash: digest('c'),
+        remediation: {
+          ...remediationReport.remediation,
+          findingIds: ['finding-remediation-source', 'finding-remediation-mixed-source'],
+          scenarioRevisionIds: ['scenario-1-r1', 'scenario-2-r1'],
+        },
+      }
+      const mixedReportHash = hash(mixedReport)
+      await client.qualityJourneyTriageReport.create({
+        data: {
+          id: mixedReport.reportRevisionId,
+          journeyId: created.journey.journeyId,
+          assignmentId: 'triage-assignment-remediation-mixed-source',
+          contentHash: mixedReportHash,
+          reportJson: canonicalContractJson(mixedReport),
+          idempotencyKey: 'report-remediation-mixed-source',
+          requestHash: digest('c'),
+        },
+      })
+      const mixedReviewState = createQualityJourneyKernelState({
+        journeyId: mixedReviewSeed.id,
+        targetProjectId: mixedReviewSeed.targetProjectId,
+        activeCycleId: mixedReviewSeed.activeCycleId,
+        stage: 'REPORT_REVIEW',
+        activeRevisionIds: JSON.parse(mixedReviewSeed.activeRevisionIdsJson),
+        ...(mixedReviewSeed.analysisReviewHash ? { analysisReviewHash: mixedReviewSeed.analysisReviewHash } : {}),
+        unresolvedQuestionIds: JSON.parse(mixedReviewSeed.unresolvedQuestionIdsJson),
+        blockerIds: JSON.parse(mixedReviewSeed.blockerIdsJson),
+        activeWorkItemIds: JSON.parse(mixedReviewSeed.activeWorkItemIdsJson),
+      })
+      await client.qualityJourney.update({
+        where: { id: created.journey.journeyId },
+        data: {
+          stage: 'REPORT_REVIEW',
+          activeTriageReportId: mixedReport.reportRevisionId,
+          stateHash: mixedReviewState.stateHash,
+        },
+      })
+      const mixedApproval = await approveQualityJourneyRemediation(
+        {
+          journeyId: created.journey.journeyId,
+          targetProjectId: 'target-analysis-1',
+          reportRevisionId: mixedReport.reportRevisionId,
+          expectedReportHash: mixedReportHash,
+          expectedStateHash: mixedReviewState.stateHash,
+          idempotencyKey: 'approve-remediation-mixed-source',
+          feedback: 'Reject correction if any selected materialization is unchanged.',
+        },
+        client,
+      )
+      if (!mixedApproval.successorCycleId)
+        throw new Error('Mixed correction approval did not create a successor cycle.')
+      const mixedCorrectionCycleId = mixedApproval.successorCycleId
+      const mixedContext = await getQualityJourneyAutomationContext(
+        { journeyId: created.journey.journeyId, targetProjectId: 'target-analysis-1' },
+        client,
+      )
+      expect(mixedContext.scenarioRevisionIds).toEqual(['scenario-1-r1', 'scenario-2-r1'])
+      const mixedClaim = await claimQualityJourneyWork(
+        { journeyId: created.journey.journeyId, targetProjectId: 'target-analysis-1', role: 'AUTOMATOR' },
+        client,
+      )
+      registerStartedAnalyzerAdapter(mixedClaim.attempt.id, 'mixed-remediation-automator-adapter', 'FAST')
+      await dispatchQualityJourneyWork(
+        {
+          journeyId: created.journey.journeyId,
+          targetProjectId: 'target-analysis-1',
+          workItemId: mixedClaim.workItem.id,
+          leaseId: mixedClaim.attempt.leaseId,
+          ownerToken: mixedClaim.ownerToken,
+        },
+        client,
+      )
+      await expect(
+        materializeQualityJourneyApprovedScenarios(
+          {
+            ...correctionInput,
+            workItemId: mixedClaim.workItem.id,
+            attemptId: mixedClaim.attempt.id,
+            leaseId: mixedClaim.attempt.leaseId,
+            ownerToken: mixedClaim.ownerToken,
+            idempotencyKey: 'materialize-remediation-mixed',
+            expectedInputHash: mixedContext.inputHash,
+            expectedScopeHash: mixedContext.scopeHash,
+            scenarios: [
+              correctedProposal,
+              proposals.find(proposal => proposal.scenarioRevisionId === 'scenario-2-r1')!,
+            ],
+            result: {
+              ...correctionInput.result,
+              assignmentId: mixedClaim.assignment.assignmentId,
+              workItemId: mixedClaim.workItem.id,
+              attemptId: mixedClaim.attempt.id,
+              roleContractDigest: mixedClaim.assignment.roleDefinition.digest,
+              inputHash: mixedClaim.assignment.inputHash,
+              outputs: [],
+            },
+          },
+          client,
+        ),
+      ).rejects.toMatchObject({
+        code: 'CONFLICT',
+        message: 'Unchanged automation requires a rerun, not an automation correction.',
+      })
+      expect(
+        await client.qualityJourneyAutomationMaterialization.count({
+          where: { journeyId: created.journey.journeyId, cycleId: mixedCorrectionCycleId },
+        }),
+      ).toBe(0)
+      expect(
+        await client.qualityJourneyArtifactLink.count({
+          where: { journeyId: created.journey.journeyId, cycleId: mixedCorrectionCycleId, relation: 'SUPERSEDES' },
+        }),
+      ).toBe(0)
       const phaseFiveTerminal = await getQualityJourney(
         { journeyId: created.journey.journeyId, targetProjectId: 'target-analysis-1' },
         client,
@@ -2993,7 +3684,9 @@ describe('Quality Journey Phase 3 through Phase 5 control plane', () => {
       expect(JSON.parse(reauthorization.authorizationJson).inputArtifacts).toEqual(
         successorClaim.assignment.inputArtifacts,
       )
-      expect(JSON.parse(reauthorization.authorizationJson).roleDefinition.version).toBe('4')
+      expect(JSON.parse(reauthorization.authorizationJson).roleDefinition.version).toBe(
+        qualityJourneyRoleRegistryVersion,
+      )
       registerAgentFactoryProviderAdapter({
         adapterId: 'analysis-successor-adapter',
         supports: request => request.attemptId === successorClaim.attempt.id,

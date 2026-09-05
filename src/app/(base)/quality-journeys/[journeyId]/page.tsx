@@ -14,6 +14,7 @@ import { getQualityJourney } from '@/services/coordinator/quality-journey-servic
 import { getQualityJourneyScenarioPortfolio } from '@/services/coordinator/quality-journey-scenario-service'
 import { getQualityJourneyAutomationContext } from '@/services/coordinator/quality-journey-automation-service'
 import { getQualityJourneyExecution } from '@/services/coordinator/quality-journey-execution-service'
+import { getQualityJourneyTriage } from '@/services/coordinator/quality-journey-triage-service'
 import prisma from '@/config/db-config'
 import { JourneyExecutionStatus } from './journey-execution-status'
 import { ServiceError } from '@/services/shared/errors'
@@ -21,6 +22,7 @@ import { ServiceError } from '@/services/shared/errors'
 import { AnalysisReviewControls } from './analysis-review-controls'
 import { AutomationMaterializationStatus } from './automation-materialization-status'
 import { ScenarioPortfolioReview } from './scenario-portfolio-review'
+import { TriageReportPanel } from './triage-report-panel'
 import { qualityJourneyLabel, toAnalysisRevisionView } from './quality-journey-view-model'
 
 type PageProps = { params: Promise<{ journeyId: string }>; searchParams?: Promise<{ project?: string }> }
@@ -68,16 +70,17 @@ async function loadJourneyDetail(journeyId: string, projectId: string) {
     node => node.stage === journey.journey.stage && ['RUNNABLE', 'IN_PROGRESS', 'BLOCKED'].includes(node.state),
   )
 
-  const [{ scenarios, automation }, execution, environments] = await Promise.all([
+  const [{ scenarios, automation }, execution, triage, environments] = await Promise.all([
     loadJourneySupplementalArtifacts(journeyId, projectId, journey.journey.stage),
     getQualityJourneyExecution({ journeyId, targetProjectId: projectId }),
+    getQualityJourneyTriage({ journeyId, targetProjectId: projectId }),
     prisma.environment.findMany({
       where: { targetProjectId: projectId },
       select: { id: true, name: true },
       orderBy: { name: 'asc' },
     }),
   ])
-  return { activeAnalysis, activeRunner, answerable, journey, scenarios, automation, execution, environments }
+  return { activeAnalysis, activeRunner, answerable, journey, scenarios, automation, execution, triage, environments }
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
@@ -88,7 +91,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 export default async function QualityJourneyDetailPage({ params, searchParams }: PageProps) {
   const [{ journeyId }, parameters] = await Promise.all([params, searchParams])
   const project = await requireActiveProject(parameters?.project)
-  const { activeAnalysis, activeRunner, answerable, journey, scenarios, automation, execution, environments } =
+  const { activeAnalysis, activeRunner, answerable, journey, scenarios, automation, execution, triage, environments } =
     await loadJourneyDetail(journeyId, project.id)
 
   return (
@@ -118,6 +121,12 @@ export default async function QualityJourneyDetailPage({ params, searchParams }:
                 .filter(item => item.status === 'MATERIALIZED' && item.preparedCapsule)
                 .map(item => item.preparedCapsule!.id) ?? []
             }
+          />
+          <TriageReportPanel
+            journeyId={journeyId}
+            stage={journey.journey.stage}
+            stateHash={journey.journey.stateHash}
+            triage={triage}
           />
           <AnalysisReviewControls
             analysis={activeAnalysis}

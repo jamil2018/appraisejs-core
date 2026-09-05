@@ -461,6 +461,12 @@ Exit criteria:
 
 ### Phase 8 - Independent Triage and Test Report Analysis
 
+Status: implemented on 2026-09-05. Isolated registry-v5 Triager assignments freeze accepted analysis and scenario
+lineage plus terminal sealed evidence. Specialized report publication accounts for every material outcome, preserves
+unresolved attribution, and binds complete report/source hashes. Full-report feedback issues an immutable successor;
+local approval of an explicit automation-correction scope creates a new cycle with new materializations and historical
+supersession links. Unchanged automation uses the existing rerun path. Phase 9 closure remains gated.
+
 Implement result attribution, finding linkage, postmortem structure, coverage summaries, residual-risk statements,
 recommendations, and revisioned report review through isolated Triager work items. Enforce the distinction among
 target defects, validation-design defects, automation errors, infrastructure boundaries, and inconclusive outcomes.

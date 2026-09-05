@@ -338,3 +338,36 @@ successful validated run. Reports and semantic attribution remain Phase 8 work.
 
 SQLite guards preserve execution-cycle snapshots, TestRun binding identity, consent scope, rerun proposal scope and
 sealed receipts. Status transitions remain mutable; historical execution inputs and evidence are append-only.
+
+## Phase 8 triage and report review
+
+Triage starts only for the active terminal execution cycle after every linked TestRun has a sealed Evidence Receipt.
+Appraise compiles a narrow, content-addressed Triager input from the accepted Analysis Charter, exact approved Scenario
+revisions, frozen execution-capsule bindings, and sealed evidence. It excludes Automator or producer narratives,
+credentials, mutable run summaries, and broad artifact-library access. A report submission binds its `inputHash` to
+that frozen source; its content hash is exactly `hash({ report, source: assignment.input })`.
+
+A Triager can dereference only a report or log named by an exact sealed Evidence Receipt, not an artifact path. The
+read service resolves the Journey target and requires the active specialized Triager assignment, live Factory-backed
+lease, and unrevoked authorization to name a receipt in its frozen input. It validates receipt and capsule identity,
+then checks artifact bytes and size against the receipt descriptor through the managed artifact access service and
+rechecks that authority after I/O. It exposes text pages up to 64 KiB from artifacts no larger than 2 MiB; traces and
+other binary evidence remain outside this surface.
+
+The Triager may submit only an immutable Test Report Analysis revision through its leased assignment. Findings retain
+their TestRun, receipt, scenario, requirement, attribution kind, confidence, competing hypotheses, unresolved state,
+and postmortem. `TARGET_DEFECT` is the only attribution that may name `FAILED`; every other attribution remains a
+non-target outcome. Coverage, residual risks, and recommendations are complete report content, never mutable review
+fields.
+
+`REPORT_REVIEW` is local Appraise UI authority over one exact active report hash and Journey state hash. A revision
+request records full-report feedback and creates a fresh Triager input with only the predecessor report and that
+feedback added. An automation-correction approval requires the exact report's bounded remediation proposal and the
+same hash-bound review envelope. Its successor cycle scope binds the report revision and hash, source execution cycle,
+finding IDs, scenario revision IDs, and correction scope without rewriting execution evidence.
+
+A rerun proposed while the Journey is in `REPORT_REVIEW` derives the active report revision and content hash on the
+server and persists both with the rerun proposal. Rerun approval and start re-read that exact active report binding and
+the proposal's source execution cycle; a changed, reviewed, replaced, or cross-cycle report makes the proposal stale.
+MCP can read triage context, prepare a Triager assignment, and submit a report. It cannot request a report revision
+or approve remediation.

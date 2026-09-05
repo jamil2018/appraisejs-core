@@ -24,6 +24,7 @@ import {
   startQualityJourneyExecution,
   startQualityJourneyRerun,
 } from './quality-journey-execution-service'
+import { requestQualityJourneyReportRevision } from './quality-journey-triage-service'
 import { submitDurableQualityJourneyCommand } from './quality-journey-service'
 
 const workspaces: string[] = []
@@ -771,6 +772,28 @@ describe('Quality Journey Phase 7 execution coordinator (SQLite)', () => {
           },
           value.client,
         )
+        if (key === 'two') {
+          expect(proposal.reportRevisionId).toBe('rerun-report')
+          await value.client.qualityJourney.update({
+            where: { id: value.journeyId },
+            data: { activeTriageReportId: null },
+          })
+          await expect(
+            approveQualityJourneyRerun(
+              {
+                journeyId: value.journeyId,
+                targetProjectId: 'target-execution',
+                proposalId: proposal.id,
+                expectedProposalHash: proposal.proposalHash,
+              },
+              value.client,
+            ),
+          ).rejects.toMatchObject({ code: 'CONFLICT' })
+          await value.client.qualityJourney.update({
+            where: { id: value.journeyId },
+            data: { activeTriageReportId: 'rerun-report' },
+          })
+        }
         await approveQualityJourneyRerun(
           {
             journeyId: value.journeyId,
@@ -780,6 +803,25 @@ describe('Quality Journey Phase 7 execution coordinator (SQLite)', () => {
           },
           value.client,
         )
+        if (key === 'two') {
+          expect(
+            await value.client.qualityJourneyReportReview.findUnique({ where: { reportRevisionId: 'rerun-report' } }),
+          ).toMatchObject({ kind: 'RERUN_APPROVED' })
+          await expect(
+            requestQualityJourneyReportRevision(
+              {
+                journeyId: value.journeyId,
+                targetProjectId: 'target-execution',
+                reportRevisionId: 'rerun-report',
+                expectedReportHash: digest('e'),
+                expectedStateHash: stateHash,
+                idempotencyKey: 'competing-report-review',
+                feedback: 'Cannot supersede an approved rerun.',
+              },
+              value.client,
+            ),
+          ).rejects.toMatchObject({ code: 'CONFLICT' })
+        }
         const first = await startQualityJourneyRerun(
           {
             journeyId: value.journeyId,
@@ -822,6 +864,88 @@ describe('Quality Journey Phase 7 execution coordinator (SQLite)', () => {
       expect(initial.cycles[0]!.testRuns).toHaveLength(2)
       expect(first.cycles[0]!.testRuns).toHaveLength(1)
       stateHash = await terminalize(first.cycles[0]!.id, 'evidence-2')
+      // Report review supports the same managed rerun, bound to the exact reviewed report.
+      const active = await value.client.qualityJourney.findUniqueOrThrow({ where: { id: value.journeyId } })
+      await value.client.qualityJourneyWorkItem.create({
+        data: {
+          id: 'rerun-report-work',
+          journeyId: value.journeyId,
+          targetProjectId: 'target-execution',
+          cycleId: active.activeCycleId,
+          role: 'TRIAGER',
+          status: 'COMPLETED',
+          inputHash: digest('d'),
+          roleContractDigest: digest('d'),
+        },
+      })
+      await value.client.qualityJourneyTriageAssignment.create({
+        data: {
+          id: 'rerun-report-assignment',
+          journeyId: value.journeyId,
+          executionCycleId: first.cycles[0]!.id,
+          workItemId: 'rerun-report-work',
+          inputHash: digest('d'),
+          inputJson: '{}',
+        },
+      })
+      await value.client.qualityJourneyTriageReport.create({
+        data: {
+          id: 'rerun-report',
+          journeyId: value.journeyId,
+          assignmentId: 'rerun-report-assignment',
+          contentHash: digest('e'),
+          reportJson: '{}',
+          idempotencyKey: 'rerun-report',
+          requestHash: digest('e'),
+        },
+      })
+      await expect(
+        value.client.qualityJourneyReportReview.create({
+          data: {
+            id: 'bad-successor-review',
+            journeyId: value.journeyId,
+            reportRevisionId: 'rerun-report',
+            kind: 'AUTOMATION_CORRECTION_APPROVED',
+            feedback: 'bad',
+            idempotencyKey: 'bad-successor',
+            requestHash: digest('d'),
+            successorCycleId: 'nonexistent-cycle',
+          },
+        }),
+      ).rejects.toThrow(/successor scope mismatch|Foreign key constraint/)
+      const foreignJourney = await createQualityJourney(
+        {
+          targetProjectId: 'target-execution',
+          idempotencyKey: 'foreign-rerun-review-journey',
+          requirement: { objective: 'Other journey.' },
+        },
+        value.client,
+      )
+      await expect(
+        value.client.qualityJourneyReportReview.create({
+          data: {
+            id: 'cross-successor-review',
+            journeyId: value.journeyId,
+            reportRevisionId: 'rerun-report',
+            kind: 'AUTOMATION_CORRECTION_APPROVED',
+            feedback: 'bad',
+            idempotencyKey: 'cross-successor',
+            requestHash: digest('d'),
+            successorCycleId: foreignJourney.journey.activeCycleId,
+          },
+        }),
+      ).rejects.toThrow(/successor scope mismatch|Foreign key constraint/)
+      const reviewed = createQualityJourneyKernelState({
+        journeyId: value.journeyId,
+        targetProjectId: 'target-execution',
+        activeCycleId: active.activeCycleId,
+        stage: 'REPORT_REVIEW',
+      })
+      await value.client.qualityJourney.update({
+        where: { id: value.journeyId },
+        data: { stage: 'REPORT_REVIEW', stateHash: reviewed.stateHash, activeTriageReportId: 'rerun-report' },
+      })
+      stateHash = reviewed.stateHash
       const second = startedExecution(await rerun(first.cycles[0]!.id, 'evidence-2', 'two'))
       expect(second.cycles[0]!.id).not.toBe(first.cycles[0]!.id)
       expect(await value.client.qualityJourneyCycle.count({ where: { journeyId: value.journeyId } })).toBe(3)

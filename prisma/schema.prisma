@@ -512,6 +512,11 @@ model TargetProject {
 }
 
 model QualityJourney {
+  activeTriageReportId              String?                                      @unique
+  activeTriageReport                QualityJourneyTriageReport?                  @relation("ActiveTriageReport", fields: [activeTriageReportId], references: [id], onDelete: Restrict)
+  triageAssignments                 QualityJourneyTriageAssignment[]
+  triageReports                     QualityJourneyTriageReport[]
+  reportReviews                     QualityJourneyReportReview[]
   id                                String                                       @id
   targetProjectId                   String
   rootIdempotencyKey                String
@@ -1052,13 +1057,14 @@ model QualityJourneyRevision {
 }
 
 model QualityJourneyCycle {
-  id                 String         @id
+  remediationReview  QualityJourneyReportReview?
+  id                 String                      @id
   journeyId          String
   sequence           Int
   predecessorCycleId String?
-  scopeJson          String         @default("{}")
-  createdAt          DateTime       @default(now())
-  journey            QualityJourney @relation(fields: [journeyId], references: [id], onDelete: Restrict)
+  scopeJson          String                      @default("{}")
+  createdAt          DateTime                    @default(now())
+  journey            QualityJourney              @relation(fields: [journeyId], references: [id], onDelete: Restrict)
 
   @@unique([journeyId, sequence])
 }
@@ -1068,6 +1074,7 @@ model QualityJourneyCycle {
 /// effect. Status is operational state; the frozen binding fields never
 /// change after insertion.
 model QualityJourneyExecutionCycle {
+  triageAssignments           QualityJourneyTriageAssignment[]
   id                          String                                       @id
   journeyId                   String
   targetProjectId             String
@@ -1179,6 +1186,8 @@ model QualityJourneyExecutionEvidenceReceipt {
 /// evidence and scenario revisions; a fresh execution cycle is created only
 /// after persisted UI approval.
 model QualityJourneyExecutionRerunProposal {
+  reportRevisionId          String?
+  reportHash                String?
   id                        String                        @id
   journeyId                 String
   targetProjectId           String
@@ -1236,6 +1245,7 @@ model QualityJourneyEvent {
 }
 
 model QualityJourneyWorkItem {
+  triageAssignment           QualityJourneyTriageAssignment?
   id                         String                                    @id
   journeyId                  String
   targetProjectId            String
@@ -3038,4 +3048,59 @@ enum QualityJourneyWorkItemStatus {
   REVISION_REQUIRED
   CANCELLED
   SUPERSEDED
+}
+
+/// Phase 8 freezes only accepted artifacts and sealed evidence for an isolated Triager.
+model QualityJourneyTriageAssignment {
+  id                          String                       @id
+  journeyId                   String
+  executionCycleId            String
+  workItemId                  String                       @unique
+  predecessorReportRevisionId String?                      @unique
+  inputHash                   String
+  inputJson                   String
+  createdAt                   DateTime                     @default(now())
+  journey                     QualityJourney               @relation(fields: [journeyId], references: [id], onDelete: Restrict)
+  executionCycle              QualityJourneyExecutionCycle @relation(fields: [executionCycleId], references: [id], onDelete: Restrict)
+  workItem                    QualityJourneyWorkItem       @relation(fields: [workItemId], references: [id], onDelete: Restrict)
+  report                      QualityJourneyTriageReport?  @relation("TriageReportAssignment")
+  predecessorReport           QualityJourneyTriageReport?  @relation("TriageReportSuccessor", fields: [predecessorReportRevisionId], references: [id], onDelete: Restrict)
+
+  @@index([journeyId, executionCycleId])
+}
+
+/// Published reports and review receipts are immutable, including unresolved outcomes.
+model QualityJourneyTriageReport {
+  activeForJourney    QualityJourney?                 @relation("ActiveTriageReport")
+  id                  String                          @id
+  journeyId           String
+  assignmentId        String                          @unique
+  contentHash         String
+  reportJson          String
+  idempotencyKey      String
+  requestHash         String
+  createdAt           DateTime                        @default(now())
+  journey             QualityJourney                  @relation(fields: [journeyId], references: [id], onDelete: Restrict)
+  assignment          QualityJourneyTriageAssignment  @relation("TriageReportAssignment", fields: [assignmentId], references: [id], onDelete: Restrict)
+  successorAssignment QualityJourneyTriageAssignment? @relation("TriageReportSuccessor")
+  review              QualityJourneyReportReview?
+
+  @@unique([journeyId, idempotencyKey])
+}
+
+model QualityJourneyReportReview {
+  id               String                     @id
+  journeyId        String
+  reportRevisionId String                     @unique
+  kind             String
+  feedback         String
+  idempotencyKey   String
+  requestHash      String
+  successorCycleId String?                    @unique
+  successorCycle   QualityJourneyCycle?       @relation(fields: [successorCycleId], references: [id], onDelete: Restrict)
+  createdAt        DateTime                   @default(now())
+  journey          QualityJourney             @relation(fields: [journeyId], references: [id], onDelete: Restrict)
+  report           QualityJourneyTriageReport @relation(fields: [reportRevisionId], references: [id], onDelete: Restrict)
+
+  @@unique([journeyId, idempotencyKey])
 }

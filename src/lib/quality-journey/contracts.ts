@@ -65,6 +65,8 @@ const qualityJourneyArtifactKindSchema = z.enum([
   'TEST_RUN',
   'EVIDENCE_RECEIPT',
   'TEST_REPORT_ANALYSIS_REVISION',
+  'REPORT_REVISION_FEEDBACK',
+  'REMEDIATION_APPROVAL',
   'JOURNEY_APPROVAL',
   'JOURNEY_CLOSURE',
 ])
@@ -150,12 +152,14 @@ export const journeyArtifactLinkSchema = z
           'SCENARIO_PORTFOLIO_REVISION',
           'SCENARIO_REVISION',
           'TEST_REPORT_ANALYSIS_REVISION',
+          'RUNTIME_CAPSULE',
         ],
         [
           'ANALYSIS_CHARTER_REVISION',
           'SCENARIO_PORTFOLIO_REVISION',
           'SCENARIO_REVISION',
           'TEST_REPORT_ANALYSIS_REVISION',
+          'RUNTIME_CAPSULE',
         ],
       ],
       RERUNS: [['TEST_RUN'], ['TEST_RUN']],
@@ -597,7 +601,7 @@ export const journeyCommandSchema = z.discriminatedUnion('command', [
   commandBase
     .extend({
       command: z.literal('START_REMEDIATION_CYCLE'),
-      payload: z.object({ reportRevisionId: id, remediationScope: nonEmptyText }).strict(),
+      payload: z.object({ reportRevisionId: id, remediationScope: nonEmptyText, cycleId: id.optional() }).strict(),
     })
     .strict(),
   commandBase

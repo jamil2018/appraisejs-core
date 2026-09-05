@@ -18,6 +18,7 @@ import { registerStepDefinitionOperations } from './domains/step-definitions.js'
 import { registerQualityDesignOperations } from './domains/quality-design.js'
 import { registerQualityJourneyOperations } from './domains/quality-journey.js'
 import { registerQualityJourneyExecutionOperations } from './domains/quality-journey-execution.js'
+import { registerQualityJourneyTriageOperations } from './domains/quality-journey-triage.js'
 
 export type McpRegistryContext = {
   server: McpServer
@@ -136,6 +137,7 @@ const domainRegistries = Object.freeze([
   registerQualityDesignOperations,
   registerQualityJourneyOperations,
   registerQualityJourneyExecutionOperations,
+  registerQualityJourneyTriageOperations,
 ] as const)
 
 export function assertUniqueMcpDefinitions(definitions: readonly McpContractDefinition[]): void {
