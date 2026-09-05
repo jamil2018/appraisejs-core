@@ -118,12 +118,19 @@ export const journeyArtifactLinkSchema = z
       'ANALYZES',
       'SUPERSEDES',
       'RERUNS',
+      'FOLLOWS',
     ]),
     source: artifactReferenceSchema,
     target: artifactReferenceSchema,
   })
   .strict()
   .superRefine((link, context) => {
+    if (
+      link.relation === 'APPROVES' &&
+      link.source.kind === 'JOURNEY_CLOSURE' &&
+      link.target.kind !== 'TEST_REPORT_ANALYSIS_REVISION'
+    )
+      context.addIssue({ code: 'custom', message: 'Closure approves only its exact report.' })
     const allowed: Record<
       string,
       readonly [readonly QualityJourneyArtifactKind[], readonly QualityJourneyArtifactKind[]]
@@ -133,7 +140,7 @@ export const journeyArtifactLinkSchema = z
         ['ANALYSIS_CHARTER_REVISION', 'SCENARIO_REVISION'],
       ],
       APPROVES: [
-        ['JOURNEY_APPROVAL'],
+        ['JOURNEY_APPROVAL', 'JOURNEY_CLOSURE'],
         [
           'ANALYSIS_CHARTER_REVISION',
           'SCENARIO_PORTFOLIO_REVISION',
@@ -141,6 +148,7 @@ export const journeyArtifactLinkSchema = z
           'TEST_REPORT_ANALYSIS_REVISION',
         ],
       ],
+      FOLLOWS: [['JOURNEY_REVISION'], ['JOURNEY_CLOSURE']],
       MATERIALIZES: [['SCENARIO_REVISION'], ['TEST_SUITE', 'TEST_CASE', 'RUNTIME_CAPSULE']],
       EXECUTES: [['RUNTIME_CAPSULE'], ['TEST_RUN']],
       PRODUCES_EVIDENCE: [['TEST_RUN'], ['EVIDENCE_RECEIPT']],

@@ -1,3 +1,4 @@
+import { assertQualityJourneyMutable } from './quality-journey-terminal'
 import { createHash } from 'node:crypto'
 import type { Prisma, PrismaClient, QualityJourney } from '@prisma/client'
 import { z } from 'zod'
@@ -613,6 +614,7 @@ async function prepareDiscoverySubmission(
     targetObservation ? 'Scout' : 'Resource',
   )
   if (replayed) return { revision, replayed, analysis: null }
+  assertQualityJourneyMutable(await tx.qualityJourney.findUniqueOrThrow({ where: { id: revision.journeyId } }))
   await registryStillCurrent(revision, tx)
   const analysis = await tx.qualityJourneyAnalysisRevision.findUniqueOrThrow({
     where: { id: revision.analysisRevisionId },
@@ -787,6 +789,7 @@ export async function retryQualityJourneyDiscovery(input: unknown, client: Prism
       throw new ServiceError('Discovery retry already has a competing successor.', 'CONFLICT')
     }
     const journeyState = await tx.qualityJourney.findUniqueOrThrow({ where: { id: predecessor.journeyId } })
+    assertQualityJourneyMutable(journeyState)
     if (journeyState.activeDiscoveryRevisionId !== predecessor.id)
       throw new ServiceError('Discovery retry does not bind the active discovery revision.', 'CONFLICT')
     if (predecessor.status === 'COLLECTING')
@@ -849,6 +852,7 @@ export async function revalidateQualityJourneyDiscovery(
       tx,
     )
     const journey = await tx.qualityJourney.findUniqueOrThrow({ where: { id: revision.journeyId } })
+    assertQualityJourneyMutable(journey)
     if (journey.activeDiscoveryRevisionId !== revision.id)
       throw new ServiceError('Discovery revalidation does not bind the active discovery revision.', 'CONFLICT')
     try {

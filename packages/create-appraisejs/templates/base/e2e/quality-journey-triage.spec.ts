@@ -187,7 +187,9 @@ test('Journey triage renders persisted report lineage and full-report revision c
   await expect(page.getByText('Triage reports', { exact: true })).toBeVisible()
   await expect(page.getByText('sealed receipt')).toBeVisible()
   await expect(page.getByText('The immutable evidence identifies an automation checkout defect.')).toBeVisible()
-  await expect(page.getByText('VALIDATION_REALIZATION_DEFECT')).toBeVisible()
+  await expect(
+    page.getByLabel('Triage report history').getByText('VALIDATION_REALIZATION_DEFECT', { exact: true }),
+  ).toBeVisible()
   await expect(page.getByLabel('Full report feedback')).toBeVisible()
   await page.getByLabel('Full report feedback').fill('Reassess the complete attribution against the sealed receipt.')
   await expect(page.getByRole('button', { name: 'Request full-report revision' })).toBeEnabled()
@@ -197,5 +199,30 @@ test('Journey triage renders persisted report lineage and full-report revision c
     page.getByText('FULL_REPORT_REVISION: Reassess the complete attribution against the sealed receipt.'),
   ).toBeVisible()
   await expect(page.getByRole('button', { name: 'Request full-report revision' })).toHaveCount(0)
+  expect(errors).toEqual([])
+})
+
+test('Journey terminal review preserves artifact navigation and blocks acceptance without rationale @smoke', async ({
+  page,
+  context,
+  baseURL,
+}) => {
+  const { journeyId, targetProjectId } = await seedTriageReport()
+  await context.addCookies([{ name: 'appraise-active-project', value: targetProjectId, url: baseURL! }])
+  const errors: string[] = []
+  page.on('pageerror', error => errors.push(error.message))
+  await page.goto(`/quality-journeys/${journeyId}?project=${targetProjectId}`)
+  const terminal = page.getByLabel('Terminal journey review')
+  await expect(terminal.getByText('Terminal report review', { exact: true })).toBeVisible()
+  await expect(terminal.getByRole('button', { name: 'Accept risks and close journey' })).toBeDisabled()
+  await expect(terminal.getByLabel('Known failures and limitations')).toContainText('fresh execution cycle')
+  await page.getByRole('link', { name: 'Artifact library and export' }).click()
+  await expect(page.getByText('Artifact library', { exact: true })).toBeVisible()
+  const response = await page.request.get(`/quality-journeys/${journeyId}/artifacts/export?project=${targetProjectId}`)
+  expect(response.ok()).toBe(true)
+  const manifest = await response.text()
+  expect(manifest).toContain(journeyId)
+  expect(manifest).toContain('TRIAGE_FINDING')
+  expect(manifest).not.toContain('environmentSnapshotJson')
   expect(errors).toEqual([])
 })

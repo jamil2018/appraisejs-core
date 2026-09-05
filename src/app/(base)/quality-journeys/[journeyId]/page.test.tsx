@@ -14,6 +14,16 @@ const mocks = vi.hoisted(() => ({
   project: vi.fn(),
 }))
 
+vi.mock('@/services/coordinator/quality-journey-closure-service', () => ({
+  getQualityJourneyClosure: vi.fn().mockResolvedValue({
+    receipt: null,
+    contentHash: null,
+    reportRevisionId: null,
+    reportHash: null,
+    unresolvedItems: [],
+    blockers: [],
+  }),
+}))
 vi.mock('@/config/db-config', () => ({ default: { environment: { findMany: vi.fn().mockResolvedValue([]) } } }))
 vi.mock('@/services/coordinator/quality-journey-execution-service', () => ({
   getQualityJourneyExecution: vi.fn().mockResolvedValue({ cycles: [], consents: [], proposals: [] }),

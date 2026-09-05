@@ -104,6 +104,7 @@ import { getQualityJourneyScenarioRoute, postQualityJourneyScenarioRoute } from 
 import { getQualityJourneyAutomationRoute, postQualityJourneyAutomationRoute } from './quality-journey-automation-route'
 import { getQualityJourneyExecutionRoute, postQualityJourneyExecutionRoute } from './quality-journey-execution-route'
 import { getQualityJourneyTriageRoute, postQualityJourneyTriageRoute } from './quality-journey-triage-route'
+import { getQualityJourneyLibraryRoute } from './quality-journey-library-route'
 
 export const runtime = 'nodejs'
 
@@ -492,6 +493,8 @@ async function getTestRunEvidence(request: Request, operation: string[]) {
 }
 
 async function getQualityOperation(request: Request, operation: string[]) {
+  const libraryResponse = await getQualityJourneyLibraryRoute(operation, new URL(request.url).searchParams)
+  if (libraryResponse) return libraryResponse
   const triageResponse = await getQualityJourneyTriageRoute(operation, new URL(request.url).searchParams)
   if (triageResponse) return triageResponse
   const discoveryResponse = await getQualityJourneyDiscoveryRoute(operation, new URL(request.url).searchParams)

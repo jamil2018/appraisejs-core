@@ -23,7 +23,9 @@ revision feedback and automation-remediation approval remain local UI decisions.
 persists the server-derived active report revision/hash and rechecks that binding and source execution cycle on approval
 and start. The generic completion path rejects
 Automator and Triager alongside the other specialized roles. The
-Phase 1 kernel plus the Phase 2 adapter-only receipt transition remain
+Phase 9 adds local terminal report approval and immutable normal/risk-accepted closure, read-only artifact history/export,
+and linked follow-up intake. Closed journeys reject new mutations. See `docs/quality-journey-contracts.md` for exact
+closure prerequisites and residual-risk compatibility. The Phase 1 kernel plus the Phase 2 adapter-only receipt transition remain
 additive; they do not yet replace the Quality Plan and Assessment services described below.
 
 ## Quality Design

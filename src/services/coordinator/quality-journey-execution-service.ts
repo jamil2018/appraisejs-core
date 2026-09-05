@@ -1,3 +1,4 @@
+import { assertQualityJourneyMutable } from './quality-journey-terminal'
 import { createHash, randomUUID } from 'node:crypto'
 import type { Prisma, PrismaClient } from '@prisma/client'
 import prisma from '@/config/db-config'
@@ -373,6 +374,7 @@ async function validateExecutionReservationRequest(
   extra: { proposalId?: string; predecessorExecutionCycleId?: string },
 ): Promise<ExecutionReservationReplay | Omit<ExecutionReservationReady, 'source' | 'frozen'>> {
   const journey = await scopedJourney(input, tx)
+  assertQualityJourneyMutable(journey)
   const rerun = Boolean(extra.proposalId)
   const requestHash = hash({
     input,
@@ -692,7 +694,7 @@ export async function getQualityJourneyExecution(value: unknown, client: PrismaC
 export async function grantQualityJourneyExecutionConsent(value: unknown, client: PrismaClient = prisma) {
   const input = qualityJourneyExecutionConsentGrantSchema.parse(value)
   return client.$transaction(async tx => {
-    await scopedJourney(input, tx)
+    assertQualityJourneyMutable(await scopedJourney(input, tx))
     const consent = await tx.qualityJourneyExecutionConsent.findFirst({
       where: { id: input.executionConsentId, journeyId: input.journeyId, targetProjectId: input.targetProjectId },
     })
@@ -714,6 +716,7 @@ export async function cancelQualityJourneyExecution(value: unknown, client: Pris
   const input = qualityJourneyExecutionCancelSchema.parse(value)
   const cycle = await client.$transaction(async tx => {
     const journey = await scopedJourney(input, tx)
+    assertQualityJourneyMutable(journey)
     const requestHash = hash(input)
     const replay = await tx.qualityJourneyExecutionCancellationReceipt.findFirst({
       where: { journeyId: input.journeyId, idempotencyKey: input.idempotencyKey },
@@ -775,7 +778,10 @@ async function cancelsEntireExecutionCycle(
 
 export async function reconcileQualityJourneyExecution(value: unknown, client: PrismaClient = prisma) {
   const input = qualityJourneyExecutionReconcileSchema.parse(value)
-  const cycle = await client.$transaction(tx => scopedExecutionCycle(input, tx))
+  const cycle = await client.$transaction(async tx => {
+    assertQualityJourneyMutable(await scopedJourney(input, tx))
+    return scopedExecutionCycle(input, tx)
+  })
   await runtimeAdapter.reconcile({ executionCycleId: cycle.id })
   return getQualityJourneyExecution(
     { journeyId: input.journeyId, targetProjectId: input.targetProjectId, cycleId: input.cycleId },
@@ -786,7 +792,7 @@ export async function reconcileQualityJourneyExecution(value: unknown, client: P
 export async function proposeQualityJourneyRerun(value: unknown, client: PrismaClient = prisma) {
   const input = qualityJourneyRerunProposalSchema.parse(value)
   return client.$transaction(async tx => {
-    await scopedJourney(input, tx)
+    assertQualityJourneyMutable(await scopedJourney(input, tx))
     const source = await tx.qualityJourneyExecutionCycle.findFirst({
       where: {
         id: input.sourceCycleId,
@@ -842,7 +848,7 @@ export async function proposeQualityJourneyRerun(value: unknown, client: PrismaC
 export async function approveQualityJourneyRerun(value: unknown, client: PrismaClient = prisma) {
   const input = qualityJourneyRerunApprovalSchema.parse(value)
   return client.$transaction(async tx => {
-    await scopedJourney(input, tx)
+    assertQualityJourneyMutable(await scopedJourney(input, tx))
     const proposal = await tx.qualityJourneyExecutionRerunProposal.findFirst({
       where: { id: input.proposalId, journeyId: input.journeyId, targetProjectId: input.targetProjectId },
     })

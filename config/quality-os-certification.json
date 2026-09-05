@@ -36,7 +36,7 @@
     "compatibility",
     "performance"
   ],
-  "receiptHash": "sha256:2389d694baa0a3e43d3f4b98dd031dad1f12b76116c7183fbec122005ce57452",
+  "receiptHash": "sha256:f5a3908aecb4f283a2b76cd002f688c40cc20df62910432fc57c1050a4f8c927",
   "result": "PASS",
   "schema": "appraise.quality-os-certification/v1",
   "suiteEvidence": [
@@ -73,7 +73,7 @@
     {
       "file": "src/services/coordinator/quality-journey-triage-service.sqlite.integration.test.ts",
       "result": "PASS",
-      "sourceHash": "sha256:06c41810afda02ff3e7ede64ccd1dad6bb91d3362935957860115f9b6b6fb11a"
+      "sourceHash": "sha256:e88fcf1e4fd2de494c2c977ba04f5b6911b094ac6b7d64f68e3245f37c56b7f4"
     },
     {
       "file": "src/services/coordinator/quality-journey-triage-validation.test.ts",
@@ -89,6 +89,31 @@
       "file": "src/lib/quality-journey/triage-contracts.test.ts",
       "result": "PASS",
       "sourceHash": "sha256:f7544e08d7fc3b8a442ff0a64086cf5ed0c09936ef58116f6234b6e70fcd51b5"
+    },
+    {
+      "file": "src/services/coordinator/quality-journey-closure-validation.test.ts",
+      "result": "PASS",
+      "sourceHash": "sha256:34883f00cf3c7c5d9b4847eecff27051e79225f00c67098a3fe58469d32f29a7"
+    },
+    {
+      "file": "src/services/coordinator/quality-journey-artifact-library-service.test.ts",
+      "result": "PASS",
+      "sourceHash": "sha256:35fb40013705e426bd885d3c8885c4799682e486f745c4b3671bdbf052a29da0"
+    },
+    {
+      "file": "src/app/(base)/quality-journeys/[journeyId]/closure-actions.test.ts",
+      "result": "PASS",
+      "sourceHash": "sha256:3e2315471f690212c38f66e6886dde9673019b90c7011c70b9f92d9f78c1887b"
+    },
+    {
+      "file": "src/app/(base)/quality-journeys/[journeyId]/closure-panel.test.tsx",
+      "result": "PASS",
+      "sourceHash": "sha256:9c529c8f25bb8ab8c48ac58ddd1260a7aacf934a1dd3c9bad97e91314bf0f781"
+    },
+    {
+      "file": "src/app/api/internal/coordinator/[...operation]/quality-journey-library-route.test.ts",
+      "result": "PASS",
+      "sourceHash": "sha256:9ed9537144f44ab54f6195f8fee568078917b1bf1396cc454c90b70c1afa9c2d"
     },
     {
       "file": "src/app/api/internal/coordinator/[...operation]/route.test.ts",
@@ -134,6 +159,11 @@
       "file": "packages/appraisejs/src/mcp/quality-journey-discovery.test.ts",
       "result": "PASS",
       "sourceHash": "sha256:88e4ea2dd37fb5bbc14dcf5fb6e391f28ef49a18450e8153116f01b88caf91e5"
+    },
+    {
+      "file": "packages/appraisejs/src/mcp/quality-journey-library.test.ts",
+      "result": "PASS",
+      "sourceHash": "sha256:30df3cb5ec78226b941c44bd77fc7bf63344829c7c148abe3c7564aad91d5264"
     }
   ]
 }

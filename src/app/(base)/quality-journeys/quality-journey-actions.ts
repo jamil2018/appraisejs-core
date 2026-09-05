@@ -35,6 +35,7 @@ const hash = z.string().regex(/^sha256:[a-f0-9]{64}$/)
 const createJourneySchema = z
   .object({
     objective: z.string().trim().min(1).max(8_000),
+    predecessorJourneyId: id.optional(),
     context: z.string().trim().max(8_000).optional(),
     idempotencyKey: id,
   })
@@ -127,6 +128,7 @@ export async function createQualityJourneyAction(input: unknown): Promise<Action
       targetProjectId: project.id,
       idempotencyKey: value.idempotencyKey,
       requirement,
+      ...(value.predecessorJourneyId ? { predecessorJourneyId: value.predecessorJourneyId } : {}),
     })
     const journey = created.journey
 

@@ -64,3 +64,10 @@ The MCP execution surface provides `quality_journey_execution_get`, `quality_jou
 `quality_journey_rerun_start`. Starts consume exact prepared approved scenarios. Material-effect consent and rerun
 approval must be recorded in the local Appraise UI against the displayed scope; these tools cannot grant approval.
 See the repository coordinator API contract for request fields and reconnect/evidence behavior.
+
+## Quality Journey history
+
+`quality_journey_library_list`, `quality_journey_artifact_get`, and `quality_journey_export` provide target-scoped,
+read-only artifact navigation and export, including closed journeys. Terminal approval and risk acceptance remain
+local Appraise UI decisions. Report submissions may use `residualRisks: []` to explicitly record no remaining risks;
+every nonempty entry requires explicit risk acceptance at closure.

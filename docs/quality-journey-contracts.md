@@ -371,3 +371,32 @@ server and persists both with the rerun proposal. Rerun approval and start re-re
 the proposal's source execution cycle; a changed, reviewed, replaced, or cross-cycle report makes the proposal stale.
 MCP can read triage context, prepare a Triager assignment, and submit a report. It cannot request a report revision
 or approve remediation.
+
+## Phase 9 closure and artifact history
+
+Terminal review is a local UI decision at `/quality-journeys/:journeyId`. Appraise validates the exact current
+report revision and full report/source hash, current state hash, published analysis approval, approved scenarios,
+and sealed execution lineage. Required questions, active blockers, unfinished work, or unfinished execution block
+both closure modes. Closure atomically persists an immutable `QualityJourneyClosure`, `JOURNEY_CLOSURE` artifact,
+report approval, artifact link, and terminal lifecycle command. Identical retry returns the original receipt;
+a different closure cannot replace it. `USER` denotes local user possession, not an authenticated account.
+
+Ordinary closure requires no findings, no non-passing coverage, and `residualRisks: []`. Every recorded finding,
+non-passing coverage row, and residual-risk statement becomes a stable closure item tied to the exact report.
+Risk-accepted closure requires a rationale and explicit acceptance of the complete item set. Existing reports with
+nonempty prose remain supported and require risk acceptance or an immutable successor with an empty risk list;
+Appraise never interprets prose such as “none” as permission. Empty residual risks are additive to the v1 report
+contract and accepted by both HTTP and MCP submission schemas.
+
+Closed journeys reject new lifecycle, worker-control, discovery, and execution mutations. Their artifacts remain
+readable at `/quality-journeys/:journeyId/artifacts`, including individual revisions, cycles, approvals, runs, evidence,
+reports, and closure. Follow-up intake creates a new journey with a `FOLLOWS` link to the predecessor closure in the
+same target; it does not modify the closed predecessor. Library detail and JSON export retain source identities and
+public projection hashes without exporting worker leases, provider records, or environment snapshots.
+
+Three additive read-only MCP tools expose historical navigation: `quality_journey_library_list`,
+`quality_journey_artifact_get`, and `quality_journey_export`, corresponding to
+`GET quality/journeys/:journeyId/library`, `GET quality/journeys/:journeyId/library/:entryId`, and
+`GET quality/journeys/:journeyId/export`. Library lists support `kind`, `offset`, and `limit` (maximum 100).
+The target reference is resolved by Appraise; the path binds journey and entry. Closure and risk acceptance are
+absent from MCP and generic command submission, preserving the local human review boundary.
