@@ -139,6 +139,51 @@ describe('Quality Journey Phase 1 kernel', () => {
     expect(resumed.state.stateHash).not.toBe(blocked.stateHash)
   })
 
+  it('starts an immutable successor execution cycle only from triage and binds its active cycle hash', () => {
+    const triage = createQualityJourneyKernelState({
+      journeyId: 'journey-1',
+      targetProjectId: 'target-1',
+      activeCycleId: 'cycle-1',
+      stage: 'TRIAGE',
+    })
+    const successor = submitQualityJourneyCommand(triage, {
+      schemaVersion: 'appraise.quality-journey/v1',
+      commandId: 'start-rerun-cycle-1',
+      journeyId: 'journey-1',
+      targetProjectId: 'target-1',
+      actor: 'USER',
+      command: 'START_RERUN_CYCLE',
+      expectedStateHash: triage.stateHash,
+      idempotencyKey: 'start-rerun-cycle-1',
+      inputArtifactRefs: [],
+      payload: { cycleId: 'cycle-2' },
+    })
+    expect(successor.result).toMatchObject({ outcome: 'COMMITTED', successorStage: 'EXECUTION' })
+    expect(successor.state.activeCycleId).toBe('cycle-2')
+    expect(successor.state.stateHash).not.toBe(triage.stateHash)
+
+    const automation = createQualityJourneyKernelState({
+      journeyId: 'journey-1',
+      targetProjectId: 'target-1',
+      activeCycleId: 'cycle-1',
+      stage: 'AUTOMATION',
+    })
+    expect(
+      submitQualityJourneyCommand(automation, {
+        schemaVersion: 'appraise.quality-journey/v1',
+        commandId: 'bad-rerun',
+        journeyId: 'journey-1',
+        targetProjectId: 'target-1',
+        actor: 'USER',
+        command: 'START_RERUN_CYCLE',
+        expectedStateHash: automation.stateHash,
+        idempotencyKey: 'bad-rerun',
+        inputArtifactRefs: [],
+        payload: { cycleId: 'cycle-2' },
+      }).result,
+    ).toMatchObject({ outcome: 'REJECTED', code: 'TRANSITION_NOT_ALLOWED' })
+  })
+
   it('reconstructs runnable roles and expires only active elapsed leases', () => {
     expect(runnableQualityJourneyRoles('DISCOVERY', [])).toEqual(['SCOUT', 'RESOURCE_EXPLORER'])
     expect(

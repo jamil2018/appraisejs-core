@@ -634,6 +634,7 @@ export async function scheduleTestRunCompletion(args: {
   client?: PrismaClient
   waitForProcess?: (processName: string) => Promise<number | null>
   appraiseRoot?: string
+  onTerminal?: () => Promise<void>
 }): Promise<void> {
   const {
     testRun,
@@ -786,6 +787,9 @@ export async function scheduleTestRunCompletion(args: {
         cleanupListener()
         await runLogger.close().catch(error => {
           console.error(`[TestRunService] Error closing logger for testRunId: ${testRun.runId}:`, error)
+        })
+        await args.onTerminal?.().catch(error => {
+          console.error(`[TestRunService] Terminal projection failed for ${testRun.id}:`, error)
         })
       })
   } catch (error) {
@@ -1090,10 +1094,14 @@ export type CancelTestRunOutcome =
 export async function cancelTestRunService(testRunId: string): Promise<CancelTestRunOutcome> {
   const testRun = await prisma.testRun.findUnique({
     where: { runId: testRunId },
+    include: { qualityJourneyExecutionBinding: true },
   })
   if (!testRun) {
     return { kind: 'not_found' }
   }
+
+  if (testRun.qualityJourneyExecutionBinding)
+    return { kind: 'invalid_state', message: 'Cancel Journey-owned execution from the Quality Journey cycle.' }
 
   if (
     testRun.status !== TestRunStatus.RUNNING &&

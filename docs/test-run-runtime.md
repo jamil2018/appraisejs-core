@@ -59,3 +59,14 @@ Managed browser execution fails closed when a versioned detector observes a visi
 The runtime emits `appraise.runtime.blocked/v1` with reason `human_verification_required` and sanitized provider, page/frame origins, structural signature ID, checkpoint, step/operation identity, and observed-at facts. It never records challenge tokens or full DOM content. The managed process is terminated immediately and idempotently; the browser and context close normally. AppraiseJS offers no bypass, pause, session takeover, or resume mechanism. Retrying requires a fresh TestRun after the challenge has been cleared outside AppraiseJS.
 
 A blocked TestRun is terminal as `status=COMPLETED` and `result=BLOCKED`, distinct from failures and cancellations, even when report evidence is invalid or missing. Integrity-valid blocked runs may seal `EvidenceOutcome.BLOCKED` receipts, but those receipts record an automation boundary only; they cannot pass or fail a target obligation and project `targetOutcome=not_evaluated`. A complete fresh non-blocked matrix supersedes a prior blocked attempt for review and decision while preserving prior receipts.
+
+## Quality Journey execution
+
+Journey execution starts through the specialized `quality_journey_execution_start` boundary after approved scenario
+materialization. It reserves durable run identity, freezes the environment and consumes any required exact-scope
+consent before calling the capsule runtime. The Journey overview links to standard TestRun logs and reports.
+`quality_journey_execution_reconcile` records terminal evidence; it cannot start or resume an OS process.
+
+Selective reruns require an immutable proposal and user approval in Appraise. Each successor preserves its own
+scenario selection, environment, capsule, run and evidence lineage. A durable active attempt with a missing local
+process handle requires ownership resolution; never use reconnect or cancellation as permission to duplicate it.

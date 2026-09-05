@@ -508,6 +508,7 @@ export const journeyCommandKindSchema = z.enum([
   'REQUEST_SCENARIO_REVISION',
   'RETRY_AUTOMATION',
   'START_EXECUTION',
+  'START_RERUN_CYCLE',
   'PUBLISH_RUN_RESULT',
   'PUBLISH_TRIAGE_REPORT',
   'REQUEST_REPORT_REVISION',
@@ -584,6 +585,7 @@ export const journeyCommandSchema = z.discriminatedUnion('command', [
       payload: z.object({ runtimeCapsuleIds: z.array(id).min(1), executionConsentId: id.optional() }).strict(),
     })
     .strict(),
+  commandBase.extend({ command: z.literal('START_RERUN_CYCLE'), payload: z.object({ cycleId: id }).strict() }).strict(),
   commandBase
     .extend({
       command: z.literal('PUBLISH_RUN_RESULT'),

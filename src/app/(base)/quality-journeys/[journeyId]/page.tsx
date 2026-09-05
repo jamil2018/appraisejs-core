@@ -13,6 +13,9 @@ import { getQualityJourneyAnalysis } from '@/services/coordinator/quality-journe
 import { getQualityJourney } from '@/services/coordinator/quality-journey-service'
 import { getQualityJourneyScenarioPortfolio } from '@/services/coordinator/quality-journey-scenario-service'
 import { getQualityJourneyAutomationContext } from '@/services/coordinator/quality-journey-automation-service'
+import { getQualityJourneyExecution } from '@/services/coordinator/quality-journey-execution-service'
+import prisma from '@/config/db-config'
+import { JourneyExecutionStatus } from './journey-execution-status'
 import { ServiceError } from '@/services/shared/errors'
 
 import { AnalysisReviewControls } from './analysis-review-controls'
@@ -65,8 +68,16 @@ async function loadJourneyDetail(journeyId: string, projectId: string) {
     node => node.stage === journey.journey.stage && ['RUNNABLE', 'IN_PROGRESS', 'BLOCKED'].includes(node.state),
   )
 
-  const { scenarios, automation } = await loadJourneySupplementalArtifacts(journeyId, projectId, journey.journey.stage)
-  return { activeAnalysis, activeRunner, answerable, journey, scenarios, automation }
+  const [{ scenarios, automation }, execution, environments] = await Promise.all([
+    loadJourneySupplementalArtifacts(journeyId, projectId, journey.journey.stage),
+    getQualityJourneyExecution({ journeyId, targetProjectId: projectId }),
+    prisma.environment.findMany({
+      where: { targetProjectId: projectId },
+      select: { id: true, name: true },
+      orderBy: { name: 'asc' },
+    }),
+  ])
+  return { activeAnalysis, activeRunner, answerable, journey, scenarios, automation, execution, environments }
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
@@ -77,10 +88,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 export default async function QualityJourneyDetailPage({ params, searchParams }: PageProps) {
   const [{ journeyId }, parameters] = await Promise.all([params, searchParams])
   const project = await requireActiveProject(parameters?.project)
-  const { activeAnalysis, activeRunner, answerable, journey, scenarios, automation } = await loadJourneyDetail(
-    journeyId,
-    project.id,
-  )
+  const { activeAnalysis, activeRunner, answerable, journey, scenarios, automation, execution, environments } =
+    await loadJourneyDetail(journeyId, project.id)
 
   return (
     <main className="space-y-6 pb-10">
@@ -97,6 +106,19 @@ export default async function QualityJourneyDetailPage({ params, searchParams }:
             stateHash={journey.journey.stateHash}
           />
           <AutomationMaterializationStatus context={automation} />
+          <JourneyExecutionStatus
+            execution={execution}
+            journeyId={journeyId}
+            targetProjectId={project.id}
+            stateHash={journey.journey.stateHash}
+            stage={journey.journey.stage}
+            environments={environments}
+            capsuleIds={
+              automation?.materializations
+                .filter(item => item.status === 'MATERIALIZED' && item.preparedCapsule)
+                .map(item => item.preparedCapsule!.id) ?? []
+            }
+          />
           <AnalysisReviewControls
             analysis={activeAnalysis}
             answerable={answerable}

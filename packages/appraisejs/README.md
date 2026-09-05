@@ -56,3 +56,11 @@ Pass `--endpoint` only when the local sidecar uses a non-default loopback port o
 The coordinator `--base-url` is also local-only: use a credential-free HTTP(S) URL on `localhost`, `127.0.0.1`, or
 `::1`. The client never sends its project identity or bearer token to a non-loopback endpoint. A non-JSON `404` or
 `405` means the selected local service is not an AppraiseJS hub; verify `--base-url` and reconnect the MCP client.
+
+### Quality Journey managed execution
+
+The MCP execution surface provides `quality_journey_execution_get`, `quality_journey_execution_start`,
+`quality_journey_execution_cancel`, `quality_journey_execution_reconcile`, `quality_journey_rerun_propose`, and
+`quality_journey_rerun_start`. Starts consume exact prepared approved scenarios. Material-effect consent and rerun
+approval must be recorded in the local Appraise UI against the displayed scope; these tools cannot grant approval.
+See the repository coordinator API contract for request fields and reconnect/evidence behavior.

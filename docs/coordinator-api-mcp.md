@@ -128,3 +128,27 @@ error classification, code, operation outcome, target outcome, and retry guidanc
 bodies and details.
 
 Use generated contract fixtures and the coordinator operation reference as the complete inventory. A missing capability is unavailable; clients must not rely on compatibility wrappers or recovery guidance for removed operations.
+
+## Managed Journey execution
+
+Phase 7 adds six specialized operations under `quality/journeys/:journeyId/execution`:
+
+| MCP operation                         | HTTP suffix            | Purpose                                                    |
+| ------------------------------------- | ---------------------- | ---------------------------------------------------------- |
+| `quality_journey_execution_get`       | `GET context`          | Inspect cycles, run links, consent, ownership and evidence |
+| `quality_journey_execution_start`     | `POST start`           | Reserve and execute exact prepared approved scenarios      |
+| `quality_journey_execution_cancel`    | `POST cancel`          | Cancel selected managed runs without replacing ownership   |
+| `quality_journey_execution_reconcile` | `POST reconcile`       | Seal terminal evidence and project completion              |
+| `quality_journey_rerun_propose`       | `POST rerun-proposals` | Propose exact scenarios against predecessor evidence       |
+| `quality_journey_rerun_start`         | `POST rerun-start`     | Execute a user-approved immutable successor scope          |
+
+Bodies carry a target reference; Appraise resolves the durable target and the path supplies the journey ID.
+Execution starts and cancellations require the current state hash and an idempotency key. Selection arrays contain
+unique, sorted IDs. Rerun approval and execution consent are local UI decisions against exact hashes; MCP cannot
+issue either grant. An execution tool may consume a matching persisted grant but cannot self-authorize by sending
+an actor or grant-source string. Generic commands reject `START_EXECUTION`, `START_RERUN_CYCLE`, `PUBLISH_RUN_RESULT` and
+`START_REMEDIATION_CYCLE`; only runtime reconciliation can publish sealed run results.
+
+Run links use the ordinary TestRun screen for live logs, reports and traces. Reconciliation never starts a process.
+A missing process handle for an active durable attempt is an unresolved ownership condition, not permission to
+launch again. Reruns preserve predecessor evidence and do not constitute a Phase 8 defect attribution or report.

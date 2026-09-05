@@ -151,10 +151,12 @@ function applyProjection(
   if (command.command === 'PUBLISH_SCENARIO_PORTFOLIO')
     activeRevisionIds.scenarioPortfolio = command.payload.artifactRevisionId
   if (command.command === 'PUBLISH_TRIAGE_REPORT') activeRevisionIds.report = command.payload.artifactRevisionId
+  const activeCycleId = command.command === 'START_RERUN_CYCLE' ? command.payload.cycleId : current.activeCycleId
 
   const resolvedBlockerId = commandBlockerId(command)
   return finalize({
     ...current,
+    activeCycleId,
     stage,
     activeRevisionIds,
     blockerIds: resolvedBlockerId ? current.blockerIds.filter(id => id !== resolvedBlockerId) : current.blockerIds,
