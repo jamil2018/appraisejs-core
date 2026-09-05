@@ -338,3 +338,148 @@ describe('authored RuntimeCapsuleMaterializer remote environment packets', () =>
     )
   })
 })
+
+describe('Journey prepared source materialization', () => {
+  function journeyClient() {
+    state.testRun = authoredRun()
+    const run = state.testRun as ReturnType<typeof authoredRun>
+    Object.assign(run, { qualityJourneyExecutionBinding: { id: 'binding-1' } })
+    run.testCases[0].testCase.title = 'MUTATED catalog title'
+    run.testCases[0].testCase.steps[0].invocationJson = '{}'
+    const binding = {
+      schemaVersion: 'appraise.quality-journey/v1',
+      targetProjectId: 'target-1',
+      moduleId: 'module-1',
+      suite: { id: 'suite-1', name: 'Approved suite', description: null },
+      testCase: {
+        id: 'case-1',
+        title: 'Approved scenario',
+        description: 'Frozen intent',
+        steps: [
+          {
+            order: 1,
+            gherkinStep: 'Given the fixture is ready',
+            label: 'Frozen step',
+            icon: 'check',
+            invocationJson: JSON.stringify({ step, inputs: {} }),
+          },
+        ],
+      },
+    }
+    const resources = [{ id: `step:${step.id}:${step.version}`, contentHash: hashes.definitionHash }]
+    const preparedIdentity = {
+      schemaVersion: 'appraise.quality-journey/v1',
+      capsuleId: 'prepared-1',
+      journeyId: 'journey-1',
+      targetProjectId: 'target-1',
+      cycleId: 'cycle-1',
+      materializationId: 'materialization-1',
+      inputHash: hashCanonical({}),
+      manifestHash: hashCanonical({}),
+      status: 'PREPARED',
+    }
+    const source = {
+      preparedCapsuleId: 'prepared-1',
+      capsuleHash: hashCanonical(preparedIdentity),
+      manifestHash: hashCanonical({}),
+      manifestJson: '{}',
+      materializationId: 'materialization-1',
+      scenarioRevisionId: 'scenario-1',
+      scenarioContentHash: hashCanonical({}),
+      targetBindingId: 'binding-1',
+      targetBindingHash: hashCanonical(binding),
+      testCaseId: 'case-1',
+      suiteId: 'suite-1',
+      resourceHashes: resources,
+    }
+    const cycle = {
+      targetFingerprint: `sha256:${'d'.repeat(64)}`,
+      environmentSnapshotJson: run.environmentSnapshotJson,
+      environmentSnapshotHash: run.environmentSnapshotHash,
+      environmentSnapshotVersion: run.environmentSnapshotVersion,
+      id: 'execution-1',
+      journeyId: 'journey-1',
+      cycleId: 'cycle-1',
+      targetProjectId: 'target-1',
+      environmentId: state.frozen.id,
+      browserEngine: 'CHROMIUM',
+      preparedCapsulesJson: canonicalContractJson([source]),
+      preparedCapsulesHash: hashCanonical([source]),
+    }
+    const owner = {
+      preparedCapsuleId: 'prepared-1',
+      runId: run.runId,
+      executionCycle: cycle,
+      testRun: { ...run, testCases: [{ testCaseId: 'case-1', testSuiteId: 'suite-1' }] },
+    }
+    return {
+      ...client(),
+      qualityJourneyPreparedRuntimeCapsule: {
+        findUniqueOrThrow: vi.fn(async () => ({
+          ...preparedIdentity,
+          id: 'prepared-1',
+          manifestJson: '{}',
+          capsuleHash: source.capsuleHash,
+          materialization: {
+            scenarioRevisionId: 'scenario-1',
+            scenarioContentHash: hashCanonical({}),
+            status: 'MATERIALIZED',
+          },
+        })),
+      },
+      qualityJourneyExecutionTestRun: { findUniqueOrThrow: vi.fn(async () => owner) },
+      qualityJourneyAutomationTargetBinding: {
+        findUniqueOrThrow: vi.fn(async () => ({
+          bindingJson: canonicalContractJson(binding),
+          resourceHashJson: canonicalContractJson(resources),
+        })),
+      },
+    }
+  }
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    sealedCommandInputs.splice(0)
+  })
+
+  it('executes the immutable approved packet even after catalog title and invocation bytes change', async () => {
+    const result = await new RuntimeCapsuleMaterializer(
+      journeyClient() as never,
+      '/tmp/appraise-journey-test',
+    ).materializeJourneyPrepared({ testRunId: 'test-run-1' })
+    expect(result.manifest.rootInvocations).toEqual([{ step, inputs: {} }])
+    expect(result.manifest.source).toMatchObject({
+      kind: 'AUTHORED_TEST_SNAPSHOT',
+      snapshot: {
+        journey: { journeyId: 'journey-1', executionCycleId: 'execution-1', preparedCapsuleId: 'prepared-1' },
+        selection: [{ testCase: { title: 'Approved scenario' } }],
+      },
+    })
+  })
+
+  it('rejects a different valid environment snapshot before capsule materialization', async () => {
+    const db = journeyClient()
+    const owner = await db.qualityJourneyExecutionTestRun.findUniqueOrThrow()
+    owner.testRun.environmentSnapshotHash = hashCanonical({ redirected: true })
+    await expect(
+      new RuntimeCapsuleMaterializer(db as never, '/tmp/appraise-journey-test').materializeJourneyPrepared({
+        testRunId: 'test-run-1',
+      }),
+    ).rejects.toThrow('differs from its immutable execution cycle')
+    expect(db.qualityJourneyPreparedRuntimeCapsule.findUniqueOrThrow).not.toHaveBeenCalled()
+  })
+
+  it('blocks corrupt frozen binding before capsule writes', async () => {
+    const db = journeyClient()
+    db.qualityJourneyAutomationTargetBinding.findUniqueOrThrow.mockImplementation(async () => ({
+      bindingJson: '{}',
+      resourceHashJson: '[]',
+    }))
+    await expect(
+      new RuntimeCapsuleMaterializer(db as never, '/tmp/appraise-journey-test').materializeJourneyPrepared({
+        testRunId: 'test-run-1',
+      }),
+    ).rejects.toThrow()
+    expect(capsuleCreate).not.toHaveBeenCalled()
+  })
+})

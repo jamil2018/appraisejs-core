@@ -102,6 +102,7 @@ import { getQualityJourneyAnalysisRoute, postQualityJourneyAnalysisRoute } from 
 import { getQualityJourneyDiscoveryRoute, postQualityJourneyDiscoveryRoute } from './quality-journey-discovery-route'
 import { getQualityJourneyScenarioRoute, postQualityJourneyScenarioRoute } from './quality-journey-scenario-route'
 import { getQualityJourneyAutomationRoute, postQualityJourneyAutomationRoute } from './quality-journey-automation-route'
+import { getQualityJourneyExecutionRoute, postQualityJourneyExecutionRoute } from './quality-journey-execution-route'
 
 export const runtime = 'nodejs'
 
@@ -494,6 +495,8 @@ async function getQualityOperation(request: Request, operation: string[]) {
   if (discoveryResponse) return discoveryResponse
   const scenarioResponse = await getQualityJourneyScenarioRoute(operation, new URL(request.url).searchParams)
   if (scenarioResponse) return scenarioResponse
+  const executionResponse = await getQualityJourneyExecutionRoute(operation, new URL(request.url).searchParams)
+  if (executionResponse) return executionResponse
   const automationResponse = await getQualityJourneyAutomationRoute(operation, new URL(request.url).searchParams)
   if (automationResponse) return automationResponse
   const analysisResponse = await getQualityJourneyAnalysisRoute(operation, new URL(request.url).searchParams)
@@ -746,6 +749,8 @@ async function postQualityOperation(operation: string[], body: unknown): Promise
   if (discoveryResponse) return discoveryResponse
   const scenarioResponse = await postQualityJourneyScenarioRoute(operation, body)
   if (scenarioResponse) return scenarioResponse
+  const executionResponse = await postQualityJourneyExecutionRoute(operation, body)
+  if (executionResponse) return executionResponse
   const automationResponse = await postQualityJourneyAutomationRoute(operation, body)
   if (automationResponse) return automationResponse
   const analysisResponse = await postQualityJourneyAnalysisRoute(operation, body)
@@ -781,9 +786,17 @@ async function postQualityOperation(operation: string[], body: unknown): Promise
       throw new ServiceError('Phase 3 analysis commands require their dedicated coordinator operation.', 'UNAUTHORIZED')
     if (command.command === 'RETRY_DISCOVERY')
       throw new ServiceError('Phase 4 discovery retries require their dedicated coordinator operation.', 'UNAUTHORIZED')
-    if (['RETRY_AUTOMATION', 'START_EXECUTION'].includes(command.command))
+    if (
+      [
+        'RETRY_AUTOMATION',
+        'START_EXECUTION',
+        'PUBLISH_RUN_RESULT',
+        'START_REMEDIATION_CYCLE',
+        'START_RERUN_CYCLE',
+      ].includes(command.command)
+    )
       throw new ServiceError(
-        'Phase 6 automation commands require their dedicated coordinator operation.',
+        'Automation and execution commands require their dedicated coordinator operation.',
         'UNAUTHORIZED',
       )
     if (

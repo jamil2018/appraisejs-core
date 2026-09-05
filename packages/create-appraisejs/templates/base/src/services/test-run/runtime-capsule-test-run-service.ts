@@ -9,6 +9,7 @@ import {
   type PrismaClient,
 } from '@prisma/client'
 import prisma from '@/config/db-config'
+import { restoreJourneyExecutionEnvironment } from '@/lib/quality-journey/execution-environment'
 import {
   frozenEnvironmentSnapshot,
   frozenRemoteEnvironmentPacketSnapshot,
@@ -215,6 +216,8 @@ function frozenEnvironment<
     environmentSnapshotVersion?: number | null
   },
 >(testRun: T, remoteScopeRequired = false): Environment {
+  if (testRun.environmentSnapshotJson?.includes('appraise.quality-journey-execution-environment/local-v1'))
+    return restoreJourneyExecutionEnvironment(testRun)
   const packet = frozenEnvironmentSnapshot(testRun, { required: remoteScopeRequired })
   return (
     packet ? runtimeEnvironmentFromFrozenPacket(testRun.environment as never, packet) : testRun.environment
@@ -355,6 +358,7 @@ export class RuntimeCapsuleTestRunService {
     label: 'Quality' | 'Independent'
     beforeSpawnError: string
     verifyRunStatusAfterSpawn: boolean
+    onTerminal?: () => Promise<void>
   }) {
     const logPath = path.join(input.paths.capsuleRoot, 'logs/cucumber.log')
     const logger = await createTestRunLogger(input.testRun.runId, logPath)
@@ -390,6 +394,7 @@ export class RuntimeCapsuleTestRunService {
         return launched
       },
       executionAttempt: { id: input.attempt.id, ownerToken: input.attempt.ownerToken },
+      onTerminal: input.onTerminal,
       client: this.client,
       waitForProcess: processName => adapter.waitForProcess(processName),
       appraiseRoot: this.appraiseRoot,
@@ -819,6 +824,7 @@ export class RuntimeCapsuleTestRunService {
       this.client.testRun.findUniqueOrThrow({
         where: { id: input.testRunDbId },
         include: {
+          qualityJourneyExecutionBinding: true,
           environment: true,
           targetProject: { select: { kind: true } },
           testCases: true,
@@ -827,6 +833,8 @@ export class RuntimeCapsuleTestRunService {
         },
       }),
     ])
+    if (testRun.qualityJourneyExecutionBinding)
+      throw new Error('Journey-owned runs cannot start a Quality publication.')
     assertPublicationPreflightV2(publication, testRun.targetProject?.kind ?? 'MISSING_TARGET_PROJECT')
     assertPublicationGeneration(publication, testRun.targetProject?.kind ?? 'MISSING_TARGET_PROJECT')
     this.assertPublishedStartOwnership({ request: input, intent, publication, testRun })
@@ -949,11 +957,18 @@ export class RuntimeCapsuleTestRunService {
   }
 
   async startIndependentAuthored(input: { testRunDbId: string }) {
-    let ownedAttempt: OwnedAttempt | undefined
-    let failedComponent = 'materialization'
-    const testRun = await this.client.testRun.findUniqueOrThrow({
+    return this.startSelectedCapsule(input, false)
+  }
+
+  async startJourneyPrepared(input: { testRunDbId: string; onTerminal?: () => Promise<void> }) {
+    return this.startSelectedCapsule(input, true)
+  }
+
+  private async selectedCapsuleContext(input: { testRunDbId: string }, journey: boolean) {
+    const persisted = await this.client.testRun.findUniqueOrThrow({
       where: { id: input.testRunDbId },
       include: {
+        qualityJourneyExecutionBinding: true,
         environment: true,
         targetProject: { select: { kind: true } },
         testCases: true,
@@ -961,6 +976,9 @@ export class RuntimeCapsuleTestRunService {
         runtimeCapsuleExecutionAttempt: { include: { capsule: true } },
       },
     })
+    if (Boolean(persisted.qualityJourneyExecutionBinding) !== journey)
+      throw new Error('Journey-owned TestRuns require the specialized frozen execution boundary.')
+    const testRun = journey ? { ...persisted, environment: restoreJourneyExecutionEnvironment(persisted) } : persisted
     if (testRun.intent !== 'INDEPENDENT' || testRun.assessmentRunBinding)
       throw new Error('Independent TestRun cannot be prepared as Assessment execution.')
     if (testRun.status !== TestRunStatus.QUEUED)
@@ -969,14 +987,24 @@ export class RuntimeCapsuleTestRunService {
     // Authored snapshots have no Assessment owner, but a remote target still
     // must never inherit mutable Environment configuration at materialization
     // or execution time.
-    frozenEnvironmentSnapshot(testRun, { required: remoteScopeRequired })
+    if (!journey) frozenEnvironmentSnapshot(testRun, { required: remoteScopeRequired })
+    return { testRun, remoteScopeRequired }
+  }
+
+  private async startSelectedCapsule(
+    input: { testRunDbId: string; onTerminal?: () => Promise<void> },
+    journey: boolean,
+  ) {
+    let ownedAttempt: OwnedAttempt | undefined
+    let failedComponent = 'materialization'
+    const { testRun, remoteScopeRequired } = await this.selectedCapsuleContext(input, journey)
     const existing = testRun.runtimeCapsuleExecutionAttempt
     if (existing) return { testRunId: testRun.id, runId: testRun.runId, attemptId: existing.id, state: existing.state }
     try {
-      const materialized: CapsuleMaterialization = await new RuntimeCapsuleMaterializer(
-        this.client,
-        this.appraiseRoot,
-      ).materializeAuthored({ testRunId: testRun.id })
+      const materializer = new RuntimeCapsuleMaterializer(this.client, this.appraiseRoot)
+      const materialized: CapsuleMaterialization = journey
+        ? await materializer.materializeJourneyPrepared({ testRunId: testRun.id })
+        : await materializer.materializeAuthored({ testRunId: testRun.id })
       const paths = resolveRuntimeCapsulePaths({
         appraiseRoot: this.appraiseRoot,
         projectId: testRun.targetProjectId,
@@ -1012,7 +1040,8 @@ export class RuntimeCapsuleTestRunService {
         remoteScopeRequired,
         label: 'Independent',
         beforeSpawnError: 'Independent capsule execution was cancelled before spawn.',
-        verifyRunStatusAfterSpawn: false,
+        verifyRunStatusAfterSpawn: true,
+        onTerminal: input.onTerminal,
       })
       return { testRunId: testRun.id, runId: testRun.runId, attemptId: attempt.id, preflight }
     } catch (error) {
@@ -1030,11 +1059,21 @@ export class RuntimeCapsuleTestRunService {
   private async activeAttemptContext(testRunId: string) {
     const attempt = await this.client.runtimeCapsuleExecutionAttempt.findUnique({ where: { testRunId } })
     if (!attempt || !['STARTING', 'RUNNING'].includes(attempt.state)) return null
-    const run = await this.client.testRun.findUniqueOrThrow({ where: { id: testRunId }, select: { runId: true } })
+    const run = await this.client.testRun.findUniqueOrThrow({
+      where: { id: testRunId },
+      select: { runId: true, qualityJourneyExecutionBinding: { select: { id: true } } },
+    })
     return { attempt, run }
   }
 
-  async cancel(testRunId: string) {
+  async cancel(testRunId: string, executionCycleId?: string) {
+    const cancellationRun = await this.client.testRun.findUniqueOrThrow({
+      where: { id: testRunId },
+      include: { qualityJourneyExecutionBinding: true },
+    })
+    const binding = cancellationRun.qualityJourneyExecutionBinding
+    if (binding ? binding.executionCycleId !== executionCycleId : Boolean(executionCycleId))
+      throw new Error('Journey cancellation requires its exact execution cycle.')
     for (;;) {
       const context = await this.activeAttemptContext(testRunId)
       if (!context) {
@@ -1046,6 +1085,13 @@ export class RuntimeCapsuleTestRunService {
         return queued.count === 1
       }
       const { attempt, run } = context
+      if (
+        run.qualityJourneyExecutionBinding &&
+        !(await import('@/lib/test-run/process-manager')).processManager.get(run.runId)
+      )
+        throw new Error(
+          'Journey execution process ownership is unavailable; cancellation cannot prove the process stopped.',
+        )
       const cancelled = await this.client.$transaction(async tx => {
         const completedAt = new Date()
         const attemptResult = await tx.runtimeCapsuleExecutionAttempt.updateMany({

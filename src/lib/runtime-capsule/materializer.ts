@@ -42,6 +42,8 @@ import {
 } from '@/lib/quality-design/remote-evaluation-scope-contract'
 import { createCustomExtensionPolicy } from '@/lib/validation-ast/extension-policy'
 import { defaultOperationDefinitions } from '@/lib/operation-catalog/default-operation-registry'
+import { loadJourneyCapsuleSource, verifyJourneyResourceBytes, type JourneyCapsuleSource } from './journey-source'
+import { restoreJourneyExecutionEnvironment } from '@/lib/quality-journey/execution-environment'
 import {
   stepInvocationSchema,
   validateStepInvocationInputs,
@@ -50,6 +52,7 @@ import {
 
 type ValidationNode = ValidationArtifact['validations'][number]
 type CapsuleFile = { path: string; role: RuntimeCapsuleManifest['files'][number]['role']; bytes: Buffer }
+
 type QualityPublication = Prisma.QualityValidationPublicationGetPayload<{
   include: { targetProject: true; extensionReviews: true; validationVersion: true; generation: true }
 }>
@@ -705,8 +708,10 @@ export class RuntimeCapsuleMaterializer {
         throw new Error('Runtime capsules require a review-ready Quality validation publication.')
       const persistedTestRun = await this.prisma.testRun.findUniqueOrThrow({
         where: { id: input.testRunId },
-        include: { environment: true, assessmentRunBinding: true },
+        include: { environment: true, assessmentRunBinding: true, qualityJourneyExecutionBinding: true },
       })
+      if (persistedTestRun.qualityJourneyExecutionBinding)
+        throw new Error('Journey-owned runs cannot materialize a Quality publication.')
       // The materializer's own durable publication read is authoritative for
       // remoteness. Re-validate and project the frozen packet before parsing
       // validation bytes, resolving locators, sealing a receipt, or writing a
@@ -797,9 +802,19 @@ export class RuntimeCapsuleMaterializer {
    * The snapshot is deliberately not a Quality publication and can never be
    * used as Assessment evidence authority. */
   async materializeAuthored(input: { testRunId: string }) {
+    return this.materializeSelected(input)
+  }
+
+  async materializeJourneyPrepared(input: { testRunId: string }) {
+    const source = await loadJourneyCapsuleSource(this.prisma, input.testRunId)
+    return this.materializeSelected(input, source)
+  }
+
+  private async selectedSourceContext(input: { testRunId: string }, journeySource?: JourneyCapsuleSource) {
     const persistedTestRun = await this.prisma.testRun.findUniqueOrThrow({
       where: { id: input.testRunId },
       include: {
+        qualityJourneyExecutionBinding: true,
         environment: true,
         targetProject: true,
         testCases: {
@@ -816,20 +831,38 @@ export class RuntimeCapsuleMaterializer {
         assessmentRunBinding: true,
       },
     })
+    if (Boolean(persistedTestRun.qualityJourneyExecutionBinding) !== Boolean(journeySource))
+      throw new Error('Journey-owned runs require their frozen prepared capsule source.')
     // A REMOTE_BLACK_BOX authored run is just as scope-bound as a published
     // remote run.  Validate and substitute its immutable packet before any
     // selected-case, locator, command-receipt, or capsule work can read the
     // mutable Environment relation.
-    const testRun = withFrozenEnvironment(persistedTestRun, persistedTestRun.targetProject.kind === 'REMOTE_BLACK_BOX')
+    const testRun = journeySource
+      ? {
+          ...persistedTestRun,
+          targetProject: { ...persistedTestRun.targetProject, fingerprint: journeySource.identity.targetFingerprint },
+          environment: restoreJourneyExecutionEnvironment(persistedTestRun),
+        }
+      : withFrozenEnvironment(persistedTestRun, persistedTestRun.targetProject.kind === 'REMOTE_BLACK_BOX')
     if (testRun.intent !== 'INDEPENDENT')
       throw new Error('Authored runtime capsules are available only to independent TestRuns.')
     if (testRun.assessmentRunBinding)
       throw new Error('Independent authored TestRuns cannot have an AssessmentRun binding.')
-    const selected = authoredSelection(testRun)
-    const sourceSnapshot = authoredSourceSnapshot(testRun, selected)
+    const selected = journeySource ? journeySource.selection : authoredSelection(testRun)
+    const sourceSnapshot = {
+      ...authoredSourceSnapshot(testRun, selected),
+      ...(journeySource
+        ? { journey: journeySource.identity, environmentSnapshotHash: testRun.environmentSnapshotHash }
+        : {}),
+    }
     const validationId = `authored_${hashRuntimeCapsuleValue(sourceSnapshot).slice('sha256:'.length)}`
     if (new Set(selected.map(item => item.testCase.id)).size !== selected.length)
       throw new Error('Authored runtime selection cannot include one case through multiple suites.')
+    return { testRun, selected, sourceSnapshot, validationId }
+  }
+
+  private async materializeSelected(input: { testRunId: string }, journeySource?: JourneyCapsuleSource) {
+    const { testRun, selected, sourceSnapshot, validationId } = await this.selectedSourceContext(input, journeySource)
     const allInvocations = selected.flatMap(item => item.testCase.steps.map(step => step.invocation))
     const { sealedDefinitions, definitionByRef, locatorIds } = await resolveAuthoredDefinitions({
       invocations: allInvocations,
@@ -837,13 +870,16 @@ export class RuntimeCapsuleMaterializer {
     })
     const locators = await this.prisma.locator.findMany({
       where: { id: { in: [...locatorIds] }, targetProjectId: testRun.targetProjectId },
-      select: { id: true, name: true, value: true, locatorGroupId: true },
+      select: { id: true, name: true, value: true, locatorGroupId: true, updatedAt: true, targetProjectId: true },
     })
+    if (journeySource) verifyJourneyResourceBytes(journeySource, sealedDefinitions, locators)
     if (locators.length !== locatorIds.size)
       throw new Error('Authored runtime selection references an unavailable or cross-project locator.')
     const snapshotWithLocators = {
       ...sourceSnapshot,
-      locators: [...locators].sort((left, right) => left.id.localeCompare(right.id)),
+      locators: locators
+        .map(({ id, name, value, locatorGroupId }) => ({ id, name, value, locatorGroupId }))
+        .sort((left, right) => left.id.localeCompare(right.id)),
     }
     const sealedSourceHash = hashRuntimeCapsuleValue(snapshotWithLocators)
     const node = {

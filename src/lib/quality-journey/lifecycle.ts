@@ -85,6 +85,15 @@ export const qualityJourneyTransitions = [
   },
   {
     from: 'TRIAGE',
+    command: 'START_RERUN_CYCLE',
+    actor: 'USER',
+    to: 'EXECUTION',
+    requiredArtifacts: ['TEST_RUN', 'EVIDENCE_RECEIPT'],
+    forbiddenCapabilities: ['rewrite predecessor execution evidence'],
+    failureCodes: ['RERUN_SCOPE_NOT_APPROVED', 'STALE_STATE_HASH'],
+  },
+  {
+    from: 'TRIAGE',
     command: 'PUBLISH_TRIAGE_REPORT',
     actor: 'RUNNER',
     to: 'REPORT_REVIEW',

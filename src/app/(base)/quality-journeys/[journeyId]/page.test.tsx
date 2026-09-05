@@ -13,6 +13,12 @@ const mocks = vi.hoisted(() => ({
   project: vi.fn(),
 }))
 
+vi.mock('@/config/db-config', () => ({ default: { environment: { findMany: vi.fn().mockResolvedValue([]) } } }))
+vi.mock('@/services/coordinator/quality-journey-execution-service', () => ({
+  getQualityJourneyExecution: vi.fn().mockResolvedValue({ cycles: [], consents: [], proposals: [] }),
+}))
+vi.mock('../quality-journey-execution-actions', () => ({ qualityJourneyExecutionAction: vi.fn() }))
+
 vi.mock('next/navigation', () => ({
   notFound: () => mocks.notFound(),
   useRouter: () => ({ refresh: vi.fn() }),

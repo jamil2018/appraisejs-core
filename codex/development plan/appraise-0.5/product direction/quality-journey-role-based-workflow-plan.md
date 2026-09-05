@@ -441,6 +441,12 @@ Exit criteria:
 
 ### Phase 7 - Managed Execution and Remediation Cycles
 
+Status: implemented on 2026-09-05. Managed execution reserves exact approved materializations and frozen target/
+environment identity, exposes live runs, and seals terminal runtime evidence. Conditional consent names material
+operations; approved selective reruns create individually inspectable successor cycles. Replay and cancellation
+retain durable identity, while unavailable process ownership blocks duplicate execution. Phase 8 semantic triage
+and remediation analysis remain gated.
+
 Connect journey commands to existing Appraise test-run execution. Add live run visibility, sealed evidence linkage,
 run completion projection, safe cancellation/reconnect behavior, selective rerun proposals, and immutable journey
 cycles. Execution is a managed runtime capability driven by the Runner, not a semantic agent role.

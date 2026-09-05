@@ -410,38 +410,40 @@ model TestRunTestCase {
 }
 
 model TestRun {
-  id                             String                          @id @default(uuid())
-  name                           String
-  preparationKey                 String?
-  runId                          String                          @unique @default(uuid())
-  startedAt                      DateTime                        @default(now())
-  completedAt                    DateTime?
-  status                         TestRunStatus                   @default(QUEUED)
-  result                         TestRunResult                   @default(PENDING)
-  intent                         TestRunIntent                   @default(INDEPENDENT)
-  evidenceHealth                 TestRunEvidenceHealth           @default(invalid_missing_report)
-  testCases                      TestRunTestCase[]
-  updatedAt                      DateTime                        @updatedAt
-  environment                    Environment                     @relation(fields: [environmentId], references: [id])
-  environmentId                  String
-  tags                           Tag[]
-  testWorkersCount               Int?                            @default(1)
-  browserEngine                  BrowserEngine                   @default(CHROMIUM)
-  logs                           TestRunLog?
-  logPath                        String?
-  reportPath                     String?
-  environmentSnapshotHash        String?
-  environmentSnapshotJson        String?
+  id                              String                                  @id @default(uuid())
+  name                            String
+  preparationKey                  String?
+  runId                           String                                  @unique @default(uuid())
+  startedAt                       DateTime                                @default(now())
+  completedAt                     DateTime?
+  status                          TestRunStatus                           @default(QUEUED)
+  result                          TestRunResult                           @default(PENDING)
+  intent                          TestRunIntent                           @default(INDEPENDENT)
+  evidenceHealth                  TestRunEvidenceHealth                   @default(invalid_missing_report)
+  testCases                       TestRunTestCase[]
+  updatedAt                       DateTime                                @updatedAt
+  environment                     Environment                             @relation(fields: [environmentId], references: [id])
+  environmentId                   String
+  tags                            Tag[]
+  testWorkersCount                Int?                                    @default(1)
+  browserEngine                   BrowserEngine                           @default(CHROMIUM)
+  logs                            TestRunLog?
+  logPath                         String?
+  reportPath                      String?
+  environmentSnapshotHash         String?
+  environmentSnapshotJson         String?
   /// The explicit Environment scope token captured with a remote snapshot.
   /// Timestamps are not a safe optimistic-concurrency token on every SQLite
   /// platform, so remote lifecycle boundaries compare this integer as well.
-  environmentSnapshotVersion     Int?
-  reports                        Report[]
-  targetProjectId                String
-  targetProject                  TargetProject                   @relation(fields: [targetProjectId], references: [id], onDelete: Restrict)
-  runtimeCapsule                 RuntimeCapsule?
-  runtimeCapsuleExecutionAttempt RuntimeCapsuleExecutionAttempt?
-  assessmentRunBinding           AssessmentRunBinding?
+  environmentSnapshotVersion      Int?
+  reports                         Report[]
+  targetProjectId                 String
+  targetProject                   TargetProject                           @relation(fields: [targetProjectId], references: [id], onDelete: Restrict)
+  runtimeCapsule                  RuntimeCapsule?
+  runtimeCapsuleExecutionAttempt  RuntimeCapsuleExecutionAttempt?
+  assessmentRunBinding            AssessmentRunBinding?
+  qualityJourneyExecutionBinding  QualityJourneyExecutionTestRun?
+  qualityJourneyExecutionEvidence QualityJourneyExecutionEvidenceReceipt?
 
   @@unique([targetProjectId, preparationKey])
   @@index([completedAt])
@@ -501,6 +503,7 @@ model TargetProject {
   executionConsents                           ExecutionConsent[]
   qualityJourneys                             QualityJourney[]
   qualityJourneyAutomationTargetBindings      QualityJourneyAutomationTargetBinding[]
+  qualityJourneyExecutionCycles               QualityJourneyExecutionCycle[]
 
   @@index([displayName])
   @@index([canonicalPath])
@@ -509,23 +512,23 @@ model TargetProject {
 }
 
 model QualityJourney {
-  id                                String                                    @id
+  id                                String                                       @id
   targetProjectId                   String
   rootIdempotencyKey                String
   rootRequestHash                   String
-  stage                             QualityJourneyStage                       @default(INTAKE)
-  status                            String                                    @default("ACTIVE")
+  stage                             QualityJourneyStage                          @default(INTAKE)
+  status                            String                                       @default("ACTIVE")
   activeCycleId                     String
-  activeRevisionIdsJson             String                                    @default("{}")
+  activeRevisionIdsJson             String                                       @default("{}")
   analysisReviewHash                String?
-  unresolvedQuestionIdsJson         String                                    @default("[]")
-  blockerIdsJson                    String                                    @default("[]")
-  activeWorkItemIdsJson             String                                    @default("[]")
+  unresolvedQuestionIdsJson         String                                       @default("[]")
+  blockerIdsJson                    String                                       @default("[]")
+  activeWorkItemIdsJson             String                                       @default("[]")
   stateHash                         String
-  version                           Int                                       @default(0)
-  createdAt                         DateTime                                  @default(now())
-  updatedAt                         DateTime                                  @updatedAt
-  targetProject                     TargetProject                             @relation(fields: [targetProjectId], references: [id], onDelete: Restrict)
+  version                           Int                                          @default(0)
+  createdAt                         DateTime                                     @default(now())
+  updatedAt                         DateTime                                     @updatedAt
+  targetProject                     TargetProject                                @relation(fields: [targetProjectId], references: [id], onDelete: Restrict)
   revisions                         QualityJourneyRevision[]
   cycles                            QualityJourneyCycle[]
   commands                          QualityJourneyCommand[]
@@ -540,17 +543,21 @@ model QualityJourney {
   analysisPublications              QualityJourneyAnalysisPublication[]
   analysisDecisions                 QualityJourneyAnalysisDecision[]
   workAuthorizations                QualityJourneyWorkAuthorization[]
-  discoveryRevisions                QualityJourneyDiscoveryRevision[]         @relation("JourneyDiscoveryRevisions")
-  activeDiscoveryRevisionId         String?                                   @unique
-  activeDiscoveryRevision           QualityJourneyDiscoveryRevision?          @relation("ActiveQualityJourneyDiscoveryRevision", fields: [activeDiscoveryRevisionId], references: [id], onDelete: Restrict)
-  scenarioPortfolioRevisions        QualityJourneyScenarioPortfolioRevision[] @relation("JourneyScenarioPortfolioRevisions")
+  discoveryRevisions                QualityJourneyDiscoveryRevision[]            @relation("JourneyDiscoveryRevisions")
+  activeDiscoveryRevisionId         String?                                      @unique
+  activeDiscoveryRevision           QualityJourneyDiscoveryRevision?             @relation("ActiveQualityJourneyDiscoveryRevision", fields: [activeDiscoveryRevisionId], references: [id], onDelete: Restrict)
+  scenarioPortfolioRevisions        QualityJourneyScenarioPortfolioRevision[]    @relation("JourneyScenarioPortfolioRevisions")
   scenarioDecisionReceipts          QualityJourneyScenarioDecisionReceipt[]
-  activeScenarioPortfolioRevisionId String?                                   @unique
-  activeScenarioPortfolioRevision   QualityJourneyScenarioPortfolioRevision?  @relation("ActiveQualityJourneyScenarioPortfolioRevision", fields: [activeScenarioPortfolioRevisionId], references: [id], onDelete: Restrict)
+  activeScenarioPortfolioRevisionId String?                                      @unique
+  activeScenarioPortfolioRevision   QualityJourneyScenarioPortfolioRevision?     @relation("ActiveQualityJourneyScenarioPortfolioRevision", fields: [activeScenarioPortfolioRevisionId], references: [id], onDelete: Restrict)
   automationMaterializations        QualityJourneyAutomationMaterialization[]
   automationRequestReceipts         QualityJourneyAutomationRequestReceipt[]
   preparedRuntimeCapsules           QualityJourneyPreparedRuntimeCapsule[]
   automationTargetBindings          QualityJourneyAutomationTargetBinding[]
+  executionCycles                   QualityJourneyExecutionCycle[]
+  executionConsents                 QualityJourneyExecutionConsent[]
+  executionCancellationReceipts     QualityJourneyExecutionCancellationReceipt[]
+  executionRerunProposals           QualityJourneyExecutionRerunProposal[]
 
   @@unique([targetProjectId, rootIdempotencyKey])
   @@index([targetProjectId, status])
@@ -1054,6 +1061,144 @@ model QualityJourneyCycle {
   journey            QualityJourney @relation(fields: [journeyId], references: [id], onDelete: Restrict)
 
   @@unique([journeyId, sequence])
+}
+
+/// Phase 7's durable execution reservation. Frozen Phase 6 capsule and
+/// target-binding hashes are captured before any TestRun or process side
+/// effect. Status is operational state; the frozen binding fields never
+/// change after insertion.
+model QualityJourneyExecutionCycle {
+  id                          String                                       @id
+  journeyId                   String
+  targetProjectId             String
+  cycleId                     String
+  predecessorExecutionCycleId String?
+  preparedCapsulesJson        String
+  preparedCapsulesHash        String
+  environmentId               String
+  environmentSnapshotJson     String
+  environmentSnapshotHash     String
+  environmentSnapshotVersion  Int
+  targetFingerprint           String
+  browserEngine               BrowserEngine                                @default(CHROMIUM)
+  stateHash                   String
+  idempotencyKey              String
+  requestHash                 String
+  status                      String                                       @default("RESERVED")
+  cancellationReason          String?
+  startedAt                   DateTime                                     @default(now())
+  completedAt                 DateTime?
+  journey                     QualityJourney                               @relation(fields: [journeyId], references: [id], onDelete: Restrict)
+  targetProject               TargetProject                                @relation(fields: [targetProjectId], references: [id], onDelete: Restrict)
+  testRuns                    QualityJourneyExecutionTestRun[]
+  evidenceReceipts            QualityJourneyExecutionEvidenceReceipt[]
+  consents                    QualityJourneyExecutionConsent[]
+  cancellationReceipts        QualityJourneyExecutionCancellationReceipt[]
+  rerunProposals              QualityJourneyExecutionRerunProposal[]       @relation("QualityJourneyRerunSource")
+  successorRerunProposals     QualityJourneyExecutionRerunProposal[]       @relation("QualityJourneyRerunSuccessor")
+
+  @@unique([journeyId, idempotencyKey])
+  @@index([journeyId, cycleId, status])
+  @@index([targetProjectId, status])
+}
+
+model QualityJourneyExecutionTestRun {
+  id                String                       @id
+  executionCycleId  String
+  preparedCapsuleId String
+  testRunId         String                       @unique
+  runId             String
+  status            String                       @default("RESERVED")
+  createdAt         DateTime                     @default(now())
+  executionCycle    QualityJourneyExecutionCycle @relation(fields: [executionCycleId], references: [id], onDelete: Restrict)
+  testRun           TestRun                      @relation(fields: [testRunId], references: [id], onDelete: Restrict)
+
+  @@unique([executionCycleId, preparedCapsuleId])
+  @@index([preparedCapsuleId])
+}
+
+/// A UI-only grant for one exact Phase 7 checkpoint/resource/action scope.
+/// Its grantSource is persisted so an MCP caller cannot manufacture consent
+/// by claiming to be a user in an actor string.
+model QualityJourneyExecutionConsent {
+  id               String                        @id
+  journeyId        String
+  targetProjectId  String
+  executionCycleId String?
+  scopeJson        String
+  scopeHash        String
+  grantSource      String
+  status           String                        @default("REQUESTED")
+  reason           String?
+  grantedAt        DateTime?
+  expiresAt        DateTime?
+  usedAt           DateTime?
+  revokedAt        DateTime?
+  createdAt        DateTime                      @default(now())
+  journey          QualityJourney                @relation(fields: [journeyId], references: [id], onDelete: Restrict)
+  executionCycle   QualityJourneyExecutionCycle? @relation(fields: [executionCycleId], references: [id], onDelete: Restrict)
+
+  @@index([journeyId, scopeHash, status])
+  @@index([targetProjectId, status])
+}
+
+/// Request-level cancellation identity prevents a replay key from selecting
+/// additional TestRuns after the original cancellation has reached runtime.
+model QualityJourneyExecutionCancellationReceipt {
+  id               String                       @id
+  journeyId        String
+  executionCycleId String
+  idempotencyKey   String
+  requestHash      String
+  createdAt        DateTime                     @default(now())
+  journey          QualityJourney               @relation(fields: [journeyId], references: [id], onDelete: Restrict)
+  executionCycle   QualityJourneyExecutionCycle @relation(fields: [executionCycleId], references: [id], onDelete: Restrict)
+
+  @@unique([journeyId, idempotencyKey])
+  @@index([executionCycleId, createdAt])
+}
+
+/// Terminal runtime evidence. The sealed bytes hash and complete frozen
+/// execution-cycle identity make this receipt append-only evidence rather
+/// than a generic report or triage artifact.
+model QualityJourneyExecutionEvidenceReceipt {
+  id               String                       @id
+  executionCycleId String
+  testRunId        String                       @unique
+  runtimeBytesHash String
+  receiptHash      String                       @unique
+  evidenceJson     String
+  createdAt        DateTime                     @default(now())
+  executionCycle   QualityJourneyExecutionCycle @relation(fields: [executionCycleId], references: [id], onDelete: Restrict)
+  testRun          TestRun                      @relation(fields: [testRunId], references: [id], onDelete: Restrict)
+
+  @@index([executionCycleId, createdAt])
+}
+
+/// Immutable, user-approved rerun scope. It names only exact predecessor
+/// evidence and scenario revisions; a fresh execution cycle is created only
+/// after persisted UI approval.
+model QualityJourneyExecutionRerunProposal {
+  id                        String                        @id
+  journeyId                 String
+  targetProjectId           String
+  sourceExecutionCycleId    String
+  successorExecutionCycleId String?                       @unique
+  sourceEvidenceJson        String
+  selectedScenariosJson     String
+  reason                    String
+  proposalHash              String                        @unique
+  idempotencyKey            String
+  requestHash               String
+  status                    String                        @default("PROPOSED")
+  approvedAt                DateTime?
+  createdAt                 DateTime                      @default(now())
+  journey                   QualityJourney                @relation(fields: [journeyId], references: [id], onDelete: Restrict)
+  sourceExecutionCycle      QualityJourneyExecutionCycle  @relation("QualityJourneyRerunSource", fields: [sourceExecutionCycleId], references: [id], onDelete: Restrict)
+  successorExecutionCycle   QualityJourneyExecutionCycle? @relation("QualityJourneyRerunSuccessor", fields: [successorExecutionCycleId], references: [id], onDelete: Restrict)
+
+  @@unique([journeyId, idempotencyKey])
+  @@index([targetProjectId, status])
 }
 
 model QualityJourneyCommand {

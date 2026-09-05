@@ -457,3 +457,43 @@ describe('RuntimeCapsuleTestRunService independent published runs', () => {
     },
   )
 })
+
+describe('Journey-owned runtime boundaries', () => {
+  it('rejects generic cancellation of a queued Journey run before any write', async () => {
+    const updateMany = vi.fn()
+    const client = {
+      testRun: {
+        findUniqueOrThrow: vi
+          .fn()
+          .mockResolvedValue({ qualityJourneyExecutionBinding: { executionCycleId: 'cycle-1' } }),
+        updateMany,
+      },
+    }
+    await expect(new RuntimeCapsuleTestRunService(client as never).cancel('test-1')).rejects.toThrow(
+      'exact execution cycle',
+    )
+    expect(updateMany).not.toHaveBeenCalled()
+  })
+  it('rejects published execution of a Journey-owned run before materialization', async () => {
+    materializeQuality.mockClear()
+    const client = {
+      qualityValidationPublication: { findUniqueOrThrow: vi.fn().mockResolvedValue({}) },
+      testRun: {
+        findUniqueOrThrow: vi
+          .fn()
+          .mockResolvedValue({ qualityJourneyExecutionBinding: { executionCycleId: 'cycle-1' } }),
+      },
+    }
+    await expect(
+      new RuntimeCapsuleTestRunService(client as never).startIndependentPublished({
+        name: 'Journey bypass attempt',
+        testRunDbId: 'test-1',
+        publicationId: 'publication',
+        validationVersionId: 'version',
+        targetProjectId: 'target',
+        environmentId: 'environment',
+      }),
+    ).rejects.toThrow('cannot start a Quality publication')
+    expect(materializeQuality).not.toHaveBeenCalled()
+  })
+})

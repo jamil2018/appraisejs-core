@@ -317,3 +317,24 @@ or raw worker output.
 The golden corpus covers the happy path, analysis revision, reconnect/reclaim, stale command, partial scenario
 approval, worker replacement, unsupported provider boundary, remediation/rerun, target defect,
 validation-design defect, and risk-accepted closure.
+
+## Phase 7 managed execution and reruns
+
+Execution consumes exact approved Phase 6 materializations and immutable prepared capsule/binding content. A durable
+execution reservation binds the Journey, cycle, scenario, prepared capsule, target, environment snapshot, browser
+and TestRun before launch. The managed capsule compiler verifies exact resource hashes and seals execution bytes;
+mutable catalog content cannot silently replace approved input. Hash drift blocks execution.
+
+Journey-specific consent binds the exact execution scope. The known harmless operation subset can execute without
+a routine human gate; credential-consuming operations, mutations and unclassified effects require a recorded UI grant.
+Configured but unused credentials do not add a gate. The consent scope identifies each risky operation and its reason. Consent and rerun
+approval are separate decisions. A rerun proposal records selected scenario revisions, predecessor receipts and a
+reason, then user approval permits one immutable successor cycle. It does not assert that a defect has been fixed.
+
+Runtime ownership uses the existing capsule attempt state machine. Replaying a start cannot grant a second worker
+execution authority. Missing process ownership remains visible and blocks duplicate launch. Terminal evidence
+receipts bind runtime output bytes and capsule lineage; cancellation or missing artifacts cannot masquerade as a
+successful validated run. Reports and semantic attribution remain Phase 8 work.
+
+SQLite guards preserve execution-cycle snapshots, TestRun binding identity, consent scope, rerun proposal scope and
+sealed receipts. Status transitions remain mutable; historical execution inputs and evidence are append-only.
