@@ -103,6 +103,7 @@ import { getQualityJourneyDiscoveryRoute, postQualityJourneyDiscoveryRoute } fro
 import { getQualityJourneyScenarioRoute, postQualityJourneyScenarioRoute } from './quality-journey-scenario-route'
 import { getQualityJourneyAutomationRoute, postQualityJourneyAutomationRoute } from './quality-journey-automation-route'
 import { getQualityJourneyExecutionRoute, postQualityJourneyExecutionRoute } from './quality-journey-execution-route'
+import { getQualityJourneyTriageRoute, postQualityJourneyTriageRoute } from './quality-journey-triage-route'
 
 export const runtime = 'nodejs'
 
@@ -491,6 +492,8 @@ async function getTestRunEvidence(request: Request, operation: string[]) {
 }
 
 async function getQualityOperation(request: Request, operation: string[]) {
+  const triageResponse = await getQualityJourneyTriageRoute(operation, new URL(request.url).searchParams)
+  if (triageResponse) return triageResponse
   const discoveryResponse = await getQualityJourneyDiscoveryRoute(operation, new URL(request.url).searchParams)
   if (discoveryResponse) return discoveryResponse
   const scenarioResponse = await getQualityJourneyScenarioRoute(operation, new URL(request.url).searchParams)
@@ -733,6 +736,11 @@ function assertGenericQualityJourneyWorkCompletion(result: unknown) {
       'Scenario Designer work must submit through the specialized Scenario Portfolio boundary.',
       'UNAUTHORIZED',
     )
+  if (role === 'TRIAGER')
+    throw new ServiceError(
+      'Triager work must submit through the specialized sealed-evidence report boundary.',
+      'UNAUTHORIZED',
+    )
 }
 const qualityJourneyWorkControlSchema = z.object({
   target: z.string().min(1),
@@ -745,6 +753,8 @@ function isQualityJourneyWorkOperation(operation: string[], action: string) {
 }
 
 async function postQualityOperation(operation: string[], body: unknown): Promise<Response> {
+  const triageResponse = await postQualityJourneyTriageRoute(operation, body)
+  if (triageResponse) return triageResponse
   const discoveryResponse = await postQualityJourneyDiscoveryRoute(operation, body)
   if (discoveryResponse) return discoveryResponse
   const scenarioResponse = await postQualityJourneyScenarioRoute(operation, body)

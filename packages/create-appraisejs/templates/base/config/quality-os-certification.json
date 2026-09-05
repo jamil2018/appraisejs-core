@@ -36,7 +36,7 @@
     "compatibility",
     "performance"
   ],
-  "receiptHash": "sha256:6c41cda8212e41076763005baf79027b80f0ec21d28a8207aaf9f91645c29f2c",
+  "receiptHash": "sha256:2484069b2f4b7a38c79bd4bb2d79aa35f98693204cc5a2d1bc1104af5eaa3aeb",
   "result": "PASS",
   "schema": "appraise.quality-os-certification/v1",
   "suiteEvidence": [
@@ -68,12 +68,32 @@
     {
       "file": "src/services/coordinator/quality-journey-analysis-service.sqlite.integration.test.ts",
       "result": "PASS",
-      "sourceHash": "sha256:2089579ec32fd409f23633aedb6110367c9056129271cd4f6b2af94a1cb3e55d"
+      "sourceHash": "sha256:793eed0a6d2ca94a9effb247cf689c945eddb961fcda74bbdea10cf9129d6cf1"
+    },
+    {
+      "file": "src/services/coordinator/quality-journey-triage-service.sqlite.integration.test.ts",
+      "result": "PASS",
+      "sourceHash": "sha256:06c41810afda02ff3e7ede64ccd1dad6bb91d3362935957860115f9b6b6fb11a"
+    },
+    {
+      "file": "src/services/coordinator/quality-journey-triage-validation.test.ts",
+      "result": "PASS",
+      "sourceHash": "sha256:91110935ebf8510063665c4d08ee807f5802be236508db3d1d658565786a0ee5"
+    },
+    {
+      "file": "src/services/coordinator/quality-journey-triage-evidence-service.test.ts",
+      "result": "PASS",
+      "sourceHash": "sha256:1ce914b4e57f8fbd843e5d9f558601c1f8e82f07c437f0253ecdc9ae929ed0dd"
+    },
+    {
+      "file": "src/lib/quality-journey/triage-contracts.test.ts",
+      "result": "PASS",
+      "sourceHash": "sha256:f7544e08d7fc3b8a442ff0a64086cf5ed0c09936ef58116f6234b6e70fcd51b5"
     },
     {
       "file": "src/app/api/internal/coordinator/[...operation]/route.test.ts",
       "result": "PASS",
-      "sourceHash": "sha256:2f54afc068cb887b714bf2b8e8b821c135e47ab0ff63579d196fa05e2ae79acd"
+      "sourceHash": "sha256:885f5a967c66e039d3293829e9be36cb6f70fbff9e6bee887a3b33014c14d279"
     },
     {
       "file": "src/app/(base)/quality-journeys/[journeyId]/scenario-portfolio-review.test.tsx",

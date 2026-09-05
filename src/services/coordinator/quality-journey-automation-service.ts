@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto'
 import type { Prisma, PrismaClient } from '@prisma/client'
 
 import prisma from '@/config/db-config'
+import { qualityJourneyRemediationScope } from './quality-journey-remediation-scope'
 import { canonicalContractJson } from '@/lib/catalog-contracts'
 import { defaultOperationDefinitions } from '@/lib/operation-catalog'
 import {
@@ -39,6 +40,7 @@ const idFor = (kind: string, ...parts: string[]) =>
 const tokenHash = (value: string) => createHash('sha256').update(value).digest('hex')
 
 type ApprovedInput = {
+  remediation?: NonNullable<Awaited<ReturnType<typeof qualityJourneyRemediationScope>>>
   journey: {
     id: string
     targetProjectId: string
@@ -95,30 +97,57 @@ type AutomationResourceAuthority = {
   frozenResourceHashes: Array<{ id: string; contentHash: string }>
 }
 
-async function approvedInput(journeyId: string, targetProjectId: string, db: Db): Promise<ApprovedInput> {
+async function activeAutomationJourney(journeyId: string, targetProjectId: string, db: Db) {
   const journey = await db.qualityJourney.findFirst({ where: { id: journeyId, targetProjectId } })
   if (!journey) throw new ServiceError('Quality Journey not found.', 'NOT_FOUND')
   if (journey.stage !== 'AUTOMATION')
     throw new ServiceError('Automator materialization is not active for this journey.', 'CONFLICT')
   if (!journey.activeScenarioPortfolioRevisionId)
     throw new ServiceError('Automator materialization requires an active approved Scenario Portfolio.', 'CONFLICT')
-  const portfolio = await db.qualityJourneyScenarioPortfolioRevision.findUnique({
-    where: { id: journey.activeScenarioPortfolioRevisionId },
-    include: { scenarios: { include: { decisions: true }, orderBy: { scenarioRevisionId: 'asc' } } },
-  })
-  if (
-    !portfolio ||
-    portfolio.journeyId !== journey.id ||
-    portfolio.status !== 'APPROVED' ||
-    !portfolio.approvedIntentHash
-  )
+  return journey
+}
+
+function assertApprovedPortfolio(
+  journey: Awaited<ReturnType<typeof activeAutomationJourney>>,
+  portfolio: NonNullable<Awaited<ReturnType<PrismaClient['qualityJourneyScenarioPortfolioRevision']['findUnique']>>> & {
+    scenarios: ApprovedInput['portfolio']['scenarios']
+  },
+) {
+  if (portfolio.journeyId !== journey.id || portfolio.status !== 'APPROVED' || !portfolio.approvedIntentHash)
     throw new ServiceError('Automator materialization requires the exact approved Scenario Portfolio.', 'CONFLICT')
-  if (!portfolio.scenarios.some(s => s.decisions.some(decision => decision.decision === 'APPROVED')))
+  if (!portfolio.scenarios.some(scenario => scenario.decisions.some(decision => decision.decision === 'APPROVED')))
     throw new ServiceError(
       'Automator materialization requires at least one exact approved scenario decision.',
       'CONFLICT',
     )
-  return { journey, portfolio }
+  return portfolio
+}
+
+async function approvedInput(journeyId: string, targetProjectId: string, db: Db): Promise<ApprovedInput> {
+  const journey = await activeAutomationJourney(journeyId, targetProjectId, db)
+  const portfolioRevisionId = journey.activeScenarioPortfolioRevisionId
+  if (!portfolioRevisionId)
+    throw new ServiceError('Automator materialization requires an active approved Scenario Portfolio.', 'CONFLICT')
+  const portfolio = await db.qualityJourneyScenarioPortfolioRevision.findUnique({
+    where: { id: portfolioRevisionId },
+    include: { scenarios: { include: { decisions: true }, orderBy: { scenarioRevisionId: 'asc' } } },
+  })
+  if (!portfolio)
+    throw new ServiceError('Automator materialization requires the exact approved Scenario Portfolio.', 'CONFLICT')
+  const approvedPortfolio = assertApprovedPortfolio(journey, portfolio)
+  const remediation = await qualityJourneyRemediationScope(journey.id, journey.activeCycleId, db)
+  if (remediation) {
+    const selected = approvedPortfolio.scenarios.filter(s =>
+      remediation.scenarioRevisionIds.includes(s.scenarioRevisionId),
+    )
+    if (
+      selected.length !== remediation.scenarioRevisionIds.length ||
+      selected.some(s => !s.decisions.some(d => d.decision === 'APPROVED'))
+    )
+      throw new ServiceError('Remediation selection is outside approved scenario authority.', 'CONFLICT')
+    return { journey, portfolio: { ...approvedPortfolio, scenarios: selected }, remediation }
+  }
+  return { journey, portfolio: approvedPortfolio }
 }
 
 function approvedScenarios(value: ApprovedInput) {
@@ -132,6 +161,15 @@ function inputArtifacts(
   resources: AutomationResourceAuthority,
 ): AssignmentManifest['inputArtifacts'] {
   return [
+    ...(value.remediation
+      ? [
+          {
+            kind: 'REMEDIATION_APPROVAL' as const,
+            artifactId: `remediation:${value.remediation.reportRevisionId}`,
+            contentHash: hash(value.remediation),
+          },
+        ]
+      : []),
     {
       kind: 'SCENARIO_PORTFOLIO_REVISION' as const,
       artifactId: value.portfolio.artifactId,
@@ -228,6 +266,7 @@ async function scope(value: ApprovedInput, db: Db) {
     }
   })
   const frozen = {
+    ...(value.remediation ? { remediation: value.remediation } : {}),
     journeyId: value.journey.id,
     targetProjectId: value.journey.targetProjectId,
     cycleId: value.journey.activeCycleId,
@@ -1021,7 +1060,7 @@ async function persistMaterialization(
       relation: 'MATERIALIZES',
       sourceJson: json(source),
       targetJson: json(target),
-      linkHash: hash({ relation: 'MATERIALIZES', source, target }),
+      linkHash: hash({ cycleId: approved.journey.activeCycleId, relation: 'MATERIALIZES', source, target }),
     })),
   })
   return { materialization: { ...materialization, preparedCapsule: capsule }, replayed: false }
@@ -1478,6 +1517,7 @@ export async function materializeQualityJourneyApprovedScenarios(input: unknown,
         }
       await validateAuthorizedScenarios(request, approvedRows, compiled.resources, tx)
       const results = await materializeAuthorizedScenarios(request, approved, compiled.resources, approvedRows, tx)
+      await verifyRemediationChanged(approved, results, tx)
       assertCompletedAutomatorResult(request)
       assertSubmittedMaterializationOutputs(request, results)
       const completion = await completeMaterializedAutomatorWork(request, tx)
@@ -1514,11 +1554,58 @@ export async function getQualityJourneyAutomationContext(
   return {
     inputHash: compiled.inputHash,
     scopeHash: compiled.scopeHash,
+    remediation: approved.remediation ?? null,
     portfolioRevisionId: approved.portfolio.artifactRevisionId,
     scenarioRevisionIds: approvedScenarios(approved).map(s => s.scenarioRevisionId),
     materializations: materializations.filter(
       materialization => materialization.status !== 'MATERIALIZED' || materialization.preparedCapsule,
     ),
     failedMaterializations: materializations.filter(materialization => materialization.status === 'FAILED'),
+  }
+}
+
+async function verifyRemediationChanged(
+  approved: ApprovedInput,
+  results: MaterializationResult[],
+  tx: Prisma.TransactionClient,
+) {
+  const remediation = await qualityJourneyRemediationScope(approved.journey.id, approved.journey.activeCycleId, tx)
+  if (!remediation) return
+  const source = await tx.qualityJourneyExecutionCycle.findUniqueOrThrow({
+    where: { id: remediation.sourceExecutionCycleId },
+  })
+  const frozen = JSON.parse(source.preparedCapsulesJson) as Array<{
+    materializationId: string
+    scenarioRevisionId: string
+  }>
+  for (const { materialization } of results) {
+    const predecessorId = frozen.find(
+      c => c.scenarioRevisionId === materialization.scenarioRevisionId,
+    )?.materializationId
+    if (!predecessorId) throw new ServiceError('Correction lacks predecessor materialization lineage.', 'CONFLICT')
+    const predecessor = await tx.qualityJourneyAutomationMaterialization.findUniqueOrThrow({
+      where: { id: predecessorId },
+    })
+    const before = JSON.parse(predecessor.artifactJson)
+    const after = JSON.parse(materialization.artifactJson)
+    if (hash(before.steps) === hash(after.steps))
+      throw new ServiceError('Unchanged automation requires a rerun, not an automation correction.', 'CONFLICT')
+    const link = {
+      source: { kind: 'RUNTIME_CAPSULE', artifactId: materialization.id, contentHash: hash(after) },
+      target: { kind: 'RUNTIME_CAPSULE', artifactId: predecessor.id, contentHash: hash(before) },
+      relation: 'SUPERSEDES',
+    }
+    await tx.qualityJourneyArtifactLink.create({
+      data: {
+        id: idFor('remediation-link', materialization.id),
+        journeyId: approved.journey.id,
+        targetProjectId: approved.journey.targetProjectId,
+        cycleId: approved.journey.activeCycleId,
+        relation: link.relation,
+        sourceJson: json(link.source),
+        targetJson: json(link.target),
+        linkHash: hash(link),
+      },
+    })
   }
 }

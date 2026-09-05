@@ -8,6 +8,10 @@ const qualityOsBaseBehavioralSuites = [
   'src/services/coordinator/assessment-preparation-service.test.ts',
   'src/services/coordinator/quality-design-service.test.ts',
   'src/services/coordinator/quality-journey-analysis-service.sqlite.integration.test.ts',
+  'src/services/coordinator/quality-journey-triage-service.sqlite.integration.test.ts',
+  'src/services/coordinator/quality-journey-triage-validation.test.ts',
+  'src/services/coordinator/quality-journey-triage-evidence-service.test.ts',
+  'src/lib/quality-journey/triage-contracts.test.ts',
   'src/app/api/internal/coordinator/[...operation]/route.test.ts',
   'src/app/(base)/quality-journeys/[journeyId]/scenario-portfolio-review.test.tsx',
 ] as const

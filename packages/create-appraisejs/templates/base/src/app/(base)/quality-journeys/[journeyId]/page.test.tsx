@@ -9,6 +9,7 @@ const mocks = vi.hoisted(() => ({
   getJourney: vi.fn(),
   getScenarios: vi.fn(),
   getAutomation: vi.fn(),
+  getTriage: vi.fn(),
   notFound: vi.fn(),
   project: vi.fn(),
 }))
@@ -32,6 +33,9 @@ vi.mock('@/services/coordinator/quality-journey-scenario-service', () => ({
 }))
 vi.mock('@/services/coordinator/quality-journey-automation-service', () => ({
   getQualityJourneyAutomationContext: mocks.getAutomation,
+}))
+vi.mock('@/services/coordinator/quality-journey-triage-service', () => ({
+  getQualityJourneyTriage: mocks.getTriage,
 }))
 vi.mock('@/services/coordinator/quality-journey-service', () => ({ getQualityJourney: mocks.getJourney }))
 vi.mock('../quality-journey-actions', () => ({
@@ -122,6 +126,7 @@ beforeEach(() => {
   mocks.getAnalysis.mockResolvedValue({ revisions: [] })
   mocks.getScenarios.mockResolvedValue({ portfolio: null })
   mocks.getAutomation.mockResolvedValue(null)
+  mocks.getTriage.mockResolvedValue({ assignments: [], reports: [], activeReportRevisionId: null })
 })
 
 describe('QualityJourneyDetailPage', () => {

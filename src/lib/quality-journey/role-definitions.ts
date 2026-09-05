@@ -4,8 +4,8 @@ import type { ProviderCapabilityProfile, RoleDefinition } from './contracts'
 import { providerCapabilityProfileSchema, qualityJourneyContractVersion, roleDefinitionSchema } from './contracts'
 
 /** Historical registries remain immutable for already-issued Factory authorizations.
- * Version 4 grants a successor Designer its prior portfolio and durable feedback. */
-export const qualityJourneyRoleRegistryVersion = '4' as const
+ * Version 5 adds isolated report feedback and approved remediation inputs. */
+export const qualityJourneyRoleRegistryVersion = '5' as const
 
 export function qualityJourneyContractDigest(value: RoleDefinition | ProviderCapabilityProfile): string {
   return `sha256:${createHash('sha256').update(canonicalContractJson(value)).digest('hex')}`
@@ -169,7 +169,7 @@ const qualityJourneyRoleDefinitionsV3 = [
   },
 ] as const satisfies readonly RoleDefinition[]
 
-export const qualityJourneyRoleDefinitions = qualityJourneyRoleDefinitionsV3.map(definition =>
+const qualityJourneyRoleDefinitionsV4 = qualityJourneyRoleDefinitionsV3.map(definition =>
   definition.role === 'TEST_SCENARIO_DESIGNER'
     ? {
         ...definition,
@@ -181,6 +181,21 @@ export const qualityJourneyRoleDefinitions = qualityJourneyRoleDefinitionsV3.map
         ] as const,
       }
     : definition,
+) as readonly RoleDefinition[]
+
+export const qualityJourneyRoleDefinitions = qualityJourneyRoleDefinitionsV4.map(definition =>
+  definition.role === 'TRIAGER'
+    ? {
+        ...definition,
+        readableArtifacts: [
+          ...definition.readableArtifacts,
+          'TEST_REPORT_ANALYSIS_REVISION',
+          'REPORT_REVISION_FEEDBACK',
+        ] as const,
+      }
+    : definition.role === 'AUTOMATOR'
+      ? { ...definition, readableArtifacts: [...definition.readableArtifacts, 'REMEDIATION_APPROVAL'] as const }
+      : definition,
 ) as readonly RoleDefinition[]
 
 // Historical registries are frozen snapshots.  Newer Designer inputs belong
@@ -220,8 +235,10 @@ export function resolveQualityJourneyRoleDefinition(version: string, role: RoleD
         : version === '3'
           ? qualityJourneyRoleDefinitionsV3
           : version === '4'
-            ? qualityJourneyRoleDefinitions
-            : []
+            ? qualityJourneyRoleDefinitionsV4
+            : version === '5'
+              ? qualityJourneyRoleDefinitions
+              : []
   return registry.find(definition => definition.role === role)
 }
 
@@ -232,7 +249,7 @@ export function resolveQualityJourneyCapabilityProfile(
   const registry: Record<string, ProviderCapabilityProfile> =
     version === '1' || version === '2'
       ? qualityJourneyCapabilityProfilesV2
-      : version === '3' || version === '4'
+      : version === '3' || version === '4' || version === '5'
         ? qualityJourneyCapabilityProfiles
         : {}
   return Object.values(registry).find(profile => profile.profileId === profileId)

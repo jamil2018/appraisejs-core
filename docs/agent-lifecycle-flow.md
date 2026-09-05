@@ -15,8 +15,14 @@ role-specific submission boundaries validate semantic payloads and durable autho
 adds a specialized Automator materialization boundary that produces target-owned artifacts and typed prepared capsules
 from exact approved scenario decisions; it never creates a TestRun or RuntimeCapsule and cannot move into execution.
 Phase 7 connects those prepared artifacts to managed execution through a dedicated Journey service. Exact consent
-and rerun approvals are local UI decisions; execution reservations and sealed evidence retain cycle lineage.
-The generic completion path rejects Automator alongside the other specialized roles. The
+and rerun approvals are local UI decisions; execution reservations and sealed evidence retain cycle lineage. Phase 8
+compiles Triager input only from accepted analysis, approved scenario lineage, exact runs, and sealed evidence; report
+review binds a complete report revision and hash. Sealed report/log bytes require the active Triager's Factory-backed
+lease and receipt named in its frozen input. MCP workers may read, prepare, and submit triage, while full-report
+revision feedback and automation-remediation approval remain local UI decisions. A rerun proposed during report review
+persists the server-derived active report revision/hash and rechecks that binding and source execution cycle on approval
+and start. The generic completion path rejects
+Automator and Triager alongside the other specialized roles. The
 Phase 1 kernel plus the Phase 2 adapter-only receipt transition remain
 additive; they do not yet replace the Quality Plan and Assessment services described below.
 

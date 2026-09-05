@@ -520,7 +520,9 @@ function eligibleRolesForAutomaticIssuance(stage: QualityJourneyStage) {
   // the approved analysis. They are issued only by the discovery service.
   // Discovery and Automation both have compiler-owned assignments. Their
   // scope must be frozen from approved artifacts before Factory authorization.
-  return stage === 'DISCOVERY' || stage === 'AUTOMATION' ? [] : runnableQualityJourneyRoles(stage, [])
+  return stage === 'DISCOVERY' || stage === 'AUTOMATION' || stage === 'TRIAGE'
+    ? []
+    : runnableQualityJourneyRoles(stage, [])
 }
 
 export type DiscoveryWorkItemSpec = {
@@ -945,6 +947,10 @@ export async function submitDurableQualityJourneyCommandInTransaction(
       'START_EXECUTION',
       'START_RERUN_CYCLE',
       'START_REMEDIATION_CYCLE',
+      'PUBLISH_TRIAGE_REPORT',
+      'REQUEST_REPORT_REVISION',
+      'CLOSE_JOURNEY',
+      'RISK_ACCEPT_AND_CLOSE',
       'PUBLISH_RUN_RESULT',
       'START_SCENARIO_DESIGN',
       'PUBLISH_SCENARIO_PORTFOLIO',
@@ -1151,6 +1157,11 @@ async function replacementArtifactProjection(
   db: Db,
 ): Promise<{ inputArtifacts: AssignmentManifest['inputArtifacts']; projectionHash: string }> {
   const declared = JSON.parse(item.inputArtifactRefsJson) as AssignmentManifest['inputArtifacts']
+  if (item.role === 'TRIAGER')
+    return {
+      inputArtifacts: declared,
+      projectionHash: hash({ workItemId: item.id, cycleId: item.cycleId, inputArtifacts: declared }),
+    }
   const { roleDefinition } = roleAuthority(item.role as QualityJourneyRole)
   const journey = await readJourney(item.journeyId, item.targetProjectId, db)
   const activeRevisionIds = Object.values(parseRecord(journey.activeRevisionIdsJson))
@@ -1291,10 +1302,44 @@ async function upgradeLegacyDiscoveryOnClaim(journey: QualityJourney, tx: Prisma
   return readJourney(journey.id, journey.targetProjectId, tx)
 }
 
-export async function claimQualityJourneyWork(
-  input: { journeyId: string; targetProjectId: string; role: QualityJourneyRole; leaseSeconds?: number },
-  client: PrismaClient = prisma,
+type WorkClaimInput = {
+  journeyId: string
+  targetProjectId: string
+  role: QualityJourneyRole
+  leaseSeconds?: number
+}
+
+async function findClaimableWorkItem(journey: QualityJourney, input: WorkClaimInput, tx: Prisma.TransactionClient) {
+  const activeTriagerScope =
+    input.role === 'TRIAGER'
+      ? { cycleId: journey.activeCycleId, id: { in: parseArray(journey.activeWorkItemIdsJson) } }
+      : {}
+  return tx.qualityJourneyWorkItem.findFirst({
+    where: {
+      journeyId: journey.id,
+      role: input.role,
+      status: { in: ['ELIGIBLE', 'REPLACEMENT_REQUESTED'] },
+      ...activeTriagerScope,
+    },
+    orderBy: { createdAt: 'asc' },
+  })
+}
+
+async function assertSpecializedTriagerClaim(
+  item: Pick<QualityJourneyWorkItem, 'id' | 'role' | 'cycleId'>,
+  journey: QualityJourney,
+  tx: Prisma.TransactionClient,
 ) {
+  if (item.role !== 'TRIAGER') return
+  const assignment = await tx.qualityJourneyTriageAssignment.findUnique({ where: { workItemId: item.id } })
+  if (journey.stage !== 'TRIAGE' || item.cycleId !== journey.activeCycleId || !assignment)
+    throw new ServiceError(
+      'Triager requires a specialized sealed-evidence assignment for the active cycle.',
+      'UNAUTHORIZED',
+    )
+}
+
+export async function claimQualityJourneyWork(input: WorkClaimInput, client: PrismaClient = prisma) {
   const leaseSeconds = Math.min(Math.max(input.leaseSeconds ?? 120, 30), 900)
   return client.$transaction(async tx => {
     const persistedJourney = await readJourney(input.journeyId, input.targetProjectId, tx)
@@ -1302,11 +1347,9 @@ export async function claimQualityJourneyWork(
     // Upgrade pre-Phase-4 DISCOVERY rows transactionally on their first claim.
     const journey = await upgradeLegacyDiscoveryOnClaim(persistedJourney, tx)
     await ensureEligibleWorkItems(journey, tx)
-    const item = await tx.qualityJourneyWorkItem.findFirst({
-      where: { journeyId: journey.id, role: input.role, status: { in: ['ELIGIBLE', 'REPLACEMENT_REQUESTED'] } },
-      orderBy: { createdAt: 'asc' },
-    })
+    const item = await findClaimableWorkItem(journey, input, tx)
     if (!item) throw new ServiceError('No eligible Quality Journey work item is available.', 'CONFLICT')
+    await assertSpecializedTriagerClaim(item, journey, tx)
     const authorization = await currentWorkAuthorization(item.id, tx)
     if (!authorization)
       throw new ServiceError('Quality Journey work has no issued Factory authorization.', 'UNAUTHORIZED')
@@ -1965,7 +2008,10 @@ function assertWorkCompletionRole(
   role: QualityJourneyRole,
   allowScenarioDesignerCompletion: boolean,
   allowAutomatorCompletion: boolean,
+  allowTriagerCompletion: boolean,
 ) {
+  if (role === 'TRIAGER' && !allowTriagerCompletion)
+    throw new ServiceError('Triager work requires the specialized sealed-evidence report boundary.', 'UNAUTHORIZED')
   if (role === 'SCOUT' || role === 'RESOURCE_EXPLORER')
     throw new ServiceError(
       'Discovery roles must submit through their specialized discovery bundle boundary.',
@@ -1988,10 +2034,11 @@ async function completeQualityJourneyWorkWithAuthorityInTransaction(
   tx: Prisma.TransactionClient,
   allowScenarioDesignerCompletion: boolean,
   allowAutomatorCompletion = false,
+  allowTriagerCompletion = false,
 ) {
   const result = workerResultEnvelopeSchema.parse(input.result)
   const { item, attempt, authorization } = await readWorkAttempt(input, tx)
-  assertWorkCompletionRole(item.role, allowScenarioDesignerCompletion, allowAutomatorCompletion)
+  assertWorkCompletionRole(item.role, allowScenarioDesignerCompletion, allowAutomatorCompletion, allowTriagerCompletion)
   assertFactoryAuthorityCurrent(item, authorization)
   if (attempt && attempt.status !== 'COMPLETED' && (!attempt.spawnReceiptJson || !attempt.spawnReceiptHash))
     throw new ServiceError('Quality Journey work completion has no validated Factory receipt.', 'UNAUTHORIZED')
@@ -2026,6 +2073,10 @@ export function completeScenarioDesignerWorkInTransaction(input: WorkCompletionI
  * persisted and cross-checked its concrete artifact lineage. */
 export function completeAutomatorWorkInTransaction(input: WorkCompletionInput, tx: Prisma.TransactionClient) {
   return completeQualityJourneyWorkWithAuthorityInTransaction(input, tx, false, true)
+}
+
+export function completeTriagerWorkInTransaction(input: WorkCompletionInput, tx: Prisma.TransactionClient) {
+  return completeQualityJourneyWorkWithAuthorityInTransaction(input, tx, false, false, true)
 }
 
 export async function completeQualityJourneyWork(input: WorkCompletionInput, client: PrismaClient = prisma) {
