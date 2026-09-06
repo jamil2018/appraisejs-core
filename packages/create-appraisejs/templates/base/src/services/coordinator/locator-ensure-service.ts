@@ -5,7 +5,7 @@ import { canonicalContractJson } from '@/lib/catalog-contracts'
 import { ServiceError } from '@/services/shared/errors'
 
 type LocatorEnsureClient = {
-  qualityPlan: {
+  qualityJourney: {
     findFirst(args: unknown): Promise<{
       id: string
       targetProjectId: string
@@ -61,7 +61,7 @@ type ExistingGroup = { mode: 'existing'; id: string }
 type EnsuredGroup = { mode: 'ensure'; name: string; route: string; module: ExistingModule | EnsuredModule }
 
 export type LocatorEnsureInput = {
-  qualityPlanId: string
+  journeyId: string
   allowCreate?: boolean
   group: ExistingGroup | EnsuredGroup
   locator: { name: string; selector: string }
@@ -116,17 +116,17 @@ function requireTargetModule(
   targetProjectId: string,
 ) {
   if (moduleRef.targetProjectId !== targetProjectId)
-    throw new ServiceError('Locator group not found for the Quality Plan target.', 'NOT_FOUND')
+    throw new ServiceError('Locator group not found for the Quality Journey target.', 'NOT_FOUND')
   return moduleRef
 }
 
-async function readPlanOrThrow(client: LocatorEnsureClient, qualityPlanId: string) {
-  const plan = await client.qualityPlan.findFirst({
-    where: { id: qualityPlanId },
+async function readJourneyOrThrow(client: LocatorEnsureClient, journeyId: string) {
+  const journey = await client.qualityJourney.findFirst({
+    where: { id: journeyId },
     include: { targetProject: { select: { id: true, fingerprint: true } } },
   })
-  if (!plan) throw new ServiceError('Quality Plan not found.', 'NOT_FOUND')
-  return plan
+  if (!journey) throw new ServiceError('Quality Journey not found.', 'NOT_FOUND')
+  return journey
 }
 
 function locatorContentHash(locator: {
@@ -150,9 +150,9 @@ async function ensureOnce(
   expectedTarget: LocatorEnsureTargetIdentity,
   client: LocatorEnsureClient,
 ) {
-  const plan = await readPlanOrThrow(client, input.qualityPlanId)
-  assertPlanTarget(plan, expectedTarget)
-  const targetProjectId = plan.targetProjectId
+  const journey = await readJourneyOrThrow(client, input.journeyId)
+  assertJourneyTarget(journey, expectedTarget)
+  const targetProjectId = journey.targetProjectId
   const allowCreate = input.allowCreate === true
   const groupResolution = await resolveGroup(client, input.group, targetProjectId, allowCreate)
   const locatorResolution = await resolveLocator(
@@ -171,9 +171,9 @@ async function ensureOnce(
     ? 'created'
     : 'reused'
   return {
-    qualityPlanId: plan.id,
+    journeyId: journey.id,
     targetProjectId,
-    targetFingerprint: plan.targetProject.fingerprint,
+    targetFingerprint: journey.targetProject.fingerprint,
     outcome,
     resources: {
       module: persisted.module,
@@ -181,20 +181,20 @@ async function ensureOnce(
       locator: { ...persisted.locator, contentHash: locatorContentHash(persisted.locator) },
     },
     selectorVerification: 'pending_runtime' as const,
-    nextRecommendedAction: 'Use locator_search to bind this target-owned locator into the validation design.',
+    nextRecommendedAction: 'Use locator_search to bind this target-owned locator into the Quality Journey.',
   }
 }
 
-function assertPlanTarget(
-  plan: Awaited<ReturnType<typeof readPlanOrThrow>>,
+function assertJourneyTarget(
+  journey: Awaited<ReturnType<typeof readJourneyOrThrow>>,
   expectedTarget: LocatorEnsureTargetIdentity,
 ) {
   if (
-    plan.targetProjectId !== expectedTarget.id ||
-    plan.targetProject.id !== expectedTarget.id ||
-    plan.targetProject.fingerprint !== expectedTarget.fingerprint
+    journey.targetProjectId !== expectedTarget.id ||
+    journey.targetProject.id !== expectedTarget.id ||
+    journey.targetProject.fingerprint !== expectedTarget.fingerprint
   )
-    throw new ServiceError('Quality Plan not found for the requested target.', 'NOT_FOUND')
+    throw new ServiceError('Quality Journey not found for the requested target.', 'NOT_FOUND')
 }
 
 async function resolveRequestedModule(
@@ -209,7 +209,8 @@ async function resolveRequestedModule(
       : await client.module.findFirst({ where: { name: module.name, targetProjectId }, orderBy: { id: 'asc' } })
   if (existing) return { module: existing as TargetModule, needsCreate: false }
   if (!allowCreate) requireCreate(allowCreate, 'Module')
-  if (module.mode === 'existing') throw new ServiceError('Module not found for the Quality Plan target.', 'NOT_FOUND')
+  if (module.mode === 'existing')
+    throw new ServiceError('Module not found for the Quality Journey target.', 'NOT_FOUND')
   return {
     module: {
       id: deterministicId('target-module', { targetProjectId, name: module.name }),
@@ -240,7 +241,7 @@ async function resolveGroup(
       where: targetWhere(requested.id, targetProjectId),
       include: { module: true },
     })) as TargetGroup | null
-    if (!group) throw new ServiceError('Locator group not found for the Quality Plan target.', 'NOT_FOUND')
+    if (!group) throw new ServiceError('Locator group not found for the Quality Journey target.', 'NOT_FOUND')
     return {
       group,
       module: requireTargetModule(group.module, targetProjectId),
@@ -347,7 +348,7 @@ function isUniqueConflict(error: unknown) {
   return Boolean(error && typeof error === 'object' && (error as { code?: unknown }).code === 'P2002')
 }
 
-/** A local-only, Quality Plan scoped locator authoring mutation. */
+/** A local-only, Quality Journey scoped locator authoring mutation. */
 export async function ensureTargetLocator(
   input: LocatorEnsureInput,
   expectedTarget: LocatorEnsureTargetIdentity,

@@ -1,12 +1,10 @@
-import type { ValidationArtifact } from '@/lib/quality-design/validation-artifact-contract'
-
-type ValidationNode = ValidationArtifact['validations'][number]
+import type { SelectedTestNode } from './selected-test-contract'
 
 function assertSingleLineGherkin(value: string, label: string) {
   if (/\r|\n|\u2028|\u2029/.test(value)) throw new Error(`${label} must be a single Gherkin line.`)
 }
 
-export function generateReviewedFeature(node: ValidationNode) {
+export function generateReviewedFeature(node: SelectedTestNode) {
   const suiteByCase = new Map(node.appraiseArtifacts.testSuites.flatMap(s => s.testCaseIds.map(id => [id, s.id])))
   assertSingleLineGherkin(node.appraiseArtifacts.testSuites[0]?.name ?? node.id, 'Feature title')
   for (const testCase of node.appraiseArtifacts.testCases) {

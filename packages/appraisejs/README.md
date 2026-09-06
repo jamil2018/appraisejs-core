@@ -18,25 +18,15 @@ and schema are hub-only in Appraise 0.5 and are not copied into scaffold templat
 
 ## Locator Discovery
 
-Locator graph queries are Quality Plan scoped so a target must be selected by its approved plan rather than by an
-arbitrary project ID:
+Locator graph queries are Quality Journey scoped so a target must be selected by its active Journey rather than by
+an arbitrary project ID:
 
 ```bash
-appraisejs locator-graph query --target <registered-target> --quality-plan-id <quality-plan-id> --from-id <surface-id> --json
+appraisejs locator-graph query --target <registered-target> --journey-id <journey-id> --from-id <surface-id> --json
 ```
 
-The MCP `locator_ensure` tool accepts a registered target reference and can create one explicit target-owned module/group/locator closure for that plan. It is
+The MCP `locator_ensure` tool accepts a registered target reference and can create one explicit target-owned module/group/locator closure for that Journey. It is
 local and idempotent; it does not browse, handle credentials, or verify a selector at authoring time.
-
-## Remote Assessment Preflight
-
-For a `REMOTE_BLACK_BOX` target, first create an Appraise-owned remote scope, then call
-`assessment_preflight`. The scope receipt itself carries the bounded v2 handoff:
-`subjectRevisionId`, `algorithmVersion`, `scopeIntentHash`, `realizationIntentHash`,
-`preflightHash`, and an exact `expectedPreflight` token. Use `subjectRevisionId` for
-preflight, then pass that exact two-field token to `assessment_prepare_run`; do not reuse a preflight after Step Definition, locator, design,
-environment, runtime, or policy drift. Legacy v1 scopes are historical-only and return an explicit algorithm
-unsupported error.
 
 ## Requirements
 
@@ -72,6 +62,8 @@ read-only artifact navigation and export, including closed journeys. Terminal ap
 local Appraise UI decisions. Report submissions may use `residualRisks: []` to explicitly record no remaining risks;
 every nonempty entry requires explicit risk acceptance at closure.
 
-### Journey experience and compatibility
+### Journey authority
 
-`quality_journey_library_list` supports metadata-only `query` search (maximum 200 characters) before pagination. `quality_journey_compatibility_read` exposes exact historical Quality Plan references as read-only projections without Journey approval authority. Public source submission requires explicit analysis; superseded approval aliases return HTTP 410. Existing exact-revision Quality OS domain contracts remain available.
+Quality Journeys are the sole agent-enabled quality authority. Only Journey-managed execution, sealed Journey evidence,
+triage, report review, and closure can produce a quality outcome. Independent Test Runs remain non-authoritative
+diagnostics and cannot become Journey evidence.

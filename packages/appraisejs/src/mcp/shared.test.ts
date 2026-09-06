@@ -77,14 +77,14 @@ describe('agent preflight contract', () => {
     const contract = [
       {
         kind: 'tool',
-        name: 'assessment_review',
+        name: 'quality_journey_execution_get',
         inputSchema: { properties: { responseMode: { default: 'summary', type: 'string' } } },
         annotations: { readOnlyHint: true, openWorldHint: false },
       },
       {
         kind: 'resource',
-        name: 'assessment-workflow',
-        uri: 'appraise://workflow/assessment',
+        name: 'target-projects',
+        uri: 'appraise://target-projects',
         annotations: { readOnlyHint: true },
       },
     ]
@@ -92,7 +92,7 @@ describe('agent preflight contract', () => {
       {
         annotations: { openWorldHint: false, readOnlyHint: true },
         inputSchema: { properties: { responseMode: { type: 'string', default: 'summary' } } },
-        name: 'assessment_review',
+        name: 'quality_journey_execution_get',
         kind: 'tool',
       },
       contract[1],
@@ -108,7 +108,7 @@ describe('agent preflight contract', () => {
     expect(mcpContractHash([contract[0], { ...contract[1], annotations: { readOnlyHint: false } }])).not.toBe(
       mcpContractHash(contract),
     )
-    expect(mcpContractHash([contract[0], { ...contract[1], uri: 'appraise://workflow/assessment-v2' }])).not.toBe(
+    expect(mcpContractHash([contract[0], { ...contract[1], uri: 'appraise://target-projects-v2' }])).not.toBe(
       mcpContractHash(contract),
     )
   })

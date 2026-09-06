@@ -9,12 +9,8 @@ import type { createCoordinatorApiClient } from './coordinator-call.js'
 import { diagnoseProject } from '../diagnostics.js'
 
 export { z }
-export {
-  LOCATOR_GRAPH_CONTRACT_VERSION,
-  OPERATION_CATALOG_CONTRACT_VERSION,
-  VALIDATION_AST_JSON_SCHEMA,
-  VALIDATION_AST_SCHEMA_VERSION,
-} from '../managed-validation-contracts.js'
+export const OPERATION_CATALOG_CONTRACT_VERSION = '1' as const
+export const LOCATOR_GRAPH_CONTRACT_VERSION = '1' as const
 export { diagnoseProject }
 export * from './response-projector.js'
 export * from './coordinator-call.js'
@@ -47,7 +43,7 @@ export function withGuidance(
   return { ...payload, ...guidance }
 }
 
-export function contentHash(value: unknown): string {
+function contentHash(value: unknown): string {
   return `sha256:${createHash('sha256').update(JSON.stringify(value)).digest('hex')}`
 }
 
@@ -73,74 +69,9 @@ export function mcpContractHash(definitions: unknown): string {
     .digest('hex')}`
 }
 
-export const qualityDesignWorkflow = {
-  phase: 'quality_design',
-  ownership:
-    'The host agent proposes methodology-bound analysis and validation meaning. Appraise owns critique, immutable review gates, managed evidence, attributed findings, and quality decisions.',
-  publicToolGroups: {
-    methodology: ['methodology_list', 'methodology_get'],
-    requirements: [
-      'requirements_submit_source',
-      'requirements_graph_read',
-      'requirements_answer_queries',
-      'requirement_analysis_propose',
-      'requirement_analysis_read',
-      'requirement_analysis_decide',
-    ],
-    validationDesign: ['validation_design_propose', 'validation_design_read', 'validation_design_decide'],
-    qualityJourney: [
-      'quality_journey_create',
-      'quality_journey_get',
-      'quality_journey_resume',
-      'quality_journey_command_submit',
-      'quality_journey_factory_evidence_inspect',
-      'quality_journey_work_claim',
-      'quality_journey_work_dispatch',
-      'quality_journey_work_complete',
-      'quality_journey_work_cancel',
-      'quality_journey_work_revoke',
-      'quality_journey_artifacts_list',
-      'quality_journey_discovery_get',
-      'quality_journey_target_observation_submit',
-      'quality_journey_resource_resolution_submit',
-      'quality_journey_discovery_retry',
-      'quality_journey_discovery_revalidate',
-      'quality_journey_analysis_get',
-      'quality_journey_analysis_submit',
-      'quality_journey_analysis_answer',
-      'quality_journey_analysis_publish',
-      'quality_journey_analysis_revision_request',
-      'quality_journey_analysis_decide',
-      'quality_journey_scenarios_get',
-      'quality_journey_scenarios_submit',
-      'quality_journey_scenarios_publish',
-      'quality_journey_scenarios_decide',
-      'quality_journey_scenarios_comment',
-      'quality_journey_scenarios_comment_dispose',
-      'quality_journey_scenarios_start',
-      'quality_journey_scenarios_revision_request',
-      'quality_journey_automation_context_get',
-      'quality_journey_automation_materialize',
-    ],
-  },
-}
-
-export const assessmentWorkflow = {
-  phase: 'assessment',
-  subjectAuthority:
-    'Evaluation subject authority is an immutable artifact or deployment snapshot digest. Commit, URL, build, and release labels are metadata.',
-  evidenceSeal:
-    'Evidence is sealed per validation version and result-matrix cell, bound to subject, runtime inputs, environment, outputs, and report hashes.',
-  assurance: 'Required minimum assurance is separate from observed assurance.',
-  failureAttribution:
-    'A failed TestRun is an observation. Only a reviewed target_defect finding may violate an obligation.',
-  executionConsent:
-    'Execution consent is manifest-bound and distinct from credential authorization; new targets default to always ask.',
-}
-
 export const mcpCapabilityMetadata = {
   packageVersion: packageJson.version ?? '0.0.0',
-  mcpSurfaceVersion: '2026-08-26.quality-os-assessment-preflight',
+  mcpSurfaceVersion: '2026-09-06.quality-journey-authority',
   mcpContractHash: mcpContractHash(mcpContractFixture.default),
   serverStartedAt,
   workflowCriticalTools: [...workflowTools],
@@ -156,21 +87,14 @@ export const compactMcpCapabilityMetadata = {
   workflowResourceCount: workflowResources.length,
   workflowSentinelTools: [
     'project_diagnostic',
-    'requirements_submit_source',
-    'requirement_analysis_decide',
+    'quality_journey_create',
+    'quality_journey_analysis_get',
     'locator_ensure',
     'locator_search',
-    'assessment_preflight',
-    'assessment_run',
-    'assessment_decide',
-    'assessment_finding_record',
+    'quality_journey_execution_start',
+    'quality_journey_triage_submit',
   ],
-  workflowSentinelResources: [
-    'appraise://project',
-    'appraise://workflow/quality-design',
-    'appraise://workflow/assessment',
-    'appraise://quality/methodologies/appraise.built-in/quality-os-core/1.0.0',
-  ],
+  workflowSentinelResources: ['appraise://project', 'appraise://target-projects'],
   fullCapabilityResource: 'appraise://project',
 }
 
@@ -356,14 +280,14 @@ export function diagnosticGuidance(
     }
   if (ok && preflight?.ready)
     return {
-      nextRecommendedAction: 'Submit a requirement source for the selected target.',
-      nextRequiredAgentBehavior: 'start_quality_design',
+      nextRecommendedAction: 'Start a Quality Journey for the selected target.',
+      nextRequiredAgentBehavior: 'start_quality_journey',
     }
   return {
     nextRecommendedAction: ok
       ? 'Register the intended target workspace or refresh the observed MCP capability inventory.'
       : 'Resolve diagnostics, then reconnect the MCP client and rerun project_diagnostic.',
-    nextRequiredAgentBehavior: ok ? 'choose_explicit_target_before_quality_design' : 'recover_mcp_or_project_binding',
+    nextRequiredAgentBehavior: ok ? 'choose_explicit_target_before_quality_journey' : 'recover_mcp_or_project_binding',
   }
 }
 

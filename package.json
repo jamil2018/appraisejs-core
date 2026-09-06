@@ -14,8 +14,6 @@
     "setup:mcp": "node scripts/print-mcp-config.mjs",
     "setup:agent": "node scripts/print-agent-config.mjs",
     "check:harness": "node scripts/check-agent-harness.mjs && node scripts/check-swarm-harness.mjs && node --test scripts/tests/swarm-routing.test.mjs scripts/tests/swarm-evolution.test.mjs",
-    "certify:quality-os": "node --import tsx scripts/certify-quality-os.ts",
-    "release:check:quality-os": "node --import tsx scripts/certify-quality-os.ts --check",
     "check:swarm-harness": "node scripts/check-swarm-harness.mjs",
     "swarm:record": "node scripts/record-swarm-run.mjs",
     "swarm:route": "node scripts/record-swarm-route.mjs",

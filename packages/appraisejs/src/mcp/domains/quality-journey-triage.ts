@@ -79,7 +79,7 @@ const finding = z
       context.addIssue({ code: 'custom', message: 'Inconclusive findings must remain unresolved.' })
   })
 
-export const triageReportInput = z
+const triageReportInput = z
   .object({
     schemaVersion: z.literal('appraise.quality-journey/v1'),
     reportRevisionId: id,
@@ -150,7 +150,7 @@ const workerResult = z
   .strict()
 
 export const triagePrepareInput = z.object({ ...scope, executionCycleId: id }).strict()
-export const triageSubmitInput = z
+const triageSubmitInput = z
   .object({
     ...scope,
     workItemId: id,

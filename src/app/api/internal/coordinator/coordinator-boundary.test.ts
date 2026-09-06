@@ -17,7 +17,7 @@ describe('quality coordinator boundary', () => {
 
   it('contains only quality lifecycle and bounded discovery dispatch', async () => {
     const source = await fs.readFile(routePath, 'utf8')
-    expect(source).toContain("'quality/assessment-runs'")
+    expect(source).toContain("'quality/journeys'")
     expect(source).toContain('recordAgentPreflightReceipt(body)')
     expect(source).toContain('error.issues.map')
     expect(source).toContain("operation[0] === 'test-runs'")

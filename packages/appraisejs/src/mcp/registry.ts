@@ -15,12 +15,10 @@ import { registerProjectOperations } from './domains/project.js'
 import { registerDiagnosticOperations } from './domains/diagnostic.js'
 import { registerRuntimeOperations } from './domains/runtime.js'
 import { registerStepDefinitionOperations } from './domains/step-definitions.js'
-import { registerQualityDesignOperations } from './domains/quality-design.js'
 import { registerQualityJourneyOperations } from './domains/quality-journey.js'
 import { registerQualityJourneyExecutionOperations } from './domains/quality-journey-execution.js'
 import { registerQualityJourneyTriageOperations } from './domains/quality-journey-triage.js'
 import { registerQualityJourneyLibraryOperations } from './domains/quality-journey-library.js'
-import { registerQualityJourneyCompatibilityOperations } from './domains/quality-journey-compatibility.js'
 
 export type McpRegistryContext = {
   server: McpServer
@@ -54,11 +52,8 @@ function resourceError(error: CoordinatorRequestError) {
     httpStatus: envelope.httpStatus,
     operation: envelope.operation,
     operationOutcome: envelope.operationOutcome,
-    ...(envelope.durableState ? { durableState: envelope.durableState } : {}),
     targetOutcome: envelope.targetOutcome,
     retry: envelope.retry,
-    ...(envelope.authorization ? { authorization: envelope.authorization } : {}),
-    ...(envelope.executionConsent ? { executionConsent: envelope.executionConsent } : {}),
   }
 }
 
@@ -136,12 +131,10 @@ const domainRegistries = Object.freeze([
   registerDiagnosticOperations,
   registerRuntimeOperations,
   registerStepDefinitionOperations,
-  registerQualityDesignOperations,
   registerQualityJourneyOperations,
   registerQualityJourneyExecutionOperations,
   registerQualityJourneyTriageOperations,
   registerQualityJourneyLibraryOperations,
-  registerQualityJourneyCompatibilityOperations,
 ] as const)
 
 export function assertUniqueMcpDefinitions(definitions: readonly McpContractDefinition[]): void {

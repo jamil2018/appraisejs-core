@@ -12,7 +12,6 @@ const coordinatorErrorClassificationSchema = z.enum([
 ])
 
 const coordinatorOperationOutcomeSchema = z.enum(['not_started', 'not_committed', 'committed', 'unknown'])
-type CoordinatorOperationOutcome = z.infer<typeof coordinatorOperationOutcomeSchema>
 
 const coordinatorRetryStrategySchema = z.enum([
   'repair_input_then_retry',
@@ -21,72 +20,8 @@ const coordinatorRetryStrategySchema = z.enum([
   'repair_appraise_then_resume',
   'do_not_retry',
 ])
-type CoordinatorRetryStrategy = z.infer<typeof coordinatorRetryStrategySchema>
 
 const boundedTextSchema = z.string().trim().min(1).max(1_000)
-export const coordinatorAuthorizationHandoffSchema = z
-  .object({
-    executionRequestId: z.string().uuid(),
-    expectedRequestHash: z.string().startsWith('sha256:'),
-    expiresAt: z.string().datetime(),
-    authorizationRequestCreated: z.literal(true),
-    nextAction: z
-      .object({
-        tool: z.literal('assessment_prepare_run'),
-        reason: boundedTextSchema,
-      })
-      .strict(),
-  })
-  .strict()
-
-const coordinatorAuthorizationRequestDetailsSchema = z
-  .object({
-    requestId: z.string().uuid(),
-    requestHash: z.string().startsWith('sha256:'),
-    expiresAt: z.string().datetime(),
-  })
-  .passthrough()
-
-export const coordinatorExecutionConsentHandoffSchema = z
-  .object({
-    assessmentId: z.string().trim().min(1),
-    consentId: z.string().uuid(),
-    expectedExecutionManifestHash: z.string().startsWith('sha256:'),
-    consentRequestCreated: z.literal(true),
-    nextAction: z
-      .object({
-        tool: z.literal('execution_consent_decide'),
-        arguments: z
-          .object({
-            assessmentId: z.string().trim().min(1),
-            consentId: z.string().uuid(),
-            expectedExecutionManifestHash: z.string().startsWith('sha256:'),
-          })
-          .strict(),
-        reason: boundedTextSchema,
-      })
-      .strict(),
-  })
-  .strict()
-
-/** Convert only the durable authorization-request identity into the public
- * handoff. Callers must never persist arbitrary transient ServiceError data. */
-export function coordinatorAuthorizationHandoffFromDetails(details: Record<string, unknown> | undefined) {
-  const parsed = coordinatorAuthorizationRequestDetailsSchema.safeParse(details)
-  if (!parsed.success) return undefined
-  return coordinatorAuthorizationHandoffSchema.parse({
-    executionRequestId: parsed.data.requestId,
-    expectedRequestHash: parsed.data.requestHash,
-    expiresAt: parsed.data.expiresAt,
-    authorizationRequestCreated: true,
-    nextAction: {
-      tool: 'assessment_prepare_run',
-      reason:
-        'The credential authorization request is committed. Issue a grant, then replay the original compact preparation request with this same idempotencyKey.',
-    },
-  })
-}
-
 export const coordinatorErrorEnvelopeSchema = z
   .object({
     schema: z.literal('appraise.error/v1'),
@@ -99,15 +34,12 @@ export const coordinatorErrorEnvelopeSchema = z
     operation: z
       .object({
         name: z.string().trim().min(1).max(300),
-        qualityPlanId: z.string().trim().min(1).max(300).optional(),
+        journeyId: z.string().trim().min(1).max(300).optional(),
         idempotencyKey: z.string().trim().min(1).max(1_000).optional(),
       })
       .strict(),
     operationOutcome: coordinatorOperationOutcomeSchema,
-    durableState: z.enum(['authorization_request_committed', 'execution_consent_request_committed']).optional(),
     targetOutcome: z.literal('not_evaluated'),
-    authorization: coordinatorAuthorizationHandoffSchema.optional(),
-    executionConsent: coordinatorExecutionConsentHandoffSchema.optional(),
     retry: z
       .object({
         safe: z.boolean(),
@@ -126,7 +58,6 @@ export const coordinatorErrorEnvelopeSchema = z
   })
   .strict()
 
-type CoordinatorErrorEnvelope = z.infer<typeof coordinatorErrorEnvelopeSchema>
 
 export const coordinatorAcknowledgementSchema = z
   .object({

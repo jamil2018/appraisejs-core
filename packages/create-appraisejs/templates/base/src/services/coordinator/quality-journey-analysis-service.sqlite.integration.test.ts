@@ -2077,7 +2077,7 @@ describe('Quality Journey Phase 3 through Phase 5 control plane', () => {
         client.$executeRawUnsafe(
           `UPDATE "QualityJourneyCycle" SET "scopeJson" = '{}' WHERE "id" = '${correctionCycleId}'`,
         ),
-      ).rejects.toThrow('Quality Journey remediation cycle is immutable')
+      ).rejects.toThrow(/QualityJourneyCycle is immutable|Quality Journey remediation cycle is immutable/)
       const correctionClaim = await claimQualityJourneyWork(
         { journeyId: created.journey.journeyId, targetProjectId: 'target-analysis-1', role: 'AUTOMATOR' },
         client,

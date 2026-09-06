@@ -14,7 +14,6 @@
     "setup:mcp": "node scripts/print-mcp-config.mjs",
     "setup:agent": "node scripts/print-agent-config.mjs",
     "check:harness": "node scripts/check-agent-harness.mjs",
-    "certify:quality-os": "node --import tsx scripts/certify-quality-os.ts",
     "docs:check-links": "node scripts/check-documentation-links.mjs",
     "operation:ledger": "node --import tsx scripts/build-operation-capability-ledger.ts",
     "operation:certify": "node --import tsx scripts/certify-operation-architecture.ts",

@@ -35,50 +35,12 @@ const coordinatorErrorEnvelopeSchema = z
     operation: z
       .object({
         name: z.string().trim().min(1).max(300),
-        qualityPlanId: z.string().trim().min(1).max(300).optional(),
+        journeyId: z.string().trim().min(1).max(300).optional(),
         idempotencyKey: z.string().trim().min(1).max(1_000).optional(),
       })
       .strict(),
     operationOutcome: z.enum(['not_started', 'not_committed', 'committed', 'unknown']),
-    durableState: z.enum(['authorization_request_committed', 'execution_consent_request_committed']).optional(),
     targetOutcome: z.literal('not_evaluated'),
-    authorization: z
-      .object({
-        executionRequestId: z.string().uuid(),
-        expectedRequestHash: z.string().startsWith('sha256:'),
-        expiresAt: z.string().datetime(),
-        authorizationRequestCreated: z.literal(true),
-        nextAction: z
-          .object({
-            tool: z.literal('assessment_prepare_run'),
-            reason: z.string().trim().min(1).max(1_000),
-          })
-          .strict(),
-      })
-      .strict()
-      .optional(),
-    executionConsent: z
-      .object({
-        assessmentId: z.string().trim().min(1),
-        consentId: z.string().uuid(),
-        expectedExecutionManifestHash: z.string().startsWith('sha256:'),
-        consentRequestCreated: z.literal(true),
-        nextAction: z
-          .object({
-            tool: z.literal('execution_consent_decide'),
-            arguments: z
-              .object({
-                assessmentId: z.string().trim().min(1),
-                consentId: z.string().uuid(),
-                expectedExecutionManifestHash: z.string().startsWith('sha256:'),
-              })
-              .strict(),
-            reason: z.string().trim().min(1).max(1_000),
-          })
-          .strict(),
-      })
-      .strict()
-      .optional(),
     retry: z
       .object({
         safe: z.boolean(),

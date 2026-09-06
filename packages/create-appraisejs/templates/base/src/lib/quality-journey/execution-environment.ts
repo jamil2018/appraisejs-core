@@ -5,7 +5,7 @@ import {
   frozenRemoteEnvironmentPacketSnapshot,
   frozenEnvironmentSnapshot,
   runtimeEnvironmentFromFrozenPacket,
-} from '@/lib/quality-design/frozen-environment-snapshot'
+} from '@/lib/runtime-capsule/frozen-environment-snapshot'
 import { hashQualityJourneyExecutionValue } from './execution-contracts'
 
 const url = z

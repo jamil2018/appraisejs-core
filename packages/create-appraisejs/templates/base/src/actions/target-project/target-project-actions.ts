@@ -12,7 +12,6 @@ import {
   registerTargetProject,
   deleteTargetProject,
   renameTargetProject,
-  updateTargetProjectExecutionConsentMode,
   resolveTargetProject,
   writeTargetProjectMarker,
 } from '@/services/target-project/target-project-service'
@@ -42,10 +41,6 @@ const renameSchema = z.object({
 })
 const selectionSchema = z.object({ targetProjectId: z.string().uuid() })
 const deletionSchema = z.object({ targetProjectId: z.string().uuid() })
-const executionConsentModeSchema = z.object({
-  targetProjectId: z.string().uuid(),
-  mode: z.enum(['ALWAYS_ASK', 'RISK_AWARE', 'TRUSTED_AGENT']),
-})
 
 function errorResponse(error: unknown, prefix: string): ActionResponse {
   const message = error instanceof Error ? error.message : String(error)
@@ -116,18 +111,6 @@ export async function selectTargetProjectAction(input: unknown): Promise<ActionR
     return { status: 200, success: true, data: { targetProjectId: project.id } }
   } catch (error) {
     return errorResponse(error, 'Project selection failed')
-  }
-}
-
-export async function updateTargetProjectExecutionConsentModeAction(input: unknown): Promise<ActionResponse> {
-  try {
-    const value = executionConsentModeSchema.parse(input)
-    await requireActiveProjectForMutation(value.targetProjectId)
-    const targetProject = await updateTargetProjectExecutionConsentMode(value)
-    revalidatePath('/projects')
-    return { status: 200, success: true, data: { targetProject } }
-  } catch (error) {
-    return errorResponse(error, 'Execution consent policy update failed')
   }
 }
 

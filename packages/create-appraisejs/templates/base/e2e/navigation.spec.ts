@@ -16,8 +16,7 @@ test.describe('Navigation @navigation', () => {
 
   const listRoutes: RouteExpectation[] = [
     { path: '/', heading: 'Dashboard' },
-    { path: '/quality-plans', heading: 'Quality Plans' },
-    { path: '/assessments', heading: 'Assessments' },
+    { path: '/quality-journeys', heading: 'Quality Journeys' },
     { path: '/settings', heading: 'Settings' },
     { path: '/modules', heading: 'Modules' },
     { path: '/environments', heading: 'Environments' },
@@ -50,6 +49,13 @@ test.describe('Navigation @navigation', () => {
 
   test('primary list and create routes render expected headings', async ({ page }) => {
     await visitRoutes(page, [...listRoutes, ...createRoutes])
+  })
+
+  test('removed Quality Plan, Assessment, and compatibility routes return ordinary not-found pages', async ({ page }) => {
+    for (const path of ['/quality-plans', '/assessments', '/quality-journeys/compatibility']) {
+      const response = await page.goto(path)
+      expect(response?.status()).toBe(404)
+    }
   })
 
   test('modify and detail routes render for seeded records', async ({ page }) => {

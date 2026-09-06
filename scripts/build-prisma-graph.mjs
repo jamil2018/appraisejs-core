@@ -377,7 +377,7 @@ function reportSections({ nodeCount, edgeCount, communityCount, godNodes, relati
     `## Surprising Connections (you probably didn't know these)\n${formatOptionalLines(relationLinks)}`,
     '## Import Cycles\n- None detected.',
     `## Communities (${communityCount} total)\n${communityLines.join('\n\n')}`,
-    '## Suggested Questions\n- Which models connect Quality Plans to Assessments?\n- Which migrations introduced quality validation publications and evidence receipts?\n- Which models depend on Locator or TestRun?\n- Which enums are used by execution report models?\n',
+    '## Suggested Questions\n- Which models connect a Quality Journey to its execution and evidence records?\n- Which models enforce Journey artifact lineage?\n- Which models depend on Locator or TestRun?\n- Which enums are used by execution report models?\n',
   ]
 }
 

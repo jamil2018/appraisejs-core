@@ -66,7 +66,7 @@ addOnlineOptions(
   locatorGraph
     .command('query')
     .requiredOption('--target <path-or-fingerprint>')
-    .requiredOption('--quality-plan-id <id>')
+    .requiredOption('--journey-id <id>')
     .requiredOption('--from-id <id>')
     .option('--relation <relation>')
     .option('--to-type <type>')
@@ -80,7 +80,7 @@ addOnlineOptions(
     printJson(
       await client.queryLocatorGraph({
         target: options.target,
-        qualityPlanId: options.qualityPlanId,
+        journeyId: options.journeyId,
         fromId: options.fromId,
         relation: options.relation,
         toType: options.toType,

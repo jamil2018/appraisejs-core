@@ -26,11 +26,7 @@
     "appraisejs": "./dist/cli.js"
   },
   "exports": {
-    ".": "./dist/cli.js",
-    "./managed-validation-contracts": {
-      "types": "./dist/managed-validation-contracts.d.ts",
-      "import": "./dist/managed-validation-contracts.js"
-    }
+    ".": "./dist/cli.js"
   },
   "files": [
     "dist",
@@ -54,7 +50,6 @@
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.29.0",
     "commander": "^14.0.2",
-    "yaml": "^2.9.0",
     "zod": "^4.4.3"
   },
   "devDependencies": {

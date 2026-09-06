@@ -29,11 +29,9 @@ const manifest = {
   receiptHash: validationHash,
   runtimeInputHash: validationHash,
   source: {
-    kind: 'PUBLISHED_VALIDATION',
+    kind: 'AUTHORED_TEST_SNAPSHOT',
     sourceHash: validationHash,
-    publishOperationId: 'publication-one',
-    generationId: 'generation-one',
-    generationKey: validationHash,
+      snapshot: {},
   },
   commandReceipt: { path: 'command-receipt.json', hash: commandHash },
   generator: { id: 'appraise.validation-ast-capsule', version: '2' },
@@ -65,7 +63,6 @@ beforeEach(async () => {
     expectedSize: commandBytes.length,
   })
 })
-
 afterEach(async () => {
   await fs.rm(workspace, { recursive: true, force: true })
 })

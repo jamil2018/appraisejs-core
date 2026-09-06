@@ -28,11 +28,11 @@ const environment = {
 const reason = z.string().trim().min(1).max(8_000)
 
 export const executionStartInput = z.object({ ...command, ...environment, preparedRuntimeCapsuleIds: ids }).strict()
-export const executionCancelInput = z
+const executionCancelInput = z
   .object({ ...command, cycleId: id.optional(), testRunIds: ids.optional(), reason })
   .strict()
-export const executionReconcileInput = z.object({ ...scope, cycleId: id, idempotencyKey: id }).strict()
-export const rerunProposalInput = z
+const executionReconcileInput = z.object({ ...scope, cycleId: id, idempotencyKey: id }).strict()
+const rerunProposalInput = z
   .object({
     ...scope,
     sourceCycleId: id,
@@ -42,7 +42,7 @@ export const rerunProposalInput = z
     idempotencyKey: id,
   })
   .strict()
-export const rerunStartInput = z.object({ ...command, ...environment, proposalId: id }).strict()
+const rerunStartInput = z.object({ ...command, ...environment, proposalId: id }).strict()
 
 /** User consent and rerun approval are deliberately issued only by the local UI. */
 export function registerQualityJourneyExecutionOperations({ server, api }: McpRegistryContext) {

@@ -1,5 +1,5 @@
 import prisma from '@/config/db-config'
-import { frozenRemoteEnvironmentPacketSnapshot } from '@/lib/quality-design/frozen-environment-snapshot'
+import { frozenRemoteEnvironmentPacketSnapshot } from '@/lib/runtime-capsule/frozen-environment-snapshot'
 import type { TestRun as TestRunFormValue } from '@/constants/form-opts/test-run-form-opts'
 import { ServiceError } from '@/services/shared/errors'
 import { RECENT_PERIOD_DAYS } from '@/services/shared/constants'

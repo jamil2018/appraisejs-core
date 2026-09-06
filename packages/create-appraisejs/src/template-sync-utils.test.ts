@@ -1,6 +1,3 @@
-import { execFileSync } from 'node:child_process'
-import { existsSync, mkdtempSync, mkdirSync, rmSync, writeFileSync } from 'node:fs'
-import os from 'node:os'
 import path from 'node:path'
 import {
   extractModulePathFromAutomationFile,
@@ -8,7 +5,6 @@ import {
   shouldBackfillLegacyEnvironmentConfig,
   shouldExcludeTemplatePath,
 } from '../../../src/lib/template-sync-utils.js'
-import { resolveQualityOsBehavioralSuites } from '../../../src/lib/quality-os-certification-suites.js'
 import { describe, expect, it } from 'vitest'
 
 describe('shouldExcludeTemplatePath', () => {
@@ -36,39 +32,6 @@ describe('shouldBackfillLegacyEnvironmentConfig', () => {
     expect(shouldBackfillLegacyEnvironmentConfig(false, true)).toBe(true)
     expect(shouldBackfillLegacyEnvironmentConfig(true, true)).toBe(false)
     expect(shouldBackfillLegacyEnvironmentConfig(false, false)).toBe(false)
-  })
-})
-
-describe('Quality OS certification suite scoping', () => {
-  it('keeps the generated-app certifier install-free when repository-only parity is absent', () => {
-    const generatedApp = mkdtempSync(path.join(os.tmpdir(), 'appraise-template-certifier-'))
-    try {
-      const suites = resolveQualityOsBehavioralSuites(generatedApp)
-      for (const suite of suites) {
-        const file = path.join(generatedApp, suite)
-        mkdirSync(path.dirname(file), { recursive: true })
-        writeFileSync(file, '')
-      }
-      expect(resolveQualityOsBehavioralSuites(generatedApp)).toEqual(suites)
-      expect(suites).not.toContain('src/lib/quality-journey/scenario-contracts.mcp-parity.test.ts')
-      expect(suites.every(suite => existsSync(path.join(generatedApp, suite)))).toBe(true)
-    } finally {
-      rmSync(generatedApp, { recursive: true, force: true })
-    }
-  })
-
-  it('probes the prepared template certifier without installing template dependencies', () => {
-    const templateRoot = path.resolve(process.cwd(), 'templates/base')
-    const output = execFileSync(
-      process.execPath,
-      ['--import', 'tsx', 'scripts/certify-quality-os.ts', '--check-suites'],
-      {
-        cwd: templateRoot,
-        encoding: 'utf8',
-      },
-    )
-    expect(output).toContain('behavioralSuites')
-    expect(output).not.toContain('scenario-contracts.mcp-parity.test.ts')
   })
 })
 

@@ -24,7 +24,6 @@ let workspace: string
 beforeEach(async () => {
   workspace = await fs.mkdtemp(path.join(os.tmpdir(), 'appraise-runtime-capsule-'))
 })
-
 afterEach(async () => {
   await fs.rm(workspace, { recursive: true, force: true })
 })
@@ -99,11 +98,9 @@ describe('runtime capsule storage foundation', () => {
       receiptHash: validationHash,
       runtimeInputHash: validationHash,
       source: {
-        kind: 'PUBLISHED_VALIDATION',
+        kind: 'AUTHORED_TEST_SNAPSHOT',
         sourceHash: validationHash,
-        publishOperationId: 'publication-one',
-        generationId: 'generation-one',
-        generationKey: validationHash,
+      snapshot: {},
       },
       commandReceipt: { path: 'command-receipt.json', hash: validationHash },
       generator: { id: 'appraise.validation-ast-capsule', version: '2' },
@@ -162,11 +159,9 @@ describe('runtime capsule storage foundation', () => {
       receiptHash: validationHash,
       runtimeInputHash: validationHash,
       source: {
-        kind: 'PUBLISHED_VALIDATION',
+        kind: 'AUTHORED_TEST_SNAPSHOT',
         sourceHash: validationHash,
-        publishOperationId: 'publication-one',
-        generationId: 'generation-one',
-        generationKey: validationHash,
+      snapshot: {},
       },
       commandReceipt: { path: 'command-receipt.json', hash: validationHash },
       generator: { id: 'appraise.validation-ast-capsule', version: '2' },

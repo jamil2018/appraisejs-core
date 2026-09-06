@@ -13,8 +13,6 @@ const COLLECTION_ROUTES = new Set([
   'locator-groups',
   'locators',
   'modules',
-  'quality-plans',
-  'assessments',
   'reports',
   'tags',
   'step-definitions',
