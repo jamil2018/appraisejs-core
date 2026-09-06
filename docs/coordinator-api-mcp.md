@@ -214,3 +214,7 @@ Three additive read-only MCP tools expose historical navigation: `quality_journe
 `GET quality/journeys/:journeyId/export`. Library lists support `kind`, `offset`, and `limit` (maximum 100).
 The target reference is resolved by Appraise; the path binds journey and entry. Closure and risk acceptance are
 absent from MCP and generic command submission, preserving the local human review boundary.
+
+## Quality Journey compatibility and search
+
+`quality_journey_library_list` accepts an optional trimmed `query` of at most 200 characters. Matching covers public title, entry/artifact/revision identifiers, and content hash before pagination; raw payload JSON is never searched. `quality_journey_compatibility_read` provides target-scoped, read-only historical Quality Plan projections with exact persisted identities and no Journey approval authority. Public source intake requires explicit analysis, and superseded Quality Plan approval aliases return HTTP 410. See [experience and cutover](quality-journey-experience-cutover.md) for compatibility and migration constraints.

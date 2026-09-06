@@ -14,7 +14,6 @@ import { readQualityRequirementGraph } from '@/services/coordinator/quality-desi
 import { readRequirementAnalysis, readValidationDesign } from '@/services/coordinator/quality-operating-system-service'
 import { ServiceError } from '@/services/shared/errors'
 
-import { QualityRequirementsReview } from './quality-requirements-review'
 import { QualityLifecycleControls } from './quality-lifecycle-controls'
 import { QualityOsReviewControls } from './quality-os-review-controls'
 
@@ -83,13 +82,10 @@ export default async function QualityPlanDetailPage({ params, searchParams }: Pa
         <RevisionCard label="Validation design hash" value={packet.designHash ?? 'Not designed'} mono />
       </section>
 
-      <QualityRequirementsReview
-        approvalBlocked={packet.approval.blocked}
-        qualityPlanId={packet.qualityPlan.id}
-        revisionHash={packet.revision.contentHash}
-        revisionId={packet.revision.id}
-        revisionStatus={packet.revision.status}
-      />
+      <p className="text-sm text-muted-foreground">
+        Historical requirements retain their original identity. Use exact analysis and validation review below;
+        compatibility approvals do not grant Quality Journey authority.
+      </p>
 
       <QualityLifecycleControls
         designHash={packet.designHash}

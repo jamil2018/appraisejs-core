@@ -3,8 +3,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 
 type AutomationContext = {
   inputHash: string
-  scopeHash: string
-  portfolioRevisionId: string
+  inputHashes: string[]
+  scopeHash: string | null
+  portfolioRevisionId: string | null
   scenarioRevisionIds: string[]
   materializations: Array<{
     scenarioRevisionId: string
@@ -44,7 +45,13 @@ export function AutomationMaterializationStatus({ context }: { context: Automati
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">
-        <p className="break-all font-mono text-[11px] text-muted-foreground">Input: {context.inputHash}</p>
+        {context.inputHashes.length <= 1 ? (
+          <p className="break-all font-mono text-[11px] text-muted-foreground">Input: {context.inputHash}</p>
+        ) : (
+          <p className="break-all font-mono text-[11px] text-muted-foreground">
+            Historical inputs: {context.inputHashes.join(', ')}
+          </p>
+        )}
         {context.scenarioRevisionIds.map(scenarioRevisionId => {
           const item = context.materializations.find(candidate => candidate.scenarioRevisionId === scenarioRevisionId)
           return (

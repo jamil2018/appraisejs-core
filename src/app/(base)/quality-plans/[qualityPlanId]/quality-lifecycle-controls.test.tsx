@@ -35,12 +35,10 @@ vi.mock('next/navigation', () => ({ useRouter: () => ({ refresh: mocks.refresh }
 vi.mock('@/hooks/use-toast', () => ({ toast: mocks.toast }))
 vi.mock('../quality-design-actions', () => ({
   answerQualityRequirementQueriesAction: vi.fn(),
-  approveQualityValidationDesignAction: vi.fn(),
   createQualityAssessmentAction: vi.fn(),
   createRemoteEvaluationScopeAction: mocks.createRemoteScope,
   assessmentPreflightAction: mocks.preflight,
   assessmentPrepareAction: mocks.prepare,
-  proposeQualityValidationDesignAction: mocks.propose,
 }))
 
 describe('QualityLifecycleControls', () => {
@@ -86,9 +84,7 @@ describe('QualityLifecycleControls', () => {
     expect(screen.getByText(/historical Published status alone is not sufficient/i)).toBeInTheDocument()
   })
 
-  it('submits an obligation-linked scenario proposal through the shared action', async () => {
-    mocks.propose.mockResolvedValue({ success: true })
-    const user = userEvent.setup()
+  it('does not expose retired compatibility proposal or approval controls', () => {
     render(
       <QualityLifecycleControls
         designHash={null}
@@ -109,14 +105,9 @@ describe('QualityLifecycleControls', () => {
       />,
     )
 
-    await user.click(screen.getByRole('button', { name: 'Propose scenarios' }))
-
-    await waitFor(() => {
-      expect(mocks.propose).toHaveBeenCalledWith(
-        expect.objectContaining({ qualityPlanId: 'plan-1', revisionId: 'revision-1', proposal: expect.any(Object) }),
-      )
-    })
-    expect(mocks.refresh).toHaveBeenCalled()
+    expect(screen.queryByRole('button', { name: 'Propose scenarios' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Approve scenarios' })).not.toBeInTheDocument()
+    expect(mocks.propose).not.toHaveBeenCalled()
   })
 
   it('wires a contract-valid remote binding through scope issuance, preflight, and preparation actions', async () => {

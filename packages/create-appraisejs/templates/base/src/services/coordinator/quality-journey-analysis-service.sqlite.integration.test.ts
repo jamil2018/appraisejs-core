@@ -2570,6 +2570,31 @@ describe('Quality Journey Phase 3 through Phase 5 control plane', () => {
         client,
       )
       expect(phaseFiveTerminal.journey.stage).toBe('AUTOMATION')
+      await client.qualityJourney.update({ where: { id: created.journey.journeyId }, data: { stage: 'TRIAGE' } })
+      const triageAutomationContext = await getQualityJourneyAutomationContext(
+        { journeyId: created.journey.journeyId, targetProjectId: 'target-analysis-1' },
+        client,
+      )
+      expect(triageAutomationContext.scopeHash).toBeNull()
+      expect(triageAutomationContext.inputHashes).toContain(automationContext.inputHash)
+      expect(triageAutomationContext.materializations).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ scenarioRevisionId: 'scenario-1-r1', status: 'MATERIALIZED' }),
+          expect.objectContaining({ scenarioRevisionId: 'scenario-2-r1', status: 'MATERIALIZED' }),
+        ]),
+      )
+      await expect(materializeQualityJourneyApprovedScenarios(materializeInput, client)).rejects.toMatchObject({
+        code: 'CONFLICT',
+        message: 'Automator materialization is not active for this journey.',
+      })
+      await client.qualityJourney.update({ where: { id: created.journey.journeyId }, data: { stage: 'CLOSED' } })
+      const closedAutomationContext = await getQualityJourneyAutomationContext(
+        { journeyId: created.journey.journeyId, targetProjectId: 'target-analysis-1' },
+        client,
+      )
+      expect(closedAutomationContext.materializations).toEqual(
+        expect.arrayContaining([expect.objectContaining({ scenarioRevisionId: 'scenario-1-r1' })]),
+      )
     } finally {
       await client.$disconnect()
     }

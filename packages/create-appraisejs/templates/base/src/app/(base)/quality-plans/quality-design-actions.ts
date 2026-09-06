@@ -6,11 +6,8 @@ import { z } from 'zod'
 import { requireActiveProjectForMutation } from '@/lib/active-project'
 import {
   answerQualityRequirementQueries,
-  approveQualityRequirements,
-  approveQualityValidationDesign,
   createQualityAssessment,
   decideQualityAssessment,
-  proposeQualityValidationDesign,
   readQualityAssessment,
   readQualityRequirementGraph,
 } from '@/services/coordinator/quality-design-service'
@@ -32,13 +29,6 @@ import {
 } from '@/services/coordinator/assessment-execution-service'
 import { serviceErrorToActionResponse, unknownErrorToActionResponse, ServiceError } from '@/services/shared/errors'
 import type { ActionResponse } from '@/types/form/actionHandler'
-
-const qualityPlanApprovalSchema = z.object({
-  qualityPlanId: z.string().min(1),
-  revisionId: z.string().min(1),
-  expectedRevisionHash: z.string().startsWith('sha256:'),
-  approvedBy: z.string().trim().min(1).max(200),
-})
 
 const qualityOsDecisionSchema = z.object({
   qualityPlanId: z.string().min(1),
@@ -71,20 +61,6 @@ const requirementQueryAnswersSchema = z.object({
       }),
     )
     .min(1),
-})
-
-const validationProposalSchema = z.object({
-  qualityPlanId: z.string().min(1),
-  revisionId: z.string().min(1),
-  proposal: z.unknown(),
-  idempotencyKey: z.string().trim().min(1).max(200),
-})
-
-const validationDesignApprovalSchema = z.object({
-  qualityPlanId: z.string().min(1),
-  revisionId: z.string().min(1),
-  expectedDesignHash: z.string().startsWith('sha256:'),
-  approvedBy: z.string().trim().min(1).max(200),
 })
 
 const qualityPlanRevisionSchema = {
@@ -202,18 +178,6 @@ async function assertAssessmentScope(assessmentId: string) {
   return packet
 }
 
-export async function approveQualityRequirementsAction(input: unknown): Promise<ActionResponse> {
-  try {
-    const value = qualityPlanApprovalSchema.parse(input)
-    await assertQualityPlanScope(value.qualityPlanId, value.revisionId)
-    await approveQualityRequirements(value)
-    revalidateQualityPaths(value.qualityPlanId)
-    return { status: 200, success: true }
-  } catch (error) {
-    return actionError(error, 'Quality Plan requirement approval failed')
-  }
-}
-
 export async function decideRequirementAnalysisAction(input: unknown): Promise<ActionResponse> {
   try {
     const value = qualityOsDecisionSchema.parse(input)
@@ -281,30 +245,6 @@ export async function answerQualityRequirementQueriesAction(input: unknown): Pro
     return { status: 200, success: true }
   } catch (error) {
     return actionError(error, 'Requirement query answer failed')
-  }
-}
-
-export async function proposeQualityValidationDesignAction(input: unknown): Promise<ActionResponse> {
-  try {
-    const value = validationProposalSchema.parse(input)
-    await assertQualityPlanScope(value.qualityPlanId, value.revisionId)
-    await proposeQualityValidationDesign({ ...value, proposal: value.proposal })
-    revalidateQualityPaths(value.qualityPlanId)
-    return { status: 200, success: true }
-  } catch (error) {
-    return actionError(error, 'Validation scenario proposal failed')
-  }
-}
-
-export async function approveQualityValidationDesignAction(input: unknown): Promise<ActionResponse> {
-  try {
-    const value = validationDesignApprovalSchema.parse(input)
-    await assertQualityPlanScope(value.qualityPlanId, value.revisionId)
-    await approveQualityValidationDesign(value)
-    revalidateQualityPaths(value.qualityPlanId)
-    return { status: 200, success: true }
-  } catch (error) {
-    return actionError(error, 'Validation scenario approval failed')
   }
 }
 

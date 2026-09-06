@@ -40,7 +40,13 @@ describe('ScenarioPortfolioReview', () => {
           layoutHash: 'sha256:ddd',
           coverageRationale: 'Checkout coverage includes the ordinary and alternate payment paths.',
           graphJson: JSON.stringify({
-            edges: [],
+            edges: [
+              {
+                sourceScenarioRevisionId: 'scenario-r1',
+                targetScenarioRevisionId: 'scenario-r2',
+                relation: 'precedes',
+              },
+            ],
             sharedSetup: [
               { setupId: 'setup-1', label: 'Signed-in shopper', scenarioRevisionIds: ['scenario-r1', 'scenario-r2'] },
             ],
@@ -56,16 +62,30 @@ describe('ScenarioPortfolioReview', () => {
               layoutJson: JSON.stringify({ x: 10, y: 20 }),
               decisions: [],
             },
+            {
+              stableScenarioId: 'scenario-2',
+              scenarioRevisionId: 'scenario-r2',
+              behavioralIntentJson: JSON.stringify({ title: 'Payment confirmation' }),
+              enrichmentJson: '{}',
+              layoutJson: JSON.stringify({ x: 40, y: 20 }),
+              decisions: [],
+            },
           ],
         }}
       />,
     )
     expect(screen.getByTestId('scenario-readonly-flow')).toBeInTheDocument()
     expect(screen.getByTestId('flow')).toBeInTheDocument()
-    expect(screen.getByText('Checkout')).toBeInTheDocument()
+    expect(screen.getAllByText('Checkout')).toHaveLength(2)
     expect(screen.getByText('Requirements: REQ-1')).toBeInTheDocument()
     expect(screen.getByText(/Coverage rationale:/)).toBeInTheDocument()
     expect(screen.getByText('Signed-in shopper')).toBeInTheDocument()
+    const graph = screen.getByRole('region', { name: /Visual scenario dependency graph/ })
+    graph.focus()
+    expect(graph).toHaveFocus()
+    expect(screen.getByLabelText('Linear scenario dependency view')).toHaveTextContent('Checkout')
+    expect(screen.getByLabelText('Linear scenario dependency view')).toHaveTextContent('Payment confirmation')
+    expect(screen.getByLabelText('Linear scenario dependency view')).toHaveTextContent('precedes')
   })
   it('uses exact server actions for review decisions and focused comments', async () => {
     render(

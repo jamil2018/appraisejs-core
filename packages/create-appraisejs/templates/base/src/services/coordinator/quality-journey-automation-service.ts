@@ -1544,6 +1544,17 @@ export async function getQualityJourneyAutomationContext(
   input: { journeyId: string; targetProjectId: string },
   client: PrismaClient = prisma,
 ) {
+  const journey = await client.qualityJourney.findFirst({
+    where: { id: input.journeyId, targetProjectId: input.targetProjectId },
+    select: { id: true, stage: true },
+  })
+  if (!journey) throw new ServiceError('Quality Journey not found.', 'NOT_FOUND')
+
+  // Once the journey has left AUTOMATION, this is a receipt reader. It must
+  // not recompile current resource/catalog authority or use a later stage to
+  // authorize materialization. The receipts are immutable historical context.
+  if (journey.stage !== 'AUTOMATION') return readHistoricalAutomationContext(input, client)
+
   const approved = await approvedInput(input.journeyId, input.targetProjectId, client)
   const compiled = await scope(approved, client)
   const materializations = await client.qualityJourneyAutomationMaterialization.findMany({
@@ -1553,6 +1564,7 @@ export async function getQualityJourneyAutomationContext(
   })
   return {
     inputHash: compiled.inputHash,
+    inputHashes: [compiled.inputHash],
     scopeHash: compiled.scopeHash,
     remediation: approved.remediation ?? null,
     portfolioRevisionId: approved.portfolio.artifactRevisionId,
@@ -1560,6 +1572,33 @@ export async function getQualityJourneyAutomationContext(
     materializations: materializations.filter(
       materialization => materialization.status !== 'MATERIALIZED' || materialization.preparedCapsule,
     ),
+    failedMaterializations: materializations.filter(materialization => materialization.status === 'FAILED'),
+  }
+}
+
+async function readHistoricalAutomationContext(
+  input: { journeyId: string; targetProjectId: string },
+  client: PrismaClient,
+) {
+  const materializations = await client.qualityJourneyAutomationMaterialization.findMany({
+    where: { journeyId: input.journeyId, targetProjectId: input.targetProjectId },
+    include: { preparedCapsule: true },
+    orderBy: [{ createdAt: 'asc' }, { scenarioRevisionId: 'asc' }],
+  })
+  const inputHashes = [...new Set(materializations.map(materialization => materialization.inputHash))]
+  const visibleMaterializations = materializations.filter(
+    materialization => materialization.status !== 'MATERIALIZED' || materialization.preparedCapsule,
+  )
+  return {
+    inputHash: inputHashes.at(-1) ?? 'historical:no-materialization-receipt',
+    inputHashes,
+    scopeHash: null,
+    remediation: null,
+    portfolioRevisionId: materializations.at(-1)?.portfolioRevisionId ?? null,
+    scenarioRevisionIds: [
+      ...new Set(materializations.map(materialization => materialization.scenarioRevisionId)),
+    ].sort(),
+    materializations: visibleMaterializations,
     failedMaterializations: materializations.filter(materialization => materialization.status === 'FAILED'),
   }
 }

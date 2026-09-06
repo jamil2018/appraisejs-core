@@ -7,12 +7,13 @@ import PageHeader from '@/components/typography/page-header'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
 import { requireActiveProject } from '@/lib/active-project'
 import { listQualityJourneyArtifactLibrary } from '@/services/coordinator/quality-journey-artifact-library-service'
 
 type PageProps = {
   params: Promise<{ journeyId: string }>
-  searchParams?: Promise<{ project?: string; kind?: string; offset?: string }>
+  searchParams?: Promise<{ project?: string; kind?: string; query?: string; offset?: string }>
 }
 
 export const metadata: Metadata = { title: 'Journey Artifact Library' }
@@ -43,6 +44,7 @@ export default async function QualityJourneyArtifactLibraryPage({ params, search
     journeyId,
     targetProjectId: project.id,
     kind: query?.kind,
+    query: query?.query,
     offset,
   })
   const hasPrevious = library.offset > 0
@@ -79,39 +81,74 @@ export default async function QualityJourneyArtifactLibraryPage({ params, search
         </div>
         <div className="flex flex-wrap gap-2" aria-label="Artifact kind filters">
           <Button asChild size="sm" variant={query?.kind ? 'outline' : 'secondary'}>
-            <Link href={href(journeyId, project.id, {})}>All ({library.total})</Link>
+            <Link href={href(journeyId, project.id, { query: query?.query })}>All ({library.total})</Link>
           </Button>
           {library.kinds.map(kind => (
             <Button asChild key={kind} size="sm" variant={query?.kind === kind ? 'secondary' : 'outline'}>
-              <Link href={href(journeyId, project.id, { kind })}>{label(kind)}</Link>
+              <Link href={href(journeyId, project.id, { kind, query: query?.query })}>{label(kind)}</Link>
             </Button>
           ))}
         </div>
+        <form className="flex flex-col gap-2 sm:flex-row sm:items-end" method="get">
+          <input name="project" type="hidden" value={project.id} />
+          {query?.kind ? <input name="kind" type="hidden" value={query.kind} /> : null}
+          <label className="grid gap-1 text-sm font-medium" htmlFor="artifact-library-query">
+            Search artifacts
+            <Input
+              defaultValue={query?.query}
+              id="artifact-library-query"
+              maxLength={200}
+              name="query"
+              placeholder="Title, ID, revision, or hash"
+              type="search"
+            />
+          </label>
+          <Button type="submit">Search</Button>
+        </form>
       </header>
 
       <ArtifactEntries entries={library.entries} journeyId={journeyId} projectId={project.id} />
 
       <nav className="flex items-center justify-between gap-3" aria-label="Artifact library pagination">
-        <Button asChild disabled={!hasPrevious} variant="outline">
-          <Link
-            href={href(journeyId, project.id, {
-              kind: query?.kind,
-              offset: String(Math.max(0, offset - library.limit)),
-            })}
-          >
+        {hasPrevious ? (
+          <Button asChild variant="outline">
+            <Link
+              href={href(journeyId, project.id, {
+                kind: query?.kind,
+                query: query?.query,
+                offset: String(Math.max(0, offset - library.limit)),
+              })}
+            >
+              Previous
+            </Link>
+          </Button>
+        ) : (
+          <Button disabled type="button" variant="outline">
             Previous
-          </Link>
-        </Button>
+          </Button>
+        )}
         <p className="text-sm text-muted-foreground">
           {library.total
             ? `${library.offset + 1}-${library.offset + library.entries.length} of ${library.total}`
             : '0 artifacts'}
         </p>
-        <Button asChild disabled={!hasNext} variant="outline">
-          <Link href={href(journeyId, project.id, { kind: query?.kind, offset: String(offset + library.limit) })}>
+        {hasNext ? (
+          <Button asChild variant="outline">
+            <Link
+              href={href(journeyId, project.id, {
+                kind: query?.kind,
+                query: query?.query,
+                offset: String(offset + library.limit),
+              })}
+            >
+              Next
+            </Link>
+          </Button>
+        ) : (
+          <Button disabled type="button" variant="outline">
             Next
-          </Link>
-        </Button>
+          </Button>
+        )}
       </nav>
     </main>
   )

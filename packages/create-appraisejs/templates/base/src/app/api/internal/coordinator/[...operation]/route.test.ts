@@ -1301,3 +1301,25 @@ describe('coordinator locator_ensure route', () => {
     })
   })
 })
+
+describe('Phase 10 compatibility control cutover', () => {
+  it.each(['requirements/approve', 'validation-design/approve', 'validation-design/proposals'])(
+    'rejects retired %s even with an apparent approval payload',
+    async suffix => {
+      const response = await POST(
+        request(
+          {
+            revisionId: 'revision',
+            approvedBy: 'forged-user',
+            expectedDesignHash: `sha256:${'a'.repeat(64)}`,
+            idempotencyKey: 'retry',
+          },
+          '',
+        ),
+        { params: Promise.resolve({ operation: ['quality', 'plans', 'history', ...suffix.split('/')] }) } as never,
+      )
+      expect(response.status).toBe(410)
+      expect(JSON.stringify(await response.json())).toContain('QUALITY_JOURNEY_LEGACY_CONTROL_RETIRED')
+    },
+  )
+})

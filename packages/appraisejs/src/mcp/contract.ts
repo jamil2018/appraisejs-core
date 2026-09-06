@@ -88,6 +88,7 @@ export const canonicalMcpToolAnnotations = Object.freeze({
   quality_journey_library_list: readOnly,
   quality_journey_artifact_get: readOnly,
   quality_journey_export: readOnly,
+  quality_journey_compatibility_read: readOnly,
   quality_journey_triage_evidence_read: readOnly,
   quality_journey_triage_prepare: durableLifecycleMutation,
   quality_journey_triage_submit: durableLifecycleMutation,

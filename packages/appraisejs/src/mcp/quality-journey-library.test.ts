@@ -24,11 +24,12 @@ it('exposes scoped read-only history without closure decision authority', async 
     target: 'target one',
     journeyId: 'journey-1',
     kind: 'JOURNEY_CLOSURE',
+    query: 'closure receipt',
     offset: 10,
     limit: 20,
   })
   expect(request).toHaveBeenLastCalledWith(
-    'quality/journeys/journey-1/library?target=target+one&kind=JOURNEY_CLOSURE&offset=10&limit=20',
+    'quality/journeys/journey-1/library?target=target+one&kind=JOURNEY_CLOSURE&query=closure+receipt&offset=10&limit=20',
   )
   await handlers.get('quality_journey_artifact_get')!({
     target: 'target',
@@ -57,4 +58,19 @@ it('accepts library identities formed from maximum length report and finding IDs
   }
   expect(z.object(schema!).parse(input)).toEqual(input)
   expect(z.object(schema!).safeParse({ ...input, entryId: 'x'.repeat(513) }).success).toBe(false)
+})
+
+it('bounds and trims library metadata queries', () => {
+  let schema: z.ZodRawShape | undefined
+  registerQualityJourneyLibraryOperations({
+    server: {
+      registerTool: (name: string, config: { inputSchema: z.ZodRawShape }) => {
+        if (name === 'quality_journey_library_list') schema = config.inputSchema
+      },
+    },
+    api: { request: vi.fn() },
+  } as unknown as McpRegistryContext)
+  const input = { target: 'target', journeyId: 'journey', query: '  metadata  ' }
+  expect(z.object(schema!).parse(input)).toEqual({ ...input, query: 'metadata' })
+  expect(z.object(schema!).safeParse({ ...input, query: 'x'.repeat(201) }).success).toBe(false)
 })

@@ -95,3 +95,7 @@ The UI shows the durable request/grant summary only to the exact validated local
 Only AppraiseJS services transition Quality Plan, Assessment, execution, evidence, and decision state. Chat messages describe intent but are not approval evidence. If source, requirements, validation, subject, or evidence identities change, create or review the newly derived immutable revision rather than mutating a historical receipt.
 
 Use the Quality Plans and Assessments surfaces for human review. The exact available MCP operations, resources, and safety annotations are generated from the executable contract; do not infer unavailable operations from historical documentation.
+
+## Quality Journey experience cutover
+
+Use Quality Journeys for role-based orchestration and exact human gates. The [compatibility projection](quality-journey-experience-cutover.md) retains read-only historical identities without converting Quality OS approvals into Journey authority. Canonical Quality OS domain services remain supported; superseded public approval aliases are retired, and public source intake cannot synthesize an approved analysis.

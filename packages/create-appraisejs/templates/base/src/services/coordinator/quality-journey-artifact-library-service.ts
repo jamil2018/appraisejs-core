@@ -858,7 +858,7 @@ async function collect(
 
 /** SQL projects only metadata and paginates the complete cross-source library. */
 export async function listQualityJourneyArtifactLibrary(
-  input: { journeyId: string; targetProjectId: string; kind?: string; offset?: number; limit?: number },
+  input: { journeyId: string; targetProjectId: string; kind?: string; query?: string; offset?: number; limit?: number },
   client: Db = prisma,
 ): Promise<QualityJourneyArtifactLibrary> {
   const journey = await scopedJourney(input, client)
@@ -866,12 +866,20 @@ export async function listQualityJourneyArtifactLibrary(
   const limit = normalizePage(input.limit, defaultLimit, maxLimit) || defaultLimit
   const sql = qualityJourneyArtifactMetadataSql(input)
   const kind = input.kind ?? null
+  const query = input.query?.trim().slice(0, 200) || null
+  const filter = Prisma.sql`WHERE (${kind} IS NULL OR kind=${kind})
+    AND (${query} IS NULL
+      OR instr(lower(title), lower(${query})) > 0
+      OR instr(lower(entryId), lower(${query})) > 0
+      OR instr(lower(artifactId), lower(${query})) > 0
+      OR instr(lower(COALESCE(revisionId, '')), lower(${query})) > 0
+      OR instr(lower(COALESCE(contentHash, '')), lower(${query})) > 0)`
   const [rows, counts] = await Promise.all([
     client.$queryRaw<JourneyArtifactMetadata[]>(
-      Prisma.sql`WITH metadata AS (${sql}) SELECT * FROM metadata WHERE (${kind} IS NULL OR kind=${kind}) ORDER BY createdAt DESC, entryId ASC LIMIT ${limit} OFFSET ${offset}`,
+      Prisma.sql`WITH metadata AS (${sql}) SELECT * FROM metadata ${filter} ORDER BY createdAt DESC, entryId ASC LIMIT ${limit} OFFSET ${offset}`,
     ),
     client.$queryRaw<Array<{ kind: string; total: bigint }>>(
-      Prisma.sql`WITH metadata AS (${sql}) SELECT kind, COUNT(*) AS total FROM metadata GROUP BY kind`,
+      Prisma.sql`WITH metadata AS (${sql}) SELECT kind, COUNT(*) AS total FROM metadata ${filter} GROUP BY kind`,
     ),
   ])
   return {
@@ -879,7 +887,7 @@ export async function listQualityJourneyArtifactLibrary(
     offset,
     limit,
     kinds: counts.map(item => item.kind).sort(),
-    total: counts.filter(item => !kind || item.kind === kind).reduce((sum, item) => sum + Number(item.total), 0),
+    total: counts.reduce((sum, item) => sum + Number(item.total), 0),
     entries: sortEntries(
       rows.map(({ source, recordId, createdAt, ...row }) => ({
         ...row,

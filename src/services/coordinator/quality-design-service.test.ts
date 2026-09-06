@@ -20,13 +20,20 @@ import {
   proposeQualityValidationDesign,
   readQualityAssessment,
   readQualityRequirementGraph,
-  submitQualityRequirementSource,
+  submitQualityRequirementSource as submitSource,
 } from './quality-design-service'
 
 type FakeRecord = Record<string, unknown> & { id: string }
 type FakeWhere = Record<string, unknown>
 type FakeWriteArgs<TData extends Record<string, unknown> = Record<string, unknown>> = { data: TData }
 type FakeWhereArgs<TWhere extends FakeWhere = FakeWhere> = { where: TWhere }
+// Historical domain fixtures deliberately retain the pre-cutover source projection.
+// The production service defaults to explicit analysis; public callers cannot select this mode.
+const submitQualityRequirementSource = (
+  input: Parameters<typeof submitSource>[0],
+  client: Parameters<typeof submitSource>[1],
+) => submitSource({ requireExplicitAnalysis: false, ...input }, client)
+
 type QualityDesignClient = NonNullable<Parameters<typeof submitQualityRequirementSource>[1]>
 type FakeUpdateArgs<
   TWhere extends FakeWhere = FakeWhere,
@@ -564,6 +571,36 @@ describe('quality design coordinator service', () => {
     ).rejects.toMatchObject({ code: 'VALIDATION' })
     expect(client.evaluationSubjectRevision.create).not.toHaveBeenCalled()
     expect(client.assessment.create).not.toHaveBeenCalled()
+  })
+
+  it('refuses to promote legacy source replay into public analysis authority', async () => {
+    const input = {
+      target: 'target-1',
+      idempotencyKey: 'legacy-replay',
+      source: { title: 'Legacy', requirements: [{ text: 'Export reports.' }] },
+    }
+    await submitQualityRequirementSource(input, client)
+    const writes = vi.mocked(client.requirementAnalysisRevision.create).mock.calls.length
+    await expect(
+      submitQualityRequirementSource({ ...input, requireExplicitAnalysis: true }, client),
+    ).rejects.toMatchObject({ code: 'CONFLICT' })
+    expect(client.requirementAnalysisRevision.create).toHaveBeenCalledTimes(writes)
+  })
+
+  it('records public source snapshots without synthesizing approved analysis or obligations', async () => {
+    const result = await submitQualityRequirementSource(
+      {
+        target: 'target-1',
+        idempotencyKey: 'explicit-analysis',
+        requireExplicitAnalysis: true,
+        source: { title: 'Explicit review', requirements: [{ text: 'Checkout is observable.' }] },
+      },
+      client,
+    )
+    expect(result.revision.status).toBe('DRAFT')
+    expect(client.requirementSnapshot.create).toHaveBeenCalled()
+    expect(client.requirementAnalysisRevision.create).not.toHaveBeenCalled()
+    expect(client.qualityObligationRevision.create).not.toHaveBeenCalled()
   })
 
   it('returns lifecycle guidance for the current revision state after requirement approval', async () => {

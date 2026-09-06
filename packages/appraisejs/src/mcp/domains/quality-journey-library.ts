@@ -13,16 +13,18 @@ export function registerQualityJourneyLibraryOperations({ server, api }: McpRegi
       inputSchema: {
         ...scope,
         kind: z.string().min(1).optional(),
+        query: z.string().trim().max(200).optional(),
         offset: z.number().int().min(0).optional(),
         limit: z.number().int().min(1).max(100).optional(),
       },
     },
-    async ({ target, journeyId, kind, offset, limit }) => {
-      const query = new URLSearchParams({ target })
-      if (kind !== undefined) query.set('kind', kind)
-      if (offset !== undefined) query.set('offset', String(offset))
-      if (limit !== undefined) query.set('limit', String(limit))
-      return text(await api.request(`quality/journeys/${encodeURIComponent(journeyId)}/library?${query}`))
+    async ({ target, journeyId, kind, query, offset, limit }) => {
+      const parameters = new URLSearchParams({ target })
+      if (kind !== undefined) parameters.set('kind', kind)
+      if (query !== undefined) parameters.set('query', query)
+      if (offset !== undefined) parameters.set('offset', String(offset))
+      if (limit !== undefined) parameters.set('limit', String(limit))
+      return text(await api.request(`quality/journeys/${encodeURIComponent(journeyId)}/library?${parameters}`))
     },
   )
   server.registerTool(

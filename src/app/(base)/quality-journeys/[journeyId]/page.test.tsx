@@ -24,7 +24,12 @@ vi.mock('@/services/coordinator/quality-journey-closure-service', () => ({
     blockers: [],
   }),
 }))
-vi.mock('@/config/db-config', () => ({ default: { environment: { findMany: vi.fn().mockResolvedValue([]) } } }))
+vi.mock('@/config/db-config', () => ({
+  default: {
+    environment: { findMany: vi.fn().mockResolvedValue([]) },
+    qualityJourneyWorkAttempt: { findMany: vi.fn().mockResolvedValue([]) },
+  },
+}))
 vi.mock('@/services/coordinator/quality-journey-execution-service', () => ({
   getQualityJourneyExecution: vi.fn().mockResolvedValue({ cycles: [], consents: [], proposals: [] }),
 }))
@@ -71,6 +76,7 @@ const journey = (overrides: Record<string, unknown> = {}) => ({
     ...overrides,
   },
   runner: [{ role: 'REQUIREMENT_ANALYZER', stage: 'ANALYSIS_REVIEW', state: 'RUNNABLE', workItemId: 'work-1' }],
+  workItems: [],
   blockers: [],
   events: [],
 })
@@ -160,10 +166,22 @@ describe('QualityJourneyDetailPage', () => {
     expect(screen.getByText('The assigned Requirement Analyzer has not produced a charter yet.')).toBeInTheDocument()
   })
 
-  it('counts only prepared capsules as materialized and keeps failed Automator receipts visible', async () => {
-    mocks.getJourney.mockResolvedValue(journey({ stage: 'AUTOMATION', unresolvedQuestionIds: [] }))
+  it('keeps the report-review human gate visible in the sidebar', async () => {
+    mocks.getJourney.mockResolvedValue(journey({ stage: 'REPORT_REVIEW', unresolvedQuestionIds: [] }))
+
+    await renderPage()
+
+    expect(
+      screen.getByText('Review the current full report and record the canonical report decision.'),
+    ).toBeInTheDocument()
+    expect(screen.queryByText('No user decision is currently pending.')).not.toBeInTheDocument()
+  })
+
+  it('keeps automation materialization readable after its active stage and excludes failed receipts from prepared counts', async () => {
+    mocks.getJourney.mockResolvedValue(journey({ stage: 'TRIAGE', unresolvedQuestionIds: [] }))
     mocks.getAutomation.mockResolvedValue({
       inputHash: digest('c'),
+      inputHashes: [digest('c')],
       scopeHash: digest('d'),
       portfolioRevisionId: 'portfolio-r1',
       scenarioRevisionIds: ['scenario-1', 'scenario-2'],
@@ -243,6 +261,7 @@ describe('QualityJourneyDetailPage', () => {
     mocks.getJourney.mockResolvedValue(journey({ stage: 'AUTOMATION', unresolvedQuestionIds: [] }))
     mocks.getAutomation.mockResolvedValue({
       inputHash: digest('z'),
+      inputHashes: [digest('z')],
       scopeHash: digest('y'),
       portfolioRevisionId: 'portfolio-r1',
       scenarioRevisionIds: ['scenario-r1'],

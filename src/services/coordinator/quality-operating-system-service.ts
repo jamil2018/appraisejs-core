@@ -492,6 +492,11 @@ export async function proposeValidationDesign(
   ])
   if (revision.targetProjectId !== input.targetProjectId || analysis.targetProjectId !== input.targetProjectId)
     throw new ServiceError('Validation design crosses target boundaries.', 'CONFLICT')
+  if (analysis.id.startsWith('legacy-analysis:'))
+    throw new ServiceError(
+      'Legacy projected analysis is read-only. Publish and review an explicit successor analysis before designing validation.',
+      'CONFLICT',
+    )
   if (analysis.qualityPlanRevisionId !== revision.id || analysis.decision !== 'APPROVED')
     throw new ServiceError('Validation design requires an approved analysis for this exact plan revision.', 'CONFLICT')
   if (analysis.analysisHash !== input.expectedAnalysisHash)

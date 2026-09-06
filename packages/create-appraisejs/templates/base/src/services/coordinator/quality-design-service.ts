@@ -672,9 +672,10 @@ function requiredAssurance(
 }
 
 export async function submitQualityRequirementSource(
-  input: { target?: string; source: unknown; idempotencyKey: string },
+  input: { target?: string; source: unknown; idempotencyKey: string; requireExplicitAnalysis?: boolean },
   client: PrismaLike = qualityDb,
 ) {
+  const requireExplicitAnalysis = input.requireExplicitAnalysis !== false
   if (!input.target) {
     throw new ServiceError('Quality Plan source submission requires a registered target project.', 'VALIDATION')
   }
@@ -692,10 +693,30 @@ export async function submitQualityRequirementSource(
       validationVersions: { include: { activeGeneration: { include: { publication: true } } } },
     },
   })
-  if (existing) return { idempotent: true, ...revisionPayload(existing) }
+  if (existing) {
+    if (
+      requireExplicitAnalysis &&
+      (await client.requirementAnalysisRevision.findFirst({
+        where: { id: `legacy-analysis:${existing.id}`, qualityPlanRevisionId: existing.id },
+      }))
+    )
+      throw new ServiceError(
+        'This source has compatibility-only analysis. Read its historical record and start a Quality Journey; legacy approvals cannot be upgraded.',
+        'CONFLICT',
+        409,
+      )
+    return { idempotent: true, ...revisionPayload(existing) }
+  }
 
   const created = await client.$transaction(transaction =>
-    createRequirementRevision(transaction as PrismaLike, target.id, source, graph, contentHash),
+    createRequirementRevision(
+      transaction as PrismaLike,
+      target.id,
+      source,
+      graph,
+      contentHash,
+      requireExplicitAnalysis,
+    ),
   )
   return { idempotent: false, ...revisionPayload(created) }
 }
@@ -706,6 +727,7 @@ async function createRequirementRevision(
   source: SourceSpecification,
   graph: unknown,
   contentHash: string,
+  requireExplicitAnalysis = true,
 ) {
   const qualityPlan = await transaction.qualityPlan.create({
     data: { targetProjectId, title: source.title ?? 'Quality Plan', description: source.description },
@@ -723,7 +745,13 @@ async function createRequirementRevision(
       methodologyHash: builtInMethodologyRef.digest,
     },
   })
-  await createRequirementSnapshots(transaction, targetProjectId, revision.id, source.requirements ?? [])
+  await createRequirementSnapshots(
+    transaction,
+    targetProjectId,
+    revision.id,
+    source.requirements ?? [],
+    requireExplicitAnalysis,
+  )
   if (!source.requirements?.length) await createBlockingRequirementQuery(transaction, revision.id)
   return readRevisionOrThrow(transaction, qualityPlan.id, revision.id)
 }
@@ -733,6 +761,7 @@ async function createRequirementSnapshots(
   targetProjectId: string,
   qualityPlanRevisionId: string,
   requirements: NonNullable<SourceSpecification['requirements']>,
+  requireExplicitAnalysis: boolean,
 ) {
   const snapshots: Array<{ id: string; requirement: QualityRequirementInput; index: number }> = []
   for (const [index, requirement] of requirements.entries()) {
@@ -747,7 +776,7 @@ async function createRequirementSnapshots(
     })
     snapshots.push({ id: snapshot.id, requirement, index })
   }
-  if (!snapshots.length) return
+  if (!snapshots.length || requireExplicitAnalysis) return
 
   // The legacy source-submission API still projects simple requirements into
   // obligations. Persist that projection as an already-reviewed immutable

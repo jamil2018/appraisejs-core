@@ -71,3 +71,7 @@ See the repository coordinator API contract for request fields and reconnect/evi
 read-only artifact navigation and export, including closed journeys. Terminal approval and risk acceptance remain
 local Appraise UI decisions. Report submissions may use `residualRisks: []` to explicitly record no remaining risks;
 every nonempty entry requires explicit risk acceptance at closure.
+
+### Journey experience and compatibility
+
+`quality_journey_library_list` supports metadata-only `query` search (maximum 200 characters) before pagination. `quality_journey_compatibility_read` exposes exact historical Quality Plan references as read-only projections without Journey approval authority. Public source submission requires explicit analysis; superseded approval aliases return HTTP 410. Existing exact-revision Quality OS domain contracts remain available.

@@ -400,3 +400,7 @@ Three additive read-only MCP tools expose historical navigation: `quality_journe
 `GET quality/journeys/:journeyId/export`. Library lists support `kind`, `offset`, and `limit` (maximum 100).
 The target reference is resolved by Appraise; the path binds journey and entry. Closure and risk acceptance are
 absent from MCP and generic command submission, preserving the local human review boundary.
+
+## Phase 10 experience and compatibility
+
+Journey UI navigation, Runner and worker progress, review gates, blockers, responsive graph alternatives, and metadata-only artifact search use the same durable records. Historical Quality Plan and validation records have an explicit read-only compatibility projection; no approval is transferred without proven Journey lineage. Superseded public review shortcuts return HTTP 410. See [experience and cutover](quality-journey-experience-cutover.md) for the exact boundary, integrity gate, and rollback procedure.

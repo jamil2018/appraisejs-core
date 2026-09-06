@@ -89,7 +89,8 @@
     "quality:react-doctor": "react-doctor . --project appraise --offline --full",
     "quality:react-doctor:ci": "react-doctor . --project appraise --offline --full --fail-on error",
     "quality:react-doctor:commit": "react-doctor . --project appraise --offline --staged --fail-on error",
-    "quality:pre-commit": "npm run quality:fallow:commit && npm run quality:react-doctor:commit"
+    "quality:pre-commit": "npm run quality:fallow:commit && npm run quality:react-doctor:commit",
+    "release:check:journey-cutover": "node --import tsx scripts/check-quality-journey-integrity.ts && npm run validate:unit -- scripts/lib/quality-journey-integrity.test.ts src/lib/quality-cutover-forbidden-symbols.test.ts"
   },
   "dependencies": {
     "@babel/parser": "^7.29.0",
