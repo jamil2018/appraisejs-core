@@ -137,7 +137,7 @@ function reportReviewKernelState(reportReview: QualityJourney) {
   })
 }
 
-function charter(journeyId: string, cycleId: string, suffix = '1') {
+function charter(journeyId: string, cycleId: string, requirementRevisionId: string, suffix = '1') {
   return {
     schemaVersion: 'appraise.quality-journey/v1' as const,
     charterId: `analysis-charter-${suffix}`,
@@ -145,7 +145,7 @@ function charter(journeyId: string, cycleId: string, suffix = '1') {
     journeyId,
     targetProjectId: 'target-analysis-1',
     cycleId,
-    requirementRevisionId: 'requirement-revision-1',
+    requirementRevisionId,
     objectives: ['Allow checkout.'],
     scope: { included: ['Checkout'], excluded: [] },
     actors: ['Shopper'],
@@ -182,6 +182,9 @@ async function readyAnalyzer(client: PrismaClient) {
     { targetProjectId: 'target-analysis-1', idempotencyKey: 'create-analysis', requirement: { objective: 'Checkout' } },
     client,
   )
+  const requirementRevision = await client.qualityJourneyRevision.findUniqueOrThrow({
+    where: { id: created.journey.activeRevisionIds.journey },
+  })
   await submitDurableQualityJourneyCommand(
     {
       schemaVersion: 'appraise.quality-journey/v1',
@@ -193,7 +196,10 @@ async function readyAnalyzer(client: PrismaClient) {
       expectedStateHash: created.journey.stateHash,
       idempotencyKey: 'submit-requirement',
       inputArtifactRefs: [],
-      payload: { journeyRevisionId: 'requirement-revision-1', requirementHash: digest('b') },
+      payload: {
+        journeyRevisionId: created.journey.activeRevisionIds.journey,
+        requirementHash: requirementRevision.contentHash,
+      },
     },
     client,
   )
@@ -295,7 +301,12 @@ async function completedDiscovery(client: PrismaClient, suffix: string) {
       leaseId: claim.attempt.leaseId,
       ownerToken: claim.ownerToken,
       idempotencyKey: `${suffix}-analysis-submit`,
-      charter: charter(created.journey.journeyId, created.journey.activeCycleId, suffix),
+      charter: charter(
+        created.journey.journeyId,
+        created.journey.activeCycleId,
+        created.journey.activeRevisionIds.journey,
+        suffix,
+      ),
     },
     client,
   )
@@ -529,7 +540,11 @@ describe('Quality Journey Phase 3 through Phase 5 control plane', () => {
           leaseId: claim.attempt.leaseId,
           ownerToken: claim.ownerToken,
           idempotencyKey: 'analysis-submit-1',
-          charter: charter(created.journey.journeyId, created.journey.activeCycleId),
+          charter: charter(
+            created.journey.journeyId,
+            created.journey.activeCycleId,
+            created.journey.activeRevisionIds.journey,
+          ),
         },
         client,
       )
@@ -3135,7 +3150,12 @@ describe('Quality Journey Phase 3 through Phase 5 control plane', () => {
           leaseId: claim.attempt.leaseId,
           ownerToken: claim.ownerToken,
           idempotencyKey: 'answer-head-submit-first',
-          charter: charter(created.journey.journeyId, created.journey.activeCycleId, 'answer-head-first'),
+          charter: charter(
+            created.journey.journeyId,
+            created.journey.activeCycleId,
+            created.journey.activeRevisionIds.journey,
+            'answer-head-first',
+          ),
         },
         client,
       )
@@ -3248,7 +3268,12 @@ describe('Quality Journey Phase 3 through Phase 5 control plane', () => {
           {
             ...successorInput,
             charter: {
-              ...charter(created.journey.journeyId, created.journey.activeCycleId, 'answer-head-historical'),
+              ...charter(
+                created.journey.journeyId,
+                created.journey.activeCycleId,
+                created.journey.activeRevisionIds.journey,
+                'answer-head-historical',
+              ),
               questions: [],
               resolvedQuestionAnswerIds: ['answer-head-1'],
             },
@@ -3260,7 +3285,12 @@ describe('Quality Journey Phase 3 through Phase 5 control plane', () => {
         {
           ...successorInput,
           charter: {
-            ...charter(created.journey.journeyId, created.journey.activeCycleId, 'answer-head-current'),
+            ...charter(
+              created.journey.journeyId,
+              created.journey.activeCycleId,
+              created.journey.activeRevisionIds.journey,
+              'answer-head-current',
+            ),
             questions: [
               {
                 questionId: 'question-shipping',
@@ -3317,7 +3347,12 @@ describe('Quality Journey Phase 3 through Phase 5 control plane', () => {
             leaseId: claim.attempt.leaseId,
             ownerToken: claim.ownerToken,
             idempotencyKey: 'analysis-rollback',
-            charter: charter(created.journey.journeyId, created.journey.activeCycleId, 'rollback'),
+            charter: charter(
+              created.journey.journeyId,
+              created.journey.activeCycleId,
+              created.journey.activeRevisionIds.journey,
+              'rollback',
+            ),
           },
           client,
         ),
@@ -3343,7 +3378,12 @@ describe('Quality Journey Phase 3 through Phase 5 control plane', () => {
           leaseId: claim.attempt.leaseId,
           ownerToken: claim.ownerToken,
           idempotencyKey: 'analysis-review-hash-submit',
-          charter: charter(created.journey.journeyId, created.journey.activeCycleId, 'review-hash'),
+          charter: charter(
+            created.journey.journeyId,
+            created.journey.activeCycleId,
+            created.journey.activeRevisionIds.journey,
+            'review-hash',
+          ),
         },
         client,
       )
@@ -3498,7 +3538,12 @@ describe('Quality Journey Phase 3 through Phase 5 control plane', () => {
           leaseId: claim.attempt.leaseId,
           ownerToken: claim.ownerToken,
           idempotencyKey: 'analysis-submit-2',
-          charter: charter(created.journey.journeyId, created.journey.activeCycleId, '2'),
+          charter: charter(
+            created.journey.journeyId,
+            created.journey.activeCycleId,
+            created.journey.activeRevisionIds.journey,
+            '2',
+          ),
         },
         client,
       )
@@ -3555,7 +3600,12 @@ describe('Quality Journey Phase 3 through Phase 5 control plane', () => {
           leaseId: claim.attempt.leaseId,
           ownerToken: claim.ownerToken,
           idempotencyKey: 'analysis-successor-first',
-          charter: charter(created.journey.journeyId, created.journey.activeCycleId, 'first'),
+          charter: charter(
+            created.journey.journeyId,
+            created.journey.activeCycleId,
+            created.journey.activeRevisionIds.journey,
+            'first',
+          ),
         },
         client,
       )
@@ -3751,7 +3801,12 @@ describe('Quality Journey Phase 3 through Phase 5 control plane', () => {
         client,
       )
       const secondCharter = {
-        ...charter(created.journey.journeyId, created.journey.activeCycleId, 'second'),
+        ...charter(
+          created.journey.journeyId,
+          created.journey.activeCycleId,
+          created.journey.activeRevisionIds.journey,
+          'second',
+        ),
         questions: [],
         resolvedQuestionAnswerIds: [firstAnswer.answer.answerId],
       }
@@ -3848,7 +3903,15 @@ describe('Quality Journey Phase 3 through Phase 5 control plane', () => {
           ownerToken: thirdClaim.ownerToken,
           idempotencyKey: 'analysis-successor-third',
           predecessorAnalysisRevisionId: second.analysisRevision.id,
-          charter: { ...charter(created.journey.journeyId, created.journey.activeCycleId, 'third'), questions: [] },
+          charter: {
+            ...charter(
+              created.journey.journeyId,
+              created.journey.activeCycleId,
+              created.journey.activeRevisionIds.journey,
+              'third',
+            ),
+            questions: [],
+          },
         },
         client,
       )

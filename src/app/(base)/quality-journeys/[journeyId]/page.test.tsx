@@ -28,6 +28,7 @@ vi.mock('@/config/db-config', () => ({
   default: {
     environment: { findMany: vi.fn().mockResolvedValue([]) },
     qualityJourneyWorkAttempt: { findMany: vi.fn().mockResolvedValue([]) },
+    qualityJourneyCoordinatorHandoff: { findFirst: vi.fn().mockResolvedValue(null) },
   },
 }))
 vi.mock('@/services/coordinator/quality-journey-execution-service', () => ({
