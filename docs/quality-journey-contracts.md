@@ -26,7 +26,8 @@ returns a contextual bootstrap prompt containing a short-lived single-use ticket
 prompt hashes. Launch arguments are server-resolved (`codex app <registered-workspace>`); the browser cannot provide a
 command or path. `quality_journey_handoff_inspect` exposes safe state and `quality_journey_handoff_redeem` atomically
 connects an exact unexpired ticket. Tickets, prompts, bearer tokens, leases, and credentials are absent from public
-projections and exports.
+projections and exports. Preparing a replacement atomically supersedes every older unredeemed ticket for the same
+Journey and target, so a copied bootstrap prompt cannot remain a second live connection path.
 
 The executable Quality Journey foundation is in `src/lib/quality-journey/`:
 
