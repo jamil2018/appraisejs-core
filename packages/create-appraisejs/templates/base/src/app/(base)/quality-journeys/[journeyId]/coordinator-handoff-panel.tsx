@@ -49,11 +49,22 @@ async function copyCoordinatorPrompt(value: string) {
   toast({ title: 'Coordinator prompt copied', description: 'Paste it into the Codex task opened for this project.' })
 }
 
-function launchToast(response: Awaited<ReturnType<typeof launchQualityJourneyHandoffAction>>) {
+function launchToast(
+  response: Awaited<ReturnType<typeof launchQualityJourneyHandoffAction>>,
+  copied: boolean,
+  status: string,
+) {
+  if (response.success && status === 'LAUNCHING')
+    return toast({
+      title: 'Codex is opening',
+      description: 'Another launch request is still in progress. Use the coordinator prompt when Codex appears.',
+    })
   return response.success
     ? toast({
         title: 'Codex opened',
-        description: 'The coordinator prompt is copied. Paste it into a new Codex task to connect this Journey.',
+        description: copied
+          ? 'The coordinator prompt is copied. Paste it into a new Codex task to connect this Journey.'
+          : 'Copy the visible coordinator prompt into the new Codex task to connect this Journey.',
       })
     : toast({
         title: 'Codex is not ready',
@@ -70,16 +81,19 @@ async function executeHandoff(journeyId: string, update: (state: Partial<Handoff
     return
   }
   update({ ...prepared, status: 'PREPARED' })
+  let copied = false
   try {
     await copyCoordinatorPrompt(prepared.prompt)
+    copied = true
     update({ copied: true })
   } catch {
     // Clipboard permission is optional; the visible copy control remains available.
   }
   const launched = await launchQualityJourneyHandoffAction({ journeyId, handoffId: prepared.handoffId })
   const launchData = actionData(launched)
-  update({ status: typeof launchData?.status === 'string' ? launchData.status : 'FAILED' })
-  launchToast(launched)
+  const launchStatus = typeof launchData?.status === 'string' ? launchData.status : 'FAILED'
+  update({ status: launchStatus })
+  launchToast(launched, copied, launchStatus)
 }
 
 function LaunchButtonLabel({ isPending, hasHandoff }: { isPending: boolean; hasHandoff: boolean }) {

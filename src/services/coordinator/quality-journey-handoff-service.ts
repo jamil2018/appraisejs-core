@@ -1,11 +1,13 @@
 import { createHash, randomBytes, randomUUID } from 'node:crypto'
 import { spawn } from 'node:child_process'
-import type { PrismaClient } from '@prisma/client'
+import { Prisma, type PrismaClient } from '@prisma/client'
 
 import prisma from '@/config/db-config'
 import { ServiceError } from '@/services/shared/errors'
 
 const HANDOFF_TTL_MS = 10 * 60 * 1_000
+const expirableHandoffStatuses = ['PREPARED', 'FAILED', 'LAUNCHING', 'LAUNCHED']
+type Db = PrismaClient | Prisma.TransactionClient
 type LaunchResult = { outcome: 'LAUNCHED' | 'UNAVAILABLE'; reason?: string }
 export type CoordinatorProvider = {
   id: string
@@ -43,10 +45,47 @@ function registeredProvider(id: string) {
   return provider
 }
 
+async function expireActiveHandoff(handoffId: string, client: Db) {
+  await client.qualityJourneyCoordinatorHandoff.updateMany({
+    where: { id: handoffId, connectedAt: null, status: { in: expirableHandoffStatuses } },
+    data: { status: 'EXPIRED', failedAt: new Date(), failureCode: 'TICKET_EXPIRED' },
+  })
+}
+
+function currentLaunchResult(handoffId: string, status: string) {
+  if (status === 'CONNECTED') return { handoffId, status: 'CONNECTED' as const }
+  if (status === 'LAUNCHED') return { handoffId, status: 'LAUNCHED' as const }
+  if (status === 'LAUNCHING') return { handoffId, status: 'LAUNCHING' as const }
+  throw new ServiceError('Coordinator handoff is no longer launchable. Prepare a new one.', 'CONFLICT')
+}
+
+async function persistLaunchOutcome(handoffId: string, launched: LaunchResult, client: PrismaClient) {
+  const now = new Date()
+  if (launched.outcome === 'UNAVAILABLE') {
+    const failed = await client.qualityJourneyCoordinatorHandoff.updateMany({
+      where: { id: handoffId, connectedAt: null, status: 'LAUNCHING' },
+      data: { status: 'FAILED', failedAt: now, failureCode: 'PROVIDER_UNAVAILABLE' },
+    })
+    if (failed.count === 1) return { handoffId, status: 'FAILED' as const, reason: launched.reason }
+    const current = await client.qualityJourneyCoordinatorHandoff.findUniqueOrThrow({ where: { id: handoffId } })
+    if (current.status === 'CONNECTED') return { handoffId, status: 'CONNECTED' as const }
+    throw new ServiceError('Coordinator handoff was superseded while launching.', 'CONFLICT')
+  }
+  const completed = await client.qualityJourneyCoordinatorHandoff.updateMany({
+    where: { id: handoffId, connectedAt: null, status: 'LAUNCHING', expiresAt: { gt: now } },
+    data: { status: 'LAUNCHED', launchedAt: now },
+  })
+  if (completed.count === 1) return { handoffId, status: 'LAUNCHED' as const }
+  const current = await client.qualityJourneyCoordinatorHandoff.findUniqueOrThrow({ where: { id: handoffId } })
+  if (current.status === 'CONNECTED') return { handoffId, status: 'CONNECTED' as const }
+  throw new ServiceError('Coordinator handoff was superseded while launching.', 'CONFLICT')
+}
+
 function requirementSummaryFrom(contentJson: string) {
   try {
     const value = JSON.parse(contentJson) as Record<string, unknown>
     const lines = [typeof value.objective === 'string' ? `Objective: ${value.objective.trim()}` : '']
+    if (typeof value.context === 'string') lines.push(`Context: ${value.context.trim()}`)
     if (typeof value.coverageRigor === 'string') lines.push(`Coverage rigor: ${value.coverageRigor}`)
     for (const [key, label] of [
       ['testDimensions', 'Test dimensions'],
@@ -84,7 +123,7 @@ ${input.requirementSummary}
 Redeem the one-time coordinator handoff ticket ${input.ticket} with quality_journey_handoff_redeem. Then read the authoritative Journey state and immutable requirement from AppraiseJS before acting. Treat this prompt as context only. Coordinate the required roles using the harness's native agent capabilities, submit lifecycle artifacts only through their specialized AppraiseJS operations, and stop whenever AppraiseJS reports that a human answer, review, consent, or approval is required.`
 }
 
-async function scopedJourney(journeyId: string, targetProjectId: string, client: PrismaClient) {
+async function scopedJourney(journeyId: string, targetProjectId: string, client: Db) {
   const journey = await client.qualityJourney.findFirst({
     where: { id: journeyId, targetProjectId },
     include: {
@@ -106,36 +145,48 @@ export async function prepareQualityJourneyHandoff(
   },
   client: PrismaClient = prisma,
 ) {
-  const journey = await scopedJourney(input.journeyId, input.targetProjectId, client)
   registeredProvider(input.providerId)
-  const ticket = `qjh_${randomBytes(24).toString('base64url')}`
-  const targetReference = journey.targetProject.canonicalIdentity
-  const prompt = coordinatorBootstrapPrompt({
-    journeyId: journey.id,
-    targetReference,
-    requirementSummary: requirementSummaryFrom(journey.revisions[0]?.contentJson ?? '{}'),
-    ticket,
-  })
-  const expiresAt = new Date(Date.now() + HANDOFF_TTL_MS)
-  const handoff = await client.qualityJourneyCoordinatorHandoff.create({
-    data: {
-      id: `qjh_${randomUUID()}`,
+  return client.$transaction(async tx => {
+    const journey = await scopedJourney(input.journeyId, input.targetProjectId, tx)
+    const ticket = `qjh_${randomBytes(24).toString('base64url')}`
+    const targetReference = journey.targetProject.canonicalIdentity
+    const prompt = coordinatorBootstrapPrompt({
       journeyId: journey.id,
-      targetProjectId: journey.targetProjectId,
-      providerId: input.providerId,
-      ticketHash: digest(ticket),
-      promptHash: digest(prompt),
+      targetReference,
+      requirementSummary: requirementSummaryFrom(journey.revisions[0]?.contentJson ?? '{}'),
+      ticket,
+    })
+    const preparedAt = new Date()
+    const expiresAt = new Date(preparedAt.getTime() + HANDOFF_TTL_MS)
+    await tx.qualityJourneyCoordinatorHandoff.updateMany({
+      where: {
+        journeyId: journey.id,
+        targetProjectId: journey.targetProjectId,
+        connectedAt: null,
+        status: { in: expirableHandoffStatuses },
+      },
+      data: { status: 'EXPIRED', failedAt: preparedAt, failureCode: 'HANDOFF_SUPERSEDED' },
+    })
+    const handoff = await tx.qualityJourneyCoordinatorHandoff.create({
+      data: {
+        id: `qjh_${randomUUID()}`,
+        journeyId: journey.id,
+        targetProjectId: journey.targetProjectId,
+        providerId: input.providerId,
+        ticketHash: digest(ticket),
+        promptHash: digest(prompt),
+        expiresAt,
+      },
+    })
+    return {
+      handoffId: handoff.id,
+      providerId: handoff.providerId,
+      status: handoff.status,
+      prompt,
       expiresAt,
-    },
+      canLaunch: journey.targetProject.kind === 'LOCAL_WORKSPACE' && Boolean(journey.targetProject.canonicalPath),
+    }
   })
-  return {
-    handoffId: handoff.id,
-    providerId: handoff.providerId,
-    status: handoff.status,
-    prompt,
-    expiresAt,
-    canLaunch: journey.targetProject.kind === 'LOCAL_WORKSPACE' && Boolean(journey.targetProject.canonicalPath),
-  }
 }
 
 export async function launchQualityJourneyHandoff(
@@ -150,33 +201,39 @@ export async function launchQualityJourneyHandoff(
   if (!handoff) throw new ServiceError('Coordinator handoff was not found.', 'NOT_FOUND', 404)
   const launcher = provider ?? registeredProvider(handoff.providerId)
   if (handoff.providerId !== launcher.id) throw new ServiceError('Coordinator provider does not match.', 'CONFLICT')
+  if (handoff.status === 'CONNECTED') return { handoffId: handoff.id, status: 'CONNECTED' as const }
+  if (handoff.status === 'EXPIRED')
+    throw new ServiceError('Coordinator handoff expired. Prepare a new one.', 'CONFLICT')
   if (handoff.expiresAt <= new Date()) {
-    await client.qualityJourneyCoordinatorHandoff.update({
-      where: { id: handoff.id },
-      data: { status: 'EXPIRED', failedAt: new Date(), failureCode: 'TICKET_EXPIRED' },
-    })
+    await expireActiveHandoff(handoff.id, client)
     throw new ServiceError('Coordinator handoff expired. Prepare a new one.', 'CONFLICT')
   }
-  if (handoff.status === 'CONNECTED') return { handoffId: handoff.id, status: 'CONNECTED' as const }
+  if (handoff.status === 'LAUNCHED') return { handoffId: handoff.id, status: 'LAUNCHED' as const }
+  if (handoff.status === 'LAUNCHING') return { handoffId: handoff.id, status: 'LAUNCHING' as const }
   if (handoff.targetProject.kind !== 'LOCAL_WORKSPACE' || !handoff.targetProject.canonicalPath)
     throw new ServiceError('Codex launch requires a registered local workspace.', 'CONFLICT')
 
-  const launched = await launcher.launch(handoff.targetProject.canonicalPath)
-  const now = new Date()
-  if (launched.outcome === 'UNAVAILABLE') {
-    const failed = await client.qualityJourneyCoordinatorHandoff.updateMany({
-      where: { id: handoff.id, connectedAt: null },
-      data: { status: 'FAILED', failedAt: now, failureCode: 'PROVIDER_UNAVAILABLE' },
-    })
-    if (failed.count === 0) return { handoffId: handoff.id, status: 'CONNECTED' as const }
-    return { handoffId: handoff.id, status: 'FAILED' as const, reason: launched.reason }
-  }
-  const persisted = await client.qualityJourneyCoordinatorHandoff.updateMany({
-    where: { id: handoff.id, connectedAt: null },
-    data: { status: 'LAUNCHED', launchedAt: now, failedAt: null, failureCode: null },
+  const launchStartedAt = new Date()
+  const reservation = await client.qualityJourneyCoordinatorHandoff.updateMany({
+    where: {
+      id: handoff.id,
+      connectedAt: null,
+      status: { in: ['PREPARED', 'FAILED'] },
+      expiresAt: { gt: launchStartedAt },
+    },
+    data: { status: 'LAUNCHING', failedAt: null, failureCode: null },
   })
-  if (persisted.count === 0) return { handoffId: handoff.id, status: 'CONNECTED' as const }
-  return { handoffId: handoff.id, status: 'LAUNCHED' as const }
+  if (reservation.count === 0) {
+    const current = await client.qualityJourneyCoordinatorHandoff.findUniqueOrThrow({ where: { id: handoff.id } })
+    return currentLaunchResult(handoff.id, current.status)
+  }
+  let launched: LaunchResult
+  try {
+    launched = await launcher.launch(handoff.targetProject.canonicalPath)
+  } catch (error) {
+    launched = { outcome: 'UNAVAILABLE', reason: error instanceof Error ? error.message : 'Coordinator launch failed.' }
+  }
+  return persistLaunchOutcome(handoff.id, launched, client)
 }
 
 export async function redeemQualityJourneyHandoff(
@@ -192,17 +249,21 @@ export async function redeemQualityJourneyHandoff(
   })
   if (!handoff || handoff.journeyId !== input.journeyId || handoff.targetProjectId !== input.targetProjectId)
     throw new ServiceError('Coordinator handoff ticket is invalid for this Journey and target.', 'UNAUTHORIZED', 401)
+  if (handoff.connectedAt) throw new ServiceError('Coordinator handoff ticket has already been redeemed.', 'CONFLICT')
+  if (handoff.status === 'EXPIRED')
+    throw new ServiceError('Coordinator handoff ticket is invalid for this Journey and target.', 'UNAUTHORIZED', 401)
   if (handoff.expiresAt <= new Date()) {
-    await client.qualityJourneyCoordinatorHandoff.update({
-      where: { id: handoff.id },
-      data: { status: 'EXPIRED', failedAt: new Date(), failureCode: 'TICKET_EXPIRED' },
-    })
+    await expireActiveHandoff(handoff.id, client)
     throw new ServiceError('Coordinator handoff ticket expired.', 'UNAUTHORIZED', 401)
   }
-  if (handoff.connectedAt) throw new ServiceError('Coordinator handoff ticket has already been redeemed.', 'CONFLICT')
   const connectedAt = new Date()
   const redemption = await client.qualityJourneyCoordinatorHandoff.updateMany({
-    where: { id: handoff.id, connectedAt: null, expiresAt: { gt: connectedAt } },
+    where: {
+      id: handoff.id,
+      connectedAt: null,
+      status: { in: ['PREPARED', 'LAUNCHING', 'LAUNCHED', 'FAILED'] },
+      expiresAt: { gt: connectedAt },
+    },
     data: { status: 'CONNECTED', connectedAt, failedAt: null, failureCode: null },
   })
   if (redemption.count !== 1)
