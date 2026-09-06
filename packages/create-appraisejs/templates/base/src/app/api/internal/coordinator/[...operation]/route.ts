@@ -54,6 +54,7 @@ import {
   resumeQualityJourney,
   submitDurableQualityJourneyCommand,
 } from '@/services/coordinator/quality-journey-service'
+import { qualityJourneyRequirementSchema } from '@/lib/quality-journey'
 import { getQualityJourneyAnalysisRoute, postQualityJourneyAnalysisRoute } from './quality-journey-analysis-route'
 import { getQualityJourneyDiscoveryRoute, postQualityJourneyDiscoveryRoute } from './quality-journey-discovery-route'
 import { getQualityJourneyScenarioRoute, postQualityJourneyScenarioRoute } from './quality-journey-scenario-route'
@@ -61,6 +62,7 @@ import { getQualityJourneyAutomationRoute, postQualityJourneyAutomationRoute } f
 import { getQualityJourneyExecutionRoute, postQualityJourneyExecutionRoute } from './quality-journey-execution-route'
 import { getQualityJourneyTriageRoute, postQualityJourneyTriageRoute } from './quality-journey-triage-route'
 import { getQualityJourneyLibraryRoute } from './quality-journey-library-route'
+import { getQualityJourneyHandoffRoute, postQualityJourneyHandoffRoute } from './quality-journey-handoff-route'
 
 export const runtime = 'nodejs'
 
@@ -100,7 +102,7 @@ function errorClassification(error: unknown) {
   return 'appraise_runtime_defect' as const
 }
 
- function responseError(error: unknown, context: CoordinatorErrorContext) {
+function responseError(error: unknown, context: CoordinatorErrorContext) {
   const serviceError = error instanceof ServiceError ? error : undefined
   const status = error instanceof z.ZodError ? 400 : (serviceError?.statusCode ?? 500)
   const message =
@@ -427,6 +429,8 @@ async function getEnvironments(request: Request) {
 }
 
 async function dispatchGet(request: Request, operation: string[]): Promise<Response> {
+  const handoffResponse = await getQualityJourneyHandoffRoute(operation, new URL(request.url).searchParams)
+  if (handoffResponse) return handoffResponse
   if (operation.length === 1 && operation[0] === 'diagnostic') return getDiagnostic(request)
   if (operation.length === 1 && operation[0] === 'target-projects')
     return Response.json({ targetProjects: await listTargetProjects() })
@@ -480,14 +484,14 @@ async function postIndependentTestRun(body: unknown) {
   }
   const value = z
     .object({
-          ...common,
-          sourceKind: z.literal('AUTHORED_TEST_SNAPSHOT').optional(),
-          selections: z
-            .array(z.object({ testSuiteId: z.string().min(1), testCaseId: z.string().min(1) }).strict())
-            .min(1)
-            .max(200),
-        })
-        .strict()
+      ...common,
+      sourceKind: z.literal('AUTHORED_TEST_SNAPSHOT').optional(),
+      selections: z
+        .array(z.object({ testSuiteId: z.string().min(1), testCaseId: z.string().min(1) }).strict())
+        .min(1)
+        .max(200),
+    })
+    .strict()
     .parse(body)
   const target = await resolveTargetProject(value.target)
   const service = new RuntimeCapsuleTestRunService()
@@ -547,9 +551,12 @@ async function postQualityOperation(operation: string[], body: unknown): Promise
   const key = operation.join('/')
   if (key === 'quality/journeys') {
     const value = z
-      .object({ target: z.string().min(1), idempotencyKey: z.string().min(1), requirement: z.unknown() })
+      .object({
+        target: z.string().min(1),
+        idempotencyKey: z.string().min(1),
+        requirement: qualityJourneyRequirementSchema,
+      })
       .parse(body)
-    if (!('requirement' in value)) throw new ServiceError('Quality Journey requirement is required.', 'VALIDATION')
     const target = await resolveTargetProject(value.target)
     return Response.json(
       await createQualityJourney({
@@ -713,6 +720,8 @@ async function postLocatorEnsure(request: Request, body: unknown): Promise<Respo
 }
 
 async function dispatchPost(request: Request, operation: string[], body: unknown): Promise<Response> {
+  const handoffResponse = await postQualityJourneyHandoffRoute(operation, body)
+  if (handoffResponse) return handoffResponse
   if (operation.length === 2 && operation[0] === 'diagnostic' && operation[1] === 'preflight')
     return Response.json(await recordAgentPreflightReceipt(body), { status: 201 })
   if (operation.length === 1 && operation[0] === 'target-projects') return postTargetProject(body)

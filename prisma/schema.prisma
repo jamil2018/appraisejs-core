@@ -489,6 +489,7 @@ model TargetProject {
   qualityJourneys                        QualityJourney[]
   qualityJourneyAutomationTargetBindings QualityJourneyAutomationTargetBinding[]
   qualityJourneyExecutionCycles          QualityJourneyExecutionCycle[]
+  qualityJourneyCoordinatorHandoffs      QualityJourneyCoordinatorHandoff[]
 
   @@index([displayName])
   @@index([canonicalPath])
@@ -549,10 +550,34 @@ model QualityJourney {
   executionConsents                 QualityJourneyExecutionConsent[]
   executionCancellationReceipts     QualityJourneyExecutionCancellationReceipt[]
   executionRerunProposals           QualityJourneyExecutionRerunProposal[]
+  coordinatorHandoffs               QualityJourneyCoordinatorHandoff[]
 
   @@unique([targetProjectId, rootIdempotencyKey])
   @@index([targetProjectId, status])
   @@index([targetProjectId, stage])
+}
+
+model QualityJourneyCoordinatorHandoff {
+  id              String         @id
+  journeyId       String
+  targetProjectId String
+  providerId      String
+  status          String         @default("PREPARED")
+  ticketHash      String         @unique
+  promptHash      String
+  expiresAt       DateTime
+  launchedAt      DateTime?
+  connectedAt     DateTime?
+  failedAt        DateTime?
+  failureCode     String?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  journey         QualityJourney @relation(fields: [journeyId], references: [id], onDelete: Restrict)
+  targetProject   TargetProject  @relation(fields: [targetProjectId], references: [id], onDelete: Restrict)
+
+  @@index([journeyId, createdAt])
+  @@index([targetProjectId, status])
+  @@index([expiresAt])
 }
 
 model QualityJourneyArtifact {

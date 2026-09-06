@@ -12,6 +12,61 @@ const id = z
   .regex(/^[A-Za-z0-9._:-]+$/)
 const timestamp = z.string().datetime()
 const boundedText = z.string().trim().min(1).max(8_000)
+export const qualityJourneyRequirementVersion = 'appraise.quality-journey-requirement/v1' as const
+export const qualityJourneyCoverageRigorSchema = z.enum(['FOCUSED', 'STANDARD', 'COMPREHENSIVE'])
+export const qualityJourneyTestDimensionSchema = z.enum([
+  'FUNCTIONAL',
+  'END_TO_END',
+  'API',
+  'INTEGRATION',
+  'ACCESSIBILITY',
+  'PERFORMANCE',
+  'SECURITY',
+  'VISUAL',
+  'COMPATIBILITY',
+  'EXPLORATORY',
+  'CUSTOM',
+])
+const canonicalTextList = (max: number, label: string) =>
+  z
+    .array(boundedText)
+    .max(max)
+    .superRefine((values, context) => {
+      if (new Set(values).size !== values.length)
+        context.addIssue({ code: 'custom', message: `${label} must not contain duplicates.` })
+    })
+const canonicalIds = (max: number, label: string) =>
+  z
+    .array(id)
+    .max(max)
+    .superRefine((values, context) => {
+      if (new Set(values).size !== values.length)
+        context.addIssue({ code: 'custom', message: `${label} must not contain duplicates.` })
+    })
+const canonicalDimensions = z
+  .array(qualityJourneyTestDimensionSchema)
+  .max(32)
+  .superRefine((values, context) => {
+    if (new Set(values).size !== values.length)
+      context.addIssue({ code: 'custom', message: 'Test dimensions must not contain duplicates.' })
+  })
+export const qualityJourneyRequirementSchema = z
+  .object({
+    schemaVersion: z.literal(qualityJourneyRequirementVersion).optional(),
+    objective: boundedText,
+    context: boundedText.optional(),
+    coverageRigor: qualityJourneyCoverageRigorSchema.optional(),
+    testDimensions: canonicalDimensions.optional(),
+    includedScope: canonicalTextList(128, 'Included scope').optional(),
+    excludedScope: canonicalTextList(128, 'Excluded scope').optional(),
+    environmentIds: canonicalIds(64, 'Environment IDs').optional(),
+    actors: canonicalTextList(128, 'Actors').optional(),
+    testDataNeeds: canonicalTextList(128, 'Test-data needs').optional(),
+    constraints: canonicalTextList(256, 'Constraints').optional(),
+    risks: canonicalTextList(256, 'Risks').optional(),
+    desiredEvidenceSignals: canonicalTextList(256, 'Desired evidence signals').optional(),
+  })
+  .strict()
 const sortedUnique = (values: string[]) =>
   new Set(values).size === values.length && values.every((value, index) => index === 0 || values[index - 1] < value)
 const evidenceReceiptIds = z
@@ -678,7 +733,7 @@ export function registerQualityJourneyOperations({ server, api }: McpRegistryCon
     'quality_journey_create',
     {
       description: 'Create or replay one durable target-bound Quality Journey at the intake gate.',
-      inputSchema: { target, idempotencyKey: z.string().min(1), requirement: z.unknown() },
+      inputSchema: { target, idempotencyKey: z.string().min(1), requirement: qualityJourneyRequirementSchema },
     },
     async body => text(await api.request('quality/journeys', { method: 'POST', body: JSON.stringify(body) })),
   )
@@ -690,6 +745,31 @@ export function registerQualityJourneyOperations({ server, api }: McpRegistryCon
     },
     async ({ target: targetRef, journeyId: id }) =>
       text(await api.request(`quality/journeys/${id}?target=${encodeURIComponent(targetRef)}`)),
+  )
+  server.registerTool(
+    'quality_journey_handoff_inspect',
+    {
+      description:
+        'Inspect the latest coordinator handoff metadata for an exact Journey and target without exposing its ticket or prompt.',
+      inputSchema: { target, journeyId },
+    },
+    async ({ target: targetRef, journeyId: id }) =>
+      text(await api.request(`quality/journeys/${id}/handoff?target=${encodeURIComponent(targetRef)}`)),
+  )
+  server.registerTool(
+    'quality_journey_handoff_redeem',
+    {
+      description:
+        'Redeem one exact short-lived coordinator handoff ticket, then continue by reading authoritative Journey state.',
+      inputSchema: { target, journeyId, ticket: z.string().regex(/^qjh_[A-Za-z0-9_-]{32}$/) },
+    },
+    async ({ target: targetRef, journeyId: id, ticket }) =>
+      text(
+        await api.request(`quality/journeys/${id}/handoff/redeem`, {
+          method: 'POST',
+          body: JSON.stringify({ target: targetRef, ticket }),
+        }),
+      ),
   )
   server.registerTool(
     'quality_journey_discovery_get',

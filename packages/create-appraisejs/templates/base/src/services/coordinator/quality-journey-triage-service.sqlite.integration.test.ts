@@ -1195,7 +1195,7 @@ describe('Quality Journey triage service on migrated SQLite', () => {
         {
           targetProjectId: 'target-triage',
           idempotencyKey: 'bad-followup',
-          requirement: {},
+          requirement: { objective: 'Follow up again' },
           predecessorJourneyId: followup.journey.journeyId,
         },
         value.client,

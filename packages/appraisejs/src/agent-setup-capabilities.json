@@ -33,6 +33,8 @@
     "quality_journey_export",
     "quality_journey_factory_evidence_inspect",
     "quality_journey_get",
+    "quality_journey_handoff_inspect",
+    "quality_journey_handoff_redeem",
     "quality_journey_library_list",
     "quality_journey_rerun_propose",
     "quality_journey_rerun_start",

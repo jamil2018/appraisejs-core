@@ -1881,7 +1881,130 @@
             "type": "string",
             "minLength": 1
           },
-          "requirement": {}
+          "requirement": {
+            "type": "object",
+            "properties": {
+              "schemaVersion": {
+                "type": "string",
+                "const": "appraise.quality-journey-requirement/v1"
+              },
+              "objective": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 8000
+              },
+              "context": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 8000
+              },
+              "coverageRigor": {
+                "type": "string",
+                "enum": [
+                  "FOCUSED",
+                  "STANDARD",
+                  "COMPREHENSIVE"
+                ]
+              },
+              "testDimensions": {
+                "maxItems": 32,
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "enum": [
+                    "FUNCTIONAL",
+                    "END_TO_END",
+                    "API",
+                    "INTEGRATION",
+                    "ACCESSIBILITY",
+                    "PERFORMANCE",
+                    "SECURITY",
+                    "VISUAL",
+                    "COMPATIBILITY",
+                    "EXPLORATORY",
+                    "CUSTOM"
+                  ]
+                }
+              },
+              "includedScope": {
+                "maxItems": 128,
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 8000
+                }
+              },
+              "excludedScope": {
+                "maxItems": 128,
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 8000
+                }
+              },
+              "environmentIds": {
+                "maxItems": 64,
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200,
+                  "pattern": "^[A-Za-z0-9._:-]+$"
+                }
+              },
+              "actors": {
+                "maxItems": 128,
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 8000
+                }
+              },
+              "testDataNeeds": {
+                "maxItems": 128,
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 8000
+                }
+              },
+              "constraints": {
+                "maxItems": 256,
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 8000
+                }
+              },
+              "risks": {
+                "maxItems": 256,
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 8000
+                }
+              },
+              "desiredEvidenceSignals": {
+                "maxItems": 256,
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 8000
+                }
+              }
+            },
+            "required": [
+              "objective"
+            ],
+            "additionalProperties": false
+          }
         },
         "required": [
           "target",
@@ -2322,6 +2445,69 @@
       },
       "annotations": {
         "readOnlyHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "kind": "tool",
+      "name": "quality_journey_handoff_inspect",
+      "description": "Inspect the latest coordinator handoff metadata for an exact Journey and target without exposing its ticket or prompt.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "target": {
+            "type": "string",
+            "minLength": 1
+          },
+          "journeyId": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "target",
+          "journeyId"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "kind": "tool",
+      "name": "quality_journey_handoff_redeem",
+      "description": "Redeem one exact short-lived coordinator handoff ticket, then continue by reading authoritative Journey state.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "target": {
+            "type": "string",
+            "minLength": 1
+          },
+          "journeyId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "ticket": {
+            "type": "string",
+            "pattern": "^qjh_[A-Za-z0-9_-]{32}$"
+          }
+        },
+        "required": [
+          "target",
+          "journeyId",
+          "ticket"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": true,
         "openWorldHint": false
       }
     },

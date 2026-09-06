@@ -1,10 +1,10 @@
 'use server'
 
-import { createHash } from 'node:crypto'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 
-import { canonicalContractJson } from '@/lib/catalog-contracts'
+import { environmentSchema } from '@/constants/form-opts/environment-form-opts'
+import { hashQualityJourneyRequirement, qualityJourneyRequirementSchema } from '@/lib/quality-journey'
 import { requireActiveProjectForMutation } from '@/lib/active-project'
 import {
   answerQualityJourneyAnalysisQuestion,
@@ -23,6 +23,7 @@ import {
   submitDurableQualityJourneyCommand,
 } from '@/services/coordinator/quality-journey-service'
 import { ServiceError, serviceErrorToActionResponse } from '@/services/shared/errors'
+import { ensureEnvironment } from '@/services/environment/environment-service'
 import type { ActionResponse } from '@/types/form/actionHandler'
 
 const id = z
@@ -34,9 +35,8 @@ const hash = z.string().regex(/^sha256:[a-f0-9]{64}$/)
 
 const createJourneySchema = z
   .object({
-    objective: z.string().trim().min(1).max(8_000),
+    requirement: qualityJourneyRequirementSchema,
     predecessorJourneyId: id.optional(),
-    context: z.string().trim().max(8_000).optional(),
     idempotencyKey: id,
   })
   .strict()
@@ -115,15 +115,11 @@ function qualityJourneyActionError(error: unknown): ActionResponse {
   }
 }
 
-function requirementHash(requirement: unknown) {
-  return `sha256:${createHash('sha256').update(canonicalContractJson(requirement)).digest('hex')}`
-}
-
 export async function createQualityJourneyAction(input: unknown): Promise<ActionResponse> {
   try {
     const value = createJourneySchema.parse(input)
     const project = await requireActiveProjectForMutation()
-    const requirement = { objective: value.objective, context: value.context || undefined }
+    const requirement = value.requirement
     const created = await createQualityJourney({
       targetProjectId: project.id,
       idempotencyKey: value.idempotencyKey,
@@ -145,7 +141,7 @@ export async function createQualityJourneyAction(input: unknown): Promise<Action
         inputArtifactRefs: [],
         payload: {
           journeyRevisionId: journey.activeRevisionIds.journey,
-          requirementHash: requirementHash(requirement),
+          requirementHash: hashQualityJourneyRequirement(requirement),
         },
       })
       if (result.outcome !== 'COMMITTED')
@@ -158,6 +154,25 @@ export async function createQualityJourneyAction(input: unknown): Promise<Action
     revalidatePath('/quality-journeys')
     revalidatePath(`/quality-journeys/${journey.journeyId}`)
     return { status: 201, success: true, data: { journeyId: journey.journeyId } }
+  } catch (error) {
+    return qualityJourneyActionError(error)
+  }
+}
+
+const ensureIntakeEnvironmentSchema = z.object({ allowCreate: z.literal(true), proposal: environmentSchema }).strict()
+
+export async function ensureQualityJourneyIntakeEnvironmentAction(input: unknown): Promise<ActionResponse> {
+  try {
+    const value = ensureIntakeEnvironmentSchema.parse(input)
+    const project = await requireActiveProjectForMutation()
+    const result = await ensureEnvironment(value, project.id)
+    revalidatePath('/quality-journeys')
+    revalidatePath('/environments')
+    return {
+      status: result.outcome === 'created' ? 201 : 200,
+      success: true,
+      data: { environment: result.environment, outcome: result.outcome },
+    }
   } catch (error) {
     return qualityJourneyActionError(error)
   }
