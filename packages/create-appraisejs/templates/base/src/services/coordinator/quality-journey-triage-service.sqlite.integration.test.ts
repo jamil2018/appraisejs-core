@@ -1,3 +1,8 @@
+import {
+  listQualityJourneyArtifactLibrary,
+  getQualityJourneyLibraryArtifact,
+  exportQualityJourney,
+} from './quality-journey-artifact-library-service'
 import { promises as fs } from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
@@ -24,6 +29,7 @@ import {
   requestQualityJourneyReportRevision,
   submitQualityJourneyTriageReport,
 } from './quality-journey-triage-service'
+import { closeQualityJourney, getQualityJourneyClosure } from './quality-journey-closure-service'
 
 const workspaces: string[] = []
 const clients: PrismaClient[] = []
@@ -67,7 +73,10 @@ function adapterFor(attemptId: string, adapterId: string) {
   })
 }
 
-async function fixture() {
+async function fixture({
+  passing = false,
+  rejectedAnalysis = false,
+}: { passing?: boolean; rejectedAnalysis?: boolean } = {}) {
   const workspace = await fs.mkdtemp(path.join(os.tmpdir(), 'appraise-quality-journey-triage-'))
   workspaces.push(workspace)
   const databasePath = path.join(workspace, 'appraise.db')
@@ -109,7 +118,7 @@ async function fixture() {
   const analysisContent = {
     requirements: [
       { requirementId: 'REQ-CHECKOUT', statement: 'A shopper receives confirmation.' },
-      { requirementId: 'REQ-UNRUN', statement: 'A shopper can view the order history.' },
+      ...(!passing ? [{ requirementId: 'REQ-UNRUN', statement: 'A shopper can view the order history.' }] : []),
     ],
   }
   const analysisHash = hash(analysisContent)
@@ -126,7 +135,7 @@ async function fixture() {
     preparedCapsuleId: 'prepared-triage',
     preparedCapsulesHash: capsulesHash,
     environmentSnapshotHash,
-    result: 'FAILED',
+    result: passing ? 'PASSED' : 'FAILED',
     status: 'COMPLETED',
     evidenceHealth: 'valid',
     missingArtifacts: [],
@@ -169,6 +178,43 @@ async function fixture() {
       submittedWorkItemId: 'antecedent-work',
       submittedAttemptId: 'antecedent-attempt',
       inputHash: digest('e'),
+    },
+  })
+  await client.qualityJourneyAnalysisPublication.create({
+    data: {
+      id: 'analysis-publication',
+      journeyId,
+      analysisRevisionId: 'analysis-row',
+      commandId: 'analysis-publish-command',
+      artifactHash: analysisHash,
+      reviewHash: digest('f'),
+    },
+  })
+  await client.qualityJourneyArtifact.create({
+    data: {
+      id: 'analysis-approval',
+      identityKey: 'JOURNEY_APPROVAL:analysis-approval:analysis-r1',
+      journeyId,
+      targetProjectId: 'target-triage',
+      cycleId,
+      kind: 'JOURNEY_APPROVAL',
+      artifactId: 'analysis-approval',
+      revisionId: 'analysis-r1',
+      contentHash: digest('f'),
+      artifactJson: json({ decision: 'APPROVED' }),
+    },
+  })
+  await client.qualityJourneyAnalysisDecision.create({
+    data: {
+      id: 'antecedent-decision',
+      journeyId,
+      analysisRevisionId: 'analysis-row',
+      artifactRecordId: 'analysis-approval',
+      commandId: 'analysis-decision-command',
+      contentHash: digest('f'),
+      reviewHash: digest('f'),
+      decision: rejectedAnalysis ? 'REJECTED' : 'APPROVED',
+      actor: 'USER',
     },
   })
   await client.qualityJourneyDiscoveryRevision.create({
@@ -315,7 +361,7 @@ async function fixture() {
       environmentSnapshotVersion: 1,
       browserEngine: 'CHROMIUM',
       intent: 'INDEPENDENT',
-      result: 'FAILED',
+      result: passing ? 'PASSED' : 'FAILED',
       status: 'COMPLETED',
       evidenceHealth: 'valid',
     },
@@ -431,7 +477,98 @@ function result(
   }
 }
 
+async function publishReport(
+  value: Awaited<ReturnType<typeof fixture>>,
+  document: ReturnType<typeof report> | ReturnType<typeof passingReport>,
+) {
+  const prepared = await prepareQualityJourneyTriage(
+    { journeyId: value.journeyId, targetProjectId: 'target-triage', executionCycleId: 'execution-triage' },
+    value.client,
+  )
+  const assignment = prepared.assignments[0]!
+  const claim = await claimQualityJourneyWork(
+    { journeyId: value.journeyId, targetProjectId: 'target-triage', role: 'TRIAGER' },
+    value.client,
+  )
+  adapterFor(claim.attempt.id, `closure-adapter-${document.reportRevisionId}`)
+  await dispatchQualityJourneyWork(
+    {
+      journeyId: value.journeyId,
+      targetProjectId: 'target-triage',
+      workItemId: claim.workItem.id,
+      leaseId: claim.attempt.leaseId,
+      ownerToken: claim.ownerToken,
+    },
+    value.client,
+  )
+  const contentHash = hash({ report: document, source: assignment.input })
+  await submitQualityJourneyTriageReport(
+    {
+      journeyId: value.journeyId,
+      targetProjectId: 'target-triage',
+      workItemId: claim.workItem.id,
+      attemptId: claim.attempt.id,
+      leaseId: claim.attempt.leaseId,
+      ownerToken: claim.ownerToken,
+      idempotencyKey: `closure-report-${document.reportRevisionId}`,
+      report: document,
+      result: result(claim, document.reportRevisionId, contentHash),
+    },
+    value.client,
+  )
+  const journey = await value.client.qualityJourney.findUniqueOrThrow({ where: { id: value.journeyId } })
+  return { assignment, contentHash, journey }
+}
+
+function passingReport(
+  input: Awaited<ReturnType<typeof getQualityJourneyTriage>>['assignments'][number]['input'],
+  revision: string,
+) {
+  return {
+    ...report(input, revision),
+    findings: [],
+    residualRisks: [],
+    recommendations: ['No changes are recommended from this passing execution.'],
+    coverage: [
+      {
+        requirementId: 'REQ-CHECKOUT',
+        scenarioRevisionIds: ['scenario-triage-r1'],
+        testRunIds: ['test-run-triage'],
+        outcome: 'PASSED' as const,
+        rationale: 'Complete valid sealed evidence passed.',
+      },
+    ],
+  }
+}
+
 describe('Quality Journey triage service on migrated SQLite', () => {
+  it('rejects closure when the published analysis gate is not approved', async () => {
+    const value = await fixture({ passing: true, rejectedAnalysis: true })
+    const prepared = await prepareQualityJourneyTriage(
+      { journeyId: value.journeyId, targetProjectId: 'target-triage', executionCycleId: 'execution-triage' },
+      value.client,
+    )
+    const published = await publishReport(
+      value,
+      passingReport(prepared.assignments[0]!.input, 'report-unapproved-analysis'),
+    )
+    await expect(
+      closeQualityJourney(
+        {
+          journeyId: value.journeyId,
+          targetProjectId: 'target-triage',
+          reportRevisionId: 'report-unapproved-analysis',
+          expectedReportHash: published.contentHash,
+          expectedStateHash: published.journey.stateHash,
+          idempotencyKey: 'close-no-analysis',
+          decision: 'CLOSED',
+        },
+        value.client,
+      ),
+    ).rejects.toThrow('approved analysis gate')
+    expect(await value.client.qualityJourneyClosure.count()).toBe(0)
+  })
+
   it('uses the specialized Factory-to-report ingress, replays exactly, and creates an immutable feedback successor', async () => {
     const value = await fixture()
     const prepared = await prepareQualityJourneyTriage(
@@ -875,5 +1012,220 @@ describe('Quality Journey triage service on migrated SQLite', () => {
     )
     expect(claim.workItem.id).toBe(current.workItemId)
     expect(claim.workItem.id).not.toBe('triager-old-eligible')
+  })
+
+  it('closes an exact risk-accepted report atomically, replays exactly, and preserves the sealed receipt', async () => {
+    const value = await fixture()
+    const published = await publishReport(
+      value,
+      report(
+        (
+          await prepareQualityJourneyTriage(
+            { journeyId: value.journeyId, targetProjectId: 'target-triage', executionCycleId: 'execution-triage' },
+            value.client,
+          )
+        ).assignments[0]!.input,
+        'report-close-risk',
+      ),
+    )
+    const closureItems = (
+      await getQualityJourneyClosure({ journeyId: value.journeyId, targetProjectId: 'target-triage' }, value.client)
+    ).unresolvedItems.map(item => item.itemId)
+    const input = {
+      journeyId: value.journeyId,
+      targetProjectId: 'target-triage',
+      reportRevisionId: 'report-close-risk',
+      expectedReportHash: published.contentHash,
+      expectedStateHash: published.journey.stateHash,
+      idempotencyKey: 'close-risk-1',
+      decision: 'RISK_ACCEPTED' as const,
+      rationale: 'Known target defect is accepted for this closure.',
+      acceptedItemIds: closureItems,
+    }
+    await expect(
+      closeQualityJourney({ ...input, acceptedItemIds: closureItems.slice(1) }, value.client),
+    ).rejects.toThrow()
+    await expect(
+      closeQualityJourney({ ...input, acceptedItemIds: [...closureItems, 'finding:extra'] }, value.client),
+    ).rejects.toThrow()
+    await expect(
+      closeQualityJourney({ ...input, acceptedItemIds: [...closureItems, closureItems[0]!] }, value.client),
+    ).rejects.toThrow()
+    await value.client.qualityJourney.update({
+      where: { id: value.journeyId },
+      data: { unresolvedQuestionIdsJson: json(['question-open']) },
+    })
+    await expect(closeQualityJourney(input, value.client)).rejects.toMatchObject({ code: 'CONFLICT' })
+    await value.client.qualityJourney.update({
+      where: { id: value.journeyId },
+      data: { unresolvedQuestionIdsJson: '[]' },
+    })
+    await value.client.qualityJourneyBlocker.create({
+      data: {
+        id: 'closure-open-blocker',
+        journeyId: value.journeyId,
+        targetProjectId: 'target-triage',
+        reasonCode: 'OPEN',
+        summary: 'Open closure blocker',
+        responsibleActor: 'USER',
+        affectedNodeIdsJson: '[]',
+        requiredResolution: 'Resolve it.',
+        safeResumeCommand: 'CLOSE_JOURNEY',
+      },
+    })
+    await expect(closeQualityJourney(input, value.client)).rejects.toMatchObject({ code: 'CONFLICT' })
+    await value.client.qualityJourneyBlocker.update({
+      where: { id: 'closure-open-blocker' },
+      data: { status: 'RESOLVED' },
+    })
+    const before = await Promise.all([
+      value.client.qualityJourneyClosure.count(),
+      value.client.qualityJourneyArtifact.count({ where: { kind: 'JOURNEY_CLOSURE' } }),
+      value.client.qualityJourneyReportReview.count(),
+      value.client.qualityJourneyCommand.count(),
+    ])
+    const closed = await closeQualityJourney(input, value.client)
+    expect(closed).toMatchObject({
+      replayed: false,
+      receipt: {
+        decision: 'RISK_ACCEPTED',
+        unresolvedItems: expect.arrayContaining([
+          expect.objectContaining({
+            summary: expect.stringContaining('TARGET_DEFECT'),
+            artifactRefs: expect.arrayContaining([
+              expect.objectContaining({ kind: 'EVIDENCE_RECEIPT', artifactId: 'evidence-triage' }),
+              expect.objectContaining({ kind: 'SCENARIO_REVISION', revisionId: 'scenario-triage-r1' }),
+            ]),
+          }),
+        ]),
+      },
+    })
+    await expect(
+      value.client.qualityJourneyClosure.update({
+        where: { id: closed.receipt.closureId },
+        data: { reportHash: digest('1') },
+      }),
+    ).rejects.toThrow()
+    await expect(
+      value.client.qualityJourneyClosure.delete({ where: { id: closed.receipt.closureId } }),
+    ).rejects.toThrow()
+    const scope = { journeyId: value.journeyId, targetProjectId: 'target-triage' }
+    const archive = await exportQualityJourney(scope, value.client)
+    const library = await listQualityJourneyArtifactLibrary({ ...scope, limit: 100 }, value.client)
+    expect(library.entries.map(e => e.entryId).sort()).toEqual(archive.artifacts.map(e => e.entryId).sort())
+    expect(library.kinds).toEqual(
+      expect.arrayContaining([
+        'JOURNEY_CLOSURE',
+        'TRIAGE_FINDING',
+        'TEST_RUN',
+        'SEALED_EVIDENCE',
+        'ANALYSIS_PUBLICATION',
+      ]),
+    )
+    for (const entry of archive.artifacts)
+      expect(
+        (await getQualityJourneyLibraryArtifact({ ...scope, entryId: entry.entryId }, value.client)).entry,
+      ).toEqual(entry)
+    expect(await closeQualityJourney(input, value.client)).toMatchObject({
+      replayed: true,
+      contentHash: closed.contentHash,
+    })
+    await expect(
+      closeQualityJourney({ ...input, idempotencyKey: 'close-risk-other' }, value.client),
+    ).rejects.toMatchObject({ code: 'CONFLICT' })
+    expect(
+      await Promise.all([
+        value.client.qualityJourneyClosure.count(),
+        value.client.qualityJourneyArtifact.count({ where: { kind: 'JOURNEY_CLOSURE' } }),
+        value.client.qualityJourneyReportReview.count(),
+        value.client.qualityJourneyCommand.count(),
+      ]),
+    ).toEqual(before.map(count => count + 1))
+    expect(
+      await getQualityJourneyClosure({ journeyId: value.journeyId, targetProjectId: 'target-triage' }, value.client),
+    ).toMatchObject({ receipt: { closureId: closed.receipt.closureId }, contentHash: closed.contentHash })
+  })
+
+  it('permits ordinary closure only for an exact passing report and rejects stale, cross-project, and incomplete risk requests', async () => {
+    const value = await fixture({ passing: true })
+    const prepared = await prepareQualityJourneyTriage(
+      { journeyId: value.journeyId, targetProjectId: 'target-triage', executionCycleId: 'execution-triage' },
+      value.client,
+    )
+    const published = await publishReport(value, passingReport(prepared.assignments[0]!.input, 'report-close-passed'))
+    const input = {
+      journeyId: value.journeyId,
+      targetProjectId: 'target-triage',
+      reportRevisionId: 'report-close-passed',
+      expectedReportHash: published.contentHash,
+      expectedStateHash: published.journey.stateHash,
+      idempotencyKey: 'close-passed-1',
+      decision: 'CLOSED' as const,
+      acceptedItemIds: [],
+    }
+    await expect(
+      closeQualityJourney({ ...input, targetProjectId: 'target-other' }, value.client),
+    ).rejects.toMatchObject({ code: 'NOT_FOUND' })
+    await expect(closeQualityJourney({ ...input, expectedStateHash: digest('d') }, value.client)).rejects.toMatchObject(
+      { code: 'CONFLICT' },
+    )
+    await expect(
+      closeQualityJourney(
+        { ...input, decision: 'RISK_ACCEPTED', rationale: 'Incomplete', acceptedItemIds: [] },
+        value.client,
+      ),
+    ).rejects.toThrow()
+    const closed = await closeQualityJourney(input, value.client)
+    const followup = await createQualityJourney(
+      {
+        targetProjectId: 'target-triage',
+        idempotencyKey: 'followup',
+        requirement: { objective: 'Follow up' },
+        predecessorJourneyId: value.journeyId,
+      },
+      value.client,
+    )
+    expect(
+      await value.client.qualityJourneyArtifactLink.findFirst({
+        where: { journeyId: followup.journey.journeyId, relation: 'FOLLOWS' },
+      }),
+    ).toMatchObject({ targetJson: expect.stringContaining(closed.receipt.closureId) })
+    await expect(
+      createQualityJourney(
+        {
+          targetProjectId: 'target-triage',
+          idempotencyKey: 'bad-followup',
+          requirement: {},
+          predecessorJourneyId: followup.journey.journeyId,
+        },
+        value.client,
+      ),
+    ).rejects.toThrow('closed journey')
+    expect(closed.receipt).toMatchObject({ decision: 'CLOSED', unresolvedItems: [] })
+    const commandCount = await value.client.qualityJourneyCommand.count({ where: { journeyId: value.journeyId } })
+    await expect(
+      claimQualityJourneyWork(
+        { journeyId: value.journeyId, targetProjectId: 'target-triage', role: 'TRIAGER' },
+        value.client,
+      ),
+    ).rejects.toMatchObject({ code: 'CONFLICT' })
+    await expect(
+      submitDurableQualityJourneyCommand(
+        {
+          schemaVersion: 'appraise.quality-journey/v1',
+          command: 'CLOSE_JOURNEY',
+          commandId: 'post-close-mutation',
+          journeyId: value.journeyId,
+          targetProjectId: 'target-triage',
+          actor: 'USER',
+          expectedStateHash: closed.receipt.reportRevision.contentHash,
+          idempotencyKey: 'post-close-mutation',
+          inputArtifactRefs: [],
+          payload: { closureId: 'forged', reportRevisionId: 'report-close-passed', reportHash: published.contentHash },
+        },
+        value.client,
+      ),
+    ).rejects.toMatchObject({ code: 'UNAUTHORIZED' })
+    expect(await value.client.qualityJourneyCommand.count({ where: { journeyId: value.journeyId } })).toBe(commandCount)
   })
 })

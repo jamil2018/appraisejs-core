@@ -12,6 +12,11 @@ const qualityOsBaseBehavioralSuites = [
   'src/services/coordinator/quality-journey-triage-validation.test.ts',
   'src/services/coordinator/quality-journey-triage-evidence-service.test.ts',
   'src/lib/quality-journey/triage-contracts.test.ts',
+  'src/services/coordinator/quality-journey-closure-validation.test.ts',
+  'src/services/coordinator/quality-journey-artifact-library-service.test.ts',
+  'src/app/(base)/quality-journeys/[journeyId]/closure-actions.test.ts',
+  'src/app/(base)/quality-journeys/[journeyId]/closure-panel.test.tsx',
+  'src/app/api/internal/coordinator/[...operation]/quality-journey-library-route.test.ts',
   'src/app/api/internal/coordinator/[...operation]/route.test.ts',
   'src/app/(base)/quality-journeys/[journeyId]/scenario-portfolio-review.test.tsx',
 ] as const

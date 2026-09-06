@@ -512,6 +512,7 @@ model TargetProject {
 }
 
 model QualityJourney {
+  closure                           QualityJourneyClosure?
   activeTriageReportId              String?                                      @unique
   activeTriageReport                QualityJourneyTriageReport?                  @relation("ActiveTriageReport", fields: [activeTriageReportId], references: [id], onDelete: Restrict)
   triageAssignments                 QualityJourneyTriageAssignment[]
@@ -3071,6 +3072,7 @@ model QualityJourneyTriageAssignment {
 
 /// Published reports and review receipts are immutable, including unresolved outcomes.
 model QualityJourneyTriageReport {
+  closure             QualityJourneyClosure?
   activeForJourney    QualityJourney?                 @relation("ActiveTriageReport")
   id                  String                          @id
   journeyId           String
@@ -3103,4 +3105,20 @@ model QualityJourneyReportReview {
   report           QualityJourneyTriageReport @relation(fields: [reportRevisionId], references: [id], onDelete: Restrict)
 
   @@unique([journeyId, idempotencyKey])
+}
+
+/// Immutable terminal approval of one exact report and its remaining risks.
+model QualityJourneyClosure {
+  id               String                     @id
+  journeyId        String                     @unique
+  reportRevisionId String                     @unique
+  cycleId          String
+  reportHash       String
+  contentHash      String
+  closureJson      String
+  idempotencyKey   String
+  requestHash      String
+  closedAt         DateTime
+  journey          QualityJourney             @relation(fields: [journeyId], references: [id], onDelete: Restrict)
+  report           QualityJourneyTriageReport @relation(fields: [reportRevisionId], references: [id], onDelete: Restrict)
 }

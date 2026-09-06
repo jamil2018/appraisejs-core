@@ -66,7 +66,7 @@ export const qualityJourneyTriageReportSchema = z
       )
       .min(1)
       .max(2048),
-    residualRisks: z.array(text).min(1).max(128),
+    residualRisks: z.array(text).max(128),
     recommendations: z.array(text).min(1).max(128),
     remediation: z
       .object({

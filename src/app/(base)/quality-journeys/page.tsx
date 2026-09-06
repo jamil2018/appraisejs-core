@@ -15,7 +15,11 @@ export const metadata: Metadata = {
   description: 'Track Appraise-owned requirement analysis and review workflow.',
 }
 
-export default async function QualityJourneysPage({ searchParams }: { searchParams?: Promise<{ project?: string }> }) {
+export default async function QualityJourneysPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ project?: string; predecessor?: string }>
+}) {
   const parameters = await searchParams
   const project = await requireActiveProject(parameters?.project)
   const journeys = await listQualityJourneys({ targetProjectId: project.id })
@@ -41,7 +45,7 @@ export default async function QualityJourneysPage({ searchParams }: { searchPara
           {journeys.length} journeys
         </Badge>
       </header>
-      <QualityJourneyCreateForm projectId={project.id} />
+      <QualityJourneyCreateForm projectId={project.id} predecessorJourneyId={parameters?.predecessor} />
       <QualityJourneysBrowser items={journeys} projectId={project.id} />
     </main>
   )

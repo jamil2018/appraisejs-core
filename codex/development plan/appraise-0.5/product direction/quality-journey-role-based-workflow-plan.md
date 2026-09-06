@@ -482,6 +482,11 @@ Exit criteria:
 
 ### Phase 9 - Closure and Artifact Library
 
+Status: implemented on 2026-09-05. Exact local terminal review records a database-immutable closure receipt and
+report approval atomically. Required gates remain non-waivable; all findings, non-passing coverage, and residual-risk
+statements require explicit risk acceptance. Empty residual-risk lists explicitly support ordinary closure. Durable
+artifact navigation/export and same-target linked follow-up intake preserve historical identity after closure.
+
 Add terminal review, normal closure, risk-accepted closure, immutable closure receipts, journey export, and durable
 artifact-library navigation. Closure records the exact approved report and unresolved items.
 

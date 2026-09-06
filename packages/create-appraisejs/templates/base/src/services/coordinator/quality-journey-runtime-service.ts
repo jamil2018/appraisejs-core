@@ -1,3 +1,4 @@
+import { assertQualityJourneyMutable } from './quality-journey-terminal'
 import type { Prisma, PrismaClient } from '@prisma/client'
 import prisma from '@/config/db-config'
 import {
@@ -270,8 +271,9 @@ export async function reconcileQualityJourneyExecutionRuntime(input: RuntimeInpu
   if (!result) return
   await client.$transaction(async tx => {
     if (await tx.qualityJourneyExecutionEvidenceReceipt.count({ where: { executionCycleId: result.cycle.id } })) return
-    for (const receipt of result.receipts) await tx.qualityJourneyExecutionEvidenceReceipt.create({ data: receipt })
     const state = await tx.qualityJourney.findUniqueOrThrow({ where: { id: result.cycle.journeyId } })
+    assertQualityJourneyMutable(state)
+    for (const receipt of result.receipts) await tx.qualityJourneyExecutionEvidenceReceipt.create({ data: receipt })
     if (state.stage === 'EXECUTION' && state.activeCycleId === result.cycle.cycleId) {
       const published = await submitDurableQualityJourneyCommandInTransaction(
         {

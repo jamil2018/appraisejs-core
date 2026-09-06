@@ -22,7 +22,13 @@ function journeyIdFrom(response: Awaited<ReturnType<typeof createQualityJourneyA
   return typeof data.journeyId === 'string' ? data.journeyId : null
 }
 
-export function QualityJourneyCreateForm({ projectId }: { projectId: string }) {
+export function QualityJourneyCreateForm({
+  projectId,
+  predecessorJourneyId,
+}: {
+  projectId: string
+  predecessorJourneyId?: string
+}) {
   const { push } = useRouter()
   const [objective, setObjective] = useState('')
   const [context, setContext] = useState('')
@@ -33,7 +39,12 @@ export function QualityJourneyCreateForm({ projectId }: { projectId: string }) {
   function submit() {
     setError(null)
     startTransition(async () => {
-      const response = await createQualityJourneyAction({ objective, context, idempotencyKey: idempotencyKey.current })
+      const response = await createQualityJourneyAction({
+        objective,
+        context,
+        idempotencyKey: idempotencyKey.current,
+        ...(predecessorJourneyId ? { predecessorJourneyId } : {}),
+      })
       const journeyId = journeyIdFrom(response)
       if (!journeyId) {
         const message = response.error ?? 'Unable to create this Quality Journey.'
@@ -53,6 +64,7 @@ export function QualityJourneyCreateForm({ projectId }: { projectId: string }) {
         <CardTitle className="text-base">Start a Quality Journey</CardTitle>
         <CardDescription>
           Submit a requirement in the active project. Appraise records the immutable intake before assigning analysis.
+          {predecessorJourneyId ? ` Linked follow-up to ${predecessorJourneyId}.` : null}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">

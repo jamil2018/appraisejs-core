@@ -103,7 +103,7 @@ export const triageReportInput = z
       )
       .min(1)
       .max(2_048),
-    residualRisks: z.array(boundedText).min(1).max(128),
+    residualRisks: z.array(boundedText).max(128),
     recommendations: z.array(boundedText).min(1).max(128),
     remediation: z
       .object({

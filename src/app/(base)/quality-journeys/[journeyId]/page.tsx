@@ -1,3 +1,5 @@
+import { ClosurePanel } from './closure-panel'
+import { getQualityJourneyClosure } from '@/services/coordinator/quality-journey-closure-service'
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { ArrowLeft, CircleAlert, ClipboardCheck, GitBranch, ShieldCheck, UserRoundCheck } from 'lucide-react'
@@ -91,13 +93,39 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 export default async function QualityJourneyDetailPage({ params, searchParams }: PageProps) {
   const [{ journeyId }, parameters] = await Promise.all([params, searchParams])
   const project = await requireActiveProject(parameters?.project)
+  const [detail, closure] = await Promise.all([
+    loadJourneyDetail(journeyId, project.id),
+    getQualityJourneyClosure({ journeyId, targetProjectId: project.id }),
+  ])
   const { activeAnalysis, activeRunner, answerable, journey, scenarios, automation, execution, triage, environments } =
-    await loadJourneyDetail(journeyId, project.id)
+    detail
 
   return (
     <main className="space-y-6 pb-10">
       <JourneyHeader journey={journey} project={project} />
       <JourneyOverview activeRunner={activeRunner} journey={journey} />
+      <nav className="flex flex-wrap gap-3" aria-label="Journey artifacts">
+        <Button asChild variant="outline">
+          <Link href={`/quality-journeys/${journeyId}/artifacts?project=${encodeURIComponent(project.id)}`}>
+            Artifact library and export
+          </Link>
+        </Button>
+        {closure.receipt ? (
+          <Button asChild variant="outline">
+            <Link
+              href={`/quality-journeys?project=${encodeURIComponent(project.id)}&predecessor=${encodeURIComponent(journeyId)}`}
+            >
+              Start linked follow-up journey
+            </Link>
+          </Button>
+        ) : null}
+      </nav>
+      <ClosurePanel
+        key={closure.reportHash ?? journeyId}
+        journeyId={journeyId}
+        stateHash={journey.journey.stateHash}
+        closure={closure}
+      />
 
       <section className="grid gap-6 xl:grid-cols-[minmax(0,1.65fr)_minmax(20rem,0.85fr)]">
         <div className="space-y-6">

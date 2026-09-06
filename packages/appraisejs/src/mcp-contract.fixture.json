@@ -3041,6 +3041,37 @@
     },
     {
       "kind": "tool",
+      "name": "quality_journey_artifact_get",
+      "description": "Read one exact artifact-library entry within its owning journey and target.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "target": {
+            "type": "string",
+            "minLength": 1
+          },
+          "journeyId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "entryId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512
+          }
+        },
+        "required": ["target", "journeyId", "entryId"],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "kind": "tool",
       "name": "quality_journey_artifacts_list",
       "description": "List revision, cycle, and artifact-link lineage for one exact Quality Journey.",
       "inputSchema": {
@@ -3915,6 +3946,32 @@
     },
     {
       "kind": "tool",
+      "name": "quality_journey_export",
+      "description": "Export a read-only journey artifact manifest and durable history, including closed journeys.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "target": {
+            "type": "string",
+            "minLength": 1
+          },
+          "journeyId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          }
+        },
+        "required": ["target", "journeyId"],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "kind": "tool",
       "name": "quality_journey_factory_evidence_inspect",
       "description": "Read durable Factory authorization, attempt, receipt, replacement, and terminal-state hashes.",
       "inputSchema": {
@@ -3953,6 +4010,46 @@
           "journeyId": {
             "type": "string",
             "minLength": 1
+          }
+        },
+        "required": ["target", "journeyId"],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "kind": "tool",
+      "name": "quality_journey_library_list",
+      "description": "Browse durable artifacts and historical revisions in one journey, including after closure.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "target": {
+            "type": "string",
+            "minLength": 1
+          },
+          "journeyId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "kind": {
+            "type": "string",
+            "minLength": 1
+          },
+          "offset": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100
           }
         },
         "required": ["target", "journeyId"],
@@ -6500,7 +6597,6 @@
                 }
               },
               "residualRisks": {
-                "minItems": 1,
                 "maxItems": 128,
                 "type": "array",
                 "items": {

@@ -1,3 +1,4 @@
+import { assertQualityJourneyMutable } from './quality-journey-terminal'
 import { createHash, randomUUID } from 'node:crypto'
 import type {
   Prisma,
@@ -18,6 +19,7 @@ import {
   hashQualityJourneyState,
   journeyCommandResultSchema,
   journeyCommandSchema,
+  journeyArtifactLinkSchema,
   qualityJourneyContractDigest,
   qualityJourneyRoleDefinitions,
   qualityJourneyRoleRegistryVersion,
@@ -274,6 +276,7 @@ export async function refreshQualityJourneyWorkAuthorizationInTransaction(
   tx: Prisma.TransactionClient,
 ) {
   const journey = await tx.qualityJourney.findUniqueOrThrow({ where: { id: journeyId } })
+  assertQualityJourneyMutable(journey)
   const item = await tx.qualityJourneyWorkItem.findUniqueOrThrow({ where: { id: workItemId } })
   const predecessor = await currentWorkAuthorization(item.id, tx)
   if (!predecessor) throw new ServiceError('Specialized work issuance has no authorization to supersede.', 'CONFLICT')
@@ -568,6 +571,7 @@ export async function issueQualityJourneySpecializedWorkItem(
   },
   tx: Prisma.TransactionClient,
 ) {
+  assertQualityJourneyMutable(await readJourney(row.id, row.targetProjectId, tx))
   const definition = qualityJourneyRoleDefinitions.find(candidate => candidate.role === spec.role)
   if (!definition) throw new ServiceError('Quality Journey role authority is unavailable.', 'CONFLICT')
   const existing = await tx.qualityJourneyWorkItem.findUnique({ where: { id: spec.id } })
@@ -611,6 +615,7 @@ export async function setQualityJourneyActiveWorkItems(
   tx: Prisma.TransactionClient,
 ) {
   const journey = await tx.qualityJourney.findUniqueOrThrow({ where: { id: journeyId } })
+  assertQualityJourneyMutable(journey)
   const current = projection(journey)
   const activeWorkItemIds = [...workItemIds]
   const stateHash = hashQualityJourneyState({ ...current, activeWorkItemIds })
@@ -633,7 +638,7 @@ async function recoverLegacyFactoryAuthorizations(row: QualityJourney, db: Db) {
 }
 
 export async function createQualityJourney(
-  input: { targetProjectId: string; idempotencyKey: string; requirement: unknown },
+  input: { targetProjectId: string; idempotencyKey: string; requirement: unknown; predecessorJourneyId?: string },
   client: PrismaClient = prisma,
 ) {
   const requestHash = hash(input)
@@ -661,6 +666,16 @@ export async function createQualityJourney(
     activeRevisionIds: { journey: revisionId },
   })
   const created = await client.$transaction(async tx => {
+    const predecessor = input.predecessorJourneyId
+      ? await tx.qualityJourneyClosure.findFirst({
+          where: {
+            journeyId: input.predecessorJourneyId,
+            journey: { targetProjectId: input.targetProjectId, stage: 'CLOSED' },
+          },
+        })
+      : null
+    if (input.predecessorJourneyId && !predecessor)
+      throw new ServiceError('Follow-up requires a closed journey in the same target.', 'CONFLICT')
     const row = await tx.qualityJourney.create({
       data: {
         id: journeyId,
@@ -688,6 +703,32 @@ export async function createQualityJourney(
         payloadJson: json({ revisionId, revisionHash }),
       },
     })
+    if (predecessor) {
+      const source = { kind: 'JOURNEY_REVISION', artifactId: revisionId, revisionId, contentHash: revisionHash }
+      const target = { kind: 'JOURNEY_CLOSURE', artifactId: predecessor.id, contentHash: predecessor.contentHash }
+      const link = journeyArtifactLinkSchema.parse({
+        schemaVersion: 'appraise.quality-journey/v1',
+        linkId: `qjl_${randomUUID()}`,
+        journeyId,
+        targetProjectId: input.targetProjectId,
+        cycleId,
+        relation: 'FOLLOWS',
+        source,
+        target,
+      })
+      await tx.qualityJourneyArtifactLink.create({
+        data: {
+          id: link.linkId,
+          journeyId,
+          targetProjectId: input.targetProjectId,
+          cycleId,
+          relation: 'FOLLOWS',
+          linkHash: hash(link),
+          sourceJson: json(source),
+          targetJson: json(target),
+        },
+      })
+    }
     return row
   })
   return { replayed: false, journey: projection(created) }
@@ -1086,6 +1127,7 @@ export async function resumeQualityJourney(
   const now = input.now ?? new Date()
   return client.$transaction(async tx => {
     const row = await readJourney(input.journeyId, input.targetProjectId, tx)
+    assertQualityJourneyMutable(row)
     const recoveredWorkItemIds = await recoverLegacyFactoryAuthorizations(row, tx)
     const expired = await tx.qualityJourneyWorkAttempt.findMany({
       where: {
@@ -1343,6 +1385,7 @@ export async function claimQualityJourneyWork(input: WorkClaimInput, client: Pri
   const leaseSeconds = Math.min(Math.max(input.leaseSeconds ?? 120, 30), 900)
   return client.$transaction(async tx => {
     const persistedJourney = await readJourney(input.journeyId, input.targetProjectId, tx)
+    assertQualityJourneyMutable(persistedJourney)
     // Frozen target/catalog authority cannot be synthesized safely in SQL.
     // Upgrade pre-Phase-4 DISCOVERY rows transactionally on their first claim.
     const journey = await upgradeLegacyDiscoveryOnClaim(persistedJourney, tx)
@@ -1439,7 +1482,7 @@ function assertLeaseAuthority(
 }
 
 async function readWorkAttempt(input: WorkLeaseInput, tx: Prisma.TransactionClient) {
-  await readJourney(input.journeyId, input.targetProjectId, tx)
+  assertQualityJourneyMutable(await readJourney(input.journeyId, input.targetProjectId, tx))
   const item = await readScopedWorkItem(input, tx)
   const attempt = await tx.qualityJourneyWorkAttempt.findUnique({ where: { leaseId: input.leaseId } })
   const authorization = attempt?.authorizationId
@@ -1562,6 +1605,7 @@ async function releaseFailedDispatchReservation(input: WorkLeaseInput, adapterId
       workItemId: input.workItemId,
       status: 'WORKER_REQUESTED',
       spawnReceiptId: null,
+      workItem: { journey: { stage: { not: 'CLOSED' }, status: { not: 'CLOSED' } } },
       dispatchAdapterId: adapterId,
     },
     data: { dispatchReservedAt: null, dispatchStartedAt: null },
@@ -1581,6 +1625,7 @@ async function markDispatchUnresolved(input: WorkLeaseInput, adapterId: string, 
       },
     })
     if (!attempt) return
+    assertQualityJourneyMutable(await readJourney(input.journeyId, input.targetProjectId, tx))
     await tx.qualityJourneyWorkAttempt.update({ where: { id: attempt.id }, data: { status: 'DISPATCH_UNRESOLVED' } })
     await tx.qualityJourneyWorkItem.updateMany({
       where: { id: attempt.workItemId, status: 'WORKER_REQUESTED' },
@@ -1766,7 +1811,7 @@ type WorkTerminationInput = {
 }
 
 async function readWorkAuthorizationForControl(input: WorkTerminationInput, tx: Prisma.TransactionClient) {
-  await readJourney(input.journeyId, input.targetProjectId, tx)
+  assertQualityJourneyMutable(await readJourney(input.journeyId, input.targetProjectId, tx))
   const item = await readScopedWorkItem(input, tx)
   const authorization = await currentWorkAuthorization(item.id, tx)
   if (!authorization) throw new ServiceError('Quality Journey work authorization is unavailable.', 'UNAUTHORIZED')

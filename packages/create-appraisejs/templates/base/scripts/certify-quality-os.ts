@@ -19,6 +19,7 @@ const packageBehavioralSuites = [
   'src/mcp/registry.test.ts',
   'src/mcp-contract.test.ts',
   'src/mcp/quality-journey-discovery.test.ts',
+  'src/mcp/quality-journey-library.test.ts',
 ]
 if (process.argv.includes('--check-suites')) {
   const missingSuites = behavioralSuites.filter(file => !existsSync(resolve(file)))
