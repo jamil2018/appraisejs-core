@@ -46,7 +46,12 @@ export async function launchQualityJourneyHandoffAction(input: unknown): Promise
       targetProjectId: project.id,
     })
     revalidatePath(`/quality-journeys/${value.journeyId}`)
-    return { status: 200, success: result.status !== 'FAILED', data: result, error: result.reason }
+    return {
+      status: 200,
+      success: result.status !== 'FAILED',
+      data: result,
+      error: result.status === 'FAILED' ? result.reason : undefined,
+    }
   } catch (error) {
     return failure(error)
   }
