@@ -67,7 +67,7 @@ export function assertSharedTemplateDatabaseInputs(templates: readonly TemplateI
   return canonical
 }
 
-export async function readStepDefinitionDataCounts(databasePath: string): Promise<StepDefinitionDataCounts> {
+async function readStepDefinitionDataCounts(databasePath: string): Promise<StepDefinitionDataCounts> {
   const { PrismaClient } = await import('@prisma/client')
   const prisma = new PrismaClient({
     datasources: {
@@ -82,8 +82,6 @@ export async function readStepDefinitionDataCounts(databasePath: string): Promis
       stepDefinitionCount,
       targetProjectCount,
       runtimeCapsuleCount,
-      assessmentCount,
-      evidenceReceiptCount,
       testRunCount,
       reportCount,
       qualityJourneyCount,
@@ -96,8 +94,6 @@ export async function readStepDefinitionDataCounts(databasePath: string): Promis
       prisma.stepDefinition.count(),
       prisma.targetProject.count(),
       prisma.runtimeCapsule.count(),
-      prisma.assessment.count(),
-      prisma.evidenceReceipt.count(),
       prisma.testRun.count(),
       prisma.report.count(),
       prisma.qualityJourney.count(),
@@ -112,8 +108,6 @@ export async function readStepDefinitionDataCounts(databasePath: string): Promis
       targetProjectCount,
       localRuntimeRowCount:
         runtimeCapsuleCount +
-        assessmentCount +
-        evidenceReceiptCount +
         testRunCount +
         reportCount +
         qualityJourneyCount +

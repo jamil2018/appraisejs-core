@@ -5,9 +5,9 @@ surfaces, groups and locators retain stable source IDs with typed prefixes, and 
 Use `GET /api/internal/coordinator/locator-graph`, MCP `locator_graph_query`, or
 `appraisejs locator-graph query --from-id <id>`. Page size is capped at 100 and traversal depth at four.
 
-Plan-bound discovery uses `locator_search` with both the registered target reference and Quality Plan ID. It is bounded
+Journey-bound discovery uses `locator_search` with both the registered target reference and `journeyId`. It is bounded
 and cursor-paginated, and matches locator name and selector plus group, module, and route labels only after target
-visibility filtering. `locator_graph_query` requires a concrete `fromId`; absent optional traversal fields are treated
+visibility filtering after verifying the Journey target. `locator_graph_query` requires a concrete `fromId`; absent optional traversal fields are treated
 as omitted rather than literal `null` values.
 
 `locator_search` is the compact-binding boundary: its top-level `id` is the canonical persistent locator ID and its

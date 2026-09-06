@@ -9,31 +9,23 @@ describe('agent setup capabilities', () => {
     expect(new Set(capabilities).size).toBe(capabilities.length)
   })
 
-  it('advertises only the executable quality lifecycle tools', () => {
+  it('advertises only the executable Quality Journey lifecycle tools', () => {
     expect(expectedAgentCapabilities.tools).toEqual(
       expect.arrayContaining([
         'project_diagnostic',
-        'methodology_list',
-        'requirements_submit_source',
-        'requirement_analysis_propose',
-        'requirement_analysis_decide',
-        'validation_design_propose',
-        'validation_design_decide',
-        'execution_consent_decide',
-        'assessment_finding_record',
-        'assessment_run',
-        'assessment_reconcile',
-        'assessment_decide',
+        'quality_journey_create',
+        'quality_journey_analysis_get',
+        'quality_journey_scenarios_submit',
+        'quality_journey_execution_start',
+        'quality_journey_triage_submit',
         'test_run_read',
         'test_run_diagnose',
       ]),
     )
     expect(expectedAgentCapabilities.resources).toEqual(
-      expect.arrayContaining([
-        'appraise://project',
-        'appraise://workflow/quality-design',
-        'appraise://workflow/assessment',
-      ]),
+      expect.arrayContaining(['appraise://project', 'appraise://target-projects']),
     )
+    for (const retired of ['assessment_run', 'requirements_submit_source', 'methodology_list'])
+      expect(expectedAgentCapabilities.tools).not.toContain(retired)
   })
 })

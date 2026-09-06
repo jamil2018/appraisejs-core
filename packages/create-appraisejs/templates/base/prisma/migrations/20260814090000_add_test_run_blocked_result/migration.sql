@@ -1,3 +1,0 @@
--- TestRun.result is stored as TEXT in SQLite. Adding the Prisma enum value
--- requires no physical table rewrite, while this migration records the
--- durable contract boundary for deployments and schema-history validation.

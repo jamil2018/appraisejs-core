@@ -27,7 +27,7 @@ const eventSchema = z
       .string()
       .regex(/^[a-zA-Z0-9._:-]{1,100}$/)
       .optional(),
-    qualityPlanId: z
+    journeyId: z
       .string()
       .regex(/^[a-zA-Z0-9._:-]{1,200}$/)
       .optional(),
@@ -63,38 +63,19 @@ export async function recordStepDefinitionTelemetry(
       stepId: event.step?.id,
       stepVersion: event.step?.version,
       correlationId: event.correlationId,
-      qualityPlanId: event.qualityPlanId,
+      journeyId: event.journeyId,
       payloadJson: canonicalStepDefinitionJson(event.payload),
     },
   })
 }
 
-/** Resolves lifecycle linkage from an authoritative persisted search receipt.
- * Plans without an agent receipt use a stable opaque plan correlation so the
- * human funnel remains measurable without retaining user input. */
-async function telemetryContextForQualityPlan(
-  database: PrismaClient | Prisma.TransactionClient,
-  qualityPlanId: string,
-) {
-  // Some focused coordinator tests intentionally expose only the delegates
-  // they exercise. Production Prisma clients always provide this delegate.
-  const receipts = database.stepDefinitionSearchReceipt
-  if (!receipts?.findFirst) return { qualityPlanId, correlationId: `quality-plan:${qualityPlanId}` }
-  const receipt = await receipts.findFirst({
-    where: { qualityPlanId },
-    orderBy: { searchedAt: 'desc' },
-    select: { correlationId: true },
-  })
-  return { qualityPlanId, correlationId: receipt?.correlationId ?? `quality-plan:${qualityPlanId}` }
-}
-
 // The coordinator's internal metrics reader is intentionally exported for completion evidence assembly.
 export async function readStepDefinitionTelemetry(
   database: PrismaClient,
-  input: { qualityPlanId?: string; correlationId?: string; since?: Date } = {},
+  input: { journeyId?: string; correlationId?: string; since?: Date } = {},
 ) {
   const where = {
-    ...(input.qualityPlanId ? { qualityPlanId: input.qualityPlanId } : {}),
+    ...(input.journeyId ? { journeyId: input.journeyId } : {}),
     ...(input.correlationId ? { correlationId: input.correlationId } : {}),
     ...(input.since ? { createdAt: { gte: input.since } } : {}),
   }

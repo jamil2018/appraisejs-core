@@ -13,7 +13,7 @@ const roots = [
   'packages/create-appraisejs/templates/base/scripts',
   'packages/create-appraisejs/templates/base/e2e',
   'docs',
-  '.agents',
+  'prisma/schema.prisma',
 ]
 const forbidden = [
   /\bapproveQualityRequirementsAction\b/,
@@ -31,15 +31,34 @@ const forbidden = [
   /\bPlan(?:Projection|TaskProjection|Revision|Event)\b/,
   /\bValidation(?:AstPublishOperation|NodePublication)\b/,
   /\bplanId\b/,
+  /\bQualityPlan\b/,
+  /\bqualityPlanId\b/,
+  /\bAssessment(?:Run|Finding|Decision|Preparation|Execution|Status)\b/,
+  /\bASSESSMENT\b/,
+  /(?:^|[^\w-])\/(?:quality-plans|assessments)(?:\/|\b)/,
+  /\bquality_journey_compatibility_read\b/,
+  /\bcompatibilityLineage\b/,
+  /\bQUALITY_JOURNEY_LEGACY_CONTROL_RETIRED\b/,
+  /quality-journey-cutover-policy/,
+  /\b(?:methodology_list|methodology_get|execution_consent_decide)\b/,
+  /appraise:\/\/workflow\/quality-design/,
+  /\bPUBLISHED_VALIDATION\b/,
 ]
 
 async function filesBelow(root: string): Promise<string[]> {
+  const rootStat = await fs.stat(root).catch(() => null)
+  if (rootStat?.isFile()) return [root]
   const entries = await fs.readdir(root, { withFileTypes: true }).catch(() => [])
   const files: string[] = []
   for (const entry of entries) {
+    if (['graphify-out', 'dist', 'node_modules'].includes(entry.name)) continue
     const target = path.join(root, entry.name)
     if (entry.isDirectory()) files.push(...(await filesBelow(target)))
-    else if (/\.(?:ts|tsx|mjs|md|json|ya?ml)$/.test(entry.name)) files.push(target)
+    else if (
+      /\.(?:ts|tsx|mjs|md|json|ya?ml)$/.test(entry.name) &&
+      !/\.(?:test|spec|e2e)\./.test(entry.name)
+    )
+      files.push(target)
   }
   return files
 }
@@ -47,14 +66,14 @@ async function filesBelow(root: string): Promise<string[]> {
 describe('quality-first clean cutover', () => {
   it('keeps removed lifecycle symbols absent from source, tests, docs, and scaffold source', async () => {
     const thisFile = fileURLToPath(import.meta.url)
-    const allowedLegacyFixtureFiles = new Set(['assessment-execution-cutover-migration.test.ts'])
     const matches: string[] = []
     for (const root of roots) {
       for (const file of await filesBelow(root)) {
         if (
           path.resolve(file) === thisFile ||
           path.basename(file) === path.basename(thisFile) ||
-          allowedLegacyFixtureFiles.has(path.basename(file))
+          path.basename(file) === 'validate-prisma-migrations.mjs' ||
+          file.includes(`${path.sep}codex${path.sep}development plan${path.sep}`)
         )
           continue
         const source = await fs.readFile(file, 'utf8')

@@ -96,7 +96,6 @@ jobs:
       - run: npm run release:check:mcp-http
       - run: npm run release:check:capsule-cutover
       - run: npm run release:check:journey-cutover
-      - run: npm run release:check:quality-os
       - run: npm run quality:fallow:release
       - run: npm run quality:ratchet -- --base "origin/${{ github.base_ref || 'appraise-0.5' }}"
       - run: npm run quality:react-doctor:ci

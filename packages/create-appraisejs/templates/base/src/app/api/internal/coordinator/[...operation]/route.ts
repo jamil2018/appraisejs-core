@@ -1,7 +1,5 @@
-import { assertQualityJourneyCutoverRoute } from '@/services/coordinator/quality-journey-cutover-policy'
 import { createHash, randomUUID } from 'node:crypto'
 
-import { CredentialExecutionAuthorizationIssuer } from '@prisma/client'
 import { z } from 'zod'
 import {
   isSpecializedAnalysisLifecycleCommand,
@@ -21,47 +19,7 @@ import {
 import { ensureTargetLocator } from '@/services/coordinator/locator-ensure-service'
 import { guardCoordinatorRequest, readCoordinatorJson } from '@/lib/coordinator-api/request-guard'
 import { coordinatorStepDefinitionService } from '@/services/coordinator/coordinator-step-definition-service'
-import {
-  answerQualityRequirementQueries,
-  createQualityAssessment,
-  createQualityAssessmentSuccessor,
-  decideQualityAssessment,
-  readQualityAssessment,
-  readQualityRequirementGraph,
-  submitQualityRequirementSource,
-} from '@/services/coordinator/quality-design-service'
-import {
-  decideExecutionConsent,
-  decideRequirementAnalysis,
-  decideValidationDesign,
-  listQualityMethodologies,
-  proposeRequirementAnalysis,
-  proposeValidationDesign,
-  readQualityMethodology,
-  readRequirementAnalysis,
-  readValidationDesign,
-  recordAssessmentFinding,
-  revokeExecutionConsent,
-} from '@/services/coordinator/quality-operating-system-service'
-import {
-  preflightQualityAssessmentRun,
-  prepareQualityAssessmentRun,
-} from '@/services/coordinator/assessment-preparation-service'
-import {
-  createRemoteEvaluationScope,
-  createRemoteEvaluationScopePartition,
-  readRemoteEvaluationScope,
-} from '@/services/coordinator/remote-evaluation-scope-service'
-import {
-  reconcileQualityAssessment,
-  runQualityAssessment,
-  stopQualityAssessment,
-} from '@/services/coordinator/assessment-execution-service'
 import { ServiceError } from '@/services/shared/errors'
-import {
-  issueHostAssertionGrant,
-  revokeCredentialExecutionGrant,
-} from '@/services/coordinator/credential-execution-authorization-service'
 import {
   ensureEnvironment,
   environmentRegistryHash,
@@ -103,20 +61,8 @@ import { getQualityJourneyAutomationRoute, postQualityJourneyAutomationRoute } f
 import { getQualityJourneyExecutionRoute, postQualityJourneyExecutionRoute } from './quality-journey-execution-route'
 import { getQualityJourneyTriageRoute, postQualityJourneyTriageRoute } from './quality-journey-triage-route'
 import { getQualityJourneyLibraryRoute } from './quality-journey-library-route'
-import { getQualityJourneyCompatibilityRoute } from './quality-journey-compatibility-route'
 
 export const runtime = 'nodejs'
-
-const qualityReviewDecisionSchema = z.object({
-  expectedContentHash: z.string().startsWith('sha256:'),
-  decision: z.enum(['APPROVED', 'NEEDS_REVISION', 'REJECTED']),
-  decidedBy: z.string().min(1),
-  rationale: z.string().min(1),
-})
-
-function qualityReviewDecisionInput(value: z.infer<typeof qualityReviewDecisionSchema>) {
-  return { decision: value.decision, decidedBy: value.decidedBy, rationale: value.rationale }
-}
 
 type RouteContext = { params: Promise<{ operation: string[] }> }
 
@@ -139,11 +85,6 @@ function coordinatorErrorContext(request: Request, operation: string[], body?: u
   }
 }
 
-function assertPlanMatchesTarget(plan: { targetProjectId: string }, target: { id: string; fingerprint: string }): void {
-  if (plan.targetProjectId !== target.id)
-    throw new ServiceError('Quality Plan not found for the requested target.', 'NOT_FOUND')
-}
-
 function unknownOperation(): never {
   throw new ServiceError('Coordinator API operation not found.', 'NOT_FOUND')
 }
@@ -159,89 +100,8 @@ function errorClassification(error: unknown) {
   return 'appraise_runtime_defect' as const
 }
 
-function recoveryRetry(error: ServiceError | undefined) {
-  if (error?.details?.code === 'assessment_execution_terminal')
-    return {
-      safe: false,
-      strategy: 'do_not_retry' as const,
-      nextAction: {
-        tool: 'assessment_create_successor',
-        reason:
-          'The existing Assessment has terminal execution history and cannot receive another one-use consent. Create an immutable successor, then prepare it with a newly generated idempotencyKey.',
-      },
-    }
-  if (
-    error?.details?.code === 'assessment_execution_reserved' ||
-    error?.details?.code === 'assessment_execution_incomplete'
-  )
-    return {
-      safe: false,
-      strategy: 'read_state_then_retry' as const,
-      nextAction: {
-        tool: 'assessment_reconcile',
-        reason:
-          'This Assessment still has active or unsealed execution work. Wait for it to become terminal, then read or reconcile before starting any new preparation.',
-      },
-    }
-  return { safe: false, strategy: 'do_not_retry' as const }
-}
-
-const authorizationHandoffSchema = z
-  .object({
-    executionRequestId: z.string().uuid(),
-    expectedRequestHash: z.string().startsWith('sha256:'),
-    expiresAt: z.string().datetime(),
-    authorizationRequestCreated: z.literal(true),
-    nextAction: z
-      .object({
-        tool: z.literal('assessment_prepare_run'),
-        reason: z.string().trim().min(1).max(1_000),
-      })
-      .strict(),
-  })
-  .strict()
-
-function authorizationHandoff(error: ServiceError | undefined) {
-  if (error?.code !== 'UNAUTHORIZED' || error.message !== 'AUTHORIZATION_REQUIRED') return undefined
-  const parsed = authorizationHandoffSchema.safeParse(error.details?.authorization)
-  return parsed.success ? parsed.data : undefined
-}
-
-const executionConsentDetailsSchema = z
-  .object({
-    assessmentId: z.string().min(1),
-    consentId: z.string().uuid(),
-    executionManifestHash: z.string().startsWith('sha256:'),
-    consentStatus: z.literal('REQUESTED'),
-    consentRequestCreated: z.literal(true),
-  })
-  .passthrough()
-
-function executionConsentHandoff(error: ServiceError | undefined) {
-  if (error?.code !== 'CONFLICT' || error.message !== 'Explicit execution consent is required.') return undefined
-  const parsed = executionConsentDetailsSchema.safeParse(error.details)
-  if (!parsed.success) return undefined
-  const arguments_ = {
-    assessmentId: parsed.data.assessmentId,
-    consentId: parsed.data.consentId,
-    expectedExecutionManifestHash: parsed.data.executionManifestHash,
-  }
-  return {
-    ...arguments_,
-    consentRequestCreated: true as const,
-    nextAction: {
-      tool: 'execution_consent_decide' as const,
-      arguments: arguments_,
-      reason:
-        'The manifest-bound execution consent request is committed. Grant or revoke it explicitly; after a grant, replay the original compact preparation with the same idempotencyKey and returned consent identity.',
-    },
-  }
-}
-
-function responseError(error: unknown, context: CoordinatorErrorContext) {
+ function responseError(error: unknown, context: CoordinatorErrorContext) {
   const serviceError = error instanceof ServiceError ? error : undefined
-  const authorization = authorizationHandoff(serviceError)
-  const executionConsent = executionConsentHandoff(serviceError)
   const status = error instanceof z.ZodError ? 400 : (serviceError?.statusCode ?? 500)
   const message =
     error instanceof z.ZodError
@@ -253,37 +113,16 @@ function responseError(error: unknown, context: CoordinatorErrorContext) {
       errorId: randomUUID(),
       occurredAt: new Date().toISOString(),
       classification: errorClassification(error),
-      code: authorization
-        ? 'AUTHORIZATION_REQUIRED'
-        : (serviceError?.code ?? (error instanceof z.ZodError ? 'VALIDATION' : 'INTERNAL')),
+      code: serviceError?.code ?? (error instanceof z.ZodError ? 'VALIDATION' : 'INTERNAL'),
       message,
       httpStatus: status,
       operation: {
         name: context.operation,
         ...(context.idempotencyKey ? { idempotencyKey: context.idempotencyKey } : {}),
       },
-      operationOutcome: authorization || executionConsent ? 'committed' : 'not_started',
+      operationOutcome: 'not_started',
       targetOutcome: 'not_evaluated',
-      retry:
-        authorization || executionConsent
-          ? {
-              safe: false,
-              strategy: 'read_state_then_retry',
-              nextAction: (authorization ?? executionConsent)!.nextAction,
-            }
-          : recoveryRetry(serviceError),
-      ...(authorization
-        ? {
-            durableState: 'authorization_request_committed',
-            authorization,
-          }
-        : {}),
-      ...(executionConsent
-        ? {
-            durableState: 'execution_consent_request_committed',
-            executionConsent,
-          }
-        : {}),
+      retry: { safe: false, strategy: 'do_not_retry' },
       ...(error instanceof z.ZodError
         ? {
             details: {
@@ -458,14 +297,13 @@ async function getLocatorGraph(request: Request, operation: string[]) {
   if (operation.length > 1) return unknownOperation()
   const query = new URL(request.url).searchParams
   const target = await resolveTargetProject(z.string().min(1).parse(query.get('target')))
-  const qualityPlanId = z.string().min(1).parse(query.get('qualityPlanId'))
-  const qualityPlan = await readQualityRequirementGraph({ qualityPlanId })
-  assertPlanMatchesTarget(qualityPlan.qualityPlan, target)
+  const journeyId = z.string().min(1).parse(query.get('journeyId'))
   const fromId = query.get('fromId')?.trim()
   if (!fromId) throw new ServiceError('locator_graph_query requires a non-empty fromId.', 'VALIDATION')
   return Response.json(
     await queryLocatorGraph(
       {
+        journeyId,
         fromId,
         relation: query.get('relation') ?? undefined,
         toType: query.get('toType') ?? undefined,
@@ -492,8 +330,6 @@ async function getTestRunEvidence(request: Request, operation: string[]) {
 }
 
 async function getQualityOperation(request: Request, operation: string[]) {
-  const compatibilityResponse = await getQualityJourneyCompatibilityRoute(operation, new URL(request.url).searchParams)
-  if (compatibilityResponse) return compatibilityResponse
   const libraryResponse = await getQualityJourneyLibraryRoute(operation, new URL(request.url).searchParams)
   if (libraryResponse) return libraryResponse
   const triageResponse = await getQualityJourneyTriageRoute(operation, new URL(request.url).searchParams)
@@ -522,21 +358,14 @@ async function getQualityOperation(request: Request, operation: string[]) {
       await inspectQualityJourneyFactoryEvidence({ journeyId: operation[2]!, targetProjectId: target.id }),
     )
   }
-  if (operation[1] === 'methodologies' && operation.length === 2) return Response.json(listQualityMethodologies())
-  if (operation[1] === 'methodologies' && operation.length === 5)
-    return Response.json(
-      readQualityMethodology({ providerId: operation[2], methodologyId: operation[3], version: operation[4] }),
-    )
-  if (operation[1] === 'plans' && operation[3] === 'locators' && operation.length === 4) {
+  if (operation[1] === 'journeys' && operation[3] === 'locators' && operation.length === 4) {
     const parameters = new URL(request.url).searchParams
-    const qualityPlanId = z.string().min(1).parse(operation[2])
-    const qualityPlan = await readQualityRequirementGraph({ qualityPlanId })
+    const journeyId = z.string().min(1).parse(operation[2])
     const target = await resolveTargetProject(z.string().min(1).parse(parameters.get('target')))
-    assertPlanMatchesTarget(qualityPlan.qualityPlan, target)
     return Response.json(
       await searchLocatorGraph(
         {
-          qualityPlanId,
+          journeyId,
           query: z.string().trim().min(1).max(500).parse(parameters.get('query')),
           cursor: z
             .string()
@@ -550,26 +379,6 @@ async function getQualityOperation(request: Request, operation: string[]) {
       ),
     )
   }
-  if (operation[1] === 'plans' && operation[3] === 'requirements' && operation.length === 4) {
-    const revisionId = new URL(request.url).searchParams.get('revisionId') ?? undefined
-    return Response.json(
-      await readQualityRequirementGraph({ qualityPlanId: z.string().min(1).parse(operation[2]), revisionId }),
-    )
-  }
-  if (operation[1] === 'plans' && operation[3] === 'requirement-analyses' && operation.length === 5)
-    return Response.json(
-      await readRequirementAnalysis({ qualityPlanId: operation[2], analysisRevisionId: operation[4] }),
-    )
-  if (operation[1] === 'plans' && operation[3] === 'validation-designs' && operation.length === 5)
-    return Response.json(
-      await readValidationDesign({ qualityPlanId: operation[2], validationDesignRevisionId: operation[4] }),
-    )
-  if (
-    operation[1] === 'assessments' &&
-    ['readiness', 'diagnose', 'review'].includes(operation[3] ?? '') &&
-    operation.length === 4
-  )
-    return Response.json(await readQualityAssessment(z.string().min(1).parse(operation[2])))
   return unknownOperation()
 }
 
@@ -670,55 +479,21 @@ async function postIndependentTestRun(body: unknown) {
     browserEngine: z.enum(['CHROMIUM', 'FIREFOX', 'WEBKIT']).optional(),
   }
   const value = z
-    .discriminatedUnion('sourceKind', [
-      z
-        .object({
+    .object({
           ...common,
-          sourceKind: z.literal('PUBLISHED_VALIDATION'),
-          publicationId: z.string().min(1),
-          validationVersionId: z.string().min(1),
-          idempotencyKey: z.string().min(1),
-        })
-        .strict(),
-      z
-        .object({
-          ...common,
-          sourceKind: z.literal('AUTHORED_TEST_SNAPSHOT'),
+          sourceKind: z.literal('AUTHORED_TEST_SNAPSHOT').optional(),
           selections: z
             .array(z.object({ testSuiteId: z.string().min(1), testCaseId: z.string().min(1) }).strict())
             .min(1)
             .max(200),
         })
-        .strict(),
-    ])
+        .strict()
     .parse(body)
   const target = await resolveTargetProject(value.target)
   const service = new RuntimeCapsuleTestRunService()
-  if (value.sourceKind === 'AUTHORED_TEST_SNAPSHOT') {
-    const prepared = await createIndependentAuthoredCapsuleTestRun({ ...value, targetProjectId: target.id })
-    const execution = await service.startIndependentAuthored({ testRunDbId: prepared.id })
-    return Response.json({ ...execution, ...prepared }, { status: 201 })
-  }
-  const prepared = await service.prepareIndependentPublished({
-    ...value,
-    targetProjectId: target.id,
-    preparationKey: value.idempotencyKey,
-  })
-  const execution = await service.startIndependentPublished({
-    ...value,
-    targetProjectId: target.id,
-    preparationKey: value.idempotencyKey,
-    testRunDbId: prepared.id,
-  })
+  const prepared = await createIndependentAuthoredCapsuleTestRun({ ...value, targetProjectId: target.id })
+  const execution = await service.startIndependentAuthored({ testRunDbId: prepared.id })
   return Response.json({ ...execution, id: prepared.id, runId: prepared.runId }, { status: 201 })
-}
-
-function qualityPlanId(operation: string[]) {
-  return z.string().min(1).parse(operation[2])
-}
-
-function qualityAssessmentId(operation: string[]) {
-  return z.string().min(1).parse(operation[2])
 }
 
 const qualityJourneyWorkLeaseSchema = z.object({
@@ -770,7 +545,6 @@ async function postQualityOperation(operation: string[], body: unknown): Promise
   const analysisResponse = await postQualityJourneyAnalysisRoute(operation, body)
   if (analysisResponse) return analysisResponse
   const key = operation.join('/')
-  assertQualityJourneyCutoverRoute(operation)
   if (key === 'quality/journeys') {
     const value = z
       .object({ target: z.string().min(1), idempotencyKey: z.string().min(1), requirement: z.unknown() })
@@ -886,304 +660,6 @@ async function postQualityOperation(operation: string[], body: unknown): Promise
       }),
     )
   }
-  if (key === 'quality/requirements/source') {
-    const value = z
-      .object({ target: z.string().min(1), source: z.unknown(), idempotencyKey: z.string().min(1) })
-      .parse(body)
-    if (!('source' in value)) throw new ServiceError('Quality requirement source is required.', 'VALIDATION')
-    return Response.json(
-      await submitQualityRequirementSource({
-        ...value,
-        source: value.source as NonNullable<typeof value.source>,
-        requireExplicitAnalysis: true,
-      }),
-      { status: 201 },
-    )
-  }
-  if (key === `quality/plans/${operation[2]}/requirements/analyze`) {
-    const value = z.object({ revisionId: z.string().min(1).optional() }).parse(body)
-    return Response.json(await readQualityRequirementGraph({ qualityPlanId: qualityPlanId(operation), ...value }))
-  }
-  if (key === `quality/plans/${operation[2]}/requirements/queries`) {
-    const value = z
-      .object({
-        revisionId: z.string().min(1).optional(),
-        answers: z
-          .array(
-            z.object({
-              queryId: z.string().min(1),
-              status: z.enum(['ANSWERED', 'DEFERRED', 'ACCEPTED_ASSUMPTION']),
-              answer: z.string().optional(),
-              rationale: z.string().optional(),
-            }),
-          )
-          .min(1),
-        idempotencyKey: z.string().min(1),
-      })
-      .parse(body)
-    return Response.json(await answerQualityRequirementQueries({ qualityPlanId: qualityPlanId(operation), ...value }))
-  }
-  if (key === `quality/plans/${operation[2]}/requirement-analyses`) {
-    const value = z.object({ revisionId: z.string().min(1), proposal: z.unknown() }).parse(body)
-    const graph = await readQualityRequirementGraph({
-      qualityPlanId: qualityPlanId(operation),
-      revisionId: value.revisionId,
-    })
-    return Response.json(
-      await proposeRequirementAnalysis({
-        targetProjectId: graph.qualityPlan.targetProjectId,
-        qualityPlanRevisionId: value.revisionId,
-        proposal: value.proposal,
-      }),
-      { status: 201 },
-    )
-  }
-  if (key === `quality/plans/${operation[2]}/requirement-analyses/${operation[4]}/decision`) {
-    const value = qualityReviewDecisionSchema.parse(body)
-    return Response.json(
-      await decideRequirementAnalysis({
-        analysisRevisionId: z.string().min(1).parse(operation[4]),
-        qualityPlanId: qualityPlanId(operation),
-        expectedAnalysisHash: value.expectedContentHash,
-        ...qualityReviewDecisionInput(value),
-      }),
-    )
-  }
-  if (key === `quality/plans/${operation[2]}/validation-designs`) {
-    const value = z
-      .object({
-        revisionId: z.string().min(1),
-        requirementAnalysisId: z.string().min(1),
-        expectedAnalysisHash: z.string().startsWith('sha256:'),
-        expectedObligationSetHash: z.string().startsWith('sha256:'),
-        proposal: z.unknown(),
-      })
-      .parse(body)
-    const graph = await readQualityRequirementGraph({
-      qualityPlanId: qualityPlanId(operation),
-      revisionId: value.revisionId,
-    })
-    return Response.json(
-      await proposeValidationDesign({
-        targetProjectId: graph.qualityPlan.targetProjectId,
-        qualityPlanRevisionId: value.revisionId,
-        requirementAnalysisRevisionId: value.requirementAnalysisId,
-        expectedAnalysisHash: value.expectedAnalysisHash,
-        expectedObligationSetHash: value.expectedObligationSetHash,
-        proposal: value.proposal,
-      }),
-      { status: 201 },
-    )
-  }
-  if (key === `quality/plans/${operation[2]}/validation-designs/${operation[4]}/decision`) {
-    const value = qualityReviewDecisionSchema.parse(body)
-    return Response.json(
-      await decideValidationDesign({
-        validationDesignRevisionId: z.string().min(1).parse(operation[4]),
-        qualityPlanId: qualityPlanId(operation),
-        expectedDesignHash: value.expectedContentHash,
-        ...qualityReviewDecisionInput(value),
-      }),
-    )
-  }
-  if (key === 'quality/assessments') {
-    const value = z
-      .object({
-        qualityPlanId: z.string().min(1),
-        revisionId: z.string().min(1),
-        subject: z.unknown(),
-        baselineAssessmentId: z.string().min(1).optional(),
-        idempotencyKey: z.string().min(1),
-      })
-      .parse(body)
-    if (!('subject' in value)) throw new ServiceError('Assessment subject is required.', 'VALIDATION')
-    return Response.json(
-      await createQualityAssessment({ ...value, subject: value.subject as NonNullable<typeof value.subject> }),
-      { status: 201 },
-    )
-  }
-  if (operation[1] === 'assessments' && operation[3] === 'successors' && operation.length === 4) {
-    const value = z
-      .object({
-        subject: z.unknown(),
-        disposition: z.object({
-          code: z.string().min(1).max(120),
-          rationale: z.string().min(1).max(2_000),
-          retryReason: z.string().min(1).max(2_000).optional(),
-        }),
-        idempotencyKey: z.string().min(1),
-      })
-      .parse(body)
-    return Response.json(
-      await createQualityAssessmentSuccessor({
-        assessmentId: qualityAssessmentId(operation),
-        ...value,
-        subject: value.subject as NonNullable<typeof value.subject>,
-      }),
-      { status: 201 },
-    )
-  }
-  if (key === 'quality/assessment-runs') {
-    const value = z
-      .object({
-        assessmentId: z.string().min(1),
-        validationVersionIds: z.array(z.string().min(1)).optional(),
-        runtime: z
-          .object({
-            environmentId: z.string().min(1).optional(),
-            browserEngine: z.enum(['CHROMIUM', 'FIREFOX', 'WEBKIT']).optional(),
-            cells: z
-              .array(
-                z
-                  .object({
-                    validationVersionId: z.string().min(1),
-                    resultMatrixCell: z.string().min(1),
-                    environmentId: z.string().min(1),
-                    browserEngine: z.enum(['CHROMIUM', 'FIREFOX', 'WEBKIT']).optional(),
-                  })
-                  .strict(),
-              )
-              .optional(),
-          })
-          .strict()
-          .optional(),
-        authorizationGrantId: z.string().uuid().optional(),
-        executionRequestId: z.string().uuid().optional(),
-        expectedRequestHash: z.string().startsWith('sha256:').optional(),
-        consentId: z.string().uuid().optional(),
-        expectedExecutionManifestHash: z.string().startsWith('sha256:').optional(),
-        riskClassification: z.enum(['READ_ONLY', 'REVERSIBLE_WRITE', 'MATERIAL_EFFECT']).optional(),
-        materialEffects: z
-          .array(
-            z.enum([
-              'PERMISSION_ESCALATION',
-              'ACCOUNT_CREATION',
-              'PURCHASE',
-              'DESTRUCTIVE_MUTATION',
-              'EXTERNAL_MESSAGE',
-              'IRREVERSIBLE_SIDE_EFFECT',
-              'UNCLASSIFIED_OPERATION',
-            ]),
-          )
-          .optional(),
-        idempotencyKey: z.string().min(1),
-      })
-      .strict()
-      .parse(body)
-    return Response.json(await runQualityAssessment(value), { status: 202 })
-  }
-  if (key === 'quality/assessment-execution-authorizations/host') {
-    const value = z.object({ assertion: z.string().min(1).max(12_000) }).parse(body)
-    return Response.json(await issueHostAssertionGrant(value.assertion), { status: 201 })
-  }
-  if (key === 'quality/assessment-execution-authorizations/revoke') {
-    const value = z.object({ grantId: z.string().uuid(), reason: z.string().min(1).max(500) }).parse(body)
-    return Response.json(
-      await revokeCredentialExecutionGrant({
-        grantId: value.grantId,
-        reason: value.reason,
-        expectedIssuer: CredentialExecutionAuthorizationIssuer.HOST_ASSERTION,
-      }),
-    )
-  }
-  if (key === 'quality/assessment-prepare-runs')
-    return Response.json(await prepareQualityAssessmentRun(body), { status: 202 })
-  if (key === 'quality/assessment-preflights') return Response.json(await preflightQualityAssessmentRun(body))
-  if (key === 'quality/evaluation-subjects/remote-scopes')
-    return Response.json(await createRemoteEvaluationScope(body), { status: 201 })
-  if (key === 'quality/evaluation-subjects/remote-scope-partitions')
-    return Response.json(await createRemoteEvaluationScopePartition(body), { status: 201 })
-  if (key === 'quality/evaluation-subjects/remote-scopes/read')
-    return Response.json(await readRemoteEvaluationScope(body))
-  if (operation[1] === 'assessments' && operation[3] === 'stop' && operation.length === 4) {
-    const value = z.object({ reason: z.string().min(1) }).parse(body)
-    return Response.json(
-      await stopQualityAssessment({
-        assessmentId: qualityAssessmentId(operation),
-        ...value,
-      }),
-      { status: 202 },
-    )
-  }
-  if (operation[1] === 'assessments' && operation[3] === 'reconcile' && operation.length === 4) {
-    const value = z
-      .object({ runIds: z.array(z.string().min(1)).optional(), idempotencyKey: z.string().min(1) })
-      .parse(body)
-    return Response.json(
-      await reconcileQualityAssessment({
-        assessmentId: qualityAssessmentId(operation),
-        ...value,
-      }),
-    )
-  }
-  if (operation[1] === 'assessments' && operation[3] === 'execution-consent' && operation.length === 4) {
-    const value = z
-      .object({
-        consentId: z.string().min(1),
-        expectedExecutionManifestHash: z.string().startsWith('sha256:'),
-        decision: z.enum(['GRANTED', 'REVOKED']),
-        decidedBy: z.string().min(1),
-        rationale: z.string().min(1),
-        expiresAt: z.string().datetime().optional(),
-      })
-      .parse(body)
-    if (value.decision === 'REVOKED')
-      return Response.json(
-        await revokeExecutionConsent({
-          consentId: value.consentId,
-          assessmentId: qualityAssessmentId(operation),
-          reason: value.rationale,
-        }),
-      )
-    return Response.json(
-      await decideExecutionConsent({
-        consentId: value.consentId,
-        assessmentId: qualityAssessmentId(operation),
-        expectedManifestHash: value.expectedExecutionManifestHash,
-        grantedBy: value.decidedBy,
-        expiresAt: value.expiresAt ? new Date(value.expiresAt) : undefined,
-      }),
-    )
-  }
-  if (operation[1] === 'assessments' && operation[3] === 'findings' && operation.length === 4) {
-    const value = z
-      .object({
-        obligationId: z.string().min(1),
-        outcome: z.enum(['SATISFIED', 'VIOLATED', 'NOT_EVALUATED']),
-        attribution: z.unknown().optional(),
-        limitations: z.unknown().optional(),
-        evidenceReceiptIds: z.array(z.string().min(1)).min(1),
-        expectedEvidenceSetHash: z.string().startsWith('sha256:'),
-      })
-      .parse(body)
-    return Response.json(
-      await recordAssessmentFinding({
-        assessmentId: qualityAssessmentId(operation),
-        qualityObligationRevisionId: value.obligationId,
-        evidenceReceiptIds: value.evidenceReceiptIds,
-        expectedEvidenceSetHash: value.expectedEvidenceSetHash,
-        finding: {
-          schemaVersion: '1',
-          obligationId: value.obligationId,
-          outcome: value.outcome,
-          attribution: value.attribution,
-        },
-        limitations: value.limitations,
-      }),
-      { status: 201 },
-    )
-  }
-  if (operation[1] === 'assessments' && operation[3] === 'decision' && operation.length === 4) {
-    const value = z
-      .object({
-        expectedEvidenceSetHash: z.string().startsWith('sha256:'),
-        decision: z.enum(['accepted', 'rejected', 'accepted_with_limitations', 'needs_revision']),
-        decidedBy: z.string().min(1),
-        rationale: z.string().min(1),
-      })
-      .parse(body)
-    return Response.json(await decideQualityAssessment({ assessmentId: qualityAssessmentId(operation), ...value }))
-  }
   return unknownOperation()
 }
 
@@ -1213,7 +689,7 @@ async function postLocatorEnsure(request: Request, body: unknown): Promise<Respo
   const value = z
     .object({
       target: z.string().min(1),
-      qualityPlanId: z.string().min(1),
+      journeyId: z.string().min(1),
       allowCreate: z.boolean().optional(),
       group: z.discriminatedUnion('mode', [
         z.object({ mode: z.literal('existing'), id: z.string().min(1) }).strict(),

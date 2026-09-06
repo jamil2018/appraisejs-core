@@ -360,7 +360,7 @@ async function fixture({
       environmentSnapshotHash,
       environmentSnapshotVersion: 1,
       browserEngine: 'CHROMIUM',
-      intent: 'INDEPENDENT',
+      intent: 'QUALITY_JOURNEY',
       result: passing ? 'PASSED' : 'FAILED',
       status: 'COMPLETED',
       evidenceHealth: 'valid',

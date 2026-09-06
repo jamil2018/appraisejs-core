@@ -1,10 +1,11 @@
 import { readFile } from 'node:fs/promises'
 import { describe, expect, it } from 'vitest'
 
-import { createAppraiseMcpServer, mcpContractForServer } from './mcp.js'
+import { createAppraiseMcpServer } from './mcp/server-factory.js'
 import {
   assertCanonicalMcpDefinitions,
   assertUniqueMcpDefinitions,
+  mcpContractForServer,
   type McpContractDefinition,
 } from './mcp/registry.js'
 import {
@@ -14,10 +15,7 @@ import {
   canonicalMcpToolNames,
 } from './mcp/contract.js'
 
-type ContractFixture = {
-  schemaVersion: 2
-  default: McpContractDefinition[]
-}
+type ContractFixture = { schemaVersion: 2; default: McpContractDefinition[] }
 
 async function fixture(): Promise<ContractFixture> {
   return JSON.parse(await readFile(new URL('./mcp-contract.fixture.json', import.meta.url), 'utf8'))
@@ -32,66 +30,8 @@ async function definitions() {
   return contract
 }
 
-function preparationInputSchema(contract: McpContractDefinition[]) {
-  const preparation = contract.find(definition => definition.name === 'assessment_prepare_run')
-  return preparation?.inputSchema as {
-    properties?: {
-      validationBindings?: { items?: { properties?: Record<string, unknown> } }
-      environment?: { anyOf?: Array<{ properties?: Record<string, unknown>; required?: string[] }> }
-    }
-  }
-}
-
-function assertCompactBindingSchema(schema: ReturnType<typeof preparationInputSchema>) {
-  const binding = schema.properties?.validationBindings?.items?.properties
-  const step = (binding?.steps as { items?: { properties?: Record<string, unknown> } } | undefined)?.items?.properties
-
-  expect(binding).toMatchObject({ validationId: expect.any(Object), locatorIds: expect.any(Object) })
-  expect(step).toMatchObject({ stepId: expect.any(Object), version: expect.any(Object), inputs: expect.any(Object) })
-  expect(step).not.toHaveProperty('definitionHash')
-  for (const forbidden of ['locators', 'locatorGroups', 'locatorName', 'locatorValue', 'definitionHash'])
-    expect(binding).not.toHaveProperty(forbidden)
-}
-
-function assertPreparationEnvironmentSchema(schema: ReturnType<typeof preparationInputSchema>) {
-  expect(schema.properties?.environment?.anyOf).toEqual(
-    expect.arrayContaining([
-      expect.objectContaining({ required: ['environmentId'] }),
-      expect.objectContaining({ required: ['allowCreate', 'proposal'] }),
-    ]),
-  )
-  expect(schema.properties).toHaveProperty('assessmentId')
-  expect(schema.properties).toHaveProperty('expectedPreflight')
-  expect(schema.properties).not.toHaveProperty('expectedRealizationPreflightHash')
-}
-
-function assertPreflightSchema(contract: McpContractDefinition[]) {
-  const preflight = contract.find(definition => definition.name === 'assessment_preflight')
-  const schema = preflight?.inputSchema as {
-    properties?: Record<string, unknown>
-    $defs?: { __schema0?: { anyOf?: Array<{ type?: string; additionalProperties?: unknown }> } }
-  }
-  expect(schema.properties).toHaveProperty('environment')
-  expect(schema.properties).not.toHaveProperty('assessmentId')
-  expect(schema.properties).not.toHaveProperty('idempotencyKey')
-  expect(schema.properties).not.toHaveProperty('authorizationGrantId')
-  expect(schema.properties).not.toHaveProperty('executionRequestId')
-  const inputs = (
-    schema.properties?.validationBindings as {
-      items?: { properties?: { steps?: { items?: { properties?: { inputs?: unknown } } } } }
-    }
-  )?.items?.properties?.steps?.items?.properties?.inputs as { additionalProperties?: { $ref?: string } }
-  expect(inputs.additionalProperties?.$ref).toBe('#/$defs/__schema0')
-  expect(schema.$defs?.__schema0?.anyOf).toEqual(
-    expect.arrayContaining([
-      expect.objectContaining({ type: 'array' }),
-      expect.objectContaining({ type: 'object', additionalProperties: expect.any(Object) }),
-    ]),
-  )
-}
-
 describe('canonical MCP contract registry', () => {
-  it('matches the complete default names and schemas without depending on registration order', async () => {
+  it('matches the complete Journey-only names and schemas without depending on registration order', async () => {
     const expected = await fixture()
     await expect(definitions()).resolves.toEqual(expected.default)
     expect(expected.default.filter(definition => definition.kind === 'tool')).toHaveLength(canonicalMcpToolNames.length)
@@ -100,60 +40,47 @@ describe('canonical MCP contract registry', () => {
     )
   })
 
-  it('has the exact quality allowlist, real handlers, and annotations', async () => {
+  it('has the exact Journey allowlist, real handlers, and annotations', async () => {
     const contract = await definitions()
     expect(() => assertCanonicalMcpDefinitions(contract)).not.toThrow()
-
     for (const definition of contract) {
       expect(definition.annotations).toBeDefined()
-      if (definition.kind === 'tool') {
+      if (definition.kind === 'tool')
         expect(definition.annotations).toEqual(canonicalMcpToolAnnotations[definition.name])
-      } else {
-        expect(definition.annotations).toEqual(canonicalMcpResourceAnnotations[definition.name])
+      else expect(definition.annotations).toEqual(canonicalMcpResourceAnnotations[definition.name])
+    }
+  })
+
+  it('excludes every retired Quality Plan and Assessment MCP operation and resource', async () => {
+    const names = new Set((await definitions()).map(definition => definition.name))
+    for (const retired of [
+      'requirements_submit_source',
+      'requirement_analysis_propose',
+      'validation_design_propose',
+      'assessment_preflight',
+      'assessment_run',
+      'assessment_decide',
+      'evaluation_subject_remote_scope_create',
+      'execution_consent_decide',
+      'methodology_list',
+      'quality_journey_compatibility_read',
+      'workflow-quality-design',
+      'workflow-assessment',
+      'quality-methodology',
+      'validation-ast-contract',
+    ])
+      expect(names).not.toContain(retired)
+  })
+
+  it('exposes Journey-scoped locator inputs and no legacy qualityPlanId input', async () => {
+    const contract = await definitions()
+    for (const name of ['locator_search', 'locator_graph_query', 'locator_ensure']) {
+      const schema = contract.find(definition => definition.name === name)?.inputSchema as {
+        properties?: Record<string, unknown>
       }
+      expect(schema.properties).toHaveProperty('journeyId')
+      expect(schema.properties).not.toHaveProperty('qualityPlanId')
     }
-
-    const names = new Set(contract.map(definition => definition.name))
-    expect(names.size).toBe(canonicalMcpToolNames.length + canonicalMcpResourceNames.length)
-  })
-
-  it('exposes only compact, explicit preparation bindings and summary identities', async () => {
-    const contract = await definitions()
-    const schema = preparationInputSchema(contract)
-    assertCompactBindingSchema(schema)
-    assertPreparationEnvironmentSchema(schema)
-    assertPreflightSchema(contract)
-  })
-
-  it('removes caller-authored compilation and publication from the public MCP surface', async () => {
-    const contract = await definitions()
-    const names = contract.map(definition => definition.name)
-
-    expect(names).toContain('assessment_preflight')
-    expect(names).not.toContain('validation_compile')
-    expect(names).not.toContain('validation_publish')
-  })
-
-  it('defaults assessment review and decision to the compact decision response mode', async () => {
-    const contract = await definitions()
-    const review = contract.find(definition => definition.name === 'assessment_review')
-    const decision = contract.find(definition => definition.name === 'assessment_decide')
-    const schema = review?.inputSchema as {
-      properties?: { responseMode?: { default?: unknown; description?: string } }
-    }
-    const decisionSchema = decision?.inputSchema as { properties?: { responseMode?: { default?: unknown } } }
-
-    expect(schema.properties?.responseMode?.default).toBe('decisionOnly')
-    expect(decisionSchema.properties?.responseMode?.default).toBe('decisionOnly')
-    expect(schema.properties?.responseMode?.description).toContain('full (largest payload)')
-  })
-
-  it('explicitly rejects the removed standalone assessment subject', async () => {
-    const contract = await definitions()
-    const run = contract.find(definition => definition.name === 'assessment_run')
-    const schema = run?.inputSchema as { properties?: { subject?: unknown } }
-
-    expect(schema.properties?.subject).toEqual({ not: {} })
   })
 
   it('fails fast for duplicate, invalid, and unknown definitions', () => {
@@ -165,17 +92,5 @@ describe('canonical MCP contract registry', () => {
     expect(() => assertUniqueMcpDefinitions([{ kind: 'unknown', name: 'operation' } as never])).toThrow(
       'Unknown MCP definition kind',
     )
-  })
-
-  it('returns an immutable per-server contract backed by the shared static registry', async () => {
-    const server = await createAppraiseMcpServer({ cwd: process.cwd(), baseUrl: 'http://127.0.0.1:3000' })
-    const secondServer = await createAppraiseMcpServer({ cwd: process.cwd(), baseUrl: 'http://127.0.0.1:3000' })
-    const contract = mcpContractForServer(server)
-    expect(Object.isFrozen(contract)).toBe(true)
-    expect(contract.every(Object.isFrozen)).toBe(true)
-    expect(mcpContractForServer(secondServer)).toBe(contract)
-    expect(contract.every(definition => !Object.values(definition).includes(undefined))).toBe(true)
-    await server.close()
-    await secondServer.close()
   })
 })

@@ -159,15 +159,15 @@ describe('Step Definition Server Actions', () => {
     await expect(
       selectReadyStepDefinitionAction({
         step: { id: 'browser.search', version: '1' },
-        qualityPlanId: 'quality-plan-1',
-        correlationId: 'quality-plan:quality-plan-1',
+        journeyId: 'journey-1',
+        correlationId: 'journey:journey-1',
       }),
     ).resolves.toMatchObject({ status: 200, success: true, data: { recorded: true } })
     expect(mocks.recordSelectionSelected).toHaveBeenCalledWith({
       surface: 'human',
       step: { id: 'browser.search', version: '1' },
-      qualityPlanId: 'quality-plan-1',
-      correlationId: 'quality-plan:quality-plan-1',
+      journeyId: 'journey-1',
+      correlationId: 'journey:journey-1',
     })
   })
 

@@ -1,72 +1,19 @@
-# TestRun Runtime
+# Test Run Runtime
 
-TestRuns are the managed execution records used by Assessments. An Assessment run prepares an immutable runtime capsule from a published Validation Version, evaluation-subject revision, and target-project identity, then starts the corresponding TestRun.
+Every TestRun executes from an immutable runtime capsule with an exact command receipt, selected cases, Step
+Definitions, locators, environment identity, and expected-case manifest.
 
-Runtime capsules are content-addressed and materialized under the target-owned runtime root. Their manifests capture frozen validation inputs, operation identities, locator/resource resolution, environment selection, and generated artifacts. A materializer uses bounded ownership tokens so concurrent callers cannot mutate the same capsule.
+There are two execution intents:
 
-Local startup verifies that the built Appraise Cucumber runtime entrypoints exist and runs the canonical `build:cucumber-runtime` script only when they are missing. Assessment execution repeats this as a read-only gate before durable `AssessmentRun` creation, so an unavailable runtime cannot leave a failed lifecycle record behind.
+- `QUALITY_JOURNEY`: created by a Journey execution cycle and required to have the exact
+  `QualityJourneyExecutionTestRun` binding. Its output becomes usable only through Journey-owned evidence sealing,
+  triage, report review, and closure.
+- `INDEPENDENT`: created from a target-owned authored snapshot and required to have no Journey binding. Its output is
+  diagnostic and cannot satisfy Journey evidence, triage, decisions, or closure.
 
-Every TestRun executes from a capsule. `intent=ASSESSMENT` is reserved for Assessment-owned executions and their evidence reconciliation. `intent=INDEPENDENT` never creates an AssessmentRun or EvidenceReceipt. Independent sources are either an exact reviewed published validation or an `AUTHORED_TEST_SNAPSHOT`: a canonical, target-owned suite/case/ordered-Step-Invocation/locator snapshot sealed into the capsule. Authored snapshots must have complete exact Step References and target-owned locator IDs; manual, incomplete, cross-project, or ambiguous selections are rejected before a TestRun capsule is created. The synthetic validation ID used in its capsule tags is only a deterministic routing identity derived from the snapshot hash, never a Quality publication.
+Both paths share capsule materialization, immutable blob storage, preflight, execution-attempt ownership, process
+management, logs, and reports. A remote target uses its frozen non-secret environment packet; mutable environment
+state is never substituted after sealing.
 
-Every published-validation preparation, materialization, and start gate requires the persisted v2 algorithm, `ACTIVE` disposition, and the exact authority for the target kind (`appraisejs:remote-evaluation-scope:v2` for remote scopes or `appraisejs:quality-validation-publication:v2` otherwise). A missing, foreign, or migrated v1 authority fails closed as `preflight_algorithm_unsupported` with `targetOutcome: not_evaluated`; it never downgrades to a legacy hash.
-
-Each managed scenario begins on a fresh `about:blank` page. Before realization can publish or start it, its ordered Step Invocations must establish page context with the catalog-declared environment-base-url or `goto` navigation before the first locator-consuming or assertion operation. Reload and back never establish that context. A violation is the typed `scenario_page_context_required` validation/preflight defect with `targetOutcome: not_evaluated`; no TestRun is created.
-
-The v2 migration refuses to retire a publication while a bound managed TestRun/AssessmentRun is active, including the pre-capsule binding window. Legacy independent pre-capsule rows retain only an opaque preparation key, so they cannot distinguish a published run from an authored snapshot; if legacy publications exist, any active independent row conservatively blocks the migration until it is terminalized or explicitly repaired.
-
-An AssessmentRun idempotency key owns one immutable run generation. A crash before any TestRun/binding write leaves a `PREPARED` zero-binding run; replaying that same key is the safe retry and resumes materialization on that exact run. A crash after durable binding creation but before runtime start leaves every bound TestRun `QUEUED`; replaying that same key resumes those exact bindings and never creates another TestRun. A capsule-start infrastructure failure may terminalize its TestRun before it rethrows; Appraise reconciles that terminal history without changing it and the same execution or preparation key cannot launch new work. Once every binding is terminal and sealed, the consumed-consent Assessment remains immutable retry history: callers create an explicit successor and prepare that successor with a new key and consent. If any sibling binding remains active or unsealed, the Assessment remains RUNNING and returns `assessment_execution_incomplete` with `assessment_reconcile` guidance rather than permitting successor preparation.
-
-Execution resolves no mutable publication selector after reservation. The active v3 generation is selected once, and checkpoints/bindings preserve its exact `(validationVersionId, generationId, publicationId, publicationOperationHash, runtimeInputHash)` tuple. A managed runtime capsule and command receipt use that durable `qvp_*` publication ID as their `publishOperationId`; compiler-reviewed AST provenance separately retains `astpub_<receipt-digest>`. The caller command receipt remains a third, distinct identity. For remote scopes, issuance contains no Assessment or run IDs; those identities first appear in subsequent bindings and sealed evidence.
-
-There is no workspace executor, execution-time feature generation, or target-workspace report path. Features, bindings, support files, configuration, logs, reports, traces, and screenshots are generated or accessed through the capsule root only.
-
-Before a Quality-owned TestRun is prepared, AppraiseJS projects the immutable published validation artifacts into the target-scoped relational execution index. This projection is idempotent and must complete before TestRun-to-case/suite links are inserted, so managed execution never relies on fabricated foreign-key identities. For a remote Assessment-owned run, the preparation transaction rebuilds the complete stored remote-scope token from its AssessmentRun subject and binding, then rechecks plan, design, validation, Step Definition, locator, realization, and environment state through that same transaction client before either projection or TestRun writes begin.
-
-TestRun output includes report, log, trace, and runtime diagnostics artifacts. Assessment reconciliation verifies those artifacts against the capsule identity and seals one immutable Evidence Receipt for every completed assessment matrix cell. Every new managed receipt hashes its exact target, Assessment, and AssessmentRun identities as well as subject/runtime provenance, so byte-identical output cannot cross a run, successor, or target boundary. Every remote TestRun, including an independent authored snapshot, must carry the one strict canonical environment packet before materialization, attempt reservation, logging, or spawn: environment and target IDs, name, canonical HTTPS origins, nullable title/API/user fields, credential-reference presence/state/reference (never a secret), and a positive scope version. Packet JSON must itself be canonical and hash-valid; missing, extra, noncanonical, or impossible credential fields fail even if their supplied hash is self-consistent. A row such as `https://host/` is normalized to the stored `https://host` packet before comparisons. The materializer substitutes that frozen non-secret origin, username, credential-state, and credential-reference binding before it forms the command receipt or runtime capsule; it never falls back to the mutable Environment row. Reconciliation derives the packet requirement from the durable TestRun `TargetProject.kind`, not an Assessment subject descriptor, so terminal preserved remote runs with legacy `ARTIFACT` or `DEPLOYMENT_SNAPSHOT` descriptors cannot seal packetless evidence. It validates that packet before it derives any remote PASS, FAIL, or BLOCKED outcome; a corrupted or missing packet is always inconclusive (`targetOutcome: not_evaluated`) and seals no evidence. Assessment/review payloads surface a packet-integrity rejection as `targetOutcome: not_evaluated` even without a BLOCKED receipt; genuinely unstarted cells retain their distinct null outcome. Historical receipt hashes are not rewritten. TestRun success or failure by itself is not an assurance decision. A negative observation must be reviewed against requirements, validation design, realization, Appraise runtime, environment/data, and automation boundaries; only a sealed `TARGET_DEFECT` finding may violate an obligation.
-
-When `assessment_run` omits `runtime`, Appraise derives the exact cells from each selected published Validation Version's immutable runtime matrix. Explicit cells and the shorthand `runtime.environmentId` remain supported, but every request must still cover the complete selected published matrix.
-
-Stopping an Assessment stops only executions it owns. Already sealed receipts remain available, while late process completion cannot overwrite an Assessment that has been stopped. Independent TestRuns remain ordinary runtime records and cannot issue Evidence Receipts or an Assessment decision.
-
-Runtime code must preserve the shared Step Definition, locator, target-project, Cucumber, Playwright, report, and TestRun infrastructure. Canonical operation definitions own browser behavior; generated projections and runtime wrappers are regenerated from those definitions.
-
-Each canonical locator-consuming operation input declares its cardinality. `exactlyOne` inputs are checked at the operation boundary against the live page and fail for zero or multiple matches; `collection` inputs retain plural semantics for count, absence, and disappearance checks. Assessment preparation stays browser-free: it validates the canonical declaration and seals the per-step cardinality bindings into immutable runtime input. The picker companion separately confirms its selected selector has one live match, recording the selector fingerprint, checked URL, time, and match count; manually authored database-owned locators remain allowed without picker verification.
-
-`browser.assertions.ordered.texts@1` is the canonical exact-order assertion for a reviewed collection locator. It receives the required `expectedTexts` JSON string array, reads the collection's text contents in locator/document order, and compares cardinality and each value without selector indexing or sorting.
-
-Authored flow nodes may supply an optional Gherkin presentation label. That label controls only the human-readable scenario and Cucumber log text; the exact Step Definition ID, version, definition hash, and typed inputs remain the execution identity. When no label is supplied, AppraiseJS continues to derive presentation text from the canonical Step Definition signature and inputs.
-
-Managed binding generation emits one static registration line per unique reviewed phrase. Cucumber progress output therefore points at a distinct generated registration instead of reporting every managed step against one shared loop line; repeated equivalent phrases remain registered once, and conflicting duplicate phrases still fail closed.
-
-When a browser operation fails, the runtime also captures a bounded set of visible native validation messages and alert text from the current page. These diagnostics are appended to the stable operation error rather than requiring a trace or screenshot to discover an immediately visible field-level rejection.
-
-Before an Assessment-managed published capsule can seal a receipt, reconciliation reparses its canonical manifest and recomputes both manifest and capsule hashes. The manifest must prove the exact TestRun/project/publication/validation tuple, operation/projection/receipt/runtime hashes, `PUBLISHED_VALIDATION` source hash and durable `qvp_*` identity, immutable generation ID/key, and nonempty expected cases for that publication AST. Compiler `astpub_<receipt-digest>` provenance is separately validated from the bound publication bytes. Any missing, malformed, noncanonical, foreign, or mismatched value terminalizes the binding as inconclusive without reading artifacts or creating a receipt. `AUTHORED_TEST_SNAPSHOT` remains valid only for independent TestRuns and can never be Assessment receipt authority.
-
-Expected cases are re-derived from the bound immutable publication's validation AST and runtime scenario selection. Reconciliation requires canonical one-for-one equality of every `(validationId, suiteId, caseId, scenarioId)` tuple, including cardinality; self-consistently rehashed manifest or capsule bytes cannot redirect a managed case. This `managed_capsule_integrity` rejection is persisted on the unsealed binding and projects `targetOutcome: not_evaluated` with the Assessment returned to READY for both local and remote targets. It does not relabel ordinary target or infrastructure terminal outcomes.
-
-## Credential-safe trace policy
-
-When a managed capsule resolves a credential, its scenario never writes a Playwright trace artifact. If a credential becomes present after tracing began, the runtime discards the in-memory trace without allocating a trace path; failed credential-bearing scenarios therefore publish no trace artifact reference. Screenshots and diagnostics remain subject to their separate redaction boundaries.
-
-`browser.forms.fill.configured.credential@1` is the sole built-in form-fill operation for an environment credential. It has exactly one locator input and no secret, credential alias, variable, or value-hash input. The handler consumes only the sealed runtime `APPRAISE_ENV_PASSWORD`, requires the current page to already be on the sealed target origin, and emits value-free typed prerequisite/fill failures. It does not create an authorization path: a `REFERENCE_CONFIGURED` environment still requires the existing one-use Assessment execution grant before any runtime work can start.
-
-Managed navigation waits for `domcontentloaded` and then uses the bounded route/DOM settlement detector. It does not require global network idleness, so analytics, polling, streaming, and other long-lived requests cannot indefinitely delay form interaction or route assertions. Authored operations that explicitly request network idleness remain available when that condition is part of the test design.
-
-## Human-verification blocks
-
-Managed browser execution fails closed when a versioned detector observes a visible, non-zero-area structural CAPTCHA signature from an allowlisted provider. Text alone, hidden or offscreen markup, scripts, and network activity never auto-block a run. The runtime checks before an operation resolves locators, after operations settle, and in an operation-error path, so a CAPTCHA-replaced page is not misreported as an ordinary locator failure.
-
-The runtime emits `appraise.runtime.blocked/v1` with reason `human_verification_required` and sanitized provider, page/frame origins, structural signature ID, checkpoint, step/operation identity, and observed-at facts. It never records challenge tokens or full DOM content. The managed process is terminated immediately and idempotently; the browser and context close normally. AppraiseJS offers no bypass, pause, session takeover, or resume mechanism. Retrying requires a fresh TestRun after the challenge has been cleared outside AppraiseJS.
-
-A blocked TestRun is terminal as `status=COMPLETED` and `result=BLOCKED`, distinct from failures and cancellations, even when report evidence is invalid or missing. Integrity-valid blocked runs may seal `EvidenceOutcome.BLOCKED` receipts, but those receipts record an automation boundary only; they cannot pass or fail a target obligation and project `targetOutcome=not_evaluated`. A complete fresh non-blocked matrix supersedes a prior blocked attempt for review and decision while preserving prior receipts.
-
-## Quality Journey execution
-
-Journey execution starts through the specialized `quality_journey_execution_start` boundary after approved scenario
-materialization. It reserves durable run identity, freezes the environment and consumes any required exact-scope
-consent before calling the capsule runtime. The Journey overview links to standard TestRun logs and reports.
-`quality_journey_execution_reconcile` records terminal evidence; it cannot start or resume an OS process.
-
-Selective reruns require an immutable proposal and user approval in Appraise. Each successor preserves its own
-scenario selection, environment, capsule, run and evidence lineage. A durable active attempt with a missing local
-process handle requires ownership resolution; never use reconnect or cancellation as permission to duplicate it.
+There is no published-Assessment capsule source or reconciliation branch. A mismatch between intent and Journey
+binding fails before materialization or process launch.

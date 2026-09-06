@@ -567,7 +567,7 @@ async function persistExecutionReservation(input: {
         environmentSnapshotHash: environmentSnapshot.hash,
         environmentSnapshotVersion: environmentSnapshot.version,
         browserEngine: request.browserEngine,
-        intent: 'INDEPENDENT',
+        intent: 'QUALITY_JOURNEY',
         status: 'QUEUED',
         result: 'PENDING',
         testCases: { create: [{ testCaseId: capsule.testCaseId, testSuiteId: capsule.suiteId }] },

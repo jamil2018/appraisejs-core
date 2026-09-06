@@ -345,20 +345,6 @@ export async function renameTargetProject(
   })
 }
 
-export type ExecutionConsentModeValue = 'ALWAYS_ASK' | 'RISK_AWARE' | 'TRUSTED_AGENT'
-
-export async function updateTargetProjectExecutionConsentMode(
-  input: { targetProjectId: string; mode: ExecutionConsentModeValue },
-  client: PrismaClient = prisma,
-): Promise<TargetProject> {
-  const existing = await client.targetProject.findUnique({ where: { id: input.targetProjectId } })
-  if (!existing) throw new ServiceError('Target project not found.', 'NOT_FOUND', 404)
-  return client.targetProject.update({
-    where: { id: existing.id },
-    data: { executionConsentMode: input.mode },
-  })
-}
-
 async function deleteProjectRuntimeRecords(targetProjectId: string, tx: Prisma.TransactionClient) {
   const [capsules, blobs] = await Promise.all([
     tx.runtimeCapsule.findMany({ where: { targetProjectId }, select: { id: true } }),

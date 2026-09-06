@@ -59,7 +59,6 @@ export default async function ProjectsPage({ searchParams }: { searchParams?: Pr
             canonicalPath,
             normalizedRemoteOrigin,
             lastDetectedAt,
-            executionConsentMode,
           }) => ({
             id,
             kind,
@@ -69,7 +68,6 @@ export default async function ProjectsPage({ searchParams }: { searchParams?: Pr
             canonicalPath,
             normalizedRemoteOrigin,
             lastDetectedAt,
-            executionConsentMode,
             preflight: preflightReceipts[id],
           }),
         )}

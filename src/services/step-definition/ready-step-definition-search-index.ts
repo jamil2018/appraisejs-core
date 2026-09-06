@@ -94,7 +94,7 @@ function readyStepDefinitionSearchIndex(rows: ReadyStepDefinitionRow[]) {
 export function createReadySearchEvidence(input: {
   indexHash: string
   searchedAt: string
-  qualityPlanId?: string
+  journeyId?: string
   correlationId: string
   candidateReferences: Array<{ id: string; version: string }>
 }) {
@@ -104,7 +104,7 @@ export function createReadySearchEvidence(input: {
   const body = {
     indexHash: input.indexHash,
     searchedAt: input.searchedAt,
-    ...(input.qualityPlanId ? { qualityPlanId: input.qualityPlanId } : {}),
+    ...(input.journeyId ? { journeyId: input.journeyId } : {}),
     correlationId: input.correlationId,
     candidateReferences,
   }

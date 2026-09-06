@@ -9,6 +9,7 @@ import {
 } from './locator-graph-service'
 
 const client = {
+  qualityJourney: { findFirst: async () => ({ id: 'journey-one', targetProjectId: 'target-one' }) },
   locatorGroup: {
     findMany: async () => [
       {
@@ -35,6 +36,7 @@ const client = {
 } as unknown as PrismaClient
 
 const scopedClient = {
+  qualityJourney: { findFirst: async () => ({ id: 'journey-one', targetProjectId: 'target-one' }) },
   locatorGroup: {
     findMany: async () => [
       {
@@ -74,13 +76,21 @@ describe('locator graph discovery', () => {
   })
 
   it('returns bounded traversal pages', async () => {
-    const graph = await buildLocatorGraph(client)
+    const graph = await buildLocatorGraph(scopedClient, 'target-one')
     const surface = graph.nodes.find(node => node.type === 'surface')!
-    await expect(queryLocatorGraph({ fromId: surface.id, depth: 2, limit: 2 }, client)).resolves.toMatchObject({
+    await expect(
+      queryLocatorGraph(
+        { journeyId: 'journey-one', fromId: surface.id, depth: 2, limit: 2 },
+        scopedClient,
+        'target-one',
+      ),
+    ).resolves.toMatchObject({
       nodes: expect.any(Array),
       nextCursor: expect.any(String),
     })
-    await expect(queryLocatorGraph({ fromId: surface.id, limit: 101 }, client)).rejects.toThrow()
+    await expect(
+      queryLocatorGraph({ journeyId: 'journey-one', fromId: surface.id, limit: 101 }, scopedClient, 'target-one'),
+    ).rejects.toThrow()
   })
 
   it('keeps directly project-scoped locators visible while ownership receipts are absent', async () => {
@@ -146,6 +156,7 @@ describe('locator graph discovery', () => {
 
   it('applies an explicit target scope to graph traversal', async () => {
     const client = {
+      qualityJourney: { findFirst: async () => ({ id: 'journey-one', targetProjectId: 'target-one' }) },
       locatorGroup: {
         findMany: async () => [
           ...((await (
@@ -170,7 +181,7 @@ describe('locator graph discovery', () => {
     const surface = graph.nodes.find(node => node.type === 'surface')!
 
     await expect(
-      queryLocatorGraph({ fromId: surface.id, depth: 2, limit: 10 }, client, 'target-one'),
+      queryLocatorGraph({ journeyId: 'journey-one', fromId: surface.id, depth: 2, limit: 10 }, client, 'target-one'),
     ).resolves.toMatchObject({
       nodes: expect.arrayContaining([expect.objectContaining({ persistentId: 'checkout-button' })]),
     })
@@ -181,6 +192,7 @@ describe('locator graph discovery', () => {
 
   it('searches names, selectors, groups, modules, and routes within one target only', async () => {
     const client = {
+      qualityJourney: { findFirst: async () => ({ id: 'journey-one', targetProjectId: 'target-one' }) },
       locatorGroup: {
         findMany: async () => [
           {
@@ -231,7 +243,7 @@ describe('locator graph discovery', () => {
     } as unknown as PrismaClient
 
     for (const query of ['email address', 'data-testid', 'login form', 'authentication', '/login']) {
-      const result = await searchLocatorGraph({ qualityPlanId: 'plan-one', query }, client, 'target-one')
+      const result = await searchLocatorGraph({ journeyId: 'journey-one', query }, client, 'target-one')
       expect(result.locators).toEqual([
         expect.objectContaining({
           id: 'email-input',
@@ -248,16 +260,24 @@ describe('locator graph discovery', () => {
         }),
       ])
       expect(result.page).toMatchObject({ maxLimit: 100, nextCursor: null })
+      expect(result.journeyId).toBe('journey-one')
     }
+  })
+
+  it('rejects a Journey that belongs to a different target before querying locator resources', async () => {
+    const foreignJourneyClient = {
+      ...scopedClient,
+      qualityJourney: { findFirst: async () => ({ id: 'journey-foreign', targetProjectId: 'target-two' }) },
+    } as unknown as PrismaClient
+
+    await expect(
+      searchLocatorGraph({ journeyId: 'journey-foreign', query: 'checkout' }, foreignJourneyClient, 'target-one'),
+    ).rejects.toMatchObject({ code: 'NOT_FOUND' })
   })
 
   it('keeps graph traversal identifiers prefixed while search returns bindable persistent identities', async () => {
     const graph = await buildLocatorGraph(scopedClient, 'target-one')
-    const result = await searchLocatorGraph(
-      { qualityPlanId: 'plan-one', query: 'checkout' },
-      scopedClient,
-      'target-one',
-    )
+    const result = await searchLocatorGraph({ journeyId: 'journey-one', query: 'checkout' }, scopedClient, 'target-one')
 
     expect(graph.nodes).toEqual(
       expect.arrayContaining([

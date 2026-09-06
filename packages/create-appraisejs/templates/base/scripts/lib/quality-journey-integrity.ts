@@ -47,7 +47,6 @@ export function auditQualityJourneyIntegrity(database: JourneyAuditDatabase) {
     schema: 'appraise.quality-journey-integrity/v1',
     result: issues.length ? 'FAIL' : 'PASS',
     checkedTables,
-    compatibilityLineage: 'NOT_ASSERTED_NO_PERSISTED_JOURNEY_MAPPING',
     issues,
   }
 }

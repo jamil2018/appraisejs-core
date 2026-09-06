@@ -87,10 +87,10 @@ export function registerProjectOperations(context: McpRegistryContext): void {
     'locator_graph_query',
     {
       description:
-        'Query a bounded locator graph path within the target bound to a Quality Plan. fromId is required; omitted optional filters are normalized to absent.',
+        'Query a bounded locator graph path within the target bound to a Quality Journey. fromId is required; omitted optional filters are normalized to absent.',
       inputSchema: {
         target: z.string().min(1),
-        qualityPlanId: z.string().min(1),
+        journeyId: z.string().min(1),
         fromId: z.string().min(1),
         relation: nullableOptionalString(),
         toType: nullableOptionalString(),
@@ -106,10 +106,10 @@ export function registerProjectOperations(context: McpRegistryContext): void {
     'locator_ensure',
     {
       description:
-        'Idempotently ensure one target-owned locator closure for a Quality Plan without browser interaction or credentials.',
+        'Idempotently ensure one target-owned locator closure for a Quality Journey without browser interaction or credentials.',
       inputSchema: {
         target: z.string().min(1),
-        qualityPlanId: z.string().min(1),
+        journeyId: z.string().min(1),
         allowCreate: z.boolean().optional(),
         group: z.discriminatedUnion('mode', [
           z.object({ mode: z.literal('existing'), id: z.string().min(1) }),
@@ -190,19 +190,19 @@ export function registerProjectOperations(context: McpRegistryContext): void {
     'locator_search',
     {
       description:
-        'Search target- and Quality Plan-scoped locators before validation design. Result id is the bindable persistent locator ID; presentationId is graph-only for locator_graph_query.',
+        'Search target- and Quality Journey-scoped locators before scenario design. Result id is the bindable persistent locator ID; presentationId is graph-only for locator_graph_query.',
       inputSchema: {
         target: z.string().min(1),
-        qualityPlanId: z.string().min(1),
+        journeyId: z.string().min(1),
         query: z.string().min(1),
         cursor: z.string().regex(/^\d+$/).optional(),
         limit: z.number().int().positive().max(100).default(25),
       },
     },
-    async ({ target, qualityPlanId, query, cursor, limit }) =>
+    async ({ target, journeyId, query, cursor, limit }) =>
       text(
         await api.request(
-          `quality/plans/${encodeURIComponent(qualityPlanId)}/locators?target=${encodeURIComponent(target)}&query=${encodeURIComponent(query)}&limit=${limit}${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ''}`,
+          `quality/journeys/${encodeURIComponent(journeyId)}/locators?target=${encodeURIComponent(target)}&query=${encodeURIComponent(query)}&limit=${limit}${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ''}`,
         ),
       ),
   )

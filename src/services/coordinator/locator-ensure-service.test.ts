@@ -15,9 +15,9 @@ function clientFixture() {
   const writes = { modules: 0, groups: 0, locators: 0 }
   const targetProject = { id: 'target-login', fingerprint: `sha256:${'a'.repeat(64)}` }
   const client = {
-    qualityPlan: {
+    qualityJourney: {
       findFirst: async ({ where }: { where: { id: string } }) =>
-        where.id === 'plan-login' ? { id: 'plan-login', targetProjectId: targetProject.id, targetProject } : null,
+        where.id === 'journey-login' ? { id: 'journey-login', targetProjectId: targetProject.id, targetProject } : null,
     },
     module: {
       findFirst: async ({ where }: { where: Record<string, unknown> }) => {
@@ -77,7 +77,7 @@ function clientFixture() {
 }
 
 const request = {
-  qualityPlanId: 'plan-login',
+  journeyId: 'journey-login',
   allowCreate: true,
   group: { mode: 'ensure' as const, name: 'Login', route: '/login', module: { mode: 'ensure' as const, name: 'Auth' } },
   locator: { name: 'Email input', selector: '[data-testid="email"]' },
@@ -88,12 +88,12 @@ function ensure(fixture: ReturnType<typeof clientFixture>, input: LocatorEnsureI
 }
 
 describe('target-scoped locator ensure', () => {
-  it('creates the module, group, and locator closure with a plan-derived target fingerprint', async () => {
+  it('creates the module, group, and locator closure with a Journey-derived target fingerprint', async () => {
     const fixture = clientFixture()
     const result = await ensure(fixture)
 
     expect(result).toMatchObject({
-      qualityPlanId: 'plan-login',
+      journeyId: 'journey-login',
       targetProjectId: 'target-login',
       targetFingerprint: fixture.targetProject.fingerprint,
       outcome: 'created',

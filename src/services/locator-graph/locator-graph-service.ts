@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto'
 import type { Prisma, PrismaClient } from '@prisma/client'
+import { z } from 'zod'
 
 import prisma from '@/config/db-config'
 import {
@@ -9,6 +10,7 @@ import {
   type LocatorGraph,
 } from '@/lib/locator-graph'
 import { readVisibleResourceOwnerships } from '@/services/project-resource/project-resource-ownership-service'
+import { ServiceError } from '@/services/shared/errors'
 
 const hash = (value: unknown) => `sha256:${createHash('sha256').update(JSON.stringify(value)).digest('hex')}`
 const routeId = (route: string) => `surface_${createHash('sha256').update(route).digest('hex').slice(0, 16)}`
@@ -119,9 +121,23 @@ export async function buildLocatorGraph(
   return locatorGraphSchema.parse(graph)
 }
 
+async function resolveJourneyTarget(client: PrismaClient, journeyId: string, expectedTargetProjectId?: string) {
+  const journey = await client.qualityJourney.findFirst({
+    where: { id: journeyId },
+    select: { id: true, targetProjectId: true },
+  })
+  if (!journey || (expectedTargetProjectId && journey.targetProjectId !== expectedTargetProjectId))
+    throw new ServiceError('Quality Journey not found for the requested target.', 'NOT_FOUND')
+  return journey.targetProjectId
+}
+
+const journeyScopeSchema = z.object({ journeyId: z.string().min(1) })
+
 export async function queryLocatorGraph(value: unknown, client: PrismaClient = prisma, targetProjectId?: string) {
+  const { journeyId } = journeyScopeSchema.parse(value)
   const query = locatorGraphQuerySchema.parse(value)
-  const graph = await buildLocatorGraph(client, targetProjectId)
+  const journeyTargetProjectId = await resolveJourneyTarget(client, journeyId, targetProjectId)
+  const graph = await buildLocatorGraph(client, journeyTargetProjectId)
   const reached = new Set([query.fromId])
   let frontier = [query.fromId]
   for (let depth = 0; depth < query.depth; depth += 1) {
@@ -136,6 +152,7 @@ export async function queryLocatorGraph(value: unknown, client: PrismaClient = p
   const nodes = candidates.slice(offset, offset + query.limit)
   const nodeIds = new Set(nodes.map(node => node.id))
   return {
+    journeyId,
     graphHash: graph.contentHash,
     nodes,
     edges: graph.edges.filter(edge => nodeIds.has(edge.fromId) && nodeIds.has(edge.toId)),
@@ -144,18 +161,19 @@ export async function queryLocatorGraph(value: unknown, client: PrismaClient = p
 }
 
 /**
- * Canonical bounded locator discovery for a plan's resolved target.  Search
+ * Canonical bounded locator discovery for a Journey's resolved target. Search
  * deliberately operates on the already target-filtered graph, so a foreign
  * target cannot become visible through a group, module, route, or selector
  * match.
  */
 export async function searchLocatorGraph(
-  input: { qualityPlanId: string; query: string; cursor?: string; limit?: number },
+  input: { journeyId: string; query: string; cursor?: string; limit?: number },
   client: PrismaClient = prisma,
   targetProjectId?: string,
 ) {
+  const journeyTargetProjectId = await resolveJourneyTarget(client, input.journeyId, targetProjectId)
   const query = input.query.trim().toLocaleLowerCase()
-  const graph = await buildLocatorGraph(client, targetProjectId)
+  const graph = await buildLocatorGraph(client, journeyTargetProjectId)
   const groups = new Map(
     graph.nodes
       .filter(
@@ -187,8 +205,8 @@ export async function searchLocatorGraph(
   const limit = input.limit ?? 25
   const page = matches.slice(offset, offset + limit)
   return {
-    qualityPlanId: input.qualityPlanId,
-    ...(targetProjectId ? { targetProjectId } : {}),
+    journeyId: input.journeyId,
+    targetProjectId: journeyTargetProjectId,
     graphHash: graph.contentHash,
     locators: page.map(({ locator, group, surface }) => {
       if (!locator.persistentId) throw new Error('Locator graph locator is missing its persistent ID.')

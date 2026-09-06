@@ -7,26 +7,18 @@ export function registerRuntimeOperations(context: McpRegistryContext): void {
     'test_run_start',
     {
       description:
-        'Start an independent capsule-only TestRun from an exact published validation or target-owned authored suite/case selection. Independent runs never create Assessment evidence.',
+        'Start an independent capsule-only TestRun from a target-owned authored suite/case selection. Independent runs are non-authoritative diagnostics and never create Journey evidence.',
       inputSchema: {
         target: z.string().min(1),
         environmentId: z.string().min(1),
         name: z.string().min(1).max(200),
-        source: z.discriminatedUnion('sourceKind', [
-          z.object({
-            sourceKind: z.literal('PUBLISHED_VALIDATION'),
-            publicationId: z.string().min(1),
-            validationVersionId: z.string().min(1),
-            idempotencyKey: z.string().min(1),
-          }),
-          z.object({
+        source: z.object({
             sourceKind: z.literal('AUTHORED_TEST_SNAPSHOT'),
             selections: z
               .array(z.object({ testSuiteId: z.string().min(1), testCaseId: z.string().min(1) }))
               .min(1)
               .max(200),
           }),
-        ]),
         browserEngine: z.enum(['CHROMIUM', 'FIREFOX', 'WEBKIT']).optional(),
         responseMode: responseModeSchema,
       },

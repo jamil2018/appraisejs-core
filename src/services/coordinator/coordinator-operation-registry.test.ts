@@ -9,16 +9,11 @@ import {
 describe('coordinator operation registry', () => {
   it.each([
     ['GET', ['diagnostic'], 'diagnostic'],
-    ['GET', ['quality', 'plans', 'qlp_example', 'requirements'], 'quality-read'],
     ['GET', ['quality', 'journeys', 'journey-1', 'analysis'], 'quality-read'],
-    ['GET', ['quality', 'assessments', 'assessment-1'], 'quality-read'],
     ['GET', ['step-definitions', 'search'], 'step-definitions-read'],
     ['GET', ['environments'], 'environment-read'],
     ['POST', ['diagnostic', 'preflight'], 'diagnostic-preflight-write'],
-    ['POST', ['quality', 'assessments'], 'quality-write'],
-    ['POST', ['quality', 'assessment-runs'], 'quality-write'],
-    ['POST', ['quality', 'assessment-prepare-runs'], 'quality-write'],
-    ['POST', ['quality', 'evaluation-subjects', 'remote-scopes', 'read'], 'quality-read'],
+    ['POST', ['quality', 'journeys', 'journey-1', 'analysis', 'publish'], 'quality-write'],
     ['POST', ['environments', 'ensure'], 'environment-write'],
     ['POST', ['locators', 'ensure'], 'locator-write'],
     [
@@ -35,7 +30,7 @@ describe('coordinator operation registry', () => {
     ['GET', ['providers']],
     ['POST', ['diagnostic']],
     ['POST', ['unknown-surface', 'run-1']],
-    ['PUT', ['quality', 'plans', 'quality-plan-1']],
+    ['PUT', ['quality', 'journeys', 'journey-1']],
   ] satisfies Array<[CoordinatorMethod, string[]]>)('fails closed for %s /%s', (method, operation) => {
     expect(() => coordinatorOperationRegistry.resolve(method, operation)).toThrow('Coordinator API operation not found')
   })

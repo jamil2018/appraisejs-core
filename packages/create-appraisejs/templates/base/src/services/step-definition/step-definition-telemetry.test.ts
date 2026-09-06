@@ -11,14 +11,14 @@ describe('Step Definition telemetry', () => {
       surface: 'agent',
       outcome: 'selection_selected',
       correlationId: 'receipt:1',
-      qualityPlanId: 'quality-plan-1',
+      journeyId: 'journey-1',
       payload: { candidateCount: 3 },
     })
 
     expect(create).toHaveBeenCalledWith({
       data: expect.objectContaining({
         correlationId: 'receipt:1',
-        qualityPlanId: 'quality-plan-1',
+        journeyId: 'journey-1',
         payloadJson: '{"candidateCount":3}',
       }),
     })

@@ -1,7 +1,7 @@
 import { promises as fs } from 'node:fs'
 import { createRequire } from 'node:module'
 import path from 'node:path'
-import type { ValidationAstRuntimeInput } from '@/lib/quality-design/validation-runtime-input-contract'
+import type { SelectedTestRuntimeInput } from './selected-test-contract'
 import { capsuleCommandReceiptV1Schema } from './command-receipt-contract'
 import { hashRuntimeCapsuleBytes } from './contracts'
 import { resolveCapsuleRuntimeIdentity } from './runtime-identity'
@@ -53,7 +53,7 @@ export function sealCredentialEnvironment(input: {
 export async function sealCapsuleCommandReceipt(input: {
   operation: {
     id: string
-    sourceKind?: 'PUBLISHED_VALIDATION' | 'AUTHORED_TEST_SNAPSHOT'
+    sourceKind?: 'AUTHORED_TEST_SNAPSHOT'
     sourceHash?: string
     operationHash: string
     projectionHash: string
@@ -77,7 +77,7 @@ export async function sealCapsuleCommandReceipt(input: {
   }
   /** Receipt sealing needs only this already-validated immutable compiler
    * identity; publication owns complete runtime-input validation. */
-  runtimeInput: Pick<ValidationAstRuntimeInput, 'extensionPolicy'>
+  runtimeInput: Pick<SelectedTestRuntimeInput, 'extensionPolicy'>
   built: BuiltCapsuleFiles
 }) {
   const cucumberModulePath = runtimeRequire.resolve('@cucumber/cucumber')
@@ -132,9 +132,8 @@ export async function sealCapsuleCommandReceipt(input: {
       validationHash: input.operation.validationHash,
       runId: input.testRun.runId,
       testRunId: input.testRun.id,
-      sourceKind: input.operation.sourceKind ?? 'PUBLISHED_VALIDATION',
+      sourceKind: input.operation.sourceKind ?? 'AUTHORED_TEST_SNAPSHOT',
       sourceHash: input.operation.sourceHash ?? input.operation.validationHash,
-      ...(input.operation.sourceKind === 'AUTHORED_TEST_SNAPSHOT' ? {} : { publishOperationId: input.operation.id }),
       operationHash: input.operation.operationHash,
       projectionHash: input.operation.projectionHash,
       compilerReceiptHash: input.operation.receiptHash,

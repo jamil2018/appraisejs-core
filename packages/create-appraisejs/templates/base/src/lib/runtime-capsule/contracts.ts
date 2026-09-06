@@ -40,34 +40,13 @@ const runtimeCapsuleManifestEnvelopeSchema = z
     projectionHash: runtimeCapsuleHashSchema,
     receiptHash: runtimeCapsuleHashSchema,
     runtimeInputHash: runtimeCapsuleHashSchema,
-    source: z.discriminatedUnion('kind', [
-      z
-        .object({
-          kind: z.literal('PUBLISHED_VALIDATION'),
-          sourceHash: runtimeCapsuleHashSchema,
-          publishOperationId: z.string().min(1).max(4096),
-          /** The immutable executable generation selected before the run was
-           * reserved.  A publication ID alone is not enough to prove that a
-           * later replay did not silently select a successor generation. */
-          generationId: runtimeCapsuleSegmentSchema,
-          generationKey: runtimeCapsuleHashSchema,
-        })
-        .strict(),
-      z
-        .object({
+    source: z
+      .object({
           kind: z.literal('AUTHORED_TEST_SNAPSHOT'),
           sourceHash: runtimeCapsuleHashSchema,
           snapshot: z.unknown(),
         })
         .strict(),
-    ]),
-    lifecycleCorrelation: z
-      .object({
-        qualityPlanId: z.string().regex(/^[a-zA-Z0-9._:-]{1,200}$/),
-        correlationId: z.string().regex(/^[a-zA-Z0-9._:-]{1,100}$/),
-      })
-      .strict()
-      .optional(),
     commandReceipt: z.object({ path: z.literal('command-receipt.json'), hash: runtimeCapsuleHashSchema }).strict(),
     generator: z.object({ id: z.literal('appraise.validation-ast-capsule'), version: z.literal('2') }).strict(),
     expectedCases: z

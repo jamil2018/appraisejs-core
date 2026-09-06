@@ -1,5 +1,5 @@
 import { createRequire } from 'node:module'
-import { mkdtempSync, readFileSync, readdirSync, rmSync } from 'node:fs'
+import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { auditQualityJourneyIntegrity, type JourneyAuditDatabase } from './lib/quality-journey-integrity'
@@ -20,6 +20,7 @@ try {
     const migrations = resolve('prisma/migrations')
     for (const entry of readdirSync(migrations, { withFileTypes: true })
       .filter(entry => entry.isDirectory())
+      .filter(entry => existsSync(join(migrations, entry.name, 'migration.sql')))
       .sort((a, b) => a.name.localeCompare(b.name)))
       database.exec(readFileSync(join(migrations, entry.name, 'migration.sql'), 'utf8'))
   }

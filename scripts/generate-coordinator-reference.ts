@@ -23,12 +23,6 @@ export type PublicOperationReference =
 const localDiscoveryTools = new Set(['locator_search'])
 
 const exactCoordinatorOperations: Readonly<Record<string, CoordinatorOperationId>> = {
-  assessment_diagnose: 'quality-read',
-  assessment_preflight: 'quality-read',
-  assessment_readiness: 'quality-read',
-  assessment_review: 'quality-read',
-  evaluation_subject_remote_scope_read: 'quality-read',
-  assessment_prepare_run: 'quality-write',
   environment_list: 'environment-read',
   environment_ensure: 'environment-write',
   locator_graph_query: 'locator-graph',
@@ -40,7 +34,6 @@ const exactCoordinatorOperations: Readonly<Record<string, CoordinatorOperationId
   quality_journey_artifacts_list: 'quality-read',
   quality_journey_analysis_get: 'quality-read',
   quality_journey_get: 'quality-read',
-  requirements_graph_read: 'quality-read',
   step_definition_draft_read: 'step-definitions-read',
   step_search: 'step-definitions-read',
   test_run_diagnose: 'test-run-evidence',
@@ -49,17 +42,9 @@ const exactCoordinatorOperations: Readonly<Record<string, CoordinatorOperationId
 }
 
 const coordinatorOperationPrefixes: ReadonlyArray<readonly [string, CoordinatorOperationId]> = [
-  ['assessment_', 'quality-write'],
-  ['evaluation_subject_', 'quality-write'],
-  ['execution_consent_', 'quality-write'],
-  ['methodology_', 'quality-read'],
   ['operation_', 'operations'],
   ['quality_journey_', 'quality-write'],
-  ['requirement_analysis_', 'quality-write'],
-  ['requirements_', 'quality-write'],
   ['step_definition_', 'step-definitions-write'],
-  ['validation_design_', 'quality-write'],
-  ['validation_', 'quality-write'],
 ]
 
 export function referenceForMcpTool(name: string): PublicOperationReference {

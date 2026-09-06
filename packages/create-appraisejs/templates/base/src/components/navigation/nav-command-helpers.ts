@@ -6,7 +6,6 @@ import {
   LayoutDashboard,
   LayoutTemplate,
   ListChecks,
-  Network,
   FolderKanban,
   Puzzle,
   Route,
@@ -72,8 +71,6 @@ function getControlSection(): NavigationSection {
     items: [
       { href: '/', label: 'Dashboard', icon: LayoutDashboard },
       { href: '/quality-journeys', label: 'Quality Journeys', icon: Route },
-      { href: '/quality-plans', label: 'Quality Plans', icon: Network },
-      { href: '/assessments', label: 'Assessments', icon: ListChecks },
     ],
   }
 }

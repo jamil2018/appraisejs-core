@@ -38,9 +38,8 @@ function receipt() {
       validationHash: h('a'),
       runId: 'run',
       testRunId: 'test-run',
-      sourceKind: 'PUBLISHED_VALIDATION',
+      sourceKind: 'AUTHORED_TEST_SNAPSHOT',
       sourceHash: h('a'),
-      publishOperationId: 'operation',
       operationHash: h('d'),
       projectionHash: h('e'),
       compilerReceiptHash: h('f'),
@@ -161,7 +160,9 @@ describe('capsule command receipt contract', () => {
     }
     delete (ownership as { publishOperationId?: string }).publishOperationId
 
-    expect(capsuleCommandReceiptV1Schema.parse({ ...authored, ownership }).ownership.publishOperationId).toBeUndefined()
+    expect(capsuleCommandReceiptV1Schema.parse({ ...authored, ownership }).ownership).not.toHaveProperty(
+      'publishOperationId',
+    )
     expect(
       capsuleCommandReceiptV1Schema.safeParse({
         ...authored,

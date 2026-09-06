@@ -507,7 +507,7 @@ describe('StepDefinitionRegistryService', () => {
       prisma.stepDefinitionTelemetryEvent.findFirst({
         where: { outcome: 'selection_selected', correlationId: 'agent-e2e' },
       }),
-    ).resolves.toMatchObject({ surface: 'agent', qualityPlanId: null })
+    ).resolves.toMatchObject({ surface: 'agent', journeyId: null })
 
     await registry.issueHumanReviewReceipt(draft.id, draft.revision)
     await registry.publishDraft({ draftId: draft.id, expectedRevision: draft.revision, conformanceRunId: 'agent-e2e' })

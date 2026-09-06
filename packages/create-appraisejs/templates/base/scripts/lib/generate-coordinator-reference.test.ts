@@ -30,6 +30,6 @@ describe('public coordinator operation reference', () => {
     const output = generateCoordinatorReference(fixture)
     expect(output).toContain('<!-- GENERATED')
     expect(output).toContain('`quality-write`')
-    expect(output).toContain('`assessment_decide`')
+    expect(output).toContain('`quality_journey_create`')
   })
 })
