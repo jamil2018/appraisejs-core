@@ -56,7 +56,7 @@
     "bump:patch": "npm version patch"
   },
   "dependencies": {
-    "@inquirer/prompts": "^7.2.0",
+    "@inquirer/prompts": "^8.7.1",
     "cli-progress": "^3.12.0",
     "cross-spawn": "^7.0.6",
     "fs-extra": "^11.2.0",
