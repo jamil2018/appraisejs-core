@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useReducer, useRef, useState, useTransition } from 'react'
+import { useCallback, useEffect, useReducer, useRef, useState, useTransition } from 'react'
 
 import { toast } from '@/hooks/use-toast'
 import { hashQualityJourneyRequirement } from '@/lib/quality-journey'
@@ -107,6 +107,10 @@ export function useQualityJourneyCreateIntake({
   const [saveConflict, setSaveConflict] = useState(false)
   const [isPending, startTransition] = useTransition()
   const requirement = buildRequirement(state)
+  const requirementRef = useRef(requirement)
+  const currentStepRef = useRef(state.currentStep)
+  requirementRef.current = requirement
+  currentStepRef.current = state.currentStep
   const missing = missingRequiredIntake(requirement)
 
   const update = (patch: Partial<IntakeState>) => {
@@ -115,7 +119,10 @@ export function useQualityJourneyCreateIntake({
     dispatch({ type: 'patch', patch })
   }
 
-  function enqueueSave(requirementToSave = requirement, stepToSave = state.currentStep) {
+  const enqueueSave = useCallback(function enqueueSave(
+    requirementToSave = requirementRef.current,
+    stepToSave = currentStepRef.current,
+  ) {
     const requestedRevision = editRevision.current
     const draftRequirement = draftRequirementForSave(requirementToSave)
     const operation = saveQueue.current.then(async () => {
@@ -149,7 +156,7 @@ export function useQualityJourneyCreateIntake({
     })
     saveQueue.current = operation.then(() => undefined)
     return operation
-  }
+  }, [predecessorJourneyId])
 
   const draftRequirement = JSON.stringify(requirement)
   const hasMeaningfulEdit = editRevision.current > 0
@@ -159,9 +166,7 @@ export function useQualityJourneyCreateIntake({
     return () => {
       if (saveTimer.current) window.clearTimeout(saveTimer.current)
     }
-    // The serialized requirement carries every persisted answer into this autosave.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state.currentStep, draftRequirement, hasMeaningfulEdit, predecessorJourneyId])
+  }, [draftRequirement, enqueueSave, hasMeaningfulEdit, state.currentStep])
 
   useEffect(() => {
     const warnBeforeUnload = (event: BeforeUnloadEvent) => {
