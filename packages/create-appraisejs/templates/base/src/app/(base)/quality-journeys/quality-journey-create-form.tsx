@@ -1,6 +1,6 @@
 'use client'
 
-import { ArrowRight, Check, ChevronLeft, ClipboardCheck, Plus, ShieldCheck } from 'lucide-react'
+import { ArrowRight, ChevronLeft, ClipboardCheck, Plus, ShieldCheck } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useReducer, useRef, useTransition, type ReactNode } from 'react'
 
@@ -174,27 +174,19 @@ function initialIntakeState(environments: EnvironmentOption[]): IntakeState {
 
 type IntakeSectionProps = {
   children: ReactNode
-  complete: boolean
   description: string
   id: string
   title: string
 }
 
-function IntakeSection({ children, complete, description, id, title }: IntakeSectionProps) {
+function IntakeSection({ children, description, id, title }: IntakeSectionProps) {
   return (
     <section className="scroll-mt-6 px-5 py-6 sm:px-7 sm:py-7" aria-labelledby={`${id}-heading`} id={id}>
       <div className="mb-5 flex items-start gap-3">
         <div className="min-w-0 flex-1">
-          <div className="flex items-center justify-between gap-3">
-            <h2 className="text-base font-semibold tracking-tight" id={`${id}-heading`}>
-              {title}
-            </h2>
-            {complete ? (
-              <span className="flex items-center gap-1.5 text-xs font-medium text-primary">
-                <Check aria-hidden="true" className="size-3.5" /> Complete
-              </span>
-            ) : null}
-          </div>
+          <h2 className="text-base font-semibold tracking-tight" id={`${id}-heading`}>
+            {title}
+          </h2>
           <p className="mt-1 max-w-2xl text-sm leading-5 text-muted-foreground">{description}</p>
         </div>
       </div>
@@ -227,13 +219,14 @@ function IntakeGuide({
   requirement: ReturnType<typeof buildRequirement>
 }) {
   const items = intakeSteps(requirement)
-  const completed = items.filter(item => item.complete).length
   return (
     <aside className="xl:sticky xl:top-6 xl:self-start">
       <div className="border-border/80 bg-card/40 rounded-xl border p-4">
         <div className="flex items-center justify-between gap-3">
           <p className="text-sm font-semibold">Journey brief</p>
-          <span className="font-mono text-xs text-muted-foreground">{completed}/5</span>
+          <span className="font-mono text-xs text-muted-foreground">
+            Step {currentStep + 1} of {items.length}
+          </span>
         </div>
         <p className="mt-1 text-xs leading-5 text-muted-foreground">Complete the five inputs required for review.</p>
         <nav
@@ -253,14 +246,12 @@ function IntakeGuide({
                   {String(index + 1).padStart(2, '0')}
                 </span>
                 <span className="flex-1">{item.label}</span>
-                {item.complete ? <Check aria-hidden="true" className="size-3.5 text-primary" /> : null}
               </button>
             )
           })}
         </nav>
       </div>
-      <div className="border-primary/20 bg-primary/[0.06] mt-3 flex gap-2 rounded-xl border px-4 py-3 text-xs leading-5 text-muted-foreground">
-        <ShieldCheck aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-primary" />
+      <div className="border-primary/20 bg-primary/[0.06] mt-3 rounded-xl border px-4 py-3 text-xs leading-5 text-muted-foreground">
         <p>Supplied answers become binding intent. The Analyzer asks only about gaps, conflicts, or feasibility.</p>
       </div>
     </aside>
@@ -294,9 +285,7 @@ function IntakeReview({
   return (
     <Card className="border-primary/25 bg-primary/[0.04]">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-base">
-          <ShieldCheck aria-hidden="true" className="size-4 text-primary" /> Review binding intake
-        </CardTitle>
+        <CardTitle className="text-base">Review binding intake</CardTitle>
         <CardDescription>
           Confirmation creates the immutable Journey. Supplied fields become user-authorized intent for analysis.
         </CardDescription>
@@ -564,7 +553,6 @@ export function QualityJourneyCreateForm({
         <div className="border-border/80 bg-card/30 overflow-hidden rounded-xl border">
           <StepVisibility current={currentStep} when={0}>
             <IntakeSection
-              complete={Boolean(requirement.objective)}
               description="State the outcome or behavior that should be trusted when this Journey is complete."
               id="intake-requirement"
               title="Requirement"
@@ -594,7 +582,6 @@ export function QualityJourneyCreateForm({
 
           <StepVisibility current={currentStep} when={1}>
             <IntakeSection
-              complete={Boolean(requirement.testDimensions.length)}
               description="Choose how deeply to investigate and which quality perspectives matter."
               id="intake-profile"
               title="Validation profile"
@@ -641,7 +628,6 @@ export function QualityJourneyCreateForm({
 
           <StepVisibility current={currentStep} when={2}>
             <IntakeSection
-              complete={Boolean(requirement.includedScope.length)}
               description="Draw the boundary clearly so analysis can protect what matters without inventing scope."
               id="intake-scope"
               title="Scope"
@@ -673,7 +659,6 @@ export function QualityJourneyCreateForm({
 
           <StepVisibility current={currentStep} when={3}>
             <IntakeSection
-              complete={Boolean(requirement.environmentIds.length)}
               description="Bind the brief to registered targets so the coordinator works from stable environment identities."
               id="intake-environment"
               title="Target environments"
@@ -754,7 +739,6 @@ export function QualityJourneyCreateForm({
           <StepVisibility current={currentStep} when={4}>
             <>
               <IntakeSection
-                complete={Boolean(requirement.desiredEvidenceSignals.length)}
                 description="Name the observable signals that would make the result credible to you."
                 id="intake-evidence"
                 title="Evidence and context"
