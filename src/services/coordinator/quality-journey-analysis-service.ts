@@ -206,7 +206,10 @@ export async function getQualityJourneyAnalysis(
       artifact: true,
       questions: {
         orderBy: { createdAt: 'asc' },
-        include: { artifact: true, answers: { orderBy: { createdAt: 'asc' }, include: { artifact: true } } },
+        include: {
+          artifact: true,
+          answers: { orderBy: [{ createdAt: 'asc' }, { id: 'asc' }], include: { artifact: true } },
+        },
       },
       publication: true,
       decision: { include: { artifact: true } },

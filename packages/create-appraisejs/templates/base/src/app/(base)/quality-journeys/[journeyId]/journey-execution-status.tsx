@@ -6,7 +6,6 @@ import {
   JourneyExecutionCommand,
   JourneyExecutionStartForm,
   JourneyRerunProposalForm,
-  JourneyLiveRunRefresh,
 } from './journey-execution-controls'
 
 type Execution = Awaited<ReturnType<typeof getQualityJourneyExecution>>
@@ -31,13 +30,12 @@ export function JourneyExecutionStatus({
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base">Managed execution</CardTitle>
-        <CardDescription>Inspect each run and its evidence. Reruns preserve the previous cycle.</CardDescription>
+        <CardTitle className="text-base">Run tests</CardTitle>
+        <CardDescription>
+          Review the target, scope, permissions, progress, and rerun choices. Reruns preserve prior runs.
+        </CardDescription>
       </CardHeader>
       <CardContent className="space-y-5">
-        {execution.cycles.some(cycle => ['RESERVED', 'RUNNING', 'CANCELLING'].includes(cycle.status)) ? (
-          <JourneyLiveRunRefresh />
-        ) : null}
         {stage === 'AUTOMATION' ? (
           <JourneyExecutionStartForm
             journeyId={journeyId}
@@ -77,7 +75,7 @@ export function JourneyExecutionStatus({
             aria-label={`Execution cycle ${cycle.id}`}
           >
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <h3 className="break-all text-sm font-medium">Cycle {cycle.id}</h3>
+              <h3 className="text-sm font-medium">Test run cycle</h3>
               <Badge variant="outline">{cycle.status}</Badge>
             </div>
             <p className="text-xs text-muted-foreground">
@@ -105,11 +103,16 @@ export function JourneyExecutionStatus({
                 </li>
               ))}
             </ul>
-            {cycle.evidence.map(receipt => (
-              <p key={receipt.id} className="break-all text-xs text-muted-foreground">
-                Sealed evidence {receipt.id}: {receipt.receiptHash}
-              </p>
-            ))}
+            {cycle.evidence.length ? (
+              <details className="text-muted-foreground">
+                <summary className="cursor-pointer text-xs">Technical details and sealed evidence</summary>
+                {cycle.evidence.map(receipt => (
+                  <p key={receipt.id} className="mt-1 break-all font-mono text-[11px]">
+                    Sealed evidence {receipt.id}: {receipt.receiptHash}
+                  </p>
+                ))}
+              </details>
+            ) : null}
             <div className="flex flex-wrap gap-2">
               <JourneyExecutionCommand action="reconcile" input={{ journeyId, cycleId: cycle.id }}>
                 Refresh terminal evidence

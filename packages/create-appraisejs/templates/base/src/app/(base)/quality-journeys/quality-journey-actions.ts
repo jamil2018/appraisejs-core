@@ -22,6 +22,15 @@ import {
   getQualityJourney,
   submitDurableQualityJourneyCommand,
 } from '@/services/coordinator/quality-journey-service'
+import {
+  archiveQualityJourneyDraft,
+  confirmQualityJourneyDraft,
+  copyQualityJourneyBriefToDraft,
+  createQualityJourneyDraft,
+  getQualityJourneyDraft,
+  restoreQualityJourneyDraft,
+  saveQualityJourneyDraft,
+} from '@/services/coordinator/quality-journey-draft-service'
 import { ServiceError, serviceErrorToActionResponse } from '@/services/shared/errors'
 import { ensureEnvironment } from '@/services/environment/environment-service'
 import type { ActionResponse } from '@/types/form/actionHandler'
@@ -40,6 +49,30 @@ const createJourneySchema = z
     idempotencyKey: id,
   })
   .strict()
+
+const draftRequirementSchema = qualityJourneyRequirementSchema.partial().strict()
+const createDraftSchema = z
+  .object({
+    idempotencyKey: id,
+    requirement: draftRequirementSchema.optional(),
+    currentStep: z.number().int().min(0).max(3).optional(),
+    predecessorJourneyId: id.optional(),
+  })
+  .strict()
+const saveDraftSchema = z
+  .object({
+    draftId: id,
+    expectedVersion: z.number().int().min(1),
+    requirement: draftRequirementSchema,
+    currentStep: z.number().int().min(0).max(3),
+    predecessorJourneyId: id.optional(),
+  })
+  .strict()
+const moveDraftSchema = z.object({ draftId: id, expectedVersion: z.number().int().min(1) }).strict()
+const confirmDraftSchema = z
+  .object({ draftId: id, expectedVersion: z.number().int().min(1), expectedDraftHash: hash, requirementHash: hash })
+  .strict()
+const copyDraftSchema = z.object({ journeyId: id, idempotencyKey: id }).strict()
 
 const answerQuestionSchema = z
   .object({
@@ -115,6 +148,23 @@ function qualityJourneyActionError(error: unknown): ActionResponse {
   }
 }
 
+async function mutateQualityJourneyDraft<T extends { draftId: string }>(
+  input: unknown,
+  schema: z.ZodType<T>,
+  operation: (value: T & { targetProjectId: string }) => Promise<unknown>,
+): Promise<ActionResponse> {
+  try {
+    const value = schema.parse(input)
+    const project = await requireActiveProjectForMutation()
+    const draft = await operation({ ...value, targetProjectId: project.id })
+    revalidatePath('/quality-journeys')
+    revalidatePath(`/quality-journeys/drafts/${value.draftId}`)
+    return { status: 200, success: true, data: { draft } }
+  } catch (error) {
+    return qualityJourneyActionError(error)
+  }
+}
+
 export async function createQualityJourneyAction(input: unknown): Promise<ActionResponse> {
   try {
     const value = createJourneySchema.parse(input)
@@ -154,6 +204,66 @@ export async function createQualityJourneyAction(input: unknown): Promise<Action
     revalidatePath('/quality-journeys')
     revalidatePath(`/quality-journeys/${journey.journeyId}`)
     return { status: 201, success: true, data: { journeyId: journey.journeyId } }
+  } catch (error) {
+    return qualityJourneyActionError(error)
+  }
+}
+
+export async function createQualityJourneyDraftAction(input: unknown): Promise<ActionResponse> {
+  try {
+    const value = createDraftSchema.parse(input)
+    const project = await requireActiveProjectForMutation()
+    const result = await createQualityJourneyDraft({ ...value, targetProjectId: project.id })
+    revalidatePath('/quality-journeys')
+    return { status: result.replayed ? 200 : 201, success: true, data: result }
+  } catch (error) {
+    return qualityJourneyActionError(error)
+  }
+}
+
+export async function getQualityJourneyDraftAction(input: unknown): Promise<ActionResponse> {
+  try {
+    const value = z.object({ draftId: id }).strict().parse(input)
+    const project = await requireActiveProjectForMutation()
+    return { status: 200, success: true, data: await getQualityJourneyDraft({ ...value, targetProjectId: project.id }) }
+  } catch (error) {
+    return qualityJourneyActionError(error)
+  }
+}
+
+export async function saveQualityJourneyDraftAction(input: unknown): Promise<ActionResponse> {
+  return mutateQualityJourneyDraft(input, saveDraftSchema, saveQualityJourneyDraft)
+}
+
+export async function archiveQualityJourneyDraftAction(input: unknown): Promise<ActionResponse> {
+  return mutateQualityJourneyDraft(input, moveDraftSchema, archiveQualityJourneyDraft)
+}
+
+export async function restoreQualityJourneyDraftAction(input: unknown): Promise<ActionResponse> {
+  return mutateQualityJourneyDraft(input, moveDraftSchema, restoreQualityJourneyDraft)
+}
+
+export async function confirmQualityJourneyDraftAction(input: unknown): Promise<ActionResponse> {
+  try {
+    const value = confirmDraftSchema.parse(input)
+    const project = await requireActiveProjectForMutation()
+    const result = await confirmQualityJourneyDraft({ ...value, targetProjectId: project.id })
+    revalidatePath('/quality-journeys')
+    revalidatePath(`/quality-journeys/drafts/${value.draftId}`)
+    revalidatePath(`/quality-journeys/${result.journeyId}`)
+    return { status: 201, success: true, data: result }
+  } catch (error) {
+    return qualityJourneyActionError(error)
+  }
+}
+
+export async function copyQualityJourneyBriefToDraftAction(input: unknown): Promise<ActionResponse> {
+  try {
+    const value = copyDraftSchema.parse(input)
+    const project = await requireActiveProjectForMutation()
+    const result = await copyQualityJourneyBriefToDraft({ ...value, targetProjectId: project.id })
+    revalidatePath('/quality-journeys')
+    return { status: result.replayed ? 200 : 201, success: true, data: result }
   } catch (error) {
     return qualityJourneyActionError(error)
   }

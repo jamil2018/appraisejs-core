@@ -10,6 +10,7 @@ const mocks = vi.hoisted(() => ({
   answer: vi.fn(),
   approve: vi.fn(),
   requestRevision: vi.fn(),
+  freshness: { newerVersionAvailable: false, loadingNewerVersion: false, loadNewerVersion: vi.fn() },
 }))
 
 vi.mock('next/navigation', () => ({ useRouter: () => ({ refresh: mocks.refresh }) }))
@@ -19,6 +20,7 @@ vi.mock('../quality-journey-actions', () => ({
   approveQualityJourneyAnalysisAction: mocks.approve,
   requestQualityJourneyAnalysisRevisionAction: mocks.requestRevision,
 }))
+vi.mock('./journey-status-observation', () => ({ useJourneyStatusFreshness: () => mocks.freshness }))
 
 import { AnalysisReviewControls } from './analysis-review-controls'
 
@@ -57,6 +59,7 @@ beforeEach(() => {
   mocks.answer.mockResolvedValue({ success: true })
   mocks.approve.mockResolvedValue({ success: true })
   mocks.requestRevision.mockResolvedValue({ success: true })
+  mocks.freshness.newerVersionAvailable = false
 })
 
 describe('AnalysisReviewControls', () => {
@@ -74,8 +77,8 @@ describe('AnalysisReviewControls', () => {
     )
 
     expect(screen.getByText('Required · Open')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Approve exact revision' })).toBeDisabled()
-    expect(screen.getByText(/Resolve 1 required question/i)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Approve this version' })).toBeDisabled()
+    expect(screen.getByText(/Answer 1 required question/i)).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /publish/i })).not.toBeInTheDocument()
   })
 
@@ -91,6 +94,7 @@ describe('AnalysisReviewControls', () => {
               answerId: 'answer-original',
               answer: 'Card payment.',
               contentHash: digest('d'),
+              correctionOfAnswerId: null,
               createdAt: new Date('2026-09-01T00:00:00.000Z'),
             },
           ],
@@ -124,8 +128,8 @@ describe('AnalysisReviewControls', () => {
     )
     expect(mocks.refresh).toHaveBeenCalled()
 
-    await user.type(screen.getByLabelText('Request revision feedback'), 'Clarify payment scope.')
-    await user.click(screen.getByRole('button', { name: 'Request revision' }))
+    await user.type(screen.getByLabelText('What should change?'), 'Clarify payment scope.')
+    await user.click(screen.getByRole('button', { name: 'Request changes' }))
 
     expect(mocks.requestRevision).toHaveBeenCalledWith(
       expect.objectContaining({ expectedReviewHash: digest('e'), contentHash: digest('a') }),
@@ -148,5 +152,56 @@ describe('AnalysisReviewControls', () => {
     expect(screen.getByText('Which payment method is in scope?')).toBeInTheDocument()
     expect(screen.queryByLabelText('Answer')).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Record answer' })).not.toBeInTheDocument()
+  })
+
+  it('keeps optional unanswered questions separate from required questions and labels them accurately', () => {
+    render(
+      <AnalysisReviewControls
+        analysis={{
+          ...analysis,
+          questions: [
+            ...analysis.questions,
+            {
+              id: 'question-row-optional',
+              questionId: 'preferred-browser',
+              prompt: 'Is there a preferred browser?',
+              rationale: 'This can refine compatibility coverage.',
+              required: false,
+              answers: [],
+            },
+          ],
+        }}
+        analysisReviewHash={digest('c')}
+        answerable
+        journeyId="journey-1"
+        stage="ANALYSIS_REVIEW"
+        stateHash={digest('c')}
+        unresolvedQuestionIds={['payment-method']}
+      />,
+    )
+
+    expect(screen.getByRole('region', { name: 'Required questions' })).toHaveTextContent('payment method')
+    expect(screen.getByRole('region', { name: 'Optional questions' })).toHaveTextContent('preferred browser')
+    expect(screen.getByText('Open—optional')).toBeInTheDocument()
+  })
+
+  it('keeps editable text local but disables exact analysis actions when a newer state is observed', () => {
+    mocks.freshness.newerVersionAvailable = true
+    render(
+      <AnalysisReviewControls
+        analysis={analysis}
+        analysisReviewHash={digest('c')}
+        answerable
+        journeyId="journey-1"
+        stage="ANALYSIS_REVIEW"
+        stateHash={digest('c')}
+        unresolvedQuestionIds={[]}
+      />,
+    )
+
+    expect(screen.getByText(/Load it before recording answers or a review decision/i)).toBeInTheDocument()
+    expect(screen.queryByLabelText('Answer')).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Approve this version' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Request changes' })).toBeDisabled()
   })
 })

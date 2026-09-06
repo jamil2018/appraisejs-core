@@ -487,6 +487,7 @@ model TargetProject {
   dashboardMetrics                       DashboardMetrics?
   agentPreflightReceipts                 AgentPreflightReceipt[]
   qualityJourneys                        QualityJourney[]
+  qualityJourneyDrafts                   QualityJourneyDraft[]
   qualityJourneyAutomationTargetBindings QualityJourneyAutomationTargetBinding[]
   qualityJourneyExecutionCycles          QualityJourneyExecutionCycle[]
   qualityJourneyCoordinatorHandoffs      QualityJourneyCoordinatorHandoff[]
@@ -551,10 +552,46 @@ model QualityJourney {
   executionCancellationReceipts     QualityJourneyExecutionCancellationReceipt[]
   executionRerunProposals           QualityJourneyExecutionRerunProposal[]
   coordinatorHandoffs               QualityJourneyCoordinatorHandoff[]
+  sourceDraft                       QualityJourneyDraft?                         @relation("ConfirmedQualityJourneyDraft")
 
   @@unique([targetProjectId, rootIdempotencyKey])
   @@index([targetProjectId, status])
   @@index([targetProjectId, stage])
+}
+
+enum QualityJourneyDraftStatus {
+  ACTIVE
+  ARCHIVED
+  CONFIRMED
+}
+
+/// Mutable, project-scoped workspace intake. It is deliberately separate from
+/// immutable Journey revisions, and only becomes lifecycle input on confirm.
+model QualityJourneyDraft {
+  id                       String                    @id @default(cuid())
+  targetProjectId          String
+  createIdempotencyKey     String
+  createRequestHash        String
+  status                   QualityJourneyDraftStatus @default(ACTIVE)
+  requirementJson          String                    @default("{}")
+  currentStep              Int                       @default(0)
+  predecessorJourneyId     String?
+  version                  Int                       @default(1)
+  draftHash                String
+  confirmationKey          String?
+  confirmationRequestHash  String?
+  confirmedRequirementHash String?
+  confirmedSourceVersion   Int?
+  confirmedDraftHash       String?
+  confirmedJourneyId       String?                   @unique
+  confirmedAt              DateTime?
+  createdAt                DateTime                  @default(now())
+  updatedAt                DateTime                  @updatedAt
+  targetProject            TargetProject             @relation(fields: [targetProjectId], references: [id], onDelete: Restrict)
+  confirmedJourney         QualityJourney?           @relation("ConfirmedQualityJourneyDraft", fields: [confirmedJourneyId], references: [id], onDelete: Restrict)
+
+  @@unique([targetProjectId, createIdempotencyKey])
+  @@index([targetProjectId, status, updatedAt])
 }
 
 model QualityJourneyCoordinatorHandoff {

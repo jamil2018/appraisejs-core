@@ -1,3 +1,5 @@
+import { qualityJourneyLabel } from '@/lib/quality-journey/presentation'
+
 type UnknownRecord = Record<string, unknown>
 
 export type AnalysisQuestionView = {
@@ -6,7 +8,13 @@ export type AnalysisQuestionView = {
   prompt: string
   rationale: string
   required: boolean
-  answers: Array<{ answerId: string; answer: string; contentHash: string; createdAt: Date }>
+  answers: Array<{
+    answerId: string
+    answer: string
+    contentHash: string
+    correctionOfAnswerId: string | null
+    createdAt: Date
+  }>
 }
 
 export type AnalysisRevisionView = {
@@ -66,7 +74,14 @@ export function toAnalysisRevisionView(revision: {
     questionId: string
     required: boolean
     artifact: { artifactJson: string }
-    answers: Array<{ answerId: string; contentHash: string; createdAt: Date; artifact: { artifactJson: string } }>
+    answers: Array<{
+      id: string
+      answerId: string
+      contentHash: string
+      correctionOfAnswerId: string | null
+      createdAt: Date
+      artifact: { artifactJson: string }
+    }>
   }>
   publication: { reviewHash: string; publishedAt: Date } | null
   decision: { decision: string; reviewHash: string; createdAt: Date } | null
@@ -104,12 +119,13 @@ export function toAnalysisRevisionView(revision: {
         required: question.required,
         prompt: text(payload.prompt, 'Question payload unavailable.'),
         rationale: text(payload.rationale),
-        answers: question.answers.map(answer => {
+        answers: orderAnswersWithCorrectionHeadLast(question.answers).map(answer => {
           const payload = charterPayload(answer.artifact.artifactJson)
           return {
             answerId: answer.answerId,
             answer: text(payload.answer, 'Answer payload unavailable.'),
             contentHash: answer.contentHash,
+            correctionOfAnswerId: answer.correctionOfAnswerId,
             createdAt: answer.createdAt,
           }
         }),
@@ -120,6 +136,13 @@ export function toAnalysisRevisionView(revision: {
   }
 }
 
-export function qualityJourneyLabel(value: string) {
-  return value.replaceAll('_', ' ').toLocaleLowerCase()
+export function orderAnswersWithCorrectionHeadLast<
+  T extends { id: string; answerId: string; correctionOfAnswerId: string | null },
+>(
+  answers: T[],
+) {
+  const corrected = new Set(answers.flatMap(answer => (answer.correctionOfAnswerId ? [answer.correctionOfAnswerId] : [])))
+  return [...answers].sort((left, right) => Number(corrected.has(right.id)) - Number(corrected.has(left.id)))
 }
+
+export { qualityJourneyLabel }

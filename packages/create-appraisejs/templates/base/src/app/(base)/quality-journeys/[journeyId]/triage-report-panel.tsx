@@ -47,31 +47,35 @@ const actionId = (prefix: string) => `${prefix}:${crypto.randomUUID()}`
 function AssignmentEvidence({ assignments }: { assignments: Triage['assignments'] }) {
   if (!assignments.length) return null
   return (
-    <section className="space-y-3" aria-label="Exact triage evidence inputs">
-      <h3 className="text-sm font-semibold">Exact runs and sealed evidence</h3>
-      {assignments.map(assignment => (
-        <article className="rounded-md border p-3 text-sm" key={assignment.id}>
-          <p className="font-mono text-xs text-muted-foreground">
-            Assignment {assignment.workItemId} · cycle {assignment.executionCycleId}
-          </p>
-          <p className="mt-2 text-xs text-muted-foreground">Input hash: {assignment.inputHash}</p>
-          <ul className="mt-2 space-y-1 text-xs">
-            {assignment.input.runs.map(run => (
-              <li key={run.testRunId}>
-                Run {run.runId} · TestRun {run.testRunId} · scenario {run.scenarioRevisionId} · sealed receipt{' '}
-                {run.evidenceReceiptId} ({run.receiptHash}) · outcome{' '}
-                {run.evidence.result ?? run.evidence.status ?? 'unknown'}
-                {run.evidence.evidenceHealth ? ` · evidence ${run.evidence.evidenceHealth}` : ''}
-              </li>
-            ))}
-          </ul>
-          <p className="mt-2 text-xs text-muted-foreground">
-            Approved scenarios:{' '}
-            {assignment.input.scenarios.map(scenario => `${scenario.revisionId} (${scenario.contentHash})`).join(', ')}
-          </p>
-        </article>
-      ))}
-    </section>
+    <details className="space-y-3" aria-label="Exact triage evidence inputs">
+      <summary className="cursor-pointer text-sm font-semibold">Technical details and sealed evidence</summary>
+      <div className="mt-3 space-y-3">
+        {assignments.map(assignment => (
+          <article className="rounded-md border p-3 text-sm" key={assignment.id}>
+            <p className="font-mono text-xs text-muted-foreground">
+              Assignment {assignment.workItemId} · cycle {assignment.executionCycleId}
+            </p>
+            <p className="mt-2 text-xs text-muted-foreground">Input hash: {assignment.inputHash}</p>
+            <ul className="mt-2 space-y-1 text-xs">
+              {assignment.input.runs.map(run => (
+                <li key={run.testRunId}>
+                  Run {run.runId} · TestRun {run.testRunId} · scenario {run.scenarioRevisionId} · sealed receipt{' '}
+                  {run.evidenceReceiptId} ({run.receiptHash}) · outcome{' '}
+                  {run.evidence.result ?? run.evidence.status ?? 'unknown'}
+                  {run.evidence.evidenceHealth ? ` · evidence ${run.evidence.evidenceHealth}` : ''}
+                </li>
+              ))}
+            </ul>
+            <p className="mt-2 text-xs text-muted-foreground">
+              Approved scenarios:{' '}
+              {assignment.input.scenarios
+                .map(scenario => `${scenario.revisionId} (${scenario.contentHash})`)
+                .join(', ')}
+            </p>
+          </article>
+        ))}
+      </div>
+    </details>
   )
 }
 
@@ -204,11 +208,11 @@ function ReportReviewControls({
       />
       <div className="flex flex-wrap gap-2">
         <Button disabled={isPending || !feedback.trim()} onClick={() => submit('revision')} size="sm" variant="outline">
-          Request full-report revision
+          Request changes
         </Button>
         {item.report.remediation ? (
           <Button disabled={isPending || !feedback.trim()} onClick={() => submit('approve')} size="sm">
-            Approve exact remediation
+            Approve this version
           </Button>
         ) : null}
       </div>
@@ -227,8 +231,13 @@ function ReportRevision({ item, active, journeyId, stage, stateHash }: ReportRev
     <article className="space-y-5 rounded-lg border p-4" data-testid={`triage-report-${item.report.reportRevisionId}`}>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h3 className="font-semibold">Report {item.report.reportRevisionId}</h3>
-          <p className="font-mono text-xs text-muted-foreground">{item.contentHash}</p>
+          <h3 className="font-semibold">Results report</h3>
+          <details className="mt-1 text-muted-foreground">
+            <summary className="cursor-pointer text-[11px]">Technical details</summary>
+            <p className="mt-1 break-all font-mono text-[11px]">
+              {item.report.reportRevisionId} · {item.contentHash}
+            </p>
+          </details>
         </div>
         <Badge variant={active ? 'default' : 'outline'}>{active ? 'Active revision' : 'Historical revision'}</Badge>
       </div>
@@ -276,9 +285,10 @@ export function TriageReportPanel({
   return (
     <Card aria-label="Triage report history">
       <CardHeader>
-        <CardTitle>Triage reports</CardTitle>
+        <CardTitle>Results</CardTitle>
         <CardDescription>
-          Reports are attributed only from exact sealed runs, evidence receipts, and approved scenario lineage.
+          Findings, evidence, coverage that could not be tested, and what to do next. Product failures remain distinct
+          from tests that could not run.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">

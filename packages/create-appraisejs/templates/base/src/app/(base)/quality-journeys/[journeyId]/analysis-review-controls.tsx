@@ -13,6 +13,7 @@ import {
 } from '../quality-journey-actions'
 import { AnalysisQuestionList } from './analysis-question-list'
 import { ExactAnalysisReview } from './exact-analysis-review'
+import { useJourneyStatusFreshness } from './journey-status-observation'
 import type { AnalysisRevisionView } from './quality-journey-view-model'
 
 function actionId(prefix: string) {
@@ -27,6 +28,37 @@ function idsForAction(
     ref.current[key] = { answerId: actionId('analysis-answer'), idempotencyKey: actionId('analysis-answer-request') }
   }
   return ref.current[key]
+}
+
+function reviewAvailability({
+  analysisReviewHash,
+  answerable,
+  hasDecision,
+  newerVersionAvailable,
+  publication,
+  stage,
+}: {
+  analysisReviewHash: string | undefined
+  answerable: boolean
+  hasDecision: boolean
+  newerVersionAvailable: boolean
+  publication: unknown
+  stage: string
+}) {
+  const current = !hasDecision && !newerVersionAvailable
+  return {
+    canAnswer: answerable && current,
+    canReview: stage === 'ANALYSIS_REVIEW' && Boolean(publication) && Boolean(analysisReviewHash) && current,
+  }
+}
+
+function FreshnessNotice({ newerVersionAvailable }: { newerVersionAvailable: boolean }) {
+  if (!newerVersionAvailable) return null
+  return (
+    <p className="text-sm text-amber-200" role="status">
+      A newer version is available. Load it before recording answers or a review decision.
+    </p>
+  )
 }
 
 export function AnalysisReviewControls({
@@ -60,6 +92,7 @@ export function AnalysisReviewControls({
     commandId: actionId('analysis-revision'),
     idempotencyKey: actionId('analysis-revision-request'),
   })
+  const freshness = useJourneyStatusFreshness()
 
   if (!analysis) {
     return (
@@ -73,9 +106,14 @@ export function AnalysisReviewControls({
   }
 
   const hasDecision = Boolean(analysis.decision)
-  const canAnswer = answerable && !hasDecision
-  const canReview =
-    stage === 'ANALYSIS_REVIEW' && Boolean(analysis.publication) && Boolean(analysisReviewHash) && !hasDecision
+  const { canAnswer, canReview } = reviewAvailability({
+    analysisReviewHash,
+    answerable,
+    hasDecision,
+    newerVersionAvailable: freshness.newerVersionAvailable,
+    publication: analysis.publication,
+    stage,
+  })
   const { analysisRevisionId, artifactId, contentHash } = analysis
 
   function recordAnswer(question: AnalysisRevisionView['questions'][number]) {
@@ -159,6 +197,7 @@ export function AnalysisReviewControls({
 
   return (
     <section className="space-y-5" aria-label="Analysis questions and review controls">
+      <FreshnessNotice newerVersionAvailable={freshness.newerVersionAvailable} />
       <AnalysisQuestionList
         analysisRevisionId={analysis.analysisRevisionId}
         answers={answers}

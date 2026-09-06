@@ -29,19 +29,21 @@ type AnalysisQuestionItemProps = Omit<
 > & {
   question: AnalysisQuestion
   unresolved: boolean
+  open: boolean
 }
 
 function QuestionStatus({ question, unresolved }: Pick<AnalysisQuestionItemProps, 'question' | 'unresolved'>) {
+  const answered = question.answers.length > 0
+  const status = answered ? 'Answered' : question.required ? (unresolved ? 'Open' : 'Open') : 'Open—optional'
   return (
     <div className="flex flex-wrap items-start justify-between gap-2">
       <div>
-        <p className="font-medium">{question.prompt}</p>
         {question.rationale ? (
-          <p className="mt-1 text-sm text-muted-foreground">Why this matters: {question.rationale}</p>
+          <p className="text-sm text-muted-foreground">Why this matters: {question.rationale}</p>
         ) : null}
       </div>
       <Badge variant={unresolved ? 'destructive' : 'outline'}>
-        {question.required ? 'Required' : 'Optional'} · {unresolved ? 'Open' : 'Answered'}
+        {question.required ? `Required · ${status}` : status}
       </Badge>
     </div>
   )
@@ -53,7 +55,10 @@ function RecordedAnswer({ answer }: { answer: AnalysisQuestion['answers'][number
   return (
     <div className="mt-3 rounded-md border border-emerald-500/20 bg-emerald-500/[0.06] p-3 text-sm">
       <p>{answer.answer}</p>
-      <p className="mt-2 break-all font-mono text-[11px] text-muted-foreground">Answer ID: {answer.answerId}</p>
+      <details className="mt-2 text-muted-foreground">
+        <summary className="cursor-pointer text-[11px]">Technical details</summary>
+        <p className="mt-1 break-all font-mono text-[11px]">Answer ID: {answer.answerId}</p>
+      </details>
     </div>
   )
 }
@@ -99,16 +104,27 @@ function AnalysisQuestionItem({
   onRecordAnswer,
   question,
   unresolved,
+  open,
 }: AnalysisQuestionItemProps) {
   const latest = question.answers.at(-1)
   const answer = answers[question.questionId] ?? ''
 
   return (
-    <li className="rounded-md border border-white/[0.08] bg-white/[0.025] p-4">
-      <QuestionStatus question={question} unresolved={unresolved} />
-      <p className="mt-3 break-all font-mono text-[11px] text-muted-foreground">Question ID: {question.questionId}</p>
-      <RecordedAnswer answer={latest} />
-      {canAnswer ? <AnswerForm {...{ answer, isPending, latest, onAnswerChange, onRecordAnswer, question }} /> : null}
+    <li className="rounded-md border border-white/[0.08] bg-white/[0.025]">
+      <details className="p-4" open={open}>
+        <summary className="cursor-pointer pr-3 text-sm font-medium">{question.prompt}</summary>
+        <div className="mt-4">
+          <QuestionStatus question={question} unresolved={unresolved} />
+          <details className="mt-3 text-muted-foreground">
+            <summary className="cursor-pointer text-[11px]">Technical details</summary>
+            <p className="mt-1 break-all font-mono text-[11px]">Question ID: {question.questionId}</p>
+          </details>
+          <RecordedAnswer answer={latest} />
+          {canAnswer ? (
+            <AnswerForm {...{ answer, isPending, latest, onAnswerChange, onRecordAnswer, question }} />
+          ) : null}
+        </div>
+      </details>
     </li>
   )
 }
@@ -124,37 +140,69 @@ export function AnalysisQuestionList({
   unresolvedQuestionIds,
 }: AnalysisQuestionListProps) {
   const unresolved = new Set(unresolvedQuestionIds)
+  const requiredOpen = questions.filter(question => question.required && !question.answers.length)
+  const optionalOpen = questions.filter(question => !question.required && !question.answers.length)
+  const answered = questions.filter(question => question.answers.length > 0)
+
+  function questionList(items: AnalysisQuestion[], openFirst = false) {
+    return (
+      <ol className="space-y-4">
+        {items.map((question, index) => (
+          <AnalysisQuestionItem
+            answers={answers}
+            canAnswer={canAnswer}
+            isPending={isPending}
+            key={question.id}
+            onAnswerChange={onAnswerChange}
+            onRecordAnswer={onRecordAnswer}
+            open={openFirst && index === 0}
+            question={question}
+            unresolved={unresolved.has(question.questionId)}
+          />
+        ))}
+      </ol>
+    )
+  }
 
   return (
     <Card className="border-primary/25 bg-primary/[0.04]">
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-base">
           <MessageSquareMore aria-hidden="true" className="size-4 text-primary" />
-          Requirement Q&A
+          Questions about the proposed test approach
         </CardTitle>
         <CardDescription>
-          Answers are immutable and bound to analysis revision {analysisRevisionId}. A correction appends another
-          answer.
+          Answer the required questions first. Each answer is saved as a new record, so corrections remain visible.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
+        <details className="text-muted-foreground">
+          <summary className="cursor-pointer text-xs">Technical details</summary>
+          <p className="mt-1 break-all font-mono text-[11px]">Approach version: {analysisRevisionId}</p>
+        </details>
         {questions.length === 0 ? (
           <p className="text-sm text-muted-foreground">The Analyzer did not raise any questions for this revision.</p>
         ) : (
-          <ol className="space-y-4">
-            {questions.map(question => (
-              <AnalysisQuestionItem
-                answers={answers}
-                canAnswer={canAnswer}
-                isPending={isPending}
-                key={question.id}
-                onAnswerChange={onAnswerChange}
-                onRecordAnswer={onRecordAnswer}
-                question={question}
-                unresolved={unresolved.has(question.questionId)}
-              />
-            ))}
-          </ol>
+          <>
+            {requiredOpen.length ? (
+              <section aria-label="Required questions">
+                <h3 className="mb-3 text-sm font-semibold">Required questions ({requiredOpen.length})</h3>
+                {questionList(requiredOpen, true)}
+              </section>
+            ) : null}
+            {optionalOpen.length ? (
+              <section aria-label="Optional questions">
+                <h3 className="mb-3 text-sm font-semibold">Optional questions ({optionalOpen.length})</h3>
+                {questionList(optionalOpen)}
+              </section>
+            ) : null}
+            {answered.length ? (
+              <section aria-label="Answered questions">
+                <h3 className="mb-3 text-sm font-semibold">Answered questions ({answered.length})</h3>
+                {questionList(answered)}
+              </section>
+            ) : null}
+          </>
         )}
       </CardContent>
     </Card>

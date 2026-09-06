@@ -565,16 +565,19 @@ function ScenarioPortfolioReviewContent({
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-base">
           <Network className="size-4 text-primary" />
-          Scenario portfolio graph
+          Test scenarios
         </CardTitle>
         <CardDescription>
-          Behavioral intent is reviewed independently from feasibility enrichment and graph layout.
+          Review the intended behavior, coverage, and any unresolved comments before Appraise prepares tests.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">
-        <p className="break-all font-mono text-[11px] text-muted-foreground">
-          {portfolio.artifactRevisionId} · {portfolio.contentHash}
-        </p>
+        <details className="text-muted-foreground">
+          <summary className="cursor-pointer text-xs">Technical details</summary>
+          <p className="mt-1 break-all font-mono text-[11px]">
+            {portfolio.artifactRevisionId} · {portfolio.contentHash}
+          </p>
+        </details>
         <p className="text-sm text-muted-foreground">Coverage rationale: {portfolio.coverageRationale}</p>
         <div
           aria-describedby="scenario-linear-dependency-view"

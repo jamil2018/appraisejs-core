@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useId, useState, useTransition } from 'react'
+import { useId, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -166,18 +166,5 @@ export function JourneyRerunProposalForm({
         </JourneyExecutionCommand>
       ) : null}
     </div>
-  )
-}
-
-export function JourneyLiveRunRefresh() {
-  const router = useRouter()
-  useEffect(() => {
-    const timer = setInterval(() => router.refresh(), 5000)
-    return () => clearInterval(timer)
-  }, [router])
-  return (
-    <p role="status" className="text-xs text-muted-foreground">
-      Run status refreshes every five seconds.
-    </p>
   )
 }

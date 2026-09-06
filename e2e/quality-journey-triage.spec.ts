@@ -184,7 +184,8 @@ test('Journey triage renders persisted report lineage and full-report revision c
 
   await page.goto(`/quality-journeys/${journeyId}?project=${targetProjectId}`)
 
-  await expect(page.getByText('Triage reports', { exact: true })).toBeVisible()
+  await expect(page.getByLabel('Triage report history').getByText('Results', { exact: true })).toBeVisible()
+  await page.getByText('Technical details and sealed evidence', { exact: true }).click()
   await expect(page.getByText('sealed receipt')).toBeVisible()
   await expect(page.getByText('The immutable evidence identifies an automation checkout defect.')).toBeVisible()
   await expect(
@@ -192,13 +193,13 @@ test('Journey triage renders persisted report lineage and full-report revision c
   ).toBeVisible()
   await expect(page.getByLabel('Full report feedback')).toBeVisible()
   await page.getByLabel('Full report feedback').fill('Reassess the complete attribution against the sealed receipt.')
-  await expect(page.getByRole('button', { name: 'Request full-report revision' })).toBeEnabled()
-  await expect(page.getByRole('button', { name: 'Approve exact remediation' })).toBeEnabled()
-  await page.getByRole('button', { name: 'Request full-report revision' }).click()
+  await expect(page.getByRole('button', { name: 'Request changes' })).toBeEnabled()
+  await expect(page.getByRole('button', { name: 'Approve this version' })).toBeEnabled()
+  await page.getByRole('button', { name: 'Request changes' }).click()
   await expect(
     page.getByText('FULL_REPORT_REVISION: Reassess the complete attribution against the sealed receipt.'),
   ).toBeVisible()
-  await expect(page.getByRole('button', { name: 'Request full-report revision' })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: 'Request changes' })).toHaveCount(0)
   expect(errors).toEqual([])
 })
 
@@ -244,7 +245,7 @@ test('Journey progress, responsive navigation, and cross-artifact search share d
   })
   await page.goto(`/quality-journeys/${journeyId}?project=${targetProjectId}`)
   await expect(page.getByText('Journey progress', { exact: true })).toBeVisible()
-  await expect(page.getByRole('button', { name: 'Refresh observed state' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Check for updates' })).toBeVisible()
   for (const width of [320, 768, 1024, 1440]) {
     await page.setViewportSize({ width, height: 900 })
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)

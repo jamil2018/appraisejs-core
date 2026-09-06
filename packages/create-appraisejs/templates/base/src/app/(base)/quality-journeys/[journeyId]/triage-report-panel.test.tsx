@@ -109,7 +109,7 @@ describe('TriageReportPanel', () => {
     fireEvent.change(screen.getByLabelText('Full report feedback'), {
       target: { value: 'Revise the full attribution.' },
     })
-    fireEvent.click(screen.getByRole('button', { name: 'Request full-report revision' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Request changes' }))
     await waitFor(() =>
       expect(mocks.action).toHaveBeenCalledWith(
         'revision',
@@ -120,7 +120,7 @@ describe('TriageReportPanel', () => {
         }),
       ),
     )
-    fireEvent.click(screen.getByRole('button', { name: 'Approve exact remediation' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Approve this version' }))
     await waitFor(() =>
       expect(mocks.action).toHaveBeenCalledWith('approve', expect.objectContaining({ journeyId: 'journey-1' })),
     )
@@ -130,7 +130,7 @@ describe('TriageReportPanel', () => {
     render(<TriageReportPanel journeyId="journey-1" stage="REPORT_REVIEW" stateHash={digest('e')} triage={triage} />)
 
     const scope = screen.getByRole('region', { name: 'Proposed remediation scope' })
-    const approve = screen.getByRole('button', { name: 'Approve exact remediation' })
+    const approve = screen.getByRole('button', { name: 'Approve this version' })
 
     expect(scope.compareDocumentPosition(approve) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
   })

@@ -1,27 +1,34 @@
 import Link from 'next/link'
 
 import { Button } from '@/components/ui/button'
+import { displayStageForQualityJourney, qualityJourneyDisplayStages } from '@/lib/quality-journey/presentation'
 
-const anchors = [
-  ['overview', 'Overview'],
-  ['progress', 'Progress'],
-  ['analysis', 'Analysis'],
-  ['scenarios', 'Scenarios'],
-  ['automation', 'Automation'],
-  ['execution', 'Execution'],
-  ['triage', 'Report'],
-  ['gates', 'Gates'],
-  ['activity', 'Activity'],
-] as const
-
-export function JourneyAnchorNavigation({ journeyId, projectId }: { journeyId: string; projectId: string }) {
+export function JourneyAnchorNavigation({
+  journeyId,
+  projectId,
+  stage,
+}: {
+  journeyId: string
+  projectId: string
+  stage: string
+}) {
   const basePath = `/quality-journeys/${encodeURIComponent(journeyId)}?project=${encodeURIComponent(projectId)}`
+  const currentStageIndex = qualityJourneyDisplayStages.findIndex(
+    item => item.id === displayStageForQualityJourney(stage).id,
+  )
   return (
     <nav aria-label="Journey sections" className="flex min-w-0 flex-wrap gap-2">
-      {anchors.map(([anchor, label]) => (
-        <Button asChild key={anchor} size="sm" variant="outline">
-          <Link href={`${basePath}#${anchor}`}>{label}</Link>
-        </Button>
+      {qualityJourneyDisplayStages.map((displayStage, index) => (
+        <div className="flex items-center gap-1" key={displayStage.id}>
+          <Button asChild size="sm" variant="outline">
+            <Link href={`${basePath}#${displayStage.destination}`}>{displayStage.label}</Link>
+          </Button>
+          {index <= currentStageIndex ? (
+            <span className="text-xs text-muted-foreground">
+              {index === currentStageIndex ? 'Current' : 'Completed'}
+            </span>
+          ) : null}
+        </div>
       ))}
     </nav>
   )
