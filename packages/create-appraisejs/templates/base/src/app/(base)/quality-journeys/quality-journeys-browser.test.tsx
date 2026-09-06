@@ -4,6 +4,11 @@ import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 
+const mocks = vi.hoisted(() => ({ push: vi.fn(), copy: vi.fn() }))
+
+vi.mock('next/navigation', () => ({ useRouter: () => ({ push: mocks.push }) }))
+vi.mock('./quality-journey-actions', () => ({ copyQualityJourneyBriefToDraftAction: mocks.copy }))
+
 vi.mock('next/link', () => ({
   default: ({
     children,
@@ -34,6 +39,7 @@ const journey = {
   requirement: { id: 'requirement-1', revision: 1, contentHash: 'sha256:abc', summary: 'Checkout accepts cards' },
   analysisRevisionCount: 1,
   activeBlockerCount: 0,
+  requestedExecutionConsentCount: 0,
 }
 
 describe('QualityJourneysBrowser', () => {
@@ -42,6 +48,8 @@ describe('QualityJourneysBrowser', () => {
     render(<QualityJourneysBrowser items={[journey]} projectId="project one" />)
 
     expect(screen.getByText('Checkout accepts cards')).toBeInTheDocument()
+    expect(screen.getByText('Next: Review the proposed test approach')).toBeInTheDocument()
+    expect(screen.getByText(/Last updated/)).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Open Quality Journey journey-1' })).toHaveAttribute(
       'href',
       '/quality-journeys/journey-1?project=project%20one',
@@ -55,5 +63,14 @@ describe('QualityJourneysBrowser', () => {
     render(<QualityJourneysBrowser items={[]} projectId="project-1" />)
 
     expect(screen.getByText('No Quality Journeys yet')).toBeInTheDocument()
+  })
+
+  it('copies a brief into a draft rather than a linked follow-up', async () => {
+    mocks.copy.mockResolvedValue({ success: true, data: { draft: { id: 'draft-copy' } } })
+    const user = userEvent.setup()
+    render(<QualityJourneysBrowser items={[journey]} projectId="project one" />)
+    await user.click(screen.getByRole('button', { name: 'Copy brief' }))
+    expect(mocks.copy).toHaveBeenCalledWith(expect.objectContaining({ journeyId: 'journey-1' }))
+    expect(mocks.push).toHaveBeenCalledWith('/quality-journeys/drafts/draft-copy?project=project%20one')
   })
 })

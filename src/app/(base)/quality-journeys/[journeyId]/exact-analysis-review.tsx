@@ -23,18 +23,19 @@ type ExactAnalysisReviewProps = {
 
 function ReviewIdentity({ analysis }: Pick<ExactAnalysisReviewProps, 'analysis'>) {
   return (
-    <>
-      <p className="break-all font-mono text-[11px] text-muted-foreground">Charter hash: {analysis.contentHash}</p>
-      {analysis.publication ? (
-        <p className="break-all font-mono text-[11px] text-muted-foreground">
-          Published review hash: {analysis.publication.reviewHash}
-        </p>
-      ) : (
-        <p className="text-sm text-amber-200">
-          Awaiting Runner publication. Publication is read-only from this screen.
-        </p>
-      )}
-    </>
+    <details className="text-muted-foreground">
+      <summary className="cursor-pointer text-sm">Technical details</summary>
+      <div className="mt-2 space-y-2">
+        <p className="break-all font-mono text-[11px]">Version hash: {analysis.contentHash}</p>
+        {analysis.publication ? (
+          <p className="break-all font-mono text-[11px]">Published review hash: {analysis.publication.reviewHash}</p>
+        ) : (
+          <p className="text-sm text-amber-200">
+            This version is still being prepared for review. You cannot decide on it yet.
+          </p>
+        )}
+      </div>
+    </details>
   )
 }
 
@@ -63,7 +64,7 @@ function ReviewActions({
   return (
     <>
       <div className="space-y-2">
-        <Label htmlFor="analysis-revision-feedback">Request revision feedback</Label>
+        <Label htmlFor="analysis-revision-feedback">What should change?</Label>
         <Textarea
           id="analysis-revision-feedback"
           onChange={event => onFeedbackChange(event.target.value)}
@@ -73,7 +74,7 @@ function ReviewActions({
       </div>
       <div className="flex flex-wrap gap-2">
         <Button disabled={isPending || !canReview || hasUnresolvedQuestions} onClick={onApprove} type="button">
-          {isPending ? 'Recording…' : 'Approve exact revision'}
+          {isPending ? 'Recording…' : 'Approve this version'}
         </Button>
         <Button
           disabled={isPending || !canReview || !feedback.trim()}
@@ -82,12 +83,12 @@ function ReviewActions({
           variant="outline"
         >
           <RotateCcw aria-hidden="true" className="mr-2 size-4" />
-          Request revision
+          Request changes
         </Button>
       </div>
       {hasUnresolvedQuestions ? (
         <p className="text-sm text-amber-200">
-          Resolve {unresolvedQuestionIds.length} required question{unresolvedQuestionIds.length === 1 ? '' : 's'} before
+          Answer {unresolvedQuestionIds.length} required question{unresolvedQuestionIds.length === 1 ? '' : 's'} before
           approval.
         </p>
       ) : null}
@@ -111,10 +112,11 @@ export function ExactAnalysisReview({
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-base">
           <CheckCircle2 aria-hidden="true" className="size-4 text-primary" />
-          Exact revision review
+          Review the proposed test approach
         </CardTitle>
         <CardDescription>
-          Decisions apply only to this published charter and its current Q&A review identity.
+          Approving allows Appraise to use this exact version for test scenarios. Requesting changes creates a new
+          version; it does not edit your original brief.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">

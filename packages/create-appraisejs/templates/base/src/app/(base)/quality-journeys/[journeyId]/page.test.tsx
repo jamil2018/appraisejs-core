@@ -28,6 +28,9 @@ vi.mock('@/config/db-config', () => ({
   default: {
     environment: { findMany: vi.fn().mockResolvedValue([]) },
     qualityJourneyWorkAttempt: { findMany: vi.fn().mockResolvedValue([]) },
+    qualityJourneyRevision: {
+      findFirst: vi.fn().mockResolvedValue({ contentJson: JSON.stringify({ objective: 'Checkout accepts cards' }) }),
+    },
     qualityJourneyCoordinatorHandoff: { findFirst: vi.fn().mockResolvedValue(null) },
   },
 }))
@@ -150,7 +153,8 @@ describe('QualityJourneyDetailPage', () => {
   it('renders the active project-scoped Journey and blocks approval while required answers remain open', async () => {
     await renderPage()
 
-    expect(screen.getByText('Quality Journey')).toBeInTheDocument()
+    expect(screen.getByText('Testing journey')).toBeInTheDocument()
+    expect(screen.getByText('Answer required questions')).toBeInTheDocument()
     expect(screen.getByText('1 required question must be resolved before approval.')).toBeInTheDocument()
     expect(
       screen.getByText('Review the current published analysis revision or request a revision with durable feedback.'),
@@ -164,7 +168,7 @@ describe('QualityJourneyDetailPage', () => {
     await renderPage()
 
     expect(screen.getByText('No user decision is currently pending.')).toBeInTheDocument()
-    expect(screen.getByText('The assigned Requirement Analyzer has not produced a charter yet.')).toBeInTheDocument()
+    expect(screen.getByText('Appraise is preparing a test approach from your brief.')).toBeInTheDocument()
   })
 
   it('keeps the report-review human gate visible in the sidebar', async () => {
@@ -313,7 +317,7 @@ describe('QualityJourneyDetailPage', () => {
 
     await renderPage()
 
-    expect(screen.getByText(/Revision 2/)).toBeInTheDocument()
+    expect(screen.getByText(/Version 2/)).toBeInTheDocument()
     expect(screen.getByText('Question for revision 2')).toBeInTheDocument()
     await user.type(screen.getByLabelText('Answer'), 'Wallet payment.')
     expect(screen.getByRole('button', { name: 'Record answer' })).toBeEnabled()

@@ -26,8 +26,8 @@ export function AutomationMaterializationStatus({ context }: { context: Automati
     return (
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Automation materialization</CardTitle>
-          <CardDescription>Awaiting exact approved Scenario Portfolio authority.</CardDescription>
+          <CardTitle className="text-base">Test preparation</CardTitle>
+          <CardDescription>Waiting for approved test scenarios before preparation can begin.</CardDescription>
         </CardHeader>
       </Card>
     )
@@ -39,19 +39,20 @@ export function AutomationMaterializationStatus({ context }: { context: Automati
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base">Automation materialization</CardTitle>
+        <CardTitle className="text-base">Test preparation</CardTitle>
         <CardDescription>
-          Prepared artifacts are reviewable here. Managed execution remains a separate Phase 7 action.
+          This shows what is ready to run and what still needs attention. Starting tests remains a separate action.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">
-        {context.inputHashes.length <= 1 ? (
-          <p className="break-all font-mono text-[11px] text-muted-foreground">Input: {context.inputHash}</p>
-        ) : (
-          <p className="break-all font-mono text-[11px] text-muted-foreground">
-            Historical inputs: {context.inputHashes.join(', ')}
-          </p>
-        )}
+        <details className="text-muted-foreground">
+          <summary className="cursor-pointer text-xs">Technical details</summary>
+          {context.inputHashes.length <= 1 ? (
+            <p className="mt-1 break-all font-mono text-[11px]">Input: {context.inputHash}</p>
+          ) : (
+            <p className="mt-1 break-all font-mono text-[11px]">Historical inputs: {context.inputHashes.join(', ')}</p>
+          )}
+        </details>
         {context.scenarioRevisionIds.map(scenarioRevisionId => {
           const item = context.materializations.find(candidate => candidate.scenarioRevisionId === scenarioRevisionId)
           return (
@@ -59,7 +60,7 @@ export function AutomationMaterializationStatus({ context }: { context: Automati
               className="flex flex-wrap items-center justify-between gap-2 rounded-md border p-3"
               key={scenarioRevisionId}
             >
-              <span className="break-all font-mono text-xs">{scenarioRevisionId}</span>
+              <span className="text-sm">Scenario {context.scenarioRevisionIds.indexOf(scenarioRevisionId) + 1}</span>
               <Badge variant={item ? 'default' : 'outline'}>{item ? item.status : 'Awaiting Automator'}</Badge>
               {item?.preparedCapsule ? (
                 <span className="text-xs text-muted-foreground">Prepared capsule only</span>

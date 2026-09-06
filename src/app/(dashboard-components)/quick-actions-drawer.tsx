@@ -1,10 +1,24 @@
 'use client'
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Blocks, FileCheck, LayoutTemplate, ListChecks, TestTubeDiagonal, TestTubes, Plus } from 'lucide-react'
+import { Blocks, FileCheck, LayoutTemplate, ListChecks, Route, TestTubeDiagonal, TestTubes, Plus } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 
 const quickActions = [
+  {
+    label: 'Start a Quality Journey',
+    description: 'Plan and run tests from a requirement',
+    href: '/quality-journeys/new',
+    icon: Route,
+    theme: {
+      text: 'text-emerald-400',
+      bg: 'bg-emerald-500/[0.04]',
+      border: 'border-emerald-500/20',
+      hoverBorder: 'group-hover:border-emerald-500/40',
+      hoverBg: 'group-hover:bg-emerald-500/[0.08]',
+      hoverGlow: 'group-hover:shadow-[0_0_20px_rgba(16,185,129,0.06)]',
+    },
+  },
   {
     label: 'Create Suite',
     description: 'Bundle related tests together',

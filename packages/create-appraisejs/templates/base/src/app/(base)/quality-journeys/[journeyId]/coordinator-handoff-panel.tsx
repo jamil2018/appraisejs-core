@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { toast } from '@/hooks/use-toast'
+import { codexHandoffGuidance } from '@/lib/quality-journey/presentation'
 
 import {
   launchQualityJourneyHandoffAction,
@@ -96,12 +97,53 @@ async function executeHandoff(journeyId: string, update: (state: Partial<Handoff
   launchToast(launched, copied, launchStatus)
 }
 
-function LaunchButtonLabel({ isPending, hasHandoff }: { isPending: boolean; hasHandoff: boolean }) {
-  if (isPending) return 'Opening Codex…'
-  return hasHandoff ? 'Reconnect with Codex' : 'Start requirement analysis'
+function LaunchButtonLabel({ hasHandoff }: { hasHandoff: boolean }) {
+  return hasHandoff ? 'Open Codex again' : 'Prepare and open Codex'
 }
 
-export function CoordinatorHandoffPanel({ journeyId, handoff }: { journeyId: string; handoff: HandoffView }) {
+function PromptRecovery({ copied, prompt, status }: { copied: boolean; prompt: string | null; status: string }) {
+  if (!prompt && !['FAILED', 'EXPIRED'].includes(status)) return null
+  if (!prompt)
+    return (
+      <section className="rounded-md border border-amber-500/20 bg-amber-500/[0.06] p-3 text-sm" role="status">
+        <p className="font-medium">Prepare a fresh prompt to recover</p>
+        <p className="mt-1 text-muted-foreground">
+          Choose Open Codex again to prepare a fresh prompt. You can then copy it and open Codex manually if needed.
+        </p>
+      </section>
+    )
+  const shouldShow = ['LAUNCHING', 'LAUNCHED', 'CONNECTED', 'FAILED', 'EXPIRED'].includes(status)
+  if (!shouldShow) return null
+  return (
+    <section className="border-primary/20 bg-primary/[0.04] rounded-md border p-3 text-sm" role="status">
+      <p className="font-medium">Paste and send the prepared prompt in Codex</p>
+      <p className="mt-1 text-muted-foreground">
+        {copied ? 'The prompt is copied.' : 'Use Copy coordinator prompt.'} If Codex did not open, open it manually,
+        then paste and send the same prompt.
+      </p>
+    </section>
+  )
+}
+
+function ObservedWorkerProgress({ hasObservedWorkerProgress }: { hasObservedWorkerProgress: boolean }) {
+  return (
+    <p className="text-sm text-muted-foreground" role="status">
+      {hasObservedWorkerProgress
+        ? 'Observed worker progress: Appraise received a proposed test approach. Review the current version below.'
+        : 'Observed worker progress: Appraise has not received submitted analysis work yet.'}
+    </p>
+  )
+}
+
+export function CoordinatorHandoffPanel({
+  journeyId,
+  handoff,
+  hasObservedWorkerProgress,
+}: {
+  journeyId: string
+  handoff: HandoffView
+  hasObservedWorkerProgress: boolean
+}) {
   const [state, setState] = useState<HandoffState>({
     prompt: null,
     handoffId: handoff?.id ?? null,
@@ -111,6 +153,8 @@ export function CoordinatorHandoffPanel({ journeyId, handoff }: { journeyId: str
   const { prompt, handoffId, status, copied } = state
   const [isPending, startTransition] = useTransition()
   const update = (next: Partial<HandoffState>) => setState(current => ({ ...current, ...next }))
+  const displayStatus = isPending ? 'LAUNCHING' : status
+  const guidance = codexHandoffGuidance(displayStatus)
 
   async function copyPrompt(value = prompt) {
     if (!value) return
@@ -135,7 +179,7 @@ export function CoordinatorHandoffPanel({ journeyId, handoff }: { journeyId: str
               Open Codex in the target workspace and connect it to this Appraise-owned Journey.
             </CardDescription>
           </div>
-          <Badge variant="outline">{status.replaceAll('_', ' ').toLocaleLowerCase()}</Badge>
+          <Badge variant="outline">{guidance.label}</Badge>
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -143,10 +187,12 @@ export function CoordinatorHandoffPanel({ journeyId, handoff }: { journeyId: str
           Appraise remains lifecycle authority. Codex coordinates the analysis and stops at human questions and review
           gates.
         </p>
+        <p className="text-sm text-muted-foreground">{guidance.description}</p>
+        <ObservedWorkerProgress hasObservedWorkerProgress={hasObservedWorkerProgress} />
         <div className="flex flex-wrap gap-2">
           <Button disabled={isPending} onClick={prepareAndLaunch} type="button">
             {isPending ? <LoaderCircle aria-hidden="true" className="mr-2 size-4 animate-spin" /> : null}
-            <LaunchButtonLabel hasHandoff={Boolean(handoffId)} isPending={isPending} />
+            <LaunchButtonLabel hasHandoff={Boolean(handoffId)} />
           </Button>
           {prompt ? (
             <Button onClick={() => void copyPrompt()} type="button" variant="outline">
@@ -165,11 +211,7 @@ export function CoordinatorHandoffPanel({ journeyId, handoff }: { journeyId: str
             </Link>
           </Button>
         </div>
-        {status === 'FAILED' ? (
-          <p className="text-sm text-amber-200" role="status">
-            Codex could not be opened automatically. Use Agent setup, then copy the prompt into Codex manually.
-          </p>
-        ) : null}
+        <PromptRecovery copied={copied} prompt={prompt} status={displayStatus} />
       </CardContent>
     </Card>
   )

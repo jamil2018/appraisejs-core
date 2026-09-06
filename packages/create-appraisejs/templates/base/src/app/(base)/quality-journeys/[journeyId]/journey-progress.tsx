@@ -49,76 +49,82 @@ export function JourneyProgress({
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        <dl className="grid gap-3 text-sm sm:grid-cols-2">
+        <dl className="grid gap-3 text-sm">
           <div className="min-w-0">
-            <dt className="text-muted-foreground">Observed stage</dt>
+            <dt className="text-muted-foreground">Current stage</dt>
             <dd className="mt-1 font-medium capitalize">{qualityJourneyLabel(journey.journey.stage)}</dd>
-          </div>
-          <div className="min-w-0">
-            <dt className="text-muted-foreground">State identity</dt>
-            <dd className="mt-1 break-all font-mono text-[11px]">{journey.journey.stateHash}</dd>
           </div>
         </dl>
 
-        <section aria-label="Deterministic Runner nodes">
-          <h2 className="text-sm font-semibold">Runner nodes</h2>
-          <p className="mt-1 text-xs text-muted-foreground">
-            Each state is reconstructed from the canonical stage, work-item status, and active blockers.
-          </p>
-          <ol className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-            {journey.runner.map(node => (
-              <li className="min-w-0 rounded-md border p-3" key={node.role}>
-                <p className="text-sm font-medium capitalize">{qualityJourneyLabel(node.role)}</p>
-                <p className="mt-1 text-xs text-muted-foreground">Stage: {qualityJourneyLabel(node.stage)}</p>
-                <Badge className="mt-2" variant="outline">
-                  {qualityJourneyLabel(node.state)}
-                </Badge>
-                <p className="mt-2 break-all font-mono text-[11px] text-muted-foreground">
-                  Work item: {node.workItemId ?? 'Not issued'}
-                </p>
-              </li>
-            ))}
-          </ol>
-        </section>
-
-        <section aria-label="Role work items and attempts">
-          <h2 className="text-sm font-semibold">Role work items and attempts</h2>
-          {journey.workItems.length ? (
-            <ul className="mt-3 space-y-3">
-              {journey.workItems.map(item => {
-                const itemAttempts = attemptsByWorkItem.get(item.id) ?? []
-                return (
-                  <li className="min-w-0 rounded-md border p-3" key={item.id}>
-                    <div className="flex min-w-0 flex-wrap items-center justify-between gap-2">
-                      <p className="min-w-0 text-sm font-medium capitalize">{qualityJourneyLabel(item.role)}</p>
-                      <Badge variant="outline">{qualityJourneyLabel(item.status)}</Badge>
-                    </div>
-                    <p className="mt-1 break-all font-mono text-[11px] text-muted-foreground">Work item: {item.id}</p>
-                    <p className="mt-2 text-xs text-muted-foreground">Current attempt: {item.currentAttempt}</p>
-                    {itemAttempts.length ? (
-                      <ol className="mt-2 space-y-1 text-xs" aria-label={`Attempts for ${item.id}`}>
-                        {itemAttempts.map(attempt => (
-                          <li className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1" key={attempt.id}>
-                            <span>Attempt {attempt.attempt}</span>
-                            <Badge variant="secondary">{qualityJourneyLabel(attempt.status)}</Badge>
-                            <span className="min-w-0 break-words text-muted-foreground">
-                              Started {attempt.startedAt.toLocaleString()}
-                              {attempt.completedAt ? ` · completed ${attempt.completedAt.toLocaleString()}` : ''}
-                            </span>
-                          </li>
-                        ))}
-                      </ol>
-                    ) : (
-                      <p className="mt-2 text-xs text-muted-foreground">No attempt receipt has been recorded.</p>
-                    )}
+        <details>
+          <summary className="cursor-pointer text-sm font-semibold">Technical details</summary>
+          <div className="mt-5 space-y-6">
+            <p className="break-all font-mono text-[11px] text-muted-foreground">
+              State identity: {journey.journey.stateHash}
+            </p>
+            <section aria-label="Deterministic Runner nodes">
+              <h2 className="text-sm font-semibold">Runner nodes</h2>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Each state is reconstructed from the canonical stage, work-item status, and active blockers.
+              </p>
+              <ol className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                {journey.runner.map(node => (
+                  <li className="min-w-0 rounded-md border p-3" key={node.role}>
+                    <p className="text-sm font-medium capitalize">{qualityJourneyLabel(node.role)}</p>
+                    <p className="mt-1 text-xs text-muted-foreground">Stage: {qualityJourneyLabel(node.stage)}</p>
+                    <Badge className="mt-2" variant="outline">
+                      {qualityJourneyLabel(node.state)}
+                    </Badge>
+                    <p className="mt-2 break-all font-mono text-[11px] text-muted-foreground">
+                      Work item: {node.workItemId ?? 'Not issued'}
+                    </p>
                   </li>
-                )
-              })}
-            </ul>
-          ) : (
-            <p className="mt-2 text-sm text-muted-foreground">No role work items have been issued.</p>
-          )}
-        </section>
+                ))}
+              </ol>
+            </section>
+
+            <section aria-label="Role work items and attempts">
+              <h2 className="text-sm font-semibold">Role work items and attempts</h2>
+              {journey.workItems.length ? (
+                <ul className="mt-3 space-y-3">
+                  {journey.workItems.map(item => {
+                    const itemAttempts = attemptsByWorkItem.get(item.id) ?? []
+                    return (
+                      <li className="min-w-0 rounded-md border p-3" key={item.id}>
+                        <div className="flex min-w-0 flex-wrap items-center justify-between gap-2">
+                          <p className="min-w-0 text-sm font-medium capitalize">{qualityJourneyLabel(item.role)}</p>
+                          <Badge variant="outline">{qualityJourneyLabel(item.status)}</Badge>
+                        </div>
+                        <p className="mt-1 break-all font-mono text-[11px] text-muted-foreground">
+                          Work item: {item.id}
+                        </p>
+                        <p className="mt-2 text-xs text-muted-foreground">Current attempt: {item.currentAttempt}</p>
+                        {itemAttempts.length ? (
+                          <ol className="mt-2 space-y-1 text-xs" aria-label={`Attempts for ${item.id}`}>
+                            {itemAttempts.map(attempt => (
+                              <li className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1" key={attempt.id}>
+                                <span>Attempt {attempt.attempt}</span>
+                                <Badge variant="secondary">{qualityJourneyLabel(attempt.status)}</Badge>
+                                <span className="min-w-0 break-words text-muted-foreground">
+                                  Started {attempt.startedAt.toLocaleString()}
+                                  {attempt.completedAt ? ` · completed ${attempt.completedAt.toLocaleString()}` : ''}
+                                </span>
+                              </li>
+                            ))}
+                          </ol>
+                        ) : (
+                          <p className="mt-2 text-xs text-muted-foreground">No attempt receipt has been recorded.</p>
+                        )}
+                      </li>
+                    )
+                  })}
+                </ul>
+              ) : (
+                <p className="mt-2 text-sm text-muted-foreground">No role work items have been issued.</p>
+              )}
+            </section>
+          </div>
+        </details>
 
         <section aria-label="Human lifecycle gates">
           <h2 className="text-sm font-semibold">Human lifecycle gates</h2>

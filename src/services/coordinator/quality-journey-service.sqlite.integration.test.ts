@@ -54,6 +54,16 @@ async function fixture() {
   return client
 }
 
+async function requirementPayload(
+  client: PrismaClient,
+  created: { journey: { journeyId: string; activeRevisionIds: Record<string, string> } },
+) {
+  const revision = await client.qualityJourneyRevision.findUniqueOrThrow({
+    where: { id: created.journey.activeRevisionIds.journey },
+  })
+  return { journeyRevisionId: revision.id, requirementHash: revision.contentHash }
+}
+
 async function dispatchReceiptForTest(
   claim: Awaited<ReturnType<typeof claimQualityJourneyWork>>,
   receipt: unknown,
@@ -434,7 +444,7 @@ describe('Quality Journey Phase 2 durable Factory service', () => {
         expectedStateHash: created.journey.stateHash,
         idempotencyKey: 'submit-1',
         inputArtifactRefs: [],
-        payload: { journeyRevisionId: 'revision-command-1', requirementHash: digest('b') },
+        payload: await requirementPayload(client, created),
       }
       expect(await submitDurableQualityJourneyCommand(request, client)).toMatchObject({
         outcome: 'COMMITTED',
@@ -490,7 +500,7 @@ describe('Quality Journey Phase 2 durable Factory service', () => {
         command: 'SUBMIT_REQUIREMENT',
         expectedStateHash: created.journey.stateHash,
         inputArtifactRefs: [],
-        payload: { journeyRevisionId: 'revision-race', requirementHash: digest('c') },
+        payload: await requirementPayload(firstClient, created),
       }
       const outcomes = await Promise.all([
         submitDurableQualityJourneyCommand(
@@ -533,7 +543,7 @@ describe('Quality Journey Phase 2 durable Factory service', () => {
           expectedStateHash: created.journey.stateHash,
           idempotencyKey: 'analysis-1',
           inputArtifactRefs: [],
-          payload: { journeyRevisionId: 'revision-analysis', requirementHash: digest('b') },
+          payload: await requirementPayload(client, created),
         },
         client,
       )
@@ -767,7 +777,7 @@ describe('Quality Journey Phase 2 durable Factory service', () => {
           expectedStateHash: created.journey.stateHash,
           idempotencyKey: 'replacement-analysis-1',
           inputArtifactRefs: [],
-          payload: { journeyRevisionId: 'revision-replacement-analysis', requirementHash: digest('c') },
+          payload: await requirementPayload(client, created),
         },
         client,
       )
@@ -953,7 +963,7 @@ describe('Quality Journey Phase 2 durable Factory service', () => {
           expectedStateHash: created.journey.stateHash,
           idempotencyKey: 'attempt-budget-analysis',
           inputArtifactRefs: [],
-          payload: { journeyRevisionId: 'attempt-budget-revision', requirementHash: digest('b') },
+          payload: await requirementPayload(client, created),
         },
         client,
       )
@@ -1041,7 +1051,7 @@ describe('Quality Journey Phase 2 durable Factory service', () => {
           expectedStateHash: created.journey.stateHash,
           idempotencyKey: 'terminal-authority-analysis',
           inputArtifactRefs: [],
-          payload: { journeyRevisionId: 'terminal-authority-revision', requirementHash: digest('c') },
+          payload: await requirementPayload(client, created),
         },
         client,
       )
@@ -1113,7 +1123,7 @@ describe('Quality Journey Phase 2 durable Factory service', () => {
           expectedStateHash: createdRevocation.journey.stateHash,
           idempotencyKey: 'revoke-authority-analysis',
           inputArtifactRefs: [],
-          payload: { journeyRevisionId: 'revoke-authority-revision', requirementHash: digest('d') },
+          payload: await requirementPayload(client, createdRevocation),
         },
         client,
       )
@@ -1222,7 +1232,7 @@ describe('Quality Journey Phase 2 durable Factory service', () => {
           expectedStateHash: created.journey.stateHash,
           idempotencyKey: 'restart-unresolved-dispatch-analysis',
           inputArtifactRefs: [],
-          payload: { journeyRevisionId: 'restart-unresolved-revision', requirementHash: digest('a') },
+          payload: await requirementPayload(client, created),
         },
         client,
       )
@@ -1306,7 +1316,7 @@ describe('Quality Journey Phase 2 durable Factory service', () => {
           expectedStateHash: created.journey.stateHash,
           idempotencyKey: 'terminal-race-analysis',
           inputArtifactRefs: [],
-          payload: { journeyRevisionId: 'terminal-race-revision', requirementHash: digest('e') },
+          payload: await requirementPayload(firstClient, created),
         },
         firstClient,
       )
@@ -1392,7 +1402,7 @@ describe('Quality Journey Phase 2 durable Factory service', () => {
           expectedStateHash: created.journey.stateHash,
           idempotencyKey: 'dispatch-idempotency-analysis',
           inputArtifactRefs: [],
-          payload: { journeyRevisionId: 'dispatch-idempotency-revision', requirementHash: digest('e') },
+          payload: await requirementPayload(client, created),
         },
         client,
       )
@@ -1470,7 +1480,7 @@ describe('Quality Journey Phase 2 durable Factory service', () => {
           expectedStateHash: refusedJourney.journey.stateHash,
           idempotencyKey: 'dispatch-refused-analysis',
           inputArtifactRefs: [],
-          payload: { journeyRevisionId: 'dispatch-refused-revision', requirementHash: digest('f') },
+          payload: await requirementPayload(client, refusedJourney),
         },
         client,
       )
@@ -1649,7 +1659,7 @@ describe('Quality Journey Phase 2 durable Factory service', () => {
           expectedStateHash: unresolvedJourney.journey.stateHash,
           idempotencyKey: 'dispatch-unresolved-analysis',
           inputArtifactRefs: [],
-          payload: { journeyRevisionId: 'dispatch-unresolved-revision', requirementHash: digest('a') },
+          payload: await requirementPayload(client, unresolvedJourney),
         },
         client,
       )

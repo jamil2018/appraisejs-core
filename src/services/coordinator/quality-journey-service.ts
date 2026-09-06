@@ -659,18 +659,18 @@ async function recoverLegacyFactoryAuthorizations(row: QualityJourney, db: Db) {
   return items.map(item => item.id)
 }
 
-export async function createQualityJourney(
+export async function createQualityJourneyInTransaction(
   input: {
     targetProjectId: string
     idempotencyKey: string
     requirement: QualityJourneyRequirement
     predecessorJourneyId?: string
   },
-  client: PrismaClient = prisma,
+  tx: Prisma.TransactionClient,
 ) {
   const requirement = parseQualityJourneyRequirement(input.requirement)
   const requestHash = hash({ ...input, requirement })
-  const existing = await client.qualityJourney.findUnique({
+  const existing = await tx.qualityJourney.findUnique({
     where: {
       targetProjectId_rootIdempotencyKey: {
         targetProjectId: input.targetProjectId,
@@ -684,7 +684,7 @@ export async function createQualityJourney(
     return { replayed: true, journey: projection(existing) }
   }
   if (requirement.environmentIds?.length) {
-    const environmentCount = await client.environment.count({
+    const environmentCount = await tx.environment.count({
       where: { id: { in: requirement.environmentIds }, targetProjectId: input.targetProjectId },
     })
     if (environmentCount !== requirement.environmentIds.length)
@@ -700,73 +700,82 @@ export async function createQualityJourney(
     activeCycleId: cycleId,
     activeRevisionIds: { journey: revisionId },
   })
-  const created = await client.$transaction(async tx => {
-    const predecessor = input.predecessorJourneyId
-      ? await tx.qualityJourneyClosure.findFirst({
-          where: {
-            journeyId: input.predecessorJourneyId,
-            journey: { targetProjectId: input.targetProjectId, stage: 'CLOSED' },
-          },
-        })
-      : null
-    if (input.predecessorJourneyId && !predecessor)
-      throw new ServiceError('Follow-up requires a closed journey in the same target.', 'CONFLICT')
-    const row = await tx.qualityJourney.create({
+  const predecessor = input.predecessorJourneyId
+    ? await tx.qualityJourneyClosure.findFirst({
+        where: {
+          journeyId: input.predecessorJourneyId,
+          journey: { targetProjectId: input.targetProjectId, stage: 'CLOSED' },
+        },
+      })
+    : null
+  if (input.predecessorJourneyId && !predecessor)
+    throw new ServiceError('Follow-up requires a closed journey in the same target.', 'CONFLICT')
+  const row = await tx.qualityJourney.create({
+    data: {
+      id: journeyId,
+      targetProjectId: input.targetProjectId,
+      rootIdempotencyKey: input.idempotencyKey,
+      rootRequestHash: requestHash,
+      activeCycleId: cycleId,
+      activeRevisionIdsJson: json(initial.activeRevisionIds),
+      stateHash: initial.stateHash,
+    },
+  })
+  await tx.qualityJourneyRevision.create({
+    data: { id: revisionId, journeyId, revision: 1, contentJson: json(requirement), contentHash: revisionHash },
+  })
+  await tx.qualityJourneyCycle.create({ data: { id: cycleId, journeyId, sequence: 1 } })
+  await tx.qualityJourneyEvent.create({
+    data: {
+      id: `qje_${randomUUID()}`,
+      journeyId,
+      targetProjectId: input.targetProjectId,
+      sequence: 1,
+      eventType: 'JOURNEY_CREATED',
+      predecessorStateHash: initial.stateHash,
+      successorStateHash: initial.stateHash,
+      payloadJson: json({ revisionId, revisionHash }),
+    },
+  })
+  if (predecessor) {
+    const source = { kind: 'JOURNEY_REVISION', artifactId: revisionId, revisionId, contentHash: revisionHash }
+    const target = { kind: 'JOURNEY_CLOSURE', artifactId: predecessor.id, contentHash: predecessor.contentHash }
+    const link = journeyArtifactLinkSchema.parse({
+      schemaVersion: 'appraise.quality-journey/v1',
+      linkId: `qjl_${randomUUID()}`,
+      journeyId,
+      targetProjectId: input.targetProjectId,
+      cycleId,
+      relation: 'FOLLOWS',
+      source,
+      target,
+    })
+    await tx.qualityJourneyArtifactLink.create({
       data: {
-        id: journeyId,
-        targetProjectId: input.targetProjectId,
-        rootIdempotencyKey: input.idempotencyKey,
-        rootRequestHash: requestHash,
-        activeCycleId: cycleId,
-        activeRevisionIdsJson: json(initial.activeRevisionIds),
-        stateHash: initial.stateHash,
-      },
-    })
-    await tx.qualityJourneyRevision.create({
-      data: { id: revisionId, journeyId, revision: 1, contentJson: json(requirement), contentHash: revisionHash },
-    })
-    await tx.qualityJourneyCycle.create({ data: { id: cycleId, journeyId, sequence: 1 } })
-    await tx.qualityJourneyEvent.create({
-      data: {
-        id: `qje_${randomUUID()}`,
-        journeyId,
-        targetProjectId: input.targetProjectId,
-        sequence: 1,
-        eventType: 'JOURNEY_CREATED',
-        predecessorStateHash: initial.stateHash,
-        successorStateHash: initial.stateHash,
-        payloadJson: json({ revisionId, revisionHash }),
-      },
-    })
-    if (predecessor) {
-      const source = { kind: 'JOURNEY_REVISION', artifactId: revisionId, revisionId, contentHash: revisionHash }
-      const target = { kind: 'JOURNEY_CLOSURE', artifactId: predecessor.id, contentHash: predecessor.contentHash }
-      const link = journeyArtifactLinkSchema.parse({
-        schemaVersion: 'appraise.quality-journey/v1',
-        linkId: `qjl_${randomUUID()}`,
+        id: link.linkId,
         journeyId,
         targetProjectId: input.targetProjectId,
         cycleId,
         relation: 'FOLLOWS',
-        source,
-        target,
-      })
-      await tx.qualityJourneyArtifactLink.create({
-        data: {
-          id: link.linkId,
-          journeyId,
-          targetProjectId: input.targetProjectId,
-          cycleId,
-          relation: 'FOLLOWS',
-          linkHash: hash(link),
-          sourceJson: json(source),
-          targetJson: json(target),
-        },
-      })
-    }
-    return row
-  })
-  return { replayed: false, journey: projection(created) }
+        linkHash: hash(link),
+        sourceJson: json(source),
+        targetJson: json(target),
+      },
+    })
+  }
+  return { replayed: false, journey: projection(row) }
+}
+
+export async function createQualityJourney(
+  input: {
+    targetProjectId: string
+    idempotencyKey: string
+    requirement: QualityJourneyRequirement
+    predecessorJourneyId?: string
+  },
+  client: PrismaClient = prisma,
+) {
+  return client.$transaction(tx => createQualityJourneyInTransaction(input, tx))
 }
 
 export async function getQualityJourney(
@@ -836,6 +845,23 @@ async function runnerPreconditionConflict(command: JourneyCommand, row: QualityJ
     where: { id: { in: activeIds }, status: { not: 'COMPLETED' } },
   })
   return incomplete ? commandConflict(command, row, 'PRECONDITION_FAILED') : null
+}
+
+async function requirementSubmissionConflict(
+  command: JourneyCommand,
+  row: QualityJourney,
+  tx: Prisma.TransactionClient,
+) {
+  if (command.command !== 'SUBMIT_REQUIREMENT') return null
+  const activeRevisionId = parseRecord(row.activeRevisionIdsJson).journey
+  if (activeRevisionId !== command.payload.journeyRevisionId)
+    return commandConflict(command, row, 'PRECONDITION_FAILED')
+  const revision = await tx.qualityJourneyRevision.findFirst({
+    where: { id: command.payload.journeyRevisionId, journeyId: row.id },
+  })
+  return !revision || revision.contentHash !== command.payload.requirementHash
+    ? commandConflict(command, row, 'PRECONDITION_FAILED')
+    : null
 }
 
 async function loadKernelState(row: QualityJourney, tx: Prisma.TransactionClient) {
@@ -1042,6 +1068,8 @@ export async function submitDurableQualityJourneyCommandInTransaction(
   if (existing) return replayCommand(command, row, existing)
   const preconditionConflict = await runnerPreconditionConflict(command, row, tx)
   if (preconditionConflict) return preconditionConflict
+  const requirementConflict = await requirementSubmissionConflict(command, row, tx)
+  if (requirementConflict) return requirementConflict
   const { state, eventCount } = await loadKernelState(row, tx)
   const applied = submitQualityJourneyCommand(state, command)
   return commitAppliedCommand(command, row, applied, eventCount, tx, issueEligibleWorkItems)
