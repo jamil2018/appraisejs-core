@@ -1,7 +1,7 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { useMemo, useState, useTransition } from 'react'
+import { useState, useTransition } from 'react'
 
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -13,11 +13,9 @@ import { toast } from '@/hooks/use-toast'
 import {
   assessmentPreflightAction,
   assessmentPrepareAction,
-  approveQualityValidationDesignAction,
   answerQualityRequirementQueriesAction,
   createQualityAssessmentAction,
   createRemoteEvaluationScopeAction,
-  proposeQualityValidationDesignAction,
 } from '../quality-design-actions'
 
 type Query = { id: string; prompt: string; status: string; answer: string | null; rationale: string | null }
@@ -95,7 +93,6 @@ export function QualityLifecycleControls({
   revisionStatus,
   designHash,
   queries,
-  obligations,
   validations,
   targetKind,
 }: QualityLifecycleControlsProps) {
@@ -103,13 +100,6 @@ export function QualityLifecycleControls({
   return (
     <section className="grid gap-6 xl:grid-cols-2" aria-label="Quality lifecycle controls">
       <RequirementQueryAnswers qualityPlanId={qualityPlanId} queries={unresolvedQueries} revisionId={revisionId} />
-      <ScenarioDesignControls
-        designHash={designHash}
-        obligations={obligations}
-        qualityPlanId={qualityPlanId}
-        revisionId={revisionId}
-        revisionStatus={revisionStatus}
-      />
       <AssessmentPreparationControls
         designHash={designHash}
         qualityPlanId={qualityPlanId}
@@ -205,109 +195,6 @@ function RequirementQueryAnswers({
           ))}
         </div>
       )}
-    </LifecycleCard>
-  )
-}
-
-function ScenarioDesignControls({
-  designHash,
-  obligations,
-  qualityPlanId,
-  revisionId,
-  revisionStatus,
-}: Omit<QualityLifecycleControlsProps, 'queries' | 'validations'>) {
-  const proposalTemplate = useMemo(
-    () =>
-      JSON.stringify(
-        {
-          scenarios: obligations.map((obligation, index) => ({
-            id: `scenario-${index + 1}`,
-            title: obligation.title,
-            obligationIds: [obligation.id],
-            behavior: obligation.intent,
-            assertions: ['Describe the observable assertion'],
-            coverage: { obligationId: obligation.id },
-            requiredMinimumAssurance: obligation.minimumAssurance,
-            matrixIntent: { browsers: ['CHROMIUM'] },
-            limitations: obligation.limitations ? [obligation.limitations] : [],
-          })),
-        },
-        null,
-        2,
-      ),
-    [obligations],
-  )
-  const [proposal, setProposal] = useState(proposalTemplate)
-  const [reviewer, setReviewer] = useState('AppraiseJS reviewer')
-  const { isPending, run } = useMutation()
-  const canPropose = revisionStatus === 'REQUIREMENTS_APPROVED' || revisionStatus === 'SCENARIO_REVIEW'
-  const canApprove = revisionStatus === 'SCENARIO_REVIEW' && Boolean(designHash)
-
-  return (
-    <LifecycleCard
-      title="Scenario design review"
-      description="Propose obligation-linked scenarios, then approve the exact derived design hash."
-    >
-      <div className="space-y-2">
-        <Label htmlFor="quality-scenario-proposal">Scenario proposal JSON</Label>
-        <Textarea
-          className="min-h-56 font-mono text-xs"
-          id="quality-scenario-proposal"
-          onChange={event => setProposal(event.target.value)}
-          value={proposal}
-        />
-      </div>
-      <div className="mt-4 flex flex-wrap gap-2">
-        <Button
-          disabled={!canPropose || isPending}
-          onClick={() => {
-            try {
-              const parsed = parseJson(proposal, 'Scenario proposal')
-              run('Scenario proposal submitted', () =>
-                proposeQualityValidationDesignAction({
-                  qualityPlanId,
-                  revisionId,
-                  proposal: parsed,
-                  idempotencyKey: idempotencyKey('scenario'),
-                }),
-              )
-            } catch (error) {
-              toast({
-                title: 'Scenario proposal is invalid',
-                description: error instanceof Error ? error.message : undefined,
-                variant: 'destructive',
-              })
-            }
-          }}
-          type="button"
-        >
-          Propose scenarios
-        </Button>
-        <Input
-          aria-label="Scenario reviewer"
-          className="max-w-56"
-          onChange={event => setReviewer(event.target.value)}
-          value={reviewer}
-        />
-        <Button
-          disabled={!canApprove || isPending || !reviewer.trim()}
-          onClick={() =>
-            run('Scenario design approved', () =>
-              approveQualityValidationDesignAction({
-                qualityPlanId,
-                revisionId,
-                expectedDesignHash: designHash!,
-                approvedBy: reviewer,
-              }),
-            )
-          }
-          type="button"
-          variant="outline"
-        >
-          Approve scenarios
-        </Button>
-      </div>
-      {designHash ? <HashHint label="Current design hash" value={designHash} /> : null}
     </LifecycleCard>
   )
 }

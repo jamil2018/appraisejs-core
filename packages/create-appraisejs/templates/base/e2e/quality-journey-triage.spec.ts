@@ -226,3 +226,39 @@ test('Journey terminal review preserves artifact navigation and blocks acceptanc
   expect(manifest).not.toContain('environmentSnapshotJson')
   expect(errors).toEqual([])
 })
+
+test('Journey progress, responsive navigation, and cross-artifact search share durable state @smoke', async ({
+  page,
+  context,
+  baseURL,
+}) => {
+  const { journeyId, targetProjectId } = await seedTriageReport()
+  await context.addCookies([{ name: 'appraise-active-project', value: targetProjectId, url: baseURL! }])
+  const errors: string[] = []
+  page.on('pageerror', error => errors.push(error.message))
+  const failures: string[] = []
+  page.on('requestfailed', request => {
+    const reason = request.failure()?.errorText ?? 'unknown'
+    // Next cancels speculative prefetches when viewport and navigation change.
+    if (reason !== 'net::ERR_ABORTED') failures.push(`${reason}: ${request.url()}`)
+  })
+  await page.goto(`/quality-journeys/${journeyId}?project=${targetProjectId}`)
+  await expect(page.getByText('Journey progress', { exact: true })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Refresh observed state' })).toBeVisible()
+  for (const width of [320, 768, 1024, 1440]) {
+    await page.setViewportSize({ width, height: 900 })
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
+  }
+  await page.getByRole('link', { name: 'Artifact library and export' }).click()
+  await page.getByRole('searchbox', { name: 'Search artifacts' }).fill('TRIAGE_FINDING')
+  await page.getByRole('button', { name: 'Search', exact: true }).click()
+  await expect(page).toHaveURL(/query=TRIAGE_FINDING/)
+  await expect(page.getByRole('region', { name: 'Journey artifacts' })).toContainText('finding-e2e')
+  for (const width of [320, 768]) {
+    await page.setViewportSize({ width, height: 900 })
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
+  }
+  await expect(page.getByRole('button', { name: 'Previous', exact: true })).toBeDisabled()
+  expect(errors).toEqual([])
+  expect(failures).toEqual([])
+})

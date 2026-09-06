@@ -2,6 +2,9 @@ import { existsSync } from 'node:fs'
 import { resolve } from 'node:path'
 
 const qualityOsBaseBehavioralSuites = [
+  'scripts/lib/quality-journey-integrity.test.ts',
+  'src/services/coordinator/quality-journey-compatibility-service.test.ts',
+  'src/app/api/internal/coordinator/[...operation]/quality-journey-compatibility-route.test.ts',
   'src/lib/quality-design/methodology-registry.test.ts',
   'src/services/coordinator/quality-operating-system-service.test.ts',
   'src/services/coordinator/assessment-execution-service.test.ts',

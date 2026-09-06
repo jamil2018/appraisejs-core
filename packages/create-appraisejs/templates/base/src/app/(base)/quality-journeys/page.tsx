@@ -1,9 +1,11 @@
 import type { Metadata } from 'next'
+import Link from 'next/link'
 import { Route } from 'lucide-react'
 
 import HeaderSubtitle from '@/components/typography/page-header-subtitle'
 import PageHeader from '@/components/typography/page-header'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { requireActiveProject } from '@/lib/active-project'
 import { listQualityJourneys } from '@/services/coordinator/quality-journey-query-service'
 
@@ -45,6 +47,11 @@ export default async function QualityJourneysPage({
           {journeys.length} journeys
         </Badge>
       </header>
+      <Button asChild size="sm" variant="outline">
+        <Link href={`/quality-journeys/compatibility?project=${encodeURIComponent(project.id)}`}>
+          Inspect compatibility history
+        </Link>
+      </Button>
       <QualityJourneyCreateForm projectId={project.id} predecessorJourneyId={parameters?.predecessor} />
       <QualityJourneysBrowser items={journeys} projectId={project.id} />
     </main>

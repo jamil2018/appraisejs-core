@@ -16,6 +16,9 @@ const roots = [
   '.agents',
 ]
 const forbidden = [
+  /\bapproveQualityRequirementsAction\b/,
+  /\bproposeQualityValidationDesignAction\b/,
+  /\bapproveQualityValidationDesignAction\b/,
   /\bplanning_session_create\b/,
   /\bplan_create\b/,
   /\bdelegated_plan_create\b/,

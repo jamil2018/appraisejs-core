@@ -23,6 +23,9 @@ import { ServiceError } from '@/services/shared/errors'
 
 import { AnalysisReviewControls } from './analysis-review-controls'
 import { AutomationMaterializationStatus } from './automation-materialization-status'
+import { JourneyAnchorNavigation } from './journey-anchor-navigation'
+import { JourneyProgressNotice } from './journey-progress-notice'
+import { JourneyProgress } from './journey-progress'
 import { ScenarioPortfolioReview } from './scenario-portfolio-review'
 import { TriageReportPanel } from './triage-report-panel'
 import { qualityJourneyLabel, toAnalysisRevisionView } from './quality-journey-view-model'
@@ -34,16 +37,28 @@ type ActiveAnalysis = ReturnType<typeof toAnalysisRevisionView> | null
 type ActiveScenarioPortfolio = Awaited<ReturnType<typeof getQualityJourneyScenarioPortfolio>>['portfolio'] | null
 
 async function loadJourneySupplementalArtifacts(journeyId: string, projectId: string, stage: string) {
-  if (!['SCENARIO_DESIGN', 'SCENARIO_REVIEW', 'AUTOMATION'].includes(stage))
-    return { scenarios: null, automation: null }
-  const scenarios = await getQualityJourneyScenarioPortfolio({ journeyId, targetProjectId: projectId }).catch(
-    () => null,
-  )
-  if (stage !== 'AUTOMATION') return { scenarios, automation: null }
-  const automation = await getQualityJourneyAutomationContext({ journeyId, targetProjectId: projectId }).catch(
-    () => null,
-  )
-  return { scenarios, automation }
+  const scenarioStages = [
+    'SCENARIO_DESIGN',
+    'SCENARIO_REVIEW',
+    'AUTOMATION',
+    'EXECUTION',
+    'TRIAGE',
+    'REPORT_REVIEW',
+    'CLOSED',
+  ]
+  const automationStages = ['AUTOMATION', 'EXECUTION', 'TRIAGE', 'REPORT_REVIEW', 'CLOSED']
+  const scenarioPortfolio = scenarioStages.includes(stage)
+    ? await getQualityJourneyScenarioPortfolio({ journeyId, targetProjectId: projectId }).catch(error => {
+        if (error instanceof ServiceError && error.code === 'NOT_FOUND') return null
+        throw error
+      })
+    : null
+  const automationContext = automationStages.includes(stage)
+    ? await getQualityJourneyAutomationContext({ journeyId, targetProjectId: projectId })
+    : null
+  // These are immutable, reviewable lifecycle records. Keep them available once
+  // they exist, even when the current Runner stage has moved past their gate.
+  return { scenarios: scenarioPortfolio, automation: automationContext }
 }
 
 async function loadJourneyDetail(journeyId: string, projectId: string) {
@@ -72,7 +87,7 @@ async function loadJourneyDetail(journeyId: string, projectId: string) {
     node => node.stage === journey.journey.stage && ['RUNNABLE', 'IN_PROGRESS', 'BLOCKED'].includes(node.state),
   )
 
-  const [{ scenarios, automation }, execution, triage, environments] = await Promise.all([
+  const [{ scenarios, automation }, execution, triage, environments, attempts] = await Promise.all([
     loadJourneySupplementalArtifacts(journeyId, projectId, journey.journey.stage),
     getQualityJourneyExecution({ journeyId, targetProjectId: projectId }),
     getQualityJourneyTriage({ journeyId, targetProjectId: projectId }),
@@ -81,8 +96,24 @@ async function loadJourneyDetail(journeyId: string, projectId: string) {
       select: { id: true, name: true },
       orderBy: { name: 'asc' },
     }),
+    prisma.qualityJourneyWorkAttempt.findMany({
+      where: { workItem: { journeyId, targetProjectId: projectId } },
+      select: { id: true, workItemId: true, attempt: true, status: true, startedAt: true, completedAt: true },
+      orderBy: [{ workItemId: 'asc' }, { attempt: 'asc' }],
+    }),
   ])
-  return { activeAnalysis, activeRunner, answerable, journey, scenarios, automation, execution, triage, environments }
+  return {
+    activeAnalysis,
+    activeRunner,
+    answerable,
+    journey,
+    scenarios,
+    automation,
+    execution,
+    triage,
+    environments,
+    attempts,
+  }
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
@@ -97,14 +128,32 @@ export default async function QualityJourneyDetailPage({ params, searchParams }:
     loadJourneyDetail(journeyId, project.id),
     getQualityJourneyClosure({ journeyId, targetProjectId: project.id }),
   ])
-  const { activeAnalysis, activeRunner, answerable, journey, scenarios, automation, execution, triage, environments } =
-    detail
+  const {
+    activeAnalysis,
+    activeRunner,
+    answerable,
+    journey,
+    scenarios,
+    automation,
+    execution,
+    triage,
+    environments,
+    attempts,
+  } = detail
 
   return (
     <main className="space-y-6 pb-10">
       <JourneyHeader journey={journey} project={project} />
-      <JourneyOverview activeRunner={activeRunner} journey={journey} />
-      <nav className="flex flex-wrap gap-3" aria-label="Journey artifacts">
+      <section id="overview" tabIndex={-1}>
+        <JourneyOverview activeRunner={activeRunner} journey={journey} />
+      </section>
+      <JourneyAnchorNavigation journeyId={journeyId} projectId={project.id} />
+      <JourneyProgressNotice
+        eventCount={journey.events.length}
+        stateHash={journey.journey.stateHash}
+        stage={journey.journey.stage}
+      />
+      <nav className="flex flex-wrap gap-3" aria-label="Journey artifact actions">
         <Button asChild variant="outline">
           <Link href={`/quality-journeys/${journeyId}/artifacts?project=${encodeURIComponent(project.id)}`}>
             Artifact library and export
@@ -120,53 +169,81 @@ export default async function QualityJourneyDetailPage({ params, searchParams }:
           </Button>
         ) : null}
       </nav>
-      <ClosurePanel
-        key={closure.reportHash ?? journeyId}
-        journeyId={journeyId}
-        stateHash={journey.journey.stateHash}
-        closure={closure}
-      />
+      <section id="gates" tabIndex={-1}>
+        <ClosurePanel
+          key={closure.reportHash ?? journeyId}
+          journeyId={journeyId}
+          stateHash={journey.journey.stateHash}
+          closure={closure}
+        />
+      </section>
 
       <section className="grid gap-6 xl:grid-cols-[minmax(0,1.65fr)_minmax(20rem,0.85fr)]">
         <div className="space-y-6">
-          <AnalysisDocument analysis={activeAnalysis} />
-          <ScenarioPortfolioReview
-            journeyId={journey.journey.journeyId}
-            portfolio={scenarios?.portfolio ?? null}
-            stage={journey.journey.stage}
-            stateHash={journey.journey.stateHash}
-          />
-          <AutomationMaterializationStatus context={automation} />
-          <JourneyExecutionStatus
-            execution={execution}
-            journeyId={journeyId}
-            targetProjectId={project.id}
-            stateHash={journey.journey.stateHash}
-            stage={journey.journey.stage}
-            environments={environments}
-            capsuleIds={
-              automation?.materializations
-                .filter(item => item.status === 'MATERIALIZED' && item.preparedCapsule)
-                .map(item => item.preparedCapsule!.id) ?? []
-            }
-          />
-          <TriageReportPanel
-            journeyId={journeyId}
-            stage={journey.journey.stage}
-            stateHash={journey.journey.stateHash}
-            triage={triage}
-          />
-          <AnalysisReviewControls
-            analysis={activeAnalysis}
-            answerable={answerable}
-            journeyId={journey.journey.journeyId}
-            stage={journey.journey.stage}
-            stateHash={journey.journey.stateHash}
-            analysisReviewHash={journey.journey.analysisReviewHash}
-            unresolvedQuestionIds={journey.journey.unresolvedQuestionIds}
+          <section id="progress" tabIndex={-1}>
+            <JourneyProgress
+              attempts={attempts}
+              closure={closure}
+              execution={execution}
+              journey={journey}
+              triage={triage}
+            />
+          </section>
+          <section id="analysis" tabIndex={-1}>
+            <AnalysisDocument analysis={activeAnalysis} />
+            <AnalysisReviewControls
+              analysis={activeAnalysis}
+              answerable={answerable}
+              journeyId={journey.journey.journeyId}
+              stage={journey.journey.stage}
+              stateHash={journey.journey.stateHash}
+              analysisReviewHash={journey.journey.analysisReviewHash}
+              unresolvedQuestionIds={journey.journey.unresolvedQuestionIds}
+            />
+          </section>
+          <section id="scenarios" tabIndex={-1}>
+            <ScenarioPortfolioReview
+              journeyId={journey.journey.journeyId}
+              portfolio={scenarios?.portfolio ?? null}
+              stage={journey.journey.stage}
+              stateHash={journey.journey.stateHash}
+            />
+          </section>
+          <section id="automation" tabIndex={-1}>
+            <AutomationMaterializationStatus context={automation} />
+          </section>
+          <section id="execution" tabIndex={-1}>
+            <JourneyExecutionStatus
+              execution={execution}
+              journeyId={journeyId}
+              targetProjectId={project.id}
+              stateHash={journey.journey.stateHash}
+              stage={journey.journey.stage}
+              environments={environments}
+              capsuleIds={
+                automation?.materializations
+                  .filter(item => item.status === 'MATERIALIZED' && item.preparedCapsule)
+                  .map(item => item.preparedCapsule!.id) ?? []
+              }
+            />
+          </section>
+          <section id="triage" tabIndex={-1}>
+            <TriageReportPanel
+              journeyId={journeyId}
+              stage={journey.journey.stage}
+              stateHash={journey.journey.stateHash}
+              triage={triage}
+            />
+          </section>
+        </div>
+        <div id="activity" tabIndex={-1}>
+          <JourneySidebar
+            activeAnalysis={activeAnalysis}
+            journey={journey}
+            requestedExecutionConsentCount={execution.consents.filter(consent => consent.status === 'REQUESTED').length}
+            scenarios={scenarios?.portfolio ?? null}
           />
         </div>
-        <JourneySidebar activeAnalysis={activeAnalysis} journey={journey} scenarios={scenarios?.portfolio ?? null} />
       </section>
     </main>
   )
@@ -233,14 +310,17 @@ function JourneyOverview({
 function JourneySidebar({
   activeAnalysis,
   journey,
+  requestedExecutionConsentCount,
   scenarios,
 }: {
   activeAnalysis: ActiveAnalysis
   journey: JourneyDetail
+  requestedExecutionConsentCount: number
   scenarios: ActiveScenarioPortfolio
 }) {
   const questionCount = journey.journey.unresolvedQuestionIds.length
   const pendingAnalysisDecision = journey.journey.stage === 'ANALYSIS_REVIEW' && !activeAnalysis?.decision
+  const pendingReportReview = journey.journey.stage === 'REPORT_REVIEW'
   const pendingScenarioDecision =
     journey.journey.stage === 'SCENARIO_REVIEW' &&
     Boolean(scenarios?.reviewHash) &&
@@ -250,8 +330,10 @@ function JourneySidebar({
     <aside className="space-y-6">
       <PendingUserDecisions
         pendingAnalysisDecision={pendingAnalysisDecision}
+        pendingReportReview={pendingReportReview}
         pendingScenarioDecision={pendingScenarioDecision}
         questionCount={questionCount}
+        requestedExecutionConsentCount={requestedExecutionConsentCount}
       />
       <BlockerCard blockers={journey.blockers} />
       <Timeline events={journey.events} />
@@ -261,14 +343,19 @@ function JourneySidebar({
 
 function PendingUserDecisions({
   pendingAnalysisDecision,
+  pendingReportReview,
   pendingScenarioDecision,
   questionCount,
+  requestedExecutionConsentCount,
 }: {
   pendingAnalysisDecision: boolean
+  pendingReportReview: boolean
   pendingScenarioDecision: boolean
   questionCount: number
+  requestedExecutionConsentCount: number
 }) {
-  const hasPendingDecision = pendingAnalysisDecision || pendingScenarioDecision
+  const hasPendingDecision =
+    pendingAnalysisDecision || pendingScenarioDecision || pendingReportReview || requestedExecutionConsentCount > 0
   return (
     <Card>
       <CardHeader>
@@ -283,6 +370,13 @@ function PendingUserDecisions({
         ) : null}
         {pendingScenarioDecision ? (
           <p>Review the pending Scenario Portfolio decisions; existing durable scenario decisions are preserved.</p>
+        ) : null}
+        {pendingReportReview ? <p>Review the current full report and record the canonical report decision.</p> : null}
+        {requestedExecutionConsentCount ? (
+          <p>
+            {requestedExecutionConsentCount} requested execution consent
+            {requestedExecutionConsentCount === 1 ? ' requires' : 's require'} a human decision.
+          </p>
         ) : null}
         {questionCount ? (
           <p>
@@ -439,7 +533,14 @@ function DocumentList({
 function BlockerCard({
   blockers,
 }: {
-  blockers: Array<{ id: string; reasonCode: string; summary: string; requiredResolution: string }>
+  blockers: Array<{
+    id: string
+    reasonCode: string
+    summary: string
+    requiredResolution: string
+    responsibleActor: string
+    safeResumeCommand: string
+  }>
 }) {
   return (
     <Card>
@@ -458,7 +559,11 @@ function BlockerCard({
               <li className="rounded-md border border-amber-500/20 bg-amber-500/[0.06] p-3" key={blocker.id}>
                 <p className="font-mono text-[11px] text-amber-200">{blocker.reasonCode}</p>
                 <p className="mt-2 text-sm">{blocker.summary}</p>
+                <p className="mt-2 text-xs text-muted-foreground">Responsible actor: {blocker.responsibleActor}</p>
                 <p className="mt-2 text-xs text-muted-foreground">Resolution: {blocker.requiredResolution}</p>
+                <p className="mt-2 break-all font-mono text-[11px] text-muted-foreground">
+                  Canonical resumption: {blocker.safeResumeCommand}
+                </p>
               </li>
             ))}
           </ul>

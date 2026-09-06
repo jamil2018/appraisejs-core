@@ -11,7 +11,7 @@ afterEach(() => {
   cleanup()
   vi.clearAllMocks()
 })
-it('preserves project and kind scope through inspection, export, and pagination', async () => {
+it('persists search and kind scope through inspection, export, and pagination', async () => {
   mocks.project.mockResolvedValue({ id: 'project one' })
   mocks.list.mockResolvedValue({
     kinds: ['JOURNEY_CLOSURE'],
@@ -31,30 +31,41 @@ it('preserves project and kind scope through inspection, export, and pagination'
   render(
     await Page({
       params: Promise.resolve({ journeyId: 'journey' }),
-      searchParams: Promise.resolve({ project: 'project one', kind: 'JOURNEY_CLOSURE', offset: '40' }),
+      searchParams: Promise.resolve({
+        project: 'project one',
+        kind: 'JOURNEY_CLOSURE',
+        query: 'closure receipt',
+        offset: '40',
+      }),
     }),
   )
   expect(mocks.list).toHaveBeenCalledWith({
     journeyId: 'journey',
     targetProjectId: 'project one',
     kind: 'JOURNEY_CLOSURE',
+    query: 'closure receipt',
     offset: 40,
   })
+  expect(screen.getByRole('searchbox', { name: 'Search artifacts' })).toHaveValue('closure receipt')
   expect(screen.getByRole('link', { name: 'Inspect' })).toHaveAttribute(
     'href',
     '/quality-journeys/journey/artifacts/CLOSURE%3Aone?project=project%20one',
   )
   expect(screen.getByRole('link', { name: 'Next' })).toHaveAttribute(
     'href',
-    '/quality-journeys/journey/artifacts?project=project+one&kind=JOURNEY_CLOSURE&offset=80',
+    '/quality-journeys/journey/artifacts?project=project+one&kind=JOURNEY_CLOSURE&query=closure+receipt&offset=80',
   )
   expect(screen.getByRole('link', { name: 'Previous' })).toHaveAttribute(
     'href',
-    '/quality-journeys/journey/artifacts?project=project+one&kind=JOURNEY_CLOSURE&offset=0',
+    '/quality-journeys/journey/artifacts?project=project+one&kind=JOURNEY_CLOSURE&query=closure+receipt&offset=0',
   )
   expect(screen.getByRole('link', { name: 'Export JSON' })).toHaveAttribute(
     'href',
     '/quality-journeys/journey/artifacts/export?project=project%20one',
+  )
+  expect(screen.getByRole('link', { name: /all/i })).toHaveAttribute(
+    'href',
+    '/quality-journeys/journey/artifacts?project=project+one&query=closure+receipt',
   )
 })
 it('shows an empty history and normalizes an invalid offset', async () => {
@@ -66,4 +77,8 @@ it('shows an empty history and normalizes an invalid offset', async () => {
   expect(mocks.list).toHaveBeenCalledWith(expect.objectContaining({ offset: 0 }))
   expect(screen.getByText('No matching artifacts')).toBeVisible()
   expect(screen.getByText('0 artifacts')).toBeVisible()
+  expect(screen.getByRole('button', { name: 'Previous' })).toBeDisabled()
+  expect(screen.getByRole('button', { name: 'Next' })).toBeDisabled()
+  expect(screen.queryByRole('link', { name: 'Previous' })).not.toBeInTheDocument()
+  expect(screen.queryByRole('link', { name: 'Next' })).not.toBeInTheDocument()
 })

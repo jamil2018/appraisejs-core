@@ -192,6 +192,8 @@ function ScenarioDecisionControls({
   )
 }
 
+type ScenarioDependency = { source: string; target: string; relation: string }
+
 function scenarioFlow(orderedScenarios: Portfolio['scenarios'], graphJson: string) {
   const nodes: Node[] = orderedScenarios.map(scenario => {
     const intent = read(scenario.behavioralIntentJson)
@@ -205,17 +207,66 @@ function scenarioFlow(orderedScenarios: Portfolio['scenarios'], graphJson: strin
     }
   })
   const graph = read(graphJson)
-  const edges: Edge[] = Array.isArray(graph.edges)
-    ? graph.edges.flatMap((edge, index) => {
+  const dependencies: ScenarioDependency[] = Array.isArray(graph.edges)
+    ? graph.edges.flatMap(edge => {
         if (!edge || typeof edge !== 'object') return []
         const value = edge as Record<string, unknown>
         const source = value.sourceScenarioRevisionId
         const target = value.targetScenarioRevisionId
         if (typeof source !== 'string' || typeof target !== 'string') return []
-        return [{ id: `${source}:${target}:${index}`, source, target, label: String(value.relation ?? '') }]
+        return [{ source, target, relation: String(value.relation ?? '') }]
       })
     : []
-  return { nodes, edges, sharedSetup: graph.sharedSetup }
+  const edges: Edge[] = dependencies.map((dependency, index) => ({
+    id: `${dependency.source}:${dependency.target}:${index}`,
+    source: dependency.source,
+    target: dependency.target,
+    label: dependency.relation,
+  }))
+  return { nodes, edges, dependencies, sharedSetup: graph.sharedSetup }
+}
+
+function ScenarioDependencyList({
+  dependencies,
+  scenarios,
+}: {
+  dependencies: ScenarioDependency[]
+  scenarios: Portfolio['scenarios']
+}) {
+  const labels = new Map(
+    scenarios.map(scenario => {
+      const intent = read(scenario.behavioralIntentJson)
+      return [scenario.scenarioRevisionId, typeof intent.title === 'string' ? intent.title : scenario.stableScenarioId]
+    }),
+  )
+  return (
+    <section aria-label="Linear scenario dependency view" className="space-y-2 rounded-md border p-3">
+      <h3 className="text-sm font-semibold">Linear scenario dependency view</h3>
+      <p className="text-xs text-muted-foreground">
+        Keyboard-equivalent reading order for the visual graph. Each relationship names its source, target, and kind.
+      </p>
+      {dependencies.length ? (
+        <ol className="space-y-2 text-sm">
+          {dependencies.map((dependency, index) => (
+            <li
+              className="rounded-md border border-white/[0.08] p-2"
+              key={`${dependency.source}:${dependency.target}:${index}`}
+              tabIndex={0}
+            >
+              <span className="font-medium">{labels.get(dependency.source) ?? dependency.source}</span>
+              <span className="px-1 text-muted-foreground">— {dependency.relation || 'depends on'} →</span>
+              <span className="font-medium">{labels.get(dependency.target) ?? dependency.target}</span>
+              <p className="mt-1 break-all font-mono text-[11px] text-muted-foreground">
+                {dependency.source} → {dependency.target}
+              </p>
+            </li>
+          ))}
+        </ol>
+      ) : (
+        <p className="text-sm text-muted-foreground">No explicit dependencies are recorded between these scenarios.</p>
+      )}
+    </section>
+  )
 }
 
 type ScenarioReviewState = {
@@ -508,7 +559,7 @@ function ScenarioPortfolioReviewContent({
       refresh()
     })
   }
-  const { nodes, edges, sharedSetup } = scenarioFlow(orderedScenarios, portfolio.graphJson)
+  const { nodes, edges, dependencies, sharedSetup } = scenarioFlow(orderedScenarios, portfolio.graphJson)
   return (
     <Card>
       <CardHeader>
@@ -525,7 +576,14 @@ function ScenarioPortfolioReviewContent({
           {portfolio.artifactRevisionId} · {portfolio.contentHash}
         </p>
         <p className="text-sm text-muted-foreground">Coverage rationale: {portfolio.coverageRationale}</p>
-        <div className="h-64 rounded-md border" data-testid="scenario-readonly-flow">
+        <div
+          aria-describedby="scenario-linear-dependency-view"
+          aria-label="Visual scenario dependency graph. A keyboard-equivalent linear dependency view follows."
+          className="h-64 rounded-md border"
+          data-testid="scenario-readonly-flow"
+          role="region"
+          tabIndex={0}
+        >
           <ReactFlow
             edges={edges}
             elementsSelectable={false}
@@ -537,6 +595,9 @@ function ScenarioPortfolioReviewContent({
             <Background />
             <Controls showInteractive={false} />
           </ReactFlow>
+        </div>
+        <div id="scenario-linear-dependency-view">
+          <ScenarioDependencyList dependencies={dependencies} scenarios={orderedScenarios} />
         </div>
         <SharedSetupList setup={sharedSetup} />
         <div className="grid gap-3 md:grid-cols-2">

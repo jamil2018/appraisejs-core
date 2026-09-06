@@ -1,3 +1,4 @@
+import { assertQualityJourneyCutoverRoute } from '@/services/coordinator/quality-journey-cutover-policy'
 import { createHash, randomUUID } from 'node:crypto'
 
 import { CredentialExecutionAuthorizationIssuer } from '@prisma/client'
@@ -22,12 +23,9 @@ import { guardCoordinatorRequest, readCoordinatorJson } from '@/lib/coordinator-
 import { coordinatorStepDefinitionService } from '@/services/coordinator/coordinator-step-definition-service'
 import {
   answerQualityRequirementQueries,
-  approveQualityRequirements,
-  approveQualityValidationDesign,
   createQualityAssessment,
   createQualityAssessmentSuccessor,
   decideQualityAssessment,
-  proposeQualityValidationDesign,
   readQualityAssessment,
   readQualityRequirementGraph,
   submitQualityRequirementSource,
@@ -105,6 +103,7 @@ import { getQualityJourneyAutomationRoute, postQualityJourneyAutomationRoute } f
 import { getQualityJourneyExecutionRoute, postQualityJourneyExecutionRoute } from './quality-journey-execution-route'
 import { getQualityJourneyTriageRoute, postQualityJourneyTriageRoute } from './quality-journey-triage-route'
 import { getQualityJourneyLibraryRoute } from './quality-journey-library-route'
+import { getQualityJourneyCompatibilityRoute } from './quality-journey-compatibility-route'
 
 export const runtime = 'nodejs'
 
@@ -493,6 +492,8 @@ async function getTestRunEvidence(request: Request, operation: string[]) {
 }
 
 async function getQualityOperation(request: Request, operation: string[]) {
+  const compatibilityResponse = await getQualityJourneyCompatibilityRoute(operation, new URL(request.url).searchParams)
+  if (compatibilityResponse) return compatibilityResponse
   const libraryResponse = await getQualityJourneyLibraryRoute(operation, new URL(request.url).searchParams)
   if (libraryResponse) return libraryResponse
   const triageResponse = await getQualityJourneyTriageRoute(operation, new URL(request.url).searchParams)
@@ -769,6 +770,7 @@ async function postQualityOperation(operation: string[], body: unknown): Promise
   const analysisResponse = await postQualityJourneyAnalysisRoute(operation, body)
   if (analysisResponse) return analysisResponse
   const key = operation.join('/')
+  assertQualityJourneyCutoverRoute(operation)
   if (key === 'quality/journeys') {
     const value = z
       .object({ target: z.string().min(1), idempotencyKey: z.string().min(1), requirement: z.unknown() })
@@ -890,7 +892,11 @@ async function postQualityOperation(operation: string[], body: unknown): Promise
       .parse(body)
     if (!('source' in value)) throw new ServiceError('Quality requirement source is required.', 'VALIDATION')
     return Response.json(
-      await submitQualityRequirementSource({ ...value, source: value.source as NonNullable<typeof value.source> }),
+      await submitQualityRequirementSource({
+        ...value,
+        source: value.source as NonNullable<typeof value.source>,
+        requireExplicitAnalysis: true,
+      }),
       { status: 201 },
     )
   }
@@ -917,16 +923,6 @@ async function postQualityOperation(operation: string[], body: unknown): Promise
       .parse(body)
     return Response.json(await answerQualityRequirementQueries({ qualityPlanId: qualityPlanId(operation), ...value }))
   }
-  if (key === `quality/plans/${operation[2]}/requirements/approve`) {
-    const value = z
-      .object({
-        revisionId: z.string().min(1),
-        expectedRevisionHash: z.string().startsWith('sha256:'),
-        approvedBy: z.string().min(1),
-      })
-      .parse(body)
-    return Response.json(await approveQualityRequirements({ qualityPlanId: qualityPlanId(operation), ...value }))
-  }
   if (key === `quality/plans/${operation[2]}/requirement-analyses`) {
     const value = z.object({ revisionId: z.string().min(1), proposal: z.unknown() }).parse(body)
     const graph = await readQualityRequirementGraph({
@@ -952,54 +948,6 @@ async function postQualityOperation(operation: string[], body: unknown): Promise
         ...qualityReviewDecisionInput(value),
       }),
     )
-  }
-  if (key === `quality/plans/${operation[2]}/validation-design/proposals`) {
-    const value = z
-      .union([
-        z.object({ revisionId: z.string().min(1), proposal: z.unknown(), idempotencyKey: z.string().min(1) }),
-        z.object({
-          revisionId: z.string().min(1),
-          requirementAnalysisId: z.string().min(1),
-          expectedAnalysisHash: z.string().startsWith('sha256:'),
-          expectedObligationSetHash: z.string().startsWith('sha256:'),
-          proposal: z.unknown(),
-        }),
-      ])
-      .parse(body)
-    if (!('proposal' in value)) throw new ServiceError('Validation design proposal is required.', 'VALIDATION')
-    if ('requirementAnalysisId' in value) {
-      const graph = await readQualityRequirementGraph({
-        qualityPlanId: qualityPlanId(operation),
-        revisionId: value.revisionId,
-      })
-      return Response.json(
-        await proposeValidationDesign({
-          targetProjectId: graph.qualityPlan.targetProjectId,
-          qualityPlanRevisionId: value.revisionId,
-          requirementAnalysisRevisionId: value.requirementAnalysisId,
-          expectedAnalysisHash: value.expectedAnalysisHash,
-          expectedObligationSetHash: value.expectedObligationSetHash,
-          proposal: value.proposal,
-        }),
-      )
-    }
-    return Response.json(
-      await proposeQualityValidationDesign({
-        qualityPlanId: qualityPlanId(operation),
-        ...value,
-        proposal: value.proposal as NonNullable<typeof value.proposal>,
-      }),
-    )
-  }
-  if (key === `quality/plans/${operation[2]}/validation-design/approve`) {
-    const value = z
-      .object({
-        revisionId: z.string().min(1),
-        expectedDesignHash: z.string().startsWith('sha256:'),
-        approvedBy: z.string().min(1),
-      })
-      .parse(body)
-    return Response.json(await approveQualityValidationDesign({ qualityPlanId: qualityPlanId(operation), ...value }))
   }
   if (key === `quality/plans/${operation[2]}/validation-designs`) {
     const value = z

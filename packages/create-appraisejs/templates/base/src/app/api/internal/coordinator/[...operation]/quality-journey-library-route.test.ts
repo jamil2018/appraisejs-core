@@ -27,6 +27,7 @@ it('binds reads to the resolved target and path journey', async () => {
     limit: 20,
     offset: 2,
     kind: undefined,
+    query: undefined,
   })
   await getQualityJourneyLibraryRoute(
     ['quality', 'journeys', 'journey-1', 'library', 'artifact-1'],
@@ -44,15 +45,34 @@ it('binds reads to the resolved target and path journey', async () => {
   expect(mocks.export).toHaveBeenCalledWith({ journeyId: 'journey-1', targetProjectId: 'project-1' })
 })
 
-it.each(['targetProjectId=other', 'journeyId=other', 'actor=USER', 'limit=101', 'offset=-1'])(
-  'rejects invalid or caller-injected scope %s before resolving',
-  async parameter => {
-    await expect(
-      getQualityJourneyLibraryRoute(
-        ['quality', 'journeys', 'journey-1', 'library'],
-        new URLSearchParams(`target=registered&${parameter}`),
-      ),
-    ).rejects.toThrow()
-    expect(mocks.resolve).not.toHaveBeenCalled()
-  },
-)
+it('forwards a bounded metadata query', async () => {
+  await getQualityJourneyLibraryRoute(
+    ['quality', 'journeys', 'journey-1', 'library'],
+    new URLSearchParams('target=registered&query=%20artifact%20'),
+  )
+  expect(mocks.list).toHaveBeenCalledWith({
+    journeyId: 'journey-1',
+    targetProjectId: 'project-1',
+    kind: undefined,
+    query: 'artifact',
+    limit: undefined,
+    offset: undefined,
+  })
+})
+
+it.each([
+  'targetProjectId=other',
+  'journeyId=other',
+  'actor=USER',
+  'limit=101',
+  'offset=-1',
+  `query=${'x'.repeat(201)}`,
+])('rejects invalid or caller-injected scope %s before resolving', async parameter => {
+  await expect(
+    getQualityJourneyLibraryRoute(
+      ['quality', 'journeys', 'journey-1', 'library'],
+      new URLSearchParams(`target=registered&${parameter}`),
+    ),
+  ).rejects.toThrow()
+  expect(mocks.resolve).not.toHaveBeenCalled()
+})

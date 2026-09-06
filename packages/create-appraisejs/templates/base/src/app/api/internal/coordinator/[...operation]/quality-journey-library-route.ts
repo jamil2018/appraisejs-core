@@ -10,6 +10,7 @@ const querySchema = z
   .object({
     target: z.string().min(1),
     kind: z.string().min(1).optional(),
+    query: z.string().trim().max(200).optional(),
     offset: z.coerce.number().int().min(0).optional(),
     limit: z.coerce.number().int().min(1).max(100).optional(),
   })
@@ -30,6 +31,12 @@ export async function getQualityJourneyLibraryRoute(
   if (operation.length === 5)
     return Response.json(await getQualityJourneyLibraryArtifact({ ...scope, entryId: operation[4]! }))
   return Response.json(
-    await listQualityJourneyArtifactLibrary({ ...scope, kind: query.kind, offset: query.offset, limit: query.limit }),
+    await listQualityJourneyArtifactLibrary({
+      ...scope,
+      kind: query.kind,
+      query: query.query,
+      offset: query.offset,
+      limit: query.limit,
+    }),
   )
 }

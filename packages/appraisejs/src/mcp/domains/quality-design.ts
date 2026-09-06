@@ -597,7 +597,7 @@ export function registerQualityDesignOperations(context: McpRegistryContext): vo
     async ({ qualityPlanId, responseMode, ...body }) =>
       text(
         applyAuthoringResponseMode(
-          await api.request(`quality/plans/${qualityPlanId}/validation-design/proposals`, {
+          await api.request(`quality/plans/${qualityPlanId}/validation-designs`, {
             method: 'POST',
             body: JSON.stringify(body),
           }),

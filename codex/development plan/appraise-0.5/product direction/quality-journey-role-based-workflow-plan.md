@@ -499,6 +499,14 @@ Exit criteria:
 
 ### Phase 10 - Experience Convergence and Legacy Cutover
 
+Status: implemented on 2026-09-06 in `codex/quality-journey-phase-10`. The delivery unifies stage navigation,
+Runner/work-item/attempt and human-gate visibility, manual accessible progress refresh, responsive graph alternatives,
+and metadata-only artifact search across UI/API/MCP. Exact relational legacy history is available through a read-only
+compatibility projection without inferred Journey approval transfer. Superseded approval shortcuts are retired across
+HTTP and UI; source intake requires explicit analysis. The release gate audits foreign keys, cross-Journey relational
+ownership, active references, and generated artifacts. See `docs/quality-journey-experience-cutover.md` for boundaries,
+verification, and rollback guidance.
+
 Unify route navigation, notifications, role progress, stage blockers, accessibility, responsive graph behavior, and
 cross-artifact search. Migrate or project existing planning/validation records where lineage can be proven. Keep a
 read-only compatibility path for records that cannot be safely upgraded, then remove superseded session-control

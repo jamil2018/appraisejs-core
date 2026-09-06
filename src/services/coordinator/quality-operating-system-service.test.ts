@@ -8,6 +8,7 @@ import {
   listQualityMethodologies,
   obligationSetHash,
   proposeRequirementAnalysis,
+  proposeValidationDesign,
   requirementAnalysisHash,
   validationDesignHash,
   type PrismaLike,
@@ -125,6 +126,53 @@ describe('Quality Operating System service', () => {
     expect(validationDesignHash(design, 'sha256:a'.padEnd(71, 'a'), obligationHash)).toBe(
       validationDesignHash(design, 'sha256:a'.padEnd(71, 'a'), obligationHash),
     )
+  })
+
+  it('rejects synthetic legacy analysis as authority for a new canonical design', async () => {
+    const client = proposalClient()
+    client.requirementAnalysisRevision.findFirst = async () =>
+      ({
+        id: 'legacy-analysis:revision-1',
+        targetProjectId: 'target-1',
+        qualityPlanRevisionId: 'revision-1',
+        decision: 'APPROVED',
+        analysisHash: 'sha256:legacy',
+      }) as never
+    await expect(
+      proposeValidationDesign(
+        {
+          targetProjectId: 'target-1',
+          qualityPlanRevisionId: 'revision-1',
+          requirementAnalysisRevisionId: 'legacy-analysis:revision-1',
+          expectedAnalysisHash: 'sha256:legacy',
+          expectedObligationSetHash: obligationSetHash([]),
+          proposal: {
+            schemaVersion: '1',
+            methodology: builtInMethodologyRef,
+            requiredAssurance: 'STANDARD',
+            techniques: ['boundary'],
+            layers: ['browser'],
+            risks: ['missing export'],
+            evidenceExpectations: ['sealed evidence'],
+            limitations: [],
+            scenarios: [
+              {
+                id: 'scenario',
+                title: 'Export',
+                obligationIds: ['obligation'],
+                behavior: 'Export reports',
+                kind: 'POSITIVE',
+                assertions: [{ id: 'assertion', statement: 'Report is visible', observable: true }],
+                requiredMinimumAssurance: 'STANDARD',
+                matrix: { cells: [{ browser: 'chromium', environment: 'local' }], rationale: 'Supported browser' },
+                failureMeaning: 'Export failed',
+              },
+            ],
+          },
+        },
+        client,
+      ),
+    ).rejects.toThrow('Legacy projected analysis is read-only')
   })
 
   it('materializes an approved design in the exact state and hash consumed by validation compilation', () => {

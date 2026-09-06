@@ -95,6 +95,40 @@ it('lists every projected entry with bounded pages and matching export identitie
     expect((await getQualityJourneyLibraryArtifact({ ...scope, entryId: entry.entryId }, client)).entry).toEqual(entry)
 })
 
+it('searches only public metadata before pagination and applies the same filter to counts', async () => {
+  const { client, scope, owner } = await fixture()
+  await client.qualityJourneyArtifact.create({
+    data: {
+      id: 'search-record',
+      journeyId: scope.journeyId,
+      targetProjectId: scope.targetProjectId,
+      cycleId: owner.journey.activeCycleId,
+      identityKey: 'search:1',
+      kind: 'RUNTIME_CAPSULE',
+      artifactId: 'search-artifact',
+      revisionId: 'search-revision',
+      contentHash: 'sha256:search-hash',
+      artifactJson: JSON.stringify({ token: 'SEARCH-SECRET' }),
+    },
+  })
+  for (const query of ['search-record', 'search-artifact', 'search-revision', 'search-hash']) {
+    const result = await listQualityJourneyArtifactLibrary({ ...scope, query }, client)
+    expect(result.total).toBe(1)
+    expect(result.entries.map(entry => entry.entryId)).toEqual(['ARTIFACT:search-record'])
+  }
+  const matching = await listQualityJourneyArtifactLibrary({ ...scope, query: 'sha256:', limit: 100 }, client)
+  const first = await listQualityJourneyArtifactLibrary({ ...scope, query: 'sha256:', limit: 1 }, client)
+  const second = await listQualityJourneyArtifactLibrary({ ...scope, query: 'sha256:', limit: 1, offset: 1 }, client)
+  expect(matching.total).toBe(matching.entries.length)
+  expect(first.total).toBe(matching.total)
+  expect(second.total).toBe(matching.total)
+  expect([...first.entries, ...second.entries].map(entry => entry.entryId)).toEqual(
+    matching.entries.slice(0, 2).map(entry => entry.entryId),
+  )
+  expect((await listQualityJourneyArtifactLibrary({ ...scope, query: 'SEARCH-SECRET' }, client)).total).toBe(0)
+  expect((await listQualityJourneyArtifactLibrary({ ...scope, query: '  search-artifact  ' }, client)).total).toBe(1)
+})
+
 it('keeps historical questions readable without operational fields and distinguishes source/projection hashes', async () => {
   const { client, scope } = await fixture()
   await client.qualityJourney.update({ where: { id: scope.journeyId }, data: { stage: 'CLOSED', status: 'CLOSED' } })

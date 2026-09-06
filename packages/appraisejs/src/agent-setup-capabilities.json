@@ -42,6 +42,7 @@
     "quality_journey_automation_context_get",
     "quality_journey_automation_materialize",
     "quality_journey_command_submit",
+    "quality_journey_compatibility_read",
     "quality_journey_create",
     "quality_journey_discovery_get",
     "quality_journey_discovery_retry",
