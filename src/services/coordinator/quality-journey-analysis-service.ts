@@ -13,6 +13,7 @@ import {
   hashAnalysisQuestion,
   hashCanonical,
   journeyCommandSchema,
+  parseQualityJourneyRequirement,
   qualityJourneyContractVersion,
   type QualityJourneyStage,
 } from '@/lib/quality-journey'
@@ -216,6 +217,43 @@ export async function getQualityJourneyAnalysis(
 
 type AnalysisSubmission = ReturnType<typeof analysisSubmissionSchema.parse>
 type AnalysisCharter = ReturnType<typeof analysisCharterSchema.parse>
+
+export function assertStructuredRequirementTraceability(requirementInput: unknown, charterInput: unknown) {
+  const charter = analysisCharterSchema.parse(charterInput)
+  const requirement = parseQualityJourneyRequirement(requirementInput)
+  const suppliedFields = [
+    'context',
+    'coverageRigor',
+    'testDimensions',
+    'includedScope',
+    'excludedScope',
+    'environmentIds',
+    'actors',
+    'testDataNeeds',
+    'constraints',
+    'risks',
+    'desiredEvidenceSignals',
+  ].filter(field => requirement[field as keyof typeof requirement] !== undefined)
+  const isStructured = requirement.schemaVersion !== undefined || suppliedFields.length > 0
+  if (!isStructured) return
+  const sourceRefs = new Set(charter.requirements.flatMap(item => item.sourceRefs))
+  const missing = ['objective', ...suppliedFields].filter(field => !sourceRefs.has(`intake.${field}`))
+  if (missing.length)
+    throw new ServiceError(`Analysis charter does not trace supplied intake fields: ${missing.join(', ')}.`, 'CONFLICT')
+}
+
+async function assertStructuredIntakeTraceability(
+  charter: AnalysisCharter,
+  journeyId: string,
+  tx: Prisma.TransactionClient,
+) {
+  const revision = await tx.qualityJourneyRevision.findFirst({
+    where: { id: charter.requirementRevisionId, journeyId },
+    select: { contentJson: true },
+  })
+  if (!revision) throw new ServiceError('Analysis charter references an unknown requirement revision.', 'CONFLICT')
+  assertStructuredRequirementTraceability(JSON.parse(revision.contentJson), charter)
+}
 type AnalysisOutputReference = {
   kind: 'ANALYSIS_CHARTER_REVISION' | 'ANALYSIS_QUESTION'
   artifactId: string
@@ -527,6 +565,7 @@ async function submitQualityJourneyAnalysisSuccessorInTransaction(
   const replay = await replayedAnalysisSubmission(submission, submissionHash, tx)
   if (replay) return replay
   const { journey, item, attempt } = await validatedAnalysisSubmissionContext(submission, charter, tx)
+  await assertStructuredIntakeTraceability(charter, journey.id, tx)
   const lineage = await validatedAnalysisSuccessorLineage(submission, charter, journey.id, tx)
   const { revision, contentHash } = await createAnalysisRevision(
     {

@@ -5,6 +5,29 @@ scenario review, automation, managed execution, triage, report review, and closu
 artifact revisions, approvals, evidence, commands, and transitions. Coordinator conversation and worker sessions are
 never lifecycle authority.
 
+## Structured requirement intake
+
+`QualityJourneyRequirement/v1` is shared by the Appraise UI, coordinator API, and MCP. Its schema identifier is
+`appraise.quality-journey-requirement/v1`. `objective` is required; context, `FOCUSED | STANDARD | COMPREHENSIVE`
+coverage rigor, test dimensions, included and excluded scope, registered environment IDs, actors, test-data needs,
+constraints, risks, and desired evidence signals are optional at API and MCP ingress. Objective-only vendor-textbox
+starts remain valid, and missing fields mean not supplied, so existing stored revisions need no migration.
+
+Provided structured fields are binding user intent. The Analyzer receives the complete immutable Journey revision
+and a structured charter must trace every provided field with an `intake.<field>` requirement source reference.
+Questions about supplied information are permitted only for an ambiguity, contradiction, or feasibility issue;
+unsupported requested dimensions remain explicit coverage conflicts. Public requirement projections include only
+approved contract fields.
+
+## Coordinator handoff
+
+Coordinator handoffs are provider-neutral durable records; `codex` is the only launch provider in v1. Preparation
+returns a contextual bootstrap prompt containing a short-lived single-use ticket while persisting only ticket and
+prompt hashes. Launch arguments are server-resolved (`codex app <registered-workspace>`); the browser cannot provide a
+command or path. `quality_journey_handoff_inspect` exposes safe state and `quality_journey_handoff_redeem` atomically
+connects an exact unexpired ticket. Tickets, prompts, bearer tokens, leases, and credentials are absent from public
+projections and exports.
+
 The executable Quality Journey foundation is in `src/lib/quality-journey/`:
 
 - `contracts.ts` defines versioned strict schemas for stages, roles, artifacts, assignments, provider-neutral

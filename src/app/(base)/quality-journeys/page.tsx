@@ -6,6 +6,7 @@ import PageHeader from '@/components/typography/page-header'
 import { Badge } from '@/components/ui/badge'
 import { requireActiveProject } from '@/lib/active-project'
 import { listQualityJourneys } from '@/services/coordinator/quality-journey-query-service'
+import { listEnvironments } from '@/services/environment/environment-service'
 
 import { QualityJourneyCreateForm } from './quality-journey-create-form'
 import { QualityJourneysBrowser } from './quality-journeys-browser'
@@ -22,7 +23,10 @@ export default async function QualityJourneysPage({
 }) {
   const parameters = await searchParams
   const project = await requireActiveProject(parameters?.project)
-  const journeys = await listQualityJourneys({ targetProjectId: project.id })
+  const [journeys, environments] = await Promise.all([
+    listQualityJourneys({ targetProjectId: project.id }),
+    listEnvironments(project.id),
+  ])
 
   return (
     <main className="space-y-6 pb-10">
@@ -45,7 +49,15 @@ export default async function QualityJourneysPage({
           {journeys.length} journeys
         </Badge>
       </header>
-      <QualityJourneyCreateForm projectId={project.id} predecessorJourneyId={parameters?.predecessor} />
+      <QualityJourneyCreateForm
+        initialEnvironments={environments.map(environment => ({
+          id: environment.id,
+          name: environment.name,
+          baseUrl: environment.baseUrl,
+        }))}
+        projectId={project.id}
+        predecessorJourneyId={parameters?.predecessor}
+      />
       <QualityJourneysBrowser items={journeys} projectId={project.id} />
     </main>
   )

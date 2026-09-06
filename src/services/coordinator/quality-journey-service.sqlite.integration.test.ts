@@ -11,6 +11,7 @@ import {
   qualityJourneyRoleDefinitions,
   qualityJourneyWorkItemId,
   registerAgentFactoryProviderAdapter,
+  hashQualityJourneyRequirement,
 } from '@/lib/quality-journey'
 import {
   claimQualityJourneyWork,
@@ -156,6 +157,89 @@ function completedResult(claim: Awaited<ReturnType<typeof claimQualityJourneyWor
 }
 
 describe('Quality Journey Phase 2 durable Factory service', () => {
+  it('persists a complete canonical structured requirement and binds the exact revision into Analyzer work', async () => {
+    const client = await fixture()
+    try {
+      await client.environment.createMany({
+        data: [
+          {
+            id: 'environment-a',
+            name: 'Environment A',
+            baseUrl: 'https://environment-a.example.test',
+            targetProjectId: 'target-journey-1',
+          },
+          {
+            id: 'environment-z',
+            name: 'Environment Z',
+            baseUrl: 'https://environment-z.example.test',
+            targetProjectId: 'target-journey-1',
+          },
+        ],
+      })
+      const requirement = {
+        schemaVersion: 'appraise.quality-journey-requirement/v1' as const,
+        objective: 'A shopper can complete checkout with a saved payment method.',
+        coverageRigor: 'COMPREHENSIVE' as const,
+        testDimensions: ['VISUAL', 'FUNCTIONAL', 'END_TO_END'] as Array<'VISUAL' | 'FUNCTIONAL' | 'END_TO_END'>,
+        includedScope: ['Saved payment method', 'Payment confirmation'],
+        environmentIds: ['environment-z', 'environment-a'],
+        desiredEvidenceSignals: ['Confirmation is visible'],
+      }
+      const created = await createQualityJourney(
+        { targetProjectId: 'target-journey-1', idempotencyKey: 'structured-intake', requirement },
+        client,
+      )
+      const revision = await client.qualityJourneyRevision.findUniqueOrThrow({
+        where: { id: created.journey.activeRevisionIds.journey },
+      })
+      const persisted = JSON.parse(revision.contentJson)
+      expect(persisted).toEqual({
+        ...requirement,
+        environmentIds: ['environment-a', 'environment-z'],
+        includedScope: ['Payment confirmation', 'Saved payment method'],
+        testDimensions: ['END_TO_END', 'FUNCTIONAL', 'VISUAL'],
+      })
+      expect(revision.contentHash).toBe(hashQualityJourneyRequirement(requirement))
+
+      const submitted = await submitDurableQualityJourneyCommand(
+        {
+          schemaVersion: 'appraise.quality-journey/v1',
+          commandId: 'structured-intake-submit',
+          journeyId: created.journey.journeyId,
+          targetProjectId: 'target-journey-1',
+          actor: 'USER',
+          command: 'SUBMIT_REQUIREMENT',
+          expectedStateHash: created.journey.stateHash,
+          idempotencyKey: 'structured-intake-submit',
+          inputArtifactRefs: [],
+          payload: { journeyRevisionId: revision.id, requirementHash: revision.contentHash },
+        },
+        client,
+      )
+      expect(submitted).toMatchObject({ outcome: 'COMMITTED', successorStage: 'ANALYSIS' })
+
+      const analyzer = await client.qualityJourneyWorkItem.findUniqueOrThrow({
+        where: {
+          id: qualityJourneyWorkItemId(
+            created.journey.journeyId,
+            created.journey.activeCycleId,
+            'REQUIREMENT_ANALYZER',
+          ),
+        },
+      })
+      expect(JSON.parse(analyzer.inputArtifactRefsJson)).toEqual([
+        {
+          kind: 'JOURNEY_REVISION',
+          artifactId: revision.id,
+          revisionId: revision.id,
+          contentHash: revision.contentHash,
+        },
+      ])
+    } finally {
+      await client.$disconnect()
+    }
+  }, 60_000)
+
   it('rejects generic Scenario Designer completion without mutating the attempt, item, or artifacts', async () => {
     const client = await fixture()
     try {
@@ -764,16 +848,22 @@ describe('Quality Journey Phase 2 durable Factory service', () => {
 
       expect(replacement.attempt).toMatchObject({ attempt: 2, replacesAttemptId: predecessor.attempt.id })
       expect(replacement.assignment.assignmentId).not.toBe(predecessor.assignment.assignmentId)
-      expect(replacement.assignment).toMatchObject({
-        inputArtifacts: [
+      expect(replacement.assignment.inputArtifacts).toEqual(
+        expect.arrayContaining([
           {
             kind: 'JOURNEY_REVISION',
             artifactId: 'current-journey-revision',
             revisionId: 'revision-current',
             contentHash: digest('e'),
           },
-        ],
-      })
+          {
+            kind: 'JOURNEY_REVISION',
+            artifactId: created.journey.activeRevisionIds.journey,
+            revisionId: created.journey.activeRevisionIds.journey,
+            contentHash: hashQualityJourneyRequirement({ objective: 'Replace' }),
+          },
+        ]),
+      )
       expect(replacement.assignment.inputArtifacts).not.toContainEqual(
         expect.objectContaining({ artifactId: 'private-triage-output' }),
       )

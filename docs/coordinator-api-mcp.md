@@ -7,6 +7,13 @@ Journey operations are grouped under `quality/journeys/**` in the coordinator AP
 Every mutation is scoped to an exact target and Journey and remains subject to the Journey's durable review,
 authorization, evidence, and closure invariants.
 
+Creation accepts the shared `QualityJourneyRequirement/v1` payload. Objective-only requests remain valid; structured
+fields are canonicalized before hashing and persistence. Coordinator connections use
+`GET quality/journeys/:journeyId/handoff?target=...` for safe inspection and
+`POST quality/journeys/:journeyId/handoff/redeem` for one-time redemption. MCP exposes these as
+`quality_journey_handoff_inspect` and `quality_journey_handoff_redeem`. Preparation and local launch remain UI-only
+server actions because only the server resolves and launches a registered workspace.
+
 `locator_search`, `locator_graph_query`, and `locator_ensure` accept `journeyId`. The coordinator verifies that
 the Journey belongs to the requested target before reading or writing locator resources. `step_search` remains
 generally available and may record optional Journey-bound search evidence.

@@ -4,6 +4,10 @@ Quality Journey is AppraiseJS's sole agent-enabled quality authority. A Journey 
 discovery, scenario approval, materialization, execution consent, sealed evidence, triage, report review, remediation,
 reruns, and closure. Only a Journey decision or closure is a quality outcome.
 
+Structured UI intake does not create a draft lifecycle. Confirmation creates the immutable requirement revision and
+normal Analysis work item. A Codex handoff connects a harness-native coordinator to that Journey; it does not transfer
+transition authority, create an alternate Analyzer, or bypass questions and human review gates.
+
 Agents must use the dedicated `quality_journey_*` coordinator operations for lifecycle transitions. Work leases,
 artifact hashes, review decisions, execution-cycle identities, and evidence receipts are exact Journey-scoped
 authority. Chat approval and generic TestRun completion do not replace these gates.

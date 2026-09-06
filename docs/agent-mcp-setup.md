@@ -8,6 +8,12 @@ The server publishes the Journey lifecycle plus general target, runtime, locator
 
 Clients should use the generated setup capabilities and contract fixture to verify their connection. Reads are annotated as read-only; deterministic replay operations are annotated as idempotent; execution, publication, stop, and decision operations expose their actual mutation and open-world effects.
 
+For an Appraise-prepared Codex handoff, paste the exact bootstrap prompt and call
+`quality_journey_handoff_redeem` with its Journey ID, target reference, and one-time ticket. On success, immediately
+call `quality_journey_get` and the stage-specific read operation. The prompt is contextual; stored Journey state and
+immutable artifacts win. An expired, mismatched, or replayed ticket must be replaced from the Journey UI. Diagnostics
+never require exposing the coordinator bearer token.
+
 If a delegated task cannot receive native MCP capabilities, use the supported authenticated local bridge instead of creating an ad hoc protocol proxy:
 
 ```bash

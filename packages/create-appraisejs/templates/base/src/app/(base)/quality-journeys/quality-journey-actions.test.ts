@@ -55,8 +55,10 @@ describe('Quality Journey route actions', () => {
   it('creates a target-scoped journey then submits the immutable requirement transition', async () => {
     await expect(
       createQualityJourneyAction({
-        objective: 'A shopper can submit an order.',
-        context: 'Card payments only.',
+        requirement: {
+          objective: 'A shopper can submit an order.',
+          context: 'Card payments only.',
+        },
         idempotencyKey: 'journey-create-1',
       }),
     ).resolves.toMatchObject({ success: true, data: { journeyId: 'journey-1' } })

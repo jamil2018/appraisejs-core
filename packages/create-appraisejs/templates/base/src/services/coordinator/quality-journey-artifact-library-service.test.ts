@@ -39,7 +39,7 @@ async function fixture() {
     {
       targetProjectId: 'project-a',
       idempotencyKey: 'owner',
-      requirement: { objective: 'Checkout', apiKey: 'SECRET-MARKER' },
+      requirement: { objective: 'Checkout' },
     },
     client,
   )

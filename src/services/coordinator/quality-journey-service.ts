@@ -29,12 +29,14 @@ import {
   resolveQualityJourneyCapabilityProfile,
   resolveQualityJourneyRoleDefinition,
   resolveAgentFactoryProviderAdapter,
+  parseQualityJourneyRequirement,
   submitQualityJourneyCommand,
   validateWorkerResult,
   validateWorkerSpawnReceipt,
   workerResultEnvelopeSchema,
   type AssignmentManifest,
   type QualityJourneyKernelState,
+  type QualityJourneyRequirement,
   type QualityJourneyRole,
   type QualityJourneyStage,
 } from '@/lib/quality-journey'
@@ -499,6 +501,25 @@ async function ensureEligibleWorkItems(row: QualityJourney, db: Db) {
     item = await reissueCompletedAnalysisWorkItem(row, item, activeWorkItemIds, roleContractDigest, db)
     item = await reissueCompletedScenarioDesignerWorkItem(row, item, activeWorkItemIds, roleContractDigest, db)
     if (!item) {
+      const requirementRevision =
+        role === 'REQUIREMENT_ANALYZER'
+          ? await db.qualityJourneyRevision.findFirst({
+              where: { journeyId: row.id },
+              orderBy: { revision: 'desc' },
+            })
+          : null
+      if (role === 'REQUIREMENT_ANALYZER' && !requirementRevision)
+        throw new ServiceError('Requirement Analyzer work requires an immutable requirement revision.', 'CONFLICT')
+      const inputArtifacts = requirementRevision
+        ? [
+            {
+              kind: 'JOURNEY_REVISION' as const,
+              artifactId: requirementRevision.id,
+              revisionId: requirementRevision.id,
+              contentHash: requirementRevision.contentHash,
+            },
+          ]
+        : []
       item = await db.qualityJourneyWorkItem.create({
         data: {
           id,
@@ -508,6 +529,7 @@ async function ensureEligibleWorkItems(row: QualityJourney, db: Db) {
           role,
           status: 'ELIGIBLE',
           inputHash: row.stateHash,
+          inputArtifactRefsJson: json(inputArtifacts),
           roleContractDigest,
           allowedOutputsJson: json(definition.writableArtifacts),
           completionCriteriaJson: json([`Submit a contract-valid ${role} result envelope.`]),
@@ -638,10 +660,16 @@ async function recoverLegacyFactoryAuthorizations(row: QualityJourney, db: Db) {
 }
 
 export async function createQualityJourney(
-  input: { targetProjectId: string; idempotencyKey: string; requirement: unknown; predecessorJourneyId?: string },
+  input: {
+    targetProjectId: string
+    idempotencyKey: string
+    requirement: QualityJourneyRequirement
+    predecessorJourneyId?: string
+  },
   client: PrismaClient = prisma,
 ) {
-  const requestHash = hash(input)
+  const requirement = parseQualityJourneyRequirement(input.requirement)
+  const requestHash = hash({ ...input, requirement })
   const existing = await client.qualityJourney.findUnique({
     where: {
       targetProjectId_rootIdempotencyKey: {
@@ -655,10 +683,17 @@ export async function createQualityJourney(
       throw new ServiceError('Quality Journey idempotency key was reused with different input.', 'CONFLICT')
     return { replayed: true, journey: projection(existing) }
   }
+  if (requirement.environmentIds?.length) {
+    const environmentCount = await client.environment.count({
+      where: { id: { in: requirement.environmentIds }, targetProjectId: input.targetProjectId },
+    })
+    if (environmentCount !== requirement.environmentIds.length)
+      throw new ServiceError('Requirement intake references an environment outside the Journey target.', 'CONFLICT')
+  }
   const journeyId = `qjy_${randomUUID()}`
   const cycleId = `qjc_${randomUUID()}`
   const revisionId = `qjr_${randomUUID()}`
-  const revisionHash = hash(input.requirement)
+  const revisionHash = hash(requirement)
   const initial = createQualityJourneyKernelState({
     journeyId,
     targetProjectId: input.targetProjectId,
@@ -688,7 +723,7 @@ export async function createQualityJourney(
       },
     })
     await tx.qualityJourneyRevision.create({
-      data: { id: revisionId, journeyId, revision: 1, contentJson: json(input.requirement), contentHash: revisionHash },
+      data: { id: revisionId, journeyId, revision: 1, contentJson: json(requirement), contentHash: revisionHash },
     })
     await tx.qualityJourneyCycle.create({ data: { id: cycleId, journeyId, sequence: 1 } })
     await tx.qualityJourneyEvent.create({

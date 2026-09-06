@@ -1,4 +1,5 @@
 import { ClosurePanel } from './closure-panel'
+import { CoordinatorHandoffPanel } from './coordinator-handoff-panel'
 import { getQualityJourneyClosure } from '@/services/coordinator/quality-journey-closure-service'
 import type { Metadata } from 'next'
 import Link from 'next/link'
@@ -16,6 +17,7 @@ import { getQualityJourney } from '@/services/coordinator/quality-journey-servic
 import { getQualityJourneyScenarioPortfolio } from '@/services/coordinator/quality-journey-scenario-service'
 import { getQualityJourneyAutomationContext } from '@/services/coordinator/quality-journey-automation-service'
 import { getQualityJourneyExecution } from '@/services/coordinator/quality-journey-execution-service'
+import { inspectQualityJourneyHandoff } from '@/services/coordinator/quality-journey-handoff-service'
 import { getQualityJourneyTriage } from '@/services/coordinator/quality-journey-triage-service'
 import prisma from '@/config/db-config'
 import { JourneyExecutionStatus } from './journey-execution-status'
@@ -35,6 +37,27 @@ type JourneyDetail = Awaited<ReturnType<typeof getQualityJourney>>
 type ActiveProject = Awaited<ReturnType<typeof requireActiveProject>>
 type ActiveAnalysis = ReturnType<typeof toAnalysisRevisionView> | null
 type ActiveScenarioPortfolio = Awaited<ReturnType<typeof getQualityJourneyScenarioPortfolio>>['portfolio'] | null
+
+function LinkedFollowUpAction({
+  visible,
+  journeyId,
+  projectId,
+}: {
+  visible: boolean
+  journeyId: string
+  projectId: string
+}) {
+  if (!visible) return null
+  return (
+    <Button asChild variant="outline">
+      <Link
+        href={`/quality-journeys?project=${encodeURIComponent(projectId)}&predecessor=${encodeURIComponent(journeyId)}`}
+      >
+        Start linked follow-up journey
+      </Link>
+    </Button>
+  )
+}
 
 async function loadJourneySupplementalArtifacts(journeyId: string, projectId: string, stage: string) {
   const scenarioStages = [
@@ -87,10 +110,11 @@ async function loadJourneyDetail(journeyId: string, projectId: string) {
     node => node.stage === journey.journey.stage && ['RUNNABLE', 'IN_PROGRESS', 'BLOCKED'].includes(node.state),
   )
 
-  const [{ scenarios, automation }, execution, triage, environments, attempts] = await Promise.all([
+  const [{ scenarios, automation }, execution, triage, handoff, environments, attempts] = await Promise.all([
     loadJourneySupplementalArtifacts(journeyId, projectId, journey.journey.stage),
     getQualityJourneyExecution({ journeyId, targetProjectId: projectId }),
     getQualityJourneyTriage({ journeyId, targetProjectId: projectId }),
+    inspectQualityJourneyHandoff({ journeyId, targetProjectId: projectId }),
     prisma.environment.findMany({
       where: { targetProjectId: projectId },
       select: { id: true, name: true },
@@ -111,6 +135,7 @@ async function loadJourneyDetail(journeyId: string, projectId: string) {
     automation,
     execution,
     triage,
+    handoff: handoff.handoff,
     environments,
     attempts,
   }
@@ -137,6 +162,7 @@ export default async function QualityJourneyDetailPage({ params, searchParams }:
     automation,
     execution,
     triage,
+    handoff,
     environments,
     attempts,
   } = detail
@@ -159,15 +185,7 @@ export default async function QualityJourneyDetailPage({ params, searchParams }:
             Artifact library and export
           </Link>
         </Button>
-        {closure.receipt ? (
-          <Button asChild variant="outline">
-            <Link
-              href={`/quality-journeys?project=${encodeURIComponent(project.id)}&predecessor=${encodeURIComponent(journeyId)}`}
-            >
-              Start linked follow-up journey
-            </Link>
-          </Button>
-        ) : null}
+        <LinkedFollowUpAction journeyId={journeyId} projectId={project.id} visible={Boolean(closure.receipt)} />
       </nav>
       <section id="gates" tabIndex={-1}>
         <ClosurePanel
@@ -190,6 +208,11 @@ export default async function QualityJourneyDetailPage({ params, searchParams }:
             />
           </section>
           <section id="analysis" tabIndex={-1}>
+            {['INTAKE', 'ANALYSIS', 'ANALYSIS_REVIEW'].includes(journey.journey.stage) ? (
+              <div className="mb-6">
+                <CoordinatorHandoffPanel handoff={handoff} journeyId={journeyId} />
+              </div>
+            ) : null}
             <AnalysisDocument analysis={activeAnalysis} />
             <AnalysisReviewControls
               analysis={activeAnalysis}
@@ -222,8 +245,9 @@ export default async function QualityJourneyDetailPage({ params, searchParams }:
               environments={environments}
               capsuleIds={
                 automation?.materializations
-                  .filter(item => item.status === 'MATERIALIZED' && item.preparedCapsule)
-                  .map(item => item.preparedCapsule!.id) ?? []
+                  .flatMap(item =>
+                    item.status === 'MATERIALIZED' && item.preparedCapsule ? [item.preparedCapsule.id] : [],
+                  ) ?? []
               }
             />
           </section>
