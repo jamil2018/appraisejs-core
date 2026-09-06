@@ -29,11 +29,28 @@ describe('QualityJourneyCreateForm', () => {
 
   async function completeMinimum(user: ReturnType<typeof userEvent.setup>) {
     await user.type(screen.getByLabelText('Outcome or behavior to validate'), 'A shopper can submit an order.')
+    await user.click(screen.getByRole('button', { name: 'Continue' }))
+    await user.click(screen.getByRole('button', { name: 'Continue' }))
     await user.type(screen.getByLabelText('Included behavior'), 'Checkout submission')
+    await user.click(screen.getByRole('button', { name: 'Continue' }))
     await user.click(screen.getByText('Staging'))
+    await user.click(screen.getByRole('button', { name: 'Continue' }))
     await user.type(screen.getByLabelText('Observable outcomes that would satisfy you'), 'An order ID is shown')
     await user.click(screen.getByRole('button', { name: 'Review Journey intake' }))
   }
+
+  it('keeps at least one test dimension selected', async () => {
+    const user = userEvent.setup()
+    render(<QualityJourneyCreateForm initialEnvironments={environments} projectId="project-1" />)
+
+    await user.type(screen.getByLabelText('Outcome or behavior to validate'), 'A shopper can submit an order.')
+    await user.click(screen.getByRole('button', { name: 'Continue' }))
+    const functional = screen.getByRole('checkbox', { name: 'Functional' })
+    await user.click(functional)
+
+    expect(functional).toBeChecked()
+    expect(screen.getByRole('button', { name: 'Continue' })).toBeEnabled()
+  })
 
   it('creates a requirement and navigates to its stable Quality Journey identifier', async () => {
     mocks.create.mockResolvedValue({ success: true, data: { journeyId: 'journey-1' } })
