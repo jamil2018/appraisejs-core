@@ -33,6 +33,14 @@ describe('listQualityJourneys', () => {
           },
         ],
         _count: { analysisRevisions: 2, blockers: 1 },
+        executionConsents: [],
+        coordinatorHandoffs: [
+          {
+            status: 'CONNECTED',
+            launchedAt: new Date('2026-09-01T00:30:00.000Z'),
+            connectedAt: new Date('2026-09-01T00:31:00.000Z'),
+          },
+        ],
       },
       {
         id: 'journey-2',
@@ -45,6 +53,8 @@ describe('listQualityJourneys', () => {
         updatedAt: new Date('2026-09-01T01:00:00.000Z'),
         revisions: [{ id: 'requirement-2', revision: 1, contentHash: 'sha256:def', contentJson: JSON.stringify({}) }],
         _count: { analysisRevisions: 0, blockers: 0 },
+        executionConsents: [],
+        coordinatorHandoffs: [],
       },
     ])
 
@@ -55,6 +65,7 @@ describe('listQualityJourneys', () => {
           activeRevisionIds: { journey: 'journey-revision-1' },
           unresolvedQuestionIds: ['question-1'],
           requirement: expect.objectContaining({ summary: 'Checkout accepts cards' }),
+          handoff: expect.objectContaining({ status: 'CONNECTED' }),
         }),
         expect.objectContaining({
           id: 'journey-2',
@@ -65,6 +76,7 @@ describe('listQualityJourneys', () => {
       ]),
     )
     expect(mocks.findMany).toHaveBeenCalledWith(expect.objectContaining({ where: { targetProjectId: 'project-1' } }))
+    expect(mocks.findMany.mock.calls[0][0].include.coordinatorHandoffs).toMatchObject({ take: 1 })
   })
 })
 

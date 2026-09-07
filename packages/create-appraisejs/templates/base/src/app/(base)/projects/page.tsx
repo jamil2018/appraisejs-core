@@ -11,7 +11,13 @@ import ProjectSelectionDialog from './project-selection-dialog'
 
 export const metadata: Metadata = { title: 'Projects' }
 
-type ProjectSearchParams = { selectProject?: string; returnTo?: string; preflight?: string }
+type ProjectSearchParams = {
+  agentSetup?: string
+  project?: string
+  selectProject?: string
+  returnTo?: string
+  preflight?: string
+}
 
 function preflightHighlight(searchParams: ProjectSearchParams | undefined): string | undefined {
   return searchParams?.preflight
@@ -49,6 +55,8 @@ export default async function ProjectsPage({ searchParams }: { searchParams?: Pr
         <HeaderSubtitle>Register and manage the workspaces isolated by AppraiseJS project ownership.</HeaderSubtitle>
       </div>
       <ProjectManagement
+        agentSetup={resolvedSearchParams?.agentSetup}
+        highlightedProjectId={resolvedSearchParams?.project}
         projects={projects.map(
           ({
             id,
@@ -72,6 +80,7 @@ export default async function ProjectsPage({ searchParams }: { searchParams?: Pr
           }),
         )}
         highlightedPreflightId={preflightHighlight(resolvedSearchParams)}
+        returnTo={resolvedSearchParams?.returnTo}
       />
       <ProjectSelectionPrompt searchParams={resolvedSearchParams} projects={projectOptions} />
     </div>
