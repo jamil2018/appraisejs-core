@@ -132,6 +132,11 @@ export async function listQualityJourneys(input: { targetProjectId: string }) {
       revisions: { orderBy: { revision: 'asc' }, take: 1 },
       _count: { select: { analysisRevisions: true, blockers: { where: { status: 'ACTIVE' } } } },
       executionConsents: { where: { status: 'REQUESTED' }, select: { id: true } },
+      coordinatorHandoffs: {
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+        take: 1,
+        select: { status: true, launchedAt: true, connectedAt: true },
+      },
     },
   })
 
@@ -155,5 +160,6 @@ export async function listQualityJourneys(input: { targetProjectId: string }) {
     analysisRevisionCount: journey._count.analysisRevisions,
     activeBlockerCount: journey._count.blockers,
     requestedExecutionConsentCount: journey.executionConsents?.length ?? 0,
+    handoff: journey.coordinatorHandoffs[0] ?? null,
   }))
 }

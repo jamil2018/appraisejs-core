@@ -154,7 +154,8 @@ describe('QualityJourneyDetailPage', () => {
     await renderPage()
 
     expect(screen.getByText('Testing journey')).toBeInTheDocument()
-    expect(screen.getByText('Answer required questions')).toBeInTheDocument()
+    expect(screen.getByText('1 required question must be answered.')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Answer questions' })).toBeInTheDocument()
     expect(screen.getByText('1 required question must be resolved before approval.')).toBeInTheDocument()
     expect(
       screen.getByText('Review the current published analysis revision or request a revision with durable feedback.'),

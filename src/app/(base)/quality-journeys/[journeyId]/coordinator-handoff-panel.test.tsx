@@ -27,7 +27,14 @@ beforeEach(() => {
 describe('CoordinatorHandoffPanel', () => {
   it('keeps paste, send, copy, and manual recovery guidance visible after opening Codex', async () => {
     const user = userEvent.setup()
-    render(<CoordinatorHandoffPanel handoff={null} hasObservedWorkerProgress={false} journeyId="journey-1" />)
+    render(
+      <CoordinatorHandoffPanel
+        handoff={null}
+        hasObservedWorkerProgress={false}
+        journeyId="journey-1"
+        projectId="project-1"
+      />,
+    )
 
     expect(screen.getByText('Ready to start')).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Prepare and open Codex' }))
@@ -52,10 +59,50 @@ describe('CoordinatorHandoffPanel', () => {
         }}
         hasObservedWorkerProgress={false}
         journeyId="journey-1"
+        projectId="project-1"
       />,
     )
 
     expect(screen.getByText('Connected')).toBeInTheDocument()
-    expect(screen.getByText(/has not received submitted analysis work yet/i)).toBeInTheDocument()
+    expect(screen.getByText(/has not received submitted analysis work/i)).toBeInTheDocument()
+  })
+
+  it('preserves project and journey context in agent setup', () => {
+    render(
+      <CoordinatorHandoffPanel
+        handoff={null}
+        hasObservedWorkerProgress={false}
+        journeyId="journey-1"
+        projectId="project-1"
+      />,
+    )
+
+    expect(screen.getByRole('link', { name: 'Agent setup' })).toHaveAttribute(
+      'href',
+      '/projects?agentSetup=codex&project=project-1&returnTo=%2Fquality-journeys%2Fjourney-1%3Fproject%3Dproject-1%23analysis',
+    )
+  })
+
+  it('keeps the prepared prompt available when clipboard access is denied', async () => {
+    const user = userEvent.setup()
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: { writeText: vi.fn().mockRejectedValue(new Error('denied')) },
+    })
+    render(
+      <CoordinatorHandoffPanel
+        handoff={null}
+        hasObservedWorkerProgress={false}
+        journeyId="journey-1"
+        projectId="project-1"
+      />,
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Prepare and open Codex' }))
+
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Copy coordinator prompt' })).toBeInTheDocument())
+    expect(mocks.toast).toHaveBeenCalledWith(
+      expect.objectContaining({ title: 'Copy the prompt manually', variant: 'destructive' }),
+    )
   })
 })

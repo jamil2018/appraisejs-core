@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
-import { displayStageForQualityJourney, nextActionForQualityJourney } from '@/lib/quality-journey/presentation'
+import { displayStageForQualityJourney, qualityJourneyStatusProjection } from '@/lib/quality-journey/presentation'
 import { copyQualityJourneyBriefToDraftAction } from './quality-journey-actions'
 
 type QualityJourneyListItem = {
@@ -25,6 +25,7 @@ type QualityJourneyListItem = {
   analysisRevisionCount: number
   activeBlockerCount: number
   requestedExecutionConsentCount: number
+  handoff: { status: string; launchedAt: Date | null; connectedAt: Date | null } | null
 }
 
 export function QualityJourneysBrowser({ items, projectId }: { items: QualityJourneyListItem[]; projectId: string }) {
@@ -88,10 +89,8 @@ export function QualityJourneysBrowser({ items, projectId }: { items: QualityJou
 }
 
 function JourneyListCard({ item, projectId }: { item: QualityJourneyListItem; projectId: string }) {
-  const { push } = useRouter()
-  const [isPending, startTransition] = useTransition()
   const displayStage = displayStageForQualityJourney(item.stage)
-  const nextAction = nextActionForQualityJourney({
+  const status = qualityJourneyStatusProjection({
     stage: item.stage,
     blockerCount: item.activeBlockerCount,
     unresolvedRequiredQuestionCount: item.unresolvedQuestionIds.length,
@@ -100,6 +99,10 @@ function JourneyListCard({ item, projectId }: { item: QualityJourneyListItem; pr
     pendingReportDecision: item.stage === 'REPORT_REVIEW',
     requestedExecutionConsentCount: item.requestedExecutionConsentCount,
     hasObservedWorkerProgress: item.analysisRevisionCount > 0,
+    handoffStatus: item.handoff?.status,
+    handoffLaunchedAt: item.handoff?.launchedAt,
+    handoffConnectedAt: item.handoff?.connectedAt,
+    observedAt: item.updatedAt,
   })
 
   return (
@@ -124,49 +127,61 @@ function JourneyListCard({ item, projectId }: { item: QualityJourneyListItem; pr
       </CardHeader>
       <CardContent className="space-y-3 pr-14 text-sm">
         <div>
-          <p className="font-medium">Next: {nextAction.title}</p>
-          <p className="mt-1 text-xs text-muted-foreground">{nextAction.description}</p>
+          <p className="font-medium">Next actor: {status.nextActor}</p>
+          <p className="mt-1 text-xs text-muted-foreground">{status.summary}</p>
         </div>
-        <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
-          {item.unresolvedQuestionIds.length ? (
-            <span className="bg-background/60 rounded-md border px-2 py-1">
-              {item.unresolvedQuestionIds.length} required question{item.unresolvedQuestionIds.length === 1 ? '' : 's'}
-            </span>
-          ) : null}
-          {item.activeBlockerCount ? (
-            <span className="bg-background/60 rounded-md border px-2 py-1">
-              {item.activeBlockerCount} needs attention
-            </span>
-          ) : null}
-          <span>Last updated {item.updatedAt.toLocaleString()}</span>
-        </div>
-        <Button
-          className="relative z-20"
-          disabled={isPending}
-          onClick={() =>
-            startTransition(async () => {
-              const response = await copyQualityJourneyBriefToDraftAction({
-                journeyId: item.id,
-                idempotencyKey: `copy-brief:${crypto.randomUUID()}`,
-              })
-              const draft =
-                response.success && response.data && typeof response.data === 'object' && 'draft' in response.data
-                  ? response.data.draft
-                  : null
-              if (!draft || typeof draft !== 'object' || !('id' in draft) || typeof draft.id !== 'string') return
-              push(`/quality-journeys/drafts/${draft.id}?project=${encodeURIComponent(projectId)}`)
-            })
-          }
-          size="sm"
-          type="button"
-          variant="outline"
-        >
-          {isPending ? 'Copying brief…' : 'Copy brief'}
-        </Button>
+        <JourneyAttention item={item} />
+        <CopyBriefButton journeyId={item.id} projectId={projectId} />
       </CardContent>
       <span className="border-primary/30 pointer-events-none absolute bottom-5 right-5 z-20 flex size-9 items-center justify-center rounded-md border bg-primary text-primary-foreground">
         <ArrowRight aria-hidden="true" className="size-4" />
       </span>
     </Card>
+  )
+}
+
+function JourneyAttention({ item }: { item: QualityJourneyListItem }) {
+  return (
+    <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
+      {item.unresolvedQuestionIds.length ? (
+        <span className="bg-background/60 rounded-md border px-2 py-1">
+          {item.unresolvedQuestionIds.length} required question{item.unresolvedQuestionIds.length === 1 ? '' : 's'}
+        </span>
+      ) : null}
+      {item.activeBlockerCount ? (
+        <span className="bg-background/60 rounded-md border px-2 py-1">{item.activeBlockerCount} needs attention</span>
+      ) : null}
+      <span>Last updated {item.updatedAt.toLocaleString()}</span>
+    </div>
+  )
+}
+
+function CopyBriefButton({ journeyId, projectId }: { journeyId: string; projectId: string }) {
+  const { push } = useRouter()
+  const [isPending, startTransition] = useTransition()
+  return (
+    <Button
+      className="relative z-20"
+      disabled={isPending}
+      onClick={() =>
+        startTransition(async () => {
+          const response = await copyQualityJourneyBriefToDraftAction({
+            journeyId,
+            idempotencyKey: `copy-brief:${crypto.randomUUID()}`,
+          })
+          const draft =
+            response.success && response.data && typeof response.data === 'object' && 'draft' in response.data
+              ? response.data.draft
+              : null
+          if (!draft || typeof draft !== 'object' || !('id' in draft) || typeof draft.id !== 'string') return
+          push(`/quality-journeys/drafts/${draft.id}?project=${encodeURIComponent(projectId)}`)
+        })
+      }
+      size="sm"
+      type="button"
+      variant="outline"
+    >
+      {isPending ? 'Copying brief…' : 'Copy brief'}
+    </Button>
   )
 }
