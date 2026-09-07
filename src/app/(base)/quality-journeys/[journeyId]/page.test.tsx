@@ -177,6 +177,7 @@ describe('QualityJourneyDetailPage', () => {
 
     expect(screen.getByText(/no proposed test approach has been submitted/i)).toBeInTheDocument()
     expect(screen.queryByText(/appraise is preparing a test approach/i)).not.toBeInTheDocument()
+    expect(screen.queryByText(/ready for your exact-version review/i)).not.toBeInTheDocument()
   })
 
   it('keeps the report-review human gate visible in the sidebar', async () => {

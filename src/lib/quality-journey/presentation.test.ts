@@ -95,7 +95,8 @@ describe('Quality Journey presentation', () => {
     expect(codexHandoffGuidance('PREPARED')).toMatchObject({ label: 'Ready to start' })
     expect(codexHandoffGuidance('LAUNCHING')).toMatchObject({ label: 'Opening Codex' })
     expect(codexHandoffGuidance('LAUNCHED')).toMatchObject({ label: 'Waiting for connection' })
-    expect(codexHandoffGuidance('CONNECTED').description).toMatch(/only after it observes/i)
+    expect(codexHandoffGuidance('CONNECTED')).toMatchObject({ label: 'Connection observed' })
+    expect(codexHandoffGuidance('CONNECTED').description).toMatch(/current availability is unknown/i)
   })
 
   it.each([
@@ -130,8 +131,8 @@ describe('Quality Journey presentation', () => {
     {
       name: 'connected without submitted work',
       handoffStatus: 'CONNECTED',
-      summary: /has not received submitted analysis work/i,
-      nextActor: 'Coding agent',
+      summary: /current availability is unknown/i,
+      nextActor: 'You',
       lastObserved: /connection was observed/i,
     },
     {
@@ -177,7 +178,7 @@ describe('Quality Journey presentation', () => {
   it.each([
     {
       name: 'review required',
-      input: { stage: 'ANALYSIS_REVIEW', pendingAnalysisDecision: true },
+      input: { stage: 'ANALYSIS_REVIEW', pendingAnalysisDecision: true, hasObservedWorkerProgress: true },
       expected: {
         summary: 'The proposed test approach is ready for your exact-version review.',
         nextActor: 'You',
@@ -211,6 +212,7 @@ describe('Quality Journey presentation', () => {
       unresolvedRequiredQuestionCount: 0,
       pendingAnalysisDecision: true,
       hasObservedWorkerProgress: true,
+      hasObservedWorkerProgress: true,
       handoffStatus: 'LAUNCHED',
       observedWorkAt: '2026-09-07T10:04:00.000Z',
     })
@@ -227,12 +229,13 @@ describe('Quality Journey presentation', () => {
     expect(projection.alsoNeedsAttention).not.toContain('Codex connection has not been observed')
   })
 
-  it('retains lower-priority recovery and review attention when required questions take precedence', () => {
+  it('retains lower-priority review attention when required questions take precedence', () => {
     const projection = qualityJourneyStatusProjection({
       stage: 'ANALYSIS_REVIEW',
       blockerCount: 0,
       unresolvedRequiredQuestionCount: 2,
       pendingAnalysisDecision: true,
+      hasObservedWorkerProgress: true,
       handoffStatus: 'FAILED',
     })
 
@@ -241,8 +244,22 @@ describe('Quality Journey presentation', () => {
       nextActor: 'You',
       action: { label: 'Answer questions', destination: 'analysis' },
     })
-    expect(projection.alsoNeedsAttention).toEqual(
-      expect.arrayContaining(['The proposed test approach needs review', 'Codex handoff needs recovery']),
-    )
+    expect(projection.alsoNeedsAttention).toContain('The proposed test approach needs review')
+    expect(projection.alsoNeedsAttention).not.toContain('Codex handoff needs recovery')
+  })
+
+  it('does not claim an exact-version review exists without observed analysis work', () => {
+    expect(
+      qualityJourneyStatusProjection({
+        stage: 'ANALYSIS_REVIEW',
+        blockerCount: 0,
+        unresolvedRequiredQuestionCount: 0,
+        pendingAnalysisDecision: true,
+        hasObservedWorkerProgress: false,
+      }),
+    ).toMatchObject({
+      summary: 'Test approach is in progress.',
+      nextActor: 'Appraise',
+    })
   })
 })

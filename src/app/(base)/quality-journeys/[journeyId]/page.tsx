@@ -169,7 +169,10 @@ function detailPresentation(
   const materializations = detail.automation ? detail.automation.materializations : []
   return {
     portfolio,
-    pendingAnalysisDecision: detail.journey.journey.stage === 'ANALYSIS_REVIEW' && !detail.activeAnalysis?.decision,
+    pendingAnalysisDecision:
+      detail.journey.journey.stage === 'ANALYSIS_REVIEW' &&
+      Boolean(detail.activeAnalysis) &&
+      !detail.activeAnalysis?.decision,
     pendingReportDecision: detail.journey.journey.stage === 'REPORT_REVIEW',
     pendingScenarioDecision:
       detail.journey.journey.stage === 'SCENARIO_REVIEW' &&
@@ -217,6 +220,7 @@ export default async function QualityJourneyDetailPage({ params, searchParams }:
         <JourneyHeader journey={journey} project={project} requirementSummary={requirementSummary} />
         <JourneyNextAction
           blockerCount={journey.blockers.length}
+          blockerResponsibleActor={journey.blockers[0]?.responsibleActor}
           hasObservedWorkerProgress={presentation.hasObservedWorkerProgress}
           handoffStatus={handoff?.status}
           journeyId={journeyId}
@@ -372,6 +376,7 @@ function JourneyHeader({
 
 function JourneyNextAction({
   blockerCount,
+  blockerResponsibleActor,
   hasObservedWorkerProgress,
   handoffStatus,
   journeyId,
@@ -384,6 +389,7 @@ function JourneyNextAction({
   unresolvedRequiredQuestionCount,
 }: {
   blockerCount: number
+  blockerResponsibleActor?: string
   hasObservedWorkerProgress: boolean
   handoffStatus?: string
   journeyId: string
@@ -398,6 +404,7 @@ function JourneyNextAction({
   const status = qualityJourneyStatusProjection({
     stage,
     blockerCount,
+    blockerResponsibleActor,
     hasObservedWorkerProgress,
     handoffStatus,
     unresolvedRequiredQuestionCount,

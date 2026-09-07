@@ -63,8 +63,55 @@ describe('CoordinatorHandoffPanel', () => {
       />,
     )
 
-    expect(screen.getByText('Connected')).toBeInTheDocument()
-    expect(screen.getByText(/has not received submitted analysis work/i)).toBeInTheDocument()
+    expect(screen.getByText('Connection observed')).toBeInTheDocument()
+    expect(screen.getByText(/current availability is unknown/i)).toBeInTheDocument()
+  })
+
+  it.each([
+    { status: 'FAILED', expected: /handoff failed/i },
+    { status: 'EXPIRED', expected: /handoff expired/i },
+  ])('shows truthful recovery guidance for a $status handoff', ({ status, expected }) => {
+    render(
+      <CoordinatorHandoffPanel
+        handoff={{
+          id: 'handoff-1',
+          providerId: 'codex',
+          status,
+          expiresAt: new Date('2026-09-08T00:00:00.000Z'),
+          launchedAt: null,
+          connectedAt: null,
+          failureCode: status === 'FAILED' ? 'LAUNCH_FAILED' : null,
+        }}
+        hasObservedWorkerProgress={false}
+        journeyId="journey-1"
+        projectId="project-1"
+      />,
+    )
+
+    expect(screen.getByText('Needs recovery')).toBeInTheDocument()
+    expect(screen.getByText(expected)).toBeInTheDocument()
+  })
+
+  it('does not prepare the same handoff twice while the first request is pending', async () => {
+    const user = userEvent.setup()
+    let resolvePrepare: (value: { success: true; data: { prompt: string; handoffId: string } }) => void = () => {}
+    mocks.prepare.mockReturnValue(new Promise(resolve => (resolvePrepare = resolve)))
+    render(
+      <CoordinatorHandoffPanel
+        handoff={null}
+        hasObservedWorkerProgress={false}
+        journeyId="journey-1"
+        projectId="project-1"
+      />,
+    )
+
+    const button = screen.getByRole('button', { name: 'Prepare and open Codex' })
+    await user.click(button)
+    await user.click(button)
+    expect(mocks.prepare).toHaveBeenCalledTimes(1)
+
+    resolvePrepare({ success: true, data: { prompt: 'Prepared Codex prompt', handoffId: 'handoff-1' } })
+    await waitFor(() => expect(mocks.launch).toHaveBeenCalledTimes(1))
   })
 
   it('preserves project and journey context in agent setup', () => {

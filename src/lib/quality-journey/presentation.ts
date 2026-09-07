@@ -87,7 +87,7 @@ export function qualityJourneyRequirementSummary(contentJson: string) {
 }
 
 export type CodexHandoffGuidance = {
-  label: 'Ready to start' | 'Opening Codex' | 'Waiting for connection' | 'Connected' | 'Needs recovery'
+  label: 'Ready to start' | 'Opening Codex' | 'Waiting for connection' | 'Connection observed' | 'Needs recovery'
   description: string
 }
 
@@ -109,8 +109,9 @@ const codexHandoffGuidanceByStatus: Record<string, CodexHandoffGuidance> = {
     description: 'Codex was opened. Paste and send the prepared prompt; Appraise is waiting for the connection.',
   },
   CONNECTED: {
-    label: 'Connected',
-    description: 'Codex is connected. Appraise reports worker progress only after it observes submitted work.',
+    label: 'Connection observed',
+    description:
+      'Appraise recorded a Codex connection. Current availability is unknown, and progress appears only after submitted work is observed.',
   },
   FAILED: {
     label: 'Needs recovery',
@@ -366,8 +367,9 @@ const handoffCandidates: Record<string, StatusCandidate> = {
     secondarySummary: 'Codex connection has not been observed',
   },
   CONNECTED: {
-    summary: 'Codex is connected, but Appraise has not received submitted analysis work.',
-    nextActor: 'Coding agent',
+    summary:
+      'Appraise observed a Codex connection, but current availability is unknown and no submitted analysis work has been received.',
+    nextActor: 'You',
     secondarySummary: 'Submitted analysis work has not been observed',
   },
   FAILED: {
@@ -476,7 +478,7 @@ function statusCandidates(input: QualityJourneyStatusProjectionInput): StatusCan
     blockerCandidate(input),
     questionCandidate(input),
     decisionCandidate(
-      input.pendingAnalysisDecision,
+      input.pendingAnalysisDecision && input.hasObservedWorkerProgress,
       'The proposed test approach is ready for your exact-version review.',
       'The proposed test approach needs review',
     ),

@@ -24,8 +24,9 @@ type QualityJourneyListItem = {
   requirement: { id: string; revision: number; contentHash: string; summary: string } | null
   analysisRevisionCount: number
   activeBlockerCount: number
+  blockerResponsibleActor: string | null
   requestedExecutionConsentCount: number
-  handoff: { status: string; launchedAt: Date | null; connectedAt: Date | null } | null
+  handoff: { status: string; launchedAt: Date | null; connectedAt: Date | null; expiresAt: Date } | null
 }
 
 export function QualityJourneysBrowser({ items, projectId }: { items: QualityJourneyListItem[]; projectId: string }) {
@@ -93,8 +94,9 @@ function JourneyListCard({ item, projectId }: { item: QualityJourneyListItem; pr
   const status = qualityJourneyStatusProjection({
     stage: item.stage,
     blockerCount: item.activeBlockerCount,
+    blockerResponsibleActor: item.blockerResponsibleActor ?? undefined,
     unresolvedRequiredQuestionCount: item.unresolvedQuestionIds.length,
-    pendingAnalysisDecision: item.stage === 'ANALYSIS_REVIEW',
+    pendingAnalysisDecision: item.stage === 'ANALYSIS_REVIEW' && item.analysisRevisionCount > 0,
     pendingScenarioDecision: item.stage === 'SCENARIO_REVIEW',
     pendingReportDecision: item.stage === 'REPORT_REVIEW',
     requestedExecutionConsentCount: item.requestedExecutionConsentCount,
