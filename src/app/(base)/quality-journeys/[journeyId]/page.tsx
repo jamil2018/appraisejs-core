@@ -14,8 +14,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { requireActiveProject } from '@/lib/active-project'
 import {
   displayStageForQualityJourney,
-  nextActionForQualityJourney,
   qualityJourneyRequirementSummary,
+  qualityJourneyStatusProjection,
 } from '@/lib/quality-journey/presentation'
 import { getQualityJourneyAnalysis } from '@/services/coordinator/quality-journey-analysis-service'
 import { getQualityJourney } from '@/services/coordinator/quality-journey-service'
@@ -169,7 +169,10 @@ function detailPresentation(
   const materializations = detail.automation ? detail.automation.materializations : []
   return {
     portfolio,
-    pendingAnalysisDecision: detail.journey.journey.stage === 'ANALYSIS_REVIEW' && !detail.activeAnalysis?.decision,
+    pendingAnalysisDecision:
+      detail.journey.journey.stage === 'ANALYSIS_REVIEW' &&
+      Boolean(detail.activeAnalysis) &&
+      !detail.activeAnalysis?.decision,
     pendingReportDecision: detail.journey.journey.stage === 'REPORT_REVIEW',
     pendingScenarioDecision:
       detail.journey.journey.stage === 'SCENARIO_REVIEW' &&
@@ -217,6 +220,7 @@ export default async function QualityJourneyDetailPage({ params, searchParams }:
         <JourneyHeader journey={journey} project={project} requirementSummary={requirementSummary} />
         <JourneyNextAction
           blockerCount={journey.blockers.length}
+          blockerResponsibleActor={journey.blockers[0]?.responsibleActor}
           hasObservedWorkerProgress={presentation.hasObservedWorkerProgress}
           handoffStatus={handoff?.status}
           journeyId={journeyId}
@@ -272,6 +276,7 @@ export default async function QualityJourneyDetailPage({ params, searchParams }:
                     handoff={handoff}
                     hasObservedWorkerProgress={presentation.hasObservedWorkerProgress}
                     journeyId={journeyId}
+                    projectId={project.id}
                   />
                 </div>
               ) : null}
@@ -371,6 +376,7 @@ function JourneyHeader({
 
 function JourneyNextAction({
   blockerCount,
+  blockerResponsibleActor,
   hasObservedWorkerProgress,
   handoffStatus,
   journeyId,
@@ -383,6 +389,7 @@ function JourneyNextAction({
   unresolvedRequiredQuestionCount,
 }: {
   blockerCount: number
+  blockerResponsibleActor?: string
   hasObservedWorkerProgress: boolean
   handoffStatus?: string
   journeyId: string
@@ -394,9 +401,10 @@ function JourneyNextAction({
   stage: string
   unresolvedRequiredQuestionCount: number
 }) {
-  const action = nextActionForQualityJourney({
+  const status = qualityJourneyStatusProjection({
     stage,
     blockerCount,
+    blockerResponsibleActor,
     hasObservedWorkerProgress,
     handoffStatus,
     unresolvedRequiredQuestionCount,
@@ -405,23 +413,23 @@ function JourneyNextAction({
     pendingReportDecision,
     requestedExecutionConsentCount,
   })
-  const href = `/quality-journeys/${encodeURIComponent(journeyId)}?project=${encodeURIComponent(projectId)}#${action.destination}`
+  const href = `/quality-journeys/${encodeURIComponent(journeyId)}?project=${encodeURIComponent(projectId)}#${status.action.destination}`
   return (
     <Card className="border-primary/30 bg-primary/[0.05]">
       <CardHeader>
         <CardDescription>Next action</CardDescription>
-        <CardTitle className="text-lg">{action.title}</CardTitle>
+        <CardTitle className="text-lg">{status.summary}</CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
-        <p className="text-sm text-muted-foreground">{action.description}</p>
+        <p className="text-sm text-muted-foreground">Next actor: {status.nextActor}</p>
         <Button asChild>
-          <Link href={href}>{action.actionLabel}</Link>
+          <Link href={href}>{status.action.label}</Link>
         </Button>
-        {action.alsoNeedsAttention.length ? (
+        {status.alsoNeedsAttention.length ? (
           <div className="text-sm">
             <p className="font-medium">Also needs attention</p>
             <ul className="mt-1 list-disc pl-5 text-muted-foreground">
-              {action.alsoNeedsAttention.map(item => (
+              {status.alsoNeedsAttention.map(item => (
                 <li key={item}>{item}</li>
               ))}
             </ul>
@@ -571,7 +579,9 @@ function AnalysisDocument({ analysis }: { analysis: ReturnType<typeof toAnalysis
             <ClipboardCheck aria-hidden="true" className="size-4 text-primary" />
             Proposed test approach
           </CardTitle>
-          <CardDescription>Appraise is preparing a test approach from your brief.</CardDescription>
+          <CardDescription>
+            No proposed test approach has been submitted. Follow the next action above to start or recover analysis.
+          </CardDescription>
         </CardHeader>
       </Card>
     )

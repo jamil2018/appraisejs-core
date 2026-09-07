@@ -32,7 +32,17 @@ describe('listQualityJourneys', () => {
             contentJson: JSON.stringify({ objective: 'Checkout accepts cards', privateNote: 'do not expose' }),
           },
         ],
-        _count: { analysisRevisions: 2, blockers: 1 },
+        _count: { analysisRevisions: 2 },
+        blockers: [{ responsibleActor: 'HUMAN' }],
+        executionConsents: [],
+        coordinatorHandoffs: [
+          {
+            status: 'CONNECTED',
+            launchedAt: new Date('2026-09-01T00:30:00.000Z'),
+            connectedAt: new Date('2026-09-01T00:31:00.000Z'),
+            expiresAt: new Date('2026-09-08T00:00:00.000Z'),
+          },
+        ],
       },
       {
         id: 'journey-2',
@@ -44,7 +54,10 @@ describe('listQualityJourneys', () => {
         createdAt: new Date('2026-09-01T00:00:00.000Z'),
         updatedAt: new Date('2026-09-01T01:00:00.000Z'),
         revisions: [{ id: 'requirement-2', revision: 1, contentHash: 'sha256:def', contentJson: JSON.stringify({}) }],
-        _count: { analysisRevisions: 0, blockers: 0 },
+        _count: { analysisRevisions: 0 },
+        blockers: [],
+        executionConsents: [],
+        coordinatorHandoffs: [],
       },
     ])
 
@@ -55,6 +68,8 @@ describe('listQualityJourneys', () => {
           activeRevisionIds: { journey: 'journey-revision-1' },
           unresolvedQuestionIds: ['question-1'],
           requirement: expect.objectContaining({ summary: 'Checkout accepts cards' }),
+          handoff: expect.objectContaining({ status: 'CONNECTED' }),
+          blockerResponsibleActor: 'HUMAN',
         }),
         expect.objectContaining({
           id: 'journey-2',
@@ -65,6 +80,37 @@ describe('listQualityJourneys', () => {
       ]),
     )
     expect(mocks.findMany).toHaveBeenCalledWith(expect.objectContaining({ where: { targetProjectId: 'project-1' } }))
+    expect(mocks.findMany.mock.calls[0][0].include.coordinatorHandoffs).toMatchObject({ take: 1 })
+  })
+
+  it('projects an overdue prepared handoff as expired', async () => {
+    mocks.findMany.mockResolvedValue([
+      {
+        id: 'journey-expired',
+        stage: 'ANALYSIS',
+        status: 'ACTIVE',
+        activeCycleId: 'cycle-1',
+        activeRevisionIdsJson: '{}',
+        unresolvedQuestionIdsJson: '[]',
+        createdAt: new Date('2026-09-01T00:00:00.000Z'),
+        updatedAt: new Date('2026-09-01T01:00:00.000Z'),
+        revisions: [],
+        _count: { analysisRevisions: 0 },
+        blockers: [],
+        executionConsents: [],
+        coordinatorHandoffs: [
+          {
+            status: 'PREPARED',
+            launchedAt: null,
+            connectedAt: null,
+            expiresAt: new Date('2020-01-01T00:00:00.000Z'),
+          },
+        ],
+      },
+    ])
+
+    const [journey] = await listQualityJourneys({ targetProjectId: 'project-1' })
+    expect(journey.handoff?.status).toBe('EXPIRED')
   })
 })
 

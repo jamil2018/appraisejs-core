@@ -130,8 +130,18 @@ export async function listQualityJourneys(input: { targetProjectId: string }) {
     orderBy: [{ updatedAt: 'desc' }, { id: 'asc' }],
     include: {
       revisions: { orderBy: { revision: 'asc' }, take: 1 },
-      _count: { select: { analysisRevisions: true, blockers: { where: { status: 'ACTIVE' } } } },
+      _count: { select: { analysisRevisions: true } },
+      blockers: {
+        where: { status: 'ACTIVE' },
+        orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+        select: { responsibleActor: true },
+      },
       executionConsents: { where: { status: 'REQUESTED' }, select: { id: true } },
+      coordinatorHandoffs: {
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+        take: 1,
+        select: { status: true, launchedAt: true, connectedAt: true, expiresAt: true },
+      },
     },
   })
 
@@ -153,7 +163,18 @@ export async function listQualityJourneys(input: { targetProjectId: string }) {
         }
       : null,
     analysisRevisionCount: journey._count.analysisRevisions,
-    activeBlockerCount: journey._count.blockers,
+    activeBlockerCount: journey.blockers.length,
+    blockerResponsibleActor: journey.blockers[0]?.responsibleActor ?? null,
     requestedExecutionConsentCount: journey.executionConsents?.length ?? 0,
+    handoff: journey.coordinatorHandoffs[0]
+      ? {
+          ...journey.coordinatorHandoffs[0],
+          status:
+            journey.coordinatorHandoffs[0].status === 'PREPARED' &&
+            journey.coordinatorHandoffs[0].expiresAt.getTime() <= Date.now()
+              ? 'EXPIRED'
+              : journey.coordinatorHandoffs[0].status,
+        }
+      : null,
   }))
 }

@@ -85,4 +85,63 @@ describe('ProjectManagement agent readiness', () => {
     expect(screen.getByText(/quality_journey_read/)).toBeInTheDocument()
     expect(screen.getByText(/appraise:\/\/agent-guide/)).toBeInTheDocument()
   })
+
+  it('shows contextual setup guidance and a safe journey return', () => {
+    render(
+      <ProjectManagement
+        agentSetup="codex"
+        highlightedProjectId="target-1"
+        projects={[
+          {
+            id: 'target-1',
+            kind: 'LOCAL_WORKSPACE',
+            displayName: 'Notes',
+            description: null,
+            canonicalIdentity: 'path:/targets/notes',
+            canonicalPath: '/targets/notes',
+            normalizedRemoteOrigin: null,
+            lastDetectedAt: new Date('2026-07-18T02:00:00.000Z'),
+          },
+        ]}
+        returnTo="/quality-journeys/journey-1?project=target-1#analysis"
+      />,
+    )
+
+    expect(screen.getByRole('heading', { name: 'Connect Codex to Notes' })).toBeInTheDocument()
+    expect(screen.getByText(/no diagnostic receipt has been observed/i)).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Return to journey' })).toHaveAttribute(
+      'href',
+      '/quality-journeys/journey-1?project=target-1#analysis',
+    )
+  })
+
+  it('rejects an external setup return destination', () => {
+    render(<ProjectManagement agentSetup="codex" projects={[]} returnTo="//example.com/escape" />)
+
+    expect(screen.getByRole('link', { name: 'Return to journey' })).toHaveAttribute('href', '/quality-journeys')
+  })
+
+  it('rejects a return destination for another project', () => {
+    render(
+      <ProjectManagement
+        agentSetup="codex"
+        highlightedProjectId="target-1"
+        projects={[
+          {
+            id: 'target-1',
+            kind: 'LOCAL_WORKSPACE',
+            displayName: 'Notes',
+            description: null,
+            canonicalIdentity: 'path:/targets/notes',
+            canonicalPath: '/targets/notes',
+            normalizedRemoteOrigin: null,
+            lastDetectedAt: new Date('2026-07-18T02:00:00.000Z'),
+          },
+        ]}
+        returnTo="/quality-journeys/journey-2?project=target-2"
+      />,
+    )
+
+    expect(screen.getByRole('link', { name: 'Return to journey' })).toHaveAttribute('href', '/quality-journeys')
+  })
 })

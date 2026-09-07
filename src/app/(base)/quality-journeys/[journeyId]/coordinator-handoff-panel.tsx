@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { toast } from '@/hooks/use-toast'
-import { codexHandoffGuidance } from '@/lib/quality-journey/presentation'
+import { codexHandoffGuidance, qualityJourneyStatusProjection } from '@/lib/quality-journey/presentation'
 
 import {
   launchQualityJourneyHandoffAction,
@@ -50,6 +50,14 @@ async function copyCoordinatorPrompt(value: string) {
   toast({ title: 'Coordinator prompt copied', description: 'Paste it into the Codex task opened for this project.' })
 }
 
+function clipboardFailureToast() {
+  toast({
+    title: 'Copy the prompt manually',
+    description: 'Clipboard access was denied. The prepared prompt remains available on this page.',
+    variant: 'destructive',
+  })
+}
+
 function launchToast(
   response: Awaited<ReturnType<typeof launchQualityJourneyHandoffAction>>,
   copied: boolean,
@@ -88,7 +96,7 @@ async function executeHandoff(journeyId: string, update: (state: Partial<Handoff
     copied = true
     update({ copied: true })
   } catch {
-    // Clipboard permission is optional; the visible copy control remains available.
+    clipboardFailureToast()
   }
   const launched = await launchQualityJourneyHandoffAction({ journeyId, handoffId: prepared.handoffId })
   const launchData = actionData(launched)
@@ -125,24 +133,16 @@ function PromptRecovery({ copied, prompt, status }: { copied: boolean; prompt: s
   )
 }
 
-function ObservedWorkerProgress({ hasObservedWorkerProgress }: { hasObservedWorkerProgress: boolean }) {
-  return (
-    <p className="text-sm text-muted-foreground" role="status">
-      {hasObservedWorkerProgress
-        ? 'Observed worker progress: Appraise received a proposed test approach. Review the current version below.'
-        : 'Observed worker progress: Appraise has not received submitted analysis work yet.'}
-    </p>
-  )
-}
-
 export function CoordinatorHandoffPanel({
   journeyId,
   handoff,
   hasObservedWorkerProgress,
+  projectId,
 }: {
   journeyId: string
   handoff: HandoffView
   hasObservedWorkerProgress: boolean
+  projectId: string
 }) {
   const [state, setState] = useState<HandoffState>({
     prompt: null,
@@ -155,11 +155,24 @@ export function CoordinatorHandoffPanel({
   const update = (next: Partial<HandoffState>) => setState(current => ({ ...current, ...next }))
   const displayStatus = isPending ? 'LAUNCHING' : status
   const guidance = codexHandoffGuidance(displayStatus)
+  const statusProjection = qualityJourneyStatusProjection({
+    stage: 'ANALYSIS',
+    blockerCount: 0,
+    unresolvedRequiredQuestionCount: 0,
+    hasObservedWorkerProgress,
+    handoffStatus: displayStatus,
+    handoffLaunchedAt: handoff?.launchedAt,
+    handoffConnectedAt: handoff?.connectedAt,
+  })
 
   async function copyPrompt(value = prompt) {
     if (!value) return
-    await copyCoordinatorPrompt(value)
-    update({ copied: true })
+    try {
+      await copyCoordinatorPrompt(value)
+      update({ copied: true })
+    } catch {
+      clipboardFailureToast()
+    }
   }
 
   function prepareAndLaunch() {
@@ -187,8 +200,11 @@ export function CoordinatorHandoffPanel({
           Appraise remains lifecycle authority. Codex coordinates the analysis and stops at human questions and review
           gates.
         </p>
-        <p className="text-sm text-muted-foreground">{guidance.description}</p>
-        <ObservedWorkerProgress hasObservedWorkerProgress={hasObservedWorkerProgress} />
+        <div className="space-y-1 text-sm" role="status">
+          <p className="font-medium">{statusProjection.summary}</p>
+          <p className="text-muted-foreground">Next actor: {statusProjection.nextActor}</p>
+          <p className="text-xs text-muted-foreground">Last observed: {statusProjection.lastObserved.summary}</p>
+        </div>
         <div className="flex flex-wrap gap-2">
           <Button disabled={isPending} onClick={prepareAndLaunch} type="button">
             {isPending ? <LoaderCircle aria-hidden="true" className="mr-2 size-4 animate-spin" /> : null}
@@ -205,7 +221,11 @@ export function CoordinatorHandoffPanel({
             </Button>
           ) : null}
           <Button asChild type="button" variant="ghost">
-            <Link href="/projects">
+            <Link
+              href={`/projects?agentSetup=codex&project=${encodeURIComponent(projectId)}&returnTo=${encodeURIComponent(
+                `/quality-journeys/${journeyId}?project=${projectId}#analysis`,
+              )}`}
+            >
               <ExternalLink aria-hidden="true" className="mr-2 size-4" />
               Agent setup
             </Link>

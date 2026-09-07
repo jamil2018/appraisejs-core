@@ -39,7 +39,14 @@ const journey = {
   requirement: { id: 'requirement-1', revision: 1, contentHash: 'sha256:abc', summary: 'Checkout accepts cards' },
   analysisRevisionCount: 1,
   activeBlockerCount: 0,
+  blockerResponsibleActor: null,
   requestedExecutionConsentCount: 0,
+  handoff: {
+    status: 'CONNECTED',
+    launchedAt: null,
+    connectedAt: new Date('2026-09-01T00:30:00.000Z'),
+    expiresAt: new Date('2026-09-08T00:00:00.000Z'),
+  },
 }
 
 describe('QualityJourneysBrowser', () => {
@@ -48,7 +55,8 @@ describe('QualityJourneysBrowser', () => {
     render(<QualityJourneysBrowser items={[journey]} projectId="project one" />)
 
     expect(screen.getByText('Checkout accepts cards')).toBeInTheDocument()
-    expect(screen.getByText('Next: Review the proposed test approach')).toBeInTheDocument()
+    expect(screen.getByText('Next actor: You')).toBeInTheDocument()
+    expect(screen.getByText(/ready for your exact-version review/i)).toBeInTheDocument()
     expect(screen.getByText(/Last updated/)).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Open Quality Journey journey-1' })).toHaveAttribute(
       'href',

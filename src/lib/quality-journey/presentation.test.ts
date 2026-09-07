@@ -4,6 +4,7 @@ import {
   displayStageForQualityJourney,
   codexHandoffGuidance,
   nextActionForQualityJourney,
+  qualityJourneyStatusProjection,
   qualityJourneyDisplayStages,
   qualityJourneyVocabulary,
 } from './presentation'
@@ -94,6 +95,172 @@ describe('Quality Journey presentation', () => {
     expect(codexHandoffGuidance('PREPARED')).toMatchObject({ label: 'Ready to start' })
     expect(codexHandoffGuidance('LAUNCHING')).toMatchObject({ label: 'Opening Codex' })
     expect(codexHandoffGuidance('LAUNCHED')).toMatchObject({ label: 'Waiting for connection' })
-    expect(codexHandoffGuidance('CONNECTED').description).toMatch(/only after it observes/i)
+    expect(codexHandoffGuidance('CONNECTED')).toMatchObject({ label: 'Connection observed' })
+    expect(codexHandoffGuidance('CONNECTED').description).toMatch(/current availability is unknown/i)
+  })
+
+  it.each([
+    {
+      name: 'not prepared',
+      handoffStatus: 'NOT_PREPARED',
+      summary: /analysis has not started/i,
+      nextActor: 'You',
+      lastObserved: /no codex handoff or connection/i,
+    },
+    {
+      name: 'prepared',
+      handoffStatus: 'PREPARED',
+      summary: /prompt is ready to send/i,
+      nextActor: 'You',
+      lastObserved: /prompt was prepared/i,
+    },
+    {
+      name: 'launching',
+      handoffStatus: 'LAUNCHING',
+      summary: /appraise is opening codex/i,
+      nextActor: 'Appraise',
+      lastObserved: /launch request was recorded/i,
+    },
+    {
+      name: 'launched without a connection',
+      handoffStatus: 'LAUNCHED',
+      summary: /has not observed a connection/i,
+      nextActor: 'You',
+      lastObserved: /codex was opened/i,
+    },
+    {
+      name: 'connected without submitted work',
+      handoffStatus: 'CONNECTED',
+      summary: /current availability is unknown/i,
+      nextActor: 'You',
+      lastObserved: /connection was observed/i,
+    },
+    {
+      name: 'failed',
+      handoffStatus: 'FAILED',
+      summary: /handoff failed/i,
+      nextActor: 'You',
+      lastObserved: /failed codex handoff/i,
+    },
+    {
+      name: 'expired',
+      handoffStatus: 'EXPIRED',
+      summary: /handoff expired/i,
+      nextActor: 'You',
+      lastObserved: /expired codex handoff/i,
+    },
+    {
+      name: 'unknown',
+      handoffStatus: 'UNRECOGNIZED',
+      summary: /connection status is unknown/i,
+      nextActor: 'You',
+      lastObserved: /connection status is unknown/i,
+    },
+  ])('derives a trustworthy status for $name handoffs', ({ handoffStatus, summary, nextActor, lastObserved }) => {
+    const projection = qualityJourneyStatusProjection({
+      stage: 'ANALYSIS',
+      blockerCount: 0,
+      unresolvedRequiredQuestionCount: 0,
+      handoffStatus,
+      handoffLaunchedAt: '2026-09-07T10:00:00.000Z',
+      handoffConnectedAt: '2026-09-07T10:01:00.000Z',
+      handoffFailedAt: '2026-09-07T10:02:00.000Z',
+      observedAt: '2026-09-07T10:03:00.000Z',
+    })
+
+    expect(projection.summary).toMatch(summary)
+    expect(projection.nextActor).toBe(nextActor)
+    expect(projection.lastObserved.summary).toMatch(lastObserved)
+    expect(projection.lastObserved.checkedAt).toBe('2026-09-07T10:03:00.000Z')
+    expect(projection.action.destination).toBe('analysis')
+  })
+
+  it.each([
+    {
+      name: 'review required',
+      input: { stage: 'ANALYSIS_REVIEW', pendingAnalysisDecision: true, hasObservedWorkerProgress: true },
+      expected: {
+        summary: 'The proposed test approach is ready for your exact-version review.',
+        nextActor: 'You',
+        action: { label: 'Review test approach', destination: 'analysis' },
+      },
+    },
+    {
+      name: 'closed',
+      input: { stage: 'CLOSED' },
+      expected: {
+        summary: 'This journey is closed.',
+        nextActor: 'No one',
+        action: { label: 'View results', destination: 'triage' },
+      },
+    },
+  ])('derives a trustworthy status for $name journeys', ({ input, expected }) => {
+    expect(
+      qualityJourneyStatusProjection({
+        stage: 'ANALYSIS',
+        blockerCount: 0,
+        unresolvedRequiredQuestionCount: 0,
+        ...input,
+      }),
+    ).toMatchObject(expected)
+  })
+
+  it('keeps submitted review work ahead of stale handoff status and retains the handoff as secondary attention', () => {
+    const projection = qualityJourneyStatusProjection({
+      stage: 'ANALYSIS_REVIEW',
+      blockerCount: 0,
+      unresolvedRequiredQuestionCount: 0,
+      pendingAnalysisDecision: true,
+      hasObservedWorkerProgress: true,
+      hasObservedWorkerProgress: true,
+      handoffStatus: 'LAUNCHED',
+      observedWorkAt: '2026-09-07T10:04:00.000Z',
+    })
+
+    expect(projection).toMatchObject({
+      summary: 'The proposed test approach is ready for your exact-version review.',
+      nextActor: 'You',
+      action: { label: 'Review test approach', destination: 'analysis' },
+      lastObserved: {
+        summary: 'Appraise has observed submitted analysis work.',
+        evidenceAt: '2026-09-07T10:04:00.000Z',
+      },
+    })
+    expect(projection.alsoNeedsAttention).not.toContain('Codex connection has not been observed')
+  })
+
+  it('retains lower-priority review attention when required questions take precedence', () => {
+    const projection = qualityJourneyStatusProjection({
+      stage: 'ANALYSIS_REVIEW',
+      blockerCount: 0,
+      unresolvedRequiredQuestionCount: 2,
+      pendingAnalysisDecision: true,
+      hasObservedWorkerProgress: true,
+      handoffStatus: 'FAILED',
+    })
+
+    expect(projection).toMatchObject({
+      summary: '2 required questions must be answered.',
+      nextActor: 'You',
+      action: { label: 'Answer questions', destination: 'analysis' },
+    })
+    expect(projection.alsoNeedsAttention).toContain('The proposed test approach needs review')
+    expect(projection.alsoNeedsAttention).not.toContain('Codex handoff needs recovery')
+  })
+
+  it('does not claim an exact-version review exists without observed analysis work', () => {
+    expect(
+      qualityJourneyStatusProjection({
+        stage: 'ANALYSIS_REVIEW',
+        blockerCount: 0,
+        unresolvedRequiredQuestionCount: 0,
+        pendingAnalysisDecision: true,
+        hasObservedWorkerProgress: false,
+      }),
+    ).toMatchObject({
+      summary: 'No proposed test approach has been submitted for review.',
+      nextActor: 'You',
+      action: { label: 'Start test approach', destination: 'analysis' },
+    })
   })
 })

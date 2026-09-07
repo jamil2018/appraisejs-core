@@ -1,6 +1,17 @@
 'use client'
 
-import { ArrowRight, CircleCheck, CircleHelp, CircleX, FolderGit2, Pencil, Search, Trash2 } from 'lucide-react'
+import {
+  ArrowLeft,
+  ArrowRight,
+  CircleCheck,
+  CircleHelp,
+  CircleX,
+  FolderGit2,
+  Pencil,
+  Search,
+  Trash2,
+} from 'lucide-react'
+import Link from 'next/link'
 import { useMemo, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 
@@ -49,11 +60,17 @@ function projectIdentityLabel(
 const projectDateFormatter = new Intl.DateTimeFormat(undefined, { dateStyle: 'medium' })
 
 export default function ProjectManagement({
+  agentSetup,
+  highlightedProjectId,
   projects,
   highlightedPreflightId,
+  returnTo,
 }: {
+  agentSetup?: string
+  highlightedProjectId?: string
   projects: Project[]
   highlightedPreflightId?: string
+  returnTo?: string
 }) {
   const [query, setQuery] = useState('')
   const filteredProjects = useMemo(() => {
@@ -78,6 +95,12 @@ export default function ProjectManagement({
         <RegisterProjectDialog />
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
+        {agentSetup === 'codex' ? (
+          <AgentSetupGuidance
+            project={projects.find(project => project.id === highlightedProjectId)}
+            returnTo={returnTo}
+          />
+        ) : null}
         <div className="relative max-w-md">
           <Search
             aria-hidden="true"
@@ -127,6 +150,47 @@ export default function ProjectManagement({
         )}
       </CardContent>
     </Card>
+  )
+}
+
+function safeReturnPath(returnTo?: string, projectId?: string) {
+  if (!returnTo?.startsWith('/') || returnTo.startsWith('//')) return '/quality-journeys'
+  const destination = new URL(returnTo, 'http://appraise.local')
+  if (!destination.pathname.startsWith('/quality-journeys/') || destination.searchParams.get('project') !== projectId)
+    return '/quality-journeys'
+  return `${destination.pathname}${destination.search}${destination.hash}`
+}
+
+function AgentSetupGuidance({ project, returnTo }: { project?: Project; returnTo?: string }) {
+  const readiness = project?.preflight
+  return (
+    <section className="border-primary/25 bg-primary/[0.04] rounded-lg border p-4" aria-labelledby="agent-setup-title">
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div className="max-w-3xl space-y-2">
+          <h2 className="font-semibold" id="agent-setup-title">
+            Connect Codex{project ? ` to ${project.displayName}` : ''}
+          </h2>
+          <p className="text-sm text-muted-foreground">
+            Start AppraiseJS&apos;s MCP server, register it in Codex for this workspace, then run project_diagnostic
+            from the Codex task. A saved receipt records the last observation; it does not prove Codex is still
+            connected.
+          </p>
+          <p className="text-sm">
+            {readiness
+              ? readiness.ready
+                ? 'The latest diagnostic receipt was ready. Return to the journey and prepare its one-time coordinator prompt.'
+                : 'The latest diagnostic found a setup problem. Open its readiness details below, correct the missing capability or binding, then run project_diagnostic again.'
+              : 'No diagnostic receipt has been observed for this project. Complete setup in Codex and run project_diagnostic before returning.'}
+          </p>
+        </div>
+        <Button asChild variant="outline">
+          <Link href={safeReturnPath(returnTo, project?.id)}>
+            <ArrowLeft aria-hidden="true" className="mr-2 size-4" />
+            Return to journey
+          </Link>
+        </Button>
+      </div>
+    </section>
   )
 }
 
