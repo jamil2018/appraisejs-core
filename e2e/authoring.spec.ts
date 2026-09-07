@@ -250,7 +250,7 @@ test.describe('Test authoring @authoring', () => {
     page,
   }) => {
     await page.goto('/template-test-cases/create')
-    await expectPageHeading(page, 'Create Template Test Case')
+    await expectPageHeading(page, 'Create Case Template')
     await page.getByRole('textbox', { name: 'Title' }).fill('E2E Template Dual View Case')
     await addStepDefinitionToFlow(page)
 
@@ -270,7 +270,7 @@ test.describe('Test authoring @authoring', () => {
     const row = page.getByRole('row', { name: /E2E Template Dual View Case/ })
     await row.getByRole('button', { name: 'Open menu' }).click()
     await page.getByRole('link', { name: 'Edit' }).click()
-    await expectPageHeading(page, 'Modify Template Test Case')
+    await expectPageHeading(page, 'Modify Case Template')
     await switchAuthoringView(page, 'Linear')
     await expect(page.getByText('When the user navigates to the /template-linear url')).toBeVisible()
     await switchAuthoringView(page, 'Graph')

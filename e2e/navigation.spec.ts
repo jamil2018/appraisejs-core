@@ -24,7 +24,7 @@ test.describe('Navigation @navigation', () => {
     { path: '/locator-groups', heading: 'Locator Groups' },
     { path: '/locators', heading: 'Locators' },
     { path: '/step-definitions', heading: 'Step Definitions' },
-    { path: '/template-test-cases', heading: 'Template Test Cases' },
+    { path: '/template-test-cases', heading: 'Case Templates' },
     { path: '/test-suites', heading: 'Test Suites' },
     { path: '/test-cases', heading: 'Test Cases' },
     { path: '/test-runs', heading: 'Test Runs' },
@@ -40,7 +40,7 @@ test.describe('Navigation @navigation', () => {
     { path: '/locator-groups/create', heading: 'Create Locator Group' },
     { path: '/locators/create', heading: 'Create Locator' },
     { path: '/step-definitions/create', heading: 'Create reusable step' },
-    { path: '/template-test-cases/create', heading: 'Create Template Test Case' },
+    { path: '/template-test-cases/create', heading: 'Create Case Template' },
     { path: '/test-suites/create', heading: 'Create Test Suite' },
     { path: '/test-cases/create', heading: 'Create New Test Case' },
     { path: '/test-cases/create-from-template', heading: 'Create Test Case From Template' },
@@ -51,7 +51,9 @@ test.describe('Navigation @navigation', () => {
     await visitRoutes(page, [...listRoutes, ...createRoutes])
   })
 
-  test('removed Quality Plan, Assessment, and compatibility routes return ordinary not-found pages', async ({ page }) => {
+  test('removed Quality Plan, Assessment, and compatibility routes return ordinary not-found pages', async ({
+    page,
+  }) => {
     for (const path of ['/quality-plans', '/assessments', '/quality-journeys/compatibility']) {
       const response = await page.goto(path)
       expect(response?.status()).toBe(404)
@@ -67,7 +69,7 @@ test.describe('Navigation @navigation', () => {
       { path: buildModifyPath('/locators', seededIds.locator), heading: 'Update Locator' },
       {
         path: buildModifyPath('/template-test-cases', seededIds.templateTestCase),
-        heading: 'Modify Template Test Case',
+        heading: 'Modify Case Template',
       },
       { path: buildModifyPath('/test-cases', seededIds.testCase), heading: 'Modify Test Case' },
       { path: buildModifyPath('/test-suites', seededIds.testSuite), heading: 'Name' },

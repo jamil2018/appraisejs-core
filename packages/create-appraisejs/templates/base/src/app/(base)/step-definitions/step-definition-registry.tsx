@@ -2,7 +2,7 @@
 
 import { useMemo, useState, type ReactNode } from 'react'
 import { useRouter } from 'next/navigation'
-import { Clock3, MoreHorizontal, PencilLine, Trash2 } from 'lucide-react'
+import { Clock3, LayoutGrid, List, MoreHorizontal, PencilLine, Trash2 } from 'lucide-react'
 
 import {
   createStepDefinitionVersionDraftAction,
@@ -93,6 +93,39 @@ function DraftCard({
   )
 }
 
+function DefinitionManagement({
+  definition,
+  onDeprecate,
+  onVersion,
+}: {
+  definition: StepDefinitionOption
+  onDeprecate: () => void
+  onVersion: () => void
+}) {
+  return (
+    <div className="flex items-center gap-2">
+      {definition.sourceOwned ? <Badge variant="outline">Source managed</Badge> : null}
+      <Badge variant="secondary">{definition.groupId}</Badge>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button aria-label={`Manage ${definition.title}`} size="icon" variant="ghost" className="size-8">
+            <MoreHorizontal aria-hidden="true" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuItem disabled={definition.sourceOwned} onSelect={onVersion}>
+            Create new version
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem className="text-destructive focus:text-destructive" onSelect={onDeprecate}>
+            Deprecate version
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </div>
+  )
+}
+
 function ReadyDefinitionCard({
   definition,
   onDeprecate,
@@ -112,26 +145,7 @@ function ReadyDefinitionCard({
               {definition.reference.id}@{definition.reference.version}
             </p>
           </div>
-          <div className="flex items-center gap-2">
-            {definition.sourceOwned ? <Badge variant="outline">Source managed</Badge> : null}
-            <Badge variant="secondary">{definition.groupId}</Badge>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button aria-label={`Manage ${definition.title}`} size="icon" variant="ghost" className="size-8">
-                  <MoreHorizontal aria-hidden="true" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem disabled={definition.sourceOwned} onSelect={onVersion}>
-                  Create new version
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem className="text-destructive focus:text-destructive" onSelect={onDeprecate}>
-                  Deprecate version
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
+          <DefinitionManagement definition={definition} onDeprecate={onDeprecate} onVersion={onVersion} />
         </div>
         <p className="text-sm leading-6 text-muted-foreground">{definition.description}</p>
       </CardHeader>
@@ -154,6 +168,39 @@ function ReadyDefinitionCard({
   )
 }
 
+function ReadyDefinitionRow({
+  definition,
+  onDeprecate,
+  onVersion,
+}: {
+  definition: StepDefinitionOption
+  onDeprecate: () => void
+  onVersion: () => void
+}) {
+  return (
+    <div className="rounded-lg border border-white/[0.08] bg-white/[0.025] px-4 py-3">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0 space-y-1">
+          <p className="font-medium text-zinc-100">{definition.title}</p>
+          <p className="break-all font-mono text-xs text-muted-foreground">
+            {definition.reference.id}@{definition.reference.version}
+          </p>
+          <code className="block overflow-x-auto text-xs text-zinc-400">{definition.signature}</code>
+        </div>
+        <DefinitionManagement definition={definition} onDeprecate={onDeprecate} onVersion={onVersion} />
+      </div>
+      <details className="mt-2 text-sm text-muted-foreground">
+        <summary className="cursor-pointer text-xs">Definition details</summary>
+        <p className="mt-2 leading-6">{definition.description}</p>
+        <p className="mt-1">
+          Keywords: {definition.keywordCompatibility.join(', ')} · {definition.inputs.length} input
+          {definition.inputs.length === 1 ? '' : 's'}
+        </p>
+      </details>
+    </div>
+  )
+}
+
 export function StepDefinitionRegistry({
   definitions,
   drafts,
@@ -163,23 +210,34 @@ export function StepDefinitionRegistry({
 }) {
   const { push, refresh } = useRouter()
   const [query, setQuery] = useState('')
+  const [group, setGroup] = useState('all')
+  const [view, setView] = useState<'cards' | 'compact'>('cards')
   const [dialog, setDialog] = useState<DialogState>(null)
   const [value, setValue] = useState('')
   const [busy, setBusy] = useState(false)
   const filteredDefinitions = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase()
-    if (!normalizedQuery) return definitions
-    return definitions.filter(definition =>
-      [
-        definition.reference.id,
-        definition.reference.version,
-        definition.title,
-        definition.description,
-        definition.signature,
-        definition.groupId,
-      ].some(candidate => candidate.toLowerCase().includes(normalizedQuery)),
+    return definitions.filter(
+      definition =>
+        (group === 'all' || definition.groupId === group) &&
+        (!normalizedQuery ||
+          [
+            definition.reference.id,
+            definition.reference.version,
+            definition.title,
+            definition.description,
+            definition.signature,
+            definition.groupId,
+          ].some(candidate => candidate.toLowerCase().includes(normalizedQuery))),
     )
-  }, [definitions, query])
+  }, [definitions, group, query])
+  const groups = useMemo(
+    () =>
+      [...new Set(definitions.map(definition => definition.groupId))].toSorted((left, right) =>
+        left.localeCompare(right),
+      ),
+    [definitions],
+  )
 
   const openVersionDialog = (definition: StepDefinitionOption) => {
     setValue(suggestedNextVersion(definition.reference.version))
@@ -274,14 +332,53 @@ export function StepDefinitionRegistry({
             Published versions are immutable. Create a new version to modify behavior.
           </p>
         </div>
-        <div className="relative max-w-xl">
-          <Input
-            type="search"
-            value={query}
-            onChange={event => setQuery(event.target.value)}
-            placeholder="Search by name, ID, signature, or group"
-            aria-label="Search Step Definitions"
-          />
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+          <div className="grid gap-3 sm:grid-cols-[minmax(16rem,1fr)_12rem] lg:max-w-3xl lg:flex-1">
+            <Input
+              type="search"
+              value={query}
+              onChange={event => setQuery(event.target.value)}
+              placeholder="Search by name, ID, signature, or group"
+              aria-label="Search Step Definitions"
+            />
+            <div>
+              <Label className="sr-only" htmlFor="step-definition-category">
+                Category
+              </Label>
+              <select
+                id="step-definition-category"
+                aria-label="Filter by category"
+                className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm shadow-sm"
+                value={group}
+                onChange={event => setGroup(event.target.value)}
+              >
+                <option value="all">All categories</option>
+                {groups.map(option => (
+                  <option key={option} value={option}>
+                    {option}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+          <div className="flex gap-1" role="group" aria-label="Definition view">
+            <Button
+              size="sm"
+              variant={view === 'cards' ? 'secondary' : 'ghost'}
+              aria-pressed={view === 'cards'}
+              onClick={() => setView('cards')}
+            >
+              <LayoutGrid aria-hidden="true" /> Cards
+            </Button>
+            <Button
+              size="sm"
+              variant={view === 'compact' ? 'secondary' : 'ghost'}
+              aria-pressed={view === 'compact'}
+              onClick={() => setView('compact')}
+            >
+              <List aria-hidden="true" /> Compact
+            </Button>
+          </div>
         </div>
         <p className="text-sm text-muted-foreground" role="status">
           Showing {filteredDefinitions.length} of {definitions.length} ready Step Definitions
@@ -289,20 +386,29 @@ export function StepDefinitionRegistry({
         {filteredDefinitions.length === 0 ? (
           <Card className="bg-muted/20 border-dashed shadow-none">
             <CardContent className="py-10 text-center">
-              <p className="font-medium">No Step Definitions match “{query.trim()}”.</p>
-              <p className="mt-1 text-sm text-muted-foreground">Try a broader intent, group, or parameter name.</p>
+              <p className="font-medium">No Step Definitions match the current filters.</p>
+              <p className="mt-1 text-sm text-muted-foreground">Try a broader search or another category.</p>
             </CardContent>
           </Card>
         ) : (
-          <div className="grid gap-3 lg:grid-cols-2">
-            {filteredDefinitions.map(definition => (
-              <ReadyDefinitionCard
-                key={`${definition.reference.id}@${definition.reference.version}`}
-                definition={definition}
-                onDeprecate={() => openDeprecationDialog(definition)}
-                onVersion={() => openVersionDialog(definition)}
-              />
-            ))}
+          <div className={view === 'cards' ? 'grid gap-3 lg:grid-cols-2' : 'space-y-2'}>
+            {filteredDefinitions.map(definition =>
+              view === 'cards' ? (
+                <ReadyDefinitionCard
+                  key={`${definition.reference.id}@${definition.reference.version}`}
+                  definition={definition}
+                  onDeprecate={() => openDeprecationDialog(definition)}
+                  onVersion={() => openVersionDialog(definition)}
+                />
+              ) : (
+                <ReadyDefinitionRow
+                  key={`${definition.reference.id}@${definition.reference.version}`}
+                  definition={definition}
+                  onDeprecate={() => openDeprecationDialog(definition)}
+                  onVersion={() => openVersionDialog(definition)}
+                />
+              ),
+            )}
           </div>
         )}
       </section>

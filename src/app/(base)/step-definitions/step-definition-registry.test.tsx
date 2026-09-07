@@ -33,7 +33,7 @@ const definitions: StepDefinitionOption[] = [
     keywordCompatibility: ['Given', 'When'],
     groupId: 'navigation',
     inputs: [{ name: 'url', type: 'string' as const, required: true }],
-    sourceOwned: false,
+    sourceOwned: true,
   },
   {
     reference: { id: 'browser.assertions.visible', version: '1', definitionHash: 'sha256:visible' },
@@ -71,6 +71,24 @@ describe('StepDefinitionRegistry', () => {
     await user.type(screen.getByRole('searchbox', { name: 'Search Step Definitions' }), 'missing operation')
 
     expect(screen.getByText(/No Step Definitions match/)).toBeInTheDocument()
+  })
+
+  it('composes category and search filters and preserves them when switching views', async () => {
+    const user = userEvent.setup()
+    render(<StepDefinitionRegistry definitions={definitions} drafts={[]} />)
+
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Filter by category' }), 'navigation')
+    await user.type(screen.getByRole('searchbox', { name: 'Search Step Definitions' }), 'open')
+    expect(screen.getByRole('status')).toHaveTextContent('Showing 1 of 2')
+    expect(screen.getByText('Open a page')).toBeInTheDocument()
+    expect(screen.queryByText('Check visibility')).not.toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Compact' }))
+    expect(screen.getByRole('button', { name: 'Compact' })).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByRole('combobox', { name: 'Filter by category' })).toHaveValue('navigation')
+    expect(screen.getByRole('searchbox', { name: 'Search Step Definitions' })).toHaveValue('open')
+    expect(screen.getByText('browser.navigation.goto@1')).toBeInTheDocument()
+    expect(screen.getByText('Source managed')).toBeInTheDocument()
   })
 
   it('resumes and deletes human drafts with optimistic revision protection', async () => {

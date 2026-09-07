@@ -41,8 +41,6 @@ import { qualityJourneyLabel, toAnalysisRevisionView } from './quality-journey-v
 type PageProps = { params: Promise<{ journeyId: string }>; searchParams?: Promise<{ project?: string }> }
 type JourneyDetail = Awaited<ReturnType<typeof getQualityJourney>>
 type ActiveProject = Awaited<ReturnType<typeof requireActiveProject>>
-type ActiveAnalysis = ReturnType<typeof toAnalysisRevisionView> | null
-type ActiveScenarioPortfolio = Awaited<ReturnType<typeof getQualityJourneyScenarioPortfolio>>['portfolio'] | null
 
 function LinkedFollowUpAction({
   visible,
@@ -169,10 +167,7 @@ function detailPresentation(
   const materializations = detail.automation ? detail.automation.materializations : []
   return {
     portfolio,
-    pendingAnalysisDecision:
-      detail.journey.journey.stage === 'ANALYSIS_REVIEW' &&
-      Boolean(detail.activeAnalysis) &&
-      !detail.activeAnalysis?.decision,
+    pendingAnalysisDecision: detail.journey.journey.stage === 'ANALYSIS_REVIEW' && !detail.activeAnalysis?.decision,
     pendingReportDecision: detail.journey.journey.stage === 'REPORT_REVIEW',
     pendingScenarioDecision:
       detail.journey.journey.stage === 'SCENARIO_REVIEW' &&
@@ -218,20 +213,32 @@ export default async function QualityJourneyDetailPage({ params, searchParams }:
     >
       <main className="space-y-6 pb-10">
         <JourneyHeader journey={journey} project={project} requirementSummary={requirementSummary} />
-        <JourneyNextAction
-          blockerCount={journey.blockers.length}
-          blockerResponsibleActor={journey.blockers[0]?.responsibleActor}
-          hasObservedWorkerProgress={presentation.hasObservedWorkerProgress}
-          handoffStatus={handoff?.status}
-          journeyId={journeyId}
-          pendingAnalysisDecision={presentation.pendingAnalysisDecision}
-          pendingReportDecision={presentation.pendingReportDecision}
-          pendingScenarioDecision={presentation.pendingScenarioDecision}
-          projectId={project.id}
-          requestedExecutionConsentCount={presentation.requestedExecutionConsentCount}
-          stage={journey.journey.stage}
-          unresolvedRequiredQuestionCount={journey.journey.unresolvedQuestionIds.length}
-        />
+        <section
+          className="grid gap-4 xl:grid-cols-[minmax(0,1.4fr)_minmax(20rem,0.6fr)]"
+          aria-label="Current journey focus"
+        >
+          <JourneyNextAction
+            blockerCount={journey.blockers.length}
+            blockerResponsibleActor={journey.blockers[0]?.responsibleActor}
+            hasObservedWorkerProgress={presentation.hasObservedWorkerProgress}
+            handoffStatus={handoff?.status}
+            journeyId={journeyId}
+            pendingAnalysisDecision={presentation.pendingAnalysisDecision}
+            pendingReportDecision={presentation.pendingReportDecision}
+            pendingScenarioDecision={presentation.pendingScenarioDecision}
+            projectId={project.id}
+            requestedExecutionConsentCount={presentation.requestedExecutionConsentCount}
+            stage={journey.journey.stage}
+            unresolvedRequiredQuestionCount={journey.journey.unresolvedQuestionIds.length}
+          />
+          <PendingUserDecisions
+            pendingAnalysisDecision={presentation.pendingAnalysisDecision}
+            pendingReportReview={presentation.pendingReportDecision}
+            pendingScenarioDecision={presentation.pendingScenarioDecision}
+            questionCount={journey.journey.unresolvedQuestionIds.length}
+            requestedExecutionConsentCount={presentation.requestedExecutionConsentCount}
+          />
+        </section>
         <section id="overview" tabIndex={-1}>
           <JourneyOverview activeRunner={activeRunner} journey={journey} />
         </section>
@@ -323,12 +330,7 @@ export default async function QualityJourneyDetailPage({ params, searchParams }:
             </section>
           </div>
           <div id="activity" tabIndex={-1}>
-            <JourneySidebar
-              activeAnalysis={activeAnalysis}
-              journey={journey}
-              requestedExecutionConsentCount={presentation.requestedExecutionConsentCount}
-              scenarios={presentation.portfolio}
-            />
+            <JourneySidebar journey={journey} />
           </div>
         </section>
       </main>
@@ -467,34 +469,9 @@ function JourneyOverview({
   )
 }
 
-function JourneySidebar({
-  activeAnalysis,
-  journey,
-  requestedExecutionConsentCount,
-  scenarios,
-}: {
-  activeAnalysis: ActiveAnalysis
-  journey: JourneyDetail
-  requestedExecutionConsentCount: number
-  scenarios: ActiveScenarioPortfolio
-}) {
-  const questionCount = journey.journey.unresolvedQuestionIds.length
-  const pendingAnalysisDecision = journey.journey.stage === 'ANALYSIS_REVIEW' && !activeAnalysis?.decision
-  const pendingReportReview = journey.journey.stage === 'REPORT_REVIEW'
-  const pendingScenarioDecision =
-    journey.journey.stage === 'SCENARIO_REVIEW' &&
-    Boolean(scenarios?.reviewHash) &&
-    Boolean(scenarios?.scenarios.some(scenario => !scenario.decisions.length))
-
+function JourneySidebar({ journey }: { journey: JourneyDetail }) {
   return (
     <aside className="space-y-6">
-      <PendingUserDecisions
-        pendingAnalysisDecision={pendingAnalysisDecision}
-        pendingReportReview={pendingReportReview}
-        pendingScenarioDecision={pendingScenarioDecision}
-        questionCount={questionCount}
-        requestedExecutionConsentCount={requestedExecutionConsentCount}
-      />
       <BlockerCard blockers={journey.blockers} />
       <Timeline events={journey.events} />
     </aside>
@@ -517,7 +494,7 @@ function PendingUserDecisions({
   const hasPendingDecision =
     pendingAnalysisDecision || pendingScenarioDecision || pendingReportReview || requestedExecutionConsentCount > 0
   return (
-    <Card>
+    <Card className={hasPendingDecision || questionCount ? 'border-amber-400/30 bg-amber-400/[0.04]' : ''}>
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-base">
           <UserRoundCheck aria-hidden="true" className="size-4 text-primary" />

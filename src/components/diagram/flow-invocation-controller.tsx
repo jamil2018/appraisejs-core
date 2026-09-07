@@ -245,7 +245,7 @@ export function useFlowInvocationController({
     pendingReturnFocusRef.current = null
     // Let React remove the dialog before returning focus. Otherwise the browser can
     // move focus back to <body> as it tears down the focused dialog subtree.
-    window.setTimeout(() => {
+    const timeoutId = window.setTimeout(() => {
       const fallback = document.querySelector<HTMLElement>(returnFocusSelector)
       const previousTarget =
         returnFocusTarget && returnFocusTarget !== document.body && returnFocusTarget.isConnected
@@ -253,6 +253,7 @@ export function useFlowInvocationController({
           : fallback
       previousTarget?.focus()
     }, 0)
+    return () => window.clearTimeout(timeoutId)
   }, [session])
   const closeEditor = useCallback(() => {
     setSession(current => {
