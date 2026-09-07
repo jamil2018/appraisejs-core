@@ -169,7 +169,14 @@ describe('QualityJourneyDetailPage', () => {
     await renderPage()
 
     expect(screen.getByText('No user decision is currently pending.')).toBeInTheDocument()
-    expect(screen.getByText('Appraise is preparing a test approach from your brief.')).toBeInTheDocument()
+    expect(screen.getByText(/no proposed test approach has been submitted/i)).toBeInTheDocument()
+  })
+
+  it('does not claim analysis is active when no approach has been submitted', async () => {
+    await renderPage()
+
+    expect(screen.getByText(/no proposed test approach has been submitted/i)).toBeInTheDocument()
+    expect(screen.queryByText(/appraise is preparing a test approach/i)).not.toBeInTheDocument()
   })
 
   it('keeps the report-review human gate visible in the sidebar', async () => {

@@ -572,7 +572,9 @@ function AnalysisDocument({ analysis }: { analysis: ReturnType<typeof toAnalysis
             <ClipboardCheck aria-hidden="true" className="size-4 text-primary" />
             Proposed test approach
           </CardTitle>
-          <CardDescription>Appraise is preparing a test approach from your brief.</CardDescription>
+          <CardDescription>
+            No proposed test approach has been submitted. Follow the next action above to start or recover analysis.
+          </CardDescription>
         </CardHeader>
       </Card>
     )
