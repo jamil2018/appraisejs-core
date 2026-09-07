@@ -33,7 +33,7 @@ export default function HelpPage() {
         </CardHeader>
         <CardContent className="grid gap-3 text-sm leading-6 md:grid-cols-2">
           <p>
-            <strong>1. Brief:</strong> describe the outcome—“a shopper can submit an order”—plus scope and observable
+            <strong>1. Brief:</strong> describe the outcome, “a shopper can submit an order,” plus scope and observable
             success.
           </p>
           <p>
@@ -113,7 +113,7 @@ export default function HelpPage() {
             <div>
               <dt className="font-semibold">Approval</dt>
               <dd className="text-muted-foreground">
-                An explicit decision bound to an exact version—not agreement inferred from chat or page views.
+                An explicit decision bound to an exact version, never agreement inferred from chat or page views.
               </dd>
             </div>
             <div>
