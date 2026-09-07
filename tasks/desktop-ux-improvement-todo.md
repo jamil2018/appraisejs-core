@@ -1,0 +1,61 @@
+# AppraiseJS desktop UX implementation checklist
+
+Status: in progress; Phase 1 implemented after recording the Phase 0 baseline.
+
+[Implementation plan](desktop-ux-improvement-plan.md) · [Review](../docs/reviews/appraisejs-ux-ui-review-2026-09-07.md)
+
+Complete a task only after its acceptance criteria and verification in the plan pass. Keep blocked tasks unchecked and record evidence below. Phone support and desktop-shell migration are excluded.
+
+## Phase 0 — Establish the implementation baseline
+
+- [x] 0.1 — Refresh evidence and create representative fixtures
+- [x] 0.2 — Record supported desktop and agent behavior
+- [x] Phase checkpoint: record acceptance, validation, docs/sync, and unresolved risks.
+
+## Phase 1 — Make state and agent setup trustworthy
+
+- [x] 1.1 — Define one human-facing status projection
+- [x] 1.2 — Align journey list, detail, and handoff messages
+- [x] 1.3 — Provide contextual agent setup and return navigation
+- [x] 1.4 — Make launch and recovery feedback accurate
+- [x] Phase checkpoint: record acceptance, validation, docs/sync, and unresolved risks.
+
+## Phase 2 — Make desktop interaction accessible
+
+- [ ] 2.1 — Correct shared field and error associations
+- [ ] 2.2 — Improve meaningful text contrast
+- [ ] 2.3 — Verify desktop resizing, zoom, and keyboard continuity
+- [ ] Phase checkpoint: record acceptance, validation, docs/sync, and unresolved risks.
+
+## Phase 3 — Help users reach their first useful outcome
+
+- [ ] 3.1 — Give an empty workspace an actionable dashboard
+- [ ] 3.2 — Make manual run prerequisites recoverable
+- [ ] 3.3 — Save drafts only after meaningful input
+- [ ] Phase checkpoint: record acceptance, validation, docs/sync, and unresolved risks.
+
+## Phase 4 — Make the product model understandable
+
+- [ ] 4.1 — Consolidate vocabulary and validate navigation grouping
+- [ ] 4.2 — Add contextual help and a worked example
+- [ ] 4.3 — Resolve the empty Settings destination
+- [ ] Phase checkpoint: record acceptance, validation, docs/sync, and unresolved risks.
+
+## Phase 5 — Improve focus and repeated use
+
+- [ ] 5.1 — Refine journey visual hierarchy
+- [ ] 5.2 — Improve Step Definition browsing density
+- [ ] Phase checkpoint: record acceptance, validation, docs/sync, and unresolved risks.
+
+## Phase 6 — Verify the complete desktop workflow
+
+- [ ] 6.1 — Run integrated regression and delivery checks
+- [ ] 6.2 — Evaluate familiarity with intended users
+- [ ] Phase checkpoint: record acceptance, validation, docs/sync, and unresolved risks.
+
+## Evidence log
+
+| Phase / task  | Commit                 | Verification and outcome                                                                                                                                                                   | Blockers / next action                                                                                 |
+| ------------- | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------ |
+| Phase 0       | `509bdfcc`             | Baseline and support matrix recorded in `desktop-ux-phase-0-baseline.md`; existing isolated tests remain the fixture authority.                                                            | Minimum native window size remains a Phase 2 product decision.                                         |
+| Phase 1.1-1.4 | `efc77bcb`, `509bdfcc` | Table-driven projection tests; list/detail/handoff/project component tests; Fallow and React Doctor commit gates; live recovery and setup-return walkthrough with a clean browser console. | Codex is the only implemented provider; Claude Code and Cursor remain unavailable rather than implied. |

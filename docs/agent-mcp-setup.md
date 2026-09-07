@@ -2,6 +2,11 @@
 
 Start the AppraiseJS MCP server using the package script defined in `packages/appraisejs/package.json`. Register the connected client with its actual transport and current target workspace before attempting quality work.
 
+From an early Quality Journey, **Agent setup** opens the selected project's contextual Codex setup guidance and keeps
+a project-bound return link to the originating Journey. The page separates setup instructions from the latest
+`project_diagnostic` receipt: a missing receipt means readiness has not been observed, and a saved ready receipt is
+historical evidence rather than proof that Codex is currently connected.
+
 Run the project diagnostic against the target workspace. A ready diagnostic confirms the application identity, active transport, observed executable capabilities, and target binding. A setup screen alone is not capability evidence.
 
 The server publishes the Journey lifecycle plus general target, runtime, locator, environment, operation, and Step Definition tools. The exact inventory, resource list, schemas, and MCP safety annotations are generated from the canonical contract. Do not copy tool counts into documentation and do not attempt removed operations.
