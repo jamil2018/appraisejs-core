@@ -5,6 +5,7 @@ import type { TestSuitePickerRow } from '@/types/test-suite-picker'
 import {
   applyChildCheckboxSelection,
   applySuiteCheckboxSelection,
+  buildNormalizedSelectionsFromDraft,
   createDraftSelections,
   normalizeSuiteSelection,
   suiteMatchesQuery,
@@ -83,6 +84,14 @@ describe('test-suite-picker helpers', () => {
     })
 
     expect(applySuiteCheckboxSelection(full, suite, false)).toEqual({})
+  })
+
+  it('drops selections that are not present in the project-owned suite rows', () => {
+    expect(
+      buildNormalizedSelectionsFromDraft([suite], {
+        'other-project-suite': { testSuiteId: 'other-project-suite', runAll: true, testCaseIds: [] },
+      }),
+    ).toEqual([])
   })
 
   it('matches suites against module, suite, tag, and child test text', () => {

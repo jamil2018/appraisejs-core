@@ -176,9 +176,9 @@ function IntakeHeader({
         ? 'Saved to this workspace'
         : saveStatus === 'dirty'
           ? 'Unsaved changes—saving shortly.'
-        : saveStatus === 'failed'
-          ? 'Couldn’t save—Retry.'
-          : 'Your brief will be saved to this workspace after your first edit.'
+          : saveStatus === 'failed'
+            ? 'Couldn’t save—Retry.'
+            : 'Your brief will be saved to this workspace after your first edit.'
   return (
     <header className="border-primary/20 bg-card/50 relative overflow-hidden rounded-xl border px-5 py-6 sm:px-7">
       <div className="from-primary/[0.08] pointer-events-none absolute inset-y-0 right-0 w-1/3 bg-gradient-to-l to-transparent" />
@@ -223,13 +223,14 @@ export function QualityJourneyCreateForm({
   draft?: DraftSnapshot
 }) {
   const { push } = useRouter()
-  const { actions, isPending, requirement, saveConflict, saveStatus, state, update } = useQualityJourneyCreateIntake({
-    draft,
-    initialEnvironments,
-    predecessorJourneyId,
-    projectId,
-    push,
-  })
+  const { actions, isPending, requirement, saveConflict, saveStatus, state, update, updateView } =
+    useQualityJourneyCreateIntake({
+      draft,
+      initialEnvironments,
+      predecessorJourneyId,
+      projectId,
+      push,
+    })
   if (draft?.status === 'ARCHIVED')
     return (
       <section className="bg-card/40 rounded-xl border p-6">
@@ -251,7 +252,7 @@ export function QualityJourneyCreateForm({
         onConfirm={actions.submit}
         onDiscard={actions.discard}
         onEdit={actions.editReviewSection}
-        onEditIntake={() => update({ reviewing: false })}
+        onEditIntake={() => updateView({ reviewing: false })}
         requirement={requirement}
       />
     )
@@ -267,7 +268,7 @@ export function QualityJourneyCreateForm({
       <div className="grid gap-5 xl:grid-cols-[15rem_minmax(0,1fr)]">
         <IntakeGuide
           currentStep={state.currentStep}
-          onSelect={step => update({ currentStep: step })}
+          onSelect={step => updateView({ currentStep: step })}
           requirement={requirement}
         />
         <div className="border-border/80 bg-card/30 overflow-hidden rounded-xl border">
@@ -316,8 +317,8 @@ export function QualityJourneyCreateForm({
             currentStep={state.currentStep}
             error={state.error}
             isPending={isPending}
-            onBack={() => update({ currentStep: state.currentStep - 1 })}
-            onContinue={() => update({ currentStep: state.currentStep + 1 })}
+            onBack={() => updateView({ currentStep: state.currentStep - 1 })}
+            onContinue={() => updateView({ currentStep: state.currentStep + 1 })}
             onReview={actions.review}
             requirement={requirement}
           />

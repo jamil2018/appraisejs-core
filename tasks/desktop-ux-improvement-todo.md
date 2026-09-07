@@ -29,10 +29,10 @@ Complete a task only after its acceptance criteria and verification in the plan 
 
 ## Phase 3 — Help users reach their first useful outcome
 
-- [ ] 3.1 — Give an empty workspace an actionable dashboard
-- [ ] 3.2 — Make manual run prerequisites recoverable
-- [ ] 3.3 — Save drafts only after meaningful input
-- [ ] Phase checkpoint: record acceptance, validation, docs/sync, and unresolved risks.
+- [x] 3.1 — Give an empty workspace an actionable dashboard
+- [x] 3.2 — Make manual run prerequisites recoverable
+- [x] 3.3 — Save drafts only after meaningful input
+- [x] Phase checkpoint: record acceptance, validation, docs/sync, and unresolved risks.
 
 ## Phase 4 — Make the product model understandable
 
@@ -60,3 +60,4 @@ Complete a task only after its acceptance criteria and verification in the plan 
 | Phase 0       | `509bdfcc`             | Baseline and support matrix recorded in `desktop-ux-phase-0-baseline.md`; existing isolated tests remain the fixture authority.                                                            | Minimum native window size remains a Phase 2 product decision.                                         |
 | Phase 1.1-1.4 | `efc77bcb`, `509bdfcc` | `npx vitest run` on the Phase 1 projection, list, detail, handoff, project, and SQLite handoff suites; `npm run validate` (1,008 unit and 36 Chromium E2E tests); `npm run build`; Fallow and React Doctor commit gates; live 1440x1000 recovery and setup-return walkthrough with no browser console warnings or errors. | Codex is the only implemented provider; Claude Code and Cursor remain unavailable rather than implied. |
 | Phase 2.1-2.3 | `39a65826` | Shared-control component tests and ESLint; calculated token contrast; live accessibility-tree/error/focus verification; Playwright geometry at 1440x1000, 1280x800, 960x720, exploratory 720x800, and 200%/400% effective reflow. | No supported-width clipping reproduced; native VoiceOver/NVDA was not automated. See `desktop-ux-phase-2-evidence.md`. |
+| Phase 3.1-3.3 | pending | Dashboard state, manual prerequisite, project-scope, and intake autosave tests; live dashboard/run-form/intake walkthrough; canonical template sync. | In-app Browser was unavailable because the Mac was locked; the documented Playwright CLI fallback was used. See `desktop-ux-phase-3-evidence.md`. |

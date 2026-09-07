@@ -7,6 +7,29 @@ import { describe, expect, it, vi } from 'vitest'
 import TestSuitePicker from './test-suite-picker'
 
 describe('TestSuitePicker', () => {
+  it('offers recoverable suite creation and refresh from an empty picker', async () => {
+    const user = userEvent.setup()
+    const onRefresh = vi.fn()
+    render(
+      <TestSuitePicker
+        testSuites={[]}
+        selectedSuites={[]}
+        onSave={vi.fn()}
+        triggerPlaceholder="Select test suite(s)"
+        dialogTitle="Select Test Suites"
+        dialogDescription="Pick suites"
+        selectedLabel="Selected suites"
+        emptyActionHref="/test-suites/create"
+        onRefresh={onRefresh}
+      />,
+    )
+
+    await user.click(screen.getByRole('button', { name: /select test suite/i }))
+    expect(screen.getByRole('link', { name: /create a test suite/i })).toHaveAttribute('target', '_blank')
+    await user.click(screen.getByRole('button', { name: /refresh available suites/i }))
+    expect(onRefresh).toHaveBeenCalledOnce()
+  })
+
   it('saves a partial suite selection', async () => {
     const user = userEvent.setup()
     const onSave = vi.fn()

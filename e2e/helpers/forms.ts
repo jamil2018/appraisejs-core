@@ -3,7 +3,10 @@ import { expect, type Locator, type Page } from '@playwright/test'
 import { completeNamedCreate, saveForm, expectPageHeading } from './ui'
 
 function labeledMultiSelectCombobox(page: Page, label: string): Locator {
-  return page.getByText(label, { exact: true }).locator('..').getByRole('combobox', { name: 'Select options' })
+  return page
+    .getByText(label, { exact: true })
+    .locator('..')
+    .getByRole('combobox', { name: new RegExp(`^${label}$`, 'i') })
 }
 
 export async function selectFilterTags(page: Page, ...tagNames: string[]): Promise<void> {

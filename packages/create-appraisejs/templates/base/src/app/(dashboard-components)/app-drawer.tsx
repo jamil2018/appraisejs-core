@@ -23,15 +23,22 @@ type AppDrawerItemConfig = {
   onClick: () => void
 }
 
-const AppDrawerItem = ({ item }: { item: AppDrawerItemConfig }) => {
+const AppDrawerItem = ({
+  item,
+  hasExecutionEvidence,
+}: {
+  item: AppDrawerItemConfig
+  hasExecutionEvidence: boolean
+}) => {
   const isHealthy = item.count === 0
+  const emptyEvidence = isHealthy && !hasExecutionEvidence
 
   return (
     <button
       onClick={item.onClick}
       disabled={isHealthy}
       data-state={isHealthy ? 'disabled' : 'actionable'}
-      aria-label={`${item.title}: ${item.count}. ${isHealthy ? item.healthyDescription : item.description}`}
+      aria-label={`${item.title}: ${item.count}. ${emptyEvidence ? 'No completed-run evidence yet' : isHealthy ? item.healthyDescription : item.description}`}
       className={`group relative flex min-h-[116px] w-full flex-col justify-between overflow-hidden rounded-lg border p-3 text-left outline-none transition-colors duration-200 focus-visible:ring-1 focus-visible:ring-primary ${
         isHealthy
           ? 'cursor-not-allowed border-white/[0.06] bg-white/[0.018] opacity-60'
@@ -57,7 +64,7 @@ const AppDrawerItem = ({ item }: { item: AppDrawerItemConfig }) => {
           {isHealthy ? (
             <>
               <span className="size-1.5 rounded-full bg-zinc-600" />
-              <span className="text-zinc-500">Healthy</span>
+              <span className="text-zinc-500">{emptyEvidence ? 'No evidence' : 'Clear'}</span>
             </>
           ) : (
             <>
@@ -104,10 +111,12 @@ export default function AppDrawer({
   metrics,
   title,
   description,
+  hasExecutionEvidence,
 }: {
   metrics: DashboardMetrics | null
   title: string
   description: string
+  hasExecutionEvidence: boolean
 }) {
   const { push } = useRouter()
 
@@ -199,7 +208,7 @@ export default function AppDrawer({
       <CardContent id="content" className="relative px-4 pb-4 pt-0">
         <div className="grid grid-cols-1 gap-3 sm:auto-rows-[116px] sm:grid-cols-2">
           {items.map(item => (
-            <AppDrawerItem key={item.title} item={item} />
+            <AppDrawerItem key={item.title} item={item} hasExecutionEvidence={hasExecutionEvidence} />
           ))}
         </div>
       </CardContent>
