@@ -262,8 +262,8 @@ Every task below is a bounded session-sized slice. File lists identify canonical
 
 ### Task 6.1 — Run integrated regression and delivery checks
 
-- [ ] Exercise fresh and populated workspace paths, including brief → agent handoff → questions/review → prepared execution → results, using canonical isolated fixtures and only authorized executions.
-- [ ] Verify supported providers individually, project isolation, draft resume, navigation, keyboard access, desktop matrix, and zoom; record untested combinations explicitly.
+- [x] Exercise fresh and populated workspace paths, including brief → agent handoff → questions/review → prepared execution → results, using canonical isolated fixtures and only authorized executions.
+- [x] Verify supported providers individually, project isolation, draft resume, navigation, keyboard access, desktop matrix, and zoom; record untested combinations explicitly.
 
 **Acceptance:** No unresolved P1 within the implemented scope; pending capabilities and excluded work have explicit dispositions. Reviews and approvals still bind the intended versions. No claim of live connectivity or success exceeds observed evidence.
 
