@@ -48,6 +48,9 @@ describe('TestSuitePicker', () => {
     )
 
     await user.click(screen.getByRole('button', { name: /select test suite/i }))
+    expect(
+      screen.getByRole('textbox', { name: /search suites, modules, tags, or child test cases/i }),
+    ).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: /checkout/i }))
     await user.click(screen.getByRole('checkbox', { name: 'Select test case Pay with card' }))
     await user.click(screen.getByRole('button', { name: 'Save' }))

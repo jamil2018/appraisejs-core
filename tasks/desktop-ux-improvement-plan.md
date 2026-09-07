@@ -45,8 +45,8 @@ Every task below is a bounded session-sized slice. File lists identify canonical
 
 ### Task 0.1 — Refresh evidence and create representative fixtures
 
-- [ ] Recheck the report against the current branch and record which findings still reproduce.
-- [ ] Establish isolated fixtures for empty workspace, handoff recovery, connected-without-submitted-work, questions, review, execution, failure, and closed results. Use existing test builders where possible; do not alter the user's active project.
+- [x] Recheck the report against the current branch and record which findings still reproduce.
+- [x] Establish isolated fixtures for empty workspace, handoff recovery, connected-without-submitted-work, questions, review, execution, failure, and closed results. Use existing test builders where possible; do not alter the user's active project.
 
 **Acceptance:** Each finding has a reproducible path or an explicit “no longer reproduced” disposition. Later-state fixtures represent canonical state rather than invented UI-only flags.
 
@@ -56,8 +56,8 @@ Every task below is a bounded session-sized slice. File lists identify canonical
 
 ### Task 0.2 — Record supported desktop and agent behavior
 
-- [ ] Inventory implemented setup, launch, connection, and recovery support for Codex, Claude Code, and Cursor; distinguish automatic launch from manual configuration.
-- [ ] Record the desktop layout contract and any unresolved product choices before layout work.
+- [x] Inventory implemented setup, launch, connection, and recovery support for Codex, Claude Code, and Cursor; distinguish automatic launch from manual configuration.
+- [x] Record the desktop layout contract and any unresolved product choices before layout work.
 
 **Proposed test matrix:** full workspace at 1440×1000 and 1280×800; compact companion window at 960×720. Evaluate 720×800 side-by-side use as an exploratory target, not an assumed supported minimum. Test 200% and 400% desktop zoom and keyboard/screen-reader use separately. A narrow effective viewport caused by zoom remains an accessibility concern even though phones are excluded.
 
@@ -73,8 +73,8 @@ Every task below is a bounded session-sized slice. File lists identify canonical
 
 ### Task 1.1 — Define one human-facing status projection
 
-- [ ] Extend the existing presentation helpers to derive summary, next actor, action, and last-observed information from existing canonical evidence.
-- [ ] Specify precedence when recovery, required questions, pending review, and other attention items coexist; preserve secondary attention items.
+- [x] Extend the existing presentation helpers to derive summary, next actor, action, and last-observed information from existing canonical evidence.
+- [x] Specify precedence when recovery, required questions, pending review, and other attention items coexist; preserve secondary attention items.
 
 **Acceptance:** Missing analysis never generates an active-work claim. Failed/expired handoffs produce recovery guidance. Submitted work and pending decisions take precedence over stale launch messages where appropriate. Unknown or stale connectivity is described as such.
 
@@ -84,8 +84,8 @@ Every task below is a bounded session-sized slice. File lists identify canonical
 
 ### Task 1.2 — Align journey list, detail, and handoff messages
 
-- [ ] Apply the shared projection to journey cards, the next-action panel, and the analysis fallback.
-- [ ] Distinguish operational recovery from recorded workflow blockers and remove contradictory active-work wording.
+- [x] Apply the shared projection to journey cards, the next-action panel, and the analysis fallback.
+- [x] Distinguish operational recovery from recorded workflow blockers and remove contradictory active-work wording.
 
 **Acceptance:** List and detail agree on the same snapshot. A user sees who must act and a matching action. Viewing the page or refreshing status does not launch work, approve anything, or change lifecycle state.
 
@@ -95,8 +95,8 @@ Every task below is a bounded session-sized slice. File lists identify canonical
 
 ### Task 1.3 — Provide contextual agent setup and return navigation
 
-- [ ] Add a route-local setup view or panel reached from Agent setup and the project's readiness state, using existing setup/readiness data.
-- [ ] Preserve project/journey context and provide a clear return action. Separate setup instructions, observed readiness, and launch actions.
+- [x] Add a route-local setup view or panel reached from Agent setup and the project's readiness state, using existing setup/readiness data.
+- [x] Preserve project/journey context and provide a clear return action. Separate setup instructions, observed readiness, and launch actions.
 
 **Acceptance:** A “Not observed” project has a useful next step. Supported providers show accurate instructions; unavailable capabilities are not offered as working actions. Return navigation cannot redirect into an unrelated project or arbitrary external destination.
 
@@ -106,8 +106,8 @@ Every task below is a bounded session-sized slice. File lists identify canonical
 
 ### Task 1.4 — Make launch and recovery feedback accurate
 
-- [ ] Align existing launch/copy toasts and recovery instructions with the confirmed outcome; distinguish launch requested, launched, and connected.
-- [ ] Retain a manual path when clipboard or automatic launch fails, and keep retry bound to the correct journey and current handoff.
+- [x] Align existing launch/copy toasts and recovery instructions with the confirmed outcome; distinguish launch requested, launched, and connected.
+- [x] Retain a manual path when clipboard or automatic launch fails, and keep retry bound to the correct journey and current handoff.
 
 **Acceptance:** Clipboard denial does not strand the user. A failed or expired handoff has a clear recovery action. Repeated clicks do not bypass existing idempotency or silently start duplicate work. Only tested provider actions are enabled.
 
@@ -121,8 +121,8 @@ Every task below is a bounded session-sized slice. File lists identify canonical
 
 ### Task 2.1 — Correct shared field and error associations
 
-- [ ] Support stable IDs, specific accessible names, invalid state, and error descriptions in shared form controls without breaking current consumers.
-- [ ] Apply them to case Title, Test Suites, Filter Tags, and the suite-picker search input; announce or focus validation errors deliberately.
+- [x] Support stable IDs, specific accessible names, invalid state, and error descriptions in shared form controls without breaking current consumers.
+- [x] Apply them to case Title, Test Suites, Filter Tags, and the suite-picker search input; announce or focus validation errors deliberately.
 
 **Acceptance:** Selectors are distinguishable without sight. Errors are associated with their fields, required inputs are identified beforehand, and keyboard users can recover without losing input.
 
@@ -132,8 +132,8 @@ Every task below is a bounded session-sized slice. File lists identify canonical
 
 ### Task 2.2 — Improve meaningful text contrast
 
-- [ ] Measure actual composited text/background pairs and focus indicators on representative pages and states.
-- [ ] Adjust shared text tokens and targeted usages while retaining the navy/mint identity and clear disabled states.
+- [x] Measure actual composited text/background pairs and focus indicators on representative pages and states.
+- [x] Adjust shared text tokens and targeted usages while retaining the navy/mint identity and clear disabled states.
 
 **Acceptance:** Ordinary meaningful text meets a 4.5:1 target; large text and relevant non-text controls meet applicable 3:1 targets. Record exceptions explicitly. Supporting guidance remains readable without relying on screenshots alone.
 
@@ -143,8 +143,8 @@ Every task below is a bounded session-sized slice. File lists identify canonical
 
 ### Task 2.3 — Verify desktop resizing, zoom, and keyboard continuity
 
-- [ ] Test the Phase 0 desktop matrix and zoom with intake, navigation, forms, dialogs, and journey sections.
-- [ ] Fix only reproduced supported-condition clipping or lost controls; inspect internal element bounds, not just document overflow. Retain usable local scrolling where appropriate.
+- [x] Test the Phase 0 desktop matrix and zoom with intake, navigation, forms, dialogs, and journey sections.
+- [x] Fix only reproduced supported-condition clipping or lost controls; inspect internal element bounds, not just document overflow. Retain usable local scrolling where appropriate.
 
 **Acceptance:** Essential text, fields, and actions are reachable under supported desktop conditions. Dialog focus returns correctly; section navigation and command search are keyboard operable. Phone-specific redesign is not included.
 

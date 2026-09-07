@@ -22,10 +22,10 @@ Complete a task only after its acceptance criteria and verification in the plan 
 
 ## Phase 2 — Make desktop interaction accessible
 
-- [ ] 2.1 — Correct shared field and error associations
-- [ ] 2.2 — Improve meaningful text contrast
-- [ ] 2.3 — Verify desktop resizing, zoom, and keyboard continuity
-- [ ] Phase checkpoint: record acceptance, validation, docs/sync, and unresolved risks.
+- [x] 2.1 — Correct shared field and error associations
+- [x] 2.2 — Improve meaningful text contrast
+- [x] 2.3 — Verify desktop resizing, zoom, and keyboard continuity
+- [x] Phase checkpoint: record acceptance, validation, docs/sync, and unresolved risks.
 
 ## Phase 3 — Help users reach their first useful outcome
 
@@ -59,3 +59,4 @@ Complete a task only after its acceptance criteria and verification in the plan 
 | ------------- | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------ |
 | Phase 0       | `509bdfcc`             | Baseline and support matrix recorded in `desktop-ux-phase-0-baseline.md`; existing isolated tests remain the fixture authority.                                                            | Minimum native window size remains a Phase 2 product decision.                                         |
 | Phase 1.1-1.4 | `efc77bcb`, `509bdfcc` | `npx vitest run` on the Phase 1 projection, list, detail, handoff, project, and SQLite handoff suites; `npm run validate` (1,008 unit and 36 Chromium E2E tests); `npm run build`; Fallow and React Doctor commit gates; live 1440x1000 recovery and setup-return walkthrough with no browser console warnings or errors. | Codex is the only implemented provider; Claude Code and Cursor remain unavailable rather than implied. |
+| Phase 2.1-2.3 | `39a65826` | Shared-control component tests and ESLint; calculated token contrast; live accessibility-tree/error/focus verification; Playwright geometry at 1440x1000, 1280x800, 960x720, exploratory 720x800, and 200%/400% effective reflow. | No supported-width clipping reproduced; native VoiceOver/NVDA was not automated. See `desktop-ux-phase-2-evidence.md`. |
