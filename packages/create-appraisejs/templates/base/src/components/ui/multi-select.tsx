@@ -14,6 +14,7 @@ export type Option = {
 }
 
 export type MultiSelectProps = {
+  id?: string
   options: Option[]
   selected: string[]
   onChange: (selected: string[]) => void
@@ -23,9 +24,18 @@ export type MultiSelectProps = {
   emptyMessage?: string
   label?: string
   searchPlaceholder?: string
+  searchLabel?: string
+  invalid?: boolean
+  describedBy?: string
+  required?: boolean
+}
+
+function resolvedSearchLabel(label: string, searchLabel?: string) {
+  return searchLabel ?? `Search ${label.toLowerCase()}`
 }
 
 export function MultiSelect({
+  id,
   options,
   selected,
   onChange,
@@ -35,9 +45,14 @@ export function MultiSelect({
   emptyMessage = 'No options found.',
   label = 'Select options',
   searchPlaceholder = 'Search options...',
+  searchLabel,
+  invalid = false,
+  describedBy,
+  required = false,
 }: MultiSelectProps) {
   const [open, setOpen] = React.useState(false)
   const listboxId = React.useId()
+  const accessibleSearchLabel = resolvedSearchLabel(label, searchLabel)
 
   const handleUnselect = (value: string) => {
     onChange(selected.filter(item => item !== value))
@@ -64,11 +79,15 @@ export function MultiSelect({
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <div
+          id={id}
           role="combobox"
           aria-expanded={open}
           aria-controls={listboxId}
           aria-haspopup="listbox"
           aria-label={label}
+          aria-invalid={invalid}
+          aria-describedby={describedBy}
+          aria-required={required}
           tabIndex={0}
           className={cn(
             'bg-background/55 flex min-h-9 w-full flex-wrap items-center justify-between rounded-md border border-white/[0.12] px-3 py-1.5 text-sm shadow-[inset_0_1px_0_rgba(255,255,255,0.025)] ring-offset-background transition-colors hover:border-white/[0.18] focus:outline-none focus:ring-1 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50',
@@ -112,8 +131,8 @@ export function MultiSelect({
         className="w-[var(--radix-popover-trigger-width)] border-white/[0.12] bg-[rgba(16,30,50,0.98)] p-0 shadow-xl backdrop-blur-xl"
         align="start"
       >
-        <Command>
-          <CommandInput placeholder={searchPlaceholder} aria-label={searchPlaceholder} />
+        <Command label={accessibleSearchLabel}>
+          <CommandInput placeholder={searchPlaceholder} aria-label={accessibleSearchLabel} />
           <CommandList id={listboxId} role="listbox" aria-multiselectable="true">
             <CommandEmpty>{emptyMessage}</CommandEmpty>
             <CommandGroup className="max-h-64 overflow-auto">

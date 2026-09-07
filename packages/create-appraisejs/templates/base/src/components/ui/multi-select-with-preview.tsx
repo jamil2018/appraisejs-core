@@ -56,10 +56,12 @@ function MultiSelectWithPreviewImpl({
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
           <Button
+            id={id}
             variant="outline"
             role="combobox"
             aria-expanded={open}
             aria-controls={listId}
+            aria-label={placeholder}
             className={cn('w-full justify-between text-muted-foreground', className)}
           >
             {selectedValues.length > 0 ? `${selectedValues.length} ${selectedLabel.toLowerCase()}` : placeholder}
@@ -67,15 +69,18 @@ function MultiSelectWithPreviewImpl({
           </Button>
         </PopoverTrigger>
         <PopoverContent className={cn('w-full max-w-[600px] p-0', className)} align="start">
-          <Command className={cn('w-full', className)}>
-            <CommandInput placeholder={searchPlaceholder ?? `Search item(s)...`} className="w-full" />
+          <Command label={searchPlaceholder ?? 'Search options'} className={cn('w-full', className)}>
+            <CommandInput
+              placeholder={searchPlaceholder ?? `Search item(s)...`}
+              aria-label={searchPlaceholder ?? 'Search options'}
+              className="w-full"
+            />
             <CommandList id={listId} className={cn('w-full', className)}>
               <CommandEmpty>{emptyMessage}</CommandEmpty>
               <CommandGroup className={cn('w-full', className)}>
                 {options.map(option => (
                   <CommandItem
                     key={option.value}
-                    id={id}
                     onSelect={() => handleSelect(option.value)}
                     className={cn('w-full', className)}
                   >

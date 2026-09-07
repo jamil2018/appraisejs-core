@@ -194,8 +194,8 @@ function getReusableStepCount(templateTestCase: TemplateTestCaseWithSteps | null
   return templateTestCase?.steps.length ?? 0
 }
 
-function TestCaseFormFieldError({ message }: { message?: string[] }) {
-  return <ErrorMessage message={message?.[0] || ''} visible={Boolean(message?.[0])} />
+function TestCaseFormFieldError({ id, message }: { id: string; message?: string[] }) {
+  return <ErrorMessage id={id} message={message?.[0] || ''} visible={Boolean(message?.[0])} />
 }
 
 type WizardProgressProps = {
@@ -409,7 +409,12 @@ function TemplateSelectionStep({
               <div className="flex flex-col gap-2">
                 <Label htmlFor="templateTestCaseId">Template Test Case</Label>
                 <Select onValueChange={onTemplateChange} value={selectedTemplateId}>
-                  <SelectTrigger id="templateTestCaseId" aria-label="Template Test Case">
+                  <SelectTrigger
+                    id="templateTestCaseId"
+                    aria-label="Template Test Case"
+                    aria-invalid={Boolean(errors.templateTestCaseId?.length)}
+                    aria-describedby="template-test-case-error"
+                  >
                     <SelectValue placeholder="Select a template test case" />
                   </SelectTrigger>
                   <SelectContent isEmpty={templateOptions.length === 0}>
@@ -421,6 +426,7 @@ function TemplateSelectionStep({
                   </SelectContent>
                 </Select>
                 <TestCaseFormFieldError
+                  id="template-test-case-error"
                   message={errors.templateTestCaseId?.map(error => getFieldErrorMessage(error))}
                 />
               </div>
@@ -620,8 +626,16 @@ function DetailsStep({
             <CardContent>
               <div className="mb-6 flex flex-col gap-2">
                 <Label htmlFor="title">Title</Label>
-                <Input id="title" name="title" value={title} onChange={onTitleChange} />
-                <TestCaseFormFieldError message={errors.title} />
+                <Input
+                  id="title"
+                  name="title"
+                  value={title}
+                  onChange={onTitleChange}
+                  required
+                  aria-invalid={Boolean(errors.title?.length)}
+                  aria-describedby="title-error"
+                />
+                <TestCaseFormFieldError id="title-error" message={errors.title} />
               </div>
               <div className="mb-6 flex flex-col gap-2">
                 <Label htmlFor="description">Description</Label>
@@ -631,8 +645,10 @@ function DetailsStep({
                   value={description}
                   onChange={onDescriptionChange}
                   className="bg-background"
+                  aria-invalid={Boolean(errors.description?.length)}
+                  aria-describedby="description-error"
                 />
-                <TestCaseFormFieldError message={errors.description} />
+                <TestCaseFormFieldError id="description-error" message={errors.description} />
               </div>
               <TestSuiteSelectionField
                 availableTestSuites={availableTestSuites}
@@ -689,6 +705,12 @@ function TestSuiteSelectionField({
       <div className="flex items-end gap-2">
         <div className="flex-1">
           <MultiSelect
+            id="test-suites"
+            label="Test Suites"
+            searchLabel="Search test suites"
+            required
+            invalid={Boolean(errorMessage?.length)}
+            describedBy={errorMessage?.length ? 'test-suites-error' : undefined}
             options={availableTestSuites.map(testSuite => ({
               label: testSuite.name,
               value: testSuite.id,
@@ -708,7 +730,7 @@ function TestSuiteSelectionField({
           <Plus className="size-4" />
         </Button>
       </div>
-      <TestCaseFormFieldError message={errorMessage} />
+      <TestCaseFormFieldError id="test-suites-error" message={errorMessage} />
     </div>
   )
 }
@@ -727,6 +749,9 @@ function TagSelectionField({ availableTags, selectedTags, onChange, onCreateClic
       <div className="flex items-end gap-2">
         <div className="flex-1">
           <MultiSelect
+            id="tags"
+            label="Filter Tags"
+            searchLabel="Search filter tags"
             options={availableTags.map(tag => ({
               label: tag.name,
               value: tag.id,
@@ -809,7 +834,7 @@ function FlowStep({
             ) : (
               flowPanel
             )}
-            <TestCaseFormFieldError message={errors.steps} />
+            <TestCaseFormFieldError id="steps-error" message={errors.steps} />
           </div>
         </LayoutGroup>
       </LazyMotion>
