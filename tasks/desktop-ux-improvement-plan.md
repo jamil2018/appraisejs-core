@@ -234,8 +234,8 @@ Every task below is a bounded session-sized slice. File lists identify canonical
 
 ### Task 5.1 — Refine journey visual hierarchy
 
-- [ ] Make the current next action and pending decisions visually dominant; reduce redundant cards and repeated Quick Tips.
-- [ ] Keep advanced metadata available through existing technical-detail disclosure, preserving evidence visibility and keyboard access.
+- [x] Make the current next action and pending decisions visually dominant; reduce redundant cards and repeated Quick Tips.
+- [x] Keep advanced metadata available through existing technical-detail disclosure, preserving evidence visibility and keyboard access.
 
 **Acceptance:** The user can identify stage, responsibility, and next action at supported desktop sizes. Detailed evidence remains accessible. No new decorative motion or redesigned lifecycle is required.
 
@@ -245,8 +245,8 @@ Every task below is a bounded session-sized slice. File lists identify canonical
 
 ### Task 5.2 — Improve Step Definition browsing density
 
-- [ ] Add category filtering using existing metadata and a compact list option alongside the current card view.
-- [ ] Preserve search over identifiers/signatures and provide progressive access to detailed metadata. Keep view preference local unless existing preference storage is suitable.
+- [x] Add category filtering using existing metadata and a compact list option alongside the current card view.
+- [x] Preserve search over identifiers/signatures and provide progressive access to detailed metadata. Keep view preference local unless existing preference storage is suitable.
 
 **Acceptance:** Search and category filters compose correctly; result counts and empty states agree. Switching views preserves selection/filter state and version identity. Source-managed behavior and immutable versions remain explicit.
 

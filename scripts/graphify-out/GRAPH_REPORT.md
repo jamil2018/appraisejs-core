@@ -1,4 +1,4 @@
-# Graph Report - scripts  (2026-09-06)
+# Graph Report - scripts  (2026-09-08)
 
 ## Corpus Check
 - cluster-only mode — file stats not available
@@ -9,7 +9,7 @@
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `1f3a7857`
+- Built from commit: `81847104`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -63,7 +63,7 @@
 7. `parseStepCall()` - 7 edges
 8. `readJournal()` - 7 edges
 9. `normalizeTaskClass()` - 7 edges
-10. `validateFinding()` - 7 edges
+10. `auditQualityJourneyIntegrity()` - 7 edges
 
 ## Surprising Connections (you probably didn't know these)
 - `main()` --calls--> `ensureBuiltInStepDefinitionReadiness()`  [INFERRED]

@@ -53,7 +53,7 @@ test.describe('Test hierarchy CRUD @crud', () => {
   test('create test case from template lands on modify with prefilled flow', async ({ page }) => {
     await page.goto('/test-cases/create-from-template')
     await expectPageHeading(page, 'Create Test Case From Template')
-    await page.getByLabel('Template Test Case').click()
+    await page.getByLabel('Case Template').click()
     await page.getByRole('option', { name: 'E2E Login Template' }).click()
     await page.getByRole('button', { name: /Continue/ }).click()
     await page.getByRole('textbox', { name: 'Title' }).fill('E2E From Template Case')

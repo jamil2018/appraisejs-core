@@ -77,7 +77,7 @@ export async function createLocator(page: Page, name: string, selector: string, 
 
 export async function createTemplateTestCase(page: Page, name: string): Promise<void> {
   await page.goto('/template-test-cases/create')
-  await expectPageHeading(page, 'Create Template Test Case')
+  await expectPageHeading(page, 'Create Case Template')
   await page.getByLabel('Title').fill(name)
   await addStepDefinitionToFlow(page)
   await completeNamedCreate(page, name, /\/template-test-cases$/)
