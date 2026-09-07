@@ -37,8 +37,8 @@ Complete a task only after its acceptance criteria and verification in the plan 
 ## Phase 4 — Make the product model understandable
 
 - [ ] 4.1 — Consolidate vocabulary and validate navigation grouping
-- [ ] 4.2 — Add contextual help and a worked example
-- [ ] 4.3 — Resolve the empty Settings destination
+- [x] 4.2 — Add contextual help and a worked example
+- [x] 4.3 — Resolve the empty Settings destination
 - [ ] Phase checkpoint: record acceptance, validation, docs/sync, and unresolved risks.
 
 ## Phase 5 — Improve focus and repeated use
@@ -61,3 +61,4 @@ Complete a task only after its acceptance criteria and verification in the plan 
 | Phase 1.1-1.4 | `efc77bcb`, `509bdfcc` | `npx vitest run` on the Phase 1 projection, list, detail, handoff, project, and SQLite handoff suites; `npm run validate` (1,008 unit and 36 Chromium E2E tests); `npm run build`; Fallow and React Doctor commit gates; live 1440x1000 recovery and setup-return walkthrough with no browser console warnings or errors. | Codex is the only implemented provider; Claude Code and Cursor remain unavailable rather than implied. |
 | Phase 2.1-2.3 | `39a65826` | Shared-control component tests and ESLint; calculated token contrast; live accessibility-tree/error/focus verification; Playwright geometry at 1440x1000, 1280x800, 960x720, exploratory 720x800, and 200%/400% effective reflow. | No supported-width clipping reproduced; native VoiceOver/NVDA was not automated. See `desktop-ux-phase-2-evidence.md`. |
 | Phase 3.1-3.3 | `4424cfb0` | Dashboard state, manual prerequisite, project-scope, and intake autosave tests; live dashboard/run-form/intake walkthrough; canonical template sync. | In-app Browser was unavailable because the Mac was locked; the documented Playwright CLI fallback was used. See `desktop-ux-phase-3-evidence.md`. |
+| Phase 4.1-4.3 | `c319b44b` | Vocabulary/navigation tests; live command search, Help, Settings, active-project links, keyboard, and console walkthrough; canonical template sync. | Intended-user first-click validation has not occurred, so navigation groups remain unchanged and Task 4.1/checkpoint remain open. See `desktop-ux-phase-4-evidence.md`. |

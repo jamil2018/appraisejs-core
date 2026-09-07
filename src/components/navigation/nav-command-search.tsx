@@ -92,7 +92,7 @@ export function NavCommandSearch({ commandMode, searchQuery, onSelectRoute }: Na
       return (
         <EntitySearchCommand
           searchQuery={searchQuery}
-          entityName="Template Test Case"
+          entityName="Case Template"
           fetchAction={getAllTemplateTestCasesAction}
           getEntities={getTemplateTestCaseRows}
           searchKey="name"

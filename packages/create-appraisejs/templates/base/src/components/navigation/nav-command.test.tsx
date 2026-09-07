@@ -57,6 +57,17 @@ describe('NavCommand', () => {
     expect(push).toHaveBeenCalledWith('/settings')
   })
 
+  it('finds Help by glossary terminology', async () => {
+    const user = userEvent.setup()
+    render(<NavCommand />)
+
+    await user.click(screen.getByRole('button', { name: 'Open Command Palette' }))
+    await user.type(screen.getByPlaceholderText('Type a command or search...'), 'glossary')
+    await user.click(await screen.findByText('Help'))
+
+    expect(push).toHaveBeenCalledWith('/help')
+  })
+
   it('clears the active search mode when backspace is pressed on an empty search input', async () => {
     const user = userEvent.setup()
 

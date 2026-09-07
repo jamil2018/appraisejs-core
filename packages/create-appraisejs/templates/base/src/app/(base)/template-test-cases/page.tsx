@@ -8,10 +8,11 @@ import { getAllTemplateTestCasesAction } from '@/actions/template-test-case/temp
 import EmptyState from '@/components/data-state/empty-state'
 import { TemplateTestCase, TemplateTestCaseStep } from '@prisma/client'
 import { Metadata } from 'next'
+import { presentationVocabulary } from '@/lib/presentation-vocabulary'
 
 export const metadata: Metadata = {
-  title: 'Appraise | Template Test Cases',
-  description: 'Manage template test cases for quickly creating test cases',
+  title: `Appraise | ${presentationVocabulary.caseTemplate.plural}`,
+  description: 'Manage reusable Case Templates for quickly creating test cases',
 }
 
 const TemplateTestCasesPage = async () => {
@@ -28,10 +29,10 @@ const TemplateTestCasesPage = async () => {
       <div className="flex min-h-[calc(100vh-20rem)] items-center justify-center">
         <EmptyState
           icon={<Blocks className="size-8" />}
-          title="No template test cases found"
-          description="Get started by creating a template test case to quickly create test cases"
+          title="No Case Templates found"
+          description="Create a reusable Case Template to prepare test cases faster"
           createRoute="/template-test-cases/create"
-          createText="Create Template Test Case"
+          createText={presentationVocabulary.caseTemplate.create}
         />
       </div>
     )
@@ -43,7 +44,7 @@ const TemplateTestCasesPage = async () => {
         <PageHeader>
           <span className="flex items-center">
             <Blocks className="mr-2 size-8" />
-            Template Test Cases
+            {presentationVocabulary.caseTemplate.plural}
           </span>
         </PageHeader>
         <HeaderSubtitle>A collection of templates to quickly create test cases</HeaderSubtitle>

@@ -1,5 +1,6 @@
 import {
   Blocks,
+  CircleHelp,
   Code,
   FileCheck,
   Group,
@@ -17,6 +18,8 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 
+import { presentationVocabulary } from '@/lib/presentation-vocabulary'
+
 export type SearchCommandMode =
   'search-test-suite' | 'search-test-case' | 'search-test-run' | 'search-template-test-case'
 
@@ -26,6 +29,7 @@ export type NavigationCommandItem = {
   href: string
   label: string
   icon: LucideIcon
+  keywords?: string[]
 }
 
 export type NavigationCommandGroup = {
@@ -45,14 +49,14 @@ export const commandModePlaceholders: Record<SearchCommandMode, string> = {
   'search-test-suite': 'Search Test Suite by Name...',
   'search-test-case': 'Search Test Case by Title...',
   'search-test-run': 'Search Test Run by Name...',
-  'search-template-test-case': 'Search Template Test Case by Name...',
+  'search-template-test-case': 'Search Case Template by Name...',
 }
 
 const commandModeLabels: Record<SearchCommandMode, string> = {
   'search-test-suite': 'Search Test Suite',
   'search-test-case': 'Search Test Case',
   'search-test-run': 'Search Test Run',
-  'search-template-test-case': 'Search Template Test Case',
+  'search-template-test-case': 'Search Case Templates',
 }
 
 export type NavigationCommandGroupOptions = {
@@ -92,7 +96,7 @@ function getLibrarySection(): NavigationSection {
     label: 'Library',
     items: [
       { href: '/step-definitions', label: 'Step Definitions', icon: LayoutTemplate },
-      { href: '/template-test-cases', label: 'Case Templates', icon: Blocks },
+      { href: '/template-test-cases', label: presentationVocabulary.caseTemplate.plural, icon: Blocks },
       { href: '/locators', label: 'Locators', icon: Code },
       { href: '/locator-groups', label: 'Locator Groups', icon: Group },
       { href: '/modules', label: 'Modules', icon: Puzzle },
@@ -108,6 +112,7 @@ function getSystemSection(): NavigationSection {
     items: [
       { href: '/projects', label: 'Projects', icon: FolderKanban },
       { href: '/settings', label: 'Settings', icon: Settings2 },
+      { href: '/help', label: 'Help', icon: CircleHelp, keywords: ['setup', 'glossary', 'approvals', 'recovery'] },
     ],
   }
 }
@@ -135,11 +140,9 @@ export function getNavigationCommandGroups(_options: NavigationCommandGroupOptio
     {
       heading: library.label,
       items: [
-        ...library.items.map(item =>
-          item.href === '/template-test-cases' ? { ...item, label: 'Template Test Cases' } : item,
-        ),
+        ...library.items,
         { href: '/step-definitions/create', label: 'Create Step Definition', icon: LayoutTemplate },
-        { href: '/template-test-cases/create', label: 'Create Template Test Case', icon: Blocks },
+        { href: '/template-test-cases/create', label: presentationVocabulary.caseTemplate.create, icon: Blocks },
       ],
     },
     { heading: system.label, items: system.items },
@@ -150,7 +153,7 @@ export const searchCommandItems: SearchCommandItem[] = [
   { mode: 'search-test-case', label: 'Search Test Cases', icon: TestTubeDiagonal },
   { mode: 'search-test-suite', label: 'Search Test Suites', icon: TestTubes },
   { mode: 'search-test-run', label: 'Search Test Runs', icon: ListChecks },
-  { mode: 'search-template-test-case', label: 'Search Template Test Cases', icon: Blocks },
+  { mode: 'search-template-test-case', label: presentationVocabulary.caseTemplate.search, icon: Blocks },
 ]
 
 export function getCommandBadge(commandMode: CommandMode, onClose: () => void) {
