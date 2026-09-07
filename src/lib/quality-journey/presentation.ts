@@ -306,7 +306,7 @@ function observedProgressAction(
   attention: AttentionItem[],
 ): QualityJourneyNextAction {
   const displayStage = displayStageForQualityJourney(input.stage)
-  if (input.stage === 'ANALYSIS' && !input.hasObservedWorkerProgress) {
+  if (['ANALYSIS', 'ANALYSIS_REVIEW'].includes(input.stage) && !input.hasObservedWorkerProgress) {
     const guidance = codexHandoffGuidance(input.handoffStatus ?? 'NOT_PREPARED')
     return {
       title: guidance.label,
@@ -472,6 +472,15 @@ function inProgressCandidate(input: QualityJourneyStatusProjectionInput): Status
   }
 }
 
+function missingAnalysisCandidate(input: QualityJourneyStatusProjectionInput): StatusCandidate | null {
+  if (input.stage !== 'ANALYSIS_REVIEW' || input.hasObservedWorkerProgress) return null
+  return {
+    summary: 'No proposed test approach has been submitted for review.',
+    nextActor: 'You',
+    secondarySummary: 'A proposed test approach has not been submitted',
+  }
+}
+
 function statusCandidates(input: QualityJourneyStatusProjectionInput): StatusCandidate[] {
   const attention = [
     closedCandidate(input),
@@ -494,6 +503,7 @@ function statusCandidates(input: QualityJourneyStatusProjectionInput): StatusCan
     ),
     permissionCandidate(input),
     handoffCandidate(input),
+    missingAnalysisCandidate(input),
   ].filter(isStatusCandidate)
   return attention.length ? attention : [inProgressCandidate(input)]
 }
@@ -547,7 +557,10 @@ export function qualityJourneyStatusProjection(
   input: QualityJourneyStatusProjectionInput,
 ): QualityJourneyStatusProjection {
   const [primary, ...secondary] = statusCandidates(input)
-  const nextAction = nextActionForQualityJourney(input)
+  const nextAction = nextActionForQualityJourney({
+    ...input,
+    pendingAnalysisDecision: input.pendingAnalysisDecision && input.hasObservedWorkerProgress,
+  })
   return {
     summary: primary.summary,
     nextActor: primary.nextActor,

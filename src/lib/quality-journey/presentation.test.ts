@@ -258,8 +258,9 @@ describe('Quality Journey presentation', () => {
         hasObservedWorkerProgress: false,
       }),
     ).toMatchObject({
-      summary: 'Test approach is in progress.',
-      nextActor: 'Appraise',
+      summary: 'No proposed test approach has been submitted for review.',
+      nextActor: 'You',
+      action: { label: 'Start test approach', destination: 'analysis' },
     })
   })
 })
