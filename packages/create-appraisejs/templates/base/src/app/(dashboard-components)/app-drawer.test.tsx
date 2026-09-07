@@ -14,15 +14,22 @@ vi.mock('next/navigation', () => ({
 
 describe('AppDrawer', () => {
   it('disables attention cards whose count is zero', () => {
-    render(<AppDrawer metrics={null} title="Attention Needed" description="Issues requiring action" />)
+    render(
+      <AppDrawer
+        metrics={null}
+        title="Attention Needed"
+        description="Issues requiring action"
+        hasExecutionEvidence={false}
+      />,
+    )
 
-    expect(screen.getByRole('button', { name: 'Failed Runs: 0. No recent failures' })).toHaveAttribute(
+    expect(screen.getByRole('button', { name: 'Failed Runs: 0. No completed-run evidence yet' })).toHaveAttribute(
       'data-state',
       'disabled',
     )
-    expect(screen.getByRole('button', { name: 'Failing Tests: 0. No failing tests' })).toBeDisabled()
-    expect(screen.getByRole('button', { name: 'Flaky Tests: 0. No flaky tests' })).toBeDisabled()
-    expect(screen.getByRole('button', { name: 'Unexecuted Suites: 0. All suites current' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Failing Tests: 0. No completed-run evidence yet' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Flaky Tests: 0. No completed-run evidence yet' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Unexecuted Suites: 0. No completed-run evidence yet' })).toBeDisabled()
   })
 
   it('keeps nonzero attention cards actionable', async () => {
@@ -41,6 +48,7 @@ describe('AppDrawer', () => {
         }}
         title="Attention Needed"
         description="Issues requiring action"
+        hasExecutionEvidence={true}
       />,
     )
 

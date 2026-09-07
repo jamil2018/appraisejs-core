@@ -1,9 +1,12 @@
 'use client'
 
 import { useMemo, useReducer } from 'react'
+import Link from 'next/link'
+import { Plus, RefreshCw } from 'lucide-react'
 
 import { PickerBrowseDialogFrame, PickerBrowseTriggerButton } from '@/components/ui/picker-browse-shell'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { cn } from '@/lib/utils'
 import type { TestSuitePickerRow, TestSuiteSelection } from '@/types/test-suite-picker'
@@ -27,6 +30,8 @@ type TestSuitePickerProps = {
   dialogTitle: string
   dialogDescription: string
   selectedLabel: string
+  emptyActionHref?: string
+  onRefresh?: () => void
 }
 
 type Updater<T> = T | ((prev: T) => T)
@@ -94,6 +99,8 @@ function TestSuitePicker({
   dialogTitle,
   dialogDescription,
   selectedLabel,
+  emptyActionHref,
+  onRefresh,
 }: TestSuitePickerProps) {
   const [state, dispatch] = useReducer(suitePickerReducer, undefined, createInitialSuitePickerState)
   const { open, query, draftSelections, expandedSuites } = state
@@ -187,7 +194,23 @@ function TestSuitePicker({
                 />
               ))
             ) : (
-              <div className="px-4 py-10 text-center text-sm text-muted-foreground">No test suites found.</div>
+              <div className="flex flex-col items-center gap-3 px-4 py-10 text-center text-sm text-muted-foreground">
+                <p>No project-owned test suites match this picker.</p>
+                {emptyActionHref ? (
+                  <div className="flex flex-wrap justify-center gap-2">
+                    <Button asChild size="sm" variant="outline">
+                      <Link href={emptyActionHref} target="_blank">
+                        <Plus aria-hidden="true" className="mr-2 size-4" /> Create a test suite in a new tab
+                      </Link>
+                    </Button>
+                    {onRefresh ? (
+                      <Button onClick={onRefresh} size="sm" type="button" variant="ghost">
+                        <RefreshCw aria-hidden="true" className="mr-2 size-4" /> Refresh available suites
+                      </Button>
+                    ) : null}
+                  </div>
+                ) : null}
+              </div>
             )}
           </div>
         </ScrollArea>

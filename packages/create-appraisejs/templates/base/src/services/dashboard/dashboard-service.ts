@@ -17,6 +17,8 @@ export type EntityMetrics = {
   testSuitesCount: number
   stepDefinitionsCount: number
   runningTestRunsCount: number
+  completedTestRunsCount: number
+  qualityJourneysCount: number
 }
 
 export async function getDashboardMetrics(targetProjectId: string) {
@@ -36,12 +38,18 @@ export async function getEntityMetrics(targetProjectId: string): Promise<EntityM
       },
     },
   })
+  const completedTestRuns = await prisma.testRun.count({
+    where: { targetProjectId, status: TestRunStatus.COMPLETED },
+  })
+  const qualityJourneys = await prisma.qualityJourney.count({ where: { targetProjectId } })
 
   return {
     testCasesCount: testCases,
     testSuitesCount: testSuites,
     stepDefinitionsCount: stepDefinitions,
     runningTestRunsCount: runningTestRuns,
+    completedTestRunsCount: completedTestRuns,
+    qualityJourneysCount: qualityJourneys,
   }
 }
 

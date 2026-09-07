@@ -1,6 +1,6 @@
 # AppraiseJS desktop UX improvement plan
 
-Status: proposed implementation plan; no implementation tasks completed.
+Status: in progress; Phases 0–3 implemented and verified.
 
 Basis: [revised UX/UI review](../docs/reviews/appraisejs-ux-ui-review-2026-09-07.md) and the product owner's clarification that AppraiseJS is a coding-agent companion evolving into a desktop quality engineering operating system.
 
@@ -158,8 +158,8 @@ Every task below is a bounded session-sized slice. File lists identify canonical
 
 ### Task 3.1 — Give an empty workspace an actionable dashboard
 
-- [ ] Derive empty, untested, and populated presentation states from existing project-scoped data; do not treat zero failures as demonstrated health.
-- [ ] Put one primary Quality Journey action and a short project/agent readiness checklist ahead of empty statistics. Keep manual authoring available as an expert route.
+- [x] Derive empty, untested, and populated presentation states from existing project-scoped data; do not treat zero failures as demonstrated health.
+- [x] Put one primary Quality Journey action and a short project/agent readiness checklist ahead of empty statistics. Keep manual authoring available as an expert route.
 
 **Acceptance:** Empty and untested states explain what is missing. Existing populated metrics remain correct. A ready project can reach intake directly, and an unready project reaches contextual setup without losing context.
 
@@ -169,8 +169,8 @@ Every task below is a bounded session-sized slice. File lists identify canonical
 
 ### Task 3.2 — Make manual run prerequisites recoverable
 
-- [ ] Make Reports and Create Run empty states explain missing suites/tests and link to the next valid creation step.
-- [ ] Add prerequisite recovery in the suite picker and preserve run/case form input across inline creation or safe return navigation.
+- [x] Make Reports and Create Run empty states explain missing suites/tests and link to the next valid creation step.
+- [x] Add prerequisite recovery in the suite picker and preserve run/case form input across inline creation or safe return navigation.
 
 **Acceptance:** The empty picker has a useful action rather than only Cancel/Save. Recovery returns to the original form and selects only valid project-owned entities. Independent runs are distinguished from journey-managed execution.
 
@@ -180,8 +180,8 @@ Every task below is a bounded session-sized slice. File lists identify canonical
 
 ### Task 3.3 — Save drafts only after meaningful input
 
-- [ ] Separate step navigation from content dirty tracking; visiting sections alone must not create a draft.
-- [ ] Preserve autosave after substantive changes and show completion based on answered requirements, independently of last visited step.
+- [x] Separate step navigation from content dirty tracking; visiting sections alone must not create a draft.
+- [x] Preserve autosave after substantive changes and show completion based on answered requirements, independently of last visited step.
 
 **Acceptance:** Navigation-only exploration creates zero records. A real edit saves and resumes correctly. Existing drafts, conflicts, retry, save-as-new, and final review continue to work. Existing empty drafts are not automatically deleted.
 

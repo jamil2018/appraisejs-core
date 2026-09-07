@@ -6,6 +6,8 @@ import ReportTable from './report-table'
 import EmptyState from '@/components/data-state/empty-state'
 import { getAllReportsAction } from '@/actions/reports/report-actions'
 import { isValidReportList } from './report-detail-helpers'
+import { Button } from '@/components/ui/button'
+import Link from 'next/link'
 
 export const metadata: Metadata = {
   title: 'Appraise | Reports',
@@ -26,13 +28,18 @@ const Reports = async () => {
   if (!reports || reports.length === 0) {
     return (
       <div className="flex min-h-[calc(100vh-20rem)] items-center justify-center">
-        <EmptyState
-          icon={<FileCheck className="size-8" />}
-          title="No reports found"
-          description="Get started by creating a test run to generate reports"
-          createRoute="/test-runs/create"
-          createText="Create Test Run"
-        />
+        <div className="space-y-4 text-center">
+          <EmptyState
+            icon={<FileCheck className="size-8" />}
+            title="No completed-run reports yet"
+            description="Reports appear after a run completes. Start with a guided Quality Journey, or prepare an independent manual run if tests already exist."
+            createRoute="/quality-journeys/new"
+            createText="Start a Quality Journey"
+          />
+          <Button asChild variant="outline">
+            <Link href="/test-runs/create">Prepare an independent run</Link>
+          </Button>
+        </div>
       </div>
     )
   }

@@ -76,8 +76,49 @@ describe('QualityJourneyCreateForm', () => {
 
     await waitFor(() => expect(mocks.createDraft).toHaveBeenCalled(), { timeout: 1500 })
     expect(mocks.createDraft).toHaveBeenCalledWith(
-      expect.objectContaining({ requirement: expect.objectContaining({ context: 'A launch depends on this behavior.' }) }),
+      expect.objectContaining({
+        requirement: expect.objectContaining({ context: 'A launch depends on this behavior.' }),
+      }),
     )
+  })
+
+  it('does not create a draft when the user only visits intake sections', async () => {
+    const user = userEvent.setup()
+    render(<QualityJourneyCreateForm initialEnvironments={environments} projectId="project-1" />)
+
+    await user.click(screen.getByRole('button', { name: '02Scope and success' }))
+    await user.click(screen.getByRole('button', { name: '03Checks' }))
+    await user.click(screen.getByRole('button', { name: '04Test location' }))
+    await new Promise(resolve => window.setTimeout(resolve, 850))
+
+    expect(mocks.createDraft).not.toHaveBeenCalled()
+    expect(screen.getByText(/saved to this workspace after your first edit/i)).toBeInTheDocument()
+  })
+
+  it('keeps the latest rapid edit in the first autosave', async () => {
+    const user = userEvent.setup()
+    render(<QualityJourneyCreateForm initialEnvironments={environments} projectId="project-1" />)
+
+    await user.type(screen.getByLabelText(/Context/), 'First thought, refined before autosave.')
+
+    await waitFor(() => expect(mocks.createDraft).toHaveBeenCalledOnce(), { timeout: 1500 })
+    expect(mocks.createDraft).toHaveBeenCalledWith(
+      expect.objectContaining({
+        requirement: expect.objectContaining({ context: 'First thought, refined before autosave.' }),
+      }),
+    )
+  })
+
+  it('offers retry and conflict recovery after an autosave failure', async () => {
+    mocks.createDraft.mockResolvedValueOnce({ success: false, error: 'A newer saved version exists.' })
+    const user = userEvent.setup()
+    render(<QualityJourneyCreateForm initialEnvironments={environments} projectId="project-1" />)
+
+    await user.type(screen.getByLabelText(/Context/), 'Keep this edit.')
+
+    expect(await screen.findByRole('button', { name: 'Retry save' }, { timeout: 1500 })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Load saved version' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Save my edits as a new draft' })).toBeInTheDocument()
   })
 
   it('creates a requirement and navigates to its stable Quality Journey identifier', async () => {

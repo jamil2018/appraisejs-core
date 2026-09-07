@@ -12,6 +12,7 @@ vi.mock('@/config/db-config', () => ({
     testCase: { count: vi.fn() },
     testSuite: { count: vi.fn() },
     stepDefinition: { count: vi.fn() },
+    qualityJourney: { count: vi.fn() },
     report: { findMany: vi.fn() },
     dashboardMetrics: { findFirst: vi.fn() },
   },
@@ -46,15 +47,19 @@ describe('getEntityMetrics', () => {
     vi.mocked(prisma.testCase.count).mockResolvedValue(2)
     vi.mocked(prisma.testSuite.count).mockResolvedValue(3)
     vi.mocked(prisma.stepDefinition.count).mockResolvedValue(7)
-    vi.mocked(prisma.testRun.count).mockResolvedValue(1)
+    vi.mocked(prisma.testRun.count).mockResolvedValueOnce(1).mockResolvedValueOnce(4)
+    vi.mocked(prisma.qualityJourney.count).mockResolvedValue(2)
 
     await expect(getEntityMetrics('project-1')).resolves.toEqual({
       testCasesCount: 2,
       testSuitesCount: 3,
       stepDefinitionsCount: 7,
       runningTestRunsCount: 1,
+      completedTestRunsCount: 4,
+      qualityJourneysCount: 2,
     })
     expect(prisma.stepDefinition.count).toHaveBeenCalledWith({ where: { status: 'ready' } })
+    expect(prisma.qualityJourney.count).toHaveBeenCalledWith({ where: { targetProjectId: 'project-1' } })
   })
 })
 

@@ -7,8 +7,9 @@ import { describe, expect, it, vi } from 'vitest'
 
 import TestRunForm from './test-run-form'
 
-const { push, toast, checkTestRunNameUniqueAction } = vi.hoisted(() => ({
+const { push, refresh, toast, checkTestRunNameUniqueAction } = vi.hoisted(() => ({
   push: vi.fn(),
+  refresh: vi.fn(),
   toast: vi.fn(),
   checkTestRunNameUniqueAction: vi.fn(),
 }))
@@ -16,6 +17,7 @@ const { push, toast, checkTestRunNameUniqueAction } = vi.hoisted(() => ({
 vi.mock('next/navigation', () => ({
   useRouter: () => ({
     push,
+    refresh,
   }),
 }))
 
@@ -51,6 +53,27 @@ vi.mock('@/components/test-suite/test-suite-picker', () => ({
 }))
 
 describe('TestRunForm', () => {
+  it('offers prerequisite creation without navigating away from entered values', async () => {
+    const user = userEvent.setup()
+    render(
+      <TestRunForm
+        successTitle="Test Run Created"
+        successMessage="Created"
+        testSuites={[]}
+        environments={[]}
+        tags={[]}
+        onSubmitAction={vi.fn()}
+      />,
+    )
+
+    await user.type(screen.getByLabelText('Name'), 'Preserved run')
+    expect(screen.getByRole('link', { name: 'Create test case' })).toHaveAttribute('target', '_blank')
+    await user.click(screen.getByRole('button', { name: 'Refresh choices' }))
+
+    expect(refresh).toHaveBeenCalledOnce()
+    expect(screen.getByLabelText('Name')).toHaveValue('Preserved run')
+  })
+
   it('submits test-suite scoped values and navigates to the created run', async () => {
     const user = userEvent.setup()
     const onSubmitAction = vi.fn().mockResolvedValue({

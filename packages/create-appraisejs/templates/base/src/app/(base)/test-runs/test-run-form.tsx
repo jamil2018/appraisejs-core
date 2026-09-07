@@ -13,10 +13,11 @@ import { BrowserEngine, Environment, Tag } from '@prisma/client'
 import { useForm } from '@tanstack/react-form'
 import { TanStackForm } from '@/lib/form/tanstack-form'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { useRef, useState } from 'react'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Info, Play } from 'lucide-react'
+import { Info, Play, RefreshCw } from 'lucide-react'
 import type { TestSuitePickerRow } from '@/types/test-suite-picker'
 import {
   buildTestRunSubmitValue,
@@ -75,7 +76,7 @@ const TestRunForm = ({
   id,
   onSubmitAction,
 }: TestRunFormProps) => {
-  const { push } = useRouter()
+  const { push, refresh } = useRouter()
   const { debouncedNameValidation } = useTestRunNameValidation(id)
   const [testSelectionType, setTestSelectionType] = useState<TestSelectionType>(() =>
     getInitialTestSelectionType(defaultValues),
@@ -128,6 +129,32 @@ const TestRunForm = ({
 
   return (
     <TanStackForm onSubmit={() => form.handleSubmit()}>
+      {testSuites.every(suite => suite.testCases.length === 0) ? (
+        <Card className="border-amber-400/30 bg-amber-400/[0.04]">
+          <CardHeader>
+            <CardTitle>Prepare tests before creating an independent run</CardTitle>
+            <CardDescription>
+              A manual run needs a project-owned test case in a suite. Create missing prerequisites in a new tab so the
+              values entered here stay intact, then refresh the choices.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-wrap gap-2">
+            <Button asChild size="sm" variant="outline">
+              <Link href="/test-cases/create" target="_blank">
+                Create test case
+              </Link>
+            </Button>
+            <Button asChild size="sm" variant="outline">
+              <Link href="/test-suites/create" target="_blank">
+                Create test suite
+              </Link>
+            </Button>
+            <Button onClick={() => refresh()} size="sm" type="button" variant="ghost">
+              <RefreshCw aria-hidden="true" className="mr-2 size-4" /> Refresh choices
+            </Button>
+          </CardContent>
+        </Card>
+      ) : null}
       <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_18rem]">
         <div className="min-w-0">
           <Card className="mb-4 h-fit">
@@ -195,6 +222,8 @@ const TestRunForm = ({
                         dialogTitle="Select Test Suites"
                         dialogDescription="Browse suites, expand child test cases, and save the suite-scoped selection for this test run."
                         selectedLabel="Selected test suite(s)"
+                        emptyActionHref="/test-suites/create"
+                        onRefresh={() => refresh()}
                       />
                       <TestRunFieldErrors errors={field.state.meta.errors} isTouched={field.state.meta.isTouched} />
                     </div>
