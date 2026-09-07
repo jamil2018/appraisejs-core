@@ -27,10 +27,11 @@ import {
 } from '@/actions/template-test-case/template-test-case-actions'
 import { getAllLocatorsAction } from '@/actions/locator/locator-actions'
 import { Metadata } from 'next'
+import { presentationVocabulary } from '@/lib/presentation-vocabulary'
 import { stepInvocationSchema } from '../../../../../../packages/cucumber-runtime/src/step-definitions/contracts.ts'
 
 export const metadata: Metadata = {
-  title: 'Appraise | Modify Template Test Case',
+  title: 'Appraise | Modify Case Template',
   description: 'Modify a template test case',
 }
 
@@ -118,7 +119,7 @@ const ModifyTemplateTestCase = async ({ params }: { params: Promise<{ id: string
   return (
     <>
       <div className="mb-8">
-        <PageHeader>Modify Template Test Case</PageHeader>
+        <PageHeader>Modify {presentationVocabulary.caseTemplate.singular}</PageHeader>
         <HeaderSubtitle>Modify a template test case</HeaderSubtitle>
       </div>
       <TemplateTestCaseForm

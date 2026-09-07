@@ -407,11 +407,11 @@ function TemplateSelectionStep({
             </CardHeader>
             <CardContent>
               <div className="flex flex-col gap-2">
-                <Label htmlFor="templateTestCaseId">Template Test Case</Label>
+                <Label htmlFor="templateTestCaseId">Case Template</Label>
                 <Select onValueChange={onTemplateChange} value={selectedTemplateId}>
                   <SelectTrigger
                     id="templateTestCaseId"
-                    aria-label="Template Test Case"
+                    aria-label="Case Template"
                     aria-invalid={Boolean(errors.templateTestCaseId?.length)}
                     aria-describedby="template-test-case-error"
                   >

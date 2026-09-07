@@ -110,7 +110,12 @@ export default function NavCommand({
                   {group.items.map(item => {
                     const Icon = item.icon
                     return (
-                      <CommandItem key={item.href} value={item.label} onSelect={() => handleNavigate(item.href)}>
+                      <CommandItem
+                        key={item.href}
+                        value={item.label}
+                        keywords={item.keywords}
+                        onSelect={() => handleNavigate(item.href)}
+                      >
                         <Icon className="size-4" />
                         {item.label}
                       </CommandItem>

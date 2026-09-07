@@ -195,7 +195,7 @@ Every task below is a bounded session-sized slice. File lists identify canonical
 
 ### Task 4.1 — Consolidate vocabulary and validate navigation grouping
 
-- [ ] Reuse the existing vocabulary map; make Case Templates and creation/search labels consistent across sidebar, palette, dashboard, and headings.
+- [x] Reuse the existing vocabulary map; make Case Templates and creation/search labels consistent across sidebar, palette, dashboard, and headings.
 - [ ] Produce a small before/after navigation proposal and validate task finding with intended users before changing group placement.
 
 **Proposed direction:** keep Dashboard and Quality Journeys prominent; group manual cases/suites as Test design, runs/reports as Runs and results, reusable assets together, and project/environment administration under Workspace. Preserve every existing URL and expert destination.
@@ -208,8 +208,8 @@ Every task below is a bounded session-sized slice. File lists identify canonical
 
 ### Task 4.2 — Add contextual help and a worked example
 
-- [ ] Provide a discoverable in-app Help destination or panel indexed by command search for help/setup/glossary terms.
-- [ ] Explain the agent-assisted journey, manual authoring relationship, approvals, and recovery using a short worked example and contextual links from relevant fields.
+- [x] Provide a discoverable in-app Help destination or panel indexed by command search for help/setup/glossary terms.
+- [x] Explain the agent-assisted journey, manual authoring relationship, approvals, and recovery using a short worked example and contextual links from relevant fields.
 
 **Acceptance:** Searching “help” returns assistance. The example is clearly illustrative and does not create records or start work merely by viewing it. Explanations preserve exact approval meaning and unknown-state distinctions.
 
@@ -219,8 +219,8 @@ Every task below is a bounded session-sized slice. File lists identify canonical
 
 ### Task 4.3 — Resolve the empty Settings destination
 
-- [ ] Preserve `/settings` but replace the blank page with a useful workspace configuration overview linking to actual project, environment, and agent setup controls.
-- [ ] Explain where configuration lives and expose only implemented actions. Do not add fake preference controls to fill the page.
+- [x] Preserve `/settings` but replace the blank page with a useful workspace configuration overview linking to actual project, environment, and agent setup controls.
+- [x] Explain where configuration lives and expose only implemented actions. Do not add fake preference controls to fill the page.
 
 **Acceptance:** Settings has clear purpose and valid destinations; selected-project context is retained. Native app preferences and new theme systems are not implied to exist.
 

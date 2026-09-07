@@ -5,11 +5,12 @@ import React from 'react'
 import TemplateTestCaseForm from '../template-test-case-form'
 import { createTemplateTestCaseAction } from '@/actions/template-test-case/template-test-case-actions'
 import { Metadata } from 'next'
+import { presentationVocabulary } from '@/lib/presentation-vocabulary'
 
 import { loadCreateTemplateTestCasePageData } from '../create-template-test-case-page-data'
 
 export const metadata: Metadata = {
-  title: 'Appraise | Create Template Test Case',
+  title: `Appraise | ${presentationVocabulary.caseTemplate.create}`,
   description: 'Create a new template test case to quickly create test cases',
 }
 
@@ -26,7 +27,7 @@ const CreateTemplateTestCase = async () => {
         <PageHeader>
           <span className="flex items-center">
             <Blocks className="mr-2 size-8" />
-            Create Template Test Case
+            {presentationVocabulary.caseTemplate.create}
           </span>
         </PageHeader>
         <HeaderSubtitle>Create a new template test case to quickly create test cases</HeaderSubtitle>

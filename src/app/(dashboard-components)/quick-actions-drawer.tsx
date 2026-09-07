@@ -3,6 +3,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Blocks, FileCheck, LayoutTemplate, ListChecks, Route, TestTubeDiagonal, TestTubes, Plus } from 'lucide-react'
 import { useRouter } from 'next/navigation'
+import { presentationVocabulary } from '@/lib/presentation-vocabulary'
 
 const quickActions = [
   {
@@ -76,7 +77,7 @@ const quickActions = [
     },
   },
   {
-    label: 'Create Template',
+    label: presentationVocabulary.caseTemplate.create,
     description: 'Design dynamic step structures',
     href: '/template-test-cases/create',
     icon: Blocks,
