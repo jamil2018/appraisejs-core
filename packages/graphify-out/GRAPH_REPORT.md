@@ -4,12 +4,12 @@
 - cluster-only mode — file stats not available
 
 ## Summary
-- 1095 nodes · 2075 edges · 56 communities (54 shown, 2 thin omitted)
+- 1098 nodes · 2078 edges · 55 communities (53 shown, 2 thin omitted)
 - Extraction: 99% EXTRACTED · 1% INFERRED · 0% AMBIGUOUS · INFERRED: 15 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `94636ece`
+- Built from commit: `3e3d9552`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -50,7 +50,6 @@
 - [[_COMMUNITY_Community 33|Community 33]]
 - [[_COMMUNITY_Community 34|Community 34]]
 - [[_COMMUNITY_Community 35|Community 35]]
-- [[_COMMUNITY_Community 36|Community 36]]
 - [[_COMMUNITY_Community 39|Community 39]]
 - [[_COMMUNITY_Community 41|Community 41]]
 - [[_COMMUNITY_Community 44|Community 44]]
@@ -96,15 +95,15 @@
 ## Hyperedges (group relationships)
 - **Appraise Planning Lifecycle Flow** — appraise_planning_standby_skill_mcp_setup_and_diagnostics, appraise_planning_standby_skill_target_workspace_registration, appraise_planning_standby_skill_plan_creation, appraise_planning_standby_skill_review_readiness, appraise_planning_standby_skill_approval_standby, appraise_planning_standby_skill_approval_outcomes, appraise_planning_standby_skill_validation_preparation [EXTRACTED 1.00]
 
-## Communities (56 total, 2 thin omitted)
+## Communities (55 total, 2 thin omitted)
 
 ### Community 0 - "Community 0"
-Cohesion: 0.28
-Nodes (9): copyFile(), createBaseTemplate(), resetAutomationEnvironments(), resetAutomationReports(), syncInternalPackage(), syncLegacyEnvironmentConfig(), writeTemplateHarnessCheck(), writeTemplatePackageJson() (+1 more)
+Cohesion: 0.17
+Nodes (13): copyFile(), createBaseTemplate(), resetAutomationEnvironments(), resetAutomationReports(), syncInternalPackage(), syncLegacyEnvironmentConfig(), writeTemplateHarnessCheck(), writeTemplatePackageJson() (+5 more)
 
 ### Community 1 - "Community 1"
 Cohesion: 0.11
-Nodes (26): baseTemplateDir, composedVerifyDir, computeTemplateInputHash(), copyFallbackSeedDatabase(), __dirname, flavorsDir, getPrismaCliPath(), getSeedDatabaseCandidates() (+18 more)
+Nodes (28): baseTemplateDir, composedVerifyDir, computeTemplateInputHash(), copyFallbackSeedDatabase(), __dirname, flavorsDir, getPrismaCliPath(), getSeedDatabaseCandidates() (+20 more)
 
 ### Community 2 - "Community 2"
 Cohesion: 0.05
@@ -112,7 +111,7 @@ Nodes (53): CliOptions, main(), BrowserLaunchCandidate, LocatorPickerCompanion, 
 
 ### Community 3 - "Community 3"
 Cohesion: 0.09
-Nodes (23): agentOperationProjectionSchema, boundedOperationValueSchema, humanOperationProjectionSchema, identifierSchema, OPERATION_CONTRACT_VERSION, operationAliasSchema, operationContentHash(), OperationDefinition (+15 more)
+Nodes (24): agentOperationProjectionSchema, boundedOperationValueSchema, canonicalOperationJson(), humanOperationProjectionSchema, identifierSchema, OPERATION_CONTRACT_VERSION, operationAliasSchema, operationContentHash() (+16 more)
 
 ### Community 4 - "Community 4"
 Cohesion: 0.04
@@ -120,11 +119,11 @@ Nodes (47): allowScripts, esbuild@0.28.1, fsevents@2.3.3, author, bin, appraisej
 
 ### Community 5 - "Community 5"
 Cohesion: 0.05
-Nodes (62): main(), CliOptions, getTemplateFlagValue(), parseCliArgs(), formatBrowserInstallStep(), getSuccessMessageLines(), printSuccessMessage(), Config (+54 more)
+Nodes (63): main(), CliOptions, getTemplateFlagValue(), parseCliArgs(), formatBrowserInstallStep(), getSuccessMessageLines(), printSuccessMessage(), Config (+55 more)
 
 ### Community 6 - "Community 6"
-Cohesion: 0.24
-Nodes (12): executeHumanOperation(), computeStepReferenceHash(), stepInputValueMatchesType(), validateStepInvocationInputs(), definitionKey(), dispatchStepInvocation(), extensionKey(), inputValues() (+4 more)
+Cohesion: 0.22
+Nodes (13): BrowserOperationWorld, executeHumanOperation(), computeStepReferenceHash(), stepInputValueMatchesType(), validateStepInvocationInputs(), definitionKey(), dispatchStepInvocation(), extensionKey() (+5 more)
 
 ### Community 7 - "Community 7"
 Cohesion: 0.10
@@ -152,7 +151,7 @@ Nodes (16): AppraiseHttpMcpOptions, runAppraiseHttpMcp(), assertLoopbackMcpEndpo
 
 ### Community 13 - "Community 13"
 Cohesion: 0.08
-Nodes (30): builtinBrowserOperations, BrowserOperationContext, BrowserOperationHandler, browserOperationHandlerDescriptors, BrowserOperationRef, BrowserOperationWorld, builtinHandlerImplementations, builtinHandlers (+22 more)
+Nodes (29): builtinBrowserOperations, BrowserOperationContext, BrowserOperationHandler, browserOperationHandlerDescriptors, BrowserOperationRef, builtinHandlerImplementations, builtinHandlers, canonicalInputAliases (+21 more)
 
 ### Community 14 - "Community 14"
 Cohesion: 0.16
@@ -164,7 +163,7 @@ Nodes (13): exports, ./launcher, ./session-file, ./types, main, name, private, s
 
 ### Community 16 - "Community 16"
 Cohesion: 0.09
-Nodes (25): canonicalOperationJson(), canonicalStepDefinitionJson(), computeStepDefinitionHashes(), computeStepExecutableReadiness(), identifierSchema, STEP_DEFINITION_SCHEMA_VERSION, stepDefinitionContentHash(), StepDefinitionDraft (+17 more)
+Nodes (24): canonicalStepDefinitionJson(), computeStepDefinitionHashes(), computeStepExecutableReadiness(), identifierSchema, STEP_DEFINITION_SCHEMA_VERSION, stepDefinitionContentHash(), StepDefinitionDraft, stepDefinitionDraftAuthoringSchema (+16 more)
 
 ### Community 17 - "Community 17"
 Cohesion: 0.15
@@ -179,8 +178,8 @@ Cohesion: 0.06
 Nodes (38): legacyEnvironmentBaseUrl(), CliOptions, program, LocatorCache, LocatorMapCache, toGlobPath(), BROWSER_CHOICES, environmentNames (+30 more)
 
 ### Community 20 - "Community 20"
-Cohesion: 0.10
-Nodes (19): connectInput, executeInput, getInput, handoffRedeemInput, id, policyVersion, prepareInput, records (+11 more)
+Cohesion: 0.09
+Nodes (22): authorityReceipt, connectInput, decisionInput, executeInput, getInput, handoffRedeemInput, id, policyUpdateInput (+14 more)
 
 ### Community 21 - "Community 21"
 Cohesion: 0.22
@@ -219,8 +218,8 @@ Cohesion: 0.14
 Nodes (14): createCoordinatorApiClient(), onlineClient(), coordinatorEndpointMismatch(), CoordinatorErrorEnvelope, coordinatorErrorEnvelopeSchema, coordinatorRequestError, createCoordinatorClient(), createLocalCoordinatorFailure() (+6 more)
 
 ### Community 30 - "Community 30"
-Cohesion: 0.08
-Nodes (25): BuiltinBrowserOperation, BuiltinOperationParameter, BrowserRuntimeDiagnostics, BrowserRuntimeIssue, HumanVerificationRequiredEvent, resolveLocator(), retry(), reviewedSelectorResolvers (+17 more)
+Cohesion: 0.09
+Nodes (23): BuiltinBrowserOperation, BuiltinOperationParameter, BrowserRuntimeDiagnostics, BrowserRuntimeIssue, HumanVerificationRequiredEvent, resolveLocator(), retry(), reviewedSelectorResolvers (+15 more)
 
 ### Community 31 - "Community 31"
 Cohesion: 0.40
@@ -238,13 +237,9 @@ Nodes (14): nullableOptionalPositiveInteger(), nullableOptionalString(), operati
 Cohesion: 0.14
 Nodes (15): command, environment, executionCancelInput, executionReconcileInput, executionStartInput, hash, id, ids (+7 more)
 
-### Community 36 - "Community 36"
-Cohesion: 0.47
-Nodes (4): EXCLUDED_TEMPLATE_FILENAMES, EXCLUDED_TEMPLATE_PATH_PREFIXES, shouldExcludeBundledTemplatePath(), toPosixPath()
-
 ### Community 39 - "Community 39"
-Cohesion: 0.31
-Nodes (13): asOptions(), assertAllowedOptions(), assertArgumentCount(), isPlainObject(), locatorOptionKeys, pageOptionKeys, parseArguments(), parseJson() (+5 more)
+Cohesion: 0.26
+Nodes (15): asOptions(), assertAllowedOptions(), assertArgumentCount(), isPlainObject(), locatorOptionKeys, LocatorStepOperation, pageOptionKeys, PageStepOperation (+7 more)
 
 ### Community 41 - "Community 41"
 Cohesion: 0.05
@@ -267,8 +262,8 @@ Cohesion: 0.17
 Nodes (13): boundedText, finding, hash, id, ids, registerQualityJourneyTriageOperations(), scope, triageEvidenceReadInput (+5 more)
 
 ### Community 52 - "Community 52"
-Cohesion: 0.19
-Nodes (13): cleanupTempWorkspace(), composeTemplateForVerification(), copyDirWithFilter(), copyDirWithoutBundledExclusions(), copyStarterOverlayFiles(), getPackageFlavorDir(), main(), readExistingTemplateMetadata() (+5 more)
+Cohesion: 0.24
+Nodes (11): cleanupTempWorkspace(), composeTemplateForVerification(), copyDirWithFilter(), copyDirWithoutBundledExclusions(), copyStarterOverlayFiles(), getPackageFlavorDir(), main(), readExistingTemplateMetadata() (+3 more)
 
 ### Community 55 - "Community 55"
 Cohesion: 0.12
@@ -287,15 +282,15 @@ Cohesion: 0.31
 Nodes (7): preparePackagedGitignore(), resetAutomationLocatorMap(), getEmptyEnvironmentsFileContent(), getEmptyLocatorMapFileContent(), SEEDED_TEMPLATE_PATHS, setSeededTemplateFilesTracked(), trimTrailingBlankLines()
 
 ### Community 182 - "Community 182"
-Cohesion: 0.21
-Nodes (11): removeLegacyTemplateTargetProject(), seedTemplateDatabases(), assertSharedTemplateDatabaseInputs(), BLANK_TEMPLATE_PREP_SYNC_SCRIPTS, getTemplatePrepSyncScripts(), shouldAbortOnFallbackSeed(), StepDefinitionDataCounts, TEMPLATE_PREP_SYNC_SCRIPTS (+3 more)
+Cohesion: 0.23
+Nodes (10): assertSharedTemplateDatabaseInputs(), BLANK_TEMPLATE_PREP_SYNC_SCRIPTS, getTemplatePrepSyncScripts(), shouldAbortOnFallbackSeed(), StepDefinitionDataCounts, TEMPLATE_PREP_SYNC_SCRIPTS, TemplateMetadata, createPreparedTemplateFixture() (+2 more)
 
 ### Community 185 - "Community 185"
 Cohesion: 0.33
 Nodes (5): forbiddenPaths, forbiddenScripts, packageJson, repoRoot, scriptsDir
 
 ## Knowledge Gaps
-- **400 isolated node(s):** `name`, `version`, `description`, `license`, `author` (+395 more)
+- **403 isolated node(s):** `name`, `version`, `description`, `license`, `author` (+398 more)
   These have ≤1 connection - possible missing edges or undocumented components.
 - **2 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
@@ -303,16 +298,16 @@ Nodes (5): forbiddenPaths, forbiddenScripts, packageJson, repoRoot, scriptsDir
 _Questions this graph is uniquely positioned to answer:_
 
 - **Why does `writeTemplateQualityOsCertificationReceipt()` connect `Community 0` to `Community 1`, `Community 55`?**
-  _High betweenness centrality (0.311) - this node is a cross-community bridge._
+  _High betweenness centrality (0.306) - this node is a cross-community bridge._
 - **Why does `canonicalContractJson()` connect `Community 55` to `Community 0`?**
-  _High betweenness centrality (0.311) - this node is a cross-community bridge._
+  _High betweenness centrality (0.306) - this node is a cross-community bridge._
 - **Why does `Config` connect `Community 5` to `Community 19`?**
-  _High betweenness centrality (0.307) - this node is a cross-community bridge._
+  _High betweenness centrality (0.299) - this node is a cross-community bridge._
 - **What connects `name`, `version`, `description` to the rest of the system?**
-  _402 weakly-connected nodes found - possible documentation gaps or missing edges._
+  _405 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `Community 1` be split into smaller, more focused modules?**
-  _Cohesion score 0.10826210826210826 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.10591133004926108 - nodes in this community are weakly interconnected._
 - **Should `Community 2` be split into smaller, more focused modules?**
   _Cohesion score 0.05290490100616683 - nodes in this community are weakly interconnected._
 - **Should `Community 3` be split into smaller, more focused modules?**
-  _Cohesion score 0.09247311827956989 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.09462365591397849 - nodes in this community are weakly interconnected._
