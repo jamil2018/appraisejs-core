@@ -1,0 +1,97 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "appraisejs/development-harness/agent-profiles/v1",
+  "title": "Development harness agent profiles",
+  "type": "object",
+  "required": ["schemaVersion", "profiles"],
+  "properties": {
+    "schemaVersion": { "const": "1" },
+    "profiles": { "type": "array", "minItems": 6, "items": { "$ref": "#/$defs/profile" } }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "profile": {
+      "type": "object",
+      "required": ["id", "role", "requiredCapabilities", "authority", "contextBoundary", "stopConditions"],
+      "properties": {
+        "id": { "enum": ["coordinator-only", "investigator", "executor", "executor-advanced", "solver", "judge"] },
+        "role": { "enum": ["coordinator", "investigator", "executor", "solver", "judge"] },
+        "requiredCapabilities": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+        "authority": {
+          "type": "object",
+          "required": ["sandbox", "externalWrites"],
+          "properties": {
+            "sandbox": { "enum": ["not-applicable", "read-only", "workspace-write"] },
+            "externalWrites": { "enum": ["current-task-only", "prohibited", "approval-required"] }
+          },
+          "additionalProperties": false
+        },
+        "contextBoundary": { "enum": ["not-applicable", "bounded", "none"] },
+        "stopConditions": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 } }
+      },
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": { "properties": { "id": { "const": "coordinator-only" } } },
+          "then": {
+            "properties": {
+              "role": { "const": "coordinator" },
+              "authority": { "const": { "sandbox": "not-applicable", "externalWrites": "current-task-only" } },
+              "contextBoundary": { "const": "not-applicable" }
+            }
+          }
+        },
+        {
+          "if": { "properties": { "id": { "const": "investigator" } } },
+          "then": {
+            "properties": {
+              "role": { "const": "investigator" },
+              "authority": { "const": { "sandbox": "read-only", "externalWrites": "prohibited" } },
+              "contextBoundary": { "const": "bounded" }
+            }
+          }
+        },
+        {
+          "if": { "properties": { "id": { "const": "executor" } } },
+          "then": {
+            "properties": {
+              "role": { "const": "executor" },
+              "authority": { "const": { "sandbox": "workspace-write", "externalWrites": "approval-required" } },
+              "contextBoundary": { "const": "bounded" }
+            }
+          }
+        },
+        {
+          "if": { "properties": { "id": { "const": "executor-advanced" } } },
+          "then": {
+            "properties": {
+              "role": { "const": "executor" },
+              "authority": { "const": { "sandbox": "workspace-write", "externalWrites": "approval-required" } },
+              "contextBoundary": { "const": "bounded" }
+            }
+          }
+        },
+        {
+          "if": { "properties": { "id": { "const": "solver" } } },
+          "then": {
+            "properties": {
+              "role": { "const": "solver" },
+              "authority": { "const": { "sandbox": "read-only", "externalWrites": "prohibited" } },
+              "contextBoundary": { "const": "none" }
+            }
+          }
+        },
+        {
+          "if": { "properties": { "id": { "const": "judge" } } },
+          "then": {
+            "properties": {
+              "role": { "const": "judge" },
+              "authority": { "const": { "sandbox": "read-only", "externalWrites": "prohibited" } },
+              "contextBoundary": { "const": "none" }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

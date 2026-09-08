@@ -131,6 +131,27 @@ test('fixtures exercise deterministic route selection and escalation', () => {
   }
 })
 
+test('localized execution with strong verification stays coordinator-only until extended work is explicit', () => {
+  const fastPath = recommendSwarmRoute({
+    taskClass: 'localized-fix',
+    requiresExecution: true,
+    consequence: 'low',
+    verificationStrength: 'strong',
+  })
+  assert.equal(fastPath.route, 'coordinator-only')
+  assert.equal(fastPath.delegationCount, 0)
+  assert.equal(
+    recommendSwarmRoute({
+      taskClass: 'localized-fix',
+      requiresExecution: true,
+      consequence: 'low',
+      verificationStrength: 'strong',
+      expectedEffort: 'extended',
+    }).route,
+    'executor',
+  )
+})
+
 test('fixture task classes map into the stable scorecard taxonomy', () => {
   const expectedClasses = {
     'mechanical-refactor': 'localized-fix',
@@ -191,7 +212,7 @@ test('verified runtime proof requires matching property-specific effective host 
     role: { status: 'verified', receipt: 'host-effective-role:investigator' },
     model: { status: 'verified', receipt: 'host-effective-model:gpt-5.6-luna' },
     reasoning: { status: 'verified', receipt: 'host-effective-reasoning:medium' },
-    context: { status: 'verified', receipt: 'host-effective-context:fork_turns:none' },
+    context: { status: 'verified', receipt: 'host-effective-context:fork_turns:bounded:3' },
     sandbox: { status: 'verified', receipt: 'host-effective-sandbox:read-only' },
   }
   proof.status = 'verified'
@@ -211,6 +232,44 @@ test('verified runtime proof requires matching property-specific effective host 
             claims: {
               ...unverifiedRuntimeProof().claims,
               context: { status: 'verified', receipt: 'requested-selector:fork_turns:none' },
+            },
+          },
+        }),
+      ),
+    /context: verified status requires a matching host-effective receipt/,
+  )
+  assert.throws(
+    () =>
+      validateRoutingDecision(
+        validDecision({
+          route: 'investigator',
+          profile: 'investigator',
+          delegationCount: 1,
+          runtimeProof: {
+            ...unverifiedRuntimeProof(),
+            status: 'partial',
+            claims: {
+              ...unverifiedRuntimeProof().claims,
+              context: { status: 'verified', receipt: 'host-effective-context:fork_turns:none' },
+            },
+          },
+        }),
+      ),
+    /context: verified status requires a matching host-effective receipt/,
+  )
+  assert.throws(
+    () =>
+      validateRoutingDecision(
+        validDecision({
+          route: 'judge',
+          profile: 'judge',
+          delegationCount: 1,
+          runtimeProof: {
+            ...unverifiedRuntimeProof(),
+            status: 'partial',
+            claims: {
+              ...unverifiedRuntimeProof().claims,
+              context: { status: 'verified', receipt: 'host-effective-context:fork_turns:bounded:3' },
             },
           },
         }),

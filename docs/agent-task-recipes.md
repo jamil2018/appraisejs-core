@@ -10,6 +10,11 @@ use the standard or advanced executor for settled work; and add an independent j
 residual uncertainty justify it. Record a compact route receipt for meaningful, delegated, anomalous, or
 consequential work. Appraise lifecycle gates remain governed by the lifecycle recipe below.
 
+Read [development harness operation](development-harness.md) for bounded lesson retrieval at intake, observation and
+proposal capture at completion, and proposal IDs at handoff. Proposed or deferred improvements do not block unrelated
+feature completion. Only explicit user guidance authorizes policy implementation; advisory learning never changes
+models, roles, permissions, or quality gates.
+
 ## CRUD And Domain Changes
 
 Start with the matching `src/actions/*`, `src/services/*`, `prisma/schema.prisma`, and route-specific UI under
@@ -39,7 +44,7 @@ Read `docs/agent-lifecycle-flow.md`, `docs/coordinator-api-mcp.md`, `packages/ap
 `packages/appraisejs/src/mcp.ts`, and affected coordinator services. Keep approval and sign-off transitions
 Appraise-owned.
 
-Validation: focused service/package tests, `npm run setup:mcp` when setup text changes, `npm run smoke:coordinator`
+Validation: focused service/package tests, `npm run setup:mcp` when setup text changes, focused coordinator contract tests
 when lifecycle API behavior changes, and `npm --prefix packages/appraisejs run test:mcp:e2e` when MCP transport or
 tools change.
 

@@ -72,11 +72,12 @@ the requested route and runtime-proof status; it must not claim the host enforce
 sandbox without host evidence.
 
 Before finishing a swarm run, apply the skill's evolution criteria to performance, resource use, governance, and
-harness usability. Record and notify the user about anything non-optimal, wait for their guidance, then update only
-the approved routing, prompts, models, tools, context boundaries, concurrency, or harness behavior. Do not silently
-change the harness from its own observation.
-Close the cycle only after deterministic verification and a fresh independent re-evaluation linked to the originating
-run. The local `.appraisejs/swarm-events.jsonl` journal is Git-ignored process evidence; host-conversation user guidance
+harness usability. Capture useful observations and maintain sanitized lessons and improvement proposals under
+`docs/development-harness/`. Proposed or deferred improvements do not block unrelated task completion. Advisory
+learning and backlog maintenance may happen automatically; changes to routing, prompts, models, tools, context
+boundaries, concurrency, permissions, or quality gates require explicit user guidance. Implement only that approved
+change, then verify and independently re-evaluate its exact artifact. See `docs/development-harness.md`.
+The local `.appraisejs/swarm-events.jsonl` journal is Git-ignored process evidence; host-conversation user guidance
 and Appraise lifecycle approvals remain authoritative. Static agent configuration does not prove the effective named
 role or sandbox at runtime: retain host receipts where available and disclose missing proof.
 Give `solver` and `judge` no inherited parent transcript, or the smallest deliberate bounded context supported by the

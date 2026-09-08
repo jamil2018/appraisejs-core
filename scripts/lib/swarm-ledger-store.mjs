@@ -1,6 +1,11 @@
 import crypto from 'node:crypto'
 import fs from 'node:fs'
-import { isEffectiveIndependentJudgeContext, validateRoutingDecision } from './swarm-routing-contract.mjs'
+import {
+  SUPPORTED_PROFILES,
+  isEffectiveIndependentJudgeContext,
+  validateRoutingDecision,
+} from './swarm-routing-contract.mjs'
+import { assertSanitizedLearningText } from './harness-learning-sanitization.mjs'
 
 const phases = new Set([
   'notification_required',
@@ -11,6 +16,7 @@ const phases = new Set([
   'resolved_by_verified_update',
   'no_change',
 ])
+const LEGACY_ROUTING_DECISION_VERSION = 1
 
 function nonBlank(value) {
   return typeof value === 'string' && value.trim().length > 0
@@ -24,6 +30,62 @@ export function validateObservation(observation, label = 'observation') {
   assert(observation && typeof observation === 'object', `${label}: expected object`)
   for (const field of ['domain', 'severity', 'summary', 'evidence', 'impact', 'proposedOptions']) {
     assert(nonBlank(observation[field]), `${label}: blank ${field}`)
+  }
+}
+
+function safeLearningText(value, label) {
+  assertSanitizedLearningText(value, label)
+}
+
+export function validateLearningObservation(observation, label = 'learning observation') {
+  assert(observation && typeof observation === 'object', `${label}: expected object`)
+  const allowed = new Set([
+    'observationId',
+    'recordedAt',
+    'observedAt',
+    'taskClass',
+    'kind',
+    'topic',
+    'summary',
+    'evidenceSummary',
+    'polarity',
+    'paths',
+    'sourceType',
+    'sourceRef',
+    'measurements',
+    'migrationKey',
+    'proposalId',
+    'guidance',
+  ])
+  for (const key of Object.keys(observation)) assert(allowed.has(key), `${label}: unknown field ${key}`)
+  assert(/^obs-[a-f0-9]{16}$/.test(observation.observationId), `${label}: invalid observationId`)
+  assert(Number.isFinite(Date.parse(observation.recordedAt)), `${label}: invalid recordedAt`)
+  assert(nonBlank(observation.taskClass), `${label}: blank taskClass`)
+  assert(
+    ['success', 'failure', 'recovery', 'repeated-work', 'development-cost'].includes(observation.kind),
+    `${label}: invalid kind`,
+  )
+  for (const field of ['topic', 'summary', 'evidenceSummary', 'sourceType', 'sourceRef']) {
+    safeLearningText(observation[field], `${label}: ${field}`)
+  }
+  assert(['supports', 'contradicts', 'neutral'].includes(observation.polarity), `${label}: invalid polarity`)
+  assert(Array.isArray(observation.paths), `${label}: invalid paths`)
+  assert(
+    observation.paths.every(item => nonBlank(item) && !item.startsWith('/') && !item.includes('..')),
+    `${label}: invalid path`,
+  )
+  assert(observation.measurements && typeof observation.measurements === 'object', `${label}: invalid measurements`)
+  for (const [name, value] of Object.entries(observation.measurements)) {
+    assert(/^[a-z][a-z0-9-]{0,63}$/.test(name), `${label}: invalid measurement name`)
+    assert(value === null || (Number.isFinite(value) && value >= 0), `${label}: invalid measurement ${name}`)
+  }
+  if (observation.migrationKey !== undefined) safeLearningText(observation.migrationKey, `${label}: migrationKey`)
+  if (observation.observedAt !== undefined) {
+    assert(Number.isFinite(Date.parse(observation.observedAt)), `${label}: invalid observedAt`)
+  }
+  if (observation.guidance !== undefined) safeLearningText(observation.guidance, `${label}: guidance`)
+  if (observation.proposalId !== undefined) {
+    assert(/^proposal-[a-f0-9]{16}$/.test(observation.proposalId), `${label}: invalid proposalId`)
   }
 }
 
@@ -138,20 +200,48 @@ function validateTransitionEvent(event, lineNumber) {
   assert(event.patch && typeof event.patch === 'object', `line ${lineNumber}: invalid transition patch`)
 }
 
-function validateEvent(event, previousHash, lineNumber) {
+function validateEvent(event, previousHash, lineNumber, { legacyCompatibility = false } = {}) {
   validateEventEnvelope(event, previousHash, lineNumber)
   if (event.kind === 'run.recorded') validateRun(event.run, `line ${lineNumber}.run`)
   else if (event.kind === 'run.transition') validateTransitionEvent(event, lineNumber)
-  else if (event.kind === 'route.recorded') validateRoutingDecision(event.decision, `line ${lineNumber}.decision`)
+  else if (event.kind === 'route.recorded') {
+    const normalized = legacyCompatibility ? normalizeLegacyRouteEvent(event) : event
+    validateRoutingDecision(normalized.decision, `line ${lineNumber}.decision`)
+    return normalized
+  } else if (event.kind === 'learning.observation')
+    validateLearningObservation(event.observation, `line ${lineNumber}.observation`)
   else throw new Error(`line ${lineNumber}: unknown event kind ${event.kind}`)
+  return event
+}
+
+function normalizeLegacyRouteEvent(event) {
+  if (event.decision?.schemaVersion !== undefined) return event
+  const normalized = structuredClone(event)
+  const decision = normalized.decision
+  decision.schemaVersion = LEGACY_ROUTING_DECISION_VERSION
+  const context = decision.runtimeProof?.claims?.context
+  const expectedContext = SUPPORTED_PROFILES[decision.profile]?.contextBoundary
+  if (context?.status === 'verified' && !isEffectiveIndependentJudgeContext(expectedContext, context.receipt)) {
+    context.status = 'unverified'
+    decision.runtimeProof.status = runtimeProofStatus(decision.runtimeProof.claims)
+  }
+  return normalized
+}
+
+function runtimeProofStatus(claims) {
+  const statuses = Object.values(claims).map(claim => claim.status)
+  if (statuses.every(status => status === 'verified')) return 'verified'
+  if (statuses.some(status => status === 'verified')) return 'partial'
+  return 'unverified'
 }
 
 export function readJournal(journalPath, { recoverTail = false } = {}) {
-  if (!fs.existsSync(journalPath)) return { events: [], runs: new Map(), routes: new Map(), lastHash: null }
+  if (!fs.existsSync(journalPath))
+    return { events: [], runs: new Map(), routes: new Map(), observations: new Map(), lastHash: null }
   const lines = fs.readFileSync(journalPath, 'utf8').split('\n')
   const { events, previousHash } = scanJournal(lines, journalPath, recoverTail)
-  const { runs, routes } = reconstructJournal(events)
-  return { events, runs, routes, lastHash: previousHash }
+  const { runs, routes, observations } = reconstructJournal(events)
+  return { events, runs, routes, observations, lastHash: previousHash }
 }
 
 function scanJournal(lines, journalPath, recoverTail) {
@@ -166,10 +256,10 @@ function scanJournal(lines, journalPath, recoverTail) {
       continue
     }
     try {
-      const event = JSON.parse(line)
-      validateEvent(event, previousHash, index + 1)
+      const parsed = JSON.parse(line)
+      const event = validateEvent(parsed, previousHash, index + 1, { legacyCompatibility: true })
       events.push(event)
-      previousHash = event.hash
+      previousHash = parsed.hash
       validBytes += lineBytes
     } catch (error) {
       recoverInvalidTail(lines, index, journalPath, recoverTail, validBytes, error)
@@ -201,17 +291,24 @@ function recoverInvalidTail(lines, index, journalPath, recoverTail, validBytes, 
 function reconstructJournal(events) {
   const runs = new Map()
   const routes = new Map()
+  const observations = new Map()
   for (const event of events) {
     if (event.kind === 'run.recorded') {
       addRecordedRun(event.run, runs, routes)
     } else if (event.kind === 'run.transition') {
       applyRunTransition(event, runs)
+    } else if (event.kind === 'learning.observation') {
+      assert(
+        !observations.has(event.observation.observationId),
+        `duplicate observationId ${event.observation.observationId}`,
+      )
+      observations.set(event.observation.observationId, structuredClone(event.observation))
     } else {
       assert(!routes.has(event.decision.decisionId), `duplicate decisionId ${event.decision.decisionId}`)
       routes.set(event.decision.decisionId, structuredClone(event.decision))
     }
   }
-  return { runs, routes }
+  return { runs, routes, observations }
 }
 
 function addRecordedRun(run, runs, routes) {
@@ -256,6 +353,7 @@ export function appendEvent(journalPath, event, previousHash) {
     ...event,
   }
   complete.hash = eventHash(complete)
+  validateEvent(complete, previousHash, 'new')
   const handle = fs.openSync(journalPath, 'a', 0o600)
   try {
     fs.writeSync(handle, `${JSON.stringify(complete)}\n`)

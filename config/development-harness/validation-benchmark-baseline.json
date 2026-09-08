@@ -1,0 +1,40 @@
+{
+  "version": 1,
+  "capturedAt": "2026-09-08T00:00:00.000Z",
+  "provenance": "Repository planning baseline; no representative development runs were instrumented before this registry was introduced.",
+  "scenarios": [
+    {
+      "id": "documentation-only",
+      "kind": "unknown",
+      "commandCount": null,
+      "retries": null,
+      "agentCount": null,
+      "durationMs": null
+    },
+    {
+      "id": "localized-fix",
+      "kind": "unknown",
+      "commandCount": null,
+      "retries": null,
+      "agentCount": null,
+      "durationMs": null
+    },
+    {
+      "id": "ui-change",
+      "kind": "unknown",
+      "commandCount": null,
+      "retries": null,
+      "agentCount": null,
+      "durationMs": null
+    },
+    {
+      "id": "cross-module-change",
+      "kind": "unknown",
+      "commandCount": null,
+      "retries": null,
+      "agentCount": null,
+      "durationMs": null
+    }
+  ],
+  "limitations": "Null values are unavailable measurements, not zeroes. scripts/benchmark-harness-validation.mjs measures controlled temporary-fixture commands only and does not claim application-validation performance."
+}

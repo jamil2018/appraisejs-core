@@ -2,16 +2,13 @@
 
 import fs from 'node:fs'
 import path from 'node:path'
+import { loadHarnessSelectionContracts, profileDefaults } from './lib/harness-selection.mjs'
 import { parseProjectToml, validateTomlBasicString } from './lib/toml-validator.mjs'
 
 const repoRoot = process.cwd()
-const roles = {
-  investigator: { model: 'gpt-5.6-luna', effort: 'medium', sandbox: 'read-only' },
-  solver: { model: 'gpt-5.6-sol', effort: 'high', sandbox: 'read-only' },
-  executor: { model: 'gpt-5.6-terra', effort: 'medium', sandbox: 'workspace-write' },
-  'executor-advanced': { model: 'gpt-5.6-terra', effort: 'high', sandbox: 'workspace-write' },
-  judge: { model: 'gpt-5.6-sol', effort: 'high', sandbox: 'read-only' },
-}
+const selectionContracts = loadHarnessSelectionContracts()
+const allProfiles = profileDefaults(selectionContracts)
+const roles = Object.fromEntries(Object.entries(allProfiles).filter(([profile]) => profile !== 'coordinator-only'))
 const requiredInstructionTokens = {
   investigator: ['evidence ledger', 'remain read-only', 'Do not perform external writes'],
   solver: ['evidence ledger', 'invariants', 'Do not perform external writes'],
@@ -101,11 +98,11 @@ if (agentDefaults.get('enabled') !== true) failures.push('.codex/config.toml: ag
 if (agentDefaults.get('max_concurrent_threads_per_session') !== 3) {
   failures.push('.codex/config.toml: max_concurrent_threads_per_session must be 3')
 }
-if (agentDefaults.get('default_subagent_model') !== 'gpt-5.6-terra') {
-  failures.push('.codex/config.toml: default_subagent_model must be gpt-5.6-terra')
+if (agentDefaults.get('default_subagent_model') !== allProfiles.executor.model) {
+  failures.push(`.codex/config.toml: default_subagent_model must be ${allProfiles.executor.model}`)
 }
-if (agentDefaults.get('default_subagent_reasoning_effort') !== 'medium') {
-  failures.push('.codex/config.toml: default subagent reasoning must be medium')
+if (agentDefaults.get('default_subagent_reasoning_effort') !== allProfiles.executor.effort) {
+  failures.push(`.codex/config.toml: default subagent reasoning must be ${allProfiles.executor.effort}`)
 }
 for (const role of registeredRoles) {
   if (!(role in roles)) failures.push(`.codex/config.toml: unsupported agent registration "${role}"`)
@@ -168,12 +165,12 @@ for (const token of [
   'notify the user',
   'Durable ledger',
   'npm run swarm:record',
-  'Note, notify, update',
+  'Advisory learning and approved updates',
   'Harness usability',
 ]) {
   if (!reference.includes(token)) failures.push(`swarm routing reference: missing "${token}"`)
 }
-for (const token of ['Never skip notification', 'explicit user guidance', 'harness usability']) {
+for (const token of ['do not block unrelated task completion', 'Explicit user guidance', 'harness usability']) {
   if (!skill.includes(token)) failures.push(`swarm skill: missing "${token}"`)
 }
 
@@ -183,4 +180,6 @@ if (failures.length) {
   process.exit(1)
 }
 
-console.log(`Swarm harness check passed (${Object.keys(roles).length} profiles validated).`)
+console.log(
+  `Swarm harness check passed (${Object.keys(roles).length} profiles and catalog v${selectionContracts.catalog.schemaVersion} validated).`,
+)

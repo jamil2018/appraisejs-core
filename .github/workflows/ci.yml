@@ -96,6 +96,16 @@ jobs:
       - run: npm run release:check:mcp-http
       - run: npm run release:check:capsule-cutover
       - run: npm run release:check:journey-cutover
+      - run: npm run release:check:ci
+      - run: npm run release:check:artifacts
+      - run: npm run release:check:operation-drift
+      - run: npm run release:check:operation-projections
+      - run: npm run release:check:operation-certification
+      - run: npm run docs:check-links
+      - run: npm run release:check:coordinator-reference
+      - run: npm run release:check:generic-planning
+      - run: npm run benchmark:repository-queries
+      - run: npm run release:check -- --ledger-only
       - run: npm run quality:fallow:release
       - run: npm run quality:ratchet -- --base "origin/${{ github.base_ref || 'appraise-0.5' }}"
       - run: npm run quality:react-doctor:ci

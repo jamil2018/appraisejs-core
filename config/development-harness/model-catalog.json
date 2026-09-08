@@ -1,0 +1,37 @@
+{
+  "schemaVersion": "1",
+  "models": [
+    {
+      "id": "gpt-5.6-luna",
+      "supportedEfforts": ["low", "medium", "high", "xhigh", "max"],
+      "capabilities": ["evidence-gathering", "deterministic-validation"],
+      "availabilityEvidence": "Approved host catalog snapshot, 2026-09-08. Verify at spawn time."
+    },
+    {
+      "id": "gpt-5.6-terra",
+      "supportedEfforts": ["low", "medium", "high", "xhigh", "max", "ultra"],
+      "capabilities": ["implementation", "deterministic-validation", "cross-module-reasoning"],
+      "availabilityEvidence": "Approved host catalog snapshot, 2026-09-08. Verify at spawn time."
+    },
+    {
+      "id": "gpt-5.6-sol",
+      "supportedEfforts": ["low", "medium", "high", "xhigh", "max", "ultra"],
+      "capabilities": ["evidence-gathering", "evidence-synthesis", "decision-arbitration", "independent-review"],
+      "availabilityEvidence": "Approved host catalog snapshot, 2026-09-08. Verify at spawn time."
+    },
+    {
+      "id": "gpt-6-astra",
+      "supportedEfforts": ["low", "medium", "high", "xhigh", "max", "ultra"],
+      "capabilities": [
+        "evidence-gathering",
+        "implementation",
+        "deterministic-validation",
+        "cross-module-reasoning",
+        "evidence-synthesis",
+        "decision-arbitration",
+        "independent-review"
+      ],
+      "availabilityEvidence": "Approved host catalog snapshot, 2026-09-08. Verify at spawn time."
+    }
+  ]
+}

@@ -8,7 +8,12 @@
   },
   {
     "name": "long-mechanical-work",
-    "input": { "taskClass": "mechanical-refactor", "requiresExecution": true, "crossModule": false },
+    "input": {
+      "taskClass": "mechanical-refactor",
+      "requiresExecution": true,
+      "crossModule": false,
+      "expectedEffort": "extended"
+    },
     "allowedRoutes": ["executor"],
     "prohibitedRoutes": ["solver", "judge"],
     "expected": { "route": "executor", "profile": "executor" }

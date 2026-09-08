@@ -1,10 +1,10 @@
 # Release Readiness
 
-`config/release-readiness.json` is the machine-readable ledger for repository release findings A-01 through A-13.
+`config/release-readiness.json` is the machine-readable ledger for repository release findings A-01 through A-14.
 The ledger records the owner, current state, required evidence, and repository command that verifies each finding.
 
 Run `npm run release:check` for the aggregate gate. The command validates the ledger, runs the named commands for
-verified findings, and exits nonzero while a release-blocking finding is open or a verification command fails. It
+verified findings, and exits nonzero while any finding is not verified or a verification command fails. It
 orchestrates repository checks; it does not replace their lint, test, package, quality, or security implementations.
 
 Allowed finding states are:

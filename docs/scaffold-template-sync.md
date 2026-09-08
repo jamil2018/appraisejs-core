@@ -36,7 +36,8 @@ MCP package; generated applications retain their self-contained tests and must n
 The Quality OS certifier resolves repository-only suites only when their files exist, so generated apps never attempt
 to run excluded parity tests or record them in their certification receipt.
 
-The repository's swarm-routing configuration, agents, ledger utilities, and swarm-only commands are also excluded.
+The repository's swarm-routing configuration, agents, ledger utilities, development-harness catalogs, learning records,
+and harness-only commands are also excluded.
 Generated projects retain their own bundled `check:harness` command, which verifies that this repository-only
 orchestration surface has not leaked into the scaffold.
 

@@ -1,8 +1,25 @@
 const REPO_ONLY_TEMPLATE_PATHS = new Set(['scripts/lib/swarm-ledger-lock.mjs', 'scripts/lib/toml-validator.mjs'])
 
-const REPO_ONLY_TEMPLATE_PREFIXES = ['.agents/', '.codex/'] as const
+const REPO_ONLY_TEMPLATE_PREFIXES = [
+  '.agents/',
+  '.codex/',
+  'config/development-harness/',
+  'docs/development-harness/',
+] as const
 
 export const REPO_ONLY_TEMPLATE_SCRIPT_NAMES = new Set([
+  'validate:harness:plan',
+  'validate:harness',
+  'validate:harness:ci',
+  'check:development-harness',
+  'harness:learn',
+  'harness:select',
+  'harness:replay-selection',
+  'harness:diagnostic',
+  'harness:validate',
+  'harness:benchmark',
+  'harness:review',
+  'harness:graph-status',
   'check:swarm-harness',
   'swarm:record',
   'swarm:route',
@@ -19,7 +36,9 @@ export function isRepoOnlyTemplatePath(relativePath: string): boolean {
   const normalizedPath = toPosixPath(relativePath)
   const isRepoOnlySwarmScript =
     normalizedPath.startsWith('scripts/') &&
-    (normalizedPath.includes('swarm') || normalizedPath.startsWith('scripts/tests/'))
+    (normalizedPath.includes('swarm') ||
+      normalizedPath.includes('harness-') ||
+      normalizedPath.startsWith('scripts/tests/'))
   return (
     REPO_ONLY_TEMPLATE_PATHS.has(normalizedPath) ||
     isRepoOnlySwarmScript ||

@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "appraisejs/development-harness/model-catalog/v1",
+  "title": "Development harness approved model catalog",
+  "type": "object",
+  "required": ["schemaVersion", "models"],
+  "properties": {
+    "schemaVersion": { "const": "1" },
+    "models": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["id", "supportedEfforts", "capabilities", "availabilityEvidence"],
+        "properties": {
+          "id": { "type": "string", "minLength": 1 },
+          "supportedEfforts": {
+            "type": "array",
+            "minItems": 1,
+            "items": { "enum": ["low", "medium", "high", "xhigh", "max", "ultra"] }
+          },
+          "capabilities": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 } },
+          "availabilityEvidence": { "type": "string", "minLength": 1 }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

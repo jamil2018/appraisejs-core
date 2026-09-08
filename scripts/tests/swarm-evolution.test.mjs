@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import crypto from 'node:crypto'
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
@@ -6,6 +7,8 @@ import { spawn, spawnSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 import test from 'node:test'
 import { parseProjectToml, validateTomlBasicString } from '../lib/toml-validator.mjs'
+import { appendEvent, readJournal } from '../lib/swarm-ledger-store.mjs'
+import { createRoutingDecision } from '../lib/swarm-router.mjs'
 
 const scriptsDir = path.dirname(path.dirname(fileURLToPath(import.meta.url)))
 const recordScript = path.join(scriptsDir, 'record-swarm-run.mjs')
@@ -67,6 +70,19 @@ function fail(cwd, args, pattern) {
   const result = spawnSync(process.execPath, args, { cwd, encoding: 'utf8' })
   assert.notEqual(result.status, 0)
   assert.match(result.stderr, pattern)
+}
+
+function legacyRouteEvent(decision) {
+  const event = {
+    schemaVersion: 1,
+    eventId: 'legacy-route-event',
+    recordedAt: '2026-08-20T17:14:38.165Z',
+    previousHash: null,
+    kind: 'route.recorded',
+    decision,
+  }
+  event.hash = crypto.createHash('sha256').update(JSON.stringify(event)).digest('hex')
+  return event
 }
 
 function evolve(cwd, runId, action, fields = {}) {
@@ -350,6 +366,118 @@ test('route receipts reject requested selectors as verified effective context pr
     }),
     /context: verified status requires a matching host-effective receipt/,
   )
+})
+
+test('fresh routing receipts reject a profile-mismatched host context', () => {
+  const cwd = temporaryDirectory()
+  fail(
+    cwd,
+    routeArgs({
+      'task-class': 'cross-module-feature',
+      'route-input': JSON.stringify({ missingEvidence: true, crossModule: true }),
+      'runtime-context-proof': 'verified',
+      'runtime-context-receipt': 'host-effective-context:fork_turns:none',
+    }),
+    /context: verified status requires a matching host-effective receipt/,
+  )
+})
+
+test('read-time legacy routing compatibility downgrades mismatched context proof without changing signed evidence', () => {
+  const cwd = temporaryDirectory()
+  const decision = createRoutingDecision({
+    taskClass: 'cross-module-feature',
+    missingEvidence: true,
+    crossModule: true,
+    runtimeProof: {
+      status: 'partial',
+      receipt: null,
+      claims: {
+        role: { status: 'verified', receipt: 'host-effective-role:investigator' },
+        model: { status: 'verified', receipt: 'host-effective-model:gpt-5.6-luna' },
+        reasoning: { status: 'verified', receipt: 'host-effective-reasoning:high' },
+        context: { status: 'unverified', receipt: null },
+        sandbox: { status: 'unverified', receipt: null },
+      },
+    },
+  })
+  delete decision.schemaVersion
+  decision.runtimeProof.claims.context = {
+    status: 'verified',
+    receipt: 'host-effective-context:fork_turns:none',
+  }
+  decision.runtimeProof.status = 'partial'
+  const journalPath = path.join(cwd, '.appraisejs', 'swarm-events.jsonl')
+  fs.mkdirSync(path.dirname(journalPath), { recursive: true })
+  fs.writeFileSync(journalPath, `${JSON.stringify(legacyRouteEvent(decision))}\n`)
+
+  const journal = readJournal(journalPath)
+  const normalized = journal.routes.get(decision.decisionId)
+  assert.equal(normalized.schemaVersion, 1)
+  assert.deepEqual(normalized.runtimeProof.claims.context, {
+    status: 'unverified',
+    receipt: 'host-effective-context:fork_turns:none',
+  })
+  assert.equal(JSON.parse(fs.readFileSync(journalPath, 'utf8')).decision.runtimeProof.claims.context.status, 'verified')
+})
+
+test('fresh schema-less routing records cannot use legacy context normalization', () => {
+  const cwd = temporaryDirectory()
+  const decision = createRoutingDecision({
+    taskClass: 'cross-module-feature',
+    missingEvidence: true,
+    crossModule: true,
+  })
+  delete decision.schemaVersion
+  decision.runtimeProof = {
+    status: 'partial',
+    receipt: null,
+    claims: {
+      role: { status: 'unverified', receipt: null },
+      model: { status: 'unverified', receipt: null },
+      reasoning: { status: 'unverified', receipt: null },
+      context: { status: 'verified', receipt: 'host-effective-context:fork_turns:none' },
+      sandbox: { status: 'unverified', receipt: null },
+    },
+  }
+  const journalPath = path.join(cwd, '.appraisejs', 'swarm-events.jsonl')
+  fs.mkdirSync(path.dirname(journalPath), { recursive: true })
+  assert.throws(
+    () => appendEvent(journalPath, { kind: 'route.recorded', decision }, null),
+    /context: verified status requires a matching host-effective receipt/,
+  )
+  assert.equal(fs.existsSync(journalPath), false)
+})
+
+test('fresh learning events require canonical observation identifiers', () => {
+  const cwd = temporaryDirectory()
+  const journalPath = path.join(cwd, '.appraisejs', 'swarm-events.jsonl')
+  fs.mkdirSync(path.dirname(journalPath), { recursive: true })
+  assert.throws(
+    () =>
+      appendEvent(
+        journalPath,
+        {
+          kind: 'learning.observation',
+          observation: {
+            observationId: 'observation-not-canonical',
+            recordedAt: '2026-09-08T00:00:00.000Z',
+            taskClass: 'localized-fix',
+            kind: 'success',
+            topic: 'Identifier contract',
+            summary: 'The store rejects malformed identifiers.',
+            evidenceSummary: 'Direct append validation.',
+            polarity: 'supports',
+            paths: ['scripts/lib/swarm-ledger-store.mjs'],
+            sourceType: 'fixture',
+            sourceRef: 'fixture:identifier-contract',
+            measurements: {},
+          },
+        },
+        null,
+      ),
+    /invalid observationId/,
+  )
+  assert.equal(fs.existsSync(journalPath), false)
 })
 
 test('selector receipts do not verify effective context boundaries', () => {

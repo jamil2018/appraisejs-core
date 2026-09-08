@@ -1,0 +1,80 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "appraisejs/development-harness/selection-policy/v1",
+  "title": "Development harness deterministic selection policy",
+  "type": "object",
+  "required": ["schemaVersion", "defaults", "rules", "fallbacks"],
+  "properties": {
+    "schemaVersion": { "const": "1" },
+    "defaults": {
+      "type": "object",
+      "required": ["coordinator-only", "investigator", "executor", "executor-advanced", "solver", "judge"],
+      "properties": {
+        "coordinator-only": { "$ref": "#/$defs/nullCandidate" },
+        "investigator": { "$ref": "#/$defs/candidate" },
+        "executor": { "$ref": "#/$defs/candidate" },
+        "executor-advanced": { "$ref": "#/$defs/candidate" },
+        "solver": { "$ref": "#/$defs/candidate" },
+        "judge": { "$ref": "#/$defs/candidate" }
+      },
+      "additionalProperties": false
+    },
+    "rules": { "type": "array", "items": { "$ref": "#/$defs/rule" } },
+    "fallbacks": {
+      "type": "object",
+      "required": ["investigator", "executor", "executor-advanced", "solver", "judge"],
+      "properties": {
+        "investigator": { "$ref": "#/$defs/candidates" },
+        "executor": { "$ref": "#/$defs/candidates" },
+        "executor-advanced": { "$ref": "#/$defs/candidates" },
+        "solver": { "$ref": "#/$defs/candidates" },
+        "judge": { "$ref": "#/$defs/candidates" }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "candidate": {
+      "type": "object",
+      "required": ["model", "effort"],
+      "properties": {
+        "model": { "type": "string", "minLength": 1 },
+        "effort": { "enum": ["low", "medium", "high", "xhigh", "max", "ultra"] }
+      },
+      "additionalProperties": false
+    },
+    "nullCandidate": {
+      "type": "object",
+      "required": ["model", "effort"],
+      "properties": { "model": { "type": "null" }, "effort": { "type": "null" } },
+      "additionalProperties": false
+    },
+    "candidates": { "type": "array", "items": { "$ref": "#/$defs/candidate" } },
+    "rule": {
+      "type": "object",
+      "required": ["id", "profile", "when", "select", "rationale"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "profile": { "enum": ["investigator", "executor", "executor-advanced", "solver", "judge"] },
+        "when": { "$ref": "#/$defs/when" },
+        "select": { "$ref": "#/$defs/candidate" },
+        "rationale": { "type": "string", "minLength": 1 }
+      },
+      "additionalProperties": false
+    },
+    "when": {
+      "type": "object",
+      "minProperties": 1,
+      "properties": {
+        "scope": { "enum": ["localized", "cross-module"] },
+        "evidenceNeeds": { "enum": ["low", "medium", "high"] },
+        "judgment": { "enum": ["low", "medium", "high"] },
+        "consequence": { "enum": ["low", "medium", "high"] },
+        "verificationStrength": { "enum": ["strong", "weak", "unknown"] },
+        "expectedEffort": { "enum": ["localized", "extended"] }
+      },
+      "additionalProperties": false
+    }
+  }
+}

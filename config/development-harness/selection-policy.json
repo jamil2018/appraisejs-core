@@ -1,0 +1,61 @@
+{
+  "schemaVersion": "1",
+  "defaults": {
+    "coordinator-only": { "model": null, "effort": null },
+    "investigator": { "model": "gpt-5.6-luna", "effort": "medium" },
+    "executor": { "model": "gpt-5.6-terra", "effort": "medium" },
+    "executor-advanced": { "model": "gpt-5.6-terra", "effort": "high" },
+    "solver": { "model": "gpt-5.6-sol", "effort": "high" },
+    "judge": { "model": "gpt-5.6-sol", "effort": "high" }
+  },
+  "rules": [
+    {
+      "id": "investigator-extended-evidence",
+      "profile": "investigator",
+      "when": { "evidenceNeeds": "high", "expectedEffort": "extended" },
+      "select": { "model": "gpt-5.6-luna", "effort": "high" },
+      "rationale": "Extended, high-evidence investigation may use a higher approved Luna effort."
+    },
+    {
+      "id": "executor-consequential-extended",
+      "profile": "executor",
+      "when": { "consequence": "high", "expectedEffort": "extended" },
+      "select": { "model": "gpt-5.6-terra", "effort": "high" },
+      "rationale": "Consequential extended implementation may use a higher approved Terra effort."
+    },
+    {
+      "id": "solver-cross-module-extended",
+      "profile": "solver",
+      "when": { "scope": "cross-module", "expectedEffort": "extended" },
+      "select": { "model": "gpt-5.6-sol", "effort": "xhigh" },
+      "rationale": "Cross-module judgment with established evidence may use a higher approved Sol effort."
+    },
+    {
+      "id": "judge-consequential-weak-proof",
+      "profile": "judge",
+      "when": { "consequence": "high", "verificationStrength": "weak", "expectedEffort": "extended" },
+      "select": { "model": "gpt-6-astra", "effort": "high" },
+      "rationale": "Consequential weak-proof review may use the approved independent-review fallback model."
+    }
+  ],
+  "fallbacks": {
+    "investigator": [
+      { "model": "gpt-5.6-luna", "effort": "high" },
+      { "model": "gpt-5.6-sol", "effort": "high" },
+      { "model": "gpt-6-astra", "effort": "high" }
+    ],
+    "executor": [
+      { "model": "gpt-5.6-terra", "effort": "high" },
+      { "model": "gpt-6-astra", "effort": "high" }
+    ],
+    "executor-advanced": [{ "model": "gpt-6-astra", "effort": "high" }],
+    "solver": [
+      { "model": "gpt-5.6-sol", "effort": "high" },
+      { "model": "gpt-6-astra", "effort": "high" }
+    ],
+    "judge": [
+      { "model": "gpt-5.6-sol", "effort": "high" },
+      { "model": "gpt-6-astra", "effort": "high" }
+    ]
+  }
+}

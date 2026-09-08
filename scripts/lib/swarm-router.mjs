@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto'
+import { resolveModelSelection } from './harness-selection.mjs'
 import { normalizeTaskClass, validateRoutingDecision } from './swarm-routing-contract.mjs'
 
 const riskSignals = ['securityRisk', 'persistenceRisk', 'migrationRisk', 'publicContractRisk']
@@ -89,6 +90,19 @@ const routingRules = [
     }),
   },
   {
+    matches: ({ input, signals, consequence, verificationStrength }) =>
+      input.requiresExecution === true &&
+      !signals.crossModule &&
+      consequence === 'low' &&
+      verificationStrength === 'strong' &&
+      (input.expectedEffort ?? 'localized') === 'localized',
+    select: () => ({
+      route: 'coordinator-only',
+      profile: 'coordinator-only',
+      rationale: 'Localized, low-consequence execution with strong deterministic verification stays coordinator-only.',
+    }),
+  },
+  {
     matches: ({ input }) => input.requiresExecution === true,
     select: ({ signals, verificationStrength }) =>
       executorSelection(signals.crossModule && verificationStrength === 'strong'),
@@ -124,6 +138,7 @@ function executorSelection(advanced) {
 export function createRoutingDecision(input = {}) {
   const recommendation = recommendSwarmRoute(input)
   const decision = {
+    schemaVersion: 2,
     decisionId: defaultValue(input.decisionId, randomUUID()),
     recordedAt: defaultValue(input.recordedAt, new Date().toISOString()),
     taskClass: normalizeTaskClass(defaultValue(input.taskClass, 'localized-fix')),
@@ -142,6 +157,12 @@ export function createRoutingDecision(input = {}) {
     retryCount: defaultValue(input.retryCount, recommendation.signals.executorFailures),
     rerouteCount: defaultValue(input.rerouteCount, Number(recommendation.reclassificationRequired)),
     linkedRunId: null,
+    selection: resolveModelSelection({
+      ...input,
+      profile: recommendation.profile,
+      consequence: recommendation.consequence,
+      verificationStrength: recommendation.verificationStrength,
+    }),
   }
   return validateRoutingDecision(decision)
 }

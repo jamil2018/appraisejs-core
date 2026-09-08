@@ -1,3 +1,5 @@
+import { profileDefaults, validateRecordedSelection } from './harness-selection.mjs'
+
 export const ROUTES = Object.freeze(['coordinator-only', 'investigator', 'solver', 'executor', 'judge'])
 
 export const TASK_CLASSES = Object.freeze([
@@ -16,28 +18,8 @@ const taskClassAliases = Object.freeze({
   'security-change': 'cross-module-feature',
 })
 
-export const PROFILE_IDS = Object.freeze([
-  'coordinator-only',
-  'investigator',
-  'executor',
-  'executor-advanced',
-  'solver',
-  'judge',
-])
-
-export const SUPPORTED_PROFILES = Object.freeze({
-  'coordinator-only': Object.freeze({ role: 'coordinator', model: null, effort: null, sandbox: null }),
-  investigator: Object.freeze({ role: 'investigator', model: 'gpt-5.6-luna', effort: 'medium', sandbox: 'read-only' }),
-  executor: Object.freeze({ role: 'executor', model: 'gpt-5.6-terra', effort: 'medium', sandbox: 'workspace-write' }),
-  'executor-advanced': Object.freeze({
-    role: 'executor',
-    model: 'gpt-5.6-terra',
-    effort: 'high',
-    sandbox: 'workspace-write',
-  }),
-  solver: Object.freeze({ role: 'solver', model: 'gpt-5.6-sol', effort: 'high', sandbox: 'read-only' }),
-  judge: Object.freeze({ role: 'judge', model: 'gpt-5.6-sol', effort: 'high', sandbox: 'read-only' }),
-})
+export const SUPPORTED_PROFILES = Object.freeze(profileDefaults())
+export const PROFILE_IDS = Object.freeze(Object.keys(SUPPORTED_PROFILES))
 
 const requiredSignalKeys = [
   'missingEvidence',
@@ -111,7 +93,7 @@ function validateRuntimeProof(runtimeProof, label) {
     )
     if (claim.status === 'verified') {
       assert(
-        validHostEffectiveReceipt(property, claim.receipt, runtimeProof.profile),
+        validHostEffectiveReceipt(property, claim.receipt, runtimeProof.profile, runtimeProof.selection),
         `${label}.runtimeProof.claims.${property}: verified status requires a matching host-effective receipt`,
       )
     } else {
@@ -130,10 +112,17 @@ function validateRuntimeProof(runtimeProof, label) {
   assert(runtimeProof.status === expectedStatus, `${label}.runtimeProof.status: inconsistent with property claims`)
 }
 
-function validHostEffectiveReceipt(property, receipt, profile) {
+function validHostEffectiveReceipt(property, receipt, profile, selection) {
   if (!nonBlank(receipt)) return false
-  if (property === 'context') return isEffectiveContextReceipt(receipt)
-  const expected = property === 'reasoning' ? SUPPORTED_PROFILES[profile].effort : SUPPORTED_PROFILES[profile][property]
+  if (property === 'context')
+    return isEffectiveIndependentJudgeContext(SUPPORTED_PROFILES[profile].contextBoundary, receipt)
+  const effective = selection?.effective
+  const expected =
+    property === 'reasoning'
+      ? (effective?.effort ?? SUPPORTED_PROFILES[profile].effort)
+      : property === 'model'
+        ? (effective?.model ?? SUPPORTED_PROFILES[profile].model)
+        : SUPPORTED_PROFILES[profile][property]
   const value = expected == null ? '[^;\\s]+' : escapeRegExp(expected)
   return new RegExp(`^host-effective-${property}:${value}(?:;.+)?$`).test(receipt)
 }
@@ -191,7 +180,8 @@ export function validateRoutingDecision(decision, label = 'routing decision') {
   }
   assert(decision.linkedRunId == null, `${label}.linkedRunId: routing receipts cannot link future runs`)
   validateSignals(decision.signals, label)
-  validateRuntimeProof({ ...decision.runtimeProof, profile: decision.profile }, label)
+  if (decision.selection !== undefined) validateRecordedSelection(decision.selection, decision.profile)
+  validateRuntimeProof({ ...decision.runtimeProof, profile: decision.profile, selection: decision.selection }, label)
 
   if (materialRisk(decision.signals) || (decision.consequence === 'high' && decision.verificationStrength === 'weak')) {
     assert(

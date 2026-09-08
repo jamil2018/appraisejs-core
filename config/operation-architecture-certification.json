@@ -30,7 +30,7 @@
       },
       {
         "suite": "src/services/step-definition/step-definition-registry-service.integration.test.ts",
-        "sourceHash": "sha256:5157375372ef6b8b77ec1437b38a1e3c457cbefd510c558c93b4d5b631b484de"
+        "sourceHash": "sha256:22448608675b00a258b79dddd6a4fb260969af6aa6ed809e6c80b6ee2ea407c6"
       },
       {
         "suite": "src/services/coordinator/coordinator-step-definition-service.test.ts",
@@ -38,7 +38,7 @@
       },
       {
         "suite": "src/lib/runtime-capsule/runtime-capsule.test.ts",
-        "sourceHash": "sha256:83581d8c3033609b8de65253cdcbcfc3e88a8ba3e0856ceb51638b01904e482a"
+        "sourceHash": "sha256:aa7ad3dd16cb5b7a6d40c1a16fe208c73cf7d3a8b60d2c76698bba3f43213049"
       },
       {
         "suite": "src/components/diagram/flow-diagram.test.tsx",
@@ -56,14 +56,12 @@
   "repositoryAbsence": {
     "passed": true,
     "matches": [],
-    "scannedRoots": [
-      "."
-    ],
+    "scannedRoots": ["."],
     "allowlist": [
       "^codex\\/development plan\\/.*\\.md$",
       "^scripts\\/certify-operation-architecture\\.ts$",
       "^packages\\/create-appraisejs\\/templates\\/base\\/scripts\\/certify-operation-architecture\\.ts$"
     ]
   },
-  "receiptHash": "sha256:313c0603ecf1d1c6c6c628b99dd8ec97b19a63bb0bc0b3c5ea1a7d27a1b0cc6e"
+  "receiptHash": "sha256:a8e454c51568a219244166ff4c67db66e4b74a49419f036873b5627a2eec05b5"
 }

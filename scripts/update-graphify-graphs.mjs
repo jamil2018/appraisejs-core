@@ -1,5 +1,7 @@
 #!/usr/bin/env node
+import { existsSync } from 'node:fs'
 import { spawnSync } from 'node:child_process'
+import { graphInputDigest, recordGraphFreshness } from './lib/graphify-freshness.mjs'
 
 const graphScopes = [
   {
@@ -65,9 +67,13 @@ if (dryRun) {
 }
 
 for (const scope of selectedScopes) {
-  const result = spawnSync('npm', ['run', scope.script], {
+  const inputDigest = graphInputDigest(scope.name)
+  const deleted = changedFiles.some(file => scope.matches(file) && !existsSync(file))
+  const buildArgs = ['run', scope.script, ...(deleted && scope.name !== 'prisma' ? ['--', '--force'] : [])]
+  const result = spawnSync('npm', buildArgs, {
     encoding: 'utf8',
     stdio: 'inherit',
+    timeout: 600_000,
   })
 
   if (result.error?.code === 'ENOENT') {
@@ -78,13 +84,14 @@ for (const scope of selectedScopes) {
   if (result.status !== 0) {
     process.exit(result.status ?? 1)
   }
+  recordGraphFreshness(scope.name, inputDigest)
 }
 
 printUnmatchedFiles(changedFiles)
 
 function listChangedFiles() {
-  const tracked = git(['diff', '--name-only', '--diff-filter=ACMR', 'HEAD', '--'])
-  const untracked = git(['ls-files', '--others', '--exclude-standard'])
+  const tracked = git(['diff', '--name-only', '-z', '--no-renames', '--diff-filter=ACMRD', 'HEAD', '--'])
+  const untracked = git(['ls-files', '-z', '--others', '--exclude-standard'])
   return [...new Set([...tracked, ...untracked].map(normalizePath).filter(Boolean))].filter(isRelevantChange)
 }
 
@@ -92,12 +99,13 @@ function git(args) {
   const result = spawnSync('git', args, {
     encoding: 'utf8',
     stdio: 'pipe',
+    timeout: 10_000,
   })
 
   handleMissingCommand(result, 'git')
   handleFailedCommand(result)
 
-  return result.stdout.split('\n')
+  return result.stdout.split('\0')
 }
 
 function handleMissingCommand(result, command) {
@@ -115,7 +123,7 @@ function handleFailedCommand(result) {
 }
 
 function normalizePath(path) {
-  return path.trim().replace(/\\/g, '/')
+  return path.replace(/\\/g, '/')
 }
 
 function isRelevantChange(path) {

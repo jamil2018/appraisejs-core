@@ -50,6 +50,18 @@ describe('release-readiness ledger', () => {
     )
   })
 
+  it('does not accept a valid waiver or an open non-blocking finding as verification', () => {
+    const findings = Array.from({ length: 14 }, (_, index) => finding(index + 1, { status: 'verified' }))
+    findings[0] = finding(1, {
+      status: 'waived',
+      waiver: { owner: 'security', rationale: 'Temporary', expiresOn: '2099-01-01', review: 'review-1' },
+    })
+    findings[1] = finding(2, { severity: 'low', releaseBlocking: false })
+    expect(validateReleaseLedger(ledger({ findings }))).toEqual([])
+    expect(evaluateReleaseLedger(ledger({ findings })).blockingFindings).toHaveLength(2)
+    expect(evaluateReleaseLedger(ledger({ findings })).ok).toBe(false)
+  })
+
   it('deduplicates and runs only commands for verified findings', () => {
     const findings = Array.from({ length: 14 }, (_, index) => finding(index + 1))
     findings[0] = finding(1, { status: 'verified', verificationCommands: ['npm run shared-check'] })

@@ -8,12 +8,23 @@ import { evaluateReleaseLedger, runVerifiedFindingCommands, validateReleaseLedge
 const repoRoot = process.cwd()
 const ledgerPath = path.resolve(repoRoot, process.env.APPRAISE_RELEASE_LEDGER ?? 'config/release-readiness.json')
 const ledger = JSON.parse(fs.readFileSync(ledgerPath, 'utf8'))
+const ledgerOnly = process.argv.includes('--ledger-only')
 const schemaErrors = validateReleaseLedger(ledger)
 
 if (schemaErrors.length > 0) {
   console.error('Release readiness ledger is invalid:')
   for (const error of schemaErrors) console.error(`- ${error}`)
   process.exit(1)
+}
+
+if (ledgerOnly) {
+  const result = evaluateReleaseLedger(ledger)
+  if (!result.ok) {
+    console.error(`Release ledger is not ready: ${result.blockingFindings.map(finding => finding.id).join(', ')}`)
+    process.exit(1)
+  }
+  console.log('Release readiness ledger is structurally valid and every finding is verified.')
+  process.exit(0)
 }
 
 const commandResults = runVerifiedFindingCommands(ledger, { cwd: repoRoot })

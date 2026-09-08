@@ -4,10 +4,11 @@ import fs from 'node:fs'
 import path from 'node:path'
 
 import { withDefaultGraph } from './lib/graphify-command-args.mjs'
+import { resolveGraphifyExecutable } from './lib/graphify-executable.mjs'
 
 const args = process.argv.slice(2)
-const graphifyCommand = resolveCommand('graphify')
-const graphifyMcpCommand = resolveCommand('graphify-mcp')
+const graphifyCommand = resolveGraphifyExecutable('graphify')
+const graphifyMcpCommand = resolveGraphifyExecutable('graphify-mcp')
 
 if (args.length === 0) {
   console.error('Usage: node scripts/run-graphify.mjs <graphify args...>')
@@ -42,7 +43,10 @@ if (args[0] === 'build-scope') {
 
   const hasGeminiBackend = Boolean(process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY)
   const hasExistingPackageGraph = scope === 'packages' && fs.existsSync(path.join(scope, 'graphify-out', 'graph.json'))
-  const buildArgs = hasExistingPackageGraph && !hasGeminiBackend ? ['update', scope] : [scope]
+  const buildArgs =
+    hasExistingPackageGraph && !hasGeminiBackend && !args.includes('--force')
+      ? ['update', scope]
+      : [scope, ...(args.includes('--force') ? ['--force'] : [])]
   if (buildArgs[0] === 'update') {
     console.log('Using the existing host-semantic package graph; refreshing code incrementally without an API key.')
   }
@@ -67,6 +71,7 @@ function runCommand(command, commandArgs) {
   const result = spawnSync(command, commandArgs, {
     encoding: 'utf8',
     stdio: 'inherit',
+    timeout: 600_000,
   })
 
   if (result.error?.code === 'ENOENT') {
@@ -75,27 +80,4 @@ function runCommand(command, commandArgs) {
   }
 
   return result
-}
-
-function resolveCommand(command) {
-  const fromPath = resolveCommandFromPath(command)
-  if (fromPath) return fromPath
-
-  return resolveCommandFromUvToolPath(command)
-}
-
-function resolveCommandFromPath(command) {
-  const pathResult = spawnSync('which', [command], {
-    encoding: 'utf8',
-    stdio: 'pipe',
-  })
-  return pathResult.status === 0 ? pathResult.stdout.trim() : ''
-}
-
-function resolveCommandFromUvToolPath(command) {
-  const home = process.env.HOME
-  if (!home) return null
-
-  const uvToolPath = path.join(home, '.local', 'bin', command)
-  return fs.existsSync(uvToolPath) ? uvToolPath : null
 }
