@@ -7,7 +7,9 @@ const mocks = vi.hoisted(() => ({
   cancelCollaborationOperation: vi.fn(),
   collaborationPublicDigest: (value: string | null) => (value ? `sha256:${value}` : null),
   createCollaborationHandoffTicket: vi.fn(),
+  issueCollaborationAuthorityReceipt: vi.fn(),
   getCollaborationStatus: vi.fn(),
+  getSanitizedCollaborationAssignment: vi.fn(),
   prepareCollaborationOperation: vi.fn(),
   recoverCollaborationOperationFilesystem: vi.fn(),
   requireCollaborationOperationForProject: vi.fn(),
@@ -23,16 +25,20 @@ vi.mock('@/services/repository-collaboration', () => ({
   decideCollaborationOperation: vi.fn(),
   executeCollaborationOperation: vi.fn(),
   getCollaborationStatus: mocks.getCollaborationStatus,
+  getSanitizedCollaborationAssignment: mocks.getSanitizedCollaborationAssignment,
   prepareCollaborationOperation: mocks.prepareCollaborationOperation,
   requireCollaborationOperationForProject: mocks.requireCollaborationOperationForProject,
   recoverCollaborationOperationFilesystem: mocks.recoverCollaborationOperationFilesystem,
   updateCollaborationPolicy: vi.fn(),
+  updateCollaborationPolicyFromLocalUi: vi.fn(),
+  issueCollaborationAuthorityReceipt: mocks.issueCollaborationAuthorityReceipt,
 }))
 
 import {
   connectCollaborationAction,
   cancelCollaborationAction,
   createCollaborationHandoffAction,
+  issueCollaborationAuthorityReceiptAction,
   prepareCollaborationAction,
   recoverCollaborationFilesystemAction,
 } from './collaboration-actions'
@@ -54,6 +60,14 @@ beforeEach(() => {
   mocks.createCollaborationHandoffTicket.mockResolvedValue({
     ticket: { expiresAt: new Date('2026-09-09T01:00:00.000Z') },
     token: 'single-use-token',
+  })
+  mocks.getSanitizedCollaborationAssignment.mockResolvedValue({
+    schema: 'appraise.repository-collaboration.worker-assignment/v1',
+    operationId: 'clx00000000000000000000000',
+  })
+  mocks.issueCollaborationAuthorityReceipt.mockResolvedValue({
+    token: 'a'.repeat(43),
+    expiresAt: new Date('2026-09-09T01:00:00.000Z'),
   })
 })
 
@@ -87,9 +101,38 @@ describe('collaboration actions', () => {
       intent: 'PUBLISH',
       idempotencyKey: 'publish-1',
       expectedPolicyVersion: 3,
-      incomingRecords: undefined,
       trigger: 'local-ui',
     })
+  })
+
+  it('issues a CLI handoff for the canonical full policy request without accepting a caller target', async () => {
+    await expect(
+      issueCollaborationAuthorityReceiptAction({
+        action: 'POLICY_UPDATE',
+        targetProjectId: projectId,
+        changes: { INTEGRATE: true },
+      }),
+    ).resolves.toMatchObject({ success: true, data: { token: 'a'.repeat(43) } })
+    expect(mocks.issueCollaborationAuthorityReceipt).toHaveBeenCalledWith(
+      expect.objectContaining({
+        bindingId: 'binding-1',
+        action: 'POLICY_UPDATE',
+        request: { target: projectId, expectedPolicyVersion: 3, changes: { INTEGRATE: true } },
+      }),
+    )
+  })
+
+  it('rejects caller-supplied receive records instead of bypassing the repository fetch', async () => {
+    await expect(
+      prepareCollaborationAction({
+        targetProjectId: projectId,
+        intent: 'RECEIVE',
+        idempotencyKey: 'receive-1',
+        incomingRecords: [],
+      }),
+    ).resolves.toMatchObject({ success: false })
+
+    expect(mocks.prepareCollaborationOperation).not.toHaveBeenCalled()
   })
 
   it('requires the operation to belong to the active project before recovery', async () => {
@@ -114,10 +157,10 @@ describe('collaboration actions', () => {
       bindingId: 'binding-1',
       operationId: 'clx00000000000000000000000',
       scope: {
-        kind: 'INTERACTIVE_HANDOFF',
-        operationId: 'clx00000000000000000000000',
-        targetProjectId: projectId,
-        preparedDigest: `sha256:${'a'.repeat(64)}`,
+        assignment: {
+          schema: 'appraise.repository-collaboration.worker-assignment/v1',
+          operationId: 'clx00000000000000000000000',
+        },
       },
     })
   })

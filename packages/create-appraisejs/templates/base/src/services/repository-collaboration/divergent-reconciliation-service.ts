@@ -27,6 +27,8 @@ import {
 
 type Transaction = Prisma.TransactionClient
 
+const divergentDecisionRecordKey = '__appraise_divergent_proposal__'
+
 type PreparedPayload = {
   local: CollaborationRecord[]
   baselines: CollaborationRecord[]
@@ -49,7 +51,10 @@ function assertOperationVersion(
   operation: Pick<CollaborationOperation, 'version' | 'preparedDigest' | 'sourceRevision' | 'targetRevision'>,
   input: { expectedVersion: number; preparedDigest: string },
 ): void {
-  if (operation.version !== input.expectedVersion || operation.preparedDigest !== input.preparedDigest) {
+  const digest = input.preparedDigest.startsWith('sha256:')
+    ? input.preparedDigest.slice('sha256:'.length)
+    : input.preparedDigest
+  if (operation.version !== input.expectedVersion || operation.preparedDigest !== digest) {
     throw new ServiceError('The collaboration operation changed after divergent preparation.', 'CONFLICT', 409)
   }
   if (!operation.sourceRevision || !operation.targetRevision) {
@@ -112,7 +117,7 @@ async function releasePreparationLease(client: PrismaClient, lease: Collaboratio
  * reviews content; it is reacquired at every later mutation boundary.
  */
 export async function prepareDivergentCollaborationReconciliation(
-  input: { operationId: string; expectedVersion: number; preparedDigest: string },
+  input: { operationId: string; expectedVersion: number; preparedDigest: string; queueAfterPreparation?: boolean },
   client: PrismaClient = prisma,
 ): Promise<DivergentReconciliationPreparation> {
   const started = await acquirePreparationLease(client, input)
@@ -125,6 +130,15 @@ export async function prepareDivergentCollaborationReconciliation(
     })
     await client.$transaction(async transaction => {
       const operation = await loadPreparedOperation(transaction, input)
+      await transaction.collaborationOperationArtifact.create({
+        data: {
+          operationId: operation.id,
+          kind: 'DIVERGENT_PREPARATION',
+          revision: 1,
+          payloadJson: JSON.stringify(preparation),
+          payloadHash: collaborationHash(preparation),
+        },
+      })
       await appendCollaborationJournalEntry(
         transaction,
         operation.id,
@@ -139,6 +153,26 @@ export async function prepareDivergentCollaborationReconciliation(
         },
         'COMPLETED',
       )
+      if (input.queueAfterPreparation) {
+        await transaction.collaborationOperation.update({
+          where: { id: operation.id },
+          data: {
+            state: 'QUEUED',
+            queueKey: 'PENDING',
+            nextAttemptAt: new Date(),
+            leaseOwner: null,
+            leaseExpiresAt: null,
+            acceptedDigest: null,
+          },
+        })
+        await appendCollaborationJournalEntry(
+          transaction,
+          operation.id,
+          'DIVERGENT_WORKTREE_QUEUED',
+          { preparedDigest: operation.preparedDigest },
+          'COMPLETED',
+        )
+      }
     })
     return preparation
   } catch (error) {
@@ -169,23 +203,33 @@ export async function proposeDivergentCollaborationReconciliation(
     operationId: string
     expectedVersion: number
     preparedDigest: string
-    preparation: DivergentReconciliationPreparation
     records: CollaborationRecord[]
   },
   client: PrismaClient = prisma,
-): Promise<{ review: DivergentReconciliationReview; databaseReviewDigest: string; requiresDecision: boolean }> {
+): Promise<{
+  review: DivergentReconciliationReview
+  databaseReviewDigest: string
+  requiresDecision: boolean
+  operationVersion: number
+}> {
   const operation = await client.$transaction(transaction => loadPreparedOperation(transaction, input))
+  const storedPreparation = await client.collaborationOperationArtifact.findFirst({
+    where: { operationId: operation.id, kind: 'DIVERGENT_PREPARATION' },
+    orderBy: { revision: 'desc' },
+  })
+  if (!storedPreparation) throw new ServiceError('The divergent worktree was not durably prepared.', 'CONFLICT', 409)
+  const preparation = JSON.parse(storedPreparation.payloadJson) as DivergentReconciliationPreparation
   if (
-    input.preparation.operationId !== operation.id ||
-    input.preparation.repositoryRoot !== operation.binding.repositoryRoot ||
-    input.preparation.sourceRevision !== operation.sourceRevision ||
-    input.preparation.targetRevision !== operation.targetRevision
-  ) {
-    throw new ServiceError('The divergent worktree does not belong to this exact operation.', 'CONFLICT', 409)
-  }
+    storedPreparation.payloadHash !== collaborationHash(preparation) ||
+    preparation.operationId !== operation.id ||
+    preparation.repositoryRoot !== operation.binding.repositoryRoot ||
+    preparation.sourceRevision !== operation.sourceRevision ||
+    preparation.targetRevision !== operation.targetRevision
+  )
+    throw new ServiceError('The persisted divergent worktree does not belong to this exact operation.', 'CONFLICT', 409)
   try {
     const review = await validateDivergentReconciliationProposal({
-      preparation: input.preparation,
+      preparation,
       records: input.records,
     })
     const payload = parsePreparedPayload(operation)
@@ -196,8 +240,21 @@ export async function proposeDivergentCollaborationReconciliation(
     })
     const databaseReviewDigest = collaborationHash(databaseReview)
     const requiresDecision = databaseReview.some(record => record.requiresDecision)
-    await client.$transaction(async transaction => {
+    const updated = await client.$transaction(async transaction => {
       await loadPreparedOperation(transaction, input)
+      const prior = await transaction.collaborationOperationArtifact.findFirst({
+        where: { operationId: operation.id, kind: 'DIVERGENT_PROPOSAL_REVIEW' },
+        orderBy: { revision: 'desc' },
+      })
+      await transaction.collaborationOperationArtifact.create({
+        data: {
+          operationId: operation.id,
+          kind: 'DIVERGENT_PROPOSAL_REVIEW',
+          revision: (prior?.revision ?? 0) + 1,
+          payloadJson: JSON.stringify({ review, databaseReviewDigest, requiresDecision, records: input.records }),
+          payloadHash: collaborationHash({ review, databaseReviewDigest, requiresDecision, records: input.records }),
+        },
+      })
       await appendCollaborationJournalEntry(
         transaction,
         input.operationId,
@@ -205,11 +262,167 @@ export async function proposeDivergentCollaborationReconciliation(
         { reviewDigest: review.reviewDigest, databaseReviewDigest, requiresDecision },
         'COMPLETED',
       )
+      // A proposal is review material, not acceptance.  It immediately loses
+      // the worker lease and invalidates any earlier executable decision.
+      return transaction.collaborationOperation.update({
+        where: { id: operation.id },
+        data: {
+          state: 'WAITING_FOR_DECISION',
+          acceptedDigest: null,
+          leaseOwner: null,
+          leaseExpiresAt: null,
+          queueKey: null,
+          blockerJson: JSON.stringify({ kind: 'DIVERGENT_PROPOSAL_REVIEW', reviewDigest: review.reviewDigest }),
+          version: { increment: 1 },
+        },
+      })
     })
-    return { review, databaseReviewDigest, requiresDecision }
+    return { review, databaseReviewDigest, requiresDecision, operationVersion: updated.version }
   } catch (error) {
     throw asServiceError(error)
   }
+}
+
+type DivergentProposalDecisionInput = {
+  operationId: string
+  expectedVersion: number
+  preparedDigest: string
+  reviewDigest: string
+  decision: 'ACCEPT' | 'REJECT'
+  trustedPrincipalId: string
+  provenance: 'local-ui' | 'authenticated-host'
+}
+
+async function reviewedProposal(
+  transaction: Transaction,
+  input: Pick<DivergentProposalDecisionInput, 'operationId' | 'reviewDigest'>,
+) {
+  const artifact = await transaction.collaborationOperationArtifact.findFirst({
+    where: { operationId: input.operationId, kind: 'DIVERGENT_PROPOSAL_REVIEW' },
+    orderBy: { revision: 'desc' },
+  })
+  if (!artifact) throw new ServiceError('No divergent proposal is available for decision.', 'CONFLICT', 409)
+  let payload: { review?: DivergentReconciliationReview; records?: CollaborationRecord[] }
+  try {
+    payload = JSON.parse(artifact.payloadJson) as typeof payload
+  } catch {
+    throw new ServiceError('The divergent proposal artifact is invalid.', 'CONFLICT', 409)
+  }
+  if (
+    artifact.payloadHash !== collaborationHash(payload) ||
+    !payload.review ||
+    !Array.isArray(payload.records) ||
+    payload.review.reviewDigest !==
+      (input.reviewDigest.startsWith('sha256:') ? input.reviewDigest.slice(7) : input.reviewDigest)
+  )
+    throw new ServiceError('The decision does not name the exact reviewed divergent proposal.', 'CONFLICT', 409)
+  return { artifact, payload }
+}
+
+/** Decision authority is deliberately separate from proposal production.  An
+ * accept binds one immutable artifact and its canonical review digest; later
+ * execution never searches for a newer proposal. */
+export async function decideDivergentCollaborationProposal(
+  input: DivergentProposalDecisionInput,
+  client: PrismaClient | Transaction = prisma,
+) {
+  if (!['local-ui', 'authenticated-host'].includes(input.provenance))
+    throw new ServiceError('Divergent proposal decisions require trusted provenance.', 'UNAUTHORIZED', 403)
+  const digest = input.preparedDigest.startsWith('sha256:') ? input.preparedDigest.slice(7) : input.preparedDigest
+  const reviewDigest = input.reviewDigest.startsWith('sha256:') ? input.reviewDigest.slice(7) : input.reviewDigest
+  const decideInTransaction = async (transaction: Transaction) => {
+    const operation = await transaction.collaborationOperation.findUnique({ where: { id: input.operationId } })
+    if (!operation) throw new ServiceError('Collaboration operation was not found.', 'NOT_FOUND', 404)
+    await requireCollaborationPermission(transaction, operation.bindingId, 'RESOLVE', operation.policyVersion)
+    if (
+      operation.intent !== 'RECONCILE' ||
+      operation.state !== 'WAITING_FOR_DECISION' ||
+      operation.version !== input.expectedVersion ||
+      operation.preparedDigest !== digest
+    )
+      throw new ServiceError('The divergent proposal decision is stale.', 'CONFLICT', 409)
+    const proposal = await reviewedProposal(transaction, input)
+    const resolution = { reviewDigest, decision: input.decision }
+    await transaction.collaborationDecision.upsert({
+      where: { operationId_recordKey: { operationId: operation.id, recordKey: divergentDecisionRecordKey } },
+      create: {
+        operationId: operation.id,
+        recordKey: divergentDecisionRecordKey,
+        kind: input.decision,
+        resolutionJson: JSON.stringify(resolution),
+        resolutionDigest: collaborationHash(resolution),
+        trustedPrincipalId: input.trustedPrincipalId,
+        provenance: input.provenance,
+      },
+      update: {},
+    })
+    if (input.decision === 'ACCEPT') {
+      await transaction.collaborationOperationArtifact.create({
+        data: {
+          operationId: operation.id,
+          kind: 'DIVERGENT_ACCEPTED_PROPOSAL',
+          revision: 1,
+          payloadJson: proposal.artifact.payloadJson,
+          payloadHash: proposal.artifact.payloadHash,
+        },
+      })
+      return transaction.collaborationOperation.update({
+        where: { id: operation.id },
+        data: { state: 'READY', acceptedDigest: reviewDigest, blockerJson: null, version: { increment: 1 } },
+      })
+    }
+    return transaction.collaborationOperation.update({
+      where: { id: operation.id },
+      data: { state: 'CANCELLED', acceptedDigest: null, cancelledAt: new Date(), version: { increment: 1 } },
+    })
+  }
+  const operation =
+    '$transaction' in client
+      ? await (client as PrismaClient).$transaction(decideInTransaction)
+      : await decideInTransaction(client)
+  if (input.decision === 'REJECT') {
+    const artifact = await client.collaborationOperationArtifact.findFirst({
+      where: { operationId: operation.id, kind: 'DIVERGENT_PREPARATION' },
+      orderBy: { revision: 'desc' },
+    })
+    try {
+      if (!artifact) throw new Error('missing original proposal worktree preparation')
+      const preparation = JSON.parse(artifact.payloadJson) as DivergentReconciliationPreparation
+      if (artifact.payloadHash !== collaborationHash(preparation))
+        throw new Error('tampered proposal worktree artifact')
+      const cleanup = await cleanupDivergentReconciliationWorktree(preparation)
+      if (cleanup.status === 'RETAINED_FOR_RECOVERY') throw new Error('proposal worktree retained for recovery')
+      if ('$transaction' in client) {
+        await (client as PrismaClient).$transaction(transaction =>
+          appendCollaborationJournalEntry(
+            transaction,
+            operation.id,
+            'DIVERGENT_PROPOSAL_REJECT_CLEANUP',
+            cleanup,
+            'COMPLETED',
+          ),
+        )
+      } else {
+        await appendCollaborationJournalEntry(
+          client,
+          operation.id,
+          'DIVERGENT_PROPOSAL_REJECT_CLEANUP',
+          cleanup,
+          'COMPLETED',
+        )
+      }
+    } catch (error) {
+      await client.collaborationOperation.update({
+        where: { id: operation.id },
+        data: {
+          state: 'BLOCKED',
+          blockerJson: JSON.stringify({ kind: 'DIVERGENT_REJECT_CLEANUP_REQUIRED', message: String(error) }),
+        },
+      })
+      throw new ServiceError('Rejected proposal worktree was retained for recovery.', 'CONFLICT', 409)
+    }
+  }
+  return operation
 }
 
 /** Rechecks the exact operation and source state just before an integration step. */

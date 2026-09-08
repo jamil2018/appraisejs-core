@@ -1,8 +1,11 @@
 import { createHash } from 'node:crypto'
 import { realpath } from 'node:fs/promises'
+import { mkdtemp, rm } from 'node:fs/promises'
+import os from 'node:os'
 import path from 'node:path'
 
 import { GitCommandError, runGit, runGitAllowFailure } from './git-runner'
+import { readCollaborationSnapshot } from './reader'
 
 const collaborationDirectory = 'appraise/collaboration'
 const safeBranch = /^(?!-)[A-Za-z0-9][A-Za-z0-9._/-]*$/u
@@ -24,6 +27,17 @@ export interface GitRepositoryIdentity extends GitRepositoryStatus {
   remoteUrl: string
 }
 
+/** The receive classification is derived from the operation-owned fetched ref,
+ * never from a caller supplied revision.  `foreignPaths` is present only for a
+ * true Git divergence so callers can distinguish a safe Appraise-only review
+ * from a required external handoff. */
+export type PinnedReceiveClassification =
+  | { kind: 'EQUAL' }
+  | { kind: 'REMOTE_AHEAD' }
+  | { kind: 'LOCAL_AHEAD' }
+  | { kind: 'UNRELATED' }
+  | { kind: 'DIVERGED'; foreignPaths: string[] }
+
 function assertRemote(remote: string): void {
   if (!safeRemote.test(remote)) throw new Error('Configured Git remote is invalid.')
 }
@@ -35,6 +49,10 @@ function assertBranch(branch: string): void {
 
 function assertCommit(commit: string): void {
   if (!gitObject.test(commit)) throw new Error('Git commit identity is invalid.')
+}
+
+function assertOperationId(operationId: string): void {
+  if (!/^[A-Za-z0-9_-]{8,200}$/u.test(operationId)) throw new Error('Collaboration operation identity is invalid.')
 }
 
 function parseNulPaths(output: string): string[] {
@@ -135,6 +153,96 @@ export async function fetchTrackedRef(input: {
   return { fetchedCommit: fetched }
 }
 
+/** Fetch into a private, operation-owned ref so concurrent fetches cannot move FETCH_HEAD. */
+export async function fetchOperationSourceRef(input: {
+  repositoryRoot: string
+  remote: string
+  branch: string
+  operationId: string
+}): Promise<{ fetchedCommit: string; fetchedTree: string; sourceRef: string }> {
+  assertRemote(input.remote)
+  assertBranch(input.branch)
+  assertOperationId(input.operationId)
+  const identity = await inspectRepository(input.repositoryRoot, input.remote)
+  const sourceRef = `refs/appraise/collaboration/${input.operationId}/source`
+  await runGit(identity.repositoryRoot, {
+    kind: 'fetch-operation-ref',
+    remote: input.remote,
+    branch: input.branch,
+    destinationRef: sourceRef,
+  })
+  const [commit, tree] = await Promise.all([
+    runGit(identity.repositoryRoot, { kind: 'rev-parse', args: [`${sourceRef}^{commit}`] }),
+    runGit(identity.repositoryRoot, { kind: 'rev-parse', args: [`${sourceRef}^{tree}`] }),
+  ])
+  const fetchedCommit = commit.stdout.trim()
+  const fetchedTree = tree.stdout.trim()
+  assertCommit(fetchedCommit)
+  assertCommit(fetchedTree)
+  return { fetchedCommit, fetchedTree, sourceRef }
+}
+
+/** Read the strict exchange snapshot from an immutable commit, never the live worktree. */
+export async function readCollaborationSnapshotAtCommit(input: {
+  repositoryRoot: string
+  commit: string
+  operationId: string
+}) {
+  assertCommit(input.commit)
+  assertOperationId(input.operationId)
+  const identity = await inspectRepository(input.repositoryRoot)
+  const worktreePath = await mkdtemp(path.join(os.tmpdir(), `appraise-collaboration-read-${input.operationId}-`))
+  await rm(worktreePath, { recursive: true, force: true })
+  try {
+    await runGit(identity.repositoryRoot, { kind: 'worktree-add-detached', worktreePath, commit: input.commit })
+    return await readCollaborationSnapshot(path.join(worktreePath, collaborationDirectory))
+  } finally {
+    await runGitAllowFailure(identity.repositoryRoot, { kind: 'worktree-remove', worktreePath })
+    await rm(worktreePath, { recursive: true, force: true })
+  }
+}
+
+export async function classifyPinnedReceive(input: {
+  repositoryRoot: string
+  sourceRevision: string
+  targetRevision: string
+}): Promise<PinnedReceiveClassification> {
+  assertCommit(input.sourceRevision)
+  assertCommit(input.targetRevision)
+  const identity = await inspectRepository(input.repositoryRoot)
+  if (identity.head !== input.targetRevision) throw new Error('Local Git HEAD changed after receive preparation.')
+  if (input.sourceRevision === input.targetRevision) return { kind: 'EQUAL' }
+  const [targetAncestor, sourceAncestor] = await Promise.all([
+    runGitAllowFailure(identity.repositoryRoot, {
+      kind: 'merge-base-is-ancestor',
+      older: input.targetRevision,
+      newer: input.sourceRevision,
+    }),
+    runGitAllowFailure(identity.repositoryRoot, {
+      kind: 'merge-base-is-ancestor',
+      older: input.sourceRevision,
+      newer: input.targetRevision,
+    }),
+  ])
+  if (targetAncestor.exitCode === 0) return { kind: 'REMOTE_AHEAD' }
+  if (sourceAncestor.exitCode === 0) return { kind: 'LOCAL_AHEAD' }
+  const base = await runGitAllowFailure(identity.repositoryRoot, {
+    kind: 'merge-base',
+    left: input.targetRevision,
+    right: input.sourceRevision,
+  })
+  if (base.exitCode !== 0 || !base.stdout.trim()) return { kind: 'UNRELATED' }
+  const mergeBase = base.stdout.trim()
+  const [local, remote] = await Promise.all([
+    runGit(identity.repositoryRoot, { kind: 'diff-names', range: `${mergeBase}..${input.targetRevision}` }),
+    runGit(identity.repositoryRoot, { kind: 'diff-names', range: `${mergeBase}..${input.sourceRevision}` }),
+  ])
+  const foreignPaths = [...new Set([...parseNulPaths(local.stdout), ...parseNulPaths(remote.stdout)])]
+    .filter(filePath => !isCollaborationPath(filePath))
+    .sort((left, right) => left.localeCompare(right))
+  return { kind: 'DIVERGED', foreignPaths }
+}
+
 export async function fastForwardPinned(input: {
   repositoryRoot: string
   remote: string
@@ -164,17 +272,16 @@ export async function commitExactCollaborationPaths(input: {
   remote: string
   branch: string
   expectedHead: string
+  expectedSnapshotHash?: string
   message: string
-}): Promise<{ commit: string; parent: string; tree: string }> {
+}): Promise<{ commit: string; parent: string; tree: string; snapshotHash: string | null }> {
   assertBranch(input.branch)
   assertCommit(input.expectedHead)
   const identity = await inspectRepository(input.repositoryRoot, input.remote)
   if (identity.mergeOrRebaseInProgress) throw new Error('Git has a merge, rebase, or another pending operation.')
   if (identity.branch !== input.branch) throw new Error('Checked-out branch does not match the collaboration binding.')
   if (identity.head !== input.expectedHead) throw new Error('Local Git HEAD changed after preparation.')
-  if (identity.stagedPaths.some(filePath => !isCollaborationPath(filePath))) {
-    throw new Error('Unrelated staged changes block a collaboration-only commit.')
-  }
+  if (identity.stagedPaths.length) throw new Error('A clean index is required before a collaboration-only commit.')
   await runGit(identity.repositoryRoot, { kind: 'add-collaboration' })
   const stagedPaths = parseNulPaths(
     (await runGit(identity.repositoryRoot, { kind: 'diff-names', cached: true })).stdout,
@@ -183,13 +290,31 @@ export async function commitExactCollaborationPaths(input: {
   if (stagedPaths.some(filePath => !isCollaborationPath(filePath))) {
     throw new Error('The collaboration commit would include files outside appraise/collaboration.')
   }
+  const snapshot = input.expectedSnapshotHash
+    ? await readCollaborationSnapshot(path.join(identity.repositoryRoot, collaborationDirectory))
+    : null
+  if (snapshot && snapshot.snapshotHash !== input.expectedSnapshotHash)
+    throw new Error('The collaboration snapshot changed after preparation.')
   await runGit(identity.repositoryRoot, { kind: 'commit-collaboration', message: input.message })
   const [commit, parent, tree] = await Promise.all([
     runGit(identity.repositoryRoot, { kind: 'rev-parse', args: ['HEAD'] }),
     runGit(identity.repositoryRoot, { kind: 'rev-parse', args: ['HEAD^'] }),
     runGit(identity.repositoryRoot, { kind: 'rev-parse', args: ['HEAD^{tree}'] }),
   ])
-  return { commit: commit.stdout.trim(), parent: parent.stdout.trim(), tree: tree.stdout.trim() }
+  const committed = commit.stdout.trim()
+  const committedParent = parent.stdout.trim()
+  const committedTree = tree.stdout.trim()
+  if (committedParent !== input.expectedHead) throw new Error('Collaboration commit parent changed after preparation.')
+  const committedPaths = await commitRangePaths(identity.repositoryRoot, committedParent, committed)
+  if (!committedPaths.length || committedPaths.some(filePath => !isCollaborationPath(filePath))) {
+    throw new Error('The resulting collaboration commit contains paths outside appraise/collaboration.')
+  }
+  return {
+    commit: committed,
+    parent: committedParent,
+    tree: committedTree,
+    snapshotHash: snapshot?.snapshotHash ?? null,
+  }
 }
 
 export async function readRemoteRef(input: {
@@ -205,7 +330,12 @@ export async function readRemoteRef(input: {
     remote: input.remote,
     branch: input.branch,
   })
-  if (result.exitCode !== 0) return null
+  // `ls-remote --exit-code` uses 2 only when the remote was reached but the
+  // requested ref is absent. Treating authentication/DNS/transport errors as
+  // absence could turn an uncertain push into a destructive retry.
+  if (result.exitCode === 2) return null
+  if (result.exitCode !== 0)
+    throw new Error(`Unable to observe the configured remote branch: ${result.stderr || 'Git ls-remote failed.'}`)
   const commit = result.stdout.trim().split(/\s+/u)[0] ?? ''
   assertCommit(commit)
   return commit
@@ -217,17 +347,36 @@ export async function pushPinnedCommit(input: {
   branch: string
   commit: string
   expectedRemoteCommit: string | null
+  expectedParent?: string
 }): Promise<{ status: 'pushed' | 'confirmed-after-uncertain'; remoteCommit: string }> {
   assertRemote(input.remote)
   assertBranch(input.branch)
   assertCommit(input.commit)
   const identity = await inspectRepository(input.repositoryRoot, input.remote)
+  if (identity.head !== input.commit) throw new Error('Only the current operation-produced HEAD may be pushed.')
+  if (input.expectedParent) {
+    assertCommit(input.expectedParent)
+    const parent = (await runGit(identity.repositoryRoot, { kind: 'rev-parse', args: ['HEAD^'] })).stdout.trim()
+    if (parent !== input.expectedParent) throw new Error('The operation-produced commit parent changed before push.')
+  }
   const observed = await readRemoteRef({
     repositoryRoot: identity.repositoryRoot,
     remote: input.remote,
     branch: input.branch,
   })
   if (observed !== input.expectedRemoteCommit) throw new Error('Remote branch changed after preparation.')
+  if (observed) {
+    const ancestry = await runGitAllowFailure(identity.repositoryRoot, {
+      kind: 'merge-base-is-ancestor',
+      older: observed,
+      newer: input.commit,
+    })
+    if (ancestry.exitCode !== 0) throw new Error('The operation commit does not descend from the pinned remote commit.')
+    const pushedPaths = await commitRangePaths(identity.repositoryRoot, observed, input.commit)
+    if (!pushedPaths.length || pushedPaths.some(filePath => !isCollaborationPath(filePath))) {
+      throw new Error('The outgoing commit range includes paths outside appraise/collaboration.')
+    }
+  }
   try {
     await runGit(identity.repositoryRoot, {
       kind: 'push-commit',

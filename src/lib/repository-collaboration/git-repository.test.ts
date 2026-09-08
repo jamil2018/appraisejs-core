@@ -63,6 +63,15 @@ async function collaborationChange(repository: string, contents = '{"version":1}
 }
 
 describe('bounded collaboration Git operations', () => {
+  it('does not confuse an unreachable remote with a verified absent branch', async () => {
+    const { repository } = await fixture()
+    await git(repository, ['remote', 'set-url', 'origin', path.join(repository, 'missing-remote.git')])
+
+    await expect(
+      readRemoteRef({ repositoryRoot: repository, remote: 'origin', branch: 'appraise-0.5' }),
+    ).rejects.toThrow('Unable to observe the configured remote branch')
+  })
+
   it('commits only collaboration paths and preserves unrelated unstaged and untracked files', async () => {
     const { repository, head } = await fixture()
     await write(repository, 'README.md', 'local unrelated edit\n')

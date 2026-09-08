@@ -11,8 +11,14 @@ branch. The repository root must exactly match the selected project's canonical 
 project identity; rebinding is intentionally unsupported in v1.
 
 Observe and prepare permissions start enabled. Integrate, commit, push, resolve, and archive permissions start
-disabled. Every mutation rechecks the current versioned grant. Only the local UI or an authenticated host transport
-can record a trusted grant or decision; repository files and worker proposals cannot widen permissions.
+disabled. Every mutation rechecks the current versioned grant. The local UI records trusted grants and decisions;
+an authenticated host transport may do so only with a local UI-issued receipt. Repository files and worker proposals
+cannot widen permissions. Public
+policy changes and review decisions need a local UI-issued, one-action authority receipt: ordinary project bearer
+authentication alone is insufficient. A receipt is 256-bit random, stored only as a hash, binds the target, binding,
+action, optional operation, current policy version, and canonical full request digest, expires within five minutes,
+and is invalidated when replaced. Send it only in `X-Appraise-Authority-Receipt`, never JSON, argv, environment,
+coordinator configuration, or logs. Exact consumed replay returns the stored sanitized result without a second mutation.
 
 ## Exchange and review
 
@@ -24,13 +30,32 @@ whole import. Environment records are logical references and require an explicit
 Preparation compares incoming, local, and last acknowledged records. One-sided changes are candidates, equal changes
 rebaseline, and unequal or archive-versus-edit changes require a whole-record Keep local, Use incoming, or validated
 Edit decision. The accepted digest, local read set, policy version, and source snapshot are rechecked before apply.
+Receive preparation fetches the configured tracked branch into an operation-owned ref and reads the pinned strict
+snapshot from an isolated worktree; the UI and public coordinator do not accept pasted repository records or refs.
+It classifies equal, remote-ahead, local-ahead, unrelated, and diverged histories before creating any executable
+plan. Local-ahead, unrelated, and foreign-path divergence are blocked with that exact classification. Only a true
+collaboration-only divergence creates an internal RECONCILE operation with no accepted digest. Appraise creates and
+persists its isolated proposal worktree first, then queues that same operation for a compatible worker or sanitized
+interactive handoff.
 
 ## Recovery
 
 Database records, mappings, baselines, before-images, and their receipt commit in one Prisma transaction. Filesystem,
 Git, database, and remote effects cannot share a transaction, so Appraise records each external boundary and reports
-partial progress honestly. Publication uses a sibling staging directory and verified backup; unexpected external
-files or changed hashes block replacement. Recovery only finishes or restores a state proven by its journal.
+partial progress honestly. Before a Git or filesystem effect, its persisted step stores the caller request version,
+canonical intent and hash, executor epoch, and lock fence. Completion must still own that exact fence and intent. A
+lost response can return only the persisted result for the request version that produced the operation's current
+version; it never runs a step again.
+
+Publication persists the strict filesystem snapshot that was present at preparation and compares it again at install.
+This permits a second valid publication after the first, while blocking files changed outside the accepted operation.
+The commit step receives the exact installed snapshot hash. Before SQLite apply after Git integration, Appraise
+rechecks the pinned HEAD and the strict snapshot hash from the accepted source or reviewed result.
+
+Recovery of an APPLYING/RUNNING Git step first acquires a new fenced executor epoch, then classifies current Git
+observations as verified completed, safe no-effect retry, or ambiguous block. Missing legacy intent, an unobservable
+remote, an unplanned merge path, or uncertain cleanup blocks and retains recovery artifacts. A remote ref is absent
+only after Git verifies absence; transport and authentication failures are not treated as absence.
 
 Appraise never resets, stashes, cleans, rebases, force-pushes, bypasses hooks, or consumes unrelated staged content.
 Authentication, signing, hook, and remote rejection failures require repair or a newly prepared operation.
@@ -38,8 +63,15 @@ Authentication, signing, hook, and remote rejection failures require repair or a
 ## Agent handoff and Journey reuse
 
 Connected workers claim bounded proposal work with leases and fencing. They do not execute Git/database/filesystem
-mutations or manufacture receipts. If no worker is observed, a single-use operation ticket supports an interactive
-handoff; no native wake capability is claimed without host evidence.
+mutations or manufacture receipts. Their assignment has records, pinned revisions and hashes, output schema, and
+constraints only: it excludes repository/worktree paths, refs, commands, credentials, and provenance. Worker and
+interactive proposal submission both validate and persist one complete record projection, move to
+`WAITING_FOR_DECISION`, clear the lease, increment the operation version, and keep `acceptedDigest` null. A reviewer
+must ACCEPT or REJECT the exact canonical review digest through the local UI or a one-action receipt-protected
+public decision. Acceptance persists the designated proposal artifact; merge and database steps never select a later
+proposal. Rejection cleans the exact original proposal worktree, or blocks and retains it when verification fails.
+Final divergent cleanup proves both original and merge worktrees are absent. If no worker is observed, a single-use
+operation ticket supports an interactive handoff; no native wake capability is claimed without host evidence.
 
 Shared Journey content is advisory reuse only. A pinned brief creates a fresh, unlinked local draft. Analysis and
 scenario seeds remain non-authoritative assignment advice and must pass normal local requirement, discovery,

@@ -410,6 +410,7 @@ function isOwnedTemporaryWorktree(worktreePath: string): boolean {
  */
 export async function cleanupDivergentReconciliationWorktree(
   preparation: DivergentReconciliationPreparation,
+  options: { expectedSnapshotHash?: string } = {},
 ): Promise<DivergentWorktreeCleanup> {
   if (!isOwnedTemporaryWorktree(preparation.worktreePath)) {
     throw new DivergentReconciliationError(
@@ -435,6 +436,18 @@ export async function cleanupDivergentReconciliationWorktree(
   if (status.untrackedPaths.length) changedPaths.push('UNTRACKED_CONTENT')
   if ((status.stagedPaths.length || status.worktreePaths.length) && !changedPaths.length) {
     changedPaths.push('UNPARSEABLE_GIT_STATUS')
+  }
+  if (changedPaths.length && options.expectedSnapshotHash) {
+    await assertCollaborationOnlyWorktree(preparation.worktreePath, 'The cleanup worktree contains foreign changes')
+    const snapshot = await readCollaborationSnapshot(path.join(preparation.worktreePath, collaborationRoot))
+    if (snapshot.snapshotHash === options.expectedSnapshotHash) {
+      await runGit(preparation.repositoryRoot, {
+        kind: 'worktree-remove',
+        worktreePath: preparation.worktreePath,
+        force: true,
+      })
+      return { status: 'REMOVED' }
+    }
   }
   if (changedPaths.length)
     return { status: 'RETAINED_FOR_RECOVERY', worktreePath: preparation.worktreePath, changedPaths }

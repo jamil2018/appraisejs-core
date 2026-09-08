@@ -47,7 +47,6 @@ describe('durable collaboration Git service boundaries', () => {
           expectedVersion: 1,
           preparedDigest: 'a'.repeat(64),
           idempotencyKey: 'missing-operation',
-          step: 'FETCH',
         },
         client,
       ),

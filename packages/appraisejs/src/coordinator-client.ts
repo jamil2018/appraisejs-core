@@ -248,7 +248,12 @@ export async function createCoordinatorClient(options: CoordinatorOptions) {
     return responseBody.body
   }
 
-  const post = (operation: string, body: unknown) => request(operation, { method: 'POST', body: JSON.stringify(body) })
+  const post = (operation: string, body: unknown, authorityReceipt?: string) =>
+    request(operation, {
+      method: 'POST',
+      body: JSON.stringify(body),
+      ...(authorityReceipt ? { headers: { 'x-appraise-authority-receipt': authorityReceipt } } : {}),
+    })
 
   return {
     identity,
@@ -301,11 +306,13 @@ export async function createCoordinatorClient(options: CoordinatorOptions) {
     readLocatorGraphVisual: () => request('locator-graph/visual'),
     collaborationStatus: (target: string) => request(`collaboration/status?target=${encodeURIComponent(target)}`),
     collaborationConnect: (input: Record<string, unknown>) => post('collaboration/connect', input),
-    collaborationPolicyUpdate: (input: Record<string, unknown>) => post('collaboration/policy-update', input),
+    collaborationPolicyUpdate: (input: Record<string, unknown>, authorityReceipt?: string) =>
+      post('collaboration/policy-update', input, authorityReceipt),
     collaborationPrepare: (input: Record<string, unknown>) => post('collaboration/prepare', input),
     collaborationGet: (input: Record<string, unknown>) => post('collaboration/get', input),
     collaborationResolutionPropose: (input: Record<string, unknown>) => post('collaboration/resolution-propose', input),
-    collaborationDecide: (input: Record<string, unknown>) => post('collaboration/decide', input),
+    collaborationDecide: (input: Record<string, unknown>, authorityReceipt?: string) =>
+      post('collaboration/decide', input, authorityReceipt),
     collaborationExecute: (input: Record<string, unknown>) => post('collaboration/execute', input),
     collaborationUndoPrepare: (input: Record<string, unknown>) => post('collaboration/undo-prepare', input),
     collaborationWorkerRegister: (input: Record<string, unknown>) => post('collaboration/worker-register', input),

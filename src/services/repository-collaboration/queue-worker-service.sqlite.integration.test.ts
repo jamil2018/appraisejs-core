@@ -3,7 +3,7 @@ import os from 'node:os'
 import path from 'node:path'
 
 import { PrismaClient } from '@prisma/client'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { copyMigratedTestDatabase } from '@/test/migrated-test-database'
 
@@ -79,6 +79,40 @@ function schedule(bindingId: string, key: string, sourceRevision: string, now = 
   }
 }
 
+async function makeDurablyPreparedDivergence(client: PrismaClient, operationId: string) {
+  const preparedDigest = 'a'.repeat(64)
+  await client.collaborationOperation.update({
+    where: { id: operationId },
+    data: {
+      sourceRevision: 'b'.repeat(40),
+      targetRevision: 'c'.repeat(40),
+      preparedDigest,
+      preparedJson: JSON.stringify({
+        incoming: [
+          {
+            format: 'appraise.repository-collaboration/v1',
+            portableProjectId: 'queue-project',
+            portableId: 'queue-module',
+            version: 1,
+            archived: false,
+            kind: 'module',
+            payload: { name: 'Queue module', parentPortableId: null },
+          },
+        ],
+      }),
+    },
+  })
+  await client.collaborationOperationArtifact.create({
+    data: {
+      operationId,
+      kind: 'DIVERGENT_PREPARATION',
+      revision: 1,
+      payloadJson: '{}',
+      payloadHash: 'd'.repeat(64),
+    },
+  })
+}
+
 describe('repository collaboration queue and workers', () => {
   it('coalesces a trigger burst, then creates an immutable successor after a claim', async () => {
     const { client, binding } = await fixture()
@@ -88,6 +122,7 @@ describe('repository collaboration queue and workers', () => {
       expect(joined.id).toBe(first.id)
       expect(joined.idempotencyKey).toBe('burst-one')
       expect(joined.sourceRevision).toBe('two')
+      await makeDurablyPreparedDivergence(client, first.id)
 
       const registration = await registerCollaborationWorker(
         {
@@ -128,6 +163,7 @@ describe('repository collaboration queue and workers', () => {
     const { client, binding } = await fixture()
     try {
       const operation = await scheduleCollaborationOperation(schedule(binding.id, 'lease', 'one'), client)
+      await makeDurablyPreparedDivergence(client, operation.id)
       const registration = await registerCollaborationWorker(
         {
           bindingId: binding.id,
@@ -200,19 +236,21 @@ describe('repository collaboration queue and workers', () => {
           client,
         ),
       ).rejects.toMatchObject({ code: 'CONFLICT' })
-      await completeCollaborationWork(
-        {
-          bindingId: binding.id,
-          workerIdentity: 'worker-a',
-          sessionNonce: reconnected.sessionNonce,
-          ...replacement!,
-          proposal: { suggestedResolution: 'review required' },
-          now: new Date(beginning.getTime() + 9_000),
-        },
-        client,
-      )
+      await expect(
+        completeCollaborationWork(
+          {
+            bindingId: binding.id,
+            workerIdentity: 'worker-a',
+            sessionNonce: reconnected.sessionNonce,
+            ...replacement!,
+            proposal: { records: [] },
+            now: new Date(beginning.getTime() + 9_000),
+          },
+          client,
+        ),
+      ).rejects.toMatchObject({ code: 'CONFLICT' })
       expect(await client.collaborationOperation.findUnique({ where: { id: operation.id } })).toMatchObject({
-        state: 'WAITING_FOR_DECISION',
+        state: 'WAITING_FOR_AGENT',
       })
     } finally {
       await client.$disconnect()
@@ -223,6 +261,7 @@ describe('repository collaboration queue and workers', () => {
     const { client, binding } = await fixture()
     try {
       const operation = await scheduleCollaborationOperation(schedule(binding.id, 'exclusive', 'one'), client)
+      await makeDurablyPreparedDivergence(client, operation.id)
       const first = await registerCollaborationWorker(
         {
           bindingId: binding.id,
@@ -271,10 +310,62 @@ describe('repository collaboration queue and workers', () => {
     }
   })
 
+  it('allowlists worker capabilities and rejects a claim without proposal authority', async () => {
+    const { client, binding } = await fixture()
+    try {
+      await expect(
+        registerCollaborationWorker(
+          {
+            bindingId: binding.id,
+            workerIdentity: 'unsupported-worker',
+            capabilities: ['proposal', 'shell'],
+            trustedPrincipalId: 'local-user',
+            provenance: 'authenticated-host',
+            now: beginning,
+          },
+          client,
+        ),
+      ).rejects.toMatchObject({ code: 'VALIDATION' })
+
+      const operation = await scheduleCollaborationOperation(schedule(binding.id, 'capability-mismatch', 'one'), client)
+      await makeDurablyPreparedDivergence(client, operation.id)
+      const registration = await registerCollaborationWorker(
+        {
+          bindingId: binding.id,
+          workerIdentity: 'proposal-worker',
+          capabilities: ['proposal'],
+          trustedPrincipalId: 'local-user',
+          provenance: 'authenticated-host',
+          now: beginning,
+        },
+        client,
+      )
+      await client.collaborationWorker.update({
+        where: { id: registration.worker.id },
+        data: { capabilitiesJson: '[]' },
+      })
+
+      await expect(
+        claimCollaborationWork(
+          {
+            bindingId: binding.id,
+            workerIdentity: 'proposal-worker',
+            sessionNonce: registration.sessionNonce,
+            now: new Date(beginning.getTime() + 2_000),
+          },
+          client,
+        ),
+      ).rejects.toMatchObject({ code: 'UNAUTHORIZED' })
+    } finally {
+      await client.$disconnect()
+    }
+  })
+
   it('permits exactly one concurrent claim and blocks cancelled or revoked work', async () => {
     const { client, binding } = await fixture()
     try {
       const operation = await scheduleCollaborationOperation(schedule(binding.id, 'concurrent', 'one'), client)
+      await makeDurablyPreparedDivergence(client, operation.id)
       const [first, second] = await Promise.all(
         ['worker-first', 'worker-second'].map(workerIdentity =>
           registerCollaborationWorker(
@@ -340,6 +431,7 @@ describe('repository collaboration queue and workers', () => {
     const { client, binding } = await fixture()
     try {
       const operation = await scheduleCollaborationOperation(schedule(binding.id, 'scheduler', 'one'), client)
+      await makeDurablyPreparedDivergence(client, operation.id)
       const worker = await registerCollaborationWorker(
         {
           bindingId: binding.id,
@@ -351,6 +443,7 @@ describe('repository collaboration queue and workers', () => {
           ttlMs: 60_000,
         },
         client,
+        async () => undefined,
       )
       await claimCollaborationWork(
         {
@@ -374,6 +467,49 @@ describe('repository collaboration queue and workers', () => {
       })
       expect(await client.collaborationBinding.findUnique({ where: { id: binding.id } })).toMatchObject({
         nextRemoteCheckAt: new Date(tickAt.getTime() + 300_000),
+      })
+    } finally {
+      await client.$disconnect()
+    }
+  })
+
+  it('reconciles on worker registration but observes a remote only when it is due', async () => {
+    const { client, binding } = await fixture()
+    try {
+      const observeRemote = vi.fn(async () => undefined)
+      const reconcile = vi.fn(async ({ now }: { now: Date }, reconciliationClient: PrismaClient) =>
+        runCollaborationSchedulerTick({ now, observeRemote }, reconciliationClient),
+      )
+      const registration = await registerCollaborationWorker(
+        {
+          bindingId: binding.id,
+          workerIdentity: 'reconnecting-worker',
+          capabilities: ['proposal'],
+          trustedPrincipalId: 'local-user',
+          provenance: 'authenticated-host',
+          now: beginning,
+        },
+        client,
+        reconcile,
+      )
+      await registerCollaborationWorker(
+        {
+          bindingId: binding.id,
+          workerIdentity: 'reconnecting-worker',
+          capabilities: ['proposal'],
+          trustedPrincipalId: 'local-user',
+          provenance: 'authenticated-host',
+          now: new Date(beginning.getTime() + 60_000),
+        },
+        client,
+        reconcile,
+      )
+
+      expect(registration.worker.workerIdentity).toBe('reconnecting-worker')
+      expect(reconcile).toHaveBeenCalledTimes(2)
+      expect(observeRemote).toHaveBeenCalledTimes(1)
+      expect(await client.collaborationBinding.findUnique({ where: { id: binding.id } })).toMatchObject({
+        nextRemoteCheckAt: new Date(beginning.getTime() + 300_000),
       })
     } finally {
       await client.$disconnect()

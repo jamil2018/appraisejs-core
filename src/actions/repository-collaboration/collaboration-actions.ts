@@ -8,15 +8,17 @@ import { collaborationRecordSchema } from '@/lib/repository-collaboration'
 import {
   connectCollaboration,
   cancelCollaborationOperation,
-  collaborationPublicDigest,
   createCollaborationHandoffTicket,
   decideCollaborationOperation,
+  decideDivergentCollaborationProposal,
   executeCollaborationOperation,
   getCollaborationStatus,
   prepareCollaborationOperation,
   recoverCollaborationOperationFilesystem,
   requireCollaborationOperationForProject,
-  updateCollaborationPolicy,
+  issueCollaborationAuthorityReceipt,
+  getSanitizedCollaborationAssignment,
+  updateCollaborationPolicyFromLocalUi,
 } from '@/services/repository-collaboration'
 import { ServiceError, serviceErrorToActionResponse, unknownErrorToActionResponse } from '@/services/shared/errors'
 import type { ActionResponse } from '@/types/form/actionHandler'
@@ -32,14 +34,13 @@ const connectSchema = projectSchema
   .strict()
 const prepareSchema = projectSchema
   .extend({
-    intent: z.enum(['RECEIVE', 'PUBLISH', 'RECONCILE']),
+    intent: z.enum(['RECEIVE', 'PUBLISH']),
     idempotencyKey: z.string().trim().min(1).max(255),
-    incomingRecords: z.array(collaborationRecordSchema).optional(),
   })
   .strict()
 const decisionSchema = projectSchema
   .extend({
-    operationId: z.string().cuid(),
+    operationId: z.string().trim().min(1).max(200),
     expectedVersion: z.number().int().positive(),
     preparedDigest: collaborationDigestSchema,
     decisions: z.array(
@@ -55,21 +56,35 @@ const decisionSchema = projectSchema
   .strict()
 const executeSchema = projectSchema
   .extend({
-    operationId: z.string().cuid(),
+    operationId: z.string().trim().min(1).max(200),
     expectedVersion: z.number().int().positive(),
     preparedDigest: collaborationDigestSchema,
     idempotencyKey: z.string().min(1),
     expectedFilesystemSnapshotHash: z.string().nullable().optional(),
   })
   .strict()
-const recoverSchema = projectSchema.extend({ operationId: z.string().cuid() }).strict()
-const cancelSchema = projectSchema.extend({ operationId: z.string().cuid() }).strict()
-const handoffSchema = projectSchema.extend({ operationId: z.string().cuid() }).strict()
+const recoverSchema = projectSchema.extend({ operationId: z.string().trim().min(1).max(200) }).strict()
+const cancelSchema = projectSchema.extend({ operationId: z.string().trim().min(1).max(200) }).strict()
+const handoffSchema = projectSchema.extend({ operationId: z.string().trim().min(1).max(200) }).strict()
+const divergentDecisionSchema = projectSchema
+  .extend({
+    operationId: z.string().trim().min(1).max(200),
+    expectedVersion: z.number().int().positive(),
+    preparedDigest: collaborationDigestSchema,
+    reviewDigest: collaborationDigestSchema,
+    decision: z.enum(['ACCEPT', 'REJECT']),
+  })
+  .strict()
 const policySchema = projectSchema
   .extend({
     changes: z.record(z.enum(['OBSERVE', 'PREPARE', 'INTEGRATE', 'COMMIT', 'PUSH', 'RESOLVE', 'ARCHIVE']), z.boolean()),
   })
   .strict()
+const authorityReceiptSchema = z.union([
+  policySchema.extend({ action: z.literal('POLICY_UPDATE') }).strict(),
+  decisionSchema.extend({ action: z.literal('DECIDE') }).strict(),
+  divergentDecisionSchema.extend({ action: z.literal('DECIDE') }).strict(),
+])
 
 function result(data: unknown): ActionResponse {
   revalidatePath('/collaboration')
@@ -114,13 +129,45 @@ export async function updateCollaborationPolicyAction(input: unknown): Promise<A
     const value = policySchema.parse(input)
     const { status } = await scopedBinding(value.targetProjectId)
     return result(
-      await updateCollaborationPolicy({
+      await updateCollaborationPolicyFromLocalUi({
         bindingId: status.id,
         changes: value.changes,
         trustedPrincipalId: 'local-user',
-        provenance: 'local-ui',
       }),
     )
+  } catch (error) {
+    return failure(error)
+  }
+}
+
+/** Issues a short-lived receipt for the exact public coordinator request, for explicit CLI handoff only. */
+export async function issueCollaborationAuthorityReceiptAction(input: unknown): Promise<ActionResponse> {
+  try {
+    const value = authorityReceiptSchema.parse(input)
+    const { project, status } = await scopedBinding(value.targetProjectId)
+    const request =
+      value.action === 'POLICY_UPDATE'
+        ? { target: project.id, expectedPolicyVersion: status.policyVersion, changes: value.changes }
+        : {
+            target: project.id,
+            operationId: value.operationId,
+            expectedVersion: value.expectedVersion,
+            preparedDigest: value.preparedDigest,
+            ...('reviewDigest' in value
+              ? { reviewDigest: value.reviewDigest, decision: value.decision }
+              : { decisions: value.decisions }),
+          }
+    if (value.action === 'DECIDE') await requireCollaborationOperationForProject(value.operationId, project.id)
+    const issued = await issueCollaborationAuthorityReceipt({
+      bindingId: status.id,
+      action: value.action,
+      operationId: value.action === 'DECIDE' ? value.operationId : undefined,
+      expectedPolicyVersion: status.policyVersion,
+      request,
+      trustedPrincipalId: 'local-user',
+      provenance: 'local-ui',
+    })
+    return result({ token: issued.token, expiresAt: issued.expiresAt.toISOString(), request })
   } catch (error) {
     return failure(error)
   }
@@ -136,7 +183,6 @@ export async function prepareCollaborationAction(input: unknown): Promise<Action
         intent: value.intent,
         idempotencyKey: value.idempotencyKey,
         expectedPolicyVersion: status.policyVersion,
-        incomingRecords: value.incomingRecords,
         trigger: 'local-ui',
       }),
     )
@@ -152,6 +198,25 @@ export async function decideCollaborationAction(input: unknown): Promise<ActionR
     await requireCollaborationOperationForProject(value.operationId, project.id)
     return result(
       await decideCollaborationOperation({
+        ...value,
+        trustedPrincipalId: 'local-user',
+        provenance: 'local-ui',
+      }),
+    )
+  } catch (error) {
+    return failure(error)
+  }
+}
+
+/** Local UI acceptance is trusted directly; the public coordinator requires
+ * the exact receipt issued above. */
+export async function decideDivergentCollaborationProposalAction(input: unknown): Promise<ActionResponse> {
+  try {
+    const value = divergentDecisionSchema.parse(input)
+    const project = await requireActiveProjectForMutation(value.targetProjectId)
+    await requireCollaborationOperationForProject(value.operationId, project.id)
+    return result(
+      await decideDivergentCollaborationProposal({
         ...value,
         trustedPrincipalId: 'local-user',
         provenance: 'local-ui',
@@ -203,14 +268,12 @@ export async function createCollaborationHandoffAction(input: unknown): Promise<
     const value = handoffSchema.parse(input)
     const { project, status } = await scopedBinding(value.targetProjectId)
     const operation = await requireCollaborationOperationForProject(value.operationId, project.id)
+    const assignment = await getSanitizedCollaborationAssignment({ bindingId: status.id, operationId: operation.id })
     const issued = await createCollaborationHandoffTicket({
       bindingId: status.id,
       operationId: operation.id,
       scope: {
-        kind: 'INTERACTIVE_HANDOFF',
-        operationId: operation.id,
-        targetProjectId: project.id,
-        preparedDigest: collaborationPublicDigest(operation.preparedDigest),
+        assignment,
       },
     })
     return result({

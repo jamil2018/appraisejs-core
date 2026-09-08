@@ -3,20 +3,43 @@ import { createHash, randomUUID } from 'node:crypto'
 import type { Prisma, PrismaClient } from '@prisma/client'
 
 import prisma from '@/config/db-config'
-import { canonicalJson, collaborationHash } from '@/lib/repository-collaboration'
+import {
+  canonicalJson,
+  collaborationHash,
+  collaborationRecordSchema,
+  type CollaborationRecord,
+} from '@/lib/repository-collaboration'
 import { ServiceError } from '@/services/shared/errors'
 
 import {
   claimCollaborationOperation,
   heartbeatCollaborationOperation,
-  submitCollaborationProposal,
+  recoverExpiredCollaborationLeases,
+  runCollaborationSchedulerTick,
+  assertCollaborationProposalAttempt,
   type ClaimedCollaborationWork,
 } from './queue-service'
+import { proposeDivergentCollaborationReconciliation } from './divergent-reconciliation-service'
 
 type Transaction = Prisma.TransactionClient
 type TrustedProvenance = 'local-ui' | 'authenticated-host'
+type WorkerCapability = 'proposal'
+type WorkerRegistrationReconciler = (input: { now: Date }, client: PrismaClient) => Promise<unknown>
+
+export type SanitizedCollaborationAssignment = {
+  schema: 'appraise.repository-collaboration.worker-assignment/v1'
+  operationId: string
+  intent: 'RECONCILE'
+  preparedDigest: string
+  sourceRevision: string
+  targetRevision: string
+  records: CollaborationRecord[]
+  output: { schema: 'appraise.repository-collaboration.divergent-proposal/v1'; required: ['records'] }
+  constraints: readonly ['COLLABORATION_RECORDS_ONLY', 'NO_GIT_OR_DATABASE_MUTATIONS', 'WHOLE_RECORD_PROPOSAL']
+}
 
 const trustedProvenances: TrustedProvenance[] = ['local-ui', 'authenticated-host']
+const allowedWorkerCapabilities = new Set<WorkerCapability>(['proposal'])
 
 export interface RegisterCollaborationWorkerInput {
   bindingId: string
@@ -42,7 +65,33 @@ function assertTrustedRegistration(input: RegisterCollaborationWorkerInput) {
 function canonicalCapabilities(capabilities: string[]) {
   const normalized = [...new Set(capabilities.map(capability => capability.trim()).filter(Boolean))].sort()
   if (normalized.length === 0) throw new ServiceError('At least one worker capability is required.', 'VALIDATION', 400)
+  if (
+    normalized.some(
+      (capability): capability is string => !allowedWorkerCapabilities.has(capability as WorkerCapability),
+    )
+  ) {
+    throw new ServiceError('Worker registration includes an unsupported capability.', 'VALIDATION', 400)
+  }
   return normalized
+}
+
+function requiredCapabilitiesForOperation(): readonly WorkerCapability[] {
+  // All claimable worker work is a proposal-only handoff. In particular,
+  // RECONCILE cannot be claimed by a session without proposal authority.
+  return ['proposal']
+}
+
+function workerCapabilities(worker: { capabilitiesJson: string }): WorkerCapability[] {
+  try {
+    const parsed = JSON.parse(worker.capabilitiesJson) as unknown
+    if (!Array.isArray(parsed) || parsed.some(capability => typeof capability !== 'string')) throw new Error()
+    const capabilities = parsed.map(capability => capability.trim())
+    if (capabilities.some(capability => !allowedWorkerCapabilities.has(capability as WorkerCapability)))
+      throw new Error()
+    return capabilities as WorkerCapability[]
+  } catch {
+    throw new ServiceError('Worker registration has invalid capabilities.', 'UNAUTHORIZED', 403)
+  }
 }
 
 function sessionExpiry(now: Date, ttlMs: number) {
@@ -58,6 +107,8 @@ function sessionExpiry(now: Date, ttlMs: number) {
 export async function registerCollaborationWorker(
   input: RegisterCollaborationWorkerInput,
   client: PrismaClient = prisma,
+  reconcile: WorkerRegistrationReconciler = ({ now }, reconciliationClient) =>
+    runCollaborationSchedulerTick({ now }, reconciliationClient),
 ) {
   assertTrustedRegistration(input)
   const now = input.now ?? new Date()
@@ -65,7 +116,7 @@ export async function registerCollaborationWorker(
   const sessionNonce = randomUUID()
   const capabilitiesJson = canonicalJson(capabilities)
   const expiresAt = sessionExpiry(now, input.ttlMs ?? 30_000)
-  return client.$transaction(async transaction => {
+  const registration = await client.$transaction(async transaction => {
     const binding = await transaction.collaborationBinding.findUnique({ where: { id: input.bindingId } })
     if (!binding) throw new ServiceError('Collaboration binding was not found.', 'NOT_FOUND', 404)
     if (!binding.enabled) throw new ServiceError('Collaboration is disabled for this target.', 'UNAUTHORIZED', 403)
@@ -101,6 +152,8 @@ export async function registerCollaborationWorker(
     })
     return { worker, sessionNonce }
   })
+  await reconcile({ now }, client)
+  return registration
 }
 
 async function registeredWorker(
@@ -119,23 +172,101 @@ async function registeredWorker(
   return worker
 }
 
+function assertWorkerCanClaimProposal(worker: { capabilitiesJson: string }) {
+  const capabilities = new Set(workerCapabilities(worker))
+  const missing = requiredCapabilitiesForOperation().filter(capability => !capabilities.has(capability))
+  if (missing.length) {
+    throw new ServiceError(
+      `Worker lacks required collaboration capability: ${missing.join(', ')}.`,
+      'UNAUTHORIZED',
+      403,
+    )
+  }
+}
+
+function sanitizedAssignment(operation: {
+  id: string
+  intent: string
+  preparedDigest: string | null
+  sourceRevision: string | null
+  targetRevision: string | null
+  preparedJson: string | null
+}): SanitizedCollaborationAssignment {
+  if (
+    operation.intent !== 'RECONCILE' ||
+    !operation.preparedDigest ||
+    !operation.sourceRevision ||
+    !operation.targetRevision
+  )
+    throw new ServiceError('Claimed work has no durable reconciliation assignment.', 'CONFLICT', 409)
+  let prepared: { incoming?: unknown[] }
+  try {
+    prepared = JSON.parse(operation.preparedJson ?? '{}') as typeof prepared
+  } catch {
+    throw new ServiceError('Claimed work has invalid prepared records.', 'CONFLICT', 409)
+  }
+  if (!Array.isArray(prepared.incoming))
+    throw new ServiceError('Claimed work has no prepared records.', 'CONFLICT', 409)
+  return {
+    schema: 'appraise.repository-collaboration.worker-assignment/v1',
+    operationId: operation.id,
+    intent: 'RECONCILE',
+    preparedDigest: `sha256:${operation.preparedDigest}`,
+    sourceRevision: operation.sourceRevision,
+    targetRevision: operation.targetRevision,
+    records: prepared.incoming.map(record => collaborationRecordSchema.parse(record)),
+    output: { schema: 'appraise.repository-collaboration.divergent-proposal/v1', required: ['records'] },
+    constraints: ['COLLABORATION_RECORDS_ONLY', 'NO_GIT_OR_DATABASE_MUTATIONS', 'WHOLE_RECORD_PROPOSAL'],
+  }
+}
+
+export async function getSanitizedCollaborationAssignment(
+  input: { bindingId: string; operationId: string },
+  client: PrismaClient = prisma,
+) {
+  const operation = await client.collaborationOperation.findFirst({
+    where: { id: input.operationId, bindingId: input.bindingId, intent: 'RECONCILE' },
+  })
+  if (!operation) throw new ServiceError('The handoff operation is unavailable.', 'NOT_FOUND', 404)
+  const preparation = await client.collaborationOperationArtifact.findFirst({
+    where: { operationId: operation.id, kind: 'DIVERGENT_PREPARATION' },
+  })
+  if (!preparation) throw new ServiceError('The handoff operation is not durably prepared.', 'CONFLICT', 409)
+  return sanitizedAssignment(operation)
+}
+
 export async function claimCollaborationWork(
   input: { bindingId: string; workerIdentity: string; sessionNonce: string; now?: Date; leaseMs?: number },
   client: PrismaClient = prisma,
-): Promise<ClaimedCollaborationWork | null> {
+): Promise<(ClaimedCollaborationWork & { assignment: SanitizedCollaborationAssignment }) | null> {
   const now = input.now ?? new Date()
+  // Reconnect is a recovery boundary: do not strand a previously leased
+  // operation merely because no separate scheduler pass happened first.
+  await recoverExpiredCollaborationLeases(now, client)
   const worker = await client.$transaction(transaction => registeredWorker(transaction, { ...input, now }))
   const next = await client.collaborationOperation.findFirst({
     where: {
       bindingId: input.bindingId,
-      state: { in: ['QUEUED', 'PREPARING', 'WAITING_FOR_AGENT'] },
+      state: { in: ['QUEUED'] },
+      intent: 'RECONCILE',
+      artifacts: { some: { kind: 'DIVERGENT_PREPARATION' } },
       nextAttemptAt: { lte: now },
       cancelledAt: null,
     },
     orderBy: { createdAt: 'asc' },
   })
   if (!next) return null
-  return claimCollaborationOperation({ operationId: next.id, workerId: worker.id, now, leaseMs: input.leaseMs }, client)
+  assertWorkerCanClaimProposal(worker)
+  const claim = await claimCollaborationOperation(
+    { operationId: next.id, workerId: worker.id, now, leaseMs: input.leaseMs },
+    client,
+  )
+  const operation = await client.collaborationOperation.findUnique({ where: { id: claim.operationId } })
+  if (!operation) throw new ServiceError('Claimed work is unavailable.', 'CONFLICT', 409)
+  return {
+    ...claim,
+    assignment: sanitizedAssignment(operation),
+  }
 }
 
 export async function heartbeatCollaborationWork(
@@ -168,14 +299,36 @@ export async function completeCollaborationWork(
     attemptId: string
     fencingToken: number
     leaseToken: string
-    proposal: Record<string, unknown>
+    proposal: { records?: unknown }
     now?: Date
   },
   client: PrismaClient = prisma,
 ) {
   const now = input.now ?? new Date()
   const worker = await client.$transaction(transaction => registeredWorker(transaction, { ...input, now }))
-  return submitCollaborationProposal({ ...input, workerId: worker.id, now }, client)
+  if (!input.proposal || Object.keys(input.proposal).length !== 1 || !Array.isArray(input.proposal.records))
+    throw new ServiceError('A worker proposal must contain exactly one complete records array.', 'VALIDATION', 400)
+  await assertCollaborationProposalAttempt({ ...input, workerId: worker.id, now }, client)
+  const operation = await client.collaborationOperation.findUnique({ where: { id: input.operationId } })
+  if (!operation?.preparedDigest) throw new ServiceError('Claimed work has no prepared digest.', 'CONFLICT', 409)
+  const result = await proposeDivergentCollaborationReconciliation(
+    {
+      operationId: input.operationId,
+      expectedVersion: operation.version,
+      preparedDigest: operation.preparedDigest,
+      records: input.proposal.records.map(record => collaborationRecordSchema.parse(record)),
+    },
+    client,
+  )
+  await client.collaborationAttempt.updateMany({
+    where: { id: input.attemptId, operationId: input.operationId, workerId: worker.id, state: 'RUNNING' },
+    data: {
+      state: 'PROPOSAL_SUBMITTED',
+      resultJson: canonicalJson({ reviewDigest: result.review.reviewDigest }),
+      completedAt: now,
+    },
+  })
+  return client.collaborationOperation.findUniqueOrThrow({ where: { id: input.operationId } })
 }
 
 export async function createCollaborationHandoffTicket(

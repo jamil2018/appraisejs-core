@@ -76,6 +76,14 @@ async function fixture() {
   return { client, binding: policy, target }
 }
 
+async function executeToCompletion(client: PrismaClient, input: Parameters<typeof executeCollaborationOperation>[0]) {
+  const applied = await executeCollaborationOperation(input, client)
+  return executeCollaborationOperation(
+    { ...input, expectedVersion: applied.version, preparedDigest: applied.preparedDigest! },
+    client,
+  )
+}
+
 describe('collaboration archive and recovery', () => {
   it('archives and restores a managed module through explicit durable tombstones', async () => {
     const { client, binding, target } = await fixture()
@@ -110,15 +118,12 @@ describe('collaboration archive and recovery', () => {
         },
         client,
       )
-      const archived = await executeCollaborationOperation(
-        {
-          operationId: decided.id,
-          expectedVersion: decided.version,
-          preparedDigest: decided.preparedDigest!,
-          idempotencyKey: 'archive-module',
-        },
-        client,
-      )
+      const archived = await executeToCompletion(client, {
+        operationId: decided.id,
+        expectedVersion: decided.version,
+        preparedDigest: decided.preparedDigest!,
+        idempotencyKey: 'archive-module',
+      })
       expect(archived.state).toBe('COMPLETED')
       expect(await client.module.findUnique({ where: { id: localModule.id } })).toMatchObject({
         archivedAt: expect.any(Date),
@@ -149,15 +154,12 @@ describe('collaboration archive and recovery', () => {
         },
         client,
       )
-      await executeCollaborationOperation(
-        {
-          operationId: restoreDecided.id,
-          expectedVersion: restoreDecided.version,
-          preparedDigest: restoreDecided.preparedDigest!,
-          idempotencyKey: 'restore-module',
-        },
-        client,
-      )
+      await executeToCompletion(client, {
+        operationId: restoreDecided.id,
+        expectedVersion: restoreDecided.version,
+        preparedDigest: restoreDecided.preparedDigest!,
+        idempotencyKey: 'restore-module',
+      })
       expect(await client.module.findUnique({ where: { id: localModule.id } })).toMatchObject({
         archivedAt: null,
         name: 'Checkout',
@@ -204,6 +206,71 @@ describe('collaboration archive and recovery', () => {
     }
   })
 
+  it('restores an archived locator group when its required module is already active', async () => {
+    const { client, binding, target } = await fixture()
+    try {
+      const localModule = await client.module.create({
+        data: { id: 'module-local', name: 'Checkout', targetProjectId: target.id },
+      })
+      const localGroup = await client.locatorGroup.create({
+        data: {
+          id: 'group-local',
+          name: 'Checkout page',
+          route: '/checkout',
+          moduleId: localModule.id,
+          targetProjectId: target.id,
+        },
+      })
+      const groupMap = await client.$transaction(async transaction => {
+        await projectSnapshotInTransaction(transaction, binding.id)
+        return transaction.collaborationEntityMap.findFirst({
+          where: { bindingId: binding.id, localEntityId: localGroup.id },
+        })
+      })
+      const archive = await prepareCollaborationArchive(
+        {
+          bindingId: binding.id,
+          recordKeys: [`locator-group:${groupMap!.portableId}`],
+          expectedPolicyVersion: binding.policyVersion,
+          idempotencyKey: 'archive-locator-group',
+        },
+        client,
+      )
+      const decided = await decideCollaborationOperation(
+        {
+          operationId: archive.id,
+          expectedVersion: archive.version,
+          preparedDigest: archive.preparedDigest!,
+          decisions: [{ recordKey: `locator-group:${groupMap!.portableId}`, decision: 'USE_INCOMING' }],
+          trustedPrincipalId: 'local-user',
+          provenance: 'authenticated-host',
+        },
+        client,
+      )
+      await executeToCompletion(client, {
+        operationId: decided.id,
+        expectedVersion: decided.version,
+        preparedDigest: decided.preparedDigest!,
+        idempotencyKey: 'archive-locator-group',
+      })
+      const tombstone = JSON.parse(
+        (await client.collaborationBaseline.findFirst({ where: { entityMapId: groupMap!.id } }))!.payloadJson,
+      ) as CollaborationRecord
+      const restore = await prepareCollaborationRestore(
+        {
+          bindingId: binding.id,
+          records: [{ ...tombstone, archived: false, version: tombstone.version + 1 }],
+          expectedPolicyVersion: binding.policyVersion,
+          idempotencyKey: 'restore-locator-group',
+        },
+        client,
+      )
+      expect(restore.state).toBe('WAITING_FOR_DECISION')
+    } finally {
+      await client.$disconnect()
+    }
+  })
+
   it('persists an unseen tombstone without fabricating a module and restores only from a full record', async () => {
     const { client, binding, target } = await fixture()
     try {
@@ -218,6 +285,9 @@ describe('collaboration archive and recovery', () => {
         client,
       )
       expect(recorded.state).toBe('COMPLETED')
+      expect(recorded.preparedDigest).toMatch(/^sha256:[a-f0-9]{64}$/)
+      const storedOperation = await client.collaborationOperation.findUniqueOrThrow({ where: { id: recorded.id } })
+      expect(storedOperation.preparedDigest).toMatch(/^[a-f0-9]{64}$/)
       expect(await client.module.count({ where: { targetProjectId: target.id } })).toBe(0)
       const entityMap = await client.collaborationEntityMap.findFirst({
         where: { bindingId: binding.id, portableId: 'foreign-module' },
@@ -250,15 +320,12 @@ describe('collaboration archive and recovery', () => {
         },
         client,
       )
-      await executeCollaborationOperation(
-        {
-          operationId: decided.id,
-          expectedVersion: decided.version,
-          preparedDigest: decided.preparedDigest!,
-          idempotencyKey: 'restore-unseen',
-        },
-        client,
-      )
+      await executeToCompletion(client, {
+        operationId: decided.id,
+        expectedVersion: decided.version,
+        preparedDigest: decided.preparedDigest!,
+        idempotencyKey: 'restore-unseen',
+      })
       expect(
         await client.module.findFirst({ where: { targetProjectId: target.id, name: 'Foreign module' } }),
       ).toMatchObject({
@@ -302,15 +369,12 @@ describe('collaboration archive and recovery', () => {
         },
         client,
       )
-      const completed = await executeCollaborationOperation(
-        {
-          operationId: decided.id,
-          expectedVersion: decided.version,
-          preparedDigest: decided.preparedDigest!,
-          idempotencyKey: 'archive-for-undo',
-        },
-        client,
-      )
+      const completed = await executeToCompletion(client, {
+        operationId: decided.id,
+        expectedVersion: decided.version,
+        preparedDigest: decided.preparedDigest!,
+        idempotencyKey: 'archive-for-undo',
+      })
       const undo = await prepareCollaborationUndo(
         {
           operationId: completed.id,
@@ -320,6 +384,16 @@ describe('collaboration archive and recovery', () => {
         client,
       )
       expect(undo).toMatchObject({ intent: 'UNDO', state: 'WAITING_FOR_DECISION' })
+      expect(
+        await client.collaborationOperationStep.findMany({
+          where: { operationId: undo.id },
+          orderBy: { ordinal: 'asc' },
+          select: { kind: true, requiredPermission: true },
+        }),
+      ).toEqual([
+        { kind: 'APPLY_DATABASE', requiredPermission: 'ARCHIVE' },
+        { kind: 'FINALIZE', requiredPermission: 'OBSERVE' },
+      ])
       await client.module.update({ where: { id: localModule.id }, data: { name: 'Changed after archive' } })
       await expect(
         prepareCollaborationUndo(

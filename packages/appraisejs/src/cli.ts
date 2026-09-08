@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 import path from 'path'
+import { readFile } from 'node:fs/promises'
 import { Command } from 'commander'
 import { expectedAgentCapabilities } from './agent-setup-capabilities.js'
 import {
@@ -114,6 +115,7 @@ function addCollaborationJsonCommand(
   call: (
     client: Awaited<ReturnType<typeof createCoordinatorClient>>,
     input: Record<string, unknown>,
+    authorityReceipt?: string,
   ) => Promise<unknown>,
 ) {
   addOnlineOptions(
@@ -121,24 +123,31 @@ function addCollaborationJsonCommand(
       .command(name)
       .description(description)
       .requiredOption('--input-json <json>', 'exact collaboration request object')
-      .option('--json', 'print machine-readable JSON', false),
-  ).action(async (options: OnlineOptions & { inputJson: string; json: boolean }) => {
-    await runCommand(
-      async () => printJson(await call(await onlineClient(options), parseMcpToolArguments(options.inputJson))),
-      options.json,
-    )
+      .option('--json', 'print machine-readable JSON', false)
+      .option('--authority-receipt-file <path>', 'file containing one local UI-issued authority receipt'),
+  ).action(async (options: OnlineOptions & { inputJson: string; json: boolean; authorityReceiptFile?: string }) => {
+    await runCommand(async () => {
+      const authorityReceipt = options.authorityReceiptFile
+        ? (await readFile(options.authorityReceiptFile, 'utf8')).trim()
+        : undefined
+      if (authorityReceipt && !/^[A-Za-z0-9_-]{43}$/.test(authorityReceipt))
+        throw new Error('Authority receipt file must contain one 256-bit base64url token.')
+      printJson(await call(await onlineClient(options), parseMcpToolArguments(options.inputJson), authorityReceipt))
+    }, options.json)
   })
 }
 
 addCollaborationJsonCommand('connect', 'Connect a registered local target to its repository.', (client, input) =>
   client.collaborationConnect(input),
 )
-addCollaborationJsonCommand('policy-update', 'Update explicit collaboration permissions.', (client, input) =>
-  client.collaborationPolicyUpdate(input),
+addCollaborationJsonCommand(
+  'policy-update',
+  'Update explicit collaboration permissions with a local UI-issued receipt.',
+  (client, input, authorityReceipt) => client.collaborationPolicyUpdate(input, authorityReceipt),
 )
 addCollaborationJsonCommand(
   'prepare',
-  'Prepare a durable collaboration operation or isolated divergent review.',
+  'Prepare a durable receive or publish operation. Receives classify divergence internally.',
   (client, input) => client.collaborationPrepare(input),
 )
 addCollaborationJsonCommand('get', 'Read a target-scoped collaboration operation.', (client, input) =>
@@ -146,11 +155,13 @@ addCollaborationJsonCommand('get', 'Read a target-scoped collaboration operation
 )
 addCollaborationJsonCommand(
   'resolution-propose',
-  'Submit a complete divergent reconciliation proposal.',
+  'Submit a complete record-only proposal for an existing internally prepared divergence.',
   (client, input) => client.collaborationResolutionPropose(input),
 )
-addCollaborationJsonCommand('decide', 'Record reviewed collaboration resolutions.', (client, input) =>
-  client.collaborationDecide(input),
+addCollaborationJsonCommand(
+  'decide',
+  'Record reviewed collaboration resolutions with a local UI-issued receipt.',
+  (client, input, authorityReceipt) => client.collaborationDecide(input, authorityReceipt),
 )
 addCollaborationJsonCommand(
   'execute',
@@ -169,8 +180,10 @@ addCollaborationJsonCommand('work-claim', 'Claim collaboration work with a worke
 addCollaborationJsonCommand('work-heartbeat', 'Renew a collaboration work lease.', (client, input) =>
   client.collaborationWorkHeartbeat(input),
 )
-addCollaborationJsonCommand('work-complete', 'Submit a structured worker proposal.', (client, input) =>
-  client.collaborationWorkComplete(input),
+addCollaborationJsonCommand(
+  'work-complete',
+  'Submit exactly one complete record-only worker proposal.',
+  (client, input) => client.collaborationWorkComplete(input),
 )
 addCollaborationJsonCommand('handoff-redeem', 'Redeem a one-time collaboration handoff ticket.', (client, input) =>
   client.collaborationHandoffRedeem(input),

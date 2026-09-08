@@ -11,14 +11,18 @@ import {
   MAX_COLLABORATION_TOTAL_BYTES,
 } from '@/lib/repository-collaboration'
 import { ServiceError } from '@/services/shared/errors'
-import { connectCollaboration, updateCollaborationPolicy } from '@/services/repository-collaboration/binding-service'
+import {
+  connectCollaboration,
+  updateCollaborationPolicyWithAuthorityReceipt,
+} from '@/services/repository-collaboration/binding-service'
 import { prepareCollaborationUndo } from '@/services/repository-collaboration/archive-service'
 import {
-  prepareDivergentCollaborationReconciliation,
+  decideDivergentCollaborationProposal,
   proposeDivergentCollaborationReconciliation,
 } from '@/services/repository-collaboration/divergent-reconciliation-service'
+import { consumeCollaborationAuthorityReceipt } from '@/services/repository-collaboration/authority-receipt-service'
 import {
-  decideCollaborationOperation,
+  decideCollaborationOperationWithAuthorityReceipt,
   executeCollaborationOperation,
   prepareCollaborationOperation,
   collaborationPublicDigest,
@@ -43,6 +47,36 @@ const sha256 = z.string().regex(/^sha256:[a-f0-9]{64}$/)
 const policyVersion = z.number().int().positive()
 const idempotencyKey = id
 const recordArray = z.array(z.unknown()).min(1).max(MAX_COLLABORATION_RECORDS)
+const standardDecisionRequest = z
+  .object({
+    target,
+    operationId: id,
+    expectedVersion: z.number().int().positive(),
+    preparedDigest: sha256,
+    decisions: z
+      .array(
+        z
+          .object({
+            recordKey: id,
+            decision: z.enum(['KEEP_LOCAL', 'USE_INCOMING', 'EDIT']),
+            editedRecord: z.unknown().optional(),
+          })
+          .strict(),
+      )
+      .min(1)
+      .max(2_000),
+  })
+  .strict()
+const divergentProposalDecisionRequest = z
+  .object({
+    target,
+    operationId: id,
+    expectedVersion: z.number().int().positive(),
+    preparedDigest: sha256,
+    reviewDigest: sha256,
+    decision: z.enum(['ACCEPT', 'REJECT']),
+  })
+  .strict()
 
 export const collaborationRequestSchemas = {
   connect: z
@@ -57,6 +91,7 @@ export const collaborationRequestSchemas = {
   policyUpdate: z
     .object({
       target,
+      expectedPolicyVersion: policyVersion,
       changes: z
         .object({
           OBSERVE: z.boolean().optional(),
@@ -74,14 +109,10 @@ export const collaborationRequestSchemas = {
   prepare: z
     .object({
       target,
-      intent: z.enum(['RECEIVE', 'PUBLISH', 'RECONCILE', 'UNDO']),
+      intent: z.enum(['RECEIVE', 'PUBLISH']),
       idempotencyKey,
       expectedPolicyVersion: policyVersion,
       trigger: z.string().trim().min(1).max(200).optional(),
-      divergent: z
-        .object({ operationId: id, expectedVersion: z.number().int().positive(), preparedDigest: sha256 })
-        .strict()
-        .optional(),
     })
     .strict(),
   get: z.object({ target, operationId: id }).strict(),
@@ -94,26 +125,7 @@ export const collaborationRequestSchemas = {
       records: recordArray,
     })
     .strict(),
-  decide: z
-    .object({
-      target,
-      operationId: id,
-      expectedVersion: z.number().int().positive(),
-      preparedDigest: sha256,
-      decisions: z
-        .array(
-          z
-            .object({
-              recordKey: id,
-              decision: z.enum(['KEEP_LOCAL', 'USE_INCOMING', 'EDIT']),
-              editedRecord: z.unknown().optional(),
-            })
-            .strict(),
-        )
-        .min(1)
-        .max(2_000),
-    })
-    .strict(),
+  decide: z.union([standardDecisionRequest, divergentProposalDecisionRequest]),
   execute: z
     .object({
       target,
@@ -163,7 +175,7 @@ export const collaborationRequestSchemas = {
       attemptId: id,
       fencingToken: z.number().int().positive(),
       leaseToken: id,
-      proposal: z.record(z.string(), z.unknown()),
+      proposal: z.object({ records: recordArray }).strict(),
     })
     .strict(),
   handoffRedeem: z.object({ target, token: id, redeemedBy: id }).strict(),
@@ -203,13 +215,29 @@ function operationSummary(operation: {
     version: operation.version,
     preparedDigest: collaborationPublicDigest(operation.preparedDigest),
     acceptedDigest: collaborationPublicDigest(operation.acceptedDigest),
-    receiptHash: operation.receiptHash,
+    receiptHash: collaborationPublicDigest(operation.receiptHash),
     sourceRevision: operation.sourceRevision,
     targetRevision: operation.targetRevision,
     createdAt: operation.createdAt,
     updatedAt: operation.updatedAt,
     completedAt: operation.completedAt,
   }
+}
+
+/** Stored collaboration hashes are bare SHA-256 values. Public coordinator
+ * responses always expose their algorithm exactly once, including nested
+ * divergent-review evidence. */
+export function publicCollaborationHashes<T>(value: T): T {
+  if (Array.isArray(value)) return value.map(item => publicCollaborationHashes(item)) as T
+  if (!value || typeof value !== 'object' || value instanceof Date) return value
+  return Object.fromEntries(
+    Object.entries(value as Record<string, unknown>).map(([key, nested]) => [
+      key,
+      (key.endsWith('Digest') || key.endsWith('Hash')) && typeof nested === 'string'
+        ? collaborationPublicDigest(nested)
+        : publicCollaborationHashes(nested),
+    ]),
+  ) as T
 }
 
 function records(value: unknown[]) {
@@ -228,14 +256,7 @@ function records(value: unknown[]) {
 
 function publicCollaborationStatus(status: Awaited<ReturnType<typeof getCollaborationStatus>>) {
   if (!status) return null
-  return {
-    ...status,
-    operations: status.operations.map(operation => ({
-      ...operation,
-      preparedDigest: collaborationPublicDigest(operation.preparedDigest),
-      acceptedDigest: collaborationPublicDigest(operation.acceptedDigest),
-    })),
-  }
+  return publicCollaborationHashes(status)
 }
 
 function ticketTokenHash(token: string) {
@@ -268,10 +289,12 @@ async function postConnect(request: Request, body: unknown) {
 async function postPolicyUpdate(request: Request, body: unknown) {
   const value = collaborationRequestSchemas.policyUpdate.parse(body)
   const { targetProject, binding } = await bindingForTarget(value.target)
-  const updated = await updateCollaborationPolicy({
+  const updated = await updateCollaborationPolicyWithAuthorityReceipt({
     bindingId: binding.id,
     changes: value.changes,
-    ...principal(request),
+    expectedPolicyVersion: value.expectedPolicyVersion,
+    authorityReceipt: request.headers.get('x-appraise-authority-receipt'),
+    request: value,
   })
   return Response.json({
     targetProjectId: targetProject.id,
@@ -282,16 +305,6 @@ async function postPolicyUpdate(request: Request, body: unknown) {
 async function postPrepare(_request: Request, body: unknown) {
   const value = collaborationRequestSchemas.prepare.parse(body)
   const { targetProject, binding } = await bindingForTarget(value.target)
-  if (value.divergent) {
-    await requireCollaborationOperationForProject(value.divergent.operationId, targetProject.id)
-    return Response.json({
-      targetProjectId: targetProject.id,
-      preparation: await prepareDivergentCollaborationReconciliation({
-        ...value.divergent,
-        preparedDigest: normalizeCollaborationDigest(value.divergent.preparedDigest),
-      }),
-    })
-  }
   const prepared = await prepareCollaborationOperation({
     bindingId: binding.id,
     intent: value.intent,
@@ -312,7 +325,7 @@ async function postGet(_request: Request, body: unknown) {
     decisions: operation.decisions.map(decision => ({
       recordKey: decision.recordKey,
       decision: decision.kind,
-      resolutionDigest: decision.resolutionDigest,
+      resolutionDigest: collaborationPublicDigest(decision.resolutionDigest),
       createdAt: decision.createdAt,
     })),
     journal: operation.journalEntries.map(entry => ({
@@ -334,13 +347,28 @@ async function postResolutionPropose(_request: Request, body: unknown) {
     preparedDigest: normalizeCollaborationDigest(value.preparedDigest),
     records: records(value.records),
   })
-  return Response.json({ targetProjectId: targetProject.id, result })
+  return Response.json({ targetProjectId: targetProject.id, result: publicCollaborationHashes(result) })
 }
 
 async function postDecide(request: Request, body: unknown) {
   const value = collaborationRequestSchemas.decide.parse(body)
   const targetProject = await resolveTargetProject(value.target)
   await requireCollaborationOperationForProject(value.operationId, targetProject.id)
+  if ('reviewDigest' in value) {
+    const operation = await prisma.collaborationOperation.findUnique({ where: { id: value.operationId } })
+    if (!operation) throw new ServiceError('Collaboration operation was not found.', 'NOT_FOUND', 404)
+    const decided = await consumeCollaborationAuthorityReceipt(
+      {
+        token: request.headers.get('x-appraise-authority-receipt'),
+        bindingId: operation.bindingId,
+        action: 'DECIDE',
+        operationId: operation.id,
+        request: value,
+      },
+      (transaction, authority) => decideDivergentCollaborationProposal({ ...value, ...authority }, transaction),
+    )
+    return Response.json({ targetProjectId: targetProject.id, operation: operationSummary(decided) })
+  }
   const decisions = value.decisions.map(decision =>
     decision.decision === 'EDIT'
       ? {
@@ -350,12 +378,13 @@ async function postDecide(request: Request, body: unknown) {
         }
       : { recordKey: decision.recordKey, decision: decision.decision },
   )
-  const decided = await decideCollaborationOperation({
+  const decided = await decideCollaborationOperationWithAuthorityReceipt({
     operationId: value.operationId,
     expectedVersion: value.expectedVersion,
     preparedDigest: value.preparedDigest,
     decisions,
-    ...principal(request),
+    authorityReceipt: request.headers.get('x-appraise-authority-receipt'),
+    request: value,
   })
   return Response.json({ targetProjectId: targetProject.id, operation: operationSummary(decided) })
 }
@@ -439,7 +468,11 @@ async function postHandoffRedeem(_request: Request, body: unknown) {
   if (!ticket || ticket.bindingId !== binding.id)
     throw new ServiceError('Handoff ticket belongs to another target or is unavailable.', 'NOT_FOUND', 404)
   const redeemed = await redeemCollaborationHandoffTicket({ token: value.token, redeemedBy: value.redeemedBy })
-  return Response.json({ targetProjectId: targetProject.id, operationId: redeemed.operationId, scope: redeemed.scope })
+  return Response.json({
+    targetProjectId: targetProject.id,
+    operationId: redeemed.operationId,
+    scope: publicCollaborationHashes(redeemed.scope),
+  })
 }
 
 const postActions: Readonly<Record<string, (request: Request, body: unknown) => Promise<Response>>> = {

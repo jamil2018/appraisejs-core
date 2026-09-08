@@ -1,10 +1,11 @@
-import { lstat, open, readdir, realpath } from 'node:fs/promises'
+import { lstat, open, opendir, realpath } from 'node:fs/promises'
 import path from 'node:path'
 
 import {
   collaborationManifestSchema,
   collaborationRecordSchema,
   MAX_COLLABORATION_RECORD_BYTES,
+  MAX_COLLABORATION_RECORDS,
   MAX_COLLABORATION_TOTAL_BYTES,
   type CollaborationManifest,
   type CollaborationRecord,
@@ -58,16 +59,48 @@ function parseJson(bytes: Buffer, label: string): unknown {
   }
 }
 
-async function listedSnapshotFiles(root: string, relative = ''): Promise<string[]> {
-  const entries = await readdir(path.join(root, relative), { withFileTypes: true })
+const allowedSnapshotDirectories = new Set(Object.values(expectedDirectoryByKind))
+const maximumRootEntries = 1 + allowedSnapshotDirectories.size
+const maximumDirectoryEntries = MAX_COLLABORATION_RECORDS
+const maximumSnapshotEntries = maximumRootEntries + MAX_COLLABORATION_RECORDS
+
+async function listedSnapshotFiles(root: string): Promise<string[]> {
   const files: string[] = []
-  for (const entry of entries) {
-    const relativePath = path.posix.join(relative.split(path.sep).join(path.posix.sep), entry.name)
-    if (entry.isSymbolicLink()) throw new Error(`Collaboration symlinks are not allowed: ${relativePath}`)
-    if (entry.isDirectory()) files.push(...(await listedSnapshotFiles(root, relativePath)))
-    else if (entry.isFile()) files.push(relativePath)
-    else throw new Error(`Unsupported collaboration filesystem entry: ${relativePath}`)
+  let totalEntries = 0
+
+  async function enumerate(relative: string, rootDirectory: boolean): Promise<void> {
+    const directory = await opendir(path.join(root, relative))
+    let directoryEntries = 0
+    try {
+      for await (const entry of directory) {
+        const relativePath = path.posix.join(relative, entry.name)
+        directoryEntries += 1
+        totalEntries += 1
+        const directoryLimit = rootDirectory ? maximumRootEntries : maximumDirectoryEntries
+        if (directoryEntries > directoryLimit || totalEntries > maximumSnapshotEntries) {
+          throw new Error('Collaboration snapshot filesystem entry limit exceeded')
+        }
+        if (entry.isSymbolicLink()) throw new Error(`Collaboration symlinks are not allowed: ${relativePath}`)
+        if (rootDirectory) {
+          if (entry.isFile() && entry.name === 'manifest.json') {
+            files.push('manifest.json')
+            continue
+          }
+          if (entry.isDirectory() && allowedSnapshotDirectories.has(entry.name)) {
+            await enumerate(entry.name, false)
+            continue
+          }
+          throw new Error(`Unlisted collaboration file: ${relativePath}`)
+        }
+        if (entry.isFile()) files.push(relativePath)
+        else throw new Error(`Unsupported collaboration filesystem entry: ${relativePath}`)
+      }
+    } finally {
+      await directory.close().catch(() => undefined)
+    }
   }
+
+  await enumerate('', true)
   return files.sort((left, right) => left.localeCompare(right))
 }
 

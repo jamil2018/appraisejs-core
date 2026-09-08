@@ -109,4 +109,23 @@ describe('repository collaboration contracts', () => {
 
     await expect(readCollaborationSnapshot(root)).rejects.toThrow(/symlinks are not allowed/)
   })
+
+  it('bounds streaming enumeration before accepting an oversized strict snapshot directory', async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), 'appraise-collaboration-enumeration-'))
+    const modules = path.join(root, 'modules')
+    await mkdir(modules)
+    await writeFile(
+      path.join(root, 'manifest.json'),
+      canonicalJson({ format: 'appraise.repository-collaboration/v1', portableProjectId: projectId, records: [] }),
+    )
+    for (let start = 0; start < 10_001; start += 100) {
+      await Promise.all(
+        Array.from({ length: Math.min(100, 10_001 - start) }, (_, offset) =>
+          writeFile(path.join(modules, `${start + offset}.json`), '{}'),
+        ),
+      )
+    }
+
+    await expect(readCollaborationSnapshot(root)).rejects.toThrow(/filesystem entry limit exceeded/)
+  })
 })

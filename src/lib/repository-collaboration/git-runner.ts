@@ -26,7 +26,7 @@ export type GitInvocation =
   | { kind: 'merge-base'; left: string; right: string }
   | { kind: 'merge-base-is-ancestor'; older: string; newer: string }
   | { kind: 'worktree-add-detached'; worktreePath: string; commit: string }
-  | { kind: 'worktree-remove'; worktreePath: string }
+  | { kind: 'worktree-remove'; worktreePath: string; force?: boolean }
 
 type InvocationFor<Kind extends GitInvocation['kind']> = Extract<GitInvocation, { kind: Kind }>
 type ArgumentBuilders = { [Kind in GitInvocation['kind']]: (input: InvocationFor<Kind>) => string[] }
@@ -61,7 +61,7 @@ const argumentBuilders: ArgumentBuilders = {
   'merge-base': input => ['merge-base', input.left, input.right],
   'merge-base-is-ancestor': input => ['merge-base', '--is-ancestor', input.older, input.newer],
   'worktree-add-detached': input => ['worktree', 'add', '--detach', input.worktreePath, input.commit],
-  'worktree-remove': input => ['worktree', 'remove', input.worktreePath],
+  'worktree-remove': input => ['worktree', 'remove', ...(input.force ? ['--force'] : []), input.worktreePath],
 }
 
 function argvFor(invocation: GitInvocation): string[] {

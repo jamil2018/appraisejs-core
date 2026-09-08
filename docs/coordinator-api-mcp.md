@@ -6,12 +6,31 @@ Appraise-owned agent quality workflow; repository collaboration has no Journey a
 
 Repository collaboration tools use the `collaboration_*` family. Every request names a target that the coordinator
 resolves to its own binding; callers never supply a binding ID, repository command, remote/ref override, trusted
-principal, or reviewer provenance. `collaboration_prepare` persists a normal reviewed operation or prepares an
-isolated divergent worktree. `collaboration_resolution_propose` accepts complete collaboration records only, and
-`collaboration_execute` performs only the exact prepared database operation or one fixed persisted Git step. Worker
-tools expose observed registration, fenced leases, structured proposals, and one-time handoff redemption; they do
-not claim wake capability or create a reviewer decision. `collaboration_undo_prepare` is guarded by the stored
+principal, or reviewer provenance. Public `collaboration_prepare` accepts only `RECEIVE` and `PUBLISH`. RECEIVE
+fetches its operation-owned ref, pins both revisions, and classifies the relationship. Only an Appraise-content-only
+divergence creates an internal RECONCILE operation; its isolated proposal worktree is persisted before it can be
+claimed. `collaboration_resolution_propose` and compatible worker completion accept one complete record set only.
+They produce review material, clear the lease, and never make it executable. `collaboration_execute` performs only
+the exact prepared database operation or one fixed persisted Git step after acceptance. Worker tools expose observed
+registration, fenced leases, a sanitized operation-owned assignment, and one-time handoff redemption; they do not
+claim wake capability or create a reviewer decision. `collaboration_undo_prepare` is guarded by the stored
 database before-image and an exact current-state check.
+
+`collaboration_policy_update` and `collaboration_decide` are deliberately absent from the default MCP inventory.
+They require a local UI-issued one-action authority receipt. Use the direct CLI with `--authority-receipt-file` (the
+file contains only the receipt) or the coordinator-client header path; the receipt is sent only as
+`X-Appraise-Authority-Receipt`, never MCP input, JSON, argv, environment, or coordinator configuration.
+
+For divergent reconciliation, the receipt-protected direct `collaboration_decide` request names the exact canonical
+`reviewDigest` and either ACCEPTs or REJECTs it. ACCEPT persists one designated proposal artifact and its digest;
+derived merge/database execution reads that artifact only, never the latest proposal. REJECT cleans the exact
+operation-owned proposal worktree or blocks and retains it for recovery. Final cleanup must prove that both the
+original proposal and merge worktrees are absent.
+
+Execution requests remain version-fenced. Retrying a lost `collaboration_execute` response can return a persisted
+result only for the request version that produced the current operation version; it cannot invoke the next step or
+repeat an external effect. Applying Git work with no persisted request intent/fence is a conservative recovery block,
+not a best-effort replay. Remote-ref transport failures are reported as unavailable rather than as an absent branch.
 
 Journey operations are grouped under `quality/journeys/**` in the coordinator API and `quality_journey_*` in MCP.
 Every mutation is scoped to an exact target and Journey and remains subject to the Journey's durable review,

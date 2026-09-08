@@ -15,7 +15,11 @@ import { ServiceError } from '@/services/shared/errors'
 
 import { requireCollaborationPermission } from './binding-service'
 import { entityKindByRecordKind } from './materialization-helpers'
-import { prepareCollaborationOperation, type PrepareCollaborationOperationInput } from './operation-service'
+import {
+  collaborationPublicDigest,
+  prepareCollaborationOperation,
+  type PrepareCollaborationOperationInput,
+} from './operation-service'
 import { projectSnapshotInTransaction } from './projection-helpers'
 
 type Resolution = { decision: 'KEEP_LOCAL' | 'USE_INCOMING' | 'EDIT'; editedRecord?: CollaborationRecord }
@@ -139,6 +143,30 @@ function tombstone(record: CollaborationRecord): CollaborationRecord {
   return collaborationRecordSchema.parse({ ...record, archived: true, version: record.version + 1 })
 }
 
+/** A restored record may rely on an already-active local dependency. Include that exact projection in preparation. */
+function restorationClosure(requested: CollaborationRecord[], projected: CollaborationRecord[]) {
+  const requestedByKey = new Map(requested.map(record => [recordKey(record), record]))
+  if (requestedByKey.size !== requested.length)
+    throw new ServiceError('Restoration records must not repeat an identity.', 'VALIDATION', 400)
+  const projectedByKey = new Map(projected.map(record => [recordKey(record), record]))
+  const closure = new Map(requestedByKey)
+  const pending = [...requested]
+  while (pending.length) {
+    const record = pending.pop()!
+    for (const dependencyKey of activeDependencies(record)) {
+      const dependency = requestedByKey.get(dependencyKey) ?? projectedByKey.get(dependencyKey)
+      if (!dependency || dependency.archived) {
+        throw new ServiceError(`Restore requires active dependency ${dependencyKey}.`, 'CONFLICT', 409)
+      }
+      if (!closure.has(dependencyKey)) {
+        closure.set(dependencyKey, dependency)
+        pending.push(dependency)
+      }
+    }
+  }
+  return orderedRecords([...closure.values()])
+}
+
 async function archivePreparation(input: PrepareCollaborationArchiveInput, client: PrismaClient) {
   return client.$transaction(async transaction => {
     const { binding } = await requireCollaborationPermission(
@@ -187,14 +215,18 @@ async function restorePreparation(input: PrepareCollaborationRestoreInput, clien
       'ARCHIVE',
       input.expectedPolicyVersion,
     )
-    const records = orderedRecords(input.records.map(record => collaborationRecordSchema.parse(record)))
-    if (records.some(record => record.archived)) {
+    const requested = input.records.map(record => collaborationRecordSchema.parse(record))
+    if (requested.some(record => record.archived)) {
       throw new ServiceError('Restoration requires complete active records, not tombstones.', 'VALIDATION', 400)
     }
-    if (records.some(record => record.portableProjectId !== binding.portableProjectId)) {
+    if (requested.some(record => record.portableProjectId !== binding.portableProjectId)) {
       throw new ServiceError('Portable project identity does not match the local binding.', 'CONFLICT', 409)
     }
-    for (const record of records) {
+    const records = restorationClosure(
+      requested,
+      snapshotRecords(await projectSnapshotInTransaction(transaction, binding.id)),
+    )
+    for (const record of requested) {
       const entityMap = await transaction.collaborationEntityMap.findUnique({
         where: {
           bindingId_kind_portableId: {
@@ -344,7 +376,11 @@ export async function recordUnseenCollaborationTombstone(
         },
       ],
     })
-    return operation
+    return {
+      ...operation,
+      preparedDigest: collaborationPublicDigest(operation.preparedDigest),
+      acceptedDigest: collaborationPublicDigest(operation.acceptedDigest),
+    }
   })
 }
 

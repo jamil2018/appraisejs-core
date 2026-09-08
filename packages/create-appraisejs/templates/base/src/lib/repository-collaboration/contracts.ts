@@ -3,7 +3,7 @@ import { z } from 'zod'
 import { stepInvocationSchema } from '../../../packages/cucumber-runtime/src/step-definitions/contracts.ts'
 
 const COLLABORATION_FORMAT = 'appraise.repository-collaboration/v1' as const
-const MAX_COLLABORATION_RECORDS = 10_000
+export const MAX_COLLABORATION_RECORDS = 10_000
 export const MAX_COLLABORATION_RECORD_BYTES = 2 * 1024 * 1024
 export const MAX_COLLABORATION_TOTAL_BYTES = 64 * 1024 * 1024
 

@@ -1784,6 +1784,11 @@ enum CollaborationDecisionKind {
   REJECT
 }
 
+enum CollaborationAuthorityAction {
+  POLICY_UPDATE
+  DECIDE
+}
+
 model CollaborationBinding {
   id                       String                               @id @default(cuid())
   targetProjectId          String                               @unique
@@ -1806,6 +1811,7 @@ model CollaborationBinding {
   environmentMappings      CollaborationEnvironmentMapping[]
   operations               CollaborationOperation[]
   policyGrants             CollaborationPolicyGrant[]
+  authorityReceipts        CollaborationAuthorityReceipt[]
   workers                  CollaborationWorker[]
   handoffTickets           CollaborationHandoffTicket[]
   reuseAssets              CollaborationReuseAsset[]
@@ -1886,6 +1892,10 @@ model CollaborationOperation {
   leaseOwner          String?
   leaseExpiresAt      DateTime?
   fencingToken        Int                          @default(0)
+  /// Monotonically increases whenever a new executor takes responsibility for
+  /// an external boundary. It is distinct from the mutation-lock fencing token
+  /// and survives a process crash so recovery cannot complete an old fence.
+  executorEpoch       Int                          @default(0)
   nextAttemptAt       DateTime?
   cancelledAt         DateTime?
   supersededById      String?
@@ -1921,7 +1931,14 @@ model CollaborationOperationStep {
   state              String                 @default("PENDING")
   requiredPermission CollaborationPermission
   prerequisiteDigest String
+  /// Immutable external-effect identity persisted before Git/filesystem work.
+  /// A replay can only return this result while completedVersion is current.
+  requestVersion     Int?
+  intentJson         String?
+  intentHash         String?
+  executorEpoch      Int?
   startedVersion     Int?
+  completedVersion   Int?
   fencingToken       Int?
   evidenceJson       String?
   evidenceHash       String?
@@ -1988,6 +2005,28 @@ model CollaborationPolicyGrant {
 
   @@unique([bindingId, permission, policyVersion])
   @@index([bindingId, permission, revokedAt])
+}
+
+/// A short-lived, one-action handoff from the local UI. The bearer token is
+/// never persisted: only its SHA-256 hash is stored.
+model CollaborationAuthorityReceipt {
+  id                 String                       @id @default(cuid())
+  bindingId          String
+  action             CollaborationAuthorityAction
+  operationId        String?
+  policyVersion      Int
+  requestDigest      String
+  tokenHash          String                       @unique
+  trustedPrincipalId String
+  provenance         String
+  expiresAt          DateTime
+  invalidatedAt      DateTime?
+  consumedAt         DateTime?
+  resultJson         String?
+  createdAt          DateTime                     @default(now())
+  binding            CollaborationBinding        @relation(fields: [bindingId], references: [id], onDelete: Cascade)
+
+  @@index([bindingId, action, operationId, expiresAt])
 }
 
 model CollaborationDecision {

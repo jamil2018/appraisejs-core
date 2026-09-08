@@ -7,7 +7,7 @@ import { collaborationHash } from './canonical'
 import { type CollaborationRecord } from './contracts'
 import { installCollaborationSnapshot } from './filesystem'
 import { inspectRepository } from './git-repository'
-import { runGit } from './git-runner'
+import { runGit, runGitAllowFailure } from './git-runner'
 import { readCollaborationSnapshot } from './reader'
 import { buildCollaborationSnapshotFiles } from './snapshot'
 
@@ -48,6 +48,14 @@ export interface DivergentReconciliationReview {
   proposedSnapshotHash: string
   proposalDigest: string
   reviewDigest: string
+}
+
+export interface DivergentMergeCommitEvidence {
+  mergeCommit: string
+  mergeTree: string
+  parents: [string, string]
+  preparation: DivergentReconciliationPreparation
+  snapshotHash: string
 }
 
 export type DivergentWorktreeCleanup =
@@ -297,6 +305,99 @@ async function assertCollaborationOnlyWorktree(worktreePath: string, message: st
   }
 }
 
+async function replaceWorktreeSnapshot(
+  worktreePath: string,
+  snapshot: ReturnType<typeof buildCollaborationSnapshotFiles>,
+) {
+  const root = await fs.realpath(worktreePath)
+  const destination = path.join(root, collaborationRoot)
+  const staging = path.join(root, `appraise/.collaboration-merge-${randomUUID()}`)
+  await fs.mkdir(staging, { recursive: true, mode: 0o700 })
+  for (const [relativePath, content] of snapshot.files) {
+    const target = path.resolve(staging, relativePath)
+    if (!target.startsWith(`${staging}${path.sep}`)) throw new Error('Divergent snapshot path escapes staging.')
+    await fs.mkdir(path.dirname(target), { recursive: true, mode: 0o700 })
+    await fs.writeFile(target, content, { flag: 'wx', mode: 0o600 })
+  }
+  await fs.rm(destination, { recursive: true, force: true })
+  await fs.rename(staging, destination)
+}
+
+/** Creates the reviewed, two-parent merge only inside a fresh Appraise worktree. */
+export async function createDivergentMergeCommit(input: {
+  review: DivergentReconciliationReview
+  records: CollaborationRecord[]
+}): Promise<DivergentMergeCommitEvidence> {
+  await assertDivergentReconciliationReview(input.review)
+  const preparation = await prepareDivergentReconciliation({
+    repositoryRoot: input.review.preparation.repositoryRoot,
+    operationId: `${input.review.preparation.operationId}-merge`,
+    sourceRevision: input.review.preparation.sourceRevision,
+    targetRevision: input.review.preparation.targetRevision,
+  })
+  const merged = await runGitAllowFailure(preparation.worktreePath, {
+    kind: 'merge-no-commit',
+    commit: preparation.targetRevision,
+  })
+  if (merged.exitCode !== 0 && merged.exitCode !== 1) {
+    throw new DivergentReconciliationError(
+      'RECOVERY_REQUIRED',
+      'The owned merge worktree entered an ambiguous Git state.',
+      {
+        diagnostic: merged.stderr,
+      },
+    )
+  }
+  const snapshot = buildCollaborationSnapshotFiles(input.records, preparation.portableProjectId)
+  await replaceWorktreeSnapshot(preparation.worktreePath, snapshot)
+  await runGit(preparation.worktreePath, { kind: 'add-collaboration' })
+  const unmerged = paths((await runGit(preparation.worktreePath, { kind: 'unmerged-paths' })).stdout)
+  if (unmerged.length) {
+    throw new DivergentReconciliationError(
+      'RECOVERY_REQUIRED',
+      'The reviewed collaboration merge still has unmerged paths.',
+      {
+        unmerged,
+      },
+    )
+  }
+  await assertCollaborationOnlyWorktree(preparation.worktreePath, 'The merge worktree contains foreign changes')
+  await runGit(preparation.worktreePath, {
+    kind: 'commit-merge-collaboration',
+    message: `Appraise collaboration reconcile ${preparation.operationId}`,
+  })
+  const [mergeCommit, firstParent, secondParent, mergeTree] = await Promise.all([
+    commitFor(preparation.worktreePath, 'HEAD'),
+    commitFor(preparation.worktreePath, 'HEAD^1'),
+    commitFor(preparation.worktreePath, 'HEAD^2'),
+    treeFor(preparation.worktreePath, 'HEAD'),
+  ])
+  if (firstParent !== preparation.sourceRevision || secondParent !== preparation.targetRevision) {
+    throw new DivergentReconciliationError(
+      'RECOVERY_REQUIRED',
+      'The merge commit parents do not match the reviewed revisions.',
+      {
+        firstParent,
+        secondParent,
+      },
+    )
+  }
+  const installed = await readCollaborationSnapshot(path.join(preparation.worktreePath, collaborationRoot))
+  if (installed.snapshotHash !== snapshot.snapshotHash) {
+    throw new DivergentReconciliationError(
+      'RECOVERY_REQUIRED',
+      'The merge commit does not contain the reviewed collaboration snapshot.',
+    )
+  }
+  return {
+    mergeCommit,
+    mergeTree,
+    parents: [firstParent, secondParent],
+    preparation,
+    snapshotHash: snapshot.snapshotHash,
+  }
+}
+
 function isOwnedTemporaryWorktree(worktreePath: string): boolean {
   const expectedParent = path.resolve(os.tmpdir())
   const candidate = path.resolve(worktreePath)
@@ -309,6 +410,7 @@ function isOwnedTemporaryWorktree(worktreePath: string): boolean {
  */
 export async function cleanupDivergentReconciliationWorktree(
   preparation: DivergentReconciliationPreparation,
+  options: { expectedSnapshotHash?: string } = {},
 ): Promise<DivergentWorktreeCleanup> {
   if (!isOwnedTemporaryWorktree(preparation.worktreePath)) {
     throw new DivergentReconciliationError(
@@ -334,6 +436,18 @@ export async function cleanupDivergentReconciliationWorktree(
   if (status.untrackedPaths.length) changedPaths.push('UNTRACKED_CONTENT')
   if ((status.stagedPaths.length || status.worktreePaths.length) && !changedPaths.length) {
     changedPaths.push('UNPARSEABLE_GIT_STATUS')
+  }
+  if (changedPaths.length && options.expectedSnapshotHash) {
+    await assertCollaborationOnlyWorktree(preparation.worktreePath, 'The cleanup worktree contains foreign changes')
+    const snapshot = await readCollaborationSnapshot(path.join(preparation.worktreePath, collaborationRoot))
+    if (snapshot.snapshotHash === options.expectedSnapshotHash) {
+      await runGit(preparation.repositoryRoot, {
+        kind: 'worktree-remove',
+        worktreePath: preparation.worktreePath,
+        force: true,
+      })
+      return { status: 'REMOVED' }
+    }
   }
   if (changedPaths.length)
     return { status: 'RETAINED_FOR_RECOVERY', worktreePath: preparation.worktreePath, changedPaths }

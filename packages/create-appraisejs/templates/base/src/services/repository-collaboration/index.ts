@@ -1,5 +1,6 @@
 export * from './binding-service'
 export * from './archive-service'
+export * from './authority-receipt-service'
 export * from './collaboration-journal-service'
 export * from './divergent-reconciliation-service'
 export * from './environment-mapping-service'

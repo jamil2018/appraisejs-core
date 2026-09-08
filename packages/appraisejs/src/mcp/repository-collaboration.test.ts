@@ -36,11 +36,9 @@ describe('repository collaboration MCP tools', () => {
     expect([...harness().handlers.keys()]).toEqual([
       'collaboration_status',
       'collaboration_connect',
-      'collaboration_policy_update',
       'collaboration_prepare',
       'collaboration_get',
       'collaboration_resolution_propose',
-      'collaboration_decide',
       'collaboration_execute',
       'collaboration_undo_prepare',
       'collaboration_worker_register',
@@ -67,18 +65,24 @@ describe('repository collaboration MCP tools', () => {
     await expect(handlers.get('collaboration_execute')!({ ...input, gitStep: 'FETCH' })).rejects.toThrow()
   })
 
-  it('does not accept client-supplied trusted principal or decision provenance', async () => {
+  it('omits receipt-protected policy and decision mutations from the default MCP inventory', async () => {
     const { handlers, api } = harness()
-    const input = {
-      target: 'target-1',
-      operationId: 'operation-1',
-      expectedVersion: 2,
-      preparedDigest: `sha256:${'a'.repeat(64)}`,
-      decisions: [{ recordKey: 'module:module-1', decision: 'USE_INCOMING' }],
-      trustedPrincipalId: 'forged-user',
-      provenance: 'local-ui',
-    }
-    await expect(handlers.get('collaboration_decide')!(input)).rejects.toThrow()
+    expect(handlers.has('collaboration_policy_update')).toBe(false)
+    expect(handlers.has('collaboration_decide')).toBe(false)
+    expect(api.collaborationPolicyUpdate).not.toHaveBeenCalled()
     expect(api.collaborationDecide).not.toHaveBeenCalled()
+  })
+
+  it('rejects generic undo preparation and requires the dedicated undo endpoint', async () => {
+    const { handlers, api } = harness()
+    await expect(
+      handlers.get('collaboration_prepare')!({
+        target: 'target-1',
+        intent: 'UNDO',
+        idempotencyKey: 'undo-1',
+        expectedPolicyVersion: 1,
+      }),
+    ).rejects.toThrow()
+    expect(api.collaborationPrepare).not.toHaveBeenCalled()
   })
 })

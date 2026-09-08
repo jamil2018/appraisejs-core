@@ -4,7 +4,7 @@ import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 
-const mocks = vi.hoisted(() => ({ refresh: vi.fn(), handoff: vi.fn(), cancel: vi.fn() }))
+const mocks = vi.hoisted(() => ({ refresh: vi.fn(), handoff: vi.fn(), cancel: vi.fn(), issueReceipt: vi.fn() }))
 
 vi.mock('next/navigation', () => ({ useRouter: () => ({ refresh: mocks.refresh }) }))
 vi.mock('@/actions/repository-collaboration/collaboration-actions', () => ({
@@ -13,6 +13,7 @@ vi.mock('@/actions/repository-collaboration/collaboration-actions', () => ({
   createCollaborationHandoffAction: mocks.handoff,
   decideCollaborationAction: vi.fn(),
   executeCollaborationAction: vi.fn(),
+  issueCollaborationAuthorityReceiptAction: mocks.issueReceipt,
   prepareCollaborationAction: vi.fn(),
   recoverCollaborationFilesystemAction: vi.fn(),
   updateCollaborationPolicyAction: vi.fn(),
@@ -59,7 +60,7 @@ const status = {
       decisions: [],
       changeCount: 0,
       decisionCount: 0,
-      reviewItems: [],
+      reviewItems: [{ recordKey: 'module:module-1' }],
     },
   ],
 } as never
@@ -79,9 +80,34 @@ describe('CollaborationControls', () => {
 
     expect(screen.getByText(/No worker is currently available/i)).toBeInTheDocument()
     expect(screen.getByText('Repair credentials.')).toBeInTheDocument()
+    expect(screen.queryByLabelText('Incoming collaboration records')).not.toBeInTheDocument()
+    expect(screen.getByText(/fetches and pins the configured tracked branch/i)).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Continue with agent' }))
     expect(await screen.findByText('one-time-token')).toBeInTheDocument()
     expect(screen.getByText(/does not wake or launch an agent/i)).toBeInTheDocument()
     expect(mocks.handoff).toHaveBeenCalledWith({ targetProjectId: 'project-1', operationId: 'operation-1' })
+  })
+
+  it('issues and visibly exposes an exact decision receipt for explicit CLI copy', async () => {
+    mocks.issueReceipt.mockResolvedValue({
+      success: true,
+      data: {
+        token: 'a'.repeat(43),
+        expiresAt: '2026-09-09T01:00:00.000Z',
+        request: { target: 'project-1', operationId: 'operation-1', decisions: [{ recordKey: 'module:module-1' }] },
+      },
+    })
+    const user = userEvent.setup()
+    render(<CollaborationControls projectId="project-1" status={status} />)
+    await user.click(screen.getByRole('button', { name: /Create CLI receipt: keep local/i }))
+    expect(await screen.findByTestId('authority-receipt-token')).toHaveTextContent('a'.repeat(43))
+    expect(screen.getByRole('button', { name: 'Copy receipt' })).toBeInTheDocument()
+    expect(mocks.issueReceipt).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: 'DECIDE',
+        operationId: 'operation-1',
+        decisions: [{ recordKey: 'module:module-1', decision: 'KEEP_LOCAL' }],
+      }),
+    )
   })
 })

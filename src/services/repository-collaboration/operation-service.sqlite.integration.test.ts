@@ -17,6 +17,7 @@ import {
 import { connectCollaboration, updateCollaborationPolicy } from './binding-service'
 import {
   assertDivergentCollaborationReadyForIntegration,
+  decideDivergentCollaborationProposal,
   prepareDivergentCollaborationReconciliation,
   proposeDivergentCollaborationReconciliation,
 } from './divergent-reconciliation-service'
@@ -463,13 +464,25 @@ describe('durable collaboration operations', () => {
       )
       const receipt = JSON.parse(completed.receiptJson!) as { publishedSnapshotHash: string }
       expect(receipt.publishedSnapshotHash).toMatch(/^[a-f0-9]{64}$/)
+      // The next preparation records the installed strict snapshot as its
+      // expected previous state, so an unchanged second publication is safe.
+      const validSecond = await prepareCollaborationOperation(
+        {
+          bindingId: binding.id,
+          intent: 'PUBLISH',
+          idempotencyKey: 'publish-two-valid',
+          expectedPolicyVersion: binding.policyVersion,
+        },
+        client,
+      )
+      await expect(executeNext(client, validSecond)).resolves.toMatchObject({ state: 'READY' })
       const recordPath = path.join(binding.repositoryRoot, 'appraise', 'collaboration', 'modules')
       await fs.writeFile(path.join(recordPath, (await fs.readdir(recordPath))[0]!), 'external edit')
       const second = await prepareCollaborationOperation(
         {
           bindingId: binding.id,
           intent: 'PUBLISH',
-          idempotencyKey: 'publish-two',
+          idempotencyKey: 'publish-three-external-edit',
           expectedPolicyVersion: binding.policyVersion,
         },
         client,
@@ -480,7 +493,7 @@ describe('durable collaboration operations', () => {
             operationId: second.id,
             expectedVersion: second.version,
             preparedDigest: second.preparedDigest!,
-            idempotencyKey: 'publish-two',
+            idempotencyKey: 'publish-three-external-edit',
           },
           client,
         ),
@@ -607,7 +620,7 @@ describe('durable collaboration operations', () => {
       await assertDivergentCollaborationReadyForIntegration(
         {
           operationId: prepared.id,
-          expectedVersion: prepared.version,
+          expectedVersion: proposal.operationVersion,
           preparedDigest: prepared.preparedDigest!,
           review: proposal.review,
         },
@@ -616,10 +629,29 @@ describe('durable collaboration operations', () => {
       expect(proposalPreparation.operationId).toBe(prepared.id)
       expect(proposal.review.proposedSnapshotHash).toBe(reviewedSnapshot.snapshotHash)
 
-      const merged = await executeNext(client, prepared)
+      const accepted = await decideDivergentCollaborationProposal(
+        {
+          operationId: prepared.id,
+          expectedVersion: proposal.operationVersion,
+          preparedDigest: prepared.preparedDigest!,
+          reviewDigest: `sha256:${proposal.review.reviewDigest}`,
+          decision: 'ACCEPT',
+          trustedPrincipalId: 'local-user',
+          provenance: 'local-ui',
+        },
+        client,
+      )
+
+      const merged = await executeNext(client, accepted)
       expect(merged.version).toBeGreaterThan(prepared.version)
       expect(merged.sourceRevision).toMatch(/^[a-f0-9]{40}$/)
-      await expect(executeNext(client, prepared)).rejects.toMatchObject({ code: 'CONFLICT' })
+      // A lost response may replay only the request version that produced the
+      // current operation version; it must not start the following Git step.
+      await expect(executeNext(client, accepted)).resolves.toMatchObject({
+        id: merged.id,
+        version: merged.version,
+        sourceRevision: merged.sourceRevision,
+      })
       expect(
         await client.collaborationOperationStep.findFirst({
           where: { operationId: prepared.id, state: 'PENDING' },

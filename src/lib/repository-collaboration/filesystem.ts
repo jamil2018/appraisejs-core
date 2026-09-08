@@ -65,6 +65,22 @@ async function readCurrentSnapshotHash(
   }
 }
 
+/**
+ * Reads the installed strict snapshot without changing it. Preparation stores
+ * this value and installation compares against it again, so a second valid
+ * publication is permitted while out-of-band edits are rejected.
+ */
+export async function observeCollaborationSnapshot(input: {
+  repositoryRoot: string
+}): Promise<{ snapshotHash: string | null }> {
+  const { destination } = await resolveDestination(input.repositoryRoot)
+  const current = await readCurrentSnapshotHash(destination)
+  // Invalid content is intentionally represented as no accepted strict
+  // snapshot. Installation will observe it again and block, rather than
+  // allowing preparation to erase evidence of an external edit.
+  return { snapshotHash: current.status === 'read' ? current.snapshotHash : null }
+}
+
 async function writeStagedSnapshot(stagingPath: string, snapshot: CollaborationSnapshotFiles): Promise<void> {
   await fs.mkdir(stagingPath, { mode: 0o700 })
   for (const [filePath, bytes] of snapshot.files) {

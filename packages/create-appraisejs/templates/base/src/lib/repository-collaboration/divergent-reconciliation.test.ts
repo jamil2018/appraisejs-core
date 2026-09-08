@@ -11,6 +11,7 @@ import {
   DivergentReconciliationError,
   assertDivergentReconciliationReview,
   cleanupDivergentReconciliationWorktree,
+  createDivergentMergeCommit,
   prepareDivergentReconciliation,
   validateDivergentReconciliationProposal,
 } from './divergent-reconciliation'
@@ -178,5 +179,22 @@ describe('divergent collaboration reconciliation', () => {
     await expect(cleanupDivergentReconciliationWorktree(preparation)).resolves.toEqual({ status: 'REMOVED' })
     worktrees.pop()
     await expect(cleanupDivergentReconciliationWorktree(preparation)).resolves.toEqual({ status: 'NO_WORKTREE' })
+  })
+
+  it('creates an exact two-parent merge commit containing only the reviewed whole-record snapshot', async () => {
+    const { repository, sourceRevision, targetRevision } = await fixture()
+    const preparation = await prepareDivergentReconciliation({
+      repositoryRoot: repository,
+      operationId: 'divergent-merge',
+      sourceRevision,
+      targetRevision,
+    })
+    worktrees.push(preparation.worktreePath)
+    const review = await validateDivergentReconciliationProposal({ preparation, records: [record('resolved')] })
+    const evidence = await createDivergentMergeCommit({ review, records: [record('resolved')] })
+    worktrees.push(evidence.preparation.worktreePath)
+
+    expect(evidence.parents).toEqual([sourceRevision, targetRevision])
+    expect(evidence.snapshotHash).toMatch(/^[a-f0-9]{64}$/)
   })
 })

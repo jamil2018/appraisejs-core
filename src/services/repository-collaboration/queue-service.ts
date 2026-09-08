@@ -262,6 +262,29 @@ async function assertedAttempt(
   return { attempt, operation }
 }
 
+/** A worker must still own its exact fence before it can cause external
+ * proposal validation.  Kept public for the worker facade, but it does not
+ * disclose any repository data or mutate operation state. */
+export async function assertCollaborationProposalAttempt(
+  input: {
+    operationId: string
+    attemptId: string
+    workerId: string
+    fencingToken: number
+    leaseToken: string
+    now?: Clock
+  },
+  client: PrismaClient = prisma,
+) {
+  const now = input.now ?? new Date()
+  return client.$transaction(async transaction => {
+    const { attempt, operation } = await assertedAttempt(transaction, input, now)
+    if (attempt.state !== 'RUNNING' || operation.state !== 'WAITING_FOR_AGENT' || operation.intent !== 'RECONCILE')
+      throw new ServiceError('This worker attempt cannot submit a reconciliation proposal.', 'CONFLICT', 409)
+    return operation
+  })
+}
+
 function assertAttemptIdentity(
   attempt: { workerId: string | null; fencingToken: number },
   operation: { id: string },
@@ -328,40 +351,6 @@ export async function heartbeatCollaborationOperation(
     return transaction.collaborationOperation.update({
       where: { id: operation.id },
       data: { leaseExpiresAt: expiresAt },
-    })
-  })
-}
-
-export async function submitCollaborationProposal(
-  input: {
-    operationId: string
-    attemptId: string
-    workerId: string
-    fencingToken: number
-    leaseToken: string
-    proposal: Record<string, unknown>
-    now?: Clock
-  },
-  client: PrismaClient = prisma,
-) {
-  const now = input.now ?? new Date()
-  return client.$transaction(async transaction => {
-    const { attempt, operation } = await assertedAttempt(transaction, input, now)
-    if (attempt.state === 'PROPOSAL_SUBMITTED') return operation
-    if (attempt.state !== 'RUNNING') throw new ServiceError('Work attempt cannot submit a proposal.', 'CONFLICT', 409)
-    const proposalJson = canonicalJson(input.proposal)
-    await transaction.collaborationAttempt.update({
-      where: { id: attempt.id },
-      data: { state: 'PROPOSAL_SUBMITTED', resultJson: proposalJson, completedAt: now },
-    })
-    return transaction.collaborationOperation.update({
-      where: { id: operation.id },
-      data: {
-        state: 'WAITING_FOR_DECISION',
-        leaseOwner: null,
-        leaseExpiresAt: null,
-        blockerJson: canonicalJson({ kind: 'AGENT_PROPOSAL', proposalHash: collaborationHash(input.proposal) }),
-      },
     })
   })
 }

@@ -12,17 +12,21 @@ export type GitInvocation =
   | { kind: 'symbolic-ref'; args: readonly string[] }
   | { kind: 'status' }
   | { kind: 'diff-names'; range?: string; cached?: boolean }
+  | { kind: 'unmerged-paths' }
   | { kind: 'remote-url'; remote: string }
   | { kind: 'fetch'; remote: string; branch: string }
+  | { kind: 'fetch-operation-ref'; remote: string; branch: string; destinationRef: string }
   | { kind: 'merge-fast-forward'; commit: string }
+  | { kind: 'merge-no-commit'; commit: string }
   | { kind: 'add-collaboration' }
   | { kind: 'commit-collaboration'; message: string }
+  | { kind: 'commit-merge-collaboration'; message: string }
   | { kind: 'push-commit'; remote: string; branch: string; commit: string }
   | { kind: 'ls-remote'; remote: string; branch: string }
   | { kind: 'merge-base'; left: string; right: string }
   | { kind: 'merge-base-is-ancestor'; older: string; newer: string }
   | { kind: 'worktree-add-detached'; worktreePath: string; commit: string }
-  | { kind: 'worktree-remove'; worktreePath: string }
+  | { kind: 'worktree-remove'; worktreePath: string; force?: boolean }
 
 type InvocationFor<Kind extends GitInvocation['kind']> = Extract<GitInvocation, { kind: Kind }>
 type ArgumentBuilders = { [Kind in GitInvocation['kind']]: (input: InvocationFor<Kind>) => string[] }
@@ -38,17 +42,26 @@ const argumentBuilders: ArgumentBuilders = {
     ...(input.cached ? ['--cached'] : []),
     ...(input.range ? [input.range] : []),
   ],
+  'unmerged-paths': () => ['diff', '--name-only', '-z', '--diff-filter=U'],
   'remote-url': input => ['remote', 'get-url', input.remote],
   fetch: input => ['fetch', '--no-tags', input.remote, `refs/heads/${input.branch}`],
+  'fetch-operation-ref': input => [
+    'fetch',
+    '--no-tags',
+    input.remote,
+    `refs/heads/${input.branch}:${input.destinationRef}`,
+  ],
   'merge-fast-forward': input => ['merge', '--ff-only', input.commit],
+  'merge-no-commit': input => ['merge', '--no-ff', '--no-commit', input.commit],
   'add-collaboration': () => ['add', '--', 'appraise/collaboration'],
   'commit-collaboration': input => ['commit', '-m', input.message],
+  'commit-merge-collaboration': input => ['commit', '-m', input.message],
   'push-commit': input => ['push', input.remote, `${input.commit}:refs/heads/${input.branch}`],
   'ls-remote': input => ['ls-remote', '--exit-code', input.remote, `refs/heads/${input.branch}`],
   'merge-base': input => ['merge-base', input.left, input.right],
   'merge-base-is-ancestor': input => ['merge-base', '--is-ancestor', input.older, input.newer],
   'worktree-add-detached': input => ['worktree', 'add', '--detach', input.worktreePath, input.commit],
-  'worktree-remove': input => ['worktree', 'remove', input.worktreePath],
+  'worktree-remove': input => ['worktree', 'remove', ...(input.force ? ['--force'] : []), input.worktreePath],
 }
 
 function argvFor(invocation: GitInvocation): string[] {

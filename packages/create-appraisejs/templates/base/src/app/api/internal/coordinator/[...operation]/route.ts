@@ -1,6 +1,7 @@
 import { createHash, randomUUID } from 'node:crypto'
 
 import { z } from 'zod'
+import { MAX_COLLABORATION_TOTAL_BYTES } from '@/lib/repository-collaboration'
 import {
   isSpecializedAnalysisLifecycleCommand,
   journeyCommandSchema,
@@ -754,9 +755,10 @@ export async function POST(request: Request, context: RouteContext) {
   let operation: string[] = []
   let body: unknown
   try {
-    await guardCoordinatorRequest(request)
     operation = (await context.params).operation
-    body = await readCoordinatorJson(request)
+    const maxRequestBytes = operation[0] === 'collaboration' ? MAX_COLLABORATION_TOTAL_BYTES : undefined
+    await guardCoordinatorRequest(request, maxRequestBytes)
+    body = await readCoordinatorJson(request, maxRequestBytes)
     return await dispatchPost(request, operation, body)
   } catch (error) {
     return responseError(error, coordinatorErrorContext(request, operation, body))

@@ -21,34 +21,13 @@ const connectInput = z
     portableProjectId: id.optional(),
   })
   .strict()
-const policyUpdateInput = z
-  .object({
-    target,
-    changes: z
-      .object({
-        OBSERVE: z.boolean().optional(),
-        PREPARE: z.boolean().optional(),
-        INTEGRATE: z.boolean().optional(),
-        COMMIT: z.boolean().optional(),
-        PUSH: z.boolean().optional(),
-        RESOLVE: z.boolean().optional(),
-        ARCHIVE: z.boolean().optional(),
-      })
-      .strict()
-      .refine(value => Object.keys(value).length > 0, 'At least one policy change is required.'),
-  })
-  .strict()
 const prepareInput = z
   .object({
     target,
-    intent: z.enum(['RECEIVE', 'PUBLISH', 'RECONCILE', 'UNDO']),
+    intent: z.enum(['RECEIVE', 'PUBLISH']),
     idempotencyKey: id,
     expectedPolicyVersion: policyVersion,
     trigger: z.string().trim().min(1).max(200).optional(),
-    divergent: z
-      .object({ operationId: id, expectedVersion: z.number().int().positive(), preparedDigest: sha256 })
-      .strict()
-      .optional(),
   })
   .strict()
 const getInput = z.object({ target, operationId: id }).strict()
@@ -59,26 +38,6 @@ const resolutionProposeInput = z
     expectedVersion: z.number().int().positive(),
     preparedDigest: sha256,
     records,
-  })
-  .strict()
-const decideInput = z
-  .object({
-    target,
-    operationId: id,
-    expectedVersion: z.number().int().positive(),
-    preparedDigest: sha256,
-    decisions: z
-      .array(
-        z
-          .object({
-            recordKey: id,
-            decision: z.enum(['KEEP_LOCAL', 'USE_INCOMING', 'EDIT']),
-            editedRecord: z.unknown().optional(),
-          })
-          .strict(),
-      )
-      .min(1)
-      .max(2_000),
   })
   .strict()
 const executeInput = z
@@ -115,7 +74,7 @@ const workLease = {
 const workHeartbeatInput = z
   .object({ ...workLease, leaseMs: z.number().int().min(1_000).max(300_000).optional() })
   .strict()
-const workCompleteInput = z.object({ ...workLease, proposal: z.record(z.string(), z.unknown()) }).strict()
+const workCompleteInput = z.object({ ...workLease, proposal: z.object({ records }).strict() }).strict()
 const handoffRedeemInput = z.object({ target, token: id, redeemedBy: id }).strict()
 
 /** Public, project-bound collaboration tools. They accept records and leases, never paths, shell commands, or grant provenance. */
@@ -137,16 +96,10 @@ export function registerRepositoryCollaborationOperations({ server, api }: McpRe
       'Connect one registered local target to its canonical repository root.',
     ],
     [
-      'collaboration_policy_update',
-      policyUpdateInput,
-      'collaborationPolicyUpdate',
-      'Change explicit collaboration permissions through the authenticated local coordinator.',
-    ],
-    [
       'collaboration_prepare',
       prepareInput,
       'collaborationPrepare',
-      'Prepare a durable receive, publish, reconcile, undo, or isolated divergent review; no arbitrary Git command is accepted.',
+      'Prepare a durable receive or publish. A receive classifies divergence internally and queues only a verified collaboration-only proposal assignment.',
     ],
     [
       'collaboration_get',
@@ -159,12 +112,6 @@ export function registerRepositoryCollaborationOperations({ server, api }: McpRe
       resolutionProposeInput,
       'collaborationResolutionPropose',
       'Submit a complete record-only proposal to an existing isolated divergent reconciliation worktree.',
-    ],
-    [
-      'collaboration_decide',
-      decideInput,
-      'collaborationDecide',
-      'Record reviewed whole-record resolutions; the authenticated coordinator derives trusted decision provenance.',
     ],
     [
       'collaboration_execute',
@@ -200,7 +147,7 @@ export function registerRepositoryCollaborationOperations({ server, api }: McpRe
       'collaboration_work_complete',
       workCompleteInput,
       'collaborationWorkComplete',
-      'Submit a structured worker proposal; this does not make a reviewer decision or mutate authored records.',
+      'Submit exactly one complete record-only proposal for the claimed divergent assignment; this does not decide, run Git, or mutate authored records.',
     ],
     [
       'collaboration_handoff_redeem',

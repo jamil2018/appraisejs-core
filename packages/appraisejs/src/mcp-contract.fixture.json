@@ -98,80 +98,6 @@
     },
     {
       "kind": "tool",
-      "name": "collaboration_decide",
-      "description": "Record reviewed whole-record resolutions; the authenticated coordinator derives trusted decision provenance.",
-      "inputSchema": {
-        "$schema": "https://json-schema.org/draft/2020-12/schema",
-        "type": "object",
-        "properties": {
-          "target": {
-            "type": "string",
-            "minLength": 1
-          },
-          "operationId": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 200,
-            "pattern": "^[A-Za-z0-9._:-]+$"
-          },
-          "expectedVersion": {
-            "type": "integer",
-            "exclusiveMinimum": 0,
-            "maximum": 9007199254740991
-          },
-          "preparedDigest": {
-            "type": "string",
-            "pattern": "^sha256:[a-f0-9]{64}$"
-          },
-          "decisions": {
-            "minItems": 1,
-            "maxItems": 2000,
-            "type": "array",
-            "items": {
-              "type": "object",
-              "properties": {
-                "recordKey": {
-                  "type": "string",
-                  "minLength": 1,
-                  "maxLength": 200,
-                  "pattern": "^[A-Za-z0-9._:-]+$"
-                },
-                "decision": {
-                  "type": "string",
-                  "enum": [
-                    "KEEP_LOCAL",
-                    "USE_INCOMING",
-                    "EDIT"
-                  ]
-                },
-                "editedRecord": {}
-              },
-              "required": [
-                "recordKey",
-                "decision"
-              ],
-              "additionalProperties": false
-            }
-          }
-        },
-        "required": [
-          "target",
-          "operationId",
-          "expectedVersion",
-          "preparedDigest",
-          "decisions"
-        ],
-        "additionalProperties": false
-      },
-      "annotations": {
-        "readOnlyHint": false,
-        "destructiveHint": true,
-        "idempotentHint": true,
-        "openWorldHint": false
-      }
-    },
-    {
-      "kind": "tool",
       "name": "collaboration_execute",
       "description": "Execute only the exact prepared database operation or fixed persisted Git step named by the operation.",
       "inputSchema": {
@@ -202,26 +128,6 @@
             "minLength": 1,
             "maxLength": 200,
             "pattern": "^[A-Za-z0-9._:-]+$"
-          },
-          "expectedFilesystemSnapshotHash": {
-            "anyOf": [
-              {
-                "type": "string",
-                "pattern": "^sha256:[a-f0-9]{64}$"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "gitStep": {
-            "type": "string",
-            "enum": [
-              "FETCH",
-              "FAST_FORWARD",
-              "COMMIT",
-              "PUSH"
-            ]
           }
         },
         "required": [
@@ -311,61 +217,8 @@
     },
     {
       "kind": "tool",
-      "name": "collaboration_policy_update",
-      "description": "Change explicit collaboration permissions through the authenticated local coordinator.",
-      "inputSchema": {
-        "$schema": "https://json-schema.org/draft/2020-12/schema",
-        "type": "object",
-        "properties": {
-          "target": {
-            "type": "string",
-            "minLength": 1
-          },
-          "changes": {
-            "type": "object",
-            "properties": {
-              "OBSERVE": {
-                "type": "boolean"
-              },
-              "PREPARE": {
-                "type": "boolean"
-              },
-              "INTEGRATE": {
-                "type": "boolean"
-              },
-              "COMMIT": {
-                "type": "boolean"
-              },
-              "PUSH": {
-                "type": "boolean"
-              },
-              "RESOLVE": {
-                "type": "boolean"
-              },
-              "ARCHIVE": {
-                "type": "boolean"
-              }
-            },
-            "additionalProperties": false
-          }
-        },
-        "required": [
-          "target",
-          "changes"
-        ],
-        "additionalProperties": false
-      },
-      "annotations": {
-        "readOnlyHint": false,
-        "destructiveHint": true,
-        "idempotentHint": true,
-        "openWorldHint": false
-      }
-    },
-    {
-      "kind": "tool",
       "name": "collaboration_prepare",
-      "description": "Prepare a durable receive, publish, reconcile, undo, or isolated divergent review; no arbitrary Git command is accepted.",
+      "description": "Prepare a durable receive or publish. A receive classifies divergence internally and queues only a verified collaboration-only proposal assignment.",
       "inputSchema": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "type": "object",
@@ -378,9 +231,7 @@
             "type": "string",
             "enum": [
               "RECEIVE",
-              "PUBLISH",
-              "RECONCILE",
-              "UNDO"
+              "PUBLISH"
             ]
           },
           "idempotencyKey": {
@@ -394,52 +245,10 @@
             "exclusiveMinimum": 0,
             "maximum": 9007199254740991
           },
-          "incomingRecords": {
-            "minItems": 1,
-            "maxItems": 2000,
-            "type": "array",
-            "items": {}
-          },
-          "sourceRevision": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 1000
-          },
-          "targetRevision": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 1000
-          },
           "trigger": {
             "type": "string",
             "minLength": 1,
             "maxLength": 200
-          },
-          "divergent": {
-            "type": "object",
-            "properties": {
-              "operationId": {
-                "type": "string",
-                "minLength": 1,
-                "maxLength": 200,
-                "pattern": "^[A-Za-z0-9._:-]+$"
-              },
-              "expectedVersion": {
-                "type": "integer",
-                "exclusiveMinimum": 0,
-                "maximum": 9007199254740991
-              },
-              "preparedDigest": {
-                "type": "string",
-                "pattern": "^sha256:[a-f0-9]{64}$"
-              }
-            },
-            "required": [
-              "operationId",
-              "expectedVersion",
-              "preparedDigest"
-            ],
-            "additionalProperties": false
           }
         },
         "required": [
@@ -483,10 +292,9 @@
             "type": "string",
             "pattern": "^sha256:[a-f0-9]{64}$"
           },
-          "preparation": {},
           "records": {
             "minItems": 1,
-            "maxItems": 2000,
+            "maxItems": 10000,
             "type": "array",
             "items": {}
           }
@@ -496,7 +304,6 @@
           "operationId",
           "expectedVersion",
           "preparedDigest",
-          "preparation",
           "records"
         ],
         "additionalProperties": false
@@ -526,8 +333,9 @@
         "additionalProperties": false
       },
       "annotations": {
-        "readOnlyHint": true,
-        "openWorldHint": false
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "openWorldHint": true
       }
     },
     {
@@ -628,7 +436,7 @@
     {
       "kind": "tool",
       "name": "collaboration_work_complete",
-      "description": "Submit a structured worker proposal; this does not make a reviewer decision or mutate authored records.",
+      "description": "Submit exactly one complete record-only proposal for the claimed divergent assignment; this does not decide, run Git, or mutate authored records.",
       "inputSchema": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "type": "object",
@@ -674,10 +482,18 @@
           },
           "proposal": {
             "type": "object",
-            "propertyNames": {
-              "type": "string"
+            "properties": {
+              "records": {
+                "minItems": 1,
+                "maxItems": 10000,
+                "type": "array",
+                "items": {}
+              }
             },
-            "additionalProperties": {}
+            "required": [
+              "records"
+            ],
+            "additionalProperties": false
           }
         },
         "required": [

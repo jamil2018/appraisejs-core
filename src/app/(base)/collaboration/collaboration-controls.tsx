@@ -8,6 +8,8 @@ import {
   connectCollaborationAction,
   createCollaborationHandoffAction,
   decideCollaborationAction,
+  decideDivergentCollaborationProposalAction,
+  issueCollaborationAuthorityReceiptAction,
   executeCollaborationAction,
   prepareCollaborationAction,
   recoverCollaborationFilesystemAction,
@@ -17,7 +19,6 @@ import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
 import type { getCollaborationStatus } from '@/services/repository-collaboration'
 import type { ActionResponse } from '@/types/form/actionHandler'
 
@@ -186,7 +187,6 @@ function NotificationsPanel({ status }: { status: Status }) {
 }
 
 function PreparationPanel({ projectId, mutation }: { projectId: string; mutation: Mutation }) {
-  const [incoming, setIncoming] = useState('[]')
   const idPrefix = useId()
   const requestSequence = useRef(0)
   const nextIdempotencyKey = () => `${idPrefix}-${++requestSequence.current}`
@@ -198,21 +198,14 @@ function PreparationPanel({ projectId, mutation }: { projectId: string; mutation
         idempotencyKey: nextIdempotencyKey(),
       }),
     )
-  const prepareReceive = () => {
-    try {
-      const incomingRecords = JSON.parse(incoming) as unknown
-      mutation.run(() =>
-        prepareCollaborationAction({
-          targetProjectId: projectId,
-          intent: 'RECEIVE',
-          idempotencyKey: nextIdempotencyKey(),
-          incomingRecords,
-        }),
-      )
-    } catch {
-      mutation.run(async () => ({ status: 400, success: false, error: 'Incoming records must be valid JSON.' }))
-    }
-  }
+  const prepareReceive = () =>
+    mutation.run(() =>
+      prepareCollaborationAction({
+        targetProjectId: projectId,
+        intent: 'RECEIVE',
+        idempotencyKey: nextIdempotencyKey(),
+      }),
+    )
   return (
     <section className="bg-card/40 space-y-4 rounded-lg border p-5" aria-labelledby="prepare-heading">
       <div>
@@ -220,15 +213,10 @@ function PreparationPanel({ projectId, mutation }: { projectId: string; mutation
           Prepare synchronization
         </h2>
         <p className="mt-1 text-sm text-muted-foreground">
-          Publishing prepares the current local snapshot. Receiving validates an exact JSON record array.
+          Publishing stages the current local snapshot. Receiving fetches and pins the configured tracked branch before
+          preparing a review.
         </p>
       </div>
-      <Textarea
-        aria-label="Incoming collaboration records"
-        className="min-h-28 font-mono text-xs"
-        value={incoming}
-        onChange={event => setIncoming(event.target.value)}
-      />
       <div className="flex flex-wrap gap-2">
         <Button disabled={mutation.pending} onClick={preparePublication}>
           Prepare publication
@@ -250,6 +238,20 @@ function DecisionButtons({
   operation: ActiveOperation
   mutation: Mutation
 }) {
+  const [receipt, setReceipt] = useState<{ token: string; request: unknown; expiresAt: string }>()
+  const issue = (decision: 'KEEP_LOCAL' | 'USE_INCOMING') =>
+    mutation.run(
+      () =>
+        issueCollaborationAuthorityReceiptAction({
+          action: 'DECIDE',
+          targetProjectId: projectId,
+          operationId: operation.id,
+          expectedVersion: operation.version,
+          preparedDigest: operation.preparedDigest,
+          decisions: operation.reviewItems.map(item => ({ recordKey: item.recordKey, decision })),
+        }),
+      data => setReceipt(data as { token: string; request: unknown; expiresAt: string }),
+    )
   return (
     <div className="space-y-2">
       <p className="text-sm">{operation.reviewItems.length} records require one exact whole-record decision.</p>
@@ -275,6 +277,83 @@ function DecisionButtons({
           </Button>
         ))}
       </div>
+      <div className="flex flex-wrap gap-2">
+        {(['KEEP_LOCAL', 'USE_INCOMING'] as const).map(decision => (
+          <Button
+            key={`receipt-${decision}`}
+            disabled={mutation.pending}
+            variant="secondary"
+            onClick={() => issue(decision)}
+          >
+            Create CLI receipt: {decision === 'KEEP_LOCAL' ? 'keep local' : 'use incoming'}
+          </Button>
+        ))}
+      </div>
+      {receipt ? (
+        <div className="rounded-md border p-3 text-sm" aria-live="polite">
+          <p>
+            One-action receipt; copy it directly to the CLI header before{' '}
+            <time dateTime={receipt.expiresAt}>{receipt.expiresAt}</time>.
+          </p>
+          <code className="mt-2 block break-all" data-testid="authority-receipt-token">
+            {receipt.token}
+          </code>
+          <Button
+            className="mt-2"
+            size="sm"
+            type="button"
+            variant="outline"
+            onClick={() => void navigator.clipboard.writeText(receipt.token)}
+          >
+            Copy receipt
+          </Button>
+          <pre className="mt-2 overflow-x-auto text-xs">{JSON.stringify(receipt.request, null, 2)}</pre>
+        </div>
+      ) : null}
+    </div>
+  )
+}
+
+function DivergentProposalDecisionButtons({
+  projectId,
+  operation,
+  mutation,
+}: {
+  projectId: string
+  operation: ActiveOperation
+  mutation: Mutation
+}) {
+  if (
+    operation.intent !== 'RECONCILE' ||
+    operation.state !== 'WAITING_FOR_DECISION' ||
+    !operation.divergentReviewDigest
+  )
+    return null
+  const decide = (decision: 'ACCEPT' | 'REJECT') =>
+    mutation.run(() =>
+      decideDivergentCollaborationProposalAction({
+        targetProjectId: projectId,
+        operationId: operation.id,
+        expectedVersion: operation.version,
+        preparedDigest: operation.preparedDigest,
+        reviewDigest: operation.divergentReviewDigest,
+        decision,
+      }),
+    )
+  return (
+    <div className="space-y-2" aria-label="Divergent proposal decision">
+      <p className="text-sm text-muted-foreground">
+        A worker proposal is waiting for review. Nothing can execute until you accept its exact review digest.
+      </p>
+      <code className="block break-all text-xs">{operation.divergentReviewDigest}</code>
+      <div className="flex flex-wrap gap-2">
+        <Button disabled={mutation.pending} onClick={() => decide('ACCEPT')}>
+          Accept proposal
+        </Button>
+        <Button disabled={mutation.pending} onClick={() => decide('REJECT')} variant="outline">
+          Reject proposal
+        </Button>
+      </div>
     </div>
   )
 }
@@ -288,7 +367,7 @@ function ExecutionButton({
   operation: ActiveOperation
   mutation: Mutation
 }) {
-  if (operation.state !== 'READY' || !operation.preparedDigest) return null
+  if (operation.state !== 'READY' || !operation.preparedDigest || !operation.acceptedDigest) return null
   return (
     <Button
       disabled={mutation.pending}
@@ -430,6 +509,7 @@ function ActiveOperationPanel({
       {operation.reviewItems.length ? (
         <DecisionButtons projectId={projectId} operation={operation} mutation={mutation} />
       ) : null}
+      <DivergentProposalDecisionButtons projectId={projectId} operation={operation} mutation={mutation} />
       <ExecutionButton projectId={projectId} operation={operation} mutation={mutation} />
       <RecoveryButton projectId={projectId} operation={operation} mutation={mutation} />
       <HandoffPanel projectId={projectId} operation={operation} mutation={mutation} />

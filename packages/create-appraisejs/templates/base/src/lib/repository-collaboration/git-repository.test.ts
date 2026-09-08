@@ -10,6 +10,7 @@ import { afterEach, describe, expect, it } from 'vitest'
 import { copyMigratedTestDatabase } from '@/test/migrated-test-database'
 import {
   commitExactCollaborationPaths,
+  fetchOperationSourceRef,
   fastForwardPinned,
   fetchTrackedRef,
   inspectRepository,
@@ -62,6 +63,15 @@ async function collaborationChange(repository: string, contents = '{"version":1}
 }
 
 describe('bounded collaboration Git operations', () => {
+  it('does not confuse an unreachable remote with a verified absent branch', async () => {
+    const { repository } = await fixture()
+    await git(repository, ['remote', 'set-url', 'origin', path.join(repository, 'missing-remote.git')])
+
+    await expect(
+      readRemoteRef({ repositoryRoot: repository, remote: 'origin', branch: 'appraise-0.5' }),
+    ).rejects.toThrow('Unable to observe the configured remote branch')
+  })
+
   it('commits only collaboration paths and preserves unrelated unstaged and untracked files', async () => {
     const { repository, head } = await fixture()
     await write(repository, 'README.md', 'local unrelated edit\n')
@@ -98,7 +108,7 @@ describe('bounded collaboration Git operations', () => {
         expectedHead: head,
         message: 'must not commit mixed index',
       }),
-    ).rejects.toThrow('Unrelated staged changes')
+    ).rejects.toThrow('clean index')
     expect((await git(repository, ['diff', '--cached', '--name-only'])).stdout.trim()).toBe('README.md')
     expect((await git(repository, ['rev-parse', 'HEAD'])).stdout.trim()).toBe(head)
   })
@@ -149,6 +159,31 @@ describe('bounded collaboration Git operations', () => {
         pinnedCommit: remoteHead,
       }),
     ).resolves.toMatchObject({ head: remoteHead })
+  })
+
+  it('pins a fetched source in an operation-owned ref instead of shared FETCH_HEAD', async () => {
+    const { root, remote, repository } = await fixture()
+    const author = path.join(root, 'author-owned-ref')
+    await git(root, ['clone', '-b', 'appraise-0.5', remote, author])
+    await git(author, ['config', 'user.name', 'Remote Author'])
+    await git(author, ['config', 'user.email', 'author@example.test'])
+    await collaborationChange(author)
+    await git(author, ['add', 'appraise/collaboration/manifest.json'])
+    await git(author, ['commit', '-m', 'remote collaboration update'])
+    await git(author, ['push', 'origin', 'appraise-0.5'])
+    const remoteHead = (await git(author, ['rev-parse', 'HEAD'])).stdout.trim()
+
+    await expect(
+      fetchOperationSourceRef({
+        repositoryRoot: repository,
+        remote: 'origin',
+        branch: 'appraise-0.5',
+        operationId: 'operation-owned-ref-123',
+      }),
+    ).resolves.toMatchObject({
+      fetchedCommit: remoteHead,
+      sourceRef: 'refs/appraise/collaboration/operation-owned-ref-123/source',
+    })
   })
 
   it('rejects a remote advance instead of force pushing', async () => {

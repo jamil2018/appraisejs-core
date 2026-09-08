@@ -27,6 +27,17 @@ export interface GitRepositoryIdentity extends GitRepositoryStatus {
   remoteUrl: string
 }
 
+/** The receive classification is derived from the operation-owned fetched ref,
+ * never from a caller supplied revision.  `foreignPaths` is present only for a
+ * true Git divergence so callers can distinguish a safe Appraise-only review
+ * from a required external handoff. */
+export type PinnedReceiveClassification =
+  | { kind: 'EQUAL' }
+  | { kind: 'REMOTE_AHEAD' }
+  | { kind: 'LOCAL_AHEAD' }
+  | { kind: 'UNRELATED' }
+  | { kind: 'DIVERGED'; foreignPaths: string[] }
+
 function assertRemote(remote: string): void {
   if (!safeRemote.test(remote)) throw new Error('Configured Git remote is invalid.')
 }
@@ -191,6 +202,47 @@ export async function readCollaborationSnapshotAtCommit(input: {
   }
 }
 
+export async function classifyPinnedReceive(input: {
+  repositoryRoot: string
+  sourceRevision: string
+  targetRevision: string
+}): Promise<PinnedReceiveClassification> {
+  assertCommit(input.sourceRevision)
+  assertCommit(input.targetRevision)
+  const identity = await inspectRepository(input.repositoryRoot)
+  if (identity.head !== input.targetRevision) throw new Error('Local Git HEAD changed after receive preparation.')
+  if (input.sourceRevision === input.targetRevision) return { kind: 'EQUAL' }
+  const [targetAncestor, sourceAncestor] = await Promise.all([
+    runGitAllowFailure(identity.repositoryRoot, {
+      kind: 'merge-base-is-ancestor',
+      older: input.targetRevision,
+      newer: input.sourceRevision,
+    }),
+    runGitAllowFailure(identity.repositoryRoot, {
+      kind: 'merge-base-is-ancestor',
+      older: input.sourceRevision,
+      newer: input.targetRevision,
+    }),
+  ])
+  if (targetAncestor.exitCode === 0) return { kind: 'REMOTE_AHEAD' }
+  if (sourceAncestor.exitCode === 0) return { kind: 'LOCAL_AHEAD' }
+  const base = await runGitAllowFailure(identity.repositoryRoot, {
+    kind: 'merge-base',
+    left: input.targetRevision,
+    right: input.sourceRevision,
+  })
+  if (base.exitCode !== 0 || !base.stdout.trim()) return { kind: 'UNRELATED' }
+  const mergeBase = base.stdout.trim()
+  const [local, remote] = await Promise.all([
+    runGit(identity.repositoryRoot, { kind: 'diff-names', range: `${mergeBase}..${input.targetRevision}` }),
+    runGit(identity.repositoryRoot, { kind: 'diff-names', range: `${mergeBase}..${input.sourceRevision}` }),
+  ])
+  const foreignPaths = [...new Set([...parseNulPaths(local.stdout), ...parseNulPaths(remote.stdout)])]
+    .filter(filePath => !isCollaborationPath(filePath))
+    .sort((left, right) => left.localeCompare(right))
+  return { kind: 'DIVERGED', foreignPaths }
+}
+
 export async function fastForwardPinned(input: {
   repositoryRoot: string
   remote: string
@@ -278,7 +330,12 @@ export async function readRemoteRef(input: {
     remote: input.remote,
     branch: input.branch,
   })
-  if (result.exitCode !== 0) return null
+  // `ls-remote --exit-code` uses 2 only when the remote was reached but the
+  // requested ref is absent. Treating authentication/DNS/transport errors as
+  // absence could turn an uncertain push into a destructive retry.
+  if (result.exitCode === 2) return null
+  if (result.exitCode !== 0)
+    throw new Error(`Unable to observe the configured remote branch: ${result.stderr || 'Git ls-remote failed.'}`)
   const commit = result.stdout.trim().split(/\s+/u)[0] ?? ''
   assertCommit(commit)
   return commit

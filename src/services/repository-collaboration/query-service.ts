@@ -34,7 +34,15 @@ export async function getCollaborationStatus(
       operations: {
         orderBy: { createdAt: 'desc' },
         take: 50,
-        include: { decisions: { select: { recordKey: true, kind: true, createdAt: true } } },
+        include: {
+          decisions: { select: { recordKey: true, kind: true, createdAt: true } },
+          artifacts: {
+            where: { kind: 'DIVERGENT_PROPOSAL_REVIEW' },
+            orderBy: { revision: 'desc' },
+            take: 1,
+            select: { payloadJson: true },
+          },
+        },
       },
       notifications: { where: { readAt: null }, orderBy: { createdAt: 'desc' }, take: 20 },
       workers: {
@@ -92,6 +100,16 @@ export async function getCollaborationStatus(
       updatedAt: operation.updatedAt,
       completedAt: operation.completedAt,
       decisions: operation.decisions,
+      divergentReviewDigest: (() => {
+        try {
+          const review = JSON.parse(operation.artifacts[0]?.payloadJson ?? '{}') as {
+            review?: { reviewDigest?: unknown }
+          }
+          return typeof review.review?.reviewDigest === 'string' ? `sha256:${review.review.reviewDigest}` : null
+        } catch {
+          return null
+        }
+      })(),
       ...preparedSummary(operation.preparedJson),
     })),
     notifications: binding.notifications.map(notification => ({

@@ -4459,50 +4459,6 @@
       "id": "check_release_ci_validatereleaseciworkflow"
     },
     {
-      "label": "validate-prisma-migrations.mjs",
-      "file_type": "code",
-      "source_file": "validate-prisma-migrations.mjs",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 39,
-      "norm_label": "validate-prisma-migrations.mjs",
-      "community_name": "Community 39",
-      "id": "validate_prisma_migrations"
-    },
-    {
-      "label": "workspace",
-      "file_type": "code",
-      "source_file": "validate-prisma-migrations.mjs",
-      "source_location": "L6",
-      "_origin": "ast",
-      "community": 39,
-      "norm_label": "workspace",
-      "community_name": "Community 39",
-      "id": "validate_prisma_migrations_workspace"
-    },
-    {
-      "label": "databasePath",
-      "file_type": "code",
-      "source_file": "validate-prisma-migrations.mjs",
-      "source_location": "L7",
-      "_origin": "ast",
-      "community": 39,
-      "norm_label": "databasepath",
-      "community_name": "Community 39",
-      "id": "validate_prisma_migrations_databasepath"
-    },
-    {
-      "label": "migrationsRoot",
-      "file_type": "code",
-      "source_file": "validate-prisma-migrations.mjs",
-      "source_location": "L8",
-      "_origin": "ast",
-      "community": 39,
-      "norm_label": "migrationsroot",
-      "community_name": "Community 39",
-      "id": "validate_prisma_migrations_migrationsroot"
-    },
-    {
       "label": "benchmark-harness-validation.mjs",
       "file_type": "code",
       "source_file": "benchmark-harness-validation.mjs",
@@ -9517,6 +9473,50 @@
       "norm_label": "main()",
       "community_name": "Community 19",
       "id": "generate_coordinator_reference_main"
+    },
+    {
+      "label": "validate-prisma-migrations.mjs",
+      "file_type": "code",
+      "source_file": "validate-prisma-migrations.mjs",
+      "source_location": "L1",
+      "_origin": "ast",
+      "community": 39,
+      "norm_label": "validate-prisma-migrations.mjs",
+      "community_name": "Community 39",
+      "id": "validate_prisma_migrations"
+    },
+    {
+      "label": "workspace",
+      "file_type": "code",
+      "source_file": "validate-prisma-migrations.mjs",
+      "source_location": "L6",
+      "_origin": "ast",
+      "community": 39,
+      "norm_label": "workspace",
+      "community_name": "Community 39",
+      "id": "validate_prisma_migrations_workspace"
+    },
+    {
+      "label": "databasePath",
+      "file_type": "code",
+      "source_file": "validate-prisma-migrations.mjs",
+      "source_location": "L7",
+      "_origin": "ast",
+      "community": 39,
+      "norm_label": "databasepath",
+      "community_name": "Community 39",
+      "id": "validate_prisma_migrations_databasepath"
+    },
+    {
+      "label": "migrationsRoot",
+      "file_type": "code",
+      "source_file": "validate-prisma-migrations.mjs",
+      "source_location": "L8",
+      "_origin": "ast",
+      "community": 39,
+      "norm_label": "migrationsroot",
+      "community_name": "Community 39",
+      "id": "validate_prisma_migrations_migrationsroot"
     }
   ],
   "links": [
@@ -15914,36 +15914,6 @@
       "confidence_score": 1.0,
       "source": "check_release_ci_validatereleaseciworkflow",
       "target": "check_release_ci_validatedependabot"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "validate-prisma-migrations.mjs",
-      "source_location": "L7",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "validate_prisma_migrations",
-      "target": "validate_prisma_migrations_databasepath"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "validate-prisma-migrations.mjs",
-      "source_location": "L8",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "validate_prisma_migrations",
-      "target": "validate_prisma_migrations_migrationsroot"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "validate-prisma-migrations.mjs",
-      "source_location": "L6",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "validate_prisma_migrations",
-      "target": "validate_prisma_migrations_workspace"
     },
     {
       "relation": "contains",
@@ -25322,8 +25292,38 @@
       "confidence_score": 1.0,
       "source": "generate_coordinator_reference_main",
       "target": "generate_coordinator_reference_generatecoordinatorreference"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "validate-prisma-migrations.mjs",
+      "source_location": "L7",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "validate_prisma_migrations",
+      "target": "validate_prisma_migrations_databasepath"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "validate-prisma-migrations.mjs",
+      "source_location": "L8",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "validate_prisma_migrations",
+      "target": "validate_prisma_migrations_migrationsroot"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "validate-prisma-migrations.mjs",
+      "source_location": "L6",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "validate_prisma_migrations",
+      "target": "validate_prisma_migrations_workspace"
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "63fc08eb1f069bd78a821ae3676e1e45372e3840"
+  "built_at_commit": "72afa224e1f86bd4a4ce25c179dfe928dee9b550"
 }

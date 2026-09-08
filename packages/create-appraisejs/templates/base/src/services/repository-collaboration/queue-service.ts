@@ -6,12 +6,15 @@ import prisma from '@/config/db-config'
 import { canonicalJson, collaborationHash } from '@/lib/repository-collaboration'
 import { ServiceError } from '@/services/shared/errors'
 
+import { requireCollaborationPermission } from './binding-service'
+import { getCollaborationGitStatus } from './git-operation-service'
+
 type Transaction = Prisma.TransactionClient
 type Clock = Date
 
 const queuedKey = 'PENDING'
 const terminalStates: CollaborationOperationState[] = ['COMPLETED', 'FAILED', 'CANCELLED', 'SUPERSEDED']
-const leaseableStates: CollaborationOperationState[] = ['QUEUED', 'PREPARING', 'WAITING_FOR_AGENT']
+const leaseableStates: CollaborationOperationState[] = ['QUEUED', 'PREPARING']
 
 export interface ScheduleCollaborationOperationInput {
   bindingId: string
@@ -195,40 +198,48 @@ export async function claimCollaborationOperation(
   if (leaseMs < 1_000 || leaseMs > 300_000) throw new ServiceError('Lease duration is out of range.', 'VALIDATION', 400)
   return client.$transaction(async transaction => {
     const operation = await operationForClaim(transaction, input.operationId, now)
+    await requireCollaborationPermission(transaction, operation.bindingId, 'PREPARE', operation.policyVersion)
     await assertWorkerCanClaim(transaction, input.workerId, operation.bindingId, now)
-    const previous = await latestAttempt(transaction, operation.id)
-    const attemptNumber = nextAttemptNumber(previous)
-    const fencingToken = operation.fencingToken + 1
     const leaseToken = randomUUID()
     const expiresAt = leaseExpiration(now, leaseMs)
+    const claimed = await transaction.collaborationOperation.updateMany({
+      where: {
+        id: operation.id,
+        state: { in: leaseableStates },
+        cancelledAt: null,
+        OR: [{ nextAttemptAt: null }, { nextAttemptAt: { lte: now } }],
+      },
+      data: {
+        state: 'WAITING_FOR_AGENT',
+        queueKey: null,
+        leaseOwner: input.workerId,
+        leaseExpiresAt: expiresAt,
+        fencingToken: { increment: 1 },
+        nextAttemptAt: null,
+      },
+    })
+    if (claimed.count !== 1) {
+      throw new ServiceError('The collaboration operation was claimed or changed concurrently.', 'CONFLICT', 409)
+    }
+    const current = await transaction.collaborationOperation.findUniqueOrThrow({ where: { id: operation.id } })
+    const previous = await latestAttempt(transaction, current.id)
     const attempt = await transaction.collaborationAttempt.create({
       data: {
-        operationId: operation.id,
+        operationId: current.id,
         workerId: input.workerId,
-        attemptNumber,
-        fencingToken,
+        attemptNumber: nextAttemptNumber(previous),
+        fencingToken: current.fencingToken,
         state: 'RUNNING',
         claimTokenHash: tokenHash(leaseToken),
         leaseExpiresAt: expiresAt,
         heartbeatAt: now,
       },
     })
-    await transaction.collaborationOperation.update({
-      where: { id: operation.id },
-      data: {
-        state: 'WAITING_FOR_AGENT',
-        queueKey: null,
-        leaseOwner: input.workerId,
-        leaseExpiresAt: expiresAt,
-        fencingToken,
-        nextAttemptAt: null,
-      },
-    })
     return {
-      operationId: operation.id,
+      operationId: current.id,
       attemptId: attempt.id,
-      attemptNumber,
-      fencingToken,
+      attemptNumber: attempt.attemptNumber,
+      fencingToken: current.fencingToken,
       leaseToken,
       leaseExpiresAt: expiresAt,
     }
@@ -249,6 +260,29 @@ async function assertedAttempt(
   assertAttemptLease(attempt, input.leaseToken, now)
   assertAttemptOwnership(operation, input)
   return { attempt, operation }
+}
+
+/** A worker must still own its exact fence before it can cause external
+ * proposal validation.  Kept public for the worker facade, but it does not
+ * disclose any repository data or mutate operation state. */
+export async function assertCollaborationProposalAttempt(
+  input: {
+    operationId: string
+    attemptId: string
+    workerId: string
+    fencingToken: number
+    leaseToken: string
+    now?: Clock
+  },
+  client: PrismaClient = prisma,
+) {
+  const now = input.now ?? new Date()
+  return client.$transaction(async transaction => {
+    const { attempt, operation } = await assertedAttempt(transaction, input, now)
+    if (attempt.state !== 'RUNNING' || operation.state !== 'WAITING_FOR_AGENT' || operation.intent !== 'RECONCILE')
+      throw new ServiceError('This worker attempt cannot submit a reconciliation proposal.', 'CONFLICT', 409)
+    return operation
+  })
 }
 
 function assertAttemptIdentity(
@@ -317,40 +351,6 @@ export async function heartbeatCollaborationOperation(
     return transaction.collaborationOperation.update({
       where: { id: operation.id },
       data: { leaseExpiresAt: expiresAt },
-    })
-  })
-}
-
-export async function submitCollaborationProposal(
-  input: {
-    operationId: string
-    attemptId: string
-    workerId: string
-    fencingToken: number
-    leaseToken: string
-    proposal: Record<string, unknown>
-    now?: Clock
-  },
-  client: PrismaClient = prisma,
-) {
-  const now = input.now ?? new Date()
-  return client.$transaction(async transaction => {
-    const { attempt, operation } = await assertedAttempt(transaction, input, now)
-    if (attempt.state === 'PROPOSAL_SUBMITTED') return operation
-    if (attempt.state !== 'RUNNING') throw new ServiceError('Work attempt cannot submit a proposal.', 'CONFLICT', 409)
-    const proposalJson = canonicalJson(input.proposal)
-    await transaction.collaborationAttempt.update({
-      where: { id: attempt.id },
-      data: { state: 'PROPOSAL_SUBMITTED', resultJson: proposalJson, completedAt: now },
-    })
-    return transaction.collaborationOperation.update({
-      where: { id: operation.id },
-      data: {
-        state: 'WAITING_FOR_DECISION',
-        leaseOwner: null,
-        leaseExpiresAt: null,
-        blockerJson: canonicalJson({ kind: 'AGENT_PROPOSAL', proposalHash: collaborationHash(input.proposal) }),
-      },
     })
   })
 }
@@ -479,4 +479,54 @@ export async function recordRemoteCollaborationCheck(
       nextRemoteCheckAt: backoff ? new Date(now.getTime() + backoff * 1_000) : null,
     },
   })
+}
+
+type RemoteCheckOutcome = 'success' | 'transient_failure' | 'authentication_failure'
+
+function remoteFailureOutcome(error: unknown): RemoteCheckOutcome {
+  const message = error instanceof Error ? error.message : ''
+  return /auth|credential|permission denied|access denied/i.test(message)
+    ? 'authentication_failure'
+    : 'transient_failure'
+}
+
+async function observeDueRemoteBinding(
+  binding: { id: string },
+  client: PrismaClient,
+  observeRemote?: (bindingId: string) => Promise<void>,
+): Promise<RemoteCheckOutcome> {
+  try {
+    if (observeRemote) await observeRemote(binding.id)
+    else await getCollaborationGitStatus(binding.id, client)
+    return 'success'
+  } catch (error) {
+    return remoteFailureOutcome(error)
+  }
+}
+
+/**
+ * Runs one startup/reconnect-safe scheduler pass. The default observer performs
+ * the bounded repository/remote status check; tests can inject only that I/O
+ * edge while keeping queue, policy, and recovery state real.
+ */
+export async function runCollaborationSchedulerTick(
+  input: { now?: Clock; observeRemote?: (bindingId: string) => Promise<void> } = {},
+  client: PrismaClient = prisma,
+) {
+  const now = input.now ?? new Date()
+  const recovered = await recoverExpiredCollaborationLeases(now, client)
+  const dueBindings = await client.collaborationBinding.findMany({
+    where: {
+      enabled: true,
+      OR: [{ nextRemoteCheckAt: null }, { nextRemoteCheckAt: { lte: now } }],
+    },
+    select: { id: true },
+  })
+  const remoteChecks = [] as Array<{ bindingId: string; outcome: RemoteCheckOutcome }>
+  for (const binding of dueBindings) {
+    const outcome = await observeDueRemoteBinding(binding, client, input.observeRemote)
+    await recordRemoteCollaborationCheck({ bindingId: binding.id, outcome, now }, client)
+    remoteChecks.push({ bindingId: binding.id, outcome })
+  }
+  return { recovered: recovered.filter(Boolean), remoteChecks }
 }

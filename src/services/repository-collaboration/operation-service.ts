@@ -7,6 +7,7 @@ import type {
   PrismaClient,
 } from '@prisma/client'
 import { randomUUID } from 'node:crypto'
+import path from 'node:path'
 
 import prisma from '@/config/db-config'
 import {
@@ -19,10 +20,13 @@ import {
   recoverCollaborationSnapshot,
   resolvePreparedCollaboration,
   installCollaborationSnapshot,
+  observeCollaborationSnapshot,
   validateCollaborationGraph,
   fetchOperationSourceRef,
+  classifyPinnedReceive,
   inspectRepository,
   readCollaborationSnapshotAtCommit,
+  readCollaborationSnapshot,
   type CollaborationRecord,
   type PreparedCollaborationRecord,
 } from '@/lib/repository-collaboration'
@@ -33,6 +37,8 @@ import { appendCollaborationJournalEntry as appendJournal } from './collaboratio
 import { applyCollaborationRecordsInTransaction } from './materialization-service'
 import { projectSnapshotInTransaction } from './projection-helpers'
 import { executeCollaborationGitStep } from './git-operation-service'
+import { consumeCollaborationAuthorityReceipt } from './authority-receipt-service'
+import { prepareDivergentCollaborationReconciliation } from './divergent-reconciliation-service'
 
 type Transaction = Prisma.TransactionClient
 type Resolution = { decision: 'KEEP_LOCAL' | 'USE_INCOMING' | 'EDIT'; editedRecord?: CollaborationRecord }
@@ -115,6 +121,11 @@ export interface PrepareCollaborationOperationInput {
   trigger?: string
   /** Internal preparation binds this generated id before the operation-owned fetch ref exists. */
   operationId?: string
+}
+
+type PersistedPrepareCollaborationOperationInput = PrepareCollaborationOperationInput & {
+  /** Internal-only observed filesystem precondition; not part of the public request shape. */
+  expectedPreviousSnapshotHash?: string | null
 }
 
 export interface DecideCollaborationOperationInput {
@@ -247,8 +258,9 @@ function assertIdempotentOperation(
   existing: CollaborationOperation,
   input: PrepareCollaborationOperationInput,
   requestDigest: string,
+  persistedIntent: CollaborationOperationIntent = input.intent,
 ) {
-  if (existing.sourceSnapshotHash !== requestDigest || existing.intent !== input.intent) {
+  if (existing.sourceSnapshotHash !== requestDigest || existing.intent !== persistedIntent) {
     throw new ServiceError('The idempotency key belongs to a different operation.', 'CONFLICT', 409)
   }
   return existing
@@ -259,16 +271,17 @@ async function findIdempotentOperation(
   bindingId: string,
   input: PrepareCollaborationOperationInput,
   requestDigest: string,
+  persistedIntent: CollaborationOperationIntent = input.intent,
 ) {
   const existing = await transaction.collaborationOperation.findUnique({
     where: { bindingId_idempotencyKey: { bindingId, idempotencyKey: input.idempotencyKey } },
   })
-  return existing ? assertIdempotentOperation(existing, input, requestDigest) : null
+  return existing ? assertIdempotentOperation(existing, input, requestDigest, persistedIntent) : null
 }
 
 async function createPreparedOperation(
   transaction: Transaction,
-  input: PrepareCollaborationOperationInput,
+  input: PersistedPrepareCollaborationOperationInput,
   binding: { id: string; policyVersion: number },
   payload: PreparedOperationPayload,
   requestDigest: string,
@@ -313,6 +326,18 @@ async function createPreparedOperation(
       payloadHash: preparedDigest,
     },
   })
+  if (input.intent === 'PUBLISH') {
+    const { expectedPreviousSnapshotHash } = input
+    await transaction.collaborationOperationArtifact.create({
+      data: {
+        operationId: operation.id,
+        kind: 'PREPARED_PUBLICATION_FILESYSTEM',
+        revision: 1,
+        payloadJson: canonicalJson({ expectedPreviousSnapshotHash: expectedPreviousSnapshotHash ?? null }),
+        payloadHash: collaborationHash({ expectedPreviousSnapshotHash: expectedPreviousSnapshotHash ?? null }),
+      },
+    })
+  }
   await appendJournal(transaction, operation.id, 'PREPARED', {
     preparedDigest,
     localReadSetHash: payload.localReadSetHash,
@@ -509,6 +534,11 @@ export async function prepareCollaborationOperation(
     })
     const received = dependencyClosed(sourceSnapshot.records)
     assertMatchingPortableProject(received, binding.binding.portableProjectId)
+    const classification = await classifyPinnedReceive({
+      repositoryRoot: binding.binding.repositoryRoot,
+      sourceRevision: fetched.fetchedCommit,
+      targetRevision: identity.head,
+    })
     const preparedInput = {
       ...input,
       operationId,
@@ -516,7 +546,7 @@ export async function prepareCollaborationOperation(
       sourceRevision: fetched.fetchedCommit,
       targetRevision: identity.head,
     }
-    return client.$transaction(async transaction => {
+    const persisted = await client.$transaction(async transaction => {
       const { binding: currentBinding } = await requireCollaborationPermission(
         transaction,
         input.bindingId,
@@ -528,11 +558,21 @@ export async function prepareCollaborationOperation(
       const baselines = await baselineRecords(transaction, currentBinding.id)
       const payload = buildPreparedPayload(received, local, baselines)
       const requestDigest = operationInputDigest(preparedInput, received)
-      const existing = await findIdempotentOperation(transaction, currentBinding.id, preparedInput, requestDigest)
-      if (existing) return publicOperation(existing)
+      const reconciliationInput =
+        classification.kind === 'DIVERGED' && classification.foreignPaths.length === 0
+          ? { ...preparedInput, intent: 'RECONCILE' as const }
+          : preparedInput
+      const existing = await findIdempotentOperation(
+        transaction,
+        currentBinding.id,
+        preparedInput,
+        requestDigest,
+        reconciliationInput.intent,
+      )
+      if (existing) return { operation: existing, classification, created: false }
       const operation = await createPreparedOperation(
         transaction,
-        preparedInput,
+        reconciliationInput,
         currentBinding,
         payload,
         requestDigest,
@@ -557,9 +597,72 @@ export async function prepareCollaborationOperation(
           }),
         },
       })
-      return publicOperation(operation)
+      await appendJournal(transaction, operation.id, 'RECEIVE_CLASSIFIED', classification)
+      if (
+        classification.kind === 'LOCAL_AHEAD' ||
+        classification.kind === 'UNRELATED' ||
+        (classification.kind === 'DIVERGED' && classification.foreignPaths.length > 0)
+      ) {
+        const blocked = await transaction.collaborationOperation.update({
+          where: { id: operation.id },
+          data: {
+            state: 'BLOCKED',
+            acceptedDigest: null,
+            blockerJson: canonicalJson({
+              kind:
+                classification.kind === 'LOCAL_AHEAD'
+                  ? 'LOCAL_AHEAD'
+                  : classification.kind === 'UNRELATED'
+                    ? 'UNRELATED_HISTORY'
+                    : 'FOREIGN_PATH_DIVERGENCE',
+              classification,
+            }),
+          },
+        })
+        return { operation: blocked, classification, created: true }
+      }
+      if (classification.kind === 'DIVERGED') {
+        const preparing = await transaction.collaborationOperation.update({
+          where: { id: operation.id },
+          data: { state: 'PREPARING', acceptedDigest: null, queueKey: null, nextAttemptAt: null },
+        })
+        return { operation: preparing, classification, created: true }
+      }
+      return { operation, classification, created: true }
     })
+    if (
+      !persisted.created ||
+      persisted.classification.kind !== 'DIVERGED' ||
+      persisted.classification.foreignPaths.length > 0
+    )
+      return publicOperation(persisted.operation)
+    // The operation stays PREPARING while the isolated worktree is created;
+    // no worker can claim it until that preparation receipt is durable.
+    await prepareDivergentCollaborationReconciliation(
+      {
+        operationId: persisted.operation.id,
+        expectedVersion: persisted.operation.version,
+        preparedDigest: persisted.operation.preparedDigest!,
+        queueAfterPreparation: true,
+      },
+      client,
+    )
+    return publicOperation(
+      await client.collaborationOperation.findUniqueOrThrow({ where: { id: persisted.operation.id } }),
+    )
   }
+  const expectedPreviousSnapshotHash =
+    input.intent === 'PUBLISH'
+      ? (
+          await observeCollaborationSnapshot({
+            repositoryRoot: (
+              await client.$transaction(transaction =>
+                requireCollaborationPermission(transaction, input.bindingId, 'PREPARE', input.expectedPolicyVersion),
+              )
+            ).binding.repositoryRoot,
+          })
+        ).snapshotHash
+      : undefined
   return client.$transaction(async transaction => {
     const { binding } = await requireCollaborationPermission(
       transaction,
@@ -576,7 +679,15 @@ export async function prepareCollaborationOperation(
     const local = dependencyClosed(snapshotRecords(localSnapshot))
     const baselines = input.intent === 'PUBLISH' ? local : await baselineRecords(transaction, binding.id)
     const payload = buildPreparedPayload(incoming, local, baselines)
-    return publicOperation(await createPreparedOperation(transaction, input, binding, payload, requestDigest))
+    return publicOperation(
+      await createPreparedOperation(
+        transaction,
+        { ...input, expectedPreviousSnapshotHash },
+        binding,
+        payload,
+        requestDigest,
+      ),
+    )
   })
 }
 
@@ -585,35 +696,107 @@ export async function decideCollaborationOperation(
   client: PrismaClient = prisma,
 ) {
   assertTrustedProvenance(input.provenance)
-  return client.$transaction(async transaction => {
-    const operation = await transaction.collaborationOperation.findUnique({ where: { id: input.operationId } })
-    if (!operation) throw new ServiceError('Collaboration operation was not found.', 'NOT_FOUND', 404)
-    await requireCollaborationPermission(transaction, operation.bindingId, 'RESOLVE', operation.policyVersion)
-    const prepared = parsePreparedOperation(operation.preparedJson)
-    const required = validateDecisionInput(prepared, input.decisions)
-    const existing = await transaction.collaborationDecision.findMany({
-      where: { operationId: operation.id },
-      select: { recordKey: true, resolutionDigest: true },
-    })
-    if (isExactDecisionReplay(operation, input, existing)) return publicOperation(operation)
-    assertDecisionOperation(operation, input)
-    const persistedByKey = assertNoConflictingPersistedDecision(input, existing)
-    const persisted = await persistDecisions(transaction, operation, input, persistedByKey)
-    return publicOperation(
-      await finalizeDecision(
-        transaction,
-        operation,
-        normalizeCollaborationDigest(input.preparedDigest),
-        required,
-        persisted,
-      ),
-    )
+  return client.$transaction(transaction => decideCollaborationOperationInTransaction(input, transaction))
+}
+
+async function decideCollaborationOperationInTransaction(
+  input: DecideCollaborationOperationInput,
+  transaction: Transaction,
+) {
+  assertTrustedProvenance(input.provenance)
+  const operation = await transaction.collaborationOperation.findUnique({ where: { id: input.operationId } })
+  if (!operation) throw new ServiceError('Collaboration operation was not found.', 'NOT_FOUND', 404)
+  await requireCollaborationPermission(transaction, operation.bindingId, 'RESOLVE', operation.policyVersion)
+  const prepared = parsePreparedOperation(operation.preparedJson)
+  const required = validateDecisionInput(prepared, input.decisions)
+  const existing = await transaction.collaborationDecision.findMany({
+    where: { operationId: operation.id },
+    select: { recordKey: true, resolutionDigest: true },
   })
+  if (isExactDecisionReplay(operation, input, existing)) return publicOperation(operation)
+  assertDecisionOperation(operation, input)
+  const persistedByKey = assertNoConflictingPersistedDecision(input, existing)
+  const persisted = await persistDecisions(transaction, operation, input, persistedByKey)
+  return publicOperation(
+    await finalizeDecision(
+      transaction,
+      operation,
+      normalizeCollaborationDigest(input.preparedDigest),
+      required,
+      persisted,
+    ),
+  )
+}
+
+export async function decideCollaborationOperationWithAuthorityReceipt(
+  input: Omit<DecideCollaborationOperationInput, 'trustedPrincipalId' | 'provenance'> & {
+    authorityReceipt: string | null
+    request: unknown
+  },
+  client: PrismaClient = prisma,
+) {
+  const operation = await client.collaborationOperation.findUnique({ where: { id: input.operationId } })
+  if (!operation) throw new ServiceError('Collaboration operation was not found.', 'NOT_FOUND', 404)
+  return consumeCollaborationAuthorityReceipt(
+    {
+      token: input.authorityReceipt,
+      bindingId: operation.bindingId,
+      action: 'DECIDE',
+      operationId: input.operationId,
+      request: input.request,
+    },
+    (transaction, authority) => decideCollaborationOperationInTransaction({ ...input, ...authority }, transaction),
+    client,
+  )
 }
 
 async function currentSnapshotRecords(transaction: Transaction, bindingId: string): Promise<CollaborationRecord[]> {
   const snapshot = await projectSnapshotInTransaction(transaction, bindingId)
   return dependencyClosed(snapshotRecords(snapshot))
+}
+
+/** Recheck the Git commit and strict on-disk snapshot that a prior Git step bound before SQLite materialization. */
+async function assertPinnedGitSnapshotBeforeDatabaseApply(
+  transaction: Transaction,
+  operation: { id: string; sourceRevision: string | null; targetRevision: string | null; bindingId: string },
+) {
+  if (!operation.sourceRevision || !operation.targetRevision) return
+  const binding = await transaction.collaborationBinding.findUniqueOrThrow({ where: { id: operation.bindingId } })
+  const identity = await inspectRepository(binding.repositoryRoot, binding.remoteName)
+  if (identity.head !== operation.targetRevision || operation.sourceRevision !== operation.targetRevision) {
+    throw new ServiceError('Pinned Git HEAD changed before database materialization.', 'CONFLICT', 409)
+  }
+  const artifact = await transaction.collaborationOperationArtifact.findFirst({
+    where: {
+      operationId: operation.id,
+      kind: { in: ['GIT_RECEIVE_SOURCE', 'STEP_CREATE_MERGE_COMMIT'] },
+    },
+    orderBy: { createdAt: 'desc' },
+  })
+  if (!artifact)
+    throw new ServiceError('No exact Git snapshot receipt is persisted for database materialization.', 'CONFLICT', 409)
+  let expectedSnapshotHash: string | undefined
+  try {
+    expectedSnapshotHash = (JSON.parse(artifact.payloadJson) as { snapshotHash?: string }).snapshotHash
+  } catch {
+    // Handled by the same conservative blocker below.
+  }
+  if (!expectedSnapshotHash) throw new ServiceError('The persisted Git snapshot receipt is invalid.', 'CONFLICT', 409)
+  let observedSnapshotHash: string
+  try {
+    observedSnapshotHash = (
+      await readCollaborationSnapshot(path.join(binding.repositoryRoot, 'appraise', 'collaboration'))
+    ).snapshotHash
+  } catch {
+    throw new ServiceError('The reviewed Git collaboration snapshot is no longer strict.', 'CONFLICT', 409)
+  }
+  if (observedSnapshotHash !== expectedSnapshotHash) {
+    throw new ServiceError(
+      'The reviewed Git collaboration snapshot changed before database materialization.',
+      'CONFLICT',
+      409,
+    )
+  }
 }
 
 function resolveForExecution(prepared: PreparedOperationPayload, decisions: Map<string, Resolution>) {
@@ -633,11 +816,15 @@ async function persistedDivergentRecords(
   operationId: string,
 ): Promise<CollaborationRecord[]> {
   const artifact = await transaction.collaborationOperationArtifact.findFirst({
-    where: { operationId, kind: 'DIVERGENT_PROPOSAL_REVIEW' },
+    where: { operationId, kind: 'DIVERGENT_ACCEPTED_PROPOSAL' },
     orderBy: { revision: 'desc' },
   })
   if (!artifact)
-    throw new ServiceError('No accepted divergent proposal is persisted for this operation.', 'CONFLICT', 409)
+    throw new ServiceError(
+      'No designated accepted divergent proposal is persisted for this operation.',
+      'CONFLICT',
+      409,
+    )
   try {
     const payload = JSON.parse(artifact.payloadJson) as {
       records?: unknown[]
@@ -662,7 +849,7 @@ async function loadExecution(
 ) {
   const operation = await transaction.collaborationOperation.findUnique({
     where: { id: input.operationId },
-    include: { steps: { orderBy: { ordinal: 'asc' } } },
+    include: { binding: true, steps: { orderBy: { ordinal: 'asc' } } },
   })
   if (!operation) throw new ServiceError('Collaboration operation was not found.', 'NOT_FOUND', 404)
   if (
@@ -704,15 +891,31 @@ async function completeOperation(
   journalBoundary: string,
 ) {
   const step = await transaction.collaborationOperationStep.findFirst({
-    where: { operationId, ordinal: expectedStep.ordinal, state: 'PENDING', kind: expectedStep.kind },
+    where: {
+      operationId,
+      ordinal: expectedStep.ordinal,
+      state: { in: ['PENDING', 'RUNNING'] },
+      kind: expectedStep.kind,
+    },
     orderBy: { ordinal: 'asc' },
   })
   if (!step)
     throw new ServiceError('The persisted operation has no eligible database/filesystem step.', 'CONFLICT', 409)
   const evidenceHash = collaborationHash(receipt)
+  const operation = await transaction.collaborationOperation.findUniqueOrThrow({ where: { id: operationId } })
+  if (step.state === 'RUNNING' && step.startedVersion !== operation.version) {
+    throw new ServiceError('The persisted external operation step is stale.', 'CONFLICT', 409)
+  }
+  const completedVersion = operation.version + 1
   await transaction.collaborationOperationStep.update({
     where: { operationId_ordinal: { operationId, ordinal: step.ordinal } },
-    data: { state: 'COMPLETED', evidenceJson: canonicalJson(receipt), evidenceHash, completedAt: new Date() },
+    data: {
+      state: 'COMPLETED',
+      evidenceJson: canonicalJson(receipt),
+      evidenceHash,
+      ...(step.state === 'RUNNING' ? { completedVersion } : {}),
+      completedAt: new Date(),
+    },
   })
   await transaction.collaborationOperationArtifact.create({
     data: {
@@ -743,6 +946,7 @@ async function completeOperation(
 async function executeDatabaseOperation(input: ExecuteCollaborationOperationInput, client: PrismaClient) {
   return client.$transaction(async transaction => {
     const { operation, step } = await loadExecution(transaction, input, ['APPLY_DATABASE'])
+    await assertPinnedGitSnapshotBeforeDatabaseApply(transaction, operation)
     const prepared = parsePreparedOperation(operation.preparedJson)
     const current = await currentSnapshotRecords(transaction, operation.bindingId)
     if (collaborationHash(current) !== operation.localReadSetHash) {
@@ -780,22 +984,78 @@ async function executePublication(input: ExecuteCollaborationOperationInput, cli
     if (collaborationHash(current) !== operation.localReadSetHash) {
       throw new ServiceError('Local authored data changed after preparation.', 'CONFLICT', 409)
     }
+    const snapshot = buildCollaborationSnapshotFiles(current, operation.binding.portableProjectId)
+    const executorEpoch = operation.executorEpoch + 1
+    const intent = {
+      schema: 'appraise.repository-collaboration.filesystem-step-intent/v1',
+      operationId: operation.id,
+      ordinal: step.ordinal,
+      kind: step.kind,
+      requestVersion: input.expectedVersion,
+      executorEpoch,
+      localReadSetHash: operation.localReadSetHash,
+      snapshotHash: snapshot.snapshotHash,
+    }
+    const intentJson = canonicalJson(intent)
+    const intentHash = collaborationHash(intent)
     const updated = await transaction.collaborationOperation.update({
       where: { id: operation.id },
-      data: { state: 'APPLYING', version: { increment: 1 } },
+      data: { state: 'APPLYING', executorEpoch, version: { increment: 1 } },
       include: { binding: true },
+    })
+    await transaction.collaborationOperationStep.update({
+      where: { operationId_ordinal: { operationId: operation.id, ordinal: step.ordinal } },
+      data: {
+        state: 'RUNNING',
+        requestVersion: input.expectedVersion,
+        intentJson,
+        intentHash,
+        executorEpoch,
+        startedVersion: updated.version,
+        startedAt: new Date(),
+      },
+    })
+    await transaction.collaborationOperationArtifact.create({
+      data: {
+        operationId: operation.id,
+        kind: `FILESYSTEM_STEP_INTENT_${step.ordinal}`,
+        revision: executorEpoch,
+        payloadJson: intentJson,
+        payloadHash: intentHash,
+      },
     })
     await appendJournal(transaction, operation.id, 'PUBLICATION_STARTED', {
       localReadSetHash: operation.localReadSetHash,
     })
-    return { operation: updated, records: current, step }
+    return { operation: updated, records: current, step, snapshot }
   })
-  const snapshot = buildCollaborationSnapshotFiles(applying.records, applying.operation.binding.portableProjectId)
+  const snapshot = applying.snapshot
+  const preparedFilesystem = await client.collaborationOperationArtifact.findFirst({
+    where: { operationId: applying.operation.id, kind: 'PREPARED_PUBLICATION_FILESYSTEM', revision: 1 },
+  })
+  if (!preparedFilesystem)
+    throw new ServiceError(
+      'Legacy publication has no persisted filesystem snapshot; prepare it again.',
+      'CONFLICT',
+      409,
+    )
+  const expectedPreviousSnapshotHash = (() => {
+    try {
+      const value = JSON.parse(preparedFilesystem.payloadJson) as { expectedPreviousSnapshotHash?: unknown }
+      return value.expectedPreviousSnapshotHash === null || typeof value.expectedPreviousSnapshotHash === 'string'
+        ? value.expectedPreviousSnapshotHash
+        : undefined
+    } catch {
+      return undefined
+    }
+  })()
+  if (expectedPreviousSnapshotHash === undefined)
+    throw new ServiceError('Prepared publication filesystem state is invalid.', 'CONFLICT', 409)
   const installed = await installCollaborationSnapshot({
     repositoryRoot: applying.operation.binding.repositoryRoot,
     operationId: applying.operation.id,
     snapshot,
-    expectedPreviousSnapshotHash: null,
+    expectedPreviousSnapshotHash,
     onBoundary: boundary => appendFilesystemBoundary(client, applying.operation.id, boundary),
   })
   if (installed.status !== 'succeeded') {
@@ -811,6 +1071,20 @@ async function executePublication(input: ExecuteCollaborationOperationInput, cli
     })
     if (operation.state !== 'APPLYING' || operation.version !== applying.operation.version) {
       throw new ServiceError('Publication completion is stale.', 'CONFLICT', 409)
+    }
+    const persistedStep = await transaction.collaborationOperationStep.findUnique({
+      where: { operationId_ordinal: { operationId: operation.id, ordinal: applying.step.ordinal } },
+    })
+    if (
+      !persistedStep ||
+      persistedStep.state !== 'RUNNING' ||
+      persistedStep.requestVersion !== input.expectedVersion ||
+      persistedStep.executorEpoch !== operation.executorEpoch
+    )
+      throw new ServiceError('Publication completion lost its persisted executor fence.', 'CONFLICT', 409)
+    const current = await currentSnapshotRecords(transaction, operation.bindingId)
+    if (collaborationHash(current) !== operation.localReadSetHash) {
+      throw new ServiceError('Local authored data changed during publication.', 'CONFLICT', 409)
     }
     const receipt = { operationId: operation.id, publishedSnapshotHash: snapshot.snapshotHash, installed }
     return completeOperation(transaction, operation.id, applying.step, receipt, 'PUBLICATION_COMPLETED')
@@ -864,6 +1138,23 @@ export async function executeCollaborationOperation(
 ) {
   const operation = await client.collaborationOperation.findUnique({ where: { id: input.operationId } })
   if (!operation) throw new ServiceError('Collaboration operation was not found.', 'NOT_FOUND', 404)
+  // A lost response is retried with the request version that began the step,
+  // not the newer version produced by completion. Return only the persisted
+  // result while that completion is still the operation's current version.
+  const replay = await client.collaborationOperationStep.findFirst({
+    where: {
+      operationId: operation.id,
+      state: 'COMPLETED',
+      requestVersion: input.expectedVersion,
+      completedVersion: operation.version,
+    },
+  })
+  if (
+    replay &&
+    operation.preparedDigest === normalizeCollaborationDigest(input.preparedDigest) &&
+    operation.idempotencyKey === input.idempotencyKey
+  )
+    return publicOperation(operation)
   if (
     operation.state === 'COMPLETED' &&
     operation.version === input.expectedVersion &&

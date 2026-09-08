@@ -1,11 +1,9 @@
 {
   "tools": [
     "collaboration_connect",
-    "collaboration_decide",
     "collaboration_execute",
     "collaboration_get",
     "collaboration_handoff_redeem",
-    "collaboration_policy_update",
     "collaboration_prepare",
     "collaboration_resolution_propose",
     "collaboration_status",

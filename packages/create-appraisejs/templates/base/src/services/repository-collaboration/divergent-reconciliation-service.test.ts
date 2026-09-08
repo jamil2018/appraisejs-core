@@ -56,9 +56,9 @@ describe('divergent reconciliation service ownership', () => {
     await expect(prepareDivergentCollaborationReconciliation(exact, client)).rejects.toMatchObject({
       code: 'NOT_FOUND',
     })
-    await expect(
-      proposeDivergentCollaborationReconciliation({ ...exact, preparation: absentPreparation, records: [] }, client),
-    ).rejects.toMatchObject({ code: 'NOT_FOUND' })
+    await expect(proposeDivergentCollaborationReconciliation({ ...exact, records: [] }, client)).rejects.toMatchObject({
+      code: 'NOT_FOUND',
+    })
     await expect(
       assertDivergentCollaborationReadyForIntegration(
         {

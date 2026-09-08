@@ -7,6 +7,8 @@ import prisma from '@/config/db-config'
 import { newPortableId } from '@/lib/repository-collaboration'
 import { ServiceError } from '@/services/shared/errors'
 
+import { consumeCollaborationAuthorityReceipt } from './authority-receipt-service'
+
 const defaultPermissions: Array<[CollaborationPermission, boolean]> = [
   ['OBSERVE', true],
   ['PREPARE', true],
@@ -85,35 +87,77 @@ export async function updateCollaborationPolicy(
   },
   client: PrismaClient = prisma,
 ) {
-  return client.$transaction(async transaction => {
-    const binding = await transaction.collaborationBinding.findUnique({ where: { id: input.bindingId } })
-    if (!binding) throw new ServiceError('Collaboration binding was not found.', 'NOT_FOUND', 404)
-    const policyVersion = binding.policyVersion + 1
-    const current = await transaction.collaborationPolicyGrant.findMany({
-      where: { bindingId: binding.id, policyVersion: binding.policyVersion, revokedAt: null },
-    })
-    await transaction.collaborationPolicyGrant.updateMany({
-      where: { bindingId: binding.id, revokedAt: null },
-      data: { revokedAt: new Date() },
-    })
-    const byPermission = new Map(current.map(grant => [grant.permission, grant]))
-    const grants: Prisma.CollaborationPolicyGrantCreateManyInput[] = defaultPermissions.map(
-      ([permission, fallback]) => {
-        const prior = byPermission.get(permission)
-        return {
-          bindingId: binding.id,
-          permission,
-          enabled: input.changes[permission] ?? prior?.enabled ?? fallback,
-          policyVersion,
-          scopeJson: prior?.scopeJson ?? '{}',
-          trustedPrincipalId: input.trustedPrincipalId,
-          provenance: input.provenance,
-        }
-      },
-    )
-    await transaction.collaborationPolicyGrant.createMany({ data: grants })
-    return transaction.collaborationBinding.update({ where: { id: binding.id }, data: { policyVersion } })
+  return client.$transaction(transaction => updateCollaborationPolicyInTransaction(input, transaction))
+}
+
+async function updateCollaborationPolicyInTransaction(
+  input: {
+    bindingId: string
+    changes: Partial<Record<CollaborationPermission, boolean>>
+    trustedPrincipalId: string
+    provenance: 'local-ui' | 'authenticated-host'
+  },
+  transaction: Prisma.TransactionClient,
+) {
+  const binding = await transaction.collaborationBinding.findUnique({ where: { id: input.bindingId } })
+  if (!binding) throw new ServiceError('Collaboration binding was not found.', 'NOT_FOUND', 404)
+  const policyVersion = binding.policyVersion + 1
+  const current = await transaction.collaborationPolicyGrant.findMany({
+    where: { bindingId: binding.id, policyVersion: binding.policyVersion, revokedAt: null },
   })
+  await transaction.collaborationPolicyGrant.updateMany({
+    where: { bindingId: binding.id, revokedAt: null },
+    data: { revokedAt: new Date() },
+  })
+  const byPermission = new Map(current.map(grant => [grant.permission, grant]))
+  const grants: Prisma.CollaborationPolicyGrantCreateManyInput[] = defaultPermissions.map(([permission, fallback]) => {
+    const prior = byPermission.get(permission)
+    return {
+      bindingId: binding.id,
+      permission,
+      enabled: input.changes[permission] ?? prior?.enabled ?? fallback,
+      policyVersion,
+      scopeJson: prior?.scopeJson ?? '{}',
+      trustedPrincipalId: input.trustedPrincipalId,
+      provenance: input.provenance,
+    }
+  })
+  await transaction.collaborationPolicyGrant.createMany({ data: grants })
+  return transaction.collaborationBinding.update({ where: { id: binding.id }, data: { policyVersion } })
+}
+
+/** Local UI is intentionally a separate trusted path; bearer coordinator callers use a receipt. */
+export async function updateCollaborationPolicyFromLocalUi(
+  input: { bindingId: string; changes: Partial<Record<CollaborationPermission, boolean>>; trustedPrincipalId: string },
+  client: PrismaClient = prisma,
+) {
+  return updateCollaborationPolicy({ ...input, provenance: 'local-ui' }, client)
+}
+
+export async function updateCollaborationPolicyWithAuthorityReceipt(
+  input: {
+    bindingId: string
+    changes: Partial<Record<CollaborationPermission, boolean>>
+    expectedPolicyVersion: number
+    authorityReceipt: string | null
+    request: unknown
+  },
+  client: PrismaClient = prisma,
+) {
+  return consumeCollaborationAuthorityReceipt(
+    {
+      token: input.authorityReceipt,
+      bindingId: input.bindingId,
+      action: 'POLICY_UPDATE',
+      request: input.request,
+    },
+    (transaction, authority) =>
+      updateCollaborationPolicyInTransaction(
+        { bindingId: input.bindingId, changes: input.changes, ...authority },
+        transaction,
+      ),
+    client,
+  )
 }
 
 export async function requireCollaborationPermission(

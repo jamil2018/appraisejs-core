@@ -109,13 +109,13 @@ export const canonicalMcpToolAnnotations = Object.freeze({
   test_run_start: externalExecution,
   test_run_read: readOnly,
   test_run_diagnose: readOnly,
-  collaboration_status: readOnly,
+  // Status advances the collaboration scheduler, which can observe remotes and
+  // persist lease/reconciliation state before returning its summary.
+  collaboration_status: externalPreparation,
   collaboration_connect: localMutation,
-  collaboration_policy_update: durableLifecycleMutation,
   collaboration_prepare: externalPreparation,
   collaboration_get: readOnly,
   collaboration_resolution_propose: externalPreparation,
-  collaboration_decide: durableLifecycleMutation,
   collaboration_execute: externalCollaborationMutation,
   collaboration_undo_prepare: durableLifecycleMutation,
   collaboration_worker_register: localMutation,
