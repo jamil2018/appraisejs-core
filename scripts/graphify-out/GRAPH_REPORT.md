@@ -4,12 +4,12 @@
 - cluster-only mode — file stats not available
 
 ## Summary
-- 865 nodes · 1509 edges · 50 communities (43 shown, 7 thin omitted)
+- 865 nodes · 1505 edges · 51 communities (44 shown, 7 thin omitted)
 - Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS · INFERRED: 3 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `76b2d136`
+- Built from commit: `6b0e8daa`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -58,7 +58,8 @@
 - [[_COMMUNITY_Community 41|Community 41]]
 - [[_COMMUNITY_Community 42|Community 42]]
 - [[_COMMUNITY_Community 43|Community 43]]
-- [[_COMMUNITY_Community 46|Community 46]]
+- [[_COMMUNITY_Community 44|Community 44]]
+- [[_COMMUNITY_Community 47|Community 47]]
 
 ## God Nodes (most connected - your core abstractions)
 1. `resolveModelSelection()` - 16 edges
@@ -87,7 +88,7 @@
 ## Import Cycles
 - None detected.
 
-## Communities (50 total, 7 thin omitted)
+## Communities (51 total, 7 thin omitted)
 
 ### Community 0 - "Community 0"
 Cohesion: 0.07
@@ -150,32 +151,32 @@ Cohesion: 0.12
 Nodes (14): isStrictlyDocumentationOnly(), requiresReleaseBaselineAudit(), env, fallowArgs, fallowCli, repoRoot, scriptDir, stagedChanges (+6 more)
 
 ### Community 15 - "Community 15"
-Cohesion: 0.12
-Nodes (16): delay, fixtureRoot, registry, root, run(), createValidationSession(), disposeValidationSession(), executeValidationPlan() (+8 more)
-
-### Community 16 - "Community 16"
 Cohesion: 0.20
 Nodes (16): commandIndex(), commandsFor(), requireBefore(), requireCommand(), requiredJobs, validateAggregateJobs(), validateDefinedJobs(), validateDependabot() (+8 more)
 
-### Community 17 - "Community 17"
+### Community 16 - "Community 16"
 Cohesion: 0.14
-Nodes (11): CI_COMPOSITE_ALIASES, CODE_ANALYSIS_COMMANDS, defaultToolchain(), DOCUMENTED_CI_GATES, documentedCiRequirements(), hashFiles(), prerequisiteFingerprint(), releaseLedgerCiRequirements() (+3 more)
+Nodes (12): assertBounded(), CI_COMPOSITE_ALIASES, CODE_ANALYSIS_COMMANDS, defaultToolchain(), DOCUMENTED_CI_GATES, hashFiles(), prerequisiteFingerprint(), readValidationRegistry() (+4 more)
 
-### Community 18 - "Community 18"
+### Community 17 - "Community 17"
 Cohesion: 0.23
 Nodes (12): args, database, { DatabaseSync }, auditQualityJourneyIntegrity(), checkJourneyHeads(), checkOwnershipEdges(), checkRelationalOwnership(), identifier() (+4 more)
 
-### Community 19 - "Community 19"
-Cohesion: 0.21
-Nodes (11): assertBounded(), collectGitChanges(), createValidationPlan(), executeCommand(), isDocumentationOnlyChange(), matchesPattern(), parseNameStatus(), uniqueIds() (+3 more)
+### Community 18 - "Community 18"
+Cohesion: 0.19
+Nodes (9): collectGitChanges(), createValidationPlan(), documentedCiRequirements(), executeCommand(), isDocumentationOnlyChange(), matchesPattern(), parseNameStatus(), releaseLedgerCiRequirements() (+1 more)
 
-### Community 20 - "Community 20"
+### Community 19 - "Community 19"
 Cohesion: 0.20
 Nodes (10): coordinator(), coordinatorOperationPrefixes, exactCoordinatorOperations, generateCoordinatorReference(), localDiscoveryTools, main(), McpDefinition, McpFixture (+2 more)
 
-### Community 21 - "Community 21"
+### Community 20 - "Community 20"
 Cohesion: 0.24
 Nodes (7): envValue(), normalizeEndpointPath(), resolveMcpConfig(), config, staleCapabilityRecovery, toolsNotVisibleRecovery, config
+
+### Community 21 - "Community 21"
+Cohesion: 0.20
+Nodes (9): delay, fixtureRoot, registry, root, run(), createValidationSession(), disposeValidationSession(), executeValidationPlan() (+1 more)
 
 ### Community 22 - "Community 22"
 Cohesion: 0.33
@@ -203,41 +204,45 @@ Nodes (6): [action, file, reviewer, evidence], artifact, artifactIdentity(), bin
 
 ### Community 28 - "Community 28"
 Cohesion: 0.25
-Nodes (7): finish, generated, source, start, readValidationRegistry(), renderValidationMatrix(), validationMatrixRows()
+Nodes (7): args, changes, plan, registry, result, root, session
 
 ### Community 29 - "Community 29"
 Cohesion: 0.43
 Nodes (6): buildCucumberRuntime(), getRequiredTempDirectory(), getTempDirectory(), hasFreshCucumberRuntimeReceipt(), main(), runVitest()
 
 ### Community 30 - "Community 30"
+Cohesion: 0.29
+Nodes (6): finish, generated, source, start, renderValidationMatrix(), validationMatrixRows()
+
+### Community 31 - "Community 31"
 Cohesion: 0.48
 Nodes (4): baseIndex, suppressions, addedQualitySuppressions(), readQualityDiff()
 
-### Community 31 - "Community 31"
+### Community 32 - "Community 32"
 Cohesion: 0.38
 Nodes (6): findCommand(), findCommandInUvToolBin(), findCommandOnPath(), graphifyCommand, install, uvCommand
 
-### Community 32 - "Community 32"
+### Community 33 - "Community 33"
 Cohesion: 0.47
 Nodes (5): database, measure(), plan(), root, runSql()
 
-### Community 33 - "Community 33"
+### Community 34 - "Community 34"
 Cohesion: 0.40
 Nodes (3): failures, ignoredDirectories, roots
 
-### Community 34 - "Community 34"
+### Community 35 - "Community 35"
 Cohesion: 0.40
 Nodes (4): allowedDatabaseFixtures, packages, rootPackage, rootPublishRefusal
 
-### Community 35 - "Community 35"
+### Community 36 - "Community 36"
 Cohesion: 0.60
 Nodes (3): EnvironmentColumn, environmentJsonFailures(), environmentSchemaFailures()
 
-### Community 36 - "Community 36"
+### Community 37 - "Community 37"
 Cohesion: 0.60
 Nodes (4): main(), SEEDED_TEMPLATE_PATHS, setSeededTemplateFilesTracked(), trimTrailingBlankLines()
 
-### Community 38 - "Community 38"
+### Community 39 - "Community 39"
 Cohesion: 0.50
 Nodes (3): databasePath, migrationsRoot, workspace
 
@@ -249,9 +254,9 @@ Nodes (3): databasePath, migrationsRoot, workspace
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `run()` connect `Community 0` to `Community 19`?**
+- **Why does `run()` connect `Community 0` to `Community 18`?**
   _High betweenness centrality (0.072) - this node is a cross-community bridge._
-- **Why does `collectGitChanges()` connect `Community 19` to `Community 0`, `Community 17`, `Community 15`?**
+- **Why does `collectGitChanges()` connect `Community 18` to `Community 16`, `Community 0`, `Community 28`?**
   _High betweenness centrality (0.071) - this node is a cross-community bridge._
 - **Why does `parseStrictArgs()` connect `Community 2` to `Community 0`, `Community 1`, `Community 10`, `Community 4`?**
   _High betweenness centrality (0.025) - this node is a cross-community bridge._

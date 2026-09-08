@@ -74,3 +74,12 @@ These are controlled scheduling measurements, not application benchmarks.
 - Final scaffold synchronization and post-sync artifact/package-content checks passed. Full build, 1,032 root unit tests, 80 scaffold tests, focused static checks, and operation certification passed as recorded above.
 - Independent judge reviewed the consequential implementation with no inherited transcript and found no remaining material issues. Final snapshot and acceptance receipt are stored locally under `.appraisejs/`; host-effective role/model/sandbox enforcement remains unverified.
 - Controlled measurements demonstrate scheduling savings only. Future policy optimization still requires explicit user direction and new evidence.
+
+## PR validation recovery
+
+PR #293 targets `appraise-0.5`. The first remote CI run exposed two failures:
+
+- A symlink fixture assumed macOS `/private/tmp`; Linux treated it as a dangling link. The test now creates and cleans up its own external temporary directory.
+- Formatting compressed an array in the generated architecture receipt. The certification gate compares exact generator output, so the receipt and scaffold copy were regenerated after formatting. The semantic receipt hash and certification gate are unchanged.
+
+Both failures were reproduced or localized from CI evidence. The focused validation suite and 48 operation certification tests pass after repair.

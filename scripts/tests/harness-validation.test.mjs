@@ -340,6 +340,7 @@ test('rejects a Cucumber prerequisite when its inputs change during the build', 
 
 test('fingerprints Cucumber input and artifact content and refuses external symlink inputs', () => {
   const root = cucumberFixture()
+  const external = mkdtempSync(path.join(os.tmpdir(), 'harness-external-'))
   try {
     const input = cucumberRuntimeInputFingerprint(root)
     const artifact = cucumberRuntimeArtifactFingerprint(root)
@@ -347,10 +348,11 @@ test('fingerprints Cucumber input and artifact content and refuses external syml
     assert.notEqual(cucumberRuntimeInputFingerprint(root), input)
     writeFileSync(path.join(root, 'packages/cucumber-runtime/dist/index.js'), 'exports.value = 3\n')
     assert.notEqual(cucumberRuntimeArtifactFingerprint(root), artifact)
-    symlinkSync('/private/tmp', path.join(root, 'packages/cucumber-runtime/src/external.ts'))
+    symlinkSync(external, path.join(root, 'packages/cucumber-runtime/src/external.ts'))
     assert.throws(() => cucumberRuntimeInputFingerprint(root), /external symlink/)
   } finally {
     rmSync(root, { recursive: true, force: true })
+    rmSync(external, { recursive: true, force: true })
   }
 })
 

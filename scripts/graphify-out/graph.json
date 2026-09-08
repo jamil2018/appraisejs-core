@@ -9,9 +9,9 @@
       "source_file": "benchmark-repository-queries.mjs",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 32,
+      "community": 33,
       "norm_label": "benchmark-repository-queries.mjs",
-      "community_name": "Community 32",
+      "community_name": "Community 33",
       "id": "benchmark_repository_queries"
     },
     {
@@ -20,9 +20,9 @@
       "source_file": "benchmark-repository-queries.mjs",
       "source_location": "L9",
       "_origin": "ast",
-      "community": 32,
+      "community": 33,
       "norm_label": "root",
-      "community_name": "Community 32",
+      "community_name": "Community 33",
       "id": "benchmark_repository_queries_root"
     },
     {
@@ -31,9 +31,9 @@
       "source_file": "benchmark-repository-queries.mjs",
       "source_location": "L10",
       "_origin": "ast",
-      "community": 32,
+      "community": 33,
       "norm_label": "database",
-      "community_name": "Community 32",
+      "community_name": "Community 33",
       "id": "benchmark_repository_queries_database"
     },
     {
@@ -42,9 +42,9 @@
       "source_file": "benchmark-repository-queries.mjs",
       "source_location": "L11",
       "_origin": "ast",
-      "community": 32,
+      "community": 33,
       "norm_label": "runsql()",
-      "community_name": "Community 32",
+      "community_name": "Community 33",
       "id": "benchmark_repository_queries_runsql"
     },
     {
@@ -53,9 +53,9 @@
       "source_file": "benchmark-repository-queries.mjs",
       "source_location": "L20",
       "_origin": "ast",
-      "community": 32,
+      "community": 33,
       "norm_label": "plan()",
-      "community_name": "Community 32",
+      "community_name": "Community 33",
       "id": "benchmark_repository_queries_plan"
     },
     {
@@ -64,9 +64,9 @@
       "source_file": "benchmark-repository-queries.mjs",
       "source_location": "L21",
       "_origin": "ast",
-      "community": 32,
+      "community": 33,
       "norm_label": "measure()",
-      "community_name": "Community 32",
+      "community_name": "Community 33",
       "id": "benchmark_repository_queries_measure"
     },
     {
@@ -405,9 +405,9 @@
       "source_file": "check-documentation-links.mjs",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 33,
+      "community": 34,
       "norm_label": "check-documentation-links.mjs",
-      "community_name": "Community 33",
+      "community_name": "Community 34",
       "id": "check_documentation_links"
     },
     {
@@ -416,9 +416,9 @@
       "source_file": "check-documentation-links.mjs",
       "source_location": "L6",
       "_origin": "ast",
-      "community": 33,
+      "community": 34,
       "norm_label": "roots",
-      "community_name": "Community 33",
+      "community_name": "Community 34",
       "id": "check_documentation_links_roots"
     },
     {
@@ -427,9 +427,9 @@
       "source_file": "check-documentation-links.mjs",
       "source_location": "L17",
       "_origin": "ast",
-      "community": 33,
+      "community": 34,
       "norm_label": "ignoreddirectories",
-      "community_name": "Community 33",
+      "community_name": "Community 34",
       "id": "check_documentation_links_ignoreddirectories"
     },
     {
@@ -438,9 +438,9 @@
       "source_file": "check-documentation-links.mjs",
       "source_location": "L19",
       "_origin": "ast",
-      "community": 33,
+      "community": 34,
       "norm_label": "markdownfiles()",
-      "community_name": "Community 33",
+      "community_name": "Community 34",
       "id": "check_documentation_links_markdownfiles"
     },
     {
@@ -449,9 +449,9 @@
       "source_file": "check-documentation-links.mjs",
       "source_location": "L29",
       "_origin": "ast",
-      "community": 33,
+      "community": 34,
       "norm_label": "failures",
-      "community_name": "Community 33",
+      "community_name": "Community 34",
       "id": "check_documentation_links_failures"
     },
     {
@@ -669,9 +669,9 @@
       "source_file": "check-package-contents.mjs",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 34,
+      "community": 35,
       "norm_label": "check-package-contents.mjs",
-      "community_name": "Community 34",
+      "community_name": "Community 35",
       "id": "check_package_contents"
     },
     {
@@ -680,9 +680,9 @@
       "source_file": "check-package-contents.mjs",
       "source_location": "L5",
       "_origin": "ast",
-      "community": 34,
+      "community": 35,
       "norm_label": "packages",
-      "community_name": "Community 34",
+      "community_name": "Community 35",
       "id": "check_package_contents_packages"
     },
     {
@@ -691,9 +691,9 @@
       "source_file": "check-package-contents.mjs",
       "source_location": "L6",
       "_origin": "ast",
-      "community": 34,
+      "community": 35,
       "norm_label": "rootpackage",
-      "community_name": "Community 34",
+      "community_name": "Community 35",
       "id": "check_package_contents_rootpackage"
     },
     {
@@ -702,9 +702,9 @@
       "source_file": "check-package-contents.mjs",
       "source_location": "L15",
       "_origin": "ast",
-      "community": 34,
+      "community": 35,
       "norm_label": "rootpublishrefusal",
-      "community_name": "Community 34",
+      "community_name": "Community 35",
       "id": "check_package_contents_rootpublishrefusal"
     },
     {
@@ -713,9 +713,9 @@
       "source_file": "check-package-contents.mjs",
       "source_location": "L25",
       "_origin": "ast",
-      "community": 34,
+      "community": 35,
       "norm_label": "alloweddatabasefixtures",
-      "community_name": "Community 34",
+      "community_name": "Community 35",
       "id": "check_package_contents_alloweddatabasefixtures"
     },
     {
@@ -724,9 +724,9 @@
       "source_file": "check-quality-ratchet.mjs",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 30,
+      "community": 31,
       "norm_label": "check-quality-ratchet.mjs",
-      "community_name": "Community 30",
+      "community_name": "Community 31",
       "id": "check_quality_ratchet"
     },
     {
@@ -735,9 +735,9 @@
       "source_file": "check-quality-ratchet.mjs",
       "source_location": "L3",
       "_origin": "ast",
-      "community": 30,
+      "community": 31,
       "norm_label": "baseindex",
-      "community_name": "Community 30",
+      "community_name": "Community 31",
       "id": "check_quality_ratchet_baseindex"
     },
     {
@@ -746,9 +746,9 @@
       "source_file": "check-quality-ratchet.mjs",
       "source_location": "L15",
       "_origin": "ast",
-      "community": 30,
+      "community": 31,
       "norm_label": "suppressions",
-      "community_name": "Community 30",
+      "community_name": "Community 31",
       "id": "check_quality_ratchet_suppressions"
     },
     {
@@ -1054,9 +1054,9 @@
       "source_file": "install-playwright.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 40,
+      "community": 41,
       "norm_label": "install-playwright.ts",
-      "community_name": "Community 40",
+      "community_name": "Community 41",
       "id": "install_playwright"
     },
     {
@@ -1065,9 +1065,9 @@
       "source_file": "install-playwright.ts",
       "source_location": "L7",
       "_origin": "ast",
-      "community": 40,
+      "community": 41,
       "norm_label": "require",
-      "community_name": "Community 40",
+      "community_name": "Community 41",
       "id": "install_playwright_require"
     },
     {
@@ -1076,9 +1076,9 @@
       "source_file": "install-playwright.ts",
       "source_location": "L13",
       "_origin": "ast",
-      "community": 40,
+      "community": 41,
       "norm_label": "main()",
-      "community_name": "Community 40",
+      "community_name": "Community 41",
       "id": "install_playwright_main"
     },
     {
@@ -1087,9 +1087,9 @@
       "source_file": "lib/agent-setup-capabilities.test.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 42,
+      "community": 43,
       "norm_label": "agent-setup-capabilities.test.ts",
-      "community_name": "Community 42",
+      "community_name": "Community 43",
       "id": "lib_agent_setup_capabilities_test"
     },
     {
@@ -1098,9 +1098,9 @@
       "source_file": "lib/agent-setup-capabilities.test.ts",
       "source_location": "L8",
       "_origin": "ast",
-      "community": 42,
+      "community": 43,
       "norm_label": "reporoot",
-      "community_name": "Community 42",
+      "community_name": "Community 43",
       "id": "lib_agent_setup_capabilities_test_reporoot"
     },
     {
@@ -1186,9 +1186,9 @@
       "source_file": "lib/environment-secret-check.integration.test.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 47,
+      "community": 48,
       "norm_label": "environment-secret-check.integration.test.ts",
-      "community_name": "Community 47",
+      "community_name": "Community 48",
       "id": "lib_environment_secret_check_integration_test"
     },
     {
@@ -1197,9 +1197,9 @@
       "source_file": "lib/environment-secret-policy.test.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 35,
+      "community": 36,
       "norm_label": "environment-secret-policy.test.ts",
-      "community_name": "Community 35",
+      "community_name": "Community 36",
       "id": "lib_environment_secret_policy_test"
     },
     {
@@ -1208,9 +1208,9 @@
       "source_file": "lib/environment-secret-policy.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 35,
+      "community": 36,
       "norm_label": "environment-secret-policy.ts",
-      "community_name": "Community 35",
+      "community_name": "Community 36",
       "id": "lib_environment_secret_policy"
     },
     {
@@ -1219,9 +1219,9 @@
       "source_file": "lib/environment-secret-policy.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 35,
+      "community": 36,
       "norm_label": "environmentcolumn",
-      "community_name": "Community 35",
+      "community_name": "Community 36",
       "id": "lib_environment_secret_policy_environmentcolumn"
     },
     {
@@ -1230,9 +1230,9 @@
       "source_file": "lib/environment-secret-policy.ts",
       "source_location": "L3",
       "_origin": "ast",
-      "community": 35,
+      "community": 36,
       "norm_label": "environmentschemafailures()",
-      "community_name": "Community 35",
+      "community_name": "Community 36",
       "id": "lib_environment_secret_policy_environmentschemafailures"
     },
     {
@@ -1241,9 +1241,9 @@
       "source_file": "lib/environment-secret-policy.ts",
       "source_location": "L10",
       "_origin": "ast",
-      "community": 35,
+      "community": 36,
       "norm_label": "environmentjsonfailures()",
-      "community_name": "Community 35",
+      "community_name": "Community 36",
       "id": "lib_environment_secret_policy_environmentjsonfailures"
     },
     {
@@ -1252,9 +1252,9 @@
       "source_file": "lib/jsdoc-parser.test.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 44,
+      "community": 45,
       "norm_label": "jsdoc-parser.test.ts",
-      "community_name": "Community 44",
+      "community_name": "Community 45",
       "id": "lib_jsdoc_parser_test"
     },
     {
@@ -1263,9 +1263,9 @@
       "source_file": "lib/jsdoc-parser.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 44,
+      "community": 45,
       "norm_label": "jsdoc-parser.ts",
-      "community_name": "Community 44",
+      "community_name": "Community 45",
       "id": "lib_jsdoc_parser"
     },
     {
@@ -1329,9 +1329,9 @@
       "source_file": "lib/mcp-config.test.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 21,
+      "community": 20,
       "norm_label": "mcp-config.test.ts",
-      "community_name": "Community 21",
+      "community_name": "Community 20",
       "id": "lib_mcp_config_test"
     },
     {
@@ -1373,9 +1373,9 @@
       "source_file": "lib/quality-ratchet.mjs",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 30,
+      "community": 31,
       "norm_label": "quality-ratchet.mjs",
-      "community_name": "Community 30",
+      "community_name": "Community 31",
       "id": "lib_quality_ratchet"
     },
     {
@@ -1384,9 +1384,9 @@
       "source_file": "lib/quality-ratchet.mjs",
       "source_location": "L7",
       "_origin": "ast",
-      "community": 30,
+      "community": 31,
       "norm_label": "readqualitydiff()",
-      "community_name": "Community 30",
+      "community_name": "Community 31",
       "id": "lib_quality_ratchet_readqualitydiff"
     },
     {
@@ -1395,9 +1395,9 @@
       "source_file": "lib/quality-ratchet.mjs",
       "source_location": "L23",
       "_origin": "ast",
-      "community": 30,
+      "community": 31,
       "norm_label": "addedqualitysuppressions()",
-      "community_name": "Community 30",
+      "community_name": "Community 31",
       "id": "lib_quality_ratchet_addedqualitysuppressions"
     },
     {
@@ -1406,9 +1406,9 @@
       "source_file": "lib/quality-ratchet.test.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 30,
+      "community": 31,
       "norm_label": "quality-ratchet.test.ts",
-      "community_name": "Community 30",
+      "community_name": "Community 31",
       "id": "lib_quality_ratchet_test"
     },
     {
@@ -2088,9 +2088,9 @@
       "source_file": "lib/tag-parsing.test.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 41,
+      "community": 42,
       "norm_label": "tag-parsing.test.ts",
-      "community_name": "Community 41",
+      "community_name": "Community 42",
       "id": "lib_tag_parsing_test"
     },
     {
@@ -2099,9 +2099,9 @@
       "source_file": "lib/tag-parsing.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 41,
+      "community": 42,
       "norm_label": "tag-parsing.ts",
-      "community_name": "Community 41",
+      "community_name": "Community 42",
       "id": "lib_tag_parsing"
     },
     {
@@ -2110,9 +2110,9 @@
       "source_file": "lib/tag-parsing.ts",
       "source_location": "L5",
       "_origin": "ast",
-      "community": 41,
+      "community": 42,
       "norm_label": "splittagline()",
-      "community_name": "Community 41",
+      "community_name": "Community 42",
       "id": "lib_tag_parsing_splittagline"
     },
     {
@@ -2231,9 +2231,9 @@
       "source_file": "mcp-config.mjs",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 21,
+      "community": 20,
       "norm_label": "mcp-config.mjs",
-      "community_name": "Community 21",
+      "community_name": "Community 20",
       "id": "mcp_config"
     },
     {
@@ -2242,9 +2242,9 @@
       "source_file": "mcp-config.mjs",
       "source_location": "L3",
       "_origin": "ast",
-      "community": 21,
+      "community": 20,
       "norm_label": "envvalue()",
-      "community_name": "Community 21",
+      "community_name": "Community 20",
       "id": "mcp_config_envvalue"
     },
     {
@@ -2253,9 +2253,9 @@
       "source_file": "mcp-config.mjs",
       "source_location": "L7",
       "_origin": "ast",
-      "community": 21,
+      "community": 20,
       "norm_label": "normalizeendpointpath()",
-      "community_name": "Community 21",
+      "community_name": "Community 20",
       "id": "mcp_config_normalizeendpointpath"
     },
     {
@@ -2264,9 +2264,9 @@
       "source_file": "mcp-config.mjs",
       "source_location": "L11",
       "_origin": "ast",
-      "community": 21,
+      "community": 20,
       "norm_label": "shellquote()",
-      "community_name": "Community 21",
+      "community_name": "Community 20",
       "id": "mcp_config_shellquote"
     },
     {
@@ -2275,9 +2275,9 @@
       "source_file": "mcp-config.mjs",
       "source_location": "L15",
       "_origin": "ast",
-      "community": 21,
+      "community": 20,
       "norm_label": "resolvemcpconfig()",
-      "community_name": "Community 21",
+      "community_name": "Community 20",
       "id": "mcp_config_resolvemcpconfig"
     },
     {
@@ -2286,9 +2286,9 @@
       "source_file": "print-agent-config.mjs",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 21,
+      "community": 20,
       "norm_label": "print-agent-config.mjs",
-      "community_name": "Community 21",
+      "community_name": "Community 20",
       "id": "print_agent_config"
     },
     {
@@ -2297,9 +2297,9 @@
       "source_file": "print-agent-config.mjs",
       "source_location": "L6",
       "_origin": "ast",
-      "community": 21,
+      "community": 20,
       "norm_label": "config",
-      "community_name": "Community 21",
+      "community_name": "Community 20",
       "id": "print_agent_config_config"
     },
     {
@@ -2308,9 +2308,9 @@
       "source_file": "print-agent-config.mjs",
       "source_location": "L7",
       "_origin": "ast",
-      "community": 21,
+      "community": 20,
       "norm_label": "stalecapabilityrecovery",
-      "community_name": "Community 21",
+      "community_name": "Community 20",
       "id": "print_agent_config_stalecapabilityrecovery"
     },
     {
@@ -2319,9 +2319,9 @@
       "source_file": "print-agent-config.mjs",
       "source_location": "L12",
       "_origin": "ast",
-      "community": 21,
+      "community": 20,
       "norm_label": "toolsnotvisiblerecovery",
-      "community_name": "Community 21",
+      "community_name": "Community 20",
       "id": "print_agent_config_toolsnotvisiblerecovery"
     },
     {
@@ -2330,9 +2330,9 @@
       "source_file": "print-mcp-config.mjs",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 21,
+      "community": 20,
       "norm_label": "print-mcp-config.mjs",
-      "community_name": "Community 21",
+      "community_name": "Community 20",
       "id": "print_mcp_config"
     },
     {
@@ -2341,9 +2341,9 @@
       "source_file": "print-mcp-config.mjs",
       "source_location": "L5",
       "_origin": "ast",
-      "community": 21,
+      "community": 20,
       "norm_label": "config",
-      "community_name": "Community 21",
+      "community_name": "Community 20",
       "id": "print_mcp_config_config"
     },
     {
@@ -2352,9 +2352,9 @@
       "source_file": "protect-seeded-files.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 36,
+      "community": 37,
       "norm_label": "protect-seeded-files.ts",
-      "community_name": "Community 36",
+      "community_name": "Community 37",
       "id": "protect_seeded_files"
     },
     {
@@ -2363,9 +2363,9 @@
       "source_file": "protect-seeded-files.ts",
       "source_location": "L6",
       "_origin": "ast",
-      "community": 36,
+      "community": 37,
       "norm_label": "seeded_template_paths",
-      "community_name": "Community 36",
+      "community_name": "Community 37",
       "id": "protect_seeded_files_seeded_template_paths"
     },
     {
@@ -2374,9 +2374,9 @@
       "source_file": "protect-seeded-files.ts",
       "source_location": "L11",
       "_origin": "ast",
-      "community": 36,
+      "community": 37,
       "norm_label": "trimtrailingblanklines()",
-      "community_name": "Community 36",
+      "community_name": "Community 37",
       "id": "protect_seeded_files_trimtrailingblanklines"
     },
     {
@@ -2385,9 +2385,9 @@
       "source_file": "protect-seeded-files.ts",
       "source_location": "L22",
       "_origin": "ast",
-      "community": 36,
+      "community": 37,
       "norm_label": "setseededtemplatefilestracked()",
-      "community_name": "Community 36",
+      "community_name": "Community 37",
       "id": "protect_seeded_files_setseededtemplatefilestracked"
     },
     {
@@ -2396,9 +2396,9 @@
       "source_file": "protect-seeded-files.ts",
       "source_location": "L36",
       "_origin": "ast",
-      "community": 36,
+      "community": 37,
       "norm_label": "main()",
-      "community_name": "Community 36",
+      "community_name": "Community 37",
       "id": "protect_seeded_files_main"
     },
     {
@@ -2836,9 +2836,9 @@
       "source_file": "refuse-root-publish.mjs",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 49,
+      "community": 50,
       "norm_label": "refuse-root-publish.mjs",
-      "community_name": "Community 49",
+      "community_name": "Community 50",
       "id": "refuse_root_publish"
     },
     {
@@ -2847,9 +2847,9 @@
       "source_file": "setup-env.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 45,
+      "community": 46,
       "norm_label": "setup-env.ts",
-      "community_name": "Community 45",
+      "community_name": "Community 46",
       "id": "setup_env"
     },
     {
@@ -2858,9 +2858,9 @@
       "source_file": "setup-env.ts",
       "source_location": "L13",
       "_origin": "ast",
-      "community": 45,
+      "community": 46,
       "norm_label": "main()",
-      "community_name": "Community 45",
+      "community_name": "Community 46",
       "id": "setup_env_main"
     },
     {
@@ -2869,9 +2869,9 @@
       "source_file": "setup-graphify.mjs",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 31,
+      "community": 32,
       "norm_label": "setup-graphify.mjs",
-      "community_name": "Community 31",
+      "community_name": "Community 32",
       "id": "setup_graphify"
     },
     {
@@ -2880,9 +2880,9 @@
       "source_file": "setup-graphify.mjs",
       "source_location": "L6",
       "_origin": "ast",
-      "community": 31,
+      "community": 32,
       "norm_label": "graphifycommand",
-      "community_name": "Community 31",
+      "community_name": "Community 32",
       "id": "setup_graphify_graphifycommand"
     },
     {
@@ -2891,9 +2891,9 @@
       "source_file": "setup-graphify.mjs",
       "source_location": "L18",
       "_origin": "ast",
-      "community": 31,
+      "community": 32,
       "norm_label": "uvcommand",
-      "community_name": "Community 31",
+      "community_name": "Community 32",
       "id": "setup_graphify_uvcommand"
     },
     {
@@ -2902,9 +2902,9 @@
       "source_file": "setup-graphify.mjs",
       "source_location": "L27",
       "_origin": "ast",
-      "community": 31,
+      "community": 32,
       "norm_label": "install",
-      "community_name": "Community 31",
+      "community_name": "Community 32",
       "id": "setup_graphify_install"
     },
     {
@@ -2913,9 +2913,9 @@
       "source_file": "setup-graphify.mjs",
       "source_location": "L41",
       "_origin": "ast",
-      "community": 31,
+      "community": 32,
       "norm_label": "findcommand()",
-      "community_name": "Community 31",
+      "community_name": "Community 32",
       "id": "setup_graphify_findcommand"
     },
     {
@@ -2924,9 +2924,9 @@
       "source_file": "setup-graphify.mjs",
       "source_location": "L48",
       "_origin": "ast",
-      "community": 31,
+      "community": 32,
       "norm_label": "findcommandonpath()",
-      "community_name": "Community 31",
+      "community_name": "Community 32",
       "id": "setup_graphify_findcommandonpath"
     },
     {
@@ -2935,9 +2935,9 @@
       "source_file": "setup-graphify.mjs",
       "source_location": "L56",
       "_origin": "ast",
-      "community": 31,
+      "community": 32,
       "norm_label": "findcommandinuvtoolbin()",
-      "community_name": "Community 31",
+      "community_name": "Community 32",
       "id": "setup_graphify_findcommandinuvtoolbin"
     },
     {
@@ -3078,9 +3078,9 @@
       "source_file": "tests/check-capsule-only-cutover.test.mjs",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 46,
+      "community": 47,
       "norm_label": "check-capsule-only-cutover.test.mjs",
-      "community_name": "Community 46",
+      "community_name": "Community 47",
       "id": "tests_check_capsule_only_cutover_test"
     },
     {
@@ -3089,9 +3089,9 @@
       "source_file": "tests/check-capsule-only-cutover.test.mjs",
       "source_location": "L8",
       "_origin": "ast",
-      "community": 46,
+      "community": 47,
       "norm_label": "guard",
-      "community_name": "Community 46",
+      "community_name": "Community 47",
       "id": "tests_check_capsule_only_cutover_test_guard"
     },
     {
@@ -3100,9 +3100,9 @@
       "source_file": "tests/qualification-targets.test.mjs",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 37,
+      "community": 38,
       "norm_label": "qualification-targets.test.mjs",
-      "community_name": "Community 37",
+      "community_name": "Community 38",
       "id": "tests_qualification_targets_test"
     },
     {
@@ -3111,9 +3111,9 @@
       "source_file": "tests/qualification-targets.test.mjs",
       "source_location": "L7",
       "_origin": "ast",
-      "community": 37,
+      "community": 38,
       "norm_label": "scriptsroot",
-      "community_name": "Community 37",
+      "community_name": "Community 38",
       "id": "tests_qualification_targets_test_scriptsroot"
     },
     {
@@ -3122,9 +3122,9 @@
       "source_file": "tests/qualification-targets.test.mjs",
       "source_location": "L8",
       "_origin": "ast",
-      "community": 37,
+      "community": 38,
       "norm_label": "fixturesroot",
-      "community_name": "Community 37",
+      "community_name": "Community 38",
       "id": "tests_qualification_targets_test_fixturesroot"
     },
     {
@@ -3133,9 +3133,9 @@
       "source_file": "tests/qualification-targets.test.mjs",
       "source_location": "L10",
       "_origin": "ast",
-      "community": 37,
+      "community": 38,
       "norm_label": "runverifier()",
-      "community_name": "Community 37",
+      "community_name": "Community 38",
       "id": "tests_qualification_targets_test_runverifier"
     },
     {
@@ -3144,9 +3144,9 @@
       "source_file": "tests/qualification-targets.test.mjs",
       "source_location": "L28",
       "_origin": "ast",
-      "community": 37,
+      "community": 38,
       "norm_label": "runmanagedlifecycle()",
-      "community_name": "Community 37",
+      "community_name": "Community 38",
       "id": "tests_qualification_targets_test_runmanagedlifecycle"
     },
     {
@@ -3353,9 +3353,9 @@
       "source_file": "tests/check-release-ci.test.mjs",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 16,
+      "community": 15,
       "norm_label": "check-release-ci.test.mjs",
-      "community_name": "Community 16",
+      "community_name": "Community 15",
       "id": "tests_check_release_ci_test"
     },
     {
@@ -3364,9 +3364,9 @@
       "source_file": "tests/check-release-ci.test.mjs",
       "source_location": "L10",
       "_origin": "ast",
-      "community": 16,
+      "community": 15,
       "norm_label": "scriptsdir",
-      "community_name": "Community 16",
+      "community_name": "Community 15",
       "id": "tests_check_release_ci_test_scriptsdir"
     },
     {
@@ -3375,9 +3375,9 @@
       "source_file": "tests/check-release-ci.test.mjs",
       "source_location": "L11",
       "_origin": "ast",
-      "community": 16,
+      "community": 15,
       "norm_label": "fixture()",
-      "community_name": "Community 16",
+      "community_name": "Community 15",
       "id": "tests_check_release_ci_test_fixture"
     },
     {
@@ -3386,9 +3386,9 @@
       "source_file": "tests/check-release-ci.test.mjs",
       "source_location": "L12",
       "_origin": "ast",
-      "community": 16,
+      "community": 15,
       "norm_label": "dependabot",
-      "community_name": "Community 16",
+      "community_name": "Community 15",
       "id": "tests_check_release_ci_test_dependabot"
     },
     {
@@ -3430,9 +3430,9 @@
       "source_file": "lib/template-sync-utils.test.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 48,
+      "community": 49,
       "norm_label": "template-sync-utils.test.ts",
-      "community_name": "Community 48",
+      "community_name": "Community 49",
       "id": "lib_template_sync_utils_test"
     },
     {
@@ -3441,9 +3441,9 @@
       "source_file": "lib/quality-journey-integrity.test.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 18,
+      "community": 17,
       "norm_label": "quality-journey-integrity.test.ts",
-      "community_name": "Community 18",
+      "community_name": "Community 17",
       "id": "lib_quality_journey_integrity_test"
     },
     {
@@ -3452,9 +3452,9 @@
       "source_file": "lib/quality-journey-integrity.test.ts",
       "source_location": "L7",
       "_origin": "ast",
-      "community": 18,
+      "community": 17,
       "norm_label": "{ databasesync }",
-      "community_name": "Community 18",
+      "community_name": "Community 17",
       "id": "lib_quality_journey_integrity_test_databasesync"
     },
     {
@@ -3562,9 +3562,9 @@
       "source_file": "check-quality-journey-integrity.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 18,
+      "community": 17,
       "norm_label": "check-quality-journey-integrity.ts",
-      "community_name": "Community 18",
+      "community_name": "Community 17",
       "id": "check_quality_journey_integrity"
     },
     {
@@ -3573,9 +3573,9 @@
       "source_file": "check-quality-journey-integrity.ts",
       "source_location": "L7",
       "_origin": "ast",
-      "community": 18,
+      "community": 17,
       "norm_label": "{ databasesync }",
-      "community_name": "Community 18",
+      "community_name": "Community 17",
       "id": "check_quality_journey_integrity_databasesync"
     },
     {
@@ -3584,9 +3584,9 @@
       "source_file": "check-quality-journey-integrity.ts",
       "source_location": "L13",
       "_origin": "ast",
-      "community": 18,
+      "community": 17,
       "norm_label": "args",
-      "community_name": "Community 18",
+      "community_name": "Community 17",
       "id": "check_quality_journey_integrity_args"
     },
     {
@@ -3595,9 +3595,9 @@
       "source_file": "check-quality-journey-integrity.ts",
       "source_location": "L17",
       "_origin": "ast",
-      "community": 18,
+      "community": 17,
       "norm_label": "database",
-      "community_name": "Community 18",
+      "community_name": "Community 17",
       "id": "check_quality_journey_integrity_database"
     },
     {
@@ -3606,9 +3606,9 @@
       "source_file": "lib/generate-coordinator-reference.test.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 43,
+      "community": 44,
       "norm_label": "generate-coordinator-reference.test.ts",
-      "community_name": "Community 43",
+      "community_name": "Community 44",
       "id": "lib_generate_coordinator_reference_test"
     },
     {
@@ -3617,9 +3617,9 @@
       "source_file": "lib/generate-coordinator-reference.test.ts",
       "source_location": "L7",
       "_origin": "ast",
-      "community": 43,
+      "community": 44,
       "norm_label": "fixture",
-      "community_name": "Community 43",
+      "community_name": "Community 44",
       "id": "lib_generate_coordinator_reference_test_fixture"
     },
     {
@@ -3628,9 +3628,9 @@
       "source_file": "lib/quality-journey-integrity.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 18,
+      "community": 17,
       "norm_label": "quality-journey-integrity.ts",
-      "community_name": "Community 18",
+      "community_name": "Community 17",
       "id": "lib_quality_journey_integrity"
     },
     {
@@ -3639,9 +3639,9 @@
       "source_file": "lib/quality-journey-integrity.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 18,
+      "community": 17,
       "norm_label": "row",
-      "community_name": "Community 18",
+      "community_name": "Community 17",
       "id": "lib_quality_journey_integrity_row"
     },
     {
@@ -3650,9 +3650,9 @@
       "source_file": "lib/quality-journey-integrity.ts",
       "source_location": "L2",
       "_origin": "ast",
-      "community": 18,
+      "community": 17,
       "norm_label": "journeyauditdatabase",
-      "community_name": "Community 18",
+      "community_name": "Community 17",
       "id": "lib_quality_journey_integrity_journeyauditdatabase"
     },
     {
@@ -3661,9 +3661,9 @@
       "source_file": "lib/quality-journey-integrity.ts",
       "source_location": "L3",
       "_origin": "ast",
-      "community": 18,
+      "community": 17,
       "norm_label": "issue",
-      "community_name": "Community 18",
+      "community_name": "Community 17",
       "id": "lib_quality_journey_integrity_issue"
     },
     {
@@ -3672,9 +3672,9 @@
       "source_file": "lib/quality-journey-integrity.ts",
       "source_location": "L5",
       "_origin": "ast",
-      "community": 18,
+      "community": 17,
       "norm_label": "identifier()",
-      "community_name": "Community 18",
+      "community_name": "Community 17",
       "id": "lib_quality_journey_integrity_identifier"
     },
     {
@@ -3683,9 +3683,9 @@
       "source_file": "lib/quality-journey-integrity.ts",
       "source_location": "L9",
       "_origin": "ast",
-      "community": 18,
+      "community": 17,
       "norm_label": "auditqualityjourneyintegrity()",
-      "community_name": "Community 18",
+      "community_name": "Community 17",
       "id": "lib_quality_journey_integrity_auditqualityjourneyintegrity"
     },
     {
@@ -3694,9 +3694,9 @@
       "source_file": "lib/quality-journey-integrity.ts",
       "source_location": "L57",
       "_origin": "ast",
-      "community": 18,
+      "community": 17,
       "norm_label": "checkrelationalownership()",
-      "community_name": "Community 18",
+      "community_name": "Community 17",
       "id": "lib_quality_journey_integrity_checkrelationalownership"
     },
     {
@@ -3705,9 +3705,9 @@
       "source_file": "lib/quality-journey-integrity.ts",
       "source_location": "L139",
       "_origin": "ast",
-      "community": 18,
+      "community": 17,
       "norm_label": "checkjourneyheads()",
-      "community_name": "Community 18",
+      "community_name": "Community 17",
       "id": "lib_quality_journey_integrity_checkjourneyheads"
     },
     {
@@ -3716,9 +3716,9 @@
       "source_file": "lib/quality-journey-integrity.ts",
       "source_location": "L185",
       "_origin": "ast",
-      "community": 18,
+      "community": 17,
       "norm_label": "checkownershipedges()",
-      "community_name": "Community 18",
+      "community_name": "Community 17",
       "id": "lib_quality_journey_integrity_checkownershipedges"
     },
     {
@@ -4299,9 +4299,9 @@
       "source_file": "check-release-ci.mjs",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 16,
+      "community": 15,
       "norm_label": "check-release-ci.mjs",
-      "community_name": "Community 16",
+      "community_name": "Community 15",
       "id": "check_release_ci"
     },
     {
@@ -4310,9 +4310,9 @@
       "source_file": "check-release-ci.mjs",
       "source_location": "L5",
       "_origin": "ast",
-      "community": 16,
+      "community": 15,
       "norm_label": "requiredjobs",
-      "community_name": "Community 16",
+      "community_name": "Community 15",
       "id": "check_release_ci_requiredjobs"
     },
     {
@@ -4321,9 +4321,9 @@
       "source_file": "check-release-ci.mjs",
       "source_location": "L13",
       "_origin": "ast",
-      "community": 16,
+      "community": 15,
       "norm_label": "commandsfor()",
-      "community_name": "Community 16",
+      "community_name": "Community 15",
       "id": "check_release_ci_commandsfor"
     },
     {
@@ -4332,9 +4332,9 @@
       "source_file": "check-release-ci.mjs",
       "source_location": "L17",
       "_origin": "ast",
-      "community": 16,
+      "community": 15,
       "norm_label": "requirecommand()",
-      "community_name": "Community 16",
+      "community_name": "Community 15",
       "id": "check_release_ci_requirecommand"
     },
     {
@@ -4343,9 +4343,9 @@
       "source_file": "check-release-ci.mjs",
       "source_location": "L21",
       "_origin": "ast",
-      "community": 16,
+      "community": 15,
       "norm_label": "validaterequiredjobs()",
-      "community_name": "Community 16",
+      "community_name": "Community 15",
       "id": "check_release_ci_validaterequiredjobs"
     },
     {
@@ -4354,9 +4354,9 @@
       "source_file": "check-release-ci.mjs",
       "source_location": "L27",
       "_origin": "ast",
-      "community": 16,
+      "community": 15,
       "norm_label": "validatepullrequestbranch()",
-      "community_name": "Community 16",
+      "community_name": "Community 15",
       "id": "check_release_ci_validatepullrequestbranch"
     },
     {
@@ -4365,9 +4365,9 @@
       "source_file": "check-release-ci.mjs",
       "source_location": "L33",
       "_origin": "ast",
-      "community": 16,
+      "community": 15,
       "norm_label": "validatedefinedjobs()",
-      "community_name": "Community 16",
+      "community_name": "Community 15",
       "id": "check_release_ci_validatedefinedjobs"
     },
     {
@@ -4376,9 +4376,9 @@
       "source_file": "check-release-ci.mjs",
       "source_location": "L38",
       "_origin": "ast",
-      "community": 16,
+      "community": 15,
       "norm_label": "validateaggregatejobs()",
-      "community_name": "Community 16",
+      "community_name": "Community 15",
       "id": "check_release_ci_validateaggregatejobs"
     },
     {
@@ -4387,9 +4387,9 @@
       "source_file": "check-release-ci.mjs",
       "source_location": "L44",
       "_origin": "ast",
-      "community": 16,
+      "community": 15,
       "norm_label": "commandindex()",
-      "community_name": "Community 16",
+      "community_name": "Community 15",
       "id": "check_release_ci_commandindex"
     },
     {
@@ -4398,9 +4398,9 @@
       "source_file": "check-release-ci.mjs",
       "source_location": "L50",
       "_origin": "ast",
-      "community": 16,
+      "community": 15,
       "norm_label": "requirebefore()",
-      "community_name": "Community 16",
+      "community_name": "Community 15",
       "id": "check_release_ci_requirebefore"
     },
     {
@@ -4409,9 +4409,9 @@
       "source_file": "check-release-ci.mjs",
       "source_location": "L54",
       "_origin": "ast",
-      "community": 16,
+      "community": 15,
       "norm_label": "validaterootcommands()",
-      "community_name": "Community 16",
+      "community_name": "Community 15",
       "id": "check_release_ci_validaterootcommands"
     },
     {
@@ -4420,9 +4420,9 @@
       "source_file": "check-release-ci.mjs",
       "source_location": "L75",
       "_origin": "ast",
-      "community": 16,
+      "community": 15,
       "norm_label": "validatepackagecommands()",
-      "community_name": "Community 16",
+      "community_name": "Community 15",
       "id": "check_release_ci_validatepackagecommands"
     },
     {
@@ -4431,9 +4431,9 @@
       "source_file": "check-release-ci.mjs",
       "source_location": "L87",
       "_origin": "ast",
-      "community": 16,
+      "community": 15,
       "norm_label": "validatesecuritycommands()",
-      "community_name": "Community 16",
+      "community_name": "Community 15",
       "id": "check_release_ci_validatesecuritycommands"
     },
     {
@@ -4442,9 +4442,9 @@
       "source_file": "check-release-ci.mjs",
       "source_location": "L101",
       "_origin": "ast",
-      "community": 16,
+      "community": 15,
       "norm_label": "validatedependabot()",
-      "community_name": "Community 16",
+      "community_name": "Community 15",
       "id": "check_release_ci_validatedependabot"
     },
     {
@@ -4453,9 +4453,9 @@
       "source_file": "check-release-ci.mjs",
       "source_location": "L110",
       "_origin": "ast",
-      "community": 16,
+      "community": 15,
       "norm_label": "validatereleaseciworkflow()",
-      "community_name": "Community 16",
+      "community_name": "Community 15",
       "id": "check_release_ci_validatereleaseciworkflow"
     },
     {
@@ -4464,9 +4464,9 @@
       "source_file": "generate-coordinator-reference.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 20,
+      "community": 19,
       "norm_label": "generate-coordinator-reference.ts",
-      "community_name": "Community 20",
+      "community_name": "Community 19",
       "id": "generate_coordinator_reference"
     },
     {
@@ -4475,9 +4475,9 @@
       "source_file": "generate-coordinator-reference.ts",
       "source_location": "L12",
       "_origin": "ast",
-      "community": 20,
+      "community": 19,
       "norm_label": "mcpdefinition",
-      "community_name": "Community 20",
+      "community_name": "Community 19",
       "id": "generate_coordinator_reference_mcpdefinition"
     },
     {
@@ -4486,9 +4486,9 @@
       "source_file": "generate-coordinator-reference.ts",
       "source_location": "L19",
       "_origin": "ast",
-      "community": 20,
+      "community": 19,
       "norm_label": "mcpfixture",
-      "community_name": "Community 20",
+      "community_name": "Community 19",
       "id": "generate_coordinator_reference_mcpfixture"
     },
     {
@@ -4497,9 +4497,9 @@
       "source_file": "generate-coordinator-reference.ts",
       "source_location": "L20",
       "_origin": "ast",
-      "community": 20,
+      "community": 19,
       "norm_label": "publicoperationreference",
-      "community_name": "Community 20",
+      "community_name": "Community 19",
       "id": "generate_coordinator_reference_publicoperationreference"
     },
     {
@@ -4508,9 +4508,9 @@
       "source_file": "generate-coordinator-reference.ts",
       "source_location": "L23",
       "_origin": "ast",
-      "community": 20,
+      "community": 19,
       "norm_label": "localdiscoverytools",
-      "community_name": "Community 20",
+      "community_name": "Community 19",
       "id": "generate_coordinator_reference_localdiscoverytools"
     },
     {
@@ -4519,9 +4519,9 @@
       "source_file": "generate-coordinator-reference.ts",
       "source_location": "L25",
       "_origin": "ast",
-      "community": 20,
+      "community": 19,
       "norm_label": "exactcoordinatoroperations",
-      "community_name": "Community 20",
+      "community_name": "Community 19",
       "id": "generate_coordinator_reference_exactcoordinatoroperations"
     },
     {
@@ -4530,9 +4530,9 @@
       "source_file": "generate-coordinator-reference.ts",
       "source_location": "L44",
       "_origin": "ast",
-      "community": 20,
+      "community": 19,
       "norm_label": "coordinatoroperationprefixes",
-      "community_name": "Community 20",
+      "community_name": "Community 19",
       "id": "generate_coordinator_reference_coordinatoroperationprefixes"
     },
     {
@@ -4541,9 +4541,9 @@
       "source_file": "generate-coordinator-reference.ts",
       "source_location": "L50",
       "_origin": "ast",
-      "community": 20,
+      "community": 19,
       "norm_label": "referenceformcptool()",
-      "community_name": "Community 20",
+      "community_name": "Community 19",
       "id": "generate_coordinator_reference_referenceformcptool"
     },
     {
@@ -4552,9 +4552,9 @@
       "source_file": "generate-coordinator-reference.ts",
       "source_location": "L59",
       "_origin": "ast",
-      "community": 20,
+      "community": 19,
       "norm_label": "coordinator()",
-      "community_name": "Community 20",
+      "community_name": "Community 19",
       "id": "generate_coordinator_reference_coordinator"
     },
     {
@@ -4563,9 +4563,9 @@
       "source_file": "generate-coordinator-reference.ts",
       "source_location": "L63",
       "_origin": "ast",
-      "community": 20,
+      "community": 19,
       "norm_label": "escapecell()",
-      "community_name": "Community 20",
+      "community_name": "Community 19",
       "id": "generate_coordinator_reference_escapecell"
     },
     {
@@ -4574,9 +4574,9 @@
       "source_file": "generate-coordinator-reference.ts",
       "source_location": "L67",
       "_origin": "ast",
-      "community": 20,
+      "community": 19,
       "norm_label": "generatecoordinatorreference()",
-      "community_name": "Community 20",
+      "community_name": "Community 19",
       "id": "generate_coordinator_reference_generatecoordinatorreference"
     },
     {
@@ -4585,9 +4585,9 @@
       "source_file": "generate-coordinator-reference.ts",
       "source_location": "L121",
       "_origin": "ast",
-      "community": 20,
+      "community": 19,
       "norm_label": "main()",
-      "community_name": "Community 20",
+      "community_name": "Community 19",
       "id": "generate_coordinator_reference_main"
     },
     {
@@ -4596,9 +4596,9 @@
       "source_file": "validate-prisma-migrations.mjs",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 38,
+      "community": 39,
       "norm_label": "validate-prisma-migrations.mjs",
-      "community_name": "Community 38",
+      "community_name": "Community 39",
       "id": "validate_prisma_migrations"
     },
     {
@@ -4607,9 +4607,9 @@
       "source_file": "validate-prisma-migrations.mjs",
       "source_location": "L6",
       "_origin": "ast",
-      "community": 38,
+      "community": 39,
       "norm_label": "workspace",
-      "community_name": "Community 38",
+      "community_name": "Community 39",
       "id": "validate_prisma_migrations_workspace"
     },
     {
@@ -4618,9 +4618,9 @@
       "source_file": "validate-prisma-migrations.mjs",
       "source_location": "L7",
       "_origin": "ast",
-      "community": 38,
+      "community": 39,
       "norm_label": "databasepath",
-      "community_name": "Community 38",
+      "community_name": "Community 39",
       "id": "validate_prisma_migrations_databasepath"
     },
     {
@@ -4629,9 +4629,9 @@
       "source_file": "validate-prisma-migrations.mjs",
       "source_location": "L8",
       "_origin": "ast",
-      "community": 38,
+      "community": 39,
       "norm_label": "migrationsroot",
-      "community_name": "Community 38",
+      "community_name": "Community 39",
       "id": "validate_prisma_migrations_migrationsroot"
     },
     {
@@ -4640,9 +4640,9 @@
       "source_file": "benchmark-harness-validation.mjs",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 15,
+      "community": 21,
       "norm_label": "benchmark-harness-validation.mjs",
-      "community_name": "Community 15",
+      "community_name": "Community 21",
       "id": "benchmark_harness_validation"
     },
     {
@@ -4651,9 +4651,9 @@
       "source_file": "benchmark-harness-validation.mjs",
       "source_location": "L14",
       "_origin": "ast",
-      "community": 15,
+      "community": 21,
       "norm_label": "root",
-      "community_name": "Community 15",
+      "community_name": "Community 21",
       "id": "benchmark_harness_validation_root"
     },
     {
@@ -4662,9 +4662,9 @@
       "source_file": "benchmark-harness-validation.mjs",
       "source_location": "L15",
       "_origin": "ast",
-      "community": 15,
+      "community": 21,
       "norm_label": "registry",
-      "community_name": "Community 15",
+      "community_name": "Community 21",
       "id": "benchmark_harness_validation_registry"
     },
     {
@@ -4673,9 +4673,9 @@
       "source_file": "benchmark-harness-validation.mjs",
       "source_location": "L16",
       "_origin": "ast",
-      "community": 15,
+      "community": 21,
       "norm_label": "fixtureroot",
-      "community_name": "Community 15",
+      "community_name": "Community 21",
       "id": "benchmark_harness_validation_fixtureroot"
     },
     {
@@ -4684,9 +4684,9 @@
       "source_file": "benchmark-harness-validation.mjs",
       "source_location": "L17",
       "_origin": "ast",
-      "community": 15,
+      "community": 21,
       "norm_label": "delay",
-      "community_name": "Community 15",
+      "community_name": "Community 21",
       "id": "benchmark_harness_validation_delay"
     },
     {
@@ -4695,9 +4695,9 @@
       "source_file": "benchmark-harness-validation.mjs",
       "source_location": "L19",
       "_origin": "ast",
-      "community": 15,
+      "community": 21,
       "norm_label": "fixtureregistry()",
-      "community_name": "Community 15",
+      "community_name": "Community 21",
       "id": "benchmark_harness_validation_fixtureregistry"
     },
     {
@@ -4706,9 +4706,9 @@
       "source_file": "benchmark-harness-validation.mjs",
       "source_location": "L43",
       "_origin": "ast",
-      "community": 15,
+      "community": 21,
       "norm_label": "run()",
-      "community_name": "Community 15",
+      "community_name": "Community 21",
       "id": "benchmark_harness_validation_run"
     },
     {
@@ -4948,9 +4948,9 @@
       "source_file": "check-harness-matrix.mjs",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 28,
+      "community": 30,
       "norm_label": "check-harness-matrix.mjs",
-      "community_name": "Community 28",
+      "community_name": "Community 30",
       "id": "check_harness_matrix"
     },
     {
@@ -4959,9 +4959,9 @@
       "source_file": "check-harness-matrix.mjs",
       "source_location": "L7",
       "_origin": "ast",
-      "community": 28,
+      "community": 30,
       "norm_label": "source",
-      "community_name": "Community 28",
+      "community_name": "Community 30",
       "id": "check_harness_matrix_source"
     },
     {
@@ -4970,9 +4970,9 @@
       "source_file": "check-harness-matrix.mjs",
       "source_location": "L8",
       "_origin": "ast",
-      "community": 28,
+      "community": 30,
       "norm_label": "generated",
-      "community_name": "Community 28",
+      "community_name": "Community 30",
       "id": "check_harness_matrix_generated"
     },
     {
@@ -4981,9 +4981,9 @@
       "source_file": "check-harness-matrix.mjs",
       "source_location": "L10",
       "_origin": "ast",
-      "community": 28,
+      "community": 30,
       "norm_label": "start",
-      "community_name": "Community 28",
+      "community_name": "Community 30",
       "id": "check_harness_matrix_start"
     },
     {
@@ -4992,9 +4992,9 @@
       "source_file": "check-harness-matrix.mjs",
       "source_location": "L11",
       "_origin": "ast",
-      "community": 28,
+      "community": 30,
       "norm_label": "finish",
-      "community_name": "Community 28",
+      "community_name": "Community 30",
       "id": "check_harness_matrix_finish"
     },
     {
@@ -5223,9 +5223,9 @@
       "source_file": "harness-diagnostic.mjs",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 39,
+      "community": 40,
       "norm_label": "harness-diagnostic.mjs",
-      "community_name": "Community 39",
+      "community_name": "Community 40",
       "id": "harness_diagnostic"
     },
     {
@@ -5234,9 +5234,9 @@
       "source_file": "harness-diagnostic.mjs",
       "source_location": "L4",
       "_origin": "ast",
-      "community": 39,
+      "community": 40,
       "norm_label": "probe()",
-      "community_name": "Community 39",
+      "community_name": "Community 40",
       "id": "harness_diagnostic_probe"
     },
     {
@@ -5245,9 +5245,9 @@
       "source_file": "harness-diagnostic.mjs",
       "source_location": "L8",
       "_origin": "ast",
-      "community": 39,
+      "community": 40,
       "norm_label": "status",
-      "community_name": "Community 39",
+      "community_name": "Community 40",
       "id": "harness_diagnostic_status"
     },
     {
@@ -7082,9 +7082,9 @@
       "source_file": "lib/harness-validation.mjs",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 17,
+      "community": 16,
       "norm_label": "harness-validation.mjs",
-      "community_name": "Community 17",
+      "community_name": "Community 16",
       "id": "lib_harness_validation"
     },
     {
@@ -7093,9 +7093,9 @@
       "source_file": "lib/harness-validation.mjs",
       "source_location": "L19",
       "_origin": "ast",
-      "community": 17,
+      "community": 16,
       "norm_label": "code_analysis_commands",
-      "community_name": "Community 17",
+      "community_name": "Community 16",
       "id": "lib_harness_validation_code_analysis_commands"
     },
     {
@@ -7104,9 +7104,9 @@
       "source_file": "lib/harness-validation.mjs",
       "source_location": "L20",
       "_origin": "ast",
-      "community": 17,
+      "community": 16,
       "norm_label": "valid_stages",
-      "community_name": "Community 17",
+      "community_name": "Community 16",
       "id": "lib_harness_validation_valid_stages"
     },
     {
@@ -7115,9 +7115,9 @@
       "source_file": "lib/harness-validation.mjs",
       "source_location": "L22",
       "_origin": "ast",
-      "community": 28,
+      "community": 16,
       "norm_label": "readvalidationregistry()",
-      "community_name": "Community 28",
+      "community_name": "Community 16",
       "id": "lib_harness_validation_readvalidationregistry"
     },
     {
@@ -7126,9 +7126,9 @@
       "source_file": "lib/harness-validation.mjs",
       "source_location": "L27",
       "_origin": "ast",
-      "community": 19,
+      "community": 16,
       "norm_label": "validatevalidationregistry()",
-      "community_name": "Community 19",
+      "community_name": "Community 16",
       "id": "lib_harness_validation_validatevalidationregistry"
     },
     {
@@ -7137,9 +7137,9 @@
       "source_file": "lib/harness-validation.mjs",
       "source_location": "L62",
       "_origin": "ast",
-      "community": 19,
+      "community": 16,
       "norm_label": "uniqueids()",
-      "community_name": "Community 19",
+      "community_name": "Community 16",
       "id": "lib_harness_validation_uniqueids"
     },
     {
@@ -7148,9 +7148,9 @@
       "source_file": "lib/harness-validation.mjs",
       "source_location": "L71",
       "_origin": "ast",
-      "community": 19,
+      "community": 16,
       "norm_label": "assertbounded()",
-      "community_name": "Community 19",
+      "community_name": "Community 16",
       "id": "lib_harness_validation_assertbounded"
     },
     {
@@ -7159,9 +7159,9 @@
       "source_file": "lib/harness-validation.mjs",
       "source_location": "L80",
       "_origin": "ast",
-      "community": 19,
+      "community": 18,
       "norm_label": "parsenamestatus()",
-      "community_name": "Community 19",
+      "community_name": "Community 18",
       "id": "lib_harness_validation_parsenamestatus"
     },
     {
@@ -7170,9 +7170,9 @@
       "source_file": "lib/harness-validation.mjs",
       "source_location": "L96",
       "_origin": "ast",
-      "community": 19,
+      "community": 18,
       "norm_label": "collectgitchanges()",
-      "community_name": "Community 19",
+      "community_name": "Community 18",
       "id": "lib_harness_validation_collectgitchanges"
     },
     {
@@ -7181,9 +7181,9 @@
       "source_file": "lib/harness-validation.mjs",
       "source_location": "L110",
       "_origin": "ast",
-      "community": 17,
+      "community": 16,
       "norm_label": "rungit()",
-      "community_name": "Community 17",
+      "community_name": "Community 16",
       "id": "lib_harness_validation_rungit"
     },
     {
@@ -7192,9 +7192,9 @@
       "source_file": "lib/harness-validation.mjs",
       "source_location": "L117",
       "_origin": "ast",
-      "community": 19,
+      "community": 18,
       "norm_label": "isdocumentationonlychange()",
-      "community_name": "Community 19",
+      "community_name": "Community 18",
       "id": "lib_harness_validation_isdocumentationonlychange"
     },
     {
@@ -7203,9 +7203,9 @@
       "source_file": "lib/harness-validation.mjs",
       "source_location": "L125",
       "_origin": "ast",
-      "community": 17,
+      "community": 16,
       "norm_label": "isdocumentationpath()",
-      "community_name": "Community 17",
+      "community_name": "Community 16",
       "id": "lib_harness_validation_isdocumentationpath"
     },
     {
@@ -7214,9 +7214,9 @@
       "source_file": "lib/harness-validation.mjs",
       "source_location": "L129",
       "_origin": "ast",
-      "community": 17,
+      "community": 16,
       "norm_label": "issharedconfigurationpath()",
-      "community_name": "Community 17",
+      "community_name": "Community 16",
       "id": "lib_harness_validation_issharedconfigurationpath"
     },
     {
@@ -7225,9 +7225,9 @@
       "source_file": "lib/harness-validation.mjs",
       "source_location": "L133",
       "_origin": "ast",
-      "community": 19,
+      "community": 18,
       "norm_label": "createvalidationplan()",
-      "community_name": "Community 19",
+      "community_name": "Community 18",
       "id": "lib_harness_validation_createvalidationplan"
     },
     {
@@ -7236,9 +7236,9 @@
       "source_file": "lib/harness-validation.mjs",
       "source_location": "L156",
       "_origin": "ast",
-      "community": 17,
+      "community": 16,
       "norm_label": "matchesanysurface()",
-      "community_name": "Community 17",
+      "community_name": "Community 16",
       "id": "lib_harness_validation_matchesanysurface"
     },
     {
@@ -7247,9 +7247,9 @@
       "source_file": "lib/harness-validation.mjs",
       "source_location": "L160",
       "_origin": "ast",
-      "community": 19,
+      "community": 18,
       "norm_label": "matchespattern()",
-      "community_name": "Community 19",
+      "community_name": "Community 18",
       "id": "lib_harness_validation_matchespattern"
     },
     {
@@ -7258,9 +7258,9 @@
       "source_file": "lib/harness-validation.mjs",
       "source_location": "L178",
       "_origin": "ast",
-      "community": 15,
+      "community": 21,
       "norm_label": "createvalidationsession()",
-      "community_name": "Community 15",
+      "community_name": "Community 21",
       "id": "lib_harness_validation_createvalidationsession"
     },
     {
@@ -7269,9 +7269,9 @@
       "source_file": "lib/harness-validation.mjs",
       "source_location": "L190",
       "_origin": "ast",
-      "community": 15,
+      "community": 21,
       "norm_label": "disposevalidationsession()",
-      "community_name": "Community 15",
+      "community_name": "Community 21",
       "id": "lib_harness_validation_disposevalidationsession"
     },
     {
@@ -7280,9 +7280,9 @@
       "source_file": "lib/harness-validation.mjs",
       "source_location": "L195",
       "_origin": "ast",
-      "community": 17,
+      "community": 16,
       "norm_label": "defaulttoolchain()",
-      "community_name": "Community 17",
+      "community_name": "Community 16",
       "id": "lib_harness_validation_defaulttoolchain"
     },
     {
@@ -7291,9 +7291,9 @@
       "source_file": "lib/harness-validation.mjs",
       "source_location": "L202",
       "_origin": "ast",
-      "community": 17,
+      "community": 16,
       "norm_label": "prerequisitefingerprint()",
-      "community_name": "Community 17",
+      "community_name": "Community 16",
       "id": "lib_harness_validation_prerequisitefingerprint"
     },
     {
@@ -7302,9 +7302,9 @@
       "source_file": "lib/harness-validation.mjs",
       "source_location": "L206",
       "_origin": "ast",
-      "community": 17,
+      "community": 16,
       "norm_label": "hashfiles()",
-      "community_name": "Community 17",
+      "community_name": "Community 16",
       "id": "lib_harness_validation_hashfiles"
     },
     {
@@ -7313,9 +7313,9 @@
       "source_file": "lib/harness-validation.mjs",
       "source_location": "L222",
       "_origin": "ast",
-      "community": 17,
+      "community": 16,
       "norm_label": "walkfiles()",
-      "community_name": "Community 17",
+      "community_name": "Community 16",
       "id": "lib_harness_validation_walkfiles"
     },
     {
@@ -7324,9 +7324,9 @@
       "source_file": "lib/harness-validation.mjs",
       "source_location": "L238",
       "_origin": "ast",
-      "community": 15,
+      "community": 21,
       "norm_label": "executevalidationplan()",
-      "community_name": "Community 15",
+      "community_name": "Community 21",
       "id": "lib_harness_validation_executevalidationplan"
     },
     {
@@ -7346,9 +7346,9 @@
       "source_file": "lib/harness-validation.mjs",
       "source_location": "L294",
       "_origin": "ast",
-      "community": 15,
+      "community": 21,
       "norm_label": "writecucumberruntimereceipt()",
-      "community_name": "Community 15",
+      "community_name": "Community 21",
       "id": "lib_harness_validation_writecucumberruntimereceipt"
     },
     {
@@ -7357,9 +7357,9 @@
       "source_file": "lib/harness-validation.mjs",
       "source_location": "L312",
       "_origin": "ast",
-      "community": 19,
+      "community": 18,
       "norm_label": "executecommand()",
-      "community_name": "Community 19",
+      "community_name": "Community 18",
       "id": "lib_harness_validation_executecommand"
     },
     {
@@ -7368,9 +7368,9 @@
       "source_file": "lib/harness-validation.mjs",
       "source_location": "L334",
       "_origin": "ast",
-      "community": 17,
+      "community": 16,
       "norm_label": "ci_composite_aliases",
-      "community_name": "Community 17",
+      "community_name": "Community 16",
       "id": "lib_harness_validation_ci_composite_aliases"
     },
     {
@@ -7379,9 +7379,9 @@
       "source_file": "lib/harness-validation.mjs",
       "source_location": "L340",
       "_origin": "ast",
-      "community": 17,
+      "community": 16,
       "norm_label": "documented_ci_gates",
-      "community_name": "Community 17",
+      "community_name": "Community 16",
       "id": "lib_harness_validation_documented_ci_gates"
     },
     {
@@ -7390,9 +7390,9 @@
       "source_file": "lib/harness-validation.mjs",
       "source_location": "L349",
       "_origin": "ast",
-      "community": 17,
+      "community": 18,
       "norm_label": "releaseledgercirequirements()",
-      "community_name": "Community 17",
+      "community_name": "Community 18",
       "id": "lib_harness_validation_releaseledgercirequirements"
     },
     {
@@ -7401,9 +7401,9 @@
       "source_file": "lib/harness-validation.mjs",
       "source_location": "L360",
       "_origin": "ast",
-      "community": 17,
+      "community": 18,
       "norm_label": "documentedcirequirements()",
-      "community_name": "Community 17",
+      "community_name": "Community 18",
       "id": "lib_harness_validation_documentedcirequirements"
     },
     {
@@ -7412,9 +7412,9 @@
       "source_file": "lib/harness-validation.mjs",
       "source_location": "L365",
       "_origin": "ast",
-      "community": 17,
+      "community": 18,
       "norm_label": "verifycicoverage()",
-      "community_name": "Community 17",
+      "community_name": "Community 18",
       "id": "lib_harness_validation_verifycicoverage"
     },
     {
@@ -7423,9 +7423,9 @@
       "source_file": "lib/harness-validation.mjs",
       "source_location": "L378",
       "_origin": "ast",
-      "community": 17,
+      "community": 16,
       "norm_label": "hasrequiredcistep()",
-      "community_name": "Community 17",
+      "community_name": "Community 16",
       "id": "lib_harness_validation_hasrequiredcistep"
     },
     {
@@ -7434,9 +7434,9 @@
       "source_file": "lib/harness-validation.mjs",
       "source_location": "L385",
       "_origin": "ast",
-      "community": 17,
+      "community": 16,
       "norm_label": "hasrequiredcicommand()",
-      "community_name": "Community 17",
+      "community_name": "Community 16",
       "id": "lib_harness_validation_hasrequiredcicommand"
     },
     {
@@ -7445,9 +7445,9 @@
       "source_file": "lib/harness-validation.mjs",
       "source_location": "L394",
       "_origin": "ast",
-      "community": 28,
+      "community": 30,
       "norm_label": "validationmatrixrows()",
-      "community_name": "Community 28",
+      "community_name": "Community 30",
       "id": "lib_harness_validation_validationmatrixrows"
     },
     {
@@ -7456,9 +7456,9 @@
       "source_file": "lib/harness-validation.mjs",
       "source_location": "L405",
       "_origin": "ast",
-      "community": 28,
+      "community": 30,
       "norm_label": "rendervalidationmatrix()",
-      "community_name": "Community 28",
+      "community_name": "Community 30",
       "id": "lib_harness_validation_rendervalidationmatrix"
     },
     {
@@ -7786,9 +7786,9 @@
       "source_file": "run-harness-validation.mjs",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 15,
+      "community": 28,
       "norm_label": "run-harness-validation.mjs",
-      "community_name": "Community 15",
+      "community_name": "Community 28",
       "id": "run_harness_validation"
     },
     {
@@ -7797,9 +7797,9 @@
       "source_file": "run-harness-validation.mjs",
       "source_location": "L14",
       "_origin": "ast",
-      "community": 15,
+      "community": 28,
       "norm_label": "root",
-      "community_name": "Community 15",
+      "community_name": "Community 28",
       "id": "run_harness_validation_root"
     },
     {
@@ -7808,9 +7808,9 @@
       "source_file": "run-harness-validation.mjs",
       "source_location": "L15",
       "_origin": "ast",
-      "community": 15,
+      "community": 28,
       "norm_label": "args",
-      "community_name": "Community 15",
+      "community_name": "Community 28",
       "id": "run_harness_validation_args"
     },
     {
@@ -7819,9 +7819,9 @@
       "source_file": "run-harness-validation.mjs",
       "source_location": "L17",
       "_origin": "ast",
-      "community": 15,
+      "community": 28,
       "norm_label": "registry",
-      "community_name": "Community 15",
+      "community_name": "Community 28",
       "id": "run_harness_validation_registry"
     },
     {
@@ -7830,9 +7830,9 @@
       "source_file": "run-harness-validation.mjs",
       "source_location": "L18",
       "_origin": "ast",
-      "community": 15,
+      "community": 28,
       "norm_label": "changes",
-      "community_name": "Community 15",
+      "community_name": "Community 28",
       "id": "run_harness_validation_changes"
     },
     {
@@ -7841,9 +7841,9 @@
       "source_file": "run-harness-validation.mjs",
       "source_location": "L19",
       "_origin": "ast",
-      "community": 15,
+      "community": 28,
       "norm_label": "plan",
-      "community_name": "Community 15",
+      "community_name": "Community 28",
       "id": "run_harness_validation_plan"
     },
     {
@@ -7852,9 +7852,9 @@
       "source_file": "run-harness-validation.mjs",
       "source_location": "L33",
       "_origin": "ast",
-      "community": 15,
+      "community": 28,
       "norm_label": "session",
-      "community_name": "Community 15",
+      "community_name": "Community 28",
       "id": "run_harness_validation_session"
     },
     {
@@ -7863,9 +7863,9 @@
       "source_file": "run-harness-validation.mjs",
       "source_location": "L34",
       "_origin": "ast",
-      "community": 15,
+      "community": 28,
       "norm_label": "result",
-      "community_name": "Community 15",
+      "community_name": "Community 28",
       "id": "run_harness_validation_result"
     },
     {
@@ -8078,50 +8078,6 @@
       "id": "tests_harness_selection_test_hostprofile"
     },
     {
-      "label": "harness-validation.test.mjs",
-      "file_type": "code",
-      "source_file": "tests/harness-validation.test.mjs",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 19,
-      "norm_label": "harness-validation.test.mjs",
-      "community_name": "Community 19",
-      "id": "tests_harness_validation_test"
-    },
-    {
-      "label": "registry()",
-      "file_type": "code",
-      "source_file": "tests/harness-validation.test.mjs",
-      "source_location": "L29",
-      "_origin": "ast",
-      "community": 19,
-      "norm_label": "registry()",
-      "community_name": "Community 19",
-      "id": "tests_harness_validation_test_registry"
-    },
-    {
-      "label": "cucumberFixture()",
-      "file_type": "code",
-      "source_file": "tests/harness-validation.test.mjs",
-      "source_location": "L101",
-      "_origin": "ast",
-      "community": 19,
-      "norm_label": "cucumberfixture()",
-      "community_name": "Community 19",
-      "id": "tests_harness_validation_test_cucumberfixture"
-    },
-    {
-      "label": "cucumberRegistry()",
-      "file_type": "code",
-      "source_file": "tests/harness-validation.test.mjs",
-      "source_location": "L115",
-      "_origin": "ast",
-      "community": 19,
-      "norm_label": "cucumberregistry()",
-      "community_name": "Community 19",
-      "id": "tests_harness_validation_test_cucumberregistry"
-    },
-    {
       "label": "swarm-routing.test.mjs",
       "file_type": "code",
       "source_file": "tests/swarm-routing.test.mjs",
@@ -8184,8 +8140,8 @@
       "_origin": "ast",
       "community": 0,
       "norm_label": "harness-learning.mjs",
-      "id": "lib_harness_learning",
-      "community_name": "Community 0"
+      "community_name": "Community 0",
+      "id": "lib_harness_learning"
     },
     {
       "label": "LESSON_STATUSES",
@@ -8195,8 +8151,8 @@
       "_origin": "ast",
       "community": 0,
       "norm_label": "lesson_statuses",
-      "id": "lib_harness_learning_lesson_statuses",
-      "community_name": "Community 0"
+      "community_name": "Community 0",
+      "id": "lib_harness_learning_lesson_statuses"
     },
     {
       "label": "PROPOSAL_STATUSES",
@@ -8206,8 +8162,8 @@
       "_origin": "ast",
       "community": 0,
       "norm_label": "proposal_statuses",
-      "id": "lib_harness_learning_proposal_statuses",
-      "community_name": "Community 0"
+      "community_name": "Community 0",
+      "id": "lib_harness_learning_proposal_statuses"
     },
     {
       "label": "assert()",
@@ -8217,8 +8173,8 @@
       "_origin": "ast",
       "community": 0,
       "norm_label": "assert()",
-      "id": "lib_harness_learning_assert",
-      "community_name": "Community 0"
+      "community_name": "Community 0",
+      "id": "lib_harness_learning_assert"
     },
     {
       "label": "nonBlank()",
@@ -8228,8 +8184,8 @@
       "_origin": "ast",
       "community": 0,
       "norm_label": "nonblank()",
-      "id": "lib_harness_learning_nonblank",
-      "community_name": "Community 0"
+      "community_name": "Community 0",
+      "id": "lib_harness_learning_nonblank"
     },
     {
       "label": "safeText()",
@@ -8239,8 +8195,8 @@
       "_origin": "ast",
       "community": 0,
       "norm_label": "safetext()",
-      "id": "lib_harness_learning_safetext",
-      "community_name": "Community 0"
+      "community_name": "Community 0",
+      "id": "lib_harness_learning_safetext"
     },
     {
       "label": "safeArray()",
@@ -8250,8 +8206,8 @@
       "_origin": "ast",
       "community": 0,
       "norm_label": "safearray()",
-      "id": "lib_harness_learning_safearray",
-      "community_name": "Community 0"
+      "community_name": "Community 0",
+      "id": "lib_harness_learning_safearray"
     },
     {
       "label": "safePaths()",
@@ -8261,8 +8217,8 @@
       "_origin": "ast",
       "community": 0,
       "norm_label": "safepaths()",
-      "id": "lib_harness_learning_safepaths",
-      "community_name": "Community 0"
+      "community_name": "Community 0",
+      "id": "lib_harness_learning_safepaths"
     },
     {
       "label": "safeDate()",
@@ -8272,8 +8228,8 @@
       "_origin": "ast",
       "community": 0,
       "norm_label": "safedate()",
-      "id": "lib_harness_learning_safedate",
-      "community_name": "Community 0"
+      "community_name": "Community 0",
+      "id": "lib_harness_learning_safedate"
     },
     {
       "label": "stableId()",
@@ -8283,8 +8239,8 @@
       "_origin": "ast",
       "community": 0,
       "norm_label": "stableid()",
-      "id": "lib_harness_learning_stableid",
-      "community_name": "Community 0"
+      "community_name": "Community 0",
+      "id": "lib_harness_learning_stableid"
     },
     {
       "label": "learningPaths()",
@@ -8294,8 +8250,8 @@
       "_origin": "ast",
       "community": 0,
       "norm_label": "learningpaths()",
-      "id": "lib_harness_learning_learningpaths",
-      "community_name": "Community 0"
+      "community_name": "Community 0",
+      "id": "lib_harness_learning_learningpaths"
     },
     {
       "label": "sanitizeLegacyText()",
@@ -8305,8 +8261,8 @@
       "_origin": "ast",
       "community": 0,
       "norm_label": "sanitizelegacytext()",
-      "id": "lib_harness_learning_sanitizelegacytext",
-      "community_name": "Community 0"
+      "community_name": "Community 0",
+      "id": "lib_harness_learning_sanitizelegacytext"
     },
     {
       "label": "validateLearningObservation()",
@@ -8316,8 +8272,8 @@
       "_origin": "ast",
       "community": 0,
       "norm_label": "validatelearningobservation()",
-      "id": "lib_harness_learning_validatelearningobservation",
-      "community_name": "Community 0"
+      "community_name": "Community 0",
+      "id": "lib_harness_learning_validatelearningobservation"
     },
     {
       "label": "createLearningObservation()",
@@ -8327,8 +8283,8 @@
       "_origin": "ast",
       "community": 0,
       "norm_label": "createlearningobservation()",
-      "id": "lib_harness_learning_createlearningobservation",
-      "community_name": "Community 0"
+      "community_name": "Community 0",
+      "id": "lib_harness_learning_createlearningobservation"
     },
     {
       "label": "parseRecord()",
@@ -8338,8 +8294,8 @@
       "_origin": "ast",
       "community": 0,
       "norm_label": "parserecord()",
-      "id": "lib_harness_learning_parserecord",
-      "community_name": "Community 0"
+      "community_name": "Community 0",
+      "id": "lib_harness_learning_parserecord"
     },
     {
       "label": "assertOnlyKeys()",
@@ -8349,8 +8305,8 @@
       "_origin": "ast",
       "community": 0,
       "norm_label": "assertonlykeys()",
-      "id": "lib_harness_learning_assertonlykeys",
-      "community_name": "Community 0"
+      "community_name": "Community 0",
+      "id": "lib_harness_learning_assertonlykeys"
     },
     {
       "label": "validateOptionalDate()",
@@ -8360,8 +8316,8 @@
       "_origin": "ast",
       "community": 0,
       "norm_label": "validateoptionaldate()",
-      "id": "lib_harness_learning_validateoptionaldate",
-      "community_name": "Community 0"
+      "community_name": "Community 0",
+      "id": "lib_harness_learning_validateoptionaldate"
     },
     {
       "label": "validateLesson()",
@@ -8371,8 +8327,8 @@
       "_origin": "ast",
       "community": 0,
       "norm_label": "validatelesson()",
-      "id": "lib_harness_learning_validatelesson",
-      "community_name": "Community 0"
+      "community_name": "Community 0",
+      "id": "lib_harness_learning_validatelesson"
     },
     {
       "label": "evidenceTime()",
@@ -8382,8 +8338,8 @@
       "_origin": "ast",
       "community": 0,
       "norm_label": "evidencetime()",
-      "id": "lib_harness_learning_evidencetime",
-      "community_name": "Community 0"
+      "community_name": "Community 0",
+      "id": "lib_harness_learning_evidencetime"
     },
     {
       "label": "validateLessonSemantics()",
@@ -8393,8 +8349,8 @@
       "_origin": "ast",
       "community": 0,
       "norm_label": "validatelessonsemantics()",
-      "id": "lib_harness_learning_validatelessonsemantics",
-      "community_name": "Community 0"
+      "community_name": "Community 0",
+      "id": "lib_harness_learning_validatelessonsemantics"
     },
     {
       "label": "validateHistory()",
@@ -8404,8 +8360,8 @@
       "_origin": "ast",
       "community": 0,
       "norm_label": "validatehistory()",
-      "id": "lib_harness_learning_validatehistory",
-      "community_name": "Community 0"
+      "community_name": "Community 0",
+      "id": "lib_harness_learning_validatehistory"
     },
     {
       "label": "proposalHistoryAllows()",
@@ -8415,8 +8371,8 @@
       "_origin": "ast",
       "community": 0,
       "norm_label": "proposalhistoryallows()",
-      "id": "lib_harness_learning_proposalhistoryallows",
-      "community_name": "Community 0"
+      "community_name": "Community 0",
+      "id": "lib_harness_learning_proposalhistoryallows"
     },
     {
       "label": "validateProposalHistory()",
@@ -8426,8 +8382,8 @@
       "_origin": "ast",
       "community": 0,
       "norm_label": "validateproposalhistory()",
-      "id": "lib_harness_learning_validateproposalhistory",
-      "community_name": "Community 0"
+      "community_name": "Community 0",
+      "id": "lib_harness_learning_validateproposalhistory"
     },
     {
       "label": "validateProposal()",
@@ -8437,8 +8393,8 @@
       "_origin": "ast",
       "community": 0,
       "norm_label": "validateproposal()",
-      "id": "lib_harness_learning_validateproposal",
-      "community_name": "Community 0"
+      "community_name": "Community 0",
+      "id": "lib_harness_learning_validateproposal"
     },
     {
       "label": "validateEvidenceSnapshots()",
@@ -8448,8 +8404,8 @@
       "_origin": "ast",
       "community": 0,
       "norm_label": "validateevidencesnapshots()",
-      "id": "lib_harness_learning_validateevidencesnapshots",
-      "community_name": "Community 0"
+      "community_name": "Community 0",
+      "id": "lib_harness_learning_validateevidencesnapshots"
     },
     {
       "label": "sameReferences()",
@@ -8459,8 +8415,8 @@
       "_origin": "ast",
       "community": 0,
       "norm_label": "samereferences()",
-      "id": "lib_harness_learning_samereferences",
-      "community_name": "Community 0"
+      "community_name": "Community 0",
+      "id": "lib_harness_learning_samereferences"
     },
     {
       "label": "recordBody()",
@@ -8470,8 +8426,8 @@
       "_origin": "ast",
       "community": 0,
       "norm_label": "recordbody()",
-      "id": "lib_harness_learning_recordbody",
-      "community_name": "Community 0"
+      "community_name": "Community 0",
+      "id": "lib_harness_learning_recordbody"
     },
     {
       "label": "writeRecord()",
@@ -8481,8 +8437,8 @@
       "_origin": "ast",
       "community": 0,
       "norm_label": "writerecord()",
-      "id": "lib_harness_learning_writerecord",
-      "community_name": "Community 0"
+      "community_name": "Community 0",
+      "id": "lib_harness_learning_writerecord"
     },
     {
       "label": "readLessons()",
@@ -8492,8 +8448,8 @@
       "_origin": "ast",
       "community": 0,
       "norm_label": "readlessons()",
-      "id": "lib_harness_learning_readlessons",
-      "community_name": "Community 0"
+      "community_name": "Community 0",
+      "id": "lib_harness_learning_readlessons"
     },
     {
       "label": "readProposals()",
@@ -8503,8 +8459,8 @@
       "_origin": "ast",
       "community": 0,
       "norm_label": "readproposals()",
-      "id": "lib_harness_learning_readproposals",
-      "community_name": "Community 0"
+      "community_name": "Community 0",
+      "id": "lib_harness_learning_readproposals"
     },
     {
       "label": "readRecordDirectory()",
@@ -8514,8 +8470,8 @@
       "_origin": "ast",
       "community": 0,
       "norm_label": "readrecorddirectory()",
-      "id": "lib_harness_learning_readrecorddirectory",
-      "community_name": "Community 0"
+      "community_name": "Community 0",
+      "id": "lib_harness_learning_readrecorddirectory"
     },
     {
       "label": "writeLesson()",
@@ -8525,8 +8481,8 @@
       "_origin": "ast",
       "community": 0,
       "norm_label": "writelesson()",
-      "id": "lib_harness_learning_writelesson",
-      "community_name": "Community 0"
+      "community_name": "Community 0",
+      "id": "lib_harness_learning_writelesson"
     },
     {
       "label": "writeProposal()",
@@ -8536,8 +8492,8 @@
       "_origin": "ast",
       "community": 0,
       "norm_label": "writeproposal()",
-      "id": "lib_harness_learning_writeproposal",
-      "community_name": "Community 0"
+      "community_name": "Community 0",
+      "id": "lib_harness_learning_writeproposal"
     },
     {
       "label": "normalizedTopic()",
@@ -8547,8 +8503,8 @@
       "_origin": "ast",
       "community": 0,
       "norm_label": "normalizedtopic()",
-      "id": "lib_harness_learning_normalizedtopic",
-      "community_name": "Community 0"
+      "community_name": "Community 0",
+      "id": "lib_harness_learning_normalizedtopic"
     },
     {
       "label": "confidenceFor()",
@@ -8558,8 +8514,8 @@
       "_origin": "ast",
       "community": 0,
       "norm_label": "confidencefor()",
-      "id": "lib_harness_learning_confidencefor",
-      "community_name": "Community 0"
+      "community_name": "Community 0",
+      "id": "lib_harness_learning_confidencefor"
     },
     {
       "label": "evidenceSnapshot()",
@@ -8569,8 +8525,8 @@
       "_origin": "ast",
       "community": 0,
       "norm_label": "evidencesnapshot()",
-      "id": "lib_harness_learning_evidencesnapshot",
-      "community_name": "Community 0"
+      "community_name": "Community 0",
+      "id": "lib_harness_learning_evidencesnapshot"
     },
     {
       "label": "lessonFromObservation()",
@@ -8580,8 +8536,8 @@
       "_origin": "ast",
       "community": 0,
       "norm_label": "lessonfromobservation()",
-      "id": "lib_harness_learning_lessonfromobservation",
-      "community_name": "Community 0"
+      "community_name": "Community 0",
+      "id": "lib_harness_learning_lessonfromobservation"
     },
     {
       "label": "mergeLesson()",
@@ -8591,8 +8547,8 @@
       "_origin": "ast",
       "community": 0,
       "norm_label": "mergelesson()",
-      "id": "lib_harness_learning_mergelesson",
-      "community_name": "Community 0"
+      "community_name": "Community 0",
+      "id": "lib_harness_learning_mergelesson"
     },
     {
       "label": "consolidateObservations()",
@@ -8602,8 +8558,8 @@
       "_origin": "ast",
       "community": 0,
       "norm_label": "consolidateobservations()",
-      "id": "lib_harness_learning_consolidateobservations",
-      "community_name": "Community 0"
+      "community_name": "Community 0",
+      "id": "lib_harness_learning_consolidateobservations"
     },
     {
       "label": "reconcileLegacyLessons()",
@@ -8613,8 +8569,8 @@
       "_origin": "ast",
       "community": 0,
       "norm_label": "reconcilelegacylessons()",
-      "id": "lib_harness_learning_reconcilelegacylessons",
-      "community_name": "Community 0"
+      "community_name": "Community 0",
+      "id": "lib_harness_learning_reconcilelegacylessons"
     },
     {
       "label": "proposalReferenceFromObservation()",
@@ -8624,8 +8580,8 @@
       "_origin": "ast",
       "community": 0,
       "norm_label": "proposalreferencefromobservation()",
-      "id": "lib_harness_learning_proposalreferencefromobservation",
-      "community_name": "Community 0"
+      "community_name": "Community 0",
+      "id": "lib_harness_learning_proposalreferencefromobservation"
     },
     {
       "label": "consolidateProposalEvidence()",
@@ -8635,8 +8591,8 @@
       "_origin": "ast",
       "community": 0,
       "norm_label": "consolidateproposalevidence()",
-      "id": "lib_harness_learning_consolidateproposalevidence",
-      "community_name": "Community 0"
+      "community_name": "Community 0",
+      "id": "lib_harness_learning_consolidateproposalevidence"
     },
     {
       "label": "recordSnapshot()",
@@ -8646,8 +8602,8 @@
       "_origin": "ast",
       "community": 0,
       "norm_label": "recordsnapshot()",
-      "id": "lib_harness_learning_recordsnapshot",
-      "community_name": "Community 0"
+      "community_name": "Community 0",
+      "id": "lib_harness_learning_recordsnapshot"
     },
     {
       "label": "validateLearningReferenceIntegrity()",
@@ -8657,8 +8613,8 @@
       "_origin": "ast",
       "community": 0,
       "norm_label": "validatelearningreferenceintegrity()",
-      "id": "lib_harness_learning_validatelearningreferenceintegrity",
-      "community_name": "Community 0"
+      "community_name": "Community 0",
+      "id": "lib_harness_learning_validatelearningreferenceintegrity"
     },
     {
       "label": "validateEmbeddedReferences()",
@@ -8668,8 +8624,8 @@
       "_origin": "ast",
       "community": 0,
       "norm_label": "validateembeddedreferences()",
-      "id": "lib_harness_learning_validateembeddedreferences",
-      "community_name": "Community 0"
+      "community_name": "Community 0",
+      "id": "lib_harness_learning_validateembeddedreferences"
     },
     {
       "label": "transitions",
@@ -8679,8 +8635,8 @@
       "_origin": "ast",
       "community": 0,
       "norm_label": "transitions",
-      "id": "lib_harness_learning_transitions",
-      "community_name": "Community 0"
+      "community_name": "Community 0",
+      "id": "lib_harness_learning_transitions"
     },
     {
       "label": "createProposal()",
@@ -8690,8 +8646,8 @@
       "_origin": "ast",
       "community": 0,
       "norm_label": "createproposal()",
-      "id": "lib_harness_learning_createproposal",
-      "community_name": "Community 0"
+      "community_name": "Community 0",
+      "id": "lib_harness_learning_createproposal"
     },
     {
       "label": "transitionProposal()",
@@ -8701,8 +8657,8 @@
       "_origin": "ast",
       "community": 0,
       "norm_label": "transitionproposal()",
-      "id": "lib_harness_learning_transitionproposal",
-      "community_name": "Community 0"
+      "community_name": "Community 0",
+      "id": "lib_harness_learning_transitionproposal"
     },
     {
       "label": "daysSince()",
@@ -8712,8 +8668,8 @@
       "_origin": "ast",
       "community": 0,
       "norm_label": "dayssince()",
-      "id": "lib_harness_learning_dayssince",
-      "community_name": "Community 0"
+      "community_name": "Community 0",
+      "id": "lib_harness_learning_dayssince"
     },
     {
       "label": "markStaleLessons()",
@@ -8723,8 +8679,8 @@
       "_origin": "ast",
       "community": 0,
       "norm_label": "markstalelessons()",
-      "id": "lib_harness_learning_markstalelessons",
-      "community_name": "Community 0"
+      "community_name": "Community 0",
+      "id": "lib_harness_learning_markstalelessons"
     },
     {
       "label": "relevance()",
@@ -8734,8 +8690,8 @@
       "_origin": "ast",
       "community": 0,
       "norm_label": "relevance()",
-      "id": "lib_harness_learning_relevance",
-      "community_name": "Community 0"
+      "community_name": "Community 0",
+      "id": "lib_harness_learning_relevance"
     },
     {
       "label": "rejectedAt()",
@@ -8745,8 +8701,8 @@
       "_origin": "ast",
       "community": 0,
       "norm_label": "rejectedat()",
-      "id": "lib_harness_learning_rejectedat",
-      "community_name": "Community 0"
+      "community_name": "Community 0",
+      "id": "lib_harness_learning_rejectedat"
     },
     {
       "label": "retrieveLessons()",
@@ -8756,8 +8712,8 @@
       "_origin": "ast",
       "community": 0,
       "norm_label": "retrievelessons()",
-      "id": "lib_harness_learning_retrievelessons",
-      "community_name": "Community 0"
+      "community_name": "Community 0",
+      "id": "lib_harness_learning_retrievelessons"
     },
     {
       "label": "revalidateLesson()",
@@ -8767,8 +8723,8 @@
       "_origin": "ast",
       "community": 0,
       "norm_label": "revalidatelesson()",
-      "id": "lib_harness_learning_revalidatelesson",
-      "community_name": "Community 0"
+      "community_name": "Community 0",
+      "id": "lib_harness_learning_revalidatelesson"
     },
     {
       "label": "swarm-ledger-store.mjs",
@@ -8778,8 +8734,8 @@
       "_origin": "ast",
       "community": 9,
       "norm_label": "swarm-ledger-store.mjs",
-      "id": "lib_swarm_ledger_store",
-      "community_name": "Community 9"
+      "community_name": "Community 9",
+      "id": "lib_swarm_ledger_store"
     },
     {
       "label": "phases",
@@ -8789,8 +8745,8 @@
       "_origin": "ast",
       "community": 9,
       "norm_label": "phases",
-      "id": "lib_swarm_ledger_store_phases",
-      "community_name": "Community 9"
+      "community_name": "Community 9",
+      "id": "lib_swarm_ledger_store_phases"
     },
     {
       "label": "nonBlank()",
@@ -8800,8 +8756,8 @@
       "_origin": "ast",
       "community": 9,
       "norm_label": "nonblank()",
-      "id": "lib_swarm_ledger_store_nonblank",
-      "community_name": "Community 9"
+      "community_name": "Community 9",
+      "id": "lib_swarm_ledger_store_nonblank"
     },
     {
       "label": "assert()",
@@ -8811,8 +8767,8 @@
       "_origin": "ast",
       "community": 9,
       "norm_label": "assert()",
-      "id": "lib_swarm_ledger_store_assert",
-      "community_name": "Community 9"
+      "community_name": "Community 9",
+      "id": "lib_swarm_ledger_store_assert"
     },
     {
       "label": "validateObservation()",
@@ -8822,8 +8778,8 @@
       "_origin": "ast",
       "community": 9,
       "norm_label": "validateobservation()",
-      "id": "lib_swarm_ledger_store_validateobservation",
-      "community_name": "Community 9"
+      "community_name": "Community 9",
+      "id": "lib_swarm_ledger_store_validateobservation"
     },
     {
       "label": "safeLearningText()",
@@ -8833,8 +8789,8 @@
       "_origin": "ast",
       "community": 9,
       "norm_label": "safelearningtext()",
-      "id": "lib_swarm_ledger_store_safelearningtext",
-      "community_name": "Community 9"
+      "community_name": "Community 9",
+      "id": "lib_swarm_ledger_store_safelearningtext"
     },
     {
       "label": "validateLearningObservation()",
@@ -8844,8 +8800,8 @@
       "_origin": "ast",
       "community": 9,
       "norm_label": "validatelearningobservation()",
-      "id": "lib_swarm_ledger_store_validatelearningobservation",
-      "community_name": "Community 9"
+      "community_name": "Community 9",
+      "id": "lib_swarm_ledger_store_validatelearningobservation"
     },
     {
       "label": "validateDimensions()",
@@ -8855,8 +8811,8 @@
       "_origin": "ast",
       "community": 9,
       "norm_label": "validatedimensions()",
-      "id": "lib_swarm_ledger_store_validatedimensions",
-      "community_name": "Community 9"
+      "community_name": "Community 9",
+      "id": "lib_swarm_ledger_store_validatedimensions"
     },
     {
       "label": "expectedStatus()",
@@ -8866,8 +8822,8 @@
       "_origin": "ast",
       "community": 9,
       "norm_label": "expectedstatus()",
-      "id": "lib_swarm_ledger_store_expectedstatus",
-      "community_name": "Community 9"
+      "community_name": "Community 9",
+      "id": "lib_swarm_ledger_store_expectedstatus"
     },
     {
       "label": "validateStatusAndWeakestDimensions()",
@@ -8877,8 +8833,8 @@
       "_origin": "ast",
       "community": 9,
       "norm_label": "validatestatusandweakestdimensions()",
-      "id": "lib_swarm_ledger_store_validatestatusandweakestdimensions",
-      "community_name": "Community 9"
+      "community_name": "Community 9",
+      "id": "lib_swarm_ledger_store_validatestatusandweakestdimensions"
     },
     {
       "label": "validateEvolution()",
@@ -8888,8 +8844,8 @@
       "_origin": "ast",
       "community": 9,
       "norm_label": "validateevolution()",
-      "id": "lib_swarm_ledger_store_validateevolution",
-      "community_name": "Community 9"
+      "community_name": "Community 9",
+      "id": "lib_swarm_ledger_store_validateevolution"
     },
     {
       "label": "validateMetrics()",
@@ -8899,8 +8855,8 @@
       "_origin": "ast",
       "community": 9,
       "norm_label": "validatemetrics()",
-      "id": "lib_swarm_ledger_store_validatemetrics",
-      "community_name": "Community 9"
+      "community_name": "Community 9",
+      "id": "lib_swarm_ledger_store_validatemetrics"
     },
     {
       "label": "validateRun()",
@@ -8910,8 +8866,8 @@
       "_origin": "ast",
       "community": 9,
       "norm_label": "validaterun()",
-      "id": "lib_swarm_ledger_store_validaterun",
-      "community_name": "Community 9"
+      "community_name": "Community 9",
+      "id": "lib_swarm_ledger_store_validaterun"
     },
     {
       "label": "eventHash()",
@@ -8921,8 +8877,8 @@
       "_origin": "ast",
       "community": 9,
       "norm_label": "eventhash()",
-      "id": "lib_swarm_ledger_store_eventhash",
-      "community_name": "Community 9"
+      "community_name": "Community 9",
+      "id": "lib_swarm_ledger_store_eventhash"
     },
     {
       "label": "validateEventEnvelope()",
@@ -8932,8 +8888,8 @@
       "_origin": "ast",
       "community": 9,
       "norm_label": "validateeventenvelope()",
-      "id": "lib_swarm_ledger_store_validateeventenvelope",
-      "community_name": "Community 9"
+      "community_name": "Community 9",
+      "id": "lib_swarm_ledger_store_validateeventenvelope"
     },
     {
       "label": "validateTransitionEvent()",
@@ -8943,8 +8899,8 @@
       "_origin": "ast",
       "community": 9,
       "norm_label": "validatetransitionevent()",
-      "id": "lib_swarm_ledger_store_validatetransitionevent",
-      "community_name": "Community 9"
+      "community_name": "Community 9",
+      "id": "lib_swarm_ledger_store_validatetransitionevent"
     },
     {
       "label": "validateEvent()",
@@ -8954,8 +8910,8 @@
       "_origin": "ast",
       "community": 9,
       "norm_label": "validateevent()",
-      "id": "lib_swarm_ledger_store_validateevent",
-      "community_name": "Community 9"
+      "community_name": "Community 9",
+      "id": "lib_swarm_ledger_store_validateevent"
     },
     {
       "label": "normalizeLegacyRouteEvent()",
@@ -8965,8 +8921,8 @@
       "_origin": "ast",
       "community": 9,
       "norm_label": "normalizelegacyrouteevent()",
-      "id": "lib_swarm_ledger_store_normalizelegacyrouteevent",
-      "community_name": "Community 9"
+      "community_name": "Community 9",
+      "id": "lib_swarm_ledger_store_normalizelegacyrouteevent"
     },
     {
       "label": "runtimeProofStatus()",
@@ -8976,8 +8932,8 @@
       "_origin": "ast",
       "community": 9,
       "norm_label": "runtimeproofstatus()",
-      "id": "lib_swarm_ledger_store_runtimeproofstatus",
-      "community_name": "Community 9"
+      "community_name": "Community 9",
+      "id": "lib_swarm_ledger_store_runtimeproofstatus"
     },
     {
       "label": "readJournal()",
@@ -8987,8 +8943,8 @@
       "_origin": "ast",
       "community": 2,
       "norm_label": "readjournal()",
-      "id": "lib_swarm_ledger_store_readjournal",
-      "community_name": "Community 2"
+      "community_name": "Community 2",
+      "id": "lib_swarm_ledger_store_readjournal"
     },
     {
       "label": "scanJournal()",
@@ -8998,8 +8954,8 @@
       "_origin": "ast",
       "community": 9,
       "norm_label": "scanjournal()",
-      "id": "lib_swarm_ledger_store_scanjournal",
-      "community_name": "Community 9"
+      "community_name": "Community 9",
+      "id": "lib_swarm_ledger_store_scanjournal"
     },
     {
       "label": "journalLineBytes()",
@@ -9009,8 +8965,8 @@
       "_origin": "ast",
       "community": 9,
       "norm_label": "journallinebytes()",
-      "id": "lib_swarm_ledger_store_journallinebytes",
-      "community_name": "Community 9"
+      "community_name": "Community 9",
+      "id": "lib_swarm_ledger_store_journallinebytes"
     },
     {
       "label": "recoverInvalidTail()",
@@ -9020,8 +8976,8 @@
       "_origin": "ast",
       "community": 9,
       "norm_label": "recoverinvalidtail()",
-      "id": "lib_swarm_ledger_store_recoverinvalidtail",
-      "community_name": "Community 9"
+      "community_name": "Community 9",
+      "id": "lib_swarm_ledger_store_recoverinvalidtail"
     },
     {
       "label": "reconstructJournal()",
@@ -9031,8 +8987,8 @@
       "_origin": "ast",
       "community": 9,
       "norm_label": "reconstructjournal()",
-      "id": "lib_swarm_ledger_store_reconstructjournal",
-      "community_name": "Community 9"
+      "community_name": "Community 9",
+      "id": "lib_swarm_ledger_store_reconstructjournal"
     },
     {
       "label": "addRecordedRun()",
@@ -9042,8 +8998,8 @@
       "_origin": "ast",
       "community": 9,
       "norm_label": "addrecordedrun()",
-      "id": "lib_swarm_ledger_store_addrecordedrun",
-      "community_name": "Community 9"
+      "community_name": "Community 9",
+      "id": "lib_swarm_ledger_store_addrecordedrun"
     },
     {
       "label": "validateRunRoutingLink()",
@@ -9053,8 +9009,8 @@
       "_origin": "ast",
       "community": 9,
       "norm_label": "validaterunroutinglink()",
-      "id": "lib_swarm_ledger_store_validaterunroutinglink",
-      "community_name": "Community 9"
+      "community_name": "Community 9",
+      "id": "lib_swarm_ledger_store_validaterunroutinglink"
     },
     {
       "label": "applyRunTransition()",
@@ -9064,8 +9020,8 @@
       "_origin": "ast",
       "community": 9,
       "norm_label": "applyruntransition()",
-      "id": "lib_swarm_ledger_store_applyruntransition",
-      "community_name": "Community 9"
+      "community_name": "Community 9",
+      "id": "lib_swarm_ledger_store_applyruntransition"
     },
     {
       "label": "appendEvent()",
@@ -9075,8 +9031,8 @@
       "_origin": "ast",
       "community": 9,
       "norm_label": "appendevent()",
-      "id": "lib_swarm_ledger_store_appendevent",
-      "community_name": "Community 9"
+      "community_name": "Community 9",
+      "id": "lib_swarm_ledger_store_appendevent"
     },
     {
       "label": "swarm-router.mjs",
@@ -9086,8 +9042,8 @@
       "_origin": "ast",
       "community": 4,
       "norm_label": "swarm-router.mjs",
-      "id": "lib_swarm_router",
-      "community_name": "Community 4"
+      "community_name": "Community 4",
+      "id": "lib_swarm_router"
     },
     {
       "label": "riskSignals",
@@ -9097,8 +9053,8 @@
       "_origin": "ast",
       "community": 4,
       "norm_label": "risksignals",
-      "id": "lib_swarm_router_risksignals",
-      "community_name": "Community 4"
+      "community_name": "Community 4",
+      "id": "lib_swarm_router_risksignals"
     },
     {
       "label": "bool()",
@@ -9108,8 +9064,8 @@
       "_origin": "ast",
       "community": 4,
       "norm_label": "bool()",
-      "id": "lib_swarm_router_bool",
-      "community_name": "Community 4"
+      "community_name": "Community 4",
+      "id": "lib_swarm_router_bool"
     },
     {
       "label": "hasMaterialRisk()",
@@ -9119,8 +9075,8 @@
       "_origin": "ast",
       "community": 4,
       "norm_label": "hasmaterialrisk()",
-      "id": "lib_swarm_router_hasmaterialrisk",
-      "community_name": "Community 4"
+      "community_name": "Community 4",
+      "id": "lib_swarm_router_hasmaterialrisk"
     },
     {
       "label": "normalizedSignals()",
@@ -9130,8 +9086,8 @@
       "_origin": "ast",
       "community": 4,
       "norm_label": "normalizedsignals()",
-      "id": "lib_swarm_router_normalizedsignals",
-      "community_name": "Community 4"
+      "community_name": "Community 4",
+      "id": "lib_swarm_router_normalizedsignals"
     },
     {
       "label": "recommendSwarmRoute()",
@@ -9141,8 +9097,8 @@
       "_origin": "ast",
       "community": 4,
       "norm_label": "recommendswarmroute()",
-      "id": "lib_swarm_router_recommendswarmroute",
-      "community_name": "Community 4"
+      "community_name": "Community 4",
+      "id": "lib_swarm_router_recommendswarmroute"
     },
     {
       "label": "routingRules",
@@ -9152,8 +9108,8 @@
       "_origin": "ast",
       "community": 4,
       "norm_label": "routingrules",
-      "id": "lib_swarm_router_routingrules",
-      "community_name": "Community 4"
+      "community_name": "Community 4",
+      "id": "lib_swarm_router_routingrules"
     },
     {
       "label": "executorSelection()",
@@ -9163,8 +9119,8 @@
       "_origin": "ast",
       "community": 4,
       "norm_label": "executorselection()",
-      "id": "lib_swarm_router_executorselection",
-      "community_name": "Community 4"
+      "community_name": "Community 4",
+      "id": "lib_swarm_router_executorselection"
     },
     {
       "label": "createRoutingDecision()",
@@ -9174,8 +9130,8 @@
       "_origin": "ast",
       "community": 4,
       "norm_label": "createroutingdecision()",
-      "id": "lib_swarm_router_createroutingdecision",
-      "community_name": "Community 4"
+      "community_name": "Community 4",
+      "id": "lib_swarm_router_createroutingdecision"
     },
     {
       "label": "defaultValue()",
@@ -9185,8 +9141,8 @@
       "_origin": "ast",
       "community": 4,
       "norm_label": "defaultvalue()",
-      "id": "lib_swarm_router_defaultvalue",
-      "community_name": "Community 4"
+      "community_name": "Community 4",
+      "id": "lib_swarm_router_defaultvalue"
     },
     {
       "label": "unverifiedRuntimeProof()",
@@ -9196,8 +9152,8 @@
       "_origin": "ast",
       "community": 4,
       "norm_label": "unverifiedruntimeproof()",
-      "id": "lib_swarm_router_unverifiedruntimeproof",
-      "community_name": "Community 4"
+      "community_name": "Community 4",
+      "id": "lib_swarm_router_unverifiedruntimeproof"
     },
     {
       "label": "harness-learning.test.mjs",
@@ -9207,8 +9163,8 @@
       "_origin": "ast",
       "community": 0,
       "norm_label": "harness-learning.test.mjs",
-      "id": "tests_harness_learning_test",
-      "community_name": "Community 0"
+      "community_name": "Community 0",
+      "id": "tests_harness_learning_test"
     },
     {
       "label": "scriptsDir",
@@ -9218,8 +9174,8 @@
       "_origin": "ast",
       "community": 0,
       "norm_label": "scriptsdir",
-      "id": "tests_harness_learning_test_scriptsdir",
-      "community_name": "Community 0"
+      "community_name": "Community 0",
+      "id": "tests_harness_learning_test_scriptsdir"
     },
     {
       "label": "learningScript",
@@ -9229,8 +9185,8 @@
       "_origin": "ast",
       "community": 0,
       "norm_label": "learningscript",
-      "id": "tests_harness_learning_test_learningscript",
-      "community_name": "Community 0"
+      "community_name": "Community 0",
+      "id": "tests_harness_learning_test_learningscript"
     },
     {
       "label": "recordRunScript",
@@ -9240,8 +9196,8 @@
       "_origin": "ast",
       "community": 0,
       "norm_label": "recordrunscript",
-      "id": "tests_harness_learning_test_recordrunscript",
-      "community_name": "Community 0"
+      "community_name": "Community 0",
+      "id": "tests_harness_learning_test_recordrunscript"
     },
     {
       "label": "routeScript",
@@ -9251,8 +9207,8 @@
       "_origin": "ast",
       "community": 0,
       "norm_label": "routescript",
-      "id": "tests_harness_learning_test_routescript",
-      "community_name": "Community 0"
+      "community_name": "Community 0",
+      "id": "tests_harness_learning_test_routescript"
     },
     {
       "label": "evolveScript",
@@ -9262,8 +9218,8 @@
       "_origin": "ast",
       "community": 0,
       "norm_label": "evolvescript",
-      "id": "tests_harness_learning_test_evolvescript",
-      "community_name": "Community 0"
+      "community_name": "Community 0",
+      "id": "tests_harness_learning_test_evolvescript"
     },
     {
       "label": "temporaryDirectory()",
@@ -9273,8 +9229,8 @@
       "_origin": "ast",
       "community": 0,
       "norm_label": "temporarydirectory()",
-      "id": "tests_harness_learning_test_temporarydirectory",
-      "community_name": "Community 0"
+      "community_name": "Community 0",
+      "id": "tests_harness_learning_test_temporarydirectory"
     },
     {
       "label": "run()",
@@ -9284,8 +9240,8 @@
       "_origin": "ast",
       "community": 0,
       "norm_label": "run()",
-      "id": "tests_harness_learning_test_run",
-      "community_name": "Community 0"
+      "community_name": "Community 0",
+      "id": "tests_harness_learning_test_run"
     },
     {
       "label": "fail()",
@@ -9295,8 +9251,8 @@
       "_origin": "ast",
       "community": 0,
       "norm_label": "fail()",
-      "id": "tests_harness_learning_test_fail",
-      "community_name": "Community 0"
+      "community_name": "Community 0",
+      "id": "tests_harness_learning_test_fail"
     },
     {
       "label": "observationArgs()",
@@ -9306,8 +9262,8 @@
       "_origin": "ast",
       "community": 0,
       "norm_label": "observationargs()",
-      "id": "tests_harness_learning_test_observationargs",
-      "community_name": "Community 0"
+      "community_name": "Community 0",
+      "id": "tests_harness_learning_test_observationargs"
     },
     {
       "label": "route()",
@@ -9317,8 +9273,8 @@
       "_origin": "ast",
       "community": 0,
       "norm_label": "route()",
-      "id": "tests_harness_learning_test_route",
-      "community_name": "Community 0"
+      "community_name": "Community 0",
+      "id": "tests_harness_learning_test_route"
     },
     {
       "label": "recordRun()",
@@ -9328,8 +9284,8 @@
       "_origin": "ast",
       "community": 0,
       "norm_label": "recordrun()",
-      "id": "tests_harness_learning_test_recordrun",
-      "community_name": "Community 0"
+      "community_name": "Community 0",
+      "id": "tests_harness_learning_test_recordrun"
     },
     {
       "label": "swarm-evolution.test.mjs",
@@ -9339,8 +9295,8 @@
       "_origin": "ast",
       "community": 5,
       "norm_label": "swarm-evolution.test.mjs",
-      "id": "tests_swarm_evolution_test",
-      "community_name": "Community 5"
+      "community_name": "Community 5",
+      "id": "tests_swarm_evolution_test"
     },
     {
       "label": "scriptsDir",
@@ -9350,8 +9306,8 @@
       "_origin": "ast",
       "community": 5,
       "norm_label": "scriptsdir",
-      "id": "tests_swarm_evolution_test_scriptsdir",
-      "community_name": "Community 5"
+      "community_name": "Community 5",
+      "id": "tests_swarm_evolution_test_scriptsdir"
     },
     {
       "label": "recordScript",
@@ -9361,8 +9317,8 @@
       "_origin": "ast",
       "community": 5,
       "norm_label": "recordscript",
-      "id": "tests_swarm_evolution_test_recordscript",
-      "community_name": "Community 5"
+      "community_name": "Community 5",
+      "id": "tests_swarm_evolution_test_recordscript"
     },
     {
       "label": "routeScript",
@@ -9372,8 +9328,8 @@
       "_origin": "ast",
       "community": 5,
       "norm_label": "routescript",
-      "id": "tests_swarm_evolution_test_routescript",
-      "community_name": "Community 5"
+      "community_name": "Community 5",
+      "id": "tests_swarm_evolution_test_routescript"
     },
     {
       "label": "evolveScript",
@@ -9383,8 +9339,8 @@
       "_origin": "ast",
       "community": 5,
       "norm_label": "evolvescript",
-      "id": "tests_swarm_evolution_test_evolvescript",
-      "community_name": "Community 5"
+      "community_name": "Community 5",
+      "id": "tests_swarm_evolution_test_evolvescript"
     },
     {
       "label": "ledgerScript",
@@ -9394,8 +9350,8 @@
       "_origin": "ast",
       "community": 5,
       "norm_label": "ledgerscript",
-      "id": "tests_swarm_evolution_test_ledgerscript",
-      "community_name": "Community 5"
+      "community_name": "Community 5",
+      "id": "tests_swarm_evolution_test_ledgerscript"
     },
     {
       "label": "fixtures",
@@ -9405,8 +9361,8 @@
       "_origin": "ast",
       "community": 5,
       "norm_label": "fixtures",
-      "id": "tests_swarm_evolution_test_fixtures",
-      "community_name": "Community 5"
+      "community_name": "Community 5",
+      "id": "tests_swarm_evolution_test_fixtures"
     },
     {
       "label": "temporaryDirectory()",
@@ -9416,8 +9372,8 @@
       "_origin": "ast",
       "community": 5,
       "norm_label": "temporarydirectory()",
-      "id": "tests_swarm_evolution_test_temporarydirectory",
-      "community_name": "Community 5"
+      "community_name": "Community 5",
+      "id": "tests_swarm_evolution_test_temporarydirectory"
     },
     {
       "label": "recordArgs()",
@@ -9427,8 +9383,8 @@
       "_origin": "ast",
       "community": 5,
       "norm_label": "recordargs()",
-      "id": "tests_swarm_evolution_test_recordargs",
-      "community_name": "Community 5"
+      "community_name": "Community 5",
+      "id": "tests_swarm_evolution_test_recordargs"
     },
     {
       "label": "routeArgs()",
@@ -9438,8 +9394,8 @@
       "_origin": "ast",
       "community": 5,
       "norm_label": "routeargs()",
-      "id": "tests_swarm_evolution_test_routeargs",
-      "community_name": "Community 5"
+      "community_name": "Community 5",
+      "id": "tests_swarm_evolution_test_routeargs"
     },
     {
       "label": "run()",
@@ -9449,8 +9405,8 @@
       "_origin": "ast",
       "community": 5,
       "norm_label": "run()",
-      "id": "tests_swarm_evolution_test_run",
-      "community_name": "Community 5"
+      "community_name": "Community 5",
+      "id": "tests_swarm_evolution_test_run"
     },
     {
       "label": "injectPriorRoute()",
@@ -9460,8 +9416,8 @@
       "_origin": "ast",
       "community": 5,
       "norm_label": "injectpriorroute()",
-      "id": "tests_swarm_evolution_test_injectpriorroute",
-      "community_name": "Community 5"
+      "community_name": "Community 5",
+      "id": "tests_swarm_evolution_test_injectpriorroute"
     },
     {
       "label": "fail()",
@@ -9471,8 +9427,8 @@
       "_origin": "ast",
       "community": 5,
       "norm_label": "fail()",
-      "id": "tests_swarm_evolution_test_fail",
-      "community_name": "Community 5"
+      "community_name": "Community 5",
+      "id": "tests_swarm_evolution_test_fail"
     },
     {
       "label": "legacyRouteEvent()",
@@ -9482,8 +9438,8 @@
       "_origin": "ast",
       "community": 5,
       "norm_label": "legacyrouteevent()",
-      "id": "tests_swarm_evolution_test_legacyrouteevent",
-      "community_name": "Community 5"
+      "community_name": "Community 5",
+      "id": "tests_swarm_evolution_test_legacyrouteevent"
     },
     {
       "label": "evolve()",
@@ -9493,8 +9449,8 @@
       "_origin": "ast",
       "community": 5,
       "norm_label": "evolve()",
-      "id": "tests_swarm_evolution_test_evolve",
-      "community_name": "Community 5"
+      "community_name": "Community 5",
+      "id": "tests_swarm_evolution_test_evolve"
     },
     {
       "label": "createStaleLock()",
@@ -9504,8 +9460,8 @@
       "_origin": "ast",
       "community": 5,
       "norm_label": "createstalelock()",
-      "id": "tests_swarm_evolution_test_createstalelock",
-      "community_name": "Community 5"
+      "community_name": "Community 5",
+      "id": "tests_swarm_evolution_test_createstalelock"
     },
     {
       "label": "writeDeadLockOwner()",
@@ -9515,8 +9471,52 @@
       "_origin": "ast",
       "community": 5,
       "norm_label": "writedeadlockowner()",
-      "id": "tests_swarm_evolution_test_writedeadlockowner",
-      "community_name": "Community 5"
+      "community_name": "Community 5",
+      "id": "tests_swarm_evolution_test_writedeadlockowner"
+    },
+    {
+      "label": "harness-validation.test.mjs",
+      "file_type": "code",
+      "source_file": "tests/harness-validation.test.mjs",
+      "source_location": "L1",
+      "_origin": "ast",
+      "community": 18,
+      "norm_label": "harness-validation.test.mjs",
+      "id": "tests_harness_validation_test",
+      "community_name": "Community 18"
+    },
+    {
+      "label": "registry()",
+      "file_type": "code",
+      "source_file": "tests/harness-validation.test.mjs",
+      "source_location": "L29",
+      "_origin": "ast",
+      "community": 18,
+      "norm_label": "registry()",
+      "id": "tests_harness_validation_test_registry",
+      "community_name": "Community 18"
+    },
+    {
+      "label": "cucumberFixture()",
+      "file_type": "code",
+      "source_file": "tests/harness-validation.test.mjs",
+      "source_location": "L101",
+      "_origin": "ast",
+      "community": 18,
+      "norm_label": "cucumberfixture()",
+      "id": "tests_harness_validation_test_cucumberfixture",
+      "community_name": "Community 18"
+    },
+    {
+      "label": "cucumberRegistry()",
+      "file_type": "code",
+      "source_file": "tests/harness-validation.test.mjs",
+      "source_location": "L115",
+      "_origin": "ast",
+      "community": 18,
+      "norm_label": "cucumberregistry()",
+      "id": "tests_harness_validation_test_cucumberregistry",
+      "community_name": "Community 18"
     }
   ],
   "links": [
@@ -18684,17 +18684,6 @@
       "target": "lib_cucumber_runtime_fingerprint"
     },
     {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "tests/harness-validation.test.mjs",
-      "source_location": "L23",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "tests_harness_validation_test",
-      "target": "lib_cucumber_runtime_fingerprint"
-    },
-    {
       "relation": "calls",
       "context": "call",
       "confidence": "EXTRACTED",
@@ -20800,17 +20789,6 @@
       "target": "lib_harness_validation"
     },
     {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "tests/harness-validation.test.mjs",
-      "source_location": "L8",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "tests_harness_validation_test",
-      "target": "lib_harness_validation"
-    },
-    {
       "relation": "calls",
       "context": "call",
       "confidence": "EXTRACTED",
@@ -20863,28 +20841,6 @@
       "weight": 1.0,
       "confidence_score": 1.0,
       "source": "tests_harness_validation_test",
-      "target": "lib_harness_validation_validatevalidationregistry"
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "source_file": "tests/harness-validation.test.mjs",
-      "source_location": "L116",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "tests_harness_validation_test_cucumberregistry",
-      "target": "lib_harness_validation_validatevalidationregistry"
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "source_file": "tests/harness-validation.test.mjs",
-      "source_location": "L30",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "tests_harness_validation_test_registry",
       "target": "lib_harness_validation_validatevalidationregistry"
     },
     {
@@ -22058,36 +22014,6 @@
       "confidence_score": 1.0,
       "source": "tests_harness_selection_test",
       "target": "tests_harness_selection_test_scriptsdir"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "tests/harness-validation.test.mjs",
-      "source_location": "L101",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "tests_harness_validation_test",
-      "target": "tests_harness_validation_test_cucumberfixture"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "tests/harness-validation.test.mjs",
-      "source_location": "L115",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "tests_harness_validation_test",
-      "target": "tests_harness_validation_test_cucumberregistry"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "tests/harness-validation.test.mjs",
-      "source_location": "L29",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "tests_harness_validation_test",
-      "target": "tests_harness_validation_test_registry"
     },
     {
       "relation": "imports",
@@ -25366,8 +25292,38 @@
       "confidence_score": 1.0,
       "source": "tests_swarm_evolution_test_createstalelock",
       "target": "tests_swarm_evolution_test_writedeadlockowner"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/harness-validation.test.mjs",
+      "source_location": "L101",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "tests_harness_validation_test",
+      "target": "tests_harness_validation_test_cucumberfixture"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/harness-validation.test.mjs",
+      "source_location": "L115",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "tests_harness_validation_test",
+      "target": "tests_harness_validation_test_cucumberregistry"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/harness-validation.test.mjs",
+      "source_location": "L29",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "tests_harness_validation_test",
+      "target": "tests_harness_validation_test_registry"
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "76b2d136764f7356a4d2a4beda6d9924e588a0fb"
+  "built_at_commit": "6b0e8daa942322a845db78c8f4d48a0e8d27b7c8"
 }

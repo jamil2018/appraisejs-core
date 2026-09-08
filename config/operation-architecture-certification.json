@@ -56,7 +56,9 @@
   "repositoryAbsence": {
     "passed": true,
     "matches": [],
-    "scannedRoots": ["."],
+    "scannedRoots": [
+      "."
+    ],
     "allowlist": [
       "^codex\\/development plan\\/.*\\.md$",
       "^scripts\\/certify-operation-architecture\\.ts$",
