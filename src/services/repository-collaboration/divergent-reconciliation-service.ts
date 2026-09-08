@@ -33,6 +33,7 @@ import {
 import { activeRedeemedHandoffTicket } from './handoff-ticket-session-service'
 
 type Transaction = Prisma.TransactionClient
+type DivergentOperationWithBinding = Prisma.CollaborationOperationGetPayload<{ include: { binding: true } }>
 
 const divergentDecisionRecordKey = '__appraise_divergent_proposal__'
 
@@ -161,6 +162,39 @@ async function assertLockedDivergentRepositoryIdentity(
     binding.remoteName,
     hooks?.inspectRepository,
   )
+}
+
+/** Runs a worktree removal under the shared Git common-directory fence. The
+ * caller owns the durable meaning of the cleanup result, but certification is
+ * always made while the same lease still proves both repository identities. */
+async function cleanupDivergentWorktreeUnderMutationLease(input: {
+  operation: DivergentOperationWithBinding
+  preparation: DivergentReconciliationPreparation
+  expectedSnapshotHash?: string
+  client: PrismaClient
+  hooks?: DivergentGitMutationHooks
+  recordCleanup: (
+    cleanup: Awaited<ReturnType<typeof cleanupDivergentReconciliationWorktree>>,
+    lease: CollaborationMutationLease,
+  ) => Promise<void>
+}) {
+  const identity = await inspectRepository(input.operation.binding.repositoryRoot, input.operation.binding.remoteName)
+  const lease = await input.client.$transaction(transaction =>
+    acquireCollaborationGitMutationLock(transaction, identity.commonDirectory, input.operation.id),
+  )
+  try {
+    return await withCollaborationGitMutationLeaseHeartbeat(input.client, lease, async () => {
+      await assertLockedDivergentRepositoryIdentity(input.operation.binding, identity.commonDirectory, input.hooks)
+      const cleanup = await cleanupDivergentReconciliationWorktree(input.preparation, {
+        expectedSnapshotHash: input.expectedSnapshotHash,
+      })
+      await assertLockedDivergentRepositoryIdentity(input.operation.binding, identity.commonDirectory, input.hooks)
+      await input.recordCleanup(cleanup, lease)
+      return cleanup
+    })
+  } finally {
+    await input.client.$transaction(transaction => releaseCollaborationGitMutationLock(transaction, lease))
+  }
 }
 
 /**
@@ -527,32 +561,29 @@ export async function cleanupRejectedDivergentCollaborationWorktree(
   } catch {
     throw new ServiceError('The rejected divergent proposal has no exact reviewed snapshot.', 'CONFLICT', 409)
   }
-  const identity = await inspectRepository(operation.binding.repositoryRoot, operation.binding.remoteName)
-  const lease = await client.$transaction(transaction =>
-    acquireCollaborationGitMutationLock(transaction, identity.commonDirectory, operation.id),
-  )
   try {
-    return await withCollaborationGitMutationLeaseHeartbeat(client, lease, async () => {
-      await assertLockedDivergentRepositoryIdentity(operation.binding, identity.commonDirectory, hooks)
-      // The reviewed artifact names the sole collaboration-only worktree
-      // delta that may be removed. Any altered or foreign content is retained.
-      const cleanup = await cleanupDivergentReconciliationWorktree(preparation, {
-        expectedSnapshotHash: proposedSnapshotHash,
-      })
-      await assertLockedDivergentRepositoryIdentity(operation.binding, identity.commonDirectory, hooks)
-      if (cleanup.status === 'RETAINED_FOR_RECOVERY')
-        throw new ServiceError('Rejected proposal worktree was retained for recovery.', 'CONFLICT', 409, cleanup)
-      await client.$transaction(async transaction => {
-        await assertCollaborationGitMutationLock(transaction, lease)
-        await appendCollaborationJournalEntry(
-          transaction,
-          operation.id,
-          'DIVERGENT_PROPOSAL_REJECT_CLEANUP',
-          cleanup,
-          'COMPLETED',
-        )
-      })
-      return cleanup
+    return await cleanupDivergentWorktreeUnderMutationLease({
+      operation,
+      preparation,
+      expectedSnapshotHash: proposedSnapshotHash,
+      client,
+      hooks,
+      recordCleanup: async (cleanup, lease) => {
+        // The reviewed artifact names the sole collaboration-only worktree
+        // delta that may be removed. Any altered or foreign content is retained.
+        if (cleanup.status === 'RETAINED_FOR_RECOVERY')
+          throw new ServiceError('Rejected proposal worktree was retained for recovery.', 'CONFLICT', 409, cleanup)
+        await client.$transaction(async transaction => {
+          await assertCollaborationGitMutationLock(transaction, lease)
+          await appendCollaborationJournalEntry(
+            transaction,
+            operation.id,
+            'DIVERGENT_PROPOSAL_REJECT_CLEANUP',
+            cleanup,
+            'COMPLETED',
+          )
+        })
+      },
     })
   } catch (error) {
     // This is a blocker, not evidence that cleanup completed. The durable
@@ -568,8 +599,6 @@ export async function cleanupRejectedDivergentCollaborationWorktree(
       },
     })
     throw asServiceError(error)
-  } finally {
-    await client.$transaction(transaction => releaseCollaborationGitMutationLock(transaction, lease))
   }
 }
 
@@ -718,15 +747,12 @@ export async function recoverDivergentCollaborationWorktree(
   if (collaborationHash(input.preparation) !== collaborationHash(preparation)) {
     throw new ServiceError('The divergent recovery request does not match its durable preparation.', 'CONFLICT', 409)
   }
-  const identity = await inspectRepository(operation.binding.repositoryRoot, operation.binding.remoteName)
-  const lease = await client.$transaction(transaction =>
-    acquireCollaborationGitMutationLock(transaction, identity.commonDirectory, operation.id),
-  )
-  try {
-    return await withCollaborationGitMutationLeaseHeartbeat(client, lease, async () => {
-      await assertLockedDivergentRepositoryIdentity(operation.binding, identity.commonDirectory, hooks)
-      const outcome = await cleanupDivergentReconciliationWorktree(preparation)
-      await assertLockedDivergentRepositoryIdentity(operation.binding, identity.commonDirectory, hooks)
+  return cleanupDivergentWorktreeUnderMutationLease({
+    operation,
+    preparation,
+    client,
+    hooks,
+    recordCleanup: async (outcome, lease) => {
       await client.$transaction(async transaction => {
         await assertCollaborationGitMutationLock(transaction, lease)
         await appendCollaborationJournalEntry(
@@ -737,9 +763,6 @@ export async function recoverDivergentCollaborationWorktree(
           'COMPLETED',
         )
       })
-      return outcome
-    })
-  } finally {
-    await client.$transaction(transaction => releaseCollaborationGitMutationLock(transaction, lease))
-  }
+    },
+  })
 }

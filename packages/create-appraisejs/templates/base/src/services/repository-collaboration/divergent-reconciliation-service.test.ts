@@ -289,7 +289,14 @@ describe('divergent reconciliation service ownership', () => {
       code: 'CONFLICT',
     })
     await fs.access(preparation.worktreePath)
+    expect(await client.collaborationOperation.findUniqueOrThrow({ where: { id: operation.id } })).toMatchObject({
+      state: 'BLOCKED',
+    })
     await client.$transaction(transaction => releaseCollaborationGitMutationLock(transaction, competingLease))
+    await client.collaborationOperation.update({
+      where: { id: operation.id },
+      data: { state: 'CANCELLED', blockerJson: null },
+    })
     await expect(cleanupRejectedDivergentCollaborationWorktree(operation.id, client)).resolves.toEqual({
       status: 'REMOVED',
     })
