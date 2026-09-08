@@ -9,6 +9,7 @@ import { copyMigratedTestDatabase } from '@/test/migrated-test-database'
 
 import {
   acquireCollaborationGitMutationLock,
+  assertCollaborationGitMutationIdentity,
   assertCollaborationGitMutationLock,
   renewCollaborationGitMutationLock,
   releaseCollaborationGitMutationLock,
@@ -31,6 +32,15 @@ async function fixture() {
 }
 
 describe('collaboration Git mutation lock', () => {
+  it('rejects a retargeted repository path through the deterministic identity seam', async () => {
+    const inspect = vi.fn(async () => ({ commonDirectory: '/different/common.git' }))
+
+    await expect(
+      assertCollaborationGitMutationIdentity('/configured/repository', '/locked/common.git', undefined, inspect),
+    ).rejects.toMatchObject({ code: 'CONFLICT' })
+    expect(inspect).toHaveBeenCalledWith('/configured/repository', undefined)
+  })
+
   it('uses owner and fencing CAS for renewal, rejection, and eventual replacement', async () => {
     const client = await fixture()
     const started = new Date('2026-09-09T00:00:00.000Z')

@@ -30,12 +30,13 @@ describe('Journey-only coordinator boundary', () => {
     })
   })
 
-  it('reports a collaboration mutation with an operation id as an unknown durable outcome', async () => {
+  it('reports an unknown outcome only after an explicit external-effect signal', async () => {
     const response = responseError(new ServiceError('remote response was lost', 'INTERNAL', 500), {
       operation: 'collaboration/execute',
       target: 'target-1',
       operationId: 'operation-1',
       idempotencyKey: 'execute-1',
+      effectStarted: true,
     })
     await expect(response.json()).resolves.toMatchObject({
       schema: 'appraise.error/v1',
@@ -48,6 +49,19 @@ describe('Journey-only coordinator boundary', () => {
           arguments: { target: 'target-1', operationId: 'operation-1' },
         },
       },
+    })
+  })
+
+  it('does not infer an effect from a collaboration endpoint name', async () => {
+    const response = responseError(new ServiceError('remote response was lost', 'INTERNAL', 500), {
+      operation: 'collaboration/prepare',
+      target: 'target-1',
+      operationId: 'operation-1',
+    })
+    await expect(response.json()).resolves.toMatchObject({
+      operationOutcome: 'not_started',
+      targetOutcome: 'not_committed',
+      retry: { safe: false, strategy: 'do_not_retry' },
     })
   })
 

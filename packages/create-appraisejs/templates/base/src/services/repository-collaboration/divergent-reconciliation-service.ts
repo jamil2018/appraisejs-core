@@ -23,10 +23,12 @@ import { requireCollaborationPermission } from './binding-service'
 import { appendCollaborationJournalEntry } from './collaboration-journal-service'
 import {
   acquireCollaborationGitMutationLock,
+  assertCollaborationGitMutationIdentity,
   assertCollaborationGitMutationLock,
   releaseCollaborationGitMutationLock,
   withCollaborationGitMutationLeaseHeartbeat,
   type CollaborationMutationLease,
+  type CollaborationGitIdentityInspector,
 } from './git-mutation-lock-service'
 import { activeRedeemedHandoffTicket } from './handoff-ticket-session-service'
 
@@ -56,6 +58,11 @@ export type DivergentProposalHooks = {
   /** Test-only seam for proving that a lease replacement after filesystem
    * validation cannot persist a stale proposal. */
   afterValidation?: () => Promise<void> | void
+}
+
+export type DivergentGitMutationHooks = {
+  /** Test-only seam for path-retarget races around filesystem effects. */
+  inspectRepository?: CollaborationGitIdentityInspector
 }
 
 function currentProposalPersistenceTime() {
@@ -136,11 +143,24 @@ async function acquirePreparationLease(
     )
     return acquired
   })
-  return { operation, lease }
+  return { operation, lease, commonDirectory: identity.commonDirectory }
 }
 
 async function releasePreparationLease(client: PrismaClient, lease: CollaborationMutationLease) {
   await client.$transaction(transaction => releaseCollaborationGitMutationLock(transaction, lease))
+}
+
+async function assertLockedDivergentRepositoryIdentity(
+  binding: { repositoryRoot: string; remoteName: string },
+  commonDirectory: string,
+  hooks?: DivergentGitMutationHooks,
+) {
+  await assertCollaborationGitMutationIdentity(
+    binding.repositoryRoot,
+    commonDirectory,
+    binding.remoteName,
+    hooks?.inspectRepository,
+  )
 }
 
 /**
@@ -151,17 +171,21 @@ async function releasePreparationLease(client: PrismaClient, lease: Collaboratio
 export async function prepareDivergentCollaborationReconciliation(
   input: { operationId: string; expectedVersion: number; preparedDigest: string; queueAfterPreparation?: boolean },
   client: PrismaClient = prisma,
+  hooks?: DivergentGitMutationHooks,
 ): Promise<DivergentReconciliationPreparation> {
   const started = await acquirePreparationLease(client, input)
   try {
-    const preparation = await withCollaborationGitMutationLeaseHeartbeat(client, started.lease, () =>
-      prepareDivergentReconciliation({
+    const preparation = await withCollaborationGitMutationLeaseHeartbeat(client, started.lease, async () => {
+      await assertLockedDivergentRepositoryIdentity(started.operation.binding, started.commonDirectory, hooks)
+      const prepared = await prepareDivergentReconciliation({
         repositoryRoot: started.operation.binding.repositoryRoot,
         operationId: started.operation.id,
         sourceRevision: started.operation.sourceRevision!,
         targetRevision: started.operation.targetRevision!,
-      }),
-    )
+      })
+      await assertLockedDivergentRepositoryIdentity(started.operation.binding, started.commonDirectory, hooks)
+      return prepared
+    })
     await client.$transaction(async transaction => {
       await assertCollaborationGitMutationLock(transaction, started.lease)
       const operation = await loadPreparedOperation(transaction, input)
@@ -263,6 +287,33 @@ async function assertFreshWorkerFence(transaction: Transaction, fence: Divergent
   await activeRedeemedHandoffTicket(transaction, worker, now)
 }
 
+async function assertProposalHasNoDecisionOrAcceptance(
+  transaction: Transaction,
+  operation: Pick<CollaborationOperation, 'id' | 'acceptedDigest'>,
+) {
+  const [decision, acceptedArtifact, reviewedArtifact] = await Promise.all([
+    transaction.collaborationDecision.findFirst({
+      where: { operationId: operation.id },
+      select: { id: true },
+    }),
+    transaction.collaborationOperationArtifact.findFirst({
+      where: { operationId: operation.id, kind: 'DIVERGENT_ACCEPTED_PROPOSAL' },
+      select: { id: true },
+    }),
+    transaction.collaborationOperationArtifact.findFirst({
+      where: { operationId: operation.id, kind: 'DIVERGENT_PROPOSAL_REVIEW' },
+      select: { id: true },
+    }),
+  ])
+  if (decision || acceptedArtifact || (operation.acceptedDigest && reviewedArtifact)) {
+    throw new ServiceError(
+      'A divergent proposal cannot replace a reviewed decision or accepted artifact.',
+      'CONFLICT',
+      409,
+    )
+  }
+}
+
 /**
  * Agents submit complete record projections, never text patches or Git
  * commands. This validates both the strict snapshot and the normal three-way
@@ -302,6 +353,7 @@ export async function proposeDivergentCollaborationReconciliation(
     const requiresDecision = databaseReview.some(record => record.requiresDecision)
     const updated = await client.$transaction(async transaction => {
       const current = await loadPreparedOperation(transaction, input)
+      await assertProposalHasNoDecisionOrAcceptance(transaction, current)
       const nextVersion = current.version + 1
       if (workerFence) {
         const persistenceNow = currentProposalPersistenceTime()
@@ -588,6 +640,7 @@ export async function assertDivergentCollaborationReadyForIntegration(
 export async function recoverDivergentCollaborationWorktree(
   input: { operationId: string; preparation: DivergentReconciliationPreparation },
   client: PrismaClient = prisma,
+  hooks?: DivergentGitMutationHooks,
 ) {
   if (input.preparation.operationId !== input.operationId) {
     throw new ServiceError('The divergent recovery artifact belongs to another operation.', 'CONFLICT', 409)
@@ -607,7 +660,9 @@ export async function recoverDivergentCollaborationWorktree(
   )
   try {
     return await withCollaborationGitMutationLeaseHeartbeat(client, lease, async () => {
+      await assertLockedDivergentRepositoryIdentity(operation.binding, identity.commonDirectory, hooks)
       const outcome = await cleanupDivergentReconciliationWorktree(preparation)
+      await assertLockedDivergentRepositoryIdentity(operation.binding, identity.commonDirectory, hooks)
       await client.$transaction(async transaction => {
         await assertCollaborationGitMutationLock(transaction, lease)
         await appendCollaborationJournalEntry(

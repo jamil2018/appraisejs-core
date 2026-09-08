@@ -1,6 +1,33 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
+
+import { ServiceError } from '@/services/shared/errors'
+
+const mocks = vi.hoisted(() => ({
+  bindingFind: vi.fn(),
+  guard: vi.fn(),
+  prepare: vi.fn(),
+  readJson: vi.fn(),
+  targetResolve: vi.fn(),
+}))
+
+vi.mock('@/config/db-config', () => ({
+  default: { collaborationBinding: { findUnique: mocks.bindingFind } },
+}))
+
+vi.mock('@/services/target-project/target-project-service', () => ({ resolveTargetProject: mocks.targetResolve }))
+
+vi.mock('@/lib/coordinator-api/request-guard', () => ({
+  guardCoordinatorRequest: mocks.guard,
+  readCoordinatorJson: mocks.readJson,
+}))
+
+vi.mock('@/services/repository-collaboration/operation-service', async importOriginal => ({
+  ...(await importOriginal<typeof import('@/services/repository-collaboration/operation-service')>()),
+  prepareCollaborationOperation: mocks.prepare,
+}))
 
 import { collaborationRequestSchemas, publicCollaborationHashes } from './repository-collaboration-route'
+import { POST } from './route'
 
 describe('repository collaboration coordinator ingress', () => {
   it('rejects forged trusted-principal fields from policy and decision requests', () => {
@@ -74,6 +101,43 @@ describe('repository collaboration coordinator ingress', () => {
 
   it('does not expose a bearer-only divergent proposal endpoint', () => {
     expect('resolutionPropose' in collaborationRequestSchemas).toBe(false)
+  })
+
+  it('marks RECEIVE errors after a durable fetch reference as an unknown outcome', async () => {
+    const requestBody = {
+      target: 'target-1',
+      intent: 'RECEIVE',
+      idempotencyKey: 'receive-1',
+      expectedPolicyVersion: 1,
+    }
+    mocks.guard.mockResolvedValue(undefined)
+    mocks.readJson.mockResolvedValue(requestBody)
+    mocks.targetResolve.mockResolvedValue({ id: 'target-project-1' })
+    mocks.bindingFind.mockResolvedValue({ id: 'binding-1' })
+    mocks.prepare.mockImplementation(
+      async (_input: unknown, _client: unknown, hooks: { onExternalEffectStarted?: (operationId: string) => void }) => {
+        hooks.onExternalEffectStarted?.('receive-operation-1')
+        throw new ServiceError('The fetched source snapshot could not be read.', 'INTERNAL', 500)
+      },
+    )
+    const response = await POST(
+      new Request('http://localhost/internal/coordinator/collaboration/prepare', { method: 'POST' }),
+      {
+        params: Promise.resolve({ operation: ['collaboration', 'prepare'] }),
+      },
+    )
+    await expect(response.json()).resolves.toMatchObject({
+      operationOutcome: 'unknown',
+      targetOutcome: 'not_evaluated',
+      retry: {
+        safe: true,
+        strategy: 'read_state_then_retry',
+        nextAction: {
+          tool: 'collaboration_get',
+          arguments: { target: 'target-1', operationId: 'receive-operation-1' },
+        },
+      },
+    })
   })
 
   it('prefixes every public collaboration digest and hash exactly once', () => {

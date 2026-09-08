@@ -3,6 +3,7 @@ import type { CollaborationPermission, Prisma, PrismaClient } from '@prisma/clie
 import prisma from '@/config/db-config'
 import {
   canonicalJson,
+  collaborationGitLockKey,
   collaborationHash,
   commitExactCollaborationPaths,
   createDivergentMergeCommit,
@@ -36,6 +37,7 @@ export interface ExecuteCollaborationGitStepInput {
   expectedVersion: number
   preparedDigest: string
   idempotencyKey: string
+  beforeCommit?: () => Promise<void>
 }
 
 function assertStepInput(
@@ -265,6 +267,12 @@ async function completeStep(
   details: Record<string, unknown>,
   revisions: { sourceRevision?: string; targetRevision?: string } = {},
 ) {
+  const identity = await inspectRepository(
+    started.operation.binding.repositoryRoot,
+    started.operation.binding.remoteName,
+  )
+  if (collaborationGitLockKey(identity.commonDirectory) !== started.lease.lockKey)
+    throw new ServiceError('The repository Git directory changed before completion.', 'CONFLICT', 409)
   return client.$transaction(async transaction => {
     await assertCollaborationGitMutationLock(transaction, started.lease)
     const operation = await transaction.collaborationOperation.findUnique({
@@ -357,8 +365,15 @@ function persistedCreateCommitIntent(started: StartedGitStep) {
   return parseCreateCommitIntent(started.step.intentJson)
 }
 
-async function executeStartedGitStep(started: StartedGitStep, client: PrismaClient) {
+async function executeStartedGitStep(
+  started: StartedGitStep,
+  client: PrismaClient,
+  beforeCommit?: () => Promise<void>,
+) {
   const binding = started.operation.binding
+  const identity = await inspectRepository(binding.repositoryRoot, binding.remoteName)
+  if (collaborationGitLockKey(identity.commonDirectory) !== started.lease.lockKey)
+    throw new ServiceError('The repository Git directory changed before execution.', 'CONFLICT', 409)
   switch (started.step.kind) {
     case 'FAST_FORWARD_LOCAL': {
       if (!started.operation.sourceRevision || !started.operation.targetRevision)
@@ -381,7 +396,21 @@ async function executeStartedGitStep(started: StartedGitStep, client: PrismaClie
         expectedHead: commitIntent.expectedParent,
         expectedSnapshotHash: commitIntent.expectedSnapshotHash,
         message: `Appraise collaboration ${started.operation.intent.toLowerCase()} ${started.operation.id}`,
+        beforeCommit,
       })
+      const verified = await verifyExactCollaborationCommit({
+        repositoryRoot: binding.repositoryRoot,
+        operationId: started.operation.id,
+        commit: committed.commit,
+        expectedParent: commitIntent.expectedParent,
+        expectedSnapshotHash: commitIntent.expectedSnapshotHash,
+      })
+      if (!verified.matched)
+        throw new ServiceError(
+          'The committed collaboration snapshot does not match its authorized intent.',
+          'CONFLICT',
+          409,
+        )
       return completeStep(client, started, committed, {
         sourceRevision: committed.commit,
         targetRevision: committed.parent,
@@ -541,7 +570,7 @@ export async function executeCollaborationGitStep(
   if (!started) return operation
   try {
     return await withCollaborationGitMutationLeaseHeartbeat(client, started.lease, () =>
-      executeStartedGitStep(started, client),
+      executeStartedGitStep(started, client, input.beforeCommit),
     )
   } catch (error) {
     // A Git command can fail after the external effect has become durable but
@@ -615,6 +644,8 @@ export async function recoverCollaborationGitOperation(operationId: string, clie
       // Observations occur only after the new lock epoch is held. A recovery
       // never guesses that an old executor's external effect succeeded.
       const { status: observed, remoteRevision: observedRemote } = await observeOperationRepository(operation.binding)
+      if (collaborationGitLockKey(observed.commonDirectory) !== recovery.lease.lockKey)
+        throw new ServiceError('The repository Git directory changed during recovery.', 'CONFLICT', 409)
       // The branch tip alone is not proof after an uncertain push: another
       // writer may have advanced it after our exact commit landed. Fetch into a
       // distinct recovery ref, preserving the preparation source ref, before

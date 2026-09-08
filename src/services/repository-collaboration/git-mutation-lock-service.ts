@@ -2,7 +2,11 @@ import { randomUUID } from 'node:crypto'
 
 import type { Prisma, PrismaClient } from '@prisma/client'
 
-import { collaborationGitLockKey } from '@/lib/repository-collaboration/git-repository'
+import {
+  collaborationGitLockKey,
+  inspectRepository,
+  type GitRepositoryIdentity,
+} from '@/lib/repository-collaboration/git-repository'
 import { ServiceError } from '@/services/shared/errors'
 
 type Transaction = Prisma.TransactionClient
@@ -12,6 +16,33 @@ export interface CollaborationMutationLease {
   ownerId: string
   fencingToken: number
   leaseExpiresAt: Date
+}
+
+export type CollaborationGitIdentityInspector = (
+  repositoryRoot: string,
+  remote?: string,
+) => Promise<Pick<GitRepositoryIdentity, 'commonDirectory'>>
+
+/**
+ * A mutation lease is keyed to Git's common directory, rather than the
+ * configured path. Re-inspect that identity at the effect boundary so a
+ * replaced symlink or retargeted repository path cannot reuse the old lock.
+ */
+export async function assertCollaborationGitMutationIdentity(
+  repositoryRoot: string,
+  expectedCommonDirectory: string,
+  remote?: string,
+  inspect: CollaborationGitIdentityInspector = inspectRepository,
+) {
+  const identity = await inspect(repositoryRoot, remote)
+  if (identity.commonDirectory !== expectedCommonDirectory) {
+    throw new ServiceError(
+      'The collaboration repository identity changed while the mutation lease was held.',
+      'CONFLICT',
+      409,
+    )
+  }
+  return identity
 }
 
 /**

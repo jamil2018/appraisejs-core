@@ -871,6 +871,31 @@ describe('durable collaboration operations', () => {
         client,
       )
 
+      await expect(
+        proposeDivergentCollaborationReconciliation(
+          {
+            operationId: prepared.id,
+            expectedVersion: accepted.version,
+            preparedDigest: prepared.preparedDigest!,
+            records: reviewedRecords,
+          },
+          client,
+        ),
+      ).rejects.toMatchObject({ code: 'CONFLICT' })
+      await expect(client.collaborationDecision.count({ where: { operationId: prepared.id } })).resolves.toBe(1)
+      await expect(
+        client.collaborationOperationArtifact.count({
+          where: { operationId: prepared.id, kind: 'DIVERGENT_ACCEPTED_PROPOSAL' },
+        }),
+      ).resolves.toBe(1)
+      await expect(
+        client.collaborationOperation.findUniqueOrThrow({ where: { id: prepared.id } }),
+      ).resolves.toMatchObject({
+        state: 'READY',
+        acceptedDigest: proposal.review.reviewDigest,
+        version: accepted.version,
+      })
+
       const merged = await executeNext(client, accepted)
       expect(merged.version).toBeGreaterThan(prepared.version)
       expect(merged.sourceRevision).toMatch(/^[a-f0-9]{40}$/)

@@ -75,6 +75,12 @@ type CoordinatorErrorContext = {
   idempotencyKey?: string
   target?: string
   operationId?: string
+  effectStarted?: boolean
+}
+
+type CoordinatorEffectState = {
+  started: boolean
+  operationId?: string
 }
 
 function bodyRecord(value: unknown): Record<string, unknown> | undefined {
@@ -92,14 +98,31 @@ function optionalContext<K extends keyof Omit<CoordinatorErrorContext, 'operatio
   return value ? { [key]: value } : {}
 }
 
-function coordinatorErrorContext(request: Request, operation: string[], body?: unknown): CoordinatorErrorContext {
+function coordinatorRequestIdempotencyKey(request: Request, source: Record<string, unknown> | undefined) {
+  return request.headers.get('idempotency-key') ?? textValue(source?.idempotencyKey)
+}
+
+function coordinatorOperationId(source: Record<string, unknown> | undefined, effectState?: CoordinatorEffectState) {
+  return effectState?.operationId ?? textValue(source?.operationId)
+}
+
+function coordinatorEffectContext(effectState?: CoordinatorEffectState) {
+  return effectState?.started ? { effectStarted: true } : {}
+}
+
+function coordinatorErrorContext(
+  request: Request,
+  operation: string[],
+  body?: unknown,
+  effectState?: CoordinatorEffectState,
+): CoordinatorErrorContext {
   const source = bodyRecord(body)
-  const idempotencyKey = request.headers.get('idempotency-key') ?? textValue(source?.idempotencyKey)
   return {
     operation: operation.join('/') || 'unknown',
-    ...optionalContext('idempotencyKey', idempotencyKey),
+    ...optionalContext('idempotencyKey', coordinatorRequestIdempotencyKey(request, source)),
     ...optionalContext('target', textValue(source?.target)),
-    ...optionalContext('operationId', textValue(source?.operationId)),
+    ...optionalContext('operationId', coordinatorOperationId(source, effectState)),
+    ...coordinatorEffectContext(effectState),
   }
 }
 
@@ -138,15 +161,9 @@ function isPreEffectCoordinatorFailure(error: unknown) {
   return ['VALIDATION', 'UNAUTHORIZED', 'NOT_FOUND'].includes(error.code)
 }
 
-function collaborationMutationMayHaveStarted(context: CoordinatorErrorContext) {
-  if (!context.operation.startsWith('collaboration/')) return false
-  return !['collaboration/status', 'collaboration/get'].includes(context.operation)
-}
-
 function coordinatorOperationOutcome(error: unknown, context: CoordinatorErrorContext) {
-  return isPreEffectCoordinatorFailure(error) || !collaborationMutationMayHaveStarted(context)
-    ? 'not_started'
-    : 'unknown'
+  if (isPreEffectCoordinatorFailure(error)) return 'not_started'
+  return context.effectStarted ? 'unknown' : 'not_started'
 }
 
 function coordinatorErrorDetails(error: unknown, serviceError?: ServiceError) {
@@ -192,10 +209,10 @@ function coordinatorErrorPayload(error: unknown, context: CoordinatorErrorContex
     message: coordinatorErrorMessage(error, serviceError),
     httpStatus: coordinatorErrorStatus(error, serviceError),
     operation: { name: context.operation, ...optionalContext('idempotencyKey', context.idempotencyKey) },
-    // Only collaboration mutations beyond schema/permission/precondition
-    // validation can cross a durable or external effect boundary.
+    // An unknown outcome requires an explicit signal that this request crossed
+    // a durable or external effect boundary; endpoint names are not evidence.
     operationOutcome,
-    targetOutcome: isPreEffectCoordinatorFailure(error) ? 'not_committed' : 'not_evaluated',
+    targetOutcome: operationOutcome === 'not_started' ? 'not_committed' : 'not_evaluated',
     retry:
       operationOutcome === 'unknown'
         ? coordinatorErrorRetry(context)
@@ -786,10 +803,17 @@ async function postLocatorEnsure(request: Request, body: unknown): Promise<Respo
   return Response.json(await ensureTargetLocator(value, target))
 }
 
-async function dispatchPost(request: Request, operation: string[], body: unknown): Promise<Response> {
+async function dispatchPost(
+  request: Request,
+  operation: string[],
+  body: unknown,
+  markExternalEffectStarted: (operationId: string) => void,
+): Promise<Response> {
   const handoffResponse = await postQualityJourneyHandoffRoute(operation, body)
   if (handoffResponse) return handoffResponse
-  const collaborationResponse = await postRepositoryCollaborationRoute(request, operation, body)
+  const collaborationResponse = await postRepositoryCollaborationRoute(request, operation, body, {
+    markExternalEffectStarted,
+  })
   if (collaborationResponse) return collaborationResponse
   if (operation.length === 2 && operation[0] === 'diagnostic' && operation[1] === 'preflight')
     return Response.json(await recordAgentPreflightReceipt(body), { status: 201 })
@@ -817,13 +841,17 @@ export async function GET(request: Request, context: RouteContext) {
 export async function POST(request: Request, context: RouteContext) {
   let operation: string[] = []
   let body: unknown
+  const effectState: CoordinatorEffectState = { started: false }
   try {
     operation = (await context.params).operation
     const maxRequestBytes = operation[0] === 'collaboration' ? MAX_COLLABORATION_TOTAL_BYTES : undefined
     await guardCoordinatorRequest(request, maxRequestBytes)
     body = await readCoordinatorJson(request, maxRequestBytes)
-    return await dispatchPost(request, operation, body)
+    return await dispatchPost(request, operation, body, operationId => {
+      effectState.started = true
+      effectState.operationId = operationId
+    })
   } catch (error) {
-    return responseError(error, coordinatorErrorContext(request, operation, body))
+    return responseError(error, coordinatorErrorContext(request, operation, body, effectState))
   }
 }

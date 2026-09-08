@@ -354,6 +354,7 @@ export async function commitExactCollaborationPaths(input: {
   expectedHead: string
   expectedSnapshotHash?: string
   message: string
+  beforeCommit?: () => Promise<void>
 }): Promise<{ commit: string; parent: string; tree: string; snapshotHash: string | null }> {
   assertBranch(input.branch)
   assertCommit(input.expectedHead)
@@ -375,6 +376,7 @@ export async function commitExactCollaborationPaths(input: {
     : null
   if (snapshot && snapshot.snapshotHash !== input.expectedSnapshotHash)
     throw new Error('The collaboration snapshot changed after preparation.')
+  await input.beforeCommit?.()
   await runGit(identity.repositoryRoot, { kind: 'commit-collaboration', message: input.message })
   const [commit, parent, tree] = await Promise.all([
     runGit(identity.repositoryRoot, { kind: 'rev-parse', args: ['HEAD'] }),

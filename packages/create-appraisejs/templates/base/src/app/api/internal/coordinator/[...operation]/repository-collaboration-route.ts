@@ -39,6 +39,10 @@ const sha256 = z.string().regex(/^sha256:[a-f0-9]{64}$/)
 const policyVersion = z.number().int().positive()
 const idempotencyKey = id
 const recordArray = z.array(z.unknown()).min(1).max(MAX_COLLABORATION_RECORDS)
+
+export type RepositoryCollaborationPostContext = {
+  markExternalEffectStarted?: (operationId: string) => void
+}
 const standardDecisionRequest = z
   .object({
     target,
@@ -271,16 +275,20 @@ async function postPolicyUpdate(request: Request, body: unknown) {
   })
 }
 
-async function postPrepare(_request: Request, body: unknown) {
+async function postPrepare(_request: Request, body: unknown, context?: RepositoryCollaborationPostContext) {
   const value = collaborationRequestSchemas.prepare.parse(body)
   const { targetProject, binding } = await bindingForTarget(value.target)
-  const prepared = await prepareCollaborationOperation({
-    bindingId: binding.id,
-    intent: value.intent,
-    idempotencyKey: value.idempotencyKey,
-    expectedPolicyVersion: value.expectedPolicyVersion,
-    trigger: value.trigger,
-  })
+  const prepared = await prepareCollaborationOperation(
+    {
+      bindingId: binding.id,
+      intent: value.intent,
+      idempotencyKey: value.idempotencyKey,
+      expectedPolicyVersion: value.expectedPolicyVersion,
+      trigger: value.trigger,
+    },
+    undefined,
+    { onExternalEffectStarted: context?.markExternalEffectStarted },
+  )
   return Response.json({ targetProjectId: targetProject.id, operation: operationSummary(prepared) })
 }
 
@@ -436,7 +444,9 @@ async function postHandoffRedeem(_request: Request, body: unknown) {
   })
 }
 
-const postActions: Readonly<Record<string, (request: Request, body: unknown) => Promise<Response>>> = {
+const postActions: Readonly<
+  Record<string, (request: Request, body: unknown, context?: RepositoryCollaborationPostContext) => Promise<Response>>
+> = {
   connect: postConnect,
   'policy-update': postPolicyUpdate,
   prepare: postPrepare,
@@ -455,8 +465,9 @@ export async function postRepositoryCollaborationRoute(
   request: Request,
   operation: string[],
   body: unknown,
+  context?: RepositoryCollaborationPostContext,
 ): Promise<Response | null> {
   if (operation[0] !== 'collaboration' || operation.length !== 2) return null
   const action = postActions[operation[1] ?? '']
-  return action ? action(request, body) : null
+  return action ? action(request, body, context) : null
 }

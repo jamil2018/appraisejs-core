@@ -371,6 +371,92 @@ describe('durable collaboration Git service boundaries', () => {
     )
     expect(retried.sourceRevision).toMatch(/^[a-f0-9]{40}$/)
 
+    const raceRecords = [
+      ...stagedRecords,
+      {
+        format: 'appraise.repository-collaboration/v1' as const,
+        portableProjectId: 'portable-project',
+        portableId: 'race-module',
+        version: 1,
+        archived: false,
+        kind: 'module' as const,
+        payload: { name: 'Race', parentPortableId: null },
+      },
+    ]
+    const raceSnapshot = buildCollaborationSnapshotFiles(raceRecords, 'portable-project')
+    await Promise.all(
+      [...raceSnapshot.files].map(async ([relativePath, content]) => {
+        const destination = path.join(local, 'appraise', 'collaboration', relativePath)
+        await fs.mkdir(path.dirname(destination), { recursive: true })
+        await fs.writeFile(destination, content)
+      }),
+    )
+    const raceDigest = 'b'.repeat(64)
+    const raceOperation = await client.collaborationOperation.create({
+      data: {
+        bindingId: policy.id,
+        intent: 'PUBLISH',
+        trigger: 'commit-race-test',
+        state: 'READY',
+        version: 2,
+        idempotencyKey: 'commit-race',
+        targetRevision: retried.sourceRevision,
+        policyVersion: policy.policyVersion,
+        preparedDigest: raceDigest,
+        acceptedDigest: raceDigest,
+        steps: {
+          create: {
+            ordinal: 0,
+            kind: 'CREATE_COMMIT',
+            state: 'PENDING',
+            requiredPermission: 'COMMIT',
+            prerequisiteDigest: raceDigest,
+          },
+        },
+      },
+    })
+    await client.collaborationOperationArtifact.create({
+      data: {
+        operationId: raceOperation.id,
+        kind: 'STEP_INSTALL_SNAPSHOT',
+        revision: 1,
+        payloadJson: JSON.stringify({ publishedSnapshotHash: raceSnapshot.snapshotHash }),
+        payloadHash: collaborationHash({ publishedSnapshotHash: raceSnapshot.snapshotHash }),
+      },
+    })
+    const racePath = [...raceSnapshot.files].find(([relativePath]) => relativePath.endsWith('.json'))
+    if (!racePath) throw new Error('Race fixture did not create a JSON collaboration file.')
+    await expect(
+      executeCollaborationGitStep(
+        {
+          operationId: raceOperation.id,
+          expectedVersion: 2,
+          preparedDigest: raceDigest,
+          idempotencyKey: 'commit-race',
+          beforeCommit: async () => {
+            const destination = path.join(local, 'appraise', 'collaboration', racePath[0])
+            await fs.writeFile(destination, `${racePath[1]}\nmutated-after-validation`)
+            await git(local, 'add', 'appraise/collaboration')
+          },
+        },
+        client,
+      ),
+    ).rejects.toMatchObject({ code: 'CONFLICT' })
+    expect(await client.collaborationOperation.findUnique({ where: { id: raceOperation.id } })).toMatchObject({
+      state: 'APPLYING',
+    })
+    expect(
+      await client.collaborationOperationStep.findUnique({
+        where: { operationId_ordinal: { operationId: raceOperation.id, ordinal: 0 } },
+      }),
+    ).toMatchObject({ state: 'RUNNING' })
+    await expect(recoverCollaborationGitOperation(raceOperation.id, client)).resolves.toMatchObject({
+      state: 'BLOCKED',
+    })
+    expect(await client.collaborationOperation.findUnique({ where: { id: raceOperation.id } })).toMatchObject({
+      state: 'BLOCKED',
+    })
+
     const operation = await client.collaborationOperation.create({
       data: {
         bindingId: policy.id,

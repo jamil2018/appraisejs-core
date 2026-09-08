@@ -40,6 +40,11 @@ Execution requests remain version-fenced. Retrying a lost `collaboration_execute
 result only for the request version that produced the current operation version; it cannot invoke the next step or
 repeat an external effect. Applying Git work with no persisted request intent/fence is a conservative recovery block,
 not a best-effort replay. Remote-ref transport failures are reported as unavailable rather than as an absent branch.
+Coordinator error envelopes report `not_started`/`not_committed` for schema, authentication, permission, and other
+failures before an effect boundary. They report `unknown` with `collaboration_get`/`read_state_then_retry` only when
+the request has explicitly crossed a durable or external effect boundary. In particular, a RECEIVE failure after its
+operation-owned fetch ref is durable carries that generated operation ID so the caller can read the exact state;
+endpoint names alone never imply an unknown outcome.
 
 Journey operations are grouped under `quality/journeys/**` in the coordinator API and `quality_journey_*` in MCP.
 Every mutation is scoped to an exact target and Journey and remains subject to the Journey's durable review,

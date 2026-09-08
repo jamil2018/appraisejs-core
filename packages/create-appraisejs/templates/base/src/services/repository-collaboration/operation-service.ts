@@ -144,6 +144,11 @@ export interface PrepareCollaborationOperationInput {
   operationId?: string
 }
 
+export type PrepareCollaborationOperationHooks = {
+  /** Called after the operation-owned remote fetch reference is durable. */
+  onExternalEffectStarted?: (operationId: string) => void
+}
+
 type PersistedPrepareCollaborationOperationInput = PrepareCollaborationOperationInput & {
   /** Internal-only observed filesystem precondition; not part of the public request shape. */
   expectedPreviousSnapshotHash?: string | null
@@ -534,6 +539,7 @@ async function finalizeDecision(
 export async function prepareCollaborationOperation(
   input: PrepareCollaborationOperationInput,
   client: PrismaClient = prisma,
+  hooks?: PrepareCollaborationOperationHooks,
 ) {
   if (!input.idempotencyKey.trim()) throw new ServiceError('An idempotency key is required.', 'VALIDATION', 400)
   if (input.intent === 'RECEIVE' && !input.incomingRecords) {
@@ -548,6 +554,7 @@ export async function prepareCollaborationOperation(
       branch: binding.binding.trackedBranch,
       operationId,
     })
+    hooks?.onExternalEffectStarted?.(operationId)
     const sourceSnapshot = await readCollaborationSnapshotAtCommit({
       repositoryRoot: binding.binding.repositoryRoot,
       commit: fetched.fetchedCommit,
