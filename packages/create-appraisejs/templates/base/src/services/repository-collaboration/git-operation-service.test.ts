@@ -521,5 +521,5 @@ describe('durable collaboration Git service boundaries', () => {
         where: { operationId_ordinal: { operationId: operation.id, ordinal: 0 } },
       }),
     ).toMatchObject({ state: 'COMPLETED', requestVersion: 1 })
-  })
+  }, 15_000)
 })

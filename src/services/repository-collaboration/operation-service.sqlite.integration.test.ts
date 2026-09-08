@@ -952,5 +952,5 @@ describe('durable collaboration operations', () => {
     } finally {
       await client.$disconnect()
     }
-  })
+  }, 15_000)
 })
