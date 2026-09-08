@@ -1,0 +1,53 @@
+{
+  "schemaVersion": "1",
+  "profiles": [
+    {
+      "id": "coordinator-only",
+      "role": "coordinator",
+      "requiredCapabilities": [],
+      "authority": { "sandbox": "not-applicable", "externalWrites": "current-task-only" },
+      "contextBoundary": "not-applicable",
+      "stopConditions": ["missing evidence", "consequence exceeds coordinator fast path"]
+    },
+    {
+      "id": "investigator",
+      "role": "investigator",
+      "requiredCapabilities": ["evidence-gathering"],
+      "authority": { "sandbox": "read-only", "externalWrites": "prohibited" },
+      "contextBoundary": "bounded",
+      "stopConditions": ["facts are established", "judgment is required"]
+    },
+    {
+      "id": "executor",
+      "role": "executor",
+      "requiredCapabilities": ["implementation", "deterministic-validation"],
+      "authority": { "sandbox": "workspace-write", "externalWrites": "approval-required" },
+      "contextBoundary": "bounded",
+      "stopConditions": ["an invariant fails", "scope becomes ambiguous"]
+    },
+    {
+      "id": "executor-advanced",
+      "role": "executor",
+      "requiredCapabilities": ["implementation", "deterministic-validation", "cross-module-reasoning"],
+      "authority": { "sandbox": "workspace-write", "externalWrites": "approval-required" },
+      "contextBoundary": "bounded",
+      "stopConditions": ["irreducible judgment remains", "verification becomes weak"]
+    },
+    {
+      "id": "solver",
+      "role": "solver",
+      "requiredCapabilities": ["evidence-synthesis", "decision-arbitration"],
+      "authority": { "sandbox": "read-only", "externalWrites": "prohibited" },
+      "contextBoundary": "none",
+      "stopConditions": ["evidence is missing", "user authority is required"]
+    },
+    {
+      "id": "judge",
+      "role": "judge",
+      "requiredCapabilities": ["independent-review", "decision-arbitration"],
+      "authority": { "sandbox": "read-only", "externalWrites": "prohibited" },
+      "contextBoundary": "none",
+      "stopConditions": ["result is accepted", "revision is required", "proof remains weak"]
+    }
+  ]
+}

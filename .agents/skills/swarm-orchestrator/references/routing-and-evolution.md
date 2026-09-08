@@ -128,25 +128,24 @@ Note and notify the user when any condition holds:
 - In the durable ledger's last five runs with the same `taskClass`, two or more score 6 or lower or repeat the same
   weakest dimension.
 
-## Note, notify, update
+## Advisory learning and approved updates
 
-Evolution is a user-governed state machine:
+Use the versioned repository learning system documented in `docs/development-harness.md` for new observations,
+lessons, and improvement proposals. Capture and consolidate useful evidence automatically. Retrieve bounded relevant
+lessons at intake, record costs and recoveries at completion, and preserve proposal IDs at handoff. Matching evidence
+is idempotent; contradictory findings and ambiguous matches remain visible. Mark stale lessons, suppress rejected or
+unchanged suggestions, and resurface only when context or materially new evidence warrants reconsideration.
 
-1. **Note:** preserve a structured observation with domain, severity, evidence, impact, and proposed options.
-2. **Notify:** tell the user what is non-optimal and why it matters. Mark the run as `awaiting_user_guidance`.
-3. **Guidance:** do not alter roles, models, prompts, tools, thresholds, concurrency, or harness behavior until the
-   user's direction is recorded.
-4. **Update:** implement only the guided change, verify it deterministically, and attach the update and verification
-   evidence to the originating run with the `ready` transition.
-5. **Re-evaluate:** score the changed harness again. A remaining issue starts a new note-notify cycle.
+Proposed and deferred improvements do not block unrelated feature completion. Deferral records a reason and revisit
+conditions. Acceptance, implementation, and evaluation require the corresponding evidence and actual host-conversation
+user direction before policy changes. Advisory content cannot alter roles, models, permissions, mandatory guidance,
+selection policy, concurrency, or quality gates. Do not change the harness automatically.
 
-Use `npm run swarm:evolve -- --run-id <id> --action notify --delivery-receipt "<host delivery evidence>"` after
-presenting the notification. When guidance arrives, preserve host provenance with
-`--action guide --guidance "<user direction>" --authority-source host-conversation --thread-id "<id>" --message-id "<id>"`.
-These fields are audit metadata, not authentication: only the actual host conversation grants authority. Then use
-`--action ready --update "<change>" --verification "<evidence>"` after deterministic checks. Only then record a fresh
-independent re-evaluation and use `--action complete --reevaluation-run-id "<id>"`. Completion rejects older or
-already-linked evaluations and closes both sides of the cycle.
+The existing `swarm:evolve` state machine remains available for historical local runs: note, notify, guide, ready,
+independent re-evaluation, complete. Pending observations can be imported idempotently into the advisory backlog with
+provenance and existing guidance preserved. Import does not fabricate approval or mark the original run verified.
+Use new proposal records to pick up approved improvements across task boundaries without forcing an immediate pause.
+Metadata is audit provenance, not authenticated authority; only the host conversation grants permission.
 
 ## Observation format
 
@@ -165,8 +164,9 @@ swarmHarness:
 ```
 
 For a healthy run, a one-line score is sufficient when the user asked to evaluate the harness. Otherwise avoid
-cluttering the result. For an optimization trigger, always show the note and ask whether the user wants the proposed
-configuration or instruction change. Do not change the harness automatically.
+cluttering the result. For an optimization trigger, capture a proposal and report its ID when useful. Unrelated work
+may finish with the proposal backlogged. Ask for guidance only when picking up an unapproved policy change.
+Do not change the harness automatically.
 
 ## Durable ledger
 

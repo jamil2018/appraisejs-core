@@ -151,3 +151,13 @@ them before broad raw-file exploration on unfamiliar AppraiseJS areas. Bare root
 
 If Graphify is installed with MCP support, `npm run graphify:serve` starts the Graphify MCP/server flow. Register or
 restart the client before expecting Graphify MCP tools to appear.
+
+## Scope and freshness receipts
+
+Pass `--scope scripts`, `--scope src`, `--scope prisma`, or `--scope packages` to the query, path, or explain wrapper.
+Do not combine `--scope` with `--graph`. Use the scripts scope for development-harness navigation.
+`npm run harness:graph-status` reads content receipts from successful automatic refreshes. Missing receipts report
+unknown, changed source or outputs report stale, and missing graph outputs report missing. Receipts remain local and
+Git-ignored. Auto-refresh includes deleted paths and both sides of renames; deletion rebuilds request Graphify's force
+mode so intentional shrinkage is not mistaken for incomplete extraction. Inputs changing during generation invalidate
+the refresh receipt.

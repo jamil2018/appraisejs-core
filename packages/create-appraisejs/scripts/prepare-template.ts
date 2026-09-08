@@ -30,6 +30,7 @@ import {
 } from '../src/scaffold-gitignore.js'
 import { getTemplateDefinition, getTemplateDefinitions, type TemplateId } from '../src/template-catalog.js'
 import { isRepoOnlyTemplatePath, REPO_ONLY_TEMPLATE_SCRIPT_NAMES } from '../src/template-boundary.js'
+import { shouldExcludePreparedConfigPath } from './template-config-filter.js'
 import { shouldExcludeBundledTemplatePath } from '../src/sync-templates-utils.js'
 import { shouldBackfillLegacyEnvironmentConfig, shouldExcludeTemplatePath } from '../../../src/lib/template-sync-utils'
 import { canonicalContractJson } from '../../../src/lib/catalog-contracts'
@@ -451,7 +452,9 @@ function createBaseTemplate(): void {
   console.log('Copying e2e/...')
   copyDirWithFilter(path.join(repoRoot, 'e2e'), path.join(baseTemplateDir, 'e2e'))
   console.log('Copying config/...')
-  copyDirWithFilter(path.join(repoRoot, 'config'), path.join(baseTemplateDir, 'config'))
+  copyDirWithFilter(path.join(repoRoot, 'config'), path.join(baseTemplateDir, 'config'), {
+    shouldExcludePath: shouldExcludePreparedConfigPath,
+  })
 
   const legacyTestsRoot = path.join(baseTemplateDir, 'src', 'tests')
   rmSync(legacyTestsRoot, { recursive: true, force: true })

@@ -1,0 +1,144 @@
+{
+  "version": 1,
+  "description": "Repository-development validation selection. This registry does not control Appraise Quality Journey gates.",
+  "sharedConfigurationPatterns": [
+    "package.json",
+    "package-lock.json",
+    "tsconfig*.json",
+    "next.config.*",
+    "eslint.config.*",
+    ".eslintrc*",
+    ".fallowrc.json",
+    "react-doctor.config.json",
+    ".github/**",
+    "prisma/**",
+    "packages/**"
+  ],
+  "documentationPatterns": ["docs/**/*.md", "tasks/**/*.md", "*.md"],
+  "prerequisites": [
+    {
+      "id": "cucumber-runtime",
+      "command": ["npm", "run", "build:cucumber-runtime"],
+      "timeoutMs": 120000,
+      "retryLimit": 0,
+      "inputPatterns": [
+        "packages/cucumber-runtime/src/**",
+        "packages/cucumber-runtime/package.json",
+        "packages/cucumber-runtime/tsconfig.json",
+        "package.json",
+        "package-lock.json",
+        "tsconfig*.json"
+      ]
+    }
+  ],
+  "commands": [
+    {
+      "id": "harness-contracts",
+      "command": ["npm", "run", "check:harness"],
+      "stages": ["local", "pre-commit", "ci"],
+      "timeoutMs": 120000,
+      "retryLimit": 0,
+      "ciCommand": "npm run check:harness",
+      "ciJob": "root-app"
+    },
+    {
+      "id": "lint",
+      "command": ["npm", "run", "lint"],
+      "stages": ["local", "ci"],
+      "timeoutMs": 180000,
+      "retryLimit": 0,
+      "ciCommand": "npm run lint",
+      "ciJob": "root-app"
+    },
+    {
+      "id": "unit",
+      "command": ["npm", "run", "validate:unit"],
+      "stages": ["local", "ci"],
+      "prerequisites": ["cucumber-runtime"],
+      "timeoutMs": 300000,
+      "retryLimit": 1,
+      "ciCommand": "npm run validate:unit",
+      "ciJob": "root-app"
+    },
+    {
+      "id": "build",
+      "command": ["npm", "run", "build"],
+      "stages": ["local", "ci"],
+      "timeoutMs": 600000,
+      "retryLimit": 0,
+      "ciCommand": "npm run build",
+      "ciJob": "root-app"
+    },
+    {
+      "id": "fallow-commit",
+      "command": ["npm", "run", "quality:fallow:commit"],
+      "stages": ["pre-commit"],
+      "timeoutMs": 180000,
+      "retryLimit": 0
+    },
+    {
+      "id": "react-doctor-commit",
+      "command": ["npm", "run", "quality:react-doctor:commit"],
+      "stages": ["pre-commit"],
+      "timeoutMs": 180000,
+      "retryLimit": 0
+    },
+    {
+      "id": "fallow-release",
+      "command": ["npm", "run", "quality:fallow:release"],
+      "stages": ["ci"],
+      "timeoutMs": 600000,
+      "retryLimit": 0,
+      "ciCommand": "npm run quality:fallow:release",
+      "ciJob": "security-and-quality"
+    },
+    {
+      "id": "react-doctor-ci",
+      "command": ["npm", "run", "quality:react-doctor:ci"],
+      "stages": ["ci"],
+      "timeoutMs": 300000,
+      "retryLimit": 0,
+      "ciCommand": "npm run quality:react-doctor:ci",
+      "ciJob": "security-and-quality"
+    }
+  ],
+  "surfaces": [
+    {
+      "id": "documentation",
+      "patterns": ["docs/**/*.md", "tasks/**/*.md", "*.md"],
+      "commands": ["harness-contracts"]
+    },
+    {
+      "id": "harness",
+      "patterns": [".agents/**", ".codex/agents/**", "config/development-harness/**", "scripts/**"],
+      "commands": ["harness-contracts", "unit", "fallow-commit", "react-doctor-commit"]
+    },
+    {
+      "id": "ui",
+      "patterns": ["src/app/**", "src/components/**", "src/hooks/**", "src/assets/**"],
+      "commands": ["lint", "unit", "build", "fallow-commit", "react-doctor-commit"]
+    },
+    {
+      "id": "application",
+      "patterns": ["src/**", "e2e/**", "automation/**"],
+      "commands": ["lint", "unit", "fallow-commit", "react-doctor-commit"]
+    },
+    {
+      "id": "shared-configuration",
+      "patterns": [
+        "package.json",
+        "package-lock.json",
+        "tsconfig*.json",
+        "next.config.*",
+        "eslint.config.*",
+        ".eslintrc*",
+        ".fallowrc.json",
+        "react-doctor.config.json",
+        ".github/**",
+        "prisma/**",
+        "packages/**"
+      ],
+      "commands": ["harness-contracts", "lint", "unit", "build", "fallow-commit", "react-doctor-commit"]
+    }
+  ]
+}

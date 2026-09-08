@@ -16,6 +16,17 @@ describe('withDefaultGraph', () => {
     expect(withDefaultGraph(args)).toEqual(args)
   })
 
+  it('selects a validated scope without passing wrapper flags to Graphify', () => {
+    expect(withDefaultGraph(['query', 'routing', '--scope', 'scripts'])).toEqual([
+      'query',
+      'routing',
+      '--graph',
+      'scripts/graphify-out/graph.json',
+    ])
+    expect(() => withDefaultGraph(['query', 'routing', '--scope', '../outside'])).toThrow('Unknown')
+    expect(() => withDefaultGraph(['query', 'routing', '--scope', 'src', '--graph', 'x'])).toThrow('either')
+  })
+
   it('does not add a graph to build or MCP commands', () => {
     expect(withDefaultGraph(['src', '--update'])).toEqual(['src', '--update'])
     expect(withDefaultGraph(['mcp'])).toEqual(['mcp'])

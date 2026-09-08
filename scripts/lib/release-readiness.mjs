@@ -104,10 +104,7 @@ export function validateReleaseLedger(ledger, { now = new Date() } = {}) {
 }
 
 export function evaluateReleaseLedger(ledger, commandResults = []) {
-  const blockingFindings = ledger.findings.filter(
-    finding =>
-      finding.status === 'open' && (finding.releaseBlocking || ledger.blockingSeverities.includes(finding.severity)),
-  )
+  const blockingFindings = ledger.findings.filter(finding => finding.status !== 'verified')
   const failedCommands = commandResults.filter(result => result.status !== 0)
   return {
     ok: blockingFindings.length === 0 && failedCommands.length === 0,
@@ -130,6 +127,7 @@ export function runVerifiedFindingCommands(ledger, { cwd = process.cwd(), runner
       shell: true,
       stdio: 'pipe',
       maxBuffer: COMMAND_OUTPUT_BUFFER_BYTES,
+      timeout: 600_000,
     })
     return {
       command,

@@ -31,9 +31,10 @@ Optimize for verified accuracy per unit of agent work, not agent count.
     `npm run swarm:route -- <arguments>`. Do not require receipts for truly trivial coordinator-only work. Record every
     scored delegated or consequential run with `npm run swarm:record -- <arguments>` and link its routing receipt.
 14. Apply the evolution criteria to both swarm performance and harness usability before the final response.
-15. Follow the evolution state machine exactly: note the evidence, notify the user, wait for their guidance, update
-    only the approved approach, then record verification. Never skip notification or self-modify the harness without
-    explicit user guidance.
+15. Capture observations and maintain advisory lessons and improvement proposals automatically using
+    `docs/development-harness.md`. Proposed or deferred improvements do not block unrelated task completion.
+    Explicit user guidance is required before changing harness policy, models, permissions, or quality gates.
+    Verify approved changes deterministically and obtain independent re-evaluation bound to their exact artifact.
 
 AppraiseJS product planning, validation, baseline, implementation, and completion transitions remain Appraise-owned.
 This skill routes repository engineering work and never replaces those lifecycle gates.

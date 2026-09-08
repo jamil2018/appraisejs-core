@@ -5,6 +5,7 @@ import os from 'node:os'
 import process from 'node:process'
 import { spawnSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
+import { cucumberRuntimeReceiptIsCurrent } from './lib/cucumber-runtime-fingerprint.mjs'
 
 function isUsableDirectory(directory: string | undefined): directory is string {
   if (!directory) {
@@ -52,6 +53,12 @@ function buildCucumberRuntime(env: NodeJS.ProcessEnv): void {
   }
 }
 
+function hasFreshCucumberRuntimeReceipt(env: NodeJS.ProcessEnv): boolean {
+  const receiptPath = env.APPRAISE_CUCUMBER_RUNTIME_RECEIPT
+  const repoRoot = fileURLToPath(new URL('../', import.meta.url))
+  return cucumberRuntimeReceiptIsCurrent(repoRoot, receiptPath)
+}
+
 function runVitest(vitestEntry: string, env: NodeJS.ProcessEnv): number {
   const result = spawnSync(process.execPath, [vitestEntry, 'run', ...process.argv.slice(2)], {
     stdio: 'inherit',
@@ -76,7 +83,9 @@ function main(): void {
     TEMP: tempDirectory,
   }
 
-  buildCucumberRuntime(env)
+  if (!hasFreshCucumberRuntimeReceipt(env)) {
+    buildCucumberRuntime(env)
+  }
   process.exit(runVitest(vitestEntry, env))
 }
 
