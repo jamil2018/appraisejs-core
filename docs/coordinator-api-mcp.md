@@ -18,16 +18,23 @@ registration, fenced leases, a sanitized operation-owned assignment, and one-tim
 claim wake capability or create a reviewer decision. `collaboration_undo_prepare` is guarded by the stored
 database before-image and an exact current-state check.
 
-`collaboration_policy_update` and `collaboration_decide` are deliberately absent from the default MCP inventory.
-They require a local UI-issued one-action authority receipt. Use the direct CLI with `--authority-receipt-file` (the
-file contains only the receipt) or the coordinator-client header path; the receipt is sent only as
-`X-Appraise-Authority-Receipt`, never MCP input, JSON, argv, environment, or coordinator configuration.
+`collaboration_policy_update` and `collaboration_decide` are receipt-protected MCP mutations. Their strict input
+schemas require a local UI-issued one-action `authorityReceipt`; the MCP adapter removes it from the request object
+and sends it only as `X-Appraise-Authority-Receipt`. Treat that field as a secret tool argument: do not place it in
+prompts, notes, shell arguments, environment, or coordinator configuration. The direct CLI remains available with
+`--authority-receipt-file` (the file contains only the receipt).
 
 For divergent reconciliation, the receipt-protected direct `collaboration_decide` request names the exact canonical
 `reviewDigest` and either ACCEPTs or REJECTs it. ACCEPT persists one designated proposal artifact and its digest;
 derived merge/database execution reads that artifact only, never the latest proposal. REJECT cleans the exact
 operation-owned proposal worktree or blocks and retains it for recovery. Final cleanup must prove that both the
 original proposal and merge worktrees are absent.
+
+After a receipt-protected decision reaches `READY`, Appraise advances the bounded persisted plan without requiring a
+caller to name or repeat individual Git/database steps. If the process crashes between the durable decision and that
+continuation, the process-local scheduler discovers eligible `READY` operations on its next startup/tick and resumes
+only their current permission-checked steps. A running or ambiguous boundary remains on the conservative recovery
+path; scheduler discovery never guesses past it.
 
 Execution requests remain version-fenced. Retrying a lost `collaboration_execute` response can return a persisted
 result only for the request version that produced the current operation version; it cannot invoke the next step or

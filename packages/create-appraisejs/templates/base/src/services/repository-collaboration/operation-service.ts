@@ -672,18 +672,24 @@ export async function prepareCollaborationOperation(
       await client.collaborationOperation.findUniqueOrThrow({ where: { id: persisted.operation.id } }),
     )
   }
-  const expectedPreviousSnapshotHash =
+  const publicationPreparation =
     input.intent === 'PUBLISH'
-      ? (
-          await observeCollaborationSnapshot({
-            repositoryRoot: (
-              await client.$transaction(transaction =>
-                requireCollaborationPermission(transaction, input.bindingId, 'PREPARE', input.expectedPolicyVersion),
-              )
-            ).binding.repositoryRoot,
-          })
-        ).snapshotHash
+      ? await (async () => {
+          const binding = await client.$transaction(transaction =>
+            requireCollaborationPermission(transaction, input.bindingId, 'PREPARE', input.expectedPolicyVersion),
+          )
+          const [snapshot, identity] = await Promise.all([
+            observeCollaborationSnapshot({ repositoryRoot: binding.binding.repositoryRoot }),
+            inspectRepository(binding.binding.repositoryRoot, binding.binding.remoteName),
+          ])
+          return { expectedPreviousSnapshotHash: snapshot.snapshotHash, targetRevision: identity.head }
+        })()
       : undefined
+  const persistedInput: PersistedPrepareCollaborationOperationInput = {
+    ...input,
+    ...(publicationPreparation ? { targetRevision: publicationPreparation.targetRevision } : {}),
+    expectedPreviousSnapshotHash: publicationPreparation?.expectedPreviousSnapshotHash,
+  }
   return client.$transaction(async transaction => {
     const { binding } = await requireCollaborationPermission(
       transaction,
@@ -694,21 +700,13 @@ export async function prepareCollaborationOperation(
     const localSnapshot = await projectSnapshotInTransaction(transaction, binding.id)
     const incoming = incomingRecords(input, localSnapshot)
     assertMatchingPortableProject(incoming, binding.portableProjectId)
-    const requestDigest = operationInputDigest(input, incoming)
-    const existing = await findIdempotentOperation(transaction, binding.id, input, requestDigest)
+    const requestDigest = operationInputDigest(persistedInput, incoming)
+    const existing = await findIdempotentOperation(transaction, binding.id, persistedInput, requestDigest)
     if (existing) return publicOperation(existing)
     const local = dependencyClosed(snapshotRecords(localSnapshot))
     const baselines = input.intent === 'PUBLISH' ? local : await baselineRecords(transaction, binding.id)
     const payload = buildPreparedPayload(incoming, local, baselines)
-    return publicOperation(
-      await createPreparedOperation(
-        transaction,
-        { ...input, expectedPreviousSnapshotHash },
-        binding,
-        payload,
-        requestDigest,
-      ),
-    )
+    return publicOperation(await createPreparedOperation(transaction, persistedInput, binding, payload, requestDigest))
   })
 }
 

@@ -7,6 +7,29 @@ import { ServiceError } from '@/services/shared/errors'
 import { responseError } from './route'
 
 describe('Journey-only coordinator boundary', () => {
+  it('reports collaboration schema and permission failures as pre-effect outcomes', async () => {
+    const validation = responseError(new ServiceError('request is malformed', 'VALIDATION', 400), {
+      operation: 'collaboration/execute',
+      target: 'target-1',
+      operationId: 'operation-1',
+    })
+    const permission = responseError(new ServiceError('permission is denied', 'UNAUTHORIZED', 403), {
+      operation: 'collaboration/decide',
+      target: 'target-1',
+      operationId: 'operation-1',
+    })
+    await expect(validation.json()).resolves.toMatchObject({
+      operationOutcome: 'not_started',
+      targetOutcome: 'not_committed',
+      retry: { safe: false, strategy: 'do_not_retry' },
+    })
+    await expect(permission.json()).resolves.toMatchObject({
+      operationOutcome: 'not_started',
+      targetOutcome: 'not_committed',
+      retry: { safe: false, strategy: 'do_not_retry' },
+    })
+  })
+
   it('reports a collaboration mutation with an operation id as an unknown durable outcome', async () => {
     const response = responseError(new ServiceError('remote response was lost', 'INTERNAL', 500), {
       operation: 'collaboration/execute',

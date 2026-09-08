@@ -113,8 +113,10 @@ export const canonicalMcpToolAnnotations = Object.freeze({
   // persist lease/reconciliation state before returning its summary.
   collaboration_status: externalPreparation,
   collaboration_connect: localMutation,
+  collaboration_policy_update: durableLifecycleMutation,
   collaboration_prepare: externalPreparation,
   collaboration_get: readOnly,
+  collaboration_decide: externalCollaborationMutation,
   collaboration_execute: externalCollaborationMutation,
   collaboration_undo_prepare: durableLifecycleMutation,
   collaboration_worker_register: localMutation,

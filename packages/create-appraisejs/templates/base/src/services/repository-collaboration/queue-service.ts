@@ -8,6 +8,7 @@ import { ServiceError } from '@/services/shared/errors'
 
 import { requireCollaborationPermission } from './binding-service'
 import { getCollaborationGitStatus } from './git-operation-service'
+import { continueAcceptedCollaborationOperation } from './operation-service'
 
 type Transaction = Prisma.TransactionClient
 type Clock = Date
@@ -564,6 +565,30 @@ export async function runCollaborationSchedulerTick(
 ) {
   const now = input.now ?? new Date()
   const recovered = await recoverExpiredCollaborationLeases(now, client)
+  // Decisions and their response continuation are intentionally separate
+  // durable boundaries. A process crash after READY must therefore be picked
+  // up by the next scheduler process, without callers naming a step.
+  const readyOperations = await client.collaborationOperation.findMany({
+    where: { state: 'READY', cancelledAt: null, binding: { enabled: true } },
+    select: { id: true },
+    take: 50,
+    orderBy: { updatedAt: 'asc' },
+  })
+  const continuations = [] as Array<{ operationId: string; outcome: 'completed' | 'deferred' }>
+  for (const operation of readyOperations) {
+    try {
+      const continued = await continueAcceptedCollaborationOperation({ operationId: operation.id }, client)
+      continuations.push({
+        operationId: operation.id,
+        outcome: continued.state === 'COMPLETED' ? 'completed' : 'deferred',
+      })
+    } catch {
+      // Permission revocation, a concurrent executor, and recoverable Git or
+      // filesystem ambiguity remain visible in the durable operation. One
+      // operation must not prevent unrelated due checks from being reconciled.
+      continuations.push({ operationId: operation.id, outcome: 'deferred' })
+    }
+  }
   const dueBindings = await client.collaborationBinding.findMany({
     where: {
       enabled: true,
@@ -578,7 +603,7 @@ export async function runCollaborationSchedulerTick(
     await recordRemoteCollaborationCheck({ bindingId: binding.id, outcome, now }, client)
     remoteChecks.push({ bindingId: binding.id, outcome })
   }
-  return { recovered: recovered.filter(Boolean), remoteChecks }
+  return { recovered: recovered.filter(Boolean), continuations, remoteChecks }
 }
 
 /**

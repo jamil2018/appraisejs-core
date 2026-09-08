@@ -11,6 +11,7 @@ import {
 } from '@/lib/repository-collaboration'
 import { ServiceError } from '@/services/shared/errors'
 
+import { activeRedeemedHandoffTicket } from './handoff-ticket-session-service'
 import {
   claimCollaborationOperation,
   claimCollaborationOperationInTransaction,
@@ -224,6 +225,24 @@ function sanitizedAssignment(operation: {
   }
 }
 
+function exactHandoffScope(operation: Parameters<typeof sanitizedAssignment>[0]) {
+  return { assignment: sanitizedAssignment(operation) }
+}
+
+function assertExactHandoffScope(scopeJson: string, operation: Parameters<typeof sanitizedAssignment>[0]) {
+  let scope: unknown
+  try {
+    scope = JSON.parse(scopeJson)
+  } catch {
+    throw new ServiceError('Handoff ticket scope is invalid.', 'CONFLICT', 409)
+  }
+  const expected = exactHandoffScope(operation)
+  if (canonicalJson(scope) !== canonicalJson(expected)) {
+    throw new ServiceError('Handoff ticket scope does not match its exact prepared operation.', 'CONFLICT', 409)
+  }
+  return expected
+}
+
 export async function getSanitizedCollaborationAssignment(
   input: { bindingId: string; operationId: string },
   client: PrismaClient = prisma,
@@ -248,6 +267,13 @@ export async function claimCollaborationWork(
   // operation merely because no separate scheduler pass happened first.
   await recoverExpiredCollaborationLeases(now, client)
   const worker = await client.$transaction(transaction => registeredWorker(transaction, { ...input, now }))
+  if (worker.provenance === 'handoff-ticket') {
+    throw new ServiceError(
+      'A redeemed handoff session may complete only its exact assigned operation.',
+      'CONFLICT',
+      409,
+    )
+  }
   const next = await client.collaborationOperation.findFirst({
     where: {
       bindingId: input.bindingId,
@@ -289,7 +315,8 @@ export async function heartbeatCollaborationWork(
 ) {
   const now = input.now ?? new Date()
   const worker = await client.$transaction(transaction => registeredWorker(transaction, { ...input, now }))
-  return heartbeatCollaborationOperation({ ...input, workerId: worker.id, now }, client)
+  const leaseMs = await client.$transaction(transaction => handoffBoundLeaseMs(transaction, worker, input.leaseMs, now))
+  return heartbeatCollaborationOperation({ ...input, workerId: worker.id, now, leaseMs }, client)
 }
 
 /** Workers can submit only a structured proposal. The central operation flow
@@ -351,6 +378,12 @@ export async function createCollaborationHandoffTicket(
     if (!operation || operation.cancelledAt || ['COMPLETED', 'CANCELLED', 'SUPERSEDED'].includes(operation.state)) {
       throw new ServiceError('A handoff ticket requires a pending operation.', 'CONFLICT', 409)
     }
+    const preparation = await transaction.collaborationOperationArtifact.findFirst({
+      where: { operationId: operation.id, kind: 'DIVERGENT_PREPARATION' },
+    })
+    if (!preparation)
+      throw new ServiceError('A handoff ticket requires a durably prepared reconciliation.', 'CONFLICT', 409)
+    assertExactHandoffScope(canonicalJson(input.scope), operation)
     await transaction.collaborationHandoffTicket.updateMany({
       where: { operationId: input.operationId, redeemedAt: null, invalidatedAt: null },
       data: { invalidatedAt: now, invalidationReason: 'REPLACED' },
@@ -377,7 +410,7 @@ async function redeemableHandoffTicket(transaction: Transaction, token: string, 
 
 async function redeemableHandoffOperation(
   transaction: Transaction,
-  ticket: { operationId: string; bindingId: string },
+  ticket: { operationId: string; bindingId: string; scopeJson: string },
 ) {
   const operation = await transaction.collaborationOperation.findFirst({
     where: { id: ticket.operationId, bindingId: ticket.bindingId },
@@ -392,6 +425,7 @@ async function redeemableHandoffOperation(
     where: { operationId: operation.id, kind: 'DIVERGENT_PREPARATION' },
   })
   if (!preparation) throw new ServiceError('Handoff ticket names work that is not durably prepared.', 'CONFLICT', 409)
+  assertExactHandoffScope(ticket.scopeJson, operation)
   return operation
 }
 
@@ -400,6 +434,21 @@ function handoffWorkerLease(ticket: { expiresAt: Date }, now: Date) {
   const leaseMs = expiresAt.getTime() - now.getTime()
   if (leaseMs < 1_000) throw new ServiceError('Handoff ticket is expired.', 'CONFLICT', 409)
   return { expiresAt, leaseMs }
+}
+
+async function handoffBoundLeaseMs(
+  transaction: Transaction,
+  worker: { provenance: string; trustedPrincipalId: string; bindingId: string },
+  requestedLeaseMs: number | undefined,
+  now: Date,
+) {
+  const ticket = await activeRedeemedHandoffTicket(transaction, worker, now)
+  if (!ticket) return requestedLeaseMs
+  const requested = requestedLeaseMs ?? 30_000
+  const remaining = ticket.expiresAt.getTime() - now.getTime()
+  const leaseMs = Math.min(requested, remaining)
+  if (leaseMs < 1_000) throw new ServiceError('The redeemed handoff session is expired.', 'CONFLICT', 409)
+  return leaseMs
 }
 
 async function createRedeemedHandoffWorker(
@@ -449,6 +498,7 @@ async function redeemCollaborationHandoffTicketInTransaction(
 ) {
   const ticket = await redeemableHandoffTicket(transaction, input.token, input.now)
   const operation = await redeemableHandoffOperation(transaction, ticket)
+  const scope = assertExactHandoffScope(ticket.scopeJson, operation)
   const lease = handoffWorkerLease(ticket, input.now)
   // The bearer is one-time bootstrap capability, not proposal authority. The
   // new bounded session immediately claims exactly this durable operation.
@@ -469,7 +519,7 @@ async function redeemCollaborationHandoffTicketInTransaction(
     ticket,
     operationId: operation.id,
     worker: { workerIdentity: worker.workerIdentity, sessionNonce: worker.sessionNonce, expiresAt: lease.expiresAt },
-    work: { ...claim, assignment: sanitizedAssignment(operation) },
+    work: { ...claim, assignment: scope.assignment },
   }
 }
 

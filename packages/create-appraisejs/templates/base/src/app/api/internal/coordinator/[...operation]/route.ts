@@ -132,6 +132,23 @@ function coordinatorErrorRetry(context: CoordinatorErrorContext) {
   }
 }
 
+function isPreEffectCoordinatorFailure(error: unknown) {
+  if (error instanceof z.ZodError) return true
+  if (!(error instanceof ServiceError)) return false
+  return ['VALIDATION', 'UNAUTHORIZED', 'NOT_FOUND'].includes(error.code)
+}
+
+function collaborationMutationMayHaveStarted(context: CoordinatorErrorContext) {
+  if (!context.operation.startsWith('collaboration/')) return false
+  return !['collaboration/status', 'collaboration/get'].includes(context.operation)
+}
+
+function coordinatorOperationOutcome(error: unknown, context: CoordinatorErrorContext) {
+  return isPreEffectCoordinatorFailure(error) || !collaborationMutationMayHaveStarted(context)
+    ? 'not_started'
+    : 'unknown'
+}
+
 function coordinatorErrorDetails(error: unknown, serviceError?: ServiceError) {
   if (error instanceof z.ZodError) {
     return {
@@ -165,6 +182,7 @@ function coordinatorErrorStatus(error: unknown, serviceError?: ServiceError) {
 function coordinatorErrorPayload(error: unknown, context: CoordinatorErrorContext) {
   const serviceError = error instanceof ServiceError ? error : undefined
   const details = coordinatorErrorDetails(error, serviceError)
+  const operationOutcome = coordinatorOperationOutcome(error, context)
   return {
     schema: 'appraise.error/v1',
     errorId: randomUUID(),
@@ -174,12 +192,14 @@ function coordinatorErrorPayload(error: unknown, context: CoordinatorErrorContex
     message: coordinatorErrorMessage(error, serviceError),
     httpStatus: coordinatorErrorStatus(error, serviceError),
     operation: { name: context.operation, ...optionalContext('idempotencyKey', context.idempotencyKey) },
-    // A handler may have crossed a filesystem, Git, database, or remote
-    // boundary before its response failed. Operation lookup resolves the
-    // exact persisted outcome for collaboration work.
-    operationOutcome: 'unknown',
-    targetOutcome: 'not_evaluated',
-    retry: coordinatorErrorRetry(context),
+    // Only collaboration mutations beyond schema/permission/precondition
+    // validation can cross a durable or external effect boundary.
+    operationOutcome,
+    targetOutcome: isPreEffectCoordinatorFailure(error) ? 'not_committed' : 'not_evaluated',
+    retry:
+      operationOutcome === 'unknown'
+        ? coordinatorErrorRetry(context)
+        : { safe: false, strategy: 'do_not_retry' as const },
     ...(details ? { details } : {}),
   }
 }

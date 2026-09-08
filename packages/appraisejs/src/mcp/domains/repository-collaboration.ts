@@ -11,6 +11,7 @@ const target = z.string().trim().min(1)
 const sha256 = z.string().regex(/^sha256:[a-f0-9]{64}$/)
 const policyVersion = z.number().int().positive()
 const records = z.array(z.unknown()).min(1).max(10_000)
+const authorityReceipt = z.string().regex(/^[A-Za-z0-9_-]{43}$/)
 
 const connectInput = z
   .object({
@@ -31,6 +32,59 @@ const prepareInput = z
   })
   .strict()
 const getInput = z.object({ target, operationId: id }).strict()
+const policyUpdateInput = z
+  .object({
+    target,
+    expectedPolicyVersion: policyVersion,
+    changes: z
+      .object({
+        OBSERVE: z.boolean().optional(),
+        PREPARE: z.boolean().optional(),
+        INTEGRATE: z.boolean().optional(),
+        COMMIT: z.boolean().optional(),
+        PUSH: z.boolean().optional(),
+        RESOLVE: z.boolean().optional(),
+        ARCHIVE: z.boolean().optional(),
+      })
+      .strict()
+      .refine(value => Object.keys(value).length > 0, 'At least one policy change is required.'),
+    authorityReceipt,
+  })
+  .strict()
+const decisionInput = z
+  .object({
+    target,
+    operationId: id,
+    expectedVersion: z.number().int().positive(),
+    preparedDigest: sha256,
+    decisions: z
+      .array(
+        z
+          .object({
+            recordKey: id,
+            decision: z.enum(['KEEP_LOCAL', 'USE_INCOMING', 'EDIT']),
+            editedRecord: z.unknown().optional(),
+          })
+          .strict(),
+      )
+      .min(1)
+      .max(2_000)
+      .optional(),
+    reviewDigest: sha256.optional(),
+    decision: z.enum(['ACCEPT', 'REJECT']).optional(),
+    authorityReceipt,
+  })
+  .strict()
+  .superRefine((value, context) => {
+    const standard = Boolean(value.decisions)
+    const divergent = Boolean(value.reviewDigest && value.decision)
+    const mixed = standard && (value.reviewDigest || value.decision)
+    if (standard === divergent || mixed)
+      context.addIssue({
+        code: 'custom',
+        message: 'Provide exactly standard decisions or one divergent review decision.',
+      })
+  })
 const executeInput = z
   .object({
     target,
@@ -78,6 +132,30 @@ export function registerRepositoryCollaborationOperations({ server, api }: McpRe
       inputSchema: { target },
     },
     async ({ target }) => text(await api.collaborationStatus(target)),
+  )
+  server.registerTool(
+    'collaboration_policy_update',
+    {
+      description: 'Update one target-scoped collaboration policy with a local UI-issued one-action authority receipt.',
+      inputSchema: policyUpdateInput.shape,
+    },
+    async input => {
+      const { authorityReceipt: receipt, ...request } = policyUpdateInput.parse(input)
+      return text(await api.collaborationPolicyUpdate(request, receipt))
+    },
+  )
+  server.registerTool(
+    'collaboration_decide',
+    {
+      description:
+        'Persist exact reviewed collaboration decisions with a local UI-issued one-action authority receipt; accepted work may continue its persisted plan.',
+      inputSchema: decisionInput.shape,
+    },
+    async input => {
+      const parsed = decisionInput.parse(input)
+      const { authorityReceipt: receipt, ...request } = parsed
+      return text(await api.collaborationDecide(request, receipt))
+    },
   )
   const definitions = [
     [

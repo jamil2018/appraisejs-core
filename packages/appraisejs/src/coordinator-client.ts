@@ -40,7 +40,7 @@ const coordinatorErrorEnvelopeSchema = z
       })
       .strict(),
     operationOutcome: z.enum(['not_started', 'not_committed', 'committed', 'unknown']),
-    targetOutcome: z.literal('not_evaluated'),
+    targetOutcome: z.enum(['not_evaluated', 'not_committed']),
     retry: z
       .object({
         safe: z.boolean(),

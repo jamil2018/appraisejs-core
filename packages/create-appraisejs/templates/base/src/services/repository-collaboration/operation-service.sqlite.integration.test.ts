@@ -492,17 +492,28 @@ describe('durable collaboration operations', () => {
     const { client, binding, target } = await fixture({ git: true })
     try {
       await client.module.create({ data: { id: 'local-module', name: 'Local', targetProjectId: target.id } })
+      await git(binding.repositoryRoot, 'push', 'origin', 'appraise-0.5')
+      const publicationPolicy = await updateCollaborationPolicy(
+        {
+          bindingId: binding.id,
+          changes: { PUSH: true },
+          trustedPrincipalId: 'local-user',
+          provenance: 'authenticated-host',
+        },
+        client,
+      )
       const first = await prepareCollaborationOperation(
         {
           bindingId: binding.id,
           intent: 'PUBLISH',
           idempotencyKey: 'publish-one',
-          expectedPolicyVersion: binding.policyVersion,
+          expectedPolicyVersion: publicationPolicy.policyVersion,
         },
         client,
       )
       expect(first.state).toBe('READY')
       const identity = await inspectRepository(binding.repositoryRoot, binding.remoteName)
+      expect(first.targetRevision).toBe(identity.head)
       const conflictingLease = await client.$transaction(transaction =>
         acquireCollaborationGitMutationLock(transaction, identity.commonDirectory, 'concurrent-git-owner'),
       )
@@ -540,11 +551,28 @@ describe('durable collaboration operations', () => {
           bindingId: binding.id,
           intent: 'PUBLISH',
           idempotencyKey: 'publish-two-valid',
-          expectedPolicyVersion: binding.policyVersion,
+          expectedPolicyVersion: publicationPolicy.policyVersion,
         },
         client,
       )
-      await expect(executeNext(client, validSecond)).resolves.toMatchObject({ state: 'READY' })
+      const completedSecond = await continueAcceptedCollaborationOperation({ operationId: validSecond.id }, client)
+      expect(completedSecond).toMatchObject({ state: 'COMPLETED' })
+      expect(completedSecond.sourceRevision).toMatch(/^[a-f0-9]{40}$/)
+      expect(await git(binding.repositoryRoot, 'ls-remote', 'origin', 'refs/heads/appraise-0.5')).toContain(
+        completedSecond.sourceRevision!,
+      )
+      expect(
+        await client.collaborationOperationStep.findMany({
+          where: { operationId: validSecond.id },
+          orderBy: { ordinal: 'asc' },
+          select: { kind: true, state: true },
+        }),
+      ).toEqual([
+        { kind: 'INSTALL_SNAPSHOT', state: 'COMPLETED' },
+        { kind: 'CREATE_COMMIT', state: 'COMPLETED' },
+        { kind: 'PUSH_REMOTE', state: 'COMPLETED' },
+        { kind: 'FINALIZE', state: 'COMPLETED' },
+      ])
       const recordPath = path.join(binding.repositoryRoot, 'appraise', 'collaboration', 'modules')
       await fs.writeFile(path.join(recordPath, (await fs.readdir(recordPath))[0]!), 'external edit')
       const second = await prepareCollaborationOperation(
@@ -552,7 +580,7 @@ describe('durable collaboration operations', () => {
           bindingId: binding.id,
           intent: 'PUBLISH',
           idempotencyKey: 'publish-three-external-edit',
-          expectedPolicyVersion: binding.policyVersion,
+          expectedPolicyVersion: publicationPolicy.policyVersion,
         },
         client,
       )

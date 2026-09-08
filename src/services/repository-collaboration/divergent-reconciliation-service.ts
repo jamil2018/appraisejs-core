@@ -23,9 +23,12 @@ import { requireCollaborationPermission } from './binding-service'
 import { appendCollaborationJournalEntry } from './collaboration-journal-service'
 import {
   acquireCollaborationGitMutationLock,
+  assertCollaborationGitMutationLock,
   releaseCollaborationGitMutationLock,
+  withCollaborationGitMutationLeaseHeartbeat,
   type CollaborationMutationLease,
 } from './git-mutation-lock-service'
+import { activeRedeemedHandoffTicket } from './handoff-ticket-session-service'
 
 type Transaction = Prisma.TransactionClient
 
@@ -53,6 +56,10 @@ export type DivergentProposalHooks = {
   /** Test-only seam for proving that a lease replacement after filesystem
    * validation cannot persist a stale proposal. */
   afterValidation?: () => Promise<void> | void
+}
+
+function currentProposalPersistenceTime() {
+  return new Date()
 }
 
 function leaseTokenHash(value: string) {
@@ -147,13 +154,16 @@ export async function prepareDivergentCollaborationReconciliation(
 ): Promise<DivergentReconciliationPreparation> {
   const started = await acquirePreparationLease(client, input)
   try {
-    const preparation = await prepareDivergentReconciliation({
-      repositoryRoot: started.operation.binding.repositoryRoot,
-      operationId: started.operation.id,
-      sourceRevision: started.operation.sourceRevision!,
-      targetRevision: started.operation.targetRevision!,
-    })
+    const preparation = await withCollaborationGitMutationLeaseHeartbeat(client, started.lease, () =>
+      prepareDivergentReconciliation({
+        repositoryRoot: started.operation.binding.repositoryRoot,
+        operationId: started.operation.id,
+        sourceRevision: started.operation.sourceRevision!,
+        targetRevision: started.operation.targetRevision!,
+      }),
+    )
     await client.$transaction(async transaction => {
+      await assertCollaborationGitMutationLock(transaction, started.lease)
       const operation = await loadPreparedOperation(transaction, input)
       await transaction.collaborationOperationArtifact.create({
         data: {
@@ -218,6 +228,41 @@ export async function prepareDivergentCollaborationReconciliation(
   }
 }
 
+async function storedDivergentPreparation(
+  operation: Awaited<ReturnType<typeof loadPreparedOperation>>,
+  client: Pick<PrismaClient, 'collaborationOperationArtifact'>,
+) {
+  const artifact = await client.collaborationOperationArtifact.findFirst({
+    where: { operationId: operation.id, kind: 'DIVERGENT_PREPARATION' },
+    orderBy: { revision: 'desc' },
+  })
+  if (!artifact) throw new ServiceError('The divergent worktree was not durably prepared.', 'CONFLICT', 409)
+  let preparation: DivergentReconciliationPreparation
+  try {
+    preparation = JSON.parse(artifact.payloadJson) as DivergentReconciliationPreparation
+  } catch {
+    throw new ServiceError('The persisted divergent worktree is invalid.', 'CONFLICT', 409)
+  }
+  if (
+    artifact.payloadHash !== collaborationHash(preparation) ||
+    preparation.operationId !== operation.id ||
+    preparation.repositoryRoot !== operation.binding.repositoryRoot ||
+    preparation.sourceRevision !== operation.sourceRevision ||
+    preparation.targetRevision !== operation.targetRevision
+  ) {
+    throw new ServiceError('The persisted divergent worktree does not belong to this exact operation.', 'CONFLICT', 409)
+  }
+  return { artifact, preparation }
+}
+
+async function assertFreshWorkerFence(transaction: Transaction, fence: DivergentProposalWorkerFence, now: Date) {
+  const worker = await transaction.collaborationWorker.findUnique({ where: { id: fence.workerId } })
+  if (!worker || worker.connectionState !== 'CONNECTED' || worker.expiresAt <= now) {
+    throw new ServiceError('The worker session expired before proposal persistence.', 'CONFLICT', 409)
+  }
+  await activeRedeemedHandoffTicket(transaction, worker, now)
+}
+
 /**
  * Agents submit complete record projections, never text patches or Git
  * commands. This validates both the strict snapshot and the normal three-way
@@ -240,20 +285,7 @@ export async function proposeDivergentCollaborationReconciliation(
   operationVersion: number
 }> {
   const operation = await client.$transaction(transaction => loadPreparedOperation(transaction, input))
-  const storedPreparation = await client.collaborationOperationArtifact.findFirst({
-    where: { operationId: operation.id, kind: 'DIVERGENT_PREPARATION' },
-    orderBy: { revision: 'desc' },
-  })
-  if (!storedPreparation) throw new ServiceError('The divergent worktree was not durably prepared.', 'CONFLICT', 409)
-  const preparation = JSON.parse(storedPreparation.payloadJson) as DivergentReconciliationPreparation
-  if (
-    storedPreparation.payloadHash !== collaborationHash(preparation) ||
-    preparation.operationId !== operation.id ||
-    preparation.repositoryRoot !== operation.binding.repositoryRoot ||
-    preparation.sourceRevision !== operation.sourceRevision ||
-    preparation.targetRevision !== operation.targetRevision
-  )
-    throw new ServiceError('The persisted divergent worktree does not belong to this exact operation.', 'CONFLICT', 409)
+  const { preparation } = await storedDivergentPreparation(operation, client)
   try {
     const review = await validateDivergentReconciliationProposal({
       preparation,
@@ -272,6 +304,8 @@ export async function proposeDivergentCollaborationReconciliation(
       const current = await loadPreparedOperation(transaction, input)
       const nextVersion = current.version + 1
       if (workerFence) {
+        const persistenceNow = currentProposalPersistenceTime()
+        await assertFreshWorkerFence(transaction, workerFence, persistenceNow)
         // This is the authoritative proposal boundary. A lease may expire or
         // be replaced while the worker validates its isolated worktree; only
         // the current attempt can make that validation durable.
@@ -284,7 +318,7 @@ export async function proposeDivergentCollaborationReconciliation(
             preparedDigest: current.preparedDigest,
             fencingToken: workerFence.fencingToken,
             leaseOwner: workerFence.workerId,
-            leaseExpiresAt: { gt: workerFence.now },
+            leaseExpiresAt: { gt: persistenceNow },
             cancelledAt: null,
           },
           data: {
@@ -312,12 +346,12 @@ export async function proposeDivergentCollaborationReconciliation(
             fencingToken: workerFence.fencingToken,
             claimTokenHash: leaseTokenHash(workerFence.leaseToken),
             state: 'RUNNING',
-            leaseExpiresAt: { gt: workerFence.now },
+            leaseExpiresAt: { gt: persistenceNow },
           },
           data: {
             state: 'PROPOSAL_SUBMITTED',
             resultJson: JSON.stringify({ reviewDigest: review.reviewDigest }),
-            completedAt: workerFence.now,
+            completedAt: persistenceNow,
           },
         })
         if (consumedAttempt.count !== 1)
@@ -326,6 +360,13 @@ export async function proposeDivergentCollaborationReconciliation(
             'CONFLICT',
             409,
           )
+      }
+      if (!workerFence && current.state !== 'READY') {
+        throw new ServiceError(
+          'A divergent proposal may be submitted only from its initial ready state.',
+          'CONFLICT',
+          409,
+        )
       }
       const prior = await transaction.collaborationOperationArtifact.findFirst({
         where: { operationId: operation.id, kind: 'DIVERGENT_PROPOSAL_REVIEW' },
@@ -551,17 +592,35 @@ export async function recoverDivergentCollaborationWorktree(
   if (input.preparation.operationId !== input.operationId) {
     throw new ServiceError('The divergent recovery artifact belongs to another operation.', 'CONFLICT', 409)
   }
-  const operation = await client.collaborationOperation.findUnique({ where: { id: input.operationId } })
-  if (!operation) throw new ServiceError('Collaboration operation was not found.', 'NOT_FOUND', 404)
-  const outcome = await cleanupDivergentReconciliationWorktree(input.preparation)
-  await client.$transaction(async transaction => {
-    await appendCollaborationJournalEntry(
-      transaction,
-      operation.id,
-      'DIVERGENT_WORKTREE_RECOVERY',
-      outcome,
-      'COMPLETED',
-    )
+  const operation = await client.collaborationOperation.findUnique({
+    where: { id: input.operationId },
+    include: { binding: true },
   })
-  return outcome
+  if (!operation) throw new ServiceError('Collaboration operation was not found.', 'NOT_FOUND', 404)
+  const { preparation } = await storedDivergentPreparation(operation, client)
+  if (collaborationHash(input.preparation) !== collaborationHash(preparation)) {
+    throw new ServiceError('The divergent recovery request does not match its durable preparation.', 'CONFLICT', 409)
+  }
+  const identity = await inspectRepository(operation.binding.repositoryRoot, operation.binding.remoteName)
+  const lease = await client.$transaction(transaction =>
+    acquireCollaborationGitMutationLock(transaction, identity.commonDirectory, operation.id),
+  )
+  try {
+    return await withCollaborationGitMutationLeaseHeartbeat(client, lease, async () => {
+      const outcome = await cleanupDivergentReconciliationWorktree(preparation)
+      await client.$transaction(async transaction => {
+        await assertCollaborationGitMutationLock(transaction, lease)
+        await appendCollaborationJournalEntry(
+          transaction,
+          operation.id,
+          'DIVERGENT_WORKTREE_RECOVERY',
+          outcome,
+          'COMPLETED',
+        )
+      })
+      return outcome
+    })
+  } finally {
+    await client.$transaction(transaction => releaseCollaborationGitMutationLock(transaction, lease))
+  }
 }

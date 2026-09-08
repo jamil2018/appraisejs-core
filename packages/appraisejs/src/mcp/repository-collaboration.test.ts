@@ -34,6 +34,8 @@ describe('repository collaboration MCP tools', () => {
   it('exposes the complete planned parity surface', () => {
     expect([...harness().handlers.keys()]).toEqual([
       'collaboration_status',
+      'collaboration_policy_update',
+      'collaboration_decide',
       'collaboration_connect',
       'collaboration_prepare',
       'collaboration_get',
@@ -63,12 +65,38 @@ describe('repository collaboration MCP tools', () => {
     await expect(handlers.get('collaboration_execute')!({ ...input, gitStep: 'FETCH' })).rejects.toThrow()
   })
 
-  it('omits receipt-protected policy and decision mutations from the default MCP inventory', async () => {
+  it('forwards receipt-protected policy and exact decision mutations without placing the receipt in the request body', async () => {
     const { handlers, api } = harness()
-    expect(handlers.has('collaboration_policy_update')).toBe(false)
-    expect(handlers.has('collaboration_decide')).toBe(false)
-    expect(api.collaborationPolicyUpdate).not.toHaveBeenCalled()
-    expect(api.collaborationDecide).not.toHaveBeenCalled()
+    const authorityReceipt = 'a'.repeat(43)
+    const policy = {
+      target: 'target-1',
+      expectedPolicyVersion: 2,
+      changes: { INTEGRATE: true },
+      authorityReceipt,
+    }
+    const decision = {
+      target: 'target-1',
+      operationId: 'operation-1',
+      expectedVersion: 2,
+      preparedDigest: `sha256:${'b'.repeat(64)}`,
+      decisions: [{ recordKey: 'module:one', decision: 'USE_INCOMING' as const }],
+      authorityReceipt,
+    }
+    await handlers.get('collaboration_policy_update')!(policy)
+    await handlers.get('collaboration_decide')!(decision)
+    expect(api.collaborationPolicyUpdate).toHaveBeenCalledWith(
+      { target: 'target-1', expectedPolicyVersion: 2, changes: { INTEGRATE: true } },
+      authorityReceipt,
+    )
+    expect(api.collaborationDecide).toHaveBeenCalledWith(
+      expect.objectContaining({ operationId: 'operation-1', decisions: decision.decisions }),
+      authorityReceipt,
+    )
+    await expect(handlers.get('collaboration_policy_update')!({ ...policy, forged: true })).rejects.toThrow()
+    await expect(handlers.get('collaboration_decide')!({ ...decision, authorityReceipt: 'forged' })).rejects.toThrow()
+    await expect(
+      handlers.get('collaboration_decide')!({ ...decision, reviewDigest: `sha256:${'c'.repeat(64)}` }),
+    ).rejects.toThrow()
   })
 
   it('rejects generic undo preparation and requires the dedicated undo endpoint', async () => {

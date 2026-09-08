@@ -207,6 +207,170 @@ describe('durable collaboration Git service boundaries', () => {
       targetRevision: baseline,
     })
 
+    const uncertainCreate = await client.collaborationOperation.create({
+      data: {
+        bindingId: policy.id,
+        intent: 'PUBLISH',
+        trigger: 'uncertain-create-test',
+        state: 'READY',
+        version: 2,
+        idempotencyKey: 'uncertain-create',
+        targetRevision: baseline,
+        policyVersion: policy.policyVersion,
+        preparedDigest: digest,
+        acceptedDigest: digest,
+        steps: {
+          create: {
+            ordinal: 0,
+            kind: 'CREATE_COMMIT',
+            state: 'PENDING',
+            requiredPermission: 'COMMIT',
+            prerequisiteDigest: digest,
+          },
+        },
+      },
+    })
+    const installReceipt = { publishedSnapshotHash: operationSnapshot.snapshotHash }
+    await client.collaborationOperationArtifact.create({
+      data: {
+        operationId: uncertainCreate.id,
+        kind: 'STEP_INSTALL_SNAPSHOT',
+        revision: 1,
+        payloadJson: JSON.stringify(installReceipt),
+        payloadHash: collaborationHash(installReceipt),
+      },
+    })
+    await expect(
+      executeCollaborationGitStep(
+        {
+          operationId: uncertainCreate.id,
+          expectedVersion: 2,
+          preparedDigest: digest,
+          idempotencyKey: 'uncertain-create',
+        },
+        client,
+      ),
+    ).rejects.toMatchObject({ code: 'CONFLICT' })
+    expect(await client.collaborationOperation.findUnique({ where: { id: uncertainCreate.id } })).toMatchObject({
+      state: 'APPLYING',
+      version: 3,
+    })
+    expect(
+      await client.collaborationOperationStep.findUnique({
+        where: { operationId_ordinal: { operationId: uncertainCreate.id, ordinal: 0 } },
+      }),
+    ).toMatchObject({ state: 'RUNNING', requestVersion: 2 })
+
+    const stagedRecords = [
+      ...operationRecords,
+      {
+        format: 'appraise.repository-collaboration/v1' as const,
+        portableProjectId: 'portable-project',
+        portableId: 'staged-module',
+        version: 1,
+        archived: false,
+        kind: 'module' as const,
+        payload: { name: 'Staged', parentPortableId: null },
+      },
+    ]
+    const stagedSnapshot = buildCollaborationSnapshotFiles(stagedRecords, 'portable-project')
+    await Promise.all(
+      [...stagedSnapshot.files].map(async ([relativePath, content]) => {
+        const destination = path.join(local, 'appraise', 'collaboration', relativePath)
+        await fs.mkdir(path.dirname(destination), { recursive: true })
+        await fs.writeFile(destination, content)
+      }),
+    )
+    await git(local, 'add', 'appraise/collaboration')
+    const stagedOperation = await client.collaborationOperation.create({
+      data: {
+        bindingId: policy.id,
+        intent: 'PUBLISH',
+        trigger: 'staged-create-recovery-test',
+        state: 'APPLYING',
+        version: 2,
+        idempotencyKey: 'staged-create-recovery',
+        targetRevision: operationCommit,
+        policyVersion: policy.policyVersion,
+        preparedDigest: digest,
+        acceptedDigest: digest,
+        executorEpoch: 1,
+        steps: {
+          create: {
+            ordinal: 0,
+            kind: 'CREATE_COMMIT',
+            state: 'RUNNING',
+            requiredPermission: 'COMMIT',
+            prerequisiteDigest: digest,
+            requestVersion: 1,
+            intentJson: JSON.stringify({
+              schema: 'appraise.repository-collaboration.git-step-intent/v1',
+              operationId: 'pending',
+              operationIntent: 'PUBLISH',
+              preparedDigest: digest,
+              ordinal: 0,
+              kind: 'CREATE_COMMIT',
+              requiredPermission: 'COMMIT',
+              requestVersion: 1,
+              executorEpoch: 1,
+              fencingToken: 1,
+              sourceRevision: null,
+              targetRevision: operationCommit,
+              commit: { expectedParent: operationCommit, expectedSnapshotHash: stagedSnapshot.snapshotHash },
+            }),
+            intentHash: digest,
+            executorEpoch: 1,
+            startedVersion: 2,
+            fencingToken: 1,
+          },
+        },
+      },
+    })
+    const stagedIntent = {
+      schema: 'appraise.repository-collaboration.git-step-intent/v1',
+      operationId: stagedOperation.id,
+      operationIntent: 'PUBLISH',
+      preparedDigest: digest,
+      ordinal: 0,
+      kind: 'CREATE_COMMIT',
+      requiredPermission: 'COMMIT',
+      requestVersion: 1,
+      executorEpoch: 1,
+      fencingToken: 1,
+      sourceRevision: null,
+      targetRevision: operationCommit,
+      commit: { expectedParent: operationCommit, expectedSnapshotHash: stagedSnapshot.snapshotHash },
+    }
+    await client.collaborationOperationStep.update({
+      where: { operationId_ordinal: { operationId: stagedOperation.id, ordinal: 0 } },
+      data: { intentJson: JSON.stringify(stagedIntent), intentHash: collaborationHash(stagedIntent) },
+    })
+    await client.collaborationOperationArtifact.create({
+      data: {
+        operationId: stagedOperation.id,
+        kind: 'STEP_INSTALL_SNAPSHOT',
+        revision: 1,
+        payloadJson: JSON.stringify({ publishedSnapshotHash: stagedSnapshot.snapshotHash }),
+        payloadHash: collaborationHash({ publishedSnapshotHash: stagedSnapshot.snapshotHash }),
+      },
+    })
+    await expect(recoverCollaborationGitOperation(stagedOperation.id, client)).resolves.toMatchObject({
+      state: 'READY',
+    })
+    expect(await git(local, 'diff', '--cached', '--name-only')).toBe('')
+    expect(await git(local, 'status', '--porcelain')).toContain('appraise/collaboration/')
+    const recoveredStaged = await client.collaborationOperation.findUniqueOrThrow({ where: { id: stagedOperation.id } })
+    const retried = await executeCollaborationGitStep(
+      {
+        operationId: stagedOperation.id,
+        expectedVersion: recoveredStaged.version,
+        preparedDigest: digest,
+        idempotencyKey: 'staged-create-recovery',
+      },
+      client,
+    )
+    expect(retried.sourceRevision).toMatch(/^[a-f0-9]{40}$/)
+
     const operation = await client.collaborationOperation.create({
       data: {
         bindingId: policy.id,

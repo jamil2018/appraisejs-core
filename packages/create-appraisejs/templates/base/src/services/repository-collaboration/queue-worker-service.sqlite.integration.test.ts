@@ -8,6 +8,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { copyMigratedTestDatabase } from '@/test/migrated-test-database'
 
 import { connectCollaboration, updateCollaborationPolicy } from './binding-service'
+import { prepareCollaborationOperation } from './operation-service'
 import {
   acquireCollaborationMutationLock,
   cancelCollaborationOperation,
@@ -25,6 +26,7 @@ import {
   completeCollaborationWork,
   createCollaborationHandoffTicket,
   getCollaborationConnectionMode,
+  getSanitizedCollaborationAssignment,
   heartbeatCollaborationWork,
   redeemCollaborationHandoffTicket,
   registerCollaborationWorker,
@@ -112,6 +114,10 @@ async function makeDurablyPreparedDivergence(client: PrismaClient, operationId: 
       payloadHash: 'd'.repeat(64),
     },
   })
+}
+
+async function handoffScope(client: PrismaClient, bindingId: string, operationId: string) {
+  return { assignment: await getSanitizedCollaborationAssignment({ bindingId, operationId }, client) }
 }
 
 describe('repository collaboration queue and workers', () => {
@@ -474,6 +480,56 @@ describe('repository collaboration queue and workers', () => {
     }
   })
 
+  it('continues an accepted ready operation after a simulated crash before its response continuation', async () => {
+    const { client, binding } = await fixture()
+    try {
+      const policy = await updateCollaborationPolicy(
+        {
+          bindingId: binding.id,
+          changes: { INTEGRATE: true },
+          trustedPrincipalId: 'local-user',
+          provenance: 'authenticated-host',
+        },
+        client,
+      )
+      // This READY record represents the committed decision boundary after a
+      // process died before the UI/public response could start continuation.
+      const accepted = await prepareCollaborationOperation(
+        {
+          bindingId: binding.id,
+          intent: 'RECEIVE',
+          idempotencyKey: 'restart-ready',
+          expectedPolicyVersion: policy.policyVersion,
+          incomingRecords: [
+            {
+              format: 'appraise.repository-collaboration/v1',
+              portableProjectId: 'queue-project',
+              portableId: 'restart-module',
+              version: 1,
+              archived: false,
+              kind: 'module',
+              payload: { name: 'Restart module', parentPortableId: null },
+            },
+          ],
+        },
+        client,
+      )
+      expect(accepted.state).toBe('READY')
+
+      const tick = await runCollaborationSchedulerTick(
+        { now: new Date(beginning.getTime() + 10_000), observeRemote: async () => undefined },
+        client,
+      )
+      expect(tick.continuations).toContainEqual({ operationId: accepted.id, outcome: 'completed' })
+      expect(await client.collaborationOperation.findUnique({ where: { id: accepted.id } })).toMatchObject({
+        state: 'COMPLETED',
+      })
+      expect(await client.module.findFirst({ where: { name: 'Restart module' } })).toBeTruthy()
+    } finally {
+      await client.$disconnect()
+    }
+  })
+
   it('reconciles on worker registration but observes a remote only when it is due', async () => {
     const { client, binding } = await fixture()
     try {
@@ -573,17 +629,56 @@ describe('repository collaboration queue and workers', () => {
         workerAvailable: false,
         nativeWakeSupported: false,
       })
+      await expect(
+        createCollaborationHandoffTicket(
+          { bindingId: binding.id, operationId: operation.id, scope: { operation: 'proposal' }, now: beginning },
+          client,
+        ),
+      ).rejects.toMatchObject({ code: 'CONFLICT' })
       const { token } = await createCollaborationHandoffTicket(
-        { bindingId: binding.id, operationId: operation.id, scope: { operation: 'proposal' }, now: beginning },
+        {
+          bindingId: binding.id,
+          operationId: operation.id,
+          scope: await handoffScope(client, binding.id, operation.id),
+          now: beginning,
+          ttlMs: 5_000,
+        },
         client,
       )
+      const redemptionTime = new Date(beginning.getTime() + 3_000)
       const redeemed = await redeemCollaborationHandoffTicket(
-        { token, redeemedBy: 'interactive-agent', now: new Date(beginning.getTime() + 3_000) },
+        { token, redeemedBy: 'interactive-agent', now: redemptionTime },
         client,
       )
       expect(redeemed.operationId).toBe(operation.id)
       expect(redeemed.work).toMatchObject({ operationId: operation.id, fencingToken: 1 })
       expect(redeemed.work.assignment).toMatchObject({ operationId: operation.id })
+      await expect(
+        claimCollaborationWork(
+          {
+            bindingId: binding.id,
+            workerIdentity: redeemed.worker.workerIdentity,
+            sessionNonce: redeemed.worker.sessionNonce,
+            now: redemptionTime,
+          },
+          client,
+        ),
+      ).rejects.toMatchObject({ code: 'CONFLICT' })
+      await heartbeatCollaborationWork(
+        {
+          bindingId: binding.id,
+          workerIdentity: redeemed.worker.workerIdentity,
+          sessionNonce: redeemed.worker.sessionNonce,
+          ...redeemed.work,
+          leaseMs: 300_000,
+          now: new Date(beginning.getTime() + 3_500),
+        },
+        client,
+      )
+      const cappedWorker = await client.collaborationWorker.findFirstOrThrow({
+        where: { bindingId: binding.id, workerIdentity: redeemed.worker.workerIdentity },
+      })
+      expect(cappedWorker.expiresAt).toEqual(new Date(beginning.getTime() + 5_000))
       await expect(
         redeemCollaborationHandoffTicket(
           { token, redeemedBy: 'replay', now: new Date(beginning.getTime() + 3_000) },
@@ -600,7 +695,7 @@ describe('repository collaboration queue and workers', () => {
         {
           bindingId: binding.id,
           operationId: expiredOperation.id,
-          scope: { operation: 'proposal' },
+          scope: await handoffScope(client, binding.id, expiredOperation.id),
           now: beginning,
           ttlMs: 5_000,
         },
@@ -627,7 +722,12 @@ describe('repository collaboration queue and workers', () => {
       )
       await makeDurablyPreparedDivergence(client, cancelledOperation.id)
       const cancelledTicket = await createCollaborationHandoffTicket(
-        { bindingId: binding.id, operationId: cancelledOperation.id, scope: { operation: 'proposal' }, now: beginning },
+        {
+          bindingId: binding.id,
+          operationId: cancelledOperation.id,
+          scope: await handoffScope(client, binding.id, cancelledOperation.id),
+          now: beginning,
+        },
         client,
       )
       await cancelCollaborationOperation(

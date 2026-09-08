@@ -397,6 +397,11 @@ export async function commitExactCollaborationPaths(input: {
   }
 }
 
+export async function restoreCollaborationIndex(repositoryRoot: string): Promise<void> {
+  const identity = await inspectRepository(repositoryRoot)
+  await runGit(identity.repositoryRoot, { kind: 'restore-collaboration-index' })
+}
+
 export async function readRemoteRef(input: {
   repositoryRoot: string
   remote: string

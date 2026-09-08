@@ -19,6 +19,7 @@ export type GitInvocation =
   | { kind: 'merge-fast-forward'; commit: string }
   | { kind: 'merge-no-commit'; commit: string }
   | { kind: 'add-collaboration' }
+  | { kind: 'restore-collaboration-index' }
   | { kind: 'commit-collaboration'; message: string }
   | { kind: 'commit-merge-collaboration'; message: string }
   | { kind: 'push-commit'; remote: string; branch: string; commit: string }
@@ -54,6 +55,7 @@ const argumentBuilders: ArgumentBuilders = {
   'merge-fast-forward': input => ['merge', '--ff-only', input.commit],
   'merge-no-commit': input => ['merge', '--no-ff', '--no-commit', input.commit],
   'add-collaboration': () => ['add', '--', 'appraise/collaboration'],
+  'restore-collaboration-index': () => ['restore', '--staged', '--', 'appraise/collaboration'],
   'commit-collaboration': input => ['commit', '-m', input.message],
   'commit-merge-collaboration': input => ['commit', '-m', input.message],
   'push-commit': input => ['push', input.remote, `${input.commit}:refs/heads/${input.branch}`],

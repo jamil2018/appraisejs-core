@@ -13,6 +13,7 @@ import {
   inspectRepository,
   pushPinnedCommit,
   readRemoteRef,
+  restoreCollaborationIndex,
   verifyExactCollaborationCommit,
 } from '@/lib/repository-collaboration'
 import { ServiceError } from '@/services/shared/errors'
@@ -324,39 +325,6 @@ async function completeStep(
   })
 }
 
-async function blockStep(client: PrismaClient, started: StartedGitStep, error: unknown) {
-  const message = error instanceof Error ? error.message : 'Git collaboration step failed.'
-  return client.$transaction(async transaction => {
-    await assertCollaborationGitMutationLock(transaction, started.lease)
-    const operation = await transaction.collaborationOperation.findUnique({ where: { id: started.operation.id } })
-    if (!operation || operation.version !== started.operation.version) return null
-    await transaction.collaborationOperationStep.update({
-      where: { operationId_ordinal: { operationId: operation.id, ordinal: started.step.ordinal } },
-      data: {
-        state: 'BLOCKED',
-        evidenceJson: canonicalJson({ message }),
-        evidenceHash: collaborationHash({ message }),
-        completedAt: new Date(),
-      },
-    })
-    await appendCollaborationJournalEntry(
-      transaction,
-      operation.id,
-      `GIT_${started.step.kind}_OBSERVED`,
-      { message },
-      'BLOCKED',
-    )
-    return transaction.collaborationOperation.update({
-      where: { id: operation.id },
-      data: {
-        state: 'BLOCKED',
-        blockerJson: canonicalJson({ step: started.step.kind, message }),
-        version: { increment: 1 },
-      },
-    })
-  })
-}
-
 function parseCreateCommitIntent(intentJson: string): {
   expectedParent: string
   expectedSnapshotHash: string
@@ -576,7 +544,9 @@ export async function executeCollaborationGitStep(
       executeStartedGitStep(started, client),
     )
   } catch (error) {
-    await blockStep(client, started, error)
+    // A Git command can fail after the external effect has become durable but
+    // before its response reaches us. Keep the fenced step APPLYING/RUNNING so
+    // recovery can inspect the exact intent and classify the outcome safely.
     if (error instanceof ServiceError) throw error
     throw new ServiceError(error instanceof Error ? error.message : 'Git collaboration step failed.', 'CONFLICT', 409)
   } finally {
@@ -716,6 +686,9 @@ export async function recoverCollaborationGitOperation(operationId: string, clie
             return 'AMBIGUOUS_BLOCK' as const
         }
       })()
+      if (classification === 'SAFE_NO_EFFECT_RETRY' && running.kind === 'CREATE_COMMIT') {
+        await restoreCollaborationIndex(operation.binding.repositoryRoot)
+      }
       return await client.$transaction(async transaction => {
         await assertCollaborationGitMutationLock(transaction, recovery.lease)
         const current = await transaction.collaborationOperation.findUnique({

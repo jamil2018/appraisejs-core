@@ -22,7 +22,10 @@ import {
   recoverExpiredCollaborationLeases,
   scheduleCollaborationOperation,
 } from '@/services/repository-collaboration/queue-service'
-import { createCollaborationHandoffTicket } from '@/services/repository-collaboration/worker-service'
+import {
+  createCollaborationHandoffTicket,
+  getSanitizedCollaborationAssignment,
+} from '@/services/repository-collaboration/worker-service'
 
 const prismaState = vi.hoisted(() => ({ client: undefined as Record<PropertyKey, unknown> | undefined }))
 
@@ -281,9 +284,12 @@ describe('repository collaboration public worker ingress', () => {
         {
           bindingId: binding.id,
           operationId: prepared.operation.id,
-          // Scope is intentionally never echoed through public redemption;
-          // the worker receives only the durable sanitized assignment below.
-          scope: { repositoryRoot: local, credential: 'must-not-leak' },
+          scope: {
+            assignment: await getSanitizedCollaborationAssignment(
+              { bindingId: binding.id, operationId: prepared.operation.id },
+              client,
+            ),
+          },
         },
         client,
       )
@@ -297,6 +303,13 @@ describe('repository collaboration public worker ingress', () => {
       }
       expect(JSON.stringify(redeemed)).not.toContain(local)
       expect(redeemed.work.assignment).toMatchObject({ operationId: prepared.operation.id, records: sourceRecords })
+      await expect(
+        api.collaborationWorkClaim({
+          target: target.id,
+          workerIdentity: redeemed.worker.workerIdentity,
+          sessionNonce: redeemed.worker.sessionNonce,
+        }),
+      ).rejects.toMatchObject({ status: 409, envelope: { classification: 'state_conflict', code: 'CONFLICT' } })
       await expect(
         api.collaborationHandoffRedeem({ target: target.id, token: handoff.token, redeemedBy: 'replay-agent' }),
       ).rejects.toMatchObject({
@@ -639,7 +652,12 @@ describe('repository collaboration public worker ingress', () => {
         {
           bindingId: binding.id,
           operationId: operation.id,
-          scope: { operation: 'proposal' },
+          scope: {
+            assignment: await getSanitizedCollaborationAssignment(
+              { bindingId: binding.id, operationId: operation.id },
+              client,
+            ),
+          },
           now: beginning,
         },
         client,
