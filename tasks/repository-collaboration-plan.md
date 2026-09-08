@@ -1,10 +1,14 @@
 # Repository collaboration and agent-assisted Git management
 
-Status: agreed product direction; implementation not started.
+Status: implementation in progress; Phase 1 complete.
 
 Updated: 2026-09-08. This replaces the conversation's manual-Git-only plan.
 
 Implementation checklist: [repository-collaboration-todo.md](./repository-collaboration-todo.md).
+
+Delivery evidence is recorded phase-by-phase in that checklist. Phase 1 now includes the strict exchange contract,
+portable identity mapping, additive persistence schema, canonical projections for every authored aggregate, explicit
+local environment mapping, exact Step Definition references, bounded readers, and a cross-database round-trip fixture.
 
 ## Outcome and scope
 

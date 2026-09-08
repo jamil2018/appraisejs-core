@@ -2,16 +2,22 @@
 
 Canonical plan: [repository-collaboration-plan.md](./repository-collaboration-plan.md).
 
-All implementation tasks are pending. Mark a task complete only after its required verification; record evidence
-and blockers beneath the relevant phase. Preserve unrelated changes and use a dedicated implementation branch.
+Mark a task complete only after its required verification; record evidence and blockers beneath the relevant phase.
+Preserve unrelated changes and use a dedicated implementation branch.
 
 ## Phase 1 — Exchange identity and contracts
 
-- [ ] Inventory all authored dependencies and affected CRUD/search/run/materialization queries.
-- [ ] Add portable project/entity contracts, strict JSON format, normalization, and bounded file readers.
-- [ ] Add additive local bindings, ID mappings, baselines, and first-adoption validation.
-- [ ] Implement all authored aggregate projections, exact Step references, and local environment mappings.
-- [ ] Verify two-database round trips, identity isolation, input rejection, and canonical relationship ownership.
+- [x] Inventory all authored dependencies and affected CRUD/search/run/materialization queries.
+- [x] Add portable project/entity contracts, strict JSON format, normalization, and bounded file readers.
+- [x] Add additive local bindings, ID mappings, baselines, and first-adoption validation.
+- [x] Implement all authored aggregate projections, exact Step references, and local environment mappings.
+- [x] Verify two-database round trips, identity isolation, input rejection, and canonical relationship ownership.
+
+Evidence: `src/lib/repository-collaboration/*.test.ts` and
+`src/services/repository-collaboration/projection-service.sqlite.integration.test.ts` pass (14 tests total);
+`npm run validate:migrations` applies all 73 migrations and preserves retained-schema data and foreign keys. The
+cross-database fixture uses different local IDs while producing the same portable snapshot, exercises every authored
+aggregate, preserves exact Step references/parameters/flow ownership, and excludes runtime environment secrets.
 
 ## Phase 2 — Publication and consumption
 
