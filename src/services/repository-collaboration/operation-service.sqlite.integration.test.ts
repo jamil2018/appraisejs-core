@@ -492,7 +492,6 @@ describe('durable collaboration operations', () => {
     const { client, binding, target } = await fixture({ git: true })
     try {
       await client.module.create({ data: { id: 'local-module', name: 'Local', targetProjectId: target.id } })
-      await git(binding.repositoryRoot, 'push', 'origin', 'appraise-0.5')
       const publicationPolicy = await updateCollaborationPolicy(
         {
           bindingId: binding.id,
@@ -603,6 +602,65 @@ describe('durable collaboration operations', () => {
     }
   })
 
+  it('does not certify a publication when the repository common directory changes after installation', async () => {
+    const { client, binding, target } = await fixture({ git: true })
+    try {
+      await client.module.create({
+        data: { id: 'retargeted-publication-module', name: 'Retargeted', targetProjectId: target.id },
+      })
+      const publicationPolicy = await updateCollaborationPolicy(
+        {
+          bindingId: binding.id,
+          changes: { PUSH: true },
+          trustedPrincipalId: 'local-user',
+          provenance: 'authenticated-host',
+        },
+        client,
+      )
+      const prepared = await prepareCollaborationOperation(
+        {
+          bindingId: binding.id,
+          intent: 'PUBLISH',
+          idempotencyKey: 'publication-retarget-after-install',
+          expectedPolicyVersion: publicationPolicy.policyVersion,
+        },
+        client,
+      )
+      let inspections = 0
+      await expect(
+        executeCollaborationOperation(
+          {
+            operationId: prepared.id,
+            expectedVersion: prepared.version,
+            preparedDigest: prepared.preparedDigest!,
+            idempotencyKey: prepared.idempotencyKey,
+          },
+          client,
+          {
+            inspectRepository: async (repositoryRoot, remote) => {
+              inspections += 1
+              const identity = await inspectRepository(repositoryRoot, remote)
+              return inspections >= 3
+                ? { ...identity, commonDirectory: `${identity.commonDirectory}-retargeted` }
+                : identity
+            },
+          },
+        ),
+      ).rejects.toMatchObject({ code: 'CONFLICT' })
+      expect(inspections).toBe(3)
+      expect(await client.collaborationOperation.findUniqueOrThrow({ where: { id: prepared.id } })).toMatchObject({
+        state: 'APPLYING',
+      })
+      expect(
+        await client.collaborationOperationStep.findUniqueOrThrow({
+          where: { operationId_ordinal: { operationId: prepared.id, ordinal: 0 } },
+        }),
+      ).toMatchObject({ state: 'RUNNING' })
+    } finally {
+      await client.$disconnect()
+    }
+  })
+
   it('reconciles a crashed filesystem publication to a durable completed or retryable state', async () => {
     const { client, binding, target } = await fixture({ git: true })
     try {
@@ -657,6 +715,22 @@ describe('durable collaboration operations', () => {
           executorEpoch: 1,
           startedVersion: applying.version,
         },
+      })
+      let recoveryInspections = 0
+      await expect(
+        recoverCollaborationOperationFilesystem(prepared.id, client, {
+          inspectRepository: async (repositoryRoot, remote) => {
+            recoveryInspections += 1
+            const identity = await inspectRepository(repositoryRoot, remote)
+            return recoveryInspections >= 2
+              ? { ...identity, commonDirectory: `${identity.commonDirectory}-retargeted` }
+              : identity
+          },
+        }),
+      ).rejects.toMatchObject({ code: 'CONFLICT' })
+      expect(recoveryInspections).toBe(2)
+      expect(await client.collaborationOperation.findUniqueOrThrow({ where: { id: prepared.id } })).toMatchObject({
+        state: 'APPLYING',
       })
       await expect(recoverCollaborationOperationFilesystem(prepared.id, client)).resolves.toMatchObject({
         classification: 'VERIFIED_COMPLETED',
@@ -810,7 +884,8 @@ describe('durable collaboration operations', () => {
         },
         client,
       )
-      expect(prepared.state).toBe('READY')
+      expect(prepared.state).toBe('PREPARING')
+      expect(prepared.acceptedDigest).toBeNull()
       expect(prepared.preparedDigest).toMatch(/^sha256:[a-f0-9]{64}$/)
       expect(
         await client.collaborationOperationStep.findMany({
@@ -837,6 +912,28 @@ describe('durable collaboration operations', () => {
       )
       const reviewedRecords = [...baseline, ...targetRecords.slice(1), ...sourceRecords.slice(1)]
       const reviewedSnapshot = buildCollaborationSnapshotFiles(reviewedRecords)
+      await expect(
+        client.collaborationOperation.findUniqueOrThrow({ where: { id: prepared.id } }),
+      ).resolves.toMatchObject({ state: 'READY', acceptedDigest: null })
+      await client.collaborationOperation.update({
+        where: { id: prepared.id },
+        data: { acceptedDigest: 'f'.repeat(64) },
+      })
+      await expect(
+        proposeDivergentCollaborationReconciliation(
+          {
+            operationId: prepared.id,
+            expectedVersion: prepared.version,
+            preparedDigest: prepared.preparedDigest!,
+            records: reviewedRecords,
+          },
+          client,
+        ),
+      ).rejects.toMatchObject({ code: 'CONFLICT' })
+      await client.collaborationOperation.update({
+        where: { id: prepared.id },
+        data: { acceptedDigest: null },
+      })
       const proposal = await proposeDivergentCollaborationReconciliation(
         {
           operationId: prepared.id,

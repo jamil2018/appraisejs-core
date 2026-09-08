@@ -155,14 +155,15 @@ function coordinatorErrorRetry(context: CoordinatorErrorContext) {
   }
 }
 
-function isPreEffectCoordinatorFailure(error: unknown) {
+function isPreEffectCoordinatorFailure(error: unknown, effectStarted?: boolean) {
+  if (effectStarted) return false
   if (error instanceof z.ZodError) return true
   if (!(error instanceof ServiceError)) return false
   return ['VALIDATION', 'UNAUTHORIZED', 'NOT_FOUND'].includes(error.code)
 }
 
 function coordinatorOperationOutcome(error: unknown, context: CoordinatorErrorContext) {
-  if (isPreEffectCoordinatorFailure(error)) return 'not_started'
+  if (isPreEffectCoordinatorFailure(error, context.effectStarted)) return 'not_started'
   return context.effectStarted ? 'unknown' : 'not_started'
 }
 

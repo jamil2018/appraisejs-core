@@ -11,6 +11,7 @@ import { afterEach, describe, expect, it } from 'vitest'
 import {
   buildCollaborationSnapshotFiles,
   collaborationHash,
+  inspectRepository,
   prepareDivergentReconciliation,
   type CollaborationRecord,
 } from '@/lib/repository-collaboration'
@@ -22,7 +23,9 @@ import {
   prepareDivergentCollaborationReconciliation,
   proposeDivergentCollaborationReconciliation,
   recoverDivergentCollaborationWorktree,
+  cleanupRejectedDivergentCollaborationWorktree,
 } from './divergent-reconciliation-service'
+import { acquireCollaborationGitMutationLock, releaseCollaborationGitMutationLock } from './git-mutation-lock-service'
 
 const databases: Array<{ client: PrismaClient; workspace: string }> = []
 const repositories: string[] = []
@@ -138,6 +141,7 @@ describe('divergent reconciliation service ownership', () => {
     await git(repository, ['init', '-b', 'appraise-0.5'])
     await git(repository, ['config', 'user.name', 'Appraise Test'])
     await git(repository, ['config', 'user.email', 'appraise@example.test'])
+    await git(repository, ['remote', 'add', 'origin', repository])
     await fs.writeFile(path.join(repository, 'README.md'), 'fixture\n')
     await writeSnapshot(repository, [record('base')])
     await git(repository, ['add', '.'])
@@ -249,5 +253,46 @@ describe('divergent reconciliation service ownership', () => {
       state: 'WAITING_FOR_AGENT',
       version: operation.version,
     })
+
+    await fs.rm(path.join(preparation.worktreePath, 'appraise', 'collaboration'), { recursive: true, force: true })
+    await writeSnapshot(preparation.worktreePath, [record('source')])
+    const reviewedPayload = { review: { proposedSnapshotHash: preparation.sourceSnapshotHash } }
+    await client.collaborationOperationArtifact.create({
+      data: {
+        operationId: operation.id,
+        kind: 'DIVERGENT_PROPOSAL_REVIEW',
+        revision: 1,
+        payloadJson: JSON.stringify(reviewedPayload),
+        payloadHash: collaborationHash(reviewedPayload),
+      },
+    })
+    await client.collaborationOperation.update({
+      where: { id: operation.id },
+      data: { state: 'CANCELLED', cancelledAt: new Date() },
+    })
+    await client.collaborationDecision.create({
+      data: {
+        operationId: operation.id,
+        recordKey: '__appraise_divergent_proposal__',
+        kind: 'REJECT',
+        resolutionJson: JSON.stringify({ decision: 'REJECT' }),
+        resolutionDigest: 'b'.repeat(64),
+        trustedPrincipalId: 'local-user',
+        provenance: 'local-ui',
+      },
+    })
+    const identity = await inspectRepository(binding.repositoryRoot, binding.remoteName)
+    const competingLease = await client.$transaction(transaction =>
+      acquireCollaborationGitMutationLock(transaction, identity.commonDirectory, 'competing-cleanup-owner'),
+    )
+    await expect(cleanupRejectedDivergentCollaborationWorktree(operation.id, client)).rejects.toMatchObject({
+      code: 'CONFLICT',
+    })
+    await fs.access(preparation.worktreePath)
+    await client.$transaction(transaction => releaseCollaborationGitMutationLock(transaction, competingLease))
+    await expect(cleanupRejectedDivergentCollaborationWorktree(operation.id, client)).resolves.toEqual({
+      status: 'REMOVED',
+    })
+    await expect(fs.access(preparation.worktreePath)).rejects.toMatchObject({ code: 'ENOENT' })
   })
 })

@@ -10,7 +10,10 @@ import {
   updateCollaborationPolicyWithAuthorityReceipt,
 } from '@/services/repository-collaboration/binding-service'
 import { prepareCollaborationUndo } from '@/services/repository-collaboration/archive-service'
-import { decideDivergentCollaborationProposal } from '@/services/repository-collaboration/divergent-reconciliation-service'
+import {
+  cleanupRejectedDivergentCollaborationWorktree,
+  decideDivergentCollaborationProposal,
+} from '@/services/repository-collaboration/divergent-reconciliation-service'
 import { consumeCollaborationAuthorityReceipt } from '@/services/repository-collaboration/authority-receipt-service'
 import {
   decideCollaborationOperationWithAuthorityReceipt,
@@ -331,6 +334,7 @@ async function postDecide(request: Request, body: unknown) {
       },
       (transaction, authority) => decideDivergentCollaborationProposal({ ...value, ...authority }, transaction),
     )
+    if (value.decision === 'REJECT') await cleanupRejectedDivergentCollaborationWorktree(decided.id)
     const continued =
       value.decision === 'ACCEPT' ? await continueAcceptedCollaborationOperation({ operationId: decided.id }) : decided
     return Response.json({ targetProjectId: targetProject.id, operation: operationSummary(continued) })

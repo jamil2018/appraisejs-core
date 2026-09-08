@@ -103,7 +103,7 @@ describe('repository collaboration coordinator ingress', () => {
     expect('resolutionPropose' in collaborationRequestSchemas).toBe(false)
   })
 
-  it('marks RECEIVE errors after a durable fetch reference as an unknown outcome', async () => {
+  it('marks a malformed RECEIVE dependency graph after a durable fetch reference as unknown', async () => {
     const requestBody = {
       target: 'target-1',
       intent: 'RECEIVE',
@@ -117,7 +117,7 @@ describe('repository collaboration coordinator ingress', () => {
     mocks.prepare.mockImplementation(
       async (_input: unknown, _client: unknown, hooks: { onExternalEffectStarted?: (operationId: string) => void }) => {
         hooks.onExternalEffectStarted?.('receive-operation-1')
-        throw new ServiceError('The fetched source snapshot could not be read.', 'INTERNAL', 500)
+        throw new ServiceError('The fetched source snapshot has an invalid dependency graph.', 'VALIDATION', 400)
       },
     )
     const response = await POST(
@@ -127,6 +127,7 @@ describe('repository collaboration coordinator ingress', () => {
       },
     )
     await expect(response.json()).resolves.toMatchObject({
+      code: 'VALIDATION',
       operationOutcome: 'unknown',
       targetOutcome: 'not_evaluated',
       retry: {

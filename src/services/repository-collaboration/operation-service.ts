@@ -39,9 +39,11 @@ import { projectSnapshotInTransaction } from './projection-helpers'
 import { executeCollaborationGitStep } from './git-operation-service'
 import {
   acquireCollaborationGitMutationLock,
+  assertCollaborationGitMutationIdentity,
   assertCollaborationGitMutationLock,
   releaseCollaborationGitMutationLock,
   withCollaborationGitMutationLeaseHeartbeat,
+  type CollaborationGitIdentityInspector,
 } from './git-mutation-lock-service'
 import { consumeCollaborationAuthorityReceipt } from './authority-receipt-service'
 import { prepareDivergentCollaborationReconciliation } from './divergent-reconciliation-service'
@@ -83,6 +85,12 @@ type FilesystemStepIntent = {
   snapshotHash?: unknown
 }
 type FilesystemRecoveryClassification = 'VERIFIED_COMPLETED' | 'SAFE_NO_EFFECT_RETRY' | 'AMBIGUOUS_BLOCK'
+
+/** Test-only seam for proving a repository-path retarget cannot certify an
+ * external filesystem result under the lease for an earlier common directory. */
+export type FilesystemGitMutationHooks = {
+  inspectRepository?: CollaborationGitIdentityInspector
+}
 
 /** The plan is created with preparation and is the sole authority for later execution. */
 function operationPlan(
@@ -305,6 +313,19 @@ async function findIdempotentOperation(
   return existing ? assertIdempotentOperation(existing, input, requestDigest, persistedIntent) : null
 }
 
+function requiresDivergentProposal(input: PersistedPrepareCollaborationOperationInput) {
+  return input.intent === 'RECONCILE' && Boolean(input.sourceRevision) && Boolean(input.targetRevision)
+}
+
+function initialOperationState(requiresDecision: boolean, divergentProposal: boolean) {
+  if (divergentProposal) return 'PREPARING'
+  return requiresDecision ? 'WAITING_FOR_DECISION' : 'READY'
+}
+
+function initialAcceptedDigest(preparedDigest: string, requiresDecision: boolean, divergentProposal: boolean) {
+  return requiresDecision || divergentProposal ? null : preparedDigest
+}
+
 async function createPreparedOperation(
   transaction: Transaction,
   input: PersistedPrepareCollaborationOperationInput,
@@ -314,13 +335,14 @@ async function createPreparedOperation(
 ) {
   const preparedDigest = collaborationHash(payload)
   const requiresDecision = requiredDecisionKeys(payload).size > 0
+  const divergentProposal = requiresDivergentProposal(input)
   const operation = await transaction.collaborationOperation.create({
     data: {
       ...(input.operationId ? { id: input.operationId } : {}),
       bindingId: binding.id,
       intent: input.intent,
       trigger: input.trigger ?? 'local-ui',
-      state: requiresDecision ? 'WAITING_FOR_DECISION' : 'READY',
+      state: initialOperationState(requiresDecision, divergentProposal),
       idempotencyKey: input.idempotencyKey,
       sourceRevision: input.sourceRevision,
       targetRevision: input.targetRevision,
@@ -329,7 +351,7 @@ async function createPreparedOperation(
       policyVersion: binding.policyVersion,
       preparedJson: canonicalJson(payload),
       preparedDigest,
-      acceptedDigest: requiresDecision ? null : preparedDigest,
+      acceptedDigest: initialAcceptedDigest(preparedDigest, requiresDecision, divergentProposal),
     },
   })
   await transaction.collaborationOperationStep.createMany({
@@ -1005,7 +1027,11 @@ async function executeDatabaseOperation(input: ExecuteCollaborationOperationInpu
   })
 }
 
-async function executePublication(input: ExecuteCollaborationOperationInput, client: PrismaClient) {
+async function executePublication(
+  input: ExecuteCollaborationOperationInput,
+  client: PrismaClient,
+  hooks?: FilesystemGitMutationHooks,
+) {
   // Publication mutates appraise/collaboration in the same worktree that later
   // Git steps mutate.  Resolve the verified shared Git directory before
   // starting the durable filesystem intent, then keep that exact lock alive
@@ -1015,7 +1041,8 @@ async function executePublication(input: ExecuteCollaborationOperationInput, cli
     include: { binding: true },
   })
   if (!candidate) throw new ServiceError('Collaboration operation was not found.', 'NOT_FOUND', 404)
-  const initialIdentity = await inspectRepository(candidate.binding.repositoryRoot, candidate.binding.remoteName)
+  const inspect = hooks?.inspectRepository ?? inspectRepository
+  const initialIdentity = await inspect(candidate.binding.repositoryRoot, candidate.binding.remoteName)
   const lease = await client.$transaction(transaction =>
     acquireCollaborationGitMutationLock(transaction, initialIdentity.commonDirectory, candidate.id),
   )
@@ -1023,10 +1050,12 @@ async function executePublication(input: ExecuteCollaborationOperationInput, cli
     return await withCollaborationGitMutationLeaseHeartbeat(client, lease, async () => {
       // A retargeted/symlink-swapped repository cannot inherit a lock taken for
       // a different common Git directory.
-      const verifiedIdentity = await inspectRepository(candidate.binding.repositoryRoot, candidate.binding.remoteName)
-      if (verifiedIdentity.commonDirectory !== initialIdentity.commonDirectory) {
-        throw new ServiceError('The repository Git directory changed before publication.', 'CONFLICT', 409)
-      }
+      await assertCollaborationGitMutationIdentity(
+        candidate.binding.repositoryRoot,
+        initialIdentity.commonDirectory,
+        candidate.binding.remoteName,
+        inspect,
+      )
       const applying = await client.$transaction(async transaction => {
         await assertCollaborationGitMutationLock(transaction, lease)
         const { operation, step } = await loadExecution(transaction, input, ['INSTALL_SNAPSHOT'])
@@ -1108,6 +1137,16 @@ async function executePublication(input: ExecuteCollaborationOperationInput, cli
         expectedPreviousSnapshotHash,
         onBoundary: boundary => appendFilesystemBoundary(client, applying.operation.id, boundary),
       })
+      // The install touched a path rooted in the leased repository. Re-read
+      // the common Git directory before recording either success or a blocked
+      // outcome, so a retargeted path cannot certify an effect under another
+      // repository's mutation lease.
+      await assertCollaborationGitMutationIdentity(
+        applying.operation.binding.repositoryRoot,
+        initialIdentity.commonDirectory,
+        applying.operation.binding.remoteName,
+        inspect,
+      )
       if (installed.status !== 'succeeded') {
         await client.collaborationOperation.update({
           where: { id: applying.operation.id },
@@ -1205,6 +1244,7 @@ async function executeFinalizeOperation(input: ExecuteCollaborationOperationInpu
 export async function executeCollaborationOperation(
   input: ExecuteCollaborationOperationInput,
   client: PrismaClient = prisma,
+  hooks?: FilesystemGitMutationHooks,
 ) {
   const operation = await client.collaborationOperation.findUnique({ where: { id: input.operationId } })
   if (!operation) throw new ServiceError('Collaboration operation was not found.', 'NOT_FOUND', 404)
@@ -1246,7 +1286,7 @@ export async function executeCollaborationOperation(
           )
         ? await executeCollaborationGitStep(input, client)
         : next.kind === 'INSTALL_SNAPSHOT'
-          ? await executePublication(input, client)
+          ? await executePublication(input, client, hooks)
           : next.kind === 'APPLY_DATABASE'
             ? await executeDatabaseOperation(input, client)
             : (() => {
@@ -1572,7 +1612,10 @@ async function performFilesystemRecovery(
   recovery: { operation: FilesystemRecoveryOperation; running: FilesystemRecoveryStep; intent: FilesystemStepIntent },
   lease: Awaited<ReturnType<typeof acquireCollaborationGitMutationLock>>,
   client: PrismaClient,
+  commonDirectory: string,
+  hooks?: FilesystemGitMutationHooks,
 ) {
+  const inspect = hooks?.inspectRepository ?? inspectRepository
   const boundary = recoveryBoundary(recovery.operation)
   const recovered = await recoverCollaborationSnapshot({
     repositoryRoot: recovery.operation.binding.repositoryRoot,
@@ -1580,7 +1623,19 @@ async function performFilesystemRecovery(
     stagingPath: boundary.stagingPath,
     backupPath: boundary.backupPath,
   })
+  await assertCollaborationGitMutationIdentity(
+    recovery.operation.binding.repositoryRoot,
+    commonDirectory,
+    recovery.operation.binding.remoteName,
+    inspect,
+  )
   const observed = await observeCollaborationSnapshot({ repositoryRoot: recovery.operation.binding.repositoryRoot })
+  await assertCollaborationGitMutationIdentity(
+    recovery.operation.binding.repositoryRoot,
+    commonDirectory,
+    recovery.operation.binding.remoteName,
+    inspect,
+  )
   const expectedPreviousSnapshotHash = await expectedPreviousFilesystemSnapshot(recovery.operation.id, client)
   const expectedSnapshotHash = recovery.intent.snapshotHash as string
   const classification = classifyFilesystemRecovery(
@@ -1600,9 +1655,14 @@ async function performFilesystemRecovery(
   return { ...details, operation: publicOperation(reconciled) }
 }
 
-export async function recoverCollaborationOperationFilesystem(operationId: string, client: PrismaClient = prisma) {
+export async function recoverCollaborationOperationFilesystem(
+  operationId: string,
+  client: PrismaClient = prisma,
+  hooks?: FilesystemGitMutationHooks,
+) {
   const recovery = await loadFilesystemRecovery(operationId, client)
-  const recoveryIdentity = await inspectRepository(
+  const inspect = hooks?.inspectRepository ?? inspectRepository
+  const recoveryIdentity = await inspect(
     recovery.operation.binding.repositoryRoot,
     recovery.operation.binding.remoteName,
   )
@@ -1611,7 +1671,7 @@ export async function recoverCollaborationOperationFilesystem(operationId: strin
   )
   try {
     return await withCollaborationGitMutationLeaseHeartbeat(client, recoveryLease, () =>
-      performFilesystemRecovery(recovery, recoveryLease, client),
+      performFilesystemRecovery(recovery, recoveryLease, client, recoveryIdentity.commonDirectory, hooks),
     )
   } finally {
     await client.$transaction(transaction => releaseCollaborationGitMutationLock(transaction, recoveryLease))

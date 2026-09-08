@@ -443,9 +443,44 @@ async function executeStartedGitStep(
         where: { operationId: started.operation.id, kind: 'STEP_CREATE_MERGE_COMMIT' },
         orderBy: { revision: 'desc' },
       })
+      if (!merge) {
+        const installation = await client.collaborationOperationArtifact.findFirst({
+          where: { operationId: started.operation.id, kind: 'STEP_INSTALL_SNAPSHOT' },
+          orderBy: { revision: 'desc' },
+        })
+        let expectedSnapshotHash: string | undefined
+        try {
+          const payload = installation
+            ? (JSON.parse(installation.payloadJson) as { publishedSnapshotHash?: unknown })
+            : null
+          expectedSnapshotHash =
+            typeof payload?.publishedSnapshotHash === 'string' ? payload.publishedSnapshotHash : undefined
+        } catch {
+          expectedSnapshotHash = undefined
+        }
+        if (!started.operation.targetRevision || !expectedSnapshotHash)
+          throw new ServiceError(
+            'The first publication push has no exact parent and snapshot identity.',
+            'CONFLICT',
+            409,
+          )
+        const verified = await verifyExactCollaborationCommit({
+          repositoryRoot: binding.repositoryRoot,
+          operationId: started.operation.id,
+          commit: started.operation.sourceRevision,
+          expectedParent: started.operation.targetRevision,
+          expectedSnapshotHash,
+        })
+        if (!verified.matched)
+          throw new ServiceError('The first publication push contains an unauthorized commit range.', 'CONFLICT', 409)
+      }
       const expectedRemoteCommit = merge
         ? ((JSON.parse(merge.payloadJson) as { parents?: [string, string] }).parents?.[0] ?? null)
-        : started.operation.targetRevision
+        : await readRemoteRef({
+            repositoryRoot: binding.repositoryRoot,
+            remote: binding.remoteName,
+            branch: binding.trackedBranch,
+          })
       const pushed = await pushPinnedCommit({
         repositoryRoot: binding.repositoryRoot,
         remote: binding.remoteName,
@@ -717,8 +752,14 @@ export async function recoverCollaborationGitOperation(operationId: string, clie
             return 'AMBIGUOUS_BLOCK' as const
         }
       })()
+      const afterObservation = await inspectRepository(operation.binding.repositoryRoot, operation.binding.remoteName)
+      if (collaborationGitLockKey(afterObservation.commonDirectory) !== recovery.lease.lockKey)
+        throw new ServiceError('The repository Git directory changed after recovery observation.', 'CONFLICT', 409)
       if (classification === 'SAFE_NO_EFFECT_RETRY' && running.kind === 'CREATE_COMMIT') {
         await restoreCollaborationIndex(operation.binding.repositoryRoot)
+        const afterRestore = await inspectRepository(operation.binding.repositoryRoot, operation.binding.remoteName)
+        if (collaborationGitLockKey(afterRestore.commonDirectory) !== recovery.lease.lockKey)
+          throw new ServiceError('The repository Git directory changed after recovery restore.', 'CONFLICT', 409)
       }
       return await client.$transaction(async transaction => {
         await assertCollaborationGitMutationLock(transaction, recovery.lease)

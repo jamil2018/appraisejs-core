@@ -231,6 +231,11 @@ export async function prepareDivergentCollaborationReconciliation(
           { preparedDigest: operation.preparedDigest },
           'COMPLETED',
         )
+      } else {
+        await transaction.collaborationOperation.update({
+          where: { id: operation.id },
+          data: { state: 'READY', acceptedDigest: null, leaseOwner: null, leaseExpiresAt: null },
+        })
       }
     })
     return preparation
@@ -305,7 +310,7 @@ async function assertProposalHasNoDecisionOrAcceptance(
       select: { id: true },
     }),
   ])
-  if (decision || acceptedArtifact || (operation.acceptedDigest && reviewedArtifact)) {
+  if (operation.acceptedDigest || decision || acceptedArtifact || reviewedArtifact) {
     throw new ServiceError(
       'A divergent proposal cannot replace a reviewed decision or accepted artifact.',
       'CONFLICT',
@@ -335,7 +340,11 @@ export async function proposeDivergentCollaborationReconciliation(
   requiresDecision: boolean
   operationVersion: number
 }> {
-  const operation = await client.$transaction(transaction => loadPreparedOperation(transaction, input))
+  const operation = await client.$transaction(async transaction => {
+    const current = await loadPreparedOperation(transaction, input)
+    await assertProposalHasNoDecisionOrAcceptance(transaction, current)
+    return current
+  })
   const { preparation } = await storedDivergentPreparation(operation, client)
   try {
     const review = await validateDivergentReconciliationProposal({
@@ -473,6 +482,97 @@ type DivergentProposalDecisionInput = {
   provenance: 'local-ui' | 'authenticated-host'
 }
 
+/**
+ * Removes only the durable, operation-owned proposal worktree after a REJECT
+ * decision.  This is intentionally a second boundary after the decision
+ * transaction: Git worktree removal must be serialized by the shared common
+ * directory lease, rather than running while the authority transaction is
+ * open.  Coordinator callers that decide inside an authority transaction must
+ * invoke this after that transaction commits.
+ */
+export async function cleanupRejectedDivergentCollaborationWorktree(
+  operationId: string,
+  client: PrismaClient = prisma,
+  hooks?: DivergentGitMutationHooks,
+) {
+  const operation = await client.collaborationOperation.findUnique({
+    where: { id: operationId },
+    include: { binding: true },
+  })
+  if (!operation) throw new ServiceError('Collaboration operation was not found.', 'NOT_FOUND', 404)
+  if (operation.intent !== 'RECONCILE' || operation.state !== 'CANCELLED' || !operation.cancelledAt) {
+    throw new ServiceError('No rejected divergent proposal requires cleanup.', 'CONFLICT', 409)
+  }
+  const rejected = await client.collaborationDecision.findFirst({
+    where: { operationId: operation.id, recordKey: divergentDecisionRecordKey, kind: 'REJECT' },
+    select: { id: true },
+  })
+  if (!rejected) throw new ServiceError('No rejected divergent proposal requires cleanup.', 'CONFLICT', 409)
+  const { preparation } = await storedDivergentPreparation(operation, client)
+  const reviewedArtifact = await client.collaborationOperationArtifact.findFirst({
+    where: { operationId: operation.id, kind: 'DIVERGENT_PROPOSAL_REVIEW' },
+    orderBy: { revision: 'desc' },
+  })
+  let proposedSnapshotHash: string | undefined
+  try {
+    const reviewPayload = reviewedArtifact ? (JSON.parse(reviewedArtifact.payloadJson) as { review?: unknown }) : null
+    const review = reviewPayload?.review as { proposedSnapshotHash?: unknown } | undefined
+    if (
+      !reviewedArtifact ||
+      reviewedArtifact.payloadHash !== collaborationHash(reviewPayload) ||
+      typeof review?.proposedSnapshotHash !== 'string'
+    )
+      throw new Error('invalid reviewed proposal artifact')
+    proposedSnapshotHash = review.proposedSnapshotHash
+  } catch {
+    throw new ServiceError('The rejected divergent proposal has no exact reviewed snapshot.', 'CONFLICT', 409)
+  }
+  const identity = await inspectRepository(operation.binding.repositoryRoot, operation.binding.remoteName)
+  const lease = await client.$transaction(transaction =>
+    acquireCollaborationGitMutationLock(transaction, identity.commonDirectory, operation.id),
+  )
+  try {
+    return await withCollaborationGitMutationLeaseHeartbeat(client, lease, async () => {
+      await assertLockedDivergentRepositoryIdentity(operation.binding, identity.commonDirectory, hooks)
+      // The reviewed artifact names the sole collaboration-only worktree
+      // delta that may be removed. Any altered or foreign content is retained.
+      const cleanup = await cleanupDivergentReconciliationWorktree(preparation, {
+        expectedSnapshotHash: proposedSnapshotHash,
+      })
+      await assertLockedDivergentRepositoryIdentity(operation.binding, identity.commonDirectory, hooks)
+      if (cleanup.status === 'RETAINED_FOR_RECOVERY')
+        throw new ServiceError('Rejected proposal worktree was retained for recovery.', 'CONFLICT', 409, cleanup)
+      await client.$transaction(async transaction => {
+        await assertCollaborationGitMutationLock(transaction, lease)
+        await appendCollaborationJournalEntry(
+          transaction,
+          operation.id,
+          'DIVERGENT_PROPOSAL_REJECT_CLEANUP',
+          cleanup,
+          'COMPLETED',
+        )
+      })
+      return cleanup
+    })
+  } catch (error) {
+    // This is a blocker, not evidence that cleanup completed. The durable
+    // decision remains available for conservative recovery.
+    await client.collaborationOperation.updateMany({
+      where: { id: operation.id, state: 'CANCELLED' },
+      data: {
+        state: 'BLOCKED',
+        blockerJson: JSON.stringify({
+          kind: 'DIVERGENT_REJECT_CLEANUP_REQUIRED',
+          message: error instanceof Error ? error.message : String(error),
+        }),
+      },
+    })
+    throw asServiceError(error)
+  } finally {
+    await client.$transaction(transaction => releaseCollaborationGitMutationLock(transaction, lease))
+  }
+}
+
 async function reviewedProposal(
   transaction: Transaction,
   input: Pick<DivergentProposalDecisionInput, 'operationId' | 'reviewDigest'>,
@@ -561,46 +661,10 @@ export async function decideDivergentCollaborationProposal(
       ? await (client as PrismaClient).$transaction(decideInTransaction)
       : await decideInTransaction(client)
   if (input.decision === 'REJECT') {
-    const artifact = await client.collaborationOperationArtifact.findFirst({
-      where: { operationId: operation.id, kind: 'DIVERGENT_PREPARATION' },
-      orderBy: { revision: 'desc' },
-    })
-    try {
-      if (!artifact) throw new Error('missing original proposal worktree preparation')
-      const preparation = JSON.parse(artifact.payloadJson) as DivergentReconciliationPreparation
-      if (artifact.payloadHash !== collaborationHash(preparation))
-        throw new Error('tampered proposal worktree artifact')
-      const cleanup = await cleanupDivergentReconciliationWorktree(preparation)
-      if (cleanup.status === 'RETAINED_FOR_RECOVERY') throw new Error('proposal worktree retained for recovery')
-      if ('$transaction' in client) {
-        await (client as PrismaClient).$transaction(transaction =>
-          appendCollaborationJournalEntry(
-            transaction,
-            operation.id,
-            'DIVERGENT_PROPOSAL_REJECT_CLEANUP',
-            cleanup,
-            'COMPLETED',
-          ),
-        )
-      } else {
-        await appendCollaborationJournalEntry(
-          client,
-          operation.id,
-          'DIVERGENT_PROPOSAL_REJECT_CLEANUP',
-          cleanup,
-          'COMPLETED',
-        )
-      }
-    } catch (error) {
-      await client.collaborationOperation.update({
-        where: { id: operation.id },
-        data: {
-          state: 'BLOCKED',
-          blockerJson: JSON.stringify({ kind: 'DIVERGENT_REJECT_CLEANUP_REQUIRED', message: String(error) }),
-        },
-      })
-      throw new ServiceError('Rejected proposal worktree was retained for recovery.', 'CONFLICT', 409)
-    }
+    // A Prisma client can complete the post-decision filesystem boundary here.
+    // The public coordinator supplies a transaction for receipt consumption;
+    // it invokes the exported helper only after that transaction commits.
+    if ('$transaction' in client) await cleanupRejectedDivergentCollaborationWorktree(operation.id, client)
   }
   return operation
 }
