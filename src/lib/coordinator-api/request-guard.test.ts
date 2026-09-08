@@ -70,4 +70,12 @@ describe('coordinator request guard', () => {
     const actual = new Request('http://localhost', { method: 'POST', body: 'x'.repeat(1_048_577) })
     await expect(readCoordinatorJson(actual)).rejects.toMatchObject({ statusCode: 413 })
   })
+
+  it('allows collaboration routes to opt into their canonical 64 MiB cap without changing other routes', async () => {
+    const collaborationCap = 64 * 1024 * 1024
+    const declared = request()
+    declared.headers.set('content-length', String(collaborationCap))
+    await expect(guardCoordinatorRequest(declared, collaborationCap)).resolves.toBeUndefined()
+    await expect(guardCoordinatorRequest(declared)).rejects.toMatchObject({ statusCode: 413 })
+  })
 })

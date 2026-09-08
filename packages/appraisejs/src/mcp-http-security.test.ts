@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest'
 import {
   assertLoopbackMcpHost,
   assertLoopbackMcpEndpoint,
+  DEFAULT_HTTP_MCP_BODY_LIMIT_BYTES,
   HttpMcpRequestError,
   readBoundedJsonBody,
   validateHttpMcpRequest,
@@ -22,6 +23,10 @@ const valid = (overrides: Partial<Parameters<typeof validateHttpMcpRequest>[0]> 
 })
 
 describe('HTTP MCP security policy', () => {
+  it('defaults to the canonical collaboration payload cap while retaining a bounded reader', () => {
+    expect(DEFAULT_HTTP_MCP_BODY_LIMIT_BYTES).toBe(64 * 1024 * 1024)
+  })
+
   it.each(['0.0.0.0', '192.168.1.5', 'example.test'])('rejects non-loopback bind host %s', host => {
     expect(() => assertLoopbackMcpHost(host)).toThrow('HTTP MCP is local-only')
   })

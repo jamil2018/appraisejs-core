@@ -44,8 +44,21 @@ describe('deleteLocators', () => {
 
     await expect(deleteLocators(['loc-1', 'loc-2', 'loc-3'], 'project-1')).resolves.toEqual({ count: 3 })
     expect(prisma.locator.deleteMany).toHaveBeenCalledWith({
-      where: { id: { in: ['loc-1', 'loc-2', 'loc-3'] }, targetProjectId: 'project-1' },
+      where: {
+        id: { in: ['loc-1', 'loc-2', 'loc-3'] },
+        targetProjectId: 'project-1',
+        archivedAt: null,
+        collaborationManaged: false,
+      },
     })
+  })
+
+  it('does not destructively delete collaboration-managed locators', async () => {
+    vi.clearAllMocks()
+    vi.mocked(prisma.locator.findFirst).mockResolvedValueOnce({ id: 'loc-1' } as never)
+
+    await expect(deleteLocators(['loc-1'], 'project-1')).rejects.toMatchObject({ statusCode: 409 })
+    expect(prisma.locator.deleteMany).not.toHaveBeenCalled()
   })
 })
 

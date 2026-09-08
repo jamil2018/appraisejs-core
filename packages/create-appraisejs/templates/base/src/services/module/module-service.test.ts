@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import { ROOT_MODULE_UUID } from '@/constants/form-opts/module-form-opts'
-import { createModule, deleteModules, getModuleByIdOrThrow, updateModule } from './module-service'
+import { createModule, deleteModules, getModuleByIdOrThrow, listModules, updateModule } from './module-service'
 
 vi.mock('@/config/db-config', () => ({
   default: {
@@ -8,6 +8,7 @@ vi.mock('@/config/db-config', () => ({
       findFirst: vi.fn(),
       create: vi.fn(),
       update: vi.fn(),
+      findMany: vi.fn(),
       deleteMany: vi.fn(),
     },
   },
@@ -85,7 +86,28 @@ describe('deleteModules', () => {
     await deleteModules(['module-1', 'module-2'], targetProjectId)
 
     expect(prisma.module.deleteMany).toHaveBeenCalledWith({
-      where: { id: { in: ['module-1', 'module-2'] }, targetProjectId },
+      where: { id: { in: ['module-1', 'module-2'] }, targetProjectId, archivedAt: null, collaborationManaged: false },
+    })
+  })
+
+  it('does not destructively delete collaboration-managed modules', async () => {
+    vi.clearAllMocks()
+    vi.mocked(prisma.module.findFirst).mockResolvedValueOnce({ id: 'module-1' } as never)
+
+    await expect(deleteModules(['module-1'], targetProjectId)).rejects.toMatchObject({ statusCode: 409 })
+    expect(prisma.module.deleteMany).not.toHaveBeenCalled()
+  })
+})
+
+describe('listModules', () => {
+  it('excludes archived modules from active authoring', async () => {
+    vi.mocked(prisma.module.findMany).mockResolvedValue([] as never)
+
+    await listModules(targetProjectId)
+
+    expect(prisma.module.findMany).toHaveBeenCalledWith({
+      where: { targetProjectId, archivedAt: null },
+      include: { parent: { select: { name: true } } },
     })
   })
 })

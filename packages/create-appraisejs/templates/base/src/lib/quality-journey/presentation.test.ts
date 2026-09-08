@@ -197,7 +197,6 @@ describe('Quality Journey presentation', () => {
   ])('derives a trustworthy status for $name journeys', ({ input, expected }) => {
     expect(
       qualityJourneyStatusProjection({
-        stage: 'ANALYSIS',
         blockerCount: 0,
         unresolvedRequiredQuestionCount: 0,
         ...input,
@@ -211,7 +210,6 @@ describe('Quality Journey presentation', () => {
       blockerCount: 0,
       unresolvedRequiredQuestionCount: 0,
       pendingAnalysisDecision: true,
-      hasObservedWorkerProgress: true,
       hasObservedWorkerProgress: true,
       handoffStatus: 'LAUNCHED',
       observedWorkAt: '2026-09-07T10:04:00.000Z',

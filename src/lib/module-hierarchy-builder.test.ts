@@ -22,7 +22,7 @@ describe('module hierarchy builder project ownership', () => {
     await expect(buildModuleHierarchy('/Payments/Checkout', 'project-1')).resolves.toBe('module-2')
 
     expect(findFirst).toHaveBeenNthCalledWith(1, {
-      where: { name: 'Payments', parentId: null, targetProjectId: 'project-1' },
+      where: { name: 'Payments', parentId: null, targetProjectId: 'project-1', archivedAt: null },
     })
     expect(create).toHaveBeenNthCalledWith(1, {
       data: { name: 'Payments', parentId: null, targetProjectId: 'project-1' },
@@ -45,7 +45,7 @@ describe('module hierarchy builder project ownership', () => {
     await expect(findModuleByPath('/Payments/Checkout', 'project-1')).resolves.toBe('module-2')
 
     expect(findMany).toHaveBeenCalledWith({
-      where: { targetProjectId: 'project-1' },
+      where: { targetProjectId: 'project-1', archivedAt: null },
     })
   })
 })

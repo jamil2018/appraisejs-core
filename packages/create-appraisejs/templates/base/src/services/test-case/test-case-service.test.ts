@@ -5,18 +5,18 @@ vi.mock('@/config/db-config', () => ({
     testSuite: { findMany: vi.fn() },
     tag: { findMany: vi.fn(), create: vi.fn() },
     stepDefinition: { findMany: vi.fn() },
-    testCase: { create: vi.fn() },
+    testCase: { create: vi.fn(), findFirst: vi.fn() },
     $transaction: vi.fn(),
   },
 }))
 
 import prisma from '@/config/db-config'
-import { createTestCaseFromInput } from './test-case-service'
+import { createTestCaseFromInput, deleteTestCasesByIds } from './test-case-service'
 
 const db = prisma as unknown as {
   testSuite: { findMany: ReturnType<typeof vi.fn> }
   tag: { findMany: ReturnType<typeof vi.fn>; create: ReturnType<typeof vi.fn> }
-  testCase: { create: ReturnType<typeof vi.fn> }
+  testCase: { create: ReturnType<typeof vi.fn>; findFirst: ReturnType<typeof vi.fn> }
   $transaction: ReturnType<typeof vi.fn>
 }
 
@@ -52,6 +52,16 @@ describe('createTestCaseFromInput mutation boundary', () => {
 
     expect(db.tag.create).not.toHaveBeenCalled()
     expect(db.testCase.create).not.toHaveBeenCalled()
+    expect(db.$transaction).not.toHaveBeenCalled()
+  })
+})
+
+describe('deleteTestCasesByIds', () => {
+  it('does not destructively delete collaboration-managed test cases', async () => {
+    vi.clearAllMocks()
+    db.testCase.findFirst.mockResolvedValue({ id: 'case-1' })
+
+    await expect(deleteTestCasesByIds(['case-1'], 'project-1')).rejects.toMatchObject({ statusCode: 409 })
     expect(db.$transaction).not.toHaveBeenCalled()
   })
 })

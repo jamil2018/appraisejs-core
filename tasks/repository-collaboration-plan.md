@@ -1,14 +1,24 @@
 # Repository collaboration and agent-assisted Git management
 
-Status: implementation in progress; Phase 1 complete.
+Status: implementation in progress; independent release review reopened Phase 5-8 blockers before Phase 9.
 
-Updated: 2026-09-08. This replaces the conversation's manual-Git-only plan.
+Updated: 2026-09-09. This replaces the conversation's manual-Git-only plan.
 
 Implementation checklist: [repository-collaboration-todo.md](./repository-collaboration-todo.md).
 
 Delivery evidence is recorded phase-by-phase in that checklist. Phase 1 now includes the strict exchange contract,
 portable identity mapping, additive persistence schema, canonical projections for every authored aggregate, explicit
 local environment mapping, exact Step Definition references, bounded readers, and a cross-database round-trip fixture.
+Phase 2 adds durable prepare/decide/execute operations, dependency-closed three-way review, atomic database receipts,
+stale and idempotency guards, journaled filesystem publication/recovery, and the first project-scoped Collaboration UI.
+Phases 3-8 add archive-safe domain boundaries and undo, non-authoritative Journey reuse, bounded Git operations,
+durable scheduling and agent handoff, and isolated structured divergent reconciliation.
+
+The first independent release review rejected the initial Phase 5-8 implementation. The implementation now includes
+operation-owned Git step authority/order and push range proof, exclusive worker leases and scheduler integration, a
+real-agent public-client proof, Git-backed receive, deterministic decisions, realistic restore, and final divergent
+Git/database integration. The checklist remains intentionally reopened until final validation and independent
+re-review pass against this repaired artifact.
 
 ## Outcome and scope
 

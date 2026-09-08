@@ -35,12 +35,19 @@ async function checkUniqueTagExpression(
 
 export async function listFilterTags(targetProjectId: string): Promise<Tag[]> {
   return prisma.tag.findMany({
-    where: { type: TagType.FILTER, targetProjectId },
+    where: { type: TagType.FILTER, targetProjectId, archivedAt: null },
   })
 }
 
 export async function deleteTags(ids: string[], targetProjectId: string): Promise<void> {
-  await prisma.tag.deleteMany({ where: { id: { in: ids }, targetProjectId } })
+  const managed = await prisma.tag.findFirst({
+    where: { id: { in: ids }, targetProjectId, collaborationManaged: true },
+    select: { id: true },
+  })
+  if (managed) throw new ServiceError('Collaboration-managed tags must be archived, not deleted.', 'CONFLICT', 409)
+  await prisma.tag.deleteMany({
+    where: { id: { in: ids }, targetProjectId, archivedAt: null, collaborationManaged: false },
+  })
 }
 
 export async function createTag(value: z.infer<typeof tagSchema>, targetProjectId: string): Promise<Tag> {
@@ -67,7 +74,7 @@ export async function createTag(value: z.infer<typeof tagSchema>, targetProjectI
 }
 
 export async function getTagByIdOrThrow(id: string, targetProjectId: string): Promise<Tag> {
-  const tag = await prisma.tag.findFirst({ where: { id, targetProjectId } })
+  const tag = await prisma.tag.findFirst({ where: { id, targetProjectId, archivedAt: null } })
   if (!tag) {
     throw new ServiceError('Tag not found', 'NOT_FOUND', 404)
   }
@@ -84,7 +91,7 @@ export async function updateTag(
   }
 
   const currentTag = await prisma.tag.findFirst({
-    where: { id, targetProjectId },
+    where: { id, targetProjectId, archivedAt: null },
     select: { name: true, tagExpression: true },
   })
   if (!currentTag) {

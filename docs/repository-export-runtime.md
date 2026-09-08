@@ -3,15 +3,15 @@
 Repository export distributes reviewed Validation AST publications. It is never an input to Appraise-managed baseline
 or implementation execution; those continue to use immutable runtime capsules.
 
-## Contract
+## Current contract
 
-- `RepositoryExportJob` is the durable outbox record. Its idempotency key binds target project, exact validation hash,
-  and destination.
-- `RepositoryExportReceipt` is project-bound proof that the exact manifest was published successfully.
-- Policies are `disabled` (the safe default), `optional`, and `required`. Only `required` affects completion, and it
-  blocks only when the exact validation hash lacks a successful receipt.
-- Create jobs with `POST /api/internal/coordinator/repository-exports`; run or resolve one with
-  `POST /api/internal/coordinator/repository-exports/<job-id>`.
+The repository contains bounded projection and filesystem-storage helpers for the `automation/appraise/` distribution
+layout. It does not currently expose a `RepositoryExportJob`/`RepositoryExportReceipt` service or coordinator HTTP
+endpoints. Treat those names as a future durable-outbox design, not an available API.
+
+Repository collaboration is a separate reviewed exchange under `appraise/collaboration/`; see
+[`repository-collaboration.md`](./repository-collaboration.md). It does not make `automation/appraise/` an import
+source or managed execution authority.
 
 ## Filesystem Safety
 

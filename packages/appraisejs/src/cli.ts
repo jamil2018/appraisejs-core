@@ -10,7 +10,7 @@ import {
   createLocalCoordinatorFailure,
 } from './coordinator-client.js'
 import { diagnoseProject, formatMcpBootstrapError } from './diagnostics.js'
-import { assertLoopbackMcpHost } from './mcp-http-security.js'
+import { assertLoopbackMcpHost, DEFAULT_HTTP_MCP_BODY_LIMIT_BYTES } from './mcp-http-security.js'
 import { runAppraiseHttpMcp, runAppraiseMcp } from './mcp.js'
 import { callLocalMcpTool, parseMcpToolArguments, unwrapMcpToolResult } from './mcp-call.js'
 import { ensureLocalProjectIdentity } from './project-identity.js'
@@ -92,6 +92,90 @@ addOnlineOptions(
   }, Boolean(options.json)),
 )
 
+const collaboration = program
+  .command('collaboration')
+  .description('Operate the project-bound repository collaboration control plane')
+
+addOnlineOptions(
+  collaboration
+    .command('status')
+    .requiredOption('--target <path-or-fingerprint>')
+    .option('--json', 'print machine-readable JSON', false),
+).action(async (options: OnlineOptions & { target: string; json: boolean }) => {
+  await runCommand(
+    async () => printJson(await (await onlineClient(options)).collaborationStatus(options.target)),
+    options.json,
+  )
+})
+
+function addCollaborationJsonCommand(
+  name: string,
+  description: string,
+  call: (
+    client: Awaited<ReturnType<typeof createCoordinatorClient>>,
+    input: Record<string, unknown>,
+  ) => Promise<unknown>,
+) {
+  addOnlineOptions(
+    collaboration
+      .command(name)
+      .description(description)
+      .requiredOption('--input-json <json>', 'exact collaboration request object')
+      .option('--json', 'print machine-readable JSON', false),
+  ).action(async (options: OnlineOptions & { inputJson: string; json: boolean }) => {
+    await runCommand(
+      async () => printJson(await call(await onlineClient(options), parseMcpToolArguments(options.inputJson))),
+      options.json,
+    )
+  })
+}
+
+addCollaborationJsonCommand('connect', 'Connect a registered local target to its repository.', (client, input) =>
+  client.collaborationConnect(input),
+)
+addCollaborationJsonCommand('policy-update', 'Update explicit collaboration permissions.', (client, input) =>
+  client.collaborationPolicyUpdate(input),
+)
+addCollaborationJsonCommand(
+  'prepare',
+  'Prepare a durable collaboration operation or isolated divergent review.',
+  (client, input) => client.collaborationPrepare(input),
+)
+addCollaborationJsonCommand('get', 'Read a target-scoped collaboration operation.', (client, input) =>
+  client.collaborationGet(input),
+)
+addCollaborationJsonCommand(
+  'resolution-propose',
+  'Submit a complete divergent reconciliation proposal.',
+  (client, input) => client.collaborationResolutionPropose(input),
+)
+addCollaborationJsonCommand('decide', 'Record reviewed collaboration resolutions.', (client, input) =>
+  client.collaborationDecide(input),
+)
+addCollaborationJsonCommand(
+  'execute',
+  'Execute an exact prepared database operation or fixed Git step.',
+  (client, input) => client.collaborationExecute(input),
+)
+addCollaborationJsonCommand('undo-prepare', 'Prepare a guarded inverse operation.', (client, input) =>
+  client.collaborationUndoPrepare(input),
+)
+addCollaborationJsonCommand('worker-register', 'Register a collaboration worker session.', (client, input) =>
+  client.collaborationWorkerRegister(input),
+)
+addCollaborationJsonCommand('work-claim', 'Claim collaboration work with a worker session.', (client, input) =>
+  client.collaborationWorkClaim(input),
+)
+addCollaborationJsonCommand('work-heartbeat', 'Renew a collaboration work lease.', (client, input) =>
+  client.collaborationWorkHeartbeat(input),
+)
+addCollaborationJsonCommand('work-complete', 'Submit a structured worker proposal.', (client, input) =>
+  client.collaborationWorkComplete(input),
+)
+addCollaborationJsonCommand('handoff-redeem', 'Redeem a one-time collaboration handoff ticket.', (client, input) =>
+  client.collaborationHandoffRedeem(input),
+)
+
 function printJson(value: unknown): void {
   console.log(JSON.stringify(value, null, 2))
 }
@@ -156,7 +240,7 @@ program
   .option('--host <host>', 'HTTP bind host', process.env.APPRAISE_MCP_HOST ?? '127.0.0.1')
   .option('--port <port>', 'HTTP bind port', process.env.APPRAISE_MCP_PORT ?? '3010')
   .option('--path <path>', 'HTTP MCP endpoint path', process.env.APPRAISE_MCP_PATH ?? '/mcp')
-  .option('--body-limit-bytes <bytes>', 'maximum JSON request size', String(1024 * 1024))
+  .option('--body-limit-bytes <bytes>', 'maximum JSON request size', String(DEFAULT_HTTP_MCP_BODY_LIMIT_BYTES))
   .option('--max-concurrency <count>', 'maximum concurrent MCP requests', '16')
   .action(
     async (options: {

@@ -17,6 +17,7 @@ test.describe('Navigation @navigation', () => {
   const listRoutes: RouteExpectation[] = [
     { path: '/', heading: 'Dashboard' },
     { path: '/quality-journeys', heading: 'Quality Journeys' },
+    { path: '/collaboration', heading: 'Repository collaboration' },
     { path: '/settings', heading: 'Settings' },
     { path: '/modules', heading: 'Modules' },
     { path: '/environments', heading: 'Environments' },

@@ -31,13 +31,21 @@ function normalizeEnvironmentPayload(value: z.infer<typeof environmentSchema>) {
 
 export async function listEnvironments(targetProjectId: string): Promise<Environment[]> {
   return prisma.environment.findMany({
-    where: { targetProjectId },
+    where: { targetProjectId, archivedAt: null },
     orderBy: { createdAt: 'desc' },
   })
 }
 
 export async function deleteEnvironments(ids: string[], targetProjectId: string): Promise<void> {
-  await prisma.environment.deleteMany({ where: { id: { in: ids }, targetProjectId } })
+  const managed = await prisma.environment.findFirst({
+    where: { id: { in: ids }, targetProjectId, collaborationManaged: true },
+    select: { id: true },
+  })
+  if (managed)
+    throw new ServiceError('Collaboration-managed environments must be archived, not deleted.', 'CONFLICT', 409)
+  await prisma.environment.deleteMany({
+    where: { id: { in: ids }, targetProjectId, archivedAt: null, collaborationManaged: false },
+  })
 }
 
 export async function createEnvironment(
@@ -60,7 +68,7 @@ export async function createEnvironment(
 }
 
 export async function getEnvironmentByIdOrThrow(id: string, targetProjectId: string): Promise<Environment> {
-  const environmentData = await prisma.environment.findFirst({ where: { id, targetProjectId } })
+  const environmentData = await prisma.environment.findFirst({ where: { id, targetProjectId, archivedAt: null } })
   if (!environmentData) {
     throw new ServiceError('Environment not found', 'NOT_FOUND', 404)
   }
@@ -117,7 +125,9 @@ async function resolveExistingEnvironment(
   environmentId: string,
   targetProjectId: string,
 ): Promise<EnsuredEnvironment> {
-  const environment = await transaction.environment.findFirst({ where: { id: environmentId, targetProjectId } })
+  const environment = await transaction.environment.findFirst({
+    where: { id: environmentId, targetProjectId, archivedAt: null },
+  })
   if (!environment) throw new ServiceError('Environment not found', 'NOT_FOUND', 404)
   return { environment, outcome: 'resolved' }
 }
@@ -169,7 +179,7 @@ export async function updateEnvironment(
     throw new ServiceError('Environment id is required', 'VALIDATION', 400)
   }
   const currentEnvironment = await prisma.environment.findFirst({
-    where: { id, targetProjectId },
+    where: { id, targetProjectId, archivedAt: null },
     select: { name: true },
   })
   if (!currentEnvironment) {

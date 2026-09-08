@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { tagSchema } from '@/constants/form-opts/tag-form-opts'
-import { createTag, getTagByIdOrThrow, updateTag } from './tag-service'
+import { createTag, deleteTags, getTagByIdOrThrow, updateTag } from './tag-service'
 
 vi.mock('@/config/db-config', () => ({
   default: {
@@ -9,6 +9,7 @@ vi.mock('@/config/db-config', () => ({
       findUnique: vi.fn(),
       create: vi.fn(),
       update: vi.fn(),
+      deleteMany: vi.fn(),
     },
   },
 }))
@@ -27,6 +28,17 @@ beforeEach(() => {
   vi.mocked(prisma.tag.findUnique).mockReset()
   vi.mocked(prisma.tag.create).mockReset()
   vi.mocked(prisma.tag.update).mockReset()
+  vi.mocked(prisma.tag.deleteMany).mockReset()
+})
+
+describe('deleteTags', () => {
+  it('does not destructively delete collaboration-managed tags', async () => {
+    vi.clearAllMocks()
+    vi.mocked(prisma.tag.findFirst).mockResolvedValue({ id: 'tag-1' } as never)
+
+    await expect(deleteTags(['tag-1'], targetProjectId)).rejects.toMatchObject({ statusCode: 409 })
+    expect(prisma.tag.deleteMany).not.toHaveBeenCalled()
+  })
 })
 
 describe('getTagByIdOrThrow', () => {

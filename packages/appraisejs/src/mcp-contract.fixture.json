@@ -51,6 +51,776 @@
     },
     {
       "kind": "tool",
+      "name": "collaboration_connect",
+      "description": "Connect one registered local target to its canonical repository root.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "target": {
+            "type": "string",
+            "minLength": 1
+          },
+          "repositoryRoot": {
+            "type": "string",
+            "minLength": 1
+          },
+          "remoteName": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "trackedBranch": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 300
+          },
+          "portableProjectId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
+          }
+        },
+        "required": [
+          "target",
+          "repositoryRoot",
+          "trackedBranch"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "kind": "tool",
+      "name": "collaboration_decide",
+      "description": "Record reviewed whole-record resolutions; the authenticated coordinator derives trusted decision provenance.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "target": {
+            "type": "string",
+            "minLength": 1
+          },
+          "operationId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
+          },
+          "expectedVersion": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
+          },
+          "preparedDigest": {
+            "type": "string",
+            "pattern": "^sha256:[a-f0-9]{64}$"
+          },
+          "decisions": {
+            "minItems": 1,
+            "maxItems": 2000,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "recordKey": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200,
+                  "pattern": "^[A-Za-z0-9._:-]+$"
+                },
+                "decision": {
+                  "type": "string",
+                  "enum": [
+                    "KEEP_LOCAL",
+                    "USE_INCOMING",
+                    "EDIT"
+                  ]
+                },
+                "editedRecord": {}
+              },
+              "required": [
+                "recordKey",
+                "decision"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "target",
+          "operationId",
+          "expectedVersion",
+          "preparedDigest",
+          "decisions"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "kind": "tool",
+      "name": "collaboration_execute",
+      "description": "Execute only the exact prepared database operation or fixed persisted Git step named by the operation.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "target": {
+            "type": "string",
+            "minLength": 1
+          },
+          "operationId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
+          },
+          "expectedVersion": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
+          },
+          "preparedDigest": {
+            "type": "string",
+            "pattern": "^sha256:[a-f0-9]{64}$"
+          },
+          "idempotencyKey": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
+          },
+          "expectedFilesystemSnapshotHash": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^sha256:[a-f0-9]{64}$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "gitStep": {
+            "type": "string",
+            "enum": [
+              "FETCH",
+              "FAST_FORWARD",
+              "COMMIT",
+              "PUSH"
+            ]
+          }
+        },
+        "required": [
+          "target",
+          "operationId",
+          "expectedVersion",
+          "preparedDigest",
+          "idempotencyKey"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true,
+        "openWorldHint": true
+      }
+    },
+    {
+      "kind": "tool",
+      "name": "collaboration_get",
+      "description": "Read one target-scoped durable collaboration operation and its sanitized decision and journal summaries.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "target": {
+            "type": "string",
+            "minLength": 1
+          },
+          "operationId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
+          }
+        },
+        "required": [
+          "target",
+          "operationId"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "kind": "tool",
+      "name": "collaboration_handoff_redeem",
+      "description": "Redeem one target-bound handoff ticket and return its sanitized prepared scope.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "target": {
+            "type": "string",
+            "minLength": 1
+          },
+          "token": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
+          },
+          "redeemedBy": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
+          }
+        },
+        "required": [
+          "target",
+          "token",
+          "redeemedBy"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "kind": "tool",
+      "name": "collaboration_policy_update",
+      "description": "Change explicit collaboration permissions through the authenticated local coordinator.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "target": {
+            "type": "string",
+            "minLength": 1
+          },
+          "changes": {
+            "type": "object",
+            "properties": {
+              "OBSERVE": {
+                "type": "boolean"
+              },
+              "PREPARE": {
+                "type": "boolean"
+              },
+              "INTEGRATE": {
+                "type": "boolean"
+              },
+              "COMMIT": {
+                "type": "boolean"
+              },
+              "PUSH": {
+                "type": "boolean"
+              },
+              "RESOLVE": {
+                "type": "boolean"
+              },
+              "ARCHIVE": {
+                "type": "boolean"
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "target",
+          "changes"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "kind": "tool",
+      "name": "collaboration_prepare",
+      "description": "Prepare a durable receive, publish, reconcile, undo, or isolated divergent review; no arbitrary Git command is accepted.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "target": {
+            "type": "string",
+            "minLength": 1
+          },
+          "intent": {
+            "type": "string",
+            "enum": [
+              "RECEIVE",
+              "PUBLISH",
+              "RECONCILE",
+              "UNDO"
+            ]
+          },
+          "idempotencyKey": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
+          },
+          "expectedPolicyVersion": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
+          },
+          "incomingRecords": {
+            "minItems": 1,
+            "maxItems": 2000,
+            "type": "array",
+            "items": {}
+          },
+          "sourceRevision": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1000
+          },
+          "targetRevision": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1000
+          },
+          "trigger": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "divergent": {
+            "type": "object",
+            "properties": {
+              "operationId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200,
+                "pattern": "^[A-Za-z0-9._:-]+$"
+              },
+              "expectedVersion": {
+                "type": "integer",
+                "exclusiveMinimum": 0,
+                "maximum": 9007199254740991
+              },
+              "preparedDigest": {
+                "type": "string",
+                "pattern": "^sha256:[a-f0-9]{64}$"
+              }
+            },
+            "required": [
+              "operationId",
+              "expectedVersion",
+              "preparedDigest"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "target",
+          "intent",
+          "idempotencyKey",
+          "expectedPolicyVersion"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "openWorldHint": true
+      }
+    },
+    {
+      "kind": "tool",
+      "name": "collaboration_resolution_propose",
+      "description": "Submit a complete record-only proposal to an existing isolated divergent reconciliation worktree.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "target": {
+            "type": "string",
+            "minLength": 1
+          },
+          "operationId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
+          },
+          "expectedVersion": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
+          },
+          "preparedDigest": {
+            "type": "string",
+            "pattern": "^sha256:[a-f0-9]{64}$"
+          },
+          "preparation": {},
+          "records": {
+            "minItems": 1,
+            "maxItems": 2000,
+            "type": "array",
+            "items": {}
+          }
+        },
+        "required": [
+          "target",
+          "operationId",
+          "expectedVersion",
+          "preparedDigest",
+          "preparation",
+          "records"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "openWorldHint": true
+      }
+    },
+    {
+      "kind": "tool",
+      "name": "collaboration_status",
+      "description": "Read the bounded collaboration connection, policy, operations, decisions, and receipts for one target.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "target": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "target"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "kind": "tool",
+      "name": "collaboration_undo_prepare",
+      "description": "Prepare a guarded inverse only when its durable before-image and current state still match.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "target": {
+            "type": "string",
+            "minLength": 1
+          },
+          "operationId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
+          },
+          "expectedPolicyVersion": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
+          },
+          "idempotencyKey": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
+          },
+          "trigger": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
+          }
+        },
+        "required": [
+          "target",
+          "operationId",
+          "expectedPolicyVersion",
+          "idempotencyKey"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "kind": "tool",
+      "name": "collaboration_work_claim",
+      "description": "Claim the next leaseable collaboration operation for one registered worker session.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "target": {
+            "type": "string",
+            "minLength": 1
+          },
+          "workerIdentity": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
+          },
+          "sessionNonce": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
+          },
+          "leaseMs": {
+            "type": "integer",
+            "minimum": 1000,
+            "maximum": 300000
+          }
+        },
+        "required": [
+          "target",
+          "workerIdentity",
+          "sessionNonce"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "kind": "tool",
+      "name": "collaboration_work_complete",
+      "description": "Submit a structured worker proposal; this does not make a reviewer decision or mutate authored records.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "target": {
+            "type": "string",
+            "minLength": 1
+          },
+          "workerIdentity": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
+          },
+          "sessionNonce": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
+          },
+          "operationId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
+          },
+          "attemptId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
+          },
+          "fencingToken": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
+          },
+          "leaseToken": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
+          },
+          "proposal": {
+            "type": "object",
+            "propertyNames": {
+              "type": "string"
+            },
+            "additionalProperties": {}
+          }
+        },
+        "required": [
+          "target",
+          "workerIdentity",
+          "sessionNonce",
+          "operationId",
+          "attemptId",
+          "fencingToken",
+          "leaseToken",
+          "proposal"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "kind": "tool",
+      "name": "collaboration_work_heartbeat",
+      "description": "Renew an exact fenced collaboration work lease.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "target": {
+            "type": "string",
+            "minLength": 1
+          },
+          "workerIdentity": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
+          },
+          "sessionNonce": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
+          },
+          "operationId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
+          },
+          "attemptId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
+          },
+          "fencingToken": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
+          },
+          "leaseToken": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
+          },
+          "leaseMs": {
+            "type": "integer",
+            "minimum": 1000,
+            "maximum": 300000
+          }
+        },
+        "required": [
+          "target",
+          "workerIdentity",
+          "sessionNonce",
+          "operationId",
+          "attemptId",
+          "fencingToken",
+          "leaseToken"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "kind": "tool",
+      "name": "collaboration_worker_register",
+      "description": "Register observed worker capabilities and receive a short-lived session nonce; this never claims wake capability.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "target": {
+            "type": "string",
+            "minLength": 1
+          },
+          "workerIdentity": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
+          },
+          "capabilities": {
+            "minItems": 1,
+            "maxItems": 100,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200,
+              "pattern": "^[A-Za-z0-9._:-]+$"
+            }
+          },
+          "ttlMs": {
+            "type": "integer",
+            "minimum": 5000,
+            "maximum": 300000
+          }
+        },
+        "required": [
+          "target",
+          "workerIdentity",
+          "capabilities"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "kind": "tool",
       "name": "environment_ensure",
       "description": "Resolve an exact target environment or explicitly create an immutable proposal with allowCreate: true.",
       "inputSchema": {

@@ -105,7 +105,15 @@ describe('deleteLocatorGroups', () => {
 
     await expect(deleteLocatorGroups(['group-1'], targetProjectId)).resolves.toEqual(['group-1'])
     expect(prisma.locatorGroup.deleteMany).toHaveBeenCalledWith({
-      where: { id: { in: ['group-1'] }, targetProjectId },
+      where: { id: { in: ['group-1'] }, targetProjectId, archivedAt: null, collaborationManaged: false },
     })
+  })
+
+  it('does not destructively delete collaboration-managed locator groups', async () => {
+    vi.clearAllMocks()
+    vi.mocked(prisma.locatorGroup.findFirst).mockResolvedValueOnce({ id: 'group-1' } as never)
+
+    await expect(deleteLocatorGroups(['group-1'], targetProjectId)).rejects.toMatchObject({ statusCode: 409 })
+    expect(prisma.locatorGroup.deleteMany).not.toHaveBeenCalled()
   })
 })

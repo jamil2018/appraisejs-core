@@ -453,7 +453,7 @@ export async function storeReportFromFileService(
 
 export async function getAllTestCaseMetricsForFilter(filter: string, targetProjectId: string) {
   let testCaseMetrics = await prisma.testCaseMetrics.findMany({
-    where: { testCase: { targetProjectId } },
+    where: { testCase: { targetProjectId, archivedAt: null } },
     include: {
       testCase: {
         include: {
@@ -478,6 +478,7 @@ export async function getAllTestSuiteMetricsForFilter(filter: string, targetProj
     const testSuites = await prisma.testSuite.findMany({
       where: {
         targetProjectId,
+        archivedAt: null,
         OR: [
           {
             metrics: {

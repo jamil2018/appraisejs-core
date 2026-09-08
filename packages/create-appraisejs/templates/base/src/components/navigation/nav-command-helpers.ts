@@ -8,6 +8,7 @@ import {
   LayoutTemplate,
   ListChecks,
   FolderKanban,
+  GitPullRequestArrow,
   Puzzle,
   Route,
   Server,
@@ -75,6 +76,12 @@ function getControlSection(): NavigationSection {
     items: [
       { href: '/', label: 'Dashboard', icon: LayoutDashboard },
       { href: '/quality-journeys', label: 'Quality Journeys', icon: Route },
+      {
+        href: '/collaboration',
+        label: 'Collaboration',
+        icon: GitPullRequestArrow,
+        keywords: ['repository', 'git', 'sync', 'agent'],
+      },
     ],
   }
 }

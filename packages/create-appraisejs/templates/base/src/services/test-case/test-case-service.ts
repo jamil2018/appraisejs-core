@@ -8,6 +8,12 @@ import { flowBlockCreates, testCaseStepCreates } from '@/services/shared/authore
 import { resolveReadyExactStepDefinitions } from '@/services/shared/step-invocation-validation'
 
 export async function deleteTestCasesByIds(ids: string[], targetProjectId: string): Promise<void> {
+  const managed = await prisma.testCase.findFirst({
+    where: { id: { in: ids }, targetProjectId, collaborationManaged: true },
+    select: { id: true },
+  })
+  if (managed)
+    throw new ServiceError('Collaboration-managed test cases must be archived, not deleted.', 'CONFLICT', 409)
   const testCaseIdentifierTags = await prisma.tag.findMany({
     where: {
       type: TagType.IDENTIFIER,
@@ -75,22 +81,22 @@ export async function deleteTestCasesByIds(ids: string[], targetProjectId: strin
     })
 
     await tx.testCase.deleteMany({
-      where: { id: { in: ids }, targetProjectId },
+      where: { id: { in: ids }, targetProjectId, archivedAt: null, collaborationManaged: false },
     })
   })
 }
 
 export async function listTestCases(targetProjectId: string) {
   return prisma.testCase.findMany({
-    where: { targetProjectId },
+    where: { targetProjectId, archivedAt: null },
     include: {
       steps: {
         include: {
           parameters: true,
         },
       },
-      TestSuite: true,
-      tags: true,
+      TestSuite: { where: { archivedAt: null } },
+      tags: { where: { archivedAt: null } },
     },
   })
 }
@@ -99,8 +105,14 @@ type TestCaseInput = z.input<typeof testCaseSchema>
 
 async function validateTestCaseRelationships(value: TestCaseInput, targetProjectId: string) {
   const [suites, tags, definitions] = await Promise.all([
-    prisma.testSuite.findMany({ where: { id: { in: value.testSuiteIds }, targetProjectId }, select: { id: true } }),
-    prisma.tag.findMany({ where: { id: { in: value.tagIds ?? [] }, targetProjectId }, select: { id: true } }),
+    prisma.testSuite.findMany({
+      where: { id: { in: value.testSuiteIds }, targetProjectId, archivedAt: null },
+      select: { id: true },
+    }),
+    prisma.tag.findMany({
+      where: { id: { in: value.tagIds ?? [] }, targetProjectId, archivedAt: null },
+      select: { id: true },
+    }),
     resolveReadyExactStepDefinitions(value.steps),
   ])
   if (suites.length !== value.testSuiteIds.length || tags.length !== (value.tagIds ?? []).length || !definitions)
@@ -158,7 +170,7 @@ export async function createTestCaseFromInput(value: TestCaseInput, targetProjec
 
 export async function getTestCaseByIdOrThrow(id: string, targetProjectId: string) {
   const testCase = await prisma.testCase.findFirst({
-    where: { id, targetProjectId },
+    where: { id, targetProjectId, archivedAt: null },
     include: {
       steps: {
         include: {
@@ -181,6 +193,7 @@ export async function getTestCaseByIdOrThrow(id: string, targetProjectId: string
         },
         where: {
           type: TagType.FILTER,
+          archivedAt: null,
         },
       },
     },
@@ -208,11 +221,12 @@ export async function updateTestCaseFromInput(value: TestCaseInput, id: string, 
   const stepIds = steps.map(step => step.id)
 
   const existingTestCase = await prisma.testCase.findFirst({
-    where: { id, targetProjectId },
+    where: { id, targetProjectId, archivedAt: null },
     include: {
       tags: {
         where: {
           type: TagType.IDENTIFIER,
+          archivedAt: null,
         },
         select: {
           id: true,

@@ -9,7 +9,16 @@ historical evidence rather than proof that Codex is currently connected.
 
 Run the project diagnostic against the target workspace. A ready diagnostic confirms the application identity, active transport, observed executable capabilities, and target binding. A setup screen alone is not capability evidence.
 
-The server publishes the Journey lifecycle plus general target, runtime, locator, environment, operation, and Step Definition tools. The exact inventory, resource list, schemas, and MCP safety annotations are generated from the canonical contract. Do not copy tool counts into documentation and do not attempt removed operations.
+The server publishes the Journey lifecycle plus general target, runtime, locator, environment, operation, Step
+Definition, and repository collaboration tools. The exact inventory, resource list, schemas, and MCP safety
+annotations are generated from the canonical contract. Do not copy tool counts into documentation and do not attempt
+removed operations.
+
+Collaboration MCP calls must name a registered target, never a raw binding ID. The coordinator derives the target
+binding and trusted principal from authenticated local coordinator credentials. Prepare, decision, undo, worker, and
+handoff calls persist local state; divergent preparation/proposal and fixed Git execution are truthfully annotated as
+open-world effects. A worker registration only records an already-observed session and cannot establish background
+wake capability.
 
 Clients should use the generated setup capabilities and contract fixture to verify their connection. Reads are annotated as read-only; deterministic replay operations are annotated as idempotent; execution, publication, stop, and decision operations expose their actual mutation and open-world effects.
 

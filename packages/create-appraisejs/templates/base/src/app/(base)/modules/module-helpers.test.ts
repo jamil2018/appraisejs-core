@@ -15,6 +15,9 @@ const moduleRow = {
   targetProjectId: 'project-1',
   createdAt: new Date('2026-01-01T00:00:00.000Z'),
   updatedAt: new Date('2026-01-02T00:00:00.000Z'),
+  archivedAt: null,
+  collaborationManaged: false,
+  archiveVersion: 0,
 }
 
 describe('module helpers', () => {

@@ -299,5 +299,19 @@ export async function createCoordinatorClient(options: CoordinatorOptions) {
       return request(`locator-graph?${parameters}`)
     },
     readLocatorGraphVisual: () => request('locator-graph/visual'),
+    collaborationStatus: (target: string) => request(`collaboration/status?target=${encodeURIComponent(target)}`),
+    collaborationConnect: (input: Record<string, unknown>) => post('collaboration/connect', input),
+    collaborationPolicyUpdate: (input: Record<string, unknown>) => post('collaboration/policy-update', input),
+    collaborationPrepare: (input: Record<string, unknown>) => post('collaboration/prepare', input),
+    collaborationGet: (input: Record<string, unknown>) => post('collaboration/get', input),
+    collaborationResolutionPropose: (input: Record<string, unknown>) => post('collaboration/resolution-propose', input),
+    collaborationDecide: (input: Record<string, unknown>) => post('collaboration/decide', input),
+    collaborationExecute: (input: Record<string, unknown>) => post('collaboration/execute', input),
+    collaborationUndoPrepare: (input: Record<string, unknown>) => post('collaboration/undo-prepare', input),
+    collaborationWorkerRegister: (input: Record<string, unknown>) => post('collaboration/worker-register', input),
+    collaborationWorkClaim: (input: Record<string, unknown>) => post('collaboration/work-claim', input),
+    collaborationWorkHeartbeat: (input: Record<string, unknown>) => post('collaboration/work-heartbeat', input),
+    collaborationWorkComplete: (input: Record<string, unknown>) => post('collaboration/work-complete', input),
+    collaborationHandoffRedeem: (input: Record<string, unknown>) => post('collaboration/handoff-redeem', input),
   }
 }

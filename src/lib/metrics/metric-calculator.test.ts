@@ -210,6 +210,7 @@ describe('updateDashboardMetrics', () => {
     expect(mockTestCaseCount).toHaveBeenNthCalledWith(1, {
       where: {
         targetProjectId: 'project-1',
+        archivedAt: null,
         metrics: {
           is: {
             isRepeatedlyFailing: true,
@@ -220,6 +221,7 @@ describe('updateDashboardMetrics', () => {
     expect(mockTestCaseCount).toHaveBeenNthCalledWith(2, {
       where: {
         targetProjectId: 'project-1',
+        archivedAt: null,
         metrics: {
           is: {
             isFlaky: true,
@@ -230,6 +232,7 @@ describe('updateDashboardMetrics', () => {
     expect(mockTestSuiteCount).toHaveBeenCalledWith({
       where: {
         targetProjectId: 'project-1',
+        archivedAt: null,
         OR: [
           {
             metrics: {

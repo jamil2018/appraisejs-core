@@ -58,6 +58,8 @@ describe('getEntityMetrics', () => {
       completedTestRunsCount: 4,
       qualityJourneysCount: 2,
     })
+    expect(prisma.testCase.count).toHaveBeenCalledWith({ where: { targetProjectId: 'project-1', archivedAt: null } })
+    expect(prisma.testSuite.count).toHaveBeenCalledWith({ where: { targetProjectId: 'project-1', archivedAt: null } })
     expect(prisma.stepDefinition.count).toHaveBeenCalledWith({ where: { status: 'ready' } })
     expect(prisma.qualityJourney.count).toHaveBeenCalledWith({ where: { targetProjectId: 'project-1' } })
   })

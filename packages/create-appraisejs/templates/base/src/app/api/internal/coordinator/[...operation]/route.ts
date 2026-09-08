@@ -63,6 +63,7 @@ import { getQualityJourneyExecutionRoute, postQualityJourneyExecutionRoute } fro
 import { getQualityJourneyTriageRoute, postQualityJourneyTriageRoute } from './quality-journey-triage-route'
 import { getQualityJourneyLibraryRoute } from './quality-journey-library-route'
 import { getQualityJourneyHandoffRoute, postQualityJourneyHandoffRoute } from './quality-journey-handoff-route'
+import { getRepositoryCollaborationRoute, postRepositoryCollaborationRoute } from './repository-collaboration-route'
 
 export const runtime = 'nodejs'
 
@@ -431,6 +432,8 @@ async function getEnvironments(request: Request) {
 async function dispatchGet(request: Request, operation: string[]): Promise<Response> {
   const handoffResponse = await getQualityJourneyHandoffRoute(operation, new URL(request.url).searchParams)
   if (handoffResponse) return handoffResponse
+  const collaborationResponse = await getRepositoryCollaborationRoute(request, operation)
+  if (collaborationResponse) return collaborationResponse
   if (operation.length === 1 && operation[0] === 'diagnostic') return getDiagnostic(request)
   if (operation.length === 1 && operation[0] === 'target-projects')
     return Response.json({ targetProjects: await listTargetProjects() })
@@ -722,6 +725,8 @@ async function postLocatorEnsure(request: Request, body: unknown): Promise<Respo
 async function dispatchPost(request: Request, operation: string[], body: unknown): Promise<Response> {
   const handoffResponse = await postQualityJourneyHandoffRoute(operation, body)
   if (handoffResponse) return handoffResponse
+  const collaborationResponse = await postRepositoryCollaborationRoute(request, operation, body)
+  if (collaborationResponse) return collaborationResponse
   if (operation.length === 2 && operation[0] === 'diagnostic' && operation[1] === 'preflight')
     return Response.json(await recordAgentPreflightReceipt(body), { status: 201 })
   if (operation.length === 1 && operation[0] === 'target-projects') return postTargetProject(body)

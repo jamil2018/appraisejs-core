@@ -1,7 +1,17 @@
 # Coordinator API and MCP
 
-The coordinator exposes Quality Journey lifecycle operations plus general project, environment, runtime, locator, and
-Step Definition operations. Quality Journey is the only Appraise-owned agent quality workflow.
+The coordinator exposes Quality Journey lifecycle operations plus general project, environment, runtime, locator,
+Step Definition, and project-bound repository collaboration operations. Quality Journey remains the only
+Appraise-owned agent quality workflow; repository collaboration has no Journey authority.
+
+Repository collaboration tools use the `collaboration_*` family. Every request names a target that the coordinator
+resolves to its own binding; callers never supply a binding ID, repository command, remote/ref override, trusted
+principal, or reviewer provenance. `collaboration_prepare` persists a normal reviewed operation or prepares an
+isolated divergent worktree. `collaboration_resolution_propose` accepts complete collaboration records only, and
+`collaboration_execute` performs only the exact prepared database operation or one fixed persisted Git step. Worker
+tools expose observed registration, fenced leases, structured proposals, and one-time handoff redemption; they do
+not claim wake capability or create a reviewer decision. `collaboration_undo_prepare` is guarded by the stored
+database before-image and an exact current-state check.
 
 Journey operations are grouped under `quality/journeys/**` in the coordinator API and `quality_journey_*` in MCP.
 Every mutation is scoped to an exact target and Journey and remains subject to the Journey's durable review,

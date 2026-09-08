@@ -18,7 +18,9 @@ type McpDefinition = {
 }
 type McpFixture = { default: McpDefinition[] }
 export type PublicOperationReference =
-  { kind: 'coordinator'; operation: CoordinatorOperationId } | { kind: 'local'; reason: string }
+  | { kind: 'coordinator'; operation: CoordinatorOperationId }
+  | { kind: 'coordinator-route'; reason: string }
+  | { kind: 'local'; reason: string }
 
 const localDiscoveryTools = new Set(['locator_search'])
 
@@ -49,6 +51,8 @@ const coordinatorOperationPrefixes: ReadonlyArray<readonly [string, CoordinatorO
 
 export function referenceForMcpTool(name: string): PublicOperationReference {
   if (localDiscoveryTools.has(name)) return { kind: 'local', reason: 'bounded quality discovery query' }
+  if (name.startsWith('collaboration_'))
+    return { kind: 'coordinator-route', reason: 'project-bound repository collaboration coordinator route' }
   const exactOperation = exactCoordinatorOperations[name]
   if (exactOperation) return coordinator(exactOperation)
   const prefixOperation = coordinatorOperationPrefixes.find(([prefix]) => name.startsWith(prefix))?.[1]
@@ -77,7 +81,10 @@ export function generateCoordinatorReference(fixture: McpFixture): string {
       const reference = referenceForMcpTool(item.name)
       if (reference.kind === 'coordinator' && !knownOperations.has(reference.operation))
         throw new Error(`MCP tool ${item.name} maps to missing coordinator operation ${reference.operation}.`)
-      const target = reference.kind === 'coordinator' ? `\`${reference.operation}\`` : `local: ${reference.reason}`
+      const target =
+        reference.kind === 'coordinator'
+          ? `\`${reference.operation}\``
+          : `${reference.kind === 'local' ? 'local' : 'coordinator route'}: ${reference.reason}`
       return `| \`${item.name}\` | ${item.availability} | ${target} | ${escapeCell(item.description ?? '')} |`
     })
   const resourceRows = definitions

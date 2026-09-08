@@ -8,19 +8,22 @@ datasource db {
 }
 
 model TestSuite {
-  id              String            @id @default(uuid())
-  name            String
-  description     String?
-  createdAt       DateTime          @default(now())
-  updatedAt       DateTime          @updatedAt
-  moduleId        String
-  module          Module            @relation(fields: [moduleId], references: [id], onDelete: Cascade)
-  testCases       TestCase[]        @relation("TestSuiteTestCases")
-  tags            Tag[]
-  metrics         TestSuiteMetrics?
-  testRuns        TestRunTestCase[]
-  targetProjectId String
-  targetProject   TargetProject     @relation(fields: [targetProjectId], references: [id], onDelete: Restrict)
+  id                   String            @id @default(uuid())
+  name                 String
+  description          String?
+  createdAt            DateTime          @default(now())
+  updatedAt            DateTime          @updatedAt
+  moduleId             String
+  module               Module            @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  testCases            TestCase[]        @relation("TestSuiteTestCases")
+  tags                 Tag[]
+  metrics              TestSuiteMetrics?
+  testRuns             TestRunTestCase[]
+  targetProjectId      String
+  targetProject        TargetProject     @relation(fields: [targetProjectId], references: [id], onDelete: Restrict)
+  archivedAt           DateTime?
+  collaborationManaged Boolean           @default(false)
+  archiveVersion       Int               @default(0)
 
   @@index([targetProjectId])
 }
@@ -231,45 +234,50 @@ enum StepExecutionKind {
 }
 
 model TestCase {
-  id                String              @id @default(uuid())
-  title             String
-  description       String
-  createdAt         DateTime            @default(now())
-  updatedAt         DateTime            @updatedAt
-  linkedJiraTickets LinkedJiraTicket[]
-  reviews           Review[]
-  steps             TestCaseStep[]
-  TestSuite         TestSuite[]         @relation("TestSuiteTestCases")
-  TestRunTestCase   TestRunTestCase[]
-  tags              Tag[]
-  metrics           TestCaseMetrics?
-  flowBlocks        TestCaseFlowBlock[]
-  targetProjectId   String
-  targetProject     TargetProject       @relation(fields: [targetProjectId], references: [id], onDelete: Restrict)
+  id                   String              @id @default(uuid())
+  title                String
+  description          String
+  createdAt            DateTime            @default(now())
+  updatedAt            DateTime            @updatedAt
+  linkedJiraTickets    LinkedJiraTicket[]
+  reviews              Review[]
+  steps                TestCaseStep[]
+  TestSuite            TestSuite[]         @relation("TestSuiteTestCases")
+  TestRunTestCase      TestRunTestCase[]
+  tags                 Tag[]
+  metrics              TestCaseMetrics?
+  flowBlocks           TestCaseFlowBlock[]
+  targetProjectId      String
+  targetProject        TargetProject       @relation(fields: [targetProjectId], references: [id], onDelete: Restrict)
+  archivedAt           DateTime?
+  collaborationManaged Boolean             @default(false)
+  archiveVersion       Int                 @default(0)
 
   @@index([targetProjectId])
 }
 
 model TestCaseStep {
-  id             String                  @id @default(uuid())
-  flowNodeId     String?
-  testCaseId     String
-  order          Int
-  gherkinStep    String
-  icon           StepIcon
-  label          String
-  invocationJson String
-  testCase       TestCase                @relation(fields: [testCaseId], references: [id])
-  parameters     TestCaseStepParameter[]
+  id                      String                  @id @default(uuid())
+  flowNodeId              String?
+  testCaseId              String
+  order                   Int
+  gherkinStep             String
+  icon                    StepIcon
+  label                   String
+  invocationJson          String
+  testCase                TestCase                @relation(fields: [testCaseId], references: [id])
+  parameters              TestCaseStepParameter[]
+  collaborationPortableId String?
 }
 
 model TestCaseFlowBlock {
-  id         String                  @id @default(uuid())
-  name       String
-  testCaseId String
-  order      Int
-  testCase   TestCase                @relation(fields: [testCaseId], references: [id], onDelete: Cascade)
-  nodes      TestCaseFlowBlockNode[]
+  id                      String                  @id @default(uuid())
+  name                    String
+  testCaseId              String
+  order                   Int
+  testCase                TestCase                @relation(fields: [testCaseId], references: [id], onDelete: Cascade)
+  nodes                   TestCaseFlowBlockNode[]
+  collaborationPortableId String?
 }
 
 model TestCaseFlowBlockNode {
@@ -280,39 +288,44 @@ model TestCaseFlowBlockNode {
 }
 
 model TemplateTestCase {
-  id              String                      @id @default(uuid())
-  name            String
-  description     String?
-  createdAt       DateTime                    @default(now())
-  updatedAt       DateTime                    @updatedAt
-  steps           TemplateTestCaseStep[]
-  flowBlocks      TemplateTestCaseFlowBlock[]
-  targetProjectId String
-  targetProject   TargetProject               @relation(fields: [targetProjectId], references: [id], onDelete: Restrict)
+  id                   String                      @id @default(uuid())
+  name                 String
+  description          String?
+  createdAt            DateTime                    @default(now())
+  updatedAt            DateTime                    @updatedAt
+  steps                TemplateTestCaseStep[]
+  flowBlocks           TemplateTestCaseFlowBlock[]
+  targetProjectId      String
+  targetProject        TargetProject               @relation(fields: [targetProjectId], references: [id], onDelete: Restrict)
+  archivedAt           DateTime?
+  collaborationManaged Boolean                     @default(false)
+  archiveVersion       Int                         @default(0)
 
   @@unique([targetProjectId, name])
 }
 
 model TemplateTestCaseStep {
-  id                 String                          @id @default(uuid())
-  flowNodeId         String?
-  order              Int
-  gherkinStep        String
-  icon               StepIcon
-  label              String
-  templateTestCaseId String
-  invocationJson     String
-  templateTestCase   TemplateTestCase                @relation(fields: [templateTestCaseId], references: [id])
-  parameters         TemplateTestCaseStepParameter[]
+  id                      String                          @id @default(uuid())
+  flowNodeId              String?
+  order                   Int
+  gherkinStep             String
+  icon                    StepIcon
+  label                   String
+  templateTestCaseId      String
+  invocationJson          String
+  templateTestCase        TemplateTestCase                @relation(fields: [templateTestCaseId], references: [id])
+  parameters              TemplateTestCaseStepParameter[]
+  collaborationPortableId String?
 }
 
 model TemplateTestCaseFlowBlock {
-  id                 String                          @id @default(uuid())
-  name               String
-  templateTestCaseId String
-  order              Int
-  templateTestCase   TemplateTestCase                @relation(fields: [templateTestCaseId], references: [id], onDelete: Cascade)
-  nodes              TemplateTestCaseFlowBlockNode[]
+  id                      String                          @id @default(uuid())
+  name                    String
+  templateTestCaseId      String
+  order                   Int
+  templateTestCase        TemplateTestCase                @relation(fields: [templateTestCaseId], references: [id], onDelete: Cascade)
+  nodes                   TemplateTestCaseFlowBlockNode[]
+  collaborationPortableId String?
 }
 
 model TemplateTestCaseFlowBlockNode {
@@ -360,37 +373,46 @@ model Locator {
   conflicts                     ConflictResolution[]
   targetProjectId               String
   targetProject                 TargetProject                   @relation(fields: [targetProjectId], references: [id], onDelete: Restrict)
+  archivedAt                    DateTime?
+  collaborationManaged          Boolean                         @default(false)
+  archiveVersion                Int                             @default(0)
 
   @@index([targetProjectId])
 }
 
 model LocatorGroup {
-  id              String        @id @default(uuid())
-  name            String
-  route           String        @default("/")
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
-  moduleId        String
-  locators        Locator[]
-  module          Module        @relation(fields: [moduleId], references: [id], onDelete: Cascade)
-  targetProjectId String
-  targetProject   TargetProject @relation(fields: [targetProjectId], references: [id], onDelete: Restrict)
+  id                   String        @id @default(uuid())
+  name                 String
+  route                String        @default("/")
+  createdAt            DateTime      @default(now())
+  updatedAt            DateTime      @updatedAt
+  moduleId             String
+  locators             Locator[]
+  module               Module        @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  targetProjectId      String
+  targetProject        TargetProject @relation(fields: [targetProjectId], references: [id], onDelete: Restrict)
+  archivedAt           DateTime?
+  collaborationManaged Boolean       @default(false)
+  archiveVersion       Int           @default(0)
 
   @@unique([targetProjectId, name])
 }
 
 model Module {
-  id              String         @id @default(uuid())
-  name            String
-  parentId        String?
-  createdAt       DateTime       @default(now())
-  updatedAt       DateTime       @updatedAt
-  locatorGroups   LocatorGroup[]
-  parent          Module?        @relation("ModuleHierarchy", fields: [parentId], references: [id], onDelete: Cascade)
-  children        Module[]       @relation("ModuleHierarchy")
-  testSuites      TestSuite[]
-  targetProjectId String
-  targetProject   TargetProject  @relation(fields: [targetProjectId], references: [id], onDelete: Restrict)
+  id                   String         @id @default(uuid())
+  name                 String
+  parentId             String?
+  createdAt            DateTime       @default(now())
+  updatedAt            DateTime       @updatedAt
+  locatorGroups        LocatorGroup[]
+  parent               Module?        @relation("ModuleHierarchy", fields: [parentId], references: [id], onDelete: Cascade)
+  children             Module[]       @relation("ModuleHierarchy")
+  testSuites           TestSuite[]
+  targetProjectId      String
+  targetProject        TargetProject  @relation(fields: [targetProjectId], references: [id], onDelete: Restrict)
+  archivedAt           DateTime?
+  collaborationManaged Boolean        @default(false)
+  archiveVersion       Int            @default(0)
 
   @@index([targetProjectId])
 }
@@ -491,6 +513,7 @@ model TargetProject {
   qualityJourneyAutomationTargetBindings QualityJourneyAutomationTargetBinding[]
   qualityJourneyExecutionCycles          QualityJourneyExecutionCycle[]
   qualityJourneyCoordinatorHandoffs      QualityJourneyCoordinatorHandoff[]
+  collaborationBinding                   CollaborationBinding?
 
   @@index([displayName])
   @@index([canonicalPath])
@@ -568,30 +591,75 @@ enum QualityJourneyDraftStatus {
 /// Mutable, project-scoped workspace intake. It is deliberately separate from
 /// immutable Journey revisions, and only becomes lifecycle input on confirm.
 model QualityJourneyDraft {
-  id                       String                    @id @default(cuid())
+  id                       String                              @id @default(cuid())
   targetProjectId          String
   createIdempotencyKey     String
   createRequestHash        String
-  status                   QualityJourneyDraftStatus @default(ACTIVE)
-  requirementJson          String                    @default("{}")
-  currentStep              Int                       @default(0)
+  status                   QualityJourneyDraftStatus           @default(ACTIVE)
+  requirementJson          String                              @default("{}")
+  currentStep              Int                                 @default(0)
   predecessorJourneyId     String?
-  version                  Int                       @default(1)
+  version                  Int                                 @default(1)
   draftHash                String
   confirmationKey          String?
   confirmationRequestHash  String?
   confirmedRequirementHash String?
   confirmedSourceVersion   Int?
   confirmedDraftHash       String?
-  confirmedJourneyId       String?                   @unique
+  confirmedJourneyId       String?                             @unique
   confirmedAt              DateTime?
-  createdAt                DateTime                  @default(now())
-  updatedAt                DateTime                  @updatedAt
-  targetProject            TargetProject             @relation(fields: [targetProjectId], references: [id], onDelete: Restrict)
-  confirmedJourney         QualityJourney?           @relation("ConfirmedQualityJourneyDraft", fields: [confirmedJourneyId], references: [id], onDelete: Restrict)
+  createdAt                DateTime                            @default(now())
+  updatedAt                DateTime                            @updatedAt
+  targetProject            TargetProject                       @relation(fields: [targetProjectId], references: [id], onDelete: Restrict)
+  confirmedJourney         QualityJourney?                     @relation("ConfirmedQualityJourneyDraft", fields: [confirmedJourneyId], references: [id], onDelete: Restrict)
+  reuseAnnotation          QualityJourneyDraftReuseAnnotation?
+  reuseSeeds               QualityJourneyReuseSeed[]
 
   @@unique([targetProjectId, createIdempotencyKey])
   @@index([targetProjectId, status, updatedAt])
+}
+
+/// Non-authoritative provenance for a draft seeded from a shared reuse asset.
+/// This row is excluded from draft hashes and never grants Journey lifecycle authority.
+model QualityJourneyDraftReuseAnnotation {
+  id              String               @id @default(cuid())
+  draftId         String               @unique
+  bindingId       String
+  assetPortableId String
+  sourceVersion   Int
+  payloadHash     String
+  sourceRevision  String?
+  createdAt       DateTime             @default(now())
+  draft           QualityJourneyDraft  @relation(fields: [draftId], references: [id], onDelete: Cascade)
+  binding         CollaborationBinding @relation(fields: [bindingId], references: [id], onDelete: Restrict)
+
+  @@index([bindingId, assetPortableId, sourceVersion])
+}
+
+/// Advisory-only reuse references made available while composing a draft.
+/// They intentionally do not participate in draft hashes or Journey authority.
+enum QualityJourneyReuseSeedKind {
+  ANALYSIS
+  SCENARIO
+}
+
+model QualityJourneyReuseSeed {
+  id                String                      @id @default(cuid())
+  draftId           String
+  bindingId         String
+  kind              QualityJourneyReuseSeedKind
+  assetPortableId   String
+  sourceVersion     Int
+  sourcePayloadHash String
+  sourceRevision    String?
+  contentJson       String
+  contentHash       String
+  createdAt         DateTime                    @default(now())
+  draft             QualityJourneyDraft         @relation(fields: [draftId], references: [id], onDelete: Cascade)
+  binding           CollaborationBinding        @relation(fields: [bindingId], references: [id], onDelete: Restrict)
+
+  @@unique([draftId, kind, assetPortableId, sourceVersion])
+  @@index([bindingId, assetPortableId, sourceVersion])
 }
 
 model QualityJourneyCoordinatorHandoff {
@@ -1303,6 +1371,7 @@ model QualityJourneyWorkItem {
   inputHash                  String
   roleContractDigest         String
   inputArtifactRefsJson      String                                    @default("[]")
+  advisoryInputRefsJson      String                                    @default("[]")
   allowedOutputsJson         String                                    @default("[]")
   completionCriteriaJson     String                                    @default("[]")
   authorizationScopeJson     String                                    @default("{}")
@@ -1648,6 +1717,345 @@ enum EnvironmentCredentialState {
   REFERENCE_CONFIGURED
 }
 
+enum CollaborationEntityKind {
+  MODULE
+  TEST_SUITE
+  TEST_CASE
+  TEMPLATE
+  LOCATOR_GROUP
+  LOCATOR
+  TAG
+  ENVIRONMENT_REFERENCE
+  JOURNEY_REUSE_ASSET
+}
+
+enum CollaborationOperationIntent {
+  RECEIVE
+  PUBLISH
+  RECONCILE
+  UNDO
+}
+
+enum CollaborationOperationState {
+  QUEUED
+  PREPARING
+  WAITING_FOR_AGENT
+  WAITING_FOR_DECISION
+  READY
+  APPLYING
+  COMPLETED
+  BLOCKED
+  FAILED
+  CANCELLED
+  SUPERSEDED
+}
+
+enum CollaborationAttemptState {
+  CLAIMED
+  RUNNING
+  PROPOSAL_SUBMITTED
+  COMPLETED
+  FAILED
+  CANCELLED
+  EXPIRED
+}
+
+enum CollaborationConnectionState {
+  OFFLINE
+  CONNECTED
+  STALE
+}
+
+enum CollaborationPermission {
+  OBSERVE
+  PREPARE
+  INTEGRATE
+  COMMIT
+  PUSH
+  RESOLVE
+  ARCHIVE
+}
+
+enum CollaborationDecisionKind {
+  KEEP_LOCAL
+  USE_INCOMING
+  EDIT
+  ACCEPT
+  REJECT
+}
+
+model CollaborationBinding {
+  id                       String                               @id @default(cuid())
+  targetProjectId          String                               @unique
+  portableProjectId        String
+  repositoryRoot           String
+  remoteName               String                               @default("origin")
+  trackedBranch            String
+  enabled                  Boolean                              @default(true)
+  policyVersion            Int                                  @default(1)
+  connectionState          CollaborationConnectionState         @default(OFFLINE)
+  observedCapabilitiesJson String                               @default("[]")
+  lastObservedAt           DateTime?
+  lastRemoteCheckAt        DateTime?
+  nextRemoteCheckAt        DateTime?
+  remoteBackoffSeconds     Int                                  @default(300)
+  createdAt                DateTime                             @default(now())
+  updatedAt                DateTime                             @updatedAt
+  targetProject            TargetProject                        @relation(fields: [targetProjectId], references: [id], onDelete: Restrict)
+  entityMaps               CollaborationEntityMap[]
+  environmentMappings      CollaborationEnvironmentMapping[]
+  operations               CollaborationOperation[]
+  policyGrants             CollaborationPolicyGrant[]
+  workers                  CollaborationWorker[]
+  handoffTickets           CollaborationHandoffTicket[]
+  reuseAssets              CollaborationReuseAsset[]
+  draftReuseAnnotations    QualityJourneyDraftReuseAnnotation[]
+  reuseSeeds               QualityJourneyReuseSeed[]
+  notifications            CollaborationNotification[]
+
+  @@index([portableProjectId])
+  @@index([repositoryRoot])
+}
+
+model CollaborationEntityMap {
+  id            String                  @id @default(cuid())
+  bindingId     String
+  kind          CollaborationEntityKind
+  portableId    String
+  localEntityId String?
+  currentHash   String?
+  archivedAt    DateTime?
+  createdAt     DateTime                @default(now())
+  updatedAt     DateTime                @updatedAt
+  binding       CollaborationBinding    @relation(fields: [bindingId], references: [id], onDelete: Cascade)
+  baseline      CollaborationBaseline?
+
+  @@unique([bindingId, kind, portableId])
+  @@unique([bindingId, kind, localEntityId])
+  @@index([localEntityId])
+}
+
+model CollaborationBaseline {
+  id                 String                 @id @default(cuid())
+  entityMapId        String                 @unique
+  payloadJson        String
+  payloadHash        String
+  repositoryRevision String?
+  acknowledgedAt     DateTime               @default(now())
+  entityMap          CollaborationEntityMap @relation(fields: [entityMapId], references: [id], onDelete: Cascade)
+}
+
+model CollaborationEnvironmentMapping {
+  id                 String               @id @default(cuid())
+  bindingId          String
+  portableId         String
+  localEnvironmentId String
+  localScopeVersion  Int
+  mappingHash        String
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
+  binding            CollaborationBinding @relation(fields: [bindingId], references: [id], onDelete: Cascade)
+
+  @@unique([bindingId, portableId])
+  @@unique([bindingId, localEnvironmentId])
+}
+
+model CollaborationOperation {
+  id                  String                       @id @default(cuid())
+  bindingId           String
+  intent              CollaborationOperationIntent
+  trigger             String
+  state               CollaborationOperationState  @default(QUEUED)
+  version             Int                          @default(1)
+  idempotencyKey      String
+  sourceRevision      String?
+  targetRevision      String?
+  sourceSnapshotHash  String?
+  localReadSetHash    String?
+  policyVersion       Int
+  preparedJson        String?
+  preparedDigest      String?
+  acceptedDigest      String?
+  blockerJson         String?
+  receiptJson         String?
+  receiptHash         String?
+  mutationJournalJson String                       @default("[]")
+  /// Set only while waiting in the scheduler. SQLite's nullable unique index
+  /// permits one queued intent per binding without a partial-index assumption.
+  queueKey            String?
+  leaseOwner          String?
+  leaseExpiresAt      DateTime?
+  fencingToken        Int                          @default(0)
+  nextAttemptAt       DateTime?
+  cancelledAt         DateTime?
+  supersededById      String?
+  predecessorId       String?
+  createdAt           DateTime                     @default(now())
+  updatedAt           DateTime                     @updatedAt
+  completedAt         DateTime?
+  binding             CollaborationBinding         @relation(fields: [bindingId], references: [id], onDelete: Cascade)
+  attempts            CollaborationAttempt[]
+  decisions           CollaborationDecision[]
+  journalEntries      CollaborationJournalEntry[]
+  notifications       CollaborationNotification[]
+  tickets             CollaborationHandoffTicket[]
+  predecessor         CollaborationOperation?      @relation("CollaborationOperationSuccessors", fields: [predecessorId], references: [id], onDelete: Restrict)
+  successors          CollaborationOperation[]     @relation("CollaborationOperationSuccessors")
+
+  @@unique([bindingId, idempotencyKey])
+  @@unique([bindingId, queueKey])
+  @@index([bindingId, state, createdAt])
+  @@index([leaseExpiresAt])
+  @@index([predecessorId])
+}
+
+model CollaborationAttempt {
+  id             String                    @id @default(cuid())
+  operationId    String
+  attemptNumber  Int
+  fencingToken   Int
+  workerId       String?
+  state          CollaborationAttemptState @default(CLAIMED)
+  claimTokenHash String?
+  leaseExpiresAt DateTime?
+  heartbeatAt    DateTime?
+  resultJson     String?
+  errorCode      String?
+  completedAt    DateTime?
+  cancelledAt    DateTime?
+  createdAt      DateTime                  @default(now())
+  updatedAt      DateTime                  @updatedAt
+  operation      CollaborationOperation    @relation(fields: [operationId], references: [id], onDelete: Cascade)
+  worker         CollaborationWorker?      @relation(fields: [workerId], references: [id], onDelete: SetNull)
+
+  @@unique([operationId, attemptNumber])
+  @@index([operationId, fencingToken])
+  @@index([workerId])
+}
+
+model CollaborationPolicyGrant {
+  id                 String                  @id @default(cuid())
+  bindingId          String
+  permission         CollaborationPermission
+  enabled            Boolean
+  policyVersion      Int
+  scopeJson          String
+  trustedPrincipalId String
+  provenance         String
+  grantedAt          DateTime                @default(now())
+  revokedAt          DateTime?
+  binding            CollaborationBinding    @relation(fields: [bindingId], references: [id], onDelete: Cascade)
+
+  @@unique([bindingId, permission, policyVersion])
+  @@index([bindingId, permission, revokedAt])
+}
+
+model CollaborationDecision {
+  id                 String                    @id @default(cuid())
+  operationId        String
+  recordKey          String
+  kind               CollaborationDecisionKind
+  resolutionJson     String?
+  resolutionDigest   String
+  trustedPrincipalId String
+  provenance         String
+  createdAt          DateTime                  @default(now())
+  operation          CollaborationOperation    @relation(fields: [operationId], references: [id], onDelete: Cascade)
+
+  @@unique([operationId, recordKey, resolutionDigest])
+}
+
+model CollaborationJournalEntry {
+  id          String                 @id @default(cuid())
+  operationId String
+  sequence    Int
+  boundary    String
+  status      String
+  detailsJson String
+  createdAt   DateTime               @default(now())
+  operation   CollaborationOperation @relation(fields: [operationId], references: [id], onDelete: Cascade)
+
+  @@unique([operationId, sequence])
+}
+
+model CollaborationWorker {
+  id                 String                       @id @default(cuid())
+  bindingId          String
+  workerIdentity     String
+  capabilitiesJson   String
+  capabilitiesHash   String                       @default("")
+  trustedPrincipalId String                       @default("")
+  provenance         String                       @default("")
+  connectionState    CollaborationConnectionState @default(OFFLINE)
+  sessionNonceHash   String
+  registeredAt       DateTime                     @default(now())
+  lastHeartbeatAt    DateTime?
+  expiresAt          DateTime
+  binding            CollaborationBinding         @relation(fields: [bindingId], references: [id], onDelete: Cascade)
+  attempts           CollaborationAttempt[]
+
+  @@unique([bindingId, workerIdentity])
+  @@index([expiresAt])
+}
+
+model CollaborationHandoffTicket {
+  id                 String                 @id @default(cuid())
+  bindingId          String
+  operationId        String
+  tokenHash          String                 @unique
+  scopeJson          String
+  expiresAt          DateTime
+  redeemedAt         DateTime?
+  redeemedBy         String?
+  invalidatedAt      DateTime?
+  invalidationReason String?
+  createdAt          DateTime               @default(now())
+  binding            CollaborationBinding   @relation(fields: [bindingId], references: [id], onDelete: Cascade)
+  operation          CollaborationOperation @relation(fields: [operationId], references: [id], onDelete: Cascade)
+
+  @@index([bindingId, expiresAt])
+}
+
+model CollaborationReuseAsset {
+  id             String               @id @default(cuid())
+  bindingId      String
+  portableId     String
+  sourceVersion  Int
+  kind           String
+  payloadJson    String
+  payloadHash    String
+  sourceRevision String?
+  createdAt      DateTime             @default(now())
+  binding        CollaborationBinding @relation(fields: [bindingId], references: [id], onDelete: Cascade)
+
+  @@unique([bindingId, portableId, sourceVersion])
+}
+
+model CollaborationNotification {
+  id          String                  @id @default(cuid())
+  bindingId   String
+  operationId String?
+  dedupeKey   String
+  kind        String
+  message     String
+  actionable  Boolean                 @default(false)
+  readAt      DateTime?
+  createdAt   DateTime                @default(now())
+  binding     CollaborationBinding    @relation(fields: [bindingId], references: [id], onDelete: Cascade)
+  operation   CollaborationOperation? @relation(fields: [operationId], references: [id], onDelete: Cascade)
+
+  @@unique([bindingId, dedupeKey])
+  @@index([bindingId, readAt, createdAt])
+}
+
+model CollaborationMutationLock {
+  lockKey        String   @id
+  ownerId        String
+  fencingToken   Int      @default(1)
+  leaseExpiresAt DateTime
+  updatedAt      DateTime @updatedAt
+}
+
 model Environment {
   id                          String                     @id @default(uuid())
   name                        String
@@ -1666,22 +2074,28 @@ model Environment {
   testRuns                    TestRun[]
   targetProjectId             String
   targetProject               TargetProject              @relation(fields: [targetProjectId], references: [id], onDelete: Restrict)
+  archivedAt                  DateTime?
+  collaborationManaged        Boolean                    @default(false)
+  archiveVersion              Int                        @default(0)
 
   @@unique([targetProjectId, name])
 }
 
 model Tag {
-  id              String        @id @default(uuid())
-  name            String
-  tagExpression   String
-  type            TagType       @default(FILTER)
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
-  testRuns        TestRun[]
-  testSuites      TestSuite[]
-  testCases       TestCase[]
-  targetProjectId String
-  targetProject   TargetProject @relation(fields: [targetProjectId], references: [id], onDelete: Restrict)
+  id                   String        @id @default(uuid())
+  name                 String
+  tagExpression        String
+  type                 TagType       @default(FILTER)
+  createdAt            DateTime      @default(now())
+  updatedAt            DateTime      @updatedAt
+  testRuns             TestRun[]
+  testSuites           TestSuite[]
+  testCases            TestCase[]
+  targetProjectId      String
+  targetProject        TargetProject @relation(fields: [targetProjectId], references: [id], onDelete: Restrict)
+  archivedAt           DateTime?
+  collaborationManaged Boolean       @default(false)
+  archiveVersion       Int           @default(0)
 
   @@unique([targetProjectId, name, type])
 }
