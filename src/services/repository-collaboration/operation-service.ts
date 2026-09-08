@@ -37,6 +37,12 @@ import { appendCollaborationJournalEntry as appendJournal } from './collaboratio
 import { applyCollaborationRecordsInTransaction } from './materialization-service'
 import { projectSnapshotInTransaction } from './projection-helpers'
 import { executeCollaborationGitStep } from './git-operation-service'
+import {
+  acquireCollaborationGitMutationLock,
+  assertCollaborationGitMutationLock,
+  releaseCollaborationGitMutationLock,
+  withCollaborationGitMutationLeaseHeartbeat,
+} from './git-mutation-lock-service'
 import { consumeCollaborationAuthorityReceipt } from './authority-receipt-service'
 import { prepareDivergentCollaborationReconciliation } from './divergent-reconciliation-service'
 
@@ -62,6 +68,21 @@ type PersistedOperationStep = {
   kind: string
   requiredPermission: CollaborationPermission
 }
+
+type FilesystemRecoveryOperation = Prisma.CollaborationOperationGetPayload<{
+  include: { binding: true; steps: { orderBy: { ordinal: 'asc' } } }
+}>
+type FilesystemRecoveryStep = FilesystemRecoveryOperation['steps'][number]
+type FilesystemStepIntent = {
+  schema?: unknown
+  operationId?: unknown
+  ordinal?: unknown
+  kind?: unknown
+  requestVersion?: unknown
+  executorEpoch?: unknown
+  snapshotHash?: unknown
+}
+type FilesystemRecoveryClassification = 'VERIFIED_COMPLETED' | 'SAFE_NO_EFFECT_RETRY' | 'AMBIGUOUS_BLOCK'
 
 /** The plan is created with preparation and is the sole authority for later execution. */
 function operationPlan(
@@ -847,7 +868,7 @@ async function loadExecution(
   input: ExecuteCollaborationOperationInput,
   expectedStepKinds: readonly string[],
 ) {
-  const operation = await transaction.collaborationOperation.findUnique({
+  const operation = await transaction.collaborationOperation.findFirst({
     where: { id: input.operationId },
     include: { binding: true, steps: { orderBy: { ordinal: 'asc' } } },
   })
@@ -887,6 +908,7 @@ async function completeOperation(
   transaction: Transaction,
   operationId: string,
   expectedStep: { ordinal: number; kind: string },
+  requestVersion: number,
   receipt: Record<string, unknown>,
   journalBoundary: string,
 ) {
@@ -911,9 +933,10 @@ async function completeOperation(
     where: { operationId_ordinal: { operationId, ordinal: step.ordinal } },
     data: {
       state: 'COMPLETED',
+      requestVersion,
       evidenceJson: canonicalJson(receipt),
       evidenceHash,
-      ...(step.state === 'RUNNING' ? { completedVersion } : {}),
+      completedVersion,
       completedAt: new Date(),
     },
   })
@@ -973,122 +996,161 @@ async function executeDatabaseOperation(input: ExecuteCollaborationOperationInpu
       appliedSnapshotHash: collaborationHash(resolved),
       appliedAt: new Date().toISOString(),
     }
-    return completeOperation(transaction, operation.id, step, receipt, 'DATABASE_APPLIED')
+    return completeOperation(transaction, operation.id, step, input.expectedVersion, receipt, 'DATABASE_APPLIED')
   })
 }
 
 async function executePublication(input: ExecuteCollaborationOperationInput, client: PrismaClient) {
-  const applying = await client.$transaction(async transaction => {
-    const { operation, step } = await loadExecution(transaction, input, ['INSTALL_SNAPSHOT'])
-    const current = await currentSnapshotRecords(transaction, operation.bindingId)
-    if (collaborationHash(current) !== operation.localReadSetHash) {
-      throw new ServiceError('Local authored data changed after preparation.', 'CONFLICT', 409)
-    }
-    const snapshot = buildCollaborationSnapshotFiles(current, operation.binding.portableProjectId)
-    const executorEpoch = operation.executorEpoch + 1
-    const intent = {
-      schema: 'appraise.repository-collaboration.filesystem-step-intent/v1',
-      operationId: operation.id,
-      ordinal: step.ordinal,
-      kind: step.kind,
-      requestVersion: input.expectedVersion,
-      executorEpoch,
-      localReadSetHash: operation.localReadSetHash,
-      snapshotHash: snapshot.snapshotHash,
-    }
-    const intentJson = canonicalJson(intent)
-    const intentHash = collaborationHash(intent)
-    const updated = await transaction.collaborationOperation.update({
-      where: { id: operation.id },
-      data: { state: 'APPLYING', executorEpoch, version: { increment: 1 } },
-      include: { binding: true },
-    })
-    await transaction.collaborationOperationStep.update({
-      where: { operationId_ordinal: { operationId: operation.id, ordinal: step.ordinal } },
-      data: {
-        state: 'RUNNING',
-        requestVersion: input.expectedVersion,
-        intentJson,
-        intentHash,
-        executorEpoch,
-        startedVersion: updated.version,
-        startedAt: new Date(),
-      },
-    })
-    await transaction.collaborationOperationArtifact.create({
-      data: {
-        operationId: operation.id,
-        kind: `FILESYSTEM_STEP_INTENT_${step.ordinal}`,
-        revision: executorEpoch,
-        payloadJson: intentJson,
-        payloadHash: intentHash,
-      },
-    })
-    await appendJournal(transaction, operation.id, 'PUBLICATION_STARTED', {
-      localReadSetHash: operation.localReadSetHash,
-    })
-    return { operation: updated, records: current, step, snapshot }
+  // Publication mutates appraise/collaboration in the same worktree that later
+  // Git steps mutate.  Resolve the verified shared Git directory before
+  // starting the durable filesystem intent, then keep that exact lock alive
+  // without holding a database transaction across filesystem work.
+  const candidate = await client.collaborationOperation.findUnique({
+    where: { id: input.operationId },
+    include: { binding: true },
   })
-  const snapshot = applying.snapshot
-  const preparedFilesystem = await client.collaborationOperationArtifact.findFirst({
-    where: { operationId: applying.operation.id, kind: 'PREPARED_PUBLICATION_FILESYSTEM', revision: 1 },
-  })
-  if (!preparedFilesystem)
-    throw new ServiceError(
-      'Legacy publication has no persisted filesystem snapshot; prepare it again.',
-      'CONFLICT',
-      409,
-    )
-  const expectedPreviousSnapshotHash = (() => {
-    try {
-      const value = JSON.parse(preparedFilesystem.payloadJson) as { expectedPreviousSnapshotHash?: unknown }
-      return value.expectedPreviousSnapshotHash === null || typeof value.expectedPreviousSnapshotHash === 'string'
-        ? value.expectedPreviousSnapshotHash
-        : undefined
-    } catch {
-      return undefined
-    }
-  })()
-  if (expectedPreviousSnapshotHash === undefined)
-    throw new ServiceError('Prepared publication filesystem state is invalid.', 'CONFLICT', 409)
-  const installed = await installCollaborationSnapshot({
-    repositoryRoot: applying.operation.binding.repositoryRoot,
-    operationId: applying.operation.id,
-    snapshot,
-    expectedPreviousSnapshotHash,
-    onBoundary: boundary => appendFilesystemBoundary(client, applying.operation.id, boundary),
-  })
-  if (installed.status !== 'succeeded') {
-    await client.collaborationOperation.update({
-      where: { id: applying.operation.id },
-      data: { state: 'BLOCKED', blockerJson: canonicalJson(installed) },
+  if (!candidate) throw new ServiceError('Collaboration operation was not found.', 'NOT_FOUND', 404)
+  const initialIdentity = await inspectRepository(candidate.binding.repositoryRoot, candidate.binding.remoteName)
+  const lease = await client.$transaction(transaction =>
+    acquireCollaborationGitMutationLock(transaction, initialIdentity.commonDirectory, candidate.id),
+  )
+  try {
+    return await withCollaborationGitMutationLeaseHeartbeat(client, lease, async () => {
+      // A retargeted/symlink-swapped repository cannot inherit a lock taken for
+      // a different common Git directory.
+      const verifiedIdentity = await inspectRepository(candidate.binding.repositoryRoot, candidate.binding.remoteName)
+      if (verifiedIdentity.commonDirectory !== initialIdentity.commonDirectory) {
+        throw new ServiceError('The repository Git directory changed before publication.', 'CONFLICT', 409)
+      }
+      const applying = await client.$transaction(async transaction => {
+        await assertCollaborationGitMutationLock(transaction, lease)
+        const { operation, step } = await loadExecution(transaction, input, ['INSTALL_SNAPSHOT'])
+        const current = await currentSnapshotRecords(transaction, operation.bindingId)
+        if (collaborationHash(current) !== operation.localReadSetHash) {
+          throw new ServiceError('Local authored data changed after preparation.', 'CONFLICT', 409)
+        }
+        const snapshot = buildCollaborationSnapshotFiles(current, operation.binding.portableProjectId)
+        const executorEpoch = operation.executorEpoch + 1
+        const intent = {
+          schema: 'appraise.repository-collaboration.filesystem-step-intent/v1',
+          operationId: operation.id,
+          ordinal: step.ordinal,
+          kind: step.kind,
+          requestVersion: input.expectedVersion,
+          executorEpoch,
+          localReadSetHash: operation.localReadSetHash,
+          snapshotHash: snapshot.snapshotHash,
+        }
+        const intentJson = canonicalJson(intent)
+        const intentHash = collaborationHash(intent)
+        const updated = await transaction.collaborationOperation.update({
+          where: { id: operation.id },
+          data: { state: 'APPLYING', executorEpoch, version: { increment: 1 } },
+          include: { binding: true },
+        })
+        await transaction.collaborationOperationStep.update({
+          where: { operationId_ordinal: { operationId: operation.id, ordinal: step.ordinal } },
+          data: {
+            state: 'RUNNING',
+            requestVersion: input.expectedVersion,
+            intentJson,
+            intentHash,
+            executorEpoch,
+            startedVersion: updated.version,
+            startedAt: new Date(),
+          },
+        })
+        await transaction.collaborationOperationArtifact.create({
+          data: {
+            operationId: operation.id,
+            kind: `FILESYSTEM_STEP_INTENT_${step.ordinal}`,
+            revision: executorEpoch,
+            payloadJson: intentJson,
+            payloadHash: intentHash,
+          },
+        })
+        await appendJournal(transaction, operation.id, 'PUBLICATION_STARTED', {
+          localReadSetHash: operation.localReadSetHash,
+        })
+        return { operation: updated, records: current, step, snapshot }
+      })
+      const snapshot = applying.snapshot
+      const preparedFilesystem = await client.collaborationOperationArtifact.findFirst({
+        where: { operationId: applying.operation.id, kind: 'PREPARED_PUBLICATION_FILESYSTEM', revision: 1 },
+      })
+      if (!preparedFilesystem)
+        throw new ServiceError(
+          'Legacy publication has no persisted filesystem snapshot; prepare it again.',
+          'CONFLICT',
+          409,
+        )
+      const expectedPreviousSnapshotHash = (() => {
+        try {
+          const value = JSON.parse(preparedFilesystem.payloadJson) as { expectedPreviousSnapshotHash?: unknown }
+          return value.expectedPreviousSnapshotHash === null || typeof value.expectedPreviousSnapshotHash === 'string'
+            ? value.expectedPreviousSnapshotHash
+            : undefined
+        } catch {
+          return undefined
+        }
+      })()
+      if (expectedPreviousSnapshotHash === undefined)
+        throw new ServiceError('Prepared publication filesystem state is invalid.', 'CONFLICT', 409)
+      const installed = await installCollaborationSnapshot({
+        repositoryRoot: applying.operation.binding.repositoryRoot,
+        operationId: applying.operation.id,
+        snapshot,
+        expectedPreviousSnapshotHash,
+        onBoundary: boundary => appendFilesystemBoundary(client, applying.operation.id, boundary),
+      })
+      if (installed.status !== 'succeeded') {
+        await client.collaborationOperation.update({
+          where: { id: applying.operation.id },
+          data: { state: 'BLOCKED', blockerJson: canonicalJson(installed) },
+        })
+        throw new ServiceError(
+          'Repository collaboration files changed outside this operation.',
+          'CONFLICT',
+          409,
+          installed,
+        )
+      }
+      return client.$transaction(async transaction => {
+        await assertCollaborationGitMutationLock(transaction, lease)
+        const operation = await transaction.collaborationOperation.findUniqueOrThrow({
+          where: { id: applying.operation.id },
+        })
+        if (operation.state !== 'APPLYING' || operation.version !== applying.operation.version) {
+          throw new ServiceError('Publication completion is stale.', 'CONFLICT', 409)
+        }
+        const persistedStep = await transaction.collaborationOperationStep.findUnique({
+          where: { operationId_ordinal: { operationId: operation.id, ordinal: applying.step.ordinal } },
+        })
+        if (
+          !persistedStep ||
+          persistedStep.state !== 'RUNNING' ||
+          persistedStep.requestVersion !== input.expectedVersion ||
+          persistedStep.executorEpoch !== operation.executorEpoch
+        )
+          throw new ServiceError('Publication completion lost its persisted executor fence.', 'CONFLICT', 409)
+        const current = await currentSnapshotRecords(transaction, operation.bindingId)
+        if (collaborationHash(current) !== operation.localReadSetHash) {
+          throw new ServiceError('Local authored data changed during publication.', 'CONFLICT', 409)
+        }
+        const receipt = { operationId: operation.id, publishedSnapshotHash: snapshot.snapshotHash, installed }
+        return completeOperation(
+          transaction,
+          operation.id,
+          applying.step,
+          input.expectedVersion,
+          receipt,
+          'PUBLICATION_COMPLETED',
+        )
+      })
     })
-    throw new ServiceError('Repository collaboration files changed outside this operation.', 'CONFLICT', 409, installed)
+  } finally {
+    await client.$transaction(transaction => releaseCollaborationGitMutationLock(transaction, lease))
   }
-  return client.$transaction(async transaction => {
-    const operation = await transaction.collaborationOperation.findUniqueOrThrow({
-      where: { id: applying.operation.id },
-    })
-    if (operation.state !== 'APPLYING' || operation.version !== applying.operation.version) {
-      throw new ServiceError('Publication completion is stale.', 'CONFLICT', 409)
-    }
-    const persistedStep = await transaction.collaborationOperationStep.findUnique({
-      where: { operationId_ordinal: { operationId: operation.id, ordinal: applying.step.ordinal } },
-    })
-    if (
-      !persistedStep ||
-      persistedStep.state !== 'RUNNING' ||
-      persistedStep.requestVersion !== input.expectedVersion ||
-      persistedStep.executorEpoch !== operation.executorEpoch
-    )
-      throw new ServiceError('Publication completion lost its persisted executor fence.', 'CONFLICT', 409)
-    const current = await currentSnapshotRecords(transaction, operation.bindingId)
-    if (collaborationHash(current) !== operation.localReadSetHash) {
-      throw new ServiceError('Local authored data changed during publication.', 'CONFLICT', 409)
-    }
-    const receipt = { operationId: operation.id, publishedSnapshotHash: snapshot.snapshotHash, installed }
-    return completeOperation(transaction, operation.id, applying.step, receipt, 'PUBLICATION_COMPLETED')
-  })
 }
 
 async function executeFinalizeOperation(input: ExecuteCollaborationOperationInput, client: PrismaClient) {
@@ -1100,12 +1162,15 @@ async function executeFinalizeOperation(input: ExecuteCollaborationOperationInpu
       acceptedDigest: operation.acceptedDigest,
     }
     const receiptHash = collaborationHash(receipt)
+    const completedVersion = operation.version + 1
     await transaction.collaborationOperationStep.update({
       where: { operationId_ordinal: { operationId: operation.id, ordinal: step.ordinal } },
       data: {
         state: 'COMPLETED',
+        requestVersion: input.expectedVersion,
         evidenceJson: canonicalJson(receipt),
         evidenceHash: receiptHash,
+        completedVersion,
         completedAt: new Date(),
       },
     })
@@ -1185,25 +1250,365 @@ export async function executeCollaborationOperation(
   return publicOperation(completed)
 }
 
-export async function recoverCollaborationOperationFilesystem(operationId: string, client: PrismaClient = prisma) {
+/**
+ * Advances only the persisted, permission-checked plan that an exact decision
+ * already accepted. Callers never supply a Git step, revision, or permission.
+ * A running boundary is left for its crash-recovery path rather than guessed
+ * past, and every successful iteration must advance the durable version.
+ */
+function continuationStepLimit(input: { maxSteps?: number }) {
+  const maxSteps = input.maxSteps ?? 12
+  if (!Number.isSafeInteger(maxSteps) || maxSteps < 1 || maxSteps > 24)
+    throw new ServiceError('Continuation step limit is out of range.', 'VALIDATION', 400)
+  return maxSteps
+}
+
+async function loadContinuableAcceptedOperation(operationId: string, client: PrismaClient) {
   const operation = await client.collaborationOperation.findUnique({
     where: { id: operationId },
-    include: { binding: true },
+    include: { steps: { where: { state: 'RUNNING' }, select: { ordinal: true } } },
   })
   if (!operation) throw new ServiceError('Collaboration operation was not found.', 'NOT_FOUND', 404)
+  if (operation.state === 'COMPLETED') return operation
+  if (operation.state !== 'READY') {
+    throw new ServiceError('Accepted collaboration operation cannot continue from its current state.', 'CONFLICT', 409)
+  }
+  if (operation.steps.length) {
+    throw new ServiceError(
+      'A collaboration boundary is still running and requires recovery before continuation.',
+      'CONFLICT',
+      409,
+    )
+  }
+  if (!operation.preparedDigest) {
+    throw new ServiceError('Accepted collaboration operation has no durable prepared digest.', 'CONFLICT', 409)
+  }
+  return operation
+}
+
+async function continueOneAcceptedOperationStep(
+  operation: Awaited<ReturnType<typeof loadContinuableAcceptedOperation>>,
+  client: PrismaClient,
+) {
+  const completed = await executeCollaborationOperation(
+    {
+      operationId: operation.id,
+      expectedVersion: operation.version,
+      preparedDigest: operation.preparedDigest!,
+      idempotencyKey: operation.idempotencyKey,
+    },
+    client,
+  )
+  if (completed.version <= operation.version) {
+    throw new ServiceError('Accepted collaboration continuation did not advance its durable version.', 'CONFLICT', 409)
+  }
+  return completed
+}
+
+export async function continueAcceptedCollaborationOperation(
+  input: { operationId: string; maxSteps?: number },
+  client: PrismaClient = prisma,
+) {
+  const maxSteps = continuationStepLimit(input)
+  for (let executed = 0; executed < maxSteps; executed += 1) {
+    const operation = await loadContinuableAcceptedOperation(input.operationId, client)
+    if (operation.state === 'COMPLETED') return publicOperation(operation)
+    const completed = await continueOneAcceptedOperationStep(operation, client)
+    if (completed.state === 'COMPLETED') return completed
+  }
+  throw new ServiceError('Accepted collaboration operation exceeded its bounded continuation plan.', 'CONFLICT', 409)
+}
+
+function hasFilesystemRecoveryIdentity(running: FilesystemRecoveryStep) {
+  return (
+    running.requestVersion !== null &&
+    Boolean(running.intentJson) &&
+    Boolean(running.intentHash) &&
+    running.executorEpoch !== null
+  )
+}
+
+function matchesFilesystemRecoveryIntent(
+  intent: FilesystemStepIntent,
+  operation: FilesystemRecoveryOperation,
+  running: FilesystemRecoveryStep,
+) {
+  return (
+    intent.schema === 'appraise.repository-collaboration.filesystem-step-intent/v1' &&
+    intent.operationId === operation.id &&
+    intent.ordinal === running.ordinal &&
+    intent.kind === running.kind &&
+    intent.requestVersion === running.requestVersion &&
+    intent.executorEpoch === running.executorEpoch &&
+    typeof intent.snapshotHash === 'string' &&
+    collaborationHash(intent) === running.intentHash
+  )
+}
+
+function parseFilesystemRecoveryIntent(
+  operation: FilesystemRecoveryOperation,
+  running: FilesystemRecoveryStep,
+): FilesystemStepIntent {
+  let intent: FilesystemStepIntent
+  try {
+    intent = JSON.parse(running.intentJson!) as FilesystemStepIntent
+  } catch {
+    throw new ServiceError('The applying filesystem step has an invalid durable intent.', 'CONFLICT', 409)
+  }
+  if (!matchesFilesystemRecoveryIntent(intent, operation, running)) {
+    throw new ServiceError('The applying filesystem step intent does not match its durable fence.', 'CONFLICT', 409)
+  }
+  return intent
+}
+
+function assertFilesystemRecoveryStep(
+  operation: FilesystemRecoveryOperation,
+  running: FilesystemRecoveryStep | undefined,
+): asserts running is FilesystemRecoveryStep {
+  if (operation.state !== 'APPLYING' || !running || running.kind !== 'INSTALL_SNAPSHOT') {
+    throw new ServiceError('No applying filesystem publication step requires recovery.', 'CONFLICT', 409)
+  }
+  if (!hasFilesystemRecoveryIdentity(running) || running.startedVersion !== operation.version) {
+    throw new ServiceError('The applying filesystem step has no durable execution identity.', 'CONFLICT', 409)
+  }
+}
+
+async function loadFilesystemRecovery(
+  operationId: string,
+  client: PrismaClient,
+): Promise<{ operation: FilesystemRecoveryOperation; running: FilesystemRecoveryStep; intent: FilesystemStepIntent }> {
+  const operation = await client.collaborationOperation.findUnique({
+    where: { id: operationId },
+    include: { binding: true, steps: { orderBy: { ordinal: 'asc' } } },
+  })
+  if (!operation) throw new ServiceError('Collaboration operation was not found.', 'NOT_FOUND', 404)
+  const running = operation.steps.find(step => step.state === 'RUNNING')
+  assertFilesystemRecoveryStep(operation, running)
+  return { operation, running, intent: parseFilesystemRecoveryIntent(operation, running) }
+}
+
+async function expectedPreviousFilesystemSnapshot(
+  operationId: string,
+  client: PrismaClient,
+): Promise<string | null | undefined> {
+  const artifact = await client.collaborationOperationArtifact.findFirst({
+    where: { operationId, kind: 'PREPARED_PUBLICATION_FILESYSTEM', revision: 1 },
+  })
+  try {
+    const payload = artifact ? (JSON.parse(artifact.payloadJson) as { expectedPreviousSnapshotHash?: unknown }) : null
+    return payload?.expectedPreviousSnapshotHash === null || typeof payload?.expectedPreviousSnapshotHash === 'string'
+      ? payload.expectedPreviousSnapshotHash
+      : undefined
+  } catch {
+    return undefined
+  }
+}
+
+function classifyFilesystemRecovery(
+  recovered: { status: string },
+  observedSnapshotHash: string | null,
+  expectedSnapshotHash: string,
+  expectedPreviousSnapshotHash: string | null | undefined,
+): FilesystemRecoveryClassification {
+  if (
+    observedSnapshotHash === expectedSnapshotHash &&
+    ['NO_RECOVERY_NEEDED', 'INSTALLED_STAGING'].includes(recovered.status)
+  )
+    return 'VERIFIED_COMPLETED'
+  if (
+    observedSnapshotHash === expectedPreviousSnapshotHash &&
+    ['NO_RECOVERY_NEEDED', 'RESTORED_BACKUP'].includes(recovered.status)
+  )
+    return 'SAFE_NO_EFFECT_RETRY'
+  return 'AMBIGUOUS_BLOCK'
+}
+
+function recoveryBoundary(operation: FilesystemRecoveryOperation): { stagingPath: string; backupPath: string } {
   const journal = JSON.parse(operation.mutationJournalJson) as Array<{ stagingPath?: string; backupPath?: string }>
   const boundary = [...journal].reverse().find(item => item.stagingPath && item.backupPath)
   if (!boundary?.stagingPath || !boundary.backupPath) {
     throw new ServiceError('No durable filesystem recovery boundary exists.', 'CONFLICT', 409)
   }
+  return { stagingPath: boundary.stagingPath, backupPath: boundary.backupPath }
+}
+
+type FilesystemRecoveryDetails = {
+  classification: FilesystemRecoveryClassification
+  expectedSnapshotHash: string
+  expectedPreviousSnapshotHash: string | null
+  observedSnapshotHash: string | null
+  [key: string]: unknown
+}
+
+async function assertCurrentFilesystemRecovery(
+  transaction: Transaction,
+  recovery: { operation: FilesystemRecoveryOperation; running: FilesystemRecoveryStep },
+  lease: Awaited<ReturnType<typeof acquireCollaborationGitMutationLock>>,
+) {
+  await assertCollaborationGitMutationLock(transaction, lease)
+  const current = await transaction.collaborationOperation.findUnique({
+    where: { id: recovery.operation.id },
+    include: { steps: true },
+  })
+  const currentStep = current?.steps.find(step => step.ordinal === recovery.running.ordinal)
+  if (
+    !current ||
+    !currentStep ||
+    current.state !== 'APPLYING' ||
+    current.version !== recovery.operation.version ||
+    currentStep.state !== 'RUNNING' ||
+    currentStep.intentHash !== recovery.running.intentHash ||
+    currentStep.executorEpoch !== recovery.running.executorEpoch
+  ) {
+    throw new ServiceError('The applying filesystem operation changed before recovery.', 'CONFLICT', 409)
+  }
+  return { current, currentStep }
+}
+
+async function completeRecoveredFilesystemStep(
+  transaction: Transaction,
+  current: NonNullable<Awaited<ReturnType<typeof transaction.collaborationOperation.findUnique>>>,
+  currentStep: FilesystemRecoveryStep,
+  details: FilesystemRecoveryDetails,
+  evidenceHash: string,
+) {
+  const completedVersion = current.version + 1
+  await transaction.collaborationOperationStep.update({
+    where: { operationId_ordinal: { operationId: current.id, ordinal: currentStep.ordinal } },
+    data: {
+      state: 'COMPLETED',
+      evidenceJson: canonicalJson(details),
+      evidenceHash,
+      completedVersion,
+      completedAt: new Date(),
+    },
+  })
+  await transaction.collaborationOperationArtifact.create({
+    data: {
+      operationId: current.id,
+      kind: `STEP_${currentStep.kind}`,
+      revision: 2,
+      payloadJson: canonicalJson(details),
+      payloadHash: evidenceHash,
+    },
+  })
+  await appendJournal(transaction, current.id, 'FILESYSTEM_RECOVERED', details)
+  return transaction.collaborationOperation.update({
+    where: { id: current.id },
+    data: { state: 'READY', version: { increment: 1 } },
+  })
+}
+
+async function resetRecoveredFilesystemStep(
+  transaction: Transaction,
+  current: NonNullable<Awaited<ReturnType<typeof transaction.collaborationOperation.findUnique>>>,
+  currentStep: FilesystemRecoveryStep,
+  details: FilesystemRecoveryDetails,
+) {
+  await transaction.collaborationOperationStep.update({
+    where: { operationId_ordinal: { operationId: current.id, ordinal: currentStep.ordinal } },
+    data: {
+      state: 'PENDING',
+      requestVersion: null,
+      intentJson: null,
+      intentHash: null,
+      executorEpoch: null,
+      startedVersion: null,
+      completedVersion: null,
+      startedAt: null,
+      completedAt: null,
+    },
+  })
+  await appendJournal(transaction, current.id, 'FILESYSTEM_RECOVERED', details)
+  return transaction.collaborationOperation.update({
+    where: { id: current.id },
+    data: { state: 'READY', executorEpoch: { increment: 1 }, version: { increment: 1 } },
+  })
+}
+
+async function blockRecoveredFilesystemStep(
+  transaction: Transaction,
+  current: NonNullable<Awaited<ReturnType<typeof transaction.collaborationOperation.findUnique>>>,
+  currentStep: FilesystemRecoveryStep,
+  details: FilesystemRecoveryDetails,
+  evidenceHash: string,
+) {
+  await transaction.collaborationOperationStep.update({
+    where: { operationId_ordinal: { operationId: current.id, ordinal: currentStep.ordinal } },
+    data: { state: 'BLOCKED', evidenceJson: canonicalJson(details), evidenceHash, completedAt: new Date() },
+  })
+  await appendJournal(transaction, current.id, 'FILESYSTEM_RECOVERED', details)
+  return transaction.collaborationOperation.update({
+    where: { id: current.id },
+    data: { state: 'BLOCKED', blockerJson: canonicalJson(details), version: { increment: 1 } },
+  })
+}
+
+async function reconcileFilesystemRecovery(
+  recovery: { operation: FilesystemRecoveryOperation; running: FilesystemRecoveryStep },
+  lease: Awaited<ReturnType<typeof acquireCollaborationGitMutationLock>>,
+  details: FilesystemRecoveryDetails,
+  client: PrismaClient,
+) {
+  return client.$transaction(async transaction => {
+    const { current, currentStep } = await assertCurrentFilesystemRecovery(transaction, recovery, lease)
+    const evidenceHash = collaborationHash(details)
+    if (details.classification === 'VERIFIED_COMPLETED') {
+      return completeRecoveredFilesystemStep(transaction, current, currentStep, details, evidenceHash)
+    }
+    if (details.classification === 'SAFE_NO_EFFECT_RETRY') {
+      return resetRecoveredFilesystemStep(transaction, current, currentStep, details)
+    }
+    return blockRecoveredFilesystemStep(transaction, current, currentStep, details, evidenceHash)
+  })
+}
+
+async function performFilesystemRecovery(
+  recovery: { operation: FilesystemRecoveryOperation; running: FilesystemRecoveryStep; intent: FilesystemStepIntent },
+  lease: Awaited<ReturnType<typeof acquireCollaborationGitMutationLock>>,
+  client: PrismaClient,
+) {
+  const boundary = recoveryBoundary(recovery.operation)
   const recovered = await recoverCollaborationSnapshot({
-    repositoryRoot: operation.binding.repositoryRoot,
-    operationId: operation.id,
+    repositoryRoot: recovery.operation.binding.repositoryRoot,
+    operationId: recovery.operation.id,
     stagingPath: boundary.stagingPath,
     backupPath: boundary.backupPath,
   })
-  await client.$transaction(transaction =>
-    appendJournal(transaction, operation.id, 'FILESYSTEM_RECOVERED', { ...recovered }),
+  const observed = await observeCollaborationSnapshot({ repositoryRoot: recovery.operation.binding.repositoryRoot })
+  const expectedPreviousSnapshotHash = await expectedPreviousFilesystemSnapshot(recovery.operation.id, client)
+  const expectedSnapshotHash = recovery.intent.snapshotHash as string
+  const classification = classifyFilesystemRecovery(
+    recovered,
+    observed.snapshotHash,
+    expectedSnapshotHash,
+    expectedPreviousSnapshotHash,
   )
-  return recovered
+  const details: FilesystemRecoveryDetails = {
+    ...recovered,
+    classification,
+    expectedSnapshotHash,
+    expectedPreviousSnapshotHash: expectedPreviousSnapshotHash ?? null,
+    observedSnapshotHash: observed.snapshotHash,
+  }
+  const reconciled = await reconcileFilesystemRecovery(recovery, lease, details, client)
+  return { ...details, operation: publicOperation(reconciled) }
+}
+
+export async function recoverCollaborationOperationFilesystem(operationId: string, client: PrismaClient = prisma) {
+  const recovery = await loadFilesystemRecovery(operationId, client)
+  const recoveryIdentity = await inspectRepository(
+    recovery.operation.binding.repositoryRoot,
+    recovery.operation.binding.remoteName,
+  )
+  const recoveryLease = await client.$transaction(transaction =>
+    acquireCollaborationGitMutationLock(transaction, recoveryIdentity.commonDirectory, recovery.operation.id),
+  )
+  try {
+    return await withCollaborationGitMutationLeaseHeartbeat(client, recoveryLease, () =>
+      performFilesystemRecovery(recovery, recoveryLease, client),
+    )
+  } finally {
+    await client.$transaction(transaction => releaseCollaborationGitMutationLock(transaction, recoveryLease))
+  }
 }

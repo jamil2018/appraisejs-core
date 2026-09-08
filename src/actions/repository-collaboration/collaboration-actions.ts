@@ -10,6 +10,7 @@ import {
   cancelCollaborationOperation,
   createCollaborationHandoffTicket,
   decideCollaborationOperation,
+  continueAcceptedCollaborationOperation,
   decideDivergentCollaborationProposal,
   executeCollaborationOperation,
   getCollaborationStatus,
@@ -19,6 +20,7 @@ import {
   issueCollaborationAuthorityReceipt,
   getSanitizedCollaborationAssignment,
   updateCollaborationPolicyFromLocalUi,
+  retryCollaborationRemoteCheck,
 } from '@/services/repository-collaboration'
 import { ServiceError, serviceErrorToActionResponse, unknownErrorToActionResponse } from '@/services/shared/errors'
 import type { ActionResponse } from '@/types/form/actionHandler'
@@ -80,6 +82,7 @@ const policySchema = projectSchema
     changes: z.record(z.enum(['OBSERVE', 'PREPARE', 'INTEGRATE', 'COMMIT', 'PUSH', 'RESOLVE', 'ARCHIVE']), z.boolean()),
   })
   .strict()
+const remoteRetrySchema = projectSchema.strict()
 const authorityReceiptSchema = z.union([
   policySchema.extend({ action: z.literal('POLICY_UPDATE') }).strict(),
   decisionSchema.extend({ action: z.literal('DECIDE') }).strict(),
@@ -196,12 +199,13 @@ export async function decideCollaborationAction(input: unknown): Promise<ActionR
     const value = decisionSchema.parse(input)
     const project = await requireActiveProjectForMutation(value.targetProjectId)
     await requireCollaborationOperationForProject(value.operationId, project.id)
+    const decided = await decideCollaborationOperation({
+      ...value,
+      trustedPrincipalId: 'local-user',
+      provenance: 'local-ui',
+    })
     return result(
-      await decideCollaborationOperation({
-        ...value,
-        trustedPrincipalId: 'local-user',
-        provenance: 'local-ui',
-      }),
+      decided.state === 'READY' ? await continueAcceptedCollaborationOperation({ operationId: decided.id }) : decided,
     )
   } catch (error) {
     return failure(error)
@@ -215,12 +219,13 @@ export async function decideDivergentCollaborationProposalAction(input: unknown)
     const value = divergentDecisionSchema.parse(input)
     const project = await requireActiveProjectForMutation(value.targetProjectId)
     await requireCollaborationOperationForProject(value.operationId, project.id)
+    const decided = await decideDivergentCollaborationProposal({
+      ...value,
+      trustedPrincipalId: 'local-user',
+      provenance: 'local-ui',
+    })
     return result(
-      await decideDivergentCollaborationProposal({
-        ...value,
-        trustedPrincipalId: 'local-user',
-        provenance: 'local-ui',
-      }),
+      value.decision === 'ACCEPT' ? await continueAcceptedCollaborationOperation({ operationId: decided.id }) : decided,
     )
   } catch (error) {
     return failure(error)
@@ -233,6 +238,17 @@ export async function executeCollaborationAction(input: unknown): Promise<Action
     const project = await requireActiveProjectForMutation(value.targetProjectId)
     await requireCollaborationOperationForProject(value.operationId, project.id)
     return result(await executeCollaborationOperation(value))
+  } catch (error) {
+    return failure(error)
+  }
+}
+
+/** Explicit local-only retry for a durable authentication-repair pause. */
+export async function retryCollaborationRemoteCheckAction(input: unknown): Promise<ActionResponse> {
+  try {
+    const value = remoteRetrySchema.parse(input)
+    const { status } = await scopedBinding(value.targetProjectId)
+    return result(await retryCollaborationRemoteCheck({ bindingId: status.id }))
   } catch (error) {
     return failure(error)
   }

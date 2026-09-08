@@ -13,6 +13,7 @@ import {
   executeCollaborationAction,
   prepareCollaborationAction,
   recoverCollaborationFilesystemAction,
+  retryCollaborationRemoteCheckAction,
   updateCollaborationPolicyAction,
 } from '@/actions/repository-collaboration/collaboration-actions'
 import { Button } from '@/components/ui/button'
@@ -134,7 +135,7 @@ function PermissionPanel({ projectId, status, mutation }: { projectId: string; s
   )
 }
 
-function ConnectionPanel({ status }: { status: Status }) {
+function ConnectionPanel({ projectId, status, mutation }: { projectId: string; status: Status; mutation: Mutation }) {
   const { connection } = status
   return (
     <section className="bg-card/40 space-y-3 rounded-lg border p-5" aria-labelledby="connection-mode-heading">
@@ -164,6 +165,22 @@ function ConnectionPanel({ status }: { status: Status }) {
           </dd>
         </div>
       </dl>
+      {status.remoteAuthRepairRequired ? (
+        <div className="rounded-md border border-amber-500/30 bg-amber-500/5 p-3 text-sm">
+          <p>
+            {status.remoteCheckError ?? 'Repository authentication needs repair before automatic checks can resume.'}
+          </p>
+          <Button
+            className="mt-2"
+            disabled={mutation.pending}
+            onClick={() => mutation.run(() => retryCollaborationRemoteCheckAction({ targetProjectId: projectId }))}
+            type="button"
+            variant="outline"
+          >
+            Retry remote check after repairing credentials
+          </Button>
+        </div>
+      ) : null}
     </section>
   )
 }
@@ -537,7 +554,7 @@ export function CollaborationControls({ projectId, status }: { projectId: string
   return (
     <div className="space-y-5">
       <PermissionPanel projectId={projectId} status={status} mutation={mutation} />
-      <ConnectionPanel status={status} />
+      <ConnectionPanel projectId={projectId} status={status} mutation={mutation} />
       <NotificationsPanel status={status} />
       <PreparationPanel projectId={projectId} mutation={mutation} />
       {operation ? <ActiveOperationPanel projectId={projectId} operation={operation} mutation={mutation} /> : null}

@@ -13,13 +13,17 @@ import { ServiceError } from '@/services/shared/errors'
 
 import {
   claimCollaborationOperation,
+  claimCollaborationOperationInTransaction,
   heartbeatCollaborationOperation,
   recoverExpiredCollaborationLeases,
   runCollaborationSchedulerTick,
   assertCollaborationProposalAttempt,
   type ClaimedCollaborationWork,
 } from './queue-service'
-import { proposeDivergentCollaborationReconciliation } from './divergent-reconciliation-service'
+import {
+  proposeDivergentCollaborationReconciliation,
+  type DivergentProposalHooks,
+} from './divergent-reconciliation-service'
 
 type Transaction = Prisma.TransactionClient
 type TrustedProvenance = 'local-ui' | 'authenticated-host'
@@ -303,6 +307,7 @@ export async function completeCollaborationWork(
     now?: Date
   },
   client: PrismaClient = prisma,
+  hooks?: DivergentProposalHooks,
 ) {
   const now = input.now ?? new Date()
   const worker = await client.$transaction(transaction => registeredWorker(transaction, { ...input, now }))
@@ -311,7 +316,7 @@ export async function completeCollaborationWork(
   await assertCollaborationProposalAttempt({ ...input, workerId: worker.id, now }, client)
   const operation = await client.collaborationOperation.findUnique({ where: { id: input.operationId } })
   if (!operation?.preparedDigest) throw new ServiceError('Claimed work has no prepared digest.', 'CONFLICT', 409)
-  const result = await proposeDivergentCollaborationReconciliation(
+  await proposeDivergentCollaborationReconciliation(
     {
       operationId: input.operationId,
       expectedVersion: operation.version,
@@ -319,15 +324,15 @@ export async function completeCollaborationWork(
       records: input.proposal.records.map(record => collaborationRecordSchema.parse(record)),
     },
     client,
-  )
-  await client.collaborationAttempt.updateMany({
-    where: { id: input.attemptId, operationId: input.operationId, workerId: worker.id, state: 'RUNNING' },
-    data: {
-      state: 'PROPOSAL_SUBMITTED',
-      resultJson: canonicalJson({ reviewDigest: result.review.reviewDigest }),
-      completedAt: now,
+    {
+      attemptId: input.attemptId,
+      workerId: worker.id,
+      fencingToken: input.fencingToken,
+      leaseToken: input.leaseToken,
+      now,
     },
-  })
+    hooks,
+  )
   return client.collaborationOperation.findUniqueOrThrow({ where: { id: input.operationId } })
 }
 
@@ -363,35 +368,120 @@ export async function createCollaborationHandoffTicket(
   })
 }
 
+async function redeemableHandoffTicket(transaction: Transaction, token: string, now: Date) {
+  const ticket = await transaction.collaborationHandoffTicket.findUnique({ where: { tokenHash: sha256(token) } })
+  if (!ticket || ticket.redeemedAt || ticket.invalidatedAt || ticket.expiresAt <= now)
+    throw new ServiceError('Handoff ticket is invalid, expired, or already redeemed.', 'CONFLICT', 409)
+  return ticket
+}
+
+async function redeemableHandoffOperation(
+  transaction: Transaction,
+  ticket: { operationId: string; bindingId: string },
+) {
+  const operation = await transaction.collaborationOperation.findFirst({
+    where: { id: ticket.operationId, bindingId: ticket.bindingId },
+  })
+  const unavailable =
+    !operation ||
+    operation.intent !== 'RECONCILE' ||
+    operation.cancelledAt ||
+    ['COMPLETED', 'CANCELLED', 'SUPERSEDED'].includes(operation.state)
+  if (unavailable) throw new ServiceError('Handoff ticket no longer names pending work.', 'CONFLICT', 409)
+  const preparation = await transaction.collaborationOperationArtifact.findFirst({
+    where: { operationId: operation.id, kind: 'DIVERGENT_PREPARATION' },
+  })
+  if (!preparation) throw new ServiceError('Handoff ticket names work that is not durably prepared.', 'CONFLICT', 409)
+  return operation
+}
+
+function handoffWorkerLease(ticket: { expiresAt: Date }, now: Date) {
+  const expiresAt = new Date(Math.min(ticket.expiresAt.getTime(), now.getTime() + 30_000))
+  const leaseMs = expiresAt.getTime() - now.getTime()
+  if (leaseMs < 1_000) throw new ServiceError('Handoff ticket is expired.', 'CONFLICT', 409)
+  return { expiresAt, leaseMs }
+}
+
+async function createRedeemedHandoffWorker(
+  transaction: Transaction,
+  input: { bindingId: string; ticketId: string; now: Date; expiresAt: Date },
+) {
+  const workerIdentity = `handoff:${input.ticketId}:${randomUUID()}`
+  const sessionNonce = randomUUID()
+  const capabilitiesJson = canonicalJson(['proposal'])
+  const worker = await transaction.collaborationWorker.create({
+    data: {
+      bindingId: input.bindingId,
+      workerIdentity,
+      capabilitiesJson,
+      capabilitiesHash: collaborationHash(['proposal']),
+      trustedPrincipalId: `handoff-ticket:${input.ticketId}`,
+      provenance: 'handoff-ticket',
+      sessionNonceHash: sha256(sessionNonce),
+      connectionState: 'CONNECTED',
+      registeredAt: input.now,
+      lastHeartbeatAt: input.now,
+      expiresAt: input.expiresAt,
+    },
+  })
+  await transaction.collaborationBinding.update({
+    where: { id: input.bindingId },
+    data: { connectionState: 'CONNECTED', observedCapabilitiesJson: capabilitiesJson, lastObservedAt: input.now },
+  })
+  return { worker, workerIdentity, sessionNonce }
+}
+
+async function markHandoffTicketRedeemed(
+  transaction: Transaction,
+  input: { ticketId: string; redeemedBy: string; now: Date },
+) {
+  const consumed = await transaction.collaborationHandoffTicket.updateMany({
+    where: { id: input.ticketId, redeemedAt: null, invalidatedAt: null, expiresAt: { gt: input.now } },
+    data: { redeemedAt: input.now, redeemedBy: input.redeemedBy },
+  })
+  if (consumed.count !== 1)
+    throw new ServiceError('Handoff ticket was redeemed or changed concurrently.', 'CONFLICT', 409)
+}
+
+async function redeemCollaborationHandoffTicketInTransaction(
+  transaction: Transaction,
+  input: { token: string; redeemedBy: string; now: Date },
+) {
+  const ticket = await redeemableHandoffTicket(transaction, input.token, input.now)
+  const operation = await redeemableHandoffOperation(transaction, ticket)
+  const lease = handoffWorkerLease(ticket, input.now)
+  // The bearer is one-time bootstrap capability, not proposal authority. The
+  // new bounded session immediately claims exactly this durable operation.
+  const worker = await createRedeemedHandoffWorker(transaction, {
+    bindingId: ticket.bindingId,
+    ticketId: ticket.id,
+    now: input.now,
+    expiresAt: lease.expiresAt,
+  })
+  const claim = await claimCollaborationOperationInTransaction(transaction, {
+    operationId: operation.id,
+    workerId: worker.worker.id,
+    now: input.now,
+    leaseMs: lease.leaseMs,
+  })
+  await markHandoffTicketRedeemed(transaction, { ticketId: ticket.id, redeemedBy: input.redeemedBy, now: input.now })
+  return {
+    ticket,
+    operationId: operation.id,
+    worker: { workerIdentity: worker.workerIdentity, sessionNonce: worker.sessionNonce, expiresAt: lease.expiresAt },
+    work: { ...claim, assignment: sanitizedAssignment(operation) },
+  }
+}
+
 export async function redeemCollaborationHandoffTicket(
   input: { token: string; redeemedBy: string; now?: Date },
   client: PrismaClient = prisma,
 ) {
   if (!input.redeemedBy.trim()) throw new ServiceError('A redeeming worker identity is required.', 'VALIDATION', 400)
   const now = input.now ?? new Date()
-  return client.$transaction(async transaction => {
-    const ticket = await transaction.collaborationHandoffTicket.findUnique({
-      where: { tokenHash: sha256(input.token) },
-    })
-    if (!ticket || ticket.redeemedAt || ticket.invalidatedAt || ticket.expiresAt <= now) {
-      throw new ServiceError('Handoff ticket is invalid, expired, or already redeemed.', 'CONFLICT', 409)
-    }
-    const operation = await transaction.collaborationOperation.findFirst({
-      where: { id: ticket.operationId, bindingId: ticket.bindingId },
-    })
-    if (!operation || operation.cancelledAt || ['COMPLETED', 'CANCELLED', 'SUPERSEDED'].includes(operation.state)) {
-      throw new ServiceError('Handoff ticket no longer names pending work.', 'CONFLICT', 409)
-    }
-    const redeemed = await transaction.collaborationHandoffTicket.update({
-      where: { id: ticket.id },
-      data: { redeemedAt: now, redeemedBy: input.redeemedBy },
-    })
-    return {
-      ticket: redeemed,
-      scope: JSON.parse(redeemed.scopeJson) as Record<string, unknown>,
-      operationId: operation.id,
-    }
-  })
+  return client.$transaction(transaction =>
+    redeemCollaborationHandoffTicketInTransaction(transaction, { ...input, now }),
+  )
 }
 
 export async function getCollaborationConnectionMode(

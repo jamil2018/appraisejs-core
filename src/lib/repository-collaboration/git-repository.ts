@@ -160,11 +160,36 @@ export async function fetchOperationSourceRef(input: {
   branch: string
   operationId: string
 }): Promise<{ fetchedCommit: string; fetchedTree: string; sourceRef: string }> {
+  const fetched = await fetchOperationRef({ ...input, refKind: 'source', includeTree: true })
+  if (!fetched.fetchedTree) throw new Error('The fetched collaboration source ref has no tree.')
+  return { fetchedCommit: fetched.fetchedCommit, fetchedTree: fetched.fetchedTree, sourceRef: fetched.sourceRef }
+}
+
+/** Fetch a fresh remote observation into a separate operation-owned ref.
+ * Recovery must not overwrite the source ref that prepared the operation. */
+export async function fetchOperationRecoveryRef(input: {
+  repositoryRoot: string
+  remote: string
+  branch: string
+  operationId: string
+}): Promise<{ fetchedCommit: string; sourceRef: string }> {
+  const fetched = await fetchOperationRef({ ...input, refKind: 'recovery-remote', includeTree: false })
+  return { fetchedCommit: fetched.fetchedCommit, sourceRef: fetched.sourceRef }
+}
+
+async function fetchOperationRef(input: {
+  repositoryRoot: string
+  remote: string
+  branch: string
+  operationId: string
+  refKind: 'source' | 'recovery-remote'
+  includeTree: boolean
+}): Promise<{ fetchedCommit: string; fetchedTree: string | null; sourceRef: string }> {
   assertRemote(input.remote)
   assertBranch(input.branch)
   assertOperationId(input.operationId)
   const identity = await inspectRepository(input.repositoryRoot, input.remote)
-  const sourceRef = `refs/appraise/collaboration/${input.operationId}/source`
+  const sourceRef = `refs/appraise/collaboration/${input.operationId}/${input.refKind}`
   await runGit(identity.repositoryRoot, {
     kind: 'fetch-operation-ref',
     remote: input.remote,
@@ -173,12 +198,14 @@ export async function fetchOperationSourceRef(input: {
   })
   const [commit, tree] = await Promise.all([
     runGit(identity.repositoryRoot, { kind: 'rev-parse', args: [`${sourceRef}^{commit}`] }),
-    runGit(identity.repositoryRoot, { kind: 'rev-parse', args: [`${sourceRef}^{tree}`] }),
+    input.includeTree
+      ? runGit(identity.repositoryRoot, { kind: 'rev-parse', args: [`${sourceRef}^{tree}`] })
+      : Promise.resolve(null),
   ])
   const fetchedCommit = commit.stdout.trim()
-  const fetchedTree = tree.stdout.trim()
   assertCommit(fetchedCommit)
-  assertCommit(fetchedTree)
+  const fetchedTree = tree?.stdout.trim() ?? null
+  if (fetchedTree) assertCommit(fetchedTree)
   return { fetchedCommit, fetchedTree, sourceRef }
 }
 
@@ -200,6 +227,59 @@ export async function readCollaborationSnapshotAtCommit(input: {
     await runGitAllowFailure(identity.repositoryRoot, { kind: 'worktree-remove', worktreePath })
     await rm(worktreePath, { recursive: true, force: true })
   }
+}
+
+/** Verifies an already-created commit against the intent durable before commit. */
+export async function verifyExactCollaborationCommit(input: {
+  repositoryRoot: string
+  operationId: string
+  commit: string
+  expectedParent: string
+  expectedSnapshotHash: string
+}): Promise<{ matched: boolean; parent: string; tree: string; snapshotHash: string | null }> {
+  assertOperationId(input.operationId)
+  assertCommit(input.commit)
+  assertCommit(input.expectedParent)
+  const identity = await inspectRepository(input.repositoryRoot)
+  const [parent, tree, paths] = await Promise.all([
+    runGit(identity.repositoryRoot, { kind: 'rev-parse', args: [`${input.commit}^`] }),
+    runGit(identity.repositoryRoot, { kind: 'rev-parse', args: [`${input.commit}^{tree}`] }),
+    commitRangePaths(identity.repositoryRoot, input.expectedParent, input.commit),
+  ])
+  const snapshot = await readCollaborationSnapshotAtCommit({
+    repositoryRoot: identity.repositoryRoot,
+    commit: input.commit,
+    operationId: input.operationId,
+  }).catch(() => null)
+  const committedParent = parent.stdout.trim()
+  const committedTree = tree.stdout.trim()
+  const snapshotHash = snapshot?.snapshotHash ?? null
+  return {
+    matched:
+      committedParent === input.expectedParent &&
+      snapshotHash === input.expectedSnapshotHash &&
+      paths.length > 0 &&
+      paths.every(isCollaborationPath),
+    parent: committedParent,
+    tree: committedTree,
+    snapshotHash,
+  }
+}
+
+export async function isCommitAncestor(input: {
+  repositoryRoot: string
+  ancestor: string
+  descendant: string
+}): Promise<boolean> {
+  assertCommit(input.ancestor)
+  assertCommit(input.descendant)
+  const identity = await inspectRepository(input.repositoryRoot)
+  const result = await runGitAllowFailure(identity.repositoryRoot, {
+    kind: 'merge-base-is-ancestor',
+    older: input.ancestor,
+    newer: input.descendant,
+  })
+  return result.exitCode === 0
 }
 
 export async function classifyPinnedReceive(input: {

@@ -10,6 +10,8 @@ import { afterEach, describe, expect, it } from 'vitest'
 import { copyMigratedTestDatabase } from '@/test/migrated-test-database'
 import {
   buildCollaborationSnapshotFiles,
+  collaborationHash,
+  inspectRepository,
   readCollaborationSnapshot,
   type CollaborationRecord,
 } from '@/lib/repository-collaboration'
@@ -22,10 +24,13 @@ import {
   proposeDivergentCollaborationReconciliation,
 } from './divergent-reconciliation-service'
 import {
+  continueAcceptedCollaborationOperation,
   decideCollaborationOperation,
   executeCollaborationOperation,
   prepareCollaborationOperation,
+  recoverCollaborationOperationFilesystem,
 } from './operation-service'
+import { acquireCollaborationGitMutationLock, releaseCollaborationGitMutationLock } from './git-mutation-lock-service'
 
 const workspaces: string[] = []
 const execFile = promisify(execFileCallback)
@@ -84,10 +89,22 @@ async function executeNext(
   )
 }
 
-async function fixture() {
+async function fixture(options: { git?: boolean } = {}) {
   const workspace = await fs.mkdtemp(path.join(os.tmpdir(), 'appraise-collaboration-operation-'))
   workspaces.push(workspace)
-  await fs.mkdir(path.join(workspace, '.git'))
+  if (options.git) {
+    const remote = path.join(workspace, 'remote.git')
+    await execFile('git', ['init', '--initial-branch=appraise-0.5', workspace])
+    await git(workspace, 'config', 'user.email', 'collaboration@example.test')
+    await git(workspace, 'config', 'user.name', 'Collaboration Test')
+    await fs.writeFile(path.join(workspace, 'README.md'), 'fixture\n')
+    await git(workspace, 'add', 'README.md')
+    await git(workspace, 'commit', '-m', 'initial fixture')
+    await execFile('git', ['init', '--bare', '--initial-branch=appraise-0.5', remote])
+    await git(workspace, 'remote', 'add', 'origin', remote)
+  } else {
+    await fs.mkdir(path.join(workspace, '.git'))
+  }
   const databasePath = path.join(workspace, 'appraise.db')
   await copyMigratedTestDatabase(databasePath)
   const client = new PrismaClient({ datasources: { db: { url: `file:${databasePath}?connection_limit=1` } } })
@@ -143,6 +160,27 @@ async function prepareReceive(
 }
 
 describe('durable collaboration operations', () => {
+  it('continues every persisted authorized receive step from an accepted ready operation', async () => {
+    const { client, binding, target } = await fixture()
+    try {
+      const prepared = await prepareReceive(client, binding, 'continue-ready-receive', [
+        moduleRecord('module-one', 'One'),
+      ])
+      const completed = await continueAcceptedCollaborationOperation({ operationId: prepared.id }, client)
+      expect(completed).toMatchObject({ id: prepared.id, state: 'COMPLETED' })
+      expect(await client.module.count({ where: { targetProjectId: target.id, name: 'One' } })).toBe(1)
+      expect(
+        await client.collaborationOperationStep.findMany({
+          where: { operationId: prepared.id },
+          orderBy: { ordinal: 'asc' },
+          select: { state: true },
+        }),
+      ).toEqual([{ state: 'COMPLETED' }, { state: 'COMPLETED' }])
+    } finally {
+      await client.$disconnect()
+    }
+  })
+
   it('applies a dependency-closed prepared receive atomically with before images and a receipt', async () => {
     const { client, binding, target } = await fixture()
     try {
@@ -172,16 +210,27 @@ describe('durable collaboration operations', () => {
         client,
       )
       expect(applied.state).toBe('READY')
-      const completed = await executeCollaborationOperation(
-        {
-          operationId: applied.id,
-          expectedVersion: applied.version,
-          preparedDigest: applied.preparedDigest!,
-          idempotencyKey: 'receive-one',
-        },
-        client,
-      )
+      const finalizeRequest = {
+        operationId: applied.id,
+        expectedVersion: applied.version,
+        preparedDigest: applied.preparedDigest!,
+        idempotencyKey: 'receive-one',
+      }
+      const completed = await executeCollaborationOperation(finalizeRequest, client)
       expect(completed.state).toBe('COMPLETED')
+      // A dropped terminal response is retried with the version that started
+      // FINALIZE, not the newer terminal operation version.
+      await expect(executeCollaborationOperation(finalizeRequest, client)).resolves.toMatchObject({
+        id: completed.id,
+        version: completed.version,
+        state: 'COMPLETED',
+      })
+      expect(
+        await client.collaborationOperationStep.findFirst({
+          where: { operationId: completed.id, kind: 'FINALIZE' },
+          select: { requestVersion: true, completedVersion: true },
+        }),
+      ).toEqual({ requestVersion: finalizeRequest.expectedVersion, completedVersion: completed.version })
       expect(await client.module.count({ where: { targetProjectId: target.id, name: 'One' } })).toBe(1)
       expect(await client.collaborationBaseline.count()).toBe(1)
       expect(
@@ -440,7 +489,7 @@ describe('durable collaboration operations', () => {
   })
 
   it('publishes through durable filesystem boundaries and blocks external repository edits', async () => {
-    const { client, binding, target } = await fixture()
+    const { client, binding, target } = await fixture({ git: true })
     try {
       await client.module.create({ data: { id: 'local-module', name: 'Local', targetProjectId: target.id } })
       const first = await prepareCollaborationOperation(
@@ -453,6 +502,26 @@ describe('durable collaboration operations', () => {
         client,
       )
       expect(first.state).toBe('READY')
+      const identity = await inspectRepository(binding.repositoryRoot, binding.remoteName)
+      const conflictingLease = await client.$transaction(transaction =>
+        acquireCollaborationGitMutationLock(transaction, identity.commonDirectory, 'concurrent-git-owner'),
+      )
+      await expect(
+        executeCollaborationOperation(
+          {
+            operationId: first.id,
+            expectedVersion: first.version,
+            preparedDigest: first.preparedDigest!,
+            idempotencyKey: 'publish-one',
+          },
+          client,
+        ),
+      ).rejects.toMatchObject({ code: 'CONFLICT' })
+      expect(await client.collaborationOperation.findUniqueOrThrow({ where: { id: first.id } })).toMatchObject({
+        state: 'READY',
+        version: first.version,
+      })
+      await client.$transaction(transaction => releaseCollaborationGitMutationLock(transaction, conflictingLease))
       const completed = await executeCollaborationOperation(
         {
           operationId: first.id,
@@ -500,6 +569,138 @@ describe('durable collaboration operations', () => {
       ).rejects.toMatchObject({ code: 'CONFLICT' })
       expect(await client.collaborationOperation.findUnique({ where: { id: second.id } })).toMatchObject({
         state: 'BLOCKED',
+      })
+    } finally {
+      await client.$disconnect()
+    }
+  })
+
+  it('reconciles a crashed filesystem publication to a durable completed or retryable state', async () => {
+    const { client, binding, target } = await fixture({ git: true })
+    try {
+      await client.module.create({ data: { id: 'recovery-module', name: 'Recovered', targetProjectId: target.id } })
+      const prepared = await prepareCollaborationOperation(
+        {
+          bindingId: binding.id,
+          intent: 'PUBLISH',
+          idempotencyKey: 'filesystem-recovery-completed',
+          expectedPolicyVersion: binding.policyVersion,
+        },
+        client,
+      )
+      const intendedRecords = [moduleRecord('recovery-module', 'Recovered')]
+      const intended = buildCollaborationSnapshotFiles(intendedRecords, 'portable-project')
+      await writeSnapshot(binding.repositoryRoot, intendedRecords)
+      const completedIntent = {
+        schema: 'appraise.repository-collaboration.filesystem-step-intent/v1',
+        operationId: prepared.id,
+        ordinal: 0,
+        kind: 'INSTALL_SNAPSHOT',
+        requestVersion: prepared.version,
+        executorEpoch: 1,
+        localReadSetHash: (await client.collaborationOperation.findUniqueOrThrow({ where: { id: prepared.id } }))
+          .localReadSetHash,
+        snapshotHash: intended.snapshotHash,
+      }
+      const appraiseDirectory = path.join(binding.repositoryRoot, 'appraise')
+      await client.collaborationOperation.update({
+        where: { id: prepared.id },
+        data: {
+          state: 'APPLYING',
+          executorEpoch: 1,
+          version: { increment: 1 },
+          mutationJournalJson: JSON.stringify([
+            {
+              boundary: 'INSTALLED',
+              stagingPath: path.join(appraiseDirectory, `.collaboration-staging-${prepared.id}`),
+              backupPath: path.join(appraiseDirectory, `.collaboration-backup-${prepared.id}`),
+            },
+          ]),
+        },
+      })
+      const applying = await client.collaborationOperation.findUniqueOrThrow({ where: { id: prepared.id } })
+      await client.collaborationOperationStep.update({
+        where: { operationId_ordinal: { operationId: prepared.id, ordinal: 0 } },
+        data: {
+          state: 'RUNNING',
+          requestVersion: prepared.version,
+          intentJson: JSON.stringify(completedIntent),
+          intentHash: collaborationHash(completedIntent),
+          executorEpoch: 1,
+          startedVersion: applying.version,
+        },
+      })
+      await expect(recoverCollaborationOperationFilesystem(prepared.id, client)).resolves.toMatchObject({
+        classification: 'VERIFIED_COMPLETED',
+        operation: { state: 'READY' },
+      })
+      expect(
+        await client.collaborationOperationStep.findUnique({
+          where: { operationId_ordinal: { operationId: prepared.id, ordinal: 0 } },
+        }),
+      ).toMatchObject({ state: 'COMPLETED', requestVersion: prepared.version })
+
+      const priorRecords = [moduleRecord('prior-module', 'Prior')]
+      const prior = buildCollaborationSnapshotFiles(priorRecords, 'portable-project')
+      await fs.rm(path.join(binding.repositoryRoot, 'appraise', 'collaboration'), { recursive: true, force: true })
+      await writeSnapshot(binding.repositoryRoot, priorRecords)
+      await client.module.update({ where: { id: 'recovery-module' }, data: { name: 'Retry' } })
+      const retry = await prepareCollaborationOperation(
+        {
+          bindingId: binding.id,
+          intent: 'PUBLISH',
+          idempotencyKey: 'filesystem-recovery-retry',
+          expectedPolicyVersion: binding.policyVersion,
+        },
+        client,
+      )
+      const retrySnapshot = buildCollaborationSnapshotFiles(
+        [moduleRecord('recovery-module', 'Retry')],
+        'portable-project',
+      )
+      const retryIntent = {
+        ...completedIntent,
+        operationId: retry.id,
+        requestVersion: retry.version,
+        snapshotHash: retrySnapshot.snapshotHash,
+      }
+      const retryBackup = path.join(appraiseDirectory, `.collaboration-backup-${retry.id}`)
+      const retryStaging = path.join(appraiseDirectory, `.collaboration-staging-${retry.id}`)
+      await fs.rename(path.join(appraiseDirectory, 'collaboration'), retryBackup)
+      await client.collaborationOperation.update({
+        where: { id: retry.id },
+        data: {
+          state: 'APPLYING',
+          executorEpoch: 1,
+          version: { increment: 1 },
+          mutationJournalJson: JSON.stringify([
+            { boundary: 'PREVIOUS_BACKED_UP', stagingPath: retryStaging, backupPath: retryBackup },
+          ]),
+        },
+      })
+      const retryApplying = await client.collaborationOperation.findUniqueOrThrow({ where: { id: retry.id } })
+      await client.collaborationOperationStep.update({
+        where: { operationId_ordinal: { operationId: retry.id, ordinal: 0 } },
+        data: {
+          state: 'RUNNING',
+          requestVersion: retry.version,
+          intentJson: JSON.stringify(retryIntent),
+          intentHash: collaborationHash(retryIntent),
+          executorEpoch: 1,
+          startedVersion: retryApplying.version,
+        },
+      })
+      await expect(recoverCollaborationOperationFilesystem(retry.id, client)).resolves.toMatchObject({
+        classification: 'SAFE_NO_EFFECT_RETRY',
+        operation: { state: 'READY' },
+      })
+      expect(
+        await client.collaborationOperationStep.findUnique({
+          where: { operationId_ordinal: { operationId: retry.id, ordinal: 0 } },
+        }),
+      ).toMatchObject({ state: 'PENDING', requestVersion: null, intentHash: null })
+      await expect(readCollaborationSnapshot(path.join(appraiseDirectory, 'collaboration'))).resolves.toMatchObject({
+        snapshotHash: prior.snapshotHash,
       })
     } finally {
       await client.$disconnect()

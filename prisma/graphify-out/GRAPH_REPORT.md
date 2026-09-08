@@ -1,17 +1,17 @@
 # Graph Report - prisma
 
 ## Corpus Check
-- 80 files from prisma/schema.prisma and migrations
+- 81 files from prisma/schema.prisma and migrations
 - Verdict: schema-aware graph generated because Graphify AST extraction does not currently produce Prisma/SQL nodes.
 
 ## Summary
-- 2105 nodes · 4816 edges · 303 communities
+- 2108 nodes · 4822 edges · 304 communities
 - Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS
 - Token cost: 0 input · 0 output
 
 ## God Nodes (most connected - your core abstractions)
-1. `String` - 866 edges
-2. `schema.prisma` - 233 edges
+1. `String` - 867 edges
+2. `schema.prisma` - 234 edges
 3. `DateTime` - 211 edges
 4. `QualityJourney` - 196 edges
 5. `TargetProject` - 146 edges
@@ -19,7 +19,7 @@
 7. `QualityJourneyScenarioPortfolioRevision` - 89 edges
 8. `TestRun` - 83 edges
 9. `QualityJourneyDiscoveryRevision` - 83 edges
-10. `CollaborationOperation` - 80 edges
+10. `CollaborationBinding` - 82 edges
 
 ## Surprising Connections (you probably didn't know these)
 - `TestSuite` --relates_to--> `Module`  [EXTRACTED]
@@ -42,7 +42,7 @@
 ## Import Cycles
 - None detected.
 
-## Communities (303 total)
+## Communities (304 total)
 ### Community 0 - "schema.prisma"
 Nodes (3): schema.prisma, datasource db (sqlite), Prisma client generator
 
@@ -323,7 +323,7 @@ Nodes (6): CollaborationDecisionKind, CollaborationDecisionKind.KEEP_LOCAL, Coll
 Nodes (3): CollaborationAuthorityAction, CollaborationAuthorityAction.POLICY_UPDATE, CollaborationAuthorityAction.DECIDE
 
 ### Community 93 - "CollaborationBinding"
-Nodes (29): CollaborationBinding, CollaborationBinding.id, CollaborationBinding.targetProjectId, CollaborationBinding.portableProjectId, CollaborationBinding.repositoryRoot, CollaborationBinding.remoteName, CollaborationBinding.trackedBranch, CollaborationBinding.enabled (+more)
+Nodes (31): CollaborationBinding, CollaborationBinding.id, CollaborationBinding.targetProjectId, CollaborationBinding.portableProjectId, CollaborationBinding.repositoryRoot, CollaborationBinding.remoteName, CollaborationBinding.trackedBranch, CollaborationBinding.enabled (+more)
 
 ### Community 94 - "CollaborationEntityMap"
 Nodes (12): CollaborationEntityMap, CollaborationEntityMap.id, CollaborationEntityMap.bindingId, CollaborationEntityMap.kind, CollaborationEntityMap.portableId, CollaborationEntityMap.localEntityId, CollaborationEntityMap.currentHash, CollaborationEntityMap.archivedAt (+more)
@@ -951,6 +951,9 @@ Nodes (1): 20260909130000_add_collaboration_step_execution_identity
 
 ### Community 302 - "20260909143000_add_collaboration_authority_receipts"
 Nodes (1): 20260909143000_add_collaboration_authority_receipts
+
+### Community 303 - "20260909150000_add_collaboration_remote_auth_repair"
+Nodes (1): 20260909150000_add_collaboration_remote_auth_repair
 
 ## Suggested Questions
 - Which models connect a Quality Journey to its execution and evidence records?

@@ -1,3 +1,5 @@
+import { createHash } from 'node:crypto'
+
 import type { CollaborationOperation, Prisma, PrismaClient } from '@prisma/client'
 
 import prisma from '@/config/db-config'
@@ -32,6 +34,29 @@ const divergentDecisionRecordKey = '__appraise_divergent_proposal__'
 type PreparedPayload = {
   local: CollaborationRecord[]
   baselines: CollaborationRecord[]
+}
+
+/**
+ * The durable identity presented by a worker when it submits a proposal. The
+ * proposal worktree is an external boundary, so the final database mutation
+ * must re-check this identity instead of trusting an earlier preflight read.
+ */
+export type DivergentProposalWorkerFence = {
+  attemptId: string
+  workerId: string
+  fencingToken: number
+  leaseToken: string
+  now: Date
+}
+
+export type DivergentProposalHooks = {
+  /** Test-only seam for proving that a lease replacement after filesystem
+   * validation cannot persist a stale proposal. */
+  afterValidation?: () => Promise<void> | void
+}
+
+function leaseTokenHash(value: string) {
+  return createHash('sha256').update(value).digest('hex')
 }
 
 function parsePreparedPayload(operation: CollaborationOperation): PreparedPayload {
@@ -206,6 +231,8 @@ export async function proposeDivergentCollaborationReconciliation(
     records: CollaborationRecord[]
   },
   client: PrismaClient = prisma,
+  workerFence?: DivergentProposalWorkerFence,
+  hooks?: DivergentProposalHooks,
 ): Promise<{
   review: DivergentReconciliationReview
   databaseReviewDigest: string
@@ -232,6 +259,7 @@ export async function proposeDivergentCollaborationReconciliation(
       preparation,
       records: input.records,
     })
+    await hooks?.afterValidation?.()
     const payload = parsePreparedPayload(operation)
     const databaseReview = prepareThreeWayCollaboration({
       incoming: input.records,
@@ -241,7 +269,64 @@ export async function proposeDivergentCollaborationReconciliation(
     const databaseReviewDigest = collaborationHash(databaseReview)
     const requiresDecision = databaseReview.some(record => record.requiresDecision)
     const updated = await client.$transaction(async transaction => {
-      await loadPreparedOperation(transaction, input)
+      const current = await loadPreparedOperation(transaction, input)
+      const nextVersion = current.version + 1
+      if (workerFence) {
+        // This is the authoritative proposal boundary. A lease may expire or
+        // be replaced while the worker validates its isolated worktree; only
+        // the current attempt can make that validation durable.
+        const fenced = await transaction.collaborationOperation.updateMany({
+          where: {
+            id: current.id,
+            intent: 'RECONCILE',
+            state: 'WAITING_FOR_AGENT',
+            version: input.expectedVersion,
+            preparedDigest: current.preparedDigest,
+            fencingToken: workerFence.fencingToken,
+            leaseOwner: workerFence.workerId,
+            leaseExpiresAt: { gt: workerFence.now },
+            cancelledAt: null,
+          },
+          data: {
+            state: 'WAITING_FOR_DECISION',
+            acceptedDigest: null,
+            leaseOwner: null,
+            leaseExpiresAt: null,
+            queueKey: null,
+            blockerJson: JSON.stringify({ kind: 'DIVERGENT_PROPOSAL_REVIEW', reviewDigest: review.reviewDigest }),
+            version: { increment: 1 },
+          },
+        })
+        if (fenced.count !== 1)
+          throw new ServiceError(
+            'The worker lease was replaced before the proposal could be persisted.',
+            'CONFLICT',
+            409,
+          )
+
+        const consumedAttempt = await transaction.collaborationAttempt.updateMany({
+          where: {
+            id: workerFence.attemptId,
+            operationId: current.id,
+            workerId: workerFence.workerId,
+            fencingToken: workerFence.fencingToken,
+            claimTokenHash: leaseTokenHash(workerFence.leaseToken),
+            state: 'RUNNING',
+            leaseExpiresAt: { gt: workerFence.now },
+          },
+          data: {
+            state: 'PROPOSAL_SUBMITTED',
+            resultJson: JSON.stringify({ reviewDigest: review.reviewDigest }),
+            completedAt: workerFence.now,
+          },
+        })
+        if (consumedAttempt.count !== 1)
+          throw new ServiceError(
+            'The worker attempt was replaced before the proposal could be persisted.',
+            'CONFLICT',
+            409,
+          )
+      }
       const prior = await transaction.collaborationOperationArtifact.findFirst({
         where: { operationId: operation.id, kind: 'DIVERGENT_PROPOSAL_REVIEW' },
         orderBy: { revision: 'desc' },
@@ -264,6 +349,7 @@ export async function proposeDivergentCollaborationReconciliation(
       )
       // A proposal is review material, not acceptance.  It immediately loses
       // the worker lease and invalidates any earlier executable decision.
+      if (workerFence) return { version: nextVersion }
       return transaction.collaborationOperation.update({
         where: { id: operation.id },
         data: {
@@ -275,6 +361,7 @@ export async function proposeDivergentCollaborationReconciliation(
           blockerJson: JSON.stringify({ kind: 'DIVERGENT_PROPOSAL_REVIEW', reviewDigest: review.reviewDigest }),
           version: { increment: 1 },
         },
+        select: { version: true },
       })
     })
     return { review, databaseReviewDigest, requiresDecision, operationVersion: updated.version }

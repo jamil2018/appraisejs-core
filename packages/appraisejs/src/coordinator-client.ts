@@ -310,7 +310,6 @@ export async function createCoordinatorClient(options: CoordinatorOptions) {
       post('collaboration/policy-update', input, authorityReceipt),
     collaborationPrepare: (input: Record<string, unknown>) => post('collaboration/prepare', input),
     collaborationGet: (input: Record<string, unknown>) => post('collaboration/get', input),
-    collaborationResolutionPropose: (input: Record<string, unknown>) => post('collaboration/resolution-propose', input),
     collaborationDecide: (input: Record<string, unknown>, authorityReceipt?: string) =>
       post('collaboration/decide', input, authorityReceipt),
     collaborationExecute: (input: Record<string, unknown>) => post('collaboration/execute', input),

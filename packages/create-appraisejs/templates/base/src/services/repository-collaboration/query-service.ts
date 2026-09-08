@@ -82,6 +82,8 @@ export async function getCollaborationStatus(
     },
     lastObservedAt: binding.lastObservedAt,
     lastRemoteCheckAt: binding.lastRemoteCheckAt,
+    remoteAuthRepairRequired: binding.remoteAuthRepairRequired,
+    remoteCheckError: binding.remoteCheckError,
     grants: binding.policyGrants.map(grant => ({ permission: grant.permission, enabled: grant.enabled })),
     operations: binding.operations.map(operation => ({
       id: operation.id,

@@ -11,7 +11,6 @@ function harness() {
     collaborationPolicyUpdate: vi.fn().mockResolvedValue({}),
     collaborationPrepare: vi.fn().mockResolvedValue({}),
     collaborationGet: vi.fn().mockResolvedValue({}),
-    collaborationResolutionPropose: vi.fn().mockResolvedValue({}),
     collaborationDecide: vi.fn().mockResolvedValue({}),
     collaborationExecute: vi.fn().mockResolvedValue({}),
     collaborationUndoPrepare: vi.fn().mockResolvedValue({}),
@@ -38,7 +37,6 @@ describe('repository collaboration MCP tools', () => {
       'collaboration_connect',
       'collaboration_prepare',
       'collaboration_get',
-      'collaboration_resolution_propose',
       'collaboration_execute',
       'collaboration_undo_prepare',
       'collaboration_worker_register',
@@ -84,5 +82,18 @@ describe('repository collaboration MCP tools', () => {
       }),
     ).rejects.toThrow()
     expect(api.collaborationPrepare).not.toHaveBeenCalled()
+  })
+
+  it('forwards only ticket redemption identifiers, never a caller-provided scope or proposal', async () => {
+    const { handlers, api } = harness()
+    const input = { target: 'target-1', token: 'ticket-1', redeemedBy: 'interactive-agent' }
+    await handlers.get('collaboration_handoff_redeem')!(input)
+    expect(api.collaborationHandoffRedeem).toHaveBeenCalledWith(input)
+    await expect(
+      handlers.get('collaboration_handoff_redeem')!({ ...input, scope: { repositoryRoot: '/forged' } }),
+    ).rejects.toThrow()
+    await expect(
+      handlers.get('collaboration_handoff_redeem')!({ ...input, proposal: { records: [] } }),
+    ).rejects.toThrow()
   })
 })

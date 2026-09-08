@@ -31,15 +31,6 @@ const prepareInput = z
   })
   .strict()
 const getInput = z.object({ target, operationId: id }).strict()
-const resolutionProposeInput = z
-  .object({
-    target,
-    operationId: id,
-    expectedVersion: z.number().int().positive(),
-    preparedDigest: sha256,
-    records,
-  })
-  .strict()
 const executeInput = z
   .object({
     target,
@@ -108,12 +99,6 @@ export function registerRepositoryCollaborationOperations({ server, api }: McpRe
       'Read one target-scoped durable collaboration operation and its sanitized decision and journal summaries.',
     ],
     [
-      'collaboration_resolution_propose',
-      resolutionProposeInput,
-      'collaborationResolutionPropose',
-      'Submit a complete record-only proposal to an existing isolated divergent reconciliation worktree.',
-    ],
-    [
       'collaboration_execute',
       executeInput,
       'collaborationExecute',
@@ -153,7 +138,7 @@ export function registerRepositoryCollaborationOperations({ server, api }: McpRe
       'collaboration_handoff_redeem',
       handoffRedeemInput,
       'collaborationHandoffRedeem',
-      'Redeem one target-bound handoff ticket and return its sanitized prepared scope.',
+      'Redeem one target-bound handoff ticket into a short-lived fenced proposal work session and sanitized assignment.',
     ],
   ] as const
   for (const [name, schema, method, description] of definitions) {

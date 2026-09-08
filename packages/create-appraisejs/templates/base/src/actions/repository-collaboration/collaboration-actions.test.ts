@@ -4,6 +4,9 @@ const mocks = vi.hoisted(() => ({
   revalidatePath: vi.fn(),
   requireActiveProjectForMutation: vi.fn(),
   connectCollaboration: vi.fn(),
+  continueAcceptedCollaborationOperation: vi.fn(),
+  decideCollaborationOperation: vi.fn(),
+  decideDivergentCollaborationProposal: vi.fn(),
   cancelCollaborationOperation: vi.fn(),
   collaborationPublicDigest: (value: string | null) => (value ? `sha256:${value}` : null),
   createCollaborationHandoffTicket: vi.fn(),
@@ -12,6 +15,7 @@ const mocks = vi.hoisted(() => ({
   getSanitizedCollaborationAssignment: vi.fn(),
   prepareCollaborationOperation: vi.fn(),
   recoverCollaborationOperationFilesystem: vi.fn(),
+  retryCollaborationRemoteCheck: vi.fn(),
   requireCollaborationOperationForProject: vi.fn(),
 }))
 
@@ -22,13 +26,16 @@ vi.mock('@/services/repository-collaboration', () => ({
   cancelCollaborationOperation: mocks.cancelCollaborationOperation,
   collaborationPublicDigest: mocks.collaborationPublicDigest,
   createCollaborationHandoffTicket: mocks.createCollaborationHandoffTicket,
-  decideCollaborationOperation: vi.fn(),
+  decideCollaborationOperation: mocks.decideCollaborationOperation,
+  decideDivergentCollaborationProposal: mocks.decideDivergentCollaborationProposal,
+  continueAcceptedCollaborationOperation: mocks.continueAcceptedCollaborationOperation,
   executeCollaborationOperation: vi.fn(),
   getCollaborationStatus: mocks.getCollaborationStatus,
   getSanitizedCollaborationAssignment: mocks.getSanitizedCollaborationAssignment,
   prepareCollaborationOperation: mocks.prepareCollaborationOperation,
   requireCollaborationOperationForProject: mocks.requireCollaborationOperationForProject,
   recoverCollaborationOperationFilesystem: mocks.recoverCollaborationOperationFilesystem,
+  retryCollaborationRemoteCheck: mocks.retryCollaborationRemoteCheck,
   updateCollaborationPolicy: vi.fn(),
   updateCollaborationPolicyFromLocalUi: vi.fn(),
   issueCollaborationAuthorityReceipt: mocks.issueCollaborationAuthorityReceipt,
@@ -41,6 +48,9 @@ import {
   issueCollaborationAuthorityReceiptAction,
   prepareCollaborationAction,
   recoverCollaborationFilesystemAction,
+  decideCollaborationAction,
+  decideDivergentCollaborationProposalAction,
+  retryCollaborationRemoteCheckAction,
 } from './collaboration-actions'
 
 const projectId = '00000000-0000-4000-8000-000000000001'
@@ -56,6 +66,10 @@ beforeEach(() => {
   mocks.getCollaborationStatus.mockResolvedValue({ id: 'binding-1', policyVersion: 3 })
   mocks.prepareCollaborationOperation.mockResolvedValue({ id: 'operation-1' })
   mocks.recoverCollaborationOperationFilesystem.mockResolvedValue({ status: 'recovered' })
+  mocks.decideCollaborationOperation.mockResolvedValue({ id: 'operation-1', state: 'READY' })
+  mocks.decideDivergentCollaborationProposal.mockResolvedValue({ id: 'operation-1', state: 'READY' })
+  mocks.continueAcceptedCollaborationOperation.mockResolvedValue({ id: 'operation-1', state: 'COMPLETED' })
+  mocks.retryCollaborationRemoteCheck.mockResolvedValue({ id: 'binding-1' })
   mocks.cancelCollaborationOperation.mockResolvedValue({ id: 'operation-1', state: 'CANCELLED' })
   mocks.createCollaborationHandoffTicket.mockResolvedValue({
     ticket: { expiresAt: new Date('2026-09-09T01:00:00.000Z') },
@@ -103,6 +117,34 @@ describe('collaboration actions', () => {
       expectedPolicyVersion: 3,
       trigger: 'local-ui',
     })
+  })
+
+  it('continues standard and accepted divergent decisions without exposing individual Git steps', async () => {
+    const standard = {
+      targetProjectId: projectId,
+      operationId: 'operation-1',
+      expectedVersion: 2,
+      preparedDigest: `sha256:${'a'.repeat(64)}`,
+    }
+    await expect(
+      decideCollaborationAction({ ...standard, decisions: [{ recordKey: 'module:one', decision: 'USE_INCOMING' }] }),
+    ).resolves.toMatchObject({ success: true, data: { state: 'COMPLETED' } })
+    await expect(
+      decideDivergentCollaborationProposalAction({
+        ...standard,
+        reviewDigest: `sha256:${'b'.repeat(64)}`,
+        decision: 'ACCEPT',
+      }),
+    ).resolves.toMatchObject({ success: true, data: { state: 'COMPLETED' } })
+    expect(mocks.continueAcceptedCollaborationOperation).toHaveBeenCalledTimes(2)
+    expect(mocks.continueAcceptedCollaborationOperation).toHaveBeenNthCalledWith(1, { operationId: 'operation-1' })
+  })
+
+  it('offers only a local binding-scoped retry for an authentication repair pause', async () => {
+    await expect(retryCollaborationRemoteCheckAction({ targetProjectId: projectId })).resolves.toMatchObject({
+      success: true,
+    })
+    expect(mocks.retryCollaborationRemoteCheck).toHaveBeenCalledWith({ bindingId: 'binding-1' })
   })
 
   it('issues a CLI handoff for the canonical full policy request without accepting a caller target', async () => {

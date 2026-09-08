@@ -73,19 +73,33 @@ type RouteContext = { params: Promise<{ operation: string[] }> }
 type CoordinatorErrorContext = {
   operation: string
   idempotencyKey?: string
+  target?: string
+  operationId?: string
 }
 
 function bodyRecord(value: unknown): Record<string, unknown> | undefined {
   return value && typeof value === 'object' && !Array.isArray(value) ? (value as Record<string, unknown>) : undefined
 }
 
+function textValue(value: unknown) {
+  return typeof value === 'string' ? value : undefined
+}
+
+function optionalContext<K extends keyof Omit<CoordinatorErrorContext, 'operation'>>(
+  key: K,
+  value: CoordinatorErrorContext[K],
+) {
+  return value ? { [key]: value } : {}
+}
+
 function coordinatorErrorContext(request: Request, operation: string[], body?: unknown): CoordinatorErrorContext {
   const source = bodyRecord(body)
-  const header = request.headers.get('idempotency-key')
-  const idempotencyKey = header ?? (typeof source?.idempotencyKey === 'string' ? source.idempotencyKey : undefined)
+  const idempotencyKey = request.headers.get('idempotency-key') ?? textValue(source?.idempotencyKey)
   return {
     operation: operation.join('/') || 'unknown',
-    ...(idempotencyKey ? { idempotencyKey } : {}),
+    ...optionalContext('idempotencyKey', idempotencyKey),
+    ...optionalContext('target', textValue(source?.target)),
+    ...optionalContext('operationId', textValue(source?.operationId)),
   }
 }
 
@@ -104,47 +118,76 @@ function errorClassification(error: unknown) {
   return 'appraise_runtime_defect' as const
 }
 
-function responseError(error: unknown, context: CoordinatorErrorContext) {
-  const serviceError = error instanceof ServiceError ? error : undefined
-  const status = error instanceof z.ZodError ? 400 : (serviceError?.statusCode ?? 500)
-  const message =
-    error instanceof z.ZodError
-      ? 'Coordinator request failed validation.'
-      : (serviceError?.message ?? 'Coordinator API failed.')
-  return Response.json(
-    {
-      schema: 'appraise.error/v1',
-      errorId: randomUUID(),
-      occurredAt: new Date().toISOString(),
-      classification: errorClassification(error),
-      code: serviceError?.code ?? (error instanceof z.ZodError ? 'VALIDATION' : 'INTERNAL'),
-      message,
-      httpStatus: status,
-      operation: {
-        name: context.operation,
-        ...(context.idempotencyKey ? { idempotencyKey: context.idempotencyKey } : {}),
-      },
-      operationOutcome: 'not_started',
-      targetOutcome: 'not_evaluated',
-      retry: { safe: false, strategy: 'do_not_retry' },
-      ...(error instanceof z.ZodError
-        ? {
-            details: {
-              issues: error.issues.map(issue => ({
-                path: issue.path.join('.'),
-                code: issue.code,
-                message: issue.message,
-              })),
-            },
-          }
-        : {}),
-      ...(!serviceError && !(error instanceof z.ZodError)
-        ? { details: { cause: error instanceof Error ? error.message : String(error) } }
-        : {}),
-      ...(serviceError?.details ? { details: serviceError.details } : {}),
+function coordinatorErrorRetry(context: CoordinatorErrorContext) {
+  const readableOperation = context.operation.startsWith('collaboration/') && context.target && context.operationId
+  if (!readableOperation) return { safe: false, strategy: 'do_not_retry' as const }
+  return {
+    safe: true,
+    strategy: 'read_state_then_retry' as const,
+    nextAction: {
+      tool: 'collaboration_get',
+      arguments: { target: context.target, operationId: context.operationId },
+      reason: 'Read the durable operation before deciding whether any mutation should be retried.',
     },
-    { status },
-  )
+  }
+}
+
+function coordinatorErrorDetails(error: unknown, serviceError?: ServiceError) {
+  if (error instanceof z.ZodError) {
+    return {
+      issues: error.issues.map(issue => ({
+        path: issue.path.join('.'),
+        code: issue.code,
+        message: issue.message,
+      })),
+    }
+  }
+  if (serviceError?.details) return serviceError.details
+  if (!serviceError) return { cause: error instanceof Error ? error.message : String(error) }
+  return undefined
+}
+
+function coordinatorErrorCode(error: unknown, serviceError?: ServiceError) {
+  if (serviceError) return serviceError.code
+  return error instanceof z.ZodError ? 'VALIDATION' : 'INTERNAL'
+}
+
+function coordinatorErrorMessage(error: unknown, serviceError?: ServiceError) {
+  if (error instanceof z.ZodError) return 'Coordinator request failed validation.'
+  return serviceError?.message ?? 'Coordinator API failed.'
+}
+
+function coordinatorErrorStatus(error: unknown, serviceError?: ServiceError) {
+  if (error instanceof z.ZodError) return 400
+  return serviceError?.statusCode ?? 500
+}
+
+function coordinatorErrorPayload(error: unknown, context: CoordinatorErrorContext) {
+  const serviceError = error instanceof ServiceError ? error : undefined
+  const details = coordinatorErrorDetails(error, serviceError)
+  return {
+    schema: 'appraise.error/v1',
+    errorId: randomUUID(),
+    occurredAt: new Date().toISOString(),
+    classification: errorClassification(error),
+    code: coordinatorErrorCode(error, serviceError),
+    message: coordinatorErrorMessage(error, serviceError),
+    httpStatus: coordinatorErrorStatus(error, serviceError),
+    operation: { name: context.operation, ...optionalContext('idempotencyKey', context.idempotencyKey) },
+    // A handler may have crossed a filesystem, Git, database, or remote
+    // boundary before its response failed. Operation lookup resolves the
+    // exact persisted outcome for collaboration work.
+    operationOutcome: 'unknown',
+    targetOutcome: 'not_evaluated',
+    retry: coordinatorErrorRetry(context),
+    ...(details ? { details } : {}),
+  }
+}
+
+/** Shared envelope for coordinator transport failures; exported for contract-level regression coverage. */
+export function responseError(error: unknown, context: CoordinatorErrorContext) {
+  const payload = coordinatorErrorPayload(error, context)
+  return Response.json(payload, { status: payload.httpStatus })
 }
 
 function operationRefs(query: URLSearchParams) {

@@ -3,7 +3,7 @@ import { createHash, randomUUID } from 'node:crypto'
 import type { CollaborationOperationIntent, CollaborationOperationState, Prisma, PrismaClient } from '@prisma/client'
 
 import prisma from '@/config/db-config'
-import { canonicalJson, collaborationHash } from '@/lib/repository-collaboration'
+import { canonicalJson } from '@/lib/repository-collaboration'
 import { ServiceError } from '@/services/shared/errors'
 
 import { requireCollaborationPermission } from './binding-service'
@@ -189,61 +189,67 @@ async function latestAttempt(transaction: Transaction, operationId: string) {
   return transaction.collaborationAttempt.findFirst({ where: { operationId }, orderBy: { attemptNumber: 'desc' } })
 }
 
+export async function claimCollaborationOperationInTransaction(
+  transaction: Transaction,
+  input: { operationId: string; workerId: string; now: Clock; leaseMs?: number },
+): Promise<ClaimedCollaborationWork> {
+  const now = input.now
+  const leaseMs = input.leaseMs ?? 30_000
+  if (leaseMs < 1_000 || leaseMs > 300_000) throw new ServiceError('Lease duration is out of range.', 'VALIDATION', 400)
+  const operation = await operationForClaim(transaction, input.operationId, now)
+  await requireCollaborationPermission(transaction, operation.bindingId, 'PREPARE', operation.policyVersion)
+  await assertWorkerCanClaim(transaction, input.workerId, operation.bindingId, now)
+  const leaseToken = randomUUID()
+  const expiresAt = leaseExpiration(now, leaseMs)
+  const claimed = await transaction.collaborationOperation.updateMany({
+    where: {
+      id: operation.id,
+      state: { in: leaseableStates },
+      cancelledAt: null,
+      OR: [{ nextAttemptAt: null }, { nextAttemptAt: { lte: now } }],
+    },
+    data: {
+      state: 'WAITING_FOR_AGENT',
+      queueKey: null,
+      leaseOwner: input.workerId,
+      leaseExpiresAt: expiresAt,
+      fencingToken: { increment: 1 },
+      nextAttemptAt: null,
+    },
+  })
+  if (claimed.count !== 1) {
+    throw new ServiceError('The collaboration operation was claimed or changed concurrently.', 'CONFLICT', 409)
+  }
+  const current = await transaction.collaborationOperation.findUniqueOrThrow({ where: { id: operation.id } })
+  const previous = await latestAttempt(transaction, current.id)
+  const attempt = await transaction.collaborationAttempt.create({
+    data: {
+      operationId: current.id,
+      workerId: input.workerId,
+      attemptNumber: nextAttemptNumber(previous),
+      fencingToken: current.fencingToken,
+      state: 'RUNNING',
+      claimTokenHash: tokenHash(leaseToken),
+      leaseExpiresAt: expiresAt,
+      heartbeatAt: now,
+    },
+  })
+  return {
+    operationId: current.id,
+    attemptId: attempt.id,
+    attemptNumber: attempt.attemptNumber,
+    fencingToken: current.fencingToken,
+    leaseToken,
+    leaseExpiresAt: expiresAt,
+  }
+}
+
 export async function claimCollaborationOperation(
   input: { operationId: string; workerId: string; now?: Clock; leaseMs?: number },
   client: PrismaClient = prisma,
 ): Promise<ClaimedCollaborationWork> {
   const now = input.now ?? new Date()
-  const leaseMs = input.leaseMs ?? 30_000
-  if (leaseMs < 1_000 || leaseMs > 300_000) throw new ServiceError('Lease duration is out of range.', 'VALIDATION', 400)
-  return client.$transaction(async transaction => {
-    const operation = await operationForClaim(transaction, input.operationId, now)
-    await requireCollaborationPermission(transaction, operation.bindingId, 'PREPARE', operation.policyVersion)
-    await assertWorkerCanClaim(transaction, input.workerId, operation.bindingId, now)
-    const leaseToken = randomUUID()
-    const expiresAt = leaseExpiration(now, leaseMs)
-    const claimed = await transaction.collaborationOperation.updateMany({
-      where: {
-        id: operation.id,
-        state: { in: leaseableStates },
-        cancelledAt: null,
-        OR: [{ nextAttemptAt: null }, { nextAttemptAt: { lte: now } }],
-      },
-      data: {
-        state: 'WAITING_FOR_AGENT',
-        queueKey: null,
-        leaseOwner: input.workerId,
-        leaseExpiresAt: expiresAt,
-        fencingToken: { increment: 1 },
-        nextAttemptAt: null,
-      },
-    })
-    if (claimed.count !== 1) {
-      throw new ServiceError('The collaboration operation was claimed or changed concurrently.', 'CONFLICT', 409)
-    }
-    const current = await transaction.collaborationOperation.findUniqueOrThrow({ where: { id: operation.id } })
-    const previous = await latestAttempt(transaction, current.id)
-    const attempt = await transaction.collaborationAttempt.create({
-      data: {
-        operationId: current.id,
-        workerId: input.workerId,
-        attemptNumber: nextAttemptNumber(previous),
-        fencingToken: current.fencingToken,
-        state: 'RUNNING',
-        claimTokenHash: tokenHash(leaseToken),
-        leaseExpiresAt: expiresAt,
-        heartbeatAt: now,
-      },
-    })
-    return {
-      operationId: current.id,
-      attemptId: attempt.id,
-      attemptNumber: attempt.attemptNumber,
-      fencingToken: current.fencingToken,
-      leaseToken,
-      leaseExpiresAt: expiresAt,
-    }
-  })
+  return client.$transaction(transaction => claimCollaborationOperationInTransaction(transaction, { ...input, now }))
 }
 
 async function assertedAttempt(
@@ -340,18 +346,38 @@ export async function heartbeatCollaborationOperation(
   const expiresAt = leaseExpiration(now, input.leaseMs ?? 30_000)
   return client.$transaction(async transaction => {
     const { attempt, operation } = await assertedAttempt(transaction, input, now)
-    await transaction.collaborationAttempt.update({
-      where: { id: attempt.id },
+    const renewedAttempt = await transaction.collaborationAttempt.updateMany({
+      where: {
+        id: attempt.id,
+        operationId: operation.id,
+        workerId: input.workerId,
+        fencingToken: input.fencingToken,
+        claimTokenHash: tokenHash(input.leaseToken),
+        state: 'RUNNING',
+        leaseExpiresAt: { gt: now },
+      },
       data: { heartbeatAt: now, leaseExpiresAt: expiresAt },
     })
-    await transaction.collaborationWorker.update({
-      where: { id: input.workerId },
-      data: { lastHeartbeatAt: now, expiresAt },
-    })
-    return transaction.collaborationOperation.update({
-      where: { id: operation.id },
+    if (renewedAttempt.count !== 1) throw new ServiceError('Work attempt lease has expired.', 'CONFLICT', 409)
+    const renewedOperation = await transaction.collaborationOperation.updateMany({
+      where: {
+        id: operation.id,
+        state: 'WAITING_FOR_AGENT',
+        fencingToken: input.fencingToken,
+        leaseOwner: input.workerId,
+        leaseExpiresAt: { gt: now },
+        cancelledAt: null,
+      },
       data: { leaseExpiresAt: expiresAt },
     })
+    if (renewedOperation.count !== 1)
+      throw new ServiceError('Work attempt no longer owns this operation.', 'CONFLICT', 409)
+    const renewedWorker = await transaction.collaborationWorker.updateMany({
+      where: { id: input.workerId, connectionState: 'CONNECTED', expiresAt: { gt: now } },
+      data: { lastHeartbeatAt: now, expiresAt },
+    })
+    if (renewedWorker.count !== 1) throw new ServiceError('Worker registration expired.', 'CONFLICT', 409)
+    return transaction.collaborationOperation.findUniqueOrThrow({ where: { id: operation.id } })
   })
 }
 
@@ -402,21 +428,29 @@ async function recoverExpiredOperation(operationId: string, now: Clock, client: 
       operation.leaseExpiresAt > now
     )
       return null
+    const queued = await findQueuedOperation(transaction, operation.bindingId)
+    const recovery = await transaction.collaborationOperation.updateMany({
+      where: {
+        id: operationId,
+        state: 'WAITING_FOR_AGENT',
+        fencingToken: operation.fencingToken,
+        leaseExpiresAt: { lte: now },
+        cancelledAt: null,
+      },
+      data: queued
+        ? { state: 'SUPERSEDED', supersededById: queued.id, leaseOwner: null, leaseExpiresAt: null }
+        : { state: 'QUEUED', queueKey: queuedKey, leaseOwner: null, leaseExpiresAt: null, nextAttemptAt: now },
+    })
+    if (recovery.count !== 1) return null
     await transaction.collaborationAttempt.updateMany({
-      where: { operationId, state: { in: ['CLAIMED', 'RUNNING'] } },
+      where: {
+        operationId,
+        fencingToken: operation.fencingToken,
+        state: { in: ['CLAIMED', 'RUNNING'] },
+      },
       data: { state: 'EXPIRED', completedAt: now },
     })
-    const queued = await findQueuedOperation(transaction, operation.bindingId)
-    if (queued) {
-      return transaction.collaborationOperation.update({
-        where: { id: operationId },
-        data: { state: 'SUPERSEDED', supersededById: queued.id, leaseOwner: null, leaseExpiresAt: null },
-      })
-    }
-    return transaction.collaborationOperation.update({
-      where: { id: operationId },
-      data: { state: 'QUEUED', queueKey: queuedKey, leaseOwner: null, leaseExpiresAt: null, nextAttemptAt: now },
-    })
+    return transaction.collaborationOperation.findUniqueOrThrow({ where: { id: operationId } })
   })
 }
 
@@ -457,13 +491,18 @@ export async function notifyCollaboration(
   })
 }
 
+async function requireCollaborationBinding(bindingId: string, client: PrismaClient) {
+  const binding = await client.collaborationBinding.findUnique({ where: { id: bindingId } })
+  if (!binding) throw new ServiceError('Collaboration binding was not found.', 'NOT_FOUND', 404)
+  return binding
+}
+
 export async function recordRemoteCollaborationCheck(
   input: { bindingId: string; outcome: 'success' | 'transient_failure' | 'authentication_failure'; now?: Clock },
   client: PrismaClient = prisma,
 ) {
   const now = input.now ?? new Date()
-  const binding = await client.collaborationBinding.findUnique({ where: { id: input.bindingId } })
-  if (!binding) throw new ServiceError('Collaboration binding was not found.', 'NOT_FOUND', 404)
+  const binding = await requireCollaborationBinding(input.bindingId, client)
   const backoff =
     input.outcome === 'success'
       ? 300
@@ -475,8 +514,18 @@ export async function recordRemoteCollaborationCheck(
     data: {
       connectionState: input.outcome === 'success' ? 'CONNECTED' : 'STALE',
       lastRemoteCheckAt: now,
-      remoteBackoffSeconds: backoff || binding.remoteBackoffSeconds,
+      remoteBackoffSeconds: input.outcome === 'success' ? 300 : backoff || binding.remoteBackoffSeconds,
+      // An authentication failure needs human credential repair. Keeping this
+      // null is safe because the durable flag excludes it from scheduler due
+      // selection below; it also makes the paused state explicit to readers.
       nextRemoteCheckAt: backoff ? new Date(now.getTime() + backoff * 1_000) : null,
+      remoteAuthRepairRequired: input.outcome === 'authentication_failure',
+      remoteCheckError:
+        input.outcome === 'success'
+          ? null
+          : input.outcome === 'authentication_failure'
+            ? 'Repository authentication needs repair before automatic checks can resume.'
+            : binding.remoteCheckError,
     },
   })
 }
@@ -518,6 +567,7 @@ export async function runCollaborationSchedulerTick(
   const dueBindings = await client.collaborationBinding.findMany({
     where: {
       enabled: true,
+      remoteAuthRepairRequired: false,
       OR: [{ nextRemoteCheckAt: null }, { nextRemoteCheckAt: { lte: now } }],
     },
     select: { id: true },
@@ -529,4 +579,19 @@ export async function runCollaborationSchedulerTick(
     remoteChecks.push({ bindingId: binding.id, outcome })
   }
   return { recovered: recovered.filter(Boolean), remoteChecks }
+}
+
+/**
+ * An explicit local-user retry after credentials have been repaired. This is
+ * deliberately not a public coordinator command: a bearer cannot clear a
+ * durable authentication-repair boundary or cause repeated credential use.
+ */
+export async function retryCollaborationRemoteCheck(
+  input: { bindingId: string; now?: Clock; observeRemote?: (bindingId: string) => Promise<void> },
+  client: PrismaClient = prisma,
+) {
+  const now = input.now ?? new Date()
+  const binding = await requireCollaborationBinding(input.bindingId, client)
+  const outcome = await observeDueRemoteBinding(binding, client, input.observeRemote)
+  return recordRemoteCollaborationCheck({ bindingId: binding.id, outcome, now }, client)
 }

@@ -274,36 +274,53 @@ describe('repository collaboration public worker ingress', () => {
       })
 
       // Preparation intentionally debounces a handoff. Advance only the route
-      // clock, rather than sleeping, so the client claims a genuinely due job.
+      // clock, rather than sleeping, so the one-time interactive handoff can
+      // atomically create its bounded worker session and claim a due job.
       routeNow = new Date(Date.now() + 5_000)
-      const registered = (await api.collaborationWorkerRegister({
+      const handoff = await createCollaborationHandoffTicket(
+        {
+          bindingId: binding.id,
+          operationId: prepared.operation.id,
+          // Scope is intentionally never echoed through public redemption;
+          // the worker receives only the durable sanitized assignment below.
+          scope: { repositoryRoot: local, credential: 'must-not-leak' },
+        },
+        client,
+      )
+      const redeemed = (await api.collaborationHandoffRedeem({
         target: target.id,
-        workerIdentity: 'public-proposal-worker',
-        capabilities: ['proposal'],
-      })) as { sessionNonce: string }
-      const queuedOperation = await client.collaborationOperation.findUnique({
+        token: handoff.token,
+        redeemedBy: 'public-interactive-agent',
+      })) as {
+        worker: { workerIdentity: string; sessionNonce: string; expiresAt: string }
+        work: WorkLease & { assignment: { operationId: string; records: CollaborationRecord[] } }
+      }
+      expect(JSON.stringify(redeemed)).not.toContain(local)
+      expect(redeemed.work.assignment).toMatchObject({ operationId: prepared.operation.id, records: sourceRecords })
+      await expect(
+        api.collaborationHandoffRedeem({ target: target.id, token: handoff.token, redeemedBy: 'replay-agent' }),
+      ).rejects.toMatchObject({
+        status: 409,
+        envelope: { classification: 'state_conflict', code: 'CONFLICT' },
+      })
+      const claimedOperation = await client.collaborationOperation.findUnique({
         where: { id: prepared.operation.id },
         select: { state: true, nextAttemptAt: true, artifacts: { select: { kind: true } } },
       })
-      expect(queuedOperation).toMatchObject({
-        state: 'QUEUED',
-        nextAttemptAt: expect.any(Date),
+      expect(claimedOperation).toMatchObject({
+        state: 'WAITING_FOR_AGENT',
+        nextAttemptAt: null,
         artifacts: expect.arrayContaining([expect.objectContaining({ kind: 'DIVERGENT_PREPARATION' })]),
       })
-      const claimed = (await api.collaborationWorkClaim({
-        target: target.id,
-        workerIdentity: 'public-proposal-worker',
-        sessionNonce: registered.sessionNonce,
-      })) as {
-        work: WorkLease & { assignment: { operationId: string; records: CollaborationRecord[] } }
-      }
-      expect(claimed.work, `queued for ${queuedOperation?.nextAttemptAt?.toISOString()}`).not.toBeNull()
-      expect(claimed.work.assignment).toMatchObject({ operationId: prepared.operation.id, records: sourceRecords })
+      const claimed = redeemed
+      expect(claimed.work).not.toBeNull()
 
+      // The credentials returned by redemption are sufficient for exactly the
+      // existing public completion boundary, and no reviewer authority.
       const proposed = (await api.collaborationWorkComplete({
         target: target.id,
-        workerIdentity: 'public-proposal-worker',
-        sessionNonce: registered.sessionNonce,
+        workerIdentity: redeemed.worker.workerIdentity,
+        sessionNonce: redeemed.worker.sessionNonce,
         ...publicLease(claimed.work),
         proposal: { records: reviewedRecords },
       })) as { operation: { id: string; state: string; version: number; preparedDigest: string } }
@@ -335,33 +352,31 @@ describe('repository collaboration public worker ingress', () => {
         client,
       )
       const accepted = (await api.collaborationDecide(decisionRequest, receipt.token)) as {
-        operation: { id: string; state: string; version: number; preparedDigest: string }
+        operation: { id: string; state: string; version: number; preparedDigest: string; sourceRevision: string }
       }
-      expect(accepted.operation).toMatchObject({ id: prepared.operation.id, state: 'READY' })
+      // An exact public acceptance advances the whole persisted, authorized
+      // operation plan. The coordinator never receives a caller-selected Git
+      // step, and the UI/public caller does not need six execute requests.
+      expect(accepted.operation).toMatchObject({ id: prepared.operation.id, state: 'COMPLETED' })
 
-      const execute = async (operation: { id: string; version: number; preparedDigest: string }) =>
-        (await api.collaborationExecute({
-          target: target.id,
-          operationId: operation.id,
-          expectedVersion: operation.version,
-          preparedDigest: operation.preparedDigest,
-          idempotencyKey: 'public-divergent-receive',
-        })) as {
-          operation: { id: string; state: string; version: number; preparedDigest: string; sourceRevision: string }
-        }
-
-      const merged = await execute(accepted.operation)
-      // The exact public replay returns the persisted outcome; it does not start
-      // the following execution step.
-      await expect(execute(accepted.operation)).resolves.toMatchObject({
-        operation: { version: merged.operation.version },
+      const finalStep = await client.collaborationOperationStep.findFirstOrThrow({
+        where: { operationId: prepared.operation.id, kind: 'FINALIZE' },
+        select: { requestVersion: true },
       })
-      let current = merged
-      for (let step = 0; step < 5; step += 1) current = await execute(current.operation)
-      expect(current.operation.state).toBe('COMPLETED')
-      await expect(execute(current.operation)).resolves.toMatchObject({ operation: { state: 'COMPLETED' } })
+      const replay = (await api.collaborationExecute({
+        target: target.id,
+        operationId: accepted.operation.id,
+        expectedVersion: finalStep.requestVersion!,
+        preparedDigest: accepted.operation.preparedDigest,
+        idempotencyKey: 'public-divergent-receive',
+      })) as {
+        operation: { id: string; state: string; version: number; preparedDigest: string; sourceRevision: string }
+      }
+      // A dropped public terminal response must replay from the request's
+      // original pre-completion version, rather than from terminal status.
+      expect(replay.operation).toMatchObject({ id: accepted.operation.id, state: 'COMPLETED' })
 
-      const mergeCommit = current.operation.sourceRevision
+      const mergeCommit = accepted.operation.sourceRevision
       expect((await git(local, 'rev-list', '--parents', '-n', '1', mergeCommit)).split(' ')).toEqual([
         mergeCommit,
         sourceRevision,
@@ -697,7 +712,12 @@ describe('repository collaboration public worker ingress', () => {
 
       await expect(
         api.collaborationHandoffRedeem({ target: target.id, token: handoff.token, redeemedBy: 'worker-b' }),
-      ).resolves.toMatchObject({ operationId: operation.id, scope: { operation: 'proposal' } })
+      ).rejects.toMatchObject({
+        status: 409,
+        envelope: { classification: 'state_conflict', code: 'CONFLICT' },
+      })
+      // A failed competing redemption must not consume the ticket. It remains
+      // bound to this operation but cannot bypass the active replacement lease.
       await expect(
         api.collaborationHandoffRedeem({ target: target.id, token: handoff.token, redeemedBy: 'worker-replay' }),
       ).rejects.toMatchObject({

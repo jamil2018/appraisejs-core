@@ -1804,6 +1804,10 @@ model CollaborationBinding {
   lastRemoteCheckAt        DateTime?
   nextRemoteCheckAt        DateTime?
   remoteBackoffSeconds     Int                                  @default(300)
+  /// Authentication failures pause automatic remote observation until a local
+  /// user explicitly retries after repairing repository credentials.
+  remoteAuthRepairRequired Boolean                              @default(false)
+  remoteCheckError         String?
   createdAt                DateTime                             @default(now())
   updatedAt                DateTime                             @updatedAt
   targetProject            TargetProject                        @relation(fields: [targetProjectId], references: [id], onDelete: Restrict)

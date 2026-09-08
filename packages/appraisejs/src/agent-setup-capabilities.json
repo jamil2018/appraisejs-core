@@ -5,7 +5,6 @@
     "collaboration_get",
     "collaboration_handoff_redeem",
     "collaboration_prepare",
-    "collaboration_resolution_propose",
     "collaboration_status",
     "collaboration_undo_prepare",
     "collaboration_work_claim",

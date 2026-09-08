@@ -3,26 +3,18 @@ import { createHash } from 'node:crypto'
 import { z } from 'zod'
 
 import prisma from '@/config/db-config'
-import {
-  canonicalJson,
-  collaborationRecordSchema,
-  MAX_COLLABORATION_RECORD_BYTES,
-  MAX_COLLABORATION_RECORDS,
-  MAX_COLLABORATION_TOTAL_BYTES,
-} from '@/lib/repository-collaboration'
+import { collaborationRecordSchema, MAX_COLLABORATION_RECORDS } from '@/lib/repository-collaboration'
 import { ServiceError } from '@/services/shared/errors'
 import {
   connectCollaboration,
   updateCollaborationPolicyWithAuthorityReceipt,
 } from '@/services/repository-collaboration/binding-service'
 import { prepareCollaborationUndo } from '@/services/repository-collaboration/archive-service'
-import {
-  decideDivergentCollaborationProposal,
-  proposeDivergentCollaborationReconciliation,
-} from '@/services/repository-collaboration/divergent-reconciliation-service'
+import { decideDivergentCollaborationProposal } from '@/services/repository-collaboration/divergent-reconciliation-service'
 import { consumeCollaborationAuthorityReceipt } from '@/services/repository-collaboration/authority-receipt-service'
 import {
   decideCollaborationOperationWithAuthorityReceipt,
+  continueAcceptedCollaborationOperation,
   executeCollaborationOperation,
   prepareCollaborationOperation,
   collaborationPublicDigest,
@@ -116,15 +108,6 @@ export const collaborationRequestSchemas = {
     })
     .strict(),
   get: z.object({ target, operationId: id }).strict(),
-  resolutionPropose: z
-    .object({
-      target,
-      operationId: id,
-      expectedVersion: z.number().int().positive(),
-      preparedDigest: sha256,
-      records: recordArray,
-    })
-    .strict(),
   decide: z.union([standardDecisionRequest, divergentProposalDecisionRequest]),
   execute: z
     .object({
@@ -240,20 +223,6 @@ export function publicCollaborationHashes<T>(value: T): T {
   ) as T
 }
 
-function records(value: unknown[]) {
-  let totalBytes = 0
-  return value.map(record => {
-    const parsed = collaborationRecordSchema.parse(record)
-    const bytes = Buffer.byteLength(canonicalJson(parsed))
-    if (bytes > MAX_COLLABORATION_RECORD_BYTES)
-      throw new ServiceError('A collaboration record exceeds the per-record byte limit.', 'VALIDATION', 413)
-    totalBytes += bytes
-    if (totalBytes > MAX_COLLABORATION_TOTAL_BYTES)
-      throw new ServiceError('Collaboration records exceed the total byte limit.', 'VALIDATION', 413)
-    return parsed
-  })
-}
-
 function publicCollaborationStatus(status: Awaited<ReturnType<typeof getCollaborationStatus>>) {
   if (!status) return null
   return publicCollaborationHashes(status)
@@ -337,19 +306,6 @@ async function postGet(_request: Request, body: unknown) {
   })
 }
 
-async function postResolutionPropose(_request: Request, body: unknown) {
-  const value = collaborationRequestSchemas.resolutionPropose.parse(body)
-  const targetProject = await resolveTargetProject(value.target)
-  await requireCollaborationOperationForProject(value.operationId, targetProject.id)
-  const result = await proposeDivergentCollaborationReconciliation({
-    operationId: value.operationId,
-    expectedVersion: value.expectedVersion,
-    preparedDigest: normalizeCollaborationDigest(value.preparedDigest),
-    records: records(value.records),
-  })
-  return Response.json({ targetProjectId: targetProject.id, result: publicCollaborationHashes(result) })
-}
-
 async function postDecide(request: Request, body: unknown) {
   const value = collaborationRequestSchemas.decide.parse(body)
   const targetProject = await resolveTargetProject(value.target)
@@ -367,7 +323,9 @@ async function postDecide(request: Request, body: unknown) {
       },
       (transaction, authority) => decideDivergentCollaborationProposal({ ...value, ...authority }, transaction),
     )
-    return Response.json({ targetProjectId: targetProject.id, operation: operationSummary(decided) })
+    const continued =
+      value.decision === 'ACCEPT' ? await continueAcceptedCollaborationOperation({ operationId: decided.id }) : decided
+    return Response.json({ targetProjectId: targetProject.id, operation: operationSummary(continued) })
   }
   const decisions = value.decisions.map(decision =>
     decision.decision === 'EDIT'
@@ -386,7 +344,9 @@ async function postDecide(request: Request, body: unknown) {
     authorityReceipt: request.headers.get('x-appraise-authority-receipt'),
     request: value,
   })
-  return Response.json({ targetProjectId: targetProject.id, operation: operationSummary(decided) })
+  const continued =
+    decided.state === 'READY' ? await continueAcceptedCollaborationOperation({ operationId: decided.id }) : decided
+  return Response.json({ targetProjectId: targetProject.id, operation: operationSummary(continued) })
 }
 
 async function postExecute(_request: Request, body: unknown) {
@@ -471,7 +431,8 @@ async function postHandoffRedeem(_request: Request, body: unknown) {
   return Response.json({
     targetProjectId: targetProject.id,
     operationId: redeemed.operationId,
-    scope: publicCollaborationHashes(redeemed.scope),
+    worker: redeemed.worker,
+    work: publicCollaborationHashes(redeemed.work),
   })
 }
 
@@ -480,7 +441,6 @@ const postActions: Readonly<Record<string, (request: Request, body: unknown) => 
   'policy-update': postPolicyUpdate,
   prepare: postPrepare,
   get: postGet,
-  'resolution-propose': postResolutionPropose,
   decide: postDecide,
   execute: postExecute,
   'undo-prepare': postUndoPrepare,

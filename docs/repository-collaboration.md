@@ -38,6 +38,19 @@ collaboration-only divergence creates an internal RECONCILE operation with no ac
 persists its isolated proposal worktree first, then queues that same operation for a compatible worker or sanitized
 interactive handoff.
 
+After an exact decision reaches `READY`, the local UI and receipt-protected public coordinator automatically advance
+the bounded, persisted operation plan. Each iteration reloads the durable operation version and executes only its next
+pending, permission-checked step; callers cannot select a Git action or skip a boundary. A running boundary, revoked
+permission, stale version, or error stops continuation conservatively for the existing recovery/status path. An exact
+lost response still replays only its recorded completed step.
+
+While the Appraise process is active, a single process-local five-minute scheduler observes only persisted due remote
+checks and recovers expired leases. Transient remote failures use bounded backoff. Authentication failures instead
+persist an authentication-repair pause and are excluded from later ticks, so the scheduler never repeatedly retries
+known-bad credentials. The Collaboration UI truthfully shows that pause and offers the only retry path: an explicit
+local-user remote check after the credentials have been repaired. No coordinator bearer or background timer can clear
+that repair boundary.
+
 ## Recovery
 
 Database records, mappings, baselines, before-images, and their receipt commit in one Prisma transaction. Filesystem,
@@ -47,15 +60,26 @@ canonical intent and hash, executor epoch, and lock fence. Completion must still
 lost response can return only the persisted result for the request version that produced the operation's current
 version; it never runs a step again.
 
+Every Git mutation and collaboration filesystem install or recovery first acquires the same fenced database lock for
+the repository's verified Git common directory. External filesystem, hook, and remote work runs outside database
+transactions while the holder renews that lease; a lost or replaced lease prevents success from being recorded and
+the effect is left for conservative recovery. Linked worktrees therefore share one mutation boundary rather than
+locking their worktree paths independently.
+
 Publication persists the strict filesystem snapshot that was present at preparation and compares it again at install.
 This permits a second valid publication after the first, while blocking files changed outside the accepted operation.
-The commit step receives the exact installed snapshot hash. Before SQLite apply after Git integration, Appraise
+Filesystem recovery restores a verified previous snapshot to a retryable `READY` step, or marks an installed strict
+snapshot complete; any other rename state blocks without deleting its artifacts. The commit intent persists its exact
+parent and installed snapshot hash before `git commit`, so recovery recognizes only that parent/snapshot/path set.
+Before SQLite apply after Git integration, Appraise
 rechecks the pinned HEAD and the strict snapshot hash from the accepted source or reviewed result.
 
 Recovery of an APPLYING/RUNNING Git step first acquires a new fenced executor epoch, then classifies current Git
-observations as verified completed, safe no-effect retry, or ambiguous block. Missing legacy intent, an unobservable
-remote, an unplanned merge path, or uncertain cleanup blocks and retains recovery artifacts. A remote ref is absent
-only after Git verifies absence; transport and authentication failures are not treated as absence.
+observations as verified completed, safe no-effect retry, or ambiguous block. An uncertain push may complete when a
+fresh operation-owned remote observation proves the exact operation commit is reachable from a later remote tip.
+Missing legacy intent, an unobservable remote, an unplanned merge path, or uncertain cleanup blocks and retains
+recovery artifacts. A remote ref is absent only after Git verifies absence; transport and authentication failures are
+not treated as absence.
 
 Appraise never resets, stashes, cleans, rebases, force-pushes, bypasses hooks, or consumes unrelated staged content.
 Authentication, signing, hook, and remote rejection failures require repair or a newly prepared operation.
@@ -71,7 +95,11 @@ must ACCEPT or REJECT the exact canonical review digest through the local UI or 
 public decision. Acceptance persists the designated proposal artifact; merge and database steps never select a later
 proposal. Rejection cleans the exact original proposal worktree, or blocks and retains it when verification fails.
 Final divergent cleanup proves both original and merge worktrees are absent. If no worker is observed, a single-use
-operation ticket supports an interactive handoff; no native wake capability is claimed without host evidence.
+operation ticket supports an interactive handoff: redemption atomically creates a short-lived synthetic connected
+proposal worker and fenced attempt for that exact durably prepared RECONCILE operation. Its response contains only
+the sanitized assignment plus the session and lease credentials needed by `work-complete`; ticket scope, repository
+paths, refs, and credentials are never returned. Replay, expiry, cancellation, an occupied operation, or a replaced
+fence fail. No native wake capability is claimed without host evidence.
 
 Shared Journey content is advisory reuse only. A pinned brief creates a fresh, unlinked local draft. Analysis and
 scenario seeds remain non-authoritative assignment advice and must pass normal local requirement, discovery,

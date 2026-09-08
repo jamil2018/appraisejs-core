@@ -72,6 +72,10 @@ describe('repository collaboration coordinator ingress', () => {
     ).toBe(false)
   })
 
+  it('does not expose a bearer-only divergent proposal endpoint', () => {
+    expect('resolutionPropose' in collaborationRequestSchemas).toBe(false)
+  })
+
   it('prefixes every public collaboration digest and hash exactly once', () => {
     const bare = 'a'.repeat(64)
     expect(

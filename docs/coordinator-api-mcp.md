@@ -9,8 +9,10 @@ resolves to its own binding; callers never supply a binding ID, repository comma
 principal, or reviewer provenance. Public `collaboration_prepare` accepts only `RECEIVE` and `PUBLISH`. RECEIVE
 fetches its operation-owned ref, pins both revisions, and classifies the relationship. Only an Appraise-content-only
 divergence creates an internal RECONCILE operation; its isolated proposal worktree is persisted before it can be
-claimed. `collaboration_resolution_propose` and compatible worker completion accept one complete record set only.
-They produce review material, clear the lease, and never make it executable. `collaboration_execute` performs only
+claimed. `collaboration_work_complete` accepts one complete record set only. It produces review material, clears the
+lease, and never makes it executable. `collaboration_handoff_redeem` consumes a one-time ticket atomically to return
+a short-lived synthetic worker session, fenced work-completion credentials, and the existing sanitized assignment;
+it never returns ticket scope, repository path/ref, or reviewer capability. `collaboration_execute` performs only
 the exact prepared database operation or one fixed persisted Git step after acceptance. Worker tools expose observed
 registration, fenced leases, a sanitized operation-owned assignment, and one-time handoff redemption; they do not
 claim wake capability or create a reviewer decision. `collaboration_undo_prepare` is guarded by the stored

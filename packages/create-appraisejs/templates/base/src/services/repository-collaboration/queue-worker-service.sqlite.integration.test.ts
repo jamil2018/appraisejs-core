@@ -15,6 +15,7 @@ import {
   heartbeatCollaborationOperation,
   notifyCollaboration,
   recordRemoteCollaborationCheck,
+  retryCollaborationRemoteCheck,
   recoverExpiredCollaborationLeases,
   runCollaborationSchedulerTick,
   scheduleCollaborationOperation,
@@ -516,10 +517,58 @@ describe('repository collaboration queue and workers', () => {
     }
   })
 
+  it('pauses repeated authentication failures until an explicit local retry succeeds', async () => {
+    const { client, binding } = await fixture()
+    try {
+      const failedAt = new Date(beginning.getTime() + 1_000)
+      const first = await runCollaborationSchedulerTick(
+        {
+          now: failedAt,
+          observeRemote: async () => {
+            throw new Error('credentials permission denied')
+          },
+        },
+        client,
+      )
+      expect(first.remoteChecks).toEqual([{ bindingId: binding.id, outcome: 'authentication_failure' }])
+      expect(await client.collaborationBinding.findUnique({ where: { id: binding.id } })).toMatchObject({
+        remoteAuthRepairRequired: true,
+        nextRemoteCheckAt: null,
+      })
+
+      const later = await runCollaborationSchedulerTick(
+        {
+          now: new Date(failedAt.getTime() + 60 * 60_000),
+          observeRemote: async () => {
+            throw new Error('scheduler must not retry paused credentials')
+          },
+        },
+        client,
+      )
+      expect(later.remoteChecks).toEqual([])
+
+      // The explicit local retry owns the I/O edge; inject just that edge so
+      // the durable pause transition stays covered with fake time.
+      const retried = await retryCollaborationRemoteCheck(
+        {
+          bindingId: binding.id,
+          now: new Date(failedAt.getTime() + 61 * 60_000),
+          observeRemote: async bindingId => expect(bindingId).toBe(binding.id),
+        },
+        client,
+      )
+      expect(retried).toMatchObject({ remoteAuthRepairRequired: false, remoteCheckError: null })
+      expect(retried.nextRemoteCheckAt).toEqual(new Date(failedAt.getTime() + 61 * 60_000 + 300_000))
+    } finally {
+      await client.$disconnect()
+    }
+  })
+
   it('redeems only one scoped handoff ticket and keeps offline mode honest', async () => {
     const { client, binding } = await fixture()
     try {
       const operation = await scheduleCollaborationOperation(schedule(binding.id, 'ticket', 'one'), client)
+      await makeDurablyPreparedDivergence(client, operation.id)
       expect(await getCollaborationConnectionMode(binding.id, beginning, client)).toMatchObject({
         workerAvailable: false,
         nativeWakeSupported: false,
@@ -529,12 +578,67 @@ describe('repository collaboration queue and workers', () => {
         client,
       )
       const redeemed = await redeemCollaborationHandoffTicket(
-        { token, redeemedBy: 'interactive-agent', now: beginning },
+        { token, redeemedBy: 'interactive-agent', now: new Date(beginning.getTime() + 3_000) },
         client,
       )
       expect(redeemed.operationId).toBe(operation.id)
+      expect(redeemed.work).toMatchObject({ operationId: operation.id, fencingToken: 1 })
+      expect(redeemed.work.assignment).toMatchObject({ operationId: operation.id })
       await expect(
-        redeemCollaborationHandoffTicket({ token, redeemedBy: 'replay', now: beginning }, client),
+        redeemCollaborationHandoffTicket(
+          { token, redeemedBy: 'replay', now: new Date(beginning.getTime() + 3_000) },
+          client,
+        ),
+      ).rejects.toMatchObject({ code: 'CONFLICT' })
+
+      const expiredOperation = await scheduleCollaborationOperation(
+        schedule(binding.id, 'ticket-expired', 'two'),
+        client,
+      )
+      await makeDurablyPreparedDivergence(client, expiredOperation.id)
+      const expiredTicket = await createCollaborationHandoffTicket(
+        {
+          bindingId: binding.id,
+          operationId: expiredOperation.id,
+          scope: { operation: 'proposal' },
+          now: beginning,
+          ttlMs: 5_000,
+        },
+        client,
+      )
+      await expect(
+        redeemCollaborationHandoffTicket(
+          {
+            token: expiredTicket.token,
+            redeemedBy: 'expired-agent',
+            now: new Date(beginning.getTime() + 5_001),
+          },
+          client,
+        ),
+      ).rejects.toMatchObject({ code: 'CONFLICT' })
+      await cancelCollaborationOperation(
+        { operationId: expiredOperation.id, reason: 'expired ticket fixture cleanup', now: beginning },
+        client,
+      )
+
+      const cancelledOperation = await scheduleCollaborationOperation(
+        schedule(binding.id, 'ticket-cancelled', 'three'),
+        client,
+      )
+      await makeDurablyPreparedDivergence(client, cancelledOperation.id)
+      const cancelledTicket = await createCollaborationHandoffTicket(
+        { bindingId: binding.id, operationId: cancelledOperation.id, scope: { operation: 'proposal' }, now: beginning },
+        client,
+      )
+      await cancelCollaborationOperation(
+        { operationId: cancelledOperation.id, reason: 'handoff no longer required', now: beginning },
+        client,
+      )
+      await expect(
+        redeemCollaborationHandoffTicket(
+          { token: cancelledTicket.token, redeemedBy: 'cancelled-agent', now: beginning },
+          client,
+        ),
       ).rejects.toMatchObject({ code: 'CONFLICT' })
       await cancelCollaborationOperation(
         { operationId: operation.id, reason: 'user stopped work', now: beginning },

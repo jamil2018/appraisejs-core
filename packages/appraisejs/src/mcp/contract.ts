@@ -115,7 +115,6 @@ export const canonicalMcpToolAnnotations = Object.freeze({
   collaboration_connect: localMutation,
   collaboration_prepare: externalPreparation,
   collaboration_get: readOnly,
-  collaboration_resolution_propose: externalPreparation,
   collaboration_execute: externalCollaborationMutation,
   collaboration_undo_prepare: durableLifecycleMutation,
   collaboration_worker_register: localMutation,

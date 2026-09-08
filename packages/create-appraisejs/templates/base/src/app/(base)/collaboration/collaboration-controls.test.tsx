@@ -4,7 +4,13 @@ import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 
-const mocks = vi.hoisted(() => ({ refresh: vi.fn(), handoff: vi.fn(), cancel: vi.fn(), issueReceipt: vi.fn() }))
+const mocks = vi.hoisted(() => ({
+  refresh: vi.fn(),
+  handoff: vi.fn(),
+  cancel: vi.fn(),
+  issueReceipt: vi.fn(),
+  retryRemote: vi.fn(),
+}))
 
 vi.mock('next/navigation', () => ({ useRouter: () => ({ refresh: mocks.refresh }) }))
 vi.mock('@/actions/repository-collaboration/collaboration-actions', () => ({
@@ -16,6 +22,7 @@ vi.mock('@/actions/repository-collaboration/collaboration-actions', () => ({
   issueCollaborationAuthorityReceiptAction: mocks.issueReceipt,
   prepareCollaborationAction: vi.fn(),
   recoverCollaborationFilesystemAction: vi.fn(),
+  retryCollaborationRemoteCheckAction: mocks.retryRemote,
   updateCollaborationPolicyAction: vi.fn(),
 }))
 
@@ -38,6 +45,8 @@ const status = {
   },
   lastObservedAt: null,
   lastRemoteCheckAt: null,
+  remoteAuthRepairRequired: true,
+  remoteCheckError: 'Repository authentication needs repair before automatic checks can resume.',
   grants: [{ permission: 'PREPARE', enabled: true }],
   notifications: [{ id: 'notice-1', kind: 'remote-failure', message: 'Repair credentials.', actionable: true }],
   operations: [
@@ -66,6 +75,15 @@ const status = {
 } as never
 
 describe('CollaborationControls', () => {
+  it('shows the durable authentication repair state and offers an explicit retry', async () => {
+    mocks.retryRemote.mockResolvedValue({ success: true, data: { id: 'binding-1' } })
+    const user = userEvent.setup()
+    render(<CollaborationControls projectId="project-1" status={status} />)
+    expect(screen.getByText(/authentication needs repair/i)).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: /Retry remote check after repairing credentials/i }))
+    expect(mocks.retryRemote).toHaveBeenCalledWith({ targetProjectId: 'project-1' })
+  })
+
   it('shows honest offline handoff status and exposes one prepared token without claiming native wake', async () => {
     mocks.handoff.mockResolvedValue({
       success: true,

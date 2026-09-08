@@ -1,4 +1,4 @@
-import type { CollaborationPermission, PrismaClient } from '@prisma/client'
+import type { CollaborationPermission, Prisma, PrismaClient } from '@prisma/client'
 
 import prisma from '@/config/db-config'
 import {
@@ -7,10 +7,13 @@ import {
   commitExactCollaborationPaths,
   createDivergentMergeCommit,
   cleanupDivergentReconciliationWorktree,
+  fetchOperationRecoveryRef,
   fastForwardPinned,
+  isCommitAncestor,
   inspectRepository,
   pushPinnedCommit,
   readRemoteRef,
+  verifyExactCollaborationCommit,
 } from '@/lib/repository-collaboration'
 import { ServiceError } from '@/services/shared/errors'
 
@@ -20,6 +23,7 @@ import {
   acquireCollaborationGitMutationLock,
   assertCollaborationGitMutationLock,
   releaseCollaborationGitMutationLock,
+  withCollaborationGitMutationLeaseHeartbeat,
   type CollaborationMutationLease,
 } from './git-mutation-lock-service'
 
@@ -64,6 +68,7 @@ type StartedGitStep = {
     kind: CollaborationGitStep
     requiredPermission: CollaborationPermission
     requestVersion: number
+    intentJson: string
     intentHash: string
     executorEpoch: number
   }
@@ -82,6 +87,7 @@ function gitStepIntent(input: {
   requestVersion: number
   executorEpoch: number
   fencingToken: number
+  commit?: { expectedParent: string; expectedSnapshotHash: string }
 }): Record<string, unknown> {
   return {
     schema: 'appraise.repository-collaboration.git-step-intent/v1',
@@ -96,7 +102,59 @@ function gitStepIntent(input: {
     fencingToken: input.fencingToken,
     sourceRevision: input.operation.sourceRevision,
     targetRevision: input.operation.targetRevision,
+    ...(input.commit ? { commit: input.commit } : {}),
   }
+}
+
+async function persistGitStepIntent(
+  transaction: Prisma.TransactionClient,
+  input: {
+    operation: { id: string; version: number }
+    step: { ordinal: number; kind: CollaborationGitStep }
+    requestVersion: number
+    executorEpoch: number
+    fencingToken: number
+    intent: Record<string, unknown>
+    intentJson: string
+    intentHash: string
+    lockKey: string
+  },
+) {
+  const updated = await transaction.collaborationOperation.update({
+    where: { id: input.operation.id },
+    data: { state: 'APPLYING', executorEpoch: input.executorEpoch, version: { increment: 1 } },
+    include: { binding: true },
+  })
+  await transaction.collaborationOperationStep.update({
+    where: { operationId_ordinal: { operationId: input.operation.id, ordinal: input.step.ordinal } },
+    data: {
+      state: 'RUNNING',
+      requestVersion: input.requestVersion,
+      intentJson: input.intentJson,
+      intentHash: input.intentHash,
+      executorEpoch: input.executorEpoch,
+      startedVersion: updated.version,
+      fencingToken: input.fencingToken,
+      startedAt: new Date(),
+    },
+  })
+  await transaction.collaborationOperationArtifact.create({
+    data: {
+      operationId: input.operation.id,
+      kind: `GIT_STEP_INTENT_${input.step.ordinal}`,
+      revision: input.executorEpoch,
+      payloadJson: input.intentJson,
+      payloadHash: input.intentHash,
+    },
+  })
+  await appendCollaborationJournalEntry(
+    transaction,
+    input.operation.id,
+    `GIT_${input.step.kind}_INTENT`,
+    { intent: input.intent, intentHash: input.intentHash, lockKey: input.lockKey },
+    'STARTED',
+  )
+  return updated
 }
 
 async function startStep(
@@ -151,6 +209,24 @@ async function startStep(
       step.requiredPermission,
       operation.policyVersion,
     )
+    let commit: { expectedParent: string; expectedSnapshotHash: string } | undefined
+    if (step.kind === 'CREATE_COMMIT') {
+      const installation = await transaction.collaborationOperationArtifact.findFirst({
+        where: { operationId: operation.id, kind: 'STEP_INSTALL_SNAPSHOT' },
+        orderBy: { revision: 'desc' },
+      })
+      if (!installation || !operation.targetRevision)
+        throw new ServiceError('No exact installed snapshot and parent are persisted for this commit.', 'CONFLICT', 409)
+      let installed: { publishedSnapshotHash?: unknown }
+      try {
+        installed = JSON.parse(installation.payloadJson) as { publishedSnapshotHash?: unknown }
+      } catch {
+        throw new ServiceError('The installed snapshot receipt is invalid.', 'CONFLICT', 409)
+      }
+      if (typeof installed.publishedSnapshotHash !== 'string')
+        throw new ServiceError('The installed snapshot receipt is invalid.', 'CONFLICT', 409)
+      commit = { expectedParent: operation.targetRevision, expectedSnapshotHash: installed.publishedSnapshotHash }
+    }
     const lease = await acquireCollaborationGitMutationLock(transaction, commonDirectory, operation.id)
     const executorEpoch = operation.executorEpoch + 1
     const intent = gitStepIntent({
@@ -159,46 +235,24 @@ async function startStep(
       requestVersion: input.expectedVersion,
       executorEpoch,
       fencingToken: lease.fencingToken,
+      commit,
     })
     const intentJson = canonicalJson(intent)
     const intentHash = collaborationHash(intent)
-    const updated = await transaction.collaborationOperation.update({
-      where: { id: operation.id },
-      data: { state: 'APPLYING', executorEpoch, version: { increment: 1 } },
-      include: { binding: true },
+    const updated = await persistGitStepIntent(transaction, {
+      operation,
+      step,
+      requestVersion: input.expectedVersion,
+      executorEpoch,
+      fencingToken: lease.fencingToken,
+      intent,
+      intentJson,
+      intentHash,
+      lockKey: lease.lockKey,
     })
-    await transaction.collaborationOperationStep.update({
-      where: { operationId_ordinal: { operationId: operation.id, ordinal: step.ordinal } },
-      data: {
-        state: 'RUNNING',
-        requestVersion: input.expectedVersion,
-        intentJson,
-        intentHash,
-        executorEpoch,
-        startedVersion: updated.version,
-        fencingToken: lease.fencingToken,
-        startedAt: new Date(),
-      },
-    })
-    await transaction.collaborationOperationArtifact.create({
-      data: {
-        operationId: operation.id,
-        kind: `GIT_STEP_INTENT_${step.ordinal}`,
-        revision: executorEpoch,
-        payloadJson: intentJson,
-        payloadHash: intentHash,
-      },
-    })
-    await appendCollaborationJournalEntry(
-      transaction,
-      operation.id,
-      `GIT_${step.kind}_INTENT`,
-      { intent, intentHash, lockKey: lease.lockKey },
-      'STARTED',
-    )
     return {
       operation: updated,
-      step: { ...step, requestVersion: input.expectedVersion, intentHash, executorEpoch },
+      step: { ...step, requestVersion: input.expectedVersion, intentJson, intentHash, executorEpoch },
       lease,
     }
   })
@@ -303,6 +357,38 @@ async function blockStep(client: PrismaClient, started: StartedGitStep, error: u
   })
 }
 
+function parseCreateCommitIntent(intentJson: string): {
+  expectedParent: string
+  expectedSnapshotHash: string
+} {
+  let intent: { commit?: { expectedParent?: unknown; expectedSnapshotHash?: unknown } }
+  try {
+    intent = JSON.parse(
+      // The step's immutable intent is written in the transaction that fences
+      // the external effect; do not derive recovery identity from mutable
+      // operation revisions after the commit may have happened.
+      intentJson,
+    ) as typeof intent
+  } catch {
+    throw new ServiceError('The persisted commit intent is invalid.', 'CONFLICT', 409)
+  }
+  const commit = intent.commit
+  if (
+    !commit ||
+    typeof commit.expectedParent !== 'string' ||
+    !/^[a-f0-9]{40,64}$/u.test(commit.expectedParent) ||
+    typeof commit.expectedSnapshotHash !== 'string' ||
+    !/^[a-f0-9]{64}$/u.test(commit.expectedSnapshotHash)
+  ) {
+    throw new ServiceError('The persisted commit intent has no exact parent and snapshot identity.', 'CONFLICT', 409)
+  }
+  return { expectedParent: commit.expectedParent, expectedSnapshotHash: commit.expectedSnapshotHash }
+}
+
+function persistedCreateCommitIntent(started: StartedGitStep) {
+  return parseCreateCommitIntent(started.step.intentJson)
+}
+
 async function executeStartedGitStep(started: StartedGitStep, client: PrismaClient) {
   const binding = started.operation.binding
   switch (started.step.kind) {
@@ -319,22 +405,13 @@ async function executeStartedGitStep(started: StartedGitStep, client: PrismaClie
       return completeStep(client, started, integrated, { targetRevision: integrated.head })
     }
     case 'CREATE_COMMIT': {
-      const identity = await inspectRepository(binding.repositoryRoot, binding.remoteName)
-      const installation = await client.collaborationOperationArtifact.findFirst({
-        where: { operationId: started.operation.id, kind: 'STEP_INSTALL_SNAPSHOT' },
-        orderBy: { revision: 'desc' },
-      })
-      if (!installation)
-        throw new ServiceError('No exact installed snapshot is persisted for this commit.', 'CONFLICT', 409)
-      const installed = JSON.parse(installation.payloadJson) as { publishedSnapshotHash?: unknown }
-      if (typeof installed.publishedSnapshotHash !== 'string')
-        throw new ServiceError('The installed snapshot receipt is invalid.', 'CONFLICT', 409)
+      const commitIntent = persistedCreateCommitIntent(started)
       const committed = await commitExactCollaborationPaths({
         repositoryRoot: binding.repositoryRoot,
         remote: binding.remoteName,
         branch: binding.trackedBranch,
-        expectedHead: started.operation.targetRevision ?? identity.head,
-        expectedSnapshotHash: installed.publishedSnapshotHash,
+        expectedHead: commitIntent.expectedParent,
+        expectedSnapshotHash: commitIntent.expectedSnapshotHash,
         message: `Appraise collaboration ${started.operation.intent.toLowerCase()} ${started.operation.id}`,
       })
       return completeStep(client, started, committed, {
@@ -452,6 +529,22 @@ export async function getCollaborationGitStatus(bindingId: string, client: Prism
   return { ...status, remoteRevision }
 }
 
+async function observeOperationRepository(binding: {
+  repositoryRoot: string
+  remoteName: string
+  trackedBranch: string
+}) {
+  const [status, remoteRevision] = await Promise.all([
+    inspectRepository(binding.repositoryRoot, binding.remoteName),
+    readRemoteRef({
+      repositoryRoot: binding.repositoryRoot,
+      remote: binding.remoteName,
+      branch: binding.trackedBranch,
+    }),
+  ])
+  return { status, remoteRevision }
+}
+
 /** Executes only the derived next persisted Git step; terminal exact replay is immutable. */
 export async function executeCollaborationGitStep(
   input: ExecuteCollaborationGitStepInput,
@@ -479,7 +572,9 @@ export async function executeCollaborationGitStep(
   const started = await startStep(client, input, identity.commonDirectory)
   if (!started) return operation
   try {
-    return await executeStartedGitStep(started, client)
+    return await withCollaborationGitMutationLeaseHeartbeat(client, started.lease, () =>
+      executeStartedGitStep(started, client),
+    )
   } catch (error) {
     await blockStep(client, started, error)
     if (error instanceof ServiceError) throw error
@@ -499,14 +594,7 @@ export async function recoverCollaborationGitOperation(operationId: string, clie
     },
   })
   if (!operation) throw new ServiceError('Collaboration operation was not found.', 'NOT_FOUND', 404)
-  const [status, remoteRevision] = await Promise.all([
-    inspectRepository(operation.binding.repositoryRoot, operation.binding.remoteName),
-    readRemoteRef({
-      repositoryRoot: operation.binding.repositoryRoot,
-      remote: operation.binding.remoteName,
-      branch: operation.binding.trackedBranch,
-    }),
-  ])
+  const { status, remoteRevision } = await observeOperationRepository(operation.binding)
   const running = operation.steps.find(step => step.state === 'RUNNING')
   if (!running || operation.state !== 'APPLYING') {
     return {
@@ -553,148 +641,185 @@ export async function recoverCollaborationGitOperation(operationId: string, clie
     return { lease, executorEpoch }
   })
   try {
-    // Observations occur only after the new lock epoch is held. A recovery
-    // never guesses that an old executor's external effect succeeded.
-    const [observed, observedRemote] = await Promise.all([
-      inspectRepository(operation.binding.repositoryRoot, operation.binding.remoteName),
-      readRemoteRef({
-        repositoryRoot: operation.binding.repositoryRoot,
-        remote: operation.binding.remoteName,
-        branch: operation.binding.trackedBranch,
-      }),
-    ])
-    const classification = (() => {
-      switch (running.kind as CollaborationGitStep) {
-        case 'FAST_FORWARD_LOCAL':
-          if (operation.sourceRevision && observed.head === operation.sourceRevision)
-            return 'VERIFIED_COMPLETED' as const
-          if (operation.targetRevision && observed.head === operation.targetRevision)
-            return 'SAFE_NO_EFFECT_RETRY' as const
-          return 'AMBIGUOUS_BLOCK' as const
-        case 'CREATE_COMMIT':
-          if (operation.sourceRevision && observed.head === operation.sourceRevision)
-            return 'VERIFIED_COMPLETED' as const
-          if (operation.targetRevision && observed.head === operation.targetRevision)
-            return 'SAFE_NO_EFFECT_RETRY' as const
-          return 'AMBIGUOUS_BLOCK' as const
-        case 'PUSH_REMOTE':
-          if (operation.sourceRevision && observedRemote === operation.sourceRevision)
-            return 'VERIFIED_COMPLETED' as const
-          if (observedRemote === operation.targetRevision) return 'SAFE_NO_EFFECT_RETRY' as const
-          return 'AMBIGUOUS_BLOCK' as const
-        // A merge path is intentionally prepared before review, but a crash
-        // during the fresh merge worktree creation leaves no safe commit ID.
-        // Cleanup likewise retains its artifacts until a completed receipt
-        // proves the worktree identity. Both must block rather than infer.
-        case 'CREATE_MERGE_COMMIT':
-        case 'CLEANUP_WORKTREE':
-        case 'FINALIZE':
-          return 'AMBIGUOUS_BLOCK' as const
-      }
-    })()
-    return await client.$transaction(async transaction => {
-      await assertCollaborationGitMutationLock(transaction, recovery.lease)
-      const current = await transaction.collaborationOperation.findUnique({
-        where: { id: operation.id },
-        include: { steps: true },
-      })
-      const currentStep = current?.steps.find(step => step.ordinal === running.ordinal)
-      if (!current || !currentStep || current.state !== 'APPLYING' || currentStep.state !== 'RUNNING') {
-        throw new ServiceError('The applying Git operation changed before recovery.', 'CONFLICT', 409)
-      }
-      if (!currentStep.intentJson || !currentStep.intentHash || currentStep.executorEpoch === null) {
+    return await withCollaborationGitMutationLeaseHeartbeat(client, recovery.lease, async () => {
+      // Observations occur only after the new lock epoch is held. A recovery
+      // never guesses that an old executor's external effect succeeded.
+      const { status: observed, remoteRevision: observedRemote } = await observeOperationRepository(operation.binding)
+      // The branch tip alone is not proof after an uncertain push: another
+      // writer may have advanced it after our exact commit landed. Fetch into a
+      // distinct recovery ref, preserving the preparation source ref, before
+      // checking ancestry under the newly acquired mutation lease.
+      const recoveredRemote =
+        running.kind === 'PUSH_REMOTE'
+          ? await fetchOperationRecoveryRef({
+              repositoryRoot: operation.binding.repositoryRoot,
+              remote: operation.binding.remoteName,
+              branch: operation.binding.trackedBranch,
+              operationId: operation.id,
+            })
+          : null
+      let recoveredRevisions: { sourceRevision?: string; targetRevision?: string } = {}
+      const classification = await (async () => {
+        switch (running.kind as CollaborationGitStep) {
+          case 'FAST_FORWARD_LOCAL':
+            if (operation.sourceRevision && observed.head === operation.sourceRevision) {
+              recoveredRevisions = { targetRevision: observed.head }
+              return 'VERIFIED_COMPLETED' as const
+            }
+            if (operation.targetRevision && observed.head === operation.targetRevision)
+              return 'SAFE_NO_EFFECT_RETRY' as const
+            return 'AMBIGUOUS_BLOCK' as const
+          case 'CREATE_COMMIT':
+            try {
+              const commitIntent = parseCreateCommitIntent(running.intentJson!)
+              const verified = await verifyExactCollaborationCommit({
+                repositoryRoot: operation.binding.repositoryRoot,
+                operationId: operation.id,
+                commit: observed.head,
+                expectedParent: commitIntent.expectedParent,
+                expectedSnapshotHash: commitIntent.expectedSnapshotHash,
+              })
+              if (verified.matched) {
+                recoveredRevisions = {
+                  sourceRevision: observed.head,
+                  targetRevision: commitIntent.expectedParent,
+                }
+                return 'VERIFIED_COMPLETED' as const
+              }
+              if (observed.head === commitIntent.expectedParent) return 'SAFE_NO_EFFECT_RETRY' as const
+              return 'AMBIGUOUS_BLOCK' as const
+            } catch {
+              return 'AMBIGUOUS_BLOCK' as const
+            }
+          case 'PUSH_REMOTE':
+            if (
+              operation.sourceRevision &&
+              recoveredRemote &&
+              (await isCommitAncestor({
+                repositoryRoot: operation.binding.repositoryRoot,
+                ancestor: operation.sourceRevision,
+                descendant: recoveredRemote.fetchedCommit,
+              }))
+            ) {
+              recoveredRevisions = { targetRevision: recoveredRemote.fetchedCommit }
+              return 'VERIFIED_COMPLETED' as const
+            }
+            if (recoveredRemote?.fetchedCommit === operation.targetRevision) return 'SAFE_NO_EFFECT_RETRY' as const
+            return 'AMBIGUOUS_BLOCK' as const
+          // A merge path is intentionally prepared before review, but a crash
+          // during the fresh merge worktree creation leaves no safe commit ID.
+          // Cleanup likewise retains its artifacts until a completed receipt
+          // proves the worktree identity. Both must block rather than infer.
+          case 'CREATE_MERGE_COMMIT':
+          case 'CLEANUP_WORKTREE':
+          case 'FINALIZE':
+            return 'AMBIGUOUS_BLOCK' as const
+        }
+      })()
+      return await client.$transaction(async transaction => {
+        await assertCollaborationGitMutationLock(transaction, recovery.lease)
+        const current = await transaction.collaborationOperation.findUnique({
+          where: { id: operation.id },
+          include: { steps: true },
+        })
+        const currentStep = current?.steps.find(step => step.ordinal === running.ordinal)
+        if (!current || !currentStep || current.state !== 'APPLYING' || currentStep.state !== 'RUNNING') {
+          throw new ServiceError('The applying Git operation changed before recovery.', 'CONFLICT', 409)
+        }
+        if (!currentStep.intentJson || !currentStep.intentHash || currentStep.executorEpoch === null) {
+          await transaction.collaborationOperationStep.update({
+            where: { operationId_ordinal: { operationId: current.id, ordinal: currentStep.ordinal } },
+            data: { state: 'BLOCKED', evidenceJson: canonicalJson({ code: 'LEGACY_INTENT_MISSING' }) },
+          })
+          await transaction.collaborationOperation.update({
+            where: { id: current.id },
+            data: {
+              state: 'BLOCKED',
+              blockerJson: canonicalJson({ code: 'LEGACY_INTENT_MISSING' }),
+              version: { increment: 1 },
+            },
+          })
+          throw new ServiceError(
+            'Legacy applying Git operation has no immutable intent; prepare it again.',
+            'CONFLICT',
+            409,
+          )
+        }
+        const executorEpoch = recovery.executorEpoch
+        if (current.executorEpoch !== executorEpoch)
+          throw new ServiceError('The recovery executor epoch was replaced before classification.', 'CONFLICT', 409)
+        const details = {
+          classification,
+          recoveredFromExecutorEpoch: currentStep.executorEpoch,
+          executorEpoch,
+          localHead: observed.head,
+          remoteRevision: recoveredRemote?.fetchedCommit ?? observedRemote,
+        }
+        if (classification === 'SAFE_NO_EFFECT_RETRY') {
+          await transaction.collaborationOperationStep.update({
+            where: { operationId_ordinal: { operationId: current.id, ordinal: currentStep.ordinal } },
+            data: { state: 'PENDING', completedAt: null },
+          })
+          await appendCollaborationJournalEntry(
+            transaction,
+            current.id,
+            `GIT_${currentStep.kind}_RECOVERY`,
+            details,
+            'COMPLETED',
+          )
+          return transaction.collaborationOperation.update({
+            where: { id: current.id },
+            data: { state: 'READY', executorEpoch, version: { increment: 1 } },
+          })
+        }
+        if (classification === 'VERIFIED_COMPLETED') {
+          const completedVersion = current.version + 1
+          await transaction.collaborationOperationStep.update({
+            where: { operationId_ordinal: { operationId: current.id, ordinal: currentStep.ordinal } },
+            data: {
+              state: 'COMPLETED',
+              evidenceJson: canonicalJson(details),
+              evidenceHash: collaborationHash(details),
+              completedVersion,
+              completedAt: new Date(),
+            },
+          })
+          await transaction.collaborationOperationArtifact.create({
+            data: {
+              operationId: current.id,
+              kind: `STEP_${currentStep.kind}`,
+              revision: 2,
+              payloadJson: canonicalJson(details),
+              payloadHash: collaborationHash(details),
+            },
+          })
+          await appendCollaborationJournalEntry(
+            transaction,
+            current.id,
+            `GIT_${currentStep.kind}_RECOVERY`,
+            details,
+            'COMPLETED',
+          )
+          return transaction.collaborationOperation.update({
+            where: { id: current.id },
+            data: { ...recoveredRevisions, state: 'READY', executorEpoch, version: { increment: 1 } },
+          })
+        }
         await transaction.collaborationOperationStep.update({
           where: { operationId_ordinal: { operationId: current.id, ordinal: currentStep.ordinal } },
-          data: { state: 'BLOCKED', evidenceJson: canonicalJson({ code: 'LEGACY_INTENT_MISSING' }) },
-        })
-        await transaction.collaborationOperation.update({
-          where: { id: current.id },
-          data: {
-            state: 'BLOCKED',
-            blockerJson: canonicalJson({ code: 'LEGACY_INTENT_MISSING' }),
-            version: { increment: 1 },
-          },
-        })
-        throw new ServiceError(
-          'Legacy applying Git operation has no immutable intent; prepare it again.',
-          'CONFLICT',
-          409,
-        )
-      }
-      const executorEpoch = recovery.executorEpoch
-      if (current.executorEpoch !== executorEpoch)
-        throw new ServiceError('The recovery executor epoch was replaced before classification.', 'CONFLICT', 409)
-      const details = {
-        classification,
-        recoveredFromExecutorEpoch: currentStep.executorEpoch,
-        executorEpoch,
-        localHead: observed.head,
-        remoteRevision: observedRemote,
-      }
-      if (classification === 'SAFE_NO_EFFECT_RETRY') {
-        await transaction.collaborationOperationStep.update({
-          where: { operationId_ordinal: { operationId: current.id, ordinal: currentStep.ordinal } },
-          data: { state: 'PENDING', completedAt: null },
+          data: { state: 'BLOCKED', evidenceJson: canonicalJson(details), evidenceHash: collaborationHash(details) },
         })
         await appendCollaborationJournalEntry(
           transaction,
           current.id,
           `GIT_${currentStep.kind}_RECOVERY`,
           details,
-          'COMPLETED',
+          'BLOCKED',
         )
         return transaction.collaborationOperation.update({
           where: { id: current.id },
-          data: { state: 'READY', executorEpoch, version: { increment: 1 } },
+          data: { state: 'BLOCKED', executorEpoch, blockerJson: canonicalJson(details), version: { increment: 1 } },
         })
-      }
-      if (classification === 'VERIFIED_COMPLETED') {
-        const completedVersion = current.version + 1
-        await transaction.collaborationOperationStep.update({
-          where: { operationId_ordinal: { operationId: current.id, ordinal: currentStep.ordinal } },
-          data: {
-            state: 'COMPLETED',
-            evidenceJson: canonicalJson(details),
-            evidenceHash: collaborationHash(details),
-            completedVersion,
-            completedAt: new Date(),
-          },
-        })
-        await transaction.collaborationOperationArtifact.create({
-          data: {
-            operationId: current.id,
-            kind: `STEP_${currentStep.kind}`,
-            revision: 2,
-            payloadJson: canonicalJson(details),
-            payloadHash: collaborationHash(details),
-          },
-        })
-        await appendCollaborationJournalEntry(
-          transaction,
-          current.id,
-          `GIT_${currentStep.kind}_RECOVERY`,
-          details,
-          'COMPLETED',
-        )
-        return transaction.collaborationOperation.update({
-          where: { id: current.id },
-          data: { state: 'READY', executorEpoch, version: { increment: 1 } },
-        })
-      }
-      await transaction.collaborationOperationStep.update({
-        where: { operationId_ordinal: { operationId: current.id, ordinal: currentStep.ordinal } },
-        data: { state: 'BLOCKED', evidenceJson: canonicalJson(details), evidenceHash: collaborationHash(details) },
-      })
-      await appendCollaborationJournalEntry(
-        transaction,
-        current.id,
-        `GIT_${currentStep.kind}_RECOVERY`,
-        details,
-        'BLOCKED',
-      )
-      return transaction.collaborationOperation.update({
-        where: { id: current.id },
-        data: { state: 'BLOCKED', executorEpoch, blockerJson: canonicalJson(details), version: { increment: 1 } },
       })
     })
   } finally {

@@ -154,11 +154,6 @@ addCollaborationJsonCommand('get', 'Read a target-scoped collaboration operation
   client.collaborationGet(input),
 )
 addCollaborationJsonCommand(
-  'resolution-propose',
-  'Submit a complete record-only proposal for an existing internally prepared divergence.',
-  (client, input) => client.collaborationResolutionPropose(input),
-)
-addCollaborationJsonCommand(
   'decide',
   'Record reviewed collaboration resolutions with a local UI-issued receipt.',
   (client, input, authorityReceipt) => client.collaborationDecide(input, authorityReceipt),
@@ -185,8 +180,10 @@ addCollaborationJsonCommand(
   'Submit exactly one complete record-only worker proposal.',
   (client, input) => client.collaborationWorkComplete(input),
 )
-addCollaborationJsonCommand('handoff-redeem', 'Redeem a one-time collaboration handoff ticket.', (client, input) =>
-  client.collaborationHandoffRedeem(input),
+addCollaborationJsonCommand(
+  'handoff-redeem',
+  'Redeem a ticket into one fenced short-lived proposal work session.',
+  (client, input) => client.collaborationHandoffRedeem(input),
 )
 
 function printJson(value: unknown): void {
