@@ -216,6 +216,30 @@ describe('bounded collaboration Git operations', () => {
     ).rejects.toThrow('Remote branch changed')
   })
 
+  it('rejects an absent remote branch before pushing any unpublished ancestry', async () => {
+    const { remote, repository, head } = await fixture()
+    await collaborationChange(repository)
+    const commit = await commitExactCollaborationPaths({
+      repositoryRoot: repository,
+      remote: 'origin',
+      branch: 'appraise-0.5',
+      expectedHead: head,
+      message: 'unpublished collaboration commit',
+    })
+    await git(remote, ['update-ref', '-d', 'refs/heads/appraise-0.5'])
+
+    await expect(
+      pushPinnedCommit({
+        repositoryRoot: repository,
+        remote: 'origin',
+        branch: 'appraise-0.5',
+        commit: commit.commit,
+        expectedRemoteCommit: head,
+      }),
+    ).rejects.toThrow('REMOTE_BRANCH_ABSENT')
+    expect(await readRemoteRef({ repositoryRoot: repository, remote: 'origin', branch: 'appraise-0.5' })).toBeNull()
+  })
+
   it('confirms a push after an intentionally lost local response', async () => {
     const { root, repository, head } = await fixture()
     await collaborationChange(repository)

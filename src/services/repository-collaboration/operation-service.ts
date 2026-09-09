@@ -90,6 +90,8 @@ type FilesystemRecoveryClassification = 'VERIFIED_COMPLETED' | 'SAFE_NO_EFFECT_R
  * external filesystem result under the lease for an earlier common directory. */
 export type FilesystemGitMutationHooks = {
   inspectRepository?: CollaborationGitIdentityInspector
+  /** Test-only seam proving the pre-effect identity fence prevents recovery work. */
+  recoverCollaborationSnapshot?: typeof recoverCollaborationSnapshot
 }
 
 /** The plan is created with preparation and is the sole authority for later execution. */
@@ -153,8 +155,14 @@ export interface PrepareCollaborationOperationInput {
 }
 
 export type PrepareCollaborationOperationHooks = {
-  /** Called after the operation-owned remote fetch reference is durable. */
+  /** Called immediately before the durable operation-owned Git fetch begins. */
   onExternalEffectStarted?: (operationId: string) => void
+  /** Test-only crash seam: the fetch completed, but its observed receipt has
+   * not yet been persisted, so a retry must remain conservatively PREPARING. */
+  afterFetchBeforeReceiptPersistence?: (operationId: string) => Promise<void> | void
+  /** Test-only crash seam after an observed fetch receipt is durable. Retrying
+   * this operation must materialize that receipt without a second fetch. */
+  afterFetchReceiptPersisted?: (operationId: string) => Promise<void> | void
 }
 
 type PersistedPrepareCollaborationOperationInput = PrepareCollaborationOperationInput & {
@@ -326,6 +334,40 @@ function initialAcceptedDigest(preparedDigest: string, requiresDecision: boolean
   return requiresDecision || divergentProposal ? null : preparedDigest
 }
 
+async function persistPreparedOperationPlan(
+  transaction: Transaction,
+  input: {
+    operationId: string
+    intent: CollaborationOperationIntent
+    sourceRevision: string | undefined
+    targetRevision: string | undefined
+    trigger: string | undefined
+    payload: PreparedOperationPayload
+    preparedDigest: string
+  },
+) {
+  await transaction.collaborationOperationStep.createMany({
+    data: operationPlan(input.intent, input.sourceRevision, input.targetRevision, input.trigger).map(
+      (step, ordinal) => ({
+        operationId: input.operationId,
+        ordinal,
+        kind: step.kind,
+        requiredPermission: step.requiredPermission,
+        prerequisiteDigest: input.preparedDigest,
+      }),
+    ),
+  })
+  await transaction.collaborationOperationArtifact.create({
+    data: {
+      operationId: input.operationId,
+      kind: 'PREPARED_OPERATION',
+      revision: 1,
+      payloadJson: canonicalJson(input.payload),
+      payloadHash: input.preparedDigest,
+    },
+  })
+}
+
 async function createPreparedOperation(
   transaction: Transaction,
   input: PersistedPrepareCollaborationOperationInput,
@@ -354,25 +396,14 @@ async function createPreparedOperation(
       acceptedDigest: initialAcceptedDigest(preparedDigest, requiresDecision, divergentProposal),
     },
   })
-  await transaction.collaborationOperationStep.createMany({
-    data: operationPlan(input.intent, input.sourceRevision, input.targetRevision, input.trigger).map(
-      (step, ordinal) => ({
-        operationId: operation.id,
-        ordinal,
-        kind: step.kind,
-        requiredPermission: step.requiredPermission,
-        prerequisiteDigest: preparedDigest,
-      }),
-    ),
-  })
-  await transaction.collaborationOperationArtifact.create({
-    data: {
-      operationId: operation.id,
-      kind: 'PREPARED_OPERATION',
-      revision: 1,
-      payloadJson: canonicalJson(payload),
-      payloadHash: preparedDigest,
-    },
+  await persistPreparedOperationPlan(transaction, {
+    operationId: operation.id,
+    intent: input.intent,
+    sourceRevision: input.sourceRevision,
+    targetRevision: input.targetRevision,
+    trigger: input.trigger,
+    payload,
+    preparedDigest,
   })
   if (input.intent === 'PUBLISH') {
     const { expectedPreviousSnapshotHash } = input
@@ -558,6 +589,359 @@ async function finalizeDecision(
   return updated
 }
 
+type ReceiveFetchObservation = {
+  sourceRef: string
+  sourceRevision: string
+  sourceTree: string
+  targetRevision: string
+}
+type ReceiveClassification = Awaited<ReturnType<typeof classifyPinnedReceive>>
+type ReceiveMaterializationDisposition = {
+  intent: CollaborationOperationIntent
+  state: 'BLOCKED' | 'PREPARING' | 'WAITING_FOR_DECISION' | 'READY'
+  accepted: boolean
+  blockerJson: string | null
+}
+
+function receiveReservationDigest(input: PrepareCollaborationOperationInput) {
+  return operationInputDigest({ ...input, sourceRevision: undefined, targetRevision: undefined }, [])
+}
+
+function receiveFetchIntent(input: PrepareCollaborationOperationInput, operationId: string) {
+  return {
+    schema: 'appraise.repository-collaboration.receive-fetch-intent/v1',
+    operationId,
+    bindingId: input.bindingId,
+    requestDigest: receiveReservationDigest(input),
+  }
+}
+
+async function reserveReceiveFetch(
+  input: PrepareCollaborationOperationInput,
+  client: PrismaClient,
+): Promise<{
+  operation: CollaborationOperation
+  binding: Awaited<ReturnType<typeof requireCollaborationPermission>>['binding']
+  created: boolean
+}> {
+  return client.$transaction(async transaction => {
+    const permission = await requireCollaborationPermission(
+      transaction,
+      input.bindingId,
+      'PREPARE',
+      input.expectedPolicyVersion,
+    )
+    const requestDigest = receiveReservationDigest(input)
+    const existing = await transaction.collaborationOperation.findUnique({
+      where: { bindingId_idempotencyKey: { bindingId: permission.binding.id, idempotencyKey: input.idempotencyKey } },
+    })
+    if (existing) {
+      if (existing.sourceSnapshotHash !== requestDigest || !['RECEIVE', 'RECONCILE'].includes(existing.intent))
+        throw new ServiceError('The idempotency key belongs to a different operation.', 'CONFLICT', 409)
+      return { operation: existing, binding: permission.binding, created: false }
+    }
+    const operationId = input.operationId ?? randomUUID()
+    const operation = await transaction.collaborationOperation.create({
+      data: {
+        id: operationId,
+        bindingId: permission.binding.id,
+        intent: 'RECEIVE',
+        trigger: input.trigger ?? 'local-ui',
+        state: 'PREPARING',
+        idempotencyKey: input.idempotencyKey,
+        sourceSnapshotHash: requestDigest,
+        policyVersion: permission.binding.policyVersion,
+      },
+    })
+    const intent = receiveFetchIntent(input, operation.id)
+    await transaction.collaborationOperationArtifact.create({
+      data: {
+        operationId: operation.id,
+        kind: 'GIT_RECEIVE_FETCH_INTENT',
+        revision: 1,
+        payloadJson: canonicalJson(intent),
+        payloadHash: collaborationHash(intent),
+      },
+    })
+    await appendJournal(transaction, operation.id, 'RECEIVE_FETCH_RESERVED', { requestDigest })
+    return { operation, binding: permission.binding, created: true }
+  })
+}
+
+function parseReceiveFetchObservation(artifact: { payloadJson: string; payloadHash: string }): ReceiveFetchObservation {
+  try {
+    const parsed = JSON.parse(artifact.payloadJson) as Partial<ReceiveFetchObservation>
+    if (
+      typeof parsed.sourceRef !== 'string' ||
+      typeof parsed.sourceRevision !== 'string' ||
+      typeof parsed.sourceTree !== 'string' ||
+      typeof parsed.targetRevision !== 'string' ||
+      artifact.payloadHash !== collaborationHash(parsed)
+    )
+      throw new Error('invalid observed fetch receipt')
+    return parsed as ReceiveFetchObservation
+  } catch {
+    throw new ServiceError('The persisted receive fetch receipt is invalid.', 'CONFLICT', 409)
+  }
+}
+
+async function observedReceiveFetch(operationId: string, client: PrismaClient) {
+  const artifact = await client.collaborationOperationArtifact.findFirst({
+    where: { operationId, kind: 'GIT_RECEIVE_FETCH_OBSERVED' },
+    orderBy: { revision: 'desc' },
+  })
+  return artifact ? parseReceiveFetchObservation(artifact) : null
+}
+
+async function fetchAndObserveReceiveSource(
+  reserved: Awaited<ReturnType<typeof reserveReceiveFetch>>,
+  input: PrepareCollaborationOperationInput,
+  client: PrismaClient,
+  hooks?: PrepareCollaborationOperationHooks,
+): Promise<ReceiveFetchObservation> {
+  const identity = await inspectRepository(reserved.binding.repositoryRoot, reserved.binding.remoteName)
+  const lease = await client.$transaction(transaction =>
+    acquireCollaborationGitMutationLock(transaction, identity.commonDirectory, reserved.operation.id),
+  )
+  try {
+    return await withCollaborationGitMutationLeaseHeartbeat(client, lease, async () => {
+      await client.$transaction(transaction => assertCollaborationGitMutationLock(transaction, lease))
+      await assertCollaborationGitMutationIdentity(
+        reserved.binding.repositoryRoot,
+        identity.commonDirectory,
+        reserved.binding.remoteName,
+      )
+      hooks?.onExternalEffectStarted?.(reserved.operation.id)
+      const fetched = await fetchOperationSourceRef({
+        repositoryRoot: reserved.binding.repositoryRoot,
+        remote: reserved.binding.remoteName,
+        branch: reserved.binding.trackedBranch,
+        operationId: reserved.operation.id,
+      })
+      await hooks?.afterFetchBeforeReceiptPersistence?.(reserved.operation.id)
+      await assertCollaborationGitMutationIdentity(
+        reserved.binding.repositoryRoot,
+        identity.commonDirectory,
+        reserved.binding.remoteName,
+      )
+      const observed = {
+        sourceRef: fetched.sourceRef,
+        sourceRevision: fetched.fetchedCommit,
+        sourceTree: fetched.fetchedTree,
+        targetRevision: identity.head,
+      }
+      await client.$transaction(async transaction => {
+        await assertCollaborationGitMutationLock(transaction, lease)
+        const current = await transaction.collaborationOperation.findUnique({ where: { id: reserved.operation.id } })
+        if (!current || current.state !== 'PREPARING' || current.sourceSnapshotHash !== receiveReservationDigest(input))
+          throw new ServiceError(
+            'The receive operation changed before its fetch receipt was recorded.',
+            'CONFLICT',
+            409,
+          )
+        await transaction.collaborationOperationArtifact.create({
+          data: {
+            operationId: current.id,
+            kind: 'GIT_RECEIVE_FETCH_OBSERVED',
+            revision: 1,
+            payloadJson: canonicalJson(observed),
+            payloadHash: collaborationHash(observed),
+          },
+        })
+        await appendJournal(transaction, current.id, 'RECEIVE_FETCH_OBSERVED', observed)
+      })
+      await hooks?.afterFetchReceiptPersisted?.(reserved.operation.id)
+      return observed
+    })
+  } finally {
+    await client.$transaction(transaction => releaseCollaborationGitMutationLock(transaction, lease))
+  }
+}
+
+async function blockReceiveAfterObservedFetch(operationId: string, client: PrismaClient, error: unknown) {
+  const message = error instanceof Error ? error.message : 'Receive validation failed after remote fetch.'
+  await client.$transaction(async transaction => {
+    const current = await transaction.collaborationOperation.findUnique({ where: { id: operationId } })
+    if (!current || current.state !== 'PREPARING') return
+    await transaction.collaborationOperation.update({
+      where: { id: current.id },
+      data: {
+        state: 'BLOCKED',
+        acceptedDigest: null,
+        blockerJson: canonicalJson({ kind: 'RECEIVE_POST_FETCH_VALIDATION_FAILED', message }),
+      },
+    })
+    await appendJournal(transaction, current.id, 'RECEIVE_POST_FETCH_VALIDATION_FAILED', { message }, 'BLOCKED')
+  })
+}
+
+function blockedReceiveDisposition(
+  kind: 'LOCAL_AHEAD' | 'UNRELATED_HISTORY' | 'FOREIGN_PATH_DIVERGENCE',
+  classification: ReceiveClassification,
+): ReceiveMaterializationDisposition {
+  return {
+    intent: 'RECEIVE',
+    state: 'BLOCKED',
+    accepted: false,
+    blockerJson: canonicalJson({ kind, classification }),
+  }
+}
+
+function receiveMaterializationDisposition(
+  classification: ReceiveClassification,
+  requiresDecision: boolean,
+): ReceiveMaterializationDisposition {
+  if (classification.kind === 'DIVERGED') {
+    if (classification.foreignPaths.length === 0) {
+      return { intent: 'RECONCILE', state: 'PREPARING', accepted: false, blockerJson: null }
+    }
+    return blockedReceiveDisposition('FOREIGN_PATH_DIVERGENCE', classification)
+  }
+  if (classification.kind === 'LOCAL_AHEAD') return blockedReceiveDisposition('LOCAL_AHEAD', classification)
+  if (classification.kind === 'UNRELATED') return blockedReceiveDisposition('UNRELATED_HISTORY', classification)
+  if (requiresDecision) {
+    return { intent: 'RECEIVE', state: 'WAITING_FOR_DECISION', accepted: false, blockerJson: null }
+  }
+  return { intent: 'RECEIVE', state: 'READY', accepted: true, blockerJson: null }
+}
+
+async function readReceiveMaterializationInputs(
+  transaction: Transaction,
+  reserved: Awaited<ReturnType<typeof reserveReceiveFetch>>,
+  input: PrepareCollaborationOperationInput,
+) {
+  const permission = await requireCollaborationPermission(
+    transaction,
+    input.bindingId,
+    'PREPARE',
+    input.expectedPolicyVersion,
+  )
+  const current = await transaction.collaborationOperation.findUnique({ where: { id: reserved.operation.id } })
+  if (!current) throw new ServiceError('Collaboration operation was not found.', 'NOT_FOUND', 404)
+  if (current.state !== 'PREPARING' || current.sourceSnapshotHash !== receiveReservationDigest(input)) {
+    throw new ServiceError('The receive operation changed before classification.', 'CONFLICT', 409)
+  }
+  const localSnapshot = await projectSnapshotInTransaction(transaction, permission.binding.id)
+  return {
+    bindingId: permission.binding.id,
+    operationId: current.id,
+    local: dependencyClosed(snapshotRecords(localSnapshot)),
+    baselines: await baselineRecords(transaction, permission.binding.id),
+  }
+}
+
+async function persistMaterializedReceive(
+  transaction: Transaction,
+  input: {
+    operationId: string
+    trigger: string | undefined
+    observed: ReceiveFetchObservation
+    sourceSnapshotHash: string
+    payload: PreparedOperationPayload
+    preparedDigest: string
+    classification: ReceiveClassification
+    disposition: ReceiveMaterializationDisposition
+  },
+) {
+  const operation = await transaction.collaborationOperation.update({
+    where: { id: input.operationId },
+    data: {
+      intent: input.disposition.intent,
+      state: input.disposition.state,
+      sourceRevision: input.observed.sourceRevision,
+      targetRevision: input.observed.targetRevision,
+      localReadSetHash: input.payload.localReadSetHash,
+      preparedJson: canonicalJson(input.payload),
+      preparedDigest: input.preparedDigest,
+      acceptedDigest: input.disposition.accepted ? input.preparedDigest : null,
+      blockerJson: input.disposition.blockerJson,
+      version: { increment: 1 },
+    },
+  })
+  await persistPreparedOperationPlan(transaction, {
+    operationId: operation.id,
+    intent: input.disposition.intent,
+    sourceRevision: input.observed.sourceRevision,
+    targetRevision: input.observed.targetRevision,
+    trigger: input.trigger,
+    payload: input.payload,
+    preparedDigest: input.preparedDigest,
+  })
+  const sourceReceipt = { ...input.observed, snapshotHash: input.sourceSnapshotHash }
+  await transaction.collaborationOperationArtifact.create({
+    data: {
+      operationId: operation.id,
+      kind: 'GIT_RECEIVE_SOURCE',
+      revision: 1,
+      payloadJson: canonicalJson(sourceReceipt),
+      payloadHash: collaborationHash(sourceReceipt),
+    },
+  })
+  await appendJournal(transaction, operation.id, 'PREPARED', {
+    preparedDigest: input.preparedDigest,
+    localReadSetHash: input.payload.localReadSetHash,
+    dependencyClosed: true,
+    plan: operationPlan(
+      input.disposition.intent,
+      input.observed.sourceRevision,
+      input.observed.targetRevision,
+      input.trigger,
+    ).map(step => step.kind),
+  })
+  await appendJournal(transaction, operation.id, 'RECEIVE_CLASSIFIED', input.classification)
+  return operation
+}
+
+async function materializeObservedReceive(
+  reserved: Awaited<ReturnType<typeof reserveReceiveFetch>>,
+  input: PrepareCollaborationOperationInput,
+  observed: ReceiveFetchObservation,
+  client: PrismaClient,
+) {
+  const sourceSnapshot = await readCollaborationSnapshotAtCommit({
+    repositoryRoot: reserved.binding.repositoryRoot,
+    commit: observed.sourceRevision,
+    operationId: reserved.operation.id,
+  })
+  const received = dependencyClosed(sourceSnapshot.records)
+  assertMatchingPortableProject(received, reserved.binding.portableProjectId)
+  const classification = await classifyPinnedReceive({
+    repositoryRoot: reserved.binding.repositoryRoot,
+    sourceRevision: observed.sourceRevision,
+    targetRevision: observed.targetRevision,
+  })
+  const materialized = await client.$transaction(async transaction => {
+    const materialization = await readReceiveMaterializationInputs(transaction, reserved, input)
+    const payload = buildPreparedPayload(received, materialization.local, materialization.baselines)
+    const preparedDigest = collaborationHash(payload)
+    const disposition = receiveMaterializationDisposition(classification, requiredDecisionKeys(payload).size > 0)
+    const operation = await persistMaterializedReceive(transaction, {
+      operationId: materialization.operationId,
+      trigger: input.trigger,
+      observed,
+      sourceSnapshotHash: sourceSnapshot.snapshotHash,
+      payload,
+      preparedDigest,
+      classification,
+      disposition,
+    })
+    return { operation, classification }
+  })
+  if (materialized.classification.kind === 'DIVERGED' && materialized.classification.foreignPaths.length === 0) {
+    await prepareDivergentCollaborationReconciliation(
+      {
+        operationId: materialized.operation.id,
+        expectedVersion: materialized.operation.version,
+        preparedDigest: materialized.operation.preparedDigest!,
+        queueAfterPreparation: true,
+      },
+      client,
+    )
+    return client.collaborationOperation.findUniqueOrThrow({ where: { id: materialized.operation.id } })
+  }
+  return materialized.operation
+}
+
 export async function prepareCollaborationOperation(
   input: PrepareCollaborationOperationInput,
   client: PrismaClient = prisma,
@@ -565,141 +949,20 @@ export async function prepareCollaborationOperation(
 ) {
   if (!input.idempotencyKey.trim()) throw new ServiceError('An idempotency key is required.', 'VALIDATION', 400)
   if (input.intent === 'RECEIVE' && !input.incomingRecords) {
-    const binding = await client.$transaction(transaction =>
-      requireCollaborationPermission(transaction, input.bindingId, 'PREPARE', input.expectedPolicyVersion),
-    )
-    const operationId = input.operationId ?? randomUUID()
-    const identity = await inspectRepository(binding.binding.repositoryRoot, binding.binding.remoteName)
-    const fetched = await fetchOperationSourceRef({
-      repositoryRoot: binding.binding.repositoryRoot,
-      remote: binding.binding.remoteName,
-      branch: binding.binding.trackedBranch,
-      operationId,
-    })
-    hooks?.onExternalEffectStarted?.(operationId)
-    const sourceSnapshot = await readCollaborationSnapshotAtCommit({
-      repositoryRoot: binding.binding.repositoryRoot,
-      commit: fetched.fetchedCommit,
-      operationId,
-    })
-    const received = dependencyClosed(sourceSnapshot.records)
-    assertMatchingPortableProject(received, binding.binding.portableProjectId)
-    const classification = await classifyPinnedReceive({
-      repositoryRoot: binding.binding.repositoryRoot,
-      sourceRevision: fetched.fetchedCommit,
-      targetRevision: identity.head,
-    })
-    const preparedInput = {
-      ...input,
-      operationId,
-      incomingRecords: received,
-      sourceRevision: fetched.fetchedCommit,
-      targetRevision: identity.head,
+    const reserved = await reserveReceiveFetch(input, client)
+    if (reserved.operation.state !== 'PREPARING') return publicOperation(reserved.operation)
+    const observed =
+      (await observedReceiveFetch(reserved.operation.id, client)) ??
+      (await fetchAndObserveReceiveSource(reserved, input, client, hooks))
+    try {
+      return publicOperation(await materializeObservedReceive(reserved, input, observed, client))
+    } catch (error) {
+      // Once a fetch receipt exists, malformed source content or classification
+      // is known durable state—not an unknown Git effect—so make the operation
+      // observable and recoverable instead of dropping its identity.
+      await blockReceiveAfterObservedFetch(reserved.operation.id, client, error)
+      throw error
     }
-    const persisted = await client.$transaction(async transaction => {
-      const { binding: currentBinding } = await requireCollaborationPermission(
-        transaction,
-        input.bindingId,
-        'PREPARE',
-        input.expectedPolicyVersion,
-      )
-      const localSnapshot = await projectSnapshotInTransaction(transaction, currentBinding.id)
-      const local = dependencyClosed(snapshotRecords(localSnapshot))
-      const baselines = await baselineRecords(transaction, currentBinding.id)
-      const payload = buildPreparedPayload(received, local, baselines)
-      const requestDigest = operationInputDigest(preparedInput, received)
-      const reconciliationInput =
-        classification.kind === 'DIVERGED' && classification.foreignPaths.length === 0
-          ? { ...preparedInput, intent: 'RECONCILE' as const }
-          : preparedInput
-      const existing = await findIdempotentOperation(
-        transaction,
-        currentBinding.id,
-        preparedInput,
-        requestDigest,
-        reconciliationInput.intent,
-      )
-      if (existing) return { operation: existing, classification, created: false }
-      const operation = await createPreparedOperation(
-        transaction,
-        reconciliationInput,
-        currentBinding,
-        payload,
-        requestDigest,
-      )
-      await transaction.collaborationOperationArtifact.create({
-        data: {
-          operationId: operation.id,
-          kind: 'GIT_RECEIVE_SOURCE',
-          revision: 1,
-          payloadJson: canonicalJson({
-            sourceRef: fetched.sourceRef,
-            sourceRevision: fetched.fetchedCommit,
-            sourceTree: fetched.fetchedTree,
-            targetRevision: identity.head,
-            snapshotHash: sourceSnapshot.snapshotHash,
-          }),
-          payloadHash: collaborationHash({
-            sourceRevision: fetched.fetchedCommit,
-            sourceTree: fetched.fetchedTree,
-            targetRevision: identity.head,
-            snapshotHash: sourceSnapshot.snapshotHash,
-          }),
-        },
-      })
-      await appendJournal(transaction, operation.id, 'RECEIVE_CLASSIFIED', classification)
-      if (
-        classification.kind === 'LOCAL_AHEAD' ||
-        classification.kind === 'UNRELATED' ||
-        (classification.kind === 'DIVERGED' && classification.foreignPaths.length > 0)
-      ) {
-        const blocked = await transaction.collaborationOperation.update({
-          where: { id: operation.id },
-          data: {
-            state: 'BLOCKED',
-            acceptedDigest: null,
-            blockerJson: canonicalJson({
-              kind:
-                classification.kind === 'LOCAL_AHEAD'
-                  ? 'LOCAL_AHEAD'
-                  : classification.kind === 'UNRELATED'
-                    ? 'UNRELATED_HISTORY'
-                    : 'FOREIGN_PATH_DIVERGENCE',
-              classification,
-            }),
-          },
-        })
-        return { operation: blocked, classification, created: true }
-      }
-      if (classification.kind === 'DIVERGED') {
-        const preparing = await transaction.collaborationOperation.update({
-          where: { id: operation.id },
-          data: { state: 'PREPARING', acceptedDigest: null, queueKey: null, nextAttemptAt: null },
-        })
-        return { operation: preparing, classification, created: true }
-      }
-      return { operation, classification, created: true }
-    })
-    if (
-      !persisted.created ||
-      persisted.classification.kind !== 'DIVERGED' ||
-      persisted.classification.foreignPaths.length > 0
-    )
-      return publicOperation(persisted.operation)
-    // The operation stays PREPARING while the isolated worktree is created;
-    // no worker can claim it until that preparation receipt is durable.
-    await prepareDivergentCollaborationReconciliation(
-      {
-        operationId: persisted.operation.id,
-        expectedVersion: persisted.operation.version,
-        preparedDigest: persisted.operation.preparedDigest!,
-        queueAfterPreparation: true,
-      },
-      client,
-    )
-    return publicOperation(
-      await client.collaborationOperation.findUniqueOrThrow({ where: { id: persisted.operation.id } }),
-    )
   }
   const publicationPreparation =
     input.intent === 'PUBLISH'
@@ -1616,8 +1879,16 @@ async function performFilesystemRecovery(
   hooks?: FilesystemGitMutationHooks,
 ) {
   const inspect = hooks?.inspectRepository ?? inspectRepository
+  await client.$transaction(transaction => assertCollaborationGitMutationLock(transaction, lease))
+  await assertCollaborationGitMutationIdentity(
+    recovery.operation.binding.repositoryRoot,
+    commonDirectory,
+    recovery.operation.binding.remoteName,
+    inspect,
+  )
   const boundary = recoveryBoundary(recovery.operation)
-  const recovered = await recoverCollaborationSnapshot({
+  const recoverSnapshot = hooks?.recoverCollaborationSnapshot ?? recoverCollaborationSnapshot
+  const recovered = await recoverSnapshot({
     repositoryRoot: recovery.operation.binding.repositoryRoot,
     operationId: recovery.operation.id,
     stagingPath: boundary.stagingPath,

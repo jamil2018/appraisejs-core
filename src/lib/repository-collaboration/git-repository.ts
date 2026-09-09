@@ -451,18 +451,17 @@ export async function pushPinnedCommit(input: {
     remote: input.remote,
     branch: input.branch,
   })
+  if (observed === null) throw new Error('REMOTE_BRANCH_ABSENT: configured remote branch must exist before push.')
   if (observed !== input.expectedRemoteCommit) throw new Error('Remote branch changed after preparation.')
-  if (observed) {
-    const ancestry = await runGitAllowFailure(identity.repositoryRoot, {
-      kind: 'merge-base-is-ancestor',
-      older: observed,
-      newer: input.commit,
-    })
-    if (ancestry.exitCode !== 0) throw new Error('The operation commit does not descend from the pinned remote commit.')
-    const pushedPaths = await commitRangePaths(identity.repositoryRoot, observed, input.commit)
-    if (!pushedPaths.length || pushedPaths.some(filePath => !isCollaborationPath(filePath))) {
-      throw new Error('The outgoing commit range includes paths outside appraise/collaboration.')
-    }
+  const ancestry = await runGitAllowFailure(identity.repositoryRoot, {
+    kind: 'merge-base-is-ancestor',
+    older: observed,
+    newer: input.commit,
+  })
+  if (ancestry.exitCode !== 0) throw new Error('The operation commit does not descend from the pinned remote commit.')
+  const pushedPaths = await commitRangePaths(identity.repositoryRoot, observed, input.commit)
+  if (!pushedPaths.length || pushedPaths.some(filePath => !isCollaborationPath(filePath))) {
+    throw new Error('The outgoing commit range includes paths outside appraise/collaboration.')
   }
   try {
     await runGit(identity.repositoryRoot, {

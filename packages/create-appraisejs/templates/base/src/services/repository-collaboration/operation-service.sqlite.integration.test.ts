@@ -488,10 +488,145 @@ describe('durable collaboration operations', () => {
     }
   })
 
+  it('reserves a receive before fetch, recovers an uncertain fetch, and never refetches after its receipt', async () => {
+    const { client, binding } = await fixture({ git: true })
+    let linkedWorktree: string | undefined
+    try {
+      await writeSnapshot(binding.repositoryRoot, [moduleRecord('remote-module', 'Remote')])
+      await commitSnapshot(binding.repositoryRoot, 'remote receive snapshot')
+      await git(binding.repositoryRoot, 'push', 'origin', 'appraise-0.5')
+      let externalEffects = 0
+      let operationId: string | undefined
+      const input = {
+        bindingId: binding.id,
+        intent: 'RECEIVE' as const,
+        idempotencyKey: 'durable-receive-fetch',
+        expectedPolicyVersion: binding.policyVersion,
+      }
+      linkedWorktree = path.join(
+        path.dirname(binding.repositoryRoot),
+        `${path.basename(binding.repositoryRoot)}-linked-receive`,
+      )
+      await git(binding.repositoryRoot, 'worktree', 'add', '-b', 'linked-receive', linkedWorktree)
+      const linkedIdentity = await inspectRepository(linkedWorktree, binding.remoteName)
+      const primaryIdentity = await inspectRepository(binding.repositoryRoot, binding.remoteName)
+      expect(linkedIdentity.commonDirectory).toBe(primaryIdentity.commonDirectory)
+      const competingLease = await client.$transaction(transaction =>
+        acquireCollaborationGitMutationLock(transaction, linkedIdentity.commonDirectory, 'linked-receive-owner'),
+      )
+      await expect(
+        prepareCollaborationOperation(input, client, {
+          onExternalEffectStarted: () => {
+            externalEffects += 1
+          },
+        }),
+      ).rejects.toMatchObject({ code: 'CONFLICT' })
+      expect(externalEffects).toBe(0)
+      await client.$transaction(transaction => releaseCollaborationGitMutationLock(transaction, competingLease))
+      await expect(
+        prepareCollaborationOperation(input, client, {
+          onExternalEffectStarted: id => {
+            externalEffects += 1
+            operationId = id
+          },
+          afterFetchBeforeReceiptPersistence: () => {
+            throw new Error('injected fetch receipt persistence interruption')
+          },
+        }),
+      ).rejects.toThrow('injected fetch receipt persistence interruption')
+      expect(operationId).toBeTruthy()
+      expect(await client.collaborationOperation.findUniqueOrThrow({ where: { id: operationId! } })).toMatchObject({
+        state: 'PREPARING',
+        sourceRevision: null,
+        preparedDigest: null,
+      })
+      await expect(
+        client.collaborationOperationArtifact.count({
+          where: { operationId: operationId!, kind: 'GIT_RECEIVE_FETCH_OBSERVED' },
+        }),
+      ).resolves.toBe(0)
+
+      await expect(
+        prepareCollaborationOperation(input, client, {
+          onExternalEffectStarted: () => {
+            externalEffects += 1
+          },
+          afterFetchReceiptPersisted: () => {
+            throw new Error('injected post-receipt interruption')
+          },
+        }),
+      ).rejects.toThrow('injected post-receipt interruption')
+      expect(externalEffects).toBe(2)
+      await expect(
+        client.collaborationOperationArtifact.count({
+          where: { operationId: operationId!, kind: 'GIT_RECEIVE_FETCH_OBSERVED' },
+        }),
+      ).resolves.toBe(1)
+
+      const prepared = await prepareCollaborationOperation(input, client, {
+        onExternalEffectStarted: () => {
+          externalEffects += 1
+        },
+      })
+      expect(externalEffects).toBe(2)
+      expect(prepared).toMatchObject({ id: operationId, state: 'READY' })
+      expect(prepared.sourceRevision).toMatch(/^[a-f0-9]{40}$/)
+      await expect(
+        client.collaborationOperationArtifact.findFirstOrThrow({
+          where: { operationId: operationId!, kind: 'GIT_RECEIVE_SOURCE' },
+        }),
+      ).resolves.toMatchObject({ payloadJson: expect.stringContaining('snapshotHash') })
+    } finally {
+      if (linkedWorktree) {
+        await git(binding.repositoryRoot, 'worktree', 'remove', '--force', linkedWorktree).catch(() => undefined)
+      }
+      await client.$disconnect()
+    }
+  })
+
+  it('blocks a receive when post-fetch source validation is known-invalid', async () => {
+    const { client, binding } = await fixture({ git: true })
+    try {
+      await writeSnapshot(binding.repositoryRoot, [moduleRecord('remote-invalid-module', 'Remote invalid')])
+      await commitSnapshot(binding.repositoryRoot, 'remote invalid receive snapshot')
+      await git(binding.repositoryRoot, 'push', 'origin', 'appraise-0.5')
+      await client.collaborationBinding.update({
+        where: { id: binding.id },
+        data: { portableProjectId: 'different-project' },
+      })
+      let operationId: string | undefined
+      await expect(
+        prepareCollaborationOperation(
+          {
+            bindingId: binding.id,
+            intent: 'RECEIVE',
+            idempotencyKey: 'invalid-receive-fetch',
+            expectedPolicyVersion: binding.policyVersion,
+          },
+          client,
+          { onExternalEffectStarted: id => (operationId = id) },
+        ),
+      ).rejects.toMatchObject({ code: 'CONFLICT' })
+      expect(operationId).toBeTruthy()
+      expect(await client.collaborationOperation.findUniqueOrThrow({ where: { id: operationId! } })).toMatchObject({
+        state: 'BLOCKED',
+        blockerJson: expect.stringContaining('RECEIVE_POST_FETCH_VALIDATION_FAILED'),
+      })
+      await expect(
+        client.collaborationOperationArtifact.count({
+          where: { operationId: operationId!, kind: 'GIT_RECEIVE_FETCH_OBSERVED' },
+        }),
+      ).resolves.toBe(1)
+    } finally {
+      await client.$disconnect()
+    }
+  })
+
   it('publishes through durable filesystem boundaries and blocks external repository edits', async () => {
     const { client, binding, target } = await fixture({ git: true })
     try {
       await client.module.create({ data: { id: 'local-module', name: 'Local', targetProjectId: target.id } })
+      await git(binding.repositoryRoot, 'push', 'origin', 'appraise-0.5')
       const publicationPolicy = await updateCollaborationPolicy(
         {
           bindingId: binding.id,
@@ -717,6 +852,7 @@ describe('durable collaboration operations', () => {
         },
       })
       let recoveryInspections = 0
+      let recoveryEffects = 0
       await expect(
         recoverCollaborationOperationFilesystem(prepared.id, client, {
           inspectRepository: async (repositoryRoot, remote) => {
@@ -726,9 +862,14 @@ describe('durable collaboration operations', () => {
               ? { ...identity, commonDirectory: `${identity.commonDirectory}-retargeted` }
               : identity
           },
+          recoverCollaborationSnapshot: async () => {
+            recoveryEffects += 1
+            throw new Error('recovery effect should not begin after a pre-effect retarget')
+          },
         }),
       ).rejects.toMatchObject({ code: 'CONFLICT' })
       expect(recoveryInspections).toBe(2)
+      expect(recoveryEffects).toBe(0)
       expect(await client.collaborationOperation.findUniqueOrThrow({ where: { id: prepared.id } })).toMatchObject({
         state: 'APPLYING',
       })

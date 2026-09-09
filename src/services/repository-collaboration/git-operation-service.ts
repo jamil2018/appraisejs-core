@@ -476,11 +476,7 @@ async function executeStartedGitStep(
       }
       const expectedRemoteCommit = merge
         ? ((JSON.parse(merge.payloadJson) as { parents?: [string, string] }).parents?.[0] ?? null)
-        : await readRemoteRef({
-            repositoryRoot: binding.repositoryRoot,
-            remote: binding.remoteName,
-            branch: binding.trackedBranch,
-          })
+        : started.operation.targetRevision
       const pushed = await pushPinnedCommit({
         repositoryRoot: binding.repositoryRoot,
         remote: binding.remoteName,
