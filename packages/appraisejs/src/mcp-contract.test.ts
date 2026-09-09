@@ -51,6 +51,13 @@ describe('canonical MCP contract registry', () => {
     }
   })
 
+  it('marks collaboration status as an open-world scheduler operation, not a read-only lookup', () => {
+    expect(canonicalMcpToolAnnotations.collaboration_status).toMatchObject({
+      readOnlyHint: false,
+      openWorldHint: true,
+    })
+  })
+
   it('excludes every retired Quality Plan and Assessment MCP operation and resource', async () => {
     const names = new Set((await definitions()).map(definition => definition.name))
     for (const retired of [

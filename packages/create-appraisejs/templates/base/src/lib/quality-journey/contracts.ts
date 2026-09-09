@@ -177,6 +177,18 @@ export const journeyArtifactLinkSchema = z
       context.addIssue({ code: 'custom', message: 'Artifact kinds are invalid for this relation.' })
   })
 
+export const advisoryReuseInputReferenceSchema = z
+  .object({
+    kind: z.enum(['ANALYSIS', 'SCENARIO']),
+    seedId: id,
+    assetPortableId: id,
+    sourceVersion: z.number().int().positive(),
+    sourcePayloadHash: z.string().regex(/^[a-f0-9]{64}$/),
+    contentHash: z.string().regex(/^[a-f0-9]{64}$/),
+  })
+  .strict()
+export type AdvisoryReuseInputReference = z.infer<typeof advisoryReuseInputReferenceSchema>
+
 export const testOutcomeAttributionSchema = z
   .object({
     schemaVersion: z.literal(qualityJourneyContractVersion),
@@ -290,6 +302,7 @@ export const assignmentManifestSchema = z
     roleDefinition: z.object({ role: qualityJourneyRoleSchema, version: id, digest }).strict(),
     capabilityProfile: z.object({ profileId: id, version: id, digest }).strict(),
     inputArtifacts: z.array(artifactReferenceSchema).max(256),
+    advisoryInputRefs: z.array(advisoryReuseInputReferenceSchema).max(128).optional(),
     allowedTargetRoutes: z.array(z.string().min(1).max(2_000)).max(128),
     allowedResourceIds: z.array(id).max(512),
     targetEnvironmentBindings: z

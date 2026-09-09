@@ -22,6 +22,7 @@ async function foreignEnvironmentOrigins(
   const environments = await client.environment.findMany({
     where: {
       targetProjectId: { not: input.targetProjectId },
+      archivedAt: null,
       ...(input.excludeEnvironmentId ? { id: { not: input.excludeEnvironmentId } } : {}),
     },
     select: { id: true, name: true, baseUrl: true, targetProjectId: true },

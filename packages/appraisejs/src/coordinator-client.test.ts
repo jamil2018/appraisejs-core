@@ -147,4 +147,33 @@ describe('coordinator client endpoint contracts', () => {
       }),
     )
   })
+
+  it('binds collaboration reads and mutations to fixed coordinator paths', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(Response.json({ ok: true }))
+      .mockResolvedValueOnce(Response.json({ ok: true }))
+    vi.stubGlobal('fetch', fetchMock)
+    const api = await client()
+
+    await api.collaborationStatus('target-1')
+    await api.collaborationExecute({
+      target: 'target-1',
+      operationId: 'operation-1',
+      expectedVersion: 1,
+      preparedDigest: `sha256:${'a'.repeat(64)}`,
+      idempotencyKey: 'execute-1',
+    })
+
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      1,
+      'http://127.0.0.1:3999/api/internal/coordinator/collaboration/status?target=target-1',
+      expect.objectContaining({ headers: expect.anything() }),
+    )
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      2,
+      'http://127.0.0.1:3999/api/internal/coordinator/collaboration/execute',
+      expect.objectContaining({ method: 'POST' }),
+    )
+  })
 })

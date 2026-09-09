@@ -56,7 +56,10 @@ function tokensMatch(expected: string, received: string): boolean {
   return expectedBytes.length === receivedBytes.length && timingSafeEqual(expectedBytes, receivedBytes)
 }
 
-export async function guardCoordinatorRequest(request: Request): Promise<void> {
+export async function guardCoordinatorRequest(
+  request: Request,
+  maxRequestBytes = COORDINATOR_MAX_REQUEST_BYTES,
+): Promise<void> {
   assertLoopbackUrl(request.url, 'request URL')
   const host = request.headers.get('host')
   if (!host) throw new ServiceError('Host header is required.', 'UNAUTHORIZED')
@@ -65,7 +68,7 @@ export async function guardCoordinatorRequest(request: Request): Promise<void> {
   if (origin) assertLoopbackUrl(origin, 'Origin header')
 
   const contentLength = Number(request.headers.get('content-length') ?? 0)
-  if (!Number.isFinite(contentLength) || contentLength > COORDINATOR_MAX_REQUEST_BYTES) {
+  if (!Number.isFinite(contentLength) || contentLength > maxRequestBytes) {
     throw new ServiceError('Request body is too large.', 'VALIDATION', 413)
   }
 
@@ -87,9 +90,12 @@ export async function guardCoordinatorRequest(request: Request): Promise<void> {
     throw new ServiceError('Coordinator credentials are invalid.', 'UNAUTHORIZED')
 }
 
-export async function readCoordinatorJson(request: Request): Promise<unknown> {
+export async function readCoordinatorJson(
+  request: Request,
+  maxRequestBytes = COORDINATOR_MAX_REQUEST_BYTES,
+): Promise<unknown> {
   const body = await request.text()
-  if (Buffer.byteLength(body) > COORDINATOR_MAX_REQUEST_BYTES) {
+  if (Buffer.byteLength(body) > maxRequestBytes) {
     throw new ServiceError('Request body is too large.', 'VALIDATION', 413)
   }
   if (!body) return {}

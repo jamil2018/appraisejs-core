@@ -15,9 +15,10 @@ enter the executable capsule pipeline.
 Generated human Step projections remain derived catalog assets. Their canonical sources are the operation definitions
 and handlers; generate them with `npm run operation:projections`. Do not hand-edit the generated wrappers.
 
-Repository export is an explicit, receipt-backed distribution operation described in
-`docs/repository-export-runtime.md`. Its files are never read back into database authoring state or used as managed
-execution authority.
+Repository export helpers produce a distribution-only layout described in `docs/repository-export-runtime.md`; the
+planned durable export job/endpoints are not currently implemented. These files are never read back into database
+authoring state or used as managed execution authority. The separate `appraise/collaboration/` exchange may be read
+only through its strict reviewed collaboration service.
 
 ## Agent workflow
 
@@ -29,7 +30,7 @@ execution authority.
 ## Never do
 
 - Do not introduce a filesystem-to-database import, bidirectional synchronization, or an import preview for
-  `automation/`.
+  `automation/`. Repository collaboration is limited to its dedicated `appraise/collaboration/` contract.
 - Do not regenerate workspace feature files from CRUD operations or while scheduling a run.
 - Do not use repository exports or human Step projections as execution authority.
 - Do not commit capsule output, reports, logs, traces, or screenshots except as an explicitly approved fixture.

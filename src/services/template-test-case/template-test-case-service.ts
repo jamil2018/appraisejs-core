@@ -25,12 +25,18 @@ type TemplateTestCaseInput = z.input<typeof templateTestCaseSchema>
 
 export async function listTemplateTestCases(targetProjectId: string) {
   return prisma.templateTestCase.findMany({
-    where: { targetProjectId },
+    where: { targetProjectId, archivedAt: null },
     include: templateTestCaseInclude,
   })
 }
 
 export async function deleteTemplateTestCases(ids: string[], targetProjectId: string): Promise<void> {
+  const managed = await prisma.templateTestCase.findFirst({
+    where: { id: { in: ids }, targetProjectId, collaborationManaged: true },
+    select: { id: true },
+  })
+  if (managed)
+    throw new ServiceError('Collaboration-managed template test cases must be archived, not deleted.', 'CONFLICT', 409)
   await prisma.$transaction(async tx => {
     await tx.templateTestCaseStepParameter.deleteMany({
       where: {
@@ -45,7 +51,9 @@ export async function deleteTemplateTestCases(ids: string[], targetProjectId: st
     await tx.templateTestCaseFlowBlock.deleteMany({
       where: { templateTestCaseId: { in: ids } },
     })
-    await tx.templateTestCase.deleteMany({ where: { id: { in: ids }, targetProjectId } })
+    await tx.templateTestCase.deleteMany({
+      where: { id: { in: ids }, targetProjectId, archivedAt: null, collaborationManaged: false },
+    })
   })
 }
 
@@ -88,7 +96,7 @@ export async function getTemplateTestCaseByIdOrThrow(
   targetProjectId: string,
 ): Promise<TemplateTestCaseDetail> {
   const templateTestCase = await prisma.templateTestCase.findFirst({
-    where: { id, targetProjectId },
+    where: { id, targetProjectId, archivedAt: null },
     include: templateTestCaseInclude,
   })
   if (!templateTestCase) {

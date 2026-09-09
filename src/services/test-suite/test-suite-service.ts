@@ -7,27 +7,37 @@ import { ServiceError } from '@/services/shared/errors'
 import { TagType } from '@prisma/client'
 import { z } from 'zod'
 
+async function validateTestSuiteRelationships(value: z.infer<typeof testSuiteSchema>, targetProjectId: string) {
+  const [module, testCases, tags] = await Promise.all([
+    prisma.module.findFirst({ where: { id: value.moduleId, targetProjectId, archivedAt: null }, select: { id: true } }),
+    prisma.testCase.findMany({
+      where: { id: { in: value.testCases ?? [] }, targetProjectId, archivedAt: null },
+      select: { id: true },
+    }),
+    prisma.tag.findMany({
+      where: { id: { in: value.tagIds ?? [] }, targetProjectId, archivedAt: null },
+      select: { id: true },
+    }),
+  ])
+  if (!module || testCases.length !== (value.testCases ?? []).length || tags.length !== (value.tagIds ?? []).length)
+    throw new ServiceError('Test suite relationships must belong to the active project', 'VALIDATION', 400)
+}
+
 export async function listTestSuites(targetProjectId: string) {
   await ensureTestSuiteIdentifierTags(undefined, targetProjectId)
 
   return prisma.testSuite.findMany({
-    where: { targetProjectId },
+    where: { targetProjectId, archivedAt: null, module: { is: { archivedAt: null } } },
     include: {
       module: true,
-      testCases: true,
-      tags: true,
+      testCases: { where: { archivedAt: null } },
+      tags: { where: { archivedAt: null } },
     },
   })
 }
 
 export async function createTestSuiteFromInput(value: z.infer<typeof testSuiteSchema>, targetProjectId: string) {
-  const [module, testCases, tags] = await Promise.all([
-    prisma.module.findFirst({ where: { id: value.moduleId, targetProjectId }, select: { id: true } }),
-    prisma.testCase.findMany({ where: { id: { in: value.testCases ?? [] }, targetProjectId }, select: { id: true } }),
-    prisma.tag.findMany({ where: { id: { in: value.tagIds ?? [] }, targetProjectId }, select: { id: true } }),
-  ])
-  if (!module || testCases.length !== (value.testCases ?? []).length || tags.length !== (value.tagIds ?? []).length)
-    throw new ServiceError('Test suite relationships must belong to the active project', 'VALIDATION', 400)
+  await validateTestSuiteRelationships(value, targetProjectId)
   const suiteIdentifier = generateUniqueTestSuiteIdentifier()
   const newTestSuite = await prisma.$transaction(async tx => {
     const suiteIdentifierTag = await tx.tag.create({
@@ -66,13 +76,14 @@ export async function getTestSuiteByIdOrThrow(id: string, targetProjectId: strin
   await ensureTestSuiteIdentifierTags([id], targetProjectId)
 
   const testSuite = await prisma.testSuite.findFirst({
-    where: { id, targetProjectId },
+    where: { id, targetProjectId, archivedAt: null },
     include: {
       module: true,
       testCases: true,
       tags: {
         where: {
           type: TagType.FILTER,
+          archivedAt: null,
         },
       },
     },
@@ -86,6 +97,12 @@ export async function getTestSuiteByIdOrThrow(id: string, targetProjectId: strin
 }
 
 export async function deleteTestSuitesByIds(ids: string[], targetProjectId: string): Promise<void> {
+  const managed = await prisma.testSuite.findFirst({
+    where: { id: { in: ids }, targetProjectId, collaborationManaged: true },
+    select: { id: true },
+  })
+  if (managed)
+    throw new ServiceError('Collaboration-managed test suites must be archived, not deleted.', 'CONFLICT', 409)
   const suiteIdentifierTags = await prisma.tag.findMany({
     where: {
       type: TagType.IDENTIFIER,
@@ -107,7 +124,7 @@ export async function deleteTestSuitesByIds(ids: string[], targetProjectId: stri
   })
 
   await prisma.testSuite.deleteMany({
-    where: { id: { in: ids }, targetProjectId },
+    where: { id: { in: ids }, targetProjectId, archivedAt: null, collaborationManaged: false },
   })
 
   if (suiteIdentifierTags.length > 0) {
@@ -136,12 +153,13 @@ export async function updateTestSuiteFromInput(
   targetProjectId: string,
 ): Promise<void> {
   const currentTestSuite = await prisma.testSuite.findFirst({
-    where: { id, targetProjectId },
+    where: { id, targetProjectId, archivedAt: null },
     include: {
       module: true,
       tags: {
         where: {
           type: TagType.IDENTIFIER,
+          archivedAt: null,
         },
         select: {
           id: true,
@@ -153,13 +171,7 @@ export async function updateTestSuiteFromInput(
   if (!currentTestSuite) {
     throw new ServiceError('Test suite not found', 'NOT_FOUND', 404)
   }
-  const [module, testCases, tags] = await Promise.all([
-    prisma.module.findFirst({ where: { id: value.moduleId, targetProjectId }, select: { id: true } }),
-    prisma.testCase.findMany({ where: { id: { in: value.testCases ?? [] }, targetProjectId }, select: { id: true } }),
-    prisma.tag.findMany({ where: { id: { in: value.tagIds ?? [] }, targetProjectId }, select: { id: true } }),
-  ])
-  if (!module || testCases.length !== (value.testCases ?? []).length || tags.length !== (value.tagIds ?? []).length)
-    throw new ServiceError('Test suite relationships must belong to the active project', 'VALIDATION', 400)
+  await validateTestSuiteRelationships(value, targetProjectId)
 
   const suiteIdentifierTagId = await getOrCreateTestSuiteIdentifierTagId(id, targetProjectId)
   await prisma.testSuite.update({

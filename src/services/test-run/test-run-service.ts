@@ -147,14 +147,15 @@ export async function listTestSuiteTestCases(targetProjectId: string) {
   await ensureTestSuiteIdentifierTags(undefined, targetProjectId)
 
   return prisma.testSuite.findMany({
-    where: { targetProjectId },
+    where: { targetProjectId, archivedAt: null, module: { is: { archivedAt: null } } },
     include: {
       module: true,
-      tags: true,
+      tags: { where: { archivedAt: null } },
       testCases: {
+        where: { archivedAt: null },
         include: {
           steps: true,
-          tags: true,
+          tags: { where: { archivedAt: null } },
         },
       },
     },
@@ -179,7 +180,7 @@ async function resolveTagExpressionAndTestCases(
   environment: Environment
 }> {
   const environment = await prisma.environment.findFirst({
-    where: { id: value.environmentId, targetProjectId },
+    where: { id: value.environmentId, targetProjectId, archivedAt: null },
   })
 
   if (!environment) {
@@ -206,7 +207,7 @@ async function resolveTagExpressionAndTestCases(
 
 async function resolveTaggedTestRunFilters(tagIds: string[], targetProjectId: string): Promise<ResolvedTestRunFilters> {
   const tags = await prisma.tag.findMany({
-    where: { id: { in: tagIds }, targetProjectId },
+    where: { id: { in: tagIds }, targetProjectId, archivedAt: null },
   })
   if (tags.length !== tagIds.length)
     throw new ServiceError('One or more selected tags do not belong to the active project.', 'VALIDATION', 400)
@@ -215,18 +216,19 @@ async function resolveTaggedTestRunFilters(tagIds: string[], targetProjectId: st
   const tagFilteredTestCases = await prisma.testCase.findMany({
     where: {
       targetProjectId,
+      archivedAt: null,
       OR: [
         {
           tags: {
-            some: { id: { in: tagIds } },
+            some: { id: { in: tagIds }, archivedAt: null },
           },
         },
         {
           TestSuite: {
             some: {
-              tags: {
-                some: { id: { in: tagIds } },
-              },
+              archivedAt: null,
+              module: { archivedAt: null },
+              tags: { some: { id: { in: tagIds }, archivedAt: null } },
             },
           },
         },
@@ -259,12 +261,15 @@ async function resolveSuiteTestRunFilters(
         in: value.map(testSuite => testSuite.testSuiteId),
       },
       targetProjectId,
+      archivedAt: null,
+      module: { is: { archivedAt: null } },
     },
     include: {
-      tags: true,
+      tags: { where: { archivedAt: null } },
       testCases: {
+        where: { archivedAt: null },
         include: {
-          tags: true,
+          tags: { where: { archivedAt: null } },
         },
       },
     },
@@ -853,10 +858,22 @@ export async function createIndependentAuthoredCapsuleTestRun(input: Independent
   ]
   if (selections.length === 0) throw new ServiceError('Select at least one authored test case.', 'VALIDATION', 400)
   const [environment, cases, targetProject] = await Promise.all([
-    prisma.environment.findFirst({ where: { id: input.environmentId, targetProjectId: input.targetProjectId } }),
+    prisma.environment.findFirst({
+      where: { id: input.environmentId, targetProjectId: input.targetProjectId, archivedAt: null },
+    }),
     prisma.testCase.findMany({
-      where: { id: { in: selections.map(item => item.testCaseId) }, targetProjectId: input.targetProjectId },
-      include: { steps: { orderBy: { order: 'asc' } }, TestSuite: { select: { id: true, targetProjectId: true } } },
+      where: {
+        id: { in: selections.map(item => item.testCaseId) },
+        targetProjectId: input.targetProjectId,
+        archivedAt: null,
+      },
+      include: {
+        steps: { orderBy: { order: 'asc' } },
+        TestSuite: {
+          where: { archivedAt: null, module: { is: { archivedAt: null } } },
+          select: { id: true, targetProjectId: true },
+        },
+      },
     }),
     prisma.targetProject.findUnique({ where: { id: input.targetProjectId }, select: { kind: true } }),
   ])
@@ -913,7 +930,9 @@ export async function createIndependentAuthoredCapsuleTestRun(input: Independent
     throw new ServiceError('A test run with this name already exists.', 'VALIDATION', 400)
   const testRun = await prisma.$transaction(async tx => {
     const [currentEnvironment, currentTarget] = await Promise.all([
-      tx.environment.findFirst({ where: { id: input.environmentId, targetProjectId: input.targetProjectId } }),
+      tx.environment.findFirst({
+        where: { id: input.environmentId, targetProjectId: input.targetProjectId, archivedAt: null },
+      }),
       tx.targetProject.findUnique({ where: { id: input.targetProjectId }, select: { kind: true } }),
     ])
     if (!currentEnvironment || !currentTarget)

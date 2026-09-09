@@ -8,7 +8,7 @@ import type { SavePickedLocatorRequest } from '@/types/locator-picker'
 
 export async function listLocators(targetProjectId: string) {
   return prisma.locator.findMany({
-    where: { targetProjectId },
+    where: { targetProjectId, archivedAt: null },
     include: {
       locatorGroup: {
         select: {
@@ -25,8 +25,13 @@ export async function listLocators(targetProjectId: string) {
 }
 
 export async function deleteLocators(ids: string[], targetProjectId: string) {
+  const managed = await prisma.locator.findFirst({
+    where: { id: { in: ids }, targetProjectId, collaborationManaged: true },
+    select: { id: true },
+  })
+  if (managed) throw new ServiceError('Collaboration-managed locators must be archived, not deleted.', 'CONFLICT', 409)
   const result = await prisma.locator.deleteMany({
-    where: { id: { in: ids }, targetProjectId },
+    where: { id: { in: ids }, targetProjectId, archivedAt: null, collaborationManaged: false },
   })
 
   return result
@@ -34,7 +39,7 @@ export async function deleteLocators(ids: string[], targetProjectId: string) {
 
 export async function getLocatorByIdOrThrow(id: string, targetProjectId: string) {
   const locator = await prisma.locator.findFirst({
-    where: { id, targetProjectId },
+    where: { id, targetProjectId, archivedAt: null },
     include: {
       locatorGroup: {
         select: {
@@ -63,6 +68,7 @@ export async function detectAndCreateConflicts(
     where: {
       locatorGroupId,
       id: { not: locatorId },
+      archivedAt: null,
     },
   })
 
@@ -191,7 +197,7 @@ export async function savePickedLocatorFromRequest(
   }
   const currentLocator = value.locatorId
     ? await prisma.locator.findFirst({
-        where: { id: value.locatorId, targetProjectId },
+        where: { id: value.locatorId, targetProjectId, archivedAt: null },
         select: { locatorGroupId: true },
       })
     : null
@@ -206,7 +212,7 @@ export async function savePickedLocatorFromRequest(
     }
 
     const locatorGroup = await prisma.locatorGroup.findFirst({
-      where: { id: locatorGroupId, targetProjectId },
+      where: { id: locatorGroupId, targetProjectId, archivedAt: null },
     })
 
     if (!locatorGroup) {
@@ -225,7 +231,9 @@ export async function savePickedLocatorFromRequest(
       return fail(400, 'Choose a module for the new locator group.')
     }
 
-    const selectedModule = await prisma.module.findFirst({ where: { id: value.moduleId, targetProjectId } })
+    const selectedModule = await prisma.module.findFirst({
+      where: { id: value.moduleId, targetProjectId, archivedAt: null },
+    })
     if (!selectedModule) {
       return fail(404, 'The selected module no longer exists in the active project.')
     }
@@ -264,6 +272,7 @@ export async function savePickedLocatorFromRequest(
       locatorGroupId,
       name: locatorName,
       targetProjectId,
+      archivedAt: null,
       ...(value.locatorId
         ? {
             id: {

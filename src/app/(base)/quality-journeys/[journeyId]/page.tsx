@@ -121,7 +121,7 @@ async function loadJourneyDetail(journeyId: string, projectId: string) {
       getQualityJourneyTriage({ journeyId, targetProjectId: projectId }),
       inspectQualityJourneyHandoff({ journeyId, targetProjectId: projectId }),
       prisma.environment.findMany({
-        where: { targetProjectId: projectId },
+        where: { targetProjectId: projectId, archivedAt: null },
         select: { id: true, name: true },
         orderBy: { name: 'asc' },
       }),

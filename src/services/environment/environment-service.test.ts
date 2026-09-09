@@ -84,7 +84,7 @@ describe('listEnvironments', () => {
 
     await expect(listEnvironments(targetProjectId)).resolves.toEqual([{ id: 'env-1' }])
     expect(prisma.environment.findMany).toHaveBeenCalledWith({
-      where: { targetProjectId },
+      where: { targetProjectId, archivedAt: null },
       orderBy: { createdAt: 'desc' },
     })
   })
@@ -142,13 +142,23 @@ describe('environment coordinator preparation helpers', () => {
 
 describe('deleteEnvironments', () => {
   it('deletes environments without projection output', async () => {
+    vi.clearAllMocks()
+    vi.mocked(prisma.environment.findFirst).mockResolvedValueOnce(null)
     vi.mocked(prisma.environment.deleteMany).mockResolvedValue({ count: 1 } as never)
 
     await deleteEnvironments(['env-1'], targetProjectId)
 
     expect(prisma.environment.deleteMany).toHaveBeenCalledWith({
-      where: { id: { in: ['env-1'] }, targetProjectId },
+      where: { id: { in: ['env-1'] }, targetProjectId, archivedAt: null, collaborationManaged: false },
     })
+  })
+
+  it('does not destructively delete collaboration-managed environments', async () => {
+    vi.clearAllMocks()
+    vi.mocked(prisma.environment.findFirst).mockResolvedValueOnce({ id: 'env-1' } as never)
+
+    await expect(deleteEnvironments(['env-1'], targetProjectId)).rejects.toMatchObject({ statusCode: 409 })
+    expect(prisma.environment.deleteMany).not.toHaveBeenCalled()
   })
 })
 

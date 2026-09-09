@@ -1,0 +1,227 @@
+import type { McpRegistryContext } from '../registry.js'
+import { text, z } from '../shared.js'
+
+const id = z
+  .string()
+  .trim()
+  .min(1)
+  .max(200)
+  .regex(/^[A-Za-z0-9._:-]+$/)
+const target = z.string().trim().min(1)
+const sha256 = z.string().regex(/^sha256:[a-f0-9]{64}$/)
+const policyVersion = z.number().int().positive()
+const records = z.array(z.unknown()).min(1).max(10_000)
+const authorityReceipt = z.string().regex(/^[A-Za-z0-9_-]{43}$/)
+
+const connectInput = z
+  .object({
+    target,
+    repositoryRoot: z.string().trim().min(1),
+    remoteName: z.string().trim().min(1).max(200).optional(),
+    trackedBranch: z.string().trim().min(1).max(300),
+    portableProjectId: id.optional(),
+  })
+  .strict()
+const prepareInput = z
+  .object({
+    target,
+    intent: z.enum(['RECEIVE', 'PUBLISH']),
+    idempotencyKey: id,
+    expectedPolicyVersion: policyVersion,
+    trigger: z.string().trim().min(1).max(200).optional(),
+  })
+  .strict()
+const getInput = z.object({ target, operationId: id }).strict()
+const policyUpdateInput = z
+  .object({
+    target,
+    expectedPolicyVersion: policyVersion,
+    changes: z
+      .object({
+        OBSERVE: z.boolean().optional(),
+        PREPARE: z.boolean().optional(),
+        INTEGRATE: z.boolean().optional(),
+        COMMIT: z.boolean().optional(),
+        PUSH: z.boolean().optional(),
+        RESOLVE: z.boolean().optional(),
+        ARCHIVE: z.boolean().optional(),
+      })
+      .strict()
+      .refine(value => Object.keys(value).length > 0, 'At least one policy change is required.'),
+    authorityReceipt,
+  })
+  .strict()
+const decisionInput = z
+  .object({
+    target,
+    operationId: id,
+    expectedVersion: z.number().int().positive(),
+    preparedDigest: sha256,
+    decisions: z
+      .array(
+        z
+          .object({
+            recordKey: id,
+            decision: z.enum(['KEEP_LOCAL', 'USE_INCOMING', 'EDIT']),
+            editedRecord: z.unknown().optional(),
+          })
+          .strict(),
+      )
+      .min(1)
+      .max(2_000)
+      .optional(),
+    reviewDigest: sha256.optional(),
+    decision: z.enum(['ACCEPT', 'REJECT']).optional(),
+    authorityReceipt,
+  })
+  .strict()
+  .superRefine((value, context) => {
+    const standard = Boolean(value.decisions)
+    const divergent = Boolean(value.reviewDigest && value.decision)
+    const mixed = standard && (value.reviewDigest || value.decision)
+    if (standard === divergent || mixed)
+      context.addIssue({
+        code: 'custom',
+        message: 'Provide exactly standard decisions or one divergent review decision.',
+      })
+  })
+const executeInput = z
+  .object({
+    target,
+    operationId: id,
+    expectedVersion: z.number().int().positive(),
+    preparedDigest: sha256,
+    idempotencyKey: id,
+  })
+  .strict()
+const undoPrepareInput = z
+  .object({ target, operationId: id, expectedPolicyVersion: policyVersion, idempotencyKey: id, trigger: id.optional() })
+  .strict()
+const workerRegisterInput = z
+  .object({
+    target,
+    workerIdentity: id,
+    capabilities: z.array(id).min(1).max(100),
+    ttlMs: z.number().int().min(5_000).max(300_000).optional(),
+  })
+  .strict()
+const workIdentity = { target, workerIdentity: id, sessionNonce: id }
+const workClaimInput = z
+  .object({ ...workIdentity, leaseMs: z.number().int().min(1_000).max(300_000).optional() })
+  .strict()
+const workLease = {
+  ...workIdentity,
+  operationId: id,
+  attemptId: id,
+  fencingToken: z.number().int().positive(),
+  leaseToken: id,
+}
+const workHeartbeatInput = z
+  .object({ ...workLease, leaseMs: z.number().int().min(1_000).max(300_000).optional() })
+  .strict()
+const workCompleteInput = z.object({ ...workLease, proposal: z.object({ records }).strict() }).strict()
+const handoffRedeemInput = z.object({ target, token: id, redeemedBy: id }).strict()
+
+/** Public, project-bound collaboration tools. They accept records and leases, never paths, shell commands, or grant provenance. */
+export function registerRepositoryCollaborationOperations({ server, api }: McpRegistryContext): void {
+  server.registerTool(
+    'collaboration_status',
+    {
+      description:
+        'Read the bounded collaboration connection, policy, operations, decisions, and receipts for one target.',
+      inputSchema: { target },
+    },
+    async ({ target }) => text(await api.collaborationStatus(target)),
+  )
+  server.registerTool(
+    'collaboration_policy_update',
+    {
+      description: 'Update one target-scoped collaboration policy with a local UI-issued one-action authority receipt.',
+      inputSchema: policyUpdateInput.shape,
+    },
+    async input => {
+      const { authorityReceipt: receipt, ...request } = policyUpdateInput.parse(input)
+      return text(await api.collaborationPolicyUpdate(request, receipt))
+    },
+  )
+  server.registerTool(
+    'collaboration_decide',
+    {
+      description:
+        'Persist exact reviewed collaboration decisions with a local UI-issued one-action authority receipt; accepted work may continue its persisted plan.',
+      inputSchema: decisionInput.shape,
+    },
+    async input => {
+      const parsed = decisionInput.parse(input)
+      const { authorityReceipt: receipt, ...request } = parsed
+      return text(await api.collaborationDecide(request, receipt))
+    },
+  )
+  const definitions = [
+    [
+      'collaboration_connect',
+      connectInput,
+      'collaborationConnect',
+      'Connect one registered local target to its canonical repository root.',
+    ],
+    [
+      'collaboration_prepare',
+      prepareInput,
+      'collaborationPrepare',
+      'Prepare a durable receive or publish. A receive classifies divergence internally and queues only a verified collaboration-only proposal assignment.',
+    ],
+    [
+      'collaboration_get',
+      getInput,
+      'collaborationGet',
+      'Read one target-scoped durable collaboration operation and its sanitized decision and journal summaries.',
+    ],
+    [
+      'collaboration_execute',
+      executeInput,
+      'collaborationExecute',
+      'Execute only the exact prepared database operation or fixed persisted Git step named by the operation.',
+    ],
+    [
+      'collaboration_undo_prepare',
+      undoPrepareInput,
+      'collaborationUndoPrepare',
+      'Prepare a guarded inverse only when its durable before-image and current state still match.',
+    ],
+    [
+      'collaboration_worker_register',
+      workerRegisterInput,
+      'collaborationWorkerRegister',
+      'Register observed worker capabilities and receive a short-lived session nonce; this never claims wake capability.',
+    ],
+    [
+      'collaboration_work_claim',
+      workClaimInput,
+      'collaborationWorkClaim',
+      'Claim the next leaseable collaboration operation for one registered worker session.',
+    ],
+    [
+      'collaboration_work_heartbeat',
+      workHeartbeatInput,
+      'collaborationWorkHeartbeat',
+      'Renew an exact fenced collaboration work lease.',
+    ],
+    [
+      'collaboration_work_complete',
+      workCompleteInput,
+      'collaborationWorkComplete',
+      'Submit exactly one complete record-only proposal for the claimed divergent assignment; this does not decide, run Git, or mutate authored records.',
+    ],
+    [
+      'collaboration_handoff_redeem',
+      handoffRedeemInput,
+      'collaborationHandoffRedeem',
+      'Redeem one target-bound handoff ticket into a short-lived fenced proposal work session and sanitized assignment.',
+    ],
+  ] as const
+  for (const [name, schema, method, description] of definitions) {
+    server.registerTool(name, { description, inputSchema: schema.shape }, async (input: unknown) =>
+      text(await api[method](schema.parse(input))),
+    )
+  }
+}

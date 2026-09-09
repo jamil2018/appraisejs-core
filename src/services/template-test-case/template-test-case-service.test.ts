@@ -1,5 +1,9 @@
 import { describe, expect, it, vi } from 'vitest'
-import { createTemplateTestCase, getTemplateTestCaseByIdOrThrow } from './template-test-case-service'
+import {
+  createTemplateTestCase,
+  deleteTemplateTestCases,
+  getTemplateTestCaseByIdOrThrow,
+} from './template-test-case-service'
 
 vi.mock('@/config/db-config', () => ({
   default: {
@@ -21,6 +25,16 @@ describe('getTemplateTestCaseByIdOrThrow', () => {
       message: 'Template test case not found',
       statusCode: 404,
     })
+  })
+})
+
+describe('deleteTemplateTestCases', () => {
+  it('does not destructively delete collaboration-managed template test cases', async () => {
+    vi.clearAllMocks()
+    vi.mocked(prisma.templateTestCase.findFirst).mockResolvedValue({ id: 'template-1' } as never)
+
+    await expect(deleteTemplateTestCases(['template-1'], 'project-1')).rejects.toMatchObject({ statusCode: 409 })
+    expect(prisma.$transaction).not.toHaveBeenCalled()
   })
 })
 

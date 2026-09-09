@@ -15,6 +15,7 @@ export function hashQualityJourneyDraft(input: {
   requirement: QualityJourneyDraftRequirement
   predecessorJourneyId?: string
   version: number
+  advisorySeedDigest?: string
 }): string {
   return `sha256:${createHash('sha256')
     .update(
@@ -23,8 +24,31 @@ export function hashQualityJourneyDraft(input: {
         version: input.version,
         requirement: input.requirement,
         predecessorJourneyId: input.predecessorJourneyId ?? null,
+        ...(input.advisorySeedDigest ? { advisorySeedDigest: input.advisorySeedDigest } : {}),
       }),
     )
+    .digest('hex')}`
+}
+
+export type QualityJourneyDraftReuseSeedIdentity = {
+  kind: 'ANALYSIS' | 'SCENARIO'
+  assetPortableId: string
+  sourceVersion: number
+  sourcePayloadHash: string
+  sourceRevision?: string | null
+  contentHash: string
+}
+
+/**
+ * Shared material is advisory only, but the selected, normalized set is
+ * still bound to a mutable draft version before confirmation.
+ */
+export function hashQualityJourneyDraftReuseSeeds(values: readonly QualityJourneyDraftReuseSeedIdentity[]) {
+  const seeds = [...values]
+    .map(value => ({ ...value, sourceRevision: value.sourceRevision ?? null }))
+    .sort((left, right) => canonicalContractJson(left).localeCompare(canonicalContractJson(right)))
+  return `sha256:${createHash('sha256')
+    .update(canonicalContractJson({ kind: 'QUALITY_JOURNEY_REUSE_SEEDS', seeds }))
     .digest('hex')}`
 }
 

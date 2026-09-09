@@ -1,7 +1,8 @@
 import { createHash, timingSafeEqual } from 'node:crypto'
 import type { IncomingMessage } from 'node:http'
 
-export const DEFAULT_HTTP_MCP_BODY_LIMIT_BYTES = 1024 * 1024
+/** Matches the repository-collaboration ingestion cap while retaining bounded streaming reads. */
+export const DEFAULT_HTTP_MCP_BODY_LIMIT_BYTES = 64 * 1024 * 1024
 export const DEFAULT_HTTP_MCP_MAX_CONCURRENCY = 16
 
 const LOOPBACK_HOSTS = new Set(['127.0.0.1', 'localhost', '::1'])

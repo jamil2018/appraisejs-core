@@ -27,8 +27,8 @@ export async function getDashboardMetrics(targetProjectId: string) {
 }
 
 export async function getEntityMetrics(targetProjectId: string): Promise<EntityMetrics> {
-  const testCases = await prisma.testCase.count({ where: { targetProjectId } })
-  const testSuites = await prisma.testSuite.count({ where: { targetProjectId } })
+  const testCases = await prisma.testCase.count({ where: { targetProjectId, archivedAt: null } })
+  const testSuites = await prisma.testSuite.count({ where: { targetProjectId, archivedAt: null } })
   const stepDefinitions = await prisma.stepDefinition.count({ where: { status: 'ready' } })
   const runningTestRuns = await prisma.testRun.count({
     where: {

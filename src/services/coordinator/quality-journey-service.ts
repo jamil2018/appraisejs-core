@@ -35,6 +35,7 @@ import {
   validateWorkerSpawnReceipt,
   workerResultEnvelopeSchema,
   type AssignmentManifest,
+  type AdvisoryReuseInputReference,
   type QualityJourneyKernelState,
   type QualityJourneyRequirement,
   type QualityJourneyRole,
@@ -59,6 +60,7 @@ type FactoryAuthorization = Pick<
   | 'roleDefinition'
   | 'capabilityProfile'
   | 'inputArtifacts'
+  | 'advisoryInputRefs'
   | 'allowedTargetRoutes'
   | 'allowedResourceIds'
   | 'targetEnvironmentBindings'
@@ -80,7 +82,13 @@ function factoryAuthorization(
   journey: Pick<QualityJourney, 'id' | 'targetProjectId'>,
   item: Pick<
     QualityJourneyWorkItem,
-    'id' | 'role' | 'inputArtifactRefsJson' | 'allowedOutputsJson' | 'completionCriteriaJson' | 'authorizationScopeJson'
+    | 'id'
+    | 'role'
+    | 'inputArtifactRefsJson'
+    | 'allowedOutputsJson'
+    | 'completionCriteriaJson'
+    | 'authorizationScopeJson'
+    | 'advisoryInputRefsJson'
   >,
   registryVersion: string = qualityJourneyRoleRegistryVersion,
 ): FactoryAuthorization {
@@ -105,6 +113,9 @@ function factoryAuthorization(
       digest: qualityJourneyContractDigest(capabilityProfile),
     },
     inputArtifacts: JSON.parse(item.inputArtifactRefsJson),
+    ...(JSON.parse(item.advisoryInputRefsJson).length
+      ? { advisoryInputRefs: JSON.parse(item.advisoryInputRefsJson) }
+      : {}),
     allowedTargetRoutes: persistedScope.allowedTargetRoutes ?? [],
     allowedResourceIds: persistedScope.allowedResourceIds ?? [],
     ...(persistedScope.targetEnvironmentBindings
@@ -174,6 +185,7 @@ function assignmentFromAuthorization(
     roleDefinition: authorization.roleDefinition,
     capabilityProfile: authorization.capabilityProfile,
     inputArtifacts,
+    ...(authorization.advisoryInputRefs?.length ? { advisoryInputRefs: authorization.advisoryInputRefs } : {}),
     allowedTargetRoutes: authorization.allowedTargetRoutes,
     allowedResourceIds: authorization.allowedResourceIds,
     ...(authorization.targetEnvironmentBindings
@@ -433,6 +445,58 @@ function isCompletedActiveWorkItem(
   )
 }
 
+function advisoryRefsFromSeeds(
+  seeds: Array<{
+    id: string
+    kind: 'ANALYSIS' | 'SCENARIO'
+    assetPortableId: string
+    sourceVersion: number
+    sourcePayloadHash: string
+    contentHash: string
+  }>,
+): AdvisoryReuseInputReference[] {
+  return seeds
+    .map(seed => ({
+      kind: seed.kind,
+      seedId: seed.id,
+      assetPortableId: seed.assetPortableId,
+      sourceVersion: seed.sourceVersion,
+      sourcePayloadHash: seed.sourcePayloadHash,
+      contentHash: seed.contentHash,
+    }))
+    .sort((left, right) => canonicalContractJson(left).localeCompare(canonicalContractJson(right)))
+}
+
+async function advisoryInputRefsForJourneyRole(
+  row: Pick<QualityJourney, 'id' | 'targetProjectId'>,
+  role: QualityJourneyRole,
+  db: Db,
+) {
+  const seedKind = role === 'REQUIREMENT_ANALYZER' ? 'ANALYSIS' : role === 'TEST_SCENARIO_DESIGNER' ? 'SCENARIO' : null
+  if (!seedKind) return []
+  const draft = await db.qualityJourneyDraft.findFirst({
+    where: { confirmedJourneyId: row.id, targetProjectId: row.targetProjectId },
+    select: {
+      reuseSeeds: {
+        where: { kind: seedKind },
+        select: {
+          id: true,
+          kind: true,
+          assetPortableId: true,
+          sourceVersion: true,
+          sourcePayloadHash: true,
+          contentHash: true,
+        },
+      },
+    },
+  })
+  return advisoryRefsFromSeeds(draft?.reuseSeeds ?? [])
+}
+
+function workInputHash(stateHash: string, advisoryInputRefs: readonly AdvisoryReuseInputReference[]) {
+  return advisoryInputRefs.length ? hash({ stateHash, advisoryInputRefs }) : stateHash
+}
+
 async function reissueCompletedAnalysisWorkItem(
   row: QualityJourney,
   item: QualityJourneyWorkItem | null,
@@ -441,9 +505,10 @@ async function reissueCompletedAnalysisWorkItem(
   db: Db,
 ) {
   if (!isCompletedActiveWorkItem(item, 'REQUIREMENT_ANALYZER', 'ANALYSIS', row, activeWorkItemIds)) return item
-  const [inputArtifacts, authorization] = await Promise.all([
+  const [inputArtifacts, authorization, advisoryInputRefs] = await Promise.all([
     predecessorAnalysisInputArtifacts(row, db),
     currentWorkAuthorization(item.id, db),
+    advisoryInputRefsForJourneyRole(row, item.role as QualityJourneyRole, db),
   ])
   if (!authorization)
     throw new ServiceError('Analysis revision work has no predecessor Factory authorization to supersede.', 'CONFLICT')
@@ -451,8 +516,9 @@ async function reissueCompletedAnalysisWorkItem(
     where: { id: item.id },
     data: {
       status: 'ELIGIBLE',
-      inputHash: row.stateHash,
+      inputHash: workInputHash(row.stateHash, advisoryInputRefs),
       inputArtifactRefsJson: json(inputArtifacts),
+      advisoryInputRefsJson: json(advisoryInputRefs),
       roleContractDigest,
       version: { increment: 1 },
     },
@@ -469,9 +535,10 @@ async function reissueCompletedScenarioDesignerWorkItem(
   db: Db,
 ) {
   if (!isCompletedActiveWorkItem(item, 'TEST_SCENARIO_DESIGNER', 'SCENARIO_DESIGN', row, activeWorkItemIds)) return item
-  const [inputArtifacts, authorization] = await Promise.all([
+  const [inputArtifacts, authorization, advisoryInputRefs] = await Promise.all([
     predecessorScenarioPortfolioInputArtifacts(row, db),
     currentWorkAuthorization(item.id, db),
+    advisoryInputRefsForJourneyRole(row, item.role as QualityJourneyRole, db),
   ])
   if (!authorization)
     throw new ServiceError('Scenario revision work has no predecessor Factory authorization to supersede.', 'CONFLICT')
@@ -479,8 +546,9 @@ async function reissueCompletedScenarioDesignerWorkItem(
     where: { id: item.id },
     data: {
       status: 'ELIGIBLE',
-      inputHash: row.stateHash,
+      inputHash: workInputHash(row.stateHash, advisoryInputRefs),
       inputArtifactRefsJson: json(inputArtifacts),
+      advisoryInputRefsJson: json(advisoryInputRefs),
       roleContractDigest,
       version: { increment: 1 },
     },
@@ -520,6 +588,7 @@ async function ensureEligibleWorkItems(row: QualityJourney, db: Db) {
             },
           ]
         : []
+      const advisoryInputRefs = await advisoryInputRefsForJourneyRole(row, role, db)
       item = await db.qualityJourneyWorkItem.create({
         data: {
           id,
@@ -528,8 +597,9 @@ async function ensureEligibleWorkItems(row: QualityJourney, db: Db) {
           cycleId: row.activeCycleId,
           role,
           status: 'ELIGIBLE',
-          inputHash: row.stateHash,
+          inputHash: workInputHash(row.stateHash, advisoryInputRefs),
           inputArtifactRefsJson: json(inputArtifacts),
+          advisoryInputRefsJson: json(advisoryInputRefs),
           roleContractDigest,
           allowedOutputsJson: json(definition.writableArtifacts),
           completionCriteriaJson: json([`Submit a contract-valid ${role} result envelope.`]),
@@ -538,6 +608,61 @@ async function ensureEligibleWorkItems(row: QualityJourney, db: Db) {
       await createWorkAuthorization(row, item, db)
     }
   }
+}
+
+/**
+ * Confirmation creates the first Analyzer work item before the draft becomes
+ * CONFIRMED. Bind its selected advisory reuse inputs immediately afterwards,
+ * superseding the pre-selection authorization before any worker can claim it.
+ */
+export async function bindQualityJourneyAdvisoryReuseInputsInTransaction(
+  input: { journeyId: string; targetProjectId: string; draftId: string },
+  tx: Prisma.TransactionClient,
+) {
+  const [journey, draft] = await Promise.all([
+    readJourney(input.journeyId, input.targetProjectId, tx),
+    tx.qualityJourneyDraft.findFirst({
+      where: { id: input.draftId, targetProjectId: input.targetProjectId, status: 'ACTIVE' },
+      select: {
+        id: true,
+        reuseSeeds: {
+          where: { kind: 'ANALYSIS' },
+          select: {
+            id: true,
+            kind: true,
+            assetPortableId: true,
+            sourceVersion: true,
+            sourcePayloadHash: true,
+            contentHash: true,
+          },
+        },
+      },
+    }),
+  ])
+  if (!draft) throw new ServiceError('The draft is unavailable for advisory reuse binding.', 'CONFLICT')
+  const advisoryInputRefs = advisoryRefsFromSeeds(draft.reuseSeeds)
+  if (!advisoryInputRefs.length) return
+  const item = await tx.qualityJourneyWorkItem.findFirst({
+    where: {
+      journeyId: journey.id,
+      cycleId: journey.activeCycleId,
+      role: 'REQUIREMENT_ANALYZER',
+      status: 'ELIGIBLE',
+    },
+  })
+  if (!item)
+    throw new ServiceError('The initial Analyzer work item is unavailable for advisory reuse binding.', 'CONFLICT')
+  const authorization = await currentWorkAuthorization(item.id, tx)
+  if (!authorization) throw new ServiceError('The initial Analyzer authorization is unavailable.', 'CONFLICT')
+  const updated = await tx.qualityJourneyWorkItem.update({
+    where: { id: item.id },
+    data: {
+      advisoryInputRefsJson: json(advisoryInputRefs),
+      inputHash: workInputHash(journey.stateHash, advisoryInputRefs),
+      version: { increment: 1 },
+    },
+  })
+  await createWorkAuthorization(journey, updated, tx, 3, authorization.id)
 }
 
 function eligibleRolesForAutomaticIssuance(stage: QualityJourneyStage) {
@@ -1262,10 +1387,11 @@ async function replacementArtifactProjection(
   db: Db,
 ): Promise<{ inputArtifacts: AssignmentManifest['inputArtifacts']; projectionHash: string }> {
   const declared = JSON.parse(item.inputArtifactRefsJson) as AssignmentManifest['inputArtifacts']
+  const advisoryInputRefs = JSON.parse(item.advisoryInputRefsJson) as AdvisoryReuseInputReference[]
   if (item.role === 'TRIAGER')
     return {
       inputArtifacts: declared,
-      projectionHash: hash({ workItemId: item.id, cycleId: item.cycleId, inputArtifacts: declared }),
+      projectionHash: hash({ workItemId: item.id, cycleId: item.cycleId, inputArtifacts: declared, advisoryInputRefs }),
     }
   const { roleDefinition } = roleAuthority(item.role as QualityJourneyRole)
   const journey = await readJourney(item.journeyId, item.targetProjectId, db)
@@ -1297,7 +1423,13 @@ async function replacementArtifactProjection(
   ) as AssignmentManifest['inputArtifacts']
   return {
     inputArtifacts,
-    projectionHash: hash({ workItemId: item.id, cycleId: item.cycleId, activeRevisionIds, inputArtifacts }),
+    projectionHash: hash({
+      workItemId: item.id,
+      cycleId: item.cycleId,
+      activeRevisionIds,
+      inputArtifacts,
+      advisoryInputRefs,
+    }),
   }
 }
 
@@ -2031,6 +2163,84 @@ async function advanceAfterWorkCompletion(
   })
 }
 
+function assertPersistedAssignmentLineage(
+  attempt: QualityJourneyWorkAttempt,
+  persistedAssignment: AssignmentManifest,
+  expectedAssignment: AssignmentManifest,
+  item: QualityJourneyWorkItem,
+) {
+  const assignmentBindings = [
+    [persistedAssignment.assignmentId, expectedAssignment.assignmentId],
+    [persistedAssignment.journeyId, expectedAssignment.journeyId],
+    [persistedAssignment.targetProjectId, expectedAssignment.targetProjectId],
+    [persistedAssignment.workItemId, expectedAssignment.workItemId],
+    [json(persistedAssignment.roleDefinition), json(expectedAssignment.roleDefinition)],
+    [json(persistedAssignment.advisoryInputRefs ?? []), json(expectedAssignment.advisoryInputRefs ?? [])],
+    [json(persistedAssignment.capabilityProfile), json(expectedAssignment.capabilityProfile)],
+    [json(persistedAssignment.allowedTargetRoutes), json(expectedAssignment.allowedTargetRoutes)],
+    [json(persistedAssignment.allowedResourceIds), json(expectedAssignment.allowedResourceIds)],
+    [json(persistedAssignment.targetEnvironmentBindings), json(expectedAssignment.targetEnvironmentBindings)],
+    [json(persistedAssignment.writableArtifactKinds), json(expectedAssignment.writableArtifactKinds)],
+    [json(persistedAssignment.scope), json(expectedAssignment.scope)],
+    [json(persistedAssignment.completionCriteria), json(expectedAssignment.completionCriteria)],
+    [persistedAssignment.inputHash, item.inputHash],
+    [persistedAssignment.stateHash, item.inputHash],
+    [json(persistedAssignment.lease), json(expectedAssignment.lease)],
+    [persistedAssignment.idempotencyKey, expectedAssignment.idempotencyKey],
+  ]
+  if (
+    attempt.assignmentHash !== hash(persistedAssignment) ||
+    assignmentBindings.some(([actual, expected]) => actual !== expected)
+  )
+    throw new ServiceError('Quality Journey assignment lineage is invalid.', 'UNAUTHORIZED')
+}
+
+function assertReplacementAssignmentLineage(
+  attempt: QualityJourneyWorkAttempt,
+  persistedAssignment: AssignmentManifest,
+  expectedAssignment: AssignmentManifest,
+) {
+  if (attempt.replacementProjectionHash) {
+    if (!replacementAssignmentMatches(attempt, persistedAssignment))
+      throw new ServiceError('Quality Journey replacement assignment lineage is invalid.', 'UNAUTHORIZED')
+    return
+  }
+  if (!ordinaryAssignmentMatches(persistedAssignment, expectedAssignment))
+    throw new ServiceError('Quality Journey assignment lineage is invalid.', 'UNAUTHORIZED')
+}
+
+function replacementAssignmentMatches(attempt: QualityJourneyWorkAttempt, persistedAssignment: AssignmentManifest) {
+  const replacement = persistedAssignment.replacement
+  return Boolean(
+    replacement &&
+    replacement.projectionHash === attempt.replacementProjectionHash &&
+    attempt.predecessorDiagnosticsJson &&
+    json(replacement.diagnostics) === json(JSON.parse(attempt.predecessorDiagnosticsJson)),
+  )
+}
+
+function ordinaryAssignmentMatches(persistedAssignment: AssignmentManifest, expectedAssignment: AssignmentManifest) {
+  return (
+    !persistedAssignment.replacement &&
+    json(persistedAssignment.inputArtifacts) === json(expectedAssignment.inputArtifacts) &&
+    json(persistedAssignment.advisoryInputRefs ?? []) === json(expectedAssignment.advisoryInputRefs ?? [])
+  )
+}
+
+function assertWorkerRequestLineage(attempt: QualityJourneyWorkAttempt) {
+  const spawnRequest = JSON.parse(attempt.spawnRequestJson!)
+  const spawnReceipt = JSON.parse(attempt.spawnReceiptJson!)
+  const requestBindings = [
+    [attempt.spawnRequestHash, hash(spawnRequest)],
+    [attempt.spawnReceiptHash, hash(spawnReceipt)],
+    [spawnRequest.assignmentId, attempt.assignmentId],
+    [spawnRequest.requestId, attempt.spawnRequestId],
+  ]
+  if (requestBindings.some(([actual, expected]) => actual !== expected))
+    throw new ServiceError('Quality Journey worker request lineage is invalid.', 'UNAUTHORIZED')
+  return { spawnRequest, spawnReceipt }
+}
+
 async function validateDurableWorkerLineage(
   input: WorkCompletionInput,
   item: QualityJourneyWorkItem,
@@ -2049,61 +2259,15 @@ async function validateDurableWorkerLineage(
   ]
   if (lineage.some(value => !value))
     throw new ServiceError('Quality Journey work completion has no validated Factory receipt.', 'UNAUTHORIZED')
-  const authorization = await tx.qualityJourneyWorkAuthorization.findUnique({
-    where: { id: attempt.authorizationId! },
-  })
+  const authorization = await tx.qualityJourneyWorkAuthorization.findUnique({ where: { id: attempt.authorizationId! } })
   if (!authorization) throw new ServiceError('Quality Journey work authorization is unavailable.', 'UNAUTHORIZED')
   const journey = await readJourney(input.journeyId, input.targetProjectId, tx)
   const authorizationPayload = validateFactoryAuthorization(authorization, journey, item)
-  const persistedAssignment = JSON.parse(attempt.assignmentJson!)
+  const persistedAssignment = JSON.parse(attempt.assignmentJson!) as AssignmentManifest
   const expectedAssignment = assignmentFromAuthorization(authorizationPayload, item, attempt)
-  const assignmentBindings = [
-    [persistedAssignment.assignmentId, expectedAssignment.assignmentId],
-    [persistedAssignment.journeyId, expectedAssignment.journeyId],
-    [persistedAssignment.targetProjectId, expectedAssignment.targetProjectId],
-    [persistedAssignment.workItemId, expectedAssignment.workItemId],
-    [json(persistedAssignment.roleDefinition), json(expectedAssignment.roleDefinition)],
-    [json(persistedAssignment.capabilityProfile), json(expectedAssignment.capabilityProfile)],
-    [json(persistedAssignment.allowedTargetRoutes), json(expectedAssignment.allowedTargetRoutes)],
-    [json(persistedAssignment.allowedResourceIds), json(expectedAssignment.allowedResourceIds)],
-    [json(persistedAssignment.targetEnvironmentBindings), json(expectedAssignment.targetEnvironmentBindings)],
-    [json(persistedAssignment.writableArtifactKinds), json(expectedAssignment.writableArtifactKinds)],
-    [json(persistedAssignment.scope), json(expectedAssignment.scope)],
-    [json(persistedAssignment.completionCriteria), json(expectedAssignment.completionCriteria)],
-    [persistedAssignment.inputHash, item.inputHash],
-    [persistedAssignment.stateHash, item.inputHash],
-    [json(persistedAssignment.lease), json(expectedAssignment.lease)],
-    [persistedAssignment.idempotencyKey, expectedAssignment.idempotencyKey],
-  ]
-  if (
-    attempt.assignmentHash !== hash(persistedAssignment) ||
-    assignmentBindings.some(([actual, expected]) => actual !== expected)
-  )
-    throw new ServiceError('Quality Journey assignment lineage is invalid.', 'UNAUTHORIZED')
-  if (attempt.replacementProjectionHash) {
-    const replacement = persistedAssignment.replacement
-    if (
-      !replacement ||
-      replacement.projectionHash !== attempt.replacementProjectionHash ||
-      !attempt.predecessorDiagnosticsJson ||
-      json(replacement.diagnostics) !== json(JSON.parse(attempt.predecessorDiagnosticsJson))
-    )
-      throw new ServiceError('Quality Journey replacement assignment lineage is invalid.', 'UNAUTHORIZED')
-  } else if (
-    persistedAssignment.replacement ||
-    json(persistedAssignment.inputArtifacts) !== json(expectedAssignment.inputArtifacts)
-  )
-    throw new ServiceError('Quality Journey assignment lineage is invalid.', 'UNAUTHORIZED')
-  const spawnRequest = JSON.parse(attempt.spawnRequestJson!)
-  const spawnReceipt = JSON.parse(attempt.spawnReceiptJson!)
-  const requestBindings = [
-    [attempt.spawnRequestHash, hash(spawnRequest)],
-    [attempt.spawnReceiptHash, hash(spawnReceipt)],
-    [spawnRequest.assignmentId, attempt.assignmentId],
-    [spawnRequest.requestId, attempt.spawnRequestId],
-  ]
-  if (requestBindings.some(([actual, expected]) => actual !== expected))
-    throw new ServiceError('Quality Journey worker request lineage is invalid.', 'UNAUTHORIZED')
+  assertPersistedAssignmentLineage(attempt, persistedAssignment, expectedAssignment, item)
+  assertReplacementAssignmentLineage(attempt, persistedAssignment, expectedAssignment)
+  const { spawnRequest, spawnReceipt } = assertWorkerRequestLineage(attempt)
   try {
     validateWorkerResult(result, { spawnRequest, spawnReceipt, currentInputHash: item.inputHash })
   } catch (error) {

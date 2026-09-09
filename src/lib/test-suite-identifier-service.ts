@@ -21,7 +21,7 @@ export async function ensureTestSuiteIdentifierTags(
   targetProjectId: string,
 ): Promise<void> {
   const testSuites = await prisma.testSuite.findMany({
-    where: { targetProjectId, ...(testSuiteIds ? { id: { in: testSuiteIds } } : {}) },
+    where: { targetProjectId, archivedAt: null, ...(testSuiteIds ? { id: { in: testSuiteIds } } : {}) },
     include: {
       tags: {
         select: {
@@ -61,7 +61,7 @@ export async function getOrCreateTestSuiteIdentifierTagId(
   await ensureTestSuiteIdentifierTags([testSuiteId], targetProjectId)
 
   const testSuite = await prisma.testSuite.findFirst({
-    where: { id: testSuiteId, targetProjectId },
+    where: { id: testSuiteId, targetProjectId, archivedAt: null },
     include: {
       tags: {
         select: {

@@ -269,6 +269,7 @@ describe('getAllTestSuiteMetricsForFilter', () => {
     expect(mockTestSuiteFindMany).toHaveBeenCalledWith({
       where: {
         targetProjectId: 'project-1',
+        archivedAt: null,
         OR: [
           {
             metrics: {

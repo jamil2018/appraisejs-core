@@ -13,6 +13,18 @@ const locatorGroupInclude = {
 
 export type LocatorGroupWithModule = Prisma.LocatorGroupGetPayload<{ include: typeof locatorGroupInclude }>
 
+async function validateLocatorGroupRelationships(value: z.infer<typeof locatorGroupSchema>, targetProjectId: string) {
+  const [module, locators] = await Promise.all([
+    prisma.module.findFirst({ where: { id: value.moduleId, targetProjectId, archivedAt: null }, select: { id: true } }),
+    prisma.locator.findMany({
+      where: { id: { in: value.locators ?? [] }, targetProjectId, archivedAt: null },
+      select: { id: true },
+    }),
+  ])
+  if (!module || locators.length !== (value.locators ?? []).length)
+    throw new ServiceError('Locator group relationships must belong to the active project', 'VALIDATION', 400)
+}
+
 async function checkUniqueName(name: string, targetProjectId: string, excludeId?: string): Promise<boolean> {
   const existing = await prisma.locatorGroup.findFirst({
     where: {
@@ -26,14 +38,14 @@ async function checkUniqueName(name: string, targetProjectId: string, excludeId?
 
 export async function listLocatorGroups(targetProjectId: string): Promise<LocatorGroupWithModule[]> {
   return prisma.locatorGroup.findMany({
-    where: { targetProjectId },
+    where: { targetProjectId, archivedAt: null },
     include: locatorGroupInclude,
   })
 }
 
 export async function getLocatorGroupByIdOrThrow(id: string, targetProjectId: string): Promise<LocatorGroupWithModule> {
   const locatorGroup = await prisma.locatorGroup.findFirst({
-    where: { id, targetProjectId },
+    where: { id, targetProjectId, archivedAt: null },
     include: locatorGroupInclude,
   })
   if (!locatorGroup) {
@@ -46,12 +58,7 @@ export async function createLocatorGroup(
   value: z.infer<typeof locatorGroupSchema>,
   targetProjectId: string,
 ): Promise<LocatorGroup> {
-  const [module, locators] = await Promise.all([
-    prisma.module.findFirst({ where: { id: value.moduleId, targetProjectId }, select: { id: true } }),
-    prisma.locator.findMany({ where: { id: { in: value.locators ?? [] }, targetProjectId }, select: { id: true } }),
-  ])
-  if (!module || locators.length !== (value.locators ?? []).length)
-    throw new ServiceError('Locator group relationships must belong to the active project', 'VALIDATION', 400)
+  await validateLocatorGroupRelationships(value, targetProjectId)
   const nameExists = await checkUniqueName(value.name, targetProjectId)
   if (nameExists) {
     throw new ServiceError(
@@ -97,7 +104,7 @@ export async function updateLocatorGroup(
   }
 
   const currentLocatorGroup = await prisma.locatorGroup.findFirst({
-    where: { id, targetProjectId },
+    where: { id, targetProjectId, archivedAt: null },
     include: { module: true },
   })
 
@@ -116,12 +123,7 @@ export async function updateLocatorGroup(
     }
   }
 
-  const [module, locators] = await Promise.all([
-    prisma.module.findFirst({ where: { id: value.moduleId, targetProjectId }, select: { id: true } }),
-    prisma.locator.findMany({ where: { id: { in: value.locators ?? [] }, targetProjectId }, select: { id: true } }),
-  ])
-  if (!module || locators.length !== (value.locators ?? []).length)
-    throw new ServiceError('Locator group relationships must belong to the active project', 'VALIDATION', 400)
+  await validateLocatorGroupRelationships(value, targetProjectId)
   const locatorConnections = value.locators?.map(locator => ({ id: locator })) ?? []
 
   try {
@@ -154,8 +156,14 @@ export async function updateLocatorGroup(
 }
 
 export async function deleteLocatorGroups(ids: string[], targetProjectId: string): Promise<string[]> {
+  const managed = await prisma.locatorGroup.findFirst({
+    where: { id: { in: ids }, targetProjectId, collaborationManaged: true },
+    select: { id: true },
+  })
+  if (managed)
+    throw new ServiceError('Collaboration-managed locator groups must be archived, not deleted.', 'CONFLICT', 409)
   await prisma.locatorGroup.deleteMany({
-    where: { id: { in: ids }, targetProjectId },
+    where: { id: { in: ids }, targetProjectId, archivedAt: null, collaborationManaged: false },
   })
   return ids
 }

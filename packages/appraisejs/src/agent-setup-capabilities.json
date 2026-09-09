@@ -1,5 +1,18 @@
 {
   "tools": [
+    "collaboration_connect",
+    "collaboration_decide",
+    "collaboration_execute",
+    "collaboration_get",
+    "collaboration_handoff_redeem",
+    "collaboration_policy_update",
+    "collaboration_prepare",
+    "collaboration_status",
+    "collaboration_undo_prepare",
+    "collaboration_work_claim",
+    "collaboration_work_complete",
+    "collaboration_work_heartbeat",
+    "collaboration_worker_register",
     "environment_ensure",
     "environment_list",
     "locator_ensure",

@@ -1,6 +1,7 @@
 import { createHash, randomUUID } from 'node:crypto'
 
 import { z } from 'zod'
+import { MAX_COLLABORATION_TOTAL_BYTES } from '@/lib/repository-collaboration'
 import {
   isSpecializedAnalysisLifecycleCommand,
   journeyCommandSchema,
@@ -63,6 +64,7 @@ import { getQualityJourneyExecutionRoute, postQualityJourneyExecutionRoute } fro
 import { getQualityJourneyTriageRoute, postQualityJourneyTriageRoute } from './quality-journey-triage-route'
 import { getQualityJourneyLibraryRoute } from './quality-journey-library-route'
 import { getQualityJourneyHandoffRoute, postQualityJourneyHandoffRoute } from './quality-journey-handoff-route'
+import { getRepositoryCollaborationRoute, postRepositoryCollaborationRoute } from './repository-collaboration-route'
 
 export const runtime = 'nodejs'
 
@@ -71,19 +73,56 @@ type RouteContext = { params: Promise<{ operation: string[] }> }
 type CoordinatorErrorContext = {
   operation: string
   idempotencyKey?: string
+  target?: string
+  operationId?: string
+  effectStarted?: boolean
+}
+
+type CoordinatorEffectState = {
+  started: boolean
+  operationId?: string
 }
 
 function bodyRecord(value: unknown): Record<string, unknown> | undefined {
   return value && typeof value === 'object' && !Array.isArray(value) ? (value as Record<string, unknown>) : undefined
 }
 
-function coordinatorErrorContext(request: Request, operation: string[], body?: unknown): CoordinatorErrorContext {
+function textValue(value: unknown) {
+  return typeof value === 'string' ? value : undefined
+}
+
+function optionalContext<K extends keyof Omit<CoordinatorErrorContext, 'operation'>>(
+  key: K,
+  value: CoordinatorErrorContext[K],
+) {
+  return value ? { [key]: value } : {}
+}
+
+function coordinatorRequestIdempotencyKey(request: Request, source: Record<string, unknown> | undefined) {
+  return request.headers.get('idempotency-key') ?? textValue(source?.idempotencyKey)
+}
+
+function coordinatorOperationId(source: Record<string, unknown> | undefined, effectState?: CoordinatorEffectState) {
+  return effectState?.operationId ?? textValue(source?.operationId)
+}
+
+function coordinatorEffectContext(effectState?: CoordinatorEffectState) {
+  return effectState?.started ? { effectStarted: true } : {}
+}
+
+function coordinatorErrorContext(
+  request: Request,
+  operation: string[],
+  body?: unknown,
+  effectState?: CoordinatorEffectState,
+): CoordinatorErrorContext {
   const source = bodyRecord(body)
-  const header = request.headers.get('idempotency-key')
-  const idempotencyKey = header ?? (typeof source?.idempotencyKey === 'string' ? source.idempotencyKey : undefined)
   return {
     operation: operation.join('/') || 'unknown',
-    ...(idempotencyKey ? { idempotencyKey } : {}),
+    ...optionalContext('idempotencyKey', coordinatorRequestIdempotencyKey(request, source)),
+    ...optionalContext('target', textValue(source?.target)),
+    ...optionalContext('operationId', coordinatorOperationId(source, effectState)),
+    ...coordinatorEffectContext(effectState),
   }
 }
 
@@ -102,47 +141,91 @@ function errorClassification(error: unknown) {
   return 'appraise_runtime_defect' as const
 }
 
-function responseError(error: unknown, context: CoordinatorErrorContext) {
-  const serviceError = error instanceof ServiceError ? error : undefined
-  const status = error instanceof z.ZodError ? 400 : (serviceError?.statusCode ?? 500)
-  const message =
-    error instanceof z.ZodError
-      ? 'Coordinator request failed validation.'
-      : (serviceError?.message ?? 'Coordinator API failed.')
-  return Response.json(
-    {
-      schema: 'appraise.error/v1',
-      errorId: randomUUID(),
-      occurredAt: new Date().toISOString(),
-      classification: errorClassification(error),
-      code: serviceError?.code ?? (error instanceof z.ZodError ? 'VALIDATION' : 'INTERNAL'),
-      message,
-      httpStatus: status,
-      operation: {
-        name: context.operation,
-        ...(context.idempotencyKey ? { idempotencyKey: context.idempotencyKey } : {}),
-      },
-      operationOutcome: 'not_started',
-      targetOutcome: 'not_evaluated',
-      retry: { safe: false, strategy: 'do_not_retry' },
-      ...(error instanceof z.ZodError
-        ? {
-            details: {
-              issues: error.issues.map(issue => ({
-                path: issue.path.join('.'),
-                code: issue.code,
-                message: issue.message,
-              })),
-            },
-          }
-        : {}),
-      ...(!serviceError && !(error instanceof z.ZodError)
-        ? { details: { cause: error instanceof Error ? error.message : String(error) } }
-        : {}),
-      ...(serviceError?.details ? { details: serviceError.details } : {}),
+function coordinatorErrorRetry(context: CoordinatorErrorContext) {
+  const readableOperation = context.operation.startsWith('collaboration/') && context.target && context.operationId
+  if (!readableOperation) return { safe: false, strategy: 'do_not_retry' as const }
+  return {
+    safe: true,
+    strategy: 'read_state_then_retry' as const,
+    nextAction: {
+      tool: 'collaboration_get',
+      arguments: { target: context.target, operationId: context.operationId },
+      reason: 'Read the durable operation before deciding whether any mutation should be retried.',
     },
-    { status },
-  )
+  }
+}
+
+function isPreEffectCoordinatorFailure(error: unknown, effectStarted?: boolean) {
+  if (effectStarted) return false
+  if (error instanceof z.ZodError) return true
+  if (!(error instanceof ServiceError)) return false
+  return ['VALIDATION', 'UNAUTHORIZED', 'NOT_FOUND'].includes(error.code)
+}
+
+function coordinatorOperationOutcome(error: unknown, context: CoordinatorErrorContext) {
+  if (isPreEffectCoordinatorFailure(error, context.effectStarted)) return 'not_started'
+  return context.effectStarted ? 'unknown' : 'not_started'
+}
+
+function coordinatorErrorDetails(error: unknown, serviceError?: ServiceError) {
+  if (error instanceof z.ZodError) {
+    return {
+      issues: error.issues.map(issue => ({
+        path: issue.path.join('.'),
+        code: issue.code,
+        message: issue.message,
+      })),
+    }
+  }
+  if (serviceError?.details) return serviceError.details
+  if (!serviceError) return { cause: error instanceof Error ? error.message : String(error) }
+  return undefined
+}
+
+function coordinatorErrorCode(error: unknown, serviceError?: ServiceError) {
+  if (serviceError) return serviceError.code
+  return error instanceof z.ZodError ? 'VALIDATION' : 'INTERNAL'
+}
+
+function coordinatorErrorMessage(error: unknown, serviceError?: ServiceError) {
+  if (error instanceof z.ZodError) return 'Coordinator request failed validation.'
+  return serviceError?.message ?? 'Coordinator API failed.'
+}
+
+function coordinatorErrorStatus(error: unknown, serviceError?: ServiceError) {
+  if (error instanceof z.ZodError) return 400
+  return serviceError?.statusCode ?? 500
+}
+
+function coordinatorErrorPayload(error: unknown, context: CoordinatorErrorContext) {
+  const serviceError = error instanceof ServiceError ? error : undefined
+  const details = coordinatorErrorDetails(error, serviceError)
+  const operationOutcome = coordinatorOperationOutcome(error, context)
+  return {
+    schema: 'appraise.error/v1',
+    errorId: randomUUID(),
+    occurredAt: new Date().toISOString(),
+    classification: errorClassification(error),
+    code: coordinatorErrorCode(error, serviceError),
+    message: coordinatorErrorMessage(error, serviceError),
+    httpStatus: coordinatorErrorStatus(error, serviceError),
+    operation: { name: context.operation, ...optionalContext('idempotencyKey', context.idempotencyKey) },
+    // An unknown outcome requires an explicit signal that this request crossed
+    // a durable or external effect boundary; endpoint names are not evidence.
+    operationOutcome,
+    targetOutcome: operationOutcome === 'not_started' ? 'not_committed' : 'not_evaluated',
+    retry:
+      operationOutcome === 'unknown'
+        ? coordinatorErrorRetry(context)
+        : { safe: false, strategy: 'do_not_retry' as const },
+    ...(details ? { details } : {}),
+  }
+}
+
+/** Shared envelope for coordinator transport failures; exported for contract-level regression coverage. */
+export function responseError(error: unknown, context: CoordinatorErrorContext) {
+  const payload = coordinatorErrorPayload(error, context)
+  return Response.json(payload, { status: payload.httpStatus })
 }
 
 function operationRefs(query: URLSearchParams) {
@@ -431,6 +514,8 @@ async function getEnvironments(request: Request) {
 async function dispatchGet(request: Request, operation: string[]): Promise<Response> {
   const handoffResponse = await getQualityJourneyHandoffRoute(operation, new URL(request.url).searchParams)
   if (handoffResponse) return handoffResponse
+  const collaborationResponse = await getRepositoryCollaborationRoute(request, operation)
+  if (collaborationResponse) return collaborationResponse
   if (operation.length === 1 && operation[0] === 'diagnostic') return getDiagnostic(request)
   if (operation.length === 1 && operation[0] === 'target-projects')
     return Response.json({ targetProjects: await listTargetProjects() })
@@ -719,9 +804,18 @@ async function postLocatorEnsure(request: Request, body: unknown): Promise<Respo
   return Response.json(await ensureTargetLocator(value, target))
 }
 
-async function dispatchPost(request: Request, operation: string[], body: unknown): Promise<Response> {
+async function dispatchPost(
+  request: Request,
+  operation: string[],
+  body: unknown,
+  markExternalEffectStarted: (operationId: string) => void,
+): Promise<Response> {
   const handoffResponse = await postQualityJourneyHandoffRoute(operation, body)
   if (handoffResponse) return handoffResponse
+  const collaborationResponse = await postRepositoryCollaborationRoute(request, operation, body, {
+    markExternalEffectStarted,
+  })
+  if (collaborationResponse) return collaborationResponse
   if (operation.length === 2 && operation[0] === 'diagnostic' && operation[1] === 'preflight')
     return Response.json(await recordAgentPreflightReceipt(body), { status: 201 })
   if (operation.length === 1 && operation[0] === 'target-projects') return postTargetProject(body)
@@ -748,12 +842,17 @@ export async function GET(request: Request, context: RouteContext) {
 export async function POST(request: Request, context: RouteContext) {
   let operation: string[] = []
   let body: unknown
+  const effectState: CoordinatorEffectState = { started: false }
   try {
-    await guardCoordinatorRequest(request)
     operation = (await context.params).operation
-    body = await readCoordinatorJson(request)
-    return await dispatchPost(request, operation, body)
+    const maxRequestBytes = operation[0] === 'collaboration' ? MAX_COLLABORATION_TOTAL_BYTES : undefined
+    await guardCoordinatorRequest(request, maxRequestBytes)
+    body = await readCoordinatorJson(request, maxRequestBytes)
+    return await dispatchPost(request, operation, body, operationId => {
+      effectState.started = true
+      effectState.operationId = operationId
+    })
   } catch (error) {
-    return responseError(error, coordinatorErrorContext(request, operation, body))
+    return responseError(error, coordinatorErrorContext(request, operation, body, effectState))
   }
 }

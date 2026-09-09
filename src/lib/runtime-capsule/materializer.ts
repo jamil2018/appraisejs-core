@@ -65,7 +65,7 @@ type AuthoredPersistedTestRun = Prisma.TestRunGetPayload<{
     targetProject: true
     testCases: {
       include: {
-        testSuite: { select: { id: true; targetProjectId: true; name: true } }
+        testSuite: { select: { id: true; targetProjectId: true; name: true; archivedAt: true } }
         testCase: { include: { steps: true } }
       }
     }
@@ -108,7 +108,9 @@ function authoredSelection(testRun: AuthoredPersistedTestRun): AuthoredSelection
     if (
       !link.testSuite ||
       link.testSuite.targetProjectId !== testRun.targetProjectId ||
-      link.testCase.targetProjectId !== testRun.targetProjectId
+      link.testCase.targetProjectId !== testRun.targetProjectId ||
+      link.testSuite.archivedAt ||
+      link.testCase.archivedAt
     )
       throw new Error('Authored runtime selection must contain target-owned explicit suite/case links.')
     if (link.testCase.steps.length === 0)
@@ -469,7 +471,7 @@ function runtimeExtensionArtifact(value: unknown, allowVerifiedCompact = false):
         targetProject: true,
         testCases: {
           include: {
-            testSuite: { select: { id: true, targetProjectId: true, name: true } },
+            testSuite: { select: { id: true, targetProjectId: true, name: true, archivedAt: true } },
             testCase: {
               include: {
                 steps: { orderBy: { order: 'asc' } },
@@ -516,7 +518,7 @@ function runtimeExtensionArtifact(value: unknown, allowVerifiedCompact = false):
       prisma: this.prisma,
     })
     const locators = await this.prisma.locator.findMany({
-      where: { id: { in: [...locatorIds] }, targetProjectId: testRun.targetProjectId },
+      where: { id: { in: [...locatorIds] }, targetProjectId: testRun.targetProjectId, archivedAt: null },
       select: { id: true, name: true, value: true, locatorGroupId: true, updatedAt: true, targetProjectId: true },
     })
     if (journeySource) verifyJourneyResourceBytes(journeySource, sealedDefinitions, locators)

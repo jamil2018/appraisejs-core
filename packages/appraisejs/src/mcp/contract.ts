@@ -29,6 +29,17 @@ const externalStop = Object.freeze({
   idempotentHint: true,
   openWorldHint: true,
 } satisfies ToolAnnotations)
+const externalPreparation = Object.freeze({
+  readOnlyHint: false,
+  destructiveHint: false,
+  openWorldHint: true,
+} satisfies ToolAnnotations)
+const externalCollaborationMutation = Object.freeze({
+  readOnlyHint: false,
+  destructiveHint: true,
+  idempotentHint: true,
+  openWorldHint: true,
+} satisfies ToolAnnotations)
 
 /**
  * The sole public MCP surface. Keep this list limited to handlers that are
@@ -98,6 +109,21 @@ export const canonicalMcpToolAnnotations = Object.freeze({
   test_run_start: externalExecution,
   test_run_read: readOnly,
   test_run_diagnose: readOnly,
+  // Status advances the collaboration scheduler, which can observe remotes and
+  // persist lease/reconciliation state before returning its summary.
+  collaboration_status: externalPreparation,
+  collaboration_connect: localMutation,
+  collaboration_policy_update: durableLifecycleMutation,
+  collaboration_prepare: externalPreparation,
+  collaboration_get: readOnly,
+  collaboration_decide: externalCollaborationMutation,
+  collaboration_execute: externalCollaborationMutation,
+  collaboration_undo_prepare: durableLifecycleMutation,
+  collaboration_worker_register: localMutation,
+  collaboration_work_claim: localMutation,
+  collaboration_work_heartbeat: localMutation,
+  collaboration_work_complete: durableLifecycleMutation,
+  collaboration_handoff_redeem: localMutation,
 } satisfies Record<string, ToolAnnotations>)
 
 export const canonicalMcpResourceAnnotations = Object.freeze({

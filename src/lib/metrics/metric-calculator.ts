@@ -296,6 +296,7 @@ export async function updateDashboardMetrics(targetProjectId: string): Promise<v
     const repeatedlyFailingTestsCount = await prisma.testCase.count({
       where: {
         targetProjectId,
+        archivedAt: null,
         metrics: {
           is: {
             isRepeatedlyFailing: true,
@@ -308,6 +309,7 @@ export async function updateDashboardMetrics(targetProjectId: string): Promise<v
     const flakyTestsCount = await prisma.testCase.count({
       where: {
         targetProjectId,
+        archivedAt: null,
         metrics: {
           is: {
             isFlaky: true,
@@ -320,6 +322,7 @@ export async function updateDashboardMetrics(targetProjectId: string): Promise<v
     const suitesNotExecutedRecentlyCount = await prisma.testSuite.count({
       where: {
         targetProjectId,
+        archivedAt: null,
         OR: [
           {
             metrics: {

@@ -19,6 +19,7 @@ import { registerQualityJourneyOperations } from './domains/quality-journey.js'
 import { registerQualityJourneyExecutionOperations } from './domains/quality-journey-execution.js'
 import { registerQualityJourneyTriageOperations } from './domains/quality-journey-triage.js'
 import { registerQualityJourneyLibraryOperations } from './domains/quality-journey-library.js'
+import { registerRepositoryCollaborationOperations } from './domains/repository-collaboration.js'
 
 export type McpRegistryContext = {
   server: McpServer
@@ -135,6 +136,7 @@ const domainRegistries = Object.freeze([
   registerQualityJourneyExecutionOperations,
   registerQualityJourneyTriageOperations,
   registerQualityJourneyLibraryOperations,
+  registerRepositoryCollaborationOperations,
 ] as const)
 
 export function assertUniqueMcpDefinitions(definitions: readonly McpContractDefinition[]): void {

@@ -24,6 +24,7 @@ async function createOrFindModule(
         name: moduleName,
         parentId: parentId || null,
         targetProjectId,
+        archivedAt: null,
       },
     })
 
@@ -71,6 +72,7 @@ export async function buildModuleHierarchy(
           name: 'root',
           parentId: null,
           targetProjectId,
+          archivedAt: null,
         },
       })
 
@@ -125,7 +127,7 @@ export async function getAllModulesWithPaths(targetProjectId: string): Promise<
 > {
   try {
     const modules = await prisma.module.findMany({
-      where: { targetProjectId },
+      where: { targetProjectId, archivedAt: null },
       orderBy: [{ parentId: 'asc' }, { name: 'asc' }],
     })
 
@@ -182,7 +184,7 @@ function buildModulePath(
  */
 export async function findModuleByPath(modulePath: string, targetProjectId: string): Promise<string | null> {
   try {
-    const modules = await prisma.module.findMany({ where: { targetProjectId } })
+    const modules = await prisma.module.findMany({ where: { targetProjectId, archivedAt: null } })
     const pathParts = modulePath.split('/').filter(part => part && part !== '')
 
     if (pathParts.length === 0) {

@@ -3,6 +3,7 @@ import { Prisma, type PrismaClient } from '@prisma/client'
 import prisma from '@/config/db-config'
 import {
   hashQualityJourneyDraft,
+  hashQualityJourneyDraftReuseSeeds,
   hashQualityJourneyRequirement,
   parseGuidedQualityJourneyRequirement,
   parseQualityJourneyDraftRequirement,
@@ -11,6 +12,7 @@ import {
 import { canonicalContractJson } from '@/lib/catalog-contracts'
 import { ServiceError } from '@/services/shared/errors'
 import {
+  bindQualityJourneyAdvisoryReuseInputsInTransaction,
   createQualityJourneyInTransaction,
   submitDurableQualityJourneyCommandInTransaction,
 } from './quality-journey-service'
@@ -48,6 +50,7 @@ function draftValues(input: {
   currentStep: number
   predecessorJourneyId?: string
   version: number
+  advisorySeedDigest?: string
 }) {
   const requirement = parseQualityJourneyDraftRequirement(input.requirement)
   return {
@@ -58,8 +61,24 @@ function draftValues(input: {
       requirement,
       predecessorJourneyId: input.predecessorJourneyId,
       version: input.version,
+      advisorySeedDigest: input.advisorySeedDigest,
     }),
   }
+}
+
+async function advisorySeedDigest(draftId: string, db: Db) {
+  const seeds = await db.qualityJourneyReuseSeed.findMany({
+    where: { draftId },
+    select: {
+      kind: true,
+      assetPortableId: true,
+      sourceVersion: true,
+      sourcePayloadHash: true,
+      sourceRevision: true,
+      contentHash: true,
+    },
+  })
+  return seeds.length ? hashQualityJourneyDraftReuseSeeds(seeds) : undefined
 }
 
 export async function createQualityJourneyDraft(
@@ -70,7 +89,7 @@ export async function createQualityJourneyDraft(
     currentStep?: number
     predecessorJourneyId?: string
   },
-  client: PrismaClient = prisma,
+  client: Db = prisma,
 ) {
   const requirement = parseQualityJourneyDraftRequirement(input.requirement ?? {})
   const currentStep = input.currentStep ?? 0
@@ -125,7 +144,7 @@ export async function createQualityJourneyDraft(
  * follow-up action may set predecessorJourneyId. */
 export async function copyQualityJourneyBriefToDraft(
   input: { journeyId: string; targetProjectId: string; idempotencyKey: string },
-  client: PrismaClient = prisma,
+  client: Db = prisma,
 ) {
   const journey = await client.qualityJourney.findFirst({
     where: { id: input.journeyId, targetProjectId: input.targetProjectId },
@@ -185,6 +204,7 @@ export async function saveQualityJourneyDraft(
     currentStep: input.currentStep,
     predecessorJourneyId: input.predecessorJourneyId,
     version: nextVersion,
+    advisorySeedDigest: await advisorySeedDigest(input.draftId, client),
   })
   const changed = await client.qualityJourneyDraft.updateMany({
     where: {
@@ -218,7 +238,7 @@ export async function saveQualityJourneyDraft(
 
 async function moveDraft(
   input: { draftId: string; targetProjectId: string; expectedVersion: number; status: 'ACTIVE' | 'ARCHIVED' },
-  client: PrismaClient,
+  client: Db,
 ) {
   const draft = await scopedDraft(input, client)
   const nextVersion = input.expectedVersion + 1
@@ -226,6 +246,7 @@ async function moveDraft(
     requirement: parseQualityJourneyDraftRequirement(JSON.parse(draft.requirementJson)),
     predecessorJourneyId: draft.predecessorJourneyId ?? undefined,
     version: nextVersion,
+    advisorySeedDigest: await advisorySeedDigest(draft.id, client),
   })
   const changed = await client.qualityJourneyDraft.updateMany({
     where: {
@@ -243,14 +264,14 @@ async function moveDraft(
 
 export function archiveQualityJourneyDraft(
   input: { draftId: string; targetProjectId: string; expectedVersion: number },
-  client: PrismaClient = prisma,
+  client: Db = prisma,
 ) {
   return moveDraft({ ...input, status: 'ARCHIVED' }, client)
 }
 
 export function restoreQualityJourneyDraft(
   input: { draftId: string; targetProjectId: string; expectedVersion: number },
-  client: PrismaClient = prisma,
+  client: Db = prisma,
 ) {
   return moveDraft({ ...input, status: 'ACTIVE' }, client)
 }
@@ -366,6 +387,14 @@ export async function confirmQualityJourneyDraft(
     if (draft.status !== 'ACTIVE') throw new ServiceError('Restore this draft before confirming it.', 'CONFLICT')
     if (draft.version !== input.expectedVersion || draft.draftHash !== input.expectedDraftHash)
       throw new ServiceError('A newer saved version is available. Reload before confirming.', 'CONFLICT')
+    const expectedDraftHash = hashQualityJourneyDraft({
+      requirement: parseQualityJourneyDraftRequirement(JSON.parse(draft.requirementJson)),
+      predecessorJourneyId: draft.predecessorJourneyId ?? undefined,
+      version: draft.version,
+      advisorySeedDigest: await advisorySeedDigest(draft.id, tx),
+    })
+    if (expectedDraftHash !== draft.draftHash)
+      throw new ServiceError('The selected reuse seeds changed. Reload before confirming.', 'CONFLICT')
     const requirement = guidedRequirementForConfirmation(draft)
     const normalizedRequirementHash = hashQualityJourneyRequirement(requirement)
     if (normalizedRequirementHash !== input.requirementHash)
@@ -376,6 +405,10 @@ export async function confirmQualityJourneyDraft(
       confirmationKey,
       requirement,
       normalizedRequirementHash,
+      tx,
+    )
+    await bindQualityJourneyAdvisoryReuseInputsInTransaction(
+      { journeyId, targetProjectId: input.targetProjectId, draftId: draft.id },
       tx,
     )
     await markDraftConfirmed(

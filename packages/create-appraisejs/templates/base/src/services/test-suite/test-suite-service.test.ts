@@ -38,9 +38,17 @@ describe('deleteTestSuitesByIds', () => {
     await deleteTestSuitesByIds(['suite-1'], targetProjectId)
 
     expect(prisma.testSuite.deleteMany).toHaveBeenCalledWith({
-      where: { id: { in: ['suite-1'] }, targetProjectId },
+      where: { id: { in: ['suite-1'] }, targetProjectId, archivedAt: null, collaborationManaged: false },
     })
     expect(prisma.tag.deleteMany).not.toHaveBeenCalled()
+  })
+
+  it('does not destructively delete collaboration-managed suites', async () => {
+    vi.clearAllMocks()
+    vi.mocked(prisma.testSuite.findFirst).mockResolvedValueOnce({ id: 'suite-1' } as never)
+
+    await expect(deleteTestSuitesByIds(['suite-1'], targetProjectId)).rejects.toMatchObject({ statusCode: 409 })
+    expect(prisma.testSuite.deleteMany).not.toHaveBeenCalled()
   })
 })
 
