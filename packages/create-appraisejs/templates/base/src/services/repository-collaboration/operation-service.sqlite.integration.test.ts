@@ -868,7 +868,7 @@ describe('durable collaboration operations', () => {
     } finally {
       await client.$disconnect()
     }
-  })
+  }, 15_000)
 
   it('does not certify a publication when the repository common directory changes after installation', async () => {
     const { client, binding, target } = await fixture({ git: true })

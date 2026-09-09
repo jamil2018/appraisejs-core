@@ -52,6 +52,7 @@ describe('QualityJourneyCreateForm', () => {
     await user.click(screen.getByRole('button', { name: 'Continue' }))
     await user.click(screen.getByText('Staging'))
     await user.click(screen.getByRole('button', { name: 'Review Journey intake' }))
+    await screen.findByRole('button', { name: 'Confirm and create Journey' }, { timeout: 5_000 })
   }
 
   it('keeps at least one test dimension selected', async () => {
