@@ -1,7 +1,8 @@
 export async function createBrowserBoundarySession(browser, policy) {
   const receipts = []
   const allowedOrigins = new Set(policy.allowedOrigins)
-  const allowedPaths = new Set(policy.allowedPaths)
+  const allowedRequests = new Set(policy.allowedRequests.map(requestKey))
+  const pendingDownloadCancellations = new Set()
   const context = await browser.newContext({
     acceptDownloads: false,
     serviceWorkers: 'block',
@@ -9,7 +10,7 @@ export async function createBrowserBoundarySession(browser, policy) {
 
   const isAllowed = (url, method) => {
     const parsed = new URL(url)
-    return allowedOrigins.has(parsed.origin) && allowedPaths.has(parsed.pathname) && method === 'GET'
+    return allowedOrigins.has(parsed.origin) && allowedRequests.has(requestKey({ url, method }))
   }
 
   const decide = (url, method, channel) => {
@@ -45,10 +46,12 @@ export async function createBrowserBoundarySession(browser, policy) {
   const page = await context.newPage()
   page.on('download', download => {
     receipts.push({ channel: 'download', url: download.url(), method: 'GET', allowed: false })
-    void download.cancel()
+    const cancellation = download.cancel().catch(() => {})
+    pendingDownloadCancellations.add(cancellation)
+    void cancellation.finally(() => pendingDownloadCancellations.delete(cancellation))
   })
 
-  return {
+  const worker = {
     async navigate(url) {
       if (!decide(url, 'GET', 'navigation')) return { allowed: false }
       const receiptStart = receipts.length
@@ -59,12 +62,17 @@ export async function createBrowserBoundarySession(browser, policy) {
     async observeText(selector) {
       return page.locator(selector).innerText()
     },
+    async request(method, url) {
+      if (!decide(url, method, 'worker-request')) return { allowed: false }
+      const response = await context.request.fetch(url, { method, maxRedirects: 0 })
+      return { allowed: true, status: response.status() }
+    },
+  }
+
+  const controller = {
     async authorizeSyntheticSession({ name, value, origin }) {
       if (!allowedOrigins.has(origin)) throw new Error('Session origin is outside the browser grant.')
       await context.addCookies([{ name, value, url: origin, httpOnly: true, sameSite: 'Strict' }])
-    },
-    request(method, url) {
-      return { allowed: decide(url, method, 'worker-request') }
     },
     receiptSummary() {
       return receipts.map(receipt => ({ ...receipt }))
@@ -72,10 +80,17 @@ export async function createBrowserBoundarySession(browser, policy) {
     serviceWorkerCount() {
       return context.serviceWorkers().length
     },
-    close() {
-      return context.close()
+    async close() {
+      await Promise.all(pendingDownloadCancellations)
+      await context.close()
     },
   }
+
+  return { worker, controller }
+}
+
+function requestKey({ url, method }) {
+  return `${method.toUpperCase()} ${new URL(url).href}`
 }
 
 async function loadPage(page, url) {
@@ -84,6 +99,7 @@ async function loadPage(page, url) {
     await new Promise(resolve => setImmediate(resolve))
     return true
   } catch {
+    await new Promise(resolve => setTimeout(resolve, 50))
     return false
   }
 }

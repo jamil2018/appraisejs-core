@@ -61,15 +61,32 @@ const recoveryHandlers = {
 
 export class DeliveryLedger {
   #deliveries = new Map()
+  #lastSequence = -1
 
-  ingest(id, payload) {
-    const digest = createHash('sha256').update(JSON.stringify(payload)).digest('hex')
+  ingest(id, payload, sequence = this.#lastSequence + 1) {
+    const digest = createHash('sha256').update(canonicalJson(payload)).digest('hex')
     const existing = this.#deliveries.get(id)
     if (existing === digest) return { outcome: 'duplicate', digest }
     if (existing) return { outcome: 'conflict', digest, existingDigest: existing }
+    if (sequence <= this.#lastSequence) return { outcome: 'out_of_order', digest }
     this.#deliveries.set(id, digest)
+    this.#lastSequence = sequence
     return { outcome: 'accepted', digest }
   }
+}
+
+function canonicalJson(value) {
+  return JSON.stringify(canonicalValue(value))
+}
+
+function canonicalValue(value) {
+  if (Array.isArray(value)) return value.map(canonicalValue)
+  if (value === null || typeof value !== 'object') return value
+  return Object.fromEntries(
+    Object.entries(value)
+      .sort(([left], [right]) => left.localeCompare(right))
+      .map(([key, nested]) => [key, canonicalValue(nested)]),
+  )
 }
 
 export function classifyLateResult({ authorizedAfterIo, effectOccurred }) {

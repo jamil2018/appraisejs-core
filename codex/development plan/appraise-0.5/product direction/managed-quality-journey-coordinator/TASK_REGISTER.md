@@ -18,7 +18,7 @@ Evidence references start as `—` because no implementation checks have run. Ga
 | ---- | ---- | ------------------------------------------------ | ---------------- | --------- | ------------------------------------ |
 | [x]  | P0.1 | Establish protocol and source baseline           | None             | verified  | [evidence/P0.1.md](evidence/P0.1.md) |
 | [x]  | P0.2 | Qualify effective worker boundaries              | P0.1             | verified  | [evidence/P0.2.md](evidence/P0.2.md) |
-| [x]  | P0.3 | Qualify process and session recovery             | P0.1             | verified  | [evidence/P0.3.md](evidence/P0.3.md) |
+| [ ]  | P0.3 | Qualify process and session recovery             | P0.1             | blocked   | [evidence/P0.3.md](evidence/P0.3.md) |
 | [ ]  | P0.4 | Review feasibility and browser enforcement       | P0.2, P0.3       | in_review | [evidence/P0.4.md](evidence/P0.4.md) |
 | [ ]  | P1.1 | Define runtime contracts and persistence         | Gate G0          | pending   | —                                    |
 | [ ]  | P1.2 | Implement Start grant and singleton ownership    | P1.1             | pending   | —                                    |
@@ -534,9 +534,10 @@ Replace placeholders with observed facts; do not copy a template as evidence of 
 No implementation blockers have been observed because implementation has not begun. Phase 0 feasibility is unproven,
 not passed. Add actual blockers here rather than treating anticipated risks as test results.
 
-| ID     | Task/gate | Observed failure and reproduction                                                                                                                                             | Impact                                                                                                            | Required unblock evidence                                                                                                                                                                       | Status |
-| ------ | --------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
-| B0-001 | P0.2/G0   | `QB-01` pre-turn probe on Codex 0.153.4 returned the required Journey MCP absent, five ambient MCP servers present, and no authoritative model-visible native-tool inventory. | Exact per-role tools and absence of native effect tools cannot be attested; the worker boundary is not qualified. | A separately reviewed confinement mechanism must expose only the exact Journey gateway tools and produce authoritative effective native-tool/context/filesystem/network evidence before a turn. | open   |
+| ID     | Task/gate | Observed failure and reproduction                                                                                                                                                                             | Impact                                                                                                            | Required unblock evidence                                                                                                                                                                        | Status |
+| ------ | --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------ |
+| B0-001 | P0.2/G0   | `QB-01` pre-turn probe on Codex 0.153.4 returned the required Journey MCP absent, five ambient MCP servers present, and no authoritative model-visible native-tool inventory.                                 | Exact per-role tools and absence of native effect tools cannot be attested; the worker boundary is not qualified. | A separately reviewed confinement mechanism must expose only the exact Journey gateway tools and produce authoritative effective native-tool/context/filesystem/network evidence before a turn.  | open   |
+| B0-002 | P0.3/G0   | Only `QR-06` exercised a spawned process; remaining recovery checks validated conservative policy decisions without App Server handshake, lost-acknowledgement, resume, descendant-stop or late-event faults. | Real-provider process/session recovery feasibility is not empirically established.                                | Account-safe isolated App Server fault fixtures must execute the required fault matrix and bind results to exact executable/config/process/thread identities without starting a paid model turn. | open   |
 
 ## Decision/change register
 
@@ -559,7 +560,7 @@ replacement acceptance criteria. Distinguish explicit user choices from planning
 - Current phase: Phase 0, in progress.
 - Current task: P0.4 — Review feasibility and browser enforcement (`in_review`).
 - Next eligible task: none until Gate G0 passes; `B0-001` currently requires G0 to be blocked.
-- Completed implementation tasks: 3 of 32.
+- Completed implementation tasks: 2 of 32; P0.3 is blocked after independent review rejected its prior verification.
 - Latest gate: none evaluated.
 - Runtime/processes started by this plan: the `QB-01` App Server process was terminated by the harness; it sent no
   `turn/start`. Its ephemeral thread identifier is retained only as a SHA-256 digest in evidence.

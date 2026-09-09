@@ -91,7 +91,8 @@ test('QR-09 forbids replacement until predecessor stop is proven', () => {
 
 test('QR-10 deduplicates identical events and rejects identity conflicts', () => {
   const ledger = new DeliveryLedger()
-  assert.equal(ledger.ingest('delivery-1', { state: 'running' }).outcome, 'accepted')
-  assert.equal(ledger.ingest('delivery-1', { state: 'running' }).outcome, 'duplicate')
-  assert.equal(ledger.ingest('delivery-1', { state: 'finished' }).outcome, 'conflict')
+  assert.equal(ledger.ingest('delivery-1', { state: 'running', detail: { a: 1, b: 2 } }, 1).outcome, 'accepted')
+  assert.equal(ledger.ingest('delivery-1', { detail: { b: 2, a: 1 }, state: 'running' }, 1).outcome, 'duplicate')
+  assert.equal(ledger.ingest('delivery-1', { state: 'finished' }, 1).outcome, 'conflict')
+  assert.equal(ledger.ingest('delivery-2', { state: 'queued' }, 0).outcome, 'out_of_order')
 })

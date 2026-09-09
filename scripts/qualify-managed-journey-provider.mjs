@@ -19,8 +19,19 @@ const fixtureRoot = mkdtempSync(path.join(tmpdir(), 'appraise-provider-qualifica
 const sentMethods = []
 const pending = new Map()
 let nextId = 1
+const launchArgs = ['app-server', '--stdio', '--strict-config', '-c', 'mcp_servers={}']
+const threadStartParams = {
+  cwd: fixtureRoot,
+  ephemeral: true,
+  sandbox: 'read-only',
+  runtimeWorkspaceRoots: [],
+  environments: [],
+  dynamicTools: [],
+  baseInstructions: 'Phase 0 qualification fixture. Do not start a model turn.',
+  developerInstructions: '',
+}
 
-const child = spawn(executable, ['app-server', '--stdio', '--strict-config', '-c', 'mcp_servers={}'], {
+const child = spawn(executable, launchArgs, {
   cwd: fixtureRoot,
   env: {
     ...process.env,
@@ -80,16 +91,7 @@ async function main() {
     })
     notify('initialized')
 
-    const threadStartResponse = await send('thread/start', {
-      cwd: fixtureRoot,
-      ephemeral: true,
-      sandbox: 'read-only',
-      runtimeWorkspaceRoots: [],
-      environments: [],
-      dynamicTools: [],
-      baseInstructions: 'Phase 0 qualification fixture. Do not start a model turn.',
-      developerInstructions: '',
-    })
+    const threadStartResponse = await send('thread/start', threadStartParams)
     const mcpStatus = await send('mcpServerStatus/list', {
       threadId: threadStartResponse.thread.id,
       detail: 'toolsAndAuthOnly',
@@ -113,6 +115,7 @@ async function main() {
         protocolHash,
         response: threadStartResponse,
       }),
+      launchConfigurationDigest: sha256(JSON.stringify({ launchArgs, threadStartParams })),
       ...result,
       stderrLineCount: stderrLines.length,
     }
