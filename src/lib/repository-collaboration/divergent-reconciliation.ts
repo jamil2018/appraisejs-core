@@ -98,9 +98,10 @@ async function changedPaths(repositoryRoot: string, older: string, newer: string
   return paths((await runGit(repositoryRoot, { kind: 'diff-names', range: `${older}..${newer}` })).stdout)
 }
 
-function temporaryWorktreePath(operationId: string): string {
+/** The sole server-derived worktree location for a reconciliation operation. */
+export function managedDivergentWorktreePath(operationId: string): string {
   assertOperationId(operationId)
-  return path.join(os.tmpdir(), `appraise-collaboration-${operationId}-${randomUUID()}`)
+  return path.join(os.tmpdir(), `appraise-collaboration-${operationId}`)
 }
 
 async function sourceState(input: {
@@ -168,12 +169,44 @@ export async function prepareDivergentReconciliation(input: {
   operationId: string
   sourceRevision: string
   targetRevision: string
+  worktreePath?: string
 }): Promise<DivergentReconciliationPreparation> {
   assertOperationId(input.operationId)
   const source = await sourceState(input)
   const identity = await inspectRepository(input.repositoryRoot)
   const divergence = await ensureCollaborationOnlyDivergence(identity.repositoryRoot, source)
-  const worktreePath = temporaryWorktreePath(input.operationId)
+  const worktreePath = input.worktreePath ?? managedDivergentWorktreePath(input.operationId)
+  if (worktreePath !== managedDivergentWorktreePath(input.operationId)) {
+    throw new DivergentReconciliationError('RECOVERY_REQUIRED', 'The divergent worktree path is not server-derived.')
+  }
+  try {
+    const entry = await fs.lstat(worktreePath)
+    if (entry.isSymbolicLink() || !entry.isDirectory()) {
+      throw new DivergentReconciliationError(
+        'RECOVERY_REQUIRED',
+        'The divergent worktree path is not a managed directory.',
+      )
+    }
+    const existing = await inspectRepository(worktreePath)
+    if (existing.commonDirectory !== identity.commonDirectory || existing.head !== source.sourceRevision) {
+      throw new DivergentReconciliationError(
+        'RECOVERY_REQUIRED',
+        'The existing divergent worktree does not match its operation.',
+      )
+    }
+    const snapshot = await readCollaborationSnapshot(path.join(worktreePath, collaborationRoot))
+    return {
+      operationId: input.operationId,
+      repositoryRoot: identity.repositoryRoot,
+      worktreePath,
+      ...source,
+      ...divergence,
+      sourceSnapshotHash: snapshot.snapshotHash,
+      portableProjectId: snapshot.manifest.portableProjectId,
+    }
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error
+  }
   await runGit(identity.repositoryRoot, {
     kind: 'worktree-add-detached',
     worktreePath,
@@ -399,9 +432,9 @@ export async function createDivergentMergeCommit(input: {
 }
 
 function isOwnedTemporaryWorktree(worktreePath: string): boolean {
-  const expectedParent = path.resolve(os.tmpdir())
   const candidate = path.resolve(worktreePath)
-  return path.dirname(candidate) === expectedParent && path.basename(candidate).startsWith('appraise-collaboration-')
+  const operationId = path.basename(candidate).slice('appraise-collaboration-'.length)
+  return candidate === managedDivergentWorktreePath(operationId)
 }
 
 /**

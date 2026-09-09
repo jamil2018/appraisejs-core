@@ -25,6 +25,7 @@ import {
   fetchOperationSourceRef,
   classifyPinnedReceive,
   inspectRepository,
+  managedReceiveSnapshotWorktreePath,
   observeOperationSourceRef,
   readCollaborationSnapshotAtCommit,
   readCollaborationSnapshot,
@@ -164,6 +165,21 @@ export type PrepareCollaborationOperationHooks = {
   /** Test-only crash seam after an observed fetch receipt is durable. Retrying
    * this operation must materialize that receipt without a second fetch. */
   afterFetchReceiptPersisted?: (operationId: string) => Promise<void> | void
+  /** Test-only crash seam after the durable RECEIVE materialization worktree
+   * has been added, before its snapshot can be certified. */
+  afterReceiveMaterializationWorktreeAdded?: (worktreePath: string) => Promise<void> | void
+}
+
+/** Simulates a process interruption after a managed receive worktree exists.
+ * It must not be recorded as a source-validation failure because recovery can
+ * safely adopt the durable worktree intent. */
+class ReceiveMaterializationInterruption extends Error {}
+
+function isReceiveMaterializationInterruption(error: unknown): boolean {
+  return (
+    error instanceof ReceiveMaterializationInterruption ||
+    (error instanceof Error && error.cause instanceof ReceiveMaterializationInterruption)
+  )
 }
 
 type PersistedPrepareCollaborationOperationInput = PrepareCollaborationOperationInput & {
@@ -772,6 +788,21 @@ async function persistReceiveFetchObservation(
   await appendJournal(transaction, current.id, 'RECEIVE_FETCH_OBSERVED', input.observation)
 }
 
+async function assertPreparingReceiveReservation(
+  transaction: Transaction,
+  lease: Awaited<ReturnType<typeof acquireCollaborationGitMutationLock>>,
+  operationId: string,
+  input: PrepareCollaborationOperationInput,
+  message: string,
+) {
+  await assertCollaborationGitMutationLock(transaction, lease)
+  const current = await transaction.collaborationOperation.findUnique({ where: { id: operationId } })
+  if (!current || current.state !== 'PREPARING' || current.sourceSnapshotHash !== receiveReservationDigest(input)) {
+    throw new ServiceError(message, 'CONFLICT', 409)
+  }
+  return current
+}
+
 async function blockPreparingReceiveOperation(
   operationId: string,
   client: PrismaClient,
@@ -874,15 +905,13 @@ async function fetchAndObserveReceiveSource(
         targetRevision: identity.head,
       }
       await client.$transaction(async transaction => {
-        await assertCollaborationGitMutationLock(transaction, lease)
-        const current = await transaction.collaborationOperation.findUnique({ where: { id: reserved.operation.id } })
-        if (
-          !current ||
-          current.state !== 'PREPARING' ||
-          current.sourceSnapshotHash !== receiveReservationDigest(input)
-        ) {
-          throw new ServiceError('The receive operation changed before its fetch began.', 'CONFLICT', 409)
-        }
+        const current = await assertPreparingReceiveReservation(
+          transaction,
+          lease,
+          reserved.operation.id,
+          input,
+          'The receive operation changed before its fetch began.',
+        )
         await transaction.collaborationOperationArtifact.create({
           data: {
             operationId: current.id,
@@ -1051,17 +1080,106 @@ async function persistMaterializedReceive(
   return operation
 }
 
+async function readReceiveMaterializationSnapshot(
+  reserved: Awaited<ReturnType<typeof reserveReceiveFetch>>,
+  input: PrepareCollaborationOperationInput,
+  observed: ReceiveFetchObservation,
+  client: PrismaClient,
+  hooks?: PrepareCollaborationOperationHooks,
+) {
+  const identity = await inspectRepository(reserved.binding.repositoryRoot, reserved.binding.remoteName)
+  const lease = await client.$transaction(transaction =>
+    acquireCollaborationGitMutationLock(transaction, identity.commonDirectory, reserved.operation.id),
+  )
+  const worktreePath = managedReceiveSnapshotWorktreePath(reserved.operation.id)
+  try {
+    return await withCollaborationGitMutationLeaseHeartbeat(client, lease, async () => {
+      await client.$transaction(async transaction => {
+        const current = await assertPreparingReceiveReservation(
+          transaction,
+          lease,
+          reserved.operation.id,
+          input,
+          'The receive operation changed before materialization.',
+        )
+        await assertCollaborationGitMutationIdentity(
+          reserved.binding.repositoryRoot,
+          identity.commonDirectory,
+          reserved.binding.remoteName,
+        )
+        const intent = {
+          schema: 'appraise.repository-collaboration.receive-materialization-worktree/v1',
+          operationId: current.id,
+          sourceRevision: observed.sourceRevision,
+          commonDirectory: identity.commonDirectory,
+          worktreePath,
+        }
+        const existing = await transaction.collaborationOperationArtifact.findFirst({
+          where: { operationId: current.id, kind: 'GIT_RECEIVE_MATERIALIZATION_WORKTREE' },
+        })
+        if (existing) {
+          if (existing.payloadHash !== collaborationHash(intent) || existing.payloadJson !== canonicalJson(intent)) {
+            throw new ServiceError('The receive materialization worktree identity changed.', 'CONFLICT', 409)
+          }
+          return
+        }
+        await transaction.collaborationOperationArtifact.create({
+          data: {
+            operationId: current.id,
+            kind: 'GIT_RECEIVE_MATERIALIZATION_WORKTREE',
+            revision: 1,
+            payloadJson: canonicalJson(intent),
+            payloadHash: collaborationHash(intent),
+          },
+        })
+        await appendJournal(transaction, current.id, 'RECEIVE_MATERIALIZATION_WORKTREE_INTENT', intent, 'STARTED')
+      })
+      const snapshot = await readCollaborationSnapshotAtCommit({
+        repositoryRoot: reserved.binding.repositoryRoot,
+        commit: observed.sourceRevision,
+        operationId: reserved.operation.id,
+        worktreePath,
+        afterWorktreeAdded: async addedWorktreePath => {
+          try {
+            await hooks?.afterReceiveMaterializationWorktreeAdded?.(addedWorktreePath)
+          } catch (error) {
+            throw new ReceiveMaterializationInterruption(
+              error instanceof Error ? error.message : 'Receive materialization was interrupted.',
+            )
+          }
+        },
+        retainWorktreeOnHookFailure: Boolean(hooks?.afterReceiveMaterializationWorktreeAdded),
+      })
+      await client.$transaction(async transaction => {
+        await assertCollaborationGitMutationLock(transaction, lease)
+        await appendJournal(
+          transaction,
+          reserved.operation.id,
+          'RECEIVE_MATERIALIZATION_WORKTREE_CLEANED',
+          { worktreePath },
+          'COMPLETED',
+        )
+      })
+      await assertCollaborationGitMutationIdentity(
+        reserved.binding.repositoryRoot,
+        identity.commonDirectory,
+        reserved.binding.remoteName,
+      )
+      return snapshot
+    })
+  } finally {
+    await client.$transaction(transaction => releaseCollaborationGitMutationLock(transaction, lease))
+  }
+}
+
 async function materializeObservedReceive(
   reserved: Awaited<ReturnType<typeof reserveReceiveFetch>>,
   input: PrepareCollaborationOperationInput,
   observed: ReceiveFetchObservation,
   client: PrismaClient,
+  hooks?: PrepareCollaborationOperationHooks,
 ) {
-  const sourceSnapshot = await readCollaborationSnapshotAtCommit({
-    repositoryRoot: reserved.binding.repositoryRoot,
-    commit: observed.sourceRevision,
-    operationId: reserved.operation.id,
-  })
+  const sourceSnapshot = await readReceiveMaterializationSnapshot(reserved, input, observed, client, hooks)
   const received = dependencyClosed(sourceSnapshot.records)
   assertMatchingPortableProject(received, reserved.binding.portableProjectId)
   const classification = await classifyPinnedReceive({
@@ -1115,12 +1233,14 @@ export async function prepareCollaborationOperation(
       (await recoverReceiveFetchObservation(reserved, input, client)) ??
       (await fetchAndObserveReceiveSource(reserved, input, client, hooks))
     try {
-      return publicOperation(await materializeObservedReceive(reserved, input, observed, client))
+      return publicOperation(await materializeObservedReceive(reserved, input, observed, client, hooks))
     } catch (error) {
       // Once a fetch receipt exists, malformed source content or classification
       // is known durable state—not an unknown Git effect—so make the operation
       // observable and recoverable instead of dropping its identity.
-      await blockReceiveAfterObservedFetch(reserved.operation.id, client, error)
+      if (!isReceiveMaterializationInterruption(error)) {
+        await blockReceiveAfterObservedFetch(reserved.operation.id, client, error)
+      }
       throw error
     }
   }

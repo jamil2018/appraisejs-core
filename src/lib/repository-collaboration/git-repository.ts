@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto'
 import { realpath } from 'node:fs/promises'
-import { mkdtemp, rm } from 'node:fs/promises'
+import { lstat, mkdtemp, rm } from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
 
@@ -53,6 +53,11 @@ function assertCommit(commit: string): void {
 
 function assertOperationId(operationId: string): void {
   if (!/^[A-Za-z0-9_-]{8,200}$/u.test(operationId)) throw new Error('Collaboration operation identity is invalid.')
+}
+
+export function managedReceiveSnapshotWorktreePath(operationId: string): string {
+  assertOperationId(operationId)
+  return path.join(os.tmpdir(), `appraise-collaboration-receive-${operationId}`)
 }
 
 function parseNulPaths(output: string): string[] {
@@ -230,23 +235,83 @@ async function fetchOperationRef(input: {
   return { fetchedCommit, fetchedTree, sourceRef }
 }
 
-/** Read the strict exchange snapshot from an immutable commit, never the live worktree. */
-export async function readCollaborationSnapshotAtCommit(input: {
+type CollaborationSnapshotReadInput = {
   repositoryRoot: string
   commit: string
   operationId: string
-}) {
+  worktreePath?: string
+  /** Test-only crash seam after a managed worktree is added but before its
+   * snapshot read can be certified by the operation service. */
+  afterWorktreeAdded?: (worktreePath: string) => Promise<void> | void
+  retainWorktreeOnHookFailure?: boolean
+}
+
+class WorktreeAddedHookFailure extends Error {
+  readonly cause: unknown
+
+  constructor(error: unknown) {
+    super(error instanceof Error ? error.message : 'The worktree hook failed.')
+    this.cause = error
+  }
+}
+
+async function provisionCollaborationSnapshotWorktree(
+  input: CollaborationSnapshotReadInput,
+  identity: GitRepositoryIdentity,
+) {
+  const worktreePath =
+    input.worktreePath ?? (await mkdtemp(path.join(os.tmpdir(), `appraise-collaboration-read-${input.operationId}-`)))
+  if (!input.worktreePath) {
+    await rm(worktreePath, { recursive: true, force: true })
+    await runGit(identity.repositoryRoot, { kind: 'worktree-add-detached', worktreePath, commit: input.commit })
+    return { worktreePath, added: true }
+  }
+  try {
+    const entry = await lstat(worktreePath)
+    if (entry.isSymbolicLink() || !entry.isDirectory()) throw new Error('The managed receive worktree path is invalid.')
+    const existing = await inspectRepository(worktreePath)
+    if (existing.commonDirectory !== identity.commonDirectory || existing.head !== input.commit) {
+      throw new Error('The managed receive worktree does not match its pinned source revision.')
+    }
+    return { worktreePath, added: false }
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error
+    await runGit(identity.repositoryRoot, { kind: 'worktree-add-detached', worktreePath, commit: input.commit })
+    return { worktreePath, added: true }
+  }
+}
+
+async function invokeWorktreeAddedHook(input: CollaborationSnapshotReadInput, worktreePath: string, added: boolean) {
+  if (!added) return
+  try {
+    await input.afterWorktreeAdded?.(worktreePath)
+  } catch (error) {
+    throw new WorktreeAddedHookFailure(error)
+  }
+}
+
+async function removeCollaborationSnapshotWorktree(repositoryRoot: string, worktreePath: string) {
+  await runGitAllowFailure(repositoryRoot, { kind: 'worktree-remove', worktreePath })
+  await rm(worktreePath, { recursive: true, force: true })
+}
+
+/** Read the strict exchange snapshot from an immutable commit, never the live worktree. */
+export async function readCollaborationSnapshotAtCommit(input: CollaborationSnapshotReadInput) {
   assertCommit(input.commit)
   assertOperationId(input.operationId)
   const identity = await inspectRepository(input.repositoryRoot)
-  const worktreePath = await mkdtemp(path.join(os.tmpdir(), `appraise-collaboration-read-${input.operationId}-`))
-  await rm(worktreePath, { recursive: true, force: true })
+  const { worktreePath, added } = await provisionCollaborationSnapshotWorktree(input, identity)
+  let retainManagedWorktree = false
   try {
-    await runGit(identity.repositoryRoot, { kind: 'worktree-add-detached', worktreePath, commit: input.commit })
+    await invokeWorktreeAddedHook(input, worktreePath, added)
     return await readCollaborationSnapshot(path.join(worktreePath, collaborationDirectory))
+  } catch (error) {
+    retainManagedWorktree = error instanceof WorktreeAddedHookFailure && Boolean(input.retainWorktreeOnHookFailure)
+    throw error
   } finally {
-    await runGitAllowFailure(identity.repositoryRoot, { kind: 'worktree-remove', worktreePath })
-    await rm(worktreePath, { recursive: true, force: true })
+    if (!retainManagedWorktree) {
+      await removeCollaborationSnapshotWorktree(identity.repositoryRoot, worktreePath)
+    }
   }
 }
 

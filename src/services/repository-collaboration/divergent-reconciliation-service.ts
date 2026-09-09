@@ -9,6 +9,7 @@ import {
   collaborationHash,
   collaborationRecordSchema,
   prepareDivergentReconciliation,
+  managedDivergentWorktreePath,
   prepareThreeWayCollaboration,
   recordKey,
   validateDivergentReconciliationProposal,
@@ -40,6 +41,15 @@ const divergentDecisionRecordKey = '__appraise_divergent_proposal__'
 type PreparedPayload = {
   local: CollaborationRecord[]
   baselines: CollaborationRecord[]
+}
+type DivergentWorktreeIntent = {
+  schema: 'appraise.repository-collaboration.divergent-worktree-intent/v1'
+  operationId: string
+  repositoryRoot: string
+  commonDirectory: string
+  worktreePath: string
+  sourceRevision: string
+  targetRevision: string
 }
 
 /**
@@ -164,6 +174,49 @@ async function assertLockedDivergentRepositoryIdentity(
   )
 }
 
+async function persistDivergentWorktreeIntent(
+  transaction: Transaction,
+  operation: DivergentOperationWithBinding,
+  commonDirectory: string,
+  lease: CollaborationMutationLease,
+) {
+  await assertCollaborationGitMutationLock(transaction, lease)
+  const intent: DivergentWorktreeIntent = {
+    schema: 'appraise.repository-collaboration.divergent-worktree-intent/v1',
+    operationId: operation.id,
+    repositoryRoot: operation.binding.repositoryRoot,
+    commonDirectory,
+    worktreePath: managedDivergentWorktreePath(operation.id),
+    sourceRevision: operation.sourceRevision!,
+    targetRevision: operation.targetRevision!,
+  }
+  const existing = await transaction.collaborationOperationArtifact.findFirst({
+    where: { operationId: operation.id, kind: 'DIVERGENT_WORKTREE_INTENT' },
+    orderBy: { revision: 'desc' },
+  })
+  if (existing) {
+    if (existing.payloadHash !== collaborationHash(intent) || existing.payloadJson !== JSON.stringify(intent)) {
+      throw new ServiceError(
+        'The persisted divergent worktree identity does not match this operation.',
+        'CONFLICT',
+        409,
+      )
+    }
+    return intent
+  }
+  await transaction.collaborationOperationArtifact.create({
+    data: {
+      operationId: operation.id,
+      kind: 'DIVERGENT_WORKTREE_INTENT',
+      revision: 1,
+      payloadJson: JSON.stringify(intent),
+      payloadHash: collaborationHash(intent),
+    },
+  })
+  await appendCollaborationJournalEntry(transaction, operation.id, 'DIVERGENT_WORKTREE_INTENT', intent, 'STARTED')
+  return intent
+}
+
 /** Runs a worktree removal under the shared Git common-directory fence. The
  * caller owns the durable meaning of the cleanup result, but certification is
  * always made while the same lease still proves both repository identities. */
@@ -184,6 +237,7 @@ async function cleanupDivergentWorktreeUnderMutationLease(input: {
   )
   try {
     return await withCollaborationGitMutationLeaseHeartbeat(input.client, lease, async () => {
+      await input.client.$transaction(transaction => assertCollaborationGitMutationLock(transaction, lease))
       await assertLockedDivergentRepositoryIdentity(input.operation.binding, identity.commonDirectory, input.hooks)
       const cleanup = await cleanupDivergentReconciliationWorktree(input.preparation, {
         expectedSnapshotHash: input.expectedSnapshotHash,
@@ -211,11 +265,15 @@ export async function prepareDivergentCollaborationReconciliation(
   try {
     const preparation = await withCollaborationGitMutationLeaseHeartbeat(client, started.lease, async () => {
       await assertLockedDivergentRepositoryIdentity(started.operation.binding, started.commonDirectory, hooks)
+      const intent = await client.$transaction(transaction =>
+        persistDivergentWorktreeIntent(transaction, started.operation, started.commonDirectory, started.lease),
+      )
       const prepared = await prepareDivergentReconciliation({
         repositoryRoot: started.operation.binding.repositoryRoot,
         operationId: started.operation.id,
         sourceRevision: started.operation.sourceRevision!,
         targetRevision: started.operation.targetRevision!,
+        worktreePath: intent.worktreePath,
       })
       await assertLockedDivergentRepositoryIdentity(started.operation.binding, started.commonDirectory, hooks)
       return prepared
@@ -310,6 +368,7 @@ async function storedDivergentPreparation(
     artifact.payloadHash !== collaborationHash(preparation) ||
     preparation.operationId !== operation.id ||
     preparation.repositoryRoot !== operation.binding.repositoryRoot ||
+    preparation.worktreePath !== managedDivergentWorktreePath(operation.id) ||
     preparation.sourceRevision !== operation.sourceRevision ||
     preparation.targetRevision !== operation.targetRevision
   ) {
@@ -377,6 +436,7 @@ export async function proposeDivergentCollaborationReconciliation(
   const operation = await client.$transaction(async transaction => {
     const current = await loadPreparedOperation(transaction, input)
     await assertProposalHasNoDecisionOrAcceptance(transaction, current)
+    if (workerFence) await assertFreshWorkerFence(transaction, workerFence, currentProposalPersistenceTime())
     return current
   })
   const { preparation } = await storedDivergentPreparation(operation, client)

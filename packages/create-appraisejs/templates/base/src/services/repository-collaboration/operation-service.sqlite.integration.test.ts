@@ -605,6 +605,80 @@ describe('durable collaboration operations', () => {
     }
   })
 
+  it('recovers an interrupted receive materialization from its durable worktree intent without adding a second worktree', async () => {
+    const { client, binding } = await fixture({ git: true })
+    try {
+      await writeSnapshot(binding.repositoryRoot, [
+        moduleRecord('interrupted-materialization', 'Interrupted materialization'),
+      ])
+      await commitSnapshot(binding.repositoryRoot, 'receive materialization snapshot')
+      await git(binding.repositoryRoot, 'push', 'origin', 'appraise-0.5')
+      const input = {
+        bindingId: binding.id,
+        intent: 'RECEIVE' as const,
+        idempotencyKey: 'interrupted-receive-materialization',
+        expectedPolicyVersion: binding.policyVersion,
+      }
+      let operationId: string | undefined
+      let managedWorktreePath: string | undefined
+      let worktreeAdds = 0
+
+      await expect(
+        prepareCollaborationOperation(input, client, {
+          onExternalEffectStarted: id => {
+            operationId = id
+          },
+          afterReceiveMaterializationWorktreeAdded: async worktreePath => {
+            worktreeAdds += 1
+            managedWorktreePath = worktreePath
+            expect(operationId).toBeTruthy()
+            await expect(
+              client.collaborationOperationArtifact.findFirst({
+                where: { operationId: operationId!, kind: 'GIT_RECEIVE_MATERIALIZATION_WORKTREE' },
+              }),
+            ).resolves.toMatchObject({ payloadJson: expect.stringContaining(worktreePath) })
+            await expect(
+              client.collaborationJournalEntry.findFirst({
+                where: { operationId: operationId!, boundary: 'RECEIVE_MATERIALIZATION_WORKTREE_INTENT' },
+              }),
+            ).resolves.toMatchObject({ status: 'STARTED' })
+            throw new Error('injected receive materialization interruption')
+          },
+        }),
+      ).rejects.toThrow('injected receive materialization interruption')
+
+      expect(operationId).toBeTruthy()
+      expect(managedWorktreePath).toBeTruthy()
+      expect(worktreeAdds).toBe(1)
+      expect(await client.collaborationOperation.findUniqueOrThrow({ where: { id: operationId! } })).toMatchObject({
+        state: 'PREPARING',
+        preparedDigest: null,
+      })
+      expect((await fs.lstat(managedWorktreePath!)).isDirectory()).toBe(true)
+      await expect(
+        client.collaborationJournalEntry.count({
+          where: { operationId: operationId!, boundary: 'RECEIVE_MATERIALIZATION_WORKTREE_CLEANED' },
+        }),
+      ).resolves.toBe(0)
+
+      const recovered = await prepareCollaborationOperation(input, client)
+      expect(recovered).toMatchObject({ id: operationId, state: 'READY' })
+      expect(worktreeAdds).toBe(1)
+      await expect(fs.lstat(managedWorktreePath!)).rejects.toMatchObject({ code: 'ENOENT' })
+      await expect(
+        client.collaborationJournalEntry.count({
+          where: {
+            operationId: operationId!,
+            boundary: 'RECEIVE_MATERIALIZATION_WORKTREE_CLEANED',
+            status: 'COMPLETED',
+          },
+        }),
+      ).resolves.toBe(1)
+    } finally {
+      await client.$disconnect()
+    }
+  })
+
   it('blocks a receive when post-fetch source validation is known-invalid', async () => {
     const { client, binding } = await fixture({ git: true })
     try {
