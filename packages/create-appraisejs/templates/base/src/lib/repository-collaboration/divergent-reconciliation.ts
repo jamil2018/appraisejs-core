@@ -540,18 +540,22 @@ async function changedDivergentWorktreePaths(
     runGit(preparation.worktreePath, { kind: 'diff-names' }),
   ])
   const changedPaths = [...new Set([...paths(staged.stdout), ...paths(unstaged.stdout)])].sort()
-  if (untrackedPaths.length) changedPaths.push('UNTRACKED_CONTENT')
-  return changedPaths
+  return [...new Set([...changedPaths, ...untrackedPaths])].sort()
 }
 
 async function hasExpectedDivergentProposalSnapshot(
   preparation: DivergentReconciliationPreparation,
   expectedSnapshotHash: string | undefined,
+  changedPaths: string[],
 ) {
-  if (!expectedSnapshotHash) return false
-  await assertCollaborationOnlyWorktree(preparation.worktreePath, 'The cleanup worktree contains foreign changes')
-  const snapshot = await readCollaborationSnapshot(path.join(preparation.worktreePath, collaborationRoot))
-  return snapshot.snapshotHash === expectedSnapshotHash
+  if (!expectedSnapshotHash || changedPaths.some(filePath => !isCollaborationPath(filePath))) return false
+  try {
+    await assertCollaborationOnlyWorktree(preparation.worktreePath, 'The cleanup worktree contains foreign changes')
+    const snapshot = await readCollaborationSnapshot(path.join(preparation.worktreePath, collaborationRoot))
+    return snapshot.snapshotHash === expectedSnapshotHash
+  } catch {
+    return false
+  }
 }
 
 /**
@@ -569,7 +573,10 @@ export async function cleanupDivergentReconciliationWorktree(
   if ((status.stagedPaths.length || status.worktreePaths.length) && !changedPaths.length) {
     changedPaths.push('UNPARSEABLE_GIT_STATUS')
   }
-  if (changedPaths.length && (await hasExpectedDivergentProposalSnapshot(preparation, options.expectedSnapshotHash))) {
+  if (
+    changedPaths.length &&
+    (await hasExpectedDivergentProposalSnapshot(preparation, options.expectedSnapshotHash, changedPaths))
+  ) {
     await runGit(preparation.repositoryRoot, {
       kind: 'worktree-remove',
       worktreePath: preparation.worktreePath,

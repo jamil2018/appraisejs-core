@@ -109,6 +109,51 @@ describe('divergent collaboration reconciliation', () => {
     })
   })
 
+  it('removes only an exact collaboration-only reviewed snapshot and retains unrelated untracked notes', async () => {
+    const { repository, sourceRevision, targetRevision } = await fixture()
+    const approved = await prepareDivergentReconciliation({
+      repositoryRoot: repository,
+      operationId: 'divergent-approved-dirty-cleanup',
+      sourceRevision,
+      targetRevision,
+    })
+    worktrees.push(approved.worktreePath)
+    const approvedReview = await validateDivergentReconciliationProposal({
+      preparation: approved,
+      records: [record('approved')],
+    })
+    await expect(
+      cleanupDivergentReconciliationWorktree(approved, {
+        expectedSnapshotHash: approvedReview.proposedSnapshotHash,
+      }),
+    ).resolves.toEqual({ status: 'REMOVED' })
+    worktrees.pop()
+
+    const adversarial = await prepareDivergentReconciliation({
+      repositoryRoot: repository,
+      operationId: 'divergent-operator-notes-cleanup',
+      sourceRevision,
+      targetRevision,
+    })
+    worktrees.push(adversarial.worktreePath)
+    const adversarialReview = await validateDivergentReconciliationProposal({
+      preparation: adversarial,
+      records: [record('adversarial')],
+    })
+    await fs.writeFile(path.join(adversarial.worktreePath, 'operator-notes.txt'), 'retain this evidence\n')
+    await expect(
+      cleanupDivergentReconciliationWorktree(adversarial, {
+        expectedSnapshotHash: adversarialReview.proposedSnapshotHash,
+      }),
+    ).resolves.toMatchObject({
+      status: 'RETAINED_FOR_RECOVERY',
+      changedPaths: expect.arrayContaining(['operator-notes.txt']),
+    })
+    await expect(fs.readFile(path.join(adversarial.worktreePath, 'operator-notes.txt'), 'utf8')).resolves.toBe(
+      'retain this evidence\n',
+    )
+  })
+
   it('rejects malformed whole-record proposals without changing the source worktree', async () => {
     const { repository, sourceRevision, targetRevision } = await fixture()
     const preparation = await prepareDivergentReconciliation({
