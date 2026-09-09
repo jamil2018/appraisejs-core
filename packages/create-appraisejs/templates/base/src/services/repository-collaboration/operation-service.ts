@@ -168,6 +168,8 @@ export type PrepareCollaborationOperationHooks = {
   /** Test-only crash seam after the durable RECEIVE materialization worktree
    * has been added, before its snapshot can be certified. */
   afterReceiveMaterializationWorktreeAdded?: (worktreePath: string) => Promise<void> | void
+  /** Test-only seam before RECEIVE worktree cleanup identity is certified. */
+  beforeReceiveMaterializationWorktreeCleanup?: (worktreePath: string) => Promise<void> | void
 }
 
 /** Simulates a process interruption after a managed receive worktree exists.
@@ -1149,6 +1151,7 @@ async function readReceiveMaterializationSnapshot(
           }
         },
         retainWorktreeOnHookFailure: Boolean(hooks?.afterReceiveMaterializationWorktreeAdded),
+        beforeWorktreeCleanup: hooks?.beforeReceiveMaterializationWorktreeCleanup,
       })
       await client.$transaction(async transaction => {
         await assertCollaborationGitMutationLock(transaction, lease)
@@ -1219,44 +1222,55 @@ async function materializeObservedReceive(
   return materialized.operation
 }
 
+async function prepareFetchedReceive(
+  input: PrepareCollaborationOperationInput,
+  client: PrismaClient,
+  hooks?: PrepareCollaborationOperationHooks,
+) {
+  const reserved = await reserveReceiveFetch(input, client)
+  if (reserved.operation.state !== 'PREPARING') return publicOperation(reserved.operation)
+  const observed =
+    (await observedReceiveFetch(reserved.operation.id, client)) ??
+    (await recoverReceiveFetchObservation(reserved, input, client)) ??
+    (await fetchAndObserveReceiveSource(reserved, input, client, hooks))
+  try {
+    return publicOperation(await materializeObservedReceive(reserved, input, observed, client, hooks))
+  } catch (error) {
+    // Once a fetch receipt exists, malformed source content or classification
+    // is known durable state—not an unknown Git effect—so make the operation
+    // observable and recoverable instead of dropping its identity.
+    if (!isReceiveMaterializationInterruption(error)) {
+      await blockReceiveAfterObservedFetch(reserved.operation.id, client, error)
+    }
+    if (error instanceof ServiceError) throw error
+    throw new ServiceError(
+      error instanceof Error ? error.message : 'Receive materialization failed after remote fetch.',
+      'CONFLICT',
+      409,
+    )
+  }
+}
+
+async function publicationPreparationFor(input: PrepareCollaborationOperationInput, client: PrismaClient) {
+  if (input.intent !== 'PUBLISH') return undefined
+  const binding = await client.$transaction(transaction =>
+    requireCollaborationPermission(transaction, input.bindingId, 'PREPARE', input.expectedPolicyVersion),
+  )
+  const [snapshot, identity] = await Promise.all([
+    observeCollaborationSnapshot({ repositoryRoot: binding.binding.repositoryRoot }),
+    inspectRepository(binding.binding.repositoryRoot, binding.binding.remoteName),
+  ])
+  return { expectedPreviousSnapshotHash: snapshot.snapshotHash, targetRevision: identity.head }
+}
+
 export async function prepareCollaborationOperation(
   input: PrepareCollaborationOperationInput,
   client: PrismaClient = prisma,
   hooks?: PrepareCollaborationOperationHooks,
 ) {
   if (!input.idempotencyKey.trim()) throw new ServiceError('An idempotency key is required.', 'VALIDATION', 400)
-  if (input.intent === 'RECEIVE' && !input.incomingRecords) {
-    const reserved = await reserveReceiveFetch(input, client)
-    if (reserved.operation.state !== 'PREPARING') return publicOperation(reserved.operation)
-    const observed =
-      (await observedReceiveFetch(reserved.operation.id, client)) ??
-      (await recoverReceiveFetchObservation(reserved, input, client)) ??
-      (await fetchAndObserveReceiveSource(reserved, input, client, hooks))
-    try {
-      return publicOperation(await materializeObservedReceive(reserved, input, observed, client, hooks))
-    } catch (error) {
-      // Once a fetch receipt exists, malformed source content or classification
-      // is known durable state—not an unknown Git effect—so make the operation
-      // observable and recoverable instead of dropping its identity.
-      if (!isReceiveMaterializationInterruption(error)) {
-        await blockReceiveAfterObservedFetch(reserved.operation.id, client, error)
-      }
-      throw error
-    }
-  }
-  const publicationPreparation =
-    input.intent === 'PUBLISH'
-      ? await (async () => {
-          const binding = await client.$transaction(transaction =>
-            requireCollaborationPermission(transaction, input.bindingId, 'PREPARE', input.expectedPolicyVersion),
-          )
-          const [snapshot, identity] = await Promise.all([
-            observeCollaborationSnapshot({ repositoryRoot: binding.binding.repositoryRoot }),
-            inspectRepository(binding.binding.repositoryRoot, binding.binding.remoteName),
-          ])
-          return { expectedPreviousSnapshotHash: snapshot.snapshotHash, targetRevision: identity.head }
-        })()
-      : undefined
+  if (input.intent === 'RECEIVE' && !input.incomingRecords) return prepareFetchedReceive(input, client, hooks)
+  const publicationPreparation = await publicationPreparationFor(input, client)
   const persistedInput: PersistedPrepareCollaborationOperationInput = {
     ...input,
     ...(publicationPreparation ? { targetRevision: publicationPreparation.targetRevision } : {}),

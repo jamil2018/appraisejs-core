@@ -181,6 +181,53 @@ describe('divergent collaboration reconciliation', () => {
     await expect(cleanupDivergentReconciliationWorktree(preparation)).resolves.toEqual({ status: 'NO_WORKTREE' })
   })
 
+  it('preserves substituted and mismatched managed worktrees instead of deleting them', async () => {
+    const { repository, sourceRevision, targetRevision } = await fixture()
+    const substituted = await prepareDivergentReconciliation({
+      repositoryRoot: repository,
+      operationId: 'divergent-substituted-cleanup',
+      sourceRevision,
+      targetRevision,
+    })
+    await git(repository, ['worktree', 'remove', '--force', substituted.worktreePath])
+    await fs.symlink(repository, substituted.worktreePath, 'dir')
+    await expect(cleanupDivergentReconciliationWorktree(substituted)).rejects.toMatchObject({
+      code: 'RECOVERY_REQUIRED',
+    } satisfies Partial<DivergentReconciliationError>)
+    expect((await fs.lstat(substituted.worktreePath)).isSymbolicLink()).toBe(true)
+    await fs.unlink(substituted.worktreePath)
+
+    const mismatched = await prepareDivergentReconciliation({
+      repositoryRoot: repository,
+      operationId: 'divergent-mismatched-cleanup',
+      sourceRevision,
+      targetRevision,
+    })
+    worktrees.push(mismatched.worktreePath)
+    await git(mismatched.worktreePath, ['checkout', '--detach', targetRevision])
+    await expect(cleanupDivergentReconciliationWorktree(mismatched)).rejects.toMatchObject({
+      code: 'RECOVERY_REQUIRED',
+    } satisfies Partial<DivergentReconciliationError>)
+    await expect(fs.access(mismatched.worktreePath)).resolves.toBeUndefined()
+  })
+
+  it('preserves a verified worktree when Git refuses removal', async () => {
+    const { repository, sourceRevision, targetRevision } = await fixture()
+    const preparation = await prepareDivergentReconciliation({
+      repositoryRoot: repository,
+      operationId: 'divergent-locked-cleanup',
+      sourceRevision,
+      targetRevision,
+    })
+    worktrees.push(preparation.worktreePath)
+    await git(repository, ['worktree', 'lock', preparation.worktreePath, '--reason', 'cleanup refusal regression'])
+    await expect(cleanupDivergentReconciliationWorktree(preparation)).rejects.toThrow()
+    await expect(fs.access(preparation.worktreePath)).resolves.toBeUndefined()
+    await git(repository, ['worktree', 'unlock', preparation.worktreePath])
+    await expect(cleanupDivergentReconciliationWorktree(preparation)).resolves.toEqual({ status: 'REMOVED' })
+    worktrees.pop()
+  })
+
   it('creates an exact two-parent merge commit containing only the reviewed whole-record snapshot', async () => {
     const { repository, sourceRevision, targetRevision } = await fixture()
     const preparation = await prepareDivergentReconciliation({

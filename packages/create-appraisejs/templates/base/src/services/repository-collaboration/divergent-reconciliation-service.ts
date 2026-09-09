@@ -12,6 +12,7 @@ import {
   managedDivergentWorktreePath,
   prepareThreeWayCollaboration,
   recordKey,
+  restoreDivergentReconciliationSource,
   validateDivergentReconciliationProposal,
   type CollaborationRecord,
   type DivergentReconciliationPreparation,
@@ -217,6 +218,14 @@ async function persistDivergentWorktreeIntent(
   return intent
 }
 
+async function acquireDivergentMutationLease(client: PrismaClient, operation: DivergentOperationWithBinding) {
+  const identity = await inspectRepository(operation.binding.repositoryRoot, operation.binding.remoteName)
+  const lease = await client.$transaction(transaction =>
+    acquireCollaborationGitMutationLock(transaction, identity.commonDirectory, operation.id),
+  )
+  return { identity, lease }
+}
+
 /** Runs a worktree removal under the shared Git common-directory fence. The
  * caller owns the durable meaning of the cleanup result, but certification is
  * always made while the same lease still proves both repository identities. */
@@ -231,10 +240,7 @@ async function cleanupDivergentWorktreeUnderMutationLease(input: {
     lease: CollaborationMutationLease,
   ) => Promise<void>
 }) {
-  const identity = await inspectRepository(input.operation.binding.repositoryRoot, input.operation.binding.remoteName)
-  const lease = await input.client.$transaction(transaction =>
-    acquireCollaborationGitMutationLock(transaction, identity.commonDirectory, input.operation.id),
-  )
+  const { identity, lease } = await acquireDivergentMutationLease(input.client, input.operation)
   try {
     return await withCollaborationGitMutationLeaseHeartbeat(input.client, lease, async () => {
       await input.client.$transaction(transaction => assertCollaborationGitMutationLock(transaction, lease))
@@ -385,6 +391,61 @@ async function assertFreshWorkerFence(transaction: Transaction, fence: Divergent
   await activeRedeemedHandoffTicket(transaction, worker, now)
 }
 
+async function assertFreshProposalAttempt(
+  transaction: Transaction,
+  operation: CollaborationOperation,
+  fence: DivergentProposalWorkerFence,
+  now: Date,
+) {
+  await assertFreshWorkerFence(transaction, fence, now)
+  if (
+    operation.intent !== 'RECONCILE' ||
+    operation.state !== 'WAITING_FOR_AGENT' ||
+    operation.fencingToken !== fence.fencingToken ||
+    operation.leaseOwner !== fence.workerId ||
+    !operation.leaseExpiresAt ||
+    operation.leaseExpiresAt <= now ||
+    operation.cancelledAt
+  ) {
+    throw new ServiceError('The worker lease was replaced before the proposal mutation.', 'CONFLICT', 409)
+  }
+  const attempt = await transaction.collaborationAttempt.findFirst({
+    where: {
+      id: fence.attemptId,
+      operationId: operation.id,
+      workerId: fence.workerId,
+      fencingToken: fence.fencingToken,
+      claimTokenHash: leaseTokenHash(fence.leaseToken),
+      state: 'RUNNING',
+      leaseExpiresAt: { gt: now },
+    },
+    select: { id: true },
+  })
+  if (!attempt) throw new ServiceError('The worker attempt was replaced before the proposal mutation.', 'CONFLICT', 409)
+}
+
+async function assertDivergentProposalMutationFence(input: {
+  client: PrismaClient
+  operation: DivergentOperationWithBinding
+  proposal: { operationId: string; expectedVersion: number; preparedDigest: string }
+  lease: CollaborationMutationLease
+  commonDirectory: string
+  workerFence?: DivergentProposalWorkerFence
+}) {
+  await input.client.$transaction(async transaction => {
+    const current = await loadPreparedOperation(transaction, input.proposal)
+    await assertProposalHasNoDecisionOrAcceptance(transaction, current)
+    await assertCollaborationGitMutationLock(transaction, input.lease)
+    if (input.workerFence)
+      await assertFreshProposalAttempt(transaction, current, input.workerFence, currentProposalPersistenceTime())
+  })
+  await assertCollaborationGitMutationIdentity(
+    input.operation.binding.repositoryRoot,
+    input.commonDirectory,
+    input.operation.binding.remoteName,
+  )
+}
+
 async function assertProposalHasNoDecisionOrAcceptance(
   transaction: Transaction,
   operation: Pick<CollaborationOperation, 'id' | 'acceptedDigest'>,
@@ -409,6 +470,134 @@ async function assertProposalHasNoDecisionOrAcceptance(
       'CONFLICT',
       409,
     )
+  }
+}
+
+async function recoverDivergentProposalMutation(input: {
+  client: PrismaClient
+  operation: DivergentOperationWithBinding
+  preparation: DivergentReconciliationPreparation
+  lease: CollaborationMutationLease
+  commonDirectory: string
+  cause: unknown
+}) {
+  const details = {
+    worktreePath: input.preparation.worktreePath,
+    sourceRevision: input.preparation.sourceRevision,
+    message: input.cause instanceof Error ? input.cause.message : String(input.cause),
+  }
+  await input.client.$transaction(async transaction => {
+    await assertCollaborationGitMutationLock(transaction, input.lease)
+    await appendCollaborationJournalEntry(
+      transaction,
+      input.operation.id,
+      'DIVERGENT_PROPOSAL_MUTATION_RECOVERY',
+      details,
+      'STARTED',
+    )
+  })
+  try {
+    await assertCollaborationGitMutationIdentity(
+      input.operation.binding.repositoryRoot,
+      input.commonDirectory,
+      input.operation.binding.remoteName,
+    )
+    await restoreDivergentReconciliationSource(input.preparation)
+    await assertCollaborationGitMutationIdentity(
+      input.operation.binding.repositoryRoot,
+      input.commonDirectory,
+      input.operation.binding.remoteName,
+    )
+    await input.client.$transaction(async transaction => {
+      await assertCollaborationGitMutationLock(transaction, input.lease)
+      await appendCollaborationJournalEntry(
+        transaction,
+        input.operation.id,
+        'DIVERGENT_PROPOSAL_MUTATION_RECOVERY',
+        details,
+        'COMPLETED',
+      )
+    })
+  } catch (error) {
+    await input.client.$transaction(async transaction => {
+      await assertCollaborationGitMutationLock(transaction, input.lease)
+      await transaction.collaborationOperation.updateMany({
+        where: { id: input.operation.id, state: 'WAITING_FOR_AGENT' },
+        data: {
+          state: 'BLOCKED',
+          blockerJson: JSON.stringify({
+            kind: 'DIVERGENT_PROPOSAL_MUTATION_RECOVERY_REQUIRED',
+            message: error instanceof Error ? error.message : String(error),
+          }),
+        },
+      })
+      await appendCollaborationJournalEntry(
+        transaction,
+        input.operation.id,
+        'DIVERGENT_PROPOSAL_MUTATION_RECOVERY',
+        { ...details, recoveryError: error instanceof Error ? error.message : String(error) },
+        'BLOCKED',
+      )
+    })
+    throw asServiceError(error)
+  }
+}
+
+async function validateDivergentProposalUnderMutationLease(input: {
+  client: PrismaClient
+  operation: DivergentOperationWithBinding
+  preparation: DivergentReconciliationPreparation
+  proposal: {
+    operationId: string
+    expectedVersion: number
+    preparedDigest: string
+    records: CollaborationRecord[]
+  }
+  workerFence?: DivergentProposalWorkerFence
+  hooks?: DivergentProposalHooks
+}) {
+  const { identity, lease } = await acquireDivergentMutationLease(input.client, input.operation)
+  let mutationAttempted = false
+  try {
+    return await withCollaborationGitMutationLeaseHeartbeat(input.client, lease, async () => {
+      await assertDivergentProposalMutationFence({
+        client: input.client,
+        operation: input.operation,
+        proposal: input.proposal,
+        lease,
+        commonDirectory: identity.commonDirectory,
+        workerFence: input.workerFence,
+      })
+      mutationAttempted = true
+      const review = await validateDivergentReconciliationProposal({
+        preparation: input.preparation,
+        records: input.proposal.records,
+      })
+      await input.hooks?.afterValidation?.()
+      await assertDivergentProposalMutationFence({
+        client: input.client,
+        operation: input.operation,
+        proposal: input.proposal,
+        lease,
+        commonDirectory: identity.commonDirectory,
+        workerFence: input.workerFence,
+      })
+      return review
+    })
+  } catch (error) {
+    if (mutationAttempted) {
+      await recoverDivergentProposalMutation({
+        client: input.client,
+        operation: input.operation,
+        preparation: input.preparation,
+        lease,
+        commonDirectory: identity.commonDirectory,
+        cause: error,
+      })
+    }
+    throw error
+  } finally {
+    await input.client.$transaction(transaction => releaseCollaborationGitMutationLock(transaction, lease))
   }
 }
 
@@ -441,11 +630,14 @@ export async function proposeDivergentCollaborationReconciliation(
   })
   const { preparation } = await storedDivergentPreparation(operation, client)
   try {
-    const review = await validateDivergentReconciliationProposal({
+    const review = await validateDivergentProposalUnderMutationLease({
+      client,
+      operation,
       preparation,
-      records: input.records,
+      proposal: input,
+      workerFence,
+      hooks,
     })
-    await hooks?.afterValidation?.()
     const payload = parsePreparedPayload(operation)
     const databaseReview = prepareThreeWayCollaboration({
       incoming: input.records,

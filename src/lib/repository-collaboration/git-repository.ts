@@ -244,6 +244,8 @@ type CollaborationSnapshotReadInput = {
    * snapshot read can be certified by the operation service. */
   afterWorktreeAdded?: (worktreePath: string) => Promise<void> | void
   retainWorktreeOnHookFailure?: boolean
+  /** Test-only seam before exact worktree cleanup identity is certified. */
+  beforeWorktreeCleanup?: (worktreePath: string) => Promise<void> | void
 }
 
 class WorktreeAddedHookFailure extends Error {
@@ -290,9 +292,21 @@ async function invokeWorktreeAddedHook(input: CollaborationSnapshotReadInput, wo
   }
 }
 
-async function removeCollaborationSnapshotWorktree(repositoryRoot: string, worktreePath: string) {
-  await runGitAllowFailure(repositoryRoot, { kind: 'worktree-remove', worktreePath })
-  await rm(worktreePath, { recursive: true, force: true })
+async function removeCollaborationSnapshotWorktree(input: {
+  repositoryRoot: string
+  commonDirectory: string
+  worktreePath: string
+  commit: string
+}) {
+  const entry = await lstat(input.worktreePath)
+  if (entry.isSymbolicLink() || !entry.isDirectory()) {
+    throw new Error('The managed receive worktree path is invalid during cleanup.')
+  }
+  const worktree = await inspectRepository(input.worktreePath)
+  if (worktree.commonDirectory !== input.commonDirectory || worktree.head !== input.commit) {
+    throw new Error('The managed receive worktree does not match its pinned source revision during cleanup.')
+  }
+  await runGit(input.repositoryRoot, { kind: 'worktree-remove', worktreePath: input.worktreePath })
 }
 
 /** Read the strict exchange snapshot from an immutable commit, never the live worktree. */
@@ -304,13 +318,20 @@ export async function readCollaborationSnapshotAtCommit(input: CollaborationSnap
   let retainManagedWorktree = false
   try {
     await invokeWorktreeAddedHook(input, worktreePath, added)
-    return await readCollaborationSnapshot(path.join(worktreePath, collaborationDirectory))
+    const snapshot = await readCollaborationSnapshot(path.join(worktreePath, collaborationDirectory))
+    await input.beforeWorktreeCleanup?.(worktreePath)
+    return snapshot
   } catch (error) {
     retainManagedWorktree = error instanceof WorktreeAddedHookFailure && Boolean(input.retainWorktreeOnHookFailure)
     throw error
   } finally {
     if (!retainManagedWorktree) {
-      await removeCollaborationSnapshotWorktree(identity.repositoryRoot, worktreePath)
+      await removeCollaborationSnapshotWorktree({
+        repositoryRoot: identity.repositoryRoot,
+        commonDirectory: identity.commonDirectory,
+        worktreePath,
+        commit: input.commit,
+      })
     }
   }
 }

@@ -679,6 +679,44 @@ describe('durable collaboration operations', () => {
     }
   })
 
+  it('preserves a substituted RECEIVE worktree instead of deleting its evidence during cleanup', async () => {
+    const { client, binding } = await fixture({ git: true })
+    let managedWorktreePath: string | undefined
+    try {
+      await writeSnapshot(binding.repositoryRoot, [moduleRecord('receive-cleanup-substitution', 'Receive cleanup')])
+      await commitSnapshot(binding.repositoryRoot, 'receive cleanup substitution snapshot')
+      await git(binding.repositoryRoot, 'push', 'origin', 'appraise-0.5')
+      await expect(
+        prepareCollaborationOperation(
+          {
+            bindingId: binding.id,
+            intent: 'RECEIVE',
+            idempotencyKey: 'receive-cleanup-substitution',
+            expectedPolicyVersion: binding.policyVersion,
+          },
+          client,
+          {
+            beforeReceiveMaterializationWorktreeCleanup: async worktreePath => {
+              managedWorktreePath = worktreePath
+              await git(binding.repositoryRoot, 'worktree', 'remove', '--force', worktreePath)
+              await fs.symlink(binding.repositoryRoot, worktreePath, 'dir')
+            },
+          },
+        ),
+      ).rejects.toMatchObject({ code: 'CONFLICT' })
+      expect(managedWorktreePath).toBeTruthy()
+      expect((await fs.lstat(managedWorktreePath!)).isSymbolicLink()).toBe(true)
+      await expect(
+        client.collaborationJournalEntry.count({
+          where: { boundary: 'RECEIVE_MATERIALIZATION_WORKTREE_CLEANED' },
+        }),
+      ).resolves.toBe(0)
+    } finally {
+      if (managedWorktreePath) await fs.unlink(managedWorktreePath).catch(() => undefined)
+      await client.$disconnect()
+    }
+  })
+
   it('blocks a receive when post-fetch source validation is known-invalid', async () => {
     const { client, binding } = await fixture({ git: true })
     try {

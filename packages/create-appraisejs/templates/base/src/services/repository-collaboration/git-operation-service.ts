@@ -500,8 +500,14 @@ async function executeStartedGitStep(
       if (!merge) throw new ServiceError('No merge worktree cleanup artifact exists.', 'CONFLICT', 409)
       const evidence = JSON.parse(merge.payloadJson) as {
         preparation?: Parameters<typeof cleanupDivergentReconciliationWorktree>[0]
+        mergeCommit?: string
       }
-      if (!evidence.preparation) throw new ServiceError('Merge cleanup artifact is invalid.', 'CONFLICT', 409)
+      if (
+        !evidence.preparation ||
+        typeof evidence.mergeCommit !== 'string' ||
+        merge.payloadHash !== collaborationHash(evidence)
+      )
+        throw new ServiceError('Merge cleanup artifact is invalid.', 'CONFLICT', 409)
       const proposal = await client.collaborationOperationArtifact.findFirst({
         where: { operationId: started.operation.id, kind: 'DIVERGENT_PREPARATION' },
         orderBy: { revision: 'desc' },
@@ -524,7 +530,7 @@ async function executeStartedGitStep(
       )
         throw new ServiceError('No exact accepted proposal cleanup snapshot is persisted.', 'CONFLICT', 409)
       const [mergeCleanup, proposalCleanup] = await Promise.all([
-        cleanupDivergentReconciliationWorktree(evidence.preparation),
+        cleanupDivergentReconciliationWorktree(evidence.preparation, { expectedWorktreeHead: evidence.mergeCommit }),
         cleanupDivergentReconciliationWorktree(original, {
           expectedSnapshotHash: acceptedPayload.review.proposedSnapshotHash,
         }),

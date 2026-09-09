@@ -6,7 +6,7 @@ import path from 'node:path'
 import { collaborationHash } from './canonical'
 import { type CollaborationRecord } from './contracts'
 import { installCollaborationSnapshot } from './filesystem'
-import { inspectRepository } from './git-repository'
+import { inspectRepository, readCollaborationSnapshotAtCommit } from './git-repository'
 import { runGit, runGitAllowFailure } from './git-runner'
 import { readCollaborationSnapshot } from './reader'
 import { buildCollaborationSnapshotFiles } from './snapshot'
@@ -308,6 +308,56 @@ export async function validateDivergentReconciliationProposal(input: {
   }
 }
 
+/** Restores the operation-owned proposal worktree to its exact pinned source
+ * snapshot after a stale worker loses authority between filesystem mutation
+ * and durable proposal persistence. */
+export async function restoreDivergentReconciliationSource(
+  preparation: DivergentReconciliationPreparation,
+): Promise<void> {
+  const [repository, worktree, current, source] = await Promise.all([
+    inspectRepository(preparation.repositoryRoot),
+    inspectRepository(preparation.worktreePath),
+    readCollaborationSnapshot(path.join(preparation.worktreePath, collaborationRoot)),
+    readCollaborationSnapshotAtCommit({
+      repositoryRoot: preparation.repositoryRoot,
+      commit: preparation.sourceRevision,
+      operationId: preparation.operationId,
+    }),
+  ])
+  if (worktree.commonDirectory !== repository.commonDirectory || worktree.head !== preparation.sourceRevision) {
+    throw new DivergentReconciliationError(
+      'RECOVERY_REQUIRED',
+      'The divergent worktree cannot be restored because its pinned identity changed.',
+    )
+  }
+  if (source.snapshotHash !== preparation.sourceSnapshotHash) {
+    throw new DivergentReconciliationError(
+      'RECOVERY_REQUIRED',
+      'The pinned source snapshot does not match the divergent preparation.',
+    )
+  }
+  const restored = await installCollaborationSnapshot({
+    repositoryRoot: preparation.worktreePath,
+    operationId: `${preparation.operationId}-proposal-recovery`,
+    snapshot: buildCollaborationSnapshotFiles(source.records, source.manifest.portableProjectId),
+    expectedPreviousSnapshotHash: current.snapshotHash,
+  })
+  if (restored.status !== 'succeeded') {
+    throw new DivergentReconciliationError(
+      'RECOVERY_REQUIRED',
+      'The divergent proposal worktree changed before automatic recovery.',
+      restored,
+    )
+  }
+  const recovered = await readCollaborationSnapshot(path.join(preparation.worktreePath, collaborationRoot))
+  if (recovered.snapshotHash !== preparation.sourceSnapshotHash) {
+    throw new DivergentReconciliationError(
+      'RECOVERY_REQUIRED',
+      'The divergent proposal worktree could not be restored to its pinned source snapshot.',
+    )
+  }
+}
+
 /** Rechecks every source identity immediately before a reviewed proposal is integrated. */
 export async function assertDivergentReconciliationReview(review: DivergentReconciliationReview): Promise<void> {
   await assertPreparedSource(review.preparation)
@@ -437,14 +487,10 @@ function isOwnedTemporaryWorktree(worktreePath: string): boolean {
   return candidate === managedDivergentWorktreePath(operationId)
 }
 
-/**
- * Only clean, Appraise-created worktrees are removed automatically. Dirty or
- * ambiguous worktrees are retained as recovery evidence for human review.
- */
-export async function cleanupDivergentReconciliationWorktree(
+async function verifiedDivergentWorktreeForCleanup(
   preparation: DivergentReconciliationPreparation,
-  options: { expectedSnapshotHash?: string } = {},
-): Promise<DivergentWorktreeCleanup> {
+  expectedWorktreeHead: string,
+) {
   if (!isOwnedTemporaryWorktree(preparation.worktreePath)) {
     throw new DivergentReconciliationError(
       'RECOVERY_REQUIRED',
@@ -455,32 +501,81 @@ export async function cleanupDivergentReconciliationWorktree(
     )
   }
   try {
-    await fs.lstat(preparation.worktreePath)
+    const entry = await fs.lstat(preparation.worktreePath)
+    if (entry.isSymbolicLink() || !entry.isDirectory()) {
+      throw new DivergentReconciliationError(
+        'RECOVERY_REQUIRED',
+        'The divergent worktree path is not a managed directory during cleanup.',
+      )
+    }
   } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === 'ENOENT') return { status: 'NO_WORKTREE' }
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') return null
     throw error
   }
-  const status = await inspectRepository(preparation.worktreePath)
+  const [repository, worktree] = await Promise.all([
+    inspectRepository(preparation.repositoryRoot),
+    inspectRepository(preparation.worktreePath),
+  ])
+  if (worktree.commonDirectory !== repository.commonDirectory || worktree.head !== expectedWorktreeHead) {
+    throw new DivergentReconciliationError(
+      'RECOVERY_REQUIRED',
+      'The divergent worktree identity does not match its pinned source revision during cleanup.',
+      {
+        expectedCommonDirectory: repository.commonDirectory,
+        actualCommonDirectory: worktree.commonDirectory,
+        expectedSourceRevision: expectedWorktreeHead,
+        actualHead: worktree.head,
+      },
+    )
+  }
+  return worktree
+}
+
+async function changedDivergentWorktreePaths(
+  preparation: DivergentReconciliationPreparation,
+  untrackedPaths: string[],
+) {
   const [staged, unstaged] = await Promise.all([
     runGit(preparation.worktreePath, { kind: 'diff-names', cached: true }),
     runGit(preparation.worktreePath, { kind: 'diff-names' }),
   ])
   const changedPaths = [...new Set([...paths(staged.stdout), ...paths(unstaged.stdout)])].sort()
-  if (status.untrackedPaths.length) changedPaths.push('UNTRACKED_CONTENT')
+  if (untrackedPaths.length) changedPaths.push('UNTRACKED_CONTENT')
+  return changedPaths
+}
+
+async function hasExpectedDivergentProposalSnapshot(
+  preparation: DivergentReconciliationPreparation,
+  expectedSnapshotHash: string | undefined,
+) {
+  if (!expectedSnapshotHash) return false
+  await assertCollaborationOnlyWorktree(preparation.worktreePath, 'The cleanup worktree contains foreign changes')
+  const snapshot = await readCollaborationSnapshot(path.join(preparation.worktreePath, collaborationRoot))
+  return snapshot.snapshotHash === expectedSnapshotHash
+}
+
+/**
+ * Only clean, Appraise-created worktrees are removed automatically. Dirty or
+ * ambiguous worktrees are retained as recovery evidence for human review.
+ */
+export async function cleanupDivergentReconciliationWorktree(
+  preparation: DivergentReconciliationPreparation,
+  options: { expectedSnapshotHash?: string; expectedWorktreeHead?: string } = {},
+): Promise<DivergentWorktreeCleanup> {
+  const expectedWorktreeHead = options.expectedWorktreeHead ?? preparation.sourceRevision
+  const status = await verifiedDivergentWorktreeForCleanup(preparation, expectedWorktreeHead)
+  if (!status) return { status: 'NO_WORKTREE' }
+  const changedPaths = await changedDivergentWorktreePaths(preparation, status.untrackedPaths)
   if ((status.stagedPaths.length || status.worktreePaths.length) && !changedPaths.length) {
     changedPaths.push('UNPARSEABLE_GIT_STATUS')
   }
-  if (changedPaths.length && options.expectedSnapshotHash) {
-    await assertCollaborationOnlyWorktree(preparation.worktreePath, 'The cleanup worktree contains foreign changes')
-    const snapshot = await readCollaborationSnapshot(path.join(preparation.worktreePath, collaborationRoot))
-    if (snapshot.snapshotHash === options.expectedSnapshotHash) {
-      await runGit(preparation.repositoryRoot, {
-        kind: 'worktree-remove',
-        worktreePath: preparation.worktreePath,
-        force: true,
-      })
-      return { status: 'REMOVED' }
-    }
+  if (changedPaths.length && (await hasExpectedDivergentProposalSnapshot(preparation, options.expectedSnapshotHash))) {
+    await runGit(preparation.repositoryRoot, {
+      kind: 'worktree-remove',
+      worktreePath: preparation.worktreePath,
+      force: true,
+    })
+    return { status: 'REMOVED' }
   }
   if (changedPaths.length)
     return { status: 'RETAINED_FOR_RECOVERY', worktreePath: preparation.worktreePath, changedPaths }
