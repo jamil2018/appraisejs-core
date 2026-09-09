@@ -9,7 +9,7 @@
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `33b7982f`
+- Built from commit: `1d7c6955`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -99,12 +99,12 @@
 ## Communities (56 total, 2 thin omitted)
 
 ### Community 0 - "Community 0"
-Cohesion: 0.19
-Nodes (12): copyFile(), createBaseTemplate(), resetAutomationReports(), syncInternalPackage(), syncLegacyEnvironmentConfig(), writeTemplateHarnessCheck(), writeTemplatePackageJson(), writeTemplateQualityOsCertificationReceipt() (+4 more)
+Cohesion: 0.32
+Nodes (8): copyFile(), createBaseTemplate(), resetAutomationReports(), syncInternalPackage(), syncLegacyEnvironmentConfig(), writeTemplateHarnessCheck(), writeTemplatePackageJson(), writeTemplateQualityOsCertificationReceipt()
 
 ### Community 1 - "Community 1"
-Cohesion: 0.12
-Nodes (25): baseTemplateDir, composedVerifyDir, copyFallbackSeedDatabase(), __dirname, flavorsDir, getPrismaCliPath(), getSeedDatabaseCandidates(), getTsNodeLoaderPath() (+17 more)
+Cohesion: 0.11
+Nodes (28): baseTemplateDir, composedVerifyDir, computeTemplateInputHash(), copyFallbackSeedDatabase(), __dirname, flavorsDir, getPrismaCliPath(), getSeedDatabaseCandidates() (+20 more)
 
 ### Community 2 - "Community 2"
 Cohesion: 0.05
@@ -239,8 +239,8 @@ Cohesion: 0.14
 Nodes (15): command, environment, executionCancelInput, executionReconcileInput, executionStartInput, hash, id, ids (+7 more)
 
 ### Community 35 - "Community 35"
-Cohesion: 0.67
-Nodes (3): computeTemplateInputHash(), hashFile(), collectFiles()
+Cohesion: 0.47
+Nodes (4): EXCLUDED_TEMPLATE_FILENAMES, EXCLUDED_TEMPLATE_PATH_PREFIXES, shouldExcludeBundledTemplatePath(), toPosixPath()
 
 ### Community 39 - "Community 39"
 Cohesion: 0.26
@@ -311,7 +311,7 @@ _Questions this graph is uniquely positioned to answer:_
 - **What connects `name`, `version`, `description` to the rest of the system?**
   _405 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `Community 1` be split into smaller, more focused modules?**
-  _Cohesion score 0.11692307692307692 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.10591133004926108 - nodes in this community are weakly interconnected._
 - **Should `Community 2` be split into smaller, more focused modules?**
   _Cohesion score 0.05290490100616683 - nodes in this community are weakly interconnected._
 - **Should `Community 3` be split into smaller, more focused modules?**
