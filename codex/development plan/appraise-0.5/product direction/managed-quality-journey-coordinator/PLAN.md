@@ -1,6 +1,7 @@
 # AppraiseJS-Owned Quality Journey Coordinator — Development Plan
 
-Status: planned; implementation has not started. Research baseline: 2026-09-09.
+Status: Phase 0 concluded with a no-go; bounded remediation is planned before Gate G0. Research baseline: 2026-09-09;
+remediation decision: 2026-09-10.
 
 This plan is the named specification for replacing external Quality Journey coordination with an AppraiseJS-owned
 local runtime. The [task register](TASK_REGISTER.md) is authoritative for task status, dependencies, verification
@@ -47,18 +48,19 @@ friction; it does not prove that all workflow failures originate there.
 
 Reverify these observations before implementation; file names and line numbers may change after this research.
 
-| Existing mechanism                                                               | Reuse or missing work                                                            |
-| -------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
-| Journey stages, versions, immutable artifacts, commands and events               | Keep as domain authority                                                         |
-| Transactional work claim, authorization, assignment, input hash and dispatch key | Reuse; add runtime ownership and renewal                                         |
-| Agent Factory `supports` / `dispatch` interface                                  | No production registration was found; add the operational adapter                |
-| `DISPATCH_UNRESOLVED` and explicit resume                                        | Reuse safe blocking; add continuous provider reconciliation                      |
-| Worker lease expiry and heartbeat interval                                       | No Journey worker renewal implementation was found                               |
-| Scout submission validation                                                      | No concrete Scout browser runtime was found                                      |
-| Scout credential scope                                                           | Currently empty; authenticated scouting requires a new immutable profile version |
-| Capsule execution reserve/launch/reconcile                                       | Reuse and connect to managed progression                                         |
-| Human decision and consent services                                              | Preserve exact revision/scope binding                                            |
-| Broad project coordinator bearer token                                           | Keep out of workers; introduce a narrower gateway and runtime principal          |
+| Existing mechanism                                                               | Reuse or missing work                                                                                              |
+| -------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| Journey stages, versions, immutable artifacts, commands and events               | Keep as domain authority                                                                                           |
+| Transactional work claim, authorization, assignment, input hash and dispatch key | Reuse; add runtime ownership and renewal                                                                           |
+| Agent Factory `supports` / `dispatch` interface                                  | No production registration was found; add the operational adapter                                                  |
+| `DISPATCH_UNRESOLVED` and explicit resume                                        | Reuse safe blocking; add continuous provider reconciliation                                                        |
+| Worker lease expiry and heartbeat interval                                       | No Journey worker renewal implementation was found                                                                 |
+| Scout submission validation                                                      | No concrete Scout browser runtime was found                                                                        |
+| Scout credential scope                                                           | Currently empty; authenticated scouting requires a new immutable profile version                                   |
+| Capsule execution reserve/launch/reconcile                                       | Reuse and connect to managed progression                                                                           |
+| Human decision and consent services                                              | Preserve exact revision/scope binding                                                                              |
+| Broad project coordinator bearer token                                           | Keep out of workers; introduce a narrower gateway and runtime principal                                            |
+| Existing full `appraisejs` MCP over stdio/loopback HTTP                          | Reuse its schemas, coordinator client and domain services; do not expose its full tool registry to managed workers |
 
 Primary local navigation:
 
@@ -104,15 +106,46 @@ If a required boundary is unsupported, stop before Phase 1. Record the unsupport
 reviewed confinement design. Do not fabricate attestations, relax the role contract, silently use full access, or
 replace Codex with another provider. The full-release estimate must then be reconsidered.
 
+### Phase 0 no-go disposition and durable remediation
+
+The Codex 0.153.4 qualification candidate did not expose the required Journey MCP, retained ambient MCP servers and
+provided no authoritative inventory of the native tools visible to the model. The recovery harness proved conservative
+policy decisions but did not execute the required real App Server fault matrix. Gate G0 therefore remains blocked.
+
+The existing AppraiseJS MCP path is reusable infrastructure, but it is a broad coordinator surface for a trusted
+project-bound client. It registers Journey creation, work claim/dispatch, lifecycle decisions, execution, stop and
+repository-collaboration operations together. It is not the per-role worker boundary described by this plan.
+
+Resolve the gap by supporting two trust profiles over the same canonical schemas, coordinator client and Journey
+domain services:
+
+1. Keep the existing full coordinator MCP for trusted human-directed or harness-native coordinator clients.
+2. Add an attempt-scoped worker MCP registration profile. Derive its concrete tools from the canonical operation
+   definitions, but register only the exact subset mapped to the assigned role's abstract capabilities.
+3. Resolve target, Journey, role, attempt, generation, lease and runtime principal from a sealed grant on the trusted
+   side. Do not expose the broad project bearer, owner token or caller-selected actor to the worker.
+4. Revalidate the sealed grant before and after external I/O and issue content-bound broker receipts. The same Journey
+   services and specialized ingress remain authoritative; the worker gateway is not a second business API.
+5. Require the provider to suppress all unrequested native and ambient tools before constructing the model request and
+   expose the actual post-filter tool manifest for trusted verification. An OS sandbox independently contains
+   filesystem, network and process effects, but inert model-visible tools do not satisfy the exact-tool contract.
+
+The durable boundary is provider-neutral. Codex remains one adapter and may use an upstream capability or a minimal
+pinned compatibility patch, but the patch must remain inside the adapter boundary. A provider build is disabled for
+managed Journeys until the complete role-boundary and recovery conformance suites pass. Provider executable,
+protocol, configuration or confinement changes invalidate the affected qualification evidence.
+
 ## 3. Architecture and invariants
 
 ```mermaid
 flowchart TD
     UI[AppraiseJS browser UI] -->|Start, answers, approvals| Domain[Journey services and SQLite]
     Scheduler[Deterministic scheduler] --> Domain
+    Trusted[Trusted coordinator client] --> FullMCP[Existing full coordinator MCP]
+    FullMCP --> Domain
     Scheduler --> Supervisor[Trusted runtime supervisor]
     Supervisor --> Codex[Fresh Codex process and thread per attempt]
-    Codex --> Gateway[Attempt-scoped MCP gateway]
+    Codex --> Gateway[Role and attempt-scoped worker MCP profile]
     Gateway --> Domain
     Gateway --> Browser[Browser and session broker]
     Gateway --> Artifacts[Artifact and capsule services]
@@ -144,6 +177,9 @@ flowchart TD
   the qualified provider mechanism; verify actual effective state before the first model turn.
 - Route model-visible artifact, browser and filesystem operations through the scoped gateway. The worker cannot
   directly access the database, broad coordinator token, lease token, raw credentials or unrestricted shell/network.
+- Derive the worker gateway from the existing canonical MCP definitions and coordinator client, but register only the
+  exact role subset. The existing full MCP remains a separate trusted-client surface and must not be attached to a
+  managed worker.
 - Map every exposed concrete tool to an allowed abstract role capability. Unexpected tools/approval requests fail
   closed; answering a provider approval cannot broaden a Journey assignment.
 - Validate attempt, generation, lease, role, input and authorization before a tool call and again after external I/O.
@@ -155,18 +191,18 @@ flowchart TD
 
 Use additive migrations. Extend existing records where responsibility matches; do not duplicate immutable lineage.
 
-| Record/interface      | Required content or behavior                                                                                                              |
-| --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| Start grant           | Journey and requirement identity, allowed automatic progression, limits, issue/revocation state; never a human-gate approval              |
-| Runtime ownership     | Installation owner, expiry and monotonically increasing fencing generation                                                                |
-| Provider dispatch     | Unique dispatch key, attempt, adapter, process birth identity, version/config digest, thread/turn IDs, state and reconciliation result    |
-| Outbox                | Unique effect identity, canonical payload hash, pending/claimed/acknowledged/unknown status and attempt generation                        |
-| Inbox                 | Provider delivery identity or stable adapter-derived identity, payload hash, processing status and durable cursor                         |
-| Runtime attestation   | Actual evidence content, digest, qualified executable/protocol/config identities and effective boundaries                                 |
-| Browser session grant | Journey/target/environment, allowed origins/routes/actions, issue/expiry/revocation state and opaque session reference                    |
-| Adapter               | Dispatch, inspect/reconcile, event observation, interrupt and confirmed termination; provider-specific behavior stays here                |
-| Runtime endpoints     | Start/pause/resume/status, fenced claims/renewal, event/effect ingestion and reconciliation; authenticated principal determines authority |
-| Worker gateway        | Scoped reads/proposals/observations only; no worker-selected actor or arbitrary lifecycle command                                         |
+| Record/interface      | Required content or behavior                                                                                                                                                        |
+| --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Start grant           | Journey and requirement identity, allowed automatic progression, limits, issue/revocation state; never a human-gate approval                                                        |
+| Runtime ownership     | Installation owner, expiry and monotonically increasing fencing generation                                                                                                          |
+| Provider dispatch     | Unique dispatch key, attempt, adapter, process birth identity, version/config digest, thread/turn IDs, state and reconciliation result                                              |
+| Outbox                | Unique effect identity, canonical payload hash, pending/claimed/acknowledged/unknown status and attempt generation                                                                  |
+| Inbox                 | Provider delivery identity or stable adapter-derived identity, payload hash, processing status and durable cursor                                                                   |
+| Runtime attestation   | Actual evidence content, digest, qualified executable/protocol/config identities and effective boundaries                                                                           |
+| Browser session grant | Journey/target/environment, allowed origins/routes/actions, issue/expiry/revocation state and opaque session reference                                                              |
+| Adapter               | Dispatch, inspect/reconcile, event observation, interrupt and confirmed termination; provider-specific behavior stays here                                                          |
+| Runtime endpoints     | Start/pause/resume/status, fenced claims/renewal, event/effect ingestion and reconciliation; authenticated principal determines authority                                           |
+| Worker gateway        | Sealed attempt principal plus exact role-derived MCP subset; scoped reads/proposals/observations only; no broad project token, worker-selected actor or arbitrary lifecycle command |
 
 Do not accept a client-supplied `actor: USER` or an adapter-authored digest as proof of authority. Resolve principals
 and attestation provenance on the trusted side. Preserve useful MCP/catalog capabilities outside the removed external
@@ -258,8 +294,11 @@ match the current artifact, and blocking findings must be resolved. Record `pass
 partial pass. A later change invalidating a gate reopens the affected tasks and gate before downstream work proceeds.
 
 Phase 0 is a hard investment gate. A failure requires an explicit unsupported-boundary record and revised design,
-not a best-effort production adapter. Later phases may use deterministic fake providers for development, but cannot
-claim real-provider acceptance until qualification passes.
+not a best-effort production adapter. Complete the Phase 0 remediation tasks in the register before reevaluating G0.
+Later phases may use deterministic fake providers for development, but cannot claim real-provider acceptance until
+the exact production App Server/build passes the applicable boundary and recovery suites. A deterministic backend may
+support turn-level recovery evidence only when it traverses that exact production path and is demonstrably equivalent
+for the protocol states and events under test; otherwise use a separately authorized, account-safe real-provider turn.
 
 ### Blockers, changes and safe stopping
 
