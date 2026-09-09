@@ -165,6 +165,27 @@ export async function fetchOperationSourceRef(input: {
   return { fetchedCommit: fetched.fetchedCommit, fetchedTree: fetched.fetchedTree, sourceRef: fetched.sourceRef }
 }
 
+/** Observe the immutable operation-owned source ref without contacting a remote
+ * or moving the ref. Used only to recover a receive whose fetch may have
+ * completed before its database receipt was persisted. */
+export async function observeOperationSourceRef(input: {
+  repositoryRoot: string
+  operationId: string
+}): Promise<{ fetchedCommit: string; fetchedTree: string; sourceRef: string }> {
+  assertOperationId(input.operationId)
+  const identity = await inspectRepository(input.repositoryRoot)
+  const sourceRef = `refs/appraise/collaboration/${input.operationId}/source`
+  const [commit, tree] = await Promise.all([
+    runGit(identity.repositoryRoot, { kind: 'rev-parse', args: [`${sourceRef}^{commit}`] }),
+    runGit(identity.repositoryRoot, { kind: 'rev-parse', args: [`${sourceRef}^{tree}`] }),
+  ])
+  const fetchedCommit = commit.stdout.trim()
+  const fetchedTree = tree.stdout.trim()
+  assertCommit(fetchedCommit)
+  assertCommit(fetchedTree)
+  return { fetchedCommit, fetchedTree, sourceRef }
+}
+
 /** Fetch a fresh remote observation into a separate operation-owned ref.
  * Recovery must not overwrite the source ref that prepared the operation. */
 export async function fetchOperationRecoveryRef(input: {

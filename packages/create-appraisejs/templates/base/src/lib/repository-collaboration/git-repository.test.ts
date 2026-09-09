@@ -11,6 +11,7 @@ import { copyMigratedTestDatabase } from '@/test/migrated-test-database'
 import {
   commitExactCollaborationPaths,
   fetchOperationSourceRef,
+  observeOperationSourceRef,
   fastForwardPinned,
   fetchTrackedRef,
   inspectRepository,
@@ -173,17 +174,22 @@ describe('bounded collaboration Git operations', () => {
     await git(author, ['push', 'origin', 'appraise-0.5'])
     const remoteHead = (await git(author, ['rev-parse', 'HEAD'])).stdout.trim()
 
-    await expect(
-      fetchOperationSourceRef({
-        repositoryRoot: repository,
-        remote: 'origin',
-        branch: 'appraise-0.5',
-        operationId: 'operation-owned-ref-123',
-      }),
-    ).resolves.toMatchObject({
+    const fetched = await fetchOperationSourceRef({
+      repositoryRoot: repository,
+      remote: 'origin',
+      branch: 'appraise-0.5',
+      operationId: 'operation-owned-ref-123',
+    })
+    expect(fetched).toMatchObject({
       fetchedCommit: remoteHead,
       sourceRef: 'refs/appraise/collaboration/operation-owned-ref-123/source',
     })
+    await expect(
+      observeOperationSourceRef({ repositoryRoot: repository, operationId: 'operation-owned-ref-123' }),
+    ).resolves.toEqual(fetched)
+    await expect(
+      observeOperationSourceRef({ repositoryRoot: repository, operationId: 'absent-owned-ref-123' }),
+    ).rejects.toThrow()
   })
 
   it('rejects a remote advance instead of force pushing', async () => {

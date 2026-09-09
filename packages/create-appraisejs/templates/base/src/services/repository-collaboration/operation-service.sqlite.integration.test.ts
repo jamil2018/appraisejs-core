@@ -488,7 +488,7 @@ describe('durable collaboration operations', () => {
     }
   })
 
-  it('reserves a receive before fetch, recovers an uncertain fetch, and never refetches after its receipt', async () => {
+  it('recovers an uncertain receive from its operation ref without refetching or advancing it', async () => {
     const { client, binding } = await fixture({ git: true })
     let linkedWorktree: string | undefined
     try {
@@ -545,32 +545,53 @@ describe('durable collaboration operations', () => {
           where: { operationId: operationId!, kind: 'GIT_RECEIVE_FETCH_OBSERVED' },
         }),
       ).resolves.toBe(0)
-
-      await expect(
-        prepareCollaborationOperation(input, client, {
-          onExternalEffectStarted: () => {
-            externalEffects += 1
-          },
-          afterFetchReceiptPersisted: () => {
-            throw new Error('injected post-receipt interruption')
-          },
-        }),
-      ).rejects.toThrow('injected post-receipt interruption')
-      expect(externalEffects).toBe(2)
-      await expect(
-        client.collaborationOperationArtifact.count({
-          where: { operationId: operationId!, kind: 'GIT_RECEIVE_FETCH_OBSERVED' },
-        }),
-      ).resolves.toBe(1)
+      const pinnedSource = await git(
+        binding.repositoryRoot,
+        'rev-parse',
+        `refs/appraise/collaboration/${operationId!}/source`,
+      )
+      const remoteAdvance = path.join(
+        path.dirname(binding.repositoryRoot),
+        `${path.basename(binding.repositoryRoot)}-advance`,
+      )
+      workspaces.push(remoteAdvance)
+      await execFile('git', [
+        'clone',
+        '-b',
+        'appraise-0.5',
+        path.join(binding.repositoryRoot, 'remote.git'),
+        remoteAdvance,
+      ])
+      await git(remoteAdvance, 'config', 'user.email', 'collaboration@example.test')
+      await git(remoteAdvance, 'config', 'user.name', 'Collaboration Test')
+      await writeSnapshot(remoteAdvance, [moduleRecord('remote-module-later', 'Remote later')])
+      const remoteAdvanceRevision = await commitSnapshot(
+        remoteAdvance,
+        'remote receive advances after interrupted receipt',
+      )
+      await git(remoteAdvance, 'push', 'origin', 'appraise-0.5')
+      expect(remoteAdvanceRevision).not.toBe(pinnedSource)
 
       const prepared = await prepareCollaborationOperation(input, client, {
         onExternalEffectStarted: () => {
           externalEffects += 1
         },
       })
-      expect(externalEffects).toBe(2)
-      expect(prepared).toMatchObject({ id: operationId, state: 'READY' })
-      expect(prepared.sourceRevision).toMatch(/^[a-f0-9]{40}$/)
+      expect(externalEffects).toBe(1)
+      expect(prepared).toMatchObject({ id: operationId, state: 'READY', sourceRevision: pinnedSource })
+      await expect(
+        client.collaborationOperationArtifact.count({
+          where: { operationId: operationId!, kind: 'GIT_RECEIVE_FETCH_OBSERVED' },
+        }),
+      ).resolves.toBe(1)
+
+      const replayed = await prepareCollaborationOperation(input, client, {
+        onExternalEffectStarted: () => {
+          externalEffects += 1
+        },
+      })
+      expect(externalEffects).toBe(1)
+      expect(replayed).toMatchObject({ id: operationId, state: 'READY', sourceRevision: pinnedSource })
       await expect(
         client.collaborationOperationArtifact.findFirstOrThrow({
           where: { operationId: operationId!, kind: 'GIT_RECEIVE_SOURCE' },
@@ -1133,6 +1154,29 @@ describe('durable collaboration operations', () => {
         acceptedDigest: proposal.review.reviewDigest,
         version: accepted.version,
       })
+      await expect(
+        decideCollaborationOperation(
+          {
+            operationId: prepared.id,
+            expectedVersion: accepted.version,
+            preparedDigest: prepared.preparedDigest!,
+            decisions: [{ recordKey: 'module:module-base', decision: 'USE_INCOMING' }],
+            trustedPrincipalId: 'local-user',
+            provenance: 'authenticated-host',
+          },
+          client,
+        ),
+      ).rejects.toMatchObject({ code: 'CONFLICT' })
+      await expect(
+        client.collaborationOperation.findUniqueOrThrow({ where: { id: prepared.id } }),
+      ).resolves.toMatchObject({
+        state: 'READY',
+        acceptedDigest: proposal.review.reviewDigest,
+        version: accepted.version,
+      })
+      await expect(
+        client.collaborationOperationStep.count({ where: { operationId: prepared.id, state: { not: 'PENDING' } } }),
+      ).resolves.toBe(0)
 
       const merged = await executeNext(client, accepted)
       expect(merged.version).toBeGreaterThan(prepared.version)

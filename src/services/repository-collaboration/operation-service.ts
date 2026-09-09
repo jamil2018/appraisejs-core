@@ -25,6 +25,7 @@ import {
   fetchOperationSourceRef,
   classifyPinnedReceive,
   inspectRepository,
+  observeOperationSourceRef,
   readCollaborationSnapshotAtCommit,
   readCollaborationSnapshot,
   type CollaborationRecord,
@@ -486,6 +487,10 @@ function assertDecisionOperation(operation: CollaborationOperation, input: Decid
   }
 }
 
+function isDivergentReconciliationOperation(operation: CollaborationOperation) {
+  return operation.intent === 'RECONCILE' && Boolean(operation.sourceRevision) && Boolean(operation.targetRevision)
+}
+
 function validateDecisionInput(
   prepared: PreparedOperationPayload,
   decisions: DecideCollaborationOperationInput['decisions'],
@@ -595,6 +600,15 @@ type ReceiveFetchObservation = {
   sourceTree: string
   targetRevision: string
 }
+type ReceiveFetchPreEffect = {
+  schema: 'appraise.repository-collaboration.receive-fetch-pre-effect/v1'
+  operationId: string
+  remote: string
+  branch: string
+  sourceRef: string
+  commonDirectory: string
+  targetRevision: string
+}
 type ReceiveClassification = Awaited<ReturnType<typeof classifyPinnedReceive>>
 type ReceiveMaterializationDisposition = {
   intent: CollaborationOperationIntent
@@ -607,12 +621,23 @@ function receiveReservationDigest(input: PrepareCollaborationOperationInput) {
   return operationInputDigest({ ...input, sourceRevision: undefined, targetRevision: undefined }, [])
 }
 
-function receiveFetchIntent(input: PrepareCollaborationOperationInput, operationId: string) {
+function receiveSourceRef(operationId: string) {
+  return `refs/appraise/collaboration/${operationId}/source`
+}
+
+function receiveFetchIntent(
+  input: PrepareCollaborationOperationInput,
+  operationId: string,
+  binding: { remoteName: string; trackedBranch: string },
+) {
   return {
     schema: 'appraise.repository-collaboration.receive-fetch-intent/v1',
     operationId,
     bindingId: input.bindingId,
     requestDigest: receiveReservationDigest(input),
+    remote: binding.remoteName,
+    branch: binding.trackedBranch,
+    sourceRef: receiveSourceRef(operationId),
   }
 }
 
@@ -653,7 +678,7 @@ async function reserveReceiveFetch(
         policyVersion: permission.binding.policyVersion,
       },
     })
-    const intent = receiveFetchIntent(input, operation.id)
+    const intent = receiveFetchIntent(input, operation.id, permission.binding)
     await transaction.collaborationOperationArtifact.create({
       data: {
         operationId: operation.id,
@@ -693,6 +718,134 @@ async function observedReceiveFetch(operationId: string, client: PrismaClient) {
   return artifact ? parseReceiveFetchObservation(artifact) : null
 }
 
+function parseReceiveFetchPreEffect(artifact: { payloadJson: string; payloadHash: string }): ReceiveFetchPreEffect {
+  try {
+    const parsed = JSON.parse(artifact.payloadJson) as Partial<ReceiveFetchPreEffect>
+    const validFields = [
+      parsed.schema === 'appraise.repository-collaboration.receive-fetch-pre-effect/v1',
+      typeof parsed.operationId === 'string',
+      typeof parsed.remote === 'string',
+      typeof parsed.branch === 'string',
+      typeof parsed.sourceRef === 'string',
+      typeof parsed.commonDirectory === 'string',
+      typeof parsed.targetRevision === 'string',
+      artifact.payloadHash === collaborationHash(parsed),
+    ]
+    if (!validFields.every(Boolean)) throw new Error('invalid receive fetch pre-effect receipt')
+    return parsed as ReceiveFetchPreEffect
+  } catch {
+    throw new ServiceError('The persisted receive fetch intent is invalid.', 'CONFLICT', 409)
+  }
+}
+
+async function receiveFetchPreEffect(operationId: string, client: PrismaClient) {
+  const artifact = await client.collaborationOperationArtifact.findFirst({
+    where: { operationId, kind: 'GIT_RECEIVE_FETCH_PRE_EFFECT' },
+    orderBy: { revision: 'desc' },
+  })
+  return artifact ? parseReceiveFetchPreEffect(artifact) : null
+}
+
+async function persistReceiveFetchObservation(
+  transaction: Transaction,
+  input: {
+    operationId: string
+    requestDigest: string
+    observation: ReceiveFetchObservation
+    lease: Awaited<ReturnType<typeof acquireCollaborationGitMutationLock>>
+  },
+) {
+  await assertCollaborationGitMutationLock(transaction, input.lease)
+  const current = await transaction.collaborationOperation.findUnique({ where: { id: input.operationId } })
+  if (!current || current.state !== 'PREPARING' || current.sourceSnapshotHash !== input.requestDigest) {
+    throw new ServiceError('The receive operation changed before its fetch receipt was recorded.', 'CONFLICT', 409)
+  }
+  await transaction.collaborationOperationArtifact.create({
+    data: {
+      operationId: current.id,
+      kind: 'GIT_RECEIVE_FETCH_OBSERVED',
+      revision: 1,
+      payloadJson: canonicalJson(input.observation),
+      payloadHash: collaborationHash(input.observation),
+    },
+  })
+  await appendJournal(transaction, current.id, 'RECEIVE_FETCH_OBSERVED', input.observation)
+}
+
+async function blockPreparingReceiveOperation(
+  operationId: string,
+  client: PrismaClient,
+  input: { kind: string; message: string },
+) {
+  await client.$transaction(async transaction => {
+    const current = await transaction.collaborationOperation.findUnique({ where: { id: operationId } })
+    if (!current || current.state !== 'PREPARING') return
+    await transaction.collaborationOperation.update({
+      where: { id: current.id },
+      data: {
+        state: 'BLOCKED',
+        acceptedDigest: null,
+        blockerJson: canonicalJson(input),
+      },
+    })
+    await appendJournal(transaction, current.id, input.kind, { message: input.message }, 'BLOCKED')
+  })
+}
+
+async function blockReceiveFetchRecovery(operationId: string, client: PrismaClient, error: unknown): Promise<never> {
+  const message = error instanceof Error ? error.message : 'The operation-owned receive ref cannot be observed.'
+  await blockPreparingReceiveOperation(operationId, client, { kind: 'RECEIVE_FETCH_RECOVERY_REQUIRED', message })
+  throw new ServiceError('The receive fetch outcome is unknown and requires recovery.', 'CONFLICT', 409)
+}
+
+async function recoverReceiveFetchObservation(
+  reserved: Awaited<ReturnType<typeof reserveReceiveFetch>>,
+  input: PrepareCollaborationOperationInput,
+  client: PrismaClient,
+): Promise<ReceiveFetchObservation | null> {
+  const preEffect = await receiveFetchPreEffect(reserved.operation.id, client)
+  if (!preEffect) return null
+  const lease = await client.$transaction(transaction =>
+    acquireCollaborationGitMutationLock(transaction, preEffect.commonDirectory, reserved.operation.id),
+  )
+  try {
+    return await withCollaborationGitMutationLeaseHeartbeat(client, lease, async () => {
+      try {
+        await client.$transaction(transaction => assertCollaborationGitMutationLock(transaction, lease))
+        await assertCollaborationGitMutationIdentity(
+          reserved.binding.repositoryRoot,
+          preEffect.commonDirectory,
+          preEffect.remote,
+        )
+        const pinned = await observeOperationSourceRef({
+          repositoryRoot: reserved.binding.repositoryRoot,
+          operationId: reserved.operation.id,
+        })
+        if (pinned.sourceRef !== preEffect.sourceRef) throw new Error('The operation-owned source ref changed.')
+        const observation = {
+          sourceRef: pinned.sourceRef,
+          sourceRevision: pinned.fetchedCommit,
+          sourceTree: pinned.fetchedTree,
+          targetRevision: preEffect.targetRevision,
+        }
+        await client.$transaction(transaction =>
+          persistReceiveFetchObservation(transaction, {
+            operationId: reserved.operation.id,
+            requestDigest: receiveReservationDigest(input),
+            observation,
+            lease,
+          }),
+        )
+        return observation
+      } catch (error) {
+        return blockReceiveFetchRecovery(reserved.operation.id, client, error)
+      }
+    })
+  } finally {
+    await client.$transaction(transaction => releaseCollaborationGitMutationLock(transaction, lease))
+  }
+}
+
 async function fetchAndObserveReceiveSource(
   reserved: Awaited<ReturnType<typeof reserveReceiveFetch>>,
   input: PrepareCollaborationOperationInput,
@@ -711,6 +864,36 @@ async function fetchAndObserveReceiveSource(
         identity.commonDirectory,
         reserved.binding.remoteName,
       )
+      const preEffect: ReceiveFetchPreEffect = {
+        schema: 'appraise.repository-collaboration.receive-fetch-pre-effect/v1',
+        operationId: reserved.operation.id,
+        remote: reserved.binding.remoteName,
+        branch: reserved.binding.trackedBranch,
+        sourceRef: receiveSourceRef(reserved.operation.id),
+        commonDirectory: identity.commonDirectory,
+        targetRevision: identity.head,
+      }
+      await client.$transaction(async transaction => {
+        await assertCollaborationGitMutationLock(transaction, lease)
+        const current = await transaction.collaborationOperation.findUnique({ where: { id: reserved.operation.id } })
+        if (
+          !current ||
+          current.state !== 'PREPARING' ||
+          current.sourceSnapshotHash !== receiveReservationDigest(input)
+        ) {
+          throw new ServiceError('The receive operation changed before its fetch began.', 'CONFLICT', 409)
+        }
+        await transaction.collaborationOperationArtifact.create({
+          data: {
+            operationId: current.id,
+            kind: 'GIT_RECEIVE_FETCH_PRE_EFFECT',
+            revision: 1,
+            payloadJson: canonicalJson(preEffect),
+            payloadHash: collaborationHash(preEffect),
+          },
+        })
+        await appendJournal(transaction, current.id, 'RECEIVE_FETCH_PRE_EFFECT', preEffect)
+      })
       hooks?.onExternalEffectStarted?.(reserved.operation.id)
       const fetched = await fetchOperationSourceRef({
         repositoryRoot: reserved.binding.repositoryRoot,
@@ -730,26 +913,14 @@ async function fetchAndObserveReceiveSource(
         sourceTree: fetched.fetchedTree,
         targetRevision: identity.head,
       }
-      await client.$transaction(async transaction => {
-        await assertCollaborationGitMutationLock(transaction, lease)
-        const current = await transaction.collaborationOperation.findUnique({ where: { id: reserved.operation.id } })
-        if (!current || current.state !== 'PREPARING' || current.sourceSnapshotHash !== receiveReservationDigest(input))
-          throw new ServiceError(
-            'The receive operation changed before its fetch receipt was recorded.',
-            'CONFLICT',
-            409,
-          )
-        await transaction.collaborationOperationArtifact.create({
-          data: {
-            operationId: current.id,
-            kind: 'GIT_RECEIVE_FETCH_OBSERVED',
-            revision: 1,
-            payloadJson: canonicalJson(observed),
-            payloadHash: collaborationHash(observed),
-          },
-        })
-        await appendJournal(transaction, current.id, 'RECEIVE_FETCH_OBSERVED', observed)
-      })
+      await client.$transaction(transaction =>
+        persistReceiveFetchObservation(transaction, {
+          operationId: reserved.operation.id,
+          requestDigest: receiveReservationDigest(input),
+          observation: observed,
+          lease,
+        }),
+      )
       await hooks?.afterFetchReceiptPersisted?.(reserved.operation.id)
       return observed
     })
@@ -760,19 +931,7 @@ async function fetchAndObserveReceiveSource(
 
 async function blockReceiveAfterObservedFetch(operationId: string, client: PrismaClient, error: unknown) {
   const message = error instanceof Error ? error.message : 'Receive validation failed after remote fetch.'
-  await client.$transaction(async transaction => {
-    const current = await transaction.collaborationOperation.findUnique({ where: { id: operationId } })
-    if (!current || current.state !== 'PREPARING') return
-    await transaction.collaborationOperation.update({
-      where: { id: current.id },
-      data: {
-        state: 'BLOCKED',
-        acceptedDigest: null,
-        blockerJson: canonicalJson({ kind: 'RECEIVE_POST_FETCH_VALIDATION_FAILED', message }),
-      },
-    })
-    await appendJournal(transaction, current.id, 'RECEIVE_POST_FETCH_VALIDATION_FAILED', { message }, 'BLOCKED')
-  })
+  await blockPreparingReceiveOperation(operationId, client, { kind: 'RECEIVE_POST_FETCH_VALIDATION_FAILED', message })
 }
 
 function blockedReceiveDisposition(
@@ -953,6 +1112,7 @@ export async function prepareCollaborationOperation(
     if (reserved.operation.state !== 'PREPARING') return publicOperation(reserved.operation)
     const observed =
       (await observedReceiveFetch(reserved.operation.id, client)) ??
+      (await recoverReceiveFetchObservation(reserved, input, client)) ??
       (await fetchAndObserveReceiveSource(reserved, input, client, hooks))
     try {
       return publicOperation(await materializeObservedReceive(reserved, input, observed, client))
@@ -1017,6 +1177,13 @@ async function decideCollaborationOperationInTransaction(
   assertTrustedProvenance(input.provenance)
   const operation = await transaction.collaborationOperation.findUnique({ where: { id: input.operationId } })
   if (!operation) throw new ServiceError('Collaboration operation was not found.', 'NOT_FOUND', 404)
+  if (isDivergentReconciliationOperation(operation)) {
+    throw new ServiceError(
+      'Divergent reconciliation proposals must use the dedicated decision authority.',
+      'CONFLICT',
+      409,
+    )
+  }
   await requireCollaborationPermission(transaction, operation.bindingId, 'RESOLVE', operation.policyVersion)
   const prepared = parsePreparedOperation(operation.preparedJson)
   const required = validateDecisionInput(prepared, input.decisions)
