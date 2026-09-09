@@ -14,40 +14,40 @@ Evidence references start as `—` because no implementation checks have run. Ga
 
 ## Master task register
 
-| Done | ID   | Task                                             | Dependencies     | Status    | Evidence                             |
-| ---- | ---- | ------------------------------------------------ | ---------------- | --------- | ------------------------------------ |
-| [x]  | P0.1 | Establish protocol and source baseline           | None             | verified  | [evidence/P0.1.md](evidence/P0.1.md) |
-| [x]  | P0.2 | Qualify effective worker boundaries              | P0.1             | verified  | [evidence/P0.2.md](evidence/P0.2.md) |
-| [ ]  | P0.3 | Qualify process and session recovery             | P0.1             | blocked   | [evidence/P0.3.md](evidence/P0.3.md) |
-| [ ]  | P0.4 | Review feasibility and browser enforcement       | P0.2, P0.3       | in_review | [evidence/P0.4.md](evidence/P0.4.md) |
-| [ ]  | P1.1 | Define runtime contracts and persistence         | Gate G0          | pending   | —                                    |
-| [ ]  | P1.2 | Implement Start grant and singleton ownership    | P1.1             | pending   | —                                    |
-| [ ]  | P1.3 | Implement outbox/inbox and dispatch protocol     | P1.1, P1.2       | pending   | —                                    |
-| [ ]  | P1.4 | Implement renewal and fenced scheduling          | P1.2, P1.3       | pending   | —                                    |
-| [ ]  | P1.5 | Add runtime API and CLI entrypoint               | P1.3, P1.4       | pending   | —                                    |
-| [ ]  | P2.1 | Implement qualified Codex adapter and login      | Gate G1          | pending   | —                                    |
-| [ ]  | P2.2 | Implement scoped artifact/question gateway       | P2.1             | pending   | —                                    |
-| [ ]  | P2.3 | Connect managed requirement analysis             | P2.2             | pending   | —                                    |
-| [ ]  | P2.4 | Deliver Start and analysis status UI             | P2.3             | pending   | —                                    |
-| [ ]  | P3.1 | Version Scout authority and session grants       | Gate G2          | pending   | —                                    |
-| [ ]  | P3.2 | Implement isolated browser observation           | P3.1             | pending   | —                                    |
-| [ ]  | P3.3 | Implement human target login and expiry          | P3.2             | pending   | —                                    |
-| [ ]  | P3.4 | Connect Scout and resource discovery             | P3.2, P3.3       | pending   | —                                    |
-| [ ]  | P3.5 | Verify authenticated discovery containment       | P3.4             | pending   | —                                    |
-| [ ]  | P4.1 | Connect scenario design and revision gates       | Gate G3          | pending   | —                                    |
-| [ ]  | P4.2 | Connect scoped automation preparation            | P4.1             | pending   | —                                    |
-| [ ]  | P4.3 | Connect consent-bound managed execution          | P4.2             | pending   | —                                    |
-| [ ]  | P4.4 | Connect triage, remediation and closure          | P4.3             | pending   | —                                    |
-| [ ]  | P5.1 | Complete restart and uncertain-effect recovery   | Gate G4          | pending   | —                                    |
-| [ ]  | P5.2 | Complete cancellation and orphan handling        | P5.1             | pending   | —                                    |
-| [ ]  | P5.3 | Persist provider waits and event recovery        | P5.1             | pending   | —                                    |
-| [ ]  | P5.4 | Add limits, pause controls and diagnostics       | P5.2, P5.3       | pending   | —                                    |
-| [ ]  | P5.5 | Run adversarial and full lifecycle qualification | P5.4             | pending   | —                                    |
-| [ ]  | P6.1 | Retire external coordination and legacy adoption | Gate G5          | pending   | —                                    |
-| [ ]  | P6.2 | Package the macOS user service                   | P6.1             | pending   | —                                    |
-| [ ]  | P6.3 | Define update/downgrade and data preservation    | P6.2             | pending   | —                                    |
-| [ ]  | P6.4 | Synchronize docs, contracts and scaffolds        | P6.1, P6.2, P6.3 | pending   | —                                    |
-| [ ]  | P6.5 | Verify clean installation and release readiness  | P6.4             | pending   | —                                    |
+| Done | ID   | Task                                             | Dependencies     | Status   | Evidence                             |
+| ---- | ---- | ------------------------------------------------ | ---------------- | -------- | ------------------------------------ |
+| [x]  | P0.1 | Establish protocol and source baseline           | None             | verified | [evidence/P0.1.md](evidence/P0.1.md) |
+| [x]  | P0.2 | Qualify effective worker boundaries              | P0.1             | verified | [evidence/P0.2.md](evidence/P0.2.md) |
+| [ ]  | P0.3 | Qualify process and session recovery             | P0.1             | blocked  | [evidence/P0.3.md](evidence/P0.3.md) |
+| [x]  | P0.4 | Review feasibility and browser enforcement       | P0.2, P0.3       | verified | [evidence/P0.4.md](evidence/P0.4.md) |
+| [ ]  | P1.1 | Define runtime contracts and persistence         | Gate G0          | pending  | —                                    |
+| [ ]  | P1.2 | Implement Start grant and singleton ownership    | P1.1             | pending  | —                                    |
+| [ ]  | P1.3 | Implement outbox/inbox and dispatch protocol     | P1.1, P1.2       | pending  | —                                    |
+| [ ]  | P1.4 | Implement renewal and fenced scheduling          | P1.2, P1.3       | pending  | —                                    |
+| [ ]  | P1.5 | Add runtime API and CLI entrypoint               | P1.3, P1.4       | pending  | —                                    |
+| [ ]  | P2.1 | Implement qualified Codex adapter and login      | Gate G1          | pending  | —                                    |
+| [ ]  | P2.2 | Implement scoped artifact/question gateway       | P2.1             | pending  | —                                    |
+| [ ]  | P2.3 | Connect managed requirement analysis             | P2.2             | pending  | —                                    |
+| [ ]  | P2.4 | Deliver Start and analysis status UI             | P2.3             | pending  | —                                    |
+| [ ]  | P3.1 | Version Scout authority and session grants       | Gate G2          | pending  | —                                    |
+| [ ]  | P3.2 | Implement isolated browser observation           | P3.1             | pending  | —                                    |
+| [ ]  | P3.3 | Implement human target login and expiry          | P3.2             | pending  | —                                    |
+| [ ]  | P3.4 | Connect Scout and resource discovery             | P3.2, P3.3       | pending  | —                                    |
+| [ ]  | P3.5 | Verify authenticated discovery containment       | P3.4             | pending  | —                                    |
+| [ ]  | P4.1 | Connect scenario design and revision gates       | Gate G3          | pending  | —                                    |
+| [ ]  | P4.2 | Connect scoped automation preparation            | P4.1             | pending  | —                                    |
+| [ ]  | P4.3 | Connect consent-bound managed execution          | P4.2             | pending  | —                                    |
+| [ ]  | P4.4 | Connect triage, remediation and closure          | P4.3             | pending  | —                                    |
+| [ ]  | P5.1 | Complete restart and uncertain-effect recovery   | Gate G4          | pending  | —                                    |
+| [ ]  | P5.2 | Complete cancellation and orphan handling        | P5.1             | pending  | —                                    |
+| [ ]  | P5.3 | Persist provider waits and event recovery        | P5.1             | pending  | —                                    |
+| [ ]  | P5.4 | Add limits, pause controls and diagnostics       | P5.2, P5.3       | pending  | —                                    |
+| [ ]  | P5.5 | Run adversarial and full lifecycle qualification | P5.4             | pending  | —                                    |
+| [ ]  | P6.1 | Retire external coordination and legacy adoption | Gate G5          | pending  | —                                    |
+| [ ]  | P6.2 | Package the macOS user service                   | P6.1             | pending  | —                                    |
+| [ ]  | P6.3 | Define update/downgrade and data preservation    | P6.2             | pending  | —                                    |
+| [ ]  | P6.4 | Synchronize docs, contracts and scaffolds        | P6.1, P6.2, P6.3 | pending  | —                                    |
+| [ ]  | P6.5 | Verify clean installation and release readiness  | P6.4             | pending  | —                                    |
 
 ## Task specifications
 
@@ -497,15 +497,15 @@ review. If publishing is requested, append scoped publication tasks with termina
 
 ## Phase gate register
 
-| Gate | Required tasks | Exit criterion                                                                                                                                                 | Status        | Evidence |
-| ---- | -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------- | -------- |
-| G0   | P0.1–P0.4      | Every required role boundary has a viable proven enforcement path; process ambiguity has safe outcomes; independent feasibility review accepts the exact proof | not_evaluated | —        |
-| G1   | P1.1–P1.5      | Fake-provider runtime survives restart with fenced ownership, idempotent effects and no unauthorized scheduling                                                | not_evaluated | —        |
-| G2   | P2.1–P2.4      | Real Codex analysis works wholly through AppraiseJS with questions/reviews and truthful status                                                                 | not_evaluated | —        |
-| G3   | P3.1–P3.5      | Anonymous/authenticated discovery is operational, scope-enforced and independently reviewed                                                                    | not_evaluated | —        |
-| G4   | P4.1–P4.4      | Complete Journey, revision, remediation/rerun and closure paths preserve all existing gates                                                                    | not_evaluated | —        |
-| G5   | P5.1–P5.5      | Fault/adversarial matrices and exact-artifact review establish release-level recovery and containment                                                          | not_evaluated | —        |
-| G6   | P6.1–P6.5      | Clean macOS installation and full workflow pass; external coordination retired; docs/scaffolds/checks match final artifact                                     | not_evaluated | —        |
+| Gate | Required tasks | Exit criterion                                                                                                                                                 | Status        | Evidence                             |
+| ---- | -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------- | ------------------------------------ |
+| G0   | P0.1–P0.4      | Every required role boundary has a viable proven enforcement path; process ambiguity has safe outcomes; independent feasibility review accepts the exact proof | blocked       | [evidence/P0.4.md](evidence/P0.4.md) |
+| G1   | P1.1–P1.5      | Fake-provider runtime survives restart with fenced ownership, idempotent effects and no unauthorized scheduling                                                | not_evaluated | —                                    |
+| G2   | P2.1–P2.4      | Real Codex analysis works wholly through AppraiseJS with questions/reviews and truthful status                                                                 | not_evaluated | —                                    |
+| G3   | P3.1–P3.5      | Anonymous/authenticated discovery is operational, scope-enforced and independently reviewed                                                                    | not_evaluated | —                                    |
+| G4   | P4.1–P4.4      | Complete Journey, revision, remediation/rerun and closure paths preserve all existing gates                                                                    | not_evaluated | —                                    |
+| G5   | P5.1–P5.5      | Fault/adversarial matrices and exact-artifact review establish release-level recovery and containment                                                          | not_evaluated | —                                    |
+| G6   | P6.1–P6.5      | Clean macOS installation and full workflow pass; external coordination retired; docs/scaffolds/checks match final artifact                                     | not_evaluated | —                                    |
 
 Gate statuses: `not_evaluated`, `in_review`, `blocked`, `passed`. A known blocking finding cannot be waived into
 `passed`. Reopen dependent gates if a later source or provider configuration change invalidates their evidence.
@@ -557,17 +557,17 @@ replacement acceptance criteria. Distinguish explicit user choices from planning
 
 ## Active handoff
 
-- Current phase: Phase 0, in progress.
-- Current task: P0.4 — Review feasibility and browser enforcement (`in_review`).
-- Next eligible task: none until Gate G0 passes; `B0-001` currently requires G0 to be blocked.
-- Completed implementation tasks: 2 of 32; P0.3 is blocked after independent review rejected its prior verification.
-- Latest gate: none evaluated.
+- Current phase: Phase 0 concluded with a no-go.
+- Current task: P0.4 — Review feasibility and browser enforcement (`verified` as a no-go record).
+- Next eligible task: none. Gate G0 is blocked by `B0-001` and `B0-002`; Phase 1 must not start.
+- Completed implementation tasks: 3 of 32; P0.3 remains blocked and is not counted as complete.
+- Latest gate: G0 `blocked` after exact-artifact independent review.
 - Runtime/processes started by this plan: the `QB-01` App Server process was terminated by the harness; it sent no
   `turn/start`. Its ephemeral thread identifier is retained only as a SHA-256 digest in evidence.
 - Known unrelated worktree change at plan creation: `package-lock.json`; it was not present when P0.1 began.
 - Active branch/base: `codex/managed-quality-journey-coordinator-p0` from `86cd587ce74c6354ce7532dcd5a4a6145d4941de`.
-- Next action: finish P0.4 validation, bind the independent review to the exact Phase 0 patch digest, and record the
-  Gate G0 no-go result unless that review disproves blocker `B0-001`.
+- Next action: await explicit user direction on a separately reviewed confinement design and an account-safe
+  App Server recovery-fault environment. Do not begin Phase 1 against the unsupported candidate.
 
 ### Handoff update checklist
 
