@@ -534,13 +534,14 @@ async function verifiedDivergentWorktreeForCleanup(
 async function changedDivergentWorktreePaths(
   preparation: DivergentReconciliationPreparation,
   untrackedPaths: string[],
+  ignoredPaths: string[],
 ) {
   const [staged, unstaged] = await Promise.all([
     runGit(preparation.worktreePath, { kind: 'diff-names', cached: true }),
     runGit(preparation.worktreePath, { kind: 'diff-names' }),
   ])
   const changedPaths = [...new Set([...paths(staged.stdout), ...paths(unstaged.stdout)])].sort()
-  return [...new Set([...changedPaths, ...untrackedPaths])].sort()
+  return [...new Set([...changedPaths, ...untrackedPaths, ...ignoredPaths])].sort()
 }
 
 async function hasExpectedDivergentProposalSnapshot(
@@ -569,7 +570,7 @@ export async function cleanupDivergentReconciliationWorktree(
   const expectedWorktreeHead = options.expectedWorktreeHead ?? preparation.sourceRevision
   const status = await verifiedDivergentWorktreeForCleanup(preparation, expectedWorktreeHead)
   if (!status) return { status: 'NO_WORKTREE' }
-  const changedPaths = await changedDivergentWorktreePaths(preparation, status.untrackedPaths)
+  const changedPaths = await changedDivergentWorktreePaths(preparation, status.untrackedPaths, status.ignoredPaths)
   if ((status.stagedPaths.length || status.worktreePaths.length) && !changedPaths.length) {
     changedPaths.push('UNPARSEABLE_GIT_STATUS')
   }

@@ -21,6 +21,7 @@ export interface GitRepositoryStatus {
   stagedPaths: string[]
   worktreePaths: string[]
   untrackedPaths: string[]
+  ignoredPaths: string[]
 }
 
 export interface GitRepositoryIdentity extends GitRepositoryStatus {
@@ -64,24 +65,30 @@ function parseNulPaths(output: string): string[] {
   return output.split('\0').filter(Boolean)
 }
 
-function statusPaths(output: string): Pick<GitRepositoryStatus, 'stagedPaths' | 'worktreePaths' | 'untrackedPaths'> {
+function statusPaths(
+  output: string,
+): Pick<GitRepositoryStatus, 'stagedPaths' | 'worktreePaths' | 'untrackedPaths' | 'ignoredPaths'> {
   const stagedPaths: string[] = []
   const worktreePaths: string[] = []
   const untrackedPaths: string[] = []
+  const ignoredPaths: string[] = []
   for (const entry of parseNulPaths(output)) {
     if (entry.startsWith('# ')) continue
     if (entry.startsWith('? ')) {
       untrackedPaths.push(entry.slice(2))
       continue
     }
-    if (entry.startsWith('! ')) continue
+    if (entry.startsWith('! ')) {
+      ignoredPaths.push(entry.slice(2))
+      continue
+    }
     const match = /^[12u] ([.MADRCU?])([.MADRCU?]) .+? (.+)$/u.exec(entry)
     if (!match) continue
     const [, indexStatus, worktreeStatus, filePath] = match
     if (indexStatus !== '.') stagedPaths.push(filePath)
     if (worktreeStatus !== '.') worktreePaths.push(filePath)
   }
-  return { stagedPaths, worktreePaths, untrackedPaths }
+  return { stagedPaths, worktreePaths, untrackedPaths, ignoredPaths }
 }
 
 async function gitCommonDirectory(repositoryRoot: string): Promise<string> {

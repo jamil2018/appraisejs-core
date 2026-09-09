@@ -35,7 +35,7 @@ type ArgumentBuilders = { [Kind in GitInvocation['kind']]: (input: InvocationFor
 const argumentBuilders: ArgumentBuilders = {
   'rev-parse': input => ['rev-parse', ...input.args],
   'symbolic-ref': input => ['symbolic-ref', '--quiet', '--short', ...input.args],
-  status: () => ['status', '--porcelain=v2', '-z', '--branch'],
+  status: () => ['status', '--porcelain=v2', '-z', '--branch', '--ignored=matching'],
   'diff-names': input => [
     'diff',
     '--name-only',

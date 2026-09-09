@@ -15,6 +15,7 @@ import {
   prepareDivergentReconciliation,
   validateDivergentReconciliationProposal,
 } from './divergent-reconciliation'
+import { inspectRepository } from './git-repository'
 import { buildCollaborationSnapshotFiles } from './snapshot'
 
 const execFile = promisify(execFileCallback)
@@ -76,6 +77,7 @@ async function fixture() {
   await git(repository, ['config', 'user.name', 'Appraise Test'])
   await git(repository, ['config', 'user.email', 'appraise@example.test'])
   await fs.writeFile(path.join(repository, 'README.md'), 'initial\n')
+  await fs.writeFile(path.join(repository, '.gitignore'), 'operator-notes.txt\n')
   await writeSnapshot(repository, [record('base')])
   await git(repository, ['add', '.'])
   await git(repository, ['commit', '-m', 'base'])
@@ -141,6 +143,7 @@ describe('divergent collaboration reconciliation', () => {
       records: [record('adversarial')],
     })
     await fs.writeFile(path.join(adversarial.worktreePath, 'operator-notes.txt'), 'retain this evidence\n')
+    expect((await inspectRepository(adversarial.worktreePath)).ignoredPaths).toContain('operator-notes.txt')
     await expect(
       cleanupDivergentReconciliationWorktree(adversarial, {
         expectedSnapshotHash: adversarialReview.proposedSnapshotHash,
