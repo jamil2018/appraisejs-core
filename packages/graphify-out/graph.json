@@ -4737,10 +4737,10 @@
       "source_file": "create-appraisejs/package.json",
       "source_location": "L72",
       "_origin": "ast",
-      "community": 35,
+      "community": 36,
       "norm_label": "engines",
       "id": "create_appraisejs_package_engines",
-      "community_name": "Community 35"
+      "community_name": "Community 36"
     },
     {
       "label": "node",
@@ -4748,10 +4748,10 @@
       "source_file": "create-appraisejs/package.json",
       "source_location": "L73",
       "_origin": "ast",
-      "community": 35,
+      "community": 36,
       "norm_label": "node",
       "id": "create_appraisejs_package_engines_node",
-      "community_name": "Community 35"
+      "community_name": "Community 36"
     },
     {
       "label": "allowScripts",
@@ -5067,10 +5067,10 @@
       "source_file": "create-appraisejs/scripts/prepare-template.ts",
       "source_location": "L186",
       "_origin": "ast",
-      "community": 1,
+      "community": 35,
       "norm_label": "hashfile()",
       "id": "scripts_prepare_template_hashfile",
-      "community_name": "Community 1"
+      "community_name": "Community 35"
     },
     {
       "label": "computeTemplateInputHash()",
@@ -5078,10 +5078,10 @@
       "source_file": "create-appraisejs/scripts/prepare-template.ts",
       "source_location": "L197",
       "_origin": "ast",
-      "community": 1,
+      "community": 35,
       "norm_label": "computetemplateinputhash()",
       "id": "scripts_prepare_template_computetemplateinputhash",
-      "community_name": "Community 1"
+      "community_name": "Community 35"
     },
     {
       "label": "readExistingTemplateMetadata()",
@@ -6200,10 +6200,10 @@
       "source_file": "create-appraisejs/src/prepare-template-utils.ts",
       "source_location": "L21",
       "_origin": "ast",
-      "community": 1,
+      "community": 35,
       "norm_label": "collectfiles()",
       "id": "src_prepare_template_utils_collectfiles",
-      "community_name": "Community 1"
+      "community_name": "Community 35"
     },
     {
       "label": "shouldAbortOnFallbackSeed()",
@@ -6453,10 +6453,10 @@
       "source_file": "create-appraisejs/src/sync-templates-utils.test.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 36,
+      "community": 0,
       "norm_label": "sync-templates-utils.test.ts",
       "id": "src_sync_templates_utils_test",
-      "community_name": "Community 36"
+      "community_name": "Community 0"
     },
     {
       "label": "sync-templates-utils.ts",
@@ -6464,10 +6464,10 @@
       "source_file": "create-appraisejs/src/sync-templates-utils.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 36,
+      "community": 0,
       "norm_label": "sync-templates-utils.ts",
       "id": "src_sync_templates_utils",
-      "community_name": "Community 36"
+      "community_name": "Community 0"
     },
     {
       "label": "EXCLUDED_TEMPLATE_PATH_PREFIXES",
@@ -6475,10 +6475,10 @@
       "source_file": "create-appraisejs/src/sync-templates-utils.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 36,
+      "community": 0,
       "norm_label": "excluded_template_path_prefixes",
       "id": "src_sync_templates_utils_excluded_template_path_prefixes",
-      "community_name": "Community 36"
+      "community_name": "Community 0"
     },
     {
       "label": "EXCLUDED_TEMPLATE_FILENAMES",
@@ -6486,10 +6486,10 @@
       "source_file": "create-appraisejs/src/sync-templates-utils.ts",
       "source_location": "L2",
       "_origin": "ast",
-      "community": 36,
+      "community": 0,
       "norm_label": "excluded_template_filenames",
       "id": "src_sync_templates_utils_excluded_template_filenames",
-      "community_name": "Community 36"
+      "community_name": "Community 0"
     },
     {
       "label": "toPosixPath()",
@@ -6497,10 +6497,10 @@
       "source_file": "create-appraisejs/src/sync-templates-utils.ts",
       "source_location": "L4",
       "_origin": "ast",
-      "community": 36,
+      "community": 0,
       "norm_label": "toposixpath()",
       "id": "src_sync_templates_utils_toposixpath",
-      "community_name": "Community 36"
+      "community_name": "Community 0"
     },
     {
       "label": "shouldExcludeBundledTemplatePath()",
@@ -6508,10 +6508,10 @@
       "source_file": "create-appraisejs/src/sync-templates-utils.ts",
       "source_location": "L8",
       "_origin": "ast",
-      "community": 36,
+      "community": 0,
       "norm_label": "shouldexcludebundledtemplatepath()",
       "id": "src_sync_templates_utils_shouldexcludebundledtemplatepath",
-      "community_name": "Community 36"
+      "community_name": "Community 0"
     },
     {
       "label": "template-boundary.test.ts",
@@ -34078,5 +34078,5 @@
       "source_file": "appraisejs/agent-skills/appraise-planning-standby/SKILL.md"
     }
   ],
-  "built_at_commit": "0834a558d4f246fc1da25206120d4c4b7e6bf7d5"
+  "built_at_commit": "33b7982f1742b409ebd92290f8ec8e36ffc0b26c"
 }
