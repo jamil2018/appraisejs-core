@@ -89,6 +89,7 @@
     "quality:react-doctor:commit": "node scripts/run-react-doctor-commit.mjs",
     "quality:pre-commit": "npm run quality:fallow:commit && npm run quality:react-doctor:commit",
     "release:check:journey-cutover": "node --import tsx scripts/check-quality-journey-integrity.ts && npm run validate:unit -- scripts/lib/quality-journey-integrity.test.ts src/lib/quality-cutover-forbidden-symbols.test.ts",
+    "quality-journey:qualify-provider": "node scripts/qualify-managed-journey-provider.mjs",
     "harness:learn": "node scripts/harness-learning.mjs",
     "harness:select": "node scripts/select-harness-agent.mjs",
     "harness:diagnostic": "node scripts/harness-diagnostic.mjs",
