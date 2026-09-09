@@ -1,6 +1,6 @@
 # Repository collaboration and agent-assisted Git management
 
-Status: implementation in progress; independent release review reopened Phase 5-8 blockers before Phase 9.
+Status: complete; all nine phases implemented, release-validated, and independently accepted.
 
 Updated: 2026-09-09. This replaces the conversation's manual-Git-only plan.
 
@@ -14,11 +14,11 @@ stale and idempotency guards, journaled filesystem publication/recovery, and the
 Phases 3-8 add archive-safe domain boundaries and undo, non-authoritative Journey reuse, bounded Git operations,
 durable scheduling and agent handoff, and isolated structured divergent reconciliation.
 
-The first independent release review rejected the initial Phase 5-8 implementation. The implementation now includes
-operation-owned Git step authority/order and push range proof, exclusive worker leases and scheduler integration, a
-real-agent public-client proof, Git-backed receive, deterministic decisions, realistic restore, and final divergent
-Git/database integration. The checklist remains intentionally reopened until final validation and independent
-re-review pass against this repaired artifact.
+Independent adversarial review rejected incomplete Phase 5-8 iterations and drove repairs for operation-owned Git
+step authority/order, push range proof, exclusive worker leases, deterministic Git-backed receive, replacement-worker
+recovery, and strict temporary-worktree ownership and cleanup. The final review passed after disposable-repository
+proofs showed ordinary and ignored foreign files are retained while an exact reviewed collaboration-only snapshot is
+removed safely.
 
 ## Outcome and scope
 
@@ -257,14 +257,14 @@ Never import approvals, evidence, consent, leases, execution bindings, lifecycle
 
 ## Service and MCP interfaces
 
-Implement one service layer with UI and CLI/MCP parity. The following are proposed new operation names, not claims
-about tools currently available:
+One service layer now provides UI and CLI/MCP parity through these implemented operations:
 
 - `collaboration_connect`, `collaboration_policy_update`, `collaboration_status`.
-- `collaboration_prepare` for RECEIVE, PUBLISH, or RECONCILE; `collaboration_get` for durable progress.
-- `collaboration_resolution_propose`, `collaboration_decide`, `collaboration_execute`, and
-  `collaboration_undo_prepare`. Execute accepts only an operation ID, expected version/digest, idempotency key,
-  and a permitted prepared step; the service derives paths, commands, and mutation content.
+- `collaboration_prepare` for RECEIVE or PUBLISH; RECEIVE classifies divergence internally and
+  `collaboration_get` returns durable progress.
+- `collaboration_decide`, `collaboration_execute`, and `collaboration_undo_prepare`. Structured divergent proposals
+  arrive only through the fenced `collaboration_work_complete` boundary. Execute accepts only an operation ID,
+  expected version/digest, and idempotency key; the service derives paths, commands, and mutation content.
 - `collaboration_worker_register`, `collaboration_work_claim`, `collaboration_work_heartbeat`,
   `collaboration_work_complete`, and `collaboration_handoff_redeem`.
 
@@ -329,3 +329,10 @@ scaffold/package parity, Fallow, React Doctor, generated MCP-reference checks, h
 Completion requires two collaborators to share authored changes through Git, resolve differences without losing
 local work/history, reuse Journey design under fresh gates, and synchronize through durable agent handoffs without
 repeated prompt-writing. No background capability or successful mutation may be claimed without observed evidence.
+
+Completion evidence: `npm run validate` passed 254 files / 1,155 unit and integration tests plus 36 Chromium E2E
+tests; `npm run build`, TypeScript, migration rehearsal across 80 migrations, package tests/builds, generated-artifact
+checks, Fallow, React Doctor, harness checks, scaffold sync, and Graphify checks passed. The final independent judge
+accepted commit `bacd4668`; the later `e006dcfd` commit changes test synchronization only. The scheduler runs only
+while the Appraise service is active, no native agent wake capability is claimed, and ambiguous Git identity or
+cleanup state remains blocked with recovery evidence retained.

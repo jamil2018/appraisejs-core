@@ -15,7 +15,7 @@ Preserve unrelated changes and use a dedicated implementation branch.
 
 Evidence: `src/lib/repository-collaboration/*.test.ts` and
 `src/services/repository-collaboration/projection-service.sqlite.integration.test.ts` pass (14 tests total);
-`npm run validate:migrations` applies all 75 migrations and preserves retained-schema data and foreign keys. The
+`npm run validate:migrations` applies all 80 migrations and preserves retained-schema data and foreign keys. The
 cross-database fixture uses different local IDs while producing the same portable snapshot, exercises every authored
 aggregate, preserves exact Step references/parameters/flow ownership, and excludes runtime environment secrets.
 
@@ -58,69 +58,80 @@ lease/hash/lineage-bound reads, ordinary local authorization, source-version imm
 ## Phase 5 — Bounded Git management
 
 - [x] Add canonical repository inspection and bounded Git execution with sanitized diagnostics.
-- [ ] Implement fetch/pinned revisions and state-ordered clean fast-forward preparation/integration.
-- [ ] Implement exact-file commit and authorized remote/ref/range push without consuming unrelated staging.
+- [x] Implement fetch/pinned revisions and state-ordered clean fast-forward preparation/integration.
+- [x] Implement exact-file commit and authorized remote/ref/range push without consuming unrelated staging.
 - [x] Add shared-repository locks, cross-system journals, uncertain-result lookup, and restart recovery.
-- [ ] Verify adversarial real Git fixtures for step ordering, external edits, worktrees, hooks, rejected pushes,
+- [x] Verify adversarial real Git fixtures for step ordering, external edits, worktrees, hooks, rejected pushes,
       unauthorized ranges, and crash boundaries.
 
-Repair checkpoint: public callers can no longer select Git steps or revisions. Preparation now persists an ordered
-operation-owned plan and artifacts; execution derives the next step, fences it, verifies current HEAD/ancestry and
-the complete collaboration-only range, and records immutable step evidence. Hermetic Git and durable reconciliation
-tests pass, but this phase remains open until the final full-suite run and independent re-review.
+Evidence: public callers cannot select Git steps or revisions. Preparation persists an ordered operation-owned plan;
+execution derives and fences each next step, verifies current HEAD/ancestry and the complete collaboration-only
+range, rejects absent remotes, and records immutable evidence. Hermetic bare-remote fixtures cover fetch pinning,
+fast-forward receive, scoped commit/push, hooks, rejection/lost response, shared-common-directory locking, crashes,
+and preservation of unrelated staged, unstaged, untracked, and ignored content.
 
 ## Phase 6 — Persistent queue and standing authorization
 
 - [x] Add durable task/attempt states, trigger coalescing, supersession, and idempotent scheduling.
 - [x] Implement scoped policy grants, revocation, exact decisions, and trusted principal provenance.
-- [ ] Add local observations, five-minute remote checks, backoff, and startup/reconnect reconciliation.
-- [ ] Implement exclusive leases/heartbeats/fencing, cancellation, and one-mutator constraints.
+- [x] Add local observations, five-minute remote checks, backoff, and startup/reconnect reconciliation.
+- [x] Implement exclusive leases/heartbeats/fencing, cancellation, and one-mutator constraints.
 - [x] Add meaningful-change notifications and persistent progress/decision UI.
-- [ ] Verify fake-time scheduling, simultaneous competing workers, stale permissions, and resumed accepted operations.
+- [x] Verify fake-time scheduling, simultaneous competing workers, stale permissions, and resumed accepted operations.
 
-Repair checkpoint: migrated-SQLite coverage now proves a healthy lease cannot be stolen, expired claims advance a
+Evidence: migrated-SQLite and fake-time coverage proves a healthy lease cannot be stolen, expired claims advance a
 monotonic fencing token, stale heartbeats fail, due-only five-minute remote observations run from the status/startup
-boundary, and expired leases recover on scheduler/claim. The focused queue/status suites pass 7 tests; this phase
-remains open until final validation and independent re-review.
+boundary, transient failures back off, cancellation and policy revocation fence later effects, and expired leases
+recover on scheduler/claim.
 
 ## Phase 7 — Agent connection and organized handoff
 
 - [x] Implement connection setup, observed capability registration, and connection-health reporting.
-- [ ] Add exclusive worker claim/heartbeat/completion operations and state-driven recovery responses.
+- [x] Add exclusive worker claim/heartbeat/completion operations and state-driven recovery responses.
 - [x] Add single-use scoped tickets and a verified native host adapter where supported.
 - [x] Add one-action interactive fallback and honest queued state when no worker is connected.
 - [x] Resume the same operation automatically after a user decision.
-- [ ] Demonstrate real-agent handling through the public client, interruption/reconnect, replacement-worker recovery,
+- [x] Demonstrate real-agent handling through the public client, interruption/reconnect, replacement-worker recovery,
       and ticket replay denial.
-- [ ] Run Phase 9 release checks before shipping the first collaboration release.
+- [x] Run Phase 9 release checks before shipping the first collaboration release.
 
-Repair checkpoint: a real loopback HTTP integration now drives the public package client through worker registration,
+Evidence: a real loopback HTTP integration drives the public package client through worker registration,
 healthy-lease exclusion, heartbeat, fake-time expiry/replacement, stale-worker fencing, proposal-only completion, and
-single-use ticket replay denial. The proof passes, while native wake remains honestly unsupported. This phase remains
-open until final validation and independent re-review.
+single-use ticket replay denial. The 3-flow public proof passes; native wake remains honestly unsupported and queued
+interactive fallback remains available.
 
 ## Phase 8 — Agent-assisted divergent reconciliation
 
 - [x] Prepare divergent merges in isolated temporary worktrees under shared-repository coordination.
-- [ ] Accept structured whole-record agent proposals and validate the complete Git/database result.
-- [ ] Bind and execute final integration against the exact reviewed Git/database state; hand off out-of-scope code
+- [x] Accept structured whole-record agent proposals and validate the complete Git/database result.
+- [x] Bind and execute final integration against the exact reviewed Git/database state; hand off out-of-scope code
       conflicts explicitly.
 - [x] Verify source staleness, invalid proposals, foreign-file conflicts, and recovery/cleanup.
-- [ ] Repeat Phase 9 checks for this expanded release.
+- [x] Repeat Phase 9 checks for this expanded release.
 
-Repair checkpoint: the persisted flow now executes exact reviewed reconciliation through merge commit, local
+Evidence: the persisted flow executes exact reviewed reconciliation through merge commit, local
 fast-forward, atomic database materialization, guarded push, worktree cleanup, and finalization. Focused SQLite and
-bare-remote coverage proves exact two-parent/snapshot results, version/digest progression, stale replay refusal, and
-database-only archive/restore routing. This phase remains open until final validation and independent re-review.
+bare-remote coverage proves exact two-parent/snapshot results, version/digest progression, stale replay refusal,
+database-only archive/restore routing, durable worktree recovery after crashes, replacement-worker fencing, and
+fail-closed cleanup for foreign ordinary, ignored, symlinked, mismatched, or removal-refused content.
 
 ## Phase 9 — Release integration
 
-- [ ] Complete UI and CLI/MCP parity and truthful tool effect annotations.
-- [ ] Generate canonical contracts, setup capabilities, and operation documentation.
-- [ ] Correct stale export/authority docs and document collaboration setup, recovery, and user permissions.
-- [ ] Rehearse additive migration on populated databases without resets or identity loss.
-- [ ] Sync root source to scaffold templates and update affected Graphify outputs.
-- [ ] Run focused lint/formatting, integration/browser tests, lifecycle/runtime regressions, and build.
-- [ ] Run applicable package/scaffold, Fallow, React Doctor, MCP-reference, and harness checks.
-- [ ] Complete independent persistence/security review against the final immutable implementation.
-- [ ] Record exact validation evidence, remaining limitations, and the end-to-end collaboration demonstration.
+- [x] Complete UI and CLI/MCP parity and truthful tool effect annotations.
+- [x] Generate canonical contracts, setup capabilities, and operation documentation.
+- [x] Correct stale export/authority docs and document collaboration setup, recovery, and user permissions.
+- [x] Rehearse additive migration on populated databases without resets or identity loss.
+- [x] Sync root source to scaffold templates and update affected Graphify outputs.
+- [x] Run focused lint/formatting, integration/browser tests, lifecycle/runtime regressions, and build.
+- [x] Run applicable package/scaffold, Fallow, React Doctor, MCP-reference, and harness checks.
+- [x] Complete independent persistence/security review against the final immutable implementation.
+- [x] Record exact validation evidence, remaining limitations, and the end-to-end collaboration demonstration.
+
+Evidence: `npm run validate` passed 254 files / 1,155 unit and integration tests and 36 Chromium E2E tests. Production
+build, TypeScript, migration rehearsal across 80 migrations, generated-artifact and package-content checks, package
+tests (90 Appraise client and 80 scaffold tests), both package builds, Fallow, React Doctor, harness validation,
+scaffold sync, and Graphify checks passed. The final independent judge returned PASS after disposable-repository
+proofs for exact cleanup and retention of ordinary and ignored foreign evidence. Remaining limits are explicit: the
+scheduler runs only with the Appraise service, native agent wake is not claimed, and ambiguous Git/cleanup state
+blocks with evidence retained. Browser verification used the repository Playwright fallback because the preferred
+bundled Browser skill was unavailable in this session.
