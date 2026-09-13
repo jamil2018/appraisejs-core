@@ -18,6 +18,7 @@ import {
   qualityJourneyStatusProjection,
 } from '@/lib/quality-journey/presentation'
 import { getQualityJourneyAnalysis } from '@/services/coordinator/quality-journey-analysis-service'
+import { getQualityJourneyDiscovery } from '@/services/coordinator/quality-journey-discovery-service'
 import { getQualityJourney } from '@/services/coordinator/quality-journey-service'
 import { getQualityJourneyScenarioPortfolio } from '@/services/coordinator/quality-journey-scenario-service'
 import { getQualityJourneyAutomationContext } from '@/services/coordinator/quality-journey-automation-service'
@@ -35,6 +36,7 @@ import { JourneyProgressNotice } from './journey-progress-notice'
 import { JourneyProgress } from './journey-progress'
 import { JourneyStatusObservationProvider } from './journey-status-observation'
 import { ScenarioPortfolioReview } from './scenario-portfolio-review'
+import { DiscoveryBrowserPanel } from './discovery-browser-panel'
 import { TriageReportPanel } from './triage-report-panel'
 import { qualityJourneyLabel, toAnalysisRevisionView } from './quality-journey-view-model'
 
@@ -114,9 +116,10 @@ async function loadJourneyDetail(journeyId: string, projectId: string) {
     node => node.stage === journey.journey.stage && ['RUNNABLE', 'IN_PROGRESS', 'BLOCKED'].includes(node.state),
   )
 
-  const [{ scenarios, automation }, execution, triage, handoff, environments, attempts, requirement] =
+  const [{ scenarios, automation }, discovery, execution, triage, handoff, environments, attempts, requirement] =
     await Promise.all([
       loadJourneySupplementalArtifacts(journeyId, projectId, journey.journey.stage),
+      loadActiveDiscovery(journey.journey.stage, journeyId, projectId),
       getQualityJourneyExecution({ journeyId, targetProjectId: projectId }),
       getQualityJourneyTriage({ journeyId, targetProjectId: projectId }),
       inspectQualityJourneyHandoff({ journeyId, targetProjectId: projectId }),
@@ -141,6 +144,7 @@ async function loadJourneyDetail(journeyId: string, projectId: string) {
     activeRunner,
     answerable,
     journey,
+    discovery,
     scenarios,
     automation,
     execution,
@@ -151,6 +155,33 @@ async function loadJourneyDetail(journeyId: string, projectId: string) {
     requirementSummary: requirement
       ? qualityJourneyRequirementSummary(requirement.contentJson)
       : 'Requirement snapshot unavailable',
+  }
+}
+
+async function loadActiveDiscovery(stage: string, journeyId: string, projectId: string) {
+  if (stage !== 'DISCOVERY') return null
+  return getQualityJourneyDiscovery({ journeyId, targetProjectId: projectId }).catch(error => {
+    if (error instanceof ServiceError && error.code === 'NOT_FOUND') return null
+    throw error
+  })
+}
+
+function discoveryBrowserView(
+  discovery: Awaited<ReturnType<typeof getQualityJourneyDiscovery>> | null,
+  environments: Array<{ id: string; name: string }>,
+) {
+  if (!discovery?.activeDiscoveryRevisionId) return null
+  const active = discovery.revisions.find(revision => revision.id === discovery.activeDiscoveryRevisionId)
+  if (!active) return null
+  const scope = JSON.parse(active.scoutScopeJson) as { environmentIds?: string[]; routes?: string[] }
+  const environmentIds = new Set(scope.environmentIds ?? [])
+  const routes = [...new Set(scope.routes ?? [])].toSorted()
+  if (!routes.length) return null
+  return {
+    id: active.id,
+    workItemId: active.scoutWorkItemId,
+    environments: environments.filter(environment => environmentIds.has(environment.id)),
+    routes,
   }
 }
 
@@ -195,6 +226,7 @@ export default async function QualityJourneyDetailPage({ params, searchParams }:
     activeRunner,
     answerable,
     journey,
+    discovery,
     automation,
     execution,
     triage,
@@ -298,6 +330,9 @@ export default async function QualityJourneyDetailPage({ params, searchParams }:
                 analysisReviewHash={journey.journey.analysisReviewHash}
                 unresolvedQuestionIds={journey.journey.unresolvedQuestionIds}
               />
+            </section>
+            <section id="discovery" tabIndex={-1}>
+              <DiscoveryBrowserPanel journeyId={journeyId} discovery={discoveryBrowserView(discovery, environments)} />
             </section>
             <section id="scenarios" tabIndex={-1}>
               <ScenarioPortfolioReview

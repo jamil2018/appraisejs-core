@@ -3,7 +3,9 @@
 Status: architecture adopted by the user on 2026-09-11; C0.1, C0.2, C0.2e, C0.3 and C0.4 verified; GC0 passed its
 feasibility gate after independent exact-artifact review; C1.1, C1.2 and C1.3 are verified. GC1 `passed` after
 [independent usable-handoff review](evidence/GC1.md); C2.1 and C2.2 are verified after independent exact-artifact
-review, and C2.3 is the exact next eligible task. The
+review. C2.3.1 and C2.3.2 are delivered and verified after independent exact-artifact review; C2.3.3 and parent C2.3
+remain blocked on the live human-login/MFA and cross-origin identity-provider qualification recorded in
+[C2.3 evidence](evidence/C2.3.md). The exact next eligible task is C2.3.3 blocker closure, not C2.4. The
 explicitly authorized retained C0.2e slice was the only implementation permitted before GC0 passed.
 The [task register](TASK_REGISTER.md) owns active task status, dependencies, gates and evidence. **C0.1: qualify the
 Appraise-to-Codex handoff** is verified as a bounded qualification task. Its [evidence](evidence/C0.1.md) records
@@ -61,7 +63,7 @@ native MCP/CLI parity and bounded recovery instructions. Independent exact-artif
 repairs. This closes C-B02 for its C0.2e/C2.1 scope. **C2.2: connect analysis and human question loops** is verified.
 Its [evidence](evidence/C2.2.md) binds the real claimed immutable requirement to the artifact library, exercises the
 external Analysis question/answer/publication/revision/fresh-task successor slice, and records truthful UI activity
-and approval status. GC2 remains `not_evaluated`; C2.3 is the exact next eligible task.
+and approval status. GC2 remains `not_evaluated`; C2.3.3 blocker closure is the exact next eligible task.
 
 ## 1. Decision and product experience
 

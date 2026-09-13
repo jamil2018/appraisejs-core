@@ -26,6 +26,27 @@ registration, or visible tools do not mean a Journey is connected, admitted, act
 8. Report exactly which observations came from plugin recognition, MCP calls, Appraise UI/service state, or human
    operation. Keep these evidence classes distinct.
 
+## Scoped discovery and human sign-in
+
+For `DISCOVERY`, keep target access and Scout submission separate.
+
+1. Read `quality_journey_get` and `quality_journey_discovery_get`, then claim and admit only the current Scout
+   assignment through the retained `EXTERNAL_V1` work operations.
+2. Ask the human to use the Journey's Appraise-owned scoped browser panel when a target route needs observation.
+   Password, SSO and MFA entry occur only in the opened target browser. Never request credentials in chat or place
+   them in a prompt, MCP argument, observation fact, log, screenshot or fixture.
+3. Treat anonymous access, human-confirmed authenticated access and missing access as distinct outcomes. A human
+   confirmation does not identify a natural person or attest the identity provider.
+4. Use only the exact receipt descriptor and Appraise-derived observation facts displayed by the scoped browser
+   panel. Host Browser observations and screenshots are supplemental and cannot replace an
+   `APPRAISE_DISCOVERY_BROWSER_V1` receipt.
+5. Submit through `quality_journey_external_scout_target_observation_submit_v1`. Appraise rechecks the receipt issuer,
+   hash, Journey, target, cycle, discovery revision, work item, snapshot, route, environment and fact inside the
+   specialized submission transaction.
+6. If access is missing, report the durable Appraise blocker and stop. After access changes, reconnect and reread the
+   Journey and discovery revision before retrying; never reuse an expired, logged-out, revoked or replaced browser
+   session.
+
 ## Analysis and human waits
 
 For `ANALYSIS`, use the retained `EXTERNAL_V1` path; do not create another workflow or use a generic completion call.

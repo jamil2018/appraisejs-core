@@ -49,6 +49,8 @@ import {
 } from './quality-journey-scenario-service'
 import {
   createQualityJourneyKernelState,
+  discoveryBrowserReceiptIssuer,
+  discoveryBrowserVerificationStrength,
   hashScenarioPortfolio,
   qualityJourneyRoleDefinitions,
   qualityJourneyRoleRegistryVersion,
@@ -77,6 +79,60 @@ const digest = (character: string) => `sha256:${character.repeat(64)}`
 const hash = (value: unknown) => `sha256:${createHash('sha256').update(canonicalContractJson(value)).digest('hex')}`
 const phaseSixId = (kind: string, ...parts: string[]) =>
   `qja_${kind}_${createHash('sha256').update(parts.join(':')).digest('hex').slice(0, 24)}`
+
+async function seedDiscoveryBrowserReceipt(
+  client: PrismaClient,
+  input: {
+    artifactId: string
+    journeyId: string
+    targetProjectId: string
+    cycleId: string
+    discoveryRevisionId: string
+    workItemId: string
+    snapshotId: string
+  },
+) {
+  const receipt = {
+    schemaVersion: 'appraise.discovery-browser-receipt/v1' as const,
+    issuer: discoveryBrowserReceiptIssuer,
+    verificationStrength: discoveryBrowserVerificationStrength,
+    artifactId: input.artifactId,
+    sessionId: `${input.artifactId}-session`,
+    sessionGeneration: 1,
+    processInstanceId: 'browser-process-1',
+    journeyId: input.journeyId,
+    targetProjectId: input.targetProjectId,
+    cycleId: input.cycleId,
+    discoveryRevisionId: input.discoveryRevisionId,
+    workItemId: input.workItemId,
+    environmentId: 'environment-analysis-1',
+    routeId: '/checkout',
+    snapshotId: input.snapshotId,
+    accessMode: 'ANONYMOUS' as const,
+    accessOutcome: 'ACTIVE' as const,
+    capturedAt: '2026-09-04T00:00:00.000Z',
+    url: 'https://example.test/checkout',
+    title: 'Checkout',
+    observationFacts: ['Checkout is visible.'],
+    observationFactsHash: hash(['Checkout is visible.']),
+    note: 'Human-confirmed browser access records local access only; it does not identify a natural person or attest IdP identity.',
+  }
+  const contentHash = hash(receipt)
+  await client.qualityJourneyArtifact.create({
+    data: {
+      id: `${input.artifactId}-record`,
+      identityKey: `test-discovery-browser-receipt:${input.artifactId}`,
+      journeyId: input.journeyId,
+      targetProjectId: input.targetProjectId,
+      cycleId: input.cycleId,
+      kind: 'DISCOVERY_BROWSER_RECEIPT',
+      artifactId: input.artifactId,
+      contentHash,
+      artifactJson: canonicalContractJson(receipt),
+    },
+  })
+  return { artifactId: input.artifactId, contentHash }
+}
 
 afterEach(async () => {
   clearAgentFactoryProviderAdaptersForTest()
@@ -463,6 +519,15 @@ async function completedDiscovery(client: PrismaClient, suffix: string) {
     ),
   )
   const inputArtifacts = JSON.parse(discovery.scoutWorkItem.inputArtifactRefsJson)
+  const observationReceipt = await seedDiscoveryBrowserReceipt(client, {
+    artifactId: `${suffix}-evidence`,
+    journeyId: created.journey.journeyId,
+    targetProjectId: 'target-analysis-1',
+    cycleId: created.journey.activeCycleId,
+    discoveryRevisionId: discovery.id,
+    workItemId: scout.workItem.id,
+    snapshotId: `${suffix}-snapshot`,
+  })
   const baseBundle = {
     schemaVersion: 'appraise.quality-journey/v1' as const,
     journeyId: created.journey.journeyId,
@@ -479,7 +544,7 @@ async function completedDiscovery(client: PrismaClient, suffix: string) {
     },
     approvedRequirementSetHash: discovery.approvedRequirementSetHash,
     inputArtifacts,
-    evidenceReceipts: [{ artifactId: `${suffix}-evidence`, contentHash: digest('e') }],
+    evidenceReceipts: [observationReceipt],
   }
   const scoutScope = JSON.parse(discovery.scoutWorkItem.authorizationScopeJson)
   await submitQualityJourneyTargetObservation(
@@ -1443,6 +1508,15 @@ describe('Quality Journey Phase 3 through Phase 5 control plane', () => {
         client,
       )
       const inputArtifacts = JSON.parse(discoveryRevision.scoutWorkItem.inputArtifactRefsJson)
+      const observationReceipt = await seedDiscoveryBrowserReceipt(client, {
+        artifactId: 'evidence-1',
+        journeyId: created.journey.journeyId,
+        targetProjectId: 'target-analysis-1',
+        cycleId: created.journey.activeCycleId,
+        discoveryRevisionId: discoveryRevision.id,
+        workItemId: scoutClaim.workItem.id,
+        snapshotId: 'snapshot-1',
+      })
       const bundleBase = {
         schemaVersion: 'appraise.quality-journey/v1' as const,
         journeyId: created.journey.journeyId,
@@ -1459,7 +1533,7 @@ describe('Quality Journey Phase 3 through Phase 5 control plane', () => {
         },
         approvedRequirementSetHash: discoveryRevision.approvedRequirementSetHash,
         inputArtifacts,
-        evidenceReceipts: [{ artifactId: 'evidence-1', contentHash: digest('e') }],
+        evidenceReceipts: [observationReceipt],
       }
       const scoutScope = JSON.parse(discoveryRevision.scoutWorkItem.authorizationScopeJson)
       const scoutBundle = {

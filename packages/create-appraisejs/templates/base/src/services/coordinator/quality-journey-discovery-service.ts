@@ -19,6 +19,7 @@ import {
   type CoordinatorSessionCredentials,
 } from './quality-journey-coordinator-session'
 import { registerQualityJourneyDiscoveryBootstrap } from './quality-journey-discovery-bootstrap'
+import { assertDiscoveryBrowserReceiptAdmission } from './quality-journey-discovery-browser-service'
 import {
   acceptExternalQualityJourneySubmissionInTransaction,
   externalAnalyzerAdmissionProtocol,
@@ -759,6 +760,7 @@ async function submitQualityJourneyTargetObservationInTransaction(
     )
   )
     throw new ServiceError('Scout observations exceed the frozen target scope.', 'CONFLICT')
+  await assertDiscoveryBrowserReceiptAdmission(bundle, revision, tx)
   const updated = await tx.qualityJourneyDiscoveryRevision.updateMany({
     where: { id: revision.id, status: 'COLLECTING', targetObservationHash: null },
     data: {

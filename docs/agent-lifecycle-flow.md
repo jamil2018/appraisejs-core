@@ -39,6 +39,19 @@ Agents must use the dedicated `quality_journey_*` coordinator operations for lif
 artifact hashes, review decisions, execution-cycle identities, and evidence receipts are exact Journey-scoped
 authority. Chat approval and generic TestRun completion do not replace these gates.
 
+During Discovery, anonymous and authenticated target observation use the Appraise-owned scoped browser panel. The
+panel launches a headed, non-persistent browser context bound to the active Journey, target, discovery revision,
+Scout work item, environment, frozen route and exact target origin. Password, SSO and MFA entry occur only in that
+target browser; no Appraise action accepts credentials, cookies, storage state or arbitrary script. Expiry, logout,
+revocation and context replacement close the context, while process restart invalidates every process-local session.
+Missing access creates an explicit Journey blocker. A later human access confirmation records only local access and
+does not identify a natural person or attest an identity-provider assertion.
+
+Only an immutable `APPRAISE_DISCOVERY_BROWSER_V1` artifact can back a Scout observation. The specialized Scout
+submission transaction resolves every descriptor and verifies its exact hash, issuer, Journey, target, cycle,
+discovery revision, work item, snapshot, route, environment, access outcome and Appraise-derived observation fact
+before persistence. Host-browser notes and screenshots remain supplemental and cannot satisfy this boundary.
+
 Independent Test Runs remain available for authoring feedback, execution diagnostics, and debugging. They have
 `intent=INDEPENDENT`, carry no Journey execution binding, and cannot supply Journey evidence, triage, decisions, or
 closure. Journey-created Test Runs have `intent=QUALITY_JOURNEY` and require their exact

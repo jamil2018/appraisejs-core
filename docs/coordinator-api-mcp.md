@@ -78,6 +78,15 @@ conflicting reuse is rejected. `quality_journey_external_work_outcome_get_v1` is
 operation and accepts the same binding plus role, operation, and idempotency key. Managed
 `quality_journey_work_claim` and Factory receipt semantics remain unchanged.
 
+Discovery browser sessions are local-UI operations rather than MCP capabilities. They are ephemeral human surfaces,
+not worker authority or reusable credentials. The existing `quality_journey_target_observation_submit` and
+`quality_journey_external_scout_target_observation_submit_v1` operations remain the only Scout submission paths.
+Each submitted evidence descriptor must resolve transactionally to an immutable Appraise-issued discovery-browser
+receipt for the exact Journey/target/cycle/revision/work-item/snapshot/route/environment and an Appraise-derived fact.
+Unknown descriptors, host-browser artifacts, missing-access receipts and hash or scope mismatches fail before the
+discovery bundle is persisted. Connection, assignment claim, browser availability, human access confirmation,
+receipt issuance, submission acceptance and lifecycle advancement remain separate facts.
+
 The Requirement Analyzer resolves the exact `JOURNEY_REVISION` supplied in its assignment as library entry
 `REQUIREMENT_REVISION:<assignment.artifactId>` with `quality_journey_library_list` and
 `quality_journey_artifact_get`. Its `artifactId` and `sourceContentHash` must equal the assignment artifact ID and
