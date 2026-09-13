@@ -38,6 +38,9 @@ to run excluded parity tests or record them in their certification receipt.
 
 The repository's swarm-routing configuration, agents, ledger utilities, development-harness catalogs, learning records,
 and harness-only commands are also excluded.
+Phase-0 and managed-Journey qualification scripts, fixtures, tests, and experimental worker gateways are likewise
+repository-only. Template preparation excludes those exact path families while retaining canonical Journey services,
+contracts, migrations, and product tests.
 Generated projects retain their own bundled `check:harness` command, which verifies that this repository-only
 orchestration surface has not leaked into the scaffold.
 

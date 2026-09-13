@@ -47,6 +47,25 @@ The coordinator `--base-url` is also local-only: use a credential-free HTTP(S) U
 `::1`. The client never sends its project identity or bearer token to a non-loopback endpoint. A non-JSON `404` or
 `405` means the selected local service is not an AppraiseJS hub; verify `--base-url` and reconnect the MCP client.
 
+## Codex plugin and compatibility
+
+The package ships the `appraise-quality-journey@appraise-local` Codex plugin in a local marketplace. It contains
+workflow guidance only; it does not register MCP, contain credentials, select a target, redeem a ticket, admit a role,
+or change Journey state.
+
+```bash
+appraisejs agent plugin path
+appraisejs agent plugin install --json
+appraisejs agent compatibility --json
+appraisejs agent plugin uninstall --json
+```
+
+Install and uninstall require a fresh Codex task or reconnect before skill visibility can be observed. They preserve
+the independent `appraisejs` MCP registration. If marketplace support is unavailable, run
+`appraisejs agent setup --json`, register its stdio or HTTP MCP configuration manually, reconnect, and call
+`project_diagnostic`. That fallback does not make the plugin present, and neither setup path proves a Journey is
+connected or running.
+
 ### Quality Journey managed execution
 
 The MCP execution surface provides `quality_journey_execution_get`, `quality_journey_execution_start`,

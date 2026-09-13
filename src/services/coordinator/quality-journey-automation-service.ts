@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto'
 import type { Prisma, PrismaClient } from '@prisma/client'
+import { z } from 'zod'
 
 import prisma from '@/config/db-config'
 import { qualityJourneyRemediationScope } from './quality-journey-remediation-scope'
@@ -27,9 +28,17 @@ import {
 } from '@/lib/quality-journey'
 import { ServiceError } from '@/services/shared/errors'
 import {
+  assertCoordinatorMutationSession,
+  type CoordinatorSessionCredentials,
+} from './quality-journey-coordinator-session'
+import {
+  acceptExternalQualityJourneySubmissionInTransaction,
   completeAutomatorWorkInTransaction,
+  externalAnalyzerAdmissionProtocol,
+  externalAssignmentSecretHash,
   issueQualityJourneySpecializedWorkItem,
   setQualityJourneyActiveWorkItems,
+  type ExternalAnalyzerProjectPrincipal,
 } from './quality-journey-service'
 
 type Db = PrismaClient | Prisma.TransactionClient
@@ -68,6 +77,23 @@ type ApprovedInput = {
 }
 
 type AutomationMaterializationRequest = ReturnType<typeof automationMaterializationRequestSchema.parse>
+const externalAutomationMaterializationRequestSchema = z
+  .object({
+    journeyId: z.string().min(1).max(200),
+    targetProjectId: z.string().min(1).max(200),
+    workItemId: z.string().min(1).max(200),
+    attemptId: z.string().min(1).max(200),
+    leaseId: z.string().min(1).max(200),
+    expectedInputHash: z.string().regex(/^sha256:[a-f0-9]{64}$/),
+    expectedScopeHash: z.string().regex(/^sha256:[a-f0-9]{64}$/),
+    scenarios: z.unknown(),
+    result: z.unknown(),
+    assignmentId: z.string().min(1).max(200),
+    assignmentGeneration: z.number().int().positive(),
+    assignmentSecret: z.string().min(32).max(2_000),
+    idempotencyKey: z.string().min(1).max(200),
+  })
+  .strict()
 type AutomationProposal = AutomationMaterializationRequest['scenarios'][number]
 type ApprovedScenario = ApprovedInput['portfolio']['scenarios'][number]
 type ScenarioIntent = {
@@ -1261,11 +1287,13 @@ function assertCurrentAutomatorLease(
   request: AutomationMaterializationRequest,
   attempt: NonNullable<Awaited<ReturnType<Prisma.TransactionClient['qualityJourneyWorkAttempt']['findUnique']>>>,
 ) {
-  if (attempt.leaseId !== request.leaseId || attempt.ownerTokenHash !== tokenHash(request.ownerToken))
+  const external = attempt.executionMode === externalAnalyzerAdmissionProtocol
+  const expectedOwnerHash = external ? externalAssignmentSecretHash(request.ownerToken) : tokenHash(request.ownerToken)
+  if (attempt.leaseId !== request.leaseId || attempt.ownerTokenHash !== expectedOwnerHash)
     throw new ServiceError('Automator materialization lease authority is invalid.', 'UNAUTHORIZED')
   if (attempt.leaseExpiresAt <= new Date())
     throw new ServiceError('Automator materialization lease has expired.', 'UNAUTHORIZED')
-  if (!attempt.spawnReceiptHash)
+  if (!external && !attempt.spawnReceiptHash)
     throw new ServiceError('Automator materialization requires a validated Factory receipt.', 'UNAUTHORIZED')
 }
 
@@ -1338,8 +1366,15 @@ function assertTerminalReplayAuthority(
   attempt: NonNullable<Awaited<ReturnType<Prisma.TransactionClient['qualityJourneyWorkAttempt']['findUnique']>>>,
   receipts: AutomationReplayReceipt[],
 ) {
-  const ownerTokenHash = tokenHash(request.ownerToken)
-  if (attempt.ownerTokenHash !== ownerTokenHash || receipts.some(receipt => receipt.ownerTokenHash !== ownerTokenHash))
+  const receiptOwnerTokenHash = tokenHash(request.ownerToken)
+  const attemptOwnerTokenHash =
+    attempt.executionMode === externalAnalyzerAdmissionProtocol
+      ? externalAssignmentSecretHash(request.ownerToken)
+      : receiptOwnerTokenHash
+  if (
+    attempt.ownerTokenHash !== attemptOwnerTokenHash ||
+    receipts.some(receipt => receipt.ownerTokenHash !== receiptOwnerTokenHash)
+  )
     throw new ServiceError('Automator materialization lease authority is invalid.', 'UNAUTHORIZED')
   if (receipts.some(receipt => receipt.attemptId !== request.attemptId))
     throw new ServiceError('Automator materialization attempt authority is invalid.', 'UNAUTHORIZED')
@@ -1501,43 +1536,123 @@ async function completeMaterializedAutomatorWork(
   )
 }
 
-export async function materializeQualityJourneyApprovedScenarios(input: unknown, client: PrismaClient = prisma) {
+async function materializeQualityJourneyApprovedScenariosInTransaction(
+  request: AutomationMaterializationRequest,
+  coordinatorSession: CoordinatorSessionCredentials | undefined,
+  tx: Prisma.TransactionClient,
+  onAuthorized?: () => void,
+) {
+  await assertCoordinatorMutationSession(coordinatorSession, request, tx)
+  const { approved, compiled, approvedRows, replay } = await authorizeMaterializationRequest(request, tx)
+  onAuthorized?.()
+  if (replay)
+    return {
+      replayed: true,
+      stage: 'AUTOMATION' as const,
+      materializations: replay,
+      completion: { replayed: true, workItemId: request.workItemId, status: 'COMPLETED' as const },
+    }
+  await validateAuthorizedScenarios(request, approvedRows, compiled.resources, tx)
+  const results = await materializeAuthorizedScenarios(request, approved, compiled.resources, approvedRows, tx)
+  await verifyRemediationChanged(approved, results, tx)
+  assertCompletedAutomatorResult(request)
+  assertSubmittedMaterializationOutputs(request, results)
+  const completion = await completeMaterializedAutomatorWork(request, tx)
+  return {
+    replayed: results.every(result => result.replayed),
+    stage: 'AUTOMATION' as const,
+    materializations: results.map(result => result.materialization),
+    completion,
+  }
+}
+
+export async function materializeQualityJourneyApprovedScenarios(
+  input: unknown,
+  client: PrismaClient = prisma,
+  coordinatorSession?: CoordinatorSessionCredentials,
+) {
   const request = automationMaterializationRequestSchema.parse(input)
   let authorizedFailureRecord = false
   try {
     return await client.$transaction(async tx => {
-      const { approved, compiled, approvedRows, replay } = await authorizeMaterializationRequest(request, tx)
-      authorizedFailureRecord = true
-      if (replay)
-        return {
-          replayed: true,
-          stage: 'AUTOMATION' as const,
-          materializations: replay,
-          completion: { replayed: true, workItemId: request.workItemId, status: 'COMPLETED' as const },
-        }
-      await validateAuthorizedScenarios(request, approvedRows, compiled.resources, tx)
-      const results = await materializeAuthorizedScenarios(request, approved, compiled.resources, approvedRows, tx)
-      await verifyRemediationChanged(approved, results, tx)
-      assertCompletedAutomatorResult(request)
-      assertSubmittedMaterializationOutputs(request, results)
-      const completion = await completeMaterializedAutomatorWork(request, tx)
-      // Completion removes the active Automator item but preserves AUTOMATION.
-      // A later Phase 7 command is the only route to managed TestRun/RuntimeCapsule creation.
-      return {
-        replayed: results.every(result => result.replayed),
-        stage: 'AUTOMATION' as const,
-        materializations: results.map(result => result.materialization),
-        completion,
-      }
+      const attempt = await tx.qualityJourneyWorkAttempt.findUnique({ where: { id: request.attemptId } })
+      if (attempt?.executionMode === externalAnalyzerAdmissionProtocol)
+        throw new ServiceError(
+          'EXTERNAL_V1 Automator attempts must use the versioned external materialization operation.',
+          'UNAUTHORIZED',
+        )
+      return materializeQualityJourneyApprovedScenariosInTransaction(request, coordinatorSession, tx, () => {
+        authorizedFailureRecord = true
+      })
     })
   } catch (error) {
     if (!authorizedFailureRecord) throw error
-    if (error instanceof ServiceError && error.details?.replayed === true) throw error
+    if (
+      error instanceof ServiceError &&
+      (error.details?.replayed === true || error.message.includes('idempotency key was reused'))
+    )
+      throw error
     const failureKind = await persistAutomationFailure(request, error, client)
     if (error instanceof ServiceError)
       throw new ServiceError(error.message, error.code, error.statusCode, { ...error.details, failureKind })
     throw error
   }
+}
+
+function externalAutomationIdempotencyKey(input: {
+  principal: ExternalAnalyzerProjectPrincipal
+  assignmentId: string
+  attemptId: string
+  idempotencyKey: string
+}) {
+  return `external-v1:${hash({
+    principal: input.principal.principalId,
+    assignmentId: input.assignmentId,
+    attemptId: input.attemptId,
+    idempotencyKey: input.idempotencyKey,
+  }).slice('sha256:'.length)}`
+}
+
+export async function materializeExternalQualityJourneyApprovedScenarios(
+  input: unknown,
+  principal: ExternalAnalyzerProjectPrincipal,
+  client: PrismaClient = prisma,
+  coordinatorSession?: CoordinatorSessionCredentials,
+) {
+  const request = externalAutomationMaterializationRequestSchema.parse(input)
+  const { assignmentId, assignmentGeneration, assignmentSecret, idempotencyKey, ...canonical } = request
+  const normalized = automationMaterializationRequestSchema.parse({
+    ...canonical,
+    ownerToken: assignmentSecret,
+    idempotencyKey: externalAutomationIdempotencyKey({
+      assignmentId,
+      attemptId: request.attemptId,
+      idempotencyKey,
+      principal,
+    }),
+  })
+  return client.$transaction(async tx => {
+    const accepted = await acceptExternalQualityJourneySubmissionInTransaction(
+      {
+        journeyId: request.journeyId,
+        targetProjectId: request.targetProjectId,
+        role: 'AUTOMATOR',
+        workItemId: request.workItemId,
+        attemptId: request.attemptId,
+        assignmentId,
+        assignmentGeneration,
+        leaseId: request.leaseId,
+        assignmentSecret,
+        principal,
+        operation: 'AUTOMATION_MATERIALIZE',
+        idempotencyKey,
+        payload: { ...request, assignmentSecret: undefined },
+      },
+      tx,
+      () => materializeQualityJourneyApprovedScenariosInTransaction(normalized, coordinatorSession, tx),
+    )
+    return { ...accepted.outcome, replayed: accepted.replayed || accepted.outcome.replayed }
+  })
 }
 
 export async function getQualityJourneyAutomationContext(

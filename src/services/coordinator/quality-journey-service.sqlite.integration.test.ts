@@ -14,6 +14,10 @@ import {
   hashQualityJourneyRequirement,
 } from '@/lib/quality-journey'
 import {
+  admitExternalQualityJourneyAnalyzer,
+  admitExternalQualityJourneyWork,
+  claimExternalQualityJourneyAnalyzer,
+  claimExternalQualityJourneyWork,
   claimQualityJourneyWork,
   cancelQualityJourneyWork,
   completeQualityJourneyWork,
@@ -1377,6 +1381,197 @@ describe('Quality Journey Phase 2 durable Factory service', () => {
       ).rejects.toMatchObject({ code: 'UNAUTHORIZED' })
     } finally {
       await Promise.all([firstClient.$disconnect(), secondClient.$disconnect()])
+    }
+  }, 60_000)
+
+  it('replays a caller-secret external claim and admission exactly while rejecting changed reuse', async () => {
+    const client = await fixture()
+    try {
+      const created = await createQualityJourney(
+        {
+          targetProjectId: 'target-journey-1',
+          idempotencyKey: 'external-claim-replay',
+          requirement: { objective: 'Replay a caller-secret external claim.' },
+        },
+        client,
+      )
+      await submitDurableQualityJourneyCommand(
+        {
+          schemaVersion: 'appraise.quality-journey/v1',
+          commandId: 'external-claim-replay-submit',
+          journeyId: created.journey.journeyId,
+          targetProjectId: 'target-journey-1',
+          actor: 'USER',
+          command: 'SUBMIT_REQUIREMENT',
+          expectedStateHash: created.journey.stateHash,
+          idempotencyKey: 'external-claim-replay-submit',
+          inputArtifactRefs: [],
+          payload: await requirementPayload(client, created),
+        },
+        client,
+      )
+      const claimInput = {
+        journeyId: created.journey.journeyId,
+        targetProjectId: 'target-journey-1',
+        role: 'REQUIREMENT_ANALYZER' as const,
+        principal: { principalId: 'coordinator:external-replay', assurance: 'PROJECT_CREDENTIAL_ONLY' as const },
+        assignmentSecret: 'r'.repeat(32),
+        idempotencyKey: 'external-claim-replay-key',
+      }
+      const claimed = await claimExternalQualityJourneyWork(claimInput, client)
+      const replay = await claimExternalQualityJourneyWork(claimInput, client)
+      expect(replay).toMatchObject({ replayed: true, attempt: { id: claimed.attempt.id } })
+      await expect(claimExternalQualityJourneyWork({ ...claimInput, leaseSeconds: 180 }, client)).rejects.toMatchObject(
+        { code: 'CONFLICT' },
+      )
+      await expect(
+        claimExternalQualityJourneyWork({ ...claimInput, assignmentSecret: 'w'.repeat(32) }, client),
+      ).rejects.toMatchObject({ code: 'UNAUTHORIZED' })
+      expect(await client.qualityJourneyWorkAttempt.count()).toBe(1)
+      const admission = {
+        journeyId: created.journey.journeyId,
+        targetProjectId: 'target-journey-1',
+        role: 'REQUIREMENT_ANALYZER' as const,
+        workItemId: claimed.workItem.id,
+        attemptId: claimed.attempt.id,
+        assignmentId: claimed.assignment.assignmentId,
+        assignmentGeneration: claimed.assignmentGeneration,
+        leaseId: claimed.attempt.leaseId,
+        assignmentSecret: claimInput.assignmentSecret,
+        idempotencyKey: 'external-claim-replay-admit',
+        principal: claimInput.principal,
+      }
+      await expect(admitExternalQualityJourneyWork(admission, client)).resolves.toMatchObject({ replayed: false })
+      await expect(admitExternalQualityJourneyWork(admission, client)).resolves.toMatchObject({ replayed: true })
+      await expect(admitExternalQualityJourneyWork({ ...admission, role: 'SCOUT' }, client)).rejects.toMatchObject({
+        code: 'CONFLICT',
+      })
+    } finally {
+      await client.$disconnect()
+    }
+  })
+
+  it('permits exactly one mixed managed or EXTERNAL_V1 Analyzer claim and persists one durable admission across restart', async () => {
+    const firstClient = await fixture()
+    const target = await firstClient.targetProject.findUniqueOrThrow({ where: { id: 'target-journey-1' } })
+    const secondClient = new PrismaClient({
+      datasources: { db: { url: `file:${path.join(target.canonicalPath!, 'appraise.db')}` } },
+    })
+    try {
+      const created = await createQualityJourney(
+        {
+          targetProjectId: 'target-journey-1',
+          idempotencyKey: 'external-mixed-race',
+          requirement: { objective: 'Race' },
+        },
+        firstClient,
+      )
+      await submitDurableQualityJourneyCommand(
+        {
+          schemaVersion: 'appraise.quality-journey/v1',
+          commandId: 'external-mixed-race-analysis',
+          journeyId: created.journey.journeyId,
+          targetProjectId: 'target-journey-1',
+          actor: 'USER',
+          command: 'SUBMIT_REQUIREMENT',
+          expectedStateHash: created.journey.stateHash,
+          idempotencyKey: 'external-mixed-race-analysis',
+          inputArtifactRefs: [],
+          payload: await requirementPayload(firstClient, created),
+        },
+        firstClient,
+      )
+      const claims = await Promise.allSettled([
+        claimQualityJourneyWork(
+          { journeyId: created.journey.journeyId, targetProjectId: 'target-journey-1', role: 'REQUIREMENT_ANALYZER' },
+          firstClient,
+        ),
+        claimExternalQualityJourneyAnalyzer(
+          {
+            journeyId: created.journey.journeyId,
+            targetProjectId: 'target-journey-1',
+            principal: { principalId: 'coordinator:external-race', assurance: 'PROJECT_CREDENTIAL_ONLY' },
+            assignmentSecret: 'e'.repeat(32),
+            idempotencyKey: 'external-mixed-race-claim',
+          },
+          secondClient,
+        ),
+      ])
+      const fulfilled = claims.filter(outcome => outcome.status === 'fulfilled')
+      expect(fulfilled).toHaveLength(1)
+      expect(await firstClient.qualityJourneyWorkAttempt.count()).toBe(1)
+      const admissionJourney = await createQualityJourney(
+        {
+          targetProjectId: 'target-journey-1',
+          idempotencyKey: 'external-admission-race',
+          requirement: { objective: 'Admission race' },
+        },
+        firstClient,
+      )
+      await submitDurableQualityJourneyCommand(
+        {
+          schemaVersion: 'appraise.quality-journey/v1',
+          commandId: 'external-admission-race-analysis',
+          journeyId: admissionJourney.journey.journeyId,
+          targetProjectId: 'target-journey-1',
+          actor: 'USER',
+          command: 'SUBMIT_REQUIREMENT',
+          expectedStateHash: admissionJourney.journey.stateHash,
+          idempotencyKey: 'external-admission-race-analysis',
+          inputArtifactRefs: [],
+          payload: await requirementPayload(firstClient, admissionJourney),
+        },
+        firstClient,
+      )
+      const external = await claimExternalQualityJourneyAnalyzer(
+        {
+          journeyId: admissionJourney.journey.journeyId,
+          targetProjectId: 'target-journey-1',
+          principal: { principalId: 'coordinator:external-race', assurance: 'PROJECT_CREDENTIAL_ONLY' },
+          assignmentSecret: 'f'.repeat(32),
+          idempotencyKey: 'external-admission-race-claim',
+        },
+        firstClient,
+      )
+      const admission = {
+        journeyId: admissionJourney.journey.journeyId,
+        targetProjectId: 'target-journey-1',
+        workItemId: external.workItem.id,
+        attemptId: external.attempt.id,
+        assignmentId: external.assignment.assignmentId,
+        assignmentGeneration: external.assignmentGeneration,
+        leaseId: external.attempt.leaseId,
+        assignmentSecret: external.assignmentSecret,
+        idempotencyKey: 'external-admission-race',
+        principal: { principalId: 'coordinator:external-race', assurance: 'PROJECT_CREDENTIAL_ONLY' as const },
+      }
+      const admissions = await Promise.allSettled([
+        admitExternalQualityJourneyAnalyzer(admission, firstClient),
+        admitExternalQualityJourneyAnalyzer(admission, secondClient),
+      ])
+      expect(admissions.filter(outcome => outcome.status === 'fulfilled')).toHaveLength(2)
+      const persisted = await firstClient.qualityJourneyWorkAttempt.findUniqueOrThrow({
+        where: { id: external.attempt.id },
+      })
+      expect(persisted).toMatchObject({ status: 'IN_PROGRESS', executionMode: 'EXTERNAL_V1' })
+      expect(persisted.externalAdmissionHash).toMatch(/^sha256:[a-f0-9]{64}$/)
+      await firstClient.$disconnect()
+      const restartedClient = new PrismaClient({
+        datasources: { db: { url: `file:${path.join(target.canonicalPath!, 'appraise.db')}` } },
+      })
+      try {
+        await expect(
+          restartedClient.qualityJourneyWorkAttempt.findUniqueOrThrow({ where: { id: external.attempt.id } }),
+        ).resolves.toMatchObject({
+          status: 'IN_PROGRESS',
+          externalPrincipalId: 'coordinator:external-race',
+          externalAdmissionHash: persisted.externalAdmissionHash,
+        })
+      } finally {
+        await restartedClient.$disconnect()
+      }
+    } finally {
+      await Promise.allSettled([firstClient.$disconnect(), secondClient.$disconnect()])
     }
   }, 60_000)
 

@@ -93,8 +93,8 @@ describe('Quality Journey presentation', () => {
 
   it('uses explicit persistent Codex guidance without inferring worker progress', () => {
     expect(codexHandoffGuidance('PREPARED')).toMatchObject({ label: 'Ready to start' })
-    expect(codexHandoffGuidance('LAUNCHING')).toMatchObject({ label: 'Opening Codex' })
-    expect(codexHandoffGuidance('LAUNCHED')).toMatchObject({ label: 'Waiting for connection' })
+    expect(codexHandoffGuidance('LAUNCHING')).toMatchObject({ label: 'Launch requested' })
+    expect(codexHandoffGuidance('LAUNCHED')).toMatchObject({ label: 'Launch requested' })
     expect(codexHandoffGuidance('CONNECTED')).toMatchObject({ label: 'Connection observed' })
     expect(codexHandoffGuidance('CONNECTED').description).toMatch(/current availability is unknown/i)
   })
@@ -117,7 +117,7 @@ describe('Quality Journey presentation', () => {
     {
       name: 'launching',
       handoffStatus: 'LAUNCHING',
-      summary: /appraise is opening codex/i,
+      summary: /requesting a codex launch/i,
       nextActor: 'Appraise',
       lastObserved: /launch request was recorded/i,
     },
@@ -126,7 +126,7 @@ describe('Quality Journey presentation', () => {
       handoffStatus: 'LAUNCHED',
       summary: /has not observed a connection/i,
       nextActor: 'You',
-      lastObserved: /codex was opened/i,
+      lastObserved: /launch was requested/i,
     },
     {
       name: 'connected without submitted work',

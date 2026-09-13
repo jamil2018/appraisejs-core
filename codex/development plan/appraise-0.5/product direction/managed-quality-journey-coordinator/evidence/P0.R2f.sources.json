@@ -1,0 +1,17 @@
+{
+  "tag": "rust-v0.154.0",
+  "archiveUrl": "https://github.com/openai/codex/archive/refs/tags/rust-v0.154.0.tar.gz",
+  "archiveSha256": "1c4cdc3b87ba290b5d110425b4f6ff21663e236580bc760d1e149bd2d9f9519f",
+  "files": {
+    "codex-rs/protocol/src/dynamic_tools.rs": "d73d51aa0cd0e6318d6fc1faa890a3524301af0c3ba2b2dc0d071728b2caa402",
+    "codex-rs/app-server/src/request_processors/thread_processor.rs": "37a4451e58673b3577c432207a510a7322fd10af5e1e535bb2be8317d5fcb1d9",
+    "codex-rs/core/src/tools/handlers/dynamic.rs": "5e315b42993b4637e5543bcfcc858b82336437f7fb3a367ff5dc911273fa97b4",
+    "codex-rs/tools/src/responses_api.rs": "7af0354e43c3fa7f052d86df5ae0c6ce276569243af6f6ea5fe00abcb15bd244",
+    "codex-rs/tools/src/dynamic_tool.rs": "2ddaa469e12273bd06ad0e27fdd89e48492ce929cf5dd706894b1f7ae38e74b8",
+    "codex-rs/tools/src/json_schema.rs": "86cec68e6537dfacdfee6bb928cd67802ebbf4abfb70a47643e86bd30404ac56",
+    "codex-rs/tools/src/json_schema/types.rs": "af24f389784de3981928544abd5a32bbcb4571692ae1ca401c0d7de65807c4e6",
+    "codex-rs/tools/src/json_schema/compaction.rs": "1702a3afb51beae0b75b570cbaf8e4a3d2b6c6b8d96d79f93d9380e5a66db5bc",
+    "codex-rs/tools/src/mcp_tool.rs": "9b73b77eafd93989e1102fc54eb6a38635f694641905ab5d46173e4c47b10818"
+  },
+  "limitation": "Tag source inspected; release binary behavior measured separately. No reproducible-build equivalence claimed."
+}

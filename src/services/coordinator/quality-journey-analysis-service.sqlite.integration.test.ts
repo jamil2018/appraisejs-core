@@ -8,11 +8,17 @@ import { copyMigratedTestDatabase } from '@/test/migrated-test-database'
 import { clearAgentFactoryProviderAdaptersForTest, registerAgentFactoryProviderAdapter } from '@/lib/quality-journey'
 import { canonicalContractJson } from '@/lib/catalog-contracts'
 import {
+  acceptExternalQualityJourneySubmissionInTransaction,
+  admitExternalQualityJourneyAnalyzer,
+  cancelQualityJourneyWork,
+  claimExternalQualityJourneyAnalyzer,
   claimQualityJourneyWork,
   createQualityJourney,
   dispatchQualityJourneyWork,
   getQualityJourney,
   resumeQualityJourney,
+  revokeQualityJourneyWorkAuthorization,
+  readExternalQualityJourneySubmissionOutcome,
   submitDurableQualityJourneyCommand,
 } from './quality-journey-service'
 import {
@@ -21,6 +27,7 @@ import {
   getQualityJourneyAnalysis,
   publishQualityJourneyAnalysis,
   requestQualityJourneyAnalysisRevision,
+  submitExternalQualityJourneyAnalysisSuccessor,
   submitQualityJourneyAnalysisSuccessor,
 } from './quality-journey-analysis-service'
 import {
@@ -250,6 +257,38 @@ async function readyAnalyzer(client: PrismaClient) {
     client,
   )
   return { created, state, claim }
+}
+
+const externalPrincipal = { principalId: 'coordinator:fixture-project', assurance: 'PROJECT_CREDENTIAL_ONLY' as const }
+
+async function readyExternalAnalyzer(client: PrismaClient, suffix = '') {
+  const created = await createQualityJourney(
+    {
+      targetProjectId: 'target-analysis-1',
+      idempotencyKey: `create-external-analysis${suffix}`,
+      requirement: { objective: 'Checkout' },
+    },
+    client,
+  )
+  const revision = await client.qualityJourneyRevision.findUniqueOrThrow({
+    where: { id: created.journey.activeRevisionIds.journey },
+  })
+  await submitDurableQualityJourneyCommand(
+    {
+      schemaVersion: 'appraise.quality-journey/v1',
+      commandId: `submit-external-requirement${suffix}`,
+      journeyId: created.journey.journeyId,
+      targetProjectId: 'target-analysis-1',
+      actor: 'USER',
+      command: 'SUBMIT_REQUIREMENT',
+      expectedStateHash: created.journey.stateHash,
+      idempotencyKey: `submit-external-requirement${suffix}`,
+      inputArtifactRefs: [],
+      payload: { journeyRevisionId: revision.id, requirementHash: revision.contentHash },
+    },
+    client,
+  )
+  return created
 }
 
 function registerStartedAnalyzerAdapter(
@@ -527,28 +566,454 @@ async function completedDiscovery(client: PrismaClient, suffix: string) {
 }
 
 describe('Quality Journey Phase 3 through Phase 5 control plane', () => {
-  it('keeps charter/question/answer lineage immutable and blocks approval until required Q&A resolves', async () => {
+  it('rolls back a canonical artifact effect when fault injection prevents its external acceptance receipt', async () => {
     const client = await fixture()
     try {
-      const { created, claim } = await readyAnalyzer(client)
-      const submitted = await submitQualityJourneyAnalysisSuccessor(
+      const created = await readyExternalAnalyzer(client, '-external-acceptance-fault')
+      const claim = await claimExternalQualityJourneyAnalyzer(
+        {
+          journeyId: created.journey.journeyId,
+          targetProjectId: 'target-analysis-1',
+          principal: externalPrincipal,
+          assignmentSecret: 'f'.repeat(32),
+          idempotencyKey: 'external-acceptance-fault-claim',
+        },
+        client,
+      )
+      await admitExternalQualityJourneyAnalyzer(
         {
           journeyId: created.journey.journeyId,
           targetProjectId: 'target-analysis-1',
           workItemId: claim.workItem.id,
           attemptId: claim.attempt.id,
+          assignmentId: claim.assignment.assignmentId,
+          assignmentGeneration: claim.assignmentGeneration,
           leaseId: claim.attempt.leaseId,
-          ownerToken: claim.ownerToken,
-          idempotencyKey: 'analysis-submit-1',
-          charter: charter(
-            created.journey.journeyId,
-            created.journey.activeCycleId,
-            created.journey.activeRevisionIds.journey,
-          ),
+          assignmentSecret: claim.assignmentSecret,
+          idempotencyKey: 'external-acceptance-fault-admit',
+          principal: externalPrincipal,
         },
         client,
       )
+
+      await expect(
+        client.$transaction(async tx =>
+          acceptExternalQualityJourneySubmissionInTransaction(
+            {
+              journeyId: created.journey.journeyId,
+              targetProjectId: 'target-analysis-1',
+              role: 'REQUIREMENT_ANALYZER',
+              workItemId: claim.workItem.id,
+              attemptId: claim.attempt.id,
+              assignmentId: claim.assignment.assignmentId,
+              assignmentGeneration: claim.assignmentGeneration,
+              leaseId: claim.attempt.leaseId,
+              assignmentSecret: claim.assignmentSecret,
+              principal: externalPrincipal,
+              operation: 'ANALYSIS_SUBMIT',
+              idempotencyKey: 'external-acceptance-fault-submit',
+              payload: { charter: 'fault-injected' },
+            },
+            tx,
+            async () => {
+              await tx.qualityJourneyArtifact.create({
+                data: {
+                  id: 'artifact-external-acceptance-fault',
+                  identityKey: 'external-acceptance-fault',
+                  journeyId: created.journey.journeyId,
+                  targetProjectId: 'target-analysis-1',
+                  cycleId: created.journey.activeCycleId,
+                  kind: 'ANALYSIS_CHARTER_REVISION',
+                  artifactId: 'analysis-external-acceptance-fault',
+                  revisionId: 'analysis-external-acceptance-fault-r1',
+                  contentHash: digest('f'),
+                  artifactJson: JSON.stringify({ faultInjection: true }),
+                },
+              })
+              throw new Error('C2.1 acceptance receipt fault injection')
+            },
+          ),
+        ),
+      ).rejects.toThrow('C2.1 acceptance receipt fault injection')
+
+      await expect(
+        client.qualityJourneyArtifact.findUnique({ where: { id: 'artifact-external-acceptance-fault' } }),
+      ).resolves.toBeNull()
+      await expect(
+        client.qualityJourneyExternalSubmissionAcceptance.count({
+          where: { attemptId: claim.attempt.id, idempotencyKey: 'external-acceptance-fault-submit' },
+        }),
+      ).resolves.toBe(0)
+    } finally {
+      await client.$disconnect()
+    }
+  })
+
+  it('admits an opt-in external Analyzer without Factory receipts and replays only to its principal and secret', async () => {
+    const client = await fixture()
+    try {
+      const created = await readyExternalAnalyzer(client)
+      const claim = await claimExternalQualityJourneyAnalyzer(
+        {
+          journeyId: created.journey.journeyId,
+          targetProjectId: 'target-analysis-1',
+          principal: externalPrincipal,
+          assignmentSecret: 'a'.repeat(32),
+          idempotencyKey: 'external-analyzer-admission-claim',
+        },
+        client,
+      )
+      expect(Buffer.byteLength(claim.assignmentSecret, 'utf8')).toBeGreaterThanOrEqual(32)
+      expect(claim.attempt.spawnRequestId).toBeNull()
+      expect(claim.attempt.spawnReceiptId).toBeNull()
+      await expect(
+        claimQualityJourneyWork(
+          {
+            journeyId: created.journey.journeyId,
+            targetProjectId: 'target-analysis-1',
+            role: 'REQUIREMENT_ANALYZER',
+          },
+          client,
+        ),
+      ).rejects.toMatchObject({ code: 'CONFLICT' })
+      const authorization = await client.qualityJourneyWorkAuthorization.findUniqueOrThrow({
+        where: { id: claim.attempt.authorizationId! },
+      })
+      expect(authorization).toMatchObject({
+        externalAdmissionProtocol: 'EXTERNAL_V1',
+        externalPrincipalId: externalPrincipal.principalId,
+        externalPrincipalAssurance: 'PROJECT_CREDENTIAL_ONLY',
+      })
+      const admission = {
+        journeyId: created.journey.journeyId,
+        targetProjectId: 'target-analysis-1',
+        workItemId: claim.workItem.id,
+        attemptId: claim.attempt.id,
+        assignmentId: claim.assignment.assignmentId,
+        assignmentGeneration: claim.assignmentGeneration,
+        leaseId: claim.attempt.leaseId,
+        assignmentSecret: claim.assignmentSecret,
+        idempotencyKey: 'external-admission-1',
+        principal: externalPrincipal,
+      }
+      const admitted = await admitExternalQualityJourneyAnalyzer(admission, client)
+      expect(admitted).toMatchObject({ replayed: false, receipt: { hostIsolation: 'NOT_ATTESTED' } })
+      await expect(admitExternalQualityJourneyAnalyzer(admission, client)).resolves.toMatchObject({ replayed: true })
+      await expect(
+        admitExternalQualityJourneyAnalyzer({ ...admission, idempotencyKey: 'external-admission-changed' }, client),
+      ).rejects.toMatchObject({ code: 'CONFLICT' })
+      const submission = {
+        journeyId: created.journey.journeyId,
+        targetProjectId: 'target-analysis-1',
+        workItemId: claim.workItem.id,
+        attemptId: claim.attempt.id,
+        assignmentId: claim.assignment.assignmentId,
+        assignmentGeneration: claim.assignmentGeneration,
+        leaseId: claim.attempt.leaseId,
+        assignmentSecret: claim.assignmentSecret,
+        idempotencyKey: 'external-analysis-1',
+        charter: charter(
+          created.journey.journeyId,
+          created.journey.activeCycleId,
+          created.journey.activeRevisionIds.journey,
+          'external-1',
+        ),
+      }
+      const submitted = await submitExternalQualityJourneyAnalysisSuccessor(submission, externalPrincipal, client)
       expect(submitted.replayed).toBe(false)
+      expect(await client.qualityJourneyExternalSubmissionAcceptance.count()).toBe(1)
+      await expect(
+        readExternalQualityJourneySubmissionOutcome(
+          { ...submission, role: 'REQUIREMENT_ANALYZER', operation: 'ANALYSIS_SUBMIT', principal: externalPrincipal },
+          client,
+        ),
+      ).resolves.toMatchObject({ replayed: true, outcome: { analysisRevision: { id: submitted.analysisRevision.id } } })
+      await client.qualityJourneyWorkAuthorization.update({
+        where: { id: claim.attempt.authorizationId! },
+        data: {
+          revokedAt: new Date(),
+          revokedBy: 'USER',
+          revocationReason: 'Verify replay does not grant a new effect.',
+        },
+      })
+      await expect(
+        submitExternalQualityJourneyAnalysisSuccessor(submission, externalPrincipal, client),
+      ).resolves.toMatchObject({ replayed: true, analysisRevision: { id: submitted.analysisRevision.id } })
+      await expect(
+        submitExternalQualityJourneyAnalysisSuccessor(
+          { ...submission, charter: { ...submission.charter, assumptions: ['Changed payload.'] } },
+          externalPrincipal,
+          client,
+        ),
+      ).rejects.toMatchObject({ code: 'CONFLICT' })
+      await expect(
+        submitExternalQualityJourneyAnalysisSuccessor(
+          submission,
+          { ...externalPrincipal, principalId: 'coordinator:other' },
+          client,
+        ),
+      ).rejects.toMatchObject({ code: 'UNAUTHORIZED' })
+      expect(await client.qualityJourneyAnalysisRevision.count()).toBe(1)
+    } finally {
+      await client.$disconnect()
+    }
+  })
+
+  it('refuses stale external generations and new effects after lease expiry without creating Analysis data', async () => {
+    const client = await fixture()
+    try {
+      const created = await readyExternalAnalyzer(client)
+      const claim = await claimExternalQualityJourneyAnalyzer(
+        {
+          journeyId: created.journey.journeyId,
+          targetProjectId: 'target-analysis-1',
+          principal: externalPrincipal,
+          assignmentSecret: 'b'.repeat(32),
+          idempotencyKey: 'external-analyzer-stale-claim',
+        },
+        client,
+      )
+      const admission = {
+        journeyId: created.journey.journeyId,
+        targetProjectId: 'target-analysis-1',
+        workItemId: claim.workItem.id,
+        attemptId: claim.attempt.id,
+        assignmentId: claim.assignment.assignmentId,
+        assignmentGeneration: claim.assignmentGeneration,
+        leaseId: claim.attempt.leaseId,
+        assignmentSecret: claim.assignmentSecret,
+        idempotencyKey: 'external-admission-stale',
+        principal: externalPrincipal,
+      }
+      await admitExternalQualityJourneyAnalyzer(admission, client)
+      const submission = {
+        journeyId: created.journey.journeyId,
+        targetProjectId: 'target-analysis-1',
+        workItemId: claim.workItem.id,
+        attemptId: claim.attempt.id,
+        assignmentId: claim.assignment.assignmentId,
+        assignmentGeneration: claim.assignmentGeneration,
+        leaseId: claim.attempt.leaseId,
+        assignmentSecret: claim.assignmentSecret,
+        idempotencyKey: 'external-analysis-stale',
+        charter: charter(
+          created.journey.journeyId,
+          created.journey.activeCycleId,
+          created.journey.activeRevisionIds.journey,
+          'external-stale',
+        ),
+      }
+      await expect(
+        submitExternalQualityJourneyAnalysisSuccessor(
+          { ...submission, assignmentGeneration: submission.assignmentGeneration + 1 },
+          externalPrincipal,
+          client,
+        ),
+      ).rejects.toMatchObject({ code: 'CONFLICT' })
+      await expect(
+        submitExternalQualityJourneyAnalysisSuccessor(
+          {
+            ...submission,
+            charter: {
+              ...submission.charter,
+              obligations: [{ ...submission.charter.obligations[0], requirementId: 'REQ-MISSING' }],
+            },
+          },
+          externalPrincipal,
+          client,
+        ),
+      ).rejects.toThrow('Every obligation must reference a stable requirement ID.')
+      expect(await client.qualityJourneyAnalysisRevision.count()).toBe(0)
+      await client.qualityJourneyWorkItem.update({
+        where: { id: claim.workItem.id },
+        data: { inputHash: `sha256:${'f'.repeat(64)}` },
+      })
+      await expect(
+        submitExternalQualityJourneyAnalysisSuccessor(submission, externalPrincipal, client),
+      ).rejects.toMatchObject({ code: 'CONFLICT' })
+      await client.qualityJourneyWorkItem.update({
+        where: { id: claim.workItem.id },
+        data: { inputHash: claim.workItem.inputHash },
+      })
+      await client.qualityJourneyWorkAttempt.update({
+        where: { id: claim.attempt.id },
+        data: { leaseExpiresAt: new Date(Date.now() - 1_000) },
+      })
+      await expect(
+        submitExternalQualityJourneyAnalysisSuccessor(submission, externalPrincipal, client),
+      ).rejects.toMatchObject({ code: 'CONFLICT' })
+      expect(await client.qualityJourneyAnalysisRevision.count()).toBe(0)
+      await resumeQualityJourney({ journeyId: created.journey.journeyId, targetProjectId: 'target-analysis-1' }, client)
+      const replacement = await claimExternalQualityJourneyAnalyzer(
+        {
+          journeyId: created.journey.journeyId,
+          targetProjectId: 'target-analysis-1',
+          principal: externalPrincipal,
+          assignmentSecret: 'c'.repeat(32),
+          idempotencyKey: 'external-analyzer-replacement-claim',
+        },
+        client,
+      )
+      expect(replacement.attempt.attempt).toBe(2)
+      await expect(
+        submitExternalQualityJourneyAnalysisSuccessor(submission, externalPrincipal, client),
+      ).rejects.toMatchObject({ code: 'CONFLICT' })
+      expect(await client.qualityJourneyAnalysisRevision.count()).toBe(0)
+    } finally {
+      await client.$disconnect()
+    }
+  })
+
+  it('rejects external wrong-secret, scope, cancellation, and revocation effects without receipts or Analysis writes', async () => {
+    const client = await fixture()
+    try {
+      const cancelledJourney = await readyExternalAnalyzer(client, '-cancelled')
+      const cancelled = await claimExternalQualityJourneyAnalyzer(
+        {
+          journeyId: cancelledJourney.journey.journeyId,
+          targetProjectId: 'target-analysis-1',
+          principal: externalPrincipal,
+          assignmentSecret: 'd'.repeat(32),
+          idempotencyKey: 'external-analyzer-cancelled-claim',
+        },
+        client,
+      )
+      const cancelledAdmission = {
+        journeyId: cancelledJourney.journey.journeyId,
+        targetProjectId: 'target-analysis-1',
+        workItemId: cancelled.workItem.id,
+        attemptId: cancelled.attempt.id,
+        assignmentId: cancelled.assignment.assignmentId,
+        assignmentGeneration: cancelled.assignmentGeneration,
+        leaseId: cancelled.attempt.leaseId,
+        assignmentSecret: cancelled.assignmentSecret,
+        idempotencyKey: 'cancelled-admission',
+        principal: externalPrincipal,
+      }
+      await expect(
+        admitExternalQualityJourneyAnalyzer(
+          { ...cancelledAdmission, assignmentSecret: 'z'.repeat(cancelled.assignmentSecret.length) },
+          client,
+        ),
+      ).rejects.toMatchObject({ code: 'UNAUTHORIZED' })
+      await expect(
+        admitExternalQualityJourneyAnalyzer({ ...cancelledAdmission, targetProjectId: 'wrong-target' }, client),
+      ).rejects.toMatchObject({ code: 'NOT_FOUND' })
+      await expect(
+        admitExternalQualityJourneyAnalyzer({ ...cancelledAdmission, journeyId: 'wrong-journey' }, client),
+      ).rejects.toMatchObject({ code: 'NOT_FOUND' })
+      expect(
+        await client.qualityJourneyWorkAttempt.findUniqueOrThrow({ where: { id: cancelled.attempt.id } }),
+      ).toMatchObject({ status: 'WORKER_REQUESTED', externalAdmissionHash: null })
+      await cancelQualityJourneyWork(
+        {
+          journeyId: cancelledJourney.journey.journeyId,
+          targetProjectId: 'target-analysis-1',
+          workItemId: cancelled.workItem.id,
+          actor: 'USER',
+          reason: 'Negative external cancellation probe.',
+        },
+        client,
+      )
+      await expect(admitExternalQualityJourneyAnalyzer(cancelledAdmission, client)).rejects.toMatchObject({
+        code: 'CONFLICT',
+      })
+
+      const revokedJourney = await readyExternalAnalyzer(client, '-revoked')
+      const revoked = await claimExternalQualityJourneyAnalyzer(
+        {
+          journeyId: revokedJourney.journey.journeyId,
+          targetProjectId: 'target-analysis-1',
+          principal: externalPrincipal,
+          assignmentSecret: 'e'.repeat(32),
+          idempotencyKey: 'external-analyzer-revoked-claim',
+        },
+        client,
+      )
+      const revokedAdmission = {
+        journeyId: revokedJourney.journey.journeyId,
+        targetProjectId: 'target-analysis-1',
+        workItemId: revoked.workItem.id,
+        attemptId: revoked.attempt.id,
+        assignmentId: revoked.assignment.assignmentId,
+        assignmentGeneration: revoked.assignmentGeneration,
+        leaseId: revoked.attempt.leaseId,
+        assignmentSecret: revoked.assignmentSecret,
+        idempotencyKey: 'revoked-admission',
+        principal: externalPrincipal,
+      }
+      await revokeQualityJourneyWorkAuthorization(
+        {
+          journeyId: revokedJourney.journey.journeyId,
+          targetProjectId: 'target-analysis-1',
+          workItemId: revoked.workItem.id,
+          actor: 'COORDINATOR',
+          reason: 'Negative external revocation probe.',
+        },
+        client,
+      )
+      await expect(admitExternalQualityJourneyAnalyzer(revokedAdmission, client)).rejects.toMatchObject({
+        code: 'UNAUTHORIZED',
+      })
+      expect(await client.qualityJourneyAnalysisRevision.count()).toBe(0)
+    } finally {
+      await client.$disconnect()
+    }
+  })
+
+  it('keeps charter/question/answer lineage immutable and blocks approval until required Q&A resolves', async () => {
+    const client = await fixture()
+    try {
+      const { created, claim } = await readyAnalyzer(client)
+      const validCharter = charter(
+        created.journey.journeyId,
+        created.journey.activeCycleId,
+        created.journey.activeRevisionIds.journey,
+      )
+      const submission = {
+        journeyId: created.journey.journeyId,
+        targetProjectId: 'target-analysis-1',
+        workItemId: claim.workItem.id,
+        attemptId: claim.attempt.id,
+        leaseId: claim.attempt.leaseId,
+        ownerToken: claim.ownerToken,
+        idempotencyKey: 'analysis-submit-1',
+        charter: validCharter,
+      }
+      await expect(
+        submitQualityJourneyAnalysisSuccessor(
+          {
+            ...submission,
+            idempotencyKey: 'analysis-submit-invalid',
+            charter: {
+              ...validCharter,
+              obligations: [{ ...validCharter.obligations[0], requirementId: 'REQ-MISSING' }],
+            },
+          },
+          client,
+        ),
+      ).rejects.toThrow('Every obligation must reference a stable requirement ID.')
+      expect(await client.qualityJourneyAnalysisRevision.count()).toBe(0)
+
+      const submitted = await submitQualityJourneyAnalysisSuccessor(submission, client)
+      expect(submitted.replayed).toBe(false)
+      await expect(submitQualityJourneyAnalysisSuccessor(submission, client)).resolves.toMatchObject({
+        replayed: true,
+        analysisRevision: { id: submitted.analysisRevision.id },
+      })
+      await expect(
+        submitQualityJourneyAnalysisSuccessor(
+          {
+            ...submission,
+            charter: { ...validCharter, assumptions: ['Changed after the original acknowledgement.'] },
+          },
+          client,
+        ),
+      ).rejects.toMatchObject({
+        code: 'CONFLICT',
+        message: 'Analysis submission idempotency key was reused with different input.',
+      })
+      expect(await client.qualityJourneyAnalysisRevision.count()).toBe(1)
       const afterSubmit = await getQualityJourney(
         { journeyId: created.journey.journeyId, targetProjectId: 'target-analysis-1' },
         client,

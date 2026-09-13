@@ -87,7 +87,7 @@ export function qualityJourneyRequirementSummary(contentJson: string) {
 }
 
 export type CodexHandoffGuidance = {
-  label: 'Ready to start' | 'Opening Codex' | 'Waiting for connection' | 'Connection observed' | 'Needs recovery'
+  label: 'Ready to start' | 'Launch requested' | 'Connection observed' | 'Needs recovery'
   description: string
 }
 
@@ -101,12 +101,12 @@ const codexHandoffGuidanceByStatus: Record<string, CodexHandoffGuidance> = {
     description: 'The prompt is ready. Open Codex, then paste and send it to begin analysis.',
   },
   LAUNCHING: {
-    label: 'Opening Codex',
-    description: 'Appraise is opening Codex. Analysis has not started until the prepared prompt is sent.',
+    label: 'Launch requested',
+    description: 'Appraise requested Codex. No connection or Journey work has been observed.',
   },
   LAUNCHED: {
-    label: 'Waiting for connection',
-    description: 'Codex was opened. Paste and send the prepared prompt; Appraise is waiting for the connection.',
+    label: 'Launch requested',
+    description: 'Appraise requested Codex. Paste and send the prepared prompt; no connection is inferred.',
   },
   CONNECTED: {
     label: 'Connection observed',
@@ -357,14 +357,14 @@ const handoffCandidates: Record<string, StatusCandidate> = {
     secondarySummary: 'Send the prepared Codex prompt',
   },
   LAUNCHING: {
-    summary: 'Appraise is opening Codex. Analysis has not started.',
+    summary: 'Appraise is requesting a Codex launch. Analysis has not started.',
     nextActor: 'Appraise',
     secondarySummary: 'Codex launch is still being recorded',
   },
   LAUNCHED: {
-    summary: 'Codex was opened, but Appraise has not observed a connection or submitted analysis work.',
+    summary: 'A Codex launch was requested, but Appraise has not observed a connection or submitted analysis work.',
     nextActor: 'You',
-    secondarySummary: 'Codex connection has not been observed',
+    secondarySummary: 'The launch request is not connection evidence',
   },
   CONNECTED: {
     summary:
@@ -525,7 +525,7 @@ function lastObservation(input: QualityJourneyStatusProjectionInput): QualityJou
       at: input.handoffLaunchedAt,
     },
     LAUNCHED: {
-      summary: 'Codex was opened; no connection or submitted analysis work has been observed.',
+      summary: 'A Codex launch was requested; no connection or submitted analysis work has been observed.',
       at: input.handoffLaunchedAt,
     },
     CONNECTED: {

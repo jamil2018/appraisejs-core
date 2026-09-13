@@ -18,6 +18,10 @@ import {
   type QualityJourneyExecutionRuntimeAdapter,
 } from '@/lib/quality-journey'
 import { ServiceError } from '@/services/shared/errors'
+import {
+  assertCoordinatorMutationSession,
+  type CoordinatorSessionCredentials,
+} from './quality-journey-coordinator-session'
 import { freezeJourneyExecutionEnvironment } from '@/lib/quality-journey/execution-environment'
 import { classifyJourneyExecutionEffects } from '@/lib/quality-journey/execution-effects'
 import { processManager } from '@/lib/test-run/process-manager'
@@ -619,9 +623,16 @@ async function persistExecutionReservation(input: {
   return { replayed: false, executionCycleId }
 }
 
-export async function startQualityJourneyExecution(value: unknown, client: PrismaClient = prisma) {
+export async function startQualityJourneyExecution(
+  value: unknown,
+  client: PrismaClient = prisma,
+  coordinatorSession?: CoordinatorSessionCredentials,
+) {
   const input = qualityJourneyExecutionStartSchema.parse(value)
-  const result = await client.$transaction(tx => reserveExecution(input, tx))
+  const result = await client.$transaction(async tx => {
+    await assertCoordinatorMutationSession(coordinatorSession, input, tx)
+    return reserveExecution(input, tx)
+  })
   if ('consentRequired' in result) return result
   if (!result.executionCycleId) throw conflict('Execution reservation did not produce a cycle identifier.')
   await runtimeAdapter.start({ executionCycleId: result.executionCycleId })
@@ -712,9 +723,14 @@ export async function grantQualityJourneyExecutionConsent(value: unknown, client
   })
 }
 
-export async function cancelQualityJourneyExecution(value: unknown, client: PrismaClient = prisma) {
+export async function cancelQualityJourneyExecution(
+  value: unknown,
+  client: PrismaClient = prisma,
+  coordinatorSession?: CoordinatorSessionCredentials,
+) {
   const input = qualityJourneyExecutionCancelSchema.parse(value)
   const cycle = await client.$transaction(async tx => {
+    await assertCoordinatorMutationSession(coordinatorSession, input, tx)
     const journey = await scopedJourney(input, tx)
     assertQualityJourneyMutable(journey)
     const requestHash = hash(input)
@@ -776,9 +792,14 @@ async function cancelsEntireExecutionCycle(
   return found === total
 }
 
-export async function reconcileQualityJourneyExecution(value: unknown, client: PrismaClient = prisma) {
+export async function reconcileQualityJourneyExecution(
+  value: unknown,
+  client: PrismaClient = prisma,
+  coordinatorSession?: CoordinatorSessionCredentials,
+) {
   const input = qualityJourneyExecutionReconcileSchema.parse(value)
   const cycle = await client.$transaction(async tx => {
+    await assertCoordinatorMutationSession(coordinatorSession, input, tx)
     assertQualityJourneyMutable(await scopedJourney(input, tx))
     return scopedExecutionCycle(input, tx)
   })
@@ -789,9 +810,14 @@ export async function reconcileQualityJourneyExecution(value: unknown, client: P
   )
 }
 
-export async function proposeQualityJourneyRerun(value: unknown, client: PrismaClient = prisma) {
+export async function proposeQualityJourneyRerun(
+  value: unknown,
+  client: PrismaClient = prisma,
+  coordinatorSession?: CoordinatorSessionCredentials,
+) {
   const input = qualityJourneyRerunProposalSchema.parse(value)
   return client.$transaction(async tx => {
+    await assertCoordinatorMutationSession(coordinatorSession, input, tx)
     assertQualityJourneyMutable(await scopedJourney(input, tx))
     const source = await tx.qualityJourneyExecutionCycle.findFirst({
       where: {
@@ -874,9 +900,14 @@ export async function approveQualityJourneyRerun(value: unknown, client: PrismaC
   })
 }
 
-export async function startQualityJourneyRerun(value: unknown, client: PrismaClient = prisma) {
+export async function startQualityJourneyRerun(
+  value: unknown,
+  client: PrismaClient = prisma,
+  coordinatorSession?: CoordinatorSessionCredentials,
+) {
   const input = qualityJourneyRerunStartSchema.parse(value)
   const result = await client.$transaction(async tx => {
+    await assertCoordinatorMutationSession(coordinatorSession, input, tx)
     const proposal = await tx.qualityJourneyExecutionRerunProposal.findFirst({
       where: { id: input.proposalId, journeyId: input.journeyId, targetProjectId: input.targetProjectId },
     })

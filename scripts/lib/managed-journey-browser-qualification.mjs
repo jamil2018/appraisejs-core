@@ -3,6 +3,10 @@ export async function createBrowserBoundarySession(browser, policy) {
   const allowedOrigins = new Set(policy.allowedOrigins)
   const allowedRequests = new Set(policy.allowedRequests.map(requestKey))
   const pendingDownloadCancellations = new Set()
+  const clock = policy.clock ?? (() => new Date())
+  const grant = policy.grant ?? null
+  let revoked = false
+  let authenticated = false
   const context = await browser.newContext({
     acceptDownloads: false,
     serviceWorkers: 'block',
@@ -10,8 +14,10 @@ export async function createBrowserBoundarySession(browser, policy) {
 
   const isAllowed = (url, method) => {
     const parsed = new URL(url)
-    return allowedOrigins.has(parsed.origin) && allowedRequests.has(requestKey({ url, method }))
+    return sessionActive() && allowedOrigins.has(parsed.origin) && allowedRequests.has(requestKey({ url, method }))
   }
+
+  const sessionActive = () => !revoked && (!grant || clock() < new Date(grant.expiresAt))
 
   const decide = (url, method, channel) => {
     const parsed = new URL(url)
@@ -51,7 +57,7 @@ export async function createBrowserBoundarySession(browser, policy) {
     void cancellation.finally(() => pendingDownloadCancellations.delete(cancellation))
   })
 
-  const worker = {
+  const scopedWorker = {
     async navigate(url) {
       if (!decide(url, 'GET', 'navigation')) return { allowed: false }
       const receiptStart = receipts.length
@@ -60,6 +66,7 @@ export async function createBrowserBoundarySession(browser, policy) {
       return navigationOutcome(loaded, denied, isAllowed(page.url(), 'GET'), page.url())
     },
     async observeText(selector) {
+      if (!sessionActive()) throw new Error('Browser grant is expired or revoked.')
       return page.locator(selector).innerText()
     },
     async request(method, url) {
@@ -69,16 +76,56 @@ export async function createBrowserBoundarySession(browser, policy) {
     },
   }
 
+  const worker = {
+    forScope({ journeyId, targetProjectId }) {
+      if (!grant || journeyId !== grant.journeyId || targetProjectId !== grant.targetProjectId)
+        throw new Error('Worker scope does not match the Journey browser grant.')
+      return scopedWorker
+    },
+  }
+
   const controller = {
-    async authorizeSyntheticSession({ name, value, origin }) {
+    async completeSyntheticHumanLogin({ journeyId, targetProjectId, origin, username, password, mfaCode }) {
+      if (!grant) throw new Error('Browser session has no Journey grant.')
+      if (!sessionActive()) throw new Error('Browser grant is expired or revoked.')
+      if (journeyId !== grant.journeyId || targetProjectId !== grant.targetProjectId)
+        throw new Error('Human login does not match the Journey browser grant.')
       if (!allowedOrigins.has(origin)) throw new Error('Session origin is outside the browser grant.')
-      await context.addCookies([{ name, value, url: origin, httpOnly: true, sameSite: 'Strict' }])
+      if (!username || !password || !mfaCode)
+        throw new Error('Synthetic human login requires username, password, and MFA.')
+      await context.addCookies([
+        { name: 'fixture_session', value: 'signed-in', url: origin, httpOnly: true, sameSite: 'Strict' },
+      ])
+      authenticated = true
+      return { authenticated: true, mfaSatisfied: true }
+    },
+    async logout(origin) {
+      if (!allowedOrigins.has(origin)) throw new Error('Logout origin is outside the browser grant.')
+      await context.clearCookies()
+      authenticated = false
+    },
+    revoke() {
+      revoked = true
+      authenticated = false
+    },
+    sessionState() {
+      return { active: sessionActive(), authenticated }
     },
     receiptSummary() {
       return receipts.map(receipt => ({ ...receipt }))
     },
     serviceWorkerCount() {
       return context.serviceWorkers().length
+    },
+    diagnostics() {
+      return {
+        active: sessionActive(),
+        authenticated,
+        journeyId: grant?.journeyId ?? null,
+        targetProjectId: grant?.targetProjectId ?? null,
+        allowedOrigins: [...allowedOrigins].sort(),
+        receiptCount: receipts.length,
+      }
     },
     async close() {
       await Promise.all(pendingDownloadCancellations)

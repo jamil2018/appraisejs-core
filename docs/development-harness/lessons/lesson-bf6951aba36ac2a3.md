@@ -13,6 +13,7 @@ confidence: low
 evidenceRefs:
   - obs-b2ad9eb5599b26ee
   - obs-8b33517f657e0264
+  - obs-01265de3de7e6db7
 counterexampleRefs: []
 evidence:
   - id: obs-b2ad9eb5599b26ee
@@ -33,6 +34,15 @@ evidence:
     polarity: neutral
     measurements: {}
     observedAt: 2026-09-04T20:59:32.143Z
+  - id: obs-01265de3de7e6db7
+    recordedAt: 2026-09-11T17:16:56.370Z
+    observedAt: 2026-09-09T14:59:17.696Z
+    summary: efficiency scored 0/2
+    evidenceSummary: All implementation phases reached deterministic validation and independent PASS at bacd4668; adversarial judges exposed and closed crash, fencing, ordinary-untracked, and ignored-untracked cleanup gaps.
+    sourceType: legacy-run-evolution
+    sourceRef: run:6565b01f-6f98-4bd3-9abd-6fcb3fe51c09
+    polarity: neutral
+    measurements: {}
 ambiguousObservationRefs: []
 lastValidatedAt: 2026-09-04T20:59:32.143Z
 lastResurfacedAt: null
@@ -47,3 +57,4 @@ This advisory lesson applies to task classes: cross-module-feature.
 
 - obs-b2ad9eb5599b26ee: efficiency scored 0/2 (Feature branch created; Phase 0 contract foundation, docs, scaffold sync, graph, 10 focused tests, typecheck, root and package builds passed; final judge identified remaining semantic contract gaps, so phase completion is not claimed.)
 - obs-8b33517f657e0264: efficiency scored 0/2 (Phase 06 final patch independently approved after deterministic tests, migration rehearsal, certification, build, scaffold sync, and quality gates.)
+- obs-01265de3de7e6db7: efficiency scored 0/2 (All implementation phases reached deterministic validation and independent PASS at bacd4668; adversarial judges exposed and closed crash, fencing, ordinary-untracked, and ignored-untracked cleanup gaps.)

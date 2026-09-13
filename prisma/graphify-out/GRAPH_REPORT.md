@@ -1,25 +1,25 @@
 # Graph Report - prisma
 
 ## Corpus Check
-- 81 files from prisma/schema.prisma and migrations
+- 85 files from prisma/schema.prisma and migrations
 - Verdict: schema-aware graph generated because Graphify AST extraction does not currently produce Prisma/SQL nodes.
 
 ## Summary
-- 2108 nodes · 4822 edges · 304 communities
+- 2193 nodes · 5016 edges · 310 communities
 - Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS
 - Token cost: 0 input · 0 output
 
 ## God Nodes (most connected - your core abstractions)
-1. `String` - 867 edges
-2. `schema.prisma` - 234 edges
-3. `DateTime` - 211 edges
-4. `QualityJourney` - 196 edges
+1. `String` - 920 edges
+2. `schema.prisma` - 240 edges
+3. `DateTime` - 219 edges
+4. `QualityJourney` - 201 edges
 5. `TargetProject` - 146 edges
 6. `20260906090000_quality_journey_authority` - 98 edges
-7. `QualityJourneyScenarioPortfolioRevision` - 89 edges
-8. `TestRun` - 83 edges
-9. `QualityJourneyDiscoveryRevision` - 83 edges
-10. `CollaborationBinding` - 82 edges
+7. `QualityJourneyWorkAttempt` - 94 edges
+8. `QualityJourneyScenarioPortfolioRevision` - 89 edges
+9. `TestRun` - 83 edges
+10. `QualityJourneyDiscoveryRevision` - 83 edges
 
 ## Surprising Connections (you probably didn't know these)
 - `TestSuite` --relates_to--> `Module`  [EXTRACTED]
@@ -42,7 +42,7 @@
 ## Import Cycles
 - None detected.
 
-## Communities (304 total)
+## Communities (310 total)
 ### Community 0 - "schema.prisma"
 Nodes (3): schema.prisma, datasource db (sqlite), Prisma client generator
 
@@ -140,7 +140,7 @@ Nodes (31): TestRun, TestRun.id, TestRun.name, TestRun.preparationKey, TestRun.r
 Nodes (40): TargetProject, TargetProject.id, TargetProject.kind, TargetProject.canonicalIdentity, TargetProject.canonicalPath, TargetProject.normalizedRemoteOrigin, TargetProject.displayName, TargetProject.description (+more)
 
 ### Community 32 - "QualityJourney"
-Nodes (55): QualityJourney, QualityJourney.closure, QualityJourney.activeTriageReportId, QualityJourney.activeTriageReport, QualityJourney.triageAssignments, QualityJourney.triageReports, QualityJourney.reportReviews, QualityJourney.id (+more)
+Nodes (56): QualityJourney, QualityJourney.closure, QualityJourney.activeTriageReportId, QualityJourney.activeTriageReport, QualityJourney.triageAssignments, QualityJourney.triageReports, QualityJourney.reportReviews, QualityJourney.id (+more)
 
 ### Community 33 - "QualityJourneyDraftStatus"
 Nodes (4): QualityJourneyDraftStatus, QualityJourneyDraftStatus.ACTIVE, QualityJourneyDraftStatus.ARCHIVED, QualityJourneyDraftStatus.CONFIRMED
@@ -158,7 +158,7 @@ Nodes (3): QualityJourneyReuseSeedKind, QualityJourneyReuseSeedKind.ANALYSIS, Qu
 Nodes (14): QualityJourneyReuseSeed, QualityJourneyReuseSeed.id, QualityJourneyReuseSeed.draftId, QualityJourneyReuseSeed.bindingId, QualityJourneyReuseSeed.kind, QualityJourneyReuseSeed.assetPortableId, QualityJourneyReuseSeed.sourceVersion, QualityJourneyReuseSeed.sourcePayloadHash (+more)
 
 ### Community 38 - "QualityJourneyCoordinatorHandoff"
-Nodes (17): QualityJourneyCoordinatorHandoff, QualityJourneyCoordinatorHandoff.id, QualityJourneyCoordinatorHandoff.journeyId, QualityJourneyCoordinatorHandoff.targetProjectId, QualityJourneyCoordinatorHandoff.providerId, QualityJourneyCoordinatorHandoff.status, QualityJourneyCoordinatorHandoff.ticketHash, QualityJourneyCoordinatorHandoff.promptHash (+more)
+Nodes (34): QualityJourneyCoordinatorHandoff, QualityJourneyCoordinatorHandoff.id, QualityJourneyCoordinatorHandoff.journeyId, QualityJourneyCoordinatorHandoff.targetProjectId, QualityJourneyCoordinatorHandoff.providerId, QualityJourneyCoordinatorHandoff.status, QualityJourneyCoordinatorHandoff.generation, QualityJourneyCoordinatorHandoff.journeyStateHash (+more)
 
 ### Community 39 - "QualityJourneyArtifact"
 Nodes (19): QualityJourneyArtifact, QualityJourneyArtifact.id, QualityJourneyArtifact.identityKey, QualityJourneyArtifact.journeyId, QualityJourneyArtifact.targetProjectId, QualityJourneyArtifact.cycleId, QualityJourneyArtifact.kind, QualityJourneyArtifact.artifactId (+more)
@@ -242,718 +242,736 @@ Nodes (11): QualityJourneyCommand, QualityJourneyCommand.id, QualityJourneyComma
 Nodes (12): QualityJourneyEvent, QualityJourneyEvent.id, QualityJourneyEvent.journeyId, QualityJourneyEvent.targetProjectId, QualityJourneyEvent.sequence, QualityJourneyEvent.eventType, QualityJourneyEvent.commandId, QualityJourneyEvent.predecessorStateHash (+more)
 
 ### Community 66 - "QualityJourneyWorkItem"
-Nodes (28): QualityJourneyWorkItem, QualityJourneyWorkItem.triageAssignment, QualityJourneyWorkItem.id, QualityJourneyWorkItem.journeyId, QualityJourneyWorkItem.targetProjectId, QualityJourneyWorkItem.cycleId, QualityJourneyWorkItem.role, QualityJourneyWorkItem.status (+more)
+Nodes (29): QualityJourneyWorkItem, QualityJourneyWorkItem.triageAssignment, QualityJourneyWorkItem.id, QualityJourneyWorkItem.journeyId, QualityJourneyWorkItem.targetProjectId, QualityJourneyWorkItem.cycleId, QualityJourneyWorkItem.role, QualityJourneyWorkItem.status (+more)
 
 ### Community 67 - "QualityJourneyWorkAuthorization"
-Nodes (25): QualityJourneyWorkAuthorization, QualityJourneyWorkAuthorization.id, QualityJourneyWorkAuthorization.journeyId, QualityJourneyWorkAuthorization.targetProjectId, QualityJourneyWorkAuthorization.workItemId, QualityJourneyWorkAuthorization.supersedesAuthorizationId, QualityJourneyWorkAuthorization.role, QualityJourneyWorkAuthorization.roleContractDigest (+more)
+Nodes (31): QualityJourneyWorkAuthorization, QualityJourneyWorkAuthorization.id, QualityJourneyWorkAuthorization.journeyId, QualityJourneyWorkAuthorization.targetProjectId, QualityJourneyWorkAuthorization.workItemId, QualityJourneyWorkAuthorization.supersedesAuthorizationId, QualityJourneyWorkAuthorization.role, QualityJourneyWorkAuthorization.roleContractDigest (+more)
 
 ### Community 68 - "QualityJourneyWorkAttempt"
-Nodes (42): QualityJourneyWorkAttempt, QualityJourneyWorkAttempt.id, QualityJourneyWorkAttempt.workItemId, QualityJourneyWorkAttempt.attempt, QualityJourneyWorkAttempt.status, QualityJourneyWorkAttempt.leaseId, QualityJourneyWorkAttempt.ownerTokenHash, QualityJourneyWorkAttempt.leaseExpiresAt (+more)
+Nodes (54): QualityJourneyWorkAttempt, QualityJourneyWorkAttempt.id, QualityJourneyWorkAttempt.workItemId, QualityJourneyWorkAttempt.attempt, QualityJourneyWorkAttempt.status, QualityJourneyWorkAttempt.leaseId, QualityJourneyWorkAttempt.ownerTokenHash, QualityJourneyWorkAttempt.executionMode (+more)
 
-### Community 69 - "QualityJourneyBlocker"
+### Community 69 - "QualityJourneyExternalWorkClaimReceipt"
+Nodes (25): QualityJourneyExternalWorkClaimReceipt, QualityJourneyExternalWorkClaimReceipt.id, QualityJourneyExternalWorkClaimReceipt.journeyId, QualityJourneyExternalWorkClaimReceipt.targetProjectId, QualityJourneyExternalWorkClaimReceipt.workItemId, QualityJourneyExternalWorkClaimReceipt.attemptId, QualityJourneyExternalWorkClaimReceipt.authorizationId, QualityJourneyExternalWorkClaimReceipt.protocol (+more)
+
+### Community 70 - "QualityJourneyExternalSubmissionAcceptance"
+Nodes (19): QualityJourneyExternalSubmissionAcceptance, QualityJourneyExternalSubmissionAcceptance.id, QualityJourneyExternalSubmissionAcceptance.journeyId, QualityJourneyExternalSubmissionAcceptance.targetProjectId, QualityJourneyExternalSubmissionAcceptance.workItemId, QualityJourneyExternalSubmissionAcceptance.attemptId, QualityJourneyExternalSubmissionAcceptance.assignmentId, QualityJourneyExternalSubmissionAcceptance.assignmentGeneration (+more)
+
+### Community 71 - "QualityJourneyBlocker"
 Nodes (16): QualityJourneyBlocker, QualityJourneyBlocker.id, QualityJourneyBlocker.journeyId, QualityJourneyBlocker.targetProjectId, QualityJourneyBlocker.reasonCode, QualityJourneyBlocker.summary, QualityJourneyBlocker.evidenceJson, QualityJourneyBlocker.responsibleActor (+more)
 
-### Community 70 - "QualityJourneyArtifactLink"
+### Community 72 - "QualityJourneyArtifactLink"
 Nodes (11): QualityJourneyArtifactLink, QualityJourneyArtifactLink.id, QualityJourneyArtifactLink.journeyId, QualityJourneyArtifactLink.targetProjectId, QualityJourneyArtifactLink.cycleId, QualityJourneyArtifactLink.relation, QualityJourneyArtifactLink.sourceJson, QualityJourneyArtifactLink.targetJson (+more)
 
-### Community 71 - "AgentPreflightReceipt"
+### Community 73 - "AgentPreflightReceipt"
 Nodes (15): AgentPreflightReceipt, AgentPreflightReceipt.id, AgentPreflightReceipt.coordinatorId, AgentPreflightReceipt.schemaVersion, AgentPreflightReceipt.status, AgentPreflightReceipt.ready, AgentPreflightReceipt.snapshotHash, AgentPreflightReceipt.snapshotJson (+more)
 
-### Community 72 - "ProjectResourceOwnership"
+### Community 74 - "ProjectResourceOwnership"
 Nodes (13): ProjectResourceOwnership, ProjectResourceOwnership.id, ProjectResourceOwnership.entityType, ProjectResourceOwnership.entityId, ProjectResourceOwnership.scope, ProjectResourceOwnership.targetProjectId, ProjectResourceOwnership.origin, ProjectResourceOwnership.provenanceJson (+more)
 
-### Community 73 - "ProjectResourceImport"
+### Community 75 - "ProjectResourceImport"
 Nodes (11): ProjectResourceImport, ProjectResourceImport.id, ProjectResourceImport.sourceOwnershipId, ProjectResourceImport.destinationProjectId, ProjectResourceImport.sharingMode, ProjectResourceImport.sourceContentHash, ProjectResourceImport.actor, ProjectResourceImport.propagationPolicy (+more)
 
-### Community 74 - "ResourceScope"
+### Community 76 - "ResourceScope"
 Nodes (7): ResourceScope, ResourceScope.system, ResourceScope.global_library, ResourceScope.project, ResourceScope.publication, ResourceScope.runtime, ResourceScope.quarantined
 
-### Community 75 - "ResourceSharingMode"
+### Community 77 - "ResourceSharingMode"
 Nodes (3): ResourceSharingMode, ResourceSharingMode.immutable_reference, ResourceSharingMode.copy
 
-### Community 76 - "RuntimeCapsule"
+### Community 78 - "RuntimeCapsule"
 Nodes (17): RuntimeCapsule, RuntimeCapsule.id, RuntimeCapsule.targetProjectId, RuntimeCapsule.testRunId, RuntimeCapsule.validationHash, RuntimeCapsule.capsuleHash, RuntimeCapsule.manifestHash, RuntimeCapsule.manifestJson (+more)
 
-### Community 77 - "RuntimeCapsuleExecutionAttempt"
+### Community 79 - "RuntimeCapsuleExecutionAttempt"
 Nodes (18): RuntimeCapsuleExecutionAttempt, RuntimeCapsuleExecutionAttempt.id, RuntimeCapsuleExecutionAttempt.testRunId, RuntimeCapsuleExecutionAttempt.capsuleId, RuntimeCapsuleExecutionAttempt.receiptHash, RuntimeCapsuleExecutionAttempt.preflightResultJson, RuntimeCapsuleExecutionAttempt.preflightResultHash, RuntimeCapsuleExecutionAttempt.preflightCheckedAt (+more)
 
-### Community 78 - "RuntimeCapsuleExecutionAttemptState"
+### Community 80 - "RuntimeCapsuleExecutionAttemptState"
 Nodes (8): RuntimeCapsuleExecutionAttemptState, RuntimeCapsuleExecutionAttemptState.PREPARED, RuntimeCapsuleExecutionAttemptState.STARTING, RuntimeCapsuleExecutionAttemptState.RUNNING, RuntimeCapsuleExecutionAttemptState.COMPLETED, RuntimeCapsuleExecutionAttemptState.FAILED, RuntimeCapsuleExecutionAttemptState.CANCELLED, RuntimeCapsuleExecutionAttemptState.INTERRUPTED
 
-### Community 79 - "RuntimeCapsuleBlob"
+### Community 81 - "RuntimeCapsuleBlob"
 Nodes (12): RuntimeCapsuleBlob, RuntimeCapsuleBlob.id, RuntimeCapsuleBlob.targetProjectId, RuntimeCapsuleBlob.contentHash, RuntimeCapsuleBlob.size, RuntimeCapsuleBlob.storagePath, RuntimeCapsuleBlob.integrityState, RuntimeCapsuleBlob.version (+more)
 
-### Community 80 - "RuntimeCapsuleBlobReference"
+### Community 82 - "RuntimeCapsuleBlobReference"
 Nodes (7): RuntimeCapsuleBlobReference, RuntimeCapsuleBlobReference.id, RuntimeCapsuleBlobReference.capsuleId, RuntimeCapsuleBlobReference.blobId, RuntimeCapsuleBlobReference.filePath, RuntimeCapsuleBlobReference.capsule, RuntimeCapsuleBlobReference.blob
 
-### Community 81 - "RuntimeCapsuleIntegrityState"
+### Community 83 - "RuntimeCapsuleIntegrityState"
 Nodes (5): RuntimeCapsuleIntegrityState, RuntimeCapsuleIntegrityState.staging, RuntimeCapsuleIntegrityState.ready, RuntimeCapsuleIntegrityState.missing, RuntimeCapsuleIntegrityState.corrupt
 
-### Community 82 - "RuntimeCapsuleLease"
+### Community 84 - "RuntimeCapsuleLease"
 Nodes (11): RuntimeCapsuleLease, RuntimeCapsuleLease.id, RuntimeCapsuleLease.targetProjectId, RuntimeCapsuleLease.validationHash, RuntimeCapsuleLease.runId, RuntimeCapsuleLease.ownerToken, RuntimeCapsuleLease.leaseExpiresAt, RuntimeCapsuleLease.version (+more)
 
-### Community 83 - "TestRunLog"
+### Community 85 - "TestRunLog"
 Nodes (7): TestRunLog, TestRunLog.id, TestRunLog.testRunId, TestRunLog.logs, TestRunLog.createdAt, TestRunLog.updatedAt, TestRunLog.testRun
 
-### Community 84 - "EnvironmentCredentialState"
+### Community 86 - "EnvironmentCredentialState"
 Nodes (3): EnvironmentCredentialState, EnvironmentCredentialState.NONE, EnvironmentCredentialState.REFERENCE_CONFIGURED
 
-### Community 85 - "CollaborationEntityKind"
+### Community 87 - "CollaborationEntityKind"
 Nodes (10): CollaborationEntityKind, CollaborationEntityKind.MODULE, CollaborationEntityKind.TEST_SUITE, CollaborationEntityKind.TEST_CASE, CollaborationEntityKind.TEMPLATE, CollaborationEntityKind.LOCATOR_GROUP, CollaborationEntityKind.LOCATOR, CollaborationEntityKind.TAG (+more)
 
-### Community 86 - "CollaborationOperationIntent"
+### Community 88 - "CollaborationOperationIntent"
 Nodes (5): CollaborationOperationIntent, CollaborationOperationIntent.RECEIVE, CollaborationOperationIntent.PUBLISH, CollaborationOperationIntent.RECONCILE, CollaborationOperationIntent.UNDO
 
-### Community 87 - "CollaborationOperationState"
+### Community 89 - "CollaborationOperationState"
 Nodes (12): CollaborationOperationState, CollaborationOperationState.QUEUED, CollaborationOperationState.PREPARING, CollaborationOperationState.WAITING_FOR_AGENT, CollaborationOperationState.WAITING_FOR_DECISION, CollaborationOperationState.READY, CollaborationOperationState.APPLYING, CollaborationOperationState.COMPLETED (+more)
 
-### Community 88 - "CollaborationAttemptState"
+### Community 90 - "CollaborationAttemptState"
 Nodes (8): CollaborationAttemptState, CollaborationAttemptState.CLAIMED, CollaborationAttemptState.RUNNING, CollaborationAttemptState.PROPOSAL_SUBMITTED, CollaborationAttemptState.COMPLETED, CollaborationAttemptState.FAILED, CollaborationAttemptState.CANCELLED, CollaborationAttemptState.EXPIRED
 
-### Community 89 - "CollaborationConnectionState"
+### Community 91 - "CollaborationConnectionState"
 Nodes (4): CollaborationConnectionState, CollaborationConnectionState.OFFLINE, CollaborationConnectionState.CONNECTED, CollaborationConnectionState.STALE
 
-### Community 90 - "CollaborationPermission"
+### Community 92 - "CollaborationPermission"
 Nodes (8): CollaborationPermission, CollaborationPermission.OBSERVE, CollaborationPermission.PREPARE, CollaborationPermission.INTEGRATE, CollaborationPermission.COMMIT, CollaborationPermission.PUSH, CollaborationPermission.RESOLVE, CollaborationPermission.ARCHIVE
 
-### Community 91 - "CollaborationDecisionKind"
+### Community 93 - "CollaborationDecisionKind"
 Nodes (6): CollaborationDecisionKind, CollaborationDecisionKind.KEEP_LOCAL, CollaborationDecisionKind.USE_INCOMING, CollaborationDecisionKind.EDIT, CollaborationDecisionKind.ACCEPT, CollaborationDecisionKind.REJECT
 
-### Community 92 - "CollaborationAuthorityAction"
+### Community 94 - "CollaborationAuthorityAction"
 Nodes (3): CollaborationAuthorityAction, CollaborationAuthorityAction.POLICY_UPDATE, CollaborationAuthorityAction.DECIDE
 
-### Community 93 - "CollaborationBinding"
+### Community 95 - "CollaborationBinding"
 Nodes (31): CollaborationBinding, CollaborationBinding.id, CollaborationBinding.targetProjectId, CollaborationBinding.portableProjectId, CollaborationBinding.repositoryRoot, CollaborationBinding.remoteName, CollaborationBinding.trackedBranch, CollaborationBinding.enabled (+more)
 
-### Community 94 - "CollaborationEntityMap"
+### Community 96 - "CollaborationEntityMap"
 Nodes (12): CollaborationEntityMap, CollaborationEntityMap.id, CollaborationEntityMap.bindingId, CollaborationEntityMap.kind, CollaborationEntityMap.portableId, CollaborationEntityMap.localEntityId, CollaborationEntityMap.currentHash, CollaborationEntityMap.archivedAt (+more)
 
-### Community 95 - "CollaborationBaseline"
+### Community 97 - "CollaborationBaseline"
 Nodes (8): CollaborationBaseline, CollaborationBaseline.id, CollaborationBaseline.entityMapId, CollaborationBaseline.payloadJson, CollaborationBaseline.payloadHash, CollaborationBaseline.repositoryRevision, CollaborationBaseline.acknowledgedAt, CollaborationBaseline.entityMap
 
-### Community 96 - "CollaborationEnvironmentMapping"
+### Community 98 - "CollaborationEnvironmentMapping"
 Nodes (10): CollaborationEnvironmentMapping, CollaborationEnvironmentMapping.id, CollaborationEnvironmentMapping.bindingId, CollaborationEnvironmentMapping.portableId, CollaborationEnvironmentMapping.localEnvironmentId, CollaborationEnvironmentMapping.localScopeVersion, CollaborationEnvironmentMapping.mappingHash, CollaborationEnvironmentMapping.createdAt (+more)
 
-### Community 97 - "CollaborationOperation"
+### Community 99 - "CollaborationOperation"
 Nodes (42): CollaborationOperation, CollaborationOperation.id, CollaborationOperation.bindingId, CollaborationOperation.intent, CollaborationOperation.trigger, CollaborationOperation.state, CollaborationOperation.version, CollaborationOperation.idempotencyKey (+more)
 
-### Community 98 - "CollaborationOperationStep"
+### Community 100 - "CollaborationOperationStep"
 Nodes (20): CollaborationOperationStep, CollaborationOperationStep.id, CollaborationOperationStep.operationId, CollaborationOperationStep.ordinal, CollaborationOperationStep.kind, CollaborationOperationStep.state, CollaborationOperationStep.requiredPermission, CollaborationOperationStep.prerequisiteDigest (+more)
 
-### Community 99 - "CollaborationOperationArtifact"
+### Community 101 - "CollaborationOperationArtifact"
 Nodes (9): CollaborationOperationArtifact, CollaborationOperationArtifact.id, CollaborationOperationArtifact.operationId, CollaborationOperationArtifact.kind, CollaborationOperationArtifact.revision, CollaborationOperationArtifact.payloadJson, CollaborationOperationArtifact.payloadHash, CollaborationOperationArtifact.createdAt (+more)
 
-### Community 100 - "CollaborationAttempt"
+### Community 102 - "CollaborationAttempt"
 Nodes (18): CollaborationAttempt, CollaborationAttempt.id, CollaborationAttempt.operationId, CollaborationAttempt.attemptNumber, CollaborationAttempt.fencingToken, CollaborationAttempt.workerId, CollaborationAttempt.state, CollaborationAttempt.claimTokenHash (+more)
 
-### Community 101 - "CollaborationPolicyGrant"
+### Community 103 - "CollaborationPolicyGrant"
 Nodes (12): CollaborationPolicyGrant, CollaborationPolicyGrant.id, CollaborationPolicyGrant.bindingId, CollaborationPolicyGrant.permission, CollaborationPolicyGrant.enabled, CollaborationPolicyGrant.policyVersion, CollaborationPolicyGrant.scopeJson, CollaborationPolicyGrant.trustedPrincipalId (+more)
 
-### Community 102 - "CollaborationAuthorityReceipt"
+### Community 104 - "CollaborationAuthorityReceipt"
 Nodes (16): CollaborationAuthorityReceipt, CollaborationAuthorityReceipt.id, CollaborationAuthorityReceipt.bindingId, CollaborationAuthorityReceipt.action, CollaborationAuthorityReceipt.operationId, CollaborationAuthorityReceipt.policyVersion, CollaborationAuthorityReceipt.requestDigest, CollaborationAuthorityReceipt.tokenHash (+more)
 
-### Community 103 - "CollaborationDecision"
+### Community 105 - "CollaborationDecision"
 Nodes (11): CollaborationDecision, CollaborationDecision.id, CollaborationDecision.operationId, CollaborationDecision.recordKey, CollaborationDecision.kind, CollaborationDecision.resolutionJson, CollaborationDecision.resolutionDigest, CollaborationDecision.trustedPrincipalId (+more)
 
-### Community 104 - "CollaborationJournalEntry"
+### Community 106 - "CollaborationJournalEntry"
 Nodes (9): CollaborationJournalEntry, CollaborationJournalEntry.id, CollaborationJournalEntry.operationId, CollaborationJournalEntry.sequence, CollaborationJournalEntry.boundary, CollaborationJournalEntry.status, CollaborationJournalEntry.detailsJson, CollaborationJournalEntry.createdAt (+more)
 
-### Community 105 - "CollaborationWorker"
+### Community 107 - "CollaborationWorker"
 Nodes (15): CollaborationWorker, CollaborationWorker.id, CollaborationWorker.bindingId, CollaborationWorker.workerIdentity, CollaborationWorker.capabilitiesJson, CollaborationWorker.capabilitiesHash, CollaborationWorker.trustedPrincipalId, CollaborationWorker.provenance (+more)
 
-### Community 106 - "CollaborationHandoffTicket"
+### Community 108 - "CollaborationHandoffTicket"
 Nodes (14): CollaborationHandoffTicket, CollaborationHandoffTicket.id, CollaborationHandoffTicket.bindingId, CollaborationHandoffTicket.operationId, CollaborationHandoffTicket.tokenHash, CollaborationHandoffTicket.scopeJson, CollaborationHandoffTicket.expiresAt, CollaborationHandoffTicket.redeemedAt (+more)
 
-### Community 107 - "CollaborationReuseAsset"
+### Community 109 - "CollaborationReuseAsset"
 Nodes (11): CollaborationReuseAsset, CollaborationReuseAsset.id, CollaborationReuseAsset.bindingId, CollaborationReuseAsset.portableId, CollaborationReuseAsset.sourceVersion, CollaborationReuseAsset.kind, CollaborationReuseAsset.payloadJson, CollaborationReuseAsset.payloadHash (+more)
 
-### Community 108 - "CollaborationNotification"
+### Community 110 - "CollaborationNotification"
 Nodes (12): CollaborationNotification, CollaborationNotification.id, CollaborationNotification.bindingId, CollaborationNotification.operationId, CollaborationNotification.dedupeKey, CollaborationNotification.kind, CollaborationNotification.message, CollaborationNotification.actionable (+more)
 
-### Community 109 - "CollaborationMutationLock"
+### Community 111 - "CollaborationMutationLock"
 Nodes (6): CollaborationMutationLock, CollaborationMutationLock.lockKey, CollaborationMutationLock.ownerId, CollaborationMutationLock.fencingToken, CollaborationMutationLock.leaseExpiresAt, CollaborationMutationLock.updatedAt
 
-### Community 110 - "Environment"
+### Community 112 - "Environment"
 Nodes (18): Environment, Environment.id, Environment.name, Environment.baseUrl, Environment.expectedPageTitle, Environment.apiBaseUrl, Environment.username, Environment.passwordEnvironmentVariable (+more)
 
-### Community 111 - "Tag"
+### Community 113 - "Tag"
 Nodes (15): Tag, Tag.id, Tag.name, Tag.tagExpression, Tag.type, Tag.createdAt, Tag.updatedAt, Tag.testRuns (+more)
 
-### Community 112 - "ConflictResolution"
+### Community 114 - "ConflictResolution"
 Nodes (10): ConflictResolution, ConflictResolution.id, ConflictResolution.entityType, ConflictResolution.entityId, ConflictResolution.conflictType, ConflictResolution.conflictingEntityId, ConflictResolution.resolved, ConflictResolution.createdAt (+more)
 
-### Community 113 - "ReportTestCase"
+### Community 115 - "ReportTestCase"
 Nodes (10): ReportTestCase, ReportTestCase.id, ReportTestCase.reportId, ReportTestCase.testCaseId, ReportTestCase.testRunTestCaseId, ReportTestCase.reportScenarioId, ReportTestCase.testRunTestCase, ReportTestCase.report (+more)
 
-### Community 114 - "Report"
+### Community 116 - "Report"
 Nodes (13): Report, Report.id, Report.name, Report.description, Report.reportPath, Report.createdAt, Report.updatedAt, Report.testRunId (+more)
 
-### Community 115 - "ReportFeature"
+### Community 117 - "ReportFeature"
 Nodes (13): ReportFeature, ReportFeature.id, ReportFeature.reportId, ReportFeature.name, ReportFeature.description, ReportFeature.uri, ReportFeature.line, ReportFeature.keyword (+more)
 
-### Community 116 - "ReportFeatureTag"
+### Community 118 - "ReportFeatureTag"
 Nodes (7): ReportFeatureTag, ReportFeatureTag.id, ReportFeatureTag.reportFeatureId, ReportFeatureTag.tagName, ReportFeatureTag.line, ReportFeatureTag.createdAt, ReportFeatureTag.reportFeature
 
-### Community 117 - "ReportScenario"
+### Community 119 - "ReportScenario"
 Nodes (16): ReportScenario, ReportScenario.id, ReportScenario.reportFeatureId, ReportScenario.name, ReportScenario.description, ReportScenario.line, ReportScenario.keyword, ReportScenario.type (+more)
 
-### Community 118 - "ReportScenarioTag"
+### Community 120 - "ReportScenarioTag"
 Nodes (7): ReportScenarioTag, ReportScenarioTag.id, ReportScenarioTag.reportScenarioId, ReportScenarioTag.tagName, ReportScenarioTag.line, ReportScenarioTag.createdAt, ReportScenarioTag.reportScenario
 
-### Community 119 - "ReportStep"
+### Community 121 - "ReportStep"
 Nodes (17): ReportStep, ReportStep.id, ReportStep.reportScenarioId, ReportStep.keyword, ReportStep.line, ReportStep.name, ReportStep.matchLocation, ReportStep.status (+more)
 
-### Community 120 - "ReportHook"
+### Community 122 - "ReportHook"
 Nodes (12): ReportHook, ReportHook.id, ReportHook.reportScenarioId, ReportHook.keyword, ReportHook.status, ReportHook.duration, ReportHook.errorMessage, ReportHook.errorTrace (+more)
 
-### Community 121 - "TestCaseMetrics"
+### Community 123 - "TestCaseMetrics"
 Nodes (17): TestCaseMetrics, TestCaseMetrics.id, TestCaseMetrics.testCaseId, TestCaseMetrics.isRepeatedlyFailing, TestCaseMetrics.isFlaky, TestCaseMetrics.consecutiveFailures, TestCaseMetrics.failureRate, TestCaseMetrics.totalRecentRuns (+more)
 
-### Community 122 - "TestSuiteMetrics"
+### Community 124 - "TestSuiteMetrics"
 Nodes (9): TestSuiteMetrics, TestSuiteMetrics.id, TestSuiteMetrics.testSuiteId, TestSuiteMetrics.lastExecutedAt, TestSuiteMetrics.createdAt, TestSuiteMetrics.updatedAt, TestSuiteMetrics.testSuite, TestSuiteMetrics.targetProjectId (+more)
 
-### Community 123 - "DashboardMetrics"
+### Community 125 - "DashboardMetrics"
 Nodes (10): DashboardMetrics, DashboardMetrics.id, DashboardMetrics.failedRecentRunsCount, DashboardMetrics.repeatedlyFailingTestsCount, DashboardMetrics.flakyTestsCount, DashboardMetrics.suitesNotExecutedRecentlyCount, DashboardMetrics.lastUpdatedAt, DashboardMetrics.createdAt (+more)
 
-### Community 124 - "TagType"
+### Community 126 - "TagType"
 Nodes (3): TagType, TagType.IDENTIFIER, TagType.FILTER
 
-### Community 125 - "TargetProjectKind"
+### Community 127 - "TargetProjectKind"
 Nodes (3): TargetProjectKind, TargetProjectKind.LOCAL_WORKSPACE, TargetProjectKind.REMOTE_BLACK_BOX
 
-### Community 126 - "TestRunIntent"
+### Community 128 - "TestRunIntent"
 Nodes (3): TestRunIntent, TestRunIntent.INDEPENDENT, TestRunIntent.QUALITY_JOURNEY
 
-### Community 127 - "TestRunStatus"
+### Community 129 - "TestRunStatus"
 Nodes (6): TestRunStatus, TestRunStatus.QUEUED, TestRunStatus.RUNNING, TestRunStatus.CANCELLING, TestRunStatus.COMPLETED, TestRunStatus.CANCELLED
 
-### Community 128 - "TestRunTestCaseStatus"
+### Community 130 - "TestRunTestCaseStatus"
 Nodes (5): TestRunTestCaseStatus, TestRunTestCaseStatus.PENDING, TestRunTestCaseStatus.RUNNING, TestRunTestCaseStatus.COMPLETED, TestRunTestCaseStatus.CANCELLED
 
-### Community 129 - "TestRunTestCaseResult"
+### Community 131 - "TestRunTestCaseResult"
 Nodes (4): TestRunTestCaseResult, TestRunTestCaseResult.PASSED, TestRunTestCaseResult.FAILED, TestRunTestCaseResult.UNTESTED
 
-### Community 130 - "TestRunResult"
+### Community 132 - "TestRunResult"
 Nodes (6): TestRunResult, TestRunResult.PENDING, TestRunResult.PASSED, TestRunResult.FAILED, TestRunResult.BLOCKED, TestRunResult.CANCELLED
 
-### Community 131 - "TestRunEvidenceHealth"
+### Community 133 - "TestRunEvidenceHealth"
 Nodes (9): TestRunEvidenceHealth, TestRunEvidenceHealth.valid, TestRunEvidenceHealth.invalid_empty_run, TestRunEvidenceHealth.invalid_missing_test_cases, TestRunEvidenceHealth.invalid_missing_report, TestRunEvidenceHealth.invalid_placeholder_binary, TestRunEvidenceHealth.invalid_unmatched_scenarios, TestRunEvidenceHealth.invalid_stale_runtime (+more)
 
-### Community 132 - "Role"
+### Community 134 - "Role"
 Nodes (4): Role, Role.ADMIN, Role.TESTER, Role.REVIEWER
 
-### Community 133 - "ReviewStatus"
+### Community 135 - "ReviewStatus"
 Nodes (4): ReviewStatus, ReviewStatus.PENDING, ReviewStatus.APPROVED, ReviewStatus.CHANGES_REQUESTED
 
-### Community 134 - "TestCaseStatus"
+### Community 136 - "TestCaseStatus"
 Nodes (4): TestCaseStatus, TestCaseStatus.PENDING, TestCaseStatus.IN_PROGRESS, TestCaseStatus.COMPLETED
 
-### Community 135 - "TestCaseResult"
+### Community 137 - "TestCaseResult"
 Nodes (7): TestCaseResult, TestCaseResult.PASSED, TestCaseResult.FAILED, TestCaseResult.BLOCKED, TestCaseResult.SKIPPED, TestCaseResult.RETEST, TestCaseResult.UNTESTED
 
-### Community 136 - "StepType"
+### Community 138 - "StepType"
 Nodes (3): StepType, StepType.ACTION, StepType.ASSERTION
 
-### Community 137 - "StepParameterType"
+### Community 139 - "StepParameterType"
 Nodes (6): StepParameterType, StepParameterType.NUMBER, StepParameterType.STRING, StepParameterType.DATE, StepParameterType.BOOLEAN, StepParameterType.LOCATOR
 
-### Community 138 - "StepParameterValueType"
+### Community 140 - "StepParameterValueType"
 Nodes (4): StepParameterValueType, StepParameterValueType.STRING, StepParameterValueType.NUMBER, StepParameterValueType.LOCATOR
 
-### Community 139 - "StepIcon"
+### Community 141 - "StepIcon"
 Nodes (13): StepIcon, StepIcon.MOUSE, StepIcon.NAVIGATION, StepIcon.INPUT, StepIcon.DOWNLOAD, StepIcon.API, StepIcon.STORE, StepIcon.FORMAT (+more)
 
-### Community 140 - "BrowserEngine"
+### Community 142 - "BrowserEngine"
 Nodes (4): BrowserEngine, BrowserEngine.CHROMIUM, BrowserEngine.FIREFOX, BrowserEngine.WEBKIT
 
-### Community 141 - "StepGroupType"
+### Community 143 - "StepGroupType"
 Nodes (3): StepGroupType, StepGroupType.ACTION, StepGroupType.VALIDATION
 
-### Community 142 - "EntityType"
+### Community 144 - "EntityType"
 Nodes (2): EntityType, EntityType.LOCATOR
 
-### Community 143 - "ConflictType"
+### Community 145 - "ConflictType"
 Nodes (3): ConflictType, ConflictType.DUPLICATE_NAME, ConflictType.DUPLICATE_VALUE
 
-### Community 144 - "StepStatus"
+### Community 146 - "StepStatus"
 Nodes (6): StepStatus, StepStatus.PASSED, StepStatus.FAILED, StepStatus.SKIPPED, StepStatus.PENDING, StepStatus.UNDEFINED
 
-### Community 145 - "StepKeyword"
+### Community 147 - "StepKeyword"
 Nodes (8): StepKeyword, StepKeyword.GIVEN, StepKeyword.WHEN, StepKeyword.THEN, StepKeyword.AND, StepKeyword.BUT, StepKeyword.BEFORE, StepKeyword.AFTER
 
-### Community 146 - "QualityJourneyStage"
+### Community 148 - "QualityJourneyStage"
 Nodes (12): QualityJourneyStage, QualityJourneyStage.INTAKE, QualityJourneyStage.ANALYSIS, QualityJourneyStage.ANALYSIS_REVIEW, QualityJourneyStage.DISCOVERY, QualityJourneyStage.SCENARIO_DESIGN, QualityJourneyStage.SCENARIO_REVIEW, QualityJourneyStage.AUTOMATION (+more)
 
-### Community 147 - "QualityJourneyRole"
+### Community 149 - "QualityJourneyRole"
 Nodes (7): QualityJourneyRole, QualityJourneyRole.REQUIREMENT_ANALYZER, QualityJourneyRole.SCOUT, QualityJourneyRole.RESOURCE_EXPLORER, QualityJourneyRole.TEST_SCENARIO_DESIGNER, QualityJourneyRole.AUTOMATOR, QualityJourneyRole.TRIAGER
 
-### Community 148 - "QualityJourneyWorkItemStatus"
+### Community 150 - "QualityJourneyWorkItemStatus"
 Nodes (18): QualityJourneyWorkItemStatus, QualityJourneyWorkItemStatus.ELIGIBLE, QualityJourneyWorkItemStatus.WORK_ITEM_ISSUED, QualityJourneyWorkItemStatus.WORKER_REQUESTED, QualityJourneyWorkItemStatus.WORKER_STARTED, QualityJourneyWorkItemStatus.IN_PROGRESS, QualityJourneyWorkItemStatus.QUESTION_RAISED, QualityJourneyWorkItemStatus.WAITING_FOR_INPUT (+more)
 
-### Community 149 - "QualityJourneyTriageAssignment"
+### Community 151 - "QualityJourneyTriageAssignment"
 Nodes (14): QualityJourneyTriageAssignment, QualityJourneyTriageAssignment.id, QualityJourneyTriageAssignment.journeyId, QualityJourneyTriageAssignment.executionCycleId, QualityJourneyTriageAssignment.workItemId, QualityJourneyTriageAssignment.predecessorReportRevisionId, QualityJourneyTriageAssignment.inputHash, QualityJourneyTriageAssignment.inputJson (+more)
 
-### Community 150 - "QualityJourneyTriageReport"
+### Community 152 - "QualityJourneyTriageReport"
 Nodes (15): QualityJourneyTriageReport, QualityJourneyTriageReport.closure, QualityJourneyTriageReport.activeForJourney, QualityJourneyTriageReport.id, QualityJourneyTriageReport.journeyId, QualityJourneyTriageReport.assignmentId, QualityJourneyTriageReport.contentHash, QualityJourneyTriageReport.reportJson (+more)
 
-### Community 151 - "QualityJourneyReportReview"
+### Community 153 - "QualityJourneyReportReview"
 Nodes (13): QualityJourneyReportReview, QualityJourneyReportReview.id, QualityJourneyReportReview.journeyId, QualityJourneyReportReview.reportRevisionId, QualityJourneyReportReview.kind, QualityJourneyReportReview.feedback, QualityJourneyReportReview.idempotencyKey, QualityJourneyReportReview.requestHash (+more)
 
-### Community 152 - "QualityJourneyClosure"
+### Community 154 - "QualityJourneyClosure"
 Nodes (13): QualityJourneyClosure, QualityJourneyClosure.id, QualityJourneyClosure.journeyId, QualityJourneyClosure.reportRevisionId, QualityJourneyClosure.cycleId, QualityJourneyClosure.reportHash, QualityJourneyClosure.contentHash, QualityJourneyClosure.closureJson (+more)
 
-### Community 153 - "String"
+### Community 155 - "String"
 Nodes (1): String
 
-### Community 154 - "DateTime"
+### Community 156 - "DateTime"
 Nodes (1): DateTime
 
-### Community 155 - "Boolean"
+### Community 157 - "Boolean"
 Nodes (1): Boolean
 
-### Community 156 - "Int"
+### Community 158 - "Int"
 Nodes (1): Int
 
-### Community 157 - "Float"
+### Community 159 - "Float"
 Nodes (1): Float
 
-### Community 158 - "20251026202316_migrate_back_to_sqlite"
+### Community 160 - "20251026202316_migrate_back_to_sqlite"
 Nodes (1): 20251026202316_migrate_back_to_sqlite
 
-### Community 159 - "TemplateStep"
+### Community 161 - "TemplateStep"
 Nodes (1): TemplateStep
 
-### Community 160 - "TemplateStepGroup"
+### Community 162 - "TemplateStepGroup"
 Nodes (1): TemplateStepGroup
 
-### Community 161 - "TemplateStepParameter"
+### Community 163 - "TemplateStepParameter"
 Nodes (1): TemplateStepParameter
 
-### Community 162 - "_TagToTestRun"
+### Community 164 - "_TagToTestRun"
 Nodes (1): _TagToTestRun
 
-### Community 163 - "_TestSuiteTestCases"
+### Community 165 - "_TestSuiteTestCases"
 Nodes (1): _TestSuiteTestCases
 
-### Community 164 - "20251104113456_add_type_for_template_step_groups"
+### Community 166 - "20251104113456_add_type_for_template_step_groups"
 Nodes (1): 20251104113456_add_type_for_template_step_groups
 
-### Community 165 - "new_TemplateStepGroup"
+### Community 167 - "new_TemplateStepGroup"
 Nodes (1): new_TemplateStepGroup
 
-### Community 166 - "20251104170946_add_tags_to_test_suite_and_test_case"
+### Community 168 - "20251104170946_add_tags_to_test_suite_and_test_case"
 Nodes (1): 20251104170946_add_tags_to_test_suite_and_test_case
 
-### Community 167 - "_TagToTestCase"
+### Community 169 - "_TagToTestCase"
 Nodes (1): _TagToTestCase
 
-### Community 168 - "_TagToTestSuite"
+### Community 170 - "_TagToTestSuite"
 Nodes (1): _TagToTestSuite
 
-### Community 169 - "20251112190024_add_cascade_delete_to_test_run_test_case"
+### Community 171 - "20251112190024_add_cascade_delete_to_test_run_test_case"
 Nodes (1): 20251112190024_add_cascade_delete_to_test_run_test_case
 
-### Community 170 - "new_TestRunTestCase"
+### Community 172 - "new_TestRunTestCase"
 Nodes (1): new_TestRunTestCase
 
-### Community 171 - "20251113181100_add_test_run_log"
+### Community 173 - "20251113181100_add_test_run_log"
 Nodes (1): 20251113181100_add_test_run_log
 
-### Community 172 - "20251119191838_add_tag_type"
+### Community 174 - "20251119191838_add_tag_type"
 Nodes (1): 20251119191838_add_tag_type
 
-### Community 173 - "new_Tag"
+### Community 175 - "new_Tag"
 Nodes (1): new_Tag
 
-### Community 174 - "20251121164059_add_conflict_resolution"
+### Community 176 - "20251121164059_add_conflict_resolution"
 Nodes (1): 20251121164059_add_conflict_resolution
 
-### Community 175 - "20251130190737_add_trace_path_to_test_run_test_case"
+### Community 177 - "20251130190737_add_trace_path_to_test_run_test_case"
 Nodes (1): 20251130190737_add_trace_path_to_test_run_test_case
 
-### Community 176 - "20251213074835_add_log_path_to_test_run"
+### Community 178 - "20251213074835_add_log_path_to_test_run"
 Nodes (1): 20251213074835_add_log_path_to_test_run
 
-### Community 177 - "20251213183952_add_name_property_for_the_test_run_entities"
+### Community 179 - "20251213183952_add_name_property_for_the_test_run_entities"
 Nodes (1): 20251213183952_add_name_property_for_the_test_run_entities
 
-### Community 178 - "new_TestRun"
+### Community 180 - "new_TestRun"
 Nodes (1): new_TestRun
 
-### Community 179 - "20251223183400_add_report_model_to_db_schema"
+### Community 181 - "20251223183400_add_report_model_to_db_schema"
 Nodes (1): 20251223183400_add_report_model_to_db_schema
 
-### Community 180 - "20251223183637_add_report_test_case_entity_for_storing_test_results_for_individual_test_cases"
+### Community 182 - "20251223183637_add_report_test_case_entity_for_storing_test_results_for_individual_test_cases"
 Nodes (1): 20251223183637_add_report_test_case_entity_for_storing_test_results_for_individual_test_cases
 
-### Community 181 - "20251224083549_add_comprehensive_report_storage"
+### Community 183 - "20251224083549_add_comprehensive_report_storage"
 Nodes (1): 20251224083549_add_comprehensive_report_storage
 
-### Community 182 - "new_ReportTestCase"
+### Community 184 - "new_ReportTestCase"
 Nodes (1): new_ReportTestCase
 
-### Community 183 - "20251229194422_migrate_duration_to_string"
+### Community 185 - "20251229194422_migrate_duration_to_string"
 Nodes (1): 20251229194422_migrate_duration_to_string
 
-### Community 184 - "new_ReportHook"
+### Community 186 - "new_ReportHook"
 Nodes (1): new_ReportHook
 
-### Community 185 - "new_ReportStep"
+### Community 187 - "new_ReportStep"
 Nodes (1): new_ReportStep
 
-### Community 186 - "20251230124637_add_unique_constraint_to_test_run_name"
+### Community 188 - "20251230124637_add_unique_constraint_to_test_run_name"
 Nodes (1): 20251230124637_add_unique_constraint_to_test_run_name
 
-### Community 187 - "20260115094436_add_dashboard_metrics"
+### Community 189 - "20260115094436_add_dashboard_metrics"
 Nodes (1): 20260115094436_add_dashboard_metrics
 
-### Community 188 - "20260127172022_add_cascade_delete_to_step_parameters"
+### Community 190 - "20260127172022_add_cascade_delete_to_step_parameters"
 Nodes (1): 20260127172022_add_cascade_delete_to_step_parameters
 
-### Community 189 - "new_TemplateTestCaseStepParameter"
+### Community 191 - "new_TemplateTestCaseStepParameter"
 Nodes (1): new_TemplateTestCaseStepParameter
 
-### Community 190 - "new_TestCaseStepParameter"
+### Community 192 - "new_TestCaseStepParameter"
 Nodes (1): new_TestCaseStepParameter
 
-### Community 191 - "20260313093000_add_report_step_screenshot_path"
+### Community 193 - "20260313093000_add_report_step_screenshot_path"
 Nodes (1): 20260313093000_add_report_step_screenshot_path
 
-### Community 192 - "20260318120000_add_test_suite_context_to_test_run_test_case"
+### Community 194 - "20260318120000_add_test_suite_context_to_test_run_test_case"
 Nodes (1): 20260318120000_add_test_suite_context_to_test_run_test_case
 
-### Community 193 - "20260318173512_add_support_of_test_suite_level_runs"
+### Community 195 - "20260318173512_add_support_of_test_suite_level_runs"
 Nodes (1): 20260318173512_add_support_of_test_suite_level_runs
 
-### Community 194 - "20260507000000_add_flow_builder_node_grouping"
+### Community 196 - "20260507000000_add_flow_builder_node_grouping"
 Nodes (1): 20260507000000_add_flow_builder_node_grouping
 
-### Community 195 - "20260609002500_add_plan_projection_and_sync"
+### Community 197 - "20260609002500_add_plan_projection_and_sync"
 Nodes (1): 20260609002500_add_plan_projection_and_sync
 
-### Community 196 - "PlanProjection"
+### Community 198 - "PlanProjection"
 Nodes (1): PlanProjection
 
-### Community 197 - "PlanRevision"
+### Community 199 - "PlanRevision"
 Nodes (1): PlanRevision
 
-### Community 198 - "PlanSyncIssue"
+### Community 200 - "PlanSyncIssue"
 Nodes (1): PlanSyncIssue
 
-### Community 199 - "PlanTaskProjection"
+### Community 201 - "PlanTaskProjection"
 Nodes (1): PlanTaskProjection
 
-### Community 200 - "20260609090000_add_plan_review_runtime"
+### Community 202 - "20260609090000_add_plan_review_runtime"
 Nodes (1): 20260609090000_add_plan_review_runtime
 
-### Community 201 - "PlanEvent"
+### Community 203 - "PlanEvent"
 Nodes (1): PlanEvent
 
-### Community 202 - "PlanPersonalLayout"
+### Community 204 - "PlanPersonalLayout"
 Nodes (1): PlanPersonalLayout
 
-### Community 203 - "20260609160000_add_coordinator_events_api_mcp"
+### Community 205 - "20260609160000_add_coordinator_events_api_mcp"
 Nodes (1): 20260609160000_add_coordinator_events_api_mcp
 
-### Community 204 - "AppraiseProjectIdentity"
+### Community 206 - "AppraiseProjectIdentity"
 Nodes (1): AppraiseProjectIdentity
 
-### Community 205 - "PlanCoordinatorLease"
+### Community 207 - "PlanCoordinatorLease"
 Nodes (1): PlanCoordinatorLease
 
-### Community 206 - "new_PlanEvent"
+### Community 208 - "new_PlanEvent"
 Nodes (1): new_PlanEvent
 
-### Community 207 - "20260613015000_add_plan_description"
+### Community 209 - "20260613015000_add_plan_description"
 Nodes (1): 20260613015000_add_plan_description
 
-### Community 208 - "20260628090000_add_target_projects"
+### Community 210 - "20260628090000_add_target_projects"
 Nodes (1): 20260628090000_add_target_projects
 
-### Community 209 - "new_PlanProjection"
+### Community 211 - "new_PlanProjection"
 Nodes (1): new_PlanProjection
 
-### Community 210 - "20260628103000_add_plan_slug_legacy_identity"
+### Community 212 - "20260628103000_add_plan_slug_legacy_identity"
 Nodes (1): 20260628103000_add_plan_slug_legacy_identity
 
-### Community 211 - "20260701090000_add_provider_workflow_runs"
+### Community 213 - "20260701090000_add_provider_workflow_runs"
 Nodes (1): 20260701090000_add_provider_workflow_runs
 
-### Community 212 - "ProviderAdapterRegistration"
+### Community 214 - "ProviderAdapterRegistration"
 Nodes (1): ProviderAdapterRegistration
 
-### Community 213 - "ProviderArtifactSnapshot"
+### Community 215 - "ProviderArtifactSnapshot"
 Nodes (1): ProviderArtifactSnapshot
 
-### Community 214 - "ProviderPermissionDecision"
+### Community 216 - "ProviderPermissionDecision"
 Nodes (1): ProviderPermissionDecision
 
-### Community 215 - "ProviderRunEvent"
+### Community 217 - "ProviderRunEvent"
 Nodes (1): ProviderRunEvent
 
-### Community 216 - "ProviderWorkflowRun"
+### Community 218 - "ProviderWorkflowRun"
 Nodes (1): ProviderWorkflowRun
 
-### Community 217 - "20260701120000_add_provider_registration_settings"
+### Community 219 - "20260701120000_add_provider_registration_settings"
 Nodes (1): 20260701120000_add_provider_registration_settings
 
-### Community 218 - "20260708090000_add_test_run_evidence_health"
+### Community 220 - "20260708090000_add_test_run_evidence_health"
 Nodes (1): 20260708090000_add_test_run_evidence_health
 
-### Community 219 - "20260709090000_add_step_blocks"
+### Community 221 - "20260709090000_add_step_blocks"
 Nodes (1): 20260709090000_add_step_blocks
 
-### Community 220 - "StepBlock"
+### Community 222 - "StepBlock"
 Nodes (1): StepBlock
 
-### Community 221 - "StepBlockStep"
+### Community 223 - "StepBlockStep"
 Nodes (1): StepBlockStep
 
-### Community 222 - "20260711120000_add_baseline_attempt_history"
+### Community 224 - "20260711120000_add_baseline_attempt_history"
 Nodes (1): 20260711120000_add_baseline_attempt_history
 
-### Community 223 - "BaselineAttempt"
+### Community 225 - "BaselineAttempt"
 Nodes (1): BaselineAttempt
 
-### Community 224 - "BaselineAttemptEvent"
+### Community 226 - "BaselineAttemptEvent"
 Nodes (1): BaselineAttemptEvent
 
-### Community 225 - "20260711150000_add_delegated_authorization_nonces"
+### Community 227 - "20260711150000_add_delegated_authorization_nonces"
 Nodes (1): 20260711150000_add_delegated_authorization_nonces
 
-### Community 226 - "DelegatedAuthorizationNonce"
+### Community 228 - "DelegatedAuthorizationNonce"
 Nodes (1): DelegatedAuthorizationNonce
 
-### Community 227 - "20260711170000_add_delegated_ast_submissions"
+### Community 229 - "20260711170000_add_delegated_ast_submissions"
 Nodes (1): 20260711170000_add_delegated_ast_submissions
 
-### Community 228 - "DelegatedValidationAstSubmission"
+### Community 230 - "DelegatedValidationAstSubmission"
 Nodes (1): DelegatedValidationAstSubmission
 
-### Community 229 - "20260711190000_add_validation_ast_publish_journal"
+### Community 231 - "20260711190000_add_validation_ast_publish_journal"
 Nodes (1): 20260711190000_add_validation_ast_publish_journal
 
-### Community 230 - "ValidationAstPublishOperation"
+### Community 232 - "ValidationAstPublishOperation"
 Nodes (1): ValidationAstPublishOperation
 
-### Community 231 - "ValidationExtensionReview"
+### Community 233 - "ValidationExtensionReview"
 Nodes (1): ValidationExtensionReview
 
-### Community 232 - "20260711220000_add_runtime_capsules"
+### Community 234 - "20260711220000_add_runtime_capsules"
 Nodes (1): 20260711220000_add_runtime_capsules
 
-### Community 233 - "20260712010000_add_runtime_capsule_execution_attempt"
+### Community 235 - "20260712010000_add_runtime_capsule_execution_attempt"
 Nodes (1): 20260712010000_add_runtime_capsule_execution_attempt
 
-### Community 234 - "20260712020000_add_test_run_preparation_key"
+### Community 236 - "20260712020000_add_test_run_preparation_key"
 Nodes (1): 20260712020000_add_test_run_preparation_key
 
-### Community 235 - "20260712180000_add_repository_exports"
+### Community 237 - "20260712180000_add_repository_exports"
 Nodes (1): 20260712180000_add_repository_exports
 
-### Community 236 - "RepositoryExportJob"
+### Community 238 - "RepositoryExportJob"
 Nodes (1): RepositoryExportJob
 
-### Community 237 - "RepositoryExportReceipt"
+### Community 239 - "RepositoryExportReceipt"
 Nodes (1): RepositoryExportReceipt
 
-### Community 238 - "20260713143000_add_project_resource_ownership"
+### Community 240 - "20260713143000_add_project_resource_ownership"
 Nodes (1): 20260713143000_add_project_resource_ownership
 
-### Community 239 - "20260713153000_add_validation_resource_proposals"
+### Community 241 - "20260713153000_add_validation_resource_proposals"
 Nodes (1): 20260713153000_add_validation_resource_proposals
 
-### Community 240 - "ValidationResourceProposal"
+### Community 242 - "ValidationResourceProposal"
 Nodes (1): ValidationResourceProposal
 
-### Community 241 - "20260713163000_normalize_managed_validation_vocabulary"
+### Community 243 - "20260713163000_normalize_managed_validation_vocabulary"
 Nodes (1): 20260713163000_normalize_managed_validation_vocabulary
 
-### Community 242 - "20260713173000_add_named_plan_hashes"
+### Community 244 - "20260713173000_add_named_plan_hashes"
 Nodes (1): 20260713173000_add_named_plan_hashes
 
-### Community 243 - "20260713183000_add_delegated_coordinator_receipts"
+### Community 245 - "20260713183000_add_delegated_coordinator_receipts"
 Nodes (1): 20260713183000_add_delegated_coordinator_receipts
 
-### Community 244 - "DelegatedCoordinatorConsumption"
+### Community 246 - "DelegatedCoordinatorConsumption"
 Nodes (1): DelegatedCoordinatorConsumption
 
-### Community 245 - "DelegatedCoordinatorReceipt"
+### Community 247 - "DelegatedCoordinatorReceipt"
 Nodes (1): DelegatedCoordinatorReceipt
 
-### Community 246 - "20260713200000_stage_complete_project_ownership"
+### Community 248 - "20260713200000_stage_complete_project_ownership"
 Nodes (1): 20260713200000_stage_complete_project_ownership
 
-### Community 247 - "20260713210000_add_target_project_description"
+### Community 249 - "20260713210000_add_target_project_description"
 Nodes (1): 20260713210000_add_target_project_description
 
-### Community 248 - "20260713211000_scope_test_run_preparation_key"
+### Community 250 - "20260713211000_scope_test_run_preparation_key"
 Nodes (1): 20260713211000_scope_test_run_preparation_key
 
-### Community 249 - "20260714000000_make_template_library_shared"
+### Community 251 - "20260714000000_make_template_library_shared"
 Nodes (1): 20260714000000_make_template_library_shared
 
-### Community 250 - "20260714143000_add_validation_review_state_receipt"
+### Community 252 - "20260714143000_add_validation_review_state_receipt"
 Nodes (1): 20260714143000_add_validation_review_state_receipt
 
-### Community 251 - "20260714160500_scope_environment_names_to_project"
+### Community 253 - "20260714160500_scope_environment_names_to_project"
 Nodes (1): 20260714160500_scope_environment_names_to_project
 
-### Community 252 - "20260716190000_replace_environment_password_with_reference"
+### Community 254 - "20260716190000_replace_environment_password_with_reference"
 Nodes (1): 20260716190000_replace_environment_password_with_reference
 
-### Community 253 - "new_Environment"
+### Community 255 - "new_Environment"
 Nodes (1): new_Environment
 
-### Community 254 - "20260716210000_add_measured_test_run_pagination_index"
+### Community 256 - "20260716210000_add_measured_test_run_pagination_index"
 Nodes (1): 20260716210000_add_measured_test_run_pagination_index
 
-### Community 255 - "20260718110000_add_agent_preflight_receipts"
+### Community 257 - "20260718110000_add_agent_preflight_receipts"
 Nodes (1): 20260718110000_add_agent_preflight_receipts
 
-### Community 256 - "20260718160000_add_plan_observability"
+### Community 258 - "20260718160000_add_plan_observability"
 Nodes (1): 20260718160000_add_plan_observability
 
-### Community 257 - "LifecycleCertificationReceipt"
+### Community 259 - "LifecycleCertificationReceipt"
 Nodes (1): LifecycleCertificationReceipt
 
-### Community 258 - "PlanOperationMetric"
+### Community 260 - "PlanOperationMetric"
 Nodes (1): PlanOperationMetric
 
-### Community 259 - "20260718193000_add_environment_identity_expectation"
+### Community 261 - "20260718193000_add_environment_identity_expectation"
 Nodes (1): 20260718193000_add_environment_identity_expectation
 
-### Community 260 - "20260720010000_add_canonical_operation_mappings"
+### Community 262 - "20260720010000_add_canonical_operation_mappings"
 Nodes (1): 20260720010000_add_canonical_operation_mappings
 
-### Community 261 - "20260722013000_scope_locator_group_names_to_project"
+### Community 263 - "20260722013000_scope_locator_group_names_to_project"
 Nodes (1): 20260722013000_scope_locator_group_names_to_project
 
-### Community 262 - "20260722190000_add_step_definition_registry"
+### Community 264 - "20260722190000_add_step_definition_registry"
 Nodes (1): 20260722190000_add_step_definition_registry
 
-### Community 263 - "StepCompatibilityReference"
+### Community 265 - "StepCompatibilityReference"
 Nodes (1): StepCompatibilityReference
 
-### Community 264 - "20260722223000_add_step_definition_reviewed_extensions"
+### Community 266 - "20260722223000_add_step_definition_reviewed_extensions"
 Nodes (1): 20260722223000_add_step_definition_reviewed_extensions
 
-### Community 265 - "20260725190000_add_step_block_migration_ledger"
+### Community 267 - "20260725190000_add_step_block_migration_ledger"
 Nodes (1): 20260725190000_add_step_block_migration_ledger
 
-### Community 266 - "StepBlockMigrationLedger"
+### Community 268 - "StepBlockMigrationLedger"
 Nodes (1): StepBlockMigrationLedger
 
-### Community 267 - "_LegacyCompositionDefinition"
+### Community 269 - "_LegacyCompositionDefinition"
 Nodes (1): _LegacyCompositionDefinition
 
-### Community 268 - "20260725193000_make_validation_projection_template_step_optional"
+### Community 270 - "20260725193000_make_validation_projection_template_step_optional"
 Nodes (1): 20260725193000_make_validation_projection_template_step_optional
 
-### Community 269 - "new_TestCaseStep"
+### Community 271 - "new_TestCaseStep"
 Nodes (1): new_TestCaseStep
 
-### Community 270 - "20260725194500_cut_over_authored_steps_to_step_invocations"
+### Community 272 - "20260725194500_cut_over_authored_steps_to_step_invocations"
 Nodes (1): 20260725194500_cut_over_authored_steps_to_step_invocations
 
-### Community 271 - "IF"
+### Community 273 - "IF"
 Nodes (1): IF
 
-### Community 272 - "20260725200000_remove_legacy_step_authority"
+### Community 274 - "20260725200000_remove_legacy_step_authority"
 Nodes (1): 20260725200000_remove_legacy_step_authority
 
-### Community 273 - "20260725201000_add_step_definition_telemetry"
+### Community 275 - "20260725201000_add_step_definition_telemetry"
 Nodes (1): 20260725201000_add_step_definition_telemetry
 
-### Community 274 - "20260725202000_add_step_definition_reuse_justification"
+### Community 276 - "20260725202000_add_step_definition_reuse_justification"
 Nodes (1): 20260725202000_add_step_definition_reuse_justification
 
-### Community 275 - "20260725203000_add_step_definition_review_receipts"
+### Community 277 - "20260725203000_add_step_definition_review_receipts"
 Nodes (1): 20260725203000_add_step_definition_review_receipts
 
-### Community 276 - "20260725204000_harden_step_definition_evidence_and_telemetry"
+### Community 278 - "20260725204000_harden_step_definition_evidence_and_telemetry"
 Nodes (1): 20260725204000_harden_step_definition_evidence_and_telemetry
 
-### Community 277 - "20260725205000_add_reviewed_extension_revocation"
+### Community 279 - "20260725205000_add_reviewed_extension_revocation"
 Nodes (1): 20260725205000_add_reviewed_extension_revocation
 
-### Community 278 - "20260725206000_add_step_definition_search_receipts"
+### Community 280 - "20260725206000_add_step_definition_search_receipts"
 Nodes (1): 20260725206000_add_step_definition_search_receipts
 
-### Community 279 - "20260906090000_quality_journey_authority"
+### Community 281 - "20260906090000_quality_journey_authority"
 Nodes (1): 20260906090000_quality_journey_authority
 
-### Community 280 - "new_DashboardMetrics"
+### Community 282 - "new_DashboardMetrics"
 Nodes (1): new_DashboardMetrics
 
-### Community 281 - "new_Locator"
+### Community 283 - "new_Locator"
 Nodes (1): new_Locator
 
-### Community 282 - "new_LocatorGroup"
+### Community 284 - "new_LocatorGroup"
 Nodes (1): new_LocatorGroup
 
-### Community 283 - "new_Module"
+### Community 285 - "new_Module"
 Nodes (1): new_Module
 
-### Community 284 - "new_ProjectResourceOwnership"
+### Community 286 - "new_ProjectResourceOwnership"
 Nodes (1): new_ProjectResourceOwnership
 
-### Community 285 - "new_Report"
+### Community 287 - "new_Report"
 Nodes (1): new_Report
 
-### Community 286 - "new_StepDefinitionSearchReceipt"
+### Community 288 - "new_StepDefinitionSearchReceipt"
 Nodes (1): new_StepDefinitionSearchReceipt
 
-### Community 287 - "new_StepDefinitionTelemetryEvent"
+### Community 289 - "new_StepDefinitionTelemetryEvent"
 Nodes (1): new_StepDefinitionTelemetryEvent
 
-### Community 288 - "new_TargetProject"
+### Community 290 - "new_TargetProject"
 Nodes (1): new_TargetProject
 
-### Community 289 - "new_TemplateTestCase"
+### Community 291 - "new_TemplateTestCase"
 Nodes (1): new_TemplateTestCase
 
-### Community 290 - "new_TestCase"
+### Community 292 - "new_TestCase"
 Nodes (1): new_TestCase
 
-### Community 291 - "new_TestCaseMetrics"
+### Community 293 - "new_TestCaseMetrics"
 Nodes (1): new_TestCaseMetrics
 
-### Community 292 - "new_TestSuite"
+### Community 294 - "new_TestSuite"
 Nodes (1): new_TestSuite
 
-### Community 293 - "new_TestSuiteMetrics"
+### Community 295 - "new_TestSuiteMetrics"
 Nodes (1): new_TestSuiteMetrics
 
-### Community 294 - "20260906180000_add_quality_journey_coordinator_handoffs"
+### Community 296 - "20260906180000_add_quality_journey_coordinator_handoffs"
 Nodes (1): 20260906180000_add_quality_journey_coordinator_handoffs
 
-### Community 295 - "20260907090000_add_quality_journey_drafts"
+### Community 297 - "20260907090000_add_quality_journey_drafts"
 Nodes (1): 20260907090000_add_quality_journey_drafts
 
-### Community 296 - "20260908170000_add_repository_collaboration"
+### Community 298 - "20260908170000_add_repository_collaboration"
 Nodes (1): 20260908170000_add_repository_collaboration
 
-### Community 297 - "20260908190000_add_journey_reuse_annotation"
+### Community 299 - "20260908190000_add_journey_reuse_annotation"
 Nodes (1): 20260908190000_add_journey_reuse_annotation
 
-### Community 298 - "20260909090000_add_repository_collaboration_queue_worker"
+### Community 300 - "20260909090000_add_repository_collaboration_queue_worker"
 Nodes (1): 20260909090000_add_repository_collaboration_queue_worker
 
-### Community 299 - "20260909101500_collaboration_decision_single_resolution"
+### Community 301 - "20260909101500_collaboration_decision_single_resolution"
 Nodes (1): 20260909101500_collaboration_decision_single_resolution
 
-### Community 300 - "20260909113000_add_collaboration_operation_execution_state"
+### Community 302 - "20260909113000_add_collaboration_operation_execution_state"
 Nodes (1): 20260909113000_add_collaboration_operation_execution_state
 
-### Community 301 - "20260909130000_add_collaboration_step_execution_identity"
+### Community 303 - "20260909130000_add_collaboration_step_execution_identity"
 Nodes (1): 20260909130000_add_collaboration_step_execution_identity
 
-### Community 302 - "20260909143000_add_collaboration_authority_receipts"
+### Community 304 - "20260909143000_add_collaboration_authority_receipts"
 Nodes (1): 20260909143000_add_collaboration_authority_receipts
 
-### Community 303 - "20260909150000_add_collaboration_remote_auth_repair"
+### Community 305 - "20260909150000_add_collaboration_remote_auth_repair"
 Nodes (1): 20260909150000_add_collaboration_remote_auth_repair
+
+### Community 306 - "20260912120000_add_external_analyzer_admission"
+Nodes (1): 20260912120000_add_external_analyzer_admission
+
+### Community 307 - "20260913090000_add_coordinator_handoff_reconnect_takeover"
+Nodes (1): 20260913090000_add_coordinator_handoff_reconnect_takeover
+
+### Community 308 - "20260913100000_add_external_work_claim_receipts"
+Nodes (1): 20260913100000_add_external_work_claim_receipts
+
+### Community 309 - "20260913110000_add_external_submission_acceptances"
+Nodes (1): 20260913110000_add_external_submission_acceptances
 
 ## Suggested Questions
 - Which models connect a Quality Journey to its execution and evidence records?

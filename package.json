@@ -155,6 +155,7 @@
     "zod": "^3.25.76"
   },
   "devDependencies": {
+    "ajv": "^6.15.0",
     "@babel/traverse": "^7.29.0",
     "@cucumber/cucumber": "^12.9.0",
     "@playwright/test": "^1.61.1",

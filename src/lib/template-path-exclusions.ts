@@ -1,6 +1,24 @@
 const EXCLUDED_DIRS = new Set(['node_modules', '.next', '.git', 'dist', 'graphify-out'])
 const EXCLUDED_EXTENSIONS = new Set(['.db', '.sqlite', '.sqlite3', '.tsbuildinfo'])
 const EXCLUDED_PATH_PREFIXES = ['automation/reports/']
+const REPOSITORY_ONLY_TEMPLATE_PREFIXES = [
+  'fixtures/p0-',
+  'lib/managed-journey-',
+  'lib/p0-',
+  'qualify-managed-journey-',
+  'qualify-p0-',
+  'scripts/fixtures/p0-',
+  'scripts/lib/managed-journey-',
+  'scripts/lib/p0-',
+  'scripts/qualify-managed-journey-',
+  'scripts/qualify-p0-',
+  'scripts/tests/managed-journey-',
+  'scripts/tests/p0-',
+  'tests/managed-journey-',
+  'tests/p0-',
+  'lib/quality-journey/managed-worker-gateway.',
+  'src/lib/quality-journey/managed-worker-gateway.',
+]
 const REPOSITORY_ONLY_TEMPLATE_PATHS = new Set([
   'src/lib/quality-journey/automation-contracts.mcp-parity.test.ts',
   'src/lib/quality-journey/scenario-contracts.mcp-parity.test.ts',
@@ -25,6 +43,7 @@ export function shouldExcludeTemplatePath(relativePath: string): boolean {
   ) {
     return true
   }
+  if (REPOSITORY_ONLY_TEMPLATE_PREFIXES.some(prefix => normalizedPath.startsWith(prefix))) return true
   if (
     EXCLUDED_PATH_PREFIXES.some(prefix => normalizedPath === prefix.slice(0, -1) || normalizedPath.startsWith(prefix))
   ) {

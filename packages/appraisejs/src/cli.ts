@@ -16,6 +16,12 @@ import { runAppraiseHttpMcp, runAppraiseMcp } from './mcp.js'
 import { callLocalMcpTool, parseMcpToolArguments, unwrapMcpToolResult } from './mcp-call.js'
 import { ensureLocalProjectIdentity } from './project-identity.js'
 import { runTestRunDiagnose } from './test-run-diagnose-cli.js'
+import {
+  appraisePluginMarketplaceRoot,
+  inspectCodexCompatibility,
+  installAppraisePlugin,
+  uninstallAppraisePlugin,
+} from './codex-compatibility.js'
 
 const program = new Command()
 const staleAgentCapabilityRecovery = [
@@ -328,6 +334,54 @@ program
   })
 
 const agent = program.command('agent').description('Set up coding-agent access to AppraiseJS')
+
+const plugin = agent.command('plugin').description('Manage the package-shipped, skills-only Codex plugin')
+
+plugin
+  .command('path')
+  .description('Print the package-shipped local Codex marketplace path')
+  .option('--json', 'print machine-readable JSON', false)
+  .action((options: { json: boolean }) => {
+    const result = {
+      marketplaceRoot: appraisePluginMarketplaceRoot(),
+      lifecycleAuthority: false,
+      mcpRegistrationChanged: false,
+    }
+    console.log(options.json ? JSON.stringify(result, null, 2) : result.marketplaceRoot)
+  })
+
+for (const [name, description, action] of [
+  ['install', 'Install or update the package-shipped skills-only Codex plugin', installAppraisePlugin],
+  ['uninstall', 'Uninstall the plugin without changing MCP registration', uninstallAppraisePlugin],
+] as const) {
+  plugin
+    .command(name)
+    .description(description)
+    .option('--json', 'print machine-readable JSON', false)
+    .action((options: { json: boolean }) => {
+      const result = action()
+      console.log(
+        options.json
+          ? JSON.stringify(result, null, 2)
+          : result.checks.map(check => `${check.status}: ${check.message}`).join('\n'),
+      )
+      if (!result.successful) process.exitCode = 1
+    })
+}
+
+agent
+  .command('compatibility')
+  .description('Inspect Codex plugin, marketplace, and MCP registration compatibility')
+  .option('--json', 'print machine-readable JSON', false)
+  .action((options: { json: boolean }) => {
+    const result = inspectCodexCompatibility()
+    console.log(
+      options.json
+        ? JSON.stringify(result, null, 2)
+        : result.checks.map(check => `${check.status}: ${check.message}`).join('\n'),
+    )
+    if (!result.readyForFreshTask) process.exitCode = 1
+  })
 
 agent
   .command('setup')

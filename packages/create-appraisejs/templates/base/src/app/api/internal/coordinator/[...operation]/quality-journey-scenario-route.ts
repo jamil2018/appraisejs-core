@@ -8,10 +8,14 @@ import {
   getQualityJourneyScenarioPortfolio,
   publishQualityJourneyScenarioPortfolio,
   requestQualityJourneyScenarioRevision,
+  submitExternalQualityJourneyScenarioPortfolio,
   startQualityJourneyScenarioDesign,
   submitQualityJourneyScenarioPortfolio,
 } from '@/services/coordinator/quality-journey-scenario-service'
+import type { ExternalAnalyzerProjectPrincipal } from '@/services/coordinator/quality-journey-service'
 import { resolveTargetProject } from '@/services/target-project/target-project-service'
+import { ServiceError } from '@/services/shared/errors'
+import type { CoordinatorSessionCredentials } from '@/services/coordinator/quality-journey-coordinator-session'
 
 const id = z
   .string()
@@ -33,6 +37,15 @@ const submission = z
     expectedScopeHash: digest,
     portfolio: portfolioInput,
     result: z.record(z.string(), z.unknown()),
+  })
+  .strict()
+const externalSubmission = submission
+  .omit({ ownerToken: true, idempotencyKey: true })
+  .extend({
+    assignmentId: id,
+    assignmentGeneration: z.number().int().positive(),
+    assignmentSecret: z.string().min(32).max(2_000),
+    idempotencyKey: id,
   })
   .strict()
 const commandBase = z
@@ -109,6 +122,8 @@ async function scopedScenarioResponse(
 export async function postQualityJourneyScenarioRoute(
   operation: string[],
   body: unknown,
+  coordinatorSession?: CoordinatorSessionCredentials,
+  principal?: ExternalAnalyzerProjectPrincipal,
 ): Promise<Response | undefined> {
   if (
     operation.length !== 5 ||
@@ -118,21 +133,49 @@ export async function postQualityJourneyScenarioRoute(
   )
     return undefined
   const journeyId = operation[2]!
+  if (operation[4] === 'external-submissions') {
+    if (!principal) throw new ServiceError('External project principal is unavailable.', 'UNAUTHORIZED')
+    const { target: targetRef, ...value } = externalSubmission.parse(body)
+    const resolved = await resolveTargetProject(targetRef)
+    return Response.json(
+      await submitExternalQualityJourneyScenarioPortfolio(
+        {
+          ...value,
+          journeyId,
+          targetProjectId: resolved.id,
+          portfolio: {
+            ...value.portfolio,
+            schemaVersion: qualityJourneyContractVersion,
+            journeyId,
+            targetProjectId: resolved.id,
+          },
+        },
+        principal,
+        undefined,
+        coordinatorSession,
+      ),
+      { status: 201 },
+    )
+  }
   if (operation[4] === 'submissions') {
     const { target: targetRef, ...value } = submission.parse(body)
     const resolved = await resolveTargetProject(targetRef)
     return Response.json(
-      await submitQualityJourneyScenarioPortfolio({
-        ...value,
-        journeyId,
-        targetProjectId: resolved.id,
-        portfolio: {
-          ...value.portfolio,
-          schemaVersion: qualityJourneyContractVersion,
+      await submitQualityJourneyScenarioPortfolio(
+        {
+          ...value,
           journeyId,
           targetProjectId: resolved.id,
+          portfolio: {
+            ...value.portfolio,
+            schemaVersion: qualityJourneyContractVersion,
+            journeyId,
+            targetProjectId: resolved.id,
+          },
         },
-      }),
+        undefined,
+        coordinatorSession,
+      ),
       { status: 201 },
     )
   }
@@ -143,16 +186,20 @@ export async function postQualityJourneyScenarioRoute(
       .parse(body)
     const resolved = await resolveTargetProject(targetRef)
     return Response.json(
-      await startQualityJourneyScenarioDesign({
-        schemaVersion: qualityJourneyContractVersion,
-        ...value,
-        journeyId,
-        targetProjectId: resolved.id,
-        actor: 'RUNNER',
-        command: 'START_SCENARIO_DESIGN',
-        inputArtifactRefs: [],
-        payload: {},
-      }),
+      await startQualityJourneyScenarioDesign(
+        {
+          schemaVersion: qualityJourneyContractVersion,
+          ...value,
+          journeyId,
+          targetProjectId: resolved.id,
+          actor: 'RUNNER',
+          command: 'START_SCENARIO_DESIGN',
+          inputArtifactRefs: [],
+          payload: {},
+        },
+        undefined,
+        coordinatorSession,
+      ),
     )
   }
   if (operation[4] === 'publications') {
@@ -164,6 +211,8 @@ export async function postQualityJourneyScenarioRoute(
           artifactRevisionId: value.portfolioRevisionId,
           artifactHash: value.portfolioHash,
         }),
+        undefined,
+        coordinatorSession,
       ),
     )
   }
@@ -179,19 +228,23 @@ export async function postQualityJourneyScenarioRoute(
       .parse(body)
     const resolved = await resolveTargetProject(value.target)
     return Response.json(
-      await decideQualityJourneyScenarios({
-        expectedReviewHash: value.expectedReviewHash,
-        approvedScenarioRevisionIds: value.approvedScenarioRevisionIds,
-        rejectedScenarioRevisionIds: value.rejectedScenarioRevisionIds,
-        feedback: value.feedback,
-        command: command(value, journeyId, resolved.id, 'DECIDE_SCENARIOS', {
-          portfolioRevisionId: value.portfolioRevisionId,
-          portfolioHash: value.portfolioHash,
+      await decideQualityJourneyScenarios(
+        {
+          expectedReviewHash: value.expectedReviewHash,
           approvedScenarioRevisionIds: value.approvedScenarioRevisionIds,
           rejectedScenarioRevisionIds: value.rejectedScenarioRevisionIds,
-          ...(value.feedback ? { feedback: value.feedback } : {}),
-        }),
-      }),
+          feedback: value.feedback,
+          command: command(value, journeyId, resolved.id, 'DECIDE_SCENARIOS', {
+            portfolioRevisionId: value.portfolioRevisionId,
+            portfolioHash: value.portfolioHash,
+            approvedScenarioRevisionIds: value.approvedScenarioRevisionIds,
+            rejectedScenarioRevisionIds: value.rejectedScenarioRevisionIds,
+            ...(value.feedback ? { feedback: value.feedback } : {}),
+          }),
+        },
+        undefined,
+        coordinatorSession,
+      ),
     )
   }
   if (operation[4] === 'comments') {
@@ -199,14 +252,22 @@ export async function postQualityJourneyScenarioRoute(
     return scopedScenarioResponse(
       { target: targetRef },
       targetProjectId =>
-        commentQualityJourneyScenarioPortfolio({ ...value, journeyId, targetProjectId, actor: 'USER' }),
+        commentQualityJourneyScenarioPortfolio(
+          { ...value, journeyId, targetProjectId, actor: 'USER' },
+          undefined,
+          coordinatorSession,
+        ),
       { status: 201 },
     )
   }
   if (operation[4] === 'comment-dispositions') {
     const { target: targetRef, ...value } = scenarioCommentDisposition.parse(body)
     return scopedScenarioResponse({ target: targetRef }, targetProjectId =>
-      disposeQualityJourneyScenarioComment({ ...value, journeyId, targetProjectId, actor: 'USER' }),
+      disposeQualityJourneyScenarioComment(
+        { ...value, journeyId, targetProjectId, actor: 'USER' },
+        undefined,
+        coordinatorSession,
+      ),
     )
   }
   if (operation[4] === 'revision-requests') {
@@ -216,32 +277,36 @@ export async function postQualityJourneyScenarioRoute(
       .parse(body)
     const resolved = await resolveTargetProject(value.target)
     return Response.json(
-      await requestQualityJourneyScenarioRevision({
-        expectedReviewHash: value.expectedReviewHash,
-        command: {
-          schemaVersion: qualityJourneyContractVersion,
-          commandId: value.commandId,
-          journeyId,
-          targetProjectId: resolved.id,
-          actor: 'USER',
-          expectedStateHash: value.expectedStateHash,
-          idempotencyKey: value.idempotencyKey,
-          inputArtifactRefs: [
-            {
-              kind: 'SCENARIO_PORTFOLIO_REVISION',
-              artifactId: value.portfolioId,
-              revisionId: value.portfolioRevisionId,
-              contentHash: value.portfolioHash,
+      await requestQualityJourneyScenarioRevision(
+        {
+          expectedReviewHash: value.expectedReviewHash,
+          command: {
+            schemaVersion: qualityJourneyContractVersion,
+            commandId: value.commandId,
+            journeyId,
+            targetProjectId: resolved.id,
+            actor: 'USER',
+            expectedStateHash: value.expectedStateHash,
+            idempotencyKey: value.idempotencyKey,
+            inputArtifactRefs: [
+              {
+                kind: 'SCENARIO_PORTFOLIO_REVISION',
+                artifactId: value.portfolioId,
+                revisionId: value.portfolioRevisionId,
+                contentHash: value.portfolioHash,
+              },
+            ],
+            command: 'REQUEST_SCENARIO_REVISION',
+            payload: {
+              reviewedRevisionId: value.portfolioRevisionId,
+              reviewedHash: value.portfolioHash,
+              feedback: value.feedback,
             },
-          ],
-          command: 'REQUEST_SCENARIO_REVISION',
-          payload: {
-            reviewedRevisionId: value.portfolioRevisionId,
-            reviewedHash: value.portfolioHash,
-            feedback: value.feedback,
           },
         },
-      }),
+        undefined,
+        coordinatorSession,
+      ),
     )
   }
   return undefined

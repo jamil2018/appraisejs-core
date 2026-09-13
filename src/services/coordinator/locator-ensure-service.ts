@@ -3,6 +3,10 @@ import { createHash } from 'node:crypto'
 import prisma from '@/config/db-config'
 import { canonicalContractJson } from '@/lib/catalog-contracts'
 import { ServiceError } from '@/services/shared/errors'
+import {
+  assertCoordinatorMutationSession,
+  type CoordinatorSessionCredentials,
+} from '@/services/coordinator/quality-journey-coordinator-session'
 
 type LocatorEnsureClient = {
   qualityJourney: {
@@ -62,6 +66,8 @@ type EnsuredGroup = { mode: 'ensure'; name: string; route: string; module: Exist
 
 export type LocatorEnsureInput = {
   journeyId: string
+  coordinatorHandoffId?: string
+  coordinatorGeneration?: number
   allowCreate?: boolean
   group: ExistingGroup | EnsuredGroup
   locator: { name: string; selector: string }
@@ -152,6 +158,14 @@ async function ensureOnce(
 ) {
   const journey = await readJourneyOrThrow(client, input.journeyId)
   assertJourneyTarget(journey, expectedTarget)
+  await assertCoordinatorMutationSession(
+    {
+      ...(input.coordinatorHandoffId ? { coordinatorHandoffId: input.coordinatorHandoffId } : {}),
+      ...(input.coordinatorGeneration ? { coordinatorGeneration: input.coordinatorGeneration } : {}),
+    } satisfies CoordinatorSessionCredentials,
+    { journeyId: journey.id, targetProjectId: journey.targetProjectId },
+    client as never,
+  )
   const targetProjectId = journey.targetProjectId
   const allowCreate = input.allowCreate === true
   const groupResolution = await resolveGroup(client, input.group, targetProjectId, allowCreate)

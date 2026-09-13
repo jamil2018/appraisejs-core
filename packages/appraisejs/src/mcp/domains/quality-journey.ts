@@ -12,6 +12,18 @@ const id = z
   .regex(/^[A-Za-z0-9._:-]+$/)
 const timestamp = z.string().datetime()
 const boundedText = z.string().trim().min(1).max(8_000)
+const coordinatorSession = {
+  coordinatorHandoffId: z.string().min(1).max(200).optional(),
+  coordinatorGeneration: z.number().int().positive().optional(),
+}
+const externalWorkRole = z.enum([
+  'REQUIREMENT_ANALYZER',
+  'SCOUT',
+  'RESOURCE_EXPLORER',
+  'TEST_SCENARIO_DESIGNER',
+  'AUTOMATOR',
+  'TRIAGER',
+])
 export const qualityJourneyRequirementVersion = 'appraise.quality-journey-requirement/v1' as const
 export const qualityJourneyCoverageRigorSchema = z.enum(['FOCUSED', 'STANDARD', 'COMPREHENSIVE'])
 export const qualityJourneyTestDimensionSchema = z.enum([
@@ -506,6 +518,7 @@ export const automationMaterializationInput = z
       .min(1)
       .max(512),
     result: workerResult,
+    ...coordinatorSession,
   })
   .strict()
   .superRefine((value, context) => {
@@ -727,6 +740,12 @@ const discoverySubmission = {
   expectedInputHash: hash,
   expectedScopeHash: hash,
 }
+const externalAssignment = {
+  assignmentId: id,
+  assignmentGeneration: z.number().int().positive(),
+  assignmentSecret: z.string().min(32).max(2_000),
+}
+const { ownerToken: _externalOwnerToken, ...externalDiscoverySubmission } = discoverySubmission
 
 export function registerQualityJourneyOperations({ server, api }: McpRegistryContext): void {
   server.registerTool(
@@ -760,14 +779,19 @@ export function registerQualityJourneyOperations({ server, api }: McpRegistryCon
     'quality_journey_handoff_redeem',
     {
       description:
-        'Redeem one exact short-lived coordinator handoff ticket, then continue by reading authoritative Journey state.',
-      inputSchema: { target, journeyId, ticket: z.string().regex(/^qjh_[A-Za-z0-9_-]{32}$/) },
+        'Redeem one exact short-lived coordinator handoff ticket, then read authoritative Journey state. Redemption never approves takeover or claims work.',
+      inputSchema: {
+        target,
+        journeyId,
+        ticket: z.string().regex(/^qjh_[A-Za-z0-9_-]{32}$/),
+        coordinatorTaskId: z.string().min(1).max(500).optional(),
+      },
     },
-    async ({ target: targetRef, journeyId: id, ticket }) =>
+    async ({ target: targetRef, journeyId: id, ticket, coordinatorTaskId }) =>
       text(
         await api.request(`quality/journeys/${id}/handoff/redeem`, {
           method: 'POST',
-          body: JSON.stringify({ target: targetRef, ticket }),
+          body: JSON.stringify({ target: targetRef, ticket, ...(coordinatorTaskId ? { coordinatorTaskId } : {}) }),
         }),
       ),
   )
@@ -786,7 +810,7 @@ export function registerQualityJourneyOperations({ server, api }: McpRegistryCon
     {
       description:
         'Submit one strict Target Observation Bundle only through the exact leased Scout discovery assignment.',
-      inputSchema: { ...discoverySubmission, bundle: observationBundle },
+      inputSchema: { ...discoverySubmission, ...coordinatorSession, bundle: observationBundle },
     },
     async ({ target: targetRef, journeyId: journey, ...body }) =>
       text(
@@ -797,15 +821,55 @@ export function registerQualityJourneyOperations({ server, api }: McpRegistryCon
       ),
   )
   server.registerTool(
+    'quality_journey_external_scout_target_observation_submit_v1',
+    {
+      description:
+        'Submit one canonical Target Observation Bundle through an admitted EXTERNAL_V1 Scout assignment. Exact retry is authenticated before a durable discovery outcome is read.',
+      inputSchema: {
+        ...externalDiscoverySubmission,
+        ...externalAssignment,
+        ...coordinatorSession,
+        bundle: observationBundle,
+      },
+    },
+    async ({ target: targetRef, journeyId: journey, ...body }) =>
+      text(
+        await api.request(`quality/journeys/${journey}/discovery/external-target-observations`, {
+          method: 'POST',
+          body: JSON.stringify({ target: targetRef, ...body }),
+        }),
+      ),
+  )
+  server.registerTool(
     'quality_journey_resource_resolution_submit',
     {
       description:
         'Submit one strict ranked Resource Resolution Bundle only through the exact leased Resource Explorer discovery assignment.',
-      inputSchema: { ...discoverySubmission, bundle: resourceResolutionBundle },
+      inputSchema: { ...discoverySubmission, ...coordinatorSession, bundle: resourceResolutionBundle },
     },
     async ({ target: targetRef, journeyId: journey, ...body }) =>
       text(
         await api.request(`quality/journeys/${journey}/discovery/resource-resolutions`, {
+          method: 'POST',
+          body: JSON.stringify({ target: targetRef, ...body }),
+        }),
+      ),
+  )
+  server.registerTool(
+    'quality_journey_external_resource_explorer_resolution_submit_v1',
+    {
+      description:
+        'Submit one canonical Resource Resolution Bundle through an admitted EXTERNAL_V1 Resource Explorer assignment.',
+      inputSchema: {
+        ...externalDiscoverySubmission,
+        ...externalAssignment,
+        ...coordinatorSession,
+        bundle: resourceResolutionBundle,
+      },
+    },
+    async ({ target: targetRef, journeyId: journey, ...body }) =>
+      text(
+        await api.request(`quality/journeys/${journey}/discovery/external-resource-resolutions`, {
           method: 'POST',
           body: JSON.stringify({ target: targetRef, ...body }),
         }),
@@ -822,6 +886,7 @@ export function registerQualityJourneyOperations({ server, api }: McpRegistryCon
         expectedActiveDiscoveryRevisionId: id,
         idempotencyKey: id,
         reason: boundedText,
+        ...coordinatorSession,
       },
     },
     async ({ target: targetRef, journeyId: journey, ...body }) =>
@@ -837,7 +902,7 @@ export function registerQualityJourneyOperations({ server, api }: McpRegistryCon
     {
       description:
         'Revalidate the exact active discovery authorization snapshot against analysis, target, and registry lineage.',
-      inputSchema: { target, journeyId, expectedActiveDiscoveryRevisionId: id },
+      inputSchema: { target, journeyId, expectedActiveDiscoveryRevisionId: id, ...coordinatorSession },
     },
     async ({ target: targetRef, journeyId: journey, ...body }) =>
       text(
@@ -870,11 +935,40 @@ export function registerQualityJourneyOperations({ server, api }: McpRegistryCon
         idempotencyKey: id,
         predecessorAnalysisRevisionId: id.optional(),
         charter: analysisCharter,
+        ...coordinatorSession,
       },
     },
     async ({ target: targetRef, journeyId: journey, ...body }) =>
       text(
         await api.request(`quality/journeys/${journey}/analysis/submissions`, {
+          method: 'POST',
+          body: JSON.stringify({ target: targetRef, ...body }),
+        }),
+      ),
+  )
+  server.registerTool(
+    'quality_journey_external_analyzer_analysis_submit_v1',
+    {
+      description:
+        'Submit a canonical Analysis Charter through an admitted EXTERNAL_V1 Requirement Analyzer assignment. This proves Appraise operation authority only; it does not attest host isolation.',
+      inputSchema: {
+        target,
+        journeyId,
+        workItemId: id,
+        attemptId: id,
+        assignmentId: id,
+        assignmentGeneration: z.number().int().positive(),
+        leaseId: id,
+        assignmentSecret: z.string().min(32).max(2_000),
+        idempotencyKey: id,
+        predecessorAnalysisRevisionId: id.optional(),
+        charter: analysisCharter,
+        ...coordinatorSession,
+      },
+    },
+    async ({ target: targetRef, journeyId: journey, ...body }) =>
+      text(
+        await api.request(`quality/journeys/${journey}/analysis/external-submissions`, {
           method: 'POST',
           body: JSON.stringify({ target: targetRef, ...body }),
         }),
@@ -893,6 +987,7 @@ export function registerQualityJourneyOperations({ server, api }: McpRegistryCon
         questionId: id,
         answer: z.string().trim().min(1).max(8_000),
         correctionOfAnswerId: id.optional(),
+        ...coordinatorSession,
       },
     },
     async ({ target: targetRef, journeyId: journey, ...body }) =>
@@ -907,7 +1002,7 @@ export function registerQualityJourneyOperations({ server, api }: McpRegistryCon
     'quality_journey_analysis_publish',
     {
       description: 'Have the Runner publish one exact Analysis Charter after all required questions are resolved.',
-      inputSchema: { target, journeyId, ...analysisCommand },
+      inputSchema: { target, journeyId, ...analysisCommand, ...coordinatorSession },
     },
     async ({ target: targetRef, journeyId: journey, ...body }) =>
       text(
@@ -928,6 +1023,7 @@ export function registerQualityJourneyOperations({ server, api }: McpRegistryCon
         ...analysisCommand,
         expectedReviewHash: hash,
         feedback: z.string().trim().min(1).max(8_000),
+        ...coordinatorSession,
       },
     },
     async ({ target: targetRef, journeyId: journey, ...body }) =>
@@ -942,7 +1038,7 @@ export function registerQualityJourneyOperations({ server, api }: McpRegistryCon
     'quality_journey_analysis_decide',
     {
       description: 'Approve one exact published Analysis Charter against its current immutable Q&A review identity.',
-      inputSchema: { target, journeyId, ...analysisCommand },
+      inputSchema: { target, journeyId, ...analysisCommand, ...coordinatorSession },
     },
     async ({ target: targetRef, journeyId: journey, ...body }) =>
       text(
@@ -957,7 +1053,14 @@ export function registerQualityJourneyOperations({ server, api }: McpRegistryCon
     {
       description:
         'Start scenario design only from the exact completed discovery revision and issue the Designer assignment.',
-      inputSchema: { target, journeyId, commandId: id, expectedStateHash: hash, idempotencyKey: id },
+      inputSchema: {
+        target,
+        journeyId,
+        commandId: id,
+        expectedStateHash: hash,
+        idempotencyKey: id,
+        ...coordinatorSession,
+      },
     },
     async ({ target: targetRef, journeyId: journey, ...body }) =>
       text(
@@ -1005,6 +1108,40 @@ export function registerQualityJourneyOperations({ server, api }: McpRegistryCon
     },
   )
   server.registerTool(
+    'quality_journey_external_automator_materialize_v1',
+    {
+      description:
+        'Materialize only exact approved Scenario revisions through an admitted EXTERNAL_V1 Automator assignment; it never starts execution.',
+      inputSchema: {
+        target,
+        journeyId,
+        workItemId: id,
+        attemptId: id,
+        assignmentId: id,
+        assignmentGeneration: z.number().int().positive(),
+        leaseId: id,
+        assignmentSecret: z.string().min(32).max(2_000),
+        idempotencyKey: id,
+        expectedInputHash: hash,
+        expectedScopeHash: hash,
+        scenarios: z
+          .array(z.object({ scenarioRevisionId: id, steps: z.array(automationStep).min(1).max(128) }).strict())
+          .min(1)
+          .max(512),
+        result: workerResult,
+        ...coordinatorSession,
+      },
+    },
+    async ({ target: targetRef, journeyId: journey, ...body }) => {
+      return text(
+        await api.request(`quality/journeys/${journey}/automation/external-materializations`, {
+          method: 'POST',
+          body: JSON.stringify({ target: targetRef, ...body }),
+        }),
+      )
+    },
+  )
+  server.registerTool(
     'quality_journey_scenarios_submit',
     {
       description:
@@ -1021,11 +1158,42 @@ export function registerQualityJourneyOperations({ server, api }: McpRegistryCon
         expectedScopeHash: hash,
         portfolio: scenarioPortfolioSchema,
         result: workerResult,
+        ...coordinatorSession,
       },
     },
     async ({ target: targetRef, journeyId: journey, ...body }) =>
       text(
         await api.request(`quality/journeys/${journey}/scenarios/submissions`, {
+          method: 'POST',
+          body: JSON.stringify({ target: targetRef, ...body }),
+        }),
+      ),
+  )
+  server.registerTool(
+    'quality_journey_external_scenarios_submit_v1',
+    {
+      description:
+        'Submit a canonical Scenario Portfolio through an admitted EXTERNAL_V1 Test Scenario Designer assignment.',
+      inputSchema: {
+        target,
+        journeyId,
+        workItemId: id,
+        attemptId: id,
+        assignmentId: id,
+        assignmentGeneration: z.number().int().positive(),
+        leaseId: id,
+        assignmentSecret: z.string().min(32).max(2_000),
+        idempotencyKey: id,
+        expectedInputHash: hash,
+        expectedScopeHash: hash,
+        portfolio: scenarioPortfolioSchema,
+        result: workerResult,
+        ...coordinatorSession,
+      },
+    },
+    async ({ target: targetRef, journeyId: journey, ...body }) =>
+      text(
+        await api.request(`quality/journeys/${journey}/scenarios/external-submissions`, {
           method: 'POST',
           body: JSON.stringify({ target: targetRef, ...body }),
         }),
@@ -1044,6 +1212,7 @@ export function registerQualityJourneyOperations({ server, api }: McpRegistryCon
         portfolioId: id,
         portfolioRevisionId: id,
         portfolioHash: hash,
+        ...coordinatorSession,
       },
     },
     async ({ target: targetRef, journeyId: journey, ...body }) =>
@@ -1072,6 +1241,7 @@ export function registerQualityJourneyOperations({ server, api }: McpRegistryCon
         approvedScenarioRevisionIds: z.array(scenarioIdentifier).max(512),
         rejectedScenarioRevisionIds: z.array(scenarioIdentifier).max(512),
         feedback: boundedText.optional(),
+        ...coordinatorSession,
       },
     },
     async ({ target: targetRef, journeyId: journey, ...body }) =>
@@ -1095,6 +1265,7 @@ export function registerQualityJourneyOperations({ server, api }: McpRegistryCon
         blocking: z.boolean().default(false),
         idempotencyKey: id,
         expectedReviewHash: hash,
+        ...coordinatorSession,
       },
     },
     async ({ target: targetRef, journeyId: journey, ...body }) =>
@@ -1116,6 +1287,7 @@ export function registerQualityJourneyOperations({ server, api }: McpRegistryCon
         commentId: id,
         idempotencyKey: id,
         expectedReviewHash: hash,
+        ...coordinatorSession,
       },
     },
     async ({ target: targetRef, journeyId: journey, ...body }) =>
@@ -1141,6 +1313,7 @@ export function registerQualityJourneyOperations({ server, api }: McpRegistryCon
         portfolioHash: hash,
         expectedReviewHash: hash,
         feedback: boundedText,
+        ...coordinatorSession,
       },
     },
     async ({ target: targetRef, journeyId: journey, ...body }) =>
@@ -1155,13 +1328,13 @@ export function registerQualityJourneyOperations({ server, api }: McpRegistryCon
     'quality_journey_resume',
     {
       description: 'Reconstruct runner state, expire elapsed leases, and make replacement work reclaimable.',
-      inputSchema: { target, journeyId },
+      inputSchema: { target, journeyId, ...coordinatorSession },
     },
-    async ({ target: targetRef, journeyId: id }) =>
+    async ({ target: targetRef, journeyId: id, ...session }) =>
       text(
         await api.request(`quality/journeys/${id}/resume`, {
           method: 'POST',
-          body: JSON.stringify({ target: targetRef }),
+          body: JSON.stringify({ target: targetRef, ...session }),
         }),
       ),
   )
@@ -1170,13 +1343,13 @@ export function registerQualityJourneyOperations({ server, api }: McpRegistryCon
     {
       description:
         'Submit one exact-state, idempotent Quality Journey command when no specialized lifecycle boundary applies; Analysis and discovery retry commands require their dedicated tools.',
-      inputSchema: { target, journeyId, command: genericQualityJourneyCommandSchema },
+      inputSchema: { target, journeyId, command: genericQualityJourneyCommandSchema, ...coordinatorSession },
     },
-    async ({ target: targetRef, journeyId: id, command }) =>
+    async ({ target: targetRef, journeyId: id, command, ...session }) =>
       text(
         await api.request(`quality/journeys/${id}/commands`, {
           method: 'POST',
-          body: JSON.stringify({ target: targetRef, command }),
+          body: JSON.stringify({ target: targetRef, command, ...session }),
         }),
       ),
   )
@@ -1205,11 +1378,146 @@ export function registerQualityJourneyOperations({ server, api }: McpRegistryCon
           'TRIAGER',
         ]),
         leaseSeconds: z.number().int().min(30).max(900).optional(),
+        coordinatorHandoffId: z.string().min(1).max(200).optional(),
+        coordinatorGeneration: z.number().int().positive().optional(),
       },
     },
     async ({ target: targetRef, journeyId: id, ...body }) =>
       text(
         await api.request(`quality/journeys/${id}/work/claim`, {
+          method: 'POST',
+          body: JSON.stringify({ target: targetRef, ...body }),
+        }),
+      ),
+  )
+  server.registerTool(
+    'quality_journey_external_work_claim_v1',
+    {
+      description:
+        'Claim one graph-eligible EXTERNAL_V1 assignment using a caller-generated assignment secret. Exact retries authenticate that secret before returning the durable receipt; this does not attest host isolation or create a Factory worker.',
+      inputSchema: {
+        target,
+        journeyId,
+        role: externalWorkRole,
+        assignmentSecret: z.string().min(32).max(2_000),
+        idempotencyKey: id,
+        leaseSeconds: z.number().int().min(30).max(900).optional(),
+        ...coordinatorSession,
+      },
+    },
+    async ({ target: targetRef, journeyId: id, ...body }) =>
+      text(
+        await api.request(`quality/journeys/${id}/external-work/claim`, {
+          method: 'POST',
+          body: JSON.stringify({ target: targetRef, ...body }),
+        }),
+      ),
+  )
+  server.registerTool(
+    'quality_journey_external_work_admit_v1',
+    {
+      description:
+        'Atomically admit one caller-secret authenticated EXTERNAL_V1 assignment to IN_PROGRESS after graph, authorization, lease, and ownership rechecks.',
+      inputSchema: {
+        target,
+        journeyId,
+        role: externalWorkRole,
+        workItemId: id,
+        attemptId: id,
+        assignmentId: id,
+        assignmentGeneration: z.number().int().positive(),
+        leaseId: id,
+        assignmentSecret: z.string().min(32).max(2_000),
+        idempotencyKey: id,
+        ...coordinatorSession,
+      },
+    },
+    async ({ target: targetRef, journeyId: id, ...body }) =>
+      text(
+        await api.request(`quality/journeys/${id}/external-work/admissions`, {
+          method: 'POST',
+          body: JSON.stringify({ target: targetRef, ...body }),
+        }),
+      ),
+  )
+  server.registerTool(
+    'quality_journey_external_work_outcome_get_v1',
+    {
+      description:
+        'Read one durable EXTERNAL_V1 specialized-submission outcome after a lost acknowledgement. The assignment secret and authenticated project principal are required; this operation cannot mutate Journey state.',
+      inputSchema: {
+        target,
+        journeyId,
+        role: externalWorkRole,
+        operation: z.enum([
+          'ANALYSIS_SUBMIT',
+          'TARGET_OBSERVATION_SUBMIT',
+          'RESOURCE_RESOLUTION_SUBMIT',
+          'SCENARIO_PORTFOLIO_SUBMIT',
+          'AUTOMATION_MATERIALIZE',
+          'TRIAGE_REPORT_SUBMIT',
+        ]),
+        workItemId: id,
+        attemptId: id,
+        assignmentId: id,
+        assignmentGeneration: z.number().int().positive(),
+        leaseId: id,
+        assignmentSecret: z.string().min(32).max(2_000),
+        idempotencyKey: id,
+      },
+    },
+    async ({ target: targetRef, journeyId: id, ...body }) =>
+      text(
+        await api.request(`quality/journeys/${id}/external-work/outcomes`, {
+          method: 'POST',
+          body: JSON.stringify({ target: targetRef, ...body }),
+        }),
+      ),
+  )
+  server.registerTool(
+    'quality_journey_external_analyzer_claim_v1',
+    {
+      description:
+        'Compatibility adapter for caller-secret EXTERNAL_V1 Requirement Analyzer claim. It returns no Factory spawn receipt and does not attest host isolation.',
+      inputSchema: {
+        target,
+        journeyId,
+        assignmentSecret: z.string().min(32).max(2_000),
+        idempotencyKey: id,
+        leaseSeconds: z.number().int().min(30).max(900).optional(),
+        coordinatorHandoffId: z.string().min(1).max(200).optional(),
+        coordinatorGeneration: z.number().int().positive().optional(),
+      },
+    },
+    async ({ target: targetRef, journeyId: id, ...body }) =>
+      text(
+        await api.request(`quality/journeys/${id}/external-analyzer/claim`, {
+          method: 'POST',
+          body: JSON.stringify({ target: targetRef, ...body }),
+        }),
+      ),
+  )
+  server.registerTool(
+    'quality_journey_external_analyzer_admit_v1',
+    {
+      description:
+        'Atomically admit one claimed EXTERNAL_V1 Analyzer assignment to IN_PROGRESS. The receipt records hostIsolation NOT_ATTESTED and is not a Factory spawn receipt.',
+      inputSchema: {
+        target,
+        journeyId,
+        workItemId: id,
+        attemptId: id,
+        assignmentId: id,
+        assignmentGeneration: z.number().int().positive(),
+        leaseId: id,
+        assignmentSecret: z.string().min(32).max(2_000),
+        idempotencyKey: id,
+        ...coordinatorSession,
+      },
+    },
+    async ({ target: targetRef, journeyId: id, ...body }) =>
+      text(
+        await api.request(`quality/journeys/${id}/external-analyzer/admissions`, {
           method: 'POST',
           body: JSON.stringify({ target: targetRef, ...body }),
         }),
@@ -1225,6 +1533,8 @@ export function registerQualityJourneyOperations({ server, api }: McpRegistryCon
         workItemId: z.string().min(1),
         leaseId: z.string().min(1),
         ownerToken: z.string().min(1),
+        coordinatorHandoffId: z.string().min(1).max(200).optional(),
+        coordinatorGeneration: z.number().int().positive().optional(),
       },
     },
     async ({ target: targetRef, journeyId: id, workItemId, ...body }) =>
@@ -1253,6 +1563,7 @@ export function registerQualityJourneyOperations({ server, api }: McpRegistryCon
           workItemId: z.string().min(1),
           actor: z.enum(['USER', 'COORDINATOR', 'RUNNER']),
           reason: z.string().min(1).max(8_000),
+          ...coordinatorSession,
         },
       },
       async ({ target: targetRef, journeyId: id, workItemId, ...body }) =>
@@ -1276,6 +1587,7 @@ export function registerQualityJourneyOperations({ server, api }: McpRegistryCon
         leaseId: z.string().min(1),
         ownerToken: z.string().min(1),
         result: genericQualityJourneyWorkCompletionResultSchema,
+        ...coordinatorSession,
       },
     },
     async ({ target: targetRef, journeyId: id, workItemId, ...body }) =>

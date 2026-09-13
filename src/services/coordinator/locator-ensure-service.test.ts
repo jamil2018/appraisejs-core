@@ -13,11 +13,15 @@ function clientFixture() {
   const groups = new Map<string, Group>()
   const locators = new Map<string, Locator>()
   const writes = { modules: 0, groups: 0, locators: 0 }
+  let effectiveHandoff: { id: string; generation: number; status: string; fencedAt: Date | null } | null = null
   const targetProject = { id: 'target-login', fingerprint: `sha256:${'a'.repeat(64)}` }
   const client = {
     qualityJourney: {
       findFirst: async ({ where }: { where: { id: string } }) =>
         where.id === 'journey-login' ? { id: 'journey-login', targetProjectId: targetProject.id, targetProject } : null,
+    },
+    qualityJourneyCoordinatorHandoff: {
+      findFirst: async () => effectiveHandoff,
     },
     module: {
       findFirst: async ({ where }: { where: Record<string, unknown> }) => {
@@ -73,7 +77,17 @@ function clientFixture() {
     },
     $transaction: async <T>(operation: (transaction: unknown) => Promise<T>) => operation(client),
   }
-  return { client, groups, locators, modules, writes, targetProject }
+  return {
+    client,
+    groups,
+    locators,
+    modules,
+    writes,
+    targetProject,
+    setEffectiveHandoff: (handoff: typeof effectiveHandoff) => {
+      effectiveHandoff = handoff
+    },
+  }
 }
 
 const request = {
@@ -208,5 +222,19 @@ describe('target-scoped locator ensure', () => {
       ),
     ).rejects.toMatchObject({ code: 'NOT_FOUND' })
     expect(fixture.writes).toEqual({ modules: 0, groups: 0, locators: 0 })
+  })
+
+  it('rejects a stale coordinator generation before creating target-owned locators', async () => {
+    const fixture = clientFixture()
+    fixture.setEffectiveHandoff({ id: 'handoff-current', generation: 2, status: 'CONNECTED', fencedAt: null })
+
+    await expect(
+      ensure(fixture, { ...request, coordinatorHandoffId: 'handoff-old', coordinatorGeneration: 1 }),
+    ).rejects.toMatchObject({ code: 'UNAUTHORIZED' })
+    expect(fixture.writes).toEqual({ modules: 0, groups: 0, locators: 0 })
+
+    await expect(
+      ensure(fixture, { ...request, coordinatorHandoffId: 'handoff-current', coordinatorGeneration: 2 }),
+    ).resolves.toMatchObject({ outcome: 'created' })
   })
 })

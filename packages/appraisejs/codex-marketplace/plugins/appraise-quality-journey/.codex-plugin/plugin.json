@@ -1,0 +1,27 @@
+{
+  "name": "appraise-quality-journey",
+  "version": "0.4.0+codex.c11-20260913",
+  "description": "Workflow guidance for Appraise Quality Journeys.",
+  "author": {
+    "name": "Hasnat Jamil",
+    "url": "https://github.com/jamil2018"
+  },
+  "homepage": "https://github.com/jamil2018/appraisejs-core",
+  "repository": "https://github.com/jamil2018/appraisejs-core",
+  "license": "Apache-2.0",
+  "keywords": ["appraisejs", "quality", "testing", "codex"],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Appraise Quality Journey",
+    "shortDescription": "Guided, Appraise-owned quality workflows",
+    "longDescription": "Connect Codex to a local AppraiseJS hub and follow its authenticated Quality Journey workflow. The plugin supplies guidance; Appraise services retain every lifecycle, authorization, review, and completion decision.",
+    "developerName": "AppraiseJS",
+    "category": "Developer Tools",
+    "capabilities": ["Interactive", "Read", "Write"],
+    "websiteURL": "https://github.com/jamil2018/appraisejs-core",
+    "defaultPrompt": [
+      "Diagnose this task's Appraise Quality Journey connection",
+      "Continue the active Appraise Quality Journey safely"
+    ]
+  }
+}

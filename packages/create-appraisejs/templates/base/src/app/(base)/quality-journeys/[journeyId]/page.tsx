@@ -174,7 +174,7 @@ function detailPresentation(
       Boolean(portfolio?.reviewHash) &&
       Boolean(portfolio?.scenarios.some(scenario => !scenario.decisions.length)),
     requestedExecutionConsentCount: detail.execution.consents.filter(consent => consent.status === 'REQUESTED').length,
-    showCoordinatorHandoff: ['INTAKE', 'ANALYSIS', 'ANALYSIS_REVIEW'].includes(detail.journey.journey.stage),
+    showCoordinatorHandoff: detail.journey.journey.stage !== 'CLOSED',
     hasObservedWorkerProgress: Boolean(detail.activeAnalysis),
     hasClosureReceipt: Boolean(closure.receipt),
     capsuleIds: materializations.flatMap(item =>
@@ -284,6 +284,7 @@ export default async function QualityJourneyDetailPage({ params, searchParams }:
                     hasObservedWorkerProgress={presentation.hasObservedWorkerProgress}
                     journeyId={journeyId}
                     projectId={project.id}
+                    stage={journey.journey.stage}
                   />
                 </div>
               ) : null}

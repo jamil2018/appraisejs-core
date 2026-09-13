@@ -1,0 +1,143 @@
+{
+  "schema": "appraise.managed-quality-journey.p0-r2c-receipts/v1",
+  "capturedAt": "2026-09-11",
+  "candidate": {
+    "version": "codex-cli 0.153.4",
+    "executable": "/Applications/ChatGPT.app/Contents/Resources/codex",
+    "executableSha256": "87a08119b8effa519f0ecb552dc98043f58a8200bf2ec5da60f76890c33e9c3a"
+  },
+  "constraints": {
+    "accountFree": true,
+    "realCredentialUsed": false,
+    "realProviderReached": false,
+    "listener": "non-forwarding localhost Responses fixture",
+    "mcpServers": [],
+    "experimentalApi": true,
+    "sandbox": "read-only plus exact-port macOS Seatbelt network confinement"
+  },
+  "sourceArtifacts": {
+    "librarySha256": "145105f49e3f85d363be1074b1a47ffe2bd58b6ef20c166bbfd943f018cd9baa",
+    "runnerSha256": "51203356ef1d1c4515e8ad245ea5f5d490c8f0843c9aa1ffb24acd5fcf3edd73",
+    "testSha256": "50e2d046be27d1cd98dd9de9e6805e46332b3687ff77ce28d7920eee748d4416"
+  },
+  "acceptedRun": {
+    "schema": "appraise.p0-r2c-dynamic-tools/v1",
+    "results": [
+      {
+        "arm": "empty",
+        "artifact": {
+          "configurationSha256": "76f95885ae5a69f5a8e395750f21aae71f78590bcff46537d80f4bd41d7c2478",
+          "dynamicToolsSha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "executableSha256": "87a08119b8effa519f0ecb552dc98043f58a8200bf2ec5da60f76890c33e9c3a",
+          "sandboxProfileSha256": "01adc5962703e488112643a405905eba70ea2a32b230e069445befa35baf90b2"
+        },
+        "cleanup": { "confirmed": true, "survivingProcessCount": 0 },
+        "dispatches": [],
+        "error": null,
+        "requestCount": 1,
+        "requests": [
+          {
+            "authorization": { "present": true, "scheme": "Bearer" },
+            "bodyBytes": 5326,
+            "bodySha256": "827b5438811400aa235a79d8d65d7cf8fe90316ff2430c4ecd85d01407d6dfda",
+            "parseValid": true,
+            "toolNames": [],
+            "toolsArrayValid": true,
+            "toolsFieldPresent": true,
+            "tools": []
+          }
+        ],
+        "resolved": {
+          "featureDigest": "0ab5c6f2a4fa2dcf3795910d7b65786bd69ba27a223a7759f5bc87eab7992c0b",
+          "layerTypes": ["user", "system"],
+          "mcpNames": [],
+          "webSearch": "disabled"
+        }
+      },
+      {
+        "arm": "one-strict",
+        "artifact": {
+          "configurationSha256": "bc1f96216954cbdcf787516c4916e338037fa4dd50d23905f839ac40f50a51ac",
+          "dynamicToolsSha256": "af8a15101837a5d0bc822701dae0e74ef8ef209ffa763c7452584064641961f1",
+          "executableSha256": "87a08119b8effa519f0ecb552dc98043f58a8200bf2ec5da60f76890c33e9c3a",
+          "sandboxProfileSha256": "c4f3d6f776ebc27e2e211ef82bf0819ae72adf12ed66af1700e1306da3fd4ad5"
+        },
+        "cleanup": { "confirmed": true, "survivingProcessCount": 0 },
+        "dispatches": [
+          {
+            "method": "item/tool/call",
+            "outcome": "allowed_synthetic_dispatch",
+            "received": { "namespace": null, "tool": "appraise_dynamic_probe" }
+          }
+        ],
+        "error": null,
+        "requestCount": 2,
+        "requests": [
+          {
+            "authorization": { "present": true, "scheme": "Bearer" },
+            "bodyBytes": 5601,
+            "bodySha256": "e75a32ad2696eea70d3b997badf6f3c40717248927c5dd8dc6137c65fc7f6c78",
+            "parseValid": true,
+            "toolNames": ["appraise_dynamic_probe"],
+            "toolsArrayValid": true,
+            "toolsFieldPresent": true,
+            "tools": [
+              {
+                "definitionSha256": "b19ca0709a91e0115babc23a8a8a6b6b443e890926441230ea5b15f600865b1b",
+                "name": "appraise_dynamic_probe",
+                "origin": "function",
+                "schemaHash": "9f5acdc744e6275654751fb393379959534916f6fa8f4c8b25b9416899dea53c"
+              }
+            ]
+          },
+          {
+            "authorization": { "present": true, "scheme": "Bearer" },
+            "bodyBytes": 5863,
+            "bodySha256": "d99a7800a1e47bd576e9ce7d91013545411e6767502ced726b0e7719eb55817c",
+            "parseValid": true,
+            "toolNames": ["appraise_dynamic_probe"],
+            "toolsArrayValid": true,
+            "toolsFieldPresent": true,
+            "tools": [
+              {
+                "definitionSha256": "b19ca0709a91e0115babc23a8a8a6b6b443e890926441230ea5b15f600865b1b",
+                "name": "appraise_dynamic_probe",
+                "origin": "function",
+                "schemaHash": "9f5acdc744e6275654751fb393379959534916f6fa8f4c8b25b9416899dea53c"
+              }
+            ]
+          }
+        ],
+        "resolved": {
+          "featureDigest": "0ab5c6f2a4fa2dcf3795910d7b65786bd69ba27a223a7759f5bc87eab7992c0b",
+          "layerTypes": ["user", "system"],
+          "mcpNames": [],
+          "webSearch": "disabled"
+        }
+      }
+    ],
+    "receiptSubjectSha256": "fecd801448dd886c0ca739b8faed6091815d384c91e26abed0bdbfb8272b6cc4",
+    "qualification": { "qualified": true, "findings": [] }
+  },
+  "deterministicDispatchPolicy": {
+    "allowedCall": "passed",
+    "missingOrEmptyCallId": "rejected",
+    "unknownTool": "rejected",
+    "malformedArguments": "rejected",
+    "replay": "rejected",
+    "crossThread": "rejected",
+    "staleTurn": "rejected",
+    "liveNegativeProtocolCoverage": false
+  },
+  "conclusion": {
+    "emptyManifestExact": true,
+    "singleDynamicToolManifestExact": true,
+    "mcpResourceHelpersAbsent": true,
+    "allowedClientDispatchObserved": true,
+    "preTurnManifestBindingVerified": false,
+    "resumeAndRecoveryVerified": false,
+    "providerNativeAuthenticationVerified": false,
+    "p0r2Qualified": false,
+    "gateG0": "blocked"
+  }
+}

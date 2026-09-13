@@ -1,0 +1,1090 @@
+{
+  "schema": "appraise.p0-r2d-interlock-qualification/v1",
+  "expectedWireTools": [
+    {
+      "description": "Read immutable Analysis Charter revisions, questions, answers, publication, and approval lineage.",
+      "name": "quality_journey_analysis_get",
+      "parameters": {
+        "type": "object",
+        "properties": {},
+        "required": [],
+        "additionalProperties": false
+      },
+      "strict": false,
+      "type": "function"
+    },
+    {
+      "description": "Submit an Analysis Charter only through the current leased Requirement Analyzer assignment.",
+      "name": "quality_journey_analysis_submit",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "idempotencyKey": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
+          },
+          "predecessorAnalysisRevisionId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
+          },
+          "charter": {
+            "type": "object",
+            "properties": {
+              "charterId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200,
+                "pattern": "^[A-Za-z0-9._:-]+$"
+              },
+              "analysisRevisionId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200,
+                "pattern": "^[A-Za-z0-9._:-]+$"
+              },
+              "cycleId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200,
+                "pattern": "^[A-Za-z0-9._:-]+$"
+              },
+              "requirementRevisionId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200,
+                "pattern": "^[A-Za-z0-9._:-]+$"
+              },
+              "objectives": {
+                "minItems": 1,
+                "maxItems": 64,
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 8000
+                }
+              },
+              "scope": {
+                "type": "object",
+                "properties": {
+                  "included": {
+                    "minItems": 1,
+                    "maxItems": 128,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 8000
+                    }
+                  },
+                  "excluded": {
+                    "maxItems": 128,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 8000
+                    }
+                  }
+                },
+                "required": ["included", "excluded"],
+                "additionalProperties": false
+              },
+              "actors": {
+                "maxItems": 128,
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 8000
+                }
+              },
+              "requirements": {
+                "minItems": 1,
+                "maxItems": 512,
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "requirementId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 200,
+                      "pattern": "^[A-Za-z0-9._:-]+$"
+                    },
+                    "statement": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 8000
+                    },
+                    "sourceRefs": {
+                      "minItems": 1,
+                      "maxItems": 64,
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 8000
+                      }
+                    }
+                  },
+                  "required": ["requirementId", "statement", "sourceRefs"],
+                  "additionalProperties": false
+                }
+              },
+              "obligations": {
+                "minItems": 1,
+                "maxItems": 512,
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "obligationId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 200,
+                      "pattern": "^[A-Za-z0-9._:-]+$"
+                    },
+                    "requirementId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 200,
+                      "pattern": "^[A-Za-z0-9._:-]+$"
+                    },
+                    "statement": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 8000
+                    },
+                    "acceptanceSignals": {
+                      "minItems": 1,
+                      "maxItems": 64,
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 8000
+                      }
+                    }
+                  },
+                  "required": ["obligationId", "requirementId", "statement", "acceptanceSignals"],
+                  "additionalProperties": false
+                }
+              },
+              "constraints": {
+                "maxItems": 256,
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 8000
+                }
+              },
+              "assumptions": {
+                "maxItems": 256,
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 8000
+                }
+              },
+              "risks": {
+                "maxItems": 256,
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 8000
+                }
+              },
+              "acceptanceSignals": {
+                "minItems": 1,
+                "maxItems": 256,
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 8000
+                }
+              },
+              "retiredRequirementIds": {
+                "maxItems": 512,
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200,
+                  "pattern": "^[A-Za-z0-9._:-]+$"
+                }
+              },
+              "questions": {
+                "maxItems": 256,
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "questionId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 200,
+                      "pattern": "^[A-Za-z0-9._:-]+$"
+                    },
+                    "prompt": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 8000
+                    },
+                    "required": {
+                      "type": "boolean"
+                    },
+                    "rationale": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 8000
+                    }
+                  },
+                  "required": ["questionId", "prompt", "required", "rationale"],
+                  "additionalProperties": false
+                }
+              },
+              "resolvedQuestionAnswerIds": {
+                "maxItems": 256,
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200,
+                  "pattern": "^[A-Za-z0-9._:-]+$"
+                }
+              }
+            },
+            "required": [
+              "charterId",
+              "analysisRevisionId",
+              "cycleId",
+              "requirementRevisionId",
+              "objectives",
+              "scope",
+              "actors",
+              "requirements",
+              "obligations",
+              "constraints",
+              "assumptions",
+              "risks",
+              "acceptanceSignals",
+              "retiredRequirementIds",
+              "questions",
+              "resolvedQuestionAnswerIds"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": ["idempotencyKey", "charter"],
+        "additionalProperties": false
+      },
+      "strict": false,
+      "type": "function"
+    }
+  ],
+  "results": [
+    {
+      "schema": "appraise.p0-r2d-interlock-receipt/v1",
+      "artifactIdentities": {
+        "configSha256": "86347292d4f4571894fe7b199d41b58412b3301c9d2a8c8bb176d3d1f90edf32",
+        "executableSha256": "4f85982624b3898c8991cb80c0981b2aa71070e3537046c9a95950318a95afcc",
+        "profileDigest": "sha256:92ed113f7ab3ae0fde662e1fbf92b1bc63cf44223f96551a38cae49671178230",
+        "projectionSha256": "696e879e46f8efb65ef678756166aebfd341f499164f92a707baf0f4e460af0a",
+        "sourceSha256": {
+          "p0-r2d-canonical-bridge.ts": "894176e258b78b132b626d1439a9a1488d239cad185d2b5e2ebd6198e3aa3059",
+          "p0-r2d-interlock-experiment.mjs": "aca4baa3235b46726177ee871d545c3e266b9167435fa271573d65234182ad08",
+          "qualify-p0-r2d-interlock.mjs": "24ddc08e291c5e0420edc7552b05b2c0ba51be88c3749dd6849aebfa004366f4",
+          "managed-worker-gateway.ts": "8606ed28c75e61d7d620a59067043d17a47b5475f00b6cd84f5a9f6be2650272",
+          "registry.ts": "a3cb5fe6b3098f1c801e6de99f243e94be7681fb7c2625d1d53d0833b86d75cf",
+          "role-definitions.ts": "98d1c624aaa6aedb1a4dd6ee11f5288b3dd1c1991250c1c32d737b46874d860f",
+          "p0-r2c-dynamic-tools-experiment.mjs": "145105f49e3f85d363be1074b1a47ffe2bd58b6ef20c166bbfd943f018cd9baa",
+          "p0-r2d-interlock-experiment.test.mjs": "71a06b1a3b82e8922697371ef620c7806e17292edf5e1658dc1271fde573d6c9"
+        }
+      },
+      "result": {
+        "arm": "allowed",
+        "cleanup": {
+          "confirmed": true,
+          "survivingProcessCount": 0
+        },
+        "canary": {
+          "denied": true,
+          "outcome": "connection_denied"
+        },
+        "childDiagnostics": {
+          "exit": {
+            "code": null,
+            "signal": "SIGTERM"
+          },
+          "stderr": []
+        },
+        "dispatchCount": 0,
+        "brokerReceiptDigests": [],
+        "forwardedRequests": [],
+        "error": null,
+        "requestRejections": ["tools_rejected"],
+        "requestDiagnostics": [
+          [
+            {
+              "description": "Read immutable Analysis Charter revisions, questions, answers, publication, and approval lineage.",
+              "name": "quality_journey_analysis_get",
+              "parameters": {
+                "type": "object",
+                "properties": {},
+                "required": [],
+                "additionalProperties": false
+              },
+              "strict": false,
+              "type": "function"
+            },
+            {
+              "description": "Submit an Analysis Charter only through the current leased Requirement Analyzer assignment.",
+              "name": "quality_journey_analysis_submit",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "charter": {
+                    "type": "object",
+                    "properties": {
+                      "acceptanceSignals": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        },
+                        "minItems": 1
+                      },
+                      "actors": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "analysisRevisionId": {
+                        "type": "string"
+                      },
+                      "assumptions": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "charterId": {
+                        "type": "string"
+                      },
+                      "constraints": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "cycleId": {
+                        "type": "string"
+                      },
+                      "objectives": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        },
+                        "minItems": 1
+                      },
+                      "obligations": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "acceptanceSignals": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              },
+                              "minItems": 1
+                            },
+                            "obligationId": {
+                              "type": "string"
+                            },
+                            "requirementId": {
+                              "type": "string"
+                            },
+                            "statement": {
+                              "type": "string"
+                            }
+                          },
+                          "required": ["obligationId", "requirementId", "statement", "acceptanceSignals"],
+                          "additionalProperties": false
+                        },
+                        "minItems": 1
+                      },
+                      "questions": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "prompt": {
+                              "type": "string"
+                            },
+                            "questionId": {
+                              "type": "string"
+                            },
+                            "rationale": {
+                              "type": "string"
+                            },
+                            "required": {
+                              "type": "boolean"
+                            }
+                          },
+                          "required": ["questionId", "prompt", "required", "rationale"],
+                          "additionalProperties": false
+                        }
+                      },
+                      "requirementRevisionId": {
+                        "type": "string"
+                      },
+                      "requirements": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "requirementId": {
+                              "type": "string"
+                            },
+                            "sourceRefs": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              },
+                              "minItems": 1
+                            },
+                            "statement": {
+                              "type": "string"
+                            }
+                          },
+                          "required": ["requirementId", "statement", "sourceRefs"],
+                          "additionalProperties": false
+                        },
+                        "minItems": 1
+                      },
+                      "resolvedQuestionAnswerIds": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "retiredRequirementIds": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "risks": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "scope": {
+                        "type": "object",
+                        "properties": {
+                          "excluded": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "included": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            },
+                            "minItems": 1
+                          }
+                        },
+                        "required": ["included", "excluded"],
+                        "additionalProperties": false
+                      }
+                    },
+                    "required": [
+                      "charterId",
+                      "analysisRevisionId",
+                      "cycleId",
+                      "requirementRevisionId",
+                      "objectives",
+                      "scope",
+                      "actors",
+                      "requirements",
+                      "obligations",
+                      "constraints",
+                      "assumptions",
+                      "risks",
+                      "acceptanceSignals",
+                      "retiredRequirementIds",
+                      "questions",
+                      "resolvedQuestionAnswerIds"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "idempotencyKey": {
+                    "type": "string"
+                  },
+                  "predecessorAnalysisRevisionId": {
+                    "type": "string"
+                  }
+                },
+                "required": ["idempotencyKey", "charter"],
+                "additionalProperties": false
+              },
+              "strict": false,
+              "type": "function"
+            }
+          ]
+        ],
+        "responseRejections": [],
+        "resolved": {
+          "mcpNames": []
+        },
+        "upstreamCount": 0,
+        "upstreamRequestHashes": [],
+        "sandboxProfileSha256": "1607056b7f18baf961f888dbbc530ac240c928540d32d733dbffac2334b16df0"
+      }
+    },
+    {
+      "schema": "appraise.p0-r2d-interlock-receipt/v1",
+      "artifactIdentities": {
+        "configSha256": "25617e6c4267ffb6b96f9f924db896c04c9773687f8edd32d8489606bbf8ed66",
+        "executableSha256": "4f85982624b3898c8991cb80c0981b2aa71070e3537046c9a95950318a95afcc",
+        "profileDigest": "sha256:92ed113f7ab3ae0fde662e1fbf92b1bc63cf44223f96551a38cae49671178230",
+        "projectionSha256": "696e879e46f8efb65ef678756166aebfd341f499164f92a707baf0f4e460af0a",
+        "sourceSha256": {
+          "p0-r2d-canonical-bridge.ts": "894176e258b78b132b626d1439a9a1488d239cad185d2b5e2ebd6198e3aa3059",
+          "p0-r2d-interlock-experiment.mjs": "aca4baa3235b46726177ee871d545c3e266b9167435fa271573d65234182ad08",
+          "qualify-p0-r2d-interlock.mjs": "24ddc08e291c5e0420edc7552b05b2c0ba51be88c3749dd6849aebfa004366f4",
+          "managed-worker-gateway.ts": "8606ed28c75e61d7d620a59067043d17a47b5475f00b6cd84f5a9f6be2650272",
+          "registry.ts": "a3cb5fe6b3098f1c801e6de99f243e94be7681fb7c2625d1d53d0833b86d75cf",
+          "role-definitions.ts": "98d1c624aaa6aedb1a4dd6ee11f5288b3dd1c1991250c1c32d737b46874d860f",
+          "p0-r2c-dynamic-tools-experiment.mjs": "145105f49e3f85d363be1074b1a47ffe2bd58b6ef20c166bbfd943f018cd9baa",
+          "p0-r2d-interlock-experiment.test.mjs": "71a06b1a3b82e8922697371ef620c7806e17292edf5e1658dc1271fde573d6c9"
+        }
+      },
+      "result": {
+        "arm": "request-rejection",
+        "cleanup": {
+          "confirmed": true,
+          "survivingProcessCount": 0
+        },
+        "canary": {
+          "denied": true,
+          "outcome": "connection_denied"
+        },
+        "childDiagnostics": {
+          "exit": {
+            "code": null,
+            "signal": "SIGTERM"
+          },
+          "stderr": []
+        },
+        "dispatchCount": 0,
+        "brokerReceiptDigests": [],
+        "forwardedRequests": [],
+        "error": null,
+        "requestRejections": ["tools_rejected"],
+        "requestDiagnostics": [
+          [
+            {
+              "description": "Read immutable Analysis Charter revisions, questions, answers, publication, and approval lineage.",
+              "name": "quality_journey_analysis_get",
+              "parameters": {
+                "type": "object",
+                "properties": {},
+                "required": [],
+                "additionalProperties": false
+              },
+              "strict": false,
+              "type": "function"
+            },
+            {
+              "description": "Submit an Analysis Charter only through the current leased Requirement Analyzer assignment.",
+              "name": "quality_journey_analysis_submit",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "charter": {
+                    "type": "object",
+                    "properties": {
+                      "acceptanceSignals": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        },
+                        "minItems": 1
+                      },
+                      "actors": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "analysisRevisionId": {
+                        "type": "string"
+                      },
+                      "assumptions": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "charterId": {
+                        "type": "string"
+                      },
+                      "constraints": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "cycleId": {
+                        "type": "string"
+                      },
+                      "objectives": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        },
+                        "minItems": 1
+                      },
+                      "obligations": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "acceptanceSignals": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              },
+                              "minItems": 1
+                            },
+                            "obligationId": {
+                              "type": "string"
+                            },
+                            "requirementId": {
+                              "type": "string"
+                            },
+                            "statement": {
+                              "type": "string"
+                            }
+                          },
+                          "required": ["obligationId", "requirementId", "statement", "acceptanceSignals"],
+                          "additionalProperties": false
+                        },
+                        "minItems": 1
+                      },
+                      "questions": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "prompt": {
+                              "type": "string"
+                            },
+                            "questionId": {
+                              "type": "string"
+                            },
+                            "rationale": {
+                              "type": "string"
+                            },
+                            "required": {
+                              "type": "boolean"
+                            }
+                          },
+                          "required": ["questionId", "prompt", "required", "rationale"],
+                          "additionalProperties": false
+                        }
+                      },
+                      "requirementRevisionId": {
+                        "type": "string"
+                      },
+                      "requirements": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "requirementId": {
+                              "type": "string"
+                            },
+                            "sourceRefs": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              },
+                              "minItems": 1
+                            },
+                            "statement": {
+                              "type": "string"
+                            }
+                          },
+                          "required": ["requirementId", "statement", "sourceRefs"],
+                          "additionalProperties": false
+                        },
+                        "minItems": 1
+                      },
+                      "resolvedQuestionAnswerIds": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "retiredRequirementIds": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "risks": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "scope": {
+                        "type": "object",
+                        "properties": {
+                          "excluded": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "included": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            },
+                            "minItems": 1
+                          }
+                        },
+                        "required": ["included", "excluded"],
+                        "additionalProperties": false
+                      }
+                    },
+                    "required": [
+                      "charterId",
+                      "analysisRevisionId",
+                      "cycleId",
+                      "requirementRevisionId",
+                      "objectives",
+                      "scope",
+                      "actors",
+                      "requirements",
+                      "obligations",
+                      "constraints",
+                      "assumptions",
+                      "risks",
+                      "acceptanceSignals",
+                      "retiredRequirementIds",
+                      "questions",
+                      "resolvedQuestionAnswerIds"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "idempotencyKey": {
+                    "type": "string"
+                  },
+                  "predecessorAnalysisRevisionId": {
+                    "type": "string"
+                  }
+                },
+                "required": ["idempotencyKey", "charter"],
+                "additionalProperties": false
+              },
+              "strict": false,
+              "type": "function"
+            }
+          ]
+        ],
+        "responseRejections": [],
+        "resolved": {
+          "mcpNames": []
+        },
+        "upstreamCount": 0,
+        "upstreamRequestHashes": [],
+        "sandboxProfileSha256": "04dd7803b439a604cfd030f2cf46c4dd87eb0e159b6bc807aa15c691cc32ff0e"
+      }
+    },
+    {
+      "schema": "appraise.p0-r2d-interlock-receipt/v1",
+      "artifactIdentities": {
+        "configSha256": "3ba2769832ace701c7a30fc873fb7eff2c09324db885278f118433eacf5acb4e",
+        "executableSha256": "4f85982624b3898c8991cb80c0981b2aa71070e3537046c9a95950318a95afcc",
+        "profileDigest": "sha256:92ed113f7ab3ae0fde662e1fbf92b1bc63cf44223f96551a38cae49671178230",
+        "projectionSha256": "696e879e46f8efb65ef678756166aebfd341f499164f92a707baf0f4e460af0a",
+        "sourceSha256": {
+          "p0-r2d-canonical-bridge.ts": "894176e258b78b132b626d1439a9a1488d239cad185d2b5e2ebd6198e3aa3059",
+          "p0-r2d-interlock-experiment.mjs": "aca4baa3235b46726177ee871d545c3e266b9167435fa271573d65234182ad08",
+          "qualify-p0-r2d-interlock.mjs": "24ddc08e291c5e0420edc7552b05b2c0ba51be88c3749dd6849aebfa004366f4",
+          "managed-worker-gateway.ts": "8606ed28c75e61d7d620a59067043d17a47b5475f00b6cd84f5a9f6be2650272",
+          "registry.ts": "a3cb5fe6b3098f1c801e6de99f243e94be7681fb7c2625d1d53d0833b86d75cf",
+          "role-definitions.ts": "98d1c624aaa6aedb1a4dd6ee11f5288b3dd1c1991250c1c32d737b46874d860f",
+          "p0-r2c-dynamic-tools-experiment.mjs": "145105f49e3f85d363be1074b1a47ffe2bd58b6ef20c166bbfd943f018cd9baa",
+          "p0-r2d-interlock-experiment.test.mjs": "71a06b1a3b82e8922697371ef620c7806e17292edf5e1658dc1271fde573d6c9"
+        }
+      },
+      "result": {
+        "arm": "response-rejection",
+        "cleanup": {
+          "confirmed": true,
+          "survivingProcessCount": 0
+        },
+        "canary": {
+          "denied": true,
+          "outcome": "connection_denied"
+        },
+        "childDiagnostics": {
+          "exit": {
+            "code": null,
+            "signal": "SIGTERM"
+          },
+          "stderr": []
+        },
+        "dispatchCount": 0,
+        "brokerReceiptDigests": [],
+        "forwardedRequests": [],
+        "error": null,
+        "requestRejections": ["tools_rejected"],
+        "requestDiagnostics": [
+          [
+            {
+              "description": "Read immutable Analysis Charter revisions, questions, answers, publication, and approval lineage.",
+              "name": "quality_journey_analysis_get",
+              "parameters": {
+                "type": "object",
+                "properties": {},
+                "required": [],
+                "additionalProperties": false
+              },
+              "strict": false,
+              "type": "function"
+            },
+            {
+              "description": "Submit an Analysis Charter only through the current leased Requirement Analyzer assignment.",
+              "name": "quality_journey_analysis_submit",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "charter": {
+                    "type": "object",
+                    "properties": {
+                      "acceptanceSignals": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        },
+                        "minItems": 1
+                      },
+                      "actors": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "analysisRevisionId": {
+                        "type": "string"
+                      },
+                      "assumptions": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "charterId": {
+                        "type": "string"
+                      },
+                      "constraints": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "cycleId": {
+                        "type": "string"
+                      },
+                      "objectives": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        },
+                        "minItems": 1
+                      },
+                      "obligations": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "acceptanceSignals": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              },
+                              "minItems": 1
+                            },
+                            "obligationId": {
+                              "type": "string"
+                            },
+                            "requirementId": {
+                              "type": "string"
+                            },
+                            "statement": {
+                              "type": "string"
+                            }
+                          },
+                          "required": ["obligationId", "requirementId", "statement", "acceptanceSignals"],
+                          "additionalProperties": false
+                        },
+                        "minItems": 1
+                      },
+                      "questions": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "prompt": {
+                              "type": "string"
+                            },
+                            "questionId": {
+                              "type": "string"
+                            },
+                            "rationale": {
+                              "type": "string"
+                            },
+                            "required": {
+                              "type": "boolean"
+                            }
+                          },
+                          "required": ["questionId", "prompt", "required", "rationale"],
+                          "additionalProperties": false
+                        }
+                      },
+                      "requirementRevisionId": {
+                        "type": "string"
+                      },
+                      "requirements": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "requirementId": {
+                              "type": "string"
+                            },
+                            "sourceRefs": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              },
+                              "minItems": 1
+                            },
+                            "statement": {
+                              "type": "string"
+                            }
+                          },
+                          "required": ["requirementId", "statement", "sourceRefs"],
+                          "additionalProperties": false
+                        },
+                        "minItems": 1
+                      },
+                      "resolvedQuestionAnswerIds": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "retiredRequirementIds": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "risks": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "scope": {
+                        "type": "object",
+                        "properties": {
+                          "excluded": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "included": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            },
+                            "minItems": 1
+                          }
+                        },
+                        "required": ["included", "excluded"],
+                        "additionalProperties": false
+                      }
+                    },
+                    "required": [
+                      "charterId",
+                      "analysisRevisionId",
+                      "cycleId",
+                      "requirementRevisionId",
+                      "objectives",
+                      "scope",
+                      "actors",
+                      "requirements",
+                      "obligations",
+                      "constraints",
+                      "assumptions",
+                      "risks",
+                      "acceptanceSignals",
+                      "retiredRequirementIds",
+                      "questions",
+                      "resolvedQuestionAnswerIds"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "idempotencyKey": {
+                    "type": "string"
+                  },
+                  "predecessorAnalysisRevisionId": {
+                    "type": "string"
+                  }
+                },
+                "required": ["idempotencyKey", "charter"],
+                "additionalProperties": false
+              },
+              "strict": false,
+              "type": "function"
+            }
+          ]
+        ],
+        "responseRejections": [],
+        "resolved": {
+          "mcpNames": []
+        },
+        "upstreamCount": 0,
+        "upstreamRequestHashes": [],
+        "sandboxProfileSha256": "9f9119da2b8f0c8c8535dd6bae2b2a5cc3a020c1568f28e83178824299e7847a"
+      }
+    }
+  ],
+  "receiptSubjectSha256": "0137fb2d4bdec734562c2c220dbc249e71b10fd19892caa0124fd2bf9421c32b",
+  "qualification": {
+    "findings": ["allowed_path_failed", "request_interlock_failed", "response_interlock_failed"],
+    "qualified": false
+  }
+}

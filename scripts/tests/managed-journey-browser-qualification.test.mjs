@@ -84,7 +84,7 @@ function html(response, body) {
 }
 
 function privatePage(request, response) {
-  const state = request.headers.cookie?.includes('fixture_session=secret') ? 'signed-in' : 'signed-out'
+  const state = request.headers.cookie?.includes('fixture_session=signed-in') ? 'signed-in' : 'signed-out'
   html(response, `<p id="state">${state}</p>`)
 }
 
@@ -101,8 +101,14 @@ after(async () => {
   ])
 })
 
-function newSession() {
-  return createBrowserBoundarySession(browser, {
+async function newSession(overrides = {}) {
+  const session = await createBrowserBoundarySession(browser, {
+    grant: {
+      journeyId: 'journey-a',
+      targetProjectId: 'target-a',
+      expiresAt: '2026-09-12T01:00:00.000Z',
+    },
+    clock: () => new Date('2026-09-12T00:00:00.000Z'),
     allowedOrigins: [allowedOrigin],
     allowedRequests: [
       { method: 'GET', url: `${allowedOrigin}/start` },
@@ -112,7 +118,13 @@ function newSession() {
       { method: 'GET', url: `${allowedOrigin}/private` },
       { method: 'GET', url: `${allowedOrigin}/download` },
     ],
+    ...overrides,
   })
+  return {
+    ...session,
+    unboundWorker: session.worker,
+    worker: session.worker.forScope({ journeyId: 'journey-a', targetProjectId: 'target-a' }),
+  }
 }
 
 test('QBR-01 contains redirects and background origin escapes', async () => {
@@ -162,16 +174,22 @@ test('QBR-02 blocks service workers, WebSockets, and download routes', async () 
   }
 })
 
-test('QBR-03 keeps a human-authenticated session isolated and in memory', async () => {
+test('QBR-03 supports anonymous observation, then synthetic human login with MFA in the trusted controller', async () => {
   const authenticated = await newSession()
-  await authenticated.controller.authorizeSyntheticSession({
-    name: 'fixture_session',
-    value: 'secret',
+  await authenticated.worker.navigate(`${allowedOrigin}/private`)
+  assert.equal(await authenticated.worker.observeText('#state'), 'signed-out')
+  const result = await authenticated.controller.completeSyntheticHumanLogin({
+    journeyId: 'journey-a',
+    targetProjectId: 'target-a',
     origin: allowedOrigin,
+    username: 'human@example.test',
+    password: 'C0.3-PASSWORD-CANARY',
+    mfaCode: 'C0.3-MFA-CANARY',
   })
+  assert.deepEqual(result, { authenticated: true, mfaSatisfied: true })
   await authenticated.worker.navigate(`${allowedOrigin}/private`)
   assert.equal(await authenticated.worker.observeText('#state'), 'signed-in')
-  assert.equal('authorizeSyntheticSession' in authenticated.worker, false)
+  assert.equal('completeSyntheticHumanLogin' in authenticated.worker, false)
   await authenticated.controller.close()
 
   const replacement = await newSession()
@@ -180,6 +198,104 @@ test('QBR-03 keeps a human-authenticated session isolated and in memory', async 
     assert.equal(await replacement.worker.observeText('#state'), 'signed-out')
   } finally {
     await replacement.controller.close()
+  }
+})
+
+test('QBR-06 binds login and authenticated worker use to Journey, target, and origin', async () => {
+  const { worker, unboundWorker, controller } = await newSession()
+  try {
+    const login = {
+      journeyId: 'journey-a',
+      targetProjectId: 'target-a',
+      origin: allowedOrigin,
+      username: 'human@example.test',
+      password: 'C0.3-PASSWORD-CANARY',
+      mfaCode: 'C0.3-MFA-CANARY',
+    }
+    await assert.rejects(
+      controller.completeSyntheticHumanLogin({ ...login, journeyId: 'journey-b' }),
+      /does not match the Journey browser grant/,
+    )
+    await assert.rejects(
+      controller.completeSyntheticHumanLogin({ ...login, targetProjectId: 'target-b' }),
+      /does not match the Journey browser grant/,
+    )
+    await assert.rejects(
+      controller.completeSyntheticHumanLogin({ ...login, origin: blockedOrigin }),
+      /outside the browser grant/,
+    )
+    assert.equal(controller.sessionState().authenticated, false)
+    await worker.navigate(`${allowedOrigin}/private`)
+    assert.equal(await worker.observeText('#state'), 'signed-out')
+    await controller.completeSyntheticHumanLogin(login)
+    assert.throws(
+      () => unboundWorker.forScope({ journeyId: 'journey-b', targetProjectId: 'target-a' }),
+      /does not match the Journey browser grant/,
+    )
+    assert.throws(
+      () => unboundWorker.forScope({ journeyId: 'journey-a', targetProjectId: 'target-b' }),
+      /does not match the Journey browser grant/,
+    )
+  } finally {
+    await controller.close()
+  }
+})
+
+test('QBR-07 requires fresh sign-in after logout, restart, expiry, and revocation', async () => {
+  const login = {
+    journeyId: 'journey-a',
+    targetProjectId: 'target-a',
+    origin: allowedOrigin,
+    username: 'human@example.test',
+    password: 'C0.3-PASSWORD-CANARY',
+    mfaCode: 'C0.3-MFA-CANARY',
+  }
+  const authenticated = await newSession()
+  await authenticated.controller.completeSyntheticHumanLogin(login)
+  await authenticated.controller.logout(allowedOrigin)
+  await authenticated.worker.navigate(`${allowedOrigin}/private`)
+  assert.equal(await authenticated.worker.observeText('#state'), 'signed-out')
+  await authenticated.controller.completeSyntheticHumanLogin(login)
+  authenticated.controller.revoke()
+  assert.equal((await authenticated.worker.navigate(`${allowedOrigin}/private`)).allowed, false)
+  await authenticated.controller.close()
+
+  const restarted = await newSession()
+  await restarted.worker.navigate(`${allowedOrigin}/private`)
+  assert.equal(await restarted.worker.observeText('#state'), 'signed-out')
+  await restarted.controller.close()
+
+  const expired = await newSession({ clock: () => new Date('2026-09-12T01:00:00.000Z') })
+  assert.equal((await expired.worker.navigate(`${allowedOrigin}/private`)).allowed, false)
+  await assert.rejects(expired.controller.completeSyntheticHumanLogin(login), /expired or revoked/)
+  await expired.controller.close()
+})
+
+test('QBR-08 keeps credential canaries out of worker observations, receipts, artifacts, and diagnostics', async () => {
+  const password = 'C0.3-PASSWORD-CANARY'
+  const mfaCode = 'C0.3-MFA-CANARY'
+  const { worker, controller } = await newSession()
+  try {
+    await controller.completeSyntheticHumanLogin({
+      journeyId: 'journey-a',
+      targetProjectId: 'target-a',
+      origin: allowedOrigin,
+      username: 'human@example.test',
+      password,
+      mfaCode,
+    })
+    await worker.navigate(`${allowedOrigin}/private`)
+    const modelVisibleObservation = { state: await worker.observeText('#state') }
+    const pluginOutput = { observation: modelVisibleObservation, receipts: controller.receiptSummary() }
+    const artifact = { kind: 'SUPPLEMENTAL_HOST_OBSERVATION', payload: pluginOutput }
+    const diagnostics = controller.diagnostics()
+    for (const sink of [modelVisibleObservation, pluginOutput, artifact, diagnostics]) {
+      const serialized = JSON.stringify(sink)
+      assert.equal(serialized.includes(password), false)
+      assert.equal(serialized.includes(mfaCode), false)
+    }
+  } finally {
+    await controller.close()
   }
 })
 

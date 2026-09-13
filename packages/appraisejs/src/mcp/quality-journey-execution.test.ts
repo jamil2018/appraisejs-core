@@ -39,6 +39,20 @@ describe('Journey execution MCP authority', () => {
       }),
     })
   })
+  it('forwards the current coordinator session while keeping stale values subject to Appraise admission', async () => {
+    const { handlers, request } = harness()
+    await handlers.get('quality_journey_execution_start')!({
+      ...start,
+      coordinatorHandoffId: 'handoff-current',
+      coordinatorGeneration: 2,
+    })
+    expect(request).toHaveBeenCalledWith(
+      'quality/journeys/journey-1/execution/start',
+      expect.objectContaining({
+        body: expect.stringContaining('"coordinatorGeneration":2'),
+      }),
+    )
+  })
   it.each([
     { ...start, preparedRuntimeCapsuleIds: [] },
     { ...start, preparedRuntimeCapsuleIds: ['prepared-1', 'prepared-1'] },

@@ -15,6 +15,10 @@ const ids = z
   .max(512)
   .refine(values => new Set(values).size === values.length, 'IDs must be unique.')
 const scope = { target: z.string().min(1), journeyId: id }
+const coordinatorSession = {
+  coordinatorHandoffId: id.optional(),
+  coordinatorGeneration: z.number().int().positive().optional(),
+}
 
 export const triageEvidenceReadInput = z
   .object({
@@ -25,6 +29,7 @@ export const triageEvidenceReadInput = z
     ownerToken: z.string().min(1),
     receiptId: id,
     artifactKind: z.enum(['report', 'log']),
+    ...coordinatorSession,
     offset: z
       .number()
       .int()
@@ -149,7 +154,7 @@ const workerResult = z
   })
   .strict()
 
-export const triagePrepareInput = z.object({ ...scope, executionCycleId: id }).strict()
+export const triagePrepareInput = z.object({ ...scope, executionCycleId: id, ...coordinatorSession }).strict()
 const triageSubmitInput = z
   .object({
     ...scope,
@@ -160,6 +165,22 @@ const triageSubmitInput = z
     idempotencyKey: id,
     report: triageReportInput,
     result: workerResult,
+    ...coordinatorSession,
+  })
+  .strict()
+const externalTriageSubmitInput = z
+  .object({
+    ...scope,
+    workItemId: id,
+    attemptId: id,
+    assignmentId: id,
+    assignmentGeneration: z.number().int().positive(),
+    leaseId: id,
+    assignmentSecret: z.string().min(32).max(2_000),
+    idempotencyKey: id,
+    report: triageReportInput,
+    result: workerResult,
+    ...coordinatorSession,
   })
   .strict()
 
@@ -220,6 +241,23 @@ export function registerQualityJourneyTriageOperations({ server, api }: McpRegis
       const { target, journeyId, ...body } = triageSubmitInput.parse(input)
       return text(
         await api.request(`quality/journeys/${journeyId}/triage/submit`, {
+          method: 'POST',
+          body: JSON.stringify({ target, ...body }),
+        }),
+      )
+    },
+  )
+  server.registerTool(
+    'quality_journey_external_triage_submit_v1',
+    {
+      description:
+        'Submit one canonical attribution report through an admitted EXTERNAL_V1 Triager assignment. Report review and remediation stay Appraise-owned.',
+      inputSchema: externalTriageSubmitInput.shape,
+    },
+    async input => {
+      const { target, journeyId, ...body } = externalTriageSubmitInput.parse(input)
+      return text(
+        await api.request(`quality/journeys/${journeyId}/triage/external-submit`, {
           method: 'POST',
           body: JSON.stringify({ target, ...body }),
         }),

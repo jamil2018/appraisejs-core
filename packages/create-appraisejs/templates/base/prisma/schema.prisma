@@ -575,6 +575,7 @@ model QualityJourney {
   executionCancellationReceipts     QualityJourneyExecutionCancellationReceipt[]
   executionRerunProposals           QualityJourneyExecutionRerunProposal[]
   coordinatorHandoffs               QualityJourneyCoordinatorHandoff[]
+  externalWorkClaimReceipts         QualityJourneyExternalWorkClaimReceipt[]
   sourceDraft                       QualityJourneyDraft?                         @relation("ConfirmedQualityJourneyDraft")
 
   @@unique([targetProjectId, rootIdempotencyKey])
@@ -668,6 +669,26 @@ model QualityJourneyCoordinatorHandoff {
   targetProjectId String
   providerId      String
   status          String         @default("PREPARED")
+  /// A fresh handoff is a new coordinator-session generation.  The snapshot
+  /// fields below are deliberately durable so restart and reload recovery can
+  /// fail closed instead of replaying a stale prompt as current authority.
+  generation              Int      @default(1)
+  journeyStateHash        String?
+  journeyStage            String?
+  revisionSnapshotHash    String?
+  workSnapshotHash        String?
+  eventSequence           Int?
+  targetReferenceHash     String?
+  coordinatorTaskId       String?
+  takeoverApprovalHash    String?
+  takeoverApprovalExpiresAt DateTime?
+  takeoverRequestHash     String?
+  takeoverResultJson      String?
+  takeoverApprovedAt      DateTime?
+  takeoverApprovedBy      String?
+  takeoverAt              DateTime?
+  fencedAt                DateTime?
+  fenceReason             String?
   ticketHash      String         @unique
   promptHash      String
   expiresAt       DateTime
@@ -681,6 +702,8 @@ model QualityJourneyCoordinatorHandoff {
   targetProject   TargetProject  @relation(fields: [targetProjectId], references: [id], onDelete: Restrict)
 
   @@index([journeyId, createdAt])
+  @@unique([journeyId, targetProjectId, generation])
+  @@index([journeyId, takeoverAt])
   @@index([targetProjectId, status])
   @@index([expiresAt])
 }
@@ -1382,6 +1405,7 @@ model QualityJourneyWorkItem {
   journey                    QualityJourney                            @relation(fields: [journeyId], references: [id], onDelete: Restrict)
   authorizations             QualityJourneyWorkAuthorization[]
   attempts                   QualityJourneyWorkAttempt[]
+  externalWorkClaimReceipts  QualityJourneyExternalWorkClaimReceipt[]
   analysisSubmissions        QualityJourneyAnalysisRevision[]          @relation("QualityJourneyAnalysisSubmittedWorkItem")
   scenarioSubmissions        QualityJourneyScenarioPortfolioRevision[] @relation("QualityJourneyScenarioSubmittedWorkItem")
   automationMaterializations QualityJourneyAutomationMaterialization[]
@@ -1406,6 +1430,14 @@ model QualityJourneyWorkAuthorization {
   capabilityProfileHash     String
   authorizationJson         String
   authorizationHash         String
+  /// External Analyzer admission is opt-in and remains bound to the project
+  /// credential principal that selected it. Null preserves legacy managed-only
+  /// authorizations without reinterpreting their Factory provenance.
+  externalAdmissionProtocol String?
+  externalPrincipalId       String?
+  externalPrincipalAssurance String?
+  externalOptInRequestHash String?
+  externalOptedInAt         DateTime?
   /// Factory claims consume this hard ceiling atomically. It is deliberately
   /// not a provider/token/cost budget.
   maxAttempts               Int                              @default(3)
@@ -1421,6 +1453,7 @@ model QualityJourneyWorkAuthorization {
   supersedesAuthorization   QualityJourneyWorkAuthorization? @relation("QualityJourneyWorkAuthorizationSupersession", fields: [supersedesAuthorizationId], references: [id], onDelete: Restrict)
   successorAuthorization    QualityJourneyWorkAuthorization? @relation("QualityJourneyWorkAuthorizationSupersession")
   attempts                  QualityJourneyWorkAttempt[]
+  externalWorkClaimReceipts QualityJourneyExternalWorkClaimReceipt[]
 
   @@index([targetProjectId, role])
   @@index([journeyId, workItemId])
@@ -1435,6 +1468,16 @@ model QualityJourneyWorkAttempt {
   status                     String                                    @default("CLAIMED")
   leaseId                    String                                    @unique
   ownerTokenHash             String
+  executionMode              String                                    @default("MANAGED")
+  externalPrincipalId        String?
+  externalPrincipalAssurance String?
+  assignmentGeneration       Int                                       @default(1)
+  externalAdmissionId        String?                                   @unique
+  externalAdmissionJson      String?
+  externalAdmissionHash      String?
+  externalAdmissionRequestJson String?
+  externalAdmissionRequestHash String?
+  externalAdmittedAt         DateTime?
   leaseExpiresAt             DateTime
   heartbeatSeconds           Int
   authorizationId            String?
@@ -1470,6 +1513,8 @@ model QualityJourneyWorkAttempt {
   scenarioSubmissions        QualityJourneyScenarioPortfolioRevision[] @relation("QualityJourneyScenarioSubmittedAttempt")
   automationMaterializations QualityJourneyAutomationMaterialization[]
   automationRequestReceipts  QualityJourneyAutomationRequestReceipt[]
+  externalWorkClaimReceipt   QualityJourneyExternalWorkClaimReceipt?
+  externalSubmissionAcceptances QualityJourneyExternalSubmissionAcceptance[]
 
   @@unique([workItemId, attempt])
   @@unique([assignmentId])
@@ -1479,6 +1524,68 @@ model QualityJourneyWorkAttempt {
   @@index([authorizationId, attempt])
   @@index([replacesAttemptId])
   @@index([dispatchReservedAt])
+}
+
+/// A caller-secret authenticated, replayable EXTERNAL_V1 work-claim receipt.
+/// It is separate from managed Factory spawn evidence: this records Appraise's
+/// bounded external admission authority only and never attests host isolation.
+model QualityJourneyExternalWorkClaimReceipt {
+  id                       String                    @id
+  journeyId                String
+  targetProjectId          String
+  workItemId               String
+  attemptId                String                    @unique
+  authorizationId          String
+  protocol                 String
+  role                     QualityJourneyRole
+  principalId              String
+  principalAssurance       String
+  assignmentSecretVerifier String
+  assignmentGeneration     Int
+  leaseId                  String
+  leaseRequestSeconds      Int
+  idempotencyKey           String
+  requestJson              String
+  requestHash              String
+  receiptJson              String
+  receiptHash              String
+  createdAt                DateTime                  @default(now())
+  journey                  QualityJourney            @relation(fields: [journeyId], references: [id], onDelete: Restrict)
+  workItem                 QualityJourneyWorkItem    @relation(fields: [workItemId], references: [id], onDelete: Restrict)
+  authorization            QualityJourneyWorkAuthorization @relation(fields: [authorizationId], references: [id], onDelete: Restrict)
+  attempt                  QualityJourneyWorkAttempt @relation(fields: [attemptId], references: [id], onDelete: Restrict)
+
+  @@unique([journeyId, targetProjectId, principalId, protocol, idempotencyKey])
+  @@index([workItemId, createdAt])
+  @@index([authorizationId, createdAt])
+}
+
+/// Durable externally authenticated specialized-submission outcomes.  These
+/// rows are receipts, not a generic mutation log: each is created only by a
+/// role-specific canonical ingress in the same transaction as its effect.
+model QualityJourneyExternalSubmissionAcceptance {
+  id                   String                    @id
+  journeyId            String
+  targetProjectId      String
+  workItemId           String
+  attemptId            String
+  assignmentId         String
+  assignmentGeneration Int
+  leaseId              String
+  role                 QualityJourneyRole
+  operation            String
+  principalId          String
+  principalAssurance   String
+  idempotencyKey       String
+  payloadHash          String
+  outcomeJson          String
+  outcomeHash          String
+  createdAt            DateTime                  @default(now())
+  attempt              QualityJourneyWorkAttempt @relation(fields: [attemptId], references: [id], onDelete: Restrict)
+
+  @@unique([journeyId, targetProjectId, principalId, operation, attemptId, idempotencyKey])
+  @@index([assignmentId, assignmentGeneration, createdAt])
+  @@index([workItemId, createdAt])
 }
 
 model QualityJourneyBlocker {

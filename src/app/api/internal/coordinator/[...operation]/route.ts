@@ -22,6 +22,10 @@ import { guardCoordinatorRequest, readCoordinatorJson } from '@/lib/coordinator-
 import { coordinatorStepDefinitionService } from '@/services/coordinator/coordinator-step-definition-service'
 import { ServiceError } from '@/services/shared/errors'
 import {
+  assertCurrentCoordinatorSession,
+  type CoordinatorSessionBinding,
+} from '@/services/coordinator/quality-journey-coordinator-session'
+import {
   ensureEnvironment,
   environmentRegistryHash,
   environmentSummary,
@@ -45,6 +49,10 @@ import { RuntimeCapsuleTestRunService } from '@/services/test-run/runtime-capsul
 import {
   claimQualityJourneyWork,
   cancelQualityJourneyWork,
+  admitExternalQualityJourneyWork,
+  admitExternalQualityJourneyAnalyzer,
+  claimExternalQualityJourneyWork,
+  claimExternalQualityJourneyAnalyzer,
   completeQualityJourneyWork,
   createQualityJourney,
   dispatchQualityJourneyWork,
@@ -53,6 +61,7 @@ import {
   listQualityJourneyArtifacts,
   revokeQualityJourneyWorkAuthorization,
   resumeQualityJourney,
+  readExternalQualityJourneySubmissionOutcome,
   submitDurableQualityJourneyCommand,
 } from '@/services/coordinator/quality-journey-service'
 import { qualityJourneyRequirementSchema } from '@/lib/quality-journey'
@@ -76,6 +85,19 @@ type CoordinatorErrorContext = {
   target?: string
   operationId?: string
   effectStarted?: boolean
+  externalSubmissionOutcome?: {
+    target: string
+    journeyId: string
+    role: string
+    operation: string
+    workItemId: string
+    attemptId: string
+    assignmentId: string
+    assignmentGeneration: number
+    leaseId: string
+    assignmentSecret: string
+    idempotencyKey: string
+  }
 }
 
 type CoordinatorEffectState = {
@@ -110,19 +132,70 @@ function coordinatorEffectContext(effectState?: CoordinatorEffectState) {
   return effectState?.started ? { effectStarted: true } : {}
 }
 
-function coordinatorErrorContext(
+const externalSubmissionRecovery = new Map<string, { role: string; operation: string }>([
+  ['analysis/external-submissions', { role: 'REQUIREMENT_ANALYZER', operation: 'ANALYSIS_SUBMIT' }],
+  ['discovery/external-target-observations', { role: 'SCOUT', operation: 'TARGET_OBSERVATION_SUBMIT' }],
+  ['discovery/external-resource-resolutions', { role: 'RESOURCE_EXPLORER', operation: 'RESOURCE_RESOLUTION_SUBMIT' }],
+  ['scenarios/external-submissions', { role: 'TEST_SCENARIO_DESIGNER', operation: 'SCENARIO_PORTFOLIO_SUBMIT' }],
+  ['automation/external-materializations', { role: 'AUTOMATOR', operation: 'AUTOMATION_MATERIALIZE' }],
+  ['triage/external-submit', { role: 'TRIAGER', operation: 'TRIAGE_REPORT_SUBMIT' }],
+])
+
+function externalSubmissionOutcomeContext(operation: string[], source: Record<string, unknown> | undefined) {
+  if (operation[0] !== 'quality' || operation[1] !== 'journeys' || !operation[2] || !source) return undefined
+  const recovery = externalSubmissionRecovery.get(operation.slice(3).join('/'))
+  const target = textValue(source.target)
+  const workItemId = textValue(source.workItemId)
+  const attemptId = textValue(source.attemptId)
+  const assignmentId = textValue(source.assignmentId)
+  const leaseId = textValue(source.leaseId)
+  const assignmentSecret = textValue(source.assignmentSecret)
+  const idempotencyKey = textValue(source.idempotencyKey)
+  const assignmentGeneration = source.assignmentGeneration
+  if (
+    !recovery ||
+    !target ||
+    !workItemId ||
+    !attemptId ||
+    !assignmentId ||
+    !leaseId ||
+    !assignmentSecret ||
+    !idempotencyKey ||
+    typeof assignmentGeneration !== 'number' ||
+    !Number.isInteger(assignmentGeneration) ||
+    assignmentGeneration < 1
+  )
+    return undefined
+  return {
+    target,
+    journeyId: operation[2],
+    role: recovery.role,
+    operation: recovery.operation,
+    workItemId,
+    attemptId,
+    assignmentId,
+    assignmentGeneration,
+    leaseId,
+    assignmentSecret,
+    idempotencyKey,
+  }
+}
+
+export function coordinatorErrorContext(
   request: Request,
   operation: string[],
   body?: unknown,
   effectState?: CoordinatorEffectState,
 ): CoordinatorErrorContext {
   const source = bodyRecord(body)
+  const externalSubmissionOutcome = externalSubmissionOutcomeContext(operation, source)
   return {
     operation: operation.join('/') || 'unknown',
     ...optionalContext('idempotencyKey', coordinatorRequestIdempotencyKey(request, source)),
     ...optionalContext('target', textValue(source?.target)),
     ...optionalContext('operationId', coordinatorOperationId(source, effectState)),
     ...coordinatorEffectContext(effectState),
+    ...(externalSubmissionOutcome ? { externalSubmissionOutcome } : {}),
   }
 }
 
@@ -142,6 +215,20 @@ function errorClassification(error: unknown) {
 }
 
 function coordinatorErrorRetry(context: CoordinatorErrorContext) {
+  if (context.externalSubmissionOutcome) {
+    const { assignmentSecret, ...argumentsWithoutSecret } = context.externalSubmissionOutcome
+    void assignmentSecret
+    return {
+      safe: true,
+      strategy: 'read_state_then_retry' as const,
+      nextAction: {
+        tool: 'quality_journey_external_work_outcome_get_v1',
+        arguments: argumentsWithoutSecret,
+        reason:
+          'Read the durable external submission outcome before deciding whether to retry; provide the same caller-held assignment secret.',
+      },
+    }
+  }
   const readableOperation = context.operation.startsWith('collaboration/') && context.target && context.operationId
   if (!readableOperation) return { safe: false, strategy: 'do_not_retry' as const }
   return {
@@ -159,11 +246,12 @@ function isPreEffectCoordinatorFailure(error: unknown, effectStarted?: boolean) 
   if (effectStarted) return false
   if (error instanceof z.ZodError) return true
   if (!(error instanceof ServiceError)) return false
-  return ['VALIDATION', 'UNAUTHORIZED', 'NOT_FOUND'].includes(error.code)
+  return ['VALIDATION', 'UNAUTHORIZED', 'NOT_FOUND', 'CONFLICT'].includes(error.code)
 }
 
 function coordinatorOperationOutcome(error: unknown, context: CoordinatorErrorContext) {
   if (isPreEffectCoordinatorFailure(error, context.effectStarted)) return 'not_started'
+  if (context.externalSubmissionOutcome) return 'unknown'
   return context.effectStarted ? 'unknown' : 'not_started'
 }
 
@@ -589,6 +677,8 @@ const qualityJourneyWorkLeaseSchema = z.object({
   target: z.string().min(1),
   leaseId: z.string().min(1),
   ownerToken: z.string().min(1),
+  coordinatorHandoffId: z.string().min(1).max(200).optional(),
+  coordinatorGeneration: z.number().int().positive().optional(),
 })
 
 function assertGenericQualityJourneyWorkCompletion(result: unknown) {
@@ -616,22 +706,93 @@ const qualityJourneyWorkControlSchema = z.object({
   reason: z.string().trim().min(1).max(8_000),
 })
 
+const coordinatorJourneySessionEnvelope = z
+  .object({
+    target: z.string().min(1),
+    coordinatorHandoffId: z.string().min(1).max(200).optional(),
+    coordinatorGeneration: z.number().int().positive().optional(),
+  })
+  .passthrough()
+
+function withoutCoordinatorSession(value: Record<string, unknown>) {
+  const body = { ...value }
+  delete body.coordinatorHandoffId
+  delete body.coordinatorGeneration
+  return body
+}
+
+/**
+ * One route-level admission covers every coordinator-owned Journey mutation,
+ * including specialized endpoints that intentionally keep their own strict
+ * domain schemas. Human UI actions do not pass through this coordinator API.
+ */
+async function admitCoordinatorJourneyMutation(operation: string[], body: unknown) {
+  if (operation[0] !== 'quality' || operation[1] !== 'journeys' || !operation[2])
+    return { body, session: {} satisfies Omit<CoordinatorSessionBinding, 'journeyId' | 'targetProjectId'> }
+  const envelope = coordinatorJourneySessionEnvelope.parse(body)
+  const target = await resolveTargetProject(envelope.target)
+  const session = {
+    ...(envelope.coordinatorHandoffId ? { coordinatorHandoffId: envelope.coordinatorHandoffId } : {}),
+    ...(envelope.coordinatorGeneration ? { coordinatorGeneration: envelope.coordinatorGeneration } : {}),
+  }
+  await assertCurrentCoordinatorSession({ journeyId: operation[2], targetProjectId: target.id, ...session }, prisma)
+  return { body: withoutCoordinatorSession(envelope), session }
+}
+
 function isQualityJourneyWorkOperation(operation: string[], action: string) {
   return operation.length === 6 && operation[1] === 'journeys' && operation[3] === 'work' && operation[5] === action
 }
 
-async function postQualityOperation(operation: string[], body: unknown): Promise<Response> {
-  const triageResponse = await postQualityJourneyTriageRoute(operation, body)
+function routeProjectCredentialPrincipal(request: Request) {
+  const fingerprint = request.headers.get('x-appraise-project')
+  // guardCoordinatorRequest has already validated this header against the hub
+  // project and its bearer. It is intentionally not represented as a person,
+  // process, Codex task, or host-isolation identity.
+  if (!fingerprint) throw new ServiceError('Coordinator project identity is missing.', 'UNAUTHORIZED')
+  return { principalId: `coordinator:${fingerprint}`, assurance: 'PROJECT_CREDENTIAL_ONLY' as const }
+}
+
+async function postQualityOperation(request: Request, operation: string[], body: unknown): Promise<Response> {
+  const admission = await admitCoordinatorJourneyMutation(operation, body)
+  body = admission.body
+  const coordinatorSession = admission.session
+  const triageResponse = await postQualityJourneyTriageRoute(
+    operation,
+    body,
+    coordinatorSession,
+    routeProjectCredentialPrincipal(request),
+  )
   if (triageResponse) return triageResponse
-  const discoveryResponse = await postQualityJourneyDiscoveryRoute(operation, body)
+  const discoveryResponse = await postQualityJourneyDiscoveryRoute(
+    operation,
+    body,
+    coordinatorSession,
+    routeProjectCredentialPrincipal(request),
+  )
   if (discoveryResponse) return discoveryResponse
-  const scenarioResponse = await postQualityJourneyScenarioRoute(operation, body)
+  const scenarioResponse = await postQualityJourneyScenarioRoute(
+    operation,
+    body,
+    coordinatorSession,
+    routeProjectCredentialPrincipal(request),
+  )
   if (scenarioResponse) return scenarioResponse
-  const executionResponse = await postQualityJourneyExecutionRoute(operation, body)
+  const executionResponse = await postQualityJourneyExecutionRoute(operation, body, coordinatorSession)
   if (executionResponse) return executionResponse
-  const automationResponse = await postQualityJourneyAutomationRoute(operation, body)
+  const automationResponse = await postQualityJourneyAutomationRoute(
+    operation,
+    body,
+    coordinatorSession,
+    routeProjectCredentialPrincipal(request),
+  )
   if (automationResponse) return automationResponse
-  const analysisResponse = await postQualityJourneyAnalysisRoute(operation, body)
+  const analysisResponse = await postQualityJourneyAnalysisRoute(
+    request,
+    operation,
+    body,
+    routeProjectCredentialPrincipal(request),
+    coordinatorSession,
+  )
   if (analysisResponse) return analysisResponse
   const key = operation.join('/')
   if (key === 'quality/journeys') {
@@ -655,7 +816,9 @@ async function postQualityOperation(operation: string[], body: unknown): Promise
   if (key === `quality/journeys/${operation[2]}/resume`) {
     const value = z.object({ target: z.string().min(1) }).parse(body)
     const target = await resolveTargetProject(value.target)
-    return Response.json(await resumeQualityJourney({ journeyId: operation[2]!, targetProjectId: target.id }))
+    return Response.json(
+      await resumeQualityJourney({ journeyId: operation[2]!, targetProjectId: target.id, ...coordinatorSession }),
+    )
   }
   if (key === `quality/journeys/${operation[2]}/commands`) {
     const value = z.object({ target: z.string().min(1), command: z.unknown() }).parse(body)
@@ -686,15 +849,172 @@ async function postQualityOperation(operation: string[], body: unknown): Promise
       )
     )
       throw new ServiceError('Phase 5 scenario commands require their dedicated coordinator operation.', 'UNAUTHORIZED')
-    return Response.json(await submitDurableQualityJourneyCommand(command))
+    return Response.json(
+      await submitDurableQualityJourneyCommand(command, prisma, {
+        journeyId: operation[2]!,
+        targetProjectId: target.id,
+        ...coordinatorSession,
+      }),
+    )
   }
   if (key === `quality/journeys/${operation[2]}/work/claim`) {
     const value = z
-      .object({ target: z.string().min(1), role: qualityJourneyRoleSchema, leaseSeconds: z.number().int().optional() })
+      .object({
+        target: z.string().min(1),
+        role: qualityJourneyRoleSchema,
+        leaseSeconds: z.number().int().optional(),
+        coordinatorHandoffId: z.string().min(1).max(200).optional(),
+        coordinatorGeneration: z.number().int().positive().optional(),
+      })
       .parse(body)
     const target = await resolveTargetProject(value.target)
     return Response.json(
-      await claimQualityJourneyWork({ ...value, journeyId: operation[2]!, targetProjectId: target.id }),
+      await claimQualityJourneyWork({
+        ...value,
+        journeyId: operation[2]!,
+        targetProjectId: target.id,
+        ...coordinatorSession,
+      }),
+    )
+  }
+  if (key === `quality/journeys/${operation[2]}/external-work/claim`) {
+    const value = z
+      .object({
+        target: z.string().min(1),
+        role: qualityJourneyRoleSchema,
+        assignmentSecret: z.string().min(32).max(2_000),
+        idempotencyKey: z.string().min(1).max(200),
+        leaseSeconds: z.number().int().optional(),
+        coordinatorHandoffId: z.string().min(1).max(200).optional(),
+        coordinatorGeneration: z.number().int().positive().optional(),
+      })
+      .strict()
+      .parse(body)
+    const target = await resolveTargetProject(value.target)
+    return Response.json(
+      await claimExternalQualityJourneyWork({
+        journeyId: operation[2]!,
+        targetProjectId: target.id,
+        role: value.role,
+        assignmentSecret: value.assignmentSecret,
+        idempotencyKey: value.idempotencyKey,
+        ...(value.leaseSeconds !== undefined ? { leaseSeconds: value.leaseSeconds } : {}),
+        ...(value.coordinatorHandoffId ? { coordinatorHandoffId: value.coordinatorHandoffId } : {}),
+        ...(value.coordinatorGeneration ? { coordinatorGeneration: value.coordinatorGeneration } : {}),
+        ...coordinatorSession,
+        principal: routeProjectCredentialPrincipal(request),
+      }),
+    )
+  }
+  if (key === `quality/journeys/${operation[2]}/external-work/admissions`) {
+    const value = z
+      .object({
+        target: z.string().min(1),
+        role: qualityJourneyRoleSchema,
+        workItemId: z.string().min(1),
+        attemptId: z.string().min(1),
+        assignmentId: z.string().min(1),
+        assignmentGeneration: z.number().int().positive(),
+        leaseId: z.string().min(1),
+        assignmentSecret: z.string().min(32).max(2_000),
+        idempotencyKey: z.string().min(1).max(200),
+      })
+      .strict()
+      .parse(body)
+    const target = await resolveTargetProject(value.target)
+    return Response.json(
+      await admitExternalQualityJourneyWork({
+        ...value,
+        journeyId: operation[2]!,
+        targetProjectId: target.id,
+        ...coordinatorSession,
+        principal: routeProjectCredentialPrincipal(request),
+      }),
+    )
+  }
+  if (key === `quality/journeys/${operation[2]}/external-work/outcomes`) {
+    const value = z
+      .object({
+        target: z.string().min(1),
+        role: qualityJourneyRoleSchema,
+        operation: z.enum([
+          'ANALYSIS_SUBMIT',
+          'TARGET_OBSERVATION_SUBMIT',
+          'RESOURCE_RESOLUTION_SUBMIT',
+          'SCENARIO_PORTFOLIO_SUBMIT',
+          'AUTOMATION_MATERIALIZE',
+          'TRIAGE_REPORT_SUBMIT',
+        ]),
+        workItemId: z.string().min(1),
+        attemptId: z.string().min(1),
+        assignmentId: z.string().min(1),
+        assignmentGeneration: z.number().int().positive(),
+        leaseId: z.string().min(1),
+        assignmentSecret: z.string().min(32).max(2_000),
+        idempotencyKey: z.string().min(1).max(200),
+      })
+      .strict()
+      .parse(body)
+    const target = await resolveTargetProject(value.target)
+    return Response.json(
+      await readExternalQualityJourneySubmissionOutcome({
+        ...value,
+        journeyId: operation[2]!,
+        targetProjectId: target.id,
+        principal: routeProjectCredentialPrincipal(request),
+      }),
+    )
+  }
+  if (key === `quality/journeys/${operation[2]}/external-analyzer/claim`) {
+    const value = z
+      .object({
+        target: z.string().min(1),
+        assignmentSecret: z.string().min(32).max(2_000),
+        idempotencyKey: z.string().min(1).max(200),
+        leaseSeconds: z.number().int().optional(),
+        coordinatorHandoffId: z.string().min(1).max(200).optional(),
+        coordinatorGeneration: z.number().int().positive().optional(),
+      })
+      .strict()
+      .parse(body)
+    const target = await resolveTargetProject(value.target)
+    return Response.json(
+      await claimExternalQualityJourneyAnalyzer({
+        journeyId: operation[2]!,
+        targetProjectId: target.id,
+        assignmentSecret: value.assignmentSecret,
+        idempotencyKey: value.idempotencyKey,
+        ...(value.leaseSeconds !== undefined ? { leaseSeconds: value.leaseSeconds } : {}),
+        ...(value.coordinatorHandoffId ? { coordinatorHandoffId: value.coordinatorHandoffId } : {}),
+        ...(value.coordinatorGeneration ? { coordinatorGeneration: value.coordinatorGeneration } : {}),
+        ...coordinatorSession,
+        principal: routeProjectCredentialPrincipal(request),
+      }),
+    )
+  }
+  if (key === `quality/journeys/${operation[2]}/external-analyzer/admissions`) {
+    const value = z
+      .object({
+        target: z.string().min(1),
+        workItemId: z.string().min(1),
+        attemptId: z.string().min(1),
+        assignmentId: z.string().min(1),
+        assignmentGeneration: z.number().int().positive(),
+        leaseId: z.string().min(1),
+        assignmentSecret: z.string().min(32).max(2_000),
+        idempotencyKey: z.string().min(1).max(200),
+      })
+      .strict()
+      .parse(body)
+    const target = await resolveTargetProject(value.target)
+    return Response.json(
+      await admitExternalQualityJourneyAnalyzer({
+        ...value,
+        journeyId: operation[2]!,
+        targetProjectId: target.id,
+        ...coordinatorSession,
+        principal: routeProjectCredentialPrincipal(request),
+      }),
     )
   }
   if (isQualityJourneyWorkOperation(operation, 'dispatch')) {
@@ -704,9 +1024,12 @@ async function postQualityOperation(operation: string[], body: unknown): Promise
       await dispatchQualityJourneyWork({
         leaseId: value.leaseId,
         ownerToken: value.ownerToken,
+        ...(value.coordinatorHandoffId ? { coordinatorHandoffId: value.coordinatorHandoffId } : {}),
+        ...(value.coordinatorGeneration ? { coordinatorGeneration: value.coordinatorGeneration } : {}),
         journeyId: operation[2]!,
         workItemId: operation[4]!,
         targetProjectId: target.id,
+        ...coordinatorSession,
       }),
     )
   }
@@ -720,6 +1043,7 @@ async function postQualityOperation(operation: string[], body: unknown): Promise
         targetProjectId: target.id,
         actor: value.actor,
         reason: value.reason,
+        ...coordinatorSession,
       }),
     )
   }
@@ -733,6 +1057,7 @@ async function postQualityOperation(operation: string[], body: unknown): Promise
         targetProjectId: target.id,
         actor: value.actor,
         reason: value.reason,
+        ...coordinatorSession,
       }),
     )
   }
@@ -749,6 +1074,7 @@ async function postQualityOperation(operation: string[], body: unknown): Promise
         journeyId: operation[2]!,
         workItemId: operation[4]!,
         targetProjectId: target.id,
+        ...coordinatorSession,
       }),
     )
   }
@@ -782,6 +1108,8 @@ async function postLocatorEnsure(request: Request, body: unknown): Promise<Respo
     .object({
       target: z.string().min(1),
       journeyId: z.string().min(1),
+      coordinatorHandoffId: z.string().min(1).max(200).optional(),
+      coordinatorGeneration: z.number().int().positive().optional(),
       allowCreate: z.boolean().optional(),
       group: z.discriminatedUnion('mode', [
         z.object({ mode: z.literal('existing'), id: z.string().min(1) }).strict(),
@@ -801,6 +1129,15 @@ async function postLocatorEnsure(request: Request, body: unknown): Promise<Respo
     .strict()
     .parse(body)
   const target = await resolveTargetProject(value.target)
+  await assertCurrentCoordinatorSession(
+    {
+      journeyId: value.journeyId,
+      targetProjectId: target.id,
+      ...(value.coordinatorHandoffId ? { coordinatorHandoffId: value.coordinatorHandoffId } : {}),
+      ...(value.coordinatorGeneration ? { coordinatorGeneration: value.coordinatorGeneration } : {}),
+    },
+    prisma,
+  )
   return Response.json(await ensureTargetLocator(value, target))
 }
 
@@ -824,7 +1161,7 @@ async function dispatchPost(
   if (operation.length === 2 && operation[0] === 'locators' && operation[1] === 'ensure')
     return postLocatorEnsure(request, body)
   if (operation.length === 1 && operation[0] === 'test-runs') return postIndependentTestRun(body)
-  if (operation[0] === 'quality') return postQualityOperation(operation, body)
+  if (operation[0] === 'quality') return postQualityOperation(request, operation, body)
   return unknownOperation()
 }
 

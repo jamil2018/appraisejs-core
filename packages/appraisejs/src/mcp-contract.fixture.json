@@ -846,6 +846,16 @@
             "type": "string",
             "minLength": 1
           },
+          "coordinatorHandoffId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "coordinatorGeneration": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
+          },
           "allowCreate": {
             "type": "boolean"
           },
@@ -1329,6 +1339,16 @@
             "minLength": 1,
             "maxLength": 200,
             "pattern": "^[A-Za-z0-9._:-]+$"
+          },
+          "coordinatorHandoffId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "coordinatorGeneration": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
           }
         },
         "required": [
@@ -1396,6 +1416,16 @@
           "contentHash": {
             "type": "string",
             "pattern": "^sha256:[a-f0-9]{64}$"
+          },
+          "coordinatorHandoffId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "coordinatorGeneration": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
           }
         },
         "required": [
@@ -1492,6 +1522,16 @@
           "contentHash": {
             "type": "string",
             "pattern": "^sha256:[a-f0-9]{64}$"
+          },
+          "coordinatorHandoffId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "coordinatorGeneration": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
           }
         },
         "required": [
@@ -1569,6 +1609,16 @@
             "type": "string",
             "minLength": 1,
             "maxLength": 8000
+          },
+          "coordinatorHandoffId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "coordinatorGeneration": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
           }
         },
         "required": [
@@ -1911,6 +1961,16 @@
               "resolvedQuestionAnswerIds"
             ],
             "additionalProperties": false
+          },
+          "coordinatorHandoffId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "coordinatorGeneration": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
           }
         },
         "required": [
@@ -2493,6 +2553,16 @@
               "submittedAt"
             ],
             "additionalProperties": false
+          },
+          "coordinatorHandoffId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "coordinatorGeneration": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
           }
         },
         "required": [
@@ -2539,6 +2609,16 @@
               "type": "string"
             },
             "additionalProperties": {}
+          },
+          "coordinatorHandoffId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "coordinatorGeneration": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
           }
         },
         "required": [
@@ -2770,6 +2850,16 @@
             "type": "string",
             "minLength": 1,
             "maxLength": 8000
+          },
+          "coordinatorHandoffId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "coordinatorGeneration": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
           }
         },
         "required": [
@@ -2809,6 +2899,16 @@
             "minLength": 1,
             "maxLength": 200,
             "pattern": "^[A-Za-z0-9._:-]+$"
+          },
+          "coordinatorHandoffId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "coordinatorGeneration": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
           }
         },
         "required": [
@@ -2852,6 +2952,17 @@
             "minLength": 1,
             "maxLength": 200,
             "pattern": "^[A-Za-z0-9._:-]+$"
+          },
+          "coordinatorHandoffId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
+          },
+          "coordinatorGeneration": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
           },
           "cycleId": {
             "type": "string",
@@ -2957,6 +3068,17 @@
             "minLength": 1,
             "maxLength": 200,
             "pattern": "^[A-Za-z0-9._:-]+$"
+          },
+          "coordinatorHandoffId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
+          },
+          "coordinatorGeneration": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
           }
         },
         "required": [
@@ -3001,6 +3123,17 @@
             "minLength": 1,
             "maxLength": 200,
             "pattern": "^[A-Za-z0-9._:-]+$"
+          },
+          "coordinatorHandoffId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
+          },
+          "coordinatorGeneration": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
           },
           "environmentId": {
             "type": "string",
@@ -3074,6 +3207,3602 @@
         "required": [
           "target",
           "journeyId"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "kind": "tool",
+      "name": "quality_journey_external_analyzer_admit_v1",
+      "description": "Atomically admit one claimed EXTERNAL_V1 Analyzer assignment to IN_PROGRESS. The receipt records hostIsolation NOT_ATTESTED and is not a Factory spawn receipt.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "target": {
+            "type": "string",
+            "minLength": 1
+          },
+          "journeyId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "workItemId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
+          },
+          "attemptId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
+          },
+          "assignmentId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
+          },
+          "assignmentGeneration": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
+          },
+          "leaseId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
+          },
+          "assignmentSecret": {
+            "type": "string",
+            "minLength": 32,
+            "maxLength": 2000
+          },
+          "idempotencyKey": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
+          },
+          "coordinatorHandoffId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "coordinatorGeneration": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "target",
+          "journeyId",
+          "workItemId",
+          "attemptId",
+          "assignmentId",
+          "assignmentGeneration",
+          "leaseId",
+          "assignmentSecret",
+          "idempotencyKey"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "kind": "tool",
+      "name": "quality_journey_external_analyzer_analysis_submit_v1",
+      "description": "Submit a canonical Analysis Charter through an admitted EXTERNAL_V1 Requirement Analyzer assignment. This proves Appraise operation authority only; it does not attest host isolation.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "target": {
+            "type": "string",
+            "minLength": 1
+          },
+          "journeyId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "workItemId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
+          },
+          "attemptId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
+          },
+          "assignmentId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
+          },
+          "assignmentGeneration": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
+          },
+          "leaseId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
+          },
+          "assignmentSecret": {
+            "type": "string",
+            "minLength": 32,
+            "maxLength": 2000
+          },
+          "idempotencyKey": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
+          },
+          "predecessorAnalysisRevisionId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
+          },
+          "charter": {
+            "type": "object",
+            "properties": {
+              "charterId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200,
+                "pattern": "^[A-Za-z0-9._:-]+$"
+              },
+              "analysisRevisionId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200,
+                "pattern": "^[A-Za-z0-9._:-]+$"
+              },
+              "cycleId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200,
+                "pattern": "^[A-Za-z0-9._:-]+$"
+              },
+              "requirementRevisionId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200,
+                "pattern": "^[A-Za-z0-9._:-]+$"
+              },
+              "objectives": {
+                "minItems": 1,
+                "maxItems": 64,
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 8000
+                }
+              },
+              "scope": {
+                "type": "object",
+                "properties": {
+                  "included": {
+                    "minItems": 1,
+                    "maxItems": 128,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 8000
+                    }
+                  },
+                  "excluded": {
+                    "maxItems": 128,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 8000
+                    }
+                  }
+                },
+                "required": [
+                  "included",
+                  "excluded"
+                ],
+                "additionalProperties": false
+              },
+              "actors": {
+                "maxItems": 128,
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 8000
+                }
+              },
+              "requirements": {
+                "minItems": 1,
+                "maxItems": 512,
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "requirementId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 200,
+                      "pattern": "^[A-Za-z0-9._:-]+$"
+                    },
+                    "statement": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 8000
+                    },
+                    "sourceRefs": {
+                      "minItems": 1,
+                      "maxItems": 64,
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 8000
+                      }
+                    }
+                  },
+                  "required": [
+                    "requirementId",
+                    "statement",
+                    "sourceRefs"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "obligations": {
+                "minItems": 1,
+                "maxItems": 512,
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "obligationId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 200,
+                      "pattern": "^[A-Za-z0-9._:-]+$"
+                    },
+                    "requirementId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 200,
+                      "pattern": "^[A-Za-z0-9._:-]+$"
+                    },
+                    "statement": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 8000
+                    },
+                    "acceptanceSignals": {
+                      "minItems": 1,
+                      "maxItems": 64,
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 8000
+                      }
+                    }
+                  },
+                  "required": [
+                    "obligationId",
+                    "requirementId",
+                    "statement",
+                    "acceptanceSignals"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "constraints": {
+                "maxItems": 256,
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 8000
+                }
+              },
+              "assumptions": {
+                "maxItems": 256,
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 8000
+                }
+              },
+              "risks": {
+                "maxItems": 256,
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 8000
+                }
+              },
+              "acceptanceSignals": {
+                "minItems": 1,
+                "maxItems": 256,
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 8000
+                }
+              },
+              "retiredRequirementIds": {
+                "maxItems": 512,
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200,
+                  "pattern": "^[A-Za-z0-9._:-]+$"
+                }
+              },
+              "questions": {
+                "maxItems": 256,
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "questionId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 200,
+                      "pattern": "^[A-Za-z0-9._:-]+$"
+                    },
+                    "prompt": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 8000
+                    },
+                    "required": {
+                      "type": "boolean"
+                    },
+                    "rationale": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 8000
+                    }
+                  },
+                  "required": [
+                    "questionId",
+                    "prompt",
+                    "required",
+                    "rationale"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "resolvedQuestionAnswerIds": {
+                "maxItems": 256,
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200,
+                  "pattern": "^[A-Za-z0-9._:-]+$"
+                }
+              }
+            },
+            "required": [
+              "charterId",
+              "analysisRevisionId",
+              "cycleId",
+              "requirementRevisionId",
+              "objectives",
+              "scope",
+              "actors",
+              "requirements",
+              "obligations",
+              "constraints",
+              "assumptions",
+              "risks",
+              "acceptanceSignals",
+              "retiredRequirementIds",
+              "questions",
+              "resolvedQuestionAnswerIds"
+            ],
+            "additionalProperties": false
+          },
+          "coordinatorHandoffId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "coordinatorGeneration": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "target",
+          "journeyId",
+          "workItemId",
+          "attemptId",
+          "assignmentId",
+          "assignmentGeneration",
+          "leaseId",
+          "assignmentSecret",
+          "idempotencyKey",
+          "charter"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "kind": "tool",
+      "name": "quality_journey_external_analyzer_claim_v1",
+      "description": "Compatibility adapter for caller-secret EXTERNAL_V1 Requirement Analyzer claim. It returns no Factory spawn receipt and does not attest host isolation.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "target": {
+            "type": "string",
+            "minLength": 1
+          },
+          "journeyId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "assignmentSecret": {
+            "type": "string",
+            "minLength": 32,
+            "maxLength": 2000
+          },
+          "idempotencyKey": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
+          },
+          "leaseSeconds": {
+            "type": "integer",
+            "minimum": 30,
+            "maximum": 900
+          },
+          "coordinatorHandoffId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "coordinatorGeneration": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "target",
+          "journeyId",
+          "assignmentSecret",
+          "idempotencyKey"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "kind": "tool",
+      "name": "quality_journey_external_automator_materialize_v1",
+      "description": "Materialize only exact approved Scenario revisions through an admitted EXTERNAL_V1 Automator assignment; it never starts execution.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "target": {
+            "type": "string",
+            "minLength": 1
+          },
+          "journeyId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "workItemId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
+          },
+          "attemptId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
+          },
+          "assignmentId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
+          },
+          "assignmentGeneration": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
+          },
+          "leaseId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
+          },
+          "assignmentSecret": {
+            "type": "string",
+            "minLength": 32,
+            "maxLength": 2000
+          },
+          "idempotencyKey": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
+          },
+          "expectedInputHash": {
+            "type": "string",
+            "pattern": "^sha256:[a-f0-9]{64}$"
+          },
+          "expectedScopeHash": {
+            "type": "string",
+            "pattern": "^sha256:[a-f0-9]{64}$"
+          },
+          "scenarios": {
+            "minItems": 1,
+            "maxItems": 512,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "scenarioRevisionId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200,
+                  "pattern": "^[A-Za-z0-9._:-]+$"
+                },
+                "steps": {
+                  "minItems": 1,
+                  "maxItems": 128,
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "sourceScenarioStepId": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 200,
+                        "pattern": "^[A-Za-z0-9._:-]+$"
+                      },
+                      "stepDefinition": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 200,
+                            "pattern": "^[A-Za-z0-9._:-]+$"
+                          },
+                          "version": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 64
+                          },
+                          "definitionHash": {
+                            "type": "string",
+                            "pattern": "^sha256:[a-f0-9]{64}$"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "version",
+                          "definitionHash"
+                        ],
+                        "additionalProperties": false
+                      },
+                      "operation": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 200,
+                            "pattern": "^[A-Za-z0-9._:-]+$"
+                          },
+                          "version": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 64
+                          },
+                          "handler": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 200,
+                                "pattern": "^[A-Za-z0-9._:-]+$"
+                              },
+                              "version": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 64
+                              },
+                              "contentHash": {
+                                "type": "string",
+                                "pattern": "^sha256:[a-f0-9]{64}$"
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "version",
+                              "contentHash"
+                            ],
+                            "additionalProperties": false
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "version",
+                          "handler"
+                        ],
+                        "additionalProperties": false
+                      },
+                      "parameters": {
+                        "maxItems": 128,
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "name": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 200
+                            },
+                            "type": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 100
+                            },
+                            "value": {}
+                          },
+                          "required": [
+                            "name",
+                            "type",
+                            "value"
+                          ],
+                          "additionalProperties": false
+                        }
+                      },
+                      "testData": {
+                        "maxItems": 128,
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "key": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 200
+                            },
+                            "type": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 100
+                            },
+                            "value": {}
+                          },
+                          "required": [
+                            "key",
+                            "type",
+                            "value"
+                          ],
+                          "additionalProperties": false
+                        }
+                      },
+                      "locatorRequirements": {
+                        "maxItems": 128,
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "requirementId": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 200,
+                              "pattern": "^[A-Za-z0-9._:-]+$"
+                            },
+                            "parameterName": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 200
+                            },
+                            "locatorId": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 200,
+                              "pattern": "^[A-Za-z0-9._:-]+$"
+                            },
+                            "runtimeParameter": {
+                              "type": "boolean"
+                            }
+                          },
+                          "required": [
+                            "requirementId",
+                            "parameterName"
+                          ],
+                          "additionalProperties": false
+                        }
+                      }
+                    },
+                    "required": [
+                      "sourceScenarioStepId",
+                      "stepDefinition",
+                      "operation",
+                      "parameters",
+                      "testData",
+                      "locatorRequirements"
+                    ],
+                    "additionalProperties": false
+                  }
+                }
+              },
+              "required": [
+                "scenarioRevisionId",
+                "steps"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "result": {
+            "type": "object",
+            "properties": {
+              "schemaVersion": {
+                "type": "string",
+                "const": "appraise.quality-journey/v1"
+              },
+              "assignmentId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200,
+                "pattern": "^[A-Za-z0-9._:-]+$"
+              },
+              "workItemId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200,
+                "pattern": "^[A-Za-z0-9._:-]+$"
+              },
+              "attemptId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200,
+                "pattern": "^[A-Za-z0-9._:-]+$"
+              },
+              "roleContractDigest": {
+                "type": "string",
+                "pattern": "^sha256:[a-f0-9]{64}$"
+              },
+              "inputHash": {
+                "type": "string",
+                "pattern": "^sha256:[a-f0-9]{64}$"
+              },
+              "role": {
+                "type": "string",
+                "enum": [
+                  "REQUIREMENT_ANALYZER",
+                  "SCOUT",
+                  "RESOURCE_EXPLORER",
+                  "TEST_SCENARIO_DESIGNER",
+                  "AUTOMATOR",
+                  "TRIAGER"
+                ]
+              },
+              "status": {
+                "type": "string",
+                "enum": [
+                  "COMPLETED",
+                  "BLOCKED",
+                  "QUESTION_RAISED",
+                  "REVISION_REQUIRED"
+                ]
+              },
+              "outputs": {
+                "maxItems": 1536,
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "kind": {
+                      "type": "string",
+                      "enum": [
+                        "JOURNEY_REVISION",
+                        "ANALYSIS_CHARTER_REVISION",
+                        "ANALYSIS_QUESTION",
+                        "ANALYSIS_ANSWER",
+                        "ANALYSIS_REVISION_FEEDBACK",
+                        "TARGET_OBSERVATION_BUNDLE",
+                        "RESOURCE_RESOLUTION_BUNDLE",
+                        "SCENARIO_PORTFOLIO_REVISION",
+                        "SCENARIO_REVISION",
+                        "TEST_SUITE",
+                        "TEST_CASE",
+                        "RUNTIME_CAPSULE",
+                        "TEST_RUN",
+                        "EVIDENCE_RECEIPT",
+                        "TEST_REPORT_ANALYSIS_REVISION",
+                        "JOURNEY_APPROVAL",
+                        "JOURNEY_CLOSURE"
+                      ]
+                    },
+                    "artifactId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 200,
+                      "pattern": "^[A-Za-z0-9._:-]+$"
+                    },
+                    "revisionId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 200,
+                      "pattern": "^[A-Za-z0-9._:-]+$"
+                    },
+                    "contentHash": {
+                      "type": "string",
+                      "pattern": "^sha256:[a-f0-9]{64}$"
+                    }
+                  },
+                  "required": [
+                    "kind",
+                    "artifactId",
+                    "contentHash"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "evidenceReceipts": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "pattern": "^sha256:[a-f0-9]{64}$"
+                }
+              },
+              "assumptions": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 8000
+                }
+              },
+              "blockers": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 200,
+                      "pattern": "^[A-Za-z0-9._:-]+$"
+                    },
+                    "summary": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 8000
+                    },
+                    "evidence": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "pattern": "^sha256:[a-f0-9]{64}$"
+                      }
+                    },
+                    "requiredResolution": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 8000
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "summary",
+                    "evidence",
+                    "requiredResolution"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "unresolvedQuestions": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "questionId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 200,
+                      "pattern": "^[A-Za-z0-9._:-]+$"
+                    },
+                    "prompt": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 8000
+                    },
+                    "required": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "questionId",
+                    "prompt",
+                    "required"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "submittedAt": {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+              }
+            },
+            "required": [
+              "schemaVersion",
+              "assignmentId",
+              "workItemId",
+              "attemptId",
+              "roleContractDigest",
+              "inputHash",
+              "role",
+              "status",
+              "outputs",
+              "evidenceReceipts",
+              "assumptions",
+              "blockers",
+              "unresolvedQuestions",
+              "submittedAt"
+            ],
+            "additionalProperties": false
+          },
+          "coordinatorHandoffId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "coordinatorGeneration": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "target",
+          "journeyId",
+          "workItemId",
+          "attemptId",
+          "assignmentId",
+          "assignmentGeneration",
+          "leaseId",
+          "assignmentSecret",
+          "idempotencyKey",
+          "expectedInputHash",
+          "expectedScopeHash",
+          "scenarios",
+          "result"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "kind": "tool",
+      "name": "quality_journey_external_resource_explorer_resolution_submit_v1",
+      "description": "Submit one canonical Resource Resolution Bundle through an admitted EXTERNAL_V1 Resource Explorer assignment.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "target": {
+            "type": "string",
+            "minLength": 1
+          },
+          "journeyId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "discoveryRevisionId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
+          },
+          "workItemId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
+          },
+          "attemptId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
+          },
+          "leaseId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
+          },
+          "idempotencyKey": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
+          },
+          "expectedInputHash": {
+            "type": "string",
+            "pattern": "^sha256:[a-f0-9]{64}$"
+          },
+          "expectedScopeHash": {
+            "type": "string",
+            "pattern": "^sha256:[a-f0-9]{64}$"
+          },
+          "assignmentId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
+          },
+          "assignmentGeneration": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
+          },
+          "assignmentSecret": {
+            "type": "string",
+            "minLength": 32,
+            "maxLength": 2000
+          },
+          "coordinatorHandoffId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "coordinatorGeneration": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
+          },
+          "bundle": {
+            "type": "object",
+            "properties": {
+              "bundleId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200,
+                "pattern": "^[A-Za-z0-9._:-]+$"
+              },
+              "cycleId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200,
+                "pattern": "^[A-Za-z0-9._:-]+$"
+              },
+              "analysisRevision": {
+                "type": "object",
+                "properties": {
+                  "artifactId": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200,
+                    "pattern": "^[A-Za-z0-9._:-]+$"
+                  },
+                  "revisionId": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200,
+                    "pattern": "^[A-Za-z0-9._:-]+$"
+                  },
+                  "contentHash": {
+                    "type": "string",
+                    "pattern": "^sha256:[a-f0-9]{64}$"
+                  }
+                },
+                "required": [
+                  "artifactId",
+                  "revisionId",
+                  "contentHash"
+                ],
+                "additionalProperties": false
+              },
+              "analysisApproval": {
+                "type": "object",
+                "properties": {
+                  "artifactId": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200,
+                    "pattern": "^[A-Za-z0-9._:-]+$"
+                  },
+                  "contentHash": {
+                    "type": "string",
+                    "pattern": "^sha256:[a-f0-9]{64}$"
+                  }
+                },
+                "required": [
+                  "artifactId",
+                  "contentHash"
+                ],
+                "additionalProperties": false
+              },
+              "authorizationId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200,
+                "pattern": "^[A-Za-z0-9._:-]+$"
+              },
+              "inputHash": {
+                "type": "string",
+                "pattern": "^sha256:[a-f0-9]{64}$"
+              },
+              "assignmentScopeHash": {
+                "type": "string",
+                "pattern": "^sha256:[a-f0-9]{64}$"
+              },
+              "approvedRequirementSetHash": {
+                "type": "string",
+                "pattern": "^sha256:[a-f0-9]{64}$"
+              },
+              "inputArtifacts": {
+                "minItems": 1,
+                "maxItems": 256,
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "kind": {
+                      "type": "string",
+                      "enum": [
+                        "JOURNEY_REVISION",
+                        "ANALYSIS_CHARTER_REVISION",
+                        "ANALYSIS_QUESTION",
+                        "ANALYSIS_ANSWER",
+                        "ANALYSIS_REVISION_FEEDBACK",
+                        "TARGET_OBSERVATION_BUNDLE",
+                        "RESOURCE_RESOLUTION_BUNDLE",
+                        "SCENARIO_PORTFOLIO_REVISION",
+                        "SCENARIO_REVISION",
+                        "TEST_SUITE",
+                        "TEST_CASE",
+                        "RUNTIME_CAPSULE",
+                        "TEST_RUN",
+                        "EVIDENCE_RECEIPT",
+                        "TEST_REPORT_ANALYSIS_REVISION",
+                        "JOURNEY_APPROVAL",
+                        "JOURNEY_CLOSURE"
+                      ]
+                    },
+                    "artifactId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 200,
+                      "pattern": "^[A-Za-z0-9._:-]+$"
+                    },
+                    "revisionId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 200,
+                      "pattern": "^[A-Za-z0-9._:-]+$"
+                    },
+                    "contentHash": {
+                      "type": "string",
+                      "pattern": "^sha256:[a-f0-9]{64}$"
+                    }
+                  },
+                  "required": [
+                    "kind",
+                    "artifactId",
+                    "contentHash"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "evidenceReceipts": {
+                "minItems": 1,
+                "maxItems": 256,
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "artifactId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 200,
+                      "pattern": "^[A-Za-z0-9._:-]+$"
+                    },
+                    "contentHash": {
+                      "type": "string",
+                      "pattern": "^sha256:[a-f0-9]{64}$"
+                    }
+                  },
+                  "required": [
+                    "artifactId",
+                    "contentHash"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "resolvedAt": {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+              },
+              "destinationModuleId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200,
+                "pattern": "^[A-Za-z0-9._:-]+$"
+              },
+              "approvedRequirementIds": {
+                "minItems": 1,
+                "maxItems": 512,
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200,
+                  "pattern": "^[A-Za-z0-9._:-]+$"
+                }
+              },
+              "reusable": {
+                "maxItems": 512,
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "resourceId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 200,
+                      "pattern": "^[A-Za-z0-9._:-]+$"
+                    },
+                    "resourceKind": {
+                      "type": "string",
+                      "enum": [
+                        "OPERATION",
+                        "STEP_DEFINITION",
+                        "LOCATOR",
+                        "MODULE",
+                        "TEMPLATE",
+                        "DATA",
+                        "EXAMPLE",
+                        "SCENARIO"
+                      ]
+                    },
+                    "requirementId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 200,
+                      "pattern": "^[A-Za-z0-9._:-]+$"
+                    },
+                    "rank": {
+                      "type": "integer",
+                      "exclusiveMinimum": 0,
+                      "maximum": 512
+                    },
+                    "explanation": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 8000
+                    },
+                    "evidenceReceiptIds": {
+                      "minItems": 1,
+                      "maxItems": 256,
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 200,
+                        "pattern": "^[A-Za-z0-9._:-]+$"
+                      }
+                    },
+                    "reasonCode": {
+                      "type": "string",
+                      "const": "COMPATIBLE"
+                    }
+                  },
+                  "required": [
+                    "resourceId",
+                    "resourceKind",
+                    "requirementId",
+                    "rank",
+                    "explanation",
+                    "evidenceReceiptIds",
+                    "reasonCode"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "incompatible": {
+                "maxItems": 512,
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "resourceId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 200,
+                      "pattern": "^[A-Za-z0-9._:-]+$"
+                    },
+                    "resourceKind": {
+                      "type": "string",
+                      "enum": [
+                        "OPERATION",
+                        "STEP_DEFINITION",
+                        "LOCATOR",
+                        "MODULE",
+                        "TEMPLATE",
+                        "DATA",
+                        "EXAMPLE",
+                        "SCENARIO"
+                      ]
+                    },
+                    "requirementId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 200,
+                      "pattern": "^[A-Za-z0-9._:-]+$"
+                    },
+                    "rank": {
+                      "type": "integer",
+                      "exclusiveMinimum": 0,
+                      "maximum": 512
+                    },
+                    "explanation": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 8000
+                    },
+                    "evidenceReceiptIds": {
+                      "minItems": 1,
+                      "maxItems": 256,
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 200,
+                        "pattern": "^[A-Za-z0-9._:-]+$"
+                      }
+                    },
+                    "reasonCode": {
+                      "type": "string",
+                      "const": "INCOMPATIBLE"
+                    }
+                  },
+                  "required": [
+                    "resourceId",
+                    "resourceKind",
+                    "requirementId",
+                    "rank",
+                    "explanation",
+                    "evidenceReceiptIds",
+                    "reasonCode"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "stale": {
+                "maxItems": 512,
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "resourceId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 200,
+                      "pattern": "^[A-Za-z0-9._:-]+$"
+                    },
+                    "resourceKind": {
+                      "type": "string",
+                      "enum": [
+                        "OPERATION",
+                        "STEP_DEFINITION",
+                        "LOCATOR",
+                        "MODULE",
+                        "TEMPLATE",
+                        "DATA",
+                        "EXAMPLE",
+                        "SCENARIO"
+                      ]
+                    },
+                    "requirementId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 200,
+                      "pattern": "^[A-Za-z0-9._:-]+$"
+                    },
+                    "rank": {
+                      "type": "integer",
+                      "exclusiveMinimum": 0,
+                      "maximum": 512
+                    },
+                    "explanation": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 8000
+                    },
+                    "evidenceReceiptIds": {
+                      "minItems": 1,
+                      "maxItems": 256,
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 200,
+                        "pattern": "^[A-Za-z0-9._:-]+$"
+                      }
+                    },
+                    "reasonCode": {
+                      "type": "string",
+                      "const": "STALE"
+                    }
+                  },
+                  "required": [
+                    "resourceId",
+                    "resourceKind",
+                    "requirementId",
+                    "rank",
+                    "explanation",
+                    "evidenceReceiptIds",
+                    "reasonCode"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "crossTarget": {
+                "maxItems": 512,
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "resourceId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 200,
+                      "pattern": "^[A-Za-z0-9._:-]+$"
+                    },
+                    "resourceKind": {
+                      "type": "string",
+                      "enum": [
+                        "OPERATION",
+                        "STEP_DEFINITION",
+                        "LOCATOR",
+                        "MODULE",
+                        "TEMPLATE",
+                        "DATA",
+                        "EXAMPLE",
+                        "SCENARIO"
+                      ]
+                    },
+                    "requirementId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 200,
+                      "pattern": "^[A-Za-z0-9._:-]+$"
+                    },
+                    "rank": {
+                      "type": "integer",
+                      "exclusiveMinimum": 0,
+                      "maximum": 512
+                    },
+                    "explanation": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 8000
+                    },
+                    "evidenceReceiptIds": {
+                      "minItems": 1,
+                      "maxItems": 256,
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 200,
+                        "pattern": "^[A-Za-z0-9._:-]+$"
+                      }
+                    },
+                    "reasonCode": {
+                      "type": "string",
+                      "const": "CROSS_TARGET"
+                    },
+                    "sourceTargetProjectId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 200,
+                      "pattern": "^[A-Za-z0-9._:-]+$"
+                    }
+                  },
+                  "required": [
+                    "resourceId",
+                    "resourceKind",
+                    "requirementId",
+                    "rank",
+                    "explanation",
+                    "evidenceReceiptIds",
+                    "reasonCode",
+                    "sourceTargetProjectId"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "missing": {
+                "maxItems": 512,
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "requirementId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 200,
+                      "pattern": "^[A-Za-z0-9._:-]+$"
+                    },
+                    "capabilityId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 200,
+                      "pattern": "^[A-Za-z0-9._:-]+$"
+                    },
+                    "reasonCode": {
+                      "type": "string",
+                      "enum": [
+                        "NOT_FOUND",
+                        "CAPABILITY_GAP"
+                      ]
+                    },
+                    "explanation": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 8000
+                    },
+                    "evidenceReceiptIds": {
+                      "minItems": 1,
+                      "maxItems": 256,
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 200,
+                        "pattern": "^[A-Za-z0-9._:-]+$"
+                      }
+                    }
+                  },
+                  "required": [
+                    "requirementId",
+                    "capabilityId",
+                    "reasonCode",
+                    "explanation",
+                    "evidenceReceiptIds"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            },
+            "required": [
+              "bundleId",
+              "cycleId",
+              "analysisRevision",
+              "analysisApproval",
+              "authorizationId",
+              "inputHash",
+              "assignmentScopeHash",
+              "approvedRequirementSetHash",
+              "inputArtifacts",
+              "evidenceReceipts",
+              "resolvedAt",
+              "destinationModuleId",
+              "approvedRequirementIds",
+              "reusable",
+              "incompatible",
+              "stale",
+              "crossTarget",
+              "missing"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "target",
+          "journeyId",
+          "discoveryRevisionId",
+          "workItemId",
+          "attemptId",
+          "leaseId",
+          "idempotencyKey",
+          "expectedInputHash",
+          "expectedScopeHash",
+          "assignmentId",
+          "assignmentGeneration",
+          "assignmentSecret",
+          "bundle"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "kind": "tool",
+      "name": "quality_journey_external_scenarios_submit_v1",
+      "description": "Submit a canonical Scenario Portfolio through an admitted EXTERNAL_V1 Test Scenario Designer assignment.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "target": {
+            "type": "string",
+            "minLength": 1
+          },
+          "journeyId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "workItemId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
+          },
+          "attemptId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
+          },
+          "assignmentId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
+          },
+          "assignmentGeneration": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
+          },
+          "leaseId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
+          },
+          "assignmentSecret": {
+            "type": "string",
+            "minLength": 32,
+            "maxLength": 2000
+          },
+          "idempotencyKey": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
+          },
+          "expectedInputHash": {
+            "type": "string",
+            "pattern": "^sha256:[a-f0-9]{64}$"
+          },
+          "expectedScopeHash": {
+            "type": "string",
+            "pattern": "^sha256:[a-f0-9]{64}$"
+          },
+          "portfolio": {
+            "type": "object",
+            "properties": {
+              "schemaVersion": {
+                "type": "string",
+                "const": "appraise.quality-journey/v1"
+              },
+              "portfolioId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200,
+                "pattern": "^[A-Za-z0-9._:-]+$"
+              },
+              "portfolioRevisionId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200,
+                "pattern": "^[A-Za-z0-9._:-]+$"
+              },
+              "journeyId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200,
+                "pattern": "^[A-Za-z0-9._:-]+$"
+              },
+              "targetProjectId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200,
+                "pattern": "^[A-Za-z0-9._:-]+$"
+              },
+              "cycleId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200,
+                "pattern": "^[A-Za-z0-9._:-]+$"
+              },
+              "discoveryRevisionId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200,
+                "pattern": "^[A-Za-z0-9._:-]+$"
+              },
+              "discoveryCompletionHash": {
+                "type": "string",
+                "pattern": "^sha256:[a-f0-9]{64}$"
+              },
+              "predecessorPortfolioRevisionId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200,
+                "pattern": "^[A-Za-z0-9._:-]+$"
+              },
+              "coverageRationale": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 8000
+              },
+              "graph": {
+                "type": "object",
+                "properties": {
+                  "edges": {
+                    "maxItems": 2048,
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "sourceScenarioRevisionId": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 200,
+                          "pattern": "^[A-Za-z0-9._:-]+$"
+                        },
+                        "targetScenarioRevisionId": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 200,
+                          "pattern": "^[A-Za-z0-9._:-]+$"
+                        },
+                        "relation": {
+                          "type": "string",
+                          "enum": [
+                            "DEPENDS_ON",
+                            "BRANCHES_TO",
+                            "SHARED_SETUP"
+                          ]
+                        },
+                        "rationale": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 8000
+                        }
+                      },
+                      "required": [
+                        "sourceScenarioRevisionId",
+                        "targetScenarioRevisionId",
+                        "relation",
+                        "rationale"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "sharedSetup": {
+                    "maxItems": 512,
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "setupId": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 200,
+                          "pattern": "^[A-Za-z0-9._:-]+$"
+                        },
+                        "label": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 8000
+                        },
+                        "scenarioRevisionIds": {
+                          "minItems": 2,
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 200,
+                            "pattern": "^[A-Za-z0-9._:-]+$"
+                          }
+                        }
+                      },
+                      "required": [
+                        "setupId",
+                        "label",
+                        "scenarioRevisionIds"
+                      ],
+                      "additionalProperties": false
+                    }
+                  }
+                },
+                "required": [
+                  "edges",
+                  "sharedSetup"
+                ],
+                "additionalProperties": false
+              },
+              "scenarios": {
+                "minItems": 1,
+                "maxItems": 512,
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "stableScenarioId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 200,
+                      "pattern": "^[A-Za-z0-9._:-]+$"
+                    },
+                    "scenarioRevisionId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 200,
+                      "pattern": "^[A-Za-z0-9._:-]+$"
+                    },
+                    "behavioralIntent": {
+                      "type": "object",
+                      "properties": {
+                        "title": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 8000
+                        },
+                        "narrative": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 8000
+                        },
+                        "requirementIds": {
+                          "minItems": 1,
+                          "maxItems": 512,
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 200,
+                            "pattern": "^[A-Za-z0-9._:-]+$"
+                          }
+                        },
+                        "exploratoryRationale": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 8000
+                        },
+                        "expectedSignals": {
+                          "minItems": 1,
+                          "maxItems": 64,
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 8000
+                          }
+                        },
+                        "steps": {
+                          "minItems": 1,
+                          "maxItems": 128,
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "stepId": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 200,
+                                "pattern": "^[A-Za-z0-9._:-]+$"
+                              },
+                              "action": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 8000
+                              },
+                              "expected": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 8000
+                              }
+                            },
+                            "required": [
+                              "stepId",
+                              "action",
+                              "expected"
+                            ],
+                            "additionalProperties": false
+                          }
+                        }
+                      },
+                      "required": [
+                        "title",
+                        "narrative",
+                        "expectedSignals",
+                        "steps"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "enrichment": {
+                      "type": "object",
+                      "properties": {
+                        "observationIds": {
+                          "minItems": 1,
+                          "maxItems": 512,
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 200,
+                            "pattern": "^[A-Za-z0-9._:-]+$"
+                          }
+                        },
+                        "resourceAssumptionIds": {
+                          "minItems": 0,
+                          "maxItems": 512,
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 200,
+                            "pattern": "^[A-Za-z0-9._:-]+$"
+                          }
+                        },
+                        "feasibilityNotes": {
+                          "maxItems": 128,
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 8000
+                          }
+                        }
+                      },
+                      "required": [
+                        "observationIds",
+                        "resourceAssumptionIds",
+                        "feasibilityNotes"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "layout": {
+                      "type": "object",
+                      "properties": {
+                        "x": {
+                          "type": "number"
+                        },
+                        "y": {
+                          "type": "number"
+                        },
+                        "sequence": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991
+                        }
+                      },
+                      "required": [
+                        "x",
+                        "y",
+                        "sequence"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "stableScenarioId",
+                    "scenarioRevisionId",
+                    "behavioralIntent",
+                    "enrichment",
+                    "layout"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            },
+            "required": [
+              "schemaVersion",
+              "portfolioId",
+              "portfolioRevisionId",
+              "journeyId",
+              "targetProjectId",
+              "cycleId",
+              "discoveryRevisionId",
+              "discoveryCompletionHash",
+              "coverageRationale",
+              "graph",
+              "scenarios"
+            ],
+            "additionalProperties": false
+          },
+          "result": {
+            "type": "object",
+            "properties": {
+              "schemaVersion": {
+                "type": "string",
+                "const": "appraise.quality-journey/v1"
+              },
+              "assignmentId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200,
+                "pattern": "^[A-Za-z0-9._:-]+$"
+              },
+              "workItemId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200,
+                "pattern": "^[A-Za-z0-9._:-]+$"
+              },
+              "attemptId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200,
+                "pattern": "^[A-Za-z0-9._:-]+$"
+              },
+              "roleContractDigest": {
+                "type": "string",
+                "pattern": "^sha256:[a-f0-9]{64}$"
+              },
+              "inputHash": {
+                "type": "string",
+                "pattern": "^sha256:[a-f0-9]{64}$"
+              },
+              "role": {
+                "type": "string",
+                "enum": [
+                  "REQUIREMENT_ANALYZER",
+                  "SCOUT",
+                  "RESOURCE_EXPLORER",
+                  "TEST_SCENARIO_DESIGNER",
+                  "AUTOMATOR",
+                  "TRIAGER"
+                ]
+              },
+              "status": {
+                "type": "string",
+                "enum": [
+                  "COMPLETED",
+                  "BLOCKED",
+                  "QUESTION_RAISED",
+                  "REVISION_REQUIRED"
+                ]
+              },
+              "outputs": {
+                "maxItems": 1536,
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "kind": {
+                      "type": "string",
+                      "enum": [
+                        "JOURNEY_REVISION",
+                        "ANALYSIS_CHARTER_REVISION",
+                        "ANALYSIS_QUESTION",
+                        "ANALYSIS_ANSWER",
+                        "ANALYSIS_REVISION_FEEDBACK",
+                        "TARGET_OBSERVATION_BUNDLE",
+                        "RESOURCE_RESOLUTION_BUNDLE",
+                        "SCENARIO_PORTFOLIO_REVISION",
+                        "SCENARIO_REVISION",
+                        "TEST_SUITE",
+                        "TEST_CASE",
+                        "RUNTIME_CAPSULE",
+                        "TEST_RUN",
+                        "EVIDENCE_RECEIPT",
+                        "TEST_REPORT_ANALYSIS_REVISION",
+                        "JOURNEY_APPROVAL",
+                        "JOURNEY_CLOSURE"
+                      ]
+                    },
+                    "artifactId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 200,
+                      "pattern": "^[A-Za-z0-9._:-]+$"
+                    },
+                    "revisionId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 200,
+                      "pattern": "^[A-Za-z0-9._:-]+$"
+                    },
+                    "contentHash": {
+                      "type": "string",
+                      "pattern": "^sha256:[a-f0-9]{64}$"
+                    }
+                  },
+                  "required": [
+                    "kind",
+                    "artifactId",
+                    "contentHash"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "evidenceReceipts": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "pattern": "^sha256:[a-f0-9]{64}$"
+                }
+              },
+              "assumptions": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 8000
+                }
+              },
+              "blockers": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 200,
+                      "pattern": "^[A-Za-z0-9._:-]+$"
+                    },
+                    "summary": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 8000
+                    },
+                    "evidence": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "pattern": "^sha256:[a-f0-9]{64}$"
+                      }
+                    },
+                    "requiredResolution": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 8000
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "summary",
+                    "evidence",
+                    "requiredResolution"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "unresolvedQuestions": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "questionId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 200,
+                      "pattern": "^[A-Za-z0-9._:-]+$"
+                    },
+                    "prompt": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 8000
+                    },
+                    "required": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "questionId",
+                    "prompt",
+                    "required"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "submittedAt": {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+              }
+            },
+            "required": [
+              "schemaVersion",
+              "assignmentId",
+              "workItemId",
+              "attemptId",
+              "roleContractDigest",
+              "inputHash",
+              "role",
+              "status",
+              "outputs",
+              "evidenceReceipts",
+              "assumptions",
+              "blockers",
+              "unresolvedQuestions",
+              "submittedAt"
+            ],
+            "additionalProperties": false
+          },
+          "coordinatorHandoffId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "coordinatorGeneration": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "target",
+          "journeyId",
+          "workItemId",
+          "attemptId",
+          "assignmentId",
+          "assignmentGeneration",
+          "leaseId",
+          "assignmentSecret",
+          "idempotencyKey",
+          "expectedInputHash",
+          "expectedScopeHash",
+          "portfolio",
+          "result"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "kind": "tool",
+      "name": "quality_journey_external_scout_target_observation_submit_v1",
+      "description": "Submit one canonical Target Observation Bundle through an admitted EXTERNAL_V1 Scout assignment. Exact retry is authenticated before a durable discovery outcome is read.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "target": {
+            "type": "string",
+            "minLength": 1
+          },
+          "journeyId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "discoveryRevisionId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
+          },
+          "workItemId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
+          },
+          "attemptId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
+          },
+          "leaseId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
+          },
+          "idempotencyKey": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
+          },
+          "expectedInputHash": {
+            "type": "string",
+            "pattern": "^sha256:[a-f0-9]{64}$"
+          },
+          "expectedScopeHash": {
+            "type": "string",
+            "pattern": "^sha256:[a-f0-9]{64}$"
+          },
+          "assignmentId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
+          },
+          "assignmentGeneration": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
+          },
+          "assignmentSecret": {
+            "type": "string",
+            "minLength": 32,
+            "maxLength": 2000
+          },
+          "coordinatorHandoffId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "coordinatorGeneration": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
+          },
+          "bundle": {
+            "type": "object",
+            "properties": {
+              "bundleId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200,
+                "pattern": "^[A-Za-z0-9._:-]+$"
+              },
+              "cycleId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200,
+                "pattern": "^[A-Za-z0-9._:-]+$"
+              },
+              "analysisRevision": {
+                "type": "object",
+                "properties": {
+                  "artifactId": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200,
+                    "pattern": "^[A-Za-z0-9._:-]+$"
+                  },
+                  "revisionId": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200,
+                    "pattern": "^[A-Za-z0-9._:-]+$"
+                  },
+                  "contentHash": {
+                    "type": "string",
+                    "pattern": "^sha256:[a-f0-9]{64}$"
+                  }
+                },
+                "required": [
+                  "artifactId",
+                  "revisionId",
+                  "contentHash"
+                ],
+                "additionalProperties": false
+              },
+              "analysisApproval": {
+                "type": "object",
+                "properties": {
+                  "artifactId": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200,
+                    "pattern": "^[A-Za-z0-9._:-]+$"
+                  },
+                  "contentHash": {
+                    "type": "string",
+                    "pattern": "^sha256:[a-f0-9]{64}$"
+                  }
+                },
+                "required": [
+                  "artifactId",
+                  "contentHash"
+                ],
+                "additionalProperties": false
+              },
+              "authorizationId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200,
+                "pattern": "^[A-Za-z0-9._:-]+$"
+              },
+              "inputHash": {
+                "type": "string",
+                "pattern": "^sha256:[a-f0-9]{64}$"
+              },
+              "assignmentScopeHash": {
+                "type": "string",
+                "pattern": "^sha256:[a-f0-9]{64}$"
+              },
+              "approvedRequirementSetHash": {
+                "type": "string",
+                "pattern": "^sha256:[a-f0-9]{64}$"
+              },
+              "inputArtifacts": {
+                "minItems": 1,
+                "maxItems": 256,
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "kind": {
+                      "type": "string",
+                      "enum": [
+                        "JOURNEY_REVISION",
+                        "ANALYSIS_CHARTER_REVISION",
+                        "ANALYSIS_QUESTION",
+                        "ANALYSIS_ANSWER",
+                        "ANALYSIS_REVISION_FEEDBACK",
+                        "TARGET_OBSERVATION_BUNDLE",
+                        "RESOURCE_RESOLUTION_BUNDLE",
+                        "SCENARIO_PORTFOLIO_REVISION",
+                        "SCENARIO_REVISION",
+                        "TEST_SUITE",
+                        "TEST_CASE",
+                        "RUNTIME_CAPSULE",
+                        "TEST_RUN",
+                        "EVIDENCE_RECEIPT",
+                        "TEST_REPORT_ANALYSIS_REVISION",
+                        "JOURNEY_APPROVAL",
+                        "JOURNEY_CLOSURE"
+                      ]
+                    },
+                    "artifactId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 200,
+                      "pattern": "^[A-Za-z0-9._:-]+$"
+                    },
+                    "revisionId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 200,
+                      "pattern": "^[A-Za-z0-9._:-]+$"
+                    },
+                    "contentHash": {
+                      "type": "string",
+                      "pattern": "^sha256:[a-f0-9]{64}$"
+                    }
+                  },
+                  "required": [
+                    "kind",
+                    "artifactId",
+                    "contentHash"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "evidenceReceipts": {
+                "minItems": 1,
+                "maxItems": 256,
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "artifactId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 200,
+                      "pattern": "^[A-Za-z0-9._:-]+$"
+                    },
+                    "contentHash": {
+                      "type": "string",
+                      "pattern": "^sha256:[a-f0-9]{64}$"
+                    }
+                  },
+                  "required": [
+                    "artifactId",
+                    "contentHash"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "observedAt": {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+              },
+              "targetSnapshot": {
+                "type": "object",
+                "properties": {
+                  "snapshotId": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200,
+                    "pattern": "^[A-Za-z0-9._:-]+$"
+                  },
+                  "capturedAt": {
+                    "type": "string",
+                    "format": "date-time",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+                  },
+                  "contentHash": {
+                    "type": "string",
+                    "pattern": "^sha256:[a-f0-9]{64}$"
+                  }
+                },
+                "required": [
+                  "snapshotId",
+                  "capturedAt",
+                  "contentHash"
+                ],
+                "additionalProperties": false
+              },
+              "observations": {
+                "minItems": 1,
+                "maxItems": 512,
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "observationId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 200,
+                      "pattern": "^[A-Za-z0-9._:-]+$"
+                    },
+                    "snapshotId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 200,
+                      "pattern": "^[A-Za-z0-9._:-]+$"
+                    },
+                    "routeId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 2000
+                    },
+                    "environmentId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 200,
+                      "pattern": "^[A-Za-z0-9._:-]+$"
+                    },
+                    "fact": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 8000
+                    },
+                    "evidenceReceiptIds": {
+                      "minItems": 1,
+                      "maxItems": 256,
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 200,
+                        "pattern": "^[A-Za-z0-9._:-]+$"
+                      }
+                    },
+                    "confidence": {
+                      "type": "string",
+                      "enum": [
+                        "LOW",
+                        "MEDIUM",
+                        "HIGH"
+                      ]
+                    },
+                    "confidenceRationale": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 8000
+                    },
+                    "stability": {
+                      "type": "string",
+                      "enum": [
+                        "STABLE",
+                        "CONDITIONAL",
+                        "VOLATILE"
+                      ]
+                    },
+                    "stabilityRationale": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 8000
+                    },
+                    "revalidationPolicy": {
+                      "type": "object",
+                      "properties": {
+                        "triggers": {
+                          "minItems": 1,
+                          "maxItems": 64,
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 8000
+                          }
+                        },
+                        "maxAgeSeconds": {
+                          "type": "integer",
+                          "exclusiveMinimum": 0,
+                          "maximum": 31536000
+                        }
+                      },
+                      "required": [
+                        "triggers"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "observationId",
+                    "snapshotId",
+                    "routeId",
+                    "environmentId",
+                    "fact",
+                    "evidenceReceiptIds",
+                    "confidence",
+                    "confidenceRationale",
+                    "stability",
+                    "stabilityRationale",
+                    "revalidationPolicy"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            },
+            "required": [
+              "bundleId",
+              "cycleId",
+              "analysisRevision",
+              "analysisApproval",
+              "authorizationId",
+              "inputHash",
+              "assignmentScopeHash",
+              "approvedRequirementSetHash",
+              "inputArtifacts",
+              "evidenceReceipts",
+              "observedAt",
+              "targetSnapshot",
+              "observations"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "target",
+          "journeyId",
+          "discoveryRevisionId",
+          "workItemId",
+          "attemptId",
+          "leaseId",
+          "idempotencyKey",
+          "expectedInputHash",
+          "expectedScopeHash",
+          "assignmentId",
+          "assignmentGeneration",
+          "assignmentSecret",
+          "bundle"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "kind": "tool",
+      "name": "quality_journey_external_triage_submit_v1",
+      "description": "Submit one canonical attribution report through an admitted EXTERNAL_V1 Triager assignment. Report review and remediation stay Appraise-owned.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "target": {
+            "type": "string",
+            "minLength": 1
+          },
+          "journeyId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
+          },
+          "workItemId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
+          },
+          "attemptId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
+          },
+          "assignmentId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
+          },
+          "assignmentGeneration": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
+          },
+          "leaseId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
+          },
+          "assignmentSecret": {
+            "type": "string",
+            "minLength": 32,
+            "maxLength": 2000
+          },
+          "idempotencyKey": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
+          },
+          "report": {
+            "type": "object",
+            "properties": {
+              "schemaVersion": {
+                "type": "string",
+                "const": "appraise.quality-journey/v1"
+              },
+              "reportRevisionId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200,
+                "pattern": "^[A-Za-z0-9._:-]+$"
+              },
+              "executionCycleId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200,
+                "pattern": "^[A-Za-z0-9._:-]+$"
+              },
+              "cycleId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200,
+                "pattern": "^[A-Za-z0-9._:-]+$"
+              },
+              "predecessorReportRevisionId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200,
+                "pattern": "^[A-Za-z0-9._:-]+$"
+              },
+              "inputHash": {
+                "type": "string",
+                "pattern": "^sha256:[a-f0-9]{64}$"
+              },
+              "summary": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 8000
+              },
+              "findings": {
+                "maxItems": 2048,
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "findingId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 200,
+                      "pattern": "^[A-Za-z0-9._:-]+$"
+                    },
+                    "testRunId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 200,
+                      "pattern": "^[A-Za-z0-9._:-]+$"
+                    },
+                    "evidenceReceiptId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 200,
+                      "pattern": "^[A-Za-z0-9._:-]+$"
+                    },
+                    "scenarioRevisionId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 200,
+                      "pattern": "^[A-Za-z0-9._:-]+$"
+                    },
+                    "requirementIds": {
+                      "maxItems": 512,
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 200,
+                        "pattern": "^[A-Za-z0-9._:-]+$"
+                      }
+                    },
+                    "kind": {
+                      "type": "string",
+                      "enum": [
+                        "TARGET_DEFECT",
+                        "REQUIREMENT_AMBIGUITY",
+                        "VALIDATION_DESIGN_DEFECT",
+                        "VALIDATION_REALIZATION_DEFECT",
+                        "APPRAISE_RUNTIME_DEFECT",
+                        "ENVIRONMENT_OR_DATA_DEFECT",
+                        "AUTOMATION_BLOCKED",
+                        "INCONCLUSIVE"
+                      ]
+                    },
+                    "targetOutcome": {
+                      "type": "string",
+                      "enum": [
+                        "FAILED",
+                        "NOT_EVALUATED"
+                      ]
+                    },
+                    "confidence": {
+                      "type": "string",
+                      "enum": [
+                        "LOW",
+                        "MEDIUM",
+                        "HIGH"
+                      ]
+                    },
+                    "rationale": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 8000
+                    },
+                    "competingHypotheses": {
+                      "maxItems": 32,
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 8000
+                      }
+                    },
+                    "unresolved": {
+                      "type": "boolean"
+                    },
+                    "postmortem": {
+                      "type": "object",
+                      "properties": {
+                        "observation": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 8000
+                        },
+                        "expectedBehavior": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 8000
+                        },
+                        "causalAnalysis": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 8000
+                        },
+                        "nextAction": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 8000
+                        }
+                      },
+                      "required": [
+                        "observation",
+                        "expectedBehavior",
+                        "causalAnalysis",
+                        "nextAction"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "findingId",
+                    "testRunId",
+                    "evidenceReceiptId",
+                    "scenarioRevisionId",
+                    "requirementIds",
+                    "kind",
+                    "targetOutcome",
+                    "confidence",
+                    "rationale",
+                    "competingHypotheses",
+                    "unresolved",
+                    "postmortem"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "coverage": {
+                "minItems": 1,
+                "maxItems": 2048,
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "requirementId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 200,
+                      "pattern": "^[A-Za-z0-9._:-]+$"
+                    },
+                    "scenarioRevisionIds": {
+                      "maxItems": 512,
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 200,
+                        "pattern": "^[A-Za-z0-9._:-]+$"
+                      }
+                    },
+                    "testRunIds": {
+                      "maxItems": 512,
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 200,
+                        "pattern": "^[A-Za-z0-9._:-]+$"
+                      }
+                    },
+                    "outcome": {
+                      "type": "string",
+                      "enum": [
+                        "PASSED",
+                        "FAILED",
+                        "NOT_EVALUATED",
+                        "UNRESOLVED"
+                      ]
+                    },
+                    "rationale": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 8000
+                    }
+                  },
+                  "required": [
+                    "requirementId",
+                    "scenarioRevisionIds",
+                    "testRunIds",
+                    "outcome",
+                    "rationale"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "residualRisks": {
+                "maxItems": 128,
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 8000
+                }
+              },
+              "recommendations": {
+                "minItems": 1,
+                "maxItems": 128,
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 8000
+                }
+              },
+              "remediation": {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "type": "string",
+                    "const": "AUTOMATION_CORRECTION"
+                  },
+                  "findingIds": {
+                    "maxItems": 512,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 200,
+                      "pattern": "^[A-Za-z0-9._:-]+$"
+                    }
+                  },
+                  "scenarioRevisionIds": {
+                    "maxItems": 512,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 200,
+                      "pattern": "^[A-Za-z0-9._:-]+$"
+                    }
+                  },
+                  "scope": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 8000
+                  }
+                },
+                "required": [
+                  "kind",
+                  "findingIds",
+                  "scenarioRevisionIds",
+                  "scope"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "schemaVersion",
+              "reportRevisionId",
+              "executionCycleId",
+              "cycleId",
+              "inputHash",
+              "summary",
+              "findings",
+              "coverage",
+              "residualRisks",
+              "recommendations"
+            ],
+            "additionalProperties": false
+          },
+          "result": {
+            "type": "object",
+            "properties": {
+              "schemaVersion": {
+                "type": "string",
+                "const": "appraise.quality-journey/v1"
+              },
+              "assignmentId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200,
+                "pattern": "^[A-Za-z0-9._:-]+$"
+              },
+              "workItemId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200,
+                "pattern": "^[A-Za-z0-9._:-]+$"
+              },
+              "attemptId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200,
+                "pattern": "^[A-Za-z0-9._:-]+$"
+              },
+              "roleContractDigest": {
+                "type": "string",
+                "pattern": "^sha256:[a-f0-9]{64}$"
+              },
+              "inputHash": {
+                "type": "string",
+                "pattern": "^sha256:[a-f0-9]{64}$"
+              },
+              "role": {
+                "type": "string",
+                "const": "TRIAGER"
+              },
+              "status": {
+                "type": "string",
+                "enum": [
+                  "COMPLETED",
+                  "BLOCKED",
+                  "QUESTION_RAISED",
+                  "REVISION_REQUIRED"
+                ]
+              },
+              "outputs": {
+                "maxItems": 1536,
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "kind": {
+                      "type": "string",
+                      "enum": [
+                        "TEST_REPORT_ANALYSIS_REVISION"
+                      ]
+                    },
+                    "artifactId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 200,
+                      "pattern": "^[A-Za-z0-9._:-]+$"
+                    },
+                    "revisionId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 200,
+                      "pattern": "^[A-Za-z0-9._:-]+$"
+                    },
+                    "contentHash": {
+                      "type": "string",
+                      "pattern": "^sha256:[a-f0-9]{64}$"
+                    }
+                  },
+                  "required": [
+                    "kind",
+                    "artifactId",
+                    "revisionId",
+                    "contentHash"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "evidenceReceipts": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "pattern": "^sha256:[a-f0-9]{64}$"
+                }
+              },
+              "assumptions": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 8000
+                }
+              },
+              "blockers": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 200,
+                      "pattern": "^[A-Za-z0-9._:-]+$"
+                    },
+                    "summary": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 8000
+                    },
+                    "evidence": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "pattern": "^sha256:[a-f0-9]{64}$"
+                      }
+                    },
+                    "requiredResolution": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 8000
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "summary",
+                    "evidence",
+                    "requiredResolution"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "unresolvedQuestions": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "questionId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 200,
+                      "pattern": "^[A-Za-z0-9._:-]+$"
+                    },
+                    "prompt": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 8000
+                    },
+                    "required": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "questionId",
+                    "prompt",
+                    "required"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "submittedAt": {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+              }
+            },
+            "required": [
+              "schemaVersion",
+              "assignmentId",
+              "workItemId",
+              "attemptId",
+              "roleContractDigest",
+              "inputHash",
+              "role",
+              "status",
+              "outputs",
+              "evidenceReceipts",
+              "assumptions",
+              "blockers",
+              "unresolvedQuestions",
+              "submittedAt"
+            ],
+            "additionalProperties": false
+          },
+          "coordinatorHandoffId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
+          },
+          "coordinatorGeneration": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "target",
+          "journeyId",
+          "workItemId",
+          "attemptId",
+          "assignmentId",
+          "assignmentGeneration",
+          "leaseId",
+          "assignmentSecret",
+          "idempotencyKey",
+          "report",
+          "result"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "kind": "tool",
+      "name": "quality_journey_external_work_admit_v1",
+      "description": "Atomically admit one caller-secret authenticated EXTERNAL_V1 assignment to IN_PROGRESS after graph, authorization, lease, and ownership rechecks.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "target": {
+            "type": "string",
+            "minLength": 1
+          },
+          "journeyId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "REQUIREMENT_ANALYZER",
+              "SCOUT",
+              "RESOURCE_EXPLORER",
+              "TEST_SCENARIO_DESIGNER",
+              "AUTOMATOR",
+              "TRIAGER"
+            ]
+          },
+          "workItemId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
+          },
+          "attemptId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
+          },
+          "assignmentId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
+          },
+          "assignmentGeneration": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
+          },
+          "leaseId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
+          },
+          "assignmentSecret": {
+            "type": "string",
+            "minLength": 32,
+            "maxLength": 2000
+          },
+          "idempotencyKey": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
+          },
+          "coordinatorHandoffId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "coordinatorGeneration": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "target",
+          "journeyId",
+          "role",
+          "workItemId",
+          "attemptId",
+          "assignmentId",
+          "assignmentGeneration",
+          "leaseId",
+          "assignmentSecret",
+          "idempotencyKey"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "kind": "tool",
+      "name": "quality_journey_external_work_claim_v1",
+      "description": "Claim one graph-eligible EXTERNAL_V1 assignment using a caller-generated assignment secret. Exact retries authenticate that secret before returning the durable receipt; this does not attest host isolation or create a Factory worker.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "target": {
+            "type": "string",
+            "minLength": 1
+          },
+          "journeyId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "REQUIREMENT_ANALYZER",
+              "SCOUT",
+              "RESOURCE_EXPLORER",
+              "TEST_SCENARIO_DESIGNER",
+              "AUTOMATOR",
+              "TRIAGER"
+            ]
+          },
+          "assignmentSecret": {
+            "type": "string",
+            "minLength": 32,
+            "maxLength": 2000
+          },
+          "idempotencyKey": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
+          },
+          "leaseSeconds": {
+            "type": "integer",
+            "minimum": 30,
+            "maximum": 900
+          },
+          "coordinatorHandoffId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "coordinatorGeneration": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "target",
+          "journeyId",
+          "role",
+          "assignmentSecret",
+          "idempotencyKey"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "kind": "tool",
+      "name": "quality_journey_external_work_outcome_get_v1",
+      "description": "Read one durable EXTERNAL_V1 specialized-submission outcome after a lost acknowledgement. The assignment secret and authenticated project principal are required; this operation cannot mutate Journey state.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "target": {
+            "type": "string",
+            "minLength": 1
+          },
+          "journeyId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "REQUIREMENT_ANALYZER",
+              "SCOUT",
+              "RESOURCE_EXPLORER",
+              "TEST_SCENARIO_DESIGNER",
+              "AUTOMATOR",
+              "TRIAGER"
+            ]
+          },
+          "operation": {
+            "type": "string",
+            "enum": [
+              "ANALYSIS_SUBMIT",
+              "TARGET_OBSERVATION_SUBMIT",
+              "RESOURCE_RESOLUTION_SUBMIT",
+              "SCENARIO_PORTFOLIO_SUBMIT",
+              "AUTOMATION_MATERIALIZE",
+              "TRIAGE_REPORT_SUBMIT"
+            ]
+          },
+          "workItemId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
+          },
+          "attemptId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
+          },
+          "assignmentId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
+          },
+          "assignmentGeneration": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
+          },
+          "leaseId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
+          },
+          "assignmentSecret": {
+            "type": "string",
+            "minLength": 32,
+            "maxLength": 2000
+          },
+          "idempotencyKey": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
+          }
+        },
+        "required": [
+          "target",
+          "journeyId",
+          "role",
+          "operation",
+          "workItemId",
+          "attemptId",
+          "assignmentId",
+          "assignmentGeneration",
+          "leaseId",
+          "assignmentSecret",
+          "idempotencyKey"
         ],
         "additionalProperties": false
       },
@@ -3169,7 +6898,7 @@
     {
       "kind": "tool",
       "name": "quality_journey_handoff_redeem",
-      "description": "Redeem one exact short-lived coordinator handoff ticket, then continue by reading authoritative Journey state.",
+      "description": "Redeem one exact short-lived coordinator handoff ticket, then read authoritative Journey state. Redemption never approves takeover or claims work.",
       "inputSchema": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "type": "object",
@@ -3185,6 +6914,11 @@
           "ticket": {
             "type": "string",
             "pattern": "^qjh_[A-Za-z0-9_-]{32}$"
+          },
+          "coordinatorTaskId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500
           }
         },
         "required": [
@@ -3304,6 +7038,17 @@
             "minLength": 1,
             "maxLength": 200,
             "pattern": "^[A-Za-z0-9._:-]+$"
+          },
+          "coordinatorHandoffId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
+          },
+          "coordinatorGeneration": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
           }
         },
         "required": [
@@ -3351,6 +7096,17 @@
             "minLength": 1,
             "maxLength": 200,
             "pattern": "^[A-Za-z0-9._:-]+$"
+          },
+          "coordinatorHandoffId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
+          },
+          "coordinatorGeneration": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
           },
           "environmentId": {
             "type": "string",
@@ -3456,6 +7212,16 @@
           "expectedScopeHash": {
             "type": "string",
             "pattern": "^sha256:[a-f0-9]{64}$"
+          },
+          "coordinatorHandoffId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "coordinatorGeneration": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
           },
           "bundle": {
             "type": "object",
@@ -4034,6 +7800,16 @@
           "journeyId": {
             "type": "string",
             "minLength": 1
+          },
+          "coordinatorHandoffId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "coordinatorGeneration": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
           }
         },
         "required": [
@@ -4095,6 +7871,16 @@
           "expectedReviewHash": {
             "type": "string",
             "pattern": "^sha256:[a-f0-9]{64}$"
+          },
+          "coordinatorHandoffId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "coordinatorGeneration": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
           }
         },
         "required": [
@@ -4152,6 +7938,16 @@
           "expectedReviewHash": {
             "type": "string",
             "pattern": "^sha256:[a-f0-9]{64}$"
+          },
+          "coordinatorHandoffId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "coordinatorGeneration": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
           }
         },
         "required": [
@@ -4247,6 +8043,16 @@
             "type": "string",
             "minLength": 1,
             "maxLength": 8000
+          },
+          "coordinatorHandoffId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "coordinatorGeneration": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
           }
         },
         "required": [
@@ -4346,6 +8152,16 @@
           "portfolioHash": {
             "type": "string",
             "pattern": "^sha256:[a-f0-9]{64}$"
+          },
+          "coordinatorHandoffId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "coordinatorGeneration": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
           }
         },
         "required": [
@@ -4423,6 +8239,16 @@
             "type": "string",
             "minLength": 1,
             "maxLength": 8000
+          },
+          "coordinatorHandoffId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "coordinatorGeneration": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
           }
         },
         "required": [
@@ -4477,6 +8303,16 @@
             "minLength": 1,
             "maxLength": 200,
             "pattern": "^[A-Za-z0-9._:-]+$"
+          },
+          "coordinatorHandoffId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "coordinatorGeneration": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
           }
         },
         "required": [
@@ -5092,6 +8928,16 @@
               "submittedAt"
             ],
             "additionalProperties": false
+          },
+          "coordinatorHandoffId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "coordinatorGeneration": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
           }
         },
         "required": [
@@ -5174,6 +9020,16 @@
           "expectedScopeHash": {
             "type": "string",
             "pattern": "^sha256:[a-f0-9]{64}$"
+          },
+          "coordinatorHandoffId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "coordinatorGeneration": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
           },
           "bundle": {
             "type": "object",
@@ -5572,6 +9428,17 @@
               "log"
             ]
           },
+          "coordinatorHandoffId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
+          },
+          "coordinatorGeneration": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
+          },
           "offset": {
             "type": "integer",
             "minimum": 0,
@@ -5653,6 +9520,17 @@
             "minLength": 1,
             "maxLength": 200,
             "pattern": "^[A-Za-z0-9._:-]+$"
+          },
+          "coordinatorHandoffId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
+          },
+          "coordinatorGeneration": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
           }
         },
         "required": [
@@ -6211,6 +10089,17 @@
               "submittedAt"
             ],
             "additionalProperties": false
+          },
+          "coordinatorHandoffId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
+          },
+          "coordinatorGeneration": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
           }
         },
         "required": [
@@ -6265,6 +10154,16 @@
             "type": "string",
             "minLength": 1,
             "maxLength": 8000
+          },
+          "coordinatorHandoffId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "coordinatorGeneration": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
           }
         },
         "required": [
@@ -6314,6 +10213,16 @@
             "type": "integer",
             "minimum": 30,
             "maximum": 900
+          },
+          "coordinatorHandoffId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "coordinatorGeneration": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
           }
         },
         "required": [
@@ -6364,6 +10273,16 @@
               "type": "string"
             },
             "additionalProperties": {}
+          },
+          "coordinatorHandoffId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "coordinatorGeneration": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
           }
         },
         "required": [
@@ -6410,6 +10329,16 @@
           "ownerToken": {
             "type": "string",
             "minLength": 1
+          },
+          "coordinatorHandoffId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "coordinatorGeneration": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
           }
         },
         "required": [
@@ -6460,6 +10389,16 @@
             "type": "string",
             "minLength": 1,
             "maxLength": 8000
+          },
+          "coordinatorHandoffId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "coordinatorGeneration": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
           }
         },
         "required": [

@@ -1,0 +1,20 @@
+{
+  "name": "appraise-local",
+  "interface": {
+    "displayName": "AppraiseJS local distribution"
+  },
+  "plugins": [
+    {
+      "name": "appraise-quality-journey",
+      "source": {
+        "source": "local",
+        "path": "./plugins/appraise-quality-journey"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}

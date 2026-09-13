@@ -1,5 +1,6 @@
 import { assertQualityJourneyMutable } from './quality-journey-terminal'
-import { createHash, randomUUID } from 'node:crypto'
+import { assertCurrentCoordinatorSession, type CoordinatorSessionBinding } from './quality-journey-coordinator-session'
+import { createHash, randomUUID, timingSafeEqual } from 'node:crypto'
 import type {
   Prisma,
   PrismaClient,
@@ -48,8 +49,182 @@ type Db = PrismaClient | Prisma.TransactionClient
 const json = (value: unknown) => canonicalContractJson(value)
 const hash = (value: unknown) => `sha256:${createHash('sha256').update(json(value)).digest('hex')}`
 const tokenHash = (value: string) => createHash('sha256').update(value).digest('hex')
+export const externalAssignmentSecretHash = (value: string) =>
+  createHash('sha256').update(`appraise.external-analyzer-assignment-secret/v1\0${value}`).digest('hex')
+const tokenHashMatches = (expected: string, actual: string) => {
+  const expectedBytes = Buffer.from(expected, 'hex')
+  const actualBytes = Buffer.from(actual, 'hex')
+  return expectedBytes.length === actualBytes.length && timingSafeEqual(expectedBytes, actualBytes)
+}
 const parseArray = (value: string): string[] => JSON.parse(value) as string[]
 const parseRecord = (value: string): Record<string, string> => JSON.parse(value) as Record<string, string>
+
+export const externalAnalyzerAdmissionProtocol = 'EXTERNAL_V1' as const
+export type ExternalAnalyzerProjectPrincipal = {
+  principalId: string
+  assurance: 'PROJECT_CREDENTIAL_ONLY'
+}
+
+/**
+ * The specialized external ingresses use this only to authenticate an
+ * assignment before they disclose an already-durable outcome.  Their normal
+ * canonical validators still re-read current authority immediately before an
+ * effect.  Keeping this a binding (rather than a generic result payload)
+ * prevents an external path from becoming a state-mutation dispatcher.
+ */
+export type ExternalQualityJourneySubmissionBinding = {
+  journeyId: string
+  targetProjectId: string
+  role: QualityJourneyRole
+  workItemId: string
+  attemptId: string
+  assignmentId: string
+  assignmentGeneration: number
+  leaseId: string
+  assignmentSecret: string
+  principal: ExternalAnalyzerProjectPrincipal
+}
+
+export async function authenticateExternalQualityJourneySubmission(
+  input: ExternalQualityJourneySubmissionBinding,
+  client: Db,
+) {
+  if (input.principal.assurance !== 'PROJECT_CREDENTIAL_ONLY')
+    throw new ServiceError('External work principal assurance is invalid.', 'UNAUTHORIZED')
+  assertExternalAssignmentSecretShape(input.assignmentSecret)
+  const item = await client.qualityJourneyWorkItem.findFirst({
+    where: { id: input.workItemId, journeyId: input.journeyId, targetProjectId: input.targetProjectId },
+  })
+  const attempt = await client.qualityJourneyWorkAttempt.findUnique({ where: { id: input.attemptId } })
+  if (!item || !attempt || attempt.workItemId !== item.id || attempt.leaseId !== input.leaseId)
+    throw new ServiceError('External work submission does not bind its assignment.', 'UNAUTHORIZED')
+  if (
+    item.role !== input.role ||
+    attempt.executionMode !== externalAnalyzerAdmissionProtocol ||
+    attempt.assignmentId !== input.assignmentId ||
+    attempt.assignmentGeneration !== input.assignmentGeneration
+  )
+    throw new ServiceError('External work submission assignment generation is stale.', 'CONFLICT')
+  assertExternalAnalyzerAttemptPrincipal(attempt, input.principal, input.assignmentSecret)
+  return { item, attempt }
+}
+
+export type ExternalQualityJourneyAcceptanceInput = ExternalQualityJourneySubmissionBinding & {
+  operation: string
+  idempotencyKey: string
+  payload: unknown
+}
+
+async function assertCurrentExternalSubmissionAuthority(
+  input: ExternalQualityJourneySubmissionBinding,
+  tx: Prisma.TransactionClient,
+) {
+  const { item, attempt } = await authenticateExternalQualityJourneySubmission(input, tx)
+  assertQualityJourneyMutable(await readJourney(input.journeyId, input.targetProjectId, tx))
+  const authorization = attempt.authorizationId
+    ? await tx.qualityJourneyWorkAuthorization.findUnique({ where: { id: attempt.authorizationId } })
+    : null
+  if (
+    !authorization ||
+    authorization.revokedAt ||
+    authorization.cancelledAt ||
+    authorization.externalAdmissionProtocol !== externalAnalyzerAdmissionProtocol ||
+    authorization.externalPrincipalId !== input.principal.principalId ||
+    authorization.externalPrincipalAssurance !== input.principal.assurance
+  )
+    throw new ServiceError('External work submission authority is not current.', 'UNAUTHORIZED')
+  if (item.status !== 'IN_PROGRESS' || attempt.status !== 'IN_PROGRESS')
+    throw new ServiceError('External work submission attempt is stale.', 'CONFLICT')
+  if (attempt.leaseExpiresAt <= new Date())
+    throw new ServiceError('External work submission lease has expired.', 'CONFLICT')
+  return { item, attempt }
+}
+
+/**
+ * Executes only a role-specialized canonical effect in the caller's existing
+ * transaction.  It authenticates before durable replay disclosure, rejects a
+ * conflicting reuse, then rechecks current authority immediately before the
+ * callback commits its artifact and graph transition.  There is deliberately
+ * no generic mutation payload or dispatcher here.
+ */
+export async function acceptExternalQualityJourneySubmissionInTransaction<T>(
+  input: ExternalQualityJourneyAcceptanceInput,
+  tx: Prisma.TransactionClient,
+  effect: () => Promise<T>,
+) {
+  const payloadHash = hash(input.payload)
+  const existing = await tx.qualityJourneyExternalSubmissionAcceptance.findUnique({
+    where: {
+      journeyId_targetProjectId_principalId_operation_attemptId_idempotencyKey: {
+        journeyId: input.journeyId,
+        targetProjectId: input.targetProjectId,
+        principalId: input.principal.principalId,
+        operation: input.operation,
+        attemptId: input.attemptId,
+        idempotencyKey: input.idempotencyKey,
+      },
+    },
+  })
+  // Authenticate the exact assignment before returning any durable result,
+  // including one whose lease has since expired or been revoked.
+  await authenticateExternalQualityJourneySubmission(input, tx)
+  if (existing) {
+    if (existing.payloadHash !== payloadHash)
+      throw new ServiceError('External submission idempotency key was reused with different input.', 'CONFLICT')
+    if (existing.outcomeHash !== hash(JSON.parse(existing.outcomeJson)))
+      throw new ServiceError('External submission acceptance lineage is invalid.', 'UNAUTHORIZED')
+    return { replayed: true as const, outcome: JSON.parse(existing.outcomeJson) as T }
+  }
+  await assertCurrentExternalSubmissionAuthority(input, tx)
+  const outcome = await effect()
+  await tx.qualityJourneyExternalSubmissionAcceptance.create({
+    data: {
+      id: `qjesa_${randomUUID()}`,
+      journeyId: input.journeyId,
+      targetProjectId: input.targetProjectId,
+      workItemId: input.workItemId,
+      attemptId: input.attemptId,
+      assignmentId: input.assignmentId,
+      assignmentGeneration: input.assignmentGeneration,
+      leaseId: input.leaseId,
+      role: input.role,
+      operation: input.operation,
+      principalId: input.principal.principalId,
+      principalAssurance: input.principal.assurance,
+      idempotencyKey: input.idempotencyKey,
+      payloadHash,
+      outcomeJson: json(outcome),
+      outcomeHash: hash(outcome),
+    },
+  })
+  return { replayed: false as const, outcome }
+}
+
+export async function readExternalQualityJourneySubmissionOutcome(
+  input: Pick<ExternalQualityJourneyAcceptanceInput, 'operation' | 'idempotencyKey'> &
+    ExternalQualityJourneySubmissionBinding,
+  client: PrismaClient = prisma,
+) {
+  return client.$transaction(async tx => {
+    await authenticateExternalQualityJourneySubmission(input, tx)
+    const receipt = await tx.qualityJourneyExternalSubmissionAcceptance.findUnique({
+      where: {
+        journeyId_targetProjectId_principalId_operation_attemptId_idempotencyKey: {
+          journeyId: input.journeyId,
+          targetProjectId: input.targetProjectId,
+          principalId: input.principal.principalId,
+          operation: input.operation,
+          attemptId: input.attemptId,
+          idempotencyKey: input.idempotencyKey,
+        },
+      },
+    })
+    if (!receipt) throw new ServiceError('External submission outcome is not available.', 'NOT_FOUND')
+    if (receipt.outcomeHash !== hash(JSON.parse(receipt.outcomeJson)))
+      throw new ServiceError('External submission acceptance lineage is invalid.', 'UNAUTHORIZED')
+    return { replayed: true, outcome: JSON.parse(receipt.outcomeJson) }
+  })
+}
 
 type FactoryAuthorization = Pick<
   AssignmentManifest,
@@ -295,6 +470,49 @@ export async function refreshQualityJourneyWorkAuthorizationInTransaction(
   const predecessor = await currentWorkAuthorization(item.id, tx)
   if (!predecessor) throw new ServiceError('Specialized work issuance has no authorization to supersede.', 'CONFLICT')
   await createWorkAuthorization(journey, item, tx, 3, predecessor.id)
+}
+
+/**
+ * A coordinator takeover fences a concrete predecessor attempt but must not
+ * erase the logical work item. Reissue equivalent Factory authority with the
+ * same hard attempt budget, then revoke the predecessor authorization so its
+ * secrets and owner cannot be reused.
+ */
+export async function replaceQualityJourneyWorkAuthorizationForTakeoverInTransaction(
+  journeyId: string,
+  workItemId: string,
+  tx: Prisma.TransactionClient,
+  handoffId: string,
+) {
+  const journey = await tx.qualityJourney.findUniqueOrThrow({ where: { id: journeyId } })
+  const item = await tx.qualityJourneyWorkItem.findUniqueOrThrow({ where: { id: workItemId } })
+  const predecessor = await currentWorkAuthorization(item.id, tx)
+  if (!predecessor)
+    throw new ServiceError(
+      'Coordinator takeover cannot reissue work without current Factory authorization.',
+      'CONFLICT',
+    )
+  const consumedByPredecessor = await tx.qualityJourneyWorkAttempt.count({
+    where: { authorizationId: predecessor.id },
+  })
+  // A takeover reissues only the remaining immutable lineage budget; it never
+  // turns an already-used authorization ceiling into a fresh allowance.
+  const remainingAttempts = Math.max(0, predecessor.maxAttempts - consumedByPredecessor)
+  await createWorkAuthorization(journey, item, tx, remainingAttempts, predecessor.id)
+  const revoked = await tx.qualityJourneyWorkAuthorization.updateMany({
+    where: { id: predecessor.id, revokedAt: null },
+    data: {
+      revokedAt: new Date(),
+      revokedBy: `COORDINATOR_TAKEOVER:${handoffId}`,
+      revocationReason: 'Superseded by an explicitly approved coordinator takeover replacement.',
+    },
+  })
+  if (revoked.count !== 1)
+    throw new ServiceError('Coordinator takeover work authorization changed concurrently.', 'CONFLICT')
+  return tx.qualityJourneyWorkAuthorization.findFirstOrThrow({
+    where: { workItemId, supersedesAuthorizationId: predecessor.id },
+    select: { id: true },
+  })
 }
 
 /** A revision request is a new, transcript-free Analyzer authorization. Its
@@ -1164,8 +1382,10 @@ export async function submitDurableQualityJourneyCommandInTransaction(
   tx: Prisma.TransactionClient,
   allowSpecializedCommand = false,
   issueEligibleWorkItems = true,
+  coordinatorSession?: CoordinatorSessionBinding,
 ) {
   const command = journeyCommandSchema.parse(value)
+  if (coordinatorSession) await assertCurrentCoordinatorSession(coordinatorSession, tx)
   if (
     !allowSpecializedCommand &&
     [
@@ -1210,8 +1430,14 @@ export async function ensureEligibleQualityJourneyWorkItemsInTransaction(
   await ensureEligibleWorkItems(row, tx)
 }
 
-export async function submitDurableQualityJourneyCommand(value: unknown, client: PrismaClient = prisma) {
-  return client.$transaction(tx => submitDurableQualityJourneyCommandInTransaction(value, tx))
+export async function submitDurableQualityJourneyCommand(
+  value: unknown,
+  client: PrismaClient = prisma,
+  coordinatorSession?: CoordinatorSessionBinding,
+) {
+  return client.$transaction(tx =>
+    submitDurableQualityJourneyCommandInTransaction(value, tx, false, true, coordinatorSession),
+  )
 }
 
 async function blockExpiredQualityJourneyWork(
@@ -1309,11 +1535,12 @@ async function resumeRefusedFactoryWork(row: QualityJourney, now: Date, tx: Pris
 }
 
 export async function resumeQualityJourney(
-  input: { journeyId: string; targetProjectId: string; now?: Date },
+  input: CoordinatorSessionBinding & { journeyId: string; targetProjectId: string; now?: Date },
   client: PrismaClient = prisma,
 ) {
   const now = input.now ?? new Date()
   return client.$transaction(async tx => {
+    await assertCurrentCoordinatorSession(input, tx)
     const row = await readJourney(input.journeyId, input.targetProjectId, tx)
     assertQualityJourneyMutable(row)
     const recoveredWorkItemIds = await recoverLegacyFactoryAuthorizations(row, tx)
@@ -1539,7 +1766,7 @@ async function upgradeLegacyDiscoveryOnClaim(journey: QualityJourney, tx: Prisma
   return readJourney(journey.id, journey.targetProjectId, tx)
 }
 
-type WorkClaimInput = {
+type WorkClaimInput = CoordinatorSessionBinding & {
   journeyId: string
   targetProjectId: string
   role: QualityJourneyRole
@@ -1579,6 +1806,7 @@ async function assertSpecializedTriagerClaim(
 export async function claimQualityJourneyWork(input: WorkClaimInput, client: PrismaClient = prisma) {
   const leaseSeconds = Math.min(Math.max(input.leaseSeconds ?? 120, 30), 900)
   return client.$transaction(async tx => {
+    await assertCurrentCoordinatorSession(input, tx)
     const persistedJourney = await readJourney(input.journeyId, input.targetProjectId, tx)
     assertQualityJourneyMutable(persistedJourney)
     // Frozen target/catalog authority cannot be synthesized safely in SQL.
@@ -1653,7 +1881,435 @@ export async function claimQualityJourneyWork(input: WorkClaimInput, client: Pri
   })
 }
 
-export type WorkCompletionInput = {
+export type ExternalQualityJourneyWorkClaimInput = CoordinatorSessionBinding & {
+  journeyId: string
+  targetProjectId: string
+  role: QualityJourneyRole
+  principal: ExternalAnalyzerProjectPrincipal
+  assignmentSecret: string
+  idempotencyKey: string
+  leaseSeconds?: number
+}
+
+function assertExternalAssignmentSecretShape(assignmentSecret: string) {
+  if (Buffer.byteLength(assignmentSecret, 'utf8') < 32 || assignmentSecret.length > 2_000)
+    throw new ServiceError('External assignment secret must contain at least 32 bytes.', 'VALIDATION')
+}
+
+function externalClaimRequestInput(input: ExternalQualityJourneyWorkClaimInput, leaseSeconds: number) {
+  return {
+    schemaVersion: 'appraise.quality-journey-external-claim-request/v1' as const,
+    operation: 'CLAIM' as const,
+    protocol: externalAnalyzerAdmissionProtocol,
+    journeyId: input.journeyId,
+    targetProjectId: input.targetProjectId,
+    role: input.role,
+    principal: input.principal,
+    assignmentSecretVerifier: externalAssignmentSecretHash(input.assignmentSecret),
+    idempotencyKey: input.idempotencyKey,
+    leaseSeconds,
+    ...(input.coordinatorHandoffId ? { coordinatorHandoffId: input.coordinatorHandoffId } : {}),
+    ...(input.coordinatorGeneration ? { coordinatorGeneration: input.coordinatorGeneration } : {}),
+  }
+}
+
+function verifiedExternalClaimReceipt(receipt: {
+  receiptJson: string
+  receiptHash: string
+  requestJson: string
+  requestHash: string
+}) {
+  const request = JSON.parse(receipt.requestJson)
+  const value = JSON.parse(receipt.receiptJson)
+  if (receipt.requestHash !== hash(request) || receipt.receiptHash !== hash(value))
+    throw new ServiceError('External work claim receipt lineage is invalid.', 'UNAUTHORIZED')
+  return { request, receipt: value }
+}
+
+function externalClaimOutcome(
+  claim: { receiptJson: string; receiptHash: string; requestJson: string; requestHash: string },
+  attempt: QualityJourneyWorkAttempt,
+  replayed: boolean,
+) {
+  const { receipt } = verifiedExternalClaimReceipt(claim)
+  if (
+    !attempt.assignmentJson ||
+    !attempt.assignmentHash ||
+    attempt.assignmentHash !== hash(JSON.parse(attempt.assignmentJson))
+  )
+    throw new ServiceError('External work assignment lineage is invalid.', 'UNAUTHORIZED')
+  return {
+    replayed,
+    workItem: receipt.workItem,
+    attempt,
+    assignment: JSON.parse(attempt.assignmentJson),
+    receipt,
+    assignmentGeneration: attempt.assignmentGeneration,
+    executionMode: externalAnalyzerAdmissionProtocol,
+  }
+}
+
+/**
+ * The external path is deliberately separate from managed Factory claims. It
+ * reuses the graph-owned eligibility, authorization, and compare-and-swap
+ * machinery, but accepts no Factory spawn receipt and records no host claim.
+ */
+export async function claimExternalQualityJourneyWork(
+  input: ExternalQualityJourneyWorkClaimInput,
+  client: PrismaClient = prisma,
+) {
+  const leaseSeconds = Math.min(Math.max(input.leaseSeconds ?? 120, 30), 900)
+  if (input.principal.assurance !== 'PROJECT_CREDENTIAL_ONLY')
+    throw new ServiceError('External Analyzer principal assurance is invalid.', 'UNAUTHORIZED')
+  assertExternalAssignmentSecretShape(input.assignmentSecret)
+  if (!input.idempotencyKey || input.idempotencyKey.length > 200)
+    throw new ServiceError('External work claim idempotency key is invalid.', 'VALIDATION')
+  const requestInput = externalClaimRequestInput(input, leaseSeconds)
+  return client.$transaction(async tx => {
+    const existing = await tx.qualityJourneyExternalWorkClaimReceipt.findUnique({
+      where: {
+        journeyId_targetProjectId_principalId_protocol_idempotencyKey: {
+          journeyId: input.journeyId,
+          targetProjectId: input.targetProjectId,
+          principalId: input.principal.principalId,
+          protocol: externalAnalyzerAdmissionProtocol,
+          idempotencyKey: input.idempotencyKey,
+        },
+      },
+    })
+    if (existing) {
+      const attempt = await tx.qualityJourneyWorkAttempt.findUnique({ where: { id: existing.attemptId } })
+      if (!attempt) throw new ServiceError('External work claim attempt lineage is unavailable.', 'UNAUTHORIZED')
+      // Authenticate before comparing or disclosing a durable prior outcome.
+      assertExternalAnalyzerAttemptPrincipal(attempt, input.principal, input.assignmentSecret)
+      const { request } = verifiedExternalClaimReceipt(existing)
+      if (hash(request.input) !== hash(requestInput))
+        throw new ServiceError('External work claim idempotency key was reused with different input.', 'CONFLICT')
+      return externalClaimOutcome(existing, attempt, true)
+    }
+    await assertCurrentCoordinatorSession(input, tx)
+    const persistedJourney = await readJourney(input.journeyId, input.targetProjectId, tx)
+    assertQualityJourneyMutable(persistedJourney)
+    const journey = await upgradeLegacyDiscoveryOnClaim(persistedJourney, tx)
+    await ensureEligibleWorkItems(journey, tx)
+    const item = await findClaimableWorkItem(
+      journey,
+      { journeyId: input.journeyId, targetProjectId: input.targetProjectId, role: input.role },
+      tx,
+    )
+    if (!item) throw new ServiceError('No eligible external Quality Journey work item is available.', 'CONFLICT')
+    await assertSpecializedTriagerClaim(item, journey, tx)
+    const authorization = await currentWorkAuthorization(item.id, tx)
+    if (!authorization)
+      throw new ServiceError('Quality Journey work has no issued Factory authorization.', 'UNAUTHORIZED')
+    assertClaimableAuthorization(authorization)
+    if (
+      authorization.externalAdmissionProtocol &&
+      (authorization.externalAdmissionProtocol !== externalAnalyzerAdmissionProtocol ||
+        authorization.externalPrincipalId !== input.principal.principalId ||
+        authorization.externalPrincipalAssurance !== input.principal.assurance)
+    )
+      throw new ServiceError('External Analyzer authorization is bound to another principal.', 'UNAUTHORIZED')
+    const optedIn = await tx.qualityJourneyWorkAuthorization.updateMany({
+      where: {
+        id: authorization.id,
+        OR: [
+          { externalAdmissionProtocol: null },
+          {
+            externalAdmissionProtocol: externalAnalyzerAdmissionProtocol,
+            externalPrincipalId: input.principal.principalId,
+            externalPrincipalAssurance: input.principal.assurance,
+          },
+        ],
+      },
+      data: {
+        externalAdmissionProtocol: externalAnalyzerAdmissionProtocol,
+        externalPrincipalId: input.principal.principalId,
+        externalPrincipalAssurance: input.principal.assurance,
+        externalOptInRequestHash: hash({ protocol: externalAnalyzerAdmissionProtocol, principal: input.principal }),
+        externalOptedInAt: new Date(),
+      },
+    })
+    if (optedIn.count !== 1) throw new ServiceError('External Analyzer authorization changed concurrently.', 'CONFLICT')
+    const authorizationAttemptCount = await tx.qualityJourneyWorkAttempt.count({
+      where: { authorizationId: authorization.id },
+    })
+    if (authorizationAttemptCount >= authorization.maxAttempts)
+      throw new ServiceError('Quality Journey work has exhausted its maximum attempt budget.', 'CONFLICT')
+    const authorizationPayload = validateFactoryAuthorization(authorization, journey, item)
+    const { inputArtifacts, inputHash, projectionHash } = await deriveClaimInput(item, authorizationPayload, tx)
+    const attempt = await persistWorkClaim(item, inputHash, tx)
+    const leaseId = `qjl_${randomUUID()}`
+    const leaseExpiresAt = new Date(Date.now() + leaseSeconds * 1000)
+    const attemptId = `qja_${randomUUID()}`
+    const prior = await priorWorkAttempt(item, tx)
+    const replacement = predecessorDiagnostics(prior, projectionHash)
+    const heartbeatSeconds = Math.max(10, Math.floor(leaseSeconds / 3))
+    const claimedItem = { ...item, inputHash }
+    const manifest = manifestForClaim(
+      authorizationPayload,
+      claimedItem,
+      { id: attemptId, leaseId, leaseExpiresAt, heartbeatSeconds },
+      inputArtifacts,
+      replacement ?? undefined,
+    )
+    const workAttempt = await tx.qualityJourneyWorkAttempt.create({
+      data: {
+        id: attemptId,
+        workItemId: item.id,
+        attempt,
+        status: 'WORKER_REQUESTED',
+        leaseId,
+        ownerTokenHash: externalAssignmentSecretHash(input.assignmentSecret),
+        executionMode: externalAnalyzerAdmissionProtocol,
+        externalPrincipalId: input.principal.principalId,
+        externalPrincipalAssurance: input.principal.assurance,
+        assignmentGeneration: 1,
+        leaseExpiresAt,
+        heartbeatSeconds,
+        authorizationId: authorization.id,
+        assignmentId: manifest.assignmentId,
+        assignmentJson: json(manifest),
+        assignmentHash: hash(manifest),
+        replacesAttemptId: prior?.id,
+        replacementProjectionHash: replacement?.projectionHash,
+        predecessorDiagnosticsJson: replacement ? json(replacement.diagnostics) : null,
+      },
+    })
+    const receipt = {
+      schemaVersion: 'appraise.quality-journey-external-claim-receipt/v1' as const,
+      claimId: `qjec_${randomUUID()}`,
+      protocol: externalAnalyzerAdmissionProtocol,
+      journeyId: journey.id,
+      targetProjectId: journey.targetProjectId,
+      role: item.role,
+      workItem: { ...claimedItem, status: 'WORKER_REQUESTED' as const, currentAttempt: attempt },
+      attemptId: workAttempt.id,
+      authorizationId: authorization.id,
+      authorizationHash: authorization.authorizationHash,
+      assignmentId: manifest.assignmentId,
+      assignmentGeneration: workAttempt.assignmentGeneration,
+      assignmentHash: hash(manifest),
+      inputHash,
+      leaseId,
+      leaseExpiresAt: leaseExpiresAt.toISOString(),
+      leaseRequestSeconds: leaseSeconds,
+      principal: input.principal,
+      hostIsolation: 'NOT_ATTESTED' as const,
+    }
+    const request = {
+      schemaVersion: 'appraise.quality-journey-external-claim/v1' as const,
+      input: requestInput,
+      binding: {
+        journeyId: journey.id,
+        targetProjectId: journey.targetProjectId,
+        workItemId: item.id,
+        role: item.role,
+        authorizationId: authorization.id,
+        authorizationHash: authorization.authorizationHash,
+        assignmentId: manifest.assignmentId,
+        assignmentGeneration: workAttempt.assignmentGeneration,
+        leaseId,
+        leaseExpiresAt: leaseExpiresAt.toISOString(),
+        inputHash,
+      },
+    }
+    const claim = await tx.qualityJourneyExternalWorkClaimReceipt.create({
+      data: {
+        id: receipt.claimId,
+        journeyId: journey.id,
+        targetProjectId: journey.targetProjectId,
+        workItemId: item.id,
+        attemptId: workAttempt.id,
+        authorizationId: authorization.id,
+        protocol: externalAnalyzerAdmissionProtocol,
+        role: item.role,
+        principalId: input.principal.principalId,
+        principalAssurance: input.principal.assurance,
+        assignmentSecretVerifier: externalAssignmentSecretHash(input.assignmentSecret),
+        assignmentGeneration: workAttempt.assignmentGeneration,
+        leaseId,
+        leaseRequestSeconds: leaseSeconds,
+        idempotencyKey: input.idempotencyKey,
+        requestJson: json(request),
+        requestHash: hash(request),
+        receiptJson: json(receipt),
+        receiptHash: hash(receipt),
+      },
+    })
+    return externalClaimOutcome(claim, workAttempt, false)
+  })
+}
+
+/** Compatibility adapter for the retained Analyzer-only operation name. */
+export type ExternalAnalyzerClaimInput = Omit<ExternalQualityJourneyWorkClaimInput, 'role'>
+
+export async function claimExternalQualityJourneyAnalyzer(
+  input: ExternalAnalyzerClaimInput,
+  client: PrismaClient = prisma,
+) {
+  const result = await claimExternalQualityJourneyWork({ ...input, role: 'REQUIREMENT_ANALYZER' }, client)
+  return { ...result, assignmentSecret: input.assignmentSecret }
+}
+
+export type ExternalQualityJourneyWorkAdmissionInput = CoordinatorSessionBinding & {
+  journeyId: string
+  targetProjectId: string
+  role: QualityJourneyRole
+  workItemId: string
+  attemptId: string
+  assignmentId: string
+  assignmentGeneration: number
+  leaseId: string
+  assignmentSecret: string
+  idempotencyKey: string
+  principal: ExternalAnalyzerProjectPrincipal
+}
+
+function externalAdmissionRequest(input: ExternalQualityJourneyWorkAdmissionInput) {
+  return {
+    schemaVersion: 'appraise.quality-journey-external-admission-request/v1' as const,
+    operation: 'ADMIT' as const,
+    protocol: externalAnalyzerAdmissionProtocol,
+    journeyId: input.journeyId,
+    targetProjectId: input.targetProjectId,
+    role: input.role,
+    workItemId: input.workItemId,
+    attemptId: input.attemptId,
+    assignmentId: input.assignmentId,
+    assignmentGeneration: input.assignmentGeneration,
+    leaseId: input.leaseId,
+    assignmentSecretVerifier: externalAssignmentSecretHash(input.assignmentSecret),
+    idempotencyKey: input.idempotencyKey,
+    principal: input.principal,
+    ...(input.coordinatorHandoffId ? { coordinatorHandoffId: input.coordinatorHandoffId } : {}),
+    ...(input.coordinatorGeneration ? { coordinatorGeneration: input.coordinatorGeneration } : {}),
+  }
+}
+
+export function assertExternalAnalyzerAttemptPrincipal(
+  attempt: QualityJourneyWorkAttempt,
+  principal: ExternalAnalyzerProjectPrincipal,
+  assignmentSecret: string,
+) {
+  if (
+    attempt.executionMode !== externalAnalyzerAdmissionProtocol ||
+    attempt.externalPrincipalId !== principal.principalId ||
+    attempt.externalPrincipalAssurance !== principal.assurance ||
+    !tokenHashMatches(attempt.ownerTokenHash, externalAssignmentSecretHash(assignmentSecret))
+  )
+    throw new ServiceError('External Analyzer assignment authority is invalid.', 'UNAUTHORIZED')
+}
+
+/** Atomically records Appraise admission only. It makes no statement about the
+ * host process, its context, its tools, or its isolation. */
+export async function admitExternalQualityJourneyWork(
+  input: ExternalQualityJourneyWorkAdmissionInput,
+  client: PrismaClient = prisma,
+) {
+  if (input.principal.assurance !== 'PROJECT_CREDENTIAL_ONLY')
+    throw new ServiceError('External Analyzer principal assurance is invalid.', 'UNAUTHORIZED')
+  assertExternalAssignmentSecretShape(input.assignmentSecret)
+  if (!input.idempotencyKey || input.idempotencyKey.length > 200)
+    throw new ServiceError('External work admission idempotency key is invalid.', 'VALIDATION')
+  const request = externalAdmissionRequest(input)
+  const requestHash = hash(request)
+  return client.$transaction(async tx => {
+    const item = await readScopedWorkItem(input, tx)
+    if (item.role !== input.role)
+      throw new ServiceError('External work admission role does not match its assignment.', 'CONFLICT')
+    const attempt = await tx.qualityJourneyWorkAttempt.findUnique({ where: { id: input.attemptId } })
+    if (!attempt || attempt.workItemId !== item.id || attempt.leaseId !== input.leaseId)
+      throw new ServiceError('External Analyzer admission does not bind a current work attempt.', 'UNAUTHORIZED')
+    assertExternalAnalyzerAttemptPrincipal(attempt, input.principal, input.assignmentSecret)
+    if (attempt.assignmentId !== input.assignmentId || attempt.assignmentGeneration !== input.assignmentGeneration)
+      throw new ServiceError('External Analyzer admission generation is stale.', 'CONFLICT')
+    if (attempt.externalAdmissionJson) {
+      if (attempt.externalAdmissionRequestHash !== requestHash)
+        throw new ServiceError(
+          'External Analyzer admission idempotency key was reused with different input.',
+          'CONFLICT',
+        )
+      if (
+        !attempt.externalAdmissionHash ||
+        !attempt.externalAdmissionRequestJson ||
+        attempt.externalAdmissionHash !== hash(JSON.parse(attempt.externalAdmissionJson)) ||
+        attempt.externalAdmissionRequestHash !== hash(JSON.parse(attempt.externalAdmissionRequestJson))
+      )
+        throw new ServiceError('External Analyzer admission receipt lineage is invalid.', 'UNAUTHORIZED')
+      return { replayed: true, receipt: JSON.parse(attempt.externalAdmissionJson) }
+    }
+    await assertCurrentCoordinatorSession(input, tx)
+    assertQualityJourneyMutable(await readJourney(input.journeyId, input.targetProjectId, tx))
+    const authorization = attempt.authorizationId
+      ? await tx.qualityJourneyWorkAuthorization.findUnique({ where: { id: attempt.authorizationId } })
+      : null
+    assertFactoryAuthorityCurrent(item, authorization)
+    if (
+      !authorization ||
+      authorization.externalAdmissionProtocol !== externalAnalyzerAdmissionProtocol ||
+      authorization.externalPrincipalId !== input.principal.principalId ||
+      authorization.externalPrincipalAssurance !== input.principal.assurance
+    )
+      throw new ServiceError('External Analyzer authorization is not current for this principal.', 'UNAUTHORIZED')
+    if (
+      attempt.leaseExpiresAt <= new Date() ||
+      item.currentAttempt !== attempt.attempt ||
+      item.status !== 'WORKER_REQUESTED'
+    )
+      throw new ServiceError('External Analyzer admission is stale.', 'CONFLICT')
+    const receipt = {
+      schemaVersion: 'appraise.quality-journey-external-admission/v1' as const,
+      admissionId: `qjea_${randomUUID()}`,
+      protocol: externalAnalyzerAdmissionProtocol,
+      assignmentId: input.assignmentId,
+      assignmentGeneration: input.assignmentGeneration,
+      attemptId: attempt.id,
+      workItemId: item.id,
+      journeyId: input.journeyId,
+      targetProjectId: input.targetProjectId,
+      role: item.role,
+      principal: input.principal,
+      authorizationId: authorization.id,
+      authorizationHash: authorization.authorizationHash,
+      inputHash: item.inputHash,
+      leaseId: attempt.leaseId,
+      hostIsolation: 'NOT_ATTESTED' as const,
+      admittedAt: new Date().toISOString(),
+    }
+    const admitted = await tx.qualityJourneyWorkAttempt.updateMany({
+      where: { id: attempt.id, status: 'WORKER_REQUESTED', externalAdmissionId: null },
+      data: {
+        status: 'IN_PROGRESS',
+        externalAdmissionId: receipt.admissionId,
+        externalAdmissionJson: json(receipt),
+        externalAdmissionHash: hash(receipt),
+        externalAdmissionRequestJson: json(request),
+        externalAdmissionRequestHash: requestHash,
+        externalAdmittedAt: new Date(),
+      },
+    })
+    if (admitted.count !== 1) throw new ServiceError('External Analyzer admission changed concurrently.', 'CONFLICT')
+    const started = await tx.qualityJourneyWorkItem.updateMany({
+      where: { id: item.id, version: item.version, currentAttempt: attempt.attempt, status: 'WORKER_REQUESTED' },
+      data: { status: 'IN_PROGRESS', version: { increment: 1 } },
+    })
+    if (started.count !== 1) throw new ServiceError('External Analyzer admission changed concurrently.', 'CONFLICT')
+    return { replayed: false, receipt }
+  })
+}
+
+/** Compatibility adapter for the retained Analyzer-only operation name. */
+export type ExternalAnalyzerAdmissionInput = Omit<ExternalQualityJourneyWorkAdmissionInput, 'role'>
+
+export async function admitExternalQualityJourneyAnalyzer(
+  input: ExternalAnalyzerAdmissionInput,
+  client: PrismaClient = prisma,
+) {
+  return admitExternalQualityJourneyWork({ ...input, role: 'REQUIREMENT_ANALYZER' }, client)
+}
+
+export type WorkCompletionInput = CoordinatorSessionBinding & {
   journeyId: string
   targetProjectId: string
   workItemId: string
@@ -1671,8 +2327,14 @@ function assertLeaseAuthority(
   item: QualityJourneyWorkItem,
   attempt: QualityJourneyWorkAttempt | null,
 ) {
-  if (!attempt || attempt.workItemId !== item.id || attempt.ownerTokenHash !== tokenHash(input.ownerToken))
+  const candidateHash =
+    attempt?.executionMode === externalAnalyzerAdmissionProtocol
+      ? externalAssignmentSecretHash(input.ownerToken)
+      : tokenHash(input.ownerToken)
+  if (!attempt || attempt.workItemId !== item.id || !tokenHashMatches(attempt.ownerTokenHash, candidateHash))
     throw new ServiceError('Quality Journey lease authority is invalid.', 'UNAUTHORIZED')
+  if (['CANCELLED', 'REFUSED', 'FAILED', 'EXPIRED'].includes(attempt.status))
+    throw new ServiceError('Quality Journey lease authority was fenced or is no longer current.', 'UNAUTHORIZED')
   return attempt
 }
 
@@ -1871,6 +2533,7 @@ function publicDispatchProjection(input: {
 
 export async function dispatchQualityJourneyWork(input: WorkLeaseInput, client: PrismaClient = prisma) {
   const pending = await client.$transaction(async tx => {
+    await assertCurrentCoordinatorSession(input, tx)
     const loaded = await readWorkAttempt(input, tx)
     assertFactoryAuthorityCurrent(loaded.item, loaded.authorization)
     const attempt = assertLeaseAuthority(input, loaded.item, loaded.attempt)
@@ -1997,7 +2660,7 @@ export async function dispatchQualityJourneyWork(input: WorkLeaseInput, client: 
 }
 
 type FactoryControlActor = 'USER' | 'COORDINATOR' | 'RUNNER'
-type WorkTerminationInput = {
+type WorkTerminationInput = CoordinatorSessionBinding & {
   journeyId: string
   targetProjectId: string
   workItemId: string
@@ -2006,6 +2669,7 @@ type WorkTerminationInput = {
 }
 
 async function readWorkAuthorizationForControl(input: WorkTerminationInput, tx: Prisma.TransactionClient) {
+  await assertCurrentCoordinatorSession(input, tx)
   assertQualityJourneyMutable(await readJourney(input.journeyId, input.targetProjectId, tx))
   const item = await readScopedWorkItem(input, tx)
   const authorization = await currentWorkAuthorization(item.id, tx)
@@ -2276,6 +2940,49 @@ async function validateDurableWorkerLineage(
   }
 }
 
+async function validateDurableExternalWorkLineage(
+  item: QualityJourneyWorkItem,
+  attempt: QualityJourneyWorkAttempt,
+  tx: Prisma.TransactionClient,
+) {
+  if (
+    attempt.executionMode !== externalAnalyzerAdmissionProtocol ||
+    !attempt.authorizationId ||
+    !attempt.assignmentJson ||
+    !attempt.assignmentHash ||
+    !attempt.externalAdmissionJson ||
+    !attempt.externalAdmissionHash
+  )
+    throw new ServiceError('External work has no validated external admission receipt.', 'UNAUTHORIZED')
+  const authorization = await tx.qualityJourneyWorkAuthorization.findUnique({ where: { id: attempt.authorizationId } })
+  if (
+    !authorization ||
+    authorization.externalAdmissionProtocol !== externalAnalyzerAdmissionProtocol ||
+    authorization.externalPrincipalId !== attempt.externalPrincipalId ||
+    authorization.externalPrincipalAssurance !== attempt.externalPrincipalAssurance
+  )
+    throw new ServiceError('External work authorization lineage is invalid.', 'UNAUTHORIZED')
+  const receipt = JSON.parse(attempt.externalAdmissionJson) as Record<string, unknown>
+  if (
+    attempt.externalAdmissionHash !== hash(receipt) ||
+    receipt.protocol !== externalAnalyzerAdmissionProtocol ||
+    receipt.hostIsolation !== 'NOT_ATTESTED' ||
+    receipt.assignmentId !== attempt.assignmentId ||
+    receipt.assignmentGeneration !== attempt.assignmentGeneration ||
+    receipt.attemptId !== attempt.id ||
+    receipt.workItemId !== item.id ||
+    receipt.inputHash !== item.inputHash ||
+    receipt.leaseId !== attempt.leaseId
+  )
+    throw new ServiceError('External work admission receipt lineage is invalid.', 'UNAUTHORIZED')
+  const journey = await readJourney(authorization.journeyId, authorization.targetProjectId, tx)
+  const authorizationPayload = validateFactoryAuthorization(authorization, journey, item)
+  const persistedAssignment = JSON.parse(attempt.assignmentJson) as AssignmentManifest
+  const expectedAssignment = assignmentFromAuthorization(authorizationPayload, item, attempt)
+  assertPersistedAssignmentLineage(attempt, persistedAssignment, expectedAssignment, item)
+  assertReplacementAssignmentLineage(attempt, persistedAssignment, expectedAssignment)
+}
+
 function assertWorkCompletionRole(
   role: QualityJourneyRole,
   allowScenarioDesignerCompletion: boolean,
@@ -2307,17 +3014,27 @@ async function completeQualityJourneyWorkWithAuthorityInTransaction(
   allowScenarioDesignerCompletion: boolean,
   allowAutomatorCompletion = false,
   allowTriagerCompletion = false,
+  allowExternalWorkCompletion = false,
 ) {
   const result = workerResultEnvelopeSchema.parse(input.result)
   const { item, attempt, authorization } = await readWorkAttempt(input, tx)
   assertWorkCompletionRole(item.role, allowScenarioDesignerCompletion, allowAutomatorCompletion, allowTriagerCompletion)
   assertFactoryAuthorityCurrent(item, authorization)
-  if (attempt && attempt.status !== 'COMPLETED' && (!attempt.spawnReceiptJson || !attempt.spawnReceiptHash))
+  if (attempt?.executionMode === externalAnalyzerAdmissionProtocol && !allowExternalWorkCompletion)
+    throw new ServiceError('External work requires its role-specific specialized submission boundary.', 'UNAUTHORIZED')
+  if (
+    attempt &&
+    attempt.status !== 'COMPLETED' &&
+    attempt.executionMode !== externalAnalyzerAdmissionProtocol &&
+    (!attempt.spawnReceiptJson || !attempt.spawnReceiptHash)
+  )
     throw new ServiceError('Quality Journey work completion has no validated Factory receipt.', 'UNAUTHORIZED')
   const replay = validateWorkAttempt(input, item, attempt, result)
   if (replay) return replay
   if (!attempt) throw new ServiceError('Quality Journey lease authority is invalid.', 'UNAUTHORIZED')
-  await validateDurableWorkerLineage(input, item, attempt, result, tx)
+  if (attempt.executionMode === externalAnalyzerAdmissionProtocol)
+    await validateDurableExternalWorkLineage(item, attempt, tx)
+  else await validateDurableWorkerLineage(input, item, attempt, result, tx)
   await persistWorkerOutputs(input, item, result, tx)
   await tx.qualityJourneyWorkAttempt.update({
     where: { id: attempt.id },
@@ -2336,23 +3053,38 @@ export function completeQualityJourneyWorkInTransaction(input: WorkCompletionInp
   return completeQualityJourneyWorkWithAuthorityInTransaction(input, tx, false)
 }
 
+/** Only a role-specific canonical ingress may complete an admitted external
+ * attempt. Generic completion remains Factory-receipt-only. */
+export function completeExternalQualityJourneyWorkInTransaction(
+  input: WorkCompletionInput,
+  tx: Prisma.TransactionClient,
+) {
+  return completeQualityJourneyWorkWithAuthorityInTransaction(input, tx, false, false, false, true)
+}
+
+/** Compatibility export retained for the C0.2e Analyzer ingress. */
+export const completeExternalAnalyzerWorkInTransaction = completeExternalQualityJourneyWorkInTransaction
+
 /** Scenario Portfolio ingress has already validated the Designer-specific submission contract. */
 export function completeScenarioDesignerWorkInTransaction(input: WorkCompletionInput, tx: Prisma.TransactionClient) {
-  return completeQualityJourneyWorkWithAuthorityInTransaction(input, tx, true)
+  return completeQualityJourneyWorkWithAuthorityInTransaction(input, tx, true, false, false, true)
 }
 
 /** Automator output is valid only after the specialized materializer has
  * persisted and cross-checked its concrete artifact lineage. */
 export function completeAutomatorWorkInTransaction(input: WorkCompletionInput, tx: Prisma.TransactionClient) {
-  return completeQualityJourneyWorkWithAuthorityInTransaction(input, tx, false, true)
+  return completeQualityJourneyWorkWithAuthorityInTransaction(input, tx, false, true, false, true)
 }
 
 export function completeTriagerWorkInTransaction(input: WorkCompletionInput, tx: Prisma.TransactionClient) {
-  return completeQualityJourneyWorkWithAuthorityInTransaction(input, tx, false, false, true)
+  return completeQualityJourneyWorkWithAuthorityInTransaction(input, tx, false, false, true, true)
 }
 
 export async function completeQualityJourneyWork(input: WorkCompletionInput, client: PrismaClient = prisma) {
-  return client.$transaction(tx => completeQualityJourneyWorkInTransaction(input, tx))
+  return client.$transaction(async tx => {
+    await assertCurrentCoordinatorSession(input, tx)
+    return completeQualityJourneyWorkInTransaction(input, tx)
+  })
 }
 
 export async function listQualityJourneyArtifacts(

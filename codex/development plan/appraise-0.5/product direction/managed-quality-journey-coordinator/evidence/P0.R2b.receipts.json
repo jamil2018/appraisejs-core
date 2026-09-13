@@ -1,0 +1,143 @@
+{
+  "schema": "appraise.managed-quality-journey.p0-r2b-receipts/v1",
+  "capturedAt": "2026-09-11",
+  "candidate": {
+    "version": "codex-cli 0.153.4",
+    "executable": "/Applications/ChatGPT.app/Contents/Resources/codex",
+    "executableSha256": "87a08119b8effa519f0ecb552dc98043f58a8200bf2ec5da60f76890c33e9c3a",
+    "officialReleaseTag": "rust-v0.153.4",
+    "officialReleaseCommit": "3d2ee51ca2d5db578f328aa75e20aa22c0197c9a"
+  },
+  "constraints": {
+    "accountFree": true,
+    "realCredentialUsed": false,
+    "realProviderReached": false,
+    "listener": "non-forwarding localhost Responses fixture",
+    "sandbox": "read-only plus exact-port macOS Seatbelt confinement",
+    "mcpServers": ["appraise-quality-journey"],
+    "mcpTool": "fixture_observe"
+  },
+  "arms": [
+    {
+      "name": "control",
+      "configSha256": "e994fee32020a528330977c8f24ef204e0cebc061afac5bbb294a67e59d7b591",
+      "sandboxProfileSha256": "276c138b17d4ba74767213aee559747ff8b9196945a7bae5a5f611695624024f",
+      "requestBodySha256": "1626db3aa61d9c5c995299354437fb659862990e70c4e4d61e348f60261a6115",
+      "topLevelToolCount": 10,
+      "topLevelTools": [
+        "exec_command",
+        "write_stdin",
+        "list_mcp_resources",
+        "list_mcp_resource_templates",
+        "read_mcp_resource",
+        "request_user_input",
+        "view_image",
+        "multi_agent_v1",
+        "mcp__appraise_quality_journey",
+        "web_search"
+      ]
+    },
+    {
+      "name": "explicit-role-config",
+      "configSha256": "4d316a6698e2d137a82ed3054dc9df8b9c98ac5719db3f225c8e90d30605cd83",
+      "sandboxProfileSha256": "f09aedd4e006a0df0b79abfb011beefcd1603ce42560b22162a12e4ae6dbc584",
+      "requestBodySha256": "717cd7fc5e766f45169a1cf0321c26935fc9c7b4e30e7262bbfa15a3b1917aa9",
+      "topLevelToolCount": 5,
+      "topLevelTools": [
+        "list_mcp_resources",
+        "list_mcp_resource_templates",
+        "read_mcp_resource",
+        "request_user_input",
+        "mcp__appraise_quality_journey"
+      ],
+      "removed": ["exec_command", "write_stdin", "view_image", "multi_agent_v1", "web_search"]
+    },
+    {
+      "name": "explicit-role-config-user-input-disabled",
+      "configSha256": "109b933af978bfd4bfeb6cd00f640ee97ceaa78abaa53210bd1e16d14457acfc",
+      "sandboxProfileSha256": "eb8600007290678ca26184bf40b4b53caa990587237ad330a59fe84b4150b3da",
+      "requestBodySha256": "3287f957a1dba711056161409656e27db97dd1a5c231951ac447e845764a342f",
+      "topLevelToolCount": 4,
+      "topLevelTools": [
+        "list_mcp_resources",
+        "list_mcp_resource_templates",
+        "read_mcp_resource",
+        "mcp__appraise_quality_journey"
+      ],
+      "requestUserInputConfig": {
+        "path": "tools.experimental_request_user_input.enabled",
+        "value": false
+      }
+    }
+  ],
+  "unsupportedDisableProbes": [
+    {
+      "field": "tools.list_mcp_resources",
+      "configSha256": "e6548765d915d7749a2d0a2c37d72de56ebbab2a7b2e24b36a5cbca5403fefc6",
+      "strictConfigAccepted": false,
+      "error": "unknown configuration field tools.list_mcp_resources",
+      "cleanupSurvivorCount": 0
+    },
+    {
+      "field": "tools.list_mcp_resource_templates",
+      "configSha256": "64803d8e8155cab30682e0c60948b4e9de08485fa6f459f8b33450b8945123c0",
+      "strictConfigAccepted": false,
+      "error": "unknown configuration field tools.list_mcp_resource_templates",
+      "cleanupSurvivorCount": 0
+    },
+    {
+      "field": "tools.read_mcp_resource",
+      "configSha256": "f63a9f2fb1f78f43814edbd125cd8523d83f2bb8c58b5264987f1f4a25b76e4b",
+      "strictConfigAccepted": false,
+      "error": "unknown configuration field tools.read_mcp_resource",
+      "cleanupSurvivorCount": 0
+    }
+  ],
+  "forbiddenCallProbes": [
+    {
+      "tool": "list_mcp_resources",
+      "arguments": { "server": "appraise-quality-journey" },
+      "firstRequestSha256": "16fac2ac81741a4adea8c1c1cc94a3fbf5c73a7681303d8ed0bcdab01b4d78b2",
+      "secondRequestSha256": "38e0c9190142eb47c6660c1061f80284612ac7cd1f496908976fb0d928a30efe",
+      "secondRequestInputTypes": ["message", "message", "message", "function_call", "function_call_output"],
+      "handlerExecuted": true,
+      "result": "MCP -32601 Method not found",
+      "externalEffectObserved": false,
+      "cleanupSurvivorCount": 0
+    },
+    {
+      "tool": "read_mcp_resource",
+      "arguments": {
+        "server": "appraise-quality-journey",
+        "uri": "appraise-fixture://forbidden"
+      },
+      "firstRequestSha256": "477f3ea58def456aa8d30e99b8d05790fb3d721bd8624a6b4788762e805fa07c",
+      "secondRequestSha256": "47e2cd3d54ecb08de7ff2cb5e3828cc03c7f12bda26b812a6fe5cb7bdfe2eb5b",
+      "secondRequestInputTypes": ["message", "message", "message", "function_call", "function_call_output"],
+      "handlerExecuted": true,
+      "result": "MCP -32601 Method not found",
+      "externalEffectObserved": false,
+      "cleanupSurvivorCount": 0
+    },
+    {
+      "tool": "list_mcp_resource_templates",
+      "arguments": { "server": "appraise-quality-journey" },
+      "firstRequestSha256": "e61ce33b206ec95f2046211a096a54cae7c0b19d4f401489f57d5c9c5fd40514",
+      "secondRequestSha256": "56b63fc7f52f8902765fe98335eeaa89aeaa5618ddb4831ea2f0526821f45fbf",
+      "secondRequestInputTypes": ["message", "message", "message", "function_call", "function_call_output"],
+      "handlerExecuted": true,
+      "result": "MCP -32601 Method not found",
+      "externalEffectObserved": false,
+      "cleanupSurvivorCount": 0
+    }
+  ],
+  "conclusion": {
+    "roleConfigNarrowsManifest": true,
+    "exactRoleOnlyManifest": false,
+    "remainingHelpersAreExecutable": true,
+    "remainingHelpersReachOnlyConfiguredRoleMcp": true,
+    "workerMcpResourceMethodsAvailable": false,
+    "p0r2Qualified": false,
+    "gateG0": "blocked"
+  }
+}

@@ -1,8 +1,8 @@
 'use client'
 
-import { Check, Clipboard, ExternalLink, LoaderCircle, TerminalSquare } from 'lucide-react'
+import { Check, Clipboard, ExternalLink, LoaderCircle, ShieldCheck, TerminalSquare } from 'lucide-react'
 import Link from 'next/link'
-import { useState, useTransition } from 'react'
+import { useEffect, useState, useTransition } from 'react'
 
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -11,7 +11,9 @@ import { toast } from '@/hooks/use-toast'
 import { codexHandoffGuidance, qualityJourneyStatusProjection } from '@/lib/quality-journey/presentation'
 
 import {
+  approveQualityJourneyHandoffTakeoverAction,
   launchQualityJourneyHandoffAction,
+  inspectQualityJourneyHandoffAction,
   prepareQualityJourneyHandoffAction,
 } from '../quality-journey-handoff-actions'
 
@@ -23,13 +25,20 @@ type HandoffView = {
   launchedAt: Date | null
   connectedAt: Date | null
   failureCode: string | null
+  generation?: number
+  takeoverAt?: Date | null
 } | null
 
 type HandoffState = {
   prompt: string | null
   handoffId: string | null
+  launchUrl: string | null
   status: string
   copied: boolean
+  takeoverApproval: string | null
+  takeoverRequestId: string | null
+  generation: number | null
+  takeoverEffective: boolean
 }
 
 function actionData(response: { success?: boolean; data?: unknown }) {
@@ -42,7 +51,13 @@ function preparedHandoff(response: Awaited<ReturnType<typeof prepareQualityJourn
   const data = actionData(response)
   const prompt = typeof data?.prompt === 'string' ? data.prompt : null
   const handoffId = typeof data?.handoffId === 'string' ? data.handoffId : null
-  return response.success && prompt && handoffId ? { prompt, handoffId } : null
+  const launchUrl = typeof data?.launchUrl === 'string' ? data.launchUrl : null
+  const takeoverApproval = typeof data?.takeoverApproval === 'string' ? data.takeoverApproval : null
+  const takeoverRequestId = typeof data?.takeoverRequestId === 'string' ? data.takeoverRequestId : null
+  const generation = typeof data?.generation === 'number' ? data.generation : null
+  return response.success && prompt && handoffId && launchUrl && takeoverApproval && takeoverRequestId && generation
+    ? { prompt, handoffId, launchUrl, takeoverApproval, takeoverRequestId, generation }
+    : null
 }
 
 async function copyCoordinatorPrompt(value: string) {
@@ -70,10 +85,10 @@ function launchToast(
     })
   return response.success
     ? toast({
-        title: 'Codex opened',
+        title: 'Codex launch requested',
         description: copied
-          ? 'The coordinator prompt is copied. Paste it into a new Codex task to connect this Journey.'
-          : 'Copy the visible coordinator prompt into the new Codex task to connect this Journey.',
+          ? 'The coordinator prompt is copied. Send it in Codex to connect this Journey.'
+          : 'Copy and send the visible coordinator prompt in Codex to connect this Journey.',
       })
     : toast({
         title: 'Codex is not ready',
@@ -98,7 +113,11 @@ async function executeHandoff(journeyId: string, update: (state: Partial<Handoff
   } catch {
     clipboardFailureToast()
   }
-  const launched = await launchQualityJourneyHandoffAction({ journeyId, handoffId: prepared.handoffId })
+  const launched = await launchQualityJourneyHandoffAction({
+    journeyId,
+    handoffId: prepared.handoffId,
+    launchUrl: prepared.launchUrl,
+  })
   const launchData = actionData(launched)
   const launchStatus = typeof launchData?.status === 'string' ? launchData.status : 'FAILED'
   update({ status: launchStatus })
@@ -107,6 +126,33 @@ async function executeHandoff(journeyId: string, update: (state: Partial<Handoff
 
 function LaunchButtonLabel({ hasHandoff }: { hasHandoff: boolean }) {
   return hasHandoff ? 'Open Codex again' : 'Prepare and open Codex'
+}
+
+async function approveTakeover(
+  journeyId: string,
+  handoffId: string,
+  generation: number,
+  takeoverApproval: string,
+  takeoverRequestId: string,
+  update: (state: Partial<HandoffState>) => void,
+) {
+  const response = await approveQualityJourneyHandoffTakeoverAction({
+    journeyId,
+    handoffId,
+    generation,
+    takeoverApproval,
+    takeoverRequestId,
+  })
+  if (!response.success) {
+    toast({ title: 'Takeover was not approved', description: response.error, variant: 'destructive' })
+    return
+  }
+  update({ takeoverEffective: true, status: 'CONNECTED' })
+  toast({
+    title: 'Coordinator takeover approved',
+    description:
+      'Appraise fenced the prior coordinator session and re-read the authoritative Journey before admitting this one.',
+  })
 }
 
 function PromptRecovery({ copied, prompt, status }: { copied: boolean; prompt: string | null; status: string }) {
@@ -138,25 +184,33 @@ export function CoordinatorHandoffPanel({
   handoff,
   hasObservedWorkerProgress,
   projectId,
+  stage = 'ANALYSIS',
 }: {
   journeyId: string
   handoff: HandoffView
   hasObservedWorkerProgress: boolean
   projectId: string
+  stage?: string
 }) {
   const [state, setState] = useState<HandoffState>({
     prompt: null,
     handoffId: handoff?.id ?? null,
+    launchUrl: null,
     status: handoff?.status ?? 'NOT_PREPARED',
     copied: false,
+    takeoverApproval: null,
+    takeoverRequestId: null,
+    generation: handoff?.generation ?? null,
+    takeoverEffective: Boolean(handoff?.takeoverAt),
   })
-  const { prompt, handoffId, status, copied } = state
+  const { prompt, handoffId, status, copied, takeoverApproval, takeoverRequestId, generation, takeoverEffective } =
+    state
   const [isPending, startTransition] = useTransition()
   const update = (next: Partial<HandoffState>) => setState(current => ({ ...current, ...next }))
   const displayStatus = isPending ? 'LAUNCHING' : status
   const guidance = codexHandoffGuidance(displayStatus)
   const statusProjection = qualityJourneyStatusProjection({
-    stage: 'ANALYSIS',
+    stage: stage as Parameters<typeof qualityJourneyStatusProjection>[0]['stage'],
     blockerCount: 0,
     unresolvedRequiredQuestionCount: 0,
     hasObservedWorkerProgress,
@@ -164,6 +218,26 @@ export function CoordinatorHandoffPanel({
     handoffLaunchedAt: handoff?.launchedAt,
     handoffConnectedAt: handoff?.connectedAt,
   })
+
+  useEffect(() => {
+    if (!['LAUNCHING', 'LAUNCHED'].includes(status)) return
+    let cancelled = false
+    const observe = async () => {
+      const response = await inspectQualityJourneyHandoffAction({ journeyId })
+      const data = actionData(response)
+      const observed = data?.handoff
+      if (!cancelled && observed && typeof observed === 'object') {
+        const observedStatus = (observed as Record<string, unknown>).status
+        if (typeof observedStatus === 'string') update({ status: observedStatus })
+      }
+    }
+    void observe()
+    const interval = window.setInterval(() => void observe(), 10_000)
+    return () => {
+      cancelled = true
+      window.clearInterval(interval)
+    }
+  }, [journeyId, status])
 
   async function copyPrompt(value = prompt) {
     if (!value) return
@@ -179,6 +253,13 @@ export function CoordinatorHandoffPanel({
     startTransition(() => executeHandoff(journeyId, update))
   }
 
+  function requestTakeoverApproval() {
+    if (!handoffId || !takeoverApproval || !takeoverRequestId || !generation) return
+    startTransition(() =>
+      approveTakeover(journeyId, handoffId, generation, takeoverApproval, takeoverRequestId, update),
+    )
+  }
+
   return (
     <Card className="border-primary/25 bg-primary/[0.035]">
       <CardHeader>
@@ -189,7 +270,7 @@ export function CoordinatorHandoffPanel({
               Codex coordinator
             </CardTitle>
             <CardDescription>
-              Open Codex in the target workspace and connect it to this Appraise-owned Journey.
+              Open Codex in the selected host context and connect it to this Appraise-owned Journey target.
             </CardDescription>
           </div>
           <Badge variant="outline">{guidance.label}</Badge>
@@ -220,6 +301,16 @@ export function CoordinatorHandoffPanel({
               {copied ? 'Prompt copied' : 'Copy coordinator prompt'}
             </Button>
           ) : null}
+          {status === 'CONNECTED' && !takeoverEffective && takeoverApproval && takeoverRequestId && generation ? (
+            <Button disabled={isPending} onClick={requestTakeoverApproval} type="button" variant="secondary">
+              {isPending ? (
+                <LoaderCircle aria-hidden="true" className="mr-2 size-4 animate-spin" />
+              ) : (
+                <ShieldCheck aria-hidden="true" className="mr-2 size-4" />
+              )}
+              Approve coordinator takeover
+            </Button>
+          ) : null}
           <Button asChild type="button" variant="ghost">
             <Link
               href={`/projects?agentSetup=codex&project=${encodeURIComponent(projectId)}&returnTo=${encodeURIComponent(
@@ -232,6 +323,21 @@ export function CoordinatorHandoffPanel({
           </Button>
         </div>
         <PromptRecovery copied={copied} prompt={prompt} status={displayStatus} />
+        {status === 'CONNECTED' && !takeoverEffective && !takeoverApproval ? (
+          <section className="rounded-md border border-amber-500/20 bg-amber-500/[0.06] p-3 text-sm" role="status">
+            <p className="font-medium">Takeover approval was not retained after reload</p>
+            <p className="mt-1 text-muted-foreground">
+              Appraise has not transferred coordinator-session ownership. Prepare a fresh scoped handoff, redeem it, and
+              explicitly approve takeover from the same page state.
+            </p>
+          </section>
+        ) : null}
+        {takeoverEffective ? (
+          <p className="text-sm text-muted-foreground" role="status">
+            This coordinator session is effective. Appraise remains the lifecycle authority; no work lease or role
+            execution authority was transferred.
+          </p>
+        ) : null}
       </CardContent>
     </Card>
   )

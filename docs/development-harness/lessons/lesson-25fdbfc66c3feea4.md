@@ -6,7 +6,9 @@ title: 'evidence-integrity: Longitudinal evolution trigger'
 topic: evidence integrity longitudinal evolution trigger
 status: stale
 taskClasses:
+  - architecture-review
   - cross-module-feature
+  - release-gate
 paths: []
 harnessVersion: '1'
 confidence: low
@@ -26,6 +28,14 @@ evidenceRefs:
   - obs-ab834f052e0140a9
   - obs-6efb48eeb30e95e4
   - obs-f612e23484cce594
+  - obs-23bb76cb24dcc2ee
+  - obs-e0b858ed38471d5e
+  - obs-2d5df14d928e674d
+  - obs-88ae8c9a7280c8a1
+  - obs-eed8c06ee52193a2
+  - obs-e0dd974641c96fd8
+  - obs-3181d4cfd3cf8c11
+  - obs-2a540b745027d2b1
 counterexampleRefs: []
 evidence:
   - id: obs-4c80d8fb13461635
@@ -163,6 +173,78 @@ evidence:
     polarity: neutral
     measurements: {}
     observedAt: 2026-09-07T19:30:41.247Z
+  - id: obs-23bb76cb24dcc2ee
+    recordedAt: 2026-09-11T17:16:56.356Z
+    observedAt: 2026-09-08T20:58:54.813Z
+    summary: Longitudinal evolution trigger
+    evidenceSummary: 'Last-five window has 0 low or failed runs; repeated weaknesses: requirement coverage'
+    sourceType: legacy-run-evolution
+    sourceRef: run:2cbfae04-137a-4d36-95da-6b913f5801e6
+    polarity: neutral
+    measurements: {}
+  - id: obs-e0b858ed38471d5e
+    recordedAt: 2026-09-11T17:16:56.382Z
+    observedAt: 2026-09-09T14:59:17.696Z
+    summary: Longitudinal evolution trigger
+    evidenceSummary: 'Last-five window has 1 low or failed runs; repeated weaknesses: requirement coverage'
+    sourceType: legacy-run-evolution
+    sourceRef: run:6565b01f-6f98-4bd3-9abd-6fcb3fe51c09
+    polarity: neutral
+    measurements: {}
+  - id: obs-2d5df14d928e674d
+    recordedAt: 2026-09-11T17:16:56.386Z
+    observedAt: 2026-09-09T18:35:23.436Z
+    summary: Longitudinal evolution trigger
+    evidenceSummary: 'Last-five window has 1 low or failed runs; repeated weaknesses: requirement coverage'
+    sourceType: legacy-run-evolution
+    sourceRef: run:02122d0d-3218-40a1-90f5-9355d4bf262c
+    polarity: neutral
+    measurements: {}
+  - id: obs-88ae8c9a7280c8a1
+    recordedAt: 2026-09-11T17:16:56.398Z
+    observedAt: 2026-09-09T19:37:22.689Z
+    summary: Longitudinal evolution trigger
+    evidenceSummary: 'Last-five window has 1 low or failed runs; repeated weaknesses: requirement coverage, efficiency'
+    sourceType: legacy-run-evolution
+    sourceRef: run:7e4bf9ee-269f-4759-9753-238878a723f5
+    polarity: neutral
+    measurements: {}
+  - id: obs-eed8c06ee52193a2
+    recordedAt: 2026-09-11T17:16:56.410Z
+    observedAt: 2026-09-11T12:49:05.361Z
+    summary: Longitudinal evolution trigger
+    evidenceSummary: 'Last-five window has 0 low or failed runs; repeated weaknesses: efficiency'
+    sourceType: legacy-run-evolution
+    sourceRef: run:c390d08b-f6a8-473f-a842-2ed52e81d4a4
+    polarity: neutral
+    measurements: {}
+  - id: obs-e0dd974641c96fd8
+    recordedAt: 2026-09-11T17:16:56.450Z
+    observedAt: 2026-09-11T13:57:39.927Z
+    summary: Longitudinal evolution trigger
+    evidenceSummary: 'Last-five window has 0 low or failed runs; repeated weaknesses: routing quality'
+    sourceType: legacy-run-evolution
+    sourceRef: run:947cbbb1-6a37-454b-bf00-0a7d4e36c85b
+    polarity: neutral
+    measurements: {}
+  - id: obs-3181d4cfd3cf8c11
+    recordedAt: 2026-09-11T17:16:56.466Z
+    observedAt: 2026-09-11T14:26:30.482Z
+    summary: Longitudinal evolution trigger
+    evidenceSummary: 'Last-five window has 0 low or failed runs; repeated weaknesses: routing quality'
+    sourceType: legacy-run-evolution
+    sourceRef: run:61d60b76-b947-4248-af6c-7df7ce9411fd
+    polarity: neutral
+    measurements: {}
+  - id: obs-2a540b745027d2b1
+    recordedAt: 2026-09-11T17:16:56.491Z
+    observedAt: 2026-09-11T17:16:49.576Z
+    summary: Longitudinal evolution trigger
+    evidenceSummary: 'Last-five window has 0 low or failed runs; repeated weaknesses: routing quality, efficiency'
+    sourceType: legacy-run-evolution
+    sourceRef: run:17b47a64-00c0-4245-b922-03920d3a8125
+    polarity: neutral
+    measurements: {}
 ambiguousObservationRefs: []
 lastValidatedAt: 2026-09-07T19:30:41.247Z
 lastResurfacedAt: null
@@ -171,7 +253,7 @@ reminderFingerprint: null
 
 # evidence-integrity: Longitudinal evolution trigger
 
-This advisory lesson applies to task classes: cross-module-feature.
+This advisory lesson applies to task classes: architecture-review, cross-module-feature, release-gate.
 
 ## Portable evidence
 
@@ -190,3 +272,11 @@ This advisory lesson applies to task classes: cross-module-feature.
 - obs-ab834f052e0140a9: Longitudinal evolution trigger (Last-five window has 0 low or failed runs; repeated weaknesses: coordination, efficiency)
 - obs-6efb48eeb30e95e4: Longitudinal evolution trigger (Last-five window has 0 low or failed runs; repeated weaknesses: coordination, efficiency)
 - obs-f612e23484cce594: Longitudinal evolution trigger (Last-five window has 0 low or failed runs; repeated weaknesses: efficiency)
+- obs-23bb76cb24dcc2ee: Longitudinal evolution trigger (Last-five window has 0 low or failed runs; repeated weaknesses: requirement coverage)
+- obs-e0b858ed38471d5e: Longitudinal evolution trigger (Last-five window has 1 low or failed runs; repeated weaknesses: requirement coverage)
+- obs-2d5df14d928e674d: Longitudinal evolution trigger (Last-five window has 1 low or failed runs; repeated weaknesses: requirement coverage)
+- obs-88ae8c9a7280c8a1: Longitudinal evolution trigger (Last-five window has 1 low or failed runs; repeated weaknesses: requirement coverage, efficiency)
+- obs-eed8c06ee52193a2: Longitudinal evolution trigger (Last-five window has 0 low or failed runs; repeated weaknesses: efficiency)
+- obs-e0dd974641c96fd8: Longitudinal evolution trigger (Last-five window has 0 low or failed runs; repeated weaknesses: routing quality)
+- obs-3181d4cfd3cf8c11: Longitudinal evolution trigger (Last-five window has 0 low or failed runs; repeated weaknesses: routing quality)
+- obs-2a540b745027d2b1: Longitudinal evolution trigger (Last-five window has 0 low or failed runs; repeated weaknesses: routing quality, efficiency)

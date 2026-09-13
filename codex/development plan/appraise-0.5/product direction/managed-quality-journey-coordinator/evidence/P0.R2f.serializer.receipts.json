@@ -1,0 +1,172 @@
+{
+  "fullCodexBuildTested": false,
+  "malformedTypeRejected": true,
+  "oversizedRejected": true,
+  "providerQualified": false,
+  "results": [
+    {
+      "arm": "role-REQUIREMENT_ANALYZER",
+      "candidateMatchesInput": true,
+      "schemaBytes": 76,
+      "stockMatchesWire": true,
+      "tool": "quality_journey_analysis_get"
+    },
+    {
+      "arm": "role-REQUIREMENT_ANALYZER",
+      "candidateMatchesInput": true,
+      "schemaBytes": 3710,
+      "stockMatchesWire": true,
+      "tool": "quality_journey_analysis_submit"
+    },
+    {
+      "arm": "role-SCOUT",
+      "candidateMatchesInput": true,
+      "schemaBytes": 76,
+      "stockMatchesWire": true,
+      "tool": "quality_journey_discovery_get"
+    },
+    {
+      "arm": "role-SCOUT",
+      "candidateMatchesInput": true,
+      "schemaBytes": 5060,
+      "stockMatchesWire": true,
+      "tool": "quality_journey_target_observation_submit"
+    },
+    {
+      "arm": "role-RESOURCE_EXPLORER",
+      "candidateMatchesInput": true,
+      "schemaBytes": 513,
+      "stockMatchesWire": true,
+      "tool": "operation_search"
+    },
+    {
+      "arm": "role-RESOURCE_EXPLORER",
+      "candidateMatchesInput": true,
+      "schemaBytes": 76,
+      "stockMatchesWire": true,
+      "tool": "quality_journey_discovery_get"
+    },
+    {
+      "arm": "role-RESOURCE_EXPLORER",
+      "candidateMatchesInput": true,
+      "schemaBytes": 7617,
+      "stockMatchesWire": true,
+      "tool": "quality_journey_resource_resolution_submit"
+    },
+    {
+      "arm": "role-TEST_SCENARIO_DESIGNER",
+      "candidateMatchesInput": true,
+      "schemaBytes": 76,
+      "stockMatchesWire": true,
+      "tool": "quality_journey_scenarios_get"
+    },
+    {
+      "arm": "role-TEST_SCENARIO_DESIGNER",
+      "candidateMatchesInput": true,
+      "schemaBytes": 7139,
+      "stockMatchesWire": true,
+      "tool": "quality_journey_scenarios_submit"
+    },
+    {
+      "arm": "role-AUTOMATOR",
+      "candidateMatchesInput": true,
+      "schemaBytes": 513,
+      "stockMatchesWire": true,
+      "tool": "operation_search"
+    },
+    {
+      "arm": "role-AUTOMATOR",
+      "candidateMatchesInput": true,
+      "schemaBytes": 5417,
+      "stockMatchesWire": true,
+      "tool": "quality_journey_automation_materialize"
+    },
+    {
+      "arm": "role-TRIAGER",
+      "candidateMatchesInput": true,
+      "schemaBytes": 76,
+      "stockMatchesWire": true,
+      "tool": "quality_journey_triage_get"
+    },
+    {
+      "arm": "role-TRIAGER",
+      "candidateMatchesInput": true,
+      "schemaBytes": 362,
+      "stockMatchesWire": true,
+      "tool": "quality_journey_triage_evidence_read"
+    },
+    {
+      "arm": "role-TRIAGER",
+      "candidateMatchesInput": true,
+      "schemaBytes": 6593,
+      "stockMatchesWire": true,
+      "tool": "quality_journey_triage_submit"
+    },
+    {
+      "arm": "probe-inline-constraints",
+      "candidateMatchesInput": true,
+      "schemaBytes": 435,
+      "stockMatchesWire": true,
+      "tool": "p0_r2f_inline_constraints"
+    },
+    {
+      "arm": "probe-defs-ref",
+      "candidateMatchesInput": true,
+      "schemaBytes": 194,
+      "stockMatchesWire": true,
+      "tool": "p0_r2f_defs_ref"
+    },
+    {
+      "arm": "probe-allof",
+      "candidateMatchesInput": true,
+      "schemaBytes": 191,
+      "stockMatchesWire": true,
+      "tool": "p0_r2f_allof"
+    },
+    {
+      "arm": "probe-definitions-ref",
+      "candidateMatchesInput": true,
+      "schemaBytes": 223,
+      "stockMatchesWire": true,
+      "tool": "p0_r2f_definitions_ref"
+    },
+    {
+      "arm": "probe-compaction-under-budget",
+      "candidateMatchesInput": true,
+      "schemaBytes": 4877,
+      "stockMatchesWire": true,
+      "tool": "p0_r2f_compaction_under_budget"
+    },
+    {
+      "arm": "probe-compaction-over-budget",
+      "candidateMatchesInput": true,
+      "schemaBytes": 5277,
+      "stockMatchesWire": true,
+      "tool": "p0_r2f_compaction_over_budget"
+    }
+  ],
+  "schema": "appraise.p0-r2f-serializer-canary/v1",
+  "sourceLevelCanaryPassed": true,
+  "artifactIdentities": {
+    "inputReceiptSha256": "68f47af468addba32463423c0a6ed2772c83db667fbce11346f9c1a1bf85373b",
+    "sourceSha256": {
+      "codex-rs/tools/src/json_schema.rs": "86cec68e6537dfacdfee6bb928cd67802ebbf4abfb70a47643e86bd30404ac56",
+      "codex-rs/tools/src/json_schema/compaction.rs": "1702a3afb51beae0b75b570cbaf8e4a3d2b6c6b8d96d79f93d9380e5a66db5bc",
+      "codex-rs/tools/src/json_schema/compaction_tests.rs": "88fe1b5ea52cec58ff33d77469687291e9f6d27e1c03d72522a8508f3728ff78",
+      "codex-rs/tools/src/json_schema/traversal.rs": "fb24d4acb9476c6cd6ed4156ca439786e0315de0eb908f44d0190662a12ab4b6",
+      "codex-rs/tools/src/json_schema/types.rs": "af24f389784de3981928544abd5a32bbcb4571692ae1ca401c0d7de65807c4e6",
+      "codex-rs/tools/src/json_schema/types_tests.rs": "4daaf2ec47d6b46e4de5fbb5ca0e626e6d4442eb4ab31adecbd55cc4b4c5d886"
+    },
+    "harnessSha256": {
+      "/Users/jamil/Personal Projects/appraisejs/scripts/qualify-p0-r2f-serializer.py": "9e68826f03c9ba4f964e6572dbf08dd51a6736cdfd3da77ed8dd425fbf02315b",
+      "/Users/jamil/Personal Projects/appraisejs/scripts/fixtures/p0-r2f-serializer/Cargo.lock": "97201270ff97097156a08a818f41eec3195d437ee0f59db9e065c77a5365a865",
+      "/Users/jamil/Personal Projects/appraisejs/scripts/fixtures/p0-r2f-serializer/Cargo.toml": "69119a6ce9f6deda07fa12d49b98be5185a4a0f7ac8a858c02e879f6c7cea136",
+      "/Users/jamil/Personal Projects/appraisejs/scripts/fixtures/p0-r2f-serializer/main.rs": "5f8cba19b69712aed1a7223bc06b8288f782a00471ebbe4fae71fe56532275d0"
+    },
+    "candidateTypesSha256": "7dd244411a126257a36c7005343eb39b3c1938fc355b4de9fe0f581f058a932c",
+    "candidateParserSha256": "3948a40cc484f17518fe45284753e564b660f43291ce819e58349d6fae7d475f",
+    "canaryExecutableSha256": "a0b90f7c443de8c1e370f4e9ee257b1923d8b70593bc4d71115f5f20b27947c8",
+    "cargoVersion": "cargo 1.98.1 (797e8a9bc 2026-08-05)"
+  },
+  "receiptSubjectSha256": "f36b5a18c84495893c093dc7682a18a63108885adbc31ab0fcdb6ac59cb65e67"
+}
