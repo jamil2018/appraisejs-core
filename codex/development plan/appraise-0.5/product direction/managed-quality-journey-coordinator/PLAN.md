@@ -1,427 +1,268 @@
-# AppraiseJS-Owned Quality Journey Coordinator — Development Plan
+# AppraiseJS Quality Journey — Stock Codex Plugin Architecture
 
-Status: Phase 0 concluded with a no-go; bounded remediation is planned before Gate G0. Research baseline: 2026-09-09;
-remediation decision: 2026-09-10.
+Status: architecture adopted by the user on 2026-09-11; C0.1, C0.2, C0.2e, C0.3 and C0.4 verified; GC0 passed its
+feasibility gate after independent exact-artifact review; C1.1, C1.2 and C1.3 are verified. GC1 `passed` after
+[independent usable-handoff review](evidence/GC1.md); C2.1 is verified after independent exact-artifact review, and
+C2.2 is the exact next eligible task. The
+explicitly authorized retained C0.2e slice was the only implementation permitted before GC0 passed.
+The [task register](TASK_REGISTER.md) owns active task status, dependencies, gates and evidence. **C0.1: qualify the
+Appraise-to-Codex handoff** is verified as a bounded qualification task. Its [evidence](evidence/C0.1.md) records
+28 passing tests, human-operated local/remote URI and authenticated handoffs, disposable plugin recognition,
+and missing-plugin/marketplace, protocol-denial, unsent-composer and expiry observations. C0.1 did not itself pass a
+GC gate or start general feature implementation. **C0.2: qualify graph
+acceptance and interrupted resume** is verified
+as a bounded negative qualification. Its [evidence](evidence/C0.2.md) demonstrates claim, isolation, fencing and
+interrupted resume while recording the missing stock-task dispatch/submission bridge. C0.2 did not itself evaluate
+GC0 or start C1 implementation.
 
-This plan is the named specification for replacing external Quality Journey coordination with an AppraiseJS-owned
-local runtime. The [task register](TASK_REGISTER.md) is authoritative for task status, dependencies, verification
-evidence, phase gates, blockers, and the next executable task. Saving these documents does not execute the migration.
+The [C0.2 blocker investigation](evidence/C0.2-BLOCKER-INVESTIGATION.md) traces this gap to managed-worker admission
+and originally proposed a disposable experiment. On 2026-09-12 the user authorized a narrow implementation-order
+exception: **C0.2e delivers retained, production-intended external-assignment admission code before GC0**, then
+qualifies it with disposable fixtures. Follow [C0.2e implementation scope](C0.2e-IMPLEMENTATION.md) and the register.
+This retained slice is verified after independent exact-artifact review; C0.1 and the original C0.2 negative evidence
+retain their meaning. C0.2e did not itself evaluate GC0 or authorize C1.
 
-## 1. Outcome and accepted product decisions
+**C0.3: qualify discovery and evidence feasibility** is verified as a bounded feasibility/negative-production result. Its
+[evidence](evidence/C0.3.md) demonstrates a disposable Journey/target/origin-bound browser-session prototype,
+synthetic login/MFA separation, redirect/request containment, context-replacement/expiry/logout/revocation behavior
+and limited secret-canary projection checks. It also establishes that current discovery receipt descriptors are not
+issuer-backed and therefore cannot promote host-browser observations into trusted Appraise evidence. Production human
+login, process-restart invalidation, comprehensive secret containment and sealed discovery receipts remain C2.3/
+`C-B04` work. The result does not evaluate GC0 or start C0.4/C1/C2.
 
-A user creates a Quality Journey in AppraiseJS, explicitly starts it, answers questions and reviews artifacts in
-AppraiseJS, and receives a completed, evidence-backed report. AppraiseJS schedules and supervises the workers and
-test runtime throughout. The user does not open an external coding-agent task to coordinate the Journey.
+**C0.4: review feasibility and establish exact implementation gaps** is verified. Its
+[evidence](evidence/C0.4.md) preserves every earlier qualification boundary, maps all six roles and supported target
+modes, and supports the independently accepted GC0 feasibility pass. C-B01 has since closed through C1.1–C1.3, and
+the C1.3 portion of C-B03 is closed; C-B02 later closed through verified C2.1, while C-B03–C-B05 retain their
+assigned C2–C3 ownership. GC0
+`passed`; this does not certify production integration.
 
-| Decision                | Selected behavior                                                                                                                                  |
-| ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Product scope           | Complete Quality Journey: analysis, discovery, scenario design, automation preparation, execution, triage, revision/remediation/rerun, and closure |
-| Coordinator             | Deterministic workflow engine; AI workers perform bounded role assignments                                                                         |
-| Initial provider        | Installed Codex CLI through App Server; provider-neutral internal contract                                                                         |
-| Authentication          | Provider-native account login; no automatic API-key or billing fallback                                                                            |
-| Deployment              | Local macOS service with the existing browser UI                                                                                                   |
-| Starting work           | Explicit Start Journey action after confirmation; confirmation alone does not spend AI work                                                        |
-| Continuation            | Automatic between existing human gates while the Start grant remains valid                                                                         |
-| Target modes            | Existing local-workspace and remote-black-box web targets                                                                                          |
-| Authenticated scouting  | Included in the first production release                                                                                                           |
-| Target sign-in          | Human login/SSO/MFA in an AppraiseJS-owned browser; no automated password login in v1                                                              |
-| Browser session storage | In memory; restarting the owning service requires sign-in again                                                                                    |
-| External workflow       | Full replacement; the feature is unreleased, so no active external-Journey migration path                                                          |
-| Concurrency             | One active AI worker globally in v1; enforce through persisted ownership                                                                           |
-| Attempt policy          | Preserve existing authorization attempt ceilings; no automatic increases                                                                           |
-| Active-work deadline    | Default 30 minutes per AI attempt; display before Start; expiry creates an operational pause requiring user action                                 |
+**C1.1: plugin setup and compatibility diagnostics** is verified after independent exact-artifact review. It delivers
+the package-shipped, skills-only plugin, operator setup commands, compatibility diagnostics, manual MCP fallback and
+live install/uninstall/reconnect evidence.
 
-Human waits do not consume the active-work deadline. Pausing admission is distinct from cancelling a Journey or
-changing a lifecycle blocker. Budget changes cannot silently modify an already-issued immutable authorization.
+**C1.2: prepared Journey launch** is verified with validated encoded deep links, minimal redacted plugin prompts,
+local and neutral remote-target host contexts, copy fallback, truthful connection observation, and bounded
+non-consuming rejection envelopes. Its [evidence](evidence/C1.2.md) includes a live Appraise-to-Codex authenticated
+redemption/read smoke and the accepted independent exact-artifact review.
 
-Out of scope: general coding-task coordination, autonomous product-code repair, Claude/Cursor adapters, hosted
-execution, desktop application packaging, Linux/Windows qualification, automated target credential login, and
-changes to the repository-development swarm policy. Existing test-automation preparation is in scope.
+**C1.3: later-stage reconnect and takeover** is verified after independent exact-artifact review. Its
+[evidence](evidence/C1.3.md) covers mutable-stage reconnect, fresh scoped fallback when known-task reopen is not
+qualified, exact state/effect snapshots, expiring UI-only approval, monotonic generation fencing, transaction-local
+mutation admission, restart/lost-reply/concurrency recovery, and a live generation-6 to generation-7 takeover with a
+non-mutating stale-owner rejection. This closes C-B01 and the C1.3 portion of C-B03. The first independent gate
+review found the live later-stage and current-product remote sequence incomplete. A current-product remote
+`DISCOVERY` trace subsequently closed `GC1-B01` through launch, Send, redemption/read, Appraise UI takeover and
+stale-predecessor rejection; [GC1](evidence/GC1.md) passed. **C2.1: graph claim and submission contracts** is
+verified. Its [evidence](evidence/C2.1.md) covers role-neutral durable external claim/admission, all six existing
+specialized submission boundaries, atomic acceptance and replay/outcome reconciliation, legacy-ingress fencing,
+native MCP/CLI parity and bounded recovery instructions. Independent exact-artifact re-review accepted manifest
+`fbbfd9dd0d04b66aed8106af416082a39bbb7bd2acdd41d0346801aed1d0afb5` after generated-reference and legacy-bypass
+repairs. This closes C-B02 for its C0.2e/C2.1 scope. GC2 remains `not_evaluated`; C2.2 is eligible and unstarted.
 
-## 2. Research findings and feasibility
+## 1. Decision and product experience
 
-The transition is a conditional go. AppraiseJS already owns durable Journey state and acceptance rules, but its
-current handoff asks an external harness to coordinate workers. This split plausibly explains handoff and continuation
-friction; it does not prove that all workflow failures originate there.
+Keep the complete Journey graph and Appraise-owned lifecycle. Use stock Codex as the external AI executor, connected
+through Appraise MCP and packaged with workflow skills as a plugin. The user begins in AppraiseJS, prepares and
+confirms a Journey, then selects **Continue in Codex**. Codex opens with a workspace and a prefilled handoff prompt;
+the user sends it. Appraise remains the place for progress, questions, approvals, execution evidence and closure.
 
-### Current source baseline
+This supersedes the managed-runtime direction, including D10/D14 provider attestation/interception, D15 development
+admission, and removal of external handoffs. Preserve the [old plan](PLAN.managed-runtime-archive.md),
+[old register](TASK_REGISTER.managed-runtime-archive.md), and all existing evidence. Old P0–P6 tasks and G0/G0D gates
+are inactive for this architecture. They must not be marked passed or used to admit this release.
 
-Reverify these observations before implementation; file names and line numbers may change after this research.
+| Area                    | Adopted behavior                                                                                                                                           |
+| ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Lifecycle               | Analysis, discovery, scenario review/revision, automation preparation, execution consent, execution, triage, remediation/rerun and closure remain in scope |
+| Start                   | Prepare in Appraise; explicitly open Codex; user sends the prefilled prompt; confirmation alone starts no AI work                                          |
+| Execution host          | Stock installed Codex on macOS; its normal login, model selection, permissions and usage limits                                                            |
+| Integration             | MCP enforces Appraise operations; plugin bundles setup and workflow guidance; hooks are optional conveniences                                              |
+| Authority               | Appraise validates graph eligibility and commits lifecycle changes; Codex proposes work and requests authorized operations                                 |
+| Continuation            | Agent requests next eligible work while its task runs; explicit resume after stops or human waits; no guaranteed background wake                           |
+| Target modes            | Local workspace and remote black-box web targets; remote targets never acquire invented filesystem bindings                                                |
+| Human decisions         | Existing Appraise-owned answers, reviews, consent, risk acceptance and closure gates remain mandatory                                                      |
+| Concurrency             | One active AI assignment per Journey; cross-Journey work remains independently scoped; host-global AI concurrency is not promised                          |
+| Limits                  | Preserve immutable authorization attempt ceilings; assignment expiry and retry admission are Appraise-enforced; no claim to cap all Codex spend            |
+| Authenticated discovery | Human-assisted access with a separately qualified Appraise-owned browser/evidence path; no automatic credential login                                      |
+| Future service          | Separately scoped managed orchestrator, potentially paid and API-backed; no subscription-token forwarding or billing fallback in this release              |
 
-| Existing mechanism                                                               | Reuse or missing work                                                                                              |
-| -------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
-| Journey stages, versions, immutable artifacts, commands and events               | Keep as domain authority                                                                                           |
-| Transactional work claim, authorization, assignment, input hash and dispatch key | Reuse; add runtime ownership and renewal                                                                           |
-| Agent Factory `supports` / `dispatch` interface                                  | No production registration was found; add the operational adapter                                                  |
-| `DISPATCH_UNRESOLVED` and explicit resume                                        | Reuse safe blocking; add continuous provider reconciliation                                                        |
-| Worker lease expiry and heartbeat interval                                       | No Journey worker renewal implementation was found                                                                 |
-| Scout submission validation                                                      | No concrete Scout browser runtime was found                                                                        |
-| Scout credential scope                                                           | Currently empty; authenticated scouting requires a new immutable profile version                                   |
-| Capsule execution reserve/launch/reconcile                                       | Reuse and connect to managed progression                                                                           |
-| Human decision and consent services                                              | Preserve exact revision/scope binding                                                                              |
-| Broad project coordinator bearer token                                           | Keep out of workers; introduce a narrower gateway and runtime principal                                            |
-| Existing full `appraisejs` MCP over stdio/loopback HTTP                          | Reuse its schemas, coordinator client and domain services; do not expose its full tool registry to managed workers |
+API access is a likely integration choice for a future hosted/managed offering, not a proven technical requirement
+for every orchestrator. Provider agreement, billing, tenancy, secret storage, budgets and service operation require
+separate design and approval. This plan makes no legal clearance or paid-service commitment.
 
-Primary local navigation:
-
-- [Agent Factory](../../../../../src/lib/quality-journey/agent-factory.ts)
-- [Role definitions](../../../../../src/lib/quality-journey/role-definitions.ts)
-- [Journey service](../../../../../src/services/coordinator/quality-journey-service.ts)
-- [Discovery service](../../../../../src/services/coordinator/quality-journey-discovery-service.ts)
-- [Execution runtime service](../../../../../src/services/coordinator/quality-journey-runtime-service.ts)
-- [Handoff service](../../../../../src/services/coordinator/quality-journey-handoff-service.ts)
-- [Persistence schema](../../../../../prisma/schema.prisma)
-- [Coordinator request guard](../../../../../src/lib/coordinator-api/request-guard.ts)
-
-### External findings
-
-T3Code provides a useful precedent: the server owns agent processes and workspace operations, orchestration records
-durable intent, and provider adapters translate normalized commands/events. Its engine commits events, projections
-and command receipts together before publishing resulting state. This is architectural evidence, not proof that its
-runtime satisfies AppraiseJS role isolation. Sources: [architecture][t3-architecture], [engine][t3-engine],
-[adapter contract][t3-adapter].
-
-Codex App Server documents stdio JSON-RPC, thread creation/resume/read, turn start/interruption, approval requests,
-and provider-managed login. The locally observed CLI was `0.153.4`; this is a qualification candidate, not a certified
-version. Prefer stdio and required MCP over experimental dynamic tools. [Codex App Server][codex-server]
-
-Configuration controls exist for shell, memory and other surfaces. Requested settings do not establish an effective
-tool inventory or enforce every filesystem/context boundary. [Codex configuration][codex-config]
-
-Future Claude integration must separately resolve authentication: the SDK documentation restricts third-party
-subscription-login offerings without prior approval. Cursor has a documented bidirectional ACP integration,
-including permissions and cancellation. Neither adapter is part of v1. [Claude SDK][claude-sdk], [Cursor ACP][cursor-acp]
-
-Playwright provides isolated browser contexts and authenticated state. Saved state can contain credentials capable
-of impersonating the account; v1 keeps session state in memory and outside worker payloads. [Playwright auth][pw-auth]
-
-### Unproven feasibility conditions
-
-Phase 0 must establish effective tool inventory, context isolation, interception of unauthorized effects, process
-ownership after supervisor death, and safe thread/turn reconciliation for the qualified Codex build. It must also
-establish a viable browser isolation approach. Prompt instructions and negative probes alone are insufficient proof
-of host-enforced confinement. Store effective host/configuration evidence alongside behavioral probes.
-
-If a required boundary is unsupported, stop before Phase 1. Record the unsupported behavior and propose a separately
-reviewed confinement design. Do not fabricate attestations, relax the role contract, silently use full access, or
-replace Codex with another provider. The full-release estimate must then be reconsidered.
-
-### Phase 0 no-go disposition and durable remediation
-
-The Codex 0.153.4 qualification candidate did not expose the required Journey MCP, retained ambient MCP servers and
-provided no authoritative inventory of the native tools visible to the model. The recovery harness proved conservative
-policy decisions but did not execute the required real App Server fault matrix. Gate G0 therefore remains blocked.
-
-The existing AppraiseJS MCP path is reusable infrastructure, but it is a broad coordinator surface for a trusted
-project-bound client. It registers Journey creation, work claim/dispatch, lifecycle decisions, execution, stop and
-repository-collaboration operations together. It is not the per-role worker boundary described by this plan.
-
-Resolve the gap by supporting two trust profiles over the same canonical schemas, coordinator client and Journey
-domain services:
-
-1. Keep the existing full coordinator MCP for trusted human-directed or harness-native coordinator clients.
-2. Add an attempt-scoped worker MCP registration profile. Derive its concrete tools from the canonical operation
-   definitions, but register only the exact subset mapped to the assigned role's abstract capabilities.
-3. Resolve target, Journey, role, attempt, generation, lease and runtime principal from a sealed grant on the trusted
-   side. Do not expose the broad project bearer, owner token or caller-selected actor to the worker.
-4. Revalidate the sealed grant before and after external I/O and issue content-bound broker receipts. The same Journey
-   services and specialized ingress remain authoritative; the worker gateway is not a second business API.
-5. Require the provider to suppress all unrequested native and ambient tools before constructing the model request and
-   expose the actual post-filter tool manifest for trusted verification. An OS sandbox independently contains
-   filesystem, network and process effects, but inert model-visible tools do not satisfy the exact-tool contract.
-
-The durable boundary is provider-neutral. Codex remains one adapter and may use an upstream capability or a minimal
-pinned compatibility patch, but the patch must remain inside the adapter boundary. A provider build is disabled for
-managed Journeys until the complete role-boundary and recovery conformance suites pass. Provider executable,
-protocol, configuration or confinement changes invalidate the affected qualification evidence.
-
-## 3. Architecture and invariants
+## 2. Ownership and graph contract
 
 ```mermaid
-flowchart TD
-    UI[AppraiseJS browser UI] -->|Start, answers, approvals| Domain[Journey services and SQLite]
-    Scheduler[Deterministic scheduler] --> Domain
-    Trusted[Trusted coordinator client] --> FullMCP[Existing full coordinator MCP]
-    FullMCP --> Domain
-    Scheduler --> Supervisor[Trusted runtime supervisor]
-    Supervisor --> Codex[Fresh Codex process and thread per attempt]
-    Codex --> Gateway[Role and attempt-scoped worker MCP profile]
-    Gateway --> Domain
-    Gateway --> Browser[Browser and session broker]
-    Gateway --> Artifacts[Artifact and capsule services]
-    Domain --> Execution[Existing managed test execution]
-    Domain -->|Persisted status and evidence| UI
+flowchart LR
+    UI[Appraise Journey UI] --> H[Prepare handoff]
+    H --> C[Stock Codex and Appraise plugin]
+    C <-->|Read, claim, submit| M[Appraise MCP]
+    M --> G[Journey graph and authorization]
+    G --> E[Appraise execution and evidence]
+    E --> S[Durable state]
+    S --> UI
+    UI -->|Human decisions| G
 ```
 
-### Ownership
+The graph is persisted workflow state, not a mandatory topology of isolated model processes. Existing role contracts
+remain useful for task context and artifact requirements. One Codex task may perform multiple eligible roles;
+host-native delegation is optional. A claimed role, worker registration or skill invocation does not establish an
+independent reviewer, isolated context or restricted host tools. Where independence is required, record and verify
+an independently identified reviewer or retain the human gate; otherwise report the review's actual assurance.
 
-1. Journey services and SQLite retain lifecycle authority. Do not introduce a parallel workflow truth in provider
-   transcripts, browser state, the CLI, or a second database.
-2. Extend the existing `appraisejs` CLI with a runtime entrypoint. It communicates through authenticated runtime
-   endpoints; domain services continue to own database mutations.
-3. Supervise the local application and runtime independently of browser tabs. A launchd user service is the macOS
-   production packaging target. Sleep/logout interrupt availability; wake/restart initiates reconciliation.
-4. The trusted supervisor owns provider transport/authentication, process control and sealed runtime capabilities.
-   Model-visible workers receive only canonical assignment data and role-permitted tools.
-5. The browser broker owns target cookies and authenticated sessions. Target credentials, provider login and
-   execution consent are separate authorities.
-6. `NETWORK` scope describes worker-visible target/data access. Provider transport connectivity belongs to the
-   trusted control plane; this distinction must be explicit in contract documentation and evidence.
+The normative cycle is: read authoritative state → claim eligible assignment → fetch bounded context → perform work
+→ submit candidate → validate and commit → read next eligible work. Reuse specialized `quality_journey_*` operations
+and existing claims, authorization, artifacts, events and runtime capsules. Do not add a generic state-mutation API
+or duplicate workflow engine. Audit each existing operation before relying on its enforcement.
 
-### Worker isolation and effects
+Required service invariants:
 
-- Use a fresh process, configuration/work directory and new thread per attempt. Do not fork external conversations.
-- Same-attempt resume requires the persisted exact thread identity and matching runtime/configuration digest.
-  Replacement gets a new process/thread and no predecessor transcript.
-- Disable unrequested native tools, apps, memory, inherited configuration and project instruction ingestion using
-  the qualified provider mechanism; verify actual effective state before the first model turn.
-- Route model-visible artifact, browser and filesystem operations through the scoped gateway. The worker cannot
-  directly access the database, broad coordinator token, lease token, raw credentials or unrestricted shell/network.
-- Derive the worker gateway from the existing canonical MCP definitions and coordinator client, but register only the
-  exact role subset. The existing full MCP remains a separate trusted-client surface and must not be attached to a
-  managed worker.
-- Map every exposed concrete tool to an allowed abstract role capability. Unexpected tools/approval requests fail
-  closed; answering a provider approval cannot broaden a Journey assignment.
-- Validate attempt, generation, lease, role, input and authorization before a tool call and again after external I/O.
-  Preserve an audit record of effects that occurred before revocation; rejecting output cannot undo those effects.
-- Broker receipts bind attempt, tool, canonical argument/result hashes, policy decision and evidence identity.
-  Worker narratives and raw stdout cannot substitute for those receipts or specialized semantic validation.
+- Derive the principal from authenticated transport, validate target/Journey binding, and enforce every applicable
+  prerequisite, permission and human gate server-side. A prompt, ticket or plugin declaration is never sufficient authority.
+- Assignments bind immutable input revisions, role, target and an ownership generation/lease. A second claimant or
+  stale owner cannot commit. Renewals, expiry and explicit takeover must be transactional and auditable.
+- Validate full canonical arguments and artifact schemas at the service boundary, even if Codex presents a simplified
+  schema. Reject invalid data with structured correction guidance; do not silently remove canonical constraints.
+- Bind idempotency to principal, operation, assignment and payload identity. Exact retries return the recorded result;
+  reuse with different input conflicts. Lost acknowledgement requires querying durable outcome before repeating effects.
+- Recheck authority at effect admission and result acceptance. Late, revoked, wrong-target and stale submissions do
+  not advance the graph. Retain useful rejected-attempt diagnostics without publishing partial artifacts as accepted.
+- Execution remains Appraise-owned and consent-bound. Agent text, arbitrary host browser output and independent
+  TestRuns cannot substitute for required sealed Journey evidence. Structural validation does not establish semantic quality.
+- All normal client paths, including the supported local CLI bridge, apply equivalent authorization. No capability
+  guarantee depends on hiding a tool from Codex or trusting skill compliance.
 
-### Persistence and interfaces
+Trust limit: this integration protects operations mediated by Appraise. It is not a sandbox against an external
+agent with direct write access to Appraise's database, service code or credentials. Keep the target workspace separate
+from the hub's data/credentials in supported deployment, avoid exposing broad credentials in prompts, and document
+remaining same-user host trust. General Codex shell/browser access remains controlled by Codex and the user.
 
-Use additive migrations. Extend existing records where responsibility matches; do not duplicate immutable lineage.
+## 3. Handoff, setup and connection paths
 
-| Record/interface      | Required content or behavior                                                                                                                                                        |
-| --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Start grant           | Journey and requirement identity, allowed automatic progression, limits, issue/revocation state; never a human-gate approval                                                        |
-| Runtime ownership     | Installation owner, expiry and monotonically increasing fencing generation                                                                                                          |
-| Provider dispatch     | Unique dispatch key, attempt, adapter, process birth identity, version/config digest, thread/turn IDs, state and reconciliation result                                              |
-| Outbox                | Unique effect identity, canonical payload hash, pending/claimed/acknowledged/unknown status and attempt generation                                                                  |
-| Inbox                 | Provider delivery identity or stable adapter-derived identity, payload hash, processing status and durable cursor                                                                   |
-| Runtime attestation   | Actual evidence content, digest, qualified executable/protocol/config identities and effective boundaries                                                                           |
-| Browser session grant | Journey/target/environment, allowed origins/routes/actions, issue/expiry/revocation state and opaque session reference                                                              |
-| Adapter               | Dispatch, inspect/reconcile, event observation, interrupt and confirmed termination; provider-specific behavior stays here                                                          |
-| Runtime endpoints     | Start/pause/resume/status, fenced claims/renewal, event/effect ingestion and reconciliation; authenticated principal determines authority                                           |
-| Worker gateway        | Sealed attempt principal plus exact role-derived MCP subset; scoped reads/proposals/observations only; no broad project token, worker-selected actor or arbitrary lifecycle command |
+Use documented `codex://new` or `codex://threads/new` links with URI-encoded `prompt` and, for a local target, validated
+absolute `path`. A plugin mention can be included in the prompt. These links prefill the composer; they do not submit
+it. Existing-task links can reopen a known local task but do not prove it resumed work. Qualify installed-version
+behavior before implementing the default launch. Record the resolved application bundle and CLI separately; do not
+assume the application is named Codex.app. A host-tool denial blocks observation, not proof of URI support or failure.
 
-Do not accept a client-supplied `actor: USER` or an adapter-authored digest as proof of authority. Resolve principals
-and attestation provenance on the trusted side. Preserve useful MCP/catalog capabilities outside the removed external
-coordination flow.
+Reuse the existing ten-minute, one-time handoff ticket mechanism after checking its scope. The ticket is not a
+coordinator bearer credential: redemption must still require the configured authenticated MCP client and exact
+Journey/target match. Do not put provider tokens, passwords, full requirements or broad Appraise credentials into a
+URL. Redact short-lived tickets from logs/diagnostics and minimize prompt contents. Fetch requirements after redemption.
 
-### Launch and recovery protocol
+| Path                                       | Required behavior and acceptance                                                                                                                              |
+| ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| New local Journey                          | Confirm immutable requirement, prepare ticket, open correct workspace and plugin prompt, send, redeem, then fetch authoritative state                         |
+| Remote web target                          | Use a qualified projectless host task or explicit neutral workspace; retain remote target identity and never treat neutral workspace as the target repository |
+| Codex absent / URI handler denied          | Show actionable setup plus copy-prompt fallback; retain Journey; do not label launch as connected                                                             |
+| Plugin missing / marketplace unavailable   | Guide install/connect through a documented distribution path; manual registered MCP plus exact prompt is the fallback; no automatic trusted-hook dependency   |
+| MCP unavailable / wrong hub / wrong target | Stop Appraise work and show diagnostic/reconnect guidance; never forward credentials to an arbitrary origin                                                   |
+| User closes composer / ticket expires      | No work claimed; offer a fresh handoff; expired or replayed ticket cannot connect                                                                             |
+| Repeated click / concurrent redemption     | One effective redemption; superseded links cannot create a second active assignment                                                                           |
+| Browser return / Appraise reload           | Reconstruct status from durable state; opening an app is not evidence that the task is running                                                                |
+| Existing task available                    | Reopen recorded task if supported; user resumes; verify current assignment and state through MCP                                                              |
+| Task missing / archived / new host         | Offer fresh context handoff and explicit fenced takeover after reconciliation; never replay the entire old prompt as authority                                |
 
-Dispatch state: `RESERVED -> STARTING -> READY -> RUNNING -> OUTPUT_RECEIVED -> FINISHED`, with explicit `UNKNOWN`
-and `FAILED` outcomes. Physical stop state is independent: `STOP_REQUESTED -> STOPPING -> STOPPED`, or `STOP_FAILED`.
+Product status distinguishes prepared, launch requested, connected, assignment active, awaiting human, paused,
+reconnecting, failed and completed. Map existing persisted values rather than inventing observed liveness. A heartbeat
+or recent call can report last activity; silence means unknown/inactive, not automatically success or failure.
 
-1. Atomically persist claim, immutable assignment and launch intent before any external spawn.
-2. Claim the outbox effect under current runtime/attempt fencing. Persist `STARTING` before spawning.
-3. Create and identify the provider process, handshake, create the thread and qualify its effective boundaries.
-   No model turn begins until the session identity and valid receipt are durable (`READY`).
-4. Persist turn-start intent, then request the turn. A lost acknowledgement produces `UNKNOWN`; inspect the bound
-   session rather than blindly sending another turn.
-5. Persist normalized events and deduplicate effects. Accept output only through its specialized role ingress.
-6. Revoke capabilities on logical cancellation immediately. Track physical termination until confirmed.
-7. Resume the exact bound attempt, prove absence/non-start and retry safely, or remain unresolved. These are the
-   only automatic recovery outcomes. No replacement while a predecessor may still execute.
+C0.1 observed that omitting `path` inherits the current workspace on the tested host; it does not establish a
+projectless task. Do not use a pathless URI as a projectless guarantee. Qualify an explicit neutral workspace for
+remote targets, retaining the remote URL as target identity, or independently demonstrate another projectless path.
 
-Do not claim exactly-once external model execution. AppraiseJS transitions and accepted artifacts must be idempotent;
-provider creation/turn ambiguity remains explicit unless a qualified provider primitive proves otherwise.
+Current implementation prepares and validates an encoded `codex://new` link with a copyable minimal prompt. Local
+targets use their validated absolute workspace; qualified remote targets use a per-handoff neutral temporary host
+workspace while retaining the normalized remote URL as the Appraise target. Every mutable Journey stage may prepare a
+generation-fenced reconnect. Stock Codex does not expose a qualified known-task reopen contract, so Appraise records
+host availability as unknown and prepares a fresh scoped fallback. Redemption remains connection evidence; an
+expiring, request-bound Appraise UI approval and exact authoritative reread are required before takeover.
 
-### Scheduler policy
+## 4. Lifecycle and recovery coverage
 
-| Current persisted condition                          | Automatic action                                                      |
-| ---------------------------------------------------- | --------------------------------------------------------------------- |
-| Eligible work + valid Start grant + available slot   | Claim next eligible role in existing stage order                      |
-| Claimed work without dispatch                        | Reserve and dispatch                                                  |
-| Starting/unknown dispatch or uncertain termination   | Reconcile only                                                        |
-| Confirmed worker active                              | Observe and renew the current fenced lease                            |
-| Output received                                      | Invoke specialized role validation; never infer completion from prose |
-| Analyzer/design/report feedback                      | Issue only the existing revision work authorized by that decision     |
-| Execution ready                                      | Start only when exact existing execution consent is valid             |
-| Remediation/rerun proposed                           | Wait for required exact proposal approval before issuing new work     |
-| Question, review, login or operational pause pending | Wait; do not busy-loop or invent consent                              |
-| Revoked/cancelled/closed                             | Revoke access, stop owned processes and reconcile termination         |
+| Stage/path                        | Graph and user behavior                                                                            | Required evidence                                                                        |
+| --------------------------------- | -------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| Requirement analysis              | Read immutable input; submit analysis or bounded questions; human answers return through Appraise  | Revision binding and exact question/answer lineage                                       |
+| Discovery                         | Anonymous first; authenticated path only with qualified human sign-in; record scope and provenance | Target-bound observations; missing access is an explicit blocker                         |
+| Scenario design/revision          | Candidate review, rejection and revision loop in Appraise                                          | Exact artifact/version decision; old approval cannot apply to new content                |
+| Automation preparation            | Use canonical operations and approved definitions; stay within target/assignment scope             | Bound preparation artifacts and required verification; no autonomous product-code repair |
+| Execution                         | Obtain Appraise consent, reserve/launch/reconcile runtime capsule                                  | Sealed run identity, inputs, logs and evidence; no duplicate launch on retry             |
+| Triage/remediation/rerun          | Classify evidence, seek required decisions, issue fresh scoped work and consent where required     | Lineage to exact failed run and changed artifact                                         |
+| Report/closure                    | Human report review, risk acceptance where allowed, final closure through dedicated operations     | Required decisions and evidence; agent's final message never closes Journey              |
+| Human wait                        | Release or park assignment according to explicit lease policy; preserve durable blocker            | No hidden renewal or assumed approval; re-read state after decision                      |
+| Codex crash / offline / quota     | Preserve accepted work; pause external progress; reconcile before fresh claim                      | No automatic model/billing fallback, no assumption Codex can be killed by Appraise       |
+| Appraise restart / lost MCP reply | Recover committed outcome and execution status; reconnect with current credentials                 | Duplicate/stale rejection and uncertain-effect reconciliation                            |
+| Pause / cancel / revoke           | Stop new Appraise admissions, fence late calls; stop owned test/browser runtime with receipt       | UI distinguishes request from observed stop; external Codex may continue unrelated work  |
+| Target edit / deletion / archive  | Invalidate mismatched input/grants; preserve historical evidence                                   | Explicit new revision/rebinding or refusal; no silent migration of authority             |
 
-Start grants authorize scheduling, not analysis/scenario approval, execution consent, remediation/rerun approval,
-report review, risk acceptance or closure. Preserve every specialized human gate already present.
+Authenticated browser policy: human login/SSO/MFA occurs only in the qualified Appraise-owned session. Credentials
+are not sent to the model, plugin, artifacts or diagnostics. Bind session grants to Journey/target/origins, keep them
+in memory, require sign-in again after restart/expiry, and verify logout/revocation, redirects and cross-Journey denial.
+If this boundary cannot be demonstrated, authenticated discovery remains visibly unsupported/blocked. Human-provided
+observations may be labelled supplemental but cannot silently satisfy the required trusted-evidence gate.
 
-### Authenticated browser behavior
+## 5. Qualification and implementation order
 
-The user signs in through an AppraiseJS-launched isolated browser. Scout receives authorized observations and an
-opaque grant reference, never cookies, headers, passwords or login-page captures. Session expiry pauses for login;
-service restart loses the session and visibly requests login again. Automated password login is excluded from v1.
+**Do not build old P1.1–P1.5 first.** C0 uses disposable fixtures and the current application/MCP surfaces to test the
+new risk boundaries. A missing operation produces a precise gap and bounded follow-up experiment, not a simulated pass.
+The user-approved **C0.2e exception** permits only the retained external Analyzer admission vertical slice described
+in [C0.2e-IMPLEMENTATION.md](C0.2e-IMPLEMENTATION.md), including necessary canonical contracts, persistence,
+authenticated MCP/CLI mapping, tests and documentation. Qualification uses disposable data and an explicit opt-in;
+normal product-flow enablement remains gated. Do not discard qualified canonical code merely because it was built
+in C0.2e. C2.1 reuses and hardens it. This is not permission to begin C1 or unrelated C2 implementation.
+A local deterministic probe does not count as a live Codex integration check. Use a disposable target and bounded
+account-authorized workload; do not execute model work merely because this plan was saved.
 
-Scope page, resource and identity-provider origins explicitly. Enforce redirects, frames, background requests,
-service workers, WebSockets and downloads through the qualified broker policy; unsupported traffic fails visibly.
-Authentication effects need their own user authorization. Observation access does not authorize arbitrary form
-submissions, mutations or cross-origin navigation. Do not equate GET/navigation with a universal absence of target
-side effects. Validate application-specific interaction policy using controlled fixtures.
+| Gate                     | Required outcome                                                                                                                                                                                                                                   |
+| ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| GC0 — feasibility        | Real handoff/redemption, one graph task, invalid/stale/duplicate rejection, interruption/resume, human gate, and browser feasibility verdict; evidence reviewed before general feature implementation; only the authorized C0.2e slice is excepted |
+| GC1 — usable handoff     | Fresh setup/install, launch and fallback paths, early/later-stage resume and remote-target handling work end to end                                                                                                                                |
+| GC2 — complete lifecycle | All stages, revision loops, consent-bound execution, authenticated discovery and report/closure gates verified                                                                                                                                     |
+| GC3 — release            | Fault matrix, data compatibility, onboarding, plugin/contract version compatibility and clean installation verified                                                                                                                                |
 
-## 4. How to progress through this plan
+GC0 may record a specific bounded browser implementation gap only if feasibility is demonstrated; an unresolved
+browser architecture cannot be hidden behind a passing gate. Authenticated discovery remains a GC2/GC3 requirement.
+All gates start not evaluated. GC0 must pass before C1 implementation. C0 evidence must bind source revision, relevant
+dirty diff, stock Codex version, plugin/MCP contract version, target fixture, expected versus observed outcome and
+cleanup. Record direct tests, live tests and untested assumptions separately.
 
-### Start or resume an implementation session
+The [task register](TASK_REGISTER.md) breaks the work into qualification, handoff, graph/lifecycle, recovery and release
+slices. Split tasks further before implementation if source inspection identifies more than one bounded responsibility.
+No schedule estimate is adopted until GC0 establishes the actual gaps and reusable surfaces.
 
-1. Read this plan and the register, then current root/package `AGENTS.md` and applicable skills. Classify the task
-   through the repository router. Default to one coordinator for a bounded, verifiable task.
-2. Confirm what the user requested: one task, a phase, or the complete plan. Work only within that authorized range.
-   A request to save or revise this plan is not a request to start implementation.
-3. Inspect branch and dirty state. Branch before implementation using `codex/`; preserve unrelated work, including
-   the pre-existing `package-lock.json` modification observed when this plan was saved.
-4. Reverify the source baseline relevant to the next task. Treat source drift as evidence to record, not a reason to
-   silently change accepted product decisions.
-5. Select the lowest-numbered `pending` task whose dependencies are `verified` and whose preceding phase gate passed.
-   Set its status to `in_progress` and fill in the active handoff record before editing source.
+## 6. Compatibility, release and future extension
 
-### Execute a task
+Retain existing handoff APIs, stored Journeys and lifecycle IDs. Reuse source-backed contracts and migrate additively
+only when needed. Old provider prototypes remain research fixtures and must never become default launch paths.
+Document how preexisting active assignments expire/reconcile; no automatic ownership transfer, DB reset, approval
+fabrication or adoption of unresolved effects. Resume and schema compatibility need tests with stored pre-change data.
 
-1. Read the task's scope, acceptance and verification. Define its exact changed surface and any fault fixture first.
-2. Keep work bounded. If a task requires independent responsibilities or is too large for a focused change, split
-   it into suffix IDs (for example `P1.3a`, `P1.3b`) in the register before implementing; preserve parent acceptance.
-3. Implement canonical source. Change scaffold templates only through the root-to-template sync workflow.
-4. Run focused checks and the task-specific behavioral tests. Expand checks based on affected surfaces and risk.
-5. Review the exact diff. Obtain independent review for boundary, authentication, persistence and recovery changes.
-   Bind that review to a commit SHA or a content digest covering the complete reviewed artifact.
-6. Record commands, outcomes, artifact references and unresolved limitations in the task's evidence record.
-7. Only then mark the task `verified` and its master checkbox `[x]`. `Implemented`, `tests not run`, `waived` and
-   `looks correct` are not equivalent to verified.
-8. Continue to the next eligible task within the user's requested range. Do not ask for routine reapproval at each
-   task. Pause only at a genuine missing decision, required product gate, or failed feasibility boundary.
+Version plugin instructions against supported MCP contracts. Detect stale clients and provide reconnect/upgrade
+instructions. Define a supported macOS/Codex version matrix; unknown versions require capability diagnostics, not
+silent qualification. Uninstall/disconnect revokes Appraise access and stops admissions while preserving user data;
+owned execution is reconciled explicitly. Upgrade/downgrade must refuse incompatible storage without data loss.
 
-### Phase gates
+Future managed orchestration can implement the same graph-facing executor contract through a separately qualified
+provider adapter. Keep reusable graph/authorization/evidence boundaries, but do not build hosting, payment, account
+brokering, a model proxy, a Codex fork or managed-runtime supervision now. Revisit deferred provider research only
+with explicit scope and an appropriate documented provider integration; it is not a prerequisite for this release.
 
-At each phase end, evaluate the gate criteria in the register. All required tasks must be verified, evidence must
-match the current artifact, and blocking findings must be resolved. Record `passed` or `blocked`; do not advance on a
-partial pass. A later change invalidating a gate reopens the affected tasks and gate before downstream work proceeds.
+## 7. Verification and source references
 
-Phase 0 is a hard investment gate. A failure requires an explicit unsupported-boundary record and revised design,
-not a best-effort production adapter. Complete the Phase 0 remediation tasks in the register before reevaluating G0.
-Later phases may use deterministic fake providers for development, but cannot claim real-provider acceptance until
-the exact production App Server/build passes the applicable boundary and recovery suites. A deterministic backend may
-support turn-level recovery evidence only when it traverses that exact production path and is demonstrably equivalent
-for the protocol states and events under test; otherwise use a separately authorized, account-safe real-provider turn.
+For each implementation slice, run relevant service/package tests and affected-file lint/format checks using current
+`package.json`. Run migration checks for schema changes, build for runtime/config/schema or broad changes, contract
+regeneration for MCP changes, scaffold sync when affected and Graphify update for committed source scopes. Follow
+`docs/agent-validation-matrix.md`; use the repository Browser workflow for live UI checks and record fallback reasons.
+Documentation-only updates require formatting, local links and an independent consistency/path-coverage review.
 
-### Blockers, changes and safe stopping
+Current reusable source: `src/services/coordinator/quality-journey-handoff-service.ts`,
+`src/services/coordinator/quality-journey-service.ts`, `src/services/coordinator/quality-journey-runtime-service.ts`,
+`src/lib/quality-journey/agent-factory.ts`, `src/lib/quality-journey/role-definitions.ts`, and
+`packages/appraisejs/src/mcp/registry.ts`. Inspect their actual contracts before editing.
 
-- Record a blocker ID, affected task/gate, observed behavior, reproduction, impact, attempted resolution and exact
-  condition required to unblock. Differentiate code defects, infrastructure failures and product decisions.
-- Continue independent authorized work only when dependencies permit. Never mark a blocked task complete.
-- A change to providers, isolation, authority, human gates, concurrency policy, billing, target-login method or
-  supported platforms requires explicit user direction and an updated decision record.
-- Do not weaken required boundaries, bypass hooks, reset the database or discard dirty changes to get green checks.
-- On interruption, leave an exact next action, file/branch state, test evidence and any owned process identities.
-  A successor must recheck live process ownership before signalling or replacing anything.
-- Commit/push/PR/merge/release only within the user's authorized delivery scope. Do not invent a publication task.
-  When publication is requested, record terminal CI and exact reviewed/merged identity; do not mark publication
-  complete merely because a PR was opened.
-
-### Recordkeeping rules
-
-The register is the sole task-status source. Keep task IDs stable. Update the master row, its evidence record and
-active handoff together. Do not duplicate status checkboxes in other plans. Reference evidence by stable repo path
-or sanitized artifact URI; keep credentials, raw authentication state and unsanitized provider logs out of Git.
-
-Recommended evidence layout during implementation: `evidence/P0.1.md` and corresponding task IDs beside this plan,
-with only sanitized summaries and hashes. Do not create placeholder evidence that implies a test ran. Raw local
-diagnostics remain ignored outside the committed plan directory.
-
-## 5. Validation and release contract
-
-Use deterministic fake-provider/fault tests first, followed by real qualified-provider tests on macOS. Never use an
-external production application as a destructive test fixture.
-
-| Area           | Required evidence                                                                                                            |
-| -------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| Ownership      | Duplicate Start, two supervisors, singleton fencing, stale generations                                                       |
-| Leases         | Renewal, expiry, revocation races, no immutable-manifest rewriting                                                           |
-| Launch         | Crash before/after each commit, spawn, handshake, thread creation, turn creation and acknowledgement                         |
-| Cancellation   | Late calls/results, hung descendants, PID reuse, stop failure, supervisor death                                              |
-| Isolation      | Effective inventory and host evidence plus forbidden file/shell/network/context/tool probes                                  |
-| Authentication | Human login/MFA, expiry/restart, revoked grants, cross-Journey reuse, redirect escape, secret canaries                       |
-| Evidence       | Forged receipts, stale input, duplicate delivery, partial outputs, oversized payloads, interrupted I/O                       |
-| Lifecycle      | All six roles, exact human gates, revision loops, execution failure, remediation/rerun, risk acceptance and closure          |
-| Operations     | Fresh installation, browser close, sleep/wake, service restart, offline state, unavailable MCP, unsupported provider version |
-
-Relevant command sources are current `package.json` and `docs/agent-validation-matrix.md`. Expected checks include:
-
-```sh
-npx eslint <affected-source-files>
-npx prettier --check <affected-files>
-npm run validate:unit -- <related-test-files>
-npm --prefix packages/appraisejs test -- <related-package-test-files>
-npm run validate:migrations
-npm run build
-npm run release:check:artifacts
-npm run release:check:packages
-npm run check:harness
-```
-
-Use migration checks for schema work; run broader build/package/harness checks when affected and at integration
-gates. Use the repository Browser workflow for interactive UI verification; document any required fallback. Execute
-real-provider tests only with the authorized test account and bounded workload. Re-run invalidated checks after fixes.
-
-When applicable, synchronize canonical changes with:
-
-```sh
-npm --prefix packages/create-appraisejs run prepare-template
-npm run graphify:auto
-```
-
-Regenerate coordinator references and operation projections/certification only when their source changes require it;
-use the current scripts. Never hand-edit generated output or format generated certification receipts after generation.
-
-Release acceptance requires all phase gates, complete anonymous and authenticated Journey demonstrations, and no
-unresolved boundary/recovery/security findings. Separately evaluate artifact quality, user interventions, latency
-and resource use. Passing process tests does not prove the AI produces useful scenarios or correct triage.
-
-## 6. Cutover and compatibility
-
-The external coordination feature is unreleased. Remove handoff/ticket/launch surfaces and stale onboarding only
-after the managed path passes its gates. A temporary development admission switch may hide incomplete managed work;
-it is not a supported dual-owner product mode.
-
-Preserve historical records. Explicitly retire or make old active external attempts ineligible for runtime adoption;
-disable legacy resume behavior that would synthesize authority for them. No database reset, fabricated receipt,
-approval transfer or active-Journey migration path is required. Do not delete unrelated authored artifacts or targets.
-
-Qualify updates against stored data as well as the protocol. Drain active work before switching executable versions.
-If an old binary cannot decode new schema/state, refuse downgrade clearly rather than opening incompatible storage.
-Uninstalling the service stops its processes and preserves user data.
-
-## 7. Estimates, assumptions and evidence limits
-
-Planning estimate for one experienced engineer familiar with AppraiseJS and assisted by coding agents:
-
-| Milestone                       | Effort                 |
-| ------------------------------- | ---------------------- |
-| Provider/boundary proof         | 1–2 weeks              |
-| Managed analysis vertical slice | 3–5 weeks cumulative   |
-| Complete hardened release       | 12–20 weeks cumulative |
-
-These are estimates, not measured delivery times. Failure of provider confinement or process-recovery qualification
-can require a separate macOS enforcement design and invalidate the estimate. No prototype, paid provider test,
-crash drill or isolation qualification was performed during research.
-
-### Sources
-
-External sources were consulted on 2026-09-09. T3Code links track mutable `main`; record exact upstream revisions
-when deriving implementation behavior or vendoring any material. Reverify vendor protocol documentation at Phase 0.
-
-- [T3Code architecture][t3-architecture]
-- [T3Code orchestration engine][t3-engine]
-- [T3Code provider adapter][t3-adapter]
-- [T3Code provider constraints][t3-providers]
-- [Codex App Server][codex-server]
-- [Codex configuration][codex-config]
-- [Claude Agent SDK][claude-sdk]
-- [Cursor ACP][cursor-acp]
-- [Playwright authentication][pw-auth]
-
-[t3-architecture]: https://github.com/pingdotgg/t3code/blob/main/docs/internals/overview.md
-[t3-engine]: https://github.com/pingdotgg/t3code/blob/main/apps/server/src/orchestration/Layers/OrchestrationEngine.ts
-[t3-adapter]: https://github.com/pingdotgg/t3code/blob/main/apps/server/src/provider/Services/ProviderAdapter.ts
-[t3-providers]: https://github.com/pingdotgg/t3code/blob/main/docs/internals/providers.md
-[codex-server]: https://learn.chatgpt.com/docs/app-server
-[codex-config]: https://learn.chatgpt.com/docs/config-file/config-reference
-[claude-sdk]: https://code.claude.com/docs/en/agent-sdk/overview
-[cursor-acp]: https://cursor.com/docs/cli/acp
-[pw-auth]: https://playwright.dev/docs/auth
+- [Architecture decision](../../../../../docs/decisions/0004-stock-codex-journey-handoff.md)
+- [Current lifecycle authority](../../../../../docs/agent-lifecycle-flow.md)
+- [Current MCP setup](../../../../../docs/agent-mcp-setup.md)
+- [Codex deep links](https://learn.chatgpt.com/docs/reference/commands#deep-links), checked 2026-09-11: new-task workspace/prompt/plugin prefill; user must send; existing-task links open only.
+- [Plugin packaging and skills](https://learn.chatgpt.com/docs/skills-and-plugins), checked 2026-09-11: skills/MCP bundle and optional hooks, not an independent authority boundary.

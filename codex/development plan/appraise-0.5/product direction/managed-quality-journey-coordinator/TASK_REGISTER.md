@@ -1,678 +1,320 @@
-# Managed Quality Journey Coordinator — Task Register
+# Stock Codex Quality Journey — Task Register
 
-Specification: [development plan](PLAN.md). Status baseline: 2026-09-09; Phase 0 remediation decision: 2026-09-10.
+Specification: [PLAN.md](PLAN.md). Architecture adopted 2026-09-11. C0.1, C0.2 and C0.3 are verified as bounded
+qualification tasks. The user-approved C0.2e retained admission slice and C0.4 feasibility review are verified; GC0
+passed after independent exact-artifact review. This gate admits only the recorded C1 implementation order.
+Historical work is retained in [TASK_REGISTER.managed-runtime-archive.md](TASK_REGISTER.managed-runtime-archive.md).
 
 ## Operating instructions
 
-Read the progression rules in the plan before starting. Work in dependency order within the user's requested scope.
-Mark one bounded task `in_progress`, implement it, verify its acceptance, record evidence, then mark it `verified` and
-check its box. A phase gate must pass before the next phase begins. Do not infer implementation authorization from
-a request to save these documents.
-
-Allowed task statuses: `pending`, `in_progress`, `blocked`, `in_review`, `verified`. Only `verified` uses `[x]`.
-Evidence references start as `—` because no implementation checks have run. Gate status starts as `not_evaluated`.
+Work in dependency order within the user's authorized scope. C0.1 and the original C0.2 negative qualification remain
+verified. **C0.2e.1–C0.2e.4, C0.3, C0.4, C1.1, C1.2 and C1.3 are verified** under their recorded scopes. GC1
+`passed` after live closure of `GC1-B01` and independent exact-artifact review; C2.1 remains `pending`, is eligible,
+and is unstarted.
+Use `pending`, `in_progress`, `blocked`, `in_review`, `verified`;
+only verified tasks use `[x]`. A successful experiment can establish a negative result without passing its gate.
+Do not turn a documentation decision into a capability claim. Record exact artifact/version, expected and observed
+outcome, direct versus live verification, remaining gaps and owned-resource cleanup in `evidence/<task-id>.md`.
+Split large slices into stable suffix IDs before implementation. Old evidence must retain its original meaning.
 
 ## Master task register
 
-| Done | ID    | Task                                             | Dependencies     | Status   | Evidence                             |
-| ---- | ----- | ------------------------------------------------ | ---------------- | -------- | ------------------------------------ |
-| [x]  | P0.1  | Establish protocol and source baseline           | None             | verified | [evidence/P0.1.md](evidence/P0.1.md) |
-| [x]  | P0.2  | Qualify effective worker boundaries              | P0.1             | verified | [evidence/P0.2.md](evidence/P0.2.md) |
-| [ ]  | P0.3  | Qualify process and session recovery             | P0.1             | blocked  | [evidence/P0.3.md](evidence/P0.3.md) |
-| [x]  | P0.4  | Review feasibility and browser enforcement       | P0.2, P0.3       | verified | [evidence/P0.4.md](evidence/P0.4.md) |
-| [ ]  | P0.R1 | Prototype the full-MCP and worker-gateway split  | P0.4             | pending  | —                                    |
-| [ ]  | P0.R2 | Qualify an exact-tool provider build             | P0.R1            | pending  | —                                    |
-| [ ]  | P0.R3 | Re-run all role-boundary probes                  | P0.R2            | pending  | —                                    |
-| [ ]  | P0.R4 | Execute the real App Server recovery matrix      | P0.R2            | pending  | —                                    |
-| [ ]  | P0.R5 | Review the combined remediation artifact         | P0.R3, P0.R4     | pending  | —                                    |
-| [ ]  | P1.1  | Define runtime contracts and persistence         | Gate G0          | pending  | —                                    |
-| [ ]  | P1.2  | Implement Start grant and singleton ownership    | P1.1             | pending  | —                                    |
-| [ ]  | P1.3  | Implement outbox/inbox and dispatch protocol     | P1.1, P1.2       | pending  | —                                    |
-| [ ]  | P1.4  | Implement renewal and fenced scheduling          | P1.2, P1.3       | pending  | —                                    |
-| [ ]  | P1.5  | Add runtime API and CLI entrypoint               | P1.3, P1.4       | pending  | —                                    |
-| [ ]  | P2.1  | Implement qualified Codex adapter and login      | Gate G1          | pending  | —                                    |
-| [ ]  | P2.2  | Implement scoped artifact/question gateway       | P2.1             | pending  | —                                    |
-| [ ]  | P2.3  | Connect managed requirement analysis             | P2.2             | pending  | —                                    |
-| [ ]  | P2.4  | Deliver Start and analysis status UI             | P2.3             | pending  | —                                    |
-| [ ]  | P3.1  | Version Scout authority and session grants       | Gate G2          | pending  | —                                    |
-| [ ]  | P3.2  | Implement isolated browser observation           | P3.1             | pending  | —                                    |
-| [ ]  | P3.3  | Implement human target login and expiry          | P3.2             | pending  | —                                    |
-| [ ]  | P3.4  | Connect Scout and resource discovery             | P3.2, P3.3       | pending  | —                                    |
-| [ ]  | P3.5  | Verify authenticated discovery containment       | P3.4             | pending  | —                                    |
-| [ ]  | P4.1  | Connect scenario design and revision gates       | Gate G3          | pending  | —                                    |
-| [ ]  | P4.2  | Connect scoped automation preparation            | P4.1             | pending  | —                                    |
-| [ ]  | P4.3  | Connect consent-bound managed execution          | P4.2             | pending  | —                                    |
-| [ ]  | P4.4  | Connect triage, remediation and closure          | P4.3             | pending  | —                                    |
-| [ ]  | P5.1  | Complete restart and uncertain-effect recovery   | Gate G4          | pending  | —                                    |
-| [ ]  | P5.2  | Complete cancellation and orphan handling        | P5.1             | pending  | —                                    |
-| [ ]  | P5.3  | Persist provider waits and event recovery        | P5.1             | pending  | —                                    |
-| [ ]  | P5.4  | Add limits, pause controls and diagnostics       | P5.2, P5.3       | pending  | —                                    |
-| [ ]  | P5.5  | Run adversarial and full lifecycle qualification | P5.4             | pending  | —                                    |
-| [ ]  | P6.1  | Retire external coordination and legacy adoption | Gate G5          | pending  | —                                    |
-| [ ]  | P6.2  | Package the macOS user service                   | P6.1             | pending  | —                                    |
-| [ ]  | P6.3  | Define update/downgrade and data preservation    | P6.2             | pending  | —                                    |
-| [ ]  | P6.4  | Synchronize docs, contracts and scaffolds        | P6.1, P6.2, P6.3 | pending  | —                                    |
-| [ ]  | P6.5  | Verify clean installation and release readiness  | P6.4             | pending  | —                                    |
+| Done | ID    | Task                                                       | Dependencies      | Status   | Evidence                   |
+| ---- | ----- | ---------------------------------------------------------- | ----------------- | -------- | -------------------------- |
+| [x]  | C0.1  | Qualify Appraise-to-Codex handoff                          | None              | verified | [C0.1](evidence/C0.1.md)   |
+| [x]  | C0.2  | Qualify graph acceptance and interrupted resume            | C0.1              | verified | [C0.2](evidence/C0.2.md)   |
+| [x]  | C0.2e | Retain and qualify external Analyzer admission             | C0.2              | verified | [C0.2e](evidence/C0.2e.md) |
+| [x]  | C0.3  | Qualify discovery and evidence feasibility                 | C0.1              | verified | [C0.3](evidence/C0.3.md)   |
+| [x]  | C0.4  | Review feasibility and establish exact implementation gaps | C0.2, C0.2e, C0.3 | verified | [C0.4](evidence/C0.4.md)   |
+| [x]  | C1.1  | Deliver plugin setup and compatibility diagnostics         | GC0               | verified | [C1.1](evidence/C1.1.md)   |
+| [x]  | C1.2  | Deliver prepared Journey launch                            | C1.1              | verified | [C1.2](evidence/C1.2.md)   |
+| [x]  | C1.3  | Deliver later-stage reconnect and takeover                 | C1.2              | verified | [C1.3](evidence/C1.3.md)   |
+| [x]  | C2.1  | Enforce graph claim and submission contracts               | GC1               | verified | [C2.1](evidence/C2.1.md)   |
+| [ ]  | C2.2  | Connect analysis and human question loops                  | C2.1              | pending  | —                          |
+| [ ]  | C2.3  | Deliver scoped discovery and human sign-in                 | C2.1, C0.3        | pending  | —                          |
+| [ ]  | C2.4  | Connect scenario review and revision                       | C2.2, C2.3        | pending  | —                          |
+| [ ]  | C2.5  | Connect automation preparation                             | C2.4              | pending  | —                          |
+| [ ]  | C2.6  | Connect consent-bound execution and reconciliation         | C2.5              | pending  | —                          |
+| [ ]  | C2.7  | Connect triage, remediation and closure                    | C2.6              | pending  | —                          |
+| [ ]  | C3.1  | Harden pause, cancellation and recovery                    | GC2               | pending  | —                          |
+| [ ]  | C3.2  | Verify data and version compatibility                      | C3.1              | pending  | —                          |
+| [ ]  | C3.3  | Publish operator guidance and release evidence             | C3.2              | pending  | —                          |
 
 ## Task specifications
 
-Each task below supplies its scope, acceptance and verification. Dependencies and status live only in the master
-register. Split oversized tasks into stable suffix IDs before implementation rather than accumulating broad edits.
-All tasks also require the applicable lint, formatting and review checks from the plan.
+All tasks require affected-file formatting and applicable validation from PLAN section 7. Likely source areas are
+routing hints, not instructions to edit every listed file. Determine precise ownership before implementation.
 
-### Phase 0 — Feasibility proof
+### C0.1 — Qualify Appraise-to-Codex handoff
 
-#### P0.1 — Establish protocol and source baseline
+Acceptance: Use a disposable confirmed Journey and installed stock Codex. Verify documented URI prefill, correct workspace, plugin recognition, user Send, authenticated ticket redemption and authoritative read. Record remote/projectless behavior, missing plugin/URI-handler fallback, expiry and duplicate clicks.
 
-Scope: inspect current Journey contracts, package/runtime entrypoints and the selected installed Codex build.
+Verification: Live desktop/MCP trace plus ticket-negative tests; record versions and clean up only owned fixtures.
 
-Acceptance:
+Likely scope: handoff service; existing setup UI; disposable evidence.
 
-- Record exact repository revision, relevant dirty files, Codex executable/version, protocol schema and documentation
-  provenance; distinguish observed settings from host-enforced behavior.
-- Map each role's abstract tools and required boundaries to candidate provider/broker mechanisms.
-- Define controlled qualification fixtures and the expected outcome of each probe before running live workers.
+C0.1 evaluation slices: **C0.1a** baseline/test inventory recorded; **C0.1b** live local copy/paste fallback and separate local URI prefill/Send probe demonstrated; combined URI/redemption and disposable plugin installation/recognition demonstrated; **C0.1c** remote neutral workspace, unsent composer, natural expiry and service concurrency demonstrated; missing-marketplace and protocol-denial outcomes recorded; **C0.1d** independent evidence review accepted; C0.1 verified. See [evidence and unblock criteria](evidence/C0.1.md). These slices do not relax parent acceptance.
 
-Verification: source/contract comparison and schema compatibility checks. No provider capability is marked supported
-merely because a config field exists. Store the sanitized baseline and capability matrix.
+### C0.2 — Qualify graph acceptance and interrupted resume
 
-#### P0.2 — Qualify effective worker boundaries
+Acceptance: Claim one existing role task through current MCP; submit valid, invalid, wrong-target, stale and duplicate candidates. Lose an acknowledgement, interrupt the host task, reconnect and reconcile before retry. Demonstrate a human gate rejects unauthorized advance and a new session cannot commit with stale ownership. Race two claimants on one Journey and verify only one active assignment; run two distinct Journeys and verify independent target, lease and artifact scope.
 
-Scope: a disposable bounded provider harness; no product cutover.
+Verification: Service negative/concurrency tests plus one bounded live Codex cycle; missing service capabilities become explicit gaps, never mock-only passes.
 
-Acceptance:
+Likely scope: Journey services; MCP contract; qualification fixtures.
 
-- Fresh thread/process exposes exactly the approved concrete tool mapping and required MCP; missing MCP refuses start.
-- Effective context/filesystem/network/credential/lifecycle evidence is bound to executable and launch configuration.
-- Forbidden tool calls, ambient memory/instructions, file access, process escape and cross-attempt sentinels are
-  rejected or documented as unsupported before claiming `STARTED`.
+C0.2 evaluation slices: **C0.2a** graph/source and service-contract baseline recorded; **C0.2b** live claim race,
+local/remote isolation and rejection probes demonstrated; **C0.2c** current-task expiry/replacement and fresh-session
+resume demonstrated; **C0.2d** exact retry, invalid candidate, human-gate and stale-owner behavior verified at the
+service boundary, with the then-unavailable live stock-task dispatch/submission bridge retained as historical
+C-B02/C-B03 context.
+C0.2 is verified as a bounded negative qualification, not as a production graph-execution pass. See
+[evidence and gap disposition](evidence/C0.2.md). These slices do not relax parent acceptance or admit GC0.
 
-Verification: effective host inventory/config receipts plus negative probes. A model's refusal or a passing sentinel
-test alone cannot prove confinement. Record full failure conditions and the trusted computing base.
+### C0.2e — Retain and qualify external Analyzer admission
 
-#### P0.3 — Qualify process and session recovery
+Authority: user, 2026-09-12, approved the narrow C0.2 implementation exception and requested this handoff for Sol.
+The code is production-intended and retained; only qualification fixtures and temporary harness pieces are
+disposable. This is additional work, not a rewrite of the verified negative C0.2 result or C0.1.
 
-Scope: disposable process-supervision and protocol faults.
+Follow [C0.2e-IMPLEMENTATION.md](C0.2e-IMPLEMENTATION.md) for scope, invariants, validation and stop conditions.
+The [blocker investigation](evidence/C0.2-BLOCKER-INVESTIGATION.md) remains the causal evidence; its original
+throwaway-prototype proposal is superseded by this authorized retained-code approach.
 
-Acceptance:
+| Done | Slice   | Deliverable                                                                                     | Dependencies | Status   |
+| ---- | ------- | ----------------------------------------------------------------------------------------------- | ------------ | -------- |
+| [x]  | C0.2e.1 | Source-backed external admission contract, compatibility and validation design                  | C0.2         | verified |
+| [x]  | C0.2e.2 | Retained opt-in Analyzer admission, canonical submission/recovery path and deterministic checks | C0.2e.1      | verified |
+| [x]  | C0.2e.3 | Isolated live stock-Codex acceptance, lost-acknowledgement and fresh-task resume proof          | C0.2e.2      | verified |
+| [x]  | C0.2e.4 | Independent exact-artifact review and evidence reconciliation                                   | C0.2e.3      | verified |
 
-- Determine behavior when supervisor/stdin transport dies and how surviving processes are identified safely.
-- Establish which thread/turn creation operations can be reconciled after lost acknowledgements; identify any
-  unresolvable states and forbid automatic duplicate dispatch there.
-- Prove whether exact same-attempt resume preserves qualified configuration/context boundaries.
+Acceptance: All four slices verified, including a real accepted Analysis artifact through authenticated MCP,
+no-write invalid/unauthorized attempts, principal/target/ownership enforcement, exact retry semantics, concurrent
+admission isolation, fresh-task resume and human-gate rejection. Record results in `evidence/C0.2e.md`; do not create
+passing evidence before observation. C0.4 cannot admit GC0 from negative graph evidence alone.
 
-Verification: terminate each component around spawn, handshake, thread/turn creation and acknowledgement; test PID
-reuse and late events. Document supported outcomes without claiming external exactly-once execution.
+### C0.3 — Qualify discovery and evidence feasibility
 
-#### P0.4 — Review feasibility and browser enforcement
+Acceptance: Demonstrate anonymous observation and human login in an Appraise-owned session, origin/target binding, expiry/restart and cross-Journey denial. Establish which receipts can satisfy discovery and execution gates. If unavailable, identify and test a bounded browser prototype before GC0; supplemental host observations are labelled.
 
-Scope: integrate proof results and establish the first-release enforcement design.
+Verification: Owned browser fixture with login/restart and secret-canary checks; evidence acceptance negatives.
 
-Acceptance:
+Likely scope: browser/runtime capsule services; discovery contracts; fixtures.
 
-- Review every role, including Scout/browser and Automator filesystem requirements, against the qualification matrix.
-- Demonstrate a browser enforcement prototype can contain controlled redirects/background traffic and isolate a
-  human-authenticated session; do not represent a design document alone as runtime proof.
-- Obtain independent boundary/recovery review; issue a conditional pass with exact supported build or a no-go record.
+C0.3 result: **verified bounded feasibility with a production blocker retained** after exact-artifact review. A disposable controlled
+browser prototype demonstrated anonymous access, controller-only synthetic login/MFA, Journey/target/origin binding,
+redirect/request containment, per-use cross-Journey worker-view denial and fresh sign-in after context replacement, injected expiry,
+logout or revocation. Exact canaries were absent from the prototype's bounded in-memory projections, but real human/
+IdP authentication, service/process restart and all production secret sinks remain untested. Current discovery
+contracts reject malformed/mismatched structure yet accept structurally valid submitter-provided receipt descriptors;
+host Browser observations therefore remain supplemental and cannot satisfy trusted discovery evidence. Execution
+receipts have independently stronger cycle/TestRun/runtime-byte lineage. See [evidence and exact limitations](evidence/C0.3.md).
+Production closure remains C2.3/`C-B04`; no C0.4 or GC0 decision is implied.
 
-Verification: independent review bound to proof artifacts and executable/config identities. Any unsupported required
-boundary blocks G0 and downstream implementation; a different confinement architecture requires an updated plan.
+### C0.4 — Review feasibility and establish exact implementation gaps
 
-### Phase 0 remediation — Resolve the no-go without weakening the role contract
+Acceptance: Map all six role contracts and target modes to current operations; enumerate reusable code and missing enforcement. Independently review C0 evidence and the path matrix. Admit GC0 only with a concrete qualified path; bound remaining implementation work and update this register.
 
-#### P0.R1 — Prototype the full-MCP and worker-gateway split
+Verification: Evidence/source identity review, actual versus proposed behavior table and explicit gate verdict.
 
-Scope: implement a disposable, test-only attempt-scoped MCP registration profile by reusing the existing package
-schemas, coordinator client and Journey domain services. This qualifies the boundary without durable runtime cutover
-and does not create a parallel business API.
+Likely scope: C0 evidence; PLAN.md; TASK_REGISTER.md.
 
-Acceptance:
+### C1.1 — Deliver plugin setup and compatibility diagnostics
 
-- Preserve the existing full `appraisejs` MCP for trusted coordinator clients and prohibit attaching it to a managed
-  worker.
-- Define an exact tool subset for each of the six roles, derived from canonical MCP definitions and mapped to the
-  existing abstract Factory capabilities.
-- Define a sealed runtime grant whose trusted principal supplies target, Journey, role, attempt, generation, lease and
-  authorization. Workers receive neither the broad project bearer nor owner tokens and cannot select an actor.
-- Require pre-I/O and post-I/O grant validation, canonical argument/result hashes and broker receipts while retaining
-  the existing specialized Journey ingress as the sole state-transition authority.
+Acceptance: Package canonical MCP configuration and workflow skills with a documented local distribution/install path. Diagnose hub, target, authentication and contract version; cover missing/stale plugin, permissions, unavailable marketplace, manual MCP fallback and uninstall. Hooks are optional.
 
-Verification: contract tests prove exact per-role registration, full-MCP separation, principal-derived scope,
-forbidden lifecycle tools and schema parity with canonical source. Obtain independent security/authority review.
+Verification: Package/config tests and fresh install/reconnect smoke; regenerate setup contracts and sync scaffold if affected.
 
-#### P0.R2 — Qualify an exact-tool provider build
+Likely scope: plugin package; MCP setup; diagnostic UI.
 
-Scope: select and pin an upstream Codex capability or minimal adapter-contained compatibility patch; no Journey turn
-may start during qualification until the pre-turn checks pass.
+### C1.2 — Deliver prepared Journey launch
 
-Acceptance:
+Acceptance: Extend existing launch to validated encoded deep links and a minimal plugin handoff prompt; preserve one-time ticket scope and redaction. Support local and qualified remote-target host context. Show launch requested until authenticated redemption; offer copy fallback without broad credentials.
 
-- Disable native, ambient MCP, app, skill, memory and inherited instruction tools before the model request is built.
-- Produce trusted evidence of the actual post-filter model tool manifest, including ordered names, origins and schema
-  hashes, rather than accepting adapter self-attestation.
-- Bind executable, protocol, code signature, sealed configuration sources/environment, process birth identity,
-  process group, sandbox, filesystem/network boundaries and launch nonce into one runtime-attestation digest.
-- Refuse before `turn/start` on any missing, extra, duplicate, unhealthy or unverifiable capability.
+Verification: URI encoding/injection, launch failure, expiry/race tests and live Appraise-to-Codex smoke.
 
-Verification: a no-model pre-turn qualification run against the exact candidate build plus independent inspection of
-the model-request construction and attestation provenance. Configuration fields alone are not proof.
+Likely scope: handoff service/actions; Journey launch UI.
 
-#### P0.R3 — Re-run all role-boundary probes
+### C1.3 — Deliver later-stage reconnect and takeover
 
-Scope: execute `QB-01` through `QB-11` for Requirement Analyzer, Scout, Resource Explorer, Scenario Designer,
-Automator and Triager using the P0.R2 artifact.
+Acceptance: Extend early-stage-only handoff to explicit resume where lifecycle permits. Reopen a known task or prepare a fresh handoff; reconcile active effects and fence old ownership before takeover. Handle archived/missing tasks, reload and target changes without reusing old approvals.
 
-Acceptance:
+Verification: Restart/lost-reply/concurrent-redeem tests and live old/new task resume; evaluate GC1 with C1.1–C1.3 evidence.
 
-- Every role exposes only its approved worker-gateway subset; the existing full coordinator MCP and all native or
-  ambient tools are absent.
-- Context, instruction, memory, credential, filesystem, network, process, cross-attempt, approval and lifecycle
-  canaries fail closed without leaking their values.
-- Actual effective evidence and all negative-probe results bind to the same executable/configuration/attestation
-  artifact. Negative probes supplement rather than replace the effective manifest.
+Likely scope: handoff service; Journey state UI; assignment services.
 
-Verification: complete boundary matrix, exact receipts and independent review. Close `B0-001` only when every role
-passes against one exact artifact.
+### C2.1 — Enforce graph claim and submission contracts
 
-#### P0.R4 — Execute the real App Server recovery matrix
+Acceptance: Reuse the retained C0.2e admission path; integrate and harden it across eligible roles and normal product flows without rebuilding it as a separate engine. Close remaining C0 gaps in target/principal scope, assignment leases, immutable inputs, full validation, idempotency and atomic commit. Return bounded context and structured recovery instructions from specialized operations. All native MCP/CLI paths enforce equivalent rules.
 
-Scope: run `QR-01` through `QR-10` through the exact P0.R2 App Server/build using a recording fault proxy and owned
-process group.
+Verification: Service concurrency, stale/invalid/replay and alternate-client tests; contract checks.
 
-Acceptance:
+Likely scope: Journey claim/artifact services; canonical schemas; MCP mapping.
 
-- Exercise spawn, handshake, lost thread/turn acknowledgements, exact-thread resume, transport death during active
-  work, revocation during I/O, PID reuse, descendant survival and duplicate/out-of-order/conflicting events.
-- Persist request hashes, proxy sequence, executable/configuration digest, PID plus OS birth marker, process group,
-  thread/turn IDs, gateway generation and fault point.
-- Resolve each ambiguity only by inspecting the exact persisted identity, retrying after positive proof of non-start
-  or predecessor absence, or retaining a fenced `UNKNOWN`. Never start a replacement while a predecessor may run.
-- Turn-dependent evidence must traverse the exact production App Server/build using an account-safe real turn or a
-  demonstrably equivalent deterministic backend. Simulated policy decisions alone do not qualify recovery.
+Inspection split (2026-09-13): the retained path and the existing role-specific ingress services expose three stable,
+independently verifiable responsibilities. Parent C2.1 was verified only after every slice and its exact-artifact
+review completed.
 
-Verification: real-protocol fault receipts for every applicable matrix row and process-survivor inspection. Close
-`B0-002` only when all outcomes satisfy the conservative recovery contract.
+| Done | ID     | Task                                                                                                  | Depends on | Status   |
+| ---- | ------ | ----------------------------------------------------------------------------------------------------- | ---------- | -------- |
+| [x]  | C2.1.1 | Make claim and admission acknowledgement durable, replayable and fenced by exact principal/assignment | GC1        | verified |
+| [x]  | C2.1.2 | Enforce shared authority and atomic acceptance through every existing specialized role ingress        | C2.1.1     | verified |
+| [x]  | C2.1.3 | Prove canonical MCP/CLI parity, bounded recovery diagnostics and exact-artifact acceptance            | C2.1.2     | verified |
 
-#### P0.R5 — Review the combined remediation artifact
+C2.1.1 must preserve the same graph-derived eligibility, authorization, attempt ceiling and transactional active
+assignment slot used by managed claims. C2.1.2 must adapt the retained admission authority to the existing Analysis,
+discovery, scenario, automation and triage validators rather than introducing a generic artifact mutation or second
+workflow engine. C2.1.3 owns generated contract updates through their source workflow, alternate-client/lost-reply
+evidence and the independent review. None of these slices evaluates GC2 or authorizes C2.2-C2.7.
 
-Scope: independent review of the complete gateway, provider, boundary and recovery evidence before reevaluating G0.
+### C2.2 — Connect analysis and human question loops
 
-Acceptance:
+Acceptance: Drive analysis from immutable requirements; persist questions and answers through Appraise, pause at gates and continue only after re-reading decisions. Render truthful activity and accepted artifact status.
 
-- Review binds the exact source, provider executable/protocol/configuration, worker-gateway contract hashes,
-  attestation provenance and complete QB/QR evidence.
-- Confirm the existing full MCP remains trusted-client-only and the worker gateway introduces no parallel lifecycle
-  authority.
-- Issue a pass or no-go without waiving unsupported boundaries or untested recovery paths.
+Verification: Analysis vertical slice including rejection/revision and stopped Codex task; UI/service tests.
 
-Verification: independent exact-artifact security/recovery review. G0 passes only on an accepted artifact with both
-blockers closed.
+Likely scope: analysis operations; Journey questions UI; plugin workflow skill.
 
-### Phase 1 — Durable runtime foundation
+### C2.3 — Deliver scoped discovery and human sign-in
 
-#### P1.1 — Define runtime contracts and persistence
+Acceptance: Implement only the qualified browser path; support anonymous and authenticated target discovery, ephemeral scoped sessions, human MFA, revocation and explicit missing-access blockers. Preserve provenance and supplemental-evidence distinction.
 
-Scope: additive Prisma migrations, typed command/event/effect schemas and runtime adapter contract.
+Verification: Browser containment, secret redaction and discovery receipt tests plus human-login smoke.
 
-Acceptance:
+Likely scope: Scout/browser services; discovery UI; scoped session contracts.
 
-- Persist Start grants, runtime fencing, provider dispatch identity, outbox/inbox state and attestation provenance
-  while reusing existing immutable work/authorization lineage.
-- Define unique effect/delivery identities and payload-conflict behavior; identical retries return the same result,
-  while reusing an identity for different content is rejected.
-- Separate dispatch state, logical work state, physical stop state and operational pause state.
+### C2.4 — Connect scenario review and revision
 
-Verification: migration tests on representative existing data, uniqueness/CAS fixtures, schema rejection tests and
-protocol compatibility checks. No database reset and no fabricated migration-time worker receipts.
+Acceptance: Submit exact-version scenario artifacts; support human approve/reject/revise loops. Prevent approval reuse across changed input; describe actual reviewer independence without relying on role names.
 
-#### P1.2 — Implement Start grant and singleton ownership
+Verification: Scenario revision/approval lineage tests and Journey UI smoke.
 
-Scope: domain Start operation, revocation, runtime owner lease and deterministic admission.
+Likely scope: scenario services; review UI; plugin role guidance.
 
-Acceptance:
+### C2.5 — Connect automation preparation
 
-- Explicit Start is durable and retry-safe; confirmation alone creates no AI activity.
-- One global AI slot is owned through database fencing; stale runtime generations cannot claim or dispatch.
-- Start cannot satisfy any human review/consent; revocation closes new-work admission immediately.
+Acceptance: Prepare automation through canonical operations/definitions and target-scoped authorization. Preserve generated artifact ownership and distinguish supported automation work from out-of-scope autonomous product-code repair.
 
-Verification: duplicate Start, two competing supervisors, owner expiry, stale generation, revoked grant and invalid
-requirement identity. Include server-action parsing/authentication coverage when adding UI ingress.
+Verification: Preparation and target-scope tests; operation conformance and scaffold checks when affected.
 
-#### P1.3 — Implement outbox/inbox and dispatch protocol
+Likely scope: preparation services; operation bindings; plugin guidance.
 
-Scope: durable effect reservation, provider identity binding and normalized event ingestion using a fake adapter.
+### C2.6 — Connect consent-bound execution and reconciliation
 
-Acceptance:
+Acceptance: Use existing Appraise runtime capsule reserve/launch/reconcile path. Bind consent to exact inputs; prevent duplicate effects after lost replies; accept only sealed Journey evidence.
 
-- Persist intent before spawn and verified session/receipt before model turn; external I/O stays outside database
-  transactions.
-- Lost acknowledgement becomes explicit uncertainty with no blind retry; durable delivery deduplication protects
-  specialized domain mutations.
-- Process birth identity and thread/turn IDs are linked to the correct attempt/configuration and runtime generation.
+Verification: Consent revocation, uncertain launch, duplicate retry and independent-TestRun rejection tests; real bounded runtime.
 
-Verification: inject failure at each commit and external-effect boundary; replay duplicate/out-of-order deliveries
-and conflicting effect payloads. Confirm transaction rollback never leaves a falsely acknowledged effect.
+Likely scope: Journey runtime service; runtime capsule; execution UI.
 
-#### P1.4 — Implement renewal and fenced scheduling
+### C2.7 — Connect triage, remediation and closure
 
-Scope: existing role eligibility plus renewal and the plan's state/action table.
+Acceptance: Support failed-run triage, approved remediation, rerun with fresh consent where required, report review, risk acceptance and final closure. Preserve lineage and human decisions; agent final prose has no transition authority.
 
-Acceptance:
+Verification: Complete anonymous and authenticated Journey demonstrations including revision/rerun; evaluate GC2.
 
-- Default 120-second leases renew every 40 seconds only under current authorization/ownership; immutable assignment
-  hashes remain unchanged and renewal evidence is separately durable.
-- Unknown launches/stops reconcile only; user waits do not trigger repeated claims or spend attempts.
-- Revocation/expiry rejects stale calls, and safe replacement waits for predecessor stop/absence proof.
+Likely scope: triage/report services; decision UI; plugin workflow.
 
-Verification: fake-clock renewal/expiry tests, renewal-versus-revocation races and a table-driven test for every
-persisted condition. Include revision and consent states, not just the happy path.
+### C3.1 — Harden pause, cancellation and recovery
 
-#### P1.5 — Add runtime API and CLI entrypoint
+Acceptance: Exercise Codex stop/offline/quota, hub restart, MCP lost reply, lease expiry and takeover. Pause admissions and fence results; record observed stop of Appraise-owned processes separately from external Codex activity. Preserve work across human waits.
 
-Scope: runtime principal, narrow service endpoints, CLI bootstrap/shutdown and adapter registration.
+Verification: Fault injection matrix, late submission and uncertain execution reconciliation; owned process cleanup receipts.
 
-Acceptance:
+Likely scope: assignment recovery; runtime stop; operational UI.
 
-- The CLI can claim, observe and reconcile through authenticated APIs without owning a second domain database.
-- Server authentication establishes actor authority; caller-selected role/actor strings cannot escalate privileges.
-- Runtime restarts reconstruct work; health checks do not silently create paid model sessions or initiate login.
+### C3.2 — Verify data and version compatibility
 
-Verification: API authentication/scope tests, CLI lifecycle tests with fake provider and restart integration. Build
-root and package surfaces; retain loopback/Host/Origin protections.
+Acceptance: Test stored pre-change Journeys, active assignments, upgrades, stale MCP schemas, unsupported Codex versions and safe downgrade refusal. Disconnect/uninstall revokes access and preserves data. Exclude experimental provider launch paths from defaults.
 
-### Phase 2 — Managed analysis vertical slice
+Verification: Migration/compatibility fixtures, reinstall and reconnect smoke, package/build checks.
 
-#### P2.1 — Implement qualified Codex adapter and login
+Likely scope: persistence migrations if needed; setup/version diagnostics; packaging.
 
-Scope: production adapter using the Phase 0 qualified stdio protocol and process policy.
+### C3.3 — Publish operator guidance and release evidence
 
-Acceptance:
+Acceptance: Synchronize current docs, generated contracts and scaffold where applicable. Verify every path in PLAN sections 3–4 on clean supported installation; document last-activity semantics and manual recovery. Independently review GC3; leave unresolved findings open.
 
-- Create a fresh process/config/thread per attempt; register the adapter in the operational bootstrap.
-- Use provider-owned account login in a managed profile without copying tokens into AppraiseJS records or prompts.
-- Reject incompatible builds, missing required tools and unexpected privilege requests; no automatic billing fallback.
+Verification: Focused checks, full relevant build/package checks and final evidence review; no release claim without GC3.
 
-Verification: adapter conformance against fake transports and bounded real Codex runs; login cancellation/expiry,
-missing executable/MCP, protocol mismatch and configuration drift. Store startup attestation provenance.
-
-#### P2.2 — Implement scoped artifact/question gateway
-
-Scope: role-permitted artifact read/propose and typed question operations with broker receipts.
-
-Acceptance:
-
-- Workers never receive broad coordinator/owner credentials; the gateway resolves their sealed attempt capability.
-- Validate scope before/after I/O, cap payloads, and bind broker receipts to canonical arguments/results and input.
-- Only allowlisted resources and artifact kinds are accessible; forged references and actor escalation are rejected.
-
-Verification: cross-Journey/role replay, stale input, revoked/expired lease, oversized output, receipt forgery and
-revocation during I/O. Inspect prompt/log/projection canaries for secret exposure.
-
-#### P2.3 — Connect managed requirement analysis
-
-Scope: Analyzer scheduling, specialized analysis ingress and persisted questions/revision feedback.
-
-Acceptance:
-
-- Start produces a validated analysis charter or typed unresolved questions using existing immutable requirement lineage.
-- Answers and review feedback issue only authorized follow-up work; review remains a user decision.
-- Turn completion without a valid artifact leaves a visible failure/incomplete state, never a successful analysis.
-
-Verification: analysis happy path, unresolved questions, rejected/revised charter, stale publication and duplicate
-submission. Demonstrate the path with the real qualified adapter after fake-provider tests pass.
-
-#### P2.4 — Deliver Start and analysis status UI
-
-Scope: existing Journey UI, status projection and actionable failure/wait states.
-
-Acceptance:
-
-- Display confirmation and Start as distinct actions; show selected provider, active-work limit and account state.
-- Status distinguishes queued/starting/running/waiting/reconciling/failure from artifact review status.
-- Reopening the UI reconstructs state without initiating work; browser closure does not stop the running service.
-
-Verification: browser interaction, console/failed requests, keyboard navigation, duplicate clicks and refresh during
-every analysis state. Record evidence only as required by the UI verification workflow.
-
-### Phase 3 — Authenticated discovery
-
-#### P3.1 — Version Scout authority and session grants
-
-Scope: new immutable role/profile registry version, credential boundary and scoped grant persistence.
-
-Acceptance:
-
-- Preserve historical role registries and issue new Scout assignments with required verified credential boundaries.
-- Grants bind Journey/target/environment and authorized login/observation scope; raw session secrets are not persisted.
-- Execution credentials, provider account login and Scout session authorization remain separate.
-
-Verification: registry compatibility, forbidden grant/profile combinations, wrong target/environment, revoked grants
-and old-registry handling. Obtain independent contract/security review before integration.
-
-#### P3.2 — Implement isolated browser observation
-
-Scope: Playwright broker implementing target observations and evidence capture.
-
-Acceptance:
-
-- Each session is isolated and scoped; concrete browser operations map to role permissions and produce receipts.
-- Enforce page/resource origins, redirects, frames, service workers, WebSockets and downloads or explicitly refuse
-  unsupported traffic. No unrestricted evaluation API is exposed to workers.
-- Capture sanitized observations/evidence; allowed navigation never implies blanket permission to mutate the target.
-
-Verification: controlled local/remote fixtures exercising background traffic, route escape, mutating actions and
-cross-session access. Include malicious page content attempting to issue instructions or steal gateway capabilities.
-
-#### P3.3 — Implement human target login and expiry
-
-Scope: AppraiseJS-owned interactive sign-in, opaque session attachment and reauthentication UI.
-
-Acceptance:
-
-- Human can complete login/SSO/MFA in an isolated browser after explicit authorization of its origins/effects.
-- Scout receives no passwords/cookies/headers/login captures; session storage remains in memory.
-- Expiry, browser loss or service restart requests sign-in again without pretending the prior session is usable.
-
-Verification: controlled login and MFA fixtures, allowed IdP redirect, rejected unapproved redirect, timeout,
-cancellation/revocation during login and secret canary checks. No MFA bypass or automated password login.
-
-#### P3.4 — Connect Scout and resource discovery
-
-Scope: canonical discovery authorization, browser observations, resource lookup and specialized output ingress.
-
-Acceptance:
-
-- Anonymous and authenticated targets produce scope-bound observations using broker receipts.
-- Resource Explorer cannot acquire Scout target/browser access; both roles preserve exact input lineage.
-- Valid discovery outputs make scenario design eligible; invalid/expired observations require existing retry policy.
-
-Verification: mode-aware local and remote fixtures, missing resources, partial observations, out-of-scope receipt,
-expired target snapshot and duplicate publication. Run a bounded live-provider discovery demonstration.
-
-#### P3.5 — Verify authenticated discovery containment
-
-Scope: adversarial integration and independent review of the exact discovery artifact.
-
-Acceptance:
-
-- Revoked session grants stop new actions immediately; delayed observations cannot become accepted fresh evidence.
-- Cross-role/cross-Journey session replay and secret extraction attempts are rejected.
-- All browser/credential boundaries have actual supporting evidence, not only adapter-reported strings.
-
-Verification: replay/revocation/secret-leak matrix plus independent security review tied to source and runtime hashes.
-Any containment failure blocks G3.
-
-### Phase 4 — Complete Journey behavior
-
-#### P4.1 — Connect scenario design and revision gates
-
-Scope: Designer assignment, approved discovery/analysis inputs and existing scenario review flow.
-
-Acceptance:
-
-- Designer consumes only permitted immutable inputs and publishes through specialized scenario validation.
-- Rejection/revision preserves lineage and stops preparation until the exact scenario revision is approved.
-- No provider completion event or Start grant substitutes for scenario approval.
-
-Verification: design/review/revision/stale-input loops and forbidden target access. Compare semantic artifact quality
-against deterministic fixtures separately from transport success.
-
-#### P4.2 — Connect scoped automation preparation
-
-Scope: Automator gateway tools, catalog resolution, authorized artifact writes and capsule publication.
-
-Acceptance:
-
-- Writes stay inside the approved artifact scope; root/canonical generators remain authoritative.
-- Automation cannot change scenario intent, product source or lifecycle approvals.
-- Published capsules bind approved scenarios, target/environment and preparation receipts.
-
-Verification: path/symlink escape, forbidden writes, invalid catalog mapping, stale scenario and partial publication;
-run existing capsule/conformance tests and required projection/template sync.
-
-#### P4.3 — Connect consent-bound managed execution
-
-Scope: scheduling the existing execution reserve/launch/reconcile services.
-
-Acceptance:
-
-- Execution starts only with exact persisted consent and frozen capsule/environment identities.
-- Execution process exit and validated artifacts precede terminal evidence sealing.
-- Duplicate scheduler deliveries cannot create duplicate accepted execution cycles.
-
-Verification: consent denial/revocation, changed environment, repeated launch, process failure and report corruption.
-Use controlled execution fixtures and the existing runtime test suite; run the build.
-
-#### P4.4 — Connect triage, remediation and closure
-
-Scope: independent Triager context, sealed evidence, report review, approved remediation/rerun and final closure.
-
-Acceptance:
-
-- Triager receives the allowed sealed evidence projection without predecessor transcript or live target mutation access.
-- Remediation/rerun requires existing exact proposal approvals; review/risk acceptance/closure remain human-gated.
-- Full Journey reaches normal or authorized risk-accepted closure with no unfinished work or unresolved required gates.
-
-Verification: all six role paths, false/forged evidence, report revision, failed execution, remediation/rerun and both
-closure modes. Produce anonymous and authenticated end-to-end evidence with the qualified real provider.
-
-### Phase 5 — Recovery and operational hardening
-
-#### P5.1 — Complete restart and uncertain-effect recovery
-
-Scope: startup sweep, reconciliation outcomes and durable recovery cursors across all roles/execution.
-
-Acceptance:
-
-- Every nonterminal dispatch is resumed exactly, proven absent or left visibly unresolved after restart.
-- Lost acknowledgements never cause unconditional repeated thread/turn creation or artifact effects.
-- Recovery cannot synthesize new authority from expired/revoked assignments.
-
-Verification: crash matrix at every persisted/effect boundary, database unavailability, truncated events, old cursor
-replay and two-runtime takeover. Test every role rather than just Analyzer.
-
-#### P5.2 — Complete cancellation and orphan handling
-
-Scope: logical revocation, process/descendant stopping and termination reconciliation.
-
-Acceptance:
-
-- Access ends immediately on revocation; UI separately reports that a worker is still stopping if necessary.
-- PID birth identity protects unrelated processes; hung descendants and failed kills stay actionable.
-- No replacement starts before predecessor stop/absence confirmation, including after supervisor restart.
-
-Verification: PID reuse, hung child, stop failure, supervisor death during termination and late stdout/tools/results.
-Independently review process-control behavior and authority races.
-
-#### P5.3 — Persist provider waits and event recovery
-
-Scope: blocking questions, async questions, pending decisions, event order/deduplication and UI reconnection.
-
-Acceptance:
-
-- Unanswered questions survive UI reconnect and supported runtime restart without being mistaken for completion.
-- Persisted question identity maps to the correct provider response mechanism; duplicate answers are idempotent.
-- Unsupported/expired provider requests become explicit waits or failures, never synthetic approvals.
-
-Verification: turn-ending question, out-of-order request resolution, answer delivery crash, duplicate response and
-stale request after replacement. Test provider-specific normalization in adapter fixtures.
-
-#### P5.4 — Add limits, pause controls and diagnostics
-
-Scope: rate-limit handling, active-work deadlines, operator pause/resume and bounded status/log retention.
-
-Acceptance:
-
-- One AI worker, existing attempt ceilings and displayed 30-minute default active deadline are enforced.
-- Human waits stop the active clock; limit exhaustion pauses admission/work safely without automatic billing changes.
-- Usage/state diagnostics distinguish observed values from unavailable data and include actionable recovery steps.
-
-Verification: fake-clock deadlines, stalled transport versus idle worker, rate limits, unavailable usage, pause during
-I/O and resume with changed authorization. Verify no automatic reset-credit use or provider fallback.
-
-#### P5.5 — Run adversarial and full lifecycle qualification
-
-Scope: integrated fault suite, real-provider demonstrations and independent acceptance review.
-
-Acceptance:
-
-- Complete the plan's isolation, launch, cancellation, authentication, evidence and lifecycle matrices.
-- No unresolved unauthorized effect, duplicate accepted transition or stale-authority acceptance remains.
-- Record quality, interventions, runtime, resource use and supported configuration separately from correctness gates.
-
-Verification: focused suites plus build, affected static analysis, package checks and exact-artifact independent
-review. Existing green schema/Factory tests alone cannot pass this task.
-
-### Phase 6 — Cutover and release readiness
-
-#### P6.1 — Retire external coordination and legacy adoption
-
-Scope: handoff/ticket/launch/UI/setup removal and ownership enforcement for retained APIs.
-
-Acceptance:
-
-- New Journeys use only managed coordination; no residual external entrypoint can claim coordinator authority.
-- Old active external attempts cannot be automatically resumed/adopted; historical records remain readable.
-- Unrelated catalog/testing APIs, targets and authored artifacts remain intact; no reset or approval transfer.
-
-Verification: forbidden-symbol/route checks, API authorization tests, legacy-data fixture and fresh Journey test.
-Inspect current onboarding/docs for companion-only instructions and update affected material.
-
-#### P6.2 — Package the macOS user service
-
-Scope: explicit CLI install/status/stop/uninstall commands and launchd supervision.
-
-Acceptance:
-
-- Service owns the local application/runtime, starts in the correct installation and survives browser/terminal closure.
-- Status distinguishes service running, provider ready and Journey actively working.
-- Sleep/wake/logout behavior is truthful; uninstall stops owned processes and preserves data.
-
-Verification: clean macOS profile, service install/restart/status/uninstall, browser close, sleep/wake and permission
-failure diagnostics. Do not add broad filesystem permissions as an automatic recovery step.
-
-#### P6.3 — Define update/downgrade and data preservation
-
-Scope: version qualification, draining, executable switch and persisted-state compatibility.
-
-Acceptance:
-
-- Updating drains/stops owned work before switching binaries; running processes retain their qualified executable.
-- Unsupported provider versions refuse admission with clear repair steps.
-- Incompatible downgrade fails before opening/mutating newer storage; existing records and auth boundaries survive update.
-
-Verification: update during work, interrupted update, protocol mismatch, schema downgrade attempt and retained data
-fixtures. Record rollback limits; do not promise binary rollback across incompatible migrations.
-
-#### P6.4 — Synchronize docs, contracts and scaffolds
-
-Scope: active product/runtime/setup docs, API references, package docs and canonical template synchronization.
-
-Acceptance:
-
-- Docs describe managed ownership, Start semantics, login, human gates, limits, recovery and supported platform/provider.
-- Generated API/package references match runtime authority; templates are regenerated from canonical root source.
-- Affected Graphify/generated artifacts follow their source workflows; no hand-edited generated receipts.
-
-Verification: documentation links, template drift, generated-artifact and package-content checks, affected graph
-review and formatting. Fix active-doc drift found in touched workflows.
-
-#### P6.5 — Verify clean installation and release readiness
-
-Scope: final qualified artifact, clean installation and complete acceptance evidence.
-
-Acceptance:
-
-- Fresh install completes anonymous and human-authenticated Journeys through all required gates without external coordination.
-- Every task/gate is verified against the final artifact; no stale review or blocking findings remain.
-- Record release readiness and limitations. Publication occurs only if the user separately includes it in delivery scope.
-
-Verification: full relevant CI/build/package/scaffold/harness checks, macOS acceptance run and independent final
-review. If publishing is requested, append scoped publication tasks with terminal CI/merge/release evidence.
+Likely scope: current docs; release fixtures; generated output through source workflows.
 
 ## Phase gate register
 
-| Gate | Required tasks         | Exit criterion                                                                                                                                                 | Status        | Evidence                             |
-| ---- | ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------- | ------------------------------------ |
-| G0   | P0.1–P0.4, P0.R1–P0.R5 | Every required role boundary has a viable proven enforcement path; process ambiguity has safe outcomes; independent feasibility review accepts the exact proof | blocked       | [evidence/P0.4.md](evidence/P0.4.md) |
-| G1   | P1.1–P1.5              | Fake-provider runtime survives restart with fenced ownership, idempotent effects and no unauthorized scheduling                                                | not_evaluated | —                                    |
-| G2   | P2.1–P2.4              | Real Codex analysis works wholly through AppraiseJS with questions/reviews and truthful status                                                                 | not_evaluated | —                                    |
-| G3   | P3.1–P3.5              | Anonymous/authenticated discovery is operational, scope-enforced and independently reviewed                                                                    | not_evaluated | —                                    |
-| G4   | P4.1–P4.4              | Complete Journey, revision, remediation/rerun and closure paths preserve all existing gates                                                                    | not_evaluated | —                                    |
-| G5   | P5.1–P5.5              | Fault/adversarial matrices and exact-artifact review establish release-level recovery and containment                                                          | not_evaluated | —                                    |
-| G6   | P6.1–P6.5              | Clean macOS installation and full workflow pass; external coordination retired; docs/scaffolds/checks match final artifact                                     | not_evaluated | —                                    |
+| Gate | Depends on                | Status        | Acceptance/evidence                                                                                                                                              |
+| ---- | ------------------------- | ------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| GC0  | C0.1–C0.4 including C0.2e | passed        | Feasible live handoff, graph boundary, resume and discovery path; independent verdict; only the user-authorized C0.2e retained slice was implemented before pass |
+| GC1  | C1.1–C1.3                 | passed        | [Current-product remote `DISCOVERY` launch, Send, redemption/read, Appraise UI takeover and non-mutating predecessor rejection](evidence/GC1.md)                 |
+| GC2  | C2.1–C2.7                 | not_evaluated | Complete anonymous/authenticated lifecycle, revisions, human gates and sealed execution                                                                          |
+| GC3  | C3.1–C3.3                 | not_evaluated | Recovery, stored-data/version compatibility, clean install and independent release review                                                                        |
 
-Gate statuses: `not_evaluated`, `in_review`, `blocked`, `passed`. A known blocking finding cannot be waived into
-`passed`. Reopen dependent gates if a later source or provider configuration change invalidates their evidence.
+## Qualification gaps and blocker disposition
 
-## Evidence record template
+C-B01 is closed by the combined C0.1 and C1.1–C1.3 installed-host evidence: local and neutral remote contexts, URI
+prefill, plugin recognition, prepared launch, authenticated redemption, adverse fallback observations, later-stage
+reconnect and explicit takeover. GC0 and GC1 are passed; the stricter end-to-end qualification `GC1-B01` is closed
+by the current-product remote `DISCOVERY` trace. C2.1 is verified, C-B02 is closed, and C2.2 is the next eligible
+task.
 
-Create one record per task when work actually begins, either below or in a linked sanitized `evidence/<ID>.md` file.
-Replace placeholders with observed facts; do not copy a template as evidence of work performed.
+| ID    | Open requirement                                                 | Owner and closure evidence                                                                                            |
+| ----- | ---------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| C-B01 | Installed Codex handoff/plugin/local and remote context behavior | Closed by C0.1 / C1.1–C1.3 launch, Send, redemption, fallback and later-stage takeover evidence                       |
+| C-B02 | Full Appraise claim/commit enforcement and safe retries          | Closed by C0.2e / C2.1 retained admission, atomic acceptance, negative/concurrent/replay tests and independent review |
+| C-B03 | Durable resume, takeover and honest cancellation                 | C1.3 reconnect/takeover closed; C3.1 retains provider/process recovery and owned-stop coverage                        |
+| C-B04 | Authenticated discovery and trusted evidence                     | C0.3 / C2.3: login/restart/revocation/cross-Journey and provenance proof                                              |
+| C-B05 | Complete lifecycle and release integration                       | C2.2–C3.3: full Journey, compatibility, installation and quality review evidence                                      |
 
-```markdown
-### <task ID> — <title>
+| Historical blocker                  | Disposition in this architecture                                                                                                 |
+| ----------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| B0-001 exact provider boundary      | Deferred with managed runtime; no exact host tool/context isolation claim. C-B02 covers Appraise operation authority             |
+| B0-002 provider process recovery    | Deferred provider-specific matrix; application recovery remains mandatory as C-B03                                               |
+| B0-003 checker false acceptance     | Historical repair remains closed; does not qualify new integration                                                               |
+| B0-004 authenticated browser        | Still relevant, re-scoped as C-B04; no claim that plugin fixes it                                                                |
+| B0-005 model-visible schema loss    | Preserved finding; exact model schema is no longer the admission invariant. Full server validation remains mandatory in C-B02    |
+| B0-006 custom auth/replay interlock | Deferred with interlock; stock Codex owns provider auth/retries. Appraise operation idempotency remains mandatory in C-B02/C-B03 |
 
-- Status: <in_progress|blocked|in_review|verified>
-- Source identity: <branch, base SHA, current SHA or complete working-tree artifact digest>
-- Changed surfaces: <canonical paths and generated/synced outputs>
-- Acceptance evidence: <each criterion -> observation/test/artifact>
-- Commands and outcomes: <exact command, passed/failed, pertinent result>
-- Real-provider qualification: <executable/protocol/config identity or not applicable>
-- Independent review: <reviewed identity, findings and disposition, or why not applicable>
-- Limitations/blockers: <IDs or none>
-- Next action: <one concrete action>
-```
-
-## Blocker register
-
-Phase 0 observed the following implementation blockers and concluded with a no-go. Keep them open until the linked
-remediation evidence satisfies G0; do not treat the remediation design itself as proof that either blocker is closed.
-
-| ID     | Task/gate           | Observed failure and reproduction                                                                                                                                                                             | Impact                                                                                                            | Required unblock evidence                                                                                                                                                                                                    | Status |
-| ------ | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
-| B0-001 | P0.2/P0.R1–P0.R3/G0 | `QB-01` pre-turn probe on Codex 0.153.4 returned the required Journey MCP absent, five ambient MCP servers present, and no authoritative model-visible native-tool inventory.                                 | Exact per-role tools and absence of native effect tools cannot be attested; the worker boundary is not qualified. | P0.R1–P0.R3 must derive an exact per-role worker surface from the existing MCP foundation, suppress native/ambient tools before model-request construction and produce trusted effective-state evidence for all QB probes.   | open   |
-| B0-002 | P0.3/P0.R4/G0       | Only `QR-06` exercised a spawned process; remaining recovery checks validated conservative policy decisions without App Server handshake, lost-acknowledgement, resume, descendant-stop or late-event faults. | Real-provider process/session recovery feasibility is not empirically established.                                | P0.R4 must execute the complete real App Server fault matrix against the exact qualified build, including account-safe real or demonstrably equivalent turn-level paths, and bind results to process/thread/turn identities. | open   |
+Historical G0 remains a no-go for managed-provider admission; G0D was a limited historical development gate. Neither
+is a plugin-release gate. Do not resume P0.R2g, create a Codex fork or retrofit old P1–P6 checkboxes to this roadmap.
 
 ## Decision/change register
 
-| ID  | Decision                                                          | Authority/date                                              | Effect                                                                                                                                                                       |
-| --- | ----------------------------------------------------------------- | ----------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| D01 | Quality Journey first; complete lifecycle                         | User, 2026-09-09                                            | General coding coordination excluded                                                                                                                                         |
-| D02 | Codex first; local service; macOS first                           | User, 2026-09-09                                            | Other providers/platforms deferred                                                                                                                                           |
-| D03 | Deterministic workflow engine                                     | User, 2026-09-09                                            | Models cannot select lifecycle transitions                                                                                                                                   |
-| D04 | Full replacement; no active external migration                    | User, 2026-09-09                                            | Preserve history but no dual ownership                                                                                                                                       |
-| D05 | Explicit Start and local provider login                           | User, 2026-09-09                                            | No work on confirmation or billing fallback                                                                                                                                  |
-| D06 | Authenticated Scout with human sign-in                            | User, 2026-09-09                                            | Add broker/grants; no automated password login                                                                                                                               |
-| D07 | One AI slot, existing attempt limits, 30-minute active deadline   | Planning defaults recorded in the proposed plan, 2026-09-09 | Show limits before Start; no automatic increases                                                                                                                             |
-| D08 | Required-boundary failure blocks release                          | Existing authority contract and feasibility recommendation  | No invented attestations or weakened gates                                                                                                                                   |
-| D09 | Reuse the existing MCP foundation through separate trust profiles | User direction, 2026-09-10                                  | Keep the full MCP for trusted coordinator clients; derive a role- and attempt-scoped worker gateway from the same canonical schemas, coordinator client and Journey services |
-
-Record later approved changes with their exact user direction, affected tasks/contracts, invalidated evidence and
-replacement acceptance criteria. Distinguish explicit user choices from planning defaults.
+| ID  | Date/authority                  | Decision                                                                                                                                                                                              |
+| --- | ------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| D16 | User, 2026-09-11                | Adopt Appraise-first stock Codex handoff, MCP enforcement and plugin guidance; defer custom managed runtime                                                                                           |
+| D17 | D16 implementation planning     | Replace exact provider/tool-schema admission with Appraise-mediated authorization and full canonical validation; explicitly retain external-host trust limits                                         |
+| D18 | User, 2026-09-11; future option | Reserve a separately qualified potentially paid/API-backed managed orchestrator; no API necessity, billing model or service delivery assumed                                                          |
+| D19 | D16 implementation planning     | Preserve historical documents/evidence; use new C task IDs and GC gates; test feasibility before product implementation                                                                               |
+| D20 | User, 2026-09-12                | Authorize retained production-intended external Analyzer admission under C0.2e before GC0; disposable qualification data, explicit opt-in, no normal-flow enablement or C1 work; C2.1 reuses the code |
 
 ## Active handoff
 
-- Current phase: Phase 0 concluded with a no-go; Phase 0 remediation is pending.
-- Current task: none. P0.R1 is the next eligible bounded task.
-- Next eligible task: P0.R1 — Prototype the full-MCP and worker-gateway split. Gate G0 remains blocked by `B0-001` and
-  `B0-002`; Phase 1 must not start.
-- Verified tasks: 3 of 37; no product implementation task is complete. P0.3 remains blocked and is not counted as
-  verified.
-- Latest gate: G0 `blocked` after exact-artifact independent review.
-- Runtime/processes started by this plan: the `QB-01` App Server process was terminated by the harness; it sent no
-  `turn/start`. Its ephemeral thread identifier is retained only as a SHA-256 digest in evidence.
-- Known unrelated worktree change at plan creation: `package-lock.json`; it was not present when P0.1 began.
-- Active branch/base: `codex/managed-quality-journey-coordinator-p0` from `86cd587ce74c6354ce7532dcd5a4a6145d4941de`;
-  this remediation-plan update started from `54cee2fd93bcb94ce559ea61c009e9f55f47c32b`.
-- Planning direction received: preserve the existing full MCP for trusted clients and add a separately registered,
-  role- and attempt-scoped worker gateway over the same canonical definitions and Journey services. This records the
-  design; it does not authorize implementation beyond the next thread's explicit scope.
-- Next action: begin P0.R1 on this branch only after the successor confirms scope and current repository/process state.
-  Do not begin Phase 1 against the unsupported candidate.
+- Completed scope: C0.1, the original C0.2 negative qualification, and C0.2e.1–C0.2e.4. Independent exact-artifact re-review accepted C0.2e.
+- 28 focused tests passed across four suites, including real POST authentication rejection with subsequent valid redemption.
+- Human observations cover local/remote handoffs, URI encoding/workspace, installed skill recognition, missing plugin/marketplace, protocol denial, unsent composer and natural expiry.
+- Exact artifacts, limitations and resource disposition: [C0.1 evidence](evidence/C0.1.md).
+- C0.2 remains verified as bounded negative qualification. C0.2e has now demonstrated retained external Analyzer
+  admission, live canonical submission, lost-acknowledgement readback/replay, invalid/cross-target/stale-owner
+  rejection, required-question publication rejection, and fresh-task replacement after restart. Later cross-role,
+  default-flow and claim-acknowledgement hardening remains under C2.1/C-B02.
+- C0.2 interruption fixtures are retained at `REPLACEMENT_REQUESTED`, attempt 2, without accepted Analysis artifacts.
+  The fresh session diagnosed, read and resumed both elapsed replacements before retry; no third claim was made and
+  owner tokens remain unrecorded.
+- C0.3 is verified as a bounded feasibility/negative-production result after exact-artifact review. It does not qualify a
+  production human-authenticated browser or trusted discovery receipt; `C-B04` remains open for C2.3.
+- Completed task: **C0.4**, verified after exact-artifact review. Its evidence supports GC0 without closing any C1–C3
+  implementation blocker.
+- GC0 and GC1 passed. **C1.1, C1.2 and C1.3 are verified after independent exact-artifact review**. GC1's first
+  [usable-handoff evaluation](evidence/GC1.md) returned `REVISE`; the current-product remote `DISCOVERY` launch,
+  Send, redemption/read, takeover approval and predecessor rejection trace closed `GC1-B01`. C2.1 is eligible and
+  `pending` and unstarted. C-B01 and the C1.3 portion of C-B03 remain closed within their recorded
+  implementation scope.
+- Preexisting dirty experiments remain preserved; no commit or release is claimed.
 
-### Handoff update checklist
+### C0.1 findings carried forward
 
-Before stopping an implementation session, record the active task/status, branch and exact diff identity, completed
-checks, failing checks/blockers, owned runtime identities, gate state, and the next executable action. A successor
-must inspect current files/processes before resuming; this record is a handoff aid, not live execution proof.
+- C1.2 delivered explicit local/neutral-remote host context, preserved normalized URL target identity, removed
+  requirement content from URI prompts, and made authenticated redemption the connection-display boundary.
+- C1.1: disposable skill-only plugin recognition does not qualify production plugin/MCP provisioning.
+- C0.2/C2.1: handoff redemption is connection-only evidence, never a role claim or authority to commit. Fresh authoritative state and independently enforced principal/revision/lease checks remain required before work admission. Existing redemption does not revalidate requirement revision; the passing characterization test records this gap.
+- C1.2 corrected incorrect-project-fingerprint rejection to the bounded `409 CONFLICT` project-identity envelope and
+  retained proof that rejection does not consume the ticket.
