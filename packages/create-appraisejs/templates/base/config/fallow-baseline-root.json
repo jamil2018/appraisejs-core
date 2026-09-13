@@ -1,12 +1,12 @@
 {
   "schema_version": 1,
   "fallow_version": "2.104.0",
-  "timestamp": "2026-07-25T18:37:32Z",
-  "git_sha": "de8a301510586df337cc3f5155f6f5b1f048f120",
+  "timestamp": "2026-09-13T17:21:00Z",
+  "git_sha": "74cd7d1f14aa32ad3cf6eb3f5f67338776d95aa2",
   "check": {
-    "total_issues": 46,
-    "unused_files": 18,
-    "unused_exports": 25,
+    "total_issues": 50,
+    "unused_files": 20,
+    "unused_exports": 27,
     "unused_types": 3,
     "unused_dependencies": 0,
     "unused_dev_dependencies": 0,

@@ -65,6 +65,17 @@ It accepts the same authenticated immutable assignment binding plus the role-spe
 and cannot mutate state. Rejected attempts currently return the bounded coordinator error envelope and are not persisted
 as accepted artifacts or outcome receipts; this is diagnostic context only, not a semantic-quality determination.
 
+During Analysis, the assignment's `JOURNEY_REVISION` descriptor identifies the immutable authoritative requirement.
+Resolve it as library entry `REQUIREMENT_REVISION:<assignment.artifactId>`: its `artifactId` must equal the assignment
+artifact ID and its `sourceContentHash` must equal the assignment content hash. The library `revisionId` is a display
+ordinal, not the assignment's database revision ID. The Analyzer then submits only through the specialized Analysis
+ingress. Accepted submission, publication for review, and approval recorded in Appraise are separate durable facts.
+Required questions pause external progress: answers and corrections are
+append-only Appraise records, and neither the plugin nor a connected coordinator may answer on the user's behalf.
+After an answer, revision request, approval, lost reply, or stopped Codex task, the coordinator rereads the Journey,
+Analysis, and pending-event state before it claims or continues work. `quality_journey_resume` reconstructs Appraise
+work state; it does not prove that an external Codex process is alive or resumed.
+
 ## Stock Codex handoff architecture
 
 The accepted [architecture decision](decisions/0004-stock-codex-journey-handoff.md) keeps Appraise as Journey authority

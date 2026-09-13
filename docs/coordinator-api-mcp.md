@@ -78,6 +78,16 @@ conflicting reuse is rejected. `quality_journey_external_work_outcome_get_v1` is
 operation and accepts the same binding plus role, operation, and idempotency key. Managed
 `quality_journey_work_claim` and Factory receipt semantics remain unchanged.
 
+The Requirement Analyzer resolves the exact `JOURNEY_REVISION` supplied in its assignment as library entry
+`REQUIREMENT_REVISION:<assignment.artifactId>` with `quality_journey_library_list` and
+`quality_journey_artifact_get`. Its `artifactId` and `sourceContentHash` must equal the assignment artifact ID and
+content hash; its display-ordinal `revisionId` is not the assignment database revision ID. After specialized
+submission, `quality_journey_analysis_get` is the authoritative read for immutable revisions, questions, answers,
+publication, and decision lineage. A recorded charter is not yet published or approved. Required questions stop the
+external workflow until Appraise records human answers; revision feedback produces fresh Analyzer work, and a later
+task must reread current Journey, Analysis, and event state before claim or continuation. The resume operation repairs
+Appraise work state only and makes no liveness claim about an external Codex task.
+
 Creation accepts the shared `QualityJourneyRequirement/v1` payload. Objective-only requests remain valid; structured
 fields are canonicalized before hashing and persistence. Coordinator connections use
 `GET quality/journeys/:journeyId/handoff?target=...` for safe inspection and

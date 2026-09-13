@@ -66,8 +66,13 @@ import {
   materializeQualityJourneyApprovedScenarios,
 } from './quality-journey-automation-service'
 import { approveQualityJourneyRemediation } from './quality-journey-triage-service'
+import {
+  getQualityJourneyLibraryArtifact,
+  listQualityJourneyArtifactLibrary,
+} from './quality-journey-artifact-library-service'
 
 const workspaces: string[] = []
+const databasePaths = new WeakMap<PrismaClient, string>()
 const digest = (character: string) => `sha256:${character.repeat(64)}`
 const hash = (value: unknown) => `sha256:${createHash('sha256').update(canonicalContractJson(value)).digest('hex')}`
 const phaseSixId = (kind: string, ...parts: string[]) =>
@@ -84,6 +89,7 @@ async function fixture() {
   const databasePath = path.join(workspace, 'appraise.db')
   await copyMigratedTestDatabase(databasePath)
   const client = new PrismaClient({ datasources: { db: { url: `file:${databasePath}` } } })
+  databasePaths.set(client, databasePath)
   await client.targetProject.create({
     data: {
       id: 'target-analysis-1',
@@ -115,6 +121,14 @@ async function fixture() {
     },
   })
   return client
+}
+
+function reconnect(client: PrismaClient) {
+  const databasePath = databasePaths.get(client)
+  if (!databasePath) throw new Error('Fixture database path is unavailable.')
+  const replacement = new PrismaClient({ datasources: { db: { url: `file:${databasePath}` } } })
+  databasePaths.set(replacement, databasePath)
+  return replacement
 }
 
 function frozenRouteAssertionDefinition() {
@@ -650,7 +664,7 @@ describe('Quality Journey Phase 3 through Phase 5 control plane', () => {
   })
 
   it('admits an opt-in external Analyzer without Factory receipts and replays only to its principal and secret', async () => {
-    const client = await fixture()
+    let client = await fixture()
     try {
       const created = await readyExternalAnalyzer(client)
       const claim = await claimExternalQualityJourneyAnalyzer(
@@ -666,6 +680,30 @@ describe('Quality Journey Phase 3 through Phase 5 control plane', () => {
       expect(Buffer.byteLength(claim.assignmentSecret, 'utf8')).toBeGreaterThanOrEqual(32)
       expect(claim.attempt.spawnRequestId).toBeNull()
       expect(claim.attempt.spawnReceiptId).toBeNull()
+      const assignedRequirement = claim.assignment.inputArtifacts.find(
+        (artifact: { kind: string }) => artifact.kind === 'JOURNEY_REVISION',
+      )!
+      const requirementLibrary = await listQualityJourneyArtifactLibrary(
+        { journeyId: created.journey.journeyId, targetProjectId: 'target-analysis-1' },
+        client,
+      )
+      const requirementEntryId = `REQUIREMENT_REVISION:${assignedRequirement.artifactId}`
+      expect(requirementLibrary.entries.map(entry => entry.entryId)).toContain(requirementEntryId)
+      const exactRequirement = await getQualityJourneyLibraryArtifact(
+        {
+          journeyId: created.journey.journeyId,
+          targetProjectId: 'target-analysis-1',
+          entryId: requirementEntryId,
+        },
+        client,
+      )
+      expect(exactRequirement.entry).toMatchObject({
+        kind: 'REQUIREMENT_REVISION',
+        artifactId: assignedRequirement.artifactId,
+        sourceContentHash: assignedRequirement.contentHash,
+        data: { objective: 'Checkout' },
+      })
+      expect(exactRequirement.entry.revisionId).not.toBe(assignedRequirement.revisionId)
       await expect(
         claimQualityJourneyWork(
           {
@@ -754,6 +792,189 @@ describe('Quality Journey Phase 3 through Phase 5 control plane', () => {
         ),
       ).rejects.toMatchObject({ code: 'UNAUTHORIZED' })
       expect(await client.qualityJourneyAnalysisRevision.count()).toBe(1)
+
+      const recorded = await getQualityJourneyAnalysis(
+        { journeyId: created.journey.journeyId, targetProjectId: 'target-analysis-1' },
+        client,
+      )
+      expect(recorded.revisions[0]?.questions[0]?.required).toBe(true)
+      const recordedJourney = await getQualityJourney(
+        { journeyId: created.journey.journeyId, targetProjectId: 'target-analysis-1' },
+        client,
+      )
+      expect(recordedJourney.journey.unresolvedQuestionIds).toEqual(['question-payment'])
+      const firstRef = {
+        kind: 'ANALYSIS_CHARTER_REVISION' as const,
+        artifactId: submission.charter.charterId,
+        revisionId: submission.charter.analysisRevisionId,
+        contentHash: submitted.analysisRevision.contentHash,
+      }
+      await expect(
+        publishQualityJourneyAnalysis(
+          {
+            schemaVersion: 'appraise.quality-journey/v1',
+            commandId: 'external-analysis-publish-blocked',
+            journeyId: created.journey.journeyId,
+            targetProjectId: 'target-analysis-1',
+            actor: 'RUNNER',
+            command: 'PUBLISH_ANALYSIS',
+            expectedStateHash: recordedJourney.journey.stateHash,
+            idempotencyKey: 'external-analysis-publish-blocked',
+            inputArtifactRefs: [firstRef],
+            payload: {
+              artifactRevisionId: submitted.analysisRevision.id,
+              artifactHash: submitted.analysisRevision.contentHash,
+            },
+          },
+          client,
+        ),
+      ).rejects.toMatchObject({ code: 'CONFLICT' })
+
+      const answer = await answerQualityJourneyAnalysisQuestion(
+        {
+          idempotencyKey: 'external-analysis-human-answer',
+          answer: {
+            schemaVersion: 'appraise.quality-journey/v1',
+            answerId: 'external-analysis-human-answer',
+            journeyId: created.journey.journeyId,
+            targetProjectId: 'target-analysis-1',
+            analysisRevisionId: submitted.analysisRevision.id,
+            questionId: 'question-payment',
+            answer: 'Card payment.',
+            actor: 'USER',
+          },
+        },
+        client,
+      )
+      const answeredJourney = await getQualityJourney(
+        { journeyId: created.journey.journeyId, targetProjectId: 'target-analysis-1' },
+        client,
+      )
+      expect(answeredJourney.journey.unresolvedQuestionIds).toEqual([])
+      await publishQualityJourneyAnalysis(
+        {
+          schemaVersion: 'appraise.quality-journey/v1',
+          commandId: 'external-analysis-publish',
+          journeyId: created.journey.journeyId,
+          targetProjectId: 'target-analysis-1',
+          actor: 'RUNNER',
+          command: 'PUBLISH_ANALYSIS',
+          expectedStateHash: answeredJourney.journey.stateHash,
+          idempotencyKey: 'external-analysis-publish',
+          inputArtifactRefs: [firstRef],
+          payload: {
+            artifactRevisionId: submitted.analysisRevision.id,
+            artifactHash: submitted.analysisRevision.contentHash,
+          },
+        },
+        client,
+      )
+      const publishedJourney = await getQualityJourney(
+        { journeyId: created.journey.journeyId, targetProjectId: 'target-analysis-1' },
+        client,
+      )
+      await requestQualityJourneyAnalysisRevision(
+        {
+          expectedReviewHash: publishedJourney.journey.analysisReviewHash,
+          command: {
+            schemaVersion: 'appraise.quality-journey/v1',
+            commandId: 'external-analysis-revision-request',
+            journeyId: created.journey.journeyId,
+            targetProjectId: 'target-analysis-1',
+            actor: 'USER',
+            command: 'REQUEST_ANALYSIS_REVISION',
+            expectedStateHash: publishedJourney.journey.stateHash,
+            idempotencyKey: 'external-analysis-revision-request',
+            inputArtifactRefs: [firstRef],
+            payload: {
+              reviewedRevisionId: submitted.analysisRevision.id,
+              reviewedHash: submitted.analysisRevision.contentHash,
+              feedback: 'Carry the recorded payment decision into a revised charter.',
+            },
+          },
+        },
+        client,
+      )
+
+      // The first external task may now be gone. Reconnect through a fresh
+      // database client to model a later task/session reading only durable state;
+      // no liveness of the old task is assumed.
+      await client.$disconnect()
+      client = reconnect(client)
+      const rereadJourney = await getQualityJourney(
+        { journeyId: created.journey.journeyId, targetProjectId: 'target-analysis-1' },
+        client,
+      )
+      const rereadAnalysis = await getQualityJourneyAnalysis(
+        { journeyId: created.journey.journeyId, targetProjectId: 'target-analysis-1' },
+        client,
+      )
+      expect(rereadAnalysis.revisions[0]?.questions[0]?.answers[0]?.answerId).toBe(answer.answer.answerId)
+      expect(rereadJourney.journey.stage).toBe('ANALYSIS')
+      const successor = await claimExternalQualityJourneyAnalyzer(
+        {
+          journeyId: created.journey.journeyId,
+          targetProjectId: 'target-analysis-1',
+          principal: externalPrincipal,
+          assignmentSecret: 'c'.repeat(32),
+          idempotencyKey: 'external-analyzer-successor-claim',
+        },
+        client,
+      )
+      expect(successor.assignment.assignmentId).not.toBe(claim.assignment.assignmentId)
+      expect(successor.assignment.inputArtifacts.map((artifact: { kind: string }) => artifact.kind)).toEqual(
+        expect.arrayContaining([
+          'ANALYSIS_CHARTER_REVISION',
+          'ANALYSIS_QUESTION',
+          'ANALYSIS_ANSWER',
+          'ANALYSIS_REVISION_FEEDBACK',
+        ]),
+      )
+      await admitExternalQualityJourneyAnalyzer(
+        {
+          journeyId: created.journey.journeyId,
+          targetProjectId: 'target-analysis-1',
+          workItemId: successor.workItem.id,
+          attemptId: successor.attempt.id,
+          assignmentId: successor.assignment.assignmentId,
+          assignmentGeneration: successor.assignmentGeneration,
+          leaseId: successor.attempt.leaseId,
+          assignmentSecret: successor.assignmentSecret,
+          idempotencyKey: 'external-analyzer-successor-admission',
+          principal: externalPrincipal,
+        },
+        client,
+      )
+      const successorCharter = {
+        ...charter(
+          created.journey.journeyId,
+          created.journey.activeCycleId,
+          created.journey.activeRevisionIds.journey,
+          'external-2',
+        ),
+        questions: [],
+        resolvedQuestionAnswerIds: [answer.answer.answerId],
+      }
+      await expect(
+        submitExternalQualityJourneyAnalysisSuccessor(
+          {
+            journeyId: created.journey.journeyId,
+            targetProjectId: 'target-analysis-1',
+            workItemId: successor.workItem.id,
+            attemptId: successor.attempt.id,
+            assignmentId: successor.assignment.assignmentId,
+            assignmentGeneration: successor.assignmentGeneration,
+            leaseId: successor.attempt.leaseId,
+            assignmentSecret: successor.assignmentSecret,
+            idempotencyKey: 'external-analysis-successor-submit',
+            predecessorAnalysisRevisionId: submitted.analysisRevision.id,
+            charter: successorCharter,
+          },
+          externalPrincipal,
+          client,
+        ),
+      ).resolves.toMatchObject({ replayed: false })
+      expect(await client.qualityJourneyAnalysisRevision.count()).toBe(2)
     } finally {
       await client.$disconnect()
     }

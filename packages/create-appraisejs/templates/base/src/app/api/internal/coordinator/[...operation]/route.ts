@@ -246,7 +246,7 @@ function isPreEffectCoordinatorFailure(error: unknown, effectStarted?: boolean) 
   if (effectStarted) return false
   if (error instanceof z.ZodError) return true
   if (!(error instanceof ServiceError)) return false
-  return ['VALIDATION', 'UNAUTHORIZED', 'NOT_FOUND'].includes(error.code)
+  return ['VALIDATION', 'UNAUTHORIZED', 'NOT_FOUND', 'CONFLICT'].includes(error.code)
 }
 
 function coordinatorOperationOutcome(error: unknown, context: CoordinatorErrorContext) {

@@ -120,6 +120,36 @@ describe('Journey-only coordinator boundary', () => {
     })
   })
 
+  it('classifies a pre-effect external submission conflict as not started and unsafe to retry', async () => {
+    const request = new Request('http://127.0.0.1:3000/api/internal/coordinator/quality/journeys/journey-1/analysis', {
+      method: 'POST',
+    })
+    const context = coordinatorErrorContext(
+      request,
+      ['quality', 'journeys', 'journey-1', 'analysis', 'external-submissions'],
+      {
+        target: 'target-1',
+        workItemId: 'work-1',
+        attemptId: 'attempt-1',
+        assignmentId: 'assignment-1',
+        assignmentGeneration: 1,
+        leaseId: 'lease-1',
+        assignmentSecret: 'a'.repeat(32),
+        idempotencyKey: 'submission-1',
+      },
+    )
+    const response = responseError(
+      new ServiceError('External submission idempotency key conflicts.', 'CONFLICT', 409),
+      context,
+    )
+
+    expect(response.status).toBe(409)
+    await expect(response.json()).resolves.toMatchObject({
+      operationOutcome: 'not_started',
+      retry: { safe: false, strategy: 'do_not_retry' },
+    })
+  })
+
   it('exposes Journey locator routing and no removed quality domains', async () => {
     const source = await fs.readFile(path.join(__dirname, 'route.ts'), 'utf8')
     expect(source).toContain("operation[1] === 'journeys'")

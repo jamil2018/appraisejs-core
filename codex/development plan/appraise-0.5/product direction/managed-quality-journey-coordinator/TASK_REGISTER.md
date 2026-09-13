@@ -8,9 +8,9 @@ Historical work is retained in [TASK_REGISTER.managed-runtime-archive.md](TASK_R
 ## Operating instructions
 
 Work in dependency order within the user's authorized scope. C0.1 and the original C0.2 negative qualification remain
-verified. **C0.2e.1–C0.2e.4, C0.3, C0.4, C1.1, C1.2 and C1.3 are verified** under their recorded scopes. GC1
-`passed` after live closure of `GC1-B01` and independent exact-artifact review; C2.1 remains `pending`, is eligible,
-and is unstarted.
+verified. **C0.2e.1–C0.2e.4, C0.3, C0.4, C1.1–C1.3 and C2.1–C2.2 are verified** under their recorded scopes. GC1
+`passed` after live closure of `GC1-B01` and independent exact-artifact review. GC2 remains `not_evaluated`; C2.3 is
+the exact next eligible task.
 Use `pending`, `in_progress`, `blocked`, `in_review`, `verified`;
 only verified tasks use `[x]`. A successful experiment can establish a negative result without passing its gate.
 Do not turn a documentation decision into a capability claim. Record exact artifact/version, expected and observed
@@ -30,7 +30,7 @@ Split large slices into stable suffix IDs before implementation. Old evidence mu
 | [x]  | C1.2  | Deliver prepared Journey launch                            | C1.1              | verified | [C1.2](evidence/C1.2.md)   |
 | [x]  | C1.3  | Deliver later-stage reconnect and takeover                 | C1.2              | verified | [C1.3](evidence/C1.3.md)   |
 | [x]  | C2.1  | Enforce graph claim and submission contracts               | GC1               | verified | [C2.1](evidence/C2.1.md)   |
-| [ ]  | C2.2  | Connect analysis and human question loops                  | C2.1              | pending  | —                          |
+| [x]  | C2.2  | Connect analysis and human question loops                  | C2.1              | verified | [C2.2](evidence/C2.2.md)   |
 | [ ]  | C2.3  | Deliver scoped discovery and human sign-in                 | C2.1, C0.3        | pending  | —                          |
 | [ ]  | C2.4  | Connect scenario review and revision                       | C2.2, C2.3        | pending  | —                          |
 | [ ]  | C2.5  | Connect automation preparation                             | C2.4              | pending  | —                          |
@@ -175,6 +175,23 @@ Verification: Analysis vertical slice including rejection/revision and stopped C
 
 Likely scope: analysis operations; Journey questions UI; plugin workflow skill.
 
+Inspection split (2026-09-14): the canonical Analysis services already own immutable requirement binding, append-only
+questions and answers, exact review decisions, and the C2.1 specialized acceptance boundary. C2.2 connects and proves
+three stable responsibilities without introducing another workflow engine or generic mutation surface.
+
+| Done | ID     | Task                                                                                         | Depends on | Status   |
+| ---- | ------ | -------------------------------------------------------------------------------------------- | ---------- | -------- |
+| [x]  | C2.2.1 | Prove immutable-requirement Analysis through the retained specialized assignment and ingress | C2.1       | verified |
+| [x]  | C2.2.2 | Connect Appraise-owned required-question, answer, revision-feedback and exact-decision loops | C2.2.1     | verified |
+| [x]  | C2.2.3 | Prove stopped-task reconnect and truthful activity, publication and accepted-artifact status | C2.2.2     | verified |
+
+C2.2.1 retains C2.1 principal, target, assignment-generation, lease, immutable-input, fencing, idempotency, recovery
+and atomic-acceptance guarantees. C2.2.2 keeps every human answer, correction, revision request and approval on the
+Appraise-owned service/UI boundaries and requires a fresh authoritative read before continuation. C2.2.3 distinguishes
+prepared launch, connection, assignment authority, accepted submission, publication and human approval; stopping or
+losing a Codex task cannot be reported as an Appraise-observed process stop. Parent C2.2 is verified only after all
+three slices and the exact-artifact review complete. None of these slices evaluates GC2 or authorizes C2.3-C2.7.
+
 ### C2.3 — Deliver scoped discovery and human sign-in
 
 Acceptance: Implement only the qualified browser path; support anonymous and authenticated target discovery, ephemeral scoped sessions, human MFA, revocation and explicit missing-access blockers. Preserve provenance and supplemental-evidence distinction.
@@ -253,8 +270,8 @@ Likely scope: current docs; release fixtures; generated output through source wo
 C-B01 is closed by the combined C0.1 and C1.1–C1.3 installed-host evidence: local and neutral remote contexts, URI
 prefill, plugin recognition, prepared launch, authenticated redemption, adverse fallback observations, later-stage
 reconnect and explicit takeover. GC0 and GC1 are passed; the stricter end-to-end qualification `GC1-B01` is closed
-by the current-product remote `DISCOVERY` trace. C2.1 is verified, C-B02 is closed, and C2.2 is the next eligible
-task.
+by the current-product remote `DISCOVERY` trace. C2.1 and C2.2 are verified, C-B02 is closed, and C2.3 is the exact
+next eligible task.
 
 | ID    | Open requirement                                                 | Owner and closure evidence                                                                                            |
 | ----- | ---------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
@@ -305,10 +322,12 @@ is a plugin-release gate. Do not resume P0.R2g, create a Codex fork or retrofit 
   implementation blocker.
 - GC0 and GC1 passed. **C1.1, C1.2 and C1.3 are verified after independent exact-artifact review**. GC1's first
   [usable-handoff evaluation](evidence/GC1.md) returned `REVISE`; the current-product remote `DISCOVERY` launch,
-  Send, redemption/read, takeover approval and predecessor rejection trace closed `GC1-B01`. C2.1 is eligible and
-  `pending` and unstarted. C-B01 and the C1.3 portion of C-B03 remain closed within their recorded
-  implementation scope.
-- Preexisting dirty experiments remain preserved; no commit or release is claimed.
+  Send, redemption/read, takeover approval and predecessor rejection trace closed `GC1-B01`. C2.1 and C2.2 are
+  verified; C2.3 is the exact next eligible task. C-B01, C-B02 and the C1.3 portion of C-B03 remain closed within
+  their recorded implementation scope.
+- C2.2 reuses the retained C0.2e/C2.1 external admission and specialized acceptance path. Its exact requirement,
+  human wait, revision, fresh-task continuation, status and independent-review evidence is recorded in
+  [C2.2](evidence/C2.2.md). GC2 was not evaluated and C2.3-C2.7 were not started.
 
 ### C0.1 findings carried forward
 
