@@ -51,10 +51,12 @@ function browserRuntime(
   onPage?: (page: {
     mainFrame: { url(): string }
     navigate: (url: string) => void
+    navigateWithPageUrl: (frameUrl: string, pageUrl: string) => void
     navigateSubframe: (url: string) => void
   }) => void,
 ): DiscoveryBrowserRuntime {
   let url = 'about:blank'
+  let frameUrl = 'about:blank'
   return {
     async launch() {
       return {
@@ -63,11 +65,12 @@ function browserRuntime(
             route: async (_pattern, handler) => onRoute?.(handler as (route: unknown) => Promise<void>),
             routeWebSocket: async () => undefined,
             async newPage() {
-              const mainFrame = { url: () => url }
+              const mainFrame = { url: () => frameUrl }
               const listeners = new Map<string, (value: unknown) => void>()
               const page = {
                 async goto(next: string) {
                   url = next
+                  frameUrl = next
                 },
                 url: () => url,
                 mainFrame: () => mainFrame,
@@ -79,6 +82,12 @@ function browserRuntime(
                 mainFrame,
                 navigate: (next: string) => {
                   url = next
+                  frameUrl = next
+                  listeners.get('framenavigated')?.(mainFrame)
+                },
+                navigateWithPageUrl: (nextFrameUrl: string, nextPageUrl: string) => {
+                  frameUrl = nextFrameUrl
+                  url = nextPageUrl
                   listeners.get('framenavigated')?.(mainFrame)
                 },
                 navigateSubframe: (next: string) => listeners.get('framenavigated')?.({ url: () => next }),
@@ -200,7 +209,12 @@ describe('Quality Journey discovery browser service', () => {
     const db = client()
     let handler: ((route: unknown) => Promise<void>) | undefined
     let page:
-      | { mainFrame: { url(): string }; navigate: (url: string) => void; navigateSubframe: (url: string) => void }
+      | {
+          mainFrame: { url(): string }
+          navigate: (url: string) => void
+          navigateWithPageUrl: (frameUrl: string, pageUrl: string) => void
+          navigateSubframe: (url: string) => void
+        }
       | undefined
     const session = await startQualityJourneyDiscoveryBrowserSession(
       {
@@ -314,7 +328,12 @@ describe('Quality Journey discovery browser service', () => {
     const db = client()
     let handler: ((route: unknown) => Promise<void>) | undefined
     let page:
-      | { mainFrame: { url(): string }; navigate: (url: string) => void; navigateSubframe: (url: string) => void }
+      | {
+          mainFrame: { url(): string }
+          navigate: (url: string) => void
+          navigateWithPageUrl: (frameUrl: string, pageUrl: string) => void
+          navigateSubframe: (url: string) => void
+        }
       | undefined
     const session = await startQualityJourneyDiscoveryBrowserSession(
       {
@@ -639,7 +658,12 @@ describe('Quality Journey discovery browser service', () => {
   it('reports a main-frame mismatch only through the transient qualification diagnostic', async () => {
     let handler: ((route: unknown) => Promise<void>) | undefined
     let page:
-      | { mainFrame: { url(): string }; navigate: (url: string) => void; navigateSubframe: (url: string) => void }
+      | {
+          mainFrame: { url(): string }
+          navigate: (url: string) => void
+          navigateWithPageUrl: (frameUrl: string, pageUrl: string) => void
+          navigateSubframe: (url: string) => void
+        }
       | undefined
     const session = await startQualityJourneyDiscoveryBrowserSession(
       { ...scope, workItemId: 'work-1', environmentId: 'environment-1', routeId: '/checkout', accessMode: 'ANONYMOUS' },
@@ -667,7 +691,7 @@ describe('Quality Journey discovery browser service', () => {
       fetch: async () => ({ headers: () => ({}), status: () => 200 }),
       fulfill: async () => undefined,
     })
-    page?.navigate('https://attacker.test/checkout')
+    page?.navigateWithPageUrl('https://attacker.test/checkout?secret=C2.3_SECRET#fragment', '')
     await vi.waitFor(async () => {
       await expect(
         getQualityJourneyDiscoveryBrowserSession({ ...scope, sessionId: session.id }),
@@ -678,6 +702,49 @@ describe('Quality Journey discovery browser service', () => {
     await expect(
       getQualityJourneyDiscoveryBrowserTerminalDiagnosticForQualification({ ...scope, sessionId: session.id }),
     ).resolves.toEqual({ terminalCause: 'MAIN_FRAME_MISMATCH' })
+    await expect(getQualityJourneyDiscoveryBrowserSession({ ...scope, sessionId: session.id })).resolves.toMatchObject({
+      currentUrl: 'https://attacker.test/checkout',
+    })
+    await expect(
+      getQualityJourneyDiscoveryBrowserSession({ ...scope, sessionId: session.id }),
+    ).resolves.not.toMatchObject({
+      currentUrl: expect.stringContaining('C2.3_SECRET'),
+    })
+  })
+
+  it('preserves only the triggering origin and path for a no-pending main-frame revoke', async () => {
+    let page:
+      | {
+          mainFrame: { url(): string }
+          navigate: (url: string) => void
+          navigateWithPageUrl: (frameUrl: string, pageUrl: string) => void
+          navigateSubframe: (url: string) => void
+        }
+      | undefined
+    const session = await startQualityJourneyDiscoveryBrowserSession(
+      { ...scope, workItemId: 'work-1', environmentId: 'environment-1', routeId: '/checkout', accessMode: 'ANONYMOUS' },
+      client() as never,
+      browserRuntime(
+        'Checkout',
+        () => undefined,
+        undefined,
+        next => (page = next),
+      ),
+    )
+    page?.navigateWithPageUrl('https://attacker.test/checkout?secret=C2.3_NO_PENDING#fragment', '')
+    await vi.waitFor(async () => {
+      await expect(
+        getQualityJourneyDiscoveryBrowserSession({ ...scope, sessionId: session.id }),
+      ).resolves.toMatchObject({ state: 'REVOKED', currentUrl: 'https://attacker.test/checkout' })
+    })
+    await expect(
+      getQualityJourneyDiscoveryBrowserTerminalDiagnosticForQualification({ ...scope, sessionId: session.id }),
+    ).resolves.toEqual({ terminalCause: 'MAIN_FRAME_NO_PENDING' })
+    await expect(
+      getQualityJourneyDiscoveryBrowserSession({ ...scope, sessionId: session.id }),
+    ).resolves.not.toMatchObject({
+      currentUrl: expect.stringContaining('C2.3_NO_PENDING'),
+    })
   })
 
   it('tolerates only an exact duplicate committed main-frame event', async () => {

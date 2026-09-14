@@ -603,7 +603,7 @@ async function commitMainFrameNavigation(session: Session, frame: BrowserFrame) 
     return
   }
   if (!destination || !matchesCommittedDestination(url, destination, pending)) {
-    await revokeForMainFrameMismatch(session)
+    await revokeForMainFrameMismatch(session, url)
     return
   }
   session.pendingMainFrameCommit = undefined
@@ -622,11 +622,11 @@ function isExactDuplicateMainFrameCommit(session: Session, destination: URL | un
 async function handleNoPendingMainFrameNavigation(session: Session, destination: URL | undefined, url: string) {
   if (isExactDuplicateMainFrameCommit(session, destination, url)) return
   setTerminalCause(session, 'MAIN_FRAME_NO_PENDING')
-  await revokeSession(session, 'REVOKED')
+  await revokeSession(session, 'REVOKED', url)
 }
-async function revokeForMainFrameMismatch(session: Session) {
+async function revokeForMainFrameMismatch(session: Session, triggeringUrl: string) {
   setTerminalCause(session, 'MAIN_FRAME_MISMATCH')
-  await revokeSession(session, 'REVOKED')
+  await revokeSession(session, 'REVOKED', triggeringUrl)
 }
 function parseFrameDestination(url: string) {
   try {
@@ -652,9 +652,11 @@ function setTerminalCause(session: Session, cause: DiscoveryBrowserTerminalCause
 async function revokeSession(
   session: Session,
   state: Extract<DiscoveryBrowserSessionState, 'REVOKED' | 'LOGGED_OUT' | 'CLOSED'>,
+  triggeringMainFrameUrl?: string,
 ) {
   if (session.state === 'ACTIVE' || session.state === 'ACCESS_CONFIRMED') {
     await terminalSnapshot(session)
+    if (triggeringMainFrameUrl) session.terminalUrl = sanitizedUrl(triggeringMainFrameUrl)
     session.state = state
     await closeSessionResources(session)
   }
