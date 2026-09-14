@@ -145,6 +145,8 @@ type Session = {
   /** A validated main-frame response which the browser has not committed yet. */
   pendingMainFrameCommit?: MainFrameTransition
   mainFrameDocumentOrigin: string
+  /** Full committed URL hash; transient duplicate-event guard only. */
+  lastAuthorizedMainFrameCommitHash?: string
   state: DiscoveryBrowserSessionState
   expiresAt: Date
   expiryTimer?: ReturnType<typeof setTimeout>
@@ -177,6 +179,7 @@ type DiscoveryBrowserSession = Omit<
   | 'pendingMainFrameRequest'
   | 'pendingMainFrameCommit'
   | 'mainFrameDocumentOrigin'
+  | 'lastAuthorizedMainFrameCommitHash'
   | 'terminalCause'
 > & { allowedOrigins: string[]; allowedRoutes: string[]; currentUrl: string }
 
@@ -185,6 +188,9 @@ function canonical(value: unknown) {
 }
 function hash(value: unknown) {
   return `sha256:${createHash('sha256').update(canonical(value)).digest('hex')}`
+}
+function committedUrlHash(value: string) {
+  return `sha256:${createHash('sha256').update(value).digest('hex')}`
 }
 function idFor(kind: string, ...parts: string[]) {
   return `qjdb_${kind}_${createHash('sha256').update(parts.join(':')).digest('hex').slice(0, 32)}`
@@ -593,19 +599,34 @@ async function commitMainFrameNavigation(session: Session, frame: BrowserFrame) 
   const destination = parseFrameDestination(url)
   const pending = session.pendingMainFrameCommit
   if (!pending) {
-    setTerminalCause(session, 'MAIN_FRAME_NO_PENDING')
-    await revokeSession(session, 'REVOKED')
+    await handleNoPendingMainFrameNavigation(session, destination, url)
     return
   }
   if (!destination || !matchesCommittedDestination(url, destination, pending)) {
-    setTerminalCause(session, 'MAIN_FRAME_MISMATCH')
-    await revokeSession(session, 'REVOKED')
+    await revokeForMainFrameMismatch(session)
     return
   }
   session.pendingMainFrameCommit = undefined
   session.mainFrameDocumentOrigin = pending.destinationOrigin
+  session.lastAuthorizedMainFrameCommitHash = committedUrlHash(url)
   if (isCommittedAuthorizedReturn(session, pending, destination))
     session.authTransitOutcome = 'RETURNED_TO_FROZEN_TARGET'
+}
+function isExactDuplicateMainFrameCommit(session: Session, destination: URL | undefined, url: string) {
+  return Boolean(
+    destination &&
+    destination.origin === session.mainFrameDocumentOrigin &&
+    session.lastAuthorizedMainFrameCommitHash === committedUrlHash(url),
+  )
+}
+async function handleNoPendingMainFrameNavigation(session: Session, destination: URL | undefined, url: string) {
+  if (isExactDuplicateMainFrameCommit(session, destination, url)) return
+  setTerminalCause(session, 'MAIN_FRAME_NO_PENDING')
+  await revokeSession(session, 'REVOKED')
+}
+async function revokeForMainFrameMismatch(session: Session) {
+  setTerminalCause(session, 'MAIN_FRAME_MISMATCH')
+  await revokeSession(session, 'REVOKED')
 }
 function parseFrameDestination(url: string) {
   try {

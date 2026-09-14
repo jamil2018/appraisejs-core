@@ -680,6 +680,49 @@ describe('Quality Journey discovery browser service', () => {
     ).resolves.toEqual({ terminalCause: 'MAIN_FRAME_MISMATCH' })
   })
 
+  it('tolerates only an exact duplicate committed main-frame event', async () => {
+    let handler: ((route: unknown) => Promise<void>) | undefined
+    let page:
+      | { mainFrame: { url(): string }; navigate: (url: string) => void; navigateSubframe: (url: string) => void }
+      | undefined
+    const session = await startQualityJourneyDiscoveryBrowserSession(
+      { ...scope, workItemId: 'work-1', environmentId: 'environment-1', routeId: '/checkout', accessMode: 'ANONYMOUS' },
+      client() as never,
+      browserRuntime(
+        'Checkout',
+        () => undefined,
+        next => (handler = next),
+        next => (page = next),
+      ),
+    )
+    await handler?.({
+      request: () => ({
+        url: () => 'https://example.test/checkout',
+        method: () => 'GET',
+        isNavigationRequest: () => true,
+        resourceType: () => 'document',
+        frame: () => page!.mainFrame,
+      }),
+      abort: async () => undefined,
+      fetch: async () => ({ headers: () => ({}), status: () => 200 }),
+      fulfill: async () => undefined,
+    })
+    page?.navigate('https://example.test/checkout')
+    page?.navigate('https://example.test/checkout')
+    await expect(getQualityJourneyDiscoveryBrowserSession({ ...scope, sessionId: session.id })).resolves.toMatchObject({
+      state: 'ACTIVE',
+    })
+    page?.navigate('https://example.test/checkout/other')
+    await vi.waitFor(async () => {
+      await expect(
+        getQualityJourneyDiscoveryBrowserSession({ ...scope, sessionId: session.id }),
+      ).resolves.toMatchObject({ state: 'REVOKED' })
+    })
+    await expect(
+      getQualityJourneyDiscoveryBrowserTerminalDiagnosticForQualification({ ...scope, sessionId: session.id }),
+    ).resolves.toEqual({ terminalCause: 'MAIN_FRAME_NO_PENDING' })
+  })
+
   it('uses the effective redirect method and ignores Location on non-redirect responses', async () => {
     const redirect = async (status: number) => {
       let handler: ((route: unknown) => Promise<void>) | undefined
