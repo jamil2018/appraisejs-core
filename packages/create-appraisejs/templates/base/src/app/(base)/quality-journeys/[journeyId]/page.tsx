@@ -173,7 +173,11 @@ function discoveryBrowserView(
   if (!discovery?.activeDiscoveryRevisionId) return null
   const active = discovery.revisions.find(revision => revision.id === discovery.activeDiscoveryRevisionId)
   if (!active) return null
-  const scope = JSON.parse(active.scoutScopeJson) as { environmentIds?: string[]; routes?: string[] }
+  const scope = JSON.parse(active.scoutScopeJson) as {
+    environmentIds?: string[]
+    routes?: string[]
+    environmentBindings?: Array<{ environmentId: string; discoveryAuthTransitPolicyJson: string | null }>
+  }
   const environmentIds = new Set(scope.environmentIds ?? [])
   const routes = [...new Set(scope.routes ?? [])].toSorted()
   if (!routes.length) return null
@@ -182,6 +186,17 @@ function discoveryBrowserView(
     workItemId: active.scoutWorkItemId,
     environments: environments.filter(environment => environmentIds.has(environment.id)),
     routes,
+    authFlows: (scope.environmentBindings ?? []).flatMap(binding => {
+      if (!binding.discoveryAuthTransitPolicyJson) return []
+      try {
+        const value = JSON.parse(binding.discoveryAuthTransitPolicyJson) as { flows?: Array<{ flowId?: string }> }
+        return (value.flows ?? [])
+          .filter((flow): flow is { flowId: string } => typeof flow.flowId === 'string')
+          .map(flow => ({ environmentId: binding.environmentId, flowId: flow.flowId }))
+      } catch {
+        return []
+      }
+    }),
   }
 }
 

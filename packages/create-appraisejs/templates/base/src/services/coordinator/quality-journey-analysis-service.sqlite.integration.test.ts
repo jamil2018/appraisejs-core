@@ -106,6 +106,7 @@ async function seedDiscoveryBrowserReceipt(
     discoveryRevisionId: input.discoveryRevisionId,
     workItemId: input.workItemId,
     environmentId: 'environment-analysis-1',
+    environmentScopeVersion: 1,
     routeId: '/checkout',
     snapshotId: input.snapshotId,
     accessMode: 'ANONYMOUS' as const,
@@ -1455,8 +1456,9 @@ describe('Quality Journey Phase 3 through Phase 5 control plane', () => {
       expect(scoutClaim.assignment.allowedResourceIds).toContain('environment-analysis-1')
       expect(scoutClaim.assignment.allowedTargetRoutes).toContain('/checkout')
       expect(scoutClaim.assignment.targetEnvironmentBindings).toEqual([
-        { environmentId: 'environment-analysis-1', origin: 'https://example.test' },
+        expect.objectContaining({ environmentId: 'environment-analysis-1', origin: 'https://example.test' }),
       ])
+      expect(scoutClaim.assignment.scope.networkOrigins).toEqual(['https://example.test'])
       const collectingState = await getQualityJourney(
         { journeyId: created.journey.journeyId, targetProjectId: 'target-analysis-1' },
         client,

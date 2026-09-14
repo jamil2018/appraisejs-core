@@ -72,6 +72,7 @@ describe('createEnvironment', () => {
         username: null,
         passwordEnvironmentVariable: null,
         credentialState: 'NONE',
+        discoveryAuthTransitPolicyJson: null,
         targetProjectId,
       },
     })
@@ -126,6 +127,7 @@ describe('environment coordinator preparation helpers', () => {
       apiBaseUrl: null,
       username: null,
       passwordEnvironmentVariable: null,
+      discoveryAuthTransitPolicyJson: null,
     } as never)
 
     await expect(
@@ -193,6 +195,7 @@ describe('updateEnvironment', () => {
         username: null,
         passwordEnvironmentVariable: null,
         credentialState: 'NONE',
+        discoveryAuthTransitPolicyJson: null,
         scopeVersion: { increment: 1 },
       },
     })

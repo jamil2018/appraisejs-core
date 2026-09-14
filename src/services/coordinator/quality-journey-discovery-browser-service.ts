@@ -4,6 +4,13 @@ import { z } from 'zod'
 import prisma from '@/config/db-config'
 import { canonicalContractJson } from '@/lib/catalog-contracts'
 import {
+  discoveryAuthTransitPathMatches,
+  discoveryAuthTransitPolicyHash,
+  parseDiscoveryAuthTransitPolicy,
+  resolveDiscoveryAuthTransitOrigin,
+  type DiscoveryAuthTransitPolicy,
+} from '@/lib/quality-journey/discovery-auth-transit-policy'
+import {
   discoveryBrowserReceiptIssuer,
   discoveryBrowserReceiptKind,
   discoveryBrowserReceiptSchema,
@@ -16,8 +23,15 @@ import { ServiceError } from '@/services/shared/errors'
 
 type Db = PrismaClient | Prisma.TransactionClient
 
-type BrowserRequest = { url(): string; method(): string; isNavigationRequest(): boolean }
-type BrowserResponse = { headers(): Record<string, string> }
+type BrowserFrame = { url(): string }
+type BrowserRequest = {
+  url(): string
+  method(): string
+  isNavigationRequest(): boolean
+  resourceType(): string
+  frame(): BrowserFrame
+}
+type BrowserResponse = { headers(): Record<string, string>; status(): number }
 type BrowserRoute = {
   request(): BrowserRequest
   abort(): Promise<void>
@@ -29,6 +43,7 @@ type BrowserWebSocketRoute = { url(): string; close(options: { code: number; rea
 type BrowserPage = {
   goto(url: string, options?: { waitUntil?: 'domcontentloaded' }): Promise<unknown>
   url(): string
+  mainFrame(): BrowserFrame
   title(): Promise<string>
   on(event: 'framenavigated' | 'websocket' | 'download' | 'popup', listener: (value: unknown) => void): void
   close(): Promise<void>
@@ -79,9 +94,24 @@ const startSchema = z
     environmentId: id,
     routeId,
     accessMode: z.enum(['ANONYMOUS', 'AUTHENTICATED_INTENT']),
+    authFlowId: z.string().trim().min(1).max(128).optional(),
     ttlSeconds: z.number().int().min(30).max(900).optional(),
   })
   .strict()
+  .superRefine((value, context) => {
+    if (value.accessMode === 'AUTHENTICATED_INTENT' && !value.authFlowId)
+      context.addIssue({
+        code: 'custom',
+        path: ['authFlowId'],
+        message: 'Authenticated discovery requires an authorized flow.',
+      })
+    if (value.accessMode === 'ANONYMOUS' && value.authFlowId)
+      context.addIssue({
+        code: 'custom',
+        path: ['authFlowId'],
+        message: 'Anonymous discovery cannot select an auth flow.',
+      })
+  })
 const sessionInputSchema = z
   .object({ sessionId: id, journeyId: id, targetProjectId: id, discoveryRevisionId: id })
   .strict()
@@ -102,9 +132,19 @@ type Session = {
   workItemId: string
   environmentId: string
   routeId: string
-  allowedOrigins: string[]
+  targetOrigin: string
   allowedRoutes: string[]
   accessMode: 'ANONYMOUS' | 'AUTHENTICATED_INTENT'
+  environmentScopeVersion: number
+  authFlowId?: string
+  authPolicyHash?: string
+  authFlow?: DiscoveryAuthTransitPolicy['flows'][number]
+  authTransitOutcome?: 'RETURNED_TO_FROZEN_TARGET'
+  /** A validated redirect which the browser has not requested yet. */
+  pendingMainFrameRequest?: MainFrameTransition
+  /** A validated main-frame response which the browser has not committed yet. */
+  pendingMainFrameCommit?: MainFrameTransition
+  mainFrameDocumentOrigin: string
   state: DiscoveryBrowserSessionState
   expiresAt: Date
   expiryTimer?: ReturnType<typeof setTimeout>
@@ -114,9 +154,24 @@ type Session = {
   page: BrowserPage
 }
 
+type MainFrameTransition = {
+  destinationUrl: string
+  destinationOrigin: string
+  effectiveMethod: string
+  sourceOrigin: string
+}
+
 type DiscoveryBrowserSession = Omit<
   Session,
-  'browser' | 'context' | 'page' | 'allowedOrigins' | 'allowedRoutes' | 'expiryTimer'
+  | 'browser'
+  | 'context'
+  | 'page'
+  | 'allowedRoutes'
+  | 'expiryTimer'
+  | 'authFlow'
+  | 'pendingMainFrameRequest'
+  | 'pendingMainFrameCommit'
+  | 'mainFrameDocumentOrigin'
 > & { allowedOrigins: string[]; allowedRoutes: string[]; currentUrl: string }
 
 function canonical(value: unknown) {
@@ -140,6 +195,26 @@ function sanitizedUrl(value: string) {
     return 'about:blank'
   }
 }
+function mainFrameTransition(url: string, effectiveMethod: string, sourceOrigin: string): MainFrameTransition {
+  const destination = new URL(url)
+  return {
+    destinationUrl: sanitizedUrl(url),
+    destinationOrigin: destination.origin,
+    effectiveMethod: effectiveMethod.toUpperCase(),
+    sourceOrigin,
+  }
+}
+function matchesMainFrameTransition(request: BrowserRequest, transition: MainFrameTransition) {
+  return (
+    sanitizedUrl(request.url()) === transition.destinationUrl &&
+    new URL(request.url()).origin === transition.destinationOrigin &&
+    request.method().toUpperCase() === transition.effectiveMethod
+  )
+}
+async function withTransaction<T>(client: Db, effect: (tx: Prisma.TransactionClient) => Promise<T>) {
+  if ('$transaction' in client && typeof client.$transaction === 'function') return client.$transaction(effect)
+  return effect(client)
+}
 function routeUrl(baseUrl: string, route: string) {
   const base = new URL(baseUrl)
   if (base.username || base.password || base.search || base.hash)
@@ -149,20 +224,94 @@ function routeUrl(baseUrl: string, route: string) {
     throw new ServiceError('Discovery route is outside the frozen target scope.', 'CONFLICT')
   return resolved.toString()
 }
-function allowedRequest(url: string, method: string, session: Session, navigation = false) {
+function requestKind(request: BrowserRequest) {
+  if (request.isNavigationRequest()) return 'DOCUMENT' as const
+  return ['xhr', 'fetch'].includes(request.resourceType?.().toLowerCase() ?? '')
+    ? ('XHR_FETCH' as const)
+    : ('SUBRESOURCE' as const)
+}
+function requestDocumentOrigin(request: BrowserRequest) {
+  try {
+    return new URL(request.frame?.().url() ?? '').origin
+  } catch {
+    return 'about:blank'
+  }
+}
+function isTargetRoute(url: URL, session: Session) {
+  return url.origin === session.targetOrigin && url.pathname === session.routeId && !url.search && !url.hash
+}
+function matchesReturn(session: Session, documentOrigin: string, destination: URL, method: string) {
+  return Boolean(
+    session.authFlow?.returns.some(
+      rule =>
+        rule.fromOrigin === documentOrigin &&
+        rule.targetPath === destination.pathname &&
+        rule.methods.includes(method as 'GET' | 'POST'),
+    ),
+  )
+}
+function redirectMethod(status: number, requestMethod: string) {
+  const method = requestMethod.toUpperCase()
+  if (status === 303 || ((status === 301 || status === 302) && method === 'POST')) return 'GET'
+  if (status === 301 || status === 302 || status === 307 || status === 308) return method
+  return null
+}
+function allowedRequest(
+  url: string,
+  method: string,
+  session: Session,
+  navigation = false,
+  documentOrigin = 'about:blank',
+  kind: 'DOCUMENT' | 'SUBRESOURCE' | 'XHR_FETCH' = navigation ? 'DOCUMENT' : 'SUBRESOURCE',
+) {
   const normalizedMethod = method.toUpperCase()
-  const humanLoginPost =
-    normalizedMethod === 'POST' &&
-    navigation &&
-    session.accessMode === 'AUTHENTICATED_INTENT' &&
-    session.state === 'ACTIVE'
-  if (!['GET', 'HEAD'].includes(normalizedMethod) && !humanLoginPost) return false
+  if (!isAllowedDiscoveryMethod(normalizedMethod, navigation, session)) return false
   try {
     const parsed = new URL(url)
-    return session.allowedOrigins.includes(parsed.origin) && session.allowedRoutes.includes(parsed.pathname)
+    return isTargetRoute(parsed, session)
+      ? allowsTargetRequest(parsed, normalizedMethod, session, navigation, documentOrigin)
+      : allowsAuthTransitRequest(parsed, normalizedMethod, session, documentOrigin, kind)
   } catch {
     return false
   }
+}
+function isAllowedDiscoveryMethod(method: string, navigation: boolean, session: Session) {
+  return (
+    ['GET', 'HEAD'].includes(method) ||
+    (method === 'POST' && navigation && session.accessMode === 'AUTHENTICATED_INTENT' && session.state === 'ACTIVE')
+  )
+}
+function allowsTargetRequest(
+  destination: URL,
+  method: string,
+  session: Session,
+  navigation: boolean,
+  documentOrigin: string,
+) {
+  return (
+    (documentOrigin === 'about:blank' && navigation && method === 'GET') ||
+    documentOrigin === session.targetOrigin ||
+    (session.accessMode === 'AUTHENTICATED_INTENT' &&
+      navigation &&
+      matchesReturn(session, documentOrigin, destination, method))
+  )
+}
+function allowsAuthTransitRequest(
+  destination: URL,
+  method: string,
+  session: Session,
+  documentOrigin: string,
+  kind: 'DOCUMENT' | 'SUBRESOURCE' | 'XHR_FETCH',
+) {
+  if (session.accessMode !== 'AUTHENTICATED_INTENT' || session.state !== 'ACTIVE' || !session.authFlow) return false
+  return session.authFlow.rules.some(
+    rule =>
+      resolveDiscoveryAuthTransitOrigin(rule.documentOrigin, session.targetOrigin) === documentOrigin &&
+      resolveDiscoveryAuthTransitOrigin(rule.destinationOrigin, session.targetOrigin) === destination.origin &&
+      discoveryAuthTransitPathMatches(rule.path, destination.pathname) &&
+      rule.methods.includes(method as 'GET' | 'HEAD' | 'POST') &&
+      rule.requestKinds.includes(kind),
+  )
 }
 async function closeSessionResources(session: Session) {
   if (session.expiryTimer) clearTimeout(session.expiryTimer)
@@ -196,9 +345,23 @@ function projection(session: Session): DiscoveryBrowserSession {
     workItemId: session.workItemId,
     environmentId: session.environmentId,
     routeId: session.routeId,
-    allowedOrigins: [...session.allowedOrigins],
+    targetOrigin: session.targetOrigin,
+    allowedOrigins: [
+      session.targetOrigin,
+      ...(session.authFlow
+        ? [
+            ...new Set(
+              session.authFlow.rules
+                .flatMap(rule => [rule.documentOrigin, rule.destinationOrigin])
+                .filter(origin => origin !== '$TARGET'),
+            ),
+          ]
+        : []),
+    ],
     allowedRoutes: [...session.allowedRoutes],
     accessMode: session.accessMode,
+    environmentScopeVersion: session.environmentScopeVersion,
+    ...(session.authFlowId ? { authFlowId: session.authFlowId, authPolicyHash: session.authPolicyHash } : {}),
     state: session.state,
     expiresAt: session.expiresAt,
     currentUrl,
@@ -242,7 +405,15 @@ function scheduleExpiry(session: Session) {
 async function loadFrozenScope(
   input: z.infer<typeof startSchema>,
   db: Db,
-): Promise<{ cycleId: string; allowedOrigins: string[]; allowedRoutes: string[]; baseUrl: string }> {
+): Promise<{
+  cycleId: string
+  targetOrigin: string
+  allowedRoutes: string[]
+  baseUrl: string
+  environmentScopeVersion: number
+  authFlow?: DiscoveryAuthTransitPolicy['flows'][number]
+  authPolicyHash?: string
+}> {
   const [journey, revision, environment] = await Promise.all([
     db.qualityJourney.findFirst({ where: { id: input.journeyId, targetProjectId: input.targetProjectId } }),
     db.qualityJourneyDiscoveryRevision.findFirst({
@@ -258,37 +429,79 @@ async function loadFrozenScope(
     revision.scoutWorkItemId !== input.workItemId
   )
     throw new ServiceError('Discovery browser scope is no longer current.', 'CONFLICT')
-  const scope = JSON.parse(revision.scoutScopeJson) as { environmentIds?: string[]; routes?: string[] }
-  if (!scope.environmentIds?.includes(input.environmentId) || !scope.routes?.includes(input.routeId))
+  const scope = JSON.parse(revision.scoutScopeJson) as {
+    environmentIds?: string[]
+    routes?: string[]
+    environmentBindings?: Array<{
+      environmentId: string
+      targetOrigin: string
+      scopeVersion: number
+      discoveryAuthTransitPolicyJson: string | null
+      discoveryAuthTransitPolicyHash: string
+    }>
+  }
+  const frozen = scope.environmentBindings?.find(binding => binding.environmentId === input.environmentId)
+  if (!scope.environmentIds?.includes(input.environmentId) || !scope.routes?.includes(input.routeId) || !frozen)
     throw new ServiceError('Discovery browser scope exceeds the frozen Scout authorization.', 'CONFLICT')
   const selectedOrigin = new URL(environment.baseUrl).origin
+  if (
+    frozen.targetOrigin !== selectedOrigin ||
+    frozen.scopeVersion !== environment.scopeVersion ||
+    frozen.discoveryAuthTransitPolicyJson !== environment.discoveryAuthTransitPolicyJson ||
+    frozen.discoveryAuthTransitPolicyHash !== discoveryAuthTransitPolicyHash(environment.discoveryAuthTransitPolicyJson)
+  )
+    throw new ServiceError(
+      'Discovery browser environment scope is stale; revalidate before using this revision.',
+      'CONFLICT',
+    )
+  let authFlow: DiscoveryAuthTransitPolicy['flows'][number] | undefined
+  if (input.accessMode === 'AUTHENTICATED_INTENT') {
+    if (!frozen.discoveryAuthTransitPolicyJson)
+      throw new ServiceError('No Discovery sign-in flow is authorized.', 'CONFLICT')
+    const policy = parseDiscoveryAuthTransitPolicy(JSON.parse(frozen.discoveryAuthTransitPolicyJson), selectedOrigin)
+    authFlow = policy.flows.find(flow => flow.flowId === input.authFlowId)
+    if (!authFlow) throw new ServiceError('The selected Discovery sign-in flow is not authorized.', 'CONFLICT')
+  }
   return {
     cycleId: revision.cycleId,
-    allowedOrigins: [selectedOrigin],
+    targetOrigin: selectedOrigin,
     allowedRoutes: [...scope.routes].sort(),
     baseUrl: environment.baseUrl,
+    environmentScopeVersion: frozen.scopeVersion,
+    authFlow,
+    authPolicyHash: input.accessMode === 'AUTHENTICATED_INTENT' ? frozen.discoveryAuthTransitPolicyHash : undefined,
   }
 }
 
+async function assertFrozenScopeStillMatchesSession(session: Session, client: Db) {
+  const scope = await loadSessionFrozenScope(session, client)
+  if (
+    scope.cycleId !== session.cycleId ||
+    scope.targetOrigin !== session.targetOrigin ||
+    scope.environmentScopeVersion !== session.environmentScopeVersion ||
+    scope.authPolicyHash !== session.authPolicyHash ||
+    scope.authFlow?.flowId !== session.authFlow?.flowId
+  )
+    throw new ServiceError('Discovery browser environment scope is stale; revalidate before capture.', 'CONFLICT')
+}
+function sessionScopeInput(session: Session): z.infer<typeof startSchema> {
+  return {
+    journeyId: session.journeyId,
+    targetProjectId: session.targetProjectId,
+    discoveryRevisionId: session.discoveryRevisionId,
+    workItemId: session.workItemId,
+    environmentId: session.environmentId,
+    routeId: session.routeId,
+    accessMode: session.accessMode,
+    ...(session.authFlowId ? { authFlowId: session.authFlowId } : {}),
+  }
+}
+function loadSessionFrozenScope(session: Session, client: Db) {
+  return loadFrozenScope(sessionScopeInput(session), client)
+}
+
 async function wireBrowserContainment(context: BrowserContext, getSession: () => Session) {
-  await context.route('**/*', async requestRoute => {
-    const session = getSession()
-    const request = requestRoute.request()
-    if (!allowedRequest(request.url(), request.method(), session, request.isNavigationRequest())) {
-      await requestRoute.abort()
-      return
-    }
-    const response = await requestRoute.fetch({ maxRedirects: 0 })
-    const location = response.headers().location
-    if (location) {
-      const redirectUrl = new URL(location, request.url()).toString()
-      if (!allowedRequest(redirectUrl, 'GET', session, true)) {
-        await requestRoute.abort()
-        return
-      }
-    }
-    await requestRoute.fulfill({ response })
-  })
+  await context.route('**/*', route => handleBrowserRoute(route, getSession()))
   await context.routeWebSocket('**', async socket => {
     const session = getSession()
     socket.close({ code: 1008, reason: 'Journey browser policy denied WebSocket' })
@@ -296,12 +509,64 @@ async function wireBrowserContainment(context: BrowserContext, getSession: () =>
   })
 }
 
+function mainFrameRequestOrigin(session: Session, request: BrowserRequest, kind: ReturnType<typeof requestKind>) {
+  const mainFrameDocument =
+    request.isNavigationRequest() && kind === 'DOCUMENT' && request.frame?.() === session.page.mainFrame()
+  if (!mainFrameDocument) return { mainFrameDocument, documentOrigin: requestDocumentOrigin(request) }
+  const pending = session.pendingMainFrameRequest
+  if (!pending) return { mainFrameDocument, documentOrigin: session.mainFrameDocumentOrigin }
+  if (!matchesMainFrameTransition(request, pending)) return null
+  session.pendingMainFrameRequest = undefined
+  return { mainFrameDocument, documentOrigin: pending.sourceOrigin }
+}
+function authorizedRedirect(
+  response: BrowserResponse,
+  request: BrowserRequest,
+  session: Session,
+  kind: ReturnType<typeof requestKind>,
+) {
+  const location = response.headers().location
+  if (!location || response.status() < 300 || response.status() >= 400) return undefined
+  const effectiveMethod = redirectMethod(response.status(), request.method())
+  if (!effectiveMethod) return null
+  const redirectUrl = new URL(location, request.url()).toString()
+  const sourceOrigin = new URL(request.url()).origin
+  return allowedRequest(redirectUrl, effectiveMethod, session, request.isNavigationRequest(), sourceOrigin, kind)
+    ? mainFrameTransition(redirectUrl, effectiveMethod, sourceOrigin)
+    : null
+}
+async function handleBrowserRoute(requestRoute: BrowserRoute, session: Session) {
+  const request = requestRoute.request()
+  const kind = requestKind(request)
+  const location = mainFrameRequestOrigin(session, request, kind)
+  if (
+    !location ||
+    !allowedRequest(
+      request.url(),
+      request.method(),
+      session,
+      request.isNavigationRequest(),
+      location.documentOrigin,
+      kind,
+    )
+  ) {
+    await requestRoute.abort()
+    return
+  }
+  const response = await requestRoute.fetch({ maxRedirects: 0 })
+  const redirect = authorizedRedirect(response, request, session, kind)
+  if (redirect === null) {
+    await requestRoute.abort()
+    return
+  }
+  if (redirect && location.mainFrameDocument) session.pendingMainFrameRequest = redirect
+  if (!redirect && location.mainFrameDocument)
+    session.pendingMainFrameCommit = mainFrameTransition(request.url(), request.method(), location.documentOrigin)
+  await requestRoute.fulfill({ response })
+}
+
 function wirePageContainment(session: Session) {
-  session.page.on('framenavigated', frame => {
-    const value = frame as { url?: () => string }
-    const url = value.url?.() ?? session.page.url()
-    if (!allowedRequest(url, 'GET', session)) void revokeSession(session, 'REVOKED')
-  })
+  session.page.on('framenavigated', frame => void commitMainFrameNavigation(session, frame as BrowserFrame))
   session.page.on('download', value => {
     const download = value as { cancel?: () => Promise<void> }
     void download.cancel?.()
@@ -312,6 +577,37 @@ function wirePageContainment(session: Session) {
     void popup.close?.()
     void revokeSession(session, 'REVOKED')
   })
+}
+async function commitMainFrameNavigation(session: Session, frame: BrowserFrame) {
+  if (frame !== session.page.mainFrame()) return
+  const url = frame.url?.() ?? session.page.url()
+  const destination = parseFrameDestination(url)
+  const pending = session.pendingMainFrameCommit
+  if (!destination || !pending || !matchesCommittedDestination(url, destination, pending)) {
+    await revokeSession(session, 'REVOKED')
+    return
+  }
+  session.pendingMainFrameCommit = undefined
+  session.mainFrameDocumentOrigin = pending.destinationOrigin
+  if (isCommittedAuthorizedReturn(session, pending, destination))
+    session.authTransitOutcome = 'RETURNED_TO_FROZEN_TARGET'
+}
+function parseFrameDestination(url: string) {
+  try {
+    return new URL(url)
+  } catch {
+    return undefined
+  }
+}
+function matchesCommittedDestination(url: string, destination: URL, pending: MainFrameTransition) {
+  return sanitizedUrl(url) === pending.destinationUrl && destination.origin === pending.destinationOrigin
+}
+function isCommittedAuthorizedReturn(session: Session, pending: MainFrameTransition, destination: URL) {
+  return (
+    session.accessMode === 'AUTHENTICATED_INTENT' &&
+    isTargetRoute(destination, session) &&
+    matchesReturn(session, pending.sourceOrigin, destination, pending.effectiveMethod)
+  )
 }
 async function revokeSession(
   session: Session,
@@ -355,9 +651,14 @@ export async function startQualityJourneyDiscoveryBrowserSession(
       workItemId: request.workItemId,
       environmentId: request.environmentId,
       routeId: request.routeId,
-      allowedOrigins: scope.allowedOrigins,
+      targetOrigin: scope.targetOrigin,
       allowedRoutes: scope.allowedRoutes,
       accessMode: request.accessMode,
+      environmentScopeVersion: scope.environmentScopeVersion,
+      authFlowId: request.authFlowId,
+      authPolicyHash: scope.authPolicyHash,
+      authFlow: scope.authFlow,
+      mainFrameDocumentOrigin: 'about:blank',
       state: 'ACTIVE',
       expiresAt: new Date(Date.now() + (request.ttlSeconds ?? 300) * 1_000),
       browser,
@@ -366,7 +667,7 @@ export async function startQualityJourneyDiscoveryBrowserSession(
     }
     wirePageContainment(session)
     await page.goto(routeUrl(scope.baseUrl, request.routeId), { waitUntil: 'domcontentloaded' })
-    if (!allowedRequest(page.url(), 'GET', session))
+    if (!allowedRequest(page.url(), 'GET', session, true, 'about:blank', 'DOCUMENT'))
       throw new ServiceError('Discovery browser navigation was rejected.', 'CONFLICT')
     sessions.set(session.id, session)
     scheduleExpiry(session)
@@ -389,20 +690,26 @@ export async function confirmQualityJourneyDiscoveryBrowserAccess(input: unknown
   const request = sessionInputSchema.parse(input)
   const session = await getLiveSession(request)
   if (session.state !== 'ACTIVE' || session.accessMode !== 'AUTHENTICATED_INTENT') throw stateError(session.state)
-  const scope = await loadFrozenScope(
-    {
-      journeyId: session.journeyId,
-      targetProjectId: session.targetProjectId,
-      discoveryRevisionId: session.discoveryRevisionId,
-      workItemId: session.workItemId,
-      environmentId: session.environmentId,
-      routeId: session.routeId,
-      accessMode: session.accessMode,
-    },
-    client,
+  const scope = await loadSessionFrozenScope(session, client)
+  if (
+    scope.cycleId !== session.cycleId ||
+    scope.targetOrigin !== session.targetOrigin ||
+    scope.environmentScopeVersion !== session.environmentScopeVersion ||
+    scope.authPolicyHash !== session.authPolicyHash
   )
-  if (scope.cycleId !== session.cycleId || scope.allowedOrigins[0] !== session.allowedOrigins[0])
     throw new ServiceError('Discovery browser scope is no longer current.', 'CONFLICT')
+  const current = new URL(session.page.url())
+  if (
+    current.origin !== session.targetOrigin ||
+    current.pathname !== session.routeId ||
+    current.search ||
+    current.hash ||
+    session.authTransitOutcome !== 'RETURNED_TO_FROZEN_TARGET'
+  )
+    throw new ServiceError(
+      'Authenticated Discovery must return through the authorized flow to the frozen target route.',
+      'CONFLICT',
+    )
   const blockerId = idFor(
     'blocker',
     session.journeyId,
@@ -486,72 +793,89 @@ export async function captureQualityJourneyDiscoveryBrowserReceipt(input: unknow
   if (!captureAllowed) throw stateError(session.state)
   if (session.accessMode === 'AUTHENTICATED_INTENT' && session.state === 'ACTIVE')
     throw new ServiceError('Human confirmation is required before authenticated discovery capture.', 'CONFLICT')
-  const currentUrl = session.terminalUrl ?? sanitizedUrl(session.page.url())
+  const rawCurrentUrl = session.page.url()
+  const currentUrl = sanitizedUrl(rawCurrentUrl)
   let parsed: URL
   try {
-    parsed = new URL(currentUrl)
+    parsed = new URL(rawCurrentUrl)
   } catch {
     throw new ServiceError('Discovery browser capture is outside the permitted target.', 'CONFLICT')
   }
-  if (!session.allowedOrigins.includes(parsed.origin) || parsed.pathname !== session.routeId)
+  if (parsed.origin !== session.targetOrigin || parsed.pathname !== session.routeId || parsed.search || parsed.hash)
     throw new ServiceError('Discovery browser capture is outside the permitted target.', 'CONFLICT')
-  const artifactId = idFor('receipt', session.id, String(session.generation), request.snapshotId)
-  const accessOutcome = session.state === 'ACCESS_CONFIRMED' ? 'ACCESS_CONFIRMED' : session.state
-  const title = '[not persisted]'
-  const facts = [
-    `Appraise loaded ${session.routeId} at ${currentUrl}.`,
-    'Appraise intentionally did not collect target-controlled page title content.',
-    `Appraise observed access outcome ${accessOutcome}.`,
-  ]
-  const receipt = discoveryBrowserReceiptSchema.parse({
-    schemaVersion: 'appraise.discovery-browser-receipt/v1',
-    issuer: discoveryBrowserReceiptIssuer,
-    verificationStrength: discoveryBrowserVerificationStrength,
-    artifactId,
-    sessionId: session.id,
-    sessionGeneration: session.generation,
-    processInstanceId: session.processInstanceId,
-    journeyId: session.journeyId,
-    targetProjectId: session.targetProjectId,
-    cycleId: session.cycleId,
-    discoveryRevisionId: session.discoveryRevisionId,
-    workItemId: session.workItemId,
-    environmentId: session.environmentId,
-    routeId: session.routeId,
-    snapshotId: request.snapshotId,
-    accessMode: session.accessMode,
-    accessOutcome,
-    capturedAt: new Date().toISOString(),
-    url: currentUrl,
-    title,
-    observationFacts: facts,
-    observationFactsHash: hash(facts),
-    note: 'Human-confirmed browser access records local access only; it does not identify a natural person or attest IdP identity.',
-  })
-  const contentHash = hash(receipt)
-  const identityKey = `discovery-browser-receipt:${session.id}:${session.generation}:${request.snapshotId}`
-  const existing = await client.qualityJourneyArtifact.findUnique({
-    where: { journeyId_identityKey: { journeyId: session.journeyId, identityKey } },
-  })
-  if (existing) {
-    if (existing.contentHash !== contentHash || existing.artifactJson !== canonical(receipt))
-      throw new ServiceError('Discovery browser receipt identity conflicts.', 'CONFLICT')
-  } else {
-    await client.qualityJourneyArtifact.create({
-      data: {
-        id: idFor('artifact', session.journeyId, artifactId),
-        identityKey,
-        journeyId: session.journeyId,
-        targetProjectId: session.targetProjectId,
-        cycleId: session.cycleId,
-        kind: discoveryBrowserReceiptKind,
-        artifactId,
-        contentHash,
-        artifactJson: canonical(receipt),
-      },
+  if (session.accessMode === 'AUTHENTICATED_INTENT' && session.authTransitOutcome !== 'RETURNED_TO_FROZEN_TARGET')
+    throw new ServiceError(
+      'Authenticated Discovery must return through the authorized flow before capture.',
+      'CONFLICT',
+    )
+  return withTransaction(client, async tx => {
+    await assertFrozenScopeStillMatchesSession(session, tx)
+    const artifactId = idFor('receipt', session.id, String(session.generation), request.snapshotId)
+    const accessOutcome = session.state === 'ACCESS_CONFIRMED' ? 'ACCESS_CONFIRMED' : session.state
+    const title = '[not persisted]'
+    const facts = [
+      `Appraise loaded ${session.routeId} at ${currentUrl}.`,
+      'Appraise intentionally did not collect target-controlled page title content.',
+      `Appraise observed access outcome ${accessOutcome}.`,
+    ]
+    const receipt = discoveryBrowserReceiptSchema.parse({
+      schemaVersion: 'appraise.discovery-browser-receipt/v1',
+      issuer: discoveryBrowserReceiptIssuer,
+      verificationStrength: discoveryBrowserVerificationStrength,
+      artifactId,
+      sessionId: session.id,
+      sessionGeneration: session.generation,
+      processInstanceId: session.processInstanceId,
+      journeyId: session.journeyId,
+      targetProjectId: session.targetProjectId,
+      cycleId: session.cycleId,
+      discoveryRevisionId: session.discoveryRevisionId,
+      workItemId: session.workItemId,
+      environmentId: session.environmentId,
+      environmentScopeVersion: session.environmentScopeVersion,
+      routeId: session.routeId,
+      snapshotId: request.snapshotId,
+      accessMode: session.accessMode,
+      ...(session.authFlowId
+        ? {
+            authFlowId: session.authFlowId,
+            authPolicyHash: session.authPolicyHash,
+            authTransitOutcome: 'RETURNED_TO_FROZEN_TARGET' as const,
+          }
+        : {}),
+      accessOutcome,
+      capturedAt: new Date().toISOString(),
+      url: currentUrl,
+      title,
+      observationFacts: facts,
+      observationFactsHash: hash(facts),
+      note: 'Human-confirmed browser access records local access only; it does not identify a natural person or attest IdP identity.',
     })
-  }
-  return { artifactId, contentHash, receipt }
+    const contentHash = hash(receipt)
+    const identityKey = `discovery-browser-receipt:${session.id}:${session.generation}:${request.snapshotId}`
+    const existing = await tx.qualityJourneyArtifact.findUnique({
+      where: { journeyId_identityKey: { journeyId: session.journeyId, identityKey } },
+    })
+    if (existing) {
+      if (existing.contentHash !== contentHash || existing.artifactJson !== canonical(receipt))
+        throw new ServiceError('Discovery browser receipt identity conflicts.', 'CONFLICT')
+    } else {
+      await tx.qualityJourneyArtifact.create({
+        data: {
+          id: idFor('artifact', session.journeyId, artifactId),
+          identityKey,
+          journeyId: session.journeyId,
+          targetProjectId: session.targetProjectId,
+          cycleId: session.cycleId,
+          kind: discoveryBrowserReceiptKind,
+          artifactId,
+          contentHash,
+          artifactJson: canonical(receipt),
+        },
+      })
+    }
+    return { artifactId, contentHash, receipt }
+  })
 }
 
 export async function logoutQualityJourneyDiscoveryBrowserSession(input: unknown) {
@@ -593,6 +917,7 @@ export async function replaceQualityJourneyDiscoveryBrowserContext(
       environmentId: previous.environmentId,
       routeId: previous.routeId,
       accessMode: previous.accessMode,
+      ...(previous.authFlowId ? { authFlowId: previous.authFlowId } : {}),
       ttlSeconds: Math.max(30, Math.floor((previous.expiresAt.getTime() - Date.now()) / 1_000)),
     },
     client,
@@ -662,6 +987,32 @@ export async function assertDiscoveryBrowserReceiptAdmission(
       receipt.accessOutcome === 'MISSING_ACCESS'
     )
       throw new ServiceError('Scout evidence receipt is outside the exact discovery browser scope.', 'CONFLICT')
+    if (receipt.accessMode === 'AUTHENTICATED_INTENT') {
+      const activeRevision = await tx.qualityJourneyDiscoveryRevision.findFirst({ where: { id: revision.id } })
+      const scope = activeRevision
+        ? (JSON.parse(activeRevision.scoutScopeJson) as {
+            environmentBindings?: Array<{
+              environmentId: string
+              scopeVersion: number
+              discoveryAuthTransitPolicyJson: string | null
+              discoveryAuthTransitPolicyHash: string
+            }>
+          })
+        : null
+      const binding = scope?.environmentBindings?.find(value => value.environmentId === receipt.environmentId)
+      if (
+        !binding ||
+        receipt.environmentScopeVersion !== binding.scopeVersion ||
+        receipt.authPolicyHash !== binding.discoveryAuthTransitPolicyHash ||
+        !receipt.authFlowId ||
+        !binding.discoveryAuthTransitPolicyJson ||
+        !parseDiscoveryAuthTransitPolicy(
+          JSON.parse(binding.discoveryAuthTransitPolicyJson),
+          receipt.url.startsWith('http') ? new URL(receipt.url).origin : '',
+        ).flows.some(flow => flow.flowId === receipt.authFlowId)
+      )
+        throw new ServiceError('Authenticated Scout evidence receipt has stale transit-policy provenance.', 'CONFLICT')
+    }
     receipts.set(receipt.artifactId, receipt)
   }
   for (const observation of bundle.observations) {

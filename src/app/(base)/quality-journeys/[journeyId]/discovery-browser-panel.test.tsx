@@ -35,6 +35,7 @@ const discovery = {
   workItemId: 'scout-1',
   environments: [{ id: 'environment-1', name: 'Local' }],
   routes: ['/account'],
+  authFlows: [{ environmentId: 'environment-1', flowId: 'test-login' }],
 }
 
 beforeEach(() => {
@@ -82,6 +83,7 @@ it('keeps credential and MFA entry out of Appraise actions', async () => {
     environmentId: 'environment-1',
     routeId: '/account',
     accessMode: 'AUTHENTICATED_INTENT',
+    authFlowId: 'test-login',
   })
   expect(JSON.stringify(mocks.start.mock.calls)).not.toMatch(/password|credential|mfaCode|cookie|storage/i)
   expect(screen.getByText(/Complete sign-in and MFA directly in the opened target browser/i)).toBeInTheDocument()

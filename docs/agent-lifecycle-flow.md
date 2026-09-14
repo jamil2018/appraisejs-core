@@ -47,6 +47,17 @@ revocation and context replacement close the context, while process restart inva
 Missing access creates an explicit Journey blocker. A later human access confirmation records only local access and
 does not identify a natural person or attest an identity-provider assertion.
 
+An authenticated session may cross the target origin only through the selected Environment's immutable
+`appraise.discovery-auth-transit/v1` policy. That policy names an exact flow ID, canonical HTTPS IdP origins,
+document-origin to destination-origin rules, canonical exact or segment-prefix paths, explicit methods/request kinds,
+and an explicit IdP-to-frozen-target return edge. Appraise freezes the canonical policy hash and environment scope
+version into the Discovery revision and rejects a changed Environment before start, confirmation, capture, or Scout
+admission. IdP origins are not Scout network authority: they exist only in the headed browser policy. It validates
+every redirect hop with zero follow and its effective redirect method; WebSockets remain denied and revoke the session.
+Authenticated confirmation and receipt capture require the declared return to the selected target origin and exact
+selected route after that return has committed in the main frame. The sealed receipt retains only its Environment scope version, flow ID, policy hash, and return
+outcome; it never persists IdP URL, query, response, or page content.
+
 Only an immutable `APPRAISE_DISCOVERY_BROWSER_V1` artifact can back a Scout observation. The specialized Scout
 submission transaction resolves every descriptor and verifies its exact hash, issuer, Journey, target, cycle,
 discovery revision, work item, snapshot, route, environment, access outcome and Appraise-derived observation fact

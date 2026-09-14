@@ -1,17 +1,17 @@
 # Graph Report - prisma
 
 ## Corpus Check
-- 85 files from prisma/schema.prisma and migrations
+- 86 files from prisma/schema.prisma and migrations
 - Verdict: schema-aware graph generated because Graphify AST extraction does not currently produce Prisma/SQL nodes.
 
 ## Summary
-- 2193 nodes · 5016 edges · 310 communities
+- 2195 nodes · 5020 edges · 311 communities
 - Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS
 - Token cost: 0 input · 0 output
 
 ## God Nodes (most connected - your core abstractions)
-1. `String` - 920 edges
-2. `schema.prisma` - 240 edges
+1. `String` - 921 edges
+2. `schema.prisma` - 241 edges
 3. `DateTime` - 219 edges
 4. `QualityJourney` - 201 edges
 5. `TargetProject` - 146 edges
@@ -42,7 +42,7 @@
 ## Import Cycles
 - None detected.
 
-## Communities (310 total)
+## Communities (311 total)
 ### Community 0 - "schema.prisma"
 Nodes (3): schema.prisma, datasource db (sqlite), Prisma client generator
 
@@ -380,7 +380,7 @@ Nodes (12): CollaborationNotification, CollaborationNotification.id, Collaborati
 Nodes (6): CollaborationMutationLock, CollaborationMutationLock.lockKey, CollaborationMutationLock.ownerId, CollaborationMutationLock.fencingToken, CollaborationMutationLock.leaseExpiresAt, CollaborationMutationLock.updatedAt
 
 ### Community 112 - "Environment"
-Nodes (18): Environment, Environment.id, Environment.name, Environment.baseUrl, Environment.expectedPageTitle, Environment.apiBaseUrl, Environment.username, Environment.passwordEnvironmentVariable (+more)
+Nodes (19): Environment, Environment.id, Environment.name, Environment.baseUrl, Environment.expectedPageTitle, Environment.apiBaseUrl, Environment.username, Environment.passwordEnvironmentVariable (+more)
 
 ### Community 113 - "Tag"
 Nodes (15): Tag, Tag.id, Tag.name, Tag.tagExpression, Tag.type, Tag.createdAt, Tag.updatedAt, Tag.testRuns (+more)
@@ -972,6 +972,9 @@ Nodes (1): 20260913100000_add_external_work_claim_receipts
 
 ### Community 309 - "20260913110000_add_external_submission_acceptances"
 Nodes (1): 20260913110000_add_external_submission_acceptances
+
+### Community 310 - "20260914090000_add_discovery_auth_transit_policy"
+Nodes (1): 20260914090000_add_discovery_auth_transit_policy
 
 ## Suggested Questions
 - Which models connect a Quality Journey to its execution and evidence records?

@@ -2255,6 +2255,9 @@ model Environment {
   username                    String?
   passwordEnvironmentVariable String?
   credentialState             EnvironmentCredentialState @default(NONE)
+  /// Canonical, versioned cross-origin human sign-in transit policy. It is
+  /// null unless this Environment explicitly authorizes an IdP redirect flow.
+  discoveryAuthTransitPolicyJson String?
   /// Explicit optimistic-concurrency token for remote evaluation scope.
   /// Environment editors increment it whenever the canonical environment
   /// payload changes; remote scope snapshots bind this value immutably.

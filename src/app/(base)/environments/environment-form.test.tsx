@@ -53,6 +53,7 @@ describe('EnvironmentForm', () => {
           apiBaseUrl: 'https://api.example.com',
           username: 'tester',
           passwordEnvironmentVariable: 'APPRAISE_STAGING_PASSWORD',
+          discoveryAuthTransitPolicyJson: '',
         },
         undefined,
       )

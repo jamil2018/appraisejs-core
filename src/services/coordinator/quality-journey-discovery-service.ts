@@ -4,6 +4,10 @@ import type { Prisma, PrismaClient, QualityJourney } from '@prisma/client'
 import { z } from 'zod'
 import prisma from '@/config/db-config'
 import { canonicalContractJson } from '@/lib/catalog-contracts'
+import {
+  discoveryAuthTransitPolicyHash,
+  normalizeDiscoveryAuthTransitPolicyJson,
+} from '@/lib/quality-journey/discovery-auth-transit-policy'
 import { defaultOperationDefinitions } from '@/lib/operation-catalog'
 import {
   hashResourceResolutionBundle,
@@ -50,7 +54,13 @@ type FrozenResource = {
 }
 
 type FrozenScope = {
-  environments: Array<{ id: string; baseUrl: string; scopeVersion: number }>
+  environments: Array<{
+    id: string
+    baseUrl: string
+    scopeVersion: number
+    discoveryAuthTransitPolicyJson: string | null
+    discoveryAuthTransitPolicyHash: string
+  }>
   locatorGroups: Array<{ id: string; route: string; moduleId: string }>
   resources: FrozenResource[]
   operationIds: string[]
@@ -74,7 +84,10 @@ function canonicalArtifacts(
 
 async function compileFrozenScope(targetProjectId: string, db: Db): Promise<FrozenScope> {
   const [environments, allGroups, allLocators, modules, steps, ownerships] = await Promise.all([
-    db.environment.findMany({ where: { targetProjectId }, select: { id: true, baseUrl: true, scopeVersion: true } }),
+    db.environment.findMany({
+      where: { targetProjectId },
+      select: { id: true, baseUrl: true, scopeVersion: true, discoveryAuthTransitPolicyJson: true },
+    }),
     db.locatorGroup.findMany({ where: { targetProjectId }, select: { id: true, route: true, moduleId: true } }),
     db.locator.findMany({ select: { id: true, value: true, updatedAt: true, targetProjectId: true } }),
     db.module.findMany({ where: { targetProjectId }, select: { id: true, name: true, updatedAt: true } }),
@@ -132,7 +145,15 @@ async function compileFrozenScope(targetProjectId: string, db: Db): Promise<Froz
       'CONFLICT',
     )
   return {
-    environments: environments.sort((left, right) => left.id.localeCompare(right.id)),
+    environments: environments
+      .map(environment => {
+        const targetOrigin = new URL(environment.baseUrl).origin
+        const policy = normalizeDiscoveryAuthTransitPolicyJson(environment.discoveryAuthTransitPolicyJson, targetOrigin)
+        if (policy !== environment.discoveryAuthTransitPolicyJson)
+          throw new ServiceError('Environment discovery sign-in transit policy is not canonical.', 'CONFLICT')
+        return { ...environment, discoveryAuthTransitPolicyHash: discoveryAuthTransitPolicyHash(policy) }
+      })
+      .sort((left, right) => left.id.localeCompare(right.id)),
     locatorGroups,
     resources: [...locators, ...destinationModules, ...readySteps, ...operations].sort((left, right) =>
       left.id.localeCompare(right.id),
@@ -178,6 +199,13 @@ function scopes(
   const operationRegistryHash = hash(scope.resources.filter(resource => resource.kind === 'OPERATION'))
   const scoutScope = {
     environmentIds: scope.environments.map(environment => environment.id),
+    environmentBindings: scope.environments.map(environment => ({
+      environmentId: environment.id,
+      targetOrigin: new URL(environment.baseUrl).origin,
+      scopeVersion: environment.scopeVersion,
+      discoveryAuthTransitPolicyJson: environment.discoveryAuthTransitPolicyJson,
+      discoveryAuthTransitPolicyHash: environment.discoveryAuthTransitPolicyHash,
+    })),
     routes: [...new Set(scope.locatorGroups.map(group => group.route))].sort(),
     locatorGroupIds: scope.locatorGroups.map(group => group.id),
   }
@@ -296,12 +324,16 @@ export async function ensureQualityJourneyDiscoveryForApprovedAnalysis(
     targetEnvironmentBindings: frozen.environments.map(environment => ({
       environmentId: environment.id,
       origin: environment.baseUrl,
+      scopeVersion: environment.scopeVersion,
+      discoveryAuthTransitPolicyHash: environment.discoveryAuthTransitPolicyHash,
     })),
     scope: {
       permittedTools: ['target.observe', 'evidence.publish'],
       permittedCommands: ['work.output.submit'],
       filesystemPaths: [],
-      networkOrigins: frozen.environments.map(environment => environment.baseUrl).sort(),
+      // IdP transit is an Appraise-owned headed-browser policy, never Scout
+      // worker network authority. Keep the existing target-only assignment scope.
+      networkOrigins: frozen.environments.map(environment => environment.baseUrl).toSorted(),
       credentialGrantIds: [],
       targetAccess: 'READ_ONLY' as const,
     },

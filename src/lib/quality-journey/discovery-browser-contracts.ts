@@ -29,9 +29,13 @@ export const discoveryBrowserReceiptSchema = z
     discoveryRevisionId: id,
     workItemId: id,
     environmentId: id,
+    environmentScopeVersion: z.number().int().positive(),
     routeId: route,
     snapshotId: id,
     accessMode: discoveryBrowserAccessModeSchema,
+    authFlowId: z.string().min(1).max(128).optional(),
+    authPolicyHash: digest.optional(),
+    authTransitOutcome: z.literal('RETURNED_TO_FROZEN_TARGET').optional(),
     accessOutcome: z.enum(['ACTIVE', 'ACCESS_CONFIRMED', 'MISSING_ACCESS']),
     capturedAt: timestamp,
     url: z.string().url().max(2_000),
@@ -43,6 +47,16 @@ export const discoveryBrowserReceiptSchema = z
     ),
   })
   .strict()
+  .superRefine((receipt, context) => {
+    if (receipt.accessMode === 'AUTHENTICATED_INTENT') {
+      if (!receipt.authFlowId || !receipt.authPolicyHash || receipt.authTransitOutcome !== 'RETURNED_TO_FROZEN_TARGET')
+        context.addIssue({
+          code: 'custom',
+          message: 'Authenticated receipts must bind an authorized completed transit flow.',
+        })
+    } else if (receipt.authFlowId || receipt.authPolicyHash || receipt.authTransitOutcome)
+      context.addIssue({ code: 'custom', message: 'Anonymous receipts cannot carry authentication transit fields.' })
+  })
 
 export type DiscoveryBrowserReceipt = z.infer<typeof discoveryBrowserReceiptSchema>
 export type DiscoveryBrowserSessionState =

@@ -28,6 +28,7 @@ type SessionView = {
   routeId: string
   currentUrl: string
   expiresAt: string | Date
+  authFlowId?: string
 }
 
 type ReceiptView = { artifactId: string; contentHash: string; observationFacts: string[] }
@@ -54,6 +55,7 @@ export function DiscoveryBrowserPanel({
     workItemId: string
     environments: Array<{ id: string; name: string }>
     routes: string[]
+    authFlows?: Array<{ environmentId: string; flowId: string }>
   } | null
 }) {
   const [session, setSession] = useState<SessionView | null>(null)
@@ -61,6 +63,8 @@ export function DiscoveryBrowserPanel({
   const [accessMode, setAccessMode] = useState<'ANONYMOUS' | 'AUTHENTICATED_INTENT'>('ANONYMOUS')
   const [environmentId, setEnvironmentId] = useState(discovery?.environments[0]?.id ?? '')
   const [routeId, setRouteId] = useState(discovery?.routes[0] ?? '')
+  const availableAuthFlows = discovery?.authFlows?.filter(flow => flow.environmentId === environmentId) ?? []
+  const [authFlowId, setAuthFlowId] = useState(availableAuthFlows[0]?.flowId ?? '')
   const [pending, startTransition] = useTransition()
 
   if (!discovery) return null
@@ -97,7 +101,12 @@ export function DiscoveryBrowserPanel({
                 id="discovery-environment"
                 className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
                 value={environmentId}
-                onChange={event => setEnvironmentId(event.target.value)}
+                onChange={event => {
+                  setEnvironmentId(event.target.value)
+                  setAuthFlowId(
+                    discovery.authFlows?.find(flow => flow.environmentId === event.target.value)?.flowId ?? '',
+                  )
+                }}
               >
                 {discovery.environments.map(environment => (
                   <option key={environment.id} value={environment.id}>
@@ -106,6 +115,23 @@ export function DiscoveryBrowserPanel({
                 ))}
               </select>
             </div>
+            {accessMode === 'AUTHENTICATED_INTENT' ? (
+              <div className="space-y-1 md:col-span-3">
+                <Label htmlFor="discovery-auth-flow">Authorized sign-in flow</Label>
+                <select
+                  id="discovery-auth-flow"
+                  className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+                  value={authFlowId}
+                  onChange={event => setAuthFlowId(event.target.value)}
+                >
+                  {availableAuthFlows.map(flow => (
+                    <option key={flow.flowId} value={flow.flowId}>
+                      {flow.flowId}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            ) : null}
             <div className="space-y-1">
               <Label htmlFor="discovery-route">Frozen route</Label>
               <select
@@ -135,7 +161,7 @@ export function DiscoveryBrowserPanel({
             </div>
             <Button
               className="md:col-span-3"
-              disabled={pending || !environmentId || !routeId}
+              disabled={pending || !environmentId || !routeId || (accessMode === 'AUTHENTICATED_INTENT' && !authFlowId)}
               onClick={() =>
                 run(() =>
                   startQualityJourneyDiscoveryBrowserAction({
@@ -145,6 +171,7 @@ export function DiscoveryBrowserPanel({
                     environmentId,
                     routeId,
                     accessMode,
+                    ...(accessMode === 'AUTHENTICATED_INTENT' ? { authFlowId } : {}),
                   }),
                 )
               }

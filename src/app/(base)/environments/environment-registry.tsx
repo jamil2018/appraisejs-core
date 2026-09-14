@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { Braces, ExternalLink, KeyRound, Pencil, Plus, Search, Server, UserRound } from 'lucide-react'
+import { Braces, ExternalLink, KeyRound, Pencil, Plus, Search, Server, ShieldCheck, UserRound } from 'lucide-react'
 import { useMemo, useState } from 'react'
 
 import { deleteEnvironmentAction } from '@/actions/environments/environment-actions'
@@ -12,6 +12,7 @@ import { Input } from '@/components/ui/input'
 import DeletePrompt from '@/components/user-prompt/delete-prompt'
 import { toast } from '@/hooks/use-toast'
 import { formatDateTime } from '@/lib/utils'
+import { identityProviderOriginsFromDiscoveryAuthTransitPolicy } from '@/lib/quality-journey/discovery-auth-transit-policy'
 
 import type { EnvironmentTableRow } from './environment-helpers'
 
@@ -217,6 +218,19 @@ export default function EnvironmentRegistry({ environments }: EnvironmentRegistr
                       title={environment.apiBaseUrl || undefined}
                     >
                       {environment.apiBaseUrl || 'Not configured'}
+                    </p>
+                  </div>
+                  <div className="min-w-0 rounded-md border border-white/[0.06] bg-white/[0.018] px-3.5 py-3 sm:col-span-2">
+                    <div className="flex items-center gap-2 text-zinc-500">
+                      <ShieldCheck className="size-3.5" aria-hidden="true" />
+                      <span className="text-[10px] font-medium uppercase tracking-[0.1em]">
+                        Discovery sign-in origins
+                      </span>
+                    </div>
+                    <p className="mt-2 truncate font-mono text-xs text-zinc-300">
+                      {identityProviderOriginsFromDiscoveryAuthTransitPolicy(
+                        environment.discoveryAuthTransitPolicyJson,
+                      ).join(', ') || 'None authorized'}
                     </p>
                   </div>
                   <div className="min-w-0 rounded-md border border-white/[0.06] bg-white/[0.018] px-3.5 py-3">
