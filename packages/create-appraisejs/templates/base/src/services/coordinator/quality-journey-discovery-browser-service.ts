@@ -149,10 +149,15 @@ type Session = {
   expiresAt: Date
   expiryTimer?: ReturnType<typeof setTimeout>
   terminalUrl?: string
+  /** Transient qualification diagnostic; never projected, persisted, or receipted. */
+  terminalCause?: DiscoveryBrowserTerminalCause
   browser: Browser
   context: BrowserContext
   page: BrowserPage
 }
+
+type DiscoveryBrowserTerminalCause =
+  'WEBSOCKET_DENIED' | 'DOWNLOAD' | 'POPUP' | 'MAIN_FRAME_NO_PENDING' | 'MAIN_FRAME_MISMATCH' | 'USER_REVOKE'
 
 type MainFrameTransition = {
   destinationUrl: string
@@ -172,6 +177,7 @@ type DiscoveryBrowserSession = Omit<
   | 'pendingMainFrameRequest'
   | 'pendingMainFrameCommit'
   | 'mainFrameDocumentOrigin'
+  | 'terminalCause'
 > & { allowedOrigins: string[]; allowedRoutes: string[]; currentUrl: string }
 
 function canonical(value: unknown) {
@@ -505,6 +511,7 @@ async function wireBrowserContainment(context: BrowserContext, getSession: () =>
   await context.routeWebSocket('**', async socket => {
     const session = getSession()
     socket.close({ code: 1008, reason: 'Journey browser policy denied WebSocket' })
+    setTerminalCause(session, 'WEBSOCKET_DENIED')
     await revokeSession(session, 'REVOKED')
   })
 }
@@ -569,11 +576,13 @@ function wirePageContainment(session: Session) {
   session.page.on('framenavigated', frame => void commitMainFrameNavigation(session, frame as BrowserFrame))
   session.page.on('download', value => {
     const download = value as { cancel?: () => Promise<void> }
+    setTerminalCause(session, 'DOWNLOAD')
     void download.cancel?.()
     void revokeSession(session, 'REVOKED')
   })
   session.page.on('popup', value => {
     const popup = value as { close?: () => Promise<void> }
+    setTerminalCause(session, 'POPUP')
     void popup.close?.()
     void revokeSession(session, 'REVOKED')
   })
@@ -583,7 +592,13 @@ async function commitMainFrameNavigation(session: Session, frame: BrowserFrame) 
   const url = frame.url?.() ?? session.page.url()
   const destination = parseFrameDestination(url)
   const pending = session.pendingMainFrameCommit
-  if (!destination || !pending || !matchesCommittedDestination(url, destination, pending)) {
+  if (!pending) {
+    setTerminalCause(session, 'MAIN_FRAME_NO_PENDING')
+    await revokeSession(session, 'REVOKED')
+    return
+  }
+  if (!destination || !matchesCommittedDestination(url, destination, pending)) {
+    setTerminalCause(session, 'MAIN_FRAME_MISMATCH')
     await revokeSession(session, 'REVOKED')
     return
   }
@@ -608,6 +623,10 @@ function isCommittedAuthorizedReturn(session: Session, pending: MainFrameTransit
     isTargetRoute(destination, session) &&
     matchesReturn(session, pending.sourceOrigin, destination, pending.effectiveMethod)
   )
+}
+function setTerminalCause(session: Session, cause: DiscoveryBrowserTerminalCause) {
+  if ((session.state === 'ACTIVE' || session.state === 'ACCESS_CONFIRMED') && !session.terminalCause)
+    session.terminalCause = cause
 }
 async function revokeSession(
   session: Session,
@@ -682,6 +701,16 @@ export async function startQualityJourneyDiscoveryBrowserSession(
 export async function getQualityJourneyDiscoveryBrowserSession(input: unknown) {
   const request = sessionInputSchema.parse(input)
   return projection(await getLiveSession(request))
+}
+
+/** Test/qualification-only in-process terminal diagnostic. It is deliberately
+ * unavailable while a session is live and excluded from all public projections. */
+export async function getQualityJourneyDiscoveryBrowserTerminalDiagnosticForQualification(input: unknown) {
+  const request = sessionInputSchema.parse(input)
+  const session = await getLiveSession(request)
+  if (session.state === 'ACTIVE' || session.state === 'ACCESS_CONFIRMED')
+    throw new ServiceError('Terminal diagnostic is available only after a session becomes inactive.', 'CONFLICT')
+  return { terminalCause: session.terminalCause }
 }
 
 /** This records that the local human says access is available. It deliberately
@@ -887,6 +916,7 @@ export async function logoutQualityJourneyDiscoveryBrowserSession(input: unknown
 export async function revokeQualityJourneyDiscoveryBrowserSession(input: unknown) {
   const request = sessionInputSchema.parse(input)
   const session = await getLiveSession(request)
+  setTerminalCause(session, 'USER_REVOKE')
   await revokeSession(session, 'REVOKED')
   return projection(session)
 }

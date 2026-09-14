@@ -6,6 +6,7 @@ import {
   confirmQualityJourneyDiscoveryBrowserAccess,
   markQualityJourneyDiscoveryBrowserMissingAccess,
   getQualityJourneyDiscoveryBrowserSession,
+  getQualityJourneyDiscoveryBrowserTerminalDiagnosticForQualification,
   logoutQualityJourneyDiscoveryBrowserSession,
   replaceQualityJourneyDiscoveryBrowserContext,
   revokeQualityJourneyDiscoveryBrowserSession,
@@ -177,6 +178,7 @@ describe('Quality Journey discovery browser service', () => {
       db as never,
     )
     expect(captured.receipt).toMatchObject({ accessOutcome: 'ACTIVE', url: 'https://example.test/checkout' })
+    expect(captured.receipt).not.toHaveProperty('terminalCause')
     expect(JSON.stringify(captured)).not.toContain('correct-horse-battery-staple')
     expect([...db.artifacts.values()].map(value => value.artifactJson).join()).not.toContain(
       'correct-horse-battery-staple',
@@ -586,7 +588,7 @@ describe('Quality Journey discovery browser service', () => {
         }
       },
     }
-    await startQualityJourneyDiscoveryBrowserSession(
+    const session = await startQualityJourneyDiscoveryBrowserSession(
       { ...scope, workItemId: 'work-1', environmentId: 'environment-1', routeId: '/checkout', accessMode: 'ANONYMOUS' },
       client() as never,
       runtime,
@@ -625,6 +627,57 @@ describe('Quality Journey discovery browser service', () => {
     const closeSocket = vi.fn()
     await webSocketHandler?.({ url: () => 'wss://attacker.test/socket', close: closeSocket })
     expect(closeSocket).toHaveBeenCalledWith({ code: 1008, reason: 'Journey browser policy denied WebSocket' })
+    await expect(getQualityJourneyDiscoveryBrowserSession({ ...scope, sessionId: session.id })).resolves.toMatchObject({
+      state: 'REVOKED',
+    })
+    await expect(
+      getQualityJourneyDiscoveryBrowserTerminalDiagnosticForQualification({ ...scope, sessionId: session.id }),
+    ).resolves.toEqual({ terminalCause: 'WEBSOCKET_DENIED' })
+    expect(session).not.toHaveProperty('terminalCause')
+  })
+
+  it('reports a main-frame mismatch only through the transient qualification diagnostic', async () => {
+    let handler: ((route: unknown) => Promise<void>) | undefined
+    let page:
+      | { mainFrame: { url(): string }; navigate: (url: string) => void; navigateSubframe: (url: string) => void }
+      | undefined
+    const session = await startQualityJourneyDiscoveryBrowserSession(
+      { ...scope, workItemId: 'work-1', environmentId: 'environment-1', routeId: '/checkout', accessMode: 'ANONYMOUS' },
+      client() as never,
+      browserRuntime(
+        'Checkout',
+        () => undefined,
+        next => {
+          handler = next
+        },
+        next => {
+          page = next
+        },
+      ),
+    )
+    await handler?.({
+      request: () => ({
+        url: () => 'https://example.test/checkout',
+        method: () => 'GET',
+        isNavigationRequest: () => true,
+        resourceType: () => 'document',
+        frame: () => page!.mainFrame,
+      }),
+      abort: async () => undefined,
+      fetch: async () => ({ headers: () => ({}), status: () => 200 }),
+      fulfill: async () => undefined,
+    })
+    page?.navigate('https://attacker.test/checkout')
+    await vi.waitFor(async () => {
+      await expect(
+        getQualityJourneyDiscoveryBrowserSession({ ...scope, sessionId: session.id }),
+      ).resolves.toMatchObject({
+        state: 'REVOKED',
+      })
+    })
+    await expect(
+      getQualityJourneyDiscoveryBrowserTerminalDiagnosticForQualification({ ...scope, sessionId: session.id }),
+    ).resolves.toEqual({ terminalCause: 'MAIN_FRAME_MISMATCH' })
   })
 
   it('uses the effective redirect method and ignores Location on non-redirect responses', async () => {
