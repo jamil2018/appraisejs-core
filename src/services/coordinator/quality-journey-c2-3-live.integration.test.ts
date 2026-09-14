@@ -136,6 +136,13 @@ function transitPolicy() {
           {
             documentOrigin: 'https://the-internet.herokuapp.com',
             destinationOrigin: 'https://the-internet.herokuapp.com',
+            path: { match: 'EXACT', value: '/login' },
+            methods: ['GET'],
+            requestKinds: ['DOCUMENT'],
+          },
+          {
+            documentOrigin: 'https://the-internet.herokuapp.com',
+            destinationOrigin: 'https://the-internet.herokuapp.com',
             path: { match: 'EXACT', value: '/authenticate' },
             methods: ['POST'],
             requestKinds: ['DOCUMENT'],
@@ -523,6 +530,17 @@ it('does not count discarded second-factor POSTs until the post-return gate is a
   expect(gate.secondFactorSubmitted()).toBe(true)
   gate.armSecondFactor()
   expect(gate.secondFactorSubmitted()).toBe(false)
+})
+
+it('authorizes only the exact provider login document re-entry needed for validation redirects', () => {
+  const policy = JSON.parse(normalizeDiscoveryAuthTransitPolicyJson(transitPolicy(), 'http://127.0.0.1:3000')!)
+  expect(policy.flows[0].rules).toContainEqual({
+    documentOrigin: 'https://the-internet.herokuapp.com',
+    destinationOrigin: 'https://the-internet.herokuapp.com',
+    path: { match: 'EXACT', value: '/login' },
+    methods: ['GET'],
+    requestKinds: ['DOCUMENT'],
+  })
 })
 
 afterEach(async () => {
