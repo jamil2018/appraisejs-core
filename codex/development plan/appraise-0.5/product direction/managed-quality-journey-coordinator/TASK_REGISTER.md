@@ -10,7 +10,8 @@ Historical work is retained in [TASK_REGISTER.managed-runtime-archive.md](TASK_R
 Work in dependency order within the user's authorized scope. C0.1 and the original C0.2 negative qualification remain
 verified. **C0.2e.1–C0.2e.4, C0.3, C0.4, C1.1–C1.3 and C2.1–C2.2 are verified** under their recorded scopes. GC1
 `passed` after live closure of `GC1-B01` and independent exact-artifact review. C2.3.1 and C2.3.2 are verified;
-C2.3.3 and parent C2.3 are blocked by the live human-login/MFA and cross-origin identity-provider qualification.
+C2.3.3 has an independently accepted cross-origin identity-provider transit implementation, but C2.3.3 and parent
+C2.3 remain blocked because the headed human-login/MFA attempt terminated before Appraise receipt capture and Scout admission.
 GC2 remains `not_evaluated`; C2.3.3 blocker closure is the exact next eligible task.
 Use `pending`, `in_progress`, `blocked`, `in_review`, `verified`;
 only verified tasks use `[x]`. A successful experiment can establish a negative result without passing its gate.
@@ -295,13 +296,13 @@ reconnect and explicit takeover. GC0 and GC1 are passed; the stricter end-to-end
 by the current-product remote `DISCOVERY` trace. C2.1 and C2.2 are verified, C-B02 is closed, and C2.3.3 blocker
 closure is the exact next eligible task.
 
-| ID    | Open requirement                                                 | Owner and closure evidence                                                                                                               |
-| ----- | ---------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| C-B01 | Installed Codex handoff/plugin/local and remote context behavior | Closed by C0.1 / C1.1–C1.3 launch, Send, redemption, fallback and later-stage takeover evidence                                          |
-| C-B02 | Full Appraise claim/commit enforcement and safe retries          | Closed by C0.2e / C2.1 retained admission, atomic acceptance, negative/concurrent/replay tests and independent review                    |
-| C-B03 | Durable resume, takeover and honest cancellation                 | C1.3 reconnect/takeover closed; C3.1 retains provider/process recovery and owned-stop coverage                                           |
-| C-B04 | Authenticated discovery and trusted evidence                     | C2.3.3: authorize contained cross-origin IdP redirects and record live human login/MFA, restart/revocation and admitted Appraise receipt |
-| C-B05 | Complete lifecycle and release integration                       | C2.2–C3.3: full Journey, compatibility, installation and quality review evidence                                                         |
+| ID    | Open requirement                                                 | Owner and closure evidence                                                                                                                                                                  |
+| ----- | ---------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| C-B01 | Installed Codex handoff/plugin/local and remote context behavior | Closed by C0.1 / C1.1–C1.3 launch, Send, redemption, fallback and later-stage takeover evidence                                                                                             |
+| C-B02 | Full Appraise claim/commit enforcement and safe retries          | Closed by C0.2e / C2.1 retained admission, atomic acceptance, negative/concurrent/replay tests and independent review                                                                       |
+| C-B03 | Durable resume, takeover and honest cancellation                 | C1.3 reconnect/takeover closed; C3.1 retains provider/process recovery and owned-stop coverage                                                                                              |
+| C-B04 | Authenticated discovery and trusted evidence                     | C2.3.3: retain the accepted contained cross-origin IdP model and complete a live human login/MFA without browser termination, then verify restart/revocation and admit the Appraise receipt |
+| C-B05 | Complete lifecycle and release integration                       | C2.2–C3.3: full Journey, compatibility, installation and quality review evidence                                                                                                            |
 
 | Historical blocker                  | Disposition in this architecture                                                                                                 |
 | ----------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |

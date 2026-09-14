@@ -3,8 +3,9 @@
 Status: architecture adopted by the user on 2026-09-11; C0.1, C0.2, C0.2e, C0.3 and C0.4 verified; GC0 passed its
 feasibility gate after independent exact-artifact review; C1.1, C1.2 and C1.3 are verified. GC1 `passed` after
 [independent usable-handoff review](evidence/GC1.md); C2.1 and C2.2 are verified after independent exact-artifact
-review. C2.3.1 and C2.3.2 are delivered and verified after independent exact-artifact review; C2.3.3 and parent C2.3
-remain blocked on the live human-login/MFA and cross-origin identity-provider qualification recorded in
+review. C2.3.1 and C2.3.2 are delivered and verified after independent exact-artifact review. C2.3.3 now includes an
+independently accepted, deliberately authorized cross-origin identity-provider transit model, but C2.3.3 and parent C2.3
+remain blocked because the headed human-login/MFA attempt terminated before Appraise receipt capture and Scout admission, as recorded in
 [C2.3 evidence](evidence/C2.3.md). The exact next eligible task is C2.3.3 blocker closure, not C2.4. The
 explicitly authorized retained C0.2e slice was the only implementation permitted before GC0 passed.
 The [task register](TASK_REGISTER.md) owns active task status, dependencies, gates and evidence. **C0.1: qualify the
