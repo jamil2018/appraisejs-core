@@ -72,6 +72,52 @@ type QualifiedScout = {
   inputArtifacts: unknown[]
 }
 
+type Phase =
+  | 'lineage ready'
+  | 'browser launched'
+  | 'left target for IdP'
+  | 'returned to exact target'
+  | 'access confirmed'
+  | 'receipt captured'
+  | 'Scout admission accepted'
+  | 'restart invalidated'
+  | 'revocation verified'
+
+function phaseReporter() {
+  let current: Phase | undefined
+  return (next: Phase, detail?: string) => {
+    if (current === next) return
+    current = next
+    console.info(`C2.3.3 live phase: ${next}${detail ? ` — ${detail}` : ''}`)
+  }
+}
+
+function sanitizedOriginPath(value: string) {
+  if (value === 'about:blank') return value
+  try {
+    const parsed = new URL(value)
+    return `${parsed.origin}${parsed.pathname}`
+  } catch {
+    return 'invalid-url'
+  }
+}
+
+/** Counts only a POST observed after the exact post-IdP return arms this gate. */
+function secondFactorGate() {
+  let armed = false
+  let submissionsAfterArm = 0
+  return {
+    recordDiscardedPost: () => {
+      if (armed) submissionsAfterArm += 1
+    },
+    armSecondFactor: () => {
+      armed = true
+      submissionsAfterArm = 0
+    },
+    secondFactorSubmitted: () => armed && submissionsAfterArm > 0,
+  }
+}
+
 function transitPolicy() {
   return JSON.stringify({
     schemaVersion: 'appraise.discovery-auth-transit/v1',
@@ -115,15 +161,19 @@ function transitPolicy() {
 }
 
 async function localCheckoutFixture() {
+  const gate = secondFactorGate()
   const server = createServer((request, response) => {
     if (request.url?.split('?')[0] !== '/checkout') return response.writeHead(404).end()
     // Intentionally consume and discard a second-factor body; never log or retain it.
     request.resume()
-    if (request.method === 'POST') return response.writeHead(303, { location: '/checkout' }).end()
+    if (request.method === 'POST') {
+      gate.recordDiscardedPost()
+      return response.writeHead(303, { location: '/checkout' }).end()
+    }
     response
       .writeHead(200, { 'content-type': 'text/html; charset=utf-8' })
       .end(
-        '<a href="https://the-internet.herokuapp.com/login">Sign in</a><form method="post"><input name="secondFactor" autocomplete="one-time-code"><button>Continue</button></form>',
+        '<!doctype html><title>Appraise C2.3.3 disposable checkout</title><main><h1>Appraise C2.3.3 disposable checkout</h1><p>After provider success, use the address bar to return here. Do not use browser Back. Submit the local second-factor form and leave this window open.</p><a href="https://the-internet.herokuapp.com/login">Open disposable identity-provider login</a><form method="post"><label>Second-factor confirmation <input name="secondFactor" autocomplete="one-time-code" required></label><button>Continue</button></form></main>',
       )
   })
   await new Promise<void>((resolve, reject) => {
@@ -132,7 +182,7 @@ async function localCheckoutFixture() {
   })
   const address = server.address()
   if (!address || typeof address === 'string') throw new Error('Live fixture did not bind an ephemeral TCP port.')
-  return { server, baseUrl: `http://127.0.0.1:${address.port}` }
+  return { server, baseUrl: `http://127.0.0.1:${address.port}`, ...gate }
 }
 
 function registerLiveAdapter(attemptId: string) {
@@ -386,16 +436,50 @@ async function approvedScout(client: PrismaClient, baseUrl: string): Promise<Qua
 
 async function waitForHumanReturn(
   scope: Pick<QualifiedScout, 'journeyId' | 'targetProjectId' | 'discoveryRevisionId'> & { sessionId: string },
+  returnUrl: string,
+  report: ReturnType<typeof phaseReporter>,
 ) {
   const expires = Date.now() + 10 * 60_000
   let leftTarget = false
+  const exactTarget = sanitizedOriginPath(returnUrl)
   while (Date.now() < expires) {
     const session = await getQualityJourneyDiscoveryBrowserSession(scope)
-    if (!session.currentUrl.endsWith('/checkout')) leftTarget = true
-    if (leftTarget && session.currentUrl.endsWith('/checkout') && session.state === 'ACTIVE') return session
+    const current = sanitizedOriginPath(session.currentUrl)
+    if (session.state !== 'ACTIVE')
+      throw new Error(
+        `Browser session became ${session.state} at ${current}; stop and inspect the visible browser only.`,
+      )
+    if (current === 'about:blank')
+      throw new Error('Browser session is about:blank; stop and inspect the visible browser only.')
+    if (current !== exactTarget && !leftTarget) {
+      leftTarget = true
+      report('left target for IdP')
+    }
+    if (leftTarget && current === exactTarget) {
+      report('returned to exact target')
+      return session
+    }
     await new Promise(resolve => setTimeout(resolve, 1_000))
   }
   throw new Error('Timed out waiting for the human-operated browser to return to the frozen checkout route.')
+}
+
+async function waitForSecondFactor(
+  fixture: { secondFactorSubmitted(): boolean },
+  scope: Pick<QualifiedScout, 'journeyId' | 'targetProjectId' | 'discoveryRevisionId'> & { sessionId: string },
+) {
+  const expires = Date.now() + 5 * 60_000
+  while (Date.now() < expires) {
+    const session = await getQualityJourneyDiscoveryBrowserSession(scope)
+    const current = sanitizedOriginPath(session.currentUrl)
+    if (session.state !== 'ACTIVE' || current === 'about:blank')
+      throw new Error(
+        `Browser session became ${session.state} at ${current}; stop and inspect the visible browser only.`,
+      )
+    if (fixture.secondFactorSubmitted()) return
+    await new Promise(resolve => setTimeout(resolve, 1_000))
+  }
+  throw new Error('Timed out waiting for the local second-factor form submission.')
 }
 
 async function writeSanitizedResult(resultDirectory: string, result: Record<string, unknown>) {
@@ -423,6 +507,18 @@ async function assertTwoProcessRestartInvalidation(scope: {
     throw new Error('A restarted broker process unexpectedly recovered a browser session.')
 }
 
+it('does not count discarded second-factor POSTs until the post-return gate is armed and reset', () => {
+  const gate = secondFactorGate()
+  gate.recordDiscardedPost()
+  expect(gate.secondFactorSubmitted()).toBe(false)
+  gate.armSecondFactor()
+  expect(gate.secondFactorSubmitted()).toBe(false)
+  gate.recordDiscardedPost()
+  expect(gate.secondFactorSubmitted()).toBe(true)
+  gate.armSecondFactor()
+  expect(gate.secondFactorSubmitted()).toBe(false)
+})
+
 afterEach(async () => {
   clearQualityJourneyDiscoveryBrowserSessionsForTest()
   clearAgentFactoryProviderAdaptersForTest()
@@ -433,9 +529,6 @@ describe.skipIf(!enabled)('C2.3.3 headed live human qualification', () => {
   it(
     'admits a sealed receipt through the real Scout boundary and proves restart/revocation invalidation',
     async () => {
-      console.info(
-        'C2.3.3 live: use only the headed Appraise browser. Enter no credentials here; return to Checkout and submit the local second-factor form.',
-      )
       const resultDirectory = process.env.APPRAISE_C233_RESULT_DIR
       if (!resultDirectory)
         throw new Error('Set APPRAISE_C233_RESULT_DIR to a local directory for the sanitized result artifact.')
@@ -446,7 +539,9 @@ describe.skipIf(!enabled)('C2.3.3 headed live human qualification', () => {
       const client = new PrismaClient({ datasources: { db: { url: `file:${dbPath}` } } })
       const fixture = await localCheckoutFixture()
       try {
+        const report = phaseReporter()
         const scout = await approvedScout(client, fixture.baseUrl)
+        report('lineage ready')
         const browserScope = {
           journeyId: scout.journeyId,
           targetProjectId: scout.targetProjectId,
@@ -464,12 +559,22 @@ describe.skipIf(!enabled)('C2.3.3 headed live human qualification', () => {
           },
           client,
         )
-        await waitForHumanReturn({ ...browserScope, sessionId: session.id })
+        const returnUrl = `${fixture.baseUrl}/checkout`
+        report(
+          'browser launched',
+          `after provider success, type ${returnUrl} in the address bar; never use Back; submit the local second-factor form and leave the window open`,
+        )
+        await waitForHumanReturn({ ...browserScope, sessionId: session.id }, returnUrl, report)
+        // Reset only after the committed post-IdP return; earlier discarded POSTs cannot qualify.
+        fixture.armSecondFactor()
+        await waitForSecondFactor(fixture, { ...browserScope, sessionId: session.id })
         await confirmQualityJourneyDiscoveryBrowserAccess({ ...browserScope, sessionId: session.id }, client)
+        report('access confirmed')
         const captured = await captureQualityJourneyDiscoveryBrowserReceipt(
           { ...browserScope, sessionId: session.id, snapshotId: `snapshot-${randomUUID()}` },
           client,
         )
+        report('receipt captured')
         const admittedFact = captured.receipt.observationFacts.find(fact =>
           fact.includes('Appraise observed access outcome ACCESS_CONFIRMED.'),
         )
@@ -528,6 +633,9 @@ describe.skipIf(!enabled)('C2.3.3 headed live human qualification', () => {
           client,
         )
         expect(admission).toMatchObject({ replayed: false })
+        report('Scout admission accepted')
+        await assertTwoProcessRestartInvalidation({ ...browserScope, sessionId: session.id })
+        report('restart invalidated')
         const revoked = await startQualityJourneyDiscoveryBrowserSession(
           {
             ...browserScope,
@@ -545,7 +653,8 @@ describe.skipIf(!enabled)('C2.3.3 headed live human qualification', () => {
             client,
           ),
         ).rejects.toMatchObject({ code: 'UNAUTHORIZED' })
-        await assertTwoProcessRestartInvalidation({ ...browserScope, sessionId: session.id })
+        report('revocation verified')
+        expect(fixture.secondFactorSubmitted()).toBe(true)
         await writeSanitizedResult(resultDirectory, {
           receiptArtifactId: captured.artifactId,
           receiptHash: captured.contentHash,
