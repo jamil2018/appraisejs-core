@@ -712,6 +712,53 @@ describe('Quality Journey discovery browser service', () => {
     })
   })
 
+  it('ignores only an empty provisional main-frame event and still fences the next real navigation', async () => {
+    let page:
+      | {
+          mainFrame: { url(): string }
+          navigate: (url: string) => void
+          navigateWithPageUrl: (frameUrl: string, pageUrl: string) => void
+          navigateSubframe: (url: string) => void
+        }
+      | undefined
+    const session = await startQualityJourneyDiscoveryBrowserSession(
+      {
+        ...scope,
+        workItemId: 'work-1',
+        environmentId: 'environment-1',
+        routeId: '/checkout',
+        accessMode: 'AUTHENTICATED_INTENT',
+        authFlowId: 'test-login',
+      },
+      client() as never,
+      browserRuntime(
+        'Checkout',
+        () => undefined,
+        undefined,
+        next => (page = next),
+      ),
+    )
+    page?.navigateWithPageUrl('', '')
+    await expect(getQualityJourneyDiscoveryBrowserSession({ ...scope, sessionId: session.id })).resolves.toMatchObject({
+      state: 'ACTIVE',
+    })
+    await expect(
+      confirmQualityJourneyDiscoveryBrowserAccess({ ...scope, sessionId: session.id }, client() as never),
+    ).rejects.toBeTruthy()
+    await expect(
+      captureQualityJourneyDiscoveryBrowserReceipt(
+        { ...scope, sessionId: session.id, snapshotId: 'empty-provisional' },
+        client() as never,
+      ),
+    ).rejects.toMatchObject({ code: 'CONFLICT' })
+    page?.navigate('https://attacker.test/checkout')
+    await vi.waitFor(async () => {
+      await expect(
+        getQualityJourneyDiscoveryBrowserSession({ ...scope, sessionId: session.id }),
+      ).resolves.toMatchObject({ state: 'REVOKED' })
+    })
+  })
+
   it('preserves only the triggering origin and path for a no-pending main-frame revoke', async () => {
     let page:
       | {

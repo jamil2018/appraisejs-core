@@ -595,7 +595,10 @@ function wirePageContainment(session: Session) {
 }
 async function commitMainFrameNavigation(session: Session, frame: BrowserFrame) {
   if (frame !== session.page.mainFrame()) return
-  const url = frame.url?.() ?? session.page.url()
+  const frameUrl = frame.url?.()
+  const pageUrl = session.page.url()
+  if (isEmptyProvisionalMainFrameEvent(session, frameUrl, pageUrl)) return
+  const url = frameUrl ?? pageUrl
   const destination = parseFrameDestination(url)
   const pending = session.pendingMainFrameCommit
   if (!pending) {
@@ -611,6 +614,9 @@ async function commitMainFrameNavigation(session: Session, frame: BrowserFrame) 
   session.lastAuthorizedMainFrameCommitHash = committedUrlHash(url)
   if (isCommittedAuthorizedReturn(session, pending, destination))
     session.authTransitOutcome = 'RETURNED_TO_FROZEN_TARGET'
+}
+function isEmptyProvisionalMainFrameEvent(session: Session, frameUrl: string | undefined, pageUrl: string) {
+  return !session.pendingMainFrameCommit && frameUrl === '' && pageUrl === ''
 }
 function isExactDuplicateMainFrameCommit(session: Session, destination: URL | undefined, url: string) {
   return Boolean(
