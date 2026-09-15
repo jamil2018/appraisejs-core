@@ -671,15 +671,78 @@ describe('Quality Journey discovery browser service', () => {
   })
 
   it.each([
-    ['document', 'https://attacker.test/checkout', true, 'document', 'ROUTE_POLICY_DENIED_DOCUMENT'],
-    ['subresource', 'https://idp.example.test/unlisted.js', false, 'script', 'ROUTE_POLICY_DENIED_SUBRESOURCE'],
-    ['XHR/fetch', 'https://idp.example.test/unlisted.json', false, 'fetch', 'ROUTE_POLICY_DENIED_XHR_FETCH'],
-  ] as const)('classifies a policy-denied %s route', async (_name, url, navigation, resource, expectedCause) => {
+    ['attacker document', 'https://attacker.test/checkout', true, 'document'],
+    ['third-party subresource', 'https://analytics.example.test/pixel.js', false, 'script'],
+    ['third-party XHR/fetch', 'https://analytics.example.test/collect', false, 'fetch'],
+  ] as const)('aborts an ordinary unarmed %s without mutating authority', async (_name, url, navigation, resource) => {
     const fixture = await sessionAtAuthorizedIdp()
-    await fixture.handler(fixture.route(url, 'GET', 200, undefined, navigation, resource).route)
+    const denied = fixture.route(url, 'GET', 200, undefined, navigation, resource)
+    await fixture.handler(denied.route)
+    expect(denied.abort).toHaveBeenCalledOnce()
+    expect(denied.fulfill).not.toHaveBeenCalled()
+    await expect(
+      getQualityJourneyDiscoveryBrowserSession({ ...scope, sessionId: fixture.session.id }),
+    ).resolves.toMatchObject({
+      state: 'ACTIVE',
+      allowedOrigins: expect.arrayContaining([
+        'https://example.test',
+        'https://idp.example.test',
+        'https://idp-b.example.test',
+      ]),
+    })
     await expect(
       getQualityJourneyDiscoveryBrowserTerminalDiagnosticForQualification({ ...scope, sessionId: fixture.session.id }),
-    ).resolves.toEqual({ terminalCause: expectedCause })
+    ).rejects.toMatchObject({ code: 'CONFLICT' })
+    const allowed = fixture.route('https://idp-b.example.test/continue')
+    await fixture.handler(allowed.route)
+    expect(allowed.fulfill).toHaveBeenCalledOnce()
+  })
+
+  it('revokes only when an ordinary policy-denial abort fails', async () => {
+    const fixture = await sessionAtAuthorizedIdp()
+    const denied = fixture.route('https://analytics.example.test/collect', 'GET', 200, undefined, false, 'fetch')
+    denied.route.abort.mockRejectedValue(new Error('abort failed'))
+    await fixture.handler(denied.route)
+    expect(denied.fulfill).not.toHaveBeenCalled()
+    await expect(
+      getQualityJourneyDiscoveryBrowserSession({ ...scope, sessionId: fixture.session.id }),
+    ).resolves.toMatchObject({ state: 'REVOKED' })
+    await expect(
+      getQualityJourneyDiscoveryBrowserTerminalDiagnosticForQualification({ ...scope, sessionId: fixture.session.id }),
+    ).resolves.toEqual({ terminalCause: 'ROUTE_OPERATION_FAILED' })
+  })
+
+  it('does not admit or fence authority when an ordinary policy-denial abort never settles', async () => {
+    const fixture = await sessionAtAuthorizedIdp()
+    const denied = fixture.route('https://analytics.example.test/collect', 'GET', 200, undefined, false, 'fetch')
+    denied.route.abort = vi.fn(() => new Promise<undefined>(() => undefined))
+    void fixture.handler(denied.route)
+    expect(denied.fulfill).not.toHaveBeenCalled()
+    await expect(
+      getQualityJourneyDiscoveryBrowserSession({ ...scope, sessionId: fixture.session.id }),
+    ).resolves.toMatchObject({
+      state: 'ACTIVE',
+      allowedOrigins: expect.arrayContaining([
+        'https://example.test',
+        'https://idp.example.test',
+        'https://idp-b.example.test',
+      ]),
+    })
+  })
+
+  it('synchronously revokes an armed human return on an XHR/fetch denial before abort settles', async () => {
+    const fixture = await sessionAtAuthorizedIdp()
+    await armQualityJourneyDiscoveryBrowserHumanReturn({ ...scope, sessionId: fixture.session.id }, fixture.db as never)
+    const denied = fixture.route('https://analytics.example.test/collect', 'GET', 200, undefined, false, 'fetch')
+    denied.route.abort = vi.fn(() => new Promise<undefined>(() => undefined))
+    void fixture.handler(denied.route)
+    expect(denied.fulfill).not.toHaveBeenCalled()
+    await expect(
+      getQualityJourneyDiscoveryBrowserSession({ ...scope, sessionId: fixture.session.id }),
+    ).resolves.toMatchObject({ state: 'REVOKED', allowedOrigins: [] })
+    await expect(
+      getQualityJourneyDiscoveryBrowserTerminalDiagnosticForQualification({ ...scope, sessionId: fixture.session.id }),
+    ).resolves.toEqual({ terminalCause: 'HUMAN_RETURN_DENIED' })
   })
 
   it('classifies a rejected route operation', async () => {
@@ -885,7 +948,7 @@ describe('Quality Journey discovery browser service', () => {
     },
   )
 
-  it('fences confirm and capture before a delayed unauthorized-route abort settles', async () => {
+  it('keeps confirm and capture available during an ordinary unauthorized-route abort', async () => {
     const fixture = await sessionAtAuthorizedIdp()
     await returnToFrozenTarget(fixture)
     const releaseAbort = deferred<undefined>()
@@ -895,11 +958,11 @@ describe('Quality Journey discovery browser service', () => {
     await expect(
       getQualityJourneyDiscoveryBrowserSession({ ...scope, sessionId: fixture.session.id }),
     ).resolves.toMatchObject({
-      state: 'REVOKED',
+      state: 'ACTIVE',
     })
     await expect(
       confirmQualityJourneyDiscoveryBrowserAccess({ ...scope, sessionId: fixture.session.id }, fixture.db as never),
-    ).rejects.toMatchObject({ code: 'UNAUTHORIZED' })
+    ).resolves.toMatchObject({ state: 'ACCESS_CONFIRMED' })
     releaseAbort.resolve(undefined)
     await processing
 
@@ -938,15 +1001,15 @@ describe('Quality Journey discovery browser service', () => {
     await expect(
       getQualityJourneyDiscoveryBrowserSession({ ...scope, sessionId: anonymous.id }),
     ).resolves.toMatchObject({
-      state: 'REVOKED',
+      state: 'ACTIVE',
     })
     await expect(
       captureQualityJourneyDiscoveryBrowserReceipt(
         { ...scope, sessionId: anonymous.id, snapshotId: 'capture-after-never-abort' },
         db as never,
       ),
-    ).rejects.toMatchObject({ code: 'UNAUTHORIZED' })
-    expect([...db.artifacts.values()]).toEqual([])
+    ).resolves.toMatchObject({ receipt: { accessOutcome: 'ACTIVE' } })
+    expect([...db.artifacts.values()]).toHaveLength(1)
   })
 
   it('cannot spend an armed exact-return grant after a never-settling abort has fenced authority', async () => {
@@ -1145,7 +1208,7 @@ describe('Quality Journey discovery browser service', () => {
     await expect(missing).resolves.toMatchObject({ state: 'MISSING_ACCESS' })
   })
 
-  it('keeps ordinary frozen-target traffic allowed across confirmation and still revokes unauthorized traffic', async () => {
+  it('keeps ordinary frozen-target traffic allowed across confirmation and aborts unauthorized traffic without revocation', async () => {
     const fixture = await sessionAtAuthorizedIdp()
     await returnToFrozenTarget(fixture)
     const beforeConfirmation = fixture.route('https://example.test/checkout')
@@ -1175,7 +1238,7 @@ describe('Quality Journey discovery browser service', () => {
     expect(unauthorized.abort).toHaveBeenCalledOnce()
     await expect(
       getQualityJourneyDiscoveryBrowserSession({ ...scope, sessionId: fixture.session.id }),
-    ).resolves.toMatchObject({ state: 'REVOKED' })
+    ).resolves.toMatchObject({ state: 'ACCESS_CONFIRMED' })
   })
 
   it('commits an exact multi-IdP chain and preserves an authorized POST redirect method', async () => {
@@ -1416,11 +1479,11 @@ describe('Quality Journey discovery browser service', () => {
     expect(pathConfusion.abort).toHaveBeenCalledOnce()
     const returned = request('https://example.test/checkout', 'https://idp.example.test/authorize', 'POST')
     await handler?.(returned)
-    expect(returned.abort).toHaveBeenCalledOnce()
+    expect(returned.fulfill).toHaveBeenCalledOnce()
     db.environmentScope.scopeVersion += 1
     await expect(
       confirmQualityJourneyDiscoveryBrowserAccess({ ...scope, sessionId: session.id }, db as never),
-    ).rejects.toMatchObject({ code: 'UNAUTHORIZED' })
+    ).rejects.toMatchObject({ code: 'CONFLICT' })
   })
 
   it('installs containment at context scope before popup or page requests', async () => {

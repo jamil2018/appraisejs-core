@@ -179,9 +179,6 @@ type DiscoveryBrowserTerminalCause =
   | 'HUMAN_RETURN_DENIED'
   | 'ROUTE_NOT_ACTIVE'
   | 'ROUTE_ORIGIN_MISMATCH'
-  | 'ROUTE_POLICY_DENIED_DOCUMENT'
-  | 'ROUTE_POLICY_DENIED_SUBRESOURCE'
-  | 'ROUTE_POLICY_DENIED_XHR_FETCH'
   | 'ROUTE_OPERATION_FAILED'
   | 'REDIRECT_DENIED'
 
@@ -799,8 +796,7 @@ async function handleBrowserRoute(requestRoute: BrowserRoute, session: Session) 
       return
     }
     if (!isAllowedBrowserRoute(session, request, kind, location)) {
-      setTerminalCause(session, routePolicyDeniedCause(kind))
-      await abortRouteFailClosed(session, requestRoute)
+      await denyOrdinaryRoute(requestRoute)
       return
     }
     await fulfillAllowedBrowserRoute(requestRoute, session, request, kind, location, authorityEpoch)
@@ -815,10 +811,8 @@ function denyRouteNotActive(session: Session, route: BrowserRoute) {
   return abortRouteFailClosed(session, route)
 }
 
-function routePolicyDeniedCause(kind: ReturnType<typeof requestKind>) {
-  if (kind === 'DOCUMENT') return 'ROUTE_POLICY_DENIED_DOCUMENT' as const
-  if (kind === 'XHR_FETCH') return 'ROUTE_POLICY_DENIED_XHR_FETCH' as const
-  return 'ROUTE_POLICY_DENIED_SUBRESOURCE' as const
+async function denyOrdinaryRoute(route: BrowserRoute) {
+  await route.abort()
 }
 
 function isAllowedBrowserRoute(
