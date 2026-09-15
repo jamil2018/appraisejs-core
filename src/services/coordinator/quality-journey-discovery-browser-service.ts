@@ -903,12 +903,28 @@ function readMainFrameNavigation(session: Session, frame: BrowserFrame): MainFra
 async function commitPendingMainFrameNavigation(session: Session, navigation: MainFrameNavigation) {
   const { url, destination, pending } = navigation
   if (hasUntaggedHumanReturnCommit(session, pending)) return revokeForMainFrameMismatch(session, url)
+  if (ignoreExactDuplicateDuringOrdinaryPendingTransition(session, navigation)) return
   if (consumeCachedDuplicatePendingRequest(session, navigation)) return
   if (!pending && session.pendingMainFrameRequest) return revokeForMainFrameMismatch(session, url)
   if (!pending) return handleNoPendingMainFrameNavigation(session, destination, url)
   if (!destination || !isValidPendingMainFrameCommit(session, pending, destination, url))
     return revokeForMainFrameMismatch(session, url)
   await applyPendingMainFrameCommit(session, pending, destination, url)
+}
+
+function ignoreExactDuplicateDuringOrdinaryPendingTransition(session: Session, navigation: MainFrameNavigation) {
+  const pending = navigation.pending
+  return Boolean(
+    pending &&
+    !session.humanReturnGrant &&
+    isActiveAtAuthorityEpoch(session, pending.authorityEpoch) &&
+    !matchesPendingMainFrameDestination(navigation, pending) &&
+    isExactCachedDuplicate(session, navigation),
+  )
+}
+
+function matchesPendingMainFrameDestination(navigation: MainFrameNavigation, pending: MainFrameTransition) {
+  return Boolean(navigation.destination && matchesCommittedDestination(navigation.url, navigation.destination, pending))
 }
 
 function consumeCachedDuplicatePendingRequest(session: Session, navigation: MainFrameNavigation) {

@@ -67,6 +67,13 @@ const repeatedLoginPolicy = JSON.stringify({
           methods: ['GET', 'POST'],
           requestKinds: ['DOCUMENT'],
         },
+        {
+          documentOrigin: 'https://idp.example.test',
+          destinationOrigin: 'https://idp.example.test',
+          path: { match: 'EXACT', value: '/secure' },
+          methods: ['GET'],
+          requestKinds: ['DOCUMENT'],
+        },
       ],
       returns: [{ fromOrigin: 'https://idp.example.test', targetPath: '/checkout', methods: ['GET'] }],
     },
@@ -1883,6 +1890,82 @@ describe('Quality Journey discovery browser service', () => {
       getQualityJourneyDiscoveryBrowserSession({ ...scope, sessionId: fixture.session.id }),
     ).resolves.toMatchObject({ state: 'ACTIVE' })
   })
+
+  it('commits a same-URL provider-login response instead of treating it as an old-page duplicate', async () => {
+    const fixture = await sessionAtRepeatedProviderLogin()
+    const login = fixture.route('https://idp.example.test/login')
+    await fixture.handler(login.route)
+    expect(login.fulfill).toHaveBeenCalledOnce()
+
+    fixture.page.navigate('https://idp.example.test/login')
+    await expect(
+      armQualityJourneyDiscoveryBrowserHumanReturn({ ...scope, sessionId: fixture.session.id }, fixture.db as never),
+    ).resolves.toMatchObject({ returnUrl: 'https://example.test/checkout' })
+  })
+
+  it('keeps an ordinary pending transition through an exact duplicate provider-login event', async () => {
+    const fixture = await sessionAtRepeatedProviderLogin()
+    const secure = fixture.route('https://idp.example.test/secure')
+    await fixture.handler(secure.route)
+    expect(secure.fulfill).toHaveBeenCalledOnce()
+
+    fixture.page.navigate('https://idp.example.test/login')
+    await expect(
+      getQualityJourneyDiscoveryBrowserSession({ ...scope, sessionId: fixture.session.id }),
+    ).resolves.toMatchObject({ state: 'ACTIVE', currentUrl: 'https://idp.example.test/login' })
+
+    fixture.page.navigate('https://idp.example.test/secure')
+    await expect(
+      getQualityJourneyDiscoveryBrowserSession({ ...scope, sessionId: fixture.session.id }),
+    ).resolves.toMatchObject({ state: 'ACTIVE', currentUrl: 'https://idp.example.test/secure' })
+    await expect(
+      armQualityJourneyDiscoveryBrowserHumanReturn({ ...scope, sessionId: fixture.session.id }, fixture.db as never),
+    ).resolves.toMatchObject({ returnUrl: 'https://example.test/checkout' })
+  })
+
+  it('does not ignore a duplicate provider event while a tagged human return commit is pending', async () => {
+    const fixture = await sessionAtAuthorizedIdp()
+    await armQualityJourneyDiscoveryBrowserHumanReturn({ ...scope, sessionId: fixture.session.id }, fixture.db as never)
+    await fixture.handler(fixture.route('https://example.test/checkout').route)
+
+    fixture.page.navigate('https://idp.example.test/authorize')
+    await vi.waitFor(async () => {
+      await expect(
+        getQualityJourneyDiscoveryBrowserSession({ ...scope, sessionId: fixture.session.id }),
+      ).resolves.toMatchObject({ state: 'REVOKED' })
+    })
+    await expect(
+      getQualityJourneyDiscoveryBrowserTerminalDiagnosticForQualification({
+        ...scope,
+        sessionId: fixture.session.id,
+      }),
+    ).resolves.toEqual({ terminalCause: 'MAIN_FRAME_MISMATCH' })
+  })
+
+  it.each([
+    ['path', 'https://idp.example.test/login/other'],
+    ['query', 'https://idp.example.test/login?unexpected=1'],
+    ['fragment', 'https://idp.example.test/login#unexpected'],
+    ['origin', 'https://attacker.test/login'],
+  ] as const)(
+    'revokes an ordinary pending transition when the duplicate provider-login event changes its %s',
+    async (_name, eventUrl) => {
+      const fixture = await sessionAtRepeatedProviderLogin()
+      await fixture.handler(fixture.route('https://idp.example.test/secure').route)
+      fixture.page.navigate(eventUrl)
+      await vi.waitFor(async () => {
+        await expect(
+          getQualityJourneyDiscoveryBrowserSession({ ...scope, sessionId: fixture.session.id }),
+        ).resolves.toMatchObject({ state: 'REVOKED' })
+      })
+      await expect(
+        getQualityJourneyDiscoveryBrowserTerminalDiagnosticForQualification({
+          ...scope,
+          sessionId: fixture.session.id,
+        }),
+      ).resolves.toEqual({ terminalCause: 'MAIN_FRAME_MISMATCH' })
+    },
+  )
 
   it.each([
     ['query', 302, 'https://idp.example.test/login?unexpected=1'],
