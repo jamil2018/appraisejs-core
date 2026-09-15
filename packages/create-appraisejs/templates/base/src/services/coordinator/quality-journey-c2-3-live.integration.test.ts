@@ -55,6 +55,18 @@ const workspaces: string[] = []
 const hash = (value: unknown) => `sha256:${createHash('sha256').update(canonicalContractJson(value)).digest('hex')}`
 const digest = (character: string) => `sha256:${character.repeat(64)}`
 const execFileAsync = promisify(execFile)
+const disposableHerokuOrigin = 'https://the-internet.herokuapp.com'
+const disposableHerokuSameOriginSubresources = [
+  '/js/vendor/298279967.js',
+  '/css/app.css',
+  '/css/font-awesome.css',
+  '/js/vendor/jquery-1.11.3.min.js',
+  '/js/vendor/jquery-ui-1.11.4/jquery-ui.js',
+  '/js/foundation/foundation.js',
+  '/js/foundation/foundation.alerts.js',
+  '/img/forkme_right_green_007200.png',
+  '/fonts/fontawesome-webfont.woff2',
+] as const
 
 type QualifiedScout = {
   journeyId: string
@@ -130,41 +142,48 @@ function transitPolicy() {
         rules: [
           {
             documentOrigin: '$TARGET',
-            destinationOrigin: 'https://the-internet.herokuapp.com',
+            destinationOrigin: disposableHerokuOrigin,
             path: { match: 'EXACT', value: '/login' },
             methods: ['GET'],
             requestKinds: ['DOCUMENT'],
           },
           {
-            documentOrigin: 'https://the-internet.herokuapp.com',
-            destinationOrigin: 'https://the-internet.herokuapp.com',
+            documentOrigin: disposableHerokuOrigin,
+            destinationOrigin: disposableHerokuOrigin,
             path: { match: 'EXACT', value: '/login' },
             methods: ['GET'],
             requestKinds: ['DOCUMENT'],
           },
           {
-            documentOrigin: 'https://the-internet.herokuapp.com',
-            destinationOrigin: 'https://the-internet.herokuapp.com',
+            documentOrigin: disposableHerokuOrigin,
+            destinationOrigin: disposableHerokuOrigin,
             path: { match: 'EXACT', value: '/authenticate' },
             methods: ['POST'],
             requestKinds: ['DOCUMENT'],
           },
           {
-            documentOrigin: 'https://the-internet.herokuapp.com',
-            destinationOrigin: 'https://the-internet.herokuapp.com',
+            documentOrigin: disposableHerokuOrigin,
+            destinationOrigin: disposableHerokuOrigin,
             path: { match: 'EXACT', value: '/secure' },
             methods: ['GET'],
             requestKinds: ['DOCUMENT'],
           },
           {
-            documentOrigin: 'https://the-internet.herokuapp.com',
+            documentOrigin: disposableHerokuOrigin,
             destinationOrigin: '$TARGET',
             path: { match: 'EXACT', value: '/checkout' },
             methods: ['GET'],
             requestKinds: ['DOCUMENT'],
           },
+          ...disposableHerokuSameOriginSubresources.map(path => ({
+            documentOrigin: disposableHerokuOrigin,
+            destinationOrigin: disposableHerokuOrigin,
+            path: { match: 'EXACT' as const, value: path },
+            methods: ['GET'],
+            requestKinds: ['SUBRESOURCE'],
+          })),
         ],
-        returns: [{ fromOrigin: 'https://the-internet.herokuapp.com', targetPath: '/checkout', methods: ['GET'] }],
+        returns: [{ fromOrigin: disposableHerokuOrigin, targetPath: '/checkout', methods: ['GET'] }],
       },
     ],
   })
@@ -552,12 +571,28 @@ it('does not count discarded second-factor POSTs until the post-return gate is a
 it('authorizes only the exact provider login document re-entry needed for validation redirects', () => {
   const policy = JSON.parse(normalizeDiscoveryAuthTransitPolicyJson(transitPolicy(), 'http://127.0.0.1:3000')!)
   expect(policy.flows[0].rules).toContainEqual({
-    documentOrigin: 'https://the-internet.herokuapp.com',
-    destinationOrigin: 'https://the-internet.herokuapp.com',
+    documentOrigin: disposableHerokuOrigin,
+    destinationOrigin: disposableHerokuOrigin,
     path: { match: 'EXACT', value: '/login' },
     methods: ['GET'],
     requestKinds: ['DOCUMENT'],
   })
+})
+
+it('canonically permits only the inspected same-origin provider subresources before return arming', () => {
+  const policy = JSON.parse(normalizeDiscoveryAuthTransitPolicyJson(transitPolicy(), 'http://127.0.0.1:3000')!)
+  const subresourceRules = policy.flows[0].rules.filter((rule: { requestKinds: string[] }) =>
+    rule.requestKinds.includes('SUBRESOURCE'),
+  )
+  expect(subresourceRules).toEqual(
+    disposableHerokuSameOriginSubresources.toSorted().map(path => ({
+      documentOrigin: disposableHerokuOrigin,
+      destinationOrigin: disposableHerokuOrigin,
+      path: { match: 'EXACT', value: path },
+      methods: ['GET'],
+      requestKinds: ['SUBRESOURCE'],
+    })),
+  )
 })
 
 afterEach(async () => {
