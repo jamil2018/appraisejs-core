@@ -592,6 +592,116 @@ describe('Quality Journey discovery browser service', () => {
     }
   })
 
+  it('classifies a denied human return transiently without producing an admissible receipt', async () => {
+    const fixture = await sessionAtAuthorizedIdp()
+    await armQualityJourneyDiscoveryBrowserHumanReturn({ ...scope, sessionId: fixture.session.id }, fixture.db as never)
+    await fixture.handler(fixture.route('https://example.test/asset.js', 'GET', 200, undefined, false, 'script').route)
+    await expect(
+      getQualityJourneyDiscoveryBrowserTerminalDiagnosticForQualification({ ...scope, sessionId: fixture.session.id }),
+    ).resolves.toEqual({ terminalCause: 'HUMAN_RETURN_DENIED' })
+
+    const session = await getQualityJourneyDiscoveryBrowserSession({ ...scope, sessionId: fixture.session.id })
+    expect(session).not.toHaveProperty('terminalCause')
+    await expect(
+      captureQualityJourneyDiscoveryBrowserReceipt(
+        { ...scope, sessionId: fixture.session.id, snapshotId: 'denied-human-return' },
+        fixture.db as never,
+      ),
+    ).rejects.toMatchObject({ code: 'UNAUTHORIZED' })
+    expect([...fixture.db.artifacts.values()]).toEqual([])
+    await expect(
+      assertDiscoveryBrowserReceiptAdmission(
+        {
+          cycleId: 'cycle-1',
+          evidenceReceipts: [{ artifactId: 'terminal-diagnostic', contentHash: canonicalHash({ terminal: true }) }],
+          targetSnapshot: { snapshotId: 'denied-human-return' },
+          observations: [
+            {
+              snapshotId: 'denied-human-return',
+              routeId: '/checkout',
+              environmentId: 'environment-1',
+              fact: 'A terminal diagnostic is not receipt evidence.',
+              evidenceReceiptIds: ['terminal-diagnostic'],
+            },
+          ],
+        },
+        {
+          id: 'revision-1',
+          journeyId: 'journey-1',
+          targetProjectId: 'target-1',
+          cycleId: 'cycle-1',
+          scoutWorkItemId: 'work-1',
+        },
+        {
+          qualityJourneyArtifact: { findMany: async () => [] },
+          qualityJourneyDiscoveryRevision: fixture.db.qualityJourneyDiscoveryRevision,
+        } as never,
+      ),
+    ).rejects.toMatchObject({ code: 'CONFLICT' })
+
+    await fixture.handler(fixture.route('https://attacker.test/checkout').route)
+    await expect(
+      getQualityJourneyDiscoveryBrowserTerminalDiagnosticForQualification({ ...scope, sessionId: fixture.session.id }),
+    ).resolves.toEqual({ terminalCause: 'HUMAN_RETURN_DENIED' })
+  })
+
+  it('classifies an in-flight route fenced by return arming', async () => {
+    const fixture = await sessionAtAuthorizedIdp()
+    const held = fixture.route('https://idp-b.example.test/continue')
+    const fetched = deferred<{ headers(): Record<string, string>; status(): number }>()
+    held.route.fetch = vi.fn(() => fetched.promise)
+    const processing = fixture.handler(held.route)
+    await armQualityJourneyDiscoveryBrowserHumanReturn({ ...scope, sessionId: fixture.session.id }, fixture.db as never)
+    fetched.resolve({ headers: () => ({}), status: () => 200 })
+    await processing
+    await expect(
+      getQualityJourneyDiscoveryBrowserTerminalDiagnosticForQualification({ ...scope, sessionId: fixture.session.id }),
+    ).resolves.toEqual({ terminalCause: 'ROUTE_NOT_ACTIVE' })
+  })
+
+  it('classifies a main-frame route origin mismatch before revocation', async () => {
+    const fixture = await sessionAtAuthorizedIdp()
+    await fixture.handler(
+      fixture.route('https://idp-b.example.test/continue', 'GET', 302, 'https://example.test/checkout').route,
+    )
+    await fixture.handler(fixture.route('https://idp-b.example.test/continue').route)
+    await expect(
+      getQualityJourneyDiscoveryBrowserTerminalDiagnosticForQualification({ ...scope, sessionId: fixture.session.id }),
+    ).resolves.toEqual({ terminalCause: 'ROUTE_ORIGIN_MISMATCH' })
+  })
+
+  it.each([
+    ['document', 'https://attacker.test/checkout', true, 'document', 'ROUTE_POLICY_DENIED_DOCUMENT'],
+    ['subresource', 'https://idp.example.test/unlisted.js', false, 'script', 'ROUTE_POLICY_DENIED_SUBRESOURCE'],
+    ['XHR/fetch', 'https://idp.example.test/unlisted.json', false, 'fetch', 'ROUTE_POLICY_DENIED_XHR_FETCH'],
+  ] as const)('classifies a policy-denied %s route', async (_name, url, navigation, resource, expectedCause) => {
+    const fixture = await sessionAtAuthorizedIdp()
+    await fixture.handler(fixture.route(url, 'GET', 200, undefined, navigation, resource).route)
+    await expect(
+      getQualityJourneyDiscoveryBrowserTerminalDiagnosticForQualification({ ...scope, sessionId: fixture.session.id }),
+    ).resolves.toEqual({ terminalCause: expectedCause })
+  })
+
+  it('classifies a rejected route operation', async () => {
+    const fixture = await sessionAtAuthorizedIdp()
+    const failing = fixture.route('https://idp-b.example.test/continue')
+    failing.route.fetch = vi.fn(async () => Promise.reject(new Error('route transport failed')))
+    await fixture.handler(failing.route)
+    await expect(
+      getQualityJourneyDiscoveryBrowserTerminalDiagnosticForQualification({ ...scope, sessionId: fixture.session.id }),
+    ).resolves.toEqual({ terminalCause: 'ROUTE_OPERATION_FAILED' })
+  })
+
+  it('classifies a denied redirect', async () => {
+    const fixture = await sessionAtAuthorizedIdp()
+    await fixture.handler(
+      fixture.route('https://idp-b.example.test/continue', 'GET', 302, 'https://attacker.test/next').route,
+    )
+    await expect(
+      getQualityJourneyDiscoveryBrowserTerminalDiagnosticForQualification({ ...scope, sessionId: fixture.session.id }),
+    ).resolves.toEqual({ terminalCause: 'REDIRECT_DENIED' })
+  })
+
   it('refuses stale, revoked, restarted, and reused human-return grants', async () => {
     const stale = await sessionAtAuthorizedIdp()
     stale.db.environmentScope.scopeVersion += 1

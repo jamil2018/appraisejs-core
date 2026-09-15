@@ -170,7 +170,20 @@ type Session = {
 }
 
 type DiscoveryBrowserTerminalCause =
-  'WEBSOCKET_DENIED' | 'DOWNLOAD' | 'POPUP' | 'MAIN_FRAME_NO_PENDING' | 'MAIN_FRAME_MISMATCH' | 'USER_REVOKE'
+  | 'WEBSOCKET_DENIED'
+  | 'DOWNLOAD'
+  | 'POPUP'
+  | 'MAIN_FRAME_NO_PENDING'
+  | 'MAIN_FRAME_MISMATCH'
+  | 'USER_REVOKE'
+  | 'HUMAN_RETURN_DENIED'
+  | 'ROUTE_NOT_ACTIVE'
+  | 'ROUTE_ORIGIN_MISMATCH'
+  | 'ROUTE_POLICY_DENIED_DOCUMENT'
+  | 'ROUTE_POLICY_DENIED_SUBRESOURCE'
+  | 'ROUTE_POLICY_DENIED_XHR_FETCH'
+  | 'ROUTE_OPERATION_FAILED'
+  | 'REDIRECT_DENIED'
 
 type MainFrameTransition = {
   destinationUrl: string
@@ -683,7 +696,12 @@ function isExactCredentialFreeUrl(value: string, expected: string) {
     return false
   }
 }
-async function denyHumanReturnRequest(session: Session, route: BrowserRoute) {
+async function denyHumanReturnRequest(
+  session: Session,
+  route: BrowserRoute,
+  cause: Extract<DiscoveryBrowserTerminalCause, 'HUMAN_RETURN_DENIED' | 'REDIRECT_DENIED'> = 'HUMAN_RETURN_DENIED',
+) {
+  setTerminalCause(session, cause)
   await abortRouteFailClosed(session, route)
 }
 async function abortRouteFailClosed(session: Session, route: BrowserRoute) {
@@ -703,8 +721,9 @@ async function handleHumanReturnRoute(
   const transition = isExactHumanReturnRequest(session, route.request(), kind)
   if (!transition) return denyHumanReturnRequest(session, route)
   const response = await route.fetch({ maxRedirects: 0 })
-  if (!isActiveAtAuthorityEpoch(session, authorityEpoch)) return abortRouteFailClosed(session, route)
-  if (response.status() >= 300 && response.status() < 400) return denyHumanReturnRequest(session, route)
+  if (!isActiveAtAuthorityEpoch(session, authorityEpoch)) return denyRouteNotActive(session, route)
+  if (response.status() >= 300 && response.status() < 400)
+    return denyHumanReturnRequest(session, route, 'REDIRECT_DENIED')
   session.pendingMainFrameCommit = transition
   await route.fulfill({ response })
 }
@@ -752,7 +771,12 @@ function authorizedRedirect(
   if (!location || response.status() < 300 || response.status() >= 400) return undefined
   const effectiveMethod = redirectMethod(response.status(), request.method())
   if (!effectiveMethod) return null
-  const redirectUrl = new URL(location, request.url()).toString()
+  let redirectUrl: string
+  try {
+    redirectUrl = new URL(location, request.url()).toString()
+  } catch {
+    return null
+  }
   const sourceOrigin = new URL(request.url()).origin
   return allowedRequest(redirectUrl, effectiveMethod, session, request.isNavigationRequest(), sourceOrigin, kind)
     ? mainFrameTransition(redirectUrl, effectiveMethod, sourceOrigin, session.authorityEpoch)
@@ -763,24 +787,38 @@ async function handleBrowserRoute(requestRoute: BrowserRoute, session: Session) 
     const authorityEpoch = session.authorityEpoch
     const request = requestRoute.request()
     const kind = requestKind(request)
-    if (!isActiveAtAuthorityEpoch(session, authorityEpoch)) return abortRouteFailClosed(session, requestRoute)
+    if (!isActiveAtAuthorityEpoch(session, authorityEpoch)) return denyRouteNotActive(session, requestRoute)
     if (isActiveHumanReturnGrant(session)) {
       await handleHumanReturnRoute(requestRoute, session, kind, authorityEpoch)
       return
     }
     const location = mainFrameRequestOrigin(session, request, kind)
     if (!location) {
+      setTerminalCause(session, 'ROUTE_ORIGIN_MISMATCH')
       await abortRouteFailClosed(session, requestRoute)
       return
     }
     if (!isAllowedBrowserRoute(session, request, kind, location)) {
+      setTerminalCause(session, routePolicyDeniedCause(kind))
       await abortRouteFailClosed(session, requestRoute)
       return
     }
     await fulfillAllowedBrowserRoute(requestRoute, session, request, kind, location, authorityEpoch)
   } catch {
+    setTerminalCause(session, 'ROUTE_OPERATION_FAILED')
     await abortRouteFailClosed(session, requestRoute)
   }
+}
+
+function denyRouteNotActive(session: Session, route: BrowserRoute) {
+  setTerminalCause(session, 'ROUTE_NOT_ACTIVE')
+  return abortRouteFailClosed(session, route)
+}
+
+function routePolicyDeniedCause(kind: ReturnType<typeof requestKind>) {
+  if (kind === 'DOCUMENT') return 'ROUTE_POLICY_DENIED_DOCUMENT' as const
+  if (kind === 'XHR_FETCH') return 'ROUTE_POLICY_DENIED_XHR_FETCH' as const
+  return 'ROUTE_POLICY_DENIED_SUBRESOURCE' as const
 }
 
 function isAllowedBrowserRoute(
@@ -807,11 +845,16 @@ async function fulfillAllowedBrowserRoute(
   authorityEpoch: number,
 ) {
   const response = await requestRoute.fetch({ maxRedirects: 0 })
-  if (!isActiveAtAuthorityEpoch(session, authorityEpoch)) return abortRouteFailClosed(session, requestRoute)
+  if (!isActiveAtAuthorityEpoch(session, authorityEpoch)) return denyRouteNotActive(session, requestRoute)
   const redirect = authorizedRedirect(response, request, session, kind)
-  if (redirect === null) return abortRouteFailClosed(session, requestRoute)
+  if (redirect === null) return denyRedirect(session, requestRoute)
   recordPendingMainFrameNavigation(session, request, location, authorityEpoch, redirect)
   await requestRoute.fulfill({ response })
+}
+
+function denyRedirect(session: Session, route: BrowserRoute) {
+  setTerminalCause(session, 'REDIRECT_DENIED')
+  return abortRouteFailClosed(session, route)
 }
 function recordPendingMainFrameNavigation(
   session: Session,
