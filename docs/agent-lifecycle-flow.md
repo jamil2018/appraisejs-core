@@ -46,6 +46,12 @@ target browser; no Appraise action accepts credentials, cookies, storage state o
 revocation and context replacement close the context, while process restart invalidates every process-local session.
 Missing access creates an explicit Journey blocker. A later human access confirmation records only local access and
 does not identify a natural person or attest an identity-provider assertion.
+Confirmation and receipt capture reserve their in-process operation identity before asynchronous scope or persistence
+work and recheck it with the session authority epoch afterward. Confirmation synchronously commits local
+`ACCESS_CONFIRMED` before resolving a durable missing-access blocker, so a terminal transition that wins the
+precheck prevents any resolution, while a later terminal transition follows a legitimate confirmation. A blocker-write
+failure revokes the context. Route denial fences authority before attempting an abort, so a rejected or stalled browser
+route operation cannot leave confirmation, capture, or return authority usable.
 
 An authenticated session may cross the target origin only through the selected Environment's immutable
 `appraise.discovery-auth-transit/v1` policy. That policy names an exact flow ID, canonical HTTPS IdP origins,
@@ -55,8 +61,15 @@ version into the Discovery revision and rejects a changed Environment before sta
 admission. IdP origins are not Scout network authority: they exist only in the headed browser policy. It validates
 every redirect hop with zero follow and its effective redirect method; WebSockets remain denied and revoke the session.
 Authenticated confirmation and receipt capture require the declared return to the selected target origin and exact
-selected route after that return has committed in the main frame. The sealed receipt retains only its Environment scope version, flow ID, policy hash, and return
-outcome; it never persists IdP URL, query, response, or page content.
+selected route after that return has committed in the main frame. After an approved provider success page, a human
+must explicitly authorize one 15-second address-bar return through the local panel. The Server Action accepts only
+the scoped session identity and returns the frozen, server-derived target URL; it accepts no URL, credential, MFA,
+cookie, or browser data. Arming requires the committed provider origin to match the selected flow's exact `GET`
+return rule, and any request, route-operation failure, expiry, or late commit outside that grant revokes the session.
+For authenticated discovery, the sealed receipt persists bounded `humanReturn` provenance only: its fixed mechanism,
+one-shot authorization ID, frozen target URL hash, fixed `GET` method, and commit time. It also retains its
+Environment scope version, flow ID, policy hash, and return outcome; it never persists IdP URL, query, response, or
+page content.
 
 Only an immutable `APPRAISE_DISCOVERY_BROWSER_V1` artifact can back a Scout observation. The specialized Scout
 submission transaction resolves every descriptor and verifies its exact hash, issuer, Journey, target, cycle,

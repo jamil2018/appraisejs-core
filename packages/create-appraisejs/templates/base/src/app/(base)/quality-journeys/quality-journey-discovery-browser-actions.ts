@@ -5,6 +5,7 @@ import { z } from 'zod'
 
 import { requireActiveProjectForMutation } from '@/lib/active-project'
 import {
+  armQualityJourneyDiscoveryBrowserHumanReturn,
   captureQualityJourneyDiscoveryBrowserReceipt,
   closeQualityJourneyDiscoveryBrowserSession,
   confirmQualityJourneyDiscoveryBrowserAccess,
@@ -30,6 +31,7 @@ const start = binding
     environmentId: id,
     routeId: route,
     accessMode: z.enum(['ANONYMOUS', 'AUTHENTICATED_INTENT']),
+    authFlowId: id.optional(),
   })
   .strict()
 const session = binding.extend({ sessionId: id }).strict()
@@ -62,6 +64,12 @@ export async function startQualityJourneyDiscoveryBrowserAction(input: unknown):
 
 export async function confirmQualityJourneyDiscoveryBrowserAccessAction(input: unknown): Promise<ActionResponse> {
   return mutate(input, session, value => confirmQualityJourneyDiscoveryBrowserAccess(value))
+}
+
+/** Arms the only address-bar return from the server-frozen session scope. The
+ * client can name no URL, origin, route, credential, or browser state. */
+export async function armQualityJourneyDiscoveryBrowserHumanReturnAction(input: unknown): Promise<ActionResponse> {
+  return mutate(input, session, value => armQualityJourneyDiscoveryBrowserHumanReturn(value))
 }
 
 export async function captureQualityJourneyDiscoveryBrowserReceiptAction(input: unknown): Promise<ActionResponse> {

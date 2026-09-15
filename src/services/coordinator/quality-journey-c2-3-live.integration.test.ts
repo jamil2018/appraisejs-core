@@ -25,6 +25,7 @@ import { copyMigratedTestDatabase } from '@/test/migrated-test-database'
 import { canonicalContractJson } from '@/lib/catalog-contracts'
 import { normalizeDiscoveryAuthTransitPolicyJson } from '@/lib/quality-journey/discovery-auth-transit-policy'
 import {
+  armQualityJourneyDiscoveryBrowserHumanReturn,
   captureQualityJourneyDiscoveryBrowserReceipt,
   clearQualityJourneyDiscoveryBrowserSessionsForTest,
   confirmQualityJourneyDiscoveryBrowserAccess,
@@ -77,6 +78,7 @@ type Phase =
   | 'lineage ready'
   | 'browser launched'
   | 'left target for IdP'
+  | 'human return armed'
   | 'returned to exact target'
   | 'access confirmed'
   | 'receipt captured'
@@ -454,8 +456,6 @@ async function waitForHumanReturn(
     const session = await getQualityJourneyDiscoveryBrowserSession(scope)
     const current = sanitizedOriginPath(session.currentUrl)
     if (session.state !== 'ACTIVE') throw await terminalSessionError(scope, session.state, current)
-    if (current === 'about:blank')
-      throw new Error('Browser session is about:blank; stop and inspect the visible browser only.')
     if (current !== exactTarget && !leftTarget) {
       leftTarget = true
       report('left target for IdP')
@@ -467,6 +467,23 @@ async function waitForHumanReturn(
     await new Promise(resolve => setTimeout(resolve, 1_000))
   }
   throw new Error('Timed out waiting for the human-operated browser to return to the frozen checkout route.')
+}
+
+async function waitForAuthorizedProviderSuccess(
+  scope: Pick<QualifiedScout, 'journeyId' | 'targetProjectId' | 'discoveryRevisionId'> & { sessionId: string },
+  report: ReturnType<typeof phaseReporter>,
+) {
+  const expires = Date.now() + 10 * 60_000
+  const authorizedSuccess = 'https://the-internet.herokuapp.com/secure'
+  while (Date.now() < expires) {
+    const session = await getQualityJourneyDiscoveryBrowserSession(scope)
+    const current = sanitizedOriginPath(session.currentUrl)
+    if (session.state !== 'ACTIVE') throw await terminalSessionError(scope, session.state, current)
+    if (current !== sanitizedOriginPath(`${session.targetOrigin}/checkout`)) report('left target for IdP')
+    if (current === authorizedSuccess) return session
+    await new Promise(resolve => setTimeout(resolve, 1_000))
+  }
+  throw new Error('Timed out waiting for the authorized provider success route in the human-operated browser.')
 }
 
 async function waitForSecondFactor(
@@ -583,12 +600,20 @@ describe.skipIf(!enabled)('C2.3.3 headed live human qualification', () => {
           },
           client,
         )
-        const returnUrl = `${fixture.baseUrl}/checkout`
         report(
           'browser launched',
-          `after provider success, type ${returnUrl} in the address bar; never use Back; submit the local second-factor form and leave the window open`,
+          'complete the provider login and wait in the headed browser; Appraise will provide the next bounded instruction only after approved provider success.',
         )
-        await waitForHumanReturn({ ...browserScope, sessionId: session.id }, returnUrl, report)
+        await waitForAuthorizedProviderSuccess({ ...browserScope, sessionId: session.id }, report)
+        const armed = await armQualityJourneyDiscoveryBrowserHumanReturn(
+          { ...browserScope, sessionId: session.id },
+          client,
+        )
+        report(
+          'human return armed',
+          `type ${armed.returnUrl} in the address bar now; never use Back; leave the visible browser open`,
+        )
+        await waitForHumanReturn({ ...browserScope, sessionId: session.id }, armed.returnUrl, report)
         // Reset only after the committed post-IdP return; earlier discarded POSTs cannot qualify.
         fixture.armSecondFactor()
         await waitForSecondFactor(fixture, { ...browserScope, sessionId: session.id })

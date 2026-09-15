@@ -6,6 +6,23 @@ const digest = z.string().regex(/^sha256:[a-f0-9]{64}$/)
 const timestamp = z.string().datetime()
 const route = z.string().trim().min(1).max(2_000).regex(/^\//)
 const safeFact = z.string().trim().min(1).max(1_000)
+const humanReturnSchema = z
+  .object({
+    mechanism: z.literal('EXPLICIT_ONE_SHOT_EXACT_TARGET_V1'),
+    authorizationId: id,
+    targetUrlHash: digest,
+    method: z.literal('GET'),
+    committedAt: timestamp,
+  })
+  .strict()
+type ReceiptAuthenticationFields = {
+  accessMode: 'ANONYMOUS' | 'AUTHENTICATED_INTENT'
+  accessOutcome: 'ACTIVE' | 'ACCESS_CONFIRMED' | 'MISSING_ACCESS'
+  authFlowId?: string
+  authPolicyHash?: string
+  authTransitOutcome?: 'RETURNED_TO_FROZEN_TARGET'
+  humanReturn?: z.infer<typeof humanReturnSchema>
+}
 
 /** The only issuer accepted as first-party browser discovery evidence. */
 export const discoveryBrowserReceiptIssuer = 'APPRAISE_DISCOVERY_BROWSER_V1' as const
@@ -36,6 +53,7 @@ export const discoveryBrowserReceiptSchema = z
     authFlowId: z.string().min(1).max(128).optional(),
     authPolicyHash: digest.optional(),
     authTransitOutcome: z.literal('RETURNED_TO_FROZEN_TARGET').optional(),
+    humanReturn: humanReturnSchema.optional(),
     accessOutcome: z.enum(['ACTIVE', 'ACCESS_CONFIRMED', 'MISSING_ACCESS']),
     capturedAt: timestamp,
     url: z.string().url().max(2_000),
@@ -48,15 +66,29 @@ export const discoveryBrowserReceiptSchema = z
   })
   .strict()
   .superRefine((receipt, context) => {
-    if (receipt.accessMode === 'AUTHENTICATED_INTENT') {
-      if (!receipt.authFlowId || !receipt.authPolicyHash || receipt.authTransitOutcome !== 'RETURNED_TO_FROZEN_TARGET')
-        context.addIssue({
-          code: 'custom',
-          message: 'Authenticated receipts must bind an authorized completed transit flow.',
-        })
-    } else if (receipt.authFlowId || receipt.authPolicyHash || receipt.authTransitOutcome)
-      context.addIssue({ code: 'custom', message: 'Anonymous receipts cannot carry authentication transit fields.' })
+    if (receipt.accessMode === 'AUTHENTICATED_INTENT') return validateAuthenticatedReceipt(receipt, context)
+    validateAnonymousReceipt(receipt, context)
   })
+
+function validateAuthenticatedReceipt(receipt: ReceiptAuthenticationFields, context: z.RefinementCtx) {
+  if (hasCompletedAuthenticatedTransit(receipt) && receipt.accessOutcome === 'ACCESS_CONFIRMED') return
+  context.addIssue({
+    code: 'custom',
+    message: 'Authenticated receipts require confirmed access and an authorized completed transit flow.',
+  })
+}
+function hasCompletedAuthenticatedTransit(receipt: ReceiptAuthenticationFields) {
+  return Boolean(
+    receipt.authFlowId &&
+    receipt.authPolicyHash &&
+    receipt.authTransitOutcome === 'RETURNED_TO_FROZEN_TARGET' &&
+    receipt.humanReturn,
+  )
+}
+function validateAnonymousReceipt(receipt: ReceiptAuthenticationFields, context: z.RefinementCtx) {
+  if (!receipt.authFlowId && !receipt.authPolicyHash && !receipt.authTransitOutcome && !receipt.humanReturn) return
+  context.addIssue({ code: 'custom', message: 'Anonymous receipts cannot carry authentication transit fields.' })
+}
 
 export type DiscoveryBrowserReceipt = z.infer<typeof discoveryBrowserReceiptSchema>
 export type DiscoveryBrowserSessionState =

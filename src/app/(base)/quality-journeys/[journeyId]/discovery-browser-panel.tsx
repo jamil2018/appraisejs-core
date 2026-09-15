@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label'
 import { toast } from '@/hooks/use-toast'
 
 import {
+  armQualityJourneyDiscoveryBrowserHumanReturnAction,
   captureQualityJourneyDiscoveryBrowserReceiptAction,
   confirmQualityJourneyDiscoveryBrowserAccessAction,
   logoutQualityJourneyDiscoveryBrowserAction,
@@ -60,6 +61,7 @@ export function DiscoveryBrowserPanel({
 }) {
   const [session, setSession] = useState<SessionView | null>(null)
   const [receipt, setReceipt] = useState<ReceiptView | null>(null)
+  const [frozenReturnUrl, setFrozenReturnUrl] = useState<string | null>(null)
   const [accessMode, setAccessMode] = useState<'ANONYMOUS' | 'AUTHENTICATED_INTENT'>('ANONYMOUS')
   const [environmentId, setEnvironmentId] = useState(discovery?.environments[0]?.id ?? '')
   const [routeId, setRouteId] = useState(discovery?.routes[0] ?? '')
@@ -78,6 +80,29 @@ export function DiscoveryBrowserPanel({
       if (nextSession) setSession(nextSession)
       if (!response.success)
         toast({ title: 'Discovery browser action failed', description: response.error, variant: 'destructive' })
+    })
+
+  const armReturn = () =>
+    startTransition(async () => {
+      const response = await armQualityJourneyDiscoveryBrowserHumanReturnAction(binding!)
+      const value = data(response)
+      const armedSession = value?.session
+      const returnUrl = value?.returnUrl
+      if (
+        response.success &&
+        armedSession &&
+        typeof armedSession === 'object' &&
+        typeof returnUrl === 'string' &&
+        returnUrl.length > 0
+      ) {
+        setSession(armedSession as SessionView)
+        setFrozenReturnUrl(returnUrl)
+      } else
+        toast({
+          title: 'Exact return was not authorized',
+          description: response.error,
+          variant: 'destructive',
+        })
     })
 
   return (
@@ -162,7 +187,8 @@ export function DiscoveryBrowserPanel({
             <Button
               className="md:col-span-3"
               disabled={pending || !environmentId || !routeId || (accessMode === 'AUTHENTICATED_INTENT' && !authFlowId)}
-              onClick={() =>
+              onClick={() => {
+                setFrozenReturnUrl(null)
                 run(() =>
                   startQualityJourneyDiscoveryBrowserAction({
                     journeyId,
@@ -174,7 +200,7 @@ export function DiscoveryBrowserPanel({
                     ...(accessMode === 'AUTHENTICATED_INTENT' ? { authFlowId } : {}),
                   }),
                 )
-              }
+              }}
             >
               {pending ? (
                 <LoaderCircle aria-hidden="true" className="mr-2 size-4 animate-spin" />
@@ -192,15 +218,31 @@ export function DiscoveryBrowserPanel({
             </div>
             {session.accessMode === 'AUTHENTICATED_INTENT' && session.state === 'ACTIVE' ? (
               <div className="rounded-md border border-amber-500/30 bg-amber-500/[0.05] p-3 text-sm">
-                Complete sign-in and MFA directly in the opened target browser. Then confirm only that the scoped page
-                is accessible; this does not prove a natural-person identity or expose credentials to Appraise.
-                <Button
-                  className="mt-3"
-                  disabled={pending}
-                  onClick={() => run(() => confirmQualityJourneyDiscoveryBrowserAccessAction(binding!))}
-                >
-                  I can access the scoped page
-                </Button>
+                Complete sign-in and MFA directly in the opened target browser. Appraise never accepts those values.
+                {!frozenReturnUrl ? (
+                  <>
+                    <p className="mt-2">
+                      After the provider has reached its approved success page, authorize the one exact return below.
+                    </p>
+                    <Button className="mt-3" disabled={pending} onClick={armReturn}>
+                      Authorize exact return
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <p className="mt-2">Type this server-derived, frozen URL in the opened browser address bar.</p>
+                    <code className="bg-background/80 mt-2 block overflow-x-auto rounded p-2 text-xs">
+                      {frozenReturnUrl}
+                    </code>
+                    <Button
+                      className="mt-3"
+                      disabled={pending}
+                      onClick={() => run(() => confirmQualityJourneyDiscoveryBrowserAccessAction(binding!))}
+                    >
+                      I returned to the scoped page
+                    </Button>
+                  </>
+                )}
               </div>
             ) : null}
             {!terminal ? (
@@ -252,7 +294,10 @@ export function DiscoveryBrowserPanel({
                   <Button
                     variant="outline"
                     disabled={pending}
-                    onClick={() => run(() => replaceQualityJourneyDiscoveryBrowserContextAction(binding!))}
+                    onClick={() => {
+                      setFrozenReturnUrl(null)
+                      run(() => replaceQualityJourneyDiscoveryBrowserContextAction(binding!))
+                    }}
                   >
                     Replace context
                   </Button>
@@ -274,7 +319,14 @@ export function DiscoveryBrowserPanel({
               </>
             ) : null}
             {terminal ? (
-              <Button variant="outline" disabled={pending} onClick={() => setSession(null)}>
+              <Button
+                variant="outline"
+                disabled={pending}
+                onClick={() => {
+                  setSession(null)
+                  setFrozenReturnUrl(null)
+                }}
+              >
                 Start a fresh session
               </Button>
             ) : null}
