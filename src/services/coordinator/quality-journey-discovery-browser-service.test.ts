@@ -47,6 +47,32 @@ const authPolicy = JSON.stringify({
   ],
 })
 
+const repeatedLoginPolicy = JSON.stringify({
+  schemaVersion: 'appraise.discovery-auth-transit/v1',
+  flows: [
+    {
+      flowId: 'test-login',
+      rules: [
+        {
+          documentOrigin: '$TARGET',
+          destinationOrigin: 'https://idp.example.test',
+          path: { match: 'EXACT', value: '/login' },
+          methods: ['GET'],
+          requestKinds: ['DOCUMENT'],
+        },
+        {
+          documentOrigin: 'https://idp.example.test',
+          destinationOrigin: 'https://idp.example.test',
+          path: { match: 'EXACT', value: '/login' },
+          methods: ['GET', 'POST'],
+          requestKinds: ['DOCUMENT'],
+        },
+      ],
+      returns: [{ fromOrigin: 'https://idp.example.test', targetPath: '/checkout', methods: ['GET'] }],
+    },
+  ],
+})
+
 function deferred<T = void>() {
   let resolve!: (value: T | PromiseLike<T>) => void
   const promise = new Promise<T>(next => {
@@ -248,6 +274,59 @@ async function sessionAtAuthorizedIdp() {
   await handler(route('https://example.test/checkout', 'GET', 302, 'https://idp.example.test/authorize').route)
   await handler(route('https://idp.example.test/authorize').route)
   page.navigate('https://idp.example.test/authorize')
+  return { db, handler, page, route, session }
+}
+
+async function sessionAtRepeatedProviderLogin() {
+  const db = client({ authPolicyJson: repeatedLoginPolicy })
+  let handler: ((route: unknown) => Promise<void>) | undefined
+  let page:
+    | {
+        mainFrame: { url(): string }
+        navigate: (url: string) => void
+      }
+    | undefined
+  const session = await startQualityJourneyDiscoveryBrowserSession(
+    {
+      ...scope,
+      workItemId: 'work-1',
+      environmentId: 'environment-1',
+      routeId: '/checkout',
+      accessMode: 'AUTHENTICATED_INTENT',
+      authFlowId: 'test-login',
+    },
+    db as never,
+    browserRuntime(
+      'Checkout',
+      () => undefined,
+      next => (handler = next),
+      next => (page = next),
+    ),
+  )
+  if (!handler || !page) throw new Error('Test browser route was not initialized.')
+  const route = (url: string, method = 'GET', status = 200, location?: string) => {
+    const abort = vi.fn(async () => undefined)
+    const fulfill = vi.fn(async () => undefined)
+    return {
+      route: {
+        request: () => ({
+          url: () => url,
+          method: () => method,
+          isNavigationRequest: () => true,
+          resourceType: () => 'document',
+          frame: () => page!.mainFrame,
+        }),
+        abort,
+        fetch: async () => ({ headers: () => (location ? { location } : {}), status: () => status }),
+        fulfill,
+      },
+      abort,
+      fulfill,
+    }
+  }
+  await handler(route('https://example.test/checkout', 'GET', 302, 'https://idp.example.test/login').route)
+  await handler(route('https://idp.example.test/login').route)
+  page.navigate('https://idp.example.test/login')
   return { db, handler, page, route, session }
 }
 
@@ -1788,6 +1867,46 @@ describe('Quality Journey discovery browser service', () => {
       getQualityJourneyDiscoveryBrowserTerminalDiagnosticForQualification({ ...scope, sessionId: session.id }),
     ).resolves.toEqual({ terminalCause: 'MAIN_FRAME_NO_PENDING' })
   })
+
+  it('clears only a cached exact GET provider-login redirect before the next authorized POST', async () => {
+    const fixture = await sessionAtRepeatedProviderLogin()
+    const rejected = fixture.route('https://idp.example.test/login', 'POST', 302, '/login')
+    await fixture.handler(rejected.route)
+    expect(rejected.fulfill).toHaveBeenCalledOnce()
+
+    fixture.page.navigate('https://idp.example.test/login')
+    const retry = fixture.route('https://idp.example.test/login', 'POST', 302, '/login')
+    await fixture.handler(retry.route)
+    expect(retry.abort).not.toHaveBeenCalled()
+    expect(retry.fulfill).toHaveBeenCalledOnce()
+    await expect(
+      getQualityJourneyDiscoveryBrowserSession({ ...scope, sessionId: fixture.session.id }),
+    ).resolves.toMatchObject({ state: 'ACTIVE' })
+  })
+
+  it.each([
+    ['query', 302, 'https://idp.example.test/login?unexpected=1'],
+    ['non-GET redirect', 307, 'https://idp.example.test/login'],
+  ] as const)(
+    'fails closed instead of clearing a cached duplicate with a %s variant',
+    async (_name, status, eventUrl) => {
+      const fixture = await sessionAtRepeatedProviderLogin()
+      const rejected = fixture.route('https://idp.example.test/login', 'POST', status, '/login')
+      await fixture.handler(rejected.route)
+      fixture.page.navigate(eventUrl)
+      await vi.waitFor(async () => {
+        await expect(
+          getQualityJourneyDiscoveryBrowserSession({ ...scope, sessionId: fixture.session.id }),
+        ).resolves.toMatchObject({ state: 'REVOKED' })
+      })
+      await expect(
+        getQualityJourneyDiscoveryBrowserTerminalDiagnosticForQualification({
+          ...scope,
+          sessionId: fixture.session.id,
+        }),
+      ).resolves.toEqual({ terminalCause: 'MAIN_FRAME_MISMATCH' })
+    },
+  )
 
   it('uses the effective redirect method and ignores Location on non-redirect responses', async () => {
     const redirect = async (status: number) => {

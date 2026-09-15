@@ -903,10 +903,46 @@ function readMainFrameNavigation(session: Session, frame: BrowserFrame): MainFra
 async function commitPendingMainFrameNavigation(session: Session, navigation: MainFrameNavigation) {
   const { url, destination, pending } = navigation
   if (hasUntaggedHumanReturnCommit(session, pending)) return revokeForMainFrameMismatch(session, url)
+  if (consumeCachedDuplicatePendingRequest(session, navigation)) return
+  if (!pending && session.pendingMainFrameRequest) return revokeForMainFrameMismatch(session, url)
   if (!pending) return handleNoPendingMainFrameNavigation(session, destination, url)
   if (!destination || !isValidPendingMainFrameCommit(session, pending, destination, url))
     return revokeForMainFrameMismatch(session, url)
   await applyPendingMainFrameCommit(session, pending, destination, url)
+}
+
+function consumeCachedDuplicatePendingRequest(session: Session, navigation: MainFrameNavigation) {
+  const request = session.pendingMainFrameRequest
+  if (!request || navigation.pending) return false
+  if (!isCurrentGetPendingRequest(session, request)) return false
+  if (!isExactCachedDuplicate(session, navigation)) return false
+  if (!matchesCachedDuplicateRequest(session, request, navigation)) return false
+  session.pendingMainFrameRequest = undefined
+  return true
+}
+
+function isCurrentGetPendingRequest(session: Session, request: MainFrameTransition) {
+  return request.effectiveMethod === 'GET' && isActiveAtAuthorityEpoch(session, request.authorityEpoch)
+}
+
+function isExactCachedDuplicate(session: Session, navigation: MainFrameNavigation) {
+  return Boolean(
+    navigation.destination && isExactDuplicateMainFrameCommit(session, navigation.destination, navigation.url),
+  )
+}
+
+function matchesCachedDuplicateRequest(
+  session: Session,
+  request: MainFrameTransition,
+  navigation: MainFrameNavigation,
+) {
+  const destination = navigation.destination!
+  return (
+    request.destinationUrl === sanitizedUrl(navigation.url) &&
+    request.destinationOrigin === destination.origin &&
+    request.sourceOrigin === session.mainFrameDocumentOrigin &&
+    session.lastAuthorizedMainFrameCommitHash === committedUrlHash(navigation.url)
+  )
 }
 function setNeutralMainFrameOrigin(session: Session) {
   session.mainFrameDocumentOrigin = 'about:blank'
