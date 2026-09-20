@@ -171,7 +171,7 @@ export function DataTable<TData, TValue>({
   }
 
   return (
-    <div className="mb-10 rounded-lg border border-white/[0.075] bg-[rgba(18,37,64,0.32)] p-4 shadow-[0_18px_45px_rgba(0,0,0,0.16),inset_0_1px_0_rgba(255,255,255,0.05)] backdrop-blur-md">
+    <div className="mb-10 rounded-xl border border-white/[0.09] bg-[linear-gradient(145deg,rgba(255,255,255,0.045),rgba(255,255,255,0.016))] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.065),inset_0_-18px_36px_rgba(0,0,0,0.1),0_18px_50px_-38px_rgba(0,0,0,0.8)] backdrop-blur-xl">
       <div className="flex justify-end">
         <div className="mb-4 flex flex-wrap justify-end gap-2">
           {createLink && (
@@ -255,9 +255,9 @@ export function DataTable<TData, TValue>({
         </div>
         <DataTableViewOptions table={table} />
       </div>
-      <div className="mb-4 overflow-hidden rounded-lg border border-white/[0.06] bg-[rgba(8,13,22,0.26)]">
+      <div className="mb-4 overflow-hidden rounded-lg border border-white/[0.07] bg-black/[0.1] shadow-[inset_0_1px_0_rgba(255,255,255,0.025)]">
         <Table>
-          <TableHeader className="bg-[rgba(38,83,121,0.16)] backdrop-blur-sm">
+          <TableHeader className="bg-white/[0.025] backdrop-blur-sm">
             {table.getHeaderGroups().map(headerGroup => (
               <TableRow key={headerGroup.id}>
                 {headerGroup.headers.map(header => {

@@ -47,26 +47,72 @@ describe('QualityJourneyCreateForm', () => {
     await user.type(screen.getByLabelText('Outcome or behavior to validate'), 'A shopper can submit an order.')
     await user.click(screen.getByRole('button', { name: 'Continue' }))
     await user.type(screen.getByLabelText('Included behavior'), 'Checkout submission')
-    await user.type(screen.getByLabelText('Observable outcomes that would satisfy you'), 'An order ID is shown')
+    await user.click(screen.getByRole('button', { name: 'Add included behavior' }))
+    await user.type(screen.getByLabelText('How will you know it worked?'), 'An order ID is shown')
+    await user.click(screen.getByRole('button', { name: 'Add success signal' }))
     await user.click(screen.getByRole('button', { name: 'Continue' }))
+    await user.click(screen.getByRole('radio', { name: /standard/i }))
     await user.click(screen.getByRole('button', { name: 'Continue' }))
     await user.click(screen.getByText('Staging'))
     await user.click(screen.getByRole('button', { name: 'Review Journey intake' }))
     await screen.findByRole('button', { name: 'Confirm and create Journey' }, { timeout: 5_000 })
   }
 
-  it('keeps at least one test dimension selected', async () => {
+  it('starts with no coverage depth selected and only offers end-to-end coverage choices', async () => {
     const user = userEvent.setup()
     render(<QualityJourneyCreateForm initialEnvironments={environments} projectId="project-1" />)
 
     await user.type(screen.getByLabelText('Outcome or behavior to validate'), 'A shopper can submit an order.')
     await user.click(screen.getByRole('button', { name: 'Continue' }))
-    await user.click(screen.getByRole('button', { name: '03Checks' }))
-    const functional = screen.getByRole('checkbox', { name: 'Functional' })
-    await user.click(functional)
+    await user.click(screen.getByRole('button', { name: '03Coverage' }))
 
-    expect(functional).toBeChecked()
+    expect(screen.getAllByRole('radio')).toHaveLength(3)
+    expect(screen.getByRole('radio', { name: /focused/i })).not.toBeChecked()
+    expect(screen.queryByText('Test dimensions')).not.toBeInTheDocument()
+    expect(screen.getByText(/currently validates complete user flows/i)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Continue' })).toBeDisabled()
+
+    await user.click(screen.getByRole('radio', { name: /focused/i }))
     expect(screen.getByRole('button', { name: 'Continue' })).toBeEnabled()
+  })
+
+  it('marks completed intake steps in the timeline while preserving the current step', async () => {
+    const user = userEvent.setup()
+    render(<QualityJourneyCreateForm initialEnvironments={environments} projectId="project-1" />)
+
+    const goalStep = screen.getByRole('button', { name: '01Goal' })
+    expect(goalStep).toHaveAttribute('data-state', 'current')
+
+    await user.type(screen.getByLabelText('Outcome or behavior to validate'), 'A shopper can submit an order.')
+    expect(screen.getByRole('button', { name: '01Goal' })).toHaveAttribute('data-state', 'current')
+
+    await user.click(screen.getByRole('button', { name: 'Continue' }))
+    expect(screen.getByRole('button', { name: '01Goal' })).toHaveAttribute('data-state', 'complete')
+    expect(screen.getByRole('button', { name: '02Scope and success' })).toHaveAttribute('data-state', 'current')
+    expect(screen.getByRole('button', { name: '03Coverage' })).toHaveAttribute('data-state', 'upcoming')
+
+    await user.click(screen.getByRole('button', { name: '03Coverage' }))
+    await user.click(screen.getByRole('radio', { name: /standard/i }))
+    expect(screen.getByRole('button', { name: '03Coverage' })).toHaveAttribute('data-state', 'current')
+  })
+
+  it('adds, edits, and removes scope cards', async () => {
+    const user = userEvent.setup()
+    render(<QualityJourneyCreateForm initialEnvironments={environments} projectId="project-1" />)
+
+    await user.click(screen.getByRole('button', { name: '02Scope and success' }))
+    await user.type(screen.getByLabelText('Included behavior'), 'Checkout submission')
+    await user.click(screen.getByRole('button', { name: 'Add included behavior' }))
+    expect(screen.getByText('Checkout submission')).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Edit included behavior: Checkout submission' }))
+    await user.clear(screen.getByLabelText('Included behavior'))
+    await user.type(screen.getByLabelText('Included behavior'), 'Guest checkout submission')
+    await user.click(screen.getByRole('button', { name: 'Save included behavior' }))
+    expect(screen.getByText('Guest checkout submission')).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Remove included behavior: Guest checkout submission' }))
+    expect(screen.queryByText('Guest checkout submission')).not.toBeInTheDocument()
   })
 
   it('creates a draft from a meaningful partial edit before the objective is supplied', async () => {
@@ -88,7 +134,7 @@ describe('QualityJourneyCreateForm', () => {
     render(<QualityJourneyCreateForm initialEnvironments={environments} projectId="project-1" />)
 
     await user.click(screen.getByRole('button', { name: '02Scope and success' }))
-    await user.click(screen.getByRole('button', { name: '03Checks' }))
+    await user.click(screen.getByRole('button', { name: '03Coverage' }))
     await user.click(screen.getByRole('button', { name: '04Test location' }))
     await new Promise(resolve => window.setTimeout(resolve, 850))
 
@@ -183,7 +229,8 @@ describe('QualityJourneyCreateForm', () => {
     await completeMinimum(user)
     await user.click(screen.getByRole('button', { name: 'Edit intake' }))
     await user.click(screen.getByRole('button', { name: '02Scope and success' }))
-    await user.type(screen.getByLabelText('Included behavior'), '\nOrder confirmation')
+    await user.type(screen.getByLabelText('Included behavior'), 'Order confirmation')
+    await user.click(screen.getByRole('button', { name: 'Add included behavior' }))
     await user.click(screen.getByRole('button', { name: '04Test location' }))
     await user.click(screen.getByRole('button', { name: 'Review Journey intake' }))
 

@@ -64,12 +64,8 @@ export default function AppSidebar({
 
   return (
     <aside
-      className="sticky top-0 z-40 hidden h-screen max-h-screen w-[15.75rem] shrink-0 flex-col border-r border-white/[0.08] bg-white/[0.015] lg:flex"
+      className="sticky top-0 z-40 hidden h-screen max-h-screen w-[15rem] shrink-0 flex-col overflow-hidden bg-transparent lg:flex"
       data-persistent-navigation
-      style={{
-        background:
-          'linear-gradient(180deg, rgba(38, 83, 121, 0.34) 0%, rgba(18, 37, 64, 0.27) 34%, rgba(13, 20, 34, 0.46) 100%)',
-      }}
     >
       <div className="flex shrink-0 items-center px-3 pb-0.5 pt-3">
         <Link
@@ -85,12 +81,12 @@ export default function AppSidebar({
         <ProjectSelector
           projects={projects}
           cookieProjectId={cookieProjectId}
-          className="mb-2 h-8 border-white/[0.08] bg-white/[0.055] text-xs"
+          className="mb-2 h-8 border-white/[0.08] bg-white/[0.035] text-xs"
         />
         <NavCommand
           variant="sidebar"
           label="Search"
-          className="h-8 w-full min-w-0 border border-white/[0.08] bg-white/[0.055] px-2.5 text-xs font-normal text-muted-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.05),inset_0_-10px_24px_rgba(0,0,0,0.16)] transition-all duration-200 hover:border-white/[0.12] hover:bg-white/[0.075] hover:text-foreground"
+          className="h-8 w-full min-w-0 border border-white/[0.08] bg-white/[0.035] px-2.5 text-xs font-normal text-muted-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.04),inset_0_-10px_24px_rgba(0,0,0,0.18)] transition-all duration-200 hover:border-white/[0.12] hover:bg-white/[0.06] hover:text-foreground"
           providerRunsEnabled={providerRunsEnabled}
         />
       </div>
@@ -104,13 +100,6 @@ export default function AppSidebar({
           renderItem={item => <SidebarNavItem key={item.href} item={item} pathname={pathname} projectId={projectId} />}
         />
       </nav>
-
-      <div className="hidden shrink-0 border-t border-white/[0.08] bg-white/[0.025] px-3 py-2.5 lg:block">
-        <p className="text-muted-foreground/80 flex items-center gap-2 text-[11px] leading-4">
-          <span className="bg-primary/75 size-1.5 shrink-0 rounded-full" aria-hidden="true" />
-          <span>Local-first workspace</span>
-        </p>
-      </div>
     </aside>
   )
 }

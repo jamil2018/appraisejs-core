@@ -16,7 +16,7 @@ function RadioGroupItem({ className, ...props }: React.ComponentProps<typeof Rad
   return (
     <RadioGroupPrimitive.Item
       className={cn(
-        'aspect-square size-4 rounded-full border border-primary text-primary shadow focus:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50',
+        'focus-visible:ring-primary/20 data-[state=checked]:border-primary/55 data-[state=checked]:bg-primary/10 aspect-square size-4 rounded-full border border-white/[0.16] bg-white/[0.025] text-primary shadow-[inset_0_1px_0_rgba(255,255,255,0.14)] backdrop-blur-md focus:outline-none focus-visible:ring-2 disabled:cursor-not-allowed disabled:opacity-50',
         className,
       )}
       {...props}

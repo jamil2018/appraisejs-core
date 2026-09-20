@@ -65,7 +65,7 @@ export default function MobileNavigation({
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <div className="flex h-12 items-center justify-between border-b border-white/[0.08] bg-[rgba(14,27,46,0.86)] px-3 shadow-[inset_0_-1px_0_rgba(255,255,255,0.025)] backdrop-blur-md">
+      <div className="flex h-12 items-center justify-between border-b border-white/[0.08] bg-[rgba(14,27,46,0.86)] px-3 shadow-[inset_0_-1px_0_rgba(255,255,255,0.025)] backdrop-blur-xl">
         <Link
           href={projectScopedHref('/', projectId)}
           aria-label="AppraiseJS dashboard"
@@ -84,7 +84,7 @@ export default function MobileNavigation({
           </Button>
         </DialogTrigger>
       </div>
-      <DialogContent className="left-0 top-0 h-dvh w-[min(20rem,calc(100vw-2.5rem))] max-w-none translate-x-0 translate-y-0 gap-0 overflow-hidden rounded-none border-y-0 border-l-0 border-r-white/[0.1] bg-[linear-gradient(180deg,rgba(38,83,121,0.42),rgba(18,37,64,0.36)_34%,rgba(13,20,34,0.58))] p-0 shadow-2xl sm:rounded-none">
+      <DialogContent className="left-0 top-0 h-dvh w-[min(20rem,calc(100vw-2.5rem))] max-w-none translate-x-0 translate-y-0 gap-0 overflow-hidden rounded-none border-y-0 border-l-0 border-r-white/[0.1] bg-[linear-gradient(180deg,rgba(38,83,121,0.42),rgba(18,37,64,0.36)_34%,rgba(13,20,34,0.58))] p-0 shadow-2xl backdrop-blur-xl sm:rounded-none">
         <DialogTitle className="sr-only">Navigation menu</DialogTitle>
         <DialogDescription className="sr-only">Navigate AppraiseJS or open the command palette.</DialogDescription>
         <div className="border-b border-white/[0.08] px-4 py-3 pr-12">
@@ -117,10 +117,6 @@ export default function MobileNavigation({
             )}
           />
         </nav>
-        <p className="text-muted-foreground/80 flex items-center gap-2 border-t border-white/[0.08] bg-white/[0.025] px-4 py-3 text-[11px]">
-          <span className="bg-primary/75 size-1.5 rounded-full" aria-hidden="true" />
-          Local-first workspace
-        </p>
       </DialogContent>
     </Dialog>
   )

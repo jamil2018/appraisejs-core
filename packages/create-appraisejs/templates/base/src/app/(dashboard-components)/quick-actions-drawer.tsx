@@ -109,7 +109,10 @@ const quickActions = [
 export default function QuickActionsDrawer() {
   const { push } = useRouter()
   return (
-    <Card id="container" className="relative overflow-hidden border-white/[0.08] bg-[rgba(18,37,64,0.42)] shadow-none">
+    <Card
+      id="container"
+      className="relative overflow-hidden border-white/[0.06] bg-[rgba(18,37,64,0.1)] shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] backdrop-blur-xl"
+    >
       <CardHeader id="header" className="relative px-4 pb-3 pt-4">
         <CardTitle className="text-base font-semibold text-white">Quick Actions</CardTitle>
         <CardDescription className="text-xs leading-5 text-zinc-400">
@@ -122,7 +125,7 @@ export default function QuickActionsDrawer() {
             <button
               key={href}
               onClick={() => push(href)}
-              className="group flex min-h-[84px] items-start gap-3 rounded-lg border border-white/[0.06] bg-white/[0.02] p-3 text-left outline-none transition-colors duration-200 hover:border-white/[0.15] hover:bg-white/[0.04] focus-visible:ring-1 focus-visible:ring-primary"
+              className="group flex min-h-[84px] items-start gap-3 rounded-lg border border-white/[0.05] bg-white/[0.006] p-3 text-left outline-none transition-colors duration-200 hover:border-white/[0.12] hover:bg-white/[0.025] focus-visible:ring-1 focus-visible:ring-primary"
             >
               <div
                 className={`flex size-9 shrink-0 items-center justify-center rounded-md border transition-colors duration-200 ${theme.border} ${theme.bg} ${theme.text} ${theme.hoverBorder} ${theme.hoverBg}`}

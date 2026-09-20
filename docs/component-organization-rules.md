@@ -41,10 +41,12 @@ These rules are the working baseline for Appraise UI refactors.
 
 ## Visual Language Contract
 
-Dashboard, Implementation Plans, and the desktop sidebar are the visual references for operational AppraiseJS work.
-Route work should preserve their dark navy depth, restrained translucent surfaces, compact density, subtle white
-borders, `0.5rem` control radius, and emerald primary action language. Do not mechanically replace route styles or
-turn dense tables into card feeds at small widths.
+The Quality Journey create form is the primary visual reference for AppraiseJS product surfaces. Route work should
+preserve its dark navy depth, quiet liquid-glass panels, compact density, subtle white edge highlights, restrained
+emerald tint, and material hierarchy. Glass depth comes from translucent fills, backdrop blur, inset highlights, and
+low-contrast borders rather than saturated gradients or heavy shadows. Secondary controls should visually recede;
+primary actions may carry a slight emerald tint without becoming solid green. Do not mechanically replace route
+layouts or turn dense tables into card feeds at small widths.
 
 - Use Inter through the root layout as the authoritative sans stack. Keep typography compact and semantic rather than
   using route-local font families or heading-like labels for ordinary content.
