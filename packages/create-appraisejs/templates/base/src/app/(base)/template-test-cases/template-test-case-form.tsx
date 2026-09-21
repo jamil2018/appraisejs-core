@@ -134,8 +134,8 @@ function TemplateTestCaseMetadata({
 }) {
   const scenarioPreview = buildScenarioPreview(title, description, nodesOrder)
   return (
-    <div className="flex justify-between gap-8" id="meta">
-      <div className="w-1/2">
+    <div className="flex items-start justify-between gap-6" id="meta">
+      <div className="min-w-0 flex-1 lg:max-w-2xl">
         <div className="mb-4 flex flex-col gap-2">
           <Label htmlFor="title">Title</Label>
           <Input id="title" name="title" value={title} onChange={event => onTitleChange(event.target.value)} />
@@ -152,8 +152,8 @@ function TemplateTestCaseMetadata({
           <TemplateTestCaseFormFieldError message={errors.description} />
         </div>
       </div>
-      <div className="w-1/2">
-        <div className="mb-4 flex flex-col gap-2">
+      <div className="flex shrink-0 justify-end">
+        <div className="flex flex-col items-end gap-2">
           <TestScenarioPreview title="Test Scenario(Preview)" scenario={scenarioPreview} />
         </div>
       </div>
@@ -169,11 +169,20 @@ function FlowAuthoringViewToggle({
   onChange: (view: 'graph' | 'linear') => void
 }) {
   return (
-    <div className="inline-flex w-fit rounded-md border p-1" role="group" aria-label="Flow authoring view">
+    <div
+      className="flex h-9 w-fit items-center rounded-full border border-white/[0.09] bg-white/[0.025] p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.055)] backdrop-blur-xl"
+      role="group"
+      aria-label="Flow authoring view"
+    >
       <Button
         type="button"
         size="sm"
-        variant={view === 'graph' ? 'default' : 'ghost'}
+        variant="ghost"
+        className={`h-7 rounded-full border px-3 text-xs transition-[color,background-color,border-color,box-shadow] ${
+          view === 'graph'
+            ? 'border-white/[0.12] bg-white/[0.075] text-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_8px_20px_-14px_rgba(0,0,0,0.9)] hover:bg-white/[0.075]'
+            : 'border-transparent text-muted-foreground hover:bg-white/[0.035] hover:text-foreground'
+        }`}
         aria-pressed={view === 'graph'}
         onClick={() => onChange('graph')}
       >
@@ -182,7 +191,12 @@ function FlowAuthoringViewToggle({
       <Button
         type="button"
         size="sm"
-        variant={view === 'linear' ? 'default' : 'ghost'}
+        variant="ghost"
+        className={`h-7 rounded-full border px-3 text-xs transition-[color,background-color,border-color,box-shadow] ${
+          view === 'linear'
+            ? 'border-white/[0.12] bg-white/[0.075] text-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_8px_20px_-14px_rgba(0,0,0,0.9)] hover:bg-white/[0.075]'
+            : 'border-transparent text-muted-foreground hover:bg-white/[0.035] hover:text-foreground'
+        }`}
         aria-pressed={view === 'linear'}
         onClick={() => onChange('linear')}
       >

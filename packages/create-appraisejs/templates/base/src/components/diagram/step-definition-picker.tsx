@@ -57,10 +57,21 @@ export function StepDefinitionPicker({
             <ChevronsUpDown data-icon="inline-end" className="opacity-50" aria-hidden />
           </Button>
         </PopoverTrigger>
-        <PopoverContent align="start" className="w-[var(--radix-popover-trigger-width)] p-0">
-          <Command shouldFilter={false}>
+        <PopoverContent
+          align="start"
+          className="w-[var(--radix-popover-trigger-width)] overflow-hidden border-white/[0.12] bg-[linear-gradient(145deg,rgba(255,255,255,0.055),rgba(255,255,255,0.014)),rgba(13,20,34,0.9)] p-0 shadow-[inset_0_1px_0_rgba(255,255,255,0.09),0_24px_60px_-28px_rgba(0,0,0,0.95)] backdrop-blur-2xl"
+        >
+          <Command className="bg-transparent" shouldFilter={false}>
             <CommandInput value={query} placeholder="Search ready Step Definitions" onValueChange={setQuery} />
-            <CommandList id={`${id}-list`}>
+            <CommandList
+              className="overscroll-contain [scrollbar-color:rgba(255,255,255,0.18)_transparent] [scrollbar-width:thin] [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:border [&::-webkit-scrollbar-thumb]:border-white/[0.08] [&::-webkit-scrollbar-thumb]:bg-white/[0.16] [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar]:w-2"
+              id={`${id}-list`}
+              onWheel={event => {
+                event.preventDefault()
+                event.stopPropagation()
+                event.currentTarget.scrollTop += event.deltaY
+              }}
+            >
               <CommandEmpty>No ready Step Definitions match.</CommandEmpty>
               <CommandGroup heading="Ready Step Definitions">
                 {filtered.map(definition => {
@@ -69,7 +80,7 @@ export function StepDefinitionPicker({
                     <CommandItem
                       key={keyOf(definition)}
                       value={keyOf(definition)}
-                      className="items-start py-3"
+                      className="mx-1 items-start rounded-lg border border-transparent py-3 data-[selected=true]:border-white/[0.08]"
                       onSelect={() => {
                         onChange(definition)
                         setOpen(false)

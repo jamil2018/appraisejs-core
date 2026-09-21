@@ -29,6 +29,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { toast } from '@/hooks/use-toast'
 import type { ActionResponse } from '@/types/form/actionHandler'
@@ -345,20 +346,19 @@ export function StepDefinitionRegistry({
               <Label className="sr-only" htmlFor="step-definition-category">
                 Category
               </Label>
-              <select
-                id="step-definition-category"
-                aria-label="Filter by category"
-                className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm shadow-sm"
-                value={group}
-                onChange={event => setGroup(event.target.value)}
-              >
-                <option value="all">All categories</option>
-                {groups.map(option => (
-                  <option key={option} value={option}>
-                    {option}
-                  </option>
-                ))}
-              </select>
+              <Select value={group} onValueChange={setGroup}>
+                <SelectTrigger id="step-definition-category" aria-label="Filter by category">
+                  <SelectValue placeholder="All categories" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All categories</SelectItem>
+                  {groups.map(option => (
+                    <SelectItem key={option} value={option}>
+                      {option}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
           <div className="flex gap-1" role="group" aria-label="Definition view">

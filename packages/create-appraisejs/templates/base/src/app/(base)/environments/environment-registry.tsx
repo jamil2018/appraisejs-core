@@ -36,10 +36,10 @@ function includesQuery(environment: EnvironmentTableRow, query: string) {
 function ExpectedPageTitle({ value }: { value: string | null }) {
   const configured = Boolean(value)
   return (
-    <div className="min-w-0 rounded-md border border-white/[0.06] bg-white/[0.018] px-3.5 py-3">
-      <p className="text-[10px] font-medium uppercase tracking-[0.1em] text-zinc-500">Expected page title</p>
+    <div className="min-w-0 rounded-lg border border-white/[0.07] bg-white/[0.014] px-3.5 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.025)]">
+      <p className="text-[10px] font-medium uppercase tracking-[0.1em] text-muted-foreground">Expected page title</p>
       <p
-        className={`mt-2 truncate text-xs ${configured ? 'text-zinc-300' : 'text-zinc-500'}`}
+        className={`mt-2 truncate text-xs ${configured ? 'text-foreground/75' : 'text-muted-foreground/70'}`}
         title={value || undefined}
       >
         {value || 'Automatic target identity'}
@@ -89,16 +89,21 @@ export default function EnvironmentRegistry({ environments }: EnvironmentRegistr
   return (
     <section
       aria-labelledby="environment-registry-title"
-      className="overflow-hidden rounded-lg border border-white/[0.08] bg-[rgba(18,37,64,0.32)] shadow-[0_18px_45px_rgba(0,0,0,0.16),inset_0_1px_0_rgba(255,255,255,0.05)]"
+      className="overflow-hidden rounded-xl border border-white/[0.09] bg-[linear-gradient(145deg,rgba(255,255,255,0.035),rgba(255,255,255,0.01))] shadow-[inset_0_1px_0_rgba(255,255,255,0.06),inset_0_-18px_36px_rgba(0,0,0,0.1),0_18px_50px_-38px_rgba(0,0,0,0.8)] backdrop-blur-xl"
     >
       <div className="flex flex-col gap-4 border-b border-white/[0.07] px-4 py-4 sm:px-5 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <h2 id="environment-registry-title" className="text-base font-semibold text-foreground">
             Runtime registry
           </h2>
-          <p className="mt-1 text-sm text-zinc-400">Endpoints and access profiles available to test execution.</p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Endpoints and access profiles available to test execution.
+          </p>
         </div>
-        <Button asChild className="w-full sm:w-auto">
+        <Button
+          asChild
+          className="w-full rounded-full border border-white/[0.18] bg-[linear-gradient(180deg,hsl(var(--primary)/0.88),hsl(var(--primary)/0.66))] shadow-[inset_0_1px_0_rgba(255,255,255,0.3),0_12px_28px_-16px_hsl(var(--primary)/0.7)] sm:w-auto"
+        >
           <Link href="/environments/create">
             <Plus className="size-4" aria-hidden="true" />
             New environment
@@ -106,7 +111,7 @@ export default function EnvironmentRegistry({ environments }: EnvironmentRegistr
         </Button>
       </div>
 
-      <div className="flex flex-col gap-3 border-b border-white/[0.07] bg-black/[0.08] px-4 py-3 sm:px-5 lg:flex-row lg:items-center lg:justify-between">
+      <div className="flex flex-col gap-3 border-b border-white/[0.07] bg-white/[0.012] px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.02)] sm:px-5 lg:flex-row lg:items-center lg:justify-between">
         <div className="relative w-full lg:max-w-sm">
           <Search
             className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-zinc-500"
@@ -121,7 +126,7 @@ export default function EnvironmentRegistry({ environments }: EnvironmentRegistr
             value={query}
             onChange={event => setQuery(event.target.value)}
             placeholder="Search name, endpoint, or username"
-            className="h-9 border-white/[0.1] bg-black/[0.12] pl-9"
+            className="h-9 rounded-full border-white/[0.1] bg-white/[0.018] pl-9 shadow-[inset_0_1px_0_rgba(255,255,255,0.035)] backdrop-blur-md"
           />
         </div>
 
@@ -153,12 +158,12 @@ export default function EnvironmentRegistry({ environments }: EnvironmentRegistr
           {filteredEnvironments.map(environment => (
             <article
               key={environment.id}
-              className="hover:border-primary/20 group relative min-w-0 overflow-hidden rounded-lg border border-white/[0.08] bg-[rgba(10,20,34,0.82)] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.035)] transition-[border-color,background-color,transform] duration-200 hover:-translate-y-0.5 hover:bg-[rgba(15,30,49,0.94)] motion-reduce:transform-none sm:p-5"
+              className="hover:border-primary/25 group relative min-w-0 overflow-hidden rounded-xl border border-white/[0.09] bg-[linear-gradient(145deg,rgba(255,255,255,0.032),rgba(255,255,255,0.009))] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.055),inset_0_-16px_32px_rgba(0,0,0,0.08),0_18px_44px_-36px_rgba(0,0,0,0.75)] backdrop-blur-xl transition-[border-color,background-color,transform,box-shadow] duration-200 hover:-translate-y-0.5 hover:bg-white/[0.035] hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_22px_52px_-36px_rgba(0,0,0,0.85)] motion-reduce:transform-none sm:p-5"
             >
               <div className="from-primary/60 via-primary/15 absolute inset-x-0 top-0 h-px bg-gradient-to-r to-transparent" />
               <div className="flex items-start justify-between gap-4">
                 <div className="flex min-w-0 items-center gap-3.5">
-                  <div className="border-primary/25 bg-primary/[0.08] flex size-11 shrink-0 items-center justify-center rounded-lg border text-primary shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
+                  <div className="border-primary/25 bg-primary/[0.07] flex size-11 shrink-0 items-center justify-center rounded-full border text-primary shadow-[inset_0_1px_0_rgba(255,255,255,0.16)] backdrop-blur-xl">
                     <Server className="size-5" strokeWidth={1.8} aria-hidden="true" />
                   </div>
                   <div className="min-w-0">
@@ -185,8 +190,7 @@ export default function EnvironmentRegistry({ environments }: EnvironmentRegistr
               </div>
 
               <div className="mt-6">
-                <div className="border-primary/15 bg-primary/[0.035] relative overflow-hidden rounded-md border px-4 py-3.5">
-                  <div className="bg-primary/50 absolute bottom-0 left-0 top-0 w-0.5" />
+                <div className="relative overflow-hidden rounded-lg border border-white/[0.08] bg-white/[0.018] px-4 py-3.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.035)]">
                   <div className="flex items-center justify-between gap-3">
                     <span className="text-[10px] font-medium uppercase tracking-[0.1em] text-zinc-500">
                       Primary address
@@ -208,7 +212,7 @@ export default function EnvironmentRegistry({ environments }: EnvironmentRegistr
 
                 <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
                   <ExpectedPageTitle value={environment.expectedPageTitle} />
-                  <div className="min-w-0 rounded-md border border-white/[0.06] bg-white/[0.018] px-3.5 py-3">
+                  <div className="min-w-0 rounded-lg border border-white/[0.07] bg-white/[0.014] px-3.5 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.025)]">
                     <div className="flex items-center gap-2 text-zinc-500">
                       <Braces className="size-3.5" aria-hidden="true" />
                       <span className="text-[10px] font-medium uppercase tracking-[0.1em]">API endpoint</span>
@@ -220,7 +224,7 @@ export default function EnvironmentRegistry({ environments }: EnvironmentRegistr
                       {environment.apiBaseUrl || 'Not configured'}
                     </p>
                   </div>
-                  <div className="min-w-0 rounded-md border border-white/[0.06] bg-white/[0.018] px-3.5 py-3 sm:col-span-2">
+                  <div className="min-w-0 rounded-lg border border-white/[0.07] bg-white/[0.014] px-3.5 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.025)] sm:col-span-2">
                     <div className="flex items-center gap-2 text-zinc-500">
                       <ShieldCheck className="size-3.5" aria-hidden="true" />
                       <span className="text-[10px] font-medium uppercase tracking-[0.1em]">
@@ -233,7 +237,7 @@ export default function EnvironmentRegistry({ environments }: EnvironmentRegistr
                       ).join(', ') || 'None authorized'}
                     </p>
                   </div>
-                  <div className="min-w-0 rounded-md border border-white/[0.06] bg-white/[0.018] px-3.5 py-3">
+                  <div className="min-w-0 rounded-lg border border-white/[0.07] bg-white/[0.014] px-3.5 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.025)]">
                     <div className="flex items-center gap-2 text-zinc-500">
                       {environment.username ? (
                         <UserRound className="size-3.5" aria-hidden="true" />
