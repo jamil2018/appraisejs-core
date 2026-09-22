@@ -16,14 +16,14 @@ function SelectTrigger({ className, children, ...props }: React.ComponentProps<t
   return (
     <SelectPrimitive.Trigger
       className={cn(
-        'focus:border-primary/45 focus:ring-primary/15 flex h-9 w-full items-center justify-between whitespace-nowrap rounded-lg border border-white/[0.1] bg-white/[0.025] px-3 py-2 text-sm shadow-[inset_0_1px_0_rgba(255,255,255,0.04),inset_0_-10px_24px_rgba(0,0,0,0.08)] backdrop-blur-md transition-[background-color,border-color,box-shadow] hover:border-white/[0.16] focus:outline-none focus:ring-2 disabled:cursor-not-allowed disabled:opacity-50 data-[placeholder]:text-muted-foreground [&>span]:line-clamp-1',
+        'focus:border-primary/45 focus:ring-primary/15 group flex h-9 w-full items-center justify-between whitespace-nowrap rounded-lg border border-white/[0.1] bg-white/[0.025] px-3 py-2 text-sm shadow-[inset_0_1px_0_rgba(255,255,255,0.04),inset_0_-10px_24px_rgba(0,0,0,0.08)] backdrop-blur-md transition-[background-color,border-color,box-shadow] hover:border-white/[0.16] focus:outline-none focus:ring-2 disabled:cursor-not-allowed disabled:opacity-50 data-[placeholder]:text-muted-foreground [&>span]:line-clamp-1',
         className,
       )}
       {...props}
     >
       {children}
       <SelectPrimitive.Icon asChild>
-        <ChevronDown className="size-4 opacity-50" />
+        <ChevronDown className="size-4 opacity-50 transition-transform duration-200 ease-out group-data-[state=open]:rotate-180 motion-reduce:transition-none" />
       </SelectPrimitive.Icon>
     </SelectPrimitive.Trigger>
   )

@@ -24,9 +24,7 @@ const Environments = async () => {
       <div>
         <PageHeader>
           <span className="flex items-center gap-3">
-            <span className="border-primary/25 bg-primary/[0.08] flex size-10 items-center justify-center rounded-full border text-primary shadow-[inset_0_1px_0_rgba(255,255,255,0.16)] backdrop-blur-xl">
-              <Waypoints className="size-5" strokeWidth={1.8} aria-hidden="true" />
-            </span>
+            <Waypoints className="size-7 text-primary sm:size-8" strokeWidth={2.2} aria-hidden="true" />
             Environments
           </span>
         </PageHeader>
@@ -35,27 +33,27 @@ const Environments = async () => {
 
       <dl
         aria-label="Environment overview"
-        className="grid grid-cols-2 gap-2 rounded-xl border border-white/[0.08] bg-[linear-gradient(145deg,rgba(255,255,255,0.032),rgba(255,255,255,0.01))] p-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.055),inset_0_-16px_32px_rgba(0,0,0,0.08)] backdrop-blur-xl sm:grid-cols-4"
+        className="grid grid-cols-2 gap-2 rounded-xl border border-white/[0.06] bg-[rgba(18,37,64,0.1)] p-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] backdrop-blur-xl sm:grid-cols-4"
       >
-        <div className="col-span-2 rounded-lg border border-white/[0.07] bg-white/[0.018] px-4 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.035)] sm:col-span-1">
+        <div className="col-span-2 rounded-lg border border-white/[0.05] bg-white/[0.006] p-4 sm:col-span-1">
           <dt className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
             <Server className="size-3.5" aria-hidden="true" />
             Registered
           </dt>
           <dd className="mt-1 text-2xl font-semibold tabular-nums text-foreground">{environmentsData.length}</dd>
         </div>
-        <div className="rounded-lg border border-white/[0.07] bg-white/[0.018] px-4 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.035)]">
+        <div className="rounded-lg border border-white/[0.05] bg-white/[0.006] p-4">
           <dt className="text-xs font-medium text-muted-foreground">Base endpoints</dt>
           <dd className="text-foreground/90 mt-1 text-lg font-semibold tabular-nums">{environmentsData.length}</dd>
         </div>
-        <div className="rounded-lg border border-white/[0.07] bg-white/[0.018] px-4 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.035)]">
+        <div className="rounded-lg border border-white/[0.05] bg-white/[0.006] p-4">
           <dt className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
             <Braces className="size-3.5" aria-hidden="true" />
             API endpoints
           </dt>
           <dd className="text-foreground/90 mt-1 text-lg font-semibold tabular-nums">{apiEndpointCount}</dd>
         </div>
-        <div className="rounded-lg border border-white/[0.07] bg-white/[0.018] px-4 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.035)]">
+        <div className="rounded-lg border border-white/[0.05] bg-white/[0.006] p-4">
           <dt className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
             <KeyRound className="size-3.5" aria-hidden="true" />
             Access profiles

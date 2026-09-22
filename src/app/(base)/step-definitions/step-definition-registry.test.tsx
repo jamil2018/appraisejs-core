@@ -77,7 +77,10 @@ describe('StepDefinitionRegistry', () => {
     const user = userEvent.setup()
     render(<StepDefinitionRegistry definitions={definitions} drafts={[]} />)
 
-    await user.click(screen.getByRole('combobox', { name: 'Filter by category' }))
+    const categoryFilter = screen.getByRole('combobox', { name: 'Filter by category' })
+    await user.click(categoryFilter)
+    expect(categoryFilter).toHaveAttribute('data-state', 'open')
+    expect(categoryFilter.querySelector('svg')).toHaveClass('group-data-[state=open]:rotate-180')
     await user.click(screen.getByRole('option', { name: 'navigation' }))
     await user.type(screen.getByRole('searchbox', { name: 'Search Step Definitions' }), 'open')
     expect(screen.getByRole('status')).toHaveTextContent('Showing 1 of 2')
@@ -86,6 +89,8 @@ describe('StepDefinitionRegistry', () => {
 
     await user.click(screen.getByRole('button', { name: 'Compact' }))
     expect(screen.getByRole('button', { name: 'Compact' })).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByRole('button', { name: 'Compact' })).toHaveClass('bg-white/[0.075]')
+    expect(screen.getByRole('button', { name: 'Cards' })).toHaveClass('border-transparent')
     expect(screen.getByRole('combobox', { name: 'Filter by category' })).toHaveTextContent('navigation')
     expect(screen.getByRole('searchbox', { name: 'Search Step Definitions' })).toHaveValue('open')
     expect(screen.getByText('browser.navigation.goto@1')).toBeInTheDocument()
