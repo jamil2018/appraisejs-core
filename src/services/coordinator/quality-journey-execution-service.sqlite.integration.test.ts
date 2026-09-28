@@ -1,22 +1,34 @@
 import { promises as fs } from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
+import { createServer } from 'node:http'
 import { PrismaClient } from '@prisma/client'
 import { afterEach, describe, expect, it } from 'vitest'
 import { copyMigratedTestDatabase } from '@/test/migrated-test-database'
 import { createQualityJourneyKernelState, hashQualityJourneyExecutionValue } from '@/lib/quality-journey'
+import { preparedRuntimeCapsuleSchema } from '@/lib/quality-journey/automation-contracts'
 import { defaultOperationDefinitions } from '@/lib/operation-catalog'
+import { processManager } from '@/lib/test-run/process-manager'
+import { hashRuntimeCapsuleBytes } from '@/lib/runtime-capsule'
+import { TestRunArtifactAccessService } from '@/services/test-run/test-run-artifact-access-service'
 import {
   builtInStepDefinitions,
   canonicalStepDefinitionJson,
   computeStepDefinitionHashes,
+  computeStepExecutableReadiness,
   computeStepReferenceHash,
+  stepDefinitionContentHash,
 } from '../../../packages/cucumber-runtime/src/step-definitions/index.ts'
 import { createQualityJourney } from './quality-journey-service'
+import {
+  startQualityJourneyExecutionRuntime,
+  reconcileQualityJourneyExecutionRuntime,
+} from './quality-journey-runtime-service'
 import {
   approveQualityJourneyRerun,
   cancelQualityJourneyExecution,
   grantQualityJourneyExecutionConsent,
+  revokeQualityJourneyExecutionConsent,
   proposeQualityJourneyRerun,
   reconcileQualityJourneyExecution,
   registerQualityJourneyExecutionRuntimeAdapter,
@@ -40,6 +52,8 @@ async function fixture(
   actualOperationId = 'browser.forms.fill',
   manifestOperationId = actualOperationId,
   capsuleCount = 1,
+  realRuntime = false,
+  baseUrl = 'http://127.0.0.1:3000',
 ) {
   const workspace = await fs.mkdtemp(path.join(os.tmpdir(), 'appraise-quality-journey-execution-'))
   workspaces.push(workspace)
@@ -63,7 +77,7 @@ async function fixture(
       id: 'environment-execution',
       targetProjectId: 'target-execution',
       name: 'local',
-      baseUrl: 'http://127.0.0.1:3000',
+      baseUrl,
     },
   })
   await client.module.create({ data: { id: 'module-execution', targetProjectId: 'target-execution', name: 'module' } })
@@ -187,6 +201,16 @@ async function fixture(
       item.execution.handlerVersion === operation.handler.version,
   )!
   const definitionHashes = computeStepDefinitionHashes(definition)
+  const registryManifestHash = stepDefinitionContentHash({ step: definition.identity })
+  const publicationReceipt = {
+    step: { id: definition.identity.id, version: definition.identity.version },
+    ...definitionHashes,
+    registryManifestHash,
+    executableReadiness: computeStepExecutableReadiness(definition, registryManifestHash, 'c26-bounded-runtime'),
+    conformanceRunId: 'c26-bounded-runtime',
+    reviewAuthority: 'fixture-reviewer',
+    publishedAt: '2026-09-29T00:00:00.000Z',
+  }
   await client.stepDefinition.create({
     data: {
       id: definition.identity.id,
@@ -197,8 +221,22 @@ async function fixture(
       definitionJson: json(definition),
       definitionHash: definitionHashes.definitionHash,
       humanProjectionHash: definitionHashes.humanProjectionHash,
+      ...(realRuntime ? { agentContractHash: definitionHashes.agentContractHash } : {}),
       executionHash: definitionHashes.executionHash,
       provenanceJson: json(definition.provenance),
+      ...(realRuntime
+        ? {
+            publicationReceipt: {
+              create: {
+                receiptJson: json(publicationReceipt),
+                receiptHash: stepDefinitionContentHash(publicationReceipt),
+                registryManifestHash,
+                conformanceRunId: 'c26-bounded-runtime',
+                reviewAuthority: 'fixture-reviewer',
+              },
+            },
+          }
+        : {}),
     },
   })
   const invocation = canonicalStepDefinitionJson({
@@ -208,15 +246,44 @@ async function fixture(
       definitionHash: computeStepReferenceHash(definition),
     },
     inputs: {},
-    presentation: { keyword: 'Then', description: definition.intent.description },
+    presentation: { keyword: realRuntime ? 'Given' : 'Then', description: definition.intent.description },
   })
   const binding = {
     schemaVersion: 'appraise.quality-journey/v1',
     targetProjectId: 'target-execution',
     moduleId: 'module-execution',
     suite: { id: 'suite-execution', name: 'suite', description: null },
-    testCase: { id: 'case-execution', title: 'case', description: 'case', steps: [{ invocationJson: invocation }] },
+    testCase: {
+      id: 'case-execution',
+      title: 'case',
+      description: 'case',
+      steps: [
+        {
+          ...(realRuntime
+            ? {
+                order: 0,
+                gherkinStep: `Given ${operation.humanProjections[0]!.signature}`,
+                label: operation.title,
+                icon: 'NAVIGATION',
+              }
+            : {}),
+          invocationJson: invocation,
+        },
+      ],
+    },
   }
+  const resourceHashes = realRuntime
+    ? [
+        {
+          id: `step:${definition.identity.id}:${definition.identity.version}`,
+          contentHash: definitionHashes.definitionHash,
+        },
+        {
+          id: `operation:${operation.id}:${operation.version}`,
+          contentHash: hashQualityJourneyExecutionValue(operation),
+        },
+      ]
+    : []
   await client.qualityJourneyAutomationTargetBinding.create({
     data: {
       id: 'binding-execution',
@@ -229,7 +296,7 @@ async function fixture(
       testCaseHash: digest('f'),
       stepHash: digest('1'),
       bindingJson: json(binding),
-      resourceHashJson: '[]',
+      resourceHashJson: json(resourceHashes),
     },
   })
   await client.qualityJourneyAutomationMaterializationBinding.create({
@@ -241,6 +308,22 @@ async function fixture(
     suiteId: 'suite-execution',
     steps: [{ operation: { id: manifestOperationId, version: '1' } }],
   }
+  const manifestHash = hashQualityJourneyExecutionValue(manifest)
+  const capsuleHash = realRuntime
+    ? hashQualityJourneyExecutionValue(
+        preparedRuntimeCapsuleSchema.parse({
+          schemaVersion: 'appraise.quality-journey/v1',
+          capsuleId: 'prepared-execution',
+          journeyId: created.journey.journeyId,
+          targetProjectId: 'target-execution',
+          cycleId: created.journey.activeCycleId,
+          materializationId: 'materialization-execution',
+          inputHash: digest('a'),
+          manifestHash,
+          status: 'PREPARED',
+        }),
+      )
+    : digest('b')
   await client.qualityJourneyPreparedRuntimeCapsule.create({
     data: {
       id: 'prepared-execution',
@@ -249,9 +332,9 @@ async function fixture(
       cycleId: created.journey.activeCycleId,
       materializationId: 'materialization-execution',
       inputHash: digest('a'),
-      capsuleHash: digest('b'),
+      capsuleHash,
       manifestJson: json(manifest),
-      manifestHash: hashQualityJourneyExecutionValue(manifest),
+      manifestHash,
     },
   })
   if (capsuleCount === 2) {
@@ -477,6 +560,282 @@ describe('Quality Journey Phase 7 execution coordinator (SQLite)', () => {
       await value.client.$disconnect()
     }
   })
+
+  it('revokes a granted exact scope before reservation and requires fresh consent', async () => {
+    const value = await fixture()
+    const starts: string[] = []
+    registerQualityJourneyExecutionRuntimeAdapter({
+      start: async input => void starts.push(input.executionCycleId),
+      cancel: async () => undefined,
+      reconcile: async () => undefined,
+    })
+    try {
+      const request = await startQualityJourneyExecution(startInput(value, 'revoked'), value.client)
+      if (!('consentRequired' in request)) throw new Error('fixture must request consent')
+      const consentInput = {
+        journeyId: value.journeyId,
+        targetProjectId: 'target-execution',
+        executionConsentId: request.consentRequired.executionConsentId,
+        expectedScopeHash: request.consentRequired.scopeHash,
+      }
+      const original = await value.client.qualityJourneyExecutionConsent.findUniqueOrThrow({
+        where: { id: consentInput.executionConsentId },
+      })
+      expect(JSON.parse(original.scopeJson)).toMatchObject({ executionInputsHash: expect.stringMatching(/^sha256:/) })
+      await grantQualityJourneyExecutionConsent(consentInput, value.client)
+      await expect(revokeQualityJourneyExecutionConsent(consentInput, value.client)).resolves.toMatchObject({
+        status: 'REVOKED',
+        revokedAt: expect.any(Date),
+      })
+      await expect(revokeQualityJourneyExecutionConsent(consentInput, value.client)).resolves.toMatchObject({
+        status: 'REVOKED',
+      })
+      await expect(
+        startQualityJourneyExecution(
+          { ...startInput(value, 'revoked'), executionConsentId: consentInput.executionConsentId },
+          value.client,
+        ),
+      ).rejects.toMatchObject({ code: 'UNAUTHORIZED' })
+      const renewed = await startQualityJourneyExecution(startInput(value, 'revoked'), value.client)
+      expect(renewed).toHaveProperty('consentRequired')
+      if (!('consentRequired' in renewed)) throw new Error('revoked grant must require a new consent')
+      expect(renewed.consentRequired.executionConsentId).not.toBe(consentInput.executionConsentId)
+      expect(await value.client.qualityJourneyExecutionCycle.count()).toBe(0)
+      expect(starts).toHaveLength(0)
+    } finally {
+      await value.client.$disconnect()
+    }
+  })
+
+  it('records an auto-selected UI grant in the durable execution command and refuses late revocation', async () => {
+    const value = await fixture()
+    registerQualityJourneyExecutionRuntimeAdapter({
+      start: async () => undefined,
+      cancel: async () => undefined,
+      reconcile: async () => undefined,
+    })
+    try {
+      const requested = await startQualityJourneyExecution(startInput(value, 'auto-grant'), value.client)
+      if (!('consentRequired' in requested)) throw new Error('fixture must request consent')
+      const consentInput = {
+        journeyId: value.journeyId,
+        targetProjectId: 'target-execution',
+        executionConsentId: requested.consentRequired.executionConsentId,
+        expectedScopeHash: requested.consentRequired.scopeHash,
+      }
+      await grantQualityJourneyExecutionConsent(consentInput, value.client)
+      const started = startedExecution(
+        await startQualityJourneyExecution(startInput(value, 'auto-grant'), value.client),
+      )
+      const consent = await value.client.qualityJourneyExecutionConsent.findUniqueOrThrow({
+        where: { id: consentInput.executionConsentId },
+      })
+      expect(consent).toMatchObject({ status: 'CONSUMED', executionCycleId: started.cycles[0]!.id })
+      const command = await value.client.qualityJourneyCommand.findFirstOrThrow({
+        where: { journeyId: value.journeyId, idempotencyKey: 'execution:auto-grant' },
+      })
+      expect(JSON.parse(command.requestJson).payload).toMatchObject({ executionConsentId: consent.id })
+      await expect(revokeQualityJourneyExecutionConsent(consentInput, value.client)).rejects.toMatchObject({
+        code: 'CONFLICT',
+      })
+    } finally {
+      await value.client.$disconnect()
+    }
+  })
+
+  it('keeps one reservation when launch succeeds but its reply is lost', async () => {
+    const value = await fixture('browser.assertions.visible')
+    const effects = new Set<string>()
+    let calls = 0
+    registerQualityJourneyExecutionRuntimeAdapter({
+      start: async input => {
+        calls++
+        effects.add(input.executionCycleId)
+        if (calls === 1) throw new Error('lost launch reply')
+      },
+      cancel: async () => undefined,
+      reconcile: async () => undefined,
+    })
+    try {
+      await expect(startQualityJourneyExecution(startInput(value, 'lost-reply'), value.client)).rejects.toThrow(
+        'lost launch reply',
+      )
+      expect(await value.client.qualityJourneyExecutionCycle.count()).toBe(1)
+      expect(await value.client.testRun.count({ where: { intent: 'QUALITY_JOURNEY' } })).toBe(1)
+      await startQualityJourneyExecution(startInput(value, 'lost-reply'), value.client)
+      expect(calls).toBe(2)
+      expect(effects.size).toBe(1)
+      expect(await value.client.qualityJourneyExecutionCycle.count()).toBe(1)
+      expect(await value.client.testRun.count({ where: { intent: 'QUALITY_JOURNEY' } })).toBe(1)
+      await expect(
+        startQualityJourneyExecution({ ...startInput(value, 'lost-reply'), browserEngine: 'FIREFOX' }, value.client),
+      ).rejects.toMatchObject({ code: 'CONFLICT' })
+    } finally {
+      await value.client.$disconnect()
+    }
+  })
+
+  it.runIf(process.env.APPRAISE_C26_REAL_RUNTIME === '1')(
+    'runs a bounded real Journey capsule through launch and terminal reconciliation',
+    async () => {
+      const server = createServer((_request, response) => {
+        response.writeHead(200, { 'content-type': 'text/html; charset=utf-8' })
+        response.end('<!doctype html><title>Bounded Journey runtime</title>')
+      })
+      await new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve))
+      const address = server.address()
+      if (!address || typeof address === 'string') throw new Error('fixture server address is unavailable')
+      const value = await fixture(
+        'browser.navigation.navigate.to.environment.base.url',
+        undefined,
+        1,
+        true,
+        `http://127.0.0.1:${address.port}`,
+      )
+      const appraiseRoot = path.join(workspaces[workspaces.length - 1]!, '.appraise')
+      registerQualityJourneyExecutionRuntimeAdapter({
+        start: async input => startQualityJourneyExecutionRuntime(input, value.client, appraiseRoot),
+        cancel: async () => undefined,
+        reconcile: async input => reconcileQualityJourneyExecutionRuntime(input, value.client, appraiseRoot),
+      })
+      let runId: string | undefined
+      try {
+        const request = await startQualityJourneyExecution(startInput(value, 'real-runtime'), value.client)
+        if ('consentRequired' in request) {
+          await grantQualityJourneyExecutionConsent(
+            {
+              journeyId: value.journeyId,
+              targetProjectId: 'target-execution',
+              executionConsentId: request.consentRequired.executionConsentId,
+              expectedScopeHash: request.consentRequired.scopeHash,
+            },
+            value.client,
+          )
+        }
+        const started = startedExecution(
+          'consentRequired' in request
+            ? await startQualityJourneyExecution(startInput(value, 'real-runtime'), value.client)
+            : request,
+        )
+        const executionCycleId = started.cycles[0]!.id
+        const testRunId = started.cycles[0]!.testRuns[0]!.testRunId
+        runId = started.cycles[0]!.testRuns[0]!.runId
+        const deadline = Date.now() + 30_000
+        while (Date.now() < deadline) {
+          const run = await value.client.testRun.findUniqueOrThrow({ where: { id: testRunId } })
+          if (['COMPLETED', 'CANCELLED'].includes(run.status)) break
+          await new Promise(resolve => setTimeout(resolve, 100))
+        }
+        await reconcileQualityJourneyExecutionRuntime({ executionCycleId }, value.client, appraiseRoot)
+        const materialized = await value.client.runtimeCapsule.findUnique({ where: { testRunId } })
+        const attempt = await value.client.runtimeCapsuleExecutionAttempt.findUnique({ where: { testRunId } })
+        const run = await value.client.testRun.findUniqueOrThrow({ where: { id: testRunId } })
+        expect(materialized).toMatchObject({ testRunId })
+        expect(attempt).toMatchObject({ testRunId })
+        expect(run).toMatchObject({ status: 'COMPLETED', result: 'PASSED', evidenceHealth: 'valid' })
+        expect(await value.client.qualityJourneyExecutionEvidenceReceipt.count({ where: { executionCycleId } })).toBe(1)
+        await startQualityJourneyExecution(startInput(value, 'real-runtime'), value.client)
+        expect(await value.client.runtimeCapsuleExecutionAttempt.count({ where: { testRunId } })).toBe(1)
+        expect(await value.client.qualityJourneyExecutionEvidenceReceipt.count({ where: { executionCycleId } })).toBe(1)
+      } finally {
+        if (runId) processManager.get(runId)?.process.kill('SIGTERM')
+        await value.client.$disconnect()
+        await new Promise<void>((resolve, reject) => server.close(error => (error ? reject(error) : resolve())))
+      }
+    },
+  )
+
+  it.runIf(process.env.APPRAISE_C26_REAL_RUNTIME === '1')(
+    'seals managed trace and screenshot bytes from a failed real Journey run',
+    async () => {
+      const value = await fixture(
+        'browser.navigation.navigate.to.environment.base.url',
+        undefined,
+        1,
+        true,
+        'http://127.0.0.1:1',
+      )
+      const appraiseRoot = path.join(workspaces[workspaces.length - 1]!, '.appraise')
+      registerQualityJourneyExecutionRuntimeAdapter({
+        start: async input => startQualityJourneyExecutionRuntime(input, value.client, appraiseRoot),
+        cancel: async () => undefined,
+        reconcile: async input => reconcileQualityJourneyExecutionRuntime(input, value.client, appraiseRoot),
+      })
+      let runId: string | undefined
+      try {
+        const request = await startQualityJourneyExecution(startInput(value, 'real-runtime-failure'), value.client)
+        if ('consentRequired' in request)
+          await grantQualityJourneyExecutionConsent(
+            {
+              journeyId: value.journeyId,
+              targetProjectId: 'target-execution',
+              executionConsentId: request.consentRequired.executionConsentId,
+              expectedScopeHash: request.consentRequired.scopeHash,
+            },
+            value.client,
+          )
+        const started = startedExecution(
+          'consentRequired' in request
+            ? await startQualityJourneyExecution(startInput(value, 'real-runtime-failure'), value.client)
+            : request,
+        )
+        const executionCycleId = started.cycles[0]!.id
+        const testRunId = started.cycles[0]!.testRuns[0]!.testRunId
+        runId = started.cycles[0]!.testRuns[0]!.runId
+        const deadline = Date.now() + 30_000
+        while (Date.now() < deadline) {
+          const run = await value.client.testRun.findUniqueOrThrow({ where: { id: testRunId } })
+          if (['COMPLETED', 'CANCELLED'].includes(run.status)) break
+          await new Promise(resolve => setTimeout(resolve, 100))
+        }
+        await reconcileQualityJourneyExecutionRuntime({ executionCycleId }, value.client, appraiseRoot)
+        const run = await value.client.testRun.findUniqueOrThrow({ where: { id: testRunId } })
+        expect(run).toMatchObject({ status: 'COMPLETED', result: 'FAILED', evidenceHealth: 'valid' })
+        const receipt = await value.client.qualityJourneyExecutionEvidenceReceipt.findFirstOrThrow({
+          where: { executionCycleId },
+        })
+        const evidence = JSON.parse(receipt.evidenceJson) as {
+          artifacts: Array<{ kind: string; testCaseId?: string; reportStepId?: string; contentHash: string }>
+        }
+        expect(evidence.artifacts).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({ kind: 'trace', testCaseId: 'case-execution' }),
+            expect.objectContaining({
+              kind: 'screenshot',
+              testCaseId: 'case-execution',
+              reportStepId: expect.any(String),
+            }),
+          ]),
+        )
+        const membership = await value.client.testRunTestCase.findFirstOrThrow({ where: { testRunId } })
+        const step = await value.client.reportStep.findFirstOrThrow({
+          where: { reportScenario: { reportFeature: { report: { testRunId } } }, screenshotPath: { not: null } },
+        })
+        const access = new TestRunArtifactAccessService(value.client, appraiseRoot)
+        for (const item of [
+          { kind: 'trace' as const, storedPath: membership.tracePath, reportStepId: undefined },
+          { kind: 'screenshot' as const, storedPath: step.screenshotPath, reportStepId: step.id },
+        ]) {
+          const artifact = evidence.artifacts.find(
+            artifact => artifact.kind === item.kind && artifact.reportStepId === item.reportStepId,
+          )
+          const { bytes } = await access.readBytes({
+            kind: item.kind,
+            runId: runId!,
+            testCaseId: 'case-execution',
+            storedPath: item.storedPath,
+            expectedTargetProjectId: 'target-execution',
+          })
+          expect(artifact?.contentHash).toBe(hashRuntimeCapsuleBytes(bytes))
+        }
+        await reconcileQualityJourneyExecutionRuntime({ executionCycleId }, value.client, appraiseRoot)
+        expect(await value.client.qualityJourneyExecutionEvidenceReceipt.count({ where: { executionCycleId } })).toBe(1)
+      } finally {
+        if (runId) processManager.get(runId)?.process.kill('SIGTERM')
+        await value.client.$disconnect()
+      }
+    },
+  )
 
   it('rejects foreign, missing, and tampered prepared capsules before a TestRun reservation', async () => {
     const value = await fixture()

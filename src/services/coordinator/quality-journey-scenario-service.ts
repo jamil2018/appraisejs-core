@@ -265,35 +265,53 @@ async function approvedRequirementIds(journeyId: string, db: Db) {
   return new Set((charter.requirements ?? []).map(requirement => requirement.requirementId))
 }
 
-/** Only an unchanged behavioral intent may retain its exact prior human
- * decision. Feasibility and layout are deliberately not part of that identity. */
+/** A prior decision applies only to the same reviewed scenario and discovery
+ * input. Revision IDs may change, but no reviewed content may change. */
 async function carryForwardUnchangedScenarioDecisions(
-  predecessorPortfolioId: string,
-  successorPortfolioId: string,
+  predecessor: { id: string; discoveryCompletionHash: string; graphJson: string; coverageRationale: string },
+  successor: { id: string; discoveryCompletionHash: string; graphJson: string; coverageRationale: string },
   tx: Prisma.TransactionClient,
 ) {
+  if (
+    predecessor.discoveryCompletionHash !== successor.discoveryCompletionHash ||
+    predecessor.graphJson !== successor.graphJson ||
+    predecessor.coverageRationale !== successor.coverageRationale
+  )
+    return
   const [previous, next] = await Promise.all([
     tx.qualityJourneyScenarioRevision.findMany({
-      where: { portfolioRevisionId: predecessorPortfolioId },
+      where: { portfolioRevisionId: predecessor.id },
       include: { decisions: true },
     }),
-    tx.qualityJourneyScenarioRevision.findMany({ where: { portfolioRevisionId: successorPortfolioId } }),
+    tx.qualityJourneyScenarioRevision.findMany({ where: { portfolioRevisionId: successor.id } }),
   ])
   const nextByStableId = new Map(next.map(scenario => [scenario.stableScenarioId, scenario]))
   for (const scenario of previous) {
     const decision = scenario.decisions[0]
-    const successor = nextByStableId.get(scenario.stableScenarioId)
-    if (!decision || !successor || successor.behavioralIntentHash !== scenario.behavioralIntentHash) continue
+    const successorScenario = nextByStableId.get(scenario.stableScenarioId)
+    if (
+      !decision ||
+      !successorScenario ||
+      successorScenario.behavioralIntentHash !== scenario.behavioralIntentHash ||
+      successorScenario.enrichmentHash !== scenario.enrichmentHash ||
+      successorScenario.layoutHash !== scenario.layoutHash
+    )
+      continue
     const requestHash = hash({
       carriedFromDecisionId: decision.id,
-      scenarioRevisionId: successor.scenarioRevisionId,
-      behavioralIntentHash: successor.behavioralIntentHash,
+      scenarioRevisionId: successorScenario.scenarioRevisionId,
+      behavioralIntentHash: successorScenario.behavioralIntentHash,
+      enrichmentHash: successorScenario.enrichmentHash,
+      layoutHash: successorScenario.layoutHash,
+      discoveryCompletionHash: predecessor.discoveryCompletionHash,
+      graphJson: predecessor.graphJson,
+      coverageRationale: predecessor.coverageRationale,
     })
     await tx.qualityJourneyScenarioDecision.create({
       data: {
-        id: idFor('decision-carry', successorPortfolioId, successor.scenarioRevisionId),
-        portfolioRevisionId: successorPortfolioId,
-        scenarioRevisionId: successor.scenarioRevisionId,
+        id: idFor('decision-carry', successor.id, successorScenario.scenarioRevisionId),
+        portfolioRevisionId: successor.id,
+        scenarioRevisionId: successorScenario.scenarioRevisionId,
         decision: decision.decision,
         feedback: decision.feedback,
         actor: 'SYSTEM',
@@ -454,7 +472,7 @@ async function persistScenarioPortfolioSubmission(
   submissionHash: string,
   journey: { id: string; targetProjectId: string; activeCycleId: string },
   discovery: { id: string; completionHash: string | null },
-  predecessor: { id: string } | null,
+  predecessor: { id: string; discoveryCompletionHash: string; graphJson: string; coverageRationale: string } | null,
   item: { id: string },
   attempt: { id: string },
   tx: Prisma.TransactionClient,
@@ -518,7 +536,7 @@ async function persistScenarioPortfolioSubmission(
       contentHash: hash(scenario),
     })),
   })
-  if (predecessor) await carryForwardUnchangedScenarioDecisions(predecessor.id, created.id, tx)
+  if (predecessor) await carryForwardUnchangedScenarioDecisions(predecessor, created, tx)
   return created
 }
 

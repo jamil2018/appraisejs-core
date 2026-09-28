@@ -165,11 +165,11 @@ semantics; React Flow renders only those declared edges. Each scenario separates
 enrichment and layout, with independent hashes. Scout observation IDs and Resource Explorer resource assumptions are checked against the frozen discovery
 bundle; no Designer submission can invent those facts.
 
-`quality_journey_scenarios_start`, `quality_journey_scenarios_submit`, `quality_journey_scenarios_publish`,
-`quality_journey_scenarios_comment`, `quality_journey_scenarios_comment_dispose`, `quality_journey_scenarios_decide`, and
-`quality_journey_scenarios_revision_request` are specialized operations. The generic command path rejects their
-lifecycle commands. Review comments are append-only and may be scoped to an exact scenario revision; public HTTP and
-MCP boundaries derive the `USER` actor rather than trusting a caller-provided identity. Scenario
+`quality_journey_scenarios_start`, `quality_journey_scenarios_submit`, and `quality_journey_scenarios_publish` are
+specialized coordinator operations. The local Journey UI owns scenario comments, comment dispositions, decisions, and
+revision requests; the project-credential HTTP and MCP surfaces do not expose those review mutations. The generic
+command path rejects their lifecycle commands. Review comments are append-only and may be scoped to an exact scenario
+revision. The UI action records `actor=USER` without attesting a distinct natural person. Scenario
 decisions are append-only/idempotent, with rejected decisions requiring feedback. A review remains in
 `SCENARIO_REVIEW` until every scenario is classified; only then can the approved subset advance when it covers every
 mandatory approved requirement. The final portfolio stores the approved-intent, coverage, and decision-set hashes.
@@ -178,9 +178,10 @@ A Designer submission also binds the claimed Assignment Manifest's input and aut
 completed `WorkerResultEnvelope` whose output references exactly the submitted portfolio and scenario revisions.
 Factory authorization, spawn receipt, role digest, lease, and input hash are revalidated by the common completion
 path before any scenario record is committed. A requested revision makes the predecessor immutable, persists durable
-feedback, and reissues the Designer from canonical predecessor artifacts only. Decisions carry forward only where a
-successor keeps the same stable scenario ID and behavioral-intent hash; enrichment or graph-layout changes cannot
-manufacture or invalidate that human decision. Open blocking comments prevent approval until explicitly disposed, and
+feedback, and reissues the Designer from canonical predecessor artifacts only. A decision carries forward only when
+the stable scenario ID, behavioral intent, feasibility enrichment, layout, completed discovery input, portfolio graph,
+and coverage rationale are unchanged. A new scenario revision ID alone does not invalidate that decision. Changed
+reviewed content or input needs a fresh decision on the successor revision. Open blocking comments prevent approval until explicitly disposed, and
 every comment mutation advances the exact review hash.
 
 The Scout work item may observe only its frozen environment IDs and routes through read-only target access. Its
@@ -211,6 +212,12 @@ Scenario Revision and decision, and the canonical operation catalog hash. `quali
 requires its current work item, attempt, lease owner, Factory receipt, input hash, and scope hash. It refuses
 partial, rejected, superseded, cross-target, or hash-drifted inputs. Generic completion rejects `AUTOMATOR` so a
 worker cannot publish a generic result in place of the materialization record.
+
+For stock Codex work, the retained `EXTERNAL_V1` assignment uses
+`quality_journey_external_automator_materialize_v1` with its admitted assignment identity and secret. The route
+resolves Journey and target identity server-side; callers cannot supply those authority fields. An uncertain reply
+must be reconciled through the external outcome operation before an exact replay. This is supported test automation
+preparation, not authority to repair application code in the target workspace.
 
 For every accepted scenario, Appraise persistently records the decision, target-owned suite/case/step identities,
 the selected ready Step Definition and canonical operation for every source scenario step, `MATERIALIZES` links, and
@@ -355,10 +362,22 @@ Configured but unused credentials do not add a gate. The consent scope identifie
 approval are separate decisions. A rerun proposal records selected scenario revisions, predecessor receipts and a
 reason, then user approval permits one immutable successor cycle. It does not assert that a defect has been fixed.
 
+The consent scope also hashes the complete frozen execution input: Journey and lifecycle state, target identity,
+Environment ID and snapshot, browser, prepared capsule content, and rerun lineage. A grant may be revoked from the
+Journey UI while it is requested or granted and unused; revocation is repeatable for the same scope. Consumption and
+cycle reservation happen in one transaction. Once consumed, consent revocation cannot imply a process stop; the user
+must cancel the execution cycle. The committed `START_EXECUTION` command records the consumed consent ID even when
+Appraise selected the granted consent automatically. The coordinator and MCP execution routes cannot grant or revoke
+consent.
+
 Runtime ownership uses the existing capsule attempt state machine. Replaying a start cannot grant a second worker
 execution authority. Missing process ownership remains visible and blocks duplicate launch. Terminal evidence
 receipts bind runtime output bytes and capsule lineage; cancellation or missing artifacts cannot masquerade as a
 successful validated run. Reports and semantic attribution remain Phase 8 work.
+The sealed command receipt names `reports/traces` and `reports/screenshots`, matching the Cucumber runtime's actual
+artifact locations. A mismatched subtree is rejected during evidence readback. Journey evidence hashes each retained
+trace and report-step screenshot, with screenshot membership bound to its test case and report step. Previously
+persisted v1 receipts with the older `traces` and `screenshots` roots remain readable under those exact paths.
 
 SQLite guards preserve execution-cycle snapshots, TestRun binding identity, consent scope, rerun proposal scope and
 sealed receipts. Status transitions remain mutable; historical execution inputs and evidence are append-only.

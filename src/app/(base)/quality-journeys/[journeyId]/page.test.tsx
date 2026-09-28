@@ -175,7 +175,7 @@ describe('QualityJourneyDetailPage', () => {
   it('does not claim analysis is active when no approach has been submitted', async () => {
     await renderPage()
 
-    expect(screen.getByText(/no proposed test approach has been submitted/i)).toBeInTheDocument()
+    expect(screen.getByText('No proposed test approach has been submitted for review.')).toBeInTheDocument()
     expect(screen.queryByText(/appraise is preparing a test approach/i)).not.toBeInTheDocument()
     expect(screen.queryByText(/ready for your exact-version review/i)).not.toBeInTheDocument()
   })

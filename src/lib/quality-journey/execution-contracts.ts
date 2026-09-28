@@ -56,7 +56,9 @@ export const qualityJourneyRerunStartSchema = scoped
 export const qualityJourneyExecutionConsentGrantSchema = scoped
   .extend({ executionConsentId: id, expectedScopeHash: digest })
   .strict()
-
+export const qualityJourneyExecutionConsentRevokeSchema = scoped
+  .extend({ executionConsentId: id, expectedScopeHash: digest })
+  .strict()
 
 export const qualityJourneyExecutionConsentScopeSchema = z
   .object({
@@ -65,6 +67,7 @@ export const qualityJourneyExecutionConsentScopeSchema = z
     targetProjectId: id,
     targetFingerprint: z.string().min(1).max(512),
     environmentSnapshotHash: digest,
+    executionInputsHash: digest,
     preparedRuntimeCapsuleIds: sortedIds,
     actions: z.array(z.string().min(1).max(200)).min(1).max(512),
     resourceHashes: z.record(z.string(), digest),

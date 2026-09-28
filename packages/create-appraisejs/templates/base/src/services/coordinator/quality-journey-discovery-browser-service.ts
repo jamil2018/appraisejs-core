@@ -20,10 +20,11 @@ import {
   qualityJourneyIdentifierSchema,
 } from '@/lib/quality-journey'
 import { ServiceError } from '@/services/shared/errors'
+import { createQualityJourneyDiscoveryBrowserRuntime } from './quality-journey-discovery-browser-runtime'
 
 type Db = PrismaClient | Prisma.TransactionClient
 
-type BrowserFrame = { url(): string }
+type BrowserFrame = { url(): string; securityOrigin?(): string }
 type BrowserRequest = {
   url(): string
   method(): string
@@ -45,43 +46,34 @@ type BrowserPage = {
   url(): string
   mainFrame(): BrowserFrame
   title(): Promise<string>
-  on(event: 'framenavigated' | 'websocket' | 'download' | 'popup', listener: (value: unknown) => void): void
+  on(
+    event: 'framenavigated' | 'websocket' | 'download' | 'popup' | 'close' | 'crash',
+    listener: (value: unknown) => void,
+  ): void
+  isClosed(): boolean
   close(): Promise<void>
 }
 type BrowserContext = {
   newPage(): Promise<BrowserPage>
   route(pattern: string, handler: (route: BrowserRoute) => Promise<void>): Promise<unknown>
   routeWebSocket(pattern: string, handler: (route: BrowserWebSocketRoute) => Promise<void>): Promise<unknown>
+  on(event: 'close', listener: () => void): void
   close(): Promise<void>
 }
 type Browser = {
   newContext(options?: { acceptDownloads: false; serviceWorkers: 'block' }): Promise<BrowserContext>
+  on(event: 'disconnected', listener: () => void): void
+  isConnected(): boolean
   close(): Promise<void>
 }
 
-export type DiscoveryBrowserRuntime = { launch(): Promise<Browser> }
-
-const defaultRuntime: DiscoveryBrowserRuntime = {
-  async launch() {
-    const { chromium } = await import('playwright')
-    // Browser state is deliberately non-persistent and only ever exists in this
-    // headed process. Neither a storage state nor a browser profile is accepted.
-    const browser = await chromium.launch({ headless: false })
-    return {
-      async newContext() {
-        const context = await browser.newContext({ acceptDownloads: false, serviceWorkers: 'block' })
-        return {
-          newPage: () => context.newPage(),
-          route: (pattern, handler) => context.route(pattern, route => handler(route as unknown as BrowserRoute)),
-          routeWebSocket: (pattern, handler) =>
-            context.routeWebSocket(pattern, route => handler(route as unknown as BrowserWebSocketRoute)),
-          close: () => context.close(),
-        }
-      },
-      close: () => browser.close(),
-    }
-  },
+export type DiscoveryBrowserRuntime = {
+  launch(): Promise<Browser>
+  /** Real Playwright fulfillment does not prove interception of a redirect's next hop. */
+  redirectInterception?: 'INITIAL_REQUEST_ONLY' | 'EVERY_HOP'
 }
+
+const defaultRuntime: DiscoveryBrowserRuntime = createQualityJourneyDiscoveryBrowserRuntime()
 
 const id = qualityJourneyIdentifierSchema
 const routeId = z.string().trim().min(1).max(2_000).regex(/^\//)
@@ -148,6 +140,8 @@ type Session = {
   humanReturnGrant?: HumanReturnGrant
   /** Bounded proof retained only after the exact granted target commit. */
   humanReturn?: HumanReturnProvenance
+  /** Present only while Appraise is awaiting the exact returned main-frame commit. */
+  humanReturnCommitWaiter?: HumanReturnCommitWaiter
   humanReturnTimer?: ReturnType<typeof setTimeout>
   /** One neutral pre-request frame transition is tolerated for the exact grant. */
   humanReturnNeutralFrameSeen?: boolean
@@ -167,9 +161,15 @@ type Session = {
   browser: Browser
   context: BrowserContext
   page: BrowserPage
+  redirectInterception: 'INITIAL_REQUEST_ONLY' | 'EVERY_HOP'
 }
 
 type DiscoveryBrowserTerminalCause =
+  | 'BROWSER_DISCONNECTED'
+  | 'CONTEXT_CLOSED'
+  | 'PAGE_CLOSED'
+  | 'PAGE_CRASHED'
+  | 'REDIRECT_INTERCEPTION_UNAVAILABLE'
   | 'WEBSOCKET_DENIED'
   | 'DOWNLOAD'
   | 'POPUP'
@@ -212,6 +212,12 @@ type HumanReturnProvenance = {
   committedAt: string
 }
 
+type HumanReturnCommitWaiter = {
+  grantId: string
+  resolve(): void
+  reject(error: ServiceError): void
+}
+
 type SessionOperation = {
   id: string
   kind: 'CONFIRM_ACCESS' | 'CAPTURE_RECEIPT'
@@ -231,6 +237,7 @@ type DiscoveryBrowserSession = Omit<
   | 'browser'
   | 'context'
   | 'page'
+  | 'redirectInterception'
   | 'allowedRoutes'
   | 'expiryTimer'
   | 'humanReturnTimer'
@@ -245,7 +252,7 @@ type DiscoveryBrowserSession = Omit<
   | 'mainFrameDocumentOrigin'
   | 'lastAuthorizedMainFrameCommitHash'
   | 'terminalCause'
-> & { allowedOrigins: string[]; allowedRoutes: string[]; currentUrl: string }
+> & { allowedOrigins: string[]; allowedRoutes: string[]; currentUrl: string | null }
 
 function canonical(value: unknown) {
   return canonicalContractJson(value)
@@ -298,15 +305,59 @@ function invalidateSessionAuthority(session: Session) {
 function isLiveSessionState(state: DiscoveryBrowserSessionState) {
   return state === 'ACTIVE' || state === 'ACCESS_CONFIRMED'
 }
+function callSafely(operation: () => void | Promise<void>) {
+  return Promise.resolve().then(operation)
+}
+function setTerminalCause(session: Session, cause: DiscoveryBrowserTerminalCause) {
+  if (isLiveSessionState(session.state) && !session.terminalCause) session.terminalCause = cause
+}
+function closeSessionResources(session: Session) {
+  if (session.expiryTimer) clearTimeout(session.expiryTimer)
+  if (session.humanReturnTimer) clearTimeout(session.humanReturnTimer)
+  return Promise.allSettled([
+    callSafely(() => session.page.close()),
+    callSafely(() => session.context.close()),
+    callSafely(() => session.browser.close()),
+  ])
+}
+function browserLivenessCause(session: Session): DiscoveryBrowserTerminalCause | undefined {
+  try {
+    if (!session.browser.isConnected()) return 'BROWSER_DISCONNECTED'
+  } catch {
+    return 'BROWSER_DISCONNECTED'
+  }
+  try {
+    if (session.page.isClosed()) return 'PAGE_CLOSED'
+  } catch {
+    return 'PAGE_CLOSED'
+  }
+  return undefined
+}
+function fenceBrowserLiveness(session: Session) {
+  const cause = browserLivenessCause(session)
+  if (!cause || !isLiveSessionState(session.state)) return false
+  setTerminalCause(session, cause)
+  const transitioned = beginTerminalSessionTransition(session, 'CLOSED')
+  if (transitioned) void closeSessionResources(session)
+  return transitioned
+}
+function closeSessionAfterLivenessLoss(session: Session, cause: DiscoveryBrowserTerminalCause) {
+  if (!isLiveSessionState(session.state)) return
+  setTerminalCause(session, cause)
+  if (beginTerminalSessionTransition(session, 'CLOSED')) void closeSessionResources(session)
+}
 function isActiveAtAuthorityEpoch(session: Session, authorityEpoch: number) {
+  fenceBrowserLiveness(session)
   return isLiveSessionState(session.state) && session.authorityEpoch === authorityEpoch
 }
 function assertActiveAtAuthorityEpoch(session: Session, authorityEpoch: number) {
+  fenceBrowserLiveness(session)
   if (!isLiveSessionState(session.state)) throw stateError(session.state)
   if (session.authorityEpoch !== authorityEpoch)
     throw new ServiceError('Discovery browser authority changed while the operation was in flight.', 'CONFLICT')
 }
 function reserveSessionOperation(session: Session, kind: SessionOperation['kind']) {
+  fenceBrowserLiveness(session)
   if (!isLiveSessionState(session.state)) throw stateError(session.state)
   if (session.operation)
     throw new ServiceError('Discovery browser lifecycle operation is already in progress.', 'CONFLICT')
@@ -350,7 +401,10 @@ function requestKind(request: BrowserRequest) {
 }
 function requestDocumentOrigin(request: BrowserRequest) {
   try {
-    return new URL(request.frame?.().url() ?? '').origin
+    const frame = request.frame?.()
+    const origin = frame?.securityOrigin?.()
+    if (origin) return new URL(origin).origin
+    return new URL(frame?.url() ?? '').origin
   } catch {
     return 'about:blank'
   }
@@ -438,11 +492,6 @@ function allowsAuthTransitRequest(
       rule.requestKinds.includes(kind),
   )
 }
-async function closeSessionResources(session: Session) {
-  if (session.expiryTimer) clearTimeout(session.expiryTimer)
-  if (session.humanReturnTimer) clearTimeout(session.humanReturnTimer)
-  await Promise.allSettled([session.page.close(), session.context.close(), session.browser.close()])
-}
 function snapshotTerminalUrl(session: Session) {
   try {
     session.terminalUrl = sanitizedUrl(session.page.url())
@@ -460,6 +509,7 @@ function beginTerminalSessionTransition(
   session.state = state
   snapshotTerminalUrl(session)
   if (triggeringMainFrameUrl) session.terminalUrl = sanitizedUrl(triggeringMainFrameUrl)
+  rejectHumanReturnCommitWaiter(session)
   return true
 }
 async function expireIfNeeded(session: Session) {
@@ -467,8 +517,14 @@ async function expireIfNeeded(session: Session) {
     await closeSessionResources(session)
 }
 function projection(session: Session): DiscoveryBrowserSession {
-  let currentUrl = session.terminalUrl
-  if (!currentUrl) {
+  let currentUrl: string | null = null
+  if (session.accessMode === 'AUTHENTICATED_INTENT') {
+    // Keep provider locations private. Only the committed frozen return target is public.
+    if (session.humanReturnGrant?.state === 'RETURNED') currentUrl = session.humanReturnGrant.targetUrl
+  } else {
+    currentUrl = session.terminalUrl ?? null
+  }
+  if (session.accessMode === 'ANONYMOUS' && !currentUrl) {
     try {
       currentUrl = sanitizedUrl(session.page.url())
     } catch {
@@ -487,22 +543,27 @@ function projection(session: Session): DiscoveryBrowserSession {
     environmentId: session.environmentId,
     routeId: session.routeId,
     targetOrigin: session.targetOrigin,
-    allowedOrigins: session.humanReturnGrant
-      ? session.humanReturnGrant.state === 'RETURNED'
-        ? [session.targetOrigin]
-        : []
-      : [
-          session.targetOrigin,
-          ...(session.authFlow
-            ? [
-                ...new Set(
-                  session.authFlow.rules
-                    .flatMap(rule => [rule.documentOrigin, rule.destinationOrigin])
-                    .filter(origin => origin !== '$TARGET'),
-                ),
-              ]
-            : []),
-        ],
+    allowedOrigins:
+      session.accessMode === 'AUTHENTICATED_INTENT'
+        ? session.humanReturnGrant?.state === 'RETURNED'
+          ? [session.targetOrigin]
+          : []
+        : session.humanReturnGrant
+          ? session.humanReturnGrant.state === 'RETURNED'
+            ? [session.targetOrigin]
+            : []
+          : [
+              session.targetOrigin,
+              ...(session.authFlow
+                ? [
+                    ...new Set(
+                      session.authFlow.rules
+                        .flatMap(rule => [rule.documentOrigin, rule.destinationOrigin])
+                        .filter(origin => origin !== '$TARGET'),
+                    ),
+                  ]
+                : []),
+            ],
     allowedRoutes: [...session.allowedRoutes],
     accessMode: session.accessMode,
     environmentScopeVersion: session.environmentScopeVersion,
@@ -522,7 +583,9 @@ async function getLiveSession(input: z.infer<typeof sessionInputSchema>) {
     session.discoveryRevisionId !== input.discoveryRevisionId
   )
     throw new ServiceError('Discovery browser session does not match the requested Journey scope.', 'UNAUTHORIZED')
+  fenceBrowserLiveness(session)
   await expireIfNeeded(session)
+  fenceBrowserLiveness(session)
   return session
 }
 function scheduleExpiry(session: Session) {
@@ -719,8 +782,9 @@ async function handleHumanReturnRoute(
   if (!transition) return denyHumanReturnRequest(session, route)
   const response = await route.fetch({ maxRedirects: 0 })
   if (!isActiveAtAuthorityEpoch(session, authorityEpoch)) return denyRouteNotActive(session, route)
-  if (response.status() >= 300 && response.status() < 400)
-    return denyHumanReturnRequest(session, route, 'REDIRECT_DENIED')
+  if (isRedirectResponse(response) && session.redirectInterception !== 'EVERY_HOP')
+    return denyRedirectInterceptionUnavailable(session, route)
+  if (isRedirectResponse(response)) return denyHumanReturnRequest(session, route, 'REDIRECT_DENIED')
   session.pendingMainFrameCommit = transition
   await route.fulfill({ response })
 }
@@ -736,6 +800,32 @@ function scheduleHumanReturnExpiry(session: Session, grantId: string) {
     })()
   }, delay)
   session.humanReturnTimer.unref?.()
+}
+
+function waitForHumanReturnCommit(session: Session, grantId: string) {
+  const grant = session.humanReturnGrant
+  if (grant?.grantId !== grantId || grant.state === 'RETURNED') return Promise.resolve()
+  if (!isLiveSessionState(session.state) || !isActiveHumanReturnGrant(session))
+    return Promise.reject(new ServiceError('Discovery browser exact return is no longer available.', 'CONFLICT'))
+  if (session.humanReturnCommitWaiter)
+    return Promise.reject(new ServiceError('Discovery browser exact return is already in progress.', 'CONFLICT'))
+  return new Promise<void>((resolve, reject) => {
+    session.humanReturnCommitWaiter = { grantId, resolve, reject }
+  })
+}
+
+function resolveHumanReturnCommitWaiter(session: Session, grantId: string) {
+  const waiter = session.humanReturnCommitWaiter
+  if (!waiter || waiter.grantId !== grantId) return
+  session.humanReturnCommitWaiter = undefined
+  waiter.resolve()
+}
+
+function rejectHumanReturnCommitWaiter(session: Session) {
+  const waiter = session.humanReturnCommitWaiter
+  if (!waiter) return
+  session.humanReturnCommitWaiter = undefined
+  waiter.reject(new ServiceError('Discovery browser exact return did not commit.', 'CONFLICT'))
 }
 
 async function wireBrowserContainment(context: BrowserContext, getSession: () => Session) {
@@ -765,7 +855,7 @@ function authorizedRedirect(
   kind: ReturnType<typeof requestKind>,
 ) {
   const location = response.headers().location
-  if (!location || response.status() < 300 || response.status() >= 400) return undefined
+  if (!location || !isRedirectResponse(response)) return undefined
   const effectiveMethod = redirectMethod(response.status(), request.method())
   if (!effectiveMethod) return null
   let redirectUrl: string
@@ -840,10 +930,20 @@ async function fulfillAllowedBrowserRoute(
 ) {
   const response = await requestRoute.fetch({ maxRedirects: 0 })
   if (!isActiveAtAuthorityEpoch(session, authorityEpoch)) return denyRouteNotActive(session, requestRoute)
+  if (isRedirectResponse(response) && session.redirectInterception !== 'EVERY_HOP')
+    return denyRedirectInterceptionUnavailable(session, requestRoute)
   const redirect = authorizedRedirect(response, request, session, kind)
   if (redirect === null) return denyRedirect(session, requestRoute)
   recordPendingMainFrameNavigation(session, request, location, authorityEpoch, redirect)
   await requestRoute.fulfill({ response })
+}
+
+function isRedirectResponse(response: BrowserResponse) {
+  return response.status() >= 300 && response.status() < 400 && response.status() !== 304
+}
+function denyRedirectInterceptionUnavailable(session: Session, route: BrowserRoute) {
+  setTerminalCause(session, 'REDIRECT_INTERCEPTION_UNAVAILABLE')
+  return abortRouteFailClosed(session, route)
 }
 
 function denyRedirect(session: Session, route: BrowserRoute) {
@@ -869,7 +969,11 @@ function recordPendingMainFrameNavigation(
 }
 
 function wirePageContainment(session: Session) {
-  session.page.on('framenavigated', frame => void commitMainFrameNavigation(session, frame as BrowserFrame))
+  session.page.on('framenavigated', frame => {
+    void commitMainFrameNavigation(session, frame as BrowserFrame).catch(() =>
+      closeSessionAfterLivenessLoss(session, 'ROUTE_OPERATION_FAILED'),
+    )
+  })
   session.page.on('download', value => {
     const download = value as { cancel?: () => Promise<void> }
     setTerminalCause(session, 'DOWNLOAD')
@@ -1032,6 +1136,7 @@ function completeHumanReturn(session: Session, pending: MainFrameTransition, url
     method: 'GET',
     committedAt: new Date().toISOString(),
   }
+  resolveHumanReturnCommitWaiter(session, grant.grantId)
   return true
 }
 async function revokeLateHumanReturnCommit(session: Session, triggeringUrl: string) {
@@ -1120,10 +1225,6 @@ function hasSelectedFrozenAuthFlow(binding: FrozenEnvironmentBinding, authFlowId
     return false
   }
 }
-function setTerminalCause(session: Session, cause: DiscoveryBrowserTerminalCause) {
-  if ((session.state === 'ACTIVE' || session.state === 'ACCESS_CONFIRMED') && !session.terminalCause)
-    session.terminalCause = cause
-}
 async function revokeSession(
   session: Session,
   state: Extract<DiscoveryBrowserSessionState, 'REVOKED' | 'LOGGED_OUT' | 'CLOSED'>,
@@ -1146,13 +1247,37 @@ export async function startQualityJourneyDiscoveryBrowserSession(
   })
   let context: BrowserContext | undefined
   let page: BrowserPage | undefined
+  let session: Session | undefined
+  let startupLoss: DiscoveryBrowserTerminalCause | undefined
+  const recordLivenessLoss = (cause: DiscoveryBrowserTerminalCause) => {
+    if (!session) {
+      startupLoss ??= cause
+      return
+    }
+    closeSessionAfterLivenessLoss(session, cause)
+  }
+  browser.on('disconnected', () => recordLivenessLoss('BROWSER_DISCONNECTED'))
+  try {
+    if (!browser.isConnected()) recordLivenessLoss('BROWSER_DISCONNECTED')
+  } catch {
+    recordLivenessLoss('BROWSER_DISCONNECTED')
+  }
   try {
     context = await browser.newContext({ acceptDownloads: false, serviceWorkers: 'block' })
+    context.on('close', () => recordLivenessLoss('CONTEXT_CLOSED'))
     await wireBrowserContainment(context, () => {
+      if (!session) throw new ServiceError('Discovery browser session is not ready.', 'CONFLICT')
       return session
     })
     page = await context.newPage()
-    const session: Session = {
+    page.on('close', () => recordLivenessLoss('PAGE_CLOSED'))
+    page.on('crash', () => recordLivenessLoss('PAGE_CRASHED'))
+    try {
+      if (page.isClosed()) recordLivenessLoss('PAGE_CLOSED')
+    } catch {
+      recordLivenessLoss('PAGE_CLOSED')
+    }
+    session = {
       id: idFor('session', request.journeyId, request.discoveryRevisionId, request.workItemId, randomUUID()),
       generation: 1,
       processInstanceId,
@@ -1177,16 +1302,35 @@ export async function startQualityJourneyDiscoveryBrowserSession(
       browser,
       context,
       page,
+      redirectInterception: runtime.redirectInterception ?? 'INITIAL_REQUEST_ONLY',
     }
     wirePageContainment(session)
+    const assertStartupLiveness = () => {
+      const cause = startupLoss ?? browserLivenessCause(session!)
+      if (!cause && isLiveSessionState(session!.state)) return
+      if (cause) {
+        setTerminalCause(session!, cause)
+        beginTerminalSessionTransition(session!, 'CLOSED')
+      }
+      throw new ServiceError('Discovery browser closed while the session was starting.', 'CONFLICT')
+    }
+    assertStartupLiveness()
     await page.goto(routeUrl(scope.baseUrl, request.routeId), { waitUntil: 'domcontentloaded' })
+    assertStartupLiveness()
     if (!allowedRequest(page.url(), 'GET', session, true, 'about:blank', 'DOCUMENT'))
       throw new ServiceError('Discovery browser navigation was rejected.', 'CONFLICT')
+    assertStartupLiveness()
     sessions.set(session.id, session)
     scheduleExpiry(session)
     return projection(session)
   } catch (error) {
-    await Promise.allSettled([page?.close(), context?.close(), browser.close()].filter(Boolean) as Promise<void>[])
+    const closingPage = page
+    const closingContext = context
+    await Promise.allSettled([
+      ...(closingPage ? [callSafely(() => closingPage.close())] : []),
+      ...(closingContext ? [callSafely(() => closingContext.close())] : []),
+      callSafely(() => browser.close()),
+    ])
     if (error instanceof ServiceError) throw error
     throw new ServiceError('Discovery browser navigation was unavailable.', 'CONFLICT')
   }
@@ -1197,14 +1341,17 @@ export async function getQualityJourneyDiscoveryBrowserSession(input: unknown) {
   return projection(await getLiveSession(request))
 }
 
-/**
- * Arms one process-local, one-shot address-bar return to the frozen target.
- * Its input is deliberately only the existing scoped session identity: callers
- * cannot nominate a URL, origin, or route.
- */
+/** Retained for explicit-return qualification callers. Product UI uses the
+ * human-authorized Appraise-executed operation below. Both accept only scoped
+ * session identity; neither accepts a caller-selected URL, origin, or route. */
 export async function armQualityJourneyDiscoveryBrowserHumanReturn(input: unknown, client: Db = prisma) {
   const request = sessionInputSchema.parse(input)
   const session = await getLiveSession(request)
+  const grant = await armHumanReturn(session, client)
+  return { session: projection(session), returnUrl: grant.targetUrl }
+}
+
+async function armHumanReturn(session: Session, client: Db) {
   if (session.state !== 'ACTIVE' || session.accessMode !== 'AUTHENTICATED_INTENT') throw stateError(session.state)
   if (session.operation)
     throw new ServiceError('Discovery browser lifecycle operation is already in progress.', 'CONFLICT')
@@ -1234,9 +1381,60 @@ export async function armQualityJourneyDiscoveryBrowserHumanReturn(input: unknow
   if (expiresAt <= new Date()) throw stateError('EXPIRED')
   const grantId = humanReturnGrantId(session)
   invalidateSessionAuthority(session)
-  session.humanReturnGrant = { grantId, targetUrl, expiresAt, state: 'ARMED' }
+  const grant = { grantId, targetUrl, expiresAt, state: 'ARMED' } as const
+  session.humanReturnGrant = grant
   scheduleHumanReturnExpiry(session, grantId)
-  return { session: projection(session), returnUrl: targetUrl }
+  return grant
+}
+
+/**
+ * Applies one human authorization to the existing owned page. The caller names
+ * only a scoped live session; the frozen return target remains service-derived.
+ */
+export async function authorizeQualityJourneyDiscoveryBrowserExactReturn(input: unknown, client: Db = prisma) {
+  const request = sessionInputSchema.parse(input)
+  const session = await getLiveSession(request)
+  let grant: HumanReturnGrant
+  try {
+    grant = await armHumanReturn(session, client)
+  } catch (error) {
+    setTerminalCause(session, 'ROUTE_OPERATION_FAILED')
+    await revokeSession(session, 'REVOKED')
+    throw error
+  }
+  const committed = waitForHumanReturnCommit(session, grant.grantId)
+  // Register a rejection handler before navigation so a synchronous browser-loss
+  // event cannot become an unhandled rejection while page.goto is in flight.
+  void committed.catch(() => undefined)
+  const navigation = Promise.resolve().then(() => session.page.goto(grant.targetUrl, { waitUntil: 'domcontentloaded' }))
+  const navigationFailure = navigation.then(
+    () => new Promise<never>(() => undefined),
+    async () => {
+      // A late load failure cannot invalidate an already-proven exact commit.
+      // Before that commit, navigation failure must fence the whole session.
+      if (session.humanReturnGrant?.grantId === grant.grantId && session.humanReturnGrant.state === 'RETURNED')
+        return new Promise<never>(() => undefined)
+      setTerminalCause(session, 'ROUTE_OPERATION_FAILED')
+      await revokeSession(session, 'REVOKED')
+      throw new ServiceError('Discovery browser exact return navigation failed.', 'CONFLICT')
+    },
+  )
+  void navigationFailure.catch(() => undefined)
+  try {
+    await Promise.race([committed, navigationFailure])
+  } catch (error) {
+    await committed.catch(() => undefined)
+    throw error
+  }
+  const returned = session.humanReturnGrant
+  if (
+    !isLiveSessionState(session.state) ||
+    returned?.grantId !== grant.grantId ||
+    returned.state !== 'RETURNED' ||
+    !session.humanReturn
+  )
+    throw new ServiceError('Discovery browser exact return did not commit.', 'CONFLICT')
+  return { return: 'RETURN_COMMITTED' as const, session: projection(session) }
 }
 
 /** Test/qualification-only in-process terminal diagnostic. It is deliberately

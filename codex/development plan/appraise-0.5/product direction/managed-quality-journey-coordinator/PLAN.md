@@ -3,10 +3,13 @@
 Status: architecture adopted by the user on 2026-09-11; C0.1, C0.2, C0.2e, C0.3 and C0.4 verified; GC0 passed its
 feasibility gate after independent exact-artifact review; C1.1, C1.2 and C1.3 are verified. GC1 `passed` after
 [independent usable-handoff review](evidence/GC1.md); C2.1 and C2.2 are verified after independent exact-artifact
-review. C2.3.1 and C2.3.2 are delivered and verified after independent exact-artifact review. C2.3.3 now includes an
-independently accepted, deliberately authorized cross-origin identity-provider transit model, but C2.3.3 and parent C2.3
-remain blocked because the headed human-login/MFA attempt terminated before Appraise receipt capture and Scout admission, as recorded in
-[C2.3 evidence](evidence/C2.3.md). The exact next eligible task is C2.3.3 blocker closure, not C2.4. The
+review. C2.3.1 and C2.3.2 are delivered and verified after independent exact-artifact review. C2.3.3 and parent C2.3
+are verified after the bounded live Auth0 two-session MFA, protected-return, Scout-admission, restart and revocation
+[result](evidence/C2.3.3-live-auth0-20260928.md) and its [independent exact-result review](evidence/C2.3.3-live-auth0-20260928-review.md).
+This closes C-B04. The native CDP production adapter and its containment qualification are recorded in [production adapter evidence](evidence/C2.3.3-production-adapter.md), as recorded in
+[C2.3 evidence](evidence/C2.3.md). The [human-authorized exact-return update](evidence/C2.3.3-return-automation.md)
+removes manual URL copying. C2.4 is verified after [independent exact-artifact review](evidence/C2.4.md). C2.5 is
+verified after [independent exact-artifact review](evidence/C2.5.md); GC2 remains `not_evaluated`. The
 explicitly authorized retained C0.2e slice was the only implementation permitted before GC0 passed.
 The [task register](TASK_REGISTER.md) owns active task status, dependencies, gates and evidence. **C0.1: qualify the
 Appraise-to-Codex handoff** is verified as a bounded qualification task. Its [evidence](evidence/C0.1.md) records
@@ -30,8 +33,8 @@ retain their meaning. C0.2e did not itself evaluate GC0 or authorize C1.
 synthetic login/MFA separation, redirect/request containment, context-replacement/expiry/logout/revocation behavior
 and limited secret-canary projection checks. It also establishes that current discovery receipt descriptors are not
 issuer-backed and therefore cannot promote host-browser observations into trusted Appraise evidence. Production human
-login, process-restart invalidation, comprehensive secret containment and sealed discovery receipts remain C2.3/
-`C-B04` work. The result does not evaluate GC0 or start C0.4/C1/C2.
+login, process-restart invalidation, comprehensive secret containment and sealed discovery receipts were left to C2.3/
+`C-B04` at that checkpoint; the later C2.3 result closed them. The C0.3 result did not evaluate GC0 or start C0.4/C1/C2.
 
 **C0.4: review feasibility and establish exact implementation gaps** is verified. Its
 [evidence](evidence/C0.4.md) preserves every earlier qualification boundary, maps all six roles and supported target
@@ -64,7 +67,8 @@ native MCP/CLI parity and bounded recovery instructions. Independent exact-artif
 repairs. This closes C-B02 for its C0.2e/C2.1 scope. **C2.2: connect analysis and human question loops** is verified.
 Its [evidence](evidence/C2.2.md) binds the real claimed immutable requirement to the artifact library, exercises the
 external Analysis question/answer/publication/revision/fresh-task successor slice, and records truthful UI activity
-and approval status. GC2 remains `not_evaluated`; C2.3.3 blocker closure is the exact next eligible task.
+and approval status. [C2.4](evidence/C2.4.md) verifies scenario review and revision with local UI decision authority;
+GC2 remains `not_evaluated`.
 
 ## 1. Decision and product experience
 

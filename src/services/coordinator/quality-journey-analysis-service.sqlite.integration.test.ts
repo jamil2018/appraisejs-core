@@ -2328,6 +2328,17 @@ describe('Quality Journey Phase 3 through Phase 5 control plane', () => {
           submittedAt: '2026-09-05T00:00:00.000Z',
         },
       }
+      await expect(
+        materializeQualityJourneyApprovedScenarios(
+          { ...materializeInput, targetProjectId: 'target-semantic-foreign', idempotencyKey: 'foreign-target-attempt' },
+          client,
+        ),
+      ).rejects.toMatchObject({ code: 'NOT_FOUND' })
+      expect(
+        await client.qualityJourneyAutomationMaterialization.count({
+          where: { targetProjectId: 'target-semantic-foreign' },
+        }),
+      ).toBe(0)
       const automationDiscovery = await client.qualityJourneyDiscoveryRevision.findUniqueOrThrow({
         where: {
           id: (await client.qualityJourney.findUniqueOrThrow({ where: { id: created.journey.journeyId } }))
@@ -3496,7 +3507,7 @@ describe('Quality Journey Phase 3 through Phase 5 control plane', () => {
     }
   }, 60_000)
 
-  it('reissues Scenario Designer with exact revision inputs and carries only unchanged behavioral decisions', async () => {
+  it('reissues Scenario Designer and carries approval only for unchanged scenario content and inputs', async () => {
     const client = await fixture()
     try {
       const { created, discovery, frozenResource } = await completedDiscovery(client, 'scenario-revision')
@@ -3564,7 +3575,7 @@ describe('Quality Journey Phase 3 through Phase 5 control plane', () => {
             enrichment: {
               observationIds: ['scenario-revision-observation'],
               resourceAssumptionIds: [frozenResource.id],
-              feasibilityNotes: [`${scenarioSuffix} feasibility`],
+              feasibilityNotes: ['Stable confirmation feasibility'],
             },
             layout: { x: 0, y: 0, sequence: 0 },
           },
@@ -3593,6 +3604,23 @@ describe('Quality Journey Phase 3 through Phase 5 control plane', () => {
               feasibilityNotes: [`${scenarioSuffix} feasibility`],
             },
             layout: { x: 100, y: 0, sequence: 1 },
+          },
+          {
+            stableScenarioId: 'scenario-c-enrichment',
+            scenarioRevisionId: `scenario-c-enrichment-${scenarioSuffix}`,
+            behavioralIntent: {
+              title: 'Checkout availability',
+              narrative: 'A shopper can reach checkout.',
+              requirementIds: ['REQ-CHECKOUT-1'],
+              expectedSignals: ['Checkout page'],
+              steps: [{ stepId: 'availability', action: 'Open checkout', expected: 'Checkout page' }],
+            },
+            enrichment: {
+              observationIds: ['scenario-revision-observation'],
+              resourceAssumptionIds: [frozenResource.id],
+              feasibilityNotes: [`${scenarioSuffix} availability evidence`],
+            },
+            layout: { x: 200, y: 0, sequence: 2 },
           },
         ],
       })
@@ -3705,7 +3733,7 @@ describe('Quality Journey Phase 3 through Phase 5 control plane', () => {
         decideQualityJourneyScenarios(
           {
             expectedReviewHash: afterComment.portfolio.reviewHash,
-            approvedScenarioRevisionIds: ['scenario-a-unchanged-r1'],
+            approvedScenarioRevisionIds: ['scenario-a-unchanged-r1', 'scenario-c-enrichment-r1'],
             rejectedScenarioRevisionIds: [],
             command: {
               schemaVersion: 'appraise.quality-journey/v1',
@@ -3720,7 +3748,7 @@ describe('Quality Journey Phase 3 through Phase 5 control plane', () => {
               payload: {
                 portfolioRevisionId: initialPortfolio.portfolioRevisionId,
                 portfolioHash: initialHash,
-                approvedScenarioRevisionIds: ['scenario-a-unchanged-r1'],
+                approvedScenarioRevisionIds: ['scenario-a-unchanged-r1', 'scenario-c-enrichment-r1'],
                 rejectedScenarioRevisionIds: [],
               },
             },
@@ -3818,7 +3846,10 @@ describe('Quality Journey Phase 3 through Phase 5 control plane', () => {
       })
       expect(JSON.parse(feedback.artifactJson)).toMatchObject({
         feedback: 'Retain the confirmation scenario and revise receipt coverage.',
-        decisions: [{ scenarioRevisionId: 'scenario-a-unchanged-r1', decision: 'APPROVED' }],
+        decisions: [
+          { scenarioRevisionId: 'scenario-a-unchanged-r1', decision: 'APPROVED' },
+          { scenarioRevisionId: 'scenario-c-enrichment-r1', decision: 'APPROVED' },
+        ],
         comments: [
           {
             scenarioRevisionId: 'scenario-b-revised-r1',
@@ -3838,7 +3869,10 @@ describe('Quality Journey Phase 3 through Phase 5 control plane', () => {
         client,
       )
       const successorDraft = makePortfolio('scenario-revision-r2', 'r2', initialPortfolio.portfolioRevisionId)
-      const successorPortfolio = { ...successorDraft, scenarios: successorDraft.scenarios.slice(0, 1) }
+      const successorPortfolio = {
+        ...successorDraft,
+        scenarios: successorDraft.scenarios.filter(scenario => scenario.stableScenarioId !== 'scenario-b-revised'),
+      }
       await expect(
         submitPortfolio(
           { ...successorPortfolio, portfolioId: 'foreign-successor-portfolio' },
@@ -3865,6 +3899,7 @@ describe('Quality Journey Phase 3 through Phase 5 control plane', () => {
           }),
         ]),
       )
+      expect(successorDecisions).toHaveLength(1)
       const successorState = await getQualityJourney(
         { journeyId: created.journey.journeyId, targetProjectId: 'target-analysis-1' },
         client,
@@ -3890,6 +3925,75 @@ describe('Quality Journey Phase 3 through Phase 5 control plane', () => {
               },
             ],
             payload: { artifactRevisionId: successorPortfolio.portfolioRevisionId, artifactHash: successorHash },
+          },
+          client,
+        ),
+      ).resolves.toMatchObject({ successorStage: 'SCENARIO_REVIEW' })
+      const successorReview = await getQualityJourneyScenarioPortfolio(
+        { journeyId: created.journey.journeyId, targetProjectId: 'target-analysis-1' },
+        client,
+      )
+      const successorDecisionState = await getQualityJourney(
+        { journeyId: created.journey.journeyId, targetProjectId: 'target-analysis-1' },
+        client,
+      )
+      await expect(
+        decideQualityJourneyScenarios(
+          {
+            expectedReviewHash: afterComment.portfolio.reviewHash,
+            approvedScenarioRevisionIds: ['scenario-c-enrichment-r1'],
+            rejectedScenarioRevisionIds: [],
+            command: {
+              schemaVersion: 'appraise.quality-journey/v1',
+              commandId: 'scenario-revision-stale-r1-decision',
+              journeyId: created.journey.journeyId,
+              targetProjectId: 'target-analysis-1',
+              actor: 'USER',
+              command: 'DECIDE_SCENARIOS',
+              expectedStateHash: successorDecisionState.journey.stateHash,
+              idempotencyKey: 'scenario-revision-stale-r1-decision',
+              inputArtifactRefs: [portfolioRef],
+              payload: {
+                portfolioRevisionId: initialPortfolio.portfolioRevisionId,
+                portfolioHash: initialHash,
+                approvedScenarioRevisionIds: ['scenario-c-enrichment-r1'],
+                rejectedScenarioRevisionIds: [],
+              },
+            },
+          },
+          client,
+        ),
+      ).rejects.toMatchObject({ code: 'CONFLICT' })
+      await expect(
+        decideQualityJourneyScenarios(
+          {
+            expectedReviewHash: successorReview.portfolio.reviewHash,
+            approvedScenarioRevisionIds: ['scenario-c-enrichment-r2'],
+            rejectedScenarioRevisionIds: [],
+            command: {
+              schemaVersion: 'appraise.quality-journey/v1',
+              commandId: 'scenario-revision-decide-r2',
+              journeyId: created.journey.journeyId,
+              targetProjectId: 'target-analysis-1',
+              actor: 'USER',
+              command: 'DECIDE_SCENARIOS',
+              expectedStateHash: successorDecisionState.journey.stateHash,
+              idempotencyKey: 'scenario-revision-decide-r2',
+              inputArtifactRefs: [
+                {
+                  kind: 'SCENARIO_PORTFOLIO_REVISION',
+                  artifactId: successorPortfolio.portfolioId,
+                  revisionId: successorPortfolio.portfolioRevisionId,
+                  contentHash: successorHash,
+                },
+              ],
+              payload: {
+                portfolioRevisionId: successorPortfolio.portfolioRevisionId,
+                portfolioHash: successorHash,
+                approvedScenarioRevisionIds: ['scenario-c-enrichment-r2'],
+                rejectedScenarioRevisionIds: [],
+              },
+            },
           },
           client,
         ),

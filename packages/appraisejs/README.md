@@ -68,6 +68,13 @@ connected or running.
 
 ### Quality Journey managed execution
 
+After exact scenario approval, a stock Codex Automator may prepare target-owned suites, cases, Step Invocations, and
+prepared capsule receipts through an admitted `EXTERNAL_V1` assignment and
+`quality_journey_external_automator_materialize_v1`. It uses canonical operations and ready Step Definitions. The
+prepared artifacts do not start execution; generated `automation/` output and autonomous target product-code repair
+are outside this assignment. Reconcile uncertain submissions through
+`quality_journey_external_work_outcome_get_v1` before an exact replay.
+
 The MCP execution surface provides `quality_journey_execution_get`, `quality_journey_execution_start`,
 `quality_journey_execution_cancel`, `quality_journey_execution_reconcile`, `quality_journey_rerun_propose`, and
 `quality_journey_rerun_start`. Starts consume exact prepared approved scenarios. Material-effect consent and rerun

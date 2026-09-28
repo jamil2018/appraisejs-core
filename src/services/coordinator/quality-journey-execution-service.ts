@@ -8,6 +8,7 @@ import {
   hashQualityJourneyExecutionValue,
   qualityJourneyExecutionCancelSchema,
   qualityJourneyExecutionConsentGrantSchema,
+  qualityJourneyExecutionConsentRevokeSchema,
   qualityJourneyExecutionConsentScopeSchema,
   qualityJourneyExecutionReadSchema,
   qualityJourneyExecutionReconcileSchema,
@@ -149,12 +150,17 @@ async function freezePreparedCapsules(
 }
 
 function consentScope(input: {
+  journeyId: string
+  journeyCycleId: string
+  journeyStateHash: string
   targetProjectId: string
   targetFingerprint: string
   environmentId: string
   environmentSnapshotHash: string
   browserEngine: 'CHROMIUM' | 'FIREFOX' | 'WEBKIT'
   frozen: Awaited<ReturnType<typeof freezePreparedCapsules>>
+  proposalId?: string
+  predecessorExecutionCycleId?: string
 }) {
   const actions = [...new Set(input.frozen.flatMap(capsule => capsule.actions ?? ['UNKNOWN_FROZEN_EFFECT']))].sort()
   return qualityJourneyExecutionConsentScopeSchema.parse({
@@ -163,6 +169,19 @@ function consentScope(input: {
     targetProjectId: input.targetProjectId,
     targetFingerprint: input.targetFingerprint,
     environmentSnapshotHash: input.environmentSnapshotHash,
+    executionInputsHash: hash({
+      journeyId: input.journeyId,
+      journeyCycleId: input.journeyCycleId,
+      journeyStateHash: input.journeyStateHash,
+      targetProjectId: input.targetProjectId,
+      targetFingerprint: input.targetFingerprint,
+      environmentId: input.environmentId,
+      environmentSnapshotHash: input.environmentSnapshotHash,
+      browserEngine: input.browserEngine,
+      frozen: input.frozen,
+      proposalId: input.proposalId ?? null,
+      predecessorExecutionCycleId: input.predecessorExecutionCycleId ?? null,
+    }),
     preparedRuntimeCapsuleIds: input.frozen.map(item => item.preparedCapsuleId),
     actions: actions.length ? actions : ['READ_ONLY_EXECUTION'],
     resourceHashes: Object.fromEntries(input.frozen.map(item => [item.preparedCapsuleId, hash(item.resourceHashes)])),
@@ -320,12 +339,17 @@ async function reserveExecution(
           targetProjectId: input.targetProjectId,
           consentId: input.executionConsentId,
           scope: consentScope({
+            journeyId: input.journeyId,
+            journeyCycleId: journey.activeCycleId,
+            journeyStateHash: journey.stateHash,
             targetProjectId: input.targetProjectId,
             targetFingerprint: target.fingerprint,
             environmentId: input.environmentId,
             environmentSnapshotHash: environmentSnapshot.hash,
             browserEngine: input.browserEngine,
             frozen,
+            proposalId: extra.proposalId,
+            predecessorExecutionCycleId: extra.predecessorExecutionCycleId,
           }),
           executionCycleId,
         },
@@ -606,7 +630,7 @@ async function persistExecutionReservation(input: {
           })),
           payload: {
             runtimeCapsuleIds: frozen.map(item => item.preparedCapsuleId),
-            ...(request.executionConsentId ? { executionConsentId: request.executionConsentId } : {}),
+            ...(consumedConsentId ? { executionConsentId: consumedConsentId } : {}),
           },
         },
         tx,
@@ -713,13 +737,35 @@ export async function grantQualityJourneyExecutionConsent(value: unknown, client
       !consent ||
       consent.scopeHash !== input.expectedScopeHash ||
       consent.status !== 'REQUESTED' ||
-      consent.grantSource !== 'UI'
+      consent.grantSource !== 'UI' ||
+      consent.revokedAt
     )
       throw conflict('Execution consent cannot be granted for this scope.')
     return tx.qualityJourneyExecutionConsent.update({
       where: { id: consent.id },
       data: { status: 'GRANTED', grantedAt: new Date(), expiresAt: new Date(Date.now() + 15 * 60_000) },
     })
+  })
+}
+
+export async function revokeQualityJourneyExecutionConsent(value: unknown, client: PrismaClient = prisma) {
+  const input = qualityJourneyExecutionConsentRevokeSchema.parse(value)
+  return client.$transaction(async tx => {
+    assertQualityJourneyMutable(await scopedJourney(input, tx))
+    const consent = await tx.qualityJourneyExecutionConsent.findFirst({
+      where: { id: input.executionConsentId, journeyId: input.journeyId, targetProjectId: input.targetProjectId },
+    })
+    if (!consent || consent.scopeHash !== input.expectedScopeHash || consent.grantSource !== 'UI')
+      throw conflict('Execution consent cannot be revoked for this scope.')
+    if (consent.status === 'REVOKED' && consent.revokedAt) return consent
+    if (!['REQUESTED', 'GRANTED'].includes(consent.status) || consent.usedAt || consent.executionCycleId)
+      throw conflict('Consumed execution consent requires execution cancellation.')
+    const changed = await tx.qualityJourneyExecutionConsent.updateMany({
+      where: { id: consent.id, status: consent.status, usedAt: null, revokedAt: null, executionCycleId: null },
+      data: { status: 'REVOKED', revokedAt: new Date() },
+    })
+    if (changed.count !== 1) throw conflict('Execution consent changed during revocation.')
+    return tx.qualityJourneyExecutionConsent.findUniqueOrThrow({ where: { id: consent.id } })
   })
 }
 

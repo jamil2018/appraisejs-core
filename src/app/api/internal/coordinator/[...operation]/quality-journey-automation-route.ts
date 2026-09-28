@@ -14,6 +14,13 @@ import type { ExternalAnalyzerProjectPrincipal } from '@/services/coordinator/qu
 const target = z.string().min(1)
 const materialize = z.object({ target }).passthrough()
 
+function assertResolvedAuthority(body: unknown) {
+  if (!body || typeof body !== 'object' || Array.isArray(body)) return
+  for (const field of ['journeyId', 'targetProjectId']) {
+    if (Object.hasOwn(body, field)) throw new ServiceError(`Automation ${field} is resolved by Appraise.`, 'VALIDATION')
+  }
+}
+
 function matches(operation: string[]) {
   return (
     operation.length === 5 && operation[0] === 'quality' && operation[1] === 'journeys' && operation[3] === 'automation'
@@ -28,6 +35,7 @@ export async function postQualityJourneyAutomationRoute(
 ): Promise<Response | undefined> {
   if (!matches(operation) || (operation[4] !== 'materializations' && operation[4] !== 'external-materializations'))
     return undefined
+  assertResolvedAuthority(body)
   const { target: targetIdentifier, ...value } = materialize.parse(body)
   const resolved = await resolveTargetProject(targetIdentifier)
   const request = {

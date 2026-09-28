@@ -78,6 +78,18 @@ conflicting reuse is rejected. `quality_journey_external_work_outcome_get_v1` is
 operation and accepts the same binding plus role, operation, and idempotency key. Managed
 `quality_journey_work_claim` and Factory receipt semantics remain unchanged.
 
+Scenario Designer submission and publication remain coordinator operations. Scenario approval, rejection, review
+comments and dispositions, and revision requests are local Journey UI actions. Project-credential API and MCP callers
+cannot record those human review mutations; the generic command route also rejects scenario decisions and revision
+requests. The UI records `actor=USER` but does not independently identify a natural person.
+
+`quality_journey_external_automator_materialize_v1` is the stock Codex preparation ingress after exact scenario
+approval. It accepts one complete, admitted `AUTOMATOR` packet for the route-resolved Journey and target, using the
+frozen compatible canonical operations and ready Step Definitions. The coordinator rejects caller-supplied Journey or
+target project authority fields. It writes target-owned authored records and prepared capsule receipts, not generated
+`automation/` wrappers, TestRuns, or execution consent. Product-code repair is outside this operation. An uncertain
+reply uses `quality_journey_external_work_outcome_get_v1` before exact replay.
+
 Discovery browser sessions are local-UI operations rather than MCP capabilities. They are ephemeral human surfaces,
 not worker authority or reusable credentials. The existing `quality_journey_target_observation_submit` and
 `quality_journey_external_scout_target_observation_submit_v1` operations remain the only Scout submission paths.

@@ -1,4 +1,5 @@
 import { assertQualityJourneyMutable } from './quality-journey-terminal'
+import path from 'node:path'
 import type { Prisma, PrismaClient } from '@prisma/client'
 import prisma from '@/config/db-config'
 import {
@@ -14,11 +15,17 @@ import { ServiceError } from '@/services/shared/errors'
 import { submitDurableQualityJourneyCommandInTransaction } from './quality-journey-service'
 
 type RuntimeInput = { executionCycleId: string }
+const defaultAppraiseRoot = () => path.join(process.cwd(), '.appraise')
 const terminal = (status: string) => ['COMPLETED', 'CANCELLED'].includes(status)
 const conflict = (message: string) => new ServiceError(message, 'CONFLICT', 409)
 
 type LaunchBinding = Prisma.QualityJourneyExecutionTestRunGetPayload<{ include: { testRun: true } }>
-async function launchReservedRun(client: PrismaClient, input: RuntimeInput, binding: LaunchBinding) {
+async function launchReservedRun(
+  client: PrismaClient,
+  input: RuntimeInput,
+  binding: LaunchBinding,
+  appraiseRoot: string,
+) {
   if (terminal(binding.testRun.status)) return
   if (binding.status !== 'RESERVED') return
   const claimed = await client.qualityJourneyExecutionTestRun.updateMany({
@@ -27,9 +34,9 @@ async function launchReservedRun(client: PrismaClient, input: RuntimeInput, bind
   })
   if (claimed.count !== 1) return
   try {
-    await new RuntimeCapsuleTestRunService(client).startJourneyPrepared({
+    await new RuntimeCapsuleTestRunService(client, appraiseRoot).startJourneyPrepared({
       testRunDbId: binding.testRunId,
-      onTerminal: () => reconcileQualityJourneyExecutionRuntime(input, client),
+      onTerminal: () => reconcileQualityJourneyExecutionRuntime(input, client, appraiseRoot),
     })
     await client.qualityJourneyExecutionTestRun.updateMany({
       where: { id: binding.id, status: 'LAUNCHING' },
@@ -47,20 +54,24 @@ async function launchReservedRun(client: PrismaClient, input: RuntimeInput, bind
 
 /** A durable launch claim precedes all process side effects. An interrupted
  * claim remains visible and is never interpreted as permission to respawn. */
-export async function startQualityJourneyExecutionRuntime(input: RuntimeInput, client: PrismaClient = prisma) {
+export async function startQualityJourneyExecutionRuntime(
+  input: RuntimeInput,
+  client: PrismaClient = prisma,
+  appraiseRoot = defaultAppraiseRoot(),
+) {
   const cycle = await client.qualityJourneyExecutionCycle.findUniqueOrThrow({
     where: { id: input.executionCycleId },
     include: { testRuns: { include: { testRun: true } } },
   })
   if (!['RESERVED', 'RUNNING'].includes(cycle.status)) return
   for (const binding of cycle.testRuns) {
-    await launchReservedRun(client, input, binding)
+    await launchReservedRun(client, input, binding, appraiseRoot)
   }
   await client.qualityJourneyExecutionCycle.updateMany({
     where: { id: cycle.id, status: 'RESERVED' },
     data: { status: 'RUNNING' },
   })
-  await reconcileQualityJourneyExecutionRuntime(input, client)
+  await reconcileQualityJourneyExecutionRuntime(input, client, appraiseRoot)
 }
 
 export async function cancelQualityJourneyExecutionRuntime(
@@ -98,7 +109,21 @@ export async function cancelQualityJourneyExecutionRuntime(
 type EvidenceCycle = Prisma.QualityJourneyExecutionCycleGetPayload<{
   include: {
     testRuns: {
-      include: { testRun: { include: { runtimeCapsule: true; runtimeCapsuleExecutionAttempt: true; testCases: true } } }
+      include: {
+        testRun: {
+          include: {
+            runtimeCapsule: true
+            runtimeCapsuleExecutionAttempt: true
+            testCases: true
+            reports: {
+              include: {
+                testCases: { select: { reportScenarioId: true; testCaseId: true } }
+                features: { include: { scenarios: { include: { steps: true } } } }
+              }
+            }
+          }
+        }
+      }
     }
   }
 }>
@@ -115,6 +140,13 @@ function verifyEvidencePreparedMembership(cycle: EvidenceCycle, binding: Evidenc
 function verifiedEvidenceCapsule(cycle: EvidenceCycle, binding: EvidenceBinding) {
   const run = binding.testRun
   verifyEvidencePreparedMembership(cycle, binding)
+  if (
+    run.intent !== 'QUALITY_JOURNEY' ||
+    run.id !== binding.testRunId ||
+    run.runId !== binding.runId ||
+    (run.runtimeCapsuleExecutionAttempt && !run.runtimeCapsule)
+  )
+    throw conflict('Runtime evidence requires an exact Journey-owned TestRun and capsule attempt.')
   if (
     run.targetProjectId !== cycle.targetProjectId ||
     run.environmentSnapshotHash !== cycle.environmentSnapshotHash ||
@@ -161,14 +193,40 @@ async function readEvidenceArtifacts(
   targetProjectId: string,
   run: EvidenceBinding['testRun'],
 ) {
-  const artifacts: Array<{ kind: string; testCaseId?: string; contentHash: string; size: number }> = []
+  const artifacts: Array<{
+    kind: string
+    testCaseId?: string
+    reportStepId?: string
+    contentHash: string
+    size: number
+  }> = []
   const missing: string[] = []
+  const screenshots = run.reports.flatMap(report => {
+    const casesByScenario = new Map(report.testCases.map(item => [item.reportScenarioId, item.testCaseId]))
+    return report.features.flatMap(feature =>
+      feature.scenarios.flatMap(scenario =>
+        scenario.steps
+          .filter(step => step.screenshotPath)
+          .map(step => {
+            const testCaseId = casesByScenario.get(scenario.id)
+            if (!testCaseId) throw conflict('Runtime screenshot has no Journey test case membership.')
+            return {
+              kind: 'screenshot' as const,
+              testCaseId,
+              reportStepId: step.id,
+              storedPath: step.screenshotPath,
+            }
+          }),
+      ),
+    )
+  })
   const requests = [
     { kind: 'report' as const, storedPath: run.reportPath },
     { kind: 'log' as const, storedPath: run.logPath },
     ...run.testCases
       .filter(item => item.tracePath)
       .map(item => ({ kind: 'trace' as const, testCaseId: item.testCaseId, storedPath: item.tracePath })),
+    ...screenshots,
   ]
   for (const request of requests) {
     if (!request.storedPath || !run.runtimeCapsule) {
@@ -183,6 +241,7 @@ async function readEvidenceArtifacts(
     artifacts.push({
       kind: request.kind,
       ...('testCaseId' in request ? { testCaseId: request.testCaseId } : {}),
+      ...('reportStepId' in request ? { reportStepId: request.reportStepId } : {}),
       contentHash: hashRuntimeCapsuleBytes(bytes),
       size: bytes.length,
     })
@@ -238,13 +297,25 @@ async function collectRunEvidence(
   }
 }
 
-async function collectEvidence(client: PrismaClient, executionCycleId: string) {
+async function collectEvidence(client: PrismaClient, executionCycleId: string, appraiseRoot: string) {
   const cycle = await client.qualityJourneyExecutionCycle.findUniqueOrThrow({
     where: { id: executionCycleId },
     include: {
       testRuns: {
         include: {
-          testRun: { include: { runtimeCapsule: true, runtimeCapsuleExecutionAttempt: true, testCases: true } },
+          testRun: {
+            include: {
+              runtimeCapsule: true,
+              runtimeCapsuleExecutionAttempt: true,
+              testCases: true,
+              reports: {
+                include: {
+                  testCases: { select: { reportScenarioId: true, testCaseId: true } },
+                  features: { include: { scenarios: { include: { steps: true } } } },
+                },
+              },
+            },
+          },
         },
       },
     },
@@ -253,7 +324,7 @@ async function collectEvidence(client: PrismaClient, executionCycleId: string) {
   // Cancellation marks the DB first; wait until the managed process has exited
   // and final output collection has finished before sealing bytes.
   if (cycle.testRuns.some(binding => processManager.get(binding.runId))) return null
-  const access = new TestRunArtifactAccessService(client)
+  const access = new TestRunArtifactAccessService(client, appraiseRoot)
   const receipts = []
   for (const binding of cycle.testRuns) {
     receipts.push(await collectRunEvidence(access, cycle, binding))
@@ -262,12 +333,16 @@ async function collectEvidence(client: PrismaClient, executionCycleId: string) {
 }
 
 /** Only verified terminal output bytes can become an immutable evidence receipt. */
-export async function reconcileQualityJourneyExecutionRuntime(input: RuntimeInput, client: PrismaClient = prisma) {
+export async function reconcileQualityJourneyExecutionRuntime(
+  input: RuntimeInput,
+  client: PrismaClient = prisma,
+  appraiseRoot = defaultAppraiseRoot(),
+) {
   const existing = await client.qualityJourneyExecutionEvidenceReceipt.count({
     where: { executionCycleId: input.executionCycleId },
   })
   if (existing) return
-  const result = await collectEvidence(client, input.executionCycleId)
+  const result = await collectEvidence(client, input.executionCycleId, appraiseRoot)
   if (!result) return
   await client.$transaction(async tx => {
     if (await tx.qualityJourneyExecutionEvidenceReceipt.count({ where: { executionCycleId: result.cycle.id } })) return

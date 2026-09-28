@@ -6,7 +6,7 @@ import { beforeEach, expect, it, vi } from 'vitest'
 
 const mocks = vi.hoisted(() => ({
   start: vi.fn(),
-  arm: vi.fn(),
+  authorizeReturn: vi.fn(),
   confirm: vi.fn(),
   capture: vi.fn(),
   missing: vi.fn(),
@@ -20,7 +20,7 @@ const mocks = vi.hoisted(() => ({
 vi.mock('@/hooks/use-toast', () => ({ toast: mocks.toast }))
 vi.mock('../quality-journey-discovery-browser-actions', () => ({
   startQualityJourneyDiscoveryBrowserAction: mocks.start,
-  armQualityJourneyDiscoveryBrowserHumanReturnAction: mocks.arm,
+  authorizeQualityJourneyDiscoveryBrowserExactReturnAction: mocks.authorizeReturn,
   confirmQualityJourneyDiscoveryBrowserAccessAction: mocks.confirm,
   captureQualityJourneyDiscoveryBrowserReceiptAction: mocks.capture,
   markQualityJourneyDiscoveryBrowserMissingAccessAction: mocks.missing,
@@ -51,7 +51,7 @@ beforeEach(() => {
       accessMode: 'AUTHENTICATED_INTENT',
       environmentId: 'environment-1',
       routeId: '/account',
-      currentUrl: 'https://example.test/account',
+      currentUrl: null,
       expiresAt: '2026-09-14T00:05:00.000Z',
     },
   })
@@ -68,9 +68,10 @@ beforeEach(() => {
       expiresAt: '2026-09-14T00:05:00.000Z',
     },
   })
-  mocks.arm.mockResolvedValue({
+  mocks.authorizeReturn.mockResolvedValue({
     success: true,
     data: {
+      return: 'RETURN_COMMITTED',
       session: {
         id: 'session-1',
         state: 'ACTIVE',
@@ -78,10 +79,9 @@ beforeEach(() => {
         accessMode: 'AUTHENTICATED_INTENT',
         environmentId: 'environment-1',
         routeId: '/account',
-        currentUrl: 'https://idp.example.test/complete',
+        currentUrl: 'https://example.test/account',
         expiresAt: '2026-09-14T00:05:00.000Z',
       },
-      returnUrl: 'https://example.test/account',
     },
   })
 })
@@ -105,18 +105,22 @@ it('keeps credential and MFA entry out of Appraise actions', async () => {
   })
   expect(JSON.stringify(mocks.start.mock.calls)).not.toMatch(/password|credential|mfaCode|cookie|storage/i)
   expect(screen.getByText(/Complete sign-in and MFA directly in the opened target browser/i)).toBeInTheDocument()
+  expect(screen.queryByText('https://example.test/account')).not.toBeInTheDocument()
 
   await user.click(screen.getByRole('button', { name: 'Authorize exact return' }))
-  expect(mocks.arm).toHaveBeenCalledWith({
+  expect(mocks.authorizeReturn).toHaveBeenCalledWith({
     sessionId: 'session-1',
     journeyId: 'journey-1',
     discoveryRevisionId: 'discovery-1',
   })
-  expect(screen.getByText('https://example.test/account')).toBeInTheDocument()
+  expect(screen.getByText(/Appraise completed the exact return in the owned browser/i)).toBeInTheDocument()
+  expect(screen.queryByText(/Type this server-derived/i)).not.toBeInTheDocument()
   expect(screen.queryByRole('textbox')).not.toBeInTheDocument()
-  expect(JSON.stringify(mocks.arm.mock.calls)).not.toMatch(/password|credential|mfaCode|cookie|storage|returnUrl/i)
+  expect(JSON.stringify(mocks.authorizeReturn.mock.calls)).not.toMatch(
+    /password|credential|mfaCode|cookie|storage|returnUrl/i,
+  )
 
-  await user.click(screen.getByRole('button', { name: 'I returned to the scoped page' }))
+  await user.click(screen.getByRole('button', { name: 'I can access the protected scoped page' }))
   expect(mocks.confirm).toHaveBeenCalledWith({
     sessionId: 'session-1',
     journeyId: 'journey-1',

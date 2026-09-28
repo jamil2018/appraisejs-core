@@ -243,8 +243,8 @@ export async function sealCapsuleCommandReceipt(input: {
       },
       artifactEvidence: {
         shapeVersion: 'evidence-subtrees-v1',
-        traces: { root: 'traces', suffix: '.zip', maxBytes: 100_000_000 },
-        screenshots: { root: 'screenshots', suffix: '.png', maxBytes: 25_000_000 },
+        traces: { root: 'reports/traces', suffix: '.zip', maxBytes: 100_000_000 },
+        screenshots: { root: 'reports/screenshots', suffix: '.png', maxBytes: 25_000_000 },
       },
       preflight: { path: 'reports/preflight.json', format: 'cucumber-json', maxBytes: 5_000_000 },
     },

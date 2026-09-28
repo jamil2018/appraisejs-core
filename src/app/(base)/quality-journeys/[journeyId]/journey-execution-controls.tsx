@@ -33,7 +33,7 @@ export function JourneyExecutionCommand({
             setError(null)
             const result = await qualityJourneyExecutionAction(action, {
               ...input,
-              ...(['consent', 'approve'].includes(action) ? {} : { idempotencyKey: requestKey }),
+              ...(['consent', 'revokeConsent', 'approve'].includes(action) ? {} : { idempotencyKey: requestKey }),
             })
             if (!result.success) setError(result.error ?? 'The request could not complete. Refresh and retry.')
             router.refresh()

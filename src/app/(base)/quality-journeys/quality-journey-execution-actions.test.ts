@@ -9,6 +9,7 @@ vi.mock('@/services/coordinator/quality-journey-execution-service', () => ({
   proposeQualityJourneyRerun: mocks.run,
   startQualityJourneyRerun: mocks.run,
   grantQualityJourneyExecutionConsent: mocks.run,
+  revokeQualityJourneyExecutionConsent: mocks.run,
   approveQualityJourneyRerun: mocks.run,
 }))
 import { qualityJourneyExecutionAction } from './quality-journey-execution-actions'
@@ -23,6 +24,10 @@ describe('Journey execution UI authority', () => {
     expect(await qualityJourneyExecutionAction('consent', input)).toMatchObject({ success: true })
     expect(mocks.run).toHaveBeenCalledWith({ ...input, targetProjectId: 'target-1' })
     expect(mocks.revalidate).toHaveBeenCalledWith('/quality-journeys/journey-1')
+  })
+  it('resolves revocation ownership from the active project', async () => {
+    expect(await qualityJourneyExecutionAction('revokeConsent', input)).toMatchObject({ success: true })
+    expect(mocks.run).toHaveBeenCalledWith({ ...input, targetProjectId: 'target-1' })
   })
   it.each([{ actor: 'USER' }, { targetProjectId: 'forged' }, { grantSource: 'UI' }])(
     'rejects browser-supplied authority',

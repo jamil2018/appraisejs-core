@@ -39,12 +39,31 @@ Agents must use the dedicated `quality_journey_*` coordinator operations for lif
 artifact hashes, review decisions, execution-cycle identities, and evidence receipts are exact Journey-scoped
 authority. Chat approval and generic TestRun completion do not replace these gates.
 
+Scenario Designer output is a candidate until Appraise accepts and publishes its exact portfolio revision. Human
+scenario decisions bind the current portfolio content, review hash, Journey state, and scenario revision IDs. A
+successor may carry a prior decision only for unchanged reviewed scenario content and unchanged discovery, graph, and
+coverage inputs. Scenario approve, reject, comment, comment disposition, and revision requests are local Journey UI
+actions; the project-credential coordinator and MCP routes cannot submit them. The UI action records `actor=USER` but
+does not authenticate a separate natural-person reviewer or prove an independent Codex task. Treat the local action
+boundary and exact-version fence as enforced, and reviewer identity or independence as unverified.
+
+After scenario approval, the stock Codex Automator uses an admitted `EXTERNAL_V1` assignment and the specialized
+`quality_journey_external_automator_materialize_v1` operation. Appraise resolves the target and Journey, checks the
+exact approved scenario and frozen resource authority, and writes target-owned suites, cases, Step Invocations, and
+prepared capsule receipts through canonical operation and ready Step Definition bindings. The Automator must reconcile
+an uncertain submission before replay. Generated `automation/` output and human Step projections remain derived from
+canonical source; they are not Journey authoring inputs or direct agent edit targets. Preparation never grants
+execution consent or creates a TestRun. Autonomous product-code repair is outside the Automator assignment.
+
 During Discovery, anonymous and authenticated target observation use the Appraise-owned scoped browser panel. The
 panel launches a headed, non-persistent browser context bound to the active Journey, target, discovery revision,
 Scout work item, environment, frozen route and exact target origin. Password, SSO and MFA entry occur only in that
 target browser; no Appraise action accepts credentials, cookies, storage state or arbitrary script. Expiry, logout,
 revocation and context replacement close the context, while process restart invalidates every process-local session.
-Missing access creates an explicit Journey blocker. A later human access confirmation records only local access and
+External page close/crash, context close, and browser disconnect synchronously fence session authority before
+cleanup. Startup loss prevents session exposure; loss before the confirmation commit invalidates its reserved operation.
+Receipt persistence checks the operation within its transaction. Loss after the confirmation commit follows an
+already-valid confirmation, including while its blocker update is pending. Missing access creates an explicit Journey blocker. A later human access confirmation records only local access and
 does not identify a natural person or attest an identity-provider assertion.
 Confirmation and receipt capture reserve their in-process operation identity before asynchronous scope or persistence
 work and recheck it with the session authority epoch afterward. Confirmation synchronously commits local
@@ -58,14 +77,58 @@ An authenticated session may cross the target origin only through the selected E
 document-origin to destination-origin rules, canonical exact or segment-prefix paths, explicit methods/request kinds,
 and an explicit IdP-to-frozen-target return edge. Appraise freezes the canonical policy hash and environment scope
 version into the Discovery revision and rejects a changed Environment before start, confirmation, capture, or Scout
-admission. IdP origins are not Scout network authority: they exist only in the headed browser policy. It validates
-every redirect hop with zero follow and its effective redirect method; WebSockets remain denied and revoke the session.
+admission. IdP origins are not Scout network authority: they exist only in the headed browser policy. The abstract transit policy defines allowed redirect edges and effective methods.
+The native Chromium adapter uses an owned process and temporary profile with a private CDP pipe. It binds the exact
+paused seed target and installs recursive target admission and request interception before resume. Each request and
+redirect follow-up passes the same canonical policy before network contact; response-stage pauses let the service
+check redirect authorization and authority freshness before Chromium proceeds. Native requests retain their methods,
+bodies and cookies without application-level replay or response-body retrieval. CDP can transiently expose request
+headers, cookies and POST fields to the trusted Appraise process during protocol decoding. The runtime synchronously
+projects required metadata before asynchronous work, without reading credential fields or copying them into service
+objects, logs, receipts or persistence. This is not browser-process-only secrecy; raw protocol tracing and process
+inspection are outside the qualified no-retention boundary. Redirect continuations are matched by their exact Fetch
+predecessor and scoped target, session, frame, network request ID, URL and method. Independent network requests may
+proceed through canonical policy while redirects are pending, including requests for the same URL. Redirect release
+requires a stable network request ID; missing predecessor identity on that network request remains terminal. A request
+missing both predecessor and network IDs while a redirect is pending in the same target, session and frame fails closed
+as ambiguous.
+Playwright's context and authentication-state APIs supply browser isolation and normal interactive authentication;
+Appraise does not export or reuse `storageState`. The Appraise service supplies frozen authorization, one-shot return,
+receipt admission, and lifecycle authority. The custom CDP layer is retained for the narrower proven gap: the current
+Playwright fetch/fulfill route does not govern every redirect follow-up, and no qualified high-level replacement
+provides recursive paused-target admission before execution. HTTP 304 cache validation has no redirect successor and
+must not enter redirect-lineage tracking; actual redirects still require Location and a governed next hop. The test
+fixtures, fault-injection controls, and fixed-shape operator projection qualify these boundaries but grant no product
+authority. A smaller Playwright-managed launch with a browser-level CDP session remains an unqualified future option,
+not a current containment substitute.
+Frame identity and committed source URLs do not grant main-frame return authority.
+The adapter denies popups and unsupported targets, disables service-worker registration, and denies downloads.
+A deny-only WebSocket class is installed before document execution in every admitted target. It retains no native
+socket constructor, freezes its prototype and global binding, reports only a fixed attempt signal, and throws.
+WebSocketStream is denied when present. Native WebSocket events indicate an invariant breach and cause closure;
+post-event revocation and URL blocking alone are not a pre-contact control. Original response headers and bodies
+continue natively, without CSP rewriting.
+Worker script requests must pass the canonical policy. An explicitly authorized script may be downloaded before its
+worker target exists; unsupported worker targets are rejected while paused, before execution or downstream effects.
+Registration suppression is defense in depth. Appraise does not collect script bodies. A child with unknown or opaque
+source origin cannot begin IdP transit. A child first committed to the frozen target can use its browser-reported
+security origin for the selected transit rules. Some iframe-first sign-in widgets therefore fail closed.
+Transport loss or invalid protocol/target identity fences the runtime and closes its owned resources. Unsupported
+platforms fail closed. Synthetic qualification of these controls does not establish live authentication or
+human-authenticated restart. The retained Playwright qualification backend still rejects every HTTP 3xx because its
+routing callback does not intercept redirect follow-ups; its limitation and counterexample remain explicit evidence.
 Authenticated confirmation and receipt capture require the declared return to the selected target origin and exact
 selected route after that return has committed in the main frame. After an approved provider success page, a human
-must explicitly authorize one 15-second address-bar return through the local panel. The Server Action accepts only
-the scoped session identity and returns the frozen, server-derived target URL; it accepts no URL, credential, MFA,
-cookie, or browser data. Arming requires the committed provider origin to match the selected flow's exact `GET`
-return rule, and any request, route-operation failure, expiry, or late commit outside that grant revokes the session.
+must explicitly authorize one exact return through the local panel. Appraise then arms a 15-second one-shot grant and
+immediately navigates the same owned browser page to the frozen, server-derived target. The Server Action accepts only
+the scoped session identity and returns a fixed success outcome with the existing sanitized session projection after
+the exact main-frame `GET` commit; it accepts no URL, credential, MFA, cookie, or browser data and returns no
+authorization or callback URL. Arming requires the committed provider origin to match the selected flow's exact `GET`
+return rule. During authenticated transit, the public session projection withholds the current URL and provider
+origins; after a committed return it exposes only the frozen target route and origin. Internal routing still uses
+the selected flow policy.
+A failed navigation, route operation, expiry, or late/mismatched commit
+revokes the session. The human separately confirms access to the returned protected page before receipt capture.
 For authenticated discovery, the sealed receipt persists bounded `humanReturn` provenance only: its fixed mechanism,
 one-shot authorization ID, frozen target URL hash, fixed `GET` method, and commit time. It also retains its
 Environment scope version, flow ID, policy hash, and return outcome; it never persists IdP URL, query, response, or

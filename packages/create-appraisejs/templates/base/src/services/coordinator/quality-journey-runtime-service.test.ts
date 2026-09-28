@@ -43,6 +43,7 @@ function fixture() {
     id: 'test-1',
     runId: 'run-1',
     targetProjectId: 'target-1',
+    intent: 'QUALITY_JOURNEY',
     status: 'COMPLETED',
     result: 'PASSED',
     evidenceHealth: 'valid',
@@ -51,6 +52,7 @@ function fixture() {
     environmentSnapshotHash: hashRuntimeCapsuleValue({}),
     runtimeCapsuleExecutionAttempt: { id: 'attempt-1' },
     testCases: [],
+    reports: [],
     runtimeCapsule: {
       id: 'capsule-1',
       testRunId: 'test-1',
@@ -133,6 +135,27 @@ describe('Journey managed runtime evidence and ownership', () => {
     ).rejects.toThrow('outside its frozen execution scope')
     expect(client.qualityJourneyExecutionEvidenceReceipt.create).not.toHaveBeenCalled()
   })
+  it('rejects an independent TestRun linked to a Journey binding before sealing evidence', async () => {
+    const { client, run } = fixture()
+    run.intent = 'INDEPENDENT'
+    await expect(
+      reconcileQualityJourneyExecutionRuntime({ executionCycleId: 'execution-1' }, client as never),
+    ).rejects.toThrow('Journey-owned TestRun')
+    expect(client.qualityJourneyExecutionEvidenceReceipt.create).not.toHaveBeenCalled()
+    expect(mocks.publish).not.toHaveBeenCalled()
+  })
+  it('rejects a mismatched run identity and an orphaned capsule attempt', async () => {
+    const wrongRun = fixture()
+    wrongRun.run.runId = 'independent-run'
+    await expect(
+      reconcileQualityJourneyExecutionRuntime({ executionCycleId: 'execution-1' }, wrongRun.client as never),
+    ).rejects.toThrow('Journey-owned TestRun')
+    const orphaned = fixture()
+    Object.assign(orphaned.run, { runtimeCapsule: null })
+    await expect(
+      reconcileQualityJourneyExecutionRuntime({ executionCycleId: 'execution-1' }, orphaned.client as never),
+    ).rejects.toThrow('capsule attempt')
+  })
   it('cannot seal while the process is still registered', async () => {
     const { client } = fixture()
     mocks.process.mockReturnValue({})
@@ -153,6 +176,15 @@ describe('Journey managed runtime evidence and ownership', () => {
     run.status = 'RUNNING'
     await startQualityJourneyExecutionRuntime({ executionCycleId: 'execution-1' }, client as never)
     expect(mocks.start).not.toHaveBeenCalled()
+  })
+  it('keeps an uncertain launch claimed after a lost reply', async () => {
+    const { client, binding, run } = fixture()
+    binding.status = 'LAUNCHING'
+    run.status = 'QUEUED'
+    await startQualityJourneyExecutionRuntime({ executionCycleId: 'execution-1' }, client as never)
+    await startQualityJourneyExecutionRuntime({ executionCycleId: 'execution-1' }, client as never)
+    expect(mocks.start).not.toHaveBeenCalled()
+    expect(client.qualityJourneyExecutionTestRun.updateMany).not.toHaveBeenCalled()
   })
   it('refuses cancellation without process ownership instead of claiming a successful kill', async () => {
     const { client, run } = fixture()

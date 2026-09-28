@@ -10,6 +10,7 @@ import {
   qualityJourneyRerunProposalSchema,
   qualityJourneyRerunStartSchema,
   qualityJourneyExecutionConsentGrantSchema,
+  qualityJourneyExecutionConsentRevokeSchema,
   qualityJourneyRerunApprovalSchema,
 } from '@/lib/quality-journey'
 import {
@@ -19,6 +20,7 @@ import {
   proposeQualityJourneyRerun,
   startQualityJourneyRerun,
   grantQualityJourneyExecutionConsent,
+  revokeQualityJourneyExecutionConsent,
   approveQualityJourneyRerun,
 } from '@/services/coordinator/quality-journey-execution-service'
 import { serviceErrorToActionResponse, unknownErrorToActionResponse, ServiceError } from '@/services/shared/errors'
@@ -31,6 +33,7 @@ const actions = {
   propose: { schema: qualityJourneyRerunProposalSchema, run: proposeQualityJourneyRerun },
   rerun: { schema: qualityJourneyRerunStartSchema, run: startQualityJourneyRerun },
   consent: { schema: qualityJourneyExecutionConsentGrantSchema, run: grantQualityJourneyExecutionConsent },
+  revokeConsent: { schema: qualityJourneyExecutionConsentRevokeSchema, run: revokeQualityJourneyExecutionConsent },
   approve: { schema: qualityJourneyRerunApprovalSchema, run: approveQualityJourneyRerun },
 } as const
 
@@ -41,7 +44,11 @@ export async function qualityJourneyExecutionAction(
 ): Promise<ActionResponse> {
   try {
     const operation =
-      actions[z.enum(['start', 'cancel', 'reconcile', 'propose', 'rerun', 'consent', 'approve']).parse(action)]
+      actions[
+        z
+          .enum(['start', 'cancel', 'reconcile', 'propose', 'rerun', 'consent', 'revokeConsent', 'approve'])
+          .parse(action)
+      ]
     const values = z.record(z.string(), z.unknown()).parse(input)
     if ('targetProjectId' in values || 'grantSource' in values || 'actor' in values)
       throw new ServiceError('Execution ownership is resolved by Appraise.', 'UNAUTHORIZED')

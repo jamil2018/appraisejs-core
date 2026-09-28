@@ -843,11 +843,9 @@ async function postQualityOperation(request: Request, operation: string[], body:
         'Automation and execution commands require their dedicated coordinator operation.',
         'UNAUTHORIZED',
       )
-    if (
-      ['START_SCENARIO_DESIGN', 'PUBLISH_SCENARIO_PORTFOLIO', 'DECIDE_SCENARIOS', 'REQUEST_SCENARIO_REVISION'].includes(
-        command.command,
-      )
-    )
+    if (['DECIDE_SCENARIOS', 'REQUEST_SCENARIO_REVISION'].includes(command.command))
+      throw new ServiceError('Scenario review decisions require the local Journey UI.', 'UNAUTHORIZED')
+    if (['START_SCENARIO_DESIGN', 'PUBLISH_SCENARIO_PORTFOLIO'].includes(command.command))
       throw new ServiceError('Phase 5 scenario commands require their dedicated coordinator operation.', 'UNAUTHORIZED')
     return Response.json(
       await submitDurableQualityJourneyCommand(command, prisma, {

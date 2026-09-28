@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label'
 import { toast } from '@/hooks/use-toast'
 
 import {
-  armQualityJourneyDiscoveryBrowserHumanReturnAction,
+  authorizeQualityJourneyDiscoveryBrowserExactReturnAction,
   captureQualityJourneyDiscoveryBrowserReceiptAction,
   confirmQualityJourneyDiscoveryBrowserAccessAction,
   logoutQualityJourneyDiscoveryBrowserAction,
@@ -27,7 +27,7 @@ type SessionView = {
   accessMode: 'ANONYMOUS' | 'AUTHENTICATED_INTENT'
   environmentId: string
   routeId: string
-  currentUrl: string
+  currentUrl: string | null
   expiresAt: string | Date
   authFlowId?: string
 }
@@ -61,7 +61,7 @@ export function DiscoveryBrowserPanel({
 }) {
   const [session, setSession] = useState<SessionView | null>(null)
   const [receipt, setReceipt] = useState<ReceiptView | null>(null)
-  const [frozenReturnUrl, setFrozenReturnUrl] = useState<string | null>(null)
+  const [returnCommitted, setReturnCommitted] = useState(false)
   const [accessMode, setAccessMode] = useState<'ANONYMOUS' | 'AUTHENTICATED_INTENT'>('ANONYMOUS')
   const [environmentId, setEnvironmentId] = useState(discovery?.environments[0]?.id ?? '')
   const [routeId, setRouteId] = useState(discovery?.routes[0] ?? '')
@@ -82,24 +82,22 @@ export function DiscoveryBrowserPanel({
         toast({ title: 'Discovery browser action failed', description: response.error, variant: 'destructive' })
     })
 
-  const armReturn = () =>
+  const authorizeReturn = () =>
     startTransition(async () => {
-      const response = await armQualityJourneyDiscoveryBrowserHumanReturnAction(binding!)
+      const response = await authorizeQualityJourneyDiscoveryBrowserExactReturnAction(binding!)
       const value = data(response)
-      const armedSession = value?.session
-      const returnUrl = value?.returnUrl
+      const committedSession = value?.session
       if (
         response.success &&
-        armedSession &&
-        typeof armedSession === 'object' &&
-        typeof returnUrl === 'string' &&
-        returnUrl.length > 0
+        value?.return === 'RETURN_COMMITTED' &&
+        committedSession &&
+        typeof committedSession === 'object'
       ) {
-        setSession(armedSession as SessionView)
-        setFrozenReturnUrl(returnUrl)
+        setSession(committedSession as SessionView)
+        setReturnCommitted(true)
       } else
         toast({
-          title: 'Exact return was not authorized',
+          title: 'Exact return did not complete',
           description: response.error,
           variant: 'destructive',
         })
@@ -188,7 +186,7 @@ export function DiscoveryBrowserPanel({
               className="md:col-span-3"
               disabled={pending || !environmentId || !routeId || (accessMode === 'AUTHENTICATED_INTENT' && !authFlowId)}
               onClick={() => {
-                setFrozenReturnUrl(null)
+                setReturnCommitted(false)
                 run(() =>
                   startQualityJourneyDiscoveryBrowserAction({
                     journeyId,
@@ -214,32 +212,32 @@ export function DiscoveryBrowserPanel({
           <section className="space-y-4" aria-label="Discovery browser session status">
             <div className="flex flex-wrap items-center gap-2">
               <Badge variant="outline">{session.state.replaceAll('_', ' ')}</Badge>
-              <span className="text-xs text-muted-foreground">{session.currentUrl}</span>
+              {session.currentUrl && <span className="text-xs text-muted-foreground">{session.currentUrl}</span>}
             </div>
             {session.accessMode === 'AUTHENTICATED_INTENT' && session.state === 'ACTIVE' ? (
               <div className="rounded-md border border-amber-500/30 bg-amber-500/[0.05] p-3 text-sm">
                 Complete sign-in and MFA directly in the opened target browser. Appraise never accepts those values.
-                {!frozenReturnUrl ? (
+                {!returnCommitted ? (
                   <>
                     <p className="mt-2">
                       After the provider has reached its approved success page, authorize the one exact return below.
                     </p>
-                    <Button className="mt-3" disabled={pending} onClick={armReturn}>
+                    <Button className="mt-3" disabled={pending} onClick={authorizeReturn}>
                       Authorize exact return
                     </Button>
                   </>
                 ) : (
                   <>
-                    <p className="mt-2">Type this server-derived, frozen URL in the opened browser address bar.</p>
-                    <code className="bg-background/80 mt-2 block overflow-x-auto rounded p-2 text-xs">
-                      {frozenReturnUrl}
-                    </code>
+                    <p className="mt-2">
+                      Appraise completed the exact return in the owned browser. Confirm access only after you see the
+                      protected page there.
+                    </p>
                     <Button
                       className="mt-3"
                       disabled={pending}
                       onClick={() => run(() => confirmQualityJourneyDiscoveryBrowserAccessAction(binding!))}
                     >
-                      I returned to the scoped page
+                      I can access the protected scoped page
                     </Button>
                   </>
                 )}
@@ -295,7 +293,7 @@ export function DiscoveryBrowserPanel({
                     variant="outline"
                     disabled={pending}
                     onClick={() => {
-                      setFrozenReturnUrl(null)
+                      setReturnCommitted(false)
                       run(() => replaceQualityJourneyDiscoveryBrowserContextAction(binding!))
                     }}
                   >
@@ -324,7 +322,7 @@ export function DiscoveryBrowserPanel({
                 disabled={pending}
                 onClick={() => {
                   setSession(null)
-                  setFrozenReturnUrl(null)
+                  setReturnCommitted(false)
                 }}
               >
                 Start a fresh session

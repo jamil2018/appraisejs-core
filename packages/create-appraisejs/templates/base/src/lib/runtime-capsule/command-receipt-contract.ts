@@ -302,14 +302,14 @@ export const capsuleCommandReceiptV1Schema = z
             shapeVersion: z.literal('evidence-subtrees-v1'),
             traces: z
               .object({
-                root: z.literal('traces'),
+                root: z.enum(['traces', 'reports/traces']),
                 suffix: z.literal('.zip'),
                 maxBytes: z.number().int().positive().max(100_000_000),
               })
               .strict(),
             screenshots: z
               .object({
-                root: z.literal('screenshots'),
+                root: z.enum(['screenshots', 'reports/screenshots']),
                 suffix: z.literal('.png'),
                 maxBytes: z.number().int().positive().max(25_000_000),
               })

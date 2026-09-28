@@ -2,12 +2,8 @@ import { z } from 'zod'
 
 import { qualityJourneyContractVersion } from '@/lib/quality-journey'
 import {
-  commentQualityJourneyScenarioPortfolio,
-  decideQualityJourneyScenarios,
-  disposeQualityJourneyScenarioComment,
   getQualityJourneyScenarioPortfolio,
   publishQualityJourneyScenarioPortfolio,
-  requestQualityJourneyScenarioRevision,
   submitExternalQualityJourneyScenarioPortfolio,
   startQualityJourneyScenarioDesign,
   submitQualityJourneyScenarioPortfolio,
@@ -59,34 +55,11 @@ const commandBase = z
     portfolioHash: digest,
   })
   .strict()
-const scenarioComment = z
-  .object({
-    target,
-    portfolioRevisionId: id,
-    scenarioRevisionId: id.optional(),
-    comment: z.string().trim().min(1).max(8_000),
-    blocking: z.boolean().default(false),
-    actor: z.string().min(1).max(200).optional(),
-    idempotencyKey: id,
-    expectedReviewHash: digest,
-  })
-  .strict()
-const scenarioCommentDisposition = z
-  .object({
-    target,
-    portfolioRevisionId: id,
-    commentId: id,
-    actor: z.string().min(1).max(200).optional(),
-    idempotencyKey: id,
-    expectedReviewHash: digest,
-  })
-  .strict()
-
 function command(
   value: z.infer<typeof commandBase>,
   journeyId: string,
   targetProjectId: string,
-  kind: 'PUBLISH_SCENARIO_PORTFOLIO' | 'DECIDE_SCENARIOS',
+  kind: 'PUBLISH_SCENARIO_PORTFOLIO',
   payload: Record<string, unknown>,
 ) {
   return {
@@ -94,7 +67,7 @@ function command(
     commandId: value.commandId,
     journeyId,
     targetProjectId,
-    actor: kind === 'PUBLISH_SCENARIO_PORTFOLIO' ? 'RUNNER' : 'USER',
+    actor: 'RUNNER',
     expectedStateHash: value.expectedStateHash,
     idempotencyKey: value.idempotencyKey,
     inputArtifactRefs: [
@@ -108,15 +81,6 @@ function command(
     command: kind,
     payload,
   }
-}
-
-async function scopedScenarioResponse(
-  value: { target: string },
-  handler: (targetProjectId: string) => Promise<unknown>,
-  init?: ResponseInit,
-) {
-  const resolved = await resolveTargetProject(value.target)
-  return Response.json(await handler(resolved.id), init)
 }
 
 export async function postQualityJourneyScenarioRoute(
@@ -211,99 +175,6 @@ export async function postQualityJourneyScenarioRoute(
           artifactRevisionId: value.portfolioRevisionId,
           artifactHash: value.portfolioHash,
         }),
-        undefined,
-        coordinatorSession,
-      ),
-    )
-  }
-  if (operation[4] === 'decisions') {
-    const value = commandBase
-      .extend({
-        approvedScenarioRevisionIds: z.array(id).max(512),
-        rejectedScenarioRevisionIds: z.array(id).max(512),
-        feedback: z.string().trim().min(1).max(8_000).optional(),
-        expectedReviewHash: digest,
-      })
-      .strict()
-      .parse(body)
-    const resolved = await resolveTargetProject(value.target)
-    return Response.json(
-      await decideQualityJourneyScenarios(
-        {
-          expectedReviewHash: value.expectedReviewHash,
-          approvedScenarioRevisionIds: value.approvedScenarioRevisionIds,
-          rejectedScenarioRevisionIds: value.rejectedScenarioRevisionIds,
-          feedback: value.feedback,
-          command: command(value, journeyId, resolved.id, 'DECIDE_SCENARIOS', {
-            portfolioRevisionId: value.portfolioRevisionId,
-            portfolioHash: value.portfolioHash,
-            approvedScenarioRevisionIds: value.approvedScenarioRevisionIds,
-            rejectedScenarioRevisionIds: value.rejectedScenarioRevisionIds,
-            ...(value.feedback ? { feedback: value.feedback } : {}),
-          }),
-        },
-        undefined,
-        coordinatorSession,
-      ),
-    )
-  }
-  if (operation[4] === 'comments') {
-    const { target: targetRef, ...value } = scenarioComment.parse(body)
-    return scopedScenarioResponse(
-      { target: targetRef },
-      targetProjectId =>
-        commentQualityJourneyScenarioPortfolio(
-          { ...value, journeyId, targetProjectId, actor: 'USER' },
-          undefined,
-          coordinatorSession,
-        ),
-      { status: 201 },
-    )
-  }
-  if (operation[4] === 'comment-dispositions') {
-    const { target: targetRef, ...value } = scenarioCommentDisposition.parse(body)
-    return scopedScenarioResponse({ target: targetRef }, targetProjectId =>
-      disposeQualityJourneyScenarioComment(
-        { ...value, journeyId, targetProjectId, actor: 'USER' },
-        undefined,
-        coordinatorSession,
-      ),
-    )
-  }
-  if (operation[4] === 'revision-requests') {
-    const value = commandBase
-      .extend({ feedback: z.string().trim().min(1).max(8_000), expectedReviewHash: digest })
-      .strict()
-      .parse(body)
-    const resolved = await resolveTargetProject(value.target)
-    return Response.json(
-      await requestQualityJourneyScenarioRevision(
-        {
-          expectedReviewHash: value.expectedReviewHash,
-          command: {
-            schemaVersion: qualityJourneyContractVersion,
-            commandId: value.commandId,
-            journeyId,
-            targetProjectId: resolved.id,
-            actor: 'USER',
-            expectedStateHash: value.expectedStateHash,
-            idempotencyKey: value.idempotencyKey,
-            inputArtifactRefs: [
-              {
-                kind: 'SCENARIO_PORTFOLIO_REVISION',
-                artifactId: value.portfolioId,
-                revisionId: value.portfolioRevisionId,
-                contentHash: value.portfolioHash,
-              },
-            ],
-            command: 'REQUEST_SCENARIO_REVISION',
-            payload: {
-              reviewedRevisionId: value.portfolioRevisionId,
-              reviewedHash: value.portfolioHash,
-              feedback: value.feedback,
-            },
-          },
-        },
         undefined,
         coordinatorSession,
       ),

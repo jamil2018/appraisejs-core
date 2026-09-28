@@ -83,6 +83,37 @@ For `ANALYSIS`, use the retained `EXTERNAL_V1` path; do not create another workf
    particular person. Appraise can fence its own authority; it cannot claim to have stopped arbitrary external Codex
    activity.
 
+## Scenario review and revision
+
+Submit a Scenario Portfolio only through the specialized Designer ingress for the exact assignment, immutable
+Analysis and Discovery inputs, cycle, and target. Submission is a candidate, not a human approval. After Appraise
+publishes it, reread the current portfolio and review hash. Leave approve, reject, comments, and revision requests
+to the local Appraise Journey UI; coordinator/MCP credentials cannot submit these review mutations. Feedback and a
+revision request produce a fresh Designer assignment. A prior
+decision may carry only when the reviewed scenario content and its discovery, graph, and coverage inputs are
+unchanged. Do not infer an independent human reviewer from `actor=USER`, a role name, or a separate Codex task;
+the current project-scoped UI decision path does not establish that identity.
+
+## Automation preparation
+
+At `AUTOMATION`, reread `quality_journey_get` and `quality_journey_automation_context_get` for the selected target.
+Claim and admit only the current `AUTOMATOR` assignment through the retained `EXTERNAL_V1` operations. Use the
+assignment's exact approved Scenario Portfolio and approved scenario revisions, completed Resource Resolution Bundle,
+input hash, scope hash, and target. Search or read canonical operations, ready Step Definitions, and target-owned
+locators before proposing one mapping for every approved source step. Select only operations and definitions in the
+frozen compatible resource authority; preserve each operation's handler ID, version, and content hash. A missing
+compatible resource is a blocker to report through Appraise, not permission to invent a handler or edit generated
+wrappers.
+
+Submit the complete packet through `quality_journey_external_automator_materialize_v1` with the admitted assignment,
+lease, and one stable idempotency key. Reconcile an uncertain reply through
+`quality_journey_external_work_outcome_get_v1` before any exact replay. Read the resulting preparation context and
+verify every approved scenario has a target-owned suite, case, canonical Step Invocation, and prepared capsule receipt.
+Preparation does not start a TestRun or grant execution consent. Appraise owns authored records and capsule creation;
+generated `automation/` files and human Step projections remain derived artifacts and must not be patched as Journey
+outputs. This Automator scope supports test automation preparation only. Autonomous repair of the target product's
+application code is outside this assignment and requires a separate user request and authority.
+
 If native Appraise tools are absent, run `appraisejs agent compatibility --json` outside the MCP protocol, repair the
 reported installation or registration state, reconnect or start a fresh task, and call `project_diagnostic` again.
 The documented manual registered-MCP fallback is setup recovery only; it does not grant Journey authority by itself.

@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   armQualityJourneyDiscoveryBrowserHumanReturn,
+  authorizeQualityJourneyDiscoveryBrowserExactReturn,
   assertDiscoveryBrowserReceiptAdmission,
   captureQualityJourneyDiscoveryBrowserReceipt,
   clearQualityJourneyDiscoveryBrowserSessionsForTest,
@@ -102,14 +103,31 @@ function browserRuntime(
     navigateWithPageUrl: (frameUrl: string, pageUrl: string) => void
     navigateSubframe: (url: string) => void
   }) => void,
+  onLiveness?: (control: {
+    disconnectBrowser: () => void
+    silentlyDisconnectBrowser: () => void
+    closeContext: () => void
+    closePage: () => void
+    crashPage: () => void
+  }) => void,
+  onGoto?: () => void | Promise<void>,
+  pageUrl?: () => string,
 ): DiscoveryBrowserRuntime {
   let url = 'about:blank'
   let frameUrl = 'about:blank'
+  let browserConnected = true
+  let pageClosed = false
+  const browserListeners = new Map<string, () => void>()
+  const contextListeners = new Map<string, () => void>()
   return {
+    redirectInterception: 'EVERY_HOP',
     async launch() {
       return {
+        on: (event, listener) => browserListeners.set(event, listener),
+        isConnected: () => browserConnected,
         async newContext() {
           return {
+            on: (event, listener) => contextListeners.set(event, listener),
             route: async (_pattern, handler) => onRoute?.(handler as (route: unknown) => Promise<void>),
             routeWebSocket: async () => undefined,
             async newPage() {
@@ -119,12 +137,17 @@ function browserRuntime(
                 async goto(next: string) {
                   url = next
                   frameUrl = next
+                  await onGoto?.()
                 },
-                url: () => url,
+                url: () => pageUrl?.() ?? url,
                 mainFrame: () => mainFrame,
                 title: async () => title,
                 on: (event: string, listener: (value: unknown) => void) => listeners.set(event, listener),
-                close: async () => undefined,
+                isClosed: () => pageClosed,
+                close: async () => {
+                  pageClosed = true
+                  listeners.get('close')?.(undefined)
+                },
               }
               onPage?.({
                 mainFrame,
@@ -140,12 +163,35 @@ function browserRuntime(
                 },
                 navigateSubframe: (next: string) => listeners.get('framenavigated')?.({ url: () => next }),
               })
+              onLiveness?.({
+                disconnectBrowser: () => {
+                  browserConnected = false
+                  browserListeners.get('disconnected')?.()
+                },
+                silentlyDisconnectBrowser: () => {
+                  browserConnected = false
+                },
+                closeContext: () => {
+                  contextListeners.get('close')?.()
+                },
+                closePage: () => {
+                  pageClosed = true
+                  listeners.get('close')?.(undefined)
+                },
+                crashPage: () => listeners.get('crash')?.(undefined),
+              })
               return page
             },
-            close: async () => onClose(),
+            close: async () => {
+              contextListeners.get('close')?.()
+              return onClose()
+            },
           }
         },
-        close: async () => undefined,
+        close: async () => {
+          browserConnected = false
+          browserListeners.get('disconnected')?.()
+        },
       }
     },
   }
@@ -222,7 +268,10 @@ function client(
 
 const scope = { journeyId: 'journey-1', targetProjectId: 'target-1', discoveryRevisionId: 'revision-1' }
 
-async function sessionAtAuthorizedIdp() {
+async function sessionAtAuthorizedIdp(
+  onLiveness?: Parameters<typeof browserRuntime>[4],
+  onGoto?: Parameters<typeof browserRuntime>[5],
+) {
   const db = client()
   let handler: ((route: unknown) => Promise<void>) | undefined
   let page:
@@ -248,6 +297,8 @@ async function sessionAtAuthorizedIdp() {
       () => undefined,
       next => (handler = next),
       next => (page = next),
+      onLiveness,
+      onGoto,
     ),
   )
   if (!handler || !page) throw new Error('Test browser route was not initialized.')
@@ -387,6 +438,242 @@ describe('Quality Journey discovery browser service', () => {
     ).rejects.toMatchObject({ code: 'UNAUTHORIZED' })
   })
 
+  it.each([
+    [
+      'browser disconnect',
+      (control: Parameters<NonNullable<Parameters<typeof browserRuntime>[4]>>[0]) => control.disconnectBrowser(),
+    ],
+    [
+      'context close',
+      (control: Parameters<NonNullable<Parameters<typeof browserRuntime>[4]>>[0]) => control.closeContext(),
+    ],
+    ['page close', (control: Parameters<NonNullable<Parameters<typeof browserRuntime>[4]>>[0]) => control.closePage()],
+  ] as const)('rejects startup without exposing a session when %s occurs before insertion', async (_name, lose) => {
+    const close = vi.fn()
+    await expect(
+      startQualityJourneyDiscoveryBrowserSession(
+        {
+          ...scope,
+          workItemId: 'work-1',
+          environmentId: 'environment-1',
+          routeId: '/checkout',
+          accessMode: 'ANONYMOUS',
+        },
+        client() as never,
+        browserRuntime('Checkout', close, undefined, undefined, lose),
+      ),
+    ).rejects.toMatchObject({ code: 'CONFLICT' })
+    expect(close).toHaveBeenCalledOnce()
+  })
+
+  it('rejects startup when the page crashes during initial navigation', async () => {
+    let liveness: Parameters<NonNullable<Parameters<typeof browserRuntime>[4]>>[0] | undefined
+    await expect(
+      startQualityJourneyDiscoveryBrowserSession(
+        {
+          ...scope,
+          workItemId: 'work-1',
+          environmentId: 'environment-1',
+          routeId: '/checkout',
+          accessMode: 'ANONYMOUS',
+        },
+        client() as never,
+        browserRuntime(
+          'Checkout',
+          () => undefined,
+          undefined,
+          undefined,
+          control => (liveness = control),
+          () => liveness?.crashPage(),
+        ),
+      ),
+    ).rejects.toMatchObject({ code: 'CONFLICT' })
+  })
+
+  it.each([
+    [
+      'page close',
+      'PAGE_CLOSED',
+      (control: Parameters<NonNullable<Parameters<typeof browserRuntime>[4]>>[0]) => control.closePage(),
+    ],
+    [
+      'page crash',
+      'PAGE_CRASHED',
+      (control: Parameters<NonNullable<Parameters<typeof browserRuntime>[4]>>[0]) => control.crashPage(),
+    ],
+    [
+      'context close',
+      'CONTEXT_CLOSED',
+      (control: Parameters<NonNullable<Parameters<typeof browserRuntime>[4]>>[0]) => control.closeContext(),
+    ],
+    [
+      'browser disconnect',
+      'BROWSER_DISCONNECTED',
+      (control: Parameters<NonNullable<Parameters<typeof browserRuntime>[4]>>[0]) => control.disconnectBrowser(),
+    ],
+  ] as const)('closes authority with the fixed terminal cause when %s occurs', async (_name, cause, lose) => {
+    let liveness: Parameters<NonNullable<Parameters<typeof browserRuntime>[4]>>[0] | undefined
+    const session = await startQualityJourneyDiscoveryBrowserSession(
+      { ...scope, workItemId: 'work-1', environmentId: 'environment-1', routeId: '/checkout', accessMode: 'ANONYMOUS' },
+      client() as never,
+      browserRuntime(
+        'Checkout',
+        () => undefined,
+        undefined,
+        undefined,
+        control => (liveness = control),
+      ),
+    )
+    lose(liveness!)
+    await expect(getQualityJourneyDiscoveryBrowserSession({ ...scope, sessionId: session.id })).resolves.toMatchObject({
+      state: 'CLOSED',
+    })
+    await expect(
+      getQualityJourneyDiscoveryBrowserTerminalDiagnosticForQualification({ ...scope, sessionId: session.id }),
+    ).resolves.toEqual({ terminalCause: cause })
+    await expect(
+      captureQualityJourneyDiscoveryBrowserReceipt(
+        { ...scope, sessionId: session.id, snapshotId: `closed-${cause}` },
+        client() as never,
+      ),
+    ).rejects.toMatchObject({ code: 'CONFLICT' })
+  })
+
+  it('detects silent browser health loss and preserves the first terminal cause', async () => {
+    let liveness: Parameters<NonNullable<Parameters<typeof browserRuntime>[4]>>[0] | undefined
+    const session = await startQualityJourneyDiscoveryBrowserSession(
+      { ...scope, workItemId: 'work-1', environmentId: 'environment-1', routeId: '/checkout', accessMode: 'ANONYMOUS' },
+      client() as never,
+      browserRuntime(
+        'Checkout',
+        () => undefined,
+        undefined,
+        undefined,
+        control => (liveness = control),
+      ),
+    )
+    liveness!.silentlyDisconnectBrowser()
+    await expect(getQualityJourneyDiscoveryBrowserSession({ ...scope, sessionId: session.id })).resolves.toMatchObject({
+      state: 'CLOSED',
+    })
+    liveness!.crashPage()
+    await expect(
+      getQualityJourneyDiscoveryBrowserTerminalDiagnosticForQualification({ ...scope, sessionId: session.id }),
+    ).resolves.toEqual({ terminalCause: 'BROWSER_DISCONNECTED' })
+  })
+
+  it('fences a navigation-listener exception with a fixed terminal cause', async () => {
+    let throwPageUrl = false
+    let page:
+      | {
+          navigate: (url: string) => void
+        }
+      | undefined
+    const session = await startQualityJourneyDiscoveryBrowserSession(
+      { ...scope, workItemId: 'work-1', environmentId: 'environment-1', routeId: '/checkout', accessMode: 'ANONYMOUS' },
+      client() as never,
+      browserRuntime(
+        'Checkout',
+        () => undefined,
+        undefined,
+        next => (page = next),
+        undefined,
+        undefined,
+        () => {
+          if (throwPageUrl) throw new Error('page URL unavailable')
+          return 'https://example.test/checkout'
+        },
+      ),
+    )
+    throwPageUrl = true
+    page!.navigate('https://example.test/checkout')
+    await vi.waitFor(async () => {
+      await expect(
+        getQualityJourneyDiscoveryBrowserSession({ ...scope, sessionId: session.id }),
+      ).resolves.toMatchObject({
+        state: 'CLOSED',
+      })
+    })
+    await expect(
+      getQualityJourneyDiscoveryBrowserTerminalDiagnosticForQualification({ ...scope, sessionId: session.id }),
+    ).resolves.toEqual({ terminalCause: 'ROUTE_OPERATION_FAILED' })
+  })
+
+  it('fails closed before fulfillment when a runtime cannot intercept every redirect hop', async () => {
+    let handler: ((route: unknown) => Promise<void>) | undefined
+    let page: { mainFrame: { url(): string } } | undefined
+    const runtime = browserRuntime(
+      'Checkout',
+      () => undefined,
+      next => (handler = next),
+      next => (page = next),
+    )
+    runtime.redirectInterception = 'INITIAL_REQUEST_ONLY'
+    const session = await startQualityJourneyDiscoveryBrowserSession(
+      { ...scope, workItemId: 'work-1', environmentId: 'environment-1', routeId: '/checkout', accessMode: 'ANONYMOUS' },
+      client() as never,
+      runtime,
+    )
+    const abort = vi.fn(async () => undefined)
+    const fulfill = vi.fn(async () => undefined)
+    await handler?.({
+      request: () => ({
+        url: () => 'https://example.test/checkout',
+        method: () => 'GET',
+        isNavigationRequest: () => true,
+        resourceType: () => 'document',
+        frame: () => page!.mainFrame,
+      }),
+      abort,
+      fetch: async () => ({ headers: () => ({ location: 'https://idp.example.test/authorize' }), status: () => 302 }),
+      fulfill,
+    })
+    expect(abort).toHaveBeenCalledOnce()
+    expect(fulfill).not.toHaveBeenCalled()
+    await expect(getQualityJourneyDiscoveryBrowserSession({ ...scope, sessionId: session.id })).resolves.toMatchObject({
+      state: 'REVOKED',
+    })
+    await expect(
+      getQualityJourneyDiscoveryBrowserTerminalDiagnosticForQualification({ ...scope, sessionId: session.id }),
+    ).resolves.toEqual({ terminalCause: 'REDIRECT_INTERCEPTION_UNAVAILABLE' })
+  })
+
+  it('allows a 304 without redirect-hop interception while keeping session authority active', async () => {
+    let handler: ((route: unknown) => Promise<void>) | undefined
+    let page: { mainFrame: { url(): string } } | undefined
+    const runtime = browserRuntime(
+      'Checkout',
+      () => undefined,
+      next => (handler = next),
+      next => (page = next),
+    )
+    runtime.redirectInterception = 'INITIAL_REQUEST_ONLY'
+    const session = await startQualityJourneyDiscoveryBrowserSession(
+      { ...scope, workItemId: 'work-1', environmentId: 'environment-1', routeId: '/checkout', accessMode: 'ANONYMOUS' },
+      client() as never,
+      runtime,
+    )
+    const abort = vi.fn(async () => undefined)
+    const fulfill = vi.fn(async () => undefined)
+    await handler?.({
+      request: () => ({
+        url: () => 'https://example.test/checkout',
+        method: () => 'GET',
+        isNavigationRequest: () => true,
+        resourceType: () => 'document',
+        frame: () => page!.mainFrame,
+      }),
+      abort,
+      fetch: async () => ({ headers: () => ({}), status: () => 304 }),
+      fulfill,
+    })
+    expect(fulfill).toHaveBeenCalledOnce()
+    expect(abort).not.toHaveBeenCalled()
+    await expect(getQualityJourneyDiscoveryBrowserSession({ ...scope, sessionId: session.id })).resolves.toMatchObject({
+      state: 'ACTIVE',
+    })
+  })
+
   it('requires human confirmation for authenticated intent and preserves a missing-access terminal blocker', async () => {
     const db = client()
     let handler: ((route: unknown) => Promise<void>) | undefined
@@ -521,7 +808,7 @@ describe('Quality Journey discovery browser service', () => {
     await expect(getQualityJourneyDiscoveryBrowserSession({ ...scope, sessionId: session.id })).resolves.toMatchObject({
       state: 'ACTIVE',
       allowedOrigins: [],
-      currentUrl: 'about:blank',
+      currentUrl: null,
     })
     await handler(route('https://example.test/checkout').route)
     page.navigate('https://example.test/checkout')
@@ -541,6 +828,107 @@ describe('Quality Journey discovery browser service', () => {
       },
     })
     expect(JSON.stringify(captured.receipt)).not.toContain('idp.example.test')
+  })
+
+  it('rejects caller-selected return targets before arming the Appraise-executed exact return', async () => {
+    const fixture = await sessionAtAuthorizedIdp()
+    await expect(
+      authorizeQualityJourneyDiscoveryBrowserExactReturn(
+        { ...scope, sessionId: fixture.session.id, returnUrl: 'https://attacker.test/checkout' },
+        fixture.db as never,
+      ),
+    ).rejects.toBeTruthy()
+    await expect(
+      getQualityJourneyDiscoveryBrowserSession({ ...scope, sessionId: fixture.session.id }),
+    ).resolves.toMatchObject({
+      state: 'ACTIVE',
+      allowedOrigins: [],
+      currentUrl: null,
+    })
+  })
+
+  it('closes the session when browser loss interrupts the Appraise-executed exact return', async () => {
+    let liveness: Parameters<NonNullable<Parameters<typeof browserRuntime>[4]>>[0] | undefined
+    let returnNavigationStarted = false
+    const fixture = await sessionAtAuthorizedIdp(
+      control => (liveness = control),
+      () => {
+        if (returnNavigationStarted) liveness?.closePage()
+      },
+    )
+    returnNavigationStarted = true
+
+    await expect(
+      authorizeQualityJourneyDiscoveryBrowserExactReturn(
+        { ...scope, sessionId: fixture.session.id },
+        fixture.db as never,
+      ),
+    ).rejects.toMatchObject({ code: 'CONFLICT' })
+    await expect(
+      getQualityJourneyDiscoveryBrowserSession({ ...scope, sessionId: fixture.session.id }),
+    ).resolves.toMatchObject({ state: 'CLOSED' })
+  })
+
+  it('rejects the Appraise-executed exact return when its 15-second commit bound expires', async () => {
+    vi.useFakeTimers()
+    try {
+      const fixture = await sessionAtAuthorizedIdp()
+      const authorization = authorizeQualityJourneyDiscoveryBrowserExactReturn(
+        { ...scope, sessionId: fixture.session.id },
+        fixture.db as never,
+      )
+      const rejected = expect(authorization).rejects.toMatchObject({ code: 'CONFLICT' })
+      await vi.advanceTimersByTimeAsync(15_001)
+      await rejected
+      await expect(
+        getQualityJourneyDiscoveryBrowserSession({ ...scope, sessionId: fixture.session.id }),
+      ).resolves.toMatchObject({ state: 'REVOKED' })
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('returns after exact main-frame commit when navigation never reaches DOMContentLoaded', async () => {
+    let exactReturnStarted = false
+    const fixture = await sessionAtAuthorizedIdp(undefined, async () => {
+      if (!exactReturnStarted) return
+      await fixture.handler(fixture.route('https://example.test/checkout').route)
+      fixture.page.navigate('https://example.test/checkout')
+      return new Promise<never>(() => undefined)
+    })
+    exactReturnStarted = true
+
+    await expect(
+      authorizeQualityJourneyDiscoveryBrowserExactReturn(
+        { ...scope, sessionId: fixture.session.id },
+        fixture.db as never,
+      ),
+    ).resolves.toMatchObject({
+      return: 'RETURN_COMMITTED',
+      session: {
+        state: 'ACTIVE',
+        currentUrl: 'https://example.test/checkout',
+        allowedOrigins: ['https://example.test'],
+      },
+    })
+  })
+
+  it('fences the session when owned-page navigation rejects before exact main-frame commit', async () => {
+    let exactReturnStarted = false
+    const fixture = await sessionAtAuthorizedIdp(undefined, () => {
+      if (exactReturnStarted) throw new Error('synthetic navigation rejection')
+    })
+    exactReturnStarted = true
+
+    await expect(
+      authorizeQualityJourneyDiscoveryBrowserExactReturn(
+        { ...scope, sessionId: fixture.session.id },
+        fixture.db as never,
+      ),
+    ).rejects.toMatchObject({ code: 'CONFLICT' })
+    await expect(
+      getQualityJourneyDiscoveryBrowserSession({ ...scope, sessionId: fixture.session.id }),
+    ).resolves.toMatchObject({ state: 'REVOKED' })
   })
 
   it("arms only from the selected flow's explicit exact GET return origin, not an intermediary transit origin", async () => {
@@ -770,11 +1158,8 @@ describe('Quality Journey discovery browser service', () => {
       getQualityJourneyDiscoveryBrowserSession({ ...scope, sessionId: fixture.session.id }),
     ).resolves.toMatchObject({
       state: 'ACTIVE',
-      allowedOrigins: expect.arrayContaining([
-        'https://example.test',
-        'https://idp.example.test',
-        'https://idp-b.example.test',
-      ]),
+      allowedOrigins: [],
+      currentUrl: null,
     })
     await expect(
       getQualityJourneyDiscoveryBrowserTerminalDiagnosticForQualification({ ...scope, sessionId: fixture.session.id }),
@@ -808,11 +1193,8 @@ describe('Quality Journey discovery browser service', () => {
       getQualityJourneyDiscoveryBrowserSession({ ...scope, sessionId: fixture.session.id }),
     ).resolves.toMatchObject({
       state: 'ACTIVE',
-      allowedOrigins: expect.arrayContaining([
-        'https://example.test',
-        'https://idp.example.test',
-        'https://idp-b.example.test',
-      ]),
+      allowedOrigins: [],
+      currentUrl: null,
     })
   })
 
@@ -849,6 +1231,23 @@ describe('Quality Journey discovery browser service', () => {
     await expect(
       getQualityJourneyDiscoveryBrowserTerminalDiagnosticForQualification({ ...scope, sessionId: fixture.session.id }),
     ).resolves.toEqual({ terminalCause: 'REDIRECT_DENIED' })
+  })
+
+  it.each([
+    [304, 'ACTIVE', true],
+    [302, 'REVOKED', false],
+  ] as const)('keeps the exact human return fail-closed classification for %i', async (status, state, fulfilled) => {
+    const fixture = await sessionAtAuthorizedIdp()
+    await armQualityJourneyDiscoveryBrowserHumanReturn({ ...scope, sessionId: fixture.session.id }, fixture.db as never)
+    const response = fixture.route('https://example.test/checkout', 'GET', status)
+    await fixture.handler(response.route)
+    expect(response.fulfill).toHaveBeenCalledTimes(fulfilled ? 1 : 0)
+    expect(response.abort).toHaveBeenCalledTimes(fulfilled ? 0 : 1)
+    await expect(
+      getQualityJourneyDiscoveryBrowserSession({ ...scope, sessionId: fixture.session.id }),
+    ).resolves.toMatchObject({
+      state,
+    })
   })
 
   it('refuses stale, revoked, restarted, and reused human-return grants', async () => {
@@ -1193,6 +1592,29 @@ describe('Quality Journey discovery browser service', () => {
     },
   )
 
+  it('does not resolve the blocker when page loss wins while confirmation is paused before its CAS', async () => {
+    let liveness: Parameters<NonNullable<Parameters<typeof browserRuntime>[4]>>[0] | undefined
+    const fixture = await sessionAtAuthorizedIdp(control => (liveness = control))
+    await returnToFrozenTarget(fixture)
+    const started = deferred()
+    const release = deferred()
+    const originalFindFirst = fixture.db.environment.findFirst
+    fixture.db.environment.findFirst = async () => {
+      started.resolve()
+      await release.promise
+      return originalFindFirst()
+    }
+    const confirmation = confirmQualityJourneyDiscoveryBrowserAccess(
+      { ...scope, sessionId: fixture.session.id },
+      fixture.db as never,
+    )
+    await started.promise
+    liveness!.closePage()
+    release.resolve()
+    await expect(confirmation).rejects.toMatchObject({ code: 'CONFLICT' })
+    expect(fixture.db.blockerUpdates).toEqual([])
+  })
+
   it('rejects concurrent missing access after confirmation CAS and revokes if blocker resolution fails', async () => {
     const fixture = await sessionAtAuthorizedIdp()
     await returnToFrozenTarget(fixture)
@@ -1272,6 +1694,38 @@ describe('Quality Journey discovery browser service', () => {
       }
     },
   )
+
+  it('does not commit a receipt when context loss wins during its transaction read', async () => {
+    let liveness: Parameters<NonNullable<Parameters<typeof browserRuntime>[4]>>[0] | undefined
+    const db = client()
+    const session = await startQualityJourneyDiscoveryBrowserSession(
+      { ...scope, workItemId: 'work-1', environmentId: 'environment-1', routeId: '/checkout', accessMode: 'ANONYMOUS' },
+      db as never,
+      browserRuntime(
+        'Checkout',
+        () => undefined,
+        undefined,
+        undefined,
+        control => (liveness = control),
+      ),
+    )
+    const started = deferred()
+    const release = deferred()
+    db.qualityJourneyArtifact.findUnique = async () => {
+      started.resolve()
+      await release.promise
+      return null
+    }
+    const capture = captureQualityJourneyDiscoveryBrowserReceipt(
+      { ...scope, sessionId: session.id, snapshotId: 'capture-context-loss' },
+      db as never,
+    )
+    await started.promise
+    liveness!.closeContext()
+    release.resolve()
+    await expect(capture).rejects.toMatchObject({ code: 'CONFLICT' })
+    expect([...db.artifacts.values()]).toEqual([])
+  })
 
   it('makes missing access terminal before its blocker write so an in-flight arm cannot succeed', async () => {
     const fixture = await sessionAtAuthorizedIdp()
@@ -1577,11 +2031,15 @@ describe('Quality Journey discovery browser service', () => {
     let webSocketHandler: ((route: unknown) => Promise<void>) | undefined
     const installationOrder: string[] = []
     const runtime: DiscoveryBrowserRuntime = {
+      redirectInterception: 'EVERY_HOP',
       async launch() {
         let url = 'about:blank'
         return {
+          on: () => undefined,
+          isConnected: () => true,
           async newContext() {
             return {
+              on: () => undefined,
               async route(_pattern, nextHandler) {
                 installationOrder.push('http')
                 handler = nextHandler as typeof handler
@@ -1601,6 +2059,7 @@ describe('Quality Journey discovery browser service', () => {
                   mainFrame: () => mainFrame,
                   title: async () => 'Checkout',
                   on: () => undefined,
+                  isClosed: () => false,
                   close: async () => undefined,
                 }
               },
@@ -1912,12 +2371,12 @@ describe('Quality Journey discovery browser service', () => {
     fixture.page.navigate('https://idp.example.test/login')
     await expect(
       getQualityJourneyDiscoveryBrowserSession({ ...scope, sessionId: fixture.session.id }),
-    ).resolves.toMatchObject({ state: 'ACTIVE', currentUrl: 'https://idp.example.test/login' })
+    ).resolves.toMatchObject({ state: 'ACTIVE', currentUrl: null, allowedOrigins: [] })
 
     fixture.page.navigate('https://idp.example.test/secure')
     await expect(
       getQualityJourneyDiscoveryBrowserSession({ ...scope, sessionId: fixture.session.id }),
-    ).resolves.toMatchObject({ state: 'ACTIVE', currentUrl: 'https://idp.example.test/secure' })
+    ).resolves.toMatchObject({ state: 'ACTIVE', currentUrl: null, allowedOrigins: [] })
     await expect(
       armQualityJourneyDiscoveryBrowserHumanReturn({ ...scope, sessionId: fixture.session.id }, fixture.db as never),
     ).resolves.toMatchObject({ returnUrl: 'https://example.test/checkout' })

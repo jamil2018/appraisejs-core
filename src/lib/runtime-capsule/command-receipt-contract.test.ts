@@ -141,8 +141,8 @@ function receipt() {
       evidence: { expectedCasesPath: 'expected-cases.json', expectedCasesHash: h('a') },
       artifactEvidence: {
         shapeVersion: 'evidence-subtrees-v1',
-        traces: { root: 'traces', suffix: '.zip', maxBytes: 1000 },
-        screenshots: { root: 'screenshots', suffix: '.png', maxBytes: 1000 },
+        traces: { root: 'reports/traces', suffix: '.zip', maxBytes: 1000 },
+        screenshots: { root: 'reports/screenshots', suffix: '.png', maxBytes: 1000 },
       },
       preflight: { path: 'reports/preflight.json', format: 'cucumber-json', maxBytes: 1000 },
     },
@@ -223,6 +223,24 @@ describe('capsule command receipt contract', () => {
     expect(parseCanonicalCapsuleCommandReceipt(canonical)).toEqual(value)
     expect(hashCapsuleCommandReceipt(value)).toBe(hashCapsuleCommandReceipt(JSON.parse(canonical)))
     expect(() => parseCanonicalCapsuleCommandReceipt(`${canonical} `)).toThrow(/canonical/)
+  })
+
+  it('continues to parse and hash persisted v1 receipts with legacy evidence roots', () => {
+    const value = receipt()
+    const legacy = {
+      ...value,
+      outputs: {
+        ...value.outputs,
+        artifactEvidence: {
+          ...value.outputs.artifactEvidence,
+          traces: { ...value.outputs.artifactEvidence.traces, root: 'traces' },
+          screenshots: { ...value.outputs.artifactEvidence.screenshots, root: 'screenshots' },
+        },
+      },
+    }
+    const canonical = canonicalCapsuleCommandReceipt(legacy)
+    expect(parseCanonicalCapsuleCommandReceipt(canonical)).toEqual(legacy)
+    expect(hashCapsuleCommandReceipt(legacy)).toBe(hashCapsuleCommandReceipt(JSON.parse(canonical)))
   })
 
   it('requires mutually exclusive literal and environment-reference credential payloads', () => {

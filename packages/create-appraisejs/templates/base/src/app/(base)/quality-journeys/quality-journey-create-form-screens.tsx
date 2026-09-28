@@ -39,9 +39,10 @@ type ScreenProps = Pick<
 > & { update: UpdateIntake }
 
 const glassFieldClassName =
-  'border-white/[0.09] bg-white/[0.035] shadow-[inset_0_1px_0_rgba(255,255,255,0.045),inset_0_-10px_24px_rgba(0,0,0,0.12)] backdrop-blur-md hover:border-white/[0.13] focus-visible:border-primary/45 focus-visible:bg-white/[0.05] focus-visible:ring-primary/30'
+  'border-white/[0.09] bg-white/[0.018] shadow-[inset_0_1px_0_rgba(255,255,255,0.035),inset_0_-10px_24px_rgba(0,0,0,0.1)] backdrop-blur-md hover:border-white/[0.13] hover:bg-white/[0.026] focus-visible:border-primary/45 focus-visible:bg-white/[0.035] focus-visible:ring-primary/30'
+const glassTextareaClassName = `${glassFieldClassName} min-h-24 resize-y sm:min-h-28 lg:min-h-32`
 const liquidGlassButtonClassName =
-  'rounded-full border border-white/[0.16] bg-[linear-gradient(180deg,rgba(255,255,255,0.11),rgba(255,255,255,0.035))] text-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.2),inset_0_-1px_0_rgba(255,255,255,0.045),0_10px_24px_-16px_rgba(0,0,0,0.9)] backdrop-blur-xl transition-[transform,background-color,border-color,box-shadow] hover:border-white/[0.24] hover:bg-white/[0.105] hover:text-foreground active:translate-y-px active:scale-[0.985]'
+  'rounded-full border border-white/[0.11] bg-[linear-gradient(180deg,rgba(255,255,255,0.055),rgba(255,255,255,0.012))] text-foreground/85 shadow-[inset_0_1px_0_rgba(255,255,255,0.13),inset_0_-1px_0_rgba(255,255,255,0.025),0_10px_24px_-18px_rgba(0,0,0,0.8)] backdrop-blur-xl transition-[transform,background-color,border-color,box-shadow] hover:border-white/[0.18] hover:bg-white/[0.06] hover:text-foreground active:translate-y-px active:scale-[0.985]'
 const liquidGlassPrimaryButtonClassName =
   'rounded-full border border-white/[0.22] bg-[linear-gradient(180deg,hsl(var(--primary)/0.88),hsl(var(--primary)/0.66))] text-primary-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.3),inset_0_-1px_0_rgba(0,0,0,0.16),0_12px_28px_-16px_hsl(var(--primary)/0.7)] backdrop-blur-xl transition-[transform,filter,box-shadow] hover:brightness-110 active:translate-y-px active:scale-[0.985]'
 const liquidGlassIconButtonClassName =
@@ -53,7 +54,7 @@ export function GoalIntakeScreen({ context, objective, update }: ScreenProps) {
       <div className="space-y-2">
         <Label htmlFor="quality-journey-objective">Outcome or behavior to validate</Label>
         <Textarea
-          className={glassFieldClassName}
+          className={glassTextareaClassName}
           id="quality-journey-objective"
           onChange={event => update({ objective: event.target.value })}
           placeholder="Describe the user need, outcome, and important behavior."
@@ -65,7 +66,7 @@ export function GoalIntakeScreen({ context, objective, update }: ScreenProps) {
           Context <span className="text-muted-foreground">(optional)</span>
         </Label>
         <Textarea
-          className={glassFieldClassName}
+          className={glassTextareaClassName}
           id="quality-journey-context"
           onChange={event => update({ context: event.target.value })}
           placeholder="Business background, change history, or stakeholder context"
@@ -105,7 +106,7 @@ export function ScopeIntakeScreen({
   }
   return (
     <>
-      <div className="divide-y divide-white/[0.07] overflow-hidden rounded-xl border border-white/[0.08] bg-[linear-gradient(180deg,rgba(255,255,255,0.035),rgba(255,255,255,0.018))] shadow-[inset_0_1px_0_rgba(255,255,255,0.05),inset_0_-16px_32px_rgba(0,0,0,0.1)] backdrop-blur-lg">
+      <div className="divide-y divide-white/[0.07] overflow-hidden rounded-xl border border-white/[0.08] bg-[linear-gradient(180deg,rgba(255,255,255,0.022),rgba(255,255,255,0.009))] shadow-[inset_0_1px_0_rgba(255,255,255,0.045),inset_0_-16px_32px_rgba(0,0,0,0.1)] backdrop-blur-lg">
         <EditableCardList
           addLabel="Add included behavior"
           description="The user flow and behaviors AppraiseJS should cover."
@@ -147,7 +148,7 @@ export function ScopeIntakeScreen({
                 {label} <span className="text-muted-foreground">(optional)</span>
               </Label>
               <Textarea
-                className={glassFieldClassName}
+                className={glassTextareaClassName}
                 id={`quality-journey-${key}`}
                 onChange={event => updateAdditional(key, event.target.value)}
                 placeholder={placeholder}
@@ -198,7 +199,7 @@ function EditableCardList({
   }
 
   return (
-    <fieldset className="focus-within:bg-primary/[0.025] p-4 transition-colors sm:p-5">
+    <fieldset className="p-4 transition-colors focus-within:bg-white/[0.012] sm:p-5">
       <legend className="sr-only">{label}</legend>
       <div className="mb-3 flex items-start justify-between gap-4">
         <div>
@@ -257,7 +258,7 @@ function EditableCardList({
         <ul className="mt-3 space-y-2">
           {items.map((item, index) => (
             <li
-              className="group/item flex min-h-11 items-center gap-2 rounded-lg border border-white/[0.07] bg-white/[0.025] px-3 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.035)]"
+              className="group/item flex min-h-11 items-center gap-2 rounded-lg border border-white/[0.07] bg-white/[0.014] px-3 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]"
               key={item}
             >
               <span className="text-foreground/90 min-w-0 flex-1 text-sm leading-5">{item}</span>

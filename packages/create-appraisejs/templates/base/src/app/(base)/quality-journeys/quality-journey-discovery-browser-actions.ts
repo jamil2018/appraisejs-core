@@ -5,7 +5,7 @@ import { z } from 'zod'
 
 import { requireActiveProjectForMutation } from '@/lib/active-project'
 import {
-  armQualityJourneyDiscoveryBrowserHumanReturn,
+  authorizeQualityJourneyDiscoveryBrowserExactReturn,
   captureQualityJourneyDiscoveryBrowserReceipt,
   closeQualityJourneyDiscoveryBrowserSession,
   confirmQualityJourneyDiscoveryBrowserAccess,
@@ -66,10 +66,16 @@ export async function confirmQualityJourneyDiscoveryBrowserAccessAction(input: u
   return mutate(input, session, value => confirmQualityJourneyDiscoveryBrowserAccess(value))
 }
 
-/** Arms the only address-bar return from the server-frozen session scope. The
+/** Human approval triggers the one exact return in the owned browser. The
  * client can name no URL, origin, route, credential, or browser state. */
-export async function armQualityJourneyDiscoveryBrowserHumanReturnAction(input: unknown): Promise<ActionResponse> {
-  return mutate(input, session, value => armQualityJourneyDiscoveryBrowserHumanReturn(value))
+export async function authorizeQualityJourneyDiscoveryBrowserExactReturnAction(
+  input: unknown,
+): Promise<ActionResponse> {
+  return mutate(input, session, async value => {
+    const result = await authorizeQualityJourneyDiscoveryBrowserExactReturn(value)
+    if (result.return !== 'RETURN_COMMITTED') throw new ServiceError('Exact return did not commit.', 'CONFLICT')
+    return { return: 'RETURN_COMMITTED', session: result.session }
+  })
 }
 
 export async function captureQualityJourneyDiscoveryBrowserReceiptAction(input: unknown): Promise<ActionResponse> {
