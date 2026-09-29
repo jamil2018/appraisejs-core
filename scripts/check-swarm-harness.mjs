@@ -138,9 +138,6 @@ for (const [role, expected] of Object.entries(roles)) {
   if ((role === 'executor' || role === 'executor-advanced') && values.sandbox_mode !== 'workspace-write') {
     failures.push(`${relative}: executor profiles require workspace-write`)
   }
-  if (values.model === 'gpt-5.6-sol' && values.model_reasoning_effort !== 'high') {
-    failures.push(`${relative}: Sol profiles must use high reasoning effort`)
-  }
   for (const token of requiredInstructionTokens[role]) {
     if (!values.developer_instructions?.includes(token)) {
       failures.push(`${relative}: developer_instructions missing "${token}"`)

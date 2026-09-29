@@ -3,7 +3,7 @@ description = """
 Use when a cross-module implementation has settled scope, accepted invariants, and strong deterministic verification.
 Escalate instead of deciding unresolved architecture, policy, or contradictory evidence.
 """
-model = "gpt-5.6-terra"
+model = "gpt-6-sol"
 model_reasoning_effort = "high"
 sandbox_mode = "workspace-write"
 developer_instructions = """

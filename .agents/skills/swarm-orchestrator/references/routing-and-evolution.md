@@ -66,18 +66,18 @@ exists, and an executor to reproduce or fix only after the relevant invariants a
 investigators only for distinct evidence lanes. Escalate after two executor failures, a material scope expansion,
 contradictory evidence, weak verification at high consequence, or discovery that an accepted invariant is wrong.
 Security, persistence, migration, and public-contract risk require Sol-level judgment and conditional independent
-evaluation. Do not route routine discovery or mechanical execution directly to Sol.
+evaluation. Do not route routine discovery or mechanical execution to a solver or judge.
 
 ## Profile matrix
 
-| Profile             | Role         | Model / effort          | Authority       | Stop or escalate when                                      |
-| ------------------- | ------------ | ----------------------- | --------------- | ---------------------------------------------------------- |
-| `coordinator`       | coordinator  | host coordinator        | current task    | evidence or consequence exceeds the coordinator fast path  |
-| `investigator`      | investigator | Luna / medium           | read-only       | facts are established or judgment is required              |
-| `executor`          | executor     | Terra / medium          | workspace-write | an invariant fails or scope becomes ambiguous              |
-| `executor-advanced` | executor     | Terra / high            | workspace-write | irreducible judgment or weak verification remains          |
-| `solver`            | solver       | Sol / high              | read-only       | evidence is missing or user authority is required          |
-| `judge`             | judge        | Sol / high, independent | read-only       | result is accepted, revision is required, or proof is weak |
+| Profile             | Role         | Model / effort                | Authority       | Stop or escalate when                                      |
+| ------------------- | ------------ | ----------------------------- | --------------- | ---------------------------------------------------------- |
+| `coordinator`       | coordinator  | host coordinator              | current task    | evidence or consequence exceeds the coordinator fast path  |
+| `investigator`      | investigator | GPT-6 Luna / medium           | read-only       | facts are established or judgment is required              |
+| `executor`          | executor     | GPT-6 Sol / medium            | workspace-write | an invariant fails or scope becomes ambiguous              |
+| `executor-advanced` | executor     | GPT-6 Sol / high              | workspace-write | irreducible judgment or weak verification remains          |
+| `solver`            | solver       | GPT-6 Sol / high              | read-only       | evidence is missing or user authority is required          |
+| `judge`             | judge        | GPT-6 Sol / high, independent | read-only       | result is accepted, revision is required, or proof is weak |
 
 Static registration requests these properties but does not prove host enforcement. Record each runtime property as
 verified only when a host receipt supports it; otherwise use `unverified`.
@@ -123,7 +123,8 @@ Note and notify the user when any condition holds:
 - More than one avoidable reroute occurs.
 - Concurrent agents duplicate the same evidence or create overlapping-write conflict.
 - The coordinator must materially redo an agent's work.
-- Sol performs routine discovery or mechanical execution that Luna or Terra could have completed.
+- A high-effort solver or judge performs routine discovery or mechanical execution that the designated profile could
+  have completed.
 - A judge finds a material issue after the executor and deterministic checks reported completion.
 - In the durable ledger's last five runs with the same `taskClass`, two or more score 6 or lower or repeat the same
   weakest dimension.

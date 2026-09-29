@@ -120,6 +120,28 @@ test('routing contract rejects contradictions and false host proof', () => {
   )
 })
 
+test('selection-less legacy receipts keep their historical model identity', () => {
+  const legacy = validDecision({
+    schemaVersion: 1,
+    route: 'investigator',
+    profile: 'investigator',
+    delegationCount: 1,
+    runtimeProof: {
+      ...unverifiedRuntimeProof(),
+      status: 'partial',
+      claims: {
+        ...unverifiedRuntimeProof().claims,
+        model: { status: 'verified', receipt: 'host-effective-model:gpt-5.6-luna' },
+      },
+    },
+  })
+  assert.equal(validateRoutingDecision(legacy), legacy)
+  assert.throws(
+    () => validateRoutingDecision({ ...legacy, schemaVersion: 2 }),
+    /model: verified status requires a matching host-effective receipt/,
+  )
+})
+
 test('fixtures exercise deterministic route selection and escalation', () => {
   for (const fixture of fixtures) {
     const route = recommendSwarmRoute(fixture.input)
@@ -172,7 +194,7 @@ test('fixture task classes map into the stable scorecard taxonomy', () => {
   }
 })
 
-test('no mechanical work routes directly to Sol without an evidence-gated judgment signal', () => {
+test('no mechanical work routes directly to a solver without an evidence-gated judgment signal', () => {
   for (const input of [
     { taskClass: 'mechanical-refactor', requiresExecution: true },
     { taskClass: 'long-formatting', requiresExecution: true, crossModule: true, verificationStrength: 'strong' },
@@ -210,7 +232,7 @@ test('verified runtime proof requires matching property-specific effective host 
   proof.claims = {
     ...proof.claims,
     role: { status: 'verified', receipt: 'host-effective-role:investigator' },
-    model: { status: 'verified', receipt: 'host-effective-model:gpt-5.6-luna' },
+    model: { status: 'verified', receipt: 'host-effective-model:gpt-6-luna' },
     reasoning: { status: 'verified', receipt: 'host-effective-reasoning:medium' },
     context: { status: 'verified', receipt: 'host-effective-context:fork_turns:bounded:3' },
     sandbox: { status: 'verified', receipt: 'host-effective-sandbox:read-only' },

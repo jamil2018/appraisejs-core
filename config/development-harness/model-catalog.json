@@ -2,26 +2,16 @@
   "schemaVersion": "1",
   "models": [
     {
-      "id": "gpt-5.6-luna",
+      "id": "gpt-6-luna",
+      "status": "active",
       "supportedEfforts": ["low", "medium", "high", "xhigh", "max"],
       "capabilities": ["evidence-gathering", "deterministic-validation"],
-      "availabilityEvidence": "Approved host catalog snapshot, 2026-09-08. Verify at spawn time."
+      "availabilityEvidence": "OpenAI GPT-6 model guidance, checked 2026-09-29. Confirm named-profile support and effective execution on each host."
     },
     {
-      "id": "gpt-5.6-terra",
-      "supportedEfforts": ["low", "medium", "high", "xhigh", "max", "ultra"],
-      "capabilities": ["implementation", "deterministic-validation", "cross-module-reasoning"],
-      "availabilityEvidence": "Approved host catalog snapshot, 2026-09-08. Verify at spawn time."
-    },
-    {
-      "id": "gpt-5.6-sol",
-      "supportedEfforts": ["low", "medium", "high", "xhigh", "max", "ultra"],
-      "capabilities": ["evidence-gathering", "evidence-synthesis", "decision-arbitration", "independent-review"],
-      "availabilityEvidence": "Approved host catalog snapshot, 2026-09-08. Verify at spawn time."
-    },
-    {
-      "id": "gpt-6-astra",
-      "supportedEfforts": ["low", "medium", "high", "xhigh", "max", "ultra"],
+      "id": "gpt-6-sol",
+      "status": "active",
+      "supportedEfforts": ["low", "medium", "high", "xhigh", "max"],
       "capabilities": [
         "evidence-gathering",
         "implementation",
@@ -31,7 +21,43 @@
         "decision-arbitration",
         "independent-review"
       ],
-      "availabilityEvidence": "Approved host catalog snapshot, 2026-09-08. Verify at spawn time."
+      "availabilityEvidence": "OpenAI GPT-6 model guidance, checked 2026-09-29. Confirm named-profile support and effective execution on each host."
+    },
+    {
+      "id": "gpt-6-astra",
+      "status": "active",
+      "supportedEfforts": ["low", "medium", "high", "xhigh", "max"],
+      "capabilities": [
+        "evidence-gathering",
+        "implementation",
+        "deterministic-validation",
+        "cross-module-reasoning",
+        "evidence-synthesis",
+        "decision-arbitration",
+        "independent-review"
+      ],
+      "availabilityEvidence": "OpenAI GPT-6 model guidance, checked 2026-09-29. Confirm named-profile support and effective execution on each host."
+    },
+    {
+      "id": "gpt-5.6-luna",
+      "status": "historical",
+      "supportedEfforts": ["low", "medium", "high", "xhigh", "max"],
+      "capabilities": ["evidence-gathering", "deterministic-validation"],
+      "availabilityEvidence": "Historical harness receipts only; removed from active selection on 2026-09-29."
+    },
+    {
+      "id": "gpt-5.6-terra",
+      "status": "historical",
+      "supportedEfforts": ["low", "medium", "high", "xhigh", "max", "ultra"],
+      "capabilities": ["implementation", "deterministic-validation", "cross-module-reasoning"],
+      "availabilityEvidence": "Historical harness receipts only; removed from active selection on 2026-09-29."
+    },
+    {
+      "id": "gpt-5.6-sol",
+      "status": "historical",
+      "supportedEfforts": ["low", "medium", "high", "xhigh", "max", "ultra"],
+      "capabilities": ["evidence-gathering", "evidence-synthesis", "decision-arbitration", "independent-review"],
+      "availabilityEvidence": "Historical harness receipts only; removed from active selection on 2026-09-29."
     }
   ]
 }

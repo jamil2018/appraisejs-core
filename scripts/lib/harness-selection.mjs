@@ -104,6 +104,7 @@ export function resolveModelSelection(input = {}, contracts = loadHarnessSelecti
   const policyMatch = findPolicyMatch(profile.id, selectionInputs, contracts.policy.rules)
   const requested = explicit ?? policyMatch?.select ?? contracts.policy.defaults[profile.id]
   assertCandidateCompatible(requested, profile, contracts, 'requested selection')
+  assertActiveCandidate(requested, contracts, 'requested selection')
   const hostAvailability = candidateHostAvailability(requested, input.host)
 
   if (explicit && hostAvailability.status === 'unsupported') {
@@ -505,6 +506,11 @@ function assertCandidateCompatible(candidate, profile, contracts, label) {
   if (missing.length) throw new Error(`${label}: ${candidate.model} lacks required capabilities: ${missing.join(', ')}`)
 }
 
+function assertActiveCandidate(candidate, contracts, label) {
+  const model = contracts.catalog.models.find(item => item.id === candidate.model)
+  assert(model?.status === 'active', `${label}: model ${candidate.model} is historical only`)
+}
+
 function validateProfiles(document) {
   assertObject(document, 'agent profiles')
   assert(document.schemaVersion === '1', 'agent profiles: unsupported schemaVersion')
@@ -556,12 +562,13 @@ function validateCatalog(document) {
     assertObject(model, 'model catalog entry')
     assertExactKeys(
       model,
-      ['id', 'supportedEfforts', 'capabilities', 'availabilityEvidence'],
+      ['id', 'status', 'supportedEfforts', 'capabilities', 'availabilityEvidence'],
       `model ${model.id ?? '<unknown>'}`,
     )
     assert(nonBlank(model.id), 'model catalog: model id must be non-blank')
     assert(!seen.has(model.id), `model catalog: duplicate model ${model.id}`)
     seen.add(model.id)
+    assert(['active', 'historical'].includes(model.status), `model ${model.id}: unsupported status`)
     assertStringArray(model.supportedEfforts, `model ${model.id}: supportedEfforts`, true)
     assert(
       model.supportedEfforts.every(effort => efforts.has(effort)),
@@ -593,10 +600,12 @@ function validatePolicy(document, profiles, catalog) {
     }
     assertExactKeys(defaultSelection, ['model', 'effort'], `default for ${profile.id}`)
     assertCandidateCompatible(defaultSelection, profile, contracts, `default for ${profile.id}`)
+    assertActiveCandidate(defaultSelection, contracts, `default for ${profile.id}`)
     assert(Array.isArray(document.fallbacks[profile.id]), `fallbacks for ${profile.id}: must be an array`)
     for (const fallback of document.fallbacks[profile.id]) {
       assertExactKeys(fallback, ['model', 'effort'], `fallback for ${profile.id}`)
       assertCandidateCompatible(fallback, profile, contracts, `fallback for ${profile.id}`)
+      assertActiveCandidate(fallback, contracts, `fallback for ${profile.id}`)
     }
   }
   assertExactKeys(document.defaults, [...profileIds], 'selection policy defaults')
@@ -624,6 +633,7 @@ function validatePolicy(document, profiles, catalog) {
     }
     assertExactKeys(rule.select, ['model', 'effort'], `selection policy rule ${rule.id}: select`)
     assertCandidateCompatible(rule.select, profile, contracts, `selection policy rule ${rule.id}`)
+    assertActiveCandidate(rule.select, contracts, `selection policy rule ${rule.id}`)
     assert(nonBlank(rule.rationale), `selection policy rule ${rule.id}: rationale must be non-blank`)
   }
 }

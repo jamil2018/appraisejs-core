@@ -393,7 +393,7 @@ test('read-time legacy routing compatibility downgrades mismatched context proof
       receipt: null,
       claims: {
         role: { status: 'verified', receipt: 'host-effective-role:investigator' },
-        model: { status: 'verified', receipt: 'host-effective-model:gpt-5.6-luna' },
+        model: { status: 'verified', receipt: 'host-effective-model:gpt-6-luna' },
         reasoning: { status: 'verified', receipt: 'host-effective-reasoning:high' },
         context: { status: 'unverified', receipt: null },
         sandbox: { status: 'unverified', receipt: null },
