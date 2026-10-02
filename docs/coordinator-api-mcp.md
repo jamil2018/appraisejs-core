@@ -147,3 +147,7 @@ execution-consent, methodology, certification, and compatibility operation famil
 paths, MCP tools, resources, schemas, exports, and projectors return ordinary not-found behavior and have no aliases.
 The generated operation fixture and [operation reference](generated/coordinator-operation-reference.md) are the
 machine-checked public inventory.
+
+## Operational pause and owned cleanup
+
+See [Quality Journey pause and recovery](quality-journey-recovery.md) for operational admission fences, durable lost-reply recovery, deferred terminal publication, and observed owned-process cleanup. Cancellation requests alone are nonterminal; external Codex activity remains outside Appraise process ownership.

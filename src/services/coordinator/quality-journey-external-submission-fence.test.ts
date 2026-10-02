@@ -43,6 +43,10 @@ function externalAttemptClient() {
   })
   const client = {
     $transaction: async (effect: (tx: unknown) => Promise<unknown>) => effect(client),
+    qualityJourney: {
+      findFirst: vi.fn().mockResolvedValue({ stage: 'DISCOVERY', status: 'ACTIVE' }),
+      updateMany: vi.fn().mockResolvedValue({ count: 1 }),
+    },
     qualityJourneyWorkAttempt: { findUnique },
     qualityJourneyExternalSubmissionAcceptance: { create: mutation },
     qualityJourneyArtifact: { create: mutation },

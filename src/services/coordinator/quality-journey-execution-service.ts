@@ -1,4 +1,4 @@
-import { assertQualityJourneyMutable } from './quality-journey-terminal'
+import { assertQualityJourneyMutable, assertQualityJourneyRecoverable } from './quality-journey-terminal'
 import { createHash, randomUUID } from 'node:crypto'
 import type { Prisma, PrismaClient } from '@prisma/client'
 import prisma from '@/config/db-config'
@@ -21,6 +21,7 @@ import {
 import { ServiceError } from '@/services/shared/errors'
 import {
   assertCoordinatorMutationSession,
+  assertCoordinatorRecoverySession,
   type CoordinatorSessionCredentials,
 } from './quality-journey-coordinator-session'
 import { freezeJourneyExecutionEnvironment } from '@/lib/quality-journey/execution-environment'
@@ -779,9 +780,9 @@ export async function cancelQualityJourneyExecution(
 ) {
   const input = qualityJourneyExecutionCancelSchema.parse(value)
   const cycle = await client.$transaction(async tx => {
-    await assertCoordinatorMutationSession(coordinatorSession, input, tx)
+    await assertCoordinatorRecoverySession(coordinatorSession, input, tx)
     const journey = await scopedJourney(input, tx)
-    assertQualityJourneyMutable(journey)
+    assertQualityJourneyRecoverable(journey)
     const requestHash = hash(input)
     const replay = await tx.qualityJourneyExecutionCancellationReceipt.findFirst({
       where: { journeyId: input.journeyId, idempotencyKey: input.idempotencyKey },
@@ -848,8 +849,8 @@ export async function reconcileQualityJourneyExecution(
 ) {
   const input = qualityJourneyExecutionReconcileSchema.parse(value)
   const cycle = await client.$transaction(async tx => {
-    await assertCoordinatorMutationSession(coordinatorSession, input, tx)
-    assertQualityJourneyMutable(await scopedJourney(input, tx))
+    await assertCoordinatorRecoverySession(coordinatorSession, input, tx)
+    assertQualityJourneyRecoverable(await scopedJourney(input, tx))
     return scopedExecutionCycle(input, tx)
   })
   await runtimeAdapter.reconcile({ executionCycleId: cycle.id })

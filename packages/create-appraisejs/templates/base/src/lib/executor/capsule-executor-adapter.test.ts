@@ -18,14 +18,15 @@ const hash = (character: string) => `sha256:${character.repeat(64)}`
 const workspaces: string[] = []
 const { spawnOptions } = vi.hoisted(() => ({ spawnOptions: [] as Array<Record<string, unknown>> }))
 
-vi.mock('@/lib/process/task-spawner', () => ({
-  spawnTask: vi.fn(async (_command: string, _argv: string[], options: Record<string, unknown>) => {
+vi.mock('@/lib/process/owned-process-stop', () => ({
+  spawnOwnedProcessGroup: vi.fn(async (_command: string, _argv: string[], options: Record<string, unknown>) => {
     spawnOptions.push(options)
-    const child = new EventEmitter() as EventEmitter & { kill(): boolean }
+    const child = new EventEmitter() as EventEmitter & { kill(): boolean; pid: number }
     child.kill = () => true
+    child.pid = 34567
     return {
       process: child,
-      pid: 1,
+      pid: child.pid,
       name: 'capsule-test',
       output: { stdout: [], stderr: [] },
       isRunning: true,
@@ -34,6 +35,8 @@ vi.mock('@/lib/process/task-spawner', () => ({
       endTime: null,
     }
   }),
+  ensureOwnedProcessGroupExited: vi.fn(async () => undefined),
+  stopOwnedProcessGroup: vi.fn(async () => ({ kind: 'group_exit_observed' })),
 }))
 
 vi.mock('@/lib/test-run/process-manager', () => ({ processManager: { register: vi.fn(), unregister: vi.fn() } }))

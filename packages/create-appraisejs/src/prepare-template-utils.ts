@@ -87,6 +87,7 @@ async function readStepDefinitionDataCounts(databasePath: string): Promise<StepD
       qualityJourneyCount,
       qualityJourneyEventCount,
       qualityJourneyWorkAttemptCount,
+      qualityJourneyOwnedBrowserCount,
       triageAssignmentCount,
       triageReportCount,
       reportReviewCount,
@@ -99,6 +100,7 @@ async function readStepDefinitionDataCounts(databasePath: string): Promise<StepD
       prisma.qualityJourney.count(),
       prisma.qualityJourneyEvent.count(),
       prisma.qualityJourneyWorkAttempt.count(),
+      prisma.qualityJourneyOwnedBrowser.count(),
       prisma.qualityJourneyTriageAssignment.count(),
       prisma.qualityJourneyTriageReport.count(),
       prisma.qualityJourneyReportReview.count(),
@@ -113,6 +115,7 @@ async function readStepDefinitionDataCounts(databasePath: string): Promise<StepD
         qualityJourneyCount +
         qualityJourneyEventCount +
         qualityJourneyWorkAttemptCount +
+        qualityJourneyOwnedBrowserCount +
         triageAssignmentCount +
         triageReportCount +
         reportReviewCount,

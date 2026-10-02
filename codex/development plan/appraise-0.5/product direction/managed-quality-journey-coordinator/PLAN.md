@@ -12,7 +12,7 @@ removes manual URL copying. C2.4 is verified after [independent exact-artifact r
 verified after [independent exact-artifact review](evidence/C2.5.md), and C2.6 after [independent exact-artifact
 review](evidence/C2.6.md). C2.7 and its bounded [task-register suffixes](TASK_REGISTER.md) are verified after
 [complete Journey reconciliation and independent exact-artifact review](evidence/C2.7.3.md). GC2 [passed](evidence/GC2.md)
-for the disposable-target stock-Codex lifecycle, with accepted limitations preserved; C3.1 is pending and unstarted,
+for the disposable-target stock-Codex lifecycle, with accepted limitations preserved; C3.1 is verified within its bounded task-register suffixes after [independent review](evidence/C3.1-review-20261002.md),
 and GC3 remains `not_evaluated`. The
 explicitly authorized retained C0.2e slice was the only implementation permitted before GC0 passed.
 The [task register](TASK_REGISTER.md) owns active task status, dependencies, gates and evidence. **C0.1: qualify the

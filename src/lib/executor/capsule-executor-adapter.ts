@@ -1,5 +1,10 @@
 import type { PrismaClient } from '@prisma/client'
-import { spawnTask, waitForTask, type SpawnedProcess } from '@/lib/process/task-spawner'
+import { waitForTask, type SpawnedProcess } from '@/lib/process/task-spawner'
+import {
+  ensureOwnedProcessGroupExited,
+  spawnOwnedProcessGroup,
+  stopOwnedProcessGroup,
+} from '@/lib/process/owned-process-stop'
 import { processManager } from '@/lib/test-run/process-manager'
 import {
   hashCapsuleCommandReceipt,
@@ -24,6 +29,8 @@ export type CapsuleExecutionRequest = {
 }
 
 export class CapsuleExecutorAdapter {
+  private readonly ownedProcesses = new Map<string, SpawnedProcess>()
+
   constructor(
     private readonly prisma: PrismaClient,
     private readonly appraiseRoot: string,
@@ -55,7 +62,11 @@ export class CapsuleExecutorAdapter {
       await defaultCapsulePreflightDependencies.prepareOutput(input.capsuleRoot, receipt.outputs.log.path)
       await leases.renew({ ...identity, ownerToken: lease.ownerToken })
       const sealedEnvironment = resolveSealedEnvironment(receipt)
-      const process = await spawnTask(receipt.command.executable, receipt.command.executionArgv, {
+      if (globalThis.process.platform === 'win32')
+        throw new Error('Capsule process-group execution requires a supported POSIX host.')
+      const process = await spawnOwnedProcessGroup(receipt.command.executable, receipt.command.executionArgv, {
+        supervisorPath: path.join(this.appraiseRoot, 'scripts/owned-process-supervisor.mjs'),
+        requireRuntimeBrowserClose: true,
         cwd: input.capsuleRoot,
         env: sealedEnvironment,
         extendEnv: false,
@@ -65,15 +76,24 @@ export class CapsuleExecutorAdapter {
         captureOutput: true,
         redactOutput: credentialRedactor([sealedEnvironment.APPRAISE_ENV_PASSWORD]),
       })
+      this.ownedProcesses.set(process.name, process)
       processManager.register(input.runId, process)
       timer = setInterval(() => {
-        void leases.renew({ ...identity, ownerToken: lease.ownerToken }).catch(() => process.process.kill('SIGTERM'))
+        void leases.renew({ ...identity, ownerToken: lease.ownerToken }).catch(() => {
+          void stopOwnedProcessGroup(process).catch(error =>
+            console.error('[CapsuleExecutorAdapter] Owned process stop failed after lease loss:', error),
+          )
+        })
       }, 10_000)
       timer.unref?.()
-      process.process.once('exit', () => {
-        processManager.unregister(input.runId)
-        void release()
-      })
+      let finalizing: Promise<void> | undefined
+      const finishExit = () => {
+        finalizing ??= ensureOwnedProcessGroupExited(process)
+          .then(release)
+          .catch(error => console.error('[CapsuleExecutorAdapter] Owned group exit unverified:', error))
+      }
+      process.process.once('exit', finishExit)
+      if (!process.isRunning) finishExit()
       return { process, reportPath: path.join(input.capsuleRoot, receipt.outputs.report.path) }
     } catch (error) {
       await release()
@@ -82,7 +102,20 @@ export class CapsuleExecutorAdapter {
   }
 
   waitForProcess(processName: string): Promise<number | null> {
-    return waitForTask(processName)
+    return this.waitForOwnedProcess(processName)
+  }
+
+  private async waitForOwnedProcess(processName: string): Promise<number | null> {
+    const spawned = this.ownedProcesses.get(processName)
+    if (!spawned) throw new Error('Capsule process-group ownership is unavailable for completion.')
+    const exitCode = await waitForTask(processName)
+    await ensureOwnedProcessGroupExited(spawned)
+    return exitCode
+  }
+
+  releaseTerminalProcess(runId: string, processName: string): void {
+    processManager.unregister(runId)
+    this.ownedProcesses.delete(processName)
   }
 
   private assertReceipt(input: CapsuleExecutionRequest, receipt: CapsuleCommandReceiptV1) {

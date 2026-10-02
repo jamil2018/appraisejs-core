@@ -89,6 +89,7 @@ function fixture() {
         id: 'journey-1',
         targetProjectId: 'target-1',
         stage: 'EXECUTION',
+        status: 'ACTIVE',
         activeCycleId: 'cycle-1',
         stateHash: hashRuntimeCapsuleValue({}),
       })),
@@ -144,6 +145,9 @@ describe('Journey managed runtime evidence and ownership', () => {
   })
   it('repairs a historical terminal cycle only when its sealed receipt covers the terminal run', async () => {
     const { client, binding, cycle } = fixture()
+    // Historically sealed cycles have already advanced the lifecycle.
+    const journey = await client.qualityJourney.findUniqueOrThrow()
+    client.qualityJourney.findUniqueOrThrow.mockResolvedValue({ ...journey, stage: 'TRIAGE' })
     cycle.status = 'COMPLETED'
     client.qualityJourneyExecutionEvidenceReceipt.count.mockResolvedValue(1)
     client.qualityJourneyExecutionCycle.findUniqueOrThrow.mockResolvedValue({
@@ -172,6 +176,7 @@ describe('Journey managed runtime evidence and ownership', () => {
       id: 'journey-1',
       targetProjectId: 'target-1',
       stage: 'CLOSED',
+      status: 'CLOSED',
       activeCycleId: 'cycle-1',
       stateHash: hashRuntimeCapsuleValue({}),
     })
@@ -243,6 +248,31 @@ describe('Journey managed runtime evidence and ownership', () => {
     await startQualityJourneyExecutionRuntime({ executionCycleId: 'execution-1' }, client as never)
     expect(mocks.start).not.toHaveBeenCalled()
     expect(client.qualityJourneyExecutionTestRun.updateMany).not.toHaveBeenCalled()
+  })
+  it('does not admit a reserved launch while its Journey is paused', async () => {
+    const { client, binding, run } = fixture()
+    binding.status = 'RESERVED'
+    run.status = 'QUEUED'
+    const journey = await client.qualityJourney.findUniqueOrThrow()
+    client.qualityJourney.findUniqueOrThrow.mockResolvedValue({ ...journey, status: 'PAUSED' })
+    await startQualityJourneyExecutionRuntime({ executionCycleId: 'execution-1' }, client as never)
+    expect(mocks.start).not.toHaveBeenCalled()
+    expect(client.qualityJourneyExecutionTestRun.updateMany).not.toHaveBeenCalled()
+  })
+  it('seals terminal bytes during pause and defers lifecycle publication until resume', async () => {
+    const { client, cycle } = fixture()
+    const journey = await client.qualityJourney.findUniqueOrThrow()
+    client.qualityJourney.findUniqueOrThrow.mockResolvedValue({ ...journey, status: 'PAUSED' })
+    await reconcileQualityJourneyExecutionRuntime({ executionCycleId: 'execution-1' }, client as never)
+    expect(client.qualityJourneyExecutionEvidenceReceipt.create).toHaveBeenCalledTimes(1)
+    expect(mocks.publish).not.toHaveBeenCalled()
+    cycle.status = 'COMPLETED'
+    Object.assign(cycle, { evidenceReceipts: [{ id: 'sealed-1', testRunId: 'test-1' }] })
+    client.qualityJourneyExecutionEvidenceReceipt.count.mockResolvedValue(1)
+    client.qualityJourney.findUniqueOrThrow.mockResolvedValue(journey)
+    await reconcileQualityJourneyExecutionRuntime({ executionCycleId: 'execution-1' }, client as never)
+    expect(mocks.publish).toHaveBeenCalledTimes(1)
+    expect(client.qualityJourneyExecutionEvidenceReceipt.create).toHaveBeenCalledTimes(1)
   })
   it('refuses cancellation without process ownership instead of claiming a successful kill', async () => {
     const { client, run } = fixture()

@@ -61,3 +61,7 @@ the domain-separated assignment-secret verifier and canonical admission request/
 target, work item, attempt, authorization and lease; they do not require or fabricate a Factory spawn receipt.
 Both paths reject malformed stored verifiers, expired leases and changed artifact bytes. External admission records
 `hostIsolation: NOT_ATTESTED`; successful evidence access does not establish host isolation.
+
+## Operational pause and owned cleanup
+
+See [Quality Journey pause and recovery](quality-journey-recovery.md) for operational admission fences, durable lost-reply recovery, deferred terminal publication, and observed owned-process cleanup. Cancellation requests alone are nonterminal; external Codex activity remains outside Appraise process ownership.

@@ -27,6 +27,7 @@ import { inspectQualityJourneyHandoff } from '@/services/coordinator/quality-jou
 import { getQualityJourneyTriage } from '@/services/coordinator/quality-journey-triage-service'
 import prisma from '@/config/db-config'
 import { JourneyExecutionStatus } from './journey-execution-status'
+import { JourneyRecoveryPanel } from './journey-recovery-panel'
 import { ServiceError } from '@/services/shared/errors'
 
 import { AnalysisReviewControls } from './analysis-review-controls'
@@ -260,6 +261,12 @@ export default async function QualityJourneyDetailPage({ params, searchParams }:
     >
       <main className="space-y-6 pb-10">
         <JourneyHeader journey={journey} project={project} requirementSummary={requirementSummary} />
+        <JourneyRecoveryPanel
+          journeyId={journeyId}
+          status={journey.journey.status}
+          stateHash={journey.journey.stateHash}
+          version={journey.journey.version}
+        />
         <section
           className="grid gap-4 xl:grid-cols-[minmax(0,1.4fr)_minmax(20rem,0.6fr)]"
           aria-label="Current journey focus"

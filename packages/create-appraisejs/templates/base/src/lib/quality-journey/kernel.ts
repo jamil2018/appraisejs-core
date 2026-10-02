@@ -75,6 +75,7 @@ export function createQualityJourneyKernelState(
 export function submitQualityJourneyCommand(
   current: QualityJourneyKernelState,
   value: unknown,
+  persistedEventSequence?: number,
 ): { state: QualityJourneyKernelState; result: ReturnType<typeof journeyCommandResultSchema.parse> } {
   const command = journeyCommandSchema.parse(value)
   if (command.journeyId !== current.journeyId || command.targetProjectId !== current.targetProjectId) {
@@ -103,7 +104,7 @@ export function submitQualityJourneyCommand(
 
   const predecessorStateHash = current.stateHash
   const projected = applyProjection(current, command, transition.to)
-  const sequence = current.events.length + 1
+  const sequence = persistedEventSequence ?? current.events.length + 1
   const eventId = deterministicEventId(current.journeyId, sequence, command.commandId, requestHash)
   const parsedResult = journeyCommandResultSchema.parse({
     schemaVersion: qualityJourneyContractVersion,

@@ -242,3 +242,7 @@ scoped handoff when that recovery is needed.
 Opening Codex does not establish a connection or start work: the documented prefill flow requires the user to send,
 then authenticated handoff redemption and authoritative state reads. The plugin supplies workflow guidance while
 Appraise services enforce lifecycle transitions. No managed provider/fork or background-wake guarantee is introduced.
+
+## Operational pause and owned cleanup
+
+See [Quality Journey pause and recovery](quality-journey-recovery.md) for operational admission fences, durable lost-reply recovery, deferred terminal publication, and observed owned-process cleanup. Cancellation requests alone are nonterminal; external Codex activity remains outside Appraise process ownership.

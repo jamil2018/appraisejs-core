@@ -10,6 +10,7 @@ import {
   type DiscoveryBrowserRuntime,
 } from '@/services/coordinator/quality-journey-discovery-browser-service'
 import { discoveryAuthTransitPolicyHash } from '@/lib/quality-journey/discovery-auth-transit-policy'
+import { ownedBrowserLedgerFixture } from './owned-browser-ledger-fixture'
 
 const sessionScope = {
   journeyId: 'c233-restart-journey',
@@ -67,12 +68,16 @@ function frozenDb(baseUrl: string) {
     discoveryAuthTransitPolicyHash: discoveryAuthTransitPolicyHash(null),
   }
   return {
+    ...ownedBrowserLedgerFixture(),
     qualityJourney: {
       findFirst: async () => ({
         id: sessionScope.journeyId,
+        stage: 'DISCOVERY',
+        status: 'ACTIVE',
         activeDiscoveryRevisionId: sessionScope.discoveryRevisionId,
         activeCycleId: 'c233-restart-cycle',
       }),
+      updateMany: async () => ({ count: 1 }),
     },
     qualityJourneyDiscoveryRevision: {
       findFirst: async () => ({

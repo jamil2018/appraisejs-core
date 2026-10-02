@@ -16,6 +16,7 @@ import {
   type DiscoveryBrowserRuntime,
 } from './quality-journey-discovery-browser-service'
 import { discoveryAuthTransitPolicyHash } from '@/lib/quality-journey/discovery-auth-transit-policy'
+import { ownedBrowserLedgerFixture } from '@/test/owned-browser-ledger-fixture'
 
 const execFile = promisify(execFileCallback)
 const scope = { journeyId: 'journey-1', targetProjectId: 'target-1', discoveryRevisionId: 'revision-1' }
@@ -75,6 +76,7 @@ function authPolicy(idpUrl: string) {
 }
 
 function mockClient(baseUrl: string, authPolicyJson: string) {
+  const ownedBrowsers = ownedBrowserLedgerFixture()
   const frozenBinding = {
     environmentId: 'environment-1',
     targetOrigin: new URL(baseUrl).origin,
@@ -83,8 +85,16 @@ function mockClient(baseUrl: string, authPolicyJson: string) {
     discoveryAuthTransitPolicyHash: discoveryAuthTransitPolicyHash(authPolicyJson),
   }
   return {
+    ...ownedBrowsers,
     qualityJourney: {
-      findFirst: async () => ({ id: 'journey-1', activeDiscoveryRevisionId: 'revision-1', activeCycleId: 'cycle-1' }),
+      findFirst: async () => ({
+        id: 'journey-1',
+        stage: 'DISCOVERY',
+        status: 'ACTIVE',
+        activeDiscoveryRevisionId: 'revision-1',
+        activeCycleId: 'cycle-1',
+      }),
+      updateMany: async () => ({ count: 1 }),
     },
     qualityJourneyDiscoveryRevision: {
       findFirst: async () => ({

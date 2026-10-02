@@ -27,6 +27,30 @@ export async function assertCoordinatorMutationSession(
   scope: Pick<CoordinatorSessionBinding, 'journeyId' | 'targetProjectId'>,
   client: Db,
 ) {
+  await assertCoordinatorRecoverySession(session, scope, client)
+  const journey = await client.qualityJourney.findFirst({
+    where: { id: scope.journeyId, targetProjectId: scope.targetProjectId },
+    select: { stage: true, status: true, updatedAt: true },
+  })
+  if (!journey) throw new ServiceError('Quality Journey target scope was not found.', 'NOT_FOUND', 404)
+  if (journey.status === 'PAUSED')
+    throw new ServiceError('Quality Journey is paused. Reconcile owned work before resuming.', 'CONFLICT')
+  if (journey.status === 'ACTIVE') {
+    const admission = await client.qualityJourney.updateMany({
+      where: { id: scope.journeyId, targetProjectId: scope.targetProjectId, status: 'ACTIVE' },
+      data: { status: 'ACTIVE', updatedAt: journey.updatedAt },
+    })
+    if (admission.count !== 1)
+      throw new ServiceError('Quality Journey operational admission changed concurrently.', 'CONFLICT')
+  }
+}
+
+/** Cleanup and reconciliation retain the exact coordinator generation while paused. */
+export async function assertCoordinatorRecoverySession(
+  session: CoordinatorSessionCredentials | undefined,
+  scope: Pick<CoordinatorSessionBinding, 'journeyId' | 'targetProjectId'>,
+  client: Db,
+) {
   if (!session) return
   await assertCurrentCoordinatorSession({ ...scope, ...session }, client)
 }

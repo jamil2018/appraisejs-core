@@ -576,11 +576,33 @@ model QualityJourney {
   executionRerunProposals           QualityJourneyExecutionRerunProposal[]
   coordinatorHandoffs               QualityJourneyCoordinatorHandoff[]
   externalWorkClaimReceipts         QualityJourneyExternalWorkClaimReceipt[]
+  ownedBrowsers                     QualityJourneyOwnedBrowser[]
   sourceDraft                       QualityJourneyDraft?                         @relation("ConfirmedQualityJourneyDraft")
 
   @@unique([targetProjectId, rootIdempotencyKey])
   @@index([targetProjectId, status])
   @@index([targetProjectId, stage])
+}
+
+/// Process-local Discovery browser ownership, retained across hub restarts.
+/// No browser credentials, URLs, or recoverable process handle are stored here.
+model QualityJourneyOwnedBrowser {
+  id                     String         @id
+  journeyId              String
+  targetProjectId        String
+  processInstanceId      String
+  sessionId              String         @unique
+  generation             Int            @default(1)
+  status                 String
+  rowVersion             Int            @default(0)
+  cleanupHistoryJson     String         @default("[]")
+  stopReceiptJson        String?
+  stopReceiptHash        String?
+  createdAt              DateTime       @default(now())
+  updatedAt              DateTime       @updatedAt
+  journey                QualityJourney @relation(fields: [journeyId], references: [id], onDelete: Restrict)
+
+  @@index([journeyId, targetProjectId, status])
 }
 
 enum QualityJourneyDraftStatus {
@@ -1731,6 +1753,9 @@ model RuntimeCapsuleExecutionAttempt {
   preflightResultJson String
   preflightResultHash String
   preflightCheckedAt  DateTime
+  stopReceiptJson     String?
+  stopReceiptHash     String?
+  outputCompletedAt   DateTime?
   state               RuntimeCapsuleExecutionAttemptState @default(PREPARED)
   ownerToken          String
   version             Int                                 @default(1)

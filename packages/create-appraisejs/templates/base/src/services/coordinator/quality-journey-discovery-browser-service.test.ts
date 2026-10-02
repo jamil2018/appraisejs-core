@@ -9,15 +9,19 @@ import {
   confirmQualityJourneyDiscoveryBrowserAccess,
   markQualityJourneyDiscoveryBrowserMissingAccess,
   getQualityJourneyDiscoveryBrowserSession,
+  getOwnedQualityJourneyDiscoveryBrowserCleanup,
+  assertOwnedQualityJourneyDiscoveryBrowserCleanupReconciled,
   getQualityJourneyDiscoveryBrowserTerminalDiagnosticForQualification,
   logoutQualityJourneyDiscoveryBrowserSession,
   replaceQualityJourneyDiscoveryBrowserContext,
+  pauseOwnedQualityJourneyDiscoveryBrowserCleanup,
   revokeQualityJourneyDiscoveryBrowserSession,
   startQualityJourneyDiscoveryBrowserSession,
   type DiscoveryBrowserRuntime,
 } from './quality-journey-discovery-browser-service'
 import { discoveryAuthTransitPolicyHash } from '@/lib/quality-journey/discovery-auth-transit-policy'
 import { canonicalContractJson } from '@/lib/catalog-contracts'
+import { ownedBrowserLedgerFixture, type OwnedBrowserRow } from '@/test/owned-browser-ledger-fixture'
 
 const authPolicy = JSON.stringify({
   schemaVersion: 'appraise.discovery-auth-transit/v1',
@@ -198,11 +202,19 @@ function browserRuntime(
 }
 
 function client(
-  options: { environmentId?: string; baseUrl?: string; scopeEnvironmentIds?: string[]; authPolicyJson?: string } = {},
+  options: {
+    environmentId?: string
+    baseUrl?: string
+    scopeEnvironmentIds?: string[]
+    authPolicyJson?: string
+    ownedBrowsers?: Map<string, OwnedBrowserRow>
+    beforeOwnershipFence?: (authority: { status: string }) => void
+  } = {},
 ) {
   const artifacts = new Map<string, { contentHash: string; artifactJson: string }>()
+  const ownedBrowsers = options.ownedBrowsers ?? new Map<string, OwnedBrowserRow>()
   const blockerUpdates: unknown[] = []
-  const authority = { activeDiscoveryRevisionId: 'revision-1' }
+  const authority = { activeDiscoveryRevisionId: 'revision-1', status: 'ACTIVE' }
   const environmentScope = { scopeVersion: 1, discoveryAuthTransitPolicyJson: options.authPolicyJson ?? authPolicy }
   const environmentId = options.environmentId ?? 'environment-1'
   const baseUrl = options.baseUrl ?? 'https://example.test'
@@ -215,15 +227,22 @@ function client(
   }
   return {
     artifacts,
+    ...ownedBrowserLedgerFixture(ownedBrowsers),
     blockerUpdates,
     authority,
     environmentScope,
     qualityJourney: {
       findFirst: async () => ({
         id: 'journey-1',
+        stage: 'DISCOVERY',
+        status: authority.status,
         activeDiscoveryRevisionId: authority.activeDiscoveryRevisionId,
         activeCycleId: 'cycle-1',
       }),
+      updateMany: async () => {
+        options.beforeOwnershipFence?.(authority)
+        return { count: authority.status === 'ACTIVE' ? 1 : 0 }
+      },
     },
     qualityJourneyDiscoveryRevision: {
       findFirst: async () => ({
@@ -267,6 +286,7 @@ function client(
 }
 
 const scope = { journeyId: 'journey-1', targetProjectId: 'target-1', discoveryRevisionId: 'revision-1' }
+const cleanupScope = { journeyId: scope.journeyId, targetProjectId: scope.targetProjectId }
 
 async function sessionAtAuthorizedIdp(
   onLiveness?: Parameters<typeof browserRuntime>[4],
@@ -408,6 +428,268 @@ async function returnToFrozenTarget(fixture: Awaited<ReturnType<typeof sessionAt
 afterEach(clearQualityJourneyDiscoveryBrowserSessionsForTest)
 
 describe('Quality Journey discovery browser service', () => {
+  it('rejects pause committed between the Journey read and the registration write fence', async () => {
+    const db = client({
+      beforeOwnershipFence: authority => {
+        authority.status = 'PAUSED'
+      },
+    })
+    const launch = vi.fn()
+    await expect(
+      startQualityJourneyDiscoveryBrowserSession(
+        {
+          ...scope,
+          workItemId: 'work-1',
+          environmentId: 'environment-1',
+          routeId: '/checkout',
+          accessMode: 'ANONYMOUS',
+        },
+        db as never,
+        { launch },
+      ),
+    ).rejects.toMatchObject({ code: 'CONFLICT' })
+    expect(db.ownedBrowsers.size).toBe(0)
+    expect(launch).not.toHaveBeenCalled()
+  })
+
+  it('refuses a fresh launch when an earlier process left durable browser ownership', async () => {
+    const ownedBrowsers = new Map<string, OwnedBrowserRow>([
+      [
+        'prior-session',
+        {
+          id: 'prior-session',
+          journeyId: cleanupScope.journeyId,
+          targetProjectId: cleanupScope.targetProjectId,
+          processInstanceId: 'prior-process',
+          sessionId: 'prior-session',
+          generation: 1,
+          status: 'LIVE',
+          rowVersion: 1,
+          cleanupHistoryJson: JSON.stringify([{ status: 'LAUNCHING', observedAt: '2026-10-02T00:00:00.000Z' }]),
+        },
+      ],
+    ])
+    const db = client({ ownedBrowsers })
+    const launch = vi.fn()
+    const input = {
+      ...scope,
+      workItemId: 'work-1',
+      environmentId: 'environment-1',
+      routeId: '/checkout',
+      accessMode: 'ANONYMOUS' as const,
+    }
+    await expect(startQualityJourneyDiscoveryBrowserSession(input, db as never, { launch })).rejects.toMatchObject({
+      code: 'CONFLICT',
+    })
+    expect(launch).not.toHaveBeenCalled()
+    await expect(
+      assertOwnedQualityJourneyDiscoveryBrowserCleanupReconciled(cleanupScope, db as never),
+    ).rejects.toMatchObject({ code: 'CONFLICT' })
+    const paused = await pauseOwnedQualityJourneyDiscoveryBrowserCleanup(cleanupScope, db as never)
+    expect(paused).toMatchObject({
+      state: 'DURABLE_OWNERSHIP_ONLY',
+      receipts: [{ sessionId: 'prior-session', state: 'UNKNOWN' }],
+    })
+    expect(ownedBrowsers.get('prior-session')).toMatchObject({ status: 'UNKNOWN' })
+    expect(ownedBrowsers.get('prior-session')).not.toHaveProperty('stopReceiptJson')
+    await expect(startQualityJourneyDiscoveryBrowserSession(input, db as never, { launch })).rejects.toMatchObject({
+      code: 'CONFLICT',
+    })
+    expect(launch).not.toHaveBeenCalled()
+  })
+
+  it('blocks replacement and fresh start until failed browser cleanup is retried', async () => {
+    const db = client()
+    const input = {
+      ...scope,
+      workItemId: 'work-1',
+      environmentId: 'environment-1',
+      routeId: '/checkout',
+      accessMode: 'ANONYMOUS' as const,
+    }
+    let failClose = true
+    const runtime: DiscoveryBrowserRuntime = {
+      redirectInterception: 'EVERY_HOP',
+      async launch() {
+        const browser = await browserRuntime().launch()
+        const close = browser.close.bind(browser)
+        browser.close = async () => {
+          if (failClose) throw new Error('secret close detail')
+          await close()
+        }
+        return browser
+      },
+    }
+    const session = await startQualityJourneyDiscoveryBrowserSession(input, db as never, runtime)
+    await expect(
+      replaceQualityJourneyDiscoveryBrowserContext({ ...scope, sessionId: session.id }, db as never, runtime),
+    ).rejects.toMatchObject({ code: 'CONFLICT' })
+    expect(getOwnedQualityJourneyDiscoveryBrowserCleanup(cleanupScope)).toMatchObject({
+      state: 'SESSIONS_REGISTERED',
+      receipts: [{ sessionId: session.id, state: 'UNKNOWN' }],
+    })
+    expect(JSON.stringify(getOwnedQualityJourneyDiscoveryBrowserCleanup(cleanupScope))).not.toContain(
+      'secret close detail',
+    )
+    const unknownRow = db.ownedBrowsers.get(session.id)!
+    expect(unknownRow.status).toBe('UNKNOWN')
+    expect(unknownRow.stopReceiptJson).toBeUndefined()
+    await expect(startQualityJourneyDiscoveryBrowserSession(input, db as never, runtime)).rejects.toMatchObject({
+      code: 'CONFLICT',
+    })
+    failClose = false
+    const paused = await pauseOwnedQualityJourneyDiscoveryBrowserCleanup(cleanupScope, db as never)
+    expect(paused.receipts).toContainEqual(
+      expect.objectContaining({ sessionId: session.id, state: 'RUNTIME_CLOSE_CONFIRMED' }),
+    )
+    const observedRow = db.ownedBrowsers.get(session.id)!
+    expect(observedRow.status).toBe('STOP_OBSERVED')
+    expect(observedRow.stopReceiptHash).toBe(canonicalHash(JSON.parse(observedRow.stopReceiptJson!)))
+    expect(JSON.parse(observedRow.cleanupHistoryJson).map((entry: { status: string }) => entry.status)).toEqual([
+      'LAUNCHING',
+      'LIVE',
+      'STOP_REQUESTED',
+      'UNKNOWN',
+      'STOP_REQUESTED',
+      'STOP_OBSERVED',
+    ])
+    expect(await assertOwnedQualityJourneyDiscoveryBrowserCleanupReconciled(cleanupScope, db as never)).toEqual(paused)
+    await expect(startQualityJourneyDiscoveryBrowserSession(input, db as never, runtime)).resolves.toMatchObject({
+      state: 'ACTIVE',
+    })
+  })
+
+  it('fences every owned session on pause and explicitly reports an empty process registry', async () => {
+    const db = client()
+    const input = {
+      ...scope,
+      workItemId: 'work-1',
+      environmentId: 'environment-1',
+      routeId: '/checkout',
+      accessMode: 'ANONYMOUS' as const,
+    }
+    expect(await pauseOwnedQualityJourneyDiscoveryBrowserCleanup(cleanupScope, db as never)).toEqual({
+      state: 'NONE_REGISTERED',
+      receipts: [],
+    })
+    const first = await startQualityJourneyDiscoveryBrowserSession(input, db as never, browserRuntime())
+    const second = await startQualityJourneyDiscoveryBrowserSession(input, db as never, browserRuntime())
+    const result = await pauseOwnedQualityJourneyDiscoveryBrowserCleanup(cleanupScope, db as never)
+    expect(result.receipts.map(receipt => receipt.sessionId).sort()).toEqual([first.id, second.id].sort())
+    expect(result.receipts.every(receipt => receipt.state === 'RUNTIME_CLOSE_CONFIRMED')).toBe(true)
+    await expect(getQualityJourneyDiscoveryBrowserSession({ ...scope, sessionId: first.id })).resolves.toMatchObject({
+      state: 'CLOSED',
+    })
+    await expect(getQualityJourneyDiscoveryBrowserSession({ ...scope, sessionId: second.id })).resolves.toMatchObject({
+      state: 'CLOSED',
+    })
+  })
+
+  it('limits an older pause cleanup to its captured browser session IDs', async () => {
+    const db = client()
+    const input = {
+      ...scope,
+      workItemId: 'work-1',
+      environmentId: 'environment-1',
+      routeId: '/checkout',
+      accessMode: 'ANONYMOUS' as const,
+    }
+    const earlier = await startQualityJourneyDiscoveryBrowserSession(input, db as never, browserRuntime())
+    const later = await startQualityJourneyDiscoveryBrowserSession(input, db as never, browserRuntime())
+    const result = await pauseOwnedQualityJourneyDiscoveryBrowserCleanup(cleanupScope, db as never, [earlier.id])
+    expect(result.receipts.map(receipt => receipt.sessionId)).toEqual([earlier.id])
+    expect(db.ownedBrowsers.get(earlier.id)?.status).toBe('STOP_OBSERVED')
+    expect(db.ownedBrowsers.get(later.id)?.status).toBe('LIVE')
+    await expect(getQualityJourneyDiscoveryBrowserSession({ ...scope, sessionId: later.id })).resolves.toMatchObject({
+      state: 'ACTIVE',
+    })
+  })
+
+  it('fences liveness loss while its background browser close is pending or rejected', async () => {
+    const db = client()
+    const input = {
+      ...scope,
+      workItemId: 'work-1',
+      environmentId: 'environment-1',
+      routeId: '/checkout',
+      accessMode: 'ANONYMOUS' as const,
+    }
+    let disconnect!: () => void
+    let rejectClose!: (error: Error) => void
+    let failClose = true
+    const runtime: DiscoveryBrowserRuntime = {
+      redirectInterception: 'EVERY_HOP',
+      async launch() {
+        const browser = await browserRuntime('Checkout', undefined, undefined, undefined, control => {
+          disconnect = control.disconnectBrowser
+        }).launch()
+        const close = browser.close.bind(browser)
+        browser.close = () =>
+          failClose
+            ? new Promise<void>((_resolve, reject) => {
+                rejectClose = reject
+              })
+            : close()
+        return browser
+      },
+    }
+    const session = await startQualityJourneyDiscoveryBrowserSession(input, db as never, runtime)
+    disconnect()
+    expect(getOwnedQualityJourneyDiscoveryBrowserCleanup(cleanupScope).receipts).toContainEqual(
+      expect.objectContaining({ sessionId: session.id, state: 'PENDING' }),
+    )
+    await expect(startQualityJourneyDiscoveryBrowserSession(input, db as never, runtime)).rejects.toMatchObject({
+      code: 'CONFLICT',
+    })
+    rejectClose(new Error('secret browser failure'))
+    await vi.waitFor(() => {
+      expect(getOwnedQualityJourneyDiscoveryBrowserCleanup(cleanupScope).receipts).toContainEqual(
+        expect.objectContaining({ sessionId: session.id, state: 'UNKNOWN' }),
+      )
+    })
+    failClose = false
+    await expect(pauseOwnedQualityJourneyDiscoveryBrowserCleanup(cleanupScope, db as never)).resolves.toMatchObject({
+      receipts: [expect.objectContaining({ sessionId: session.id, state: 'RUNTIME_CLOSE_CONFIRMED' })],
+    })
+  })
+
+  it('retains an unconfirmed startup close before any session was inserted', async () => {
+    const db = client()
+    const input = {
+      ...scope,
+      workItemId: 'work-1',
+      environmentId: 'environment-1',
+      routeId: '/checkout',
+      accessMode: 'ANONYMOUS' as const,
+    }
+    let failClose = true
+    const runtime: DiscoveryBrowserRuntime = {
+      async launch() {
+        const browser = await browserRuntime().launch()
+        browser.newContext = async () => {
+          throw new Error('context setup failed')
+        }
+        browser.close = async () => {
+          if (failClose) throw new Error('secret startup close failure')
+        }
+        return browser
+      },
+    }
+    await expect(startQualityJourneyDiscoveryBrowserSession(input, db as never, runtime)).rejects.toMatchObject({
+      code: 'CONFLICT',
+    })
+    expect(getOwnedQualityJourneyDiscoveryBrowserCleanup(cleanupScope).receipts).toContainEqual(
+      expect.objectContaining({ state: 'UNKNOWN' }),
+    )
+    await expect(startQualityJourneyDiscoveryBrowserSession(input, db as never, runtime)).rejects.toMatchObject({
+      code: 'CONFLICT',
+    })
+    failClose = false
+    expect((await pauseOwnedQualityJourneyDiscoveryBrowserCleanup(cleanupScope, db as never)).receipts).toContainEqual(
+      expect.objectContaining({ state: 'RUNTIME_CLOSE_CONFIRMED' }),
+    )
+  })
+
   it('captures an anonymous Appraise-owned receipt without persisting secret canaries', async () => {
     const db = client()
     const session = await startQualityJourneyDiscoveryBrowserSession(
@@ -1876,6 +2158,9 @@ describe('Quality Journey discovery browser service', () => {
       db as never,
     )
     expect(calls).toEqual([
+      'transaction-open',
+      'fresh-environment-read',
+      'transaction-close',
       'transaction-open',
       'fresh-environment-read',
       'receipt-find',

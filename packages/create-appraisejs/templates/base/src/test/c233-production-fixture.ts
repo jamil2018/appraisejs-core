@@ -7,6 +7,7 @@ import { join } from 'node:path'
 import { promisify } from 'node:util'
 import { gzipSync } from 'node:zlib'
 import { discoveryAuthTransitPolicyHash } from '@/lib/quality-journey/discovery-auth-transit-policy'
+import { ownedBrowserLedgerFixture } from './owned-browser-ledger-fixture'
 
 export const productionScope = {
   journeyId: 'journey-1',
@@ -17,6 +18,7 @@ export const productionScope = {
 /** Synthetic persistence only; this fixture never qualifies human authentication. */
 export function productionFixtureClient(baseUrl: string, authPolicyJson: string) {
   const artifacts = new Map<string, { identityKey: string; contentHash: string; artifactJson: string }>()
+  const ownedBrowsers = ownedBrowserLedgerFixture()
   const environmentScope = { scopeVersion: 1, discoveryAuthTransitPolicyJson: authPolicyJson }
   const frozenBinding = {
     environmentId: 'environment-1',
@@ -27,13 +29,17 @@ export function productionFixtureClient(baseUrl: string, authPolicyJson: string)
   }
   return {
     artifacts,
+    ...ownedBrowsers,
     environmentScope,
     qualityJourney: {
       findFirst: async () => ({
         id: 'journey-1',
+        stage: 'DISCOVERY',
+        status: 'ACTIVE',
         activeDiscoveryRevisionId: 'revision-1',
         activeCycleId: 'cycle-1',
       }),
+      updateMany: async () => ({ count: 1 }),
     },
     qualityJourneyDiscoveryRevision: {
       findFirst: async () => ({

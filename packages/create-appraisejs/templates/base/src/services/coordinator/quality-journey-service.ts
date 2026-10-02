@@ -1,4 +1,4 @@
-import { assertQualityJourneyMutable } from './quality-journey-terminal'
+import { assertQualityJourneyMutable, assertQualityJourneyRecoverable } from './quality-journey-terminal'
 import { assertCurrentCoordinatorSession, type CoordinatorSessionBinding } from './quality-journey-coordinator-session'
 import { createHash, randomUUID, timingSafeEqual } from 'node:crypto'
 import type {
@@ -776,6 +776,7 @@ async function reissueCompletedScenarioDesignerWorkItem(
 }
 
 async function ensureEligibleWorkItems(row: QualityJourney, db: Db) {
+  if (row.status === 'PAUSED') return
   const roles = eligibleRolesForAutomaticIssuance(row.stage as QualityJourneyStage)
   const activeWorkItemIds = parseArray(row.activeWorkItemIdsJson)
   for (const role of roles) {
@@ -1235,7 +1236,7 @@ async function commitAppliedCommand(
 ) {
   if (applied.result.outcome !== 'COMMITTED') return applied.result
   const claimed = await tx.qualityJourney.updateMany({
-    where: { id: row.id, version: row.version, stateHash: row.stateHash },
+    where: { id: row.id, version: row.version, stateHash: row.stateHash, status: 'ACTIVE' },
     data: {
       stage: applied.state.stage,
       activeRevisionIdsJson: json(applied.state.activeRevisionIds),
@@ -1411,12 +1412,13 @@ export async function submitDurableQualityJourneyCommandInTransaction(
     where: { journeyId_idempotencyKey: { journeyId: row.id, idempotencyKey: command.idempotencyKey } },
   })
   if (existing) return replayCommand(command, row, existing)
+  assertQualityJourneyMutable(row)
   const preconditionConflict = await runnerPreconditionConflict(command, row, tx)
   if (preconditionConflict) return preconditionConflict
   const requirementConflict = await requirementSubmissionConflict(command, row, tx)
   if (requirementConflict) return requirementConflict
   const { state, eventCount } = await loadKernelState(row, tx)
-  const applied = submitQualityJourneyCommand(state, command)
+  const applied = submitQualityJourneyCommand(state, command, eventCount + 1)
   return commitAppliedCommand(command, row, applied, eventCount, tx, issueEligibleWorkItems)
 }
 
@@ -1542,8 +1544,8 @@ export async function resumeQualityJourney(
   return client.$transaction(async tx => {
     await assertCurrentCoordinatorSession(input, tx)
     const row = await readJourney(input.journeyId, input.targetProjectId, tx)
-    assertQualityJourneyMutable(row)
-    const recoveredWorkItemIds = await recoverLegacyFactoryAuthorizations(row, tx)
+    assertQualityJourneyRecoverable(row)
+    const recoveredWorkItemIds = row.status === 'PAUSED' ? [] : await recoverLegacyFactoryAuthorizations(row, tx)
     const expired = await tx.qualityJourneyWorkAttempt.findMany({
       where: {
         workItem: { journeyId: row.id },
@@ -1552,7 +1554,7 @@ export async function resumeQualityJourney(
       },
     })
     for (const attempt of expired) {
-      if (attempt.dispatchStartedAt && !attempt.spawnReceiptHash) {
+      if (attempt.dispatchReservedAt && !attempt.spawnReceiptHash) {
         await blockExpiredQualityJourneyWork(tx, attempt, 'DISPATCH_UNRESOLVED', now)
         await tx.qualityJourneyBlocker.upsert({
           where: { id: `qjb_ambiguous_dispatch_${attempt.id}` },
@@ -2670,7 +2672,7 @@ type WorkTerminationInput = CoordinatorSessionBinding & {
 
 async function readWorkAuthorizationForControl(input: WorkTerminationInput, tx: Prisma.TransactionClient) {
   await assertCurrentCoordinatorSession(input, tx)
-  assertQualityJourneyMutable(await readJourney(input.journeyId, input.targetProjectId, tx))
+  assertQualityJourneyRecoverable(await readJourney(input.journeyId, input.targetProjectId, tx))
   const item = await readScopedWorkItem(input, tx)
   const authorization = await currentWorkAuthorization(item.id, tx)
   if (!authorization) throw new ServiceError('Quality Journey work authorization is unavailable.', 'UNAUTHORIZED')

@@ -47,7 +47,7 @@ The credible claim is differentiated integration. I found no basis for a first-e
 
 **3. Execution inputs and evidence have explicit lineage.** The [runtime contract](../test-run-runtime.md) distinguishes independent diagnostics from Journey evidence and describes capsule and artifact verification before sealing. The [execution service](../../src/services/coordinator/quality-journey-execution-service.ts) binds consent to frozen inputs and consumes it through a scoped transaction. The selected SQLite tests passed for consent, revocation, and tampered or foreign capsule rejection.
 
-**4. Human and agent work share a common model.** Graph and linear authoring are implemented in the [test case flow](<../../src/app/(base)/test-cases/test-case-flow.tsx>). Coupled with exact Step Invocations, that creates a plausible bridge between QA ownership and agent-assisted preparation without making generated code the only place intent lives.
+**4. Human and agent work share a common model.** Graph and linear authoring are implemented in the [test case flow](../../src/app/%28base%29/test-cases/test-case-flow.tsx). Coupled with exact Step Invocations, that creates a plausible bridge between QA ownership and agent-assisted preparation without making generated code the only place intent lives.
 
 **5. Local ownership is a real architectural choice.** SQLite owns authored state, managed runs use capsules, and repository collaboration uses a separate reviewed exchange. The [collaboration contract](../repository-collaboration.md) describes permission checks, conflicts, and conservative recovery. This is stronger than merely placing an editor on top of loose scripts.
 

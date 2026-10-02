@@ -1,5 +1,5 @@
 import { createHash, randomUUID } from 'node:crypto'
-import type { Prisma, PrismaClient } from '@prisma/client'
+import type { Prisma, PrismaClient, QualityJourneyOwnedBrowser } from '@prisma/client'
 import { z } from 'zod'
 import prisma from '@/config/db-config'
 import { canonicalContractJson } from '@/lib/catalog-contracts'
@@ -21,6 +21,7 @@ import {
 } from '@/lib/quality-journey'
 import { ServiceError } from '@/services/shared/errors'
 import { createQualityJourneyDiscoveryBrowserRuntime } from './quality-journey-discovery-browser-runtime'
+import { assertQualityJourneyMutable } from './quality-journey-terminal'
 
 type Db = PrismaClient | Prisma.TransactionClient
 
@@ -112,6 +113,30 @@ const missingAccessSchema = sessionInputSchema
 
 const processInstanceId = `qjdb_process_${randomUUID().replaceAll('-', '')}`
 const sessions = new Map<string, Session>()
+const startupClosures = new Map<string, StartupClosure>()
+const cleanupScopeSchema = z.object({ journeyId: id, targetProjectId: id }).strict()
+
+type CleanupState = 'NOT_REQUESTED' | 'REQUESTED' | 'PENDING' | 'RUNTIME_CLOSE_CONFIRMED' | 'UNKNOWN'
+type OwnershipStatus = 'LAUNCHING' | 'LIVE' | 'STOP_REQUESTED' | 'STOP_OBSERVED' | 'UNKNOWN'
+type Ownership = { id: string; client: Db; generation: number }
+type CleanupReceipt = {
+  sessionId: string
+  journeyId: string
+  targetProjectId: string
+  processInstanceId: string
+  state: CleanupState
+}
+type StartupClosure = {
+  id: string
+  journeyId: string
+  targetProjectId: string
+  browser: Browser
+  context?: BrowserContext
+  page?: BrowserPage
+  cleanupState: CleanupState
+  cleanupPromise?: Promise<CleanupReceipt>
+  ownership: Ownership
+}
 
 type Session = {
   id: string
@@ -162,6 +187,9 @@ type Session = {
   context: BrowserContext
   page: BrowserPage
   redirectInterception: 'INITIAL_REQUEST_ONLY' | 'EVERY_HOP'
+  cleanupState: CleanupState
+  cleanupPromise?: Promise<CleanupReceipt>
+  ownership: Ownership
 }
 
 type DiscoveryBrowserTerminalCause =
@@ -252,6 +280,9 @@ type DiscoveryBrowserSession = Omit<
   | 'mainFrameDocumentOrigin'
   | 'lastAuthorizedMainFrameCommitHash'
   | 'terminalCause'
+  | 'cleanupState'
+  | 'cleanupPromise'
+  | 'ownership'
 > & { allowedOrigins: string[]; allowedRoutes: string[]; currentUrl: string | null }
 
 function canonical(value: unknown) {
@@ -308,17 +339,225 @@ function isLiveSessionState(state: DiscoveryBrowserSessionState) {
 function callSafely(operation: () => void | Promise<void>) {
   return Promise.resolve().then(operation)
 }
+function ownershipUpdateData(
+  row: QualityJourneyOwnedBrowser,
+  status: OwnershipStatus,
+  observation: 'RUNTIME_CLOSE_CONFIRMED' | 'NO_RUNTIME_LAUNCHED' = 'RUNTIME_CLOSE_CONFIRMED',
+) {
+  const observedAt = new Date().toISOString()
+  const history = JSON.parse(row.cleanupHistoryJson) as { status: OwnershipStatus; observedAt: string }[]
+  history.push({ status, observedAt })
+  if (status !== 'STOP_OBSERVED' || row.stopReceiptJson)
+    return { status, rowVersion: { increment: 1 }, cleanupHistoryJson: canonical(history) }
+  const receipt = {
+    schemaVersion: 'appraise.quality-journey-owned-browser-stop/v1',
+    sessionId: row.sessionId,
+    journeyId: row.journeyId,
+    targetProjectId: row.targetProjectId,
+    processInstanceId: row.processInstanceId,
+    generation: row.generation,
+    status,
+    observation,
+    observedAt,
+  }
+  return {
+    status,
+    rowVersion: { increment: 1 },
+    cleanupHistoryJson: canonical(history),
+    stopReceiptJson: canonical(receipt),
+    stopReceiptHash: hash(receipt),
+  }
+}
+async function persistOwnershipStatus(
+  ownership: Ownership,
+  status: OwnershipStatus,
+  scope: { journeyId: string; targetProjectId: string },
+  observation?: 'RUNTIME_CLOSE_CONFIRMED' | 'NO_RUNTIME_LAUNCHED',
+) {
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    const row = await ownership.client.qualityJourneyOwnedBrowser.findUnique({ where: { id: ownership.id } })
+    if (!row || row.journeyId !== scope.journeyId || row.targetProjectId !== scope.targetProjectId)
+      throw new ServiceError('Discovery browser ownership scope changed.', 'CONFLICT')
+    if (status === 'LIVE' && row.status !== 'LAUNCHING')
+      throw new ServiceError('Discovery browser launch authority was revoked.', 'CONFLICT')
+    if (row.status === 'STOP_OBSERVED') return
+    const updated = await ownership.client.qualityJourneyOwnedBrowser.updateMany({
+      where: {
+        id: row.id,
+        journeyId: row.journeyId,
+        targetProjectId: row.targetProjectId,
+        processInstanceId: row.processInstanceId,
+        rowVersion: row.rowVersion,
+        status: row.status,
+      },
+      data: ownershipUpdateData(row, status, observation),
+    })
+    if (updated.count === 1) return
+  }
+  throw new ServiceError('Discovery browser ownership changed during cleanup.', 'CONFLICT')
+}
+async function activeOwnedBrowserRows(scope: { journeyId: string; targetProjectId: string }, client: Db) {
+  return client.qualityJourneyOwnedBrowser.findMany({
+    where: {
+      journeyId: scope.journeyId,
+      targetProjectId: scope.targetProjectId,
+      status: { in: ['LAUNCHING', 'LIVE', 'STOP_REQUESTED', 'UNKNOWN'] },
+    },
+  })
+}
+async function assertDurableOwnershipAllowsStart(
+  scope: { journeyId: string; targetProjectId: string },
+  client: Db,
+  ownId?: string,
+) {
+  const rows = await activeOwnedBrowserRows(scope, client)
+  if (rows.some(row => row.id !== ownId && (row.processInstanceId !== processInstanceId || row.status !== 'LIVE')))
+    throw new ServiceError('Prior Discovery browser ownership is unresolved.', 'CONFLICT')
+}
+async function registerBrowserOwnership(
+  request: z.infer<typeof startSchema>,
+  sessionId: string,
+  client: Db,
+  generation = 1,
+) {
+  const ownership = { id: sessionId, client, generation }
+  const register = async (db: Db) => {
+    const journey = await db.qualityJourney.findFirst({
+      where: { id: request.journeyId, targetProjectId: request.targetProjectId },
+    })
+    if (!journey) throw new ServiceError('Discovery browser Journey was not found.', 'NOT_FOUND')
+    assertQualityJourneyMutable(journey)
+    const fenced = await db.qualityJourney.updateMany({
+      where: { id: request.journeyId, targetProjectId: request.targetProjectId, status: 'ACTIVE' },
+      data: { status: 'ACTIVE' },
+    })
+    if (fenced.count !== 1) throw new ServiceError('Discovery browser Journey is no longer active.', 'CONFLICT')
+    const scope = await loadFrozenScope(request, db)
+    await assertDurableOwnershipAllowsStart(request, db)
+    await db.qualityJourneyOwnedBrowser.create({
+      data: {
+        id: sessionId,
+        journeyId: request.journeyId,
+        targetProjectId: request.targetProjectId,
+        processInstanceId,
+        sessionId,
+        generation,
+        status: 'LAUNCHING',
+        cleanupHistoryJson: canonical([{ status: 'LAUNCHING', observedAt: new Date().toISOString() }]),
+      },
+    })
+    return scope
+  }
+  const transactional = client as PrismaClient
+  const scope =
+    typeof transactional.$transaction === 'function'
+      ? await transactional.$transaction(async tx => register(tx))
+      : await register(client)
+  return { ownership, scope }
+}
 function setTerminalCause(session: Session, cause: DiscoveryBrowserTerminalCause) {
   if (isLiveSessionState(session.state) && !session.terminalCause) session.terminalCause = cause
 }
-function closeSessionResources(session: Session) {
+function cleanupReceipt(session: Session): CleanupReceipt {
+  return {
+    sessionId: session.id,
+    journeyId: session.journeyId,
+    targetProjectId: session.targetProjectId,
+    processInstanceId: session.processInstanceId,
+    state: session.cleanupState,
+  }
+}
+function closeSessionResources(session: Session): Promise<CleanupReceipt> {
+  if (session.cleanupPromise) return session.cleanupPromise
+  if (session.cleanupState === 'RUNTIME_CLOSE_CONFIRMED') return Promise.resolve(cleanupReceipt(session))
+  session.cleanupState = 'REQUESTED'
   if (session.expiryTimer) clearTimeout(session.expiryTimer)
   if (session.humanReturnTimer) clearTimeout(session.humanReturnTimer)
-  return Promise.allSettled([
-    callSafely(() => session.page.close()),
-    callSafely(() => session.context.close()),
-    callSafely(() => session.browser.close()),
-  ])
+  session.cleanupState = 'PENDING'
+  const closing = (async () => {
+    try {
+      await persistOwnershipStatus(session.ownership, 'STOP_REQUESTED', session)
+    } catch {
+      // Keep fencing authority and attempt the runtime close even if the ledger is unavailable.
+    }
+    const results = await Promise.allSettled([
+      callSafely(() => session.page.close()),
+      callSafely(() => session.context.close()),
+      callSafely(() => session.browser.close()),
+    ])
+    const confirmed = results.every(result => result.status === 'fulfilled')
+    try {
+      await persistOwnershipStatus(session.ownership, confirmed ? 'STOP_OBSERVED' : 'UNKNOWN', session)
+      session.cleanupState = confirmed ? 'RUNTIME_CLOSE_CONFIRMED' : 'UNKNOWN'
+    } catch {
+      session.cleanupState = 'UNKNOWN'
+    }
+    return cleanupReceipt(session)
+  })()
+  session.cleanupPromise = closing
+  void closing.then(() => {
+    if (session.cleanupPromise === closing) session.cleanupPromise = undefined
+  })
+  return closing
+}
+function assertCleanupConfirmed(receipt: CleanupReceipt) {
+  if (receipt.state !== 'RUNTIME_CLOSE_CONFIRMED')
+    throw new ServiceError('Discovery browser runtime cleanup is unconfirmed.', 'CONFLICT')
+}
+function assertNoUnresolvedOwnedCleanup(journeyId: string, targetProjectId: string) {
+  for (const receipt of ownedCleanupReceipts(journeyId, targetProjectId)) {
+    if (receipt.state === 'PENDING' || receipt.state === 'UNKNOWN')
+      throw new ServiceError('Prior Discovery browser runtime cleanup is unconfirmed.', 'CONFLICT')
+  }
+}
+function startupCleanupReceipt(startup: StartupClosure): CleanupReceipt {
+  return {
+    sessionId: startup.id,
+    journeyId: startup.journeyId,
+    targetProjectId: startup.targetProjectId,
+    processInstanceId,
+    state: startup.cleanupState,
+  }
+}
+function closeStartupResources(startup: StartupClosure): Promise<CleanupReceipt> {
+  if (startup.cleanupPromise) return startup.cleanupPromise
+  if (startup.cleanupState === 'RUNTIME_CLOSE_CONFIRMED') return Promise.resolve(startupCleanupReceipt(startup))
+  startup.cleanupState = 'PENDING'
+  const closing = (async () => {
+    try {
+      await persistOwnershipStatus(startup.ownership, 'STOP_REQUESTED', startup)
+    } catch {
+      // Keep fencing authority and attempt the runtime close even if the ledger is unavailable.
+    }
+    const results = await Promise.allSettled([
+      ...(startup.page ? [callSafely(() => startup.page!.close())] : []),
+      ...(startup.context ? [callSafely(() => startup.context!.close())] : []),
+      callSafely(() => startup.browser.close()),
+    ])
+    const confirmed = results.every(result => result.status === 'fulfilled')
+    try {
+      await persistOwnershipStatus(startup.ownership, confirmed ? 'STOP_OBSERVED' : 'UNKNOWN', startup)
+      startup.cleanupState = confirmed ? 'RUNTIME_CLOSE_CONFIRMED' : 'UNKNOWN'
+    } catch {
+      startup.cleanupState = 'UNKNOWN'
+    }
+    return startupCleanupReceipt(startup)
+  })()
+  startup.cleanupPromise = closing
+  void closing.then(() => {
+    if (startup.cleanupPromise === closing) startup.cleanupPromise = undefined
+  })
+  return closing
+}
+function ownedCleanupReceipts(journeyId: string, targetProjectId: string) {
+  return [
+    ...[...sessions.values()]
+      .filter(session => session.journeyId === journeyId && session.targetProjectId === targetProjectId)
+      .map(cleanupReceipt),
+    ...[...startupClosures.values()]
+      .filter(startup => startup.journeyId === journeyId && startup.targetProjectId === targetProjectId)
+      .map(startupCleanupReceipt),
+  ]
 }
 function browserLivenessCause(session: Session): DiscoveryBrowserTerminalCause | undefined {
   try {
@@ -620,6 +859,7 @@ async function loadFrozenScope(
   ])
   if (!journey || !revision || !environment)
     throw new ServiceError('Discovery browser scope was not found.', 'NOT_FOUND')
+  assertQualityJourneyMutable(journey)
   if (
     journey.activeDiscoveryRevisionId !== revision.id ||
     journey.activeCycleId !== revision.cycleId ||
@@ -1230,7 +1470,38 @@ async function revokeSession(
   state: Extract<DiscoveryBrowserSessionState, 'REVOKED' | 'LOGGED_OUT' | 'CLOSED'>,
   triggeringMainFrameUrl?: string,
 ) {
-  if (beginTerminalSessionTransition(session, state, triggeringMainFrameUrl)) await closeSessionResources(session)
+  if (beginTerminalSessionTransition(session, state, triggeringMainFrameUrl))
+    assertCleanupConfirmed(await closeSessionResources(session))
+  else if (session.cleanupState === 'PENDING' || session.cleanupState === 'UNKNOWN')
+    assertCleanupConfirmed(await closeSessionResources(session))
+}
+
+async function cleanupFailedBrowserStart(
+  session: Session | undefined,
+  request: z.infer<typeof startSchema>,
+  ownership: Ownership,
+  browser: Browser,
+  context?: BrowserContext,
+  page?: BrowserPage,
+) {
+  if (session) {
+    beginTerminalSessionTransition(session, 'CLOSED')
+    const receipt = await closeSessionResources(session)
+    if (receipt.state === 'UNKNOWN') sessions.set(session.id, session)
+    return
+  }
+  const startup: StartupClosure = {
+    id: ownership.id,
+    journeyId: request.journeyId,
+    targetProjectId: request.targetProjectId,
+    browser,
+    context,
+    page,
+    cleanupState: 'REQUESTED',
+    ownership,
+  }
+  startupClosures.set(startup.id, startup)
+  await closeStartupResources(startup)
 }
 
 /** Starts a one-process, headed, non-persistent browser context. Its strict
@@ -1239,10 +1510,28 @@ export async function startQualityJourneyDiscoveryBrowserSession(
   input: unknown,
   client: Db = prisma,
   runtime: DiscoveryBrowserRuntime = defaultRuntime,
+  generation = 1,
 ) {
   const request = startSchema.parse(input)
-  const scope = await loadFrozenScope(request, client)
-  const browser = await runtime.launch().catch(() => {
+  assertNoUnresolvedOwnedCleanup(request.journeyId, request.targetProjectId)
+  const sessionId = idFor('session', request.journeyId, request.discoveryRevisionId, request.workItemId, randomUUID())
+  const { scope, ownership } = await registerBrowserOwnership(request, sessionId, client, generation)
+  try {
+    assertNoUnresolvedOwnedCleanup(request.journeyId, request.targetProjectId)
+    const journey = await client.qualityJourney.findFirst({
+      where: { id: request.journeyId, targetProjectId: request.targetProjectId },
+    })
+    if (!journey) throw new ServiceError('Discovery browser Journey was not found.', 'NOT_FOUND')
+    assertQualityJourneyMutable(journey)
+    const row = await client.qualityJourneyOwnedBrowser.findUnique({ where: { id: ownership.id } })
+    if (row?.status !== 'LAUNCHING')
+      throw new ServiceError('Discovery browser launch authority was revoked.', 'CONFLICT')
+  } catch (error) {
+    await persistOwnershipStatus(ownership, 'STOP_OBSERVED', request, 'NO_RUNTIME_LAUNCHED').catch(() => undefined)
+    throw error
+  }
+  const browser = await runtime.launch().catch(async () => {
+    await persistOwnershipStatus(ownership, 'UNKNOWN', request).catch(() => undefined)
     throw new ServiceError('Discovery browser is unavailable.', 'CONFLICT')
   })
   let context: BrowserContext | undefined
@@ -1278,8 +1567,8 @@ export async function startQualityJourneyDiscoveryBrowserSession(
       recordLivenessLoss('PAGE_CLOSED')
     }
     session = {
-      id: idFor('session', request.journeyId, request.discoveryRevisionId, request.workItemId, randomUUID()),
-      generation: 1,
+      id: sessionId,
+      generation,
       processInstanceId,
       journeyId: request.journeyId,
       targetProjectId: request.targetProjectId,
@@ -1303,6 +1592,8 @@ export async function startQualityJourneyDiscoveryBrowserSession(
       context,
       page,
       redirectInterception: runtime.redirectInterception ?? 'INITIAL_REQUEST_ONLY',
+      cleanupState: 'NOT_REQUESTED',
+      ownership,
     }
     wirePageContainment(session)
     const assertStartupLiveness = () => {
@@ -1320,17 +1611,16 @@ export async function startQualityJourneyDiscoveryBrowserSession(
     if (!allowedRequest(page.url(), 'GET', session, true, 'about:blank', 'DOCUMENT'))
       throw new ServiceError('Discovery browser navigation was rejected.', 'CONFLICT')
     assertStartupLiveness()
+    await assertFrozenScopeStillMatchesSession(session, client)
+    assertStartupLiveness()
+    assertNoUnresolvedOwnedCleanup(request.journeyId, request.targetProjectId)
+    await assertDurableOwnershipAllowsStart(request, client, ownership.id)
+    await persistOwnershipStatus(ownership, 'LIVE', request)
     sessions.set(session.id, session)
     scheduleExpiry(session)
     return projection(session)
   } catch (error) {
-    const closingPage = page
-    const closingContext = context
-    await Promise.allSettled([
-      ...(closingPage ? [callSafely(() => closingPage.close())] : []),
-      ...(closingContext ? [callSafely(() => closingContext.close())] : []),
-      callSafely(() => browser.close()),
-    ])
+    await cleanupFailedBrowserStart(session, request, ownership, browser, context, page)
     if (error instanceof ServiceError) throw error
     throw new ServiceError('Discovery browser navigation was unavailable.', 'CONFLICT')
   }
@@ -1730,6 +2020,72 @@ export async function closeQualityJourneyDiscoveryBrowserSession(input: unknown)
   return projection(session)
 }
 
+/** Process-local runtime close observations. Absence cannot establish that an earlier process left no browser. */
+export function getOwnedQualityJourneyDiscoveryBrowserCleanup(input: unknown) {
+  const scope = cleanupScopeSchema.parse(input)
+  const receipts = ownedCleanupReceipts(scope.journeyId, scope.targetProjectId)
+  return { state: receipts.length ? 'SESSIONS_REGISTERED' : 'NONE_REGISTERED', receipts }
+}
+
+export async function pauseOwnedQualityJourneyDiscoveryBrowserCleanup(
+  input: unknown,
+  client: Db = prisma,
+  allowedSessionIds?: readonly string[],
+) {
+  const scope = cleanupScopeSchema.parse(input)
+  const allowed = allowedSessionIds ? new Set(allowedSessionIds) : null
+  const owned = [...sessions.values()].filter(
+    session =>
+      session.journeyId === scope.journeyId &&
+      session.targetProjectId === scope.targetProjectId &&
+      (!allowed || allowed.has(session.id)),
+  )
+  const startups = [...startupClosures.values()].filter(
+    startup =>
+      startup.journeyId === scope.journeyId &&
+      startup.targetProjectId === scope.targetProjectId &&
+      (!allowed || allowed.has(startup.id)),
+  )
+  const localReceipts = await Promise.all([
+    ...owned.map(session => {
+      beginTerminalSessionTransition(session, 'CLOSED')
+      return closeSessionResources(session)
+    }),
+    ...startups.map(closeStartupResources),
+  ])
+  const localIds = new Set(localReceipts.map(receipt => receipt.sessionId))
+  const foreignReceipts: CleanupReceipt[] = []
+  for (const row of await activeOwnedBrowserRows(scope, client)) {
+    if (localIds.has(row.sessionId) || (allowed && !allowed.has(row.sessionId))) continue
+    await persistOwnershipStatus({ id: row.id, client, generation: row.generation }, 'UNKNOWN', scope)
+    foreignReceipts.push({
+      sessionId: row.sessionId,
+      journeyId: row.journeyId,
+      targetProjectId: row.targetProjectId,
+      processInstanceId: row.processInstanceId,
+      state: 'UNKNOWN',
+    })
+  }
+  const receipts = [...localReceipts, ...foreignReceipts]
+  return {
+    state: localReceipts.length
+      ? ('SESSIONS_REGISTERED' as const)
+      : foreignReceipts.length
+        ? ('DURABLE_OWNERSHIP_ONLY' as const)
+        : ('NONE_REGISTERED' as const),
+    receipts,
+  }
+}
+
+export async function assertOwnedQualityJourneyDiscoveryBrowserCleanupReconciled(input: unknown, client: Db = prisma) {
+  const result = getOwnedQualityJourneyDiscoveryBrowserCleanup(input)
+  if (result.receipts.some(receipt => receipt.state !== 'RUNTIME_CLOSE_CONFIRMED'))
+    throw new ServiceError('Owned Discovery browser runtime cleanup is unconfirmed.', 'CONFLICT')
+  if ((await activeOwnedBrowserRows(cleanupScopeSchema.parse(input), client)).length)
+    throw new ServiceError('Durable Discovery browser ownership is unconfirmed.', 'CONFLICT')
+  return result
+}
+
 export async function replaceQualityJourneyDiscoveryBrowserContext(
   input: unknown,
   client: Db = prisma,
@@ -1739,7 +2095,7 @@ export async function replaceQualityJourneyDiscoveryBrowserContext(
   const previous = await getLiveSession(request)
   if (!isLiveSessionState(previous.state)) throw stateError(previous.state)
   if (!beginTerminalSessionTransition(previous, 'CONTEXT_REPLACED')) throw stateError(previous.state)
-  await closeSessionResources(previous)
+  assertCleanupConfirmed(await closeSessionResources(previous))
   const replacement = await startQualityJourneyDiscoveryBrowserSession(
     {
       journeyId: previous.journeyId,
@@ -1754,9 +2110,9 @@ export async function replaceQualityJourneyDiscoveryBrowserContext(
     },
     client,
     runtime,
+    previous.generation + 1,
   )
   const replacementSession = sessions.get(replacement.id)!
-  replacementSession.generation = previous.generation + 1
   return replacementSession ? projection(replacementSession) : replacement
 }
 
@@ -1882,5 +2238,7 @@ function hasAdmissibleReceiptAccessOutcome(receipt: DiscoveryBrowserReceipt) {
 
 export async function clearQualityJourneyDiscoveryBrowserSessionsForTest() {
   await Promise.all([...sessions.values()].map(closeSessionResources))
+  await Promise.all([...startupClosures.values()].map(closeStartupResources))
   sessions.clear()
+  startupClosures.clear()
 }

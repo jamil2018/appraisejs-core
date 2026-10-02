@@ -1,0 +1,72 @@
+{
+  "schema": "appraise.c31.validation/local-v1",
+  "scope": "C3.1 only",
+  "checks": {
+    "integrated": {
+      "filesPassed": 40,
+      "testsPassed": 520,
+      "testsSkipped": 3
+    },
+    "ui": {
+      "testsPassed": 1,
+      "scenario": "human pause and resume across real anonymous Next hub group stop/restart"
+    },
+    "package": {
+      "filesPassed": 12,
+      "testsPassed": 80
+    },
+    "migrations": {
+      "applied": 87,
+      "outcome": "passed"
+    },
+    "build": {
+      "outcome": "passed"
+    },
+    "eslint": "passed affected canonical files",
+    "prettier": "passed affected canonical files and docs",
+    "fallow": "passed new-only with zero introduced findings",
+    "reactDoctor": "passed diff HEAD with one inherited warning",
+    "coordinatorReference": "current",
+    "artifactPolicy": "passed",
+    "packageContents": "passed",
+    "documentationLinks": "passed",
+    "graphScopes": ["src fresh", "prisma fresh", "packages fresh", "scripts unchanged fresh"]
+  },
+  "limits": [
+    "standalone tsc retains unrelated flow-diagram.test.tsx:352 Element versus HTMLElement",
+    "external Codex stop offline and quota are modeled silence only; UNKNOWN termination",
+    "lost MCP acknowledgement is injected delivery loss; not an observed real Codex transport outage",
+    "hard-crash ownership loss blocks resume and never authorizes persisted PID signalling",
+    "runtime named model role context sandbox and natural-person reviewer not attested"
+  ],
+  "logs": {
+    "integrated": {
+      "sha256": "19bd00369ae55642f998a3db9f774881db06f008365bdde5e5112cbce6cef704",
+      "localPath": ".appraisejs/c31-validation/integrated.log"
+    },
+    "build": {
+      "sha256": "aa46e27db9ea51183728cf95f19659759d5735ed25589019b0a342eb3999acd7",
+      "localPath": ".appraisejs/c31-validation/build.log"
+    },
+    "template": {
+      "sha256": "66fa8073ba37f1869d03ad575e825d475b3bb3e6d81aff6265068b5a890d6444",
+      "localPath": ".appraisejs/c31-validation/template.log"
+    },
+    "graph": {
+      "sha256": "26627c3e4b1ee1d4f79bebead9ba2d1aadf28c4dbfae8bd23caefd7ced048552",
+      "localPath": ".appraisejs/c31-validation/graph.log"
+    },
+    "fallow": {
+      "sha256": "08db805204d04156c9ac1b28eac2760d42af8e0c723478835489aa1a714270f2",
+      "localPath": ".appraisejs/c31-validation/fallow.log"
+    },
+    "ui": {
+      "sha256": "ac1cd2de2c0ebc13a7cc3f8262e67b3716958de730db6e147a7bad117405e1a0",
+      "localPath": ".appraisejs/c31-validation/ui.log"
+    },
+    "react": {
+      "sha256": "78c0fe75d7e4a0abbab746f63b126d53cf48c77735e547c80a9be2784542e865",
+      "localPath": ".appraisejs/c31-validation/react.log"
+    }
+  }
+}

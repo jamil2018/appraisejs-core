@@ -1,4 +1,4 @@
-import { assertQualityJourneyMutable } from './quality-journey-terminal'
+import { assertQualityJourneyRecoverable } from './quality-journey-terminal'
 import path from 'node:path'
 import type { Prisma, PrismaClient } from '@prisma/client'
 import prisma from '@/config/db-config'
@@ -30,11 +30,17 @@ async function launchReservedRun(
 ) {
   if (terminal(binding.testRun.status)) return
   if (binding.status !== 'RESERVED') return
-  const claimed = await client.qualityJourneyExecutionTestRun.updateMany({
-    where: { id: binding.id, status: 'RESERVED' },
-    data: { status: 'LAUNCHING' },
+  const claimed = await client.$transaction(async tx => {
+    const cycle = await tx.qualityJourneyExecutionCycle.findUniqueOrThrow({ where: { id: input.executionCycleId } })
+    const journey = await tx.qualityJourney.findUniqueOrThrow({ where: { id: cycle.journeyId } })
+    if (journey.status !== 'ACTIVE' || !['RESERVED', 'RUNNING'].includes(cycle.status)) return false
+    const changed = await tx.qualityJourneyExecutionTestRun.updateMany({
+      where: { id: binding.id, status: 'RESERVED' },
+      data: { status: 'LAUNCHING' },
+    })
+    return changed.count === 1
   })
-  if (claimed.count !== 1) return
+  if (!claimed) return
   try {
     await new RuntimeCapsuleTestRunService(client, appraiseRoot).startJourneyPrepared({
       testRunDbId: binding.testRunId,
@@ -69,9 +75,13 @@ export async function startQualityJourneyExecutionRuntime(
   for (const binding of cycle.testRuns) {
     await launchReservedRun(client, input, binding, appraiseRoot)
   }
-  await client.qualityJourneyExecutionCycle.updateMany({
-    where: { id: cycle.id, status: 'RESERVED' },
-    data: { status: 'RUNNING' },
+  await client.$transaction(async tx => {
+    const journey = await tx.qualityJourney.findUniqueOrThrow({ where: { id: cycle.journeyId } })
+    if (journey.status !== 'ACTIVE') return
+    await tx.qualityJourneyExecutionCycle.updateMany({
+      where: { id: cycle.id, status: 'RESERVED' },
+      data: { status: 'RUNNING' },
+    })
   })
   await reconcileQualityJourneyExecutionRuntime(input, client, appraiseRoot)
 }
@@ -323,8 +333,8 @@ async function collectEvidence(client: PrismaClient, executionCycleId: string, a
     },
   })
   if (!cycle.testRuns.length || cycle.testRuns.some(binding => !terminal(binding.testRun.status))) return null
-  // Cancellation marks the DB first; wait until the managed process has exited
-  // and final output collection has finished before sealing bytes.
+  // A cancellation request is nonterminal until owned stop is observed.
+  // Final output collection and process cleanup must precede evidence sealing.
   if (cycle.testRuns.some(binding => processManager.get(binding.runId))) return null
   const access = new TestRunArtifactAccessService(client, appraiseRoot)
   const receipts = []
@@ -332,6 +342,41 @@ async function collectEvidence(client: PrismaClient, executionCycleId: string, a
     receipts.push(await collectRunEvidence(access, cycle, binding))
   }
   return { cycle, receipts }
+}
+
+/** Replays only already sealed terminal evidence inside the caller's admission transaction. */
+export async function reconcileSealedQualityJourneyExecutionRuntimeInTransaction(
+  executionCycleId: string,
+  tx: Prisma.TransactionClient,
+): Promise<boolean> {
+  const sealed = await tx.qualityJourneyExecutionCycle.findUniqueOrThrow({
+    where: { id: executionCycleId },
+    include: { testRuns: { include: { testRun: true } }, evidenceReceipts: true },
+  })
+  if (
+    !['COMPLETED', 'CANCELLED'].includes(sealed.status) ||
+    sealed.testRuns.length !== sealed.evidenceReceipts.length ||
+    sealed.testRuns.some(
+      binding =>
+        !terminal(binding.testRun.status) ||
+        !sealed.evidenceReceipts.some(receipt => receipt.testRunId === binding.testRunId),
+    )
+  )
+    return false
+  const state = await tx.qualityJourney.findUniqueOrThrow({ where: { id: sealed.journeyId } })
+  assertQualityJourneyRecoverable(state)
+  await publishTerminalCycleResult(
+    state,
+    sealed,
+    sealed.evidenceReceipts.map(receipt => receipt.id),
+    tx,
+  )
+  for (const binding of sealed.testRuns)
+    await tx.qualityJourneyExecutionTestRun.updateMany({
+      where: { id: binding.id, status: { in: ['LAUNCHING', 'RUNNING'] } },
+      data: { status: terminalBindingStatus(binding.testRun) },
+    })
+  return true
 }
 
 /** Only verified terminal output bytes can become an immutable evidence receipt. */
@@ -344,28 +389,9 @@ export async function reconcileQualityJourneyExecutionRuntime(
     where: { executionCycleId: input.executionCycleId },
   })
   if (existing) {
-    await client.$transaction(async tx => {
-      const sealed = await tx.qualityJourneyExecutionCycle.findUniqueOrThrow({
-        where: { id: input.executionCycleId },
-        include: { testRuns: { include: { testRun: true } }, evidenceReceipts: true },
-      })
-      if (
-        !['COMPLETED', 'CANCELLED'].includes(sealed.status) ||
-        sealed.testRuns.length !== sealed.evidenceReceipts.length ||
-        sealed.testRuns.some(
-          binding =>
-            !terminal(binding.testRun.status) ||
-            !sealed.evidenceReceipts.some(receipt => receipt.testRunId === binding.testRunId),
-        )
-      )
-        return
-      assertQualityJourneyMutable(await tx.qualityJourney.findUniqueOrThrow({ where: { id: sealed.journeyId } }))
-      for (const binding of sealed.testRuns)
-        await tx.qualityJourneyExecutionTestRun.updateMany({
-          where: { id: binding.id, status: { in: ['LAUNCHING', 'RUNNING'] } },
-          data: { status: terminalBindingStatus(binding.testRun) },
-        })
-    })
+    await client.$transaction(tx =>
+      reconcileSealedQualityJourneyExecutionRuntimeInTransaction(input.executionCycleId, tx),
+    )
     return
   }
   const result = await collectEvidence(client, input.executionCycleId, appraiseRoot)
@@ -373,31 +399,14 @@ export async function reconcileQualityJourneyExecutionRuntime(
   await client.$transaction(async tx => {
     if (await tx.qualityJourneyExecutionEvidenceReceipt.count({ where: { executionCycleId: result.cycle.id } })) return
     const state = await tx.qualityJourney.findUniqueOrThrow({ where: { id: result.cycle.journeyId } })
-    assertQualityJourneyMutable(state)
+    assertQualityJourneyRecoverable(state)
     for (const receipt of result.receipts) await tx.qualityJourneyExecutionEvidenceReceipt.create({ data: receipt })
-    if (state.stage === 'EXECUTION' && state.activeCycleId === result.cycle.cycleId) {
-      const published = await submitDurableQualityJourneyCommandInTransaction(
-        {
-          schemaVersion: 'appraise.quality-journey/v1',
-          command: 'PUBLISH_RUN_RESULT',
-          commandId: `qjc_result_${result.cycle.id.slice(-24)}`,
-          journeyId: state.id,
-          targetProjectId: state.targetProjectId,
-          actor: 'MANAGED_RUNTIME',
-          expectedStateHash: state.stateHash,
-          idempotencyKey: `execution-result:${result.cycle.id}`,
-          inputArtifactRefs: [],
-          payload: {
-            testRunIds: result.cycle.testRuns.map(item => item.testRunId).sort(),
-            evidenceReceiptIds: result.receipts.map(item => item.id).sort(),
-          },
-        },
-        tx,
-        true,
-        false,
-      )
-      if (published.outcome !== 'COMMITTED') throw conflict('Runtime result publication did not commit.')
-    }
+    await publishTerminalCycleResult(
+      state,
+      result.cycle,
+      result.receipts.map(item => item.id),
+      tx,
+    )
     await tx.qualityJourneyExecutionCycle.update({
       where: { id: result.cycle.id },
       data: {
@@ -411,4 +420,42 @@ export async function reconcileQualityJourneyExecutionRuntime(
         data: { status: terminalBindingStatus(binding.testRun) },
       })
   })
+}
+
+async function publishTerminalCycleResult(
+  state: {
+    id: string
+    targetProjectId: string
+    status: string
+    stage: string
+    activeCycleId: string
+    stateHash: string
+  },
+  cycle: { id: string; cycleId: string; testRuns: Array<{ testRunId: string }> },
+  receiptIds: string[],
+  tx: Prisma.TransactionClient,
+) {
+  if (state.status === 'ACTIVE' && state.stage === 'EXECUTION' && state.activeCycleId === cycle.cycleId) {
+    const published = await submitDurableQualityJourneyCommandInTransaction(
+      {
+        schemaVersion: 'appraise.quality-journey/v1',
+        command: 'PUBLISH_RUN_RESULT',
+        commandId: `qjc_result_${cycle.id.slice(-24)}`,
+        journeyId: state.id,
+        targetProjectId: state.targetProjectId,
+        actor: 'MANAGED_RUNTIME',
+        expectedStateHash: state.stateHash,
+        idempotencyKey: `execution-result:${cycle.id}`,
+        inputArtifactRefs: [],
+        payload: {
+          testRunIds: cycle.testRuns.map(item => item.testRunId).sort(),
+          evidenceReceiptIds: [...receiptIds].sort(),
+        },
+      },
+      tx,
+      true,
+      false,
+    )
+    if (published.outcome !== 'COMMITTED') throw conflict('Runtime result publication did not commit.')
+  }
 }
