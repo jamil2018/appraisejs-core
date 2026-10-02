@@ -102,6 +102,7 @@ it('keeps credential and MFA entry out of Appraise actions', async () => {
     routeId: '/account',
     accessMode: 'AUTHENTICATED_INTENT',
     authFlowId: 'test-login',
+    ttlSeconds: 900,
   })
   expect(JSON.stringify(mocks.start.mock.calls)).not.toMatch(/password|credential|mfaCode|cookie|storage/i)
   expect(screen.getByText(/Complete sign-in and MFA directly in the opened target browser/i)).toBeInTheDocument()

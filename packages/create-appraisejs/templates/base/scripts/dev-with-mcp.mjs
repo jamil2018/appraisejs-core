@@ -7,6 +7,7 @@ import path from 'node:path'
 import { ensureDevDatabaseReady } from './lib/dev-startup.mjs'
 import { ensureBuiltInStepDefinitionReadiness } from './lib/built-in-readiness.mjs'
 import { ensureCucumberRuntimeReadiness } from './lib/runtime-readiness.mjs'
+import { ensureOperationHandlerSourceCurrent } from './lib/operation-handler-source-readiness.mjs'
 
 const isWindows = process.platform === 'win32'
 const npmCommand = isWindows ? 'npm.cmd' : 'npm'
@@ -157,6 +158,8 @@ process.on('SIGINT', shutdown)
 process.on('SIGTERM', shutdown)
 
 const mcp = mcpCommand()
+
+ensureOperationHandlerSourceCurrent()
 
 ensureDevDatabaseReady(npmCommand)
 ensureCucumberRuntimeReadiness(npmCommand)

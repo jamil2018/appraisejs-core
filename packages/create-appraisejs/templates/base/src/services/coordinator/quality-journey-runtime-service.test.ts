@@ -125,6 +125,64 @@ describe('Journey managed runtime evidence and ownership', () => {
     expect(receipt.data.runtimeBytesHash).toBe(hashRuntimeCapsuleValue(evidence.artifacts))
     expect(mocks.publish).toHaveBeenCalledOnce()
   })
+  it.each([
+    ['PASSED', 'COMPLETED'],
+    ['FAILED', 'FAILED'],
+    ['CANCELLED', 'CANCELLED'],
+  ])('terminalizes a sealed %s run binding as %s without another runtime effect', async (result, bindingStatus) => {
+    const { client, run } = fixture()
+    if (result === 'CANCELLED') run.status = 'CANCELLED'
+    run.result = result
+    await reconcileQualityJourneyExecutionRuntime({ executionCycleId: 'execution-1' }, client as never)
+    expect(client.qualityJourneyExecutionTestRun.updateMany).toHaveBeenCalledWith({
+      where: { id: 'binding-1', status: { in: ['LAUNCHING', 'RUNNING'] } },
+      data: { status: bindingStatus },
+    })
+    expect(client.qualityJourneyExecutionEvidenceReceipt.create).toHaveBeenCalledOnce()
+    expect(mocks.start).not.toHaveBeenCalled()
+    expect(mocks.cancel).not.toHaveBeenCalled()
+  })
+  it('repairs a historical terminal cycle only when its sealed receipt covers the terminal run', async () => {
+    const { client, binding, cycle } = fixture()
+    cycle.status = 'COMPLETED'
+    client.qualityJourneyExecutionEvidenceReceipt.count.mockResolvedValue(1)
+    client.qualityJourneyExecutionCycle.findUniqueOrThrow.mockResolvedValue({
+      ...cycle,
+      evidenceReceipts: [{ id: 'receipt-1', testRunId: binding.testRunId, receiptHash: 'unchanged' }],
+    } as never)
+    await reconcileQualityJourneyExecutionRuntime({ executionCycleId: 'execution-1' }, client as never)
+    expect(client.qualityJourneyExecutionTestRun.updateMany).toHaveBeenCalledWith({
+      where: { id: 'binding-1', status: { in: ['LAUNCHING', 'RUNNING'] } },
+      data: { status: 'COMPLETED' },
+    })
+    expect(client.qualityJourneyExecutionEvidenceReceipt.create).not.toHaveBeenCalled()
+    expect(mocks.publish).not.toHaveBeenCalled()
+    expect(mocks.start).not.toHaveBeenCalled()
+    expect(mocks.cancel).not.toHaveBeenCalled()
+  })
+  it('does not repair a historical sealed binding after its Journey closes', async () => {
+    const { client, binding, cycle } = fixture()
+    cycle.status = 'COMPLETED'
+    client.qualityJourneyExecutionEvidenceReceipt.count.mockResolvedValue(1)
+    client.qualityJourneyExecutionCycle.findUniqueOrThrow.mockResolvedValue({
+      ...cycle,
+      evidenceReceipts: [{ id: 'receipt-1', testRunId: binding.testRunId, receiptHash: 'unchanged' }],
+    } as never)
+    client.qualityJourney.findUniqueOrThrow.mockResolvedValue({
+      id: 'journey-1',
+      targetProjectId: 'target-1',
+      stage: 'CLOSED',
+      activeCycleId: 'cycle-1',
+      stateHash: hashRuntimeCapsuleValue({}),
+    })
+    await expect(
+      reconcileQualityJourneyExecutionRuntime({ executionCycleId: 'execution-1' }, client as never),
+    ).rejects.toThrow('Closed Quality Journeys are immutable')
+    expect(client.qualityJourneyExecutionTestRun.updateMany).not.toHaveBeenCalled()
+    expect(client.qualityJourneyExecutionEvidenceReceipt.create).not.toHaveBeenCalled()
+    expect(client.qualityJourneyExecutionCycle.update).not.toHaveBeenCalled()
+    expect(mocks.publish).not.toHaveBeenCalled()
+  })
   it('rejects a foreign prepared capsule even when no runtime capsule was produced', async () => {
     const { client, binding, run } = fixture()
     binding.preparedCapsuleId = 'foreign-prepared'

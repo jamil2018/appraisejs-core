@@ -1,0 +1,2838 @@
+{
+  "schemaVersion": "appraise.c273-lineage-reconciliation/v1",
+  "classification": "READ_ONLY_PERSISTED_LIVE_EVIDENCE_RECONCILIATION",
+  "observedAt": "2026-10-02T12:51:36.312936+00:00",
+  "limits": [
+    "No new browser or managed run",
+    "Local USER possession does not attest natural-person identity",
+    "Host role model context and sandbox enforcement not attested",
+    "Post-live refactor is deterministic-only evidence"
+  ],
+  "journeys": [
+    {
+      "id": "qjy_ae47607b-09ec-44e0-9514-894dd174c665",
+      "targetProjectId": "5b8d74da-1376-48ac-ae8e-96765b5861db",
+      "stage": "CLOSED",
+      "status": "CLOSED",
+      "activeCycleId": "qjt_67912a43c6721679bf0a4994",
+      "stateHash": "sha256:4143cd8464ae8462385c4d2c5621048db4fbf127963b32f9645a4d0e5feffde9",
+      "version": 36,
+      "activeRevisionIds": {
+        "analysis": "analysis-c27-anon-https-1",
+        "journey": "qjr_5fd7e579-5f5a-4833-9b74-c8b6241602c4",
+        "report": "report-c27-anon-https-passing-1",
+        "scenarioPortfolio": "portfolio-revision-c27-anon-https-1"
+      },
+      "unresolvedQuestionIds": [],
+      "blockerIds": [],
+      "activeWorkItemIds": [],
+      "artifacts": [
+        {
+          "kind": "ANALYSIS_CHARTER_REVISION",
+          "artifactId": "charter-c27-anon-https-1",
+          "revisionId": "analysis-c27-anon-https-1",
+          "contentHash": "sha256:32ae604bf7012d7ab68ff24a631257bf71e06d7618fa9b7ad5e060e12d3a0fb6"
+        },
+        {
+          "kind": "JOURNEY_APPROVAL",
+          "artifactId": "analysis-approval:analysis-c27-anon-https-1",
+          "revisionId": null,
+          "contentHash": "sha256:83ce0c3c9272ebc49224edca90906af5316f9d0ff3ff20e856a3a7023549d176"
+        },
+        {
+          "kind": "DISCOVERY_BROWSER_RECEIPT",
+          "artifactId": "qjdb_receipt_acaf59bd68c7beaa4e2712ca153661c2",
+          "revisionId": null,
+          "contentHash": "sha256:d3ec1f6869b4cf736cece91a6e7da87cbf3cbc862bd54fb52d1583fe762531a2"
+        },
+        {
+          "kind": "SCENARIO_PORTFOLIO_REVISION",
+          "artifactId": "portfolio-c27-anon-https-1",
+          "revisionId": "portfolio-revision-c27-anon-https-1",
+          "contentHash": "sha256:961683501ae16a6ac360fd27c110568b8366b5ab3acb91fc3456d8a0d24ad8f1"
+        },
+        {
+          "kind": "SCENARIO_REVISION",
+          "artifactId": "scenario-c27-anon-https-1",
+          "revisionId": "scenario-revision-c27-anon-https-1",
+          "contentHash": "sha256:f0a9c02cbc4bfa6eb1206a33e2fd80834baf474090a424d4245444eb78aa674e"
+        },
+        {
+          "kind": "RUNTIME_CAPSULE",
+          "artifactId": "qja_materialization_0b2ff986414bf53bf643687c",
+          "revisionId": null,
+          "contentHash": "sha256:e7c991c0e25dec396af521a63d2396f44b2a7cb7bd70a8a6e179320d47085b1a"
+        },
+        {
+          "kind": "TEST_SUITE",
+          "artifactId": "qja_suite_9d29ebdbc429e2e8e63a8f87",
+          "revisionId": null,
+          "contentHash": "sha256:0f17d6518fc02e2c90d5c587866a458633fa5b3234606633b9e9b90c87d14241"
+        },
+        {
+          "kind": "TEST_CASE",
+          "artifactId": "qja_case_9d29ebdbc429e2e8e63a8f87",
+          "revisionId": null,
+          "contentHash": "sha256:bb26a8182638f009dfcb23f285c4555abd3ab95a6d73ec812696042ce5993b9c"
+        },
+        {
+          "kind": "RUNTIME_CAPSULE",
+          "artifactId": "qja_prepared_9d29ebdbc429e2e8e63a8f87",
+          "revisionId": null,
+          "contentHash": "sha256:596415e9b8579d48d3fbe00e5cb31da100ce70445e3f2becae03eb9601d7c17c"
+        },
+        {
+          "kind": "TEST_REPORT_ANALYSIS_REVISION",
+          "artifactId": "report-c27-anon-https-infra-1",
+          "revisionId": "report-c27-anon-https-infra-1",
+          "contentHash": "sha256:69f63c3f75ee3014e3621d5113ce5930311040e731f1c5786dec2c7895354948"
+        },
+        {
+          "kind": "TEST_REPORT_ANALYSIS_REVISION",
+          "artifactId": "report-c27-anon-https-infra-2",
+          "revisionId": "report-c27-anon-https-infra-2",
+          "contentHash": "sha256:188917a009cc1edd5a93d127eec6aa9e41a7e86ba82315cb77f1512849294094"
+        },
+        {
+          "kind": "TEST_REPORT_ANALYSIS_REVISION",
+          "artifactId": "report-c27-anon-https-valid-failure-1",
+          "revisionId": "report-c27-anon-https-valid-failure-1",
+          "contentHash": "sha256:1c24bbf69479a3ea199f064e243a4f7520f5a0d59c774150938c8ba83e11e1b0"
+        },
+        {
+          "kind": "REMEDIATION_APPROVAL",
+          "artifactId": "remediation:report-c27-anon-https-valid-failure-1",
+          "revisionId": null,
+          "contentHash": "sha256:7f9bad15ebfd747cb002aae3a9b21cdf41dead501e3bad413b6a83e3f8b5f57a"
+        },
+        {
+          "kind": "RUNTIME_CAPSULE",
+          "artifactId": "qja_materialization_1e8929c8f034aea62bafffbf",
+          "revisionId": null,
+          "contentHash": "sha256:b3336bff829d7e0b6315299b7d3d00592c5d57bda009d04018d76bb68e5bc3a0"
+        },
+        {
+          "kind": "TEST_SUITE",
+          "artifactId": "qja_suite_7af5d2c7bcedd41fcf80a268",
+          "revisionId": null,
+          "contentHash": "sha256:2bc4d65ba7829243b7bb3aee784f33f9e3da5da6df70d10b982a570d3b17e67b"
+        },
+        {
+          "kind": "RUNTIME_CAPSULE",
+          "artifactId": "qja_prepared_7af5d2c7bcedd41fcf80a268",
+          "revisionId": null,
+          "contentHash": "sha256:5f9dff662e46c6a246d584ea5241db817cb74a5e142c98560e21d100aeb2c4d2"
+        },
+        {
+          "kind": "TEST_CASE",
+          "artifactId": "qja_case_7af5d2c7bcedd41fcf80a268",
+          "revisionId": null,
+          "contentHash": "sha256:3700c6f18e2234e728f00898a27e86defaf594892ffc277339895e56c6060e07"
+        },
+        {
+          "kind": "TEST_REPORT_ANALYSIS_REVISION",
+          "artifactId": "report-c27-anon-https-passing-1",
+          "revisionId": "report-c27-anon-https-passing-1",
+          "contentHash": "sha256:d1574b5de38fc5819090e73c927c79b804dafe7c078e429980916fd0ba97db36"
+        },
+        {
+          "kind": "JOURNEY_CLOSURE",
+          "artifactId": "qjc_7a992512af14e0202f999324",
+          "revisionId": null,
+          "contentHash": "sha256:b92a945efd53fe2e48e6e7a5f0d00600da4c69e7eb2e8ac52bd5fcef2e269531"
+        }
+      ],
+      "events": [
+        {
+          "id": "qje_ec7b420f-9716-4b74-b687-084e6e1393e5",
+          "sequence": 1,
+          "eventType": "JOURNEY_CREATED",
+          "predecessorStateHash": "sha256:484b281f4fe295a5de87ef3f4423382dacbad67c6c2b0f6bc6edd932e5e70893",
+          "successorStateHash": "sha256:484b281f4fe295a5de87ef3f4423382dacbad67c6c2b0f6bc6edd932e5e70893",
+          "createdAt": 1790791309873,
+          "actor": null,
+          "predecessorStage": null,
+          "successorStage": null
+        },
+        {
+          "id": "qje_2f1573987b6f99f9afffec2a",
+          "sequence": 2,
+          "eventType": "COMMAND_SUBMIT_REQUIREMENT",
+          "predecessorStateHash": "sha256:484b281f4fe295a5de87ef3f4423382dacbad67c6c2b0f6bc6edd932e5e70893",
+          "successorStateHash": "sha256:3bd76a6ffbdf699207721deca56780f93aaab94ca633521e9897960270cfd21b",
+          "createdAt": 1790791375726,
+          "actor": "USER",
+          "predecessorStage": "INTAKE",
+          "successorStage": "ANALYSIS"
+        },
+        {
+          "id": "qje_a077ab3e-287b-4417-9f02-4e547b21837f",
+          "sequence": 3,
+          "eventType": "WORK_COMPLETED",
+          "predecessorStateHash": "sha256:3bd76a6ffbdf699207721deca56780f93aaab94ca633521e9897960270cfd21b",
+          "successorStateHash": "sha256:b9939ed26cb4e8691ca3de1c0b78e645dd551a7cdd6b11222c6eb684bbf20d70",
+          "createdAt": 1790791592822,
+          "actor": null,
+          "predecessorStage": null,
+          "successorStage": null
+        },
+        {
+          "id": "qje_analysis_7b179f2abefac3d8c154614a",
+          "sequence": 4,
+          "eventType": "ANALYSIS_SUBMITTED",
+          "predecessorStateHash": "sha256:b9939ed26cb4e8691ca3de1c0b78e645dd551a7cdd6b11222c6eb684bbf20d70",
+          "successorStateHash": "sha256:7c1f71ca830a584e3800aef5cc89a0d7ac942a3ce38aadee9668f699ffedc0f1",
+          "createdAt": 1790791592825,
+          "actor": null,
+          "predecessorStage": null,
+          "successorStage": null
+        },
+        {
+          "id": "qje_205d9971dc9d1c7e365fec86",
+          "sequence": 5,
+          "eventType": "COMMAND_PUBLISH_ANALYSIS",
+          "predecessorStateHash": "sha256:7c1f71ca830a584e3800aef5cc89a0d7ac942a3ce38aadee9668f699ffedc0f1",
+          "successorStateHash": "sha256:6f71ce35382e06b56109bfd43fd9fe2d07094b941e3ab3b879dba4b2eae350e1",
+          "createdAt": 1790791617333,
+          "actor": "RUNNER",
+          "predecessorStage": "ANALYSIS",
+          "successorStage": "ANALYSIS_REVIEW"
+        },
+        {
+          "id": "qje_1ffc965ee899b107560f721c",
+          "sequence": 6,
+          "eventType": "COMMAND_DECIDE_ANALYSIS",
+          "predecessorStateHash": "sha256:6f71ce35382e06b56109bfd43fd9fe2d07094b941e3ab3b879dba4b2eae350e1",
+          "successorStateHash": "sha256:d1b93f64a9f134d5b0898a271a542dd390bab6757e2f4656fa40ee86a2e74790",
+          "createdAt": 1790791635490,
+          "actor": "USER",
+          "predecessorStage": "ANALYSIS_REVIEW",
+          "successorStage": "DISCOVERY"
+        },
+        {
+          "id": "qjd_event_dad1985b85e9c815ec77379b",
+          "sequence": 7,
+          "eventType": "DISCOVERY_COMPLETED",
+          "predecessorStateHash": "sha256:2abf720eb69027f8c43601d4938e72bbe43c9897db781fe5c33c039fe979055c",
+          "successorStateHash": "sha256:32c1c4da3649ff09d16ef05e7c2106830d74fd2ecf4e9602e0d48e1d32c9da4c",
+          "createdAt": 1790791817898,
+          "actor": null,
+          "predecessorStage": null,
+          "successorStage": null
+        },
+        {
+          "id": "qje_eb3b747c50e39a8c473c345f",
+          "sequence": 8,
+          "eventType": "COMMAND_START_SCENARIO_DESIGN",
+          "predecessorStateHash": "sha256:54dada847e3e7fcc07799c96cb171480b199db5b681315ac6c8b99237363c087",
+          "successorStateHash": "sha256:5ae38b4034ad19b1278abeb3ddeb7efcfbb2f42e9af1ceb72f387e43208ef801",
+          "createdAt": 1790791830365,
+          "actor": "RUNNER",
+          "predecessorStage": "DISCOVERY",
+          "successorStage": "SCENARIO_DESIGN"
+        },
+        {
+          "id": "qje_552f115e-75b1-4919-8e98-60ab7ea95172",
+          "sequence": 9,
+          "eventType": "WORK_COMPLETED",
+          "predecessorStateHash": "sha256:5ae38b4034ad19b1278abeb3ddeb7efcfbb2f42e9af1ceb72f387e43208ef801",
+          "successorStateHash": "sha256:8e4f9af395da3ada000494cf4d64f2bab9496efde9e0b2bfaf9993d8c7a863b8",
+          "createdAt": 1790791920578,
+          "actor": null,
+          "predecessorStage": null,
+          "successorStage": null
+        },
+        {
+          "id": "qje_7de53ae5da72c31c14c459b7",
+          "sequence": 10,
+          "eventType": "COMMAND_PUBLISH_SCENARIO_PORTFOLIO",
+          "predecessorStateHash": "sha256:8e4f9af395da3ada000494cf4d64f2bab9496efde9e0b2bfaf9993d8c7a863b8",
+          "successorStateHash": "sha256:f90cd23d31b16167cbaeb6da8b42d4f5e1358cad00f7821caf1e29f084046a76",
+          "createdAt": 1790791937559,
+          "actor": "RUNNER",
+          "predecessorStage": "SCENARIO_DESIGN",
+          "successorStage": "SCENARIO_REVIEW"
+        },
+        {
+          "id": "qje_acf757040236964703fff0a6",
+          "sequence": 11,
+          "eventType": "COMMAND_DECIDE_SCENARIOS",
+          "predecessorStateHash": "sha256:f90cd23d31b16167cbaeb6da8b42d4f5e1358cad00f7821caf1e29f084046a76",
+          "successorStateHash": "sha256:669b3d8e938839070d656b7a482719b674d9a58f89d1d1eb29c9f0aca25bb128",
+          "createdAt": 1790791963428,
+          "actor": "USER",
+          "predecessorStage": "SCENARIO_REVIEW",
+          "successorStage": "AUTOMATION"
+        },
+        {
+          "id": "qje_9a85dc1c-4267-463f-b8e7-9cf4750e7669",
+          "sequence": 12,
+          "eventType": "WORK_COMPLETED",
+          "predecessorStateHash": "sha256:20da2322b81649794b87f1ea3f44a8c9933042e9ae21ce4bf0293830d25fb1e0",
+          "successorStateHash": "sha256:12f2668e51db6f0fddb7e3c336980d2764063da5c90d731f96ddc71358d5983b",
+          "createdAt": 1790792069622,
+          "actor": null,
+          "predecessorStage": null,
+          "successorStage": null
+        },
+        {
+          "id": "qje_5f4d348a1f0236e3176e7e26",
+          "sequence": 13,
+          "eventType": "COMMAND_START_EXECUTION",
+          "predecessorStateHash": "sha256:12f2668e51db6f0fddb7e3c336980d2764063da5c90d731f96ddc71358d5983b",
+          "successorStateHash": "sha256:ba986c9390c133e52f54c739afb1d4d25ab938790a0a08c5430babcb88b9dae9",
+          "createdAt": 1790792133717,
+          "actor": "RUNNER",
+          "predecessorStage": "AUTOMATION",
+          "successorStage": "EXECUTION"
+        },
+        {
+          "id": "qje_5578b78a217a6b1bcd627e25",
+          "sequence": 14,
+          "eventType": "COMMAND_PUBLISH_RUN_RESULT",
+          "predecessorStateHash": "sha256:ba986c9390c133e52f54c739afb1d4d25ab938790a0a08c5430babcb88b9dae9",
+          "successorStateHash": "sha256:f5ee86b99bf36333febec5c34442fb4bb34020e932f8647d26fe465e87bf551f",
+          "createdAt": 1790792133738,
+          "actor": "MANAGED_RUNTIME",
+          "predecessorStage": "EXECUTION",
+          "successorStage": "TRIAGE"
+        },
+        {
+          "id": "qje_69536ced-8e6a-4956-b0eb-d5e3860b1816",
+          "sequence": 15,
+          "eventType": "WORK_COMPLETED",
+          "predecessorStateHash": "sha256:cd5d2665201f8ae8140cdec35a71c591a63a0d9658132d9b476b4f4d65c8d4fc",
+          "successorStateHash": "sha256:87cec2b52a37c3a41d6885bd86af5b963b3949eff55480f28f01ab876bce0887",
+          "createdAt": 1790792503765,
+          "actor": null,
+          "predecessorStage": null,
+          "successorStage": null
+        },
+        {
+          "id": "qje_7387f247a583f8dc4d9de187",
+          "sequence": 16,
+          "eventType": "COMMAND_PUBLISH_TRIAGE_REPORT",
+          "predecessorStateHash": "sha256:87cec2b52a37c3a41d6885bd86af5b963b3949eff55480f28f01ab876bce0887",
+          "successorStateHash": "sha256:a607519e10bc1ae7ea50bd557ed26d2f185ed860e562e9c3697b828444f6d8a1",
+          "createdAt": 1790792503770,
+          "actor": "RUNNER",
+          "predecessorStage": "TRIAGE",
+          "successorStage": "REPORT_REVIEW"
+        },
+        {
+          "id": "qje_c700b4b4728c83e6d56376d5",
+          "sequence": 17,
+          "eventType": "COMMAND_START_RERUN_CYCLE",
+          "predecessorStateHash": "sha256:a607519e10bc1ae7ea50bd557ed26d2f185ed860e562e9c3697b828444f6d8a1",
+          "successorStateHash": "sha256:6df4615b4a5f1bcf4c19e61fbe89899d707fc6aed02cedaec4685152d12d251d",
+          "createdAt": 1790792705724,
+          "actor": "USER",
+          "predecessorStage": "REPORT_REVIEW",
+          "successorStage": "EXECUTION"
+        },
+        {
+          "id": "qje_79e32ba85f9f11ce591d03c5",
+          "sequence": 18,
+          "eventType": "COMMAND_PUBLISH_RUN_RESULT",
+          "predecessorStateHash": "sha256:6df4615b4a5f1bcf4c19e61fbe89899d707fc6aed02cedaec4685152d12d251d",
+          "successorStateHash": "sha256:f291aece998ec66f4f489471289060a9d98c09095b8e39a883d44a300fb88d78",
+          "createdAt": 1790792705764,
+          "actor": "MANAGED_RUNTIME",
+          "predecessorStage": "EXECUTION",
+          "successorStage": "TRIAGE"
+        },
+        {
+          "id": "qje_5c169dcf-de3f-49bc-b0c3-a2b16381868b",
+          "sequence": 19,
+          "eventType": "WORK_COMPLETED",
+          "predecessorStateHash": "sha256:c39894415021b596500432bf7d3c0337a99578adbc6df67fdc3f1bc5bcd5e84f",
+          "successorStateHash": "sha256:88a34e7ed4c8d9ce0729f5a4303966d601d7e231be407afc9f3174f578f2c12a",
+          "createdAt": 1790793090903,
+          "actor": null,
+          "predecessorStage": null,
+          "successorStage": null
+        },
+        {
+          "id": "qje_5aa40e6dd8be3f4ffd7f3643",
+          "sequence": 20,
+          "eventType": "COMMAND_PUBLISH_TRIAGE_REPORT",
+          "predecessorStateHash": "sha256:88a34e7ed4c8d9ce0729f5a4303966d601d7e231be407afc9f3174f578f2c12a",
+          "successorStateHash": "sha256:c4587304716d86109e2d55acbfd46432bbaf221c40cc0a6f255a8f5302234981",
+          "createdAt": 1790793090908,
+          "actor": "RUNNER",
+          "predecessorStage": "TRIAGE",
+          "successorStage": "REPORT_REVIEW"
+        },
+        {
+          "id": "qje_d1457f3ed48931d1a45d6b41",
+          "sequence": 21,
+          "eventType": "COMMAND_START_RERUN_CYCLE",
+          "predecessorStateHash": "sha256:c4587304716d86109e2d55acbfd46432bbaf221c40cc0a6f255a8f5302234981",
+          "successorStateHash": "sha256:fc4ac8d78051441984d49a8da89781560939157c0531896c28e0ca3a1862a435",
+          "createdAt": 1790793158665,
+          "actor": "USER",
+          "predecessorStage": "REPORT_REVIEW",
+          "successorStage": "EXECUTION"
+        },
+        {
+          "id": "qje_04b71f55949720279fe65846",
+          "sequence": 22,
+          "eventType": "COMMAND_PUBLISH_RUN_RESULT",
+          "predecessorStateHash": "sha256:fc4ac8d78051441984d49a8da89781560939157c0531896c28e0ca3a1862a435",
+          "successorStateHash": "sha256:f7806f808afd6bfef8fa529c3a8357d0e31d6e2c8e767d2f916dbaa6f4efe0e8",
+          "createdAt": 1790793162492,
+          "actor": "MANAGED_RUNTIME",
+          "predecessorStage": "EXECUTION",
+          "successorStage": "TRIAGE"
+        },
+        {
+          "id": "qje_ca2b39b9-141a-45ff-a367-951218d5734a",
+          "sequence": 23,
+          "eventType": "WORK_COMPLETED",
+          "predecessorStateHash": "sha256:f554ba0bd054348bb54ef9bb278020d27c3f1fbf9d82dfbed72b52f5098fb7f4",
+          "successorStateHash": "sha256:be18645ab108306d11eaa58299361f4855e4d6d1421cea68e0a9496f79277d50",
+          "createdAt": 1790793283106,
+          "actor": null,
+          "predecessorStage": null,
+          "successorStage": null
+        },
+        {
+          "id": "qje_dc79fa6cb1d50bb711796add",
+          "sequence": 24,
+          "eventType": "COMMAND_PUBLISH_TRIAGE_REPORT",
+          "predecessorStateHash": "sha256:be18645ab108306d11eaa58299361f4855e4d6d1421cea68e0a9496f79277d50",
+          "successorStateHash": "sha256:1ae44b98b55cd06f7e5a36692525a40f1a9ea8e6c438ceef51ede82469b1cafd",
+          "createdAt": 1790793283111,
+          "actor": "RUNNER",
+          "predecessorStage": "TRIAGE",
+          "successorStage": "REPORT_REVIEW"
+        },
+        {
+          "id": "qje_33c873ee2645d011f3baf1f5",
+          "sequence": 25,
+          "eventType": "COMMAND_START_REMEDIATION_CYCLE",
+          "predecessorStateHash": "sha256:1ae44b98b55cd06f7e5a36692525a40f1a9ea8e6c438ceef51ede82469b1cafd",
+          "successorStateHash": "sha256:4871d69cf5a71ba516d1dfc4d3b17dca70587b8b67373a85fccb4c5fdee38bea",
+          "createdAt": 1790793335993,
+          "actor": "USER",
+          "predecessorStage": "REPORT_REVIEW",
+          "successorStage": "AUTOMATION"
+        },
+        {
+          "id": "qje_a8a3c59a-a6bf-4665-a53a-a5f5c37ee9ed",
+          "sequence": 26,
+          "eventType": "WORK_COMPLETED",
+          "predecessorStateHash": "sha256:af77d7f9cba8d84f698f3f44943c14dad5a82aef678a07ea27aa4d44ee8428dc",
+          "successorStateHash": "sha256:f117c3615bb22fa3c0d4e08e6e22d6d5ef7513f05c76e1971250697af7e6b8a4",
+          "createdAt": 1790793479324,
+          "actor": null,
+          "predecessorStage": null,
+          "successorStage": null
+        },
+        {
+          "id": "qje_544120c11e711161a860a908",
+          "sequence": 27,
+          "eventType": "COMMAND_START_EXECUTION",
+          "predecessorStateHash": "sha256:f117c3615bb22fa3c0d4e08e6e22d6d5ef7513f05c76e1971250697af7e6b8a4",
+          "successorStateHash": "sha256:54eca5d9e35ab8a7458c4ce7d6d71f832d74929394d5fcaf575f3ee0b7a09315",
+          "createdAt": 1790793535794,
+          "actor": "RUNNER",
+          "predecessorStage": "AUTOMATION",
+          "successorStage": "EXECUTION"
+        },
+        {
+          "id": "qje_36b56cef05825f30a51df594",
+          "sequence": 28,
+          "eventType": "COMMAND_PUBLISH_RUN_RESULT",
+          "predecessorStateHash": "sha256:54eca5d9e35ab8a7458c4ce7d6d71f832d74929394d5fcaf575f3ee0b7a09315",
+          "successorStateHash": "sha256:7b9236f5908cd31fd60ab0f17960a694747347953c3eebdf493c058054c5bd18",
+          "createdAt": 1790793538214,
+          "actor": "MANAGED_RUNTIME",
+          "predecessorStage": "EXECUTION",
+          "successorStage": "TRIAGE"
+        },
+        {
+          "id": "qje_ce81d25e-bc5f-46af-90e1-eb406fd87ee6",
+          "sequence": 29,
+          "eventType": "WORK_COMPLETED",
+          "predecessorStateHash": "sha256:4a82446c5c65544caad7d18ddd9f284ae9dbaeba826fbc61c28e34bc4b4e86ec",
+          "successorStateHash": "sha256:dfb0f7a5bdc214c935142497c8693cc5c8fbdbbf2fe6699b92dfd68a8165adfe",
+          "createdAt": 1790793671345,
+          "actor": null,
+          "predecessorStage": null,
+          "successorStage": null
+        },
+        {
+          "id": "qje_fa65365cf126cc1ca3747a0f",
+          "sequence": 30,
+          "eventType": "COMMAND_PUBLISH_TRIAGE_REPORT",
+          "predecessorStateHash": "sha256:dfb0f7a5bdc214c935142497c8693cc5c8fbdbbf2fe6699b92dfd68a8165adfe",
+          "successorStateHash": "sha256:883fa89fb0024791e6d3d23c06875197f940b9ed6d5956d569ea476efd10377e",
+          "createdAt": 1790793671351,
+          "actor": "RUNNER",
+          "predecessorStage": "TRIAGE",
+          "successorStage": "REPORT_REVIEW"
+        },
+        {
+          "id": "qje_e42ca3ae2fd5233a4e31ff1c",
+          "sequence": 31,
+          "eventType": "COMMAND_CLOSE_JOURNEY",
+          "predecessorStateHash": "sha256:883fa89fb0024791e6d3d23c06875197f940b9ed6d5956d569ea476efd10377e",
+          "successorStateHash": "sha256:4143cd8464ae8462385c4d2c5621048db4fbf127963b32f9645a4d0e5feffde9",
+          "createdAt": 1790793685994,
+          "actor": "USER",
+          "predecessorStage": "REPORT_REVIEW",
+          "successorStage": "CLOSED"
+        }
+      ],
+      "cycles": [
+        {
+          "id": "qjex_063b2b0f2947702cbc1684d0",
+          "cycleId": "qjc_58fcfc0a-71a6-454d-9f9c-6ef83401d620",
+          "predecessorExecutionCycleId": null,
+          "status": "COMPLETED",
+          "environmentId": "b10c08d7-d911-423a-a009-8e3bbc19a0a2",
+          "environmentSnapshotHash": "sha256:7d3e835b4c9a3fedda6847c1a22b88788cc57097b0958c3b8a4bf313dc97fa30",
+          "preparedCapsulesHash": "sha256:4732568750b8a09b3c233d4b9fa1ff1a44606cd95514bae875a423dd6a6a9a99",
+          "startedAt": 1790792133711,
+          "completedAt": 1790792133738,
+          "runs": [
+            {
+              "bindingId": "qjet_7f4c035304e9fe53b2369b8e",
+              "testRunId": "qjtr_7f4c035304e9fe53b2369b8e",
+              "runId": "2cff3163-47f4-41ad-aeae-fa4b5666bd88",
+              "preparedCapsuleId": "qja_prepared_9d29ebdbc429e2e8e63a8f87",
+              "bindingStatus": "FAILED",
+              "testStatus": "COMPLETED",
+              "result": "FAILED",
+              "intent": "QUALITY_JOURNEY",
+              "evidenceHealth": "infrastructure_failure",
+              "completedAt": 1790792133726
+            }
+          ],
+          "receipts": [
+            {
+              "id": "qjeer_cc962f50643ed0ebe1384550",
+              "testRunId": "qjtr_7f4c035304e9fe53b2369b8e",
+              "receiptHash": "sha256:cc962f50643ed0ebe13845506946529e581cb7120d3c1c9cdd3bbe58550896ca",
+              "runtimeBytesHash": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "evidence": {
+                "artifacts": [],
+                "attemptId": null,
+                "cycleId": "qjc_58fcfc0a-71a6-454d-9f9c-6ef83401d620",
+                "environmentSnapshotHash": "sha256:7d3e835b4c9a3fedda6847c1a22b88788cc57097b0958c3b8a4bf313dc97fa30",
+                "evidenceHealth": "infrastructure_failure",
+                "executionCycleId": "qjex_063b2b0f2947702cbc1684d0",
+                "journeyId": "qjy_ae47607b-09ec-44e0-9514-894dd174c665",
+                "manifestHash": null,
+                "missingArtifacts": ["report", "log"],
+                "preparedCapsuleId": "qja_prepared_9d29ebdbc429e2e8e63a8f87",
+                "preparedCapsulesHash": "sha256:4732568750b8a09b3c233d4b9fa1ff1a44606cd95514bae875a423dd6a6a9a99",
+                "result": "FAILED",
+                "runId": "2cff3163-47f4-41ad-aeae-fa4b5666bd88",
+                "runtimeCapsuleHash": null,
+                "runtimeCapsuleId": null,
+                "schemaVersion": "appraise.quality-journey/v1",
+                "status": "COMPLETED",
+                "targetProjectId": "5b8d74da-1376-48ac-ae8e-96765b5861db",
+                "testRunId": "qjtr_7f4c035304e9fe53b2369b8e"
+              },
+              "retainedByteChecks": []
+            }
+          ]
+        },
+        {
+          "id": "qjex_60feacf6bc0d3d34993b8b3e",
+          "cycleId": "qjcycle_56438a5077fc6b854996f964",
+          "predecessorExecutionCycleId": "qjex_063b2b0f2947702cbc1684d0",
+          "status": "COMPLETED",
+          "environmentId": "b10c08d7-d911-423a-a009-8e3bbc19a0a2",
+          "environmentSnapshotHash": "sha256:7d3e835b4c9a3fedda6847c1a22b88788cc57097b0958c3b8a4bf313dc97fa30",
+          "preparedCapsulesHash": "sha256:4732568750b8a09b3c233d4b9fa1ff1a44606cd95514bae875a423dd6a6a9a99",
+          "startedAt": 1790792705725,
+          "completedAt": 1790792705765,
+          "runs": [
+            {
+              "bindingId": "qjet_a5ee92f6d26447cd95ba2a1a",
+              "testRunId": "qjtr_a5ee92f6d26447cd95ba2a1a",
+              "runId": "073705c0-a280-455d-ab3e-134955426aa0",
+              "preparedCapsuleId": "qja_prepared_9d29ebdbc429e2e8e63a8f87",
+              "bindingStatus": "FAILED",
+              "testStatus": "COMPLETED",
+              "result": "FAILED",
+              "intent": "QUALITY_JOURNEY",
+              "evidenceHealth": "infrastructure_failure",
+              "completedAt": 1790792705748
+            }
+          ],
+          "receipts": [
+            {
+              "id": "qjeer_e588de1c801cb29f48d910cc",
+              "testRunId": "qjtr_a5ee92f6d26447cd95ba2a1a",
+              "receiptHash": "sha256:e588de1c801cb29f48d910ccb160257fc1c6a749bcdeedfd2c89b2e44f4f798a",
+              "runtimeBytesHash": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "evidence": {
+                "artifacts": [],
+                "attemptId": null,
+                "cycleId": "qjcycle_56438a5077fc6b854996f964",
+                "environmentSnapshotHash": "sha256:7d3e835b4c9a3fedda6847c1a22b88788cc57097b0958c3b8a4bf313dc97fa30",
+                "evidenceHealth": "infrastructure_failure",
+                "executionCycleId": "qjex_60feacf6bc0d3d34993b8b3e",
+                "journeyId": "qjy_ae47607b-09ec-44e0-9514-894dd174c665",
+                "manifestHash": null,
+                "missingArtifacts": ["report", "log"],
+                "preparedCapsuleId": "qja_prepared_9d29ebdbc429e2e8e63a8f87",
+                "preparedCapsulesHash": "sha256:4732568750b8a09b3c233d4b9fa1ff1a44606cd95514bae875a423dd6a6a9a99",
+                "result": "FAILED",
+                "runId": "073705c0-a280-455d-ab3e-134955426aa0",
+                "runtimeCapsuleHash": null,
+                "runtimeCapsuleId": null,
+                "schemaVersion": "appraise.quality-journey/v1",
+                "status": "COMPLETED",
+                "targetProjectId": "5b8d74da-1376-48ac-ae8e-96765b5861db",
+                "testRunId": "qjtr_a5ee92f6d26447cd95ba2a1a"
+              },
+              "retainedByteChecks": []
+            }
+          ]
+        },
+        {
+          "id": "qjex_bb317dcbac86bb862360c28d",
+          "cycleId": "qjcycle_15317f2b7ace9b381b0afedb",
+          "predecessorExecutionCycleId": "qjex_60feacf6bc0d3d34993b8b3e",
+          "status": "COMPLETED",
+          "environmentId": "b10c08d7-d911-423a-a009-8e3bbc19a0a2",
+          "environmentSnapshotHash": "sha256:7d3e835b4c9a3fedda6847c1a22b88788cc57097b0958c3b8a4bf313dc97fa30",
+          "preparedCapsulesHash": "sha256:4732568750b8a09b3c233d4b9fa1ff1a44606cd95514bae875a423dd6a6a9a99",
+          "startedAt": 1790793158666,
+          "completedAt": 1790793162492,
+          "runs": [
+            {
+              "bindingId": "qjet_f477ae0412a45c169e14eba3",
+              "testRunId": "qjtr_f477ae0412a45c169e14eba3",
+              "runId": "8765ac8e-61b9-43a6-a0a3-dac3e63e2bcb",
+              "preparedCapsuleId": "qja_prepared_9d29ebdbc429e2e8e63a8f87",
+              "bindingStatus": "RUNNING",
+              "testStatus": "COMPLETED",
+              "result": "FAILED",
+              "intent": "QUALITY_JOURNEY",
+              "evidenceHealth": "valid",
+              "completedAt": 1790793162465
+            }
+          ],
+          "receipts": [
+            {
+              "id": "qjeer_dd9f273e366b762e5e5bb975",
+              "testRunId": "qjtr_f477ae0412a45c169e14eba3",
+              "receiptHash": "sha256:dd9f273e366b762e5e5bb97595eb002ae0f5654a8b101efddbba6ca9fc6cea56",
+              "runtimeBytesHash": "sha256:d6cf53901b546e346715f731c0642ace1a29129bb219ae34ba1a81fba2495b86",
+              "evidence": {
+                "artifacts": [
+                  {
+                    "contentHash": "sha256:4a017faa77d5afd4b03f8071d6a5867153baead1085b62111f5bd8ebe29d07dd",
+                    "kind": "report",
+                    "size": 4287
+                  },
+                  {
+                    "contentHash": "sha256:f4499944c1c692a7c0835bcce80b5641708634068eb3d3d768d3518155fac832",
+                    "kind": "log",
+                    "size": 3671
+                  },
+                  {
+                    "contentHash": "sha256:210f6629c0a0bce678e149344466a9d3f1338a318d86db0e10acdf4614094941",
+                    "kind": "trace",
+                    "size": 49537,
+                    "testCaseId": "qja_case_9d29ebdbc429e2e8e63a8f87"
+                  },
+                  {
+                    "contentHash": "sha256:0026d7619e8efcda68206d8bf577bad049e0263b97db3bb761b0719d15ad4bc4",
+                    "kind": "screenshot",
+                    "reportStepId": "13aa312c-c5d2-4584-8619-424f9761a7e8",
+                    "size": 11238,
+                    "testCaseId": "qja_case_9d29ebdbc429e2e8e63a8f87"
+                  }
+                ],
+                "attemptId": "f21ef37c-e380-40df-8708-0742fd2c288d",
+                "cycleId": "qjcycle_15317f2b7ace9b381b0afedb",
+                "environmentSnapshotHash": "sha256:7d3e835b4c9a3fedda6847c1a22b88788cc57097b0958c3b8a4bf313dc97fa30",
+                "evidenceHealth": "valid",
+                "executionCycleId": "qjex_bb317dcbac86bb862360c28d",
+                "journeyId": "qjy_ae47607b-09ec-44e0-9514-894dd174c665",
+                "manifestHash": "sha256:5cec436285cd3c89284bf4d23822bb75afce0e067bb10ac99c826aee9444c07f",
+                "missingArtifacts": [],
+                "preparedCapsuleId": "qja_prepared_9d29ebdbc429e2e8e63a8f87",
+                "preparedCapsulesHash": "sha256:4732568750b8a09b3c233d4b9fa1ff1a44606cd95514bae875a423dd6a6a9a99",
+                "result": "FAILED",
+                "runId": "8765ac8e-61b9-43a6-a0a3-dac3e63e2bcb",
+                "runtimeCapsuleHash": "sha256:de5e4901b898d023cac9007c4a829984f8cab9903079fab68fc15d8ed1ff88c2",
+                "runtimeCapsuleId": "c7462daa-5f2f-45cd-9ff3-17816fbb44c4",
+                "schemaVersion": "appraise.quality-journey/v1",
+                "status": "COMPLETED",
+                "targetProjectId": "5b8d74da-1376-48ac-ae8e-96765b5861db",
+                "testRunId": "qjtr_f477ae0412a45c169e14eba3"
+              },
+              "retainedByteChecks": [
+                {
+                  "kind": "report",
+                  "exists": true,
+                  "actualHash": "sha256:4a017faa77d5afd4b03f8071d6a5867153baead1085b62111f5bd8ebe29d07dd",
+                  "matchesSealedHash": true,
+                  "sizeMatches": true
+                },
+                {
+                  "kind": "log",
+                  "exists": true,
+                  "actualHash": "sha256:f4499944c1c692a7c0835bcce80b5641708634068eb3d3d768d3518155fac832",
+                  "matchesSealedHash": true,
+                  "sizeMatches": true
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "qjex_541ffdb58e21f5c657fd08d8",
+          "cycleId": "qjt_67912a43c6721679bf0a4994",
+          "predecessorExecutionCycleId": null,
+          "status": "COMPLETED",
+          "environmentId": "b10c08d7-d911-423a-a009-8e3bbc19a0a2",
+          "environmentSnapshotHash": "sha256:7d3e835b4c9a3fedda6847c1a22b88788cc57097b0958c3b8a4bf313dc97fa30",
+          "preparedCapsulesHash": "sha256:f238184896b5d9526a52b0474f6485b1fe790465dcece22c2f27d92de19e83b8",
+          "startedAt": 1790793535787,
+          "completedAt": 1790793538214,
+          "runs": [
+            {
+              "bindingId": "qjet_b33e2f47ce41a4c79ef1cafa",
+              "testRunId": "qjtr_b33e2f47ce41a4c79ef1cafa",
+              "runId": "9c056374-a2ff-409f-8a52-890ad1bc1692",
+              "preparedCapsuleId": "qja_prepared_7af5d2c7bcedd41fcf80a268",
+              "bindingStatus": "RUNNING",
+              "testStatus": "COMPLETED",
+              "result": "PASSED",
+              "intent": "QUALITY_JOURNEY",
+              "evidenceHealth": "valid",
+              "completedAt": 1790793538198
+            }
+          ],
+          "receipts": [
+            {
+              "id": "qjeer_3ece268a2b0ee649cbb032d0",
+              "testRunId": "qjtr_b33e2f47ce41a4c79ef1cafa",
+              "receiptHash": "sha256:3ece268a2b0ee649cbb032d085c930cd617905cb7f0c5342f8bb7dfffd3d27e4",
+              "runtimeBytesHash": "sha256:6d0acf374f60536a32fda1059a8f14fafb1d1628a3eae06742e5e72dcbecbc56",
+              "evidence": {
+                "artifacts": [
+                  {
+                    "contentHash": "sha256:e1ea700fa843704681f82dd3e51c30ce3f4e3dbff43c578e437f3c9d7801a0b1",
+                    "kind": "report",
+                    "size": 2737
+                  },
+                  {
+                    "contentHash": "sha256:cd3b89e16d6e524612ad7d8241769c1d7fdaa0b3a842ab725cea5b292e52905c",
+                    "kind": "log",
+                    "size": 996
+                  }
+                ],
+                "attemptId": "2b61880b-eea0-4c80-be3c-0852ca841dfe",
+                "cycleId": "qjt_67912a43c6721679bf0a4994",
+                "environmentSnapshotHash": "sha256:7d3e835b4c9a3fedda6847c1a22b88788cc57097b0958c3b8a4bf313dc97fa30",
+                "evidenceHealth": "valid",
+                "executionCycleId": "qjex_541ffdb58e21f5c657fd08d8",
+                "journeyId": "qjy_ae47607b-09ec-44e0-9514-894dd174c665",
+                "manifestHash": "sha256:d32cd927b60e6ec7e2c8f4d63330e36b0d64424cf0fa649d15bc86f895cec755",
+                "missingArtifacts": [],
+                "preparedCapsuleId": "qja_prepared_7af5d2c7bcedd41fcf80a268",
+                "preparedCapsulesHash": "sha256:f238184896b5d9526a52b0474f6485b1fe790465dcece22c2f27d92de19e83b8",
+                "result": "PASSED",
+                "runId": "9c056374-a2ff-409f-8a52-890ad1bc1692",
+                "runtimeCapsuleHash": "sha256:5c37193c832afa166e334c3cbace12589ba6cf352c61e34f3a14ab2e1b57d609",
+                "runtimeCapsuleId": "c7d86a99-2dc3-4cb2-827f-a3936d4a8fdf",
+                "schemaVersion": "appraise.quality-journey/v1",
+                "status": "COMPLETED",
+                "targetProjectId": "5b8d74da-1376-48ac-ae8e-96765b5861db",
+                "testRunId": "qjtr_b33e2f47ce41a4c79ef1cafa"
+              },
+              "retainedByteChecks": [
+                {
+                  "kind": "report",
+                  "exists": true,
+                  "actualHash": "sha256:e1ea700fa843704681f82dd3e51c30ce3f4e3dbff43c578e437f3c9d7801a0b1",
+                  "matchesSealedHash": true,
+                  "sizeMatches": true
+                },
+                {
+                  "kind": "log",
+                  "exists": true,
+                  "actualHash": "sha256:cd3b89e16d6e524612ad7d8241769c1d7fdaa0b3a842ab725cea5b292e52905c",
+                  "matchesSealedHash": true,
+                  "sizeMatches": true
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "consents": [
+        {
+          "id": "qjec_c39125fff590d30a62761e3a",
+          "executionCycleId": "qjex_063b2b0f2947702cbc1684d0",
+          "scopeHash": "sha256:e3e0ed624b340b7ff15168d1ac5e326ecbc347f5fc18129993d6bfc340050776",
+          "grantSource": "UI",
+          "status": "CONSUMED",
+          "grantedAt": 1790792104705,
+          "usedAt": 1790792133709,
+          "scope": {
+            "checkpoint": "START_EXECUTION:b10c08d7-d911-423a-a009-8e3bbc19a0a2:CHROMIUM",
+            "executionInputsHash": "sha256:10dff45d65579f841824c006ee99721d6035a327e645fe0ed194bfc70b9f2783",
+            "environmentSnapshotHash": "sha256:7d3e835b4c9a3fedda6847c1a22b88788cc57097b0958c3b8a4bf313dc97fa30",
+            "preparedRuntimeCapsuleIds": ["qja_prepared_9d29ebdbc429e2e8e63a8f87"],
+            "resourceHashes": {
+              "qja_prepared_9d29ebdbc429e2e8e63a8f87": "sha256:47d8724ffc051418bd919125eaf510a74fe6830d880579731753d145b2fe8359"
+            },
+            "targetProjectId": "5b8d74da-1376-48ac-ae8e-96765b5861db",
+            "targetFingerprint": "sha256:861988fa71668462ffbf638cbd862c7564e8dab0a7c61c4a95e379e0fa46f674"
+          }
+        },
+        {
+          "id": "qjec_fb9a3e535977243807a6d7e3",
+          "executionCycleId": "qjex_60feacf6bc0d3d34993b8b3e",
+          "scopeHash": "sha256:4fbdecca47d43ccb3d38de2ac8ff44e6137eaf30962edcf0562389c6c9ed2447",
+          "grantSource": "UI",
+          "status": "CONSUMED",
+          "grantedAt": 1790792696044,
+          "usedAt": 1790792705718,
+          "scope": {
+            "checkpoint": "START_EXECUTION:b10c08d7-d911-423a-a009-8e3bbc19a0a2:CHROMIUM",
+            "executionInputsHash": "sha256:59a69f6194dfc0f2548d55ac4ef1fddbfb814b700e917671c236a1db7386dbaf",
+            "environmentSnapshotHash": "sha256:7d3e835b4c9a3fedda6847c1a22b88788cc57097b0958c3b8a4bf313dc97fa30",
+            "preparedRuntimeCapsuleIds": ["qja_prepared_9d29ebdbc429e2e8e63a8f87"],
+            "resourceHashes": {
+              "qja_prepared_9d29ebdbc429e2e8e63a8f87": "sha256:47d8724ffc051418bd919125eaf510a74fe6830d880579731753d145b2fe8359"
+            },
+            "targetProjectId": "5b8d74da-1376-48ac-ae8e-96765b5861db",
+            "targetFingerprint": "sha256:861988fa71668462ffbf638cbd862c7564e8dab0a7c61c4a95e379e0fa46f674"
+          }
+        },
+        {
+          "id": "qjec_95a15d3ede71b132620551be",
+          "executionCycleId": "qjex_bb317dcbac86bb862360c28d",
+          "scopeHash": "sha256:de2bd54a0f6feca1c0a77ad9e2c1e8de555234081bdc6a4fa8a7a82189518372",
+          "grantSource": "UI",
+          "status": "CONSUMED",
+          "grantedAt": 1790793150035,
+          "usedAt": 1790793158660,
+          "scope": {
+            "checkpoint": "START_EXECUTION:b10c08d7-d911-423a-a009-8e3bbc19a0a2:CHROMIUM",
+            "executionInputsHash": "sha256:d0ea7e7ec02207bf3b20656c9fc60ae146e069c0c8c665d4bdfe615983c369a3",
+            "environmentSnapshotHash": "sha256:7d3e835b4c9a3fedda6847c1a22b88788cc57097b0958c3b8a4bf313dc97fa30",
+            "preparedRuntimeCapsuleIds": ["qja_prepared_9d29ebdbc429e2e8e63a8f87"],
+            "resourceHashes": {
+              "qja_prepared_9d29ebdbc429e2e8e63a8f87": "sha256:47d8724ffc051418bd919125eaf510a74fe6830d880579731753d145b2fe8359"
+            },
+            "targetProjectId": "5b8d74da-1376-48ac-ae8e-96765b5861db",
+            "targetFingerprint": "sha256:861988fa71668462ffbf638cbd862c7564e8dab0a7c61c4a95e379e0fa46f674"
+          }
+        },
+        {
+          "id": "qjec_24c8fbefb957305d9e48f1bf",
+          "executionCycleId": "qjex_541ffdb58e21f5c657fd08d8",
+          "scopeHash": "sha256:5e5311d8c139e8a8bf727866af795fcb80301073ae238f03d6418e143c93aba6",
+          "grantSource": "UI",
+          "status": "CONSUMED",
+          "grantedAt": 1790793525539,
+          "usedAt": 1790793535785,
+          "scope": {
+            "checkpoint": "START_EXECUTION:b10c08d7-d911-423a-a009-8e3bbc19a0a2:CHROMIUM",
+            "executionInputsHash": "sha256:b3ddfaf018beb655ebcbf27b67316d63288c299298dd093d8a6e037cc35a7a24",
+            "environmentSnapshotHash": "sha256:7d3e835b4c9a3fedda6847c1a22b88788cc57097b0958c3b8a4bf313dc97fa30",
+            "preparedRuntimeCapsuleIds": ["qja_prepared_7af5d2c7bcedd41fcf80a268"],
+            "resourceHashes": {
+              "qja_prepared_7af5d2c7bcedd41fcf80a268": "sha256:14e7dca307832eee26f1b49141c9a77f875b8fb5df210327bc97bd038e91ebc9"
+            },
+            "targetProjectId": "5b8d74da-1376-48ac-ae8e-96765b5861db",
+            "targetFingerprint": "sha256:861988fa71668462ffbf638cbd862c7564e8dab0a7c61c4a95e379e0fa46f674"
+          }
+        }
+      ],
+      "reports": [
+        {
+          "id": "report-c27-anon-https-infra-1",
+          "contentHash": "sha256:69f63c3f75ee3014e3621d5113ce5930311040e731f1c5786dec2c7895354948",
+          "createdAt": 1790792503766
+        },
+        {
+          "id": "report-c27-anon-https-infra-2",
+          "contentHash": "sha256:188917a009cc1edd5a93d127eec6aa9e41a7e86ba82315cb77f1512849294094",
+          "createdAt": 1790793090904
+        },
+        {
+          "id": "report-c27-anon-https-valid-failure-1",
+          "contentHash": "sha256:1c24bbf69479a3ea199f064e243a4f7520f5a0d59c774150938c8ba83e11e1b0",
+          "createdAt": 1790793283107
+        },
+        {
+          "id": "report-c27-anon-https-passing-1",
+          "contentHash": "sha256:d1574b5de38fc5819090e73c927c79b804dafe7c078e429980916fd0ba97db36",
+          "createdAt": 1790793671346
+        }
+      ],
+      "reviews": [
+        {
+          "id": "qjrr_87337a104c686b124d4224ab",
+          "reportRevisionId": "report-c27-anon-https-infra-1",
+          "kind": "RERUN_APPROVED",
+          "successorCycleId": null,
+          "createdAt": 1790792597884
+        },
+        {
+          "id": "qjrr_1c1090183a2dec75c32041ce",
+          "reportRevisionId": "report-c27-anon-https-infra-2",
+          "kind": "RERUN_APPROVED",
+          "successorCycleId": null,
+          "createdAt": 1790793130441
+        },
+        {
+          "id": "qjt_bd862d89d17aaa84f377e9d5",
+          "reportRevisionId": "report-c27-anon-https-valid-failure-1",
+          "kind": "AUTOMATION_CORRECTION_APPROVED",
+          "successorCycleId": "qjt_67912a43c6721679bf0a4994",
+          "createdAt": 1790793335989
+        },
+        {
+          "id": "qjc_2074ff4b8a386838ef46abf8",
+          "reportRevisionId": "report-c27-anon-https-passing-1",
+          "kind": "CLOSED",
+          "successorCycleId": null,
+          "createdAt": 1790793685986
+        }
+      ],
+      "rerunProposals": [
+        {
+          "id": "qjrp_bf636e06b4a5a5299cce1ec4",
+          "reportRevisionId": "report-c27-anon-https-infra-1",
+          "reportHash": "sha256:69f63c3f75ee3014e3621d5113ce5930311040e731f1c5786dec2c7895354948",
+          "sourceExecutionCycleId": "qjex_063b2b0f2947702cbc1684d0",
+          "successorExecutionCycleId": "qjex_60feacf6bc0d3d34993b8b3e",
+          "proposalHash": "sha256:b342fcc7545d762669ad61a479dfff669f9d1c8dc5d5ee68680815a18c44cfca",
+          "status": "STARTED",
+          "approvedAt": 1790792597885
+        },
+        {
+          "id": "qjrp_65c6bd4b5d05cf6c87c40ee4",
+          "reportRevisionId": "report-c27-anon-https-infra-2",
+          "reportHash": "sha256:188917a009cc1edd5a93d127eec6aa9e41a7e86ba82315cb77f1512849294094",
+          "sourceExecutionCycleId": "qjex_60feacf6bc0d3d34993b8b3e",
+          "successorExecutionCycleId": "qjex_bb317dcbac86bb862360c28d",
+          "proposalHash": "sha256:eca9a390631cf33e2daf985e22677a8538abf566b899078ba349682fb009e96d",
+          "status": "STARTED",
+          "approvedAt": 1790793130441
+        }
+      ],
+      "links": [
+        {
+          "id": "qja_link_253b0cd099c659a6045408e5",
+          "relation": "MATERIALIZES",
+          "linkHash": "sha256:1408174f6c86ff42eeae0dc9a908f25ede7360bb516555965d119fafe0f7163b",
+          "source": {
+            "artifactId": "scenario-c27-anon-https-1",
+            "contentHash": "sha256:f0a9c02cbc4bfa6eb1206a33e2fd80834baf474090a424d4245444eb78aa674e",
+            "kind": "SCENARIO_REVISION",
+            "revisionId": "scenario-revision-c27-anon-https-1"
+          },
+          "target": {
+            "artifactId": "qja_case_9d29ebdbc429e2e8e63a8f87",
+            "contentHash": "sha256:bb26a8182638f009dfcb23f285c4555abd3ab95a6d73ec812696042ce5993b9c",
+            "kind": "TEST_CASE"
+          }
+        },
+        {
+          "id": "qja_link_25747fd2526ed973e8447f77",
+          "relation": "MATERIALIZES",
+          "linkHash": "sha256:2d1ae0161c5b8c0752955d45af39ffd3c0cdec6e3cf3527bc5fc61dc3905edd0",
+          "source": {
+            "artifactId": "scenario-c27-anon-https-1",
+            "contentHash": "sha256:f0a9c02cbc4bfa6eb1206a33e2fd80834baf474090a424d4245444eb78aa674e",
+            "kind": "SCENARIO_REVISION",
+            "revisionId": "scenario-revision-c27-anon-https-1"
+          },
+          "target": {
+            "artifactId": "qja_suite_9d29ebdbc429e2e8e63a8f87",
+            "contentHash": "sha256:0f17d6518fc02e2c90d5c587866a458633fa5b3234606633b9e9b90c87d14241",
+            "kind": "TEST_SUITE"
+          }
+        },
+        {
+          "id": "qja_link_08497ad55678875f650d2753",
+          "relation": "MATERIALIZES",
+          "linkHash": "sha256:aef00a0286e11edf00ebc5f3bd53dd7430db3173c9a3d0b568d36da6c337b917",
+          "source": {
+            "artifactId": "scenario-c27-anon-https-1",
+            "contentHash": "sha256:f0a9c02cbc4bfa6eb1206a33e2fd80834baf474090a424d4245444eb78aa674e",
+            "kind": "SCENARIO_REVISION",
+            "revisionId": "scenario-revision-c27-anon-https-1"
+          },
+          "target": {
+            "artifactId": "qja_prepared_9d29ebdbc429e2e8e63a8f87",
+            "contentHash": "sha256:596415e9b8579d48d3fbe00e5cb31da100ce70445e3f2becae03eb9601d7c17c",
+            "kind": "RUNTIME_CAPSULE"
+          }
+        },
+        {
+          "id": "qjt_e764b4459844d8ab753e3a09",
+          "relation": "ANALYZES",
+          "linkHash": "sha256:29b181c60a565eb9053c7e3dbf6774239ef55f07e0a9884b1197f136091b038c",
+          "source": {
+            "artifactId": "report-c27-anon-https-infra-1",
+            "contentHash": "sha256:69f63c3f75ee3014e3621d5113ce5930311040e731f1c5786dec2c7895354948",
+            "kind": "TEST_REPORT_ANALYSIS_REVISION",
+            "revisionId": "report-c27-anon-https-infra-1"
+          },
+          "target": {
+            "artifactId": "charter-c27-anon-https-1",
+            "contentHash": "sha256:32ae604bf7012d7ab68ff24a631257bf71e06d7618fa9b7ad5e060e12d3a0fb6",
+            "kind": "ANALYSIS_CHARTER_REVISION",
+            "revisionId": "analysis-c27-anon-https-1"
+          }
+        },
+        {
+          "id": "qjt_d133c200a91644deffbb33b2",
+          "relation": "ATTRIBUTES",
+          "linkHash": "sha256:9c587e6053fffeba8a23c7128133db4c26d697cc87b2892fc5bee7b4e4844942",
+          "source": {
+            "artifactId": "report-c27-anon-https-infra-1",
+            "contentHash": "sha256:69f63c3f75ee3014e3621d5113ce5930311040e731f1c5786dec2c7895354948",
+            "kind": "TEST_REPORT_ANALYSIS_REVISION",
+            "revisionId": "report-c27-anon-https-infra-1"
+          },
+          "target": {
+            "artifactId": "qjeer_cc962f50643ed0ebe1384550",
+            "contentHash": "sha256:cc962f50643ed0ebe13845506946529e581cb7120d3c1c9cdd3bbe58550896ca",
+            "kind": "EVIDENCE_RECEIPT"
+          }
+        },
+        {
+          "id": "qjt_c37e1cd64efed08d3576e0dc",
+          "relation": "ANALYZES",
+          "linkHash": "sha256:a5208a36bc48008742ecabad27ff62614e06fac9c9f5b14023b1c490a06a1407",
+          "source": {
+            "artifactId": "report-c27-anon-https-infra-1",
+            "contentHash": "sha256:69f63c3f75ee3014e3621d5113ce5930311040e731f1c5786dec2c7895354948",
+            "kind": "TEST_REPORT_ANALYSIS_REVISION",
+            "revisionId": "report-c27-anon-https-infra-1"
+          },
+          "target": {
+            "artifactId": "qjtr_7f4c035304e9fe53b2369b8e",
+            "contentHash": "sha256:be55ac79da22320b4907cb97108808205adc60e10adcdecd8e321bf5417919b9",
+            "kind": "TEST_RUN"
+          }
+        },
+        {
+          "id": "qjt_2a0242fdf4fd6f754efee6f7",
+          "relation": "ANALYZES",
+          "linkHash": "sha256:bf2f906f4aadce1b20cc204fa6332324b45c9744e96360f998b3ffce83f97a82",
+          "source": {
+            "artifactId": "report-c27-anon-https-infra-1",
+            "contentHash": "sha256:69f63c3f75ee3014e3621d5113ce5930311040e731f1c5786dec2c7895354948",
+            "kind": "TEST_REPORT_ANALYSIS_REVISION",
+            "revisionId": "report-c27-anon-https-infra-1"
+          },
+          "target": {
+            "artifactId": "scenario-c27-anon-https-1",
+            "contentHash": "sha256:f0a9c02cbc4bfa6eb1206a33e2fd80834baf474090a424d4245444eb78aa674e",
+            "kind": "SCENARIO_REVISION",
+            "revisionId": "scenario-revision-c27-anon-https-1"
+          }
+        },
+        {
+          "id": "qjt_3da50272a2dcba1bb22a1f0a",
+          "relation": "ANALYZES",
+          "linkHash": "sha256:41f2622eeaf3d8647857eb4151a84b8dff52934d0b1988ab50540cbf15e42b06",
+          "source": {
+            "artifactId": "report-c27-anon-https-infra-2",
+            "contentHash": "sha256:188917a009cc1edd5a93d127eec6aa9e41a7e86ba82315cb77f1512849294094",
+            "kind": "TEST_REPORT_ANALYSIS_REVISION",
+            "revisionId": "report-c27-anon-https-infra-2"
+          },
+          "target": {
+            "artifactId": "charter-c27-anon-https-1",
+            "contentHash": "sha256:32ae604bf7012d7ab68ff24a631257bf71e06d7618fa9b7ad5e060e12d3a0fb6",
+            "kind": "ANALYSIS_CHARTER_REVISION",
+            "revisionId": "analysis-c27-anon-https-1"
+          }
+        },
+        {
+          "id": "qjt_93650aa38a0c87f572e880ba",
+          "relation": "ATTRIBUTES",
+          "linkHash": "sha256:7c26e25771c65070698176cbfeee222809e01982cf8d29b61b02eea1090a2f95",
+          "source": {
+            "artifactId": "report-c27-anon-https-infra-2",
+            "contentHash": "sha256:188917a009cc1edd5a93d127eec6aa9e41a7e86ba82315cb77f1512849294094",
+            "kind": "TEST_REPORT_ANALYSIS_REVISION",
+            "revisionId": "report-c27-anon-https-infra-2"
+          },
+          "target": {
+            "artifactId": "qjeer_e588de1c801cb29f48d910cc",
+            "contentHash": "sha256:e588de1c801cb29f48d910ccb160257fc1c6a749bcdeedfd2c89b2e44f4f798a",
+            "kind": "EVIDENCE_RECEIPT"
+          }
+        },
+        {
+          "id": "qjt_eafed113d72654d5a343347a",
+          "relation": "ANALYZES",
+          "linkHash": "sha256:96c314babc9673cf87fd4bbb287e67a163a2b9f46482e1e42df4811aba114232",
+          "source": {
+            "artifactId": "report-c27-anon-https-infra-2",
+            "contentHash": "sha256:188917a009cc1edd5a93d127eec6aa9e41a7e86ba82315cb77f1512849294094",
+            "kind": "TEST_REPORT_ANALYSIS_REVISION",
+            "revisionId": "report-c27-anon-https-infra-2"
+          },
+          "target": {
+            "artifactId": "scenario-c27-anon-https-1",
+            "contentHash": "sha256:f0a9c02cbc4bfa6eb1206a33e2fd80834baf474090a424d4245444eb78aa674e",
+            "kind": "SCENARIO_REVISION",
+            "revisionId": "scenario-revision-c27-anon-https-1"
+          }
+        },
+        {
+          "id": "qjt_c0af101f0393a36cef22dd52",
+          "relation": "ANALYZES",
+          "linkHash": "sha256:a9ff172c777e3caa5ceddbb59e2800a8afce2bee97f85db895796d0d2e757a48",
+          "source": {
+            "artifactId": "report-c27-anon-https-infra-2",
+            "contentHash": "sha256:188917a009cc1edd5a93d127eec6aa9e41a7e86ba82315cb77f1512849294094",
+            "kind": "TEST_REPORT_ANALYSIS_REVISION",
+            "revisionId": "report-c27-anon-https-infra-2"
+          },
+          "target": {
+            "artifactId": "qjtr_a5ee92f6d26447cd95ba2a1a",
+            "contentHash": "sha256:81ca511ac0aa8df463bcdfe8a46180f9e8593430f343f44bba86e5e464d025e0",
+            "kind": "TEST_RUN"
+          }
+        },
+        {
+          "id": "qjt_2acf529152151a404ef1f66b",
+          "relation": "ATTRIBUTES",
+          "linkHash": "sha256:37b48f5a3265d5586338f1405b92395e4eeca9f295143a0b7cb9b3ca6ce76da0",
+          "source": {
+            "artifactId": "report-c27-anon-https-valid-failure-1",
+            "contentHash": "sha256:1c24bbf69479a3ea199f064e243a4f7520f5a0d59c774150938c8ba83e11e1b0",
+            "kind": "TEST_REPORT_ANALYSIS_REVISION",
+            "revisionId": "report-c27-anon-https-valid-failure-1"
+          },
+          "target": {
+            "artifactId": "qjeer_dd9f273e366b762e5e5bb975",
+            "contentHash": "sha256:dd9f273e366b762e5e5bb97595eb002ae0f5654a8b101efddbba6ca9fc6cea56",
+            "kind": "EVIDENCE_RECEIPT"
+          }
+        },
+        {
+          "id": "qjt_83fe883177fad74a00424486",
+          "relation": "ANALYZES",
+          "linkHash": "sha256:eb540fcecd4a166d87cc3c9987d4d053b5dc6a86cbcce3ea8f032a4564c2010b",
+          "source": {
+            "artifactId": "report-c27-anon-https-valid-failure-1",
+            "contentHash": "sha256:1c24bbf69479a3ea199f064e243a4f7520f5a0d59c774150938c8ba83e11e1b0",
+            "kind": "TEST_REPORT_ANALYSIS_REVISION",
+            "revisionId": "report-c27-anon-https-valid-failure-1"
+          },
+          "target": {
+            "artifactId": "charter-c27-anon-https-1",
+            "contentHash": "sha256:32ae604bf7012d7ab68ff24a631257bf71e06d7618fa9b7ad5e060e12d3a0fb6",
+            "kind": "ANALYSIS_CHARTER_REVISION",
+            "revisionId": "analysis-c27-anon-https-1"
+          }
+        },
+        {
+          "id": "qjt_ef03d53ab4ee9932a08b79f8",
+          "relation": "ANALYZES",
+          "linkHash": "sha256:4151131f61dcbcffbd6633577e28f1cac40a1f7ae247c541966a65e2e33dc3cb",
+          "source": {
+            "artifactId": "report-c27-anon-https-valid-failure-1",
+            "contentHash": "sha256:1c24bbf69479a3ea199f064e243a4f7520f5a0d59c774150938c8ba83e11e1b0",
+            "kind": "TEST_REPORT_ANALYSIS_REVISION",
+            "revisionId": "report-c27-anon-https-valid-failure-1"
+          },
+          "target": {
+            "artifactId": "scenario-c27-anon-https-1",
+            "contentHash": "sha256:f0a9c02cbc4bfa6eb1206a33e2fd80834baf474090a424d4245444eb78aa674e",
+            "kind": "SCENARIO_REVISION",
+            "revisionId": "scenario-revision-c27-anon-https-1"
+          }
+        },
+        {
+          "id": "qjt_393bb7c5cf602410c1f8eb87",
+          "relation": "ANALYZES",
+          "linkHash": "sha256:898ebe4139593ed280f76f0f1d540b8e0c7d37ac71357c98382ca06c1727eb18",
+          "source": {
+            "artifactId": "report-c27-anon-https-valid-failure-1",
+            "contentHash": "sha256:1c24bbf69479a3ea199f064e243a4f7520f5a0d59c774150938c8ba83e11e1b0",
+            "kind": "TEST_REPORT_ANALYSIS_REVISION",
+            "revisionId": "report-c27-anon-https-valid-failure-1"
+          },
+          "target": {
+            "artifactId": "qjtr_f477ae0412a45c169e14eba3",
+            "contentHash": "sha256:05573ce4a0823322fd5410a086d1833d0b8de124a923eb709367eb2699b385be",
+            "kind": "TEST_RUN"
+          }
+        },
+        {
+          "id": "qja_link_9845b5919cf87aaa8bb5c212",
+          "relation": "MATERIALIZES",
+          "linkHash": "sha256:030745013dbb78a3f37f9f387cf58a55233ebf4c83d7f725e48d57ca423dec2f",
+          "source": {
+            "artifactId": "scenario-c27-anon-https-1",
+            "contentHash": "sha256:f0a9c02cbc4bfa6eb1206a33e2fd80834baf474090a424d4245444eb78aa674e",
+            "kind": "SCENARIO_REVISION",
+            "revisionId": "scenario-revision-c27-anon-https-1"
+          },
+          "target": {
+            "artifactId": "qja_case_7af5d2c7bcedd41fcf80a268",
+            "contentHash": "sha256:3700c6f18e2234e728f00898a27e86defaf594892ffc277339895e56c6060e07",
+            "kind": "TEST_CASE"
+          }
+        },
+        {
+          "id": "qja_link_596ca80e0059242dc0f6ba8e",
+          "relation": "MATERIALIZES",
+          "linkHash": "sha256:131c3df8ce578510c2468d1e3b45d3de6314637e1a851d119840e5f1583a531f",
+          "source": {
+            "artifactId": "scenario-c27-anon-https-1",
+            "contentHash": "sha256:f0a9c02cbc4bfa6eb1206a33e2fd80834baf474090a424d4245444eb78aa674e",
+            "kind": "SCENARIO_REVISION",
+            "revisionId": "scenario-revision-c27-anon-https-1"
+          },
+          "target": {
+            "artifactId": "qja_suite_7af5d2c7bcedd41fcf80a268",
+            "contentHash": "sha256:2bc4d65ba7829243b7bb3aee784f33f9e3da5da6df70d10b982a570d3b17e67b",
+            "kind": "TEST_SUITE"
+          }
+        },
+        {
+          "id": "qja_link_2f7945ea1eabe23014941fa0",
+          "relation": "MATERIALIZES",
+          "linkHash": "sha256:77920c0b24e794931197111a093ad4dd4a0a8d17770afb9d213280e5ff54d8b6",
+          "source": {
+            "artifactId": "scenario-c27-anon-https-1",
+            "contentHash": "sha256:f0a9c02cbc4bfa6eb1206a33e2fd80834baf474090a424d4245444eb78aa674e",
+            "kind": "SCENARIO_REVISION",
+            "revisionId": "scenario-revision-c27-anon-https-1"
+          },
+          "target": {
+            "artifactId": "qja_prepared_7af5d2c7bcedd41fcf80a268",
+            "contentHash": "sha256:5f9dff662e46c6a246d584ea5241db817cb74a5e142c98560e21d100aeb2c4d2",
+            "kind": "RUNTIME_CAPSULE"
+          }
+        },
+        {
+          "id": "qja_remediation-link_7af5d2c7bcedd41fcf80a268",
+          "relation": "SUPERSEDES",
+          "linkHash": "sha256:1bf5c5085a425a5dd90287f225ffa20c90129d5e4c164d41547c2c2df6435813",
+          "source": {
+            "artifactId": "qja_materialization_1e8929c8f034aea62bafffbf",
+            "contentHash": "sha256:b3336bff829d7e0b6315299b7d3d00592c5d57bda009d04018d76bb68e5bc3a0",
+            "kind": "RUNTIME_CAPSULE"
+          },
+          "target": {
+            "artifactId": "qja_materialization_0b2ff986414bf53bf643687c",
+            "contentHash": "sha256:e7c991c0e25dec396af521a63d2396f44b2a7cb7bd70a8a6e179320d47085b1a",
+            "kind": "RUNTIME_CAPSULE"
+          }
+        },
+        {
+          "id": "qjt_11a3550428ad4dd6ca1a7ad5",
+          "relation": "ANALYZES",
+          "linkHash": "sha256:90b90ed7cc5e24732ef3ad42171577fca705a1b2dacc4e4f3b19cbed7d87f68f",
+          "source": {
+            "artifactId": "report-c27-anon-https-passing-1",
+            "contentHash": "sha256:d1574b5de38fc5819090e73c927c79b804dafe7c078e429980916fd0ba97db36",
+            "kind": "TEST_REPORT_ANALYSIS_REVISION",
+            "revisionId": "report-c27-anon-https-passing-1"
+          },
+          "target": {
+            "artifactId": "charter-c27-anon-https-1",
+            "contentHash": "sha256:32ae604bf7012d7ab68ff24a631257bf71e06d7618fa9b7ad5e060e12d3a0fb6",
+            "kind": "ANALYSIS_CHARTER_REVISION",
+            "revisionId": "analysis-c27-anon-https-1"
+          }
+        },
+        {
+          "id": "qjt_ed4a765e0b2047c6b04a10a4",
+          "relation": "ATTRIBUTES",
+          "linkHash": "sha256:1f952e5d41d2a1e63fa306f689b9c0b48baf8d1600075e7ca6967990c9fe0b15",
+          "source": {
+            "artifactId": "report-c27-anon-https-passing-1",
+            "contentHash": "sha256:d1574b5de38fc5819090e73c927c79b804dafe7c078e429980916fd0ba97db36",
+            "kind": "TEST_REPORT_ANALYSIS_REVISION",
+            "revisionId": "report-c27-anon-https-passing-1"
+          },
+          "target": {
+            "artifactId": "qjeer_3ece268a2b0ee649cbb032d0",
+            "contentHash": "sha256:3ece268a2b0ee649cbb032d085c930cd617905cb7f0c5342f8bb7dfffd3d27e4",
+            "kind": "EVIDENCE_RECEIPT"
+          }
+        },
+        {
+          "id": "qjt_3f111ef250dc76aa9bdcfba0",
+          "relation": "ANALYZES",
+          "linkHash": "sha256:ca995a51ba378a74774ff41dd13629e6d888ae140e995c5f50c1e857ce437f63",
+          "source": {
+            "artifactId": "report-c27-anon-https-passing-1",
+            "contentHash": "sha256:d1574b5de38fc5819090e73c927c79b804dafe7c078e429980916fd0ba97db36",
+            "kind": "TEST_REPORT_ANALYSIS_REVISION",
+            "revisionId": "report-c27-anon-https-passing-1"
+          },
+          "target": {
+            "artifactId": "qjtr_b33e2f47ce41a4c79ef1cafa",
+            "contentHash": "sha256:8debd129a8a459dbc5aa59e4817fc061acb07135687e9d67b744b2dfa69cf54e",
+            "kind": "TEST_RUN"
+          }
+        },
+        {
+          "id": "qjt_2b478d22da4eb52c1fb8bfcd",
+          "relation": "ANALYZES",
+          "linkHash": "sha256:dcaebd19f105756aaa2466214dd0de8c90c192f78a5d85729669b8c3652de343",
+          "source": {
+            "artifactId": "report-c27-anon-https-passing-1",
+            "contentHash": "sha256:d1574b5de38fc5819090e73c927c79b804dafe7c078e429980916fd0ba97db36",
+            "kind": "TEST_REPORT_ANALYSIS_REVISION",
+            "revisionId": "report-c27-anon-https-passing-1"
+          },
+          "target": {
+            "artifactId": "scenario-c27-anon-https-1",
+            "contentHash": "sha256:f0a9c02cbc4bfa6eb1206a33e2fd80834baf474090a424d4245444eb78aa674e",
+            "kind": "SCENARIO_REVISION",
+            "revisionId": "scenario-revision-c27-anon-https-1"
+          }
+        },
+        {
+          "id": "qjc_c6135a50b6e2c0d61deac3c4",
+          "relation": "APPROVES",
+          "linkHash": "sha256:8f3b49328ae85b5ab737e9907fd4b5d1215f2066972d340dd1ec6a0af494263b",
+          "source": {
+            "artifactId": "qjc_7a992512af14e0202f999324",
+            "contentHash": "sha256:b92a945efd53fe2e48e6e7a5f0d00600da4c69e7eb2e8ac52bd5fcef2e269531",
+            "kind": "JOURNEY_CLOSURE"
+          },
+          "target": {
+            "artifactId": "report-c27-anon-https-passing-1",
+            "contentHash": "sha256:d1574b5de38fc5819090e73c927c79b804dafe7c078e429980916fd0ba97db36",
+            "kind": "TEST_REPORT_ANALYSIS_REVISION",
+            "revisionId": "report-c27-anon-https-passing-1"
+          }
+        }
+      ],
+      "closure": {
+        "id": "qjc_7a992512af14e0202f999324",
+        "reportRevisionId": "report-c27-anon-https-passing-1",
+        "reportHash": "sha256:d1574b5de38fc5819090e73c927c79b804dafe7c078e429980916fd0ba97db36",
+        "contentHash": "sha256:b92a945efd53fe2e48e6e7a5f0d00600da4c69e7eb2e8ac52bd5fcef2e269531",
+        "closedAt": 1790793685984,
+        "record": {
+          "actorId": "USER",
+          "closedAt": "2026-09-30T18:41:25.984Z",
+          "closureId": "qjc_7a992512af14e0202f999324",
+          "cycleId": "qjt_67912a43c6721679bf0a4994",
+          "decision": "CLOSED",
+          "journeyId": "qjy_ae47607b-09ec-44e0-9514-894dd174c665",
+          "reportRevision": {
+            "artifactId": "report-c27-anon-https-passing-1",
+            "contentHash": "sha256:d1574b5de38fc5819090e73c927c79b804dafe7c078e429980916fd0ba97db36",
+            "kind": "TEST_REPORT_ANALYSIS_REVISION",
+            "revisionId": "report-c27-anon-https-passing-1"
+          },
+          "schemaVersion": "appraise.quality-journey/v1",
+          "unresolvedItems": []
+        }
+      }
+    },
+    {
+      "id": "qjy_1c2ff25f-70b1-41ca-8be4-1d4eb8a29d28",
+      "targetProjectId": "76f1c928-b478-4347-83be-eccb7ff43026",
+      "stage": "CLOSED",
+      "status": "CLOSED",
+      "activeCycleId": "qjt_2194391454d1577da4a87ce9",
+      "stateHash": "sha256:66da6c031dce478d91be03842120aaaa83f2ab62dd394273768b58b9bfc0cc33",
+      "version": 39,
+      "activeRevisionIds": {
+        "analysis": "c272-auth-analysis-1",
+        "journey": "qjr_91345e43-aed7-4b85-a726-9331091918a4",
+        "report": "c272-auth-report-5",
+        "scenarioPortfolio": "c272-auth-portfolio-1"
+      },
+      "unresolvedQuestionIds": [],
+      "blockerIds": [],
+      "activeWorkItemIds": [],
+      "artifacts": [
+        {
+          "kind": "ANALYSIS_CHARTER_REVISION",
+          "artifactId": "c272-auth-charter",
+          "revisionId": "c272-auth-analysis-1",
+          "contentHash": "sha256:a545e28ebadef56f2ee699c6290a2ab87a6bf91340588ed5d2e539f8c275d6a6"
+        },
+        {
+          "kind": "JOURNEY_APPROVAL",
+          "artifactId": "analysis-approval:c272-auth-analysis-1",
+          "revisionId": null,
+          "contentHash": "sha256:1f920052a82dfa44a3bb6a46cd503d5e161dec0355173eff8fbcc905eaef91d5"
+        },
+        {
+          "kind": "DISCOVERY_BROWSER_RECEIPT",
+          "artifactId": "qjdb_receipt_f9bda73a9ffc804535dec363084d3c8c",
+          "revisionId": null,
+          "contentHash": "sha256:aadfcb84eed537eeadd83da53850409d4ea11681362b170902776cb0916b80f4"
+        },
+        {
+          "kind": "SCENARIO_PORTFOLIO_REVISION",
+          "artifactId": "c272-auth-portfolio",
+          "revisionId": "c272-auth-portfolio-1",
+          "contentHash": "sha256:bad713787321868d339b8f72174de378199337a8c36a9e418796b415cd42d768"
+        },
+        {
+          "kind": "SCENARIO_REVISION",
+          "artifactId": "c272-auth-checkout-scenario",
+          "revisionId": "c272-auth-scenario-1",
+          "contentHash": "sha256:52df383c96dcc44bf3261e9e67522913889e1d69be9bdc3be1830f3d0b9feb34"
+        },
+        {
+          "kind": "RUNTIME_CAPSULE",
+          "artifactId": "qja_materialization_439c17bdcd9395d50f1c6f96",
+          "revisionId": null,
+          "contentHash": "sha256:7b8db61d71ff461b1206306ff78399e2864d31afd25a169121ccedc26a5b3c34"
+        },
+        {
+          "kind": "TEST_CASE",
+          "artifactId": "qja_case_d7d94c0691dc5023df125438",
+          "revisionId": null,
+          "contentHash": "sha256:1f6d2fd3259d36efd07be3423cdbbaf078f5c3631d2c92e92cb1d7741b89b8b1"
+        },
+        {
+          "kind": "TEST_SUITE",
+          "artifactId": "qja_suite_d7d94c0691dc5023df125438",
+          "revisionId": null,
+          "contentHash": "sha256:877aa74ac19599975b98936de2ea4357ad95bfcd17bf43c9fb6859f9f2972e66"
+        },
+        {
+          "kind": "RUNTIME_CAPSULE",
+          "artifactId": "qja_prepared_d7d94c0691dc5023df125438",
+          "revisionId": null,
+          "contentHash": "sha256:315a4b912b1f47326912383d8c6ae35a1fe40ccf767fc348838cf7aa76bbf53c"
+        },
+        {
+          "kind": "TEST_REPORT_ANALYSIS_REVISION",
+          "artifactId": "c272-auth-report-1",
+          "revisionId": "c272-auth-report-1",
+          "contentHash": "sha256:1cb60b7c39ae325a392bbccd2594bd68f7ac7e388ecf9aa3c8c06c007f7ee194"
+        },
+        {
+          "kind": "REPORT_REVISION_FEEDBACK",
+          "artifactId": "c272-auth-report-1",
+          "revisionId": null,
+          "contentHash": "sha256:a82067d5ff2b528b80717eb3cbd75710e76fb07b09c985f5d5a76863db6c3f94"
+        },
+        {
+          "kind": "TEST_REPORT_ANALYSIS_REVISION",
+          "artifactId": "c272-auth-report-2",
+          "revisionId": "c272-auth-report-2",
+          "contentHash": "sha256:9ec88be9918ff86adc591686124cf097e15f222f9ff70874787573133eb5e804"
+        },
+        {
+          "kind": "TEST_REPORT_ANALYSIS_REVISION",
+          "artifactId": "c272-auth-report-3",
+          "revisionId": "c272-auth-report-3",
+          "contentHash": "sha256:c55b9965a90ccbaf1a874049cb61787e11ec4304c23b6bde3dd8ca144db1f48c"
+        },
+        {
+          "kind": "REPORT_REVISION_FEEDBACK",
+          "artifactId": "c272-auth-report-3",
+          "revisionId": null,
+          "contentHash": "sha256:bdcf9e17c09c5c82b713b52f7b7f9374d554c1daff3bbbfc8d0327b763183c2e"
+        },
+        {
+          "kind": "TEST_REPORT_ANALYSIS_REVISION",
+          "artifactId": "c272-auth-report-4",
+          "revisionId": "c272-auth-report-4",
+          "contentHash": "sha256:8c281572e71c2ed0eeee7e888bbd944cff6e1dfd8949b00b49c5281009a03f0f"
+        },
+        {
+          "kind": "REMEDIATION_APPROVAL",
+          "artifactId": "remediation:c272-auth-report-4",
+          "revisionId": null,
+          "contentHash": "sha256:c9805a2bf6e218ddd91906a18dc221901f3b177a5d7787becdcd8778aa57f354"
+        },
+        {
+          "kind": "RUNTIME_CAPSULE",
+          "artifactId": "qja_materialization_de766d055c09d52dac6cfbd9",
+          "revisionId": null,
+          "contentHash": "sha256:54b3631cfaa3d7054d31e1ce320df0f9739598c4082b1a265dadeac7b469f67e"
+        },
+        {
+          "kind": "TEST_SUITE",
+          "artifactId": "qja_suite_f77ee292a857cdb7c9a244b2",
+          "revisionId": null,
+          "contentHash": "sha256:75c21f44aea5e5591c3d2a8a42196dcfd3578b024a0ea1755d081817996e7516"
+        },
+        {
+          "kind": "TEST_CASE",
+          "artifactId": "qja_case_f77ee292a857cdb7c9a244b2",
+          "revisionId": null,
+          "contentHash": "sha256:d025f02dc7c69dd16124a1a26df652d58ed1b3dbe8d8eeb3e1f8b40410924532"
+        },
+        {
+          "kind": "RUNTIME_CAPSULE",
+          "artifactId": "qja_prepared_f77ee292a857cdb7c9a244b2",
+          "revisionId": null,
+          "contentHash": "sha256:713ccad1d5544b175102c900be45af44d83d7870bdf5cef3f7ac344eb4bd999c"
+        },
+        {
+          "kind": "TEST_REPORT_ANALYSIS_REVISION",
+          "artifactId": "c272-auth-report-5",
+          "revisionId": "c272-auth-report-5",
+          "contentHash": "sha256:4fb64bfc01d5b5a8877932ffdc7c293baa0411c580f0defe6dfcf27cfa84312d"
+        },
+        {
+          "kind": "JOURNEY_CLOSURE",
+          "artifactId": "qjc_a7f674799c59ddc8bcaa968e",
+          "revisionId": null,
+          "contentHash": "sha256:339dc69d70ef5ec8114a9eb7169e515d002a38783c476b3325cccfb25f8162d0"
+        }
+      ],
+      "events": [
+        {
+          "id": "qje_e38ae244-c31d-488c-9b90-0f9fcc5820aa",
+          "sequence": 1,
+          "eventType": "JOURNEY_CREATED",
+          "predecessorStateHash": "sha256:eafd8547ff3045a25af3056fc81ec08cdd21faceeb8660c02bcba65418f3aa62",
+          "successorStateHash": "sha256:eafd8547ff3045a25af3056fc81ec08cdd21faceeb8660c02bcba65418f3aa62",
+          "createdAt": 1790878883053,
+          "actor": null,
+          "predecessorStage": null,
+          "successorStage": null
+        },
+        {
+          "id": "qje_bf2dfc430fc59a9143598c0a",
+          "sequence": 2,
+          "eventType": "COMMAND_SUBMIT_REQUIREMENT",
+          "predecessorStateHash": "sha256:eafd8547ff3045a25af3056fc81ec08cdd21faceeb8660c02bcba65418f3aa62",
+          "successorStateHash": "sha256:04180a5ea57cbd9d472d942faa2b945cc366f4da0eb810e7d2cb29c955d72ff1",
+          "createdAt": 1790879000720,
+          "actor": "USER",
+          "predecessorStage": "INTAKE",
+          "successorStage": "ANALYSIS"
+        },
+        {
+          "id": "qje_be933662-b957-4889-b4da-0ac60a6e930f",
+          "sequence": 3,
+          "eventType": "WORK_COMPLETED",
+          "predecessorStateHash": "sha256:04180a5ea57cbd9d472d942faa2b945cc366f4da0eb810e7d2cb29c955d72ff1",
+          "successorStateHash": "sha256:6168e3ccae3a4d387d2e65b38ba4750e189bdc05a4433cbaa8b9599b78d602bc",
+          "createdAt": 1790879283099,
+          "actor": null,
+          "predecessorStage": null,
+          "successorStage": null
+        },
+        {
+          "id": "qje_analysis_7d3f9a65c978426fed642934",
+          "sequence": 4,
+          "eventType": "ANALYSIS_SUBMITTED",
+          "predecessorStateHash": "sha256:6168e3ccae3a4d387d2e65b38ba4750e189bdc05a4433cbaa8b9599b78d602bc",
+          "successorStateHash": "sha256:6aad17dbb3836a29410b48d30cc77c30916cc8393760a10e612626d45826cf58",
+          "createdAt": 1790879283101,
+          "actor": null,
+          "predecessorStage": null,
+          "successorStage": null
+        },
+        {
+          "id": "qje_fc91cced8014e42a76c116d2",
+          "sequence": 5,
+          "eventType": "COMMAND_PUBLISH_ANALYSIS",
+          "predecessorStateHash": "sha256:6aad17dbb3836a29410b48d30cc77c30916cc8393760a10e612626d45826cf58",
+          "successorStateHash": "sha256:bf7b4df895387df6c78f449f4b1adbbb2e5a9194d5ce183e3566315626f9f7de",
+          "createdAt": 1790879302340,
+          "actor": "RUNNER",
+          "predecessorStage": "ANALYSIS",
+          "successorStage": "ANALYSIS_REVIEW"
+        },
+        {
+          "id": "qje_1d30450ea0088bfedd73b8c8",
+          "sequence": 6,
+          "eventType": "COMMAND_DECIDE_ANALYSIS",
+          "predecessorStateHash": "sha256:bf7b4df895387df6c78f449f4b1adbbb2e5a9194d5ce183e3566315626f9f7de",
+          "successorStateHash": "sha256:521518784feb925c42c8fbec38b836c1b5075b7839bb3fff3f637ae2fb580710",
+          "createdAt": 1790879322558,
+          "actor": "USER",
+          "predecessorStage": "ANALYSIS_REVIEW",
+          "successorStage": "DISCOVERY"
+        },
+        {
+          "id": "qjd_event_026a06d9938d9977060ac17e",
+          "sequence": 7,
+          "eventType": "DISCOVERY_COMPLETED",
+          "predecessorStateHash": "sha256:cdaa96c5d74f43731da42f5cd294de8b4f8255296c9a64046bb7ed73eda53c95",
+          "successorStateHash": "sha256:231cbce63fd5891eb48913e456a8bb71c2e4f6c1a3d8d4c13bd5eed00dec8610",
+          "createdAt": 1790880190242,
+          "actor": null,
+          "predecessorStage": null,
+          "successorStage": null
+        },
+        {
+          "id": "qje_d42cdb9b483da5f3acd9285a",
+          "sequence": 8,
+          "eventType": "COMMAND_START_SCENARIO_DESIGN",
+          "predecessorStateHash": "sha256:fa787b258be6e03392e4ab71096f3b8ebe724ce2fce39f9fab78c01076c13aa9",
+          "successorStateHash": "sha256:2405cecc9f457130393764c59de92b28b8344adfd0d2f0c28a40b343b72f75d9",
+          "createdAt": 1790880281641,
+          "actor": "RUNNER",
+          "predecessorStage": "DISCOVERY",
+          "successorStage": "SCENARIO_DESIGN"
+        },
+        {
+          "id": "qje_e5c8ad24-6c53-4d1a-9561-4aa9d2e0a941",
+          "sequence": 9,
+          "eventType": "WORK_COMPLETED",
+          "predecessorStateHash": "sha256:2405cecc9f457130393764c59de92b28b8344adfd0d2f0c28a40b343b72f75d9",
+          "successorStateHash": "sha256:539ad0145d64227b61d699dde6c08607775ff30aecd90652745971271df7bc4f",
+          "createdAt": 1790880390137,
+          "actor": null,
+          "predecessorStage": null,
+          "successorStage": null
+        },
+        {
+          "id": "qje_f4c76393f4092cc7065c51f8",
+          "sequence": 10,
+          "eventType": "COMMAND_PUBLISH_SCENARIO_PORTFOLIO",
+          "predecessorStateHash": "sha256:539ad0145d64227b61d699dde6c08607775ff30aecd90652745971271df7bc4f",
+          "successorStateHash": "sha256:5c163c331a625fd6f402d12be19ba2bd0ea30e6cc1c0764af7bb6b7ebff3c00b",
+          "createdAt": 1790880402206,
+          "actor": "RUNNER",
+          "predecessorStage": "SCENARIO_DESIGN",
+          "successorStage": "SCENARIO_REVIEW"
+        },
+        {
+          "id": "qje_00ddb24b33b3655d9d21ff00",
+          "sequence": 11,
+          "eventType": "COMMAND_DECIDE_SCENARIOS",
+          "predecessorStateHash": "sha256:5c163c331a625fd6f402d12be19ba2bd0ea30e6cc1c0764af7bb6b7ebff3c00b",
+          "successorStateHash": "sha256:ade1c694a0ca25919a91bea2f2258ab27028b2482cc8c6e5529b5d5be0d1f78f",
+          "createdAt": 1790880424710,
+          "actor": "USER",
+          "predecessorStage": "SCENARIO_REVIEW",
+          "successorStage": "AUTOMATION"
+        },
+        {
+          "id": "qje_97dc73ff-8ae3-4ea9-9f68-3c415a0e40e8",
+          "sequence": 12,
+          "eventType": "WORK_COMPLETED",
+          "predecessorStateHash": "sha256:785edfea0910ea0e5a086f0e1bc27391ef4810108ebb7e2b741bdd4cdd5af029",
+          "successorStateHash": "sha256:23f1b84591769b777a84311b17bd44c7bffb7756891a13ead9f378a45fe79f5b",
+          "createdAt": 1790880578268,
+          "actor": null,
+          "predecessorStage": null,
+          "successorStage": null
+        },
+        {
+          "id": "qje_05f005185fe3705c6fd2fb48",
+          "sequence": 13,
+          "eventType": "COMMAND_START_EXECUTION",
+          "predecessorStateHash": "sha256:23f1b84591769b777a84311b17bd44c7bffb7756891a13ead9f378a45fe79f5b",
+          "successorStateHash": "sha256:51ca913e96d227e33cf9f387a23ce5f20da6a3edae89b1b055abfb2de2932215",
+          "createdAt": 1790880652238,
+          "actor": "RUNNER",
+          "predecessorStage": "AUTOMATION",
+          "successorStage": "EXECUTION"
+        },
+        {
+          "id": "qje_3ed5e8cd54940306833c9c6d",
+          "sequence": 14,
+          "eventType": "COMMAND_PUBLISH_RUN_RESULT",
+          "predecessorStateHash": "sha256:51ca913e96d227e33cf9f387a23ce5f20da6a3edae89b1b055abfb2de2932215",
+          "successorStateHash": "sha256:53a21e96e9bb354b62536d959d1f8dea35f4a802ebb9420ae8f267739deed8d1",
+          "createdAt": 1790880656005,
+          "actor": "MANAGED_RUNTIME",
+          "predecessorStage": "EXECUTION",
+          "successorStage": "TRIAGE"
+        },
+        {
+          "id": "qje_1c4889c1-ab05-4b12-8e25-2a30c8c07e2e",
+          "sequence": 15,
+          "eventType": "WORK_COMPLETED",
+          "predecessorStateHash": "sha256:fd78be3d14ca9d9c1a7c15d470e986d80bb6ea778f7c3fccbdcf8a6606f8852f",
+          "successorStateHash": "sha256:50fd16ca8f31b88633d3248be07f09a4765117022a3325a42ac8f2b1fffc0c52",
+          "createdAt": 1790881429556,
+          "actor": null,
+          "predecessorStage": null,
+          "successorStage": null
+        },
+        {
+          "id": "qje_aadb49907b2bf51238db5689",
+          "sequence": 16,
+          "eventType": "COMMAND_PUBLISH_TRIAGE_REPORT",
+          "predecessorStateHash": "sha256:50fd16ca8f31b88633d3248be07f09a4765117022a3325a42ac8f2b1fffc0c52",
+          "successorStateHash": "sha256:f58dddc532799b0cf202acae2ec960d1c4f3d8272841d704d78e3e236d892cf6",
+          "createdAt": 1790881429561,
+          "actor": "RUNNER",
+          "predecessorStage": "TRIAGE",
+          "successorStage": "REPORT_REVIEW"
+        },
+        {
+          "id": "qje_92d268d89c7e4402c08c1561",
+          "sequence": 17,
+          "eventType": "COMMAND_REQUEST_REPORT_REVISION",
+          "predecessorStateHash": "sha256:f58dddc532799b0cf202acae2ec960d1c4f3d8272841d704d78e3e236d892cf6",
+          "successorStateHash": "sha256:699a918646c9d2e1dabcee8ea290072e00cf7ca22c9a585b2de765fd7d5eb7d2",
+          "createdAt": 1790881452781,
+          "actor": "USER",
+          "predecessorStage": "REPORT_REVIEW",
+          "successorStage": "TRIAGE"
+        },
+        {
+          "id": "qje_89166eb3-0bfb-495c-b6ad-dfc9ebab9831",
+          "sequence": 18,
+          "eventType": "WORK_COMPLETED",
+          "predecessorStateHash": "sha256:7eeca47269531b22d09bdf44664483c4af442911da3a0ffa315fe2530d393520",
+          "successorStateHash": "sha256:72ee87a38ae28e5cfdba3f798631873255f49b966125a6c986922fdfdea06ad5",
+          "createdAt": 1790881592562,
+          "actor": null,
+          "predecessorStage": null,
+          "successorStage": null
+        },
+        {
+          "id": "qje_e72a7007674c653aef116997",
+          "sequence": 19,
+          "eventType": "COMMAND_PUBLISH_TRIAGE_REPORT",
+          "predecessorStateHash": "sha256:72ee87a38ae28e5cfdba3f798631873255f49b966125a6c986922fdfdea06ad5",
+          "successorStateHash": "sha256:79a75a1236a643ec9da5c7ef56fee3c68f41d743aec1b93fda13ef347228d6d1",
+          "createdAt": 1790881592567,
+          "actor": "RUNNER",
+          "predecessorStage": "TRIAGE",
+          "successorStage": "REPORT_REVIEW"
+        },
+        {
+          "id": "qje_20979d1c7477c3f0fcc664cc",
+          "sequence": 20,
+          "eventType": "COMMAND_START_RERUN_CYCLE",
+          "predecessorStateHash": "sha256:79a75a1236a643ec9da5c7ef56fee3c68f41d743aec1b93fda13ef347228d6d1",
+          "successorStateHash": "sha256:a6ad2bbd9ee95d9056d3ccc4b5c9ec2808c7a9f3ddcf793e93f6b90acdf95bb7",
+          "createdAt": 1790881716921,
+          "actor": "USER",
+          "predecessorStage": "REPORT_REVIEW",
+          "successorStage": "EXECUTION"
+        },
+        {
+          "id": "qje_d0bee961421a19613f9389f7",
+          "sequence": 21,
+          "eventType": "COMMAND_PUBLISH_RUN_RESULT",
+          "predecessorStateHash": "sha256:a6ad2bbd9ee95d9056d3ccc4b5c9ec2808c7a9f3ddcf793e93f6b90acdf95bb7",
+          "successorStateHash": "sha256:b8c7e705396ce5b6ec6cd0d88a246dbaf439c2f3effd56e8613c29599897a536",
+          "createdAt": 1790881722099,
+          "actor": "MANAGED_RUNTIME",
+          "predecessorStage": "EXECUTION",
+          "successorStage": "TRIAGE"
+        },
+        {
+          "id": "qje_8ae00101-e7df-4082-aef8-9368a9fe2a7f",
+          "sequence": 22,
+          "eventType": "WORK_COMPLETED",
+          "predecessorStateHash": "sha256:0b174d81b354488ceda6616592dfde243a1c5830f35837621bd4e9892c6e8529",
+          "successorStateHash": "sha256:4fde925b5338155ef997fe916b8f83561f4ac99a6f5697af8e9b859f70d2189d",
+          "createdAt": 1790881864791,
+          "actor": null,
+          "predecessorStage": null,
+          "successorStage": null
+        },
+        {
+          "id": "qje_b2c86d367eef56f6629d1b2d",
+          "sequence": 23,
+          "eventType": "COMMAND_PUBLISH_TRIAGE_REPORT",
+          "predecessorStateHash": "sha256:4fde925b5338155ef997fe916b8f83561f4ac99a6f5697af8e9b859f70d2189d",
+          "successorStateHash": "sha256:01cd8505c18ede5a8d5ddf4093603e24b40ddbfe70dcdb13275676f43513f4c8",
+          "createdAt": 1790881864796,
+          "actor": "RUNNER",
+          "predecessorStage": "TRIAGE",
+          "successorStage": "REPORT_REVIEW"
+        },
+        {
+          "id": "qje_fe0d767cf5b078f14afd7ad4",
+          "sequence": 24,
+          "eventType": "COMMAND_REQUEST_REPORT_REVISION",
+          "predecessorStateHash": "sha256:01cd8505c18ede5a8d5ddf4093603e24b40ddbfe70dcdb13275676f43513f4c8",
+          "successorStateHash": "sha256:e0cf9f50106371f02f20f2f66a38a0b9484a19d2dece72d14d37dbe632ce4824",
+          "createdAt": 1790881883601,
+          "actor": "USER",
+          "predecessorStage": "REPORT_REVIEW",
+          "successorStage": "TRIAGE"
+        },
+        {
+          "id": "qje_0e077abe-fe24-44ae-8949-0255d0422bd9",
+          "sequence": 25,
+          "eventType": "WORK_COMPLETED",
+          "predecessorStateHash": "sha256:6adf057e8b48cab0b07d9238814e2d3e31f4dd202f9fedd6d9d19e3c9966b5ed",
+          "successorStateHash": "sha256:af16187f39fa78bdb1655b335ad8150abe8e7e86dfde38970f65c34d52722d9c",
+          "createdAt": 1790881929101,
+          "actor": null,
+          "predecessorStage": null,
+          "successorStage": null
+        },
+        {
+          "id": "qje_fa20b4d5da12f774b5d57f80",
+          "sequence": 26,
+          "eventType": "COMMAND_PUBLISH_TRIAGE_REPORT",
+          "predecessorStateHash": "sha256:af16187f39fa78bdb1655b335ad8150abe8e7e86dfde38970f65c34d52722d9c",
+          "successorStateHash": "sha256:ba280677eae440586ef683eb788445f0920c478f6f6ab318f89e9312d286f337",
+          "createdAt": 1790881929106,
+          "actor": "RUNNER",
+          "predecessorStage": "TRIAGE",
+          "successorStage": "REPORT_REVIEW"
+        },
+        {
+          "id": "qje_7d6d9c5e7e2c5e1cc6df61b8",
+          "sequence": 27,
+          "eventType": "COMMAND_START_REMEDIATION_CYCLE",
+          "predecessorStateHash": "sha256:ba280677eae440586ef683eb788445f0920c478f6f6ab318f89e9312d286f337",
+          "successorStateHash": "sha256:39b260c0119161632b5d232228e02ca31f8299da9a474de43a4bd88f54bdc7d9",
+          "createdAt": 1790881944367,
+          "actor": "USER",
+          "predecessorStage": "REPORT_REVIEW",
+          "successorStage": "AUTOMATION"
+        },
+        {
+          "id": "qje_957ff23c-49b9-4394-b6a6-1c117a062c60",
+          "sequence": 28,
+          "eventType": "WORK_COMPLETED",
+          "predecessorStateHash": "sha256:7eb103c94cd5bdfc3cd7e577c9c50563e936d4aba2647f856f81a970c2f48604",
+          "successorStateHash": "sha256:dc0647aeff3960a85708d39f047668909b4cc7bb3f08c9688472a636fd7a0727",
+          "createdAt": 1790881989818,
+          "actor": null,
+          "predecessorStage": null,
+          "successorStage": null
+        },
+        {
+          "id": "qje_aef0b0b525884e3b6e280c0c",
+          "sequence": 29,
+          "eventType": "COMMAND_START_EXECUTION",
+          "predecessorStateHash": "sha256:dc0647aeff3960a85708d39f047668909b4cc7bb3f08c9688472a636fd7a0727",
+          "successorStateHash": "sha256:19051bff86f2f30119d3cbc6ce29ffcdf4eeb99f94e71749bf8d9cd3e46e1d69",
+          "createdAt": 1790882076308,
+          "actor": "RUNNER",
+          "predecessorStage": "AUTOMATION",
+          "successorStage": "EXECUTION"
+        },
+        {
+          "id": "qje_bad6f80d9871dd28d24064f1",
+          "sequence": 30,
+          "eventType": "COMMAND_PUBLISH_RUN_RESULT",
+          "predecessorStateHash": "sha256:19051bff86f2f30119d3cbc6ce29ffcdf4eeb99f94e71749bf8d9cd3e46e1d69",
+          "successorStateHash": "sha256:9d29fd21dc1e5f46face59f6b66134714c7e34a17e49312fd48027db5d84bc5e",
+          "createdAt": 1790882080516,
+          "actor": "MANAGED_RUNTIME",
+          "predecessorStage": "EXECUTION",
+          "successorStage": "TRIAGE"
+        },
+        {
+          "id": "qje_9aa9cf60-b9f4-4cd9-a863-882c5da60cc0",
+          "sequence": 31,
+          "eventType": "WORK_COMPLETED",
+          "predecessorStateHash": "sha256:e3354c8b13bbc2b0f3e037002c1e0326d5bf14f5e5d2e7d2c37660365b95464b",
+          "successorStateHash": "sha256:7702c03087229065b5c3eb0d476c1ec331b651bb3fde468300a1b7a5cd32641e",
+          "createdAt": 1790882202083,
+          "actor": null,
+          "predecessorStage": null,
+          "successorStage": null
+        },
+        {
+          "id": "qje_18cd8cbc81d153191010b91b",
+          "sequence": 32,
+          "eventType": "COMMAND_PUBLISH_TRIAGE_REPORT",
+          "predecessorStateHash": "sha256:7702c03087229065b5c3eb0d476c1ec331b651bb3fde468300a1b7a5cd32641e",
+          "successorStateHash": "sha256:f6821bfaa65c73b3907a6c82555433cf1a06a7c1032e451c63a58a73620c9e81",
+          "createdAt": 1790882202087,
+          "actor": "RUNNER",
+          "predecessorStage": "TRIAGE",
+          "successorStage": "REPORT_REVIEW"
+        },
+        {
+          "id": "qje_95822a7a4773573d06155162",
+          "sequence": 33,
+          "eventType": "COMMAND_RISK_ACCEPT_AND_CLOSE",
+          "predecessorStateHash": "sha256:f6821bfaa65c73b3907a6c82555433cf1a06a7c1032e451c63a58a73620c9e81",
+          "successorStateHash": "sha256:66da6c031dce478d91be03842120aaaa83f2ab62dd394273768b58b9bfc0cc33",
+          "createdAt": 1790944321649,
+          "actor": "USER",
+          "predecessorStage": "REPORT_REVIEW",
+          "successorStage": "CLOSED"
+        }
+      ],
+      "cycles": [
+        {
+          "id": "qjex_5af6941069abcf0c9a91b722",
+          "cycleId": "qjc_7f09714c-cbf4-4da4-a642-44dcab2fb47f",
+          "predecessorExecutionCycleId": null,
+          "status": "COMPLETED",
+          "environmentId": "568cff88-48da-4485-8653-ee1e086b2438",
+          "environmentSnapshotHash": "sha256:f002f011b24940ddbd739272a269fe5ba2bf474dbadd8ad518a5d78a2624b8b6",
+          "preparedCapsulesHash": "sha256:986caa516c98a8175e084eddab3954ea7752440522108d47b5b852a945d5eea0",
+          "startedAt": 1790880652231,
+          "completedAt": 1790880656005,
+          "runs": [
+            {
+              "bindingId": "qjet_f8aa8afe361eec9e731bfcc3",
+              "testRunId": "qjtr_f8aa8afe361eec9e731bfcc3",
+              "runId": "1acb50ba-802c-4f56-98f6-97611434f41a",
+              "preparedCapsuleId": "qja_prepared_d7d94c0691dc5023df125438",
+              "bindingStatus": "FAILED",
+              "testStatus": "COMPLETED",
+              "result": "FAILED",
+              "intent": "QUALITY_JOURNEY",
+              "evidenceHealth": "valid",
+              "completedAt": 1790880655984
+            }
+          ],
+          "receipts": [
+            {
+              "id": "qjeer_ef3c9bc038aa3f532f542a11",
+              "testRunId": "qjtr_f8aa8afe361eec9e731bfcc3",
+              "receiptHash": "sha256:ef3c9bc038aa3f532f542a11886c52fd357ab1732ca3ecc05b6b1044b1129a3f",
+              "runtimeBytesHash": "sha256:bbcb07fe48d583dcc86b8c4999cf7fd5bf82b29447641aca2b8a2e0992522ae9",
+              "evidence": {
+                "artifacts": [
+                  {
+                    "contentHash": "sha256:82cff154699bff58126e9f0885537e3f4bf1df681b6b76be4265afac92d81811",
+                    "kind": "report",
+                    "size": 5503
+                  },
+                  {
+                    "contentHash": "sha256:02d31738d826b2d39ecf3019b4456e90ae58f022826a41739db861f754708756",
+                    "kind": "log",
+                    "size": 4317
+                  },
+                  {
+                    "contentHash": "sha256:a3442954f17c324c046b12e0d0d03bf4b85d0d8b5cbb88b23bf60731bdd54288",
+                    "kind": "screenshot",
+                    "reportStepId": "70aad56d-747a-4bd6-967c-82cd9a9dd198",
+                    "size": 5711,
+                    "testCaseId": "qja_case_d7d94c0691dc5023df125438"
+                  }
+                ],
+                "attemptId": "e8e0d292-5056-4851-8eef-b25355d5a083",
+                "cycleId": "qjc_7f09714c-cbf4-4da4-a642-44dcab2fb47f",
+                "environmentSnapshotHash": "sha256:f002f011b24940ddbd739272a269fe5ba2bf474dbadd8ad518a5d78a2624b8b6",
+                "evidenceHealth": "valid",
+                "executionCycleId": "qjex_5af6941069abcf0c9a91b722",
+                "journeyId": "qjy_1c2ff25f-70b1-41ca-8be4-1d4eb8a29d28",
+                "manifestHash": "sha256:98e358b9f6263327cccb15de6c6c28381038359d67adaae096308e837137c2fd",
+                "missingArtifacts": [],
+                "preparedCapsuleId": "qja_prepared_d7d94c0691dc5023df125438",
+                "preparedCapsulesHash": "sha256:986caa516c98a8175e084eddab3954ea7752440522108d47b5b852a945d5eea0",
+                "result": "FAILED",
+                "runId": "1acb50ba-802c-4f56-98f6-97611434f41a",
+                "runtimeCapsuleHash": "sha256:620bccddddb3e3a2d1457f4329687e78e92880490e235f17800f9b742dbccee1",
+                "runtimeCapsuleId": "635ee4e0-66c3-4c87-b9b9-e381806c8cd8",
+                "schemaVersion": "appraise.quality-journey/v1",
+                "status": "COMPLETED",
+                "targetProjectId": "76f1c928-b478-4347-83be-eccb7ff43026",
+                "testRunId": "qjtr_f8aa8afe361eec9e731bfcc3"
+              },
+              "retainedByteChecks": [
+                {
+                  "kind": "report",
+                  "exists": true,
+                  "actualHash": "sha256:82cff154699bff58126e9f0885537e3f4bf1df681b6b76be4265afac92d81811",
+                  "matchesSealedHash": true,
+                  "sizeMatches": true
+                },
+                {
+                  "kind": "log",
+                  "exists": true,
+                  "actualHash": "sha256:02d31738d826b2d39ecf3019b4456e90ae58f022826a41739db861f754708756",
+                  "matchesSealedHash": true,
+                  "sizeMatches": true
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "qjex_657b94cfdd1b57e264aa4089",
+          "cycleId": "qjcycle_4a4b691f2b345097003d3f3e",
+          "predecessorExecutionCycleId": "qjex_5af6941069abcf0c9a91b722",
+          "status": "COMPLETED",
+          "environmentId": "568cff88-48da-4485-8653-ee1e086b2438",
+          "environmentSnapshotHash": "sha256:f002f011b24940ddbd739272a269fe5ba2bf474dbadd8ad518a5d78a2624b8b6",
+          "preparedCapsulesHash": "sha256:986caa516c98a8175e084eddab3954ea7752440522108d47b5b852a945d5eea0",
+          "startedAt": 1790881716923,
+          "completedAt": 1790881722099,
+          "runs": [
+            {
+              "bindingId": "qjet_6d4c722a5d61d85c0a442736",
+              "testRunId": "qjtr_6d4c722a5d61d85c0a442736",
+              "runId": "6d6ebf6a-6e23-4e8a-8600-fee9a98b4994",
+              "preparedCapsuleId": "qja_prepared_d7d94c0691dc5023df125438",
+              "bindingStatus": "FAILED",
+              "testStatus": "COMPLETED",
+              "result": "FAILED",
+              "intent": "QUALITY_JOURNEY",
+              "evidenceHealth": "valid",
+              "completedAt": 1790881722075
+            }
+          ],
+          "receipts": [
+            {
+              "id": "qjeer_fa410e44ea81af1b593dea00",
+              "testRunId": "qjtr_6d4c722a5d61d85c0a442736",
+              "receiptHash": "sha256:fa410e44ea81af1b593dea0016bd7b209a1c82d1a239fb324c56674427b5c53f",
+              "runtimeBytesHash": "sha256:a2fbca857637369c9735036b1e680adffceba12cbbc80af20209b630f48b3b10",
+              "evidence": {
+                "artifacts": [
+                  {
+                    "contentHash": "sha256:fce3858a3fda31d35779fd2e56809a480a3d36dd5aac02ca53259bc0226b010a",
+                    "kind": "report",
+                    "size": 5298
+                  },
+                  {
+                    "contentHash": "sha256:04ff7bdf9bc30af4d4aff0c3dad386b4ac87ad7f548601951a43835bd53fe5f7",
+                    "kind": "log",
+                    "size": 4050
+                  },
+                  {
+                    "contentHash": "sha256:68541c26d78eea06d0de7022c3381692104529264e1c31ebb0d6ee82c40f5e68",
+                    "kind": "screenshot",
+                    "reportStepId": "e3c82044-70c1-486a-8818-9cb1a9e65608",
+                    "size": 8503,
+                    "testCaseId": "qja_case_d7d94c0691dc5023df125438"
+                  }
+                ],
+                "attemptId": "9cef4e1d-5cbf-4784-9715-7a4ae119ded3",
+                "cycleId": "qjcycle_4a4b691f2b345097003d3f3e",
+                "environmentSnapshotHash": "sha256:f002f011b24940ddbd739272a269fe5ba2bf474dbadd8ad518a5d78a2624b8b6",
+                "evidenceHealth": "valid",
+                "executionCycleId": "qjex_657b94cfdd1b57e264aa4089",
+                "journeyId": "qjy_1c2ff25f-70b1-41ca-8be4-1d4eb8a29d28",
+                "manifestHash": "sha256:a00d7d5494f97e594d9ce5daee0731522d143bed8fc25430bd34d677279309ca",
+                "missingArtifacts": [],
+                "preparedCapsuleId": "qja_prepared_d7d94c0691dc5023df125438",
+                "preparedCapsulesHash": "sha256:986caa516c98a8175e084eddab3954ea7752440522108d47b5b852a945d5eea0",
+                "result": "FAILED",
+                "runId": "6d6ebf6a-6e23-4e8a-8600-fee9a98b4994",
+                "runtimeCapsuleHash": "sha256:ef28928a0d54db69721f5d29ab492b6366c5fca9ce8823cf8bb28deb0edb9cbc",
+                "runtimeCapsuleId": "f295fbdf-de9d-478e-9dc9-1e4b253925e3",
+                "schemaVersion": "appraise.quality-journey/v1",
+                "status": "COMPLETED",
+                "targetProjectId": "76f1c928-b478-4347-83be-eccb7ff43026",
+                "testRunId": "qjtr_6d4c722a5d61d85c0a442736"
+              },
+              "retainedByteChecks": [
+                {
+                  "kind": "report",
+                  "exists": true,
+                  "actualHash": "sha256:fce3858a3fda31d35779fd2e56809a480a3d36dd5aac02ca53259bc0226b010a",
+                  "matchesSealedHash": true,
+                  "sizeMatches": true
+                },
+                {
+                  "kind": "log",
+                  "exists": true,
+                  "actualHash": "sha256:04ff7bdf9bc30af4d4aff0c3dad386b4ac87ad7f548601951a43835bd53fe5f7",
+                  "matchesSealedHash": true,
+                  "sizeMatches": true
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "qjex_847c2a35cc4f9c1c21fe8aef",
+          "cycleId": "qjt_2194391454d1577da4a87ce9",
+          "predecessorExecutionCycleId": null,
+          "status": "COMPLETED",
+          "environmentId": "568cff88-48da-4485-8653-ee1e086b2438",
+          "environmentSnapshotHash": "sha256:f002f011b24940ddbd739272a269fe5ba2bf474dbadd8ad518a5d78a2624b8b6",
+          "preparedCapsulesHash": "sha256:ce5feb05fc0824d131ba17211e2efe5a3181c00cfbcb2b385b001b734b531d80",
+          "startedAt": 1790882076300,
+          "completedAt": 1790882080516,
+          "runs": [
+            {
+              "bindingId": "qjet_88426b7309a988a8a7b858df",
+              "testRunId": "qjtr_88426b7309a988a8a7b858df",
+              "runId": "0b4a640f-d790-447d-8d61-856b5ae7f9c0",
+              "preparedCapsuleId": "qja_prepared_f77ee292a857cdb7c9a244b2",
+              "bindingStatus": "COMPLETED",
+              "testStatus": "COMPLETED",
+              "result": "PASSED",
+              "intent": "QUALITY_JOURNEY",
+              "evidenceHealth": "valid",
+              "completedAt": 1790882080497
+            }
+          ],
+          "receipts": [
+            {
+              "id": "qjeer_3fe41ed90a24243a93dfe748",
+              "testRunId": "qjtr_88426b7309a988a8a7b858df",
+              "receiptHash": "sha256:3fe41ed90a24243a93dfe748c472279e6b0f61470bbe5130958edef7feaa6c42",
+              "runtimeBytesHash": "sha256:5378133945efa7dff08a74919f1881e2dd587ee5ca2891a3849b852781a79dad",
+              "evidence": {
+                "artifacts": [
+                  {
+                    "contentHash": "sha256:8114903651ed911015e3bc669988d38af19ce82c3eb2300d88a92bbec2791a45",
+                    "kind": "report",
+                    "size": 3750
+                  },
+                  {
+                    "contentHash": "sha256:24e6dced2396274edecd296a41d19541325c1699fc8901035918c5822ec55abe",
+                    "kind": "log",
+                    "size": 1055
+                  }
+                ],
+                "attemptId": "641b90bf-91c4-433d-a5fb-a666b483f033",
+                "cycleId": "qjt_2194391454d1577da4a87ce9",
+                "environmentSnapshotHash": "sha256:f002f011b24940ddbd739272a269fe5ba2bf474dbadd8ad518a5d78a2624b8b6",
+                "evidenceHealth": "valid",
+                "executionCycleId": "qjex_847c2a35cc4f9c1c21fe8aef",
+                "journeyId": "qjy_1c2ff25f-70b1-41ca-8be4-1d4eb8a29d28",
+                "manifestHash": "sha256:0540ef388e95b32551a43b69ca0a4eaed32ead7acef68992ac89d1aabb1a751a",
+                "missingArtifacts": [],
+                "preparedCapsuleId": "qja_prepared_f77ee292a857cdb7c9a244b2",
+                "preparedCapsulesHash": "sha256:ce5feb05fc0824d131ba17211e2efe5a3181c00cfbcb2b385b001b734b531d80",
+                "result": "PASSED",
+                "runId": "0b4a640f-d790-447d-8d61-856b5ae7f9c0",
+                "runtimeCapsuleHash": "sha256:ddfbdefcf52d177457ce06d3b93e0953032ce575e5a7edc21b39af95d69e2ee9",
+                "runtimeCapsuleId": "e87424b0-5906-453c-81c6-08af29e16a37",
+                "schemaVersion": "appraise.quality-journey/v1",
+                "status": "COMPLETED",
+                "targetProjectId": "76f1c928-b478-4347-83be-eccb7ff43026",
+                "testRunId": "qjtr_88426b7309a988a8a7b858df"
+              },
+              "retainedByteChecks": [
+                {
+                  "kind": "report",
+                  "exists": true,
+                  "actualHash": "sha256:8114903651ed911015e3bc669988d38af19ce82c3eb2300d88a92bbec2791a45",
+                  "matchesSealedHash": true,
+                  "sizeMatches": true
+                },
+                {
+                  "kind": "log",
+                  "exists": true,
+                  "actualHash": "sha256:24e6dced2396274edecd296a41d19541325c1699fc8901035918c5822ec55abe",
+                  "matchesSealedHash": true,
+                  "sizeMatches": true
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "consents": [
+        {
+          "id": "qjec_131bfd4ce16218aee6cac367",
+          "executionCycleId": "qjex_5af6941069abcf0c9a91b722",
+          "scopeHash": "sha256:052c898d1d2d4259fd2315a2c34f08d7d4c70fbafd5f4de974b614063b37ff8c",
+          "grantSource": "UI",
+          "status": "CONSUMED",
+          "grantedAt": 1790880635474,
+          "usedAt": 1790880652229,
+          "scope": {
+            "checkpoint": "START_EXECUTION:568cff88-48da-4485-8653-ee1e086b2438:CHROMIUM",
+            "executionInputsHash": "sha256:6ff63c65f99f6b192de18b109b329ddab9f4a89e56a04c6188d2e1a61b79fffa",
+            "environmentSnapshotHash": "sha256:f002f011b24940ddbd739272a269fe5ba2bf474dbadd8ad518a5d78a2624b8b6",
+            "preparedRuntimeCapsuleIds": ["qja_prepared_d7d94c0691dc5023df125438"],
+            "resourceHashes": {
+              "qja_prepared_d7d94c0691dc5023df125438": "sha256:cf8696b5da6f9cf24a5adacae7a439104d96826a52127e5662eda27a9767bfd9"
+            },
+            "targetProjectId": "76f1c928-b478-4347-83be-eccb7ff43026",
+            "targetFingerprint": "sha256:136a952985df0a2a1b30c416b2457df9e73222ef793079816e3a0423ac521e35"
+          }
+        },
+        {
+          "id": "qjec_f1d8b7ab02bac5965f690068",
+          "executionCycleId": "qjex_657b94cfdd1b57e264aa4089",
+          "scopeHash": "sha256:d62370cf092d2e73eac0868683162595457df469528f2eb4bb80707f3caa1135",
+          "grantSource": "UI",
+          "status": "CONSUMED",
+          "grantedAt": 1790881705112,
+          "usedAt": 1790881716915,
+          "scope": {
+            "checkpoint": "START_EXECUTION:568cff88-48da-4485-8653-ee1e086b2438:CHROMIUM",
+            "executionInputsHash": "sha256:40f5f22d3a3224d7698860c0f89bd8e3546b5c6650b0dfcae99b98ca7ad85805",
+            "environmentSnapshotHash": "sha256:f002f011b24940ddbd739272a269fe5ba2bf474dbadd8ad518a5d78a2624b8b6",
+            "preparedRuntimeCapsuleIds": ["qja_prepared_d7d94c0691dc5023df125438"],
+            "resourceHashes": {
+              "qja_prepared_d7d94c0691dc5023df125438": "sha256:cf8696b5da6f9cf24a5adacae7a439104d96826a52127e5662eda27a9767bfd9"
+            },
+            "targetProjectId": "76f1c928-b478-4347-83be-eccb7ff43026",
+            "targetFingerprint": "sha256:136a952985df0a2a1b30c416b2457df9e73222ef793079816e3a0423ac521e35"
+          }
+        },
+        {
+          "id": "qjec_513cdaa8c50b5c08886deaaf",
+          "executionCycleId": "qjex_847c2a35cc4f9c1c21fe8aef",
+          "scopeHash": "sha256:e1b4f066f0c937e1adfa8676d19d87ba466d6434f69d5ca2014f99b3fdaa3483",
+          "grantSource": "UI",
+          "status": "CONSUMED",
+          "grantedAt": 1790882066721,
+          "usedAt": 1790882076298,
+          "scope": {
+            "checkpoint": "START_EXECUTION:568cff88-48da-4485-8653-ee1e086b2438:CHROMIUM",
+            "executionInputsHash": "sha256:def0fbae79b86568d9f7310a603b379aa6268dfdd7f41371d766f7b9617e0b8b",
+            "environmentSnapshotHash": "sha256:f002f011b24940ddbd739272a269fe5ba2bf474dbadd8ad518a5d78a2624b8b6",
+            "preparedRuntimeCapsuleIds": ["qja_prepared_f77ee292a857cdb7c9a244b2"],
+            "resourceHashes": {
+              "qja_prepared_f77ee292a857cdb7c9a244b2": "sha256:cf8696b5da6f9cf24a5adacae7a439104d96826a52127e5662eda27a9767bfd9"
+            },
+            "targetProjectId": "76f1c928-b478-4347-83be-eccb7ff43026",
+            "targetFingerprint": "sha256:136a952985df0a2a1b30c416b2457df9e73222ef793079816e3a0423ac521e35"
+          }
+        }
+      ],
+      "reports": [
+        {
+          "id": "c272-auth-report-1",
+          "contentHash": "sha256:1cb60b7c39ae325a392bbccd2594bd68f7ac7e388ecf9aa3c8c06c007f7ee194",
+          "createdAt": 1790881429558
+        },
+        {
+          "id": "c272-auth-report-2",
+          "contentHash": "sha256:9ec88be9918ff86adc591686124cf097e15f222f9ff70874787573133eb5e804",
+          "createdAt": 1790881592562
+        },
+        {
+          "id": "c272-auth-report-3",
+          "contentHash": "sha256:c55b9965a90ccbaf1a874049cb61787e11ec4304c23b6bde3dd8ca144db1f48c",
+          "createdAt": 1790881864792
+        },
+        {
+          "id": "c272-auth-report-4",
+          "contentHash": "sha256:8c281572e71c2ed0eeee7e888bbd944cff6e1dfd8949b00b49c5281009a03f0f",
+          "createdAt": 1790881929102
+        },
+        {
+          "id": "c272-auth-report-5",
+          "contentHash": "sha256:4fb64bfc01d5b5a8877932ffdc7c293baa0411c580f0defe6dfcf27cfa84312d",
+          "createdAt": 1790882202084
+        }
+      ],
+      "reviews": [
+        {
+          "id": "qjt_2a6e7fa277d62fb575e6fcd0",
+          "reportRevisionId": "c272-auth-report-1",
+          "kind": "FULL_REPORT_REVISION",
+          "successorCycleId": null,
+          "createdAt": 1790881452777
+        },
+        {
+          "id": "qjrr_6f639fe14f55202060b2bff0",
+          "reportRevisionId": "c272-auth-report-2",
+          "kind": "RERUN_APPROVED",
+          "successorCycleId": null,
+          "createdAt": 1790881614763
+        },
+        {
+          "id": "qjt_c3be940fb8f05138b21a2234",
+          "reportRevisionId": "c272-auth-report-3",
+          "kind": "FULL_REPORT_REVISION",
+          "successorCycleId": null,
+          "createdAt": 1790881883596
+        },
+        {
+          "id": "qjt_e47b3b01a5d4ebd6135b96ad",
+          "reportRevisionId": "c272-auth-report-4",
+          "kind": "AUTOMATION_CORRECTION_APPROVED",
+          "successorCycleId": "qjt_2194391454d1577da4a87ce9",
+          "createdAt": 1790881944363
+        },
+        {
+          "id": "qjc_39d2f565df9fa6f4701008de",
+          "reportRevisionId": "c272-auth-report-5",
+          "kind": "RISK_ACCEPTED",
+          "successorCycleId": null,
+          "createdAt": 1790944321644
+        }
+      ],
+      "rerunProposals": [
+        {
+          "id": "qjrp_dd78223582cec073fc6c5e4f",
+          "reportRevisionId": "c272-auth-report-2",
+          "reportHash": "sha256:9ec88be9918ff86adc591686124cf097e15f222f9ff70874787573133eb5e804",
+          "sourceExecutionCycleId": "qjex_5af6941069abcf0c9a91b722",
+          "successorExecutionCycleId": "qjex_657b94cfdd1b57e264aa4089",
+          "proposalHash": "sha256:a0e77e4819c5e36cee780556546aaa81ffad78622f895559e134ca90eada0b6d",
+          "status": "STARTED",
+          "approvedAt": 1790881614763
+        }
+      ],
+      "links": [
+        {
+          "id": "qja_link_3cb36bd10bcb0d64596a27fa",
+          "relation": "MATERIALIZES",
+          "linkHash": "sha256:3613df44e1da9ef6e4bf5358ce87eb5f923620cec3e811fbf553eef67832cf8e",
+          "source": {
+            "artifactId": "c272-auth-checkout-scenario",
+            "contentHash": "sha256:52df383c96dcc44bf3261e9e67522913889e1d69be9bdc3be1830f3d0b9feb34",
+            "kind": "SCENARIO_REVISION",
+            "revisionId": "c272-auth-scenario-1"
+          },
+          "target": {
+            "artifactId": "qja_prepared_d7d94c0691dc5023df125438",
+            "contentHash": "sha256:315a4b912b1f47326912383d8c6ae35a1fe40ccf767fc348838cf7aa76bbf53c",
+            "kind": "RUNTIME_CAPSULE"
+          }
+        },
+        {
+          "id": "qja_link_55eb0708dd176e8405906d6c",
+          "relation": "MATERIALIZES",
+          "linkHash": "sha256:ba616108c2edb1d98ea47c2ada52bbf5a3c19ad53ac5f11bf79442a3f5d1e259",
+          "source": {
+            "artifactId": "c272-auth-checkout-scenario",
+            "contentHash": "sha256:52df383c96dcc44bf3261e9e67522913889e1d69be9bdc3be1830f3d0b9feb34",
+            "kind": "SCENARIO_REVISION",
+            "revisionId": "c272-auth-scenario-1"
+          },
+          "target": {
+            "artifactId": "qja_suite_d7d94c0691dc5023df125438",
+            "contentHash": "sha256:877aa74ac19599975b98936de2ea4357ad95bfcd17bf43c9fb6859f9f2972e66",
+            "kind": "TEST_SUITE"
+          }
+        },
+        {
+          "id": "qja_link_efd333ea14767ff1f3bb7c7d",
+          "relation": "MATERIALIZES",
+          "linkHash": "sha256:d2d096a0c056eff34bef4ec529fd015f934a738f54854d98cc1d443e52b8de8c",
+          "source": {
+            "artifactId": "c272-auth-checkout-scenario",
+            "contentHash": "sha256:52df383c96dcc44bf3261e9e67522913889e1d69be9bdc3be1830f3d0b9feb34",
+            "kind": "SCENARIO_REVISION",
+            "revisionId": "c272-auth-scenario-1"
+          },
+          "target": {
+            "artifactId": "qja_case_d7d94c0691dc5023df125438",
+            "contentHash": "sha256:1f6d2fd3259d36efd07be3423cdbbaf078f5c3631d2c92e92cb1d7741b89b8b1",
+            "kind": "TEST_CASE"
+          }
+        },
+        {
+          "id": "qjt_d8578709c0ca210f15ca48fb",
+          "relation": "ANALYZES",
+          "linkHash": "sha256:3d7cbab09cafe56ab7541b38cf95ad809e235d24febe79dc4da40aad3f8da1d1",
+          "source": {
+            "artifactId": "c272-auth-report-1",
+            "contentHash": "sha256:1cb60b7c39ae325a392bbccd2594bd68f7ac7e388ecf9aa3c8c06c007f7ee194",
+            "kind": "TEST_REPORT_ANALYSIS_REVISION",
+            "revisionId": "c272-auth-report-1"
+          },
+          "target": {
+            "artifactId": "c272-auth-charter",
+            "contentHash": "sha256:a545e28ebadef56f2ee699c6290a2ab87a6bf91340588ed5d2e539f8c275d6a6",
+            "kind": "ANALYSIS_CHARTER_REVISION",
+            "revisionId": "c272-auth-analysis-1"
+          }
+        },
+        {
+          "id": "qjt_abf96ebd7caa1c5fb1f65ca5",
+          "relation": "ATTRIBUTES",
+          "linkHash": "sha256:59c1706754e630bea2b816dbd91b3e2905d7040d205310598736cbdbd3c722d7",
+          "source": {
+            "artifactId": "c272-auth-report-1",
+            "contentHash": "sha256:1cb60b7c39ae325a392bbccd2594bd68f7ac7e388ecf9aa3c8c06c007f7ee194",
+            "kind": "TEST_REPORT_ANALYSIS_REVISION",
+            "revisionId": "c272-auth-report-1"
+          },
+          "target": {
+            "artifactId": "qjeer_ef3c9bc038aa3f532f542a11",
+            "contentHash": "sha256:ef3c9bc038aa3f532f542a11886c52fd357ab1732ca3ecc05b6b1044b1129a3f",
+            "kind": "EVIDENCE_RECEIPT"
+          }
+        },
+        {
+          "id": "qjt_1234700bd47de8d86374989d",
+          "relation": "ANALYZES",
+          "linkHash": "sha256:ef9935b7c44cbb25067b381b6b6ce64fe116fea597b7d24d06ec68688a400d0d",
+          "source": {
+            "artifactId": "c272-auth-report-1",
+            "contentHash": "sha256:1cb60b7c39ae325a392bbccd2594bd68f7ac7e388ecf9aa3c8c06c007f7ee194",
+            "kind": "TEST_REPORT_ANALYSIS_REVISION",
+            "revisionId": "c272-auth-report-1"
+          },
+          "target": {
+            "artifactId": "c272-auth-checkout-scenario",
+            "contentHash": "sha256:52df383c96dcc44bf3261e9e67522913889e1d69be9bdc3be1830f3d0b9feb34",
+            "kind": "SCENARIO_REVISION",
+            "revisionId": "c272-auth-scenario-1"
+          }
+        },
+        {
+          "id": "qjt_e357edf470aa57ebd5702fae",
+          "relation": "ANALYZES",
+          "linkHash": "sha256:cfc10e1228dc00f9b969a4fe16490b4a5b99212903d88787c5d38d35faeaf5e8",
+          "source": {
+            "artifactId": "c272-auth-report-1",
+            "contentHash": "sha256:1cb60b7c39ae325a392bbccd2594bd68f7ac7e388ecf9aa3c8c06c007f7ee194",
+            "kind": "TEST_REPORT_ANALYSIS_REVISION",
+            "revisionId": "c272-auth-report-1"
+          },
+          "target": {
+            "artifactId": "qjtr_f8aa8afe361eec9e731bfcc3",
+            "contentHash": "sha256:4621e287da5a4e783a88f1b33aa7aae1f62af8c35e9f4fbdb694a55e7307f3e8",
+            "kind": "TEST_RUN"
+          }
+        },
+        {
+          "id": "qjt_20853a4471c510fc8c5be801",
+          "relation": "ANALYZES",
+          "linkHash": "sha256:1eb44471c65e770515332fea168e4c750000d7b3e12d25ebff3a5dfc7e10bce9",
+          "source": {
+            "artifactId": "c272-auth-report-2",
+            "contentHash": "sha256:9ec88be9918ff86adc591686124cf097e15f222f9ff70874787573133eb5e804",
+            "kind": "TEST_REPORT_ANALYSIS_REVISION",
+            "revisionId": "c272-auth-report-2"
+          },
+          "target": {
+            "artifactId": "c272-auth-charter",
+            "contentHash": "sha256:a545e28ebadef56f2ee699c6290a2ab87a6bf91340588ed5d2e539f8c275d6a6",
+            "kind": "ANALYSIS_CHARTER_REVISION",
+            "revisionId": "c272-auth-analysis-1"
+          }
+        },
+        {
+          "id": "qjt_572de605419840bfc6ca2bfa",
+          "relation": "ANALYZES",
+          "linkHash": "sha256:0fb7d2cf9086885eae42ff20e94cc656e353619a32a06a8c5df3fefbd1c6e515",
+          "source": {
+            "artifactId": "c272-auth-report-2",
+            "contentHash": "sha256:9ec88be9918ff86adc591686124cf097e15f222f9ff70874787573133eb5e804",
+            "kind": "TEST_REPORT_ANALYSIS_REVISION",
+            "revisionId": "c272-auth-report-2"
+          },
+          "target": {
+            "artifactId": "c272-auth-checkout-scenario",
+            "contentHash": "sha256:52df383c96dcc44bf3261e9e67522913889e1d69be9bdc3be1830f3d0b9feb34",
+            "kind": "SCENARIO_REVISION",
+            "revisionId": "c272-auth-scenario-1"
+          }
+        },
+        {
+          "id": "qjt_7dc531973d6e1a30a2a4d91a",
+          "relation": "SUPERSEDES",
+          "linkHash": "sha256:8d9adb3c3bca44368463a8c59e6e0df272dd4dc926f1dc5ba569ad0972c82001",
+          "source": {
+            "artifactId": "c272-auth-report-2",
+            "contentHash": "sha256:9ec88be9918ff86adc591686124cf097e15f222f9ff70874787573133eb5e804",
+            "kind": "TEST_REPORT_ANALYSIS_REVISION",
+            "revisionId": "c272-auth-report-2"
+          },
+          "target": {
+            "artifactId": "c272-auth-report-1",
+            "contentHash": "sha256:1cb60b7c39ae325a392bbccd2594bd68f7ac7e388ecf9aa3c8c06c007f7ee194",
+            "kind": "TEST_REPORT_ANALYSIS_REVISION",
+            "revisionId": "c272-auth-report-1"
+          }
+        },
+        {
+          "id": "qjt_9d31de3239ad4e2076e221ee",
+          "relation": "ATTRIBUTES",
+          "linkHash": "sha256:f1f19c97006abbb30dbab68fa5d8b9b19c857fb7730e046447df530c3612695d",
+          "source": {
+            "artifactId": "c272-auth-report-2",
+            "contentHash": "sha256:9ec88be9918ff86adc591686124cf097e15f222f9ff70874787573133eb5e804",
+            "kind": "TEST_REPORT_ANALYSIS_REVISION",
+            "revisionId": "c272-auth-report-2"
+          },
+          "target": {
+            "artifactId": "qjeer_ef3c9bc038aa3f532f542a11",
+            "contentHash": "sha256:ef3c9bc038aa3f532f542a11886c52fd357ab1732ca3ecc05b6b1044b1129a3f",
+            "kind": "EVIDENCE_RECEIPT"
+          }
+        },
+        {
+          "id": "qjt_b73133a48bda144af49d4a2a",
+          "relation": "ANALYZES",
+          "linkHash": "sha256:97097db4595ce0ede55f14f061587a60967c593ddc7a7c356867c18e995ba37f",
+          "source": {
+            "artifactId": "c272-auth-report-2",
+            "contentHash": "sha256:9ec88be9918ff86adc591686124cf097e15f222f9ff70874787573133eb5e804",
+            "kind": "TEST_REPORT_ANALYSIS_REVISION",
+            "revisionId": "c272-auth-report-2"
+          },
+          "target": {
+            "artifactId": "qjtr_f8aa8afe361eec9e731bfcc3",
+            "contentHash": "sha256:4621e287da5a4e783a88f1b33aa7aae1f62af8c35e9f4fbdb694a55e7307f3e8",
+            "kind": "TEST_RUN"
+          }
+        },
+        {
+          "id": "qjt_fe6ddd09f547a17a99045b4e",
+          "relation": "ANALYZES",
+          "linkHash": "sha256:81830e266ae5f472193a7f9100253043bce2ac4ef701e31e34dd9a0e021d3103",
+          "source": {
+            "artifactId": "c272-auth-report-3",
+            "contentHash": "sha256:c55b9965a90ccbaf1a874049cb61787e11ec4304c23b6bde3dd8ca144db1f48c",
+            "kind": "TEST_REPORT_ANALYSIS_REVISION",
+            "revisionId": "c272-auth-report-3"
+          },
+          "target": {
+            "artifactId": "c272-auth-charter",
+            "contentHash": "sha256:a545e28ebadef56f2ee699c6290a2ab87a6bf91340588ed5d2e539f8c275d6a6",
+            "kind": "ANALYSIS_CHARTER_REVISION",
+            "revisionId": "c272-auth-analysis-1"
+          }
+        },
+        {
+          "id": "qjt_eaf92c29900d545fe76d6986",
+          "relation": "ANALYZES",
+          "linkHash": "sha256:bf8fc063a70ebfd086b405b3e4c7fdf1c6cfbeadb5b94e88cd244eac6c22bfce",
+          "source": {
+            "artifactId": "c272-auth-report-3",
+            "contentHash": "sha256:c55b9965a90ccbaf1a874049cb61787e11ec4304c23b6bde3dd8ca144db1f48c",
+            "kind": "TEST_REPORT_ANALYSIS_REVISION",
+            "revisionId": "c272-auth-report-3"
+          },
+          "target": {
+            "artifactId": "c272-auth-checkout-scenario",
+            "contentHash": "sha256:52df383c96dcc44bf3261e9e67522913889e1d69be9bdc3be1830f3d0b9feb34",
+            "kind": "SCENARIO_REVISION",
+            "revisionId": "c272-auth-scenario-1"
+          }
+        },
+        {
+          "id": "qjt_19e76114456639a2823a9958",
+          "relation": "ATTRIBUTES",
+          "linkHash": "sha256:e43d3761b42030fdfab75fc98d2d3986370c6c55cfef5b0d039a6aa2511116cd",
+          "source": {
+            "artifactId": "c272-auth-report-3",
+            "contentHash": "sha256:c55b9965a90ccbaf1a874049cb61787e11ec4304c23b6bde3dd8ca144db1f48c",
+            "kind": "TEST_REPORT_ANALYSIS_REVISION",
+            "revisionId": "c272-auth-report-3"
+          },
+          "target": {
+            "artifactId": "qjeer_fa410e44ea81af1b593dea00",
+            "contentHash": "sha256:fa410e44ea81af1b593dea0016bd7b209a1c82d1a239fb324c56674427b5c53f",
+            "kind": "EVIDENCE_RECEIPT"
+          }
+        },
+        {
+          "id": "qjt_ef914f464ff6b0de95676676",
+          "relation": "ANALYZES",
+          "linkHash": "sha256:3c56d4526c6371130695f10ff18e6a827cc17298609caea5971596c9d7bb1bba",
+          "source": {
+            "artifactId": "c272-auth-report-3",
+            "contentHash": "sha256:c55b9965a90ccbaf1a874049cb61787e11ec4304c23b6bde3dd8ca144db1f48c",
+            "kind": "TEST_REPORT_ANALYSIS_REVISION",
+            "revisionId": "c272-auth-report-3"
+          },
+          "target": {
+            "artifactId": "qjtr_6d4c722a5d61d85c0a442736",
+            "contentHash": "sha256:37d1edb435cdb6061058dad0336d354df34e8b79172b6516b1a29edb157ffa34",
+            "kind": "TEST_RUN"
+          }
+        },
+        {
+          "id": "qjt_eae6e206f734371ee8e7c63e",
+          "relation": "ANALYZES",
+          "linkHash": "sha256:5e4aadb0fc2b822b3b3f9d34075764d04d070179bb2e8831927746119e66c058",
+          "source": {
+            "artifactId": "c272-auth-report-4",
+            "contentHash": "sha256:8c281572e71c2ed0eeee7e888bbd944cff6e1dfd8949b00b49c5281009a03f0f",
+            "kind": "TEST_REPORT_ANALYSIS_REVISION",
+            "revisionId": "c272-auth-report-4"
+          },
+          "target": {
+            "artifactId": "c272-auth-charter",
+            "contentHash": "sha256:a545e28ebadef56f2ee699c6290a2ab87a6bf91340588ed5d2e539f8c275d6a6",
+            "kind": "ANALYSIS_CHARTER_REVISION",
+            "revisionId": "c272-auth-analysis-1"
+          }
+        },
+        {
+          "id": "qjt_bfd2379804aeab9b5412dcb7",
+          "relation": "ANALYZES",
+          "linkHash": "sha256:e250b7113dad3eff0c765059dfc7df63b44ec4962034365c83107740dbb0b2d9",
+          "source": {
+            "artifactId": "c272-auth-report-4",
+            "contentHash": "sha256:8c281572e71c2ed0eeee7e888bbd944cff6e1dfd8949b00b49c5281009a03f0f",
+            "kind": "TEST_REPORT_ANALYSIS_REVISION",
+            "revisionId": "c272-auth-report-4"
+          },
+          "target": {
+            "artifactId": "c272-auth-checkout-scenario",
+            "contentHash": "sha256:52df383c96dcc44bf3261e9e67522913889e1d69be9bdc3be1830f3d0b9feb34",
+            "kind": "SCENARIO_REVISION",
+            "revisionId": "c272-auth-scenario-1"
+          }
+        },
+        {
+          "id": "qjt_b0992851e0987b32088edd23",
+          "relation": "ATTRIBUTES",
+          "linkHash": "sha256:145a9b2aad4a9d8ddbac5d7a48f2e03c3b07143d093152a910c38abedabb6a3c",
+          "source": {
+            "artifactId": "c272-auth-report-4",
+            "contentHash": "sha256:8c281572e71c2ed0eeee7e888bbd944cff6e1dfd8949b00b49c5281009a03f0f",
+            "kind": "TEST_REPORT_ANALYSIS_REVISION",
+            "revisionId": "c272-auth-report-4"
+          },
+          "target": {
+            "artifactId": "qjeer_fa410e44ea81af1b593dea00",
+            "contentHash": "sha256:fa410e44ea81af1b593dea0016bd7b209a1c82d1a239fb324c56674427b5c53f",
+            "kind": "EVIDENCE_RECEIPT"
+          }
+        },
+        {
+          "id": "qjt_aa07944154210ea4505f813a",
+          "relation": "ANALYZES",
+          "linkHash": "sha256:51c2d62a9ff51ca36e66f3527819c7ab655873e5058f19cc33d9818fd918d4bd",
+          "source": {
+            "artifactId": "c272-auth-report-4",
+            "contentHash": "sha256:8c281572e71c2ed0eeee7e888bbd944cff6e1dfd8949b00b49c5281009a03f0f",
+            "kind": "TEST_REPORT_ANALYSIS_REVISION",
+            "revisionId": "c272-auth-report-4"
+          },
+          "target": {
+            "artifactId": "qjtr_6d4c722a5d61d85c0a442736",
+            "contentHash": "sha256:37d1edb435cdb6061058dad0336d354df34e8b79172b6516b1a29edb157ffa34",
+            "kind": "TEST_RUN"
+          }
+        },
+        {
+          "id": "qjt_9a0ce2ed624ebfe57b41bede",
+          "relation": "SUPERSEDES",
+          "linkHash": "sha256:5c8d5dd5a000b022715272eaca8b66a8f17a766ac063c05a31aa77fae7bdc5a8",
+          "source": {
+            "artifactId": "c272-auth-report-4",
+            "contentHash": "sha256:8c281572e71c2ed0eeee7e888bbd944cff6e1dfd8949b00b49c5281009a03f0f",
+            "kind": "TEST_REPORT_ANALYSIS_REVISION",
+            "revisionId": "c272-auth-report-4"
+          },
+          "target": {
+            "artifactId": "c272-auth-report-3",
+            "contentHash": "sha256:c55b9965a90ccbaf1a874049cb61787e11ec4304c23b6bde3dd8ca144db1f48c",
+            "kind": "TEST_REPORT_ANALYSIS_REVISION",
+            "revisionId": "c272-auth-report-3"
+          }
+        },
+        {
+          "id": "qja_link_2a928cb330f5c300af07b65f",
+          "relation": "MATERIALIZES",
+          "linkHash": "sha256:1d2e34dc28a08aa7d4d86879a476d36f27fa90e3f865f5f3de464e98044a87b7",
+          "source": {
+            "artifactId": "c272-auth-checkout-scenario",
+            "contentHash": "sha256:52df383c96dcc44bf3261e9e67522913889e1d69be9bdc3be1830f3d0b9feb34",
+            "kind": "SCENARIO_REVISION",
+            "revisionId": "c272-auth-scenario-1"
+          },
+          "target": {
+            "artifactId": "qja_prepared_f77ee292a857cdb7c9a244b2",
+            "contentHash": "sha256:713ccad1d5544b175102c900be45af44d83d7870bdf5cef3f7ac344eb4bd999c",
+            "kind": "RUNTIME_CAPSULE"
+          }
+        },
+        {
+          "id": "qja_link_eb0a42397ef54bda5eb49c68",
+          "relation": "MATERIALIZES",
+          "linkHash": "sha256:6201b3041f5425d72a201de182dde9635a6d63ba3d8b6d0039d8ea88d7c85f88",
+          "source": {
+            "artifactId": "c272-auth-checkout-scenario",
+            "contentHash": "sha256:52df383c96dcc44bf3261e9e67522913889e1d69be9bdc3be1830f3d0b9feb34",
+            "kind": "SCENARIO_REVISION",
+            "revisionId": "c272-auth-scenario-1"
+          },
+          "target": {
+            "artifactId": "qja_case_f77ee292a857cdb7c9a244b2",
+            "contentHash": "sha256:d025f02dc7c69dd16124a1a26df652d58ed1b3dbe8d8eeb3e1f8b40410924532",
+            "kind": "TEST_CASE"
+          }
+        },
+        {
+          "id": "qja_link_cbf08a0ff5e28340f0f10b9e",
+          "relation": "MATERIALIZES",
+          "linkHash": "sha256:63e6abf737bf106ddb281fe069f564c6f771333ad84dff36ddb5f37c701e1d79",
+          "source": {
+            "artifactId": "c272-auth-checkout-scenario",
+            "contentHash": "sha256:52df383c96dcc44bf3261e9e67522913889e1d69be9bdc3be1830f3d0b9feb34",
+            "kind": "SCENARIO_REVISION",
+            "revisionId": "c272-auth-scenario-1"
+          },
+          "target": {
+            "artifactId": "qja_suite_f77ee292a857cdb7c9a244b2",
+            "contentHash": "sha256:75c21f44aea5e5591c3d2a8a42196dcfd3578b024a0ea1755d081817996e7516",
+            "kind": "TEST_SUITE"
+          }
+        },
+        {
+          "id": "qja_remediation-link_f77ee292a857cdb7c9a244b2",
+          "relation": "SUPERSEDES",
+          "linkHash": "sha256:364b330eb3468ebb74c590671c3bb67aa35c4a2ff0f7a54b3cfd253038bdaef5",
+          "source": {
+            "artifactId": "qja_materialization_de766d055c09d52dac6cfbd9",
+            "contentHash": "sha256:54b3631cfaa3d7054d31e1ce320df0f9739598c4082b1a265dadeac7b469f67e",
+            "kind": "RUNTIME_CAPSULE"
+          },
+          "target": {
+            "artifactId": "qja_materialization_439c17bdcd9395d50f1c6f96",
+            "contentHash": "sha256:7b8db61d71ff461b1206306ff78399e2864d31afd25a169121ccedc26a5b3c34",
+            "kind": "RUNTIME_CAPSULE"
+          }
+        },
+        {
+          "id": "qjt_b9f58a695f3ca02a7e396d9d",
+          "relation": "ANALYZES",
+          "linkHash": "sha256:71fd5d5f358e10d738374cf26439c3ec0c20d28ab3ca6617a81b313f03b422f7",
+          "source": {
+            "artifactId": "c272-auth-report-5",
+            "contentHash": "sha256:4fb64bfc01d5b5a8877932ffdc7c293baa0411c580f0defe6dfcf27cfa84312d",
+            "kind": "TEST_REPORT_ANALYSIS_REVISION",
+            "revisionId": "c272-auth-report-5"
+          },
+          "target": {
+            "artifactId": "c272-auth-charter",
+            "contentHash": "sha256:a545e28ebadef56f2ee699c6290a2ab87a6bf91340588ed5d2e539f8c275d6a6",
+            "kind": "ANALYSIS_CHARTER_REVISION",
+            "revisionId": "c272-auth-analysis-1"
+          }
+        },
+        {
+          "id": "qjt_93d9d590b35bb7dc6b50df68",
+          "relation": "ANALYZES",
+          "linkHash": "sha256:2487a10efa1431d8e48c68b20f3713500811c01b9ae3923b9bd4b568ef976108",
+          "source": {
+            "artifactId": "c272-auth-report-5",
+            "contentHash": "sha256:4fb64bfc01d5b5a8877932ffdc7c293baa0411c580f0defe6dfcf27cfa84312d",
+            "kind": "TEST_REPORT_ANALYSIS_REVISION",
+            "revisionId": "c272-auth-report-5"
+          },
+          "target": {
+            "artifactId": "c272-auth-checkout-scenario",
+            "contentHash": "sha256:52df383c96dcc44bf3261e9e67522913889e1d69be9bdc3be1830f3d0b9feb34",
+            "kind": "SCENARIO_REVISION",
+            "revisionId": "c272-auth-scenario-1"
+          }
+        },
+        {
+          "id": "qjt_c7e914ed6877d0ffd3fbf329",
+          "relation": "ATTRIBUTES",
+          "linkHash": "sha256:3101e5490a040157e915bee004b25fa2e6de02d813e35c0474b2255347059a74",
+          "source": {
+            "artifactId": "c272-auth-report-5",
+            "contentHash": "sha256:4fb64bfc01d5b5a8877932ffdc7c293baa0411c580f0defe6dfcf27cfa84312d",
+            "kind": "TEST_REPORT_ANALYSIS_REVISION",
+            "revisionId": "c272-auth-report-5"
+          },
+          "target": {
+            "artifactId": "qjeer_3fe41ed90a24243a93dfe748",
+            "contentHash": "sha256:3fe41ed90a24243a93dfe748c472279e6b0f61470bbe5130958edef7feaa6c42",
+            "kind": "EVIDENCE_RECEIPT"
+          }
+        },
+        {
+          "id": "qjt_32ba2e6f6c2584e38a966da1",
+          "relation": "ANALYZES",
+          "linkHash": "sha256:1c1a5b8d6a723fc8803f8f48697d1ae3b6d4145ebbb7fad1cd17cf3348d9da3f",
+          "source": {
+            "artifactId": "c272-auth-report-5",
+            "contentHash": "sha256:4fb64bfc01d5b5a8877932ffdc7c293baa0411c580f0defe6dfcf27cfa84312d",
+            "kind": "TEST_REPORT_ANALYSIS_REVISION",
+            "revisionId": "c272-auth-report-5"
+          },
+          "target": {
+            "artifactId": "qjtr_88426b7309a988a8a7b858df",
+            "contentHash": "sha256:cd40f7040a7f4bb5bb3f5f7cdf6229efc11295d20e0a7945ad41ebad3ba7ad8c",
+            "kind": "TEST_RUN"
+          }
+        },
+        {
+          "id": "qjc_cf9edcd261aa83ea00d25ae9",
+          "relation": "APPROVES",
+          "linkHash": "sha256:7656424a75021b4073e467bd05b29fdb8f5b8698a4deaedd87cfadcbd1985837",
+          "source": {
+            "artifactId": "qjc_a7f674799c59ddc8bcaa968e",
+            "contentHash": "sha256:339dc69d70ef5ec8114a9eb7169e515d002a38783c476b3325cccfb25f8162d0",
+            "kind": "JOURNEY_CLOSURE"
+          },
+          "target": {
+            "artifactId": "c272-auth-report-5",
+            "contentHash": "sha256:4fb64bfc01d5b5a8877932ffdc7c293baa0411c580f0defe6dfcf27cfa84312d",
+            "kind": "TEST_REPORT_ANALYSIS_REVISION",
+            "revisionId": "c272-auth-report-5"
+          }
+        }
+      ],
+      "closure": {
+        "id": "qjc_a7f674799c59ddc8bcaa968e",
+        "reportRevisionId": "c272-auth-report-5",
+        "reportHash": "sha256:4fb64bfc01d5b5a8877932ffdc7c293baa0411c580f0defe6dfcf27cfa84312d",
+        "contentHash": "sha256:339dc69d70ef5ec8114a9eb7169e515d002a38783c476b3325cccfb25f8162d0",
+        "closedAt": 1790944321640,
+        "record": {
+          "actorId": "USER",
+          "closedAt": "2026-10-02T12:32:01.640Z",
+          "closureId": "qjc_a7f674799c59ddc8bcaa968e",
+          "cycleId": "qjt_2194391454d1577da4a87ce9",
+          "decision": "RISK_ACCEPTED",
+          "journeyId": "qjy_1c2ff25f-70b1-41ca-8be4-1d4eb8a29d28",
+          "reportRevision": {
+            "artifactId": "c272-auth-report-5",
+            "contentHash": "sha256:4fb64bfc01d5b5a8877932ffdc7c293baa0411c580f0defe6dfcf27cfa84312d",
+            "kind": "TEST_REPORT_ANALYSIS_REVISION",
+            "revisionId": "c272-auth-report-5"
+          },
+          "riskAcceptance": {
+            "acceptedAt": "2026-10-02T12:32:01.640Z",
+            "acceptedItemIds": [
+              "qjci_2a643c0285db7080caf0d26d76673983478830eefbb3a596124e3fb4e8929076",
+              "qjci_38685bc205c52c02071261e7bc6bbaf0c5aed9605f53b2bdff62b81cb6a548ff",
+              "qjci_b3ff4122bb130ec077d6e63bfc1ffdf731a8f373271b20605f81649a19450fcb",
+              "qjci_f6007326ece19d02c33d1c6e675ddbe4abe91d67bb47f253bccc41f565ae9845"
+            ],
+            "rationale": "User requested \u201clet\u2019s open it and finish this\u201d after the exact final-report closure request. Accept c272-auth-report-5, sha256:4fb64bfc01d5b5a8877932ffdc7c293baa0411c580f0defe6dfcf27cfa84312d, for this disposable qualification only. Accept every listed limitation: separate human MFA Discovery and independent automation identity; no production or managed MFA claim; host isolation and named-role enforcement NOT_ATTESTED; earlier authentication interruption retains unresolved exact guard attribution. Preserve all three runs, distinct consumed consents, two full-report revision loops and assertion-only correction. Temporary callback, credential and public fixture access are already removed. C2.7.3 remains pending and GC2 not_evaluated."
+          },
+          "schemaVersion": "appraise.quality-journey/v1",
+          "unresolvedItems": [
+            {
+              "artifactRefs": [
+                {
+                  "artifactId": "c272-auth-report-5",
+                  "contentHash": "sha256:4fb64bfc01d5b5a8877932ffdc7c293baa0411c580f0defe6dfcf27cfa84312d",
+                  "kind": "TEST_REPORT_ANALYSIS_REVISION",
+                  "revisionId": "c272-auth-report-5"
+                }
+              ],
+              "itemId": "qjci_2a643c0285db7080caf0d26d76673983478830eefbb3a596124e3fb4e8929076",
+              "summary": "Evidence qualifies only the disposable protected fixture within this bounded window; no production authentication claim."
+            },
+            {
+              "artifactRefs": [
+                {
+                  "artifactId": "c272-auth-report-5",
+                  "contentHash": "sha256:4fb64bfc01d5b5a8877932ffdc7c293baa0411c580f0defe6dfcf27cfa84312d",
+                  "kind": "TEST_REPORT_ANALYSIS_REVISION",
+                  "revisionId": "c272-auth-report-5"
+                }
+              ],
+              "itemId": "qjci_38685bc205c52c02071261e7bc6bbaf0c5aed9605f53b2bdff62b81cb6a548ff",
+              "summary": "External assignment host isolation and named-role runtime enforcement are NOT_ATTESTED."
+            },
+            {
+              "artifactRefs": [
+                {
+                  "artifactId": "c272-auth-report-5",
+                  "contentHash": "sha256:4fb64bfc01d5b5a8877932ffdc7c293baa0411c580f0defe6dfcf27cfa84312d",
+                  "kind": "TEST_REPORT_ANALYSIS_REVISION",
+                  "revisionId": "c272-auth-report-5"
+                }
+              ],
+              "itemId": "qjci_b3ff4122bb130ec077d6e63bfc1ffdf731a8f373271b20605f81649a19450fcb",
+              "summary": "Human Auth0/MFA Discovery and managed automation identity are separate; no Discovery cookie/storage transfer or managed MFA claim."
+            },
+            {
+              "artifactRefs": [
+                {
+                  "artifactId": "c272-auth-report-5",
+                  "contentHash": "sha256:4fb64bfc01d5b5a8877932ffdc7c293baa0411c580f0defe6dfcf27cfa84312d",
+                  "kind": "TEST_REPORT_ANALYSIS_REVISION",
+                  "revisionId": "c272-auth-report-5"
+                }
+              ],
+              "itemId": "qjci_f6007326ece19d02c33d1c6e675ddbe4abe91d67bb47f253bccc41f565ae9845",
+              "summary": "Earlier authentication interruption retains unresolved exact guard attribution; it is preserved and excluded from the passing-run claim."
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

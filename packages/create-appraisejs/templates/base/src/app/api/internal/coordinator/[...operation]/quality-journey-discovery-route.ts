@@ -56,7 +56,7 @@ const submissionBase = {
 }
 const targetObservationSubmissionSchema = z.object({ ...submissionBase, bundle: submittedBundle }).strict()
 const resourceResolutionSubmissionSchema = z.object({ ...submissionBase, bundle: submittedBundle }).strict()
-const { ownerToken: _ownerToken, idempotencyKey: _idempotencyKey, ...externalSubmissionBase } = submissionBase
+const externalSubmissionBase = z.object(submissionBase).omit({ ownerToken: true, idempotencyKey: true }).shape
 const externalTargetObservationSubmissionSchema = z
   .object({
     ...externalSubmissionBase,
@@ -160,11 +160,12 @@ async function submitExternalTargetObservation(
 ): Promise<Response> {
   if (!principal) throw new ServiceError('External project principal is unavailable.', 'UNAUTHORIZED')
   const value = externalTargetObservationSubmissionSchema.parse(body)
-  const resolvedTarget = await resolveTargetProject(value.target)
+  const { target: targetBinding, ...submission } = value
+  const resolvedTarget = await resolveTargetProject(targetBinding)
   return Response.json(
     await submitExternalQualityJourneyTargetObservation(
       {
-        ...value,
+        ...submission,
         journeyId,
         targetProjectId: resolvedTarget.id,
         bundle: scopedBundle(value.bundle, journeyId, resolvedTarget.id, value.workItemId, value.attemptId),
@@ -185,11 +186,12 @@ async function submitExternalResourceResolution(
 ): Promise<Response> {
   if (!principal) throw new ServiceError('External project principal is unavailable.', 'UNAUTHORIZED')
   const value = externalResourceResolutionSubmissionSchema.parse(body)
-  const resolvedTarget = await resolveTargetProject(value.target)
+  const { target: targetBinding, ...submission } = value
+  const resolvedTarget = await resolveTargetProject(targetBinding)
   return Response.json(
     await submitExternalQualityJourneyResourceResolution(
       {
-        ...value,
+        ...submission,
         journeyId,
         targetProjectId: resolvedTarget.id,
         bundle: scopedBundle(value.bundle, journeyId, resolvedTarget.id, value.workItemId, value.attemptId),

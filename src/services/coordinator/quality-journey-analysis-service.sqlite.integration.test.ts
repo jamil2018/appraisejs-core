@@ -645,6 +645,63 @@ async function completedDiscovery(client: PrismaClient, suffix: string) {
   return { created, submitted, discovery: completed, frozenResource }
 }
 
+async function seedDiscoveryBuiltIns(client: PrismaClient) {
+  const discoveryDefinition = frozenRouteAssertionDefinition()
+  const discoveryDefinitionHashes = computeStepDefinitionHashes(discoveryDefinition)
+  await client.stepDefinition.create({
+    data: {
+      id: discoveryDefinition.identity.id,
+      version: discoveryDefinition.identity.version,
+      status: 'ready',
+      title: discoveryDefinition.intent.title,
+      description: discoveryDefinition.intent.description,
+      definitionJson: canonicalContractJson(discoveryDefinition),
+      definitionHash: discoveryDefinitionHashes.definitionHash,
+      humanProjectionHash: discoveryDefinitionHashes.humanProjectionHash,
+      executionHash: discoveryDefinitionHashes.executionHash,
+      provenanceJson: canonicalContractJson(discoveryDefinition.provenance),
+      executionBinding: {
+        create: {
+          kind: 'operation',
+          bindingJson: canonicalContractJson(discoveryDefinition.execution),
+          bindingHash: discoveryDefinitionHashes.executionHash,
+        },
+      },
+    },
+  })
+  const otherBuiltIns = builtInStepDefinitions.filter(
+    definition => definition.identity.id !== discoveryDefinition.identity.id,
+  )
+  const wrongHashDefinition = otherBuiltIns[0]!
+  const wrongProvenanceDefinition = otherBuiltIns[1]!
+  const wrongProvenanceHash = computeStepDefinitionHashes(wrongProvenanceDefinition).definitionHash
+  await client.stepDefinition.createMany({
+    data: [
+      {
+        id: wrongHashDefinition.identity.id,
+        version: wrongHashDefinition.identity.version,
+        status: 'ready',
+        title: wrongHashDefinition.intent.title,
+        description: wrongHashDefinition.intent.description,
+        definitionJson: canonicalContractJson(wrongHashDefinition),
+        definitionHash: digest('f'),
+        provenanceJson: canonicalContractJson(wrongHashDefinition.provenance),
+      },
+      {
+        id: wrongProvenanceDefinition.identity.id,
+        version: wrongProvenanceDefinition.identity.version,
+        status: 'ready',
+        title: wrongProvenanceDefinition.intent.title,
+        description: wrongProvenanceDefinition.intent.description,
+        definitionJson: canonicalContractJson(wrongProvenanceDefinition),
+        definitionHash: wrongProvenanceHash,
+        provenanceJson: canonicalContractJson({ ...wrongProvenanceDefinition.provenance, createdBy: 'other' }),
+      },
+    ],
+  })
+  return { discoveryDefinition, discoveryDefinitionHashes }
+}
+
 describe('Quality Journey Phase 3 through Phase 5 control plane', () => {
   it('rolls back a canonical artifact effect when fault injection prevents its external acceptance receipt', async () => {
     const client = await fixture()
@@ -1381,43 +1438,11 @@ describe('Quality Journey Phase 3 through Phase 5 control plane', () => {
         inputArtifactRefs: [charterRef],
         payload: { revisionId: 'analysis-revision-1', contentHash, decision: 'APPROVED' },
       }
-      // Discovery freezes the resource catalog. Seed the Step Definition
-      // before approval so the later Automator assignment may legitimately
-      // select it from the Resource Explorer output.
-      const discoveryDefinition = frozenRouteAssertionDefinition()
-      const discoveryDefinitionHashes = computeStepDefinitionHashes(discoveryDefinition)
-      await client.stepDefinition.create({
-        data: {
-          id: discoveryDefinition.identity.id,
-          version: discoveryDefinition.identity.version,
-          status: 'ready',
-          title: discoveryDefinition.intent.title,
-          description: discoveryDefinition.intent.description,
-          definitionJson: canonicalContractJson(discoveryDefinition),
-          definitionHash: discoveryDefinitionHashes.definitionHash,
-          humanProjectionHash: discoveryDefinitionHashes.humanProjectionHash,
-          executionHash: discoveryDefinitionHashes.executionHash,
-          provenanceJson: canonicalContractJson(discoveryDefinition.provenance),
-          executionBinding: {
-            create: {
-              kind: 'operation',
-              bindingJson: canonicalContractJson(discoveryDefinition.execution),
-              bindingHash: discoveryDefinitionHashes.executionHash,
-            },
-          },
-        },
-      })
-      await client.projectResourceOwnership.create({
-        data: {
-          id: `ownership-${discoveryDefinition.identity.id}`,
-          entityType: 'step-definition',
-          entityId: discoveryDefinition.identity.id,
-          scope: 'project',
-          targetProjectId: 'target-analysis-1',
-          origin: 'fixture',
-          contentHash: discoveryDefinitionHashes.definitionHash,
-        },
-      })
+      // Discovery freezes source-owned built-ins even when no project ownership
+      // rows have been materialized. The later Automator assignment may select
+      // only definitions that pass the exact source identity, hash, and provenance check.
+      const { discoveryDefinition, discoveryDefinitionHashes } = await seedDiscoveryBuiltIns(client)
+      expect(await client.projectResourceOwnership.count({ where: { entityType: 'step-definition' } })).toBe(0)
       await expect(decideQualityJourneyAnalysis(decide, client)).resolves.toMatchObject({
         outcome: 'COMMITTED',
         successorStage: 'DISCOVERY',
@@ -1437,6 +1462,19 @@ describe('Quality Journey Phase 3 through Phase 5 control plane', () => {
       expect(discovery.revisions).toHaveLength(1)
       const discoveryRevision = discovery.revisions[0]
       expect(discoveryRevision.status).toBe('COLLECTING')
+      const frozenSteps = (
+        JSON.parse(discoveryRevision.resourceScopeJson) as {
+          resources: Array<{ id: string; kind: string; contentHash: string; sourceTargetProjectId: string | null }>
+        }
+      ).resources.filter(resource => resource.kind === 'STEP_DEFINITION')
+      expect(frozenSteps).toEqual([
+        {
+          id: `step:${discoveryDefinition.identity.id}:${discoveryDefinition.identity.version}`,
+          kind: 'STEP_DEFINITION',
+          contentHash: discoveryDefinitionHashes.definitionHash,
+          sourceTargetProjectId: null,
+        },
+      ])
       expect([discoveryRevision.scoutWorkItem.role, discoveryRevision.resourceWorkItem.role]).toEqual([
         'SCOUT',
         'RESOURCE_EXPLORER',
@@ -1624,7 +1662,9 @@ describe('Quality Journey Phase 3 through Phase 5 control plane', () => {
       ).rejects.toMatchObject({ code: 'UNAUTHORIZED' })
       const resourceScope = JSON.parse(discoveryRevision.resourceWorkItem.authorizationScopeJson)
       const frozenResources = (
-        JSON.parse(discoveryRevision.resourceScopeJson) as { resources: Array<{ id: string; kind: string }> }
+        JSON.parse(discoveryRevision.resourceScopeJson) as {
+          resources: Array<{ id: string; kind: string; contentHash: string }>
+        }
       ).resources
       const frozenResource = frozenResources.find(resource => resource.kind !== 'MODULE')!
       const frozenModule = frozenResources.find(resource => resource.kind === 'MODULE')!
@@ -2219,7 +2259,7 @@ describe('Quality Journey Phase 3 through Phase 5 control plane', () => {
               create: {
                 id: `existing-semantic-step-${suffix}`,
                 order: 0,
-                gherkinStep: reusableIntent.steps[0]!.action,
+                gherkinStep: `Then ${reusableIntent.steps[0]!.action}`,
                 label: reusableIntent.steps[0]!.expected,
                 icon: 'VALIDATION',
                 invocationJson: reusableInvocation,
@@ -2572,6 +2612,17 @@ describe('Quality Journey Phase 3 through Phase 5 control plane', () => {
       await expect(materializeQualityJourneyApprovedScenarios(materializeInput, client)).resolves.toMatchObject({
         replayed: true,
       })
+      const expectedResourceHashes = frozenResources
+        .filter(resource => resourceBundle.reusable.some(reusable => reusable.resourceId === resource.id))
+        .map(resource => ({ id: resource.id, contentHash: resource.contentHash }))
+        .sort((left, right) => left.id.localeCompare(right.id))
+      const targetBindings = await client.qualityJourneyAutomationTargetBinding.findMany({
+        where: { journeyId: created.journey.journeyId },
+      })
+      expect(targetBindings).not.toHaveLength(0)
+      targetBindings.forEach(binding => {
+        expect(JSON.parse(binding.resourceHashJson)).toEqual(expectedResourceHashes)
+      })
       const authoredSteps = await client.testCaseStep.findMany({
         where: {
           testCaseId: {
@@ -2580,6 +2631,7 @@ describe('Quality Journey Phase 3 through Phase 5 control plane', () => {
         },
       })
       expect(authoredSteps).toHaveLength(1)
+      expect(authoredSteps[0]!.gherkinStep).toBe(`Then ${reusableIntent.steps[0]!.action}`)
       authoredSteps.forEach(step =>
         expect(stepInvocationSchema.parse(JSON.parse(step.invocationJson))).toMatchObject({
           step: { id: readyDefinition.identity.id },

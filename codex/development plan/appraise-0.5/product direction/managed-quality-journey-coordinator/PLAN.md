@@ -9,7 +9,11 @@ are verified after the bounded live Auth0 two-session MFA, protected-return, Sco
 This closes C-B04. The native CDP production adapter and its containment qualification are recorded in [production adapter evidence](evidence/C2.3.3-production-adapter.md), as recorded in
 [C2.3 evidence](evidence/C2.3.md). The [human-authorized exact-return update](evidence/C2.3.3-return-automation.md)
 removes manual URL copying. C2.4 is verified after [independent exact-artifact review](evidence/C2.4.md). C2.5 is
-verified after [independent exact-artifact review](evidence/C2.5.md); GC2 remains `not_evaluated`. The
+verified after [independent exact-artifact review](evidence/C2.5.md), and C2.6 after [independent exact-artifact
+review](evidence/C2.6.md). C2.7 and its bounded [task-register suffixes](TASK_REGISTER.md) are verified after
+[complete Journey reconciliation and independent exact-artifact review](evidence/C2.7.3.md). GC2 [passed](evidence/GC2.md)
+for the disposable-target stock-Codex lifecycle, with accepted limitations preserved; C3.1 is pending and unstarted,
+and GC3 remains `not_evaluated`. The
 explicitly authorized retained C0.2e slice was the only implementation permitted before GC0 passed.
 The [task register](TASK_REGISTER.md) owns active task status, dependencies, gates and evidence. **C0.1: qualify the
 Appraise-to-Codex handoff** is verified as a bounded qualification task. Its [evidence](evidence/C0.1.md) records
@@ -68,7 +72,7 @@ repairs. This closes C-B02 for its C0.2e/C2.1 scope. **C2.2: connect analysis an
 Its [evidence](evidence/C2.2.md) binds the real claimed immutable requirement to the artifact library, exercises the
 external Analysis question/answer/publication/revision/fresh-task successor slice, and records truthful UI activity
 and approval status. [C2.4](evidence/C2.4.md) verifies scenario review and revision with local UI decision authority;
-GC2 remains `not_evaluated`.
+GC2 [passed](evidence/GC2.md) after complete anonymous/authenticated lifecycle reconciliation; this does not qualify release.
 
 ## 1. Decision and product experience
 

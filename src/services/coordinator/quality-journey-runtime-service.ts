@@ -17,6 +17,8 @@ import { submitDurableQualityJourneyCommandInTransaction } from './quality-journ
 type RuntimeInput = { executionCycleId: string }
 const defaultAppraiseRoot = () => path.join(process.cwd(), '.appraise')
 const terminal = (status: string) => ['COMPLETED', 'CANCELLED'].includes(status)
+const terminalBindingStatus = (run: { status: string; result: string }) =>
+  run.status === 'CANCELLED' ? 'CANCELLED' : run.result === 'PASSED' ? 'COMPLETED' : 'FAILED'
 const conflict = (message: string) => new ServiceError(message, 'CONFLICT', 409)
 
 type LaunchBinding = Prisma.QualityJourneyExecutionTestRunGetPayload<{ include: { testRun: true } }>
@@ -341,7 +343,31 @@ export async function reconcileQualityJourneyExecutionRuntime(
   const existing = await client.qualityJourneyExecutionEvidenceReceipt.count({
     where: { executionCycleId: input.executionCycleId },
   })
-  if (existing) return
+  if (existing) {
+    await client.$transaction(async tx => {
+      const sealed = await tx.qualityJourneyExecutionCycle.findUniqueOrThrow({
+        where: { id: input.executionCycleId },
+        include: { testRuns: { include: { testRun: true } }, evidenceReceipts: true },
+      })
+      if (
+        !['COMPLETED', 'CANCELLED'].includes(sealed.status) ||
+        sealed.testRuns.length !== sealed.evidenceReceipts.length ||
+        sealed.testRuns.some(
+          binding =>
+            !terminal(binding.testRun.status) ||
+            !sealed.evidenceReceipts.some(receipt => receipt.testRunId === binding.testRunId),
+        )
+      )
+        return
+      assertQualityJourneyMutable(await tx.qualityJourney.findUniqueOrThrow({ where: { id: sealed.journeyId } }))
+      for (const binding of sealed.testRuns)
+        await tx.qualityJourneyExecutionTestRun.updateMany({
+          where: { id: binding.id, status: { in: ['LAUNCHING', 'RUNNING'] } },
+          data: { status: terminalBindingStatus(binding.testRun) },
+        })
+    })
+    return
+  }
   const result = await collectEvidence(client, input.executionCycleId, appraiseRoot)
   if (!result) return
   await client.$transaction(async tx => {
@@ -379,5 +405,10 @@ export async function reconcileQualityJourneyExecutionRuntime(
         completedAt: new Date(),
       },
     })
+    for (const binding of result.cycle.testRuns)
+      await tx.qualityJourneyExecutionTestRun.updateMany({
+        where: { id: binding.id, status: { in: ['LAUNCHING', 'RUNNING'] } },
+        data: { status: terminalBindingStatus(binding.testRun) },
+      })
   })
 }

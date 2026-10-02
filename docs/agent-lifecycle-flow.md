@@ -54,6 +54,16 @@ prepared capsule receipts through canonical operation and ready Step Definition 
 an uncertain submission before replay. Generated `automation/` output and human Step projections remain derived from
 canonical source; they are not Journey authoring inputs or direct agent edit targets. Preparation never grants
 execution consent or creates a TestRun. Autonomous product-code repair is outside the Automator assignment.
+Prepared Journey steps use a single allowed Gherkin keyword followed by the frozen scenario action. Materialization
+derives that keyword from the reviewed Step Invocation and rejects malformed or multiline actions. The frozen
+Discovery resource projection retains exact content hashes but supplies only the runtime capsule's `id` and
+`contentHash` fields; richer legacy bindings are verified in full before the runtime reader projects them to that
+same pair. These projections do not change the reviewed scenario or frozen binding identity.
+
+Discovery freezes ready Step Definitions visible to the target project. A source-owned built-in is also visible when
+its ID, version, definition hash, and provenance exactly match the canonical built-in source, even if the legacy
+registry has no project ownership row for it. Other definitions still require project resource visibility. This
+lets Automator bind a frozen built-in without treating unrelated project definitions as global resources.
 
 During Discovery, anonymous and authenticated target observation use the Appraise-owned scoped browser panel. The
 panel launches a headed, non-persistent browser context bound to the active Journey, target, discovery revision,
@@ -78,6 +88,11 @@ document-origin to destination-origin rules, canonical exact or segment-prefix p
 and an explicit IdP-to-frozen-target return edge. Appraise freezes the canonical policy hash and environment scope
 version into the Discovery revision and rejects a changed Environment before start, confirmation, capture, or Scout
 admission. IdP origins are not Scout network authority: they exist only in the headed browser policy. The abstract transit policy defines allowed redirect edges and effective methods.
+Before a live sign-in attempt, inspect the current login document's public asset URLs and bind each required
+stylesheet or script by its exact origin, path, method, and `SUBRESOURCE` kind. IdP asset version changes require an
+Environment policy update and a new frozen Discovery revision; an older revision does not inherit the new policy.
+An unstyled login page can indicate an asset-path mismatch, but the actual document reference and request outcome
+must be checked before changing the allowlist. Keep credential and authorization-code URLs out of diagnostics.
 The native Chromium adapter uses an owned process and temporary profile with a private CDP pipe. It binds the exact
 paused seed target and installs recursive target admission and request interception before resume. Each request and
 redirect follow-up passes the same canonical policy before network contact; response-stage pauses let the service
@@ -134,6 +149,11 @@ one-shot authorization ID, frozen target URL hash, fixed `GET` method, and commi
 Environment scope version, flow ID, policy hash, and return outcome; it never persists IdP URL, query, response, or
 page content.
 
+The Discovery browser receipt is evidence of scoped observation, not a reusable login grant. Managed RuntimeCapsule
+TestRuns create a fresh headless browser context; Discovery cookies and storage state are neither recorded in the
+receipt nor transferred to that context. A managed run against a protected route therefore needs its own authorized
+authentication path. A protected Discovery return alone must not be reported as authenticated managed execution.
+
 Only an immutable `APPRAISE_DISCOVERY_BROWSER_V1` artifact can back a Scout observation. The specialized Scout
 submission transaction resolves every descriptor and verifies its exact hash, issuer, Journey, target, cycle,
 discovery revision, work item, snapshot, route, environment, access outcome and Appraise-derived observation fact
@@ -143,6 +163,30 @@ Independent Test Runs remain available for authoring feedback, execution diagnos
 `intent=INDEPENDENT`, carry no Journey execution binding, and cannot supply Journey evidence, triage, decisions, or
 closure. Journey-created Test Runs have `intent=QUALITY_JOURNEY` and require their exact
 `QualityJourneyExecutionTestRun` binding.
+
+## Results, corrections, and terminal review
+
+After an execution cycle is terminal, Appraise prepares a Triager assignment from its sealed Journey TestRun and
+evidence receipts. The Triager reads only that frozen assignment and the permitted sealed artifacts, then submits a
+complete revisioned Test Report Analysis through the specialized operation. Each material failed or unverified run
+requires one finding linked to the exact TestRun, scenario revision, and evidence receipt; requirement coverage must
+account for every accepted requirement. A generic work completion or agent final message cannot publish a report.
+
+The local Journey UI reviews the active report and current state hash. A full-report revision records feedback and
+issues a successor Triager assignment with the preceding report attached. Approval of a bounded automation
+correction records the reviewed report and creates a successor remediation cycle; the Automator can prepare only the
+approved scenario revisions. A selective rerun needs a proposal naming the complete predecessor receipt set and a
+local UI approval. Its execution reservation binds the predecessor cycle and frozen prepared capsules. Operations
+that require execution consent request a fresh, exact-scope local UI grant; a previous grant does not carry into a
+changed or successor run. Reconcile and seal the successor's actual runtime evidence before the next triage review.
+
+Terminal closure is a local UI decision over the exact current report revision, hash, and Journey state. Appraise
+rechecks the published and approved Analysis revision, report source and evidence lineage, active work, execution,
+blockers, and required questions in the closure transaction. Ordinary closure requires no unresolved report items.
+Risk acceptance requires a rationale and an exact set of every unresolved finding, coverage limitation, and residual
+risk ID; the sealed closure receipt retains their artifact provenance. Exact replay is read-only, while a changed or
+stale decision is rejected. The UI records local user possession as `USER`; it does not establish natural-person
+identity or an independent reviewer.
 
 The removed Quality Plan and Assessment routes, operations, resources, and aliases are unavailable. Requests receive
 ordinary not-found behavior; there are no redirects, compatibility projections, imports, or data-preservation paths.

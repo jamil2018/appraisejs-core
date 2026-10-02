@@ -30,6 +30,7 @@ import {
   submitQualityJourneyTriageReport,
 } from './quality-journey-triage-service'
 import { closeQualityJourney, getQualityJourneyClosure } from './quality-journey-closure-service'
+import { approveQualityJourneyRerun, proposeQualityJourneyRerun } from './quality-journey-execution-service'
 
 const workspaces: string[] = []
 const clients: PrismaClient[] = []
@@ -625,6 +626,36 @@ describe('Quality Journey triage service on migrated SQLite', () => {
         value.client,
       ),
     ).rejects.toMatchObject({ code: 'CONFLICT' })
+    const wrongLineage = {
+      ...report(assignment.input, 'report-wrong-lineage'),
+      findings: [
+        {
+          ...report(assignment.input, 'report-wrong-lineage').findings[0]!,
+          evidenceReceiptId: 'evidence-from-another-run',
+        },
+      ],
+    }
+    await expect(
+      submitQualityJourneyTriageReport(
+        {
+          journeyId: value.journeyId,
+          targetProjectId: 'target-triage',
+          workItemId: claim.workItem.id,
+          attemptId: claim.attempt.id,
+          leaseId: claim.attempt.leaseId,
+          ownerToken: claim.ownerToken,
+          idempotencyKey: 'report-submit-wrong-lineage',
+          report: wrongLineage,
+          result: result(
+            claim,
+            wrongLineage.reportRevisionId,
+            hash({ report: wrongLineage, source: assignment.input }),
+          ),
+        },
+        value.client,
+      ),
+    ).rejects.toMatchObject({ code: 'CONFLICT' })
+    expect(await value.client.qualityJourneyTriageReport.count({ where: { journeyId: value.journeyId } })).toBe(0)
     const submit = {
       journeyId: value.journeyId,
       targetProjectId: 'target-triage',
@@ -716,6 +747,104 @@ describe('Quality Journey triage service on migrated SQLite', () => {
         value.client,
       ),
     ).toMatchObject({ reportRevisionId: 'report-triage-r2', replayed: false })
+    const revised = await getQualityJourneyTriage(
+      { journeyId: value.journeyId, targetProjectId: 'target-triage' },
+      value.client,
+    )
+    expect(revised.activeReportRevisionId).toBe('report-triage-r2')
+    expect(revised.reports.map(item => item.id)).toEqual(['report-triage-r1', 'report-triage-r2'])
+    expect(revised.reports[0]!.review).toMatchObject({
+      kind: 'FULL_REPORT_REVISION',
+      feedback: reviewInput.feedback,
+    })
+    expect(revised.reports[1]!.report.predecessorReportRevisionId).toBe('report-triage-r1')
+    expect(next.input.predecessorReport).toMatchObject({
+      reportRevisionId: 'report-triage-r1',
+      contentHash: firstHash,
+      feedback: reviewInput.feedback,
+    })
+    const supersedes = await value.client.qualityJourneyArtifactLink.findFirstOrThrow({
+      where: { journeyId: value.journeyId, relation: 'SUPERSEDES' },
+    })
+    expect(JSON.parse(supersedes.sourceJson)).toMatchObject({ revisionId: 'report-triage-r2' })
+    expect(JSON.parse(supersedes.targetJson)).toMatchObject({
+      revisionId: 'report-triage-r1',
+      contentHash: firstHash,
+    })
+    const current = await value.client.qualityJourney.findUniqueOrThrow({ where: { id: value.journeyId } })
+    await expect(requestQualityJourneyReportRevision(reviewInput, value.client)).resolves.toMatchObject({
+      kind: 'FULL_REPORT_REVISION',
+    })
+    await expect(
+      requestQualityJourneyReportRevision(
+        {
+          ...reviewInput,
+          idempotencyKey: 'report-review-obsolete',
+          expectedStateHash: current.stateHash,
+        },
+        value.client,
+      ),
+    ).rejects.toMatchObject({ code: 'CONFLICT' })
+    await expect(
+      closeQualityJourney(
+        {
+          journeyId: value.journeyId,
+          targetProjectId: 'target-triage',
+          reportRevisionId: first.reportRevisionId,
+          expectedReportHash: firstHash,
+          expectedStateHash: current.stateHash,
+          idempotencyKey: 'close-superseded-report',
+          decision: 'CLOSED',
+          acceptedItemIds: [],
+        },
+        value.client,
+      ),
+    ).rejects.toMatchObject({ code: 'CONFLICT' })
+    const closure = await getQualityJourneyClosure(
+      { journeyId: value.journeyId, targetProjectId: 'target-triage' },
+      value.client,
+    )
+    expect(closure.reportRevisionId).toBe('report-triage-r2')
+    expect(closure.unresolvedItems).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          summary: expect.stringContaining('TARGET_DEFECT'),
+          artifactRefs: expect.arrayContaining([
+            expect.objectContaining({ kind: 'EVIDENCE_RECEIPT', artifactId: 'evidence-triage' }),
+          ]),
+        }),
+        expect.objectContaining({ summary: expect.stringContaining('NOT_EVALUATED') }),
+      ]),
+    )
+    const closed = await closeQualityJourney(
+      {
+        journeyId: value.journeyId,
+        targetProjectId: 'target-triage',
+        reportRevisionId: 'report-triage-r2',
+        expectedReportHash: revisionHash,
+        expectedStateHash: current.stateHash,
+        idempotencyKey: 'close-revised-risk',
+        decision: 'RISK_ACCEPTED',
+        rationale: 'Accept the remaining failed and unrun outcomes in the revised report.',
+        acceptedItemIds: closure.unresolvedItems.map(item => item.itemId),
+      },
+      value.client,
+    )
+    expect(closed.receipt).toMatchObject({
+      decision: 'RISK_ACCEPTED',
+      reportRevision: { revisionId: 'report-triage-r2', contentHash: revisionHash },
+    })
+    expect(closed.receipt.unresolvedItems).toEqual(closure.unresolvedItems)
+    expect(
+      (
+        await value.client.qualityJourneyReportReview.findMany({
+          where: { journeyId: value.journeyId },
+          select: { kind: true },
+        })
+      )
+        .map(review => review.kind)
+        .sort(),
+    ).toEqual(['FULL_REPORT_REVISION', 'RISK_ACCEPTED'])
   })
 
   it('rejects generic Triager completion before it can bypass the specialized report boundary', async () => {
@@ -1227,5 +1356,153 @@ describe('Quality Journey triage service on migrated SQLite', () => {
       ),
     ).rejects.toMatchObject({ code: 'UNAUTHORIZED' })
     expect(await value.client.qualityJourneyCommand.count({ where: { journeyId: value.journeyId } })).toBe(commandCount)
+  })
+
+  // C2.7.2 deterministic suffix: the common relational fixture supplies a
+  // synthetic failed-run receipt. It does not run or seal runtime bytes, prove
+  // browser authentication, or complete an intake-to-closure Journey.
+  it('binds a revised Triager report to the exact fixture receipt and a persisted rerun approval', async () => {
+    const value = await fixture()
+    const scope = { journeyId: value.journeyId, targetProjectId: 'target-triage' }
+    try {
+      const prepared = await prepareQualityJourneyTriage(
+        { ...scope, executionCycleId: 'execution-triage' },
+        value.client,
+      )
+      expect(prepared.assignments).toHaveLength(1)
+      const firstInput = prepared.assignments[0]!.input
+      expect(firstInput.runs.map(item => item.evidenceReceiptId)).toEqual(['evidence-triage'])
+
+      const publish = async (
+        document: ReturnType<typeof report>,
+        source: typeof firstInput,
+        idempotencyKey: string,
+      ) => {
+        const claim = await claimQualityJourneyWork({ ...scope, role: 'TRIAGER' }, value.client)
+        adapterFor(claim.attempt.id, `c27-adapter-${idempotencyKey}`)
+        await dispatchQualityJourneyWork(
+          {
+            ...scope,
+            workItemId: claim.workItem.id,
+            leaseId: claim.attempt.leaseId,
+            ownerToken: claim.ownerToken,
+          },
+          value.client,
+        )
+        const contentHash = hash({ report: document, source })
+        await submitQualityJourneyTriageReport(
+          {
+            ...scope,
+            workItemId: claim.workItem.id,
+            attemptId: claim.attempt.id,
+            leaseId: claim.attempt.leaseId,
+            ownerToken: claim.ownerToken,
+            idempotencyKey,
+            report: document,
+            result: result(claim, document.reportRevisionId, contentHash),
+          },
+          value.client,
+        )
+        return contentHash
+      }
+
+      const first = report(firstInput, 'c27-failed-r1')
+      const firstHash = await publish(first, firstInput, 'c27-submit-r1')
+      const firstState = await value.client.qualityJourney.findUniqueOrThrow({ where: { id: value.journeyId } })
+      expect(firstState.activeTriageReportId).toBe(first.reportRevisionId)
+      const feedback = 'Reassess the complete failed run before requesting a rerun.'
+      await requestQualityJourneyReportRevision(
+        {
+          ...scope,
+          reportRevisionId: first.reportRevisionId,
+          expectedReportHash: firstHash,
+          expectedStateHash: firstState.stateHash,
+          idempotencyKey: 'c27-review-r1',
+          feedback,
+        },
+        value.client,
+      )
+      const afterReview = await getQualityJourneyTriage(scope, value.client)
+      const successorInput = afterReview.assignments.at(-1)!.input
+      expect(successorInput.predecessorReport).toMatchObject({
+        reportRevisionId: first.reportRevisionId,
+        contentHash: firstHash,
+        feedback,
+      })
+      expect(successorInput.runs.map(item => item.evidenceReceiptId)).toEqual(['evidence-triage'])
+
+      const revised = report(successorInput, 'c27-failed-r2', first.reportRevisionId)
+      const revisedHash = await publish(revised, successorInput, 'c27-submit-r2')
+      const active = await getQualityJourneyTriage(scope, value.client)
+      expect(active.activeReportRevisionId).toBe(revised.reportRevisionId)
+      expect(active.reports.map(item => item.id)).toEqual([first.reportRevisionId, revised.reportRevisionId])
+      const supersedes = await value.client.qualityJourneyArtifactLink.findFirstOrThrow({
+        where: { journeyId: value.journeyId, relation: 'SUPERSEDES' },
+      })
+      expect(JSON.parse(supersedes.targetJson)).toMatchObject({
+        revisionId: first.reportRevisionId,
+        contentHash: firstHash,
+      })
+      expect(JSON.parse(supersedes.sourceJson)).toMatchObject({
+        revisionId: revised.reportRevisionId,
+        contentHash: revisedHash,
+      })
+
+      const proposal = await proposeQualityJourneyRerun(
+        {
+          ...scope,
+          sourceCycleId: 'execution-triage',
+          sourceEvidenceReceiptIds: ['evidence-triage'],
+          selectedScenarioRevisionIds: ['scenario-triage-r1'],
+          reason: 'Verify the reported failure against the exact selected scenario.',
+          idempotencyKey: 'c27-rerun-proposal',
+        },
+        value.client,
+      )
+      expect(proposal).toMatchObject({
+        sourceExecutionCycleId: 'execution-triage',
+        reportRevisionId: revised.reportRevisionId,
+        reportHash: revisedHash,
+        status: 'PROPOSED',
+      })
+      await expect(
+        approveQualityJourneyRerun(
+          { ...scope, proposalId: proposal.id, expectedProposalHash: digest('0') },
+          value.client,
+        ),
+      ).rejects.toMatchObject({ code: 'CONFLICT' })
+      const approved = await approveQualityJourneyRerun(
+        { ...scope, proposalId: proposal.id, expectedProposalHash: proposal.proposalHash },
+        value.client,
+      )
+      expect(approved.status).toBe('APPROVED')
+      expect(
+        await value.client.qualityJourneyReportReview.findUniqueOrThrow({
+          where: { reportRevisionId: revised.reportRevisionId },
+        }),
+      ).toMatchObject({ kind: 'RERUN_APPROVED' })
+      expect(await value.client.qualityJourneyExecutionRerunProposal.count({ where: scope })).toBe(1)
+
+      // The frozen predecessor fixture has no materialization or prepared
+      // runtime capsule. Starting and sealing a successor run, publishing its
+      // final report, and closing the Journey require a real earlier-stage flow.
+      const current = await value.client.qualityJourney.findUniqueOrThrow({ where: { id: value.journeyId } })
+      await expect(
+        closeQualityJourney(
+          {
+            ...scope,
+            reportRevisionId: first.reportRevisionId,
+            expectedReportHash: firstHash,
+            expectedStateHash: current.stateHash,
+            idempotencyKey: 'c27-close-obsolete',
+            decision: 'CLOSED',
+            acceptedItemIds: [],
+          },
+          value.client,
+        ),
+      ).rejects.toMatchObject({ code: 'CONFLICT' })
+    } finally {
+      await value.client.$disconnect()
+    }
   })
 })

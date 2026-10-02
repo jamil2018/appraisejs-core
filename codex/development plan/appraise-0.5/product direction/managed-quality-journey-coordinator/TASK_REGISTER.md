@@ -13,7 +13,7 @@ verified. **C0.2e.1–C0.2e.4, C0.3, C0.4, C1.1–C1.3 and C2.1–C2.2 are verif
 verified. The bounded live Auth0 two-session [result](evidence/C2.3.3-live-auth0-20260928.md) covers MFA, protected
 return, Scout admission, restart and revocation; its [independent exact-result review](evidence/C2.3.3-live-auth0-20260928-review.md)
 accepted closure of C-B04. The native CDP production adapter and its containment qualification are recorded in [production adapter evidence](evidence/C2.3.3-production-adapter.md).
-GC2 remains `not_evaluated`; C2.4, C2.5 and C2.6 are verified after exact-artifact review.
+GC2 [passed](evidence/GC2.md) after complete Journey reconciliation and independent exact-artifact review; C2.4–C2.7 and C2.7.1–C2.7.3 are verified. C3.1 remains pending and unstarted; GC3 remains `not_evaluated`.
 Use `pending`, `in_progress`, `blocked`, `in_review`, `verified`;
 only verified tasks use `[x]`. A successful experiment can establish a negative result without passing its gate.
 Do not turn a documentation decision into a capability claim. Record exact artifact/version, expected and observed
@@ -22,29 +22,32 @@ Split large slices into stable suffix IDs before implementation. Old evidence mu
 
 ## Master task register
 
-| Done | ID     | Task                                                       | Dependencies      | Status   | Evidence                   |
-| ---- | ------ | ---------------------------------------------------------- | ----------------- | -------- | -------------------------- |
-| [x]  | C0.1   | Qualify Appraise-to-Codex handoff                          | None              | verified | [C0.1](evidence/C0.1.md)   |
-| [x]  | C0.2   | Qualify graph acceptance and interrupted resume            | C0.1              | verified | [C0.2](evidence/C0.2.md)   |
-| [x]  | C0.2e  | Retain and qualify external Analyzer admission             | C0.2              | verified | [C0.2e](evidence/C0.2e.md) |
-| [x]  | C0.3   | Qualify discovery and evidence feasibility                 | C0.1              | verified | [C0.3](evidence/C0.3.md)   |
-| [x]  | C0.4   | Review feasibility and establish exact implementation gaps | C0.2, C0.2e, C0.3 | verified | [C0.4](evidence/C0.4.md)   |
-| [x]  | C1.1   | Deliver plugin setup and compatibility diagnostics         | GC0               | verified | [C1.1](evidence/C1.1.md)   |
-| [x]  | C1.2   | Deliver prepared Journey launch                            | C1.1              | verified | [C1.2](evidence/C1.2.md)   |
-| [x]  | C1.3   | Deliver later-stage reconnect and takeover                 | C1.2              | verified | [C1.3](evidence/C1.3.md)   |
-| [x]  | C2.1   | Enforce graph claim and submission contracts               | GC1               | verified | [C2.1](evidence/C2.1.md)   |
-| [x]  | C2.2   | Connect analysis and human question loops                  | C2.1              | verified | [C2.2](evidence/C2.2.md)   |
-| [x]  | C2.3   | Deliver scoped discovery and human sign-in                 | C2.1, C0.3        | verified | [C2.3](evidence/C2.3.md)   |
-| [x]  | C2.3.1 | Deliver the scoped Appraise browser-session boundary       | C2.1, C0.3        | verified | [C2.3](evidence/C2.3.md)   |
-| [x]  | C2.3.2 | Seal and admit exact discovery-browser receipts            | C2.3.1            | verified | [C2.3](evidence/C2.3.md)   |
-| [x]  | C2.3.3 | Connect the human access UI and recovery evidence          | C2.3.2            | verified | [C2.3](evidence/C2.3.md)   |
-| [x]  | C2.4   | Connect scenario review and revision                       | C2.2, C2.3        | verified | [C2.4](evidence/C2.4.md)   |
-| [x]  | C2.5   | Connect automation preparation                             | C2.4              | verified | [C2.5](evidence/C2.5.md)   |
-| [x]  | C2.6   | Connect consent-bound execution and reconciliation         | C2.5              | verified | [C2.6](evidence/C2.6.md)   |
-| [ ]  | C2.7   | Connect triage, remediation and closure                    | C2.6              | pending  | —                          |
-| [ ]  | C3.1   | Harden pause, cancellation and recovery                    | GC2               | pending  | —                          |
-| [ ]  | C3.2   | Verify data and version compatibility                      | C3.1              | pending  | —                          |
-| [ ]  | C3.3   | Publish operator guidance and release evidence             | C3.2              | pending  | —                          |
+| Done | ID     | Task                                                       | Dependencies      | Status   | Evidence                     |
+| ---- | ------ | ---------------------------------------------------------- | ----------------- | -------- | ---------------------------- |
+| [x]  | C0.1   | Qualify Appraise-to-Codex handoff                          | None              | verified | [C0.1](evidence/C0.1.md)     |
+| [x]  | C0.2   | Qualify graph acceptance and interrupted resume            | C0.1              | verified | [C0.2](evidence/C0.2.md)     |
+| [x]  | C0.2e  | Retain and qualify external Analyzer admission             | C0.2              | verified | [C0.2e](evidence/C0.2e.md)   |
+| [x]  | C0.3   | Qualify discovery and evidence feasibility                 | C0.1              | verified | [C0.3](evidence/C0.3.md)     |
+| [x]  | C0.4   | Review feasibility and establish exact implementation gaps | C0.2, C0.2e, C0.3 | verified | [C0.4](evidence/C0.4.md)     |
+| [x]  | C1.1   | Deliver plugin setup and compatibility diagnostics         | GC0               | verified | [C1.1](evidence/C1.1.md)     |
+| [x]  | C1.2   | Deliver prepared Journey launch                            | C1.1              | verified | [C1.2](evidence/C1.2.md)     |
+| [x]  | C1.3   | Deliver later-stage reconnect and takeover                 | C1.2              | verified | [C1.3](evidence/C1.3.md)     |
+| [x]  | C2.1   | Enforce graph claim and submission contracts               | GC1               | verified | [C2.1](evidence/C2.1.md)     |
+| [x]  | C2.2   | Connect analysis and human question loops                  | C2.1              | verified | [C2.2](evidence/C2.2.md)     |
+| [x]  | C2.3   | Deliver scoped discovery and human sign-in                 | C2.1, C0.3        | verified | [C2.3](evidence/C2.3.md)     |
+| [x]  | C2.3.1 | Deliver the scoped Appraise browser-session boundary       | C2.1, C0.3        | verified | [C2.3](evidence/C2.3.md)     |
+| [x]  | C2.3.2 | Seal and admit exact discovery-browser receipts            | C2.3.1            | verified | [C2.3](evidence/C2.3.md)     |
+| [x]  | C2.3.3 | Connect the human access UI and recovery evidence          | C2.3.2            | verified | [C2.3](evidence/C2.3.md)     |
+| [x]  | C2.4   | Connect scenario review and revision                       | C2.2, C2.3        | verified | [C2.4](evidence/C2.4.md)     |
+| [x]  | C2.5   | Connect automation preparation                             | C2.4              | verified | [C2.5](evidence/C2.5.md)     |
+| [x]  | C2.6   | Connect consent-bound execution and reconciliation         | C2.5              | verified | [C2.6](evidence/C2.6.md)     |
+| [x]  | C2.7   | Connect triage, remediation and closure                    | C2.6              | verified | [C2.7](evidence/C2.7.md)     |
+| [x]  | C2.7.1 | Verify triage, review, remediation and closure authority   | C2.6              | verified | [C2.7](evidence/C2.7.md)     |
+| [x]  | C2.7.2 | Demonstrate exact failed-run and revision/rerun lineage    | C2.7.1            | verified | [C2.7](evidence/C2.7.md)     |
+| [x]  | C2.7.3 | Review complete Journeys and evaluate GC2                  | C2.7.2            | verified | [C2.7.3](evidence/C2.7.3.md) |
+| [ ]  | C3.1   | Harden pause, cancellation and recovery                    | GC2               | pending  | —                            |
+| [ ]  | C3.2   | Verify data and version compatibility                      | C3.1              | pending  | —                            |
+| [ ]  | C3.3   | Publish operator guidance and release evidence             | C3.2              | pending  | —                            |
 
 ## Task specifications
 
@@ -257,6 +260,12 @@ Verification: Complete anonymous and authenticated Journey demonstrations includ
 
 Likely scope: triage/report services; decision UI; plugin workflow.
 
+Bounded suffixes: C2.7.1 verifies specialized sealed-evidence triage and local human review, remediation, risk and closure authority, including stale and duplicate decisions. C2.7.2 connects failed-run evidence through report revision, approved correction and consent-bound rerun to a final report in anonymous and authenticated Journey demonstrations; label deterministic fixtures separately from live observations. C2.7.3 obtains independent exact-artifact review, reconciles the complete Journey evidence, then records the actual GC2 verdict. A suffix is verified only after its own evidence is complete; parent C2.7 waits for all three.
+
+Current checkpoint: C2.7.1 is verified; C2.7.2 is verified after the bounded authenticated Journey closure and independent exact-artifact review; the final closure documentation delta is recorded in the evidence. The anonymous Journey `qjy_ae47607b-09ec-44e0-9514-894dd174c665` remains closed with failed-run, correction, fresh-consent passing run and closure lineage. Fresh authenticated Journey `qjy_1c2ff25f-70b1-41ca-8be4-1d4eb8a29d28` recorded its own human Auth0/MFA protected-access receipt, separately authorized managed automation authentication, an initial pre-checkout interruption, a fresh authenticated deliberate assertion failure, two live full-report revision/SUPERSEDES loops, exact approved assertion-only correction and a fresh-consent passing successor. Final report `c272-auth-report-5` was closed through Appraise risk acceptance on 2026-10-02 at 18:32 Asia/Dhaka, accepting all four stated limits. Closure `qjc_a7f674799c59ddc8bcaa968e` binds that exact report; its native receipt, approval link, state hash and export hash are retained. Callback removal was saved and verified after reload; both tunnels and the credential-bearing Appraise/fixture processes exited with absence checks. A local review-only Appraise process has no automation credential or fixture listeners. Production build and focused checks passed; standalone tsc retains the unrelated flow-diagram test error, and Fallow retains disclosed complexity findings without a baseline refresh. See [C2.7 evidence](evidence/C2.7.md) and the [sanitized exact live manifest](evidence/C2.7.2-live-authenticated-20261001.json). Historical interrupted Journeys and all earlier failed records remain immutable. C2.7.3 is now verified after [complete read-only reconciliation and independent exact-artifact review](evidence/C2.7.3.md). Seven consumed UI consents bind seven terminal cycles; raw stale anonymous bindings remain immutable and are distinguished from terminal TestRun/cycle/evidence state. GC2 [passed](evidence/GC2.md) within the disposable-target lifecycle scope and accepted limitations. Parent C2.7 is verified. C3.1 remains pending and unstarted; GC3 remains not_evaluated. No temporary authentication reopening, baseline refresh, commit, push or release was performed.
+
+Publication follow-up: the user authorized commit and push of all retained changes. [Current commit validation](evidence/C2.7-commit-validation-20261002.md) records required hook refactors and independent current-artifact review; prior manifests retain historical identities. This authorization does not start C3.1 or qualify GC3.
+
 ### C3.1 — Harden pause, cancellation and recovery
 
 Acceptance: Exercise Codex stop/offline/quota, hub restart, MCP lost reply, lease expiry and takeover. Pause admissions and fence results; record observed stop of Appraise-owned processes separately from external Codex activity. Preserve work across human waits.
@@ -287,7 +296,7 @@ Likely scope: current docs; release fixtures; generated output through source wo
 | ---- | ------------------------- | ------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | GC0  | C0.1–C0.4 including C0.2e | passed        | Feasible live handoff, graph boundary, resume and discovery path; independent verdict; only the user-authorized C0.2e retained slice was implemented before pass |
 | GC1  | C1.1–C1.3                 | passed        | [Current-product remote `DISCOVERY` launch, Send, redemption/read, Appraise UI takeover and non-mutating predecessor rejection](evidence/GC1.md)                 |
-| GC2  | C2.1–C2.7                 | not_evaluated | Complete anonymous/authenticated lifecycle, revisions, human gates and sealed execution                                                                          |
+| GC2  | C2.1–C2.7                 | passed        | [Bounded complete lifecycle verdict, exact Journey reconciliation and independent review](evidence/GC2.md)                                                       |
 | GC3  | C3.1–C3.3                 | not_evaluated | Recovery, stored-data/version compatibility, clean install and independent release review                                                                        |
 
 ## Qualification gaps and blocker disposition
@@ -295,7 +304,7 @@ Likely scope: current docs; release fixtures; generated output through source wo
 C-B01 is closed by the combined C0.1 and C1.1–C1.3 installed-host evidence: local and neutral remote contexts, URI
 prefill, plugin recognition, prepared launch, authenticated redemption, adverse fallback observations, later-stage
 reconnect and explicit takeover. GC0 and GC1 are passed; the stricter end-to-end qualification `GC1-B01` is closed
-by the current-product remote `DISCOVERY` trace. C2.1–C2.6 are verified, and C-B02 and C-B04 are closed.
+by the current-product remote `DISCOVERY` trace. C2.1–C2.7 are verified, and C-B02 and C-B04 are closed. GC2 passed the bounded lifecycle; C-B05 retains compatibility, clean-installation and release review under C3.2–C3.3.
 
 | ID    | Open requirement                                                 | Owner and closure evidence                                                                                                                                           |
 | ----- | ---------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -303,7 +312,7 @@ by the current-product remote `DISCOVERY` trace. C2.1–C2.6 are verified, and C
 | C-B02 | Full Appraise claim/commit enforcement and safe retries          | Closed by C0.2e / C2.1 retained admission, atomic acceptance, negative/concurrent/replay tests and independent review                                                |
 | C-B03 | Durable resume, takeover and honest cancellation                 | C1.3 reconnect/takeover closed; C3.1 retains provider/process recovery and owned-stop coverage                                                                       |
 | C-B04 | Authenticated discovery and trusted evidence                     | Closed by the [live two-session result](evidence/C2.3.3-live-auth0-20260928.md) and [independent exact-result review](evidence/C2.3.3-live-auth0-20260928-review.md) |
-| C-B05 | Complete lifecycle and release integration                       | C2.2–C3.3: full Journey, compatibility, installation and quality review evidence                                                                                     |
+| C-B05 | Complete lifecycle and release integration                       | C2.2–C2.7 lifecycle portion closed by GC2; C3.2–C3.3 retain compatibility, installation and release quality review                                                   |
 
 | Historical blocker                  | Disposition in this architecture                                                                                                 |
 | ----------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
@@ -354,7 +363,7 @@ is a plugin-release gate. Do not resume P0.R2g, create a Codex fork or retrofit 
   human wait, revision, fresh-task continuation, status and independent-review evidence is recorded in
   [C2.2](evidence/C2.2.md). C2.3's bounded delivery and C-B04 closure are recorded in
   [C2.3](evidence/C2.3.md). At C2.3 completion, GC2 was not evaluated and C2.4-C2.7 were not started. C2.4 was
-  subsequently verified in [C2.4](evidence/C2.4.md); GC2 remains `not_evaluated`.
+  subsequently verified in [C2.4](evidence/C2.4.md); C2.5–C2.7 are now verified, and GC2 [passed](evidence/GC2.md). C3.1 remains pending and unstarted.
 
 ### C0.1 findings carried forward
 

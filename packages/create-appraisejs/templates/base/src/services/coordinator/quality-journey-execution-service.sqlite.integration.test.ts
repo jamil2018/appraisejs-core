@@ -10,6 +10,7 @@ import { preparedRuntimeCapsuleSchema } from '@/lib/quality-journey/automation-c
 import { defaultOperationDefinitions } from '@/lib/operation-catalog'
 import { processManager } from '@/lib/test-run/process-manager'
 import { hashRuntimeCapsuleBytes } from '@/lib/runtime-capsule'
+import { loadJourneyCapsuleSource } from '@/lib/runtime-capsule/journey-source'
 import { TestRunArtifactAccessService } from '@/services/test-run/test-run-artifact-access-service'
 import {
   builtInStepDefinitions,
@@ -28,6 +29,7 @@ import {
   approveQualityJourneyRerun,
   cancelQualityJourneyExecution,
   grantQualityJourneyExecutionConsent,
+  getQualityJourneyExecution,
   revokeQualityJourneyExecutionConsent,
   proposeQualityJourneyRerun,
   reconcileQualityJourneyExecution,
@@ -48,12 +50,44 @@ afterEach(async () => {
   await Promise.all(workspaces.splice(0).map(workspace => fs.rm(workspace, { recursive: true, force: true })))
 })
 
+function executionResourceHashes(
+  realRuntime: boolean,
+  legacyResourceHashes: boolean,
+  definition: (typeof builtInStepDefinitions)[number],
+  operation: (typeof defaultOperationDefinitions)[number],
+) {
+  const definitionHashes = computeStepDefinitionHashes(definition)
+  const resourceHashes = realRuntime
+    ? [
+        {
+          id: `step:${definition.identity.id}:${definition.identity.version}`,
+          contentHash: definitionHashes.definitionHash,
+        },
+        {
+          id: `operation:${operation.id}:${operation.version}`,
+          contentHash: hashQualityJourneyExecutionValue(operation),
+        },
+      ].map(resource =>
+        legacyResourceHashes
+          ? {
+              ...resource,
+              kind: resource.id.startsWith('step:') ? ('STEP_DEFINITION' as const) : ('OPERATION' as const),
+              sourceTargetProjectId: null,
+            }
+          : resource,
+      )
+    : []
+  return resourceHashes
+}
+
 async function fixture(
   actualOperationId = 'browser.forms.fill',
   manifestOperationId = actualOperationId,
   capsuleCount = 1,
   realRuntime = false,
   baseUrl = 'http://127.0.0.1:3000',
+  legacyResourceHashes = false,
+  legacyBareStep = false,
 ) {
   const workspace = await fs.mkdtemp(path.join(os.tmpdir(), 'appraise-quality-journey-execution-'))
   workspaces.push(workspace)
@@ -262,7 +296,9 @@ async function fixture(
           ...(realRuntime
             ? {
                 order: 0,
-                gherkinStep: `Given ${operation.humanProjections[0]!.signature}`,
+                gherkinStep: legacyBareStep
+                  ? operation.humanProjections[0]!.signature
+                  : `Given ${operation.humanProjections[0]!.signature}`,
                 label: operation.title,
                 icon: 'NAVIGATION',
               }
@@ -272,18 +308,7 @@ async function fixture(
       ],
     },
   }
-  const resourceHashes = realRuntime
-    ? [
-        {
-          id: `step:${definition.identity.id}:${definition.identity.version}`,
-          contentHash: definitionHashes.definitionHash,
-        },
-        {
-          id: `operation:${operation.id}:${operation.version}`,
-          contentHash: hashQualityJourneyExecutionValue(operation),
-        },
-      ]
-    : []
+  const resourceHashes = executionResourceHashes(realRuntime, legacyResourceHashes, definition, operation)
   await client.qualityJourneyAutomationTargetBinding.create({
     data: {
       id: 'binding-execution',
@@ -450,6 +475,134 @@ function startInput(fixture: ExecutionFixture, key = 'execution-start') {
 }
 
 describe('Quality Journey Phase 7 execution coordinator (SQLite)', () => {
+  it('shows ownership loss only while a cycle and its TestRun are active', async () => {
+    const value = await fixture('browser.assertions.visible')
+    registerQualityJourneyExecutionRuntimeAdapter({
+      start: async () => undefined,
+      cancel: async () => undefined,
+      reconcile: async () => undefined,
+    })
+    try {
+      const started = startedExecution(
+        await startQualityJourneyExecution(startInput(value, 'projection'), value.client),
+      )
+      const cycle = started.cycles[0]!
+      const testRunId = cycle.testRuns[0]!.testRunId
+      await value.client.qualityJourneyExecutionTestRun.update({
+        where: { testRunId },
+        data: { status: 'RUNNING' },
+      })
+      await value.client.testRun.update({ where: { id: testRunId }, data: { status: 'RUNNING' } })
+      await value.client.qualityJourneyExecutionCycle.update({ where: { id: cycle.id }, data: { status: 'RUNNING' } })
+      const read = () =>
+        getQualityJourneyExecution(
+          { journeyId: value.journeyId, targetProjectId: 'target-execution', cycleId: cycle.id },
+          value.client,
+        )
+      expect((await read()).cycles[0]!.testRuns[0]!.diagnostic).toMatchObject({ code: 'OWNERSHIP_LOST' })
+      await value.client.testRun.update({
+        where: { id: testRunId },
+        data: { status: 'COMPLETED', result: 'FAILED' },
+      })
+      expect((await read()).cycles[0]!.testRuns[0]!.diagnostic).toBeUndefined()
+      await value.client.qualityJourneyExecutionCycle.update({ where: { id: cycle.id }, data: { status: 'COMPLETED' } })
+      expect((await read()).cycles[0]!.testRuns[0]!).toMatchObject({ bindingStatus: 'RUNNING', status: 'COMPLETED' })
+      expect((await read()).cycles[0]!.testRuns[0]!.diagnostic).toBeUndefined()
+    } finally {
+      await value.client.$disconnect()
+    }
+  })
+  it('reads exact legacy resource metadata and rejects changed frozen resource authority', async () => {
+    const value = await fixture('browser.assertions.visible', undefined, 1, true, 'http://127.0.0.1:3000', true, true)
+    registerQualityJourneyExecutionRuntimeAdapter({
+      start: async () => undefined,
+      cancel: async () => undefined,
+      reconcile: async () => undefined,
+    })
+    try {
+      const started = startedExecution(
+        await startQualityJourneyExecution(startInput(value, 'legacy-resources'), value.client),
+      )
+      const testRunId = started.cycles[0]!.testRuns[0]!.testRunId
+      const source = await loadJourneyCapsuleSource(value.client, testRunId)
+      const owner = await value.client.qualityJourneyExecutionTestRun.findUniqueOrThrow({
+        where: { testRunId },
+        include: { executionCycle: true, testRun: { include: { testCases: true } } },
+      })
+      const prepared = await value.client.qualityJourneyPreparedRuntimeCapsule.findUniqueOrThrow({
+        where: { id: owner.preparedCapsuleId },
+        include: { materialization: true },
+      })
+      const binding = await value.client.qualityJourneyAutomationTargetBinding.findUniqueOrThrow({
+        where: { id: 'binding-execution' },
+      })
+      const frozen = JSON.parse(binding.resourceHashJson) as Array<Record<string, unknown>>
+      expect(frozen).toHaveLength(2)
+      expect(frozen[0]).toHaveProperty('kind')
+      expect(source.resourceHashes).toEqual(frozen.map(({ id, contentHash }) => ({ id, contentHash })))
+      const rawBinding = JSON.parse(binding.bindingJson) as {
+        testCase: { steps: Array<{ gherkinStep: string }> }
+      }
+      expect(rawBinding.testCase.steps[0]!.gherkinStep).not.toMatch(/^Given\s/)
+      expect(source.selection[0]!.testCase.steps[0]!.gherkinStep).toBe(
+        `Given ${rawBinding.testCase.steps[0]!.gherkinStep}`,
+      )
+
+      const loadWith = (
+        resourceChanges: (items: Array<Record<string, unknown>>) => void,
+        side: 'source' | 'binding',
+      ) => {
+        const entries = structuredClone(frozen)
+        resourceChanges(entries)
+        const capsuleSources = JSON.parse(owner.executionCycle.preparedCapsulesJson) as Array<Record<string, unknown>>
+        const cycle =
+          side === 'source'
+            ? {
+                ...owner.executionCycle,
+                preparedCapsulesJson: json([{ ...capsuleSources[0], resourceHashes: entries }]),
+                preparedCapsulesHash: hashQualityJourneyExecutionValue([
+                  { ...capsuleSources[0], resourceHashes: entries },
+                ]),
+              }
+            : owner.executionCycle
+        const candidateBinding = side === 'binding' ? { ...binding, resourceHashJson: json(entries) } : binding
+        const client = {
+          qualityJourneyExecutionTestRun: { findUniqueOrThrow: async () => ({ ...owner, executionCycle: cycle }) },
+          qualityJourneyPreparedRuntimeCapsule: { findUniqueOrThrow: async () => prepared },
+          qualityJourneyAutomationTargetBinding: { findUniqueOrThrow: async () => candidateBinding },
+        } as unknown as PrismaClient
+        return loadJourneyCapsuleSource(client, testRunId)
+      }
+      await expect(
+        loadWith(items => {
+          items[0]!.id = 'step:forged:1'
+        }, 'source'),
+      ).rejects.toThrow('Journey prepared source binding is corrupt.')
+      await expect(
+        loadWith(items => {
+          items[0]!.contentHash = digest('f')
+        }, 'source'),
+      ).rejects.toThrow('Journey prepared source binding is corrupt.')
+      await expect(
+        loadWith(items => {
+          items[0]!.kind = 'LOCATOR'
+        }, 'source'),
+      ).rejects.toThrow('Journey prepared source binding is corrupt.')
+      await expect(
+        loadWith(items => {
+          items[0]!.sourceTargetProjectId = 'foreign-target'
+        }, 'binding'),
+      ).rejects.toThrow('Journey prepared source binding is corrupt.')
+      await expect(
+        loadWith(items => {
+          items[0]!.unexpected = true
+        }, 'binding'),
+      ).rejects.toThrow()
+    } finally {
+      await value.client.$disconnect()
+    }
+  })
+
   it('allows an exact frozen harmless binding without consent and rejects a forged harmless manifest', async () => {
     const harmless = await fixture('browser.assertions.visible', 'browser.forms.fill')
     const forged = await fixture('browser.forms.fill', 'browser.assertions.visible')

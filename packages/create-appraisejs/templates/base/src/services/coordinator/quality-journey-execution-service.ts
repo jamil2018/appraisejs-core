@@ -691,7 +691,10 @@ export async function getQualityJourneyExecution(value: unknown, client: PrismaC
       environmentId: cycle.environmentId,
       browserEngine: cycle.browserEngine,
       testRuns: cycle.testRuns.map(binding => {
-        const active = ['LAUNCHING', 'RUNNING'].includes(binding.status) || binding.testRun.status === 'RUNNING'
+        const active =
+          ['RESERVED', 'RUNNING', 'CANCELLING'].includes(cycle.status) &&
+          !['COMPLETED', 'CANCELLED'].includes(binding.testRun.status) &&
+          (['LAUNCHING', 'RUNNING'].includes(binding.status) || binding.testRun.status === 'RUNNING')
         return {
           testRunId: binding.testRunId,
           runId: binding.runId,

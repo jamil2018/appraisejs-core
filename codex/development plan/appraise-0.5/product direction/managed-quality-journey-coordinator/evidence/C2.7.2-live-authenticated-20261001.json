@@ -1,0 +1,1385 @@
+{
+  "schemaVersion": "appraise.c272-live-evidence/v1",
+  "classification": "LIVE_DISPOSABLE_PROTECTED_TARGET",
+  "journeyId": "qjy_1c2ff25f-70b1-41ca-8be4-1d4eb8a29d28",
+  "targetProjectId": "76f1c928-b478-4347-83be-eccb7ff43026",
+  "observedAt": "2026-10-02T12:32:01.649Z",
+  "stage": "CLOSED",
+  "closure": "RISK_ACCEPTED",
+  "identityLimits": {
+    "human": "Fresh headed Auth0/MFA Discovery, local access confirmation; no natural-person attestation",
+    "managed": "Independent automation identity; no inherited Discovery cookies/storage or MFA",
+    "externalWorkerHostIsolation": "NOT_ATTESTED"
+  },
+  "discovery": {
+    "receiptId": "qjdb_receipt_f9bda73a9ffc804535dec363084d3c8c",
+    "receiptHash": "sha256:aadfcb84eed537eeadd83da53850409d4ea11681362b170902776cb0916b80f4",
+    "snapshotId": "discovery-snapshot:44b3ea95-d4f6-4fdf-b634-aa6073807b41",
+    "completionHash": "sha256:231cbce63fd5891eb48913e456a8bb71c2e4f6c1a3d8d4c13bd5eed00dec8610"
+  },
+  "execution": {
+    "cycles": [
+      {
+        "id": "qjex_5af6941069abcf0c9a91b722",
+        "status": "COMPLETED",
+        "environmentId": "568cff88-48da-4485-8653-ee1e086b2438",
+        "browserEngine": "CHROMIUM",
+        "testRuns": [
+          {
+            "testRunId": "qjtr_f8aa8afe361eec9e731bfcc3",
+            "runId": "1acb50ba-802c-4f56-98f6-97611434f41a",
+            "status": "COMPLETED",
+            "bindingStatus": "FAILED",
+            "result": "FAILED",
+            "scenarioRevisionId": "c272-auth-scenario-1"
+          }
+        ],
+        "evidence": [
+          {
+            "id": "qjeer_ef3c9bc038aa3f532f542a11",
+            "receiptHash": "sha256:ef3c9bc038aa3f532f542a11886c52fd357ab1732ca3ecc05b6b1044b1129a3f"
+          }
+        ]
+      },
+      {
+        "id": "qjex_657b94cfdd1b57e264aa4089",
+        "status": "COMPLETED",
+        "environmentId": "568cff88-48da-4485-8653-ee1e086b2438",
+        "browserEngine": "CHROMIUM",
+        "testRuns": [
+          {
+            "testRunId": "qjtr_6d4c722a5d61d85c0a442736",
+            "runId": "6d6ebf6a-6e23-4e8a-8600-fee9a98b4994",
+            "status": "COMPLETED",
+            "bindingStatus": "FAILED",
+            "result": "FAILED",
+            "scenarioRevisionId": "c272-auth-scenario-1"
+          }
+        ],
+        "evidence": [
+          {
+            "id": "qjeer_fa410e44ea81af1b593dea00",
+            "receiptHash": "sha256:fa410e44ea81af1b593dea0016bd7b209a1c82d1a239fb324c56674427b5c53f"
+          }
+        ]
+      },
+      {
+        "id": "qjex_847c2a35cc4f9c1c21fe8aef",
+        "status": "COMPLETED",
+        "environmentId": "568cff88-48da-4485-8653-ee1e086b2438",
+        "browserEngine": "CHROMIUM",
+        "testRuns": [
+          {
+            "testRunId": "qjtr_88426b7309a988a8a7b858df",
+            "runId": "0b4a640f-d790-447d-8d61-856b5ae7f9c0",
+            "status": "COMPLETED",
+            "bindingStatus": "COMPLETED",
+            "result": "PASSED",
+            "scenarioRevisionId": "c272-auth-scenario-1"
+          }
+        ],
+        "evidence": [
+          {
+            "id": "qjeer_3fe41ed90a24243a93dfe748",
+            "receiptHash": "sha256:3fe41ed90a24243a93dfe748c472279e6b0f61470bbe5130958edef7feaa6c42"
+          }
+        ]
+      }
+    ],
+    "consents": [
+      {
+        "id": "qjec_131bfd4ce16218aee6cac367",
+        "scopeHash": "sha256:052c898d1d2d4259fd2315a2c34f08d7d4c70fbafd5f4de974b614063b37ff8c",
+        "status": "CONSUMED",
+        "reason": null,
+        "scope": {
+          "actions": [
+            "CREDENTIAL_USE:browser.forms.fill.configured.credential@1",
+            "MATERIAL_OR_UNREVIEWED_EFFECT:browser.mouse.click@1",
+            "MATERIAL_OR_UNREVIEWED_EFFECT:browser.navigation.goto@1"
+          ],
+          "checkpoint": "START_EXECUTION:568cff88-48da-4485-8653-ee1e086b2438:CHROMIUM",
+          "environmentSnapshotHash": "sha256:f002f011b24940ddbd739272a269fe5ba2bf474dbadd8ad518a5d78a2624b8b6",
+          "executionInputsHash": "sha256:6ff63c65f99f6b192de18b109b329ddab9f4a89e56a04c6188d2e1a61b79fffa",
+          "preparedRuntimeCapsuleIds": ["qja_prepared_d7d94c0691dc5023df125438"],
+          "resourceHashes": {
+            "qja_prepared_d7d94c0691dc5023df125438": "sha256:cf8696b5da6f9cf24a5adacae7a439104d96826a52127e5662eda27a9767bfd9"
+          },
+          "schemaVersion": "appraise.quality-journey/v1",
+          "targetFingerprint": "sha256:136a952985df0a2a1b30c416b2457df9e73222ef793079816e3a0423ac521e35",
+          "targetProjectId": "76f1c928-b478-4347-83be-eccb7ff43026"
+        }
+      },
+      {
+        "id": "qjec_f1d8b7ab02bac5965f690068",
+        "scopeHash": "sha256:d62370cf092d2e73eac0868683162595457df469528f2eb4bb80707f3caa1135",
+        "status": "CONSUMED",
+        "reason": null,
+        "scope": {
+          "actions": [
+            "CREDENTIAL_USE:browser.forms.fill.configured.credential@1",
+            "MATERIAL_OR_UNREVIEWED_EFFECT:browser.mouse.click@1",
+            "MATERIAL_OR_UNREVIEWED_EFFECT:browser.navigation.goto@1"
+          ],
+          "checkpoint": "START_EXECUTION:568cff88-48da-4485-8653-ee1e086b2438:CHROMIUM",
+          "environmentSnapshotHash": "sha256:f002f011b24940ddbd739272a269fe5ba2bf474dbadd8ad518a5d78a2624b8b6",
+          "executionInputsHash": "sha256:40f5f22d3a3224d7698860c0f89bd8e3546b5c6650b0dfcae99b98ca7ad85805",
+          "preparedRuntimeCapsuleIds": ["qja_prepared_d7d94c0691dc5023df125438"],
+          "resourceHashes": {
+            "qja_prepared_d7d94c0691dc5023df125438": "sha256:cf8696b5da6f9cf24a5adacae7a439104d96826a52127e5662eda27a9767bfd9"
+          },
+          "schemaVersion": "appraise.quality-journey/v1",
+          "targetFingerprint": "sha256:136a952985df0a2a1b30c416b2457df9e73222ef793079816e3a0423ac521e35",
+          "targetProjectId": "76f1c928-b478-4347-83be-eccb7ff43026"
+        }
+      },
+      {
+        "id": "qjec_513cdaa8c50b5c08886deaaf",
+        "scopeHash": "sha256:e1b4f066f0c937e1adfa8676d19d87ba466d6434f69d5ca2014f99b3fdaa3483",
+        "status": "CONSUMED",
+        "reason": null,
+        "scope": {
+          "actions": [
+            "CREDENTIAL_USE:browser.forms.fill.configured.credential@1",
+            "MATERIAL_OR_UNREVIEWED_EFFECT:browser.mouse.click@1",
+            "MATERIAL_OR_UNREVIEWED_EFFECT:browser.navigation.goto@1"
+          ],
+          "checkpoint": "START_EXECUTION:568cff88-48da-4485-8653-ee1e086b2438:CHROMIUM",
+          "environmentSnapshotHash": "sha256:f002f011b24940ddbd739272a269fe5ba2bf474dbadd8ad518a5d78a2624b8b6",
+          "executionInputsHash": "sha256:def0fbae79b86568d9f7310a603b379aa6268dfdd7f41371d766f7b9617e0b8b",
+          "preparedRuntimeCapsuleIds": ["qja_prepared_f77ee292a857cdb7c9a244b2"],
+          "resourceHashes": {
+            "qja_prepared_f77ee292a857cdb7c9a244b2": "sha256:cf8696b5da6f9cf24a5adacae7a439104d96826a52127e5662eda27a9767bfd9"
+          },
+          "schemaVersion": "appraise.quality-journey/v1",
+          "targetFingerprint": "sha256:136a952985df0a2a1b30c416b2457df9e73222ef793079816e3a0423ac521e35",
+          "targetProjectId": "76f1c928-b478-4347-83be-eccb7ff43026"
+        }
+      }
+    ],
+    "proposals": [
+      {
+        "id": "qjrp_dd78223582cec073fc6c5e4f",
+        "proposalHash": "sha256:a0e77e4819c5e36cee780556546aaa81ffad78622f895559e134ca90eada0b6d",
+        "status": "STARTED",
+        "reason": "Retry unchanged prepared scenario after reviewed fixture referrer-policy compatibility correction; rotate process-only independent automation credential, preserve first failed run/full-report revision, fresh execution consent required.",
+        "selectedScenarioRevisionIds": ["c272-auth-scenario-1"]
+      }
+    ]
+  },
+  "evidenceReceipts": [
+    {
+      "evidence": {
+        "artifacts": [
+          {
+            "contentHash": "sha256:82cff154699bff58126e9f0885537e3f4bf1df681b6b76be4265afac92d81811",
+            "kind": "report",
+            "size": 5503
+          },
+          {
+            "contentHash": "sha256:02d31738d826b2d39ecf3019b4456e90ae58f022826a41739db861f754708756",
+            "kind": "log",
+            "size": 4317
+          },
+          {
+            "contentHash": "sha256:a3442954f17c324c046b12e0d0d03bf4b85d0d8b5cbb88b23bf60731bdd54288",
+            "kind": "screenshot",
+            "reportStepId": "70aad56d-747a-4bd6-967c-82cd9a9dd198",
+            "size": 5711,
+            "testCaseId": "qja_case_d7d94c0691dc5023df125438"
+          }
+        ],
+        "attemptId": "e8e0d292-5056-4851-8eef-b25355d5a083",
+        "cycleId": "qjc_7f09714c-cbf4-4da4-a642-44dcab2fb47f",
+        "environmentSnapshotHash": "sha256:f002f011b24940ddbd739272a269fe5ba2bf474dbadd8ad518a5d78a2624b8b6",
+        "evidenceHealth": "valid",
+        "executionCycleId": "qjex_5af6941069abcf0c9a91b722",
+        "journeyId": "qjy_1c2ff25f-70b1-41ca-8be4-1d4eb8a29d28",
+        "manifestHash": "sha256:98e358b9f6263327cccb15de6c6c28381038359d67adaae096308e837137c2fd",
+        "missingArtifacts": [],
+        "preparedCapsuleId": "qja_prepared_d7d94c0691dc5023df125438",
+        "preparedCapsulesHash": "sha256:986caa516c98a8175e084eddab3954ea7752440522108d47b5b852a945d5eea0",
+        "result": "FAILED",
+        "runId": "1acb50ba-802c-4f56-98f6-97611434f41a",
+        "runtimeCapsuleHash": "sha256:620bccddddb3e3a2d1457f4329687e78e92880490e235f17800f9b742dbccee1",
+        "runtimeCapsuleId": "635ee4e0-66c3-4c87-b9b9-e381806c8cd8",
+        "schemaVersion": "appraise.quality-journey/v1",
+        "status": "COMPLETED",
+        "targetProjectId": "76f1c928-b478-4347-83be-eccb7ff43026",
+        "testRunId": "qjtr_f8aa8afe361eec9e731bfcc3"
+      },
+      "evidenceReceiptId": "qjeer_ef3c9bc038aa3f532f542a11",
+      "receiptHash": "sha256:ef3c9bc038aa3f532f542a11886c52fd357ab1732ca3ecc05b6b1044b1129a3f",
+      "runId": "1acb50ba-802c-4f56-98f6-97611434f41a",
+      "scenarioRevisionId": "c272-auth-scenario-1",
+      "testRunId": "qjtr_f8aa8afe361eec9e731bfcc3"
+    },
+    {
+      "evidence": {
+        "artifacts": [
+          {
+            "contentHash": "sha256:fce3858a3fda31d35779fd2e56809a480a3d36dd5aac02ca53259bc0226b010a",
+            "kind": "report",
+            "size": 5298
+          },
+          {
+            "contentHash": "sha256:04ff7bdf9bc30af4d4aff0c3dad386b4ac87ad7f548601951a43835bd53fe5f7",
+            "kind": "log",
+            "size": 4050
+          },
+          {
+            "contentHash": "sha256:68541c26d78eea06d0de7022c3381692104529264e1c31ebb0d6ee82c40f5e68",
+            "kind": "screenshot",
+            "reportStepId": "e3c82044-70c1-486a-8818-9cb1a9e65608",
+            "size": 8503,
+            "testCaseId": "qja_case_d7d94c0691dc5023df125438"
+          }
+        ],
+        "attemptId": "9cef4e1d-5cbf-4784-9715-7a4ae119ded3",
+        "cycleId": "qjcycle_4a4b691f2b345097003d3f3e",
+        "environmentSnapshotHash": "sha256:f002f011b24940ddbd739272a269fe5ba2bf474dbadd8ad518a5d78a2624b8b6",
+        "evidenceHealth": "valid",
+        "executionCycleId": "qjex_657b94cfdd1b57e264aa4089",
+        "journeyId": "qjy_1c2ff25f-70b1-41ca-8be4-1d4eb8a29d28",
+        "manifestHash": "sha256:a00d7d5494f97e594d9ce5daee0731522d143bed8fc25430bd34d677279309ca",
+        "missingArtifacts": [],
+        "preparedCapsuleId": "qja_prepared_d7d94c0691dc5023df125438",
+        "preparedCapsulesHash": "sha256:986caa516c98a8175e084eddab3954ea7752440522108d47b5b852a945d5eea0",
+        "result": "FAILED",
+        "runId": "6d6ebf6a-6e23-4e8a-8600-fee9a98b4994",
+        "runtimeCapsuleHash": "sha256:ef28928a0d54db69721f5d29ab492b6366c5fca9ce8823cf8bb28deb0edb9cbc",
+        "runtimeCapsuleId": "f295fbdf-de9d-478e-9dc9-1e4b253925e3",
+        "schemaVersion": "appraise.quality-journey/v1",
+        "status": "COMPLETED",
+        "targetProjectId": "76f1c928-b478-4347-83be-eccb7ff43026",
+        "testRunId": "qjtr_6d4c722a5d61d85c0a442736"
+      },
+      "evidenceReceiptId": "qjeer_fa410e44ea81af1b593dea00",
+      "receiptHash": "sha256:fa410e44ea81af1b593dea0016bd7b209a1c82d1a239fb324c56674427b5c53f",
+      "runId": "6d6ebf6a-6e23-4e8a-8600-fee9a98b4994",
+      "scenarioRevisionId": "c272-auth-scenario-1",
+      "testRunId": "qjtr_6d4c722a5d61d85c0a442736"
+    },
+    {
+      "evidence": {
+        "artifacts": [
+          {
+            "contentHash": "sha256:8114903651ed911015e3bc669988d38af19ce82c3eb2300d88a92bbec2791a45",
+            "kind": "report",
+            "size": 3750
+          },
+          {
+            "contentHash": "sha256:24e6dced2396274edecd296a41d19541325c1699fc8901035918c5822ec55abe",
+            "kind": "log",
+            "size": 1055
+          }
+        ],
+        "attemptId": "641b90bf-91c4-433d-a5fb-a666b483f033",
+        "cycleId": "qjt_2194391454d1577da4a87ce9",
+        "environmentSnapshotHash": "sha256:f002f011b24940ddbd739272a269fe5ba2bf474dbadd8ad518a5d78a2624b8b6",
+        "evidenceHealth": "valid",
+        "executionCycleId": "qjex_847c2a35cc4f9c1c21fe8aef",
+        "journeyId": "qjy_1c2ff25f-70b1-41ca-8be4-1d4eb8a29d28",
+        "manifestHash": "sha256:0540ef388e95b32551a43b69ca0a4eaed32ead7acef68992ac89d1aabb1a751a",
+        "missingArtifacts": [],
+        "preparedCapsuleId": "qja_prepared_f77ee292a857cdb7c9a244b2",
+        "preparedCapsulesHash": "sha256:ce5feb05fc0824d131ba17211e2efe5a3181c00cfbcb2b385b001b734b531d80",
+        "result": "PASSED",
+        "runId": "0b4a640f-d790-447d-8d61-856b5ae7f9c0",
+        "runtimeCapsuleHash": "sha256:ddfbdefcf52d177457ce06d3b93e0953032ce575e5a7edc21b39af95d69e2ee9",
+        "runtimeCapsuleId": "e87424b0-5906-453c-81c6-08af29e16a37",
+        "schemaVersion": "appraise.quality-journey/v1",
+        "status": "COMPLETED",
+        "targetProjectId": "76f1c928-b478-4347-83be-eccb7ff43026",
+        "testRunId": "qjtr_88426b7309a988a8a7b858df"
+      },
+      "evidenceReceiptId": "qjeer_3fe41ed90a24243a93dfe748",
+      "receiptHash": "sha256:3fe41ed90a24243a93dfe748c472279e6b0f61470bbe5130958edef7feaa6c42",
+      "runId": "0b4a640f-d790-447d-8d61-856b5ae7f9c0",
+      "scenarioRevisionId": "c272-auth-scenario-1",
+      "testRunId": "qjtr_88426b7309a988a8a7b858df"
+    }
+  ],
+  "reports": [
+    {
+      "report": {
+        "schemaVersion": "appraise.quality-journey/v1",
+        "reportRevisionId": "c272-auth-report-1",
+        "executionCycleId": "qjex_5af6941069abcf0c9a91b722",
+        "cycleId": "qjc_7f09714c-cbf4-4da4-a642-44dcab2fb47f",
+        "inputHash": "sha256:f9afaf2eec0189b0069675b0ed349096c761197d81480063352ae4a561a3dfdb",
+        "summary": "The fresh managed run failed before protected order submission. Authentication and the deliberately wrong confirmation assertion are not established by this run.",
+        "findings": [
+          {
+            "findingId": "c272-auth-fixture-origin",
+            "testRunId": "qjtr_f8aa8afe361eec9e731bfcc3",
+            "evidenceReceiptId": "qjeer_ef3c9bc038aa3f532f542a11",
+            "scenarioRevisionId": "c272-auth-scenario-1",
+            "requirementIds": ["c272-auth-checkout"],
+            "kind": "ENVIRONMENT_OR_DATA_DEFECT",
+            "targetOutcome": "NOT_EVALUATED",
+            "confidence": "MEDIUM",
+            "rationale": "The sealed report passes navigation, configured credential fill and sign-in click, then finds zero Submit order buttons. The failure screenshot shows Forbidden. A successful click does not establish successful authentication.",
+            "competingHypotheses": [
+              "Runtime sign-in POST rejected by fixture request-origin/CSRF or credential guards.",
+              "Transient fixture or tunnel response could produce the same page; sealed report alone does not identify the HTTP rejection reason."
+            ],
+            "unresolved": true,
+            "postmortem": {
+              "observation": "Submit order locator found zero targets; confirmation assertion was skipped.",
+              "expectedBehavior": "Fresh independent automation sign-in should reach protected checkout and allow disposable order submission.",
+              "causalAnalysis": "The failure occurs between sign-in click and protected checkout. Exact HTTP guard attribution remains pending independent source review and a corrected live rerun.",
+              "nextAction": "Review the complete report, request a successor report that incorporates independent source attribution, then authorize a bounded fresh-consent rerun after fixture correction."
+            }
+          }
+        ],
+        "coverage": [
+          {
+            "requirementId": "c272-auth-checkout",
+            "scenarioRevisionIds": ["c272-auth-scenario-1"],
+            "testRunIds": ["qjtr_f8aa8afe361eec9e731bfcc3"],
+            "outcome": "UNRESOLVED",
+            "rationale": "No protected order or deliberate confirmation assertion was evaluated; failure attribution remains unresolved."
+          }
+        ],
+        "residualRisks": [
+          "This run proves no managed authentication or target defect.",
+          "Human Discovery receipt is separate and provides no managed browser state.",
+          "External assignment host isolation is NOT_ATTESTED."
+        ],
+        "recommendations": [
+          "Request full-report revision after independent attribution; preserve this failed TestRun and report unchanged.",
+          "Fresh execution consent is required for every successor managed run."
+        ]
+      },
+      "contentHash": "sha256:1cb60b7c39ae325a392bbccd2594bd68f7ac7e388ecf9aa3c8c06c007f7ee194",
+      "review": {
+        "kind": "FULL_REPORT_REVISION",
+        "feedback": "Revise the complete report using independent sealed-artifact and fixture-source attribution. Account explicitly for each of the five steps, the Forbidden screenshot, and skipped confirmation. Distinguish the no-referrer / exact POST Origin incompatibility from any unproven credential or tunnel hypothesis. Preserve the failed run and report unchanged, keep managed authentication and target outcome not evaluated, and define the bounded fixture correction plus fresh-consent rerun.",
+        "successorCycleId": null
+      }
+    },
+    {
+      "report": {
+        "schemaVersion": "appraise.quality-journey/v1",
+        "reportRevisionId": "c272-auth-report-2",
+        "executionCycleId": "qjex_5af6941069abcf0c9a91b722",
+        "cycleId": "qjc_7f09714c-cbf4-4da4-a642-44dcab2fb47f",
+        "predecessorReportRevisionId": "c272-auth-report-1",
+        "inputHash": "sha256:cd48bee1f4810ab2fabedcecd32300081ec59329f65b0a2f226d536c694db4df",
+        "summary": "Full successor report incorporates exact review feedback and independent sealed-artifact attribution. All five authored steps are accounted for; the first managed failure remains an unresolved environment/authentication-path interruption, not a target or intentional assertion failure.",
+        "findings": [
+          {
+            "findingId": "c272-auth-fixture-origin",
+            "testRunId": "qjtr_f8aa8afe361eec9e731bfcc3",
+            "evidenceReceiptId": "qjeer_ef3c9bc038aa3f532f542a11",
+            "scenarioRevisionId": "c272-auth-scenario-1",
+            "requirementIds": ["c272-auth-checkout"],
+            "kind": "ENVIRONMENT_OR_DATA_DEFECT",
+            "targetOutcome": "NOT_EVALUATED",
+            "confidence": "MEDIUM",
+            "rationale": "Independent review verified sealed report/log/screenshot hashes. Open /runtime-login, configured credential fill and sign-in click passed; Submit order failed with zero matching elements; confirmation was skipped. The selected button[type=submit] matches fixture checkout markup. Forbidden screenshot and zero runtime sessions are corroborating bounded observations, not proof of a specific rejected guard.",
+            "competingHypotheses": [
+              "Runtime sign-in POST rejected by fixture request-origin/CSRF or credential guards.",
+              "Transient fixture or tunnel response could produce the same page; sealed report alone does not identify the HTTP rejection reason.",
+              "Immediate locator.count before click is also compatible with redirect/render timing; failure report lacks sanitized URL/status."
+            ],
+            "unresolved": true,
+            "postmortem": {
+              "observation": "Submit order locator found zero targets; confirmation assertion was skipped.",
+              "expectedBehavior": "Fresh independent automation sign-in should reach protected checkout and allow disposable order submission.",
+              "causalAnalysis": "The original fixture emitted no-referrer while requiring exact target Origin on same-origin HTML POST. WHATWG Fetch's append-Origin algorithm nulls Origin for non-CORS POST under no-referrer, making this a source-backed compatibility hypothesis. A same-origin policy correction retains exact Origin, Sec-Fetch and CSRF guards. No sanitized failure request/status trace exists, so specific guard attribution stays unresolved until a fresh live run.",
+              "nextAction": "Restart reviewed fixture with same-origin response policy and rotate only the in-memory automation secret; retain exact target and environment reference, no Discovery state transfer. Approve an Appraise rerun proposal and fresh execution consent. Keep Wrong confirmation unchanged so authenticated order submission and deliberate assertion failure can be qualified separately."
+            }
+          }
+        ],
+        "coverage": [
+          {
+            "requirementId": "c272-auth-checkout",
+            "scenarioRevisionIds": ["c272-auth-scenario-1"],
+            "testRunIds": ["qjtr_f8aa8afe361eec9e731bfcc3"],
+            "outcome": "UNRESOLVED",
+            "rationale": "Navigation/fill/click were evaluated; protected order and confirmation were not. No target defect or managed authentication success is asserted."
+          }
+        ],
+        "residualRisks": [
+          "This run proves no managed authentication or target defect.",
+          "Human Discovery receipt is separate and provides no managed browser state.",
+          "External assignment host isolation is NOT_ATTESTED.",
+          "Source-backed referrer/Origin hypothesis is not proven by first report; HTTP tests validate emitted headers and guards only."
+        ],
+        "recommendations": [
+          "Review this complete successor report and its exact predecessor/feedback lineage.",
+          "Authorize unchanged prepared scenario on corrected disposable fixture with fresh execution consent; retain deliberately wrong assertion until its own sealed failure and approved automation correction.",
+          "No C3.1, GC2 evaluation, baseline refresh or publication."
+        ]
+      },
+      "contentHash": "sha256:9ec88be9918ff86adc591686124cf097e15f222f9ff70874787573133eb5e804",
+      "review": {
+        "kind": "RERUN_APPROVED",
+        "feedback": "Retry unchanged prepared scenario after reviewed fixture referrer-policy compatibility correction; rotate process-only independent automation credential, preserve first failed run/full-report revision, fresh execution consent required.",
+        "successorCycleId": null
+      }
+    },
+    {
+      "report": {
+        "schemaVersion": "appraise.quality-journey/v1",
+        "reportRevisionId": "c272-auth-report-3",
+        "executionCycleId": "qjex_657b94cfdd1b57e264aa4089",
+        "cycleId": "qjcycle_4a4b691f2b345097003d3f3e",
+        "inputHash": "sha256:8bb0d78e9ba05507b2a17cebfaf0cefe77af710ad08d6e5a6896cc9b4c535b98",
+        "summary": "Fresh consent-bound managed automation authenticated independently and submitted the disposable order. The deliberately wrong confirmation assertion failed; the target confirmation is Order complete.",
+        "findings": [
+          {
+            "findingId": "c272-auth-wrong-confirmation",
+            "testRunId": "qjtr_6d4c722a5d61d85c0a442736",
+            "evidenceReceiptId": "qjeer_fa410e44ea81af1b593dea00",
+            "scenarioRevisionId": "c272-auth-scenario-1",
+            "requirementIds": ["c272-auth-checkout"],
+            "kind": "VALIDATION_REALIZATION_DEFECT",
+            "targetOutcome": "NOT_EVALUATED",
+            "confidence": "HIGH",
+            "rationale": "Sealed report passes the first four authored steps and fails only the configured Wrong confirmation text assertion. Sealed screenshot shows Order complete. The accepted scenario expects Order complete and discloses the deliberate wrong initial realization.",
+            "competingHypotheses": [],
+            "unresolved": false,
+            "postmortem": {
+              "observation": "Runtime sign-in and Submit order passed; final text assertion failed because Wrong confirmation was absent.",
+              "expectedBehavior": "The confirmation heading contains Order complete.",
+              "causalAnalysis": "Prepared realization's expected text contradicts accepted scenario intent; the deliberately injected expected-value error explains this failed run.",
+              "nextAction": "Review full report and approve only changing the final expected text to Order complete. Preserve scenario intent, credential handling and first four steps; require fresh exact execution consent."
+            }
+          }
+        ],
+        "coverage": [
+          {
+            "requirementId": "c272-auth-checkout",
+            "scenarioRevisionIds": ["c272-auth-scenario-1"],
+            "testRunIds": ["qjtr_6d4c722a5d61d85c0a442736"],
+            "outcome": "NOT_EVALUATED",
+            "rationale": "Protected workflow executed, but the intended final confirmation check requires an approved corrected realization and passing fresh run."
+          }
+        ],
+        "residualRisks": [
+          "Managed identity is independent automation; it has no human-MFA attestation.",
+          "Earlier failed run and its unresolved guard-level attribution remain immutable historical evidence.",
+          "External worker host isolation is NOT_ATTESTED."
+        ],
+        "recommendations": [
+          "Request a complete report revision to include step-by-step authenticated evidence and separate deterministic checks from live observations.",
+          "Approve bounded assertion correction only after exact full-report review, then grant fresh execution consent."
+        ],
+        "remediation": {
+          "kind": "AUTOMATION_CORRECTION",
+          "findingIds": ["c272-auth-wrong-confirmation"],
+          "scenarioRevisionIds": ["c272-auth-scenario-1"],
+          "scope": "Change only c272-check-confirmation expected text from Wrong confirmation to Order complete; preserve four preceding mappings, approved scenario intent, locators, operation versions, target and environment credential reference."
+        }
+      },
+      "contentHash": "sha256:c55b9965a90ccbaf1a874049cb61787e11ec4304c23b6bde3dd8ca144db1f48c",
+      "review": {
+        "kind": "FULL_REPORT_REVISION",
+        "feedback": "Revise the whole authenticated failure report before correction: include an explicit five-step outcome matrix, exact sealed evidence receipt and screenshot linkage, independent attribution, the intended Order complete versus realized Wrong confirmation, and the unchanged credential/target boundaries. Separate live authenticated order evidence from deterministic source checks and human Auth0/MFA Discovery. Preserve report 3 and all earlier failed runs; retain only the final assertion-text remediation scope and require fresh consent.",
+        "successorCycleId": null
+      }
+    },
+    {
+      "report": {
+        "schemaVersion": "appraise.quality-journey/v1",
+        "reportRevisionId": "c272-auth-report-4",
+        "executionCycleId": "qjex_657b94cfdd1b57e264aa4089",
+        "cycleId": "qjcycle_4a4b691f2b345097003d3f3e",
+        "predecessorReportRevisionId": "c272-auth-report-3",
+        "inputHash": "sha256:a5b80ba1192cde8275e98980097b8ab0c998fadd4575c827ac06883777b4238f",
+        "summary": "Full revised authenticated failure report incorporates exact review feedback. Live steps: navigation PASS; configured credential fill PASS; independent automation sign-in PASS; protected disposable order submission PASS; intentionally Wrong confirmation assertion FAIL. Sealed screenshot shows Order complete. Only final assertion text requires correction.",
+        "findings": [
+          {
+            "findingId": "c272-auth-wrong-confirmation",
+            "testRunId": "qjtr_6d4c722a5d61d85c0a442736",
+            "evidenceReceiptId": "qjeer_fa410e44ea81af1b593dea00",
+            "scenarioRevisionId": "c272-auth-scenario-1",
+            "requirementIds": ["c272-auth-checkout"],
+            "kind": "VALIDATION_REALIZATION_DEFECT",
+            "targetOutcome": "NOT_EVALUATED",
+            "confidence": "HIGH",
+            "rationale": "Sealed report passes the first four authored steps and fails only the configured Wrong confirmation text assertion. Sealed screenshot shows Order complete. The accepted scenario expects Order complete and discloses the deliberate wrong initial realization. Independent reviewer verified report sha256:fce3858a3fda31d35779fd2e56809a480a3d36dd5aac02ca53259bc0226b010a, log sha256:04ff7bdf9bc30af4d4aff0c3dad386b4ac87ad7f548601951a43835bd53fe5f7 and screenshot sha256:68541c26d78eea06d0de7022c3381692104529264e1c31ebb0d6ee82c40f5e68 under receipt qjeer_fa410e44ea81af1b593dea00.",
+            "competingHypotheses": [],
+            "unresolved": false,
+            "postmortem": {
+              "observation": "All five authored steps were evaluated: open login, credential fill, sign-in and Submit order passed; only text Wrong confirmation failed. Screenshot report step e3c82044-70c1-486a-8818-9cb1a9e65608 shows Order complete.",
+              "expectedBehavior": "The confirmation heading contains Order complete.",
+              "causalAnalysis": "Prepared realization's expected text contradicts accepted scenario intent; the deliberately injected expected-value error explains this failed run. Live protected order execution and fixture sessionCount 1 corroborate this independent automation path. Deterministic 21 verifier tests and six HTTP tests establish source checks only; they do not stand in for this run. The separate Appraise Discovery receipt establishes human protected return, not managed MFA.",
+              "nextAction": "Review full report and approve only changing the final expected text to Order complete. Preserve scenario intent, credential handling and first four steps; require fresh exact execution consent."
+            }
+          }
+        ],
+        "coverage": [
+          {
+            "requirementId": "c272-auth-checkout",
+            "scenarioRevisionIds": ["c272-auth-scenario-1"],
+            "testRunIds": ["qjtr_6d4c722a5d61d85c0a442736"],
+            "outcome": "NOT_EVALUATED",
+            "rationale": "Protected workflow executed, but the intended final confirmation check requires an approved corrected realization and passing fresh run."
+          }
+        ],
+        "residualRisks": [
+          "Managed identity is independent automation; it has no human-MFA attestation.",
+          "Earlier failed run and its unresolved guard-level attribution remain immutable historical evidence.",
+          "External worker host isolation is NOT_ATTESTED.",
+          "Qualification is scoped to this disposable target and bounded window; it establishes no production authentication support or headless Auth0/MFA."
+        ],
+        "recommendations": [
+          "Approve this exact revised report's assertion-only remediation scope.",
+          "Materialize a successor with Order complete while preserving first four mappings and accepted scenario; require fresh exact credential-use execution consent.",
+          "Publish and review a final sealed passing report before Journey closure."
+        ],
+        "remediation": {
+          "kind": "AUTOMATION_CORRECTION",
+          "findingIds": ["c272-auth-wrong-confirmation"],
+          "scenarioRevisionIds": ["c272-auth-scenario-1"],
+          "scope": "Change only c272-check-confirmation expected text from Wrong confirmation to Order complete; preserve four preceding mappings, approved scenario intent, locators, operation versions, target and environment credential reference."
+        }
+      },
+      "contentHash": "sha256:8c281572e71c2ed0eeee7e888bbd944cff6e1dfd8949b00b49c5281009a03f0f",
+      "review": {
+        "kind": "AUTOMATION_CORRECTION_APPROVED",
+        "feedback": "Approve exact report c272-auth-report-4 and its bounded remediation: change only final expected text Wrong confirmation to Order complete. Preserve approved scenario, target, locators, operation versions, credential reference, all prior runs and report revisions. Require a new prepared capsule and fresh exact execution consent before the successor run.",
+        "successorCycleId": "qjt_2194391454d1577da4a87ce9"
+      }
+    },
+    {
+      "report": {
+        "schemaVersion": "appraise.quality-journey/v1",
+        "reportRevisionId": "c272-auth-report-5",
+        "executionCycleId": "qjex_847c2a35cc4f9c1c21fe8aef",
+        "cycleId": "qjt_2194391454d1577da4a87ce9",
+        "inputHash": "sha256:65e803d1b4ce1f1e68a076d0bc3742005103af6dcf7a02768d074fb87812e7a6",
+        "summary": "The assertion-only corrected successor passed all five authored steps under fresh exact execution consent. Fresh independent automation sign-in, protected disposable order submission and Order complete assertion are supported by complete valid sealed evidence. Earlier failed runs and both full-report revision loops remain immutable lineage.",
+        "findings": [],
+        "coverage": [
+          {
+            "requirementId": "c272-auth-checkout",
+            "scenarioRevisionIds": ["c272-auth-scenario-1"],
+            "testRunIds": ["qjtr_88426b7309a988a8a7b858df"],
+            "outcome": "PASSED",
+            "rationale": "All five steps and hooks passed with valid sealed report/log, no missing artifacts and completed TestRun binding."
+          }
+        ],
+        "residualRisks": [
+          "Evidence qualifies only the disposable protected fixture within this bounded window; no production authentication claim.",
+          "Human Auth0/MFA Discovery and managed automation identity are separate; no Discovery cookie/storage transfer or managed MFA claim.",
+          "Earlier authentication interruption retains unresolved exact guard attribution; it is preserved and excluded from the passing-run claim.",
+          "External assignment host isolation and named-role runtime enforcement are NOT_ATTESTED."
+        ],
+        "recommendations": [
+          "Review this exact final report and close the bounded Journey while retaining all failure, revision, remediation and consent records.",
+          "Remove temporary Auth0 callback, revoke process-only credential and stop owned fixture/Appraise/tunnel processes before concluding qualification.",
+          "Keep C2.7.3 pending and GC2 not_evaluated; do not start C3.1 or refresh a baseline."
+        ]
+      },
+      "contentHash": "sha256:4fb64bfc01d5b5a8877932ffdc7c293baa0411c580f0defe6dfcf27cfa84312d",
+      "review": null
+    }
+  ],
+  "artifactLinks": [
+    {
+      "id": "qja_link_3cb36bd10bcb0d64596a27fa",
+      "relation": "MATERIALIZES",
+      "source": {
+        "artifactId": "c272-auth-checkout-scenario",
+        "contentHash": "sha256:52df383c96dcc44bf3261e9e67522913889e1d69be9bdc3be1830f3d0b9feb34",
+        "kind": "SCENARIO_REVISION",
+        "revisionId": "c272-auth-scenario-1"
+      },
+      "target": {
+        "artifactId": "qja_prepared_d7d94c0691dc5023df125438",
+        "contentHash": "sha256:315a4b912b1f47326912383d8c6ae35a1fe40ccf767fc348838cf7aa76bbf53c",
+        "kind": "RUNTIME_CAPSULE"
+      },
+      "linkHash": "sha256:3613df44e1da9ef6e4bf5358ce87eb5f923620cec3e811fbf553eef67832cf8e"
+    },
+    {
+      "id": "qja_link_55eb0708dd176e8405906d6c",
+      "relation": "MATERIALIZES",
+      "source": {
+        "artifactId": "c272-auth-checkout-scenario",
+        "contentHash": "sha256:52df383c96dcc44bf3261e9e67522913889e1d69be9bdc3be1830f3d0b9feb34",
+        "kind": "SCENARIO_REVISION",
+        "revisionId": "c272-auth-scenario-1"
+      },
+      "target": {
+        "artifactId": "qja_suite_d7d94c0691dc5023df125438",
+        "contentHash": "sha256:877aa74ac19599975b98936de2ea4357ad95bfcd17bf43c9fb6859f9f2972e66",
+        "kind": "TEST_SUITE"
+      },
+      "linkHash": "sha256:ba616108c2edb1d98ea47c2ada52bbf5a3c19ad53ac5f11bf79442a3f5d1e259"
+    },
+    {
+      "id": "qja_link_efd333ea14767ff1f3bb7c7d",
+      "relation": "MATERIALIZES",
+      "source": {
+        "artifactId": "c272-auth-checkout-scenario",
+        "contentHash": "sha256:52df383c96dcc44bf3261e9e67522913889e1d69be9bdc3be1830f3d0b9feb34",
+        "kind": "SCENARIO_REVISION",
+        "revisionId": "c272-auth-scenario-1"
+      },
+      "target": {
+        "artifactId": "qja_case_d7d94c0691dc5023df125438",
+        "contentHash": "sha256:1f6d2fd3259d36efd07be3423cdbbaf078f5c3631d2c92e92cb1d7741b89b8b1",
+        "kind": "TEST_CASE"
+      },
+      "linkHash": "sha256:d2d096a0c056eff34bef4ec529fd015f934a738f54854d98cc1d443e52b8de8c"
+    },
+    {
+      "id": "qjt_d8578709c0ca210f15ca48fb",
+      "relation": "ANALYZES",
+      "source": {
+        "artifactId": "c272-auth-report-1",
+        "contentHash": "sha256:1cb60b7c39ae325a392bbccd2594bd68f7ac7e388ecf9aa3c8c06c007f7ee194",
+        "kind": "TEST_REPORT_ANALYSIS_REVISION",
+        "revisionId": "c272-auth-report-1"
+      },
+      "target": {
+        "artifactId": "c272-auth-charter",
+        "contentHash": "sha256:a545e28ebadef56f2ee699c6290a2ab87a6bf91340588ed5d2e539f8c275d6a6",
+        "kind": "ANALYSIS_CHARTER_REVISION",
+        "revisionId": "c272-auth-analysis-1"
+      },
+      "linkHash": "sha256:3d7cbab09cafe56ab7541b38cf95ad809e235d24febe79dc4da40aad3f8da1d1"
+    },
+    {
+      "id": "qjt_abf96ebd7caa1c5fb1f65ca5",
+      "relation": "ATTRIBUTES",
+      "source": {
+        "artifactId": "c272-auth-report-1",
+        "contentHash": "sha256:1cb60b7c39ae325a392bbccd2594bd68f7ac7e388ecf9aa3c8c06c007f7ee194",
+        "kind": "TEST_REPORT_ANALYSIS_REVISION",
+        "revisionId": "c272-auth-report-1"
+      },
+      "target": {
+        "artifactId": "qjeer_ef3c9bc038aa3f532f542a11",
+        "contentHash": "sha256:ef3c9bc038aa3f532f542a11886c52fd357ab1732ca3ecc05b6b1044b1129a3f",
+        "kind": "EVIDENCE_RECEIPT"
+      },
+      "linkHash": "sha256:59c1706754e630bea2b816dbd91b3e2905d7040d205310598736cbdbd3c722d7"
+    },
+    {
+      "id": "qjt_1234700bd47de8d86374989d",
+      "relation": "ANALYZES",
+      "source": {
+        "artifactId": "c272-auth-report-1",
+        "contentHash": "sha256:1cb60b7c39ae325a392bbccd2594bd68f7ac7e388ecf9aa3c8c06c007f7ee194",
+        "kind": "TEST_REPORT_ANALYSIS_REVISION",
+        "revisionId": "c272-auth-report-1"
+      },
+      "target": {
+        "artifactId": "c272-auth-checkout-scenario",
+        "contentHash": "sha256:52df383c96dcc44bf3261e9e67522913889e1d69be9bdc3be1830f3d0b9feb34",
+        "kind": "SCENARIO_REVISION",
+        "revisionId": "c272-auth-scenario-1"
+      },
+      "linkHash": "sha256:ef9935b7c44cbb25067b381b6b6ce64fe116fea597b7d24d06ec68688a400d0d"
+    },
+    {
+      "id": "qjt_e357edf470aa57ebd5702fae",
+      "relation": "ANALYZES",
+      "source": {
+        "artifactId": "c272-auth-report-1",
+        "contentHash": "sha256:1cb60b7c39ae325a392bbccd2594bd68f7ac7e388ecf9aa3c8c06c007f7ee194",
+        "kind": "TEST_REPORT_ANALYSIS_REVISION",
+        "revisionId": "c272-auth-report-1"
+      },
+      "target": {
+        "artifactId": "qjtr_f8aa8afe361eec9e731bfcc3",
+        "contentHash": "sha256:4621e287da5a4e783a88f1b33aa7aae1f62af8c35e9f4fbdb694a55e7307f3e8",
+        "kind": "TEST_RUN"
+      },
+      "linkHash": "sha256:cfc10e1228dc00f9b969a4fe16490b4a5b99212903d88787c5d38d35faeaf5e8"
+    },
+    {
+      "id": "qjt_20853a4471c510fc8c5be801",
+      "relation": "ANALYZES",
+      "source": {
+        "artifactId": "c272-auth-report-2",
+        "contentHash": "sha256:9ec88be9918ff86adc591686124cf097e15f222f9ff70874787573133eb5e804",
+        "kind": "TEST_REPORT_ANALYSIS_REVISION",
+        "revisionId": "c272-auth-report-2"
+      },
+      "target": {
+        "artifactId": "c272-auth-charter",
+        "contentHash": "sha256:a545e28ebadef56f2ee699c6290a2ab87a6bf91340588ed5d2e539f8c275d6a6",
+        "kind": "ANALYSIS_CHARTER_REVISION",
+        "revisionId": "c272-auth-analysis-1"
+      },
+      "linkHash": "sha256:1eb44471c65e770515332fea168e4c750000d7b3e12d25ebff3a5dfc7e10bce9"
+    },
+    {
+      "id": "qjt_572de605419840bfc6ca2bfa",
+      "relation": "ANALYZES",
+      "source": {
+        "artifactId": "c272-auth-report-2",
+        "contentHash": "sha256:9ec88be9918ff86adc591686124cf097e15f222f9ff70874787573133eb5e804",
+        "kind": "TEST_REPORT_ANALYSIS_REVISION",
+        "revisionId": "c272-auth-report-2"
+      },
+      "target": {
+        "artifactId": "c272-auth-checkout-scenario",
+        "contentHash": "sha256:52df383c96dcc44bf3261e9e67522913889e1d69be9bdc3be1830f3d0b9feb34",
+        "kind": "SCENARIO_REVISION",
+        "revisionId": "c272-auth-scenario-1"
+      },
+      "linkHash": "sha256:0fb7d2cf9086885eae42ff20e94cc656e353619a32a06a8c5df3fefbd1c6e515"
+    },
+    {
+      "id": "qjt_7dc531973d6e1a30a2a4d91a",
+      "relation": "SUPERSEDES",
+      "source": {
+        "artifactId": "c272-auth-report-2",
+        "contentHash": "sha256:9ec88be9918ff86adc591686124cf097e15f222f9ff70874787573133eb5e804",
+        "kind": "TEST_REPORT_ANALYSIS_REVISION",
+        "revisionId": "c272-auth-report-2"
+      },
+      "target": {
+        "artifactId": "c272-auth-report-1",
+        "contentHash": "sha256:1cb60b7c39ae325a392bbccd2594bd68f7ac7e388ecf9aa3c8c06c007f7ee194",
+        "kind": "TEST_REPORT_ANALYSIS_REVISION",
+        "revisionId": "c272-auth-report-1"
+      },
+      "linkHash": "sha256:8d9adb3c3bca44368463a8c59e6e0df272dd4dc926f1dc5ba569ad0972c82001"
+    },
+    {
+      "id": "qjt_9d31de3239ad4e2076e221ee",
+      "relation": "ATTRIBUTES",
+      "source": {
+        "artifactId": "c272-auth-report-2",
+        "contentHash": "sha256:9ec88be9918ff86adc591686124cf097e15f222f9ff70874787573133eb5e804",
+        "kind": "TEST_REPORT_ANALYSIS_REVISION",
+        "revisionId": "c272-auth-report-2"
+      },
+      "target": {
+        "artifactId": "qjeer_ef3c9bc038aa3f532f542a11",
+        "contentHash": "sha256:ef3c9bc038aa3f532f542a11886c52fd357ab1732ca3ecc05b6b1044b1129a3f",
+        "kind": "EVIDENCE_RECEIPT"
+      },
+      "linkHash": "sha256:f1f19c97006abbb30dbab68fa5d8b9b19c857fb7730e046447df530c3612695d"
+    },
+    {
+      "id": "qjt_b73133a48bda144af49d4a2a",
+      "relation": "ANALYZES",
+      "source": {
+        "artifactId": "c272-auth-report-2",
+        "contentHash": "sha256:9ec88be9918ff86adc591686124cf097e15f222f9ff70874787573133eb5e804",
+        "kind": "TEST_REPORT_ANALYSIS_REVISION",
+        "revisionId": "c272-auth-report-2"
+      },
+      "target": {
+        "artifactId": "qjtr_f8aa8afe361eec9e731bfcc3",
+        "contentHash": "sha256:4621e287da5a4e783a88f1b33aa7aae1f62af8c35e9f4fbdb694a55e7307f3e8",
+        "kind": "TEST_RUN"
+      },
+      "linkHash": "sha256:97097db4595ce0ede55f14f061587a60967c593ddc7a7c356867c18e995ba37f"
+    },
+    {
+      "id": "qjt_fe6ddd09f547a17a99045b4e",
+      "relation": "ANALYZES",
+      "source": {
+        "artifactId": "c272-auth-report-3",
+        "contentHash": "sha256:c55b9965a90ccbaf1a874049cb61787e11ec4304c23b6bde3dd8ca144db1f48c",
+        "kind": "TEST_REPORT_ANALYSIS_REVISION",
+        "revisionId": "c272-auth-report-3"
+      },
+      "target": {
+        "artifactId": "c272-auth-charter",
+        "contentHash": "sha256:a545e28ebadef56f2ee699c6290a2ab87a6bf91340588ed5d2e539f8c275d6a6",
+        "kind": "ANALYSIS_CHARTER_REVISION",
+        "revisionId": "c272-auth-analysis-1"
+      },
+      "linkHash": "sha256:81830e266ae5f472193a7f9100253043bce2ac4ef701e31e34dd9a0e021d3103"
+    },
+    {
+      "id": "qjt_eaf92c29900d545fe76d6986",
+      "relation": "ANALYZES",
+      "source": {
+        "artifactId": "c272-auth-report-3",
+        "contentHash": "sha256:c55b9965a90ccbaf1a874049cb61787e11ec4304c23b6bde3dd8ca144db1f48c",
+        "kind": "TEST_REPORT_ANALYSIS_REVISION",
+        "revisionId": "c272-auth-report-3"
+      },
+      "target": {
+        "artifactId": "c272-auth-checkout-scenario",
+        "contentHash": "sha256:52df383c96dcc44bf3261e9e67522913889e1d69be9bdc3be1830f3d0b9feb34",
+        "kind": "SCENARIO_REVISION",
+        "revisionId": "c272-auth-scenario-1"
+      },
+      "linkHash": "sha256:bf8fc063a70ebfd086b405b3e4c7fdf1c6cfbeadb5b94e88cd244eac6c22bfce"
+    },
+    {
+      "id": "qjt_19e76114456639a2823a9958",
+      "relation": "ATTRIBUTES",
+      "source": {
+        "artifactId": "c272-auth-report-3",
+        "contentHash": "sha256:c55b9965a90ccbaf1a874049cb61787e11ec4304c23b6bde3dd8ca144db1f48c",
+        "kind": "TEST_REPORT_ANALYSIS_REVISION",
+        "revisionId": "c272-auth-report-3"
+      },
+      "target": {
+        "artifactId": "qjeer_fa410e44ea81af1b593dea00",
+        "contentHash": "sha256:fa410e44ea81af1b593dea0016bd7b209a1c82d1a239fb324c56674427b5c53f",
+        "kind": "EVIDENCE_RECEIPT"
+      },
+      "linkHash": "sha256:e43d3761b42030fdfab75fc98d2d3986370c6c55cfef5b0d039a6aa2511116cd"
+    },
+    {
+      "id": "qjt_ef914f464ff6b0de95676676",
+      "relation": "ANALYZES",
+      "source": {
+        "artifactId": "c272-auth-report-3",
+        "contentHash": "sha256:c55b9965a90ccbaf1a874049cb61787e11ec4304c23b6bde3dd8ca144db1f48c",
+        "kind": "TEST_REPORT_ANALYSIS_REVISION",
+        "revisionId": "c272-auth-report-3"
+      },
+      "target": {
+        "artifactId": "qjtr_6d4c722a5d61d85c0a442736",
+        "contentHash": "sha256:37d1edb435cdb6061058dad0336d354df34e8b79172b6516b1a29edb157ffa34",
+        "kind": "TEST_RUN"
+      },
+      "linkHash": "sha256:3c56d4526c6371130695f10ff18e6a827cc17298609caea5971596c9d7bb1bba"
+    },
+    {
+      "id": "qjt_eae6e206f734371ee8e7c63e",
+      "relation": "ANALYZES",
+      "source": {
+        "artifactId": "c272-auth-report-4",
+        "contentHash": "sha256:8c281572e71c2ed0eeee7e888bbd944cff6e1dfd8949b00b49c5281009a03f0f",
+        "kind": "TEST_REPORT_ANALYSIS_REVISION",
+        "revisionId": "c272-auth-report-4"
+      },
+      "target": {
+        "artifactId": "c272-auth-charter",
+        "contentHash": "sha256:a545e28ebadef56f2ee699c6290a2ab87a6bf91340588ed5d2e539f8c275d6a6",
+        "kind": "ANALYSIS_CHARTER_REVISION",
+        "revisionId": "c272-auth-analysis-1"
+      },
+      "linkHash": "sha256:5e4aadb0fc2b822b3b3f9d34075764d04d070179bb2e8831927746119e66c058"
+    },
+    {
+      "id": "qjt_bfd2379804aeab9b5412dcb7",
+      "relation": "ANALYZES",
+      "source": {
+        "artifactId": "c272-auth-report-4",
+        "contentHash": "sha256:8c281572e71c2ed0eeee7e888bbd944cff6e1dfd8949b00b49c5281009a03f0f",
+        "kind": "TEST_REPORT_ANALYSIS_REVISION",
+        "revisionId": "c272-auth-report-4"
+      },
+      "target": {
+        "artifactId": "c272-auth-checkout-scenario",
+        "contentHash": "sha256:52df383c96dcc44bf3261e9e67522913889e1d69be9bdc3be1830f3d0b9feb34",
+        "kind": "SCENARIO_REVISION",
+        "revisionId": "c272-auth-scenario-1"
+      },
+      "linkHash": "sha256:e250b7113dad3eff0c765059dfc7df63b44ec4962034365c83107740dbb0b2d9"
+    },
+    {
+      "id": "qjt_b0992851e0987b32088edd23",
+      "relation": "ATTRIBUTES",
+      "source": {
+        "artifactId": "c272-auth-report-4",
+        "contentHash": "sha256:8c281572e71c2ed0eeee7e888bbd944cff6e1dfd8949b00b49c5281009a03f0f",
+        "kind": "TEST_REPORT_ANALYSIS_REVISION",
+        "revisionId": "c272-auth-report-4"
+      },
+      "target": {
+        "artifactId": "qjeer_fa410e44ea81af1b593dea00",
+        "contentHash": "sha256:fa410e44ea81af1b593dea0016bd7b209a1c82d1a239fb324c56674427b5c53f",
+        "kind": "EVIDENCE_RECEIPT"
+      },
+      "linkHash": "sha256:145a9b2aad4a9d8ddbac5d7a48f2e03c3b07143d093152a910c38abedabb6a3c"
+    },
+    {
+      "id": "qjt_aa07944154210ea4505f813a",
+      "relation": "ANALYZES",
+      "source": {
+        "artifactId": "c272-auth-report-4",
+        "contentHash": "sha256:8c281572e71c2ed0eeee7e888bbd944cff6e1dfd8949b00b49c5281009a03f0f",
+        "kind": "TEST_REPORT_ANALYSIS_REVISION",
+        "revisionId": "c272-auth-report-4"
+      },
+      "target": {
+        "artifactId": "qjtr_6d4c722a5d61d85c0a442736",
+        "contentHash": "sha256:37d1edb435cdb6061058dad0336d354df34e8b79172b6516b1a29edb157ffa34",
+        "kind": "TEST_RUN"
+      },
+      "linkHash": "sha256:51c2d62a9ff51ca36e66f3527819c7ab655873e5058f19cc33d9818fd918d4bd"
+    },
+    {
+      "id": "qjt_9a0ce2ed624ebfe57b41bede",
+      "relation": "SUPERSEDES",
+      "source": {
+        "artifactId": "c272-auth-report-4",
+        "contentHash": "sha256:8c281572e71c2ed0eeee7e888bbd944cff6e1dfd8949b00b49c5281009a03f0f",
+        "kind": "TEST_REPORT_ANALYSIS_REVISION",
+        "revisionId": "c272-auth-report-4"
+      },
+      "target": {
+        "artifactId": "c272-auth-report-3",
+        "contentHash": "sha256:c55b9965a90ccbaf1a874049cb61787e11ec4304c23b6bde3dd8ca144db1f48c",
+        "kind": "TEST_REPORT_ANALYSIS_REVISION",
+        "revisionId": "c272-auth-report-3"
+      },
+      "linkHash": "sha256:5c8d5dd5a000b022715272eaca8b66a8f17a766ac063c05a31aa77fae7bdc5a8"
+    },
+    {
+      "id": "qja_link_2a928cb330f5c300af07b65f",
+      "relation": "MATERIALIZES",
+      "source": {
+        "artifactId": "c272-auth-checkout-scenario",
+        "contentHash": "sha256:52df383c96dcc44bf3261e9e67522913889e1d69be9bdc3be1830f3d0b9feb34",
+        "kind": "SCENARIO_REVISION",
+        "revisionId": "c272-auth-scenario-1"
+      },
+      "target": {
+        "artifactId": "qja_prepared_f77ee292a857cdb7c9a244b2",
+        "contentHash": "sha256:713ccad1d5544b175102c900be45af44d83d7870bdf5cef3f7ac344eb4bd999c",
+        "kind": "RUNTIME_CAPSULE"
+      },
+      "linkHash": "sha256:1d2e34dc28a08aa7d4d86879a476d36f27fa90e3f865f5f3de464e98044a87b7"
+    },
+    {
+      "id": "qja_link_eb0a42397ef54bda5eb49c68",
+      "relation": "MATERIALIZES",
+      "source": {
+        "artifactId": "c272-auth-checkout-scenario",
+        "contentHash": "sha256:52df383c96dcc44bf3261e9e67522913889e1d69be9bdc3be1830f3d0b9feb34",
+        "kind": "SCENARIO_REVISION",
+        "revisionId": "c272-auth-scenario-1"
+      },
+      "target": {
+        "artifactId": "qja_case_f77ee292a857cdb7c9a244b2",
+        "contentHash": "sha256:d025f02dc7c69dd16124a1a26df652d58ed1b3dbe8d8eeb3e1f8b40410924532",
+        "kind": "TEST_CASE"
+      },
+      "linkHash": "sha256:6201b3041f5425d72a201de182dde9635a6d63ba3d8b6d0039d8ea88d7c85f88"
+    },
+    {
+      "id": "qja_link_cbf08a0ff5e28340f0f10b9e",
+      "relation": "MATERIALIZES",
+      "source": {
+        "artifactId": "c272-auth-checkout-scenario",
+        "contentHash": "sha256:52df383c96dcc44bf3261e9e67522913889e1d69be9bdc3be1830f3d0b9feb34",
+        "kind": "SCENARIO_REVISION",
+        "revisionId": "c272-auth-scenario-1"
+      },
+      "target": {
+        "artifactId": "qja_suite_f77ee292a857cdb7c9a244b2",
+        "contentHash": "sha256:75c21f44aea5e5591c3d2a8a42196dcfd3578b024a0ea1755d081817996e7516",
+        "kind": "TEST_SUITE"
+      },
+      "linkHash": "sha256:63e6abf737bf106ddb281fe069f564c6f771333ad84dff36ddb5f37c701e1d79"
+    },
+    {
+      "id": "qja_remediation-link_f77ee292a857cdb7c9a244b2",
+      "relation": "SUPERSEDES",
+      "source": {
+        "artifactId": "qja_materialization_de766d055c09d52dac6cfbd9",
+        "contentHash": "sha256:54b3631cfaa3d7054d31e1ce320df0f9739598c4082b1a265dadeac7b469f67e",
+        "kind": "RUNTIME_CAPSULE"
+      },
+      "target": {
+        "artifactId": "qja_materialization_439c17bdcd9395d50f1c6f96",
+        "contentHash": "sha256:7b8db61d71ff461b1206306ff78399e2864d31afd25a169121ccedc26a5b3c34",
+        "kind": "RUNTIME_CAPSULE"
+      },
+      "linkHash": "sha256:364b330eb3468ebb74c590671c3bb67aa35c4a2ff0f7a54b3cfd253038bdaef5"
+    },
+    {
+      "id": "qjt_b9f58a695f3ca02a7e396d9d",
+      "relation": "ANALYZES",
+      "source": {
+        "artifactId": "c272-auth-report-5",
+        "contentHash": "sha256:4fb64bfc01d5b5a8877932ffdc7c293baa0411c580f0defe6dfcf27cfa84312d",
+        "kind": "TEST_REPORT_ANALYSIS_REVISION",
+        "revisionId": "c272-auth-report-5"
+      },
+      "target": {
+        "artifactId": "c272-auth-charter",
+        "contentHash": "sha256:a545e28ebadef56f2ee699c6290a2ab87a6bf91340588ed5d2e539f8c275d6a6",
+        "kind": "ANALYSIS_CHARTER_REVISION",
+        "revisionId": "c272-auth-analysis-1"
+      },
+      "linkHash": "sha256:71fd5d5f358e10d738374cf26439c3ec0c20d28ab3ca6617a81b313f03b422f7"
+    },
+    {
+      "id": "qjt_93d9d590b35bb7dc6b50df68",
+      "relation": "ANALYZES",
+      "source": {
+        "artifactId": "c272-auth-report-5",
+        "contentHash": "sha256:4fb64bfc01d5b5a8877932ffdc7c293baa0411c580f0defe6dfcf27cfa84312d",
+        "kind": "TEST_REPORT_ANALYSIS_REVISION",
+        "revisionId": "c272-auth-report-5"
+      },
+      "target": {
+        "artifactId": "c272-auth-checkout-scenario",
+        "contentHash": "sha256:52df383c96dcc44bf3261e9e67522913889e1d69be9bdc3be1830f3d0b9feb34",
+        "kind": "SCENARIO_REVISION",
+        "revisionId": "c272-auth-scenario-1"
+      },
+      "linkHash": "sha256:2487a10efa1431d8e48c68b20f3713500811c01b9ae3923b9bd4b568ef976108"
+    },
+    {
+      "id": "qjt_c7e914ed6877d0ffd3fbf329",
+      "relation": "ATTRIBUTES",
+      "source": {
+        "artifactId": "c272-auth-report-5",
+        "contentHash": "sha256:4fb64bfc01d5b5a8877932ffdc7c293baa0411c580f0defe6dfcf27cfa84312d",
+        "kind": "TEST_REPORT_ANALYSIS_REVISION",
+        "revisionId": "c272-auth-report-5"
+      },
+      "target": {
+        "artifactId": "qjeer_3fe41ed90a24243a93dfe748",
+        "contentHash": "sha256:3fe41ed90a24243a93dfe748c472279e6b0f61470bbe5130958edef7feaa6c42",
+        "kind": "EVIDENCE_RECEIPT"
+      },
+      "linkHash": "sha256:3101e5490a040157e915bee004b25fa2e6de02d813e35c0474b2255347059a74"
+    },
+    {
+      "id": "qjt_32ba2e6f6c2584e38a966da1",
+      "relation": "ANALYZES",
+      "source": {
+        "artifactId": "c272-auth-report-5",
+        "contentHash": "sha256:4fb64bfc01d5b5a8877932ffdc7c293baa0411c580f0defe6dfcf27cfa84312d",
+        "kind": "TEST_REPORT_ANALYSIS_REVISION",
+        "revisionId": "c272-auth-report-5"
+      },
+      "target": {
+        "artifactId": "qjtr_88426b7309a988a8a7b858df",
+        "contentHash": "sha256:cd40f7040a7f4bb5bb3f5f7cdf6229efc11295d20e0a7945ad41ebad3ba7ad8c",
+        "kind": "TEST_RUN"
+      },
+      "linkHash": "sha256:1c1a5b8d6a723fc8803f8f48697d1ae3b6d4145ebbb7fad1cd17cf3348d9da3f"
+    }
+  ],
+  "preparedCorrection": {
+    "initialSteps": [
+      {
+        "sourceScenarioStepId": "c272-open-login",
+        "operation": {
+          "id": "browser.navigation.goto",
+          "version": "1",
+          "handler": {
+            "id": "browser.navigation.goto",
+            "version": "1",
+            "contentHash": "sha256:4d775bd2a09c758d6275977730517c237efbceebd0bc0668c7bcf3a3a95e426c"
+          }
+        },
+        "stepDefinition": {
+          "id": "browser.navigation.goto",
+          "version": "1",
+          "definitionHash": "sha256:a7a9bebfa6ecffc28f3935cd498fca2b04dccbd8a4d19e7a24878a67d9b3da4b"
+        },
+        "parameters": [
+          {
+            "name": "url",
+            "type": "string",
+            "value": "/runtime-login"
+          }
+        ],
+        "testData": [],
+        "locatorRequirements": []
+      },
+      {
+        "sourceScenarioStepId": "c272-fill-credential",
+        "operation": {
+          "id": "browser.forms.fill.configured.credential",
+          "version": "1",
+          "handler": {
+            "id": "browser.forms.fill.configured.credential",
+            "version": "1",
+            "contentHash": "sha256:a3d49c152822421ce343ef60bbb2157367fc18f49fad9a33e9a0643849d09cd1"
+          }
+        },
+        "stepDefinition": {
+          "id": "browser.forms.fill.configured.credential",
+          "version": "1",
+          "definitionHash": "sha256:6ae4363094dc43c5a8e87ab24c92959f69f3144b05e4bb66bd980754eaec5f24"
+        },
+        "parameters": [],
+        "testData": [],
+        "locatorRequirements": [
+          {
+            "parameterName": "target",
+            "requirementId": "c272-c272-fill-credential-locator",
+            "locatorId": "673fb11e-43b3-512a-a7df-61d2240129dd",
+            "runtimeParameter": false
+          }
+        ]
+      },
+      {
+        "sourceScenarioStepId": "c272-sign-in",
+        "operation": {
+          "id": "browser.mouse.click",
+          "version": "1",
+          "handler": {
+            "id": "browser.mouse.click",
+            "version": "1",
+            "contentHash": "sha256:98a6c2a19a6cf9e6229bc0529ebfcb550d618e9ffa62e4c49bd33985770b91a7"
+          }
+        },
+        "stepDefinition": {
+          "id": "browser.mouse.click",
+          "version": "1",
+          "definitionHash": "sha256:3ec5b8341986537a9d436a4471ed787bcc19d2348a5aefa77046ab8b0d65acb3"
+        },
+        "parameters": [],
+        "testData": [],
+        "locatorRequirements": [
+          {
+            "parameterName": "target",
+            "requirementId": "c272-c272-sign-in-locator",
+            "locatorId": "002c4456-f544-5646-a0a2-a487b4aaa73d",
+            "runtimeParameter": false
+          }
+        ]
+      },
+      {
+        "sourceScenarioStepId": "c272-submit-order",
+        "operation": {
+          "id": "browser.mouse.click",
+          "version": "1",
+          "handler": {
+            "id": "browser.mouse.click",
+            "version": "1",
+            "contentHash": "sha256:98a6c2a19a6cf9e6229bc0529ebfcb550d618e9ffa62e4c49bd33985770b91a7"
+          }
+        },
+        "stepDefinition": {
+          "id": "browser.mouse.click",
+          "version": "1",
+          "definitionHash": "sha256:3ec5b8341986537a9d436a4471ed787bcc19d2348a5aefa77046ab8b0d65acb3"
+        },
+        "parameters": [],
+        "testData": [],
+        "locatorRequirements": [
+          {
+            "parameterName": "target",
+            "requirementId": "c272-c272-submit-order-locator",
+            "locatorId": "b9f935e8-9d80-5678-a2c4-75cf574c0862",
+            "runtimeParameter": false
+          }
+        ]
+      },
+      {
+        "sourceScenarioStepId": "c272-check-confirmation",
+        "operation": {
+          "id": "browser.assertions.text",
+          "version": "1",
+          "handler": {
+            "id": "browser.assertions.text",
+            "version": "1",
+            "contentHash": "sha256:051fe116a6991c8f5448c014e7ef7c13014f174ae787798db16b47d3a7a3462a"
+          }
+        },
+        "stepDefinition": {
+          "id": "browser.assertions.text",
+          "version": "1",
+          "definitionHash": "sha256:7a315a78916611ec45785c53fbe6c59b532e306390189aa24fcf793650b477f9"
+        },
+        "parameters": [
+          {
+            "name": "text",
+            "type": "string",
+            "value": "Wrong confirmation"
+          }
+        ],
+        "testData": [],
+        "locatorRequirements": [
+          {
+            "parameterName": "target",
+            "requirementId": "c272-c272-check-confirmation-locator",
+            "locatorId": "584bb7a1-6147-5a2b-aae7-7838eb276cb3",
+            "runtimeParameter": false
+          }
+        ]
+      }
+    ],
+    "correctedSteps": [
+      {
+        "sourceScenarioStepId": "c272-open-login",
+        "operation": {
+          "id": "browser.navigation.goto",
+          "version": "1",
+          "handler": {
+            "id": "browser.navigation.goto",
+            "version": "1",
+            "contentHash": "sha256:4d775bd2a09c758d6275977730517c237efbceebd0bc0668c7bcf3a3a95e426c"
+          }
+        },
+        "stepDefinition": {
+          "id": "browser.navigation.goto",
+          "version": "1",
+          "definitionHash": "sha256:a7a9bebfa6ecffc28f3935cd498fca2b04dccbd8a4d19e7a24878a67d9b3da4b"
+        },
+        "parameters": [
+          {
+            "name": "url",
+            "type": "string",
+            "value": "/runtime-login"
+          }
+        ],
+        "testData": [],
+        "locatorRequirements": []
+      },
+      {
+        "sourceScenarioStepId": "c272-fill-credential",
+        "operation": {
+          "id": "browser.forms.fill.configured.credential",
+          "version": "1",
+          "handler": {
+            "id": "browser.forms.fill.configured.credential",
+            "version": "1",
+            "contentHash": "sha256:a3d49c152822421ce343ef60bbb2157367fc18f49fad9a33e9a0643849d09cd1"
+          }
+        },
+        "stepDefinition": {
+          "id": "browser.forms.fill.configured.credential",
+          "version": "1",
+          "definitionHash": "sha256:6ae4363094dc43c5a8e87ab24c92959f69f3144b05e4bb66bd980754eaec5f24"
+        },
+        "parameters": [],
+        "testData": [],
+        "locatorRequirements": [
+          {
+            "parameterName": "target",
+            "requirementId": "c272-c272-fill-credential-locator",
+            "locatorId": "673fb11e-43b3-512a-a7df-61d2240129dd",
+            "runtimeParameter": false
+          }
+        ]
+      },
+      {
+        "sourceScenarioStepId": "c272-sign-in",
+        "operation": {
+          "id": "browser.mouse.click",
+          "version": "1",
+          "handler": {
+            "id": "browser.mouse.click",
+            "version": "1",
+            "contentHash": "sha256:98a6c2a19a6cf9e6229bc0529ebfcb550d618e9ffa62e4c49bd33985770b91a7"
+          }
+        },
+        "stepDefinition": {
+          "id": "browser.mouse.click",
+          "version": "1",
+          "definitionHash": "sha256:3ec5b8341986537a9d436a4471ed787bcc19d2348a5aefa77046ab8b0d65acb3"
+        },
+        "parameters": [],
+        "testData": [],
+        "locatorRequirements": [
+          {
+            "parameterName": "target",
+            "requirementId": "c272-c272-sign-in-locator",
+            "locatorId": "002c4456-f544-5646-a0a2-a487b4aaa73d",
+            "runtimeParameter": false
+          }
+        ]
+      },
+      {
+        "sourceScenarioStepId": "c272-submit-order",
+        "operation": {
+          "id": "browser.mouse.click",
+          "version": "1",
+          "handler": {
+            "id": "browser.mouse.click",
+            "version": "1",
+            "contentHash": "sha256:98a6c2a19a6cf9e6229bc0529ebfcb550d618e9ffa62e4c49bd33985770b91a7"
+          }
+        },
+        "stepDefinition": {
+          "id": "browser.mouse.click",
+          "version": "1",
+          "definitionHash": "sha256:3ec5b8341986537a9d436a4471ed787bcc19d2348a5aefa77046ab8b0d65acb3"
+        },
+        "parameters": [],
+        "testData": [],
+        "locatorRequirements": [
+          {
+            "parameterName": "target",
+            "requirementId": "c272-c272-submit-order-locator",
+            "locatorId": "b9f935e8-9d80-5678-a2c4-75cf574c0862",
+            "runtimeParameter": false
+          }
+        ]
+      },
+      {
+        "sourceScenarioStepId": "c272-check-confirmation",
+        "operation": {
+          "id": "browser.assertions.text",
+          "version": "1",
+          "handler": {
+            "id": "browser.assertions.text",
+            "version": "1",
+            "contentHash": "sha256:051fe116a6991c8f5448c014e7ef7c13014f174ae787798db16b47d3a7a3462a"
+          }
+        },
+        "stepDefinition": {
+          "id": "browser.assertions.text",
+          "version": "1",
+          "definitionHash": "sha256:7a315a78916611ec45785c53fbe6c59b532e306390189aa24fcf793650b477f9"
+        },
+        "parameters": [
+          {
+            "name": "text",
+            "type": "string",
+            "value": "Order complete"
+          }
+        ],
+        "testData": [],
+        "locatorRequirements": [
+          {
+            "parameterName": "target",
+            "requirementId": "c272-c272-check-confirmation-locator",
+            "locatorId": "584bb7a1-6147-5a2b-aae7-7838eb276cb3",
+            "runtimeParameter": false
+          }
+        ]
+      }
+    ],
+    "onlyInvocationChange": "/4/invocation/inputs/text: Wrong confirmation -> Order complete"
+  },
+  "cleanup": {
+    "temporaryCallbackRemovedAndReloadVerified": true,
+    "runtimeCredentialRevoked": true,
+    "tunnelsExitCodes": [0, 0],
+    "tunnelGroupsStopped": true,
+    "tunnelProcessAbsenceVerified": true,
+    "fixtureExitCode": 0,
+    "credentialBearingAppraiseGroupStopped": true,
+    "fixtureAndAppraiseListenerAbsenceVerified": [3000, 55320, 55321],
+    "localReviewOnly": {
+      "automationCredentialSupplied": false,
+      "fixtureListenersStarted": false
+    }
+  },
+  "validation": {
+    "liveSourceEvidenceService": "c195a970fd4b4976eed3ef2543b5d145b6aa43175a0d8c742341340b62e0cd60",
+    "liveFixtureSource": "1bdad5f38fbdbf97e1ea564dfc1175a3915cb82f64822d7545f74085e27c3b02",
+    "postLiveRefactorEvidenceService": "9b13a71e3761a1104d9f8630c4a3070aeb4d5c3f352e772829a390af735b5261",
+    "postLiveRefactorFixture": "1579d986ae1e84ef5d602888f65f536be17b0575dbcd0080dbf4ffb2d736275f",
+    "postLiveRefactorEvidenceClass": "DETERMINISTIC_ONLY",
+    "focusedUiTests": 34,
+    "integrationTestsPassed": 32,
+    "optInRuntimeTestsSkipped": 2,
+    "verifierTests": 21,
+    "fixtureHttpTests": 6,
+    "productionBuild": "PASS",
+    "harness": "PASS",
+    "reactDoctor": "PASS_ERROR_GATE_WITH_WARNINGS",
+    "fallow": "FAIL_REMAINING_COMPLEXITY_NO_BASELINE_REFRESH",
+    "standaloneTsc": "FAIL_UNRELATED_FLOW_DIAGRAM_TEST_ELEMENT_HTMLELEMENT"
+  },
+  "closureEvidence": "C2.7.2-closure-20261002.json",
+  "closureObservedAt": "2026-10-02T12:32:01.649Z",
+  "checkpointHistory": {
+    "previousStage": "REPORT_REVIEW",
+    "previousClosure": "AWAITING_EXACT_USER_APPROVAL",
+    "previousObservedAt": "2026-10-01T19:30:11Z"
+  }
+}

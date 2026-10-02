@@ -2,7 +2,9 @@ import { createHash } from 'node:crypto'
 
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { canonicalContractJson } from '@/lib/catalog-contracts'
 import { hashRuntimeCapsuleBytes, hashRuntimeCapsuleValue } from '@/lib/runtime-capsule'
+import { externalAssignmentSecretHash } from './quality-journey-service'
 
 const mocks = vi.hoisted(() => ({
   assignmentFindFirst: vi.fn(),
@@ -24,6 +26,9 @@ const capsuleHash = hashRuntimeCapsuleValue({ capsule: 'triage-1' })
 const manifestHash = hashRuntimeCapsuleValue({ manifest: 'triage-1' })
 const ownerToken = 'owner-token'
 const ownerTokenHash = createHash('sha256').update(ownerToken).digest('hex')
+const externalSecret = 'external-assignment-secret'
+const admissionHash = (value: unknown) =>
+  `sha256:${createHash('sha256').update(canonicalContractJson(value)).digest('hex')}`
 
 function receipt(artifacts = [{ kind: 'report', contentHash: hashRuntimeCapsuleBytes(bytes), size: bytes.length }]) {
   const evidence = {
@@ -77,6 +82,7 @@ function authority(overrides: Record<string, unknown> = {}) {
     workItemId: 'work-1',
     leaseId: 'lease-1',
     ownerTokenHash,
+    executionMode: 'MANAGED',
     status: 'IN_PROGRESS',
     leaseExpiresAt: new Date('2030-01-01T00:00:00.000Z'),
     spawnReceiptHash: hashRuntimeCapsuleValue({ receipt: '1' }),
@@ -121,6 +127,84 @@ function authorityWithAttempt(overrides: Record<string, unknown>) {
         ...('currentAttempt' in overrides ? { currentAttempt: overrides.currentAttempt } : {}),
         attempts: [{ ...value.assignment.workItem.attempts[0], ...overrides }],
       },
+    },
+  }
+}
+
+function externalAuthority(
+  attemptOverrides: Record<string, unknown> = {},
+  authorizationOverrides: Record<string, unknown> = {},
+) {
+  const value = authority()
+  const authorization = {
+    ...value.assignment.workItem.attempts[0].authorization,
+    authorizationHash: 'sha256:authorization-1',
+    externalAdmissionProtocol: 'EXTERNAL_V1',
+    externalPrincipalId: 'project-principal-1',
+    externalPrincipalAssurance: 'PROJECT_CREDENTIAL_ONLY',
+    ...authorizationOverrides,
+  }
+  const principal = { principalId: 'project-principal-1', assurance: 'PROJECT_CREDENTIAL_ONLY' }
+  const request = {
+    schemaVersion: 'appraise.quality-journey-external-admission-request/v1',
+    operation: 'ADMIT',
+    protocol: 'EXTERNAL_V1',
+    journeyId: 'journey-1',
+    targetProjectId: 'target-1',
+    role: 'TRIAGER',
+    workItemId: 'work-1',
+    attemptId: 'attempt-1',
+    assignmentId: 'assignment-1',
+    assignmentGeneration: 1,
+    leaseId: 'lease-1',
+    assignmentSecretVerifier: externalAssignmentSecretHash(externalSecret),
+    idempotencyKey: 'admission-1',
+    principal,
+  }
+  const receipt = {
+    schemaVersion: 'appraise.quality-journey-external-admission/v1',
+    admissionId: 'admission-1',
+    protocol: 'EXTERNAL_V1',
+    assignmentId: 'assignment-1',
+    assignmentGeneration: 1,
+    attemptId: 'attempt-1',
+    workItemId: 'work-1',
+    journeyId: 'journey-1',
+    targetProjectId: 'target-1',
+    role: 'TRIAGER',
+    principal,
+    authorizationId: 'authorization-1',
+    authorizationHash: authorization.authorizationHash,
+    inputHash: 'sha256:input-1',
+    leaseId: 'lease-1',
+    hostIsolation: 'NOT_ATTESTED',
+    admittedAt: '2026-10-02T00:00:00.000Z',
+  }
+  const attempt = {
+    ...value.assignment.workItem.attempts[0],
+    executionMode: 'EXTERNAL_V1',
+    ownerTokenHash: externalAssignmentSecretHash(externalSecret),
+    assignmentId: 'assignment-1',
+    assignmentGeneration: 1,
+    externalPrincipalId: principal.principalId,
+    externalPrincipalAssurance: principal.assurance,
+    externalAdmissionId: receipt.admissionId,
+    externalAdmissionJson: canonicalContractJson(receipt),
+    externalAdmissionHash: admissionHash(receipt),
+    externalAdmissionRequestJson: canonicalContractJson(request),
+    externalAdmissionRequestHash: admissionHash(request),
+    externalAdmittedAt: new Date(receipt.admittedAt),
+    spawnReceiptHash: null,
+    spawnReceiptJson: null,
+    authorization,
+    ...attemptOverrides,
+  }
+  return {
+    ...value,
+    journey: { ...value.journey, targetProjectId: 'target-1' },
+    assignment: {
+      ...value.assignment,
+      workItem: { ...value.assignment.workItem, inputHash: 'sha256:input-1', attempts: [attempt] },
     },
   }
 }
@@ -226,5 +310,83 @@ describe('readQualityJourneyTriageEvidence', () => {
     )
     expect(mocks.receiptFindFirst).not.toHaveBeenCalled()
     expect(mocks.readBytes).not.toHaveBeenCalled()
+  })
+
+  it.each([
+    ['non-hex suffix', `${ownerTokenHash}zz`],
+    ['uppercase encoding', ownerTokenHash.toUpperCase()],
+    ['truncated encoding', ownerTokenHash.slice(0, -1)],
+  ])('rejects a managed owner verifier with %s before artifact I/O', async (_name, malformedHash) => {
+    const invalid = authorityWithAttempt({ ownerTokenHash: malformedHash })
+    mocks.journeyFindFirst.mockResolvedValue(invalid.journey)
+    mocks.assignmentFindFirst.mockResolvedValue(invalid.assignment)
+
+    await expect(readQualityJourneyTriageEvidence(request(), client())).rejects.toThrow('lease or receipt authority')
+    expect(mocks.receiptFindFirst).not.toHaveBeenCalled()
+    expect(mocks.readBytes).not.toHaveBeenCalled()
+  })
+
+  it('reads sealed evidence for the current admitted EXTERNAL_V1 Triager without a Factory spawn receipt', async () => {
+    const external = externalAuthority()
+    mocks.journeyFindFirst.mockResolvedValue(external.journey)
+    mocks.assignmentFindFirst.mockResolvedValue(external.assignment)
+
+    await expect(
+      readQualityJourneyTriageEvidence(request({ ownerToken: externalSecret }), client()),
+    ).resolves.toMatchObject({
+      receiptId: 'receipt-1',
+      text: bytes.toString('utf8'),
+    })
+    expect(mocks.assignmentFindFirst).toHaveBeenCalledTimes(2)
+  })
+
+  it.each([
+    ['missing admission', () => externalAuthority({ externalAdmissionJson: null })],
+    ['corrupt receipt hash', () => externalAuthority({ externalAdmissionHash: 'sha256:forged' })],
+    ['corrupt request hash', () => externalAuthority({ externalAdmissionRequestHash: 'sha256:forged' })],
+    ['wrong admission ID', () => externalAuthority({ externalAdmissionId: 'other-admission' })],
+    ['wrong assignment', () => externalAuthority({ assignmentId: 'other-assignment' })],
+    ['wrong authorization', () => externalAuthority({}, { externalPrincipalId: 'other-principal' })],
+    ['expired lease', () => externalAuthority({ leaseExpiresAt: new Date('2000-01-01T00:00:00.000Z') })],
+    [
+      'old attempt',
+      () => ({
+        ...externalAuthority(),
+        assignment: {
+          ...externalAuthority().assignment,
+          workItem: { ...externalAuthority().assignment.workItem, currentAttempt: 2 },
+        },
+      }),
+    ],
+  ])('rejects EXTERNAL_V1 %s before artifact I/O', async (_name, build) => {
+    const invalid = build()
+    mocks.journeyFindFirst.mockResolvedValue(invalid.journey)
+    mocks.assignmentFindFirst.mockResolvedValue(invalid.assignment)
+
+    await expect(readQualityJourneyTriageEvidence(request({ ownerToken: externalSecret }), client())).rejects.toThrow()
+    expect(mocks.receiptFindFirst).not.toHaveBeenCalled()
+    expect(mocks.readBytes).not.toHaveBeenCalled()
+  })
+
+  it('rejects an EXTERNAL_V1 wrong secret, revoked authority, and cross-target request', async () => {
+    const external = externalAuthority()
+    mocks.journeyFindFirst.mockResolvedValue(external.journey)
+    mocks.assignmentFindFirst.mockResolvedValue(external.assignment)
+    await expect(readQualityJourneyTriageEvidence(request({ ownerToken: 'wrong-secret' }), client())).rejects.toThrow()
+    expect(mocks.receiptFindFirst).not.toHaveBeenCalled()
+
+    const revoked = externalAuthority({}, { revokedAt: new Date() })
+    mocks.assignmentFindFirst.mockResolvedValue(revoked.assignment)
+    await expect(readQualityJourneyTriageEvidence(request({ ownerToken: externalSecret }), client())).rejects.toThrow()
+    expect(mocks.receiptFindFirst).not.toHaveBeenCalled()
+
+    mocks.journeyFindFirst.mockResolvedValue(null)
+    await expect(
+      readQualityJourneyTriageEvidence(
+        request({ ownerToken: externalSecret, targetProjectId: 'other-target' }),
+        client(),
+      ),
+    ).rejects.toThrow()
+    expect(mocks.receiptFindFirst).not.toHaveBeenCalled()
   })
 })

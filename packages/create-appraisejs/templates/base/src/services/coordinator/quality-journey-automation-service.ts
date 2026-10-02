@@ -255,6 +255,7 @@ async function automationResourceAuthority(value: ApprovedInput, db: Db): Promis
   }
   const frozenResourceHashes = frozenScopeContents.resources
     .filter(resource => allowedResourceIds.includes(resource.id))
+    .map(resource => ({ id: resource.id, contentHash: resource.contentHash }))
     .sort((left, right) => left.id.localeCompare(right.id))
   if (frozenResourceHashes.length !== allowedResourceIds.length)
     throw new ServiceError('Automator materialization has incomplete frozen Resource Explorer authority.', 'CONFLICT')
@@ -659,11 +660,20 @@ type TargetCase = {
 function expectedTargetSteps(mappedSteps: MappedStep[]) {
   return mappedSteps.map((mapped, order) => ({
     order,
-    gherkinStep: mapped.source.action,
+    gherkinStep: executableScenarioAction(mapped.source.action, mapped.invocation.presentation?.keyword),
     label: mapped.source.expected,
     icon: 'VALIDATION' as const,
     invocationJson: canonicalStepDefinitionJson(mapped.invocation),
   }))
+}
+
+function executableScenarioAction(action: string, keyword: 'Given' | 'When' | 'Then' | 'And' | undefined) {
+  if (!action || action !== action.trim() || /[\r\n\u2028\u2029]/.test(action))
+    throw new ServiceError('Automator approved scenario action must be a single Gherkin line.', 'CONFLICT')
+  if (/^(?:Given|When|Then|And|But) \S/.test(action)) return action
+  if (/^(?:Given|When|Then|And|But)(?:\s|$)/.test(action) || !keyword)
+    throw new ServiceError('Automator approved scenario action needs an executable Gherkin keyword.', 'CONFLICT')
+  return `${keyword} ${action}`
 }
 
 function targetBindingPacket(

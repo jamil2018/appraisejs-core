@@ -1,0 +1,294 @@
+{
+  "schemaVersion": "appraise.exact-artifact-review/v1",
+  "scope": "C2.7.2 only; no GC2/C2.7.3 evaluation",
+  "state": "REPORT_REVIEW pending explicit user closure",
+  "files": [
+    {
+      "path": ".appraisejs/c27-runtime/owned-processes.mjs",
+      "sha256": "970a9755c66cf63261d8d9adbe69dce46af64b0a1efdd4ccf65d60de9726bac6"
+    },
+    {
+      "path": ".appraisejs/c27-runtime/owned-processes.test.mjs",
+      "sha256": "a371f0ac732b2c79361ec5c100f7d5e24a407663dac454bf8cd67e220271622e"
+    },
+    {
+      "path": ".appraisejs/c27-runtime/start-auth-runtime.mjs",
+      "sha256": "84cbc5c7a307f14b37a370cb5a38586aa2ec140e510c2085eda8deafdeaef636"
+    },
+    {
+      "path": ".appraisejs/c27-runtime/start-local-review.mjs",
+      "sha256": "5bf652297cc172954e63706c32053e4dbba2cb14122d19e00e9cf2aec2b4a6b2"
+    },
+    {
+      "path": ".appraisejs/c27-runtime/tunnels-auth-runtime.mjs",
+      "sha256": "ecdeb7435bc0a840dd17ef4e69ed225431f6c67e1afa974558e7696752a97877"
+    },
+    {
+      "path": "codex/development plan/appraise-0.5/product direction/managed-quality-journey-coordinator/PLAN.md",
+      "sha256": "81a763e01b1483d55550716ab8e52a631bb1a27a1ec3978555a240be1f0ac164"
+    },
+    {
+      "path": "codex/development plan/appraise-0.5/product direction/managed-quality-journey-coordinator/TASK_REGISTER.md",
+      "sha256": "384dad577af045b311fa09197645ae301247a7c337a9419b5aa937f42131b1db"
+    },
+    {
+      "path": "codex/development plan/appraise-0.5/product direction/managed-quality-journey-coordinator/evidence/C2.7.2-live-authenticated-20261001.json",
+      "sha256": "208d91b279bfcdf3841874db1bbcab6ff1e4c52b053af60d9d581d3e12a32779"
+    },
+    {
+      "path": "codex/development plan/appraise-0.5/product direction/managed-quality-journey-coordinator/evidence/C2.7.md",
+      "sha256": "a3c27cec7b9fc2c6e5e171583c6cfc8f336aa840f41a50d4a6ddd0a0acd44cd4"
+    },
+    {
+      "path": "docs/agent-lifecycle-flow.md",
+      "sha256": "40a17c210dc03f3216dccae0e1e43d3c4994878ca3a9a391e02dddcf5a92ff35"
+    },
+    {
+      "path": "docs/operation-catalog-contract.md",
+      "sha256": "8e220609698ef604e66bd95a85ee2249b4daeee9eb7b666b5ff29fe6a7aca9e7"
+    },
+    {
+      "path": "docs/test-run-runtime.md",
+      "sha256": "44a2e14a5f42443331718f74e2952c915efe067daa162081a837632e24d55ab4"
+    },
+    {
+      "path": "package.json",
+      "sha256": "d790c4729377c6d572554007fb84f23413601f36b7d1a00ca51f8187e9d63492"
+    },
+    {
+      "path": "packages/create-appraisejs/templates/base/package.json",
+      "sha256": "5cd5f5711f4ab7cdebc70f5c267cd199d3f4464a839c3c4fc2f87750370a6394"
+    },
+    {
+      "path": "packages/create-appraisejs/templates/base/packages/cucumber-runtime/src/operations/browser-handlers.ts",
+      "sha256": "44f0ee9c83f784396d4750e401f47f75546ca624dd1c3d6b6721b22e88c56717"
+    },
+    {
+      "path": "packages/create-appraisejs/templates/base/packages/cucumber-runtime/src/operations/handler-source-hash.ts",
+      "sha256": "b777513cc2b74aa6d0408a9148fff8804a8aeab56ab68311f09bb482b4f49b5a"
+    },
+    {
+      "path": "packages/create-appraisejs/templates/base/scripts/build-cucumber-runtime.mjs",
+      "sha256": "bec024283202f4e0cf3df16ca9bb90e92082ec608887ab8929ceb4a1d330b6d7"
+    },
+    {
+      "path": "packages/create-appraisejs/templates/base/scripts/dev-with-mcp.mjs",
+      "sha256": "94fdc0de72f5e722c5cd74890279ff9cb41bbf293da564e0fa6b4be61aee8020"
+    },
+    {
+      "path": "packages/create-appraisejs/templates/base/scripts/fixtures/qualification-targets/README.md",
+      "sha256": "ddb8b59f1e34d3a7c1b12021b9e9323ccf4ee3218af9cdb8f3d01c3e2a7878e8"
+    },
+    {
+      "path": "packages/create-appraisejs/templates/base/scripts/fixtures/qualification-targets/protected-checkout/README.md",
+      "sha256": "516d3c92c622257529f7fcbe38cdf1cbdc16ef7ee6d54a2139778ad8d5d6ae95"
+    },
+    {
+      "path": "packages/create-appraisejs/templates/base/scripts/fixtures/qualification-targets/protected-checkout/runtime-auth.mjs",
+      "sha256": "1579d986ae1e84ef5d602888f65f536be17b0575dbcd0080dbf4ffb2d736275f"
+    },
+    {
+      "path": "packages/create-appraisejs/templates/base/scripts/fixtures/qualification-targets/protected-checkout/runtime-auth.test.mjs",
+      "sha256": "ba7d5eb1f70132384dc7a3487a5bcc14f250a72b589e5abbacdbb1237b664452"
+    },
+    {
+      "path": "packages/create-appraisejs/templates/base/scripts/generate-operation-handler-source-hash.mjs",
+      "sha256": "3b16a7ede3081e1cb21c7d867e6d25ce6e39f1745a29562c95cf0005ad237c3f"
+    },
+    {
+      "path": "packages/create-appraisejs/templates/base/scripts/lib/operation-handler-source-readiness.mjs",
+      "sha256": "eea8d29d6838c2912dc019c796b23dfdb19877772582b9f3c70791e5ee8cfb62"
+    },
+    {
+      "path": "packages/create-appraisejs/templates/base/scripts/start-local.mjs",
+      "sha256": "2e3d19f586c729e56054b34127a4f8e3f724cd3a2557137572bf8d6526a0d5ac"
+    },
+    {
+      "path": "packages/create-appraisejs/templates/base/src/app/(base)/quality-journeys/[journeyId]/discovery-browser-panel.test.tsx",
+      "sha256": "087c0496964c9fec63f0533f4ed71035be985b4354cbfb67c0295413140f21cf"
+    },
+    {
+      "path": "packages/create-appraisejs/templates/base/src/app/(base)/quality-journeys/[journeyId]/discovery-browser-panel.tsx",
+      "sha256": "62df95c008870d966213f8e9a7652881147714a950db3975c823b51c8687bae9"
+    },
+    {
+      "path": "packages/create-appraisejs/templates/base/src/app/(base)/quality-journeys/quality-journey-discovery-browser-actions.ts",
+      "sha256": "e8d2a71a89cf9e28f11aacdd8f9926ad0d453b2a4e9ed4d8cdd290b9404dea27"
+    },
+    {
+      "path": "packages/create-appraisejs/templates/base/src/app/api/internal/coordinator/[...operation]/quality-journey-discovery-route.test.ts",
+      "sha256": "c81d91267d01e8803f9bf8fc56289f82a8337d3f5f7ff25235f9cd9e594a9642"
+    },
+    {
+      "path": "packages/create-appraisejs/templates/base/src/app/api/internal/coordinator/[...operation]/quality-journey-discovery-route.ts",
+      "sha256": "e67708ff0d70f781354f1ac3d566445ad6224eb79ff342b13fcd694dacdc3884"
+    },
+    {
+      "path": "packages/create-appraisejs/templates/base/src/lib/runtime-capsule/journey-source.ts",
+      "sha256": "ea3ad39fbd0a981d97603dec410d265653845d12ef9e183b481edc04e8d68a56"
+    },
+    {
+      "path": "packages/create-appraisejs/templates/base/src/services/coordinator/quality-journey-analysis-service.sqlite.integration.test.ts",
+      "sha256": "0b9292b32012367e7599c7166398a60b598a524df5404da66650c5b53cdd5b3b"
+    },
+    {
+      "path": "packages/create-appraisejs/templates/base/src/services/coordinator/quality-journey-automation-service.ts",
+      "sha256": "a5014d6c2da5a31c9ed533b2bd51a7e8aa1c9b0a066433ea8203f63ae3cb3520"
+    },
+    {
+      "path": "packages/create-appraisejs/templates/base/src/services/coordinator/quality-journey-discovery-service.ts",
+      "sha256": "f8d108b9294d3fbccf0a12c5baa2774e8095585c198a850c74d9d40ccfa67f8c"
+    },
+    {
+      "path": "packages/create-appraisejs/templates/base/src/services/coordinator/quality-journey-execution-service.sqlite.integration.test.ts",
+      "sha256": "3b9d1b1590fc987706b1e75620e010082f14d3c9ae7d483a37b345d6a420f570"
+    },
+    {
+      "path": "packages/create-appraisejs/templates/base/src/services/coordinator/quality-journey-execution-service.ts",
+      "sha256": "41b16c0570cb533d44b44b9e5b674de9f78d3bfc79971ec01333d8967264c8c7"
+    },
+    {
+      "path": "packages/create-appraisejs/templates/base/src/services/coordinator/quality-journey-runtime-service.test.ts",
+      "sha256": "3d0200af0d4812f437026434b8794b932d48ed6d2bbf8b8d2f31cba3added090"
+    },
+    {
+      "path": "packages/create-appraisejs/templates/base/src/services/coordinator/quality-journey-runtime-service.ts",
+      "sha256": "808859dd9b9639ef85a429e7e8e2871fcda1a4ace28f136412b998b98696f78c"
+    },
+    {
+      "path": "packages/create-appraisejs/templates/base/src/services/coordinator/quality-journey-triage-evidence-service.test.ts",
+      "sha256": "32cdf0f53d756ab90d547b14080563afae42a67e7e0076731ea7e8239935bb53"
+    },
+    {
+      "path": "packages/create-appraisejs/templates/base/src/services/coordinator/quality-journey-triage-evidence-service.ts",
+      "sha256": "9b13a71e3761a1104d9f8630c4a3070aeb4d5c3f352e772829a390af735b5261"
+    },
+    {
+      "path": "packages/create-appraisejs/templates/base/src/services/coordinator/quality-journey-triage-service.sqlite.integration.test.ts",
+      "sha256": "8ac5a508f42ff0766ec6eaad8f7343464b258e50ee5e8f291824b7e9bc2af5d0"
+    },
+    {
+      "path": "packages/create-appraisejs/templates/base/src/services/coordinator/quality-journey-triage-service.ts",
+      "sha256": "26c5d80040520c8cc05b675cac1b6874515b9b0dd8252b02da9d32c8f6e231eb"
+    },
+    {
+      "path": "packages/cucumber-runtime/src/operations/browser-handlers.ts",
+      "sha256": "44f0ee9c83f784396d4750e401f47f75546ca624dd1c3d6b6721b22e88c56717"
+    },
+    {
+      "path": "packages/cucumber-runtime/src/operations/handler-source-hash.ts",
+      "sha256": "b777513cc2b74aa6d0408a9148fff8804a8aeab56ab68311f09bb482b4f49b5a"
+    },
+    {
+      "path": "scripts/build-cucumber-runtime.mjs",
+      "sha256": "bec024283202f4e0cf3df16ca9bb90e92082ec608887ab8929ceb4a1d330b6d7"
+    },
+    {
+      "path": "scripts/dev-with-mcp.mjs",
+      "sha256": "94fdc0de72f5e722c5cd74890279ff9cb41bbf293da564e0fa6b4be61aee8020"
+    },
+    {
+      "path": "scripts/fixtures/qualification-targets/README.md",
+      "sha256": "ddb8b59f1e34d3a7c1b12021b9e9323ccf4ee3218af9cdb8f3d01c3e2a7878e8"
+    },
+    {
+      "path": "scripts/fixtures/qualification-targets/protected-checkout/README.md",
+      "sha256": "516d3c92c622257529f7fcbe38cdf1cbdc16ef7ee6d54a2139778ad8d5d6ae95"
+    },
+    {
+      "path": "scripts/fixtures/qualification-targets/protected-checkout/runtime-auth.mjs",
+      "sha256": "1579d986ae1e84ef5d602888f65f536be17b0575dbcd0080dbf4ffb2d736275f"
+    },
+    {
+      "path": "scripts/fixtures/qualification-targets/protected-checkout/runtime-auth.test.mjs",
+      "sha256": "ba7d5eb1f70132384dc7a3487a5bcc14f250a72b589e5abbacdbb1237b664452"
+    },
+    {
+      "path": "scripts/generate-operation-handler-source-hash.mjs",
+      "sha256": "3b16a7ede3081e1cb21c7d867e6d25ce6e39f1745a29562c95cf0005ad237c3f"
+    },
+    {
+      "path": "scripts/lib/operation-handler-source-readiness.mjs",
+      "sha256": "eea8d29d6838c2912dc019c796b23dfdb19877772582b9f3c70791e5ee8cfb62"
+    },
+    {
+      "path": "scripts/start-local.mjs",
+      "sha256": "2e3d19f586c729e56054b34127a4f8e3f724cd3a2557137572bf8d6526a0d5ac"
+    },
+    {
+      "path": "src/app/(base)/quality-journeys/[journeyId]/discovery-browser-panel.test.tsx",
+      "sha256": "087c0496964c9fec63f0533f4ed71035be985b4354cbfb67c0295413140f21cf"
+    },
+    {
+      "path": "src/app/(base)/quality-journeys/[journeyId]/discovery-browser-panel.tsx",
+      "sha256": "62df95c008870d966213f8e9a7652881147714a950db3975c823b51c8687bae9"
+    },
+    {
+      "path": "src/app/(base)/quality-journeys/quality-journey-discovery-browser-actions.ts",
+      "sha256": "e8d2a71a89cf9e28f11aacdd8f9926ad0d453b2a4e9ed4d8cdd290b9404dea27"
+    },
+    {
+      "path": "src/app/api/internal/coordinator/[...operation]/quality-journey-discovery-route.test.ts",
+      "sha256": "c81d91267d01e8803f9bf8fc56289f82a8337d3f5f7ff25235f9cd9e594a9642"
+    },
+    {
+      "path": "src/app/api/internal/coordinator/[...operation]/quality-journey-discovery-route.ts",
+      "sha256": "e67708ff0d70f781354f1ac3d566445ad6224eb79ff342b13fcd694dacdc3884"
+    },
+    {
+      "path": "src/lib/runtime-capsule/journey-source.ts",
+      "sha256": "ea3ad39fbd0a981d97603dec410d265653845d12ef9e183b481edc04e8d68a56"
+    },
+    {
+      "path": "src/services/coordinator/quality-journey-analysis-service.sqlite.integration.test.ts",
+      "sha256": "0b9292b32012367e7599c7166398a60b598a524df5404da66650c5b53cdd5b3b"
+    },
+    {
+      "path": "src/services/coordinator/quality-journey-automation-service.ts",
+      "sha256": "a5014d6c2da5a31c9ed533b2bd51a7e8aa1c9b0a066433ea8203f63ae3cb3520"
+    },
+    {
+      "path": "src/services/coordinator/quality-journey-discovery-service.ts",
+      "sha256": "f8d108b9294d3fbccf0a12c5baa2774e8095585c198a850c74d9d40ccfa67f8c"
+    },
+    {
+      "path": "src/services/coordinator/quality-journey-execution-service.sqlite.integration.test.ts",
+      "sha256": "3b9d1b1590fc987706b1e75620e010082f14d3c9ae7d483a37b345d6a420f570"
+    },
+    {
+      "path": "src/services/coordinator/quality-journey-execution-service.ts",
+      "sha256": "41b16c0570cb533d44b44b9e5b674de9f78d3bfc79971ec01333d8967264c8c7"
+    },
+    {
+      "path": "src/services/coordinator/quality-journey-runtime-service.test.ts",
+      "sha256": "3d0200af0d4812f437026434b8794b932d48ed6d2bbf8b8d2f31cba3added090"
+    },
+    {
+      "path": "src/services/coordinator/quality-journey-runtime-service.ts",
+      "sha256": "808859dd9b9639ef85a429e7e8e2871fcda1a4ace28f136412b998b98696f78c"
+    },
+    {
+      "path": "src/services/coordinator/quality-journey-triage-evidence-service.test.ts",
+      "sha256": "32cdf0f53d756ab90d547b14080563afae42a67e7e0076731ea7e8239935bb53"
+    },
+    {
+      "path": "src/services/coordinator/quality-journey-triage-evidence-service.ts",
+      "sha256": "9b13a71e3761a1104d9f8630c4a3070aeb4d5c3f352e772829a390af735b5261"
+    },
+    {
+      "path": "src/services/coordinator/quality-journey-triage-service.sqlite.integration.test.ts",
+      "sha256": "8ac5a508f42ff0766ec6eaad8f7343464b258e50ee5e8f291824b7e9bc2af5d0"
+    },
+    {
+      "path": "src/services/coordinator/quality-journey-triage-service.ts",
+      "sha256": "26c5d80040520c8cc05b675cac1b6874515b9b0dd8252b02da9d32c8f6e231eb"
+    }
+  ],
+  "provenance": "Requested independent host review; effective role/model/isolation NOT_ATTESTED",
+  "excluded": [
+    "unrelated docs/assessments",
+    "flow-diagram test work",
+    "unrelated worktree edits"
+  ],
+  "liveManifest": "codex/development plan/appraise-0.5/product direction/managed-quality-journey-coordinator/evidence/C2.7.2-live-authenticated-20261001.json"
+}

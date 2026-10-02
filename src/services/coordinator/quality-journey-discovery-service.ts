@@ -19,6 +19,11 @@ import {
 import { readVisibleResourceOwnerships } from '@/services/project-resource/project-resource-ownership-service'
 import { ServiceError } from '@/services/shared/errors'
 import {
+  builtInStepDefinitions,
+  canonicalStepDefinitionJson,
+  computeStepDefinitionHashes,
+} from '../../../packages/cucumber-runtime/src/step-definitions/index.ts'
+import {
   assertCoordinatorMutationSession,
   type CoordinatorSessionCredentials,
 } from './quality-journey-coordinator-session'
@@ -66,6 +71,15 @@ type FrozenScope = {
   operationIds: string[]
 }
 type ResourceResolutionBundle = ReturnType<typeof resourceResolutionBundleSchema.parse>
+const sourceOwnedBuiltIns = new Map(
+  builtInStepDefinitions.map(definition => [
+    `${definition.identity.id}:${definition.identity.version}`,
+    {
+      definitionHash: computeStepDefinitionHashes(definition).definitionHash,
+      provenanceJson: canonicalStepDefinitionJson(definition.provenance),
+    },
+  ]),
+)
 
 function canonicalArtifacts(
   analysis: { artifactId: string; artifactRevisionId: string; contentHash: string },
@@ -93,7 +107,7 @@ async function compileFrozenScope(targetProjectId: string, db: Db): Promise<Froz
     db.module.findMany({ where: { targetProjectId }, select: { id: true, name: true, updatedAt: true } }),
     db.stepDefinition.findMany({
       where: { status: 'ready' },
-      select: { id: true, version: true, definitionHash: true },
+      select: { id: true, version: true, definitionHash: true, provenanceJson: true },
     }),
     readVisibleResourceOwnerships(targetProjectId, ['locator-group', 'locator', 'step-definition'], db),
   ])
@@ -113,7 +127,11 @@ async function compileFrozenScope(targetProjectId: string, db: Db): Promise<Froz
       sourceTargetProjectId: sourceTarget('locator', locator.id, locator.targetProjectId),
     }))
   const readySteps = steps
-    .filter(step => ownerships === null || ownerships.has(`step-definition:${step.id}`))
+    .filter(step => {
+      if (ownerships === null || ownerships.has(`step-definition:${step.id}`)) return true
+      const source = sourceOwnedBuiltIns.get(`${step.id}:${step.version}`)
+      return source?.definitionHash === step.definitionHash && source.provenanceJson === step.provenanceJson
+    })
     .map(step => ({
       id: `step:${step.id}:${step.version}`,
       kind: 'STEP_DEFINITION' as const,

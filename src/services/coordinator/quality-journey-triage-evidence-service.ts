@@ -1,12 +1,14 @@
-import { createHash } from 'node:crypto'
+import { createHash, timingSafeEqual } from 'node:crypto'
 import type { PrismaClient } from '@prisma/client'
 
 import prisma from '@/config/db-config'
+import { canonicalContractJson } from '@/lib/catalog-contracts'
 import { qualityJourneyTriageEvidenceMaxBytes, qualityJourneyTriageEvidenceReadSchema } from '@/lib/quality-journey'
 import { hashRuntimeCapsuleBytes, hashRuntimeCapsuleValue } from '@/lib/runtime-capsule'
 import { ServiceError } from '@/services/shared/errors'
 import { TestRunArtifactAccessService } from '@/services/test-run/test-run-artifact-access-service'
 import type { TriageInput } from './quality-journey-triage-input'
+import { externalAssignmentSecretHash } from './quality-journey-service'
 
 function conflict(message: string): never {
   throw new ServiceError(message, 'CONFLICT')
@@ -89,15 +91,137 @@ function assertAttemptIdentity(input: EvidenceReadInput, records: LeaseRecords) 
   const { attempt, item } = records
   if (attempt.workItemId !== item.id || attempt.id !== input.attemptId || attempt.leaseId !== input.leaseId)
     unauthorized('Triager evidence lease or receipt authority is invalid.')
-  if (attempt.ownerTokenHash !== createHash('sha256').update(input.ownerToken).digest('hex'))
+  const ownerHash = ownerVerifier(input.ownerToken, attempt.executionMode)
+  if (!exactHexHash(attempt.ownerTokenHash) || !exactHexHash(ownerHash))
     unauthorized('Triager evidence lease or receipt authority is invalid.')
+  if (!timingSafeEqual(Buffer.from(attempt.ownerTokenHash, 'hex'), Buffer.from(ownerHash, 'hex')))
+    unauthorized('Triager evidence lease or receipt authority is invalid.')
+}
+
+function ownerVerifier(secret: string, executionMode: string) {
+  if (executionMode === 'EXTERNAL_V1') return externalAssignmentSecretHash(secret)
+  if (executionMode === 'MANAGED') return createHash('sha256').update(secret).digest('hex')
+  return unauthorized('Triager evidence lease or receipt authority is invalid.')
+}
+
+const exactHexHash = (value: string) => /^[a-f0-9]{64}$/.test(value)
+
+function canonicalHash(value: unknown) {
+  return `sha256:${createHash('sha256').update(canonicalContractJson(value)).digest('hex')}`
+}
+
+function parseAdmission(value: string | null): Record<string, unknown> {
+  if (!value) unauthorized('Triager external admission authority is invalid.')
+  try {
+    const parsed: unknown = JSON.parse(value)
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed))
+      unauthorized('Triager external admission authority is invalid.')
+    return parsed as Record<string, unknown>
+  } catch {
+    return unauthorized('Triager external admission authority is invalid.')
+  }
+}
+
+function assertExternalAdmissionMetadata(records: LeaseRecords) {
+  const { attempt, authorization } = records
+  const required = [
+    attempt.externalAdmissionId,
+    attempt.externalAdmissionHash,
+    attempt.externalAdmissionRequestHash,
+    attempt.assignmentId,
+    attempt.externalAdmittedAt,
+    attempt.externalPrincipalId,
+  ]
+  const authorityMatches = [
+    [attempt.externalPrincipalAssurance, 'PROJECT_CREDENTIAL_ONLY'],
+    [authorization.externalAdmissionProtocol, 'EXTERNAL_V1'],
+    [authorization.externalPrincipalId, attempt.externalPrincipalId],
+    [authorization.externalPrincipalAssurance, attempt.externalPrincipalAssurance],
+  ]
+  if (required.some(value => !value) || authorityMatches.some(([actual, expected]) => actual !== expected))
+    unauthorized('Triager external admission authority is invalid.')
+}
+
+function assertAdmissionBindings(actual: Record<string, unknown>, expected: Record<string, unknown>) {
+  if (Object.entries(expected).some(([key, value]) => actual[key] !== value))
+    unauthorized('Triager external admission authority is invalid.')
+}
+
+function assertAdmissionPrincipal(value: unknown, records: LeaseRecords) {
+  const principal = value as Record<string, unknown> | null
+  if (
+    !principal ||
+    principal.principalId !== records.attempt.externalPrincipalId ||
+    principal.assurance !== records.attempt.externalPrincipalAssurance
+  )
+    unauthorized('Triager external admission authority is invalid.')
+}
+
+function assertAdmissionReceipt(receipt: Record<string, unknown>, records: LeaseRecords) {
+  const { attempt, item, authorization, journey } = records
+  assertAdmissionBindings(receipt, {
+    schemaVersion: 'appraise.quality-journey-external-admission/v1',
+    admissionId: attempt.externalAdmissionId,
+    protocol: 'EXTERNAL_V1',
+    hostIsolation: 'NOT_ATTESTED',
+    assignmentId: attempt.assignmentId,
+    assignmentGeneration: attempt.assignmentGeneration,
+    attemptId: attempt.id,
+    workItemId: item.id,
+    journeyId: journey.id,
+    targetProjectId: journey.targetProjectId,
+    role: 'TRIAGER',
+    authorizationId: authorization.id,
+    authorizationHash: authorization.authorizationHash,
+    inputHash: item.inputHash,
+    leaseId: attempt.leaseId,
+  })
+  assertAdmissionPrincipal(receipt.principal, records)
+}
+
+function assertAdmissionRequest(
+  request: Record<string, unknown>,
+  receipt: Record<string, unknown>,
+  records: LeaseRecords,
+) {
+  assertAdmissionBindings(request, {
+    schemaVersion: 'appraise.quality-journey-external-admission-request/v1',
+    operation: 'ADMIT',
+    protocol: 'EXTERNAL_V1',
+    assignmentId: receipt.assignmentId,
+    assignmentGeneration: receipt.assignmentGeneration,
+    attemptId: receipt.attemptId,
+    workItemId: receipt.workItemId,
+    journeyId: receipt.journeyId,
+    targetProjectId: receipt.targetProjectId,
+    role: receipt.role,
+    leaseId: receipt.leaseId,
+    assignmentSecretVerifier: records.attempt.ownerTokenHash,
+  })
+  assertAdmissionPrincipal(request.principal, records)
+}
+
+function assertExternalAdmission(records: LeaseRecords) {
+  const { attempt } = records
+  assertExternalAdmissionMetadata(records)
+  const receipt = parseAdmission(attempt.externalAdmissionJson)
+  const request = parseAdmission(attempt.externalAdmissionRequestJson)
+  if (
+    attempt.externalAdmissionHash !== canonicalHash(receipt) ||
+    attempt.externalAdmissionRequestHash !== canonicalHash(request)
+  )
+    unauthorized('Triager external admission authority is invalid.')
+  assertAdmissionReceipt(receipt, records)
+  assertAdmissionRequest(request, receipt, records)
 }
 
 function assertLiveAttempt(records: LeaseRecords) {
   const { attempt } = records
   if (attempt.status !== 'IN_PROGRESS' || attempt.leaseExpiresAt <= new Date())
     unauthorized('Triager evidence lease or receipt authority is invalid.')
-  if (!attempt.spawnReceiptHash || !attempt.spawnReceiptJson)
+  if (attempt.executionMode === 'EXTERNAL_V1') {
+    assertExternalAdmission(records)
+  } else if (!attempt.spawnReceiptHash || !attempt.spawnReceiptJson)
     unauthorized('Triager evidence lease or receipt authority is invalid.')
 }
 

@@ -2,8 +2,10 @@ import { spawnSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 import path from 'node:path'
 import { cucumberRuntimeReceiptIsCurrent } from './lib/cucumber-runtime-fingerprint.mjs'
+import { ensureOperationHandlerSourceCurrent } from './lib/operation-handler-source-readiness.mjs'
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
+ensureOperationHandlerSourceCurrent({ cwd: root })
 if (cucumberRuntimeReceiptIsCurrent(root, process.env.APPRAISE_CUCUMBER_RUNTIME_RECEIPT)) {
   console.log('Reusing the verified Cucumber runtime build prerequisite for this validation session.')
   process.exit(0)

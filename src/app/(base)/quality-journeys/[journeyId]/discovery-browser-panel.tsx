@@ -196,6 +196,7 @@ export function DiscoveryBrowserPanel({
                     routeId,
                     accessMode,
                     ...(accessMode === 'AUTHENTICATED_INTENT' ? { authFlowId } : {}),
+                    ...(accessMode === 'AUTHENTICATED_INTENT' ? { ttlSeconds: 900 } : {}),
                   }),
                 )
               }}

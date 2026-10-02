@@ -32,6 +32,7 @@ const start = binding
     routeId: route,
     accessMode: z.enum(['ANONYMOUS', 'AUTHENTICATED_INTENT']),
     authFlowId: id.optional(),
+    ttlSeconds: z.number().int().min(30).max(900).optional(),
   })
   .strict()
 const session = binding.extend({ sessionId: id }).strict()
