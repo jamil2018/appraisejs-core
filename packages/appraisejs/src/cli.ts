@@ -14,7 +14,11 @@ import { diagnoseProject, formatMcpBootstrapError } from './diagnostics.js'
 import { assertLoopbackMcpHost, DEFAULT_HTTP_MCP_BODY_LIMIT_BYTES } from './mcp-http-security.js'
 import { runAppraiseHttpMcp, runAppraiseMcp } from './mcp.js'
 import { callLocalMcpTool, parseMcpToolArguments, unwrapMcpToolResult } from './mcp-call.js'
-import { ensureLocalProjectIdentity } from './project-identity.js'
+import {
+  disconnectLocalProjectIdentity,
+  ensureLocalProjectIdentity,
+  reconnectLocalProjectIdentity,
+} from './project-identity.js'
 import { runTestRunDiagnose } from './test-run-diagnose-cli.js'
 import {
   appraisePluginMarketplaceRoot,
@@ -335,6 +339,34 @@ program
 
 const agent = program.command('agent').description('Set up coding-agent access to AppraiseJS')
 
+for (const [name, description, action] of [
+  ['disconnect', 'Revoke local coordinator access for this project', disconnectLocalProjectIdentity],
+  ['reconnect', 'Rotate the local credential and restore coordinator access', reconnectLocalProjectIdentity],
+] as const) {
+  agent
+    .command(name)
+    .description(description)
+    .option('--cwd <path>', 'Appraise project directory', process.cwd())
+    .option('--json', 'print machine-readable JSON', false)
+    .action(async (options: { cwd: string; json: boolean }) => {
+      await runCommand(async () => {
+        const result = await action(path.resolve(options.cwd))
+        const output = {
+          action: name,
+          projectFingerprint: result.details.projectFingerprint,
+          localAccess: name === 'disconnect' ? 'disabled' : 'enabled',
+          requiredClientAction:
+            'Restart or reconnect the MCP/agent client. Reconcile any in-flight work in AppraiseJS before continuing.',
+        }
+        console.log(
+          options.json
+            ? JSON.stringify(output, null, 2)
+            : `${name}: local coordinator access ${output.localAccess}. ${output.requiredClientAction}`,
+        )
+      }, options.json)
+    })
+}
+
 const plugin = agent.command('plugin').description('Manage the package-shipped, skills-only Codex plugin')
 
 plugin
@@ -350,24 +382,36 @@ plugin
     console.log(options.json ? JSON.stringify(result, null, 2) : result.marketplaceRoot)
   })
 
-for (const [name, description, action] of [
-  ['install', 'Install or update the package-shipped skills-only Codex plugin', installAppraisePlugin],
-  ['uninstall', 'Uninstall the plugin without changing MCP registration', uninstallAppraisePlugin],
-] as const) {
-  plugin
-    .command(name)
-    .description(description)
-    .option('--json', 'print machine-readable JSON', false)
-    .action((options: { json: boolean }) => {
-      const result = action()
+plugin
+  .command('install')
+  .description('Install or update the package-shipped skills-only Codex plugin')
+  .option('--json', 'print machine-readable JSON', false)
+  .action((options: { json: boolean }) => {
+    const result = installAppraisePlugin()
+    console.log(
+      options.json
+        ? JSON.stringify(result, null, 2)
+        : result.checks.map(check => `${check.status}: ${check.message}`).join('\n'),
+    )
+    if (!result.successful) process.exitCode = 1
+  })
+
+plugin
+  .command('uninstall')
+  .description('Revoke local coordinator access, then remove the skills-only Codex plugin')
+  .option('--cwd <path>', 'Appraise project directory', process.cwd())
+  .option('--json', 'print machine-readable JSON', false)
+  .action(async (options: { cwd: string; json: boolean }) => {
+    await runCommand(async () => {
+      const result = await uninstallAppraisePlugin(path.resolve(options.cwd))
       console.log(
         options.json
           ? JSON.stringify(result, null, 2)
           : result.checks.map(check => `${check.status}: ${check.message}`).join('\n'),
       )
       if (!result.successful) process.exitCode = 1
-    })
-}
+    }, options.json)
+  })
 
 agent
   .command('compatibility')

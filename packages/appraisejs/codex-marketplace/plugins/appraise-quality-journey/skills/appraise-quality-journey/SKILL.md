@@ -117,3 +117,12 @@ application code is outside this assignment and requires a separate user request
 If native Appraise tools are absent, run `appraisejs agent compatibility --json` outside the MCP protocol, repair the
 reported installation or registration state, reconnect or start a fresh task, and call `project_diagnostic` again.
 The documented manual registered-MCP fallback is setup recovery only; it does not grant Journey authority by itself.
+
+If Appraise reports disconnected/revoked access, stop mediated work and report it. Do not recreate credentials or run
+`agent reconnect` without an explicit operator request. Appraise `agent disconnect` and `agent plugin uninstall`
+revoke the selected hub credential while preserving Journey data. Raw Codex plugin removal removes guidance only.
+Explicit operator reconnect rotates the credential and requires a fresh transport, capability diagnostic and
+authoritative Journey reread. It never renews a lease, transfers assignment ownership, reuses an approval or permits
+relaunch of an uncertain effect. Already admitted owned execution requires local Appraise pause/reconciliation;
+do not claim host stop or signal a persisted PID. Unknown Codex versions and stale schemas remain unqualified until
+diagnosed; installing an older package must not remove a newer or unorderable plugin.

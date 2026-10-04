@@ -58,10 +58,17 @@ appraisejs agent plugin path
 appraisejs agent plugin install --json
 appraisejs agent compatibility --json
 appraisejs agent plugin uninstall --json
+appraisejs agent disconnect --cwd <hub> --json
+appraisejs agent reconnect --cwd <hub> --json
 ```
 
-Install and uninstall require a fresh Codex task or reconnect before skill visibility can be observed. They preserve
-the independent `appraisejs` MCP registration. If marketplace support is unavailable, run
+Install and uninstall require a fresh Codex task or reconnect before skill visibility can be observed. Appraise
+plugin uninstall revokes the selected hub credential first, even if removal fails; `--cwd` selects that hub.
+Disconnect preserves all Journey data and assignments. The independent MCP registration can remain configured
+with an inert old credential. Raw `codex plugin remove` removes guidance only. Explicit reconnect rotates credentials;
+refresh HTTP setup and reconnect the transport before authoritative reads. Already admitted work needs local
+pause/reconciliation. A newer or unorderable installed plugin is never automatically replaced by an older package.
+See [compatibility and storage refusal](../../docs/quality-journey-compatibility.md). If marketplace support is unavailable, run
 `appraisejs agent setup --json`, register its stdio or HTTP MCP configuration manually, reconnect, and call
 `project_diagnostic`. That fallback does not make the plugin present, and neither setup path proves a Journey is
 connected or running.

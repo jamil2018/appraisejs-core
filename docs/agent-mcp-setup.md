@@ -43,9 +43,12 @@ resources, surface version, contract hash, and selected local target when availa
 
 If the marketplace or plugin CLI is unavailable, use `appraisejs agent setup --json` to register the stdio or HTTP MCP
 connection manually. This is the supported fallback, not an automatic downgrade. `appraisejs agent plugin uninstall
---json` removes only the workflow plugin and preserves MCP. For a complete operator-requested disconnect, remove MCP
-separately with `codex mcp remove appraisejs`, then reconnect. A retained marketplace registration has no Journey
-authority.
+--cwd <hub> --json` revokes the selected hub credential before removing guidance. `agent disconnect --cwd <hub> --json`
+revokes access while retaining data. MCP registration may remain configured with an inert old credential; remove it
+separately with `codex mcp remove appraisejs` if desired. Raw Codex plugin removal alone cannot revoke access.
+Explicit `agent reconnect --cwd <hub> --json` rotates credentials, then use setup and a fresh MCP task/transport.
+Active work remains subject to local pause/reconciliation. See the
+[storage and client compatibility matrix](quality-journey-compatibility.md) for version refusal and trust limits.
 
 An explicit `EXTERNAL_V1` path is available only through its versioned claim, admission, role-specialized submission,
 and outcome-read tools. The coordinator derives its sole route principal from the authenticated project credential;

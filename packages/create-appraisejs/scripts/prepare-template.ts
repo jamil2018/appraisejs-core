@@ -349,7 +349,7 @@ function writeTemplatePackageJson(): void {
       'npm run generate-db-client && npm run build:cucumber-runtime && npm run build:locator-picker-companion && next build',
     start: 'node scripts/start-local.mjs start',
     'generate-db-client': 'npx prisma generate --schema prisma/schema.prisma',
-    'migrate-db': 'npx prisma migrate deploy',
+    'migrate-db': 'node scripts/migrate-compatible.mjs',
     'install-playwright': 'npx playwright install',
     setup: 'npm run install-dependencies && npm run setup:db && npm run build:local && npm run protect-seeded-files',
     'setup:db':

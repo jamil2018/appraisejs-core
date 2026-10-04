@@ -59,6 +59,12 @@ Direct edits can be appropriate for template-only metadata, README content, scaf
 template preparation intentionally preserves. Check `packages/create-appraisejs/scripts/prepare-template.ts` before
 assuming a file is template-only.
 
+Generated projects retain the guarded `npm run migrate-db` and startup scripts described in
+[Quality Journey compatibility](quality-journey-compatibility.md). Unknown storage is refused before readiness writes;
+the preparation workflow does not weaken that guard or reset a user database.
+The C3.2 producer-package reinstall/migration fixture is repository-only; generated apps retain the self-contained
+storage guard and its focused tests without importing the producer CLI source.
+
 ## Validation
 
 - For root-to-template or scaffold package changes, run `npm --prefix packages/create-appraisejs run prepare-template`.

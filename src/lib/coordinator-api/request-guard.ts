@@ -39,9 +39,10 @@ async function readCoordinatorToken(canonicalProjectPath: string, projectFingerp
   try {
     const value = JSON.parse(await fs.readFile(credentialPath, 'utf8')) as unknown
     if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('Credential must be an object.')
-    const credential = value as { projectFingerprint?: unknown; token?: unknown }
+    const credential = value as { projectFingerprint?: unknown; token?: unknown; disabled?: unknown }
     if (
       credential.projectFingerprint !== projectFingerprint ||
+      credential.disabled === true ||
       typeof credential.token !== 'string' ||
       !credential.token
     )

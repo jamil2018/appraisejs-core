@@ -159,9 +159,8 @@ process.on('SIGTERM', shutdown)
 
 const mcp = mcpCommand()
 
-ensureOperationHandlerSourceCurrent()
-
 ensureDevDatabaseReady(npmCommand)
+ensureOperationHandlerSourceCurrent()
 ensureCucumberRuntimeReadiness(npmCommand)
 ensureBuiltInStepDefinitionReadiness(npmCommand)
 

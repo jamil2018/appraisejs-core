@@ -1,5 +1,9 @@
 # Agent Lifecycle Flow
 
+Storage/client upgrades and disconnects preserve historical lifecycle authority. Reconnect does not renew leases,
+transfer active assignments, reuse approvals or relaunch uncertain effects. See
+[Quality Journey compatibility](quality-journey-compatibility.md) for the supported refusal and revocation paths.
+
 Quality Journey is AppraiseJS's sole agent-enabled quality authority. A Journey owns requirement intake, analysis,
 discovery, scenario approval, materialization, execution consent, sealed evidence, triage, report review, remediation,
 reruns, and closure. Only a Journey decision or closure is a quality outcome.

@@ -13,7 +13,7 @@ verified after [independent exact-artifact review](evidence/C2.5.md), and C2.6 a
 review](evidence/C2.6.md). C2.7 and its bounded [task-register suffixes](TASK_REGISTER.md) are verified after
 [complete Journey reconciliation and independent exact-artifact review](evidence/C2.7.3.md). GC2 [passed](evidence/GC2.md)
 for the disposable-target stock-Codex lifecycle, with accepted limitations preserved; C3.1 is verified within its bounded task-register suffixes after [independent review](evidence/C3.1-review-20261002.md),
-and GC3 remains `not_evaluated`. The
+C3.2 is verified within [compatibility evidence](evidence/C3.2.md) after [independent review](evidence/C3.2-review-20261003.md); C3.3 remains pending and GC3 remains `not_evaluated`. The
 explicitly authorized retained C0.2e slice was the only implementation permitted before GC0 passed.
 The [task register](TASK_REGISTER.md) owns active task status, dependencies, gates and evidence. **C0.1: qualify the
 Appraise-to-Codex handoff** is verified as a bounded qualification task. Its [evidence](evidence/C0.1.md) records

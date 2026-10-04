@@ -29,6 +29,19 @@ beforeEach(() => {
 })
 
 describe('coordinator request guard', () => {
+  it('rereads revocation and credential rotation before admitting a cached caller', async () => {
+    await expect(guardCoordinatorRequest(request())).resolves.toBeUndefined()
+    readFile.mockResolvedValue(JSON.stringify({ projectFingerprint: 'sha256:project', token: '', disabled: true }))
+    await expect(guardCoordinatorRequest(request())).rejects.toMatchObject({ code: 'UNAUTHORIZED' })
+    readFile.mockResolvedValue(JSON.stringify({ projectFingerprint: 'sha256:project', token: 'rotated' }))
+    await expect(guardCoordinatorRequest(request())).rejects.toMatchObject({ code: 'UNAUTHORIZED' })
+    await expect(guardCoordinatorRequest(request('rotated'))).resolves.toBeUndefined()
+  })
+
+  it('fails closed on a disabled marker even if a malformed file retains a token', async () => {
+    readFile.mockResolvedValue(JSON.stringify({ projectFingerprint: 'sha256:project', token: 'token', disabled: true }))
+    await expect(guardCoordinatorRequest(request())).rejects.toMatchObject({ code: 'UNAUTHORIZED' })
+  })
   it('accepts authenticated loopback requests with the local project credential', async () => {
     await expect(guardCoordinatorRequest(request())).resolves.toBeUndefined()
     expect(readFile).toHaveBeenCalledWith('/tmp/project/.appraisejs/coordinator.json', 'utf8')

@@ -1,5 +1,10 @@
 # Coordinator API and MCP
 
+Hub access can be revoked through `appraisejs agent disconnect --cwd <hub>` or the Appraise plugin uninstall
+command without deleting Journey data. Cached credentials are rejected; explicit reconnect rotates the credential,
+and assignment ownership still requires authoritative reread and the existing takeover gates. See the
+[compatibility matrix](quality-journey-compatibility.md) for stale schemas, storage refusal and in-flight limits.
+
 The coordinator exposes Quality Journey lifecycle operations plus general project, environment, runtime, locator,
 Step Definition, and project-bound repository collaboration operations. Quality Journey remains the only
 Appraise-owned agent quality workflow; repository collaboration has no Journey authority.

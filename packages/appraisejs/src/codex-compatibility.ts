@@ -2,13 +2,14 @@ import { spawnSync } from 'node:child_process'
 import { createRequire } from 'node:module'
 import { fileURLToPath } from 'node:url'
 import path from 'node:path'
+import { disconnectLocalProjectIdentity } from './project-identity.js'
 
 const require = createRequire(import.meta.url)
 const packageJson = require('../package.json') as { version: string }
 
 export const APPRAISE_PLUGIN_NAME = 'appraise-quality-journey'
 export const APPRAISE_MARKETPLACE_NAME = 'appraise-local'
-export const APPRAISE_PLUGIN_VERSION = `${packageJson.version}+codex.c11-20260913`
+export const APPRAISE_PLUGIN_VERSION = `${packageJson.version}+codex.c12-20261003`
 
 export type HostCommandResult = { status: number | null; stdout: string; stderr: string; error?: Error }
 export type HostCommand = (args: string[]) => HostCommandResult
@@ -24,6 +25,8 @@ export const CODEX_PLUGIN_ID = `${APPRAISE_PLUGIN_NAME}@${APPRAISE_MARKETPLACE_N
 export const CODEX_PLUGIN_LIST_ARGS = ['plugin', 'list', '--marketplace', APPRAISE_MARKETPLACE_NAME, '--json']
 export const CODEX_MARKETPLACE_LIST_ARGS = ['plugin', 'marketplace', 'list', '--json']
 export const CODEX_MCP_GET_ARGS = ['mcp', 'get', 'appraisejs', '--json']
+export const CODEX_VERSION_ARGS = ['--version']
+const QUALIFIED_CODEX_VERSION = '0.159.0-alpha.12.1'
 
 const runCodex: HostCommand = args => {
   const result = spawnSync('codex', args, { encoding: 'utf8' })
@@ -130,6 +133,27 @@ export function appraisePluginMarketplaceRoot(): string {
 
 export function inspectCodexCompatibility(command: HostCommand = runCodex) {
   const checks: CompatibilityCheck[] = []
+  const versionResult = command(CODEX_VERSION_ARGS)
+  const observedVersion =
+    versionResult.status === 0 ? versionResult.stdout.trim().match(/^codex-cli (\S+)$/)?.[1] : undefined
+  checks.push(
+    observedVersion === QUALIFIED_CODEX_VERSION
+      ? {
+          id: 'codex_version',
+          status: 'ok',
+          message: `Codex ${observedVersion} has the observed plugin and MCP CLI capabilities.`,
+        }
+      : {
+          id: 'codex_version',
+          status: 'unknown',
+          message: observedVersion
+            ? `Codex ${observedVersion} has not been qualified for this AppraiseJS integration.`
+            : 'Codex version could not be established.',
+          recovery:
+            'Inspect the reported plugin, marketplace, and MCP capability checks. Use manual registered-MCP setup if needed; do not downgrade Codex automatically.',
+          details: { observedVersion: observedVersion ?? null, qualifiedVersion: QUALIFIED_CODEX_VERSION },
+        },
+  )
   const pluginResult = command(CODEX_PLUGIN_LIST_ARGS)
   const plugins = pluginInventory(pluginResult)
   if (!plugins) {
@@ -157,8 +181,8 @@ export function inspectCodexCompatibility(command: HostCommand = runCodex) {
           ? {
               id: 'plugin',
               status: 'error',
-              message: `Plugin ${APPRAISE_PLUGIN_NAME} is stale.`,
-              recovery: `Reinstall ${APPRAISE_PLUGIN_NAME}@${plugin.marketplaceName ?? APPRAISE_MARKETPLACE_NAME}, then start a fresh Codex task.`,
+              message: `Plugin ${APPRAISE_PLUGIN_NAME} version differs from this package.`,
+              recovery: `Inspect the installed version before changing it. Run appraisejs agent plugin install only for a known older version.`,
               details: { expectedVersion: APPRAISE_PLUGIN_VERSION, observedVersion: plugin.version },
             }
           : plugin.enabled === false
@@ -270,7 +294,9 @@ function actionResult(action: 'install' | 'uninstall', checks: CompatibilityChec
     mcpRegistrationChanged: false,
     checks,
     recovery: mutated
-      ? 'Restart or reconnect Codex, then call project_diagnostic. This action did not change MCP registration or Journey authority.'
+      ? action === 'uninstall'
+        ? 'Local coordinator access is disabled. Restart or reconnect Codex and reconcile any in-flight work in AppraiseJS. MCP registration remains present but inert.'
+        : 'Restart or reconnect Codex, then call project_diagnostic. This action did not change MCP registration or Journey authority.'
       : 'No reconnect is required because this command made no host mutation.',
   }
 }
@@ -286,6 +312,22 @@ function commandFailure(id: string, result: HostCommandResult): CompatibilityChe
 
 function isSuccess(result: HostCommandResult): boolean {
   return result.status === 0 && !result.error
+}
+
+/** A different or unparseable revision is never evidence that removal is safe. */
+function knownOlderPluginVersion(observed: string): boolean {
+  const parse = (version: string) => version.match(/^(\d+)\.(\d+)\.(\d+)(?:\+codex\.c(\d+)-(\d{8}))?$/)
+  const current = parse(APPRAISE_PLUGIN_VERSION)
+  const installed = parse(observed)
+  if (!current || !installed) return false
+  for (const index of [1, 2, 3]) {
+    const difference = Number(installed[index]) - Number(current[index])
+    if (difference !== 0) return difference < 0
+  }
+  if (installed[4] === undefined || current[4] === undefined) return false
+  const revisionDifference = Number(installed[4]) - Number(current[4])
+  if (revisionDifference !== 0) return revisionDifference < 0
+  return Number(installed[5]) < Number(current[5])
 }
 
 export function installAppraisePlugin(command: HostCommand = runCodex) {
@@ -330,6 +372,18 @@ export function installAppraisePlugin(command: HostCommand = runCodex) {
     return actionResult('install', checks, mutated)
   }
   if (plugin) {
+    if (
+      !(plugin.version === APPRAISE_PLUGIN_VERSION && plugin.enabled === false) &&
+      !knownOlderPluginVersion(plugin.version ?? '')
+    ) {
+      checks.push({
+        id: 'plugin_version',
+        status: 'error',
+        message: `Installed plugin ${plugin.version} is not a known older version of ${APPRAISE_PLUGIN_VERSION}.`,
+        recovery: 'Inspect the installed plugin and package versions before changing the host. No plugin was removed.',
+      })
+      return actionResult('install', checks, mutated)
+    }
     const removePlugin = command(['plugin', 'remove', CODEX_PLUGIN_ID, '--json'])
     if (!isSuccess(removePlugin)) {
       checks.push(commandFailure('plugin_remove', removePlugin))
@@ -346,23 +400,29 @@ export function installAppraisePlugin(command: HostCommand = runCodex) {
   return actionResult('install', checks, mutated)
 }
 
-export function uninstallAppraisePlugin(command: HostCommand = runCodex) {
+export async function uninstallAppraisePlugin(projectDirectory: string, command: HostCommand = runCodex) {
+  const revoked = await disconnectLocalProjectIdentity(projectDirectory)
   const checks: CompatibilityCheck[] = []
+  checks.push({ id: 'local_access', status: 'ok', message: 'Local coordinator access was revoked.' })
   const pluginResult = command(CODEX_PLUGIN_LIST_ARGS)
   const plugins = pluginInventory(pluginResult)
   if (!plugins) {
     checks.push(commandFailure('plugin_inventory', pluginResult))
-    return actionResult('uninstall', checks, false)
+    return { ...actionResult('uninstall', checks, true), localAccessDisabled: revoked.disabled }
   }
   const plugin = plugins.find(
     item => item.name === APPRAISE_PLUGIN_NAME && item.marketplaceName === APPRAISE_MARKETPLACE_NAME,
   )
   if (!plugin) {
     checks.push({ id: 'plugin', status: 'ok', message: `Plugin ${CODEX_PLUGIN_ID} is already absent.` })
-    return actionResult('uninstall', checks, false)
+    return { ...actionResult('uninstall', checks, true), localAccessDisabled: revoked.disabled }
   }
   const removePlugin = command(['plugin', 'remove', CODEX_PLUGIN_ID, '--json'])
   if (!isSuccess(removePlugin)) checks.push(commandFailure('plugin_remove', removePlugin))
   else checks.push({ id: 'plugin', status: 'ok', message: `Uninstalled ${CODEX_PLUGIN_ID}.` })
-  return actionResult('uninstall', checks, isSuccess(removePlugin))
+  return {
+    ...actionResult('uninstall', checks, true),
+    localAccessDisabled: revoked.disabled,
+    pluginRemoved: isSuccess(removePlugin),
+  }
 }

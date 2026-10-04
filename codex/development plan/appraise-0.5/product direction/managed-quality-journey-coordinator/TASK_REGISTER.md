@@ -13,7 +13,7 @@ verified. **C0.2e.1–C0.2e.4, C0.3, C0.4, C1.1–C1.3 and C2.1–C2.2 are verif
 verified. The bounded live Auth0 two-session [result](evidence/C2.3.3-live-auth0-20260928.md) covers MFA, protected
 return, Scout admission, restart and revocation; its [independent exact-result review](evidence/C2.3.3-live-auth0-20260928-review.md)
 accepted closure of C-B04. The native CDP production adapter and its containment qualification are recorded in [production adapter evidence](evidence/C2.3.3-production-adapter.md).
-GC2 [passed](evidence/GC2.md) after complete Journey reconciliation and independent exact-artifact review; C2.4–C2.7 and C2.7.1–C2.7.3 are verified. C3.1 is verified within its bounded suffixes; GC3 remains `not_evaluated`.
+GC2 [passed](evidence/GC2.md) after complete Journey reconciliation and independent exact-artifact review; C2.4–C2.7 and C2.7.1–C2.7.3 are verified. C3.1 and C3.2 are verified within their bounded suffixes; C3.3 remains pending and GC3 remains `not_evaluated`.
 Use `pending`, `in_progress`, `blocked`, `in_review`, `verified`;
 only verified tasks use `[x]`. A successful experiment can establish a negative result without passing its gate.
 Do not turn a documentation decision into a capability claim. Record exact artifact/version, expected and observed
@@ -46,7 +46,7 @@ Split large slices into stable suffix IDs before implementation. Old evidence mu
 | [x]  | C2.7.2 | Demonstrate exact failed-run and revision/rerun lineage    | C2.7.1            | verified | [C2.7](evidence/C2.7.md)     |
 | [x]  | C2.7.3 | Review complete Journeys and evaluate GC2                  | C2.7.2            | verified | [C2.7.3](evidence/C2.7.3.md) |
 | [x]  | C3.1   | Harden pause, cancellation and recovery                    | GC2               | verified | [C3.1](evidence/C3.1.md)     |
-| [ ]  | C3.2   | Verify data and version compatibility                      | C3.1              | pending  | —                            |
+| [x]  | C3.2   | Verify data and version compatibility                      | C3.1              | verified | [C3.2](evidence/C3.2.md)     |
 | [ ]  | C3.3   | Publish operator guidance and release evidence             | C3.2              | pending  | —                            |
 
 ## Task specifications
@@ -274,7 +274,7 @@ Verification: Fault injection matrix, late submission and uncertain execution re
 
 Likely scope: assignment recovery; runtime stop; operational UI.
 
-Bounded suffixes (authorized 2026-10-02): **C3.1.1** operational pause/admission and durable recovery fences; **C3.1.2** owned TestRun/browser cancellation requests, observed cleanup receipts and uncertainty handling; **C3.1.3** fault-injection matrix, generated/template validation and independent exact-artifact review. All three and parent C3.1 are `verified` after the corrected source/evidence [independent review](evidence/C3.1-review-20261002.md). Qualification remains bounded: external Codex host control is unattested, and three earlier lost-ownership disposable supervisor fixtures remain live/unresolved; complete host cleanup is not claimed. GC3 remains `not_evaluated`; C3.2/C3.3 remain unstarted. No historical lineage, approval, consent or sealed evidence is rewritten.
+Bounded suffixes (authorized 2026-10-02): **C3.1.1** operational pause/admission and durable recovery fences; **C3.1.2** owned TestRun/browser cancellation requests, observed cleanup receipts and uncertainty handling; **C3.1.3** fault-injection matrix, generated/template validation and independent exact-artifact review. All three and parent C3.1 are `verified` after the corrected source/evidence [independent review](evidence/C3.1-review-20261002.md). Qualification remains bounded: external Codex host control is unattested, and three earlier lost-ownership disposable supervisor fixtures remain live/unresolved; complete host cleanup is not claimed. GC3 remains `not_evaluated`; C3.2 is separately authorized below and C3.3 remains unstarted. No historical lineage, approval, consent or sealed evidence is rewritten.
 
 ### C3.2 — Verify data and version compatibility
 
@@ -283,6 +283,8 @@ Acceptance: Test stored pre-change Journeys, active assignments, upgrades, stale
 Verification: Migration/compatibility fixtures, reinstall and reconnect smoke, package/build checks.
 
 Likely scope: persistence migrations if needed; setup/version diagnostics; packaging.
+
+Bounded suffixes (authorized 2026-10-03): **C3.2.1** stored-data migration and safe storage refusal; **C3.2.2** client/version and access compatibility; **C3.2.3** reinstall/reconnect qualification, generated/template/package/build checks and independent exact-artifact review. Parent and all three suffixes are `verified` within [C3.2 evidence](evidence/C3.2.md) and its [independent exact-artifact review](evidence/C3.2-review-20261003.md). Stored active claimant continuity is verified after actual additive migration; injected plugin and loopback smoke do not attest installed desktop behavior. C3.1's three lost-ownership fixtures remain unresolved; no persisted PID signals or complete host cleanup claim.
 
 ### C3.3 — Publish operator guidance and release evidence
 
