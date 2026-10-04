@@ -1,5 +1,8 @@
 # Agent Lifecycle Flow
 
+For stage-by-stage operator actions and interruption recovery, see the
+[Quality Journey operator guide](quality-journey-operator-guide.md).
+
 Storage/client upgrades and disconnects preserve historical lifecycle authority. Reconnect does not renew leases,
 transfer active assignments, reuse approvals or relaunch uncertain effects. See
 [Quality Journey compatibility](quality-journey-compatibility.md) for the supported refusal and revocation paths.

@@ -1,5 +1,11 @@
 # Agent Generated Artifacts
 
+`prisma/migration-inventory.json` is an independently shipped migration integrity reference. Authors update it only
+with `npm run migration:inventory:update` alongside reviewed SQL changes. `npm run migration:inventory:check`,
+startup, migration rehearsal, template preparation and package checks validate it without regenerating it.
+The scaffold copies the same inventory and verifies all migration names and SQL hashes, including actual tarball
+contents. `packages/create-appraisejs/scaffold-README.md` is the package-owned source for the generated README.
+
 Generated and runtime artifacts are derived from canonical source, immutable quality identities, or managed TestRuns. Do not patch them to change product behavior.
 
 | Surface                                                                                            | Status                             | Agent rule                                                                    |
@@ -8,7 +14,7 @@ Generated and runtime artifacts are derived from canonical source, immutable qua
 | `automation/reports/*`                                                                             | legacy target-local output         | Do not commit or use it as Appraise runtime evidence.                         |
 | `.appraise/projects/<project-id>/runtime/*`                                                        | managed runtime capsule projection | Never hand-edit; manifests and execution artifacts are receipt-owned.         |
 | `automation/appraise/*`                                                                            | distribution projection helpers    | Treat as outbound-only; no durable export service/API currently exists.       |
-| `appraise/collaboration/*`                                                                          | reviewed collaboration exchange    | Read/write only through the bounded collaboration service and operation.      |
+| `appraise/collaboration/*`                                                                         | reviewed collaboration exchange    | Read/write only through the bounded collaboration service and operation.      |
 | `src/graphify-out/*`, `prisma/graphify-out/*`, `scripts/graphify-out/*`, `packages/graphify-out/*` | committed source graphs            | Regenerate with the prescribed Graphify command.                              |
 | `packages/create-appraisejs/templates/base`                                                        | prepared scaffold template         | Change canonical root/base source, then prepare the template.                 |
 | prepared scaffold databases                                                                        | seeded templates                   | Keep deterministic and free of credentials, machine paths, or personal state. |

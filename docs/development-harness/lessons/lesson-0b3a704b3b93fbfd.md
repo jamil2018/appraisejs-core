@@ -25,8 +25,8 @@ evidence:
     measurements: {}
 ambiguousObservationRefs: []
 lastValidatedAt: 2026-09-11T15:02:43.872Z
-lastResurfacedAt: 2026-09-12T16:51:52.685Z
-reminderFingerprint: architecture-review|scripts/lib/managed-journey-browser-qualification.mjs,src/lib/quality-journey,src/services/coordinator||obs-54f2d18856575ee3
+lastResurfacedAt: 2026-10-04T16:19:50.733Z
+reminderFingerprint: release-gate|scripts/|1|obs-54f2d18856575ee3
 revalidationEvidenceRef: null
 ---
 # qualification negative tests must prove the intended boundary

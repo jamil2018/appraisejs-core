@@ -1,7 +1,7 @@
-import { createHash } from 'node:crypto'
-import { existsSync, readFileSync, readdirSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import path from 'node:path'
+import { verifiedDatabaseMigrations } from './migration-inventory.mjs'
 
 const { PrismaClient } = createRequire(import.meta.url)('@prisma/client')
 
@@ -20,16 +20,7 @@ export function databaseCompatibilityUrl(cwd, env = process.env) {
 }
 
 export function knownDatabaseMigrations(cwd) {
-  const root = path.join(cwd, 'prisma', 'migrations')
-  return readdirSync(root, { withFileTypes: true })
-    .filter(entry => entry.isDirectory() && existsSync(path.join(root, entry.name, 'migration.sql')))
-    .map(entry => ({
-      name: entry.name,
-      checksum: createHash('sha256')
-        .update(readFileSync(path.join(root, entry.name, 'migration.sql')))
-        .digest('hex'),
-    }))
-    .sort((a, b) => a.name.localeCompare(b.name))
+  return verifiedDatabaseMigrations(cwd)
 }
 
 function completedMigrations(rows, known) {

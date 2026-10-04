@@ -1,15 +1,15 @@
-# Graph Report - scripts  (2026-10-03)
+# Graph Report - scripts  (2026-10-04)
 
 ## Corpus Check
 - cluster-only mode — file stats not available
 
 ## Summary
-- 1184 nodes · 2093 edges · 63 communities (56 shown, 7 thin omitted)
+- 1194 nodes · 2120 edges · 61 communities (54 shown, 7 thin omitted)
 - Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS · INFERRED: 7 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `02893a4f`
+- Built from commit: `84445792`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -67,9 +67,7 @@
 - [[_COMMUNITY_Community 50|Community 50]]
 - [[_COMMUNITY_Community 51|Community 51]]
 - [[_COMMUNITY_Community 52|Community 52]]
-- [[_COMMUNITY_Community 53|Community 53]]
-- [[_COMMUNITY_Community 54|Community 54]]
-- [[_COMMUNITY_Community 58|Community 58]]
+- [[_COMMUNITY_Community 56|Community 56]]
 
 ## God Nodes (most connected - your core abstractions)
 1. `runArm()` - 18 edges
@@ -98,7 +96,7 @@
 ## Import Cycles
 - None detected.
 
-## Communities (63 total, 7 thin omitted)
+## Communities (61 total, 7 thin omitted)
 
 ### Community 0 - "Community 0"
 Cohesion: 0.07
@@ -122,7 +120,7 @@ Nodes (48): canonicalJson(), collectBoundedBody(), composeR2dLaunch(), consumeRe
 
 ### Community 5 - "Community 5"
 Cohesion: 0.06
-Nodes (36): result, root, children, exitCode(), exitLabel(), handleProcessError(), handleProcessExit(), handleProcessStop() (+28 more)
+Nodes (39): allowedDatabaseFixtures, assertMigrationParity(), expectedMigrations, packages, rootPackage, rootPublishRefusal, args, database (+31 more)
 
 ### Community 6 - "Community 6"
 Cohesion: 0.07
@@ -130,7 +128,7 @@ Nodes (48): addFieldModifiers(), addFieldTypeEdges(), addLink(), addLocalForeign
 
 ### Community 7 - "Community 7"
 Cohesion: 0.07
-Nodes (43): DISABLED_FEATURES, canary(), canonicalJson(), close(), compareBodies(), configText(), diffTree(), fakeJwt() (+35 more)
+Nodes (42): canary(), canonicalJson(), close(), compareBodies(), configText(), diffTree(), fakeJwt(), fixturePassed (+34 more)
 
 ### Community 8 - "Community 8"
 Cohesion: 0.06
@@ -150,59 +148,59 @@ Nodes (33): createRoutingDecision(), defaultValue(), hasMaterialRisk(), normaliz
 
 ### Community 12 - "Community 12"
 Cohesion: 0.08
-Nodes (22): argv, comparableWindow(), contexts, criticalObservation, dimensionOptions, dimensions, linkedRoutingDecision(), metricNames (+14 more)
+Nodes (23): result, root, children, exitCode(), exitLabel(), handleProcessError(), handleProcessExit(), handleProcessStop() (+15 more)
 
 ### Community 13 - "Community 13"
+Cohesion: 0.08
+Nodes (22): argv, comparableWindow(), contexts, criticalObservation, dimensionOptions, dimensions, linkedRoutingDecision(), metricNames (+14 more)
+
+### Community 14 - "Community 14"
 Cohesion: 0.12
 Nodes (22): commandResults, ledger, ledgerOnly, ledgerPath, repoRoot, result, schemaErrors, evaluateReleaseLedger() (+14 more)
 
-### Community 14 - "Community 14"
+### Community 15 - "Community 15"
+Cohesion: 0.16
+Nodes (24): canonicalJson(), composeDynamicToolsLaunch(), configFor(), DISABLED_FEATURES, DYNAMIC_TOOL_SCHEMA, dynamicTool(), evaluateDispatch(), evaluateExperimentResults() (+16 more)
+
+### Community 16 - "Community 16"
 Cohesion: 0.19
 Nodes (26): addRecordedRun(), appendEvent(), applyRunTransition(), assert(), eventHash(), expectedStatus(), journalLineBytes(), nonBlank() (+18 more)
 
-### Community 15 - "Community 15"
-Cohesion: 0.17
-Nodes (23): canonicalJson(), composeDynamicToolsLaunch(), configFor(), DYNAMIC_TOOL_SCHEMA, dynamicTool(), evaluateDispatch(), evaluateExperimentResults(), exactRequestTools() (+15 more)
-
-### Community 16 - "Community 16"
+### Community 17 - "Community 17"
 Cohesion: 0.12
 Nodes (18): buildOperationCapabilityLedger(), main(), outputPath, repoRoot, buildOperationArchitectureCertification(), CapabilityLedger, forbiddenLegacySymbols, ledgerPath (+10 more)
 
-### Community 17 - "Community 17"
+### Community 18 - "Community 18"
 Cohesion: 0.10
 Nodes (17): activeFiles, checkRootRelativeReferences(), ciContents, ciNodeMajor, collectEntryFiles(), failures, hasRootAgentHarness, lineFor() (+9 more)
 
-### Community 18 - "Community 18"
+### Community 19 - "Community 19"
 Cohesion: 0.12
 Nodes (14): isStrictlyDocumentationOnly(), requiresReleaseBaselineAudit(), env, fallowArgs, fallowCli, repoRoot, scriptDir, stagedChanges (+6 more)
 
-### Community 19 - "Community 19"
+### Community 20 - "Community 20"
 Cohesion: 0.21
 Nodes (19): attemptLockAcquisition(), createLock(), existingLockReclaim(), existingLockState(), inspectExistingLock(), isLockOwnerRecord(), nonBlankString(), processExists() (+11 more)
 
-### Community 20 - "Community 20"
+### Community 21 - "Community 21"
 Cohesion: 0.18
 Nodes (18): childClose, completionCode(), consumeResourceData(), consumeResourceLine(), drain(), escalateGroup(), finishDrain(), members() (+10 more)
 
-### Community 21 - "Community 21"
+### Community 22 - "Community 22"
 Cohesion: 0.20
 Nodes (16): commandIndex(), commandsFor(), requireBefore(), requireCommand(), requiredJobs, validateAggregateJobs(), validateDefinedJobs(), validateDependabot() (+8 more)
 
-### Community 22 - "Community 22"
+### Community 23 - "Community 23"
+Cohesion: 0.15
+Nodes (16): withLockedSwarmJournal(), acquireLedgerLock(), releaseLedgerLock(), readJournal(), [command, ...argv], hasEscalationSignal(), isUnderRouted(), journalPath (+8 more)
+
+### Community 24 - "Community 24"
 Cohesion: 0.14
 Nodes (9): createBrowserBoundarySession(), blockedRequests, fixtureHandlers, html(), mutationPage(), mutationRequests, newSession(), privatePage() (+1 more)
 
-### Community 23 - "Community 23"
-Cohesion: 0.17
-Nodes (13): journalPath, result, sourceObservedAtByRef, withLockedSwarmJournal(), acquireLedgerLock(), releaseLedgerLock(), readJournal(), allowedByAction (+5 more)
-
-### Community 24 - "Community 24"
+### Community 25 - "Community 25"
 Cohesion: 0.17
 Nodes (8): insert(), migrationRoot, recordAppliedMigration(), seedHistoricalRows(), snapshot(), SqlDatabase, SqlRow, SqlValue
-
-### Community 25 - "Community 25"
-Cohesion: 0.23
-Nodes (12): args, database, { DatabaseSync }, auditQualityJourneyIntegrity(), checkJourneyHeads(), checkOwnershipEdges(), checkRelationalOwnership(), identifier() (+4 more)
 
 ### Community 26 - "Community 26"
 Cohesion: 0.20
@@ -257,61 +255,53 @@ Cohesion: 0.38
 Nodes (6): findCommand(), findCommandInUvToolBin(), findCommandOnPath(), graphifyCommand, install, uvCommand
 
 ### Community 39 - "Community 39"
-Cohesion: 0.33
-Nodes (6): [command, ...argv], hasEscalationSignal(), isUnderRouted(), journalPath, lockToken, values
-
-### Community 40 - "Community 40"
 Cohesion: 0.47
 Nodes (5): database, measure(), plan(), root, runSql()
 
-### Community 41 - "Community 41"
+### Community 40 - "Community 40"
 Cohesion: 0.60
 Nodes (5): digest(), invokeSyntheticGateway(), main(), profile(), role
 
-### Community 42 - "Community 42"
+### Community 41 - "Community 41"
 Cohesion: 0.47
 Nodes (5): canonicalDefinitions(), createP0R2fProfiles(), main(), P0_R2F_ROLES, P0R2fRole
 
-### Community 43 - "Community 43"
+### Community 42 - "Community 42"
 Cohesion: 0.40
 Nodes (3): failures, ignoredDirectories, roots
 
-### Community 44 - "Community 44"
-Cohesion: 0.40
-Nodes (4): allowedDatabaseFixtures, packages, rootPackage, rootPublishRefusal
-
-### Community 45 - "Community 45"
+### Community 43 - "Community 43"
 Cohesion: 0.60
 Nodes (3): EnvironmentColumn, environmentJsonFailures(), environmentSchemaFailures()
 
-### Community 46 - "Community 46"
+### Community 44 - "Community 44"
 Cohesion: 0.60
 Nodes (4): main(), SEEDED_TEMPLATE_PATHS, setSeededTemplateFilesTracked(), trimTrailingBlankLines()
 
-### Community 48 - "Community 48"
+### Community 46 - "Community 46"
+Cohesion: 0.50
+Nodes (3): journalPath, result, sourceObservedAtByRef
+
+### Community 47 - "Community 47"
 Cohesion: 0.50
 Nodes (3): config, staleCapabilityRecovery, toolsNotVisibleRecovery
 
-### Community 49 - "Community 49"
-Cohesion: 0.50
-Nodes (3): databasePath, migrationsRoot, workspace
-
 ## Knowledge Gaps
-- **347 isolated node(s):** `root`, `database`, `repoRoot`, `outputPath`, `CapabilityLedger` (+342 more)
+- **349 isolated node(s):** `root`, `database`, `repoRoot`, `outputPath`, `CapabilityLedger` (+344 more)
   These have ≤1 connection - possible missing edges or undocumented components.
 - **7 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `run()` connect `Community 0` to `Community 2`?**
-  _High betweenness centrality (0.087) - this node is a cross-community bridge._
 - **Why does `collectGitChanges()` connect `Community 2` to `Community 0`?**
-  _High betweenness centrality (0.087) - this node is a cross-community bridge._
-- **Why does `cucumberRuntimeReceiptIsCurrent()` connect `Community 2` to `Community 5`?**
-  _High betweenness centrality (0.057) - this node is a cross-community bridge._
+  _High betweenness centrality (0.089) - this node is a cross-community bridge._
+- **Why does `run()` connect `Community 0` to `Community 2`?**
+  _High betweenness centrality (0.089) - this node is a cross-community bridge._
+- **Why does `cucumberRuntimeReceiptIsCurrent()` connect `Community 2` to `Community 12`?**
+  _High betweenness centrality (0.062) - this node is a cross-community bridge._
 - **What connects `root`, `database`, `repoRoot` to the rest of the system?**
-  _347 weakly-connected nodes found - possible documentation gaps or missing edges._
+  _349 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `Community 0` be split into smaller, more focused modules?**
   _Cohesion score 0.06975308641975309 - nodes in this community are weakly interconnected._
 - **Should `Community 1` be split into smaller, more focused modules?**

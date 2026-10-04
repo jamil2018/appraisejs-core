@@ -1,6 +1,11 @@
 import { spawnSync } from 'node:child_process'
-import { readFileSync } from 'node:fs'
+import { mkdtempSync, readFileSync, rmSync } from 'node:fs'
+import { tmpdir } from 'node:os'
 import path from 'node:path'
+import { assertDatabaseMigrationParity, verifiedDatabaseMigrations } from './lib/migration-inventory.mjs'
+
+const expectedMigrations = verifiedDatabaseMigrations(process.cwd())
+const assertMigrationParity = cwd => assertDatabaseMigrationParity(cwd, expectedMigrations)
 
 const packages = ['packages/appraisejs', 'packages/create-appraisejs']
 const rootPackage = JSON.parse(readFileSync(path.resolve('package.json'), 'utf8'))
@@ -46,4 +51,27 @@ for (const packageDirectory of packages) {
     process.exit(1)
   }
   console.log(`${packageDirectory}: ${pack.files.length} bounded package files (${pack.size} bytes).`)
+  if (packageDirectory === 'packages/create-appraisejs') {
+    assertMigrationParity(path.resolve(packageDirectory, 'templates/base'))
+    const temporary = mkdtempSync(path.join(tmpdir(), 'appraise-package-integrity-'))
+    try {
+      const packed = spawnSync('npm', ['pack', '--json', '--ignore-scripts', '--pack-destination', temporary], {
+        cwd: path.resolve(packageDirectory),
+        encoding: 'utf8',
+        env: { ...process.env, npm_config_cache: path.resolve('.tmp/npm-pack-cache') },
+      })
+      if (packed.status !== 0) throw new Error(`Package integrity pack failed: ${packed.stderr}`)
+      const [{ filename }] = JSON.parse(packed.stdout)
+      const extracted = spawnSync('tar', ['-xzf', path.join(temporary, filename), '-C', temporary], {
+        encoding: 'utf8',
+      })
+      if (extracted.status !== 0) throw new Error(`Package integrity extraction failed: ${extracted.stderr}`)
+      assertMigrationParity(path.join(temporary, 'package/templates/base'))
+      console.log(
+        `Packed scaffold: ${expectedMigrations.length} migration names and SQL hashes match canonical source.`,
+      )
+    } finally {
+      rmSync(temporary, { recursive: true, force: true })
+    }
+  }
 }

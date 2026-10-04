@@ -1,0 +1,357 @@
+{
+  "schemaVersion": 1,
+  "migrations": [
+    {
+      "name": "20251026202316_migrate_back_to_sqlite",
+      "checksum": "686c9cd19d1c0705a5c6f7e4c3a46d147fafa5fd09765ca3d14c2b6948974503"
+    },
+    {
+      "name": "20251104113456_add_type_for_template_step_groups",
+      "checksum": "c46a342eea95a348e8a39590e297a57316d60727df38c6f9beb5683dff7e9e72"
+    },
+    {
+      "name": "20251104170946_add_tags_to_test_suite_and_test_case",
+      "checksum": "2f307f6fd64238976925a5927b96edf296c16c6da9c9cb8171893c636bec5607"
+    },
+    {
+      "name": "20251112190024_add_cascade_delete_to_test_run_test_case",
+      "checksum": "1240cf7f91cd305adcebf07863cf0542eb0fab1c091932fc014ab5cdf8df7c88"
+    },
+    {
+      "name": "20251113181100_add_test_run_log",
+      "checksum": "e438fc4d83f4c163a4f611800dc8aeacc3960a10617caa00145b6d219114c84f"
+    },
+    {
+      "name": "20251119191838_add_tag_type",
+      "checksum": "91c0ce329eea07726d51f86367b4cb6021ebc8a092146c95a558c725550cefd0"
+    },
+    {
+      "name": "20251121164059_add_conflict_resolution",
+      "checksum": "82bca72e93a1bb10f481194581cec23d3dec7ed78dcee9cc3b0be440eb300baf"
+    },
+    {
+      "name": "20251130190737_add_trace_path_to_test_run_test_case",
+      "checksum": "c9f67c5d56f7a1d969bfe4cc48b5c737a806b3cd78b8ce519d861edd2debe264"
+    },
+    {
+      "name": "20251213074835_add_log_path_to_test_run",
+      "checksum": "9f47a00f831bf5e9586bb7a059d3124a23791b44d245f7d8f04186ff5cf2ba6e"
+    },
+    {
+      "name": "20251213183952_add_name_property_for_the_test_run_entities",
+      "checksum": "373fb093eeef99f6181e830a916f00c9c46bd2887454255b34810e587bd8d45d"
+    },
+    {
+      "name": "20251223183400_add_report_model_to_db_schema",
+      "checksum": "0ecabcd6e150c274fa5132ef677a27be51c167f32e1ce7b93e6552e9a74aa699"
+    },
+    {
+      "name": "20251223183637_add_report_test_case_entity_for_storing_test_results_for_individual_test_cases",
+      "checksum": "6b75afbe34032c0cd500e75d9c619c52448de81b5d90e9f3709f3a216a321e34"
+    },
+    {
+      "name": "20251224083549_add_comprehensive_report_storage",
+      "checksum": "7e9c72c59f54facc9b63ebd59794c39f1f86ef25e802919176e4e5d5a8112f6b"
+    },
+    {
+      "name": "20251229194422_migrate_duration_to_string",
+      "checksum": "ebcf7ea36c89140b7b63bd9570315156a2d18b03935951e3bf489c8d11b93c14"
+    },
+    {
+      "name": "20251230124637_add_unique_constraint_to_test_run_name",
+      "checksum": "a6ab1a406f22b60e5d505a6b2b34d2ea2cdd71d3c702067dafd41decdcb5228d"
+    },
+    {
+      "name": "20260115094436_add_dashboard_metrics",
+      "checksum": "1bcb74b223e4b74e36d88b0397d0caa5e8ff8ae78ca2347586db7f1a73a3f106"
+    },
+    {
+      "name": "20260127172022_add_cascade_delete_to_step_parameters",
+      "checksum": "b69d69d6c094e6aba25993f0cdbe25917bb426ad8ca24b0714c7e936dea020fb"
+    },
+    {
+      "name": "20260313093000_add_report_step_screenshot_path",
+      "checksum": "436bad3872150bcd1c12234dd6cbca37a228aa03edf6a699925a54582f34d3c4"
+    },
+    {
+      "name": "20260318120000_add_test_suite_context_to_test_run_test_case",
+      "checksum": "8ae847def0e4470a9213e0ea561af38506f8a6ec74c4811c891db33a1e705a6e"
+    },
+    {
+      "name": "20260318173512_add_support_of_test_suite_level_runs",
+      "checksum": "2d0268f06737719e7933569d0fca47b1240da2b32c9a103c5f3afd20b5c8d395"
+    },
+    {
+      "name": "20260507000000_add_flow_builder_node_grouping",
+      "checksum": "c9e8a763c8a24b844d93633a188048eeee721378ee9c20c679f987f5895c069b"
+    },
+    {
+      "name": "20260609002500_add_plan_projection_and_sync",
+      "checksum": "ebeda11852f0c1ae6ab440ea02b08225cc20d56a88d7131e148dd226945aebbc"
+    },
+    {
+      "name": "20260609090000_add_plan_review_runtime",
+      "checksum": "346716c7fc126bedced10ed924d02293f288c86db75abc9f44e78b9cacddee1d"
+    },
+    {
+      "name": "20260609160000_add_coordinator_events_api_mcp",
+      "checksum": "b045b68d4d0382bd0025b7008c32eec97887ab0b33222b634942477b682c51aa"
+    },
+    {
+      "name": "20260613015000_add_plan_description",
+      "checksum": "42abaa97749ac648cdffcbb1ae442fad190b015a85ff6065838a6ecf746d6782"
+    },
+    {
+      "name": "20260628090000_add_target_projects",
+      "checksum": "a48e4ec52c6826ce6567d51402ccd7b6b5f55a646092fdfde0181138a8fc2734"
+    },
+    {
+      "name": "20260628103000_add_plan_slug_legacy_identity",
+      "checksum": "f73aa108d3cf8e66cbcd2eccc7b6b6d79790f71e83483cab322dcb3610cedaeb"
+    },
+    {
+      "name": "20260701090000_add_provider_workflow_runs",
+      "checksum": "4a91c74c6de86b0bf25746fc85841f9c94ef4deeab0df4dfbbbbf58d7ee4e341"
+    },
+    {
+      "name": "20260701120000_add_provider_registration_settings",
+      "checksum": "8a7df108e1c4570085bc9d2d8272d9ff4c6c0307512c02db1db59dd5c4b4d585"
+    },
+    {
+      "name": "20260708090000_add_test_run_evidence_health",
+      "checksum": "c5bc1a1cc00b6b92e2a657ba9ab98243b1135a39f4137762829c787302fa70ba"
+    },
+    {
+      "name": "20260709090000_add_step_blocks",
+      "checksum": "297146ac04016b4f037f1eaa2d926507f2e467db53e09a82f0d80e93b0586952"
+    },
+    {
+      "name": "20260711120000_add_baseline_attempt_history",
+      "checksum": "5dbf4f713a0a20d0b50a00a87906cd361fbcf94aad1d9c3c7c6805fac1627184"
+    },
+    {
+      "name": "20260711150000_add_delegated_authorization_nonces",
+      "checksum": "d3e86d5b3747f62d4995065512990a0b3b392dc342129b1169da81403fe18503"
+    },
+    {
+      "name": "20260711170000_add_delegated_ast_submissions",
+      "checksum": "98db157ee5bdb3ea7869b682e7e1246479a4529bc821b7b075a577543b5c67bb"
+    },
+    {
+      "name": "20260711190000_add_validation_ast_publish_journal",
+      "checksum": "8b4a4b22ac3201038ebdf6351322d8a3841c0b4f3d55f19020c101af31555836"
+    },
+    {
+      "name": "20260711220000_add_runtime_capsules",
+      "checksum": "f9806b843e179595c6d2eb3ae55dd581d868b0e26c9f798d8cb305710ded84a6"
+    },
+    {
+      "name": "20260712010000_add_runtime_capsule_execution_attempt",
+      "checksum": "d0f650ee75b02e8b5e4fe27ce75deea0e26891383d262f9315f686a497277c45"
+    },
+    {
+      "name": "20260712020000_add_test_run_preparation_key",
+      "checksum": "0a44847105421ea9c9c2e87c200fb02a8bcefb9a4f0cd0e6198389f9ae8b1968"
+    },
+    {
+      "name": "20260712180000_add_repository_exports",
+      "checksum": "95931cd2b6fa671b086ccbeac3d18fd5ef6016dc47ac734b4424351713c1d01a"
+    },
+    {
+      "name": "20260713143000_add_project_resource_ownership",
+      "checksum": "135dbab55f4ba7973d891b14ca623bf0f28b809273589c6b9ef569bea68a2878"
+    },
+    {
+      "name": "20260713153000_add_validation_resource_proposals",
+      "checksum": "f51f5b0c3f0cd8a2672ebbd2d698b5f194193df5a3ad68d1986c75d4e4021a9d"
+    },
+    {
+      "name": "20260713163000_normalize_managed_validation_vocabulary",
+      "checksum": "2e8eff6ff5840e582fe3579571a8329c4825dab3eec0a2e778b8cf10b1bc2bd3"
+    },
+    {
+      "name": "20260713173000_add_named_plan_hashes",
+      "checksum": "efda3c7837213592d2396efe57e4a0650e234c9190ba6a18398d019df3b6c5bc"
+    },
+    {
+      "name": "20260713183000_add_delegated_coordinator_receipts",
+      "checksum": "2c445c5231f76d86e4395dee6c5c59958eacdf23bbd0211e1edd25c27877290e"
+    },
+    {
+      "name": "20260713200000_stage_complete_project_ownership",
+      "checksum": "eb156ef7b98ff24abf3ff32a630d4c6e42f341b402b5b27518353a5bf6857588"
+    },
+    {
+      "name": "20260713210000_add_target_project_description",
+      "checksum": "202974baafd81e7f1f367d5897655c75be1fcd5ee072f72bfcc8165ecf7a9805"
+    },
+    {
+      "name": "20260713211000_scope_test_run_preparation_key",
+      "checksum": "3962877edc994d43670b3e4104c2d42a4c3661a921fce0c3b127a5d9a3670313"
+    },
+    {
+      "name": "20260714000000_make_template_library_shared",
+      "checksum": "df758f8bd1760ec854a5809e76a1f6f018f3256d133a3f2fb06369e078d8fa7d"
+    },
+    {
+      "name": "20260714143000_add_validation_review_state_receipt",
+      "checksum": "b2682f20530926e92c14de87a6db995e94772335bdac89f213a6ea3c69f04c8b"
+    },
+    {
+      "name": "20260714160500_scope_environment_names_to_project",
+      "checksum": "a3020f0d240aca5a1425828ec095392b70b5a32a6139acd3001f208be4af5009"
+    },
+    {
+      "name": "20260716190000_replace_environment_password_with_reference",
+      "checksum": "112cca15211e14d1d54399d25e5d8782e75e86a2522fa058e34ac097eb738789"
+    },
+    {
+      "name": "20260716210000_add_measured_test_run_pagination_index",
+      "checksum": "8e3e682e24dd60fcab657c0572bcbc1215934b200f9c2b01eca172196b6cbfd3"
+    },
+    {
+      "name": "20260718110000_add_agent_preflight_receipts",
+      "checksum": "dc8fd28d0e1d92df8375bec96c22b01330d8e77fe927be2e5ffbb7ce6b530729"
+    },
+    {
+      "name": "20260718160000_add_plan_observability",
+      "checksum": "c8301e825cc6bdd685eaba166faf4f629553e0cb2b9944708fcc4dfb8d247f5b"
+    },
+    {
+      "name": "20260718193000_add_environment_identity_expectation",
+      "checksum": "39c63acd4a8818b2c44844eb6ceaf07f7c13a828e28693cc0e37a6a770f1b57d"
+    },
+    {
+      "name": "20260720010000_add_canonical_operation_mappings",
+      "checksum": "59bb1432d2d4e3e59f7b9e470eb4ed20249995071389b5891b4342bc0851d2fe"
+    },
+    {
+      "name": "20260722013000_scope_locator_group_names_to_project",
+      "checksum": "ab22f76c113c255b227a9f9f9b371fcdcb7c790884f1146b9dcf62bdfe9d47d8"
+    },
+    {
+      "name": "20260722190000_add_step_definition_registry",
+      "checksum": "a6b83ece8204c4ed21f1202b491a50efda1ca65009553ce9a94960f2c4efe945"
+    },
+    {
+      "name": "20260722223000_add_step_definition_reviewed_extensions",
+      "checksum": "00b0539e60f63b4758d24ba12113e49da6e55c0cf3e58b05411e516e5fa42fbd"
+    },
+    {
+      "name": "20260725190000_add_step_block_migration_ledger",
+      "checksum": "7d88aa0cfa24d03f62629121a09f131f1163bb05356ca25b257405262691a481"
+    },
+    {
+      "name": "20260725193000_make_validation_projection_template_step_optional",
+      "checksum": "470d9c5e435363e7641286090df411f0a3aff300bd48a4ef51d206a343914616"
+    },
+    {
+      "name": "20260725194500_cut_over_authored_steps_to_step_invocations",
+      "checksum": "8f30a8aefb6cbecbd482bf6a02c7372112953d8ce7f5f08e2f7f594d68b86064"
+    },
+    {
+      "name": "20260725200000_remove_legacy_step_authority",
+      "checksum": "75baeac0a629bee37494ad3b7ef19e1954e12433a8a16803d86f9c55baca4482"
+    },
+    {
+      "name": "20260725201000_add_step_definition_telemetry",
+      "checksum": "e3a2436c16434745637b6316e169850e0e106d5d5f9e4044753004f87fb7ae39"
+    },
+    {
+      "name": "20260725202000_add_step_definition_reuse_justification",
+      "checksum": "49770318466149247d9d65e82fad2504bcc6141debc367f702187cf8782c5a96"
+    },
+    {
+      "name": "20260725203000_add_step_definition_review_receipts",
+      "checksum": "986c2d6b67ad34a00ca2f3542b73529c0bd1a4687b1e6986102890ce75eeb6ff"
+    },
+    {
+      "name": "20260725204000_harden_step_definition_evidence_and_telemetry",
+      "checksum": "418685aabcf03ab82714f99e78dad11f34fc8344ecedfcf9c179ab6932e83bbd"
+    },
+    {
+      "name": "20260725205000_add_reviewed_extension_revocation",
+      "checksum": "3d329e6e6447f96b5e720ef31969540e676407060ed31459b007063a76996be4"
+    },
+    {
+      "name": "20260725206000_add_step_definition_search_receipts",
+      "checksum": "d662e376669f18c427869726d0dd4ab8abb57bde1729b3f8c1b7e2d67d6f3cfa"
+    },
+    {
+      "name": "20260906090000_quality_journey_authority",
+      "checksum": "5d756504f73c5decb3a666bb4d1d26c23904c0d14d1d4f41166cd7d7ba0589e3"
+    },
+    {
+      "name": "20260906180000_add_quality_journey_coordinator_handoffs",
+      "checksum": "6fb18aa10717f2a595bc8f19c90d1860c58b340931891e73828f4ecf2a982094"
+    },
+    {
+      "name": "20260907090000_add_quality_journey_drafts",
+      "checksum": "97d5c96ea812c2ea5fabc02922adc80179393d71e74a8a402fd1c510a40984a9"
+    },
+    {
+      "name": "20260908170000_add_repository_collaboration",
+      "checksum": "a0828deb750f00855c1ad93933d82c7f6829cc475aa7712287059ee2ea6e8366"
+    },
+    {
+      "name": "20260908190000_add_journey_reuse_annotation",
+      "checksum": "007010d8880ca72537546b09434dabf782484d28937e69464f8177674e6c5e34"
+    },
+    {
+      "name": "20260909090000_add_repository_collaboration_queue_worker",
+      "checksum": "6e9eec281c3a6100e54cadbafc5e5b80ed05b370a2aea4eaf6e2a269e0ac563d"
+    },
+    {
+      "name": "20260909101500_collaboration_decision_single_resolution",
+      "checksum": "861282db523e734ac445e58494690bc8e37efdfc3e39a8f92eb7adeb0ca17605"
+    },
+    {
+      "name": "20260909113000_add_collaboration_operation_execution_state",
+      "checksum": "b66483b6fb288b741d9a37530db0dee4931c985dbaa25046674dca8e522adc8b"
+    },
+    {
+      "name": "20260909130000_add_collaboration_step_execution_identity",
+      "checksum": "1e275876d4ecbcdb71fbe702fbfbc54c92300227cfed44fbb31049e647d4e303"
+    },
+    {
+      "name": "20260909143000_add_collaboration_authority_receipts",
+      "checksum": "164db3b3c16eac6966978ea7dff148cdd40a026c83b999d649c72005f78140bf"
+    },
+    {
+      "name": "20260909150000_add_collaboration_remote_auth_repair",
+      "checksum": "53ee8db3807ee095e6217fee946b70d5409689e32def245a0b060e570303569b"
+    },
+    {
+      "name": "20260912120000_add_external_analyzer_admission",
+      "checksum": "b3283e8290277c87855dfd875c5529565b01a454ab3fef4261ec82bf3697ea5a"
+    },
+    {
+      "name": "20260913090000_add_coordinator_handoff_reconnect_takeover",
+      "checksum": "fdc985bc78a53636d5ce475c562ccff3478008d66837b8ce164a6f6b4e8f0839"
+    },
+    {
+      "name": "20260913100000_add_external_work_claim_receipts",
+      "checksum": "e226c80ddd91cc6d0d4d6ae1f7a70ef0d3152608f8159e75f0965081e9d11b56"
+    },
+    {
+      "name": "20260913110000_add_external_submission_acceptances",
+      "checksum": "4aad63ab22eb8fa67de349d5fcb08bad36c6f568d6772715aa1f8a174d57d098"
+    },
+    {
+      "name": "20260914090000_add_discovery_auth_transit_policy",
+      "checksum": "96dc716efda99d1171d4a153b3801e1e41355d2b2b3ec453a5568698cd9f3be2"
+    },
+    {
+      "name": "20261002010000_add_capsule_stop_receipt",
+      "checksum": "7eaee224d07ff992be4159d47a0a6295fb499227143719b931b3cb637b03c599"
+    },
+    {
+      "name": "20261002020000_add_capsule_output_completion",
+      "checksum": "107ab0fba19ba4a6c538fb5a27683f7452250b91712379229b14ce371679e975"
+    },
+    {
+      "name": "20261002020000_add_quality_journey_owned_browser",
+      "checksum": "aac84abb230cc3ed15aeb466ca902f74027c144dd51d7a91c7dd9799db46f24d"
+    }
+  ]
+}

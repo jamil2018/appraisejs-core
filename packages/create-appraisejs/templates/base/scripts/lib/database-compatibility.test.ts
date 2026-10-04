@@ -6,6 +6,7 @@ import path from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
 
 import { assertDatabaseCompatibility, databaseCompatibilityUrl } from './database-compatibility.mjs'
+import { assertDatabaseMigrationParity, enumerateDatabaseMigrations } from './migration-inventory.mjs'
 
 const workspaces: string[] = []
 const producerRoot = process.cwd()
@@ -20,6 +21,13 @@ async function fixture() {
   await fs.mkdir(path.join(root, '001'), { recursive: true })
   await fs.mkdir(path.join(root, '002'), { recursive: true })
   for (const name of ['001', '002']) await fs.writeFile(path.join(root, name, 'migration.sql'), `-- ${name}`)
+  await fs.writeFile(
+    path.join(cwd, 'prisma', 'migration-inventory.json'),
+    JSON.stringify({
+      schemaVersion: 1,
+      migrations: enumerateDatabaseMigrations(cwd),
+    }),
+  )
   const databasePath = path.join(cwd, 'prisma', 'fixture.db')
   const sql = (source: string) => execFileSync('sqlite3', [databasePath, source], { encoding: 'utf8' })
   const checksum = (name: string) => createHash('sha256').update(`-- ${name}`).digest('hex')
@@ -34,7 +42,68 @@ async function fixture() {
   return { cwd, databasePath, sql, add, initialize, options: { cwd, env: { DATABASE_URL: 'file:./fixture.db' } } }
 }
 
+async function damageInstallation(cwd: string, damage: string) {
+  const root = path.join(cwd, 'prisma', 'migrations')
+  if (damage === 'missing-sql') await fs.rm(path.join(root, '002', 'migration.sql'))
+  if (damage === 'deleted-directory') await fs.rm(path.join(root, '002'), { recursive: true })
+  if (damage === 'changed-sql') await fs.writeFile(path.join(root, '002', 'migration.sql'), '-- changed')
+  if (damage === 'extra-directory') {
+    await fs.mkdir(path.join(root, '003'))
+    await fs.writeFile(path.join(root, '003', 'migration.sql'), '-- extra')
+  }
+  if (damage === 'symlink-sql') {
+    await fs.rm(path.join(root, '002', 'migration.sql'))
+    await fs.symlink('../001/migration.sql', path.join(root, '002', 'migration.sql'))
+  }
+  if (damage === 'missing-inventory') await fs.rm(path.join(cwd, 'prisma', 'migration-inventory.json'))
+}
+
 describe('storage compatibility refusal before mutation', () => {
+  it('checks prepared or packed migrations against the independent producer inventory', async () => {
+    const f = await fixture()
+    const expected = enumerateDatabaseMigrations(f.cwd)
+    expect(() => assertDatabaseMigrationParity(f.cwd, expected)).not.toThrow()
+    await fs.rm(path.join(f.cwd, 'prisma', 'migrations', '002'), { recursive: true })
+    expect(() => assertDatabaseMigrationParity(f.cwd, expected)).toThrow('Installation integrity failure')
+    await fs.writeFile(
+      path.join(f.cwd, 'prisma', 'migration-inventory.json'),
+      JSON.stringify({ schemaVersion: 1, migrations: enumerateDatabaseMigrations(f.cwd) }),
+    )
+    expect(() => assertDatabaseMigrationParity(f.cwd, expected)).toThrow('differs from canonical source')
+  })
+  it.each(['missing-sql', 'deleted-directory', 'changed-sql', 'extra-directory', 'symlink-sql', 'missing-inventory'])(
+    'refuses %s installation before storage observation or mutation',
+    async damage => {
+      const f = await fixture()
+      f.initialize()
+      f.add('001')
+      // Missing unapplied input must not disappear and make the remaining ledger compatible.
+      if (damage !== 'missing-sql' && damage !== 'deleted-directory') f.add('002')
+      const before = await fs.readFile(f.databasePath)
+      await damageInstallation(f.cwd, damage)
+      for (const allowPending of [false, true]) {
+        await expect(assertDatabaseCompatibility({ ...f.options, allowPending })).rejects.toThrow(
+          'Installation integrity failure',
+        )
+      }
+      expect(await fs.readFile(f.databasePath)).toEqual(before)
+      for (const script of ['migrate-compatible.mjs', 'start-local.mjs']) {
+        const result = spawnSync(process.execPath, [path.join(producerRoot, 'scripts', script), 'start'], {
+          cwd: f.cwd,
+          env: { ...process.env, DATABASE_URL: `file:${f.databasePath}` },
+          encoding: 'utf8',
+        })
+        expect(result.status).toBe(1)
+        expect(result.stderr).toContain('Installation integrity failure')
+        expect(await fs.readFile(f.databasePath)).toEqual(before)
+      }
+      await fs.rm(f.databasePath)
+      await expect(assertDatabaseCompatibility({ ...f.options, allowPending: true })).rejects.toThrow(
+        'Installation integrity failure',
+      )
+      await expect(fs.stat(f.databasePath)).rejects.toMatchObject({ code: 'ENOENT' })
+    },
+  )
   it('allows absent storage only for explicit upgrades and never creates it during inspection', async () => {
     const f = await fixture()
     await expect(assertDatabaseCompatibility(f.options)).rejects.toThrow('Database is missing')

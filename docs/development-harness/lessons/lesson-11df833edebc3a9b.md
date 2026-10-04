@@ -28,8 +28,8 @@ evidence:
       agent-count: 4
 ambiguousObservationRefs: []
 lastValidatedAt: 2026-09-08T14:39:37.117Z
-lastResurfacedAt: 2026-09-12T16:51:52.685Z
-reminderFingerprint: architecture-review|scripts/lib/managed-journey-browser-qualification.mjs,src/lib/quality-journey,src/services/coordinator||obs-e449ff16acc26b90
+lastResurfacedAt: 2026-10-04T16:19:50.733Z
+reminderFingerprint: release-gate|scripts/|1|obs-e449ff16acc26b90
 ---
 # Bind prerequisite reuse to source and output content
 

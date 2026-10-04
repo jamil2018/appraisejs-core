@@ -1,5 +1,8 @@
 # Quality Journey storage and client compatibility
 
+The [Quality Journey operator guide](quality-journey-operator-guide.md) puts these storage and client boundaries in
+the context of setup, lifecycle review, and recovery.
+
 The supported stock-Codex path retains Journey IDs, immutable revisions, assignments, approvals, consents,
 interruptions and sealed evidence. Compatibility checks never reset storage or transfer ownership. Historical
 provider prototypes remain opt-in research paths; the generated default MCP contract excludes provider-native runs.
@@ -17,6 +20,14 @@ roll back or adopt storage. Use the matching newer application and retain a back
 to bypass refusal. These guards cover the supported scripts in this version. Arbitrary older binaries, bare Prisma,
 direct Next invocation and direct database writes are outside this guarantee. A matching migration ledger is not a
 full physical-schema drift audit; Prisma failures still require diagnosis rather than reset.
+
+Before reading storage, the installation must match `prisma/migration-inventory.json`: every canonical migration
+name and SQL checksum is required. Missing SQL, a deleted directory, extra migrations, changed SQL or missing inventory
+refuse startup and upgrade. Restore matching application files; never regenerate the inventory to hide damage.
+This integrity reference is not a signed supply-chain attestation and cannot protect against coordinated replacement
+of application code, SQL and inventory. Migration authors explicitly run `npm run migration:inventory:update` after
+reviewed SQL changes, then `npm run migration:inventory:check`, migration rehearsal and template preparation.
+Verification and preparation do not author the inventory.
 
 The C3.1 migrations add nullable stop/output observations and an initially empty owned-browser ledger. Upgrade
 cannot infer host cleanup from an empty new ledger. Persisted uncertain managed launch, lease expiry and assignment

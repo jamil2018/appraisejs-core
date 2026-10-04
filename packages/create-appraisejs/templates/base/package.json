@@ -48,6 +48,8 @@
     "setup:graphify": "node scripts/setup-graphify.mjs",
     "migrate-db": "node scripts/migrate-compatible.mjs",
     "validate:migrations": "node scripts/validate-prisma-migrations.mjs",
+    "migration:inventory:check": "node scripts/update-migration-inventory.mjs --check",
+    "migration:inventory:update": "node scripts/update-migration-inventory.mjs --write",
     "generate-db-client": "npx prisma generate --schema prisma/schema.prisma",
     "sync-step-definitions": "npx tsx scripts/sync-step-definitions.ts",
     "setup": "npm run install-dependencies && npm run setup:db && npm run build:local && npm run protect-seeded-files",

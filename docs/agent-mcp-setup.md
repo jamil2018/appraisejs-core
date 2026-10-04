@@ -1,5 +1,8 @@
 # MCP Setup For Quality Work
 
+For the complete operator path from setup through handoff, recovery, and upgrade, see the
+[Quality Journey operator guide](quality-journey-operator-guide.md).
+
 Start the AppraiseJS MCP server using the package script defined in `packages/appraisejs/package.json`. Register the connected client with its actual transport and current target workspace before attempting quality work.
 
 From an early Quality Journey, **Agent setup** opens the selected project's contextual Codex setup guidance and keeps

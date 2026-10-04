@@ -1,5 +1,8 @@
 # Coordinator API and MCP
 
+For human operation of setup, handoff, lifecycle review, and recovery, see the
+[Quality Journey operator guide](quality-journey-operator-guide.md).
+
 Hub access can be revoked through `appraisejs agent disconnect --cwd <hub>` or the Appraise plugin uninstall
 command without deleting Journey data. Cached credentials are rejected; explicit reconnect rotates the credential,
 and assignment ownership still requires authoritative reread and the existing takeover gates. See the

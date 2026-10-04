@@ -65,6 +65,11 @@ the preparation workflow does not weaken that guard or reset a user database.
 The C3.2 producer-package reinstall/migration fixture is repository-only; generated apps retain the self-contained
 storage guard and its focused tests without importing the producer CLI source.
 
+Preparation refuses incomplete or changed migration inputs against the checked-in integrity inventory before
+copying root/base source; it never regenerates the inventory. Package validation compares the actual packed
+scaffold's migration names and SQL hashes with canonical source. The package-owned `scaffold-README.md` is copied
+to the generated project's README so first-setup and recovery instructions ship with the app.
+
 ## Validation
 
 - For root-to-template or scaffold package changes, run `npm --prefix packages/create-appraisejs run prepare-template`.
