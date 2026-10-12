@@ -1,6 +1,6 @@
 # Journey UI: state-driven guided flow
 
-Date: 2026-10-12. Status: proposed design and implementation plan; no product implementation or lifecycle-policy change.
+Date: 2026-10-12. Status: active UI companion to the replacement roadmap adopted 2026-10-13; no product implementation or lifecycle-policy change.
 
 ## Implementation design reference
 

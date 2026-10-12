@@ -1,12 +1,12 @@
-# Codex app-server behind AppraiseJS: Journey migration proposal
+# Codex app-server behind AppraiseJS: Journey migration plan
 
-Date: 2026-10-12. Status: reviewed planning proposal; implementation and runtime qualification not started.
+Date: 2026-10-12. Direction adopted 2026-10-13. Status: active replacement roadmap under [ADR-0005](../../docs/decisions/0005-codex-app-server-journeys.md); implementation and runtime qualification not started.
 
 ## Scope and authority
 
 Keep users in AppraiseJS for briefs, questions, reviews, consent, progress, recovery and results. Run Codex as a supervised local backend using MCP. There is no chat composer, transcript product, manual prompt handoff, or requirement to open Codex desktop in the normal flow. Native provider sign-in and target-site login may still require a browser; no-chat does not mean unattended authentication.
 
-This document and [task list](todo.md) are a proposed migration, not a replacement of accepted ADR-0004 or permission to run live Journeys. Existing `tasks/plan.md` and `tasks/todo.md` cover unrelated work and are preserved. The current coordinator [register](../../codex/development%20plan/appraise-0.5/product%20direction/managed-quality-journey-coordinator/TASK_REGISTER.md) remains authoritative for its existing track. As inspected, GC2 passed; C3.3 remains in progress and GC3 is REVISE/not passed. The 2026-10-12 entry leaves section 3 incomplete, section 4 unstarted and authentication closed. No old gate is converted into an app-server pass.
+This document and [task list](todo.md) supersede the stock Codex desktop/plugin roadmap and ADR-0004 for future Journey work by user decision on 2026-10-13. Codex CLI's `codex app-server` supplies the supervised backend; AppraiseJS owns the UI and MCP-mediated lifecycle. Existing `tasks/plan.md` and `tasks/todo.md` cover unrelated work and are preserved. The retired coordinator [register](../../codex/development%20plan/appraise-0.5/product%20direction/managed-quality-journey-coordinator/TASK_REGISTER.md) is historical evidence only, not an active continuation queue. Its GC2 pass and unfinished C3.3 / GC3 REVISE result retain their original meaning; section 3 remained incomplete, section 4 unstarted and authentication closed at retirement. No old gate becomes an app-server pass. Selecting this direction does not authorize live Journeys or start implementation; M00 still settles the concrete host and authority contract.
 
 Review includes current dirty handoff/UI and qualification work, which this planning task does not modify. No production process, authentication, MCP mutation, database migration, commit or publication is part of this review.
 
@@ -89,7 +89,7 @@ Current official [App Server documentation](https://learn.chatgpt.com/docs/app-s
 
 ## Rollout and rollback
 
-1. Approve a new migration ADR and scoped task track; retain ADR-0004 and archived evidence as historical decisions. Do not reopen or close GC3 implicitly.
+1. Follow adopted ADR-0005 and this task track; settle M00’s detailed host and authority contract before implementation. Retain ADR-0004 and archived evidence as historical decisions. Do not reopen or close GC3 implicitly.
 2. Prove the isolated runtime and scoped MCP composition on disposable data; no production Journey or temporary authentication by implication.
 3. Prove Analysis and structured clarification on disposable/internal Journeys, then remaining roles and test/report flows. M06–M07 are internal proof only. Any user-facing opt-in requires M11 core recovery and its crash matrix, plus applicable containment and installation checks; a feature flag is not a recovery exemption.
 4. Qualify recovery and installed packaging before making the mode default. Existing desktop Journeys continue under their existing bindings.

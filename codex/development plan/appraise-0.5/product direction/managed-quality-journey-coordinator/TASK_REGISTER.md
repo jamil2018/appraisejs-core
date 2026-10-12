@@ -1,4 +1,12 @@
-# Stock Codex Quality Journey — Task Register
+# Stock Codex Quality Journey — Task Register — Superseded
+
+Status: **SUPERSEDED on 2026-10-13 by user decision. Historical reference only.**
+
+The stock Codex desktop/plugin handoff roadmap is retired. Future Journey work follows the [Codex CLI app-server migration plan](../../../../../tasks/codex-app-server-journeys/plan.md) and [task list](../../../../../tasks/codex-app-server-journeys/todo.md), with the [state-driven UI plan](../../../../../tasks/quality-journey-transition-ui/plan.md) and [wireframes](../../../../../tasks/quality-journey-transition-ui/wireframes/README.md). See [ADR-0005](../../../../../docs/decisions/0005-codex-app-server-journeys.md).
+
+Do not resume this roadmap's remaining C3.3/GC3 work or treat its operating instructions and handoff prompts as current assignments. All statuses, next steps and instructions below are the historical snapshot at retirement. Unfinished work is retired, not completed: GC3 remains REVISE / not passed. Preserve its evidence and known limitations when qualifying the replacement. This decision changes planning authority only; existing product behavior, lifecycle records, approvals, consents and runtime gates are unchanged. The replacement is not implemented or qualified, and no implementation starts in this session.
+
+## Historical snapshot
 
 Specification: [PLAN.md](PLAN.md). Architecture adopted 2026-09-11. C0.1, C0.2 and C0.3 are verified as bounded
 qualification tasks. The user-approved C0.2e retained admission slice and C0.4 feasibility review are verified; GC0
@@ -361,7 +369,7 @@ is a plugin-release gate. Do not resume P0.R2g, create a Codex fork or retrofit 
 | D19 | D16 implementation planning     | Preserve historical documents/evidence; use new C task IDs and GC gates; test feasibility before product implementation                                                                               |
 | D20 | User, 2026-09-12                | Authorize retained production-intended external Analyzer admission under C0.2e before GC0; disposable qualification data, explicit opt-in, no normal-flow enablement or C1 work; C2.1 reuses the code |
 
-## Active handoff
+## Historical handoff — do not resume
 
 - Completed scope: C0.1, the original C0.2 negative qualification, and C0.2e.1–C0.2e.4. Independent exact-artifact re-review accepted C0.2e.
 - 28 focused tests passed across four suites, including real POST authentication rejection with subsequent valid redemption.

@@ -1,6 +1,6 @@
 # Journey transition UI task list
 
-Status: proposed; all tasks unstarted. [Plan](plan.md) · [Screen sketches](screens.md). No lifecycle policy or live Journey changes are authorized by this checklist.
+Status: active UI companion to the replacement roadmap adopted 2026-10-13; all tasks unstarted. [Plan](plan.md) · [Screen sketches](screens.md). No lifecycle policy or live Journey changes are authorized by this checklist.
 
 ## Design reference for every slice
 

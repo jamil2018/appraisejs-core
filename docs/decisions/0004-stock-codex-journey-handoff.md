@@ -1,6 +1,6 @@
 # ADR-0004: Continue Appraise Journeys through stock Codex and an MCP plugin
 
-Status: accepted architecture; implementation and qualification pending.
+Status: superseded on 2026-10-13 by [ADR-0005](0005-codex-app-server-journeys.md). Retained as the historical decision behind the existing implementation; no longer the roadmap for future Journey work.
 Date: 2026-09-11. Authority: user selected this architecture and requested the plan update.
 
 ## Context

@@ -1,6 +1,6 @@
 # Codex app-server Journey migration tasks
 
-Status: proposed; all implementation tasks unstarted. See [plan](plan.md). Existing Journey gates remain unchanged.
+Status: active replacement roadmap adopted 2026-10-13; all implementation tasks unstarted. See [plan](plan.md). Existing Journey gates remain unchanged.
 
 ## Ordered tasks
 
@@ -192,4 +192,4 @@ Schema, session, gateway and supervisor changes are sequential shared contracts.
 
 ## First implementation handoff
 
-> Review `tasks/codex-app-server-journeys/plan.md` and `todo.md`, the current coordinator register and dirty worktree. Start only M00: propose the host-neutral authority/EXTERNAL_V1 mapping and version/auth/containment contract. Preserve lifecycle history and current gate status. Do not start live authentication, provider runs, product migration or release work.
+> Review `tasks/codex-app-server-journeys/plan.md` and `todo.md`, ADR-0005, the historical coordinator evidence and current worktree. Start only M00: propose the host-neutral authority/EXTERNAL_V1 mapping and version/auth/containment contract. Preserve lifecycle history and current gate status. Do not start live authentication, provider runs, product migration or release work.

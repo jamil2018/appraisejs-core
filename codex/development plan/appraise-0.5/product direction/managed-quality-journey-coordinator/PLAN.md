@@ -1,4 +1,12 @@
-# AppraiseJS Quality Journey — Stock Codex Plugin Architecture
+# AppraiseJS Quality Journey — Stock Codex Plugin Architecture — Superseded
+
+Status: **SUPERSEDED on 2026-10-13 by user decision. Historical reference only.**
+
+The stock Codex desktop/plugin handoff roadmap is retired. Future Journey work follows the [Codex CLI app-server migration plan](../../../../../tasks/codex-app-server-journeys/plan.md) and [task list](../../../../../tasks/codex-app-server-journeys/todo.md), with the [state-driven UI plan](../../../../../tasks/quality-journey-transition-ui/plan.md) and [wireframes](../../../../../tasks/quality-journey-transition-ui/wireframes/README.md). See [ADR-0005](../../../../../docs/decisions/0005-codex-app-server-journeys.md).
+
+Do not resume this roadmap's remaining C3.3/GC3 work or treat its operating instructions and handoff prompts as current assignments. All statuses, next steps and instructions below are the historical snapshot at retirement. Unfinished work is retired, not completed: GC3 remains REVISE / not passed. Preserve its evidence and known limitations when qualifying the replacement. This decision changes planning authority only; existing product behavior, lifecycle records, approvals, consents and runtime gates are unchanged. The replacement is not implemented or qualified, and no implementation starts in this session.
+
+## Historical snapshot
 
 Status: architecture adopted by the user on 2026-09-11; C0.1, C0.2, C0.2e, C0.3 and C0.4 verified; GC0 passed its
 feasibility gate after independent exact-artifact review; C1.1, C1.2 and C1.3 are verified. GC1 `passed` after
