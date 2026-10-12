@@ -19,6 +19,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       DATABASE_URL: file:./e2e.db
+      DISPLAY: ':99'
     steps:
       - uses: actions/checkout@v4
         with:
@@ -38,6 +39,8 @@ jobs:
       - run: node e2e/apply-migrations.mjs
       - run: npm run lint
       - run: npx playwright install --with-deps chromium
+      - name: Start display for headed browser integration tests
+        run: Xvfb :99 -screen 0 1280x720x24 &
       - run: npm run validate:unit
       - run: npm run build
 

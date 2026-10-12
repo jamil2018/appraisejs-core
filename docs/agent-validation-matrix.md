@@ -1,5 +1,7 @@
 # Agent Validation Matrix
 
+Linux CI starts Xvfb and sets `DISPLAY` before the root unit suite because discovery-browser integration tests exercise both headed and headless Chromium. Preserve both modes; a missing display is a runner setup failure.
+
 Use the narrowest check that can catch likely regressions, then broaden when the touched surface is shared, packaged,
 or release-like.
 
