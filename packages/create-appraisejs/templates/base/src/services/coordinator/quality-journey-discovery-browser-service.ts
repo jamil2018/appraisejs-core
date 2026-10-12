@@ -837,7 +837,6 @@ function scheduleExpiry(session: Session) {
   session.expiryTimer.unref?.()
 }
 
-// fallow-ignore-next-line complexity -- exact scope validation is intentionally kept at this trust boundary.
 async function loadFrozenScope(
   input: z.infer<typeof startSchema>,
   db: Db,
@@ -2118,7 +2117,6 @@ export async function replaceQualityJourneyDiscoveryBrowserContext(
 
 /** Transaction-local admission used by Scout submission. Host screenshots,
  * arbitrary artifacts, and stale/mismatched browser receipts never qualify. */
-// fallow-ignore-next-line complexity -- every receipt binding is checked together at the admission boundary.
 export async function assertDiscoveryBrowserReceiptAdmission(
   bundle: {
     cycleId: string

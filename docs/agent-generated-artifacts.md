@@ -21,4 +21,4 @@ Generated and runtime artifacts are derived from canonical source, immutable qua
 | `.appraisejs/*`                                                                                    | local harness state                | Do not hand-edit or commit.                                                   |
 | `.appraise/*`, `.playwright-cli/*`, `.next`, `dist`, coverage, reports, logs, traces, screenshots  | local runtime output               | Keep untracked unless a fixture is intentionally approved.                    |
 
-`npm run release:check:artifacts` enforces the tracked-artifact boundary. When a generated diff appears, identify its generating command and update canonical source before including it.
+`npm run release:check:artifacts` enforces the tracked-artifact boundary. When a generated diff appears, identify its generating command and update canonical source before including it. ESLint excludes compiled package `dist` output; canonical package source remains linted, and package builds validate generated declarations.

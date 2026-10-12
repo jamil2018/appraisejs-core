@@ -8,6 +8,7 @@ const eslintConfig = [
     ignores: [
       'packages/cucumber-runtime/dist/**/*',
       'packages/locator-picker-companion/dist/**/*',
+      'packages/appraisejs/dist/**/*',
       'packages/appraisejs/registry/**/*',
       'templates/**/*',
       'packages/create-appraisejs/templates/**/*',

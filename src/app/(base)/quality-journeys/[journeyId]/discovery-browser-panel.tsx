@@ -45,7 +45,6 @@ function sessionFrom(response: { success?: boolean; data?: unknown }): SessionVi
   return value && typeof value.id === 'string' && typeof value.state === 'string' ? (value as SessionView) : null
 }
 
-// fallow-ignore-next-line complexity -- one panel intentionally owns the complete ephemeral-session control surface.
 export function DiscoveryBrowserPanel({
   journeyId,
   discovery,
