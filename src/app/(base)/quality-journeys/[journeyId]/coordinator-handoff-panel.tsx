@@ -2,6 +2,7 @@
 
 import { Check, Clipboard, ExternalLink, LoaderCircle, ShieldCheck, TerminalSquare } from 'lucide-react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { useEffect, useState, useTransition } from 'react'
 
 import { Badge } from '@/components/ui/badge'
@@ -104,7 +105,7 @@ async function executeHandoff(journeyId: string, update: (state: Partial<Handoff
     toast({ title: 'Unable to prepare Codex', description: response.error, variant: 'destructive' })
     return
   }
-  update({ ...prepared, status: 'PREPARED' })
+  update({ ...prepared, status: 'PREPARED', copied: false, takeoverEffective: false })
   let copied = false
   try {
     await copyCoordinatorPrompt(prepared.prompt)
@@ -157,7 +158,7 @@ async function approveTakeover(
 
 function PromptRecovery({ copied, prompt, status }: { copied: boolean; prompt: string | null; status: string }) {
   if (!prompt && !['FAILED', 'EXPIRED'].includes(status)) return null
-  if (!prompt)
+  if (!prompt || status === 'EXPIRED')
     return (
       <section className="rounded-md border border-amber-500/20 bg-amber-500/[0.06] p-3 text-sm" role="status">
         <p className="font-medium">Prepare a fresh prompt to recover</p>
@@ -192,6 +193,7 @@ export function CoordinatorHandoffPanel({
   projectId: string
   stage?: string
 }) {
+  const { refresh } = useRouter()
   const [state, setState] = useState<HandoffState>({
     prompt: null,
     handoffId: handoff?.id ?? null,
@@ -220,15 +222,23 @@ export function CoordinatorHandoffPanel({
   })
 
   useEffect(() => {
-    if (!['LAUNCHING', 'LAUNCHED'].includes(status)) return
+    if (!['PREPARED', 'FAILED', 'LAUNCHING', 'LAUNCHED'].includes(status)) return
     let cancelled = false
     const observe = async () => {
-      const response = await inspectQualityJourneyHandoffAction({ journeyId })
+      const response = await inspectQualityJourneyHandoffAction({ journeyId, projectId })
       const data = actionData(response)
       const observed = data?.handoff
       if (!cancelled && observed && typeof observed === 'object') {
         const observedStatus = (observed as Record<string, unknown>).status
-        if (typeof observedStatus === 'string') update({ status: observedStatus })
+        if (typeof observedStatus === 'string') {
+          update({
+            status: observedStatus,
+            ...(observedStatus === 'EXPIRED'
+              ? { prompt: null, launchUrl: null, copied: false, takeoverApproval: null, takeoverRequestId: null }
+              : {}),
+          })
+          if (observedStatus !== status) refresh()
+        }
       }
     }
     void observe()
@@ -237,7 +247,7 @@ export function CoordinatorHandoffPanel({
       cancelled = true
       window.clearInterval(interval)
     }
-  }, [journeyId, status])
+  }, [journeyId, projectId, status, refresh])
 
   async function copyPrompt(value = prompt) {
     if (!value) return
@@ -291,7 +301,7 @@ export function CoordinatorHandoffPanel({
             {isPending ? <LoaderCircle aria-hidden="true" className="mr-2 size-4 animate-spin" /> : null}
             <LaunchButtonLabel hasHandoff={Boolean(handoffId)} />
           </Button>
-          {prompt ? (
+          {prompt && status !== 'EXPIRED' ? (
             <Button onClick={() => void copyPrompt()} type="button" variant="outline">
               {copied ? (
                 <Check aria-hidden="true" className="mr-2 size-4" />

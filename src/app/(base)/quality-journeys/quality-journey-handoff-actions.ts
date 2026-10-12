@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 
-import { requireActiveProjectForMutation } from '@/lib/active-project'
+import { requireActiveProject, requireActiveProjectForMutation } from '@/lib/active-project'
 import {
   approveQualityJourneyHandoffTakeover,
   inspectQualityJourneyHandoff,
@@ -15,6 +15,7 @@ import type { ActionResponse } from '@/types/form/actionHandler'
 
 const id = z.string().min(1).max(200)
 const requestSchema = z.object({ journeyId: id }).strict()
+const inspectSchema = requestSchema.extend({ projectId: id }).strict()
 const launchSchema = requestSchema.extend({ handoffId: id, launchUrl: z.string().url().max(4_000) }).strict()
 const takeoverSchema = requestSchema
   .extend({
@@ -69,8 +70,8 @@ export async function launchQualityJourneyHandoffAction(input: unknown): Promise
 
 export async function inspectQualityJourneyHandoffAction(input: unknown): Promise<ActionResponse> {
   try {
-    const value = requestSchema.parse(input)
-    const project = await requireActiveProjectForMutation()
+    const value = inspectSchema.parse(input)
+    const project = await requireActiveProject(value.projectId)
     return {
       status: 200,
       success: true,

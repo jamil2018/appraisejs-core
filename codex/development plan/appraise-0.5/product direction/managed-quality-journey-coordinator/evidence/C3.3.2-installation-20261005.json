@@ -1,0 +1,733 @@
+{
+  "qualification": "C3.3.2 disposable packaged starter installation",
+  "sourceHead": "eceba0bf3b5e7247d53a693932e50ee3827030ab",
+  "disposableRoot": "/private/tmp/appraise-c332-wNbJF1",
+  "starterPath": "/private/tmp/appraise-c332-wNbJF1/starter",
+  "toolingPath": "/private/tmp/appraise-c332-wNbJF1/tooling",
+  "installedCliPath": "/private/tmp/appraise-c332-wNbJF1/tooling/node_modules/appraisejs/dist/cli.js",
+  "installedCreateProjectPath": "/private/tmp/appraise-c332-wNbJF1/tooling/node_modules/create-appraisejs/dist/create-project.js",
+  "packages": {
+    "appraisejs-0.4.0.tgz": "e72024cdb6dace1372167f6882cc37a35ca61273e11095ebaa342074092aa4e8",
+    "create-appraisejs-0.4.0.tgz": "4226c064f73e1bd5d00329ef14a71ecfaa029b3e94dc5253f558a0684e2fa8fa"
+  },
+  "template": "starter",
+  "packageManager": "npm",
+  "buildId": "uTQFi1eqkm4GmVoCWtv74",
+  "preRuntimeDatabase": {
+    "targetProject": 0,
+    "qualityJourneyAndRelatedTables": 0,
+    "runtimeCapsuleAndRelatedTables": 0,
+    "testRunAndReportTables": 0,
+    "agentPreflightReceipt": 0,
+    "collaborationAuthorityReceipt": 0,
+    "collaborationBaseline": 0,
+    "stepDefinition": 127
+  },
+  "checks": {
+    "operationProjections": "pass",
+    "mcpContractFixture": "pass via node --import tsx after sandbox IPC denial",
+    "coordinatorReference": "pass",
+    "prepareTemplate": "pass with local IPC permission; 88 migrations, 127 Step Definitions",
+    "packageBuilds": "pass",
+    "localTarballInstall": "pass",
+    "freshDependencies": "pass; 991 packages",
+    "setupEnv": "pass with local IPC permission",
+    "generateDbClient": "pass",
+    "guardedMigrateDb": "pass",
+    "syncStepDefinitions": "pass with local IPC permission",
+    "productionBuild": "pass with font network permission",
+    "installedFocusedTests": "3 files, 62 tests passed"
+  },
+  "logs": [
+    "setup-env.log",
+    "generate-db-client.log",
+    "migrate-db.log",
+    "sync-step-definitions.log",
+    "build.log",
+    "installed-focused-tests.log"
+  ],
+  "limits": [
+    "This is a packaged local installation and self-contained check, not installed desktop host qualification.",
+    "No server, agent registration, authentication, or live Journey operation was performed in this lane."
+  ],
+  "logSha256": {
+    "installation/setup-env.log": "1f8e5cb784de71627cb984a37f5b0731e30234f2b4a937a813873746fc6c5efb",
+    "installation/generate-db-client.log": "b31a1debfaefcec40fa01200fd61874c93ae199d711bf40a1f86dc0e271a5891",
+    "installation/migrate-db.log": "4af7b42a0d368f15a97025cfe66fae5ad251812d003ccaed0f77063eb1c23664",
+    "installation/sync-step-definitions.log": "14cf3de69758b5ec7c531154583abacfd0eb23cc1f0d1c3e18b704c80622b19e",
+    "installation/build.log": "5da67ff8819340fc099775d0dc9f8169c15dbb892b50769922dc416607488f31",
+    "installation/installed-focused-tests.log": "fe2ba6f605f07142db82f948c0d655cebe37441472647ac1d4e6b136c1cde52f"
+  },
+  "continuation": {
+    "hostVersion": "26.930.31730",
+    "hostBuild": "12947",
+    "cliVersion": "0.160.0",
+    "appBundle": "/Applications/ChatGPT.app",
+    "temporaryAuthentication": "not reopened",
+    "overallClientQualification": "open",
+    "threeHistoricalLostOwnershipFixtures": "unresolved and untouched"
+  },
+  "continuationEvidenceSha256": {
+    ".appraisejs/c332/resources.json": "09f07e995cf6f33c81a94e49e9e5ee9bb114ecda49de580a1c4e743b3ccc193e",
+    ".appraisejs/c332/local-handoff-observation.json": "c9ef864dfde8f08a705424d010357424147d5919172f903549aa8f7c4842b525",
+    ".appraisejs/c332/manual-reconnect-observation.json": "9eda98a2f36dbb1c357852e7eba48b78e98569eb022d7d7a6d62a4f1346ec262",
+    ".appraisejs/c332/remote-handoff-observations.json": "3e68e5086df1e066ae9267a0395b4dc4d2f40db0f47f25f595a2ea505d980ebe",
+    ".appraisejs/c332/host-path-investigation.json": "4449dc48c71cb4989de0f55fc1ed305ec2007b410543053f0bd0523a0413db3f",
+    ".appraisejs/c332/host-observations.json": "ab355f3a7acde99ddcc60f5d1ee5b0ff4a328418b5d6b2e781527c5cc2ac0ba8",
+    ".appraisejs/c332/host-compatibility.json": "08b12238533bd31c224c589e55c2e8c41c92eb36813778904ed07c7ab5ee5958",
+    ".appraisejs/c332/native-preflight-observations.json": "65d3368cb70b7e53c905e2ccbfc13119f30e0e174717477480b79588810a16ad",
+    ".appraisejs/c332/disposable-mcp-registration.json": "1ee65d00e5fd904ebb6868cd786dcaf4ee81116ba66da8f7d7e383086b06d790",
+    ".appraisejs/c332/package-tests-approved.log": "58a5b429525ad7266f9b08c3f109cf54301fd60805dfe43594014bd2c5d57079",
+    ".appraisejs/c332/scaffold-tests.log": "b8d50e1a6866f35e71c39a3d3541907366731ee5f85b440ece515b90800451f4",
+    ".appraisejs/c332/root-focused-tests.log": "7083bb8331ebb78e69237623270b4b8774484a6a86980f72e6d40ced2c9cb0b5",
+    ".appraisejs/c332/root-build-approved.log": "451ecbf38d7d362ce4a62f5caef41fd51657563ae6315c904e7b3fca4976e445",
+    ".appraisejs/c332/harness.log": "2dcfdbdca49be0ce3294b2638ebda48be8fa7e2c2469f1155fd89322029d7396",
+    ".appraisejs/c332/artifacts.log": "7044cf672e8d919314b3501f0c800f9d34016b70374b64131e9bc19a42736076",
+    ".appraisejs/c332/inventory.log": "118fc28448a93e2e3c5cd853139b9e161e46876fe8c0583789f7c3eab8ce2156",
+    ".appraisejs/c332/reference-check.log": "b8b5431a326328c503f9d2b37e046f90353e1335a806964e949d3d9dfed18767",
+    ".appraisejs/c332/projections-check.log": "fcbe0188d6ee21fe2d9aadd50133f098a66d2bbeda8374dd075c0987edfb051b",
+    ".appraisejs/c332/package-contents.log": "09fad8329163fe217deef4b487410ac100b06c5fc2308f59c92e5e573dbb0fa4",
+    ".appraisejs/c332/docs-links.log": "feb5c950cd495da9a31ceed9d8735c4bc8c6accbc4ff3da2e003909fe3ee1294",
+    ".appraisejs/c332/template-after-guidance.log": "b7e8244c7b8d11307f6376b92184983bd259a95b138e6a1c8fd9c7bac0d3ecb9",
+    ".appraisejs/c332/artifacts-after-guidance.log": "7044cf672e8d919314b3501f0c800f9d34016b70374b64131e9bc19a42736076",
+    ".appraisejs/c332/packages-after-guidance.log": "ab72b3a41d1290cb1333928413c5bd0ae512dd590dd8877b97247699ca0eadb3",
+    ".appraisejs/c332/graphify-after-guidance.log": "fe0e37eb0b7d54771cf99d1737f891d9552aa751d23f2f1968309fb77d60a87f",
+    ".appraisejs/c332/docs-after-guidance.log": "feb5c950cd495da9a31ceed9d8735c4bc8c6accbc4ff3da2e003909fe3ee1294",
+    ".appraisejs/c332/expiry-panel-tests.log": "c27372c53115240967a68deb67b8875e04711c0104b58cc2bd44ed777e3d6cc3",
+    ".appraisejs/c332/expiry-ui-presentation-tests.log": "c43976ba88892f7076892d61a0bd83796b555efd0070de2a5b2bfa583f9549dc",
+    ".appraisejs/c332/template-after-expiry-fix.log": "b7e8244c7b8d11307f6376b92184983bd259a95b138e6a1c8fd9c7bac0d3ecb9",
+    ".appraisejs/c332/root-build-after-expiry-fix.log": "f3790c560f345cf213f8d9d88f9ca3362786cea58b39ed81179349441dc064b1",
+    ".appraisejs/c332/graphify-after-expiry-fix.log": "58b8ac89fc645800cecc0fc2d0bdee2756382aca9c9f8532e0c18d4760f7d022",
+    ".appraisejs/c332/artifacts-after-expiry-fix.log": "7044cf672e8d919314b3501f0c800f9d34016b70374b64131e9bc19a42736076",
+    ".appraisejs/c332/packages-after-expiry-fix.log": "4fbb9320a17b476e276e3382e65e976bc8fe569229ac91ad6e3bab0b4d14efce",
+    ".appraisejs/c332/harness-after-expiry-fix.log": "285d3b321ab61f99718bc7af9741d86a3a509e8f1031b13199ec54c5495977a8",
+    ".appraisejs/c332/react-doctor-focused-expiry-fix.log": "5105873174105a9fd61a4660d1fe358c47c92fe202637aa05dbd25a798a987b7",
+    ".appraisejs/c332/fixed-install/manifest.json": "dfe567d9a4d4438c1eb2063df9068aa941c71cdd0daf97b6ce4f695220392a4f",
+    ".appraisejs/c332/auth-window/manifest.json": "debb8c5ccfadbfda85754327f84d36eb142638cd2776e8b85b0c3e49e3cd4fb1",
+    ".appraisejs/c332/auth-window/PROPOSAL.md": "3201674f72b71c65e7ee4b16018d9a8c4a975b8dc69b02cc9ccbcb84c8108263",
+    ".appraisejs/c332/fixed-install-v2/final-manifest.json": "b37137514f41f2538c7a91113ac5547ba27568c74a824d238dbe807cd2ba31c6",
+    ".appraisejs/c332/fixed-install-v2/superseded-candidate.json": "b933f269d535709f43af587059c62a5491c571e9733577be1a4e9bf8a558b8de",
+    ".appraisejs/c332/auth-window-tests.log": "6fc577c6a85a42e94a2e5773ee9fc0ff31696bbd19f0b833a415979bccec8373",
+    ".appraisejs/c332/expiry-lint.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    ".appraisejs/c332/docs-checkpoint.log": "feb5c950cd495da9a31ceed9d8735c4bc8c6accbc4ff3da2e003909fe3ee1294"
+  },
+  "fixedInstallation": {
+    "qualification": "C3.3.2 fresh fixed disposable packaged starter for expiry UI repair",
+    "createdAtUtc": "2026-10-04T19:03:38.062217+00:00",
+    "sourceHead": "eceba0bf3b5e7247d53a693932e50ee3827030ab",
+    "disposableRoot": "/private/tmp/appraise-c332-fixed-eTIDBQ",
+    "starterPath": "/private/tmp/appraise-c332-fixed-eTIDBQ/starter",
+    "toolingPath": "/private/tmp/appraise-c332-fixed-eTIDBQ/tooling-approved",
+    "installedCliPackagePath": "/private/tmp/appraise-c332-fixed-eTIDBQ/tooling-approved/node_modules/create-appraisejs",
+    "packageName": "create-appraisejs",
+    "packageVersion": "0.4.0",
+    "template": "starter",
+    "packageManager": "npm",
+    "buildId": "qHYDRQyDN3SOacWCAlXp7",
+    "files": {
+      "canonicalPanel": {
+        "sourcePathAtPackTime": "/Users/jamil/Personal Projects/appraisejs/src/app/(base)/quality-journeys/[journeyId]/coordinator-handoff-panel.tsx",
+        "sha256AtPackTime": "874c48688c8362ad685b0395a051a0a175f2bb282b66d0f672d28423104c1c4f",
+        "scope": "Historical prior repair pack-time observation; not a current-file hash assertion."
+      },
+      "preparedTemplatePanel": {
+        "sourcePathAtPackTime": "/Users/jamil/Personal Projects/appraisejs/packages/create-appraisejs/templates/base/src/app/(base)/quality-journeys/[journeyId]/coordinator-handoff-panel.tsx",
+        "sha256AtPackTime": "874c48688c8362ad685b0395a051a0a175f2bb282b66d0f672d28423104c1c4f",
+        "scope": "Historical prior repair pack-time observation; not a current-file hash assertion."
+      },
+      "packedTemplatePanel": {
+        "path": "/private/tmp/appraise-c332-fixed-eTIDBQ/tooling-approved/node_modules/create-appraisejs/templates/base/src/app/(base)/quality-journeys/[journeyId]/coordinator-handoff-panel.tsx",
+        "sha256": "874c48688c8362ad685b0395a051a0a175f2bb282b66d0f672d28423104c1c4f"
+      },
+      "installedStarterPanel": {
+        "path": "/private/tmp/appraise-c332-fixed-eTIDBQ/starter/src/app/(base)/quality-journeys/[journeyId]/coordinator-handoff-panel.tsx",
+        "sha256": "874c48688c8362ad685b0395a051a0a175f2bb282b66d0f672d28423104c1c4f"
+      },
+      "installedCreateProject": {
+        "path": "/private/tmp/appraise-c332-fixed-eTIDBQ/tooling-approved/node_modules/create-appraisejs/dist/create-project.js",
+        "sha256": "ddb1f8f18a3c56d9620ea5ea58b24381252bfe398209ae79e882974532539730"
+      },
+      "packedCreateTarball": {
+        "path": "/private/tmp/appraise-c332-fixed-eTIDBQ/create-appraisejs-0.4.0.tgz",
+        "sha256": "318a59a4ed1d95320de9c9ef9d6155c84caec476616a04a3e2ffc7c40ede2003"
+      },
+      "installedBuildIdFile": {
+        "path": "/private/tmp/appraise-c332-fixed-eTIDBQ/starter/.next/BUILD_ID",
+        "sha256": "09c9f85622561328fae02953df917b28175107d9b623d440f2907091035f6271"
+      },
+      "installedDatabase": {
+        "path": "/private/tmp/appraise-c332-fixed-eTIDBQ/starter/prisma/dev.db",
+        "sha256": "a99ec84a12e3aaa5beb5d511f9e01e21e644c1df1ef5f0d8803065446dd32e69"
+      }
+    },
+    "preRuntimeDatabase": {
+      "path": "/private/tmp/appraise-c332-fixed-eTIDBQ/starter/prisma/dev.db",
+      "tableCount": 118,
+      "nonzero": {
+        "StepDefinition": 127,
+        "StepDefinitionTelemetryEvent": 508,
+        "StepExecutionBinding": 127,
+        "StepHumanProjection": 127,
+        "StepPublicationReceipt": 127,
+        "_prisma_migrations": 88
+      },
+      "runtimeRelated": {
+        "AgentPreflightReceipt": 0,
+        "CollaborationAttempt": 0,
+        "CollaborationAuthorityReceipt": 0,
+        "CollaborationBaseline": 0,
+        "CollaborationBinding": 0,
+        "CollaborationDecision": 0,
+        "CollaborationEntityMap": 0,
+        "CollaborationEnvironmentMapping": 0,
+        "CollaborationHandoffTicket": 0,
+        "CollaborationJournalEntry": 0,
+        "CollaborationMutationLock": 0,
+        "CollaborationNotification": 0,
+        "CollaborationOperation": 0,
+        "CollaborationOperationArtifact": 0,
+        "CollaborationOperationStep": 0,
+        "CollaborationPolicyGrant": 0,
+        "CollaborationReuseAsset": 0,
+        "CollaborationWorker": 0,
+        "QualityJourney": 0,
+        "QualityJourneyAnalysisAnswer": 0,
+        "QualityJourneyAnalysisDecision": 0,
+        "QualityJourneyAnalysisPublication": 0,
+        "QualityJourneyAnalysisQuestion": 0,
+        "QualityJourneyAnalysisRevision": 0,
+        "QualityJourneyArtifact": 0,
+        "QualityJourneyArtifactLink": 0,
+        "QualityJourneyAutomationMaterialization": 0,
+        "QualityJourneyAutomationMaterializationBinding": 0,
+        "QualityJourneyAutomationRequestReceipt": 0,
+        "QualityJourneyAutomationTargetBinding": 0,
+        "QualityJourneyBlocker": 0,
+        "QualityJourneyClosure": 0,
+        "QualityJourneyCommand": 0,
+        "QualityJourneyCoordinatorHandoff": 0,
+        "QualityJourneyCycle": 0,
+        "QualityJourneyDiscoveryRevision": 0,
+        "QualityJourneyDraft": 0,
+        "QualityJourneyDraftReuseAnnotation": 0,
+        "QualityJourneyEvent": 0,
+        "QualityJourneyExecutionCancellationReceipt": 0,
+        "QualityJourneyExecutionConsent": 0,
+        "QualityJourneyExecutionCycle": 0,
+        "QualityJourneyExecutionEvidenceReceipt": 0,
+        "QualityJourneyExecutionRerunProposal": 0,
+        "QualityJourneyExecutionTestRun": 0,
+        "QualityJourneyExternalSubmissionAcceptance": 0,
+        "QualityJourneyExternalWorkClaimReceipt": 0,
+        "QualityJourneyOwnedBrowser": 0,
+        "QualityJourneyPreparedRuntimeCapsule": 0,
+        "QualityJourneyReportReview": 0,
+        "QualityJourneyReuseSeed": 0,
+        "QualityJourneyRevision": 0,
+        "QualityJourneyScenarioDecision": 0,
+        "QualityJourneyScenarioDecisionReceipt": 0,
+        "QualityJourneyScenarioPortfolioRevision": 0,
+        "QualityJourneyScenarioReviewComment": 0,
+        "QualityJourneyScenarioRevision": 0,
+        "QualityJourneyTriageAssignment": 0,
+        "QualityJourneyTriageReport": 0,
+        "QualityJourneyWorkAttempt": 0,
+        "QualityJourneyWorkAuthorization": 0,
+        "QualityJourneyWorkItem": 0,
+        "Report": 0,
+        "ReportFeature": 0,
+        "ReportFeatureTag": 0,
+        "ReportHook": 0,
+        "ReportScenario": 0,
+        "ReportScenarioTag": 0,
+        "ReportStep": 0,
+        "ReportTestCase": 0,
+        "RuntimeCapsule": 0,
+        "RuntimeCapsuleBlob": 0,
+        "RuntimeCapsuleBlobReference": 0,
+        "RuntimeCapsuleExecutionAttempt": 0,
+        "RuntimeCapsuleLease": 0,
+        "StepDefinition": 127,
+        "TargetProject": 0,
+        "TestRun": 0,
+        "TestRunLog": 0,
+        "TestRunTestCase": 0
+      }
+    },
+    "postBuildDatabase": {
+      "tableCount": 118,
+      "runtimeRelated": {
+        "AgentPreflightReceipt": 0,
+        "CollaborationAttempt": 0,
+        "CollaborationAuthorityReceipt": 0,
+        "CollaborationBaseline": 0,
+        "CollaborationBinding": 0,
+        "CollaborationDecision": 0,
+        "CollaborationEntityMap": 0,
+        "CollaborationEnvironmentMapping": 0,
+        "CollaborationHandoffTicket": 0,
+        "CollaborationJournalEntry": 0,
+        "CollaborationMutationLock": 0,
+        "CollaborationNotification": 0,
+        "CollaborationOperation": 0,
+        "CollaborationOperationArtifact": 0,
+        "CollaborationOperationStep": 0,
+        "CollaborationPolicyGrant": 0,
+        "CollaborationReuseAsset": 0,
+        "CollaborationWorker": 0,
+        "QualityJourney": 0,
+        "QualityJourneyAnalysisAnswer": 0,
+        "QualityJourneyAnalysisDecision": 0,
+        "QualityJourneyAnalysisPublication": 0,
+        "QualityJourneyAnalysisQuestion": 0,
+        "QualityJourneyAnalysisRevision": 0,
+        "QualityJourneyArtifact": 0,
+        "QualityJourneyArtifactLink": 0,
+        "QualityJourneyAutomationMaterialization": 0,
+        "QualityJourneyAutomationMaterializationBinding": 0,
+        "QualityJourneyAutomationRequestReceipt": 0,
+        "QualityJourneyAutomationTargetBinding": 0,
+        "QualityJourneyBlocker": 0,
+        "QualityJourneyClosure": 0,
+        "QualityJourneyCommand": 0,
+        "QualityJourneyCoordinatorHandoff": 0,
+        "QualityJourneyCycle": 0,
+        "QualityJourneyDiscoveryRevision": 0,
+        "QualityJourneyDraft": 0,
+        "QualityJourneyDraftReuseAnnotation": 0,
+        "QualityJourneyEvent": 0,
+        "QualityJourneyExecutionCancellationReceipt": 0,
+        "QualityJourneyExecutionConsent": 0,
+        "QualityJourneyExecutionCycle": 0,
+        "QualityJourneyExecutionEvidenceReceipt": 0,
+        "QualityJourneyExecutionRerunProposal": 0,
+        "QualityJourneyExecutionTestRun": 0,
+        "QualityJourneyExternalSubmissionAcceptance": 0,
+        "QualityJourneyExternalWorkClaimReceipt": 0,
+        "QualityJourneyOwnedBrowser": 0,
+        "QualityJourneyPreparedRuntimeCapsule": 0,
+        "QualityJourneyReportReview": 0,
+        "QualityJourneyReuseSeed": 0,
+        "QualityJourneyRevision": 0,
+        "QualityJourneyScenarioDecision": 0,
+        "QualityJourneyScenarioDecisionReceipt": 0,
+        "QualityJourneyScenarioPortfolioRevision": 0,
+        "QualityJourneyScenarioReviewComment": 0,
+        "QualityJourneyScenarioRevision": 0,
+        "QualityJourneyTriageAssignment": 0,
+        "QualityJourneyTriageReport": 0,
+        "QualityJourneyWorkAttempt": 0,
+        "QualityJourneyWorkAuthorization": 0,
+        "QualityJourneyWorkItem": 0,
+        "Report": 0,
+        "ReportFeature": 0,
+        "ReportFeatureTag": 0,
+        "ReportHook": 0,
+        "ReportScenario": 0,
+        "ReportScenarioTag": 0,
+        "ReportStep": 0,
+        "ReportTestCase": 0,
+        "RuntimeCapsule": 0,
+        "RuntimeCapsuleBlob": 0,
+        "RuntimeCapsuleBlobReference": 0,
+        "RuntimeCapsuleExecutionAttempt": 0,
+        "RuntimeCapsuleLease": 0,
+        "StepDefinition": 127,
+        "TargetProject": 0,
+        "TestRun": 0,
+        "TestRunLog": 0,
+        "TestRunTestCase": 0
+      },
+      "nonzero": {
+        "StepDefinition": 127,
+        "StepDefinitionTelemetryEvent": 508,
+        "StepExecutionBinding": 127,
+        "StepHumanProjection": 127,
+        "StepPublicationReceipt": 127,
+        "_prisma_migrations": 88
+      }
+    },
+    "validation": {
+      "localPack": "pass",
+      "installedPackageCreateProject": "pass",
+      "freshDependencies": "pass",
+      "setupEnv": "pass",
+      "generateDbClient": "pass",
+      "guardedMigrateDb": "pass; 88 migrations, none pending",
+      "syncStepDefinitions": "pass; 127 unchanged, 0 errors",
+      "productionBuild": "pass",
+      "installedPanelTest": "pass; 11 tests",
+      "panelHashParity": true
+    },
+    "environmentalRetry": "Initial restricted tooling npm install failed ENOTFOUND registry.npmjs.org; scoped retry passed with network permission.",
+    "logs": {
+      "pack-create.json": {
+        "path": "/Users/jamil/Personal Projects/appraisejs/.appraisejs/c332/fixed-install/pack-create.json",
+        "sha256": "2c66c188615d96f00b632a1ab1c3066dce177559cd90e827782030b98cc9658f"
+      },
+      "tooling-install.log": {
+        "path": "/Users/jamil/Personal Projects/appraisejs/.appraisejs/c332/fixed-install/tooling-install.log",
+        "sha256": "ba2fc43f4fec725dbcb251941b3218d317c8cc99e36411dd9f256756e882f777"
+      },
+      "tooling-install-approved.log": {
+        "path": "/Users/jamil/Personal Projects/appraisejs/.appraisejs/c332/fixed-install/tooling-install-approved.log",
+        "sha256": "b58a174c176548852e7286039e918f557089746989e87da721dfddfe864926e5"
+      },
+      "create-project.log": {
+        "path": "/Users/jamil/Personal Projects/appraisejs/.appraisejs/c332/fixed-install/create-project.log",
+        "sha256": "036183ba3892295d5ceb0f7125439be022d4abf3739eb0b6b381e4731db038d3"
+      },
+      "pre-runtime-db.json": {
+        "path": "/Users/jamil/Personal Projects/appraisejs/.appraisejs/c332/fixed-install/pre-runtime-db.json",
+        "sha256": "29b89206fb693bdea264d998933ab3fbb29ae48e0be09c2796da2310601eab5f"
+      },
+      "install-dependencies.log": {
+        "path": "/Users/jamil/Personal Projects/appraisejs/.appraisejs/c332/fixed-install/install-dependencies.log",
+        "sha256": "100a4cd23e5fdfd3fcf946f3c71c674e8cca3b2859d0c4d8f9254c61ffa5d1d8"
+      },
+      "setup-env.log": {
+        "path": "/Users/jamil/Personal Projects/appraisejs/.appraisejs/c332/fixed-install/setup-env.log",
+        "sha256": "1f8e5cb784de71627cb984a37f5b0731e30234f2b4a937a813873746fc6c5efb"
+      },
+      "generate-db-client.log": {
+        "path": "/Users/jamil/Personal Projects/appraisejs/.appraisejs/c332/fixed-install/generate-db-client.log",
+        "sha256": "d5697ac7b006a2abe33ae600781aa86550c6e706bbb8f1706768246d85a39d0a"
+      },
+      "migrate-db.log": {
+        "path": "/Users/jamil/Personal Projects/appraisejs/.appraisejs/c332/fixed-install/migrate-db.log",
+        "sha256": "4af7b42a0d368f15a97025cfe66fae5ad251812d003ccaed0f77063eb1c23664"
+      },
+      "sync-step-definitions.log": {
+        "path": "/Users/jamil/Personal Projects/appraisejs/.appraisejs/c332/fixed-install/sync-step-definitions.log",
+        "sha256": "14cf3de69758b5ec7c531154583abacfd0eb23cc1f0d1c3e18b704c80622b19e"
+      },
+      "build-local.log": {
+        "path": "/Users/jamil/Personal Projects/appraisejs/.appraisejs/c332/fixed-install/build-local.log",
+        "sha256": "bb43c998ddfe86c83a2261a30c52a8a0db097dc329cd3869e0d5c67102735ebe"
+      },
+      "installed-panel-test.log": {
+        "path": "/Users/jamil/Personal Projects/appraisejs/.appraisejs/c332/fixed-install/installed-panel-test.log",
+        "sha256": "ebc9c05dabb44ffe604d911a298f90325ece1b5fbb16b223989f166b3324eab1"
+      }
+    },
+    "limit": "This fixed installed artifact has not itself performed desktop host acceptance, live Journey actions, or authentication."
+  },
+  "authenticationPreparation": {
+    "manifestSha256": "debb8c5ccfadbfda85754327f84d36eb142638cd2776e8b85b0c3e49e3cd4fb1",
+    "launched": false,
+    "authorization": "not obtained",
+    "limit": "Injected checks and independent preparation review do not attest live authentication or teardown."
+  },
+  "finalFixedInstallation": {
+    "qualification": "C3.3.2 final v2 fresh fixed disposable packaged starter, after strengthened test sync",
+    "createdAtUtc": "2026-10-04T19:16:37.898741+00:00",
+    "sourceHead": "eceba0bf3b5e7247d53a693932e50ee3827030ab",
+    "disposableRoot": "/private/tmp/appraise-c332-fixed-v2-final-elr6sq",
+    "starterPath": "/private/tmp/appraise-c332-fixed-v2-final-elr6sq/starter",
+    "toolingPath": "/private/tmp/appraise-c332-fixed-v2-final-elr6sq/tooling",
+    "installedCliPackagePath": "/private/tmp/appraise-c332-fixed-v2-final-elr6sq/tooling/node_modules/create-appraisejs",
+    "packageName": "create-appraisejs",
+    "packageVersion": "0.4.0",
+    "template": "starter",
+    "packageManager": "npm",
+    "buildId": "Hqtl6hNTrlfAm7BoZr1O8",
+    "files": {
+      "canonicalPanel": {
+        "path": "/Users/jamil/Personal Projects/appraisejs/src/app/(base)/quality-journeys/[journeyId]/coordinator-handoff-panel.tsx",
+        "sha256": "22f6d2d82ddb2bccda63544ec42ff6bfdd6d56eebdb6a47b4402debf4c501d30"
+      },
+      "preparedTemplatePanel": {
+        "path": "/Users/jamil/Personal Projects/appraisejs/packages/create-appraisejs/templates/base/src/app/(base)/quality-journeys/[journeyId]/coordinator-handoff-panel.tsx",
+        "sha256": "22f6d2d82ddb2bccda63544ec42ff6bfdd6d56eebdb6a47b4402debf4c501d30"
+      },
+      "packedTemplatePanel": {
+        "path": "/private/tmp/appraise-c332-fixed-v2-final-elr6sq/tooling/node_modules/create-appraisejs/templates/base/src/app/(base)/quality-journeys/[journeyId]/coordinator-handoff-panel.tsx",
+        "sha256": "22f6d2d82ddb2bccda63544ec42ff6bfdd6d56eebdb6a47b4402debf4c501d30"
+      },
+      "installedStarterPanel": {
+        "path": "/private/tmp/appraise-c332-fixed-v2-final-elr6sq/starter/src/app/(base)/quality-journeys/[journeyId]/coordinator-handoff-panel.tsx",
+        "sha256": "22f6d2d82ddb2bccda63544ec42ff6bfdd6d56eebdb6a47b4402debf4c501d30"
+      },
+      "canonicalPanelTest": {
+        "path": "/Users/jamil/Personal Projects/appraisejs/src/app/(base)/quality-journeys/[journeyId]/coordinator-handoff-panel.test.tsx",
+        "sha256": "51f9ff2cae0c0ad97868c7c6e26d7657ca2cd321f496ed44d038b4325e7ea569"
+      },
+      "preparedTemplatePanelTest": {
+        "path": "/Users/jamil/Personal Projects/appraisejs/packages/create-appraisejs/templates/base/src/app/(base)/quality-journeys/[journeyId]/coordinator-handoff-panel.test.tsx",
+        "sha256": "51f9ff2cae0c0ad97868c7c6e26d7657ca2cd321f496ed44d038b4325e7ea569"
+      },
+      "packedTemplatePanelTest": {
+        "path": "/private/tmp/appraise-c332-fixed-v2-final-elr6sq/tooling/node_modules/create-appraisejs/templates/base/src/app/(base)/quality-journeys/[journeyId]/coordinator-handoff-panel.test.tsx",
+        "sha256": "51f9ff2cae0c0ad97868c7c6e26d7657ca2cd321f496ed44d038b4325e7ea569"
+      },
+      "installedStarterPanelTest": {
+        "path": "/private/tmp/appraise-c332-fixed-v2-final-elr6sq/starter/src/app/(base)/quality-journeys/[journeyId]/coordinator-handoff-panel.test.tsx",
+        "sha256": "51f9ff2cae0c0ad97868c7c6e26d7657ca2cd321f496ed44d038b4325e7ea569"
+      },
+      "installedCreateProject": {
+        "path": "/private/tmp/appraise-c332-fixed-v2-final-elr6sq/tooling/node_modules/create-appraisejs/dist/create-project.js",
+        "sha256": "ddb1f8f18a3c56d9620ea5ea58b24381252bfe398209ae79e882974532539730"
+      },
+      "packedCreateTarball": {
+        "path": "/private/tmp/appraise-c332-fixed-v2-final-elr6sq/create-appraisejs-0.4.0.tgz",
+        "sha256": "c9ab542d2fdc6892305a1368490e0af9a5a7420db3ee2ee314f2616db6b4d897"
+      },
+      "installedBuildIdFile": {
+        "path": "/private/tmp/appraise-c332-fixed-v2-final-elr6sq/starter/.next/BUILD_ID",
+        "sha256": "1c27ef17122827d56d6f75c53de2abda4714706b37a2d262ba73335f3994ba30"
+      },
+      "installedDatabase": {
+        "path": "/private/tmp/appraise-c332-fixed-v2-final-elr6sq/starter/prisma/dev.db",
+        "sha256": "817edfed92a3bce0aae071c9d6121a7595bffe5d04469e6f3e3e8b6e065dd57f"
+      }
+    },
+    "preRuntimeDatabase": {
+      "path": "/private/tmp/appraise-c332-fixed-v2-final-elr6sq/starter/prisma/dev.db",
+      "tableCount": 118,
+      "nonzero": {
+        "StepDefinition": 127,
+        "StepDefinitionTelemetryEvent": 508,
+        "StepExecutionBinding": 127,
+        "StepHumanProjection": 127,
+        "StepPublicationReceipt": 127,
+        "_prisma_migrations": 88
+      },
+      "runtimeRelated": {
+        "AgentPreflightReceipt": 0,
+        "CollaborationAttempt": 0,
+        "CollaborationAuthorityReceipt": 0,
+        "CollaborationBaseline": 0,
+        "CollaborationBinding": 0,
+        "CollaborationDecision": 0,
+        "CollaborationEntityMap": 0,
+        "CollaborationEnvironmentMapping": 0,
+        "CollaborationHandoffTicket": 0,
+        "CollaborationJournalEntry": 0,
+        "CollaborationMutationLock": 0,
+        "CollaborationNotification": 0,
+        "CollaborationOperation": 0,
+        "CollaborationOperationArtifact": 0,
+        "CollaborationOperationStep": 0,
+        "CollaborationPolicyGrant": 0,
+        "CollaborationReuseAsset": 0,
+        "CollaborationWorker": 0,
+        "QualityJourney": 0,
+        "QualityJourneyAnalysisAnswer": 0,
+        "QualityJourneyAnalysisDecision": 0,
+        "QualityJourneyAnalysisPublication": 0,
+        "QualityJourneyAnalysisQuestion": 0,
+        "QualityJourneyAnalysisRevision": 0,
+        "QualityJourneyArtifact": 0,
+        "QualityJourneyArtifactLink": 0,
+        "QualityJourneyAutomationMaterialization": 0,
+        "QualityJourneyAutomationMaterializationBinding": 0,
+        "QualityJourneyAutomationRequestReceipt": 0,
+        "QualityJourneyAutomationTargetBinding": 0,
+        "QualityJourneyBlocker": 0,
+        "QualityJourneyClosure": 0,
+        "QualityJourneyCommand": 0,
+        "QualityJourneyCoordinatorHandoff": 0,
+        "QualityJourneyCycle": 0,
+        "QualityJourneyDiscoveryRevision": 0,
+        "QualityJourneyDraft": 0,
+        "QualityJourneyDraftReuseAnnotation": 0,
+        "QualityJourneyEvent": 0,
+        "QualityJourneyExecutionCancellationReceipt": 0,
+        "QualityJourneyExecutionConsent": 0,
+        "QualityJourneyExecutionCycle": 0,
+        "QualityJourneyExecutionEvidenceReceipt": 0,
+        "QualityJourneyExecutionRerunProposal": 0,
+        "QualityJourneyExecutionTestRun": 0,
+        "QualityJourneyExternalSubmissionAcceptance": 0,
+        "QualityJourneyExternalWorkClaimReceipt": 0,
+        "QualityJourneyOwnedBrowser": 0,
+        "QualityJourneyPreparedRuntimeCapsule": 0,
+        "QualityJourneyReportReview": 0,
+        "QualityJourneyReuseSeed": 0,
+        "QualityJourneyRevision": 0,
+        "QualityJourneyScenarioDecision": 0,
+        "QualityJourneyScenarioDecisionReceipt": 0,
+        "QualityJourneyScenarioPortfolioRevision": 0,
+        "QualityJourneyScenarioReviewComment": 0,
+        "QualityJourneyScenarioRevision": 0,
+        "QualityJourneyTriageAssignment": 0,
+        "QualityJourneyTriageReport": 0,
+        "QualityJourneyWorkAttempt": 0,
+        "QualityJourneyWorkAuthorization": 0,
+        "QualityJourneyWorkItem": 0,
+        "Report": 0,
+        "ReportFeature": 0,
+        "ReportFeatureTag": 0,
+        "ReportHook": 0,
+        "ReportScenario": 0,
+        "ReportScenarioTag": 0,
+        "ReportStep": 0,
+        "ReportTestCase": 0,
+        "RuntimeCapsule": 0,
+        "RuntimeCapsuleBlob": 0,
+        "RuntimeCapsuleBlobReference": 0,
+        "RuntimeCapsuleExecutionAttempt": 0,
+        "RuntimeCapsuleLease": 0,
+        "StepDefinition": 127,
+        "TargetProject": 0,
+        "TestRun": 0,
+        "TestRunLog": 0,
+        "TestRunTestCase": 0
+      }
+    },
+    "postBuildDatabase": {
+      "tableCount": 118,
+      "runtimeRelated": {
+        "AgentPreflightReceipt": 0,
+        "CollaborationAttempt": 0,
+        "CollaborationAuthorityReceipt": 0,
+        "CollaborationBaseline": 0,
+        "CollaborationBinding": 0,
+        "CollaborationDecision": 0,
+        "CollaborationEntityMap": 0,
+        "CollaborationEnvironmentMapping": 0,
+        "CollaborationHandoffTicket": 0,
+        "CollaborationJournalEntry": 0,
+        "CollaborationMutationLock": 0,
+        "CollaborationNotification": 0,
+        "CollaborationOperation": 0,
+        "CollaborationOperationArtifact": 0,
+        "CollaborationOperationStep": 0,
+        "CollaborationPolicyGrant": 0,
+        "CollaborationReuseAsset": 0,
+        "CollaborationWorker": 0,
+        "QualityJourney": 0,
+        "QualityJourneyAnalysisAnswer": 0,
+        "QualityJourneyAnalysisDecision": 0,
+        "QualityJourneyAnalysisPublication": 0,
+        "QualityJourneyAnalysisQuestion": 0,
+        "QualityJourneyAnalysisRevision": 0,
+        "QualityJourneyArtifact": 0,
+        "QualityJourneyArtifactLink": 0,
+        "QualityJourneyAutomationMaterialization": 0,
+        "QualityJourneyAutomationMaterializationBinding": 0,
+        "QualityJourneyAutomationRequestReceipt": 0,
+        "QualityJourneyAutomationTargetBinding": 0,
+        "QualityJourneyBlocker": 0,
+        "QualityJourneyClosure": 0,
+        "QualityJourneyCommand": 0,
+        "QualityJourneyCoordinatorHandoff": 0,
+        "QualityJourneyCycle": 0,
+        "QualityJourneyDiscoveryRevision": 0,
+        "QualityJourneyDraft": 0,
+        "QualityJourneyDraftReuseAnnotation": 0,
+        "QualityJourneyEvent": 0,
+        "QualityJourneyExecutionCancellationReceipt": 0,
+        "QualityJourneyExecutionConsent": 0,
+        "QualityJourneyExecutionCycle": 0,
+        "QualityJourneyExecutionEvidenceReceipt": 0,
+        "QualityJourneyExecutionRerunProposal": 0,
+        "QualityJourneyExecutionTestRun": 0,
+        "QualityJourneyExternalSubmissionAcceptance": 0,
+        "QualityJourneyExternalWorkClaimReceipt": 0,
+        "QualityJourneyOwnedBrowser": 0,
+        "QualityJourneyPreparedRuntimeCapsule": 0,
+        "QualityJourneyReportReview": 0,
+        "QualityJourneyReuseSeed": 0,
+        "QualityJourneyRevision": 0,
+        "QualityJourneyScenarioDecision": 0,
+        "QualityJourneyScenarioDecisionReceipt": 0,
+        "QualityJourneyScenarioPortfolioRevision": 0,
+        "QualityJourneyScenarioReviewComment": 0,
+        "QualityJourneyScenarioRevision": 0,
+        "QualityJourneyTriageAssignment": 0,
+        "QualityJourneyTriageReport": 0,
+        "QualityJourneyWorkAttempt": 0,
+        "QualityJourneyWorkAuthorization": 0,
+        "QualityJourneyWorkItem": 0,
+        "Report": 0,
+        "ReportFeature": 0,
+        "ReportFeatureTag": 0,
+        "ReportHook": 0,
+        "ReportScenario": 0,
+        "ReportScenarioTag": 0,
+        "ReportStep": 0,
+        "ReportTestCase": 0,
+        "RuntimeCapsule": 0,
+        "RuntimeCapsuleBlob": 0,
+        "RuntimeCapsuleBlobReference": 0,
+        "RuntimeCapsuleExecutionAttempt": 0,
+        "RuntimeCapsuleLease": 0,
+        "StepDefinition": 127,
+        "TargetProject": 0,
+        "TestRun": 0,
+        "TestRunLog": 0,
+        "TestRunTestCase": 0
+      },
+      "nonzero": {
+        "StepDefinition": 127,
+        "StepDefinitionTelemetryEvent": 508,
+        "StepExecutionBinding": 127,
+        "StepHumanProjection": 127,
+        "StepPublicationReceipt": 127,
+        "_prisma_migrations": 88
+      }
+    },
+    "validation": {
+      "localPack": "pass",
+      "installedPackageCreateProject": "pass",
+      "freshDependencies": "pass",
+      "setupEnv": "pass",
+      "generateDbClient": "pass",
+      "guardedMigrateDb": "pass; 88 migrations, none pending",
+      "syncStepDefinitions": "pass; 127 unchanged, 0 errors",
+      "productionBuild": "pass",
+      "installedPanelTest": "pass; 12 tests",
+      "panelHashParity": true,
+      "panelTestHashParity": true
+    },
+    "supersededCandidate": "/private/tmp/appraise-c332-fixed-v2-ll38Hs; packed before final strengthened test template sync, not dependency-installed or built",
+    "logs": {
+      "final-pack-create.json": {
+        "path": "/Users/jamil/Personal Projects/appraisejs/.appraisejs/c332/fixed-install-v2/final-pack-create.json",
+        "sha256": "c710d6d4b65fb12b68935632894037a33ee3cefecd7bdedfda107bdcd98142e3"
+      },
+      "final-tooling-install.log": {
+        "path": "/Users/jamil/Personal Projects/appraisejs/.appraisejs/c332/fixed-install-v2/final-tooling-install.log",
+        "sha256": "cd650272cc4db394600336ca7f347c092de830776b562aaaa0b54d9c6a3c0dca"
+      },
+      "final-create-project.log": {
+        "path": "/Users/jamil/Personal Projects/appraisejs/.appraisejs/c332/fixed-install-v2/final-create-project.log",
+        "sha256": "e5f8cbcb9ce11f1d31e569c6ee7f315477988d1abead2178c4473f0e0ac8ec7d"
+      },
+      "final-pre-runtime-db.json": {
+        "path": "/Users/jamil/Personal Projects/appraisejs/.appraisejs/c332/fixed-install-v2/final-pre-runtime-db.json",
+        "sha256": "90c8e8b246936e749cb9a20c31c5c146f33b3e2545043667a4cbac95691c95cc"
+      },
+      "final-install-dependencies.log": {
+        "path": "/Users/jamil/Personal Projects/appraisejs/.appraisejs/c332/fixed-install-v2/final-install-dependencies.log",
+        "sha256": "7bc66fe8f1016d0ebcf72ece21fd5b0d5c745b10a955631f702237f061ca66b8"
+      },
+      "final-setup-env.log": {
+        "path": "/Users/jamil/Personal Projects/appraisejs/.appraisejs/c332/fixed-install-v2/final-setup-env.log",
+        "sha256": "1f8e5cb784de71627cb984a37f5b0731e30234f2b4a937a813873746fc6c5efb"
+      },
+      "final-generate-db-client.log": {
+        "path": "/Users/jamil/Personal Projects/appraisejs/.appraisejs/c332/fixed-install-v2/final-generate-db-client.log",
+        "sha256": "965d1a248513626bce91f4a4fdc18fb752659adb32a5316999e8750846cfb648"
+      },
+      "final-migrate-db.log": {
+        "path": "/Users/jamil/Personal Projects/appraisejs/.appraisejs/c332/fixed-install-v2/final-migrate-db.log",
+        "sha256": "4af7b42a0d368f15a97025cfe66fae5ad251812d003ccaed0f77063eb1c23664"
+      },
+      "final-sync-step-definitions.log": {
+        "path": "/Users/jamil/Personal Projects/appraisejs/.appraisejs/c332/fixed-install-v2/final-sync-step-definitions.log",
+        "sha256": "14cf3de69758b5ec7c531154583abacfd0eb23cc1f0d1c3e18b704c80622b19e"
+      },
+      "final-build-local.log": {
+        "path": "/Users/jamil/Personal Projects/appraisejs/.appraisejs/c332/fixed-install-v2/final-build-local.log",
+        "sha256": "378fcaa1e570905ee0c209ef87901938305a833b78833db1a955e2c1d766ce82"
+      },
+      "final-installed-panel-test.log": {
+        "path": "/Users/jamil/Personal Projects/appraisejs/.appraisejs/c332/fixed-install-v2/final-installed-panel-test.log",
+        "sha256": "7a1ffb5ed4790702a24503c8f070327b1e2703117ba25a5a77501e466842e340"
+      }
+    },
+    "limit": "This final installed artifact has not itself performed desktop host acceptance, live Journey actions, or authentication."
+  }
+}

@@ -134,6 +134,19 @@ it('prepares a safe prompt, launches through the registered provider, and redeem
   ).resolves.toMatchObject({
     handoff: { status: 'CONNECTED' },
   })
+  await client.targetProject.create({
+    data: {
+      id: 'other-target',
+      kind: 'LOCAL_WORKSPACE',
+      canonicalIdentity: 'workspace:other-handoff',
+      canonicalPath: path.join(directory, 'other'),
+      displayName: 'Other handoff target',
+      fingerprint: 'other-handoff',
+    },
+  })
+  await expect(inspectQualityJourneyHandoff({ journeyId, targetProjectId: 'other-target' }, client)).resolves.toEqual({
+    handoff: null,
+  })
 })
 
 it('round-trips reserved and Unicode target/path characters without query injection', async () => {
