@@ -1,0 +1,139 @@
+{
+  "schema": "appraise.p0-r2f-auth-preflight/v1",
+  "fixturePassed": true,
+  "providerQualified": false,
+  "results": [
+    {
+      "arm": "refresh-success",
+      "fixturePassed": true,
+      "receipt": {
+        "canaryDenied": true,
+        "cleanupConfirmed": true,
+        "survivingProcessCount": 0,
+        "configSha256": "aa9d2d060578e481ec04df906b6c3f330ad505d7db6538838f872a04f9560411",
+        "executableSha256": "4f85982624b3898c8991cb80c0981b2aa71070e3537046c9a95950318a95afcc",
+        "sourceSha256": {
+          "/Users/jamil/Personal Projects/appraisejs/scripts/qualify-p0-r2f-auth.mjs": "0c3a233098a3a985925485231b855984d0670250136f32c2f7161f5944a3eb74",
+          "/Users/jamil/Personal Projects/appraisejs/scripts/lib/p0-r2c-dynamic-tools-experiment.mjs": "145105f49e3f85d363be1074b1a47ffe2bd58b6ef20c166bbfd943f018cd9baa",
+          "/Users/jamil/Personal Projects/appraisejs/scripts/lib/p0-r2d-interlock-experiment.mjs": "aca4baa3235b46726177ee871d545c3e266b9167435fa271573d65234182ad08",
+          "/Users/jamil/Personal Projects/appraisejs/scripts/lib/managed-journey-isolated-launch.mjs": "21560316b9693e49f79c8cd4df929292ef135c4e167e88ec7d7e4b94b3081af0"
+        },
+        "mcpConfigured": false,
+        "providerQualified": false,
+        "modelVisibleToolsEmpty": true,
+        "modelVisibleToolManifest": [
+          [],
+          []
+        ],
+        "refresh": {
+          "count": 1,
+          "errorSent": false,
+          "successSent": true
+        },
+        "requestMethods": [
+          "POST",
+          "POST"
+        ],
+        "requestAuthorizationExpected": [
+          true,
+          true
+        ],
+        "requestBodyByteLength": [
+          22542,
+          22542
+        ],
+        "retryBodyBytesEqual": false,
+        "requestBodySha256": [
+          "ce007a7b5fac7da91030e0b69151c5995395e9c99d0572372edad4d97a4472bb",
+          "385ce5fc81b8cb2146f54e6ec8cefead2bc2cc8c0230cd3a33e0badae3b2e169"
+        ],
+        "retryBodyDifference": {
+          "canonicalJsonEqual": true,
+          "differences": [],
+          "inputUnchanged": true,
+          "modelUnchanged": true,
+          "toolsUnchanged": true
+        },
+        "requestCount": 2,
+        "observedPaths": [
+          {
+            "method": "GET",
+            "pathname": "/v1/models"
+          },
+          {
+            "method": "GET",
+            "pathname": "/backend-api/wham/settings/user"
+          },
+          {
+            "method": "POST",
+            "pathname": "/v1/responses"
+          },
+          {
+            "method": "POST",
+            "pathname": "/v1/responses"
+          }
+        ],
+        "turnStatus": "completed"
+      }
+    },
+    {
+      "arm": "refresh-error",
+      "fixturePassed": true,
+      "receipt": {
+        "canaryDenied": true,
+        "cleanupConfirmed": true,
+        "survivingProcessCount": 0,
+        "configSha256": "c6067aead7d144a8baa5443b4e826b58e3da6ed32ed0fbd72a0670f0552b9176",
+        "executableSha256": "4f85982624b3898c8991cb80c0981b2aa71070e3537046c9a95950318a95afcc",
+        "sourceSha256": {
+          "/Users/jamil/Personal Projects/appraisejs/scripts/qualify-p0-r2f-auth.mjs": "0c3a233098a3a985925485231b855984d0670250136f32c2f7161f5944a3eb74",
+          "/Users/jamil/Personal Projects/appraisejs/scripts/lib/p0-r2c-dynamic-tools-experiment.mjs": "145105f49e3f85d363be1074b1a47ffe2bd58b6ef20c166bbfd943f018cd9baa",
+          "/Users/jamil/Personal Projects/appraisejs/scripts/lib/p0-r2d-interlock-experiment.mjs": "aca4baa3235b46726177ee871d545c3e266b9167435fa271573d65234182ad08",
+          "/Users/jamil/Personal Projects/appraisejs/scripts/lib/managed-journey-isolated-launch.mjs": "21560316b9693e49f79c8cd4df929292ef135c4e167e88ec7d7e4b94b3081af0"
+        },
+        "mcpConfigured": false,
+        "providerQualified": false,
+        "modelVisibleToolsEmpty": true,
+        "modelVisibleToolManifest": [
+          []
+        ],
+        "refresh": {
+          "count": 1,
+          "errorSent": true,
+          "successSent": false
+        },
+        "requestMethods": [
+          "POST"
+        ],
+        "requestAuthorizationExpected": [
+          true
+        ],
+        "requestBodyByteLength": [
+          22542
+        ],
+        "retryBodyBytesEqual": null,
+        "requestBodySha256": [
+          "2f8fdf0dac19e9d29f8d0b6dbe3d99aaf1e9de6e6e42fbcab31ab00eb9f1e30c"
+        ],
+        "retryBodyDifference": null,
+        "requestCount": 1,
+        "observedPaths": [
+          {
+            "method": "GET",
+            "pathname": "/v1/models"
+          },
+          {
+            "method": "GET",
+            "pathname": "/backend-api/wham/settings/user"
+          },
+          {
+            "method": "POST",
+            "pathname": "/v1/responses"
+          }
+        ],
+        "turnStatus": "failed"
+      }
+    }
+  ],
+  "receiptSubjectSha256": "9ffb0fed6e6e14c08365b51dc677b7400c748c20ea3650a85f40d51963d35573"
+}

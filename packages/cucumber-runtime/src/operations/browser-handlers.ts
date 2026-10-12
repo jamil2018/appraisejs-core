@@ -5,6 +5,7 @@ import { operationContentHash } from './contracts.ts'
 import type { OperationDefinition } from './contracts.ts'
 import { waitForRouteSettled, withReviewedSelectorResolver } from '../locator.util.ts'
 import { builtinBrowserOperations } from './builtins/index.ts'
+import { handlerSourceHash } from './handler-source-hash.ts'
 import type { CustomWorld } from '../world.ts'
 import { assertSealedPageOrigin, resolveSealedNavigationUrl, SealedOriginError } from './sealed-origin.ts'
 
@@ -312,29 +313,16 @@ const builtinHandlers = Object.fromEntries(
 ) as Record<string, BrowserOperationHandler>
 
 const handlers = { ...managedHandlers, ...builtinHandlers } as Record<string, BrowserOperationHandler>
-const builtinHandlerImplementations = Object.fromEntries(
-  builtinBrowserOperations.map(operation => {
-    const ref = `${operation.id}@${operation.version}`
-    return [
-      ref,
-      {
-        adapter: builtinHandlers[ref]?.toString(),
-        implementation: operation.execute.toString(),
-      },
-    ]
-  }),
-) as Record<string, { adapter: string | undefined; implementation: string }>
-
 export type BrowserOperationRef = string
 
 export const browserOperationHandlerDescriptors = Object.fromEntries(
-  Object.entries(handlers).map(([ref, execute]) => [
+  Object.keys(handlers).map(ref => [
     ref,
     {
       ref,
       contentHash: operationContentHash({
         ref,
-        implementation: builtinHandlerImplementations[ref] ?? execute.toString(),
+        implementationSourceHash: handlerSourceHash,
       }),
     },
   ]),

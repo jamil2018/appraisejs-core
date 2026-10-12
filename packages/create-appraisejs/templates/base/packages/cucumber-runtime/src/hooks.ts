@@ -1,5 +1,6 @@
 import { After, AfterAll, AfterStep, Before, BeforeAll, setDefaultTimeout } from '@cucumber/cucumber'
 import { config } from 'dotenv'
+import { fstatSync, writeSync } from 'node:fs'
 import { promises as fs } from 'fs'
 import { chromium, firefox, webkit, ChromiumBrowser, FirefoxBrowser, WebKitBrowser } from 'playwright'
 import { getAutomationScreenshotDir, getAutomationTraceDir, toProjectRelativePath } from './paths.ts'
@@ -10,26 +11,58 @@ import { CustomWorld } from './world.ts'
 config()
 
 const SCREENSHOT_ATTACHMENT_MEDIA_TYPE = 'application/vnd.appraisejs.report-step-screenshot+json'
-let browser: ChromiumBrowser | FirefoxBrowser | WebKitBrowser
+type RuntimeBrowser = ChromiumBrowser | FirefoxBrowser | WebKitBrowser
+let browser: RuntimeBrowser
+let launchPromise: Promise<RuntimeBrowser> | undefined
+let closePromise: Promise<void> | undefined
 let currentScenarioStatus = 'unknown'
+
+// The managed supervisor supplies a private pipe at fd 3. Ordinary runtimes
+// have no such pipe; a Node IPC socket is deliberately never written to.
+function reportBrowserState(state: 'launch-intent' | 'closed'): void {
+  try {
+    if (process.channel) return
+    const descriptor = fstatSync(3)
+    if (descriptor.isFIFO() || descriptor.isSocket()) writeSync(3, `appraise.browser.${state}.v1\n`)
+  } catch {
+    // An absent private pipe is normal for direct, non-managed Cucumber runs.
+  }
+}
+
+async function closeBrowser(): Promise<void> {
+  if (!launchPromise) return
+  closePromise ??= (async () => {
+    const launched = await launchPromise
+    await launched.close()
+    reportBrowserState('closed')
+  })()
+  await closePromise
+}
+
+if (process.platform !== 'win32') {
+  process.on('SIGTERM', () => {
+    if (!launchPromise) return
+    void closeBrowser().finally(() => process.exit(143))
+  })
+}
 
 BeforeAll(async function () {
   setDefaultTimeout(60000)
   const browserName = (process.env.BROWSER as BrowserName) || 'chromium'
-
-  switch (browserName) {
-    case 'chromium':
-      browser = await chromium.launch({ headless: process.env.HEADLESS === 'true' })
-      break
-    case 'firefox':
-      browser = await firefox.launch({ headless: process.env.HEADLESS === 'true' })
-      break
-    case 'webkit':
-      browser = await webkit.launch({ headless: process.env.HEADLESS === 'true' })
-      break
-    default:
-      throw new Error(`Invalid browser name: ${browserName}`)
-  }
+  reportBrowserState('launch-intent')
+  launchPromise = (async () => {
+    switch (browserName) {
+      case 'chromium':
+        return chromium.launch({ headless: process.env.HEADLESS === 'true', handleSIGTERM: false })
+      case 'firefox':
+        return firefox.launch({ headless: process.env.HEADLESS === 'true', handleSIGTERM: false })
+      case 'webkit':
+        return webkit.launch({ headless: process.env.HEADLESS === 'true', handleSIGTERM: false })
+      default:
+        throw new Error(`Invalid browser name: ${browserName}`)
+    }
+  })()
+  browser = await launchPromise
 })
 
 Before(async function (this: CustomWorld) {
@@ -129,5 +162,5 @@ After(async function (this: CustomWorld, scenario) {
 })
 
 AfterAll(async function () {
-  await browser.close()
+  await closeBrowser()
 })

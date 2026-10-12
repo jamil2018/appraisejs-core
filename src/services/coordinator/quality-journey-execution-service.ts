@@ -1,4 +1,4 @@
-import { assertQualityJourneyMutable } from './quality-journey-terminal'
+import { assertQualityJourneyMutable, assertQualityJourneyRecoverable } from './quality-journey-terminal'
 import { createHash, randomUUID } from 'node:crypto'
 import type { Prisma, PrismaClient } from '@prisma/client'
 import prisma from '@/config/db-config'
@@ -8,6 +8,7 @@ import {
   hashQualityJourneyExecutionValue,
   qualityJourneyExecutionCancelSchema,
   qualityJourneyExecutionConsentGrantSchema,
+  qualityJourneyExecutionConsentRevokeSchema,
   qualityJourneyExecutionConsentScopeSchema,
   qualityJourneyExecutionReadSchema,
   qualityJourneyExecutionReconcileSchema,
@@ -18,6 +19,11 @@ import {
   type QualityJourneyExecutionRuntimeAdapter,
 } from '@/lib/quality-journey'
 import { ServiceError } from '@/services/shared/errors'
+import {
+  assertCoordinatorMutationSession,
+  assertCoordinatorRecoverySession,
+  type CoordinatorSessionCredentials,
+} from './quality-journey-coordinator-session'
 import { freezeJourneyExecutionEnvironment } from '@/lib/quality-journey/execution-environment'
 import { classifyJourneyExecutionEffects } from '@/lib/quality-journey/execution-effects'
 import { processManager } from '@/lib/test-run/process-manager'
@@ -145,12 +151,17 @@ async function freezePreparedCapsules(
 }
 
 function consentScope(input: {
+  journeyId: string
+  journeyCycleId: string
+  journeyStateHash: string
   targetProjectId: string
   targetFingerprint: string
   environmentId: string
   environmentSnapshotHash: string
   browserEngine: 'CHROMIUM' | 'FIREFOX' | 'WEBKIT'
   frozen: Awaited<ReturnType<typeof freezePreparedCapsules>>
+  proposalId?: string
+  predecessorExecutionCycleId?: string
 }) {
   const actions = [...new Set(input.frozen.flatMap(capsule => capsule.actions ?? ['UNKNOWN_FROZEN_EFFECT']))].sort()
   return qualityJourneyExecutionConsentScopeSchema.parse({
@@ -159,6 +170,19 @@ function consentScope(input: {
     targetProjectId: input.targetProjectId,
     targetFingerprint: input.targetFingerprint,
     environmentSnapshotHash: input.environmentSnapshotHash,
+    executionInputsHash: hash({
+      journeyId: input.journeyId,
+      journeyCycleId: input.journeyCycleId,
+      journeyStateHash: input.journeyStateHash,
+      targetProjectId: input.targetProjectId,
+      targetFingerprint: input.targetFingerprint,
+      environmentId: input.environmentId,
+      environmentSnapshotHash: input.environmentSnapshotHash,
+      browserEngine: input.browserEngine,
+      frozen: input.frozen,
+      proposalId: input.proposalId ?? null,
+      predecessorExecutionCycleId: input.predecessorExecutionCycleId ?? null,
+    }),
     preparedRuntimeCapsuleIds: input.frozen.map(item => item.preparedCapsuleId),
     actions: actions.length ? actions : ['READ_ONLY_EXECUTION'],
     resourceHashes: Object.fromEntries(input.frozen.map(item => [item.preparedCapsuleId, hash(item.resourceHashes)])),
@@ -316,12 +340,17 @@ async function reserveExecution(
           targetProjectId: input.targetProjectId,
           consentId: input.executionConsentId,
           scope: consentScope({
+            journeyId: input.journeyId,
+            journeyCycleId: journey.activeCycleId,
+            journeyStateHash: journey.stateHash,
             targetProjectId: input.targetProjectId,
             targetFingerprint: target.fingerprint,
             environmentId: input.environmentId,
             environmentSnapshotHash: environmentSnapshot.hash,
             browserEngine: input.browserEngine,
             frozen,
+            proposalId: extra.proposalId,
+            predecessorExecutionCycleId: extra.predecessorExecutionCycleId,
           }),
           executionCycleId,
         },
@@ -602,7 +631,7 @@ async function persistExecutionReservation(input: {
           })),
           payload: {
             runtimeCapsuleIds: frozen.map(item => item.preparedCapsuleId),
-            ...(request.executionConsentId ? { executionConsentId: request.executionConsentId } : {}),
+            ...(consumedConsentId ? { executionConsentId: consumedConsentId } : {}),
           },
         },
         tx,
@@ -619,9 +648,16 @@ async function persistExecutionReservation(input: {
   return { replayed: false, executionCycleId }
 }
 
-export async function startQualityJourneyExecution(value: unknown, client: PrismaClient = prisma) {
+export async function startQualityJourneyExecution(
+  value: unknown,
+  client: PrismaClient = prisma,
+  coordinatorSession?: CoordinatorSessionCredentials,
+) {
   const input = qualityJourneyExecutionStartSchema.parse(value)
-  const result = await client.$transaction(tx => reserveExecution(input, tx))
+  const result = await client.$transaction(async tx => {
+    await assertCoordinatorMutationSession(coordinatorSession, input, tx)
+    return reserveExecution(input, tx)
+  })
   if ('consentRequired' in result) return result
   if (!result.executionCycleId) throw conflict('Execution reservation did not produce a cycle identifier.')
   await runtimeAdapter.start({ executionCycleId: result.executionCycleId })
@@ -656,7 +692,10 @@ export async function getQualityJourneyExecution(value: unknown, client: PrismaC
       environmentId: cycle.environmentId,
       browserEngine: cycle.browserEngine,
       testRuns: cycle.testRuns.map(binding => {
-        const active = ['LAUNCHING', 'RUNNING'].includes(binding.status) || binding.testRun.status === 'RUNNING'
+        const active =
+          ['RESERVED', 'RUNNING', 'CANCELLING'].includes(cycle.status) &&
+          !['COMPLETED', 'CANCELLED'].includes(binding.testRun.status) &&
+          (['LAUNCHING', 'RUNNING'].includes(binding.status) || binding.testRun.status === 'RUNNING')
         return {
           testRunId: binding.testRunId,
           runId: binding.runId,
@@ -702,7 +741,8 @@ export async function grantQualityJourneyExecutionConsent(value: unknown, client
       !consent ||
       consent.scopeHash !== input.expectedScopeHash ||
       consent.status !== 'REQUESTED' ||
-      consent.grantSource !== 'UI'
+      consent.grantSource !== 'UI' ||
+      consent.revokedAt
     )
       throw conflict('Execution consent cannot be granted for this scope.')
     return tx.qualityJourneyExecutionConsent.update({
@@ -712,11 +752,37 @@ export async function grantQualityJourneyExecutionConsent(value: unknown, client
   })
 }
 
-export async function cancelQualityJourneyExecution(value: unknown, client: PrismaClient = prisma) {
+export async function revokeQualityJourneyExecutionConsent(value: unknown, client: PrismaClient = prisma) {
+  const input = qualityJourneyExecutionConsentRevokeSchema.parse(value)
+  return client.$transaction(async tx => {
+    assertQualityJourneyMutable(await scopedJourney(input, tx))
+    const consent = await tx.qualityJourneyExecutionConsent.findFirst({
+      where: { id: input.executionConsentId, journeyId: input.journeyId, targetProjectId: input.targetProjectId },
+    })
+    if (!consent || consent.scopeHash !== input.expectedScopeHash || consent.grantSource !== 'UI')
+      throw conflict('Execution consent cannot be revoked for this scope.')
+    if (consent.status === 'REVOKED' && consent.revokedAt) return consent
+    if (!['REQUESTED', 'GRANTED'].includes(consent.status) || consent.usedAt || consent.executionCycleId)
+      throw conflict('Consumed execution consent requires execution cancellation.')
+    const changed = await tx.qualityJourneyExecutionConsent.updateMany({
+      where: { id: consent.id, status: consent.status, usedAt: null, revokedAt: null, executionCycleId: null },
+      data: { status: 'REVOKED', revokedAt: new Date() },
+    })
+    if (changed.count !== 1) throw conflict('Execution consent changed during revocation.')
+    return tx.qualityJourneyExecutionConsent.findUniqueOrThrow({ where: { id: consent.id } })
+  })
+}
+
+export async function cancelQualityJourneyExecution(
+  value: unknown,
+  client: PrismaClient = prisma,
+  coordinatorSession?: CoordinatorSessionCredentials,
+) {
   const input = qualityJourneyExecutionCancelSchema.parse(value)
   const cycle = await client.$transaction(async tx => {
+    await assertCoordinatorRecoverySession(coordinatorSession, input, tx)
     const journey = await scopedJourney(input, tx)
-    assertQualityJourneyMutable(journey)
+    assertQualityJourneyRecoverable(journey)
     const requestHash = hash(input)
     const replay = await tx.qualityJourneyExecutionCancellationReceipt.findFirst({
       where: { journeyId: input.journeyId, idempotencyKey: input.idempotencyKey },
@@ -776,10 +842,15 @@ async function cancelsEntireExecutionCycle(
   return found === total
 }
 
-export async function reconcileQualityJourneyExecution(value: unknown, client: PrismaClient = prisma) {
+export async function reconcileQualityJourneyExecution(
+  value: unknown,
+  client: PrismaClient = prisma,
+  coordinatorSession?: CoordinatorSessionCredentials,
+) {
   const input = qualityJourneyExecutionReconcileSchema.parse(value)
   const cycle = await client.$transaction(async tx => {
-    assertQualityJourneyMutable(await scopedJourney(input, tx))
+    await assertCoordinatorRecoverySession(coordinatorSession, input, tx)
+    assertQualityJourneyRecoverable(await scopedJourney(input, tx))
     return scopedExecutionCycle(input, tx)
   })
   await runtimeAdapter.reconcile({ executionCycleId: cycle.id })
@@ -789,9 +860,14 @@ export async function reconcileQualityJourneyExecution(value: unknown, client: P
   )
 }
 
-export async function proposeQualityJourneyRerun(value: unknown, client: PrismaClient = prisma) {
+export async function proposeQualityJourneyRerun(
+  value: unknown,
+  client: PrismaClient = prisma,
+  coordinatorSession?: CoordinatorSessionCredentials,
+) {
   const input = qualityJourneyRerunProposalSchema.parse(value)
   return client.$transaction(async tx => {
+    await assertCoordinatorMutationSession(coordinatorSession, input, tx)
     assertQualityJourneyMutable(await scopedJourney(input, tx))
     const source = await tx.qualityJourneyExecutionCycle.findFirst({
       where: {
@@ -874,9 +950,14 @@ export async function approveQualityJourneyRerun(value: unknown, client: PrismaC
   })
 }
 
-export async function startQualityJourneyRerun(value: unknown, client: PrismaClient = prisma) {
+export async function startQualityJourneyRerun(
+  value: unknown,
+  client: PrismaClient = prisma,
+  coordinatorSession?: CoordinatorSessionCredentials,
+) {
   const input = qualityJourneyRerunStartSchema.parse(value)
   const result = await client.$transaction(async tx => {
+    await assertCoordinatorMutationSession(coordinatorSession, input, tx)
     const proposal = await tx.qualityJourneyExecutionRerunProposal.findFirst({
       where: { id: input.proposalId, journeyId: input.journeyId, targetProjectId: input.targetProjectId },
     })

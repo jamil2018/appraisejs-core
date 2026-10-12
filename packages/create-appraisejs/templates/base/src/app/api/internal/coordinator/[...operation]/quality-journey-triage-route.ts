@@ -9,10 +9,13 @@ import { readQualityJourneyTriageEvidence } from '@/services/coordinator/quality
 import {
   getQualityJourneyTriage,
   prepareQualityJourneyTriage,
+  submitExternalQualityJourneyTriageReport,
   submitQualityJourneyTriageReport,
 } from '@/services/coordinator/quality-journey-triage-service'
 import { ServiceError } from '@/services/shared/errors'
 import { resolveTargetProject } from '@/services/target-project/target-project-service'
+import type { CoordinatorSessionCredentials } from '@/services/coordinator/quality-journey-coordinator-session'
+import type { ExternalAnalyzerProjectPrincipal } from '@/services/coordinator/quality-journey-service'
 
 const target = z.string().min(1)
 const envelope = z.object({ target }).passthrough()
@@ -47,10 +50,16 @@ export async function getQualityJourneyTriageRoute(
   return Response.json(await getQualityJourneyTriage({ journeyId: operation[2]!, targetProjectId: resolved.id }))
 }
 
-export async function postQualityJourneyTriageRoute(operation: string[], body: unknown): Promise<Response | undefined> {
+export async function postQualityJourneyTriageRoute(
+  operation: string[],
+  body: unknown,
+  coordinatorSession?: CoordinatorSessionCredentials,
+  principal?: ExternalAnalyzerProjectPrincipal,
+): Promise<Response | undefined> {
   if (!matches(operation)) return undefined
   const action = operation[4]
-  if (action !== 'prepare' && action !== 'submit' && action !== 'evidence') return undefined
+  if (action !== 'prepare' && action !== 'submit' && action !== 'external-submit' && action !== 'evidence')
+    return undefined
   const { target: targetRef, ...input } = envelope.parse(body)
   const unbound = scopedRequest(input, operation[2]!, '')
   const resolved = await resolveTargetProject(targetRef)
@@ -58,8 +67,26 @@ export async function postQualityJourneyTriageRoute(operation: string[], body: u
   if (action === 'evidence')
     return Response.json(await readQualityJourneyTriageEvidence(qualityJourneyTriageEvidenceReadSchema.parse(scoped)))
   if (action === 'prepare')
-    return Response.json(await prepareQualityJourneyTriage(qualityJourneyTriagePrepareSchema.parse(scoped)))
-  return Response.json(await submitQualityJourneyTriageReport(qualityJourneyTriageSubmitSchema.parse(scoped)), {
-    status: 201,
-  })
+    return Response.json(
+      await prepareQualityJourneyTriage(qualityJourneyTriagePrepareSchema.parse(scoped), undefined, coordinatorSession),
+    )
+  if (action === 'external-submit') {
+    if (!principal) throw new ServiceError('External project principal is unavailable.', 'UNAUTHORIZED')
+    return Response.json(
+      await submitExternalQualityJourneyTriageReport(scoped, principal, undefined, coordinatorSession),
+      {
+        status: 201,
+      },
+    )
+  }
+  return Response.json(
+    await submitQualityJourneyTriageReport(
+      qualityJourneyTriageSubmitSchema.parse(scoped),
+      undefined,
+      coordinatorSession,
+    ),
+    {
+      status: 201,
+    },
+  )
 }

@@ -29,6 +29,7 @@ const environments = [
     username: 'qa-user',
     passwordEnvironmentVariable: null,
     credentialState: 'NONE' as const,
+    discoveryAuthTransitPolicyJson: null,
     createdAt: new Date('2026-07-01T10:00:00.000Z'),
     updatedAt: new Date('2026-07-02T10:00:00.000Z'),
   },
@@ -41,6 +42,7 @@ const environments = [
     username: null,
     passwordEnvironmentVariable: null,
     credentialState: 'NONE' as const,
+    discoveryAuthTransitPolicyJson: null,
     createdAt: new Date('2026-07-03T10:00:00.000Z'),
     updatedAt: new Date('2026-07-04T10:00:00.000Z'),
   },
@@ -57,6 +59,9 @@ describe('EnvironmentRegistry', () => {
     expect(screen.getByText('qa-user')).toBeVisible()
     expect(screen.getByText('Not configured')).toBeVisible()
     expect(screen.getByText('No username')).toBeVisible()
+
+    expect(screen.getByRole('region', { name: 'Runtime registry' })).toHaveClass('bg-[rgba(18,37,64,0.1)]')
+    expect(screen.getByRole('heading', { name: 'Local' }).closest('article')).toHaveClass('bg-white/[0.006]')
   })
 
   it('filters environments by endpoint and reports an empty search state', async () => {

@@ -1,0 +1,115 @@
+{
+  "observedAtUtc": "2026-10-04T16:43:51.820475+00:00",
+  "scope": "C3.3 disposable local packed starter scaffold; anonymous UI shell only; no desktop/auth/human Journey lifecycle qualification",
+  "host": {
+    "node": "v26.5.0",
+    "npm": "11.17.0",
+    "macOS": "27.0.1",
+    "Codex": "0.160.0",
+    "matrix": "unqualified; diagnostics required"
+  },
+  "packages": {
+    "initial": {
+      "create-appraisejs-0.4.0.tgz": {
+        "sha256": "19eaa6335597cc2ca3573fcb1f08898225f8da2cb9bb20c21e56f963df754615",
+        "bytes": 2055796
+      },
+      "appraisejs-0.4.0.tgz": {
+        "sha256": "e72024cdb6dace1372167f6882cc37a35ca61273e11095ebaa342074092aa4e8",
+        "bytes": 137955
+      }
+    },
+    "final": {
+      "create-appraisejs-0.4.0.tgz": {
+        "sha256": "95034a58cdf057776ef2f0801453df5f1d57d4a63c41343d36f5408abed1a59d",
+        "bytes": 2055378
+      },
+      "appraisejs-0.4.0.tgz": {
+        "sha256": "e72024cdb6dace1372167f6882cc37a35ca61273e11095ebaa342074092aa4e8",
+        "bytes": 137955
+      }
+    }
+  },
+  "finalScaffold": {
+    "template": "starter",
+    "source": "installed final create-appraisejs tgz via createProject",
+    "freshDependencyInstall": "passed npm install --legacy-peer-deps",
+    "setupEnv": "passed",
+    "prismaGenerate": "passed",
+    "guardedMigrate": "passed 88 migrations found, no pending",
+    "stepSync": "passed 127 unchanged, 0 errors",
+    "tests": "5 files/65 tests passed via installed validate:unit",
+    "productionBuild": "passed npm run build:local",
+    "seededSensitiveTableCount": 56,
+    "seededSensitiveRowsTotal": 0,
+    "dbSha256AfterSetup": "cecf2a43acd191e1912736252a32661340a6a263ee19167a043caae7c1895dd8",
+    "migrationInventoryEntries": 88,
+    "chromiumDiscoveryTests": "1 file/10 tests passed on installed scaffold using anonymous disposable native Chromium and local fixture"
+  },
+  "initialScaffold": {
+    "packedCliSetup": "passed; non-json sanitized output only",
+    "disconnectReconnect": "passed; local access disabled then enabled; token SHA changed; database SHA unchanged",
+    "doctor": "ok true on disposable localhost; non-Git worktree warning",
+    "http": "307 root redirect to project selection then 200 HTML; localhost curl required escalation",
+    "ui": "Primary CUA: empty Projects reload, Quality Journeys project-selection dialog, 0 console errors; separate observer report"
+  },
+  "limitations": [
+    "No fresh Codex desktop connection or plugin/host mutation",
+    "No human credential/MFA path or Journey Lastchecked/handoff/recovery live path",
+    "Host versions outside qualified matrix",
+    "Sandbox required escalation for npm network, tsx local IPC, localhost HTTP, and build font fetch"
+  ],
+  "logSha256": {
+    "logs/initial-tooling-install.log": "ca5e646869d99d8c322db96bc28bd8d866175afc7c93c0368b768b1f91004508",
+    "logs/initial-scaffold-install.log": "6577c0722303ac1d2cd41a5f20aa20930f9243afc636dcaccc8600b081cd6d98",
+    "logs/initial-setup-env.log": "1f8e5cb784de71627cb984a37f5b0731e30234f2b4a937a813873746fc6c5efb",
+    "logs/initial-generate.log": "29081a3dc57ec9e79a3b5140a3b8ebcfb13173fa145de2583026ba9f087ca915",
+    "logs/initial-migrate.log": "4af7b42a0d368f15a97025cfe66fae5ad251812d003ccaed0f77063eb1c23664",
+    "logs/initial-sync.log": "14cf3de69758b5ec7c531154583abacfd0eb23cc1f0d1c3e18b704c80622b19e",
+    "logs/initial-tests.log": "18dac3fc825d55f60177bbc2d27c9a9f2cc9b0bf39fddf36bdd3f2a407c6d1e2",
+    "logs/initial-build.log": "5f3e67f06a15d75af388c04cf87f86f3ba585c2a290a187a590bf44592be9082",
+    "logs/agent-setup-sanitized.log": "0a2260f1f8538657e8c29862f6d83ef5b7cd79935c4cb24174a7899fa0e262ac",
+    "logs/disconnect.log": "c94c5ecbdc27100d4478a59703b7d81a9eb455326a5c19fe30e11c2d8165adf1",
+    "logs/reconnect.log": "4b1e617b58fe2159cbe36dea2f06a95d1c81e78b0b314b94c0325e5832daab30",
+    "logs/doctor.log": "ebae31b2834edde5c0c973c353d856d8f5e400f21355c5820e995bcc24c52986",
+    "logs/server.log": "da14594f8082b756f9d00483f2ade7631ea2b799a8caffc6e734cc16f13dd1fd",
+    "logs/server-restart.log": "749595109fde2b7b99793c9f9bf923923d046fe9b698ced4e0c2eb8edaa61990",
+    "logs/http-headers.log": "23b7b2a8d848e7d1ec43bd53745312e26d769e67ff7b352675c60844171d084c",
+    "logs/projects-headers.log": "fb74c94623becaf8f02616747d9097e1bb4b6db164834a8bb2580e9340d6d4ae",
+    "logs/final-tooling-install.log": "57ceb380fc66c3e9acaec8940cde55371d98ef838fd54e9ed5734508878175a0",
+    "logs/final-scaffold-install.log": "707f3274d0dfa620771d58a6b10359c57d87fe4f5d614d58534c46e1beca7323",
+    "logs/final-setup-env.log": "1f8e5cb784de71627cb984a37f5b0731e30234f2b4a937a813873746fc6c5efb",
+    "logs/final-generate.log": "024ad6e8d34371d90825889c1e648ba756bd181bab7d85fd42f16c1cca88d63d",
+    "logs/final-migrate.log": "4af7b42a0d368f15a97025cfe66fae5ad251812d003ccaed0f77063eb1c23664",
+    "logs/final-sync.log": "14cf3de69758b5ec7c531154583abacfd0eb23cc1f0d1c3e18b704c80622b19e",
+    "logs/final-tests.log": "009836455c42f8e5f596b18b0b16617d9ee29f742d9f7088d1fdfac021dca18e",
+    "logs/final-build.log": "c1661845b1e3f6f66f440273ad8d7873165950189e5391b666ffa88012ae8275",
+    "logs/final-chromium-tests.log": "a432deba5ef61670f32221fd437ddd7e0ec826a4985feaef6f3b79f637d3af4d"
+  },
+  "reproductionCommands": {
+    "pack": ["npm pack --ignore-scripts --pack-destination <disposable-dir> --json (in each package)"],
+    "tooling": [
+      "npm install --prefix <disposable-tooling> --legacy-peer-deps --ignore-scripts <create-tgz> <appraise-tgz>",
+      "import createProject from installed create-appraisejs/dist/create-project.js; createProject({directory:<disposable-scaffold>,template:\"starter\",packageManager:\"npm\",runInstall:false,playwrightBrowsers:[]})"
+    ],
+    "finalScaffold": [
+      "npm install --legacy-peer-deps",
+      "npm run setup-env",
+      "npm run generate-db-client",
+      "npm run migrate-db",
+      "npm run sync-step-definitions",
+      "npm run validate:unit -- 'src/services/coordinator/quality-journey-handoff-service.sqlite.integration.test.ts' 'src/services/coordinator/quality-journey-recovery-service.sqlite.integration.test.ts' 'src/app/api/internal/coordinator/[...operation]/quality-journey-handoff-route.guard.integration.test.ts' 'src/app/(base)/quality-journeys/quality-journey-recovery-actions.test.ts' 'scripts/lib/database-compatibility.test.ts'",
+      "npm run validate:unit -- 'src/services/coordinator/quality-journey-discovery-browser-chromium.integration.test.ts'",
+      "npm run build:local"
+    ],
+    "initialScaffold": [
+      "appraisejs agent setup --cwd <disposable-scaffold> (non-json sanitized output)",
+      "appraisejs agent disconnect --cwd <disposable-scaffold> --json",
+      "appraisejs agent reconnect --cwd <disposable-scaffold> --json",
+      "PORT=32177 npm run start",
+      "curl -L http://127.0.0.1:32177/",
+      "appraisejs doctor --cwd <disposable-scaffold> --base-url http://127.0.0.1:32177 --json"
+    ]
+  },
+  "retainedPackages": "packages/{initial,final}/*.tgz; hashes listed in packages section; retained ignored for reviewer exact-byte inspection"
+}

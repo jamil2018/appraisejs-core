@@ -34,6 +34,9 @@ the execution process—secret values are never stored by AppraiseJS.
 
 Project documentation has moved to [appraisejs.dev](https://appraisejs.dev/).
 
+For current managed Quality Journey operations, see the [operator guide](docs/quality-journey-operator-guide.md)
+and [storage/client compatibility](docs/quality-journey-compatibility.md). Release qualification remains evidence-gated.
+
 - Start here: [https://appraisejs.dev/](https://appraisejs.dev/)
 - All setup, guides, architecture details, and references now live on the docs site.
 

@@ -1,5 +1,13 @@
 # Coordinator API and MCP
 
+For human operation of setup, handoff, lifecycle review, and recovery, see the
+[Quality Journey operator guide](quality-journey-operator-guide.md).
+
+Hub access can be revoked through `appraisejs agent disconnect --cwd <hub>` or the Appraise plugin uninstall
+command without deleting Journey data. Cached credentials are rejected; explicit reconnect rotates the credential,
+and assignment ownership still requires authoritative reread and the existing takeover gates. See the
+[compatibility matrix](quality-journey-compatibility.md) for stale schemas, storage refusal and in-flight limits.
+
 The coordinator exposes Quality Journey lifecycle operations plus general project, environment, runtime, locator,
 Step Definition, and project-bound repository collaboration operations. Quality Journey remains the only
 Appraise-owned agent quality workflow; repository collaboration has no Journey authority.
@@ -46,16 +54,94 @@ the request has explicitly crossed a durable or external effect boundary. In par
 operation-owned fetch ref is durable carries that generated operation ID so the caller can read the exact state;
 endpoint names alone never imply an unknown outcome.
 
+A coordinator project-fingerprint mismatch is rejected by the transport guard before endpoint dispatch. It returns a
+409 `CONFLICT` / `state_conflict` envelope with `operationOutcome=not_started`,
+`targetOutcome=not_committed`, and `details.boundary=project_identity`; the request cannot consume a Journey handoff
+ticket or start another durable effect.
+
 Journey operations are grouped under `quality/journeys/**` in the coordinator API and `quality_journey_*` in MCP.
 Every mutation is scoped to an exact target and Journey and remains subject to the Journey's durable review,
 authorization, evidence, and closure invariants.
+
+Codex plugin compatibility is a host setup plane, not a coordinator lifecycle operation. Package command
+`appraisejs agent compatibility` observes local marketplace/plugin/MCP registration state, while authenticated
+`project_diagnostic` remains authoritative for hub identity, authentication, selected-target binding, current-task
+tool/resource sentinels, and MCP surface version/contract hash. Neither result admits a role or advances a Journey.
+
+The retained `EXTERNAL_V1` admission slice is a separate, opt-in contract for an already-running eligible role:
+Requirement Analyzer, Scout, Resource Explorer, Test Scenario Designer, Automator, or Triager.
+`quality_journey_external_work_claim_v1` and `quality_journey_external_work_admit_v1` are the role-neutral native
+MCP operations; the Analyzer names remain compatibility adapters. Claim persists an exact request and receipt binding
+the route-derived project-credential principal, role, Journey, target, authorization/input hash, assignment,
+generation, lease, secret verifier, and idempotency key. Admission atomically moves only that binding to `IN_PROGRESS`
+and records `hostIsolation: NOT_ATTESTED`; neither operation identifies a person, Codex task, or isolated host.
+
+Each role uses a dedicated external specialized ingress with the same canonical payload schema as its managed sibling:
+Analysis Charter, Target Observation Bundle, Resource Resolution Bundle, Scenario Portfolio, approved-scenario
+materialization, or Triager report. The specialized service validates its full payload and rechecks coordinator
+generation, graph state, authorization, ownership, target/Journey, immutable input, and lease inside its write
+transaction. It atomically commits the canonical artifact/transition with a durable external-submission acceptance
+receipt. The receipt is replayable only to its authenticated principal and exact assignment/operation/payload identity;
+conflicting reuse is rejected. `quality_journey_external_work_outcome_get_v1` is the read-only lost-ack reconciliation
+operation and accepts the same binding plus role, operation, and idempotency key. Managed
+`quality_journey_work_claim` and Factory receipt semantics remain unchanged.
+
+Scenario Designer submission and publication remain coordinator operations. Scenario approval, rejection, review
+comments and dispositions, and revision requests are local Journey UI actions. Project-credential API and MCP callers
+cannot record those human review mutations; the generic command route also rejects scenario decisions and revision
+requests. The UI records `actor=USER` but does not independently identify a natural person.
+
+`quality_journey_external_automator_materialize_v1` is the stock Codex preparation ingress after exact scenario
+approval. It accepts one complete, admitted `AUTOMATOR` packet for the route-resolved Journey and target, using the
+frozen compatible canonical operations and ready Step Definitions. The coordinator rejects caller-supplied Journey or
+target project authority fields. It writes target-owned authored records and prepared capsule receipts, not generated
+`automation/` wrappers, TestRuns, or execution consent. Product-code repair is outside this operation. An uncertain
+reply uses `quality_journey_external_work_outcome_get_v1` before exact replay.
+
+Discovery browser sessions are local-UI operations rather than MCP capabilities. They are ephemeral human surfaces,
+not worker authority or reusable credentials. The existing `quality_journey_target_observation_submit` and
+`quality_journey_external_scout_target_observation_submit_v1` operations remain the only Scout submission paths.
+Each submitted evidence descriptor must resolve transactionally to an immutable Appraise-issued discovery-browser
+receipt for the exact Journey/target/cycle/revision/work-item/snapshot/route/environment and an Appraise-derived fact.
+Unknown descriptors, host-browser artifacts, missing-access receipts and hash or scope mismatches fail before the
+discovery bundle is persisted. Connection, assignment claim, browser availability, human access confirmation,
+receipt issuance, submission acceptance and lifecycle advancement remain separate facts.
+
+The Requirement Analyzer resolves the exact `JOURNEY_REVISION` supplied in its assignment as library entry
+`REQUIREMENT_REVISION:<assignment.artifactId>` with `quality_journey_library_list` and
+`quality_journey_artifact_get`. Its `artifactId` and `sourceContentHash` must equal the assignment artifact ID and
+content hash; its display-ordinal `revisionId` is not the assignment database revision ID. After specialized
+submission, `quality_journey_analysis_get` is the authoritative read for immutable revisions, questions, answers,
+publication, and decision lineage. A recorded charter is not yet published or approved. Required questions stop the
+external workflow until Appraise records human answers; revision feedback produces fresh Analyzer work, and a later
+task must reread current Journey, Analysis, and event state before claim or continuation. The resume operation repairs
+Appraise work state only and makes no liveness claim about an external Codex task.
 
 Creation accepts the shared `QualityJourneyRequirement/v1` payload. Objective-only requests remain valid; structured
 fields are canonicalized before hashing and persistence. Coordinator connections use
 `GET quality/journeys/:journeyId/handoff?target=...` for safe inspection and
 `POST quality/journeys/:journeyId/handoff/redeem` for one-time redemption. MCP exposes these as
-`quality_journey_handoff_inspect` and `quality_journey_handoff_redeem`. Preparation and local launch remain UI-only
-server actions because only the server resolves and launches a registered workspace.
+`quality_journey_handoff_inspect` and `quality_journey_handoff_redeem`. Preparation and launch remain UI-only server
+actions because the server validates the deep link and selects either the registered local workspace or a per-handoff
+neutral host workspace for a qualified remote target. A redemption may optionally record the current Codex task ID,
+but that identifier is observational recovery metadata, not a principal or authority. For mutable later stages,
+Appraise persists an exact Journey/revision/target/work-attempt/dispatch/terminal-effect/pending-event snapshot and
+rejects stale launch or redemption without consuming the ticket. There is deliberately no MCP takeover mutation: only
+the local Journey UI can submit a short-lived request-identity-bound approval. It re-reads the snapshot, blocks
+ambiguous dispatches and expired leases with a read-only recovery projection, atomically fences predecessor attempts,
+reissues valid bounded authorization for the same logical work item in `REPLACEMENT_REQUESTED`, then fences
+predecessor connected sessions before the successor is effective. After takeover, every coordinator-facing Journey
+mutation (generic, work, and specialized) accepts only the effective coordinator handoff ID and monotonic generation,
+and specialized services recheck that binding within their write transaction; old task sessions fail closed without
+mutation. Replacement authorization preserves only remaining immutable attempt budget across its supersession lineage.
+Journey-scoped `locator_ensure` is subject to the same route admission and transaction-local check; generic locator
+operations without a Journey remain outside the coordinator-session protocol. Execution and triage MCP mutation
+schemas (and triage sealed-evidence reads) carry that binding through to the coordinator rather than treating a stale
+coordinator as a current worker.
+Exact committed approval replay remains readable after supersession but
+reports `current: false`. This coordinator-session handoff neither claims work nor grants C2 role execution authority. Stock Codex
+currently reports known-task reopen as unsupported and Appraise prepares a fresh,
+scoped recovery handoff instead.
 
 `locator_search`, `locator_graph_query`, and `locator_ensure` accept `journeyId`. The coordinator verifies that
 the Journey belongs to the requested target before reading or writing locator resources. `step_search` remains
@@ -69,3 +155,7 @@ execution-consent, methodology, certification, and compatibility operation famil
 paths, MCP tools, resources, schemas, exports, and projectors return ordinary not-found behavior and have no aliases.
 The generated operation fixture and [operation reference](generated/coordinator-operation-reference.md) are the
 machine-checked public inventory.
+
+## Operational pause and owned cleanup
+
+See [Quality Journey pause and recovery](quality-journey-recovery.md) for operational admission fences, durable lost-reply recovery, deferred terminal publication, and observed owned-process cleanup. Cancellation requests alone are nonterminal; external Codex activity remains outside Appraise process ownership.

@@ -4,6 +4,10 @@ import type { Prisma, PrismaClient, QualityJourney } from '@prisma/client'
 import { z } from 'zod'
 import prisma from '@/config/db-config'
 import { canonicalContractJson } from '@/lib/catalog-contracts'
+import {
+  discoveryAuthTransitPolicyHash,
+  normalizeDiscoveryAuthTransitPolicyJson,
+} from '@/lib/quality-journey/discovery-auth-transit-policy'
 import { defaultOperationDefinitions } from '@/lib/operation-catalog'
 import {
   hashResourceResolutionBundle,
@@ -14,10 +18,30 @@ import {
 } from '@/lib/quality-journey'
 import { readVisibleResourceOwnerships } from '@/services/project-resource/project-resource-ownership-service'
 import { ServiceError } from '@/services/shared/errors'
+import {
+  builtInStepDefinitions,
+  canonicalStepDefinitionJson,
+  computeStepDefinitionHashes,
+} from '../../../packages/cucumber-runtime/src/step-definitions/index.ts'
+import {
+  assertCoordinatorMutationSession,
+  type CoordinatorSessionCredentials,
+} from './quality-journey-coordinator-session'
 import { registerQualityJourneyDiscoveryBootstrap } from './quality-journey-discovery-bootstrap'
-import { issueQualityJourneyDiscoveryWorkItems, setQualityJourneyActiveWorkItems } from './quality-journey-service'
+import { assertDiscoveryBrowserReceiptAdmission } from './quality-journey-discovery-browser-service'
+import {
+  acceptExternalQualityJourneySubmissionInTransaction,
+  externalAnalyzerAdmissionProtocol,
+  externalAssignmentSecretHash,
+  issueQualityJourneyDiscoveryWorkItems,
+  setQualityJourneyActiveWorkItems,
+  type ExternalAnalyzerProjectPrincipal,
+} from './quality-journey-service'
 
 type Db = PrismaClient | Prisma.TransactionClient
+async function withTransaction<T>(client: Db, effect: (tx: Prisma.TransactionClient) => Promise<T>) {
+  return '$transaction' in client ? client.$transaction(effect) : effect(client)
+}
 function json(value: unknown) {
   return canonicalContractJson(value)
 }
@@ -35,12 +59,27 @@ type FrozenResource = {
 }
 
 type FrozenScope = {
-  environments: Array<{ id: string; baseUrl: string; scopeVersion: number }>
+  environments: Array<{
+    id: string
+    baseUrl: string
+    scopeVersion: number
+    discoveryAuthTransitPolicyJson: string | null
+    discoveryAuthTransitPolicyHash: string
+  }>
   locatorGroups: Array<{ id: string; route: string; moduleId: string }>
   resources: FrozenResource[]
   operationIds: string[]
 }
 type ResourceResolutionBundle = ReturnType<typeof resourceResolutionBundleSchema.parse>
+const sourceOwnedBuiltIns = new Map(
+  builtInStepDefinitions.map(definition => [
+    `${definition.identity.id}:${definition.identity.version}`,
+    {
+      definitionHash: computeStepDefinitionHashes(definition).definitionHash,
+      provenanceJson: canonicalStepDefinitionJson(definition.provenance),
+    },
+  ]),
+)
 
 function canonicalArtifacts(
   analysis: { artifactId: string; artifactRevisionId: string; contentHash: string },
@@ -59,13 +98,16 @@ function canonicalArtifacts(
 
 async function compileFrozenScope(targetProjectId: string, db: Db): Promise<FrozenScope> {
   const [environments, allGroups, allLocators, modules, steps, ownerships] = await Promise.all([
-    db.environment.findMany({ where: { targetProjectId }, select: { id: true, baseUrl: true, scopeVersion: true } }),
+    db.environment.findMany({
+      where: { targetProjectId },
+      select: { id: true, baseUrl: true, scopeVersion: true, discoveryAuthTransitPolicyJson: true },
+    }),
     db.locatorGroup.findMany({ where: { targetProjectId }, select: { id: true, route: true, moduleId: true } }),
     db.locator.findMany({ select: { id: true, value: true, updatedAt: true, targetProjectId: true } }),
     db.module.findMany({ where: { targetProjectId }, select: { id: true, name: true, updatedAt: true } }),
     db.stepDefinition.findMany({
       where: { status: 'ready' },
-      select: { id: true, version: true, definitionHash: true },
+      select: { id: true, version: true, definitionHash: true, provenanceJson: true },
     }),
     readVisibleResourceOwnerships(targetProjectId, ['locator-group', 'locator', 'step-definition'], db),
   ])
@@ -85,7 +127,11 @@ async function compileFrozenScope(targetProjectId: string, db: Db): Promise<Froz
       sourceTargetProjectId: sourceTarget('locator', locator.id, locator.targetProjectId),
     }))
   const readySteps = steps
-    .filter(step => ownerships === null || ownerships.has(`step-definition:${step.id}`))
+    .filter(step => {
+      if (ownerships === null || ownerships.has(`step-definition:${step.id}`)) return true
+      const source = sourceOwnedBuiltIns.get(`${step.id}:${step.version}`)
+      return source?.definitionHash === step.definitionHash && source.provenanceJson === step.provenanceJson
+    })
     .map(step => ({
       id: `step:${step.id}:${step.version}`,
       kind: 'STEP_DEFINITION' as const,
@@ -117,7 +163,15 @@ async function compileFrozenScope(targetProjectId: string, db: Db): Promise<Froz
       'CONFLICT',
     )
   return {
-    environments: environments.sort((left, right) => left.id.localeCompare(right.id)),
+    environments: environments
+      .map(environment => {
+        const targetOrigin = new URL(environment.baseUrl).origin
+        const policy = normalizeDiscoveryAuthTransitPolicyJson(environment.discoveryAuthTransitPolicyJson, targetOrigin)
+        if (policy !== environment.discoveryAuthTransitPolicyJson)
+          throw new ServiceError('Environment discovery sign-in transit policy is not canonical.', 'CONFLICT')
+        return { ...environment, discoveryAuthTransitPolicyHash: discoveryAuthTransitPolicyHash(policy) }
+      })
+      .sort((left, right) => left.id.localeCompare(right.id)),
     locatorGroups,
     resources: [...locators, ...destinationModules, ...readySteps, ...operations].sort((left, right) =>
       left.id.localeCompare(right.id),
@@ -163,6 +217,13 @@ function scopes(
   const operationRegistryHash = hash(scope.resources.filter(resource => resource.kind === 'OPERATION'))
   const scoutScope = {
     environmentIds: scope.environments.map(environment => environment.id),
+    environmentBindings: scope.environments.map(environment => ({
+      environmentId: environment.id,
+      targetOrigin: new URL(environment.baseUrl).origin,
+      scopeVersion: environment.scopeVersion,
+      discoveryAuthTransitPolicyJson: environment.discoveryAuthTransitPolicyJson,
+      discoveryAuthTransitPolicyHash: environment.discoveryAuthTransitPolicyHash,
+    })),
     routes: [...new Set(scope.locatorGroups.map(group => group.route))].sort(),
     locatorGroupIds: scope.locatorGroups.map(group => group.id),
   }
@@ -281,12 +342,16 @@ export async function ensureQualityJourneyDiscoveryForApprovedAnalysis(
     targetEnvironmentBindings: frozen.environments.map(environment => ({
       environmentId: environment.id,
       origin: environment.baseUrl,
+      scopeVersion: environment.scopeVersion,
+      discoveryAuthTransitPolicyHash: environment.discoveryAuthTransitPolicyHash,
     })),
     scope: {
       permittedTools: ['target.observe', 'evidence.publish'],
       permittedCommands: ['work.output.submit'],
       filesystemPaths: [],
-      networkOrigins: frozen.environments.map(environment => environment.baseUrl).sort(),
+      // IdP transit is an Appraise-owned headed-browser policy, never Scout
+      // worker network authority. Keep the existing target-only assignment scope.
+      networkOrigins: frozen.environments.map(environment => environment.baseUrl).toSorted(),
       credentialGrantIds: [],
       targetAccess: 'READ_ONLY' as const,
     },
@@ -487,7 +552,12 @@ async function assertAttempt(
     [attempt.leaseId, bundle.leaseId],
     [attempt.authorizationId, authorization.id],
     [authorization.workItemId, item.id],
-    [attempt.ownerTokenHash, createHash('sha256').update(bundle.ownerToken).digest('hex')],
+    [
+      attempt.ownerTokenHash,
+      attempt.executionMode === externalAnalyzerAdmissionProtocol
+        ? externalAssignmentSecretHash(bundle.ownerToken)
+        : createHash('sha256').update(bundle.ownerToken).digest('hex'),
+    ],
     [attempt.status, 'IN_PROGRESS'],
     [item.status, 'IN_PROGRESS'],
   ]
@@ -512,7 +582,10 @@ async function assertReplayAuthority(
     tx.qualityJourneyWorkAttempt.findUnique({ where: { id: bundle.attemptId } }),
     tx.qualityJourneyWorkAuthorization.findUnique({ where: { id: bundle.authorizationId } }),
   ])
-  const ownerTokenHash = createHash('sha256').update(request.ownerToken).digest('hex')
+  const ownerTokenHash =
+    attempt?.executionMode === externalAnalyzerAdmissionProtocol
+      ? externalAssignmentSecretHash(request.ownerToken)
+      : createHash('sha256').update(request.ownerToken).digest('hex')
   if (!item || !attempt || !authorization)
     throw new ServiceError('Discovery replay authority is invalid.', 'UNAUTHORIZED')
   const bindings = [
@@ -525,8 +598,8 @@ async function assertReplayAuthority(
   ]
   if (
     bindings.some(([actual, expected]) => actual !== expected) ||
-    authorization.revokedAt ||
-    authorization.cancelledAt
+    ((authorization.revokedAt || authorization.cancelledAt) &&
+      attempt.executionMode !== externalAnalyzerAdmissionProtocol)
   )
     throw new ServiceError('Discovery replay authority is invalid.', 'UNAUTHORIZED')
 }
@@ -670,95 +743,261 @@ const submissionEnvelopeSchema = z
   })
   .strict()
 
-export async function submitQualityJourneyTargetObservation(input: unknown, client: PrismaClient = prisma) {
+const externalSubmissionEnvelopeSchema = submissionEnvelopeSchema
+  .omit({ ownerToken: true, idempotencyKey: true })
+  .extend({
+    assignmentId: z.string().min(1).max(200),
+    assignmentGeneration: z.number().int().positive(),
+    assignmentSecret: z.string().min(32).max(2_000),
+    idempotencyKey: z.string().min(1).max(200),
+  })
+  .strict()
+
+function externalDiscoveryIdempotencyKey(input: {
+  principal: ExternalAnalyzerProjectPrincipal
+  assignmentId: string
+  attemptId: string
+  idempotencyKey: string
+}) {
+  return `external-v1:${hash({
+    principal: input.principal.principalId,
+    assignmentId: input.assignmentId,
+    attemptId: input.attemptId,
+    idempotencyKey: input.idempotencyKey,
+  }).slice('sha256:'.length)}`
+}
+
+async function assertManagedDiscoverySubmissionAttempt(request: { attemptId: string }, tx: Prisma.TransactionClient) {
+  const attempt = await tx.qualityJourneyWorkAttempt.findUnique({ where: { id: request.attemptId } })
+  if (attempt?.executionMode === externalAnalyzerAdmissionProtocol)
+    throw new ServiceError(
+      'EXTERNAL_V1 discovery attempts must use the versioned external submission operation.',
+      'UNAUTHORIZED',
+    )
+}
+
+async function submitQualityJourneyTargetObservationInTransaction(
+  request: z.infer<typeof submissionEnvelopeSchema>,
+  bundle: ReturnType<typeof targetObservationBundleSchema.parse>,
+  bundleHash: string,
+  tx: Prisma.TransactionClient,
+) {
+  assertSubmissionEnvelopeMatchesBundle(request, bundle, 'Scout')
+  const { revision, replayed, analysis } = await prepareDiscoverySubmission(
+    request,
+    bundleHash,
+    'TARGET_OBSERVATION',
+    tx,
+  )
+  if (replayed) {
+    await assertReplayAuthority(bundle, request, 'SCOUT', tx)
+    return { replayed: true, discoveryRevision: revision }
+  }
+  if (!analysis) throw new ServiceError('Discovery analysis authority is unavailable.', 'CONFLICT')
+  assertBundleBase(bundle, revision, analysis, revision.scoutWorkItemId, revision.scoutInputHash)
+  const { item } = await assertAttempt(
+    { ...bundle, ownerToken: request.ownerToken, leaseId: request.leaseId },
+    'SCOUT',
+    tx,
+  )
+  if (request.expectedScopeHash !== scopeHashForAuthorization(item.authorizationScopeJson))
+    throw new ServiceError('Scout assignment scope hash is stale.', 'CONFLICT')
+  const scope = JSON.parse(revision.scoutScopeJson) as { environmentIds: string[]; routes: string[] }
+  if (
+    bundle.observations.some(
+      observation =>
+        !scope.environmentIds.includes(observation.environmentId) || !scope.routes.includes(observation.routeId),
+    )
+  )
+    throw new ServiceError('Scout observations exceed the frozen target scope.', 'CONFLICT')
+  await assertDiscoveryBrowserReceiptAdmission(bundle, revision, tx)
+  const updated = await tx.qualityJourneyDiscoveryRevision.updateMany({
+    where: { id: revision.id, status: 'COLLECTING', targetObservationHash: null },
+    data: {
+      targetObservationJson: json(bundle),
+      targetObservationHash: bundleHash,
+      targetObservationIdempotencyKey: request.idempotencyKey,
+      targetObservationSubmittedAt: new Date(),
+      rowVersion: { increment: 1 },
+    },
+  })
+  if (!updated.count) throw new ServiceError('Scout output raced with another submission.', 'CONFLICT')
+  await completeDiscoveryAttempt({ leaseId: request.leaseId, itemId: item.id, bundle, bundleHash }, tx)
+  return { replayed: false, discoveryRevision: await completeIfReady(revision.id, tx) }
+}
+
+export async function submitQualityJourneyTargetObservation(
+  input: unknown,
+  client: Db = prisma,
+  coordinatorSession?: CoordinatorSessionCredentials,
+) {
   const request = submissionEnvelopeSchema.parse(input)
-  const bundle = targetObservationBundleSchema.parse(request.bundle)
-  const bundleHash = hashTargetObservationBundle(bundle)
-  return client.$transaction(async tx => {
-    assertSubmissionEnvelopeMatchesBundle(request, bundle, 'Scout')
-    const { revision, replayed, analysis } = await prepareDiscoverySubmission(
-      request,
-      bundleHash,
-      'TARGET_OBSERVATION',
-      tx,
-    )
-    if (replayed) {
-      await assertReplayAuthority(bundle, request, 'SCOUT', tx)
-      return { replayed: true, discoveryRevision: revision }
-    }
-    if (!analysis) throw new ServiceError('Discovery analysis authority is unavailable.', 'CONFLICT')
-    assertBundleBase(bundle, revision, analysis, revision.scoutWorkItemId, revision.scoutInputHash)
-    const { item } = await assertAttempt(
-      { ...bundle, ownerToken: request.ownerToken, leaseId: request.leaseId },
-      'SCOUT',
-      tx,
-    )
-    if (request.expectedScopeHash !== scopeHashForAuthorization(item.authorizationScopeJson))
-      throw new ServiceError('Scout assignment scope hash is stale.', 'CONFLICT')
-    const scope = JSON.parse(revision.scoutScopeJson) as { environmentIds: string[]; routes: string[] }
-    if (
-      bundle.observations.some(
-        observation =>
-          !scope.environmentIds.includes(observation.environmentId) || !scope.routes.includes(observation.routeId),
-      )
-    )
-      throw new ServiceError('Scout observations exceed the frozen target scope.', 'CONFLICT')
-    const updated = await tx.qualityJourneyDiscoveryRevision.updateMany({
-      where: { id: revision.id, status: 'COLLECTING', targetObservationHash: null },
-      data: {
-        targetObservationJson: json(bundle),
-        targetObservationHash: bundleHash,
-        targetObservationIdempotencyKey: request.idempotencyKey,
-        targetObservationSubmittedAt: new Date(),
-        rowVersion: { increment: 1 },
-      },
-    })
-    if (!updated.count) throw new ServiceError('Scout output raced with another submission.', 'CONFLICT')
-    await completeDiscoveryAttempt({ leaseId: request.leaseId, itemId: item.id, bundle, bundleHash }, tx)
-    return { replayed: false, discoveryRevision: await completeIfReady(revision.id, tx) }
+  return withTransaction(client, async tx => {
+    await assertCoordinatorMutationSession(coordinatorSession, request, tx)
+    await assertManagedDiscoverySubmissionAttempt(request, tx)
+    const bundle = targetObservationBundleSchema.parse(request.bundle)
+    const bundleHash = hashTargetObservationBundle(bundle)
+    return submitQualityJourneyTargetObservationInTransaction(request, bundle, bundleHash, tx)
   })
 }
 
-export async function submitQualityJourneyResourceResolution(input: unknown, client: PrismaClient = prisma) {
-  const request = submissionEnvelopeSchema.parse(input)
-  const bundle = resourceResolutionBundleSchema.parse(request.bundle)
-  const bundleHash = hashResourceResolutionBundle(bundle)
+export async function submitExternalQualityJourneyTargetObservation(
+  input: unknown,
+  principal: ExternalAnalyzerProjectPrincipal,
+  client: PrismaClient = prisma,
+  coordinatorSession?: CoordinatorSessionCredentials,
+) {
+  const request = externalSubmissionEnvelopeSchema.parse(input)
+  const { assignmentId, assignmentGeneration, assignmentSecret, idempotencyKey, ...canonicalInput } = request
+  const canonical = {
+    ...canonicalInput,
+    ownerToken: assignmentSecret,
+    idempotencyKey: externalDiscoveryIdempotencyKey({
+      assignmentId,
+      attemptId: request.attemptId,
+      idempotencyKey,
+      principal,
+    }),
+  }
   return client.$transaction(async tx => {
-    assertSubmissionEnvelopeMatchesBundle(request, bundle, 'Resource')
-    const { revision, replayed, analysis } = await prepareDiscoverySubmission(
-      request,
-      bundleHash,
-      'RESOURCE_RESOLUTION',
-      tx,
-    )
-    if (replayed) {
-      await assertReplayAuthority(bundle, request, 'RESOURCE_EXPLORER', tx)
-      return { replayed: true, discoveryRevision: revision }
-    }
-    if (!analysis) throw new ServiceError('Discovery analysis authority is unavailable.', 'CONFLICT')
-    assertBundleBase(bundle, revision, analysis, revision.resourceWorkItemId, revision.resourceInputHash)
-    const { item } = await assertAttempt(
-      { ...bundle, ownerToken: request.ownerToken, leaseId: request.leaseId },
-      'RESOURCE_EXPLORER',
-      tx,
-    )
-    if (request.expectedScopeHash !== scopeHashForAuthorization(item.authorizationScopeJson))
-      throw new ServiceError('Resource Explorer assignment scope hash is stale.', 'CONFLICT')
-    const scope = JSON.parse(revision.resourceScopeJson) as { resources: FrozenResource[] }
-    assertResourceResolutionWithinFrozenScope(bundle, scope, request.targetProjectId)
-    const updated = await tx.qualityJourneyDiscoveryRevision.updateMany({
-      where: { id: revision.id, status: 'COLLECTING', resourceResolutionHash: null },
-      data: {
-        resourceResolutionJson: json(bundle),
-        resourceResolutionHash: bundleHash,
-        resourceResolutionIdempotencyKey: request.idempotencyKey,
-        resourceResolutionSubmittedAt: new Date(),
-        rowVersion: { increment: 1 },
+    const accepted = await acceptExternalQualityJourneySubmissionInTransaction(
+      {
+        journeyId: request.journeyId,
+        targetProjectId: request.targetProjectId,
+        role: 'SCOUT',
+        workItemId: request.workItemId,
+        attemptId: request.attemptId,
+        assignmentId,
+        assignmentGeneration,
+        leaseId: request.leaseId,
+        assignmentSecret,
+        principal,
+        operation: 'TARGET_OBSERVATION_SUBMIT',
+        idempotencyKey,
+        payload: { ...request, assignmentSecret: undefined },
       },
-    })
-    if (!updated.count) throw new ServiceError('Resource output raced with another submission.', 'CONFLICT')
-    await completeDiscoveryAttempt({ leaseId: request.leaseId, itemId: item.id, bundle, bundleHash }, tx)
-    return { replayed: false, discoveryRevision: await completeIfReady(revision.id, tx) }
+      tx,
+      async () => {
+        await assertCoordinatorMutationSession(coordinatorSession, canonical, tx)
+        const bundle = targetObservationBundleSchema.parse(canonical.bundle)
+        return submitQualityJourneyTargetObservationInTransaction(
+          canonical,
+          bundle,
+          hashTargetObservationBundle(bundle),
+          tx,
+        )
+      },
+    )
+    return { ...accepted.outcome, replayed: accepted.replayed || accepted.outcome.replayed }
+  })
+}
+
+async function submitQualityJourneyResourceResolutionInTransaction(
+  request: z.infer<typeof submissionEnvelopeSchema>,
+  bundle: ReturnType<typeof resourceResolutionBundleSchema.parse>,
+  bundleHash: string,
+  tx: Prisma.TransactionClient,
+) {
+  assertSubmissionEnvelopeMatchesBundle(request, bundle, 'Resource')
+  const { revision, replayed, analysis } = await prepareDiscoverySubmission(
+    request,
+    bundleHash,
+    'RESOURCE_RESOLUTION',
+    tx,
+  )
+  if (replayed) {
+    await assertReplayAuthority(bundle, request, 'RESOURCE_EXPLORER', tx)
+    return { replayed: true, discoveryRevision: revision }
+  }
+  if (!analysis) throw new ServiceError('Discovery analysis authority is unavailable.', 'CONFLICT')
+  assertBundleBase(bundle, revision, analysis, revision.resourceWorkItemId, revision.resourceInputHash)
+  const { item } = await assertAttempt(
+    { ...bundle, ownerToken: request.ownerToken, leaseId: request.leaseId },
+    'RESOURCE_EXPLORER',
+    tx,
+  )
+  if (request.expectedScopeHash !== scopeHashForAuthorization(item.authorizationScopeJson))
+    throw new ServiceError('Resource Explorer assignment scope hash is stale.', 'CONFLICT')
+  const scope = JSON.parse(revision.resourceScopeJson) as { resources: FrozenResource[] }
+  assertResourceResolutionWithinFrozenScope(bundle, scope, request.targetProjectId)
+  const updated = await tx.qualityJourneyDiscoveryRevision.updateMany({
+    where: { id: revision.id, status: 'COLLECTING', resourceResolutionHash: null },
+    data: {
+      resourceResolutionJson: json(bundle),
+      resourceResolutionHash: bundleHash,
+      resourceResolutionIdempotencyKey: request.idempotencyKey,
+      resourceResolutionSubmittedAt: new Date(),
+      rowVersion: { increment: 1 },
+    },
+  })
+  if (!updated.count) throw new ServiceError('Resource output raced with another submission.', 'CONFLICT')
+  await completeDiscoveryAttempt({ leaseId: request.leaseId, itemId: item.id, bundle, bundleHash }, tx)
+  return { replayed: false, discoveryRevision: await completeIfReady(revision.id, tx) }
+}
+
+export async function submitQualityJourneyResourceResolution(
+  input: unknown,
+  client: Db = prisma,
+  coordinatorSession?: CoordinatorSessionCredentials,
+) {
+  const request = submissionEnvelopeSchema.parse(input)
+  return withTransaction(client, async tx => {
+    await assertCoordinatorMutationSession(coordinatorSession, request, tx)
+    await assertManagedDiscoverySubmissionAttempt(request, tx)
+    const bundle = resourceResolutionBundleSchema.parse(request.bundle)
+    const bundleHash = hashResourceResolutionBundle(bundle)
+    return submitQualityJourneyResourceResolutionInTransaction(request, bundle, bundleHash, tx)
+  })
+}
+
+export async function submitExternalQualityJourneyResourceResolution(
+  input: unknown,
+  principal: ExternalAnalyzerProjectPrincipal,
+  client: PrismaClient = prisma,
+  coordinatorSession?: CoordinatorSessionCredentials,
+) {
+  const request = externalSubmissionEnvelopeSchema.parse(input)
+  const { assignmentId, assignmentGeneration, assignmentSecret, idempotencyKey, ...canonicalInput } = request
+  const canonical = {
+    ...canonicalInput,
+    ownerToken: assignmentSecret,
+    idempotencyKey: externalDiscoveryIdempotencyKey({
+      assignmentId,
+      attemptId: request.attemptId,
+      idempotencyKey,
+      principal,
+    }),
+  }
+  return client.$transaction(async tx => {
+    const accepted = await acceptExternalQualityJourneySubmissionInTransaction(
+      {
+        journeyId: request.journeyId,
+        targetProjectId: request.targetProjectId,
+        role: 'RESOURCE_EXPLORER',
+        workItemId: request.workItemId,
+        attemptId: request.attemptId,
+        assignmentId,
+        assignmentGeneration,
+        leaseId: request.leaseId,
+        assignmentSecret,
+        principal,
+        operation: 'RESOURCE_RESOLUTION_SUBMIT',
+        idempotencyKey,
+        payload: { ...request, assignmentSecret: undefined },
+      },
+      tx,
+      async () => {
+        await assertCoordinatorMutationSession(coordinatorSession, canonical, tx)
+        const bundle = resourceResolutionBundleSchema.parse(canonical.bundle)
+        return submitQualityJourneyResourceResolutionInTransaction(
+          canonical,
+          bundle,
+          hashResourceResolutionBundle(bundle),
+          tx,
+        )
+      },
+    )
+    return { ...accepted.outcome, replayed: accepted.replayed || accepted.outcome.replayed }
   })
 }
 
@@ -772,10 +1011,15 @@ const retrySchema = z
   })
   .strict()
 
-export async function retryQualityJourneyDiscovery(input: unknown, client: PrismaClient = prisma) {
+export async function retryQualityJourneyDiscovery(
+  input: unknown,
+  client: PrismaClient = prisma,
+  coordinatorSession?: CoordinatorSessionCredentials,
+) {
   const request = retrySchema.parse(input)
   const requestHash = hash(request)
   return client.$transaction(async tx => {
+    await assertCoordinatorMutationSession(coordinatorSession, request, tx)
     const predecessor = await getDiscoveryRevision(
       { ...request, discoveryRevisionId: request.expectedActiveDiscoveryRevisionId },
       tx,
@@ -845,8 +1089,10 @@ registerQualityJourneyDiscoveryBootstrap(ensureQualityJourneyDiscoveryForApprove
 export async function revalidateQualityJourneyDiscovery(
   input: { journeyId: string; targetProjectId: string; expectedActiveDiscoveryRevisionId: string },
   client: PrismaClient = prisma,
+  coordinatorSession?: CoordinatorSessionCredentials,
 ) {
   return client.$transaction(async tx => {
+    await assertCoordinatorMutationSession(coordinatorSession, input, tx)
     const revision = await getDiscoveryRevision(
       { ...input, discoveryRevisionId: input.expectedActiveDiscoveryRevisionId },
       tx,

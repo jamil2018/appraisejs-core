@@ -11,10 +11,20 @@ coordinator-only. Missing evidence requires investigation; settled cross-module 
 uncertainty requires independent review. Keep solver and judge context absent or deliberately bounded.
 
 Agent profiles define capabilities, authority, independence, and stopping conditions. The versioned model catalog lists
-approved exact model IDs and supported efforts. The selection policy chooses among those approved entries. Existing
-Luna, Terra, and Sol defaults remain unchanged. A stronger model receives no additional authority. Unsupported host
-combinations fail explicitly or use an approved compatible fallback. Requested settings and effective execution proof
+active and historical exact model IDs and supported efforts. The selection policy chooses only active entries. GPT-6 Luna
+handles investigation, GPT-6 Sol handles execution and routine judgment, and GPT-6 Astra is selected only for
+consequential, weak-proof extended review. A stronger model receives no additional authority. Unsupported host
+combinations fail explicitly; the active policy has no automatic model fallback. The catalog retains GPT-5.6 entries as
+historical-only records so existing signed journal receipts can still be inspected; they cannot be selected for new work.
+Requested settings and effective execution proof
 are separate; a TOML file or successful spawn request does not prove runtime model, context, or sandbox enforcement.
+Existing hosts with GPT-5.6 fixed named profiles must reload or update before the GPT-6 profile can run. A host mismatch
+must remain a reported limitation, not a legacy execution labeled as an upgrade. Existing selection receipts remain
+inspectable, but their old contract digest cannot replay against the updated policy.
+The exceptional Astra judge rule also requires a host judge profile that can override its fixed Sol model; otherwise
+that review remains unavailable until the host supports it.
+The active model IDs and efforts follow [OpenAI's GPT-6 model guidance](https://developers.openai.com/api/docs/guides/latest-model)
+as checked on 2026-09-29; host availability still requires a runtime capability check.
 
 Read-only diagnostics: `npm run harness:diagnostic`. Browser session availability and host enforcement remain unknown
 unless the host supplies evidence. Do not infer them from an installed package.
@@ -71,7 +81,7 @@ current.
 ## Troubleshooting and future optimization
 
 Run diagnostics and inspect focused command failures before changing source. Host model/profile incompatibility needs
-an approved compatible selection or explicit disclosure; never silently weaken profile constraints. Missing browser
+explicit disclosure; never silently weaken profile constraints. Missing browser
 session proof remains unknown. A stale graph needs its scoped refresh. A changed review artifact needs another review.
 A malformed local journal uses the existing `swarm:ledger recover` path; retain recovery provenance. Invalid portable
 records fail validation rather than becoming policy.

@@ -34,11 +34,15 @@ beforeEach(() => {
 it('resolves triage prepare scope from the target binding', async () => {
   const response = await postQualityJourneyTriageRoute(path, { target: 'target', executionCycleId: 'execution-1' })
 
-  expect(mocks.prepare).toHaveBeenCalledWith({
-    journeyId: 'journey-1',
-    targetProjectId: 'target-1',
-    executionCycleId: 'execution-1',
-  })
+  expect(mocks.prepare).toHaveBeenCalledWith(
+    {
+      journeyId: 'journey-1',
+      targetProjectId: 'target-1',
+      executionCycleId: 'execution-1',
+    },
+    undefined,
+    undefined,
+  )
   expect(response?.status).toBe(200)
 })
 
@@ -160,6 +164,8 @@ it('accepts only a fully bounded triager submission', async () => {
   })
   expect(mocks.submit).toHaveBeenCalledWith(
     expect.objectContaining({ journeyId: 'journey-1', targetProjectId: 'target-1' }),
+    undefined,
+    undefined,
   )
   expect(response?.status).toBe(201)
 })

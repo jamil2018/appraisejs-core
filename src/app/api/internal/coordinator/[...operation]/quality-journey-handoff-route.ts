@@ -15,11 +15,20 @@ export async function getQualityJourneyHandoffRoute(operation: string[], paramet
 export async function postQualityJourneyHandoffRoute(operation: string[], body: unknown) {
   if (operation.join('/') !== `quality/journeys/${operation[2]}/handoff/redeem`) return null
   const value = z
-    .object({ target: z.string().min(1), ticket: z.string().regex(/^qjh_[A-Za-z0-9_-]{32}$/) })
+    .object({
+      target: z.string().min(1),
+      ticket: z.string().regex(/^qjh_[A-Za-z0-9_-]{32}$/),
+      coordinatorTaskId: z.string().trim().min(1).max(500).optional(),
+    })
     .strict()
     .parse(body)
   const target = await resolveTargetProject(value.target)
   return Response.json(
-    await redeemQualityJourneyHandoff({ journeyId: operation[2]!, targetProjectId: target.id, ticket: value.ticket }),
+    await redeemQualityJourneyHandoff({
+      journeyId: operation[2]!,
+      targetProjectId: target.id,
+      ticket: value.ticket,
+      coordinatorTaskId: value.coordinatorTaskId,
+    }),
   )
 }

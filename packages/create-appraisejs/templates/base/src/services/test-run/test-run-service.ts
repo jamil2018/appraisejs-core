@@ -1,4 +1,10 @@
 import prisma from '@/config/db-config'
+import { OwnedProcessStopError, stopOwnedProcessGroup } from '@/lib/process/owned-process-stop'
+import {
+  cancelRuntimeCapsuleTestRun,
+  markCapsuleOutputCompleted,
+  reconcileCancelledCapsuleTestRun,
+} from './runtime-capsule-stop-service'
 import { frozenRemoteEnvironmentPacketSnapshot } from '@/lib/runtime-capsule/frozen-environment-snapshot'
 import type { TestRun as TestRunFormValue } from '@/constants/form-opts/test-run-form-opts'
 import { ServiceError } from '@/services/shared/errors'
@@ -512,6 +518,15 @@ async function reconcileFinalRunEvidence(args: {
   }
 }
 
+function alreadyTerminalized(
+  shouldPersist: boolean,
+  attemptState: string | undefined,
+  expectedAttemptState: string,
+  executionAttempt?: { id: string; ownerToken: string },
+): boolean {
+  return !shouldPersist && (!executionAttempt || attemptState === expectedAttemptState)
+}
+
 async function terminalizeTestRun(args: {
   testRunDbId: string
   outcome: TestRunTerminalOutcome
@@ -529,9 +544,16 @@ async function terminalizeTestRun(args: {
       logPath: true,
       reportPath: true,
       runtimeCapsule: { select: { id: true } },
-      runtimeCapsuleExecutionAttempt: { select: { state: true } },
+      runId: true,
+      runtimeCapsuleExecutionAttempt: {
+        select: { id: true, state: true, stopReceiptJson: true, stopReceiptHash: true },
+      },
     },
   })
+  if (executionAttempt && current.status === TestRunStatus.CANCELLING) {
+    await reconcileCancelledCapsuleTestRun(client, testRunDbId)
+    return
+  }
   const terminal = resolveTestRunTerminalState({
     currentStatus: current.status,
     currentResult: current.result,
@@ -544,12 +566,18 @@ async function terminalizeTestRun(args: {
     },
   })
   if (
-    !terminal.shouldPersist &&
-    (!executionAttempt || current.runtimeCapsuleExecutionAttempt?.state === terminal.attemptState)
-  ) {
+    alreadyTerminalized(
+      terminal.shouldPersist,
+      current.runtimeCapsuleExecutionAttempt?.state,
+      terminal.attemptState,
+      executionAttempt,
+    )
+  )
     return
-  }
   const completedAt = new Date()
+  const attemptStates: Array<'STARTING' | 'RUNNING' | 'CANCELLED'> =
+    terminal.attemptState === 'CANCELLED' ? ['STARTING', 'RUNNING', 'CANCELLED'] : ['STARTING', 'RUNNING']
+  const attemptFailure = outcome === 'failed' ? (failure ?? 'Test-run execution failed.') : null
 
   await client.$transaction(async tx => {
     if (terminal.shouldPersist) {
@@ -569,12 +597,12 @@ async function terminalizeTestRun(args: {
       where: {
         id: executionAttempt.id,
         ownerToken: executionAttempt.ownerToken,
-        state: { in: ['STARTING', 'RUNNING'] },
+        state: { in: attemptStates },
       },
       data: {
         state: terminal.attemptState,
         completedAt,
-        failure: outcome === 'failed' ? (failure ?? 'Test-run execution failed.') : null,
+        failure: attemptFailure,
         version: { increment: 1 },
       },
     })
@@ -666,7 +694,13 @@ export async function scheduleTestRunCompletion(args: {
     humanVerificationTerminationRequested = true
     const managedProcess = processManager.get(testRun.runId)
     if (!managedProcess) return
-    managedProcess.process.kill('SIGTERM')
+    if (executionAttempt) {
+      void stopOwnedProcessGroup(managedProcess).catch(error =>
+        console.error(`[TestRunService] Owned process stop failed for ${testRun.id}:`, error),
+      )
+    } else {
+      managedProcess.process.kill('SIGTERM')
+    }
   }
 
   try {
@@ -757,6 +791,12 @@ export async function scheduleTestRunCompletion(args: {
           client,
           appraiseRoot,
         })
+        if (executionAttempt)
+          await markCapsuleOutputCompleted(client, {
+            testRunId: testRun.id,
+            attemptId: executionAttempt.id,
+            ownerToken: executionAttempt.ownerToken,
+          })
         const current = await client.testRun.findUniqueOrThrow({
           where: { id: testRun.id },
           select: { status: true },
@@ -771,6 +811,13 @@ export async function scheduleTestRunCompletion(args: {
       })
       .catch(async error => {
         console.error(`[TestRunService] Error executing test run for testRunId: ${testRun.runId}:`, error)
+        if (executionAttempt && error instanceof OwnedProcessStopError) {
+          await client.runtimeCapsuleExecutionAttempt.updateMany({
+            where: { id: executionAttempt.id, ownerToken: executionAttempt.ownerToken },
+            data: { failure: 'Owned process termination is unverified; reconcile before retry.' },
+          })
+          return
+        }
 
         const message = error instanceof Error ? error.message : String(error)
         runLogger.error(`Error executing test run: ${message}`)
@@ -803,6 +850,14 @@ export async function scheduleTestRunCompletion(args: {
     console.error(`[TestRunService] Error stack:`, error instanceof Error ? error.stack : 'No stack trace')
     const message = error instanceof Error ? error.message : String(error)
     runLogger.error(`Error executing test run: ${message}`)
+    if (executionAttempt && error instanceof OwnedProcessStopError) {
+      await client.runtimeCapsuleExecutionAttempt.updateMany({
+        where: { id: executionAttempt.id, ownerToken: executionAttempt.ownerToken },
+        data: { failure: 'Owned process termination is unverified; reconcile before retry.' },
+      })
+      await runLogger.close()
+      throw error
+    }
     await terminalizeTestRun({
       testRunDbId: testRun.id,
       outcome: 'failed',
@@ -1113,7 +1168,7 @@ export type CancelTestRunOutcome =
 export async function cancelTestRunService(testRunId: string): Promise<CancelTestRunOutcome> {
   const testRun = await prisma.testRun.findUnique({
     where: { runId: testRunId },
-    include: { qualityJourneyExecutionBinding: true },
+    include: { qualityJourneyExecutionBinding: true, runtimeCapsule: { select: { id: true } } },
   })
   if (!testRun) {
     return { kind: 'not_found' }
@@ -1131,6 +1186,12 @@ export async function cancelTestRunService(testRunId: string): Promise<CancelTes
       kind: 'invalid_state',
       message: 'Test run is not running, queued, or already being cancelled',
     }
+  }
+
+  if (testRun.runtimeCapsule) {
+    await cancelRuntimeCapsuleTestRun(prisma, testRun.id)
+    const current = await prisma.testRun.findUniqueOrThrow({ where: { id: testRun.id }, select: { status: true } })
+    return current.status === TestRunStatus.CANCELLED ? { kind: 'stopped' } : { kind: 'already_cancelling' }
   }
 
   if (testRun.status === TestRunStatus.CANCELLING) {

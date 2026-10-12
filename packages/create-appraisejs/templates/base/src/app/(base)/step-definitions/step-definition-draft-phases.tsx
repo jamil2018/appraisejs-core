@@ -110,10 +110,10 @@ export function WizardSidebar({
   stageReady: boolean[]
 }) {
   return (
-    <Card className="h-fit overflow-hidden border-white/[0.08] bg-[rgba(18,37,64,0.42)] shadow-none">
+    <Card className="h-fit overflow-hidden">
       <CardHeader className="border-b border-white/[0.06] px-4 pb-4 pt-4">
         <div className="flex items-center gap-3">
-          <div className="border-primary/20 bg-primary/[0.04] flex size-9 items-center justify-center rounded-md border text-primary">
+          <div className="border-primary/20 bg-primary/[0.06] flex size-9 items-center justify-center rounded-full border text-primary shadow-[inset_0_1px_0_rgba(255,255,255,0.12)]">
             <Layers3 className="size-4" />
           </div>
           <div>
@@ -197,7 +197,7 @@ function StageButton({
 
 export function WizardPanel(props: WizardProps) {
   return (
-    <Card className="min-w-0 overflow-hidden border-white/[0.08] bg-[rgba(18,37,64,0.42)] shadow-none">
+    <Card className="min-w-0 overflow-hidden">
       <CardHeader className="border-b border-white/[0.06] px-5 pb-4 pt-5">
         <CardTitle className="text-base text-zinc-100">{stages[props.stage]}</CardTitle>
         <CardDescription className="mt-1 max-w-2xl text-xs leading-5">{stageDescriptions[props.stage]}</CardDescription>

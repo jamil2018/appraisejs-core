@@ -2,21 +2,18 @@ import type { ReactNode } from 'react'
 
 export type EnvironmentOption = { id: string; name: string; baseUrl: string }
 
-export const dimensions = [
-  { value: 'FUNCTIONAL', label: 'Functional' },
-  { value: 'END_TO_END', label: 'End-to-end' },
-  { value: 'API', label: 'API' },
-  { value: 'INTEGRATION', label: 'Integration' },
-  { value: 'ACCESSIBILITY', label: 'Accessibility' },
-  { value: 'PERFORMANCE', label: 'Performance' },
-  { value: 'SECURITY', label: 'Security' },
-  { value: 'VISUAL', label: 'Visual' },
-  { value: 'COMPATIBILITY', label: 'Compatibility' },
-  { value: 'EXPLORATORY', label: 'Exploratory' },
-  { value: 'CUSTOM', label: 'Custom' },
-] as const
-
-export type Dimension = (typeof dimensions)[number]['value']
+export type Dimension =
+  | 'FUNCTIONAL'
+  | 'END_TO_END'
+  | 'API'
+  | 'INTEGRATION'
+  | 'ACCESSIBILITY'
+  | 'PERFORMANCE'
+  | 'SECURITY'
+  | 'VISUAL'
+  | 'COMPATIBILITY'
+  | 'EXPLORATORY'
+  | 'CUSTOM'
 
 export const rigorDescriptions = {
   FOCUSED: 'Concentrate evidence on the named behavior and its closest failure paths.',
@@ -24,11 +21,12 @@ export const rigorDescriptions = {
   COMPREHENSIVE: 'Seek broad coverage, edge conditions, and cross-feature regression evidence.',
 } as const
 
+export type CoverageRigor = keyof typeof rigorDescriptions
+
 export type IntakeValues = {
   objective: string
   context: string
-  coverageRigor: keyof typeof rigorDescriptions
-  testDimensions: Dimension[]
+  coverageRigor: CoverageRigor | ''
   includedScope: string
   excludedScope: string
   environmentIds: string[]
@@ -58,7 +56,7 @@ export type DraftSnapshot = {
   requirement: Partial<{
     objective: string
     context: string
-    coverageRigor: keyof typeof rigorDescriptions
+    coverageRigor: CoverageRigor
     testDimensions: Dimension[]
     includedScope: string[]
     excludedScope: string[]
@@ -95,8 +93,8 @@ export function buildRequirement(values: IntakeValues) {
     schemaVersion: 'appraise.quality-journey-requirement/v1' as const,
     objective: values.objective.trim(),
     context: values.context.trim() || undefined,
-    coverageRigor: values.coverageRigor,
-    testDimensions: values.testDimensions.toSorted(),
+    coverageRigor: values.coverageRigor || undefined,
+    testDimensions: ['END_TO_END' as const],
     includedScope: lines(values.includedScope),
     excludedScope: optionalList(values.excludedScope),
     environmentIds: values.environmentIds.toSorted(),
@@ -116,8 +114,8 @@ export function missingRequiredIntake(requirement: Requirement) {
     missing.push({ label: 'at least one included scope item', step: 1, focusId: 'quality-journey-included' })
   if (!requirement.desiredEvidenceSignals.length)
     missing.push({ label: 'at least one desired evidence signal', step: 1, focusId: 'quality-journey-evidence' })
-  if (!requirement.testDimensions.length)
-    missing.push({ label: 'at least one test dimension', step: 2, focusId: 'quality-journey-dimension-FUNCTIONAL' })
+  if (!requirement.coverageRigor)
+    missing.push({ label: 'a coverage depth', step: 2, focusId: 'quality-journey-rigor-FOCUSED' })
   if (!requirement.environmentIds.length)
     missing.push({ label: 'at least one registered environment', step: 3, focusId: 'intake-environment-heading' })
   return missing
@@ -130,7 +128,7 @@ export function intakeSteps(requirement: Requirement) {
       label: 'Scope and success',
       complete: Boolean(requirement.includedScope.length && requirement.desiredEvidenceSignals.length),
     },
-    { label: 'Checks', complete: Boolean(requirement.testDimensions.length) },
+    { label: 'Coverage', complete: Boolean(requirement.coverageRigor) },
     { label: 'Test location', complete: Boolean(requirement.environmentIds.length) },
   ]
 }
@@ -141,8 +139,7 @@ export function intakeValuesFromDraft(requirement: DraftSnapshot['requirement'] 
   return {
     objective: saved.objective ?? '',
     context: saved.context ?? '',
-    coverageRigor: saved.coverageRigor ?? 'STANDARD',
-    testDimensions: saved.testDimensions ?? ['FUNCTIONAL'],
+    coverageRigor: saved.coverageRigor ?? '',
     includedScope: join(saved.includedScope),
     excludedScope: join(saved.excludedScope),
     desiredEvidenceSignals: join(saved.desiredEvidenceSignals),

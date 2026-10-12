@@ -55,9 +55,10 @@ describe('QualityJourneysBrowser', () => {
     render(<QualityJourneysBrowser items={[journey]} projectId="project one" />)
 
     expect(screen.getByText('Checkout accepts cards')).toBeInTheDocument()
-    expect(screen.getByText('Next actor: You')).toBeInTheDocument()
+    expect(screen.getByRole('status')).toHaveTextContent('Waiting for you')
+    expect(screen.getByText('Next actor · You')).toBeInTheDocument()
     expect(screen.getByText(/ready for your exact-version review/i)).toBeInTheDocument()
-    expect(screen.getByText(/Last updated/)).toBeInTheDocument()
+    expect(screen.getByText(/Updated/)).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Open Quality Journey journey-1' })).toHaveAttribute(
       'href',
       '/quality-journeys/journey-1?project=project%20one',

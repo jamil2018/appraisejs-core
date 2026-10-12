@@ -33,6 +33,13 @@ runtime-capsule compilation. Contract and handler-neutral operation code lives u
 Every active operation has an exact ID/version, deterministic descriptor hash, separately hashed handler identity,
 typed inputs and outputs, both authoring projection states, and security classification.
 Descriptors contain no wall-clock metadata. Object keys are canonicalized while ordered arrays retain order.
+Handler identities use the generated `packages/cucumber-runtime/src/operations/handler-source-hash.ts` digest of
+non-test TypeScript source across the Cucumber runtime package plus the exact operation reference. This
+conservatively invalidates every built-in handler when its operation or shared runtime helper source changes and
+keeps hashes identical across the Next and MCP transpilers.
+`Function.toString()` is not handler authority because its output changes with transpilation. Run
+`npm run operation:projections` after runtime source edits; development startup, production startup, runtime build,
+and `npm run release:check:operation-projections` reject a stale source hash.
 
 Progressive discovery uses:
 

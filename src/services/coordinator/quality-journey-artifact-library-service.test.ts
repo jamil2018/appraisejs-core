@@ -77,7 +77,7 @@ async function fixture() {
 }
 
 it('lists every projected entry with bounded pages and matching export identities on SQLite', async () => {
-  const { client, scope } = await fixture()
+  const { client, scope, owner } = await fixture()
   const first = await listQualityJourneyArtifactLibrary({ ...scope, limit: 2 }, client)
   const second = await listQualityJourneyArtifactLibrary({ ...scope, limit: 2, offset: 2 }, client)
   const exported = await exportQualityJourney(scope, client)
@@ -93,6 +93,28 @@ it('lists every projected entry with bounded pages and matching export identitie
   expect(filtered.entries[0]?.entryId).toBe('ARTIFACT:question-record')
   for (const entry of exported.artifacts)
     expect((await getQualityJourneyLibraryArtifact({ ...scope, entryId: entry.entryId }, client)).entry).toEqual(entry)
+  const requirement = await getQualityJourneyLibraryArtifact(
+    { ...scope, entryId: `REQUIREMENT_REVISION:${owner.journey.activeRevisionIds.journey}` },
+    client,
+  )
+  const storedRequirement = await client.qualityJourneyRevision.findUniqueOrThrow({
+    where: { id: owner.journey.activeRevisionIds.journey },
+  })
+  const assignmentRequirement = {
+    kind: 'JOURNEY_REVISION',
+    artifactId: storedRequirement.id,
+    revisionId: storedRequirement.id,
+    contentHash: storedRequirement.contentHash,
+  }
+  expect(requirement.entry.entryId).toBe(`REQUIREMENT_REVISION:${assignmentRequirement.artifactId}`)
+  expect(requirement.entry).toMatchObject({
+    kind: 'REQUIREMENT_REVISION',
+    artifactId: assignmentRequirement.artifactId,
+    revisionId: '1',
+    sourceContentHash: assignmentRequirement.contentHash,
+    data: { objective: 'Checkout' },
+  })
+  expect(requirement.entry.revisionId).not.toBe(assignmentRequirement.revisionId)
 })
 
 it('searches only public metadata before pagination and applies the same filter to counts', async () => {

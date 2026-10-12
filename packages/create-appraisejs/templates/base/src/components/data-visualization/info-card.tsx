@@ -26,8 +26,8 @@ const InfoCard = ({
 
   return (
     <>
-      <Card className="flex min-w-40 max-w-80 items-center bg-inherit">
-        <CardContent className="min-w-0 p-2">
+      <Card className="flex min-w-40 max-w-80 items-center">
+        <CardContent className="min-w-0 p-3">
           <div className="flex min-w-0 items-center gap-4 text-primary">
             {showHighlightGroup ? (
               <>

@@ -18,6 +18,7 @@ import {
   qualityJourneyStatusProjection,
 } from '@/lib/quality-journey/presentation'
 import { getQualityJourneyAnalysis } from '@/services/coordinator/quality-journey-analysis-service'
+import { getQualityJourneyDiscovery } from '@/services/coordinator/quality-journey-discovery-service'
 import { getQualityJourney } from '@/services/coordinator/quality-journey-service'
 import { getQualityJourneyScenarioPortfolio } from '@/services/coordinator/quality-journey-scenario-service'
 import { getQualityJourneyAutomationContext } from '@/services/coordinator/quality-journey-automation-service'
@@ -26,6 +27,7 @@ import { inspectQualityJourneyHandoff } from '@/services/coordinator/quality-jou
 import { getQualityJourneyTriage } from '@/services/coordinator/quality-journey-triage-service'
 import prisma from '@/config/db-config'
 import { JourneyExecutionStatus } from './journey-execution-status'
+import { JourneyRecoveryPanel } from './journey-recovery-panel'
 import { ServiceError } from '@/services/shared/errors'
 
 import { AnalysisReviewControls } from './analysis-review-controls'
@@ -35,6 +37,7 @@ import { JourneyProgressNotice } from './journey-progress-notice'
 import { JourneyProgress } from './journey-progress'
 import { JourneyStatusObservationProvider } from './journey-status-observation'
 import { ScenarioPortfolioReview } from './scenario-portfolio-review'
+import { DiscoveryBrowserPanel } from './discovery-browser-panel'
 import { TriageReportPanel } from './triage-report-panel'
 import { qualityJourneyLabel, toAnalysisRevisionView } from './quality-journey-view-model'
 
@@ -114,9 +117,10 @@ async function loadJourneyDetail(journeyId: string, projectId: string) {
     node => node.stage === journey.journey.stage && ['RUNNABLE', 'IN_PROGRESS', 'BLOCKED'].includes(node.state),
   )
 
-  const [{ scenarios, automation }, execution, triage, handoff, environments, attempts, requirement] =
+  const [{ scenarios, automation }, discovery, execution, triage, handoff, environments, attempts, requirement] =
     await Promise.all([
       loadJourneySupplementalArtifacts(journeyId, projectId, journey.journey.stage),
+      loadActiveDiscovery(journey.journey.stage, journeyId, projectId),
       getQualityJourneyExecution({ journeyId, targetProjectId: projectId }),
       getQualityJourneyTriage({ journeyId, targetProjectId: projectId }),
       inspectQualityJourneyHandoff({ journeyId, targetProjectId: projectId }),
@@ -141,6 +145,7 @@ async function loadJourneyDetail(journeyId: string, projectId: string) {
     activeRunner,
     answerable,
     journey,
+    discovery,
     scenarios,
     automation,
     execution,
@@ -151,6 +156,48 @@ async function loadJourneyDetail(journeyId: string, projectId: string) {
     requirementSummary: requirement
       ? qualityJourneyRequirementSummary(requirement.contentJson)
       : 'Requirement snapshot unavailable',
+  }
+}
+
+async function loadActiveDiscovery(stage: string, journeyId: string, projectId: string) {
+  if (stage !== 'DISCOVERY') return null
+  return getQualityJourneyDiscovery({ journeyId, targetProjectId: projectId }).catch(error => {
+    if (error instanceof ServiceError && error.code === 'NOT_FOUND') return null
+    throw error
+  })
+}
+
+function discoveryBrowserView(
+  discovery: Awaited<ReturnType<typeof getQualityJourneyDiscovery>> | null,
+  environments: Array<{ id: string; name: string }>,
+) {
+  if (!discovery?.activeDiscoveryRevisionId) return null
+  const active = discovery.revisions.find(revision => revision.id === discovery.activeDiscoveryRevisionId)
+  if (!active) return null
+  const scope = JSON.parse(active.scoutScopeJson) as {
+    environmentIds?: string[]
+    routes?: string[]
+    environmentBindings?: Array<{ environmentId: string; discoveryAuthTransitPolicyJson: string | null }>
+  }
+  const environmentIds = new Set(scope.environmentIds ?? [])
+  const routes = [...new Set(scope.routes ?? [])].toSorted()
+  if (!routes.length) return null
+  return {
+    id: active.id,
+    workItemId: active.scoutWorkItemId,
+    environments: environments.filter(environment => environmentIds.has(environment.id)),
+    routes,
+    authFlows: (scope.environmentBindings ?? []).flatMap(binding => {
+      if (!binding.discoveryAuthTransitPolicyJson) return []
+      try {
+        const value = JSON.parse(binding.discoveryAuthTransitPolicyJson) as { flows?: Array<{ flowId?: string }> }
+        return (value.flows ?? [])
+          .filter((flow): flow is { flowId: string } => typeof flow.flowId === 'string')
+          .map(flow => ({ environmentId: binding.environmentId, flowId: flow.flowId }))
+      } catch {
+        return []
+      }
+    }),
   }
 }
 
@@ -174,7 +221,7 @@ function detailPresentation(
       Boolean(portfolio?.reviewHash) &&
       Boolean(portfolio?.scenarios.some(scenario => !scenario.decisions.length)),
     requestedExecutionConsentCount: detail.execution.consents.filter(consent => consent.status === 'REQUESTED').length,
-    showCoordinatorHandoff: ['INTAKE', 'ANALYSIS', 'ANALYSIS_REVIEW'].includes(detail.journey.journey.stage),
+    showCoordinatorHandoff: detail.journey.journey.stage !== 'CLOSED',
     hasObservedWorkerProgress: Boolean(detail.activeAnalysis),
     hasClosureReceipt: Boolean(closure.receipt),
     capsuleIds: materializations.flatMap(item =>
@@ -195,6 +242,7 @@ export default async function QualityJourneyDetailPage({ params, searchParams }:
     activeRunner,
     answerable,
     journey,
+    discovery,
     automation,
     execution,
     triage,
@@ -213,6 +261,12 @@ export default async function QualityJourneyDetailPage({ params, searchParams }:
     >
       <main className="space-y-6 pb-10">
         <JourneyHeader journey={journey} project={project} requirementSummary={requirementSummary} />
+        <JourneyRecoveryPanel
+          journeyId={journeyId}
+          status={journey.journey.status}
+          stateHash={journey.journey.stateHash}
+          version={journey.journey.version}
+        />
         <section
           className="grid gap-4 xl:grid-cols-[minmax(0,1.4fr)_minmax(20rem,0.6fr)]"
           aria-label="Current journey focus"
@@ -284,6 +338,7 @@ export default async function QualityJourneyDetailPage({ params, searchParams }:
                     hasObservedWorkerProgress={presentation.hasObservedWorkerProgress}
                     journeyId={journeyId}
                     projectId={project.id}
+                    stage={journey.journey.stage}
                   />
                 </div>
               ) : null}
@@ -297,6 +352,9 @@ export default async function QualityJourneyDetailPage({ params, searchParams }:
                 analysisReviewHash={journey.journey.analysisReviewHash}
                 unresolvedQuestionIds={journey.journey.unresolvedQuestionIds}
               />
+            </section>
+            <section id="discovery" tabIndex={-1}>
+              <DiscoveryBrowserPanel journeyId={journeyId} discovery={discoveryBrowserView(discovery, environments)} />
             </section>
             <section id="scenarios" tabIndex={-1}>
               <ScenarioPortfolioReview

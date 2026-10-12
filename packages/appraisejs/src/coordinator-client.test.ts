@@ -5,6 +5,7 @@ import path from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { CoordinatorRequestError, createCoordinatorClient } from './coordinator-client.js'
+import { disconnectLocalProjectIdentity, reconnectLocalProjectIdentity } from './project-identity.js'
 
 const workspaces: string[] = []
 
@@ -112,7 +113,7 @@ describe('coordinator client endpoint contracts', () => {
   })
 
   it('sends the project identity only to a credential-free loopback coordinator endpoint', async () => {
-    const fetchMock = vi.fn().mockResolvedValue(Response.json([]))
+    const fetchMock = vi.fn().mockImplementation(() => Promise.resolve(Response.json([])))
     vi.stubGlobal('fetch', fetchMock)
     const api = await client()
 
@@ -128,6 +129,24 @@ describe('coordinator client endpoint contracts', () => {
         }),
       }),
     )
+  })
+
+  it('rejects a cached client after disconnect and rotation without sending another request', async () => {
+    const fetchMock = vi.fn().mockImplementation(() => Promise.resolve(Response.json([])))
+    vi.stubGlobal('fetch', fetchMock)
+    const cwd = await fs.mkdtemp(path.join(os.tmpdir(), 'appraise-revoked-client-'))
+    workspaces.push(cwd)
+    await fs.writeFile(path.join(cwd, 'package.json'), '{"name":"revoked-client-test"}')
+    const api = await createCoordinatorClient({ cwd, baseUrl: 'http://127.0.0.1:3999', coordinatorId: 'test' })
+    await api.listTargetProjects()
+    await disconnectLocalProjectIdentity(cwd)
+    await expect(api.listTargetProjects()).rejects.toMatchObject({ envelope: { code: 'coordinator_identity_revoked' } })
+    await reconnectLocalProjectIdentity(cwd)
+    await expect(api.listTargetProjects()).rejects.toMatchObject({ envelope: { code: 'coordinator_identity_revoked' } })
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    const fresh = await createCoordinatorClient({ cwd, baseUrl: 'http://127.0.0.1:3999', coordinatorId: 'test' })
+    await expect(fresh.listTargetProjects()).resolves.toEqual([])
+    expect(fetchMock).toHaveBeenCalledTimes(2)
   })
 
   it('continues to accept localhost as a local coordinator origin', async () => {

@@ -8,11 +8,17 @@ import { copyMigratedTestDatabase } from '@/test/migrated-test-database'
 import { clearAgentFactoryProviderAdaptersForTest, registerAgentFactoryProviderAdapter } from '@/lib/quality-journey'
 import { canonicalContractJson } from '@/lib/catalog-contracts'
 import {
+  acceptExternalQualityJourneySubmissionInTransaction,
+  admitExternalQualityJourneyAnalyzer,
+  cancelQualityJourneyWork,
+  claimExternalQualityJourneyAnalyzer,
   claimQualityJourneyWork,
   createQualityJourney,
   dispatchQualityJourneyWork,
   getQualityJourney,
   resumeQualityJourney,
+  revokeQualityJourneyWorkAuthorization,
+  readExternalQualityJourneySubmissionOutcome,
   submitDurableQualityJourneyCommand,
 } from './quality-journey-service'
 import {
@@ -21,6 +27,7 @@ import {
   getQualityJourneyAnalysis,
   publishQualityJourneyAnalysis,
   requestQualityJourneyAnalysisRevision,
+  submitExternalQualityJourneyAnalysisSuccessor,
   submitQualityJourneyAnalysisSuccessor,
 } from './quality-journey-analysis-service'
 import {
@@ -42,6 +49,8 @@ import {
 } from './quality-journey-scenario-service'
 import {
   createQualityJourneyKernelState,
+  discoveryBrowserReceiptIssuer,
+  discoveryBrowserVerificationStrength,
   hashScenarioPortfolio,
   qualityJourneyRoleDefinitions,
   qualityJourneyRoleRegistryVersion,
@@ -59,12 +68,72 @@ import {
   materializeQualityJourneyApprovedScenarios,
 } from './quality-journey-automation-service'
 import { approveQualityJourneyRemediation } from './quality-journey-triage-service'
+import {
+  getQualityJourneyLibraryArtifact,
+  listQualityJourneyArtifactLibrary,
+} from './quality-journey-artifact-library-service'
 
 const workspaces: string[] = []
+const databasePaths = new WeakMap<PrismaClient, string>()
 const digest = (character: string) => `sha256:${character.repeat(64)}`
 const hash = (value: unknown) => `sha256:${createHash('sha256').update(canonicalContractJson(value)).digest('hex')}`
 const phaseSixId = (kind: string, ...parts: string[]) =>
   `qja_${kind}_${createHash('sha256').update(parts.join(':')).digest('hex').slice(0, 24)}`
+
+async function seedDiscoveryBrowserReceipt(
+  client: PrismaClient,
+  input: {
+    artifactId: string
+    journeyId: string
+    targetProjectId: string
+    cycleId: string
+    discoveryRevisionId: string
+    workItemId: string
+    snapshotId: string
+  },
+) {
+  const receipt = {
+    schemaVersion: 'appraise.discovery-browser-receipt/v1' as const,
+    issuer: discoveryBrowserReceiptIssuer,
+    verificationStrength: discoveryBrowserVerificationStrength,
+    artifactId: input.artifactId,
+    sessionId: `${input.artifactId}-session`,
+    sessionGeneration: 1,
+    processInstanceId: 'browser-process-1',
+    journeyId: input.journeyId,
+    targetProjectId: input.targetProjectId,
+    cycleId: input.cycleId,
+    discoveryRevisionId: input.discoveryRevisionId,
+    workItemId: input.workItemId,
+    environmentId: 'environment-analysis-1',
+    environmentScopeVersion: 1,
+    routeId: '/checkout',
+    snapshotId: input.snapshotId,
+    accessMode: 'ANONYMOUS' as const,
+    accessOutcome: 'ACTIVE' as const,
+    capturedAt: '2026-09-04T00:00:00.000Z',
+    url: 'https://example.test/checkout',
+    title: 'Checkout',
+    observationFacts: ['Checkout is visible.'],
+    observationFactsHash: hash(['Checkout is visible.']),
+    note: 'Human-confirmed browser access records local access only; it does not identify a natural person or attest IdP identity.',
+  }
+  const contentHash = hash(receipt)
+  await client.qualityJourneyArtifact.create({
+    data: {
+      id: `${input.artifactId}-record`,
+      identityKey: `test-discovery-browser-receipt:${input.artifactId}`,
+      journeyId: input.journeyId,
+      targetProjectId: input.targetProjectId,
+      cycleId: input.cycleId,
+      kind: 'DISCOVERY_BROWSER_RECEIPT',
+      artifactId: input.artifactId,
+      contentHash,
+      artifactJson: canonicalContractJson(receipt),
+    },
+  })
+  return { artifactId: input.artifactId, contentHash }
+}
 
 afterEach(async () => {
   clearAgentFactoryProviderAdaptersForTest()
@@ -77,6 +146,7 @@ async function fixture() {
   const databasePath = path.join(workspace, 'appraise.db')
   await copyMigratedTestDatabase(databasePath)
   const client = new PrismaClient({ datasources: { db: { url: `file:${databasePath}` } } })
+  databasePaths.set(client, databasePath)
   await client.targetProject.create({
     data: {
       id: 'target-analysis-1',
@@ -108,6 +178,14 @@ async function fixture() {
     },
   })
   return client
+}
+
+function reconnect(client: PrismaClient) {
+  const databasePath = databasePaths.get(client)
+  if (!databasePath) throw new Error('Fixture database path is unavailable.')
+  const replacement = new PrismaClient({ datasources: { db: { url: `file:${databasePath}` } } })
+  databasePaths.set(replacement, databasePath)
+  return replacement
 }
 
 function frozenRouteAssertionDefinition() {
@@ -250,6 +328,38 @@ async function readyAnalyzer(client: PrismaClient) {
     client,
   )
   return { created, state, claim }
+}
+
+const externalPrincipal = { principalId: 'coordinator:fixture-project', assurance: 'PROJECT_CREDENTIAL_ONLY' as const }
+
+async function readyExternalAnalyzer(client: PrismaClient, suffix = '') {
+  const created = await createQualityJourney(
+    {
+      targetProjectId: 'target-analysis-1',
+      idempotencyKey: `create-external-analysis${suffix}`,
+      requirement: { objective: 'Checkout' },
+    },
+    client,
+  )
+  const revision = await client.qualityJourneyRevision.findUniqueOrThrow({
+    where: { id: created.journey.activeRevisionIds.journey },
+  })
+  await submitDurableQualityJourneyCommand(
+    {
+      schemaVersion: 'appraise.quality-journey/v1',
+      commandId: `submit-external-requirement${suffix}`,
+      journeyId: created.journey.journeyId,
+      targetProjectId: 'target-analysis-1',
+      actor: 'USER',
+      command: 'SUBMIT_REQUIREMENT',
+      expectedStateHash: created.journey.stateHash,
+      idempotencyKey: `submit-external-requirement${suffix}`,
+      inputArtifactRefs: [],
+      payload: { journeyRevisionId: revision.id, requirementHash: revision.contentHash },
+    },
+    client,
+  )
+  return created
 }
 
 function registerStartedAnalyzerAdapter(
@@ -410,6 +520,15 @@ async function completedDiscovery(client: PrismaClient, suffix: string) {
     ),
   )
   const inputArtifacts = JSON.parse(discovery.scoutWorkItem.inputArtifactRefsJson)
+  const observationReceipt = await seedDiscoveryBrowserReceipt(client, {
+    artifactId: `${suffix}-evidence`,
+    journeyId: created.journey.journeyId,
+    targetProjectId: 'target-analysis-1',
+    cycleId: created.journey.activeCycleId,
+    discoveryRevisionId: discovery.id,
+    workItemId: scout.workItem.id,
+    snapshotId: `${suffix}-snapshot`,
+  })
   const baseBundle = {
     schemaVersion: 'appraise.quality-journey/v1' as const,
     journeyId: created.journey.journeyId,
@@ -426,7 +545,7 @@ async function completedDiscovery(client: PrismaClient, suffix: string) {
     },
     approvedRequirementSetHash: discovery.approvedRequirementSetHash,
     inputArtifacts,
-    evidenceReceipts: [{ artifactId: `${suffix}-evidence`, contentHash: digest('e') }],
+    evidenceReceipts: [observationReceipt],
   }
   const scoutScope = JSON.parse(discovery.scoutWorkItem.authorizationScopeJson)
   await submitQualityJourneyTargetObservation(
@@ -526,29 +645,719 @@ async function completedDiscovery(client: PrismaClient, suffix: string) {
   return { created, submitted, discovery: completed, frozenResource }
 }
 
+async function seedDiscoveryBuiltIns(client: PrismaClient) {
+  const discoveryDefinition = frozenRouteAssertionDefinition()
+  const discoveryDefinitionHashes = computeStepDefinitionHashes(discoveryDefinition)
+  await client.stepDefinition.create({
+    data: {
+      id: discoveryDefinition.identity.id,
+      version: discoveryDefinition.identity.version,
+      status: 'ready',
+      title: discoveryDefinition.intent.title,
+      description: discoveryDefinition.intent.description,
+      definitionJson: canonicalContractJson(discoveryDefinition),
+      definitionHash: discoveryDefinitionHashes.definitionHash,
+      humanProjectionHash: discoveryDefinitionHashes.humanProjectionHash,
+      executionHash: discoveryDefinitionHashes.executionHash,
+      provenanceJson: canonicalContractJson(discoveryDefinition.provenance),
+      executionBinding: {
+        create: {
+          kind: 'operation',
+          bindingJson: canonicalContractJson(discoveryDefinition.execution),
+          bindingHash: discoveryDefinitionHashes.executionHash,
+        },
+      },
+    },
+  })
+  const otherBuiltIns = builtInStepDefinitions.filter(
+    definition => definition.identity.id !== discoveryDefinition.identity.id,
+  )
+  const wrongHashDefinition = otherBuiltIns[0]!
+  const wrongProvenanceDefinition = otherBuiltIns[1]!
+  const wrongProvenanceHash = computeStepDefinitionHashes(wrongProvenanceDefinition).definitionHash
+  await client.stepDefinition.createMany({
+    data: [
+      {
+        id: wrongHashDefinition.identity.id,
+        version: wrongHashDefinition.identity.version,
+        status: 'ready',
+        title: wrongHashDefinition.intent.title,
+        description: wrongHashDefinition.intent.description,
+        definitionJson: canonicalContractJson(wrongHashDefinition),
+        definitionHash: digest('f'),
+        provenanceJson: canonicalContractJson(wrongHashDefinition.provenance),
+      },
+      {
+        id: wrongProvenanceDefinition.identity.id,
+        version: wrongProvenanceDefinition.identity.version,
+        status: 'ready',
+        title: wrongProvenanceDefinition.intent.title,
+        description: wrongProvenanceDefinition.intent.description,
+        definitionJson: canonicalContractJson(wrongProvenanceDefinition),
+        definitionHash: wrongProvenanceHash,
+        provenanceJson: canonicalContractJson({ ...wrongProvenanceDefinition.provenance, createdBy: 'other' }),
+      },
+    ],
+  })
+  return { discoveryDefinition, discoveryDefinitionHashes }
+}
+
 describe('Quality Journey Phase 3 through Phase 5 control plane', () => {
-  it('keeps charter/question/answer lineage immutable and blocks approval until required Q&A resolves', async () => {
+  it('rolls back a canonical artifact effect when fault injection prevents its external acceptance receipt', async () => {
     const client = await fixture()
     try {
-      const { created, claim } = await readyAnalyzer(client)
-      const submitted = await submitQualityJourneyAnalysisSuccessor(
+      const created = await readyExternalAnalyzer(client, '-external-acceptance-fault')
+      const claim = await claimExternalQualityJourneyAnalyzer(
+        {
+          journeyId: created.journey.journeyId,
+          targetProjectId: 'target-analysis-1',
+          principal: externalPrincipal,
+          assignmentSecret: 'f'.repeat(32),
+          idempotencyKey: 'external-acceptance-fault-claim',
+        },
+        client,
+      )
+      await admitExternalQualityJourneyAnalyzer(
         {
           journeyId: created.journey.journeyId,
           targetProjectId: 'target-analysis-1',
           workItemId: claim.workItem.id,
           attemptId: claim.attempt.id,
+          assignmentId: claim.assignment.assignmentId,
+          assignmentGeneration: claim.assignmentGeneration,
           leaseId: claim.attempt.leaseId,
-          ownerToken: claim.ownerToken,
-          idempotencyKey: 'analysis-submit-1',
-          charter: charter(
-            created.journey.journeyId,
-            created.journey.activeCycleId,
-            created.journey.activeRevisionIds.journey,
-          ),
+          assignmentSecret: claim.assignmentSecret,
+          idempotencyKey: 'external-acceptance-fault-admit',
+          principal: externalPrincipal,
         },
         client,
       )
+
+      await expect(
+        client.$transaction(async tx =>
+          acceptExternalQualityJourneySubmissionInTransaction(
+            {
+              journeyId: created.journey.journeyId,
+              targetProjectId: 'target-analysis-1',
+              role: 'REQUIREMENT_ANALYZER',
+              workItemId: claim.workItem.id,
+              attemptId: claim.attempt.id,
+              assignmentId: claim.assignment.assignmentId,
+              assignmentGeneration: claim.assignmentGeneration,
+              leaseId: claim.attempt.leaseId,
+              assignmentSecret: claim.assignmentSecret,
+              principal: externalPrincipal,
+              operation: 'ANALYSIS_SUBMIT',
+              idempotencyKey: 'external-acceptance-fault-submit',
+              payload: { charter: 'fault-injected' },
+            },
+            tx,
+            async () => {
+              await tx.qualityJourneyArtifact.create({
+                data: {
+                  id: 'artifact-external-acceptance-fault',
+                  identityKey: 'external-acceptance-fault',
+                  journeyId: created.journey.journeyId,
+                  targetProjectId: 'target-analysis-1',
+                  cycleId: created.journey.activeCycleId,
+                  kind: 'ANALYSIS_CHARTER_REVISION',
+                  artifactId: 'analysis-external-acceptance-fault',
+                  revisionId: 'analysis-external-acceptance-fault-r1',
+                  contentHash: digest('f'),
+                  artifactJson: JSON.stringify({ faultInjection: true }),
+                },
+              })
+              throw new Error('C2.1 acceptance receipt fault injection')
+            },
+          ),
+        ),
+      ).rejects.toThrow('C2.1 acceptance receipt fault injection')
+
+      await expect(
+        client.qualityJourneyArtifact.findUnique({ where: { id: 'artifact-external-acceptance-fault' } }),
+      ).resolves.toBeNull()
+      await expect(
+        client.qualityJourneyExternalSubmissionAcceptance.count({
+          where: { attemptId: claim.attempt.id, idempotencyKey: 'external-acceptance-fault-submit' },
+        }),
+      ).resolves.toBe(0)
+    } finally {
+      await client.$disconnect()
+    }
+  })
+
+  it('admits an opt-in external Analyzer without Factory receipts and replays only to its principal and secret', async () => {
+    let client = await fixture()
+    try {
+      const created = await readyExternalAnalyzer(client)
+      const claim = await claimExternalQualityJourneyAnalyzer(
+        {
+          journeyId: created.journey.journeyId,
+          targetProjectId: 'target-analysis-1',
+          principal: externalPrincipal,
+          assignmentSecret: 'a'.repeat(32),
+          idempotencyKey: 'external-analyzer-admission-claim',
+        },
+        client,
+      )
+      expect(Buffer.byteLength(claim.assignmentSecret, 'utf8')).toBeGreaterThanOrEqual(32)
+      expect(claim.attempt.spawnRequestId).toBeNull()
+      expect(claim.attempt.spawnReceiptId).toBeNull()
+      const assignedRequirement = claim.assignment.inputArtifacts.find(
+        (artifact: { kind: string }) => artifact.kind === 'JOURNEY_REVISION',
+      )!
+      const requirementLibrary = await listQualityJourneyArtifactLibrary(
+        { journeyId: created.journey.journeyId, targetProjectId: 'target-analysis-1' },
+        client,
+      )
+      const requirementEntryId = `REQUIREMENT_REVISION:${assignedRequirement.artifactId}`
+      expect(requirementLibrary.entries.map(entry => entry.entryId)).toContain(requirementEntryId)
+      const exactRequirement = await getQualityJourneyLibraryArtifact(
+        {
+          journeyId: created.journey.journeyId,
+          targetProjectId: 'target-analysis-1',
+          entryId: requirementEntryId,
+        },
+        client,
+      )
+      expect(exactRequirement.entry).toMatchObject({
+        kind: 'REQUIREMENT_REVISION',
+        artifactId: assignedRequirement.artifactId,
+        sourceContentHash: assignedRequirement.contentHash,
+        data: { objective: 'Checkout' },
+      })
+      expect(exactRequirement.entry.revisionId).not.toBe(assignedRequirement.revisionId)
+      await expect(
+        claimQualityJourneyWork(
+          {
+            journeyId: created.journey.journeyId,
+            targetProjectId: 'target-analysis-1',
+            role: 'REQUIREMENT_ANALYZER',
+          },
+          client,
+        ),
+      ).rejects.toMatchObject({ code: 'CONFLICT' })
+      const authorization = await client.qualityJourneyWorkAuthorization.findUniqueOrThrow({
+        where: { id: claim.attempt.authorizationId! },
+      })
+      expect(authorization).toMatchObject({
+        externalAdmissionProtocol: 'EXTERNAL_V1',
+        externalPrincipalId: externalPrincipal.principalId,
+        externalPrincipalAssurance: 'PROJECT_CREDENTIAL_ONLY',
+      })
+      const admission = {
+        journeyId: created.journey.journeyId,
+        targetProjectId: 'target-analysis-1',
+        workItemId: claim.workItem.id,
+        attemptId: claim.attempt.id,
+        assignmentId: claim.assignment.assignmentId,
+        assignmentGeneration: claim.assignmentGeneration,
+        leaseId: claim.attempt.leaseId,
+        assignmentSecret: claim.assignmentSecret,
+        idempotencyKey: 'external-admission-1',
+        principal: externalPrincipal,
+      }
+      const admitted = await admitExternalQualityJourneyAnalyzer(admission, client)
+      expect(admitted).toMatchObject({ replayed: false, receipt: { hostIsolation: 'NOT_ATTESTED' } })
+      await expect(admitExternalQualityJourneyAnalyzer(admission, client)).resolves.toMatchObject({ replayed: true })
+      await expect(
+        admitExternalQualityJourneyAnalyzer({ ...admission, idempotencyKey: 'external-admission-changed' }, client),
+      ).rejects.toMatchObject({ code: 'CONFLICT' })
+      const submission = {
+        journeyId: created.journey.journeyId,
+        targetProjectId: 'target-analysis-1',
+        workItemId: claim.workItem.id,
+        attemptId: claim.attempt.id,
+        assignmentId: claim.assignment.assignmentId,
+        assignmentGeneration: claim.assignmentGeneration,
+        leaseId: claim.attempt.leaseId,
+        assignmentSecret: claim.assignmentSecret,
+        idempotencyKey: 'external-analysis-1',
+        charter: charter(
+          created.journey.journeyId,
+          created.journey.activeCycleId,
+          created.journey.activeRevisionIds.journey,
+          'external-1',
+        ),
+      }
+      const submitted = await submitExternalQualityJourneyAnalysisSuccessor(submission, externalPrincipal, client)
       expect(submitted.replayed).toBe(false)
+      expect(await client.qualityJourneyExternalSubmissionAcceptance.count()).toBe(1)
+      await expect(
+        readExternalQualityJourneySubmissionOutcome(
+          { ...submission, role: 'REQUIREMENT_ANALYZER', operation: 'ANALYSIS_SUBMIT', principal: externalPrincipal },
+          client,
+        ),
+      ).resolves.toMatchObject({ replayed: true, outcome: { analysisRevision: { id: submitted.analysisRevision.id } } })
+      await client.qualityJourneyWorkAuthorization.update({
+        where: { id: claim.attempt.authorizationId! },
+        data: {
+          revokedAt: new Date(),
+          revokedBy: 'USER',
+          revocationReason: 'Verify replay does not grant a new effect.',
+        },
+      })
+      await expect(
+        submitExternalQualityJourneyAnalysisSuccessor(submission, externalPrincipal, client),
+      ).resolves.toMatchObject({ replayed: true, analysisRevision: { id: submitted.analysisRevision.id } })
+      await expect(
+        submitExternalQualityJourneyAnalysisSuccessor(
+          { ...submission, charter: { ...submission.charter, assumptions: ['Changed payload.'] } },
+          externalPrincipal,
+          client,
+        ),
+      ).rejects.toMatchObject({ code: 'CONFLICT' })
+      await expect(
+        submitExternalQualityJourneyAnalysisSuccessor(
+          submission,
+          { ...externalPrincipal, principalId: 'coordinator:other' },
+          client,
+        ),
+      ).rejects.toMatchObject({ code: 'UNAUTHORIZED' })
+      expect(await client.qualityJourneyAnalysisRevision.count()).toBe(1)
+
+      const recorded = await getQualityJourneyAnalysis(
+        { journeyId: created.journey.journeyId, targetProjectId: 'target-analysis-1' },
+        client,
+      )
+      expect(recorded.revisions[0]?.questions[0]?.required).toBe(true)
+      const recordedJourney = await getQualityJourney(
+        { journeyId: created.journey.journeyId, targetProjectId: 'target-analysis-1' },
+        client,
+      )
+      expect(recordedJourney.journey.unresolvedQuestionIds).toEqual(['question-payment'])
+      const firstRef = {
+        kind: 'ANALYSIS_CHARTER_REVISION' as const,
+        artifactId: submission.charter.charterId,
+        revisionId: submission.charter.analysisRevisionId,
+        contentHash: submitted.analysisRevision.contentHash,
+      }
+      await expect(
+        publishQualityJourneyAnalysis(
+          {
+            schemaVersion: 'appraise.quality-journey/v1',
+            commandId: 'external-analysis-publish-blocked',
+            journeyId: created.journey.journeyId,
+            targetProjectId: 'target-analysis-1',
+            actor: 'RUNNER',
+            command: 'PUBLISH_ANALYSIS',
+            expectedStateHash: recordedJourney.journey.stateHash,
+            idempotencyKey: 'external-analysis-publish-blocked',
+            inputArtifactRefs: [firstRef],
+            payload: {
+              artifactRevisionId: submitted.analysisRevision.id,
+              artifactHash: submitted.analysisRevision.contentHash,
+            },
+          },
+          client,
+        ),
+      ).rejects.toMatchObject({ code: 'CONFLICT' })
+
+      const answer = await answerQualityJourneyAnalysisQuestion(
+        {
+          idempotencyKey: 'external-analysis-human-answer',
+          answer: {
+            schemaVersion: 'appraise.quality-journey/v1',
+            answerId: 'external-analysis-human-answer',
+            journeyId: created.journey.journeyId,
+            targetProjectId: 'target-analysis-1',
+            analysisRevisionId: submitted.analysisRevision.id,
+            questionId: 'question-payment',
+            answer: 'Card payment.',
+            actor: 'USER',
+          },
+        },
+        client,
+      )
+      const answeredJourney = await getQualityJourney(
+        { journeyId: created.journey.journeyId, targetProjectId: 'target-analysis-1' },
+        client,
+      )
+      expect(answeredJourney.journey.unresolvedQuestionIds).toEqual([])
+      await publishQualityJourneyAnalysis(
+        {
+          schemaVersion: 'appraise.quality-journey/v1',
+          commandId: 'external-analysis-publish',
+          journeyId: created.journey.journeyId,
+          targetProjectId: 'target-analysis-1',
+          actor: 'RUNNER',
+          command: 'PUBLISH_ANALYSIS',
+          expectedStateHash: answeredJourney.journey.stateHash,
+          idempotencyKey: 'external-analysis-publish',
+          inputArtifactRefs: [firstRef],
+          payload: {
+            artifactRevisionId: submitted.analysisRevision.id,
+            artifactHash: submitted.analysisRevision.contentHash,
+          },
+        },
+        client,
+      )
+      const publishedJourney = await getQualityJourney(
+        { journeyId: created.journey.journeyId, targetProjectId: 'target-analysis-1' },
+        client,
+      )
+      await requestQualityJourneyAnalysisRevision(
+        {
+          expectedReviewHash: publishedJourney.journey.analysisReviewHash,
+          command: {
+            schemaVersion: 'appraise.quality-journey/v1',
+            commandId: 'external-analysis-revision-request',
+            journeyId: created.journey.journeyId,
+            targetProjectId: 'target-analysis-1',
+            actor: 'USER',
+            command: 'REQUEST_ANALYSIS_REVISION',
+            expectedStateHash: publishedJourney.journey.stateHash,
+            idempotencyKey: 'external-analysis-revision-request',
+            inputArtifactRefs: [firstRef],
+            payload: {
+              reviewedRevisionId: submitted.analysisRevision.id,
+              reviewedHash: submitted.analysisRevision.contentHash,
+              feedback: 'Carry the recorded payment decision into a revised charter.',
+            },
+          },
+        },
+        client,
+      )
+
+      // The first external task may now be gone. Reconnect through a fresh
+      // database client to model a later task/session reading only durable state;
+      // no liveness of the old task is assumed.
+      await client.$disconnect()
+      client = reconnect(client)
+      const rereadJourney = await getQualityJourney(
+        { journeyId: created.journey.journeyId, targetProjectId: 'target-analysis-1' },
+        client,
+      )
+      const rereadAnalysis = await getQualityJourneyAnalysis(
+        { journeyId: created.journey.journeyId, targetProjectId: 'target-analysis-1' },
+        client,
+      )
+      expect(rereadAnalysis.revisions[0]?.questions[0]?.answers[0]?.answerId).toBe(answer.answer.answerId)
+      expect(rereadJourney.journey.stage).toBe('ANALYSIS')
+      const successor = await claimExternalQualityJourneyAnalyzer(
+        {
+          journeyId: created.journey.journeyId,
+          targetProjectId: 'target-analysis-1',
+          principal: externalPrincipal,
+          assignmentSecret: 'c'.repeat(32),
+          idempotencyKey: 'external-analyzer-successor-claim',
+        },
+        client,
+      )
+      expect(successor.assignment.assignmentId).not.toBe(claim.assignment.assignmentId)
+      expect(successor.assignment.inputArtifacts.map((artifact: { kind: string }) => artifact.kind)).toEqual(
+        expect.arrayContaining([
+          'ANALYSIS_CHARTER_REVISION',
+          'ANALYSIS_QUESTION',
+          'ANALYSIS_ANSWER',
+          'ANALYSIS_REVISION_FEEDBACK',
+        ]),
+      )
+      await admitExternalQualityJourneyAnalyzer(
+        {
+          journeyId: created.journey.journeyId,
+          targetProjectId: 'target-analysis-1',
+          workItemId: successor.workItem.id,
+          attemptId: successor.attempt.id,
+          assignmentId: successor.assignment.assignmentId,
+          assignmentGeneration: successor.assignmentGeneration,
+          leaseId: successor.attempt.leaseId,
+          assignmentSecret: successor.assignmentSecret,
+          idempotencyKey: 'external-analyzer-successor-admission',
+          principal: externalPrincipal,
+        },
+        client,
+      )
+      const successorCharter = {
+        ...charter(
+          created.journey.journeyId,
+          created.journey.activeCycleId,
+          created.journey.activeRevisionIds.journey,
+          'external-2',
+        ),
+        questions: [],
+        resolvedQuestionAnswerIds: [answer.answer.answerId],
+      }
+      await expect(
+        submitExternalQualityJourneyAnalysisSuccessor(
+          {
+            journeyId: created.journey.journeyId,
+            targetProjectId: 'target-analysis-1',
+            workItemId: successor.workItem.id,
+            attemptId: successor.attempt.id,
+            assignmentId: successor.assignment.assignmentId,
+            assignmentGeneration: successor.assignmentGeneration,
+            leaseId: successor.attempt.leaseId,
+            assignmentSecret: successor.assignmentSecret,
+            idempotencyKey: 'external-analysis-successor-submit',
+            predecessorAnalysisRevisionId: submitted.analysisRevision.id,
+            charter: successorCharter,
+          },
+          externalPrincipal,
+          client,
+        ),
+      ).resolves.toMatchObject({ replayed: false })
+      expect(await client.qualityJourneyAnalysisRevision.count()).toBe(2)
+    } finally {
+      await client.$disconnect()
+    }
+  })
+
+  it('refuses stale external generations and new effects after lease expiry without creating Analysis data', async () => {
+    const client = await fixture()
+    try {
+      const created = await readyExternalAnalyzer(client)
+      const claim = await claimExternalQualityJourneyAnalyzer(
+        {
+          journeyId: created.journey.journeyId,
+          targetProjectId: 'target-analysis-1',
+          principal: externalPrincipal,
+          assignmentSecret: 'b'.repeat(32),
+          idempotencyKey: 'external-analyzer-stale-claim',
+        },
+        client,
+      )
+      const admission = {
+        journeyId: created.journey.journeyId,
+        targetProjectId: 'target-analysis-1',
+        workItemId: claim.workItem.id,
+        attemptId: claim.attempt.id,
+        assignmentId: claim.assignment.assignmentId,
+        assignmentGeneration: claim.assignmentGeneration,
+        leaseId: claim.attempt.leaseId,
+        assignmentSecret: claim.assignmentSecret,
+        idempotencyKey: 'external-admission-stale',
+        principal: externalPrincipal,
+      }
+      await admitExternalQualityJourneyAnalyzer(admission, client)
+      const submission = {
+        journeyId: created.journey.journeyId,
+        targetProjectId: 'target-analysis-1',
+        workItemId: claim.workItem.id,
+        attemptId: claim.attempt.id,
+        assignmentId: claim.assignment.assignmentId,
+        assignmentGeneration: claim.assignmentGeneration,
+        leaseId: claim.attempt.leaseId,
+        assignmentSecret: claim.assignmentSecret,
+        idempotencyKey: 'external-analysis-stale',
+        charter: charter(
+          created.journey.journeyId,
+          created.journey.activeCycleId,
+          created.journey.activeRevisionIds.journey,
+          'external-stale',
+        ),
+      }
+      await expect(
+        submitExternalQualityJourneyAnalysisSuccessor(
+          { ...submission, assignmentGeneration: submission.assignmentGeneration + 1 },
+          externalPrincipal,
+          client,
+        ),
+      ).rejects.toMatchObject({ code: 'CONFLICT' })
+      await expect(
+        submitExternalQualityJourneyAnalysisSuccessor(
+          {
+            ...submission,
+            charter: {
+              ...submission.charter,
+              obligations: [{ ...submission.charter.obligations[0], requirementId: 'REQ-MISSING' }],
+            },
+          },
+          externalPrincipal,
+          client,
+        ),
+      ).rejects.toThrow('Every obligation must reference a stable requirement ID.')
+      expect(await client.qualityJourneyAnalysisRevision.count()).toBe(0)
+      await client.qualityJourneyWorkItem.update({
+        where: { id: claim.workItem.id },
+        data: { inputHash: `sha256:${'f'.repeat(64)}` },
+      })
+      await expect(
+        submitExternalQualityJourneyAnalysisSuccessor(submission, externalPrincipal, client),
+      ).rejects.toMatchObject({ code: 'CONFLICT' })
+      await client.qualityJourneyWorkItem.update({
+        where: { id: claim.workItem.id },
+        data: { inputHash: claim.workItem.inputHash },
+      })
+      await client.qualityJourneyWorkAttempt.update({
+        where: { id: claim.attempt.id },
+        data: { leaseExpiresAt: new Date(Date.now() - 1_000) },
+      })
+      await expect(
+        submitExternalQualityJourneyAnalysisSuccessor(submission, externalPrincipal, client),
+      ).rejects.toMatchObject({ code: 'CONFLICT' })
+      expect(await client.qualityJourneyAnalysisRevision.count()).toBe(0)
+      await resumeQualityJourney({ journeyId: created.journey.journeyId, targetProjectId: 'target-analysis-1' }, client)
+      const replacement = await claimExternalQualityJourneyAnalyzer(
+        {
+          journeyId: created.journey.journeyId,
+          targetProjectId: 'target-analysis-1',
+          principal: externalPrincipal,
+          assignmentSecret: 'c'.repeat(32),
+          idempotencyKey: 'external-analyzer-replacement-claim',
+        },
+        client,
+      )
+      expect(replacement.attempt.attempt).toBe(2)
+      await expect(
+        submitExternalQualityJourneyAnalysisSuccessor(submission, externalPrincipal, client),
+      ).rejects.toMatchObject({ code: 'CONFLICT' })
+      expect(await client.qualityJourneyAnalysisRevision.count()).toBe(0)
+    } finally {
+      await client.$disconnect()
+    }
+  })
+
+  it('rejects external wrong-secret, scope, cancellation, and revocation effects without receipts or Analysis writes', async () => {
+    const client = await fixture()
+    try {
+      const cancelledJourney = await readyExternalAnalyzer(client, '-cancelled')
+      const cancelled = await claimExternalQualityJourneyAnalyzer(
+        {
+          journeyId: cancelledJourney.journey.journeyId,
+          targetProjectId: 'target-analysis-1',
+          principal: externalPrincipal,
+          assignmentSecret: 'd'.repeat(32),
+          idempotencyKey: 'external-analyzer-cancelled-claim',
+        },
+        client,
+      )
+      const cancelledAdmission = {
+        journeyId: cancelledJourney.journey.journeyId,
+        targetProjectId: 'target-analysis-1',
+        workItemId: cancelled.workItem.id,
+        attemptId: cancelled.attempt.id,
+        assignmentId: cancelled.assignment.assignmentId,
+        assignmentGeneration: cancelled.assignmentGeneration,
+        leaseId: cancelled.attempt.leaseId,
+        assignmentSecret: cancelled.assignmentSecret,
+        idempotencyKey: 'cancelled-admission',
+        principal: externalPrincipal,
+      }
+      await expect(
+        admitExternalQualityJourneyAnalyzer(
+          { ...cancelledAdmission, assignmentSecret: 'z'.repeat(cancelled.assignmentSecret.length) },
+          client,
+        ),
+      ).rejects.toMatchObject({ code: 'UNAUTHORIZED' })
+      await expect(
+        admitExternalQualityJourneyAnalyzer({ ...cancelledAdmission, targetProjectId: 'wrong-target' }, client),
+      ).rejects.toMatchObject({ code: 'NOT_FOUND' })
+      await expect(
+        admitExternalQualityJourneyAnalyzer({ ...cancelledAdmission, journeyId: 'wrong-journey' }, client),
+      ).rejects.toMatchObject({ code: 'NOT_FOUND' })
+      expect(
+        await client.qualityJourneyWorkAttempt.findUniqueOrThrow({ where: { id: cancelled.attempt.id } }),
+      ).toMatchObject({ status: 'WORKER_REQUESTED', externalAdmissionHash: null })
+      await cancelQualityJourneyWork(
+        {
+          journeyId: cancelledJourney.journey.journeyId,
+          targetProjectId: 'target-analysis-1',
+          workItemId: cancelled.workItem.id,
+          actor: 'USER',
+          reason: 'Negative external cancellation probe.',
+        },
+        client,
+      )
+      await expect(admitExternalQualityJourneyAnalyzer(cancelledAdmission, client)).rejects.toMatchObject({
+        code: 'CONFLICT',
+      })
+
+      const revokedJourney = await readyExternalAnalyzer(client, '-revoked')
+      const revoked = await claimExternalQualityJourneyAnalyzer(
+        {
+          journeyId: revokedJourney.journey.journeyId,
+          targetProjectId: 'target-analysis-1',
+          principal: externalPrincipal,
+          assignmentSecret: 'e'.repeat(32),
+          idempotencyKey: 'external-analyzer-revoked-claim',
+        },
+        client,
+      )
+      const revokedAdmission = {
+        journeyId: revokedJourney.journey.journeyId,
+        targetProjectId: 'target-analysis-1',
+        workItemId: revoked.workItem.id,
+        attemptId: revoked.attempt.id,
+        assignmentId: revoked.assignment.assignmentId,
+        assignmentGeneration: revoked.assignmentGeneration,
+        leaseId: revoked.attempt.leaseId,
+        assignmentSecret: revoked.assignmentSecret,
+        idempotencyKey: 'revoked-admission',
+        principal: externalPrincipal,
+      }
+      await revokeQualityJourneyWorkAuthorization(
+        {
+          journeyId: revokedJourney.journey.journeyId,
+          targetProjectId: 'target-analysis-1',
+          workItemId: revoked.workItem.id,
+          actor: 'COORDINATOR',
+          reason: 'Negative external revocation probe.',
+        },
+        client,
+      )
+      await expect(admitExternalQualityJourneyAnalyzer(revokedAdmission, client)).rejects.toMatchObject({
+        code: 'UNAUTHORIZED',
+      })
+      expect(await client.qualityJourneyAnalysisRevision.count()).toBe(0)
+    } finally {
+      await client.$disconnect()
+    }
+  })
+
+  it('keeps charter/question/answer lineage immutable and blocks approval until required Q&A resolves', async () => {
+    const client = await fixture()
+    try {
+      const { created, claim } = await readyAnalyzer(client)
+      const validCharter = charter(
+        created.journey.journeyId,
+        created.journey.activeCycleId,
+        created.journey.activeRevisionIds.journey,
+      )
+      const submission = {
+        journeyId: created.journey.journeyId,
+        targetProjectId: 'target-analysis-1',
+        workItemId: claim.workItem.id,
+        attemptId: claim.attempt.id,
+        leaseId: claim.attempt.leaseId,
+        ownerToken: claim.ownerToken,
+        idempotencyKey: 'analysis-submit-1',
+        charter: validCharter,
+      }
+      await expect(
+        submitQualityJourneyAnalysisSuccessor(
+          {
+            ...submission,
+            idempotencyKey: 'analysis-submit-invalid',
+            charter: {
+              ...validCharter,
+              obligations: [{ ...validCharter.obligations[0], requirementId: 'REQ-MISSING' }],
+            },
+          },
+          client,
+        ),
+      ).rejects.toThrow('Every obligation must reference a stable requirement ID.')
+      expect(await client.qualityJourneyAnalysisRevision.count()).toBe(0)
+
+      const submitted = await submitQualityJourneyAnalysisSuccessor(submission, client)
+      expect(submitted.replayed).toBe(false)
+      await expect(submitQualityJourneyAnalysisSuccessor(submission, client)).resolves.toMatchObject({
+        replayed: true,
+        analysisRevision: { id: submitted.analysisRevision.id },
+      })
+      await expect(
+        submitQualityJourneyAnalysisSuccessor(
+          {
+            ...submission,
+            charter: { ...validCharter, assumptions: ['Changed after the original acknowledgement.'] },
+          },
+          client,
+        ),
+      ).rejects.toMatchObject({
+        code: 'CONFLICT',
+        message: 'Analysis submission idempotency key was reused with different input.',
+      })
+      expect(await client.qualityJourneyAnalysisRevision.count()).toBe(1)
       const afterSubmit = await getQualityJourney(
         { journeyId: created.journey.journeyId, targetProjectId: 'target-analysis-1' },
         client,
@@ -629,43 +1438,11 @@ describe('Quality Journey Phase 3 through Phase 5 control plane', () => {
         inputArtifactRefs: [charterRef],
         payload: { revisionId: 'analysis-revision-1', contentHash, decision: 'APPROVED' },
       }
-      // Discovery freezes the resource catalog. Seed the Step Definition
-      // before approval so the later Automator assignment may legitimately
-      // select it from the Resource Explorer output.
-      const discoveryDefinition = frozenRouteAssertionDefinition()
-      const discoveryDefinitionHashes = computeStepDefinitionHashes(discoveryDefinition)
-      await client.stepDefinition.create({
-        data: {
-          id: discoveryDefinition.identity.id,
-          version: discoveryDefinition.identity.version,
-          status: 'ready',
-          title: discoveryDefinition.intent.title,
-          description: discoveryDefinition.intent.description,
-          definitionJson: canonicalContractJson(discoveryDefinition),
-          definitionHash: discoveryDefinitionHashes.definitionHash,
-          humanProjectionHash: discoveryDefinitionHashes.humanProjectionHash,
-          executionHash: discoveryDefinitionHashes.executionHash,
-          provenanceJson: canonicalContractJson(discoveryDefinition.provenance),
-          executionBinding: {
-            create: {
-              kind: 'operation',
-              bindingJson: canonicalContractJson(discoveryDefinition.execution),
-              bindingHash: discoveryDefinitionHashes.executionHash,
-            },
-          },
-        },
-      })
-      await client.projectResourceOwnership.create({
-        data: {
-          id: `ownership-${discoveryDefinition.identity.id}`,
-          entityType: 'step-definition',
-          entityId: discoveryDefinition.identity.id,
-          scope: 'project',
-          targetProjectId: 'target-analysis-1',
-          origin: 'fixture',
-          contentHash: discoveryDefinitionHashes.definitionHash,
-        },
-      })
+      // Discovery freezes source-owned built-ins even when no project ownership
+      // rows have been materialized. The later Automator assignment may select
+      // only definitions that pass the exact source identity, hash, and provenance check.
+      const { discoveryDefinition, discoveryDefinitionHashes } = await seedDiscoveryBuiltIns(client)
+      expect(await client.projectResourceOwnership.count({ where: { entityType: 'step-definition' } })).toBe(0)
       await expect(decideQualityJourneyAnalysis(decide, client)).resolves.toMatchObject({
         outcome: 'COMMITTED',
         successorStage: 'DISCOVERY',
@@ -685,6 +1462,19 @@ describe('Quality Journey Phase 3 through Phase 5 control plane', () => {
       expect(discovery.revisions).toHaveLength(1)
       const discoveryRevision = discovery.revisions[0]
       expect(discoveryRevision.status).toBe('COLLECTING')
+      const frozenSteps = (
+        JSON.parse(discoveryRevision.resourceScopeJson) as {
+          resources: Array<{ id: string; kind: string; contentHash: string; sourceTargetProjectId: string | null }>
+        }
+      ).resources.filter(resource => resource.kind === 'STEP_DEFINITION')
+      expect(frozenSteps).toEqual([
+        {
+          id: `step:${discoveryDefinition.identity.id}:${discoveryDefinition.identity.version}`,
+          kind: 'STEP_DEFINITION',
+          contentHash: discoveryDefinitionHashes.definitionHash,
+          sourceTargetProjectId: null,
+        },
+      ])
       expect([discoveryRevision.scoutWorkItem.role, discoveryRevision.resourceWorkItem.role]).toEqual([
         'SCOUT',
         'RESOURCE_EXPLORER',
@@ -704,8 +1494,9 @@ describe('Quality Journey Phase 3 through Phase 5 control plane', () => {
       expect(scoutClaim.assignment.allowedResourceIds).toContain('environment-analysis-1')
       expect(scoutClaim.assignment.allowedTargetRoutes).toContain('/checkout')
       expect(scoutClaim.assignment.targetEnvironmentBindings).toEqual([
-        { environmentId: 'environment-analysis-1', origin: 'https://example.test' },
+        expect.objectContaining({ environmentId: 'environment-analysis-1', origin: 'https://example.test' }),
       ])
+      expect(scoutClaim.assignment.scope.networkOrigins).toEqual(['https://example.test'])
       const collectingState = await getQualityJourney(
         { journeyId: created.journey.journeyId, targetProjectId: 'target-analysis-1' },
         client,
@@ -757,6 +1548,15 @@ describe('Quality Journey Phase 3 through Phase 5 control plane', () => {
         client,
       )
       const inputArtifacts = JSON.parse(discoveryRevision.scoutWorkItem.inputArtifactRefsJson)
+      const observationReceipt = await seedDiscoveryBrowserReceipt(client, {
+        artifactId: 'evidence-1',
+        journeyId: created.journey.journeyId,
+        targetProjectId: 'target-analysis-1',
+        cycleId: created.journey.activeCycleId,
+        discoveryRevisionId: discoveryRevision.id,
+        workItemId: scoutClaim.workItem.id,
+        snapshotId: 'snapshot-1',
+      })
       const bundleBase = {
         schemaVersion: 'appraise.quality-journey/v1' as const,
         journeyId: created.journey.journeyId,
@@ -773,7 +1573,7 @@ describe('Quality Journey Phase 3 through Phase 5 control plane', () => {
         },
         approvedRequirementSetHash: discoveryRevision.approvedRequirementSetHash,
         inputArtifacts,
-        evidenceReceipts: [{ artifactId: 'evidence-1', contentHash: digest('e') }],
+        evidenceReceipts: [observationReceipt],
       }
       const scoutScope = JSON.parse(discoveryRevision.scoutWorkItem.authorizationScopeJson)
       const scoutBundle = {
@@ -862,7 +1662,9 @@ describe('Quality Journey Phase 3 through Phase 5 control plane', () => {
       ).rejects.toMatchObject({ code: 'UNAUTHORIZED' })
       const resourceScope = JSON.parse(discoveryRevision.resourceWorkItem.authorizationScopeJson)
       const frozenResources = (
-        JSON.parse(discoveryRevision.resourceScopeJson) as { resources: Array<{ id: string; kind: string }> }
+        JSON.parse(discoveryRevision.resourceScopeJson) as {
+          resources: Array<{ id: string; kind: string; contentHash: string }>
+        }
       ).resources
       const frozenResource = frozenResources.find(resource => resource.kind !== 'MODULE')!
       const frozenModule = frozenResources.find(resource => resource.kind === 'MODULE')!
@@ -1457,7 +2259,7 @@ describe('Quality Journey Phase 3 through Phase 5 control plane', () => {
               create: {
                 id: `existing-semantic-step-${suffix}`,
                 order: 0,
-                gherkinStep: reusableIntent.steps[0]!.action,
+                gherkinStep: `Then ${reusableIntent.steps[0]!.action}`,
                 label: reusableIntent.steps[0]!.expected,
                 icon: 'VALIDATION',
                 invocationJson: reusableInvocation,
@@ -1566,6 +2368,17 @@ describe('Quality Journey Phase 3 through Phase 5 control plane', () => {
           submittedAt: '2026-09-05T00:00:00.000Z',
         },
       }
+      await expect(
+        materializeQualityJourneyApprovedScenarios(
+          { ...materializeInput, targetProjectId: 'target-semantic-foreign', idempotencyKey: 'foreign-target-attempt' },
+          client,
+        ),
+      ).rejects.toMatchObject({ code: 'NOT_FOUND' })
+      expect(
+        await client.qualityJourneyAutomationMaterialization.count({
+          where: { targetProjectId: 'target-semantic-foreign' },
+        }),
+      ).toBe(0)
       const automationDiscovery = await client.qualityJourneyDiscoveryRevision.findUniqueOrThrow({
         where: {
           id: (await client.qualityJourney.findUniqueOrThrow({ where: { id: created.journey.journeyId } }))
@@ -1799,6 +2612,17 @@ describe('Quality Journey Phase 3 through Phase 5 control plane', () => {
       await expect(materializeQualityJourneyApprovedScenarios(materializeInput, client)).resolves.toMatchObject({
         replayed: true,
       })
+      const expectedResourceHashes = frozenResources
+        .filter(resource => resourceBundle.reusable.some(reusable => reusable.resourceId === resource.id))
+        .map(resource => ({ id: resource.id, contentHash: resource.contentHash }))
+        .sort((left, right) => left.id.localeCompare(right.id))
+      const targetBindings = await client.qualityJourneyAutomationTargetBinding.findMany({
+        where: { journeyId: created.journey.journeyId },
+      })
+      expect(targetBindings).not.toHaveLength(0)
+      targetBindings.forEach(binding => {
+        expect(JSON.parse(binding.resourceHashJson)).toEqual(expectedResourceHashes)
+      })
       const authoredSteps = await client.testCaseStep.findMany({
         where: {
           testCaseId: {
@@ -1807,6 +2631,7 @@ describe('Quality Journey Phase 3 through Phase 5 control plane', () => {
         },
       })
       expect(authoredSteps).toHaveLength(1)
+      expect(authoredSteps[0]!.gherkinStep).toBe(`Then ${reusableIntent.steps[0]!.action}`)
       authoredSteps.forEach(step =>
         expect(stepInvocationSchema.parse(JSON.parse(step.invocationJson))).toMatchObject({
           step: { id: readyDefinition.identity.id },
@@ -2734,7 +3559,7 @@ describe('Quality Journey Phase 3 through Phase 5 control plane', () => {
     }
   }, 60_000)
 
-  it('reissues Scenario Designer with exact revision inputs and carries only unchanged behavioral decisions', async () => {
+  it('reissues Scenario Designer and carries approval only for unchanged scenario content and inputs', async () => {
     const client = await fixture()
     try {
       const { created, discovery, frozenResource } = await completedDiscovery(client, 'scenario-revision')
@@ -2802,7 +3627,7 @@ describe('Quality Journey Phase 3 through Phase 5 control plane', () => {
             enrichment: {
               observationIds: ['scenario-revision-observation'],
               resourceAssumptionIds: [frozenResource.id],
-              feasibilityNotes: [`${scenarioSuffix} feasibility`],
+              feasibilityNotes: ['Stable confirmation feasibility'],
             },
             layout: { x: 0, y: 0, sequence: 0 },
           },
@@ -2831,6 +3656,23 @@ describe('Quality Journey Phase 3 through Phase 5 control plane', () => {
               feasibilityNotes: [`${scenarioSuffix} feasibility`],
             },
             layout: { x: 100, y: 0, sequence: 1 },
+          },
+          {
+            stableScenarioId: 'scenario-c-enrichment',
+            scenarioRevisionId: `scenario-c-enrichment-${scenarioSuffix}`,
+            behavioralIntent: {
+              title: 'Checkout availability',
+              narrative: 'A shopper can reach checkout.',
+              requirementIds: ['REQ-CHECKOUT-1'],
+              expectedSignals: ['Checkout page'],
+              steps: [{ stepId: 'availability', action: 'Open checkout', expected: 'Checkout page' }],
+            },
+            enrichment: {
+              observationIds: ['scenario-revision-observation'],
+              resourceAssumptionIds: [frozenResource.id],
+              feasibilityNotes: [`${scenarioSuffix} availability evidence`],
+            },
+            layout: { x: 200, y: 0, sequence: 2 },
           },
         ],
       })
@@ -2943,7 +3785,7 @@ describe('Quality Journey Phase 3 through Phase 5 control plane', () => {
         decideQualityJourneyScenarios(
           {
             expectedReviewHash: afterComment.portfolio.reviewHash,
-            approvedScenarioRevisionIds: ['scenario-a-unchanged-r1'],
+            approvedScenarioRevisionIds: ['scenario-a-unchanged-r1', 'scenario-c-enrichment-r1'],
             rejectedScenarioRevisionIds: [],
             command: {
               schemaVersion: 'appraise.quality-journey/v1',
@@ -2958,7 +3800,7 @@ describe('Quality Journey Phase 3 through Phase 5 control plane', () => {
               payload: {
                 portfolioRevisionId: initialPortfolio.portfolioRevisionId,
                 portfolioHash: initialHash,
-                approvedScenarioRevisionIds: ['scenario-a-unchanged-r1'],
+                approvedScenarioRevisionIds: ['scenario-a-unchanged-r1', 'scenario-c-enrichment-r1'],
                 rejectedScenarioRevisionIds: [],
               },
             },
@@ -3056,7 +3898,10 @@ describe('Quality Journey Phase 3 through Phase 5 control plane', () => {
       })
       expect(JSON.parse(feedback.artifactJson)).toMatchObject({
         feedback: 'Retain the confirmation scenario and revise receipt coverage.',
-        decisions: [{ scenarioRevisionId: 'scenario-a-unchanged-r1', decision: 'APPROVED' }],
+        decisions: [
+          { scenarioRevisionId: 'scenario-a-unchanged-r1', decision: 'APPROVED' },
+          { scenarioRevisionId: 'scenario-c-enrichment-r1', decision: 'APPROVED' },
+        ],
         comments: [
           {
             scenarioRevisionId: 'scenario-b-revised-r1',
@@ -3076,7 +3921,10 @@ describe('Quality Journey Phase 3 through Phase 5 control plane', () => {
         client,
       )
       const successorDraft = makePortfolio('scenario-revision-r2', 'r2', initialPortfolio.portfolioRevisionId)
-      const successorPortfolio = { ...successorDraft, scenarios: successorDraft.scenarios.slice(0, 1) }
+      const successorPortfolio = {
+        ...successorDraft,
+        scenarios: successorDraft.scenarios.filter(scenario => scenario.stableScenarioId !== 'scenario-b-revised'),
+      }
       await expect(
         submitPortfolio(
           { ...successorPortfolio, portfolioId: 'foreign-successor-portfolio' },
@@ -3103,6 +3951,7 @@ describe('Quality Journey Phase 3 through Phase 5 control plane', () => {
           }),
         ]),
       )
+      expect(successorDecisions).toHaveLength(1)
       const successorState = await getQualityJourney(
         { journeyId: created.journey.journeyId, targetProjectId: 'target-analysis-1' },
         client,
@@ -3128,6 +3977,75 @@ describe('Quality Journey Phase 3 through Phase 5 control plane', () => {
               },
             ],
             payload: { artifactRevisionId: successorPortfolio.portfolioRevisionId, artifactHash: successorHash },
+          },
+          client,
+        ),
+      ).resolves.toMatchObject({ successorStage: 'SCENARIO_REVIEW' })
+      const successorReview = await getQualityJourneyScenarioPortfolio(
+        { journeyId: created.journey.journeyId, targetProjectId: 'target-analysis-1' },
+        client,
+      )
+      const successorDecisionState = await getQualityJourney(
+        { journeyId: created.journey.journeyId, targetProjectId: 'target-analysis-1' },
+        client,
+      )
+      await expect(
+        decideQualityJourneyScenarios(
+          {
+            expectedReviewHash: afterComment.portfolio.reviewHash,
+            approvedScenarioRevisionIds: ['scenario-c-enrichment-r1'],
+            rejectedScenarioRevisionIds: [],
+            command: {
+              schemaVersion: 'appraise.quality-journey/v1',
+              commandId: 'scenario-revision-stale-r1-decision',
+              journeyId: created.journey.journeyId,
+              targetProjectId: 'target-analysis-1',
+              actor: 'USER',
+              command: 'DECIDE_SCENARIOS',
+              expectedStateHash: successorDecisionState.journey.stateHash,
+              idempotencyKey: 'scenario-revision-stale-r1-decision',
+              inputArtifactRefs: [portfolioRef],
+              payload: {
+                portfolioRevisionId: initialPortfolio.portfolioRevisionId,
+                portfolioHash: initialHash,
+                approvedScenarioRevisionIds: ['scenario-c-enrichment-r1'],
+                rejectedScenarioRevisionIds: [],
+              },
+            },
+          },
+          client,
+        ),
+      ).rejects.toMatchObject({ code: 'CONFLICT' })
+      await expect(
+        decideQualityJourneyScenarios(
+          {
+            expectedReviewHash: successorReview.portfolio.reviewHash,
+            approvedScenarioRevisionIds: ['scenario-c-enrichment-r2'],
+            rejectedScenarioRevisionIds: [],
+            command: {
+              schemaVersion: 'appraise.quality-journey/v1',
+              commandId: 'scenario-revision-decide-r2',
+              journeyId: created.journey.journeyId,
+              targetProjectId: 'target-analysis-1',
+              actor: 'USER',
+              command: 'DECIDE_SCENARIOS',
+              expectedStateHash: successorDecisionState.journey.stateHash,
+              idempotencyKey: 'scenario-revision-decide-r2',
+              inputArtifactRefs: [
+                {
+                  kind: 'SCENARIO_PORTFOLIO_REVISION',
+                  artifactId: successorPortfolio.portfolioId,
+                  revisionId: successorPortfolio.portfolioRevisionId,
+                  contentHash: successorHash,
+                },
+              ],
+              payload: {
+                portfolioRevisionId: successorPortfolio.portfolioRevisionId,
+                portfolioHash: successorHash,
+                approvedScenarioRevisionIds: ['scenario-c-enrichment-r2'],
+                rejectedScenarioRevisionIds: [],
+              },
+            },
           },
           client,
         ),

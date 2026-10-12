@@ -7,8 +7,11 @@ import {
   getQualityJourneyAnalysis,
   publishQualityJourneyAnalysis,
   requestQualityJourneyAnalysisRevision,
+  submitExternalQualityJourneyAnalysisSuccessor,
   submitQualityJourneyAnalysisSuccessor,
 } from '@/services/coordinator/quality-journey-analysis-service'
+import type { ExternalAnalyzerProjectPrincipal } from '@/services/coordinator/quality-journey-service'
+import type { CoordinatorSessionCredentials } from '@/services/coordinator/quality-journey-coordinator-session'
 import { resolveTargetProject } from '@/services/target-project/target-project-service'
 
 const id = z
@@ -80,6 +83,20 @@ const submissionSchema = z
     charter: publicAnalysisCharterSchema,
   })
   .strict()
+const externalSubmissionSchema = z
+  .object({
+    target,
+    workItemId: id,
+    attemptId: id,
+    assignmentId: id,
+    assignmentGeneration: z.number().int().positive(),
+    leaseId: id,
+    assignmentSecret: z.string().min(32).max(2_000),
+    idempotencyKey: id,
+    predecessorAnalysisRevisionId: id.optional(),
+    charter: publicAnalysisCharterSchema,
+  })
+  .strict()
 const answerSchema = z
   .object({ target, idempotencyKey: id })
   .extend(analysisAnswerSchema.omit({ schemaVersion: true, journeyId: true, targetProjectId: true, actor: true }).shape)
@@ -89,7 +106,11 @@ const revisionRequestSchema = commandBaseSchema.extend({ expectedReviewHash: has
 const decisionSchema = commandBaseSchema
 
 type CommandInput = z.infer<typeof commandBaseSchema>
-type AnalysisPostHandler = (journeyId: string, body: unknown) => Promise<Response>
+type AnalysisPostHandler = (
+  journeyId: string,
+  body: unknown,
+  coordinatorSession?: CoordinatorSessionCredentials,
+) => Promise<Response>
 
 function commandBase(input: CommandInput, journeyId: string, targetProjectId: string) {
   return {
@@ -110,97 +131,176 @@ function commandBase(input: CommandInput, journeyId: string, targetProjectId: st
   }
 }
 
-async function submit(journeyId: string, body: unknown): Promise<Response> {
+async function submit(
+  journeyId: string,
+  body: unknown,
+  coordinatorSession?: CoordinatorSessionCredentials,
+): Promise<Response> {
   const value = submissionSchema.parse(body)
   const resolvedTarget = await resolveTargetProject(value.target)
   return Response.json(
-    await submitQualityJourneyAnalysisSuccessor({
-      workItemId: value.workItemId,
-      attemptId: value.attemptId,
-      leaseId: value.leaseId,
-      ownerToken: value.ownerToken,
-      idempotencyKey: value.idempotencyKey,
-      ...(value.predecessorAnalysisRevisionId
-        ? { predecessorAnalysisRevisionId: value.predecessorAnalysisRevisionId }
-        : {}),
-      journeyId,
-      targetProjectId: resolvedTarget.id,
-      charter: {
-        ...value.charter,
-        schemaVersion: qualityJourneyContractVersion,
+    await submitQualityJourneyAnalysisSuccessor(
+      {
+        workItemId: value.workItemId,
+        attemptId: value.attemptId,
+        leaseId: value.leaseId,
+        ownerToken: value.ownerToken,
+        idempotencyKey: value.idempotencyKey,
+        ...(value.predecessorAnalysisRevisionId
+          ? { predecessorAnalysisRevisionId: value.predecessorAnalysisRevisionId }
+          : {}),
         journeyId,
         targetProjectId: resolvedTarget.id,
+        charter: {
+          ...value.charter,
+          schemaVersion: qualityJourneyContractVersion,
+          journeyId,
+          targetProjectId: resolvedTarget.id,
+        },
       },
-    }),
+      undefined,
+      coordinatorSession,
+    ),
     { status: 201 },
   )
 }
 
-async function answer(journeyId: string, body: unknown): Promise<Response> {
+async function submitExternal(
+  journeyId: string,
+  body: unknown,
+  principal: ExternalAnalyzerProjectPrincipal | undefined,
+  coordinatorSession?: CoordinatorSessionCredentials,
+): Promise<Response> {
+  if (!principal) throw new Error('External Analysis route principal is unavailable.')
+  const value = externalSubmissionSchema.parse(body)
+  const resolvedTarget = await resolveTargetProject(value.target)
+  return Response.json(
+    await submitExternalQualityJourneyAnalysisSuccessor(
+      {
+        workItemId: value.workItemId,
+        attemptId: value.attemptId,
+        assignmentId: value.assignmentId,
+        assignmentGeneration: value.assignmentGeneration,
+        leaseId: value.leaseId,
+        assignmentSecret: value.assignmentSecret,
+        idempotencyKey: value.idempotencyKey,
+        ...(value.predecessorAnalysisRevisionId
+          ? { predecessorAnalysisRevisionId: value.predecessorAnalysisRevisionId }
+          : {}),
+        journeyId,
+        targetProjectId: resolvedTarget.id,
+        charter: {
+          ...value.charter,
+          schemaVersion: qualityJourneyContractVersion,
+          journeyId,
+          targetProjectId: resolvedTarget.id,
+        },
+      },
+      principal,
+      undefined,
+      coordinatorSession,
+    ),
+    { status: 201 },
+  )
+}
+
+async function answer(
+  journeyId: string,
+  body: unknown,
+  coordinatorSession?: CoordinatorSessionCredentials,
+): Promise<Response> {
   const value = answerSchema.parse(body)
   const resolvedTarget = await resolveTargetProject(value.target)
   return Response.json(
-    await answerQualityJourneyAnalysisQuestion({
-      idempotencyKey: value.idempotencyKey,
-      answer: {
-        answerId: value.answerId,
-        analysisRevisionId: value.analysisRevisionId,
-        questionId: value.questionId,
-        answer: value.answer,
-        ...(value.correctionOfAnswerId ? { correctionOfAnswerId: value.correctionOfAnswerId } : {}),
-        schemaVersion: qualityJourneyContractVersion,
-        journeyId,
-        targetProjectId: resolvedTarget.id,
-        actor: 'USER',
+    await answerQualityJourneyAnalysisQuestion(
+      {
+        idempotencyKey: value.idempotencyKey,
+        answer: {
+          answerId: value.answerId,
+          analysisRevisionId: value.analysisRevisionId,
+          questionId: value.questionId,
+          answer: value.answer,
+          ...(value.correctionOfAnswerId ? { correctionOfAnswerId: value.correctionOfAnswerId } : {}),
+          schemaVersion: qualityJourneyContractVersion,
+          journeyId,
+          targetProjectId: resolvedTarget.id,
+          actor: 'USER',
+        },
       },
-    }),
+      undefined,
+      coordinatorSession,
+    ),
     { status: 201 },
   )
 }
 
-async function publish(journeyId: string, body: unknown): Promise<Response> {
+async function publish(
+  journeyId: string,
+  body: unknown,
+  coordinatorSession?: CoordinatorSessionCredentials,
+): Promise<Response> {
   const value = publicationSchema.parse(body)
   const resolvedTarget = await resolveTargetProject(value.target)
   return Response.json(
-    await publishQualityJourneyAnalysis({
-      ...commandBase(value, journeyId, resolvedTarget.id),
-      actor: 'RUNNER',
-      command: 'PUBLISH_ANALYSIS',
-      payload: { artifactRevisionId: value.analysisRevisionId, artifactHash: value.contentHash },
-    }),
+    await publishQualityJourneyAnalysis(
+      {
+        ...commandBase(value, journeyId, resolvedTarget.id),
+        actor: 'RUNNER',
+        command: 'PUBLISH_ANALYSIS',
+        payload: { artifactRevisionId: value.analysisRevisionId, artifactHash: value.contentHash },
+      },
+      undefined,
+      coordinatorSession,
+    ),
   )
 }
 
-async function requestRevision(journeyId: string, body: unknown): Promise<Response> {
+async function requestRevision(
+  journeyId: string,
+  body: unknown,
+  coordinatorSession?: CoordinatorSessionCredentials,
+): Promise<Response> {
   const value = revisionRequestSchema.parse(body)
   const resolvedTarget = await resolveTargetProject(value.target)
   return Response.json(
-    await requestQualityJourneyAnalysisRevision({
-      expectedReviewHash: value.expectedReviewHash,
-      command: {
-        ...commandBase(value, journeyId, resolvedTarget.id),
-        actor: 'USER',
-        command: 'REQUEST_ANALYSIS_REVISION',
-        payload: {
-          reviewedRevisionId: value.analysisRevisionId,
-          reviewedHash: value.contentHash,
-          feedback: value.feedback,
+    await requestQualityJourneyAnalysisRevision(
+      {
+        expectedReviewHash: value.expectedReviewHash,
+        command: {
+          ...commandBase(value, journeyId, resolvedTarget.id),
+          actor: 'USER',
+          command: 'REQUEST_ANALYSIS_REVISION',
+          payload: {
+            reviewedRevisionId: value.analysisRevisionId,
+            reviewedHash: value.contentHash,
+            feedback: value.feedback,
+          },
         },
       },
-    }),
+      undefined,
+      coordinatorSession,
+    ),
   )
 }
 
-async function decide(journeyId: string, body: unknown): Promise<Response> {
+async function decide(
+  journeyId: string,
+  body: unknown,
+  coordinatorSession?: CoordinatorSessionCredentials,
+): Promise<Response> {
   const value = decisionSchema.parse(body)
   const resolvedTarget = await resolveTargetProject(value.target)
   return Response.json(
-    await decideQualityJourneyAnalysis({
-      ...commandBase(value, journeyId, resolvedTarget.id),
-      actor: 'USER',
-      command: 'DECIDE_ANALYSIS',
-      payload: { revisionId: value.analysisRevisionId, contentHash: value.contentHash, decision: 'APPROVED' },
-    }),
+    await decideQualityJourneyAnalysis(
+      {
+        ...commandBase(value, journeyId, resolvedTarget.id),
+        actor: 'USER',
+        command: 'DECIDE_ANALYSIS',
+        payload: { revisionId: value.analysisRevisionId, contentHash: value.contentHash, decision: 'APPROVED' },
+      },
+      undefined,
+      coordinatorSession,
+    ),
   )
 }
 
@@ -213,8 +313,11 @@ const postHandlers: Readonly<Record<string, AnalysisPostHandler>> = {
 }
 
 export async function postQualityJourneyAnalysisRoute(
+  _request: Request,
   operation: string[],
   body: unknown,
+  principal?: ExternalAnalyzerProjectPrincipal,
+  coordinatorSession?: CoordinatorSessionCredentials,
 ): Promise<Response | undefined> {
   if (
     operation.length !== 5 ||
@@ -223,8 +326,9 @@ export async function postQualityJourneyAnalysisRoute(
     operation[3] !== 'analysis'
   )
     return undefined
+  if (operation[4] === 'external-submissions') return submitExternal(operation[2]!, body, principal, coordinatorSession)
   const handler = postHandlers[operation[4] ?? '']
-  return handler ? handler(operation[2]!, body) : undefined
+  return handler ? handler(operation[2]!, body, coordinatorSession) : undefined
 }
 
 export async function getQualityJourneyAnalysisRoute(

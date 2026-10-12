@@ -4,7 +4,7 @@ import { randomUUID } from 'node:crypto'
 import { z } from 'zod'
 
 import { isLoopbackHostname } from './mcp-http-security.js'
-import { ensureLocalProjectIdentity } from './project-identity.js'
+import { ensureLocalProjectIdentity, isLocalProjectIdentityCurrent } from './project-identity.js'
 
 export type CoordinatorOptions = {
   cwd: string
@@ -182,6 +182,19 @@ export async function createCoordinatorClient(options: CoordinatorOptions) {
       throw new CoordinatorRequestError(0, undefined, untrustedCoordinatorEndpoint(operation), {
         cause: new Error(localBaseUrl.message),
       })
+    }
+    if (!(await isLocalProjectIdentityCurrent(local.details.canonicalProjectPath, identity))) {
+      throw new CoordinatorRequestError(
+        0,
+        undefined,
+        createLocalCoordinatorFailure(
+          operation,
+          'authorization_failure',
+          'Local coordinator access was disconnected or rotated. Reconnect the agent client before continuing.',
+          0,
+          { code: 'coordinator_identity_revoked' },
+        ),
+      )
     }
     const endpoint = `${localBaseUrl.baseUrl}/api/internal/coordinator/${operation}`
     let response: Response

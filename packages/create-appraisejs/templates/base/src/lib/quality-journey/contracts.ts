@@ -306,7 +306,16 @@ export const assignmentManifestSchema = z
     allowedTargetRoutes: z.array(z.string().min(1).max(2_000)).max(128),
     allowedResourceIds: z.array(id).max(512),
     targetEnvironmentBindings: z
-      .array(z.object({ environmentId: id, origin: z.string().url() }).strict())
+      .array(
+        z
+          .object({
+            environmentId: id,
+            origin: z.string().url(),
+            scopeVersion: z.number().int().positive().optional(),
+            discoveryAuthTransitPolicyHash: digest.optional(),
+          })
+          .strict(),
+      )
       .max(64)
       .optional(),
     writableArtifactKinds: z.array(qualityJourneyArtifactKindSchema),

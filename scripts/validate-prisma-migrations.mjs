@@ -1,7 +1,8 @@
 import { execFileSync } from 'node:child_process'
-import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync } from 'node:fs'
+import { mkdtempSync, readFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
+import { verifiedDatabaseMigrations } from './lib/migration-inventory.mjs'
 
 const workspace = mkdtempSync(path.join(tmpdir(), 'appraise-prisma-migrations-'))
 const databasePath = path.join(workspace, 'migrations.db')
@@ -32,11 +33,7 @@ INSERT INTO CollaborationDecision(id,operationId,recordKey,kind,resolutionJson,r
 `
 
 try {
-  const migrations = readdirSync(migrationsRoot, { withFileTypes: true })
-    .filter(entry => entry.isDirectory())
-    .map(entry => entry.name)
-    .filter(name => existsSync(path.join(migrationsRoot, name, 'migration.sql')))
-    .sort()
+  const migrations = verifiedDatabaseMigrations(process.cwd()).map(entry => entry.name)
 
   for (const migration of migrations) {
     if (migration === journeyAuthorityMigration)

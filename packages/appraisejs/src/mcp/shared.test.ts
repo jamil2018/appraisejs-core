@@ -63,6 +63,56 @@ describe('agent preflight contract', () => {
     })
   })
 
+  it('blocks missing tool and resource sentinels', () => {
+    const preflight = buildAgentPreflight(
+      {
+        ok: true,
+        hubProject: { canonicalPath: '/hub', fingerprint: 'hub' },
+        targetProjects: [],
+        checks: [],
+      } as never,
+      {
+        observedTools: [],
+        observedResources: [],
+        observedMcpSurfaceVersion: mcpCapabilityMetadata.mcpSurfaceVersion,
+        observedMcpContractHash: mcpCapabilityMetadata.mcpContractHash,
+      },
+    )
+
+    expect(preflight).toMatchObject({
+      status: 'blocked',
+      ready: false,
+      layers: {
+        currentTaskCapabilities: {
+          status: 'blocked',
+          tools: { status: 'blocked', missing: expect.arrayContaining(['project_diagnostic']) },
+          resources: { status: 'blocked', missing: expect.arrayContaining(['appraise://project']) },
+        },
+      },
+    })
+  })
+
+  it.each([
+    { observedMcpSurfaceVersion: mcpCapabilityMetadata.mcpSurfaceVersion },
+    { observedMcpContractHash: mcpCapabilityMetadata.mcpContractHash },
+  ])('does not accept a one-sided contract observation', observation => {
+    const preflight = buildAgentPreflight(
+      {
+        ok: true,
+        hubProject: { canonicalPath: '/hub', fingerprint: 'hub' },
+        targetProjects: [],
+        checks: [],
+      } as never,
+      observation,
+    )
+
+    expect(preflight).toMatchObject({
+      status: 'blocked',
+      ready: false,
+      layers: { contractCompatibility: { status: 'stale', reconnect: { required: true } } },
+    })
+  })
+
   it('prioritizes reconnect guidance when the nested preflight contract layer is stale', () => {
     expect(
       diagnosticGuidance({ ok: true }, { ready: true, layers: { contractCompatibility: { status: 'stale' } } }),

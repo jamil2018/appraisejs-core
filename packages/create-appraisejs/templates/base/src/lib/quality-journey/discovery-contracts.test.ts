@@ -130,6 +130,19 @@ describe('Quality Journey discovery contracts', () => {
     expect(hashTargetObservationBundle(parsed)).toBe(hashTargetObservationBundle(observationBundle()))
   })
 
+  it('characterizes schema-valid supplemental host receipts as structurally accepted but not Appraise-attested', () => {
+    const supplementalReceipt = { artifactId: 'host-browser-observation-1', contentHash: digest('9') }
+    const bundle = observationBundle()
+    const parsed = targetObservationBundleSchema.parse({
+      ...bundle,
+      evidenceReceipts: [supplementalReceipt],
+      observations: [{ ...bundle.observations[0], evidenceReceiptIds: [supplementalReceipt.artifactId] }],
+    })
+
+    expect(parsed.evidenceReceipts).toEqual([supplementalReceipt])
+    expect(parsed.observations[0].evidenceReceiptIds).toEqual([supplementalReceipt.artifactId])
+  })
+
   it('rejects malformed Scout provenance and incomplete observation evidence or judgments', () => {
     expect(() => targetObservationBundleSchema.parse({ ...observationBundle(), inputArtifacts: [] })).toThrow()
     expect(() => targetObservationBundleSchema.parse({ ...observationBundle(), authorizationId: 'bad id' })).toThrow()

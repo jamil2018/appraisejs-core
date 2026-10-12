@@ -13,6 +13,7 @@ export type EnvironmentTableRow = {
   username: string | null
   passwordEnvironmentVariable: string | null
   credentialState: 'NONE' | 'REFERENCE_CONFIGURED'
+  discoveryAuthTransitPolicyJson: string | null
   createdAt: Date
   updatedAt: Date
 }
@@ -30,6 +31,7 @@ export const environmentFieldValidators = {
   apiBaseUrl: environmentSchema.shape.apiBaseUrl,
   username: environmentSchema.shape.username,
   passwordEnvironmentVariable: environmentSchema.shape.passwordEnvironmentVariable,
+  discoveryAuthTransitPolicyJson: environmentSchema.shape.discoveryAuthTransitPolicyJson,
 }
 
 export function getActionErrorMessage(response: ActionResponse) {
@@ -56,6 +58,8 @@ function isEnvironmentRow(value: unknown): value is EnvironmentTableRow {
     (typeof value.passwordEnvironmentVariable === 'string' || value.passwordEnvironmentVariable === null) &&
     'credentialState' in value &&
     ['NONE', 'REFERENCE_CONFIGURED'].includes(String(value.credentialState)) &&
+    'discoveryAuthTransitPolicyJson' in value &&
+    (typeof value.discoveryAuthTransitPolicyJson === 'string' || value.discoveryAuthTransitPolicyJson === null) &&
     'createdAt' in value &&
     value.createdAt instanceof Date &&
     'updatedAt' in value &&

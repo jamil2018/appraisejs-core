@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import crypto from 'crypto'
+import { verifiedDatabaseMigrations } from '../../../scripts/lib/migration-inventory.mjs'
 import {
   cpSync,
   createReadStream,
@@ -196,6 +197,9 @@ async function hashFile(filePath: string): Promise<Buffer> {
 
 async function computeTemplateInputHash(): Promise<string> {
   const inputFiles = new Set<string>()
+  for (const file of await collectFiles(path.join(repoRoot, 'prisma', 'migrations'))) inputFiles.add(file)
+  inputFiles.add(path.join(repoRoot, 'prisma', 'migration-inventory.json'))
+  inputFiles.add(path.join(repoRoot, 'scripts', 'lib', 'migration-inventory.mjs'))
 
   for (const file of await collectFiles(
     path.join(repoRoot, 'automation'),
@@ -349,7 +353,7 @@ function writeTemplatePackageJson(): void {
       'npm run generate-db-client && npm run build:cucumber-runtime && npm run build:locator-picker-companion && next build',
     start: 'node scripts/start-local.mjs start',
     'generate-db-client': 'npx prisma generate --schema prisma/schema.prisma',
-    'migrate-db': 'npx prisma migrate deploy',
+    'migrate-db': 'node scripts/migrate-compatible.mjs',
     'install-playwright': 'npx playwright install',
     setup: 'npm run install-dependencies && npm run setup:db && npm run build:local && npm run protect-seeded-files',
     'setup:db':
@@ -415,6 +419,7 @@ function preparePackagedGitignore(): void {
 }
 
 function createBaseTemplate(): void {
+  verifiedDatabaseMigrations(repoRoot)
   rmSync(packageTemplatesDir, { recursive: true, force: true })
   mkdirSync(baseTemplateDir, { recursive: true })
 
@@ -439,6 +444,7 @@ function createBaseTemplate(): void {
 
   console.log('Copying prisma/...')
   copyDirWithFilter(path.join(repoRoot, 'prisma'), path.join(baseTemplateDir, 'prisma'))
+  verifiedDatabaseMigrations(baseTemplateDir)
   console.log('Copying public/...')
   copyDirWithFilter(path.join(repoRoot, 'public'), path.join(baseTemplateDir, 'public'))
   console.log('Copying scripts/...')
@@ -500,6 +506,7 @@ function createBaseTemplate(): void {
   }
 
   writeTemplatePackageJson()
+  copyFile(path.join(packageRoot, 'scaffold-README.md'), path.join(baseTemplateDir, 'README.md'))
   writeTemplateHarnessCheck()
   writeTemplateQualityOsCertificationReceipt()
   preparePackagedGitignore()

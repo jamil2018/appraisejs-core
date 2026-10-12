@@ -1,0 +1,217 @@
+{
+  "schemaVersion": 1,
+  "scope": "C3.3 bounded checkpoint; not a GC3 pass or release authorization",
+  "baseRevision": "844457921ff9106d48d06a6cf7493b5af8223fce",
+  "checkCountsAreOverlapping": true,
+  "checks": [
+    {
+      "command": "npm run build",
+      "result": "pass",
+      "class": "deterministic-build",
+      "localLog": ".appraisejs/c33/root-build-approved.log",
+      "sha256": "27d3d84239482e733732caca0c2fe03c0a3ac45109ac8272ba7f1c6f9fbd28a3"
+    },
+    {
+      "command": "npm --prefix packages/create-appraisejs run build",
+      "result": "pass",
+      "class": "deterministic-build",
+      "localLog": ".appraisejs/c33/scaffold-build-final.log",
+      "sha256": "04a33c3a9e22a466d850a7aff066dad02d834d4f4c1b6b849949133381880f78"
+    },
+    {
+      "command": "npm --prefix packages/create-appraisejs run prepare-template",
+      "result": "pass",
+      "class": "canonical-generation",
+      "localLog": ".appraisejs/c33/template-last.log",
+      "sha256": "b7e8244c7b8d11307f6376b92184983bd259a95b138e6a1c8fd9c7bac0d3ecb9"
+    },
+    {
+      "command": "npx vitest run scripts/lib/database-compatibility.test.ts",
+      "result": "pass",
+      "class": "deterministic-19-tests",
+      "localLog": ".appraisejs/c33/storage-last-tests.log",
+      "sha256": "3c7c310e3e4fba3e282f2e74e69b223445b3eeb06343379283210a4f9fc58250"
+    },
+    {
+      "command": "npx vitest run scripts/lib/database-compatibility.test.ts scripts/lib/quality-journey-compatibility.sqlite.integration.test.ts",
+      "result": "pass",
+      "class": "deterministic-20-tests-overlapping",
+      "localLog": ".appraisejs/c33/storage-final-tests.log",
+      "sha256": "966725889f392913e2f13a24797a6beb81c26a64bb2c8fcdc816b4071d42a7ec"
+    },
+    {
+      "command": "npm run validate:unit -- handoff/recovery/analysis/triage/compatibility SQLite suites",
+      "result": "pass",
+      "class": "deterministic-65-tests",
+      "localLog": ".appraisejs/c33/lifecycle-final-tests.log",
+      "sha256": "1eaee4bfc795e641070c688c82f657f9aba84683091484983eb23041a66e0f7c"
+    },
+    {
+      "command": "npm --prefix packages/appraisejs run test",
+      "result": "pass",
+      "class": "129-tests-including-disposable-HTTP-stdio",
+      "localLog": ".appraisejs/c33/package-tests-approved.log",
+      "sha256": "2c12f51a88afe0babab6a26b342c4f7b73b566e0f61becbf3e8cd46fa4666986"
+    },
+    {
+      "command": "npm --prefix packages/create-appraisejs run test",
+      "result": "pass",
+      "class": "deterministic-80-tests",
+      "localLog": ".appraisejs/c33/scaffold-tests.log",
+      "sha256": "c1b416e172930f1a0d832f0c0f9d69d5bd67bdc36eb9c5f17e9a51979b47ec7f"
+    },
+    {
+      "command": "npx vitest run scripts/lib/template-sync-utils.test.ts",
+      "result": "pass",
+      "class": "deterministic-3-tests",
+      "localLog": ".appraisejs/c33/template-exclusions-tests.log",
+      "sha256": "f5f95b5dc34ebc533fdb89265debc98cf3861b423b65a730726de7eca055e58a"
+    },
+    {
+      "command": "npm run validate:migrations",
+      "result": "pass",
+      "class": "actual-disposable-88-migration-rehearsal",
+      "localLog": ".appraisejs/c33/migrations.log",
+      "sha256": "c3200385a996efdc03cb60e5327863c227faa04ce47264088a154bd7527c7077"
+    },
+    {
+      "command": "npm run migration:inventory:check",
+      "result": "pass",
+      "class": "deterministic-inventory",
+      "localLog": ".appraisejs/c33/inventory-check.log",
+      "sha256": "118fc28448a93e2e3c5cd853139b9e161e46876fe8c0583789f7c3eab8ce2156"
+    },
+    {
+      "command": "npm run release:check:packages",
+      "result": "pass",
+      "class": "actual-local-tarball-inspection",
+      "localLog": ".appraisejs/c33/package-contents-final.log",
+      "sha256": "b15ed7ab30f702cef62edbbd1e0a8274223369e3e8e570a13f414eed51e823e4"
+    },
+    {
+      "command": "npx eslint affected source and test files",
+      "result": "pass",
+      "class": "static",
+      "localLog": ".appraisejs/c33/eslint-final.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "command": "npx prettier --check affected source and docs",
+      "result": "pass",
+      "class": "static",
+      "localLog": ".appraisejs/c33/prettier.log",
+      "sha256": "17aa973d3f004560237d9a95171210b0671deff23d61628eecf7322ff5938f20"
+    },
+    {
+      "command": "npx prettier --check changed docs and authority files",
+      "result": "pass",
+      "class": "static",
+      "localLog": ".appraisejs/c33/docs-prettier.log",
+      "sha256": "17aa973d3f004560237d9a95171210b0671deff23d61628eecf7322ff5938f20"
+    },
+    {
+      "command": "npm run quality:fallow:commit",
+      "result": "pass",
+      "class": "new-only-static-zero-introduced",
+      "localLog": ".appraisejs/c33/fallow-approved.log",
+      "sha256": "5061bf72b38f71e943c945aee910b0ae9212d8066a6c388bd0133319a68a4b8a"
+    },
+    {
+      "command": "npm run quality:react-doctor:commit",
+      "result": "no_files",
+      "class": "staged-only-no-React-source-change",
+      "localLog": ".appraisejs/c33/react-doctor.log",
+      "sha256": "23bb1ead0c3ef843e0b523c9fce3177cd0fb4b02b130bf8cdc23bafdd82cf4ca"
+    },
+    {
+      "command": "npx tsc --noEmit",
+      "result": "known_failure",
+      "class": "pre-existing-flow-diagram-test-352",
+      "localLog": ".appraisejs/c33/typescript.log",
+      "sha256": "f64834bea09b182dbdd56c395811a817d7ff2caf3c64cbbe6651517e1df2dd2f"
+    },
+    {
+      "command": "npm --prefix packages/appraisejs run build:mcp-contract",
+      "result": "pass",
+      "class": "canonical-generation",
+      "localLog": ".appraisejs/c33/contract-generate-approved.log",
+      "sha256": "b39147bea066fd3e2d141ebcbb0d1eee0e2b0bfa2527096ca89627d55ac1babb"
+    },
+    {
+      "command": "npm run generate:coordinator-reference",
+      "result": "pass",
+      "class": "canonical-generation",
+      "localLog": ".appraisejs/c33/reference-generate.log",
+      "sha256": "5a1f48fa122ca7e33e6e61c4e8ff667be9f0ff1e22b71481b24eef8012fc3d9a"
+    },
+    {
+      "command": "npm run release:check:coordinator-reference",
+      "result": "pass",
+      "class": "deterministic-drift-check",
+      "localLog": ".appraisejs/c33/reference-check.log",
+      "sha256": "b8b5431a326328c503f9d2b37e046f90353e1335a806964e949d3d9dfed18767"
+    },
+    {
+      "command": "npm run operation:projections -- --check",
+      "result": "pass",
+      "class": "canonical-regeneration-not-a-check-only-mode",
+      "localLog": ".appraisejs/c33/operation-projections.log",
+      "sha256": "dd6ec7217b7738af961efe9695f4a793d8bd821323347b4cdc66ede550cb2f1c"
+    },
+    {
+      "command": "npm run docs:check-links",
+      "result": "pass",
+      "class": "static",
+      "localLog": ".appraisejs/c33/docs-links-final.log",
+      "sha256": "feb5c950cd495da9a31ceed9d8735c4bc8c6accbc4ff3da2e003909fe3ee1294"
+    },
+    {
+      "command": "npm run release:check:artifacts",
+      "result": "pass",
+      "class": "generated-artifact-policy",
+      "localLog": ".appraisejs/c33/artifacts.log",
+      "sha256": "dace8a70e7f2ed27b30990fe47a353f3c2f8739def7c9eec7f2f1220492c66fc"
+    },
+    {
+      "command": "npm run check:harness",
+      "result": "pass",
+      "class": "deterministic-harness",
+      "localLog": ".appraisejs/c33/harness-last.log",
+      "sha256": "f15bfbe921c45329180e8a701adf171aa2aadb0d9def25244c85158a00b1e9da"
+    },
+    {
+      "command": "npm run graphify:build:all",
+      "result": "pass",
+      "class": "canonical-generation",
+      "localLog": ".appraisejs/c33/graphify-all.log",
+      "sha256": "7ae600dabf9d00f58fdf590ded97718a471db6e54e35e992214005b89762ebb5"
+    },
+    {
+      "command": "npm run harness:graph-status",
+      "result": "pass",
+      "class": "all-four-scopes-fresh",
+      "localLog": ".appraisejs/c33/graph-status-final.log",
+      "sha256": "24a581b9c52c4ea554a871c84f1529b3f5f311c225776b2d56d15eb2a028f5d1"
+    }
+  ],
+  "unattested": [
+    "effective role/model/context/sandbox",
+    "external Codex stop/quota/wake",
+    "complete host cleanup",
+    "fresh supported desktop/human-authenticated lifecycle"
+  ],
+  "initialEnvironmentFailuresRetained": [
+    "package-tests.log",
+    "root-build.log",
+    "scaffold-build.log",
+    "contract-generate.log",
+    "fallow.log"
+  ],
+  "cleanInstallationEvidence": {
+    "file": "C3.3-installation-20261004.json",
+    "sha256": "c40a8a0261d411df5aeecdb4b9aee2d832cb365a1f2d468d91c4431c2e25dfbc",
+    "localOriginal": ".appraisejs/c33-clean-install/summary.json",
+    "retainedTarballs": ".appraisejs/c33-clean-install/packages/{initial,final}/",
+    "originalSha256": "0744aaba767a16fbb9302d492f8059126cdd27e4a152d814c2e6f9dc5b40beb7"
+  }
+}

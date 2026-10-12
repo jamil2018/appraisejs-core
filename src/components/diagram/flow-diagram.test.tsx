@@ -349,7 +349,7 @@ describe('typed Step Invocation input authoring', () => {
 
     const editActions = screen.getAllByRole('button', { name: 'Edit' })[0]!.closest('[data-node-actions]')
     expect(editActions).toHaveClass('flex', 'shrink-0', 'gap-2')
-    expect(editActions?.querySelectorAll('.border-input')).toHaveLength(2)
+    expect(within(editActions!).getAllByRole('button')).toHaveLength(2)
     expect(screen.getAllByRole('button', { name: 'Add connected step after Set viewport' })).toHaveLength(3)
     expect(screen.getAllByText('Parameters')).toHaveLength(3)
     expect(screen.getAllByText('height')).toHaveLength(3)

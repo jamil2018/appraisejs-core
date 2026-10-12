@@ -84,16 +84,16 @@ contents are stored as one full `templates/base` scaffold plus small `templates/
 
 ## Common Scripts In The Generated App
 
-| Script                                       | What it does                                                                                       |
-| -------------------------------------------- | -------------------------------------------------------------------------------------------------- |
-| `npm run setup`                              | Install dependencies, create `.env`, rebuild the local DB, build the app, and protect seeded files |
-| `npm run setup:db`                           | Recreate the local SQLite database and ensure built-in Step Definitions are ready                  |
-| `npm run setup:full`                         | Reinstall dependencies, rebuild the DB, rebuild the app, and protect seeded files                  |
-| `npm run install-playwright -- <browser...>` | Install selected Playwright browsers                                                               |
-| `npm run sync-step-definitions`              | Seed or repair canonical built-in Step Definitions                                                 |
-| `npm run appraisejs:sync`                    | Alias for `sync-step-definitions`                                                                  |
-| `npm run start`                              | Start the local production server                                                                  |
-| `npm run dev`                                | Start the Next.js development server                                                               |
+| Script                                       | What it does                                                                                         |
+| -------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| `npm run setup`                              | Install dependencies, create `.env`, apply guarded upgrades, build the app, and protect seeded files |
+| `npm run setup:db`                           | Create configuration, generate the client, apply guarded migrations and seed Step Definitions        |
+| `npm run setup:full`                         | Reinstall dependencies, apply guarded upgrades, rebuild the app and protect seeded files             |
+| `npm run install-playwright -- <browser...>` | Install selected Playwright browsers                                                                 |
+| `npm run sync-step-definitions`              | Seed or repair canonical built-in Step Definitions                                                   |
+| `npm run appraisejs:sync`                    | Alias for `sync-step-definitions`                                                                    |
+| `npm run start`                              | Start the local production server                                                                    |
+| `npm run dev`                                | Start the Next.js development server                                                                 |
 
 When authoring validation, select a ready Step Definition first. Application-specific behavior remains a reviewed
 extension and is never installed as a second reusable-step identity.

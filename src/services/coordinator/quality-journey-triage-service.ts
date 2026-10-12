@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto'
 import type { Prisma, PrismaClient } from '@prisma/client'
+import { z } from 'zod'
 import prisma from '@/config/db-config'
 import { canonicalContractJson as json } from '@/lib/catalog-contracts'
 import {
@@ -13,10 +14,16 @@ import {
 } from '@/lib/quality-journey'
 import { ServiceError } from '@/services/shared/errors'
 import {
+  assertCoordinatorMutationSession,
+  type CoordinatorSessionCredentials,
+} from './quality-journey-coordinator-session'
+import {
+  acceptExternalQualityJourneySubmissionInTransaction,
   completeTriagerWorkInTransaction,
   issueQualityJourneySpecializedWorkItem,
   setQualityJourneyActiveWorkItems,
   submitDurableQualityJourneyCommandInTransaction,
+  type ExternalAnalyzerProjectPrincipal,
 } from './quality-journey-service'
 import {
   compileQualityJourneyTriageInput,
@@ -28,7 +35,11 @@ import { ensureQualityJourneyAutomationForApprovedScenarios } from './quality-jo
 
 const idFor = (...parts: string[]) => `qjt_${createHash('sha256').update(json(parts)).digest('hex').slice(0, 24)}`
 const conflict = (message: string) => new ServiceError(message, 'CONFLICT')
+const externalTriageAdmission = Symbol('external-triage-admission')
 type Db = PrismaClient | Prisma.TransactionClient
+async function withTransaction<T>(client: Db, effect: (tx: Prisma.TransactionClient) => Promise<T>) {
+  return '$transaction' in client ? client.$transaction(effect) : effect(client)
+}
 async function journeyScope(input: { journeyId: string; targetProjectId: string }, db: Db) {
   const journey = await db.qualityJourney.findFirst({
     where: { id: input.journeyId, targetProjectId: input.targetProjectId },
@@ -171,9 +182,14 @@ async function issueTriage(input: TriageInput, tx: Prisma.TransactionClient) {
   return assignment
 }
 
-export async function prepareQualityJourneyTriage(value: unknown, client: PrismaClient = prisma) {
+export async function prepareQualityJourneyTriage(
+  value: unknown,
+  client: PrismaClient = prisma,
+  coordinatorSession?: CoordinatorSessionCredentials,
+) {
   const input = qualityJourneyTriagePrepareSchema.parse(value)
   await client.$transaction(async tx => {
+    await assertCoordinatorMutationSession(coordinatorSession, input, tx)
     const journey = await journeyScope(input, tx)
     if (journey.stage !== 'TRIAGE') throw conflict('Triage is not active.')
     const existing = await tx.qualityJourneyTriageAssignment.findFirst({
@@ -237,6 +253,15 @@ async function persistReportArtifact(
 }
 
 type ReportSubmission = ReturnType<typeof qualityJourneyTriageSubmitSchema.parse>
+const externalTriageSubmissionSchema = qualityJourneyTriageSubmitSchema
+  .omit({ ownerToken: true, idempotencyKey: true })
+  .extend({
+    assignmentId: z.string().min(1).max(200),
+    assignmentGeneration: z.number().int().positive(),
+    assignmentSecret: z.string().min(32).max(2_000),
+    idempotencyKey: z.string().min(1).max(200),
+  })
+  .strict()
 
 async function activeReportAssignment(
   input: ReportSubmission,
@@ -292,9 +317,21 @@ function assertReportResult(
     throw conflict('Triager result must identify exactly the complete report and frozen source hash.')
 }
 
-export async function submitQualityJourneyTriageReport(value: unknown, client: PrismaClient = prisma) {
+export async function submitQualityJourneyTriageReport(
+  value: unknown,
+  client: Db = prisma,
+  coordinatorSession?: CoordinatorSessionCredentials,
+  admission?: typeof externalTriageAdmission,
+) {
   const input = qualityJourneyTriageSubmitSchema.parse(value)
-  return client.$transaction(async tx => {
+  return withTransaction(client, async tx => {
+    await assertCoordinatorMutationSession(coordinatorSession, input, tx)
+    const attempt = await tx.qualityJourneyWorkAttempt.findUnique({ where: { id: input.attemptId } })
+    if (attempt?.executionMode === 'EXTERNAL_V1' && admission !== externalTriageAdmission)
+      throw new ServiceError(
+        'EXTERNAL_V1 Triager attempts must use the versioned external submission operation.',
+        'UNAUTHORIZED',
+      )
     const journey = await journeyScope(input, tx)
     const requestHash = hash(input)
     const replay = await tx.qualityJourneyTriageReport.findUnique({
@@ -352,6 +389,62 @@ export async function submitQualityJourneyTriageReport(value: unknown, client: P
       data: { activeTriageReportId: input.report.reportRevisionId },
     })
     return { reportRevisionId: input.report.reportRevisionId, contentHash, replayed: false }
+  })
+}
+
+function externalTriageIdempotencyKey(input: {
+  principal: ExternalAnalyzerProjectPrincipal
+  assignmentId: string
+  attemptId: string
+  idempotencyKey: string
+}) {
+  return `external-v1:${hash({
+    principal: input.principal.principalId,
+    assignmentId: input.assignmentId,
+    attemptId: input.attemptId,
+    idempotencyKey: input.idempotencyKey,
+  }).slice('sha256:'.length)}`
+}
+
+export async function submitExternalQualityJourneyTriageReport(
+  value: unknown,
+  principal: ExternalAnalyzerProjectPrincipal,
+  client: PrismaClient = prisma,
+  coordinatorSession?: CoordinatorSessionCredentials,
+) {
+  const input = externalTriageSubmissionSchema.parse(value)
+  const { assignmentId, assignmentGeneration, assignmentSecret, idempotencyKey, ...canonicalInput } = input
+  const canonical = {
+    ...canonicalInput,
+    ownerToken: assignmentSecret,
+    idempotencyKey: externalTriageIdempotencyKey({
+      assignmentId,
+      attemptId: input.attemptId,
+      idempotencyKey,
+      principal,
+    }),
+  }
+  return client.$transaction(async tx => {
+    const accepted = await acceptExternalQualityJourneySubmissionInTransaction(
+      {
+        journeyId: input.journeyId,
+        targetProjectId: input.targetProjectId,
+        role: 'TRIAGER',
+        workItemId: input.workItemId,
+        attemptId: input.attemptId,
+        assignmentId,
+        assignmentGeneration,
+        leaseId: input.leaseId,
+        assignmentSecret,
+        principal,
+        operation: 'TRIAGE_REPORT_SUBMIT',
+        idempotencyKey,
+        payload: { ...input, assignmentSecret: undefined },
+      },
+      tx,
+      () => submitQualityJourneyTriageReport(canonical, tx, coordinatorSession, externalTriageAdmission),
+    )
+    return { ...accepted.outcome, replayed: accepted.replayed || accepted.outcome.replayed }
   })
 }
 

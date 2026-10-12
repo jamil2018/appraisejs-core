@@ -1,0 +1,181 @@
+{
+  "schema": "appraise.c3.2-validation/v1",
+  "date": "2026-10-03",
+  "timezone": "Asia/Dhaka",
+  "checks": [
+    {
+      "name": "root-compatibility-tests",
+      "status": "passed",
+      "detail": "9 files / 101 tests",
+      "logSha256": "f724aa1ba5c220e85f934c2ec1b4af8ad6514235474c934ba28d2356d6fec803",
+      "logBytes": 234
+    },
+    {
+      "name": "package-tests-native-mcp",
+      "status": "passed",
+      "detail": "24 files / 129 tests; real disposable HTTP/stdio",
+      "logSha256": "2fcb95f9db22e862e845a663a44a4c990e805184bfdf081c65eecd4d91da06ac",
+      "logBytes": 291
+    },
+    {
+      "name": "scaffold-tests",
+      "status": "passed",
+      "detail": "12 files / 80 tests",
+      "logSha256": "6a23c6cd7842f5d60da3896db0e291b43dc543d5eedbd48f7c499d9c2c4843fa",
+      "logBytes": 303
+    },
+    {
+      "name": "root-production-build",
+      "status": "passed",
+      "detail": "existing Google Fonts network retry",
+      "logSha256": "624be7d7eff67aab24726c0ad043a1ac967e49793ad1df6013026749e8954e7a",
+      "logBytes": 3145
+    },
+    {
+      "name": "package-build",
+      "status": "passed",
+      "detail": "tsc",
+      "logSha256": "fc3bdffe35fb581964d1fde96a5b0d5f46866be45cc301adb6f5cce4b1c6d37d",
+      "logBytes": 33
+    },
+    {
+      "name": "scaffold-build-template",
+      "status": "passed",
+      "detail": "88 migrations / 127 Step Definitions; seed isolation",
+      "logSha256": "04a33c3a9e22a466d850a7aff066dad02d834d4f4c1b6b849949133381880f78",
+      "logBytes": 14375
+    },
+    {
+      "name": "migration-validation",
+      "status": "passed",
+      "detail": "88 committed migrations",
+      "logSha256": "c3200385a996efdc03cb60e5327863c227faa04ce47264088a154bd7527c7077",
+      "logBytes": 260
+    },
+    {
+      "name": "affected-eslint",
+      "status": "passed",
+      "detail": null,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "logBytes": 0
+    },
+    {
+      "name": "affected-prettier",
+      "status": "passed",
+      "detail": null,
+      "logSha256": "17aa973d3f004560237d9a95171210b0671deff23d61628eecf7322ff5938f20",
+      "logBytes": 66
+    },
+    {
+      "name": "fallow-new-only",
+      "status": "passed",
+      "detail": "zero introduced findings; no baseline refresh",
+      "logSha256": "6ac9d7dffa7db5805472da8fe3fc5b9ca1514c617e268059d7d72d37acc1799f",
+      "logBytes": 11021
+    },
+    {
+      "name": "react-doctor-working-tree",
+      "status": "passed",
+      "detail": "100/100",
+      "logSha256": "ba21e8ce260f3c66de6aae485613a123dfbe96af1ef1360090c5913110310703",
+      "logBytes": 971
+    },
+    {
+      "name": "harness",
+      "status": "passed",
+      "detail": "C3.1 prose observation preserved outside structured lessons",
+      "logSha256": "ebb8bde64b59395262d635b54349ac59033d8125d15ee0b87d678c04db156856",
+      "logBytes": 9678
+    },
+    {
+      "name": "coordinator-reference",
+      "status": "passed",
+      "detail": "schemas unchanged",
+      "logSha256": "b8b5431a326328c503f9d2b37e046f90353e1335a806964e949d3d9dfed18767",
+      "logBytes": 179
+    },
+    {
+      "name": "artifact-policy",
+      "status": "passed",
+      "detail": null,
+      "logSha256": "4ca1d08c89f58ea05e2ef82c99df82097c6eaf183b78d4441c7f558e6a7247b5",
+      "logBytes": 145
+    },
+    {
+      "name": "package-contents",
+      "status": "passed",
+      "detail": null,
+      "logSha256": "37973b9cf2d30d00245d3be0552423caa2071e236fc8657c0ac57ee32cee4cd0",
+      "logBytes": 219
+    },
+    {
+      "name": "documentation-links",
+      "status": "passed",
+      "detail": null,
+      "logSha256": "feb5c950cd495da9a31ceed9d8735c4bc8c6accbc4ff3da2e003909fe3ee1294",
+      "logBytes": 135
+    },
+    {
+      "name": "graph-freshness",
+      "status": "passed",
+      "detail": "all four scopes fresh",
+      "logSha256": "f16f898837be28b5af52c2b2677db6a98644e9882e69f935a00bba33d98cadd8",
+      "logBytes": 379
+    },
+    {
+      "name": "standalone-typescript",
+      "status": "known_preexisting_failure",
+      "detail": "flow-diagram.test.tsx:352 Element/HTMLElement",
+      "logSha256": "f64834bea09b182dbdd56c395811a817d7ff2caf3c64cbbe6651517e1df2dd2f",
+      "logBytes": 297
+    },
+    {
+      "name": "repair-eslint",
+      "status": "passed",
+      "detail": "unexpired claim continuity fixture",
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "logBytes": 0
+    },
+    {
+      "name": "repair-prettier",
+      "status": "passed",
+      "detail": "unexpired claim continuity fixture",
+      "logSha256": "17aa973d3f004560237d9a95171210b0671deff23d61628eecf7322ff5938f20",
+      "logBytes": 66
+    }
+  ],
+  "evidenceClasses": {
+    "storedJourneys": "synthetic canonical valid unexpired claim plus expired relational data; actual guarded Prisma upgrade; original claimant admission/replay, mismatched claimant rejection and CLI byte preservation",
+    "MCP": "real stdio/HTTP source CLI transports, disposable credentials, synthetic hub",
+    "pluginReinstall": "injected Codex argv/state; no installed desktop mutation",
+    "hostVersion": "read-only macOS/architecture/Codex CLI observations",
+    "unattested": [
+      "desktop current-task capture",
+      "natural-person reviewer identity",
+      "effective agent model/role/context/sandbox",
+      "external Codex stop/quota/wake",
+      "complete host cleanup"
+    ]
+  },
+  "preservedLimits": [
+    "three C3.1 lost-ownership fixtures remain unresolved",
+    "no persisted PID signalling",
+    "no historical Journey mutation",
+    "C3.3 unstarted; GC3 not_evaluated",
+    "no temporary authentication, baseline refresh, commit, push or release"
+  ],
+  "intermediateFailures": [
+    "IPC/loopback/font fetch sandbox restrictions retried with approval",
+    "guard complexity refactored without suppression",
+    "new fixture env type errors corrected; pre-existing diagram-test error remains",
+    "C3.1 prose lesson filename invalid; unchanged body moved to observations",
+    "Initial independent review required unexpired assignment admission evidence; repaired fixture passed all 101 root checks; independent repaired-candidate review accepted and changed test passed 1/1"
+  ],
+  "independentReview": {
+    "outcome": "accepted",
+    "candidateDigest": "75ef47327c507f98b0aef0daad0384f483d028048c1afc39046098b843930ac1",
+    "fileCount": 3054,
+    "changedFixture": "1 file / 1 test independently passed",
+    "finalMetadataReview": "separately bound local receipt; not authenticated host authority"
+  }
+}

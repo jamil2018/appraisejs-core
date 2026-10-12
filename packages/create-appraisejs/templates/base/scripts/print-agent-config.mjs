@@ -18,6 +18,8 @@ const toolsNotVisibleRecovery = [
 ]
 
 console.log(`AppraiseJS agent setup\n`)
+console.log('Codex plugin: run `appraisejs agent plugin install --json`, then start a fresh task.')
+console.log('Host compatibility: run `appraisejs agent compatibility --json`.\n')
 console.log(`HTTP MCP endpoint:\n${config.endpoint}\n`)
 console.log('Stdio fallback command config:')
 console.log(JSON.stringify({ appraisejs: config.directStdioConfig }, null, 2))

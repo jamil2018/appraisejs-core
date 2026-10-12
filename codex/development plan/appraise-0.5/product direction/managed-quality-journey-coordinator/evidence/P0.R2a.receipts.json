@@ -1,0 +1,194 @@
+{
+  "schema": "appraise.managed-journey-wire-gateway-stress/v1",
+  "capturedAt": "2026-09-11T03:05:16+06:00",
+  "artifact": {
+    "codexVersion": "codex-cli 0.153.4",
+    "executableSha256": "87a08119b8effa519f0ecb552dc98043f58a8200bf2ec5da60f76890c33e9c3a",
+    "configSha256": "e0c9a9e9f153b60dd0d7dcd36ecbe6d6e4e5e3452011414d9a9866fb7bd21ecc",
+    "sandboxProfileSha256": "115e05fc073fb9002a0b546d9909c51bc02845bd2b6147a9252cd38b5452ae3a"
+  },
+  "providerConfiguration": {
+    "baseUrl": "http://localhost:39871/v1",
+    "model": "gateway-probe-model",
+    "modelProvider": "appraise-gateway",
+    "requestMaxRetries": 0,
+    "streamMaxRetries": 0,
+    "supportsWebsockets": false,
+    "wireApi": "responses",
+    "authentication": "environment-only synthetic canary; value omitted"
+  },
+  "mcp": [
+    {
+      "name": "appraise-quality-journey",
+      "status": "connected",
+      "tools": ["fixture_observe"]
+    }
+  ],
+  "confinementControl": {
+    "profile": "allow default; deny network; allow outbound localhost:39871 only",
+    "selectedListenerHttpStatus": 418,
+    "alternateLiveListenerHostControlHttpStatus": 418,
+    "alternateLiveListenerConfinedCurlExitCode": 7,
+    "externalDnsConfinedCurlExitCode": 6,
+    "interpretation": "selected port reachable; alternate live port and external DNS denied under the same profile"
+  },
+  "observationWindowMsPerCase": 2000,
+  "authorizationReceipt": {
+    "present": true,
+    "scheme": "Bearer",
+    "valueRetained": false,
+    "valueHashed": false
+  },
+  "orderedWireToolManifest": [
+    {
+      "name": "exec_command",
+      "type": "function",
+      "definitionSha256": "c8b54502768fa9a203dcab803ddab25b1504ef36078416e52a49448a40dd643a"
+    },
+    {
+      "name": "write_stdin",
+      "type": "function",
+      "definitionSha256": "8859d42f7fe20e482c34538a3a6f3e238e6869d9d39953c804b1b7e59f955e18"
+    },
+    {
+      "name": "list_mcp_resources",
+      "type": "function",
+      "definitionSha256": "04dd58ad7ea2ad255192a19ca32be4d2826158c6dbd3c60b14669e4a63dfea84"
+    },
+    {
+      "name": "list_mcp_resource_templates",
+      "type": "function",
+      "definitionSha256": "1ad523e2bd98ac8b40b4ee30f0f566c612a17c15883ce1469a9bc4f982feebf3"
+    },
+    {
+      "name": "read_mcp_resource",
+      "type": "function",
+      "definitionSha256": "eeb78a95d2e8985e0503f0371cc116af3e21e512c1b662eed8ac3812849f666e"
+    },
+    {
+      "name": "request_user_input",
+      "type": "function",
+      "definitionSha256": "7c87e1abf8df3981b02f6df9de22ef8544c6159ebaf50ed6d52fcf9a1e30b413"
+    },
+    {
+      "name": "view_image",
+      "type": "function",
+      "definitionSha256": "1d4d8e3f3c3cff6e3c004ab302a547d9bd6186182cc5726a061b64e69ce699c6"
+    },
+    {
+      "name": "multi_agent_v1",
+      "type": "namespace",
+      "definitionSha256": "679bd530d8ac406d4b351314d5e55da6fc5ac1318b3027dfc0713d3e299a7216"
+    },
+    {
+      "name": "mcp__appraise_quality_journey",
+      "type": "namespace",
+      "definitionSha256": "cfc71d6ccc1ab72796f45598800ff5c3cecec210c0bcd4724025b931e327b1cd"
+    },
+    {
+      "name": null,
+      "type": "web_search",
+      "definitionSha256": "ad41a391d7e1b82cbb55627ceb835826043048a27b1e6be21324727220353067"
+    }
+  ],
+  "failureMatrix": [
+    {
+      "mode": "418",
+      "sandboxWrapper": { "pid": 31969, "ppid": 31968, "pgid": 31968, "birthMarker": "Fri Sep 11 03:03:45 2026" },
+      "requestCount": 1,
+      "request": {
+        "method": "POST",
+        "path": "/v1/responses",
+        "bytes": 21554,
+        "sha256": "cb3a509ca868f5e469840d7de085e679d0721a52877ae5ffacf68057166ca37e"
+      }
+    },
+    {
+      "mode": "401",
+      "sandboxWrapper": { "pid": 32009, "ppid": 32008, "pgid": 32008, "birthMarker": "Fri Sep 11 03:04:00 2026" },
+      "requestCount": 1,
+      "request": {
+        "method": "POST",
+        "path": "/v1/responses",
+        "bytes": 21554,
+        "sha256": "409a980e3c2327b0dfa3436d7c131465cd5d4c9e4a20778bacb1734eab696636"
+      }
+    },
+    {
+      "mode": "429",
+      "sandboxWrapper": { "pid": 32404, "ppid": 32403, "pgid": 32403, "birthMarker": "Fri Sep 11 03:04:15 2026" },
+      "requestCount": 1,
+      "request": {
+        "method": "POST",
+        "path": "/v1/responses",
+        "bytes": 21554,
+        "sha256": "34502970b490ed03665043f2c3f27e744ad7a6376267175cbd5c9186fac10c6e"
+      }
+    },
+    {
+      "mode": "500",
+      "sandboxWrapper": { "pid": 32437, "ppid": 32436, "pgid": 32436, "birthMarker": "Fri Sep 11 03:04:30 2026" },
+      "requestCount": 1,
+      "request": {
+        "method": "POST",
+        "path": "/v1/responses",
+        "bytes": 21554,
+        "sha256": "8da3b7cbef84fe183a784f34344447376a3af7d2d8d5437729b8dfecdec3f576"
+      }
+    },
+    {
+      "mode": "connection-reset",
+      "sandboxWrapper": { "pid": 32475, "ppid": 32474, "pgid": 32474, "birthMarker": "Fri Sep 11 03:04:44 2026" },
+      "requestCount": 1,
+      "request": {
+        "method": "POST",
+        "path": "/v1/responses",
+        "bytes": 21554,
+        "sha256": "12c4e798c28697a9ef42f1d63611edcd5f7efa86832462797264ed90774e2536"
+      }
+    },
+    {
+      "mode": "interrupted-stream",
+      "sandboxWrapper": { "pid": 32515, "ppid": 32514, "pgid": 32514, "birthMarker": "Fri Sep 11 03:04:59 2026" },
+      "requestCount": 1,
+      "request": {
+        "method": "POST",
+        "path": "/v1/responses",
+        "bytes": 21554,
+        "sha256": "9b4b1e283349073efe03f0c87502b0609d71f306a1804c36ea69853708e83959"
+      }
+    }
+  ],
+  "syntheticAllowedCall": {
+    "sandboxWrapper": { "pid": 32555, "ppid": 32554, "pgid": 32554, "birthMarker": "Fri Sep 11 03:05:14 2026" },
+    "requestCount": 2,
+    "firstRequest": {
+      "bytes": 21554,
+      "sha256": "c063db2793e967c23ccc1873dabb26b9655c1499b6aef040fe27610cc8bd0b27",
+      "inputTypes": ["message", "message", "message"]
+    },
+    "syntheticEvent": {
+      "type": "response.output_item.done",
+      "itemType": "function_call",
+      "namespace": "mcp__appraise_quality_journey",
+      "name": "fixture_observe",
+      "arguments": { "probe": "phase0" }
+    },
+    "secondRequest": {
+      "bytes": 22036,
+      "sha256": "720cf2d463eddaa38b81c2657a014c0717108f3ac70aa6f3f794b97feea16cf6",
+      "inputTypes": ["message", "message", "message", "function_call", "function_call_output"]
+    },
+    "terminalNotifications": ["turn/started", "item/started", "item/completed", "turn/completed"]
+  },
+  "cleanup": {
+    "matchingSurvivorCount": 0,
+    "patterns": ["appraise-loopback-listener", "appraise-wire-live/probe", "codex app-server --stdio --strict-config"]
+  },
+  "limitations": [
+    "The disposable live runner and listener were held under /private/tmp and are not production code.",
+    "The sandbox process receipt identifies the sandbox-exec wrapper observed immediately after spawn, not a provider-issued process attestation.",
+    "A two-second zero-retry observation does not prove absence of a later replay.",
+    "No real credential, provider endpoint, model response, production request transformation, or production response interlock was exercised."
+  ]
+}

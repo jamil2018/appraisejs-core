@@ -11,6 +11,7 @@ export const environmentSchema = z.object({
     .regex(/^[A-Za-z_][A-Za-z0-9_]*$/, { message: 'Use a valid process environment variable name' })
     .optional()
     .or(z.literal('')),
+  discoveryAuthTransitPolicyJson: z.string().trim().max(40_000).optional().or(z.literal('')),
 })
 
 export type Environment = z.infer<typeof environmentSchema>
@@ -23,6 +24,7 @@ export const environmentFormOpts = {
     apiBaseUrl: '',
     username: '',
     passwordEnvironmentVariable: '',
+    discoveryAuthTransitPolicyJson: '',
   },
   validators: {
     onChange: environmentSchema,

@@ -200,7 +200,10 @@ export default function AppDrawer({
   ]
 
   return (
-    <Card id="container" className="relative overflow-hidden border-white/[0.08] bg-[rgba(18,37,64,0.42)] shadow-none">
+    <Card
+      id="container"
+      className="relative overflow-hidden border-white/[0.06] bg-[rgba(18,37,64,0.1)] shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] backdrop-blur-xl"
+    >
       <CardHeader id="header" className="relative px-4 pb-3 pt-4">
         <CardTitle className="text-base font-semibold text-white">{title}</CardTitle>
         <CardDescription className="text-xs leading-5 text-zinc-400">{description}</CardDescription>

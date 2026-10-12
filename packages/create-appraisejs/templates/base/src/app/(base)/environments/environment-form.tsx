@@ -1,6 +1,7 @@
 'use client'
 
 import { FormSubmitButton, TextFormField } from '@/components/form/form-controls'
+import { Textarea } from '@/components/ui/textarea'
 import { environmentFormOpts, type Environment } from '@/constants/form-opts/environment-form-opts'
 import { useForm } from '@tanstack/react-form'
 import { TanStackForm } from '@/lib/form/tanstack-form'
@@ -36,6 +37,11 @@ const EnvironmentForm = ({ defaultValues, successTitle, successMessage, id, onSu
       })
     },
   })
+  const submitButton = (
+    <form.Subscribe selector={formState => [formState.canSubmit, formState.isSubmitting]}>
+      {([canSubmit, isSubmitting]) => <FormSubmitButton canSubmit={canSubmit} isSubmitting={isSubmitting} />}
+    </form.Subscribe>
+  )
   return (
     <TanStackForm onSubmit={() => form.handleSubmit()}>
       <form.Field
@@ -101,9 +107,28 @@ const EnvironmentForm = ({ defaultValues, successTitle, successMessage, id, onSu
           />
         )}
       </form.Field>
-      <form.Subscribe selector={formState => [formState.canSubmit, formState.isSubmitting]}>
-        {([canSubmit, isSubmitting]) => <FormSubmitButton canSubmit={canSubmit} isSubmitting={isSubmitting} />}
-      </form.Subscribe>
+      <form.Field
+        name="discoveryAuthTransitPolicyJson"
+        validators={{ onChange: environmentFieldValidators.discoveryAuthTransitPolicyJson }}
+      >
+        {field => (
+          <div className="mb-4 flex flex-col gap-2 lg:w-1/3">
+            <label htmlFor="discoveryAuthTransitPolicyJson">Discovery sign-in transit policy (Optional)</label>
+            <Textarea
+              id="discoveryAuthTransitPolicyJson"
+              name="discoveryAuthTransitPolicyJson"
+              value={field.state.value ?? ''}
+              onChange={event => field.handleChange(event.target.value)}
+              placeholder='{"schemaVersion":"appraise.discovery-auth-transit/v1","flows":[]}'
+            />
+            <p className="text-sm text-muted-foreground">
+              Versioned exact redirect rules for a human-operated IdP flow. No credential, cookie, or target content is
+              stored.
+            </p>
+          </div>
+        )}
+      </form.Field>
+      {submitButton}
     </TanStackForm>
   )
 }

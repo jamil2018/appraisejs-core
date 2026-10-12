@@ -5,6 +5,10 @@ import type { Environment } from '@prisma/client'
 import type { z } from 'zod'
 import { assertLoopbackOriginReservation } from './environment-origin-reservation'
 import { createHash } from 'node:crypto'
+import {
+  discoveryAuthTransitPolicyHash,
+  normalizeDiscoveryAuthTransitPolicyJson,
+} from '@/lib/quality-journey/discovery-auth-transit-policy'
 
 async function checkUniqueName(name: string, targetProjectId: string, excludeId?: string): Promise<boolean> {
   const existing = await prisma.environment.findFirst({
@@ -19,6 +23,15 @@ async function checkUniqueName(name: string, targetProjectId: string, excludeId?
 
 function normalizeEnvironmentPayload(value: z.infer<typeof environmentSchema>) {
   const passwordEnvironmentVariable = value.passwordEnvironmentVariable?.trim() || null
+  let discoveryAuthTransitPolicyJson: string | null
+  try {
+    discoveryAuthTransitPolicyJson = normalizeDiscoveryAuthTransitPolicyJson(
+      value.discoveryAuthTransitPolicyJson,
+      new URL(value.baseUrl).origin,
+    )
+  } catch {
+    throw new ServiceError('Discovery sign-in transit policy is invalid for this environment.', 'VALIDATION', 400)
+  }
   return {
     ...value,
     apiBaseUrl: value.apiBaseUrl === '' ? null : value.apiBaseUrl,
@@ -26,6 +39,7 @@ function normalizeEnvironmentPayload(value: z.infer<typeof environmentSchema>) {
     username: value.username === '' ? null : value.username,
     passwordEnvironmentVariable,
     credentialState: passwordEnvironmentVariable ? ('REFERENCE_CONFIGURED' as const) : ('NONE' as const),
+    discoveryAuthTransitPolicyJson,
   }
 }
 
@@ -88,6 +102,7 @@ export function environmentRegistryHash(environments: Environment[]) {
             apiBaseUrl: environment.apiBaseUrl,
             username: environment.username,
             credentialState: environment.credentialState,
+            discoveryAuthTransitPolicyHash: discoveryAuthTransitPolicyHash(environment.discoveryAuthTransitPolicyJson),
           }))
           .sort((left, right) => left.id.localeCompare(right.id)),
       ),
@@ -104,6 +119,7 @@ export function environmentSummary(environment: Environment) {
     apiBaseUrl: environment.apiBaseUrl,
     username: environment.username,
     credentialState: environment.credentialState,
+    discoveryAuthTransitPolicyHash: discoveryAuthTransitPolicyHash(environment.discoveryAuthTransitPolicyJson),
   }
 }
 
@@ -116,7 +132,8 @@ function exactEnvironmentMatch(existing: Environment, proposal: z.infer<typeof e
     existing.expectedPageTitle === normalized.expectedPageTitle &&
     existing.apiBaseUrl === normalized.apiBaseUrl &&
     existing.username === normalized.username &&
-    existing.passwordEnvironmentVariable === normalized.passwordEnvironmentVariable
+    existing.passwordEnvironmentVariable === normalized.passwordEnvironmentVariable &&
+    existing.discoveryAuthTransitPolicyJson === normalized.discoveryAuthTransitPolicyJson
   )
 }
 

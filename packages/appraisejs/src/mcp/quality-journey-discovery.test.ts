@@ -158,41 +158,25 @@ describe('Quality Journey discovery MCP contracts', () => {
     }
   })
 
-  it('rejects the same malformed and oversized scenario decision IDs as the coordinator HTTP ingress', async () => {
-    const cwd = await fs.mkdtemp(path.join(os.tmpdir(), 'appraise-mcp-scenario-decision-'))
+  it('does not expose human scenario review mutations to a connected MCP client', async () => {
+    const cwd = await fs.mkdtemp(path.join(os.tmpdir(), 'appraise-mcp-scenario-review-'))
     workspaces.push(cwd)
-    await fs.writeFile(path.join(cwd, 'package.json'), '{"name":"mcp-scenario-decision-test"}')
-    const fetch = vi.fn()
-    vi.stubGlobal('fetch', fetch)
+    await fs.writeFile(path.join(cwd, 'package.json'), '{"name":"mcp-scenario-review-test"}')
     const server = await createAppraiseMcpServer({ cwd, baseUrl: 'http://127.0.0.1:3999', coordinatorId: 'test' })
-    const client = new Client({ name: 'scenario-decision-contract-test', version: '1' })
+    const client = new Client({ name: 'scenario-review-contract-test', version: '1' })
     const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair()
-    const decision = {
-      target: 'target-1',
-      journeyId: 'journey-1',
-      commandId: 'scenario-command-1',
-      expectedStateHash: digest('a'),
-      idempotencyKey: 'scenario-decision-1',
-      portfolioId: 'portfolio-1',
-      portfolioRevisionId: 'portfolio-r1',
-      portfolioHash: digest('b'),
-      expectedReviewHash: digest('c'),
-      rejectedScenarioRevisionIds: [],
-    }
     try {
       await server.connect(serverTransport)
       await client.connect(clientTransport)
-      for (const approvedScenarioRevisionIds of [
-        ['scenario revision with spaces'],
-        Array.from({ length: 513 }, (_, index) => `scenario-r${index}`),
+      const tools = (await client.listTools()).tools.map(tool => tool.name)
+      for (const name of [
+        'quality_journey_scenarios_decide',
+        'quality_journey_scenarios_comment',
+        'quality_journey_scenarios_comment_dispose',
+        'quality_journey_scenarios_revision_request',
       ]) {
-        const result = await client.callTool({
-          name: 'quality_journey_scenarios_decide',
-          arguments: { ...decision, approvedScenarioRevisionIds },
-        })
-        expect(result.isError).toBe(true)
+        expect(tools).not.toContain(name)
       }
-      expect(fetch).not.toHaveBeenCalled()
     } finally {
       await client.close()
       await server.close()

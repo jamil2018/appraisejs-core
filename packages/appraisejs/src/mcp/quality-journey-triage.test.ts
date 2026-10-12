@@ -33,12 +33,27 @@ describe('Journey triage MCP authority', () => {
       body: JSON.stringify({ target: 'target-1', executionCycleId: 'execution-1' }),
     })
   })
+  it('forwards the current coordinator session for triage writes and evidence reads', async () => {
+    const { handlers, request } = harness()
+    await handlers.get('quality_journey_triage_prepare')!({
+      target: 'target-1',
+      journeyId: 'journey-1',
+      executionCycleId: 'execution-1',
+      coordinatorHandoffId: 'handoff-current',
+      coordinatorGeneration: 2,
+    })
+    expect(request).toHaveBeenCalledWith(
+      'quality/journeys/journey-1/triage/prepare',
+      expect.objectContaining({ body: expect.stringContaining('"coordinatorGeneration":2') }),
+    )
+  })
   it('does not expose local report-review or remediation decisions', () => {
     expect([...harness().handlers.keys()]).toEqual([
       'quality_journey_triage_get',
       'quality_journey_triage_evidence_read',
       'quality_journey_triage_prepare',
       'quality_journey_triage_submit',
+      'quality_journey_external_triage_submit_v1',
     ])
   })
   it('reads only a bounded receipt artifact without a caller target ID or path', async () => {

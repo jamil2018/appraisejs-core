@@ -19,8 +19,17 @@ import {
 } from '@/lib/quality-journey'
 import { ServiceError } from '@/services/shared/errors'
 import {
+  assertCoordinatorMutationSession,
+  type CoordinatorSessionCredentials,
+} from './quality-journey-coordinator-session'
+import {
+  assertExternalAnalyzerAttemptPrincipal,
+  acceptExternalQualityJourneySubmissionInTransaction,
+  completeExternalAnalyzerWorkInTransaction,
   completeQualityJourneyWorkInTransaction,
+  externalAnalyzerAdmissionProtocol,
   submitDurableQualityJourneyCommandInTransaction,
+  type ExternalAnalyzerProjectPrincipal,
   type WorkCompletionInput,
 } from './quality-journey-service'
 import { ensureQualityJourneyDiscoveryForApprovedAnalysis } from './quality-journey-discovery-service'
@@ -220,6 +229,16 @@ export async function getQualityJourneyAnalysis(
 
 type AnalysisSubmission = ReturnType<typeof analysisSubmissionSchema.parse>
 type AnalysisCharter = ReturnType<typeof analysisCharterSchema.parse>
+type ExternalAnalysisSubmission = Omit<AnalysisSubmission, 'ownerToken'> & {
+  ownerToken: string
+  external: {
+    principal: ExternalAnalyzerProjectPrincipal
+    assignmentId: string
+    assignmentGeneration: number
+    clientIdempotencyKey: string
+  }
+}
+type AnyAnalysisSubmission = AnalysisSubmission | ExternalAnalysisSubmission
 
 export function assertStructuredRequirementTraceability(requirementInput: unknown, charterInput: unknown) {
   const charter = analysisCharterSchema.parse(charterInput)
@@ -265,7 +284,7 @@ type AnalysisOutputReference = {
 }
 
 async function replayedAnalysisSubmission(
-  submission: AnalysisSubmission,
+  submission: AnyAnalysisSubmission,
   submissionHash: string,
   tx: Prisma.TransactionClient,
 ) {
@@ -284,7 +303,7 @@ async function replayedAnalysisSubmission(
 }
 
 function assertAnalysisSubmissionMatchesJourney(
-  submission: AnalysisSubmission,
+  submission: AnyAnalysisSubmission,
   charter: AnalysisCharter,
   journey: Awaited<ReturnType<typeof journeyOrThrow>>,
 ) {
@@ -303,7 +322,7 @@ function assertAnalysisSubmissionMatchesJourney(
 }
 
 function assertAnalyzerAttemptAuthority(
-  submission: AnalysisSubmission,
+  submission: AnyAnalysisSubmission,
   item: { id: string; role: string; status: string; inputHash: string },
   attempt: { id: string; workItemId: string; ownerTokenHash: string; leaseExpiresAt: Date; status: string },
   journeyStateHash: string,
@@ -312,7 +331,10 @@ function assertAnalyzerAttemptAuthority(
     throw new ServiceError('Analysis submission does not bind a current work attempt.', 'UNAUTHORIZED')
   if (item.role !== 'REQUIREMENT_ANALYZER')
     throw new ServiceError('Only the Requirement Analyzer assignment may submit an Analysis Charter.', 'UNAUTHORIZED')
-  if (attempt.ownerTokenHash !== createHash('sha256').update(submission.ownerToken).digest('hex'))
+  if (
+    !('external' in submission) &&
+    attempt.ownerTokenHash !== createHash('sha256').update(submission.ownerToken).digest('hex')
+  )
     throw new ServiceError('Analysis submission lease authority is invalid.', 'UNAUTHORIZED')
   if (attempt.leaseExpiresAt <= new Date() || item.status !== 'IN_PROGRESS' || attempt.status !== 'IN_PROGRESS')
     throw new ServiceError('Analysis submission work attempt is stale.', 'CONFLICT')
@@ -321,7 +343,7 @@ function assertAnalyzerAttemptAuthority(
 }
 
 async function validatedAnalysisSubmissionContext(
-  submission: AnalysisSubmission,
+  submission: AnyAnalysisSubmission,
   charter: AnalysisCharter,
   tx: Prisma.TransactionClient,
 ) {
@@ -333,6 +355,32 @@ async function validatedAnalysisSubmissionContext(
   const attempt = await tx.qualityJourneyWorkAttempt.findUnique({ where: { leaseId: submission.leaseId } })
   if (!item || !attempt)
     throw new ServiceError('Analysis submission does not bind a current work attempt.', 'UNAUTHORIZED')
+  if ('external' in submission) {
+    if (
+      attempt.id !== submission.attemptId ||
+      attempt.assignmentId !== submission.external.assignmentId ||
+      attempt.assignmentGeneration !== submission.external.assignmentGeneration
+    )
+      throw new ServiceError('External Analysis submission generation is stale.', 'CONFLICT')
+    assertExternalAnalyzerAttemptPrincipal(attempt, submission.external.principal, submission.ownerToken)
+    const authorization = attempt.authorizationId
+      ? await tx.qualityJourneyWorkAuthorization.findUnique({ where: { id: attempt.authorizationId } })
+      : null
+    const currentAuthorization = await tx.qualityJourneyWorkAuthorization.findFirst({
+      where: { workItemId: item.id, successorAuthorization: { is: null } },
+      select: { id: true },
+    })
+    if (
+      !authorization ||
+      authorization.revokedAt ||
+      authorization.cancelledAt ||
+      authorization.externalAdmissionProtocol !== externalAnalyzerAdmissionProtocol ||
+      authorization.externalPrincipalId !== submission.external.principal.principalId ||
+      authorization.externalPrincipalAssurance !== submission.external.principal.assurance ||
+      currentAuthorization?.id !== authorization.id
+    )
+      throw new ServiceError('External Analysis submission authority is not current.', 'UNAUTHORIZED')
+  }
   assertAnalyzerAttemptAuthority(submission, item, attempt, journey.stateHash)
   return { journey, item, attempt }
 }
@@ -405,7 +453,7 @@ async function validatedAnalysisSuccessorLineage(
 
 async function createAnalysisRevision(
   input: {
-    submission: AnalysisSubmission
+    submission: AnyAnalysisSubmission
     charter: AnalysisCharter
     submissionHash: string
     journey: Awaited<ReturnType<typeof journeyOrThrow>>
@@ -499,7 +547,7 @@ async function createAnalysisQuestions(
 
 async function completeAnalysisSubmission(
   input: {
-    submission: AnalysisSubmission
+    submission: AnyAnalysisSubmission
     charter: AnalysisCharter
     journey: Awaited<ReturnType<typeof journeyOrThrow>>
     item: { id: string; roleContractDigest: string; inputHash: string }
@@ -528,17 +576,17 @@ async function completeAnalysisSubmission(
     })),
     submittedAt: new Date().toISOString(),
   }
-  return completeQualityJourneyWorkInTransaction(
-    {
-      journeyId: input.journey.id,
-      targetProjectId: input.journey.targetProjectId,
-      workItemId: input.item.id,
-      leaseId: input.submission.leaseId,
-      ownerToken: input.submission.ownerToken,
-      result,
-    },
-    tx,
-  )
+  const completionInput = {
+    journeyId: input.journey.id,
+    targetProjectId: input.journey.targetProjectId,
+    workItemId: input.item.id,
+    leaseId: input.submission.leaseId,
+    ownerToken: input.submission.ownerToken,
+    result,
+  }
+  return 'external' in input.submission
+    ? completeExternalAnalyzerWorkInTransaction(completionInput, tx)
+    : completeQualityJourneyWorkInTransaction(completionInput, tx)
 }
 
 async function reconcileSubmittedAnalysisReview(
@@ -560,7 +608,7 @@ async function reconcileSubmittedAnalysisReview(
 }
 
 async function submitQualityJourneyAnalysisSuccessorInTransaction(
-  submission: AnalysisSubmission,
+  submission: AnyAnalysisSubmission,
   charter: AnalysisCharter,
   submissionHash: string,
   tx: Prisma.TransactionClient,
@@ -597,15 +645,135 @@ async function submitQualityJourneyAnalysisSuccessorInTransaction(
 
 /** The Analyzer may only submit against its current, receipt-validated work
  * attempt. The atomic completion records the normal Phase 1 work event. */
-export async function submitQualityJourneyAnalysisSuccessor(input: unknown, client: PrismaClient = prisma) {
+export async function submitQualityJourneyAnalysisSuccessor(
+  input: unknown,
+  client: PrismaClient = prisma,
+  coordinatorSession?: CoordinatorSessionCredentials,
+) {
   const submission = analysisSubmissionSchema.parse(input)
   const charter = submission.charter
   if (charter.journeyId !== submission.journeyId || charter.targetProjectId !== submission.targetProjectId)
     throw new ServiceError('Analysis charter identity does not match its assignment scope.', 'CONFLICT')
   const submissionHash = hash({ ...submission, ownerToken: undefined })
-  return client.$transaction(tx =>
-    submitQualityJourneyAnalysisSuccessorInTransaction(submission, charter, submissionHash, tx),
+  return client.$transaction(async tx => {
+    await assertCoordinatorMutationSession(coordinatorSession, submission, tx)
+    return submitQualityJourneyAnalysisSuccessorInTransaction(submission, charter, submissionHash, tx)
+  })
+}
+
+const externalAnalysisSubmissionSchema = z
+  .object({
+    journeyId: z.string().min(1).max(200),
+    targetProjectId: z.string().min(1).max(200),
+    workItemId: z.string().min(1).max(200),
+    attemptId: z.string().min(1).max(200),
+    assignmentId: z.string().min(1).max(200),
+    assignmentGeneration: z.number().int().positive(),
+    leaseId: z.string().min(1).max(200),
+    assignmentSecret: z.string().min(32).max(2_000),
+    idempotencyKey: z.string().min(1).max(200),
+    predecessorAnalysisRevisionId: z.string().min(1).max(200).optional(),
+    charter: analysisCharterSchema,
+  })
+  .strict()
+
+type ExternalAnalysisSubmissionInput = z.infer<typeof externalAnalysisSubmissionSchema> & {
+  principal: ExternalAnalyzerProjectPrincipal
+}
+
+function externalAnalysisInternalIdempotencyKey(input: ExternalAnalysisSubmissionInput) {
+  return `external-v1:${hash({
+    principal: input.principal.principalId,
+    assignmentId: input.assignmentId,
+    attemptId: input.attemptId,
+    idempotencyKey: input.idempotencyKey,
+  }).slice('sha256:'.length)}`
+}
+
+async function authenticateExternalAnalysisReplay(
+  submission: ExternalAnalysisSubmission,
+  tx: Prisma.TransactionClient,
+) {
+  const journey = await journeyOrThrow(submission.journeyId, submission.targetProjectId, tx)
+  const item = await tx.qualityJourneyWorkItem.findFirst({
+    where: { id: submission.workItemId, journeyId: journey.id, targetProjectId: journey.targetProjectId },
+  })
+  const attempt = await tx.qualityJourneyWorkAttempt.findUnique({ where: { id: submission.attemptId } })
+  if (!item || !attempt || attempt.workItemId !== item.id || attempt.leaseId !== submission.leaseId)
+    throw new ServiceError('External Analysis submission does not bind its assignment.', 'UNAUTHORIZED')
+  if (
+    attempt.assignmentId !== submission.external.assignmentId ||
+    attempt.assignmentGeneration !== submission.external.assignmentGeneration
   )
+    throw new ServiceError('External Analysis submission generation is stale.', 'CONFLICT')
+  assertExternalAnalyzerAttemptPrincipal(attempt, submission.external.principal, submission.ownerToken)
+}
+
+/**
+ * Versioned external ingress. A route-derived project principal and the
+ * one-time assignment secret authenticate replay before an expired or revoked
+ * attempt may disclose its own committed outcome. New writes still pass the
+ * full current-authority check in the shared canonical transaction below.
+ */
+export async function submitExternalQualityJourneyAnalysisSuccessor(
+  input: unknown,
+  principal: ExternalAnalyzerProjectPrincipal,
+  client: PrismaClient = prisma,
+  coordinatorSession?: CoordinatorSessionCredentials,
+) {
+  if (principal.assurance !== 'PROJECT_CREDENTIAL_ONLY')
+    throw new ServiceError('External Analysis principal assurance is invalid.', 'UNAUTHORIZED')
+  const parsed = externalAnalysisSubmissionSchema.parse(input)
+  if (parsed.charter.journeyId !== parsed.journeyId || parsed.charter.targetProjectId !== parsed.targetProjectId)
+    throw new ServiceError('Analysis charter identity does not match its assignment scope.', 'CONFLICT')
+  const submission: ExternalAnalysisSubmission = {
+    journeyId: parsed.journeyId,
+    targetProjectId: parsed.targetProjectId,
+    workItemId: parsed.workItemId,
+    attemptId: parsed.attemptId,
+    leaseId: parsed.leaseId,
+    ownerToken: parsed.assignmentSecret,
+    idempotencyKey: externalAnalysisInternalIdempotencyKey({ ...parsed, principal }),
+    ...(parsed.predecessorAnalysisRevisionId
+      ? { predecessorAnalysisRevisionId: parsed.predecessorAnalysisRevisionId }
+      : {}),
+    charter: parsed.charter,
+    external: {
+      principal,
+      assignmentId: parsed.assignmentId,
+      assignmentGeneration: parsed.assignmentGeneration,
+      clientIdempotencyKey: parsed.idempotencyKey,
+    },
+  }
+  const submissionHash = hash({ ...submission, ownerToken: undefined })
+  return client.$transaction(async tx => {
+    const accepted = await acceptExternalQualityJourneySubmissionInTransaction(
+      {
+        journeyId: parsed.journeyId,
+        targetProjectId: parsed.targetProjectId,
+        role: 'REQUIREMENT_ANALYZER',
+        workItemId: parsed.workItemId,
+        attemptId: parsed.attemptId,
+        assignmentId: parsed.assignmentId,
+        assignmentGeneration: parsed.assignmentGeneration,
+        leaseId: parsed.leaseId,
+        assignmentSecret: parsed.assignmentSecret,
+        principal,
+        operation: 'ANALYSIS_SUBMIT',
+        idempotencyKey: parsed.idempotencyKey,
+        payload: { ...parsed, assignmentSecret: undefined },
+      },
+      tx,
+      async () => {
+        await assertCoordinatorMutationSession(coordinatorSession, submission, tx)
+        await authenticateExternalAnalysisReplay(submission, tx)
+        const replay = await replayedAnalysisSubmission(submission, submissionHash, tx)
+        if (replay) return replay
+        return submitQualityJourneyAnalysisSuccessorInTransaction(submission, parsed.charter, submissionHash, tx)
+      },
+    )
+    return { ...accepted.outcome, replayed: accepted.replayed || accepted.outcome.replayed }
+  })
 }
 
 type AnalysisAnswerRequest = ReturnType<typeof analysisAnswerRequestSchema.parse>
@@ -762,10 +930,17 @@ async function answerQualityJourneyAnalysisQuestionInTransaction(
 
 /** Answers are immutable payloads. A correction appends a new answer and is
  * prohibited after exact approval; a changed charter still needs a successor. */
-export async function answerQualityJourneyAnalysisQuestion(input: unknown, client: PrismaClient = prisma) {
+export async function answerQualityJourneyAnalysisQuestion(
+  input: unknown,
+  client: PrismaClient = prisma,
+  coordinatorSession?: CoordinatorSessionCredentials,
+) {
   const request = analysisAnswerRequestSchema.parse(input)
   const requestHash = hash(request)
-  return client.$transaction(tx => answerQualityJourneyAnalysisQuestionInTransaction(request, requestHash, tx))
+  return client.$transaction(async tx => {
+    await assertCoordinatorMutationSession(coordinatorSession, request.answer, tx)
+    return answerQualityJourneyAnalysisQuestionInTransaction(request, requestHash, tx)
+  })
 }
 
 function assertExactCommandArtifact(
@@ -871,11 +1046,18 @@ async function publishQualityJourneyAnalysisInTransaction(
   return { ...result, publication }
 }
 
-export async function publishQualityJourneyAnalysis(value: unknown, client: PrismaClient = prisma) {
+export async function publishQualityJourneyAnalysis(
+  value: unknown,
+  client: PrismaClient = prisma,
+  coordinatorSession?: CoordinatorSessionCredentials,
+) {
   const command = journeyCommandSchema.parse(value)
   if (command.command !== 'PUBLISH_ANALYSIS' || command.actor !== 'RUNNER')
     throw new ServiceError('Only the Runner may publish an Analysis Charter.', 'UNAUTHORIZED')
-  return client.$transaction(tx => publishQualityJourneyAnalysisInTransaction(command, tx))
+  return client.$transaction(async tx => {
+    await assertCoordinatorMutationSession(coordinatorSession, command, tx)
+    return publishQualityJourneyAnalysisInTransaction(command, tx)
+  })
 }
 
 async function decidableAnalysisRevisionOrThrow(
@@ -993,11 +1175,18 @@ async function decideQualityJourneyAnalysisInTransaction(command: DecideAnalysis
   return result
 }
 
-export async function decideQualityJourneyAnalysis(value: unknown, client: PrismaClient = prisma) {
+export async function decideQualityJourneyAnalysis(
+  value: unknown,
+  client: PrismaClient = prisma,
+  coordinatorSession?: CoordinatorSessionCredentials,
+) {
   const command = journeyCommandSchema.parse(value)
   if (command.command !== 'DECIDE_ANALYSIS' || command.actor !== 'USER')
     throw new ServiceError('Only a user may approve an Analysis Charter.', 'UNAUTHORIZED')
-  return client.$transaction(tx => decideQualityJourneyAnalysisInTransaction(command, tx))
+  return client.$transaction(async tx => {
+    await assertCoordinatorMutationSession(coordinatorSession, command, tx)
+    return decideQualityJourneyAnalysisInTransaction(command, tx)
+  })
 }
 
 const qualityJourneyAnalysisRevisionRequestSchema = z
@@ -1006,12 +1195,17 @@ const qualityJourneyAnalysisRevisionRequestSchema = z
 
 /** A user-requested revision is a new immutable Analyzer round. Public callers
  * cannot turn the generic command endpoint into an alternate approval path. */
-export async function requestQualityJourneyAnalysisRevision(value: unknown, client: PrismaClient = prisma) {
+export async function requestQualityJourneyAnalysisRevision(
+  value: unknown,
+  client: PrismaClient = prisma,
+  coordinatorSession?: CoordinatorSessionCredentials,
+) {
   const request = qualityJourneyAnalysisRevisionRequestSchema.parse(value)
   const command = request.command
   if (command.command !== 'REQUEST_ANALYSIS_REVISION' || command.actor !== 'USER')
     throw new ServiceError('Only a user may request an Analysis Charter revision.', 'UNAUTHORIZED')
   return client.$transaction(async tx => {
+    await assertCoordinatorMutationSession(coordinatorSession, command, tx)
     const journey = await journeyOrThrow(command.journeyId, command.targetProjectId, tx)
     const revision = await tx.qualityJourneyAnalysisRevision.findFirst({
       where: { journeyId: journey.id, artifactRevisionId: command.payload.reviewedRevisionId },

@@ -6,7 +6,22 @@ import { hashRuntimeCapsuleValue } from './contracts'
 import type { SealedRuntimeStepDefinition } from './step-definition-closure'
 import { stepInvocationSchema } from '../../../packages/cucumber-runtime/src/step-definitions/contracts'
 
-const resourceHashes = z.array(z.object({ id: z.string(), contentHash: z.string() }).strict())
+const resourceHash = z.object({ id: z.string(), contentHash: z.string() }).strict()
+const legacyResourceHash = resourceHash.extend({
+  kind: z.enum(['OPERATION', 'STEP_DEFINITION', 'LOCATOR', 'MODULE']),
+  sourceTargetProjectId: z.string().nullable(),
+})
+const resourceHashes = z.array(z.union([resourceHash, legacyResourceHash]))
+const runtimeResourceHashes = (entries: z.infer<typeof resourceHashes>) =>
+  entries.map(({ id, contentHash }) => ({ id, contentHash }))
+function executableJourneyStep(text: string, keyword: 'Given' | 'When' | 'Then' | 'And' | undefined) {
+  if (!text || text !== text.trim() || /[\r\n\u2028\u2029]/.test(text))
+    throw new Error('Journey step text must be a single Gherkin line.')
+  if (/^(?:Given|When|Then|And|But) \S/.test(text)) return text
+  if (/^(?:Given|When|Then|And|But)(?:\s|$)/.test(text) || !keyword)
+    throw new Error('Journey step text needs an executable Gherkin keyword.')
+  return `${keyword} ${text}`
+}
 const sourceSchema = z
   .object({
     preparedCapsuleId: z.string(),
@@ -109,10 +124,12 @@ export async function loadJourneyCapsuleSource(client: PrismaClient, testRunId: 
     where: { id: source.targetBindingId },
   })
   const binding = automationTargetBindingSchema.parse(JSON.parse(bindingRow.bindingJson))
+  const bindingResourceHashes = resourceHashes.parse(JSON.parse(bindingRow.resourceHashJson))
   if (
     hashRuntimeCapsuleValue(binding) !== source.targetBindingHash ||
-    hashRuntimeCapsuleValue(JSON.parse(bindingRow.resourceHashJson)) !==
-      hashRuntimeCapsuleValue(source.resourceHashes) ||
+    hashRuntimeCapsuleValue(runtimeResourceHashes(bindingResourceHashes)) !==
+      hashRuntimeCapsuleValue(runtimeResourceHashes(source.resourceHashes)) ||
+    hashRuntimeCapsuleValue(bindingResourceHashes) !== hashRuntimeCapsuleValue(source.resourceHashes) ||
     binding.targetProjectId !== cycle.targetProjectId ||
     binding.testCase.id !== source.testCaseId ||
     binding.suite.id !== source.suiteId
@@ -129,7 +146,7 @@ export async function loadJourneyCapsuleSource(client: PrismaClient, testRunId: 
       cycleId: cycle.cycleId,
       ...source,
     },
-    resourceHashes: source.resourceHashes,
+    resourceHashes: runtimeResourceHashes(source.resourceHashes),
     selection: [
       {
         suite: { id: binding.suite.id, name: binding.suite.name },
@@ -137,13 +154,16 @@ export async function loadJourneyCapsuleSource(client: PrismaClient, testRunId: 
           id: binding.testCase.id,
           title: binding.testCase.title,
           description: binding.testCase.description,
-          steps: binding.testCase.steps.map((step, index) => ({
-            id: `qjstep_${index}`,
-            order: step.order,
-            label: step.label,
-            gherkinStep: step.gherkinStep,
-            invocation: stepInvocationSchema.parse(JSON.parse(step.invocationJson)),
-          })),
+          steps: binding.testCase.steps.map((step, index) => {
+            const invocation = stepInvocationSchema.parse(JSON.parse(step.invocationJson))
+            return {
+              id: `qjstep_${index}`,
+              order: step.order,
+              label: step.label,
+              gherkinStep: executableJourneyStep(step.gherkinStep, invocation.presentation?.keyword),
+              invocation,
+            }
+          }),
         },
       },
     ],

@@ -30,7 +30,7 @@
   },
   "files": [
     "dist",
-    "agent-skills"
+    "codex-marketplace"
   ],
   "scripts": {
     "prepare": "npm run build",

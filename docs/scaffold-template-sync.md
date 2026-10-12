@@ -38,6 +38,9 @@ to run excluded parity tests or record them in their certification receipt.
 
 The repository's swarm-routing configuration, agents, ledger utilities, development-harness catalogs, learning records,
 and harness-only commands are also excluded.
+Phase-0 and managed-Journey qualification scripts, fixtures, tests, and experimental worker gateways are likewise
+repository-only. Template preparation excludes those exact path families while retaining canonical Journey services,
+contracts, migrations, and product tests.
 Generated projects retain their own bundled `check:harness` command, which verifies that this repository-only
 orchestration surface has not leaked into the scaffold.
 
@@ -55,6 +58,17 @@ flavor independently. Preparation fails before reuse if the registered Step Defi
 Direct edits can be appropriate for template-only metadata, README content, scaffold packaging behavior, or files that
 template preparation intentionally preserves. Check `packages/create-appraisejs/scripts/prepare-template.ts` before
 assuming a file is template-only.
+
+Generated projects retain the guarded `npm run migrate-db` and startup scripts described in
+[Quality Journey compatibility](quality-journey-compatibility.md). Unknown storage is refused before readiness writes;
+the preparation workflow does not weaken that guard or reset a user database.
+The C3.2 producer-package reinstall/migration fixture is repository-only; generated apps retain the self-contained
+storage guard and its focused tests without importing the producer CLI source.
+
+Preparation refuses incomplete or changed migration inputs against the checked-in integrity inventory before
+copying root/base source; it never regenerates the inventory. Package validation compares the actual packed
+scaffold's migration names and SQL hashes with canonical source. The package-owned `scaffold-README.md` is copied
+to the generated project's README so first-setup and recovery instructions ship with the app.
 
 ## Validation
 

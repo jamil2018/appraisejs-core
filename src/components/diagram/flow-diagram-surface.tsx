@@ -352,11 +352,11 @@ function EmptyFlowCanvas({ canAddFirst, onAddFirst }: Pick<FlowGraphCanvasProps,
         type="button"
         data-invocation-insert="first"
         aria-label="Add first step"
-        className="border-primary/55 bg-primary/[0.04] hover:bg-primary/[0.08] group flex min-h-28 w-64 flex-col items-center justify-center rounded-md border border-dashed p-5 text-center transition-colors hover:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        className="hover:border-primary/35 group flex min-h-32 w-72 flex-col items-center justify-center rounded-xl border border-white/[0.09] bg-[linear-gradient(145deg,rgba(255,255,255,0.045),rgba(255,255,255,0.012))] p-5 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.07),0_18px_48px_-36px_rgba(0,0,0,0.9)] backdrop-blur-xl transition-[border-color,background-color,transform,box-shadow] hover:-translate-y-0.5 hover:bg-white/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50"
         disabled={!canAddFirst}
         onClick={onAddFirst}
       >
-        <span className="border-primary/30 bg-primary/10 flex size-9 items-center justify-center rounded-md border text-primary">
+        <span className="border-primary/25 bg-primary/[0.07] flex size-10 items-center justify-center rounded-full border text-primary shadow-[inset_0_1px_0_rgba(255,255,255,0.14)]">
           <Plus aria-hidden />
         </span>
         <span className="mt-3 text-sm font-medium text-foreground">Add first step</span>
@@ -427,7 +427,7 @@ function PopulatedFlowCanvas({
 
 export function FlowGraphCanvas(props: FlowGraphCanvasProps) {
   return (
-    <div className="relative min-h-80 flex-1 overflow-hidden rounded-md border border-white/[0.1] bg-[radial-gradient(circle_at_18%_8%,rgba(38,83,121,0.22),transparent_24rem),rgba(8,13,22,0.32)]">
+    <div className="relative min-h-80 flex-1 overflow-hidden rounded-xl border border-white/[0.09] bg-[radial-gradient(circle_at_18%_8%,rgba(38,83,121,0.1),transparent_24rem),linear-gradient(145deg,rgba(255,255,255,0.024),rgba(8,13,22,0.24))] shadow-[inset_0_1px_0_rgba(255,255,255,0.05),inset_0_-24px_48px_rgba(0,0,0,0.1)] backdrop-blur-xl">
       {props.nodes.length > 0 ? (
         <PopulatedFlowCanvas {...props} />
       ) : (

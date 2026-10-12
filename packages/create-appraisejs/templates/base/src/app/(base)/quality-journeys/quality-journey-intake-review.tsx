@@ -5,7 +5,7 @@ import { ChevronLeft, ShieldCheck } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 
-import { dimensions, type EnvironmentOption, type Requirement } from './quality-journey-create-form-shared'
+import type { EnvironmentOption, Requirement } from './quality-journey-create-form-shared'
 
 type ReviewField = { label: string; values?: string[] }
 
@@ -97,15 +97,12 @@ export function IntakeReview({
             ]}
           />
         </ReviewSection>
-        <ReviewSection onEdit={onEdit} step={2} title="Checks">
+        <ReviewSection onEdit={onEdit} step={2} title="Coverage">
           <ReviewFieldList
             fields={[
-              { label: 'Coverage rigor', values: [requirement.coverageRigor.toLocaleLowerCase()] },
               {
-                label: 'Test dimensions',
-                values: requirement.testDimensions.map(
-                  value => dimensions.find(item => item.value === value)?.label ?? value,
-                ),
+                label: 'End-to-end coverage',
+                values: requirement.coverageRigor ? [requirement.coverageRigor.toLocaleLowerCase()] : [],
               },
             ]}
           />

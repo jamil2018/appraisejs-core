@@ -1,0 +1,156 @@
+{
+  "schema": "appraise.c31.validation/local-v1",
+  "scope": "C3.1 only; corrected candidate after rejected initial review",
+  "checks": {
+    "integrated": {
+      "filesPassed": 40,
+      "testsPassed": 534,
+      "testsSkipped": 3
+    },
+    "supervisorFinal": {
+      "filesPassed": 2,
+      "testsPassed": 8,
+      "overlap": "integrated; strengthened final natural-exit, escalation and Chromium absence checks"
+    },
+    "ui": {
+      "testsPassed": 1,
+      "scenario": "anonymous human pause/resume across real Next hub stop/restart"
+    },
+    "package": {
+      "filesPassed": 12,
+      "testsPassed": 80
+    },
+    "ownedUnit": {
+      "testsPassed": 18,
+      "overlap": "integrated"
+    },
+    "ownedSQLite": {
+      "testsPassed": 1,
+      "overlap": "integrated; synthetic fd3 acknowledgement is not real-browser proof"
+    },
+    "migrations": {
+      "applied": 88,
+      "outcome": "passed"
+    },
+    "build": {
+      "outcome": "passed"
+    },
+    "eslint": "passed affected canonical files including supervisor mjs",
+    "prettier": "passed affected canonical files and current docs",
+    "fallow": "passed new-only with zero introduced dead code complexity duplication",
+    "reactDoctor": "passed diff HEAD with one inherited iteration warning",
+    "coordinatorReference": "current",
+    "artifactPolicy": "passed",
+    "packageContents": "passed",
+    "documentationLinks": "passed",
+    "operationProjections": "canonical 127 human 127 handlers",
+    "graphScopes": ["src", "prisma", "scripts", "packages"]
+  },
+  "limits": [
+    "standalone tsc retains unrelated flow-diagram.test.tsx:352 Element versus HTMLElement",
+    "external Codex stop offline quota are modeled unavailable progress only; termination UNKNOWN",
+    "lost MCP acknowledgement is injected delivery loss; not an observed real Codex transport outage",
+    "prior-process ownership loss blocks resume; no persisted PID signalling",
+    "three earlier disposable old-protocol supervisor groups remain live after lost IPC ownership; corrected-protocol inventory is zero live supervisors",
+    "group observation does not attest arbitrary escaped descendants; canonical managed browser has separate close acknowledgement and real observed absence",
+    "runtime named model role context sandbox and natural-person reviewer not attested"
+  ],
+  "logs": {
+    "integrated": {
+      "sha256": "3b553de5d9402fb2c19ac5c5153e1af5110d0e9ed4d9b7831aed96a7fc3e88dd",
+      "localPath": ".appraisejs/c31-validation/corrected/integrated.log"
+    },
+    "supervisorFinal": {
+      "sha256": "d6f5eadabbec421b81f31181ef86b4def9fe169ed87e28ae8437b6fe500eeccd",
+      "localPath": ".appraisejs/c31-validation/corrected/supervisorFinal.log"
+    },
+    "ui": {
+      "sha256": "eb5ae7db8aa6201547df7b0367fabea2a6820b741bdf529c4d0f6883256a4b41",
+      "localPath": ".appraisejs/c31-validation/corrected/ui.log"
+    },
+    "package": {
+      "sha256": "be5a86edb05311a67c219e29b3c3847b1f57b4d02a936e68882144c5a358f132",
+      "localPath": ".appraisejs/c31-validation/corrected/package.log"
+    },
+    "ownedUnit": {
+      "sha256": "489042c27662a288ea7cf1d294c4af561a1db2cc1d28065e77feb068a9c382e5",
+      "localPath": ".appraisejs/c31-validation/corrected/ownedUnit.log"
+    },
+    "ownedSQLite": {
+      "sha256": "d66abbd1cd7be1525be6496e13c63dc1d648fca22851e9adb659159a2f9e205d",
+      "localPath": ".appraisejs/c31-validation/corrected/ownedSQLite.log"
+    },
+    "migrations": {
+      "sha256": "c3200385a996efdc03cb60e5327863c227faa04ce47264088a154bd7527c7077",
+      "localPath": ".appraisejs/c31-validation/corrected/migrations.log"
+    },
+    "build": {
+      "sha256": "6f45c271b02b30cb044038c10c626edf2c18a143df75999a81dfc4bccebbff65",
+      "localPath": ".appraisejs/c31-validation/corrected/build.log"
+    },
+    "template": {
+      "sha256": "b7e8244c7b8d11307f6376b92184983bd259a95b138e6a1c8fd9c7bac0d3ecb9",
+      "localPath": ".appraisejs/c31-validation/corrected/template.log"
+    },
+    "graph": {
+      "sha256": "92c71dc15f932a24067e5a32fb19d80d5ce9d8bc475075b3abb4d7f0295a7702",
+      "localPath": ".appraisejs/c31-validation/corrected/graph.log"
+    },
+    "eslint": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "localPath": ".appraisejs/c31-validation/corrected/eslint.log"
+    },
+    "prettier": {
+      "sha256": "17aa973d3f004560237d9a95171210b0671deff23d61628eecf7322ff5938f20",
+      "localPath": ".appraisejs/c31-validation/corrected/prettier.log"
+    },
+    "fallow": {
+      "sha256": "c975d2169c0f54816c9ff1d10ad2588058c70eb224f5ddb6766c3111322d4267",
+      "localPath": ".appraisejs/c31-validation/corrected/fallow.log"
+    },
+    "reactDoctor": {
+      "sha256": "855e18c14cfbcc4ecafd529bf5d3b14bcfe5cfeac4f08bac6c3b0ffb2c2cdc29",
+      "localPath": ".appraisejs/c31-validation/corrected/reactDoctor.log"
+    },
+    "coordinatorReference": {
+      "sha256": "b8b5431a326328c503f9d2b37e046f90353e1335a806964e949d3d9dfed18767",
+      "localPath": ".appraisejs/c31-validation/corrected/coordinatorReference.log"
+    },
+    "artifactPolicy": {
+      "sha256": "d8eaccb6ddef98e6218fa3cbe6ee059b4ac120ad2eb044368234f74ea63d23e4",
+      "localPath": ".appraisejs/c31-validation/corrected/artifactPolicy.log"
+    },
+    "packageContents": {
+      "sha256": "2f8dde40c1abf2296e7b55ff68be50e8ed93adbeba911e4cd04baa4ede92e37e",
+      "localPath": ".appraisejs/c31-validation/corrected/packageContents.log"
+    },
+    "documentationLinks": {
+      "sha256": "feb5c950cd495da9a31ceed9d8735c4bc8c6accbc4ff3da2e003909fe3ee1294",
+      "localPath": ".appraisejs/c31-validation/corrected/documentationLinks.log"
+    },
+    "projections": {
+      "sha256": "b9430755f1f270386ee786ef90141960320eb271b9118840dc36e16de8901dba",
+      "localPath": ".appraisejs/c31-validation/corrected/projections.log"
+    },
+    "projectionCheck": {
+      "sha256": "fcbe0188d6ee21fe2d9aadd50133f098a66d2bbeda8374dd075c0987edfb051b",
+      "localPath": ".appraisejs/c31-validation/corrected/projectionCheck.log"
+    },
+    "runtimeBuild": {
+      "sha256": "9ce0b9444f8dde6e52b31e1f472aba2687d360bd1f09d692a4b51b9107e661e8",
+      "localPath": ".appraisejs/c31-validation/corrected/runtimeBuild.log"
+    },
+    "resourceInventory": {
+      "sha256": "034ce029f8555d9c2c1fb5330e71448fd6fd552463f61475030f4e7f0c42b330",
+      "localPath": ".appraisejs/c31-validation/corrected/resourceInventory.log"
+    },
+    "graphFinal": {
+      "sha256": "67f792d7e77e56041fc52c8c9bd03756b6a5f1db7c78d5635a84e99aa9de6033",
+      "localPath": ".appraisejs/c31-validation/corrected/graphFinal.log"
+    },
+    "graphStatus": {
+      "sha256": "c50c7fd69323f84da3f1eaf8d94c18c25a6395e5f16abf361d8161e6f689019c",
+      "localPath": ".appraisejs/c31-validation/corrected/graphStatus.log"
+    }
+  }
+}

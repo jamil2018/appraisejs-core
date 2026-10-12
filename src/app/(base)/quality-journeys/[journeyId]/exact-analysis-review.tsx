@@ -3,6 +3,7 @@
 import { CheckCircle2, RotateCcw } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
@@ -23,19 +24,33 @@ type ExactAnalysisReviewProps = {
 
 function ReviewIdentity({ analysis }: Pick<ExactAnalysisReviewProps, 'analysis'>) {
   return (
-    <details className="text-muted-foreground">
-      <summary className="cursor-pointer text-sm">Technical details</summary>
-      <div className="mt-2 space-y-2">
-        <p className="break-all font-mono text-[11px]">Version hash: {analysis.contentHash}</p>
-        {analysis.publication ? (
-          <p className="break-all font-mono text-[11px]">Published review hash: {analysis.publication.reviewHash}</p>
-        ) : (
-          <p className="text-sm text-amber-200">
-            This version is still being prepared for review. You cannot decide on it yet.
-          </p>
-        )}
+    <div className="space-y-3">
+      <div className="flex flex-wrap gap-2" aria-label="Analysis artifact status" role="status">
+        <Badge variant="outline">Recorded by Appraise</Badge>
+        <Badge variant={analysis.publication ? 'secondary' : 'outline'}>
+          {analysis.publication ? 'Published for review' : 'Not published'}
+        </Badge>
+        <Badge variant={analysis.decision ? 'secondary' : 'outline'}>
+          {analysis.decision ? 'Approved in Appraise' : 'Not approved'}
+        </Badge>
       </div>
-    </details>
+      <p className="text-sm text-muted-foreground">
+        Recording this immutable artifact does not publish or approve it. Those are separate Appraise-owned facts.
+      </p>
+      <details className="text-muted-foreground">
+        <summary className="cursor-pointer text-sm">Technical details</summary>
+        <div className="mt-2 space-y-2">
+          <p className="break-all font-mono text-[11px]">Version hash: {analysis.contentHash}</p>
+          {analysis.publication ? (
+            <p className="break-all font-mono text-[11px]">Published review hash: {analysis.publication.reviewHash}</p>
+          ) : (
+            <p className="text-sm text-amber-200">
+              This version is still being prepared for review. You cannot decide on it yet.
+            </p>
+          )}
+        </div>
+      </details>
+    </div>
   )
 }
 

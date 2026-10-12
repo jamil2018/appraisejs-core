@@ -9,7 +9,7 @@ taskClasses:
   - harness-configuration
 paths:
   - scripts/
-harnessVersion: '1'
+harnessVersion: "1"
 confidence: medium
 evidenceRefs:
   - obs-e449ff16acc26b90
@@ -28,10 +28,9 @@ evidence:
       agent-count: 4
 ambiguousObservationRefs: []
 lastValidatedAt: 2026-09-08T14:39:37.117Z
-lastResurfacedAt: null
-reminderFingerprint: null
+lastResurfacedAt: 2026-10-04T16:19:50.733Z
+reminderFingerprint: release-gate|scripts/|1|obs-e449ff16acc26b90
 ---
-
 # Bind prerequisite reuse to source and output content
 
 This advisory lesson applies to task classes: harness-configuration.

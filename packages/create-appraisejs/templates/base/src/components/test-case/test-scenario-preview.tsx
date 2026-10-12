@@ -41,9 +41,11 @@ export function TestScenarioPreview({ title, description, scenario }: TestScenar
         <Tooltip>
           <TooltipTrigger asChild>
             <Button
-              className={cn('fixed bottom-6 right-6 z-50 size-12 rounded-full shadow-lg')}
+              className={cn(
+                'text-foreground/80 relative z-30 size-10 rounded-full border-white/[0.12] bg-[linear-gradient(180deg,rgba(255,255,255,0.075),rgba(255,255,255,0.018))] shadow-[inset_0_1px_0_rgba(255,255,255,0.16),0_12px_28px_-18px_rgba(0,0,0,0.9)] hover:border-white/[0.2] hover:bg-white/[0.07] hover:text-primary',
+              )}
               type="button"
-              variant="default"
+              variant="outline"
               size="icon"
               aria-expanded={open}
               aria-label={open ? 'Hide test scenario preview' : 'Show test scenario preview'}
@@ -60,8 +62,8 @@ export function TestScenarioPreview({ title, description, scenario }: TestScenar
       {open ? (
         <Card
           className={cn(
-            'fixed bottom-20 right-6 z-50 max-h-[min(420px,70vh)] w-[min(28rem,calc(100vw-3rem))]',
-            'border-border/60 bg-background/70 shadow-xl shadow-black/25',
+            'absolute right-0 top-12 z-50 max-h-[min(420px,70vh)] w-[min(28rem,calc(100vw-3rem))]',
+            'border-white/[0.1] bg-[rgba(13,20,34,0.88)] shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_24px_60px_-28px_rgba(0,0,0,0.95)]',
             'backdrop-blur-3xl backdrop-saturate-150',
             'flex min-h-0 flex-col overflow-hidden',
           )}

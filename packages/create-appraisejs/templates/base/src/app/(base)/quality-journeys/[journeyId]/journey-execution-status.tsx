@@ -46,10 +46,12 @@ export function JourneyExecutionStatus({
         ) : null}
         {!execution.cycles.length ? <p className="text-sm text-muted-foreground">No managed runs yet.</p> : null}
         {execution.consents
-          .filter(consent => consent.status === 'REQUESTED')
+          .filter(consent => ['REQUESTED', 'GRANTED'].includes(consent.status))
           .map(consent => (
             <div key={consent.id} className="space-y-2 rounded-md border p-3">
-              <h3 className="text-sm font-medium">Execution consent required</h3>
+              <h3 className="text-sm font-medium">
+                {consent.status === 'GRANTED' ? 'Execution consent granted' : 'Execution consent required'}
+              </h3>
               <p className="text-sm">{consent.reason}</p>
               <dl className="space-y-1 text-xs">
                 <dt className="font-medium">Execution scope</dt>
@@ -60,12 +62,22 @@ export function JourneyExecutionStatus({
                 <dd>{consent.scope.actions.join(', ')}</dd>
               </dl>
               <p className="break-all font-mono text-xs text-muted-foreground">Scope: {consent.scopeHash}</p>
-              <JourneyExecutionCommand
-                action="consent"
-                input={{ journeyId, executionConsentId: consent.id, expectedScopeHash: consent.scopeHash }}
-              >
-                Grant consent for this scope
-              </JourneyExecutionCommand>
+              <div className="flex flex-wrap gap-2">
+                {consent.status === 'REQUESTED' ? (
+                  <JourneyExecutionCommand
+                    action="consent"
+                    input={{ journeyId, executionConsentId: consent.id, expectedScopeHash: consent.scopeHash }}
+                  >
+                    Grant consent for this scope
+                  </JourneyExecutionCommand>
+                ) : null}
+                <JourneyExecutionCommand
+                  action="revokeConsent"
+                  input={{ journeyId, executionConsentId: consent.id, expectedScopeHash: consent.scopeHash }}
+                >
+                  Revoke this consent
+                </JourneyExecutionCommand>
+              </div>
             </div>
           ))}
         {execution.cycles.map(cycle => (

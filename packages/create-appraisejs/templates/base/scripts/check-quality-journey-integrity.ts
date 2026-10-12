@@ -1,8 +1,9 @@
 import { createRequire } from 'node:module'
-import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync } from 'node:fs'
+import { mkdtempSync, readFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { auditQualityJourneyIntegrity, type JourneyAuditDatabase } from './lib/quality-journey-integrity'
+import { verifiedDatabaseMigrations } from './lib/migration-inventory.mjs'
 
 const { DatabaseSync } = createRequire(import.meta.url)('node:sqlite') as {
   DatabaseSync: new (
@@ -18,10 +19,7 @@ const database = new DatabaseSync(temporary ? join(temporary, 'audit.db') : reso
 try {
   if (temporary) {
     const migrations = resolve('prisma/migrations')
-    for (const entry of readdirSync(migrations, { withFileTypes: true })
-      .filter(entry => entry.isDirectory())
-      .filter(entry => existsSync(join(migrations, entry.name, 'migration.sql')))
-      .sort((a, b) => a.name.localeCompare(b.name)))
+    for (const entry of verifiedDatabaseMigrations(process.cwd()))
       database.exec(readFileSync(join(migrations, entry.name, 'migration.sql'), 'utf8'))
   }
   const result = auditQualityJourneyIntegrity(database)

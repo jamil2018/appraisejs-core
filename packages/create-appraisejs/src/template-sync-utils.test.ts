@@ -18,6 +18,12 @@ describe('shouldExcludeTemplatePath', () => {
     expect(shouldExcludeTemplatePath('automation/steps/.DS_Store')).toBe(true)
     expect(shouldExcludeTemplatePath('src/lib/quality-journey/scenario-contracts.mcp-parity.test.ts')).toBe(true)
     expect(shouldExcludeTemplatePath('lib/quality-journey/scenario-contracts.mcp-parity.test.ts')).toBe(true)
+    expect(shouldExcludeTemplatePath('scripts/qualify-p0-r2f-auth.mjs')).toBe(true)
+    expect(shouldExcludeTemplatePath('scripts/lib/managed-journey-isolated-launch.mjs')).toBe(true)
+    expect(shouldExcludeTemplatePath('scripts/fixtures/p0-r2f-serializer/input.json')).toBe(true)
+    expect(shouldExcludeTemplatePath('lib/p0-r2d-canonical-bridge.ts')).toBe(true)
+    expect(shouldExcludeTemplatePath('qualify-managed-journey-provider.mjs')).toBe(true)
+    expect(shouldExcludeTemplatePath('src/lib/quality-journey/managed-worker-gateway.ts')).toBe(true)
   })
 
   it('keeps normal source files and config files', () => {

@@ -29,6 +29,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { toast } from '@/hooks/use-toast'
 import type { ActionResponse } from '@/types/form/actionHandler'
@@ -61,7 +62,7 @@ function DraftCard({
   onResume: () => void
 }) {
   return (
-    <Card className="border-white/[0.08] bg-white/[0.025] shadow-none">
+    <Card className="border-white/[0.06] bg-[rgba(18,37,64,0.1)] shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
       <CardContent className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0">
           <p className="truncate text-sm font-medium text-zinc-100">{draft.title}</p>
@@ -136,7 +137,7 @@ function ReadyDefinitionCard({
   onVersion: () => void
 }) {
   return (
-    <Card className="border-white/[0.08] bg-white/[0.025] shadow-none">
+    <Card className="border-white/[0.06] bg-[rgba(18,37,64,0.1)] shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
       <CardHeader className="space-y-3">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0">
@@ -178,7 +179,7 @@ function ReadyDefinitionRow({
   onVersion: () => void
 }) {
   return (
-    <div className="rounded-lg border border-white/[0.08] bg-white/[0.025] px-4 py-3">
+    <div className="rounded-lg border border-white/[0.06] bg-[rgba(18,37,64,0.1)] px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] backdrop-blur-xl">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0 space-y-1">
           <p className="font-medium text-zinc-100">{definition.title}</p>
@@ -345,26 +346,34 @@ export function StepDefinitionRegistry({
               <Label className="sr-only" htmlFor="step-definition-category">
                 Category
               </Label>
-              <select
-                id="step-definition-category"
-                aria-label="Filter by category"
-                className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm shadow-sm"
-                value={group}
-                onChange={event => setGroup(event.target.value)}
-              >
-                <option value="all">All categories</option>
-                {groups.map(option => (
-                  <option key={option} value={option}>
-                    {option}
-                  </option>
-                ))}
-              </select>
+              <Select value={group} onValueChange={setGroup}>
+                <SelectTrigger id="step-definition-category" aria-label="Filter by category">
+                  <SelectValue placeholder="All categories" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All categories</SelectItem>
+                  {groups.map(option => (
+                    <SelectItem key={option} value={option}>
+                      {option}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
-          <div className="flex gap-1" role="group" aria-label="Definition view">
+          <div
+            className="flex h-9 items-center rounded-full border border-white/[0.09] bg-white/[0.025] p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.055)] backdrop-blur-xl"
+            role="group"
+            aria-label="Definition view"
+          >
             <Button
               size="sm"
-              variant={view === 'cards' ? 'secondary' : 'ghost'}
+              variant="ghost"
+              className={
+                view === 'cards'
+                  ? 'h-7 border border-white/[0.12] bg-white/[0.075] px-3 text-xs text-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_8px_20px_-14px_rgba(0,0,0,0.9)] hover:bg-white/[0.075]'
+                  : 'h-7 border border-transparent px-3 text-xs text-muted-foreground shadow-none hover:bg-white/[0.035] hover:text-foreground'
+              }
               aria-pressed={view === 'cards'}
               onClick={() => setView('cards')}
             >
@@ -372,7 +381,12 @@ export function StepDefinitionRegistry({
             </Button>
             <Button
               size="sm"
-              variant={view === 'compact' ? 'secondary' : 'ghost'}
+              variant="ghost"
+              className={
+                view === 'compact'
+                  ? 'h-7 border border-white/[0.12] bg-white/[0.075] px-3 text-xs text-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_8px_20px_-14px_rgba(0,0,0,0.9)] hover:bg-white/[0.075]'
+                  : 'h-7 border border-transparent px-3 text-xs text-muted-foreground shadow-none hover:bg-white/[0.035] hover:text-foreground'
+              }
               aria-pressed={view === 'compact'}
               onClick={() => setView('compact')}
             >

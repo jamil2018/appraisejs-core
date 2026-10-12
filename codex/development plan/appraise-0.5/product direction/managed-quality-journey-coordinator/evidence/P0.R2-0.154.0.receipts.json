@@ -1,0 +1,193 @@
+{
+  "receiptSubject": {
+    "schema": "appraise.p0-r2-candidate-refresh/v1",
+    "candidate": {
+      "distribution": "@openai/codex@0.154.0",
+      "executableSha256": "4f85982624b3898c8991cb80c0981b2aa71070e3537046c9a95950318a95afcc",
+      "reportedVersion": "codex-cli 0.154.0",
+      "releaseCommit": "6b9826e3aa83b1a5947db50f4332cb9c65f1b340",
+      "releaseTag": "rust-v0.154.0",
+      "v2ProtocolSha256": "7b9e7d385fffef8d428cc5490b56ce9c393bd3ed7bc7ccd730956387e723ec05"
+    },
+    "protocolInspection": {
+      "attestationGenerate": {
+        "direction": "server-to-client",
+        "params": {},
+        "response": {
+          "required": ["token"],
+          "tokenDescription": "Opaque client attestation token."
+        },
+        "initializeDescription": "Opt into attestation/generate requests for upstream x-oai-attestation."
+      },
+      "d10MethodPresent": false,
+      "presentMethods": ["thread/start", "thread/resume", "turn/start"],
+      "searchedMethodConcepts": ["prepare", "request-preview", "effective-tool-manifest", "bound-dispatch"]
+    },
+    "noModelQualification": {
+      "cleanup": {
+        "confirmed": true,
+        "survivingProcessCount": 0
+      },
+      "inventory": {
+        "ambientMcpServerCount": 0,
+        "requiredMcp": {
+          "health": "healthy",
+          "name": "appraise-quality-journey-worker",
+          "status": "ready",
+          "tools": [
+            {
+              "name": "quality_journey_analysis_get",
+              "schemaHash": "7cce9970b1299f7789482edd63b456ed5edd6cb79dd6d9be98e076866db957e5"
+            },
+            {
+              "name": "quality_journey_analysis_submit",
+              "schemaHash": "472c000204dff13e32ae4c16ad55ee266876571f8f4b9ce0f00c3cf7b8f74f1a"
+            }
+          ]
+        }
+      },
+      "isolationFindings": [],
+      "launchConfigurationDigest": "c8d1227bb2d9cdef587b129d4ed0579a63327f71f6f509fe3cf3261cb5d159da",
+      "launchIsolationQualified": true,
+      "mayStartTurn": false,
+      "providerFindings": ["native_tool_inventory_unavailable"],
+      "providerQualified": false,
+      "resolvedConfiguration": {
+        "configDigest": "90c4ecc59ec4080ef7ce780d1b599c5f0da3d0215c6d69fa8ee20624d153c6db",
+        "layerDigest": "2ece35f1176ab6a8af6685226850c84804fe44dd962de8a116d3aa82f3abe770",
+        "originDigest": "ab475ec7511845cc34d0c8c71f233a273e4c8047bf8f01eded06e81607220609"
+      },
+      "sentMethods": ["initialize", "initialized", "config/read", "thread/start", "mcpServerStatus/list"],
+      "turnStartSent": false
+    },
+    "dynamicToolRegression": {
+      "qualification": {
+        "findings": [],
+        "qualified": true
+      },
+      "results": [
+        {
+          "arm": "empty",
+          "artifact": {
+            "configurationSha256": "75276f9cc2807e82b4be292b46d91841fd909ff8df52693b013f4fb063ab1e9e",
+            "dynamicToolsSha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+            "executableSha256": "4f85982624b3898c8991cb80c0981b2aa71070e3537046c9a95950318a95afcc",
+            "sandboxProfileSha256": "c35ea6fd0fa8e4faf544dd6f9d641e48de018cf12fea094b5944071decd28e6c"
+          },
+          "cleanup": {
+            "confirmed": true,
+            "survivingProcessCount": 0
+          },
+          "dispatches": [],
+          "error": null,
+          "requestCount": 1,
+          "requests": [
+            {
+              "authorization": {
+                "present": true,
+                "scheme": "Bearer"
+              },
+              "bodyBytes": 5326,
+              "bodySha256": "d0d2612bfd524990ff1b02900621f0b509425f8c774d535e7e67ab13f8815dde",
+              "parseValid": true,
+              "toolNames": [],
+              "tools": [],
+              "toolsArrayValid": true,
+              "toolsFieldPresent": true
+            }
+          ],
+          "resolved": {
+            "featureDigest": "58ab327114bef814e899e749bbfbebe8cfda06a9a812042b0c5981cd71672bc2",
+            "layerTypes": ["user", "system"],
+            "mcpNames": [],
+            "webSearch": "disabled"
+          }
+        },
+        {
+          "arm": "one-strict",
+          "artifact": {
+            "configurationSha256": "02f50804e10645be0b26cd606b86789aafed3d3560f046c741dba35bb0487c89",
+            "dynamicToolsSha256": "af8a15101837a5d0bc822701dae0e74ef8ef209ffa763c7452584064641961f1",
+            "executableSha256": "4f85982624b3898c8991cb80c0981b2aa71070e3537046c9a95950318a95afcc",
+            "sandboxProfileSha256": "53dd40acd897c5406a82a4c91b259200e9e3047873b7f5857eab78446e03516b"
+          },
+          "cleanup": {
+            "confirmed": true,
+            "survivingProcessCount": 0
+          },
+          "dispatches": [
+            {
+              "method": "item/tool/call",
+              "outcome": "allowed_synthetic_dispatch",
+              "received": {
+                "namespace": null,
+                "tool": "appraise_dynamic_probe"
+              }
+            }
+          ],
+          "error": null,
+          "requestCount": 2,
+          "requests": [
+            {
+              "authorization": {
+                "present": true,
+                "scheme": "Bearer"
+              },
+              "bodyBytes": 5601,
+              "bodySha256": "f60703944b0464fa74b922a787e20763c2b71de0bacb97a71207abb4352b7bcd",
+              "parseValid": true,
+              "toolNames": ["appraise_dynamic_probe"],
+              "tools": [
+                {
+                  "definitionSha256": "b19ca0709a91e0115babc23a8a8a6b6b443e890926441230ea5b15f600865b1b",
+                  "name": "appraise_dynamic_probe",
+                  "origin": "function",
+                  "schemaHash": "9f5acdc744e6275654751fb393379959534916f6fa8f4c8b25b9416899dea53c"
+                }
+              ],
+              "toolsArrayValid": true,
+              "toolsFieldPresent": true
+            },
+            {
+              "authorization": {
+                "present": true,
+                "scheme": "Bearer"
+              },
+              "bodyBytes": 5863,
+              "bodySha256": "be3ea58381ad59def191042fc36cf19310712f081e4d0b23f8b70c4e64382734",
+              "parseValid": true,
+              "toolNames": ["appraise_dynamic_probe"],
+              "tools": [
+                {
+                  "definitionSha256": "b19ca0709a91e0115babc23a8a8a6b6b443e890926441230ea5b15f600865b1b",
+                  "name": "appraise_dynamic_probe",
+                  "origin": "function",
+                  "schemaHash": "9f5acdc744e6275654751fb393379959534916f6fa8f4c8b25b9416899dea53c"
+                }
+              ],
+              "toolsArrayValid": true,
+              "toolsFieldPresent": true
+            }
+          ],
+          "resolved": {
+            "featureDigest": "58ab327114bef814e899e749bbfbebe8cfda06a9a812042b0c5981cd71672bc2",
+            "layerTypes": ["user", "system"],
+            "mcpNames": [],
+            "webSearch": "disabled"
+          }
+        }
+      ],
+      "sourceResultSubjectSha256": "7620f3b0edd43ec505b364dd8eecf04eaa035f92da9e233443a807c13bd4d96f"
+    },
+    "sourceHashes": {
+      "packages/appraisejs/scripts/managed-journey-worker-mcp.ts": "448f37ba80c27a3c980aeb12c4906f91ce6929db276190c7bc2b0c65764cd39c",
+      "scripts/lib/managed-journey-isolated-launch.mjs": "21560316b9693e49f79c8cd4df929292ef135c4e167e88ec7d7e4b94b3081af0",
+      "scripts/lib/managed-journey-provider-qualification.mjs": "ab107759720f7d3e7bcd7c05f8eb3d37d947bf083c4d4e5bf5fae809adbdc6a1",
+      "scripts/lib/p0-r2c-dynamic-tools-experiment.mjs": "145105f49e3f85d363be1074b1a47ffe2bd58b6ef20c166bbfd943f018cd9baa",
+      "scripts/qualify-managed-journey-provider.mjs": "92cb1ea892ec8171d893a862a293191ab646c6a06624dbb646dd2ca1bfa1aa3d",
+      "scripts/qualify-p0-r2c-dynamic-tools.mjs": "51203356ef1d1c4515e8ad245ea5f5d490c8f0843c9aa1ffb24acd5fcf3edd73",
+      "src/lib/quality-journey/managed-worker-gateway.ts": "8606ed28c75e61d7d620a59067043d17a47b5475f00b6cd84f5a9f6be2650272"
+    }
+  },
+  "receiptSubjectSha256": "c63f3b447c936117d803406cccf527aa8b14ff343447cf1f5bbbe6112658e7f5"
+}

@@ -45,6 +45,21 @@ describe('Quality Journey Phase 1 kernel', () => {
     })
   })
 
+  it('uses the persisted event sequence when operational audit rows precede a command', () => {
+    const initial = createQualityJourneyKernelState({
+      journeyId: 'journey-1',
+      targetProjectId: 'target-1',
+      activeCycleId: 'cycle-1',
+    })
+    const committed = submitQualityJourneyCommand(initial, command(initial.stateHash), 4)
+    const repeated = submitQualityJourneyCommand(initial, command(initial.stateHash), 4)
+    expect(committed.result).toMatchObject({ outcome: 'COMMITTED' })
+    expect(committed.state.events[0].sequence).toBe(4)
+    expect(committed.result).toMatchObject({
+      eventId: repeated.result.outcome === 'COMMITTED' ? repeated.result.eventId : null,
+    })
+  })
+
   it('replays an identical command without another event and rejects changed reuse', () => {
     const initial = createQualityJourneyKernelState({
       journeyId: 'journey-1',

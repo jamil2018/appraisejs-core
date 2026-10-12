@@ -1,0 +1,136 @@
+{
+  "schemaVersion": "appraise.c272-closure-evidence/v1",
+  "classification": "LIVE_APPRAISE_UI_CLOSURE",
+  "journey": {
+    "journeyId": "qjy_1c2ff25f-70b1-41ca-8be4-1d4eb8a29d28",
+    "targetProjectId": "76f1c928-b478-4347-83be-eccb7ff43026",
+    "stage": "CLOSED",
+    "status": "CLOSED",
+    "activeCycleId": "qjt_2194391454d1577da4a87ce9",
+    "activeRevisionIds": {
+      "analysis": "c272-auth-analysis-1",
+      "journey": "qjr_91345e43-aed7-4b85-a726-9331091918a4",
+      "report": "c272-auth-report-5",
+      "scenarioPortfolio": "c272-auth-portfolio-1"
+    },
+    "analysisReviewHash": "sha256:19d391517a93b4a1d27e6b4f15d01be6af4235b64b8b8d93793dd26daf7862a8",
+    "unresolvedQuestionIds": [],
+    "blockerIds": [],
+    "activeWorkItemIds": [],
+    "permittedCommands": [],
+    "stateHash": "sha256:66da6c031dce478d91be03842120aaaa83f2ab62dd394273768b58b9bfc0cc33",
+    "version": 39
+  },
+  "closure": {
+    "actorId": "USER",
+    "closedAt": "2026-10-02T12:32:01.640Z",
+    "closureId": "qjc_a7f674799c59ddc8bcaa968e",
+    "cycleId": "qjt_2194391454d1577da4a87ce9",
+    "decision": "RISK_ACCEPTED",
+    "journeyId": "qjy_1c2ff25f-70b1-41ca-8be4-1d4eb8a29d28",
+    "reportRevision": {
+      "artifactId": "c272-auth-report-5",
+      "contentHash": "sha256:4fb64bfc01d5b5a8877932ffdc7c293baa0411c580f0defe6dfcf27cfa84312d",
+      "kind": "TEST_REPORT_ANALYSIS_REVISION",
+      "revisionId": "c272-auth-report-5"
+    },
+    "riskAcceptance": {
+      "acceptedAt": "2026-10-02T12:32:01.640Z",
+      "acceptedItemIds": [
+        "qjci_2a643c0285db7080caf0d26d76673983478830eefbb3a596124e3fb4e8929076",
+        "qjci_38685bc205c52c02071261e7bc6bbaf0c5aed9605f53b2bdff62b81cb6a548ff",
+        "qjci_b3ff4122bb130ec077d6e63bfc1ffdf731a8f373271b20605f81649a19450fcb",
+        "qjci_f6007326ece19d02c33d1c6e675ddbe4abe91d67bb47f253bccc41f565ae9845"
+      ],
+      "rationale": "User requested “let’s open it and finish this” after the exact final-report closure request. Accept c272-auth-report-5, sha256:4fb64bfc01d5b5a8877932ffdc7c293baa0411c580f0defe6dfcf27cfa84312d, for this disposable qualification only. Accept every listed limitation: separate human MFA Discovery and independent automation identity; no production or managed MFA claim; host isolation and named-role enforcement NOT_ATTESTED; earlier authentication interruption retains unresolved exact guard attribution. Preserve all three runs, distinct consumed consents, two full-report revision loops and assertion-only correction. Temporary callback, credential and public fixture access are already removed. C2.7.3 remains pending and GC2 not_evaluated."
+    },
+    "schemaVersion": "appraise.quality-journey/v1",
+    "unresolvedItems": [
+      {
+        "artifactRefs": [
+          {
+            "artifactId": "c272-auth-report-5",
+            "contentHash": "sha256:4fb64bfc01d5b5a8877932ffdc7c293baa0411c580f0defe6dfcf27cfa84312d",
+            "kind": "TEST_REPORT_ANALYSIS_REVISION",
+            "revisionId": "c272-auth-report-5"
+          }
+        ],
+        "itemId": "qjci_2a643c0285db7080caf0d26d76673983478830eefbb3a596124e3fb4e8929076",
+        "summary": "Evidence qualifies only the disposable protected fixture within this bounded window; no production authentication claim."
+      },
+      {
+        "artifactRefs": [
+          {
+            "artifactId": "c272-auth-report-5",
+            "contentHash": "sha256:4fb64bfc01d5b5a8877932ffdc7c293baa0411c580f0defe6dfcf27cfa84312d",
+            "kind": "TEST_REPORT_ANALYSIS_REVISION",
+            "revisionId": "c272-auth-report-5"
+          }
+        ],
+        "itemId": "qjci_38685bc205c52c02071261e7bc6bbaf0c5aed9605f53b2bdff62b81cb6a548ff",
+        "summary": "External assignment host isolation and named-role runtime enforcement are NOT_ATTESTED."
+      },
+      {
+        "artifactRefs": [
+          {
+            "artifactId": "c272-auth-report-5",
+            "contentHash": "sha256:4fb64bfc01d5b5a8877932ffdc7c293baa0411c580f0defe6dfcf27cfa84312d",
+            "kind": "TEST_REPORT_ANALYSIS_REVISION",
+            "revisionId": "c272-auth-report-5"
+          }
+        ],
+        "itemId": "qjci_b3ff4122bb130ec077d6e63bfc1ffdf731a8f373271b20605f81649a19450fcb",
+        "summary": "Human Auth0/MFA Discovery and managed automation identity are separate; no Discovery cookie/storage transfer or managed MFA claim."
+      },
+      {
+        "artifactRefs": [
+          {
+            "artifactId": "c272-auth-report-5",
+            "contentHash": "sha256:4fb64bfc01d5b5a8877932ffdc7c293baa0411c580f0defe6dfcf27cfa84312d",
+            "kind": "TEST_REPORT_ANALYSIS_REVISION",
+            "revisionId": "c272-auth-report-5"
+          }
+        ],
+        "itemId": "qjci_f6007326ece19d02c33d1c6e675ddbe4abe91d67bb47f253bccc41f565ae9845",
+        "summary": "Earlier authentication interruption retains unresolved exact guard attribution; it is preserved and excluded from the passing-run claim."
+      }
+    ],
+    "contentHash": "sha256:339dc69d70ef5ec8114a9eb7169e515d002a38783c476b3325cccfb25f8162d0"
+  },
+  "approvalLink": {
+    "id": "qjc_cf9edcd261aa83ea00d25ae9",
+    "journeyId": "qjy_1c2ff25f-70b1-41ca-8be4-1d4eb8a29d28",
+    "targetProjectId": "76f1c928-b478-4347-83be-eccb7ff43026",
+    "cycleId": "qjt_2194391454d1577da4a87ce9",
+    "relation": "APPROVES",
+    "linkHash": "sha256:7656424a75021b4073e467bd05b29fdb8f5b8698a4deaedd87cfadcbd1985837",
+    "createdAt": "2026-10-02T12:32:01.645Z",
+    "source": {
+      "artifactId": "qjc_a7f674799c59ddc8bcaa968e",
+      "contentHash": "sha256:339dc69d70ef5ec8114a9eb7169e515d002a38783c476b3325cccfb25f8162d0",
+      "kind": "JOURNEY_CLOSURE"
+    },
+    "target": {
+      "artifactId": "c272-auth-report-5",
+      "contentHash": "sha256:4fb64bfc01d5b5a8877932ffdc7c293baa0411c580f0defe6dfcf27cfa84312d",
+      "kind": "TEST_REPORT_ANALYSIS_REVISION",
+      "revisionId": "c272-auth-report-5"
+    }
+  },
+  "event": {
+    "id": "qje_95822a7a4773573d06155162",
+    "journeyId": "qjy_1c2ff25f-70b1-41ca-8be4-1d4eb8a29d28",
+    "targetProjectId": "76f1c928-b478-4347-83be-eccb7ff43026",
+    "sequence": 33,
+    "eventType": "COMMAND_RISK_ACCEPT_AND_CLOSE",
+    "commandId": "qjc_1d3c34f37513cf3d0775e5fb",
+    "predecessorStateHash": "sha256:f6821bfaa65c73b3907a6c82555433cf1a06a7c1032e451c63a58a73620c9e81",
+    "successorStateHash": "sha256:66da6c031dce478d91be03842120aaaa83f2ab62dd394273768b58b9bfc0cc33",
+    "payloadJson": "{\"actor\":\"USER\",\"command\":\"RISK_ACCEPT_AND_CLOSE\",\"commandId\":\"qjc_1d3c34f37513cf3d0775e5fb\",\"eventId\":\"qje_95822a7a4773573d06155162\",\"idempotencyKey\":\"closure:2ec9cded-438b-47d2-a018-f5e233df14d0\",\"journeyId\":\"qjy_1c2ff25f-70b1-41ca-8be4-1d4eb8a29d28\",\"predecessorStage\":\"REPORT_REVIEW\",\"predecessorStateHash\":\"sha256:f6821bfaa65c73b3907a6c82555433cf1a06a7c1032e451c63a58a73620c9e81\",\"sequence\":21,\"successorStage\":\"CLOSED\",\"successorStateHash\":\"sha256:66da6c031dce478d91be03842120aaaa83f2ab62dd394273768b58b9bfc0cc33\",\"targetProjectId\":\"76f1c928-b478-4347-83be-eccb7ff43026\"}",
+    "createdAt": "2026-10-02T12:32:01.649Z"
+  },
+  "exportContentHash": "sha256:25ed1648b6f9a03224f1eaf1629b2ff2ee7b29a2bbb6fcdfd3704f023083046b",
+  "authorization": "Direct user instruction to open and finish the previously identified exact report; recorded through Appraise UI risk acceptance, not direct database mutation.",
+  "closedLocalTime": "2026-10-02 18:32:01 Asia/Dhaka",
+  "limits": "Disposable target only; independent automation identity distinct from human MFA; host isolation NOT_ATTESTED; first interruption exact guard cause unresolved."
+}

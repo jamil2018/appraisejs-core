@@ -16,6 +16,7 @@ import {
 } from '@/services/coordinator/quality-journey-execution-service'
 import { ServiceError } from '@/services/shared/errors'
 import { resolveTargetProject } from '@/services/target-project/target-project-service'
+import type { CoordinatorSessionCredentials } from '@/services/coordinator/quality-journey-coordinator-session'
 
 const envelope = z.object({ target: z.string().min(1) }).passthrough()
 const operations = {
@@ -35,6 +36,7 @@ function matches(operation: string[]) {
 export async function postQualityJourneyExecutionRoute(
   operation: string[],
   body: unknown,
+  coordinatorSession?: CoordinatorSessionCredentials,
 ): Promise<Response | undefined> {
   if (!matches(operation)) return undefined
   const action = operations[operation[4] as keyof typeof operations]
@@ -44,7 +46,7 @@ export async function postQualityJourneyExecutionRoute(
     throw new ServiceError('Execution scope and authority are resolved by Appraise.', 'UNAUTHORIZED')
   const resolved = await resolveTargetProject(target)
   const request = action.schema.parse({ ...input, journeyId: operation[2]!, targetProjectId: resolved.id })
-  return Response.json(await action.run(request))
+  return Response.json(await action.run(request, undefined, coordinatorSession))
 }
 
 export async function getQualityJourneyExecutionRoute(

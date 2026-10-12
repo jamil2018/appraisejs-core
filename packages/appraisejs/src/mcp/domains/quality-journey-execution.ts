@@ -19,7 +19,11 @@ const ids = z
     'Identifiers must be unique and sorted.',
   )
 const scope = { target: z.string().min(1), journeyId: id }
-const command = { ...scope, expectedStateHash: hash, idempotencyKey: id }
+const coordinatorSession = {
+  coordinatorHandoffId: id.optional(),
+  coordinatorGeneration: z.number().int().positive().optional(),
+}
+const command = { ...scope, expectedStateHash: hash, idempotencyKey: id, ...coordinatorSession }
 const environment = {
   environmentId: id,
   browserEngine: z.enum(['CHROMIUM', 'FIREFOX', 'WEBKIT']).default('CHROMIUM'),
@@ -31,7 +35,7 @@ export const executionStartInput = z.object({ ...command, ...environment, prepar
 const executionCancelInput = z
   .object({ ...command, cycleId: id.optional(), testRunIds: ids.optional(), reason })
   .strict()
-const executionReconcileInput = z.object({ ...scope, cycleId: id, idempotencyKey: id }).strict()
+const executionReconcileInput = z.object({ ...scope, cycleId: id, idempotencyKey: id, ...coordinatorSession }).strict()
 const rerunProposalInput = z
   .object({
     ...scope,
@@ -40,6 +44,7 @@ const rerunProposalInput = z
     selectedScenarioRevisionIds: ids,
     reason,
     idempotencyKey: id,
+    ...coordinatorSession,
   })
   .strict()
 const rerunStartInput = z.object({ ...command, ...environment, proposalId: id }).strict()

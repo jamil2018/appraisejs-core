@@ -20,6 +20,13 @@ const taskClassAliases = Object.freeze({
 
 export const SUPPORTED_PROFILES = Object.freeze(profileDefaults())
 export const PROFILE_IDS = Object.freeze(Object.keys(SUPPORTED_PROFILES))
+const LEGACY_MODEL_DEFAULTS = Object.freeze({
+  investigator: 'gpt-5.6-luna',
+  executor: 'gpt-5.6-terra',
+  'executor-advanced': 'gpt-5.6-terra',
+  solver: 'gpt-5.6-sol',
+  judge: 'gpt-5.6-sol',
+})
 
 const requiredSignalKeys = [
   'missingEvidence',
@@ -93,7 +100,13 @@ function validateRuntimeProof(runtimeProof, label) {
     )
     if (claim.status === 'verified') {
       assert(
-        validHostEffectiveReceipt(property, claim.receipt, runtimeProof.profile, runtimeProof.selection),
+        validHostEffectiveReceipt(
+          property,
+          claim.receipt,
+          runtimeProof.profile,
+          runtimeProof.selection,
+          runtimeProof.schemaVersion,
+        ),
         `${label}.runtimeProof.claims.${property}: verified status requires a matching host-effective receipt`,
       )
     } else {
@@ -112,7 +125,7 @@ function validateRuntimeProof(runtimeProof, label) {
   assert(runtimeProof.status === expectedStatus, `${label}.runtimeProof.status: inconsistent with property claims`)
 }
 
-function validHostEffectiveReceipt(property, receipt, profile, selection) {
+function validHostEffectiveReceipt(property, receipt, profile, selection, schemaVersion) {
   if (!nonBlank(receipt)) return false
   if (property === 'context')
     return isEffectiveIndependentJudgeContext(SUPPORTED_PROFILES[profile].contextBoundary, receipt)
@@ -121,7 +134,8 @@ function validHostEffectiveReceipt(property, receipt, profile, selection) {
     property === 'reasoning'
       ? (effective?.effort ?? SUPPORTED_PROFILES[profile].effort)
       : property === 'model'
-        ? (effective?.model ?? SUPPORTED_PROFILES[profile].model)
+        ? (effective?.model ??
+          (schemaVersion === 1 && !selection ? LEGACY_MODEL_DEFAULTS[profile] : SUPPORTED_PROFILES[profile].model))
         : SUPPORTED_PROFILES[profile][property]
   const value = expected == null ? '[^;\\s]+' : escapeRegExp(expected)
   return new RegExp(`^host-effective-${property}:${value}(?:;.+)?$`).test(receipt)
@@ -181,7 +195,15 @@ export function validateRoutingDecision(decision, label = 'routing decision') {
   assert(decision.linkedRunId == null, `${label}.linkedRunId: routing receipts cannot link future runs`)
   validateSignals(decision.signals, label)
   if (decision.selection !== undefined) validateRecordedSelection(decision.selection, decision.profile)
-  validateRuntimeProof({ ...decision.runtimeProof, profile: decision.profile, selection: decision.selection }, label)
+  validateRuntimeProof(
+    {
+      ...decision.runtimeProof,
+      profile: decision.profile,
+      selection: decision.selection,
+      schemaVersion: decision.schemaVersion,
+    },
+    label,
+  )
 
   if (materialRisk(decision.signals) || (decision.consequence === 'high' && decision.verificationStrength === 'weak')) {
     assert(

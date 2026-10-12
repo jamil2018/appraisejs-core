@@ -80,6 +80,29 @@ describe('AnalysisReviewControls', () => {
     expect(screen.getByRole('button', { name: 'Approve this version' })).toBeDisabled()
     expect(screen.getByText(/Answer 1 required question/i)).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /publish/i })).not.toBeInTheDocument()
+    expect(screen.getByRole('status', { name: 'Analysis artifact status' })).toHaveTextContent('Recorded by Appraise')
+    expect(screen.getByRole('status', { name: 'Analysis artifact status' })).toHaveTextContent('Published for review')
+    expect(screen.getByRole('status', { name: 'Analysis artifact status' })).toHaveTextContent('Not approved')
+    expect(screen.getByText(/does not publish or approve it/i)).toBeInTheDocument()
+  })
+
+  it('reports human acceptance separately from recording and publication', () => {
+    render(
+      <AnalysisReviewControls
+        analysis={{ ...analysis, decision: { decision: 'APPROVED', reviewHash: digest('b'), createdAt: new Date() } }}
+        analysisReviewHash={digest('b')}
+        answerable={false}
+        journeyId="journey-1"
+        stage="DISCOVERY"
+        stateHash={digest('c')}
+        unresolvedQuestionIds={[]}
+      />,
+    )
+
+    const status = screen.getByRole('status', { name: 'Analysis artifact status' })
+    expect(status).toHaveTextContent('Recorded by Appraise')
+    expect(status).toHaveTextContent('Published for review')
+    expect(status).toHaveTextContent('Approved in Appraise')
   })
 
   it('records a correction against the latest answer and requests a revision with the current review hash', async () => {

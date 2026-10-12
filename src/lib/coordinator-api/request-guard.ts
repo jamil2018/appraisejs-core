@@ -9,13 +9,15 @@ const COORDINATOR_MAX_REQUEST_BYTES = 1_048_576
 
 const LOOPBACK_HOSTS = new Set(['localhost', '127.0.0.1', '[::1]', '::1'])
 
-class CoordinatorProjectMismatchError extends Error {
+class CoordinatorProjectMismatchError extends ServiceError {
   constructor(
     readonly requestedFingerprint: string,
     readonly serverFingerprint: string,
     readonly serverProjectPath: string,
   ) {
-    super('Coordinator is bound to a different project.')
+    super('Coordinator credentials are not valid for this project.', 'CONFLICT', 409, {
+      boundary: 'project_identity',
+    })
     this.name = 'CoordinatorProjectMismatchError'
   }
 }
@@ -37,9 +39,10 @@ async function readCoordinatorToken(canonicalProjectPath: string, projectFingerp
   try {
     const value = JSON.parse(await fs.readFile(credentialPath, 'utf8')) as unknown
     if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('Credential must be an object.')
-    const credential = value as { projectFingerprint?: unknown; token?: unknown }
+    const credential = value as { projectFingerprint?: unknown; token?: unknown; disabled?: unknown }
     if (
       credential.projectFingerprint !== projectFingerprint ||
+      credential.disabled === true ||
       typeof credential.token !== 'string' ||
       !credential.token
     )
