@@ -1,5 +1,6 @@
 """No-model RPC-only MCP cancellation observations; no permission grants or native exec."""
 
+import argparse
 import importlib.util
 import json
 import pathlib
@@ -13,6 +14,15 @@ spec = importlib.util.spec_from_file_location("native", path)
 native = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(native)
 MODES = ["form", "url", "openai/form", "openaiForm"]
+FIXTURE_POLICY = {
+    "granular": {
+        "mcp_elicitations": True,
+        "sandbox_approval": False,
+        "rules": False,
+        "request_permissions": False,
+        "skill_approval": False,
+    }
+}
 STUB = r"""
 import json,sys
 pending=None
@@ -46,7 +56,7 @@ for line in sys.stdin:
 """
 
 
-def run():
+def run(cancellation_exception=False):
     native.preflight()
     root = pathlib.Path(
         tempfile.mkdtemp(prefix="appraise-m01-variants-", dir="/private/tmp")
@@ -72,6 +82,11 @@ args=[{json.dumps(str(stub))}]
 required=true
 """
     )
+    if cancellation_exception:
+        config = config.replace(
+            'approval_policy="never"',
+            "approval_policy={granular={mcp_elicitations=true,sandbox_approval=false,rules=false,request_permissions=false,skill_approval=false}}",
+        )
     (root / "codex/config.toml").write_text(config)
     report = {
         "evidenceClass": "actual-binary-rpc-only-no-model-request-variants",
@@ -88,6 +103,13 @@ required=true
         "permissionGrants": 0,
         "nativeExecCalls": 0,
         "m01Complete": False,
+        "fixturePolicyException": cancellation_exception,
+        "approvalPolicy": FIXTURE_POLICY if cancellation_exception else "never",
+        "fixtureExceptionDocumentSha256": native.digest(
+            (native.TASK / "m01-fixture-policy-exception.md").read_bytes()
+        )
+        if cancellation_exception
+        else None,
     }
     schemas = root / "schemas"
     subprocess.run(
@@ -116,6 +138,11 @@ required=true
                 mode = frame["params"].get("mode")
                 if mode not in MODES:
                     raise RuntimeError("unplanned elicitation mode; park")
+                if (
+                    frame["params"].get("threadId") != self.thread_id
+                    or frame["params"].get("serverName") != "m01_variants"
+                ):
+                    raise RuntimeError("foreign elicitation binding; park")
                 report["requests"].append(
                     {
                         "id": frame["id"],
@@ -123,6 +150,9 @@ required=true
                         "mode": mode,
                         "action": "cancel",
                         "content": None,
+                        "threadId": frame["params"].get("threadId"),
+                        "turnId": frame["params"].get("turnId"),
+                        "serverName": frame["params"].get("serverName"),
                     }
                 )
                 self.process.stdin.write(
@@ -151,7 +181,14 @@ required=true
             "initialize",
             {
                 "clientInfo": {"name": "appraise_m01_variants", "version": "0.1"},
-                "capabilities": {"experimentalApi": False},
+                "capabilities": {
+                    "experimentalApi": False,
+                    **(
+                        {"extensions": {"openai/form": {}}}
+                        if cancellation_exception
+                        else {}
+                    ),
+                },
             },
         )
         assert init["codexHome"] == str(root / "codex")
@@ -174,7 +211,12 @@ required=true
             .encode()
         )
         start = connection.rpc(
-            "thread/start", {**native.shared(root), "modelProvider": "m01_offline"}
+            "thread/start",
+            {
+                **native.shared(root),
+                "modelProvider": "m01_offline",
+                "approvalPolicy": FIXTURE_POLICY if cancellation_exception else "never",
+            },
         )
         connection.thread_id = start["thread"]["id"]
         report["threadId"] = connection.thread_id
@@ -224,4 +266,7 @@ required=true
 
 
 if __name__ == "__main__":
-    run()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--cancellation-exception", action="store_true")
+    args = parser.parse_args()
+    run(args.cancellation_exception)
