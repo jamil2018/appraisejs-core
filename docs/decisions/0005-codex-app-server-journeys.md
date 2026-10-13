@@ -1,6 +1,6 @@
 # ADR-0005: Run Codex app-server behind AppraiseJS Journeys
 
-Status: accepted direction; M00-r3 detailed design contract explicitly approved; M00 complete; M01 preparation started and partial; native-provider qualification outstanding; M02+ not started.
+Status: accepted direction; M00-r3 detailed design contract explicitly approved and byte-frozen; authentication amendment recorded; M00 complete; M01 partial with native smoke observed and request variants outstanding; M02+ not started.
 Date: 2026-10-13. Authority: user explicitly retired the old plan in favor of the Codex CLI-driven mechanism.
 Supersedes: [ADR-0004](0004-stock-codex-journey-handoff.md).
 
@@ -34,3 +34,18 @@ and distinguishes synthetic tests, actual-binary local-SSE observations and unve
 M01 remains partial; [remaining native-provider probe](../../tasks/codex-app-server-journeys/m01-remaining-probe.md)
 requires separate explicit sign-in/inference approval. The approved M00 contract stays byte-frozen; no product
 mode, schema, UI, historical lifecycle record, GC3 verdict or later gate changed.
+
+## Authentication amendment and native observation — 2026-10-14
+
+The user authorized [authentication amendment 01](../../tasks/codex-app-server-journeys/m00-auth-amendment-01.md):
+reuse the existing Codex login and error if absent, without Appraise-managed sign-in. Codex owns
+credentials and native refresh. This supersedes the new-isolated-login choice, while preserving the
+approved M00-r3 bytes and all other authority/containment requirements. The M01 fixture references only
+the existing file login; its configuration/workspace/history remain disposable. Product integration and
+worker credential isolation remain unimplemented/unqualified, not inferred from cached authentication.
+
+[Native evidence](../../tasks/codex-app-server-journeys/m01-native-results.md) records exactly three
+authorized starts: completion/persistence, active interruption and withheld-ack UNKNOWN reconciliation
+without resend. The grant is exhausted. M01 remains partial for actual elicitation/permission request
+variants; a no-model MCP tool-catalog/provider-manifest mismatch is retained as negative evidence.
+No M02+, UI, schema, release, push or merge occurred. GC3 remains REVISE / not passed.

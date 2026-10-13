@@ -49,3 +49,10 @@ Initial route `571714fb-9a09-4e56-84ce-50d7761e2905` was coordinator-only. The b
 lane uses investigator receipt `b2bae11f-7412-475a-86be-cf531fd345a4`; that receipt was recorded immediately
 after dispatch rather than before, an ordering anomaly. Requested/runtime role/model/sandbox proof remains
 unverified without host receipts. No policy change or gate advancement follows.
+
+The investigator confirmed MCP catalog registration; an explicit synthetic prompt comparison still
+advertised no tools. Prompt specificity alone is not the cause. Keep the exact negative comparison
+and native results independent; additional probing stops without a grounded safe correction. A broad
+investigator search accidentally surfaced synthetic session metadata/prompt before it was stopped;
+no credential or model output was read/persisted. Prefer explicit named metadata files over directory
+searches in native provider state. Advisory only; no harness policy change or unsupported gate closure.

@@ -9,6 +9,13 @@ An earlier event-ledger defect is retained separately. No auth or external infer
 the steps below as the still-open qualification plan; investigate the manifest/config/protocol gap
 before another start and do not label this attempted fixture a passing cancellation test.
 
+Final comparison: an explicit synthetic prompt naming `m01_fixture.elicit`, with a pre-turn
+`mcpServerStatus/list` confirming the catalogued tool, still produced tools=[] and no elicitation.
+[Comparison evidence](m01/mcp-explicit-prompt-observation.json). Thus the generic prompt alone does
+not explain the missing tool advertisement. No feature flags or permission boundaries were changed;
+external inference remains zero for these local-only fixtures. Stop additional fixture starts until
+configuration/tool-exposure evidence establishes a safe correction. The cause is still unverified.
+
 The three-turn [native observation](m01-native-results.md) emitted no elicitation or permission requests.
 Generic request rejection and the actual experimental dynamic-tool request are already covered;
 they do not establish native behavior for these distinct methods in the pinned ServerRequest schema:

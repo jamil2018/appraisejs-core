@@ -26,6 +26,9 @@ is historical; its old default-login restriction is superseded by the amendment.
 Native state is retained at `/private/tmp/appraise-m01-native-l1mt4sms`; do not erase its history,
 reset consumed budgets, redispatch or signal stored PIDs. This current handoff belongs to local commit
 `test: record M01 native results and open request-variant gap` (find by exact title in git log).
+The final local-only comparison is `test: preserve M01 MCP tool-exposure comparison`: a catalogued
+elicit tool remained absent from the provider manifest even with an explicit synthetic tool prompt.
+Stop further fixture starts until a safe, evidence-backed tool-exposure correction is established.
 
 **M00 complete; M01 started and partial, not complete.**
 Approved contract SHA-256: `1e39e733d5211db80705a1c34235d24580db618a9f505e7a16dc163398568133`.

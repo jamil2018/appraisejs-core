@@ -87,6 +87,14 @@ no model output or credential was read or persisted. Requested/runtime profile e
 unverified; no independent qualification verdict follows. The next comparison can explicitly name
 the harmless stub in a scripted local-only prompt, without changing features or external inference.
 
+That targeted comparison was subsequently run in a fresh no-auth fixture. Pre-turn status catalogued
+elicit, but the explicit prompt still advertised tools=[]; no elicitation was emitted and the owned
+child exited 0. [Exact comparison](m01/mcp-explicit-prompt-observation.json). The generic prompt alone
+does not explain the result. All three no-model attempts remain separate from the three consumed
+native inference turns. Further fixture starts are stopped pending evidence for a safe correction;
+no feature or permission grant was broadened. The final comparison/handoff is committed separately
+as `test: preserve M01 MCP tool-exposure comparison`.
+
 Same-branch next action: investigate the absent tool manifest in the bounded no-model request-variant
 fixture before another start, record actual pinned host replies where safely feasible, then assess M01's remaining acceptance. **No further inference is authorized by the
 exhausted three-turn grant.** Keep M02+, UI, schema and release unstarted; GC3 REVISE / not passed.

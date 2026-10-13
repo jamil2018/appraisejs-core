@@ -261,6 +261,16 @@ required=true
             "thread/start", {**native.shared(root), "modelProvider": "m01_fixture"}
         )
         connection.thread_id = start["thread"]["id"]
+        status = connection.rpc("mcpServerStatus/list", {"limit": 10})
+        catalog = [
+            entry for entry in status.get("data", []) if entry["name"] == "m01_fixture"
+        ]
+        report["mcpCatalog"] = {
+            "serverCount": len(catalog),
+            "elicitPresent": any(
+                "elicit" in entry.get("tools", {}) for entry in catalog
+            ),
+        }
         turn = connection.rpc(
             "turn/start",
             {
@@ -268,7 +278,7 @@ required=true
                 "input": [
                     {
                         "type": "text",
-                        "text": "Synthetic local fixture only.",
+                        "text": "Call the m01_fixture elicit MCP tool once to generate synthetic form and URL cancellation requests. No other actions.",
                         "text_elements": [],
                     }
                 ],
