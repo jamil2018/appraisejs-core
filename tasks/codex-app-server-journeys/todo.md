@@ -1,20 +1,20 @@
 # Codex app-server Journey migration tasks
 
-Status: active replacement roadmap adopted 2026-10-13; D01–D05 choices agreed; M00-r3 independently reviewed; exact artifact approval pending. M01–M13 remain unstarted. See [plan](plan.md). Existing Journey gates remain unchanged.
+Status: active replacement roadmap adopted 2026-10-13; M00-r3 explicitly approved at f506fccb and its exact SHA-256; M00 complete as a design-contract slice. M01–M13 remain unstarted. See [plan](plan.md). Existing Journey gates remain unchanged.
 
 ## Implementation references
 
-Use the [Open Design reading map and adaptation rules](open-design-reference.md), pinned to the reviewed upstream revision. Read its relevant source/tests before each mapped slice; keep upstream observations separate from Appraise verification. M00 evidence is linked below; its approval checkbox remains open. All later tasks remain unstarted.
+Use the [Open Design reading map and adaptation rules](open-design-reference.md), pinned to the reviewed upstream revision. Read its relevant source/tests before each mapped slice; keep upstream observations separate from Appraise verification. M00 evidence and exact user approval are linked below; M00 is complete. All later tasks remain unstarted.
 
 ## Ordered tasks
 
 ### M00: Approve the host and authority contract
 
-**Status (2026-10-13):** D01–D04 and D05 defaults agreed by the user; M00-r3 independently reviewed for documentation sufficiency; exact artifact approval pending. [Contract](m00-host-authority-contract.md) · [Review evidence](m00-review-evidence.md) · [Same-branch continuation](CONTINUE-HERE.md). No runtime qualification or later task started.
+**Status (2026-10-13):** M00 complete: exact M00-r3 contract approved by the user at f506fccb; [approval record](m00-r3-approval.md) binds the full commit and SHA-256. [Contract](m00-host-authority-contract.md) · [Review evidence](m00-review-evidence.md) · [Same-branch continuation](CONTINUE-HERE.md). No runtime qualification or later task started.
 
 **Reference:** [Open Design guide](open-design-reference.md). Architecture and permission differences; record the host/build feasibility candidate, later support-qualification policy and Appraise authority without adopting upstream defaults.
 
-- [ ] Implement and verify this slice.
+- [x] Prepare, independently review and obtain exact approval of the M00 design contract.
 
 **Dependencies:** None. **Estimated scope:** M; split further before implementation if the actual diff spans independent concerns.
 
@@ -212,6 +212,9 @@ During implementation use affected-file ESLint/Prettier and `npx vitest run <aff
 
 Schema, session, gateway and supervisor changes are sequential shared contracts. After these settle, role-specific tests and UI presentation work can run independently with explicit ownership. No worker may revert unrelated work.
 
-## First implementation handoff
+## Current checkpoint handoff
 
-> Review `tasks/codex-app-server-journeys/plan.md` and `todo.md`, ADR-0005, `open-design-reference.md`, the historical coordinator evidence and current worktree. Start only M00: propose the host-neutral authority/EXTERNAL_V1 mapping and version/auth/containment contract. Preserve lifecycle history and current gate status. Do not start live authentication, provider runs, product migration or release work.
+> M00-r3 is explicitly approved at f506fccb and the exact hash in m00-r3-approval.md. Read CONTINUE-HERE.md and
+> the approval record before continuation; preserve the byte-frozen contract and all historical evidence/GC3 REVISE.
+> M01 is dependency-ready but remains unstarted until a separate bounded user instruction. Do not start live
+> authentication, provider runs, product migration, UI or release work. Local commits only with hooks; no push.

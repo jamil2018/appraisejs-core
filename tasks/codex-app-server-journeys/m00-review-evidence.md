@@ -1,6 +1,6 @@
 # M00 source and authority-boundary review evidence
 
-Date: 2026-10-13. Current contract: [M00-r3](m00-host-authority-contract.md). Exact artifact approval: pending. Historical M00-r1/r2 evidence is retained below.
+Date: 2026-10-13. Current contract: [M00-r3](m00-host-authority-contract.md). Exact artifact approval: recorded in [M00-r3 approval](m00-r3-approval.md). Historical M00-r1/r2 evidence is retained below.
 
 ## Branch preparation and source review
 
@@ -128,3 +128,12 @@ Harness evolution: one bounded judge lane, no concurrent writes or duplicated so
 passed. Judge found a temporal edge case that formatting/link checks cannot prove. Corrected exact artifact was
 independently re-evaluated. Retain this advisory lesson without changing harness policy. No final healthy scorecard
 is fabricated without effective-context receipts required by the local journal.
+
+## Exact user approval recorded — 2026-10-13
+
+The user explicitly approved M00-r3 at commit `f506fccb2f910641d7a943bec440088512f0d714` and SHA-256
+`1e39e733d5211db80705a1c34235d24580db618a9f505e7a16dc163398568133`. The coordinator verified the Git-stored bytes and left the contract unchanged.
+[M00-r3 approval record](m00-r3-approval.md) preserves the exact instruction and scope. Earlier pending-approval
+statements above are historical review evidence. M00 is complete as an approved design contract; M01 remains
+unstarted pending a separate bounded user instruction. No runtime qualification, authentication, provider/schema/UI
+work or external publication was performed. Only approval/task/handoff documentation is changed in this slice.

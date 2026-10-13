@@ -1,16 +1,16 @@
 # Codex app-server behind AppraiseJS: Journey migration plan
 
-Date: 2026-10-12. Direction adopted 2026-10-13. Status: active replacement roadmap under [ADR-0005](../../docs/decisions/0005-codex-app-server-journeys.md); M00-r3 records agreed D01–D05 choices; exact artifact approval pending; runtime qualification and M01–M13 not started.
+Date: 2026-10-12. Direction adopted 2026-10-13. Status: active replacement roadmap under [ADR-0005](../../docs/decisions/0005-codex-app-server-journeys.md); M00-r3 design contract explicitly approved; M00 complete; runtime qualification and M01–M13 not started.
 
 Shared implementation branch: `codex/journey-app-server-migration`, created from fetched `origin/appraise-0.5` at `8d4be5c8`. Use it for M00–M13 and U00–U10 across sessions; branch scope is not task-start authority. Local cohesive commits are authorized with hooks; push, merge and publication require separate instruction.
 
-M00 now has a [proposed detailed contract](m00-host-authority-contract.md), [source/review evidence](m00-review-evidence.md) and [continuation handoff](CONTINUE-HERE.md). Detailed scope remains proposed until exact approval.
+M00 now has an [approved, byte-frozen detailed contract](m00-host-authority-contract.md), [source/review evidence](m00-review-evidence.md) and [continuation handoff](CONTINUE-HERE.md). The [exact approval record](m00-r3-approval.md) binds f506fccb and the full contract hash; runtime qualification remains outstanding. M01 requires separate instruction.
 
 ## Scope and authority
 
 Keep users in AppraiseJS for briefs, questions, reviews, consent, progress, recovery and results. Run Codex as a supervised local backend using MCP. There is no chat composer, transcript product, manual prompt handoff, or requirement to open Codex desktop in the normal flow. Native provider sign-in and target-site login may still require a browser; no-chat does not mean unattended authentication.
 
-This document and [task list](todo.md) supersede the stock Codex desktop/plugin roadmap and ADR-0004 for future Journey work by user decision on 2026-10-13. Codex CLI's `codex app-server` supplies the supervised backend; AppraiseJS owns the UI and MCP-mediated lifecycle. Existing `tasks/plan.md` and `tasks/todo.md` cover unrelated work and are preserved. The retired coordinator [register](../../codex/development%20plan/appraise-0.5/product%20direction/managed-quality-journey-coordinator/TASK_REGISTER.md) is historical evidence only, not an active continuation queue. Its GC2 pass and unfinished C3.3 / GC3 REVISE result retain their original meaning; section 3 remained incomplete, section 4 unstarted and authentication closed at retirement. No old gate becomes an app-server pass. Selecting this direction does not authorize live Journeys or start implementation; M00 still settles the concrete host and authority contract.
+This document and [task list](todo.md) supersede the stock Codex desktop/plugin roadmap and ADR-0004 for future Journey work by user decision on 2026-10-13. Codex CLI's `codex app-server` supplies the supervised backend; AppraiseJS owns the UI and MCP-mediated lifecycle. Existing `tasks/plan.md` and `tasks/todo.md` cover unrelated work and are preserved. The retired coordinator [register](../../codex/development%20plan/appraise-0.5/product%20direction/managed-quality-journey-coordinator/TASK_REGISTER.md) is historical evidence only, not an active continuation queue. Its GC2 pass and unfinished C3.3 / GC3 REVISE result retain their original meaning; section 3 remained incomplete, section 4 unstarted and authentication closed at retirement. No old gate becomes an app-server pass. Selecting this direction does not authorize live Journeys or start implementation; M00-r3 now settles the approved design contract; runtime qualification and later implementation require separate instruction.
 
 Review includes current dirty handoff/UI and qualification work, which this planning task does not modify. No production process, authentication, MCP mutation, database migration, commit or publication is part of this review.
 
@@ -97,7 +97,7 @@ Current official [App Server documentation](https://learn.chatgpt.com/docs/app-s
 
 ## Rollout and rollback
 
-1. Follow adopted ADR-0005 and this task track; settle M00’s detailed host and authority contract before implementation. Retain ADR-0004 and archived evidence as historical decisions. Do not reopen or close GC3 implicitly.
+1. Follow adopted ADR-0005 and this task track; use the exactly approved M00-r3 host and authority contract before separately authorized implementation. Retain ADR-0004 and archived evidence as historical decisions. Do not reopen or close GC3 implicitly.
 2. Prove the isolated runtime and scoped MCP composition on disposable data; M02 results are provisional until M03 mandatory-session re-probes pass; no production Journey or temporary authentication by implication.
 3. Prove Analysis and structured clarification on disposable/internal Journeys, then remaining roles and test/report flows. M06–M07 are internal proof only. Any user-facing opt-in requires M11 core recovery and its crash matrix, plus applicable containment and installation checks; a feature flag is not a recovery exemption.
 4. Qualify recovery and installed packaging before making the mode default. Existing desktop Journeys continue under their existing bindings.
@@ -114,7 +114,7 @@ Release requires all six roles, structured question/revision loops, scenario dec
 
 ## Review limitations and next decision
 
-No live model call, sign-in, containment probe, billing verification or recovery experiment was run for this plan. Current implementation evidence supports reuse of domain services, not drop-in reuse of managed Factory attestations. The first implementation checkpoint must settle supported OS/version, provider auth, effective tool/process restrictions and the external-admission mapping before a schedule is committed. The next eligible proposed task is M00 (architecture/authority contract), followed by M01–M02 feasibility; M00 documentation has now started; no later task is authorized by this document.
+No live model call, sign-in, containment probe, billing verification or recovery experiment was run for this plan. Current implementation evidence supports reuse of domain services, not drop-in reuse of managed Factory attestations. M00-r3 has settled the approved design contract, with the exact artifact and scope in [its approval record](m00-r3-approval.md). M01 is the next dependency-ready task but remains unstarted and unauthorized until a separate bounded user instruction. Later feasibility must qualify the exact OS/build, provider auth and effective boundaries; no runtime schedule or support claim follows from design acceptance.
 
 ## Companion UI planning update — 2026-10-12
 
