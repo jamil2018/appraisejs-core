@@ -1,5 +1,10 @@
 # M01 remaining request-variant qualification
 
+**Latest no-model result (2026-10-14):** [request-variant results](m01-request-variant-results.md)
+now capture actual additional_tools and native RPC-path decline of all four elicitation modes. Never
+policy prevents forwarding in the unchanged read-only setup. Client cancellation/permission producer
+paths remain unqualified; no external inference or broader permissions. M01 remains partial.
+
 **2026-10-14 correction:** [manifest investigation](m01-manifest-investigation.md) supersedes the
 empty-whole-manifest interpretation below. Prior `toolNames: []` inspected only top-level tools;
 Responses Lite uses an `additional_tools` input item, whose contents were not retained. Model metadata

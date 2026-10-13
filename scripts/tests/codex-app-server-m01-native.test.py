@@ -127,6 +127,32 @@ class NativeProbeGuards(unittest.TestCase):
         self.assertEqual(reply["id"], "fixture-request")
         self.assertEqual(reply["error"]["code"], -32601)
 
+    def test_schema_shaped_permission_request_never_receives_a_grant(self):
+        for request_id in [77, "fixture-permission"]:
+            with self.subTest(request_id=request_id):
+                connection = probe.Connection.__new__(probe.Connection)
+                connection.process = types.SimpleNamespace(stdin=io.BytesIO())
+                connection.drop_id = None
+                frame = {
+                    "id": request_id,
+                    "method": "item/permissions/requestApproval",
+                    "params": {
+                        "threadId": "fixture-thread",
+                        "turnId": "fixture-turn",
+                        "itemId": "fixture-item",
+                        "cwd": "/private/tmp/synthetic-workspace",
+                        "startedAtMs": 1,
+                        "permissions": {"network": {"enabled": True}},
+                        "reason": "Synthetic request only",
+                    },
+                }
+                with self.assertRaisesRegex(RuntimeError, "unexpected server request"):
+                    connection.frame(frame)
+                reply = json.loads(connection.process.stdin.getvalue())
+                self.assertEqual(reply["id"], request_id)
+                self.assertEqual(reply["error"]["code"], -32601)
+                self.assertNotIn("result", reply)
+
     def test_cached_terminal_is_not_lost_while_waiting_for_ack(self):
         connection = probe.Connection.__new__(probe.Connection)
         connection.frames = [

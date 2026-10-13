@@ -1,5 +1,10 @@
 # Codex app-server Journey migration tasks
 
+**Latest no-model result (2026-10-14):** [request-variant results](m01-request-variant-results.md)
+now capture actual additional_tools and native RPC-path decline of all four elicitation modes. Never
+policy prevents forwarding in the unchanged read-only setup. Client cancellation/permission producer
+paths remain unqualified; no external inference or broader permissions. M01 remains partial.
+
 Status: active replacement roadmap adopted 2026-10-13; M00-r3 explicitly approved at f506fccb and its exact SHA-256; M00 complete as a design-contract slice. M01 has authorized preparation/no-model evidence and remains partial; M02–M13 remain unstarted. See [plan](plan.md). Existing Journey gates remain unchanged.
 
 ## Implementation references

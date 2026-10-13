@@ -1,5 +1,10 @@
 # M01 catalog/manifest investigation — corrected interpretation
 
+**Latest no-model result (2026-10-14):** [request-variant results](m01-request-variant-results.md)
+now capture actual additional_tools and native RPC-path decline of all four elicitation modes. Never
+policy prevents forwarding in the unchanged read-only setup. Client cancellation/permission producer
+paths remain unqualified; no external inference or broader permissions. M01 remains partial.
+
 Date: 2026-10-14 (Asia/Dhaka). **M01 partial. No new thread/turn, inference or permission grant.**
 Intake: clean `7f644b2e` on `codex/journey-app-server-migration`; origin and other worktrees inspected
 without changing them. Latest instruction authorizes investigation only, with no more inference or

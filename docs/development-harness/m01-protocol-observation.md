@@ -71,3 +71,15 @@ coordinator edits and local binary/config inspection did not overlap its source 
 probe, permission toggle or policy change. Lesson: record manifest location/type as well as names;
 source-supported serialization explanations must not be relabelled as captured host request contents.
 Historical source/observations stay retained with the explicit correction attached.
+
+## Corrected host capture and RPC denial — 2026-10-14
+
+[Latest no-model results](../../tasks/codex-app-server-journeys/m01-request-variant-results.md) capture
+actual additional_tools metadata, then observe native decline for four elicitation modes using the
+stable MCP tool-call RPC with zero model turns or permission grants. The retained Never/read-only
+configuration rejects elicitation before client forwarding. No native exec or policy/capability
+exception was enabled. Thus native RPC denial is qualified, while client cancellation/permission
+producer paths remain unqualified and M01 partial. Source references are pinned separately; Rust tests
+were read rather than run. Lesson: distinguish producer, native policy and client response stages.
+Route `c4b8e952-f42b-45d0-9e4c-d22bde70ca61` preceded coordinator-only execution; no subagent overlap
+or effective-host proof claim. Advisory only, no harness policy or lifecycle gate change.

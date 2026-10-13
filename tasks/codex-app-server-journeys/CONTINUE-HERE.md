@@ -12,6 +12,13 @@ the observation commit and contains only generator output.
 
 ## Current checkpoint
 
+**Latest authorized no-model slice:** [manifest and RPC request-variant results](m01-request-variant-results.md).
+Actual `additional_tools` metadata is now captured. An independent RPC-only fixture observed native
+decline for form, URL and both OpenAI-form modes, with zero model turns or permission grants. Never
+policy prevented client-request forwarding; client cancellation and permission producer paths remain
+unqualified. M01 remains partial. No configuration or permission boundary was broadened.
+Latest local commit: find `test: record M01 manifest and native elicitation declines`.
+
 **Latest investigation:** [corrected manifest interpretation](m01-manifest-investigation.md). The fixture
 missed Responses Lite `input[].additional_tools` and assumed a direct MCP-call surface. Exact embedded
 model metadata matches immutable versioned source: CodeModeOnly/Responses Lite. Prior empty-whole-manifest
@@ -35,7 +42,8 @@ reset consumed budgets, redispatch or signal stored PIDs. This current handoff b
 `test: record M01 native results and open request-variant gap` (find by exact title in git log).
 The final local-only comparison is `test: preserve M01 MCP tool-exposure comparison`: a catalogued
 elicit tool remained absent from the provider manifest even with an explicit synthetic tool prompt.
-No further starts are authorized by the current instruction. The corrected parser does not qualify
+That investigation-only boundary was subsequently superseded for the authorized no-model slice above.
+No further starts are needed under the unchanged Never policy. The corrected parser does not qualify
 actual Code Mode/MCP availability or elicitation/permission denial.
 
 **M00 complete; M01 started and partial, not complete.**
@@ -80,7 +88,7 @@ push must explicitly name the feature ref rather than use the base-tracking defa
 
 ## Next bounded action and authority
 
-Inspect/reconcile the retained M01 evidence with the corrected Lite/CodeModeOnly interpretation.
+Inspect/reconcile m01-request-variant-results.md and the retained M01 evidence with the corrected Lite/CodeModeOnly interpretation.
 Continue source/schema/deterministic preparation only; no new fixture turn or provider request. Preserve independent records of synthetic tests, local scripted host observations and
 native inference. The [remaining plan](m01-request-variants-remaining.md) does not grant native tool effects,
 M02 work or another inference turn. Authentication remains check-only against the existing Codex login;
@@ -106,7 +114,9 @@ Copy-ready continuation:
 > m00-auth-amendment-01.md, m01-native-results.md, m01-request-variants-remaining.md and plan/todo.
 > M01 remains partial. Three native starts consumed; no further inference without a new explicit grant.
 > Existing login/check-only is authorized; no sign-in, account switch or ambient config import.
-> Read m01-manifest-investigation.md. Continue only source/schema/deterministic preparation under
+> Read m01-manifest-investigation.md and m01-request-variant-results.md. Native policy declined all four
+> elicitation modes without forwarding; client roundtrips/permission producer paths remain unqualified.
+> Continue only source/schema/deterministic preparation under
 > the latest no-more-inference/no-broader-permissions instruction; no new thread/turn/provider request. Do not weaken native-tool boundaries or start M02+. Preserve retained
 > native history and UNKNOWN provenance, approved M00 bytes and GC3 REVISE. No ambiguous start resend.
 > Local commits with hooks only; no push, merge or publish.

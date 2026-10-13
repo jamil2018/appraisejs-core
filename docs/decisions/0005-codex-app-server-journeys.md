@@ -58,3 +58,12 @@ items. The selected model's exact embedded metadata matches the immutable releas
 CodeModeOnly; local code_mode=false alone is not an effective tool-surface attestation. Prior whole-request
 tool-absence conclusions are superseded while their records remain intact. Parser regressions pass;
 no new thread/turn, inference or permission change occurred. M01 remains partial; M02+ unstarted.
+
+## M01 corrected no-model request-variant observation — 2026-10-14
+
+[Latest observations](../../tasks/codex-app-server-journeys/m01-request-variant-results.md) capture
+additional_tools from the pinned host and native RPC-path declines for standard form, URL and both
+OpenAI-form elicitation modes. No external inference, native exec or permission grant occurred. Never
+policy prevented client forwarding under unchanged read-only settings; client roundtrip cancellation
+and native permission-request production remain unqualified. M01 stays partial, M02+ unstarted, and
+approved M00/auth-amendment bytes plus GC3 REVISE remain preserved.
