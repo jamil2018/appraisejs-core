@@ -182,7 +182,7 @@ required=true
             {
                 "clientInfo": {"name": "appraise_m01_variants", "version": "0.1"},
                 "capabilities": {
-                    "experimentalApi": False,
+                    "experimentalApi": cancellation_exception,
                     **(
                         {"extensions": {"openai/form": {}}}
                         if cancellation_exception
