@@ -4,6 +4,11 @@ Date: 2026-10-13 (Asia/Dhaka). Status: **started, partial; native-provider quali
 M00 remains complete at f506fccb, with its approved contract bytes unchanged. No M02+, UI, schema,
 release, sign-in or external provider inference work was started. GC3 remains **REVISE / not passed**.
 
+Latest continuation (2026-10-14): [auth amendment](m00-auth-amendment-01.md) and
+[native results](m01-native-results.md) supersede the earlier pending native-auth authority/status below.
+Three native starts consumed, none resent; M01 remains partial for request variants. The dated no-model
+observations below remain unchanged in meaning and are historical.
+
 ## Shared-branch inspection
 
 Started clean at `5ad51897aa756a2e09add81c83f722e512f069d1` on `codex/journey-app-server-migration`.

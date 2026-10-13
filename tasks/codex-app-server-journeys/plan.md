@@ -8,7 +8,8 @@ M00 now has an [approved, byte-frozen detailed contract](m00-host-authority-cont
 
 Latest auth authority: [amendment 01](m00-auth-amendment-01.md) permits existing native login reuse,
 check-only failure and the bounded M01 probe; original M00 bytes remain unchanged. Prior checkpoints
-are historical. M02+ remains unstarted.
+are historical. [Native results](m01-native-results.md) record three consumed starts with persistence,
+interruption and no-resend UNKNOWN reconciliation. M01 remains partial for request variants; M02+ remains unstarted.
 
 ## Scope and authority
 

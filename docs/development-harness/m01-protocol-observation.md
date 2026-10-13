@@ -30,3 +30,22 @@ should distinguish custom-provider fields from built-in controls before launchin
 credential-store identity instead of equating installed binary presence with authenticated state. Record this
 lesson without modifying any harness permission, routing or quality policy. The native auth runner now has
 no login mode and fails closed on absent selected-state authentication. [Checkpoint evidence](../../tasks/codex-app-server-journeys/m01-native-provider-checkpoint.md).
+
+# 2026-10-14 existing-login native continuation
+
+User-authorized [auth amendment](../../tasks/codex-app-server-journeys/m00-auth-amendment-01.md)
+keeps the original M00 bytes frozen. Three native turns were consumed, with completion/persistence,
+interruption and UNKNOWN/no-resend reconciliation; [evidence](../../tasks/codex-app-server-journeys/m01-native-results.md)
+keeps M01 partial. The auth-only reference reuses native file login while preserving disposable configuration;
+desktop filesystem access and loopback fixtures required execution escalation. This is no containment proof.
+
+The follow-up no-model MCP fixture first lacked its events ledger, then observed an empty tool manifest.
+Neither is a request-variant pass. Investigate manifest/configuration facts before another turn; do not
+relax native effect boundaries or spend more inference to repair a local fixture. A test-style Ruff finding
+was fixed after the preparation commit, before the evidence commit; enabled hooks were never bypassed.
+These setup defects are advisory learning, not a reason to change harness routing or quality policy.
+
+Initial route `571714fb-9a09-4e56-84ce-50d7761e2905` was coordinator-only. The bounded later missing-fact
+lane uses investigator receipt `b2bae11f-7412-475a-86be-cf531fd345a4`; that receipt was recorded immediately
+after dispatch rather than before, an ordering anomaly. Requested/runtime role/model/sandbox proof remains
+unverified without host receipts. No policy change or gate advancement follows.

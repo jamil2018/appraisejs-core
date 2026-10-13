@@ -19,9 +19,11 @@ spec.loader.exec_module(probe)
 
 class NativeProbeGuards(unittest.TestCase):
     def test_missing_existing_login_fails_before_preparation(self):
-        with tempfile.TemporaryDirectory(dir="/private/tmp") as directory:
-            with self.assertRaisesRegex(RuntimeError, "AUTHENTICATION_REQUIRED"):
-                probe.prepare(pathlib.Path(directory))
+        with (
+            tempfile.TemporaryDirectory(dir="/private/tmp") as directory,
+            self.assertRaisesRegex(RuntimeError, "AUTHENTICATION_REQUIRED"),
+        ):
+            probe.prepare(pathlib.Path(directory))
 
     def test_changed_auth_link_is_rejected(self):
         with tempfile.TemporaryDirectory(
