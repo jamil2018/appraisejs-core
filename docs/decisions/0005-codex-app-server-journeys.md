@@ -1,6 +1,6 @@
 # ADR-0005: Run Codex app-server behind AppraiseJS Journeys
 
-Status: accepted direction; M00-r3 detailed design contract explicitly approved; M00 complete; runtime qualification and later implementation not started.
+Status: accepted direction; M00-r3 detailed design contract explicitly approved; M00 complete; M01 preparation started and partial; native-provider qualification outstanding; M02+ not started.
 Date: 2026-10-13. Authority: user explicitly retired the old plan in favor of the Codex CLI-driven mechanism.
 Supersedes: [ADR-0004](0004-stock-codex-journey-handoff.md).
 
@@ -25,3 +25,12 @@ This selects the direction, not a qualified runtime implementation. Approved M00
 ## M00 detailed contract approval — 2026-10-13
 
 The [M00 contract](../../tasks/codex-app-server-journeys/m00-host-authority-contract.md) defines the approved local-only exact-build feasibility candidate, opt-in host/admission mapping, mandatory first-session fencing, six-role external MCP boundaries and denied worker repository writes. [Evidence and independent review](../../tasks/codex-app-server-journeys/m00-review-evidence.md) are separate from approval and runtime qualification. The user agreed to D01–D04 and D05 defaults; M00-r3 records them with numerical operating/retention limits. The user explicitly approved M00-r3 at f506fccb and its exact SHA-256; [approval record](../../tasks/codex-app-server-journeys/m00-r3-approval.md). The approved contract remains byte-frozen with its submission-time status header; the approval record supplies current acceptance status. Runtime qualification remains outstanding. M01 and later work require another bounded instruction.
+
+## M01 preparation checkpoint — 2026-10-13
+
+A separate bounded instruction authorized synthetic fixtures and disposable no-model observations.
+[M01 evidence](../../tasks/codex-app-server-journeys/m01-evidence.md) pins the executable/OS/schema/config
+and distinguishes synthetic tests, actual-binary local-SSE observations and unverified native-provider properties.
+M01 remains partial; [remaining native-provider probe](../../tasks/codex-app-server-journeys/m01-remaining-probe.md)
+requires separate explicit sign-in/inference approval. The approved M00 contract stays byte-frozen; no product
+mode, schema, UI, historical lifecycle record, GC3 verdict or later gate changed.

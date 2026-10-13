@@ -1,16 +1,16 @@
 # Codex app-server Journey migration tasks
 
-Status: active replacement roadmap adopted 2026-10-13; M00-r3 explicitly approved at f506fccb and its exact SHA-256; M00 complete as a design-contract slice. M01–M13 remain unstarted. See [plan](plan.md). Existing Journey gates remain unchanged.
+Status: active replacement roadmap adopted 2026-10-13; M00-r3 explicitly approved at f506fccb and its exact SHA-256; M00 complete as a design-contract slice. M01 has authorized preparation/no-model evidence and remains partial; M02–M13 remain unstarted. See [plan](plan.md). Existing Journey gates remain unchanged.
 
 ## Implementation references
 
-Use the [Open Design reading map and adaptation rules](open-design-reference.md), pinned to the reviewed upstream revision. Read its relevant source/tests before each mapped slice; keep upstream observations separate from Appraise verification. M00 evidence and exact user approval are linked below; M00 is complete. All later tasks remain unstarted.
+Use the [Open Design reading map and adaptation rules](open-design-reference.md), pinned to the reviewed upstream revision. Read its relevant source/tests before each mapped slice; keep upstream observations separate from Appraise verification. M00 evidence and exact user approval are linked below; M00 is complete. M01 preparation is recorded in [M01 evidence](m01-evidence.md); native-provider qualification is outstanding. M02+ remains unstarted.
 
 ## Ordered tasks
 
 ### M00: Approve the host and authority contract
 
-**Status (2026-10-13):** M00 complete: exact M00-r3 contract approved by the user at f506fccb; [approval record](m00-r3-approval.md) binds the full commit and SHA-256. [Contract](m00-host-authority-contract.md) · [Review evidence](m00-review-evidence.md) · [Same-branch continuation](CONTINUE-HERE.md). No runtime qualification or later task started.
+**Status (2026-10-13):** M00 complete: exact M00-r3 contract approved by the user at f506fccb; [approval record](m00-r3-approval.md) binds the full commit and SHA-256. [Contract](m00-host-authority-contract.md) · [Review evidence](m00-review-evidence.md) · [Same-branch continuation](CONTINUE-HERE.md). M00 approval itself did not start runtime work; the separately authorized M01 preparation is recorded below.
 
 **Reference:** [Open Design guide](open-design-reference.md). Architecture and permission differences; record the host/build feasibility candidate, later support-qualification policy and Appraise authority without adopting upstream defaults.
 
@@ -25,6 +25,8 @@ Use the [Open Design reading map and adaptation rules](open-design-reference.md)
 **Verification:** Contract review against all six role payloads and current handoff/claim semantics; independent review of authority boundaries.
 
 ### M01: Qualify the app-server protocol
+
+**Status (2026-10-13):** Started, **partial; not complete**. [Evidence](m01-evidence.md) · [Remaining native-provider probe for separate approval](m01-remaining-probe.md). 14 synthetic tests and 6 saved-evidence audits pass; actual-binary sentinel/local-SSE observations cover initialization, required-MCP rejection, start/resume, correlated events, interruption, unsupported requests and withheld replies. Native-auth/provider configuration and remaining permission/MCP elicitation variants are unqualified. No model inference/sign-in authorized.
 
 **Reference:** [Open Design guide](open-design-reference.md). Session/protocol tests and capability handling; test the actual launched binary, including required-MCP failure.
 
@@ -216,5 +218,6 @@ Schema, session, gateway and supervisor changes are sequential shared contracts.
 
 > M00-r3 is explicitly approved at f506fccb and the exact hash in m00-r3-approval.md. Read CONTINUE-HERE.md and
 > the approval record before continuation; preserve the byte-frozen contract and all historical evidence/GC3 REVISE.
-> M01 is dependency-ready but remains unstarted until a separate bounded user instruction. Do not start live
-> authentication, provider runs, product migration, UI or release work. Local commits only with hooks; no push.
+> M01 has authorized synthetic/no-model preparation but remains partial. Read m01-evidence.md and
+> m01-remaining-probe.md; native sign-in/inference needs separate explicit approval. M02+, product migration, UI
+> and release remain unstarted. Local commits only with hooks; no push.

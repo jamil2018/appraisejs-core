@@ -1,0 +1,36 @@
+{
+  "repository": "nexu-io/open-design",
+  "revision": "014bffbf775f4514020cef8bbffdc0eb5a0009ce",
+  "files": [
+    {
+      "path": "apps/daemon/src/agent-protocol/codex-app-server/session.ts",
+      "sha256": "99a556e58642d47a2ca38a3b3ea29838535735fe62b1f1a7a79491148ab0ba73"
+    },
+    {
+      "path": "apps/daemon/src/runtimes/defs/codex.ts",
+      "sha256": "f37206698690f38a80a45f0febc317c8931726431668b92226a329ce6d6ffadd"
+    },
+    {
+      "path": "apps/daemon/tests/codex-app-server-protocol-contract.test.ts",
+      "sha256": "80f00b02fe046e697ef756d022dcdd7930404f7262a4a8dc9d8ddfbbad63549d"
+    },
+    {
+      "path": "apps/daemon/tests/codex-app-server-session.test.ts",
+      "sha256": "aee84dc676283775b692ce83ab425fdb0e978205e3643c6239808ce8d0cf9941"
+    },
+    {
+      "path": "apps/daemon/tests/codex-app-server-transport-switch.test.ts",
+      "sha256": "413a791f7ba66cd9b3568655b567f097e77d2b5cc38abc58e28dda57bda3be88"
+    },
+    {
+      "path": "docs/agent-adapters.md",
+      "sha256": "b4d656bc9fc0d1060618618b2558a474442fa1f52dde8da15ca849f4d68498b9"
+    },
+    {
+      "path": "docs/testing/codex-patch-streaming.md",
+      "sha256": "b6b007a58996e87e7ea138caa0a7aa79b080ad921ef6a3fcf0392d1600fcb282"
+    }
+  ],
+  "upstreamTestsExecuted": false,
+  "upstreamCodeCopied": false
+}

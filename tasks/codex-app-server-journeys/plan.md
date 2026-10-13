@@ -1,10 +1,10 @@
 # Codex app-server behind AppraiseJS: Journey migration plan
 
-Date: 2026-10-12. Direction adopted 2026-10-13. Status: active replacement roadmap under [ADR-0005](../../docs/decisions/0005-codex-app-server-journeys.md); M00-r3 design contract explicitly approved; M00 complete; runtime qualification and M01–M13 not started.
+Date: 2026-10-12. Direction adopted 2026-10-13. Status: active replacement roadmap under [ADR-0005](../../docs/decisions/0005-codex-app-server-journeys.md); M00-r3 design contract explicitly approved; M00 complete; M01 preparation started and partial; native-provider qualification outstanding; M02–M13 not started.
 
 Shared implementation branch: `codex/journey-app-server-migration`, created from fetched `origin/appraise-0.5` at `8d4be5c8`. Use it for M00–M13 and U00–U10 across sessions; branch scope is not task-start authority. Local cohesive commits are authorized with hooks; push, merge and publication require separate instruction.
 
-M00 now has an [approved, byte-frozen detailed contract](m00-host-authority-contract.md), [source/review evidence](m00-review-evidence.md) and [continuation handoff](CONTINUE-HERE.md). The [exact approval record](m00-r3-approval.md) binds f506fccb and the full contract hash; runtime qualification remains outstanding. M01 requires separate instruction.
+M00 now has an [approved, byte-frozen detailed contract](m00-host-authority-contract.md), [source/review evidence](m00-review-evidence.md) and [continuation handoff](CONTINUE-HERE.md). The [exact approval record](m00-r3-approval.md) binds f506fccb and the full contract hash; runtime qualification remains outstanding. M01 now has separately authorized [synthetic/no-model preparation](m01-evidence.md); [native-provider probing](m01-remaining-probe.md) still requires explicit sign-in/inference authorization.
 
 ## Scope and authority
 
@@ -114,7 +114,7 @@ Release requires all six roles, structured question/revision loops, scenario dec
 
 ## Review limitations and next decision
 
-No live model call, sign-in, containment probe, billing verification or recovery experiment was run for this plan. Current implementation evidence supports reuse of domain services, not drop-in reuse of managed Factory attestations. M00-r3 has settled the approved design contract, with the exact artifact and scope in [its approval record](m00-r3-approval.md). M01 is the next dependency-ready task but remains unstarted and unauthorized until a separate bounded user instruction. Later feasibility must qualify the exact OS/build, provider auth and effective boundaries; no runtime schedule or support claim follows from design acceptance.
+The original planning review ran no live model, sign-in, containment, billing or recovery experiment. Subsequent M01 work adds synthetic transport tests and actual-binary local-SSE start/resume/interruption observations, with no external provider inference or sign-in. Current implementation evidence supports reuse of domain services, not drop-in reuse of managed Factory attestations. M00-r3 has settled the approved design contract, with the exact artifact and scope in [its approval record](m00-r3-approval.md). M01 is now started and partial under the separate bounded preparation instruction. Its [no-model evidence](m01-evidence.md) does not qualify native authentication/provider behavior; the [remaining probe](m01-remaining-probe.md) needs separate explicit authority. Later feasibility must qualify the exact OS/build, provider auth and effective boundaries; no runtime schedule or support claim follows from design acceptance.
 
 ## Companion UI planning update — 2026-10-12
 
