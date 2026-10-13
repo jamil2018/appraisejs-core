@@ -1,6 +1,6 @@
 # ADR-0005: Run Codex app-server behind AppraiseJS Journeys
 
-Status: accepted direction; M00 detailed contract proposed; approval pending; runtime qualification and later implementation not started.
+Status: accepted direction; M00-r3 records agreed detailed choices; exact artifact approval pending; runtime qualification and later implementation not started.
 Date: 2026-10-13. Authority: user explicitly retired the old plan in favor of the Codex CLI-driven mechanism.
 Supersedes: [ADR-0004](0004-stock-codex-journey-handoff.md).
 
@@ -24,4 +24,4 @@ This selects the direction, not a qualified runtime implementation. M00 proposes
 
 ## M00 detailed contract proposal — 2026-10-13
 
-The [M00 contract](../../tasks/codex-app-server-journeys/m00-host-authority-contract.md) defines the proposed local-only exact-build candidate, opt-in host/admission mapping, mandatory first-session fencing, six-role external MCP boundaries and denied worker repository writes. [Evidence and independent review](../../tasks/codex-app-server-journeys/m00-review-evidence.md) are separate from approval and runtime qualification. D01–D05 remain pending; this ADR accepts the direction only. M01 and later work require another bounded instruction.
+The [M00 contract](../../tasks/codex-app-server-journeys/m00-host-authority-contract.md) defines the proposed local-only exact-build candidate, opt-in host/admission mapping, mandatory first-session fencing, six-role external MCP boundaries and denied worker repository writes. [Evidence and independent review](../../tasks/codex-app-server-journeys/m00-review-evidence.md) are separate from approval and runtime qualification. The user agreed to D01–D04 and D05 defaults; M00-r3 records them with numerical operating/retention limits. Exact M00-r3 approval remains pending; this ADR accepts the direction only. M01 and later work require another bounded instruction.

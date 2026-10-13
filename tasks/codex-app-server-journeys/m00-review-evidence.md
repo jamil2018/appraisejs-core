@@ -1,6 +1,6 @@
 # M00 source and authority-boundary review evidence
 
-Date: 2026-10-13. Contract: [M00-r2](m00-host-authority-contract.md). Approval: pending.
+Date: 2026-10-13. Current contract: [M00-r3](m00-host-authority-contract.md). Exact artifact approval: pending. Historical M00-r1/r2 evidence is retained below.
 
 ## Branch preparation and source review
 
@@ -84,3 +84,47 @@ reviewed task hash: `1eedc3ebe62dc57221a00109f9ab65f26d32102415670404860e9175957
 After verdict, task status and this evidence record were updated to record the review; authority content and contract
 bytes remained unchanged. User acceptance is pending. No M01/live work is authorized by this verdict.
 Local learning observation `obs-a1b55af5c29d08d4` records the routing recovery; effective-host proof remains unavailable.
+
+## M00-r3 agreed-choice revision — 2026-10-13
+
+User instruction: agreed to D01–D04 and the presented D05 defaults; update M00-r3, obtain independent review and
+present the exact contract for approval. M01 stays unstarted; local commits only, no push. This is authorization
+to transcribe settled choices and obtain review, not final approval of unseen contract bytes.
+
+Changes: fixed explicit gpt-6.1-sol/medium baseline, one active turn per hub, 120-second lease/40-second heartbeat,
+60-second initialization/start acknowledgement, 15-minute turn maximum, three-turn and three-attempt ceilings subject
+to stricter canonical remaining budgets, zero turns in human waits, parked auth/quota failure, 24-hour reconciled
+terminal provider-history deletion and seven-day unresolved-history decision deadline. Retention cleanup preserves
+canonical evidence/authority and cannot erase unknown effects; correction turns require confirmed non-acceptance
+and current authority. D01–D04, six role boundaries, mandatory first-session fence and GC3 remain unchanged.
+
+Routing receipt `c3f4a0b4-6818-4801-bec3-d5a7d36a375e`: choices already settled; coordinator transcribes docs and one
+independent judge reviews residual authority/retention ambiguity. Judge requested named profile with `fork_turns=none`;
+effective role/model/context/sandbox enforcement remains unverified without a host receipt. No redundant solver lane.
+
+Validation for this revision: affected Markdown formatting, repository documentation links, supplemental migration
+links and diff whitespace checks passed. No runtime/source changes; no new tests/build/scaffold/graph rebuild or
+provider/authentication observations were run. Earlier 26 passing existing tests are retained as r2 evidence only.
+Final formatting/link/diff checks repeat after this review record is completed. Hooks remain enabled for local commit.
+
+Independent exact-contract review result is recorded below.
+
+R3 first judge pass requested one medium correction on initial hash
+`c4af974309d245adf58689c2c4a030cc80698cc2a1ddb05586ecde6979318171`: an unresolved-history clock starting at recorded
+outcome could start late after a crash. R3 now anchors the seven-day decision deadline to the earliest durable
+provider intent capable of creating attempt history (or an earlier trusted timestamp), checks overdue state before
+resume, and treats missing trustworthy timing as overdue. No limit, authority or runtime behavior was relaxed.
+
+### Final M00-r3 independent verdict
+
+ACCEPTED for documentation sufficiency only, with no remaining required finding, on exact contract SHA-256
+`1e39e733d5211db80705a1c34235d24580db618a9f505e7a16dc163398568133`. The independent judge verified the corrected
+retention clock, agreed D01–D05, six-role external admission/session boundaries, pending exact user approval,
+unstarted M01 and preserved GC3 REVISE. Requested named role and empty inheritance remain unverified effective-host
+properties; the review does not qualify auth, containment, provider behavior or spending limits.
+After this verdict only review/task/handoff/advisory metadata was updated; contract bytes remain unchanged.
+
+Harness evolution: one bounded judge lane, no concurrent writes or duplicated solver work; deterministic doc checks
+passed. Judge found a temporal edge case that formatting/link checks cannot prove. Corrected exact artifact was
+independently re-evaluated. Retain this advisory lesson without changing harness policy. No final healthy scorecard
+is fabricated without effective-context receipts required by the local journal.

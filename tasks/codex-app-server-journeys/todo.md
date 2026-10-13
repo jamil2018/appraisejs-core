@@ -1,6 +1,6 @@
 # Codex app-server Journey migration tasks
 
-Status: active replacement roadmap adopted 2026-10-13; M00 proposed contract reviewed for documentation sufficiency; approval pending. M01–M13 remain unstarted. See [plan](plan.md). Existing Journey gates remain unchanged.
+Status: active replacement roadmap adopted 2026-10-13; D01–D05 choices agreed; M00-r3 independently reviewed; exact artifact approval pending. M01–M13 remain unstarted. See [plan](plan.md). Existing Journey gates remain unchanged.
 
 ## Implementation references
 
@@ -10,7 +10,7 @@ Use the [Open Design reading map and adaptation rules](open-design-reference.md)
 
 ### M00: Approve the host and authority contract
 
-**Status (2026-10-13):** M00-r2 proposed contract prepared and independently reviewed; exact user acceptance pending. [Contract](m00-host-authority-contract.md) · [Review evidence](m00-review-evidence.md) · [Same-branch continuation](CONTINUE-HERE.md). No runtime qualification or later task started.
+**Status (2026-10-13):** D01–D04 and D05 defaults agreed by the user; M00-r3 independently reviewed for documentation sufficiency; exact artifact approval pending. [Contract](m00-host-authority-contract.md) · [Review evidence](m00-review-evidence.md) · [Same-branch continuation](CONTINUE-HERE.md). No runtime qualification or later task started.
 
 **Reference:** [Open Design guide](open-design-reference.md). Architecture and permission differences; record the host/build feasibility candidate, later support-qualification policy and Appraise authority without adopting upstream defaults.
 

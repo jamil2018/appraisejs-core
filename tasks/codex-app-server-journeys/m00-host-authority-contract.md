@@ -1,7 +1,7 @@
 # M00: Local app-server host and authority contract
 
-Date: 2026-10-13. Revision: M00-r2. Status: **proposed; awaiting exact-contract approval**.
-Direction is accepted in [ADR-0005](../../docs/decisions/0005-codex-app-server-journeys.md); these detailed choices are not.
+Date: 2026-10-13. Revision: M00-r3. Status: **proposed; awaiting exact-contract approval**.
+Direction is accepted in [ADR-0005](../../docs/decisions/0005-codex-app-server-journeys.md). The user agreed to D01–D04 and the D05 defaults on 2026-10-13 and requested this exact revised contract for approval. Choice agreement authorizes this documentation revision; final M00-r3 artifact acceptance remains pending.
 This document specifies future behavior. It does not describe an implemented or qualified host.
 M00 documentation/source review is prepared; independent review is recorded separately; M01–M13 and U00–U10 remain unstarted.
 
@@ -31,7 +31,7 @@ environment or arbitrary process access. This is a required separation, not a cl
 it. M02 must establish it with effective-host evidence; inability to isolate provider state blocks this composition.
 Auth/setup metadata exposed to the UI is bounded and sanitized; never persist tokens, callbacks, cookies, MFA data or
 raw account payloads in Journey artifacts/logs. Provider-local history must be isolated per attempt, inaccessible to
-other workers, bounded and cleaned by the supervisor. Exact retention duration/cleanup evidence is a pending decision.
+other workers, bounded and cleaned by the supervisor. The retention policy below is agreed for this proposed revision; implementation and cleanup evidence remain pending.
 
 The [official app-server documentation](https://learn.chatgpt.com/docs/app-server) describes the protocol and
 required-MCP startup failure; its current auth guidance restricts app-server authentication to local/open-source use
@@ -149,6 +149,45 @@ Sanitized activity may update operational status only; the single task projectio
 state, preserve pinned reviews/drafts, reject stale/out-of-order observations and disable revoked actions immediately.
 Polling is the initial UI observation mechanism. No UI implementation or U00 fixtures are included in M00.
 
+## D05: Agreed initial operating and retention defaults
+
+These limits apply to future `APP_SERVER_LOCAL_V1` work in the initial scope, not the repository-development harness,
+existing historical attempts, provider account defaults or test-execution runtime. They are agreed design defaults;
+none is implemented, measured or qualified by M00. M04–M05 must persist and enforce them; M11 must verify failure,
+recovery and cleanup behavior. Changing them requires explicit scoped guidance and a versioned configuration record.
+
+| Setting                                    | Initial default                                                                                                                                                 | Required boundary behavior                                                                                                                                                                                                                                                                           |
+| ------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Model/configuration                        | Explicit `gpt-6.1-sol`, medium reasoning, for all six roles in the initial feasibility baseline                                                                 | Record requested and returned model identity, reasoning, executable/protocol/config digests; no automatic model/provider substitution or entitlement inference. Changed model/configuration needs requalification of affected capabilities.                                                          |
+| Provider concurrency                       | One active provider turn per hub                                                                                                                                | Queue other eligible work durably; serialize starts across supervisors. Do not issue speculative parallel starts. Each attempt has its own isolated thread/history; never reuse another role's context.                                                                                              |
+| Lease / heartbeat                          | 120-second lease; renew every 40 seconds                                                                                                                        | Use canonical lease/current-generation checks. Renewal cannot revive expired/revoked authority; fence on expiry and reconcile before replacement.                                                                                                                                                    |
+| Initialization/start acknowledgement       | 60-second maximum per request                                                                                                                                   | Initialization failure blocks startup. Lost start acknowledgement after send remains unknown until non-start or the original run is proved; correlation IDs/timeouts do not authorize resend.                                                                                                        |
+| Turn duration                              | 15-minute maximum per turn, measured from the supervisor's durable start/send boundary                                                                          | Fence new effects, request interruption through the owned handle and reconcile acceptance/outcome; restarting transport does not reset this limit. Timeout alone does not prove physical stop or permit a replacement.                                                                               |
+| Turns per attempt                          | At most three provider turns, including the initial turn and corrections                                                                                        | Corrections require confirmed rejection without acceptance, current assignment/session/lease authority and remaining budget. Reconcile unknown submissions first. An accepted artifact or human wait ends this worker activity; no extra continuation to spend unused turns.                         |
+| Attempts                                   | At most three for the initial work authorization, or a lower canonical ceiling/remaining budget                                                                 | Enforce the stricter local and canonical remaining ceilings; preserve consumed budgets and takeover lineage. Do not rewrite historical authorizations, create duplicate attempts or reset limits to obtain more turns.                                                                               |
+| Human waits                                | Zero provider turns                                                                                                                                             | Park after accepted structured questions/blockers; only committed canonical answers/decisions and eligible authorized work can trigger later dispatch.                                                                                                                                               |
+| Authentication/quota failure               | Park with actionable setup/retry status                                                                                                                         | No repeated model-call retry loop, automatic billing/model fallback or silent account switch. Any later retry rechecks authority and resolves uncertain prior effects first.                                                                                                                         |
+| Reconciled terminal provider-local history | Delete within 24 hours after terminal outcome and owned effects are reconciled                                                                                  | Isolate provider-local transcripts/rollouts per attempt; supervisor-only access. Persist bounded sanitized acceptance/cleanup receipts, not raw history, in Appraise.                                                                                                                                |
+| Unresolved provider-local history          | Retain for at most seven days from the earliest durable provider intent that may have created this attempt's history before a human retention/recovery decision | At the deadline stop automatic retention/continuation and require an explicit scoped retention or safe cleanup decision. Restart/new observations cannot reset the deadline. Without a decision, keep work fenced and surface overdue cleanup; do not claim successful deletion or resolved effects. |
+| Canonical artifacts/history                | Existing lifecycle retention and immutability rules                                                                                                             | Provider cleanup never deletes or resets Journey history, approvals, consents, interruptions, sealed evidence, attempts or outcome/provider-run records, and never resolves an unknown outcome.                                                                                                      |
+
+For unresolved history, use the earliest durable provider launch/thread/turn intent that could have created this
+attempt's history, or an earlier trusted creation timestamp. Discovery of uncertainty, later outcome recording,
+restart or another turn cannot move that clock forward. Recovery must check the original deadline before any resume;
+if elapsed, immediately require the retention/recovery decision. If no trustworthy conservative timestamp can be
+established, treat retention as overdue and keep work fenced pending that decision.
+
+The seven-day rule is an escalation deadline, not a promise that raw history is automatically erased despite unknown
+process ownership. A human retention decision must name the exact attempt, reason and bounded extension; safe cleanup
+requires owned-effect/cleanup reconciliation. Unresolved access or deletion failure remains a visible blocker, never
+an indefinite automatic extension or permission to relaunch. Provider authentication state is separate from per-attempt
+history: cleanup must not copy/expose credentials, and sign-out/revocation remains an explicit controlled path.
+
+A provider turn can contain multiple model/tool requests. Turn, attempt, concurrency and duration caps do not establish
+a hard token or monetary ceiling, nor prove that interruption immediately stops provider billing. Collect usage per
+accepted artifact and expose actual limits; quota exhaustion parks work. Model-list presence is not entitlement proof.
+Exact-build feasibility and live enforcement evidence are still required before any supported-runtime claim.
+
 ## Source evidence and qualification obligations
 
 Reviewed base: `8d4be5c83597bb17ac756f98502738db8a69d344` on the shared migration branch.
@@ -176,16 +215,20 @@ escapes, auth isolation/revocation and absent artifacts. M03–M04 must prove co
 claims and durable dispatch. M11 must prove unknown/restart/pause/lost-ack reconciliation; M12 must prove clean install,
 mode transfer and rollback. This contract alone satisfies none of those gates.
 
-## Decisions still requiring approval
+## D01–D05 agreement and exact-contract approval boundary
 
-| ID  | Proposed choice / unresolved decision                                                                               | Required resolution                                                                                                                                   |
-| --- | ------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
-| D01 | macOS arm64 local-only exact candidate tuple above; no currently supported build                                    | Approve feasibility scope; M01 pins executable/protocol/config digest before any support claim.                                                       |
-| D02 | Local human Codex ChatGPT sign-in, isolated provider state, no API fallback                                         | Approve auth direction and resolve local/open-source distribution eligibility; commercial/hosted auth remains excluded.                               |
-| D03 | `APP_SERVER_LOCAL_V1` host label with retained `EXTERNAL_V1` receipts and mandatory first-session fencing           | Approve detailed host/admission distinction; schema names and legacy mapping fixtures belong to M03.                                                  |
-| D04 | Denied worker direct files/native tools/network; trusted provider access separated from worker capabilities         | Approve required boundary; choose a demonstrable macOS containment mechanism in M02. If infeasible, return for scope decision, never weaken silently. |
-| D05 | Provider history retention, exact model/config selection, concurrency/timeouts/heartbeat/turn caps and quota policy | Specify numerical limits and cleanup/privacy policy before M04–M05 dispatch implementation; no spend guarantee currently exists.                      |
+The user agreed to these choices and requested M00-r3 documentation, independent review and local commits only.
+That agreement does not accept unseen final bytes, authorize M01 or qualify any host property.
 
-M00's approval checkbox stays open until the exact reviewed contract is explicitly accepted. Independent engineering
-review and a local commit do not supply approval. Approval does not authorize starting M01 or live work; each next
-slice still needs bounded user instruction. See [continuation](CONTINUE-HERE.md) and [review evidence](m00-review-evidence.md).
+| ID  | Agreed choice recorded in this revision                                                                                                                      | Remaining implementation/qualification obligation                                                                                                                                     |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| D01 | One local hub/target; macOS arm64; macOS 27.0.1 build 26A434 / CLI 0.162.0-alpha.17.2 as the first feasibility candidate; private stdio                      | M01 pins actual binary/protocol/config; M02 and M03 establish effective boundaries. No build is currently supported.                                                                  |
+| D02 | Explicit human local Codex ChatGPT sign-in; isolated Appraise-owned provider state; no ambient credential copy or API/BYOK/external-token fallback           | Prove provider-versus-worker credential isolation and revocation. Local personal feasibility only; distribution eligibility/auth route requires separate resolution before packaging. |
+| D03 | `APP_SERVER_LOCAL_V1` host label; retained `EXTERNAL_V1` admissions and immutable NOT_ATTESTED receipts; mandatory current session before first claim        | M03 implements host-neutral binding and missing/stale/valid transaction re-probes, preserving legacy ownership/history.                                                               |
+| D04 | Frozen inputs and scoped role MCP only; denied worker repository writes/direct repository/DB/credential reads/native tools/arbitrary network/human decisions | M02 must demonstrate containment and usable schemas. If infeasible, return for a scope/build decision; never weaken the boundary silently.                                            |
+| D05 | The numerical model/config, concurrency, lease, acknowledgement, duration, turn/attempt, quota and history defaults above                                    | Persist/enforce limits in later authorized slices; demonstrate recovery/privacy/cleanup. No hard spend guarantee.                                                                     |
+
+M00's approval checkbox stays open until the user explicitly accepts the exact reviewed M00-r3 artifact.
+Independent engineering review and a local commit do not supply approval. Approval settles this design only and does
+not authorize M01 or live work; each next slice still needs bounded user instruction. Historical lifecycle authority
+and GC3 REVISE / not passed remain unchanged. See [continuation](CONTINUE-HERE.md) and [review evidence](m00-review-evidence.md).
