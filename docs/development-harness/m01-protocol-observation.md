@@ -19,3 +19,14 @@ turn; explicit model/provider resume binding and correlated start waiting correc
 A no-turn thread was not resumable, while a synthetic completed turn was resumable after process restart.
 These observations improve future protocol-probe setup; they do not establish production recovery,
 provider equivalence, spend, isolation or accepted Appraise outcomes. Keep native-provider evidence separate.
+
+## Native setup/check-only continuation
+
+One bounded investigator provided CLI-help and official auth/config evidence. The first native setup used an
+unsupported built-in provider override; the CLI stopped during configuration loading. Removing that table
+retained the native provider, while the user explicitly allowed its transport defaults. Latest user steering
+requests check-only authentication; the pending login was cancelled and no inference occurred. Future setup
+should distinguish custom-provider fields from built-in controls before launching a human auth flow. Preserve
+credential-store identity instead of equating installed binary presence with authenticated state. Record this
+lesson without modifying any harness permission, routing or quality policy. The native auth runner now has
+no login mode and fails closed on absent selected-state authentication. [Checkpoint evidence](../../tasks/codex-app-server-journeys/m01-native-provider-checkpoint.md).

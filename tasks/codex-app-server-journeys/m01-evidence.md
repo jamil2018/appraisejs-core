@@ -125,3 +125,12 @@ permission/MCP elicitation behavior, containment and wider host properties remai
 [exact remaining native-provider probe](m01-remaining-probe.md) requires separate explicit sign-in and
 inference authorization. Neither successful fixture turns nor this local commit supplies it. M02+ remains
 unstarted; no support, lifecycle success, efficiency, spend or release gate is advanced.
+
+## Subsequent native-provider checkpoint
+
+The user subsequently authorized the remaining native probe and allowed the built-in provider's transport
+defaults without supervisor start resends. Later steering requests check-only authentication. The launched
+isolated sign-in was cancelled; no credentials or inference turn was produced. A corrected native
+configuration initializes and reports AUTHENTICATION_REQUIRED (exit 2) for the selected isolated state.
+[Current authority, evidence and handoff](m01-native-provider-checkpoint.md). The original no-model evidence
+above is unchanged in meaning; M01 remains partial, with six additional deterministic runner guard tests.

@@ -1,0 +1,24 @@
+{
+  "evidenceClass": "live-binary-synthetic-responses",
+  "pin": {
+    "binarySha256": "0d5ac7aae20c4eda6242428d5e218c55ba96d8763fda2a271088ff37104b9d28",
+    "os": "27.0.1",
+    "build": "26A434",
+    "architecture": "arm64"
+  },
+  "configTemplate": "model=\"gpt-6.1-sol\"\nmodel_reasoning_effort=\"medium\"\nmodel_provider=\"m01_fixture\"\napproval_policy=\"never\"\nsandbox_mode=\"read-only\"\ncli_auth_credentials_store=\"file\"\nmcp_oauth_credentials_store=\"file\"\nweb_search=\"disabled\"\n[shell_environment_policy]\ninherit=\"none\"\n[features]\nplugins=false\napps=false\nbrowser_use=false\nbrowser_use_external=false\nbrowser_use_full_cdp_access=false\ncomputer_use=false\ngoals=false\nhooks=false\nimage_generation=false\nmemories=false\nmulti_agent=false\nplugin_sharing=false\nremote_plugin=false\nshell_tool=false\nskill_mcp_dependency_install=false\nskill_search=false\nsleep_tool=false\nunified_exec=false\nview_image=false\nworkspace_dependencies=false\ncode_mode=false\n[analytics]\nenabled=false\n[model_providers.m01_fixture]\nname=\"M01 synthetic local Responses fixture\"\nbase_url=\"http://127.0.0.1:<loopback-port>/v1\"\nwire_api=\"responses\"\nrequires_openai_auth=false\nsupports_websockets=false\n",
+  "configTemplateSha256": "97c34a4de0d32822885bb122bed67e3be0993748166020f61ebb38733a60b005",
+  "effectiveConfigSha256": "6c69e0e820d59b8520db564948e2f04cbf492db97978bee7a4f9cd87674b9ca8",
+  "syntheticHttpRequests": [
+    {
+      "path": "/v1/responses",
+      "model": "gpt-6.1-sol",
+      "authorizationPresent": false,
+      "toolNames": []
+    }
+  ],
+  "exitCode": 0,
+  "noProviderInference": true,
+  "disposableStateDeleted": true,
+  "scope": "setup-only native-tool manifest preflight; not M02 enforcement/containment"
+}

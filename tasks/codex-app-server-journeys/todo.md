@@ -26,7 +26,7 @@ Use the [Open Design reading map and adaptation rules](open-design-reference.md)
 
 ### M01: Qualify the app-server protocol
 
-**Status (2026-10-13):** Started, **partial; not complete**. [Evidence](m01-evidence.md) · [Remaining native-provider probe for separate approval](m01-remaining-probe.md). 14 synthetic tests and 6 saved-evidence audits pass; actual-binary sentinel/local-SSE observations cover initialization, required-MCP rejection, start/resume, correlated events, interruption, unsupported requests and withheld replies. Native-auth/provider configuration and remaining permission/MCP elicitation variants are unqualified. No model inference/sign-in authorized.
+**Status (2026-10-13):** Started, **partial; not complete**. [Evidence](m01-evidence.md) · [Prepared native-provider probe](m01-remaining-probe.md). 14 synthetic tests and 6 saved-evidence audits pass; actual-binary sentinel/local-SSE observations cover initialization, required-MCP rejection, start/resume, correlated events, interruption, unsupported requests and withheld replies. Native-auth/provider configuration and remaining permission/MCP elicitation variants are unqualified. Native probing was subsequently authorized, with built-in transport defaults and no supervisor resends; latest steering requires check-only authentication. The isolated auth check fails, with zero native starts. [Latest checkpoint](m01-native-provider-checkpoint.md).
 
 **Reference:** [Open Design guide](open-design-reference.md). Session/protocol tests and capability handling; test the actual launched binary, including required-MCP failure.
 
@@ -219,5 +219,6 @@ Schema, session, gateway and supervisor changes are sequential shared contracts.
 > M00-r3 is explicitly approved at f506fccb and the exact hash in m00-r3-approval.md. Read CONTINUE-HERE.md and
 > the approval record before continuation; preserve the byte-frozen contract and all historical evidence/GC3 REVISE.
 > M01 has authorized synthetic/no-model preparation but remains partial. Read m01-evidence.md and
-> m01-remaining-probe.md; native sign-in/inference needs separate explicit approval. M02+, product migration, UI
+> m01-remaining-probe.md and m01-native-provider-checkpoint.md for subsequent authorization and check-only
+> steering. No login launch or ambient credential/config reuse; native probe remains parked on auth-required. M02+, product migration, UI
 > and release remain unstarted. Local commits only with hooks; no push.
