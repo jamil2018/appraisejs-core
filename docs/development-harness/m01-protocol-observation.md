@@ -56,3 +56,18 @@ and native results independent; additional probing stops without a grounded safe
 investigator search accidentally surfaced synthetic session metadata/prompt before it was stopped;
 no credential or model output was read/persisted. Prefer explicit named metadata files over directory
 searches in native provider state. Advisory only; no harness policy change or unsupported gate closure.
+
+## Manifest interpretation correction — 2026-10-14
+
+[M01 source/offline investigation](../../tasks/codex-app-server-journeys/m01-manifest-investigation.md)
+corrects the previous empty-manifest inference: the fixture read only top-level tools, while the
+selected model uses Responses Lite additional_tools input items and CodeModeOnly routing. Local
+code_mode=false does not prove a direct-only or absent tool surface. The exact embedded model object
+matches immutable release source; whole-binary source/build provenance and previous unretained input
+contents remain unverified. Four deterministic parser regressions run without CLI/sockets/inference.
+
+Route `8c19c15a-45ed-4930-b2ed-e103e4d85345` preceded a bounded read-only source investigator;
+coordinator edits and local binary/config inspection did not overlap its source lane. No new runtime
+probe, permission toggle or policy change. Lesson: record manifest location/type as well as names;
+source-supported serialization explanations must not be relabelled as captured host request contents.
+Historical source/observations stay retained with the explicit correction attached.

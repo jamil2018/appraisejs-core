@@ -49,6 +49,56 @@ for line in sys.stdin:
 """
 
 
+def inspect_tool_manifest(body):
+    """Inspect manifest locations/types/names only; never return input or schema bodies."""
+    locations = []
+    tools = []
+    if "tools" in body and body["tools"] is not None:
+        if not isinstance(body["tools"], list):
+            raise ValueError("top-level tools must be an array")
+        locations.append("tools")
+        tools.extend(body["tools"])
+    for index, item in enumerate(body.get("input", [])):
+        if isinstance(item, dict) and item.get("type") == "additional_tools":
+            if item.get("role") != "developer" or not isinstance(
+                item.get("tools"), list
+            ):
+                raise ValueError("malformed additional_tools item")
+            locations.append(f"input[{index}].additional_tools")
+            tools.extend(item["tools"])
+    names = []
+    kinds = []
+
+    def inspect(tool, namespace=""):
+        if not isinstance(tool, dict) or not isinstance(tool.get("type"), str):
+            raise TypeError("malformed tool definition")
+        kind = tool["type"]
+        kinds.append(kind)
+        name = tool.get("name")
+        if kind == "namespace":
+            if (
+                not isinstance(name, str)
+                or not name
+                or not isinstance(tool.get("tools"), list)
+            ):
+                raise ValueError("malformed namespace tool")
+            for nested in tool["tools"]:
+                inspect(nested, f"{namespace}{name}.")
+        elif isinstance(name, str) and name:
+            names.append(f"{namespace}{name}")
+        elif kind in ("function", "custom"):
+            raise ValueError("callable tool has no name")
+
+    for tool in tools:
+        inspect(tool)
+    return {
+        "topLevelToolsPresent": "tools" in body and body["tools"] is not None,
+        "manifestLocations": locations,
+        "toolTypes": sorted(set(kinds)),
+        "toolNames": sorted(set(names)),
+    }
+
+
 def run():
     native.preflight()
     root = pathlib.Path(
@@ -80,19 +130,28 @@ def run():
 
         def do_POST(self):
             body = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
-            tools = [t.get("name") for t in body.get("tools", [])]
+            manifest = inspect_tool_manifest(body)
+            tools = manifest["toolNames"]
             report["requests"].append(
                 {
-                    "toolNames": tools,
+                    **manifest,
                     "authorizationPresent": bool(self.headers.get("Authorization")),
                 }
             )
             if self.headers.get("Authorization"):
                 raise RuntimeError("unexpected auth at fixture")
             if not Handler.call_sent:
-                names = [name for name in tools if name and name.endswith("__elicit")]
+                names = [
+                    name
+                    for name in tools
+                    if name.startswith("mcp__")
+                    and "." not in name
+                    and name.endswith("__elicit")
+                ]
                 if len(names) != 1:
-                    report["parkedReason"] = "fixture MCP tool absent or ambiguous"
+                    report["parkedReason"] = (
+                        "fixture requires a direct MCP call; observed surface is unsupported"
+                    )
                     self.send_error(400)
                     return
                 Handler.call_sent = True

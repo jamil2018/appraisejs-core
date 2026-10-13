@@ -1,5 +1,11 @@
 # M01 native-provider authority and check-only checkpoint
 
+**2026-10-14 correction:** [manifest investigation](m01-manifest-investigation.md) supersedes the
+empty-whole-manifest interpretation below. Prior `toolNames: []` inspected only top-level tools;
+Responses Lite uses an `additional_tools` input item, whose contents were not retained. Model metadata
+selects CodeModeOnly despite the local false feature flag. Historical records remain intact; M01 is
+partial. No new turn, inference or permission change occurred during this investigation.
+
 Date: 2026-10-13 (Asia/Dhaka). **M01 remains partial; zero external inference turns.**
 This record supersedes the earlier handoff's pending authorization wording. It does not change the approved
 M00 bytes, M02+ status, production behavior, or GC3 **REVISE / not passed**.

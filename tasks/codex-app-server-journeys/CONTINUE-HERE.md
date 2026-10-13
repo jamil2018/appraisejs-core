@@ -1,6 +1,6 @@
 # Continue on the shared Journey migration branch
 
-Date: 2026-10-13 (Asia/Dhaka). Branch: `codex/journey-app-server-migration`.
+Date: 2026-10-14 (Asia/Dhaka). Branch: `codex/journey-app-server-migration`.
 Base: `origin/appraise-0.5` at `8d4be5c83597bb17ac756f98502738db8a69d344` (remote tip verified read-only).
 Origin: `https://github.com/jamil2018/appraisejs-core.git`. Branch tracks the base; feature ref is not pushed.
 Approved M00-r3: `f506fccb2f910641d7a943bec440088512f0d714`; approval recorded at `5ad51897`.
@@ -11,6 +11,13 @@ Generated scripts-graph commit: find `chore: refresh scripts graph for M01 quali
 the observation commit and contains only generator output.
 
 ## Current checkpoint
+
+**Latest investigation:** [corrected manifest interpretation](m01-manifest-investigation.md). The fixture
+missed Responses Lite `input[].additional_tools` and assumed a direct MCP-call surface. Exact embedded
+model metadata matches immutable versioned source: CodeModeOnly/Responses Lite. Prior empty-whole-manifest
+claims are superseded, not erased. The parser is corrected with four offline regressions; no new
+thread/turn/provider request or runtime permission change occurred. M01 remains partial.
+Latest local commit: find `test: correct M01 Responses Lite manifest inspection`.
 
 **2026-10-14 latest:** [auth amendment 01](m00-auth-amendment-01.md) at `17febbf2` authorizes
 existing login reuse. [Native results](m01-native-results.md) record completion/persistence,
@@ -28,7 +35,8 @@ reset consumed budgets, redispatch or signal stored PIDs. This current handoff b
 `test: record M01 native results and open request-variant gap` (find by exact title in git log).
 The final local-only comparison is `test: preserve M01 MCP tool-exposure comparison`: a catalogued
 elicit tool remained absent from the provider manifest even with an explicit synthetic tool prompt.
-Stop further fixture starts until a safe, evidence-backed tool-exposure correction is established.
+No further starts are authorized by the current instruction. The corrected parser does not qualify
+actual Code Mode/MCP availability or elicitation/permission denial.
 
 **M00 complete; M01 started and partial, not complete.**
 Approved contract SHA-256: `1e39e733d5211db80705a1c34235d24580db618a9f505e7a16dc163398568133`.
@@ -72,8 +80,8 @@ push must explicitly name the feature ref rather than use the base-tracking defa
 
 ## Next bounded action and authority
 
-Inspect/reconcile the retained M01 evidence and investigate the no-model tool-manifest gap before any
-new fixture start. Preserve independent records of synthetic tests, local scripted host observations and
+Inspect/reconcile the retained M01 evidence with the corrected Lite/CodeModeOnly interpretation.
+Continue source/schema/deterministic preparation only; no new fixture turn or provider request. Preserve independent records of synthetic tests, local scripted host observations and
 native inference. The [remaining plan](m01-request-variants-remaining.md) does not grant native tool effects,
 M02 work or another inference turn. Authentication remains check-only against the existing Codex login;
 missing login errors, without sign-in/account/API fallback. Do not import ambient configuration.
@@ -98,7 +106,7 @@ Copy-ready continuation:
 > m00-auth-amendment-01.md, m01-native-results.md, m01-request-variants-remaining.md and plan/todo.
 > M01 remains partial. Three native starts consumed; no further inference without a new explicit grant.
 > Existing login/check-only is authorized; no sign-in, account switch or ambient config import.
-> Investigate the no-model MCP tool-manifest gap and qualify request variants only within M01 and
-> existing no-model authority. Do not weaken native-tool boundaries or start M02+. Preserve retained
+> Read m01-manifest-investigation.md. Continue only source/schema/deterministic preparation under
+> the latest no-more-inference/no-broader-permissions instruction; no new thread/turn/provider request. Do not weaken native-tool boundaries or start M02+. Preserve retained
 > native history and UNKNOWN provenance, approved M00 bytes and GC3 REVISE. No ambiguous start resend.
 > Local commits with hooks only; no push, merge or publish.

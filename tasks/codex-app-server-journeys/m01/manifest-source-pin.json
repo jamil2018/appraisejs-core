@@ -1,0 +1,36 @@
+{
+  "repository": "openai/codex",
+  "tag": "rust-v0.162.0-alpha.17.2",
+  "annotatedTagObject": "f04373e4fb0767b92277665293da747bcc0cb27c",
+  "commit": "740e5af33c71225640e0c1c1555c514c2c93ab74",
+  "sourceFiles": [
+    {
+      "file": "codex-rs/core/src/client.rs",
+      "sha256": "6ca16eb5fb185192738d321c22eacf74664e0ae2c107176c1c8a7f23fde33089"
+    },
+    {
+      "file": "codex-rs/core/src/tools/mod.rs",
+      "sha256": "510635e3ae67e4c63e1feaf6d645f25dc2590f54391645dddeec0a84c1d17616"
+    },
+    {
+      "file": "codex-rs/core/src/tools/spec_plan.rs",
+      "sha256": "db040c0c07160af64bebd5a7a5071658cb7ff58db341edd70e2795958b1d07f3"
+    },
+    {
+      "file": "codex-rs/core/tests/suite/responses_lite.rs",
+      "sha256": "97cc8b4e63d7ce7895460fe80ba3fcfaeefb77bf49d6dca35b4f96b82246379f"
+    },
+    {
+      "file": "codex-rs/models-manager/models.json",
+      "sha256": "943ca7fe1d19ed019054158303f0dbbd80b3bef43b3aa425a71aa7cb3fb52c2b"
+    },
+    {
+      "file": "codex-rs/protocol/src/models.rs",
+      "sha256": "58fb6f17b3698efc3ce117f3aed1986b6c5dbfcb1c95de92d99675932224fba3"
+    }
+  ],
+  "rustTestsExecuted": false,
+  "binaryBuildProvenanceAttested": false,
+  "modelObjectMatchesPinnedBinary": true,
+  "canonicalSelectedModelSha256": "cded3b4b9f66487981455f57684a118512617cff6488f8bff8b069c3414bf42d"
+}

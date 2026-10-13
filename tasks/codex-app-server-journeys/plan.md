@@ -11,6 +11,10 @@ check-only failure and the bounded M01 probe; original M00 bytes remain unchange
 are historical. [Native results](m01-native-results.md) record three consumed starts with persistence,
 interruption and no-resend UNKNOWN reconciliation. M01 remains partial for request variants; M02+ remains unstarted.
 
+Latest [manifest investigation](m01-manifest-investigation.md) corrects the old empty-manifest inference:
+the fixture missed Responses Lite input tool schemas and assumed direct MCP calls for a CodeModeOnly
+model. M01 remains partial; no new live starts or permission changes are authorized in this investigation.
+
 ## Scope and authority
 
 Keep users in AppraiseJS for briefs, questions, reviews, consent, progress, recovery and results. Run Codex as a supervised local backend using MCP. There is no chat composer, transcript product, manual prompt handoff, or requirement to open Codex desktop in the normal flow. Native provider sign-in and target-site login may still require a browser; no-chat does not mean unattended authentication.

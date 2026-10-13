@@ -26,6 +26,11 @@ Use the [Open Design reading map and adaptation rules](open-design-reference.md)
 
 ### M01: Qualify the app-server protocol
 
+**Latest diagnosis:** [manifest investigation](m01-manifest-investigation.md) finds a top-level-only
+fixture observer and a CodeModeOnly/Responses Lite model. Whole-request tool absence was not observed.
+Parser corrected with offline regressions; M01 still partial for actual request-variant qualification.
+No further starts, inference or broadened permissions in this slice.
+
 **2026-10-14 authority update:** [auth amendment 01](m00-auth-amendment-01.md) authorizes existing
 login reuse and at most three inference starts. Existing native ChatGPT login check passed; [native results](m01-native-results.md) observe completion/
 persistence, interruption and withheld-ack reconciliation. All three inference starts consumed; none

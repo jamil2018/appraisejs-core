@@ -49,3 +49,12 @@ authorized starts: completion/persistence, active interruption and withheld-ack 
 without resend. The grant is exhausted. M01 remains partial for actual elicitation/permission request
 variants; a no-model MCP tool-catalog/provider-manifest mismatch is retained as negative evidence.
 No M02+, UI, schema, release, push or merge occurred. GC3 remains REVISE / not passed.
+
+## M01 manifest interpretation correction — 2026-10-14
+
+The [subsequent source/offline investigation](../../tasks/codex-app-server-journeys/m01-manifest-investigation.md)
+finds that the fixture inspected only top-level tools, omitting Responses Lite additional_tools input
+items. The selected model's exact embedded metadata matches the immutable release source and selects
+CodeModeOnly; local code_mode=false alone is not an effective tool-surface attestation. Prior whole-request
+tool-absence conclusions are superseded while their records remain intact. Parser regressions pass;
+no new thread/turn, inference or permission change occurred. M01 remains partial; M02+ unstarted.
