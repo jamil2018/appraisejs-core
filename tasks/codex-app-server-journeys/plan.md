@@ -6,6 +6,10 @@ Shared implementation branch: `codex/journey-app-server-migration`, created from
 
 M00 now has an [approved, byte-frozen detailed contract](m00-host-authority-contract.md), [source/review evidence](m00-review-evidence.md) and [continuation handoff](CONTINUE-HERE.md). The [exact approval record](m00-r3-approval.md) binds f506fccb and the full contract hash; runtime qualification remains outstanding. M01 now has separately authorized [synthetic/no-model preparation](m01-evidence.md); [native-provider probing](m01-remaining-probe.md) was subsequently authorized, with current check-only steering and an unauthenticated isolated state recorded in [the native checkpoint](m01-native-provider-checkpoint.md).
 
+Latest auth authority: [amendment 01](m00-auth-amendment-01.md) permits existing native login reuse,
+check-only failure and the bounded M01 probe; original M00 bytes remain unchanged. Prior checkpoints
+are historical. M02+ remains unstarted.
+
 ## Scope and authority
 
 Keep users in AppraiseJS for briefs, questions, reviews, consent, progress, recovery and results. Run Codex as a supervised local backend using MCP. There is no chat composer, transcript product, manual prompt handoff, or requirement to open Codex desktop in the normal flow. Native provider sign-in and target-site login may still require a browser; no-chat does not mean unattended authentication.

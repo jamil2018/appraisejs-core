@@ -1,4 +1,4 @@
-"""Authorized disposable native probe. Never imports ambient auth or retries a start."""
+"""Authorized disposable native probe. References existing login; never retries a start."""
 
 import argparse
 import hashlib
@@ -113,10 +113,22 @@ def receipt(root):
         raise RuntimeError("unowned or mismatched state")
     if digest((root / "codex/config.toml").read_bytes()) != digest(CONFIG.encode()):
         raise RuntimeError("config changed")
+    auth_target = r.get("existingAuthFile")
+    if auth_target:
+        link = root / "codex/auth.json"
+        if not link.is_symlink() or str(link.readlink()) != auth_target:
+            raise RuntimeError("existing auth binding changed; park")
     return r
 
 
-def prepare():
+def prepare(existing_home=None):
+    auth_file = None
+    if existing_home is not None:
+        auth_file = existing_home.resolve() / "auth.json"
+        if not auth_file.is_file() or auth_file.is_symlink():
+            raise RuntimeError("AUTHENTICATION_REQUIRED: existing file login missing")
+        if stat.S_IMODE(auth_file.stat().st_mode) & 0o077:
+            raise RuntimeError("existing credential file permissions are not private")
     root = pathlib.Path(
         tempfile.mkdtemp(prefix="appraise-m01-native-", dir="/private/tmp")
     )
@@ -124,6 +136,8 @@ def prepare():
         (root / name).mkdir(mode=0o700)
     (root / "codex/config.toml").write_text(CONFIG)
     (root / "codex/config.toml").chmod(0o600)
+    if auth_file:
+        (root / "codex/auth.json").symlink_to(auth_file)
     save(
         root / "receipt.json",
         {
@@ -135,6 +149,12 @@ def prepare():
             ),
             "sourceSha256": digest(pathlib.Path(__file__).read_bytes()),
             "authenticationPolicy": "check-only; Codex owns sign-in",
+            "existingAuthFile": str(auth_file) if auth_file else None,
+            "authAmendmentSha256": digest(
+                (TASK / "m00-auth-amendment-01.md").read_bytes()
+            )
+            if auth_file
+            else None,
             "probeStarted": False,
             "turnStarts": 0,
             "m01Complete": False,
@@ -257,6 +277,15 @@ class Connection:
                 "contextCompaction",
             ):
                 raise RuntimeError("unexpected native item/activity; park")
+            self.evidence.setdefault("items", []).append(
+                {
+                    "method": method,
+                    "threadId": params.get("threadId"),
+                    "turnId": params.get("turnId"),
+                    "itemId": params.get("item", {}).get("id"),
+                    "type": kind,
+                }
+            )
         if method in ("turn/started", "turn/completed", "item/agentMessage/delta"):
             turn_id = params.get("turnId", params.get("turn", {}).get("id"))
             if params.get("threadId") != self.thread_id:
@@ -307,6 +336,7 @@ class Connection:
         return response["result"]
 
     def initialize(self, require_auth=True):
+        receipt(self.root)
         response = self.rpc(
             "initialize",
             {
@@ -450,6 +480,15 @@ def probe(root):
             "thread/resume", {**shared(root), "threadId": e["threadId"]}
         )
         e["restartResumeMatches"] = resumed["thread"]["id"] == e["threadId"]
+        persisted = connection.rpc(
+            "thread/read", {"threadId": e["threadId"], "includeTurns": True}
+        )
+        e["firstTurnPersisted"] = any(
+            turn["id"] == ack["result"]["turn"]["id"] and turn["status"] == "completed"
+            for turn in persisted["thread"].get("turns", [])
+        )
+        if not e["restartResumeMatches"] or not e["firstTurnPersisted"]:
+            raise RuntimeError("first-turn persistence mismatch; park")
         request_id = start_turn(
             connection,
             root,
@@ -498,6 +537,10 @@ def probe(root):
     finally:
         connection.close()
         e["turnStarts"] = r["turnStarts"]
+        e["authenticationPolicy"] = "existing native file login; check-only"
+        e["existingAuthBinding"] = bool(r.get("existingAuthFile"))
+        e["runnerSourceSha256"] = r["sourceSha256"]
+        e["authAmendmentSha256"] = r.get("authAmendmentSha256")
         e["generatedAtUtc"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
         save(root / "observation.json", e)
         print(
@@ -516,11 +559,14 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("mode", choices=["prepare", "check", "probe"])
     parser.add_argument("root", nargs="?", type=pathlib.Path)
+    parser.add_argument("--existing-codex-home", type=pathlib.Path)
     args = parser.parse_args()
     preflight()
     if args.mode == "prepare":
-        prepare()
+        prepare(args.existing_codex_home)
     else:
+        if args.existing_codex_home is not None:
+            raise RuntimeError("existing home may only be bound during preparation")
         if args.root is None or args.root.parent != pathlib.Path("/private/tmp"):
             raise RuntimeError("explicit owned /private/tmp state required")
         if args.mode == "check":

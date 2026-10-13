@@ -1,0 +1,17 @@
+{
+  "processExits": [0],
+  "processStarts": 1,
+  "userAgent": "appraise_m01_native/0.162.0-alpha.17.2 (Mac OS 27.0.1; arm64) unknown (appraise_m01_native; 0.1)",
+  "effectiveConfigSha256": "8867d26821dc25878dad751c12ff72b625a390d5c64cd4c07febc79973b0401b",
+  "accountType": "chatgpt",
+  "status": "AUTHENTICATED",
+  "evidenceClass": "live-existing-login-check",
+  "binarySha256": "0d5ac7aae20c4eda6242428d5e218c55ba96d8763fda2a271088ff37104b9d28",
+  "runnerSourceSha256": "a78543ff514cf2c8e3860ea080205d664e572a4ef6f2d06ff7a5919ce266ff0d",
+  "authAmendmentSha256": "9a3fb4c3716363316900ea7d6569d0c35186a1886936bc0ffd05d3ae84c4ff49",
+  "checkExitCode": 0,
+  "turnStarts": 0,
+  "m01Complete": false,
+  "initialRestrictedCheck": "account/read rejected; same read-only check passed with sandbox escalation",
+  "credentialContentsRetained": false
+}

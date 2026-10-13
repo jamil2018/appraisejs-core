@@ -12,6 +12,12 @@ the observation commit and contains only generator output.
 
 ## Current checkpoint
 
+**2026-10-14 amendment:** [M00 authentication amendment 01](m00-auth-amendment-01.md) now authorizes
+existing Codex login reuse with check-only failure. It supersedes the prior auth-isolation stop below;
+M00-r3 bytes stay frozen. The disposable state references only the existing native auth file, with its
+own config/cwd/history. An escalated account/read check reports ChatGPT AUTHENTICATED; no login launch.
+At this preparation checkpoint zero turns are consumed; the authorized three-turn probe is next.
+
 **Latest native-probe continuation:** read [native-provider authority/check-only checkpoint](m01-native-provider-checkpoint.md).
 The user authorized isolated sign-in and at most three native inference turns, then allowed built-in provider
 transport defaults with no supervisor start resends. Subsequent steering requests **check-only authentication**:

@@ -18,6 +18,31 @@ spec.loader.exec_module(probe)
 
 
 class NativeProbeGuards(unittest.TestCase):
+    def test_missing_existing_login_fails_before_preparation(self):
+        with tempfile.TemporaryDirectory(dir="/private/tmp") as directory:
+            with self.assertRaisesRegex(RuntimeError, "AUTHENTICATION_REQUIRED"):
+                probe.prepare(pathlib.Path(directory))
+
+    def test_changed_auth_link_is_rejected(self):
+        with tempfile.TemporaryDirectory(
+            prefix="appraise-m01-native-", dir="/private/tmp"
+        ) as directory:
+            root = pathlib.Path(directory)
+            (root / "codex").mkdir()
+            (root / "codex/config.toml").write_text(probe.CONFIG)
+            (root / "codex/auth.json").symlink_to("/private/tmp/unexpected-auth")
+            probe.save(
+                root / "receipt.json",
+                {
+                    "stateId": root.name,
+                    "binarySha256": probe.BINARY_SHA,
+                    "sourceSha256": probe.digest(source.read_bytes()),
+                    "existingAuthFile": "/private/tmp/expected-auth",
+                },
+            )
+            with self.assertRaisesRegex(RuntimeError, "auth binding changed"):
+                probe.receipt(root)
+
     def test_fourth_turn_is_refused_before_send(self):
         connection = types.SimpleNamespace(
             send=lambda *_args: self.fail("unexpected send")

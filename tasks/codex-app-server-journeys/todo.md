@@ -26,6 +26,10 @@ Use the [Open Design reading map and adaptation rules](open-design-reference.md)
 
 ### M01: Qualify the app-server protocol
 
+**2026-10-14 authority update:** [auth amendment 01](m00-auth-amendment-01.md) authorizes existing
+login reuse and at most three inference starts. Existing native ChatGPT login check passed; M01 remains
+partial pending live observations and outstanding protocol variants. Prior status below is historical.
+
 **Status (2026-10-13):** Started, **partial; not complete**. [Evidence](m01-evidence.md) · [Prepared native-provider probe](m01-remaining-probe.md). 14 synthetic tests and 6 saved-evidence audits pass; actual-binary sentinel/local-SSE observations cover initialization, required-MCP rejection, start/resume, correlated events, interruption, unsupported requests and withheld replies. Native-auth/provider configuration and remaining permission/MCP elicitation variants are unqualified. Native probing was subsequently authorized, with built-in transport defaults and no supervisor resends; latest steering requires check-only authentication. The isolated auth check fails, with zero native starts. [Latest checkpoint](m01-native-provider-checkpoint.md).
 
 **Reference:** [Open Design guide](open-design-reference.md). Session/protocol tests and capability handling; test the actual launched binary, including required-MCP failure.
