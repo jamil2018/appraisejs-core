@@ -1,16 +1,18 @@
 # Codex app-server Journey migration tasks
 
-Status: active replacement roadmap adopted 2026-10-13; all implementation tasks unstarted. See [plan](plan.md). Existing Journey gates remain unchanged.
+Status: active replacement roadmap adopted 2026-10-13; M00 proposed contract reviewed for documentation sufficiency; approval pending. M01–M13 remain unstarted. See [plan](plan.md). Existing Journey gates remain unchanged.
 
 ## Implementation references
 
-Use the [Open Design reading map and adaptation rules](open-design-reference.md), pinned to the reviewed upstream revision. Read its relevant source/tests before each mapped slice; keep upstream observations separate from Appraise verification. All checkboxes below remain unstarted.
+Use the [Open Design reading map and adaptation rules](open-design-reference.md), pinned to the reviewed upstream revision. Read its relevant source/tests before each mapped slice; keep upstream observations separate from Appraise verification. M00 evidence is linked below; its approval checkbox remains open. All later tasks remain unstarted.
 
 ## Ordered tasks
 
 ### M00: Approve the host and authority contract
 
-**Reference:** [Open Design guide](open-design-reference.md). Architecture and permission differences; record supported host/build and Appraise authority without adopting upstream defaults.
+**Status (2026-10-13):** M00-r2 proposed contract prepared and independently reviewed; exact user acceptance pending. [Contract](m00-host-authority-contract.md) · [Review evidence](m00-review-evidence.md) · [Same-branch continuation](CONTINUE-HERE.md). No runtime qualification or later task started.
+
+**Reference:** [Open Design guide](open-design-reference.md). Architecture and permission differences; record the host/build feasibility candidate, later support-qualification policy and Appraise authority without adopting upstream defaults.
 
 - [ ] Implement and verify this slice.
 
@@ -18,7 +20,7 @@ Use the [Open Design reading map and adaptation rules](open-design-reference.md)
 
 **Likely files:** docs/decisions/ (new ADR); docs/agent-lifecycle-flow.md; migration plan/register. Paths described as new are proposed, not current source.
 
-**Acceptance:** Record opt-in managed mode, external admission mapping, session generation and no-chat policy; preserve existing GC statuses. Choose supported OS/build/auth and explicitly deny repository writes by the worker for the initial scope.
+**Acceptance:** Record opt-in managed mode, external admission mapping, session generation and no-chat policy; preserve existing GC statuses. Select the initial OS/build/auth feasibility candidate and exact support-qualification policy; no supported-runtime claim before M01/M02 evidence and M03 mandatory-session re-probes. Explicitly deny repository writes by the worker for the initial scope.
 
 **Verification:** Contract review against all six role payloads and current handoff/claim semantics; independent review of authority boundaries.
 
@@ -48,7 +50,7 @@ Use the [Open Design reading map and adaptation rules](open-design-reference.md)
 
 **Acceptance:** Demonstrate scoped role reads/submissions and rejection of forged target/generation, human decisions, broader MCP, direct database/source/credential access and unauthorized native tools. Determine auth setup without importing ambient configuration.
 
-**Verification:** Adversarial gateway tests and live escape probes on the supported host; no containment claim from config alone. Stop if effective boundary cannot be established.
+**Verification:** Adversarial gateway tests and live escape probes on the supported host; no containment claim from config alone. Stop if effective boundary cannot be established. M02 authority results are provisional until M03 mandatory-session re-probes pass; no product managed dispatch is permitted by M02. Explicit disposable legacy fixtures must not qualify absent-session admission.
 
 ### M03: Persist host-neutral sessions
 
@@ -62,7 +64,7 @@ Use the [Open Design reading map and adaptation rules](open-design-reference.md)
 
 **Acceptance:** Persist explicit execution mode for new Journeys; preserve legacy effective owners and attempt bindings rather than blanket-backfilling external mode. Mixed/unresolved ownership requires recovery; active managed work needs explicit transfer. Provider availability never changes mode. Managed calls require a current session before first takeover; desktop compatibility and historical rows remain readable. Concurrent takeover fences predecessor inside commit transactions.
 
-**Verification:** SQLite migration fixtures for legacy MANAGED, EXTERNAL_V1 and mixed/unknown ownership, preservation and pre-first-takeover, stale-generation, missing-binding, cross-target and concurrent takeover tests; migration inventory verification.
+**Verification:** SQLite migration fixtures for legacy MANAGED, EXTERNAL_V1 and mixed/unknown ownership, preservation and pre-first-takeover, stale-generation, missing-binding, cross-target and concurrent takeover tests; re-probe M02 claim/admit and all six specialized writes under missing/stale/valid mandatory host sessions before M04+ dispatch eligibility; migration inventory verification.
 
 ### M04: Persist provider dispatch and wake intent
 

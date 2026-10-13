@@ -1,6 +1,10 @@
 # Codex app-server behind AppraiseJS: Journey migration plan
 
-Date: 2026-10-12. Direction adopted 2026-10-13. Status: active replacement roadmap under [ADR-0005](../../docs/decisions/0005-codex-app-server-journeys.md); implementation and runtime qualification not started.
+Date: 2026-10-12. Direction adopted 2026-10-13. Status: active replacement roadmap under [ADR-0005](../../docs/decisions/0005-codex-app-server-journeys.md); M00 detailed contract proposed; approval pending; runtime qualification and M01–M13 not started.
+
+Shared implementation branch: `codex/journey-app-server-migration`, created from fetched `origin/appraise-0.5` at `8d4be5c8`. Use it for M00–M13 and U00–U10 across sessions; branch scope is not task-start authority. Local cohesive commits are authorized with hooks; push, merge and publication require separate instruction.
+
+M00 now has a [proposed detailed contract](m00-host-authority-contract.md), [source/review evidence](m00-review-evidence.md) and [continuation handoff](CONTINUE-HERE.md). Detailed scope remains proposed until exact approval.
 
 ## Scope and authority
 
@@ -46,7 +50,7 @@ flowchart TD
   Domain --> Tests[Existing consent-bound test runtime]
 ```
 
-Use one backend execution mode, provisionally `CODEX_APP_SERVER`, distinct from existing external desktop mode. Persist the explicit mode when creating a new Journey; never infer mode from provider availability or UI state. For legacy Journeys, preserve effective ownership and existing attempt bindings: WorkAttempt already permits MANAGED and EXTERNAL_V1 histories. Do not blanket-backfill external mode. Inventory active ownership and effects; mixed or unresolved ownership is recovery-required, and active managed work requires explicit quiescent transfer before adoption by the new backend. Historical attempts keep their original modes. Provider hosting mode and assignment admission mode are separate concepts. Initially reuse the externally admitted role contract through a trusted gateway, retaining `hostIsolation: NOT_ATTESTED` until an independently qualified boundary justifies a different claim. This is an explicit new composition; it does not activate the archived managed-provider design.
+Use one backend execution mode, provisionally `APP_SERVER_LOCAL_V1`, distinct from existing external desktop mode. Persist the explicit mode when creating a new Journey; never infer mode from provider availability or UI state. For legacy Journeys, preserve effective ownership and existing attempt bindings: WorkAttempt already permits MANAGED and EXTERNAL_V1 histories. Do not blanket-backfill external mode. Inventory active ownership and effects; mixed or unresolved ownership is recovery-required, and active managed work requires explicit quiescent transfer before adoption by the new backend. Historical attempts keep their original modes. Provider hosting mode and assignment admission mode are separate concepts. Initially reuse the externally admitted role contract through a trusted gateway, retaining existing admission receipts with `hostIsolation: NOT_ATTESTED`; any independently qualified host boundary is separate evidence and never rewrites those receipts. This is an explicit new composition; it does not activate the archived managed-provider design.
 
 Run one role-bound attempt at a time per Journey, with a conservative installation-wide concurrency cap of one initially. Use separate role/attempt threads rather than one unlimited coordinator conversation. Appraise determines eligible work and supplies the exact assignment; the agent proposes the assigned artifact through MCP. Resume a thread only while the same role, input hash, assignment and generation remain valid. A new revision creates a fresh assignment/context. Define the mapping to existing external claim/admit transactions before coding; the host must not create both a Factory attempt and a second external attempt for the same work.
 
@@ -94,7 +98,7 @@ Current official [App Server documentation](https://learn.chatgpt.com/docs/app-s
 ## Rollout and rollback
 
 1. Follow adopted ADR-0005 and this task track; settle M00’s detailed host and authority contract before implementation. Retain ADR-0004 and archived evidence as historical decisions. Do not reopen or close GC3 implicitly.
-2. Prove the isolated runtime and scoped MCP composition on disposable data; no production Journey or temporary authentication by implication.
+2. Prove the isolated runtime and scoped MCP composition on disposable data; M02 results are provisional until M03 mandatory-session re-probes pass; no production Journey or temporary authentication by implication.
 3. Prove Analysis and structured clarification on disposable/internal Journeys, then remaining roles and test/report flows. M06–M07 are internal proof only. Any user-facing opt-in requires M11 core recovery and its crash matrix, plus applicable containment and installation checks; a feature flag is not a recovery exemption.
 4. Qualify recovery and installed packaging before making the mode default. Existing desktop Journeys continue under their existing bindings.
 5. Allow explicit conversion of an existing Journey only at a quiescent boundary with reconciled effects and human-approved ownership transfer. Atomically fence the predecessor and preserve remaining attempt budgets. No dual writers or automatic fallback from an ambiguous run.
@@ -110,7 +114,7 @@ Release requires all six roles, structured question/revision loops, scenario dec
 
 ## Review limitations and next decision
 
-No live model call, sign-in, containment probe, billing verification or recovery experiment was run for this plan. Current implementation evidence supports reuse of domain services, not drop-in reuse of managed Factory attestations. The first implementation checkpoint must settle supported OS/version, provider auth, effective tool/process restrictions and the external-admission mapping before a schedule is committed. The next eligible proposed task is M00 (architecture/authority contract), followed by M01–M02 feasibility; none is started by this document.
+No live model call, sign-in, containment probe, billing verification or recovery experiment was run for this plan. Current implementation evidence supports reuse of domain services, not drop-in reuse of managed Factory attestations. The first implementation checkpoint must settle supported OS/version, provider auth, effective tool/process restrictions and the external-admission mapping before a schedule is committed. The next eligible proposed task is M00 (architecture/authority contract), followed by M01–M02 feasibility; M00 documentation has now started; no later task is authorized by this document.
 
 ## Companion UI planning update — 2026-10-12
 
