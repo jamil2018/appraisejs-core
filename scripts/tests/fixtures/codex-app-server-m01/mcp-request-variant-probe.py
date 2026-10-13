@@ -27,6 +27,7 @@ STUB = r"""
 import json,sys
 pending=None
 case=None
+issued_method=None
 def send(frame):
     print(json.dumps(frame),flush=True)
 for line in sys.stdin:
@@ -41,14 +42,21 @@ for line in sys.stdin:
         pending=f["id"]
         case=f["params"]["arguments"]["mode"]
         params={"mode":case,"message":"Synthetic no-effect elicitation"}
+        issued_method="elicitation/create"
         if case=="url":
             params.update(url="https://example.invalid/m01-fixture",elicitationId="m01-url")
         else:
             params["requestedSchema"]={"type":"object","properties":{"fixture":{"type":"string"}}}
-        send({"jsonrpc":"2.0","id":"elicitation-"+case,"method":"elicitation/create","params":params})
+        if case=="openai/form":
+            issued_method="openai/elicitation/create"
+            params["mode"]="form"
+        elif case=="openaiForm":
+            issued_method="openai/form"
+            del params["mode"]
+        send({"jsonrpc":"2.0","id":"elicitation-"+case,"method":issued_method,"params":params})
         continue
     elif method is None and f.get("id")=="elicitation-"+str(case):
-        observed={"mode":case,"action":f.get("result",{}).get("action"),"responseWasError":"error" in f}
+        observed={"mode":case,"protocolMethod":issued_method,"action":f.get("result",{}).get("action"),"responseWasError":"error" in f,"errorCode":f.get("error",{}).get("code"),"errorMessage":f.get("error",{}).get("message")}
         send({"jsonrpc":"2.0","id":pending,"result":{"content":[{"type":"text","text":"Synthetic fixture response"}],"structuredContent":observed}})
         continue
     if method and "id" in f:
