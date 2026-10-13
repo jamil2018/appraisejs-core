@@ -12,111 +12,42 @@ the observation commit and contains only generator output.
 
 ## Current checkpoint
 
-**Latest authorized no-model slice:** [manifest and RPC request-variant results](m01-request-variant-results.md).
-Actual `additional_tools` metadata is now captured. An independent RPC-only fixture observed native
-decline for form, URL and both OpenAI-form modes, with zero model turns or permission grants. Never
-policy prevented client-request forwarding; client cancellation and permission producer paths remain
-unqualified. M01 remains partial. No configuration or permission boundary was broadened.
-Latest local commit: find `test: record M01 manifest and native elicitation declines`.
+**M00 complete; M01 protocol qualification complete for the pinned tuple; M02–M13 and U00–U10 unstarted.**
+Read [current assessment](m01-qualification.md) for the acceptance matrix, exact config/source hashes,
+vendor-method mapping, policy-document provenance, independent review and unverified properties.
+Four true MCP request variants now roundtrip cancel; one native-produced scripted permission request
+roundtrips empty permissions. Zero additional external inference, permission grants or native exec.
+Approved M00 SHA-256:
+`1e39e733d5211db80705a1c34235d24580db618a9f505e7a16dc163398568133`.
+Existing-login authority is a separate [amendment](m00-auth-amendment-01.md); approved M00 bytes unchanged.
+Native inference remains exhausted at **3/3**; retain `/private/tmp/appraise-m01-native-l1mt4sms`.
+GC3 remains **REVISE / not passed**; no historical lifecycle rows or evidence erased.
 
-**Latest investigation:** [corrected manifest interpretation](m01-manifest-investigation.md). The fixture
-missed Responses Lite `input[].additional_tools` and assumed a direct MCP-call surface. Exact embedded
-model metadata matches immutable versioned source: CodeModeOnly/Responses Lite. Prior empty-whole-manifest
-claims are superseded, not erased. The parser is corrected with four offline regressions; no new
-thread/turn/provider request or runtime permission change occurred. M01 remains partial.
-Latest local commit: find `test: correct M01 Responses Lite manifest inspection`.
+## Verification and local commits
 
-**2026-10-14 latest:** [auth amendment 01](m00-auth-amendment-01.md) at `17febbf2` authorizes
-existing login reuse. [Native results](m01-native-results.md) record completion/persistence,
-active interruption and UNKNOWN withheld-ack reconciliation. **Three of three native inference starts
-consumed; no further inference grant remains.** No start was resent. Three owned provider children exited 0.
+37 deterministic checks (20 Node, nine native-runner guards, four manifest guards, four denial guards),
+focused Python Ruff, Prettier, documentation links, graph refresh and whitespace checks are recorded
+in the final assessment. Actual-binary observations remain a separate evidence class; upstream Rust
+tests were read, not executed. No product/runtime integration, build, schema or template change.
+Local commits in this exception slice: `411e8576`, `ddcefa6d`, `0f797490`; final assessment commit:
+find `test: qualify M01 cancellation and permission denial` in local git log. Hooks remain enabled.
 
-M01 stays **partial**: actual MCP elicitation/permission request variants remain open. The additional
-no-model elicitation fixture stopped because the provider tool manifest was empty; it did not qualify
-cancellation. [Remaining fixture/gap](m01-request-variants-remaining.md). Do not enable native effects or
-advance M02 to manufacture coverage. The previous [check-only checkpoint](m01-native-provider-checkpoint.md)
-is historical; its old default-login restriction is superseded by the amendment.
+## Same-branch handoff
 
-Native state is retained at `/private/tmp/appraise-m01-native-l1mt4sms`; do not erase its history,
-reset consumed budgets, redispatch or signal stored PIDs. This current handoff belongs to local commit
-`test: record M01 native results and open request-variant gap` (find by exact title in git log).
-The final local-only comparison is `test: preserve M01 MCP tool-exposure comparison`: a catalogued
-elicit tool remained absent from the provider manifest even with an explicit synthetic tool prompt.
-That investigation-only boundary was subsequently superseded for the authorized no-model slice above.
-No further starts are needed under the unchanged Never policy. The corrected parser does not qualify
-actual Code Mode/MCP availability or elicitation/permission denial.
-
-**M00 complete; M01 started and partial, not complete.**
-Approved contract SHA-256: `1e39e733d5211db80705a1c34235d24580db618a9f505e7a16dc163398568133`.
-Read [exact approval](m00-r3-approval.md), [byte-frozen contract](m00-host-authority-contract.md),
-[M00 review history](m00-review-evidence.md), [M01 evidence](m01-evidence.md), [remaining probe](m01-remaining-probe.md),
-plan/todo, Open Design map and ADR-0005. Preserve the contract's submission-time header and all approved bytes.
-
-Preparation includes 14 deterministic synthetic tests and 6 saved-evidence audits; these are **20 checks,
-not 20 live tests**. Actual pinned-binary observations separately establish initialization, required-MCP
-startup failure, real thread-start lost-reply refusal, and synthetic local-SSE turns with correlated events,
-active interruption, unsupported-request denial, withheld turn reply and same/new-process resume.
-A no-turn thread had no persisted rollout to resume; a synthetic completed turn did. Never resend an ambiguous start.
-
-CLI `0.162.0-alpha.17.2`, SHA-256 `0d5ac7aae20c4eda6242428d5e218c55ba96d8763fda2a271088ff37104b9d28`,
-macOS 27.0.1 / 26A434 / arm64. Exact configuration and stable/experimental schema pins are in the evidence bundle.
-The existing-login native provider smoke observation now establishes selected-model completion, persistence,
-interruption and withheld-ack reconciliation on this account/build/config only. MCP elicitation/permission
-variants, refresh/revocation, provider retry counts, wider host support and containment remain unqualified.
-The earlier cancelled sign-in and auth-required evidence remain historical; no new sign-in occurred.
-No schema migration, product/UI change, packaging or release work occurred. M02–M13 and U00–U10 remain unstarted.
-Historical lifecycle records/evidence remain intact; GC3 remains **REVISE / not passed**.
-
-## Validation and local workflow
-
-- `node --test scripts/tests/codex-app-server-m01-*.test.mjs`: 20 passing no-model checks.
-- `python3 scripts/tests/codex-app-server-m01-native.test.py`: 8 deterministic native-runner guard tests.
-- Existing-login check: authenticated. Native smoke: three starts, no resend, three clean child exits.
-- No-model MCP elicitation attempt: tool manifest empty; cancellation unqualified, child exit 0.
-- Focused ESLint/Prettier, Python Ruff formatting/lint, docs links and diff whitespace checks pass.
-- Graphify scripts refresh: deterministic AST extraction, zero document/model inputs; generated outputs retained.
-- Fallow hook initially blocked task-directory reachability and complexity. Fixed by conventional test-directory
-  placement and smaller handlers; final hook passes without suppression/baseline changes. React Doctor reports
-  no staged product source. Local hooks remain enabled.
-- Repository-only fixtures live under scripts/tests, already removed by template preparation. No product build,
-  template-affecting change, schema/package migration or release check is claimed.
-
-Starting worktree was clean. Preserve any later unrelated dirty files/staged changes. Inspect local commits,
-branch/worktree and remote again before continuation; do not reset, rebase or replace the shared branch.
-Local cohesive commits with hooks are authorized. **Do not push, merge or publish.** A future separately authorized
-push must explicitly name the feature ref rather than use the base-tracking default.
-
-## Next bounded action and authority
-
-Inspect/reconcile m01-request-variant-results.md and the retained M01 evidence with the corrected Lite/CodeModeOnly interpretation.
-Continue source/schema/deterministic preparation only; no new fixture turn or provider request. Preserve independent records of synthetic tests, local scripted host observations and
-native inference. The [remaining plan](m01-request-variants-remaining.md) does not grant native tool effects,
-M02 work or another inference turn. Authentication remains check-only against the existing Codex login;
-missing login errors, without sign-in/account/API fallback. Do not import ambient configuration.
-Original M00 bytes and GC3 REVISE remain unchanged; local commits with hooks only.
-
-Useful commands:
-
-```sh
-node --test scripts/tests/codex-app-server-m01-*.test.mjs
-node scripts/tests/fixtures/codex-app-server-m01/no-model-probe.mjs /absolute/pinned/codex /absolute/disposable-observation.json
-python3 scripts/tests/fixtures/codex-app-server-m01/stream-fixture-probe.py
-```
-
-The Python fixture writes `/private/tmp/appraise-m01-stream-observation.json`, uses only scripted loopback SSE,
-and may need the documented sandbox escalation for local socket binding. Its source digest is bound by the
-retained audit. Do not relabel these runners as native-provider tests or make them accept an existing auth home.
+Inspect branch/worktrees/origin/local commits and dirty files before continuation. Reuse
+`codex/journey-app-server-migration`; preserve unrelated changes and retained disposable histories.
+No reset/rebase, ambiguous start resend, budget reset, stored-PID signals or unknown-state deletion.
+The next ordered slice is M02, but it is **not authorized or started**. Until separate authorization,
+only read/review the existing assessment and prepare a bounded proposal; no new runtime probe,
+external inference, grants, containment implementation, UI, schema, M02+ or release work.
+No push, merge or publication; local cohesive commits with hooks only.
 
 Copy-ready continuation:
 
-> Continue AppraiseJS in /Users/jamil/Personal Projects/appraisejs on codex/journey-app-server-migration.
-> Inspect branch/worktree/remote and local commits. Read CONTINUE-HERE.md, frozen M00/approval,
-> m00-auth-amendment-01.md, m01-native-results.md, m01-request-variants-remaining.md and plan/todo.
-> M01 remains partial. Three native starts consumed; no further inference without a new explicit grant.
-> Existing login/check-only is authorized; no sign-in, account switch or ambient config import.
-> Read m01-manifest-investigation.md and m01-request-variant-results.md. Native policy declined all four
-> elicitation modes without forwarding; client roundtrips/permission producer paths remain unqualified.
-> Continue only source/schema/deterministic preparation under
-> the latest no-more-inference/no-broader-permissions instruction; no new thread/turn/provider request. Do not weaken native-tool boundaries or start M02+. Preserve retained
-> native history and UNKNOWN provenance, approved M00 bytes and GC3 REVISE. No ambiguous start resend.
-> Local commits with hooks only; no push, merge or publish.
+> Continue AppraiseJS on codex/journey-app-server-migration in /Users/jamil/Personal Projects/appraisejs.
+> Inspect branch/worktree/remote/local commits. Read CONTINUE-HERE.md, m01-qualification.md,
+> frozen M00/approval, m00-auth-amendment-01.md and plan/todo/ADR-0005.
+> M01 protocol qualification is complete only for the pinned tuple. M02+ remains unstarted.
+> Review existing evidence and propose the exact next bounded authorization; do not start M02 or new probes.
+> Native inference budget is exhausted at 3/3; no grants or further inference. Preserve UNKNOWN/history,
+> approved M00 bytes and GC3 REVISE. Local commits with hooks only; no push, merge or publish.

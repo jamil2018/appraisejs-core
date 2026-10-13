@@ -7,8 +7,8 @@ Date: 2026-10-14 (Asia/Dhaka). Bounded probe authorization; approved M00 bytes r
 For RPC-only elicitation, replace Never in the owned disposable fixture with granular approval:
 `mcp_elicitations=true`; `sandbox_approval=false`, `rules=false`, `request_permissions=false`,
 `skill_approval=false`. Retain read-only sandbox, no auth, non-serving offline provider and existing
-disabled feature flags. Declare only the `openai/form` MCP extension needed to receive/cancel vendor
-forms. The pinned protocol requires experimentalApi=true to accept granular approvalPolicy; this
+disabled feature flags. Declare only `openai/form` and `openai/elicitation` with `form={}` to receive/cancel the two
+distinct vendor form methods; no user-verification capability. The pinned protocol requires experimentalApi=true to accept granular approvalPolicy; this
 receive-only opt-in is fixture-only, with no attestation, OAuth login or additional method use. Every elicitation reply is cancel with
 null content. URLs are never opened; no answer or acceptance is sent.
 

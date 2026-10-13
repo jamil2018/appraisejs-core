@@ -1,6 +1,6 @@
 # ADR-0005: Run Codex app-server behind AppraiseJS Journeys
 
-Status: accepted direction; M00-r3 detailed design contract explicitly approved and byte-frozen; authentication amendment recorded; M00 complete; M01 partial with native smoke observed and request variants outstanding; M02+ not started.
+Status: accepted direction; M00-r3 detailed design contract explicitly approved and byte-frozen; authentication amendment recorded; M00 complete; M01 protocol qualification complete for the pinned tuple; M02+ not started.
 Date: 2026-10-13. Authority: user explicitly retired the old plan in favor of the Codex CLI-driven mechanism.
 Supersedes: [ADR-0004](0004-stock-codex-journey-handoff.md).
 
@@ -67,3 +67,13 @@ OpenAI-form elicitation modes. No external inference, native exec or permission 
 policy prevented client forwarding under unchanged read-only settings; client roundtrip cancellation
 and native permission-request production remain unqualified. M01 stays partial, M02+ unstarted, and
 approved M00/auth-amendment bytes plus GC3 REVISE remain preserved.
+
+## M01 final fixture qualification — 2026-10-14
+
+[Final assessment](../../tasks/codex-app-server-journeys/m01-qualification.md) records four actual-binary
+RPC cancellation variants and one native-produced permission request answered with empty permissions,
+using the explicitly authorized asking-only synthetic fixture exception. Zero new external inference,
+permission grants or native exec calls. Previous partial checkpoints above are historical; M01 protocol
+acceptance is complete for the pinned tuple, with reviewed mode mapping and historical policy hashes.
+M00 approved bytes remain unchanged. Model-driven MCP routing, containment and managed-runtime
+qualification remain unverified; M02+ remains unstarted, GC3 REVISE / not passed, local commits only.

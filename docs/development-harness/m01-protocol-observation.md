@@ -83,3 +83,20 @@ producer paths remain unqualified and M01 partial. Source references are pinned 
 were read rather than run. Lesson: distinguish producer, native policy and client response stages.
 Route `c4b8e952-f42b-45d0-9e4c-d22bde70ca61` preceded coordinator-only execution; no subagent overlap
 or effective-host proof claim. Advisory only, no harness policy or lifecycle gate change.
+
+## Fixture-only asking exception and acceptance review — 2026-10-14
+
+User authorization was limited to cancellation and empty permission grants, using owned synthetic
+fixtures. Granular policy required experimentalApi; vendor mode aliases were insufficient to test
+custom methods. The newer vendor method also required receive-only `openai/elicitation` form capability.
+Retain failed prototypes instead of relabelling them as successes. A scripted active step exercised
+native permission production without external inference, command follow-up or grants; distinguish it
+from natural Code Mode tool selection. [Final evidence](../../tasks/codex-app-server-journeys/m01-qualification.md).
+
+A bounded investigator and independent reviewer had separate read-only evidence responsibilities;
+root owned writes. Routes `30a4da7d-a473-4306-9e95-022f8097f64e` and
+`1aaab7fd-3420-40e1-b6af-cc11eb09f6bc` requested those roles. Host-effective role/model/context/sandbox
+receipts were unavailable, so enforcement and scored harness success remain unverified. Review found
+stale status and vendor naming/provenance ambiguities; corrected documentation without spending
+another runtime turn. This is useful governance and resource evidence, not an efficiency benchmark.
+No routing, permission, quality-gate or harness-selection policy changed.

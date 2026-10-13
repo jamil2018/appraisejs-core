@@ -1,15 +1,15 @@
 # Codex app-server Journey migration tasks
 
-**Latest no-model result (2026-10-14):** [request-variant results](m01-request-variant-results.md)
-now capture actual additional_tools and native RPC-path decline of all four elicitation modes. Never
-policy prevents forwarding in the unchanged read-only setup. Client cancellation/permission producer
-paths remain unqualified; no external inference or broader permissions. M01 remains partial.
+**Current status (2026-10-14):** [M01 protocol qualification](m01-qualification.md) is complete
+for the pinned binary/host/configurations. Final no-model fixtures qualify four true elicitation
+cancellation variants and a native-produced scripted permission denial. Zero new external inference
+or grants. M00 bytes and GC3 REVISE remain intact; M02–M13 remain unstarted.
 
-Status: active replacement roadmap adopted 2026-10-13; M00-r3 explicitly approved at f506fccb and its exact SHA-256; M00 complete as a design-contract slice. M01 has authorized preparation/no-model evidence and remains partial; M02–M13 remain unstarted. See [plan](plan.md). Existing Journey gates remain unchanged.
+Status: active replacement roadmap adopted 2026-10-13; M00-r3 explicitly approved at f506fccb and its exact SHA-256; M00 complete as a design-contract slice. M01 protocol qualification is complete for the pinned tuple; M02–M13 remain unstarted. See [plan](plan.md). Existing Journey gates remain unchanged.
 
 ## Implementation references
 
-Use the [Open Design reading map and adaptation rules](open-design-reference.md), pinned to the reviewed upstream revision. Read its relevant source/tests before each mapped slice; keep upstream observations separate from Appraise verification. M00 evidence and exact user approval are linked below; M00 is complete. M01 preparation is recorded in [M01 evidence](m01-evidence.md); native-provider qualification is outstanding. M02+ remains unstarted.
+Use the [Open Design reading map and adaptation rules](open-design-reference.md), pinned to the reviewed upstream revision. Read its relevant source/tests before each mapped slice; keep upstream observations separate from Appraise verification. M00 evidence and exact user approval are linked below; M00 is complete. M01 preparation is recorded in [M01 evidence](m01-evidence.md); native-provider and request-variant observations are recorded in the current qualification assessment. M02+ remains unstarted.
 
 ## Ordered tasks
 
@@ -31,22 +31,16 @@ Use the [Open Design reading map and adaptation rules](open-design-reference.md)
 
 ### M01: Qualify the app-server protocol
 
-**Latest diagnosis:** [manifest investigation](m01-manifest-investigation.md) finds a top-level-only
-fixture observer and a CodeModeOnly/Responses Lite model. Whole-request tool absence was not observed.
-Parser corrected with offline regressions; M01 still partial for actual request-variant qualification.
-No further starts, inference or broadened permissions in this slice.
-
-**2026-10-14 authority update:** [auth amendment 01](m00-auth-amendment-01.md) authorizes existing
-login reuse and at most three inference starts. Existing native ChatGPT login check passed; [native results](m01-native-results.md) observe completion/
-persistence, interruption and withheld-ack reconciliation. All three inference starts consumed; none
-resent. M01 remains partial for [open request variants](m01-request-variants-remaining.md); local elicitation
-fixture advertised no tools and did not qualify cancellation. Prior status below is historical.
-
-**Status (2026-10-13):** Started, **partial; not complete**. [Evidence](m01-evidence.md) · [Prepared native-provider probe](m01-remaining-probe.md). 14 synthetic tests and 6 saved-evidence audits pass; actual-binary sentinel/local-SSE observations cover initialization, required-MCP rejection, start/resume, correlated events, interruption, unsupported requests and withheld replies. Native-auth/provider configuration and remaining permission/MCP elicitation variants are unqualified. Native probing was subsequently authorized, with built-in transport defaults and no supervisor resends; latest steering requires check-only authentication. The isolated auth check fails, with zero native starts. [Latest checkpoint](m01-native-provider-checkpoint.md).
+**Status (2026-10-14): Complete for M01 protocol acceptance only.**
+[Current qualification and limits](m01-qualification.md) · [Native results](m01-native-results.md).
+Existing login reuse follows the separate [auth amendment](m00-auth-amendment-01.md).
+Three of three native inference starts consumed; none resent. Client cancellation and scripted native
+permission denial now observed under the explicitly authorized fixture-only exception. Earlier partial
+checkpoints remain historical evidence, not current blockers. No containment or production support claim.
 
 **Reference:** [Open Design guide](open-design-reference.md). Session/protocol tests and capability handling; test the actual launched binary, including required-MCP failure.
 
-- [ ] Implement and verify this slice.
+- [x] Qualify the pinned protocol with synthetic tests and authorized disposable observations.
 
 **Dependencies:** M00. **Estimated scope:** M; split further before implementation if the actual diff spans independent concerns.
 
@@ -232,9 +226,8 @@ Schema, session, gateway and supervisor changes are sequential shared contracts.
 
 ## Current checkpoint handoff
 
-> M00-r3 is explicitly approved at f506fccb and the exact hash in m00-r3-approval.md. Read CONTINUE-HERE.md and
-> the approval record before continuation; preserve the byte-frozen contract and all historical evidence/GC3 REVISE.
-> M01 has authorized synthetic/no-model preparation but remains partial. Read m01-evidence.md and
-> m01-remaining-probe.md and m01-native-provider-checkpoint.md for subsequent authorization and check-only
-> steering. No login launch or ambient credential/config reuse; native probe remains parked on auth-required. M02+, product migration, UI
-> and release remain unstarted. Local commits only with hooks; no push.
+Read [CONTINUE-HERE](CONTINUE-HERE.md) and [M01 qualification](m01-qualification.md).
+M00 bytes remain frozen; M01 protocol qualification is complete for the pinned tuple only.
+M02+ remains unstarted and requires separate authorization. Native budget exhausted at 3/3;
+no further inference or grants. Preserve history, UNKNOWN provenance and GC3 REVISE.
+Local commits with hooks only; no push, merge or publication.

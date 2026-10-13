@@ -192,7 +192,12 @@ required=true
                 "capabilities": {
                     "experimentalApi": cancellation_exception,
                     **(
-                        {"extensions": {"openai/form": {}}}
+                        {
+                            "extensions": {
+                                "openai/form": {},
+                                "openai/elicitation": {"form": {}},
+                            }
+                        }
                         if cancellation_exception
                         else {}
                     ),

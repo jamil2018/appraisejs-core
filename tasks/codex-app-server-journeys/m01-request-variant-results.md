@@ -1,6 +1,8 @@
 # M01 corrected manifest and RPC request variants
 
-Date: 2026-10-14 (Asia/Dhaka). **M01 partial; no additional external inference or permission grant.**
+Historical checkpoint superseded by [final M01 qualification](m01-qualification.md); retained observations below are unchanged.
+
+Date: 2026-10-14 (Asia/Dhaka). **At this checkpoint M01 partial; no additional external inference or permission grant.**
 Started clean at `0e6ab9c2` on `codex/journey-app-server-migration`. The user authorized the corrected
 no-model fixture and request variants, preserving M00/GC3 and prohibiting broader permissions/M02+.
 This supersedes the prior investigation-only no-new-fixture-start boundary for this disposable slice.

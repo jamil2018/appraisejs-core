@@ -1,24 +1,24 @@
 # Codex app-server behind AppraiseJS: Journey migration plan
 
-**Latest no-model result (2026-10-14):** [request-variant results](m01-request-variant-results.md)
-now capture actual additional_tools and native RPC-path decline of all four elicitation modes. Never
-policy prevents forwarding in the unchanged read-only setup. Client cancellation/permission producer
-paths remain unqualified; no external inference or broader permissions. M01 remains partial.
+**Current status (2026-10-14):** [M01 protocol qualification](m01-qualification.md) is complete
+for the pinned binary/host/configurations. Final no-model fixtures qualify four true elicitation
+cancellation variants and a native-produced scripted permission denial. Zero new external inference
+or grants. M00 bytes and GC3 REVISE remain intact; M02–M13 remain unstarted.
 
-Date: 2026-10-12. Direction adopted 2026-10-13. Status: active replacement roadmap under [ADR-0005](../../docs/decisions/0005-codex-app-server-journeys.md); M00-r3 design contract explicitly approved; M00 complete; M01 preparation started and partial; native-provider qualification outstanding; M02–M13 not started.
+Date: 2026-10-12. Direction adopted 2026-10-13. Status: active replacement roadmap under [ADR-0005](../../docs/decisions/0005-codex-app-server-journeys.md); M00-r3 design contract explicitly approved; M00 complete; M01 protocol qualification complete for the pinned tuple; M02–M13 not started.
 
 Shared implementation branch: `codex/journey-app-server-migration`, created from fetched `origin/appraise-0.5` at `8d4be5c8`. Use it for M00–M13 and U00–U10 across sessions; branch scope is not task-start authority. Local cohesive commits are authorized with hooks; push, merge and publication require separate instruction.
 
-M00 now has an [approved, byte-frozen detailed contract](m00-host-authority-contract.md), [source/review evidence](m00-review-evidence.md) and [continuation handoff](CONTINUE-HERE.md). The [exact approval record](m00-r3-approval.md) binds f506fccb and the full contract hash; runtime qualification remains outstanding. M01 now has separately authorized [synthetic/no-model preparation](m01-evidence.md); [native-provider probing](m01-remaining-probe.md) was subsequently authorized, with current check-only steering and an unauthenticated isolated state recorded in [the native checkpoint](m01-native-provider-checkpoint.md).
+M00 now has an [approved, byte-frozen detailed contract](m00-host-authority-contract.md), [source/review evidence](m00-review-evidence.md) and [continuation handoff](CONTINUE-HERE.md). The [exact approval record](m00-r3-approval.md) binds f506fccb and the full contract hash; later containment/production qualification remains outstanding. M01 has separately authorized [synthetic/no-model preparation](m01-evidence.md); [native-provider probing](m01-remaining-probe.md) was subsequently authorized, with current check-only steering and an unauthenticated isolated state recorded in [the native checkpoint](m01-native-provider-checkpoint.md).
 
 Latest auth authority: [amendment 01](m00-auth-amendment-01.md) permits existing native login reuse,
 check-only failure and the bounded M01 probe; original M00 bytes remain unchanged. Prior checkpoints
 are historical. [Native results](m01-native-results.md) record three consumed starts with persistence,
-interruption and no-resend UNKNOWN reconciliation. M01 remains partial for request variants; M02+ remains unstarted.
+interruption and no-resend UNKNOWN reconciliation. Final fixture-only cancellation/denial evidence completes M01 protocol qualification; M02+ remains unstarted.
 
 Latest [manifest investigation](m01-manifest-investigation.md) corrects the old empty-manifest inference:
 the fixture missed Responses Lite input tool schemas and assumed direct MCP calls for a CodeModeOnly
-model. M01 remains partial; no new live starts or permission changes are authorized in this investigation.
+model. That investigation checkpoint is historical; the separately authorized fixture-only exception now completes request-variant protocol evidence.
 
 ## Scope and authority
 
@@ -128,7 +128,7 @@ Release requires all six roles, structured question/revision loops, scenario dec
 
 ## Review limitations and next decision
 
-The original planning review ran no live model, sign-in, containment, billing or recovery experiment. Subsequent M01 work adds synthetic transport tests and actual-binary local-SSE start/resume/interruption observations, with no external provider inference. The later authorized isolated sign-in was cancelled under check-only steering. Current implementation evidence supports reuse of domain services, not drop-in reuse of managed Factory attestations. M00-r3 has settled the approved design contract, with the exact artifact and scope in [its approval record](m00-r3-approval.md). M01 is now started and partial under the separate bounded preparation instruction. Its [no-model evidence](m01-evidence.md) does not qualify native authentication/provider behavior; the [native checkpoint](m01-native-provider-checkpoint.md) records subsequent authorization, transport clarification and check-only steering. The isolated auth check fails; no native inference was performed. Later feasibility must qualify the exact OS/build, provider auth and effective boundaries; no runtime schedule or support claim follows from design acceptance.
+The original planning review ran no live model, sign-in, containment, billing or recovery experiment. Subsequent M01 work adds synthetic transport tests and actual-binary local-SSE start/resume/interruption observations, with no external provider inference. The later authorized isolated sign-in was cancelled under check-only steering. Current implementation evidence supports reuse of domain services, not drop-in reuse of managed Factory attestations. M00-r3 has settled the approved design contract, with the exact artifact and scope in [its approval record](m00-r3-approval.md). M01 was then started and partial under the bounded preparation instruction; current completion is recorded above. Its [no-model evidence](m01-evidence.md) does not qualify native authentication/provider behavior; the [native checkpoint](m01-native-provider-checkpoint.md) records subsequent authorization, transport clarification and check-only steering. At that historical checkpoint the isolated auth check failed and no native inference had been performed; later native and final fixture results supersede its incomplete status. Later feasibility must qualify the exact OS/build, provider auth and effective boundaries; no runtime schedule or support claim follows from design acceptance.
 
 ## Companion UI planning update — 2026-10-12
 

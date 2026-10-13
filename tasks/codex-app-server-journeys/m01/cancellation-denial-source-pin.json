@@ -1,0 +1,44 @@
+{
+  "repository": "openai/codex",
+  "commit": "740e5af33c71225640e0c1c1555c514c2c93ab74",
+  "files": [
+    {
+      "file": "codex-rs/core/src/session/mod.rs",
+      "sha256": "da059e92ebd182fba45be661c516114f5276167bb339a69f78403e32887f3438"
+    },
+    {
+      "file": "codex-rs/core/src/tools/handlers/request_permissions.rs",
+      "sha256": "a8a638e25026fe990ba2f1cd03669e7fac000aa0aff486609c5ea984a9b2150d"
+    },
+    {
+      "file": "codex-rs/core/src/tools/spec_plan.rs",
+      "sha256": "db040c0c07160af64bebd5a7a5071658cb7ff58db341edd70e2795958b1d07f3"
+    },
+    {
+      "file": "codex-rs/app-server/tests/suite/v2/request_permissions.rs",
+      "sha256": "6a71fb5f50f7787a12e77c89e16793d5597a25cdfa2fa3a929cffb3cf84eab15"
+    },
+    {
+      "file": "codex-rs/core/tests/suite/request_permissions_tool.rs",
+      "sha256": "2313bccecaf9f1a72d8d6f6cd5c5b076f26bdf3a1e9c5211170c3ec61b7748d5"
+    },
+    {
+      "file": "codex-rs/codex-mcp/src/client_capabilities.rs",
+      "sha256": "d12599f80abe551c49a8a7793d95941e3a61d3e4835c3a656e570dab2d831137"
+    },
+    {
+      "file": "codex-rs/codex-mcp/src/client_capabilities_tests.rs",
+      "sha256": "1575fc293690c541c5a87dcb55ff8576cdf9805ad93414fc98c4c592baefcbcf"
+    },
+    {
+      "file": "codex-rs/protocol/src/mcp.rs",
+      "sha256": "d0d4efa82f985b53c426c0b1026b3af8b8cd0c4041ce19dee9cf4789000d0f81"
+    },
+    {
+      "file": "codex-rs/app-server/tests/suite/v2/mcp_server_elicitation.rs",
+      "sha256": "9c8eb513277375cbd86faeb17aa0b24688238fc760e42cf5bf80c88e5b5ffaa0"
+    }
+  ],
+  "rustTestsExecuted": false,
+  "binaryBuildProvenanceAttested": false
+}
