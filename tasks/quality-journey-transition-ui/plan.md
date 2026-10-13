@@ -6,6 +6,8 @@ Date: 2026-10-12. Status: active UI companion to the replacement roadmap adopted
 
 The user-endorsed [interactive wireframes](wireframes/index.html) are bundled with this plan. Start with the [wireframe guide and state-to-task map](wireframes/README.md) before implementing a screen. The editable source and standalone preview are repository-local; no conversation attachment is required. Wireframes govern the intended hierarchy and interaction direction, while canonical service contracts and this plan govern state, permissions, recovery and required edge cases.
 
+The [Open Design integration reference](../codex-app-server-journeys/open-design-reference.md) informs U01/U10's runtime event boundary. Its streamed presentation patterns must feed our single state-derived task projection; they do not introduce chat, raw agent output, or client-side lifecycle advancement. The wireframes and canonical Appraise contracts remain the UI reference.
+
 ## Product decision
 
 Replace the long Journey dashboard with one current task screen derived from authoritative Journey state. Keep a compact six-stage outline, a concise outcome/next-step explanation, one primary action when human action is required, and secondary access to prior work. While Appraise works, show a truthful waiting screen; do not ask the user to press Continue through automatic stages.

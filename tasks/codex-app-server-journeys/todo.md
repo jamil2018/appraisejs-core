@@ -2,9 +2,15 @@
 
 Status: active replacement roadmap adopted 2026-10-13; all implementation tasks unstarted. See [plan](plan.md). Existing Journey gates remain unchanged.
 
+## Implementation references
+
+Use the [Open Design reading map and adaptation rules](open-design-reference.md), pinned to the reviewed upstream revision. Read its relevant source/tests before each mapped slice; keep upstream observations separate from Appraise verification. All checkboxes below remain unstarted.
+
 ## Ordered tasks
 
 ### M00: Approve the host and authority contract
+
+**Reference:** [Open Design guide](open-design-reference.md). Architecture and permission differences; record supported host/build and Appraise authority without adopting upstream defaults.
 
 - [ ] Implement and verify this slice.
 
@@ -18,6 +24,8 @@ Status: active replacement roadmap adopted 2026-10-13; all implementation tasks 
 
 ### M01: Qualify the app-server protocol
 
+**Reference:** [Open Design guide](open-design-reference.md). Session/protocol tests and capability handling; test the actual launched binary, including required-MCP failure.
+
 - [ ] Implement and verify this slice.
 
 **Dependencies:** M00. **Estimated scope:** M; split further before implementation if the actual diff spans independent concerns.
@@ -30,6 +38,8 @@ Status: active replacement roadmap adopted 2026-10-13; all implementation tasks 
 
 ### M02: Qualify scoped MCP and containment
 
+**Reference:** [Open Design guide](open-design-reference.md). Permission-boundary comparison; independently prove Appraise MCP scoping and denied native/direct access.
+
 - [ ] Implement and verify this slice.
 
 **Dependencies:** M00, M01. **Estimated scope:** M; split further before implementation if the actual diff spans independent concerns.
@@ -41,6 +51,8 @@ Status: active replacement roadmap adopted 2026-10-13; all implementation tasks 
 **Verification:** Adversarial gateway tests and live escape probes on the supported host; no containment claim from config alone. Stop if effective boundary cannot be established.
 
 ### M03: Persist host-neutral sessions
+
+**Reference:** [Open Design guide](open-design-reference.md). Captured start/resume handles; bind them to canonical generation, attempt and revision rather than treating them as authority.
 
 - [ ] Implement and verify this slice.
 
@@ -66,6 +78,8 @@ Status: active replacement roadmap adopted 2026-10-13; all implementation tasks 
 
 ### M05: Supervise the local process
 
+**Reference:** [Open Design guide](open-design-reference.md). Session lifecycle and normalizer; decide per-turn child plus resume versus persistent child, and test owned cleanup and transport errors.
+
 - [ ] Implement and verify this slice.
 
 **Dependencies:** M01, M02, M04. **Estimated scope:** M; split further before implementation if the actual diff spans independent concerns.
@@ -89,6 +103,8 @@ Status: active replacement roadmap adopted 2026-10-13; all implementation tasks 
 **Verification:** SQLite full question/answer/revision loop and browser observation; missing/invalid artifact does not complete work; outcome_get resolves lost submission reply.
 
 ### M07: Expose runtime status in Journey UI
+
+**Reference:** [Open Design guide](open-design-reference.md). Normalized presentation events; retain polling first and no-chat forms, with canonical state acceptance independent of turn completion.
 
 Coordinate with the [transition UI tasks](../quality-journey-transition-ui/todo.md), especially U01–U04 and U10. Render status through the single current-task projection; do not add a parallel status dashboard.
 
@@ -140,6 +156,8 @@ Coordinate with the [transition UI tasks](../quality-journey-transition-ui/todo.
 
 ### M11: Reconcile pause, interruption and restart
 
+**Reference:** [Open Design guide](open-design-reference.md). Interruption and closed-child cleanup patterns; add Appraise lost-ack, lease, accepted-submission and unknown-effect reconciliation.
+
 - [ ] Implement and verify this slice.
 
 **Dependencies:** M06; recheck M08–M10. **Estimated scope:** M; split further before implementation if the actual diff spans independent concerns.
@@ -151,6 +169,8 @@ Coordinate with the [transition UI tasks](../quality-journey-transition-ui/todo.
 **Verification:** Crash matrix at intent/send/ack/tool-commit/pause boundaries, lease expiry, auth revocation, cleanup loss and duplicate delayed events. Never signal stored PIDs.
 
 ### M12: Qualify packaging and mode transfer
+
+**Reference:** [Open Design guide](open-design-reference.md). Codex definition and compatibility tests; qualify selected versions/configuration without permissive or automatic fallback.
 
 - [ ] Implement and verify this slice.
 
@@ -192,4 +212,4 @@ Schema, session, gateway and supervisor changes are sequential shared contracts.
 
 ## First implementation handoff
 
-> Review `tasks/codex-app-server-journeys/plan.md` and `todo.md`, ADR-0005, the historical coordinator evidence and current worktree. Start only M00: propose the host-neutral authority/EXTERNAL_V1 mapping and version/auth/containment contract. Preserve lifecycle history and current gate status. Do not start live authentication, provider runs, product migration or release work.
+> Review `tasks/codex-app-server-journeys/plan.md` and `todo.md`, ADR-0005, `open-design-reference.md`, the historical coordinator evidence and current worktree. Start only M00: propose the host-neutral authority/EXTERNAL_V1 mapping and version/auth/containment contract. Preserve lifecycle history and current gate status. Do not start live authentication, provider runs, product migration or release work.

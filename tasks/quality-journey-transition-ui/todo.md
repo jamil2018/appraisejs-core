@@ -128,6 +128,8 @@ Read the [wireframe guide and state-to-task map](wireframes/README.md) and open 
 
 ## U10: Connect the qualified managed runtime
 
+**Reference:** [Open Design event-normalization and UI adaptation rules](../codex-app-server-journeys/open-design-reference.md). Use sanitized activity events while canonical accepted state drives forms and transitions; SSE remains optional.
+
 - [ ] Implement and verify the slice.
 
 **Dependencies:** U09; app-server M06, M11 and required installation/containment gates. **Scope:** M; split if actual work spans independent concerns.

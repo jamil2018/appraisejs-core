@@ -10,6 +10,10 @@ This document and [task list](todo.md) supersede the stock Codex desktop/plugin 
 
 Review includes current dirty handoff/UI and qualification work, which this planning task does not modify. No production process, authentication, MCP mutation, database migration, commit or publication is part of this review.
 
+## Implementation reference: Open Design
+
+Read the [pinned Open Design source and test guide](open-design-reference.md) before M00–M05, M07, M11 or M12. It maps upstream implementation patterns to our tasks and records adaptation limits. Use its session transport, event-normalization and compatibility-testing patterns; keep Appraise-owned authority, no-chat forms and durable acceptance/recovery contracts. M05 must explicitly compare per-turn child processes with native thread resume against a persistent child; this reference does not preselect either lifecycle. SSE remains optional, and filesystem-writing permissions are not inherited. No task or qualification gate is completed by this reference review.
+
 ## Current implementation findings
 
 | Area                  | Current evidence                                                                                                                                                | Migration consequence                                                                                                                                                                               |
