@@ -8,13 +8,13 @@ const profileIds = new Set(['coordinator-only', 'investigator', 'executor', 'exe
 export const registeredVariants = {
   investigator: [{ id: 'investigator-high', model: 'gpt-6-luna', effort: 'high' }],
   executor: [
-    { id: 'executor-high', model: 'gpt-6-sol', effort: 'high' },
+    { id: 'executor-high', model: 'gpt-6.1-sol', effort: 'high' },
     { id: 'executor-sol61', model: 'gpt-6.1-sol', effort: 'medium' },
     { id: 'executor-sol61-high', model: 'gpt-6.1-sol', effort: 'high' },
   ],
   'executor-advanced': [{ id: 'executor-advanced-sol61', model: 'gpt-6.1-sol', effort: 'high' }],
   solver: [
-    { id: 'solver-xhigh', model: 'gpt-6-sol', effort: 'xhigh' },
+    { id: 'solver-xhigh', model: 'gpt-6.1-sol', effort: 'xhigh' },
     { id: 'solver-sol61', model: 'gpt-6.1-sol', effort: 'high' },
   ],
   judge: [

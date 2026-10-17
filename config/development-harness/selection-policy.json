@@ -3,10 +3,10 @@
   "defaults": {
     "coordinator-only": { "model": null, "effort": null },
     "investigator": { "model": "gpt-6-luna", "effort": "medium" },
-    "executor": { "model": "gpt-6-sol", "effort": "medium" },
-    "executor-advanced": { "model": "gpt-6-sol", "effort": "high" },
-    "solver": { "model": "gpt-6-sol", "effort": "high" },
-    "judge": { "model": "gpt-6-sol", "effort": "high" }
+    "executor": { "model": "gpt-6.1-sol", "effort": "medium" },
+    "executor-advanced": { "model": "gpt-6.1-sol", "effort": "high" },
+    "solver": { "model": "gpt-6.1-sol", "effort": "high" },
+    "judge": { "model": "gpt-6.1-sol", "effort": "high" }
   },
   "rules": [
     {
@@ -20,14 +20,14 @@
       "id": "executor-consequential-extended",
       "profile": "executor",
       "when": { "consequence": "high", "expectedEffort": "extended" },
-      "select": { "model": "gpt-6-sol", "effort": "high" },
+      "select": { "model": "gpt-6.1-sol", "effort": "high" },
       "rationale": "Consequential extended implementation may use a higher approved Sol effort."
     },
     {
       "id": "solver-cross-module-extended",
       "profile": "solver",
       "when": { "scope": "cross-module", "expectedEffort": "extended" },
-      "select": { "model": "gpt-6-sol", "effort": "xhigh" },
+      "select": { "model": "gpt-6.1-sol", "effort": "xhigh" },
       "rationale": "Cross-module judgment with established evidence may use a higher approved Sol effort."
     },
     {

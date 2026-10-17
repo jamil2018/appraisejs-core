@@ -11,7 +11,7 @@ multi_agent = true
 [agents]
 enabled = true
 max_concurrent_threads_per_session = 3
-default_subagent_model = "gpt-6-sol"
+default_subagent_model = "gpt-6.1-sol"
 default_subagent_reasoning_effort = "medium"
 
 [agents.investigator]
@@ -34,7 +34,7 @@ config_file = "agents/executor-advanced.toml"
 description = "Independently evaluate consequential results with material residual uncertainty."
 config_file = "agents/judge.toml"
 
-# Opt-in exact model and effort registrations. Defaults above remain the rollback path.
+# Exact effort variants and retained explicit Sol6.1 aliases. Prior defaults remain in Git history.
 [agents.investigator-high]
 description = "Gather extended bounded evidence with Luna high effort."
 config_file = "agents/investigator-high.toml"
@@ -52,23 +52,23 @@ description = "Independently review consequential weak-proof results with Astra 
 config_file = "agents/judge-astra-high.toml"
 
 [agents.executor-sol61]
-description = "Opt-in Sol 6.1 medium evaluation for settled implementation."
+description = "Explicit Sol 6.1 medium alias for settled implementation."
 config_file = "agents/executor-sol61.toml"
 
 [agents.executor-sol61-high]
-description = "Opt-in Sol 6.1 high evaluation for consequential implementation."
+description = "Explicit Sol 6.1 high alias for consequential implementation."
 config_file = "agents/executor-sol61-high.toml"
 
 [agents.executor-advanced-sol61]
-description = "Opt-in Sol 6.1 high evaluation for cross-module implementation."
+description = "Explicit Sol 6.1 high alias for cross-module implementation."
 config_file = "agents/executor-advanced-sol61.toml"
 
 [agents.solver-sol61]
-description = "Opt-in Sol 6.1 high evaluation for decision work."
+description = "Explicit Sol 6.1 high alias for decision work."
 config_file = "agents/solver-sol61.toml"
 
 [agents.judge-sol61]
-description = "Opt-in Sol 6.1 high evaluation for independent review."
+description = "Explicit Sol 6.1 high alias for independent review."
 config_file = "agents/judge-sol61.toml"
 
 [memories]

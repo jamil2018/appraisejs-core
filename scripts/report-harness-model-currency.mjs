@@ -22,16 +22,21 @@ const candidates = contracts.catalog.models
 
 function currencyCandidate(model, defaults, official, host) {
   const hostEfforts = host?.modelEfforts?.[model.id]
+  const evaluationCandidate = isUnpromotedSol61(model.id, defaults)
   return {
     model: model.id,
     default: defaults.has(model.id),
-    evaluationCandidate: model.id === 'gpt-6.1-sol',
-    newerThanCurrentDefault: model.id === 'gpt-6.1-sol',
+    evaluationCandidate,
+    newerThanCurrentDefault: evaluationCandidate,
     officialSource: model.availabilityEvidence,
     presentInOfficialEvidence: official ? official.models.includes(model.id) : null,
     hostEfforts: Array.isArray(hostEfforts) ? hostEfforts : null,
     hostAvailability: hostAvailability(host, hostEfforts),
   }
+}
+
+function isUnpromotedSol61(modelId, defaults) {
+  return modelId === 'gpt-6.1-sol' && !defaults.has(modelId)
 }
 
 function hostAvailability(host, efforts) {

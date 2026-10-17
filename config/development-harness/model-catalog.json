@@ -14,7 +14,7 @@
         "decision-arbitration",
         "independent-review"
       ],
-      "availabilityEvidence": "OpenAI model guidance at https://learn.chatgpt.com/docs/models, checked 2026-10-17. Evaluation candidate only; host support and pilot threshold remain unverified."
+      "availabilityEvidence": "OpenAI model guidance at https://learn.chatgpt.com/docs/models, checked 2026-10-17. Default promotion explicitly authorized by the user on 2026-10-17; pilot remains unqualified. See docs/development-harness/sol61-default-promotion-20261017.md. Host execution proof remains separate."
     },
     {
       "id": "gpt-6-luna",

@@ -12,7 +12,7 @@ uncertainty requires independent review. Keep solver and judge context absent or
 
 Agent profiles define capabilities, authority, independence, and stopping conditions. The versioned model catalog lists
 active and historical exact model IDs and supported efforts. The selection policy chooses only active entries. GPT-6 Luna
-handles investigation, GPT-6 Sol handles execution and routine judgment, and GPT-6 Astra is selected only for
+handles investigation, GPT-6.1 Sol handles execution and routine judgment, and GPT-6 Astra is selected only for
 consequential, weak-proof extended review. A stronger model receives no additional authority. Unsupported host
 combinations fail explicitly; the active policy has no automatic model fallback. The catalog retains GPT-5.6 entries as
 historical-only records so existing signed journal receipts can still be inspected; they cannot be selected for new work.
@@ -25,7 +25,9 @@ numeric context receipts remain readable, but new spawns never emit numeric inhe
 unsupported efforts, wrong authority, or missing packets fail closed. Static registrations require a host reload;
 they do not prove that the current host has loaded or enforced them.
 
-GPT-6.1 Sol is an explicit evaluation candidate; GPT-6 Sol remains the reviewed default until the pilot gate passes.
+GPT-6.1 Sol is the user-authorized default as of 2026-10-17, preserving prior reasoning levels.
+The user explicitly chose this promotion despite the pilot remaining unqualified; this is not a passing pilot result.
+See [promotion authority and rollback](development-harness/sol61-default-promotion-20261017.md).
 Luna investigation and exceptional Astra review remain available through their exact registrations. Preserve the
 previous policy and evaluation results when promoting a candidate; there is no automatic upgrade or fallback.
 [Official model guidance](https://learn.chatgpt.com/docs/models) was checked on 2026-10-17. The on-demand

@@ -2,6 +2,10 @@
 
 Status: **Implemented and validated; 48-attempt pilot completed, qualification HOLD.**
 
+Follow-up: the user subsequently authorized GPT-6.1 Sol defaults. See
+[promotion record](../docs/development-harness/sol61-default-promotion-20261017.md). The completed pilot and
+implementation outcome below retain their original qualification status.
+
 Started: 2026-10-17 (Asia/Dhaka).
 
 Authority: the user explicitly requested implementation of this plan and commit/push to the current branch on
