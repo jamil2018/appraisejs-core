@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict'
 import { execFileSync, spawnSync } from 'node:child_process'
+import fs from 'node:fs'
+import os from 'node:os'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import test from 'node:test'
@@ -20,13 +22,19 @@ import { createRoutingDecision } from '../lib/swarm-router.mjs'
 const scriptsDir = path.dirname(path.dirname(fileURLToPath(import.meta.url)))
 const repoRoot = path.dirname(scriptsDir)
 const contracts = loadHarnessSelectionContracts()
+const packet = {
+  objective: 'Complete the bounded assigned work.',
+  evidence: ['No prior evidence was supplied.'],
+  constraints: ['Preserve unrelated work.'],
+  acceptanceCriteria: ['Return validation evidence.'],
+}
 
 function hostProfile(profile, overrides = {}) {
   const contract = contracts.profiles.profiles.find(candidate => candidate.id === profile)
   return {
     model: profileDefaults(contracts)[profile].model,
     reasoningEffort: profileDefaults(contracts)[profile].effort,
-    forkTurns: contract.contextBoundary === 'none' ? 'none' : 3,
+    forkTurns: 'none',
     role: contract.role,
     sandbox: contract.authority.sandbox,
     externalWrites: contract.authority.externalWrites,
@@ -36,6 +44,7 @@ function hostProfile(profile, overrides = {}) {
 }
 
 test('canonical selection contracts use the tiered GPT-6 defaults', () => {
+  assert.equal(contracts.catalog.models.find(model => model.id === 'gpt-6.1-sol').status, 'active')
   assert.deepEqual(profileDefaults(contracts).executor, {
     role: 'executor',
     model: 'gpt-6-sol',
@@ -166,15 +175,18 @@ test('adapter reports unsupported profile or context boundaries without inventin
   assert.match(unsupported.limitations.join(' '), /does not provide a profile descriptor/)
   assert.equal(unsupported.effectiveExecution.status, 'unverified')
 
-  const supported = adaptSelectionForCodex(selection, contracts, {
-    modelEfforts: { 'gpt-6-sol': ['high'] },
-    profiles: {
-      solver: hostProfile('solver'),
+  const supported = adaptSelectionForCodex(
+    selection,
+    contracts,
+    {
+      modelEfforts: { 'gpt-6-sol': ['high'] },
+      profiles: {
+        solver: hostProfile('solver'),
+      },
     },
-  })
+    { assignmentPacket: packet },
+  )
   assert.deepEqual(supported.spawnArguments, {
-    model: 'gpt-6-sol',
-    reasoning_effort: 'high',
     fork_turns: 'none',
     agent_type: 'solver',
   })
@@ -193,34 +205,44 @@ test('adapter refuses fixed profiles without an enforceable host role-contract f
       executor: hostProfile('executor'),
     },
   }
-  const rejected = adaptSelectionForCodex(selection, contracts, fixedHost)
+  const rejected = adaptSelectionForCodex(selection, contracts, fixedHost, { assignmentPacket: packet })
   assert.equal(rejected.canSpawn, false)
-  assert.match(rejected.limitations.join(' '), /is fixed to gpt-6-sol\/medium/)
+  assert.match(rejected.limitations.join(' '), /executor-high/)
 
-  const fallback = adaptSelectionForCodex(selection, contracts, {
-    ...fixedHost,
-    supportsRoleContractFallback: true,
-  })
+  const fallback = adaptSelectionForCodex(
+    selection,
+    contracts,
+    {
+      ...fixedHost,
+      supportsRoleContractFallback: true,
+    },
+    { assignmentPacket: packet },
+  )
   assert.equal(fallback.canSpawn, false)
   assert.equal(fallback.spawnArguments, null)
-  assert.match(fallback.limitations.join(' '), /no enforceable role or sandbox mechanism/)
+  assert.match(fallback.limitations.join(' '), /executor-high/)
   assert.deepEqual(selection.effective, { model: 'gpt-6-sol', effort: 'high' })
 })
 
 test('a GPT-5.6 named role cannot run a GPT-6 selection even when the model is otherwise available', () => {
   const selection = resolveModelSelection({ profile: 'executor' })
-  const adapter = adaptSelectionForCodex(selection, contracts, {
-    modelEfforts: { 'gpt-6-sol': ['medium'] },
-    profiles: {
-      executor: hostProfile('executor', { model: 'gpt-5.6-terra' }),
+  const adapter = adaptSelectionForCodex(
+    selection,
+    contracts,
+    {
+      modelEfforts: { 'gpt-6-sol': ['medium'] },
+      profiles: {
+        executor: hostProfile('executor', { model: 'gpt-5.6-terra' }),
+      },
     },
-  })
+    { assignmentPacket: packet },
+  )
   assert.equal(adapter.canSpawn, false)
   assert.match(adapter.limitations.join(' '), /is fixed to gpt-5\.6-terra\/medium/)
   assert.equal(adapter.effectiveExecution.status, 'unverified')
 })
 
-test('exceptional Astra review requires a host judge profile that can override its fixed model', () => {
+test('exceptional Astra review requires an exact registered judge variant', () => {
   const selection = resolveModelSelection({
     profile: 'judge',
     consequence: 'high',
@@ -231,21 +253,134 @@ test('exceptional Astra review requires a host judge profile that can override i
     modelEfforts: { 'gpt-6-astra': ['high'] },
     profiles: { judge: hostProfile('judge') },
   }
-  const fixed = adaptSelectionForCodex(selection, contracts, host)
+  const fixed = adaptSelectionForCodex(selection, contracts, host, { assignmentPacket: packet })
   assert.equal(fixed.canSpawn, false)
-  assert.match(fixed.limitations.join(' '), /fixed to gpt-6-sol\/high/)
+  assert.match(fixed.limitations.join(' '), /judge-astra-high/)
 
-  const overrideCapable = adaptSelectionForCodex(selection, contracts, {
-    ...host,
-    profiles: { judge: hostProfile('judge', { supportsModelOverride: true }) },
-  })
+  const overrideCapable = adaptSelectionForCodex(
+    selection,
+    contracts,
+    {
+      ...host,
+      profiles: { 'judge-astra-high': hostProfile('judge', { model: 'gpt-6-astra' }) },
+    },
+    { assignmentPacket: packet },
+  )
   assert.deepEqual(overrideCapable.spawnArguments, {
-    model: 'gpt-6-astra',
-    reasoning_effort: 'high',
     fork_turns: 'none',
-    agent_type: 'judge',
+    agent_type: 'judge-astra-high',
   })
   assert.equal(overrideCapable.effectiveExecution.status, 'unverified')
+})
+
+test('host model override alone cannot bypass an absent exact registration or bounded packet', () => {
+  const selection = resolveModelSelection({
+    profile: 'judge',
+    consequence: 'high',
+    verificationStrength: 'weak',
+    expectedEffort: 'extended',
+  })
+  const host = {
+    modelEfforts: { 'gpt-6-astra': ['high'] },
+    profiles: { judge: hostProfile('judge', { supportsModelOverride: true }) },
+  }
+  assert.equal(adaptSelectionForCodex(selection, contracts, host, { assignmentPacket: packet }).canSpawn, false)
+  const registered = {
+    ...host,
+    profiles: { 'judge-astra-high': hostProfile('judge', { model: 'gpt-6-astra' }) },
+  }
+  assert.equal(adaptSelectionForCodex(selection, contracts, registered).canSpawn, false)
+  assert.equal(
+    adaptSelectionForCodex(selection, contracts, registered, {
+      assignmentPacket: { ...packet, evidence: [] },
+    }).canSpawn,
+    false,
+  )
+  const ready = adaptSelectionForCodex(selection, contracts, registered, { assignmentPacket: packet })
+  assert.equal(ready.canSpawn, true)
+  assert.equal('model' in ready.spawnArguments, false)
+})
+
+test('GPT-6.1 Sol is selectable for evaluation but the approved default stays on GPT-6 Sol', () => {
+  const defaultSelection = resolveModelSelection({ profile: 'executor' })
+  assert.equal(defaultSelection.requested.model, 'gpt-6-sol')
+  const candidate = resolveModelSelection({
+    profile: 'executor',
+    override: { model: 'gpt-6.1-sol', effort: 'medium' },
+  })
+  assert.equal(candidate.requested.model, 'gpt-6.1-sol')
+  const adapter = adaptSelectionForCodex(
+    candidate,
+    contracts,
+    {
+      modelEfforts: { 'gpt-6.1-sol': ['medium'] },
+      profiles: { executor: hostProfile('executor', { supportsModelOverride: true }) },
+    },
+    { assignmentPacket: packet },
+  )
+  assert.equal(adapter.canSpawn, false)
+  assert.match(adapter.limitations.join(' '), /profile descriptor for executor-sol61/)
+  const registered = adaptSelectionForCodex(
+    candidate,
+    contracts,
+    {
+      modelEfforts: { 'gpt-6.1-sol': ['medium'] },
+      profiles: { 'executor-sol61': hostProfile('executor', { model: 'gpt-6.1-sol' }) },
+    },
+    { assignmentPacket: packet },
+  )
+  assert.deepEqual(registered.spawnArguments, { fork_turns: 'none', agent_type: 'executor-sol61' })
+})
+
+test('currency report identifies the opt-in candidate without changing defaults', () => {
+  const output = execFileSync(process.execPath, [path.join(scriptsDir, 'report-harness-model-currency.mjs')], {
+    cwd: repoRoot,
+    encoding: 'utf8',
+  })
+  const report = JSON.parse(output)
+  assert.equal(report.automaticUpgrade, false)
+  assert.equal(report.refreshedOfficialEvidence, false)
+  assert.equal(report.candidates.find(candidate => candidate.model === 'gpt-6.1-sol').evaluationCandidate, true)
+  assert.equal(report.candidates.find(candidate => candidate.model === 'gpt-6.1-sol').hostAvailability, 'unverified')
+  const temporary = fs.mkdtempSync(path.join(os.tmpdir(), 'harness-currency-'))
+  try {
+    const evidenceFile = path.join(temporary, 'official.json')
+    fs.writeFileSync(
+      evidenceFile,
+      JSON.stringify({
+        checkedAt: '2026-10-17',
+        sourceUrl: 'https://learn.chatgpt.com/docs/models',
+        models: ['gpt-6-luna', 'gpt-6-sol', 'gpt-6.1-sol', 'gpt-6.2-sol'],
+      }),
+    )
+    const refreshed = JSON.parse(
+      execFileSync(
+        process.execPath,
+        [path.join(scriptsDir, 'report-harness-model-currency.mjs'), '--official-evidence-file', evidenceFile],
+        { cwd: repoRoot, encoding: 'utf8' },
+      ),
+    )
+    assert.equal(refreshed.refreshedOfficialEvidence, true)
+    assert.deepEqual(refreshed.officialModelsAbsentFromCatalog, ['gpt-6.2-sol'])
+    assert.equal(refreshed.automaticUpgrade, false)
+    fs.writeFileSync(
+      evidenceFile,
+      JSON.stringify({
+        checkedAt: '2026-10-17',
+        sourceUrl: 'https://example.com/models',
+        models: ['gpt-6.2-sol'],
+      }),
+    )
+    const invalid = spawnSync(
+      process.execPath,
+      [path.join(scriptsDir, 'report-harness-model-currency.mjs'), '--official-evidence-file', evidenceFile],
+      { cwd: repoRoot, encoding: 'utf8' },
+    )
+    assert.notEqual(invalid.status, 0)
+    assert.match(invalid.stderr, /official OpenAI HTTPS URL/)
+  } finally {
+    fs.rmSync(temporary, { recursive: true, force: true })
+  }
 })
 
 test('adapter requires host-advertised authority and context compatible with the profile', () => {
@@ -301,6 +436,14 @@ test('requested selection and verified effective execution remain separate recei
   assert.equal(selection.requested.source, 'default')
   assert.equal(proof.status, 'verified')
   assert.equal(proof.claims.model.receipt, 'host-effective-model:gpt-6-sol')
+  const bounded = verifyEffectiveExecution(resolveModelSelection({ profile: 'executor' }), {
+    context: 'host-effective-context:fork_turns:none;assignment-packet:bounded',
+  })
+  assert.equal(bounded.claims.context.status, 'verified')
+  const requestedOnly = verifyEffectiveExecution(resolveModelSelection({ profile: 'executor' }), {
+    context: 'fork_turns:none;assignment-packet:bounded',
+  })
+  assert.equal(requestedOnly.claims.context.status, 'unverified')
 })
 
 test('recorded selections replay only against the same contract content and host-effective choice', () => {
@@ -374,6 +517,20 @@ test('canonical defaults validate the current host configuration and reject drif
         },
       ]),
   )
+  for (const [id, model, effort, sandbox] of [
+    ['investigator-high', 'gpt-6-luna', 'high', 'read-only'],
+    ['executor-high', 'gpt-6-sol', 'high', 'workspace-write'],
+    ['solver-xhigh', 'gpt-6-sol', 'xhigh', 'read-only'],
+    ['judge-astra-high', 'gpt-6-astra', 'high', 'read-only'],
+    ['executor-sol61', 'gpt-6.1-sol', 'medium', 'workspace-write'],
+    ['executor-sol61-high', 'gpt-6.1-sol', 'high', 'workspace-write'],
+    ['executor-advanced-sol61', 'gpt-6.1-sol', 'high', 'workspace-write'],
+    ['solver-sol61', 'gpt-6.1-sol', 'high', 'read-only'],
+    ['judge-sol61', 'gpt-6.1-sol', 'high', 'read-only'],
+  ]) {
+    registrations[id] = { config_file: `agents/${id}.toml` }
+    agentFiles[id] = { model, model_reasoning_effort: effort, sandbox_mode: sandbox }
+  }
   assert.deepEqual(
     validateConfiguredAgentMappings({ agentDefaults: defaults, registrations, agentFiles }, contracts),
     [],
@@ -393,14 +550,14 @@ test('selection CLI exposes spawn arguments and fails clearly when the host cann
       '--profile',
       'executor',
       '--host-support',
-      '{"modelEfforts":{"gpt-6-sol":["medium"]},"profiles":{"executor":{"model":"gpt-6-sol","reasoningEffort":"medium","forkTurns":2,"role":"executor","sandbox":"workspace-write","externalWrites":"approval-required","contextBoundary":"bounded"}}}',
+      '{"modelEfforts":{"gpt-6-sol":["medium"]},"profiles":{"executor":{"model":"gpt-6-sol","reasoningEffort":"medium","forkTurns":"none","role":"executor","sandbox":"workspace-write","externalWrites":"approval-required","contextBoundary":"bounded"}}}',
+      '--assignment-packet',
+      JSON.stringify(packet),
     ],
     { cwd: repoRoot, encoding: 'utf8' },
   )
   assert.deepEqual(JSON.parse(output).adapter.spawnArguments, {
-    model: 'gpt-6-sol',
-    reasoning_effort: 'medium',
-    fork_turns: '2',
+    fork_turns: 'none',
     agent_type: 'executor',
   })
   const unavailable = spawnSync(

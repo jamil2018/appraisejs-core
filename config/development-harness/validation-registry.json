@@ -110,7 +110,7 @@
     },
     {
       "id": "harness",
-      "patterns": [".agents/**", ".codex/agents/**", "config/development-harness/**", "scripts/**"],
+      "patterns": [".agents/**", ".codex/**", "config/development-harness/**", "scripts/**"],
       "commands": ["harness-contracts", "unit", "fallow-commit", "react-doctor-commit"]
     },
     {

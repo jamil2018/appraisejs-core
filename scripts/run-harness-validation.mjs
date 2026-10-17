@@ -31,7 +31,20 @@ if (!args.has('--execute')) {
 }
 
 const session = createValidationSession({ root, registry })
-const result = executeValidationPlan(plan, session)
-disposeValidationSession(session)
-process.stdout.write(`${JSON.stringify(result, null, 2)}\n`)
-process.exit(result.status)
+try {
+  const result = executeValidationPlan(plan, session)
+  for (const event of result.events) {
+    const label = event.type === 'prerequisite' ? 'prerequisite' : 'command'
+    const outcome = event.reused ? 'reused' : event.status === 0 ? 'passed' : 'FAILED'
+    process.stdout.write(
+      `[harness-validation] ${label} ${event.id}: ${outcome} (${event.durationMs} ms, ${event.retries} retries)\n`,
+    )
+    if (event.timedOut || event.error) {
+      process.stderr.write(`[harness-validation] ${event.id}: ${event.error ?? 'command timed out'}\n`)
+    }
+  }
+  process.stdout.write(`[harness-validation] exit ${result.status}\n`)
+  process.exitCode = result.status
+} finally {
+  disposeValidationSession(session)
+}

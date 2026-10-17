@@ -1,0 +1,332 @@
+import { createHash } from 'node:crypto'
+import { spawn, spawnSync } from 'node:child_process'
+import { createWriteStream, existsSync, mkdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
+import os from 'node:os'
+import path from 'node:path'
+import { performance } from 'node:perf_hooks'
+import { fileURLToPath } from 'node:url'
+import { pilotManifestDigest } from './lib/harness-pilot.mjs'
+
+const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
+const manifestPath = path.join(repositoryRoot, 'config/development-harness/native-pilot.json')
+const commonGuidance = [
+  'Work only inside this disposable checkout. Do not install dependencies, use network tools, contact external services, delegate, publish Git changes, or send messages.',
+  'Use the supplied repository task and acceptance criteria. Inspect relevant source, make only needed edits, and run focused checks when possible.',
+  'Report what changed, checks performed, and any unresolved failures. Do not claim a pass for a check that did not run.',
+].join('\n')
+const workflowGuidance = [
+  'Use scoped Graphify only for relationship questions when its graph is fresh; use targeted source search for exact details.',
+  'Keep routine tool output concise while retaining failing command output, exit codes, and source locations.',
+  'Avoid repeated discovery and checks unless a change or failure makes a rerun necessary.',
+].join('\n')
+
+function digest(value) {
+  return createHash('sha256').update(value).digest('hex')
+}
+
+function command(executable, args, cwd) {
+  const result = spawnSync(executable, args, { cwd, encoding: 'utf8', timeout: 30000 })
+  if (result.error || result.status !== 0) {
+    throw new Error(`${executable} ${args[0]} failed: ${result.error?.message ?? result.stderr ?? result.status}`)
+  }
+  return result.stdout
+}
+
+export function parseCodexJsonlLine(line, telemetry) {
+  let event
+  try {
+    event = JSON.parse(line)
+  } catch {
+    telemetry.parseErrors += 1
+    return
+  }
+  if (event.type === 'turn.completed' || event.type === 'turn.failed') {
+    telemetry.turnOutcome = event.type
+    const usage = event.usage ?? event.payload?.usage
+    if (usage) {
+      telemetry.inputTokens = usage.input_tokens ?? usage.inputTokens ?? null
+      telemetry.cachedInputTokens = usage.cached_input_tokens ?? usage.cachedInputTokens ?? null
+      telemetry.outputTokens = usage.output_tokens ?? usage.outputTokens ?? null
+      telemetry.totalTokens =
+        telemetry.inputTokens === null || telemetry.outputTokens === null
+          ? null
+          : telemetry.inputTokens + telemetry.outputTokens
+    }
+  }
+  if (event.type === 'item.completed') {
+    const item = event.item ?? {}
+    if (item.type === 'command_execution' || item.type === 'tool_call' || item.type === 'mcp_tool_call') {
+      telemetry.toolCallCount += 1
+      const output = item.aggregated_output ?? item.output ?? item.result
+      if (typeof output === 'string') telemetry.toolOutputBytes += Buffer.byteLength(output)
+    }
+  }
+}
+
+export function makePrompt(task, arm) {
+  return [
+    commonGuidance,
+    arm.workflow === 'optimized-guidance-only' ? workflowGuidance : '',
+    `Task (${task.id}): ${task.prompt}`,
+    `Relevant paths: ${task.paths.join(', ')}`,
+    `Acceptance criteria:\n${task.acceptance.map(item => `- ${item}`).join('\n')}`,
+  ]
+    .filter(Boolean)
+    .join('\n\n')
+}
+
+function parseArguments(argv, manifest) {
+  const options = {
+    limit: manifest.tasks.length,
+    task: null,
+    arm: null,
+    repetitions: manifest.repetitions,
+    output: null,
+  }
+  for (let index = 0; index < argv.length; index += 1) {
+    const flag = argv[index]
+    if (!['--limit', '--task', '--arm', '--repetitions', '--output'].includes(flag) || !argv[index + 1]) {
+      throw new Error(`Unsupported or incomplete pilot argument: ${flag}`)
+    }
+    options[flag.slice(2)] = argv[++index]
+  }
+  for (const key of ['limit', 'repetitions']) {
+    options[key] = Number(options[key])
+    if (!Number.isInteger(options[key]) || options[key] < 1) throw new Error(`${key} must be a positive integer.`)
+  }
+  if (options.repetitions > manifest.repetitions) throw new Error('Cannot exceed frozen manifest repetitions.')
+  if (options.task && !manifest.tasks.some(task => task.id === options.task)) throw new Error('Unknown task.')
+  if (options.arm && !manifest.arms.some(arm => arm.id === options.arm)) throw new Error('Unknown arm.')
+  return options
+}
+
+async function archiveCheckout(commit, checkout) {
+  mkdirSync(checkout, { recursive: true })
+  const archive = spawn('git', ['archive', '--format=tar', commit], {
+    cwd: repositoryRoot,
+    stdio: ['ignore', 'pipe', 'pipe'],
+  })
+  const extract = spawn('tar', ['-xf', '-', '-C', checkout], { stdio: ['pipe', 'ignore', 'pipe'] })
+  archive.stdout.pipe(extract.stdin)
+  let errors = ''
+  archive.stderr.on('data', chunk => (errors += chunk))
+  extract.stderr.on('data', chunk => (errors += chunk))
+  const statuses = await Promise.all([
+    new Promise(resolve => archive.on('close', resolve)),
+    new Promise(resolve => extract.on('close', resolve)),
+  ])
+  if (statuses.some(status => status !== 0)) throw new Error(`Archive checkout failed: ${errors}`)
+  command('git', ['init', '-q'], checkout)
+  command('git', ['add', '.'], checkout)
+  command(
+    'git',
+    ['-c', 'user.name=Pilot Fixture', '-c', 'user.email=pilot@example.test', 'commit', '-qm', 'frozen base'],
+    checkout,
+  )
+  const modules = path.join(repositoryRoot, 'node_modules')
+  if (existsSync(modules)) symlinkSync(modules, path.join(checkout, 'node_modules'))
+}
+
+async function runCase({ manifest, manifestDigest, task, arm, repetition, outputDirectory }) {
+  const id = `${task.id}--${arm.id}--r${repetition}`
+  const caseDirectory = path.join(outputDirectory, 'cases', id)
+  const checkout = path.join(caseDirectory, 'checkout')
+  mkdirSync(caseDirectory, { recursive: true })
+  const prompt = makePrompt(task, arm)
+  const started = performance.now()
+  let setupMs = null
+  let elapsedMs = null
+  const telemetry = {
+    turnOutcome: null,
+    inputTokens: null,
+    cachedInputTokens: null,
+    outputTokens: null,
+    totalTokens: null,
+    toolCallCount: 0,
+    toolOutputBytes: 0,
+    parseErrors: 0,
+  }
+  let exitCode = null
+  let signal = null
+  let timedOut = false
+  let failure = null
+  try {
+    await archiveCheckout(manifest.baseCommit, checkout)
+    setupMs = Number((performance.now() - started).toFixed(2))
+    const stdoutPath = path.join(caseDirectory, 'raw.jsonl')
+    const stderrPath = path.join(caseDirectory, 'raw.stderr')
+    const finalPath = path.join(caseDirectory, 'final.md')
+    const stdout = createWriteStream(stdoutPath, { mode: 0o600 })
+    const stderr = createWriteStream(stderrPath, { mode: 0o600 })
+    const args = [
+      'exec',
+      '--ignore-user-config',
+      '--disable',
+      'plugins',
+      '--disable',
+      'apps',
+      '--ephemeral',
+      '--json',
+      '--skip-git-repo-check',
+      '-s',
+      'workspace-write',
+      '-m',
+      arm.model,
+      '-c',
+      `model_reasoning_effort="${manifest.execution.effort}"`,
+      '-C',
+      checkout,
+      '--output-last-message',
+      finalPath,
+      '-',
+    ]
+    const child = spawn('codex', args, { cwd: checkout, stdio: ['pipe', 'pipe', 'pipe'], detached: true })
+    child.stdin.end(prompt)
+    let pending = ''
+    child.stdout.on('data', chunk => {
+      stdout.write(chunk)
+      pending += chunk.toString('utf8')
+      const lines = pending.split('\n')
+      pending = lines.pop()
+      for (const line of lines) if (line.trim()) parseCodexJsonlLine(line, telemetry)
+    })
+    child.stderr.on('data', chunk => stderr.write(chunk))
+    const timer = setTimeout(() => {
+      timedOut = true
+      try {
+        process.kill(-child.pid, 'SIGTERM')
+      } catch {
+        // The process group already exited.
+      }
+      setTimeout(() => {
+        try {
+          process.kill(-child.pid, 'SIGKILL')
+        } catch {
+          // The process group already exited.
+        }
+      }, 5000).unref()
+    }, manifest.execution.timeLimitSeconds * 1000)
+    const outcome = await new Promise(resolve => {
+      child.on('error', error => resolve({ error }))
+      child.on('close', (code, childSignal) => resolve({ code, signal: childSignal }))
+    })
+    clearTimeout(timer)
+    if (pending.trim()) parseCodexJsonlLine(pending, telemetry)
+    stdout.end()
+    stderr.end()
+    exitCode = outcome.code ?? null
+    signal = outcome.signal ?? null
+    if (outcome.error) failure = outcome.error.message
+    if (exitCode !== 0 || telemetry.turnOutcome !== 'turn.completed') {
+      failure ??= timedOut
+        ? 'time limit exceeded'
+        : `Codex exited ${exitCode ?? signal ?? 'unknown'} without completion`
+    }
+  } catch (error) {
+    failure = error.message
+  } finally {
+    elapsedMs = Math.round(performance.now() - started)
+    if (existsSync(checkout)) {
+      try {
+        command('git', ['add', '-N', '-A'], checkout)
+        const patch = command('git', ['diff', '--binary', 'HEAD'], checkout)
+        writeFileSync(path.join(caseDirectory, 'patch.diff'), patch, { mode: 0o600 })
+      } catch (error) {
+        failure ??= `Patch capture failed: ${error.message}`
+      }
+      rmSync(checkout, { recursive: true, force: true })
+    }
+  }
+  return {
+    id,
+    taskId: task.id,
+    category: task.category,
+    arm: arm.id,
+    repetition,
+    model: arm.model,
+    manifestDigest,
+    baseCommit: manifest.baseCommit,
+    effort: manifest.execution.effort,
+    observedModel: null,
+    workflow: arm.workflow,
+    status: !failure ? 'complete' : timedOut || exitCode === null ? 'incomplete' : 'failed',
+    failure,
+    exitCode,
+    signal,
+    timedOut,
+    setupMs: setupMs === null ? null : Math.round(setupMs),
+    elapsedMs,
+    agentElapsedMs: setupMs === null ? null : Math.max(0, elapsedMs - Math.round(setupMs)),
+    ...telemetry,
+    failures: failure ? 1 : 0,
+    retries: null,
+    manualCorrections: 0,
+    correctness: 'unknown',
+    requiredReview: 'unknown',
+    artifacts: `cases/${id}`,
+  }
+}
+
+export async function runPilot(argv = process.argv.slice(2)) {
+  const manifestBytes = readFileSync(manifestPath)
+  const manifest = JSON.parse(manifestBytes)
+  const manifestDigest = pilotManifestDigest(manifest)
+  const options = parseArguments(argv, manifest)
+  command('git', ['cat-file', '-e', `${manifest.baseCommit}^{commit}`], repositoryRoot)
+  const outputDirectory = path.resolve(options.output ?? path.join(os.tmpdir(), `appraise-native-pilot-${Date.now()}`))
+  if (existsSync(outputDirectory)) throw new Error('Pilot output directory already exists.')
+  mkdirSync(outputDirectory, { recursive: true, mode: 0o700 })
+  const freeze = {
+    schemaVersion: 1,
+    manifestSha256: digest(manifestBytes),
+    manifestDigest,
+    commonGuidanceSha256: digest(commonGuidance),
+    workflowGuidanceSha256: digest(workflowGuidance),
+    runnerSha256: digest(readFileSync(fileURLToPath(import.meta.url))),
+    baseCommit: manifest.baseCommit,
+    requestedArms: manifest.arms,
+    source: 'config/development-harness/native-pilot.json',
+  }
+  writeFileSync(path.join(outputDirectory, 'freeze.json'), JSON.stringify(freeze, null, 2), { mode: 0o600 })
+  const selectedTasks = manifest.tasks.filter(task => !options.task || task.id === options.task).slice(0, options.limit)
+  const selectedArms = manifest.arms.filter(arm => !options.arm || arm.id === options.arm)
+  const cases = []
+  for (const task of selectedTasks) {
+    for (let repetition = 1; repetition <= options.repetitions; repetition += 1) {
+      const arms = repetition % 2 ? selectedArms : [...selectedArms].reverse()
+      for (const arm of arms) cases.push({ manifest, manifestDigest, task, arm, repetition, outputDirectory })
+    }
+  }
+  const aggregate = {
+    schemaVersion: 1,
+    kind: 'native-harness-pilot',
+    freeze,
+    limitations:
+      'Requested models are not observed host models. Correctness and required review await independent assessment. Internal child retries are unavailable.',
+    plannedCases: cases.length,
+    completedCases: 0,
+    runs: [],
+  }
+  const aggregatePath = path.join(outputDirectory, 'aggregate.json')
+  let cursor = 0
+  async function worker() {
+    while (cursor < cases.length) {
+      const caseInput = cases[cursor++]
+      const result = await runCase(caseInput)
+      aggregate.runs.push(result)
+      aggregate.completedCases = aggregate.runs.length
+      writeFileSync(aggregatePath, JSON.stringify(aggregate, null, 2), { mode: 0o600 })
+      process.stdout.write(`${result.id}: ${result.status} (${result.elapsedMs} ms)\n`)
+    }
+  }
+  await Promise.all([worker(), worker()])
+  process.stdout.write(`Pilot aggregate: ${aggregatePath}\n`)
+  return aggregate
+}
+
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  runPilot().catch(error => {
+    process.stderr.write(`${error.stack ?? error.message}\n`)
+    process.exitCode = 1
+  })
+}

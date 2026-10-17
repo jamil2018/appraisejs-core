@@ -1,0 +1,33 @@
+{
+  "kind": "fingerprint-microbenchmark",
+  "provenance": "Legacy algorithm extracted from the pinned base-commit Git blob; local current-worktree wall-clock samples. This is not an end-to-end development pilot.",
+  "baselineCommit": "ac758ceaa12330f969b166e6be1d18f7b3dc98c9",
+  "baselineSourceSha256": "e35d18a0e17d0bcc8a8ccba64665d94c999b2ac00729b8e1bcf25d72945f28bb",
+  "inputPatterns": [
+    "packages/cucumber-runtime/src/**",
+    "packages/cucumber-runtime/package.json",
+    "packages/cucumber-runtime/tsconfig.json",
+    "package.json",
+    "package-lock.json",
+    "tsconfig*.json"
+  ],
+  "samplesPerArm": 12,
+  "baseline": {
+    "medianMs": 368.755,
+    "samplesMs": [389.77, 330.33, 324.75, 368.84, 441.49, 362.28, 361.07, 368.67, 365.45, 391.68, 394.85, 387.67],
+    "medianCpuMs": 373.96000000000004,
+    "cpuSamplesMs": [416.86, 349.06, 327.97, 378.17, 383.04, 365.52, 364.28, 369.09, 369.75, 388.98, 397.08, 387.01],
+    "digest": "d30d316703289b134ea1abf0d9e7a6a3c64d1d62d40c31e79b9beb8811d81845"
+  },
+  "candidate": {
+    "medianMs": 3.455,
+    "samplesMs": [3.99, 3.5, 3.32, 3.28, 3.66, 3.48, 3.53, 3.35, 3.65, 3.27, 3.43, 3.42],
+    "medianCpuMs": 3.49,
+    "cpuSamplesMs": [4.22, 3.62, 3.47, 3.28, 3.8, 3.48, 3.5, 3.35, 4.28, 3.27, 3.43, 3.73],
+    "digest": "d30d316703289b134ea1abf0d9e7a6a3c64d1d62d40c31e79b9beb8811d81845"
+  },
+  "elapsedImprovementPercent": 99.06,
+  "cpuImprovementPercent": 99.07,
+  "digestEqual": true,
+  "retentionCriterionMet": true
+}

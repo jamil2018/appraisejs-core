@@ -1,0 +1,1216 @@
+{
+  "schemaVersion": 1,
+  "baseCommit": "ac758ceaa12330f969b166e6be1d18f7b3dc98c9",
+  "manifestDigest": "0855eca1354a12269573c1fbd175892a09d643aeec0e80d28fef7d900b560183",
+  "elapsedMsDefinition": "wall-clock total including setupMs",
+  "evidenceTrust": "Caller-supplied measurements and review assertions; independent receipts required.",
+  "promotionAuthorized": false,
+  "receivedRuns": 48,
+  "expectedRuns": 48,
+  "comparisons": [
+    {
+      "arm": "model",
+      "status": "unknown",
+      "completePairs": 0,
+      "requiredPairs": 16,
+      "issues": [
+        {
+          "pair": "discovery-journal#1",
+          "reason": "failed-or-incomplete-run"
+        },
+        {
+          "pair": "discovery-journal#2",
+          "reason": "unverified-execution"
+        },
+        {
+          "pair": "discovery-report-scope#1",
+          "reason": "unverified-execution"
+        },
+        {
+          "pair": "discovery-report-scope#2",
+          "reason": "unverified-execution"
+        },
+        {
+          "pair": "fix-strict-args#1",
+          "reason": "unverified-execution"
+        },
+        {
+          "pair": "fix-strict-args#2",
+          "reason": "unverified-execution"
+        },
+        {
+          "pair": "fix-locator-row#1",
+          "reason": "unverified-execution"
+        },
+        {
+          "pair": "fix-locator-row#2",
+          "reason": "unverified-execution"
+        },
+        {
+          "pair": "ui-module-parent-order#1",
+          "reason": "unverified-execution"
+        },
+        {
+          "pair": "ui-module-parent-order#2",
+          "reason": "unverified-execution"
+        },
+        {
+          "pair": "cross-rename-status#1",
+          "reason": "unverified-execution"
+        },
+        {
+          "pair": "cross-rename-status#2",
+          "reason": "unverified-execution"
+        },
+        {
+          "pair": "cross-report-id#1",
+          "reason": "unverified-execution"
+        },
+        {
+          "pair": "cross-report-id#2",
+          "reason": "unverified-execution"
+        },
+        {
+          "pair": "review-run-integrity#1",
+          "reason": "unverified-execution"
+        },
+        {
+          "pair": "review-run-integrity#2",
+          "reason": "unverified-execution"
+        }
+      ],
+      "metrics": null,
+      "pairedDeltas": [],
+      "baselineAudit": {
+        "runs": [
+          {
+            "taskId": "discovery-journal",
+            "repetition": 1,
+            "status": "failed",
+            "correctness": "unknown",
+            "requiredReview": "unknown",
+            "executionVerified": false,
+            "elapsedMs": 18611,
+            "setupMs": 2479,
+            "totalTokens": null,
+            "failures": 1,
+            "retries": null,
+            "manualCorrections": 0
+          },
+          {
+            "taskId": "discovery-journal",
+            "repetition": 2,
+            "status": "complete",
+            "correctness": "pass",
+            "requiredReview": "pass",
+            "executionVerified": false,
+            "elapsedMs": 33275,
+            "setupMs": 2044,
+            "totalTokens": 275847,
+            "failures": 0,
+            "retries": null,
+            "manualCorrections": 0
+          },
+          {
+            "taskId": "discovery-report-scope",
+            "repetition": 1,
+            "status": "complete",
+            "correctness": "pass",
+            "requiredReview": "pass",
+            "executionVerified": false,
+            "elapsedMs": 30918,
+            "setupMs": 1993,
+            "totalTokens": 224025,
+            "failures": 0,
+            "retries": null,
+            "manualCorrections": 0
+          },
+          {
+            "taskId": "discovery-report-scope",
+            "repetition": 2,
+            "status": "complete",
+            "correctness": "pass",
+            "requiredReview": "pass",
+            "executionVerified": false,
+            "elapsedMs": 34691,
+            "setupMs": 2010,
+            "totalTokens": 268091,
+            "failures": 0,
+            "retries": null,
+            "manualCorrections": 0
+          },
+          {
+            "taskId": "fix-strict-args",
+            "repetition": 1,
+            "status": "complete",
+            "correctness": "pass",
+            "requiredReview": "pass",
+            "executionVerified": false,
+            "elapsedMs": 76665,
+            "setupMs": 2012,
+            "totalTokens": 437133,
+            "failures": 0,
+            "retries": null,
+            "manualCorrections": 0
+          },
+          {
+            "taskId": "fix-strict-args",
+            "repetition": 2,
+            "status": "complete",
+            "correctness": "pass",
+            "requiredReview": "pass",
+            "executionVerified": false,
+            "elapsedMs": 52919,
+            "setupMs": 2426,
+            "totalTokens": 313488,
+            "failures": 0,
+            "retries": null,
+            "manualCorrections": 0
+          },
+          {
+            "taskId": "fix-locator-row",
+            "repetition": 1,
+            "status": "complete",
+            "correctness": "pass",
+            "requiredReview": "pass",
+            "executionVerified": false,
+            "elapsedMs": 60791,
+            "setupMs": 2160,
+            "totalTokens": 432699,
+            "failures": 0,
+            "retries": null,
+            "manualCorrections": 0
+          },
+          {
+            "taskId": "fix-locator-row",
+            "repetition": 2,
+            "status": "complete",
+            "correctness": "pass",
+            "requiredReview": "pass",
+            "executionVerified": false,
+            "elapsedMs": 59198,
+            "setupMs": 2272,
+            "totalTokens": 298358,
+            "failures": 0,
+            "retries": null,
+            "manualCorrections": 0
+          },
+          {
+            "taskId": "ui-module-parent-order",
+            "repetition": 1,
+            "status": "complete",
+            "correctness": "pass",
+            "requiredReview": "pass",
+            "executionVerified": false,
+            "elapsedMs": 72781,
+            "setupMs": 2065,
+            "totalTokens": 407372,
+            "failures": 0,
+            "retries": null,
+            "manualCorrections": 0
+          },
+          {
+            "taskId": "ui-module-parent-order",
+            "repetition": 2,
+            "status": "complete",
+            "correctness": "pass",
+            "requiredReview": "pass",
+            "executionVerified": false,
+            "elapsedMs": 106149,
+            "setupMs": 1947,
+            "totalTokens": 907998,
+            "failures": 0,
+            "retries": null,
+            "manualCorrections": 0
+          },
+          {
+            "taskId": "cross-rename-status",
+            "repetition": 1,
+            "status": "complete",
+            "correctness": "pass",
+            "requiredReview": "pass",
+            "executionVerified": false,
+            "elapsedMs": 72510,
+            "setupMs": 1951,
+            "totalTokens": 546967,
+            "failures": 0,
+            "retries": null,
+            "manualCorrections": 0
+          },
+          {
+            "taskId": "cross-rename-status",
+            "repetition": 2,
+            "status": "complete",
+            "correctness": "pass",
+            "requiredReview": "pass",
+            "executionVerified": false,
+            "elapsedMs": 44260,
+            "setupMs": 2638,
+            "totalTokens": 293610,
+            "failures": 0,
+            "retries": null,
+            "manualCorrections": 0
+          },
+          {
+            "taskId": "cross-report-id",
+            "repetition": 1,
+            "status": "complete",
+            "correctness": "pass",
+            "requiredReview": "pass",
+            "executionVerified": false,
+            "elapsedMs": 90004,
+            "setupMs": 1926,
+            "totalTokens": 786491,
+            "failures": 0,
+            "retries": null,
+            "manualCorrections": 0
+          },
+          {
+            "taskId": "review-run-integrity",
+            "repetition": 1,
+            "status": "complete",
+            "correctness": "pass",
+            "requiredReview": "pass",
+            "executionVerified": false,
+            "elapsedMs": 45788,
+            "setupMs": 2119,
+            "totalTokens": 262258,
+            "failures": 0,
+            "retries": null,
+            "manualCorrections": 0
+          },
+          {
+            "taskId": "cross-report-id",
+            "repetition": 2,
+            "status": "complete",
+            "correctness": "pass",
+            "requiredReview": "pass",
+            "executionVerified": false,
+            "elapsedMs": 102654,
+            "setupMs": 2099,
+            "totalTokens": 798614,
+            "failures": 0,
+            "retries": null,
+            "manualCorrections": 0
+          },
+          {
+            "taskId": "review-run-integrity",
+            "repetition": 2,
+            "status": "complete",
+            "correctness": "pass",
+            "requiredReview": "pass",
+            "executionVerified": false,
+            "elapsedMs": 39199,
+            "setupMs": 1942,
+            "totalTokens": 236355,
+            "failures": 0,
+            "retries": null,
+            "manualCorrections": 0
+          }
+        ],
+        "operationalCounts": {
+          "failures": {
+            "observedTotal": 1,
+            "measuredRuns": 16,
+            "unknownRuns": 0
+          },
+          "retries": {
+            "observedTotal": null,
+            "measuredRuns": 0,
+            "unknownRuns": 16
+          },
+          "manualCorrections": {
+            "observedTotal": 0,
+            "measuredRuns": 16,
+            "unknownRuns": 0
+          },
+          "setupMs": {
+            "observedTotal": 34083,
+            "measuredRuns": 16,
+            "unknownRuns": 0
+          }
+        }
+      },
+      "candidateAudit": {
+        "runs": [
+          {
+            "taskId": "discovery-journal",
+            "repetition": 1,
+            "status": "complete",
+            "correctness": "pass",
+            "requiredReview": "pass",
+            "executionVerified": false,
+            "elapsedMs": 30181,
+            "setupMs": 4211,
+            "totalTokens": 169935,
+            "failures": 0,
+            "retries": null,
+            "manualCorrections": 0
+          },
+          {
+            "taskId": "discovery-journal",
+            "repetition": 2,
+            "status": "complete",
+            "correctness": "pass",
+            "requiredReview": "pass",
+            "executionVerified": false,
+            "elapsedMs": 36559,
+            "setupMs": 2300,
+            "totalTokens": 226650,
+            "failures": 0,
+            "retries": null,
+            "manualCorrections": 0
+          },
+          {
+            "taskId": "discovery-report-scope",
+            "repetition": 1,
+            "status": "complete",
+            "correctness": "pass",
+            "requiredReview": "pass",
+            "executionVerified": false,
+            "elapsedMs": 42919,
+            "setupMs": 2221,
+            "totalTokens": 286980,
+            "failures": 0,
+            "retries": null,
+            "manualCorrections": 0
+          },
+          {
+            "taskId": "discovery-report-scope",
+            "repetition": 2,
+            "status": "complete",
+            "correctness": "pass",
+            "requiredReview": "pass",
+            "executionVerified": false,
+            "elapsedMs": 39209,
+            "setupMs": 1984,
+            "totalTokens": 296309,
+            "failures": 0,
+            "retries": null,
+            "manualCorrections": 0
+          },
+          {
+            "taskId": "fix-strict-args",
+            "repetition": 1,
+            "status": "complete",
+            "correctness": "pass",
+            "requiredReview": "pass",
+            "executionVerified": false,
+            "elapsedMs": 51198,
+            "setupMs": 1963,
+            "totalTokens": 227368,
+            "failures": 0,
+            "retries": null,
+            "manualCorrections": 0
+          },
+          {
+            "taskId": "fix-strict-args",
+            "repetition": 2,
+            "status": "complete",
+            "correctness": "pass",
+            "requiredReview": "pass",
+            "executionVerified": false,
+            "elapsedMs": 53303,
+            "setupMs": 2024,
+            "totalTokens": 245373,
+            "failures": 0,
+            "retries": null,
+            "manualCorrections": 0
+          },
+          {
+            "taskId": "fix-locator-row",
+            "repetition": 1,
+            "status": "complete",
+            "correctness": "pass",
+            "requiredReview": "pass",
+            "executionVerified": false,
+            "elapsedMs": 49724,
+            "setupMs": 2259,
+            "totalTokens": 304270,
+            "failures": 0,
+            "retries": null,
+            "manualCorrections": 0
+          },
+          {
+            "taskId": "fix-locator-row",
+            "repetition": 2,
+            "status": "complete",
+            "correctness": "pass",
+            "requiredReview": "pass",
+            "executionVerified": false,
+            "elapsedMs": 47967,
+            "setupMs": 1956,
+            "totalTokens": 268505,
+            "failures": 0,
+            "retries": null,
+            "manualCorrections": 0
+          },
+          {
+            "taskId": "ui-module-parent-order",
+            "repetition": 1,
+            "status": "complete",
+            "correctness": "pass",
+            "requiredReview": "pass",
+            "executionVerified": false,
+            "elapsedMs": 44327,
+            "setupMs": 2106,
+            "totalTokens": 201757,
+            "failures": 0,
+            "retries": null,
+            "manualCorrections": 0
+          },
+          {
+            "taskId": "ui-module-parent-order",
+            "repetition": 2,
+            "status": "complete",
+            "correctness": "pass",
+            "requiredReview": "pass",
+            "executionVerified": false,
+            "elapsedMs": 47321,
+            "setupMs": 1996,
+            "totalTokens": 254843,
+            "failures": 0,
+            "retries": null,
+            "manualCorrections": 0
+          },
+          {
+            "taskId": "cross-rename-status",
+            "repetition": 1,
+            "status": "complete",
+            "correctness": "pass",
+            "requiredReview": "pass",
+            "executionVerified": false,
+            "elapsedMs": 38676,
+            "setupMs": 2398,
+            "totalTokens": 208969,
+            "failures": 0,
+            "retries": null,
+            "manualCorrections": 0
+          },
+          {
+            "taskId": "cross-rename-status",
+            "repetition": 2,
+            "status": "complete",
+            "correctness": "pass",
+            "requiredReview": "pass",
+            "executionVerified": false,
+            "elapsedMs": 42828,
+            "setupMs": 2125,
+            "totalTokens": 184118,
+            "failures": 0,
+            "retries": null,
+            "manualCorrections": 0
+          },
+          {
+            "taskId": "cross-report-id",
+            "repetition": 1,
+            "status": "complete",
+            "correctness": "pass",
+            "requiredReview": "pass",
+            "executionVerified": false,
+            "elapsedMs": 58905,
+            "setupMs": 1986,
+            "totalTokens": 292363,
+            "failures": 0,
+            "retries": null,
+            "manualCorrections": 0
+          },
+          {
+            "taskId": "cross-report-id",
+            "repetition": 2,
+            "status": "complete",
+            "correctness": "pass",
+            "requiredReview": "pass",
+            "executionVerified": false,
+            "elapsedMs": 48604,
+            "setupMs": 1975,
+            "totalTokens": 239946,
+            "failures": 0,
+            "retries": null,
+            "manualCorrections": 0
+          },
+          {
+            "taskId": "review-run-integrity",
+            "repetition": 1,
+            "status": "complete",
+            "correctness": "pass",
+            "requiredReview": "pass",
+            "executionVerified": false,
+            "elapsedMs": 59996,
+            "setupMs": 2034,
+            "totalTokens": 358130,
+            "failures": 0,
+            "retries": null,
+            "manualCorrections": 0
+          },
+          {
+            "taskId": "review-run-integrity",
+            "repetition": 2,
+            "status": "complete",
+            "correctness": "pass",
+            "requiredReview": "pass",
+            "executionVerified": false,
+            "elapsedMs": 57971,
+            "setupMs": 1932,
+            "totalTokens": 270764,
+            "failures": 0,
+            "retries": null,
+            "manualCorrections": 0
+          }
+        ],
+        "operationalCounts": {
+          "failures": {
+            "observedTotal": 0,
+            "measuredRuns": 16,
+            "unknownRuns": 0
+          },
+          "retries": {
+            "observedTotal": null,
+            "measuredRuns": 0,
+            "unknownRuns": 16
+          },
+          "manualCorrections": {
+            "observedTotal": 0,
+            "measuredRuns": 16,
+            "unknownRuns": 0
+          },
+          "setupMs": {
+            "observedTotal": 35470,
+            "measuredRuns": 16,
+            "unknownRuns": 0
+          }
+        }
+      },
+      "receivedRuns": 16,
+      "runOutcomes": {
+        "complete": 16,
+        "failed": 0,
+        "incomplete": 0
+      },
+      "operationalCounts": {
+        "failures": {
+          "observedTotal": 0,
+          "measuredRuns": 16,
+          "unknownRuns": 0
+        },
+        "retries": {
+          "observedTotal": null,
+          "measuredRuns": 0,
+          "unknownRuns": 16
+        },
+        "manualCorrections": {
+          "observedTotal": 0,
+          "measuredRuns": 16,
+          "unknownRuns": 0
+        }
+      },
+      "setupMs": {
+        "observedTotal": 35470,
+        "measuredRuns": 16,
+        "unknownRuns": 0
+      }
+    },
+    {
+      "arm": "workflow",
+      "status": "unknown",
+      "completePairs": 0,
+      "requiredPairs": 16,
+      "issues": [
+        {
+          "pair": "discovery-journal#1",
+          "reason": "failed-or-incomplete-run"
+        },
+        {
+          "pair": "discovery-journal#2",
+          "reason": "unverified-execution"
+        },
+        {
+          "pair": "discovery-report-scope#1",
+          "reason": "unverified-execution"
+        },
+        {
+          "pair": "discovery-report-scope#2",
+          "reason": "unverified-execution"
+        },
+        {
+          "pair": "fix-strict-args#1",
+          "reason": "unverified-execution"
+        },
+        {
+          "pair": "fix-strict-args#2",
+          "reason": "unverified-execution"
+        },
+        {
+          "pair": "fix-locator-row#1",
+          "reason": "unverified-execution"
+        },
+        {
+          "pair": "fix-locator-row#2",
+          "reason": "unverified-execution"
+        },
+        {
+          "pair": "ui-module-parent-order#1",
+          "reason": "unverified-execution"
+        },
+        {
+          "pair": "ui-module-parent-order#2",
+          "reason": "unverified-execution"
+        },
+        {
+          "pair": "cross-rename-status#1",
+          "reason": "unverified-execution"
+        },
+        {
+          "pair": "cross-rename-status#2",
+          "reason": "unverified-execution"
+        },
+        {
+          "pair": "cross-report-id#1",
+          "reason": "failed-or-incomplete-run"
+        },
+        {
+          "pair": "cross-report-id#2",
+          "reason": "unverified-execution"
+        },
+        {
+          "pair": "review-run-integrity#1",
+          "reason": "unverified-execution"
+        },
+        {
+          "pair": "review-run-integrity#2",
+          "reason": "unverified-execution"
+        }
+      ],
+      "metrics": null,
+      "pairedDeltas": [],
+      "baselineAudit": {
+        "runs": [
+          {
+            "taskId": "discovery-journal",
+            "repetition": 1,
+            "status": "failed",
+            "correctness": "unknown",
+            "requiredReview": "unknown",
+            "executionVerified": false,
+            "elapsedMs": 18611,
+            "setupMs": 2479,
+            "totalTokens": null,
+            "failures": 1,
+            "retries": null,
+            "manualCorrections": 0
+          },
+          {
+            "taskId": "discovery-journal",
+            "repetition": 2,
+            "status": "complete",
+            "correctness": "pass",
+            "requiredReview": "pass",
+            "executionVerified": false,
+            "elapsedMs": 33275,
+            "setupMs": 2044,
+            "totalTokens": 275847,
+            "failures": 0,
+            "retries": null,
+            "manualCorrections": 0
+          },
+          {
+            "taskId": "discovery-report-scope",
+            "repetition": 1,
+            "status": "complete",
+            "correctness": "pass",
+            "requiredReview": "pass",
+            "executionVerified": false,
+            "elapsedMs": 30918,
+            "setupMs": 1993,
+            "totalTokens": 224025,
+            "failures": 0,
+            "retries": null,
+            "manualCorrections": 0
+          },
+          {
+            "taskId": "discovery-report-scope",
+            "repetition": 2,
+            "status": "complete",
+            "correctness": "pass",
+            "requiredReview": "pass",
+            "executionVerified": false,
+            "elapsedMs": 34691,
+            "setupMs": 2010,
+            "totalTokens": 268091,
+            "failures": 0,
+            "retries": null,
+            "manualCorrections": 0
+          },
+          {
+            "taskId": "fix-strict-args",
+            "repetition": 1,
+            "status": "complete",
+            "correctness": "pass",
+            "requiredReview": "pass",
+            "executionVerified": false,
+            "elapsedMs": 76665,
+            "setupMs": 2012,
+            "totalTokens": 437133,
+            "failures": 0,
+            "retries": null,
+            "manualCorrections": 0
+          },
+          {
+            "taskId": "fix-strict-args",
+            "repetition": 2,
+            "status": "complete",
+            "correctness": "pass",
+            "requiredReview": "pass",
+            "executionVerified": false,
+            "elapsedMs": 52919,
+            "setupMs": 2426,
+            "totalTokens": 313488,
+            "failures": 0,
+            "retries": null,
+            "manualCorrections": 0
+          },
+          {
+            "taskId": "fix-locator-row",
+            "repetition": 1,
+            "status": "complete",
+            "correctness": "pass",
+            "requiredReview": "pass",
+            "executionVerified": false,
+            "elapsedMs": 60791,
+            "setupMs": 2160,
+            "totalTokens": 432699,
+            "failures": 0,
+            "retries": null,
+            "manualCorrections": 0
+          },
+          {
+            "taskId": "fix-locator-row",
+            "repetition": 2,
+            "status": "complete",
+            "correctness": "pass",
+            "requiredReview": "pass",
+            "executionVerified": false,
+            "elapsedMs": 59198,
+            "setupMs": 2272,
+            "totalTokens": 298358,
+            "failures": 0,
+            "retries": null,
+            "manualCorrections": 0
+          },
+          {
+            "taskId": "ui-module-parent-order",
+            "repetition": 1,
+            "status": "complete",
+            "correctness": "pass",
+            "requiredReview": "pass",
+            "executionVerified": false,
+            "elapsedMs": 72781,
+            "setupMs": 2065,
+            "totalTokens": 407372,
+            "failures": 0,
+            "retries": null,
+            "manualCorrections": 0
+          },
+          {
+            "taskId": "ui-module-parent-order",
+            "repetition": 2,
+            "status": "complete",
+            "correctness": "pass",
+            "requiredReview": "pass",
+            "executionVerified": false,
+            "elapsedMs": 106149,
+            "setupMs": 1947,
+            "totalTokens": 907998,
+            "failures": 0,
+            "retries": null,
+            "manualCorrections": 0
+          },
+          {
+            "taskId": "cross-rename-status",
+            "repetition": 1,
+            "status": "complete",
+            "correctness": "pass",
+            "requiredReview": "pass",
+            "executionVerified": false,
+            "elapsedMs": 72510,
+            "setupMs": 1951,
+            "totalTokens": 546967,
+            "failures": 0,
+            "retries": null,
+            "manualCorrections": 0
+          },
+          {
+            "taskId": "cross-rename-status",
+            "repetition": 2,
+            "status": "complete",
+            "correctness": "pass",
+            "requiredReview": "pass",
+            "executionVerified": false,
+            "elapsedMs": 44260,
+            "setupMs": 2638,
+            "totalTokens": 293610,
+            "failures": 0,
+            "retries": null,
+            "manualCorrections": 0
+          },
+          {
+            "taskId": "cross-report-id",
+            "repetition": 1,
+            "status": "complete",
+            "correctness": "pass",
+            "requiredReview": "pass",
+            "executionVerified": false,
+            "elapsedMs": 90004,
+            "setupMs": 1926,
+            "totalTokens": 786491,
+            "failures": 0,
+            "retries": null,
+            "manualCorrections": 0
+          },
+          {
+            "taskId": "review-run-integrity",
+            "repetition": 1,
+            "status": "complete",
+            "correctness": "pass",
+            "requiredReview": "pass",
+            "executionVerified": false,
+            "elapsedMs": 45788,
+            "setupMs": 2119,
+            "totalTokens": 262258,
+            "failures": 0,
+            "retries": null,
+            "manualCorrections": 0
+          },
+          {
+            "taskId": "cross-report-id",
+            "repetition": 2,
+            "status": "complete",
+            "correctness": "pass",
+            "requiredReview": "pass",
+            "executionVerified": false,
+            "elapsedMs": 102654,
+            "setupMs": 2099,
+            "totalTokens": 798614,
+            "failures": 0,
+            "retries": null,
+            "manualCorrections": 0
+          },
+          {
+            "taskId": "review-run-integrity",
+            "repetition": 2,
+            "status": "complete",
+            "correctness": "pass",
+            "requiredReview": "pass",
+            "executionVerified": false,
+            "elapsedMs": 39199,
+            "setupMs": 1942,
+            "totalTokens": 236355,
+            "failures": 0,
+            "retries": null,
+            "manualCorrections": 0
+          }
+        ],
+        "operationalCounts": {
+          "failures": {
+            "observedTotal": 1,
+            "measuredRuns": 16,
+            "unknownRuns": 0
+          },
+          "retries": {
+            "observedTotal": null,
+            "measuredRuns": 0,
+            "unknownRuns": 16
+          },
+          "manualCorrections": {
+            "observedTotal": 0,
+            "measuredRuns": 16,
+            "unknownRuns": 0
+          },
+          "setupMs": {
+            "observedTotal": 34083,
+            "measuredRuns": 16,
+            "unknownRuns": 0
+          }
+        }
+      },
+      "candidateAudit": {
+        "runs": [
+          {
+            "taskId": "discovery-journal",
+            "repetition": 1,
+            "status": "complete",
+            "correctness": "pass",
+            "requiredReview": "pass",
+            "executionVerified": false,
+            "elapsedMs": 29078,
+            "setupMs": 2158,
+            "totalTokens": 219612,
+            "failures": 0,
+            "retries": null,
+            "manualCorrections": 0
+          },
+          {
+            "taskId": "discovery-journal",
+            "repetition": 2,
+            "status": "complete",
+            "correctness": "pass",
+            "requiredReview": "pass",
+            "executionVerified": false,
+            "elapsedMs": 35251,
+            "setupMs": 2085,
+            "totalTokens": 203489,
+            "failures": 0,
+            "retries": null,
+            "manualCorrections": 0
+          },
+          {
+            "taskId": "discovery-report-scope",
+            "repetition": 1,
+            "status": "complete",
+            "correctness": "pass",
+            "requiredReview": "pass",
+            "executionVerified": false,
+            "elapsedMs": 41604,
+            "setupMs": 2170,
+            "totalTokens": 267330,
+            "failures": 0,
+            "retries": null,
+            "manualCorrections": 0
+          },
+          {
+            "taskId": "discovery-report-scope",
+            "repetition": 2,
+            "status": "complete",
+            "correctness": "pass",
+            "requiredReview": "pass",
+            "executionVerified": false,
+            "elapsedMs": 34855,
+            "setupMs": 1958,
+            "totalTokens": 203426,
+            "failures": 0,
+            "retries": null,
+            "manualCorrections": 0
+          },
+          {
+            "taskId": "fix-strict-args",
+            "repetition": 2,
+            "status": "complete",
+            "correctness": "pass",
+            "requiredReview": "pass",
+            "executionVerified": false,
+            "elapsedMs": 44819,
+            "setupMs": 2237,
+            "totalTokens": 234641,
+            "failures": 0,
+            "retries": null,
+            "manualCorrections": 0
+          },
+          {
+            "taskId": "fix-strict-args",
+            "repetition": 1,
+            "status": "complete",
+            "correctness": "pass",
+            "requiredReview": "pass",
+            "executionVerified": false,
+            "elapsedMs": 74488,
+            "setupMs": 2208,
+            "totalTokens": 467250,
+            "failures": 0,
+            "retries": null,
+            "manualCorrections": 0
+          },
+          {
+            "taskId": "fix-locator-row",
+            "repetition": 2,
+            "status": "complete",
+            "correctness": "pass",
+            "requiredReview": "pass",
+            "executionVerified": false,
+            "elapsedMs": 57094,
+            "setupMs": 1968,
+            "totalTokens": 303759,
+            "failures": 0,
+            "retries": null,
+            "manualCorrections": 0
+          },
+          {
+            "taskId": "fix-locator-row",
+            "repetition": 1,
+            "status": "complete",
+            "correctness": "pass",
+            "requiredReview": "pass",
+            "executionVerified": false,
+            "elapsedMs": 108174,
+            "setupMs": 2041,
+            "totalTokens": 653470,
+            "failures": 0,
+            "retries": null,
+            "manualCorrections": 0
+          },
+          {
+            "taskId": "ui-module-parent-order",
+            "repetition": 1,
+            "status": "complete",
+            "correctness": "pass",
+            "requiredReview": "pass",
+            "executionVerified": false,
+            "elapsedMs": 75549,
+            "setupMs": 2009,
+            "totalTokens": 371734,
+            "failures": 0,
+            "retries": null,
+            "manualCorrections": 0
+          },
+          {
+            "taskId": "ui-module-parent-order",
+            "repetition": 2,
+            "status": "complete",
+            "correctness": "pass",
+            "requiredReview": "pass",
+            "executionVerified": false,
+            "elapsedMs": 63086,
+            "setupMs": 1996,
+            "totalTokens": 303542,
+            "failures": 0,
+            "retries": null,
+            "manualCorrections": 0
+          },
+          {
+            "taskId": "cross-rename-status",
+            "repetition": 1,
+            "status": "complete",
+            "correctness": "pass",
+            "requiredReview": "pass",
+            "executionVerified": false,
+            "elapsedMs": 40823,
+            "setupMs": 3652,
+            "totalTokens": 205121,
+            "failures": 0,
+            "retries": null,
+            "manualCorrections": 0
+          },
+          {
+            "taskId": "cross-rename-status",
+            "repetition": 2,
+            "status": "complete",
+            "correctness": "pass",
+            "requiredReview": "pass",
+            "executionVerified": false,
+            "elapsedMs": 34088,
+            "setupMs": 2134,
+            "totalTokens": 195397,
+            "failures": 0,
+            "retries": null,
+            "manualCorrections": 0
+          },
+          {
+            "taskId": "cross-report-id",
+            "repetition": 2,
+            "status": "complete",
+            "correctness": "pass",
+            "requiredReview": "pass",
+            "executionVerified": false,
+            "elapsedMs": 93850,
+            "setupMs": 2081,
+            "totalTokens": 623330,
+            "failures": 0,
+            "retries": null,
+            "manualCorrections": 0
+          },
+          {
+            "taskId": "cross-report-id",
+            "repetition": 1,
+            "status": "incomplete",
+            "correctness": "unknown",
+            "requiredReview": "unknown",
+            "executionVerified": false,
+            "elapsedMs": 121968,
+            "setupMs": 1962,
+            "totalTokens": null,
+            "failures": 1,
+            "retries": null,
+            "manualCorrections": 0
+          },
+          {
+            "taskId": "review-run-integrity",
+            "repetition": 1,
+            "status": "complete",
+            "correctness": "pass",
+            "requiredReview": "pass",
+            "executionVerified": false,
+            "elapsedMs": 40814,
+            "setupMs": 2144,
+            "totalTokens": 212809,
+            "failures": 0,
+            "retries": null,
+            "manualCorrections": 0
+          },
+          {
+            "taskId": "review-run-integrity",
+            "repetition": 2,
+            "status": "complete",
+            "correctness": "pass",
+            "requiredReview": "pass",
+            "executionVerified": false,
+            "elapsedMs": 37200,
+            "setupMs": 2085,
+            "totalTokens": 204612,
+            "failures": 0,
+            "retries": null,
+            "manualCorrections": 0
+          }
+        ],
+        "operationalCounts": {
+          "failures": {
+            "observedTotal": 1,
+            "measuredRuns": 16,
+            "unknownRuns": 0
+          },
+          "retries": {
+            "observedTotal": null,
+            "measuredRuns": 0,
+            "unknownRuns": 16
+          },
+          "manualCorrections": {
+            "observedTotal": 0,
+            "measuredRuns": 16,
+            "unknownRuns": 0
+          },
+          "setupMs": {
+            "observedTotal": 34888,
+            "measuredRuns": 16,
+            "unknownRuns": 0
+          }
+        }
+      },
+      "receivedRuns": 16,
+      "runOutcomes": {
+        "complete": 15,
+        "failed": 0,
+        "incomplete": 1
+      },
+      "operationalCounts": {
+        "failures": {
+          "observedTotal": 1,
+          "measuredRuns": 16,
+          "unknownRuns": 0
+        },
+        "retries": {
+          "observedTotal": null,
+          "measuredRuns": 0,
+          "unknownRuns": 16
+        },
+        "manualCorrections": {
+          "observedTotal": 0,
+          "measuredRuns": 16,
+          "unknownRuns": 0
+        }
+      },
+      "setupMs": {
+        "observedTotal": 34888,
+        "measuredRuns": 16,
+        "unknownRuns": 0
+      }
+    }
+  ]
+}

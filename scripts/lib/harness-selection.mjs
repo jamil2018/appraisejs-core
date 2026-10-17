@@ -5,6 +5,23 @@ import { fileURLToPath } from 'node:url'
 
 const harnessRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../config/development-harness')
 const profileIds = new Set(['coordinator-only', 'investigator', 'executor', 'executor-advanced', 'solver', 'judge'])
+export const registeredVariants = {
+  investigator: [{ id: 'investigator-high', model: 'gpt-6-luna', effort: 'high' }],
+  executor: [
+    { id: 'executor-high', model: 'gpt-6-sol', effort: 'high' },
+    { id: 'executor-sol61', model: 'gpt-6.1-sol', effort: 'medium' },
+    { id: 'executor-sol61-high', model: 'gpt-6.1-sol', effort: 'high' },
+  ],
+  'executor-advanced': [{ id: 'executor-advanced-sol61', model: 'gpt-6.1-sol', effort: 'high' }],
+  solver: [
+    { id: 'solver-xhigh', model: 'gpt-6-sol', effort: 'xhigh' },
+    { id: 'solver-sol61', model: 'gpt-6.1-sol', effort: 'high' },
+  ],
+  judge: [
+    { id: 'judge-astra-high', model: 'gpt-6-astra', effort: 'high' },
+    { id: 'judge-sol61', model: 'gpt-6.1-sol', effort: 'high' },
+  ],
+}
 const efforts = new Set(['low', 'medium', 'high', 'xhigh', 'max', 'ultra'])
 const profileFields = ['id', 'role', 'requiredCapabilities', 'authority', 'contextBoundary', 'stopConditions']
 const selectionInputValues = {
@@ -191,85 +208,120 @@ export function replayRecordedSelection(recorded, { host } = {}, contracts = loa
   return replayed
 }
 
-export function adaptSelectionForCodex(selection, contracts = loadHarnessSelectionContracts(), host = undefined) {
+export function adaptSelectionForCodex(
+  selection,
+  contracts = loadHarnessSelectionContracts(),
+  host = undefined,
+  { assignmentPacket } = {},
+) {
   validateHarnessSelectionContracts(contracts)
   const profile = findProfile(selection.profile, contracts)
   if (selection.status !== 'selected' || !selection.effective) {
-    return Object.freeze({
-      canSpawn: false,
-      spawnArguments: null,
-      profileContract: profileContract(profile),
-      limitations: selection.limitations,
-      effectiveExecution: unverifiedEffectiveExecution(profile),
-    })
+    return limitedCodexAdapter(profile, selection.limitations)
   }
+  return adaptSelectedForCodex(selection, contracts, host, assignmentPacket, profile)
+}
 
-  const limitations = []
-  const hostProfile = host?.profiles?.[profile.id]
-  if (!hostProfile || typeof hostProfile !== 'object') {
-    limitations.push(`Host does not provide a profile descriptor for ${profile.id}.`)
-  }
-  if (hostProfile) assertHostProfileAuthority(profile, hostProfile, limitations)
-  const forkTurns = hostProfile ? requiredForkTurns(profile, hostProfile, limitations) : null
-  const modelSupport = candidateHostAvailability(selection.effective, host)
-  if (modelSupport.status !== 'supported') {
-    limitations.push(`Host does not confirm support for ${selection.effective.model}/${selection.effective.effort}.`)
-  }
-  const namedProfileMatchesSelection =
-    hostProfile?.model === selection.effective.model && hostProfile?.reasoningEffort === selection.effective.effort
-  const canUseNamedProfile = namedProfileMatchesSelection || hostProfile?.supportsModelOverride === true
-  if (hostProfile && !canUseNamedProfile && host?.supportsRoleContractFallback === true) {
-    limitations.push(
-      `Host advertises a role-contract fallback for ${profile.id}, but this adapter has no enforceable role or sandbox mechanism for it.`,
-    )
-  } else if (hostProfile && !canUseNamedProfile) {
-    limitations.push(
-      `Host profile ${profile.id} is fixed to ${hostProfile.model}/${hostProfile.reasoningEffort} and cannot honor ${selection.effective.model}/${selection.effective.effort}.`,
-    )
-  }
+function adaptSelectedForCodex(selection, contracts, host, assignmentPacket, profile) {
+  const registrationId = registrationForSelection(profile.id, selection.effective, contracts)
+  const hostProfile = registrationId ? host?.profiles?.[registrationId] : null
+  const limitations = [
+    ...profileDescriptorLimitations(profile, hostProfile, registrationId),
+    ...contextInheritanceLimitations(hostProfile, registrationId),
+    ...assignmentPacketLimitations(profile.id, assignmentPacket),
+    ...hostModelLimitations(selection.effective, host),
+    ...namedProfileModelLimitations(selection.effective, hostProfile, registrationId),
+  ]
   if (limitations.length) {
-    return Object.freeze({
-      canSpawn: false,
-      spawnArguments: null,
-      profileContract: profileContract(profile),
-      limitations,
-      effectiveExecution: unverifiedEffectiveExecution(profile),
-    })
+    return limitedCodexAdapter(profile, limitations)
   }
 
   const spawnArguments = {
-    model: selection.effective.model,
-    reasoning_effort: selection.effective.effort,
-    fork_turns: forkTurns,
-    agent_type: profile.id,
+    fork_turns: 'none',
+    agent_type: registrationId,
   }
   return Object.freeze({
     canSpawn: true,
     spawnArguments: Object.freeze(spawnArguments),
     mode: 'named-profile',
+    assignmentPacket: Object.freeze(structuredClone(assignmentPacket)),
     profileContract: profileContract(profile),
     limitations: Object.freeze([]),
     effectiveExecution: unverifiedEffectiveExecution(profile),
   })
 }
 
-function requiredForkTurns(profile, hostProfile, limitations) {
-  const forkTurns = hostProfile.forkTurns
-  if (profile.contextBoundary === 'none') {
-    if (forkTurns === 'none') return 'none'
-    limitations.push(`Host profile ${profile.id} must provide forkTurns "none" for independent execution.`)
-    return null
-  }
-  if (profile.contextBoundary === 'bounded') {
-    const normalized = typeof forkTurns === 'number' ? String(forkTurns) : forkTurns
-    if (/^[1-9]\d*$/.test(normalized ?? '')) return normalized
-    limitations.push(`Host profile ${profile.id} must provide a positive bounded forkTurns value.`)
-    return null
-  }
-  return null
+function limitedCodexAdapter(profile, limitations) {
+  return Object.freeze({
+    canSpawn: false,
+    spawnArguments: null,
+    profileContract: profileContract(profile),
+    limitations,
+    effectiveExecution: unverifiedEffectiveExecution(profile),
+  })
 }
 
-function assertHostProfileAuthority(profile, hostProfile, limitations) {
+function registrationForSelection(profileId, selection, contracts) {
+  if (sameCandidate(contracts.policy.defaults[profileId], selection)) return profileId
+  return registeredVariants[profileId]?.find(item => sameCandidate(item, selection))?.id
+}
+
+function profileDescriptorLimitations(profile, hostProfile, registrationId) {
+  if (!hostProfile || typeof hostProfile !== 'object') {
+    return [`Host does not provide a profile descriptor for ${registrationId ?? `${profile.id} selection`}.`]
+  }
+  const limitations = []
+  assertHostProfileAuthority(profile, hostProfile, limitations, registrationId)
+  return limitations
+}
+
+function contextInheritanceLimitations(hostProfile, registrationId) {
+  if (!hostProfile || hostProfile.forkTurns === 'none') return []
+  return [`Host profile ${registrationId} must support forkTurns "none".`]
+}
+
+function assignmentPacketLimitations(profileId, packet) {
+  if (validAssignmentPacket(packet)) return []
+  return [
+    `Profile ${profileId} requires a bounded assignment packet with objective, evidence, constraints, and acceptanceCriteria.`,
+  ]
+}
+
+function hostModelLimitations(selection, host) {
+  if (candidateHostAvailability(selection, host).status === 'supported') return []
+  return [`Host does not confirm support for ${selection.model}/${selection.effort}.`]
+}
+
+function namedProfileModelLimitations(selection, hostProfile, registrationId) {
+  if (!hostProfile) return []
+  if (hostProfile.model === selection.model && hostProfile.reasoningEffort === selection.effort) return []
+  return [
+    `Host profile ${registrationId} is fixed to ${hostProfile.model}/${hostProfile.reasoningEffort} and cannot honor ${selection.model}/${selection.effort}.`,
+  ]
+}
+
+function validAssignmentPacket(packet) {
+  if (!isPlainPacket(packet)) return false
+  return (
+    boundedText(packet.objective) &&
+    ['evidence', 'constraints', 'acceptanceCriteria'].every(field => boundedPacketItems(packet[field])) &&
+    Object.keys(packet).every(key => ['objective', 'evidence', 'constraints', 'acceptanceCriteria'].includes(key))
+  )
+}
+
+function isPlainPacket(packet) {
+  return !!packet && typeof packet === 'object' && !Array.isArray(packet)
+}
+
+function boundedText(value) {
+  return nonBlank(value) && value.length <= 1000
+}
+
+function boundedPacketItems(items) {
+  return Array.isArray(items) && items.length >= 1 && items.length <= 12 && items.every(boundedText)
+}
+
+function assertHostProfileAuthority(profile, hostProfile, limitations, registrationId) {
   const expected = profileInvariants[profile.id]
   for (const [field, value] of Object.entries({
     role: expected.role,
@@ -278,9 +330,9 @@ function assertHostProfileAuthority(profile, hostProfile, limitations) {
     contextBoundary: expected.contextBoundary,
   })) {
     if (hostProfile[field] == null) {
-      limitations.push(`Host profile ${profile.id} does not advertise ${field} support.`)
+      limitations.push(`Host profile ${registrationId} does not advertise ${field} support.`)
     } else if (hostProfile[field] !== value) {
-      limitations.push(`Host profile ${profile.id} advertises ${field} ${hostProfile[field]}, expected ${value}.`)
+      limitations.push(`Host profile ${registrationId} advertises ${field} ${hostProfile[field]}, expected ${value}.`)
     }
   }
 }
@@ -325,32 +377,51 @@ export function validateConfiguredAgentMappings(
 ) {
   validateHarnessSelectionContracts(contracts)
   const expected = profileDefaults(contracts)
-  const failures = []
-  if (agentDefaults?.default_subagent_model !== expected.executor.model) {
-    failures.push(`default_subagent_model must be ${expected.executor.model}`)
-  }
-  if (agentDefaults?.default_subagent_reasoning_effort !== expected.executor.effort) {
-    failures.push(`default_subagent_reasoning_effort must be ${expected.executor.effort}`)
-  }
-  for (const [profileId, selection] of Object.entries(expected)) {
-    if (profileId === 'coordinator-only') continue
-    const registration = registrations?.[profileId]
-    const file = agentFiles?.[profileId]
-    if (!registration) failures.push(`missing registration for ${profileId}`)
-    if (registration && registration.config_file !== `agents/${profileId}.toml`) {
-      failures.push(`invalid config_file for ${profileId}`)
-    }
-    if (!file) {
-      failures.push(`missing agent file for ${profileId}`)
-      continue
-    }
-    if (file.model !== selection.model) failures.push(`${profileId}: expected model ${selection.model}`)
-    if (file.model_reasoning_effort !== selection.effort) {
-      failures.push(`${profileId}: expected reasoning effort ${selection.effort}`)
-    }
-    if (file.sandbox_mode !== selection.sandbox) failures.push(`${profileId}: expected sandbox ${selection.sandbox}`)
-  }
-  return failures
+  const defaultFailures = Object.entries(expected)
+    .filter(([id]) => id !== 'coordinator-only')
+    .flatMap(([id, selection]) => agentMappingFailures(id, selection, registrations, agentFiles))
+  const variantFailures = Object.entries(registeredVariants).flatMap(([profileId, variants]) =>
+    variants.flatMap(variant =>
+      agentMappingFailures(variant.id, { ...variant, sandbox: expected[profileId].sandbox }, registrations, agentFiles),
+    ),
+  )
+  return [...defaultModelFailures(agentDefaults, expected.executor), ...defaultFailures, ...variantFailures]
+}
+
+function defaultModelFailures(actual, expected) {
+  return [
+    ...mismatch(actual?.default_subagent_model, expected.model, `default_subagent_model must be ${expected.model}`),
+    ...mismatch(
+      actual?.default_subagent_reasoning_effort,
+      expected.effort,
+      `default_subagent_reasoning_effort must be ${expected.effort}`,
+    ),
+  ]
+}
+
+function mismatch(actual, expected, message) {
+  return actual === expected ? [] : [message]
+}
+
+function agentMappingFailures(id, expected, registrations, agentFiles) {
+  const registration = registrations?.[id]
+  const file = agentFiles?.[id]
+  return [...registrationMappingFailures(id, registration), ...fileMappingFailures(id, expected, file)]
+}
+
+function registrationMappingFailures(id, registration) {
+  if (!registration) return [`missing registration for ${id}`]
+  if (registration.config_file !== `agents/${id}.toml`) return [`invalid config_file for ${id}`]
+  return []
+}
+
+function fileMappingFailures(id, expected, file) {
+  if (!file) return [`missing agent file for ${id}`]
+  return [
+    ...mismatch(file.model, expected.model, `${id}: expected model ${expected.model}`),
+    ...mismatch(file.model_reasoning_effort, expected.effort, `${id}: expected reasoning effort ${expected.effort}`),
+    ...mismatch(file.sandbox_mode, expected.sandbox, `${id}: expected sandbox ${expected.sandbox}`),
+  ]
 }
 
 export function validateRecordedSelection(selection, expectedProfile, contracts = loadHarnessSelectionContracts()) {
@@ -670,7 +741,12 @@ function validEffectiveReceipt(property, receipt, expected) {
   const escaped = String(expectedValue).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
   if (property === 'context') {
     if (expectedValue === 'none') return /^host-effective-context:fork_turns:none(?:;.+)?$/.test(receipt)
-    if (expectedValue === 'bounded') return /^host-effective-context:fork_turns:bounded:[1-9]\d*(?:;.+)?$/.test(receipt)
+    if (expectedValue === 'bounded') {
+      return (
+        /^host-effective-context:fork_turns:none;assignment-packet:bounded(?:;.+)?$/.test(receipt) ||
+        /^host-effective-context:fork_turns:bounded:[1-9]\d*(?:;.+)?$/.test(receipt)
+      )
+    }
   }
   return new RegExp(`^host-effective-${property}:${escaped}(?:;.+)?$`).test(receipt)
 }

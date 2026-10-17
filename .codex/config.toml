@@ -34,6 +34,43 @@ config_file = "agents/executor-advanced.toml"
 description = "Independently evaluate consequential results with material residual uncertainty."
 config_file = "agents/judge.toml"
 
+# Opt-in exact model and effort registrations. Defaults above remain the rollback path.
+[agents.investigator-high]
+description = "Gather extended bounded evidence with Luna high effort."
+config_file = "agents/investigator-high.toml"
+
+[agents.executor-high]
+description = "Perform consequential extended implementation with Sol high effort."
+config_file = "agents/executor-high.toml"
+
+[agents.solver-xhigh]
+description = "Resolve extended cross-module judgment with Sol xhigh effort."
+config_file = "agents/solver-xhigh.toml"
+
+[agents.judge-astra-high]
+description = "Independently review consequential weak-proof results with Astra high effort."
+config_file = "agents/judge-astra-high.toml"
+
+[agents.executor-sol61]
+description = "Opt-in Sol 6.1 medium evaluation for settled implementation."
+config_file = "agents/executor-sol61.toml"
+
+[agents.executor-sol61-high]
+description = "Opt-in Sol 6.1 high evaluation for consequential implementation."
+config_file = "agents/executor-sol61-high.toml"
+
+[agents.executor-advanced-sol61]
+description = "Opt-in Sol 6.1 high evaluation for cross-module implementation."
+config_file = "agents/executor-advanced-sol61.toml"
+
+[agents.solver-sol61]
+description = "Opt-in Sol 6.1 high evaluation for decision work."
+config_file = "agents/solver-sol61.toml"
+
+[agents.judge-sol61]
+description = "Opt-in Sol 6.1 high evaluation for independent review."
+config_file = "agents/judge-sol61.toml"
+
 [memories]
 generate_memories = true
 use_memories = true

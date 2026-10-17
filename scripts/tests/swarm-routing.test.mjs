@@ -244,6 +244,14 @@ test('verified runtime proof requires matching property-specific effective host 
     ).route,
     'investigator',
   )
+  const packetProof = structuredClone(proof)
+  packetProof.claims.context.receipt = 'host-effective-context:fork_turns:none;assignment-packet:bounded'
+  assert.equal(
+    validateRoutingDecision(
+      validDecision({ route: 'investigator', profile: 'investigator', delegationCount: 1, runtimeProof: packetProof }),
+    ).route,
+    'investigator',
+  )
   assert.throws(
     () =>
       validateRoutingDecision(

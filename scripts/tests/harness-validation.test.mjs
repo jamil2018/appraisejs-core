@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict'
 import { mkdtempSync, mkdirSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
+import { createHash } from 'node:crypto'
 import os from 'node:os'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -13,6 +14,7 @@ import {
   disposeValidationSession,
   executeCommand,
   executeValidationPlan,
+  hashFiles,
   isDocumentationOnlyChange,
   matchesPattern,
   parseNameStatus,
@@ -253,6 +255,63 @@ test('reuses a valid prerequisite and invalidates it after relevant input or too
     assert.equal(fourth.events.filter(event => event.id === 'runtime')[0].reused, false)
   } finally {
     rmSync(root, { recursive: true, force: true })
+  }
+})
+
+test('scoped fingerprint keeps sorted path-content hashes and ignores unrelated roots', () => {
+  const root = mkdtempSync(path.join(os.tmpdir(), 'harness-fingerprint-'))
+  const external = mkdtempSync(path.join(os.tmpdir(), 'harness-fingerprint-external-'))
+  try {
+    mkdirSync(path.join(root, 'src/nested'), { recursive: true })
+    mkdirSync(path.join(root, 'unrelated'))
+    writeFileSync(path.join(root, 'src/nested/z.ts'), 'z\n')
+    writeFileSync(path.join(root, 'src/a.ts'), 'a\n')
+    writeFileSync(path.join(root, 'package.json'), '{}\n')
+    writeFileSync(path.join(root, 'unrelated/file.ts'), 'ignore\n')
+    const patterns = ['src/**', 'package.json']
+    const expected = createHash('sha256')
+      .update('package.json')
+      .update('{}\n')
+      .update('src/a.ts')
+      .update('a\n')
+      .update('src/nested/z.ts')
+      .update('z\n')
+      .digest('hex')
+    assert.equal(hashFiles(root, patterns), expected)
+    writeFileSync(path.join(root, 'unrelated/file.ts'), 'changed\n')
+    assert.equal(hashFiles(root, patterns), expected)
+    writeFileSync(path.join(root, 'src/a.ts'), 'changed\n')
+    assert.notEqual(hashFiles(root, patterns), expected)
+    writeFileSync(path.join(external, 'input.ts'), 'external\n')
+    symlinkSync(path.join(external, 'input.ts'), path.join(root, 'src/external.ts'))
+    assert.throws(() => hashFiles(root, patterns), /external symlink/)
+  } finally {
+    rmSync(root, { recursive: true, force: true })
+    rmSync(external, { recursive: true, force: true })
+  }
+})
+
+test('scoped fingerprint preserves excluded roots and refuses escaping patterns', () => {
+  const root = mkdtempSync(path.join(os.tmpdir(), 'harness-fingerprint-roots-'))
+  const external = mkdtempSync(path.join(os.tmpdir(), 'harness-fingerprint-roots-external-'))
+  try {
+    mkdirSync(path.join(root, 'src'))
+    mkdirSync(path.join(root, 'node_modules'))
+    writeFileSync(path.join(root, 'node_modules/ignored.ts'), 'ignore\n')
+    writeFileSync(path.join(external, 'outside.ts'), 'external\n')
+    symlinkSync(external, path.join(root, 'src/linked'))
+    mkdirSync(path.join(root, 'real'))
+    writeFileSync(path.join(root, 'real/inside.ts'), 'internal\n')
+    symlinkSync(path.join(root, 'real'), path.join(root, 'src/internal'))
+    const empty = createHash('sha256').digest('hex')
+    assert.equal(hashFiles(root, ['node_modules/ignored.ts']), empty)
+    assert.equal(hashFiles(root, ['src/linked/**']), empty)
+    assert.equal(hashFiles(root, ['src/linked/outside.ts']), empty)
+    assert.equal(hashFiles(root, ['src/internal/inside.ts']), empty)
+    assert.throws(() => hashFiles(root, ['../outside.ts']), /escapes the repository/)
+  } finally {
+    rmSync(root, { recursive: true, force: true })
+    rmSync(external, { recursive: true, force: true })
   }
 })
 

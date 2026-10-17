@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "manifestSha256": "32c7efce8f2636740dd0812e35e952c5153aff2039b3e72cf510638df51f808f",
+  "manifestDigest": "0855eca1354a12269573c1fbd175892a09d643aeec0e80d28fef7d900b560183",
+  "commonGuidanceSha256": "ea50b2a4e04c2c22b6ceaed3cac6d45908b88c6ad3c7ee20ebb7312e19ea589f",
+  "workflowGuidanceSha256": "d5588226eba88dbeacb1ed9ec393bd0e73eeb990629cb50fca3414fa0a5b75c1",
+  "runnerSha256": "a63fe5acf2d13ca2ea816ff12cc413021844f261aee8ba54cb04755bb7885daf",
+  "baseCommit": "ac758ceaa12330f969b166e6be1d18f7b3dc98c9",
+  "requestedArms": [
+    {
+      "id": "baseline",
+      "model": "gpt-6-sol",
+      "workflow": "frozen-current"
+    },
+    {
+      "id": "model",
+      "model": "gpt-6.1-sol",
+      "workflow": "frozen-current"
+    },
+    {
+      "id": "workflow",
+      "model": "gpt-6-sol",
+      "workflow": "optimized-guidance-only"
+    }
+  ],
+  "source": "config/development-harness/native-pilot.json"
+}

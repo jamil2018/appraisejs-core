@@ -68,19 +68,17 @@ contradictory evidence, weak verification at high consequence, or discovery that
 Security, persistence, migration, and public-contract risk require Sol-level judgment and conditional independent
 evaluation. Do not route routine discovery or mechanical execution to a solver or judge.
 
-## Profile matrix
+## Profiles and host registrations
 
-| Profile             | Role         | Model / effort                | Authority       | Stop or escalate when                                      |
-| ------------------- | ------------ | ----------------------------- | --------------- | ---------------------------------------------------------- |
-| `coordinator`       | coordinator  | host coordinator              | current task    | evidence or consequence exceeds the coordinator fast path  |
-| `investigator`      | investigator | GPT-6 Luna / medium           | read-only       | facts are established or judgment is required              |
-| `executor`          | executor     | GPT-6 Sol / medium            | workspace-write | an invariant fails or scope becomes ambiguous              |
-| `executor-advanced` | executor     | GPT-6 Sol / high              | workspace-write | irreducible judgment or weak verification remains          |
-| `solver`            | solver       | GPT-6 Sol / high              | read-only       | evidence is missing or user authority is required          |
-| `judge`             | judge        | GPT-6 Sol / high, independent | read-only       | result is accepted, revision is required, or proof is weak |
-
-Static registration requests these properties but does not prove host enforcement. Record each runtime property as
-verified only when a host receipt supports it; otherwise use `unverified`.
+Logical roles, capabilities, authority, and stop conditions are defined in
+`config/development-harness/agent-profiles.json`. Reviewed model defaults, policy-selected variants, and active or
+historical models are defined in `config/development-harness/selection-policy.json` and `model-catalog.json`.
+`.codex/config.toml` and `.codex/agents/` register exact model/effort variants. Use
+`scripts/select-harness-agent.mjs` to check an advertised host descriptor and an explicit bounded assignment packet.
+Do not treat an available default-role model override as authority to run a fixed named profile with another model.
+When a registration is unavailable, fail closed. Every spawn uses `fork_turns: "none"`; bounded context comes from the
+assignment packet, not inherited transcript turns. Static registration and requested arguments do not prove the
+runtime role, model, context, or sandbox. Record each property as verified only with a matching host receipt.
 
 ## Run scorecard
 
@@ -186,8 +184,10 @@ The immutable route receipt is recorded before delegation or execution. Every la
 role, model, reasoning effort, inherited context, and sandbox claims. Verify each property separately only with an
 effective-host receipt that matches the selected profile: `host-effective-role:<role>`,
 `host-effective-model:<model>`, `host-effective-reasoning:<effort>`,
-`host-effective-context:fork_turns:none|bounded:<N>`, or `host-effective-sandbox:<sandbox>`. A requested selector or
-`fork_turns` setting is not evidence and must remain unverified.
+`host-effective-context:fork_turns:none;assignment-packet:bounded`, or
+`host-effective-sandbox:<sandbox>`. A requested selector or `fork_turns` setting is not evidence and must remain
+unverified. Historical `host-effective-context:fork_turns:bounded:<N>` receipts remain readable for prior runs;
+new runs use `fork_turns: "none"` plus a bounded assignment packet.
 Inspect proportional aggregates with `npm run swarm:ledger -- metrics --task-class "<stable comparable class>"`; zero-agent rate is an efficiency measure, not
 an automatic under-routing failure. Repeated under-routing or oversized Sol observations require user guidance and
 never authorize automatic harness changes.
@@ -204,9 +204,9 @@ npm run swarm:record -- \
   --efficiency <0-2> \
   --coordination <0-2> \
   --solver-context <none|bounded|all|not-used> \
-  --solver-context-evidence "<host-effective-context:fork_turns:none|host-effective-context:fork_turns:bounded:N|not-used>" \
+  --solver-context-evidence "<host-effective-context:fork_turns:none|not-used>" \
   --judge-context <none|bounded|all|not-used> \
-  --judge-context-evidence "<host-effective-context:fork_turns:none|host-effective-context:fork_turns:bounded:N|not-used>" \
+  --judge-context-evidence "<host-effective-context:fork_turns:none|not-used>" \
   --evidence "<concise evidence>" \
   --optimization "<proposed change or none>" \
   [--observation "<domain>|<minor|material|critical>|<summary>|<evidence>|<impact>|<proposed-options>"] \

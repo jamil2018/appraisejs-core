@@ -4,12 +4,13 @@ import crypto from 'node:crypto'
 import { parseStrictArgs } from './lib/swarm-cli.mjs'
 import { withLockedSwarmJournal } from './lib/swarm-ledger-access.mjs'
 import { appendEvent, validateRun, validateRunRoutingLink } from './lib/swarm-ledger-store.mjs'
-import { normalizeTaskClass } from './lib/swarm-routing-contract.mjs'
+import { isEffectiveIndependentJudgeContext, normalizeTaskClass } from './lib/swarm-routing-contract.mjs'
+import { composeMeasurements, readHostTelemetry, validCount, validateModelUse } from './lib/harness-telemetry.mjs'
 
 const argv = process.argv.slice(2)
 if (argv.includes('--help')) {
   console.log(
-    'Usage: npm run swarm:record -- --task-class <class> --routing-decision-id <prior route receipt> --accuracy <0-2> --coverage <0-2> --routing <0-2> --efficiency <0-2> --coordination <0-2> --solver-context <mode> --solver-context-evidence <effective host receipt> --judge-context <mode> --judge-context-evidence <effective host receipt> --evidence <text> --optimization <text> [--observation "domain|severity|summary|evidence|impact|options"] [--trigger <code>] [--critical-override <reason>] [metrics]',
+    'Usage: npm run swarm:record -- --task-class <class> --routing-decision-id <prior route receipt> --accuracy <0-2> --coverage <0-2> --routing <0-2> --efficiency <0-2> --coordination <0-2> --solver-context <mode> --solver-context-evidence <effective host receipt> --judge-context <mode> --judge-context-evidence <effective host receipt> --evidence <text> --optimization <text> [--observation "domain|severity|summary|evidence|impact|options"] [--trigger <code>] [--critical-override <reason>] [--host-telemetry-file <normalized aggregate JSON>] [metrics]',
   )
   process.exit(0)
 }
@@ -33,11 +34,16 @@ const values = parseStrictArgs(argv, {
   'duration-ms': {},
   'input-tokens': {},
   'output-tokens': {},
+  'cache-read-tokens': {},
+  'cache-write-tokens': {},
+  'tool-output-bytes': {},
+  'tool-output-count': {},
   'agent-count': {},
   'retry-count': {},
   'reroute-count': {},
   'model-use': { multiple: true },
   'routing-decision-id': { required: true },
+  'host-telemetry-file': {},
 })
 
 const dimensionOptions = {
@@ -99,8 +105,7 @@ if (!contexts.has(values['solver-context']) || !contexts.has(values['judge-conte
 }
 const verifiedReceipt = (context, receipt) => {
   if (context === 'not-used') return receipt === 'not-used'
-  if (context === 'none') return /^host-effective-context:fork_turns:none(?:;.+)?$/.test(receipt)
-  if (context === 'bounded') return /^host-effective-context:fork_turns:bounded:[1-9]\d*(?:;.+)?$/.test(receipt)
+  if (context === 'none' || context === 'bounded') return isEffectiveIndependentJudgeContext(context, receipt)
   return false
 }
 const triggers = new Set(values.trigger ?? [])
@@ -162,7 +167,18 @@ const status = criticalOverride
       : score >= 5
         ? 'optimization_indicated'
         : 'failed'
-const metricNames = ['duration-ms', 'input-tokens', 'output-tokens', 'agent-count', 'retry-count', 'reroute-count']
+const metricNames = [
+  'duration-ms',
+  'input-tokens',
+  'output-tokens',
+  'cache-read-tokens',
+  'cache-write-tokens',
+  'tool-output-bytes',
+  'tool-output-count',
+  'agent-count',
+  'retry-count',
+  'reroute-count',
+]
 
 function optionalMetric(name) {
   if (!(name in values)) return null
@@ -171,8 +187,7 @@ function optionalMetric(name) {
 
 function validatedMetric(name, raw) {
   const value = Number(raw)
-  if (!Number.isInteger(value) || value < 0 || value > Number.MAX_SAFE_INTEGER)
-    throw new Error(`Invalid metric: --${name}`)
+  if (!validCount(value)) throw new Error(`Invalid metric: --${name}`)
   return value
 }
 
@@ -181,13 +196,35 @@ const metricValue = name => {
   return optionalMetric(name)
 }
 const modelUse = (values['model-use'] ?? []).map(item => {
-  const match = item.match(/^([^:]{1,100}):(\d+)$/)
+  const match = item.match(/^([a-zA-Z0-9][a-zA-Z0-9._/-]{0,99}):(\d+)$/)
   if (!match) throw new Error(`Invalid model use: ${item}`)
   return { model: match[1], calls: Number(match[2]) }
 })
+if (values['model-use']) validateModelUse(modelUse, 'CLI modelUse')
+const metricOptions = {
+  durationMs: 'duration-ms',
+  inputTokens: 'input-tokens',
+  outputTokens: 'output-tokens',
+  cacheReadTokens: 'cache-read-tokens',
+  cacheWriteTokens: 'cache-write-tokens',
+  toolOutputBytes: 'tool-output-bytes',
+  toolOutputCount: 'tool-output-count',
+  agentCount: 'agent-count',
+  retryCount: 'retry-count',
+  rerouteCount: 'reroute-count',
+}
+const cliMetrics = Object.fromEntries(
+  Object.entries(metricOptions).map(([field, option]) => [field, metricValue(option) ?? undefined]),
+)
+cliMetrics.modelUse = values['model-use'] ? modelUse : undefined
+const hostTelemetry = values['host-telemetry-file']
+  ? readHostTelemetry(values['host-telemetry-file'], values['routing-decision-id'])
+  : null
+const measurements = composeMeasurements(cliMetrics, hostTelemetry)
 const minimum = Math.min(...Object.values(dimensions))
 const run = {
-  schemaVersion: 5,
+  schemaVersion: 6,
+  harnessVersion: 'swarm-record-v6',
   runId: crypto.randomUUID(),
   recordedAt: new Date().toISOString(),
   taskClass,
@@ -206,15 +243,8 @@ const run = {
   evidence: values.evidence,
   proposedOptimization: values.optimization,
   routingDecisionId: values['routing-decision-id'],
-  metrics: {
-    durationMs: metricValue('duration-ms'),
-    inputTokens: metricValue('input-tokens'),
-    outputTokens: metricValue('output-tokens'),
-    agentCount: metricValue('agent-count'),
-    retryCount: metricValue('retry-count'),
-    rerouteCount: metricValue('reroute-count'),
-    modelUse,
-  },
+  metrics: measurements.metrics,
+  measurementProvenance: measurements.measurementProvenance,
   evolution: {
     phase: 'no_change',
     observations,

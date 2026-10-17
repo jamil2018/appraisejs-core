@@ -2,13 +2,21 @@
 
 import fs from 'node:fs'
 import path from 'node:path'
-import { loadHarnessSelectionContracts, profileDefaults } from './lib/harness-selection.mjs'
+import { loadHarnessSelectionContracts, profileDefaults, registeredVariants } from './lib/harness-selection.mjs'
 import { parseProjectToml, validateTomlBasicString } from './lib/toml-validator.mjs'
 
 const repoRoot = process.cwd()
 const selectionContracts = loadHarnessSelectionContracts()
 const allProfiles = profileDefaults(selectionContracts)
 const roles = Object.fromEntries(Object.entries(allProfiles).filter(([profile]) => profile !== 'coordinator-only'))
+const registrations = {
+  ...roles,
+  ...Object.fromEntries(
+    Object.entries(registeredVariants).flatMap(([role, variants]) =>
+      variants.map(variant => [variant.id, { ...roles[role], model: variant.model, effort: variant.effort }]),
+    ),
+  ),
+}
 const requiredInstructionTokens = {
   investigator: ['evidence ledger', 'remain read-only', 'Do not perform external writes'],
   solver: ['evidence ledger', 'invariants', 'Do not perform external writes'],
@@ -105,13 +113,16 @@ if (agentDefaults.get('default_subagent_reasoning_effort') !== allProfiles.execu
   failures.push(`.codex/config.toml: default subagent reasoning must be ${allProfiles.executor.effort}`)
 }
 for (const role of registeredRoles) {
-  if (!(role in roles)) failures.push(`.codex/config.toml: unsupported agent registration "${role}"`)
+  if (!(role in registrations)) failures.push(`.codex/config.toml: unsupported agent registration "${role}"`)
 }
-for (const role of Object.keys(roles)) {
+for (const role of Object.keys(registrations)) {
   if (!registeredRoles.includes(role)) failures.push(`.codex/config.toml: missing registration section for ${role}`)
 }
 
-for (const [role, expected] of Object.entries(roles)) {
+for (const [role, expected] of Object.entries(registrations)) {
+  const logicalRole =
+    Object.entries(registeredVariants).find(([, variants]) => variants.some(variant => variant.id === role))?.[0] ??
+    role
   const relative = `.codex/agents/${role}.toml`
   let values
   try {
@@ -132,13 +143,16 @@ for (const [role, expected] of Object.entries(roles)) {
     failures.push(`${relative}: expected reasoning effort ${expected.effort}`)
   }
   if (values.sandbox_mode !== expected.sandbox) failures.push(`${relative}: expected sandbox ${expected.sandbox}`)
-  if (role !== 'executor' && role !== 'executor-advanced' && values.sandbox_mode !== 'read-only') {
+  if (logicalRole !== 'executor' && logicalRole !== 'executor-advanced' && values.sandbox_mode !== 'read-only') {
     failures.push(`${relative}: only executor profiles may use workspace-write`)
   }
-  if ((role === 'executor' || role === 'executor-advanced') && values.sandbox_mode !== 'workspace-write') {
+  if (
+    (logicalRole === 'executor' || logicalRole === 'executor-advanced') &&
+    values.sandbox_mode !== 'workspace-write'
+  ) {
     failures.push(`${relative}: executor profiles require workspace-write`)
   }
-  for (const token of requiredInstructionTokens[role]) {
+  for (const token of requiredInstructionTokens[logicalRole]) {
     if (!values.developer_instructions?.includes(token)) {
       failures.push(`${relative}: developer_instructions missing "${token}"`)
     }
@@ -178,5 +192,5 @@ if (failures.length) {
 }
 
 console.log(
-  `Swarm harness check passed (${Object.keys(roles).length} profiles and catalog v${selectionContracts.catalog.schemaVersion} validated).`,
+  `Swarm harness check passed (${Object.keys(roles).length} logical profiles, ${Object.keys(registrations).length} registrations, and catalog v${selectionContracts.catalog.schemaVersion} validated).`,
 )

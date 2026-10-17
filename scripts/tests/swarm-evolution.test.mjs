@@ -215,6 +215,7 @@ test('legacy migration imports only complete valid records', () => {
     schemaVersion: 4,
     routingDecisionId: null,
   }
+  valid.metrics.modelUse = []
   const cwd = temporaryDirectory()
   const source = path.join(cwd, 'legacy.jsonl')
   fs.writeFileSync(source, `${JSON.stringify(valid)}\n{"score":10}\n`)
@@ -550,14 +551,17 @@ test('judge-required routing decisions require matching context mode and effecti
     }),
     /requires an independent judge with effective none or bounded host context/,
   )
-  const recorded = run(
+  const packetBounded = run(
     cwd,
     recordArgs({
       'task-class': 'cross-module-feature',
       'routing-decision-id': decision.decisionId,
+      'judge-context': 'bounded',
+      'judge-context-evidence': 'host-effective-context:fork_turns:none;assignment-packet:bounded',
     }),
   ).run
-  assert.equal(recorded.status, 'healthy')
+  assert.equal(packetBounded.status, 'healthy')
+  assert.ok(!packetBounded.triggers.includes('context-boundary-unverified'))
 })
 
 test('frozen fixture aliases normalize through route, score, and metrics boundaries', () => {

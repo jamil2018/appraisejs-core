@@ -14,8 +14,8 @@ Optimize for verified accuracy per unit of agent work, not agent count.
    localized, or strongly verifiable work.
 4. Delegate only a concrete unresolved question or executable assignment.
    Role names below are logical capabilities. Select the registered named agent only when the host exposes a named
-   selector; otherwise pass the bounded role contract with the explicit model/reasoning choice the host supports and
-   record that native role selection and effective sandbox are unverified.
+   selector and exact registered model/effort variant. Use `fork_turns: "none"` with a bounded assignment packet.
+   If the host lacks that registration or cannot enforce the context boundary, fail closed and record the limitation.
 5. Use `investigator` when facts or causal diagnosis are missing; require an evidence ledger.
 6. Use `solver` when an evidence ledger exists but judgment or causal arbitration remains the blocker; require a
    bounded decision record.
@@ -25,8 +25,9 @@ Optimize for verified accuracy per unit of agent work, not agent count.
 10. Route back to investigation when evidence is incomplete and back to the solver when execution violates an
     assumption.
 11. Avoid concurrent overlapping writes and stop fan-out when another agent is unlikely to add independent evidence.
-12. Spawn `solver` and `judge` without the parent transcript or with the smallest deliberate bounded fork. Pass only
-    the assignment contract, evidence ledger, accepted decisions, and artifacts required for their role.
+12. Spawn every agent with `fork_turns: "none"` and a bounded assignment packet. Keep `solver` and `judge`
+    independent from the parent transcript. Pass only the assignment contract, evidence ledger, accepted decisions,
+    and artifacts required for their role.
 13. Record a compact route receipt for meaningful, delegated, anomalous, or consequential project work with
     `npm run swarm:route -- <arguments>`. Do not require receipts for truly trivial coordinator-only work. Record every
     scored delegated or consequential run with `npm run swarm:record -- <arguments>` and link its routing receipt.

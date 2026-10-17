@@ -1,0 +1,485 @@
+{
+  "schemaVersion": 1,
+  "comparisons": [
+    {
+      "arm": "model",
+      "qualification": "unqualified-descriptive-only",
+      "pairedCompleted": 15,
+      "expectedPairs": 16,
+      "pairs": [
+        {
+          "taskId": "discovery-journal",
+          "repetition": 2,
+          "totalTokens": {
+            "baseline": 275847,
+            "candidate": 226650,
+            "absoluteReduction": 49197,
+            "improvementPercent": 17.834886730687664
+          },
+          "elapsedMs": {
+            "baseline": 33275,
+            "candidate": 36559,
+            "absoluteReduction": -3284,
+            "improvementPercent": -9.869271224643125
+          }
+        },
+        {
+          "taskId": "discovery-report-scope",
+          "repetition": 1,
+          "totalTokens": {
+            "baseline": 224025,
+            "candidate": 286980,
+            "absoluteReduction": -62955,
+            "improvementPercent": -28.101774355540677
+          },
+          "elapsedMs": {
+            "baseline": 30918,
+            "candidate": 42919,
+            "absoluteReduction": -12001,
+            "improvementPercent": -38.81557668671971
+          }
+        },
+        {
+          "taskId": "discovery-report-scope",
+          "repetition": 2,
+          "totalTokens": {
+            "baseline": 268091,
+            "candidate": 296309,
+            "absoluteReduction": -28218,
+            "improvementPercent": -10.525530510162593
+          },
+          "elapsedMs": {
+            "baseline": 34691,
+            "candidate": 39209,
+            "absoluteReduction": -4518,
+            "improvementPercent": -13.02355077685855
+          }
+        },
+        {
+          "taskId": "fix-strict-args",
+          "repetition": 1,
+          "totalTokens": {
+            "baseline": 437133,
+            "candidate": 227368,
+            "absoluteReduction": 209765,
+            "improvementPercent": 47.98653956576145
+          },
+          "elapsedMs": {
+            "baseline": 76665,
+            "candidate": 51198,
+            "absoluteReduction": 25467,
+            "improvementPercent": 33.21854822930933
+          }
+        },
+        {
+          "taskId": "fix-strict-args",
+          "repetition": 2,
+          "totalTokens": {
+            "baseline": 313488,
+            "candidate": 245373,
+            "absoluteReduction": 68115,
+            "improvementPercent": 21.728104425049764
+          },
+          "elapsedMs": {
+            "baseline": 52919,
+            "candidate": 53303,
+            "absoluteReduction": -384,
+            "improvementPercent": -0.7256372947334605
+          }
+        },
+        {
+          "taskId": "fix-locator-row",
+          "repetition": 1,
+          "totalTokens": {
+            "baseline": 432699,
+            "candidate": 304270,
+            "absoluteReduction": 128429,
+            "improvementPercent": 29.680909824150277
+          },
+          "elapsedMs": {
+            "baseline": 60791,
+            "candidate": 49724,
+            "absoluteReduction": 11067,
+            "improvementPercent": 18.20499745028047
+          }
+        },
+        {
+          "taskId": "fix-locator-row",
+          "repetition": 2,
+          "totalTokens": {
+            "baseline": 298358,
+            "candidate": 268505,
+            "absoluteReduction": 29853,
+            "improvementPercent": 10.00576488647866
+          },
+          "elapsedMs": {
+            "baseline": 59198,
+            "candidate": 47967,
+            "absoluteReduction": 11231,
+            "improvementPercent": 18.971924727186728
+          }
+        },
+        {
+          "taskId": "ui-module-parent-order",
+          "repetition": 1,
+          "totalTokens": {
+            "baseline": 407372,
+            "candidate": 201757,
+            "absoluteReduction": 205615,
+            "improvementPercent": 50.47352297163281
+          },
+          "elapsedMs": {
+            "baseline": 72781,
+            "candidate": 44327,
+            "absoluteReduction": 28454,
+            "improvementPercent": 39.095368296670834
+          }
+        },
+        {
+          "taskId": "ui-module-parent-order",
+          "repetition": 2,
+          "totalTokens": {
+            "baseline": 907998,
+            "candidate": 254843,
+            "absoluteReduction": 653155,
+            "improvementPercent": 71.93352848794821
+          },
+          "elapsedMs": {
+            "baseline": 106149,
+            "candidate": 47321,
+            "absoluteReduction": 58828,
+            "improvementPercent": 55.42021121254086
+          }
+        },
+        {
+          "taskId": "cross-rename-status",
+          "repetition": 1,
+          "totalTokens": {
+            "baseline": 546967,
+            "candidate": 208969,
+            "absoluteReduction": 337998,
+            "improvementPercent": 61.79495289478159
+          },
+          "elapsedMs": {
+            "baseline": 72510,
+            "candidate": 38676,
+            "absoluteReduction": 33834,
+            "improvementPercent": 46.66115018618122
+          }
+        },
+        {
+          "taskId": "cross-rename-status",
+          "repetition": 2,
+          "totalTokens": {
+            "baseline": 293610,
+            "candidate": 184118,
+            "absoluteReduction": 109492,
+            "improvementPercent": 37.291645379925754
+          },
+          "elapsedMs": {
+            "baseline": 44260,
+            "candidate": 42828,
+            "absoluteReduction": 1432,
+            "improvementPercent": 3.235427022141889
+          }
+        },
+        {
+          "taskId": "cross-report-id",
+          "repetition": 1,
+          "totalTokens": {
+            "baseline": 786491,
+            "candidate": 292363,
+            "absoluteReduction": 494128,
+            "improvementPercent": 62.82691092460053
+          },
+          "elapsedMs": {
+            "baseline": 90004,
+            "candidate": 58905,
+            "absoluteReduction": 31099,
+            "improvementPercent": 34.55290875961069
+          }
+        },
+        {
+          "taskId": "cross-report-id",
+          "repetition": 2,
+          "totalTokens": {
+            "baseline": 798614,
+            "candidate": 239946,
+            "absoluteReduction": 558668,
+            "improvementPercent": 69.95469651170653
+          },
+          "elapsedMs": {
+            "baseline": 102654,
+            "candidate": 48604,
+            "absoluteReduction": 54050,
+            "improvementPercent": 52.65259999610341
+          }
+        },
+        {
+          "taskId": "review-run-integrity",
+          "repetition": 1,
+          "totalTokens": {
+            "baseline": 262258,
+            "candidate": 358130,
+            "absoluteReduction": -95872,
+            "improvementPercent": -36.55636815654813
+          },
+          "elapsedMs": {
+            "baseline": 45788,
+            "candidate": 59996,
+            "absoluteReduction": -14208,
+            "improvementPercent": -31.02996418275531
+          }
+        },
+        {
+          "taskId": "review-run-integrity",
+          "repetition": 2,
+          "totalTokens": {
+            "baseline": 236355,
+            "candidate": 270764,
+            "absoluteReduction": -34409,
+            "improvementPercent": -14.558185779865033
+          },
+          "elapsedMs": {
+            "baseline": 39199,
+            "candidate": 57971,
+            "absoluteReduction": -18772,
+            "improvementPercent": -47.88897675961121
+          }
+        }
+      ]
+    },
+    {
+      "arm": "workflow",
+      "qualification": "unqualified-descriptive-only",
+      "pairedCompleted": 14,
+      "expectedPairs": 16,
+      "pairs": [
+        {
+          "taskId": "discovery-journal",
+          "repetition": 2,
+          "totalTokens": {
+            "baseline": 275847,
+            "candidate": 203489,
+            "absoluteReduction": 72358,
+            "improvementPercent": 26.231207879730427
+          },
+          "elapsedMs": {
+            "baseline": 33275,
+            "candidate": 35251,
+            "absoluteReduction": -1976,
+            "improvementPercent": -5.9383921863260705
+          }
+        },
+        {
+          "taskId": "discovery-report-scope",
+          "repetition": 1,
+          "totalTokens": {
+            "baseline": 224025,
+            "candidate": 267330,
+            "absoluteReduction": -43305,
+            "improvementPercent": -19.33043187144292
+          },
+          "elapsedMs": {
+            "baseline": 30918,
+            "candidate": 41604,
+            "absoluteReduction": -10686,
+            "improvementPercent": -34.56239084028721
+          }
+        },
+        {
+          "taskId": "discovery-report-scope",
+          "repetition": 2,
+          "totalTokens": {
+            "baseline": 268091,
+            "candidate": 203426,
+            "absoluteReduction": 64665,
+            "improvementPercent": 24.12054115953165
+          },
+          "elapsedMs": {
+            "baseline": 34691,
+            "candidate": 34855,
+            "absoluteReduction": -164,
+            "improvementPercent": -0.4727450923870745
+          }
+        },
+        {
+          "taskId": "fix-strict-args",
+          "repetition": 1,
+          "totalTokens": {
+            "baseline": 437133,
+            "candidate": 467250,
+            "absoluteReduction": -30117,
+            "improvementPercent": -6.889665159116333
+          },
+          "elapsedMs": {
+            "baseline": 76665,
+            "candidate": 74488,
+            "absoluteReduction": 2177,
+            "improvementPercent": 2.839626948411922
+          }
+        },
+        {
+          "taskId": "fix-strict-args",
+          "repetition": 2,
+          "totalTokens": {
+            "baseline": 313488,
+            "candidate": 234641,
+            "absoluteReduction": 78847,
+            "improvementPercent": 25.15152095136018
+          },
+          "elapsedMs": {
+            "baseline": 52919,
+            "candidate": 44819,
+            "absoluteReduction": 8100,
+            "improvementPercent": 15.306411685783933
+          }
+        },
+        {
+          "taskId": "fix-locator-row",
+          "repetition": 1,
+          "totalTokens": {
+            "baseline": 432699,
+            "candidate": 653470,
+            "absoluteReduction": -220771,
+            "improvementPercent": -51.021841973288595
+          },
+          "elapsedMs": {
+            "baseline": 60791,
+            "candidate": 108174,
+            "absoluteReduction": -47383,
+            "improvementPercent": -77.94410356796236
+          }
+        },
+        {
+          "taskId": "fix-locator-row",
+          "repetition": 2,
+          "totalTokens": {
+            "baseline": 298358,
+            "candidate": 303759,
+            "absoluteReduction": -5401,
+            "improvementPercent": -1.810241387862903
+          },
+          "elapsedMs": {
+            "baseline": 59198,
+            "candidate": 57094,
+            "absoluteReduction": 2104,
+            "improvementPercent": 3.5541741275043073
+          }
+        },
+        {
+          "taskId": "ui-module-parent-order",
+          "repetition": 1,
+          "totalTokens": {
+            "baseline": 407372,
+            "candidate": 371734,
+            "absoluteReduction": 35638,
+            "improvementPercent": 8.748269395049242
+          },
+          "elapsedMs": {
+            "baseline": 72781,
+            "candidate": 75549,
+            "absoluteReduction": -2768,
+            "improvementPercent": -3.803190393097099
+          }
+        },
+        {
+          "taskId": "ui-module-parent-order",
+          "repetition": 2,
+          "totalTokens": {
+            "baseline": 907998,
+            "candidate": 303542,
+            "absoluteReduction": 604456,
+            "improvementPercent": 66.57019068323939
+          },
+          "elapsedMs": {
+            "baseline": 106149,
+            "candidate": 63086,
+            "absoluteReduction": 43063,
+            "improvementPercent": 40.56844624066171
+          }
+        },
+        {
+          "taskId": "cross-rename-status",
+          "repetition": 1,
+          "totalTokens": {
+            "baseline": 546967,
+            "candidate": 205121,
+            "absoluteReduction": 341846,
+            "improvementPercent": 62.49846882901527
+          },
+          "elapsedMs": {
+            "baseline": 72510,
+            "candidate": 40823,
+            "absoluteReduction": 31687,
+            "improvementPercent": 43.700179285615775
+          }
+        },
+        {
+          "taskId": "cross-rename-status",
+          "repetition": 2,
+          "totalTokens": {
+            "baseline": 293610,
+            "candidate": 195397,
+            "absoluteReduction": 98213,
+            "improvementPercent": 33.450154967473864
+          },
+          "elapsedMs": {
+            "baseline": 44260,
+            "candidate": 34088,
+            "absoluteReduction": 10172,
+            "improvementPercent": 22.98237686398554
+          }
+        },
+        {
+          "taskId": "cross-report-id",
+          "repetition": 2,
+          "totalTokens": {
+            "baseline": 798614,
+            "candidate": 623330,
+            "absoluteReduction": 175284,
+            "improvementPercent": 21.94852582098486
+          },
+          "elapsedMs": {
+            "baseline": 102654,
+            "candidate": 93850,
+            "absoluteReduction": 8804,
+            "improvementPercent": 8.576382800475384
+          }
+        },
+        {
+          "taskId": "review-run-integrity",
+          "repetition": 1,
+          "totalTokens": {
+            "baseline": 262258,
+            "candidate": 212809,
+            "absoluteReduction": 49449,
+            "improvementPercent": 18.855096889322727
+          },
+          "elapsedMs": {
+            "baseline": 45788,
+            "candidate": 40814,
+            "absoluteReduction": 4974,
+            "improvementPercent": 10.86310823796628
+          }
+        },
+        {
+          "taskId": "review-run-integrity",
+          "repetition": 2,
+          "totalTokens": {
+            "baseline": 236355,
+            "candidate": 204612,
+            "absoluteReduction": 31743,
+            "improvementPercent": 13.430221488862093
+          },
+          "elapsedMs": {
+            "baseline": 39199,
+            "candidate": 37200,
+            "absoluteReduction": 1999,
+            "improvementPercent": 5.099619888262455
+          }
+        }
+      ]
+    }
+  ]
+}

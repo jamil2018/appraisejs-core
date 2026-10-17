@@ -203,9 +203,9 @@ export function prerequisiteFingerprint(session, prerequisite) {
   return `${session.toolchain}:${hashFiles(session.root, prerequisite.inputPatterns ?? [])}`
 }
 
-function hashFiles(root, patterns) {
+export function hashFiles(root, patterns) {
   const hash = createHash('sha256')
-  for (const file of walkFiles(root)) {
+  for (const file of walkFingerprintInputs(root, patterns)) {
     const relative = path.relative(root, file).replace(/\\/g, '/')
     if (patterns.some(pattern => matchesPattern(relative, pattern))) {
       hash.update(relative)
@@ -219,20 +219,89 @@ function hashFiles(root, patterns) {
   return hash.digest('hex')
 }
 
-function walkFiles(root) {
+function walkFingerprintInputs(root, patterns) {
   const excluded = new Set(['.git', '.next', 'node_modules', 'coverage'])
-  const files = []
-  const walk = directory => {
-    if (!existsSync(directory)) return
-    for (const entry of readdirSync(directory, { withFileTypes: true })) {
-      if (entry.isDirectory() && excluded.has(entry.name)) continue
-      const fullPath = path.join(directory, entry.name)
-      if (entry.isDirectory()) walk(fullPath)
-      else if (entry.isFile() || entry.isSymbolicLink()) files.push(fullPath)
-    }
+  const files = new Set()
+  for (const pattern of patterns)
+    collectFingerprintScope(fingerprintPatternScope(root, pattern, excluded), excluded, files)
+  return [...files].sort()
+}
+
+function collectFingerprintScope(scope, excluded, files) {
+  if (!scope) return
+  if (scope.file) files.add(scope.file)
+  if (scope.directory) walkFingerprintDirectory(scope.directory, scope.recursive, excluded, files)
+}
+
+function fingerprintPatternScope(root, pattern, excluded) {
+  assertLocalFingerprintPattern(pattern)
+  const segments = pattern.split('/')
+  const wildcard = segments.findIndex(segment => segment.includes('*'))
+  const staticSegments = fingerprintStaticSegments(segments, wildcard)
+  if (staticSegments.some(segment => excluded.has(segment))) return null
+  if (wildcard === -1) return exactFingerprintScope(root, pattern)
+  return {
+    directory: path.join(root, ...staticSegments),
+    recursive: fingerprintPatternIsRecursive(segments, wildcard),
   }
-  walk(root)
-  return files.sort()
+}
+
+function fingerprintStaticSegments(segments, wildcard) {
+  return segments.slice(0, wildcard === -1 ? segments.length : wildcard)
+}
+
+function fingerprintPatternIsRecursive(segments, wildcard) {
+  return wildcard < segments.length - 1 || segments[wildcard] === '**'
+}
+
+function assertLocalFingerprintPattern(pattern) {
+  if (path.isAbsolute(pattern) || pattern.split('/').includes('..'))
+    throw new Error(`Fingerprint input pattern escapes the repository: ${pattern}`)
+}
+
+function exactFingerprintScope(root, pattern) {
+  const file = path.join(root, pattern)
+  if (!existsSync(file)) return null
+  if (hasSymlinkParent(root, pattern)) return null
+  return fingerprintFileScope(file)
+}
+
+function fingerprintFileScope(file) {
+  const stat = lstatSync(file)
+  return stat.isFile() || stat.isSymbolicLink() ? { file } : null
+}
+
+function hasSymlinkParent(root, pattern) {
+  let directory = root
+  for (const segment of pattern.split('/').slice(0, -1)) {
+    directory = path.join(directory, segment)
+    if (lstatSync(directory).isSymbolicLink()) return true
+  }
+  return false
+}
+
+function walkFingerprintDirectory(directory, recursive, excluded, files) {
+  if (!existsSync(directory)) return
+  if (lstatSync(directory).isSymbolicLink()) return
+  for (const entry of readdirSync(directory, { withFileTypes: true }))
+    collectFingerprintEntry(directory, entry, recursive, excluded, files)
+}
+
+function collectFingerprintEntry(directory, entry, recursive, excluded, files) {
+  const fullPath = path.join(directory, entry.name)
+  if (entry.isDirectory()) {
+    collectNestedFingerprintDirectory(fullPath, entry.name, recursive, excluded, files)
+    return
+  }
+  if (isFingerprintFile(entry)) files.add(fullPath)
+}
+
+function collectNestedFingerprintDirectory(fullPath, name, recursive, excluded, files) {
+  if (recursive && !excluded.has(name)) walkFingerprintDirectory(fullPath, true, excluded, files)
+}
+
+function isFingerprintFile(entry) {
+  return entry.isFile() || entry.isSymbolicLink()
 }
 
 export function executeValidationPlan(plan, session, options = {}) {
@@ -328,6 +397,7 @@ export function executeCommand(command, root, env = {}, runner = spawnSync) {
     durationMs: Number((performance.now() - started).toFixed(2)),
     retries: Math.max(0, attempts - 1),
     timedOut: result.signal === 'SIGTERM',
+    error: result.error?.message,
   }
 }
 

@@ -1,0 +1,126 @@
+{
+  "schemaVersion": 1,
+  "baseCommit": "ac758ceaa12330f969b166e6be1d18f7b3dc98c9",
+  "repetitions": 2,
+  "execution": {
+    "checkout": "disposable-clean-per-task-arm-repetition",
+    "timeLimitSeconds": 120,
+    "network": "disabled",
+    "installation": "none",
+    "writes": "disposable-checkout-only",
+    "effort": "medium"
+  },
+  "arms": [
+    { "id": "baseline", "model": "gpt-6-sol", "workflow": "frozen-current" },
+    { "id": "model", "model": "gpt-6.1-sol", "workflow": "frozen-current" },
+    { "id": "workflow", "model": "gpt-6-sol", "workflow": "optimized-guidance-only" }
+  ],
+  "thresholds": {
+    "minimumMedianImprovementPercent": 10,
+    "maximumOtherMetricRegressionPercent": 5,
+    "requiredCorrectnessRegressionCount": 0,
+    "requiredReviewRegressionCount": 0
+  },
+  "tasks": [
+    {
+      "id": "discovery-journal",
+      "category": "discovery",
+      "prompt": "At this commit, trace how `npm run swarm:record` validates a run, links its prior route, appends the hash-chained event, and reconstructs it for `swarm:ledger show`. Return the exact source functions and one failure mode. Make no edits.",
+      "paths": ["scripts/record-swarm-run.mjs", "scripts/lib/swarm-ledger-store.mjs", "scripts/swarm-ledger.mjs"],
+      "acceptance": [
+        "Names the validation, route-link, append, and read/reconstruction functions accurately",
+        "Identifies a real fail-closed error path",
+        "No repository edits"
+      ]
+    },
+    {
+      "id": "discovery-report-scope",
+      "category": "discovery",
+      "prompt": "At this commit, trace how `getReportByIdAction` limits a report read to the active project, including the action and service boundary. Cite the exact source functions and relevant test coverage. Make no edits.",
+      "paths": [
+        "src/actions/reports/report-actions.ts",
+        "src/services/report/report-service.ts",
+        "src/actions/reports/report-actions.test.ts"
+      ],
+      "acceptance": [
+        "Explains where the active project ID is obtained and where the database query applies it",
+        "Cites relevant tests without claiming uncovered behavior",
+        "No repository edits"
+      ]
+    },
+    {
+      "id": "fix-strict-args",
+      "category": "localized-fix",
+      "prompt": "Fix `parseStrictArgs` so a prototype property such as `--constructor` is rejected as an unknown argument. Add a focused regression test. Work only in the disposable checkout.",
+      "paths": ["scripts/lib/swarm-cli.mjs", "scripts/tests/swarm-evolution.test.mjs"],
+      "acceptance": [
+        "Unknown prototype-property flags fail",
+        "Existing valid and duplicate-argument behavior stays intact",
+        "Focused Node test passes"
+      ]
+    },
+    {
+      "id": "fix-locator-row",
+      "category": "localized-fix",
+      "prompt": "Make `getLocatorTableRows` reject a row whose locator ID or name is an empty or whitespace-only string. Add a focused regression test without changing valid row handling. Work only in the disposable checkout.",
+      "paths": ["src/app/(base)/locators/locator-helpers.ts", "src/app/(base)/locators/locator-helpers.test.ts"],
+      "acceptance": [
+        "Empty and whitespace-only IDs or names are filtered",
+        "Existing valid fixture remains included",
+        "Focused Vitest passes"
+      ]
+    },
+    {
+      "id": "ui-module-parent-order",
+      "category": "ui",
+      "prompt": "For the module form parent selector, sort `getModuleParentOptions` by display name case-insensitively while retaining exclusion of the edited module and preserving the input array. Add a test. Work only in the disposable checkout.",
+      "paths": ["src/app/(base)/modules/module-parent-helpers.ts", "src/app/(base)/modules/module-helpers.test.ts"],
+      "acceptance": [
+        "Options sort by displayed name with deterministic tie behavior",
+        "Excluded module remains absent",
+        "Input is not mutated and focused Vitest passes"
+      ]
+    },
+    {
+      "id": "cross-rename-status",
+      "category": "cross-module",
+      "prompt": "Make validation change planning fail closed when `parseNameStatus` receives a truncated Git rename or copy record, and add a regression test at the validation boundary. Work only in the disposable checkout.",
+      "paths": ["scripts/lib/harness-validation.mjs", "scripts/tests/harness-validation.test.mjs"],
+      "acceptance": [
+        "Incomplete rename and copy records are rejected",
+        "Complete rename/copy and ordinary records still parse",
+        "Focused Node test passes"
+      ]
+    },
+    {
+      "id": "cross-report-id",
+      "category": "cross-module",
+      "prompt": "Reject a blank or whitespace-only report ID before `getReportByIdAction` calls the report service, returning the repository's validation error response shape. Add action test coverage and preserve active-project scoping. Work only in the disposable checkout.",
+      "paths": [
+        "src/actions/reports/report-actions.ts",
+        "src/actions/reports/report-actions.test.ts",
+        "src/services/shared/errors.ts"
+      ],
+      "acceptance": [
+        "Blank report ID returns a validation response without calling the report query",
+        "Nonblank IDs retain active-project scoping",
+        "Focused Vitest passes"
+      ]
+    },
+    {
+      "id": "review-run-integrity",
+      "category": "consequential-review",
+      "prompt": "Review the run journal's hash-chain validation and recovery behavior at this commit for one material integrity flaw. Give evidence-bound findings with severity and exact file/line references, or state no finding with the checks performed. Make no edits.",
+      "paths": [
+        "scripts/lib/swarm-ledger-store.mjs",
+        "scripts/lib/swarm-ledger-lock.mjs",
+        "scripts/tests/swarm-evolution.test.mjs"
+      ],
+      "acceptance": [
+        "Claims are supported by source or focused tests",
+        "Distinguishes detected tampering from the local journal's lack of authentication",
+        "No repository edits"
+      ]
+    }
+  ]
+}

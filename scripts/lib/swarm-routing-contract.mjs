@@ -154,7 +154,12 @@ export function isEffectiveContextReceipt(receipt) {
 
 export function isEffectiveIndependentJudgeContext(context, receipt) {
   if (context === 'none') return /^host-effective-context:fork_turns:none(?:;.+)?$/.test(receipt)
-  if (context === 'bounded') return /^host-effective-context:fork_turns:bounded:[1-9]\d*(?:;.+)?$/.test(receipt)
+  if (context === 'bounded') {
+    return (
+      /^host-effective-context:fork_turns:none;assignment-packet:bounded(?:;.+)?$/.test(receipt) ||
+      /^host-effective-context:fork_turns:bounded:[1-9]\d*(?:;.+)?$/.test(receipt)
+    )
+  }
   return false
 }
 

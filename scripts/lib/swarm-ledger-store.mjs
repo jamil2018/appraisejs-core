@@ -6,6 +6,7 @@ import {
   validateRoutingDecision,
 } from './swarm-routing-contract.mjs'
 import { assertSanitizedLearningText } from './harness-learning-sanitization.mjs'
+import { METRIC_FIELDS, validCount, validateModelUse } from './harness-telemetry.mjs'
 
 const phases = new Set([
   'notification_required',
@@ -143,14 +144,95 @@ function validateEvolution(run, label) {
   assert(typeof run.evolution.notificationRequired === 'boolean', `${label}: invalid notification flag`)
 }
 
-function validateMetrics(metrics, label) {
+function validateMetrics(metrics, label, schemaVersion) {
   if (metrics === undefined) return
-  assert(metrics && typeof metrics === 'object', `${label}: invalid metrics`)
-  const invalid = ['durationMs', 'inputTokens', 'outputTokens', 'agentCount', 'retryCount', 'rerouteCount'].find(
-    field => metrics[field] !== null && (!Number.isInteger(metrics[field]) || metrics[field] < 0),
-  )
+  assertMetricRecord(metrics, label)
+  if (schemaVersion < 6) {
+    validateLegacyMetrics(metrics, label)
+    return
+  }
+  validateCurrentMetrics(metrics, label)
+}
+
+function assertMetricRecord(metrics, label) {
+  assert(metrics && typeof metrics === 'object' && !Array.isArray(metrics), `${label}: invalid metrics`)
+}
+
+function validateNumericMetrics(metrics, fields, label) {
+  const invalid = fields.find(field => metrics[field] !== null && !validCount(metrics[field]))
   assert(!invalid, `${label}: invalid metric ${invalid}`)
+}
+
+function validateLegacyMetrics(metrics, label) {
+  validateNumericMetrics(
+    metrics,
+    ['durationMs', 'inputTokens', 'outputTokens', 'agentCount', 'retryCount', 'rerouteCount'],
+    label,
+  )
   assert(Array.isArray(metrics.modelUse), `${label}: invalid modelUse`)
+}
+
+function validateCurrentMetrics(metrics, label) {
+  assert(
+    Object.keys(metrics).sort().join(',') === [...METRIC_FIELDS].sort().join(','),
+    `${label}: invalid metric fields`,
+  )
+  validateNumericMetrics(
+    metrics,
+    METRIC_FIELDS.filter(field => field !== 'modelUse'),
+    label,
+  )
+  if (metrics.modelUse !== null) validateModelUse(metrics.modelUse, `${label}: modelUse`)
+}
+
+function validHostProvenance(receipt) {
+  return [
+    receipt.source === 'normalized-host-telemetry',
+    Object.keys(receipt).sort().join(',') === 'capturedAt,reference,scope,source',
+    nonBlank(receipt.reference),
+    receipt.reference?.length <= 128,
+    Number.isFinite(Date.parse(receipt.capturedAt)),
+    receipt.scope === 'routing-decision',
+  ].every(Boolean)
+}
+
+function validateCliProvenance(name, receipt, label) {
+  assert(
+    Object.keys(receipt).sort().join(',') === 'reference,source' && receipt.reference === `argument:${name}`,
+    `${label}: invalid CLI provenance for ${name}`,
+  )
+}
+
+function assertProvenanceRecord(name, receipt, label) {
+  assert(receipt && typeof receipt === 'object' && !Array.isArray(receipt), `${label}: missing provenance for ${name}`)
+}
+
+function validateOneProvenance(name, value, receipt, label) {
+  if (value === null) {
+    assert(receipt === null, `${label}: unavailable ${name} has provenance`)
+    return
+  }
+  assertProvenanceRecord(name, receipt, label)
+  if (receipt.source === 'cli-reported') {
+    validateCliProvenance(name, receipt, label)
+    return
+  }
+  assert(validHostProvenance(receipt), `${label}: invalid host provenance for ${name}`)
+}
+
+function validateMeasurementProvenance(run, label) {
+  const { measurementProvenance: provenance } = run
+  assert(
+    provenance && typeof provenance === 'object' && !Array.isArray(provenance),
+    `${label}: invalid measurement provenance`,
+  )
+  assert(
+    Object.keys(provenance).sort().join(',') === [...METRIC_FIELDS].sort().join(','),
+    `${label}: invalid provenance fields`,
+  )
+  for (const name of METRIC_FIELDS) {
+    validateOneProvenance(name, run.metrics[name], provenance[name], label)
+  }
 }
 
 export function validateRun(run, label = 'run') {
@@ -176,7 +258,11 @@ export function validateRun(run, label = 'run') {
     assert(nonBlank(run[field]), `${label}: blank ${field}`)
   }
   validateEvolution(run, label)
-  validateMetrics(run.metrics, label)
+  validateMetrics(run.metrics, label, run.schemaVersion)
+  if (run.schemaVersion >= 6) {
+    assert(run.harnessVersion === 'swarm-record-v6', `${label}: invalid harness version`)
+    validateMeasurementProvenance(run, label)
+  }
 }
 
 function eventHash(event) {
