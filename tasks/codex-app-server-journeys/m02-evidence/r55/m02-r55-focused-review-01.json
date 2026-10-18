@@ -1,0 +1,322 @@
+{
+  "schema": "appraise.m02-r55-focused-exact-artifact-review/v1",
+  "reviewer": "/root/r47_exact_review",
+  "reviewedAtUtc": "2026-10-18T19:52:06.463721+00:00",
+  "verdict": "ACCEPT_ONE_FIXED_T3_R55_INVOCATION",
+  "judgment": "accepted",
+  "runtimeVerdict": "NOT_RUN",
+  "runtimeAuthority": false,
+  "runtimeEligible": false,
+  "scope": "Focused changed-artifact review of R55 passive N02 turn/diff/updated classifier,integration,consumed R54 verifier,allocation andfresh p4 authority/path bindings versus accepted frozen R54. No broad unchanged ancestral review orruntime execution. Acceptance is exact artifacts for one fresh original N01/N02 T3 invocation subject tofinal bound receipts andactual fixed-file precheck.",
+  "findings": [],
+  "pins": {
+    "sourceSnapshot": {
+      "path": "/Users/jamil/Personal Projects/appraisejs/.appraisejs/m02-r55-source-snapshot-01.json",
+      "sha256": "a17f6f9c652b5c9a040691c16912790551761bbf5f8b06f875a7e36f43359cfb",
+      "files": 28,
+      "treeSha256": "d8ad3d9bd7063ab550e4254fa7a04b77bac04e0cddd00a41884b8777b9ef7242"
+    },
+    "manifest": {
+      "path": "/Users/jamil/Personal Projects/appraisejs/.appraisejs/m02-ta-workspace-build-r55/manifest.json",
+      "sha256": "53093d5e2f98ab346f1dafd4aac68d4f44949444a7114f201d60c5f6e92970fd",
+      "manifestDigest": "08908c7f1835d8526a5682c66869d71a57be55dedf4b531914cf5af3c63f6f3a",
+      "artifacts": 9509,
+      "currentClaims": 8906,
+      "historicalClaims": 603
+    },
+    "canonical": {
+      "path": "/Users/jamil/Personal Projects/appraisejs/.appraisejs/m02-ta-workspace-build-r55/canonical-bridge.mjs",
+      "sha256": "477978a2f4730de4576c75645e9617141f436885e5e0230ae5cb334e29623338"
+    },
+    "plan": {
+      "path": "/Users/jamil/Personal Projects/appraisejs/tasks/codex-app-server-journeys/m02-ta-t3-r55-native-plan-01.md",
+      "sha256": "49802689939777009b2356351e0738427c9bbfb4e108607a5512783dfaf45243"
+    },
+    "userContinuation": {
+      "path": "/Users/jamil/Personal Projects/appraisejs/.appraisejs/m02-r55-explicit-user-authorization-01.json",
+      "sha256": "48e0aaede3ba1d0e681ff5a26ef74a8d2cf145a0865bdbd30590a7a0780fcd71"
+    },
+    "precedingCheckpoint": {
+      "path": "/Users/jamil/Personal Projects/appraisejs/tasks/codex-app-server-journeys/M02-R54-CURRENT-WORK-01.md",
+      "sha256": "6d5da2cc9e53ca219ab000b2638205c35467c8860b28883835bb2285287912d0"
+    },
+    "boundedCorrectionProposal": {
+      "path": "/Users/jamil/Personal Projects/appraisejs/tasks/codex-app-server-journeys/m02-r54-next-bounded-turn-diff-correction-proposal-01.md",
+      "sha256": "c991b3c4d1f5513999d7b25dec9f181a2fb155c2e02e875a8df02b8f8a39e54f"
+    },
+    "guardedPreparationObservation": {
+      "path": "/Users/jamil/Personal Projects/appraisejs/.appraisejs/m02-r55-guarded-preparation-attempt-01.json",
+      "sha256": "603bcb1eedd91a86ec42d3844e50b8142280de29745804f210686041221ac624"
+    },
+    "actualHistoricalClosureObservation": {
+      "path": "/Users/jamil/Personal Projects/appraisejs/.appraisejs/m02-r55-native-ports-historical-closure-01.json",
+      "sha256": "4c04a084c200ad095c43f01ece86eb6c8092a0e5f684c1900a2910cb5a90f4da"
+    },
+    "composedOfflineDemonstration": {
+      "path": "/Users/jamil/Personal Projects/appraisejs/.appraisejs/m02-r55-composed-proof-demonstration-01.json",
+      "sha256": "57bf537ec185b83a9c6f20f3878e4e3be728896e5f608034611ff1de87de7974"
+    },
+    "reviewedUnexecutedReceiptGenerator": {
+      "path": "/private/tmp/m02-r55-fixed-bindings-01.py",
+      "sha256": "f5fae3bdfbfb8bf67f2acaecd72d6dc81ece153a850d23428850b6297f51b3ce"
+    },
+    "r54SourceSnapshot": {
+      "path": "/Users/jamil/Personal Projects/appraisejs/.appraisejs/m02-r54-source-snapshot-01.json",
+      "sha256": "222b4d771ed2e3caed11184d4f4d8635f198c06a29bbc26c5d4a1ff1ea8b05f4"
+    },
+    "r54Manifest": {
+      "path": "/Users/jamil/Personal Projects/appraisejs/.appraisejs/m02-ta-workspace-build-r54/manifest.json",
+      "sha256": "e84c727ad2396ca676fbda13c2698403c962c08dbbe80eca1347ece2f025cd8b"
+    },
+    "r54Terminal": {
+      "path": "/Users/jamil/Personal Projects/appraisejs/.appraisejs/m02-r54-native-terminal-01.json",
+      "sha256": "32008cfc8146aa326440b9b536cf43f17c6e611142b9d6bbf5f08686b9273263"
+    },
+    "r54EvidenceIndex": {
+      "path": "/Users/jamil/Personal Projects/appraisejs/.appraisejs/m02-r54-native-terminal-evidence-01/index.json",
+      "sha256": "ccda3723adbc8a9c4a585a4df2913277b79dcadbe7270c2bcf5830c963bd57d8"
+    }
+  },
+  "changedSourcePins": [
+    {
+      "path": "/Users/jamil/Personal Projects/appraisejs/scripts/tests/fixtures/codex-app-server-m02-ta-workspace-r55/entrypoint.mjs",
+      "sha256": "0a4c5405c0c047cbd54c1b8b28c6e0e7142b051763ff68a6c112c27bd4a5fc21"
+    },
+    {
+      "path": "/Users/jamil/Personal Projects/appraisejs/scripts/tests/fixtures/codex-app-server-m02-ta-workspace-r55/full-t3-budget.mjs",
+      "sha256": "4388eccc431ebbe0ef69384d220e986a8b55f0b9fa9450681c64cd885187c0b3"
+    },
+    {
+      "path": "/Users/jamil/Personal Projects/appraisejs/scripts/tests/fixtures/codex-app-server-m02-ta-workspace-r55/manifest.mjs",
+      "sha256": "1a6d17d523670e96b245dd14df4122b486864b775c332588e13e8dd600f0ad64"
+    },
+    {
+      "path": "/Users/jamil/Personal Projects/appraisejs/scripts/tests/fixtures/codex-app-server-m02-ta-workspace-r55/native-plans.mjs",
+      "sha256": "44fc00e82367c1a393ef0de0f694101d14296c2458ddd25133dcedea5ca31548"
+    },
+    {
+      "path": "/Users/jamil/Personal Projects/appraisejs/scripts/tests/fixtures/codex-app-server-m02-ta-workspace-r55/policy.mjs",
+      "sha256": "d9502d7da636a1e5757f4ac8e445ef40a09dd2c18cc917cea807efe602cf145e"
+    },
+    {
+      "path": "/Users/jamil/Personal Projects/appraisejs/scripts/tests/fixtures/codex-app-server-m02-ta-workspace-r55/protocol.mjs",
+      "sha256": "637f5dd41855e4d6d05e3332d4bc1e165595ed190a0246989b7fda13c5728826"
+    },
+    {
+      "path": "/Users/jamil/Personal Projects/appraisejs/scripts/tests/fixtures/codex-app-server-m02-ta-workspace-r55/r54-evidence.mjs",
+      "sha256": "5390480f26721ff92b564a652cbda39aafcd98d28f657e3860e35d543d93a0ce"
+    },
+    {
+      "path": "/Users/jamil/Personal Projects/appraisejs/scripts/tests/fixtures/codex-app-server-m02-ta-workspace-r55/turn-diff-updated.mjs",
+      "sha256": "cbc62063b94e7026693c7d3922c59379f397f9c0f458707e5f648c6c610056df"
+    },
+    {
+      "path": "/Users/jamil/Personal Projects/appraisejs/scripts/tests/fixtures/codex-app-server-m02-ta-workspace-r55/workspace-runner.mjs",
+      "sha256": "e798d798fe69a0c89cdac37c7040600325297b8189bab379c3147d3808045f67"
+    }
+  ],
+  "requirementCoverage": [
+    {
+      "requirement": "Classify only bounded passive N02 turn/diff/updated notifications in the current owned issued action context",
+      "status": "COVERED_BY_STATIC_CONTROL_FLOW_REVIEW",
+      "evidence": [
+        "turn-diff-updated.mjs requires case N02,phase turn,known nonempty owned thread+turn strings<=200 characters,active campaign N02 andexactly one workspace action andone outer call already issued",
+        "Exact parameter keys diff/threadId/turnId andexact owned ID equality aremandatory;diff mustbe string withUTF8 bytes<=16384",
+        "Counter predicate allows atmost32 notifications and65536 cumulative original frame bytes;safe nonnegative counters andpositive safe originalByteCount arechecked before increment",
+        "CountedJsonLines supplies original full line bytes includingnewline;quota accounting doesnotre-serialize orunder-count timestamp/envelope overhead",
+        "New branch requires no id;existing reviewed notification envelope/timestamp andmixed-frame checks run first;requests,wrongcase/phase/IDs/shape/extra fields/types/overflow andother unknown methods retain fail-closed paths"
+      ]
+    },
+    {
+      "requirement": "No passive notification ACK,action,lifecycle,authority orraw diff retention",
+      "status": "COVERED_BY_STATIC_DATA_FLOW_REVIEW",
+      "evidence": [
+        "Successful protocol branch increments only private frame/byte counters;itdoesnot call journal reserve/acknowledge,send/provider response,change peer phase,thread/turn IDs,pending orcompletion",
+        "Refusal records oneclosed helper reason andTURN_DIFF_UPDATED_INVALID,then uses the existing UNKNOWN fence",
+        "Diff parameter contents areused only forshape/equality/size checks andnotstored inpeer fields,receipt payloads ordiagnostics",
+        "Snapshot/case-outcome extension contains only bounded frames/bytes,closed failure reason andauthority:false",
+        "Existing native session/result/descriptor/cumulative transcript/FD proof/ACK/cleanup predicates remain unchanged;passive observation cannot satisfy them"
+      ]
+    },
+    {
+      "requirement": "Preserve exact consumed R54 partial result andpending N02 without inferring historical payload orsuccess",
+      "status": "COVERED_BY_NEW_VERIFIER_REVIEW_AND_DIRECT_FILE_CHECKS",
+      "evidence": [
+        "r54-evidence.mjs pins frozen R54 source27,manifest/canonical serialization,9433artifact closure8830current+603historical,authority/submission/tool-terminal/precheck andschema source",
+        "Verifier requires all16 sanitized current live original/copy pairs andprivate identity-stable ancestors;no disappearance fallback",
+        "N01 nativeStatus/owned proof/result receipt linkage,journal witness,bounded Codex/host/listener/Git cleanup,canonical accepted flag andcompleted counts arechecked over pinned trusted supervisor evidence",
+        "N02 remainsUNKNOWN atWAIT_TERMINAL withonepending workspace-action;expected scratch bytes confer noaction ACK,result,proof,canonical final orcleanup",
+        "Exact native method hash matches pinned turn/diff/updated schema;actual R54 params/diff body staysUNKNOWN",
+        "Independent reviewer checks confirmed all16 original/copy hashes,lengths,recorded identities andcurrent ownership/mode/link predicates;60-record journal chain recomputation matched27 reserves,26 ACKs,oneN01finish andonependingN02workspace action"
+      ]
+    },
+    {
+      "requirement": "Demonstrate actual composed corrected source/serialization/proof path while identifying external fakes",
+      "status": "COVERED_BY_SUPPLIED_WORKING_OBSERVATION_AND_INDEPENDENT_ARTIFACT_HASHES",
+      "evidence": [
+        "Actual guarded prepare+verify imported28 sources with0external-effect attempts and9509artifacts;direct actual native-ports historical closure reported map603/effects0",
+        "Composed entrypoint\u2192runner\u2192launcher\u2192protocol\u2192native session\u2192realFDproof/serialized receipts reports both cases complete withclosed terminal andpending0",
+        "Independent checks matched all12 recorded source-stack hashes andall10 serialized real receipt hashes/lengths",
+        "N01 outcome haszero passive notifications;N02 hasframes1/bytes137/failureReason:null/authority:false;composed demo SHA57bf537ec185b83a9c6f20f3878e4e3be728896e5f608034611ff1de87de7974 matches",
+        "Observation expressly simulates external child/stdio/provider/native result+filecreation/canonicalDB/childSDKreports/processobserver+ownedstop/tuple/in-memory authority values;real filesystem Stats/FDs areused",
+        "Diagnostic-only prior-verification snapshot seam isdisclosed;production still invokes complete predecessor verification percase",
+        "Composed receipt specimens arein-memory andbelow64KiB;native payload/result compatibility isUNTESTED andfresh p4 remainsabsent"
+      ]
+    },
+    {
+      "requirement": "Preserve scratch correction,finite archival/current qualification andoriginal deadlines/actions",
+      "status": "COVERED_BY_NORMALIZED_DIFF_AND_MANIFEST_COMPARISON",
+      "evidence": [
+        "Nineteen modules equal R54 after version/path relabeling;all9 changed/new modules were reviewed",
+        "Owned-scratch-proof andnative-session/result/codec/transcript/ACK/launcher/current-hash/tuple/cleanup code remains unchanged",
+        "ScratchDirectoryQualification,TA03,TA06,installed host,Git,r51TerminalEvidence,r52TerminalEvidence,nativeContractQualification andoriginal cases deep-equal frozen R54 values",
+        "Original2cases/180phase/60admitted-case/50readiness/10margin unchanged;full recursive history remains percase insidephase andoutsidecase,noreset/cache/currentfallback",
+        "R54 coordinator phaseanchor/headroom remainsUNKNOWN;no wallclock inference fromjournal init ornewtiming allowance",
+        "603 finite historical claims remain23TA04+580TA06,648mappedwitnesses18absentroots;no additional missing-current exception"
+      ]
+    },
+    {
+      "requirement": "Roll whole retained allocation forward once andpreserve prior pending/helper uncertainty",
+      "status": "COVERED_BY_SOURCE_ARITHMETIC_AND_FROZEN_MANIFEST_CHECK",
+      "evidence": [
+        "Entire R54 allocation261listener/1026control/640source/combined262 isretained;actual27reserve/26ACK consumption remains separate",
+        "One original freshT3 maximum adds2listener/Codex/MCP/thread/turn,4provider,2workspace/outer,4canonical,8control,4source,2supervisorhelper reservation,0scoped/audit/permission",
+        "New ceilings263listener/1034control/644source/combined264;Codex/MCP/thread260,turn250,provider621,scoped348,workspace8,permission12,outer372,canonical1906",
+        "No refunds,double addition,historical audit/helper totals oractual total-process count claim",
+        "R52 pending2,R54 pending1 andalloldUNKNOWN/cleanup obligations remainretained;TA03 helper lifetime inventory staysUNKNOWN_NOT_INDEPENDENTLY_OBSERVED"
+      ]
+    },
+    {
+      "requirement": "Bind onefresh p4 command andliteral continuation withoutfabricated hash-specific approval",
+      "status": "COVERED_BY_AUTHORITY_PATH_AND_RECEIPT_BOUNDARY_REVIEW",
+      "evidence": [
+        "Pinned user-continuation record preserves literalContinue,preceding scratchfix+freshT3 permission,andexact precedingcheckpoint/boundedproposal hashes;no literalhash-specific approval claimed",
+        "Manifest preserves historical R54 authority andbinds fresh R55 continuation plusnew terminal/turnDiff qualifications throughCOMMON_FIELDS deep equality",
+        "CurrentPOLICY,manifest/nativeworkdir/producer-consumer/proof/canonical roots areexact/private/tmp/appraise-m02-ta-workspace-p4;scope/action enums nowexplicitWORKSPACE_P4",
+        "Independent source/manifest/canonical hashes andfreshrootabsence checked;all27frozenR54source bytes remainpreserved andpinned",
+        "Unexecuted actual receipt generator reads frozenCOMMON_FIELDS,serializes realJSON,binds exactreview/context/decision/manifest/source prefixes andchecks64KiB/existingpaths beforeexclusive0600 writes",
+        "Finalactive receiptserialization andactualfixedfileprecheck stillmustpass beforeonefreshnative;consumedp3andearliercommands cannotresume/replay"
+      ]
+    }
+  ],
+  "validationEvidence": {
+    "independentlyPerformed": [
+      "Read-only changedsource diffs,classifier predicate/dataflow andprotocol integration review",
+      "Independent28-source SHA/snapshot/generated-manifest row linkage and27frozenR54sourcepreservation checks",
+      "Independent recursively sorted manifest digest recomputation matched08908c7f1835d8526a5682c66869d71a57be55dedf4b531914cf5af3c63f6f3a",
+      "Independent16liveR54original/copy hash/length/identity/ownership checks and60record journal chain/reserve/ACK/finish/pending recomputation",
+      "Independent12composed-source-stack and10realreceipt pins andrecorded N02passive counts checked",
+      "Canonical accepted historical root relocation,budget,unchangedqualification fields,freshrootabsence andcontinuation context/proposal records reviewed",
+      "Read-only inspection ofactualproposedfixedreceiptgenerator;no execution"
+    ],
+    "suppliedNotRerun": {
+      "guardedPreparationAndVerification": {
+        "imports": 28,
+        "artifacts": 9509,
+        "externalEffectAttempts": 0,
+        "runtimeEligible": false
+      },
+      "actualNativePortsHistoricalClosure": {
+        "witnessMap": 603,
+        "externalEffectAttempts": 0
+      },
+      "composedOfflineDemonstration": {
+        "status": "BOTH_COMPOSED_OFFLINE_CASES_COMPLETED_WITH_REAL_FD_PROOF",
+        "completed": 2,
+        "specimenOnly": true,
+        "turnDiffNotifications": {
+          "frames": 1,
+          "bytes": 137,
+          "failureReason": null,
+          "authority": false
+        },
+        "externalEffectAttempts": 0,
+        "nativeRunAttempted": false,
+        "nativeCompatibility": "UNTESTED"
+      },
+      "receiptSpecimenBytes": {
+        "review": 59359,
+        "context": 59286,
+        "decision": 59662
+      }
+    },
+    "notPerformed": [
+      "Regression tests",
+      "Preparation/verification/precheck execution",
+      "Composedhelper orclassifier runtime execution",
+      "Native tools/SDK/process/socket/addon/auth/inference/cleanup",
+      "Source edits,commits orconnector writes",
+      "Broad unchangedhistory rereview"
+    ]
+  },
+  "missingEvidence": [
+    {
+      "item": "Final bound review/context/decision receipts below65536bytes andfixed commandserialization",
+      "status": "PENDING_NEXT_GATE",
+      "blocksArtifactAcceptance": false,
+      "blocksNativeSubmission": true
+    },
+    {
+      "item": "Actual fixed file-only precheck withfinalreceipt hashes",
+      "status": "PENDING_NEXT_GATE",
+      "blocksArtifactAcceptance": false,
+      "blocksNativeSubmission": true
+    },
+    {
+      "item": "Actual nativeN02params/result compatibility andbothfreshN01/N02conjunctions withownclosedterminal",
+      "status": "NOT_RUN_UNTESTED",
+      "requiredForT3Qualification": true
+    },
+    {
+      "item": "HistoricalR54rawnotification params andexactphaseheadroom",
+      "status": "UNKNOWN_NOT_RETAINED",
+      "claimMade": false
+    },
+    {
+      "item": "Completehelper lifetime inventory andhistoricalglobalcleanup",
+      "status": "UNKNOWN_RETAINED",
+      "claimMade": false
+    },
+    {
+      "item": "Effectivehostrole/model/context/sandboxattestation",
+      "status": "UNATTESTED",
+      "claimMade": false
+    }
+  ],
+  "limitations": [
+    "Acceptance isexactartifact review,not nativepayload/result compatibility orT3success",
+    "Only onevalid syntheticN02notification stream isexercised bysuppliedcomposed observation;malformed/foreign/quota refusal paths wereassessed statically withoutadditional tests peruser instruction",
+    "N01historical conjunction isverified frompinned trusted supervisor evidence;no stronger independentrawnative transcript claim",
+    "LiteralContinue authority isrecorded initsbounded sessioncontext;thisreview doesnotinventliteralhashapproval orindependentlyauthenticate hostconversation",
+    "No passiveframe,totalprocessinventory,helpercount,scratchbytes orstopobservation grants ACK,completion,cleanup,containment orautomatic successor"
+  ],
+  "preserved": {
+    "R54": "CONSUMED_UNKNOWN_N01_BOUNDED_SUCCESS_N02_PENDING_ONE",
+    "R52": "CONSUMED_UNKNOWN_PENDING_TWO",
+    "R54NativeParams": "UNKNOWN_NOT_RETAINED",
+    "R54PhaseHeadroom": "UNKNOWN_NOT_RETAINED",
+    "consumedCommandsReusable": false,
+    "historicalGlobalCleanup": "UNKNOWN",
+    "TA03HelperLifetimeInventory": "UNKNOWN_NOT_INDEPENDENTLY_OBSERVED",
+    "M00Sha256": "1e39e733d5211db80705a1c34235d24580db618a9f505e7a16dc163398568133",
+    "GC3": "REVISE_NOT_PASSED",
+    "realInference": "EXHAUSTED_3_OF_3",
+    "T3": "INCOMPLETE_R55_NOT_RUN",
+    "M02": "INCOMPLETE"
+  },
+  "routing": {
+    "logicalRole": "independent focused reviewer",
+    "subagentsSpawned": 0,
+    "effectiveHostRoleProof": "UNATTESTED",
+    "effectiveHostModelProof": "UNATTESTED",
+    "effectiveHostContextBoundaryProof": "UNATTESTED",
+    "effectiveHostSandboxProof": "UNATTESTED"
+  },
+  "harnessEvolution": {
+    "observation": "Keep passive notification recognition separate from action/result/ACK acceptance andnative compatibility;no routing/policy change made.",
+    "policyChangesMade": false
+  },
+  "writesByReviewer": [
+    ".appraisejs/m02-r55-focused-review-01.json"
+  ]
+}

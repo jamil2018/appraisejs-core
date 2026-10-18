@@ -1,0 +1,157 @@
+{
+  "schema": "appraise.m02-r55-evidence-ledger/v1",
+  "recordedAt": "2026-10-18T20:06:50.606120+00:00",
+  "integrationOwner": "/root",
+  "confirmed": {
+    "sourceCorrection": "N02 passive current-case/thread/turn-bound turn/diff/updated classification, exact fields,16KiB diff/32frames/64KiB originalframequota,rawdiff discarded,noauthority",
+    "scratchProof": "R54 expected scratch-parent one-entry link delta with stable identity/exact namespace/owned FD proof retained",
+    "nativeToolSession": 65133,
+    "nativeExitCode": 0,
+    "T2": "R51_OWN_FULL24_CLOSED_NATIVE_CAMPAIGN_PASSED",
+    "T3": "R55_OWN_N01_N02_CLOSED_NATIVE_CAMPAIGN_PASSED",
+    "N02PassiveDiffNotifications": {
+      "frames": 3,
+      "bytes": 1212,
+      "failureReason": null,
+      "authority": false
+    },
+    "journal": {
+      "chainVerified": true,
+      "records": 62,
+      "reservations": 28,
+      "ACKs": 28,
+      "sha256": "826940323560a99375cba2d01592ca07ac24395330b349dcc348227b9071d73b",
+      "terminalHash": "098773e58c5c20ca8eaab2e1793609149b58a74a41853c2accf5679fbc048234"
+    },
+    "pending": [],
+    "M02": "ACCEPTED_SCRIPTED_NATIVE_FUNCTIONAL_CONFORMANCE_WITH_UNOBSERVED_HELPER_LIFETIME",
+    "finalReview": "ACCEPT_M02_SCRIPTED_NATIVE_FUNCTIONAL_CONFORMANCE_WITH_UNOBSERVED_HELPER_LIFETIME"
+  },
+  "hypotheses": [],
+  "unknownsAndUntestedBoundaries": [
+    "Actual short-lived scratch helper lifetime inventory UNKNOWN_NOT_INDEPENDENTLY_OBSERVED; helperStarts zero is supervisor reservation count only",
+    "Global process inventory and global/historical cleanup UNATTESTED or UNKNOWN",
+    "R52 exact changed scratch-directory anchor/component UNKNOWN",
+    "R54 native diff params/body remain UNKNOWN; R55 does not reconstruct them",
+    "All historical UNKNOWN, pending reservations, consumed allocations and unresolved cleanup preserved",
+    "General production, hostile containment, model/auth/provider/spend and installed-source provenance outside approved bounded scripted qualification",
+    "Effective reviewer/executor host role/model/context/sandbox proof UNATTESTED"
+  ],
+  "acceptanceConditions": {
+    "approvedTA02TA03Contract": "SATISFIED_IN_STATED_SCOPE",
+    "retainedT0T1CaptureAndMapping": "SATISFIED_IN_STATED_SCOPE",
+    "ownFull24T2": "SATISFIED_R51",
+    "ownBothNativeT3": "SATISFIED_R55",
+    "finalExactImplementationEvidenceReview": "ACCEPTED_NO_BLOCKING_FINDINGS",
+    "runtimeQualified": false,
+    "AppraiseProductLifecycleTransitionPerformed": false
+  },
+  "passingChecks": [
+    "ESLint and Prettier all28R55modules",
+    "Guarded actual entrypoint preparation and verification:28imports9509artifacts0external effects",
+    "Real composed entrypoint/runner/launcher/protocol/native-adapter/ownedFD/serialization:bothcasescompleted;external effects explicitly simulated",
+    "Actual native-ports historical closure:603claims0external effects",
+    "Actual fixed receipt serialization below65536bytes and file-only precheck exit0/effects0",
+    "One original native campaign:exit0,N01/N02,62records28reservations28ACKs,pending0",
+    "Postrun integrity:4source snapshots193liveoriginal/copypairs exact",
+    "Focused pre-native and final resulting-evidence reviews accepted"
+  ],
+  "actualConsumption": {
+    "threadStarts": 2,
+    "turnStarts": 2,
+    "providerRequests": 4,
+    "scopedCalls": 0,
+    "workspaceActions": 2,
+    "permissionReplies": 0,
+    "codexStarts": 2,
+    "mcpStarts": 2,
+    "listenerStarts": 2,
+    "controlWrites": 6,
+    "canonicalRequests": 4,
+    "helperStarts": 0,
+    "outerCalls": 2,
+    "auditRequests": 0
+  },
+  "actualSourceHostCapacityReserved": 4,
+  "freshMaximumRetained": {
+    "cases": 2,
+    "threadStarts": 2,
+    "turnStarts": 2,
+    "providerRequests": 4,
+    "scopedCalls": 0,
+    "workspaceActions": 2,
+    "permissionReplies": 0,
+    "codexStarts": 2,
+    "mcpStarts": 2,
+    "listenerStarts": 2,
+    "controlWrites": 8,
+    "canonicalRequests": 4,
+    "helperStarts": 2,
+    "outerCalls": 2,
+    "auditRequests": 0,
+    "sourceCapacity": 4
+  },
+  "cumulativeWholeAllocatedCeilings": {
+    "codexStarts": 260,
+    "mcpStarts": 260,
+    "threadStarts": 260,
+    "turnStarts": 250,
+    "providerRequests": 621,
+    "scopedCalls": 348,
+    "workspaceActions": 8,
+    "permissionReplies": 12,
+    "listenerStarts": 263,
+    "controlWrites": 1034,
+    "outerCalls": 372,
+    "canonicalRequests": 1906,
+    "sourceCapacity": 644
+  },
+  "combinedListenerAllocationCeilingIncludingR16": 264,
+  "historicalAllocationReset": false,
+  "regressionTestsAdded": 0,
+  "regressionTestsRun": 0,
+  "nativeInvocations": 1,
+  "nativeReplayOrResume": false,
+  "additionalRuntimeAuthorizedByThisRecord": false,
+  "GC3": "REVISE_NOT_PASSED",
+  "realInference": "EXHAUSTED_3_OF_3",
+  "M00Sha256": "1e39e733d5211db80705a1c34235d24580db618a9f505e7a16dc163398568133",
+  "evidence": {
+    "m02-r55-source-snapshot-01.json": {
+      "path": "/Users/jamil/Personal Projects/appraisejs/.appraisejs/m02-r55-source-snapshot-01.json",
+      "sha256": "a17f6f9c652b5c9a040691c16912790551761bbf5f8b06f875a7e36f43359cfb"
+    },
+    "m02-ta-workspace-build-r55/manifest.json": {
+      "path": "/Users/jamil/Personal Projects/appraisejs/.appraisejs/m02-ta-workspace-build-r55/manifest.json",
+      "sha256": "53093d5e2f98ab346f1dafd4aac68d4f44949444a7114f201d60c5f6e92970fd"
+    },
+    "m02-r55-focused-review-01.json": {
+      "path": "/Users/jamil/Personal Projects/appraisejs/.appraisejs/m02-r55-focused-review-01.json",
+      "sha256": "f460e9bde26266c5a53cdfb3450fd4d7db5fafabb60e5a308dad6d11036d0a90"
+    },
+    "m02-r55-actual-file-only-precheck-01.json": {
+      "path": "/Users/jamil/Personal Projects/appraisejs/.appraisejs/m02-r55-actual-file-only-precheck-01.json",
+      "sha256": "c42e23130d07199404917eeda1cda4e2a39980def4729007e0d7e9a51abf2cfc"
+    },
+    "m02-r55-composed-proof-demonstration-01.json": {
+      "path": "/Users/jamil/Personal Projects/appraisejs/.appraisejs/m02-r55-composed-proof-demonstration-01.json",
+      "sha256": "57bf537ec185b83a9c6f20f3878e4e3be728896e5f608034611ff1de87de7974"
+    },
+    "m02-r55-native-terminal-01.json": {
+      "path": "/Users/jamil/Personal Projects/appraisejs/.appraisejs/m02-r55-native-terminal-01.json",
+      "sha256": "f630ea9d82d4f01fabc05e34a738adcf33a7d2bfed8039b7479db8af0ae93444"
+    },
+    "m02-r55-native-terminal-evidence-01/index.json": {
+      "path": "/Users/jamil/Personal Projects/appraisejs/.appraisejs/m02-r55-native-terminal-evidence-01/index.json",
+      "sha256": "31dd14bbd66bd5a887b793af257ffd858ecd51c004ba796b2335e7f42e75b831"
+    },
+    "m02-r55-postrun-integrity-01.json": {
+      "path": "/Users/jamil/Personal Projects/appraisejs/.appraisejs/m02-r55-postrun-integrity-01.json",
+      "sha256": "6f038810584140c013c96a9973e5ff12921fc1a3d14fe85dfaa44fa6f9cdc4b6"
+    },
+    "m02-r55-final-scripted-evidence-review-01.json": {
+      "path": "/Users/jamil/Personal Projects/appraisejs/.appraisejs/m02-r55-final-scripted-evidence-review-01.json",
+      "sha256": "80b70a4d024e5cedb4db0e0257a246e0d6837e291ea3a818647203e5a9476ac8"
+    }
+  }
+}

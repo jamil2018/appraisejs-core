@@ -1,0 +1,226 @@
+{
+  "schema": "appraise.m02-r55-native-terminal/v1",
+  "evidenceClass": "NATIVE_EXEC_TOOL_TERMINAL_TRANSCRIPTION_CORROBORATED_BY_HASH_VERIFIED_JOURNAL_AND_CASE_WITNESSES",
+  "toolSession": 65133,
+  "exitCode": 0,
+  "status": "T3_CASES_COMPLETED",
+  "completed": 2,
+  "completedCases": [
+    {
+      "caseId": "N01",
+      "outcome": "workspace-effect",
+      "caseWitnessSha256": "bc08b4eb4c97e2b4f2365136fe79f3f8c067c3adc27c3e6d3e51a61204824586",
+      "cleanupKnown": true,
+      "counts": {
+        "threadStarts": 1,
+        "turnStarts": 1,
+        "providerRequests": 2,
+        "scopedCalls": 0,
+        "workspaceActions": 1,
+        "permissionReplies": 0,
+        "codexStarts": 1,
+        "mcpStarts": 1,
+        "listenerStarts": 1,
+        "controlWrites": 3,
+        "canonicalRequests": 2,
+        "helperStarts": 0,
+        "outerCalls": 1,
+        "auditRequests": 0
+      },
+      "gitReadiness": {
+        "samples": 10,
+        "gitObserved": true,
+        "gitIdentityCount": 3,
+        "gitGone": true,
+        "gitPidReused": false,
+        "hostObserved": true,
+        "hostIdentityStable": true,
+        "readinessComplete": true
+      },
+      "canonicalAccepted": true,
+      "listenerClosed": true,
+      "workspaceProofIssued": true,
+      "turnDiffNotifications": {
+        "frames": 0,
+        "bytes": 0,
+        "failureReason": null,
+        "authority": false
+      },
+      "nativeStatus": "FIXED_WORKSPACE_EFFECT_CORRELATED",
+      "processStates": {
+        "identities": [
+          {
+            "ordinal": 1,
+            "counts": {
+              "RUNNABLE": 2,
+              "SLEEPING": 0,
+              "STOPPED": 0,
+              "ZOMBIE": 0,
+              "OTHER": 0
+            },
+            "goneObserved": true
+          },
+          {
+            "ordinal": 2,
+            "counts": {
+              "RUNNABLE": 14,
+              "SLEEPING": 0,
+              "STOPPED": 0,
+              "ZOMBIE": 0,
+              "OTHER": 0
+            },
+            "goneObserved": true
+          },
+          {
+            "ordinal": 3,
+            "counts": {
+              "RUNNABLE": 2,
+              "SLEEPING": 0,
+              "STOPPED": 0,
+              "ZOMBIE": 0,
+              "OTHER": 0
+            },
+            "goneObserved": true
+          }
+        ],
+        "overflow": false,
+        "unavailable": false,
+        "additionalOsQueries": 0,
+        "rawArgumentsOrEnvironmentRead": false
+      },
+      "permissionRequestDiagnostic": null
+    },
+    {
+      "caseId": "N02",
+      "outcome": "workspace-effect",
+      "caseWitnessSha256": "15ff0d583743e9e405b9d6724c1c9b3394cfa106f0f9e4b1a9f99d379d2fc138",
+      "cleanupKnown": true,
+      "counts": {
+        "threadStarts": 1,
+        "turnStarts": 1,
+        "providerRequests": 2,
+        "scopedCalls": 0,
+        "workspaceActions": 1,
+        "permissionReplies": 0,
+        "codexStarts": 1,
+        "mcpStarts": 1,
+        "listenerStarts": 1,
+        "controlWrites": 3,
+        "canonicalRequests": 2,
+        "helperStarts": 0,
+        "outerCalls": 1,
+        "auditRequests": 0
+      },
+      "gitReadiness": {
+        "samples": 9,
+        "gitObserved": true,
+        "gitIdentityCount": 3,
+        "gitGone": true,
+        "gitPidReused": false,
+        "hostObserved": true,
+        "hostIdentityStable": true,
+        "readinessComplete": true
+      },
+      "canonicalAccepted": true,
+      "listenerClosed": true,
+      "workspaceProofIssued": true,
+      "turnDiffNotifications": {
+        "frames": 3,
+        "bytes": 1212,
+        "failureReason": null,
+        "authority": false
+      },
+      "nativeStatus": "FIXED_WORKSPACE_EFFECT_CORRELATED",
+      "processStates": {
+        "identities": [
+          {
+            "ordinal": 1,
+            "counts": {
+              "RUNNABLE": 2,
+              "SLEEPING": 0,
+              "STOPPED": 0,
+              "ZOMBIE": 0,
+              "OTHER": 0
+            },
+            "goneObserved": true
+          },
+          {
+            "ordinal": 2,
+            "counts": {
+              "RUNNABLE": 12,
+              "SLEEPING": 0,
+              "STOPPED": 0,
+              "ZOMBIE": 0,
+              "OTHER": 0
+            },
+            "goneObserved": true
+          },
+          {
+            "ordinal": 3,
+            "counts": {
+              "RUNNABLE": 2,
+              "SLEEPING": 0,
+              "STOPPED": 0,
+              "ZOMBIE": 0,
+              "OTHER": 0
+            },
+            "goneObserved": true
+          }
+        ],
+        "overflow": false,
+        "unavailable": false,
+        "additionalOsQueries": 0,
+        "rawArgumentsOrEnvironmentRead": false
+      },
+      "permissionRequestDiagnostic": null
+    }
+  ],
+  "failedCase": null,
+  "root": "/private/tmp/appraise-m02-ta-workspace-p4",
+  "rootIdentity": {
+    "dev": 16777230,
+    "ino": 71579449
+  },
+  "manifestDigest": "08908c7f1835d8526a5682c66869d71a57be55dedf4b531914cf5af3c63f6f3a",
+  "manifestFileSha256": "53093d5e2f98ab346f1dafd4aac68d4f44949444a7114f201d60c5f6e92970fd",
+  "sourceHostCapacityReserved": 4,
+  "actualSourceHostCount": "UNATTESTED",
+  "consumed": {
+    "threadStarts": 2,
+    "turnStarts": 2,
+    "providerRequests": 4,
+    "scopedCalls": 0,
+    "workspaceActions": 2,
+    "permissionReplies": 0,
+    "codexStarts": 2,
+    "mcpStarts": 2,
+    "listenerStarts": 2,
+    "controlWrites": 6,
+    "canonicalRequests": 4,
+    "helperStarts": 0,
+    "outerCalls": 2,
+    "auditRequests": 0
+  },
+  "pending": [],
+  "journal": {
+    "chainVerified": true,
+    "records": 62,
+    "reservations": 28,
+    "ACKs": 28,
+    "sha256": "826940323560a99375cba2d01592ca07ac24395330b349dcc348227b9071d73b",
+    "terminalHash": "098773e58c5c20ca8eaab2e1793609149b58a74a41853c2accf5679fbc048234"
+  },
+  "evidenceIndex": {
+    "path": "/Users/jamil/Personal Projects/appraisejs/.appraisejs/m02-r55-native-terminal-evidence-01/index.json",
+    "sha256": "31dd14bbd66bd5a887b793af257ffd858ecd51c004ba796b2335e7f42e75b831"
+  },
+  "lateCaseDiagnostics": [],
+  "protocolFailures": [],
+  "cleanupQualification": "BOTH_T3_BOUNDED_CASE_CLEANUP_ONLY_GLOBAL_INVENTORY_UNATTESTED",
+  "globalProcessInventory": "UNATTESTED",
+  "noResendOrResume": true,
+  "T2": "R51_FULL24_CLOSED_NATIVE_CAMPAIGN_OBSERVED",
+  "T3": "BOTH_CASES_CLOSED_NATIVE_CAMPAIGN_OBSERVED",
+  "M02": "INCOMPLETE",
+  "runtimeQualified": false
+}

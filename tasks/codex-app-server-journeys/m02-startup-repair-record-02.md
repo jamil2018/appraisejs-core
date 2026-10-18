@@ -1,0 +1,36 @@
+# M02 startup repair and continuation record 02
+
+Date: 2026-10-16 (Asia/Dhaka). This additive correction remains under the user's instruction to fix startup compatibility, verify it and finish M02, using Open Design or t3code for integration issues. No auth, real inference, grants, commits or push. It preserves all previously accepted artifacts and UNKNOWN evidence.
+
+## Actual finding and boundary
+
+The [R6 execution record](m02-ta-t1-execution-03.md) and sealed actual review retain p3 UNKNOWN. Its diagnostic method hash uniquely matches `remoteControl/status/changed` in the current pinned ServerNotification schema. The raw frame's shape/status was not retained, so this does not establish that its actual remote-control state was disabled. Codex exit/close code 0 were observed; MCP startup/exit and the pending thread-start acknowledgement remain unproved. No turn, provider, canonical or permission reservation occurred.
+
+Open Design and t3code treat notifications separately from requests and tolerate optional metadata. Their broad suppression is not copied into authority handling. The pinned schema also contains login/OAuth, auth-recovery, remote-control, approval, tool/process/file-change and lifecycle events; required-MCP/terminal receipts alone cannot prove all such events harmless. A complete finite inventory is preferable to blanket discard or an unaudited short list.
+
+## R7 contract
+
+- New source, tests, policy, root variant and manifest only. R6/R5/T0/M00 and their receipts remain unchanged. New fixture root: `/private/tmp/appraise-m02-ta-descriptors-p4`, exclusively fresh; never adopt or replay p1/p2/p3. A guarded single approved-root literal change from the accepted p3 backend must reverse-normalize to its original hash.
+- Inventory all **85 distinct methods** in the pinned ServerNotification schema with explicit dispositions. Keep strict handlers for existing correlated lifecycle/provider error cases and known authority-bearing events; unsupported/unreviewed methods still fence. Inventory or schema drift blocks preparation. This does not assert full live schema enforcement for every protocol frame.
+- Add `remoteControl/status/changed` only when schema-shaped, idless, status `disabled`, and environmentId null or absent. Required installationId/serverName fields must be strings; discard their values. Connecting, connected, errored, any attached environment, malformed/mixed/id-bearing shape or other unexpected state stops UNKNOWN. The new validator does not retrospectively identify the old frame's values.
+- Add `skills/changed` only with empty object params. It is a bounded invalidation notice, not authority to list/watch/read skills or refresh ambient configuration.
+- Preserve R6's schema-shaped MCP startup/status handling, one provisional thread ID only during the sole durable thread/start, exact subsequent reconciliation, empty account metadata rule, warning/config/deprecation handling, 32-frame/16-KiB telemetry cap, unknown-request/auth/permission fences and actual required-MCP receipts. Status telemetry never grants readiness or authority.
+- Preserve the serialized initialize → initialized → durable thread/start sequence, actual model/medium-effort request guard, zero model/tool responses for T1, strict correlated post-capture 503/failed terminal and owned Codex/MCP cleanup requirements.
+- Safe failure evidence adds a fixed frame-kind enum to distinguish request/notification/response/invalid shape. Retain bounded method hashes and fixed enum state only, not raw frames, installation/server identity values, messages, credentials or other payloads. Preserve known-category evidence and fsync failures as UNKNOWN.
+- Peer-phase waits terminate promptly when the journal fences; cleanup observation waits still run within the existing reserve. Fail-fast detection adds no resend, helper, signal or cleanup authority. SIGTERM remains at most once on the current owned child, with actual exit/close observations required.
+
+The read-only solver and independent contract review conditionally accepted these bounds for offline implementation. Exact source/tests/manifest/command must still be reviewed before runtime. Deterministic tests must include the previously sufficient remote-control failure mechanism, inactive versus active/malformed/attached/ID-bearing states, empty versus nonempty skills notices, full inventory/schema drift, quota/identity/request cases, sanitized frame-kind evidence and prompt UNKNOWN detection, retaining all R6 regression cases.
+
+## Authority and cumulative limits
+
+The user requested a fix and continued completion, rather than approval of only the old command. One distinct corrected p4 artifact after deterministic verification and independent exact review is part of that instruction. This is not authorization to rerun R6, replay its pending RPC, erase UNKNOWN, reset counters or run an automatic replacement loop. No p5 fallback is authorized by this record; recurrence or materially different effects requires a scoped decision.
+
+P2 and p3 each consumed a Codex/MCP/listener reservation; p3 also consumed a pending thread/start. Their historical consumption is separate from the remaining successful-path ceilings. Including them and a successful p4 T1–T3 sequence, aggregate maxima are **29 Codex/MCP/listener starts, 28 thread-start reservations, 26 turn starts and 63 local scripted provider requests**. These are maxima, not fabricated observations. Earlier p1 staging consumed no journaled native start. Zero real inference, auth operations, grants, retries or resumes; two later fixed native scratch actions remain within the original T3 scope only after actual mapping and exact review.
+
+Per-attempt T1 limits stay one Codex child, one required MCP child, one listener, one thread, one turn, one local provider request, two canonical startup IPC requests, zero tool/model responses and no helper. Model `gpt-6.1-sol`, medium effort, same pinned executable/schema/host tuple. Case 60 seconds, T1 phase 180 seconds. The reviewed command needs only its specific owned-loopback/pinned-child host exception before invocation, no reusable prefix permission or preliminary socket probe.
+
+The new preservation baseline `.appraisejs/m02-r7-preservation-baseline.json` binds 3,281 existing files/modes and selected private R6 evidence, SHA-256 `a23995a875313222189f9600aaa2fd6fe02d03748988624a2866c5fa36f5c7bb`; it excludes new R7-owned files. Current safe p3 journal, source identities and observed Codex exit must match its archive before effects, alongside prior p1/p2 proof. Missing or contradictory evidence blocks without recreating roots.
+
+P1 deadline remains `2026-10-22T18:54:08.422Z`; p2 `2026-10-23T13:18:36.648Z`; p3 `2026-10-23T13:58:35.561Z`. P4 gets its own conservative clock; none supersedes the others. No UNKNOWN history is deleted. M00 stays frozen at `1e39e733d5211db80705a1c34235d24580db618a9f505e7a16dc163398568133`, the real-inference budget remains exhausted at 3/3, and GC3 remains REVISE / not passed.
+
+After a successful actual T1, independently review the descriptor contracts, codecs and cleanup evidence before exact T2/T3 preparation. Native routing, six-role qualification, containment and completed M02 remain unproved by this record. No M03+, UI, schema migration, release, merge or publication is included.

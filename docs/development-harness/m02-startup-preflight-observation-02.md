@@ -1,0 +1,13 @@
+# M02 startup preflight observation 02
+
+Advisory learning only, 2026-10-16. No routing, prompt, model, tool, permission or quality-gate policy change.
+
+The R10 command's fixed `env -i` guard rejected a macOS-added metadata key before native start. Fake-port environment tests had not represented that host behavior. The separately reviewed additive R11 correction accepted the observed bounded shape. Its actual T2 campaign then stopped UNKNOWN after listener/bootstrap effects and before any recorded Codex start. A separate file-only check reproduced the accepted observer's rejection of the exact installed host because installer UID 502 differs from supervisor UID 503. The original runtime exception was not retained; its cause remains UNPROVEN.
+
+Offline component checks and independent source review found additional genuine gaps in whole-transcript classification, lost MCP reply handling, startup cleanup, start acknowledgement ordering, durable outcome witnesses and final checkpoint verification. Green helper tests had not covered those integrated failure paths. They were corrected and independently reviewed before the attempted scripted run. No offline result was promoted to containment or actual qualification.
+
+Useful local lesson: read-only checks of the pinned installed asset and bounded process-metadata shape can verify assumptions before allocating a listener or creating a disposable runtime root. Source-derived capabilities and fake-port tests remain separate from actual observations. Preserve the failed evidence rather than changing its labels after a later reproduction. Record a sanitized startup stage/error class so a future failure need not rely on a plausible source reconstruction.
+
+The R12 candidate applies that lesson within the user's authorized startup-compatibility work, while preserving accepted predecessors. Its new root and consumed listener/control/capacity allocations need a concrete reviewed recovery decision; there is no automatic retry loop. This is not permission to generalize the change into mandatory harness policy.
+
+Evolution observations: repeated integration assumptions increased review latency and source-copy overhead; exact artifact preservation prevented silent repair of historical evidence. Effective named agent roles/models/context/sandbox were not host-attested by these artifact receipts. No healthy score or runtime isolation claim is inferred from requested agent selectors. Proposed future optimization: validate known installed-host metadata assumptions before campaign effects and cover the entire startup/failure boundary with disposable deterministic fixtures. Implementation of any general harness-policy change requires explicit user guidance.

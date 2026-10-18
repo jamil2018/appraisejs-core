@@ -1,0 +1,196 @@
+{
+  "evidenceClass": "live-dispatch-intents",
+  "stateId": "appraise-m01-native-l1mt4sms",
+  "turnStarts": 3,
+  "threadStarts": 1,
+  "intents": [
+    {
+      "method": "owned-process-launch",
+      "transportGeneration": 1
+    },
+    {
+      "id": 1,
+      "transportGeneration": 1,
+      "method": "initialize",
+      "paramsSha256": "bdbc5b7e7b962af5339142d7401ae88776c16730df2767ba30a975252ee5e08d",
+      "atUtc": "2026-10-13T18:16:29Z"
+    },
+    {
+      "id": 2,
+      "transportGeneration": 1,
+      "method": "config/read",
+      "paramsSha256": "88eabef63a9b5445a555a6b9cfec2865d32963a89b2fe62b236f27196040a1a3",
+      "atUtc": "2026-10-13T18:16:29Z"
+    },
+    {
+      "id": 3,
+      "transportGeneration": 1,
+      "method": "account/read",
+      "paramsSha256": "96987546431acd8a97c3d7ea11cfab2d585b49e5bc081085ed76d600855dcab7",
+      "atUtc": "2026-10-13T18:16:29Z"
+    },
+    {
+      "method": "owned-process-launch",
+      "transportGeneration": 1
+    },
+    {
+      "id": 1,
+      "transportGeneration": 1,
+      "method": "initialize",
+      "paramsSha256": "bdbc5b7e7b962af5339142d7401ae88776c16730df2767ba30a975252ee5e08d",
+      "atUtc": "2026-10-13T18:16:52Z"
+    },
+    {
+      "id": 2,
+      "transportGeneration": 1,
+      "method": "config/read",
+      "paramsSha256": "88eabef63a9b5445a555a6b9cfec2865d32963a89b2fe62b236f27196040a1a3",
+      "atUtc": "2026-10-13T18:16:52Z"
+    },
+    {
+      "id": 3,
+      "transportGeneration": 1,
+      "method": "account/read",
+      "paramsSha256": "96987546431acd8a97c3d7ea11cfab2d585b49e5bc081085ed76d600855dcab7",
+      "atUtc": "2026-10-13T18:16:52Z"
+    },
+    {
+      "method": "owned-process-launch",
+      "transportGeneration": 1
+    },
+    {
+      "id": 1,
+      "transportGeneration": 1,
+      "method": "initialize",
+      "paramsSha256": "bdbc5b7e7b962af5339142d7401ae88776c16730df2767ba30a975252ee5e08d",
+      "atUtc": "2026-10-13T18:18:02Z"
+    },
+    {
+      "id": 2,
+      "transportGeneration": 1,
+      "method": "config/read",
+      "paramsSha256": "88eabef63a9b5445a555a6b9cfec2865d32963a89b2fe62b236f27196040a1a3",
+      "atUtc": "2026-10-13T18:18:02Z"
+    },
+    {
+      "id": 3,
+      "transportGeneration": 1,
+      "method": "account/read",
+      "paramsSha256": "96987546431acd8a97c3d7ea11cfab2d585b49e5bc081085ed76d600855dcab7",
+      "atUtc": "2026-10-13T18:18:02Z"
+    },
+    {
+      "id": 4,
+      "transportGeneration": 1,
+      "method": "thread/start",
+      "paramsSha256": "4a44ff6dbc68eccc03e413d1acf84c90e5e03cb9efe916026b4833fe58db9587",
+      "atUtc": "2026-10-13T18:18:02Z"
+    },
+    {
+      "id": 5,
+      "transportGeneration": 1,
+      "method": "turn/start",
+      "paramsSha256": "050e528ade46b381115b873b3527ec20f818a05b0512beca7ca308ac729c98c8",
+      "atUtc": "2026-10-13T18:18:03Z"
+    },
+    {
+      "method": "owned-process-launch",
+      "transportGeneration": 2
+    },
+    {
+      "id": 1,
+      "transportGeneration": 2,
+      "method": "initialize",
+      "paramsSha256": "bdbc5b7e7b962af5339142d7401ae88776c16730df2767ba30a975252ee5e08d",
+      "atUtc": "2026-10-13T18:18:07Z"
+    },
+    {
+      "id": 2,
+      "transportGeneration": 2,
+      "method": "config/read",
+      "paramsSha256": "88eabef63a9b5445a555a6b9cfec2865d32963a89b2fe62b236f27196040a1a3",
+      "atUtc": "2026-10-13T18:18:07Z"
+    },
+    {
+      "id": 3,
+      "transportGeneration": 2,
+      "method": "account/read",
+      "paramsSha256": "96987546431acd8a97c3d7ea11cfab2d585b49e5bc081085ed76d600855dcab7",
+      "atUtc": "2026-10-13T18:18:07Z"
+    },
+    {
+      "id": 4,
+      "transportGeneration": 2,
+      "method": "thread/resume",
+      "paramsSha256": "e0984339d02c2ba80e57cebd29296576c58307d778123ea007e0390774650b48",
+      "atUtc": "2026-10-13T18:18:08Z"
+    },
+    {
+      "id": 5,
+      "transportGeneration": 2,
+      "method": "thread/read",
+      "paramsSha256": "e14e07696f53a22d9f845a802339e073cba904ad51bc45f831a39c9baf37a06c",
+      "atUtc": "2026-10-13T18:18:08Z"
+    },
+    {
+      "id": 6,
+      "transportGeneration": 2,
+      "method": "turn/start",
+      "paramsSha256": "b75f080b471b7853a0519f577511419a4c426d7e8d8dda011941b3966a96b700",
+      "atUtc": "2026-10-13T18:18:08Z"
+    },
+    {
+      "id": 7,
+      "transportGeneration": 2,
+      "method": "turn/interrupt",
+      "paramsSha256": "e78c6185dfa1a6d8db3a7303545b7ca8bd60a3b9d7ced078322d5de6b42f535c",
+      "atUtc": "2026-10-13T18:18:08Z"
+    },
+    {
+      "id": 8,
+      "transportGeneration": 2,
+      "method": "turn/start",
+      "paramsSha256": "050e528ade46b381115b873b3527ec20f818a05b0512beca7ca308ac729c98c8",
+      "atUtc": "2026-10-13T18:18:08Z"
+    },
+    {
+      "method": "owned-process-launch",
+      "transportGeneration": 3
+    },
+    {
+      "id": 1,
+      "transportGeneration": 3,
+      "method": "initialize",
+      "paramsSha256": "bdbc5b7e7b962af5339142d7401ae88776c16730df2767ba30a975252ee5e08d",
+      "atUtc": "2026-10-13T18:19:09Z"
+    },
+    {
+      "id": 2,
+      "transportGeneration": 3,
+      "method": "config/read",
+      "paramsSha256": "88eabef63a9b5445a555a6b9cfec2865d32963a89b2fe62b236f27196040a1a3",
+      "atUtc": "2026-10-13T18:19:09Z"
+    },
+    {
+      "id": 3,
+      "transportGeneration": 3,
+      "method": "account/read",
+      "paramsSha256": "96987546431acd8a97c3d7ea11cfab2d585b49e5bc081085ed76d600855dcab7",
+      "atUtc": "2026-10-13T18:19:09Z"
+    },
+    {
+      "id": 4,
+      "transportGeneration": 3,
+      "method": "thread/resume",
+      "paramsSha256": "e0984339d02c2ba80e57cebd29296576c58307d778123ea007e0390774650b48",
+      "atUtc": "2026-10-13T18:19:09Z"
+    },
+    {
+      "id": 5,
+      "transportGeneration": 3,
+      "method": "thread/read",
+      "paramsSha256": "e14e07696f53a22d9f845a802339e073cba904ad51bc45f831a39c9baf37a06c",
+      "atUtc": "2026-10-13T18:19:09Z"
+    }
+  ]
+}

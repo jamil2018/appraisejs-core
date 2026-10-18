@@ -1,0 +1,11 @@
+# R25 scoped MCP policy correction observation
+
+2026-10-17. Reviewed retained R24 history narrowed an actual COMPLETED error result to a fixed policy-never literal with global Never context. Error origin remains UNATTESTED and the observation is not exact provider-request-byte attestation. Pinned source plus the frozen case configuration and absent SDK annotations support an R24 configuration mismatch. Preserve R23 attribution as UNKNOWN and preserve both pending reservations and cleanup UNKNOWN.
+
+The additive offline correction approves only each case's exact selected sealed native tool names. Global never and special P00/B14 semantics remain exact. Codex prompt bypass is explicit and does not supply Appraise authority; canonical/audit checks remain enforcing. Native settings must not be broadened to server-wide defaults or annotations merely to pass the matrix. Source-schema validation is distinct from installed-binary compatibility.
+
+Root remains the integration owner. The pure helper executor and pinned schema investigator wrote disjoint new paths. A focused implementation review follows composed offline success. Requested roles/context boundaries and effective host role/model/sandbox are UNATTESTED; no static configuration is claimed as host enforcement. The initial routing receipt omitted requiresExecution and selected coordinator-only despite the stated disjoint assignments; a subsequent additive receipt records executor-advanced with the explicit signal. No routing policy was changed.
+
+A second integration lesson: fixed source hashes must settle before the composed suite starts. An initial development run loaded in-progress artifact pins and correctly refused later source drift before effects; its failures do not explain native R24. The fixed preparation is written once and retained. Future iterations need fresh paths rather than rewriting accepted artifacts.
+
+The Graphify wrapper accepts an unsupported --help argument as a normal build. This attempted semantic extraction, which refused for lack of a key; no credentials or inference were supplied and existing dirty graph bytes remained exact. Advisory follow-up: reject unsupported arguments or implement help before any build. This note authorizes no CLI/harness policy change, credentials, graph rewrite, native successor or T3.

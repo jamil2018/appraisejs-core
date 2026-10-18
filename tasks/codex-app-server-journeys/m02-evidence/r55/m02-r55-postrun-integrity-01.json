@@ -1,0 +1,79 @@
+{
+  "schema": "appraise.m02-r55-postrun-integrity/v1",
+  "snapshots": [
+    {
+      "path": "/Users/jamil/Personal Projects/appraisejs/.appraisejs/m02-r51-source-snapshot-01.json",
+      "sha256": "187437c891f6813e64de3f0e31e83276d2193aaf22039c86cbb313756508da2c",
+      "sourceFiles": 50,
+      "exact": true
+    },
+    {
+      "path": "/Users/jamil/Personal Projects/appraisejs/.appraisejs/m02-r52-source-snapshot-01.json",
+      "sha256": "61694426c51b6a7d3f7ca22ab95b850de2a322963fa5ccb6e0358ab8ecbdbdb5",
+      "sourceFiles": 27,
+      "exact": true
+    },
+    {
+      "path": "/Users/jamil/Personal Projects/appraisejs/.appraisejs/m02-r54-source-snapshot-01.json",
+      "sha256": "222b4d771ed2e3caed11184d4f4d8635f198c06a29bbc26c5d4a1ff1ea8b05f4",
+      "sourceFiles": 27,
+      "exact": true
+    },
+    {
+      "path": "/Users/jamil/Personal Projects/appraisejs/.appraisejs/m02-r55-source-snapshot-01.json",
+      "sha256": "a17f6f9c652b5c9a040691c16912790551761bbf5f8b06f875a7e36f43359cfb",
+      "sourceFiles": 28,
+      "exact": true
+    }
+  ],
+  "originalCopyChecks": [
+    {
+      "index": "/Users/jamil/Personal Projects/appraisejs/.appraisejs/m02-r51-native-terminal-evidence-01/index.json",
+      "originalCopyPairsExact": 151,
+      "rootIdentityExact": true
+    },
+    {
+      "index": "/Users/jamil/Personal Projects/appraisejs/.appraisejs/m02-r51-b14-supplemental-evidence-01/index.json",
+      "originalCopyPairsExact": 2,
+      "rootIdentityExact": true
+    },
+    {
+      "index": "/Users/jamil/Personal Projects/appraisejs/.appraisejs/m02-r52-native-terminal-evidence-01/index.json",
+      "originalCopyPairsExact": 7,
+      "rootIdentityExact": true
+    },
+    {
+      "index": "/Users/jamil/Personal Projects/appraisejs/.appraisejs/m02-r54-native-terminal-evidence-01/index.json",
+      "originalCopyPairsExact": 16,
+      "rootIdentityExact": true
+    },
+    {
+      "index": "/Users/jamil/Personal Projects/appraisejs/.appraisejs/m02-r55-native-terminal-evidence-01/index.json",
+      "originalCopyPairsExact": 17,
+      "rootIdentityExact": true
+    }
+  ],
+  "terminalManifestAndIndexPinsExact": {
+    "m02-r51-native-terminal-01.json": "76dfc7cff42707403623e9096b8aa0752d742355ea26ce6be49f9ddc586e0951",
+    "m02-r51-native-terminal-evidence-01/index.json": "afa42e953a9eb67bf660623d16056e2d3dbc47f5f7ab1748174bc356e9e908c4",
+    "m02-r51-b14-supplemental-evidence-01/index.json": "92629f26ee6159d11d14b2cc07d8dcb01c03bce15194e6f7dceec95320b18f0c",
+    "m02-r52-native-terminal-01.json": "173740017dff89601d8d144801f652de6231b352ddc4a3dfa2c977a1ac4a3939",
+    "m02-r52-native-terminal-evidence-01/index.json": "f6f0c1c93a6440dc91995591089244934edd08485f46a3b8d4cca167614a1e24",
+    "m02-r54-native-terminal-01.json": "32008cfc8146aa326440b9b536cf43f17c6e611142b9d6bbf5f08686b9273263",
+    "m02-r54-native-terminal-evidence-01/index.json": "ccda3723adbc8a9c4a585a4df2913277b79dcadbe7270c2bcf5830c963bd57d8",
+    "m02-r55-native-terminal-01.json": "f630ea9d82d4f01fabc05e34a738adcf33a7d2bfed8039b7479db8af0ae93444",
+    "m02-r55-native-terminal-evidence-01/index.json": "31dd14bbd66bd5a887b793af257ffd858ecd51c004ba796b2335e7f42e75b831",
+    "m02-r55-source-snapshot-01.json": "a17f6f9c652b5c9a040691c16912790551761bbf5f8b06f875a7e36f43359cfb",
+    "m02-ta-workspace-build-r55/manifest.json": "53093d5e2f98ab346f1dafd4aac68d4f44949444a7114f201d60c5f6e92970fd"
+  },
+  "acceptedPredecessorRewritten": false,
+  "nativeCommandsSubmitted": 1,
+  "nativeToolSession": 65133,
+  "regressionTestsAdded": 0,
+  "regressionTestsRun": 0,
+  "historicalCleanupPerformed": false,
+  "commitOrPushPerformed": false,
+  "historicalUnknownPendingAndAllocationsRetained": true,
+  "unrelatedTrackedDirtyPathSetUnchanged": true,
+  "unrelatedDirtyByteBaseline": "NOT_INDEPENDENTLY_RECORDED_BY_THIS_CHECK"
+}

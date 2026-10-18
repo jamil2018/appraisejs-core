@@ -656,10 +656,10 @@
       "source_file": "appraisejs/scripts/managed-journey-worker-mcp.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 33,
+      "community": 46,
       "norm_label": "managed-journey-worker-mcp.ts",
       "id": "scripts_managed_journey_worker_mcp",
-      "community_name": "Community 33"
+      "community_name": "Community 46"
     },
     {
       "label": "definitions",
@@ -667,10 +667,10 @@
       "source_file": "appraisejs/scripts/managed-journey-worker-mcp.ts",
       "source_location": "L10",
       "_origin": "ast",
-      "community": 33,
+      "community": 46,
       "norm_label": "definitions",
       "id": "scripts_managed_journey_worker_mcp_definitions",
-      "community_name": "Community 33"
+      "community_name": "Community 46"
     },
     {
       "label": "profile",
@@ -678,10 +678,10 @@
       "source_file": "appraisejs/scripts/managed-journey-worker-mcp.ts",
       "source_location": "L19",
       "_origin": "ast",
-      "community": 33,
+      "community": 46,
       "norm_label": "profile",
       "id": "scripts_managed_journey_worker_mcp_profile",
-      "community_name": "Community 33"
+      "community_name": "Community 46"
     },
     {
       "label": "server",
@@ -689,10 +689,10 @@
       "source_file": "appraisejs/scripts/managed-journey-worker-mcp.ts",
       "source_location": "L20",
       "_origin": "ast",
-      "community": 33,
+      "community": 46,
       "norm_label": "server",
       "id": "scripts_managed_journey_worker_mcp_server",
-      "community_name": "Community 33"
+      "community_name": "Community 46"
     },
     {
       "label": "agent-setup-capabilities.test.ts",
@@ -744,10 +744,10 @@
       "source_file": "appraisejs/src/capsule-diagnostic-response.test.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 40,
+      "community": 14,
       "norm_label": "capsule-diagnostic-response.test.ts",
       "id": "src_capsule_diagnostic_response_test",
-      "community_name": "Community 40"
+      "community_name": "Community 14"
     },
     {
       "label": "diagnostic",
@@ -755,10 +755,10 @@
       "source_file": "appraisejs/src/capsule-diagnostic-response.test.ts",
       "source_location": "L4",
       "_origin": "ast",
-      "community": 40,
+      "community": 14,
       "norm_label": "diagnostic",
       "id": "src_capsule_diagnostic_response_test_diagnostic",
-      "community_name": "Community 40"
+      "community_name": "Community 14"
     },
     {
       "label": "cli.ts",
@@ -1492,10 +1492,10 @@
       "source_file": "appraisejs/src/coordinator-client.ts",
       "source_location": "L145",
       "_origin": "ast",
-      "community": 12,
+      "community": 53,
       "norm_label": "localcoordinatorbaseurl()",
       "id": "src_coordinator_client_localcoordinatorbaseurl",
-      "community_name": "Community 12"
+      "community_name": "Community 53"
     },
     {
       "label": "untrustedCoordinatorEndpoint()",
@@ -1822,10 +1822,10 @@
       "source_file": "appraisejs/src/mcp-http-security.ts",
       "source_location": "L37",
       "_origin": "ast",
-      "community": 27,
+      "community": 12,
       "norm_label": "assertloopbackmcpendpoint()",
       "id": "src_mcp_http_security_assertloopbackmcpendpoint",
-      "community_name": "Community 27"
+      "community_name": "Community 12"
     },
     {
       "label": "hostHeaderIsAllowed()",
@@ -1921,10 +1921,10 @@
       "source_file": "appraisejs/src/mcp-transport-revocation.test.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 54,
+      "community": 0,
       "norm_label": "mcp-transport-revocation.test.ts",
       "id": "src_mcp_transport_revocation_test",
-      "community_name": "Community 54"
+      "community_name": "Community 0"
     },
     {
       "label": "packageRoot",
@@ -1932,10 +1932,10 @@
       "source_file": "appraisejs/src/mcp-transport-revocation.test.ts",
       "source_location": "L15",
       "_origin": "ast",
-      "community": 54,
+      "community": 0,
       "norm_label": "packageroot",
       "id": "src_mcp_transport_revocation_test_packageroot",
-      "community_name": "Community 54"
+      "community_name": "Community 0"
     },
     {
       "label": "cliSource",
@@ -1943,10 +1943,10 @@
       "source_file": "appraisejs/src/mcp-transport-revocation.test.ts",
       "source_location": "L16",
       "_origin": "ast",
-      "community": 54,
+      "community": 0,
       "norm_label": "clisource",
       "id": "src_mcp_transport_revocation_test_clisource",
-      "community_name": "Community 54"
+      "community_name": "Community 0"
     },
     {
       "label": "cliArgs()",
@@ -1954,10 +1954,10 @@
       "source_file": "appraisejs/src/mcp-transport-revocation.test.ts",
       "source_location": "L18",
       "_origin": "ast",
-      "community": 54,
+      "community": 0,
       "norm_label": "cliargs()",
       "id": "src_mcp_transport_revocation_test_cliargs",
-      "community_name": "Community 54"
+      "community_name": "Community 0"
     },
     {
       "label": "localAction()",
@@ -1965,10 +1965,10 @@
       "source_file": "appraisejs/src/mcp-transport-revocation.test.ts",
       "source_location": "L22",
       "_origin": "ast",
-      "community": 54,
+      "community": 0,
       "norm_label": "localaction()",
       "id": "src_mcp_transport_revocation_test_localaction",
-      "community_name": "Community 54"
+      "community_name": "Community 0"
     },
     {
       "label": "listen()",
@@ -1976,10 +1976,10 @@
       "source_file": "appraisejs/src/mcp-transport-revocation.test.ts",
       "source_location": "L32",
       "_origin": "ast",
-      "community": 54,
+      "community": 0,
       "norm_label": "listen()",
       "id": "src_mcp_transport_revocation_test_listen",
-      "community_name": "Community 54"
+      "community_name": "Community 0"
     },
     {
       "label": "close()",
@@ -1987,10 +1987,10 @@
       "source_file": "appraisejs/src/mcp-transport-revocation.test.ts",
       "source_location": "L40",
       "_origin": "ast",
-      "community": 54,
+      "community": 0,
       "norm_label": "close()",
       "id": "src_mcp_transport_revocation_test_close",
-      "community_name": "Community 54"
+      "community_name": "Community 0"
     },
     {
       "label": "waitForHealth()",
@@ -1998,10 +1998,10 @@
       "source_file": "appraisejs/src/mcp-transport-revocation.test.ts",
       "source_location": "L44",
       "_origin": "ast",
-      "community": 54,
+      "community": 0,
       "norm_label": "waitforhealth()",
       "id": "src_mcp_transport_revocation_test_waitforhealth",
-      "community_name": "Community 54"
+      "community_name": "Community 0"
     },
     {
       "label": "stdioClient()",
@@ -2009,10 +2009,10 @@
       "source_file": "appraisejs/src/mcp-transport-revocation.test.ts",
       "source_location": "L58",
       "_origin": "ast",
-      "community": 54,
+      "community": 0,
       "norm_label": "stdioclient()",
       "id": "src_mcp_transport_revocation_test_stdioclient",
-      "community_name": "Community 54"
+      "community_name": "Community 0"
     },
     {
       "label": "httpClient()",
@@ -2020,10 +2020,10 @@
       "source_file": "appraisejs/src/mcp-transport-revocation.test.ts",
       "source_location": "L69",
       "_origin": "ast",
-      "community": 54,
+      "community": 0,
       "norm_label": "httpclient()",
       "id": "src_mcp_transport_revocation_test_httpclient",
-      "community_name": "Community 54"
+      "community_name": "Community 0"
     },
     {
       "label": "mcp.ts",
@@ -2053,10 +2053,10 @@
       "source_file": "appraisejs/src/mcp/contract.ts",
       "source_location": "L161",
       "_origin": "ast",
-      "community": 33,
+      "community": 7,
       "norm_label": "mcpresourceannotations",
       "id": "mcp_contract_mcpresourceannotations",
-      "community_name": "Community 33"
+      "community_name": "Community 7"
     },
     {
       "label": "readOnly",
@@ -2196,10 +2196,10 @@
       "source_file": "appraisejs/src/mcp/contract.ts",
       "source_location": "L157",
       "_origin": "ast",
-      "community": 33,
+      "community": 7,
       "norm_label": "mcptoolannotations()",
       "id": "mcp_contract_mcptoolannotations",
-      "community_name": "Community 33"
+      "community_name": "Community 7"
     },
     {
       "label": "coordinator-call.ts",
@@ -2251,10 +2251,10 @@
       "source_file": "appraisejs/src/mcp/domains/diagnostic.ts",
       "source_location": "L15",
       "_origin": "ast",
-      "community": 33,
+      "community": 55,
       "norm_label": "registerdiagnosticoperations()",
       "id": "domains_diagnostic_registerdiagnosticoperations",
-      "community_name": "Community 33"
+      "community_name": "Community 55"
     },
     {
       "label": "project.ts",
@@ -3555,6 +3555,644 @@
       "community_name": "Community 33"
     },
     {
+      "label": "external-worker-gateway.test.ts",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/external-worker-gateway.test.ts",
+      "source_location": "L1",
+      "_origin": "ast",
+      "community": 62,
+      "norm_label": "external-worker-gateway.test.ts",
+      "id": "mcp_external_worker_gateway_test",
+      "community_name": "Community 62"
+    },
+    {
+      "label": "binding()",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/external-worker-gateway.test.ts",
+      "source_location": "L18",
+      "_origin": "ast",
+      "community": 62,
+      "norm_label": "binding()",
+      "id": "mcp_external_worker_gateway_test_binding",
+      "community_name": "Community 62"
+    },
+    {
+      "label": "result()",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/external-worker-gateway.test.ts",
+      "source_location": "L40",
+      "_origin": "ast",
+      "community": 62,
+      "norm_label": "result()",
+      "id": "mcp_external_worker_gateway_test_result",
+      "community_name": "Community 62"
+    },
+    {
+      "label": "bundle",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/external-worker-gateway.test.ts",
+      "source_location": "L58",
+      "_origin": "ast",
+      "community": 62,
+      "norm_label": "bundle",
+      "id": "mcp_external_worker_gateway_test_bundle",
+      "community_name": "Community 62"
+    },
+    {
+      "label": "packet()",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/external-worker-gateway.test.ts",
+      "source_location": "L73",
+      "_origin": "ast",
+      "community": 62,
+      "norm_label": "packet()",
+      "id": "mcp_external_worker_gateway_test_packet",
+      "community_name": "Community 62"
+    },
+    {
+      "label": "harness()",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/external-worker-gateway.test.ts",
+      "source_location": "L237",
+      "_origin": "ast",
+      "community": 62,
+      "norm_label": "harness()",
+      "id": "mcp_external_worker_gateway_test_harness",
+      "community_name": "Community 62"
+    },
+    {
+      "label": "allRoles",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/external-worker-gateway.test.ts",
+      "source_location": "L376",
+      "_origin": "ast",
+      "community": 62,
+      "norm_label": "allroles",
+      "id": "mcp_external_worker_gateway_test_allroles",
+      "community_name": "Community 62"
+    },
+    {
+      "label": "fixtureHash()",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/external-worker-gateway.test.ts",
+      "source_location": "L633",
+      "_origin": "ast",
+      "community": 59,
+      "norm_label": "fixturehash()",
+      "id": "mcp_external_worker_gateway_test_fixturehash",
+      "community_name": "Community 59"
+    },
+    {
+      "label": "external-worker-gateway.ts",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/external-worker-gateway.ts",
+      "source_location": "L1",
+      "_origin": "ast",
+      "community": 63,
+      "norm_label": "external-worker-gateway.ts",
+      "id": "mcp_external_worker_gateway",
+      "community_name": "Community 63"
+    },
+    {
+      "label": "id",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/external-worker-gateway.ts",
+      "source_location": "L7",
+      "_origin": "ast",
+      "community": 63,
+      "norm_label": "id",
+      "id": "mcp_external_worker_gateway_id",
+      "community_name": "Community 63"
+    },
+    {
+      "label": "digest",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/external-worker-gateway.ts",
+      "source_location": "L12",
+      "_origin": "ast",
+      "community": 63,
+      "norm_label": "digest",
+      "id": "mcp_external_worker_gateway_digest",
+      "community_name": "Community 63"
+    },
+    {
+      "label": "roles",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/external-worker-gateway.ts",
+      "source_location": "L13",
+      "_origin": "ast",
+      "community": 63,
+      "norm_label": "roles",
+      "id": "mcp_external_worker_gateway_roles",
+      "community_name": "Community 63"
+    },
+    {
+      "label": "ExternalWorkerRole",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/external-worker-gateway.ts",
+      "source_location": "L21",
+      "_origin": "ast",
+      "community": 60,
+      "norm_label": "externalworkerrole",
+      "id": "mcp_external_worker_gateway_externalworkerrole",
+      "community_name": "Community 60"
+    },
+    {
+      "label": "externalWorkerTools",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/external-worker-gateway.ts",
+      "source_location": "L24",
+      "_origin": "ast",
+      "community": 62,
+      "norm_label": "externalworkertools",
+      "id": "mcp_external_worker_gateway_externalworkertools",
+      "community_name": "Community 62"
+    },
+    {
+      "label": "bindingSchema",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/external-worker-gateway.ts",
+      "source_location": "L42",
+      "_origin": "ast",
+      "community": 63,
+      "norm_label": "bindingschema",
+      "id": "mcp_external_worker_gateway_bindingschema",
+      "community_name": "Community 63"
+    },
+    {
+      "label": "ExternalWorkerBinding",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/external-worker-gateway.ts",
+      "source_location": "L64",
+      "_origin": "ast",
+      "community": 62,
+      "norm_label": "externalworkerbinding",
+      "id": "mcp_external_worker_gateway_externalworkerbinding",
+      "community_name": "Community 62"
+    },
+    {
+      "label": "hiddenFields",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/external-worker-gateway.ts",
+      "source_location": "L66",
+      "_origin": "ast",
+      "community": 63,
+      "norm_label": "hiddenfields",
+      "id": "mcp_external_worker_gateway_hiddenfields",
+      "community_name": "Community 63"
+    },
+    {
+      "label": "forbiddenKeys",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/external-worker-gateway.ts",
+      "source_location": "L81",
+      "_origin": "ast",
+      "community": 63,
+      "norm_label": "forbiddenkeys",
+      "id": "mcp_external_worker_gateway_forbiddenkeys",
+      "community_name": "Community 63"
+    },
+    {
+      "label": "FrozenWorkerRead",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/external-worker-gateway.ts",
+      "source_location": "L102",
+      "_origin": "ast",
+      "community": 62,
+      "norm_label": "frozenworkerread",
+      "id": "mcp_external_worker_gateway_frozenworkerread",
+      "community_name": "Community 62"
+    },
+    {
+      "label": "acceptanceSchema",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/external-worker-gateway.ts",
+      "source_location": "L122",
+      "_origin": "ast",
+      "community": 63,
+      "norm_label": "acceptanceschema",
+      "id": "mcp_external_worker_gateway_acceptanceschema",
+      "community_name": "Community 63"
+    },
+    {
+      "label": "ExternalWorkerAcceptance",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/external-worker-gateway.ts",
+      "source_location": "L133",
+      "_origin": "ast",
+      "community": 61,
+      "norm_label": "externalworkeracceptance",
+      "id": "mcp_external_worker_gateway_externalworkeracceptance",
+      "community_name": "Community 61"
+    },
+    {
+      "label": "CapturedTool",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/external-worker-gateway.ts",
+      "source_location": "L135",
+      "_origin": "ast",
+      "community": 63,
+      "norm_label": "capturedtool",
+      "id": "mcp_external_worker_gateway_capturedtool",
+      "community_name": "Community 63"
+    },
+    {
+      "label": "ExternalWorkerCallError",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/external-worker-gateway.ts",
+      "source_location": "L140",
+      "_origin": "ast",
+      "community": 62,
+      "norm_label": "externalworkercallerror",
+      "id": "mcp_external_worker_gateway_externalworkercallerror",
+      "community_name": "Community 62"
+    },
+    {
+      "label": ".constructor()",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/external-worker-gateway.ts",
+      "source_location": "L141",
+      "_origin": "ast",
+      "community": 62,
+      "norm_label": ".constructor()",
+      "id": "mcp_external_worker_gateway_externalworkercallerror_constructor",
+      "community_name": "Community 62"
+    },
+    {
+      "label": "createExternalWorkerGateway()",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/external-worker-gateway.ts",
+      "source_location": "L155",
+      "_origin": "ast",
+      "community": 61,
+      "norm_label": "createexternalworkergateway()",
+      "id": "mcp_external_worker_gateway_createexternalworkergateway",
+      "community_name": "Community 61"
+    },
+    {
+      "label": "isSubmission()",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/external-worker-gateway.ts",
+      "source_location": "L344",
+      "_origin": "ast",
+      "community": 63,
+      "norm_label": "issubmission()",
+      "id": "mcp_external_worker_gateway_issubmission",
+      "community_name": "Community 63"
+    },
+    {
+      "label": "publicBinding()",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/external-worker-gateway.ts",
+      "source_location": "L347",
+      "_origin": "ast",
+      "community": 63,
+      "norm_label": "publicbinding()",
+      "id": "mcp_external_worker_gateway_publicbinding",
+      "community_name": "Community 63"
+    },
+    {
+      "label": "hash()",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/external-worker-gateway.ts",
+      "source_location": "L350",
+      "_origin": "ast",
+      "community": 63,
+      "norm_label": "hash()",
+      "id": "mcp_external_worker_gateway_hash",
+      "community_name": "Community 63"
+    },
+    {
+      "label": "stableJson()",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/external-worker-gateway.ts",
+      "source_location": "L353",
+      "_origin": "ast",
+      "community": 63,
+      "norm_label": "stablejson()",
+      "id": "mcp_external_worker_gateway_stablejson",
+      "community_name": "Community 63"
+    },
+    {
+      "label": "frozenDataSchema()",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/external-worker-gateway.ts",
+      "source_location": "L366",
+      "_origin": "ast",
+      "community": 61,
+      "norm_label": "frozendataschema()",
+      "id": "mcp_external_worker_gateway_frozendataschema",
+      "community_name": "Community 61"
+    },
+    {
+      "label": "assertSafeProjection()",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/external-worker-gateway.ts",
+      "source_location": "L415",
+      "_origin": "ast",
+      "community": 63,
+      "norm_label": "assertsafeprojection()",
+      "id": "mcp_external_worker_gateway_assertsafeprojection",
+      "community_name": "Community 63"
+    },
+    {
+      "label": "assertWorkerPayload()",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/external-worker-gateway.ts",
+      "source_location": "L441",
+      "_origin": "ast",
+      "community": 63,
+      "norm_label": "assertworkerpayload()",
+      "id": "mcp_external_worker_gateway_assertworkerpayload",
+      "community_name": "Community 63"
+    },
+    {
+      "label": "external-worker-native-mapping.test.ts",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/external-worker-native-mapping.test.ts",
+      "source_location": "L1",
+      "_origin": "ast",
+      "community": 60,
+      "norm_label": "external-worker-native-mapping.test.ts",
+      "id": "mcp_external_worker_native_mapping_test",
+      "community_name": "Community 60"
+    },
+    {
+      "label": "stable()",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/external-worker-native-mapping.test.ts",
+      "source_location": "L8",
+      "_origin": "ast",
+      "community": 60,
+      "norm_label": "stable()",
+      "id": "mcp_external_worker_native_mapping_test_stable",
+      "community_name": "Community 60"
+    },
+    {
+      "label": "hash()",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/external-worker-native-mapping.test.ts",
+      "source_location": "L16",
+      "_origin": "ast",
+      "community": 60,
+      "norm_label": "hash()",
+      "id": "mcp_external_worker_native_mapping_test_hash",
+      "community_name": "Community 60"
+    },
+    {
+      "label": "context",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/external-worker-native-mapping.test.ts",
+      "source_location": "L18",
+      "_origin": "ast",
+      "community": 60,
+      "norm_label": "context",
+      "id": "mcp_external_worker_native_mapping_test_context",
+      "community_name": "Community 60"
+    },
+    {
+      "label": "fixture()",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/external-worker-native-mapping.test.ts",
+      "source_location": "L28",
+      "_origin": "ast",
+      "community": 60,
+      "norm_label": "fixture()",
+      "id": "mcp_external_worker_native_mapping_test_fixture",
+      "community_name": "Community 60"
+    },
+    {
+      "label": "updateBody()",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/external-worker-native-mapping.test.ts",
+      "source_location": "L76",
+      "_origin": "ast",
+      "community": 60,
+      "norm_label": "updatebody()",
+      "id": "mcp_external_worker_native_mapping_test_updatebody",
+      "community_name": "Community 60"
+    },
+    {
+      "label": "external-worker-native-mapping.ts",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/external-worker-native-mapping.ts",
+      "source_location": "L1",
+      "_origin": "ast",
+      "community": 60,
+      "norm_label": "external-worker-native-mapping.ts",
+      "id": "mcp_external_worker_native_mapping",
+      "community_name": "Community 60"
+    },
+    {
+      "label": "Profile",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/external-worker-native-mapping.ts",
+      "source_location": "L10",
+      "_origin": "ast",
+      "community": 60,
+      "norm_label": "profile",
+      "id": "mcp_external_worker_native_mapping_profile",
+      "community_name": "Community 60"
+    },
+    {
+      "label": "ExternalNativeRoute",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/external-worker-native-mapping.ts",
+      "source_location": "L11",
+      "_origin": "ast",
+      "community": 60,
+      "norm_label": "externalnativeroute",
+      "id": "mcp_external_worker_native_mapping_externalnativeroute",
+      "community_name": "Community 60"
+    },
+    {
+      "label": "stable()",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/external-worker-native-mapping.ts",
+      "source_location": "L13",
+      "_origin": "ast",
+      "community": 60,
+      "norm_label": "stable()",
+      "id": "mcp_external_worker_native_mapping_stable",
+      "community_name": "Community 60"
+    },
+    {
+      "label": "hash()",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/external-worker-native-mapping.ts",
+      "source_location": "L21",
+      "_origin": "ast",
+      "community": 60,
+      "norm_label": "hash()",
+      "id": "mcp_external_worker_native_mapping_hash",
+      "community_name": "Community 60"
+    },
+    {
+      "label": "prepareExternalWorkerNativeMapping()",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/external-worker-native-mapping.ts",
+      "source_location": "L27",
+      "_origin": "ast",
+      "community": 60,
+      "norm_label": "prepareexternalworkernativemapping()",
+      "id": "mcp_external_worker_native_mapping_prepareexternalworkernativemapping",
+      "community_name": "Community 60"
+    },
+    {
+      "label": "external-worker-server.test.ts",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/external-worker-server.test.ts",
+      "source_location": "L1",
+      "_origin": "ast",
+      "community": 62,
+      "norm_label": "external-worker-server.test.ts",
+      "id": "mcp_external_worker_server_test",
+      "community_name": "Community 62"
+    },
+    {
+      "label": "binding()",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/external-worker-server.test.ts",
+      "source_location": "L21",
+      "_origin": "ast",
+      "community": 62,
+      "norm_label": "binding()",
+      "id": "mcp_external_worker_server_test_binding",
+      "community_name": "Community 62"
+    },
+    {
+      "label": "result()",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/external-worker-server.test.ts",
+      "source_location": "L43",
+      "_origin": "ast",
+      "community": 62,
+      "norm_label": "result()",
+      "id": "mcp_external_worker_server_test_result",
+      "community_name": "Community 62"
+    },
+    {
+      "label": "bundle",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/external-worker-server.test.ts",
+      "source_location": "L61",
+      "_origin": "ast",
+      "community": 62,
+      "norm_label": "bundle",
+      "id": "mcp_external_worker_server_test_bundle",
+      "community_name": "Community 62"
+    },
+    {
+      "label": "packet()",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/external-worker-server.test.ts",
+      "source_location": "L76",
+      "_origin": "ast",
+      "community": 62,
+      "norm_label": "packet()",
+      "id": "mcp_external_worker_server_test_packet",
+      "community_name": "Community 62"
+    },
+    {
+      "label": "fixtureHash()",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/external-worker-server.test.ts",
+      "source_location": "L241",
+      "_origin": "ast",
+      "community": 59,
+      "norm_label": "fixturehash()",
+      "id": "mcp_external_worker_server_test_fixturehash",
+      "community_name": "Community 59"
+    },
+    {
+      "label": "harness()",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/external-worker-server.test.ts",
+      "source_location": "L257",
+      "_origin": "ast",
+      "community": 62,
+      "norm_label": "harness()",
+      "id": "mcp_external_worker_server_test_harness",
+      "community_name": "Community 62"
+    },
+    {
+      "label": "allRoles",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/external-worker-server.test.ts",
+      "source_location": "L396",
+      "_origin": "ast",
+      "community": 62,
+      "norm_label": "allroles",
+      "id": "mcp_external_worker_server_test_allroles",
+      "community_name": "Community 62"
+    },
+    {
+      "label": "external-worker-server.ts",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/external-worker-server.ts",
+      "source_location": "L1",
+      "_origin": "ast",
+      "community": 61,
+      "norm_label": "external-worker-server.ts",
+      "id": "mcp_external_worker_server",
+      "community_name": "Community 61"
+    },
+    {
+      "label": "ExternalWorkerAdvertisedProfile",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/external-worker-server.ts",
+      "source_location": "L8",
+      "_origin": "ast",
+      "community": 61,
+      "norm_label": "externalworkeradvertisedprofile",
+      "id": "mcp_external_worker_server_externalworkeradvertisedprofile",
+      "community_name": "Community 61"
+    },
+    {
+      "label": "createExternalWorkerMcpServer()",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/external-worker-server.ts",
+      "source_location": "L22",
+      "_origin": "ast",
+      "community": 61,
+      "norm_label": "createexternalworkermcpserver()",
+      "id": "mcp_external_worker_server_createexternalworkermcpserver",
+      "community_name": "Community 61"
+    },
+    {
+      "label": "hash()",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/external-worker-server.ts",
+      "source_location": "L52",
+      "_origin": "ast",
+      "community": 61,
+      "norm_label": "hash()",
+      "id": "mcp_external_worker_server_hash",
+      "community_name": "Community 61"
+    },
+    {
+      "label": "canonicalJson()",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/external-worker-server.ts",
+      "source_location": "L56",
+      "_origin": "ast",
+      "community": 61,
+      "norm_label": "canonicaljson()",
+      "id": "mcp_external_worker_server_canonicaljson",
+      "community_name": "Community 61"
+    },
+    {
+      "label": "deepFreeze()",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/external-worker-server.ts",
+      "source_location": "L68",
+      "_origin": "ast",
+      "community": 61,
+      "norm_label": "deepfreeze()",
+      "id": "mcp_external_worker_server_deepfreeze",
+      "community_name": "Community 61"
+    },
+    {
       "label": "http-server.ts",
       "file_type": "code",
       "source_file": "appraisejs/src/mcp/http-server.ts",
@@ -3775,6 +4413,402 @@
       "community_name": "Community 46"
     },
     {
+      "label": "native-descriptor-capture.test.ts",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/native-descriptor-capture.test.ts",
+      "source_location": "L1",
+      "_origin": "ast",
+      "community": 60,
+      "norm_label": "native-descriptor-capture.test.ts",
+      "id": "mcp_native_descriptor_capture_test",
+      "community_name": "Community 60"
+    },
+    {
+      "label": "digest()",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/native-descriptor-capture.test.ts",
+      "source_location": "L10",
+      "_origin": "ast",
+      "community": 60,
+      "norm_label": "digest()",
+      "id": "mcp_native_descriptor_capture_test_digest",
+      "community_name": "Community 60"
+    },
+    {
+      "label": "context",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/native-descriptor-capture.test.ts",
+      "source_location": "L11",
+      "_origin": "ast",
+      "community": 60,
+      "norm_label": "context",
+      "id": "mcp_native_descriptor_capture_test_context",
+      "community_name": "Community 60"
+    },
+    {
+      "label": "schema",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/native-descriptor-capture.test.ts",
+      "source_location": "L21",
+      "_origin": "ast",
+      "community": 60,
+      "norm_label": "schema",
+      "id": "mcp_native_descriptor_capture_test_schema",
+      "community_name": "Community 60"
+    },
+    {
+      "label": "fn()",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/native-descriptor-capture.test.ts",
+      "source_location": "L27",
+      "_origin": "ast",
+      "community": 60,
+      "norm_label": "fn()",
+      "id": "mcp_native_descriptor_capture_test_fn",
+      "community_name": "Community 60"
+    },
+    {
+      "label": "custom",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/native-descriptor-capture.test.ts",
+      "source_location": "L34",
+      "_origin": "ast",
+      "community": 60,
+      "norm_label": "custom",
+      "id": "mcp_native_descriptor_capture_test_custom",
+      "community_name": "Community 60"
+    },
+    {
+      "label": "request()",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/native-descriptor-capture.test.ts",
+      "source_location": "L35",
+      "_origin": "ast",
+      "community": 60,
+      "norm_label": "request()",
+      "id": "mcp_native_descriptor_capture_test_request",
+      "community_name": "Community 60"
+    },
+    {
+      "label": "capture()",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/native-descriptor-capture.test.ts",
+      "source_location": "L41",
+      "_origin": "ast",
+      "community": 60,
+      "norm_label": "capture()",
+      "id": "mcp_native_descriptor_capture_test_capture",
+      "community_name": "Community 60"
+    },
+    {
+      "label": "native-descriptor-capture.ts",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/native-descriptor-capture.ts",
+      "source_location": "L1",
+      "_origin": "ast",
+      "community": 59,
+      "norm_label": "native-descriptor-capture.ts",
+      "id": "mcp_native_descriptor_capture",
+      "community_name": "Community 59"
+    },
+    {
+      "label": "NATIVE_DESCRIPTOR_LIMITS",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/native-descriptor-capture.ts",
+      "source_location": "L4",
+      "_origin": "ast",
+      "community": 60,
+      "norm_label": "native_descriptor_limits",
+      "id": "mcp_native_descriptor_capture_native_descriptor_limits",
+      "community_name": "Community 60"
+    },
+    {
+      "label": "Json",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/native-descriptor-capture.ts",
+      "source_location": "L13",
+      "_origin": "ast",
+      "community": 59,
+      "norm_label": "json",
+      "id": "mcp_native_descriptor_capture_json",
+      "community_name": "Community 59"
+    },
+    {
+      "label": "NativeToolDescriptor",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/native-descriptor-capture.ts",
+      "source_location": "L14",
+      "_origin": "ast",
+      "community": 59,
+      "norm_label": "nativetooldescriptor",
+      "id": "mcp_native_descriptor_capture_nativetooldescriptor",
+      "community_name": "Community 59"
+    },
+    {
+      "label": "DescriptorContainer",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/native-descriptor-capture.ts",
+      "source_location": "L15",
+      "_origin": "ast",
+      "community": 59,
+      "norm_label": "descriptorcontainer",
+      "id": "mcp_native_descriptor_capture_descriptorcontainer",
+      "community_name": "Community 59"
+    },
+    {
+      "label": "CapturedCallable",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/native-descriptor-capture.ts",
+      "source_location": "L22",
+      "_origin": "ast",
+      "community": 59,
+      "norm_label": "capturedcallable",
+      "id": "mcp_native_descriptor_capture_capturedcallable",
+      "community_name": "Community 59"
+    },
+    {
+      "label": "TrustedDescriptorContext",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/native-descriptor-capture.ts",
+      "source_location": "L29",
+      "_origin": "ast",
+      "community": 60,
+      "norm_label": "trusteddescriptorcontext",
+      "id": "mcp_native_descriptor_capture_trusteddescriptorcontext",
+      "community_name": "Community 60"
+    },
+    {
+      "label": "DescriptorRequest",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/native-descriptor-capture.ts",
+      "source_location": "L39",
+      "_origin": "ast",
+      "community": 60,
+      "norm_label": "descriptorrequest",
+      "id": "mcp_native_descriptor_capture_descriptorrequest",
+      "community_name": "Community 60"
+    },
+    {
+      "label": "DescriptorCapture",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/native-descriptor-capture.ts",
+      "source_location": "L45",
+      "_origin": "ast",
+      "community": 59,
+      "norm_label": "descriptorcapture",
+      "id": "mcp_native_descriptor_capture_descriptorcapture",
+      "community_name": "Community 59"
+    },
+    {
+      "label": "DescriptorCaptureFailure",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/native-descriptor-capture.ts",
+      "source_location": "L56",
+      "_origin": "ast",
+      "community": 59,
+      "norm_label": "descriptorcapturefailure",
+      "id": "mcp_native_descriptor_capture_descriptorcapturefailure",
+      "community_name": "Community 59"
+    },
+    {
+      "label": "DescriptorCaptureResult",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/native-descriptor-capture.ts",
+      "source_location": "L69",
+      "_origin": "ast",
+      "community": 59,
+      "norm_label": "descriptorcaptureresult",
+      "id": "mcp_native_descriptor_capture_descriptorcaptureresult",
+      "community_name": "Community 59"
+    },
+    {
+      "label": "CaptureError",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/native-descriptor-capture.ts",
+      "source_location": "L71",
+      "_origin": "ast",
+      "community": 59,
+      "norm_label": "captureerror",
+      "id": "mcp_native_descriptor_capture_captureerror",
+      "community_name": "Community 59"
+    },
+    {
+      "label": ".constructor()",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/native-descriptor-capture.ts",
+      "source_location": "L72",
+      "_origin": "ast",
+      "community": 59,
+      "norm_label": ".constructor()",
+      "id": "mcp_native_descriptor_capture_captureerror_constructor",
+      "community_name": "Community 59"
+    },
+    {
+      "label": "fail()",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/native-descriptor-capture.ts",
+      "source_location": "L76",
+      "_origin": "ast",
+      "community": 59,
+      "norm_label": "fail()",
+      "id": "mcp_native_descriptor_capture_fail",
+      "community_name": "Community 59"
+    },
+    {
+      "label": "hashBytes()",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/native-descriptor-capture.ts",
+      "source_location": "L79",
+      "_origin": "ast",
+      "community": 59,
+      "norm_label": "hashbytes()",
+      "id": "mcp_native_descriptor_capture_hashbytes",
+      "community_name": "Community 59"
+    },
+    {
+      "label": "own()",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/native-descriptor-capture.ts",
+      "source_location": "L80",
+      "_origin": "ast",
+      "community": 59,
+      "norm_label": "own()",
+      "id": "mcp_native_descriptor_capture_own",
+      "community_name": "Community 59"
+    },
+    {
+      "label": "record()",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/native-descriptor-capture.ts",
+      "source_location": "L81",
+      "_origin": "ast",
+      "community": 59,
+      "norm_label": "record()",
+      "id": "mcp_native_descriptor_capture_record",
+      "community_name": "Community 59"
+    },
+    {
+      "label": "canonical()",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/native-descriptor-capture.ts",
+      "source_location": "L84",
+      "_origin": "ast",
+      "community": 59,
+      "norm_label": "canonical()",
+      "id": "mcp_native_descriptor_capture_canonical",
+      "community_name": "Community 59"
+    },
+    {
+      "label": "hashValue()",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/native-descriptor-capture.ts",
+      "source_location": "L91",
+      "_origin": "ast",
+      "community": 59,
+      "norm_label": "hashvalue()",
+      "id": "mcp_native_descriptor_capture_hashvalue",
+      "community_name": "Community 59"
+    },
+    {
+      "label": "inspectJsonLexically()",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/native-descriptor-capture.ts",
+      "source_location": "L94",
+      "_origin": "ast",
+      "community": 59,
+      "norm_label": "inspectjsonlexically()",
+      "id": "mcp_native_descriptor_capture_inspectjsonlexically",
+      "community_name": "Community 59"
+    },
+    {
+      "label": "validateContext()",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/native-descriptor-capture.ts",
+      "source_location": "L165",
+      "_origin": "ast",
+      "community": 59,
+      "norm_label": "validatecontext()",
+      "id": "mcp_native_descriptor_capture_validatecontext",
+      "community_name": "Community 59"
+    },
+    {
+      "label": "validateRequest()",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/native-descriptor-capture.ts",
+      "source_location": "L189",
+      "_origin": "ast",
+      "community": 59,
+      "norm_label": "validaterequest()",
+      "id": "mcp_native_descriptor_capture_validaterequest",
+      "community_name": "Community 59"
+    },
+    {
+      "label": "validateJson()",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/native-descriptor-capture.ts",
+      "source_location": "L207",
+      "_origin": "ast",
+      "community": 59,
+      "norm_label": "validatejson()",
+      "id": "mcp_native_descriptor_capture_validatejson",
+      "community_name": "Community 59"
+    },
+    {
+      "label": "descriptorFields",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/native-descriptor-capture.ts",
+      "source_location": "L222",
+      "_origin": "ast",
+      "community": 59,
+      "norm_label": "descriptorfields",
+      "id": "mcp_native_descriptor_capture_descriptorfields",
+      "community_name": "Community 59"
+    },
+    {
+      "label": "validateDescriptor()",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/native-descriptor-capture.ts",
+      "source_location": "L233",
+      "_origin": "ast",
+      "community": 59,
+      "norm_label": "validatedescriptor()",
+      "id": "mcp_native_descriptor_capture_validatedescriptor",
+      "community_name": "Community 59"
+    },
+    {
+      "label": "freezeTree()",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/native-descriptor-capture.ts",
+      "source_location": "L296",
+      "_origin": "ast",
+      "community": 59,
+      "norm_label": "freezetree()",
+      "id": "mcp_native_descriptor_capture_freezetree",
+      "community_name": "Community 59"
+    },
+    {
+      "label": "NativeDescriptorCollector",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/native-descriptor-capture.ts",
+      "source_location": "L303",
+      "_origin": "ast",
+      "community": 60,
+      "norm_label": "nativedescriptorcollector",
+      "id": "mcp_native_descriptor_capture_nativedescriptorcollector",
+      "community_name": "Community 60"
+    },
+    {
+      "label": ".capture()",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/native-descriptor-capture.ts",
+      "source_location": "L306",
+      "_origin": "ast",
+      "community": 59,
+      "norm_label": ".capture()",
+      "id": "mcp_native_descriptor_capture_nativedescriptorcollector_capture",
+      "community_name": "Community 59"
+    },
+    {
       "label": "project-list.test.ts",
       "file_type": "code",
       "source_file": "appraisejs/src/mcp/project-list.test.ts",
@@ -3967,10 +5001,10 @@
       "source_file": "appraisejs/src/mcp/registry.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 33,
+      "community": 7,
       "norm_label": "registry.ts",
       "id": "mcp_registry",
-      "community_name": "Community 33"
+      "community_name": "Community 7"
     },
     {
       "label": "McpRegistryContext",
@@ -4000,10 +5034,10 @@
       "source_file": "appraisejs/src/mcp/registry.ts",
       "source_location": "L39",
       "_origin": "ast",
-      "community": 33,
+      "community": 7,
       "norm_label": "contracts",
       "id": "mcp_registry_contracts",
-      "community_name": "Community 33"
+      "community_name": "Community 7"
     },
     {
       "label": "canonicalContracts",
@@ -4011,10 +5045,10 @@
       "source_file": "appraisejs/src/mcp/registry.ts",
       "source_location": "L40",
       "_origin": "ast",
-      "community": 33,
+      "community": 7,
       "norm_label": "canonicalcontracts",
       "id": "mcp_registry_canonicalcontracts",
-      "community_name": "Community 33"
+      "community_name": "Community 7"
     },
     {
       "label": "ToolHandler",
@@ -4022,10 +5056,10 @@
       "source_file": "appraisejs/src/mcp/registry.ts",
       "source_location": "L42",
       "_origin": "ast",
-      "community": 33,
+      "community": 7,
       "norm_label": "toolhandler",
       "id": "mcp_registry_toolhandler",
-      "community_name": "Community 33"
+      "community_name": "Community 7"
     },
     {
       "label": "resourceError()",
@@ -4033,10 +5067,10 @@
       "source_file": "appraisejs/src/mcp/registry.ts",
       "source_location": "L44",
       "_origin": "ast",
-      "community": 33,
+      "community": 27,
       "norm_label": "resourceerror()",
       "id": "mcp_registry_resourceerror",
-      "community_name": "Community 33"
+      "community_name": "Community 27"
     },
     {
       "label": "withStructuredCoordinatorErrors()",
@@ -4055,10 +5089,10 @@
       "source_file": "appraisejs/src/mcp/registry.ts",
       "source_location": "L72",
       "_origin": "ast",
-      "community": 33,
+      "community": 7,
       "norm_label": "registrationtarget()",
       "id": "mcp_registry_registrationtarget",
-      "community_name": "Community 33"
+      "community_name": "Community 7"
     },
     {
       "label": "domainRegistries",
@@ -4066,10 +5100,10 @@
       "source_file": "appraisejs/src/mcp/registry.ts",
       "source_location": "L129",
       "_origin": "ast",
-      "community": 33,
+      "community": 7,
       "norm_label": "domainregistries",
       "id": "mcp_registry_domainregistries",
-      "community_name": "Community 33"
+      "community_name": "Community 7"
     },
     {
       "label": "assertUniqueMcpDefinitions()",
@@ -4077,10 +5111,10 @@
       "source_file": "appraisejs/src/mcp/registry.ts",
       "source_location": "L142",
       "_origin": "ast",
-      "community": 33,
+      "community": 7,
       "norm_label": "assertuniquemcpdefinitions()",
       "id": "mcp_registry_assertuniquemcpdefinitions",
-      "community_name": "Community 33"
+      "community_name": "Community 7"
     },
     {
       "label": "assertCanonicalMcpDefinitions()",
@@ -4088,10 +5122,10 @@
       "source_file": "appraisejs/src/mcp/registry.ts",
       "source_location": "L154",
       "_origin": "ast",
-      "community": 33,
+      "community": 7,
       "norm_label": "assertcanonicalmcpdefinitions()",
       "id": "mcp_registry_assertcanonicalmcpdefinitions",
-      "community_name": "Community 33"
+      "community_name": "Community 7"
     },
     {
       "label": "registerAppraiseOperations()",
@@ -4099,10 +5133,10 @@
       "source_file": "appraisejs/src/mcp/registry.ts",
       "source_location": "L177",
       "_origin": "ast",
-      "community": 33,
+      "community": 7,
       "norm_label": "registerappraiseoperations()",
       "id": "mcp_registry_registerappraiseoperations",
-      "community_name": "Community 33"
+      "community_name": "Community 7"
     },
     {
       "label": "mcpContractForServer()",
@@ -4363,10 +5397,10 @@
       "source_file": "appraisejs/src/mcp/shared.ts",
       "source_location": "L25",
       "_origin": "ast",
-      "community": 40,
+      "community": 33,
       "norm_label": "text()",
       "id": "mcp_shared_text",
-      "community_name": "Community 40"
+      "community_name": "Community 33"
     },
     {
       "label": "withGuidance()",
@@ -4374,10 +5408,10 @@
       "source_file": "appraisejs/src/mcp/shared.ts",
       "source_location": "L38",
       "_origin": "ast",
-      "community": 55,
+      "community": 40,
       "norm_label": "withguidance()",
       "id": "mcp_shared_withguidance",
-      "community_name": "Community 55"
+      "community_name": "Community 40"
     },
     {
       "label": "contentHash()",
@@ -4554,6 +5588,479 @@
       "norm_label": "runappraisemcp()",
       "id": "mcp_stdio_server_runappraisemcp",
       "community_name": "Community 14"
+    },
+    {
+      "label": "trusted-worker-bridge.ts",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/trusted-worker-bridge.ts",
+      "source_location": "L1",
+      "_origin": "ast",
+      "community": 61,
+      "norm_label": "trusted-worker-bridge.ts",
+      "id": "mcp_trusted_worker_bridge",
+      "community_name": "Community 61"
+    },
+    {
+      "label": "Action",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/trusted-worker-bridge.ts",
+      "source_location": "L9",
+      "_origin": "ast",
+      "community": 27,
+      "norm_label": "action",
+      "id": "mcp_trusted_worker_bridge_action",
+      "community_name": "Community 27"
+    },
+    {
+      "label": "Stage",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/trusted-worker-bridge.ts",
+      "source_location": "L10",
+      "_origin": "ast",
+      "community": 61,
+      "norm_label": "stage",
+      "id": "mcp_trusted_worker_bridge_stage",
+      "community_name": "Community 61"
+    },
+    {
+      "label": "TrustedWorkerBridgeRequest",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/trusted-worker-bridge.ts",
+      "source_location": "L12",
+      "_origin": "ast",
+      "community": 61,
+      "norm_label": "trustedworkerbridgerequest",
+      "id": "mcp_trusted_worker_bridge_trustedworkerbridgerequest",
+      "community_name": "Community 61"
+    },
+    {
+      "label": "TrustedWorkerBridgeResponse",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/trusted-worker-bridge.ts",
+      "source_location": "L19",
+      "_origin": "ast",
+      "community": 61,
+      "norm_label": "trustedworkerbridgeresponse",
+      "id": "mcp_trusted_worker_bridge_trustedworkerbridgeresponse",
+      "community_name": "Community 61"
+    },
+    {
+      "label": "TrustedWorkerBridgeExchange",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/trusted-worker-bridge.ts",
+      "source_location": "L25",
+      "_origin": "ast",
+      "community": 61,
+      "norm_label": "trustedworkerbridgeexchange",
+      "id": "mcp_trusted_worker_bridge_trustedworkerbridgeexchange",
+      "community_name": "Community 61"
+    },
+    {
+      "label": "actions",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/trusted-worker-bridge.ts",
+      "source_location": "L28",
+      "_origin": "ast",
+      "community": 61,
+      "norm_label": "actions",
+      "id": "mcp_trusted_worker_bridge_actions",
+      "community_name": "Community 61"
+    },
+    {
+      "label": "jsonBytes()",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/trusted-worker-bridge.ts",
+      "source_location": "L30",
+      "_origin": "ast",
+      "community": 61,
+      "norm_label": "jsonbytes()",
+      "id": "mcp_trusted_worker_bridge_jsonbytes",
+      "community_name": "Community 61"
+    },
+    {
+      "label": "copyBounded()",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/trusted-worker-bridge.ts",
+      "source_location": "L36",
+      "_origin": "ast",
+      "community": 61,
+      "norm_label": "copybounded()",
+      "id": "mcp_trusted_worker_bridge_copybounded",
+      "community_name": "Community 61"
+    },
+    {
+      "label": "exact()",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/trusted-worker-bridge.ts",
+      "source_location": "L41",
+      "_origin": "ast",
+      "community": 61,
+      "norm_label": "exact()",
+      "id": "mcp_trusted_worker_bridge_exact",
+      "community_name": "Community 61"
+    },
+    {
+      "label": "canonicalJson()",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/trusted-worker-bridge.ts",
+      "source_location": "L45",
+      "_origin": "ast",
+      "community": 61,
+      "norm_label": "canonicaljson()",
+      "id": "mcp_trusted_worker_bridge_canonicaljson",
+      "community_name": "Community 61"
+    },
+    {
+      "label": "record()",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/trusted-worker-bridge.ts",
+      "source_location": "L57",
+      "_origin": "ast",
+      "community": 61,
+      "norm_label": "record()",
+      "id": "mcp_trusted_worker_bridge_record",
+      "community_name": "Community 61"
+    },
+    {
+      "label": "createTrustedWorkerBridgeServer()",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/trusted-worker-bridge.ts",
+      "source_location": "L63",
+      "_origin": "ast",
+      "community": 61,
+      "norm_label": "createtrustedworkerbridgeserver()",
+      "id": "mcp_trusted_worker_bridge_createtrustedworkerbridgeserver",
+      "community_name": "Community 61"
+    },
+    {
+      "label": "createTrustedWorkerBridgeClient()",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/trusted-worker-bridge.ts",
+      "source_location": "L255",
+      "_origin": "ast",
+      "community": 61,
+      "norm_label": "createtrustedworkerbridgeclient()",
+      "id": "mcp_trusted_worker_bridge_createtrustedworkerbridgeclient",
+      "community_name": "Community 61"
+    },
+    {
+      "label": "createTrustedWorkerBridgeEndpoint()",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/trusted-worker-bridge.ts",
+      "source_location": "L300",
+      "_origin": "ast",
+      "community": 61,
+      "norm_label": "createtrustedworkerbridgeendpoint()",
+      "id": "mcp_trusted_worker_bridge_createtrustedworkerbridgeendpoint",
+      "community_name": "Community 61"
+    },
+    {
+      "label": "createLoopbackTrustedWorkerExchange()",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/trusted-worker-bridge.ts",
+      "source_location": "L323",
+      "_origin": "ast",
+      "community": 61,
+      "norm_label": "createloopbacktrustedworkerexchange()",
+      "id": "mcp_trusted_worker_bridge_createloopbacktrustedworkerexchange",
+      "community_name": "Community 61"
+    },
+    {
+      "label": "trusted-worker-native-route.test.ts",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/trusted-worker-native-route.test.ts",
+      "source_location": "L1",
+      "_origin": "ast",
+      "community": 54,
+      "norm_label": "trusted-worker-native-route.test.ts",
+      "id": "mcp_trusted_worker_native_route_test",
+      "community_name": "Community 54"
+    },
+    {
+      "label": "context",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/trusted-worker-native-route.test.ts",
+      "source_location": "L20",
+      "_origin": "ast",
+      "community": 54,
+      "norm_label": "context",
+      "id": "mcp_trusted_worker_native_route_test_context",
+      "community_name": "Community 54"
+    },
+    {
+      "label": "hash()",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/trusted-worker-native-route.test.ts",
+      "source_location": "L30",
+      "_origin": "ast",
+      "community": 54,
+      "norm_label": "hash()",
+      "id": "mcp_trusted_worker_native_route_test_hash",
+      "community_name": "Community 54"
+    },
+    {
+      "label": "binding()",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/trusted-worker-native-route.test.ts",
+      "source_location": "L45",
+      "_origin": "ast",
+      "community": 54,
+      "norm_label": "binding()",
+      "id": "mcp_trusted_worker_native_route_test_binding",
+      "community_name": "Community 54"
+    },
+    {
+      "label": "sdkFixture()",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/trusted-worker-native-route.test.ts",
+      "source_location": "L67",
+      "_origin": "ast",
+      "community": 54,
+      "norm_label": "sdkfixture()",
+      "id": "mcp_trusted_worker_native_route_test_sdkfixture",
+      "community_name": "Community 54"
+    },
+    {
+      "label": "routeInput()",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/trusted-worker-native-route.test.ts",
+      "source_location": "L175",
+      "_origin": "ast",
+      "community": 54,
+      "norm_label": "routeinput()",
+      "id": "mcp_trusted_worker_native_route_test_routeinput",
+      "community_name": "Community 54"
+    },
+    {
+      "label": "trusted-worker-native-route.ts",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/trusted-worker-native-route.ts",
+      "source_location": "L1",
+      "_origin": "ast",
+      "community": 54,
+      "norm_label": "trusted-worker-native-route.ts",
+      "id": "mcp_trusted_worker_native_route",
+      "community_name": "Community 54"
+    },
+    {
+      "label": "Profile",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/trusted-worker-native-route.ts",
+      "source_location": "L16",
+      "_origin": "ast",
+      "community": 54,
+      "norm_label": "profile",
+      "id": "mcp_trusted_worker_native_route_profile",
+      "community_name": "Community 54"
+    },
+    {
+      "label": "JsonObject",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/trusted-worker-native-route.ts",
+      "source_location": "L17",
+      "_origin": "ast",
+      "community": 54,
+      "norm_label": "jsonobject",
+      "id": "mcp_trusted_worker_native_route_jsonobject",
+      "community_name": "Community 54"
+    },
+    {
+      "label": "rejectedAuthorityFields",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/trusted-worker-native-route.ts",
+      "source_location": "L21",
+      "_origin": "ast",
+      "community": 54,
+      "norm_label": "rejectedauthorityfields",
+      "id": "mcp_trusted_worker_native_route_rejectedauthorityfields",
+      "community_name": "Community 54"
+    },
+    {
+      "label": "rejectedAbsentOperations",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/trusted-worker-native-route.ts",
+      "source_location": "L31",
+      "_origin": "ast",
+      "community": 54,
+      "norm_label": "rejectedabsentoperations",
+      "id": "mcp_trusted_worker_native_route_rejectedabsentoperations",
+      "community_name": "Community 54"
+    },
+    {
+      "label": "rejectionSelectors",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/trusted-worker-native-route.ts",
+      "source_location": "L39",
+      "_origin": "ast",
+      "community": 54,
+      "norm_label": "rejectionselectors",
+      "id": "mcp_trusted_worker_native_route_rejectionselectors",
+      "community_name": "Community 54"
+    },
+    {
+      "label": "TrustedRejectionSelector",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/trusted-worker-native-route.ts",
+      "source_location": "L57",
+      "_origin": "ast",
+      "community": 54,
+      "norm_label": "trustedrejectionselector",
+      "id": "mcp_trusted_worker_native_route_trustedrejectionselector",
+      "community_name": "Community 54"
+    },
+    {
+      "label": "stable()",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/trusted-worker-native-route.ts",
+      "source_location": "L59",
+      "_origin": "ast",
+      "community": 54,
+      "norm_label": "stable()",
+      "id": "mcp_trusted_worker_native_route_stable",
+      "community_name": "Community 54"
+    },
+    {
+      "label": "hash()",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/trusted-worker-native-route.ts",
+      "source_location": "L71",
+      "_origin": "ast",
+      "community": 54,
+      "norm_label": "hash()",
+      "id": "mcp_trusted_worker_native_route_hash",
+      "community_name": "Community 54"
+    },
+    {
+      "label": "isObject()",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/trusted-worker-native-route.ts",
+      "source_location": "L72",
+      "_origin": "ast",
+      "community": 54,
+      "norm_label": "isobject()",
+      "id": "mcp_trusted_worker_native_route_isobject",
+      "community_name": "Community 54"
+    },
+    {
+      "label": "blocked()",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/trusted-worker-native-route.ts",
+      "source_location": "L74",
+      "_origin": "ast",
+      "community": 54,
+      "norm_label": "blocked()",
+      "id": "mcp_trusted_worker_native_route_blocked",
+      "community_name": "Community 54"
+    },
+    {
+      "label": "TrustedWrapperCodec",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/trusted-worker-native-route.ts",
+      "source_location": "L83",
+      "_origin": "ast",
+      "community": 54,
+      "norm_label": "trustedwrappercodec",
+      "id": "mcp_trusted_worker_native_route_trustedwrappercodec",
+      "community_name": "Community 54"
+    },
+    {
+      "label": "TrustedNativeRoute",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/trusted-worker-native-route.ts",
+      "source_location": "L97",
+      "_origin": "ast",
+      "community": 54,
+      "norm_label": "trustednativeroute",
+      "id": "mcp_trusted_worker_native_route_trustednativeroute",
+      "community_name": "Community 54"
+    },
+    {
+      "label": "TrustedRouteInput",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/trusted-worker-native-route.ts",
+      "source_location": "L104",
+      "_origin": "ast",
+      "community": 54,
+      "norm_label": "trustedrouteinput",
+      "id": "mcp_trusted_worker_native_route_trustedrouteinput",
+      "community_name": "Community 54"
+    },
+    {
+      "label": "PreparedTrustedRoute",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/trusted-worker-native-route.ts",
+      "source_location": "L116",
+      "_origin": "ast",
+      "community": 54,
+      "norm_label": "preparedtrustedroute",
+      "id": "mcp_trusted_worker_native_route_preparedtrustedroute",
+      "community_name": "Community 54"
+    },
+    {
+      "label": "prepareTrustedWorkerNativeRoute()",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/trusted-worker-native-route.ts",
+      "source_location": "L141",
+      "_origin": "ast",
+      "community": 54,
+      "norm_label": "preparetrustedworkernativeroute()",
+      "id": "mcp_trusted_worker_native_route_preparetrustedworkernativeroute",
+      "community_name": "Community 54"
+    },
+    {
+      "label": "ConstructedTrustedCall",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/trusted-worker-native-route.ts",
+      "source_location": "L281",
+      "_origin": "ast",
+      "community": 54,
+      "norm_label": "constructedtrustedcall",
+      "id": "mcp_trusted_worker_native_route_constructedtrustedcall",
+      "community_name": "Community 54"
+    },
+    {
+      "label": "constructTrustedWorkerNativeCall()",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/trusted-worker-native-route.ts",
+      "source_location": "L295",
+      "_origin": "ast",
+      "community": 54,
+      "norm_label": "constructtrustedworkernativecall()",
+      "id": "mcp_trusted_worker_native_route_constructtrustedworkernativecall",
+      "community_name": "Community 54"
+    },
+    {
+      "label": "ConstructedTrustedRejectionProbe",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/trusted-worker-native-route.ts",
+      "source_location": "L364",
+      "_origin": "ast",
+      "community": 54,
+      "norm_label": "constructedtrustedrejectionprobe",
+      "id": "mcp_trusted_worker_native_route_constructedtrustedrejectionprobe",
+      "community_name": "Community 54"
+    },
+    {
+      "label": "constructTrustedWorkerRejectionProbe()",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/trusted-worker-native-route.ts",
+      "source_location": "L388",
+      "_origin": "ast",
+      "community": 54,
+      "norm_label": "constructtrustedworkerrejectionprobe()",
+      "id": "mcp_trusted_worker_native_route_constructtrustedworkerrejectionprobe",
+      "community_name": "Community 54"
+    },
+    {
+      "label": "correlateTrustedWorkerNativeCalls()",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/trusted-worker-native-route.ts",
+      "source_location": "L541",
+      "_origin": "ast",
+      "community": 54,
+      "norm_label": "correlatetrustedworkernativecalls()",
+      "id": "mcp_trusted_worker_native_route_correlatetrustedworkernativecalls",
+      "community_name": "Community 54"
     },
     {
       "label": "project-identity.test.ts",
@@ -5870,10 +7377,10 @@
       "source_file": "create-appraisejs/scripts/prepare-template.ts",
       "source_location": "L86",
       "_origin": "ast",
-      "community": 181,
+      "community": 66,
       "norm_label": "copyfile()",
       "id": "scripts_prepare_template_copyfile",
-      "community_name": "Community 181"
+      "community_name": "Community 66"
     },
     {
       "label": "copyDirWithFilter()",
@@ -5881,10 +7388,10 @@
       "source_file": "create-appraisejs/scripts/prepare-template.ts",
       "source_location": "L91",
       "_origin": "ast",
-      "community": 52,
+      "community": 66,
       "norm_label": "copydirwithfilter()",
       "id": "scripts_prepare_template_copydirwithfilter",
-      "community_name": "Community 52"
+      "community_name": "Community 66"
     },
     {
       "label": "runProcess()",
@@ -6013,10 +7520,10 @@
       "source_file": "create-appraisejs/scripts/prepare-template.ts",
       "source_location": "L285",
       "_origin": "ast",
-      "community": 181,
+      "community": 66,
       "norm_label": "resetautomationreports()",
       "id": "scripts_prepare_template_resetautomationreports",
-      "community_name": "Community 181"
+      "community_name": "Community 66"
     },
     {
       "label": "resetAutomationLocatorMap()",
@@ -6046,10 +7553,10 @@
       "source_file": "create-appraisejs/scripts/prepare-template.ts",
       "source_location": "L304",
       "_origin": "ast",
-      "community": 181,
+      "community": 66,
       "norm_label": "synclegacyenvironmentconfig()",
       "id": "scripts_prepare_template_synclegacyenvironmentconfig",
-      "community_name": "Community 181"
+      "community_name": "Community 66"
     },
     {
       "label": "syncInternalPackage()",
@@ -6057,10 +7564,10 @@
       "source_file": "create-appraisejs/scripts/prepare-template.ts",
       "source_location": "L318",
       "_origin": "ast",
-      "community": 181,
+      "community": 66,
       "norm_label": "syncinternalpackage()",
       "id": "scripts_prepare_template_syncinternalpackage",
-      "community_name": "Community 181"
+      "community_name": "Community 66"
     },
     {
       "label": "writeTemplatePackageJson()",
@@ -6068,10 +7575,10 @@
       "source_file": "create-appraisejs/scripts/prepare-template.ts",
       "source_location": "L344",
       "_origin": "ast",
-      "community": 181,
+      "community": 66,
       "norm_label": "writetemplatepackagejson()",
       "id": "scripts_prepare_template_writetemplatepackagejson",
-      "community_name": "Community 181"
+      "community_name": "Community 66"
     },
     {
       "label": "writeTemplateHarnessCheck()",
@@ -6079,10 +7586,10 @@
       "source_file": "create-appraisejs/scripts/prepare-template.ts",
       "source_location": "L379",
       "_origin": "ast",
-      "community": 181,
+      "community": 66,
       "norm_label": "writetemplateharnesscheck()",
       "id": "scripts_prepare_template_writetemplateharnesscheck",
-      "community_name": "Community 181"
+      "community_name": "Community 66"
     },
     {
       "label": "writeTemplateQualityOsCertificationReceipt()",
@@ -6112,10 +7619,10 @@
       "source_file": "create-appraisejs/scripts/prepare-template.ts",
       "source_location": "L421",
       "_origin": "ast",
-      "community": 181,
+      "community": 66,
       "norm_label": "createbasetemplate()",
       "id": "scripts_prepare_template_createbasetemplate",
-      "community_name": "Community 181"
+      "community_name": "Community 66"
     },
     {
       "label": "copyDirWithoutBundledExclusions()",
@@ -7080,10 +8587,10 @@
       "source_file": "create-appraisejs/src/prepare-template-utils.ts",
       "source_location": "L46",
       "_origin": "ast",
-      "community": 1,
+      "community": 182,
       "norm_label": "shouldabortonfallbackseed()",
       "id": "src_prepare_template_utils_shouldabortonfallbackseed",
-      "community_name": "Community 1"
+      "community_name": "Community 182"
     },
     {
       "label": "getTemplatePrepSyncScripts()",
@@ -7542,10 +9049,10 @@
       "source_file": "create-appraisejs/src/template-catalog.ts",
       "source_location": "L35",
       "_origin": "ast",
-      "community": 52,
+      "community": 5,
       "norm_label": "gettemplatedefinition()",
       "id": "src_template_catalog_gettemplatedefinition",
-      "community_name": "Community 52"
+      "community_name": "Community 5"
     },
     {
       "label": "getTemplateDefinitions()",
@@ -8587,10 +10094,10 @@
       "source_file": "cucumber-runtime/src/hooks.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 19,
+      "community": 30,
       "norm_label": "hooks.ts",
       "id": "src_hooks",
-      "community_name": "Community 19"
+      "community_name": "Community 30"
     },
     {
       "label": "RuntimeBrowser",
@@ -8598,10 +10105,10 @@
       "source_file": "cucumber-runtime/src/hooks.ts",
       "source_location": "L14",
       "_origin": "ast",
-      "community": 19,
+      "community": 30,
       "norm_label": "runtimebrowser",
       "id": "src_hooks_runtimebrowser",
-      "community_name": "Community 19"
+      "community_name": "Community 30"
     },
     {
       "label": "reportBrowserState()",
@@ -8609,10 +10116,10 @@
       "source_file": "cucumber-runtime/src/hooks.ts",
       "source_location": "L22",
       "_origin": "ast",
-      "community": 19,
+      "community": 30,
       "norm_label": "reportbrowserstate()",
       "id": "src_hooks_reportbrowserstate",
-      "community_name": "Community 19"
+      "community_name": "Community 30"
     },
     {
       "label": "closeBrowser()",
@@ -8620,10 +10127,10 @@
       "source_file": "cucumber-runtime/src/hooks.ts",
       "source_location": "L32",
       "_origin": "ast",
-      "community": 19,
+      "community": 30,
       "norm_label": "closebrowser()",
       "id": "src_hooks_closebrowser",
-      "community_name": "Community 19"
+      "community_name": "Community 30"
     },
     {
       "label": "index.ts",
@@ -9588,10 +11095,10 @@
       "source_file": "cucumber-runtime/src/operations/contracts.ts",
       "source_location": "L10",
       "_origin": "ast",
-      "community": 16,
+      "community": 45,
       "norm_label": "canonicaloperationjson()",
       "id": "operations_contracts_canonicaloperationjson",
-      "community_name": "Community 16"
+      "community_name": "Community 45"
     },
     {
       "label": "operationContentHash()",
@@ -11315,10 +12822,10 @@
       "source_file": "cucumber-runtime/src/trace-policy.test.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 19,
+      "community": 30,
       "norm_label": "trace-policy.test.ts",
       "id": "src_trace_policy_test",
-      "community_name": "Community 19"
+      "community_name": "Community 30"
     },
     {
       "label": "trace-policy.ts",
@@ -11326,10 +12833,10 @@
       "source_file": "cucumber-runtime/src/trace-policy.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 19,
+      "community": 30,
       "norm_label": "trace-policy.ts",
       "id": "src_trace_policy",
-      "community_name": "Community 19"
+      "community_name": "Community 30"
     },
     {
       "label": "runtimeTraceAllowed()",
@@ -11337,10 +12844,10 @@
       "source_file": "cucumber-runtime/src/trace-policy.ts",
       "source_location": "L4",
       "_origin": "ast",
-      "community": 19,
+      "community": 30,
       "norm_label": "runtimetraceallowed()",
       "id": "src_trace_policy_runtimetraceallowed",
-      "community_name": "Community 19"
+      "community_name": "Community 30"
     },
     {
       "label": "startRuntimeTrace()",
@@ -11348,10 +12855,10 @@
       "source_file": "cucumber-runtime/src/trace-policy.ts",
       "source_location": "L8",
       "_origin": "ast",
-      "community": 19,
+      "community": 30,
       "norm_label": "startruntimetrace()",
       "id": "src_trace_policy_startruntimetrace",
-      "community_name": "Community 19"
+      "community_name": "Community 30"
     },
     {
       "label": "stopRuntimeTrace()",
@@ -11359,10 +12866,10 @@
       "source_file": "cucumber-runtime/src/trace-policy.ts",
       "source_location": "L21",
       "_origin": "ast",
-      "community": 19,
+      "community": 30,
       "norm_label": "stopruntimetrace()",
       "id": "src_trace_policy_stopruntimetrace",
-      "community_name": "Community 19"
+      "community_name": "Community 30"
     },
     {
       "label": "types.ts",
@@ -12129,10 +13636,10 @@
       "source_file": "locator-picker-companion/src/index.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 2,
+      "community": 67,
       "norm_label": "index.ts",
       "id": "locator_picker_companion_src_index_ts_src_index",
-      "community_name": "Community 2"
+      "community_name": "Community 67"
     },
     {
       "label": "injected-picker-script.ts",
@@ -12162,10 +13669,10 @@
       "source_file": "locator-picker-companion/src/launcher.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 2,
+      "community": 67,
       "norm_label": "launcher.ts",
       "id": "src_launcher",
-      "community_name": "Community 2"
+      "community_name": "Community 67"
     },
     {
       "label": "pathExists()",
@@ -12173,10 +13680,10 @@
       "source_file": "locator-picker-companion/src/launcher.ts",
       "source_location": "L5",
       "_origin": "ast",
-      "community": 2,
+      "community": 67,
       "norm_label": "pathexists()",
       "id": "src_launcher_pathexists",
-      "community_name": "Community 2"
+      "community_name": "Community 67"
     },
     {
       "label": "getLatestModifiedTime()",
@@ -12184,10 +13691,10 @@
       "source_file": "locator-picker-companion/src/launcher.ts",
       "source_location": "L14",
       "_origin": "ast",
-      "community": 2,
+      "community": 67,
       "norm_label": "getlatestmodifiedtime()",
       "id": "src_launcher_getlatestmodifiedtime",
-      "community_name": "Community 2"
+      "community_name": "Community 67"
     },
     {
       "label": "getLocatorPickerCompanionPaths()",
@@ -12195,10 +13702,10 @@
       "source_file": "locator-picker-companion/src/launcher.ts",
       "source_location": "L26",
       "_origin": "ast",
-      "community": 2,
+      "community": 67,
       "norm_label": "getlocatorpickercompanionpaths()",
       "id": "src_launcher_getlocatorpickercompanionpaths",
-      "community_name": "Community 2"
+      "community_name": "Community 67"
     },
     {
       "label": "ensureLocatorPickerCompanionBuilt()",
@@ -12206,10 +13713,10 @@
       "source_file": "locator-picker-companion/src/launcher.ts",
       "source_location": "L38",
       "_origin": "ast",
-      "community": 2,
+      "community": 67,
       "norm_label": "ensurelocatorpickercompanionbuilt()",
       "id": "src_launcher_ensurelocatorpickercompanionbuilt",
-      "community_name": "Community 2"
+      "community_name": "Community 67"
     },
     {
       "label": "resolveLocatorPickerCompanionInvocation()",
@@ -12217,10 +13724,10 @@
       "source_file": "locator-picker-companion/src/launcher.ts",
       "source_location": "L65",
       "_origin": "ast",
-      "community": 2,
+      "community": 67,
       "norm_label": "resolvelocatorpickercompanioninvocation()",
       "id": "src_launcher_resolvelocatorpickercompanioninvocation",
-      "community_name": "Community 2"
+      "community_name": "Community 67"
     },
     {
       "label": "selector-generator.ts",
@@ -14539,6 +16046,17 @@
       "confidence_score": 1.0,
       "source": "src_cli_runcommand",
       "target": "src_cli_printerrorjson"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "appraisejs/src/cli.ts",
+      "source_location": "L219",
+      "weight": 1.0,
+      "source": "src_cli_runcommand",
+      "target": "mcp_trusted_worker_bridge_action"
     },
     {
       "relation": "imports_from",
@@ -17241,6 +18759,28 @@
       "relation": "imports_from",
       "context": "import",
       "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/external-worker-gateway.test.ts",
+      "source_location": "L3",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_external_worker_gateway_test",
+      "target": "mcp_contract"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/external-worker-server.test.ts",
+      "source_location": "L7",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_external_worker_server_test",
+      "target": "mcp_contract"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
       "source_file": "appraisejs/src/mcp/quality-journey-library.test.ts",
       "source_location": "L4",
       "weight": 1.0,
@@ -17324,6 +18864,28 @@
       "confidence_score": 1.0,
       "source": "mcp_shared",
       "target": "mcp_contract_canonicalmcpresourceuris"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/external-worker-gateway.test.ts",
+      "source_location": "L3",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_external_worker_gateway_test",
+      "target": "mcp_contract_canonicalmcptoolnames"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/external-worker-server.test.ts",
+      "source_location": "L7",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_external_worker_server_test",
+      "target": "mcp_contract_canonicalmcptoolnames"
     },
     {
       "relation": "imports",
@@ -19689,6 +21251,1450 @@
       "target": "domains_step_definitions_registerstepdefinitionoperations"
     },
     {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/external-worker-gateway.test.ts",
+      "source_location": "L7",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_external_worker_gateway_test",
+      "target": "mcp_external_worker_gateway"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/external-worker-gateway.test.ts",
+      "source_location": "L7",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_external_worker_gateway_test",
+      "target": "mcp_external_worker_gateway_createexternalworkergateway"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/external-worker-gateway.test.ts",
+      "source_location": "L7",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_external_worker_gateway_test",
+      "target": "mcp_external_worker_gateway_externalworkerbinding"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/external-worker-gateway.test.ts",
+      "source_location": "L7",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_external_worker_gateway_test",
+      "target": "mcp_external_worker_gateway_externalworkercallerror"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/external-worker-gateway.test.ts",
+      "source_location": "L7",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_external_worker_gateway_test",
+      "target": "mcp_external_worker_gateway_externalworkerrole"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/external-worker-gateway.test.ts",
+      "source_location": "L7",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_external_worker_gateway_test",
+      "target": "mcp_external_worker_gateway_externalworkertools"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/external-worker-gateway.test.ts",
+      "source_location": "L7",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_external_worker_gateway_test",
+      "target": "mcp_external_worker_gateway_frozenworkerread"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/external-worker-gateway.test.ts",
+      "source_location": "L376",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_external_worker_gateway_test",
+      "target": "mcp_external_worker_gateway_test_allroles"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/external-worker-gateway.test.ts",
+      "source_location": "L18",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_external_worker_gateway_test",
+      "target": "mcp_external_worker_gateway_test_binding"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/external-worker-gateway.test.ts",
+      "source_location": "L58",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_external_worker_gateway_test",
+      "target": "mcp_external_worker_gateway_test_bundle"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/external-worker-gateway.test.ts",
+      "source_location": "L633",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_external_worker_gateway_test",
+      "target": "mcp_external_worker_gateway_test_fixturehash"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/external-worker-gateway.test.ts",
+      "source_location": "L237",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_external_worker_gateway_test",
+      "target": "mcp_external_worker_gateway_test_harness"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/external-worker-gateway.test.ts",
+      "source_location": "L73",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_external_worker_gateway_test",
+      "target": "mcp_external_worker_gateway_test_packet"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/external-worker-gateway.test.ts",
+      "source_location": "L40",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_external_worker_gateway_test",
+      "target": "mcp_external_worker_gateway_test_result"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/external-worker-gateway.test.ts",
+      "source_location": "L6",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_external_worker_gateway_test",
+      "target": "mcp_registry"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/external-worker-gateway.test.ts",
+      "source_location": "L6",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_external_worker_gateway_test",
+      "target": "mcp_registry_mcpregistrycontext"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/external-worker-gateway.test.ts",
+      "source_location": "L238",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_external_worker_gateway_test_harness",
+      "target": "mcp_external_worker_gateway_test_binding"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/external-worker-gateway.test.ts",
+      "source_location": "L157",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_external_worker_gateway_test_packet",
+      "target": "mcp_external_worker_gateway_test_result"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/external-worker-gateway.test.ts",
+      "source_location": "L351",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_external_worker_gateway_test_harness",
+      "target": "mcp_external_worker_gateway_createexternalworkergateway"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "appraisejs/src/mcp/external-worker-gateway.test.ts",
+      "source_location": "L645",
+      "weight": 1.0,
+      "source": "mcp_external_worker_gateway_test_fixturehash",
+      "target": "mcp_native_descriptor_capture_canonical"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/external-worker-gateway.ts",
+      "source_location": "L122",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_external_worker_gateway",
+      "target": "mcp_external_worker_gateway_acceptanceschema"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/external-worker-gateway.ts",
+      "source_location": "L415",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_external_worker_gateway",
+      "target": "mcp_external_worker_gateway_assertsafeprojection"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/external-worker-gateway.ts",
+      "source_location": "L441",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_external_worker_gateway",
+      "target": "mcp_external_worker_gateway_assertworkerpayload"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/external-worker-gateway.ts",
+      "source_location": "L42",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_external_worker_gateway",
+      "target": "mcp_external_worker_gateway_bindingschema"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/external-worker-gateway.ts",
+      "source_location": "L135",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_external_worker_gateway",
+      "target": "mcp_external_worker_gateway_capturedtool"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/external-worker-gateway.ts",
+      "source_location": "L155",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_external_worker_gateway",
+      "target": "mcp_external_worker_gateway_createexternalworkergateway"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/external-worker-gateway.ts",
+      "source_location": "L12",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_external_worker_gateway",
+      "target": "mcp_external_worker_gateway_digest"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/external-worker-gateway.ts",
+      "source_location": "L133",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_external_worker_gateway",
+      "target": "mcp_external_worker_gateway_externalworkeracceptance"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/external-worker-gateway.ts",
+      "source_location": "L64",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_external_worker_gateway",
+      "target": "mcp_external_worker_gateway_externalworkerbinding"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/external-worker-gateway.ts",
+      "source_location": "L140",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_external_worker_gateway",
+      "target": "mcp_external_worker_gateway_externalworkercallerror"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/external-worker-gateway.ts",
+      "source_location": "L21",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_external_worker_gateway",
+      "target": "mcp_external_worker_gateway_externalworkerrole"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/external-worker-gateway.ts",
+      "source_location": "L24",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_external_worker_gateway",
+      "target": "mcp_external_worker_gateway_externalworkertools"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/external-worker-gateway.ts",
+      "source_location": "L81",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_external_worker_gateway",
+      "target": "mcp_external_worker_gateway_forbiddenkeys"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/external-worker-gateway.ts",
+      "source_location": "L366",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_external_worker_gateway",
+      "target": "mcp_external_worker_gateway_frozendataschema"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/external-worker-gateway.ts",
+      "source_location": "L102",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_external_worker_gateway",
+      "target": "mcp_external_worker_gateway_frozenworkerread"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/external-worker-gateway.ts",
+      "source_location": "L350",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_external_worker_gateway",
+      "target": "mcp_external_worker_gateway_hash"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/external-worker-gateway.ts",
+      "source_location": "L66",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_external_worker_gateway",
+      "target": "mcp_external_worker_gateway_hiddenfields"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/external-worker-gateway.ts",
+      "source_location": "L7",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_external_worker_gateway",
+      "target": "mcp_external_worker_gateway_id"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/external-worker-gateway.ts",
+      "source_location": "L344",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_external_worker_gateway",
+      "target": "mcp_external_worker_gateway_issubmission"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/external-worker-gateway.ts",
+      "source_location": "L347",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_external_worker_gateway",
+      "target": "mcp_external_worker_gateway_publicbinding"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/external-worker-gateway.ts",
+      "source_location": "L13",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_external_worker_gateway",
+      "target": "mcp_external_worker_gateway_roles"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/external-worker-gateway.ts",
+      "source_location": "L353",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_external_worker_gateway",
+      "target": "mcp_external_worker_gateway_stablejson"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/external-worker-gateway.ts",
+      "source_location": "L5",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_external_worker_gateway",
+      "target": "mcp_registry"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/external-worker-gateway.ts",
+      "source_location": "L5",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_external_worker_gateway",
+      "target": "mcp_registry_mcpregistrycontext"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/external-worker-gateway.ts",
+      "source_location": "L5",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_external_worker_gateway",
+      "target": "mcp_registry_registerappraiseoperations"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/external-worker-native-mapping.ts",
+      "source_location": "L2",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_external_worker_native_mapping",
+      "target": "mcp_external_worker_gateway"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/external-worker-native-mapping.test.ts",
+      "source_location": "L4",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_external_worker_native_mapping_test",
+      "target": "mcp_external_worker_gateway"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/external-worker-server.ts",
+      "source_location": "L6",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_external_worker_server",
+      "target": "mcp_external_worker_gateway"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/external-worker-server.test.ts",
+      "source_location": "L8",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_external_worker_server_test",
+      "target": "mcp_external_worker_gateway"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-bridge.ts",
+      "source_location": "L4",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_bridge",
+      "target": "mcp_external_worker_gateway"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-native-route.ts",
+      "source_location": "L4",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_native_route",
+      "target": "mcp_external_worker_gateway"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-native-route.test.ts",
+      "source_location": "L7",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_native_route_test",
+      "target": "mcp_external_worker_gateway"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/external-worker-gateway.ts",
+      "source_location": "L351",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_external_worker_gateway_hash",
+      "target": "mcp_external_worker_gateway_digest"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/external-worker-native-mapping.test.ts",
+      "source_location": "L4",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_external_worker_native_mapping_test",
+      "target": "mcp_external_worker_gateway_externalworkerrole"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/external-worker-server.test.ts",
+      "source_location": "L8",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_external_worker_server_test",
+      "target": "mcp_external_worker_gateway_externalworkerrole"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-native-route.ts",
+      "source_location": "L4",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_native_route",
+      "target": "mcp_external_worker_gateway_externalworkerrole"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-native-route.test.ts",
+      "source_location": "L7",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_native_route_test",
+      "target": "mcp_external_worker_gateway_externalworkerrole"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/external-worker-native-mapping.ts",
+      "source_location": "L2",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_external_worker_native_mapping",
+      "target": "mcp_external_worker_gateway_externalworkertools"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/external-worker-native-mapping.test.ts",
+      "source_location": "L4",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_external_worker_native_mapping_test",
+      "target": "mcp_external_worker_gateway_externalworkertools"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/external-worker-server.test.ts",
+      "source_location": "L8",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_external_worker_server_test",
+      "target": "mcp_external_worker_gateway_externalworkertools"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-native-route.ts",
+      "source_location": "L4",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_native_route",
+      "target": "mcp_external_worker_gateway_externalworkertools"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-native-route.test.ts",
+      "source_location": "L7",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_native_route_test",
+      "target": "mcp_external_worker_gateway_externalworkertools"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/external-worker-server.test.ts",
+      "source_location": "L8",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_external_worker_server_test",
+      "target": "mcp_external_worker_gateway_externalworkerbinding"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-bridge.ts",
+      "source_location": "L4",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_bridge",
+      "target": "mcp_external_worker_gateway_externalworkerbinding"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/external-worker-server.test.ts",
+      "source_location": "L8",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_external_worker_server_test",
+      "target": "mcp_external_worker_gateway_frozenworkerread"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-bridge.ts",
+      "source_location": "L4",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_bridge",
+      "target": "mcp_external_worker_gateway_frozenworkerread"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-bridge.ts",
+      "source_location": "L4",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_bridge",
+      "target": "mcp_external_worker_gateway_externalworkeracceptance"
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/external-worker-gateway.ts",
+      "source_location": "L141",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_external_worker_gateway_externalworkercallerror",
+      "target": "mcp_external_worker_gateway_externalworkercallerror_constructor"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/external-worker-gateway.ts",
+      "source_location": "L227",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_external_worker_gateway_createexternalworkergateway",
+      "target": "mcp_external_worker_gateway_frozendataschema"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "appraisejs/src/mcp/external-worker-gateway.ts",
+      "source_location": "L176",
+      "weight": 1.0,
+      "source": "mcp_external_worker_gateway_createexternalworkergateway",
+      "target": "mcp_registry_registerappraiseoperations"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/external-worker-native-mapping.ts",
+      "source_location": "L2",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_external_worker_native_mapping",
+      "target": "mcp_external_worker_gateway_createexternalworkergateway"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/external-worker-server.ts",
+      "source_location": "L6",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_external_worker_server",
+      "target": "mcp_external_worker_gateway_createexternalworkergateway"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "appraisejs/src/mcp/external-worker-server.ts",
+      "source_location": "L23",
+      "weight": 1.0,
+      "source": "mcp_external_worker_server_createexternalworkermcpserver",
+      "target": "mcp_external_worker_gateway_createexternalworkergateway"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-native-route.ts",
+      "source_location": "L4",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_native_route",
+      "target": "mcp_external_worker_gateway_createexternalworkergateway"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/external-worker-gateway.ts",
+      "source_location": "L351",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_external_worker_gateway_hash",
+      "target": "mcp_external_worker_gateway_stablejson"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/external-worker-gateway.ts",
+      "source_location": "L439",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_external_worker_gateway_assertsafeprojection",
+      "target": "mcp_external_worker_gateway_stablejson"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/external-worker-native-mapping.test.ts",
+      "source_location": "L5",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_external_worker_native_mapping_test",
+      "target": "mcp_external_worker_native_mapping"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/external-worker-native-mapping.test.ts",
+      "source_location": "L5",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_external_worker_native_mapping_test",
+      "target": "mcp_external_worker_native_mapping_prepareexternalworkernativemapping"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/external-worker-native-mapping.test.ts",
+      "source_location": "L18",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_external_worker_native_mapping_test",
+      "target": "mcp_external_worker_native_mapping_test_context"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/external-worker-native-mapping.test.ts",
+      "source_location": "L28",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_external_worker_native_mapping_test",
+      "target": "mcp_external_worker_native_mapping_test_fixture"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/external-worker-native-mapping.test.ts",
+      "source_location": "L16",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_external_worker_native_mapping_test",
+      "target": "mcp_external_worker_native_mapping_test_hash"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/external-worker-native-mapping.test.ts",
+      "source_location": "L8",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_external_worker_native_mapping_test",
+      "target": "mcp_external_worker_native_mapping_test_stable"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/external-worker-native-mapping.test.ts",
+      "source_location": "L76",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_external_worker_native_mapping_test",
+      "target": "mcp_external_worker_native_mapping_test_updatebody"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/external-worker-native-mapping.test.ts",
+      "source_location": "L6",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_external_worker_native_mapping_test",
+      "target": "mcp_native_descriptor_capture"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/external-worker-native-mapping.test.ts",
+      "source_location": "L6",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_external_worker_native_mapping_test",
+      "target": "mcp_native_descriptor_capture_nativedescriptorcollector"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/external-worker-native-mapping.test.ts",
+      "source_location": "L6",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_external_worker_native_mapping_test",
+      "target": "mcp_native_descriptor_capture_trusteddescriptorcontext"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/external-worker-native-mapping.test.ts",
+      "source_location": "L16",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_external_worker_native_mapping_test_hash",
+      "target": "mcp_external_worker_native_mapping_test_stable"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/external-worker-native-mapping.ts",
+      "source_location": "L11",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_external_worker_native_mapping",
+      "target": "mcp_external_worker_native_mapping_externalnativeroute"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/external-worker-native-mapping.ts",
+      "source_location": "L21",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_external_worker_native_mapping",
+      "target": "mcp_external_worker_native_mapping_hash"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/external-worker-native-mapping.ts",
+      "source_location": "L27",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_external_worker_native_mapping",
+      "target": "mcp_external_worker_native_mapping_prepareexternalworkernativemapping"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/external-worker-native-mapping.ts",
+      "source_location": "L10",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_external_worker_native_mapping",
+      "target": "mcp_external_worker_native_mapping_profile"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/external-worker-native-mapping.ts",
+      "source_location": "L13",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_external_worker_native_mapping",
+      "target": "mcp_external_worker_native_mapping_stable"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/external-worker-native-mapping.ts",
+      "source_location": "L3",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_external_worker_native_mapping",
+      "target": "mcp_external_worker_server"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/external-worker-native-mapping.ts",
+      "source_location": "L3",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_external_worker_native_mapping",
+      "target": "mcp_external_worker_server_externalworkeradvertisedprofile"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/external-worker-native-mapping.ts",
+      "source_location": "L4",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_external_worker_native_mapping",
+      "target": "mcp_native_descriptor_capture"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/external-worker-native-mapping.ts",
+      "source_location": "L4",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_external_worker_native_mapping",
+      "target": "mcp_native_descriptor_capture_descriptorrequest"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/external-worker-native-mapping.ts",
+      "source_location": "L4",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_external_worker_native_mapping",
+      "target": "mcp_native_descriptor_capture_nativedescriptorcollector"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/external-worker-native-mapping.ts",
+      "source_location": "L4",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_external_worker_native_mapping",
+      "target": "mcp_native_descriptor_capture_trusteddescriptorcontext"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/external-worker-server.test.ts",
+      "source_location": "L14",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_external_worker_server_test",
+      "target": "mcp_external_worker_native_mapping"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/external-worker-native-mapping.ts",
+      "source_location": "L21",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_external_worker_native_mapping_hash",
+      "target": "mcp_external_worker_native_mapping_stable"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "appraisejs/src/mcp/external-worker-native-mapping.ts",
+      "source_location": "L48",
+      "weight": 1.0,
+      "source": "mcp_external_worker_native_mapping_prepareexternalworkernativemapping",
+      "target": "mcp_trusted_worker_native_route_blocked"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/external-worker-server.test.ts",
+      "source_location": "L14",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_external_worker_server_test",
+      "target": "mcp_external_worker_native_mapping_prepareexternalworkernativemapping"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/external-worker-server.test.ts",
+      "source_location": "L15",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_external_worker_server_test",
+      "target": "mcp_external_worker_server"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/external-worker-server.test.ts",
+      "source_location": "L15",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_external_worker_server_test",
+      "target": "mcp_external_worker_server_createexternalworkermcpserver"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/external-worker-server.test.ts",
+      "source_location": "L396",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_external_worker_server_test",
+      "target": "mcp_external_worker_server_test_allroles"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/external-worker-server.test.ts",
+      "source_location": "L21",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_external_worker_server_test",
+      "target": "mcp_external_worker_server_test_binding"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/external-worker-server.test.ts",
+      "source_location": "L61",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_external_worker_server_test",
+      "target": "mcp_external_worker_server_test_bundle"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/external-worker-server.test.ts",
+      "source_location": "L241",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_external_worker_server_test",
+      "target": "mcp_external_worker_server_test_fixturehash"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/external-worker-server.test.ts",
+      "source_location": "L257",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_external_worker_server_test",
+      "target": "mcp_external_worker_server_test_harness"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/external-worker-server.test.ts",
+      "source_location": "L76",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_external_worker_server_test",
+      "target": "mcp_external_worker_server_test_packet"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/external-worker-server.test.ts",
+      "source_location": "L43",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_external_worker_server_test",
+      "target": "mcp_external_worker_server_test_result"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/external-worker-server.test.ts",
+      "source_location": "L16",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_external_worker_server_test",
+      "target": "mcp_native_descriptor_capture"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/external-worker-server.test.ts",
+      "source_location": "L16",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_external_worker_server_test",
+      "target": "mcp_native_descriptor_capture_nativedescriptorcollector"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/external-worker-server.test.ts",
+      "source_location": "L16",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_external_worker_server_test",
+      "target": "mcp_native_descriptor_capture_trusteddescriptorcontext"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/external-worker-server.test.ts",
+      "source_location": "L17",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_external_worker_server_test",
+      "target": "mcp_registry"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/external-worker-server.test.ts",
+      "source_location": "L17",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_external_worker_server_test",
+      "target": "mcp_registry_mcpregistrycontext"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/external-worker-server.test.ts",
+      "source_location": "L258",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_external_worker_server_test_harness",
+      "target": "mcp_external_worker_server_test_binding"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/external-worker-server.test.ts",
+      "source_location": "L160",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_external_worker_server_test_packet",
+      "target": "mcp_external_worker_server_test_result"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "appraisejs/src/mcp/external-worker-server.test.ts",
+      "source_location": "L253",
+      "weight": 1.0,
+      "source": "mcp_external_worker_server_test_fixturehash",
+      "target": "mcp_native_descriptor_capture_canonical"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/external-worker-server.test.ts",
+      "source_location": "L353",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_external_worker_server_test_harness",
+      "target": "mcp_external_worker_server_createexternalworkermcpserver"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/external-worker-server.ts",
+      "source_location": "L56",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_external_worker_server",
+      "target": "mcp_external_worker_server_canonicaljson"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/external-worker-server.ts",
+      "source_location": "L22",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_external_worker_server",
+      "target": "mcp_external_worker_server_createexternalworkermcpserver"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/external-worker-server.ts",
+      "source_location": "L68",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_external_worker_server",
+      "target": "mcp_external_worker_server_deepfreeze"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/external-worker-server.ts",
+      "source_location": "L8",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_external_worker_server",
+      "target": "mcp_external_worker_server_externalworkeradvertisedprofile"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/external-worker-server.ts",
+      "source_location": "L52",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_external_worker_server",
+      "target": "mcp_external_worker_server_hash"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-bridge.ts",
+      "source_location": "L5",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_bridge",
+      "target": "mcp_external_worker_server"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-native-route.ts",
+      "source_location": "L9",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_native_route",
+      "target": "mcp_external_worker_server"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-native-route.test.ts",
+      "source_location": "L8",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_native_route_test",
+      "target": "mcp_external_worker_server"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-bridge.ts",
+      "source_location": "L5",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_bridge",
+      "target": "mcp_external_worker_server_externalworkeradvertisedprofile"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-native-route.ts",
+      "source_location": "L9",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_native_route",
+      "target": "mcp_external_worker_server_externalworkeradvertisedprofile"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/external-worker-server.ts",
+      "source_location": "L42",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_external_worker_server_createexternalworkermcpserver",
+      "target": "mcp_external_worker_server_deepfreeze"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-bridge.ts",
+      "source_location": "L5",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_bridge",
+      "target": "mcp_external_worker_server_createexternalworkermcpserver"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "appraisejs/src/mcp/trusted-worker-bridge.ts",
+      "source_location": "L305",
+      "weight": 1.0,
+      "source": "mcp_trusted_worker_bridge_createtrustedworkerbridgeendpoint",
+      "target": "mcp_external_worker_server_createexternalworkermcpserver"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-native-route.test.ts",
+      "source_location": "L8",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_native_route_test",
+      "target": "mcp_external_worker_server_createexternalworkermcpserver"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-native-route.test.ts",
+      "source_location": "L74",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_native_route_test_sdkfixture",
+      "target": "mcp_external_worker_server_createexternalworkermcpserver"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/external-worker-server.ts",
+      "source_location": "L53",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_external_worker_server_hash",
+      "target": "mcp_external_worker_server_canonicaljson"
+    },
+    {
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "appraisejs/src/mcp/http-server.ts",
@@ -20023,6 +23029,753 @@
       "confidence_score": 1.0,
       "source": "mcp_managed_worker_server_digest",
       "target": "mcp_managed_worker_server_canonicalvalue"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/native-descriptor-capture.test.ts",
+      "source_location": "L4",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_native_descriptor_capture_test",
+      "target": "mcp_native_descriptor_capture"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/native-descriptor-capture.test.ts",
+      "source_location": "L4",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_native_descriptor_capture_test",
+      "target": "mcp_native_descriptor_capture_native_descriptor_limits"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/native-descriptor-capture.test.ts",
+      "source_location": "L4",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_native_descriptor_capture_test",
+      "target": "mcp_native_descriptor_capture_nativedescriptorcollector"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/native-descriptor-capture.test.ts",
+      "source_location": "L41",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_native_descriptor_capture_test",
+      "target": "mcp_native_descriptor_capture_test_capture"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/native-descriptor-capture.test.ts",
+      "source_location": "L11",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_native_descriptor_capture_test",
+      "target": "mcp_native_descriptor_capture_test_context"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/native-descriptor-capture.test.ts",
+      "source_location": "L34",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_native_descriptor_capture_test",
+      "target": "mcp_native_descriptor_capture_test_custom"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/native-descriptor-capture.test.ts",
+      "source_location": "L10",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_native_descriptor_capture_test",
+      "target": "mcp_native_descriptor_capture_test_digest"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/native-descriptor-capture.test.ts",
+      "source_location": "L27",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_native_descriptor_capture_test",
+      "target": "mcp_native_descriptor_capture_test_fn"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/native-descriptor-capture.test.ts",
+      "source_location": "L35",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_native_descriptor_capture_test",
+      "target": "mcp_native_descriptor_capture_test_request"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/native-descriptor-capture.test.ts",
+      "source_location": "L21",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_native_descriptor_capture_test",
+      "target": "mcp_native_descriptor_capture_test_schema"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/native-descriptor-capture.test.ts",
+      "source_location": "L4",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_native_descriptor_capture_test",
+      "target": "mcp_native_descriptor_capture_trusteddescriptorcontext"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "cucumber-runtime/src/locator.util.ts",
+      "source_location": "L42",
+      "weight": 1.0,
+      "source": "src_locator_util_retry",
+      "target": "mcp_native_descriptor_capture_test_fn"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/native-descriptor-capture.test.ts",
+      "source_location": "L41",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_native_descriptor_capture_test_capture",
+      "target": "mcp_native_descriptor_capture_test_request"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/native-descriptor-capture.ts",
+      "source_location": "L84",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_native_descriptor_capture",
+      "target": "mcp_native_descriptor_capture_canonical"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/native-descriptor-capture.ts",
+      "source_location": "L22",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_native_descriptor_capture",
+      "target": "mcp_native_descriptor_capture_capturedcallable"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/native-descriptor-capture.ts",
+      "source_location": "L71",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_native_descriptor_capture",
+      "target": "mcp_native_descriptor_capture_captureerror"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/native-descriptor-capture.ts",
+      "source_location": "L45",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_native_descriptor_capture",
+      "target": "mcp_native_descriptor_capture_descriptorcapture"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/native-descriptor-capture.ts",
+      "source_location": "L56",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_native_descriptor_capture",
+      "target": "mcp_native_descriptor_capture_descriptorcapturefailure"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/native-descriptor-capture.ts",
+      "source_location": "L69",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_native_descriptor_capture",
+      "target": "mcp_native_descriptor_capture_descriptorcaptureresult"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/native-descriptor-capture.ts",
+      "source_location": "L15",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_native_descriptor_capture",
+      "target": "mcp_native_descriptor_capture_descriptorcontainer"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/native-descriptor-capture.ts",
+      "source_location": "L222",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_native_descriptor_capture",
+      "target": "mcp_native_descriptor_capture_descriptorfields"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/native-descriptor-capture.ts",
+      "source_location": "L39",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_native_descriptor_capture",
+      "target": "mcp_native_descriptor_capture_descriptorrequest"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/native-descriptor-capture.ts",
+      "source_location": "L76",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_native_descriptor_capture",
+      "target": "mcp_native_descriptor_capture_fail"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/native-descriptor-capture.ts",
+      "source_location": "L296",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_native_descriptor_capture",
+      "target": "mcp_native_descriptor_capture_freezetree"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/native-descriptor-capture.ts",
+      "source_location": "L79",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_native_descriptor_capture",
+      "target": "mcp_native_descriptor_capture_hashbytes"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/native-descriptor-capture.ts",
+      "source_location": "L91",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_native_descriptor_capture",
+      "target": "mcp_native_descriptor_capture_hashvalue"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/native-descriptor-capture.ts",
+      "source_location": "L94",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_native_descriptor_capture",
+      "target": "mcp_native_descriptor_capture_inspectjsonlexically"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/native-descriptor-capture.ts",
+      "source_location": "L13",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_native_descriptor_capture",
+      "target": "mcp_native_descriptor_capture_json"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/native-descriptor-capture.ts",
+      "source_location": "L4",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_native_descriptor_capture",
+      "target": "mcp_native_descriptor_capture_native_descriptor_limits"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/native-descriptor-capture.ts",
+      "source_location": "L303",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_native_descriptor_capture",
+      "target": "mcp_native_descriptor_capture_nativedescriptorcollector"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/native-descriptor-capture.ts",
+      "source_location": "L14",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_native_descriptor_capture",
+      "target": "mcp_native_descriptor_capture_nativetooldescriptor"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/native-descriptor-capture.ts",
+      "source_location": "L80",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_native_descriptor_capture",
+      "target": "mcp_native_descriptor_capture_own"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/native-descriptor-capture.ts",
+      "source_location": "L81",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_native_descriptor_capture",
+      "target": "mcp_native_descriptor_capture_record"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/native-descriptor-capture.ts",
+      "source_location": "L29",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_native_descriptor_capture",
+      "target": "mcp_native_descriptor_capture_trusteddescriptorcontext"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/native-descriptor-capture.ts",
+      "source_location": "L165",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_native_descriptor_capture",
+      "target": "mcp_native_descriptor_capture_validatecontext"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/native-descriptor-capture.ts",
+      "source_location": "L233",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_native_descriptor_capture",
+      "target": "mcp_native_descriptor_capture_validatedescriptor"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/native-descriptor-capture.ts",
+      "source_location": "L207",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_native_descriptor_capture",
+      "target": "mcp_native_descriptor_capture_validatejson"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/native-descriptor-capture.ts",
+      "source_location": "L189",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_native_descriptor_capture",
+      "target": "mcp_native_descriptor_capture_validaterequest"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-native-route.ts",
+      "source_location": "L10",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_native_route",
+      "target": "mcp_native_descriptor_capture"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-native-route.test.ts",
+      "source_location": "L9",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_native_route_test",
+      "target": "mcp_native_descriptor_capture"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-native-route.ts",
+      "source_location": "L10",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_native_route",
+      "target": "mcp_native_descriptor_capture_trusteddescriptorcontext"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-native-route.test.ts",
+      "source_location": "L9",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_native_route_test",
+      "target": "mcp_native_descriptor_capture_trusteddescriptorcontext"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-native-route.ts",
+      "source_location": "L10",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_native_route",
+      "target": "mcp_native_descriptor_capture_descriptorrequest"
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/native-descriptor-capture.ts",
+      "source_location": "L72",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_native_descriptor_capture_captureerror",
+      "target": "mcp_native_descriptor_capture_captureerror_constructor"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/native-descriptor-capture.ts",
+      "source_location": "L162",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_native_descriptor_capture_inspectjsonlexically",
+      "target": "mcp_native_descriptor_capture_fail"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/native-descriptor-capture.ts",
+      "source_location": "L318",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_native_descriptor_capture_nativedescriptorcollector_capture",
+      "target": "mcp_native_descriptor_capture_fail"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/native-descriptor-capture.ts",
+      "source_location": "L166",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_native_descriptor_capture_validatecontext",
+      "target": "mcp_native_descriptor_capture_fail"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/native-descriptor-capture.ts",
+      "source_location": "L234",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_native_descriptor_capture_validatedescriptor",
+      "target": "mcp_native_descriptor_capture_fail"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/native-descriptor-capture.ts",
+      "source_location": "L208",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_native_descriptor_capture_validatejson",
+      "target": "mcp_native_descriptor_capture_fail"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/native-descriptor-capture.ts",
+      "source_location": "L191",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_native_descriptor_capture_validaterequest",
+      "target": "mcp_native_descriptor_capture_fail"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/native-descriptor-capture.ts",
+      "source_location": "L91",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_native_descriptor_capture_hashvalue",
+      "target": "mcp_native_descriptor_capture_hashbytes"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/native-descriptor-capture.ts",
+      "source_location": "L427",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_native_descriptor_capture_nativedescriptorcollector_capture",
+      "target": "mcp_native_descriptor_capture_hashbytes"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/native-descriptor-capture.ts",
+      "source_location": "L328",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_native_descriptor_capture_nativedescriptorcollector_capture",
+      "target": "mcp_native_descriptor_capture_own"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/native-descriptor-capture.ts",
+      "source_location": "L239",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_native_descriptor_capture_validatedescriptor",
+      "target": "mcp_native_descriptor_capture_own"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/native-descriptor-capture.ts",
+      "source_location": "L201",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_native_descriptor_capture_validaterequest",
+      "target": "mcp_native_descriptor_capture_own"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/native-descriptor-capture.ts",
+      "source_location": "L86",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_native_descriptor_capture_canonical",
+      "target": "mcp_native_descriptor_capture_record"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/native-descriptor-capture.ts",
+      "source_location": "L326",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_native_descriptor_capture_nativedescriptorcollector_capture",
+      "target": "mcp_native_descriptor_capture_record"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/native-descriptor-capture.ts",
+      "source_location": "L166",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_native_descriptor_capture_validatecontext",
+      "target": "mcp_native_descriptor_capture_record"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/native-descriptor-capture.ts",
+      "source_location": "L234",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_native_descriptor_capture_validatedescriptor",
+      "target": "mcp_native_descriptor_capture_record"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/native-descriptor-capture.ts",
+      "source_location": "L215",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_native_descriptor_capture_validatejson",
+      "target": "mcp_native_descriptor_capture_record"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/native-descriptor-capture.ts",
+      "source_location": "L190",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_native_descriptor_capture_validaterequest",
+      "target": "mcp_native_descriptor_capture_record"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/native-descriptor-capture.ts",
+      "source_location": "L91",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_native_descriptor_capture_hashvalue",
+      "target": "mcp_native_descriptor_capture_canonical"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/native-descriptor-capture.ts",
+      "source_location": "L410",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_native_descriptor_capture_nativedescriptorcollector_capture",
+      "target": "mcp_native_descriptor_capture_hashvalue"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/native-descriptor-capture.ts",
+      "source_location": "L315",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_native_descriptor_capture_nativedescriptorcollector_capture",
+      "target": "mcp_native_descriptor_capture_inspectjsonlexically"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/native-descriptor-capture.ts",
+      "source_location": "L310",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_native_descriptor_capture_nativedescriptorcollector_capture",
+      "target": "mcp_native_descriptor_capture_validatecontext"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/native-descriptor-capture.ts",
+      "source_location": "L311",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_native_descriptor_capture_nativedescriptorcollector_capture",
+      "target": "mcp_native_descriptor_capture_validaterequest"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/native-descriptor-capture.ts",
+      "source_location": "L236",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_native_descriptor_capture_validatedescriptor",
+      "target": "mcp_native_descriptor_capture_validatejson"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/native-descriptor-capture.ts",
+      "source_location": "L437",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_native_descriptor_capture_nativedescriptorcollector_capture",
+      "target": "mcp_native_descriptor_capture_freezetree"
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/native-descriptor-capture.ts",
+      "source_location": "L306",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_native_descriptor_capture_nativedescriptorcollector",
+      "target": "mcp_native_descriptor_capture_nativedescriptorcollector_capture"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-native-route.ts",
+      "source_location": "L10",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_native_route",
+      "target": "mcp_native_descriptor_capture_nativedescriptorcollector"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-native-route.test.ts",
+      "source_location": "L9",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_native_route_test",
+      "target": "mcp_native_descriptor_capture_nativedescriptorcollector"
     },
     {
       "relation": "contains",
@@ -20454,6 +24207,17 @@
       "target": "mcp_registry"
     },
     {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-bridge.ts",
+      "source_location": "L3",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_bridge",
+      "target": "mcp_registry"
+    },
+    {
       "relation": "imports",
       "context": "import",
       "confidence": "EXTRACTED",
@@ -20462,6 +24226,17 @@
       "weight": 1.0,
       "confidence_score": 1.0,
       "source": "mcp_repository_collaboration_test",
+      "target": "mcp_registry_mcpregistrycontext"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-bridge.ts",
+      "source_location": "L3",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_bridge",
       "target": "mcp_registry_mcpregistrycontext"
     },
     {
@@ -21089,6 +24864,692 @@
       "confidence_score": 1.0,
       "source": "mcp_stdio_server",
       "target": "mcp_stdio_server_runappraisemcp"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-bridge.ts",
+      "source_location": "L9",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_bridge",
+      "target": "mcp_trusted_worker_bridge_action"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-bridge.ts",
+      "source_location": "L28",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_bridge",
+      "target": "mcp_trusted_worker_bridge_actions"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-bridge.ts",
+      "source_location": "L45",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_bridge",
+      "target": "mcp_trusted_worker_bridge_canonicaljson"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-bridge.ts",
+      "source_location": "L36",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_bridge",
+      "target": "mcp_trusted_worker_bridge_copybounded"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-bridge.ts",
+      "source_location": "L323",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_bridge",
+      "target": "mcp_trusted_worker_bridge_createloopbacktrustedworkerexchange"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-bridge.ts",
+      "source_location": "L255",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_bridge",
+      "target": "mcp_trusted_worker_bridge_createtrustedworkerbridgeclient"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-bridge.ts",
+      "source_location": "L300",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_bridge",
+      "target": "mcp_trusted_worker_bridge_createtrustedworkerbridgeendpoint"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-bridge.ts",
+      "source_location": "L63",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_bridge",
+      "target": "mcp_trusted_worker_bridge_createtrustedworkerbridgeserver"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-bridge.ts",
+      "source_location": "L41",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_bridge",
+      "target": "mcp_trusted_worker_bridge_exact"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-bridge.ts",
+      "source_location": "L30",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_bridge",
+      "target": "mcp_trusted_worker_bridge_jsonbytes"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-bridge.ts",
+      "source_location": "L57",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_bridge",
+      "target": "mcp_trusted_worker_bridge_record"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-bridge.ts",
+      "source_location": "L10",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_bridge",
+      "target": "mcp_trusted_worker_bridge_stage"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-bridge.ts",
+      "source_location": "L25",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_bridge",
+      "target": "mcp_trusted_worker_bridge_trustedworkerbridgeexchange"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-bridge.ts",
+      "source_location": "L12",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_bridge",
+      "target": "mcp_trusted_worker_bridge_trustedworkerbridgerequest"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-bridge.ts",
+      "source_location": "L19",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_bridge",
+      "target": "mcp_trusted_worker_bridge_trustedworkerbridgeresponse"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-bridge.ts",
+      "source_location": "L37",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_bridge_copybounded",
+      "target": "mcp_trusted_worker_bridge_jsonbytes"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-bridge.ts",
+      "source_location": "L82",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_bridge_createtrustedworkerbridgeserver",
+      "target": "mcp_trusted_worker_bridge_copybounded"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-bridge.ts",
+      "source_location": "L42",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_bridge_exact",
+      "target": "mcp_trusted_worker_bridge_canonicaljson"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-native-route.test.ts",
+      "source_location": "L10",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_native_route_test",
+      "target": "mcp_trusted_worker_native_route"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-native-route.test.ts",
+      "source_location": "L10",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_native_route_test",
+      "target": "mcp_trusted_worker_native_route_constructtrustedworkernativecall"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-native-route.test.ts",
+      "source_location": "L10",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_native_route_test",
+      "target": "mcp_trusted_worker_native_route_constructtrustedworkerrejectionprobe"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-native-route.test.ts",
+      "source_location": "L10",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_native_route_test",
+      "target": "mcp_trusted_worker_native_route_correlatetrustedworkernativecalls"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-native-route.test.ts",
+      "source_location": "L10",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_native_route_test",
+      "target": "mcp_trusted_worker_native_route_preparetrustedworkernativeroute"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-native-route.test.ts",
+      "source_location": "L45",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_native_route_test",
+      "target": "mcp_trusted_worker_native_route_test_binding"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-native-route.test.ts",
+      "source_location": "L20",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_native_route_test",
+      "target": "mcp_trusted_worker_native_route_test_context"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-native-route.test.ts",
+      "source_location": "L30",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_native_route_test",
+      "target": "mcp_trusted_worker_native_route_test_hash"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-native-route.test.ts",
+      "source_location": "L175",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_native_route_test",
+      "target": "mcp_trusted_worker_native_route_test_routeinput"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-native-route.test.ts",
+      "source_location": "L67",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_native_route_test",
+      "target": "mcp_trusted_worker_native_route_test_sdkfixture"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-native-route.test.ts",
+      "source_location": "L10",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_native_route_test",
+      "target": "mcp_trusted_worker_native_route_trustedrouteinput"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-native-route.test.ts",
+      "source_location": "L10",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_native_route_test",
+      "target": "mcp_trusted_worker_native_route_trustedwrappercodec"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "appraisejs/src/mcp/trusted-worker-native-route.test.ts",
+      "source_location": "L42",
+      "weight": 1.0,
+      "source": "mcp_trusted_worker_native_route_test_hash",
+      "target": "mcp_trusted_worker_native_route_stable"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-native-route.test.ts",
+      "source_location": "L69",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_native_route_test_sdkfixture",
+      "target": "mcp_trusted_worker_native_route_test_binding"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-native-route.ts",
+      "source_location": "L74",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_native_route",
+      "target": "mcp_trusted_worker_native_route_blocked"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-native-route.ts",
+      "source_location": "L281",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_native_route",
+      "target": "mcp_trusted_worker_native_route_constructedtrustedcall"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-native-route.ts",
+      "source_location": "L364",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_native_route",
+      "target": "mcp_trusted_worker_native_route_constructedtrustedrejectionprobe"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-native-route.ts",
+      "source_location": "L295",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_native_route",
+      "target": "mcp_trusted_worker_native_route_constructtrustedworkernativecall"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-native-route.ts",
+      "source_location": "L388",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_native_route",
+      "target": "mcp_trusted_worker_native_route_constructtrustedworkerrejectionprobe"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-native-route.ts",
+      "source_location": "L541",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_native_route",
+      "target": "mcp_trusted_worker_native_route_correlatetrustedworkernativecalls"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-native-route.ts",
+      "source_location": "L71",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_native_route",
+      "target": "mcp_trusted_worker_native_route_hash"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-native-route.ts",
+      "source_location": "L72",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_native_route",
+      "target": "mcp_trusted_worker_native_route_isobject"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-native-route.ts",
+      "source_location": "L17",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_native_route",
+      "target": "mcp_trusted_worker_native_route_jsonobject"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-native-route.ts",
+      "source_location": "L116",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_native_route",
+      "target": "mcp_trusted_worker_native_route_preparedtrustedroute"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-native-route.ts",
+      "source_location": "L141",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_native_route",
+      "target": "mcp_trusted_worker_native_route_preparetrustedworkernativeroute"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-native-route.ts",
+      "source_location": "L16",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_native_route",
+      "target": "mcp_trusted_worker_native_route_profile"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-native-route.ts",
+      "source_location": "L31",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_native_route",
+      "target": "mcp_trusted_worker_native_route_rejectedabsentoperations"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-native-route.ts",
+      "source_location": "L21",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_native_route",
+      "target": "mcp_trusted_worker_native_route_rejectedauthorityfields"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-native-route.ts",
+      "source_location": "L39",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_native_route",
+      "target": "mcp_trusted_worker_native_route_rejectionselectors"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-native-route.ts",
+      "source_location": "L59",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_native_route",
+      "target": "mcp_trusted_worker_native_route_stable"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-native-route.ts",
+      "source_location": "L97",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_native_route",
+      "target": "mcp_trusted_worker_native_route_trustednativeroute"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-native-route.ts",
+      "source_location": "L57",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_native_route",
+      "target": "mcp_trusted_worker_native_route_trustedrejectionselector"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-native-route.ts",
+      "source_location": "L104",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_native_route",
+      "target": "mcp_trusted_worker_native_route_trustedrouteinput"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-native-route.ts",
+      "source_location": "L83",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_native_route",
+      "target": "mcp_trusted_worker_native_route_trustedwrappercodec"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-native-route.ts",
+      "source_location": "L331",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_native_route_constructtrustedworkernativecall",
+      "target": "mcp_trusted_worker_native_route_stable"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-native-route.ts",
+      "source_location": "L501",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_native_route_constructtrustedworkerrejectionprobe",
+      "target": "mcp_trusted_worker_native_route_stable"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-native-route.ts",
+      "source_location": "L608",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_native_route_correlatetrustedworkernativecalls",
+      "target": "mcp_trusted_worker_native_route_stable"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-native-route.ts",
+      "source_location": "L71",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_native_route_hash",
+      "target": "mcp_trusted_worker_native_route_stable"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-native-route.ts",
+      "source_location": "L334",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_native_route_constructtrustedworkernativecall",
+      "target": "mcp_trusted_worker_native_route_isobject"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-native-route.ts",
+      "source_location": "L432",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_native_route_constructtrustedworkerrejectionprobe",
+      "target": "mcp_trusted_worker_native_route_isobject"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-native-route.ts",
+      "source_location": "L211",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_native_route_preparetrustedworkernativeroute",
+      "target": "mcp_trusted_worker_native_route_isobject"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-native-route.ts",
+      "source_location": "L308",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_native_route_constructtrustedworkernativecall",
+      "target": "mcp_trusted_worker_native_route_blocked"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-native-route.ts",
+      "source_location": "L403",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_native_route_constructtrustedworkerrejectionprobe",
+      "target": "mcp_trusted_worker_native_route_blocked"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-native-route.ts",
+      "source_location": "L559",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_native_route_correlatetrustedworkernativecalls",
+      "target": "mcp_trusted_worker_native_route_blocked"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-native-route.ts",
+      "source_location": "L146",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_native_route_preparetrustedworkernativeroute",
+      "target": "mcp_trusted_worker_native_route_blocked"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-native-route.ts",
+      "source_location": "L306",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_native_route_constructtrustedworkernativecall",
+      "target": "mcp_trusted_worker_native_route_preparetrustedworkernativeroute"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-native-route.ts",
+      "source_location": "L401",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_native_route_constructtrustedworkerrejectionprobe",
+      "target": "mcp_trusted_worker_native_route_preparetrustedworkernativeroute"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-native-route.ts",
+      "source_location": "L557",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_native_route_correlatetrustedworkernativecalls",
+      "target": "mcp_trusted_worker_native_route_preparetrustedworkernativeroute"
     },
     {
       "relation": "imports_from",
@@ -36824,5 +41285,5 @@
       "source_file": "appraisejs/agent-skills/appraise-planning-standby/SKILL.md"
     }
   ],
-  "built_at_commit": "844457921ff9106d48d06a6cf7493b5af8223fce"
+  "built_at_commit": "8d4be5c83597bb17ac756f98502738db8a69d344"
 }

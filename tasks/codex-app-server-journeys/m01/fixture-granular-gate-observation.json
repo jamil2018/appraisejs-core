@@ -1,0 +1,60 @@
+{
+  "evidenceClass": "actual-binary-rpc-only-no-model-request-variants",
+  "binarySha256": "0d5ac7aae20c4eda6242428d5e218c55ba96d8763fda2a271088ff37104b9d28",
+  "sourceSha256": "86c4d21ad0b3d2d805e4a09f013566fd6de10aac4ebcd0831eca804a1c24216b",
+  "sharedClientSourceSha256": "a78543ff514cf2c8e3860ea080205d664e572a4ef6f2d06ff7a5919ce266ff0d",
+  "configSha256": "ec1783647eff5330d74e4900ca8da972726ddde352c5d1103163c899bcde251e",
+  "cases": [],
+  "requests": [],
+  "events": [],
+  "processExits": [0],
+  "turnStarts": 0,
+  "externalInferenceTurns": 0,
+  "permissionGrants": 0,
+  "nativeExecCalls": 0,
+  "m01Complete": false,
+  "fixturePolicyException": true,
+  "approvalPolicy": {
+    "granular": {
+      "mcp_elicitations": true,
+      "sandbox_approval": false,
+      "rules": false,
+      "request_permissions": false,
+      "skill_approval": false
+    }
+  },
+  "fixtureExceptionDocumentSha256": "f6a117f1b2b8dac322ac733c7553b0e427f8f59cbe729950556ca20e243dfa32",
+  "schemaManifestSha256": "a725c3a629e0dd5a8b27612dc23a7172d88073ec89c708bd8ed4359344f9402c",
+  "processStarts": 1,
+  "userAgent": "appraise_m01_variants/0.162.0-alpha.17.2 (Mac OS 27.0.1; arm64) unknown (appraise_m01_variants; 0.1)",
+  "effectiveConfigSha256": "f60f8fb2e56ad3eb76d2921442fa2c92aac4fe7e0ce05c694c4aa08787afe22f",
+  "parkedReason": "RuntimeError: RPC rejected: thread/start; park",
+  "authFilePresent": false,
+  "intents": [
+    {
+      "method": "owned-process-launch",
+      "transportGeneration": 1
+    },
+    {
+      "id": 1,
+      "transportGeneration": 1,
+      "method": "initialize",
+      "paramsSha256": "1870da3a6922f1e575d6482480652dce7962241fd346e45dedd593a37ca530ac",
+      "atUtc": "2026-10-13T19:18:52Z"
+    },
+    {
+      "id": 2,
+      "transportGeneration": 1,
+      "method": "config/read",
+      "paramsSha256": "c07367287b12fba74f66dcf8eec62cecb5d167b520a17c680938e21bc873aef6",
+      "atUtc": "2026-10-13T19:18:52Z"
+    },
+    {
+      "id": 3,
+      "transportGeneration": 1,
+      "method": "thread/start",
+      "paramsSha256": "fdb5d4126eac5ad32ed8087e1a704118758d9372a58f1b2c00db256b4aabd861",
+      "atUtc": "2026-10-13T19:18:52Z"
+    }
+  ]
+}

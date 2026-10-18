@@ -1,0 +1,220 @@
+{
+  "schema": "appraise.m02-r55-native-terminal-evidence-index/v1",
+  "root": "/private/tmp/appraise-m02-ta-workspace-p4",
+  "rootIdentity": {
+    "dev": 16777230,
+    "ino": 71579449
+  },
+  "files": [
+    {
+      "originalPath": "/private/tmp/appraise-m02-ta-workspace-p4/phase-journal.jsonl",
+      "copy": "phase-journal.jsonl",
+      "sha256": "826940323560a99375cba2d01592ca07ac24395330b349dcc348227b9071d73b",
+      "bytes": 14522,
+      "originalIdentity": {
+        "dev": 16777230,
+        "ino": 71579450,
+        "uid": 503,
+        "mode": 33152
+      }
+    },
+    {
+      "originalPath": "/private/tmp/appraise-m02-ta-workspace-p4/cases/N01/supervisor/case-outcome.json",
+      "copy": "N01--case-outcome.json",
+      "sha256": "bc08b4eb4c97e2b4f2365136fe79f3f8c067c3adc27c3e6d3e51a61204824586",
+      "bytes": 5109,
+      "originalIdentity": {
+        "dev": 16777230,
+        "ino": 71593494,
+        "uid": 503,
+        "mode": 33152
+      }
+    },
+    {
+      "originalPath": "/private/tmp/appraise-m02-ta-workspace-p4/cases/N01/supervisor/mcp-exit.json",
+      "copy": "N01--mcp-exit.json",
+      "sha256": "3c884ad2ce007f5df6ef0d0046f73ae7d4b8c28d9e6fb6e519da1a8e4d0bae1e",
+      "bytes": 427,
+      "originalIdentity": {
+        "dev": 16777230,
+        "ino": 71593493,
+        "uid": 503,
+        "mode": 33152
+      }
+    },
+    {
+      "originalPath": "/private/tmp/appraise-m02-ta-workspace-p4/cases/N01/supervisor/mcp-startup.json",
+      "copy": "N01--mcp-startup.json",
+      "sha256": "72243c84c9b887c771253c933b80cbf4b4517af96e75d9664ff77daca51658e1",
+      "bytes": 417,
+      "originalIdentity": {
+        "dev": 16777230,
+        "ino": 71585619,
+        "uid": 503,
+        "mode": 33152
+      }
+    },
+    {
+      "originalPath": "/private/tmp/appraise-m02-ta-workspace-p4/cases/N01/supervisor/provider-response-1.json",
+      "copy": "N01--provider-response-1.json",
+      "sha256": "9f3b266001a8ed5afcdef0c2d3503ac6569eb1a5b7e0a93baf1249d49db1a484",
+      "bytes": 592,
+      "originalIdentity": {
+        "dev": 16777230,
+        "ino": 71585630,
+        "uid": 503,
+        "mode": 33152
+      }
+    },
+    {
+      "originalPath": "/private/tmp/appraise-m02-ta-workspace-p4/cases/N01/supervisor/provider-response-2.json",
+      "copy": "N01--provider-response-2.json",
+      "sha256": "5dc674b900b595806a3d938b71a763af9b8ae94544fe2b65b213e63b8a1ad3e4",
+      "bytes": 647,
+      "originalIdentity": {
+        "dev": 16777230,
+        "ino": 71585633,
+        "uid": 503,
+        "mode": 33152
+      }
+    },
+    {
+      "originalPath": "/private/tmp/appraise-m02-ta-workspace-p4/cases/N01/supervisor/script-plan.json",
+      "copy": "N01--script-plan.json",
+      "sha256": "5b783d30649183b6c113173a96776d4f744329a91487172feb5fe776ac35f4c6",
+      "bytes": 705,
+      "originalIdentity": {
+        "dev": 16777230,
+        "ino": 71585401,
+        "uid": 503,
+        "mode": 33152
+      }
+    },
+    {
+      "originalPath": "/private/tmp/appraise-m02-ta-workspace-p4/cases/N01/supervisor/workspace-proof.json",
+      "copy": "N01--workspace-proof.json",
+      "sha256": "2fa39390a61a17b712b4eae75a70bebc1ae3699074a2e5b94946d1d43c445775",
+      "bytes": 506,
+      "originalIdentity": {
+        "dev": 16777230,
+        "ino": 71585632,
+        "uid": 503,
+        "mode": 33152
+      }
+    },
+    {
+      "originalPath": "/private/tmp/appraise-m02-ta-workspace-p4/cases/N02/supervisor/case-outcome.json",
+      "copy": "N02--case-outcome.json",
+      "sha256": "15ff0d583743e9e405b9d6724c1c9b3394cfa106f0f9e4b1a9f99d379d2fc138",
+      "bytes": 5107,
+      "originalIdentity": {
+        "dev": 16777230,
+        "ino": 71601640,
+        "uid": 503,
+        "mode": 33152
+      }
+    },
+    {
+      "originalPath": "/private/tmp/appraise-m02-ta-workspace-p4/cases/N02/supervisor/mcp-exit.json",
+      "copy": "N02--mcp-exit.json",
+      "sha256": "19434baa66ec30d6a4572aef40e4372a399f80d5819d7bcf68db3c9335f2bc10",
+      "bytes": 427,
+      "originalIdentity": {
+        "dev": 16777230,
+        "ino": 71601639,
+        "uid": 503,
+        "mode": 33152
+      }
+    },
+    {
+      "originalPath": "/private/tmp/appraise-m02-ta-workspace-p4/cases/N02/supervisor/mcp-startup.json",
+      "copy": "N02--mcp-startup.json",
+      "sha256": "25334113eb83a5aba5ed67207b15f834b5fe6fc796906189ddec11f009f07981",
+      "bytes": 417,
+      "originalIdentity": {
+        "dev": 16777230,
+        "ino": 71593784,
+        "uid": 503,
+        "mode": 33152
+      }
+    },
+    {
+      "originalPath": "/private/tmp/appraise-m02-ta-workspace-p4/cases/N02/supervisor/provider-response-1.json",
+      "copy": "N02--provider-response-1.json",
+      "sha256": "cb15dbad97af476002dedb806dc06e906049028a0807c7f5cb5c712d6a31da7c",
+      "bytes": 592,
+      "originalIdentity": {
+        "dev": 16777230,
+        "ino": 71593795,
+        "uid": 503,
+        "mode": 33152
+      }
+    },
+    {
+      "originalPath": "/private/tmp/appraise-m02-ta-workspace-p4/cases/N02/supervisor/provider-response-2.json",
+      "copy": "N02--provider-response-2.json",
+      "sha256": "bf0ead51ec9451d18977d66637095946dda565eee99b8977658e5fdb9b379d4d",
+      "bytes": 647,
+      "originalIdentity": {
+        "dev": 16777230,
+        "ino": 71593798,
+        "uid": 503,
+        "mode": 33152
+      }
+    },
+    {
+      "originalPath": "/private/tmp/appraise-m02-ta-workspace-p4/cases/N02/supervisor/script-plan.json",
+      "copy": "N02--script-plan.json",
+      "sha256": "63b356ba617eb299ec3438a0d18f6e8d347fb8d6f62e75174b378c6348ceca4e",
+      "bytes": 704,
+      "originalIdentity": {
+        "dev": 16777230,
+        "ino": 71593569,
+        "uid": 503,
+        "mode": 33152
+      }
+    },
+    {
+      "originalPath": "/private/tmp/appraise-m02-ta-workspace-p4/cases/N02/supervisor/workspace-proof.json",
+      "copy": "N02--workspace-proof.json",
+      "sha256": "1246da604f42a8cd210d0eadca48b9038d088304dc8123f0ef27d11099f113a3",
+      "bytes": 506,
+      "originalIdentity": {
+        "dev": 16777230,
+        "ino": 71593797,
+        "uid": 503,
+        "mode": 33152
+      }
+    },
+    {
+      "originalPath": "/private/tmp/appraise-m02-ta-workspace-p4/cases/N01/workspace/scratch/n01.txt",
+      "copy": "N01--scratch.txt",
+      "sha256": "fd5a91b572727c6e571e72b819ead84d1c42cc6f4348a48c00658fffc506dbce",
+      "bytes": 11,
+      "originalIdentity": {
+        "dev": 16777230,
+        "ino": 71585631,
+        "uid": 503,
+        "mode": 33152
+      }
+    },
+    {
+      "originalPath": "/private/tmp/appraise-m02-ta-workspace-p4/cases/N02/workspace/scratch/n02.txt",
+      "copy": "N02--scratch.txt",
+      "sha256": "2cc3e5422a4322245c5ee13bc78d6cc3558f6aa09d9de80ffc6884f75fc0e707",
+      "bytes": 11,
+      "originalIdentity": {
+        "dev": 16777230,
+        "ino": 71593796,
+        "uid": 503,
+        "mode": 33152
+      }
+    }
+  ],
+  "journalRecords": 62,
+  "journalLastHash": "098773e58c5c20ca8eaab2e1793609149b58a74a41853c2accf5679fbc048234",
+  "journalChainVerified": true,
+  "rawProviderAccountAuthHistoryOrDatabaseCopied": false,
+  "originalsRewritten": false,
+  "runtimeAuthority": false
+}

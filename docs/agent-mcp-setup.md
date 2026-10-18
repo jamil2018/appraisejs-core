@@ -1,3 +1,5 @@
+> Current shipping checkpoint: [M02 scripted qualification accepted](../tasks/codex-app-server-journeys/M02-SHIPPED-SCRIPTED-QUALIFICATION-01.md). T2 R51 passed24/24 andT3 R55 passed2/2; final exact evidence review accepted within TA02/TA03 limits. `runtimeQualified` remains false; helper lifetime/global inventory and historical cleanup remain unobserved. No M03 or production dispatch authority follows. Older status passages below remain historical.
+
 # MCP Setup For Quality Work
 
 For the complete operator path from setup through handoff, recovery, and upgrade, see the
@@ -124,3 +126,17 @@ role execution or replace lifecycle gates.
 Opening Codex does not establish a connection or start work: the documented prefill flow requires the user to send,
 then authenticated handoff redemption and authoritative state reads. The plugin supplies workflow guidance while
 Appraise services enforce lifecycle transitions. No managed provider/fork or background-wake guarantee is introduced.
+
+## Disconnected external-worker gateway (M02-A)
+
+The package's `src/mcp/external-worker-gateway.ts` provides an additive in-process six-role gateway.
+It is not a CLI mode, registered connection or product dispatch path. It captures canonical schemas
+without creating a coordinator client or opening a transport. Explicit registration exposes only
+role reads and the specialized external write, with strict worker schemas and no resources.
+Read preparation filters exact assignment records and projects fixed fields; it never forwards broad
+GET/search results. Trusted adapters must supply canonical frozen inputs, current authorization and
+independently verified durable acceptance. They are not implemented production integrations in M02-A.
+
+See [M02-A evidence and limits](../tasks/codex-app-server-journeys/m02-a-qualification.md). No role
+grant, native inference, credential isolation, OS containment or mandatory M03 host session is
+qualified by these deterministic fixtures. Product managed dispatch remains disabled/unimplemented.

@@ -1,0 +1,11 @@
+# R25 native late-case observation
+
+2026-10-17. The user explicitly approved one exact R25/p11 invocation. It ran once and stopped UNKNOWN/B01, completed0, with59 chain-verified records,27 reservations and27 ACKs, and no pending reservation. Two audited scoped calls yielded RESULT_CORRELATED provider continuations. This changes the known native boundary: the previous first-call/audit/continuation refusal was crossed in B01. It does not qualify canonical acceptance, all24 cases or completion.
+
+The next missing observation is the late-case stage/conjunct. The frozen runner has no failure receipt for terminal/host/cleanup/canonical/child/evidence/witness/commit exceptions. Absence of a case witness does not distinguish those operations. Preserve UNKNOWN rather than weakening cleanup or canonical criteria. A fixed stage and PASS/FAIL/NOT_REACHED diagnostic is proposed; no functional cause is inferred or correction implemented.
+
+All reservations ACKed is weaker than case completion. Owned-stop plus MCP child exit0 is weaker than complete cleanup. Preserve R25 cleanup UNKNOWN and source capacity4, and preserve R23/R24's separate pending request2 and consumed allocations. No retry, repair, successor, historical cleanup or T3 followed this consumed approval.
+
+Root remained the sole native/integration owner. One independent bounded actual-evidence review verifies exact approval/command binding, sanitized pairs, journal chain/counters, preservation and attribution limits. Existing offline artifacts and accepted pre-native handoff stay byte-immutable; the new native handoff supersedes their readiness status. No native role/model/context/sandbox enforcement is claimed without host proof. This observation introduces no harness policy, prompt, routing, model, permission or quality-gate change.
+
+The native score record was rejected because the ledger requires effective none/bounded host context for its independent judge. The requested bounded packet is not effective-host proof. The rejection is retained in `.appraisejs/m02-r25-native-routing-score-limitation-01.json`; no score is claimed, no proof was fabricated and no gate/policy was weakened. The artifact assessment remains available with host context enforcement UNATTESTED.

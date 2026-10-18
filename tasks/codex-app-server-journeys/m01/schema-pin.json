@@ -1,0 +1,128 @@
+{
+  "generator": ["app-server", "generate-json-schema", "--out", "<disposable-dir>"],
+  "experimental": false,
+  "fileCount": 317,
+  "manifestSha256": "a725c3a629e0dd5a8b27612dc23a7172d88073ec89c708bd8ed4359344f9402c",
+  "bundles": [
+    {
+      "file": "codex_app_server_protocol.schemas.json",
+      "sha256": "c7338bc0830b61fb07ba35325d4fbeb8207a919e53468c664dda5803aacb6c8e"
+    },
+    {
+      "file": "codex_app_server_protocol.v2.schemas.json",
+      "sha256": "6f622f94329e648ffcee48be34b78a35da19e55598fd71241dbb08508195c46d"
+    }
+  ],
+  "selectedSurface": {
+    "v1/InitializeParams.json": {
+      "sha256": "b55124e7c0f36a1789396daa5578217a92be67f053903696236686e59f6f212e",
+      "required": ["clientInfo"],
+      "properties": ["capabilities", "clientInfo"]
+    },
+    "v1/InitializeResponse.json": {
+      "sha256": "62ad689c2cb6379913c1d72749cfd8de5089d35760214123518eb92eef11acc9",
+      "required": ["codexHome", "platformFamily", "platformOs", "userAgent"],
+      "properties": ["codexHome", "platformFamily", "platformOs", "userAgent"]
+    },
+    "v2/ThreadStartParams.json": {
+      "sha256": "e9c6d3cc18d049bfbc0249add3808fb8e5a27e1a0b5a423767aafbc3859a9428",
+      "required": [],
+      "properties": [
+        "approvalPolicy",
+        "approvalsReviewer",
+        "baseInstructions",
+        "config",
+        "cwd",
+        "developerInstructions",
+        "ephemeral",
+        "model",
+        "modelProvider",
+        "personality",
+        "sandbox",
+        "serviceName",
+        "serviceTier",
+        "sessionStartSource",
+        "threadSource"
+      ]
+    },
+    "v2/ThreadResumeParams.json": {
+      "sha256": "948779cace55dda4384689a1627cd6675aa4782744bb5820cca16bfc0118586c",
+      "required": ["threadId"],
+      "properties": [
+        "approvalPolicy",
+        "approvalsReviewer",
+        "baseInstructions",
+        "config",
+        "cwd",
+        "developerInstructions",
+        "excludeTurns",
+        "model",
+        "modelProvider",
+        "personality",
+        "sandbox",
+        "serviceTier",
+        "threadId"
+      ]
+    },
+    "v2/TurnStartParams.json": {
+      "sha256": "583aff13e7a2da43fbb0150e0edc3c73171f374f0aa745dddba256166988a005",
+      "required": ["input", "threadId"],
+      "properties": [
+        "approvalPolicy",
+        "approvalsReviewer",
+        "clientUserMessageId",
+        "cwd",
+        "disabledPluginIds",
+        "effort",
+        "input",
+        "model",
+        "outputSchema",
+        "parentTurnId",
+        "personality",
+        "rootTurnId",
+        "sandboxPolicy",
+        "serviceTier",
+        "serviceTierForTurn",
+        "summary",
+        "threadId",
+        "toolOutput",
+        "turnTrigger"
+      ]
+    },
+    "v2/TurnInterruptParams.json": {
+      "sha256": "6dff382dae73d1dbc58406ed045605f647e7a49660e2540fbd2c6c24d60c5f2b",
+      "required": ["threadId", "turnId"],
+      "properties": ["threadId", "turnId"]
+    },
+    "v2/TurnStartedNotification.json": {
+      "sha256": "82b22cdff68277f1a35b13354d4dba53975f01bec8702d415d0185023231f19c",
+      "required": ["threadId", "turn"],
+      "properties": ["threadId", "turn"]
+    },
+    "v2/TurnCompletedNotification.json": {
+      "sha256": "756017d04296be2f4fb02853fcf1385e7a63c60d9f8d84c04993b9b0638bae40",
+      "required": ["threadId", "turn"],
+      "properties": ["threadId", "turn"]
+    },
+    "v2/AgentMessageDeltaNotification.json": {
+      "sha256": "996e6c0ea65e57bed5a00f410b94381fe5ebf804333e5d00c2b6e6d47e5c55f6",
+      "required": ["delta", "itemId", "threadId", "turnId"],
+      "properties": ["delta", "itemId", "threadId", "turnId"]
+    },
+    "ServerRequest.json": {
+      "sha256": "f339be472737a0003efa25fba2e6e6c9237e621cd065b6d6995c51256e9dc1fb",
+      "required": [],
+      "properties": []
+    },
+    "ClientRequest.json": {
+      "sha256": "f75203a3d8fbe013035377ccb976103721abf46d4b267fb7b5b35f351ab4f399",
+      "required": [],
+      "properties": []
+    },
+    "ServerNotification.json": {
+      "sha256": "3cf65b74baee7484e440afef15a079d51fc8d76a33820887a97f6fdc61d81b54",
+      "required": [],
+      "properties": ["emittedAtMs"]
+    }
+  }
+}

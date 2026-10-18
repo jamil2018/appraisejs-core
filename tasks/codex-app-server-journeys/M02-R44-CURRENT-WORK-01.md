@@ -1,0 +1,15 @@
+# M02 R44 continuation state
+
+The current user instruction authorizes R36, then a fresh full 24-case T2 campaign if B14 completes, then T3 after a full T2 success. Standing future test permission remains in effect. No command may be replayed or resumed. No commits, push, auth, real inference, production grants or historical cleanup.
+
+R36 B14 passed. R41 full T2 completed 17 cases and fenced UNKNOWN at A12 with GIT_READINESS_UNREVIEWED_CHILD_PATH. The rejected path, underlying cause and failed-case cleanup remain UNKNOWN. R43 focused A12 passed with bounded cleanup and firstUnreviewedPath null; it did not reproduce or explain R41. Separate runs cannot be merged into full T2 qualification.
+
+R44 restores the original 24 cases at fresh /private/tmp/appraise-m02-ta-matrix-p26. Its path diagnostic is byte-identical to R43; acceptance, path allowlist, metadata queries, correlation, archive/package witnesses and cleanup rules are unchanged. Every case performs full history verification before admission, outside the admitted-case 60-second timer but inside the unchanged 40-minute phase. Phase timing starts before the first scan and never resets.
+
+Guarded actual preparation and verification passed in tool session 44475, exit 0, with 46 imports and zero external-effect attempts. Manifest SHA256 22095597b02883fb421f42d908a29cb54c49de5174d0857b6d91305dd4c856ff; digest baa64e1935fd5c4abc21c21485275168b4130e93840b1f95e4330b36bfa3b7c0; canonical SHA256 647ed5c99199818240bb0f7359ddbaa90d5d45310d2148ad75e304d980098b2c; 8756 artifact claims. Preparation is consumed and must not be repeated. No R44 native invocation has been submitted at the time this file was written.
+
+One focused exact review is assigned to /root/r24_review and will write .appraisejs/m02-r44-focused-review-01.json. After acceptance, materialize bindings once with /private/tmp/m02-r44-materialize-binding-01.py, execute the exact command in file-only --precheck mode, record one exclusive submission intent, then submit the exact --run command once using require_escalated with no reusable prefix. Progress helper: /private/tmp/m02-r44-read-progress-01.py. After terminal exit, collect once using /private/tmp/m02-collect-r44-terminal-01.py with exit code and native session. Preserve all outputs.
+
+R44 cumulative whole-campaign ceilings: listener 209, control 818, source 516, combined listener 210 including R16; Codex/MCP/thread 206, turn 198, provider 493, scoped 280, workspace 2, permission 10, outer 296, canonical 1526. Earlier consumed allocations are not refunded. Unrun R39/R40/R42 add zero. Source/scoped counts do not attest total process inventory.
+
+T2, T3 and M02 remain incomplete. T3 requires this fresh campaign's own 24 successful case conjunctions, closed terminal, no pending reservations and bounded cleanup. Historical UNKNOWNs and cleanup uncertainty remain preserved. GC3 is REVISE, inference exhausted 3/3. Frozen M00 SHA256 remains 1e39e733d5211db80705a1c34235d24580db618a9f505e7a16dc163398568133.

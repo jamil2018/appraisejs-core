@@ -1,0 +1,149 @@
+{
+  "schema": "appraise.m02-r55-source-snapshot/v1",
+  "files": [
+    {
+      "path": "/Users/jamil/Personal Projects/appraisejs/scripts/tests/fixtures/codex-app-server-m02-ta-workspace-r55/canonical-build.mjs",
+      "sha256": "14c071afc4b5c34d37aff2d854ea99922d039678b03c2a3392dcdf8b7cc395d2",
+      "bytes": 2276
+    },
+    {
+      "path": "/Users/jamil/Personal Projects/appraisejs/scripts/tests/fixtures/codex-app-server-m02-ta-workspace-r55/case-coordinator.mjs",
+      "sha256": "226eec75747fd8f2d91756bf176346bbd4e3d87c3a689b18db2a500983f7390f",
+      "bytes": 6799
+    },
+    {
+      "path": "/Users/jamil/Personal Projects/appraisejs/scripts/tests/fixtures/codex-app-server-m02-ta-workspace-r55/case-receipts.mjs",
+      "sha256": "af81028260e2df410636e7140879c8f322d8268f6e703c9d7fb44850072cc05b",
+      "bytes": 2255
+    },
+    {
+      "path": "/Users/jamil/Personal Projects/appraisejs/scripts/tests/fixtures/codex-app-server-m02-ta-workspace-r55/child-evidence.mjs",
+      "sha256": "55ceb87161dca8c59ad9343411c88f3f8d59dabbc051a8600b414d79fb098ca1",
+      "bytes": 2139
+    },
+    {
+      "path": "/Users/jamil/Personal Projects/appraisejs/scripts/tests/fixtures/codex-app-server-m02-ta-workspace-r55/composition.mjs",
+      "sha256": "dba15db7156da224d1fcbeca05b29fd8c2321d422c6f750b826673a2216b4091",
+      "bytes": 1471
+    },
+    {
+      "path": "/Users/jamil/Personal Projects/appraisejs/scripts/tests/fixtures/codex-app-server-m02-ta-workspace-r55/entrypoint.mjs",
+      "sha256": "0a4c5405c0c047cbd54c1b8b28c6e0e7142b051763ff68a6c112c27bd4a5fc21",
+      "bytes": 22568
+    },
+    {
+      "path": "/Users/jamil/Personal Projects/appraisejs/scripts/tests/fixtures/codex-app-server-m02-ta-workspace-r55/framing.mjs",
+      "sha256": "962f0929cd41b17b55261d96a5b160f7c77e08ad99353705eadd40e08a57b70f",
+      "bytes": 1774
+    },
+    {
+      "path": "/Users/jamil/Personal Projects/appraisejs/scripts/tests/fixtures/codex-app-server-m02-ta-workspace-r55/full-t3-budget.mjs",
+      "sha256": "4388eccc431ebbe0ef69384d220e986a8b55f0b9fa9450681c64cd885187c0b3",
+      "bytes": 8539
+    },
+    {
+      "path": "/Users/jamil/Personal Projects/appraisejs/scripts/tests/fixtures/codex-app-server-m02-ta-workspace-r55/host-file.mjs",
+      "sha256": "1be6cc0a123b259511cab16b35d1d604547d1018cd28e1705df974667903fc25",
+      "bytes": 226
+    },
+    {
+      "path": "/Users/jamil/Personal Projects/appraisejs/scripts/tests/fixtures/codex-app-server-m02-ta-workspace-r55/manifest.mjs",
+      "sha256": "1a6d17d523670e96b245dd14df4122b486864b775c332588e13e8dd600f0ad64",
+      "bytes": 15066
+    },
+    {
+      "path": "/Users/jamil/Personal Projects/appraisejs/scripts/tests/fixtures/codex-app-server-m02-ta-workspace-r55/matrix-stage.mjs",
+      "sha256": "70130c691516b542fa3b409410185f968b28473b6cc8131f2fcef8678938e969",
+      "bytes": 9590
+    },
+    {
+      "path": "/Users/jamil/Personal Projects/appraisejs/scripts/tests/fixtures/codex-app-server-m02-ta-workspace-r55/mcp-readiness.mjs",
+      "sha256": "5b41f9b041a6583f8fd0f2a54cc6bd956ad28139a46ad7f761bfc6bcd94725fa",
+      "bytes": 1504
+    },
+    {
+      "path": "/Users/jamil/Personal Projects/appraisejs/scripts/tests/fixtures/codex-app-server-m02-ta-workspace-r55/native-contracts.mjs",
+      "sha256": "7163494aa5eafd9ab9a526f70e364d9242c88a349b390f8258819a3b3b54db5b",
+      "bytes": 7462
+    },
+    {
+      "path": "/Users/jamil/Personal Projects/appraisejs/scripts/tests/fixtures/codex-app-server-m02-ta-workspace-r55/native-plans.mjs",
+      "sha256": "44fc00e82367c1a393ef0de0f694101d14296c2458ddd25133dcedea5ca31548",
+      "bytes": 6551
+    },
+    {
+      "path": "/Users/jamil/Personal Projects/appraisejs/scripts/tests/fixtures/codex-app-server-m02-ta-workspace-r55/native-ports.mjs",
+      "sha256": "8b332001b8d22335c2e7011bb1afa61f4fc5c0acda1c4b322fab5249b8666941",
+      "bytes": 26094
+    },
+    {
+      "path": "/Users/jamil/Personal Projects/appraisejs/scripts/tests/fixtures/codex-app-server-m02-ta-workspace-r55/native-session-diagnostic.mjs",
+      "sha256": "7ec9506b80571b203aa2a421f10c61f65ccae6c51122382b28c2731da3410d92",
+      "bytes": 8324
+    },
+    {
+      "path": "/Users/jamil/Personal Projects/appraisejs/scripts/tests/fixtures/codex-app-server-m02-ta-workspace-r55/native-session.mjs",
+      "sha256": "4b6f058a48417475c9b9f3f7443cd3b06c1d0c9a7b3e2e218f96a2d0c3e711fb",
+      "bytes": 11359
+    },
+    {
+      "path": "/Users/jamil/Personal Projects/appraisejs/scripts/tests/fixtures/codex-app-server-m02-ta-workspace-r55/owned-scratch-proof.mjs",
+      "sha256": "196245ecea14ba40f572750e7df22ecd939fd10f9b01b59d445dba3dedb0194e",
+      "bytes": 10915
+    },
+    {
+      "path": "/Users/jamil/Personal Projects/appraisejs/scripts/tests/fixtures/codex-app-server-m02-ta-workspace-r55/policy.mjs",
+      "sha256": "d9502d7da636a1e5757f4ac8e445ef40a09dd2c18cc917cea807efe602cf145e",
+      "bytes": 631
+    },
+    {
+      "path": "/Users/jamil/Personal Projects/appraisejs/scripts/tests/fixtures/codex-app-server-m02-ta-workspace-r55/preparation.mjs",
+      "sha256": "c30c11db3cb1efb01646b2be2852a404363ae3fc3b4efb3a3a2d539b94f46f8c",
+      "bytes": 5554
+    },
+    {
+      "path": "/Users/jamil/Personal Projects/appraisejs/scripts/tests/fixtures/codex-app-server-m02-ta-workspace-r55/protocol.mjs",
+      "sha256": "637f5dd41855e4d6d05e3332d4bc1e165595ed190a0246989b7fda13c5728826",
+      "bytes": 28533
+    },
+    {
+      "path": "/Users/jamil/Personal Projects/appraisejs/scripts/tests/fixtures/codex-app-server-m02-ta-workspace-r55/r54-evidence.mjs",
+      "sha256": "5390480f26721ff92b564a652cbda39aafcd98d28f657e3860e35d543d93a0ce",
+      "bytes": 32143
+    },
+    {
+      "path": "/Users/jamil/Personal Projects/appraisejs/scripts/tests/fixtures/codex-app-server-m02-ta-workspace-r55/scoped-entry.mjs",
+      "sha256": "9c1fcdab1915241f026449fd2e6b7f02a26180a15900cfaa7844445f2f9acc68",
+      "bytes": 4969
+    },
+    {
+      "path": "/Users/jamil/Personal Projects/appraisejs/scripts/tests/fixtures/codex-app-server-m02-ta-workspace-r55/scoped-worker-entry.mjs",
+      "sha256": "949f263df314825654ac405c9c8c2d8c336f253a64b486f557fa756b98a7b814",
+      "bytes": 5813
+    },
+    {
+      "path": "/Users/jamil/Personal Projects/appraisejs/scripts/tests/fixtures/codex-app-server-m02-ta-workspace-r55/thread-read-state.mjs",
+      "sha256": "8e415f2c0da241e9868dbca19270fa81122fe1fb5df2b0d517c3d765c607bdfb",
+      "bytes": 1973
+    },
+    {
+      "path": "/Users/jamil/Personal Projects/appraisejs/scripts/tests/fixtures/codex-app-server-m02-ta-workspace-r55/turn-diff-updated.mjs",
+      "sha256": "cbc62063b94e7026693c7d3922c59379f397f9c0f458707e5f648c6c610056df",
+      "bytes": 1783
+    },
+    {
+      "path": "/Users/jamil/Personal Projects/appraisejs/scripts/tests/fixtures/codex-app-server-m02-ta-workspace-r55/workspace-launcher.mjs",
+      "sha256": "a90ddc08366f1406ee90eabeec33cc0101dfdbb6804516a72e55cea0eb004258",
+      "bytes": 14895
+    },
+    {
+      "path": "/Users/jamil/Personal Projects/appraisejs/scripts/tests/fixtures/codex-app-server-m02-ta-workspace-r55/workspace-runner.mjs",
+      "sha256": "e798d798fe69a0c89cdac37c7040600325297b8189bab379c3147d3808045f67",
+      "bytes": 19709
+    }
+  ],
+  "treeSha256": "d8ad3d9bd7063ab550e4254fa7a04b77bac04e0cddd00a41884b8777b9ef7242",
+  "treeDigestEncoding": "SHA256_UTF8_JSON_STRINGIFY_FILES_ARRAY",
+  "nativeRunAttempted": false,
+  "regressionTestsAdded": 0
+}

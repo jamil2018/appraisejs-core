@@ -1,0 +1,11 @@
+# M02 R22 resume — approved, blocked before actual precheck
+
+2026-10-17. The user explicitly approved the exact R22 precheck and one conditional T2 campaign in this chat. That decision is preserved literally in `.appraisejs/m02-r22-approved-blocked-current-pin-drift-01.json`.
+
+Before creating the fixed actual decision receipt or submitting the actual precheck, the inert guarded `--verify` refused a changed root `package.json` pin. The checkout advanced from ac758cea to 98b531d6 through two committed harness updates. All R22 source/test/helper and reviewed artifact bytes match; 6,604 current manifest pins match, one changed, none are missing. The 23 archive-backed claims were verified separately and remain exact. The old 3,349-file baseline now has 24 committed harness/config changes; its recorded historical observations remain unchanged. Do not revert these commits or claim zero current baseline drift.
+
+No actual R22 precheck or runtime command was submitted. No native allocation was consumed. R22 is approved but blocked, not a consumed runtime UNKNOWN. Its fixed actual decision file and p8 remain absent. R21 remains consumed UNKNOWN with unresolved effects/cleanup; all earlier outcomes and allocations remain intact. M00 remains at its approved SHA. GC3 remains REVISE / not passed. Actual T2 completions remain zero; T3 and M02 remain incomplete.
+
+[TA05](m02-ta05-root-package-requalification-01.md), SHA-256 `a57a8b3bbd5b0eb95345b121d5268092508245d73dfb57d8661dc69e74bb75f7`, is a concrete proposed offline criterion amendment for only the exact five-script metadata delta. It preserves old package bytes/hash as predecessor provenance and qualifies the new current hash separately. No unchanged verifier may be tricked into treating historical bytes as current. A future additive R23 would need working composed offline evidence and an exact review, followed by its own separate exact runtime authorization. The user's TA05 decision is pending; no R23 implementation or build exists.
+
+Evidence: `.appraisejs/m02-r22-approved-blocked-current-pin-drift-01.json` and `.appraisejs/m02-r22-resume-checkout-delta-01.json`. Current work used no subagents. Host role/model/context/sandbox enforcement remains unattested. No auth, inference, Appraise grant, privileged tracing, commit, push, historical cleanup or T3 action occurred.

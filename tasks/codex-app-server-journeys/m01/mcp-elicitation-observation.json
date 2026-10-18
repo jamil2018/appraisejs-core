@@ -1,0 +1,50 @@
+{
+  "evidenceClass": "actual-binary-no-model-mcp-elicitation",
+  "binarySha256": "0d5ac7aae20c4eda6242428d5e218c55ba96d8763fda2a271088ff37104b9d28",
+  "sourceSha256": "73bbc3a3a91d46d6f94000f1b9db6cb7fb2cacf22ac25943adc15e91271fac31",
+  "sharedClientSourceSha256": "a78543ff514cf2c8e3860ea080205d664e572a4ef6f2d06ff7a5919ce266ff0d",
+  "requests": [
+    {
+      "toolNames": [],
+      "authorizationPresent": false
+    }
+  ],
+  "events": [
+    {
+      "method": "turn/started",
+      "threadId": "01a13681-4062-75f0-a975-0cec12f499a3",
+      "turnId": "01a13681-407d-74a1-b2e9-635f340384e0",
+      "status": "inProgress"
+    }
+  ],
+  "elicitationReplies": [],
+  "processExits": [0],
+  "externalInferenceTurns": 0,
+  "authFilePresent": false,
+  "m01Complete": false,
+  "configSha256": "2ddde19e93e569244eefb46b1afd49ebead3593f0d480b4fd83c73c95f04fea9",
+  "normalizedConfigSha256": "8a8d2fabc239e0292563fb90b4dc1f6905497ae676e7522d109b3ab2ecd15d3b",
+  "processStarts": 1,
+  "userAgent": "appraise_m01_mcp/0.162.0-alpha.17.2 (Mac OS 27.0.1; arm64) unknown (appraise_m01_mcp; 0.1)",
+  "effectiveConfigSha256": "5096bc76a8e977aa4541df45cbb96d8fc110b644e38db3f41d475ad1fb4daeec",
+  "scriptedTurnStarts": 1,
+  "items": [
+    {
+      "method": "item/started",
+      "threadId": "01a13681-4062-75f0-a975-0cec12f499a3",
+      "turnId": "01a13681-407d-74a1-b2e9-635f340384e0",
+      "itemId": "01a13681-4087-79a3-a03c-dd54cc00adbd",
+      "type": "userMessage"
+    },
+    {
+      "method": "item/completed",
+      "threadId": "01a13681-4062-75f0-a975-0cec12f499a3",
+      "turnId": "01a13681-407d-74a1-b2e9-635f340384e0",
+      "itemId": "01a13681-4087-79a3-a03c-dd54cc00adbd",
+      "type": "userMessage"
+    }
+  ],
+  "parkedReason": "RuntimeError: provider error notification; park",
+  "qualificationPassed": false,
+  "requiredGap": "MCP fixture tool absent from scripted provider manifest; form/URL cancellation not exercised."
+}
